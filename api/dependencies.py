@@ -10,7 +10,7 @@ from lib.workflows.claim_substantiation.state import SubstantiationWorkflowConfi
 
 
 async def build_config_from_form(
-    use_toulmin: bool = Form(default=True),
+    use_toulmin: bool = Form(default=False),
     run_literature_review: bool = Form(default=True),
     run_suggest_citations: bool = Form(default=True),
     use_rag: bool = Form(default=True),
