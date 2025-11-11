@@ -15,7 +15,7 @@ export function getRegionsForChunk(chunkToItems: ChunkToItems | undefined | null
   return regions.filter(isValidRegion);
 }
 
-function isValidRegion(region: any): region is Region {
+function isValidRegion(region: unknown): region is Region {
   return (
     region &&
     typeof region === 'object' &&
@@ -65,7 +65,7 @@ export function getTotalRegionCount(chunkToItems: ChunkToItems | undefined | nul
   return uniqueIds.size;
 }
 
-export function validateChunkToItems(chunkToItems: any): { valid: boolean; errors: string[] } {
+export function validateChunkToItems(chunkToItems: unknown): { valid: boolean; errors: string[] } {
   const errors: string[] = [];
 
   if (!chunkToItems) {
@@ -90,7 +90,7 @@ export function validateChunkToItems(chunkToItems: any): { valid: boolean; error
       continue;
     }
 
-    (value as any[]).forEach((region, idx) => {
+    (value as unknown[]).forEach((region, idx) => {
       if (!isValidRegion(region)) {
         errors.push(`Chunk ${chunkIndex}, region ${idx}: invalid region structure`);
       }

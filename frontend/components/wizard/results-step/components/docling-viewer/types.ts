@@ -1,4 +1,4 @@
-import type { ChunkToItems, DoclingDocument, Region } from '@/types/docling';
+import type { ChunkToItems, DoclingDocument, DoclingPage, Region } from '@/types/docling';
 
 export interface DoclingViewerProps {
   docJson: DoclingDocument;
@@ -9,7 +9,7 @@ export interface DoclingViewerProps {
 }
 
 export interface DoclingPageProps {
-  page: any; // DoclingPage from json_content
+  page: DoclingPage;
   pageNum: number;
   regions: RegionWithChunks[];
   selectedRegions: Region[];

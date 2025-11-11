@@ -18,14 +18,15 @@ export type ChunkToItems = Record<string, Region[]>;
 
 export type DoclingPage = {
   page?: number;
+  page_no?: number;
   size?: {
     width: number;
     height: number;
   };
   width?: number;
   height?: number;
-  image?: string; // Base64 image data
-  [key: string]: any;
+  image?: string | { uri?: string }; // Base64 image data or image object
+  [key: string]: unknown;
 };
 
 export type DoclingItem = {
@@ -35,9 +36,9 @@ export type DoclingItem = {
   prov?: Array<{
     page: number;
     bbox: BBox;
-    [key: string]: any;
+    [key: string]: unknown;
   }>;
-  [key: string]: any;
+  [key: string]: unknown;
 };
 
 export type DoclingJsonContent = {
@@ -47,7 +48,7 @@ export type DoclingJsonContent = {
   pictures?: DoclingItem[];
   body?: DoclingItem[];
   key_value_items?: DoclingItem[];
-  [key: string]: any;
+  [key: string]: unknown;
 };
 
 export type DoclingDocument = DoclingJsonContent;

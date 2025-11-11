@@ -9,12 +9,15 @@ export type BBoxPercent = {
   height: string;
 };
 
+type BBoxWithLegacyFields = BBox & { x0?: number; y0?: number; x1?: number; y1?: number };
+
 export function bboxToPercent(bbox: BBox, pageW: number, pageH: number): BBoxPercent {
   // Docling uses l,b,r,t (left, bottom, right, top)
-  const x0 = bbox.l ?? (bbox as any).x0 ?? 0;
-  const y0 = bbox.b ?? (bbox as any).y0 ?? 0;
-  const x1 = bbox.r ?? (bbox as any).x1 ?? 0;
-  const y1 = bbox.t ?? (bbox as any).y1 ?? 0;
+  const legacyBbox = bbox as BBoxWithLegacyFields;
+  const x0 = bbox.l ?? legacyBbox.x0 ?? 0;
+  const y0 = bbox.b ?? legacyBbox.y0 ?? 0;
+  const x1 = bbox.r ?? legacyBbox.x1 ?? 0;
+  const y1 = bbox.t ?? legacyBbox.y1 ?? 0;
 
   return {
     left: `${(x0 / pageW) * 100}%`,
@@ -25,10 +28,11 @@ export function bboxToPercent(bbox: BBox, pageW: number, pageH: number): BBoxPer
 }
 
 export function normalizeOrigin(bbox: BBox, pageW: number, pageH: number, origin: CoordinateOrigin): BBox {
-  const x0 = bbox.l ?? (bbox as any).x0 ?? 0;
-  const y0 = bbox.b ?? (bbox as any).y0 ?? 0;
-  const x1 = bbox.r ?? (bbox as any).x1 ?? 0;
-  const y1 = bbox.t ?? (bbox as any).y1 ?? 0;
+  const legacyBbox = bbox as BBoxWithLegacyFields;
+  const x0 = bbox.l ?? legacyBbox.x0 ?? 0;
+  const y0 = bbox.b ?? legacyBbox.y0 ?? 0;
+  const x1 = bbox.r ?? legacyBbox.x1 ?? 0;
+  const y1 = bbox.t ?? legacyBbox.y1 ?? 0;
 
   if (origin === 'bottom-left') {
     return {

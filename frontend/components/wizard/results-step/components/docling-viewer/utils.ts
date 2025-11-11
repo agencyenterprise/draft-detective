@@ -1,7 +1,7 @@
-import type { ChunkToItems } from '@/types/docling';
+import type { ChunkToItems, DoclingPage } from '@/types/docling';
 import type { RegionWithChunks } from './types';
 
-export const getPageNumber = (page: any): number => page.page_no ?? page.page ?? 0;
+export const getPageNumber = (page: DoclingPage): number => page.page_no ?? page.page ?? 0;
 
 export function buildRegionsByPage(chunkToItems: ChunkToItems): Record<number, RegionWithChunks[]> {
   const regionMap = new Map<string, RegionWithChunks>();
@@ -33,7 +33,7 @@ export function buildRegionsByPage(chunkToItems: ChunkToItems): Record<number, R
   return byPage;
 }
 
-export function getImageUrl(imageData: any, pageNum: number, baseUrl: string): string {
+export function getImageUrl(imageData: { uri?: string } | undefined, pageNum: number, baseUrl: string): string {
   if (imageData?.uri) {
     if (imageData.uri.startsWith('data:')) {
       return imageData.uri;

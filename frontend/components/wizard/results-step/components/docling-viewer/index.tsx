@@ -15,7 +15,7 @@ export function DoclingViewer({
 }: DoclingViewerProps) {
   const pages = useMemo(() => {
     if (!docJson?.pages) return [];
-    return Object.values(docJson.pages).sort((a: any, b: any) => getPageNumber(a) - getPageNumber(b));
+    return Object.values(docJson.pages).sort((a, b) => getPageNumber(a) - getPageNumber(b));
   }, [docJson]);
 
   const selectedRegions = useMemo(() => {

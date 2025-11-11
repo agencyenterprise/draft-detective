@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import type { DoclingPageProps } from './types';
 import { RegionOverlay } from './region-overlay';
 import { getImageUrl } from './utils';
@@ -11,20 +12,20 @@ export function DoclingPage({
   pageImagesBaseUrl,
   onChunkSelect,
 }: DoclingPageProps) {
-  const imageUrl = getImageUrl(page.image, pageNum, pageImagesBaseUrl);
+  const imageUrl = getImageUrl(page.image as { uri?: string }, pageNum, pageImagesBaseUrl);
   const width = page.size?.width ?? page.width ?? 612;
   const height = page.size?.height ?? page.height ?? 792;
 
   return (
     <div className="relative mx-auto bg-white shadow-lg">
-      <img
+      <Image
         src={imageUrl}
         alt={`Page ${pageNum}`}
+        width={width}
+        height={height}
         className="w-full h-auto block"
-        style={{
-          maxWidth: '100%',
-          height: 'auto',
-        }}
+        unoptimized
+        priority
       />
 
       <div className="absolute inset-0">
