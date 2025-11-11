@@ -3,6 +3,7 @@
 import { analysisService } from '@/lib/analysis-service';
 import { downloadFile, generateEvalFilename } from '@/lib/file-download';
 import { ChunkReevaluationResponse, ClaimSubstantiatorStateSummary } from '@/lib/generated-api';
+import { DocRenderMode } from '@/lib/constants';
 import { FileText } from 'lucide-react';
 import * as React from 'react';
 import { Button } from '../../ui/button';
@@ -18,14 +19,22 @@ interface ResultsVisualizationProps {
   results: ClaimSubstantiatorStateSummary | undefined;
   onChunkReevaluation: (response: ChunkReevaluationResponse) => void;
   isProcessing?: boolean;
+  viewMode?: DocRenderMode;
+  activeTab?: TabType;
+  onTabChange?: (tab: TabType) => void;
 }
 
 export function ResultsVisualization({
   results,
   onChunkReevaluation,
   isProcessing = false,
+  viewMode,
+  activeTab: activeTabProp,
+  onTabChange: onTabChangeProp,
 }: ResultsVisualizationProps) {
-  const [activeTab, setActiveTab] = React.useState<TabType>('document-explorer');
+  const [localActiveTab, setLocalActiveTab] = React.useState<TabType>('document-explorer');
+  const activeTab = activeTabProp ?? localActiveTab;
+  const setActiveTab = onTabChangeProp ?? setLocalActiveTab;
 
   const calculations = useResultsCalculations(results);
 
@@ -88,6 +97,7 @@ export function ResultsVisualization({
             results={results}
             onChunkReevaluation={onChunkReevaluation}
             isProcessing={isProcessing}
+            viewMode={viewMode}
           />
         );
     }

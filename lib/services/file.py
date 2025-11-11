@@ -1,10 +1,12 @@
 import mimetypes
 import os
+from typing import Optional
 
 from langchain_core.messages.utils import count_tokens_approximately
 from pydantic import BaseModel, Field
 
 from lib.services.converters.base import convert_to_markdown
+from lib.services.docling_models import DoclingDocument
 
 
 class FileDocument(BaseModel):
@@ -18,6 +20,10 @@ class FileDocument(BaseModel):
     markdown: str = Field(description="The uploaded file content converted to markdown")
     markdown_token_count: int = Field(
         description="The approximate number of tokens in the markdown content"
+    )
+    docling_document: Optional[DoclingDocument] = Field(
+        default=None,
+        description="Structured Docling document data (pages, items, bboxes) for rendering",
     )
 
 

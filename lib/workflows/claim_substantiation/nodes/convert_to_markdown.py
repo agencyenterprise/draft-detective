@@ -1,6 +1,7 @@
 import asyncio
 import logging
 
+from lib.config.env import config
 from lib.services.converters.base import convert_to_markdown as convert_to_markdown_fn
 from lib.services.file import FileDocument
 from lib.workflows.claim_substantiation.state import ClaimSubstantiatorState
@@ -37,7 +38,18 @@ async def convert_to_markdown(
 
 
 async def _convert_to_markdown_task(file_document: FileDocument) -> FileDocument:
-    markdown = await convert_to_markdown_fn(file_document.file_path)
+    """Convert document and capture Docling data if using Docling converter"""
+    docling_document = None
+
+    if config.FILE_CONVERTER == "docling":
+        from lib.services.converters.docling import docling_converter
+
+        result = await docling_converter.convert_with_docling(file_document.file_path)
+        markdown = result["markdown"]
+        docling_document = result.get("docling_document")
+    else:
+        markdown = await convert_to_markdown_fn(file_document.file_path)
+
     markdown_token_count = count_tokens_approximately([markdown])
 
     return FileDocument(
@@ -46,4 +58,5 @@ async def _convert_to_markdown_task(file_document: FileDocument) -> FileDocument
         file_type=file_document.file_type,
         markdown=markdown,
         markdown_token_count=markdown_token_count,
+        docling_document=docling_document,
     )

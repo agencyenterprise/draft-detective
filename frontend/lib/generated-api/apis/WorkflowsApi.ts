@@ -42,6 +42,11 @@ export interface GetChunkDetailsEndpointApiWorkflowRunWorkflowRunIdChunkChunkInd
   chunkIndex: number;
 }
 
+export interface GetPageImageApiWorkflowRunsWorkflowRunIdPagesImagePathGetRequest {
+  workflowRunId: string;
+  imagePath: string;
+}
+
 export interface GetWorkflowRunApiWorkflowRunWorkflowRunIdGetRequest {
   workflowRunId: string;
 }
@@ -161,6 +166,68 @@ export class WorkflowsApi extends runtime.BaseAPI {
     initOverrides?: RequestInit | runtime.InitOverrideFunction,
   ): Promise<DocumentChunkOutput> {
     const response = await this.getChunkDetailsEndpointApiWorkflowRunWorkflowRunIdChunkChunkIndexGetRaw(
+      requestParameters,
+      initOverrides,
+    );
+    return await response.value();
+  }
+
+  /**
+   * Serve Docling page images for a workflow run  When Docling uses image_export_mode=\'reference\', it stores images in the conversion output. This endpoint serves those images.  Args:     workflow_run_id: The workflow run ID     image_path: The image path from Docling (e.g., \'page_1.png\' or relative path)  Returns:     The image file
+   * Get Page Image
+   */
+  async getPageImageApiWorkflowRunsWorkflowRunIdPagesImagePathGetRaw(
+    requestParameters: GetPageImageApiWorkflowRunsWorkflowRunIdPagesImagePathGetRequest,
+    initOverrides?: RequestInit | runtime.InitOverrideFunction,
+  ): Promise<runtime.ApiResponse<any>> {
+    if (requestParameters['workflowRunId'] == null) {
+      throw new runtime.RequiredError(
+        'workflowRunId',
+        'Required parameter "workflowRunId" was null or undefined when calling getPageImageApiWorkflowRunsWorkflowRunIdPagesImagePathGet().',
+      );
+    }
+
+    if (requestParameters['imagePath'] == null) {
+      throw new runtime.RequiredError(
+        'imagePath',
+        'Required parameter "imagePath" was null or undefined when calling getPageImageApiWorkflowRunsWorkflowRunIdPagesImagePathGet().',
+      );
+    }
+
+    const queryParameters: any = {};
+
+    const headerParameters: runtime.HTTPHeaders = {};
+
+    let urlPath = `/api/workflow-runs/{workflow_run_id}/pages/{image_path}`;
+    urlPath = urlPath.replace(`{${'workflow_run_id'}}`, encodeURIComponent(String(requestParameters['workflowRunId'])));
+    urlPath = urlPath.replace(`{${'image_path'}}`, encodeURIComponent(String(requestParameters['imagePath'])));
+
+    const response = await this.request(
+      {
+        path: urlPath,
+        method: 'GET',
+        headers: headerParameters,
+        query: queryParameters,
+      },
+      initOverrides,
+    );
+
+    if (this.isJsonMime(response.headers.get('content-type'))) {
+      return new runtime.JSONApiResponse<any>(response);
+    } else {
+      return new runtime.TextApiResponse(response) as any;
+    }
+  }
+
+  /**
+   * Serve Docling page images for a workflow run  When Docling uses image_export_mode=\'reference\', it stores images in the conversion output. This endpoint serves those images.  Args:     workflow_run_id: The workflow run ID     image_path: The image path from Docling (e.g., \'page_1.png\' or relative path)  Returns:     The image file
+   * Get Page Image
+   */
+  async getPageImageApiWorkflowRunsWorkflowRunIdPagesImagePathGet(
+    requestParameters: GetPageImageApiWorkflowRunsWorkflowRunIdPagesImagePathGetRequest,
+    initOverrides?: RequestInit | runtime.InitOverrideFunction,
+  ): Promise<any> {
+    const response = await this.getPageImageApiWorkflowRunsWorkflowRunIdPagesImagePathGetRaw(
       requestParameters,
       initOverrides,
     );

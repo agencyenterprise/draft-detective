@@ -41,6 +41,13 @@ import {
   BibliographyItemToJSON,
   BibliographyItemToJSONTyped,
 } from './BibliographyItem';
+import type { ChunkToItemsInput } from './ChunkToItemsInput';
+import {
+  ChunkToItemsInputFromJSON,
+  ChunkToItemsInputFromJSONTyped,
+  ChunkToItemsInputToJSON,
+  ChunkToItemsInputToJSONTyped,
+} from './ChunkToItemsInput';
 import type { LiteratureReviewResponseInput } from './LiteratureReviewResponseInput';
 import {
   LiteratureReviewResponseInputFromJSON,
@@ -181,6 +188,12 @@ export interface ClaimSubstantiatorStateInput {
    * @memberof ClaimSubstantiatorStateInput
    */
   rankedIssues?: Array<DocumentIssue>;
+  /**
+   *
+   * @type {ChunkToItemsInput}
+   * @memberof ClaimSubstantiatorStateInput
+   */
+  chunkToItems?: ChunkToItemsInput | null;
 }
 
 /**
@@ -232,6 +245,7 @@ export function ClaimSubstantiatorStateInputFromJSONTyped(
     addendum: json['addendum'] == null ? undefined : AddendumInputFromJSON(json['addendum']),
     rankedIssues:
       json['ranked_issues'] == null ? undefined : (json['ranked_issues'] as Array<any>).map(DocumentIssueFromJSON),
+    chunkToItems: json['chunk_to_items'] == null ? undefined : ChunkToItemsInputFromJSON(json['chunk_to_items']),
   };
 }
 
@@ -274,5 +288,6 @@ export function ClaimSubstantiatorStateInputToJSONTyped(
     addendum: AddendumInputToJSON(value['addendum']),
     ranked_issues:
       value['rankedIssues'] == null ? undefined : (value['rankedIssues'] as Array<any>).map(DocumentIssueToJSON),
+    chunk_to_items: ChunkToItemsInputToJSON(value['chunkToItems']),
   };
 }

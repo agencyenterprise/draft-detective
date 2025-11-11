@@ -10,6 +10,7 @@ export {
 } from './citation-suggestion-badges';
 export { ClaimAnalysisCard } from './claim-analysis-card';
 export { CollapsibleFeedback } from './collapsible-feedback';
+export { DoclingViewer } from './docling-viewer';
 export { ExpandableControl } from './expandable-control';
 export { SubstantiationRequestCard } from './substantiation-request-card';
 export { SummaryCards } from './summary-cards';

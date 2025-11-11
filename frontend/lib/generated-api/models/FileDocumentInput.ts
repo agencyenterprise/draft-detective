@@ -13,60 +13,62 @@
  */
 
 import { mapValues } from '../runtime';
+import type { DoclingDocumentInput } from './DoclingDocumentInput';
+import {
+  DoclingDocumentInputFromJSON,
+  DoclingDocumentInputFromJSONTyped,
+  DoclingDocumentInputToJSON,
+  DoclingDocumentInputToJSONTyped,
+} from './DoclingDocumentInput';
+
 /**
  *
  * @export
- * @interface FileDocument
+ * @interface FileDocumentInput
  */
-export interface FileDocument {
+export interface FileDocumentInput {
   /**
    * The original name of the uploaded file, as saved in the user file system
    * @type {string}
-   * @memberof FileDocument
+   * @memberof FileDocumentInput
    */
   fileName: string;
   /**
    * The path to the uploaded file, as saved in the file system
    * @type {string}
-   * @memberof FileDocument
+   * @memberof FileDocumentInput
    */
   filePath: string;
   /**
    * The MIME type of the uploaded file
    * @type {string}
-   * @memberof FileDocument
+   * @memberof FileDocumentInput
    */
   fileType: string;
   /**
    * The uploaded file content converted to markdown
    * @type {string}
-   * @memberof FileDocument
+   * @memberof FileDocumentInput
    */
   markdown: string;
   /**
    * The approximate number of tokens in the markdown content
    * @type {number}
-   * @memberof FileDocument
+   * @memberof FileDocumentInput
    */
   markdownTokenCount: number;
   /**
-   * Raw Docling json_content passed through to frontend
    *
-   * We don't parse/transform - just pass the structure as-is.
-   * Frontend will handle the Docling format directly.
-   *
-   * All fields from Docling's json_content are stored in __pydantic_extra__
-   * and serialized properly.
-   * @type {{ [key: string]: any; }}
-   * @memberof FileDocument
+   * @type {DoclingDocumentInput}
+   * @memberof FileDocumentInput
    */
-  doclingDocument?: { [key: string]: any };
+  doclingDocument?: DoclingDocumentInput | null;
 }
 
 /**
- * Check if a given object implements the FileDocument interface.
+ * Check if a given object implements the FileDocumentInput interface.
  */
-export function instanceOfFileDocument(value: object): value is FileDocument {
+export function instanceOfFileDocumentInput(value: object): value is FileDocumentInput {
   if (!('fileName' in value) || value['fileName'] === undefined) return false;
   if (!('filePath' in value) || value['filePath'] === undefined) return false;
   if (!('fileType' in value) || value['fileType'] === undefined) return false;
@@ -75,11 +77,11 @@ export function instanceOfFileDocument(value: object): value is FileDocument {
   return true;
 }
 
-export function FileDocumentFromJSON(json: any): FileDocument {
-  return FileDocumentFromJSONTyped(json, false);
+export function FileDocumentInputFromJSON(json: any): FileDocumentInput {
+  return FileDocumentInputFromJSONTyped(json, false);
 }
 
-export function FileDocumentFromJSONTyped(json: any, ignoreDiscriminator: boolean): FileDocument {
+export function FileDocumentInputFromJSONTyped(json: any, ignoreDiscriminator: boolean): FileDocumentInput {
   if (json == null) {
     return json;
   }
@@ -89,15 +91,19 @@ export function FileDocumentFromJSONTyped(json: any, ignoreDiscriminator: boolea
     fileType: json['file_type'],
     markdown: json['markdown'],
     markdownTokenCount: json['markdown_token_count'],
-    doclingDocument: json['docling_document'] == null ? undefined : json['docling_document'],
+    doclingDocument:
+      json['docling_document'] == null ? undefined : DoclingDocumentInputFromJSON(json['docling_document']),
   };
 }
 
-export function FileDocumentToJSON(json: any): FileDocument {
-  return FileDocumentToJSONTyped(json, false);
+export function FileDocumentInputToJSON(json: any): FileDocumentInput {
+  return FileDocumentInputToJSONTyped(json, false);
 }
 
-export function FileDocumentToJSONTyped(value?: FileDocument | null, ignoreDiscriminator: boolean = false): any {
+export function FileDocumentInputToJSONTyped(
+  value?: FileDocumentInput | null,
+  ignoreDiscriminator: boolean = false,
+): any {
   if (value == null) {
     return value;
   }
@@ -108,6 +114,6 @@ export function FileDocumentToJSONTyped(value?: FileDocument | null, ignoreDiscr
     file_type: value['fileType'],
     markdown: value['markdown'],
     markdown_token_count: value['markdownTokenCount'],
-    docling_document: value['doclingDocument'],
+    docling_document: DoclingDocumentInputToJSON(value['doclingDocument']),
   };
 }

@@ -13,6 +13,13 @@
  */
 
 import { mapValues } from '../runtime';
+import type { ChunkToItemsOutput } from './ChunkToItemsOutput';
+import {
+  ChunkToItemsOutputFromJSON,
+  ChunkToItemsOutputFromJSONTyped,
+  ChunkToItemsOutputToJSON,
+  ChunkToItemsOutputToJSONTyped,
+} from './ChunkToItemsOutput';
 import type { DocumentIssue } from './DocumentIssue';
 import {
   DocumentIssueFromJSON,
@@ -181,6 +188,12 @@ export interface ClaimSubstantiatorStateSummary {
    * @memberof ClaimSubstantiatorStateSummary
    */
   rankedIssues?: Array<DocumentIssue>;
+  /**
+   *
+   * @type {ChunkToItemsOutput}
+   * @memberof ClaimSubstantiatorStateSummary
+   */
+  chunkToItems?: ChunkToItemsOutput | null;
 }
 
 /**
@@ -232,6 +245,7 @@ export function ClaimSubstantiatorStateSummaryFromJSONTyped(
     addendum: json['addendum'] == null ? undefined : AddendumOutputFromJSON(json['addendum']),
     rankedIssues:
       json['ranked_issues'] == null ? undefined : (json['ranked_issues'] as Array<any>).map(DocumentIssueFromJSON),
+    chunkToItems: json['chunk_to_items'] == null ? undefined : ChunkToItemsOutputFromJSON(json['chunk_to_items']),
   };
 }
 
@@ -274,5 +288,6 @@ export function ClaimSubstantiatorStateSummaryToJSONTyped(
     addendum: AddendumOutputToJSON(value['addendum']),
     ranked_issues:
       value['rankedIssues'] == null ? undefined : (value['rankedIssues'] as Array<any>).map(DocumentIssueToJSON),
+    chunk_to_items: ChunkToItemsOutputToJSON(value['chunkToItems']),
   };
 }

@@ -12,6 +12,7 @@ models/AddendumOutput.ts
 models/AddendumSectionsInput.ts
 models/AddendumSectionsOutput.ts
 models/AddendumSeverity.ts
+models/BBox.ts
 models/BibliographyFieldValidation.ts
 models/BibliographyItem.ts
 models/BibliographyItemValidationInput.ts
@@ -19,6 +20,8 @@ models/BibliographyItemValidationOutput.ts
 models/ChunkEvalPackageRequest.ts
 models/ChunkReevaluationRequest.ts
 models/ChunkReevaluationResponse.ts
+models/ChunkToItemsInput.ts
+models/ChunkToItemsOutput.ts
 models/Citation.ts
 models/CitationResponseInput.ts
 models/CitationResponseOutput.ts
@@ -38,6 +41,7 @@ models/ClaimSubstantiatorStateOutput.ts
 models/ClaimSubstantiatorStateSummary.ts
 models/Claims.ts
 models/ConfidenceInRecommendation.ts
+models/DoclingRegion.ts
 models/DocumentChunkInput.ts
 models/DocumentChunkOutput.ts
 models/DocumentChunkSummary.ts
