@@ -7,11 +7,13 @@ Provides RESTful API for managing user feedback on analysis results.
 from typing import Optional
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
+from api.auth import get_current_user
 from lib.config.database import get_db
 from lib.models.feedback import Feedback, FeedbackType
+from lib.models.user import User
 from lib.services import feedback_service
 
 router = APIRouter(tags=["feedback"])
@@ -63,7 +65,10 @@ class FeedbackResponse(BaseModel):
 
 
 @router.post("/api/feedback", response_model=FeedbackResponse)
-async def submit_feedback(request: FeedbackRequest) -> FeedbackResponse:
+async def submit_feedback(
+    request: FeedbackRequest,
+    current_user: User = Depends(get_current_user),
+) -> FeedbackResponse:
     """Submit or update feedback for any entity"""
     with get_db() as session:
         feedback_type = FeedbackType(request.feedback_type)
@@ -73,6 +78,7 @@ async def submit_feedback(request: FeedbackRequest) -> FeedbackResponse:
             workflow_run_id=request.workflow_run_id,
             entity_path=request.entity_path,
             feedback_type=feedback_type,
+            user=current_user,
             feedback_text=request.feedback_text,
         )
 
@@ -83,6 +89,7 @@ async def submit_feedback(request: FeedbackRequest) -> FeedbackResponse:
 async def get_feedback(
     workflow_run_id: UUID,
     entity_path: str,  # JSON string, we'll parse it
+    current_user: User = Depends(get_current_user),
 ) -> Optional[FeedbackResponse]:
     """Get feedback for a specific entity
 
@@ -97,6 +104,7 @@ async def get_feedback(
             session=session,
             workflow_run_id=workflow_run_id,
             entity_path=parsed_path,
+            user=current_user,
         )
 
         if feedback:
@@ -107,22 +115,26 @@ async def get_feedback(
 @router.get(
     "/api/feedback/workflow/{workflow_run_id}", response_model=list[FeedbackResponse]
 )
-async def get_workflow_feedback(workflow_run_id: UUID) -> list[FeedbackResponse]:
+async def get_workflow_feedback(
+    workflow_run_id: UUID, current_user: User = Depends(get_current_user)
+) -> list[FeedbackResponse]:
     """Get all feedback for a workflow run"""
     with get_db() as session:
         feedbacks = feedback_service.get_workflow_feedback(
-            session=session, workflow_run_id=workflow_run_id
+            session=session, workflow_run_id=workflow_run_id, user=current_user
         )
 
         return [FeedbackResponse.from_model(f) for f in feedbacks]
 
 
 @router.delete("/api/feedback/{feedback_id}", response_model=dict)
-async def delete_feedback(feedback_id: UUID) -> dict:
+async def delete_feedback(
+    feedback_id: UUID, current_user: User = Depends(get_current_user)
+) -> dict:
     """Delete feedback by ID"""
     with get_db() as session:
         success = feedback_service.delete_feedback(
-            session=session, feedback_id=feedback_id
+            session=session, feedback_id=feedback_id, user=current_user
         )
 
         if not success:

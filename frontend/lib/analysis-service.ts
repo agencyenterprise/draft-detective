@@ -12,7 +12,8 @@ import {
   StartAnalysisResponseFromJSON,
 } from '@/lib/generated-api';
 import { downloadBlobResponse, generateDefaultTestName } from '@/lib/utils';
-import { analysisApi, evaluationApi, healthApi, apiUrl } from './api';
+import { analysisApi, evaluationApi, healthApi, apiUrl, getAuthHeader } from './api';
+import { getSession } from 'next-auth/react';
 
 interface AnalysisRequest {
   mainDocument: File;
@@ -46,7 +47,7 @@ class AnalysisService {
     request: AnalysisRequest,
     onProgress?: (progress: number) => void,
   ): Promise<StartAnalysisResponse> {
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
       try {
         const config = request.config || {};
 
@@ -107,6 +108,13 @@ class AnalysisService {
         });
 
         xhr.open('POST', `${apiUrl}/api/start-analysis`);
+
+        // Set authorization header if available
+        const authHeader = await getAuthHeader();
+        if (authHeader) {
+          xhr.setRequestHeader('Authorization', authHeader);
+        }
+
         xhr.send(formData);
       } catch (error) {
         console.error('Error starting analysis:', error);

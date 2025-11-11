@@ -42,6 +42,9 @@ from lib.workflows.claim_substantiation.nodes.generate_live_reports import (
 )
 from lib.workflows.claim_substantiation.nodes.categorize_claims import categorize_claims
 from lib.workflows.claim_substantiation.nodes.generate_addendum import generate_addendum
+from lib.workflows.claim_substantiation.nodes.generate_addendum_report import (
+    generate_addendum_report,
+)
 from lib.workflows.claim_substantiation.nodes.validate_inferences import (
     validate_inferences,
 )
@@ -112,6 +115,7 @@ def build_claim_substantiator_graph(
             "generate_live_reports_analysis", generate_live_reports_analysis, defer=True
         )
         graph.add_node("generate_addendum", generate_addendum, defer=True)
+        graph.add_node("generate_addendum_report", generate_addendum_report, defer=True)
 
     # Finalize/join node to allow parallel branches to complete
     if run_suggest_citations and run_live_reports:
@@ -166,12 +170,14 @@ def build_claim_substantiator_graph(
         graph.add_edge("verify_claims", "generate_live_reports_analysis")
         graph.add_edge("validate_inferences", "generate_live_reports_analysis")
         graph.add_edge("generate_live_reports_analysis", "generate_addendum")
+        graph.add_edge("generate_live_reports_analysis", "generate_addendum_report")
 
     # Finalize/join node to allow parallel branches to complete
     if run_suggest_citations and run_live_reports:
         graph.add_edge("suggest_citations", "finalize")
         graph.add_edge("generate_live_reports_analysis", "finalize")
         graph.add_edge("generate_addendum", "finalize")
+        graph.add_edge("generate_addendum_report", "finalize")
         graph.set_finish_point("finalize")
     elif run_suggest_citations:
         graph.set_finish_point("suggest_citations")

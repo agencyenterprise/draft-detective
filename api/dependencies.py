@@ -10,7 +10,9 @@ from lib.workflows.claim_substantiation.state import SubstantiationWorkflowConfi
 
 
 async def build_config_from_form(
-    use_toulmin: bool = Form(default=True),
+    use_toulmin: bool = Form(
+        default=True
+    ),  # (2025-11-07) TODO: Leaving this as True for now. Once we change the frontend we can set this to False.
     run_literature_review: bool = Form(default=True),
     run_suggest_citations: bool = Form(default=True),
     use_rag: bool = Form(default=True),

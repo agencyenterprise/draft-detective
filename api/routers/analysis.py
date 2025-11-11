@@ -9,11 +9,13 @@ from typing import Optional
 from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile
 from pydantic import BaseModel
 
+from api.auth import get_current_user
 from api.dependencies import build_config_from_form
 from api.services.workflow_runner import run_workflow_background
 from api.upload import convert_uploaded_files_to_file_document
 from lib.agents.registry import agent_registry
 from lib.config.database import get_db
+from lib.models.user import User
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus
 from lib.workflows.claim_substantiation.runner import reevaluate_single_chunk
 from lib.workflows.claim_substantiation.state import (
@@ -41,6 +43,7 @@ async def start_analysis(
     main_document: UploadFile = File(...),
     supporting_documents: Optional[list[UploadFile]] = File(default=None),
     config: SubstantiationWorkflowConfig = Depends(build_config_from_form),
+    current_user: User = Depends(get_current_user),
 ):
     """
     Start claim substantiation analysis - returns workflow_run_id immediately.
@@ -77,6 +80,7 @@ async def start_analysis(
                 langgraph_thread_id=config.session_id,
                 title=main_file.file_name,
                 status=WorkflowRunStatus.PENDING,
+                user_id=current_user.id,
             )
             db.add(workflow_run)
             db.commit()
@@ -108,7 +112,9 @@ async def start_analysis(
 
 
 @router.post("/api/reevaluate-chunk", response_model=ChunkReevaluationResponse)
-async def reevaluate_chunk(request: ChunkReevaluationRequest):
+async def reevaluate_chunk(
+    request: ChunkReevaluationRequest, current_user: User = Depends(get_current_user)
+):
     """
     Re-evaluate a specific chunk with selected agents using unified LangGraph workflow.
 

@@ -2,17 +2,17 @@ Draft Report
 
 Ismael Arciniegas Rueda, Henri van Soest, Kelly Klima, David Gill, Aisha Najera, Hye Min Park, Austin Smidt, Robin Wang
 
-Assessing the United States' Net Additional AI Power Capacity by 2030
+# Assessing the United States' Net Additional AI Power Capacity by 2030
 
 Estimating short-term increases in electricity generation and the ability to meet growth in power demand
 
 [...]
 
-# Chapter 1. Introduction
+## Chapter 1. Introduction
 
 Anticipated growth in artificial intelligence (AI) development requires the buildout of additional power capacity at an exceptional scale and speed. There is concern that the necessary grid loads to power future AI data centers for training and inference activities may exceed the capacity of additions to the U.S. power grid.[[18]](#footnote-18) In this report, we assess potential increases in supply resources in the contiguous United States and propose a capacity metric that can be directly compared with load increases. We address the following question: What will the United States’ additional power capacity be by 2030?
 
-## Background and Motivation
+### Background and Motivation
 
 The anticipated load growth from AI is extraordinary in magnitude, speed, and geographic concentration. Developing advanced AI models requires enormous amounts of power,[[19]](#footnote-19) and existing facilities are already straining the U.S. electricity grids.[[20]](#footnote-20) As the demand for computational resources continues to rise in the coming years, electricity consumption by AI data centers is expected to grow at an exceptional rate.[[21]](#footnote-21) Estimates for data center demand growth in the United States by 2030 vary widely, from an additional 34 gigawatts (GW) to as much as 253 GW. This variability stems from significant uncertainties, including the pace of the growth in demand, potential efficiency improvements through innovation, and the unclear long-term expansion plans of data center operators. Differences in reporting units (e.g., terawatt-hours [TWh] versus GW), scope (AI-specific versus general data center demand), and projection timelines further contribute to the range of estimates:
 
@@ -22,7 +22,7 @@ The anticipated load growth from AI is extraordinary in magnitude, speed, and ge
 
 [...]
 
-# References
+## References
 
 Bistline, John, Geoffrey Blanford, Maxwell Brown, Dallas Burtraw, Maya Domeshek, Jamil Farbes, Allen Fawcett, Anne Hamilton, Jesse Jenkins, Ryan Jones, et al., “Emissions and Energy Impacts of the Inflation Reduction Act,” Science, Vol. 380, No. 6652, June 30, 2023.
 

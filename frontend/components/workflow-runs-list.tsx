@@ -8,32 +8,54 @@ import { workflowsApi } from '@/lib/api';
 import { useQuery } from '@tanstack/react-query';
 import { formatDistanceToNow } from 'date-fns';
 import Link from 'next/link';
+import { useSession } from 'next-auth/react';
 
 interface WorkflowRunsListProps {
   className?: string;
 }
 
 export function WorkflowRunsList({ className }: WorkflowRunsListProps) {
+  const session = useSession();
+
   const {
     data: runs,
     isLoading,
     error,
   } = useQuery({
     queryKey: ['workflowRuns'],
+    enabled: !!session.data?.user,
     refetchInterval: 3000,
     queryFn: () => workflowsApi.listWorkflowRunsApiWorkflowRunsGet(),
   });
+
+  if (!session.data?.user) {
+    return (
+      <Card className={className}>
+        <CardHeader>
+          <CardTitle>My analyses</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-8 space-y-4">
+            <p className="text-muted-foreground">Please sign in to view your analyses</p>
+            <Button variant="outline" asChild>
+              <Link href="/api/auth/signin">Sign in</Link>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   if (isLoading) {
     return (
       <Card className={className}>
         <CardHeader>
-          <CardTitle>Previous Runs</CardTitle>
+          <CardTitle>My analyses</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-            <p className="mt-2 text-muted-foreground">Loading previous runs...</p>
+            <p className="mt-2 text-muted-foreground">Loading my analyses...</p>
           </div>
         </CardContent>
       </Card>
@@ -44,7 +66,7 @@ export function WorkflowRunsList({ className }: WorkflowRunsListProps) {
     return (
       <Card className={className}>
         <CardHeader>
-          <CardTitle>Previous Runs</CardTitle>
+          <CardTitle>My analyses</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8">
@@ -62,11 +84,11 @@ export function WorkflowRunsList({ className }: WorkflowRunsListProps) {
     return (
       <Card className={className}>
         <CardHeader>
-          <CardTitle>Previous Runs</CardTitle>
+          <CardTitle>My analyses</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8">
-            <p className="text-muted-foreground">No previous runs found</p>
+            <p className="text-muted-foreground">No analyses found</p>
             <p className="text-sm text-muted-foreground mt-1">Upload and process documents to see them here</p>
           </div>
         </CardContent>
@@ -77,8 +99,8 @@ export function WorkflowRunsList({ className }: WorkflowRunsListProps) {
   return (
     <Card className={className}>
       <CardHeader>
-        <CardTitle>Previous Analyses</CardTitle>
-        <p className="text-sm text-muted-foreground">View and revisit your previous document analyses</p>
+        <CardTitle>My analyses</CardTitle>
+        <p className="text-sm text-muted-foreground">View and revisit your analyses</p>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">

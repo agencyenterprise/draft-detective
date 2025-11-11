@@ -229,37 +229,36 @@ def pytest_runtest_logreport(report):
                     print(f"  -> Passed: {passed}, Failed: {failed}")
                     print(f"  -> Rationale: {rationale}")
 
-                    if not fc.get("passed"):
-                        expected_output = data.get("expected_output")
-                        actual_outputs = data.get("actual_outputs") or []
-                        actual_output = actual_outputs[0] if actual_outputs else None
+                    # Print expected/actual values for both passing and failing fields
+                    expected_output = data.get("expected_output")
+                    actual_outputs = data.get("actual_outputs") or []
+                    actual_output = actual_outputs[0] if actual_outputs else None
 
-                        # Extract just the failed field value using the field path
-                        parts = (field_path or "").split(".")
-                        expected_field_value = _extract_by_path(expected_output, parts)
-                        actual_field_value = _extract_by_path(actual_output, parts)
+                    # Extract just the field value using the field path
+                    parts = (field_path or "").split(".")
+                    expected_field_value = _extract_by_path(expected_output, parts)
+                    actual_field_value = _extract_by_path(actual_output, parts)
 
-                        print(f"\n {field_path} failed")
-                        print("  Expected Result:")
-                        try:
-                            print(
-                                json.dumps(
-                                    expected_field_value, indent=2, ensure_ascii=False
-                                )
+                    status_label = "PASSED" if fc.get("passed") else "FAILED"
+                    print(f"\n {field_path} {status_label}")
+                    print("  Expected Result:")
+                    try:
+                        print(
+                            json.dumps(
+                                expected_field_value, indent=2, ensure_ascii=False
                             )
-                        except Exception:
-                            print(expected_field_value)
+                        )
+                    except Exception:
+                        print(expected_field_value)
 
-                        print("  Actual Result (first run):")
-                        try:
-                            print(
-                                json.dumps(
-                                    actual_field_value, indent=2, ensure_ascii=False
-                                )
-                            )
-                        except Exception:
-                            print(actual_field_value)
-                        print("\n")
+                    print("  Actual Result (first run):")
+                    try:
+                        print(
+                            json.dumps(actual_field_value, indent=2, ensure_ascii=False)
+                        )
+                    except Exception:
+                        print(actual_field_value)
+                    print("\n")
 
                 print("=== End Agent Field Comparisons ===\n")
 

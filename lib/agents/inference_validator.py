@@ -231,12 +231,11 @@ if __name__ == "__main__":
 
     nest_asyncio.apply()
 
-    # Test code
-    async def test_inference_validator():
-        """Test the inference validator with sample data"""
+    # Streamlined test code for InferenceValidatorAgent
 
-        # Sample test data; now includes explicit claim_index and chunk_index for withClaimIndex structure
-        test_data = {
+    test_cases = [
+        {
+            "title": "Inference Validator Agent",
             "full_document": """
             Renewable energy capacity has grown significantly in recent years.
             Solar and wind power installations have increased by 40% since 2020.
@@ -253,77 +252,137 @@ if __name__ == "__main__":
             "audience_context": "The intended audience is policymakers and energy sector analysts.",
             "claim_index": 0,
             "chunk_index": 0,
-        }
-
-        # Create agent instance
-        agent = InferenceValidatorAgent()
-
-        # Test the validation
-        print("Testing Inference Validator Agent")
-        print("=" * 80)
-        print(f"Claim: {test_data['claim']}")
-        print(f"Chunk: {test_data['chunk']}")
-        print("\nValidating...\n")
-
-        result = await agent.ainvoke(test_data)
-
-        print("Results:")
-        print("-" * 80)
-        print(f"Valid: {result.valid}")
-        print(f"\nRationale:\n{result.rationale}")
-        print(f"\nSuggested Action:\n{result.suggested_action}")
-        print(f"Claim Index: {result.claim_index}")
-        print(f"Chunk Index: {result.chunk_index}")
-        print("=" * 80)
-
-        return result
-
-    async def test_invalid_inference():
-        """Test with an invalid inference to see how the validator handles it"""
-
-        test_data = {
-            "full_document": """
-            Solar panel efficiency has improved by 15% over the last decade.
+        },
+        {
+            "title": "Invalid Inference",
+            "full_document": """Solar panel efficiency has improved by 15% over the last decade.
             Manufacturing costs have decreased due to economies of scale.
             """,
-            "paragraph": "Solar panel efficiency has improved by 15% over the last decade.",
+            "paragraph": """Solar panel efficiency has improved by 15% over the last decade.
+            Manufacturing costs have decreased due to economies of scale.
+            """,
             "chunk": "Solar panel efficiency has improved by 15% over the last decade.",
             "claim": "Solar panels will replace all fossil fuel energy by 2030",
             "domain_context": "This is a report on solar technology improvements.",
             "audience_context": "The intended audience is technology investors.",
             "claim_index": 0,
             "chunk_index": 0,
-        }
+        },
+        {
+            "title": "Valid Inference with Qualifiers",
+            "full_document": """
+            Solar and wind power installations have increased by 40% since 2020, driven by declining costs and supportive government policies (IEA, 2024; BloombergNEF, 2024). Based on these trends, renewable energy capacity is expanding rapidly. The sustained growth rate, combined with falling costs, suggests that renewables will likely become the dominant energy source within the next two decades, assuming current policy support continues.
+            """,
+            "paragraph": "Solar and wind power installations have increased by 40% since 2020, driven by declining costs and supportive government policies (IEA, 2024; BloombergNEF, 2024). Based on these trends, renewable energy capacity is expanding rapidly. The sustained growth rate, combined with falling costs, suggests that renewables will likely become the dominant energy source within the next two decades, assuming current policy support continues.",
+            "chunk": "The sustained growth rate, combined with falling costs, suggests that renewables will likely become the dominant energy source within the next two decades, assuming current policy support continues.",
+            "claim": "Renewables will likely become the dominant energy source within the next two decades",
+            "domain_context": "This is a report on energy policy.",
+            "audience_context": "The intended audience is policymakers.",
+            "claim_index": 0,
+            "chunk_index": 0,
+        },
+        {
+            "title": "Valid Inference with Caveats",
+            "full_document": """
+            Several hospitals have deployed AI diagnostic tools for radiology and pathology (Johnson et al., 2024). Early studies report 5-8% improvement in diagnostic accuracy when AI assists physicians. Implementation costs range from $500K-$2M per facility. AI-assisted diagnosis may potentially improve healthcare outcomes if properly validated and integrated into clinical workflows. Further research is needed to establish optimal human-AI collaboration models and address liability concerns.
+            """,
+            "paragraph": "Several hospitals have deployed AI diagnostic tools for radiology and pathology (Johnson et al., 2024). Early studies report 5-8% improvement in diagnostic accuracy when AI assists physicians. Implementation costs range from $500K-$2M per facility. AI-assisted diagnosis may potentially improve healthcare outcomes if properly validated and integrated into clinical workflows. Further research is needed to establish optimal human-AI collaboration models and address liability concerns.",
+            "chunk": "AI-assisted diagnosis may potentially improve healthcare outcomes if properly validated and integrated into clinical workflows.",
+            "claim": "AI-assisted diagnosis may improve healthcare outcomes",
+            "domain_context": "This is a report on healthcare technology.",
+            "audience_context": "The intended audience is medical professionals and healthcare administrators.",
+            "claim_index": 0,
+            "chunk_index": 0,
+        },
+        {
+            "title": "Invalid Inference - Missing Warrant",
+            "full_document": """
+            Machine learning models have shown superior performance on image classification tasks compared to traditional computer vision approaches (Smith et al., 2023). Recent benchmarks indicate 95% accuracy vs. 78% for conventional methods. Processing speed has increased tenfold over five years. These improvements in narrow AI tasks demonstrate that artificial intelligence is fundamentally superior to human cognitive capabilities.
+            """,
+            "paragraph": "Machine learning models have shown superior performance on image classification tasks compared to traditional computer vision approaches (Smith et al., 2023). Recent benchmarks indicate 95% accuracy vs. 78% for conventional methods. Processing speed has increased tenfold over five years. These improvements in narrow AI tasks demonstrate that artificial intelligence is fundamentally superior to human cognitive capabilities.",
+            "chunk": "These improvements in narrow AI tasks demonstrate that artificial intelligence is fundamentally superior to human cognitive capabilities.",
+            "claim": "Artificial intelligence is fundamentally superior to human cognitive capabilities",
+            "domain_context": "This is a report on artificial intelligence.",
+            "audience_context": "The intended audience is AI researchers and technology strategists.",
+            "claim_index": 0,
+            "chunk_index": 0,
+        },
+        {
+            "title": "Valid Inference with Backing",
+            "full_document": """
+            Our analysis indicates several key findings: 1. Renewable energy costs have reached grid parity in most markets, 2. Storage technology continues to improve but requires additional development, 3. Policy stability is critical for sustained investment. Based on observation (1), policymakers should prioritize renewable energy deployment through targeted incentives and streamlined permitting processes. Historical precedent from Denmark and Germany shows that such policies can accelerate adoption by 30-50% over a decade.
+            """,
+            "paragraph": "Our analysis indicates several key findings: 1. Renewable energy costs have reached grid parity in most markets, 2. Storage technology continues to improve but requires additional development, 3. Policy stability is critical for sustained investment. Based on observation (1), policymakers should prioritize renewable energy deployment through targeted incentives and streamlined permitting processes. Historical precedent from Denmark and Germany shows that such policies can accelerate adoption by 30-50% over a decade.",
+            "chunk": "Based on observation (1), policymakers should prioritize renewable energy deployment through targeted incentives and streamlined permitting processes.",
+            "claim": "Policymakers should prioritize renewable energy deployment through targeted incentives and streamlined permitting",
+            "domain_context": "This is a report on energy policy.",
+            "audience_context": "The intended audience is policymakers.",
+            "claim_index": 0,
+            "chunk_index": 0,
+        },
+        {
+            "title": "Testing Edge Case - Weak but Valid Inference",
+            "full_document": """
+            RAND Project AIR FORCE (PAF) developed a prototype tool, Personnel Records Scoring System (PReSS), by leveraging existing technology and data sources. Testing showed that PReSS was 20 percent more effective than baseline talent management systems in matching personnel to roles. These results indicate that technology-assisted approaches may offer benefits for personnel management.
+            """,
+            "paragraph": "RAND Project AIR FORCE (PAF) developed a prototype tool, Personnel Records Scoring System (PReSS), by leveraging existing technology and data sources. Testing showed that PReSS was 20 percent more effective than baseline talent management systems in matching personnel to roles. These results indicate that technology-assisted approaches may offer benefits for personnel management.",
+            "chunk": "These results indicate that technology-assisted approaches may offer benefits for personnel management.",
+            "claim": "Technology-assisted approaches may offer benefits for personnel management",
+            "domain_context": "This is a report on defense technology and organizational management.",
+            "audience_context": "The intended audience is defense department leadership.",
+            "claim_index": 0,
+            "chunk_index": 0,
+        },
+        {
+            "title": "Invalid Inference - Contradicts Context",
+            "full_document": """
+            However, challenges remain in grid integration and energy storage. Current battery storage costs average $150/kWh, and grid infrastructure upgrades require substantial investment. Studies show that variable renewable energy can reliably supply only up to 70% of grid demand with existing technology (NREL, 2023). Therefore, renewable energy will likely replace all fossil fuel generation by 2030.
+            """,
+            "paragraph": "However, challenges remain in grid integration and energy storage. Current battery storage costs average $150/kWh, and grid infrastructure upgrades require substantial investment. Studies show that variable renewable energy can reliably supply only up to 70% of grid demand with existing technology (NREL, 2023). Therefore, renewable energy will likely replace all fossil fuel generation by 2030.",
+            "chunk": "Therefore, renewable energy will replace all fossil fuel generation by 2030.",
+            "claim": "Renewable energy will replace all fossil fuel generation by 2030",
+            "domain_context": "This is a report on energy infrastructure.",
+            "audience_context": "The intended audience is energy sector analysts.",
+            "claim_index": 0,
+            "chunk_index": 0,
+        },
+        {
+            "title": "Valid Inference - Transformation Claim",
+            "full_document": """
+            The U.S. Air Force has invested in technology modernization programs over the past decade (Schulker et al., 2022; Snyder, 2022). RAND Project AIR FORCE (PAF) developed a prototype tool, Personnel Records Scoring System (PReSS), by leveraging existing technology and data sources. Testing showed that PReSS was 20 percent more effective than baseline talent management systems in matching personnel to roles. These results demonstrate that leveraging advanced technology can transform talent management systems across defense organizations.
+            """,
+            "paragraph": "The U.S. Air Force has invested in technology modernization programs over the past decade (Schulker et al., 2022; Snyder, 2022). RAND Project AIR FORCE (PAF) developed a prototype tool, Personnel Records Scoring System (PReSS), by leveraging existing technology and data sources. Testing showed that PReSS was 20 percent more effective than baseline talent management systems in matching personnel to roles. These results demonstrate that leveraging advanced technology can transform talent management systems across defense organizations.",
+            "chunk": "These results demonstrate that leveraging advanced technology can transform talent management systems across defense organizations.",
+            "claim": "Leveraging advanced technology can transform talent management systems in defense organizations",
+            "domain_context": "This is a report on defense technology and organizational management.",
+            "audience_context": "The intended audience is defense department leadership.",
+            "claim_index": 0,
+            "chunk_index": 0,
+        },
+    ]
 
+    async def run_inference_validator_tests():
         agent = InferenceValidatorAgent()
+        results = []
+        print("\n🔍 Running Inference Validator Tests\n")
+        for i, test_case in enumerate(test_cases):
+            title = test_case.get("title", f"Test Case {i+1}")
+            print("=" * 80)
+            print(f"{title}\n")
+            print("--Input--")
+            print(f"Paragraph:\n{test_case['paragraph']}\n")
+            print(f"Chunk:\n{test_case['chunk']}\n")
+            print(f"Claim:\n{test_case['claim']}\n")
+            print("Validating...\n")
+            result = await agent.ainvoke(test_case)
+            print("-" * 80)
+            print("--Results--")
+            print(f"Valid: {result.valid}")
+            print(f"\nRationale:\n{result.rationale}")
+            suggested_action = getattr(result, "suggested_action", None)
+            print(f"\nSuggested Action:\n{suggested_action}")
+            print()
+            results.append(result)
+        return results
 
-        print("\nTesting Invalid Inference")
-        print("=" * 80)
-        print(f"Claim: {test_data['claim']}")
-        print(f"Chunk: {test_data['chunk']}")
-        print("\nValidating...\n")
-
-        result = await agent.ainvoke(test_data)
-
-        print("Results:")
-        print("-" * 80)
-        print(f"Valid: {result.valid}")
-        print(f"\nRationale:\n{result.rationale}")
-        print(f"\nSuggested Action:\n{result.suggested_action}")
-        print(f"Claim Index: {result.claim_index}")
-        print(f"Chunk Index: {result.chunk_index}")
-        print("=" * 80)
-
-        return result
-
-    print("\n🔍 Running Inference Validator Tests\n")
-
-    # Run valid inference test
-    result = asyncio.run(test_inference_validator())
-    print("Valid Inference Test Result:")
-    print(result.model_dump_json(indent=2))
-
-    # Run invalid inference test
-    result = asyncio.run(test_invalid_inference())
-    print("Invalid Inference Test Result:")
-    print(result.model_dump_json(indent=2))
+    results = asyncio.run(run_inference_validator_tests())

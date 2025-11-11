@@ -5,6 +5,7 @@ from langgraph.types import StateSnapshot
 from pydantic import BaseModel
 
 from lib.config.database import get_db
+from lib.models.user import User
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus
 from lib.workflows.claim_substantiation.checkpointer import get_checkpointer
 from lib.workflows.claim_substantiation.graph import build_claim_substantiator_graph
@@ -49,12 +50,15 @@ def _convert_to_summary_state(
     )
 
 
-async def get_workflow_run_detailed(id: str) -> WorkflowRunDetailed:
+async def get_workflow_run_detailed(id: str, user: User) -> WorkflowRunDetailed:
     with get_db() as db:
         run = db.query(WorkflowRun).filter(WorkflowRun.id == id).first()
 
     if run is None:
         raise HTTPException(status_code=404, detail="Workflow run not found")
+
+    if run.user_id is None or run.user_id != user.id:
+        raise HTTPException(status_code=403, detail="Access denied")
 
     graph = build_claim_substantiator_graph()
 
@@ -76,10 +80,11 @@ async def get_workflow_run_detailed(id: str) -> WorkflowRunDetailed:
     return WorkflowRunDetailed(run=run, state=summary_state)
 
 
-async def get_workflow_runs() -> List[WorkflowRun]:
+async def get_workflow_runs(user: User) -> List[WorkflowRun]:
     with get_db() as db:
         runs = (
             db.query(WorkflowRun)
+            .filter(WorkflowRun.user_id == user.id)
             .order_by(WorkflowRun.created_at.desc())
             .limit(100)
             .all()
@@ -92,6 +97,7 @@ async def upsert_workflow_run(
     session_id: str,
     status: WorkflowRunStatus,
     title: Optional[str] = None,
+    user: Optional[User] = None,
 ) -> Optional[str]:
     """
     Create or update a workflow run using the session_id as the key.
@@ -103,6 +109,7 @@ async def upsert_workflow_run(
         session_id: The LangGraph thread ID (unique identifier)
         status: The workflow status to set
         title: Optional title to set/update
+        user: Optional user to assign as owner (only set on creation)
 
     Returns:
         The workflow run UUID as a string, or None if session_id is not provided
@@ -124,6 +131,7 @@ async def upsert_workflow_run(
                 langgraph_thread_id=session_id,
                 title=title or "Untitled",
                 status=status,
+                user_id=user.id if user else None,
             )
             db.add(run)
         else:
@@ -160,7 +168,7 @@ def get_workflow_run_id_by_session(session_id: str) -> Optional[str]:
 
 
 async def update_workflow_run(
-    workflow_run_id: str, request: UpdateWorkflowRunRequest
+    workflow_run_id: str, request: UpdateWorkflowRunRequest, user: User
 ) -> WorkflowRun:
     """
     Update a workflow run with the provided fields.
@@ -168,18 +176,22 @@ async def update_workflow_run(
     Args:
         workflow_run_id: The workflow run UUID
         request: UpdateWorkflowRunRequest containing fields to update
+        user: The user making the request
 
     Returns:
         The updated WorkflowRun
 
     Raises:
-        HTTPException: If the workflow run is not found
+        HTTPException: If the workflow run is not found or user doesn't have access
     """
     with get_db() as db:
         run = db.query(WorkflowRun).filter(WorkflowRun.id == workflow_run_id).first()
 
         if run is None:
             raise HTTPException(status_code=404, detail="Workflow run not found")
+
+        if run.user_id is None or run.user_id != user.id:
+            raise HTTPException(status_code=403, detail="Access denied")
 
         if request.title is not None:
             run.title = request.title
@@ -189,12 +201,15 @@ async def update_workflow_run(
         return run
 
 
-async def delete_workflow_run(workflow_run_id: str) -> None:
+async def delete_workflow_run(workflow_run_id: str, user: User) -> None:
     with get_db() as db:
         run = db.query(WorkflowRun).filter(WorkflowRun.id == workflow_run_id).first()
 
         if run is None:
             raise HTTPException(status_code=404, detail="Workflow run not found")
+
+        if run.user_id is None or run.user_id != user.id:
+            raise HTTPException(status_code=403, detail="Access denied")
 
         thread_id = run.langgraph_thread_id
 

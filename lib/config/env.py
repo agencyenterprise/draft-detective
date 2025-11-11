@@ -26,6 +26,11 @@ class Config(BaseModel):
     POSTGRES_USER: str
     POSTGRES_PASSWORD: str
 
+    # Authentication
+    AUTH_SECRET: str = Field(
+        description="The secret key for the authentication. This is used to sign and verify JWT tokens. Shared by the frontend and backend.",
+    )
+
     # File uploads
     FILE_UPLOADS_MOUNT_PATH: str
 
@@ -102,4 +107,5 @@ config = Config(
     POSTGRES_DB=os.getenv("POSTGRES_DB"),
     POSTGRES_USER=os.getenv("POSTGRES_USER"),
     POSTGRES_PASSWORD=os.getenv("POSTGRES_PASSWORD"),
+    AUTH_SECRET=os.getenv("AUTH_SECRET"),
 )

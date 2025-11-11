@@ -1,8 +1,9 @@
 from enum import Enum
 import uuid
 from datetime import datetime, timezone
+from typing import Optional
 
-from sqlalchemy import Column, DateTime
+from sqlalchemy import Column, DateTime, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 from sqlmodel import Field, SQLModel, String, Enum as SQLModelEnum
 
@@ -21,6 +22,14 @@ class WorkflowRun(SQLModel, table=True):
     )
     langgraph_thread_id: str = Field(sa_column=Column(String(255), nullable=False))
     title: str = Field(sa_column=Column(String, nullable=False))
+    user_id: Optional[uuid.UUID] = Field(
+        default=None,
+        sa_column=Column(
+            UUID(as_uuid=True),
+            ForeignKey("users.id", ondelete="SET NULL"),
+            nullable=True,
+        ),
+    )
     created_at: datetime = Field(
         sa_column=Column(
             DateTime(timezone=True), default=datetime.utcnow, nullable=False

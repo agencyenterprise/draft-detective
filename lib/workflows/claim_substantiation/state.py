@@ -30,6 +30,7 @@ from lib.services.docling_models import ChunkToItems
 # Workflow models
 from lib.workflows.models import WorkflowError
 from lib.agents.addendum_generator import Addendum
+from lib.agents.addendum_report_generator import ReportOutput
 
 
 class SubstantiationWorkflowConfig(BaseModel):
@@ -256,6 +257,9 @@ class ClaimSubstantiatorState(BaseModel):
     addendum: Optional[Addendum] = Field(
         default=None, description="Structured addendum generated from live reports"
     )
+    addendum_report: Optional[ReportOutput] = Field(
+        default=None, description="Report output from the addendum report generator"
+    )
     ranked_issues: List[DocumentIssue] = Field(
         default_factory=list,
         description="Ranked list of document issues with severity levels",
@@ -297,6 +301,7 @@ class ClaimSubstantiatorStateSummary(BaseModel):
     live_reports_analysis: List[EvidenceWeighterResponseWithClaimIndex] = []
     literature_review: Optional[LiteratureReviewResponse] = None
     addendum: Optional[Addendum] = None
+    addendum_report: Optional[ReportOutput] = None
     ranked_issues: List[DocumentIssue] = []
     chunk_to_items: Optional[ChunkToItems] = None
 

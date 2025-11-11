@@ -11,7 +11,7 @@ from typing import Optional
 import uuid
 
 from pydantic import BaseModel, Field
-from sqlalchemy import Column, DateTime
+from sqlalchemy import Column, DateTime, ForeignKey
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlmodel import Field as SQLField
 from sqlmodel import SQLModel, String, Enum as SQLModelEnum
@@ -61,6 +61,16 @@ class Feedback(SQLModel, table=True):
     workflow_run_id: uuid.UUID = SQLField(
         sa_column=Column(UUID(as_uuid=True), nullable=False, index=True),
         description="The workflow run this feedback belongs to",
+    )
+
+    user_id: uuid.UUID = SQLField(
+        sa_column=Column(
+            UUID(as_uuid=True),
+            ForeignKey("users.id", ondelete="CASCADE"),
+            nullable=False,
+            index=True,
+        ),
+        description="The user who created this feedback",
     )
 
     entity_path: dict = SQLField(
