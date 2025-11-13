@@ -5,17 +5,68 @@ Simplified models that pass through Docling's json_content as-is,
 similar to docling-ts approach: https://github.com/docling-project/docling-ts
 """
 
-from typing import Any, Dict, List, Optional
-from pydantic import BaseModel, Field
+from typing import Any, Dict, List, Literal, Optional
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class BBox(BaseModel):
-    """Bounding box coordinates (bottom-left origin as per PDF standard)"""
+    """Docling bounding box format (bottom-left origin, PDF standard)"""
 
-    x0: float
-    y0: float
-    x1: float
-    y1: float
+    l: float  # left
+    b: float  # bottom
+    r: float  # right
+    t: float  # top
+
+
+class DoclingProv(BaseModel):
+    """Provenance information for Docling items"""
+
+    page_no: int
+    bbox: BBox
+    charspan: Optional[List[int]] = None
+
+
+class DoclingItemReference(BaseModel):
+    """Reference to another item in the document"""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    ref: str = Field(alias="$ref")
+
+
+class DoclingItem(BaseModel):
+    """
+    A Docling document item (text, table, picture, etc.)
+
+    Based on actual schema analysis:
+    - text content is always in 'text' field
+    - bbox is always in prov[0].bbox
+    - page number is always in prov[0].page_no
+    """
+
+    model_config = ConfigDict(extra="allow")
+
+    self_ref: Optional[str] = None
+    label: Optional[str] = None
+    text: Optional[str] = None
+    orig: Optional[str] = None  # Original text before processing
+    prov: List[DoclingProv] = Field(default_factory=list)
+    parent: Optional[DoclingItemReference | Dict[str, Any]] = None
+
+    @property
+    def bbox(self) -> Optional[BBox]:
+        """Get bbox from first provenance entry"""
+        return self.prov[0].bbox if self.prov else None
+
+    @property
+    def page_number(self) -> int:
+        """Get page number from first provenance entry"""
+        return self.prov[0].page_no if self.prov else 0
+
+    @property
+    def content(self) -> str:
+        """Get text content, preferring 'text' field over 'orig'"""
+        return self.text or self.orig or ""
 
 
 class DoclingRegion(BaseModel):
@@ -24,7 +75,6 @@ class DoclingRegion(BaseModel):
     id: str
     page: int
     bbox: BBox
-    kind: str = Field(description="Item type: text, table, picture, kv")
 
 
 class DoclingDocument(BaseModel):

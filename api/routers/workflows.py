@@ -2,6 +2,7 @@
 Workflow run management endpoints
 """
 
+import mimetypes
 import os
 from fastapi import APIRouter, HTTPException, Depends
 from starlette.responses import FileResponse
@@ -68,64 +69,43 @@ async def delete_workflow_run_endpoint(
     return {"message": "Workflow run deleted successfully", "id": workflow_run_id}
 
 
-@router.get("/api/workflow-runs/{workflow_run_id}/pages/{image_path:path}")
-async def get_page_image(workflow_run_id: str, image_path: str):
+@router.get("/api/workflow-runs/{workflow_run_id}/pages/{page_num}")
+async def get_page_image(
+    workflow_run_id: str, page_num: int, current_user: User = Depends(get_current_user)
+):
     """
     Serve Docling page images for a workflow run
 
-    When Docling uses image_export_mode='reference', it downloads images
-    from Docling-serve and stores them locally. This endpoint serves those images.
-
-    Images are stored at: {uploads}/docling_images/{file_id}/{image_filename}
-    where file_id is the xxhash of the document.
-
     Args:
         workflow_run_id: The workflow run ID
-        image_path: The image filename from Docling (e.g., 'page_0.png')
+        page_num: The page number (e.g., 0, 1, 2)
 
     Returns:
-        The image file
+        The image file for the specified page (PNG, JPEG, WEBP, etc.)
     """
-    image_path = os.path.normpath(image_path).lstrip("/")
-    if ".." in image_path:
-        raise HTTPException(status_code=400, detail="Invalid image path")
+    if page_num < 0:
+        raise HTTPException(status_code=400, detail="Invalid page number")
 
-    try:
-        workflow_run = await get_workflow_run(workflow_run_id)
+    workflow_run = await get_workflow_run_detailed(workflow_run_id, user=current_user)
 
-        if workflow_run.state and hasattr(workflow_run.state, "file"):
-            file_path = workflow_run.state.file.file_path
+    if not workflow_run.state or not hasattr(workflow_run.state, "file"):
+        raise HTTPException(status_code=404, detail="Workflow state not found")
 
-            filename = os.path.basename(file_path)
-            file_id, _ = os.path.splitext(filename)
+    file_path = workflow_run.state.file.file_path
+    filename = os.path.basename(file_path)
+    file_id, _ = os.path.splitext(filename)
 
-            image_file_path = os.path.join(
-                config.FILE_UPLOADS_MOUNT_PATH, "docling_images", file_id, image_path
-            )
+    images_dir = os.path.join(config.FILE_UPLOADS_MOUNT_PATH, "docling_images", file_id)
 
-            if os.path.exists(image_file_path) and os.path.isfile(image_file_path):
+    if os.path.exists(images_dir):
+        for file in os.listdir(images_dir):
+            if file.startswith(f"page_{page_num}."):
+                image_file_path = os.path.join(images_dir, file)
+                media_type = mimetypes.guess_type(image_file_path)[0]
                 return FileResponse(
                     path=image_file_path,
-                    media_type="image/png",
+                    media_type=media_type,
                     headers={"Cache-Control": "public, max-age=3600"},
                 )
-    except Exception as e:
-        import logging
 
-        logger = logging.getLogger(__name__)
-        logger.warning(f"Error looking up workflow state for images: {e}")
-
-    possible_paths = [
-        os.path.join(config.FILE_UPLOADS_MOUNT_PATH, workflow_run_id, image_path),
-        os.path.join(config.FILE_UPLOADS_MOUNT_PATH, image_path),
-    ]
-
-    for file_path in possible_paths:
-        if os.path.exists(file_path) and os.path.isfile(file_path):
-            return FileResponse(
-                path=file_path,
-                media_type="image/png",
-                headers={"Cache-Control": "public, max-age=3600"},
-            )
-
-    raise HTTPException(status_code=404, detail=f"Page image not found: {image_path}")
+    raise HTTPException(status_code=404, detail=f"Page {page_num} not found")

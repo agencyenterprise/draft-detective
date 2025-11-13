@@ -19,9 +19,10 @@ interface ResultsVisualizationProps {
   results: ClaimSubstantiatorStateSummary | undefined;
   onChunkReevaluation: (response: ChunkReevaluationResponse) => void;
   isProcessing?: boolean;
-  viewMode?: DocRenderMode;
-  activeTab?: TabType;
-  onTabChange?: (tab: TabType) => void;
+  viewMode: DocRenderMode;
+  onViewModeChange: (mode: DocRenderMode) => void;
+  activeTab: TabType;
+  onTabChange: (tab: TabType) => void;
 }
 
 export function ResultsVisualization({
@@ -29,13 +30,10 @@ export function ResultsVisualization({
   onChunkReevaluation,
   isProcessing = false,
   viewMode,
-  activeTab: activeTabProp,
-  onTabChange: onTabChangeProp,
+  onViewModeChange,
+  activeTab,
+  onTabChange,
 }: ResultsVisualizationProps) {
-  const [localActiveTab, setLocalActiveTab] = React.useState<TabType>('document-explorer');
-  const activeTab = activeTabProp ?? localActiveTab;
-  const setActiveTab = onTabChangeProp ?? setLocalActiveTab;
-
   const calculations = useResultsCalculations(results);
 
   const handleSaveAsEvalTest = async () => {
@@ -98,6 +96,7 @@ export function ResultsVisualization({
             onChunkReevaluation={onChunkReevaluation}
             isProcessing={isProcessing}
             viewMode={viewMode}
+            onViewModeChange={onViewModeChange}
           />
         );
     }
@@ -105,7 +104,7 @@ export function ResultsVisualization({
 
   return (
     <div className="space-y-6">
-      <TabNavigation activeTab={activeTab} onTabChange={setActiveTab} />
+      <TabNavigation activeTab={activeTab} onTabChange={onTabChange} />
 
       <Card>
         <CardContent className={activeTab === 'document-explorer' ? 'p-3 h-[calc(100vh-16rem)]' : 'p-3'}>

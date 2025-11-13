@@ -2,7 +2,7 @@
 
 import { Card, CardContent } from '@/components/ui/card';
 import { ChunkReevaluationResponse, ClaimSubstantiatorStateSummary, DocumentIssue } from '@/lib/generated-api';
-import { isDoclingRender, DocRenderMode } from '@/lib/constants';
+import { DocRenderMode } from '@/lib/constants';
 import { Loader2, FileText, Layout } from 'lucide-react';
 import Image from 'next/image';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -18,14 +18,16 @@ interface DocumentExplorerTabProps {
   results: ClaimSubstantiatorStateSummary;
   onChunkReevaluation: (response: ChunkReevaluationResponse) => void;
   isProcessing?: boolean;
-  viewMode?: DocRenderMode;
+  viewMode: DocRenderMode;
+  onViewModeChange: (mode: DocRenderMode) => void;
 }
 
 export function DocumentExplorerTab({
   results,
   onChunkReevaluation,
   isProcessing = false,
-  viewMode: viewModeProp,
+  viewMode,
+  onViewModeChange,
 }: DocumentExplorerTabProps) {
   const docJson = results.file?.doclingDocument as DoclingDocument | undefined;
   const chunkToItems = results.chunkToItems?.mapping as ChunkToItems | undefined;
@@ -35,11 +37,6 @@ export function DocumentExplorerTab({
   const issues = results.rankedIssues || [];
   const workflowErrors = errors.filter((error) => error.chunkIndex === null || error.chunkIndex === undefined);
   const hasChunks = (results.chunks?.length || 0) > 0;
-
-  // View mode - use prop if provided, otherwise use local state with default
-  const defaultViewMode: DocRenderMode = isDoclingRender() ? 'docling' : 'markdown';
-  const [localViewMode, setLocalViewMode] = useState<DocRenderMode>(defaultViewMode);
-  const viewMode = viewModeProp ?? localViewMode;
 
   // Check if docling view is available
   const isDoclingAvailable = !!(docJson && chunkToItems);
@@ -91,68 +88,20 @@ export function DocumentExplorerTab({
       <div className="grid grid-cols-12 gap-4 flex-1 min-h-0">
         <div className="col-span-7 leading-relaxed text-sm overflow-hidden flex flex-col">
           {/* Document Viewer */}
-          {!viewModeProp && (
-            <div className="flex items-start mb-2">
-              <div className="inline-flex rounded-md bg-muted/40 p-0.5">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setLocalViewMode('markdown')}
-                  className={`h-7 w-7 rounded-sm transition-all ${
-                    viewMode === 'markdown'
-                      ? 'bg-background shadow-xs text-foreground'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-transparent'
-                  }`}
-                  title="Markdown view"
-                >
-                  <FileText className="size-3.5" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setLocalViewMode('docling')}
-                  disabled={!isDoclingAvailable}
-                  className={`h-7 w-7 rounded-sm transition-all ${
-                    viewMode === 'docling'
-                      ? 'bg-background shadow-xs text-foreground'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-transparent'
-                  }`}
-                  title={!isDoclingAvailable ? 'Docling view not available' : 'Docling view'}
-                >
-                  <Layout className="size-3.5" />
-                </Button>
-              </div>
-            </div>
-          )}
-
           <div className="flex-1 overflow-hidden">
             {(() => {
               const shouldRenderDocling = viewMode === 'docling' && isDoclingAvailable;
 
               if (shouldRenderDocling) {
-                try {
-                  return (
-                    <DoclingViewer
-                      docJson={docJson!}
-                      chunkToItems={chunkToItems!}
-                      pageImagesBaseUrl={pageImagesBaseUrl}
-                      selectedChunkIndex={selectedChunkIndex}
-                      onChunkSelect={handleChunkSelect}
-                    />
-                  );
-                } catch (error) {
-                  console.error('[DocumentExplorerTab] DoclingViewer error:', error);
-                  return (
-                    <div className="p-4 text-red-500">
-                      <p>Error rendering Docling viewer. Falling back to markdown view.</p>
-                      <DocumentReconstructor
-                        results={results}
-                        selectedChunkIndex={selectedChunkIndex}
-                        onChunkSelect={handleChunkSelect}
-                      />
-                    </div>
-                  );
-                }
+                return (
+                  <DoclingViewer
+                    docJson={docJson!}
+                    chunkToItems={chunkToItems!}
+                    pageImagesBaseUrl={pageImagesBaseUrl}
+                    selectedChunkIndex={selectedChunkIndex}
+                    onChunkSelect={handleChunkSelect}
+                  />
+                );
               }
 
               return (

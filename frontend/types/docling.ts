@@ -5,13 +5,10 @@ export type BBox = {
   t: number; // top (y1)
 };
 
-export type RegionKind = 'text' | 'table' | 'picture' | 'kv';
-
 export type Region = {
   id: string;
   page: number;
   bbox: BBox;
-  kind: RegionKind;
 };
 
 export type ChunkToItems = Record<string, Region[]>;

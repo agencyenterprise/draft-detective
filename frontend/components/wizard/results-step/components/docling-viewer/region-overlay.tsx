@@ -1,7 +1,15 @@
 import { bboxToStyle } from '@/lib/docling/overlay';
 import { cn } from '@/lib/utils';
-import type { RegionOverlayProps } from './types';
-import { formatChunkLabel } from './utils';
+import { formatChunkLabel, type RegionWithChunks } from './utils';
+
+interface RegionOverlayProps {
+  region: RegionWithChunks;
+  pageWidth: number;
+  pageHeight: number;
+  isSelected: boolean;
+  currentChunkPosition?: number;
+  onSelect: () => void;
+}
 
 export function RegionOverlay({
   region,
@@ -11,7 +19,7 @@ export function RegionOverlay({
   currentChunkPosition,
   onSelect,
 }: RegionOverlayProps) {
-  const style = bboxToStyle(region.bbox, pageWidth, pageHeight, 'bottom-left');
+  const style = bboxToStyle(region.bbox, pageWidth, pageHeight);
   const hasMultipleChunks = region.chunkIndices.length > 1;
   const chunkLabel = formatChunkLabel(region, currentChunkPosition);
 
@@ -28,7 +36,7 @@ export function RegionOverlay({
       )}
       style={style}
       onClick={onSelect}
-      title={`${chunkLabel} - ${region.kind}${hasMultipleChunks ? ' (click to cycle)' : ''}`}
+      title={`${chunkLabel}${hasMultipleChunks ? ' (click to cycle)' : ''}`}
       aria-label={`Select ${chunkLabel}`}
     />
   );

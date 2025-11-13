@@ -1,10 +1,18 @@
 'use client';
 
+import type { ChunkToItems, DoclingDocument } from '@/types/docling';
 import { getRegionsForChunk } from '@/lib/docling/validateMap';
 import { useMemo } from 'react';
 import { DoclingPage } from './docling-page';
-import type { DoclingViewerProps } from './types';
 import { buildRegionsByPage, getPageNumber } from './utils';
+
+interface DoclingViewerProps {
+  docJson: DoclingDocument;
+  chunkToItems: ChunkToItems;
+  pageImagesBaseUrl: string;
+  selectedChunkIndex: number | null;
+  onChunkSelect: (chunkIndex: number | null) => void;
+}
 
 export function DoclingViewer({
   docJson,

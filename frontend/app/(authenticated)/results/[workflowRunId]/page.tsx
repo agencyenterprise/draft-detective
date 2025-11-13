@@ -7,7 +7,7 @@ import { ResultsVisualization } from '@/components/wizard/results-step/results-v
 import { TabType } from '@/components/wizard/results-step/constants';
 import { workflowsApi } from '@/lib/api';
 import { ChunkReevaluationResponse, WorkflowRunDetailed, WorkflowRunStatus } from '@/lib/generated-api';
-import { DocRenderMode, isDoclingRender } from '@/lib/constants';
+import { DocRenderMode } from '@/lib/constants';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { FileText, Layout } from 'lucide-react';
@@ -22,9 +22,7 @@ export default function ResultsPage() {
   const queryClient = useQueryClient();
 
   const [activeTab, setActiveTab] = useState<TabType>('document-explorer');
-
-  const defaultViewMode: DocRenderMode = isDoclingRender() ? 'docling' : 'markdown';
-  const [viewMode, setViewMode] = useState<DocRenderMode>(defaultViewMode);
+  const [viewMode, setViewMode] = useState<DocRenderMode>('docling');
 
   const {
     data: workflowRun,
@@ -194,6 +192,7 @@ export default function ResultsPage() {
           onChunkReevaluation={handleChunkReevaluation}
           isProcessing={isProcessing}
           viewMode={viewMode}
+          onViewModeChange={setViewMode}
           activeTab={activeTab}
           onTabChange={setActiveTab}
         />

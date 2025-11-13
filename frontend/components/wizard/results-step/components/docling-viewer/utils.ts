@@ -1,5 +1,6 @@
-import type { ChunkToItems, DoclingPage } from '@/types/docling';
-import type { RegionWithChunks } from './types';
+import type { ChunkToItems, DoclingPage, Region } from '@/types/docling';
+
+export type RegionWithChunks = Region & { chunkIndices: number[] };
 
 export const getPageNumber = (page: DoclingPage): number => page.page_no ?? page.page ?? 0;
 
@@ -34,13 +35,11 @@ export function buildRegionsByPage(chunkToItems: ChunkToItems): Record<number, R
 }
 
 export function getImageUrl(imageData: { uri?: string } | undefined, pageNum: number, baseUrl: string): string {
-  if (imageData?.uri) {
-    if (imageData.uri.startsWith('data:')) {
-      return imageData.uri;
-    }
-    return `${baseUrl}/${imageData.uri}`;
+  if (imageData?.uri?.startsWith('data:')) {
+    return imageData.uri;
   }
-  return `${baseUrl}/page_${pageNum}.png`;
+
+  return `${baseUrl}/${pageNum}`;
 }
 
 export function formatChunkLabel(region: RegionWithChunks, currentChunkPosition?: number): string {

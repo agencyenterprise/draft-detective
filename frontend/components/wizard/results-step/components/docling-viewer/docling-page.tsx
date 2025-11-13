@@ -1,7 +1,17 @@
 import Image from 'next/image';
-import type { DoclingPageProps } from './types';
+import type { DoclingPage, Region } from '@/types/docling';
 import { RegionOverlay } from './region-overlay';
-import { getImageUrl } from './utils';
+import { getImageUrl, type RegionWithChunks } from './utils';
+
+interface DoclingPageProps {
+  page: DoclingPage;
+  pageNum: number;
+  regions: RegionWithChunks[];
+  selectedRegions: Region[];
+  selectedChunkIndex: number | null;
+  pageImagesBaseUrl: string;
+  onChunkSelect: (chunkIndex: number | null) => void;
+}
 
 export function DoclingPage({
   page,
