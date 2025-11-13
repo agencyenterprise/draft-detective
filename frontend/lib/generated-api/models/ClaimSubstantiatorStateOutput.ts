@@ -13,6 +13,13 @@
  */
 
 import { mapValues } from '../runtime';
+import type { ReportOutputOutput } from './ReportOutputOutput';
+import {
+  ReportOutputOutputFromJSON,
+  ReportOutputOutputFromJSONTyped,
+  ReportOutputOutputToJSON,
+  ReportOutputOutputToJSONTyped,
+} from './ReportOutputOutput';
 import type { ChunkToItemsOutput } from './ChunkToItemsOutput';
 import {
   ChunkToItemsOutputFromJSON,
@@ -83,13 +90,6 @@ import {
   DocumentSummaryToJSON,
   DocumentSummaryToJSONTyped,
 } from './DocumentSummary';
-import type { AddendumOutput } from './AddendumOutput';
-import {
-  AddendumOutputFromJSON,
-  AddendumOutputFromJSONTyped,
-  AddendumOutputToJSON,
-  AddendumOutputToJSONTyped,
-} from './AddendumOutput';
 import type { BibliographyItemValidationOutput } from './BibliographyItemValidationOutput';
 import {
   BibliographyItemValidationOutputFromJSON,
@@ -178,10 +178,10 @@ export interface ClaimSubstantiatorStateOutput {
   literatureReview?: LiteratureReviewResponseOutput | null;
   /**
    *
-   * @type {AddendumOutput}
+   * @type {ReportOutputOutput}
    * @memberof ClaimSubstantiatorStateOutput
    */
-  addendum?: AddendumOutput | null;
+  addendumReport?: ReportOutputOutput | null;
   /**
    * Ranked list of document issues with severity levels
    * @type {Array<DocumentIssue>}
@@ -242,7 +242,7 @@ export function ClaimSubstantiatorStateOutputFromJSONTyped(
         : (json['live_reports_analysis'] as Array<any>).map(EvidenceWeighterResponseWithClaimIndexOutputFromJSON),
     literatureReview:
       json['literature_review'] == null ? undefined : LiteratureReviewResponseOutputFromJSON(json['literature_review']),
-    addendum: json['addendum'] == null ? undefined : AddendumOutputFromJSON(json['addendum']),
+    addendumReport: json['addendum_report'] == null ? undefined : ReportOutputOutputFromJSON(json['addendum_report']),
     rankedIssues:
       json['ranked_issues'] == null ? undefined : (json['ranked_issues'] as Array<any>).map(DocumentIssueFromJSON),
     chunkToItems: json['chunk_to_items'] == null ? undefined : ChunkToItemsOutputFromJSON(json['chunk_to_items']),
@@ -285,7 +285,7 @@ export function ClaimSubstantiatorStateOutputToJSONTyped(
         ? undefined
         : (value['liveReportsAnalysis'] as Array<any>).map(EvidenceWeighterResponseWithClaimIndexOutputToJSON),
     literature_review: LiteratureReviewResponseOutputToJSON(value['literatureReview']),
-    addendum: AddendumOutputToJSON(value['addendum']),
+    addendum_report: ReportOutputOutputToJSON(value['addendumReport']),
     ranked_issues:
       value['rankedIssues'] == null ? undefined : (value['rankedIssues'] as Array<any>).map(DocumentIssueToJSON),
     chunk_to_items: ChunkToItemsOutputToJSON(value['chunkToItems']),

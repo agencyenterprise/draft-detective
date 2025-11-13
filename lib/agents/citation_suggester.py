@@ -136,6 +136,9 @@ You must ensure the paragraph follows RAND's Three Rules of Attribution:
 - Ensure sources are accessible to readers (provide stable URLs or DOIs when possible)
 - For web sources, include access dates and stable URLs
 
+# NOTE:
+When generating responses, remove or replace all internal citation tokens such as turn1search0, turn2search3, or similar. Do not display raw reference IDs or metadata markers in the final text. Return clean, human-readable output only.
+
 ## The full document that the chunk is a part of
 ```
 {full_document}

@@ -11,15 +11,14 @@ from lib.agents.formatting_utils import (
     format_supporting_documents_prompt_section_multiple,
 )
 from lib.models.agent_test_case import AgentTestCase
-from lib.services.file import create_file_document_from_path
-from tests.conftest import data_path
+from tests.conftest import create_test_file_document_from_path, data_path
 from tests.datasets.loader import load_dataset
 
 TESTS_DIR = Path(__file__).parent.parent
 
 
 async def _build_supporting_block(paths: list[str]) -> str:
-    docs = [await create_file_document_from_path(data_path(p)) for p in paths]
+    docs = [await create_test_file_document_from_path(data_path(p)) for p in paths]
     return format_supporting_documents_prompt_section_multiple(
         docs, truncate_at_character_count=1000
     )
@@ -41,7 +40,7 @@ def _build_cases() -> list[AgentTestCase]:
     for test_case in dataset.items:
         # Load main document from input
         main_path = data_path(test_case.input["main_document"])
-        main_doc = asyncio.run(create_file_document_from_path(main_path))
+        main_doc = asyncio.run(create_test_file_document_from_path(main_path))
 
         # Build supporting documents block from input
         supporting_block = asyncio.run(

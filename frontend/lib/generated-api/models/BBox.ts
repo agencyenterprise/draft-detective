@@ -14,7 +14,7 @@
 
 import { mapValues } from '../runtime';
 /**
- * Bounding box coordinates (bottom-left origin as per PDF standard)
+ * Docling bounding box format (bottom-left origin, PDF standard)
  * @export
  * @interface BBox
  */
@@ -24,35 +24,35 @@ export interface BBox {
    * @type {number}
    * @memberof BBox
    */
-  x0: number;
+  l: number;
   /**
    *
    * @type {number}
    * @memberof BBox
    */
-  y0: number;
+  b: number;
   /**
    *
    * @type {number}
    * @memberof BBox
    */
-  x1: number;
+  r: number;
   /**
    *
    * @type {number}
    * @memberof BBox
    */
-  y1: number;
+  t: number;
 }
 
 /**
  * Check if a given object implements the BBox interface.
  */
 export function instanceOfBBox(value: object): value is BBox {
-  if (!('x0' in value) || value['x0'] === undefined) return false;
-  if (!('y0' in value) || value['y0'] === undefined) return false;
-  if (!('x1' in value) || value['x1'] === undefined) return false;
-  if (!('y1' in value) || value['y1'] === undefined) return false;
+  if (!('l' in value) || value['l'] === undefined) return false;
+  if (!('b' in value) || value['b'] === undefined) return false;
+  if (!('r' in value) || value['r'] === undefined) return false;
+  if (!('t' in value) || value['t'] === undefined) return false;
   return true;
 }
 
@@ -65,10 +65,10 @@ export function BBoxFromJSONTyped(json: any, ignoreDiscriminator: boolean): BBox
     return json;
   }
   return {
-    x0: json['x0'],
-    y0: json['y0'],
-    x1: json['x1'],
-    y1: json['y1'],
+    l: json['l'],
+    b: json['b'],
+    r: json['r'],
+    t: json['t'],
   };
 }
 
@@ -82,9 +82,9 @@ export function BBoxToJSONTyped(value?: BBox | null, ignoreDiscriminator: boolea
   }
 
   return {
-    x0: value['x0'],
-    y0: value['y0'],
-    x1: value['x1'],
-    y1: value['y1'],
+    l: value['l'],
+    b: value['b'],
+    r: value['r'],
+    t: value['t'],
   };
 }

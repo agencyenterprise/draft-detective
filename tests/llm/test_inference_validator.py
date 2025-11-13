@@ -12,7 +12,11 @@ from lib.agents.inference_validator import (
     inference_validator_agent,
 )
 from lib.models.agent_test_case import AgentTestCase
-from tests.conftest import TESTS_DIR, extract_paragraph_from_chunk, load_document
+from tests.conftest import (
+    TESTS_DIR,
+    extract_paragraph_from_chunk,
+    create_test_file_document_from_path,
+)
 from tests.datasets.loader import load_dataset
 
 
@@ -32,7 +36,9 @@ def _build_cases():
 
     for test_case in dataset.items:
         # Load main document
-        main_doc = asyncio.run(load_document(test_case.input["main_document"]))
+        main_doc = asyncio.run(
+            create_test_file_document_from_path(test_case.input["main_document"])
+        )
 
         # Extract inputs
         paragraph = test_case.input.get("paragraph", "")

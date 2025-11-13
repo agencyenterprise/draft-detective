@@ -98,6 +98,9 @@ Guidelines for checking the reference fields:
 
 ---
 
+# NOTE:
+When generating responses, remove or replace all internal citation tokens such as turn1search0, turn2search3, or similar. Do not display raw reference IDs or metadata markers in the final text. Return clean, human-readable output only.
+
 Return one JSON object matching the schema exactly.
 
 

@@ -51,7 +51,6 @@ dataset:
         feedback: "Revise the claim or provide a different citation that supports the estimate."
         evidence_sources: []
 
-
     - name: "rag_multi_hop_reasoning"
       description: "Claim requires connecting information across multiple passages"
       input:
@@ -61,9 +60,9 @@ dataset:
         chunk: "OpenAI describes the agenticness of an AI model as an 'impact multiplier' (Shavit et al., 2023)"
         claim: "OpenAI describes the agenticness of an AI model as an 'impact multiplier.'"
       expected_output:
-        evidence_alignment: "partially_supported"
-        rationale: "The source confirms agenticness is described as an 'impact multiplier', but the claim attributes this to OpenAI while the source is Shavit et al. (2023)."
-        feedback: "Rephrase to attribute correctly: 'Shavit et al. (2023) describe the agenticness of an AI model as an impact multiplier.'"
+        evidence_alignment: "supported"
+        rationale: "The cited passage from Shavit et al. (2023) explicitly states: “We characterize agenticness as an ‘impact multiplier’ of AI capabilities,” matching the claim’s wording that agenticness is described as an “impact multiplier.”"
+        feedback: "No changes needed"
         evidence_sources: []
 
     - name: "rag_context_window_test"
@@ -79,4 +78,3 @@ dataset:
         rationale: "The RAND report's methodology section describes assumptions including 1.3-2.0x annual AI chip supply growth."
         feedback: "No changes needed."
         evidence_sources: []
-

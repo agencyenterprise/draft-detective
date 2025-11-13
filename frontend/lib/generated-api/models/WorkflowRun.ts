@@ -47,6 +47,12 @@ export interface WorkflowRun {
   title: string;
   /**
    *
+   * @type {string}
+   * @memberof WorkflowRun
+   */
+  userId?: string | null;
+  /**
+   *
    * @type {Date}
    * @memberof WorkflowRun
    */
@@ -90,6 +96,7 @@ export function WorkflowRunFromJSONTyped(json: any, ignoreDiscriminator: boolean
     id: json['id'],
     langgraphThreadId: json['langgraph_thread_id'],
     title: json['title'],
+    userId: json['user_id'] == null ? undefined : json['user_id'],
     createdAt: new Date(json['created_at']),
     lastUpdatedAt: new Date(json['last_updated_at']),
     status: WorkflowRunStatusFromJSON(json['status']),
@@ -109,6 +116,7 @@ export function WorkflowRunToJSONTyped(value?: WorkflowRun | null, ignoreDiscrim
     id: value['id'],
     langgraph_thread_id: value['langgraphThreadId'],
     title: value['title'],
+    user_id: value['userId'],
     created_at: value['createdAt'].toISOString(),
     last_updated_at: value['lastUpdatedAt'].toISOString(),
     status: WorkflowRunStatusToJSON(value['status']),

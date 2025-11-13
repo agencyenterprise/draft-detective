@@ -19,7 +19,7 @@ import { ClaimCitationSuggestions } from './claim-citation-suggestions';
 import { ClaimLiveReports } from './claim-live-reports';
 import { ClaimNeedsSubstantiationAccordion } from './claim-needs-substantiation-accordion';
 import { SubstantiationResults } from './substantiation-results';
-import { ToulminClaimAccordion } from './toulmin-claim-accordion';
+import { ClaimArgumentAnalysis } from './claim-argument-analysis';
 import { ClaimCategoryResults } from './claim-category-results';
 import { ClaimInferenceValidation } from './claim-inference-validation';
 
@@ -69,7 +69,7 @@ export function ClaimAnalysisCard({
         <LabeledValue label="Extracted Claim">{claim.claim}</LabeledValue>
 
         <div className="space-y-2">
-          <ToulminClaimAccordion claim={claim} />
+          <ClaimArgumentAnalysis claim={claim} />
           {claimCategory && <ClaimCategoryResults claimCategory={claimCategory} />}
           {commonKnowledgeResult && <ClaimNeedsSubstantiationAccordion result={commonKnowledgeResult} />}
           {substantiation && (

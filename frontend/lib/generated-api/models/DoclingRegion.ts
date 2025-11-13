@@ -40,12 +40,6 @@ export interface DoclingRegion {
    * @memberof DoclingRegion
    */
   bbox: BBox;
-  /**
-   * Item type: text, table, picture, kv
-   * @type {string}
-   * @memberof DoclingRegion
-   */
-  kind: string;
 }
 
 /**
@@ -55,7 +49,6 @@ export function instanceOfDoclingRegion(value: object): value is DoclingRegion {
   if (!('id' in value) || value['id'] === undefined) return false;
   if (!('page' in value) || value['page'] === undefined) return false;
   if (!('bbox' in value) || value['bbox'] === undefined) return false;
-  if (!('kind' in value) || value['kind'] === undefined) return false;
   return true;
 }
 
@@ -71,7 +64,6 @@ export function DoclingRegionFromJSONTyped(json: any, ignoreDiscriminator: boole
     id: json['id'],
     page: json['page'],
     bbox: BBoxFromJSON(json['bbox']),
-    kind: json['kind'],
   };
 }
 
@@ -88,6 +80,5 @@ export function DoclingRegionToJSONTyped(value?: DoclingRegion | null, ignoreDis
     id: value['id'],
     page: value['page'],
     bbox: BBoxToJSON(value['bbox']),
-    kind: value['kind'],
   };
 }

@@ -7,9 +7,8 @@ from typing import List, Optional
 
 from lib.config.langfuse import langfuse_handler
 from lib.models.workflow_run import WorkflowRunStatus
-from lib.services.file import FileDocument, create_file_document_from_path
+from lib.services.file import FileDocument
 from lib.services.workflow_runs import (
-    get_workflow_run_id_by_session,
     upsert_workflow_run,
 )
 from lib.workflows.claim_substantiation.checkpointer import get_checkpointer
@@ -49,22 +48,6 @@ async def run_claim_substantiator(
     )
 
     return await _execute(state)
-
-
-async def run_claim_substantiator_from_paths(
-    file_path: str,
-    supporting_paths: Optional[List[str]] = None,
-    config: SubstantiationWorkflowConfig = None,
-):
-    """Convenience function to run claim substantiator from file paths."""
-    file = await create_file_document_from_path(file_path)
-    supporting_files = (
-        [await create_file_document_from_path(p) for p in supporting_paths]
-        if supporting_paths
-        else None
-    )
-
-    return await run_claim_substantiator(file, supporting_files, config)
 
 
 async def reevaluate_single_chunk(

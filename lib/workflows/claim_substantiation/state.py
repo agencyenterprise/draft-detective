@@ -1,7 +1,7 @@
 from datetime import date
 from enum import StrEnum
 from operator import add
-from typing import Annotated, Dict, List, Optional
+from typing import Annotated, Dict, List, Optional, Union
 
 from pydantic import BaseModel, Field
 
@@ -29,7 +29,6 @@ from lib.services.docling_models import ChunkToItems
 
 # Workflow models
 from lib.workflows.models import WorkflowError
-from lib.agents.addendum_generator import Addendum
 from lib.agents.addendum_report_generator import ReportOutput
 
 
@@ -93,7 +92,7 @@ class DocumentChunkSummary(ChunkWithIndex):
 class DocumentChunk(ChunkWithIndex):
     """Independent chunk response object with all processing results"""
 
-    claims: Optional[ClaimResponse | ToulminClaimResponse] = None
+    claims: Optional[Union[ClaimResponse, ToulminClaimResponse]] = None
     citations: Optional[CitationResponse] = None
     claim_categories: List[ClaimCategorizationResponseWithClaimIndex] = []
     claim_common_knowledge_results: List[ClaimCommonKnowledgeResultWithClaimIndex] = []
@@ -254,9 +253,6 @@ class ClaimSubstantiatorState(BaseModel):
         default_factory=list, description="Live reports analysis results by chunk index"
     )
     literature_review: Optional[LiteratureReviewResponse] = None
-    addendum: Optional[Addendum] = Field(
-        default=None, description="Structured addendum generated from live reports"
-    )
     addendum_report: Optional[ReportOutput] = Field(
         default=None, description="Report output from the addendum report generator"
     )
@@ -300,7 +296,6 @@ class ClaimSubstantiatorStateSummary(BaseModel):
     supporting_documents_summaries: Optional[Dict[int, DocumentSummary]] = None
     live_reports_analysis: List[EvidenceWeighterResponseWithClaimIndex] = []
     literature_review: Optional[LiteratureReviewResponse] = None
-    addendum: Optional[Addendum] = None
     addendum_report: Optional[ReportOutput] = None
     ranked_issues: List[DocumentIssue] = []
     chunk_to_items: Optional[ChunkToItems] = None

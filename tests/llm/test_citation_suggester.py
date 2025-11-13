@@ -10,7 +10,11 @@ from lib.agents.citation_suggester import (
 from lib.agents.reference_extractor import BibliographyItem
 from lib.agents.formatting_utils import format_bibliography_prompt_section
 from lib.models.agent_test_case import AgentTestCase
-from tests.conftest import extract_paragraph_from_chunk, load_document, TESTS_DIR
+from tests.conftest import (
+    extract_paragraph_from_chunk,
+    create_test_file_document_from_path,
+    TESTS_DIR,
+)
 from tests.datasets.loader import load_dataset
 
 
@@ -26,7 +30,9 @@ def _build_cases() -> list[AgentTestCase]:
 
     for test_case in dataset.items:
         # Load main document
-        main_doc = asyncio.run(load_document(test_case.input["main_document"]))
+        main_doc = asyncio.run(
+            create_test_file_document_from_path(test_case.input["main_document"])
+        )
 
         # Inputs from dataset
         chunk = test_case.input["chunk"]

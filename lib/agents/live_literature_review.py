@@ -127,6 +127,9 @@ Provide each piece of evidence related to a claim with one of the following qual
 - Look for meta-analyses, systematic reviews, and large-scale studies when available
 - Consider different disciplinary perspectives if relevant
 
+# NOTE:
+When generating responses, remove or replace all internal citation tokens such as turn1search0, turn2search3, or similar. Do not display raw reference IDs or metadata markers in the final text. Return clean, human-readable output only.
+
 ## Document Context
 **Domain**: {domain_context}
 **Target Audience**: {audience_context}

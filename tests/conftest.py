@@ -6,16 +6,17 @@ This module provides reusable utilities that work across all agent test suites:
 - Supporting documents formatting
 """
 
-import asyncio
 import os
 import uuid
+import shutil
 from enum import Enum
 from pathlib import Path
-from typing import Optional, Any
+from typing import Any
 import json
 
 import pytest
 from pydantic import BaseModel
+from xxhash import xxh128
 
 from lib.config.env import config
 from lib.services.file import create_file_document_from_path
@@ -286,9 +287,12 @@ def data_path(path: str) -> str:
     return str(TESTS_DIR / path)
 
 
-async def load_document(path: str):
+async def create_test_file_document_from_path(path: str):
     """
     Load a single document from test data.
+
+    Copies the test file to the uploads directory with an xxhash-based filename,
+    similar to how uploaded files are handled in production.
 
     Args:
         path: Relative path from tests/ directory
@@ -296,45 +300,34 @@ async def load_document(path: str):
     Returns:
         FileDocument object with markdown content
     """
-    return await create_file_document_from_path(data_path(path))
+    source_path = data_path(path)
 
+    # Read file content to generate hash
+    with open(source_path, "rb") as f:
+        content = f.read()
 
-async def load_document_markdown(path: str) -> str:
-    """
-    Load document and return only the markdown content.
+    # Generate xxhash similar to upload.py
+    xxhash = xxh128(content).hexdigest()
 
-    Args:
-        path: Relative path from tests/ directory
+    # Get file extension
+    filename = os.path.basename(source_path)
+    file_extension = os.path.splitext(filename)[1]
 
-    Returns:
-        Markdown string content
-    """
-    doc = await load_document(path)
-    return doc.markdown
+    # Construct destination path in uploads directory
+    upload_dir = config.FILE_UPLOADS_MOUNT_PATH
+    dest_path = os.path.join(upload_dir, xxhash + file_extension)
 
+    # Copy file to uploads directory if it doesn't already exist
+    if not os.path.exists(dest_path):
+        os.makedirs(upload_dir, exist_ok=True)
+        shutil.copy2(source_path, dest_path)
 
-async def build_supporting_documents_block(paths: list[str]) -> str:
-    """
-    Build supporting documents block from file paths.
+    # Use original filename for FileDocument
+    original_file_name = filename
 
-    Loads multiple documents and concatenates them with separators,
-    suitable for passing to agent prompts.
-
-    Args:
-        paths: List of relative paths from tests/ directory
-
-    Returns:
-        Concatenated markdown with "---" separators, or empty string if no paths
-    """
-    if not paths:
-        return ""
-
-    docs = []
-    for path in paths:
-        doc = await load_document(path)
-        docs.append(doc.markdown)
-
-    return "\n\n---\n\n".join(docs)
+    return await create_file_document_from_path(
+        dest_path, original_file_name=original_file_name, markdown_convert=True
+    )
 
 
 def extract_paragraph_from_chunk(full_document: str, chunk: str) -> str:

@@ -19,7 +19,7 @@ The main goal of AI Reviewer is to assist and streamline the academic peer revie
 
 ## Architecture
 
-![Architecture diagram](architecture.png)
+![Architecture diagram](docs/architecture.png)
 
 ## Development
 

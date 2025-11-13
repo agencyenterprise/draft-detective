@@ -16,7 +16,11 @@ from lib.models.agent_test_case import AgentTestCase
 from lib.workflows.claim_substantiation.nodes.verify_claims import (
     format_evidence_explanation,
 )
-from tests.conftest import TESTS_DIR, extract_paragraph_from_chunk, load_document
+from tests.conftest import (
+    TESTS_DIR,
+    extract_paragraph_from_chunk,
+    create_test_file_document_from_path,
+)
 from tests.datasets.loader import load_dataset
 
 
@@ -36,11 +40,13 @@ def _build_cases():
 
     for test_case in dataset.items:
         # Load main document
-        main_doc = asyncio.run(load_document(test_case.input["main_document"]))
+        main_doc = asyncio.run(
+            create_test_file_document_from_path(test_case.input["main_document"])
+        )
 
         # Build supporting documents block if provided
         supporting_docs = [
-            asyncio.run(load_document(supporting_doc))
+            asyncio.run(create_test_file_document_from_path(supporting_doc))
             for supporting_doc in test_case.input.get("supporting_documents", [])
         ]
 

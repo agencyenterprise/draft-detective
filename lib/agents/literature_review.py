@@ -156,6 +156,9 @@ Remember:
 - If the document publication date is provided, you are only to look for references that come BEFORE the document publication date.
 - Do not fabricate any references. If relevance to the claims cannot be found, omit the recommendation.
 
+# NOTE:
+When generating responses, remove or replace all internal citation tokens such as turn1search0, turn2search3, or similar. Do not display raw reference IDs or metadata markers in the final text. Return clean, human-readable output only.
+
 ## Document publication date
 {document_publication_date}
 

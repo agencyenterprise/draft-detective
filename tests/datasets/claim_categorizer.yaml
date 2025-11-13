@@ -127,3 +127,409 @@ dataset:
             claim_category: "other"
             needs_external_verification: true
             rationale: ""
+
+        - name: "common_knowledge_widgets_study_explores_widgets_impact"
+          description: "Methodology description of study focus - doesn't need substantiation"
+          input:
+            main_document: "data/case_1/main_document.md"
+            chunk: "This study explores how widgets impact overall gadget performance metrics."
+            claim: "This study explores how widgets impact overall gadget performance metrics"
+            domain_context: "Technology and research"
+            audience_context: "Research community"
+          expected_output:
+            claim: "This study explores how widgets impact overall gadget performance metrics"
+            claim_category: "meta_structural_evaluative"
+            needs_external_verification: false
+            rationale: "This is a straightforward description of the study's focus rather than a claim requiring evidence."
+
+        - name: "common_knowledge_widgets_widely_adopted"
+          description: "Empirical prevalence claim about cross-industry adoption - needs substantiation"
+          input:
+            main_document: "data/case_1/main_document.md"
+            chunk: "Widgets have been widely adopted across industries."
+            claim: "Widgets have been widely adopted across industries"
+            domain_context: "Technology and business"
+            audience_context: "Business professionals and researchers"
+          expected_output:
+            claim: "Widgets have been widely adopted across industries"
+            claim_category: "established_reported_knowledge"
+            needs_external_verification: true
+            rationale: "The statement asserts widespread, cross-industry adoption—an empirical prevalence/trend claim. For a business/technology research audience, such assertions typically require citation to industry reports, surveys, or prior studies. It is not a universally accepted fact and could be contested without evidence, so it should be substantiated."
+
+        - name: "common_knowledge_widgets_experiments_standard_benchmarks"
+          description: "Experimental methodology description - doesn't need substantiation"
+          input:
+            main_document: "data/case_1/main_document.md"
+            chunk: "We conducted experiments using standard gizmo benchmarks."
+            claim: "We conducted experiments using standard gizmo benchmarks"
+            domain_context: "Technology and research"
+            audience_context: "Research community"
+          expected_output:
+            claim: "We conducted experiments using standard gizmo benchmarks"
+            claim_category: "methodology_procedural"
+            needs_external_verification: false
+            rationale: "This is a description of the experimental methodology rather than a substantive claim requiring evidence."
+
+        - name: "common_knowledge_widgets_cellphone_writing_proficiency_claim"
+          description: "Quantitative research finding with geographic scope - needs substantiation"
+          input:
+            main_document: "data/case_1/main_document.md"
+            chunk: "Of note, cellphones have a positive impact on the user's writing proficiency in most countries (Smith, 2017), making them one of the best widgets out there."
+            claim: "cellphones have a positive impact on the user's writing proficiency in most countries"
+            domain_context: "Technology and education"
+            audience_context: "Educational researchers and technology specialists"
+          expected_output:
+            claim: "cellphones have a positive impact on the user's writing proficiency in most countries"
+            claim_category: "established_reported_knowledge"
+            needs_external_verification: true
+            rationale: "This is a specific research finding with quantitative implications ('most countries') that requires citation and supporting evidence."
+
+        - name: "common_knowledge_ai_power_intensive"
+          description: "Evaluative magnitude assertion about AI power requirements - needs substantiation"
+          input:
+            main_document: "data/common_knowledge/main_document_64520.md"
+            chunk: "**The anticipated load growth from AI is unprecedented in both magnitude and speed.** Developing advanced AI models requires enormous amounts of power[[4]](#footnote-3) and existing facilities are already straining the U.S. electricity grids.[[5]](#footnote-4)"
+            claim: "Developing advanced AI models requires enormous amounts of power"
+            domain_context: "AI and U.S. energy policy"
+            audience_context: "Policy makers and researchers"
+          expected_output:
+            claim: "Developing advanced AI models requires enormous amounts of power"
+            claim_category: "established_reported_knowledge"
+            needs_external_verification: true
+            rationale: "The statement makes an evaluative, magnitude-focused assertion (\"enormous amounts of power\") about AI model development. While broadly plausible, it is not a basic definition or universally uncontested fact; it implies a substantive scale that should be supported with evidence."
+
+        - name: "common_knowledge_ai_power_general_concern"
+          description: "Synthesis of preceding cited statements - doesn't need substantiation"
+          input:
+            main_document: "data/common_knowledge/main_document_72038.md"
+            chunk: "**The anticipated load growth from AI is unprecedented in both magnitude and speed.** Developing advanced AI models requires enormous amounts of power[[4]](#footnote-3) and existing facilities are already straining the U.S. electricity grids.[[5]](#footnote-4) As the demand for computational resources continues to rise, electricity consumption by AI data centers is expected to grow at an unprecedented rate in the coming years.[[6]](#footnote-5) Data center power consumption, especially driven by AI, is a significant and increasing concern."
+            claim: "Data center power consumption, especially driven by AI, is a significant and increasing concern"
+            domain_context: "AI and U.S. energy policy"
+            audience_context: "Policy makers and energy specialists"
+          expected_output:
+            claim: "Data center power consumption, especially driven by AI, is a significant and increasing concern"
+            claim_category: "established_reported_knowledge"
+            needs_external_verification: true
+            rationale: "This is a broad characterization of an industry that would benefit from external checks stating the concern"
+
+        - name: "common_knowledge_ai_power_without_citation_trend"
+          description: "Widely accepted general trend without specific quantification - doesn't need substantiation"
+          input:
+            main_document: "data/common_knowledge/main_document_64520.md"
+            chunk: "Estimating short-term increases in electricity generation within the United States and the ability to meet growth in AI power demand"
+            claim: "AI power demand is growing"
+            domain_context: "AI and U.S. energy policy"
+            audience_context: "RAND researchers and policy makers"
+          expected_output:
+            claim: "AI power demand is growing"
+            claim_category: "established_reported_knowledge"
+            needs_external_verification: false
+            rationale: "This is a widely accepted general trend rather than a specific quantitative or contested claim."
+
+        - name: "common_knowledge_ai_power_general_understanding"
+          description: "General principle in power systems engineering - doesn't need substantiation"
+          input:
+            main_document: "data/common_knowledge/main_document_64520.md"
+            chunk: "Large concentrated loads can pose challenges for grid infrastructure and stability."
+            claim: "Large concentrated loads can pose infrastructure and stability challenges"
+            domain_context: "Power systems and energy"
+            audience_context: "Grid operators"
+          expected_output:
+            claim: "Large concentrated loads can pose infrastructure and stability challenges"
+            claim_category: "established_reported_knowledge"
+            needs_external_verification: false
+            rationale: "The statement is a general, widely accepted principle in power systems rather than a specific or contentious claim."
+
+        - name: "common_knowledge_ai_power_specific_forecast"
+          description: "Time-bound quantitative estimate with policy relevance - needs substantiation"
+          input:
+            main_document: "data/common_knowledge/main_document_64520.md"
+            chunk: "As the demand for computational resources continues to rise, electricity consumption by AI data centers is expected to grow at an unprecedented rate in the coming years.[[6]](#footnote-5) Based on current trends for data center power consumption, estimates for AI load growth include 63 GW by 2028,[[7]](#footnote-6) and range between 47 GW[[8]](#footnote-7) to 171 GW by 2030.[[9]](#footnote-8)"
+            claim: "Estimates for AI load growth include 63 GW by 2028"
+            domain_context: "AI and U.S. energy policy"
+            audience_context: "RAND researchers and policy makers"
+          expected_output:
+            claim: "Estimates for AI load growth include 63 GW by 2028"
+            claim_category: "established_reported_knowledge"
+            needs_external_verification: true
+            rationale: "This is a specific, time-bound quantitative estimate with policy relevance. It requires citation to an authoritative source and supporting methodology, as reasonable experts may disagree on projections and underlying assumptions."
+
+        - name: "common_knowledge_ai_power_superlative_no_citation"
+          description: "Necessity claim with superlative scale assertion - needs substantiation"
+          input:
+            main_document: "data/common_knowledge/main_document_64520.md"
+            chunk: "The growth in AI development requires unprecedented power capacity expansion."
+            claim: "AI development requires unprecedented power capacity expansion"
+            domain_context: "AI and U.S. energy policy"
+            audience_context: "Policy makers"
+          expected_output:
+            claim: "AI development requires unprecedented power capacity expansion"
+            claim_category: "established_reported_knowledge"
+            needs_external_verification: true
+            rationale: "A claim of necessity and 'unprecedented' scale must be supported by quantitative evidence."
+
+        - name: "common_knowledge_ai_power_state_comparison"
+          description: "Precise numerical comparison with state-level data - needs substantiation"
+          input:
+            main_document: "data/common_knowledge/main_document_64520.md"
+            chunk: "Beyond the challenge of aggregated scale, a single site expected to demand a large amount of power also poses issues related to building necessary infrastructure in a timely manner[[10]](#footnote-9) and maintain grid stability.[[11]](#footnote-10) An individual facility may consume up to 5 GW by 2030,[[12]](#footnote-11) a substantial scale comparable to the 2023 net summer generation capacity[[13]](#footnote-12) of a single state such as Idaho (5.4 GW), Maine (5.3 GW), or New Hampshire (4.5 GW).[[14]](#footnote-13)"
+            claim: "A 5 GW facility is comparable to the 2023 net summer generation capacity of Idaho (5.4 GW), Maine (5.3 GW), or New Hampshire (4.5 GW)"
+            domain_context: "Power systems and energy policy"
+            audience_context: "Policy makers"
+          expected_output:
+            claim: "A 5 GW facility is comparable to the 2023 net summer generation capacity of Idaho (5.4 GW), Maine (5.3 GW), or New Hampshire (4.5 GW)"
+            claim_category: "established_reported_knowledge"
+            needs_external_verification: true
+            rationale: "Because the claim makes a precise numerical comparison, it needs substantiation."
+
+        - name: "common_knowledge_crypto_blockchain_criminal_justice_purpose"
+          description: "Established purposes of criminal justice system - doesn't need substantiation"
+          input:
+            main_document: "data/cryptocurrency-and-blockchain-minimal/main_document.md"
+            chunk: "The criminal justice system in the United States is intended to deter, punish, and reform individuals who violate the norms of good order and mutual respect that are enshrined in law."
+            claim: "The criminal justice system in the United States is intended to deter, punish, and reform individuals who violate the norms of good order and mutual respect that are enshrined in law"
+            domain_context: "Criminal justice and law"
+            audience_context: "Legal and policy professionals"
+          expected_output:
+            claim: "The criminal justice system in the United States is intended to deter, punish, and reform individuals who violate the norms of good order and mutual respect that are enshrined in law"
+            claim_category: "established_reported_knowledge"
+            needs_external_verification: false
+            rationale: "This is a general statement about the established purposes of the criminal justice system rather than a specific claim requiring evidence."
+
+        - name: "common_knowledge_crypto_blockchain_legal_structures_timing"
+          description: "Comparative historical assertion about legal and technology development - needs substantiation"
+          input:
+            main_document: "data/cryptocurrency-and-blockchain-minimal/main_document.md"
+            chunk: "The associated legal structures were developed, for the most part, before the development of such information technologies as the postal service, telegraph, and telephone systems."
+            claim: "The associated legal structures were developed, for the most part, before the development of such information technologies as the postal service, telegraph, and telephone systems"
+            domain_context: "Policy research"
+            audience_context: "Policy researchers"
+          expected_output:
+            claim: "The associated legal structures were developed, for the most part, before the development of such information technologies as the postal service, telegraph, and telephone systems"
+            claim_category: "established_reported_knowledge"
+            needs_external_verification: true
+            rationale: "This is a broad, background chronology claim: core U.S. criminal justice legal structures (rooted in English common law and the late-18th-century constitutional/statutory framework) predate the telegraph (1830s–1840s) and telephone (1870s)."
+
+        - name: "common_knowledge_crypto_blockchain_economic_interactions_online"
+          description: "Broadly accepted trend about digital transformation of society - doesn't need substantiation"
+          input:
+            main_document: "data/cryptocurrency-and-blockchain-minimal/main_document.md"
+            chunk: "With the development of personal computers connected by the internet, much larger portions of economic and interpersonal interactions have moved online, as has criminal activity."
+            claim: "With the development of personal computers connected by the internet, much larger portions of economic and interpersonal interactions have moved online, as has criminal activity"
+            domain_context: "Technology and society"
+            audience_context: "Technology and social researchers"
+          expected_output:
+            claim: "With the development of personal computers connected by the internet, much larger portions of economic and interpersonal interactions have moved online, as has criminal activity"
+            claim_category: "established_reported_knowledge"
+            needs_external_verification: true
+            rationale: "This is a claim describing a trend that can be externally checked."
+
+        - name: "common_knowledge_crypto_blockchain_digital_spaces_challenges_opportunities"
+          description: "Broad background statement about digitization effects - doesn't need substantiation"
+          input:
+            main_document: "data/cryptocurrency-and-blockchain-minimal/main_document.md"
+            chunk: "This shift of activity into digital spaces has presented a multitude of difficulties, as well as opportunities, for criminal justice practitioners (Goodison, Davis, and Jackson, 2015; Tanneeru, 2009; Vermeer, Woods, and Jackson, 2018)."
+            claim: "This shift of activity into digital spaces has presented a multitude of difficulties, as well as opportunities, for criminal justice practitioners"
+            domain_context: "Criminal justice and technology"
+            audience_context: "Criminal justice practitioners and researchers"
+          expected_output:
+            claim: "This shift of activity into digital spaces has presented a multitude of difficulties, as well as opportunities, for criminal justice practitioners"
+            claim_category: "established_reported_knowledge"
+            needs_external_verification: false
+            rationale: "This is a broad, widely accepted background statement about digitization creating challenges and opportunities for criminal justice. It does not introduce specific data, causal findings, or contested interpretations, and domain experts would generally accept it as common knowledge."
+
+        - name: "common_knowledge_crypto_blockchain_traditional_jurisdiction_assumption"
+          description: "Description of established legal principles and jurisdictional concepts - doesn't need substantiation"
+          input:
+            main_document: "data/cryptocurrency-and-blockchain-minimal/main_document.md"
+            chunk: "A traditional assumption, built into the structure of the U.S. criminal justice system, is that individuals who are committing crimes are physically within a geographical jurisdiction, their victims are physically present within that jurisdiction, and any necessary evidence that exists could also be obtained within that jurisdiction."
+            claim: "A traditional assumption, built into the structure of the U.S. criminal justice system, is that individuals who are committing crimes are physically within a geographical jurisdiction, their victims are physically present within that jurisdiction, and any necessary evidence that exists could also be obtained within that jurisdiction"
+            domain_context: "Policy research"
+            audience_context: "Policy researchers"
+          expected_output:
+            claim: "A traditional assumption, built into the structure of the U.S. criminal justice system, is that individuals who are committing crimes are physically within a geographical jurisdiction, their victims are physically present within that jurisdiction, and any necessary evidence that exists could also be obtained within that jurisdiction"
+            claim_category: "established_reported_knowledge"
+            needs_external_verification: false
+            rationale: "This is a description of established legal principles and jurisdictional concepts rather than a contested claim."
+
+        - name: "common_knowledge_crypto_blockchain_jurisdiction_conditions_less_frequent"
+          description: "Empirical trend claim about jurisdictional alignment frequency - needs substantiation"
+          input:
+            main_document: "data/cryptocurrency-and-blockchain-minimal/main_document.md"
+            chunk: "This shift of activity into digital spaces has presented a multitude of difficulties, as well as opportunities, for criminal justice practitioners (Goodison, Davis, and Jackson, 2015; Tanneeru, 2009; Vermeer, Woods, and Jackson, 2018)."
+            claim: "The shift to digital and online interactions has meant that the same jurisdiction conditions are being met less and less frequently for many types of crimes"
+            domain_context: "Criminal justice and digital technology"
+            audience_context: "Criminal justice practitioners and legal researchers"
+          expected_output:
+            claim: "The shift to digital and online interactions has meant that the same jurisdiction conditions are being met less and less frequently for many types of crimes"
+            claim_category: "established_reported_knowledge"
+            needs_external_verification: true
+            rationale: "The claim asserts an empirical trend about cross-jurisdiction conditions occurring less frequently due to digitalization. This is a domain-specific, evidence-based assertion rather than a basic definition or universally accepted fact, and thus should be supported by references to studies or official analyses."
+
+        - name: "common_knowledge_crypto_blockchain_jurisdiction_unknown_enforcement"
+          description: "Well-established challenge in digital crime investigation - doesn't need substantiation"
+          input:
+            main_document: "data/cryptocurrency-and-blockchain-minimal/main_document.md"
+            chunk: "Furthermore, at the time a crime is committed, the jurisdiction that the participants are in might be completely unknown to law enforcement."
+            claim: "at the time a crime is committed, the jurisdiction that the participants are in might be completely unknown to law enforcement"
+            domain_context: "Criminal justice and digital technology"
+            audience_context: "Law enforcement and legal professionals"
+          expected_output:
+            claim: "at the time a crime is committed, the jurisdiction that the participants are in might be completely unknown to law enforcement"
+            claim_category: "established_reported_knowledge"
+            needs_external_verification: false
+            rationale: "This is a well-established challenge in digital crime investigation rather than a specific quantitative claim."
+
+        - name: "common_knowledge_crypto_blockchain_new_challenges_law_enforcement"
+          description: "High-level observation about cross-jurisdictional crime challenges - doesn't need substantiation"
+          input:
+            main_document: "data/cryptocurrency-and-blockchain-minimal/main_document.md"
+            chunk: The shift to digital and online interactions has meant that the “same jurisdiction” conditions are being met less and less frequently for many types of crimes (Caldwell, 2016; Hill, 2015; Vermeer, Woods, and Jackson, 2018). Furthermore, at the time a crime is committed, the jurisdiction that the participants are in might be completely unknown to law enforcement. This presents new challenges for law enforcement agencies in carrying out criminal justice system processes efficiently and effectively (Goodison et al., 2019; Tanneeru, 2009; Vermeer, Woods, and Jackson, 2018).
+            claim: "This presents new challenges for law enforcement agencies in carrying out criminal justice system processes efficiently and effectively"
+            domain_context: "Criminal justice and law enforcement"
+            audience_context: "Law enforcement professionals and criminal justice researchers"
+          expected_output:
+            claim: "This presents new challenges for law enforcement agencies in carrying out criminal justice system processes efficiently and effectively"
+            claim_category: "inferential_interpretive_claims"
+            needs_external_verification: false
+            rationale: "The statement is a high-level, widely accepted observation in the field: cross-jurisdictional and digitally mediated crime creates operational challenges for law enforcement. It follows logically from the preceding premises about unknown or disparate jurisdictions and does not assert specific data, rankings, or controversial interpretations."
+
+        - name: "common_knowledge_geopolitics_minimal_citation_a"
+          description: "Conceptual inference extending established AI safety concerns to embodied forms - doesn't need substantiation"
+          input:
+            main_document: "data/geopolitics-of-agi-minimal-1/_original.md"
+            chunk: "In many ways, AGI-driven robots can share characteristics of the \"loss of control\" risks inherent to virtual, agentic AI (Bengio, 2023)"
+            claim: "AGI-driven robots can share characteristics of the loss-of-control risks that exist in virtual, agentic AI."
+            domain_context: "Geopolitics of AGI"
+            audience_context: "Geopolitics policy researchers"
+          expected_output:
+            claim: "AGI-driven robots can share characteristics of the loss-of-control risks that exist in virtual, agentic AI."
+            claim_category: "inferential_interpretive_claims"
+            needs_external_verification: false
+            rationale: "The statement is a general, conceptual inference that AGI-driven robots, as embodied agentic systems, would share loss-of-control characteristics known from virtual agentic AI. It introduces no specific data, rankings, or novel empirical claims and is framed cautiously (\"can share\"). It builds logically on established descriptions of agentic AI risks (already cited to Bengio, 2023) and extends them to embodiment, which is a reasonable analytic extrapolation rather than a new factual assertion."
+
+        - name: "common_knowledge_geopolitics_minimal_citation_b"
+          description: "Specific attribution with quoted language from organization - needs substantiation"
+          input:
+            main_document: "data/geopolitics-of-agi-minimal-1/_original.md"
+            chunk: "OpenAI describes the agenticness of an AI model as an \"impact multiplier\" (Shavit et al., 2023)"
+            claim: "OpenAI characterizes the agenticness of an AI model as an \"impact multiplier.\""
+            domain_context: "Geopolitics of AGI"
+            audience_context: "Geopolitics policy researchers"
+          expected_output:
+            claim: "OpenAI characterizes the agenticness of an AI model as an \"impact multiplier.\""
+            claim_category: "established_reported_knowledge"
+            needs_external_verification: true
+            rationale: "This is a specific attribution of a conceptual framing by OpenAI (\"agenticness\" as an \"impact multiplier\") and includes quoted language. It is not a universally accepted definition or common knowledge, so it should be supported by a citation."
+
+        - name: "common_knowledge_geopolitics_minimal_citation_c1"
+          description: "Broadly accepted trend in AI capability growth - doesn't need substantiation"
+          input:
+            main_document: "data/geopolitics-of-agi-minimal-1/_original.md"
+            chunk: "AI models are increasingly able to take input and interact with the world in a generalized way—although often with unexpected or harmful consequences (Zittrain, 2024)"
+            claim: "AI models' capabilities to take input and interact with the world in a generalized manner are increasing."
+            domain_context: "Geopolitics of AGI"
+            audience_context: "Geopolitics policy researchers"
+          expected_output:
+            claim: "AI models' capabilities to take input and interact with the world in a generalized manner are increasing."
+            claim_category: "established_reported_knowledge"
+            needs_external_verification: true
+            rationale: "The statement asserts a broad, qualitative trend—that AI models are increasingly capable of generalized interaction with the world."
+
+        - name: "common_knowledge_geopolitics_minimal_citation_c2"
+          description: "Frequency-laden assertion about real-world AI consequences - needs substantiation"
+          input:
+            main_document: "data/geopolitics-of-agi-minimal-1/_original.md"
+            chunk: "AI models are increasingly able to take input and interact with the world in a generalized way—although often with unexpected or harmful consequences (Zittrain, 2024)"
+            claim: "AI models' generalized interactions with the world often lead to unexpected or harmful consequences"
+            domain_context: "Geopolitics of AGI"
+            audience_context: "Geopolitics policy researchers"
+          expected_output:
+            claim: "AI models' generalized interactions with the world often lead to unexpected or harmful consequences"
+            claim_category: "established_reported_knowledge"
+            needs_external_verification: true
+            rationale: "The statement makes a broad, frequency-laden assertion (\"often\") about real-world consequences of AI interactions. This is not a basic definition or universally accepted fact and implies a general trend that requires empirical support (e.g., incident data, studies, or systematic analyses). While a citation is provided (Zittrain, 2024), the claim itself is of a type that should be substantiated."
+
+        - name: "common_knowledge_geopolitics_minimal_risk_a"
+          description: "Logical inference in AI safety and cyber-physical security - doesn't need substantiation"
+          input:
+            main_document: "data/geopolitics-of-agi-minimal-1/_original.md"
+            chunk: "The consequences of loss of control would be further amplified if an AI agent deployed by an adversary state were embodied and able to influence the physical world with its generalized capabilities."
+            claim: "Loss-of-control consequences would be amplified when an adversary-deployed AI agent is physically embodied and able to influence the real world."
+            domain_context: "Geopolitics of AGI"
+            audience_context: "Geopolitics policy researchers"
+          expected_output:
+            claim: "Loss-of-control consequences would be amplified when an adversary-deployed AI agent is physically embodied and able to influence the real world."
+            claim_category: "inferential_interpretive_claims"
+            needs_external_verification: false
+            rationale: "This is a logical, widely accepted inference in AI safety and cyber-physical security: if loss of control over a virtual agent is risky, embodiment that enables physical-world actions increases potential harm. The statement is hypothetical/analytic and builds on nearby cited material about agenticness as an impact multiplier and loss-of-control risks. It does not assert specific data or a contested mechanism, so it need not be separately substantiated."
+
+        - name: "common_knowledge_geopolitics_minimal_risk_b1"
+          description: "Hypothetical risk characterization within threat model - doesn't need substantiation"
+          input:
+            main_document: "data/geopolitics-of-agi-minimal-1/_original.md"
+            chunk: "The agent could constitute a robotic insider threat in any location where it was used, potentially allowing an attacker to be one software update or hack away from remotely executing a wide variety of actions in the physical world."
+            claim: "The agent could constitute a robotic insider threat in any location where it was used"
+            domain_context: "Geopolitics of AGI"
+            audience_context: "Geopolitics policy researchers"
+          expected_output:
+            claim: "The agent could constitute a robotic insider threat in any location where it was used"
+            claim_category: "inferential_interpretive_claims"
+            needs_external_verification: false
+            rationale: "This is a hypothetical risk characterization within a threat model, framed with modal language (\"could\") and logically extrapolated from cited premises about agentic AI, loss of control, and embodiment. It does not introduce specific empirical findings or quantitative claims; rather, it is an inferential scenario"
+
+        - name: "common_knowledge_geopolitics_minimal_risk_b2"
+          description: "Qualitative hypothetical risk scenario based on cybersecurity principles - doesn't need substantiation"
+          input:
+            main_document: "data/geopolitics-of-agi-minimal-1/_original.md"
+            chunk: "The agent could constitute a robotic insider threat in any location where it was used, potentially allowing an attacker to be one software update or hack away from remotely executing a wide variety of actions in the physical world."
+            claim: "An attacker could be just a software update or hack away from remotely commanding the agent to perform many physical-world actions."
+            domain_context: "Geopolitics of AGI"
+            audience_context: "Geopolitics policy researchers"
+          expected_output:
+            claim: "An attacker could be just a software update or hack away from remotely commanding the agent to perform many physical-world actions."
+            claim_category: "inferential_interpretive_claims"
+            needs_external_verification: false
+            rationale: "This is a qualitative, hypothetical risk scenario framed with \"could\" and \"potentially,\" not a specific empirical claim. It follows logically from well-established cybersecurity principles (that connected, updateable robotic systems can be compromised and then remotely controlled) and from the paragraph's premise about agentic AI and loss-of-control risks. "
+
+        - name: "common_knowledge_geopolitics_minimal_risk_c"
+          description: "Hypothetical possibility within threat-modeling context - doesn't need substantiation"
+          input:
+            main_document: "data/geopolitics-of-agi-minimal-1/_original.md"
+            chunk: "A sophisticated adversary—e.g., a nation-state or even a rogue AGI agent—could conceivably exploit a vulnerability common to many robots to issue malicious instructions that would be carried out with intelligent autonomy."
+            claim: "A sophisticated adversary could exploit common vulnerabilities in many robots to issue malicious commands that the robots would autonomously execute."
+            domain_context: "Geopolitics of AGI"
+            audience_context: "Geopolitics policy researchers"
+          expected_output:
+            claim: "A sophisticated adversary could exploit common vulnerabilities in many robots to issue malicious commands that the robots would autonomously execute."
+            claim_category: "inferential_interpretive_claims"
+            needs_external_verification: false
+            rationale: "The statement is framed as a hypothetical possibility (\"could exploit\") within a threat-modeling context rather than asserting that such an event has occurred or that specific common vulnerabilities are presently known. It extrapolates from widely accepted cybersecurity principles (common-mode vulnerabilities across similar systems and resulting scalable exploitation) and from earlier discussion of agentic AI risks."
+
+        - name: "common_knowledge_geopolitics_minimal_risk_d"
+          description: "Hypothetical scenario within threat-modeling context - doesn't need substantiation"
+          input:
+            main_document: "data/geopolitics-of-agi-minimal-1/_original.md"
+            chunk: "This could allow an attacker to use proliferated robotic platforms to execute a wide-ranging attack on the United States—both to disrupt and to destroy infrastructure and terrorize citizens."
+            claim: "An attacker could leverage widely deployed robotic platforms to conduct a large-scale attack on the United States that disrupts or destroys infrastructure and terrorizes citizens."
+            domain_context: "Geopolitics of AGI"
+            audience_context: "Geopolitics policy researchers"
+          expected_output:
+            claim: "An attacker could leverage widely deployed robotic platforms to conduct a large-scale attack on the United States that disrupts or destroys infrastructure and terrorizes citizens."
+            claim_category: "inferential_interpretive_claims"
+            needs_external_verification: false
+            rationale: "The statement is framed as a hypothetical scenario (\"could allow,\" \"could…execute\") within a threat-modeling context and builds on nearby reasoning about agentic AI risks and potential common vulnerabilities. It does not assert new empirical facts, quantitative claims, or specific findings."
+
+        - name: "common_knowledge_geopolitics_minimal_as_has_been_found_before"
+          description: "Time-specific predictive claim about AGI timelines - needs substantiation"
+          input:
+            main_document: "data/geopolitics-of-agi-minimal-1/_nuances.md"
+            chunk: "AGI is expected to be reached by 2030, as has been found before (Fake, 2025)"
+            claim: "AGI is expected to be reached by 2030"
+            domain_context: "Geopolitics of AGI"
+            audience_context: "Geopolitics policy researchers"
+          expected_output:
+            claim: "AGI is expected to be reached by 2030"
+            claim_category: "established_reported_knowledge"
+            needs_external_verification: true
+            rationale: "The statement is a time-specific predictive claim about AGI timelines and needs to be supported by a citation to a source that provides evidence for the claim."

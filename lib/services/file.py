@@ -26,6 +26,15 @@ class FileDocument(BaseModel):
         description="Structured Docling document data (pages, items, bboxes) for rendering",
     )
 
+    def __hash__(self):
+        return hash((self.file_path))
+
+    def __eq__(self, other):
+        if not isinstance(other, FileDocument):
+            return NotImplemented
+
+        return self.file_path == other.file_path
+
 
 async def create_file_document_from_path(
     file_path: str, original_file_name: str = None, markdown_convert: bool = True

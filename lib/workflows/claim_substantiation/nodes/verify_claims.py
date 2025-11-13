@@ -7,7 +7,6 @@ from lib.agents.claim_verifier import (
 )
 from lib.agents.formatting_utils import (
     format_audience_context,
-    format_cited_references,
     format_domain_context,
 )
 from lib.agents.formatting_utils import format_audience_context, format_domain_context
@@ -15,8 +14,8 @@ from lib.workflows.chunk_iterator import iterate_chunks
 from lib.workflows.claim_substantiation.reference_providers import (
     CitationBasedReferenceProvider,
     RAGReferenceProvider,
-    ReferenceContext,
     ReferenceProvider,
+    get_all_paragraph_citations,
 )
 from lib.workflows.claim_substantiation.state import (
     ClaimSubstantiatorState,
@@ -34,26 +33,33 @@ _CITATION_PROVIDER = CitationBasedReferenceProvider()
 _RAG_PROVIDER = RAGReferenceProvider()
 
 
-def _needs_substantiation(chunk: DocumentChunk, claim_index: int) -> bool:
-    """Check if a claim needs substantiation.
+def _needs_substantiation(
+    state: ClaimSubstantiatorState, chunk: DocumentChunk, claim_index: int
+) -> bool:
+    """
+    Check if a claim needs substantiation.
 
     A claim needs substantiation if:
-    1. It has citations in the chunk that need to be verified (regardless of common knowledge status)
-    2. OR it's not common knowledge and needs supporting evidence
+    1. It has citations in the chunk that need to be verified OR in the paragraph that includes the chunk; AND
+    2. It needs external verification (or if categorization didn't happen, consider all claims need external verification)
     """
 
-    if chunk.citations and chunk.citations.citations:
-        return True
+    paragraph_citations = get_all_paragraph_citations(state, chunk)
+    if len(paragraph_citations) == 0:
+        # If there's no citations in the paragraph, skip verification since there's no document to verify against
+        return False
 
-    common_knowledge_result = next(
-        (
-            r
-            for r in chunk.claim_common_knowledge_results
-            if r.claim_index == claim_index
-        ),
+    claim_category = next(
+        (c for c in chunk.claim_categories if c.claim_index == claim_index),
         None,
     )
-    return not common_knowledge_result or common_knowledge_result.needs_substantiation
+
+    if not claim_category:
+        # In case categorization didn't happen, force verification (consider all claims need external verification)
+        return True
+
+    # If the claim needs external verification, verify it
+    return claim_category.needs_external_verification
 
 
 async def _verify_chunk_claims_with_provider(
@@ -76,7 +82,10 @@ async def _verify_chunk_claims_with_provider(
     substantiations = []
 
     for claim_index, claim in enumerate(chunk.claims.claims):
-        if not _needs_substantiation(chunk, claim_index):
+        if not _needs_substantiation(state, chunk, claim_index):
+            logger.debug(
+                f"Chunk {chunk.chunk_index} claim {claim_index} does not need external verification, skipping verification"
+            )
             continue
 
         ref_context = await reference_provider.get_references_for_claim(

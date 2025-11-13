@@ -57,15 +57,15 @@ async def _suggest_chunk_citations(
 
     citation_suggestions = []
     for claim_index, claim in enumerate(chunk.claims.claims):
-        common_knowledge_result = next(
+        category = next(
             (
                 result
-                for result in chunk.claim_common_knowledge_results
+                for result in chunk.claim_categories
                 if result.claim_index == claim_index
             ),
             None,
         )
-        if common_knowledge_result and not common_knowledge_result.needs_substantiation:
+        if category and not category.needs_external_verification:
             continue
 
         cited_references = format_cited_references(

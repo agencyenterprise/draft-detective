@@ -77,7 +77,7 @@ dataset:
         claim: "The shift of activity into digital spaces has not presented any difficulties or opportunities for criminal justice practitioners."
       expected_output:
         rationale: "All three cited sources explicitly describe significant difficulties and, in places, opportunities arising from the shift to digital spaces. Goodison, Davis, and Jackson (2015) report “significant challenges” in using digital evidence (training gaps for officers, prosecutors, and judges; backlogs; need for triage tools) and even reference “digital evidence opportunities and challenges.” Vermeer, Woods, and Jackson (2018) state that accessing remotely held digital evidence involves multifaceted legal, procedural, and technical difficulties and detail needs to improve MLAT processes, standards, and training. Tanneeru (2009) highlights that law lags technology and raises jurisdictional and legal complexity online. These directly contradict the claim that the shift has not presented any difficulties or opportunities."
-        feedback: "The sentence appears to contain an erroneous negation."
+        feedback: "Rephrase the claim to reflect the sources."
         evidence_alignment: "unsupported"
         evidence_sources: []
 
@@ -155,7 +155,7 @@ dataset:
         evidence_alignment: "partially_supported"
         evidence_sources: []
 
-    - name: "substantiation_power_capacity_claim_footnote_22_claim_2_false"
+    - name: "substantiation_power_capacity_claim_footnote_22_claim_2_different_range"
       description: "Test case for power capacity claim with footnote 18"
       input:
         main_document: "data/power-capacity-by-2030-published-minimal/_false_claims.md"
@@ -164,9 +164,9 @@ dataset:
         chunk: "- RAND projects that global AI data center power demand could reach 500 GW by 2030.[[22]](#footnote-22) For the United States alone, additional demand is estimated to be between 50 GW and 100 GW, assuming a retention rate of 50 percent to 80 percent."
         claim: "U.S. additional AI data center power demand is estimated at 50-100 GW, conditional on a 50%–80% retention rate."
       expected_output:
-        rationale: "The cited RAND report does not provide a 50–100 GW U.S. estimate tied to a 50%–80% retention rate. RAND’s main projection puts global AI data center power demand around 327 GW by 2030 (not 500 GW) and notes that to retain 75% of AI compute the U.S. would need about 51 GW by 2027. Applying a 50%–80% retention share to RAND’s 2030 global projection would imply roughly 160–260 GW in the U.S., not 50–100 GW. No 100 GW figure or 50–100 GW range for the U.S. appears in the report."
-        feedback: "Revise the claim or cite another source that supports the estimate."
-        evidence_alignment: "unsupported"
+        rationale: "The cited RAND report discusses U.S. retention of AI compute and quantifies that retaining 75% would require about 51 GW by 2027, which is related to the claim’s concept (U.S. demand conditional on retention). However, the source does not provide the 50–100 GW range, nor does it tie that range to a 50%–80% retention rate or to the 2030 timeframe. Thus, it supports the lower-bound magnitude at a different date and retention point, but not the full stated range or timing."
+        feedback: "Clarify the timeframe (e.g., 2027 vs. 2030) and cite the exact RAND passage that provides the 50–100 GW range if it exists, or adjust the claim to match RAND’s stated figure (about 51 GW by 2027 at ~75% retention) or add additional sources that support the 50–100 GW estimate under 50–80% retention."
+        evidence_alignment: "partially_supported"
         evidence_sources: []
 
     - name: "substantiation_geopolitics_of_agi_claim_1a"

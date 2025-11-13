@@ -14,13 +14,13 @@
 
 import { mapValues } from '../runtime';
 /**
- *
+ * A single factual claim with verification properties.
  * @export
  * @interface Claim
  */
 export interface Claim {
   /**
-   * The relevant part of the text within the chunk of text that implies the claims
+   * The relevant part of the text within the chunk of text that is being decomposed into claims.
    * @type {string}
    * @memberof Claim
    */

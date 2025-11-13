@@ -5,8 +5,7 @@ import pytest
 
 from lib.agents.citation_detector import CitationResponse, citation_detector_agent
 from lib.models.agent_test_case import AgentTestCase
-from lib.services.file import create_file_document_from_path
-from tests.conftest import data_path
+from tests.conftest import create_test_file_document_from_path, data_path
 from tests.datasets.loader import load_dataset
 
 TESTS_DIR = Path(__file__).parent.parent
@@ -27,7 +26,7 @@ def _build_cases() -> list[AgentTestCase]:
     for test_case in dataset.items:
         # Load main document from input
         main_path = data_path(test_case.input["main_document"])
-        main_doc = asyncio.run(create_file_document_from_path(main_path))
+        main_doc = asyncio.run(create_test_file_document_from_path(main_path))
 
         cases.append(
             AgentTestCase(

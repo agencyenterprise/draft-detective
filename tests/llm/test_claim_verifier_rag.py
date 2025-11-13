@@ -7,14 +7,18 @@ to evaluate the effectiveness of the RAG approach.
 """
 
 import asyncio
+from typing import List, Set
 
 import pytest
 
+from lib.agents.citation_detector import Citation
 from lib.agents.claim_extractor import Claim, ClaimResponse
 from lib.agents.claim_verifier import ClaimSubstantiationResult, claim_verifier_agent
 from lib.agents.formatting_utils import format_audience_context, format_domain_context
+from lib.agents.reference_extractor import BibliographyItem
 from lib.config.logger import setup_logger
 from lib.models.agent_test_case import AgentTestCase
+from lib.services.file import FileDocument
 from lib.workflows.claim_substantiation.nodes.index_supporting_documents import (
     index_file_document,
 )
@@ -27,10 +31,38 @@ from lib.workflows.claim_substantiation.state import (
     DocumentChunk,
     SubstantiationWorkflowConfig,
 )
-from tests.conftest import TESTS_DIR, extract_paragraph_from_chunk, load_document
+from tests.conftest import (
+    TESTS_DIR,
+    extract_paragraph_from_chunk,
+    create_test_file_document_from_path,
+)
 from tests.datasets.loader import load_dataset
 
 setup_logger()
+
+
+class TestRAGReferenceProvider(RAGReferenceProvider):
+    """
+    Extension of the original RAG reference provider for testing purposes.
+
+    We override the `_get_supporting_files_for_citations` method to return all available supporting files from the state,
+    so we don't need to provide references and references in the test cases.
+    """
+
+    def _get_supporting_files_for_citations(
+        self,
+        supporting_files: List[FileDocument],
+        references: List[BibliographyItem],
+        citations: List[Citation],
+    ) -> Set[FileDocument]:
+        """
+        Return all available supporting files from the state.
+
+        We do that so we don't need to provide references and citations in the test cases.
+        ALL supporting files defined in the test case will be used to verify the claim.
+        """
+
+        return set(supporting_files)
 
 
 async def _build_cases(dataset_file_name: str):
@@ -45,16 +77,18 @@ async def _build_cases(dataset_file_name: str):
     for test_case in dataset.items:
         supporting_docs_set.update(test_case.input.get("supporting_documents", []))
     for supporting_doc in supporting_docs_set:
-        file_doc = await load_document(supporting_doc)
+        file_doc = await create_test_file_document_from_path(supporting_doc)
         await index_file_document(file_doc)
 
     for test_case in dataset.items:
         # Load main document
-        main_doc = await load_document(test_case.input["main_document"])
+        main_doc = await create_test_file_document_from_path(
+            test_case.input["main_document"]
+        )
 
         # Build supporting documents block if provided
         supporting_docs = [
-            await load_document(supporting_doc)
+            await create_test_file_document_from_path(supporting_doc)
             for supporting_doc in test_case.input.get("supporting_documents", [])
         ]
 
@@ -75,7 +109,7 @@ async def _build_cases(dataset_file_name: str):
         )
 
         # Instantiate RAG Reference Provider, mock inputs unused by this test
-        reference_provider = RAGReferenceProvider()
+        reference_provider = TestRAGReferenceProvider()
         claim1 = Claim(claim=claim_text, text=chunk, rationale="")
         ref_context = await reference_provider.get_references_for_claim(
             state,

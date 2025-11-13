@@ -1,11 +1,5 @@
 /* tslint:disable */
 /* eslint-disable */
-export * from './AddendumInput';
-export * from './AddendumItem';
-export * from './AddendumOutput';
-export * from './AddendumSectionsInput';
-export * from './AddendumSectionsOutput';
-export * from './AddendumSeverity';
 export * from './BBox';
 export * from './BibliographyFieldValidation';
 export * from './BibliographyItem';
@@ -66,12 +60,16 @@ export * from './Reference';
 export * from './ReferenceAlignmentLevel';
 export * from './ReferenceDirection';
 export * from './ReferenceType';
+export * from './ReportMetadata';
+export * from './ReportOutputInput';
+export * from './ReportOutputOutput';
 export * from './RetrievedPassageInfo';
 export * from './SeverityEnum';
 export * from './StartAnalysisResponse';
 export * from './SubstantiationWorkflowConfig';
 export * from './ToulminClaim';
 export * from './ToulminClaimResponse';
+export * from './UpdateType';
 export * from './UpdateWorkflowRunRequest';
 export * from './ValidationError';
 export * from './ValidationErrorLocInner';

@@ -6,19 +6,20 @@ through different methods (citation-based vs RAG-based).
 
 import asyncio
 import logging
-from typing import List, Optional, Protocol
+from typing import List, Optional, Protocol, Set
 
 from pydantic import BaseModel, Field
 
-from lib.agents.citation_detector import CitationResponse
+from lib.agents.citation_detector import Citation, CitationResponse
 from lib.agents.claim_extractor import Claim
 from lib.agents.claim_verifier import RetrievedPassageInfo
 from lib.agents.formatting_utils import (
     format_cited_references,
     format_retrieved_passages,
 )
+from lib.agents.reference_extractor import BibliographyItem
+from lib.services.file import FileDocument
 from lib.services.vector_store import (
-    RAG_TOP_K,
     get_collection_id,
     get_file_hash_from_path,
     get_vector_store_service,
@@ -87,8 +88,8 @@ class CitationBasedReferenceProvider:
             truncate_at_character_count=MAX_REFERENCE_CHARACTER_COUNT,
         )
 
-        paragraph_chunks_citations_not_in_chunk = (
-            self._get_paragraph_citations_not_in_chunk(state, chunk)
+        paragraph_chunks_citations_not_in_chunk = _get_paragraph_citations_not_in_chunk(
+            state, chunk
         )
 
         paragraph_other_chunk_citations = CitationResponse(
@@ -107,28 +108,6 @@ class CitationBasedReferenceProvider:
             cited_references=cited_references,
             cited_references_paragraph=cited_references_paragraph,
         )
-
-    def _get_paragraph_citations_not_in_chunk(
-        self, state: ClaimSubstantiatorState, chunk: DocumentChunk
-    ) -> List:
-        """Extract citations from paragraph chunks that aren't in current chunk."""
-        paragraph_chunks = state.get_paragraph_chunks(chunk.paragraph_index)
-        citations_not_in_chunk = []
-
-        for other_chunk in paragraph_chunks:
-            if other_chunk == chunk:
-                continue
-            if not other_chunk.citations or not other_chunk.citations.citations:
-                continue
-
-            if not chunk.citations:
-                citations_not_in_chunk.extend(other_chunk.citations.citations)
-            else:
-                for citation in other_chunk.citations.citations:
-                    if citation not in chunk.citations.citations:
-                        citations_not_in_chunk.append(citation)
-
-        return citations_not_in_chunk
 
 
 class RAGReferenceProvider:
@@ -154,46 +133,41 @@ class RAGReferenceProvider:
             return ReferenceContext(cited_references="", cited_references_paragraph="")
 
         try:
-            vector_store = get_vector_store_service()
-
             query = self._build_enriched_query(chunk, claim)
 
-            logger.debug(f"RAG query for claim {claim_index}: '{query}.'")
-
-            retrieval_tasks = [
-                vector_store.retrieve_relevant_passages(
-                    query=query,
-                    collection_id=get_collection_id(
-                        get_file_hash_from_path(file_doc.file_path)
-                    ),
-                    top_k=RAG_TOP_K,
-                )
-                for file_doc in state.supporting_files
-            ]
-
-            results = await asyncio.gather(*retrieval_tasks)
-            all_passages = [passage for passages in results for passage in passages]
-
-            all_passages.sort(key=lambda p: p.cosine_distance, reverse=False)
-
-            quality_passages = [
-                p for p in all_passages if p.cosine_distance <= MAX_DISTANCE_THRESHOLD
-            ]
-            top_passages = quality_passages[:RAG_TOP_K]
-
-            logger.info(
-                f"Retrieved {len(top_passages)} passages for claim {claim_index} "
-                f"from {len(state.supporting_files)} files "
-                f"({len(all_passages)} total passages, {len(quality_passages)} below threshold)"
+            # Get the passages for the citations in the chunk
+            chunk_citation_supporting_files = self._get_supporting_files_for_citations(
+                state.supporting_files,
+                state.references,
+                chunk.citations.citations if chunk.citations else [],
+            )
+            chunk_citation_passages = await self._get_passages(
+                query, chunk_citation_supporting_files
             )
 
-            if top_passages:
-                logger.debug(
-                    f"Top passage: {top_passages[0].source_file} "
-                    f"(distance: {top_passages[0].cosine_distance:.3f})"
-                )
+            logger.info(
+                f"Retrieved {len(chunk_citation_passages)} passages for chunk {chunk.chunk_index}, claim {claim_index} "
+                f"from {len(chunk_citation_supporting_files)} matched supporting files, using query: '{query}'"
+            )
 
-            cited_references = format_retrieved_passages(top_passages)
+            # Get the passages for the other citations in the paragraph
+            all_paragraph_citations = get_all_paragraph_citations(state, chunk)
+            paragraph_supportings_files = self._get_supporting_files_for_citations(
+                state.supporting_files,
+                state.references,
+                all_paragraph_citations,
+            )
+            extra_supporting_files = (
+                paragraph_supportings_files - chunk_citation_supporting_files
+            )
+            paragraph_citations_passages = await self._get_passages(
+                query, extra_supporting_files
+            )
+
+            logger.info(
+                f"Retrieved {len(paragraph_citations_passages)} passages for paragraph from chunk {chunk.chunk_index}, claim {claim_index} "
+                f"from {len(extra_supporting_files)} matched supporting files, using query: '{query}'"
+            )
 
             retrieved_passage_info = [
                 RetrievedPassageInfo(
@@ -202,17 +176,40 @@ class RAGReferenceProvider:
                     cosine_distance=p.cosine_distance,
                     chunk_index=p.chunk_index,
                 )
-                for p in top_passages
+                for p in chunk_citation_passages + paragraph_citations_passages
             ]
 
             return ReferenceContext(
-                cited_references=cited_references,
-                cited_references_paragraph="",
+                cited_references=format_retrieved_passages(chunk_citation_passages),
+                cited_references_paragraph=format_retrieved_passages(
+                    paragraph_citations_passages
+                ),
                 retrieved_passages=retrieved_passage_info,
             )
 
         except Exception as e:
             raise Exception(f"RAG retrieval failed for claim {claim_index}") from e
+
+    async def _get_passages(
+        self, query: str, supporting_files: List[FileDocument]
+    ) -> List[RetrievedPassageInfo]:
+        vector_store = get_vector_store_service()
+
+        retrieval_tasks = [
+            vector_store.retrieve_relevant_passages(
+                query=query,
+                collection_id=get_collection_id(
+                    get_file_hash_from_path(file_doc.file_path)
+                ),
+                top_k=10,
+            )
+            for file_doc in supporting_files
+        ]
+
+        results = await asyncio.gather(*retrieval_tasks)
+        all_passages = [passage for passages in results for passage in passages]
+        all_passages.sort(key=lambda p: p.cosine_distance, reverse=False)
+        return all_passages
 
     def _build_enriched_query(self, chunk: DocumentChunk, claim: Claim) -> str:
         """
@@ -239,3 +236,111 @@ class RAGReferenceProvider:
             enriched_query = enriched_query[:MAX_QUERY_LENGTH]
 
         return enriched_query
+
+    def _get_supporting_files_for_citation(
+        self,
+        supporting_files: List[FileDocument],
+        references: List[BibliographyItem],
+        citation: Citation,
+    ) -> Set[FileDocument]:
+        """
+        Get the supporting files associated with a citation.
+
+        Args:
+            supporting_files: The full list of supporting files.
+            references: The full list of references.
+            citation: The citation.
+
+        Returns:
+            The set of supporting files associated with the citation.
+        """
+
+        matched_supporting_files = set()
+        bibliography_index = citation.index_of_associated_bibliography
+        associated_reference = references[bibliography_index - 1]
+
+        if (
+            associated_reference.has_associated_supporting_document
+            and associated_reference.index_of_associated_supporting_document > 0
+        ):
+            supporting_file = supporting_files[
+                associated_reference.index_of_associated_supporting_document - 1
+            ]
+            matched_supporting_files.add(supporting_file)
+
+        return matched_supporting_files
+
+    def _get_supporting_files_for_citations(
+        self,
+        supporting_files: List[FileDocument],
+        references: List[BibliographyItem],
+        citations: List[Citation],
+    ) -> Set[FileDocument]:
+        """
+        Get the supporting files associated with a list of citations.
+
+        Args:
+            supporting_files: The full list of supporting files.
+            references: The full list of references.
+            citations: The list of citations.
+
+        Returns:
+            The set of supporting files associated with the citations.
+        """
+        matched_supporting_files = set()
+        for citation in citations:
+            matched_supporting_files.update(
+                self._get_supporting_files_for_citation(
+                    supporting_files, references, citation
+                )
+            )
+        return matched_supporting_files
+
+
+def get_all_paragraph_citations(
+    state: ClaimSubstantiatorState, target_chunk: DocumentChunk
+) -> List[Citation]:
+    """Get all citations from the paragraph that includes the `target_chunk`."""
+
+    all_citations = []
+    paragraph_chunks = state.get_paragraph_chunks(target_chunk.paragraph_index)
+
+    for chunk in paragraph_chunks:
+        if not chunk.citations or not chunk.citations.citations:
+            continue
+
+        all_citations.extend(
+            [c for c in chunk.citations.citations if is_bibliographic_citation(c)]
+        )
+
+    return all_citations
+
+
+def is_bibliographic_citation(citation: Citation) -> bool:
+    """Check if a citation is a bibliographic citation."""
+
+    return citation.needs_bibliography
+
+
+def _get_paragraph_citations_not_in_chunk(
+    state: ClaimSubstantiatorState, chunk: DocumentChunk
+) -> List:
+    """Extract citations from paragraph chunks that aren't in current chunk."""
+
+    paragraph_chunks = state.get_paragraph_chunks(chunk.paragraph_index)
+    citations_not_in_chunk = []
+
+    for other_chunk in paragraph_chunks:
+        if other_chunk == chunk:
+            continue
+        if not other_chunk.citations or not other_chunk.citations.citations:
+            continue
+
+        if not chunk.citations:
+            citations_not_in_chunk.extend(other_chunk.citations.citations)
+        else:
+            for citation in other_chunk.citations.citations:
+                if citation not in chunk.citations.citations:
+                    citations_not_in_chunk.append(citation)
+
+    return citations_not_in_chunk

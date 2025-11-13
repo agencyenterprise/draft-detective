@@ -111,7 +111,7 @@ export function AnalysisForm() {
           mainDocument: data.mainDocument,
           supportingDocuments: data.supportingDocuments,
           config: {
-            useToulmin: true,
+            useToulmin: false,
             runLiteratureReview: data.config.runLiteratureReview,
             runSuggestCitations: data.config.runSuggestCitations,
             runLiveReports: data.config.runLiveReports,

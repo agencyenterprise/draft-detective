@@ -42,9 +42,9 @@ export interface GetChunkDetailsEndpointApiWorkflowRunWorkflowRunIdChunkChunkInd
   chunkIndex: number;
 }
 
-export interface GetPageImageApiWorkflowRunsWorkflowRunIdPagesImagePathGetRequest {
+export interface GetPageImageApiWorkflowRunsWorkflowRunIdPagesPageNumGetRequest {
   workflowRunId: string;
-  imagePath: string;
+  pageNum: number;
 }
 
 export interface GetWorkflowRunApiWorkflowRunWorkflowRunIdGetRequest {
@@ -78,6 +78,15 @@ export class WorkflowsApi extends runtime.BaseAPI {
     const queryParameters: any = {};
 
     const headerParameters: runtime.HTTPHeaders = {};
+
+    if (this.configuration && this.configuration.accessToken) {
+      const token = this.configuration.accessToken;
+      const tokenString = await token('HTTPBearer', []);
+
+      if (tokenString) {
+        headerParameters['Authorization'] = `Bearer ${tokenString}`;
+      }
+    }
 
     let urlPath = `/api/workflow-run/{workflow_run_id}`;
     urlPath = urlPath.replace(`{${'workflow_run_id'}}`, encodeURIComponent(String(requestParameters['workflowRunId'])));
@@ -173,24 +182,24 @@ export class WorkflowsApi extends runtime.BaseAPI {
   }
 
   /**
-   * Serve Docling page images for a workflow run  When Docling uses image_export_mode=\'reference\', it stores images in the conversion output. This endpoint serves those images.  Args:     workflow_run_id: The workflow run ID     image_path: The image path from Docling (e.g., \'page_1.png\' or relative path)  Returns:     The image file
+   * Serve Docling page images for a workflow run  Args:     workflow_run_id: The workflow run ID     page_num: The page number (e.g., 0, 1, 2)  Returns:     The image file for the specified page (PNG, JPEG, WEBP, etc.)
    * Get Page Image
    */
-  async getPageImageApiWorkflowRunsWorkflowRunIdPagesImagePathGetRaw(
-    requestParameters: GetPageImageApiWorkflowRunsWorkflowRunIdPagesImagePathGetRequest,
+  async getPageImageApiWorkflowRunsWorkflowRunIdPagesPageNumGetRaw(
+    requestParameters: GetPageImageApiWorkflowRunsWorkflowRunIdPagesPageNumGetRequest,
     initOverrides?: RequestInit | runtime.InitOverrideFunction,
   ): Promise<runtime.ApiResponse<any>> {
     if (requestParameters['workflowRunId'] == null) {
       throw new runtime.RequiredError(
         'workflowRunId',
-        'Required parameter "workflowRunId" was null or undefined when calling getPageImageApiWorkflowRunsWorkflowRunIdPagesImagePathGet().',
+        'Required parameter "workflowRunId" was null or undefined when calling getPageImageApiWorkflowRunsWorkflowRunIdPagesPageNumGet().',
       );
     }
 
-    if (requestParameters['imagePath'] == null) {
+    if (requestParameters['pageNum'] == null) {
       throw new runtime.RequiredError(
-        'imagePath',
-        'Required parameter "imagePath" was null or undefined when calling getPageImageApiWorkflowRunsWorkflowRunIdPagesImagePathGet().',
+        'pageNum',
+        'Required parameter "pageNum" was null or undefined when calling getPageImageApiWorkflowRunsWorkflowRunIdPagesPageNumGet().',
       );
     }
 
@@ -198,9 +207,18 @@ export class WorkflowsApi extends runtime.BaseAPI {
 
     const headerParameters: runtime.HTTPHeaders = {};
 
-    let urlPath = `/api/workflow-runs/{workflow_run_id}/pages/{image_path}`;
+    if (this.configuration && this.configuration.accessToken) {
+      const token = this.configuration.accessToken;
+      const tokenString = await token('HTTPBearer', []);
+
+      if (tokenString) {
+        headerParameters['Authorization'] = `Bearer ${tokenString}`;
+      }
+    }
+
+    let urlPath = `/api/workflow-runs/{workflow_run_id}/pages/{page_num}`;
     urlPath = urlPath.replace(`{${'workflow_run_id'}}`, encodeURIComponent(String(requestParameters['workflowRunId'])));
-    urlPath = urlPath.replace(`{${'image_path'}}`, encodeURIComponent(String(requestParameters['imagePath'])));
+    urlPath = urlPath.replace(`{${'page_num'}}`, encodeURIComponent(String(requestParameters['pageNum'])));
 
     const response = await this.request(
       {
@@ -220,14 +238,14 @@ export class WorkflowsApi extends runtime.BaseAPI {
   }
 
   /**
-   * Serve Docling page images for a workflow run  When Docling uses image_export_mode=\'reference\', it stores images in the conversion output. This endpoint serves those images.  Args:     workflow_run_id: The workflow run ID     image_path: The image path from Docling (e.g., \'page_1.png\' or relative path)  Returns:     The image file
+   * Serve Docling page images for a workflow run  Args:     workflow_run_id: The workflow run ID     page_num: The page number (e.g., 0, 1, 2)  Returns:     The image file for the specified page (PNG, JPEG, WEBP, etc.)
    * Get Page Image
    */
-  async getPageImageApiWorkflowRunsWorkflowRunIdPagesImagePathGet(
-    requestParameters: GetPageImageApiWorkflowRunsWorkflowRunIdPagesImagePathGetRequest,
+  async getPageImageApiWorkflowRunsWorkflowRunIdPagesPageNumGet(
+    requestParameters: GetPageImageApiWorkflowRunsWorkflowRunIdPagesPageNumGetRequest,
     initOverrides?: RequestInit | runtime.InitOverrideFunction,
   ): Promise<any> {
-    const response = await this.getPageImageApiWorkflowRunsWorkflowRunIdPagesImagePathGetRaw(
+    const response = await this.getPageImageApiWorkflowRunsWorkflowRunIdPagesPageNumGetRaw(
       requestParameters,
       initOverrides,
     );
@@ -252,6 +270,15 @@ export class WorkflowsApi extends runtime.BaseAPI {
     const queryParameters: any = {};
 
     const headerParameters: runtime.HTTPHeaders = {};
+
+    if (this.configuration && this.configuration.accessToken) {
+      const token = this.configuration.accessToken;
+      const tokenString = await token('HTTPBearer', []);
+
+      if (tokenString) {
+        headerParameters['Authorization'] = `Bearer ${tokenString}`;
+      }
+    }
 
     let urlPath = `/api/workflow-run/{workflow_run_id}`;
     urlPath = urlPath.replace(`{${'workflow_run_id'}}`, encodeURIComponent(String(requestParameters['workflowRunId'])));
@@ -291,6 +318,15 @@ export class WorkflowsApi extends runtime.BaseAPI {
     const queryParameters: any = {};
 
     const headerParameters: runtime.HTTPHeaders = {};
+
+    if (this.configuration && this.configuration.accessToken) {
+      const token = this.configuration.accessToken;
+      const tokenString = await token('HTTPBearer', []);
+
+      if (tokenString) {
+        headerParameters['Authorization'] = `Bearer ${tokenString}`;
+      }
+    }
 
     let urlPath = `/api/workflow-runs`;
 
@@ -345,6 +381,15 @@ export class WorkflowsApi extends runtime.BaseAPI {
     const headerParameters: runtime.HTTPHeaders = {};
 
     headerParameters['Content-Type'] = 'application/json';
+
+    if (this.configuration && this.configuration.accessToken) {
+      const token = this.configuration.accessToken;
+      const tokenString = await token('HTTPBearer', []);
+
+      if (tokenString) {
+        headerParameters['Authorization'] = `Bearer ${tokenString}`;
+      }
+    }
 
     let urlPath = `/api/workflow-run/{workflow_run_id}`;
     urlPath = urlPath.replace(`{${'workflow_run_id'}}`, encodeURIComponent(String(requestParameters['workflowRunId'])));
