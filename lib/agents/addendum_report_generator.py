@@ -63,23 +63,21 @@ Given the raw model output below, rewrite and structure it into a **Markdown rep
 # Addendum: [Title of Report or Claim Update Topic]
 
 ## High Level Summary
-- Provide a concise paragraph (3–5 sentences) summarizing the key updates, overall direction, or major implications.
+- Provide a concise paragraph (3–5 sentences) summarizing what the authors should update in the report, the overall direction of the suggested changes (e.g., reverse conclusions, provide nuance for conclusion, makre stronger conclusions), or the major implications of the suggested changes.
 
 ## Background Updates
-- Describe contextual or theoretical changes that influenced the claims.
-- Each paragraph or bullet should start with a strong declarative phrase (e.g., “New analysis indicates…”).
+- Suggest changes and updates to the background and contextual information for the claims
+- Each paragraph or bullet should start with a strong declarative phrase (e.g., “New analysis indicates…”) and should then suggest what should be changed about the report to supply an update
 
 ## Methodology Updates
-- Describe procedural, experimental, or analytical revisions.
-- Keep items 1–3 sentences each.
-- Reference supporting materials where relevant (e.g., “see Appendix A”).
+- Suggest procedural, experimental, or analytical revisions to the report
+- Reference supporting materials where relevant (e.g., “see Ref [1]”) 
 
 ## Results Updates
-- State outcomes, comparisons, or numerical adjustments.
-- Clearly mention any revised values (e.g., “updated from 5.5% to 4.1%”).
+- State how the updates might affect the major outcomes of the original paper
 
 ## Implications Updates
-- Explain practical or strategic consequences of the above updates on the conclusions of report
+- Explain practical or strategic consequences of the above suggested updates on the conclusions of report
 - Use prescriptive tone (“This requires…”, “This suggests…”).
 
 ## References
@@ -102,9 +100,9 @@ Given the raw model output below, rewrite and structure it into a **Markdown rep
 2. Maintain a **formal and evidence-driven tone**, with clear causal or comparative phrasing (e.g., “This adjustment necessitates…”, “This modification ensures…”).
 
 3. Each update paragraph should:
-   - Begin with a concrete noun or action (“New analysis shows…”, “The dataset was expanded…”).
-   - Reference supporting context or implications.
-   - Remain **1–3 sentences** long.
+   - Reference newly found context and references
+   - State what should be changed about the report to accommodate the new references
+   - Keep items **1–3 sentences** long.
 
 4. Insert **numerical or symbolic citations** in square brackets `[1]`, `[2]`, etc., to mimic reference numbering.
 
@@ -127,28 +125,28 @@ Within the output data structure place the report into one of the following cate
 ---
 
 #### 2. **Minor Factual Update**
-- **Description:** Small factual changes that slightly adjust quantitative or descriptive details.
+- **Description:** The authors should make small factual changes that slightly adjust quantitative or descriptive details.
 - **Use When:** Numbers, dates, or labels have shifted but the interpretation stays the same.
 - **Example:** *Inflation rate updated from 3.1% to 3.3%.*
 
 ---
 
 #### 3. **Moderate Update (Clarification or Expansion)**
-- **Description:** New context, explanation, or clarification needed, but overall conclusions still hold.
+- **Description:** The authors should introduce new context, explanation, but the overall conclusions still hold.
 - **Use When:** Recent data adds nuance, or terminology has evolved.
 - **Example:** *Add note on revised methodology in 2025 dataset.*
 
 ---
 
 #### 4. **Major Update Required**
-- **Description:** Substantive changes to sections or conclusions are needed due to new evidence.
+- **Description:** The authors need to make substantive changes to sections or conclusions are needed due to new evidence.
 - **Use When:** New findings contradict or significantly extend prior statements.
 - **Example:** *2025 emissions data show a reversal of the downward trend reported in 2023.*
 
 ---
 
 #### 5. **Outdated or Invalidated**
-- **Description:** The statement is no longer accurate or applicable due to major developments.
+- **Description:** The important claims and argument in the report are no longer accurate or applicable due to major developments.
 - **Use When:** The core premise or supporting data has been superseded.
 - **Example:** *Earlier projections invalidated by new regulatory changes in 2024.*
 
