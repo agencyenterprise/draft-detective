@@ -93,7 +93,7 @@ class DoclingDocument(BaseModel):
     def model_dump(self, **kwargs) -> Dict[str, Any]:
         """Override to include extra fields at top level"""
         data = super().model_dump(**kwargs)
-        # Merge extra fields into the main dict
+
         if hasattr(self, "__pydantic_extra__") and self.__pydantic_extra__:
             data.update(self.__pydantic_extra__)
         return data

@@ -49,7 +49,7 @@ async def split_into_chunks(state: ClaimSubstantiatorState) -> ClaimSubstantiato
     # Automatically handle both sync and async chunkers
     docs = await call_maybe_async(chunker.create_documents, [markdown])
 
-    # Create chunk-to-items mapping if Docling data is available
+    # We need to create the chunk-to-items mapping if Docling data is available
     chunk_to_items = None
     if state.file.docling_document:
         try:

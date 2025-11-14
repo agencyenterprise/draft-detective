@@ -59,7 +59,6 @@ class DoclingZipProcessor:
                 else:
                     logger.warning(f"No .json file found in ZIP")
 
-                # Extract artifacts (images) - filter out directory entries
                 all_artifacts = [f for f in file_list if f.startswith("artifacts/")]
                 artifacts = [f for f in all_artifacts if not f.endswith("/")]
 
@@ -70,11 +69,9 @@ class DoclingZipProcessor:
                     )
 
                     for artifact_path in artifacts:
-                        # Extract just the filename (e.g., image_000000_hash.png)
                         filename = Path(artifact_path).name
                         target_path = target_images_dir / filename
 
-                        # Write artifact to target directory
                         artifact_bytes = zf.read(artifact_path)
                         target_path.write_bytes(artifact_bytes)
                         image_count += 1
@@ -102,7 +99,6 @@ class DoclingZipProcessor:
                         )
                         image_count += base64_count
 
-                    # Then update artifact URIs (rename image_XXX.png to page_N.png)
                     if image_count > 0:
                         self._update_image_uris(json_content, target_images_dir)
 

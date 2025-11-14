@@ -17,7 +17,6 @@ from lib.services.docling_models import (
 
 logger = logging.getLogger(__name__)
 
-# Docling document collections to iterate
 DOCLING_COLLECTIONS = ["texts", "tables", "pictures", "key_value_items"]
 
 
@@ -74,7 +73,7 @@ def create_chunk_to_items_mapping(
 
     logger.info(f"Mapping {len(chunks)} chunks to {len(all_items)} Docling items")
 
-    # Map each chunk to matching items based on text overlap
+    # We need to match items, currently based on text overlap
     for chunk_doc in chunks:
         chunk_index = chunk_doc.metadata.chunk_index
         chunk_text = chunk_doc.page_content.strip()
@@ -88,7 +87,6 @@ def create_chunk_to_items_mapping(
             if not item_text or not _text_matches(chunk_text, item_text):
                 continue
 
-            # Create region if item has bbox
             if not item.bbox:
                 continue
 
