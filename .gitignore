@@ -28,3 +28,6 @@ test_results.json
 # Security scan results
 trivy-*.sarif
 .trivy-cache/
+
+# personal rand files
+rand-personal/
