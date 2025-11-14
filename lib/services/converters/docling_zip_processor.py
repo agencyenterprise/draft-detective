@@ -2,8 +2,8 @@
 Service for processing ZIP files returned by docling-serve.
 
 When using return_as_file=True, docling-serve returns a ZIP containing:
-- _original.json (the json_content)
-- _original.md (the markdown)
+- *.json (the json_content)
+- *.md (the markdown)
 - artifacts/ (folder with images like image_000000_hash.png)
 """
 
@@ -43,7 +43,6 @@ class DoclingZipProcessor:
                 file_list = zf.namelist()
                 logger.info(f"ZIP contains {len(file_list)} files: {file_list}")
 
-                # Extract markdown - look for any .md file (not just _original.md)
                 md_file = self._find_file_by_extension(file_list, ".md")
                 if md_file:
                     markdown = zf.read(md_file).decode("utf-8")
@@ -53,7 +52,6 @@ class DoclingZipProcessor:
                 else:
                     logger.warning(f"No .md file found in ZIP")
 
-                # Extract JSON - look for any .json file (not just _original.json)
                 json_file = self._find_file_by_extension(file_list, ".json")
                 if json_file:
                     json_content = json.loads(zf.read(json_file).decode("utf-8"))
@@ -91,11 +89,10 @@ class DoclingZipProcessor:
                         "No artifacts found in ZIP (document may not contain images)"
                     )
 
-                # Process images in JSON:
+                # We need to process images in JSON because page images came as base64 data URIs.
                 # 1. Extract base64 page images and save as files
                 # 2. Update URIs in artifacts to point to renamed files
                 if json_content:
-                    # First, extract any base64 images from pages section
                     base64_count = self._extract_base64_page_images(
                         json_content, target_images_dir
                     )
@@ -124,10 +121,9 @@ class DoclingZipProcessor:
     ) -> Optional[str]:
         """Find a file in the ZIP by extension, excluding directories"""
         for filename in file_list:
-            # Skip directories (end with /)
             if filename.endswith("/"):
                 continue
-            # Check if file has the extension
+
             if filename.lower().endswith(extension.lower()):
                 return filename
         return None
@@ -169,12 +165,10 @@ class DoclingZipProcessor:
         for page_key, img in self._iter_page_images(json_content):
             image_uri = img["uri"]
 
-            # Only process base64 data URIs
             if not image_uri.startswith("data:"):
                 continue
 
             try:
-                # Extract format and decode: data:image/png;base64,iVBORw0KGgo...
                 if ";base64," in image_uri:
                     header, b64_data = image_uri.split(";base64,", 1)
                     image_format = header.split("/")[-1] if "/" in header else "png"
@@ -184,13 +178,11 @@ class DoclingZipProcessor:
                     )
                     image_format = "png"
 
-                # Decode and save
                 image_bytes = base64.b64decode(b64_data)
                 image_filename = f"page_{page_key}.{image_format}"
                 image_path = images_dir / image_filename
                 image_path.write_bytes(image_bytes)
 
-                # Update URI to filename for API serving
                 img["uri"] = image_filename
                 extracted_count += 1
                 logger.debug(f"Extracted base64 page image: {image_filename}")
@@ -213,13 +205,10 @@ class DoclingZipProcessor:
         for page_key, img in self._iter_page_images(json_content):
             original_uri = img["uri"]
 
-            # If URI points to artifacts folder, update to just filename
-            # Keep artifact filenames as-is (they're embedded figures/charts, not page screenshots)
             if "artifacts/" in original_uri:
                 filename = Path(original_uri).name
                 file_path = images_dir / filename
 
-                # Verify file exists and update URI
                 if file_path.exists():
                     img["uri"] = filename
                     updated_count += 1
