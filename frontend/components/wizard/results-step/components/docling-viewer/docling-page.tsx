@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import Image from 'next/image';
+import { Loader2 } from 'lucide-react';
 import type { DoclingPage, Region } from '@/types/docling';
 import { RegionOverlay } from './region-overlay';
 import { getImageUrl, type RegionWithChunks } from './utils';
@@ -22,12 +24,19 @@ export function DoclingPage({
   pageImagesBaseUrl,
   onChunkSelect,
 }: DoclingPageProps) {
+  const [isLoading, setIsLoading] = useState(true);
   const imageUrl = getImageUrl(page.image as { uri?: string }, pageNum, pageImagesBaseUrl);
   const width = page.size?.width ?? page.width ?? 612;
   const height = page.size?.height ?? page.height ?? 792;
+  const isFirstPage = pageNum === 0 || pageNum === 1;
 
   return (
-    <div className="relative mx-auto bg-white shadow-lg">
+    <div className="relative mx-auto bg-white shadow-lg" style={{ aspectRatio: `${width}/${height}` }}>
+      {isLoading && (
+        <div className="absolute inset-0 flex items-center justify-center bg-gray-100 animate-pulse">
+          <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+        </div>
+      )}
       <Image
         src={imageUrl}
         alt={`Page ${pageNum}`}
@@ -35,7 +44,9 @@ export function DoclingPage({
         height={height}
         className="w-full h-auto block"
         unoptimized
-        priority
+        loading={isFirstPage ? undefined : 'lazy'}
+        priority={isFirstPage}
+        onLoad={() => setIsLoading(false)}
       />
 
       <div className="absolute inset-0">

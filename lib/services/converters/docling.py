@@ -1,236 +1,261 @@
-import base64
 import logging
 import mimetypes
 import os
-from asyncio import sleep
 from pathlib import Path
 from typing import Optional
 
+import backoff
 import httpx
 
 from lib.config.env import config
 from lib.services.converters.base import FileConverterProtocol
+from lib.services.converters.docling_zip_processor import docling_zip_processor
 from lib.services.docling_models import DoclingDocument
 
 logger = logging.getLogger(__name__)
 
-POLL_INTERVAL_SECONDS = 5
+
+class DoclingConversionError(Exception):
+    """Raised when docling conversion fails"""
+
+    pass
+
+
+class DoclingTimeoutError(DoclingConversionError):
+    """Raised when docling conversion times out"""
+
+    pass
+
+
+class _TaskPending(Exception):
+    """Internal exception to signal task needs more polling"""
+
+    pass
 
 
 class DoclingFileConverter(FileConverterProtocol):
+    """Converts documents using docling-serve API with exponential backoff polling."""
+
+    DEFAULT_TIMEOUT_MINUTES = 15
+    TIMEOUT_PER_10MB_MINUTES = 2
+
+    BACKOFF_FACTOR = 1.5
+    BACKOFF_BASE = 2
+    BACKOFF_MAX_WAIT = 10
+
+    BASE_CONVERSION_PARAMS = {
+        "from_formats": ["docx", "html", "pdf", "md"],
+        "pipeline": "standard",
+        "do_ocr": False,
+        "force_ocr": False,
+        "table_mode": "fast",
+        "abort_on_error": False,
+        "document_timeout": 600,
+    }
+
+    def __init__(self):
+        self.base_url = config.DOCLING_SERVE_API_URL
+        self.api_key = config.DOCLING_SERVE_API_KEY
 
     async def convert_to_markdown(self, file_path: str) -> str:
-        """Convert file to markdown only (legacy method)"""
-        full_result = await self.convert_with_docling(file_path)
-        return full_result["markdown"]
-
-    def _get_file_identifier(self, file_path: str) -> str:
-        """
-        Extract unique identifier from file path.
-        Files are stored as {uploads_dir}/{xxhash}{extension}
-        Returns just the xxhash part (filename without extension).
-        """
-        filename = os.path.basename(file_path)
-        # Remove extension to get the xxhash
-        file_id, _ = os.path.splitext(filename)
-        return file_id
-
-    def _get_images_directory(self, file_path: str) -> Path:
-        """Get the directory where Docling images should be stored for this file"""
-        file_id = self._get_file_identifier(file_path)
-        images_dir = Path(config.FILE_UPLOADS_MOUNT_PATH) / "docling_images" / file_id
-        return images_dir
-
-    async def _download_referenced_images(
-        self,
-        json_content: dict,
-        file_path: str,
-        base_url: str,
-        headers: dict,
-        async_client: httpx.AsyncClient,
-    ) -> None:
-        """
-        Download referenced images from Docling-serve and update URIs.
-
-        Args:
-            json_content: The Docling json_content dict (modified in place)
-            file_path: Original file path (used to determine storage location)
-            base_url: Docling-serve base URL
-            headers: HTTP headers with API key
-            async_client: Shared async HTTP client
-        """
-        pages = json_content.get("pages", {})
-        if not isinstance(pages, dict):
-            logger.warning("pages is not a dict, skipping image download")
-            return
-
-        # Create images directory
-        images_dir = self._get_images_directory(file_path)
-        images_dir.mkdir(parents=True, exist_ok=True)
-        logger.info(f"Created images directory: {images_dir}")
-
-        downloaded_count = 0
-        for page_key, page_data in pages.items():
-            if not isinstance(page_data, dict):
-                continue
-
-            if "image" not in page_data:
-                continue
-
-            img = page_data["image"]
-            if not isinstance(img, dict) or "uri" not in img:
-                continue
-
-            image_uri = img["uri"]
-
-            # Skip if already base64 data
-            if image_uri.startswith("data:"):
-                logger.debug(f"Page {page_key}: image is already base64, skipping")
-                continue
-
-            try:
-                # Construct full URL - the URI from Docling is relative
-                # e.g., "/v1/result/{task_id}/images/page_0.png"
-                if not image_uri.startswith("http"):
-                    full_image_url = f"{base_url}{image_uri}"
-                else:
-                    full_image_url = image_uri
-
-                logger.info(f"Downloading image from: {full_image_url}")
-
-                # Download image
-                response = await async_client.get(full_image_url, headers=headers)
-
-                if response.status_code != 200:
-                    logger.error(
-                        f"Failed to download image for page {page_key}: "
-                        f"HTTP {response.status_code}"
-                    )
-                    continue
-
-                # Determine filename - extract from URI or use page_key
-                if "/" in image_uri:
-                    image_filename = os.path.basename(image_uri)
-                else:
-                    image_filename = f"page_{page_key}.png"
-
-                # Save locally
-                image_path = images_dir / image_filename
-                image_path.write_bytes(response.content)
-                logger.info(f"Saved image to: {image_path}")
-
-                # Update URI to relative path that frontend can request
-                # Frontend will request: /api/workflow-runs/{workflow_run_id}/pages/{image_filename}
-                # Backend will look in: {uploads}/docling_images/{file_id}/{image_filename}
-                img["uri"] = image_filename
-
-                downloaded_count += 1
-
-            except Exception as e:
-                logger.error(
-                    f"Error downloading image for page {page_key}: {e}", exc_info=True
-                )
-                continue
-
-        logger.info(
-            f"Downloaded {downloaded_count} images to {images_dir.relative_to(config.FILE_UPLOADS_MOUNT_PATH)}"
-        )
+        """Convert file to markdown only (for supporting files)"""
+        result = await self.convert_with_docling(file_path, simple_mode=True)
+        return result["markdown"]
 
     async def convert_with_docling(
-        self, file_path: str
+        self, file_path: str, simple_mode: bool = False
     ) -> dict[str, str | Optional[DoclingDocument]]:
         """
-        Convert file using Docling and return both markdown and structured data
+        Convert file using docling-serve.
+
+        Args:
+            file_path: Path to file
+            simple_mode: If True, return markdown only. If False, include structured data.
 
         Returns:
-            dict with keys:
-                - markdown: str (markdown content)
-                - docling_document: DoclingDocument | None (raw json_content)
-        """
-        async_client = httpx.AsyncClient(timeout=60.0)
-        base_url = config.DOCLING_SERVE_API_URL
+            dict with 'markdown' and 'docling_document' keys
 
-        url = f"{base_url}/v1/convert/file/async"
-        headers = {
-            "X-Api-Key": config.DOCLING_SERVE_API_KEY,
-        }
-        parameters = {
-            # See https://github.com/docling-project/docling-serve/blob/main/docs/usage.md for full list of parameters
-            "from_formats": ["docx", "html", "pdf", "md"],
-            "to_formats": ["md", "json"],  # Request both markdown and JSON
-            # for reference files we want to run only the md
-            "pipeline": "standard",
-            "image_export_mode": "referenced",  # Use image references instead of embedded base64
-            "include_images": True,  # Include page images as references
-            "do_ocr": False,
-            "force_ocr": False,
-            "ocr_engine": "auto",
-            "ocr_lang": ["en"],
-            "table_mode": "fast",
-            "abort_on_error": False,
-            "document_timeout": 60 * 10,  # 10 minutes
-        }
+        Raises:
+            DoclingConversionError: When conversion fails
+            DoclingTimeoutError: When conversion times out
+        """
         filename = os.path.basename(file_path)
+        timeout_minutes = self._calculate_timeout(file_path)
+
+        logger.info(
+            f"Converting '{filename}' (timeout: {timeout_minutes}m, simple: {simple_mode})"
+        )
+
+        async with self._create_client(timeout_minutes) as client:
+            task_id = await self._submit_task(client, file_path, simple_mode)
+            logger.info(f"Task {task_id} created for '{filename}'")
+
+            await self._poll_until_complete(client, task_id, filename, timeout_minutes)
+
+            response = await self._fetch_result(client, task_id)
+            result = self._process_result(response, file_path, simple_mode)
+
+        logger.info(f"Successfully converted '{filename}'")
+        return result
+
+    def _calculate_timeout(self, file_path: str) -> int:
+        """
+        Calculate timeout based on file size.
+        Formula: 15 minutes base + 2 minutes per 10MB
+        Example: 50MB file = 15 + (5 * 2) = 25 minutes
+        """
+        try:
+            file_size_mb = os.path.getsize(file_path) / (1024 * 1024)
+            additional_minutes = int(file_size_mb / 10) * self.TIMEOUT_PER_10MB_MINUTES
+            return self.DEFAULT_TIMEOUT_MINUTES + additional_minutes
+        except OSError:
+            return self.DEFAULT_TIMEOUT_MINUTES
+
+    def _create_client(self, timeout_minutes: int) -> httpx.AsyncClient:
+        """Create HTTP client with appropriate timeouts"""
+        timeout = httpx.Timeout(
+            connect=30.0,
+            read=timeout_minutes * 60.0,
+            write=120.0,
+            pool=120.0,
+        )
+        return httpx.AsyncClient(timeout=timeout)
+
+    def _build_conversion_params(self, simple_mode: bool) -> dict:
+        """Build docling API parameters based on mode"""
+        params = {**self.BASE_CONVERSION_PARAMS}
+
+        if simple_mode:
+            params.update(
+                {
+                    "to_formats": ["md"],
+                    "image_export_mode": "placeholder",
+                    "include_images": False,
+                }
+            )
+        else:
+            params.update(
+                {
+                    "to_formats": ["md", "json"],
+                    "image_export_mode": "referenced",
+                    "include_images": True,
+                    "ocr_engine": "auto",
+                    "ocr_lang": ["en"],
+                    "target_type": "zip",
+                }
+            )
+
+        return params
+
+    async def _submit_task(
+        self, client: httpx.AsyncClient, file_path: str, simple_mode: bool
+    ) -> str:
+        """Submit conversion task to docling-serve, return task_id"""
+        filename = os.path.basename(file_path)
+        params = self._build_conversion_params(simple_mode)
         file_type = mimetypes.guess_type(filename)[0] or "text/plain"
 
-        with open(file_path, "rb") as file:
-            files = {"files": (filename, file, file_type)}
-            response = await async_client.post(
-                url, files=files, data=parameters, headers=headers
+        with open(file_path, "rb") as f:
+            response = await client.post(
+                f"{self.base_url}/v1/convert/file/async",
+                files={"files": (filename, f, file_type)},
+                data=params,
+                headers={"X-Api-Key": self.api_key},
             )
 
         if response.status_code != 200:
-            raise Exception(
-                f"Failed to convert file '{file_path}' using docling-serve: {response.status_code} {response.text}"
+            raise DoclingConversionError(
+                f"Failed to submit '{filename}': {response.status_code} {response.text}"
             )
 
+        return response.json()["task_id"]
+
+    async def _check_task_status(
+        self, client: httpx.AsyncClient, task_id: str, filename: str
+    ) -> str:
+        """Check task status and return status string"""
+        response = await client.get(
+            f"{self.base_url}/v1/status/poll/{task_id}",
+            headers={"X-Api-Key": self.api_key},
+        )
         task = response.json()
+        status = task.get("task_status")
+
         logger.info(
-            f"Docling-serve task {task['task_id']} created for conversion of file '{filename}', polling for status"
+            f"Task {task_id} [{filename}]: {status}, "
+            f"position={task.get('task_position', '?')}"
         )
 
-        while task["task_status"] not in ("success", "failure"):
-            logger.info(
-                f"Docling-serve task {task['task_id']} is {task['task_status']}, task position {task['task_position']}, polling again in {POLL_INTERVAL_SECONDS} seconds"
-            )
-            await sleep(POLL_INTERVAL_SECONDS)
-            response = await async_client.get(
-                f"{base_url}/v1/status/poll/{task['task_id']}", headers=headers
-            )
-            task = response.json()
+        if status == "failure":
+            raise DoclingConversionError(f"Task failed for '{filename}'")
 
-        response = await async_client.get(
-            f"{base_url}/v1/result/{task['task_id']}", headers=headers
+        return status
+
+    async def _poll_until_complete(
+        self,
+        client: httpx.AsyncClient,
+        task_id: str,
+        filename: str,
+        timeout_minutes: int,
+    ):
+        """Poll task status with exponential backoff"""
+
+        @backoff.on_exception(
+            backoff.expo,
+            (_TaskPending, httpx.ReadError, httpx.RemoteProtocolError),
+            max_time=timeout_minutes * 60,
+            factor=self.BACKOFF_FACTOR,
+            base=self.BACKOFF_BASE,
+            max_value=self.BACKOFF_MAX_WAIT,
+            on_backoff=lambda d: logger.info(
+                f"Task {task_id}: attempt {d['tries']}, waiting {d['wait']:.1f}s"
+            ),
         )
-        data = response.json()
+        async def poll():
+            status = await self._check_task_status(client, task_id, filename)
+            if status != "success":
+                raise _TaskPending()
 
-        if "document" in data:
-            doc_keys = list(data["document"].keys())
+        try:
+            await poll()
+        except _TaskPending:
+            raise DoclingTimeoutError(
+                f"Timeout after {timeout_minutes}m for '{filename}'"
+            )
 
-        markdown = data["document"].get("md_content", "")
+    async def _fetch_result(
+        self, client: httpx.AsyncClient, task_id: str
+    ) -> httpx.Response:
+        """Fetch conversion result from docling-serve"""
+        return await client.get(
+            f"{self.base_url}/v1/result/{task_id}",
+            headers={"X-Api-Key": self.api_key},
+        )
 
-        docling_document = None
-        json_content = data.get("document", {}).get("json_content")
+    def _process_result(
+        self, response: httpx.Response, file_path: str, simple_mode: bool
+    ) -> dict[str, str | Optional[DoclingDocument]]:
+        """Extract markdown and optionally docling document from result"""
+        if simple_mode:
+            data = response.json()
+            return {
+                "markdown": data.get("document", {}).get("md_content", ""),
+                "docling_document": None,
+            }
 
-        if json_content:
-            # Download referenced images if using reference mode
-            if parameters.get("image_export_mode") == "referenced":
-                logger.info(
-                    f"Downloading referenced images for '{filename}' from Docling-serve"
-                )
-                await self._download_referenced_images(
-                    json_content, file_path, base_url, headers, async_client
-                )
+        images_dir = self._get_images_dir(file_path)
+        result = docling_zip_processor.process_zip(response.content, images_dir)
 
-            # Pass through json_content as-is (spread into DoclingDocument)
-            docling_document = DoclingDocument.from_json_content(json_content)
-        else:
-            logger.info(f"No json_content in response for '{filename}'")
+        docling_doc = None
+        if result["json_content"]:
+            docling_doc = DoclingDocument.from_json_content(result["json_content"])
 
-        return {
-            "markdown": markdown,
-            "docling_document": docling_document,
-        }
+        return {"markdown": result["markdown"], "docling_document": docling_doc}
+
+    def _get_images_dir(self, file_path: str) -> Path:
+        """Get directory for extracted images (based on file hash)"""
+        file_id = os.path.splitext(os.path.basename(file_path))[0]
+        return Path(config.FILE_UPLOADS_MOUNT_PATH) / "docling_images" / file_id
 
 
 docling_converter = DoclingFileConverter()

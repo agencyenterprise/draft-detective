@@ -71,14 +71,16 @@ async def delete_workflow_run_endpoint(
 
 @router.get("/api/workflow-runs/{workflow_run_id}/pages/{page_num}")
 async def get_page_image(
-    workflow_run_id: str, page_num: int, current_user: User = Depends(get_current_user)
+    workflow_run_id: str,
+    page_num: int,
+    current_user: User = Depends(get_current_user),
 ):
     """
-    Serve Docling page images for a workflow run
+    Serve Docling page images for a workflow run.
 
     Args:
         workflow_run_id: The workflow run ID
-        page_num: The page number (e.g., 0, 1, 2)
+        page_num: The page number (e.g., 0, 1, 2, etc.)
 
     Returns:
         The image file for the specified page (PNG, JPEG, WEBP, etc.)
@@ -97,6 +99,7 @@ async def get_page_image(
 
     images_dir = os.path.join(config.FILE_UPLOADS_MOUNT_PATH, "docling_images", file_id)
 
+    # We need to look for page_N.* file (e.g., page_1.png, page_2.png)
     if os.path.exists(images_dir):
         for file in os.listdir(images_dir):
             if file.startswith(f"page_{page_num}."):

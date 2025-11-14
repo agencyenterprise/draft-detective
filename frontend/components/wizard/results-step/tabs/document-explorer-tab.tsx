@@ -31,7 +31,8 @@ export function DocumentExplorerTab({
 }: DocumentExplorerTabProps) {
   const docJson = results.file?.doclingDocument as DoclingDocument | undefined;
   const chunkToItems = results.chunkToItems?.mapping as ChunkToItems | undefined;
-  const pageImagesBaseUrl = results.workflowRunId ? `/api/workflow-runs/${results.workflowRunId}/pages` : '/api/pages';
+
+  const pageImagesBaseUrl = `/api/images/${results.workflowRunId}`;
 
   const errors = results.errors || [];
   const issues = results.rankedIssues || [];

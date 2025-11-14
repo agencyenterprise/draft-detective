@@ -2,6 +2,7 @@ import asyncio
 import logging
 
 from lib.config.env import config
+from lib.run_utils import run_tasks
 from lib.services.converters.base import convert_to_markdown as convert_to_markdown_fn
 from lib.services.file import FileDocument
 from lib.workflows.claim_substantiation.state import ClaimSubstantiatorState
@@ -9,6 +10,10 @@ from lib.workflows.decorators import handle_workflow_node_errors, requires_agent
 from langchain_core.messages.utils import count_tokens_approximately
 
 logger = logging.getLogger(__name__)
+
+# Limit concurrent docling conversions to avoid overwhelming docling-serve
+# Even 3 can be too many for docling-serve with 4 workers, so we use 2
+MAX_CONCURRENT_CONVERSIONS = 2
 
 
 @requires_agent("convert_to_markdown")
@@ -25,11 +30,30 @@ async def convert_to_markdown(
         )
         return {}
 
+    # Convert main document with full mode (images, JSON, etc.)
+    # Convert supporting documents with simple mode (markdown only)
     tasks = [
-        _convert_to_markdown_task(state.file),
-        *[_convert_to_markdown_task(file) for file in state.supporting_files or []],
+        _convert_to_markdown_task(state.file, is_main_document=True),
+        *[
+            _convert_to_markdown_task(file, is_main_document=False)
+            for file in state.supporting_files or []
+        ],
     ]
-    results = await asyncio.gather(*tasks)
+
+    # Use limited concurrency to avoid overwhelming docling-serve
+    results, errors = await run_tasks(
+        tasks,
+        desc="Converting documents",
+        max_concurrent=MAX_CONCURRENT_CONVERSIONS,
+    )
+
+    # Check for failures (run_tasks returns None in errors list for successful tasks)
+    failed_errors = [e for e in errors if e is not None]
+    if failed_errors:
+        error_msg = f"Failed to convert {len(failed_errors)} document(s)"
+        logger.error(f"{error_msg}: {failed_errors[0]}")
+        raise failed_errors[0]
+
     [file, *supporting_files] = results
 
     logger.info(f"convert_to_markdown ({state.config.session_id}): done")
@@ -37,14 +61,28 @@ async def convert_to_markdown(
     return {"file": file, "supporting_files": supporting_files}
 
 
-async def _convert_to_markdown_task(file_document: FileDocument) -> FileDocument:
-    """Convert document and capture Docling data if using Docling converter"""
+async def _convert_to_markdown_task(
+    file_document: FileDocument, is_main_document: bool = True
+) -> FileDocument:
+    """
+    Convert document and capture Docling data if using Docling converter.
+
+    Args:
+        file_document: The document to convert
+        is_main_document: If True, process with full mode (images, JSON).
+                         If False, process with simple mode (markdown only).
+    """
     docling_document = None
 
     if config.FILE_CONVERTER == "docling":
         from lib.services.converters.docling import docling_converter
 
-        result = await docling_converter.convert_with_docling(file_document.file_path)
+        # Supporting documents use simple mode (markdown only, no images/JSON)
+        # Main document uses full mode (markdown + JSON + images)
+        simple_mode = not is_main_document
+        result = await docling_converter.convert_with_docling(
+            file_document.file_path, simple_mode=simple_mode
+        )
         markdown = result["markdown"]
         docling_document = result.get("docling_document")
     else:
