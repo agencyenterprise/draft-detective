@@ -97,7 +97,7 @@ Given the raw model output below, rewrite and structure it into a **Markdown rep
    - `## Implications Updates`
    - `## References`
 
-2. Maintain a **formal and evidence-driven tone**, with clear causal or comparative phrasing (e.g., “This adjustment necessitates…”, “This modification ensures…”).
+2. Maintain a tone that is easy to read. Make clear causal or comparative phrasing (e.g., “This adjustment necessitates…”, “This modification requires…”) but avoid dense technical jargon. 
 
 3. Each update paragraph should:
    - Reference newly found context and references
