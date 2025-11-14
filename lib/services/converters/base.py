@@ -11,6 +11,11 @@ class FileConverterProtocol(Protocol):
 
 
 async def convert_to_markdown(file_path: str) -> str:
+    if file_path.lower().endswith((".md", ".markdown")):
+        logger.info(f"File '{file_path}' is already markdown, reading directly")
+        with open(file_path, "r", encoding="utf-8") as f:
+            return f.read()
+
     logger.info(
         f"Converting file '{file_path}' to markdown using converter: '{config.FILE_CONVERTER}'"
     )

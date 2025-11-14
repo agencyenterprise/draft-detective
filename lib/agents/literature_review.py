@@ -206,7 +206,7 @@ class LiteratureReviewAgent(AgentProtocol):
         )
 
         response = await wait_for_response(
-            self.client, response, poll_interval_seconds=10
+            self.client, response, log_info="Literature Review Researcher"
         )
         return ensure_structured_output_response(response, LiteratureReviewResponse)
 

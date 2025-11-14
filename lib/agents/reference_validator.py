@@ -141,7 +141,7 @@ class ReferenceValidatorAgent(AgentProtocol):
         )
 
         response = await wait_for_response(
-            self.client, response, poll_interval_seconds=10
+            self.client, response, log_info="Reference Validator"
         )
         return ensure_structured_output_response(
             response, BibliographyValidationResponse
@@ -154,9 +154,6 @@ reference_validator_agent = ReferenceValidatorAgent()
 if __name__ == "__main__":
     import asyncio
 
-    import nest_asyncio
-
-    nest_asyncio.apply()
     # Test cases for reference validation
     test_cases = [
         {

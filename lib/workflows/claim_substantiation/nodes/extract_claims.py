@@ -34,10 +34,9 @@ async def _extract_chunk_claims(
     claims = await claim_extractor_agent.ainvoke(
         {
             "chunk": chunk.content,
-            "full_document": state.file.markdown,
+            "paragraph": state.get_paragraph(chunk.paragraph_index),
             "domain_context": format_domain_context(state.config.domain),
             "audience_context": format_audience_context(state.config.target_audience),
-            "paragraph": state.get_paragraph(chunk.paragraph_index),
         }
     )
     return chunk.model_copy(update={"claims": claims})

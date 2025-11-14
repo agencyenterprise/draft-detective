@@ -14,7 +14,10 @@ class TestConfig(BaseModel):
     strict_fields: Optional[Union[set, dict]] = Field(default_factory=set)
     llm_fields: Optional[Union[set, dict]] = Field(default_factory=set)
     ignore_fields: Optional[Union[set, dict]] = Field(default_factory=set)
-    run_count: Optional[int] = Field(default=1)
+    llm_instructions: Optional[str] = Field(
+        default=None,
+        description="Special instructions to include in the LLM-as-a-judge prompt for semantic comparison",
+    )
 
 
 class DatasetItem(BaseModel):

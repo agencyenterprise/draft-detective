@@ -4,7 +4,7 @@ from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
 
 from typing import Optional, List
-from lib.config.llm_models import gpt_5_model
+from lib.config.llm_models import gpt_5_mini_model
 from lib.models.agent import DEFAULT_LLM_TIMEOUT, AgentProtocol
 
 
@@ -44,7 +44,7 @@ _claim_extractor_prompt_claimify = ChatPromptTemplate.from_template(
     """
 
 ### Agent Setup and Terms
-You are an assistant for a group of fact-checkers. You will be given a full document, a paragraph from the original document, and a chunk of text (typically a sentence or a few sentences) from that paragraph, and your task is to extract all the claims from the chunk of text. 
+You are an assistant for a group of fact-checkers. You will be given a paragraph from a document and a chunk of text (typically a sentence or a few sentences) from that paragraph, and your task is to extract all the claims from the chunk of text. 
 
 Claim (definition): An assertion or proposition that is made within a chunk of text. Grammatically, a sentence that expresses a claim is a declarative sentence and thus contains a verb. 
 
@@ -62,10 +62,10 @@ Non-Examples of Claims:
 Your task is to identify all specific propositions in the sentence and ensure that each proposition is decontextualized. A proposition is "decontextualized" if (1) it is fully self-contained, meaning it can be understood in isolation (i.e., without the question, the context, and the other propositions), AND (2) its meaning in isolation matches its meaning when interpreted alongside the question, the context, and the other propositions. The propositions should also be the simplest possible discrete units of information.
 
 Note the following rules:
-- If the chunk of text is a bibliographic entry (usually found in the references or bibliography section of the full document), do not consider it as having claims.
+- If the chunk of text is a bibliographic entry (usually found in references or bibliography sections, indicated by headings like "References", "Bibliography", "Works Cited"), do not consider it as having claims.
 - Sometimes a specific claim is buried in a sentence that is mostly generic or unverifiable. For example, "John's notable research on neural networks demonstrates the power of innovation" contains the specific claim "John has research on neural networks". Another example is "TurboCorp exemplifies the positive effects that prioritizing ethical considerations over profit can have on innovation" where the specific claim is "TurboCorp prioritizes ethical considerations over profit".
 - Do NOT repeat the same claim in the list of claims.
-- Do NOT use any external knowledge beyond what is stated in the full document, paragraph, and chunk of text.
+- Do NOT use any external knowledge beyond what is stated in the paragraph and chunk of text.
 
 Each proposition must be:
 - Specific: It should refer to particular entities, events, or relationships
@@ -74,9 +74,9 @@ Each proposition must be:
 Important rules:
 - If a sentence has multiple adjectives/modifiers describing the same entity, you should include all those adjectives/modifiers in the same claim. 
 - Do NOT repeat the same claim in the list of claims.
-- Do NOT use any external knowledge beyond what is stated in the full document, paragraph, and chunk of text
-- Each fact-checker will only have access to one claim - they will not have access to the full document, paragraph, and other claims
-- Do not classify something as a claim if it cannot be decontextualized (i.e., it cannot be understood or verified in isolation without the context of the full document, paragraph, and other claims)
+- Do NOT use any external knowledge beyond what is stated in the paragraph and chunk of text
+- Each fact-checker will only have access to one claim - they will not have access to the paragraph and other claims
+- Do not classify something as a claim if it cannot be decontextualized (i.e., it cannot be understood or verified in isolation without additional context from the document)
 - If there are no specific claims in the chunk of text, return an empty list of claims.
 
 ### Output Structure
@@ -99,11 +99,6 @@ Within the list of claims, you must include the following information for each c
 ## Audience context (context about the audience of the document)
 {audience_context}
 
-## The full document that the chunk is a part of
-```
-{full_document}
-```
-
 ## The paragraph of the original document that contains the chunk of text that we want to analyze
 ```
 {paragraph}
@@ -123,8 +118,8 @@ class ClaimExtractorAgent(AgentProtocol):
 
     def __init__(self):
         self.llm = init_chat_model(
-            gpt_5_model.model_name,
-            temperature=0.50,
+            gpt_5_mini_model.model_name,
+            temperature=0.5,
             timeout=DEFAULT_LLM_TIMEOUT,
         ).with_structured_output(ClaimResponse)
 
@@ -320,7 +315,6 @@ Machine learning will likely continue to drive progress in automated visual unde
 
         # Prepare prompt kwargs
         prompt_kwargs = {
-            "full_document": example["full_document"].strip(),
             "paragraph": example["paragraph"].strip(),
             "chunk": example["chunk"].strip(),
             "domain_context": domain_context,

@@ -48,7 +48,6 @@ def _build_cases() -> list[AgentTestCase]:
                 agent=claim_extractor_agent,
                 response_model=ClaimResponse,
                 prompt_kwargs={
-                    "full_document": main_doc.markdown,
                     "paragraph": paragraph,
                     "chunk": chunk,
                     "domain_context": format_domain_context(domain),
@@ -57,6 +56,8 @@ def _build_cases() -> list[AgentTestCase]:
                 expected_dict=test_case.expected_output,
                 strict_fields=strict_fields,
                 llm_fields=llm_fields,
+                fuzzy_threshold=0.75,
+                good_match_threshold=0.85,
             )
         )
 

@@ -18,7 +18,7 @@ dataset:
             claim: "Smith (2020) provides useful background/insights."
             rationale: ""
           - text: "Prior work such as Smith (2020) and Doe and Roe (2019) provide useful background/insights."
-            claim: "Doe and Roe (2019) provides useful background/insights."
+            claim: "Doe and Roe (2019) provide useful background/insights."
             rationale: ""
         rationale: ""
 

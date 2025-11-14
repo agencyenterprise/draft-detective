@@ -17,13 +17,7 @@ def _build_cases() -> list[AgentTestCase]:
     dataset_path = str(TESTS_DIR / "datasets" / "reference_validator.yaml")
     dataset = load_dataset(dataset_path)
 
-    # Get test configuration from dataset, with defaults if not present
     test_config = dataset.test_config
-
-    if test_config:
-        strict_fields = test_config.strict_fields or set()
-        llm_fields = test_config.llm_fields or set()
-        ignore_fields = test_config.ignore_fields or set()
 
     cases: list[AgentTestCase] = []
 
@@ -37,9 +31,10 @@ def _build_cases() -> list[AgentTestCase]:
                     "references": test_case.input.get("references", []),
                 },
                 expected_dict=test_case.expected_output,
-                strict_fields=strict_fields,
-                llm_fields=llm_fields,
-                ignore_fields=ignore_fields,
+                strict_fields=test_config.strict_fields,
+                llm_fields=test_config.llm_fields,
+                ignore_fields=test_config.ignore_fields,
+                llm_instructions=test_config.llm_instructions,
             )
         )
 

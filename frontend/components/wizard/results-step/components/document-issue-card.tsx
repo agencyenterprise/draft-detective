@@ -1,3 +1,4 @@
+import { Markdown } from '@/components/markdown';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -76,7 +77,7 @@ export function DocumentIssueCard({ issue, onSelect }: DocumentIssueCardProps) {
 
   return (
     <div
-      className={cn('rounded-lg p-4 space-y-3 border-l-4 shadow-sm cursor-pointer', className)}
+      className={cn('rounded-lg p-4 space-y-3 border-l-4 shadow-sm cursor-pointer break-words', className)}
       role="button"
       tabIndex={0}
       aria-label={`Select issue: ${issue.title}`}
@@ -108,7 +109,11 @@ export function DocumentIssueCard({ issue, onSelect }: DocumentIssueCardProps) {
           {isExpanded ? 'Hide details' : 'Show details'}
         </Button>
       </div>
-      {isExpanded && <p className="text-sm text-gray-700">{issue.additionalContext}</p>}
+      {isExpanded && (
+        <div className="text-sm text-gray-700">
+          <Markdown>{issue.additionalContext}</Markdown>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { cn } from '@/lib/utils';
 import { ComponentType, JSX } from 'react';
 import ReactMarkdown, { ExtraProps } from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 type MarkdownComponentProps<Key extends keyof JSX.IntrinsicElements> = JSX.IntrinsicElements[Key] & ExtraProps;
 
@@ -54,7 +55,14 @@ const createComponents = (highlight: 'red' | 'yellow' | 'blue' | 'green' | 'none
     ul: componentFactory('ul', 'list-disc'),
     ol: componentFactory('ol', 'list-decimal'),
     li: componentFactory('li', 'ml-4', highlight),
-    a: componentFactory('a', 'text-blue-600'),
+    a: ({ node, ...rest }: MarkdownComponentProps<'a'>) => (
+      <a
+        {...rest}
+        className={cn('text-blue-600 hover:underline', rest.className)}
+        target="_blank"
+        rel="noopener noreferrer"
+      />
+    ),
     img: componentFactory('img', 'w-full'),
     blockquote: componentFactory('blockquote', 'border-l-4 border-gray-300 pl-4'),
     code: componentFactory('code', 'bg-gray-100 px-1 py-0.5 rounded'),
@@ -90,5 +98,11 @@ const componentsByHighlight = {
 
 export function Markdown(props: MarkdownProps) {
   const { highlight = 'none', ...rest } = props;
-  return <ReactMarkdown components={componentsByHighlight[highlight]} {...rest} />;
+  return (
+    <ReactMarkdown
+      components={componentsByHighlight[highlight]}
+      {...rest}
+      remarkPlugins={[remarkGfm, ...(rest.remarkPlugins || [])]}
+    />
+  );
 }
