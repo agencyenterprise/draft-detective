@@ -1,6 +1,7 @@
 import { auth } from '@/auth';
 import { redirect } from 'next/navigation';
 import { headers } from 'next/headers';
+import { ApplicationShell } from '@/components/application-shell';
 
 async function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
@@ -12,7 +13,7 @@ async function AuthenticatedLayout({ children }: { children: React.ReactNode }) 
     redirect(`/api/auth/signin?callbackUrl=${callbackUrl}`);
   }
 
-  return children;
+  return <ApplicationShell user={session.user}>{children}</ApplicationShell>;
 }
 
 export default AuthenticatedLayout;

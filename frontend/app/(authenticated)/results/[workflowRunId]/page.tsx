@@ -1,8 +1,8 @@
 'use client';
 
-import { Button } from '@/components/ui/button';
 import { EditableTitle } from '@/components/ui/editable-title';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Button } from '@/components/ui/button';
 import { ResultsVisualization } from '@/components/wizard/results-step/results-visualization';
 import { TabType } from '@/components/wizard/results-step/constants';
 import { workflowsApi } from '@/lib/api';
@@ -90,14 +90,10 @@ export default function ResultsPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
-        <div className="container mx-auto px-4 py-12 max-w-6xl">
-          <div className="flex items-center justify-center">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-              <p className="text-muted-foreground">Loading workflow run...</p>
-            </div>
-          </div>
+      <div className="flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading workflow run...</p>
         </div>
       </div>
     );
@@ -105,13 +101,9 @@ export default function ResultsPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
-        <div className="container mx-auto px-4 py-12 max-w-6xl">
-          <div className="flex items-center justify-center">
-            <div className="text-center">
-              <p className="text-destructive mb-4">{error.message}</p>
-            </div>
-          </div>
+      <div className="flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-destructive mb-4">{error.message}</p>
         </div>
       </div>
     );
@@ -125,7 +117,7 @@ export default function ResultsPage() {
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
       <div className="container mx-auto px-4 py-12 max-w-6xl">
         <div className="flex items-center justify-between mb-6 gap-4">
-          <hgroup className="w-full">
+          <hgroup className="w-full space-y-1">
             <EditableTitle
               title={workflowRun.run.title}
               titleClassName="text-2xl font-bold"
