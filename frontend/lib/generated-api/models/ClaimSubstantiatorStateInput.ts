@@ -20,6 +20,13 @@ import {
   DocumentChunkInputToJSON,
   DocumentChunkInputToJSONTyped,
 } from './DocumentChunkInput';
+import type { FileDocumentInput } from './FileDocumentInput';
+import {
+  FileDocumentInputFromJSON,
+  FileDocumentInputFromJSONTyped,
+  FileDocumentInputToJSON,
+  FileDocumentInputToJSONTyped,
+} from './FileDocumentInput';
 import type { DocumentIssue } from './DocumentIssue';
 import {
   DocumentIssueFromJSON,
@@ -27,13 +34,6 @@ import {
   DocumentIssueToJSON,
   DocumentIssueToJSONTyped,
 } from './DocumentIssue';
-import type { FileDocument } from './FileDocument';
-import {
-  FileDocumentFromJSON,
-  FileDocumentFromJSONTyped,
-  FileDocumentToJSON,
-  FileDocumentToJSONTyped,
-} from './FileDocument';
 import type { BibliographyItem } from './BibliographyItem';
 import {
   BibliographyItemFromJSON,
@@ -106,16 +106,16 @@ import {
 export interface ClaimSubstantiatorStateInput {
   /**
    *
-   * @type {FileDocument}
+   * @type {FileDocumentInput}
    * @memberof ClaimSubstantiatorStateInput
    */
-  file: FileDocument;
+  file: FileDocumentInput;
   /**
    *
-   * @type {Array<FileDocument>}
+   * @type {Array<FileDocumentInput>}
    * @memberof ClaimSubstantiatorStateInput
    */
-  supportingFiles?: Array<FileDocument> | null;
+  supportingFiles?: Array<FileDocumentInput> | null;
   /**
    *
    * @type {SubstantiationWorkflowConfig}
@@ -217,9 +217,11 @@ export function ClaimSubstantiatorStateInputFromJSONTyped(
     return json;
   }
   return {
-    file: FileDocumentFromJSON(json['file']),
+    file: FileDocumentInputFromJSON(json['file']),
     supportingFiles:
-      json['supporting_files'] == null ? undefined : (json['supporting_files'] as Array<any>).map(FileDocumentFromJSON),
+      json['supporting_files'] == null
+        ? undefined
+        : (json['supporting_files'] as Array<any>).map(FileDocumentInputFromJSON),
     config: SubstantiationWorkflowConfigFromJSON(json['config']),
     workflowRunId: json['workflow_run_id'] == null ? undefined : json['workflow_run_id'],
     references:
@@ -262,9 +264,11 @@ export function ClaimSubstantiatorStateInputToJSONTyped(
   }
 
   return {
-    file: FileDocumentToJSON(value['file']),
+    file: FileDocumentInputToJSON(value['file']),
     supporting_files:
-      value['supportingFiles'] == null ? undefined : (value['supportingFiles'] as Array<any>).map(FileDocumentToJSON),
+      value['supportingFiles'] == null
+        ? undefined
+        : (value['supportingFiles'] as Array<any>).map(FileDocumentInputToJSON),
     config: SubstantiationWorkflowConfigToJSON(value['config']),
     workflow_run_id: value['workflowRunId'],
     references:

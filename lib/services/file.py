@@ -1,12 +1,16 @@
 import mimetypes
 import os
-from typing import Optional
+from typing import List, Optional
 
 from langchain_core.messages.utils import count_tokens_approximately
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, computed_field, field_serializer
 
 from lib.services.converters.base import convert_to_markdown
-from lib.services.docling_models import DoclingDocument
+from lib.services.docling_models import (
+    DoclingDocument,
+    DoclingPageInfo,
+    extract_page_info_from_docling,
+)
 
 
 class FileDocument(BaseModel):
@@ -23,8 +27,19 @@ class FileDocument(BaseModel):
     )
     docling_document: Optional[DoclingDocument] = Field(
         default=None,
-        description="Structured Docling document data (pages, items, bboxes) for rendering",
+        description="Full Docling document for internal processing (chunk mapping, etc.)",
     )
+
+    @computed_field
+    @property
+    def docling_pages(self) -> Optional[List[DoclingPageInfo]]:
+        """Computed from docling_document for API responses"""
+        return extract_page_info_from_docling(self.docling_document)
+
+    @field_serializer("docling_document")
+    def _serialize_docling_document(self, value, _info):
+        """Exclude from JSON, keep in Python serialization"""
+        return None if _info.mode == "json" else value
 
     def __hash__(self):
         return hash((self.file_path))

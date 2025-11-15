@@ -1,8 +1,16 @@
-import type { ChunkToItems, DoclingPage, Region } from '@/types/docling';
+import type { DoclingPageInfo, DoclingRegion } from '@/lib/generated-api';
 
-export type RegionWithChunks = Region & { chunkIndices: number[] };
+export type ChunkToItems = Record<string, DoclingRegion[]>;
+export type RegionWithChunks = DoclingRegion & { chunkIndices: number[] };
 
-export const getPageNumber = (page: DoclingPage): number => page.page_no ?? page.page ?? 0;
+export const getPageNumber = (page: DoclingPageInfo): number => {
+  const pageNum = page.pageNo ?? page.page;
+  if (pageNum === null || pageNum === undefined) {
+    console.warn('Page number not found in DoclingPageInfo', page);
+    return 0;
+  }
+  return pageNum;
+};
 
 export function buildRegionsByPage(chunkToItems: ChunkToItems): Record<number, RegionWithChunks[]> {
   const regionMap = new Map<string, RegionWithChunks>();
@@ -34,25 +42,35 @@ export function buildRegionsByPage(chunkToItems: ChunkToItems): Record<number, R
   return byPage;
 }
 
-export function getImageUrl(imageData: { uri?: string } | undefined, pageNum: number, baseUrl: string): string {
-  if (imageData?.uri?.startsWith('data:')) {
-    return imageData.uri;
-  }
+export function getNextChunkIndex(currentChunkIndex: number | null, chunkIndices: number[]): number | null {
+  if (chunkIndices.length === 0) return null;
 
-  return `${baseUrl}/${pageNum}`;
+  const currentPosition = chunkIndices.indexOf(currentChunkIndex ?? -1);
+
+  if (currentPosition === -1) return chunkIndices[0];
+  if (currentPosition < chunkIndices.length - 1) return chunkIndices[currentPosition + 1];
+
+  return null; // Cycle complete
 }
 
-export function formatChunkLabel(region: RegionWithChunks, currentChunkPosition?: number): string {
+export function formatChunkLabel(
+  region: RegionWithChunks,
+  currentChunkPosition?: number,
+  includeInteractionHint: boolean = false,
+): string {
   const hasMultipleChunks = region.chunkIndices.length > 1;
 
+  let label = '';
   if (hasMultipleChunks && currentChunkPosition !== undefined) {
     const currentChunk = region.chunkIndices[currentChunkPosition];
-    return `Chunk ${currentChunk} (${currentChunkPosition + 1}/${region.chunkIndices.length})`;
+    label = `Chunk ${currentChunk} (${currentChunkPosition + 1}/${region.chunkIndices.length})`;
+  } else if (hasMultipleChunks) {
+    label = `Chunks ${region.chunkIndices.join(', ')}`;
+  } else {
+    label = `Chunk ${region.chunkIndices[0]}`;
   }
 
-  if (hasMultipleChunks) {
-    return `Chunks ${region.chunkIndices.join(', ')}`;
-  }
+  if (includeInteractionHint && hasMultipleChunks) label += ' (click to cycle)';
 
-  return `Chunk ${region.chunkIndices[0]}`;
+  return label;
 }

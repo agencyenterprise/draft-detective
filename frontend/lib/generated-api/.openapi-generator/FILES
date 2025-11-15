@@ -35,6 +35,7 @@ models/ClaimSubstantiatorStateOutput.ts
 models/ClaimSubstantiatorStateSummary.ts
 models/Claims.ts
 models/ConfidenceInRecommendation.ts
+models/DoclingPageInfo.ts
 models/DoclingRegion.ts
 models/DocumentChunkInput.ts
 models/DocumentChunkOutput.ts
@@ -52,7 +53,8 @@ models/FeedbackResponse.ts
 models/FeedbackType.ts
 models/FieldCategory.ts
 models/FieldProblemType.ts
-models/FileDocument.ts
+models/FileDocumentInput.ts
+models/FileDocumentOutput.ts
 models/HTTPValidationError.ts
 models/InferenceValidationResponseWithClaimIndex.ts
 models/LiteratureReviewResponseInput.ts

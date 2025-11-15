@@ -1,15 +1,15 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import { Loader2 } from 'lucide-react';
-import type { DoclingPage, Region } from '@/types/docling';
+import type { DoclingPageInfo, DoclingRegion } from '@/lib/generated-api';
 import { RegionOverlay } from './region-overlay';
-import { getImageUrl, type RegionWithChunks } from './utils';
+import { getNextChunkIndex, type RegionWithChunks } from './utils';
 
 interface DoclingPageProps {
-  page: DoclingPage;
+  page: DoclingPageInfo;
   pageNum: number;
   regions: RegionWithChunks[];
-  selectedRegions: Region[];
+  selectedRegions: DoclingRegion[];
   selectedChunkIndex: number | null;
   pageImagesBaseUrl: string;
   onChunkSelect: (chunkIndex: number | null) => void;
@@ -25,9 +25,9 @@ export function DoclingPage({
   onChunkSelect,
 }: DoclingPageProps) {
   const [isLoading, setIsLoading] = useState(true);
-  const imageUrl = getImageUrl(page.image as { uri?: string }, pageNum, pageImagesBaseUrl);
-  const width = page.size?.width ?? page.width ?? 612;
-  const height = page.size?.height ?? page.height ?? 792;
+  const imageUrl = `${pageImagesBaseUrl}/${pageNum}`;
+  const width = page.width;
+  const height = page.height;
   const isFirstPage = pageNum === 0 || pageNum === 1;
 
   return (
@@ -40,8 +40,8 @@ export function DoclingPage({
       <Image
         src={imageUrl}
         alt={`Page ${pageNum}`}
-        width={width}
-        height={height}
+        width={width ?? 0}
+        height={height ?? 0}
         className="w-full h-auto block"
         unoptimized
         loading={isFirstPage ? undefined : 'lazy'}
@@ -56,21 +56,16 @@ export function DoclingPage({
           const hasSelectedChunk = currentChunkPosition !== -1;
 
           const handleRegionClick = () => {
-            if (currentChunkPosition === -1) {
-              onChunkSelect(region.chunkIndices[0]);
-            } else if (currentChunkPosition < region.chunkIndices.length - 1) {
-              onChunkSelect(region.chunkIndices[currentChunkPosition + 1]);
-            } else {
-              onChunkSelect(null);
-            }
+            const nextChunkIndex = getNextChunkIndex(selectedChunkIndex, region.chunkIndices);
+            onChunkSelect(nextChunkIndex);
           };
 
           return (
             <RegionOverlay
               key={`${region.id}-${idx}`}
               region={region}
-              pageWidth={width}
-              pageHeight={height}
+              pageWidth={width ?? 0}
+              pageHeight={height ?? 0}
               isSelected={isSelected || hasSelectedChunk}
               currentChunkPosition={hasSelectedChunk ? currentChunkPosition : undefined}
               onSelect={handleRegionClick}

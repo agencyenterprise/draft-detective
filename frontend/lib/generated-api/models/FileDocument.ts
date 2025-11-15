@@ -13,6 +13,14 @@
  */
 
 import { mapValues } from '../runtime';
+import type { DoclingPageInfo } from './DoclingPageInfo';
+import {
+  DoclingPageInfoFromJSON,
+  DoclingPageInfoFromJSONTyped,
+  DoclingPageInfoToJSON,
+  DoclingPageInfoToJSONTyped,
+} from './DoclingPageInfo';
+
 /**
  *
  * @export
@@ -50,17 +58,11 @@ export interface FileDocument {
    */
   markdownTokenCount: number;
   /**
-   * Raw Docling json_content passed through to frontend
    *
-   * We don't parse/transform - just pass the structure as-is.
-   * Frontend will handle the Docling format directly.
-   *
-   * All fields from Docling's json_content are stored in __pydantic_extra__
-   * and serialized properly.
-   * @type {{ [key: string]: any; }}
+   * @type {Array<DoclingPageInfo>}
    * @memberof FileDocument
    */
-  doclingDocument?: { [key: string]: any };
+  doclingPages?: Array<DoclingPageInfo> | null;
 }
 
 /**
@@ -89,7 +91,8 @@ export function FileDocumentFromJSONTyped(json: any, ignoreDiscriminator: boolea
     fileType: json['file_type'],
     markdown: json['markdown'],
     markdownTokenCount: json['markdown_token_count'],
-    doclingDocument: json['docling_document'] == null ? undefined : json['docling_document'],
+    doclingPages:
+      json['docling_pages'] == null ? undefined : (json['docling_pages'] as Array<any>).map(DoclingPageInfoFromJSON),
   };
 }
 
@@ -108,6 +111,7 @@ export function FileDocumentToJSONTyped(value?: FileDocument | null, ignoreDiscr
     file_type: value['fileType'],
     markdown: value['markdown'],
     markdown_token_count: value['markdownTokenCount'],
-    docling_document: value['doclingDocument'],
+    docling_pages:
+      value['doclingPages'] == null ? undefined : (value['doclingPages'] as Array<any>).map(DoclingPageInfoToJSON),
   };
 }

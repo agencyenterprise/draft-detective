@@ -13,13 +13,13 @@
  */
 
 import { mapValues } from '../runtime';
-import type { DoclingDocumentOutput } from './DoclingDocumentOutput';
+import type { DoclingPageInfo } from './DoclingPageInfo';
 import {
-  DoclingDocumentOutputFromJSON,
-  DoclingDocumentOutputFromJSONTyped,
-  DoclingDocumentOutputToJSON,
-  DoclingDocumentOutputToJSONTyped,
-} from './DoclingDocumentOutput';
+  DoclingPageInfoFromJSON,
+  DoclingPageInfoFromJSONTyped,
+  DoclingPageInfoToJSON,
+  DoclingPageInfoToJSONTyped,
+} from './DoclingPageInfo';
 
 /**
  *
@@ -59,10 +59,10 @@ export interface FileDocumentOutput {
   markdownTokenCount: number;
   /**
    *
-   * @type {DoclingDocumentOutput}
+   * @type {Array<DoclingPageInfo>}
    * @memberof FileDocumentOutput
    */
-  doclingDocument?: DoclingDocumentOutput | null;
+  doclingPages: Array<DoclingPageInfo> | null;
 }
 
 /**
@@ -74,6 +74,7 @@ export function instanceOfFileDocumentOutput(value: object): value is FileDocume
   if (!('fileType' in value) || value['fileType'] === undefined) return false;
   if (!('markdown' in value) || value['markdown'] === undefined) return false;
   if (!('markdownTokenCount' in value) || value['markdownTokenCount'] === undefined) return false;
+  if (!('doclingPages' in value) || value['doclingPages'] === undefined) return false;
   return true;
 }
 
@@ -91,8 +92,8 @@ export function FileDocumentOutputFromJSONTyped(json: any, ignoreDiscriminator: 
     fileType: json['file_type'],
     markdown: json['markdown'],
     markdownTokenCount: json['markdown_token_count'],
-    doclingDocument:
-      json['docling_document'] == null ? undefined : DoclingDocumentOutputFromJSON(json['docling_document']),
+    doclingPages:
+      json['docling_pages'] == null ? null : (json['docling_pages'] as Array<any>).map(DoclingPageInfoFromJSON),
   };
 }
 
@@ -114,6 +115,7 @@ export function FileDocumentOutputToJSONTyped(
     file_type: value['fileType'],
     markdown: value['markdown'],
     markdown_token_count: value['markdownTokenCount'],
-    docling_document: DoclingDocumentOutputToJSON(value['doclingDocument']),
+    docling_pages:
+      value['doclingPages'] == null ? null : (value['doclingPages'] as Array<any>).map(DoclingPageInfoToJSON),
   };
 }

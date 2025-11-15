@@ -1,4 +1,4 @@
-import type { BBox } from '@/types/docling';
+import type { BBox } from '@/lib/generated-api';
 
 /**
  * Convert Docling bbox to CSS positioning styles

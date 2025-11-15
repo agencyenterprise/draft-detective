@@ -3,7 +3,7 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { ChunkReevaluationResponse, ClaimSubstantiatorStateSummary, DocumentIssue } from '@/lib/generated-api';
 import { DocRenderMode } from '@/lib/constants';
-import { Loader2, FileText, Layout } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ChunkSidebarContent } from '../components/chunk-sidebar-content';
@@ -11,8 +11,6 @@ import { DocumentIssuesList } from '../components/document-issues-list';
 import { DocumentReconstructor } from '../components/document-reconstructor';
 import { DoclingViewer } from '../components/docling-viewer';
 import { ErrorsCard } from '../components/errors-card';
-import { Button } from '@/components/ui/button';
-import type { ChunkToItems, DoclingDocument } from '@/types/docling';
 
 interface DocumentExplorerTabProps {
   results: ClaimSubstantiatorStateSummary;
@@ -29,8 +27,8 @@ export function DocumentExplorerTab({
   viewMode,
   onViewModeChange,
 }: DocumentExplorerTabProps) {
-  const docJson = results.file?.doclingDocument as DoclingDocument | undefined;
-  const chunkToItems = results.chunkToItems?.mapping as ChunkToItems | undefined;
+  const pages = results.file?.doclingPages ?? [];
+  const chunkToItems = results.chunkToItems?.mapping ?? {};
 
   const pageImagesBaseUrl = `/api/images/${results.workflowRunId}`;
 
@@ -40,7 +38,7 @@ export function DocumentExplorerTab({
   const hasChunks = (results.chunks?.length || 0) > 0;
 
   // Check if docling view is available
-  const isDoclingAvailable = !!(docJson && chunkToItems);
+  const isDoclingAvailable = Boolean(pages && pages.length > 0 && Object.keys(chunkToItems).length > 0);
 
   const [selectedChunkIndex, setSelectedChunkIndex] = useState<number | null>(null);
   const selectedChunk = results.chunks?.find((chunk) => chunk.chunkIndex === selectedChunkIndex);
@@ -96,8 +94,8 @@ export function DocumentExplorerTab({
               if (shouldRenderDocling) {
                 return (
                   <DoclingViewer
-                    docJson={docJson!}
-                    chunkToItems={chunkToItems!}
+                    pages={pages}
+                    chunkToItems={chunkToItems}
                     pageImagesBaseUrl={pageImagesBaseUrl}
                     selectedChunkIndex={selectedChunkIndex}
                     onChunkSelect={handleChunkSelect}

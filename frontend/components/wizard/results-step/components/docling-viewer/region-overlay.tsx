@@ -36,8 +36,9 @@ export function RegionOverlay({
       )}
       style={style}
       onClick={onSelect}
-      title={`${chunkLabel}${hasMultipleChunks ? ' (click to cycle)' : ''}`}
+      title={chunkLabel}
       aria-label={`Select ${chunkLabel}`}
+      tabIndex={0}
     />
   );
 }

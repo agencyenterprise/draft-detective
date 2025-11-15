@@ -1,13 +1,13 @@
 'use client';
 
-import type { ChunkToItems, DoclingDocument } from '@/types/docling';
+import type { DoclingPageInfo } from '@/lib/generated-api';
 import { getRegionsForChunk } from '@/lib/docling/validateMap';
 import { useMemo } from 'react';
 import { DoclingPage } from './docling-page';
-import { buildRegionsByPage, getPageNumber } from './utils';
+import { buildRegionsByPage, getPageNumber, type ChunkToItems } from './utils';
 
 interface DoclingViewerProps {
-  docJson: DoclingDocument;
+  pages: DoclingPageInfo[];
   chunkToItems: ChunkToItems;
   pageImagesBaseUrl: string;
   selectedChunkIndex: number | null;
@@ -15,16 +15,16 @@ interface DoclingViewerProps {
 }
 
 export function DoclingViewer({
-  docJson,
+  pages,
   chunkToItems,
   pageImagesBaseUrl,
   selectedChunkIndex,
   onChunkSelect,
 }: DoclingViewerProps) {
-  const pages = useMemo(() => {
-    if (!docJson?.pages) return [];
-    return Object.values(docJson.pages).sort((a, b) => getPageNumber(a) - getPageNumber(b));
-  }, [docJson]);
+  const sortedPages = useMemo(() => {
+    if (!pages) return [];
+    return [...pages].sort((a, b) => getPageNumber(a) - getPageNumber(b));
+  }, [pages]);
 
   const selectedRegions = useMemo(() => {
     if (selectedChunkIndex === null) return [];
@@ -33,7 +33,7 @@ export function DoclingViewer({
 
   const regionsByPage = useMemo(() => buildRegionsByPage(chunkToItems), [chunkToItems]);
 
-  if (pages.length === 0) {
+  if (sortedPages.length === 0) {
     return (
       <div className="flex items-center justify-center h-full text-muted-foreground">
         <p>No pages available for rendering</p>
@@ -44,7 +44,7 @@ export function DoclingViewer({
   return (
     <div className="h-full overflow-y-auto bg-gray-50 p-4">
       <div className="space-y-6">
-        {pages.map((page) => {
+        {sortedPages.map((page) => {
           const pageNum = getPageNumber(page);
           return (
             <DoclingPage
