@@ -96,7 +96,6 @@ export function ResultsVisualization({
             onChunkReevaluation={onChunkReevaluation}
             isProcessing={isProcessing}
             viewMode={viewMode}
-            onViewModeChange={onViewModeChange}
           />
         );
     }

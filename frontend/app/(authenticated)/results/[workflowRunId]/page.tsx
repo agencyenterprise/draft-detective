@@ -36,7 +36,7 @@ export default function ResultsPage() {
 
   const isProcessing = workflowRun?.run.status === WorkflowRunStatus.Running;
 
-  const isDoclingAvailable = !!(workflowRun?.state?.file?.doclingDocument && workflowRun?.state?.chunkToItems?.mapping);
+  const isDoclingAvailable = !!(workflowRun?.state?.file?.doclingPages && workflowRun?.state?.chunkToItems?.mapping);
 
   const handleChunkReevaluation = (response: ChunkReevaluationResponse) => {
     queryClient.setQueryData(['workflowRun', workflowRunId], (curr: WorkflowRunDetailed) => {

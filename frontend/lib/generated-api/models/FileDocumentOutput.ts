@@ -24,51 +24,51 @@ import {
 /**
  *
  * @export
- * @interface FileDocumentOutput
+ * @interface FileDocument
  */
-export interface FileDocumentOutput {
+export interface FileDocument {
   /**
    * The original name of the uploaded file, as saved in the user file system
    * @type {string}
-   * @memberof FileDocumentOutput
+   * @memberof FileDocument
    */
   fileName: string;
   /**
    * The path to the uploaded file, as saved in the file system
    * @type {string}
-   * @memberof FileDocumentOutput
+   * @memberof FileDocument
    */
   filePath: string;
   /**
    * The MIME type of the uploaded file
    * @type {string}
-   * @memberof FileDocumentOutput
+   * @memberof FileDocument
    */
   fileType: string;
   /**
    * The uploaded file content converted to markdown
    * @type {string}
-   * @memberof FileDocumentOutput
+   * @memberof FileDocument
    */
   markdown: string;
   /**
    * The approximate number of tokens in the markdown content
    * @type {number}
-   * @memberof FileDocumentOutput
+   * @memberof FileDocument
    */
   markdownTokenCount: number;
   /**
    *
    * @type {Array<DoclingPageInfo>}
-   * @memberof FileDocumentOutput
+   * @memberof FileDocument
    */
   doclingPages: Array<DoclingPageInfo> | null;
 }
 
 /**
- * Check if a given object implements the FileDocumentOutput interface.
+ * Check if a given object implements the FileDocument interface.
  */
-export function instanceOfFileDocumentOutput(value: object): value is FileDocumentOutput {
+export function instanceOfFileDocument(value: object): value is FileDocument {
   if (!('fileName' in value) || value['fileName'] === undefined) return false;
   if (!('filePath' in value) || value['filePath'] === undefined) return false;
   if (!('fileType' in value) || value['fileType'] === undefined) return false;
@@ -78,11 +78,11 @@ export function instanceOfFileDocumentOutput(value: object): value is FileDocume
   return true;
 }
 
-export function FileDocumentOutputFromJSON(json: any): FileDocumentOutput {
-  return FileDocumentOutputFromJSONTyped(json, false);
+export function FileDocumentFromJSON(json: any): FileDocument {
+  return FileDocumentFromJSONTyped(json, false);
 }
 
-export function FileDocumentOutputFromJSONTyped(json: any, ignoreDiscriminator: boolean): FileDocumentOutput {
+export function FileDocumentFromJSONTyped(json: any, ignoreDiscriminator: boolean): FileDocument {
   if (json == null) {
     return json;
   }
@@ -97,14 +97,11 @@ export function FileDocumentOutputFromJSONTyped(json: any, ignoreDiscriminator: 
   };
 }
 
-export function FileDocumentOutputToJSON(json: any): FileDocumentOutput {
-  return FileDocumentOutputToJSONTyped(json, false);
+export function FileDocumentToJSON(json: any): FileDocument {
+  return FileDocumentToJSONTyped(json, false);
 }
 
-export function FileDocumentOutputToJSONTyped(
-  value?: FileDocumentOutput | null,
-  ignoreDiscriminator: boolean = false,
-): any {
+export function FileDocumentToJSONTyped(value?: FileDocument | null, ignoreDiscriminator: boolean = false): any {
   if (value == null) {
     return value;
   }

@@ -27,13 +27,13 @@ import {
   ChunkToItemsOutputToJSON,
   ChunkToItemsOutputToJSONTyped,
 } from './ChunkToItemsOutput';
-import type { FileDocumentOutput } from './FileDocumentOutput';
+import type { FileDocument } from './FileDocument';
 import {
-  FileDocumentOutputFromJSON,
-  FileDocumentOutputFromJSONTyped,
-  FileDocumentOutputToJSON,
-  FileDocumentOutputToJSONTyped,
-} from './FileDocumentOutput';
+  FileDocumentFromJSON,
+  FileDocumentFromJSONTyped,
+  FileDocumentToJSON,
+  FileDocumentToJSONTyped,
+} from './FileDocument';
 import type { DocumentIssue } from './DocumentIssue';
 import {
   DocumentIssueFromJSON,
@@ -106,16 +106,16 @@ import {
 export interface ClaimSubstantiatorStateSummary {
   /**
    *
-   * @type {FileDocumentOutput}
+   * @type {FileDocument}
    * @memberof ClaimSubstantiatorStateSummary
    */
-  file: FileDocumentOutput;
+  file: FileDocument;
   /**
    *
-   * @type {Array<FileDocumentOutput>}
+   * @type {Array<FileDocument>}
    * @memberof ClaimSubstantiatorStateSummary
    */
-  supportingFiles?: Array<FileDocumentOutput> | null;
+  supportingFiles?: Array<FileDocument> | null;
   /**
    *
    * @type {SubstantiationWorkflowConfig}
@@ -217,11 +217,9 @@ export function ClaimSubstantiatorStateSummaryFromJSONTyped(
     return json;
   }
   return {
-    file: FileDocumentOutputFromJSON(json['file']),
+    file: FileDocumentFromJSON(json['file']),
     supportingFiles:
-      json['supporting_files'] == null
-        ? undefined
-        : (json['supporting_files'] as Array<any>).map(FileDocumentOutputFromJSON),
+      json['supporting_files'] == null ? undefined : (json['supporting_files'] as Array<any>).map(FileDocumentFromJSON),
     config: SubstantiationWorkflowConfigFromJSON(json['config']),
     workflowRunId: json['workflow_run_id'] == null ? undefined : json['workflow_run_id'],
     references:
@@ -264,11 +262,9 @@ export function ClaimSubstantiatorStateSummaryToJSONTyped(
   }
 
   return {
-    file: FileDocumentOutputToJSON(value['file']),
+    file: FileDocumentToJSON(value['file']),
     supporting_files:
-      value['supportingFiles'] == null
-        ? undefined
-        : (value['supportingFiles'] as Array<any>).map(FileDocumentOutputToJSON),
+      value['supportingFiles'] == null ? undefined : (value['supportingFiles'] as Array<any>).map(FileDocumentToJSON),
     config: SubstantiationWorkflowConfigToJSON(value['config']),
     workflow_run_id: value['workflowRunId'],
     references:

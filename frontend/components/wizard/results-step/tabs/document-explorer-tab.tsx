@@ -17,7 +17,6 @@ interface DocumentExplorerTabProps {
   onChunkReevaluation: (response: ChunkReevaluationResponse) => void;
   isProcessing?: boolean;
   viewMode: DocRenderMode;
-  onViewModeChange: (mode: DocRenderMode) => void;
 }
 
 export function DocumentExplorerTab({
@@ -25,7 +24,6 @@ export function DocumentExplorerTab({
   onChunkReevaluation,
   isProcessing = false,
   viewMode,
-  onViewModeChange,
 }: DocumentExplorerTabProps) {
   const pages = results.file?.doclingPages ?? [];
   const chunkToItems = results.chunkToItems?.mapping ?? {};

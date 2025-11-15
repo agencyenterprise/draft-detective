@@ -1,4 +1,4 @@
-import type { ChunkToItemsOutput, DoclingRegion } from '@/lib/generated-api';
+import type { DoclingRegion } from '@/lib/generated-api';
 
 export type ChunkToItems = Record<string, DoclingRegion[]>;
 

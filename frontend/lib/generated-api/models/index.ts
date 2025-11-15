@@ -48,7 +48,9 @@ export * from './FeedbackType';
 export * from './FieldCategory';
 export * from './FieldProblemType';
 export * from './FileDocumentInput';
-export * from './FileDocumentOutput';
+export * from './FileDocument';
+// Type alias for backward compatibility - use FileDocument for API responses
+export type { FileDocument as FileDocument } from './FileDocument';
 export * from './HTTPValidationError';
 export * from './InferenceValidationResponseWithClaimIndex';
 export * from './LiteratureReviewResponseInput';
