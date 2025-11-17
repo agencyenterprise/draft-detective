@@ -26,7 +26,7 @@ class ReportMetadata(BaseModel):
         description="Newspaper-style title summarizing the changes (or lack of changes) suggested by the report"
     )
     sentence_summary: str = Field(
-        description="A single sentence summary of the addendum report"
+        description="A single sentence summary of what the authors should update in the report"
     )
     date_generated: str = Field(
         description="The date the report was generated in YYYY-MM-DD format"
@@ -40,126 +40,146 @@ class ReportOutput(BaseModel):
 
 _addendum_prompt = ChatPromptTemplate.from_template(
     """
-You are a professional technical writer formatting claim update reports based on the “Live Reports: Addendum” document style.
+You are a professional technical writer. Your job is to turn raw model output into a clear, concise, and action-oriented **claim update report** based on the structure used in “Live Reports: Addendum.”
 
-Your task is to **select the most salient updates and rewrite and format the raw model output** into a polished, Markdown-formatted report that mirrors the tone, structure, and logic of that template.
-
-## Guidelines for Selecting the Most Salient Updates
-- Select the updates that are most central to the argument of the report. (Use summary from the document to help you determine the most salient updates.) For example, if a claim is not associated with the central argument of the document, then updates for that claim should not be included in the report if other claims take precedence. 
-- Limit the number of references to 10
-- When possible provide url for the reference in the report.
-
+Your report must:
+- Focus on the most important updates.
+- Clearly explain what the authors need to change.
+- Use simple language and avoid dense technical jargon.
 
 ---
 
-## Structure or Report
-
-#### Markdown Body
-
-Given the raw model output below, rewrite and structure it into a **Markdown report** that mirrors the tone and layout of the following template.
-
----- template ----
-```markdown
-# Addendum: [Title of Report or Claim Update Topic]
-
-## High Level Summary
-- Provide a concise paragraph (3–5 sentences) summarizing the key updates, overall direction, or major implications.
-
-## Background Updates
-- Describe contextual or theoretical changes that influenced the claims.
-- Each paragraph or bullet should start with a strong declarative phrase (e.g., “New analysis indicates…”).
-
-## Methodology Updates
-- Describe procedural, experimental, or analytical revisions.
-- Keep items 1–3 sentences each.
-- Reference supporting materials where relevant (e.g., “see Appendix A”).
-
-## Results Updates
-- State outcomes, comparisons, or numerical adjustments.
-- Clearly mention any revised values (e.g., “updated from 5.5% to 4.1%”).
-
-## Implications Updates
-- Explain practical or strategic consequences of the above updates on the conclusions of report
-- Use prescriptive tone (“This requires…”, “This suggests…”).
-
-## References
-1. [Author(s)]. (Year). *Title*. [Source or journal].
-2. ...
-```
-
---------
-
-#### Requirements:
-1. Use **section headers** in this order:
-   - `# Addendum: [Report Title or Topic]`
-   - `## High Level Summary`
-   - `## Background Updates`
-   - `## Methodology Updates`
-   - `## Results Updates`
-   - `## Implications Updates`
-   - `## References`
-
-2. Maintain a **formal and evidence-driven tone**, with clear causal or comparative phrasing (e.g., “This adjustment necessitates…”, “This modification ensures…”).
-
-3. Each update paragraph should:
-   - Begin with a concrete noun or action (“New analysis shows…”, “The dataset was expanded…”).
-   - Reference supporting context or implications.
-   - Remain **1–3 sentences** long.
-
-4. Insert **numerical or symbolic citations** in square brackets `[1]`, `[2]`, etc., to mimic reference numbering.
-
-5. End with a numbered reference list in plain-text style, e.g.:
-
-[1] Author(s). (Year). Title. Journal or Source. URL (if available).
-
-6. Output only **Markdown-formatted text** (no extra commentary).
-
-
-## Categorize the updates
-
-Within the output data structure place the report into one of the following categories which best matches the changes (or lack of changes) suggested by the report.
-
-#### 1. **No Update Needed**
-- **Description:** The original statements remain accurate and relevant.
-- **Use When:** The latest data or findings confirm the report's original conclusions.
-- **Example:** *Economic forecasts for Q1 remain consistent with initial estimates.*
+# How to Select the Most Important Updates
+Choose only the updates that matter most for the main argument of the report. Use the document summary for guidance.  
+Rules:
+- Include only the claims that meaningfully shift the report’s reasoning or conclusions.
+- Keep the total number of references under 10.
+- Include URLs whenever possible.
 
 ---
 
-#### 2. **Minor Factual Update**
-- **Description:** Small factual changes that slightly adjust quantitative or descriptive details.
-- **Use When:** Numbers, dates, or labels have shifted but the interpretation stays the same.
-- **Example:** *Inflation rate updated from 3.1% to 3.3%.*
+# Required Report Structure
+
+Format your final response in **Markdown** using the following sections, in this exact order:
+
+# Addendum: [Report Title or Topic]
+
+### High Level Summary
+Write a short (3-5 sentence) overview that answers these questions:
+- What do the authors need to change in their report? Be specific about which sections or claims need updating.
+- How should they change it? Tell them the direction: should they strengthen their conclusions, soften them, reverse them completely, or add more nuance?
+- Why does this matter? Explain what happens if they don't make these changes - what are the consequences?
+
+Think of this like a quick briefing. Someone should be able to read just this section and understand what needs to happen. Use everyday words, not academic jargon.
+
+Example good opening: "Recent studies published in 2024 contradict the main finding in Section 3. The authors should revise their conclusion about X to reflect that Y is now the dominant view. If they don't update this, readers may lose trust in the report's accuracy."
+
+### Background Updates
+This section is for fixing the foundation of the report - the context and background information that supports the claims.
+
+For each update, do this:
+- Start with a clear statement about what's new. Use phrases like "New evidence shows...", "Recent data indicates...", or "A 2024 study found...". This grabs attention immediately. When referencing a specific source, use an inline markdown link: `[Smith et al. (2024)](https://example.com/study)`.
+- Then tell them exactly what to change. Don't just say "update the background" - say "Add a paragraph explaining that Method X has been replaced by Method Y in recent research (see [Johnson (2023)](https://example.com/research))" or "Remove the claim about Z being rare, since [2023 data](https://example.com/data) shows it's now common."
+- Explain why this change matters. Connect it back to the main argument - how does this background change affect what the report is trying to prove?
+
+Keep each item short (1-3 sentences). If you have multiple background updates, use bullets. Make sure each one is actionable - the authors should know exactly what to do. Always include URLs as inline markdown links when available.
+
+### Methodology Updates
+This is where you tell them how to fix their research methods, procedures, or ways of analyzing data.
+
+Be specific about:
+- What method needs changing? Is it the way they collected data, the way they analyzed it, or the tools they used?
+- How should they change it? Give them concrete steps. For example: "Replace the 2020 survey methodology with the updated 2024 version that includes online responses" or "Add a sensitivity analysis using the approach described in [Smith et al. (2024)](https://example.com/paper)."
+- When should they cite sources? If there's a specific paper or standard they should reference, include it as an inline markdown link. Use the format `[Author(s) (Year)](URL)` or `[Ref 1](URL)` when referencing. For example: "see [Johnson (2024)](https://example.com/protocol) for the updated protocol" or "follow the guidelines in [Ref 2](https://example.com/guidelines)."
+
+Don't just say "update the methodology" - tell them what part of the methodology and what to do about it. Think about what a researcher would need to know to actually make this change.
+
+### Results Updates
+Here you explain how the new information changes what the report found or how to interpret those findings.
+
+For each result that needs updating:
+- State what the original result was (briefly) and how new information changes it. For example: "The report states that X increased by 5%. New data shows it actually increased by 8%, so update the figure and the discussion."
+- Explain what this means for the report's conclusions. Does this make the conclusions stronger? Weaker? Do they need to be completely rewritten?
+- If there are numbers or statistics that changed, be clear about the old value and the new value. Don't make the authors guess.
+
+Remember: results updates aren't just about numbers. Sometimes new information changes how you should interpret the same numbers. Explain that too.
+
+### Implications Updates
+This is the "so what?" section. You've told them what to change in the background, methods, and results. Now explain what all of this means for the big picture.
+
+For each implication:
+- Start with a clear statement about what needs to happen. Use direct language like "This requires the authors to..." or "This suggests they should..." or "The report must now acknowledge that..."
+- Connect the dots. Show how the background changes, method changes, and result changes all work together to affect the main conclusions.
+- Be prescriptive but fair. Tell them what they need to do, but explain why. For example: "This requires adding a section discussing the limitations of the original methodology, because readers need to understand why the updated approach is more reliable."
+
+Think about what someone reading the updated report would need to understand. What questions would they have? Answer those questions here.
+
+### References
+Format references as numbered list items with inline markdown links:
+1. [Author(s)]. (Year). *Title*. [Source or journal]. [Link](URL)
+2. [Author(s)]. (Year). *Title*. [Source or journal]. [Link](URL)
+
+If a URL is available in the input data, always include it as a markdown link. The link text can be "Link", "DOI", or the URL itself.
+
+# Additional Requirements
+1. Use simple language and clear causal phrasing 
+2. Keep each update to **1-3 sentences**.
+3. **Use inline markdown links for citations within the text**. When mentioning a reference, format it as `[Author(s) (Year)](URL)` or `[Ref N](URL)` where N is the reference number. Always include the URL if it's available in the input data.
+4. In the References section, format each reference with an inline markdown link at the end: `[Link](URL)` or `[DOI](URL)`.
+5. Output **only Markdown**—no commentary or explanation.
 
 ---
 
-#### 3. **Moderate Update (Clarification or Expansion)**
-- **Description:** New context, explanation, or clarification needed, but overall conclusions still hold.
-- **Use When:** Recent data adds nuance, or terminology has evolved.
-- **Example:** *Add note on revised methodology in 2025 dataset.*
+# Categorize the Updates
+
+At the end of your JSON output, categorize the update using one of:
+
+- **No Update Needed**
+  - **Description:** The original statements remain accurate and relevant.
+  - **Use When:** The latest data or findings confirm the report's original conclusions.
+  - **Example:** *Economic forecasts for Q1 remain consistent with initial estimates.*
 
 ---
 
-#### 4. **Major Update Required**
-- **Description:** Substantive changes to sections or conclusions are needed due to new evidence.
-- **Use When:** New findings contradict or significantly extend prior statements.
-- **Example:** *2025 emissions data show a reversal of the downward trend reported in 2023.*
+- **Minor Factual Update**
+  - **Description:** The authors should make small factual changes that slightly adjust quantitative or descriptive details.
+  - **Use When:** Numbers, dates, or labels have shifted but the interpretation stays the same.
+  - **Example:** *Inflation rate updated from 3.1% to 3.3%.*
 
 ---
 
-#### 5. **Outdated or Invalidated**
-- **Description:** The statement is no longer accurate or applicable due to major developments.
-- **Use When:** The core premise or supporting data has been superseded.
-- **Example:** *Earlier projections invalidated by new regulatory changes in 2024.*
+- **Moderate Update (Clarification or Expansion)**
+  - **Description:** The authors should introduce new context, explanation, but the overall conclusions still hold.
+  - **Use When:** Recent data adds nuance, or terminology has evolved.
+  - **Example:** *Add note on revised methodology in 2025 dataset.*
 
-### Additional Metadata
+---
 
-- title: Generate a Newspaper-style title summarizing the changes (or lack of changes) suggested by the report. This title should give the user a quick overview of the report.
-- sentence_summary: Generate a single sentence summary of the addendum report. This summary should give the user a quick overview of the report.
-- date_generated: The date the report was generated in YYYY-MM-DD format.
+- **Major Update Required**
+  - **Description:** The authors need to make substantive changes to sections or conclusions are needed due to new evidence.
+  - **Use When:** New findings contradict or significantly extend prior statements.
+  - **Example:** *2025 emissions data show a reversal of the downward trend reported in 2023.*
 
+---
 
-#### Input:
+- **Outdated or Invalidated**
+  - **Description:** The important claims and argument in the report are no longer accurate or applicable due to major developments.
+  - **Use When:** The core premise or supporting data has been superseded.
+  - **Example:** *Earlier projections invalidated by new regulatory changes in 2024.*
+
+Choose the one that best matches the scale of the recommended changes.
+
+---
+
+# Additional Metadata to Include in JSON Output
+- **title:** A short newspaper-style headline summarizing the addendum.
+- **sentence_summary:** One-sentence overview of what the authors should update in the report. Include links to the important sources that support the update.
+- **date_generated:** Current date in YYYY-MM-DD.
+
+---
+
+#### Input Data:
+Live Reports Analysis
 ```
 {records_json}
 ```
@@ -172,7 +192,7 @@ Summary (optional): {document_summary}
 
 #### Output:
 Return one JSON object matching the required schema exactly.
-    """
+"""
 )
 
 
