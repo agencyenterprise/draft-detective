@@ -94,15 +94,15 @@ by ensuring there is online presence from a legitimate source from each one.
 
 Guidelines for checking the reference fields:
 - For publisher, abbreviations should be considered equivalent to the full name.
-- For author lists, first and last names should be valid if they are both present. If last name, and first initial are present then those should be valid. Abbreviating remaining authors as "et al." is valid.
-
+- For author lists, first and last names should both be validated if they are present within the reference. If last name and first initial are present then those strings should be validated. Abbreviating remaining authors as "et al." is valid.
+- For title, upper and lower case lettering is unimportant to validation (e.g., "The Title" and "the title" are considered the same title).
+- For determining the title of online articles linked to PDF documents, use the title within the PDF document if available. If not, use the title of the online article.
 ---
 
 # NOTE:
 When generating responses, remove or replace all internal citation tokens such as turn1search0, turn2search3, or similar. Do not display raw reference IDs or metadata markers in the final text. Return clean, human-readable output only.
 
 Return one JSON object matching the schema exactly.
-
 
 ## The list of references to validate
 {references}
