@@ -35,6 +35,11 @@ async def _extract_chunk_claims(
         {
             "chunk": chunk.content,
             "paragraph": state.get_paragraph(chunk.paragraph_index),
+            "summarized_argument": (
+                state.main_document_summary.summary
+                if state.main_document_summary
+                else ""
+            ),
             "domain_context": format_domain_context(state.config.domain),
             "audience_context": format_audience_context(state.config.target_audience),
         }

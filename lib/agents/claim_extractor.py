@@ -20,6 +20,9 @@ class Claim(BaseModel):
     rationale: str = Field(
         description="The rationale for why you think the chunk of text implies this claim"
     )
+    central: bool = Field(
+        description="Whether the claim is central to the argument of the document"
+    )
 
 
 class ClaimResponse(BaseModel):
@@ -31,20 +34,10 @@ class ClaimResponse(BaseModel):
     )
 
 
-# A claim is "decontextualized" if (1) it is fully self-contained, meaning it can be understood in isolation (i.e., without the context of the full document), AND (2) its meaning in isolation matches its meaning when interpreted alongside the paragraph and the full document and other claims. The claims should also be the simplest possible discrete units of information.
-
-#
-## Guidelines
-# - Do NOT repeat the same claim in the list of claims. I repeat: It is extremely important that you do not repeat the same claim in the list of claims.
-# - Only write a claim if the the statement expresses an assertion or a proposition. Statements like "The document is about the domain of the document" are not claims and should not be included in the list of claims.
-# - If a sentence has multiple adjectives/modifiers describing the same entity, you should include all those adjectives/modifiers in the same claim.
-# For example, the sentence "A, B, and C are all good at X" should be decomposed into the claims "A, B, and C are all good at X", and the sentece "X affects C and D differently" should be decomposed into the claims "X affects C and D differently".
-
 _claim_extractor_prompt_claimify = ChatPromptTemplate.from_template(
     """
-
 ### Agent Setup and Terms
-You are an assistant for a group of fact-checkers. You will be given a paragraph from a document and a chunk of text (typically a sentence or a few sentences) from that paragraph, and your task is to extract all the claims from the chunk of text. 
+You are an assistant for a group of fact-checkers. You will be given the summarized argument of a document, a paragraph from a document, and a chunk of text (typically a sentence or a few sentences) from that paragraph, and your task is to extract all the claims from the chunk of text and determine if they are central to the document's summarized argument. 
 
 Claim (definition): An assertion or proposition that is made within a chunk of text. Grammatically, a sentence that expresses a claim is a declarative sentence and thus contains a verb. 
 
@@ -59,7 +52,11 @@ Non-Examples of Claims:
 
 
 ### Task
-Your task is to identify all specific propositions in the sentence and ensure that each proposition is decontextualized. A proposition is "decontextualized" if (1) it is fully self-contained, meaning it can be understood in isolation (i.e., without the question, the context, and the other propositions), AND (2) its meaning in isolation matches its meaning when interpreted alongside the question, the context, and the other propositions. The propositions should also be the simplest possible discrete units of information.
+Your task is to identify all specific propositions in the sentence and ensure that each proposition is decontextualized AND to identify if the proposition is central to the argument of the paper.
+
+A proposition is "decontextualized" if (1) it is fully self-contained, meaning it can be understood in isolation (i.e., without the question, the context, and the other propositions), AND (2) its meaning in isolation matches its meaning when interpreted alongside the question, the context, and the other propositions. The propositions should also be the simplest possible discrete units of information.
+
+A proposition is central to the argument of a paper if the invalidity or falseness of the claim could weaken the argument of the paper. 
 
 Note the following rules:
 - If the chunk of text is a bibliographic entry (usually found in references or bibliography sections, indicated by headings like "References", "Bibliography", "Works Cited"), do not consider it as having claims.
@@ -89,6 +86,7 @@ Within the list of claims, you must include the following information for each c
 - text: The relevant part of the text within the chunk of text that implies the claim
 - claim: The claim text
 - rationale: The rationale for why you think the chunk of text implies this claim
+- central: Whether the claim is central to the argument of the document
 
 
 ### Agent Inputs
@@ -98,6 +96,9 @@ Within the list of claims, you must include the following information for each c
 
 ## Audience context (context about the audience of the document)
 {audience_context}
+
+## Summarized Argument
+{summarized_argument}
 
 ## The paragraph of the original document that contains the chunk of text that we want to analyze
 ```
@@ -338,19 +339,13 @@ Machine learning will likely continue to drive progress in automated visual unde
         print(f"\nOverall Rationale:\n{result.rationale}\n")
         print(f"Number of Claims Extracted: {len(result.claims)}\n")
 
-        for i, claim in enumerate(result.claims, 1):
+        for i, claim in enumerate[ClaimResponse.claims](result.claims, 1):
             print(f"--- Claim {i} ---")
             print(f"Text: {claim.text}")
             print(f"Claim: {claim.claim}")
             print(f"Rationale: {claim.rationale}")
+            print(f"Central: {claim.central}")
             print()
-
-        # Also print as JSON for easy inspection
-        # print("=" * 80)
-        # print("JSON Output:")
-        # print("=" * 80)
-        # print(json.dumps(result.model_dump(), indent=2, ensure_ascii=False))
-        # print("\n" + "=" * 80 + "\n")
 
     async def run_all_examples():
         """Run all test examples."""
