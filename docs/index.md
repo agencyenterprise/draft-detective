@@ -23,10 +23,11 @@ The system addresses these primary research questions:
 
 1. **Claim-Reference Alignment**: Does each cited reference provide evidence that substantiates the associated claim?
 2. **References Validation**: Are the references correct, including Author, Title, Year and Publisher fields that have online presence?
-3. **Missing Substantiation**: Which claims require citation but lack appropriate references?
-4. **Citation Recommendations**: What additional references could strengthen the document's evidentiary foundation?
-5. **Literature Review**: Is there any other related published work that could be referenced to strengthen or counter the arguments presented?
-6. **Live Reports** (for past published documents): Is there any newer related work that supports, strengthens, contradicts, or brings newer information that should be considered to expand the document's arguments?
+3. **Unsupported claims**: Which claims require citation but lack appropriate references?
+4. **Inference Validation**: Are inferential and interpretive claims supported by valid argument structures according to the Toulmin model of argumentation?
+5. **Citation Recommendations**: What additional references could strengthen the document's evidentiary foundation?
+6. **Literature Review**: Is there any other related published work that could be referenced to strengthen or counter the arguments presented?
+7. **Live Reports** (for past published documents): Is there any newer related work that supports, strengthens, contradicts, or brings newer information that should be considered to expand the document's arguments?
 
 ## Methodology
 
@@ -162,19 +163,23 @@ The subsequent example illustrates a more nuanced validation scenario involving 
 
 ![Reference Validation - Example 2](./ref-validation-ex2.png)
 
-### Missing Substantiation
+### Unsupported claims
 
 The following example demonstrates the system's capability to identify claims that lack appropriate evidentiary support. The system evaluates sentences containing assertions that require citation but are not substantiated by references, and distinguishes these from universally accepted common knowledge that does not necessitate citation. The system classifies such claims as "unsupported" when they represent factual assertions, empirical findings, or domain-specific knowledge that would typically require attribution. Notably, the system performs granular claim-level analysis, as illustrated in the second example where multiple distinct claims are extracted from a single sentence and evaluated independently, enabling precise identification of unsupported assertions within complex statements.
 
 ![Unsupported claims - Example 1](./unsupported-claim-ex1.png)
 
-### Citation Recommendations
+### Inference Validation
 
 TODO: show screenshot of examples of results
 
-### Literature Review
+### Literature Review & Citation Recommendation
 
-TODO: show screenshot of examples of results
+The images below show examples of output for the citation suggestion and literature review agents.
+
+![Citation Suggestion - Example 1](./citation-suggestion-ex1.png)
+
+![Literature Review - Example 1](./literature-review-ex1.png)
 
 ### Live Reports
 
