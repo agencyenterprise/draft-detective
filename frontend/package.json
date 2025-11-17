@@ -1,6 +1,6 @@
 {
   "name": "ai-reviewer",
-  "version": "0.2.38",
+  "version": "0.2.39",
   "private": true,
   "packageManager": "pnpm@10.4.1",
   "repository": {
