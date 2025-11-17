@@ -1,7 +1,7 @@
 """
 Service for processing ZIP files returned by docling-serve.
 
-When using return_as_file=True, docling-serve returns a ZIP containing:
+When using target_type="zip", docling-serve returns a ZIP containing:
 - *.json (the json_content)
 - *.md (the markdown)
 - artifacts/ (folder with images like image_000000_hash.png)
