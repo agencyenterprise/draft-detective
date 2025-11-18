@@ -9,6 +9,8 @@ import { formatDuration, formatIncEx, getFlattenedObjectKeys, getFlattenedObject
 import { cn } from '@/lib/utils';
 import { percentageFormatter } from './formatters';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { ModelComparisonSection } from './model-comparison-section';
+import { formatModelName } from './model-comparison-utils';
 
 interface GroupedTestCaseItem {
   name: string;
@@ -18,13 +20,44 @@ interface GroupedTestCaseItem {
 
 export function GroupedTestCaseItem({ name, testCases }: GroupedTestCaseItem) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [selectedModel, setSelectedModel] = useState<string | null>(null);
 
   const toggleExpanded = () => {
     setIsExpanded(!isExpanded);
   };
 
+  const handleModelSelect = (modelName: string) => {
+    setSelectedModel(modelName);
+  };
+
   const passedTests = testCases.filter((testCase) => testCase.outcome === 'passed');
   const accuracy = passedTests.length / testCases.length;
+
+  const hasModelComparison = testCases[0]?.agent_test_case.model_comparison_results;
+
+  const getDisplayResults = (testCase: TestCase) => {
+    if (!selectedModel || !testCase.agent_test_case.model_comparison_results) {
+      return {
+        evaluationResult: testCase.agent_test_case.evaluation_result,
+      };
+    }
+
+    const modelResult = testCase.agent_test_case.model_comparison_results[selectedModel];
+
+    if (!modelResult) {
+      return {
+        evaluationResult: testCase.agent_test_case.evaluation_result,
+      };
+    }
+
+    return {
+      evaluationResult: {
+        passed: modelResult.passed,
+        rationale: modelResult.rationale,
+        field_comparisons: modelResult.field_comparisons,
+      },
+    };
+  };
 
   const expectedKeys = getFlattenedObjectKeys(testCases[0].agent_test_case.expected_output);
   const actualKeys = getFlattenedObjectKeys(testCases[0].agent_test_case.actual_outputs[0]);
@@ -222,22 +255,44 @@ export function GroupedTestCaseItem({ name, testCases }: GroupedTestCaseItem) {
               </div>
             </div>
 
+            {/* Model Comparison Results */}
+            {hasModelComparison && (
+              <ModelComparisonSection
+                modelComparisonResults={testCases[0].agent_test_case.model_comparison_results}
+                selectedModel={selectedModel || undefined}
+                onModelSelect={handleModelSelect}
+              />
+            )}
+
             {/* Evaluation Results */}
             <div className="border-t pt-4">
-              <h4 className="font-medium mb-3">Evaluation Results</h4>
-              {testCases.map((testCase, index) => (
-                <div key={testCase.nodeid}>
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium text-sm">Overall Result #{index + 1}:</span>
-                    <Badge variant={testCase.agent_test_case.evaluation_result?.passed ? 'success' : 'destructive'}>
-                      {testCase.agent_test_case.evaluation_result?.passed ? 'Passed' : 'Failed'}
-                    </Badge>
+              <h4 className="font-medium mb-3 flex items-center gap-2">
+                Evaluation Results
+                {selectedModel && (
+                  <Badge variant="secondary" className="text-xs">
+                    for {formatModelName(selectedModel)}
+                  </Badge>
+                )}
+              </h4>
+              {testCases.map((testCase, index) => {
+                const { evaluationResult } = getDisplayResults(testCase);
+
+                return (
+                  <div key={testCase.nodeid} className="mb-4">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-sm">
+                        {selectedModel ? `${formatModelName(selectedModel)} Result` : `Overall Result`} #{index + 1}:
+                      </span>
+                      <Badge variant={evaluationResult?.passed ? 'success' : 'destructive'}>
+                        {evaluationResult?.passed ? 'Passed' : 'Failed'}
+                      </Badge>
+                    </div>
+                    <div className="text-sm text-muted-foreground mt-1 bg-background p-2 rounded border max-h-64 overflow-y-auto whitespace-pre-wrap font-mono">
+                      {evaluationResult?.rationale}
+                    </div>
                   </div>
-                  <div className="text-sm text-muted-foreground mt-1 bg-background p-2 rounded border max-h-64 overflow-y-auto whitespace-pre-wrap font-mono">
-                    {testCase.agent_test_case.evaluation_result?.rationale}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </CardContent>

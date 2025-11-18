@@ -256,6 +256,19 @@ uv run pytest tests/llm/ --count=3
 
 Each test run will by default generate a `test_results.json` file that can be uploaded to a custom UI in the frontend for better visualization, in the `/evals` route.
 
+#### Model Comparison / Downgrade Evaluation
+
+**Important**: Model comparison is OPT-IN ONLY. Normal pytest runs will NOT run comparisons.
+
+Compare different LLM models to evaluate if simpler/cheaper models can replace full models:
+
+```bash
+# Run tests with model comparison enabled (only runs when flag is set)
+uv run pytest tests/llm/test_claim_extractor.py --compare-models
+
+# View results in frontend eval viewer at /evals
+```
+
 ### Code Quality
 
 ```bash

@@ -57,7 +57,7 @@ requires-dist = [
     { name = "langchain-openai", specifier = ">=1.0.0" },
     { name = "langchain-postgres", specifier = ">=0.0.12" },
     { name = "langchain-text-splitters", specifier = ">=1.0.0" },
-    { name = "langfuse", specifier = ">=3.3.4" },
+    { name = "langfuse", specifier = ">=3.10.0" },
     { name = "langgraph", specifier = ">=1.0.0" },
     { name = "langgraph-checkpoint-postgres", specifier = ">=2.0.23" },
     { name = "markitdown", extras = ["all"], specifier = ">=0.1.3" },
@@ -965,7 +965,7 @@ wheels = [
 
 [[package]]
 name = "langfuse"
-version = "3.8.1"
+version = "3.10.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "backoff" },
@@ -979,9 +979,9 @@ dependencies = [
     { name = "requests" },
     { name = "wrapt" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/ca/0b/81f9c6a982f79c112b7f10bfd6f3a4871e6fa3e4fe8d078b6112abfd3c08/langfuse-3.8.1.tar.gz", hash = "sha256:2464ae3f8386d80e1252a0e7406e3be4121e792a74f1b1c21d9950f658e5168d", size = 197401, upload-time = "2025-10-22T13:35:52.572Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/31/97/bacdac633511a1c9895d9e3b1720c3d008a0f5d7d5c0e058d8cf79040773/langfuse-3.10.0.tar.gz", hash = "sha256:7a9254103da50cabcf46a7e7ae9d2cf1f8267f09b6036abdb4a9c6f2f3d15104", size = 220516, upload-time = "2025-11-14T12:15:56.839Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/b2/f9/538af0fc4219eb2484ba319483bce3383146f7a0923d5f39e464ad9a504b/langfuse-3.8.1-py3-none-any.whl", hash = "sha256:5b94b66ec0b0de388a8ea1f078b32c1666b5825b36eab863a21fdee78c53b3bb", size = 364580, upload-time = "2025-10-22T13:35:50.597Z" },
+    { url = "https://files.pythonhosted.org/packages/86/05/343e8fa3e5d48035422e1385105aeb986130d3de3264ec732c890dab2d16/langfuse-3.10.0-py3-none-any.whl", hash = "sha256:c7c10607c6fe560990d0973566afd3c5513f7ff97cc31691af72711ad5441d8c", size = 390745, upload-time = "2025-11-14T12:15:54.912Z" },
 ]
 
 [[package]]

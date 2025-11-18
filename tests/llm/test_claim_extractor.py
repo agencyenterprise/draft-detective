@@ -67,7 +67,9 @@ def _build_cases() -> list[AgentTestCase]:
 @pytest.mark.asyncio
 @pytest.mark.parametrize("case", _build_cases(), ids=lambda case: case.name)
 async def test_claim_extractor_agent_cases(case: AgentTestCase):
-    await case.run()
-    eval_result = await case.compare_results()
+    """Test claim extractor agent with automatic mode detection.
 
+    Supports both normal mode and model comparison mode via pytest flags.
+    """
+    eval_result = await case.run_and_evaluate()
     assert eval_result.passed, f"{case.name}: {eval_result.rationale}"

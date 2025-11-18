@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import uuid
 from typing import Any, Dict, List, Optional, Protocol, Set, Type, TypeVar
 
@@ -16,7 +17,9 @@ from lib.config.langfuse import langfuse_handler
 from lib.models.agent import AgentProtocol
 from lib.models.field_comparator import FieldComparator
 from lib.models.comparison_models import FieldComparison
+from lib.config.llm_models import LLMModel
 
+logger = logging.getLogger(__name__)
 
 TResponse = TypeVar("TResponse", bound=BaseModel)
 
@@ -86,6 +89,12 @@ class AgentTestCase(BaseModel):
 
     # Langfuse session information for this test run
     session_id: Optional[str] = None
+
+    # Model comparison results (populated when running with model comparison)
+    model_comparison_results: Optional[Dict[str, Any]] = Field(
+        default=None,
+        description="Results from running the test with different models",
+    )
 
     @classmethod
     def set_shared_session_id(cls, session_id: str):
@@ -342,3 +351,65 @@ RECEIVED JSON (selected fields):
         self._eval_result = eval_result
 
         return eval_result
+
+    async def run_with_model_comparison(
+        self, comparison_models: List[LLMModel]
+    ) -> Dict[str, EvaluationResult]:
+        """Run the test case with multiple models and compare results.
+
+        Args:
+            comparison_models: List of models to test (including baseline)
+
+        Returns:
+            Dictionary mapping model names to their evaluation results
+        """
+        from lib.services.model_comparison_runner import ModelComparisonRunner
+
+        return await ModelComparisonRunner.run_with_model_comparison(
+            self, comparison_models
+        )
+
+    async def run_and_evaluate(self) -> EvaluationResult:
+        """Run the test case and evaluate results with automatic mode detection.
+
+        This method automatically handles both normal mode and model comparison mode
+        based on pytest configuration flags. Use this in test functions to avoid
+        boilerplate code for mode detection.
+
+        In normal mode:
+            - Runs the agent with default configuration
+            - Evaluates against expected output
+            - Returns single EvaluationResult
+
+        In model comparison mode (--compare-models flag):
+            - Runs the agent with multiple models
+            - Compares results across models
+            - Returns baseline model's EvaluationResult for pass/fail
+            - Stores comparison data in model_comparison_results
+
+        Returns:
+            EvaluationResult with passed status and rationale
+
+        Example:
+            ```python
+            @pytest.mark.asyncio
+            async def test_my_agent(case: AgentTestCase):
+                result = await case.run_and_evaluate()
+                assert result.passed, result.rationale
+            ```
+        """
+        try:
+            from tests.conftest import is_model_comparison_mode, get_comparison_models
+        except ImportError:
+            is_model_comparison_mode = lambda: False
+            get_comparison_models = lambda: []
+
+        if is_model_comparison_mode():
+            comparison_models = get_comparison_models()
+            results = await self.run_with_model_comparison(comparison_models)
+
+            baseline_model = str(comparison_models[0])
+            return results[baseline_model]
+        else:
+            await self.run()
+            return await self.compare_results()

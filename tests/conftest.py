@@ -36,6 +36,9 @@ _agent_test_case_data = {}
 # Environment variable key for sharing session_id across workers
 _SESSION_ID_ENV_VAR = "PYTEST_LANGFUSE_SESSION_ID"
 
+# Model comparison mode flag
+_MODEL_COMPARISON_MODE = False
+
 
 def pytest_addoption(parser):
     """Add CLI options for test diagnostics."""
@@ -45,6 +48,18 @@ def pytest_addoption(parser):
         default=False,
         help="Print detailed per-field agent comparison results after each test",
     )
+    parser.addoption(
+        "--compare-models",
+        action="store_true",
+        default=False,
+        help="Enable model comparison mode to test multiple models on each test case",
+    )
+    parser.addoption(
+        "--comparison-models",
+        action="store",
+        default=None,
+        help="Comma-separated list of models to compare (e.g., 'gpt-5,gpt-5-mini,gpt-4.1')",
+    )
 
 
 def pytest_configure(config):
@@ -53,7 +68,7 @@ def pytest_configure(config):
     For pytest-xdist parallel execution, the controller process generates
     the session_id and shares it with workers via environment variable.
     """
-    global _PRINT_AGENT_FIELDS
+    global _PRINT_AGENT_FIELDS, _MODEL_COMPARISON_MODE
 
     worker_id = os.environ.get("PYTEST_XDIST_WORKER")
 
@@ -70,6 +85,11 @@ def pytest_configure(config):
     # Enable printing via CLI flag or environment variable
     _PRINT_AGENT_FIELDS = bool(
         config.getoption("print_agent_fields") or os.getenv("AGENT_TEST_PRINT_FIELDS")
+    )
+
+    # Enable model comparison mode if requested
+    _MODEL_COMPARISON_MODE = bool(
+        config.getoption("compare_models") or os.getenv("MODEL_COMPARISON_MODE")
     )
 
 
@@ -151,37 +171,45 @@ def pytest_runtest_makereport(item, call):
                 pass
 
             # Serialize all data for xdist compatibility
-            report.agent_test_case_data = serialize_for_xdist(
-                {
-                    "name": case.name,
-                    "agent": {
-                        "name": case.agent.name,
-                    },
-                    "prompt_kwargs": {
-                        # Truncate large fields for readability
-                        k: (
-                            v[:5000] + "... [Truncated]"
-                            if isinstance(v, str) and len(v) > 5000
-                            else v
-                        )
-                        for k, v in case.prompt_kwargs.items()
-                    },
-                    "expected_output": case.expected_dict,
-                    "actual_outputs": [
-                        result.model_dump() for result in (case.results or [])
-                    ],
-                    "evaluation_config": {
-                        "strict_fields": serialize_for_xdist(case.strict_fields),
-                        "llm_fields": serialize_for_xdist(case.llm_fields),
-                        "evaluator_model": case.evaluator_model,
-                        "run_count": case.run_count,
-                    },
-                    "evaluation_result": eval_result,
-                    "strict_summary": strict_summary,
-                    "llm_summary": llm_summary,
-                    "session_id": session_id,
-                }
-            )
+            agent_test_case_data = {
+                "name": case.name,
+                "agent": {
+                    "name": case.agent.name,
+                },
+                "prompt_kwargs": {
+                    # Truncate large fields for readability
+                    k: (
+                        v[:5000] + "... [Truncated]"
+                        if isinstance(v, str) and len(v) > 5000
+                        else v
+                    )
+                    for k, v in case.prompt_kwargs.items()
+                },
+                "expected_output": case.expected_dict,
+                "actual_outputs": [
+                    result.model_dump() for result in (case.results or [])
+                ],
+                "evaluation_config": {
+                    "strict_fields": serialize_for_xdist(case.strict_fields),
+                    "llm_fields": serialize_for_xdist(case.llm_fields),
+                    "evaluator_model": case.evaluator_model,
+                    "run_count": case.run_count,
+                },
+                "evaluation_result": eval_result,
+                "strict_summary": strict_summary,
+                "llm_summary": llm_summary,
+                "session_id": session_id,
+            }
+
+            if (
+                hasattr(case, "model_comparison_results")
+                and case.model_comparison_results
+            ):
+                agent_test_case_data["model_comparison_results"] = (
+                    case.model_comparison_results
+                )
+
+            report.agent_test_case_data = serialize_for_xdist(agent_test_case_data)
 
 
 @pytest.hookimpl()
@@ -267,11 +295,27 @@ def pytest_runtest_logreport(report):
 @pytest.hookimpl()
 def pytest_json_modifyreport(json_report):
     """Modify the JSON report to include AgentTestCase metadata."""
-    # Add agent_test_case data to each test
+    model_comparison_data = {}
+
     for test in json_report.get("tests", []):
         nodeid = test.get("nodeid")
         if nodeid in _agent_test_case_data:
-            test["agent_test_case"] = _agent_test_case_data[nodeid]
+            test_data = _agent_test_case_data[nodeid]
+            test["agent_test_case"] = test_data
+
+            if "model_comparison_results" in test_data:
+                agent_name = test_data["agent"]["name"]
+                test_name = test_data["name"]
+
+                if agent_name not in model_comparison_data:
+                    model_comparison_data[agent_name] = {}
+
+                model_comparison_data[agent_name][test_name] = test_data[
+                    "model_comparison_results"
+                ]
+
+    if model_comparison_data:
+        json_report["model_comparison"] = model_comparison_data
 
 
 def data_path(path: str) -> str:
@@ -346,3 +390,16 @@ def extract_paragraph_from_chunk(full_document: str, chunk: str) -> str:
             return paragraph
 
     raise ValueError(f"Chunk not found in full document: {chunk}")
+
+
+def is_model_comparison_mode() -> bool:
+    """Check if model comparison mode is enabled."""
+    return _MODEL_COMPARISON_MODE
+
+
+def get_comparison_models():
+    """Get the list of models to compare in model comparison mode."""
+    from lib.config.llm_models import gpt_5_model, gpt_5_mini_model, gpt_4_1_model
+
+    # Default models to compare
+    return [gpt_5_model, gpt_5_mini_model, gpt_4_1_model]
