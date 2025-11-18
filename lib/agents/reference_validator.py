@@ -18,7 +18,7 @@ from lib.services.openai import (
     wait_for_response,
     ensure_structured_output_response,
 )
-from lib.config.llm_models import gpt_5_model
+from lib.config.llm_models import gpt_5_mini_model, gpt_5_model
 from lib.models.agent import AgentProtocol
 from lib.agents.reference_extractor import (
     BibliographyItem,
@@ -94,15 +94,15 @@ by ensuring there is online presence from a legitimate source from each one.
 
 Guidelines for checking the reference fields:
 - For publisher, abbreviations should be considered equivalent to the full name.
-- For author lists, first and last names should be valid if they are both present. If last name, and first initial are present then those should be valid. Abbreviating remaining authors as "et al." is valid.
-
+- For author lists, first and last names should both be validated if they are present within the reference. If last name and first initial are present then those strings should be validated. Abbreviating remaining authors as "et al." is valid.
+- For title, upper and lower case lettering is unimportant to validation (e.g., "The Title" and "the title" are considered the same title).
+- For determining the title of online articles linked to PDF documents, use the title within the PDF document if available. If not, use the title of the online article.
 ---
 
 # NOTE:
 When generating responses, remove or replace all internal citation tokens such as turn1search0, turn2search3, or similar. Do not display raw reference IDs or metadata markers in the final text. Return clean, human-readable output only.
 
 Return one JSON object matching the schema exactly.
-
 
 ## The list of references to validate
 {references}
@@ -128,7 +128,7 @@ class ReferenceValidatorAgent(AgentProtocol):
         input = [{"role": "user", "content": prompt.text}]
 
         response = await self.client.responses.parse(
-            model=gpt_5_model.name,
+            model=gpt_5_mini_model.name,
             tools=[{"type": "web_search"}],
             max_tool_calls=20,
             reasoning={
@@ -172,6 +172,17 @@ if __name__ == "__main__":
                 "Xueguang Li, Yizhe Zhang, Xuezhe Ma, Lemao Liu, Xiang Chen, Ming Zhou, Tie-Yan Liu, and Jianfeng Gao. Compositional generalization through meta sequence-to-sequence learning. In EMNLP, 2021.",
                 "Laura Ruis, Jacob Andreas, Marco Baroni, Diane Bouchacourt, and Brenden M. Lake. A benchmark for systematic generalization in grounded language understanding. In NeurIPS, 2020.",
                 'Herzig, Jonathan, Peter Shaw, Ming-Wei Chang, Kelvin Guu, Panupong Pasupat, and Yuan Zhang. "Unlocking compositional generalization in pre-trained models using intermediate representations." arXiv preprint arXiv:2104.07478 (2021).',
+            ],
+        },
+        {
+            "references": [
+                'Bistline, John, Geoffrey Blanford, Maxwell Brown, Dallas Burtraw, Maya Domeshek, Jamil Farbes, Allen Fawcett, Anne Hamilton, Jesse Jenkins, Ryan Jones, Ben King, Hannah Kolus, John Larsen, Amanda Levin, Megan Mahajan, Cara Marcy, Erin Mayfield, James McFarland, Haewon McJeon, Robbie Orvis, Neha Patankar, Kevin Rennert, Christopher Roney, Nicholas Roy, Greg Schivley, Daniel Steinberg, Nadejda Victor, Shelley Wenzel, John Weyant, Ryan Wiser, Mei Yuan, and Alicia Zhao, "Emissions and energy impacts of the Inflation Reduction Act," Science, Vol. 380, No. 6652, 1324 – 1327, 29 June 2023. https://doi.org/10.1126/science.adg3781',
+                'Davenport, Carly, Brian Singer, Neil Mehta, Brian Lee, and John Mackay, "Generational growth: AI, data centers and the coming US power demand surge," Goldman Sachs Equity Research, April 28, 2024: https://www.goldmansachs.com/pdfs/insights/pages/generational-growth-ai-data-centers-and-the-coming-us-power-surge/report.pdf',
+                'North American Electric Reliability Corporation, "2024 Long-Term Reliability Assessment," December 2024: https://www.nerc.com/pa/RAPA/ra/Reliability%20Assessments%20DL/NERC_Long%20Term%20Reliability%20Assessment_2024.pdf',
+                'Patel, Dylan, Daniel Nishball, and Jeremie Elliahou Ontiveros, "AI Data center Energy Dilemma - Race for AI Data center Space," SemiAnalysis, March 13, 2024. As of September 18, 2024: https://www.semianalysis.com/p/ai-data center-energy-dilemma-race',
+                'Sevilla, Jaime, Tamay Besiroglu, Ben Cottier, Josh You, Edu Roldán, Pablo Villalobos, and Ege Erdil, "Can AI Scaling Continue Through 2030?" Epoch AI, August 20, 2024: https://epoch.ai/blog/can-ai-scaling-continue-through-2030',
+                'Srivathsan, Bhargs, Haripreet Batra, Raman Sharma, Rishi Gupta, and Surbhi Choudhary, "AI power: Expanding data center capacity to meet growing demand," McKinsey & Company, October 2024: https://www.mckinsey.com/industries/technology-media-and-telecommunications/our-insights/ai-power-expanding-data-center-capacity-to-meet-growing-demand#/',
+                'U.S. Department of Energy: Secretary of Energy Advisory Board, "Recommendations on Powering Artificial Intelligence and Data Center Infrastructure," July 30, 2024: https://www.energy.gov/sites/default/files/2024-08/Powering%20AI%20and%20Data%20Center%20Infrastructure%20Recommendations%20July%202024.pdf',
             ],
         },
     ]
