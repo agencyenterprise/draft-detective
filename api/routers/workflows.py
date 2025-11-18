@@ -99,16 +99,14 @@ async def get_page_image(
 
     images_dir = os.path.join(config.FILE_UPLOADS_MOUNT_PATH, "docling_images", file_id)
 
-    # We need to look for page_N.* file (e.g., page_1.png, page_2.png)
-    if os.path.exists(images_dir):
-        for file in os.listdir(images_dir):
-            if file.startswith(f"page_{page_num}."):
-                image_file_path = os.path.join(images_dir, file)
-                media_type = mimetypes.guess_type(image_file_path)[0]
-                return FileResponse(
-                    path=image_file_path,
-                    media_type=media_type,
-                    headers={"Cache-Control": "public, max-age=3600"},
-                )
+    # Page images are always PNG (other artifacts may vary)
+    image_file_path = os.path.join(images_dir, f"page_{page_num}.png")
+
+    if os.path.exists(image_file_path):
+        return FileResponse(
+            path=image_file_path,
+            media_type="image/png",
+            headers={"Cache-Control": "public, max-age=3600"},
+        )
 
     raise HTTPException(status_code=404, detail=f"Page {page_num} not found")
