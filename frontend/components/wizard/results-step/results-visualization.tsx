@@ -3,6 +3,7 @@
 import { analysisService } from '@/lib/analysis-service';
 import { downloadFile, generateEvalFilename } from '@/lib/file-download';
 import { ChunkReevaluationResponse, ClaimSubstantiatorStateSummary } from '@/lib/generated-api';
+import { DocRenderMode } from '@/lib/constants';
 import { FileText } from 'lucide-react';
 import * as React from 'react';
 import { Button } from '../../ui/button';
@@ -18,15 +19,21 @@ interface ResultsVisualizationProps {
   results: ClaimSubstantiatorStateSummary | undefined;
   onChunkReevaluation: (response: ChunkReevaluationResponse) => void;
   isProcessing?: boolean;
+  viewMode: DocRenderMode;
+  onViewModeChange: (mode: DocRenderMode) => void;
+  activeTab: TabType;
+  onTabChange: (tab: TabType) => void;
 }
 
 export function ResultsVisualization({
   results,
   onChunkReevaluation,
   isProcessing = false,
+  viewMode,
+  onViewModeChange,
+  activeTab,
+  onTabChange,
 }: ResultsVisualizationProps) {
-  const [activeTab, setActiveTab] = React.useState<TabType>('document-explorer');
-
   const calculations = useResultsCalculations(results);
 
   const handleSaveAsEvalTest = async () => {
@@ -88,6 +95,7 @@ export function ResultsVisualization({
             results={results}
             onChunkReevaluation={onChunkReevaluation}
             isProcessing={isProcessing}
+            viewMode={viewMode}
           />
         );
     }
@@ -95,7 +103,7 @@ export function ResultsVisualization({
 
   return (
     <div className="space-y-6">
-      <TabNavigation activeTab={activeTab} onTabChange={setActiveTab} />
+      <TabNavigation activeTab={activeTab} onTabChange={onTabChange} />
 
       <Card>
         <CardContent className={activeTab === 'document-explorer' ? 'p-3 h-[calc(100vh-16rem)]' : 'p-3'}>

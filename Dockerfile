@@ -28,6 +28,13 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONPATH=/app \
     PATH="/app/.venv/bin:$PATH"
 
+# Install system dependencies for document conversion
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libreoffice-writer-nogui \
+    libreoffice-java-common \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
 # Install uv in runtime stage
 RUN pip install --no-cache-dir uv
 

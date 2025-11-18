@@ -1,5 +1,6 @@
 /* tslint:disable */
 /* eslint-disable */
+export * from './BBox';
 export * from './BibliographyFieldValidation';
 export * from './BibliographyItem';
 export * from './BibliographyItemValidationInput';
@@ -7,6 +8,8 @@ export * from './BibliographyItemValidationOutput';
 export * from './ChunkEvalPackageRequest';
 export * from './ChunkReevaluationRequest';
 export * from './ChunkReevaluationResponse';
+export * from './ChunkToItemsInput';
+export * from './ChunkToItemsOutput';
 export * from './Citation';
 export * from './CitationResponseInput';
 export * from './CitationResponseOutput';
@@ -26,6 +29,8 @@ export * from './ClaimSubstantiatorStateOutput';
 export * from './ClaimSubstantiatorStateSummary';
 export * from './Claims';
 export * from './ConfidenceInRecommendation';
+export * from './DoclingPageInfo';
+export * from './DoclingRegion';
 export * from './DocumentChunkInput';
 export * from './DocumentChunkOutput';
 export * from './DocumentChunkSummary';
@@ -42,7 +47,10 @@ export * from './FeedbackResponse';
 export * from './FeedbackType';
 export * from './FieldCategory';
 export * from './FieldProblemType';
+export * from './FileDocumentInput';
 export * from './FileDocument';
+// Type alias for backward compatibility - use FileDocument for API responses
+export type { FileDocument as FileDocument } from './FileDocument';
 export * from './HTTPValidationError';
 export * from './InferenceValidationResponseWithClaimIndex';
 export * from './LiteratureReviewResponseInput';

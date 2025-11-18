@@ -62,7 +62,7 @@ export interface FileDocument {
    * @type {Array<DoclingPageInfo>}
    * @memberof FileDocument
    */
-  doclingPages?: Array<DoclingPageInfo> | null;
+  doclingPages: Array<DoclingPageInfo> | null;
 }
 
 /**
@@ -74,6 +74,7 @@ export function instanceOfFileDocument(value: object): value is FileDocument {
   if (!('fileType' in value) || value['fileType'] === undefined) return false;
   if (!('markdown' in value) || value['markdown'] === undefined) return false;
   if (!('markdownTokenCount' in value) || value['markdownTokenCount'] === undefined) return false;
+  if (!('doclingPages' in value) || value['doclingPages'] === undefined) return false;
   return true;
 }
 
@@ -92,7 +93,7 @@ export function FileDocumentFromJSONTyped(json: any, ignoreDiscriminator: boolea
     markdown: json['markdown'],
     markdownTokenCount: json['markdown_token_count'],
     doclingPages:
-      json['docling_pages'] == null ? undefined : (json['docling_pages'] as Array<any>).map(DoclingPageInfoFromJSON),
+      json['docling_pages'] == null ? null : (json['docling_pages'] as Array<any>).map(DoclingPageInfoFromJSON),
   };
 }
 
@@ -112,6 +113,6 @@ export function FileDocumentToJSONTyped(value?: FileDocument | null, ignoreDiscr
     markdown: value['markdown'],
     markdown_token_count: value['markdownTokenCount'],
     docling_pages:
-      value['doclingPages'] == null ? undefined : (value['doclingPages'] as Array<any>).map(DoclingPageInfoToJSON),
+      value['doclingPages'] == null ? null : (value['doclingPages'] as Array<any>).map(DoclingPageInfoToJSON),
   };
 }
