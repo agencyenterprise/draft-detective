@@ -7,7 +7,7 @@ import { formatModelName, calculateCostDifference, formatCostDifference } from '
 import { cn } from '@/lib/utils';
 
 interface ModelComparisonSectionProps {
-  modelComparisonResults: Record<string, ModelComparisonResult>;
+  modelComparisonResults?: Record<string, ModelComparisonResult>;
   selectedModel?: string;
   onModelSelect?: (modelName: string) => void;
 }
@@ -17,6 +17,10 @@ export function ModelComparisonSection({
   selectedModel,
   onModelSelect,
 }: ModelComparisonSectionProps) {
+  if (!modelComparisonResults) {
+    return null;
+  }
+
   const models = Object.keys(modelComparisonResults);
 
   if (models.length === 0) {

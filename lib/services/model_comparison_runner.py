@@ -31,20 +31,27 @@ class ModelComparisonRunner:
         results = {}
         model_metrics = {}
         original_agent = test_case.agent
+        baseline_eval_result = None
 
-        for model in comparison_models:
+        for idx, model in enumerate(comparison_models):
             test_agent = create_agent_with_model(original_agent, model)
             test_case.agent = test_agent
             test_case.results = None
 
             start_time = time.time()
+
             await test_case.run()
             eval_result = await test_case.compare_results()
+
+            # We need to restore baseline evaluation result for pytest reporting to keep the baseline result in the JSON report
+            if idx == 0:
+                baseline_eval_result = eval_result
+
             execution_time = time.time() - start_time
 
             usage = test_agent.get_last_usage()
             model_name = str(model)
-            
+
             metrics = calculate_metrics(
                 model_name=model_name,
                 execution_time=execution_time,
@@ -62,6 +69,9 @@ class ModelComparisonRunner:
             model_metrics[model_name] = metrics.model_dump()
 
         test_case.agent = original_agent
+
+        # To keep the baseline result in the JSON report
+        test_case._eval_result = baseline_eval_result
 
         test_case.model_comparison_results = {
             model_name: {
