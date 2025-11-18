@@ -14,6 +14,7 @@ from lib.services.openai import (
     get_openai_client,
     wait_for_response,
 )
+from lib.workflows.claim_substantiation.context import ContextSchema
 
 logger = logging.getLogger(__name__)
 
@@ -181,8 +182,8 @@ class LiteratureReviewAgent(AgentProtocol):
         "Review a document paragraph against the article bibliography and recent literature to propose citation updates"
     )
 
-    def __init__(self):
-        self.client = get_openai_client()
+    def __init__(self, context: ContextSchema):
+        self.client = get_openai_client(context)
 
     async def ainvoke(
         self,
@@ -211,12 +212,14 @@ class LiteratureReviewAgent(AgentProtocol):
         return ensure_structured_output_response(response, LiteratureReviewResponse)
 
 
-literature_review_agent = LiteratureReviewAgent()
-
 if __name__ == "__main__":
     from lib.config.logger import setup_logger
+    from lib.config.env import config
 
     setup_logger()
+
+    context = ContextSchema(openai_api_key=config.OPENAI_API_KEY, vector_store=None)
+    literature_review_agent = LiteratureReviewAgent(context)
 
     response = asyncio.run(
         literature_review_agent.ainvoke(

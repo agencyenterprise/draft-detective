@@ -5,10 +5,12 @@ import json
 import logging
 from typing import Any, Dict, List, Tuple
 
-from lib.agents.addendum_report_generator import addendum_report_generator_agent
+from langgraph.runtime import Runtime
+
+from lib.agents.addendum_report_generator import AddendumReportGeneratorAgent
+from lib.workflows.claim_substantiation.context import ContextSchema
 from lib.workflows.claim_substantiation.state import ClaimSubstantiatorState
 from lib.workflows.decorators import handle_workflow_node_errors
-
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +38,7 @@ def _get_original_claim_text(chunk: Any, claim_index: int) -> str:
 
 @handle_workflow_node_errors()
 async def generate_addendum_report(
-    state: ClaimSubstantiatorState,
+    state: ClaimSubstantiatorState, runtime: Runtime[ContextSchema]
 ) -> ClaimSubstantiatorState:
     logger.info(f"generate_addendum_report ({state.config.session_id}): starting")
 
@@ -93,37 +95,40 @@ async def generate_addendum_report(
         "records_json": json.dumps(records, default=str),
     }
 
+    addendum_report_generator_agent = AddendumReportGeneratorAgent(runtime.context)
     addendum_report = await addendum_report_generator_agent.ainvoke(prompt_kwargs)
 
     return {"addendum_report": addendum_report}
 
 
 if __name__ == "__main__":
-    import asyncio
     import argparse
-    from lib.services.file import FileDocument
-    from lib.agents.claim_extractor import Claim, ClaimResponse
-    from lib.agents.claim_categorizer import (
-        ClaimCategorizationResponseWithClaimIndex,
-        ClaimCategory,
-    )
-    from lib.agents.evidence_weighter import (
-        EvidenceWeighterResponseWithClaimIndex,
-        EvidenceWeighterRecommendedAction,
-        ReferenceAlignmentLevel,
-    )
-    from lib.agents.literature_review import QualityLevel
+    import asyncio
+
+    import nest_asyncio
+
     from lib.agents.addendum_generator import (
         Addendum,
         AddendumItem,
         AddendumSections,
         AddendumSeverity,
     )
+    from lib.agents.claim_categorizer import (
+        ClaimCategorizationResponseWithClaimIndex,
+        ClaimCategory,
+    )
+    from lib.agents.claim_extractor import Claim, ClaimResponse
+    from lib.agents.evidence_weighter import (
+        EvidenceWeighterRecommendedAction,
+        EvidenceWeighterResponseWithClaimIndex,
+        ReferenceAlignmentLevel,
+    )
+    from lib.agents.literature_review import QualityLevel
+    from lib.services.file import FileDocument
     from lib.workflows.claim_substantiation.state import (
         DocumentChunk,
         SubstantiationWorkflowConfig,
     )
-    import nest_asyncio
 
     nest_asyncio.apply()
 

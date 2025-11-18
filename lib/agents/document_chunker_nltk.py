@@ -15,6 +15,7 @@ from lib.services.llm_sentence_tokenizer import (
     llm_tokenize_paragraph,
     FRAGMENT_DETECTION_METHOD,
 )
+from lib.workflows.claim_substantiation.context import ContextSchema
 
 logger = logging.getLogger(__name__)
 
@@ -80,6 +81,7 @@ def split_into_paragraphs(text: str) -> List[str]:
 async def split_paragraph_into_sentences(
     paragraph: str,
     detection_method: Optional[DetectionMethod] = None,
+    context: ContextSchema = None,
 ) -> List[str]:
     """
     Split a paragraph into sentences using NLTK's sentence tokenizer.
@@ -180,7 +182,7 @@ async def split_paragraph_into_sentences(
                 f"score={suspicion_score}, nltk_fragments={len(cleaned_sentences)}, "
                 f"paragraph={paragraph}..."
             )
-            result = await llm_tokenize_paragraph(paragraph)
+            result = await llm_tokenize_paragraph(paragraph, context=context)
             return result
 
         return cleaned_sentences
@@ -213,7 +215,7 @@ async def split_paragraph_into_sentences(
             f"score={suspicion_score}, nltk_fragments={len(merged)}, "
             f"paragraph={paragraph}..."
         )
-        result = await llm_tokenize_paragraph(paragraph)
+        result = await llm_tokenize_paragraph(paragraph, context=context)
 
     return result
 
@@ -222,8 +224,8 @@ class DocumentChunkerAgent(AgentProtocol):
     name = "Document Chunker (NLTK)"
     description = "Chunk a document into paragraphs and each paragraph into sentence-level chunks using NLTK"
 
-    def __init__(self):
-        pass
+    def __init__(self, context: ContextSchema):
+        self.context = context
 
     async def ainvoke(
         self,
@@ -257,7 +259,9 @@ class DocumentChunkerAgent(AgentProtocol):
                 return None
 
             async with semaphore:
-                sentences = await split_paragraph_into_sentences(paragraph_text)
+                sentences = await split_paragraph_into_sentences(
+                    paragraph_text, context=self.context
+                )
 
             return Paragraph(chunks=sentences) if sentences else None
 
@@ -267,6 +271,3 @@ class DocumentChunkerAgent(AgentProtocol):
         paragraph_objects = [p for p in results if p is not None]
 
         return DocumentChunkerResponse(paragraphs=paragraph_objects)
-
-
-document_chunker_agent = DocumentChunkerAgent()

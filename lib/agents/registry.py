@@ -8,7 +8,20 @@ This eliminates hardcoded agent types throughout the system.
 import logging
 from typing import Dict, List
 
+from lib.agents.citation_detector import CitationDetectorAgent
+from lib.agents.citation_suggester import CitationSuggesterAgent
+from lib.agents.claim_extractor import ClaimExtractorAgent
+from lib.agents.claim_needs_substantiation_checker import (
+    ClaimNeedsSubstantiationCheckerAgent,
+)
+from lib.agents.claim_verifier import ClaimVerifierAgent
+from lib.agents.evidence_weighter import EvidenceWeighterAgent
+from lib.agents.literature_review import LiteratureReviewAgent
+from lib.agents.live_literature_review import LiveLiteratureReviewAgent
+from lib.agents.reference_extractor import ReferenceExtractorAgent
+from lib.agents.reference_validator import ReferenceValidatorAgent
 from lib.models.agent import AgentProtocol
+from lib.workflows.claim_substantiation.context import ContextSchema
 
 logger = logging.getLogger(__name__)
 
@@ -99,76 +112,66 @@ agent_registry = AgentRegistry()
 def initialize_default_agents():
     """Initialize the registry with default agents"""
 
-    from lib.agents.literature_review import literature_review_agent
-    from lib.agents.claim_extractor import claim_extractor_agent
-    from lib.agents.citation_detector import citation_detector_agent
-    from lib.agents.claim_needs_substantiation_checker import (
-        claim_needs_substantiation_checker_agent,
-    )
-    from lib.agents.claim_verifier import claim_verifier_agent
-    from lib.agents.citation_suggester import citation_suggester_agent
-    from lib.agents.evidence_weighter import evidence_weighter_agent
-    from lib.agents.live_literature_review import live_literature_review_agent
-    from lib.agents.reference_extractor import reference_extractor_agent
-    from lib.agents.reference_validator import reference_validator_agent
+    # context is not needed for registry initialization
+    context = ContextSchema(openai_api_key="not-needed", vector_store=None)
 
     agent_registry.register(
         agent_type="claims",
-        agent=claim_extractor_agent,
+        agent=ClaimExtractorAgent(context),
         description="Detect and extract claims from text chunks",
     )
 
     agent_registry.register(
         agent_type="citations",
-        agent=citation_detector_agent,
+        agent=CitationDetectorAgent(context),
         description="Detect and extract citations from text chunks",
     )
 
     agent_registry.register(
         agent_type="needs_substantiation",
-        agent=claim_needs_substantiation_checker_agent,
+        agent=ClaimNeedsSubstantiationCheckerAgent(context),
         description="Determine if claims need to be substantiated or not (common knowledge etc)",
     )
 
     agent_registry.register(
         agent_type="substantiation",
-        agent=claim_verifier_agent,
+        agent=ClaimVerifierAgent(context),
         description="Substantiate claims against supporting documents",
     )
 
     agent_registry.register(
         agent_type="suggest_citations",
-        agent=citation_suggester_agent,
+        agent=CitationSuggesterAgent(context),
         description="Review a chunk of text against RAND attribution guidelines to identify missing citations and recommend high-quality sources for proper attribution compliance",
     )
 
     agent_registry.register(
         agent_type="literature_review",
-        agent=literature_review_agent,
+        agent=LiteratureReviewAgent(context),
         description="Review a document paragraph against the article bibliography and recent literature to propose citation updates",
     )
 
     agent_registry.register(
         agent_type="evidence_weighter",
-        agent=evidence_weighter_agent,
+        agent=EvidenceWeighterAgent(context),
         description="Analyze and weight evidence from multiple sources to determine overall direction and strength",
     )
 
     agent_registry.register(
         agent_type="live_literature_review",
-        agent=live_literature_review_agent,
+        agent=LiveLiteratureReviewAgent(context),
         description="Review a document paragraph against the article bibliography and recent literature to propose citation updates",
     )
 
     agent_registry.register(
         agent_type="references",
-        agent=reference_extractor_agent,
+        agent=ReferenceExtractorAgent(context),
         description="Extract the list of references from a document",
     )
 
     agent_registry.register(
         agent_type="validate_references",
-        agent=reference_validator_agent,
+        agent=ReferenceValidatorAgent(context),
         description="Validate the list of references in a document by ensuring there is online presence from a legitimate source from each one.",
     )
 

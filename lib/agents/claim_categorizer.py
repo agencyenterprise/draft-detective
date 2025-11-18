@@ -31,6 +31,8 @@ from lib.agents.models import ClaimCategory
 from lib.config.llm_models import gpt_5_model
 from lib.models.agent import DEFAULT_LLM_TIMEOUT, AgentProtocol
 
+from lib.workflows.claim_substantiation.context import ContextSchema
+
 # =========================
 #  Pydantic data contracts
 # =========================
@@ -90,7 +92,7 @@ with ONE of SIX categories and to determine if it needs EXTERNAL VERIFICATION.
         - External validation is not required for methodologies that are universally accepted in the domain (e.g., stochastic gradient descent in DL and AI; bag of words in NLP; etc.)
 
 3. **Empirical / Analytical Results** -> Usually does not require external validation
-   - Results and new findings obtained from the current work. Can be results related to data and its analysis but does not include interpreting those analysis results. 
+   - Results and new findings obtained from the current work. Can be results related to data and its analysis but does not include interpreting those analysis results.
    - Typical content: measured values, error rates, or discovered patterns. Contains phrases like "improved by" "reached equilibrium in" "found a strong correlation between"
    - Examples:
        • "Accuracy improved by 12 percentage points over baseline."
@@ -109,7 +111,7 @@ with ONE of SIX categories and to determine if it needs EXTERNAL VERIFICATION.
        • "We argue that the observed pattern indicates a causal relationship."
        • "Consistent with prior models of turbulent mixing (Kolmogorov, 1941)."
        • "This presents a new way to approach the problem."
-   - Includes explanations, causal reasoning, and theoretical implications. 
+   - Includes explanations, causal reasoning, and theoretical implications.
    - Rule of Thumb for needing external validation:
         - Inferences NEVER require external validation.
 
@@ -132,24 +134,24 @@ with ONE of SIX categories and to determine if it needs EXTERNAL VERIFICATION.
 
 ### Claims that typically do not require external verification:
 
-- Common knowledge claims 
+- Common knowledge claims
     - Basic definitions and terminology
-    - General statistical trends that are widely reported and uncontroversial 
-    - Standard definitions and terminology established in the field 
-    - Basic geographic, demographic, or institutional facts readily available in reference sources 
-    - Basic historical dates and events that are undisputed 
+    - General statistical trends that are widely reported and uncontroversial
+    - Standard definitions and terminology established in the field
+    - Basic geographic, demographic, or institutional facts readily available in reference sources
+    - Basic historical dates and events that are undisputed
     - Well-established facts or general principles widely accepted in the field and appearing across multiple authoritative sources
     - Fundamental principles or theories in the domain that are universally accepted by practitioners
 - Inferences that do not require external references
     - Conjectural statements that use words like "might", "could", and "can" that cannot be verified by external sources
     - Opinions, interpretations, or evaluations
-    - Logical deductions or inferences that follow clearly from stated premises 
-    - Inferential continuity: claims that clearly and logically follow from earlier substantiated statements in the same paragraph or nearby context 
-    - Analytic or hypothetical reasoning: "If X, then Y" constructions that build on established evidence without asserting new factual data 
-- Hypotheticals 
-    - Scenario illustration: hypothetical examples or thought experiments used to illustrate a risk, mechanism, or consequence already supported by cited claims 
-- Structural 
-    - Statements describing the structure or scope of the work itself that report on the authors' own methodology, goals, or organization rather than asserting an external fact 
+    - Logical deductions or inferences that follow clearly from stated premises
+    - Inferential continuity: claims that clearly and logically follow from earlier substantiated statements in the same paragraph or nearby context
+    - Analytic or hypothetical reasoning: "If X, then Y" constructions that build on established evidence without asserting new factual data
+- Hypotheticals
+    - Scenario illustration: hypothetical examples or thought experiments used to illustrate a risk, mechanism, or consequence already supported by cited claims
+- Structural
+    - Statements describing the structure or scope of the work itself that report on the authors' own methodology, goals, or organization rather than asserting an external fact
 
 ## Claims that typically require external verification:
 
@@ -196,11 +198,12 @@ class ClaimCategorizerAgent(AgentProtocol):
     name: str = "Claim Categorizer"
     description: str = "Categorize a claim into one of the six categories"
 
-    def __init__(self):
+    def __init__(self, context: ContextSchema):
         self.llm = init_chat_model(
             gpt_5_model.model_name,
             temperature=0.2,
             timeout=DEFAULT_LLM_TIMEOUT,
+            api_key=context.openai_api_key,
         ).with_structured_output(ClaimCategorizationResponse)
 
     async def ainvoke(
@@ -210,10 +213,9 @@ class ClaimCategorizerAgent(AgentProtocol):
         return await self.llm.ainvoke(messages, config=config)
 
 
-claim_categorizer_agent = ClaimCategorizerAgent()
-
 if __name__ == "__main__":
     import asyncio
+    from lib.config.env import config
 
     import nest_asyncio
 
@@ -303,6 +305,9 @@ if __name__ == "__main__":
             ),
         ]
     ]
+
+    context = ContextSchema(openai_api_key=config.OPENAI_API_KEY, vector_store=None)
+    claim_categorizer_agent = ClaimCategorizerAgent(context)
 
     # Run tests and compare results
     for i, test_case in enumerate(test_cases, 1):

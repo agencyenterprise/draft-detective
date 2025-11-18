@@ -7,6 +7,8 @@ from lib.agents.models import ValidatedDocument
 from lib.config.llm_models import gpt_4_1_model
 from lib.models.agent import DEFAULT_LLM_TIMEOUT, AgentProtocol
 
+from lib.workflows.claim_substantiation.context import ContextSchema
+
 
 class Paragraph(BaseModel):
     chunks: list[str] = Field(
@@ -70,11 +72,12 @@ class DocumentChunkerAgent(AgentProtocol):
     name = "Document Chunker"
     description = "Chunk a document into paragraphs and each paragraph into reasonable sentence-level chunks"
 
-    def __init__(self):
+    def __init__(self, context: ContextSchema):
         self.llm = init_chat_model(
             gpt_4_1_model.model_name,
             temperature=0.2,
             timeout=DEFAULT_LLM_TIMEOUT,
+            api_key=context.openai_api_key,
         ).with_structured_output(DocumentChunkerResponse)
 
     async def ainvoke(
@@ -90,6 +93,3 @@ class DocumentChunkerAgent(AgentProtocol):
         )
         messages = template.invoke(prompt_kwargs)
         return await self.llm.ainvoke(messages, config=config)
-
-
-document_chunker_agent = DocumentChunkerAgent()

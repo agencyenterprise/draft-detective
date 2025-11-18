@@ -2,14 +2,11 @@ import logging
 import os
 from typing import List, Optional
 
-from langchain_core.vectorstores import VectorStoreRetriever
 from langchain_openai import OpenAIEmbeddings
 from langchain_postgres import PGVector
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import create_async_engine
-
-from lib.config.env import config
 
 logger = logging.getLogger(__name__)
 
@@ -50,9 +47,11 @@ def get_collection_id(file_hash: str) -> str:
 class VectorStoreService:
     """Service for vector storage and retrieval operations."""
 
-    def __init__(self, connection_string: str):
+    def __init__(self, connection_string: str, openai_api_key: str):
         """Initialize vector store with database connection."""
-        self.embeddings = OpenAIEmbeddings(model=EMBEDDING_MODEL)
+        self.embeddings = OpenAIEmbeddings(
+            model=EMBEDDING_MODEL, api_key=openai_api_key
+        )
         self.chunker = RecursiveCharacterTextSplitter(
             chunk_size=RAG_CHUNK_SIZE,
             chunk_overlap=RAG_CHUNK_OVERLAP,
@@ -165,14 +164,3 @@ class VectorStoreService:
             raise Exception(
                 f"Retrieval failed for query '{query}' in collection {collection_id}"
             ) from e
-
-
-_vector_store_service: Optional[VectorStoreService] = None
-
-
-def get_vector_store_service() -> VectorStoreService:
-    """Get or create singleton vector store service."""
-    global _vector_store_service
-    if _vector_store_service is None:
-        _vector_store_service = VectorStoreService(config.DATABASE_URL)
-    return _vector_store_service

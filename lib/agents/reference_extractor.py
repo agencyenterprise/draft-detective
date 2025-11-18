@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 
 from lib.config.llm_models import gpt_5_mini_model
 from lib.models.agent import DEFAULT_LLM_TIMEOUT, AgentProtocol
+from lib.workflows.claim_substantiation.context import ContextSchema
 
 
 class BibliographyItem(BaseModel):
@@ -55,11 +56,12 @@ class ReferenceExtractorAgent(AgentProtocol):
     name = "Reference Extractor"
     description = "Extract bibliographic items from a document"
 
-    def __init__(self):
+    def __init__(self, context: ContextSchema):
         self.llm = init_chat_model(
             gpt_5_mini_model.model_name,
             temperature=0.0,
             timeout=DEFAULT_LLM_TIMEOUT,
+            api_key=context.openai_api_key,
         ).with_structured_output(ReferenceExtractorResponse)
 
     async def ainvoke(
@@ -69,6 +71,3 @@ class ReferenceExtractorAgent(AgentProtocol):
     ) -> ReferenceExtractorResponse:
         messages = _reference_extractor_prompt.format_messages(**prompt_kwargs)
         return await self.llm.ainvoke(messages, config=config)
-
-
-reference_extractor_agent = ReferenceExtractorAgent()

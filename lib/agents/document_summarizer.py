@@ -3,8 +3,10 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables.config import RunnableConfig
 from pydantic import BaseModel, Field
 
+from lib.config.env import config
 from lib.config.llm_models import gpt_5_mini_model
 from lib.models.agent import DEFAULT_LLM_TIMEOUT, AgentProtocol
+from lib.workflows.claim_substantiation.context import ContextSchema
 
 
 class DocumentSummary(BaseModel):
@@ -93,11 +95,12 @@ class DocumentSummarizerAgent(AgentProtocol):
     name = "Document Summarizer"
     description = "Read a document and produce a ~1000-word argument-focused miniature version plus basic metadata."
 
-    def __init__(self):
+    def __init__(self, context: ContextSchema):
         self.llm = init_chat_model(
             gpt_5_mini_model.model_name,
             temperature=0.5,
             timeout=DEFAULT_LLM_TIMEOUT,
+            api_key=context.openai_api_key,
         ).with_structured_output(DocumentSummarizerResponse)
 
     async def ainvoke(
@@ -107,9 +110,6 @@ class DocumentSummarizerAgent(AgentProtocol):
     ) -> DocumentSummarizerResponse:
         messages = _document_summarizer_agent_prompt.format_messages(**prompt_kwargs)
         return await self.llm.ainvoke(messages, config=config)
-
-
-document_summarizer_agent = DocumentSummarizerAgent()
 
 
 # Test script - can be run directly or imported
@@ -146,6 +146,9 @@ if __name__ == "__main__":
         print("-" * 80)
 
         # Run the agent
+        document_summarizer_agent = DocumentSummarizerAgent(
+            ContextSchema(openai_api_key=config.OPENAI_API_KEY, vector_store=None)
+        )
         response = await document_summarizer_agent.ainvoke(
             {"document": markdown_content}
         )

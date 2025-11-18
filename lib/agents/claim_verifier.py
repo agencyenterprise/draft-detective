@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field
 
 from lib.config.llm_models import gpt_5_model
 from lib.models.agent import DEFAULT_LLM_TIMEOUT, AgentProtocol
+from lib.workflows.claim_substantiation.context import ContextSchema
 
 
 class EvidenceAlignmentLevel(StrEnum):
@@ -122,11 +123,12 @@ class ClaimVerifierAgent(AgentProtocol):
     name = "Claim Verifier"
     description = "Substantiate a claim based on a supporting document"
 
-    def __init__(self):
+    def __init__(self, context: ContextSchema):
         self.llm = init_chat_model(
             gpt_5_model.model_name,
             temperature=0.2,
             timeout=DEFAULT_LLM_TIMEOUT,
+            api_key=context.openai_api_key,
         ).with_structured_output(ClaimSubstantiationResult)
 
     async def ainvoke(
@@ -136,6 +138,3 @@ class ClaimVerifierAgent(AgentProtocol):
     ) -> ClaimSubstantiationResult:
         messages = _claim_verifier_prompt.format_messages(**prompt_kwargs)
         return await self.llm.ainvoke(messages, config=config)
-
-
-claim_verifier_agent = ClaimVerifierAgent()

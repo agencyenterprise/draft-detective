@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 
 from lib.config.llm_models import gpt_5_model
 from lib.models.agent import DEFAULT_LLM_TIMEOUT, AgentProtocol
+from lib.workflows.claim_substantiation.context import ContextSchema
 
 
 class ToulminClaim(BaseModel):
@@ -124,11 +125,12 @@ class ToulminClaimExtractorAgent(AgentProtocol):
     name = "Claim Extractor (Toulmin)"
     description = "Extract claims in a chunk of text and extract Toulmin elements: data/grounds, warrants (stated or implied), qualifiers, rebuttals, and backing."
 
-    def __init__(self):
+    def __init__(self, context: ContextSchema):
         self.llm = init_chat_model(
             gpt_5_model.model_name,
             temperature=0.2,
             timeout=DEFAULT_LLM_TIMEOUT,
+            api_key=context.openai_api_key,
         ).with_structured_output(ToulminClaimResponse)
 
     async def ainvoke(
@@ -138,6 +140,3 @@ class ToulminClaimExtractorAgent(AgentProtocol):
     ) -> ToulminClaimResponse:
         messages = _toulmin_claim_extractor_prompt.format_messages(**prompt_kwargs)
         return await self.llm.ainvoke(messages, config=config)
-
-
-toulmin_claim_extractor_agent = ToulminClaimExtractorAgent()

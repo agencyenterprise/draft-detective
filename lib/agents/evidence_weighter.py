@@ -8,6 +8,7 @@ from lib.agents.live_literature_review import ClaimReferenceFactors, QualityLeve
 from lib.config.llm_models import gpt_5_model
 from lib.models.agent import AgentProtocol
 from lib.services.openai import ensure_structured_output_response, get_openai_client
+from lib.workflows.claim_substantiation.context import ContextSchema
 
 
 # applies to the claim
@@ -159,8 +160,8 @@ class EvidenceWeighterAgent(AgentProtocol):
         "Analyze and weight evidence from multiple sources to determine overall direction and strength"
     )
 
-    def __init__(self):
-        self.client = get_openai_client()
+    def __init__(self, context: ContextSchema):
+        self.client = get_openai_client(context)
 
     async def ainvoke(
         self,
@@ -183,6 +184,3 @@ class EvidenceWeighterAgent(AgentProtocol):
         )
 
         return ensure_structured_output_response(response, EvidenceWeighterResponse)
-
-
-evidence_weighter_agent = EvidenceWeighterAgent()

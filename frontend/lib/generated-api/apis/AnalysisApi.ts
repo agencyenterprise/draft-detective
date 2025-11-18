@@ -49,6 +49,7 @@ export interface StartAnalysisApiStartAnalysisPostRequest {
   documentPublicationDate?: string | null;
   agentsToRun?: string | null;
   sessionId?: string | null;
+  openaiApiKey?: string | null;
 }
 
 /**
@@ -212,6 +213,10 @@ export class AnalysisApi extends runtime.BaseAPI {
 
     if (requestParameters['sessionId'] != null) {
       formParams.append('session_id', requestParameters['sessionId'] as any);
+    }
+
+    if (requestParameters['openaiApiKey'] != null) {
+      formParams.append('openai_api_key', requestParameters['openaiApiKey'] as any);
     }
 
     let urlPath = `/api/start-analysis`;

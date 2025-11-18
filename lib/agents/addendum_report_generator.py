@@ -1,13 +1,15 @@
 from __future__ import annotations
 
 from enum import Enum
+
 from langchain.chat_models import init_chat_model
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableConfig
+from pydantic import BaseModel, Field
 
 from lib.config.llm_models import gpt_5_model
 from lib.models.agent import DEFAULT_LLM_TIMEOUT, AgentProtocol
-from pydantic import BaseModel, Field
+from lib.workflows.claim_substantiation.context import ContextSchema
 
 
 class UpdateType(str, Enum):
@@ -50,7 +52,7 @@ Your report must:
 ---
 
 # How to Select the Most Important Updates
-Choose only the updates that matter most for the main argument of the report. Use the document summary for guidance.  
+Choose only the updates that matter most for the main argument of the report. Use the document summary for guidance.
 Rules:
 - Include only the claims that meaningfully shift the report’s reasoning or conclusions.
 - Keep the total number of references under 10.
@@ -122,7 +124,7 @@ Format references as numbered list items with inline markdown links:
 If a URL is available in the input data, always include it as a markdown link. The link text can be "Link", "DOI", or the URL itself.
 
 # Additional Requirements
-1. Use simple language and clear causal phrasing 
+1. Use simple language and clear causal phrasing
 2. Keep each update to **1-3 sentences**.
 3. **Use inline markdown links for citations within the text**. When mentioning a reference, format it as `[Author(s) (Year)](URL)` or `[Ref N](URL)` where N is the reference number. Always include the URL if it's available in the input data.
 4. In the References section, format each reference with an inline markdown link at the end: `[Link](URL)` or `[DOI](URL)`.
@@ -202,9 +204,12 @@ class AddendumReportGeneratorAgent(AgentProtocol):
         "Aggregate live reports and produce a markdown formatted addendum report"
     )
 
-    def __init__(self):
+    def __init__(self, context: ContextSchema):
         self.llm = init_chat_model(
-            gpt_5_model.model_name, temperature=0.2, timeout=DEFAULT_LLM_TIMEOUT
+            gpt_5_model.model_name,
+            temperature=0.2,
+            timeout=DEFAULT_LLM_TIMEOUT,
+            api_key=context.openai_api_key,
         ).with_structured_output(ReportOutput)
 
     async def ainvoke(
@@ -212,6 +217,3 @@ class AddendumReportGeneratorAgent(AgentProtocol):
     ) -> ReportOutput:
         messages = _addendum_prompt.format_messages(**prompt_kwargs)
         return await self.llm.ainvoke(messages, config=config)
-
-
-addendum_report_generator_agent = AddendumReportGeneratorAgent()

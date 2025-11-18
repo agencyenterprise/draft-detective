@@ -16,6 +16,7 @@ import { Progress } from '../ui/progress';
 import { RadioGroup, RadioGroupItemWithDescription } from '../ui/radio-group-with-description';
 import { AnalysisConfig } from '../wizard/types';
 import { UploadSection } from './upload-section';
+import { useLocalStorage } from '@/lib/hooks/use-local-storage';
 
 export function AnalysisForm() {
   const router = useRouter();
@@ -23,6 +24,8 @@ export function AnalysisForm() {
   const [supportingDocuments, setSupportingDocuments] = React.useState<File[]>([]);
   const [uploadProgress, setUploadProgress] = React.useState(0);
   const [processingStage, setProcessingStage] = React.useState<'idle' | 'uploading' | 'complete'>('idle');
+  const [openaiApiKey, setOpenaiApiKey] = useLocalStorage<string>('openai-api-key', '');
+  const hideOpenaiApiKeyInput = process.env.NEXT_PUBLIC_HIDE_CUSTOM_OPENAI_API_KEY_INPUT === 'true';
 
   const form = useForm({
     defaultValues: {
@@ -34,6 +37,7 @@ export function AnalysisForm() {
       runSuggestCitations: false,
       runReferenceValidation: false,
       webSearchConsent: false,
+      openaiApiKey: openaiApiKey,
     },
     validators: {
       onChange: ({ value }) => {
@@ -41,6 +45,14 @@ export function AnalysisForm() {
           return {
             fields: {
               reviewType: 'Review type is required',
+            },
+          };
+        }
+
+        if (!hideOpenaiApiKeyInput && (!value.openaiApiKey || value.openaiApiKey.trim() === '')) {
+          return {
+            fields: {
+              openaiApiKey: 'OpenAI API Key is required',
             },
           };
         }
@@ -91,6 +103,7 @@ export function AnalysisForm() {
           runLiteratureReview: value.reviewType === 'peer-review' && value.runLiteratureReview,
           runSuggestCitations: value.reviewType === 'peer-review' && value.runSuggestCitations,
           runReferenceValidation: value.reviewType === 'peer-review' && value.runReferenceValidation,
+          openaiApiKey: value.openaiApiKey,
         },
       });
     },
@@ -122,6 +135,7 @@ export function AnalysisForm() {
               ? new Date(data.config.documentPublicationDate)
               : undefined,
             sessionId: undefined,
+            openaiApiKey: data.config.openaiApiKey,
           },
         },
         {
@@ -439,6 +453,47 @@ export function AnalysisForm() {
           />
         </div>
       </div>
+
+      {/* API Configuration Section */}
+      {!hideOpenaiApiKeyInput && (
+        <div className="space-y-4">
+          <div className="space-y-1">
+            <h2 className="text-xl font-semibold">API Configuration</h2>
+            <p className="text-sm text-muted-foreground">Configure API settings for analysis execution</p>
+          </div>
+          <form.Field
+            name="openaiApiKey"
+            listeners={{
+              onChange: ({ value }) => setOpenaiApiKey(value),
+            }}
+          >
+            {(field) => (
+              <div className="space-y-2">
+                <Label htmlFor="openai-api-key">
+                  OpenAI API Key <span className="text-destructive ml-1">*</span>
+                </Label>
+                <Input
+                  id="openai-api-key"
+                  type="text"
+                  placeholder="sk-..."
+                  value={field.state.value}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                  className={field.state.meta.errors.length > 0 ? 'border-destructive' : ''}
+                  disabled={analysisMutation.isPending}
+                  required={true}
+                />
+                <p className="text-sm text-muted-foreground">
+                  Your OpenAI API key will be used only for this analysis session and will not be stored in our
+                  database. It will only be saved to your browser&apos;s local storage to facilitate future analyses.
+                </p>
+                {!field.state.meta.isValid && (
+                  <p className="text-sm text-destructive">{field.state.meta.errors.join(', ')}</p>
+                )}
+              </div>
+            )}
+          </form.Field>
+        </div>
+      )}
 
       {/* Additional Context Section */}
       <div className="space-y-4">

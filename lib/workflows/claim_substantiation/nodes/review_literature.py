@@ -1,6 +1,9 @@
 import logging
 
-from lib.agents.literature_review import literature_review_agent
+from langgraph.runtime import Runtime
+
+from lib.agents.literature_review import LiteratureReviewAgent
+from lib.workflows.claim_substantiation.context import ContextSchema
 from lib.workflows.claim_substantiation.state import ClaimSubstantiatorState
 from lib.workflows.decorators import handle_workflow_node_errors
 
@@ -9,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 @handle_workflow_node_errors()
 async def literature_review(
-    state: ClaimSubstantiatorState,
+    state: ClaimSubstantiatorState, runtime: Runtime[ContextSchema]
 ) -> ClaimSubstantiatorState:
     logger.info(f"literature_review ({state.config.session_id}): starting")
 
@@ -28,6 +31,7 @@ async def literature_review(
 
     markdown = state.file.markdown
 
+    literature_review_agent = LiteratureReviewAgent(runtime.context)
     literature_review_response = await literature_review_agent.ainvoke(
         {
             "full_document": markdown,

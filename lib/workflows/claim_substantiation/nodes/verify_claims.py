@@ -1,16 +1,14 @@
 import logging
 
-from lib.agents.citation_detector import CitationResponse
+from langgraph.runtime import Runtime
+
 from lib.agents.claim_verifier import (
     ClaimSubstantiationResultWithClaimIndex,
-    claim_verifier_agent,
-)
-from lib.agents.formatting_utils import (
-    format_audience_context,
-    format_domain_context,
+    ClaimVerifierAgent,
 )
 from lib.agents.formatting_utils import format_audience_context, format_domain_context
 from lib.workflows.chunk_iterator import iterate_chunks
+from lib.workflows.claim_substantiation.context import ContextSchema
 from lib.workflows.claim_substantiation.reference_providers import (
     CitationBasedReferenceProvider,
     RAGReferenceProvider,
@@ -28,9 +26,6 @@ from lib.workflows.decorators import (
 )
 
 logger = logging.getLogger(__name__)
-
-_CITATION_PROVIDER = CitationBasedReferenceProvider()
-_RAG_PROVIDER = RAGReferenceProvider()
 
 
 def _needs_substantiation(
@@ -66,6 +61,7 @@ async def _verify_chunk_claims_with_provider(
     state: ClaimSubstantiatorState,
     chunk: DocumentChunk,
     reference_provider: ReferenceProvider,
+    claim_verifier_agent: ClaimVerifierAgent,
 ) -> DocumentChunk:
     """Verify chunk claims using the provided reference provider.
 
@@ -131,13 +127,19 @@ async def _verify_chunk_claims_with_provider(
 @requires_agent("substantiation")
 @handle_workflow_node_errors()
 async def verify_claims(
-    state: ClaimSubstantiatorState,
+    state: ClaimSubstantiatorState, runtime: Runtime[ContextSchema]
 ) -> ClaimSubstantiatorState:
     """Verify claims using citation-based references."""
     logger.info(f"verify_claims ({state.config.session_id}): starting")
 
+    claim_verifier_agent = ClaimVerifierAgent(runtime.context)
+
     results = await iterate_chunks(
-        state, _verify_chunk_claims, "Verifying chunk claims"
+        state,
+        _verify_chunk_claims,
+        "Verifying chunk claims",
+        citation_provider=CitationBasedReferenceProvider(),
+        claim_verifier_agent=claim_verifier_agent,
     )
     logger.info(f"verify_claims ({state.config.session_id}): done")
     return results
@@ -145,7 +147,10 @@ async def verify_claims(
 
 @handle_chunk_errors("Claim verification")
 async def _verify_chunk_claims(
-    state: ClaimSubstantiatorState, chunk: DocumentChunk
+    state: ClaimSubstantiatorState,
+    chunk: DocumentChunk,
+    citation_provider: CitationBasedReferenceProvider,
+    claim_verifier_agent: ClaimVerifierAgent,
 ) -> DocumentChunk:
     """Verify claims using citation-based references."""
     if chunk.citations is None:
@@ -154,19 +159,28 @@ async def _verify_chunk_claims(
         )
         return chunk
 
-    return await _verify_chunk_claims_with_provider(state, chunk, _CITATION_PROVIDER)
+    return await _verify_chunk_claims_with_provider(
+        state, chunk, citation_provider, claim_verifier_agent
+    )
 
 
 @requires_agent("substantiation")
 @handle_workflow_node_errors()
 async def verify_claims_with_rag(
-    state: ClaimSubstantiatorState,
+    state: ClaimSubstantiatorState, runtime: Runtime[ContextSchema]
 ) -> ClaimSubstantiatorState:
     """Verify claims using RAG to retrieve relevant passages."""
     logger.info(f"verify_claims_with_rag ({state.config.session_id}): starting")
 
+    rag_provider = RAGReferenceProvider(runtime.context.vector_store)
+    claim_verifier_agent = ClaimVerifierAgent(runtime.context)
+
     results = await iterate_chunks(
-        state, _verify_chunk_claims_rag, "Verifying chunk claims with RAG"
+        state,
+        _verify_chunk_claims_rag,
+        "Verifying chunk claims with RAG",
+        rag_provider=rag_provider,
+        claim_verifier_agent=claim_verifier_agent,
     )
 
     logger.info(f"verify_claims_with_rag ({state.config.session_id}): done")
@@ -175,14 +189,19 @@ async def verify_claims_with_rag(
 
 @handle_chunk_errors("Claim verification with RAG")
 async def _verify_chunk_claims_rag(
-    state: ClaimSubstantiatorState, chunk: DocumentChunk
+    state: ClaimSubstantiatorState,
+    chunk: DocumentChunk,
+    rag_provider: RAGReferenceProvider,
+    claim_verifier_agent: ClaimVerifierAgent,
 ) -> DocumentChunk:
     """Verify claims using RAG-based references.
 
     RAG retrieves relevant passages directly based on claim text,
     without requiring citations to be detected first.
     """
-    return await _verify_chunk_claims_with_provider(state, chunk, _RAG_PROVIDER)
+    return await _verify_chunk_claims_with_provider(
+        state, chunk, rag_provider, claim_verifier_agent
+    )
 
 
 def format_evidence_explanation(is_rag_mode: bool) -> str:

@@ -1,19 +1,25 @@
 import logging
 
+from langgraph.runtime import Runtime
+
 from lib.services.file import FileDocument
 from lib.services.vector_store import (
+    VectorStoreService,
     get_collection_id,
     get_file_hash_from_path,
-    get_vector_store_service,
 )
+from lib.workflows.claim_substantiation.context import ContextSchema
 from lib.workflows.claim_substantiation.state import ClaimSubstantiatorState
+from lib.workflows.decorators import handle_workflow_node_errors
 from lib.workflows.models import WorkflowError
 
 logger = logging.getLogger(__name__)
 
 
+@handle_workflow_node_errors()
 async def index_supporting_documents(
     state: ClaimSubstantiatorState,
+    runtime: Runtime[ContextSchema],
 ) -> ClaimSubstantiatorState:
     """
     Index supporting documents for RAG retrieval.
@@ -35,7 +41,7 @@ async def index_supporting_documents(
 
     for file_doc in state.supporting_files:
         try:
-            await index_file_document(file_doc)
+            await index_file_document(file_doc, runtime.context.vector_store)
             indexed_count += 1
 
         except Exception as e:
@@ -56,9 +62,9 @@ async def index_supporting_documents(
     return {"errors": errors}
 
 
-async def index_file_document(file_doc: FileDocument) -> int:
-    vector_store = get_vector_store_service()
-
+async def index_file_document(
+    file_doc: FileDocument, vector_store: VectorStoreService
+) -> int:
     file_hash = get_file_hash_from_path(file_doc.file_path)
     collection_id = get_collection_id(file_hash)
 

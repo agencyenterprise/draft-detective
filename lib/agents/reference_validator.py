@@ -20,6 +20,7 @@ from lib.services.openai import (
 )
 from lib.config.llm_models import gpt_5_mini_model, gpt_5_model
 from lib.models.agent import AgentProtocol
+from lib.workflows.claim_substantiation.context import ContextSchema
 from lib.agents.reference_extractor import (
     BibliographyItem,
 )
@@ -116,8 +117,8 @@ class ReferenceValidatorAgent(AgentProtocol):
         "Validate a list of references in a document, by searching for their online presence."
     )
 
-    def __init__(self):
-        self.client = get_openai_client()
+    def __init__(self, context: ContextSchema):
+        self.client = get_openai_client(context)
 
     async def ainvoke(
         self,
@@ -148,11 +149,10 @@ class ReferenceValidatorAgent(AgentProtocol):
         )
 
 
-reference_validator_agent = ReferenceValidatorAgent()
-
 # %%
 if __name__ == "__main__":
     import asyncio
+    from lib.config.env import config
 
     # Test cases for reference validation
     test_cases = [
@@ -186,6 +186,9 @@ if __name__ == "__main__":
             ],
         },
     ]
+
+    context = ContextSchema(openai_api_key=config.OPENAI_API_KEY, vector_store=None)
+    reference_validator_agent = ReferenceValidatorAgent(context)
 
     # Run tests and compare results
     for i, test_case in enumerate(test_cases, 1):

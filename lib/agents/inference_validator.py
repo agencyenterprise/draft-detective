@@ -22,6 +22,7 @@ from pydantic import BaseModel, Field
 
 from lib.config.llm_models import gpt_5_model
 from lib.models.agent import DEFAULT_LLM_TIMEOUT, AgentProtocol
+from lib.workflows.claim_substantiation.context import ContextSchema
 
 
 class WarrantExpression(str, Enum):
@@ -203,11 +204,12 @@ class InferenceValidatorAgent(AgentProtocol):
         "Validate the inference of a model using the toulmin model of argumentation."
     )
 
-    def __init__(self):
+    def __init__(self, context: ContextSchema):
         self.llm = init_chat_model(
             gpt_5_model.model_name,
             temperature=0.2,
             timeout=DEFAULT_LLM_TIMEOUT,
+            api_key=context.openai_api_key,
         ).with_structured_output(InferenceValidationResponse)
 
     async def ainvoke(
@@ -219,15 +221,13 @@ class InferenceValidatorAgent(AgentProtocol):
         return await self.llm.ainvoke(messages, config=config)
 
 
-inference_validator_agent = InferenceValidatorAgent()
-
-
 # %%
 
 
 if __name__ == "__main__":
-    import nest_asyncio
     import asyncio
+
+    import nest_asyncio
 
     nest_asyncio.apply()
 
@@ -362,7 +362,11 @@ if __name__ == "__main__":
     ]
 
     async def run_inference_validator_tests():
-        agent = InferenceValidatorAgent()
+        from lib.config.env import config
+
+        context = ContextSchema(openai_api_key=config.OPENAI_API_KEY, vector_store=None)
+        agent = InferenceValidatorAgent(context)
+
         results = []
         print("\n🔍 Running Inference Validator Tests\n")
         for i, test_case in enumerate(test_cases):

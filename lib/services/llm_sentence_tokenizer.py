@@ -8,6 +8,7 @@ from langchain.chat_models import init_chat_model
 from lib.models.agent import DEFAULT_LLM_TIMEOUT
 from lib.config.llm_models import gpt_5_mini_model
 from lib.services.fragment_detection import DetectionMethod
+from lib.workflows.claim_substantiation.context import ContextSchema
 
 
 # Default detection method for identifying when to use LLM fallback
@@ -22,7 +23,7 @@ class SentenceChunks(BaseModel):
     )
 
 
-async def llm_tokenize_paragraph(paragraph: str) -> List[str]:
+async def llm_tokenize_paragraph(paragraph: str, context: ContextSchema) -> List[str]:
     """
     Use LLM to intelligently tokenize a paragraph into sentences.
     Handles complex cases like citations that NLTK struggles with.
@@ -76,6 +77,7 @@ Text to tokenize:
         gpt_5_mini_model.model_name,
         temperature=0,
         timeout=DEFAULT_LLM_TIMEOUT,
+        api_key=context.openai_api_key,
     ).with_structured_output(SentenceChunks)
 
     try:

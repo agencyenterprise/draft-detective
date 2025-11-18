@@ -9,6 +9,7 @@ from lib.agents.literature_review import ReferenceType
 from lib.config.llm_models import gpt_5_model
 from lib.models.agent import AgentProtocol
 from lib.services.openai import ensure_structured_output_response, get_openai_client
+from lib.workflows.claim_substantiation.context import ContextSchema
 
 
 class RecommendedAction(str, Enum):
@@ -184,8 +185,8 @@ class CitationSuggesterAgent(AgentProtocol):
         "Review a chunk of text against RAND attribution guidelines to identify missing citations and recommend high-quality sources for proper attribution compliance"
     )
 
-    def __init__(self):
-        self.client = get_openai_client()
+    def __init__(self, context: ContextSchema):
+        self.client = get_openai_client(context)
 
     async def ainvoke(
         self,
@@ -210,9 +211,12 @@ class CitationSuggesterAgent(AgentProtocol):
         return ensure_structured_output_response(response, CitationSuggestionResponse)
 
 
-citation_suggester_agent = CitationSuggesterAgent()
-
 if __name__ == "__main__":
+    from lib.config.env import config
+
+    context = ContextSchema(openai_api_key=config.OPENAI_API_KEY, vector_store=None)
+    citation_suggester_agent = CitationSuggesterAgent(context)
+
     response = asyncio.run(
         citation_suggester_agent.ainvoke(
             {

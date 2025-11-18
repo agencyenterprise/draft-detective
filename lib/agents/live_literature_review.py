@@ -11,6 +11,7 @@ from lib.agents.literature_review import (
 from lib.config.llm_models import gpt_5_model
 from lib.models.agent import AgentProtocol
 from lib.services.openai import ensure_structured_output_response, get_openai_client
+from lib.workflows.claim_substantiation.context import ContextSchema
 
 
 class ClaimReferenceFactors(BaseModel):
@@ -164,8 +165,8 @@ class LiveLiteratureReviewAgent(AgentProtocol):
         "Find newer literature that could update or contextualize existing claims"
     )
 
-    def __init__(self):
-        self.client = get_openai_client()
+    def __init__(self, context: ContextSchema):
+        self.client = get_openai_client(context)
 
     async def ainvoke(
         self,
@@ -190,11 +191,9 @@ class LiveLiteratureReviewAgent(AgentProtocol):
         return ensure_structured_output_response(response, LiveLiteratureReviewResponse)
 
 
-live_literature_review_agent = LiveLiteratureReviewAgent()
-
 if __name__ == "__main__":
-
     import asyncio
+    from lib.config.env import config
 
     fake_input = {
         "domain_context": "US public policy; presidential elections; constitutional law",
@@ -210,6 +209,9 @@ One thing that has never happened, is that a one-term president comes back to of
         "bibliography": """1. Skowronek, S. (2011). Presidential Leadership in Political Time. University Press of Kansas.
     2. Achen, C. H., & Bartels, L. M. (2016). Democracy for Realists: Why Elections Do Not Produce Responsive Government. Princeton University Press.""",
     }
+
+    context = ContextSchema(openai_api_key=config.OPENAI_API_KEY, vector_store=None)
+    live_literature_review_agent = LiveLiteratureReviewAgent(context)
 
     response = asyncio.run(live_literature_review_agent.ainvoke(fake_input))
     print("Live Literature Review Response:")

@@ -1,5 +1,6 @@
 from langgraph.graph import StateGraph
 
+from lib.workflows.claim_substantiation.context import ContextSchema
 from lib.workflows.claim_substantiation.nodes.categorize_claims import categorize_claims
 
 # from lib.workflows.claim_substantiation.nodes.check_claim_needs_substantiation import (
@@ -71,7 +72,7 @@ def build_claim_substantiator_graph(
         Configured StateGraph for claim substantiation workflow
     """
 
-    graph = StateGraph(ClaimSubstantiatorState)
+    graph = StateGraph(ClaimSubstantiatorState, context_schema=ContextSchema)
 
     # Core nodes
     graph.add_node("convert_to_markdown", convert_to_markdown)
