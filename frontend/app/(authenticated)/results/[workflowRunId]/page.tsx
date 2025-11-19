@@ -114,81 +114,79 @@ export default function ResultsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
-      <div className="container mx-auto px-4 py-12 max-w-6xl">
-        <div className="flex items-center justify-between mb-6 gap-4">
-          <hgroup className="w-full space-y-1">
-            <EditableTitle
-              title={workflowRun.run.title}
-              titleClassName="text-2xl font-bold"
-              onSave={handleTitleSave}
-              isLoading={updateTitleMutation.isPending}
-            />
-            <h2 className="text-muted-foreground text-sm">
-              Workflow Run Results · Created on {format(workflowRun.run.createdAt || new Date(), 'MMM d, yyyy')}
-            </h2>
-          </hgroup>
-          <div className="flex items-center gap-2">
-            {/* View Mode Toggle - only show on document-explorer tab */}
-            {activeTab === 'document-explorer' && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <div className="inline-flex rounded-md bg-muted/40 p-0.5">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setViewMode('markdown')}
-                      className={`h-7 w-7 rounded-sm transition-all ${
-                        viewMode === 'markdown'
-                          ? 'bg-background shadow-xs text-foreground'
-                          : 'text-muted-foreground hover:text-foreground hover:bg-transparent'
-                      }`}
-                    >
-                      <FileText className="size-3.5" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setViewMode('docling')}
-                      disabled={!isDoclingAvailable}
-                      className={`h-7 w-7 rounded-sm transition-all ${
-                        viewMode === 'docling'
-                          ? 'bg-background shadow-xs text-foreground'
-                          : 'text-muted-foreground hover:text-foreground hover:bg-transparent'
-                      }`}
-                    >
-                      <Layout className="size-3.5" />
-                    </Button>
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent side="bottom" className="max-w-xs">
-                  <p className="font-semibold mb-1">Document View</p>
-                  <p className="text-xs text-muted-foreground">
-                    <span className="font-medium">Markdown:</span> Simple text-based view of document content
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    <span className="font-medium">Docling:</span> Visual layout with original document formatting
-                    {!isDoclingAvailable && ' (unavailable for this document)'}
-                  </p>
-                </TooltipContent>
-              </Tooltip>
-            )}
-            <Link href="/">
-              <Button variant="outline">Back to Home</Button>
-            </Link>
-          </div>
+    <>
+      <div className="flex items-center justify-between mb-6 gap-4">
+        <hgroup className="w-full space-y-1">
+          <EditableTitle
+            title={workflowRun.run.title}
+            titleClassName="text-2xl font-bold"
+            onSave={handleTitleSave}
+            isLoading={updateTitleMutation.isPending}
+          />
+          <h2 className="text-muted-foreground text-sm">
+            Workflow Run Results · Created on {format(workflowRun.run.createdAt || new Date(), 'MMM d, yyyy')}
+          </h2>
+        </hgroup>
+        <div className="flex items-center gap-2">
+          {/* View Mode Toggle - only show on document-explorer tab */}
+          {activeTab === 'document-explorer' && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="inline-flex rounded-md bg-muted/40 p-0.5">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setViewMode('markdown')}
+                    className={`h-7 w-7 rounded-sm transition-all ${
+                      viewMode === 'markdown'
+                        ? 'bg-background shadow-xs text-foreground'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-transparent'
+                    }`}
+                  >
+                    <FileText className="size-3.5" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setViewMode('docling')}
+                    disabled={!isDoclingAvailable}
+                    className={`h-7 w-7 rounded-sm transition-all ${
+                      viewMode === 'docling'
+                        ? 'bg-background shadow-xs text-foreground'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-transparent'
+                    }`}
+                  >
+                    <Layout className="size-3.5" />
+                  </Button>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="max-w-xs">
+                <p className="font-semibold mb-1">Document View</p>
+                <p className="text-xs text-muted-foreground">
+                  <span className="font-medium">Markdown:</span> Simple text-based view of document content
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  <span className="font-medium">Docling:</span> Visual layout with original document formatting
+                  {!isDoclingAvailable && ' (unavailable for this document)'}
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          )}
+          <Link href="/">
+            <Button variant="outline">Back to Home</Button>
+          </Link>
         </div>
-
-        <ResultsVisualization
-          results={workflowRun.state || undefined}
-          onChunkReevaluation={handleChunkReevaluation}
-          isProcessing={isProcessing}
-          viewMode={viewMode}
-          onViewModeChange={setViewMode}
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-        />
       </div>
-    </div>
+
+      <ResultsVisualization
+        results={workflowRun.state || undefined}
+        onChunkReevaluation={handleChunkReevaluation}
+        isProcessing={isProcessing}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+      />
+    </>
   );
 }
