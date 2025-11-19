@@ -66,6 +66,16 @@ async def _analyze_chunk_live_reports(
     live_reports_analysis_results = []
 
     for claim_index, claim in enumerate(chunk.claims.claims):
+        # Skip non-central claims - only analyze central claims for live reports
+        # Note: ToulminClaim doesn't have a central field, so we process all Toulmin claims
+        if hasattr(claim, "central") and not claim.central:
+            logger.debug(
+                "Skipping live reports analysis for chunk %s, claim %s: claim is not central",
+                chunk.chunk_index,
+                claim_index,
+            )
+            continue
+
         try:
             # Step 1: Find newer literature
             literature_review_result = await live_literature_review_agent.ainvoke(

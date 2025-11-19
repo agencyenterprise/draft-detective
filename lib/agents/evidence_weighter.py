@@ -5,7 +5,7 @@ from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
 
 from lib.agents.live_literature_review import ClaimReferenceFactors, QualityLevel
-from lib.config.llm_models import gpt_5_model
+from lib.config.llm_models import gpt_5_mini_model
 from lib.models.agent import AgentProtocol
 from lib.services.openai import ensure_structured_output_response, get_openai_client
 
@@ -170,7 +170,7 @@ class EvidenceWeighterAgent(AgentProtocol):
         input = [{"role": "user", "content": prompt.text}]
 
         response = await self.client.responses.parse(
-            model=gpt_5_model.name,
+            model=gpt_5_mini_model.name,
             tools=[{"type": "web_search"}],
             max_tool_calls=20,
             # reasoning={
