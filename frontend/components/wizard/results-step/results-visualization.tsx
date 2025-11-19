@@ -104,7 +104,7 @@ export function ResultsVisualization({
       <TabNavigation activeTab={activeTab} onTabChange={onTabChange} />
 
       <Card>
-        <CardContent className={activeTab === 'document-explorer' ? 'p-3 h-[calc(100vh-16rem)]' : 'p-3'}>
+        <CardContent className={activeTab === 'document-explorer' ? 'h-[calc(100vh-16rem)]' : ''}>
           {renderActiveTab()}
         </CardContent>
       </Card>

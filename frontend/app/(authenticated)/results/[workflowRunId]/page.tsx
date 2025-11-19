@@ -3,6 +3,7 @@
 import { Button } from '@/components/ui/button';
 import { EditableTitle } from '@/components/ui/editable-title';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { PublicationDateLabel } from '@/components/wizard/results-step/components/publication-date-label';
 import { TabType } from '@/components/wizard/results-step/constants';
 import { ResultsVisualization } from '@/components/wizard/results-step/results-visualization';
 import { workflowsApi } from '@/lib/api';
@@ -113,13 +114,6 @@ export default function ResultsPage() {
   }
 
   const authors = workflowRun.state?.mainDocumentSummary?.authors;
-  const userInformedPublicationDate = workflowRun.state?.config?.documentPublicationDate;
-  const extractedPublicationDate = workflowRun.state?.mainDocumentSummary?.publicationDate;
-  const publicationDate = userInformedPublicationDate
-    ? format(userInformedPublicationDate, 'MMM d, yyyy')
-    : extractedPublicationDate && extractedPublicationDate !== 'Unknown'
-      ? extractedPublicationDate
-      : undefined;
 
   return (
     <>
@@ -134,7 +128,7 @@ export default function ResultsPage() {
           <div className="flex items-start justify-between">
             <h2 className="text-muted-foreground text-sm">
               {authors && <span>{authors} — </span>}
-              {publicationDate && <span>Published {publicationDate} — </span>}
+              <PublicationDateLabel results={workflowRun.state} prefix="Published" suffix=" — " />
               <span>Analysis created {format(workflowRun.run.createdAt || new Date(), 'MMM d, yyyy')}</span>
             </h2>
             <div className="flex items-center gap-2">
