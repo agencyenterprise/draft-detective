@@ -1,17 +1,16 @@
 'use client';
 
+import { Button } from '@/components/ui/button';
 import { EditableTitle } from '@/components/ui/editable-title';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { Button } from '@/components/ui/button';
-import { ResultsVisualization } from '@/components/wizard/results-step/results-visualization';
 import { TabType } from '@/components/wizard/results-step/constants';
+import { ResultsVisualization } from '@/components/wizard/results-step/results-visualization';
 import { workflowsApi } from '@/lib/api';
-import { ChunkReevaluationResponse, WorkflowRunDetailed, WorkflowRunStatus } from '@/lib/generated-api';
 import { DocRenderMode } from '@/lib/constants';
+import { ChunkReevaluationResponse, WorkflowRunDetailed, WorkflowRunStatus } from '@/lib/generated-api';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { FileText, Layout } from 'lucide-react';
-import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
@@ -113,6 +112,15 @@ export default function ResultsPage() {
     return null;
   }
 
+  const authors = workflowRun.state?.mainDocumentSummary?.authors;
+  const userInformedPublicationDate = workflowRun.state?.config?.documentPublicationDate;
+  const extractedPublicationDate = workflowRun.state?.mainDocumentSummary?.publicationDate;
+  const publicationDate = userInformedPublicationDate
+    ? format(userInformedPublicationDate, 'MMM d, yyyy')
+    : extractedPublicationDate && extractedPublicationDate !== 'Unknown'
+      ? extractedPublicationDate
+      : undefined;
+
   return (
     <>
       <div className="flex items-center justify-between mb-2 gap-4">
@@ -125,7 +133,9 @@ export default function ResultsPage() {
           />
           <div className="flex items-start justify-between">
             <h2 className="text-muted-foreground text-sm">
-              Workflow Run Results · Created on {format(workflowRun.run.createdAt || new Date(), 'MMM d, yyyy')}
+              {authors && <span>{authors} — </span>}
+              {publicationDate && <span>Published {publicationDate} — </span>}
+              <span>Analysis created {format(workflowRun.run.createdAt || new Date(), 'MMM d, yyyy')}</span>
             </h2>
             <div className="flex items-center gap-2">
               {/* View Mode Toggle - only show on document-explorer tab */}
