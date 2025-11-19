@@ -222,13 +222,12 @@ class DocumentChunkerAgent(LangChainAgent):
     name = "Document Chunker (NLTK)"
     description = "Chunk a document into paragraphs and each paragraph into sentence-level chunks using NLTK"
 
-    # Dummy values - this agent doesn't use LLM directly
-    model = None  # type: ignore
+    # Dummy values since this agent doesn't use LLM directly
+    model = None
     temperature = 0.0
     schema = None
 
     def __init__(self):
-        # Skip parent __init__ since this agent doesn't use LLM
         # Set _llm to None to satisfy the property
         self._llm = None
 
