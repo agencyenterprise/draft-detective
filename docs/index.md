@@ -171,7 +171,9 @@ The following example demonstrates the system's capability to identify claims th
 
 ### Inference Validation
 
-TODO: show screenshot of examples of results
+The following example demonstrates the system's capability to validate inferential and interpretive claims by analyzing their argument structure according to the Toulmin model of argumentation. The system evaluates claims that go beyond direct factual assertions to assess whether they contain logical fallacies, unsupported leaps in reasoning, or missing intermediate steps that would strengthen the argument. For claims identified as inferential or interpretive, the system examines the logical structure connecting the claim to its supporting evidence, identifying potential weaknesses in the reasoning chain and flagging areas where additional justification or intermediate reasoning steps may be required. The first sentence and related Inference Validation analysis is the original sentence, marked as valid by the system; the second sentence is a modification of the original one, creating a logic inconsistency in the claim, which the system correctly flagged.
+
+![Inference validation - Example 1](./inference-validation-ex1.png)
 
 ### Literature Review & Citation Recommendation
 
@@ -200,3 +202,5 @@ The following example demonstrates the system's "live reports" capabilities for 
 5. **Citation Proximity**: The system associates citations with claims based on paragraph-level proximity. In cases where citations are distant from their claims, associations may be incorrect.
 
 6. **Processing Scale**: Large documents with many claims require significant computational resources. The system supports selective re-evaluation of specific chunks to optimize resource usage.
+
+## References

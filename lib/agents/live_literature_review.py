@@ -8,8 +8,8 @@ from lib.agents.literature_review import (
     ReferenceDirection,
     ReferenceType,
 )
-from lib.config.llm_models import gpt_5_model
-from lib.models.agent import LangChainAgent, DirectOpenAIAgent
+from lib.config.llm_models import gpt_5_mini_model
+from lib.models.agent import DirectOpenAIAgent
 from lib.services.openai import ensure_structured_output_response
 
 
@@ -163,7 +163,7 @@ class LiveLiteratureReviewAgent(DirectOpenAIAgent):
     description: str = (
         "Find newer literature that could update or contextualize existing claims"
     )
-    model = gpt_5_model
+    model = gpt_5_mini_model
     temperature = 0.5
 
     async def ainvoke(
@@ -175,7 +175,7 @@ class LiveLiteratureReviewAgent(DirectOpenAIAgent):
         input = [{"role": "user", "content": prompt.text}]
 
         response = await self.client.responses.parse(
-            model=gpt_5_model.name,
+            model=self.model.name,
             tools=[{"type": "web_search"}],
             max_tool_calls=20,
             # reasoning={
