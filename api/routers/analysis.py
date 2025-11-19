@@ -17,8 +17,13 @@ from lib.agents.registry import agent_registry
 from lib.config.database import get_db
 from lib.models.user import User
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus
-from lib.workflows.claim_substantiation.runner import reevaluate_single_chunk
+from lib.workflows.claim_substantiation.runner import (
+    reevaluate_single_chunk,
+    suggest_citations_for_chunk,
+)
 from lib.workflows.claim_substantiation.state import (
+    ChunkCitationSuggestionRequest,
+    ChunkCitationSuggestionResponse,
     ChunkReevaluationRequest,
     ChunkReevaluationResponse,
     SubstantiationWorkflowConfig,
@@ -161,4 +166,67 @@ async def reevaluate_chunk(
         logger.error(f"Error re-evaluating chunk: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=500, detail=f"Error re-evaluating chunk: {str(e)}"
+        )
+
+
+@router.post(
+    "/api/suggest-chunk-citations", response_model=ChunkCitationSuggestionResponse
+)
+async def suggest_chunk_citations(
+    request: ChunkCitationSuggestionRequest,
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Suggest citations for a specific chunk on-demand.
+
+    This endpoint allows users to trigger citation suggestions for a selected chunk
+    rather than running citation suggestions for all chunks automatically.
+
+    Args:
+        request: Contains chunk index, original state, and optional session ID
+
+    Returns:
+        Updated state with citation suggestions for the specified chunk
+    """
+    try:
+        import time
+
+        start_time = time.time()
+
+        # Validate chunk_index exists in state
+        chunks = request.original_state.chunks
+        if request.chunk_index >= len(chunks):
+            raise ValueError(
+                f"Chunk index {request.chunk_index} out of range (max: {len(chunks)-1})"
+            )
+
+        updated_state = await suggest_citations_for_chunk(
+            original_result=request.original_state,
+            chunk_index=request.chunk_index,
+            session_id=request.session_id,
+        )
+
+        processing_time_ms = (time.time() - start_time) * 1000
+
+        # Count citation suggestions added
+        updated_chunk = updated_state.chunks[request.chunk_index]
+        citations_suggested = (
+            len(updated_chunk.citation_suggestions)
+            if updated_chunk.citation_suggestions
+            else 0
+        )
+
+        return ChunkCitationSuggestionResponse(
+            state=updated_state,
+            processing_time_ms=processing_time_ms,
+            citations_suggested=citations_suggested,
+        )
+
+    except ValueError as e:
+        logger.error(f"Invalid request for chunk citation suggestion: {str(e)}")
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error suggesting citations for chunk: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=500, detail=f"Error suggesting citations for chunk: {str(e)}"
         )
