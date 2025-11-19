@@ -120,6 +120,7 @@ Provide each piece of evidence related to a claim with one of the following qual
 - In the rationale, explain why the source is relevant to the claim and why it has this quality level, in a maximum of THREE sentences.
 
 # Search Guidelines
+- ONLY search for literature published AFTER the document's publication date ({document_publication_date}); Do not present sources that are older than the document's publication date.
 - Use specific search terms related to the claim's key concepts
 - If a reference is already cited in the document, then do not include it in the newer references
 - Include variations of terminology and synonyms
