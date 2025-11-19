@@ -56,10 +56,9 @@ _evidence_weighter_agent_prompt = PromptTemplate.from_template(
 You are an expert research evidence analyst specializing in evaluating the strength, quality, and direction of sources that are relevant to claims in research document.
 
 # Goal
-You will be given a new literature review report that contains the newer sources that have been found recently for a claim. Analyze this collection of newer sources to determine the overall evidence direction and strength for a specific claim, considering source quality, methodology, and potential biases. Importantly state whether the newer sources override the older ones in supporting, contextualizing, or conflicting with the claim.
+You will be given a new literature review report that contains the newer sources that have been found recently for a claim. Analyze this collection of newer sources to determine the overall evidence direction and strength for a specific claim, considering source quality, methodology, and potential biases. Importantly state whether the newer sources override the older ones in supporting, contextualizing, or conflicting with the claim. As additional context, you will also be given the full document that contains the claim, the paragraph containing the claim, the specific chunk containing the claim, and the original claim being analyzed.
 
 # Analysis Framework
-
 From the existing sources that are cited to support the claim and the newer sources that have been found recently for the claim, analyze the sources to determine the overall evidence direction and strength for a specific claim, considering source quality, methodology, and potential biases. Importantly state whether the newer sources override the existing sources in supporting, contextualizing, or conflicting with the claim.
 
 ## Claim Classification Guidelines
@@ -114,9 +113,9 @@ Here are the contextual details:
 **Domain**: {domain_context}
 **Target Audience**: {audience_context}
 
-## The full document that contains the claim
+## The argument summary of the document
 ```
-{full_document}
+{document_summary}
 ```
 
 ## The list of references already cited in this chunk of text to support the claim and their associated supporting document (if any)
