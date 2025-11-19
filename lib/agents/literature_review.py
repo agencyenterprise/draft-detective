@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 
 from lib.config.langfuse import langfuse_handler
 from lib.config.llm_models import gpt_5_model
-from lib.models.agent import AgentProtocol
+from lib.models.agent import LangChainAgent, DirectOpenAIAgent
 from lib.services.openai import (
     ensure_structured_output_response,
     get_openai_client,
@@ -175,14 +175,13 @@ When generating responses, remove or replace all internal citation tokens such a
 )
 
 
-class LiteratureReviewAgent(AgentProtocol):
+class LiteratureReviewAgent(DirectOpenAIAgent):
     name: str = "Literature Review Researcher"
     description: str = (
         "Review a document paragraph against the article bibliography and recent literature to propose citation updates"
     )
-
-    def __init__(self):
-        self.client = get_openai_client()
+    model = gpt_5_model
+    temperature = 0.5
 
     async def ainvoke(
         self,

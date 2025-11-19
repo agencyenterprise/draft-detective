@@ -9,8 +9,8 @@ from lib.agents.literature_review import (
     ReferenceType,
 )
 from lib.config.llm_models import gpt_5_model
-from lib.models.agent import AgentProtocol
-from lib.services.openai import ensure_structured_output_response, get_openai_client
+from lib.models.agent import LangChainAgent, DirectOpenAIAgent
+from lib.services.openai import ensure_structured_output_response
 
 
 class ClaimReferenceFactors(BaseModel):
@@ -158,14 +158,13 @@ When generating responses, remove or replace all internal citation tokens such a
 )
 
 
-class LiveLiteratureReviewAgent(AgentProtocol):
+class LiveLiteratureReviewAgent(DirectOpenAIAgent):
     name: str = "Live Literature Review Researcher"
     description: str = (
         "Find newer literature that could update or contextualize existing claims"
     )
-
-    def __init__(self):
-        self.client = get_openai_client()
+    model = gpt_5_model
+    temperature = 0.5
 
     async def ainvoke(
         self,

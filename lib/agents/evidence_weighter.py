@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 
 from lib.agents.live_literature_review import ClaimReferenceFactors, QualityLevel
 from lib.config.llm_models import gpt_5_model
-from lib.models.agent import AgentProtocol
+from lib.models.agent import LangChainAgent, DirectOpenAIAgent
 from lib.services.openai import ensure_structured_output_response, get_openai_client
 
 
@@ -153,14 +153,13 @@ Here are the contextual details:
 )
 
 
-class EvidenceWeighterAgent(AgentProtocol):
+class EvidenceWeighterAgent(DirectOpenAIAgent):
     name: str = "Evidence Weighter"
     description: str = (
         "Analyze and weight evidence from multiple sources to determine overall direction and strength"
     )
-
-    def __init__(self):
-        self.client = get_openai_client()
+    model = gpt_5_model
+    temperature = 0.5
 
     async def ainvoke(
         self,

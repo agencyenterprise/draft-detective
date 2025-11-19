@@ -29,7 +29,7 @@ from pydantic import BaseModel, Field
 
 from lib.agents.models import ClaimCategory
 from lib.config.llm_models import gpt_5_model
-from lib.models.agent import DEFAULT_LLM_TIMEOUT, AgentProtocol
+from lib.models.agent import LangChainAgent
 
 # =========================
 #  Pydantic data contracts
@@ -192,16 +192,13 @@ with ONE of SIX categories and to determine if it needs EXTERNAL VERIFICATION.
 )
 
 
-class ClaimCategorizerAgent(AgentProtocol):
+class ClaimCategorizerAgent(LangChainAgent):
     name: str = "Claim Categorizer"
     description: str = "Categorize a claim into one of the six categories"
 
-    def __init__(self):
-        self.llm = init_chat_model(
-            gpt_5_model.model_name,
-            temperature=0.2,
-            timeout=DEFAULT_LLM_TIMEOUT,
-        ).with_structured_output(ClaimCategorizationResponse)
+    model = gpt_5_model
+    temperature = 0.2
+    schema = ClaimCategorizationResponse
 
     async def ainvoke(
         self, prompt_kwargs: dict, config: RunnableConfig = None

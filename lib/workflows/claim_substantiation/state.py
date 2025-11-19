@@ -1,9 +1,12 @@
+import logging
 from datetime import date
 from enum import StrEnum
 from operator import add
 from typing import Annotated, Dict, List, Optional, Union
 
 from pydantic import BaseModel, Field
+
+logger = logging.getLogger(__name__)
 
 # Agent response models
 from lib.agents.citation_detector import CitationResponse
@@ -163,8 +166,19 @@ def conciliate_chunks(
 
                 merged_data[field] = updated_value
 
-            # Create the merged chunk
-            chunks_by_index[updated_chunk.chunk_index] = DocumentChunk(**merged_data)
+            # Create the merged chunk with validation error handling
+            try:
+                chunks_by_index[updated_chunk.chunk_index] = DocumentChunk(
+                    **merged_data
+                )
+            except Exception as e:
+                # Handle validation errors from old data formats (e.g., from before agent refactoring)
+                logger.warning(
+                    f"Validation error when merging chunk {updated_chunk.chunk_index}: {e}. "
+                    f"Using updated chunk as-is to recover from data format mismatch."
+                )
+                # Fall back to using the updated chunk directly
+                chunks_by_index[updated_chunk.chunk_index] = updated_chunk
 
     # Return chunks in order by chunk_index
     return [chunks_by_index[i] for i in sorted(chunks_by_index.keys())]

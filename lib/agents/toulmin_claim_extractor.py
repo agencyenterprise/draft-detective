@@ -6,7 +6,7 @@ from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
 
 from lib.config.llm_models import gpt_5_model
-from lib.models.agent import DEFAULT_LLM_TIMEOUT, AgentProtocol
+from lib.models.agent import LangChainAgent
 
 
 class ToulminClaim(BaseModel):
@@ -120,16 +120,13 @@ Reference: Purdue OWL - Toulmin Argument (for definitions and orientation): http
 )
 
 
-class ToulminClaimExtractorAgent(AgentProtocol):
+class ToulminClaimExtractorAgent(LangChainAgent):
     name = "Claim Extractor (Toulmin)"
     description = "Extract claims in a chunk of text and extract Toulmin elements: data/grounds, warrants (stated or implied), qualifiers, rebuttals, and backing."
 
-    def __init__(self):
-        self.llm = init_chat_model(
-            gpt_5_model.model_name,
-            temperature=0.2,
-            timeout=DEFAULT_LLM_TIMEOUT,
-        ).with_structured_output(ToulminClaimResponse)
+    model = gpt_5_model
+    temperature = 0.2
+    schema = ToulminClaimResponse
 
     async def ainvoke(
         self,
