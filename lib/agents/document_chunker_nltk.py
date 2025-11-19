@@ -6,7 +6,7 @@ import nltk
 from pydantic import BaseModel, Field
 
 from lib.agents.models import ValidatedDocument, DocumentMetadata
-from lib.models.agent import LangChainAgent
+from lib.models.agent import BaseAgent
 from lib.services.fragment_detection import (
     has_suspicious_fragments,
     DetectionMethod,
@@ -218,18 +218,14 @@ async def split_paragraph_into_sentences(
     return result
 
 
-class DocumentChunkerAgent(LangChainAgent):
+class DocumentChunkerAgent(BaseAgent):
     name = "Document Chunker (NLTK)"
     description = "Chunk a document into paragraphs and each paragraph into sentence-level chunks using NLTK"
 
-    # Dummy values since this agent doesn't use LLM directly
+    # This agent doesn't use LLM - it uses NLTK for tokenization
     model = None
     temperature = 0.0
     schema = None
-
-    def __init__(self):
-        # Set _llm to None to satisfy the property
-        self._llm = None
 
     async def ainvoke(
         self,
