@@ -328,3 +328,29 @@ class ChunkReevaluationResponse(BaseModel):
     processing_time_ms: Optional[float] = Field(
         description="Time taken to process the chunk in milliseconds", default=None
     )
+
+
+class ChunkCitationSuggestionRequest(BaseModel):
+    """Request model for suggesting citations for a specific chunk"""
+
+    chunk_index: int = Field(
+        ge=0, description="Zero-based index of the chunk to suggest citations for"
+    )
+    original_state: ClaimSubstantiatorState = Field(
+        description="The original workflow state containing the document and chunks"
+    )
+    session_id: Optional[str] = Field(description="The session ID for Langfuse tracing")
+
+
+class ChunkCitationSuggestionResponse(BaseModel):
+    """Response model for chunk citation suggestion results"""
+
+    state: ClaimSubstantiatorState = Field(
+        description="The updated workflow state with citation suggestions for the specified chunk"
+    )
+    processing_time_ms: Optional[float] = Field(
+        description="Time taken to process the chunk in milliseconds", default=None
+    )
+    citations_suggested: int = Field(
+        description="Count of citation suggestions added for the chunk"
+    )
