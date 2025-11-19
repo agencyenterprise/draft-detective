@@ -201,6 +201,6 @@ The following example demonstrates the system's "live reports" capabilities for 
 
 5. **Citation Proximity**: The system associates citations with claims based on paragraph-level proximity. In cases where citations are distant from their claims, associations may be incorrect.
 
-## References
-
 6. **Processing Scale**: Large documents with many claims require significant computational resources. The system supports selective re-evaluation of specific chunks to optimize resource usage.
+
+## References
