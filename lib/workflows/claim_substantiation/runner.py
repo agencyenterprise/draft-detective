@@ -13,9 +13,13 @@ from lib.services.workflow_runs import (
 )
 from lib.workflows.claim_substantiation.checkpointer import get_checkpointer
 from lib.workflows.claim_substantiation.graph import build_claim_substantiator_graph
+from lib.workflows.claim_substantiation.nodes.suggest_citations import (
+    _suggest_chunk_citations,
+)
 from lib.workflows.claim_substantiation.state import (
     ClaimSubstantiatorState,
     SubstantiationWorkflowConfig,
+    conciliate_chunks,
 )
 from lib.workflows.models import WorkflowError
 
@@ -92,6 +96,67 @@ async def reevaluate_single_chunk(
     )
 
     return await _execute(state)
+
+
+async def suggest_citations_for_chunk(
+    original_result: ClaimSubstantiatorState,
+    chunk_index: int,
+    session_id: Optional[str] = None,
+) -> ClaimSubstantiatorState:
+    """
+    Suggest citations for a specific chunk.
+
+    This function extracts the chunk from the state, runs citation suggestions on it,
+    and merges the results back into the original state.
+
+    Args:
+        original_result: The original workflow state containing the document and chunks
+        chunk_index: Zero-based index of the chunk to suggest citations for
+        session_id: Optional session ID for Langfuse tracing
+
+    Returns:
+        Updated state with citation suggestions for the specified chunk
+
+    Raises:
+        ValueError: If chunk_index is out of range
+    """
+    logger.info(f"Suggesting citations for chunk {chunk_index}")
+
+    chunks = original_result.chunks
+    if chunk_index >= len(chunks):
+        raise ValueError(
+            f"Chunk index {chunk_index} out of range (max: {len(chunks)-1})"
+        )
+
+    # Extract the specific chunk
+    chunk = chunks[chunk_index]
+
+    # Run citation suggestions on the chunk
+    updated_chunk = await _suggest_chunk_citations(original_result, chunk)
+
+    # Merge the updated chunk back into the state using conciliate_chunks
+    # This ensures proper merging with existing chunks
+    updated_chunks = conciliate_chunks(chunks, [updated_chunk])
+
+    # Log citation suggestions added
+    citations_suggested = (
+        len(updated_chunk.citation_suggestions)
+        if updated_chunk.citation_suggestions
+        else 0
+    )
+    logger.info(
+        f"Added {citations_suggested} citation suggestions for chunk {chunk_index}"
+    )
+
+    # Return updated state with merged chunks
+    return original_result.model_copy(
+        update={
+            "chunks": updated_chunks,
+            "config": original_result.config.model_copy(
+                update={"session_id": session_id or original_result.config.session_id}
+            ),
+        }
+    )
 
 
 async def _execute(state: ClaimSubstantiatorState):
