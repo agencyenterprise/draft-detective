@@ -55,6 +55,8 @@ export function ClaimAnalysisCard({
 
   return (
     <AnalysisResultCard title={`Claim Analysis - ${claimIndex + 1} of ${totalClaims}`} severity={maxSeverity}>
+      <p className="italic text-center">&quot;{claim.text}&quot;</p>
+
       {!claimIssues.length && <p className="text-muted-foreground">No issues found for this claim.</p>}
 
       {claimIssues.map((issue, issueIndex) => (
@@ -70,8 +72,6 @@ export function ClaimAnalysisCard({
 
       {isExpanded && (
         <>
-          <p className="italic text-center">&quot;{claim.text}&quot;</p>
-
           <LabeledValue label="Extracted Claim">{claim.claim}</LabeledValue>
 
           <div className="space-y-2">

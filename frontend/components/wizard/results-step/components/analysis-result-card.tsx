@@ -10,7 +10,7 @@ export interface AnalysisResultCardProps {
 export function AnalysisResultCard({ title, severity, children }: AnalysisResultCardProps) {
   return (
     <div className="bg-card shadow-sm rounded-xl border px-5 pb-5">
-      <div className="flex items-center justify-between sticky py-5 -top-5 bg-background z-10">
+      <div className="flex items-center justify-between sticky pt-5 pb-3 -top-5 bg-background z-10">
         <p className="font-medium">{title}</p>
 
         <SeverityBadge severity={severity} />
