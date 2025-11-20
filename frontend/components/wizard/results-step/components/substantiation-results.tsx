@@ -120,34 +120,6 @@ export function SubstantiationResults({
             </div>
           )}
 
-          {/* RAG-Based Evidence Section */}
-          {/* {hasRagEvidence && (
-            <div className="space-y-2">
-              <Accordion type="single" collapsible defaultValue="rag-based">
-                <AccordionItem value="rag-based" className="border rounded-md px-3">
-                  <AccordionTrigger className="text-sm font-medium hover:no-underline">
-                    <div className="flex items-center gap-2">
-                      <Database className="h-4 w-4" />
-                      Retrieved Evidence ({retrievedPassages.length} passages)
-                    </div>
-                  </AccordionTrigger>
-                  <AccordionContent>
-                    <div className="space-y-3 mt-2">
-                      {retrievedPassages.map((passage, idx) => (
-                        <div key={idx} className="border-l-2 border-gray-300 pl-3 py-2 bg-muted/50 rounded">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="text-xs font-medium text-gray-700">{passage.sourceFile}</span>
-                          </div>
-                          <p className="text-sm text-gray-600">{passage.content}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
-              </Accordion>
-            </div>
-          )} */}
-
           {!hasCitationBasedEvidence && !hasRagEvidence && (
             <p className="text-muted-foreground text-sm">No evidence sources found.</p>
           )}
