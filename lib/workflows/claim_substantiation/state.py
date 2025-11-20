@@ -209,10 +209,6 @@ class DocumentIssue(BaseModel):
     title: str = Field(description="The title of the issue")
     description: str = Field(description="The description of the issue")
     severity: SeverityEnum = Field(description="The severity of the issue")
-    additional_context: Optional[str] = Field(
-        description="A longer explanation for the description of the issue and/or context of the issue",
-        default=None,
-    )
     chunk_index: Optional[int] = Field(
         description="The index of the chunk that contains the issue", default=None
     )

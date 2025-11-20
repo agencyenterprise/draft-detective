@@ -1,6 +1,6 @@
 import { LabeledValue } from '@/components/labeled-value';
 import { apiUrl } from '@/lib/api';
-import { BibliographyItem, FileDocument, Reference } from '@/lib/generated-api';
+import { BibliographyItem, FileDocumentOutput, Reference } from '@/lib/generated-api';
 import Link from 'next/link';
 import {
   ConfidenceBadge,
@@ -12,7 +12,7 @@ import {
 interface CitationReferenceItemProps {
   reference: Reference;
   references: BibliographyItem[];
-  supportingFiles: FileDocument[];
+  supportingFiles: FileDocumentOutput[];
 }
 
 export function CitationReferenceItem({ reference, references, supportingFiles }: CitationReferenceItemProps) {

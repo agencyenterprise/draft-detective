@@ -1,8 +1,33 @@
-import { ClaimSubstantiatorStateOutput, DocumentChunkOutput, SeverityEnum } from './generated-api';
+import { ClaimSubstantiatorStateOutput, DocumentChunkOutput, DocumentIssue, SeverityEnum } from './generated-api';
 
-export function getSeverity(results: ClaimSubstantiatorStateOutput, chunk: DocumentChunkOutput) {
+export function getMaxChunkSeverity(results: ClaimSubstantiatorStateOutput, chunk: DocumentChunkOutput) {
   const issues = results.rankedIssues?.filter((issue) => issue.chunkIndex === chunk.chunkIndex) || [];
+  return getMaxSeverity(issues);
+}
 
+export function getClaimIssues(results: ClaimSubstantiatorStateOutput, chunkIndex: number, claimIndex: number) {
+  return (
+    results.rankedIssues?.filter((issue) => issue.chunkIndex === chunkIndex && issue.claimIndex === claimIndex) || []
+  ).sort(sortDocumentIssueBySeverity);
+}
+
+export function getChunkIssues(results: ClaimSubstantiatorStateOutput, chunkIndex: number) {
+  return (
+    results.rankedIssues?.filter(
+      (issue) => issue.chunkIndex === chunkIndex && (issue.claimIndex === null || issue.claimIndex === undefined),
+    ) || []
+  ).sort(sortDocumentIssueBySeverity);
+}
+
+export function sortDocumentIssueBySeverity(a: DocumentIssue, b: DocumentIssue) {
+  return severitySortIndex[b.severity] - severitySortIndex[a.severity];
+}
+
+export function sortBySeverity(a: SeverityEnum, b: SeverityEnum) {
+  return severitySortIndex[b] - severitySortIndex[a];
+}
+
+export function getMaxSeverity(issues: DocumentIssue[]) {
   const severities = issues.map((issue) => issue.severity);
   if (severities.includes(SeverityEnum.High)) {
     return SeverityEnum.High;
@@ -16,9 +41,9 @@ export function getSeverity(results: ClaimSubstantiatorStateOutput, chunk: Docum
   return SeverityEnum.None;
 }
 
-export const severityColors: Record<SeverityEnum, 'none' | 'yellow' | 'red' | 'green' | 'blue'> = {
-  [SeverityEnum.None]: 'none',
-  [SeverityEnum.Low]: 'blue',
-  [SeverityEnum.Medium]: 'yellow',
-  [SeverityEnum.High]: 'red',
+const severitySortIndex: Record<SeverityEnum, number> = {
+  [SeverityEnum.None]: 0,
+  [SeverityEnum.Low]: 1,
+  [SeverityEnum.Medium]: 2,
+  [SeverityEnum.High]: 3,
 };

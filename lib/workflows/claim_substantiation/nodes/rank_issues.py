@@ -23,7 +23,6 @@ def rank_issues(state: ClaimSubstantiatorState) -> ClaimSubstantiatorState:
                 title="Missing supporting document for reference",
                 description=f'Reference does not have an associated supporting document: "{reference.text}"',
                 severity=SeverityEnum.LOW,
-                additional_context="This reference was mentioned in the document but no corresponding supporting document was provided. It was excluded from the analysis.",
                 chunk_index=_find_chunk_index_by_text(state, reference.text),
             )
             issues.append(issue)
@@ -35,7 +34,6 @@ def rank_issues(state: ClaimSubstantiatorState) -> ClaimSubstantiatorState:
                 title="Invalid reference",
                 description=f'Possible invalid reference: "{validation.original_reference.text}"',
                 severity=SeverityEnum.HIGH,
-                additional_context=f"Suggested action: {validation.suggested_action}",
                 chunk_index=_find_chunk_index_by_text(
                     state, validation.original_reference.text
                 ),
@@ -55,12 +53,28 @@ def rank_issues(state: ClaimSubstantiatorState) -> ClaimSubstantiatorState:
         )
 
         for category in chunk.claim_categories:
-            if category.needs_external_verification and not has_citations:
+            claim_verification = next(
+                (
+                    s
+                    for s in chunk.substantiations
+                    if s.claim_index == category.claim_index
+                ),
+                None,
+            )
+
+            if (
+                category.needs_external_verification
+                and not has_citations
+                and (
+                    claim_verification is None
+                    or claim_verification.evidence_alignment
+                    != EvidenceAlignmentLevel.SUPPORTED
+                )
+            ):
                 issue = DocumentIssue(
                     title="Unsupported claim",
                     description=f"Claim '{category.claim}' requires external verification but no citations were found.",
                     severity=SeverityEnum.MEDIUM,
-                    additional_context=f"Rationale: {category.rationale}",
                     chunk_index=category.chunk_index,
                     claim_index=category.claim_index,
                     claim_category=category.claim_category,
@@ -78,7 +92,6 @@ def rank_issues(state: ClaimSubstantiatorState) -> ClaimSubstantiatorState:
                     title="Unsupported Claim",
                     description=substantiation.rationale,
                     severity=SeverityEnum.HIGH,
-                    additional_context=f"Feedback: {substantiation.feedback}",
                     chunk_index=substantiation.chunk_index,
                     claim_index=substantiation.claim_index,
                     claim_category=_find_claim_category(
@@ -94,7 +107,6 @@ def rank_issues(state: ClaimSubstantiatorState) -> ClaimSubstantiatorState:
                     title="Partially Supported Claim",
                     description=substantiation.rationale,
                     severity=SeverityEnum.MEDIUM,
-                    additional_context=f"Feedback: {substantiation.feedback}",
                     chunk_index=substantiation.chunk_index,
                     claim_index=substantiation.claim_index,
                     claim_category=_find_claim_category(
@@ -117,7 +129,6 @@ def rank_issues(state: ClaimSubstantiatorState) -> ClaimSubstantiatorState:
                 title="Additional Citation Recommended",
                 description=live_report.rationale,
                 severity=SeverityEnum.MEDIUM,
-                additional_context=f"Newer references alignment: {live_report.newer_references_alignment.value}. Confidence: {live_report.confidence_level.value}.",
                 chunk_index=live_report.chunk_index,
                 claim_index=live_report.claim_index,
                 claim_category=_find_claim_category(chunk, live_report.claim_index),
@@ -131,7 +142,6 @@ def rank_issues(state: ClaimSubstantiatorState) -> ClaimSubstantiatorState:
                 title="Claim Update Recommended",
                 description=live_report.rationale,
                 severity=SeverityEnum.MEDIUM,
-                additional_context=f"Newer references alignment: {live_report.newer_references_alignment.value}. Confidence: {live_report.confidence_level.value}. Rewritten claim: {live_report.rewritten_claim}",
                 chunk_index=live_report.chunk_index,
                 claim_index=live_report.claim_index,
                 claim_category=_find_claim_category(chunk, live_report.claim_index),
@@ -149,7 +159,6 @@ def rank_issues(state: ClaimSubstantiatorState) -> ClaimSubstantiatorState:
                     title="Invalid Inference",
                     description=validation.rationale,
                     severity=SeverityEnum.MEDIUM,
-                    additional_context=f"Suggested action: {validation.suggested_action}",
                     chunk_index=validation.chunk_index,
                     claim_index=validation.claim_index,
                     claim_category=_find_claim_category(chunk, validation.claim_index),

@@ -1,25 +1,25 @@
 'use client';
 
+import { LabeledValue } from '@/components/labeled-value';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
+import { apiUrl } from '@/lib/api';
 import {
   BibliographyItem,
   ClaimSubstantiationResultWithClaimIndex,
-  FileDocument,
+  FileDocumentOutput,
   RetrievedPassageInfo,
 } from '@/lib/generated-api';
 import { cn } from '@/lib/utils';
-import { ChevronDown, ChevronRight, FileSearch, BookOpen, Database } from 'lucide-react';
+import { BookOpen, ChevronDown, ChevronRight, FileSearch } from 'lucide-react';
+import Link from 'next/link';
 import { useState } from 'react';
 import { EvidenceAlignmentLevelBadge } from './evidence-alignment-level-badge';
-import Link from 'next/link';
-import { apiUrl } from '@/lib/api';
-import { LabeledValue } from '@/components/labeled-value';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
 interface SubstantiationResultsProps {
   substantiation: ClaimSubstantiationResultWithClaimIndex;
   references: BibliographyItem[];
-  supportingFiles: FileDocument[];
+  supportingFiles: FileDocumentOutput[];
   retrievedPassages?: RetrievedPassageInfo[];
   className?: string;
 }
@@ -121,7 +121,7 @@ export function SubstantiationResults({
           )}
 
           {/* RAG-Based Evidence Section */}
-          {hasRagEvidence && (
+          {/* {hasRagEvidence && (
             <div className="space-y-2">
               <Accordion type="single" collapsible defaultValue="rag-based">
                 <AccordionItem value="rag-based" className="border rounded-md px-3">
@@ -146,7 +146,7 @@ export function SubstantiationResults({
                 </AccordionItem>
               </Accordion>
             </div>
-          )}
+          )} */}
 
           {!hasCitationBasedEvidence && !hasRagEvidence && (
             <p className="text-muted-foreground text-sm">No evidence sources found.</p>

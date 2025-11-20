@@ -1,6 +1,6 @@
 import { Markdown } from '@/components/markdown';
 import type { ClaimSubstantiatorStateOutput, DocumentChunkOutput } from '@/lib/generated-api';
-import { getSeverity } from '@/lib/severity';
+import { getMaxChunkSeverity } from '@/lib/severity';
 import { cn } from '@/lib/utils';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { useEffect, useMemo, useRef } from 'react';
@@ -139,7 +139,7 @@ export function DocumentReconstructorChunkGroup({
     const wrappedChunks = chunks
       .map((chunk) => {
         const content = extractChunkContent(chunk.content, blockPrefix);
-        const severity = getSeverity(results, chunk);
+        const severity = getMaxChunkSeverity(results, chunk);
         return `<span data-chunk-index="${chunk.chunkIndex}" data-severity="${severity}">${content}</span>`;
       })
       .join(' ');

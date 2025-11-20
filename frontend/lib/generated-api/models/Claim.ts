@@ -37,6 +37,12 @@ export interface Claim {
    * @memberof Claim
    */
   rationale: string;
+  /**
+   * Whether the claim is central to the argument of the document
+   * @type {boolean}
+   * @memberof Claim
+   */
+  central: boolean;
 }
 
 /**
@@ -46,6 +52,7 @@ export function instanceOfClaim(value: object): value is Claim {
   if (!('text' in value) || value['text'] === undefined) return false;
   if (!('claim' in value) || value['claim'] === undefined) return false;
   if (!('rationale' in value) || value['rationale'] === undefined) return false;
+  if (!('central' in value) || value['central'] === undefined) return false;
   return true;
 }
 
@@ -61,6 +68,7 @@ export function ClaimFromJSONTyped(json: any, ignoreDiscriminator: boolean): Cla
     text: json['text'],
     claim: json['claim'],
     rationale: json['rationale'],
+    central: json['central'],
   };
 }
 
@@ -77,5 +85,6 @@ export function ClaimToJSONTyped(value?: Claim | null, ignoreDiscriminator: bool
     text: value['text'],
     claim: value['claim'],
     rationale: value['rationale'],
+    central: value['central'],
   };
 }
