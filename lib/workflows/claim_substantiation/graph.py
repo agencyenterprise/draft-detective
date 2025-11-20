@@ -115,12 +115,11 @@ def build_claim_substantiator_graph(
     graph.add_edge("prepare_documents", "split_into_chunks")
     graph.add_edge("split_into_chunks", "extract_references")
     graph.add_edge("split_into_chunks", "extract_claims")
-    graph.add_edge("extract_claims", "categorize_claims")
 
     # Live reports edges
     if run_live_reports:
         graph.add_edge("extract_references", "generate_live_reports_analysis")
-        graph.add_edge("categorize_claims", "generate_live_reports_analysis")
+        graph.add_edge("extract_claims", "generate_live_reports_analysis")
         graph.add_edge("generate_live_reports_analysis", "generate_addendum_report")
         graph.set_finish_point("generate_addendum_report")
 
@@ -131,6 +130,7 @@ def build_claim_substantiator_graph(
             graph.add_edge("prepare_documents", "index_supporting_documents")
             graph.add_edge("index_supporting_documents", "verify_claims")
 
+        graph.add_edge("extract_claims", "categorize_claims")
         graph.add_edge("categorize_claims", "verify_claims")
         graph.add_edge("detect_citations", "verify_claims")
         graph.add_edge("categorize_claims", "validate_inferences")
