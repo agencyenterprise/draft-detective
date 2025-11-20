@@ -11,6 +11,7 @@ import { DocumentIssuesList } from '../components/document-issues-list';
 import { DocumentReconstructor } from '../components/document-reconstructor';
 import { DoclingViewer } from '../components/docling-viewer';
 import { ErrorsCard } from '../components/errors-card';
+import { AiGeneratedLabel } from '@/components/ai-generated-label';
 
 interface DocumentExplorerTabProps {
   results: ClaimSubstantiatorStateSummary;
@@ -135,9 +136,16 @@ export function DocumentExplorerTab({
               </Card>
             )}
 
-            {!selectedChunk && <DocumentIssuesList issues={issues} onSelect={handleSelectIssue} />}
+            {!selectedChunk && (
+              <div className="space-y-2">
+                <div className="flex justify-end">
+                  <AiGeneratedLabel />
+                </div>
+                <DocumentIssuesList issues={issues} onSelect={handleSelectIssue} />
+              </div>
+            )}
 
-            {selectedChunk && (
+            {selectedChunk && selectedChunkIndex !== null && (
               <ChunkSidebarContent
                 results={results}
                 chunkIndex={selectedChunkIndex}

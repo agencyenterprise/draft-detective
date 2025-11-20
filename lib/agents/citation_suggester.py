@@ -7,9 +7,8 @@ from pydantic import BaseModel, Field
 
 from lib.agents.literature_review import ReferenceType
 from lib.config.llm_models import gpt_5_model
-from lib.models.agent import AgentProtocol
-from lib.services.openai import ensure_structured_output_response, get_openai_client
-from lib.workflows.claim_substantiation.context import ContextSchema
+from lib.models.agent import LangChainAgent, DirectOpenAIAgent
+from lib.services.openai import ensure_structured_output_response
 
 
 class RecommendedAction(str, Enum):
@@ -179,14 +178,11 @@ search for additional references. Use the literature review report as a guide to
 )
 
 
-class CitationSuggesterAgent(AgentProtocol):
-    name: str = "Citation Suggester"
-    description: str = (
-        "Review a chunk of text against RAND attribution guidelines to identify missing citations and recommend high-quality sources for proper attribution compliance"
-    )
-
-    def __init__(self, context: ContextSchema):
-        self.client = get_openai_client(context)
+class CitationSuggesterAgent(DirectOpenAIAgent):
+    name = "Citation Suggester"
+    description = "Review a chunk of text against RAND attribution guidelines to identify missing citations and recommend high-quality sources for proper attribution compliance"
+    model = gpt_5_model
+    temperature = 0.5
 
     async def ainvoke(
         self,
@@ -197,7 +193,7 @@ class CitationSuggesterAgent(AgentProtocol):
         input = [{"role": "user", "content": prompt.text}]
 
         response = await self.client.responses.parse(
-            model=gpt_5_model.name,
+            model=self.model.name,
             tools=[{"type": "web_search"}],
             max_tool_calls=20,
             # reasoning={

@@ -1,11 +1,9 @@
-from langchain.chat_models import init_chat_model
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
 
 from lib.config.llm_models import gpt_5_mini_model
-from lib.models.agent import DEFAULT_LLM_TIMEOUT, AgentProtocol
-from lib.workflows.claim_substantiation.context import ContextSchema
+from lib.models.agent import LangChainAgent
 
 
 class BibliographyItem(BaseModel):
@@ -52,17 +50,12 @@ For each bibliographic item, you need to return the following information:
 )
 
 
-class ReferenceExtractorAgent(AgentProtocol):
+class ReferenceExtractorAgent(LangChainAgent):
     name = "Reference Extractor"
     description = "Extract bibliographic items from a document"
-
-    def __init__(self, context: ContextSchema):
-        self.llm = init_chat_model(
-            gpt_5_mini_model.model_name,
-            temperature=0.0,
-            timeout=DEFAULT_LLM_TIMEOUT,
-            api_key=context.openai_api_key,
-        ).with_structured_output(ReferenceExtractorResponse)
+    model = gpt_5_mini_model
+    temperature = 0.0
+    output_schema = ReferenceExtractorResponse
 
     async def ainvoke(
         self,

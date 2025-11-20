@@ -157,8 +157,7 @@ def build_claim_substantiator_graph(
     # Live reports runs in parallel and is NOT dependent on suggest_citations
     # Keep it downstream of verify_claims to ensure claims/citations/references exist
     if run_live_reports:
-        graph.add_edge("verify_claims", "generate_live_reports_analysis")
-        graph.add_edge("validate_inferences", "generate_live_reports_analysis")
+        graph.add_edge("extract_claims", "generate_live_reports_analysis")
         graph.add_edge("generate_live_reports_analysis", "generate_addendum_report")
 
     # Finalize/join node to allow parallel branches to complete

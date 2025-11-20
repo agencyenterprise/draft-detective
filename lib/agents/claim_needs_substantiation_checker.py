@@ -1,11 +1,9 @@
-from langchain.chat_models import init_chat_model
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
 
 from lib.config.llm_models import gpt_5_model
-from lib.models.agent import DEFAULT_LLM_TIMEOUT, AgentProtocol
-from lib.workflows.claim_substantiation.context import ContextSchema
+from lib.models.agent import LangChainAgent
 
 
 class ClaimCommonKnowledgeResult(BaseModel):
@@ -97,19 +95,14 @@ When assessing a claim, prioritize evidence and reasoning contained within or ne
 )
 
 
-class ClaimNeedsSubstantiationCheckerAgent(AgentProtocol):
+class ClaimNeedsSubstantiationCheckerAgent(LangChainAgent):
     name = "Claim Needs Substantiation Checker"
     description = (
         "Check if a claim needs to be substantiated or not (common knowledge etc)"
     )
-
-    def __init__(self, context: ContextSchema):
-        self.llm = init_chat_model(
-            gpt_5_model.model_name,
-            temperature=0.2,
-            timeout=DEFAULT_LLM_TIMEOUT,
-            api_key=context.openai_api_key,
-        ).with_structured_output(ClaimCommonKnowledgeResult)
+    model = gpt_5_model
+    temperature = 0.2
+    output_schema = ClaimCommonKnowledgeResult
 
     async def ainvoke(
         self, prompt_kwargs: dict, config: RunnableConfig = None

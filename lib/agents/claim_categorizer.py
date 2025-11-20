@@ -22,15 +22,13 @@ The categories are:
 """
 from __future__ import annotations
 
-from langchain.chat_models import init_chat_model
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
 
 from lib.agents.models import ClaimCategory
 from lib.config.llm_models import gpt_5_model
-from lib.models.agent import DEFAULT_LLM_TIMEOUT, AgentProtocol
-
+from lib.models.agent import LangChainAgent
 from lib.workflows.claim_substantiation.context import ContextSchema
 
 # =========================
@@ -194,17 +192,12 @@ with ONE of SIX categories and to determine if it needs EXTERNAL VERIFICATION.
 )
 
 
-class ClaimCategorizerAgent(AgentProtocol):
-    name: str = "Claim Categorizer"
-    description: str = "Categorize a claim into one of the six categories"
-
-    def __init__(self, context: ContextSchema):
-        self.llm = init_chat_model(
-            gpt_5_model.model_name,
-            temperature=0.2,
-            timeout=DEFAULT_LLM_TIMEOUT,
-            api_key=context.openai_api_key,
-        ).with_structured_output(ClaimCategorizationResponse)
+class ClaimCategorizerAgent(LangChainAgent):
+    name = "Claim Categorizer"
+    description = "Categorize a claim into one of the six categories"
+    model = gpt_5_model
+    temperature = 0.2
+    output_schema = ClaimCategorizationResponse
 
     async def ainvoke(
         self, prompt_kwargs: dict, config: RunnableConfig = None
@@ -215,9 +208,10 @@ class ClaimCategorizerAgent(AgentProtocol):
 
 if __name__ == "__main__":
     import asyncio
-    from lib.config.env import config
 
     import nest_asyncio
+
+    from lib.config.env import config
 
     nest_asyncio.apply()
     # Test cases with expected vs inferred categorizations

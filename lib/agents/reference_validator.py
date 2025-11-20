@@ -5,25 +5,17 @@ Validates the list of references in a document, by searching for their online pr
 """
 from __future__ import annotations
 
-
 from enum import Enum
-
+from typing import List
 
 from langchain_core.prompts import PromptTemplate
 from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
-from typing import List
-from lib.services.openai import (
-    get_openai_client,
-    wait_for_response,
-    ensure_structured_output_response,
-)
-from lib.config.llm_models import gpt_5_mini_model, gpt_5_model
-from lib.models.agent import AgentProtocol
-from lib.workflows.claim_substantiation.context import ContextSchema
-from lib.agents.reference_extractor import (
-    BibliographyItem,
-)
+
+from lib.agents.reference_extractor import BibliographyItem
+from lib.config.llm_models import gpt_5_mini_model
+from lib.models.agent import DirectOpenAIAgent
+from lib.services.openai import ensure_structured_output_response, wait_for_response
 
 
 class FieldProblemType(str, Enum):
@@ -111,14 +103,12 @@ Return one JSON object matching the schema exactly.
 )
 
 
-class ReferenceValidatorAgent(AgentProtocol):
-    name: str = "Reference Validator"
-    description: str = (
-        "Validate a list of references in a document, by searching for their online presence."
-    )
-
-    def __init__(self, context: ContextSchema):
-        self.client = get_openai_client(context)
+class ReferenceValidatorAgent(DirectOpenAIAgent):
+    name = "Reference Validator"
+    description = "Validate a list of references in a document, by searching for their online presence."
+    model = gpt_5_mini_model
+    temperature = 0.5
+    output_schema = BibliographyValidationResponse
 
     async def ainvoke(
         self,
@@ -129,7 +119,7 @@ class ReferenceValidatorAgent(AgentProtocol):
         input = [{"role": "user", "content": prompt.text}]
 
         response = await self.client.responses.parse(
-            model=gpt_5_mini_model.name,
+            model=self.model.name,
             tools=[{"type": "web_search"}],
             max_tool_calls=20,
             reasoning={
@@ -152,6 +142,7 @@ class ReferenceValidatorAgent(AgentProtocol):
 # %%
 if __name__ == "__main__":
     import asyncio
+
     from lib.config.env import config
 
     # Test cases for reference validation

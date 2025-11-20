@@ -1,18 +1,18 @@
 'use client';
 
+import { LabeledValue } from '@/components/labeled-value';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   BibliographyItem,
   BibliographyItemValidationOutput,
   ClaimSubstantiatorStateSummary,
-  FileDocument,
+  FileDocumentOutput,
 } from '@/lib/generated-api';
 import { ChevronDownIcon, ChevronRightIcon, FileText } from 'lucide-react';
 import * as React from 'react';
-import { TabWithLoadingStates } from './tab-with-loading-states';
-import { LabeledValue } from '@/components/labeled-value';
 import { humanizeLabel } from './literature-review-tab/utils';
+import { TabWithLoadingStates } from './tab-with-loading-states';
 
 interface ReferencesTabProps {
   results: ClaimSubstantiatorStateSummary;
@@ -22,7 +22,7 @@ interface ReferencesTabProps {
 interface ReferenceItemProps {
   reference: BibliographyItem;
   validation?: BibliographyItemValidationOutput;
-  supportingFiles?: FileDocument[] | null;
+  supportingFiles?: FileDocumentOutput[] | null;
 }
 
 function ReferenceItem({ reference, validation, supportingFiles }: ReferenceItemProps) {

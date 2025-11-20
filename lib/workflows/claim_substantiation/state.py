@@ -6,8 +6,6 @@ from typing import Annotated, Dict, List, Optional, Union
 from pydantic import BaseModel, Field
 
 from lib.agents.addendum_report_generator import ReportOutput
-
-# Agent response models
 from lib.agents.citation_detector import CitationResponse
 from lib.agents.citation_suggester import CitationSuggestionResultWithClaimIndex
 from lib.agents.claim_categorizer import ClaimCategorizationResponseWithClaimIndex
@@ -24,12 +22,8 @@ from lib.agents.models import ChunkWithIndex, ClaimCategory
 from lib.agents.reference_extractor import BibliographyItem
 from lib.agents.reference_validator import BibliographyItemValidation
 from lib.agents.toulmin_claim_extractor import ToulminClaimResponse
-
-# Service models
-from lib.services.file import FileDocument
 from lib.services.docling_models import ChunkToItems
-
-# Workflow models
+from lib.services.file import FileDocument
 from lib.workflows.models import WorkflowError
 
 
@@ -167,7 +161,6 @@ def conciliate_chunks(
 
                 merged_data[field] = updated_value
 
-            # Create the merged chunk
             chunks_by_index[updated_chunk.chunk_index] = DocumentChunk(**merged_data)
 
     # Return chunks in order by chunk_index
@@ -213,10 +206,6 @@ class DocumentIssue(BaseModel):
     title: str = Field(description="The title of the issue")
     description: str = Field(description="The description of the issue")
     severity: SeverityEnum = Field(description="The severity of the issue")
-    additional_context: Optional[str] = Field(
-        description="A longer explanation for the description of the issue and/or context of the issue",
-        default=None,
-    )
     chunk_index: Optional[int] = Field(
         description="The index of the chunk that contains the issue", default=None
     )

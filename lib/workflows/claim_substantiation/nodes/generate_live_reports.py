@@ -75,11 +75,25 @@ async def _analyze_chunk_live_reports(
     live_reports_analysis_results = []
 
     for claim_index, claim in enumerate(chunk.claims.claims):
+        # Skip non-central claims - only analyze central claims for live reports
+        # Note: ToulminClaim doesn't have a central field, so we process all Toulmin claims
+        if hasattr(claim, "central") and not claim.central:
+            logger.debug(
+                "Skipping live reports analysis for chunk %s, claim %s: claim is not central",
+                chunk.chunk_index,
+                claim_index,
+            )
+            continue
+
         try:
             # Step 1: Find newer literature
             literature_review_result = await live_literature_review_agent.ainvoke(
                 {
-                    "full_document": state.file.markdown,
+                    "document_summary": (
+                        state.main_document_summary.summary
+                        if state.main_document_summary
+                        else ""
+                    ),
                     "paragraph": state.get_paragraph(chunk.paragraph_index),
                     "claim": claim.claim,
                     "document_publication_date": state.config.document_publication_date.isoformat(),
@@ -92,7 +106,11 @@ async def _analyze_chunk_live_reports(
             # Step 2: Analyze evidence strength and direction and update recommendations
             live_reports_analysis_result = await evidence_weighter_agent.ainvoke(
                 {
-                    "full_document": state.file.markdown,
+                    "document_summary": (
+                        state.main_document_summary.summary
+                        if state.main_document_summary
+                        else ""
+                    ),
                     "cited_references": (
                         chunk.citations.citations if chunk.citations else []
                     ),

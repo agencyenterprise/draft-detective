@@ -5,10 +5,10 @@ from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
 
 from lib.agents.live_literature_review import ClaimReferenceFactors, QualityLevel
-from lib.config.llm_models import gpt_5_model
-from lib.models.agent import AgentProtocol
-from lib.services.openai import ensure_structured_output_response, get_openai_client
-from lib.workflows.claim_substantiation.context import ContextSchema
+from lib.services.openai import ensure_structured_output_response
+from lib.config.llm_models import gpt_5_mini_model
+from lib.models.agent import DirectOpenAIAgent
+from lib.services.openai import ensure_structured_output_response
 
 
 # applies to the claim
@@ -57,10 +57,9 @@ _evidence_weighter_agent_prompt = PromptTemplate.from_template(
 You are an expert research evidence analyst specializing in evaluating the strength, quality, and direction of sources that are relevant to claims in research document.
 
 # Goal
-You will be given a new literature review report that contains the newer sources that have been found recently for a claim. Analyze this collection of newer sources to determine the overall evidence direction and strength for a specific claim, considering source quality, methodology, and potential biases. Importantly state whether the newer sources override the older ones in supporting, contextualizing, or conflicting with the claim.
+You will be given a new literature review report that contains the newer sources that have been found recently for a claim. Analyze this collection of newer sources to determine the overall evidence direction and strength for a specific claim, considering source quality, methodology, and potential biases. Importantly state whether the newer sources override the older ones in supporting, contextualizing, or conflicting with the claim. As additional context, you will also be given the argument summary of the document, the paragraph containing the claim, the specific chunk containing the claim, and the original claim being analyzed.
 
 # Analysis Framework
-
 From the existing sources that are cited to support the claim and the newer sources that have been found recently for the claim, analyze the sources to determine the overall evidence direction and strength for a specific claim, considering source quality, methodology, and potential biases. Importantly state whether the newer sources override the existing sources in supporting, contextualizing, or conflicting with the claim.
 
 ## Claim Classification Guidelines
@@ -115,9 +114,9 @@ Here are the contextual details:
 **Domain**: {domain_context}
 **Target Audience**: {audience_context}
 
-## The full document that contains the claim
+## The argument summary of the document
 ```
-{full_document}
+{document_summary}
 ```
 
 ## The list of references already cited in this chunk of text to support the claim and their associated supporting document (if any)
@@ -154,14 +153,12 @@ Here are the contextual details:
 )
 
 
-class EvidenceWeighterAgent(AgentProtocol):
-    name: str = "Evidence Weighter"
-    description: str = (
-        "Analyze and weight evidence from multiple sources to determine overall direction and strength"
-    )
-
-    def __init__(self, context: ContextSchema):
-        self.client = get_openai_client(context)
+class EvidenceWeighterAgent(DirectOpenAIAgent):
+    name = "Evidence Weighter"
+    description = "Analyze and weight evidence from multiple sources to determine overall direction and strength"
+    model = gpt_5_mini_model
+    temperature = 0.5
+    output_schema = EvidenceWeighterResponse
 
     async def ainvoke(
         self,
@@ -172,7 +169,7 @@ class EvidenceWeighterAgent(AgentProtocol):
         input = [{"role": "user", "content": prompt.text}]
 
         response = await self.client.responses.parse(
-            model=gpt_5_model.name,
+            model=self.model.name,
             tools=[{"type": "web_search"}],
             max_tool_calls=20,
             # reasoning={

@@ -1,25 +1,25 @@
 'use client';
 
+import { LabeledValue } from '@/components/labeled-value';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
+import { apiUrl } from '@/lib/api';
 import {
   BibliographyItem,
   ClaimSubstantiationResultWithClaimIndex,
-  FileDocument,
+  FileDocumentOutput,
   RetrievedPassageInfo,
 } from '@/lib/generated-api';
 import { cn } from '@/lib/utils';
-import { ChevronDown, ChevronRight, FileSearch, BookOpen, Database } from 'lucide-react';
+import { BookOpen, ChevronDown, ChevronRight, FileSearch } from 'lucide-react';
+import Link from 'next/link';
 import { useState } from 'react';
 import { EvidenceAlignmentLevelBadge } from './evidence-alignment-level-badge';
-import Link from 'next/link';
-import { apiUrl } from '@/lib/api';
-import { LabeledValue } from '@/components/labeled-value';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
 interface SubstantiationResultsProps {
   substantiation: ClaimSubstantiationResultWithClaimIndex;
   references: BibliographyItem[];
-  supportingFiles: FileDocument[];
+  supportingFiles: FileDocumentOutput[];
   retrievedPassages?: RetrievedPassageInfo[];
   className?: string;
 }
@@ -113,34 +113,6 @@ export function SubstantiationResults({
                           </div>
                         );
                       })}
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
-              </Accordion>
-            </div>
-          )}
-
-          {/* RAG-Based Evidence Section */}
-          {hasRagEvidence && (
-            <div className="space-y-2">
-              <Accordion type="single" collapsible defaultValue="rag-based">
-                <AccordionItem value="rag-based" className="border rounded-md px-3">
-                  <AccordionTrigger className="text-sm font-medium hover:no-underline">
-                    <div className="flex items-center gap-2">
-                      <Database className="h-4 w-4" />
-                      Retrieved Evidence ({retrievedPassages.length} passages)
-                    </div>
-                  </AccordionTrigger>
-                  <AccordionContent>
-                    <div className="space-y-3 mt-2">
-                      {retrievedPassages.map((passage, idx) => (
-                        <div key={idx} className="border-l-2 border-gray-300 pl-3 py-2 bg-muted/50 rounded">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="text-xs font-medium text-gray-700">{passage.sourceFile}</span>
-                          </div>
-                          <p className="text-sm text-gray-600">{passage.content}</p>
-                        </div>
-                      ))}
                     </div>
                   </AccordionContent>
                 </AccordionItem>

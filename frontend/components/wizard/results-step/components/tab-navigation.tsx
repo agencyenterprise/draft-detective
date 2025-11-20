@@ -15,7 +15,7 @@ export function TabNavigation({ activeTab, onTabChange }: TabNavigationProps) {
         <button
           key={tab}
           onClick={() => onTabChange(tab)}
-          className={`flex-1 px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+          className={`flex-1 px-4 py-1.5 text-sm font-medium rounded-md transition-colors whitespace-nowrap cursor-pointer ${
             activeTab === tab
               ? 'bg-background text-foreground shadow-sm'
               : 'text-muted-foreground hover:text-foreground'

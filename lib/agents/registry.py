@@ -20,7 +20,7 @@ from lib.agents.literature_review import LiteratureReviewAgent
 from lib.agents.live_literature_review import LiveLiteratureReviewAgent
 from lib.agents.reference_extractor import ReferenceExtractorAgent
 from lib.agents.reference_validator import ReferenceValidatorAgent
-from lib.models.agent import AgentProtocol
+from lib.models.agent import BaseAgent
 from lib.workflows.claim_substantiation.context import ContextSchema
 
 logger = logging.getLogger(__name__)
@@ -29,7 +29,12 @@ logger = logging.getLogger(__name__)
 class AgentInfo:
     """Information about a registered agent"""
 
-    def __init__(self, agent_type: str, agent: AgentProtocol, description: str):
+    def __init__(
+        self,
+        agent_type: str,
+        agent: BaseAgent,
+        description: str,
+    ):
         self.agent_type = agent_type
         self.agent = agent
         self.description = description
@@ -48,13 +53,18 @@ class AgentRegistry:
     def __init__(self):
         self._agents: Dict[str, AgentInfo] = {}
 
-    def register(self, agent_type: str, agent: AgentProtocol, description: str) -> None:
+    def register(
+        self,
+        agent_type: str,
+        agent: BaseAgent,
+        description: str,
+    ) -> None:
         """
         Register an agent with the registry
 
         Args:
             agent_type: String identifier for the agent (e.g., "claims", "citations")
-            agent: The AgentProtocol instance
+            agent: Agent instance (LangChainAgent or DirectOpenAIAgent)
             description: Human-readable description
         """
         if agent_type in self._agents:
@@ -67,7 +77,7 @@ class AgentRegistry:
         self._agents[agent_type] = agent_info
         logger.info(f"Registered agent: {agent_type} -> {agent.name}")
 
-    def get_agent(self, agent_type: str) -> AgentProtocol:
+    def get_agent(self, agent_type: str) -> BaseAgent:
         """Get an agent by type"""
         if agent_type not in self._agents:
             raise ValueError(

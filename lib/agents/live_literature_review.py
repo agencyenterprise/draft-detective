@@ -8,9 +8,9 @@ from lib.agents.literature_review import (
     ReferenceDirection,
     ReferenceType,
 )
-from lib.config.llm_models import gpt_5_model
-from lib.models.agent import AgentProtocol
-from lib.services.openai import ensure_structured_output_response, get_openai_client
+from lib.config.llm_models import gpt_5_mini_model
+from lib.models.agent import DirectOpenAIAgent
+from lib.services.openai import ensure_structured_output_response
 from lib.workflows.claim_substantiation.context import ContextSchema
 
 
@@ -64,7 +64,7 @@ _live_literature_review_agent_prompt = PromptTemplate.from_template(
 You are an expert literature review researcher specializing in finding newer evidence that could update or contextualize existing claims in academic and policy documents.
 
 # Goal
-Given a claim from a document and the document's publication date, find newer literature (published after the document's publication date) that provides supporting, conflicting, or contextual evidence for the claim.
+Given a claim from a document and the document's publication date, find newer literature (published after the document's publication date) that provides supporting, conflicting, or contextual evidence for the claim. As additional context, you will also be given the argument summary of the document, the paragraph containing the claim, the specific chunk containing the claim, and the original claim being analyzed.
 
 # Instructions
 1. **Search Strategy**: Use web search to find recent literature published AFTER the document's publication date ({document_publication_date})
@@ -121,6 +121,7 @@ Provide each piece of evidence related to a claim with one of the following qual
 - In the rationale, explain why the source is relevant to the claim and why it has this quality level, in a maximum of THREE sentences.
 
 # Search Guidelines
+- ONLY search for literature published AFTER the document's publication date ({document_publication_date}); Do not present sources that are older than the document's publication date.
 - Use specific search terms related to the claim's key concepts
 - If a reference is already cited in the document, then do not include it in the newer references
 - Include variations of terminology and synonyms
@@ -136,9 +137,9 @@ When generating responses, remove or replace all internal citation tokens such a
 **Target Audience**: {audience_context}
 **Document Publication Date**: {document_publication_date}
 
-## The full document that contains the claim
+## The argument summary of the document
 ```
-{full_document}
+{document_summary}
 ```
 
 ## The paragraph containing the claim
@@ -159,14 +160,14 @@ When generating responses, remove or replace all internal citation tokens such a
 )
 
 
-class LiveLiteratureReviewAgent(AgentProtocol):
-    name: str = "Live Literature Review Researcher"
-    description: str = (
+class LiveLiteratureReviewAgent(DirectOpenAIAgent):
+    name = "Live Literature Review Researcher"
+    description = (
         "Find newer literature that could update or contextualize existing claims"
     )
-
-    def __init__(self, context: ContextSchema):
-        self.client = get_openai_client(context)
+    model = gpt_5_mini_model
+    temperature = 0.5
+    output_schema = LiveLiteratureReviewResponse
 
     async def ainvoke(
         self,
@@ -177,7 +178,7 @@ class LiveLiteratureReviewAgent(AgentProtocol):
         input = [{"role": "user", "content": prompt.text}]
 
         response = await self.client.responses.parse(
-            model=gpt_5_model.name,
+            model=self.model.name,
             tools=[{"type": "web_search"}],
             max_tool_calls=20,
             # reasoning={

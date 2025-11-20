@@ -13,7 +13,7 @@ from deepdiff import DeepDiff
 
 
 from lib.config.langfuse import langfuse_handler
-from lib.models.agent import AgentProtocol
+from lib.models.agent import BaseAgent
 from lib.models.field_comparator import FieldComparator
 from lib.models.comparison_models import FieldComparison
 
@@ -47,7 +47,7 @@ class AgentTestCase(BaseModel):
     _shared_session_id: Optional[str] = None
 
     name: str
-    agent: AgentProtocol
+    agent: BaseAgent
     response_model: Type[TResponse]
     prompt_kwargs: Dict[str, Any]
 

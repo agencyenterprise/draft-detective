@@ -20,31 +20,31 @@ import { mapValues } from '../runtime';
  */
 export interface DocumentSummary {
   /**
-   * The title of the document
+   * The title of the document. Suggest a clear, concise title if the document does not have one.
    * @type {string}
    * @memberof DocumentSummary
    */
   title: string;
   /**
-   * The authors of the document (if available, otherwise empty string)
+   * The authors of the document (if available, otherwise empty string).
    * @type {string}
    * @memberof DocumentSummary
    */
   authors: string;
   /**
-   * The publication date of the document, or 'Unknown' if not available
+   * The publication date of the document, or 'Unknown' if not available.
    * @type {string}
    * @memberof DocumentSummary
    */
   publicationDate: string;
   /**
-   * The abstract of the document, or 'Unknown' if not available
+   * The abstract of the document, or 'Unknown' if not available.
    * @type {string}
    * @memberof DocumentSummary
    */
   _abstract: string;
   /**
-   * A brief summary of the document in less than 2000 words. Make sure to include the main takeaways of the document.
+   * A ~1000-word miniature version of the document (roughly 900–1100 words) that focuses on the main argument of the work. It should read like a compressed research report: clearly stating the central question or problem, the main claim/argument, the essential methods or analytical framework, the critical results, and how these results support the argument, while omitting tangential or overly detailed implementation information.
    * @type {string}
    * @memberof DocumentSummary
    */
