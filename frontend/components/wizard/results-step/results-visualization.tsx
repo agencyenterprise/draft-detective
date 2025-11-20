@@ -116,7 +116,7 @@ export function ResultsVisualization({
       </div>
 
       <Card>
-        <CardContent className={activeTab === 'document-explorer' ? 'h-[calc(100vh-16rem)]' : ''}>
+        <CardContent className={activeTab === 'document-explorer' ? 'h-[calc(100vh-17.5rem)]' : ''}>
           {renderActiveTab()}
         </CardContent>
       </Card>
