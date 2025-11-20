@@ -125,57 +125,49 @@ def build_claim_substantiator_graph(
     else:
         graph.add_edge("extract_references", "detect_citations")
     graph.add_edge("split_into_chunks", "extract_claims")
-    graph.add_edge("extract_claims", "categorize_claims")
-    # graph.add_edge("extract_claims", "check_claim_needs_substantiation")
-    graph.add_edge("categorize_claims", "verify_claims")
-    # graph.add_edge("check_claim_needs_substantiation", "verify_claims")
-    graph.add_edge("detect_citations", "verify_claims")
-
-    # Inference validation runs in parallel with verify_claims after categorization
-    graph.add_edge("categorize_claims", "validate_inferences")
-
-    # RAG indexing edge
-    if use_rag:
-        graph.add_edge("prepare_documents", "index_supporting_documents")
-        graph.add_edge("index_supporting_documents", "verify_claims")
-
-    # Literature review (aim 1.a)
-    if run_literature_review:
-        graph.add_edge("prepare_documents", "literature_review")
-
-    # Suggest citations (aim 2.a)
-    # Must wait for ALL processing to complete before suggesting citations
-    if run_suggest_citations:
-        graph.add_edge("prepare_documents", "summarize_supporting_documents")
-        graph.add_edge("verify_claims", "suggest_citations")
-        graph.add_edge("validate_inferences", "suggest_citations")
-        graph.add_edge("summarize_supporting_documents", "suggest_citations")
-        if run_literature_review:
-            graph.add_edge("literature_review", "suggest_citations")
 
     # Live reports runs in parallel and is NOT dependent on suggest_citations
     # Keep it downstream of verify_claims to ensure claims/citations/references exist
     if run_live_reports:
         graph.add_edge("extract_claims", "generate_live_reports_analysis")
         graph.add_edge("generate_live_reports_analysis", "generate_addendum_report")
-
-    # Finalize/join node to allow parallel branches to complete
-    if run_suggest_citations and run_live_reports:
-        graph.add_edge("suggest_citations", "finalize")
-        graph.add_edge("generate_live_reports_analysis", "finalize")
-        graph.add_edge("generate_addendum_report", "finalize")
-        graph.set_finish_point("finalize")
-    elif run_suggest_citations:
-        graph.set_finish_point("suggest_citations")
-    elif run_live_reports:
         graph.set_finish_point("generate_addendum_report")
+
     else:
-        # When no downstream nodes exist, create a finalize node to wait for both
-        # verify_claims and validate_inferences to complete in parallel
-        graph.add_node("finalize", finalize)
-        graph.add_edge("verify_claims", "finalize")
-        graph.add_edge("validate_inferences", "finalize")
-        graph.set_finish_point("finalize")
+        graph.add_edge("extract_claims", "categorize_claims")
+        graph.add_edge("categorize_claims", "verify_claims")
+        graph.add_edge("detect_citations", "verify_claims")
+
+        # Inference validation runs in parallel with verify_claims after categorization
+        graph.add_edge("categorize_claims", "validate_inferences")
+
+        # RAG indexing edge
+        if use_rag:
+            graph.add_edge("prepare_documents", "index_supporting_documents")
+            graph.add_edge("index_supporting_documents", "verify_claims")
+
+        # Literature review (aim 1.a)
+        if run_literature_review:
+            graph.add_edge("prepare_documents", "literature_review")
+
+        # Suggest citations (aim 2.a)
+        # Must wait for ALL processing to complete before suggesting citations
+        if run_suggest_citations:
+            graph.add_edge("prepare_documents", "summarize_supporting_documents")
+            graph.add_edge("verify_claims", "suggest_citations")
+            graph.add_edge("validate_inferences", "suggest_citations")
+            graph.add_edge("summarize_supporting_documents", "suggest_citations")
+            if run_literature_review:
+                graph.add_edge("literature_review", "suggest_citations")
+            graph.set_finish_point("suggest_citations")
+
+        else:
+            # When no downstream nodes exist, create a finalize node to wait for both
+            # verify_claims and validate_inferences to complete in parallel
+            graph.add_node("finalize", finalize)
+            graph.add_edge("verify_claims", "finalize")
+            graph.add_edge("validate_inferences", "finalize")
+            graph.set_finish_point("finalize")
 
     return graph
 
