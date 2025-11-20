@@ -51,6 +51,12 @@ export interface ChunkReevaluationRequest {
    * @memberof ChunkReevaluationRequest
    */
   sessionId: string | null;
+  /**
+   *
+   * @type {string}
+   * @memberof ChunkReevaluationRequest
+   */
+  openaiApiKey?: string | null;
 }
 
 /**
@@ -80,6 +86,7 @@ export function ChunkReevaluationRequestFromJSONTyped(
     agentsToRun: json['agents_to_run'],
     originalState: ClaimSubstantiatorStateInputFromJSON(json['original_state']),
     sessionId: json['session_id'],
+    openaiApiKey: json['openai_api_key'] == null ? undefined : json['openai_api_key'],
   };
 }
 
@@ -100,5 +107,6 @@ export function ChunkReevaluationRequestToJSONTyped(
     agents_to_run: value['agentsToRun'],
     original_state: ClaimSubstantiatorStateInputToJSON(value['originalState']),
     session_id: value['sessionId'],
+    openai_api_key: value['openaiApiKey'],
   };
 }

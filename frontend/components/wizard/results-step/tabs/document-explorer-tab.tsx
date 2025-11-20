@@ -1,31 +1,25 @@
 'use client';
 
+import { AiGeneratedLabel } from '@/components/ai-generated-label';
 import { Card, CardContent } from '@/components/ui/card';
-import { ChunkReevaluationResponse, ClaimSubstantiatorStateSummary, DocumentIssue } from '@/lib/generated-api';
 import { DocRenderMode } from '@/lib/constants';
+import { ClaimSubstantiatorStateSummary, DocumentIssue } from '@/lib/generated-api';
 import { Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ChunkSidebarContent } from '../components/chunk-sidebar-content';
+import { DoclingViewer } from '../components/docling-viewer';
 import { DocumentIssuesList } from '../components/document-issues-list';
 import { DocumentReconstructor } from '../components/document-reconstructor';
-import { DoclingViewer } from '../components/docling-viewer';
 import { ErrorsCard } from '../components/errors-card';
-import { AiGeneratedLabel } from '@/components/ai-generated-label';
 
 interface DocumentExplorerTabProps {
   results: ClaimSubstantiatorStateSummary;
-  onChunkReevaluation: (response: ChunkReevaluationResponse) => void;
   isProcessing?: boolean;
   viewMode: DocRenderMode;
 }
 
-export function DocumentExplorerTab({
-  results,
-  onChunkReevaluation,
-  isProcessing = false,
-  viewMode,
-}: DocumentExplorerTabProps) {
+export function DocumentExplorerTab({ results, isProcessing = false, viewMode }: DocumentExplorerTabProps) {
   const pages = results.file?.doclingPages ?? [];
   const chunkToItems = results.chunkToItems?.mapping ?? {};
 
@@ -145,13 +139,12 @@ export function DocumentExplorerTab({
               </div>
             )}
 
-            {selectedChunk && selectedChunkIndex !== null && (
+            {selectedChunk && selectedChunkIndex !== null && results.workflowRunId && (
               <ChunkSidebarContent
                 results={results}
                 chunkIndex={selectedChunkIndex}
-                workflowRunId={results.workflowRunId ?? undefined}
+                workflowRunId={results.workflowRunId}
                 isWorkflowRunning={isProcessing}
-                onChunkReevaluation={onChunkReevaluation}
                 onSelectIssue={handleSelectIssue}
                 onClearChunkSelection={() => setSelectedChunkIndex(null)}
               />

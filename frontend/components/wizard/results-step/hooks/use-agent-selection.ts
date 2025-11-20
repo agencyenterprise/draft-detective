@@ -14,10 +14,12 @@ export function useAgentSelection({ supportedAgents, supportedAgentsError }: Use
 
   // Initialize with all agents selected when supportedAgents loads
   React.useEffect(() => {
-    if (supportedAgents && selectedAgents.size === 0) {
-      setSelectedAgents(new Set(supportedAgents.supported_agents));
+    if (supportedAgents) {
+      setSelectedAgents((selectedAgents) =>
+        !selectedAgents.size ? new Set(supportedAgents.supported_agents) : selectedAgents,
+      );
     }
-  }, [supportedAgents, selectedAgents.size]);
+  }, [supportedAgents]);
 
   // Update error state when supportedAgentsError changes
   React.useEffect(() => {

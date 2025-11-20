@@ -307,6 +307,9 @@ class ChunkReevaluationRequest(BaseModel):
         description="The original workflow state containing the document and chunks"
     )
     session_id: Optional[str] = Field(description="The session ID for Langfuse tracing")
+    openai_api_key: Optional[str] = Field(
+        default=None, description="OpenAI API key to use for this re-evaluation"
+    )
 
 
 class ChunkReevaluationResponse(BaseModel):
