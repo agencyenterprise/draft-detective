@@ -7,8 +7,7 @@ This eliminates hardcoded agent types throughout the system.
 
 import logging
 from typing import Dict, List
-
-from lib.models.agent import AgentProtocol
+from lib.models.agent import BaseAgent
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +15,12 @@ logger = logging.getLogger(__name__)
 class AgentInfo:
     """Information about a registered agent"""
 
-    def __init__(self, agent_type: str, agent: AgentProtocol, description: str):
+    def __init__(
+        self,
+        agent_type: str,
+        agent: BaseAgent,
+        description: str,
+    ):
         self.agent_type = agent_type
         self.agent = agent
         self.description = description
@@ -35,13 +39,18 @@ class AgentRegistry:
     def __init__(self):
         self._agents: Dict[str, AgentInfo] = {}
 
-    def register(self, agent_type: str, agent: AgentProtocol, description: str) -> None:
+    def register(
+        self,
+        agent_type: str,
+        agent: BaseAgent,
+        description: str,
+    ) -> None:
         """
         Register an agent with the registry
 
         Args:
             agent_type: String identifier for the agent (e.g., "claims", "citations")
-            agent: The AgentProtocol instance
+            agent: Agent instance (LangChainAgent or DirectOpenAIAgent)
             description: Human-readable description
         """
         if agent_type in self._agents:
@@ -54,7 +63,7 @@ class AgentRegistry:
         self._agents[agent_type] = agent_info
         logger.info(f"Registered agent: {agent_type} -> {agent.name}")
 
-    def get_agent(self, agent_type: str) -> AgentProtocol:
+    def get_agent(self, agent_type: str) -> BaseAgent:
         """Get an agent by type"""
         if agent_type not in self._agents:
             raise ValueError(

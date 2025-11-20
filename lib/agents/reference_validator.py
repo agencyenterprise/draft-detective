@@ -19,7 +19,7 @@ from lib.services.openai import (
     ensure_structured_output_response,
 )
 from lib.config.llm_models import gpt_5_mini_model, gpt_5_model
-from lib.models.agent import AgentProtocol
+from lib.models.agent import LangChainAgent, DirectOpenAIAgent
 from lib.agents.reference_extractor import (
     BibliographyItem,
 )
@@ -110,14 +110,13 @@ Return one JSON object matching the schema exactly.
 )
 
 
-class ReferenceValidatorAgent(AgentProtocol):
-    name: str = "Reference Validator"
-    description: str = (
+class ReferenceValidatorAgent(DirectOpenAIAgent):
+    name = "Reference Validator"
+    description = (
         "Validate a list of references in a document, by searching for their online presence."
     )
-
-    def __init__(self):
-        self.client = get_openai_client()
+    model = gpt_5_mini_model
+    temperature = 0.5
 
     async def ainvoke(
         self,
@@ -128,7 +127,7 @@ class ReferenceValidatorAgent(AgentProtocol):
         input = [{"role": "user", "content": prompt.text}]
 
         response = await self.client.responses.parse(
-            model=gpt_5_mini_model.name,
+            model=self.model.name,
             tools=[{"type": "web_search"}],
             max_tool_calls=20,
             reasoning={

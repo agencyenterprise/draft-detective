@@ -1,9 +1,12 @@
+import logging
 from datetime import date
 from enum import StrEnum
 from operator import add
 from typing import Annotated, Dict, List, Optional, Union
 
 from pydantic import BaseModel, Field
+
+logger = logging.getLogger(__name__)
 
 # Agent response models
 from lib.agents.citation_detector import CitationResponse
@@ -163,7 +166,6 @@ def conciliate_chunks(
 
                 merged_data[field] = updated_value
 
-            # Create the merged chunk
             chunks_by_index[updated_chunk.chunk_index] = DocumentChunk(**merged_data)
 
     # Return chunks in order by chunk_index

@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field
 
 from typing import Optional, List
 from lib.config.llm_models import gpt_5_mini_model
-from lib.models.agent import DEFAULT_LLM_TIMEOUT, AgentProtocol
+from lib.models.agent import LangChainAgent
 
 
 class Claim(BaseModel):
@@ -113,16 +113,13 @@ Within the list of claims, you must include the following information for each c
 )
 
 
-class ClaimExtractorAgent(AgentProtocol):
+class ClaimExtractorAgent(LangChainAgent):
     name = "Claim Extractor"
     description = "Extract claims from a chunk of text"
 
-    def __init__(self):
-        self.llm = init_chat_model(
-            gpt_5_mini_model.model_name,
-            temperature=0.5,
-            timeout=DEFAULT_LLM_TIMEOUT,
-        ).with_structured_output(ClaimResponse)
+    model = gpt_5_mini_model
+    temperature = 0.5
+    output_schema = ClaimResponse
 
     async def ainvoke(
         self,
