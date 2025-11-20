@@ -82,8 +82,6 @@ def build_claim_substantiator_graph(
     )
     graph.add_node("detect_citations", detect_citations)
     graph.add_node("extract_references", extract_references)
-    if run_reference_validation:
-        graph.add_node("validate_references", validate_references)
     graph.add_node("categorize_claims", categorize_claims)
     graph.add_node("validate_inferences", validate_inferences)
 
@@ -96,6 +94,8 @@ def build_claim_substantiator_graph(
     graph.add_node("verify_claims", verify_node, defer=True)
 
     # Optional nodes
+    if run_reference_validation:
+        graph.add_node("validate_references", validate_references)
     if run_literature_review:
         graph.add_node("literature_review", literature_review)
     if run_suggest_citations:
@@ -117,12 +117,14 @@ def build_claim_substantiator_graph(
     graph.add_edge("split_into_chunks", "extract_claims")
     graph.add_edge("extract_claims", "categorize_claims")
 
+    # Live reports edges
     if run_live_reports:
         graph.add_edge("extract_references", "generate_live_reports_analysis")
         graph.add_edge("categorize_claims", "generate_live_reports_analysis")
         graph.add_edge("generate_live_reports_analysis", "generate_addendum_report")
         graph.set_finish_point("generate_addendum_report")
 
+    # Peer review edges
     else:
         # RAG indexing edge
         if use_rag:
