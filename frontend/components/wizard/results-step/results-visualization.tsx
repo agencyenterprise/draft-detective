@@ -1,15 +1,13 @@
 'use client';
 
 import { analysisService } from '@/lib/analysis-service';
+import { DocRenderMode } from '@/lib/constants';
 import { downloadFile, generateEvalFilename } from '@/lib/file-download';
 import { ChunkReevaluationResponse, ClaimSubstantiatorStateSummary } from '@/lib/generated-api';
-import { DocRenderMode } from '@/lib/constants';
-import { FileText } from 'lucide-react';
-import * as React from 'react';
-import { Button } from '../../ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../ui/card';
-import { Tooltip, TooltipContent, TooltipTrigger } from '../../ui/tooltip';
 import { TabNavigation } from './components';
+import { AnalysisOptionsMenu } from './components/analysis-options-menu';
+import { ViewModeToggle } from './components/view-mode-toggle';
 import { TabType } from './constants';
 import { useResultsCalculations } from './hooks/use-results-calculations';
 import { FilesTab, LiteratureReviewTab, LiveReportsTab, ReferencesTab, SummaryTab } from './tabs';
@@ -99,29 +97,29 @@ export function ResultsVisualization({
     }
   };
 
+  const isDoclingAvailable = !!(results?.file?.doclingPages && results?.chunkToItems?.mapping);
+
   return (
-    <div className="space-y-6">
-      <TabNavigation activeTab={activeTab} onTabChange={onTabChange} />
+    <div className="space-y-3">
+      <div className="flex flex-col gap-2 md:items-center md:justify-between md:flex-row">
+        <TabNavigation activeTab={activeTab} onTabChange={onTabChange} />
+        <div className="flex items-center gap-1">
+          {activeTab === 'document-explorer' && (
+            <ViewModeToggle
+              onViewModeChange={onViewModeChange}
+              viewMode={viewMode}
+              isDoclingAvailable={isDoclingAvailable}
+            />
+          )}
+          <AnalysisOptionsMenu onSaveAsEvalTest={handleSaveAsEvalTest} />
+        </div>
+      </div>
 
       <Card>
         <CardContent className={activeTab === 'document-explorer' ? 'h-[calc(100vh-16rem)]' : ''}>
           {renderActiveTab()}
         </CardContent>
       </Card>
-
-      <div className="flex justify-end">
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button onClick={handleSaveAsEvalTest} variant="outline" size="sm" className="gap-2">
-              <FileText className="h-4 w-4" />
-              Save all as Eval Test
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Generate evaluation test cases from these results for testing agents</p>
-          </TooltipContent>
-        </Tooltip>
-      </div>
     </div>
   );
 }
