@@ -137,17 +137,15 @@ def build_claim_substantiator_graph(
         graph.set_finish_point("generate_addendum_report")
 
     else:
-        graph.add_edge("extract_claims", "categorize_claims")
-        graph.add_edge("categorize_claims", "verify_claims")
-        graph.add_edge("detect_citations", "verify_claims")
-
-        # Inference validation runs in parallel with verify_claims after categorization
-        graph.add_edge("categorize_claims", "validate_inferences")
-
         # RAG indexing edge
         if use_rag:
             graph.add_edge("prepare_documents", "index_supporting_documents")
             graph.add_edge("index_supporting_documents", "verify_claims")
+
+        graph.add_edge("extract_claims", "categorize_claims")
+        graph.add_edge("categorize_claims", "verify_claims")
+        graph.add_edge("detect_citations", "verify_claims")
+        graph.add_edge("categorize_claims", "validate_inferences")
 
         # Literature review (aim 1.a)
         if run_literature_review:
