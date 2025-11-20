@@ -197,14 +197,14 @@ Return one JSON object matching the required schema exactly.
 
 
 class AddendumReportGeneratorAgent(LangChainAgent):
-    name: str = "Addendum Report Generator"
-    description: str = (
+    name = "Addendum Report Generator"
+    description = (
         "Aggregate live reports and produce a markdown formatted addendum report"
     )
 
     model = gpt_5_model
     temperature = 0.2
-    schema = ReportOutput
+    output_schema = ReportOutput
 
     async def ainvoke(
         self, prompt_kwargs: dict, config: RunnableConfig = None

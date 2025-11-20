@@ -154,10 +154,8 @@ Here are the contextual details:
 
 
 class EvidenceWeighterAgent(DirectOpenAIAgent):
-    name: str = "Evidence Weighter"
-    description: str = (
-        "Analyze and weight evidence from multiple sources to determine overall direction and strength"
-    )
+    name = "Evidence Weighter"
+    description = "Analyze and weight evidence from multiple sources to determine overall direction and strength"
     model = gpt_5_mini_model
     temperature = 0.5
 

@@ -119,7 +119,7 @@ class ClaimExtractorAgent(LangChainAgent):
 
     model = gpt_5_mini_model
     temperature = 0.5
-    schema = ClaimResponse
+    output_schema = ClaimResponse
 
     async def ainvoke(
         self,

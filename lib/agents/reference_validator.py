@@ -111,8 +111,8 @@ Return one JSON object matching the schema exactly.
 
 
 class ReferenceValidatorAgent(DirectOpenAIAgent):
-    name: str = "Reference Validator"
-    description: str = (
+    name = "Reference Validator"
+    description = (
         "Validate a list of references in a document, by searching for their online presence."
     )
     model = gpt_5_mini_model
@@ -127,7 +127,7 @@ class ReferenceValidatorAgent(DirectOpenAIAgent):
         input = [{"role": "user", "content": prompt.text}]
 
         response = await self.client.responses.parse(
-            model=gpt_5_mini_model.name,
+            model=self.model.name,
             tools=[{"type": "web_search"}],
             max_tool_calls=20,
             reasoning={

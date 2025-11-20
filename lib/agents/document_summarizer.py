@@ -95,7 +95,7 @@ class DocumentSummarizerAgent(LangChainAgent):
 
     model = gpt_5_mini_model
     temperature = 0.5
-    schema = DocumentSummarizerResponse
+    output_schema = DocumentSummarizerResponse
 
     async def ainvoke(
         self,

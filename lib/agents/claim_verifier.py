@@ -124,7 +124,7 @@ class ClaimVerifierAgent(LangChainAgent):
 
     model = gpt_5_model
     temperature = 0.2
-    schema = ClaimSubstantiationResult
+    output_schema = ClaimSubstantiationResult
 
     async def ainvoke(
         self,

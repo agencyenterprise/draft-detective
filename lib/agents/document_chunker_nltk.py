@@ -15,6 +15,7 @@ from lib.services.llm_sentence_tokenizer import (
     llm_tokenize_paragraph,
     FRAGMENT_DETECTION_METHOD,
 )
+from langchain_core.runnables.config import RunnableConfig
 
 logger = logging.getLogger(__name__)
 
@@ -222,15 +223,16 @@ class DocumentChunkerAgent(BaseAgent):
     name = "Document Chunker (NLTK)"
     description = "Chunk a document into paragraphs and each paragraph into sentence-level chunks using NLTK"
 
-    # This agent doesn't use LLM - it uses NLTK for tokenization
-    model = None
+    # This agent doesn't use LLM - it uses NLTK for tokenization,
+    # TODO: If we have more agents not using LLM, we should add a base class for them
+    model = None  # type: ignore[assignment]
     temperature = 0.0
-    schema = None
+    output_schema = None
 
     async def ainvoke(
         self,
         prompt_kwargs: dict,
-        config=None,
+        config: RunnableConfig = None,
     ) -> DocumentChunkerResponse:
         """
         Process a document using NLTK sentence tokenization.

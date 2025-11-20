@@ -104,7 +104,7 @@ class ClaimNeedsSubstantiationCheckerAgent(LangChainAgent):
 
     model = gpt_5_model
     temperature = 0.2
-    schema = ClaimCommonKnowledgeResult
+    output_schema = ClaimCommonKnowledgeResult
 
     async def ainvoke(
         self, prompt_kwargs: dict, config: RunnableConfig = None

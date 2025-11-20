@@ -128,7 +128,7 @@ class CitationDetectorAgent(LangChainAgent):
 
     model = gpt_5_mini_model
     temperature = 0.0
-    schema = CitationResponse
+    output_schema = CitationResponse
 
     async def ainvoke(
         self, prompt_kwargs: dict, config: RunnableConfig = None

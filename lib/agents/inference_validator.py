@@ -205,7 +205,7 @@ class InferenceValidatorAgent(LangChainAgent):
 
     model = gpt_5_model
     temperature = 0.2
-    schema = InferenceValidationResponse
+    output_schema = InferenceValidationResponse
 
     async def ainvoke(
         self,

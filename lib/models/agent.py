@@ -23,28 +23,16 @@ class BaseAgent(ABC):
         - description: str
         - model: LLMModel
         - temperature: float
-        - output_schema: Optional[type[BaseModel]] = None
+        - timeout: int = DEFAULT_LLM_TIMEOUT (optional, has default)
+        - output_schema: Optional[type[BaseModel]] = None (optional)
     """
 
     name: str
     description: str
     model: LLMModel
     temperature: float
-    timeout: int
-    output_schema: Optional[type[BaseModel]]
-
-    def __init__(
-        self,
-        model: Optional[LLMModel] = None,
-        temperature: Optional[float] = None,
-        timeout: Optional[int] = None,
-    ):
-        self.model = model if model is not None else self.__class__.model
-        self.temperature = (
-            temperature if temperature is not None else self.__class__.temperature
-        )
-        self.timeout = timeout or DEFAULT_LLM_TIMEOUT
-        self.output_schema = getattr(self.__class__, "schema", None)
+    timeout: int = DEFAULT_LLM_TIMEOUT
+    output_schema: Optional[type[BaseModel]] = None
 
     @abstractmethod
     async def ainvoke(self, prompt_kwargs: dict, config: RunnableConfig = None) -> Any:

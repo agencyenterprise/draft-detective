@@ -193,12 +193,12 @@ with ONE of SIX categories and to determine if it needs EXTERNAL VERIFICATION.
 
 
 class ClaimCategorizerAgent(LangChainAgent):
-    name: str = "Claim Categorizer"
-    description: str = "Categorize a claim into one of the six categories"
+    name = "Claim Categorizer"
+    description = "Categorize a claim into one of the six categories"
 
     model = gpt_5_model
     temperature = 0.2
-    schema = ClaimCategorizationResponse
+    output_schema = ClaimCategorizationResponse
 
     async def ainvoke(
         self, prompt_kwargs: dict, config: RunnableConfig = None

@@ -179,10 +179,8 @@ search for additional references. Use the literature review report as a guide to
 
 
 class CitationSuggesterAgent(DirectOpenAIAgent):
-    name: str = "Citation Suggester"
-    description: str = (
-        "Review a chunk of text against RAND attribution guidelines to identify missing citations and recommend high-quality sources for proper attribution compliance"
-    )
+    name = "Citation Suggester"
+    description = "Review a chunk of text against RAND attribution guidelines to identify missing citations and recommend high-quality sources for proper attribution compliance"
     model = gpt_5_model
     temperature = 0.5
 
@@ -195,7 +193,7 @@ class CitationSuggesterAgent(DirectOpenAIAgent):
         input = [{"role": "user", "content": prompt.text}]
 
         response = await self.client.responses.parse(
-            model=gpt_5_model.name,
+            model=self.model.name,
             tools=[{"type": "web_search"}],
             max_tool_calls=20,
             # reasoning={

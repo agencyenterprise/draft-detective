@@ -126,7 +126,7 @@ class ToulminClaimExtractorAgent(LangChainAgent):
 
     model = gpt_5_model
     temperature = 0.2
-    schema = ToulminClaimResponse
+    output_schema = ToulminClaimResponse
 
     async def ainvoke(
         self,

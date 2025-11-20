@@ -159,8 +159,8 @@ When generating responses, remove or replace all internal citation tokens such a
 
 
 class LiveLiteratureReviewAgent(DirectOpenAIAgent):
-    name: str = "Live Literature Review Researcher"
-    description: str = (
+    name = "Live Literature Review Researcher"
+    description = (
         "Find newer literature that could update or contextualize existing claims"
     )
     model = gpt_5_mini_model

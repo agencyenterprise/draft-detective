@@ -72,7 +72,7 @@ class DocumentChunkerAgent(LangChainAgent):
 
     model = gpt_4_1_model
     temperature = 0.2
-    schema = DocumentChunkerResponse
+    output_schema = DocumentChunkerResponse
 
     async def ainvoke(
         self,

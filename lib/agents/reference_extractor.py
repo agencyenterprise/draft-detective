@@ -57,7 +57,7 @@ class ReferenceExtractorAgent(LangChainAgent):
 
     model = gpt_5_mini_model
     temperature = 0.0
-    schema = ReferenceExtractorResponse
+    output_schema = ReferenceExtractorResponse
 
     async def ainvoke(
         self,
