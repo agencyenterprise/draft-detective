@@ -119,15 +119,18 @@ def build_claim_substantiator_graph(
     graph.add_edge("convert_to_markdown", "prepare_documents")
     graph.add_edge("prepare_documents", "split_into_chunks")
     graph.add_edge("split_into_chunks", "extract_references")
+    graph.add_edge("split_into_chunks", "extract_claims")
+    if run_live_reports:
+        graph.add_edge("extract_references", "generate_live_reports_analysis")
+        graph.add_edge("extract_claims", "generate_live_reports_analysis")
+        graph.add_edge("generate_live_reports_analysis", "generate_addendum_report")
+        graph.set_finish_point("generate_addendum_report")
     if run_reference_validation:
         graph.add_edge("extract_references", "validate_references")
         graph.add_edge("validate_references", "detect_citations")
     else:
         graph.add_edge("extract_references", "detect_citations")
-    graph.add_edge("split_into_chunks", "extract_claims")
 
-    # Live reports runs in parallel and is NOT dependent on suggest_citations
-    # Keep it downstream of verify_claims to ensure claims/citations/references exist
     if run_live_reports:
         graph.add_edge("extract_claims", "generate_live_reports_analysis")
         graph.add_edge("generate_live_reports_analysis", "generate_addendum_report")
