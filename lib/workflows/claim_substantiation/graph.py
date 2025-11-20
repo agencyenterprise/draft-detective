@@ -84,7 +84,6 @@ def build_claim_substantiator_graph(
     graph.add_node("extract_references", extract_references)
     if run_reference_validation:
         graph.add_node("validate_references", validate_references)
-    # graph.add_node("check_claim_needs_substantiation", check_claim_needs_substantiation)
     graph.add_node("categorize_claims", categorize_claims)
     graph.add_node("validate_inferences", validate_inferences)
 
@@ -108,10 +107,6 @@ def build_claim_substantiator_graph(
         )
         graph.add_node("generate_addendum_report", generate_addendum_report, defer=True)
 
-    # Finalize/join node to allow parallel branches to complete
-    if run_suggest_citations and run_live_reports:
-        graph.add_node("finalize", finalize)
-
     # Entry point
     graph.set_entry_point("convert_to_markdown")
 
@@ -120,19 +115,11 @@ def build_claim_substantiator_graph(
     graph.add_edge("prepare_documents", "split_into_chunks")
     graph.add_edge("split_into_chunks", "extract_references")
     graph.add_edge("split_into_chunks", "extract_claims")
-    if run_live_reports:
-        graph.add_edge("extract_references", "generate_live_reports_analysis")
-        graph.add_edge("extract_claims", "generate_live_reports_analysis")
-        graph.add_edge("generate_live_reports_analysis", "generate_addendum_report")
-        graph.set_finish_point("generate_addendum_report")
-    if run_reference_validation:
-        graph.add_edge("extract_references", "validate_references")
-        graph.add_edge("validate_references", "detect_citations")
-    else:
-        graph.add_edge("extract_references", "detect_citations")
+    graph.add_edge("extract_claims", "categorize_claims")
 
     if run_live_reports:
-        graph.add_edge("extract_claims", "generate_live_reports_analysis")
+        graph.add_edge("extract_references", "generate_live_reports_analysis")
+        graph.add_edge("categorize_claims", "generate_live_reports_analysis")
         graph.add_edge("generate_live_reports_analysis", "generate_addendum_report")
         graph.set_finish_point("generate_addendum_report")
 
@@ -142,7 +129,6 @@ def build_claim_substantiator_graph(
             graph.add_edge("prepare_documents", "index_supporting_documents")
             graph.add_edge("index_supporting_documents", "verify_claims")
 
-        graph.add_edge("extract_claims", "categorize_claims")
         graph.add_edge("categorize_claims", "verify_claims")
         graph.add_edge("detect_citations", "verify_claims")
         graph.add_edge("categorize_claims", "validate_inferences")
@@ -150,6 +136,12 @@ def build_claim_substantiator_graph(
         # Literature review (aim 1.a)
         if run_literature_review:
             graph.add_edge("prepare_documents", "literature_review")
+
+        if run_reference_validation:
+            graph.add_edge("extract_references", "validate_references")
+            graph.add_edge("validate_references", "detect_citations")
+        else:
+            graph.add_edge("extract_references", "detect_citations")
 
         # Suggest citations (aim 2.a)
         # Must wait for ALL processing to complete before suggesting citations
