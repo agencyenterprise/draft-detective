@@ -1,5 +1,5 @@
 from typing import Literal
-from openai import BaseModel
+from pydantic import BaseModel
 from lib.config.env import config
 
 

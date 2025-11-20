@@ -7,7 +7,7 @@ from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
 
 from lib.config.llm_models import gpt_5_mini_model
-from lib.models.agent import DEFAULT_LLM_TIMEOUT, AgentProtocol, QCResult
+from lib.models.agent import LangChainAgent, QCResult
 
 
 class CitationType(str, Enum):
@@ -122,16 +122,13 @@ Be specific in your feedback to help the agent improve.
 )
 
 
-class CitationDetectorAgent(AgentProtocol):
+class CitationDetectorAgent(LangChainAgent):
     name = "Citation Detector"
     description = "Detect citations in a chunk of text"
 
-    def __init__(self):
-        self.llm = init_chat_model(
-            gpt_5_mini_model.model_name,
-            temperature=0.0,
-            timeout=DEFAULT_LLM_TIMEOUT,
-        ).with_structured_output(CitationResponse)
+    model = gpt_5_mini_model
+    temperature = 0.0
+    output_schema = CitationResponse
 
     async def ainvoke(
         self, prompt_kwargs: dict, config: RunnableConfig = None

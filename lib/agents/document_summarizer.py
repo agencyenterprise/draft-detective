@@ -4,7 +4,7 @@ from langchain_core.runnables.config import RunnableConfig
 from pydantic import BaseModel, Field
 
 from lib.config.llm_models import gpt_5_mini_model
-from lib.models.agent import DEFAULT_LLM_TIMEOUT, AgentProtocol
+from lib.models.agent import LangChainAgent
 
 
 class DocumentSummary(BaseModel):
@@ -89,16 +89,13 @@ This summary should feel like a compressed research report focused on the argume
 )
 
 
-class DocumentSummarizerAgent(AgentProtocol):
+class DocumentSummarizerAgent(LangChainAgent):
     name = "Document Summarizer"
     description = "Read a document and produce a ~1000-word argument-focused miniature version plus basic metadata."
 
-    def __init__(self):
-        self.llm = init_chat_model(
-            gpt_5_mini_model.model_name,
-            temperature=0.5,
-            timeout=DEFAULT_LLM_TIMEOUT,
-        ).with_structured_output(DocumentSummarizerResponse)
+    model = gpt_5_mini_model
+    temperature = 0.5
+    output_schema = DocumentSummarizerResponse
 
     async def ainvoke(
         self,

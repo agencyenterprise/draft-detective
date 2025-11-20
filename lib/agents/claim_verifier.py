@@ -7,7 +7,7 @@ from langgraph.graph.state import RunnableConfig
 from pydantic import BaseModel, Field
 
 from lib.config.llm_models import gpt_5_model
-from lib.models.agent import DEFAULT_LLM_TIMEOUT, AgentProtocol
+from lib.models.agent import LangChainAgent
 
 
 class EvidenceAlignmentLevel(StrEnum):
@@ -118,16 +118,13 @@ For each claim, output an evidence alignment level based on the following defini
 )
 
 
-class ClaimVerifierAgent(AgentProtocol):
+class ClaimVerifierAgent(LangChainAgent):
     name = "Claim Verifier"
     description = "Substantiate a claim based on a supporting document"
 
-    def __init__(self):
-        self.llm = init_chat_model(
-            gpt_5_model.model_name,
-            temperature=0.2,
-            timeout=DEFAULT_LLM_TIMEOUT,
-        ).with_structured_output(ClaimSubstantiationResult)
+    model = gpt_5_model
+    temperature = 0.2
+    output_schema = ClaimSubstantiationResult
 
     async def ainvoke(
         self,

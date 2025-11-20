@@ -13,6 +13,14 @@
  */
 
 import { mapValues } from '../runtime';
+import type { DoclingPageInfo } from './DoclingPageInfo';
+import {
+  DoclingPageInfoFromJSON,
+  DoclingPageInfoFromJSONTyped,
+  DoclingPageInfoToJSON,
+  DoclingPageInfoToJSONTyped,
+} from './DoclingPageInfo';
+
 /**
  *
  * @export
@@ -49,6 +57,12 @@ export interface FileDocument {
    * @memberof FileDocument
    */
   markdownTokenCount: number;
+  /**
+   *
+   * @type {Array<DoclingPageInfo>}
+   * @memberof FileDocument
+   */
+  doclingPages?: Array<DoclingPageInfo> | null;
 }
 
 /**
@@ -77,6 +91,8 @@ export function FileDocumentFromJSONTyped(json: any, ignoreDiscriminator: boolea
     fileType: json['file_type'],
     markdown: json['markdown'],
     markdownTokenCount: json['markdown_token_count'],
+    doclingPages:
+      json['docling_pages'] == null ? undefined : (json['docling_pages'] as Array<any>).map(DoclingPageInfoFromJSON),
   };
 }
 
@@ -95,5 +111,7 @@ export function FileDocumentToJSONTyped(value?: FileDocument | null, ignoreDiscr
     file_type: value['fileType'],
     markdown: value['markdown'],
     markdown_token_count: value['markdownTokenCount'],
+    docling_pages:
+      value['doclingPages'] == null ? undefined : (value['doclingPages'] as Array<any>).map(DoclingPageInfoToJSON),
   };
 }

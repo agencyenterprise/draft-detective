@@ -6,6 +6,7 @@ apis/HealthApi.ts
 apis/WorkflowsApi.ts
 apis/index.ts
 index.ts
+models/BBox.ts
 models/BibliographyFieldValidation.ts
 models/BibliographyItem.ts
 models/BibliographyItemValidationInput.ts
@@ -13,6 +14,8 @@ models/BibliographyItemValidationOutput.ts
 models/ChunkEvalPackageRequest.ts
 models/ChunkReevaluationRequest.ts
 models/ChunkReevaluationResponse.ts
+models/ChunkToItemsInput.ts
+models/ChunkToItemsOutput.ts
 models/Citation.ts
 models/CitationResponseInput.ts
 models/CitationResponseOutput.ts
@@ -32,6 +35,8 @@ models/ClaimSubstantiatorStateOutput.ts
 models/ClaimSubstantiatorStateSummary.ts
 models/Claims.ts
 models/ConfidenceInRecommendation.ts
+models/DoclingPageInfo.ts
+models/DoclingRegion.ts
 models/DocumentChunkInput.ts
 models/DocumentChunkOutput.ts
 models/DocumentChunkSummary.ts
@@ -48,7 +53,8 @@ models/FeedbackResponse.ts
 models/FeedbackType.ts
 models/FieldCategory.ts
 models/FieldProblemType.ts
-models/FileDocument.ts
+models/FileDocumentInput.ts
+models/FileDocumentOutput.ts
 models/HTTPValidationError.ts
 models/InferenceValidationResponseWithClaimIndex.ts
 models/LiteratureReviewResponseInput.ts

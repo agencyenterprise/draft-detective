@@ -2,11 +2,13 @@
 
 import { LabeledValue } from '@/components/labeled-value';
 import { Markdown } from '@/components/markdown';
+import { Callout } from '@/components/ui/callout';
 import { Card, CardContent } from '@/components/ui/card';
 import { ClaimSubstantiatorStateSummary } from '@/lib/generated-api';
 import { format } from 'date-fns';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, FileText } from 'lucide-react';
 import { TabWithLoadingStates } from '../tab-with-loading-states';
+import { PublicationDateLabel } from '../../components/publication-date-label';
 
 interface LiveReportsTabProps {
   results: ClaimSubstantiatorStateSummary;
@@ -51,15 +53,21 @@ export function LiveReportsTab({ results, isProcessing = false }: LiveReportsTab
         const metadata = addendum.reportMetadata;
 
         return (
-          <div className="space-y-6">
-            <div>
+          <div className="space-y-4">
+            <div className="space-y-1">
               <LabeledValue label="Title">{metadata.title}</LabeledValue>
-              <LabeledValue label="Date Generated">
+              <LabeledValue label="Document publication date">
+                <PublicationDateLabel results={results} />
+              </LabeledValue>
+              <LabeledValue label="Live report generation date">
                 {format(new Date(metadata.dateGenerated), 'MMM dd, yyyy')}
               </LabeledValue>
               <LabeledValue label="Update Type">{metadata.updateType}</LabeledValue>
-              <LabeledValue label="Sentence Summary">{metadata.sentenceSummary}</LabeledValue>
             </div>
+
+            <Callout title="Sentence Summary" variant="info" icon={FileText}>
+              <Markdown>{metadata.sentenceSummary}</Markdown>
+            </Callout>
 
             <Card>
               <CardContent>

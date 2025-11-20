@@ -5,9 +5,9 @@ from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
 
 from lib.agents.live_literature_review import ClaimReferenceFactors, QualityLevel
-from lib.config.llm_models import gpt_5_model
-from lib.models.agent import AgentProtocol
-from lib.services.openai import ensure_structured_output_response, get_openai_client
+from lib.config.llm_models import gpt_5_mini_model
+from lib.models.agent import DirectOpenAIAgent
+from lib.services.openai import ensure_structured_output_response
 
 
 # applies to the claim
@@ -153,14 +153,11 @@ Here are the contextual details:
 )
 
 
-class EvidenceWeighterAgent(AgentProtocol):
-    name: str = "Evidence Weighter"
-    description: str = (
-        "Analyze and weight evidence from multiple sources to determine overall direction and strength"
-    )
-
-    def __init__(self):
-        self.client = get_openai_client()
+class EvidenceWeighterAgent(DirectOpenAIAgent):
+    name = "Evidence Weighter"
+    description = "Analyze and weight evidence from multiple sources to determine overall direction and strength"
+    model = gpt_5_mini_model
+    temperature = 0.5
 
     async def ainvoke(
         self,
@@ -171,7 +168,7 @@ class EvidenceWeighterAgent(AgentProtocol):
         input = [{"role": "user", "content": prompt.text}]
 
         response = await self.client.responses.parse(
-            model=gpt_5_model.name,
+            model=self.model.name,
             tools=[{"type": "web_search"}],
             max_tool_calls=20,
             # reasoning={

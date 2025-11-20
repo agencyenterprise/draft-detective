@@ -3,6 +3,7 @@
 import { analysisService } from '@/lib/analysis-service';
 import { downloadFile, generateEvalFilename } from '@/lib/file-download';
 import { ChunkReevaluationResponse, ClaimSubstantiatorStateSummary } from '@/lib/generated-api';
+import { DocRenderMode } from '@/lib/constants';
 import { FileText } from 'lucide-react';
 import * as React from 'react';
 import { Button } from '../../ui/button';
@@ -11,22 +12,28 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '../../ui/tooltip';
 import { TabNavigation } from './components';
 import { TabType } from './constants';
 import { useResultsCalculations } from './hooks/use-results-calculations';
-import { CitationsTab, FilesTab, LiteratureReviewTab, LiveReportsTab, ReferencesTab, SummaryTab } from './tabs';
+import { FilesTab, LiteratureReviewTab, LiveReportsTab, ReferencesTab, SummaryTab } from './tabs';
 import { DocumentExplorerTab } from './tabs/document-explorer-tab';
 
 interface ResultsVisualizationProps {
   results: ClaimSubstantiatorStateSummary | undefined;
   onChunkReevaluation: (response: ChunkReevaluationResponse) => void;
   isProcessing?: boolean;
+  viewMode: DocRenderMode;
+  onViewModeChange: (mode: DocRenderMode) => void;
+  activeTab: TabType;
+  onTabChange: (tab: TabType) => void;
 }
 
 export function ResultsVisualization({
   results,
   onChunkReevaluation,
   isProcessing = false,
+  viewMode,
+  onViewModeChange,
+  activeTab,
+  onTabChange,
 }: ResultsVisualizationProps) {
-  const [activeTab, setActiveTab] = React.useState<TabType>('document-explorer');
-
   const calculations = useResultsCalculations(results);
 
   const handleSaveAsEvalTest = async () => {
@@ -72,8 +79,6 @@ export function ResultsVisualization({
             isProcessing={isProcessing}
           />
         );
-      case 'citations':
-        return <CitationsTab results={results} isProcessing={isProcessing} />;
       case 'references':
         return <ReferencesTab results={results} isProcessing={isProcessing} />;
       case 'literature_review':
@@ -88,6 +93,7 @@ export function ResultsVisualization({
             results={results}
             onChunkReevaluation={onChunkReevaluation}
             isProcessing={isProcessing}
+            viewMode={viewMode}
           />
         );
     }
@@ -95,10 +101,10 @@ export function ResultsVisualization({
 
   return (
     <div className="space-y-6">
-      <TabNavigation activeTab={activeTab} onTabChange={setActiveTab} />
+      <TabNavigation activeTab={activeTab} onTabChange={onTabChange} />
 
       <Card>
-        <CardContent className={activeTab === 'document-explorer' ? 'p-3 h-[calc(100vh-16rem)]' : 'p-3'}>
+        <CardContent className={activeTab === 'document-explorer' ? 'h-[calc(100vh-16rem)]' : ''}>
           {renderActiveTab()}
         </CardContent>
       </Card>

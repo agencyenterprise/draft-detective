@@ -20,13 +20,13 @@ import {
   ReportOutputOutputToJSON,
   ReportOutputOutputToJSONTyped,
 } from './ReportOutputOutput';
-import type { DocumentIssue } from './DocumentIssue';
+import type { ChunkToItemsOutput } from './ChunkToItemsOutput';
 import {
-  DocumentIssueFromJSON,
-  DocumentIssueFromJSONTyped,
-  DocumentIssueToJSON,
-  DocumentIssueToJSONTyped,
-} from './DocumentIssue';
+  ChunkToItemsOutputFromJSON,
+  ChunkToItemsOutputFromJSONTyped,
+  ChunkToItemsOutputToJSON,
+  ChunkToItemsOutputToJSONTyped,
+} from './ChunkToItemsOutput';
 import type { FileDocument } from './FileDocument';
 import {
   FileDocumentFromJSON,
@@ -34,6 +34,13 @@ import {
   FileDocumentToJSON,
   FileDocumentToJSONTyped,
 } from './FileDocument';
+import type { DocumentIssue } from './DocumentIssue';
+import {
+  DocumentIssueFromJSON,
+  DocumentIssueFromJSONTyped,
+  DocumentIssueToJSON,
+  DocumentIssueToJSONTyped,
+} from './DocumentIssue';
 import type { EvidenceWeighterResponseWithClaimIndexOutput } from './EvidenceWeighterResponseWithClaimIndexOutput';
 import {
   EvidenceWeighterResponseWithClaimIndexOutputFromJSON,
@@ -181,6 +188,12 @@ export interface ClaimSubstantiatorStateSummary {
    * @memberof ClaimSubstantiatorStateSummary
    */
   rankedIssues?: Array<DocumentIssue>;
+  /**
+   *
+   * @type {ChunkToItemsOutput}
+   * @memberof ClaimSubstantiatorStateSummary
+   */
+  chunkToItems?: ChunkToItemsOutput | null;
 }
 
 /**
@@ -232,6 +245,7 @@ export function ClaimSubstantiatorStateSummaryFromJSONTyped(
     addendumReport: json['addendum_report'] == null ? undefined : ReportOutputOutputFromJSON(json['addendum_report']),
     rankedIssues:
       json['ranked_issues'] == null ? undefined : (json['ranked_issues'] as Array<any>).map(DocumentIssueFromJSON),
+    chunkToItems: json['chunk_to_items'] == null ? undefined : ChunkToItemsOutputFromJSON(json['chunk_to_items']),
   };
 }
 
@@ -274,5 +288,6 @@ export function ClaimSubstantiatorStateSummaryToJSONTyped(
     addendum_report: ReportOutputOutputToJSON(value['addendumReport']),
     ranked_issues:
       value['rankedIssues'] == null ? undefined : (value['rankedIssues'] as Array<any>).map(DocumentIssueToJSON),
+    chunk_to_items: ChunkToItemsOutputToJSON(value['chunkToItems']),
   };
 }

@@ -42,6 +42,11 @@ export interface GetChunkDetailsEndpointApiWorkflowRunWorkflowRunIdChunkChunkInd
   chunkIndex: number;
 }
 
+export interface GetPageImageApiWorkflowRunsWorkflowRunIdPagesPageNumGetRequest {
+  workflowRunId: string;
+  pageNum: number;
+}
+
 export interface GetWorkflowRunApiWorkflowRunWorkflowRunIdGetRequest {
   workflowRunId: string;
 }
@@ -170,6 +175,77 @@ export class WorkflowsApi extends runtime.BaseAPI {
     initOverrides?: RequestInit | runtime.InitOverrideFunction,
   ): Promise<DocumentChunkOutput> {
     const response = await this.getChunkDetailsEndpointApiWorkflowRunWorkflowRunIdChunkChunkIndexGetRaw(
+      requestParameters,
+      initOverrides,
+    );
+    return await response.value();
+  }
+
+  /**
+   * Serve Docling page images for a workflow run.  Args:     workflow_run_id: The workflow run ID     page_num: The page number (e.g., 0, 1, 2, etc.)  Returns:     The image file for the specified page (PNG, JPEG, WEBP, etc.)
+   * Get Page Image
+   */
+  async getPageImageApiWorkflowRunsWorkflowRunIdPagesPageNumGetRaw(
+    requestParameters: GetPageImageApiWorkflowRunsWorkflowRunIdPagesPageNumGetRequest,
+    initOverrides?: RequestInit | runtime.InitOverrideFunction,
+  ): Promise<runtime.ApiResponse<any>> {
+    if (requestParameters['workflowRunId'] == null) {
+      throw new runtime.RequiredError(
+        'workflowRunId',
+        'Required parameter "workflowRunId" was null or undefined when calling getPageImageApiWorkflowRunsWorkflowRunIdPagesPageNumGet().',
+      );
+    }
+
+    if (requestParameters['pageNum'] == null) {
+      throw new runtime.RequiredError(
+        'pageNum',
+        'Required parameter "pageNum" was null or undefined when calling getPageImageApiWorkflowRunsWorkflowRunIdPagesPageNumGet().',
+      );
+    }
+
+    const queryParameters: any = {};
+
+    const headerParameters: runtime.HTTPHeaders = {};
+
+    if (this.configuration && this.configuration.accessToken) {
+      const token = this.configuration.accessToken;
+      const tokenString = await token('HTTPBearer', []);
+
+      if (tokenString) {
+        headerParameters['Authorization'] = `Bearer ${tokenString}`;
+      }
+    }
+
+    let urlPath = `/api/workflow-runs/{workflow_run_id}/pages/{page_num}`;
+    urlPath = urlPath.replace(`{${'workflow_run_id'}}`, encodeURIComponent(String(requestParameters['workflowRunId'])));
+    urlPath = urlPath.replace(`{${'page_num'}}`, encodeURIComponent(String(requestParameters['pageNum'])));
+
+    const response = await this.request(
+      {
+        path: urlPath,
+        method: 'GET',
+        headers: headerParameters,
+        query: queryParameters,
+      },
+      initOverrides,
+    );
+
+    if (this.isJsonMime(response.headers.get('content-type'))) {
+      return new runtime.JSONApiResponse<any>(response);
+    } else {
+      return new runtime.TextApiResponse(response) as any;
+    }
+  }
+
+  /**
+   * Serve Docling page images for a workflow run.  Args:     workflow_run_id: The workflow run ID     page_num: The page number (e.g., 0, 1, 2, etc.)  Returns:     The image file for the specified page (PNG, JPEG, WEBP, etc.)
+   * Get Page Image
+   */
+  async getPageImageApiWorkflowRunsWorkflowRunIdPagesPageNumGet(
+    requestParameters: GetPageImageApiWorkflowRunsWorkflowRunIdPagesPageNumGetRequest,
+    initOverrides?: RequestInit | runtime.InitOverrideFunction,
+  ): Promise<any> {
+    const response = await this.getPageImageApiWorkflowRunsWorkflowRunIdPagesPageNumGetRaw(
       requestParameters,
       initOverrides,
     );

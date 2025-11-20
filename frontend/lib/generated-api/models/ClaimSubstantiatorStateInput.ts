@@ -20,6 +20,13 @@ import {
   DocumentChunkInputToJSON,
   DocumentChunkInputToJSONTyped,
 } from './DocumentChunkInput';
+import type { FileDocumentInput } from './FileDocumentInput';
+import {
+  FileDocumentInputFromJSON,
+  FileDocumentInputFromJSONTyped,
+  FileDocumentInputToJSON,
+  FileDocumentInputToJSONTyped,
+} from './FileDocumentInput';
 import type { DocumentIssue } from './DocumentIssue';
 import {
   DocumentIssueFromJSON,
@@ -27,13 +34,6 @@ import {
   DocumentIssueToJSON,
   DocumentIssueToJSONTyped,
 } from './DocumentIssue';
-import type { FileDocument } from './FileDocument';
-import {
-  FileDocumentFromJSON,
-  FileDocumentFromJSONTyped,
-  FileDocumentToJSON,
-  FileDocumentToJSONTyped,
-} from './FileDocument';
 import type { BibliographyItem } from './BibliographyItem';
 import {
   BibliographyItemFromJSON,
@@ -48,6 +48,13 @@ import {
   ReportOutputInputToJSON,
   ReportOutputInputToJSONTyped,
 } from './ReportOutputInput';
+import type { ChunkToItemsInput } from './ChunkToItemsInput';
+import {
+  ChunkToItemsInputFromJSON,
+  ChunkToItemsInputFromJSONTyped,
+  ChunkToItemsInputToJSON,
+  ChunkToItemsInputToJSONTyped,
+} from './ChunkToItemsInput';
 import type { LiteratureReviewResponseInput } from './LiteratureReviewResponseInput';
 import {
   LiteratureReviewResponseInputFromJSON,
@@ -99,16 +106,16 @@ import {
 export interface ClaimSubstantiatorStateInput {
   /**
    *
-   * @type {FileDocument}
+   * @type {FileDocumentInput}
    * @memberof ClaimSubstantiatorStateInput
    */
-  file: FileDocument;
+  file: FileDocumentInput;
   /**
    *
-   * @type {Array<FileDocument>}
+   * @type {Array<FileDocumentInput>}
    * @memberof ClaimSubstantiatorStateInput
    */
-  supportingFiles?: Array<FileDocument> | null;
+  supportingFiles?: Array<FileDocumentInput> | null;
   /**
    *
    * @type {SubstantiationWorkflowConfig}
@@ -181,6 +188,12 @@ export interface ClaimSubstantiatorStateInput {
    * @memberof ClaimSubstantiatorStateInput
    */
   rankedIssues?: Array<DocumentIssue>;
+  /**
+   *
+   * @type {ChunkToItemsInput}
+   * @memberof ClaimSubstantiatorStateInput
+   */
+  chunkToItems?: ChunkToItemsInput | null;
 }
 
 /**
@@ -204,9 +217,11 @@ export function ClaimSubstantiatorStateInputFromJSONTyped(
     return json;
   }
   return {
-    file: FileDocumentFromJSON(json['file']),
+    file: FileDocumentInputFromJSON(json['file']),
     supportingFiles:
-      json['supporting_files'] == null ? undefined : (json['supporting_files'] as Array<any>).map(FileDocumentFromJSON),
+      json['supporting_files'] == null
+        ? undefined
+        : (json['supporting_files'] as Array<any>).map(FileDocumentInputFromJSON),
     config: SubstantiationWorkflowConfigFromJSON(json['config']),
     workflowRunId: json['workflow_run_id'] == null ? undefined : json['workflow_run_id'],
     references:
@@ -232,6 +247,7 @@ export function ClaimSubstantiatorStateInputFromJSONTyped(
     addendumReport: json['addendum_report'] == null ? undefined : ReportOutputInputFromJSON(json['addendum_report']),
     rankedIssues:
       json['ranked_issues'] == null ? undefined : (json['ranked_issues'] as Array<any>).map(DocumentIssueFromJSON),
+    chunkToItems: json['chunk_to_items'] == null ? undefined : ChunkToItemsInputFromJSON(json['chunk_to_items']),
   };
 }
 
@@ -248,9 +264,11 @@ export function ClaimSubstantiatorStateInputToJSONTyped(
   }
 
   return {
-    file: FileDocumentToJSON(value['file']),
+    file: FileDocumentInputToJSON(value['file']),
     supporting_files:
-      value['supportingFiles'] == null ? undefined : (value['supportingFiles'] as Array<any>).map(FileDocumentToJSON),
+      value['supportingFiles'] == null
+        ? undefined
+        : (value['supportingFiles'] as Array<any>).map(FileDocumentInputToJSON),
     config: SubstantiationWorkflowConfigToJSON(value['config']),
     workflow_run_id: value['workflowRunId'],
     references:
@@ -274,5 +292,6 @@ export function ClaimSubstantiatorStateInputToJSONTyped(
     addendum_report: ReportOutputInputToJSON(value['addendumReport']),
     ranked_issues:
       value['rankedIssues'] == null ? undefined : (value['rankedIssues'] as Array<any>).map(DocumentIssueToJSON),
+    chunk_to_items: ChunkToItemsInputToJSON(value['chunkToItems']),
   };
 }

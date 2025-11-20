@@ -5,6 +5,7 @@ from lib.services.file import FileDocument, create_file_document_from_path
 import tempfile
 import os
 from lib.config.env import config
+from lib.services.converters.docx_preprocessor import docx_preprocessor
 from xxhash import xxh128
 
 logger = logging.getLogger(__name__)
@@ -47,6 +48,14 @@ async def convert_uploaded_files_to_file_document(
             except Exception as e:
                 logger.error(f"Error processing uploaded file {filename}: {str(e)}")
                 raise
+
+        try:
+            file_path = await docx_preprocessor.convert_to_pdf(file_path)
+        except Exception as e:
+            logger.error(
+                f"Failed to convert {filename} to PDF: {str(e)}. Processing will fail."
+            )
+            raise
 
         file_document = await create_file_document_from_path(
             file_path, original_file_name=filename, markdown_convert=False

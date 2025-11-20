@@ -6,7 +6,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableConfig
 
 from lib.config.llm_models import gpt_5_model
-from lib.models.agent import DEFAULT_LLM_TIMEOUT, AgentProtocol
+from lib.models.agent import LangChainAgent
 from pydantic import BaseModel, Field
 
 
@@ -196,16 +196,15 @@ Return one JSON object matching the required schema exactly.
 )
 
 
-class AddendumReportGeneratorAgent(AgentProtocol):
-    name: str = "Addendum Report Generator"
-    description: str = (
+class AddendumReportGeneratorAgent(LangChainAgent):
+    name = "Addendum Report Generator"
+    description = (
         "Aggregate live reports and produce a markdown formatted addendum report"
     )
 
-    def __init__(self):
-        self.llm = init_chat_model(
-            gpt_5_model.model_name, temperature=0.2, timeout=DEFAULT_LLM_TIMEOUT
-        ).with_structured_output(ReportOutput)
+    model = gpt_5_model
+    temperature = 0.2
+    output_schema = ReportOutput
 
     async def ainvoke(
         self, prompt_kwargs: dict, config: RunnableConfig = None

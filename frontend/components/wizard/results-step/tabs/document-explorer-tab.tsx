@@ -2,31 +2,46 @@
 
 import { Card, CardContent } from '@/components/ui/card';
 import { ChunkReevaluationResponse, ClaimSubstantiatorStateSummary, DocumentIssue } from '@/lib/generated-api';
+import { DocRenderMode } from '@/lib/constants';
 import { Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ChunkSidebarContent } from '../components/chunk-sidebar-content';
 import { DocumentIssuesList } from '../components/document-issues-list';
 import { DocumentReconstructor } from '../components/document-reconstructor';
+import { DoclingViewer } from '../components/docling-viewer';
 import { ErrorsCard } from '../components/errors-card';
 
 interface DocumentExplorerTabProps {
   results: ClaimSubstantiatorStateSummary;
   onChunkReevaluation: (response: ChunkReevaluationResponse) => void;
   isProcessing?: boolean;
+  viewMode: DocRenderMode;
 }
 
-export function DocumentExplorerTab({ results, onChunkReevaluation, isProcessing = false }: DocumentExplorerTabProps) {
+export function DocumentExplorerTab({
+  results,
+  onChunkReevaluation,
+  isProcessing = false,
+  viewMode,
+}: DocumentExplorerTabProps) {
+  const pages = results.file?.doclingPages ?? [];
+  const chunkToItems = results.chunkToItems?.mapping ?? {};
+
+  const pageImagesBaseUrl = `/api/images/${results.workflowRunId}`;
+
   const errors = results.errors || [];
   const issues = results.rankedIssues || [];
   const workflowErrors = errors.filter((error) => error.chunkIndex === null || error.chunkIndex === undefined);
   const hasChunks = (results.chunks?.length || 0) > 0;
 
+  // Check if docling view is available
+  const isDoclingAvailable = Boolean(pages && pages.length > 0 && Object.keys(chunkToItems).length > 0);
+
   const [selectedChunkIndex, setSelectedChunkIndex] = useState<number | null>(null);
   const selectedChunk = results.chunks?.find((chunk) => chunk.chunkIndex === selectedChunkIndex);
   const sidebarRef = useRef<HTMLDivElement>(null);
 
-  // Scroll sidebar to top when selected chunk changes
   useEffect(() => {
     if (sidebarRef.current && selectedChunkIndex !== null) {
       sidebarRef.current.scrollTop = 0;
@@ -68,12 +83,33 @@ export function DocumentExplorerTab({ results, onChunkReevaluation, isProcessing
       )}
 
       <div className="grid grid-cols-12 gap-4 flex-1 min-h-0">
-        <div className="col-span-7 leading-relaxed text-sm overflow-hidden">
-          <DocumentReconstructor
-            results={results}
-            selectedChunkIndex={selectedChunkIndex}
-            onChunkSelect={handleChunkSelect}
-          />
+        <div className="col-span-7 leading-relaxed text-sm overflow-hidden flex flex-col">
+          {/* Document Viewer */}
+          <div className="flex-1 overflow-hidden">
+            {(() => {
+              const shouldRenderDocling = viewMode === 'docling' && isDoclingAvailable;
+
+              if (shouldRenderDocling) {
+                return (
+                  <DoclingViewer
+                    pages={pages}
+                    chunkToItems={chunkToItems}
+                    pageImagesBaseUrl={pageImagesBaseUrl}
+                    selectedChunkIndex={selectedChunkIndex}
+                    onChunkSelect={handleChunkSelect}
+                  />
+                );
+              }
+
+              return (
+                <DocumentReconstructor
+                  results={results}
+                  selectedChunkIndex={selectedChunkIndex}
+                  onChunkSelect={handleChunkSelect}
+                />
+              );
+            })()}
+          </div>
         </div>
         <div ref={sidebarRef} className="col-span-5 bg-muted/50 p-4 rounded-lg text-sm overflow-y-auto">
           <div className="space-y-4 pb-8">

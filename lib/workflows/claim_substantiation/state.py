@@ -1,9 +1,12 @@
+import logging
 from datetime import date
 from enum import StrEnum
 from operator import add
 from typing import Annotated, Dict, List, Optional, Union
 
 from pydantic import BaseModel, Field
+
+logger = logging.getLogger(__name__)
 
 # Agent response models
 from lib.agents.citation_detector import CitationResponse
@@ -25,6 +28,7 @@ from lib.agents.toulmin_claim_extractor import ToulminClaimResponse
 
 # Service models
 from lib.services.file import FileDocument
+from lib.services.docling_models import ChunkToItems
 
 # Workflow models
 from lib.workflows.models import WorkflowError
@@ -162,7 +166,6 @@ def conciliate_chunks(
 
                 merged_data[field] = updated_value
 
-            # Create the merged chunk
             chunks_by_index[updated_chunk.chunk_index] = DocumentChunk(**merged_data)
 
     # Return chunks in order by chunk_index
@@ -259,6 +262,10 @@ class ClaimSubstantiatorState(BaseModel):
         default_factory=list,
         description="Ranked list of document issues with severity levels",
     )
+    chunk_to_items: Optional[ChunkToItems] = Field(
+        default=None,
+        description="Mapping from chunk indices to Docling items/regions for rendering",
+    )
 
     def get_paragraph_chunks(self, paragraph_index: int) -> List[DocumentChunk]:
         return [
@@ -293,6 +300,7 @@ class ClaimSubstantiatorStateSummary(BaseModel):
     literature_review: Optional[LiteratureReviewResponse] = None
     addendum_report: Optional[ReportOutput] = None
     ranked_issues: List[DocumentIssue] = []
+    chunk_to_items: Optional[ChunkToItems] = None
 
 
 class ChunkReevaluationRequest(BaseModel):

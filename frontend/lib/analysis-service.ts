@@ -13,7 +13,6 @@ import {
 } from '@/lib/generated-api';
 import { downloadBlobResponse, generateDefaultTestName } from '@/lib/utils';
 import { analysisApi, evaluationApi, healthApi, apiUrl, getAuthHeader } from './api';
-import { getSession } from 'next-auth/react';
 
 interface AnalysisRequest {
   mainDocument: File;
