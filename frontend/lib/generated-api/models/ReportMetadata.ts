@@ -35,7 +35,7 @@ export interface ReportMetadata {
    */
   title: string;
   /**
-   * A single sentence summary of the addendum report
+   * A single sentence summary of what the authors should update in the report
    * @type {string}
    * @memberof ReportMetadata
    */

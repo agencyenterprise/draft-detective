@@ -1,20 +1,19 @@
+import { AiGeneratedLabel } from '@/components/ai-generated-label';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { useChunkDetails } from '@/lib/hooks/use-chunk-details';
 import type { ChunkReevaluationResponse, ClaimSubstantiatorStateSummary, DocumentIssue } from '@/lib/generated-api';
-import { ChevronDown, ChevronRight, Loader2, X } from 'lucide-react';
-import { useState } from 'react';
+import { useChunkDetails } from '@/lib/hooks/use-chunk-details';
+import { getClaimIssues, getMaxSeverity, sortBySeverity } from '@/lib/severity';
+import { Loader2, X } from 'lucide-react';
 import { ChunkAnalysisCard } from './chunk-analysis-card';
 import { ChunkEvalGenerator } from './chunk-eval-generator';
 import { ChunkReevaluateControl } from './chunk-reevaluate-control';
 import { ChunkStatusBadge, useShouldShowStatusBadge } from './chunk-status-badge';
 import { ClaimAnalysisCard } from './claim-analysis-card';
-import { DocumentIssuesList } from './document-issues-list';
 import { ErrorsCard } from './errors-card';
 
 export interface ChunkSidebarContentProps {
   results: ClaimSubstantiatorStateSummary;
-  chunkIndex: number | null;
+  chunkIndex: number;
   workflowRunId?: string;
   isWorkflowRunning: boolean;
   onSelectIssue: (issue: DocumentIssue) => void;
@@ -31,23 +30,26 @@ export function ChunkSidebarContent({
   onChunkReevaluation,
   onClearChunkSelection,
 }: ChunkSidebarContentProps) {
-  const [showAdvancedAnalysis, setShowAdvancedAnalysis] = useState(false);
-
   const { data: chunkDetails, isLoading: isLoadingDetails } = useChunkDetails(
     workflowRunId || '',
     chunkIndex,
-    showAdvancedAnalysis && !!workflowRunId,
+    !!workflowRunId,
   );
 
   const chunkErrors = results.errors?.filter((error) => error.chunkIndex === chunkIndex) ?? [];
-  const references = results.references ?? [];
-  const issues = results.rankedIssues?.filter((issue) => issue.chunkIndex === chunkIndex) ?? [];
-  const supportingFiles = results.supportingFiles ?? [];
-
   const lightweightChunk = results.chunks?.find((chunk) => chunk.chunkIndex === chunkIndex);
   const shouldShowStatusBadge = useShouldShowStatusBadge(isWorkflowRunning);
 
   const claims = chunkDetails?.claims?.claims ?? [];
+  const sortedClaimsBySeverity = claims
+    .map((claim, originalIndex) => ({ claim, originalIndex }))
+    .sort((a, b) => {
+      const aIssues = getClaimIssues(results, chunkIndex, a.originalIndex);
+      const bIssues = getClaimIssues(results, chunkIndex, b.originalIndex);
+      const aMaxSeverity = getMaxSeverity(aIssues);
+      const bMaxSeverity = getMaxSeverity(bIssues);
+      return sortBySeverity(aMaxSeverity, bMaxSeverity);
+    });
 
   if (!lightweightChunk) {
     return null;
@@ -70,76 +72,45 @@ export function ChunkSidebarContent({
             <X className="h-3 w-3" />
           </button>
         </Badge>
+
+        <AiGeneratedLabel className="ml-auto" />
       </div>
 
       {chunkErrors.length > 0 && <ErrorsCard errors={chunkErrors} />}
 
-      <DocumentIssuesList issues={issues} onSelect={onSelectIssue} />
+      {isLoadingDetails && (
+        <div className="flex items-center justify-center py-8">
+          <div className="text-center space-y-3">
+            <Loader2 className="h-6 w-6 animate-spin text-primary mx-auto" />
+            <p className="text-sm text-muted-foreground">Loading detailed analysis...</p>
+          </div>
+        </div>
+      )}
 
-      {issues.length === 0 && <p className="text-sm text-muted-foreground italic">No issues found in this chunk.</p>}
-
-      <div className="flex items-center gap-2 justify-end">
-        <Button variant="outline" size="xs" onClick={() => setShowAdvancedAnalysis(!showAdvancedAnalysis)}>
-          {showAdvancedAnalysis ? (
-            <>
-              <ChevronDown />
-              Hide full analysis results
-            </>
-          ) : (
-            <>
-              <ChevronRight />
-              Show full analysis results
-            </>
-          )}
-        </Button>
-      </div>
-
-      {showAdvancedAnalysis && (
+      {!isLoadingDetails && (
         <>
-          {isLoadingDetails && (
-            <div className="flex items-center justify-center py-8">
-              <div className="text-center space-y-3">
-                <Loader2 className="h-6 w-6 animate-spin text-primary mx-auto" />
-                <p className="text-sm text-muted-foreground">Loading detailed analysis...</p>
-              </div>
-            </div>
-          )}
+          {sortedClaimsBySeverity.map(({ claim, originalIndex }) => (
+            <ClaimAnalysisCard
+              key={originalIndex}
+              results={results}
+              claim={claim}
+              chunkDetails={chunkDetails}
+              chunkIndex={chunkIndex}
+              claimIndex={originalIndex}
+              totalClaims={claims.length}
+            />
+          ))}
 
-          {!isLoadingDetails && (
-            <>
-              {claims.map((claim, index) => (
-                <ClaimAnalysisCard
-                  key={index}
-                  claim={claim}
-                  claimCategory={chunkDetails?.claimCategories?.find((c) => c.claimIndex === index)}
-                  commonKnowledgeResult={chunkDetails?.claimCommonKnowledgeResults?.find((c) => c.claimIndex === index)}
-                  substantiation={chunkDetails?.substantiations?.find((s) => s.claimIndex === index)}
-                  citationSuggestion={chunkDetails?.citationSuggestions?.find((c) => c.claimIndex === index)}
-                  liveReportsAnalysis={chunkDetails?.liveReportsAnalysis?.find((l) => l.claimIndex === index)}
-                  inferenceValidation={chunkDetails?.inferenceValidations?.find((i) => i.claimIndex === index)}
-                  claimIndex={index}
-                  totalClaims={claims.length}
-                  references={references}
-                  supportingFiles={supportingFiles}
-                  workflowRunId={results.workflowRunId ?? undefined}
-                  chunkIndex={chunkIndex ?? undefined}
-                />
-              ))}
+          {chunkDetails && <ChunkAnalysisCard results={results} chunk={chunkDetails} />}
 
-              {chunkDetails && (
-                <ChunkAnalysisCard chunk={chunkDetails} references={references} supportingFiles={supportingFiles} />
-              )}
+          <ChunkReevaluateControl
+            chunkIndex={lightweightChunk.chunkIndex}
+            originalState={results}
+            onReevaluation={onChunkReevaluation}
+            sessionId={results.config?.sessionId}
+          />
 
-              <ChunkReevaluateControl
-                chunkIndex={lightweightChunk.chunkIndex}
-                originalState={results}
-                onReevaluation={onChunkReevaluation}
-                sessionId={results.config?.sessionId}
-              />
-
-              <ChunkEvalGenerator chunkIndex={lightweightChunk.chunkIndex} originalState={results} />
-            </>
-          )}
+          <ChunkEvalGenerator chunkIndex={lightweightChunk.chunkIndex} originalState={results} />
         </>
       )}
     </div>
