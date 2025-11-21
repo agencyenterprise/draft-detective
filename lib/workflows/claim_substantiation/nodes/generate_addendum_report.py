@@ -112,13 +112,8 @@ if __name__ == "__main__":
         EvidenceWeighterRecommendedAction,
         ReferenceAlignmentLevel,
     )
-    from lib.agents.literature_review import QualityLevel
-    from lib.agents.addendum_generator import (
-        Addendum,
-        AddendumItem,
-        AddendumSections,
-        AddendumSeverity,
-    )
+    from lib.agents.unified_literature_review import QualityLevel
+
     from lib.workflows.claim_substantiation.state import (
         DocumentChunk,
         SubstantiationWorkflowConfig,
