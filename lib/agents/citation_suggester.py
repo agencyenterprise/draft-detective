@@ -5,7 +5,7 @@ from langchain_core.prompts import PromptTemplate
 from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
 
-from lib.agents.literature_review import ReferenceType
+from lib.agents.unified_literature_review import ReferenceType
 from lib.config.llm_models import gpt_5_model
 from lib.models.agent import LangChainAgent, DirectOpenAIAgent
 from lib.services.openai import ensure_structured_output_response
@@ -196,10 +196,10 @@ class CitationSuggesterAgent(DirectOpenAIAgent):
             model=self.model.name,
             tools=[{"type": "web_search"}],
             max_tool_calls=20,
-            # reasoning={
-            #     "effort": "low",  # "minimal", "low", "medium", "high"
-            #     "summary": "auto",
-            # },
+            reasoning={
+                "effort": "low",  # "minimal", "low", "medium", "high"
+                "summary": "auto",
+            },
             text_format=CitationSuggestionResponse,
             input=input,
         )
