@@ -1,20 +1,19 @@
-# %%
 import logging
-from lib.agents.live_literature_review import (
-    live_literature_review_agent,
-    LiveLiteratureReviewResponse,
-)
+
+from langgraph.runtime import Runtime
+
 from lib.agents.evidence_weighter import (
-    evidence_weighter_agent,
-    EvidenceWeighterResponse,
+    EvidenceWeighterAgent,
     EvidenceWeighterResponseWithClaimIndex,
 )
+from lib.agents.live_literature_review import LiveLiteratureReviewAgent
+from lib.workflows.chunk_iterator import iterate_chunks
+from lib.workflows.claim_substantiation.context import ContextSchema
 from lib.workflows.claim_substantiation.state import (
     ClaimSubstantiatorState,
     DocumentChunk,
     SubstantiationWorkflowConfig,
 )
-from lib.workflows.chunk_iterator import iterate_chunks
 from lib.workflows.decorators import handle_workflow_node_errors
 
 logger = logging.getLogger(__name__)
@@ -22,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 @handle_workflow_node_errors()
 async def generate_live_reports_analysis(
-    state: ClaimSubstantiatorState,
+    state: ClaimSubstantiatorState, runtime: Runtime[ContextSchema]
 ) -> ClaimSubstantiatorState:
     logger.info(f"generate_live_reports_analysis ({state.config.session_id}): starting")
 
@@ -45,15 +44,25 @@ async def generate_live_reports_analysis(
         )
         return {}
 
+    live_literature_review_agent = LiveLiteratureReviewAgent(runtime.context)
+    evidence_weighter_agent = EvidenceWeighterAgent(runtime.context)
+
     logger.info(f"live_reports_analysis ({state.config.session_id}): done")
 
     return await iterate_chunks(
-        state, _analyze_chunk_live_reports, "Analyzing chunk live reports"
+        state,
+        _analyze_chunk_live_reports,
+        "Analyzing chunk live reports",
+        live_literature_review_agent=live_literature_review_agent,
+        evidence_weighter_agent=evidence_weighter_agent,
     )
 
 
 async def _analyze_chunk_live_reports(
-    state: ClaimSubstantiatorState, chunk: DocumentChunk
+    state: ClaimSubstantiatorState,
+    chunk: DocumentChunk,
+    live_literature_review_agent: LiveLiteratureReviewAgent,
+    evidence_weighter_agent: EvidenceWeighterAgent,
 ) -> DocumentChunk:
     # Skip if chunk has no claims
     if chunk.claims is None or not chunk.claims.claims:
@@ -141,21 +150,19 @@ async def _analyze_chunk_live_reports(
 
 # %%
 if __name__ == "__main__":
-    import asyncio
     import argparse
-    from datetime import datetime
-    from lib.services.file import FileDocument
-    from lib.agents.claim_extractor import Claim, ClaimResponse
-    from lib.agents.citation_detector import (
-        Citation,
-        CitationResponse,
-        CitationType,
-    )
-    from lib.agents.reference_extractor import BibliographyItem
+    import asyncio
     import json
+    from datetime import datetime
+
+    import nest_asyncio
     from rich.console import Console
     from rich.panel import Panel
-    import nest_asyncio
+
+    from lib.agents.citation_detector import Citation, CitationResponse, CitationType
+    from lib.agents.claim_extractor import Claim, ClaimResponse
+    from lib.agents.reference_extractor import BibliographyItem
+    from lib.services.file import FileDocument
 
     nest_asyncio.apply()
 

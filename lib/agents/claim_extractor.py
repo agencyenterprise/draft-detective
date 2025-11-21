@@ -3,9 +3,10 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
 
-from typing import Optional, List
 from lib.config.llm_models import gpt_5_mini_model
 from lib.models.agent import LangChainAgent
+
+from lib.workflows.claim_substantiation.context import ContextSchema
 
 
 class Claim(BaseModel):
@@ -37,9 +38,9 @@ class ClaimResponse(BaseModel):
 _claim_extractor_prompt_claimify = ChatPromptTemplate.from_template(
     """
 ### Agent Setup and Terms
-You are an assistant for a group of fact-checkers. You will be given the summarized argument of a document, a paragraph from a document, and a chunk of text (typically a sentence or a few sentences) from that paragraph, and your task is to extract all the claims from the chunk of text and determine if they are central to the document's summarized argument. 
+You are an assistant for a group of fact-checkers. You will be given the summarized argument of a document, a paragraph from a document, and a chunk of text (typically a sentence or a few sentences) from that paragraph, and your task is to extract all the claims from the chunk of text and determine if they are central to the document's summarized argument.
 
-Claim (definition): An assertion or proposition that is made within a chunk of text. Grammatically, a sentence that expresses a claim is a declarative sentence and thus contains a verb. 
+Claim (definition): An assertion or proposition that is made within a chunk of text. Grammatically, a sentence that expresses a claim is a declarative sentence and thus contains a verb.
 
 True Examples of Claims:
 - "Quantum gravity is a theory that combines quantum mechanics and general relativity" (Statement/description of a theory)
@@ -56,7 +57,7 @@ Your task is to identify all specific propositions in the sentence and ensure th
 
 A proposition is "decontextualized" if (1) it is fully self-contained, meaning it can be understood in isolation (i.e., without the question, the context, and the other propositions), AND (2) its meaning in isolation matches its meaning when interpreted alongside the question, the context, and the other propositions. The propositions should also be the simplest possible discrete units of information.
 
-A proposition is central to the argument of a paper if the invalidity or falseness of the claim could weaken the argument of the paper. 
+A proposition is central to the argument of a paper if the invalidity or falseness of the claim could weaken the argument of the paper.
 
 Note the following rules:
 - If the chunk of text is a bibliographic entry (usually found in references or bibliography sections, indicated by headings like "References", "Bibliography", "Works Cited"), do not consider it as having claims.
@@ -69,7 +70,7 @@ Each proposition must be:
 - Decontextualized: It should be understandable without additional context
 
 Important rules:
-- If a sentence has multiple adjectives/modifiers describing the same entity, you should include all those adjectives/modifiers in the same claim. 
+- If a sentence has multiple adjectives/modifiers describing the same entity, you should include all those adjectives/modifiers in the same claim.
 - Do NOT repeat the same claim in the list of claims.
 - Do NOT use any external knowledge beyond what is stated in the paragraph and chunk of text
 - Each fact-checker will only have access to one claim - they will not have access to the paragraph and other claims
@@ -116,7 +117,6 @@ Within the list of claims, you must include the following information for each c
 class ClaimExtractorAgent(LangChainAgent):
     name = "Claim Extractor"
     description = "Extract claims from a chunk of text"
-
     model = gpt_5_mini_model
     temperature = 0.5
     output_schema = ClaimResponse
@@ -130,16 +130,14 @@ class ClaimExtractorAgent(LangChainAgent):
         return await self.llm.ainvoke(messages, config=config)
 
 
-claim_extractor_agent = ClaimExtractorAgent()
-
-
 # Interactive testing script
 if __name__ == "__main__":
     import asyncio
     import json
+
     from lib.agents.formatting_utils import (
-        format_domain_context,
         format_audience_context,
+        format_domain_context,
     )
 
     # Test examples from claim_extractor.yaml dataset
@@ -325,6 +323,12 @@ Machine learning will likely continue to drive progress in automated visual unde
         print(f"\nChunk:\n{example['chunk'].strip()}\n")
         print("=" * 80)
         print("\nExtracting claims...\n")
+
+        # Create agent with context
+        from lib.config.env import config
+
+        context = ContextSchema(openai_api_key=config.OPENAI_API_KEY, vector_store=None)
+        claim_extractor_agent = ClaimExtractorAgent(context)
 
         # Run claim extraction
         result = await claim_extractor_agent.ainvoke(prompt_kwargs)

@@ -1,7 +1,11 @@
 import logging
-from lib.agents.citation_detector import citation_detector_agent
+
+from langgraph.runtime import Runtime
+
+from lib.agents.citation_detector import CitationDetectorAgent
 from lib.agents.formatting_utils import format_bibliography_prompt_section
 from lib.workflows.chunk_iterator import iterate_chunks
+from lib.workflows.claim_substantiation.context import ContextSchema
 from lib.workflows.claim_substantiation.state import (
     ClaimSubstantiatorState,
     DocumentChunk,
@@ -17,11 +21,18 @@ logger = logging.getLogger(__name__)
 
 @requires_agent("citations")
 @handle_workflow_node_errors()
-async def detect_citations(state: ClaimSubstantiatorState) -> ClaimSubstantiatorState:
+async def detect_citations(
+    state: ClaimSubstantiatorState, runtime: Runtime[ContextSchema]
+) -> ClaimSubstantiatorState:
     logger.info(f"detect_citations ({state.config.session_id}): starting")
 
+    citation_detector_agent = CitationDetectorAgent(runtime.context)
+
     results = await iterate_chunks(
-        state, _detect_chunk_citations, "Detecting chunk citations"
+        state,
+        _detect_chunk_citations,
+        "Detecting chunk citations",
+        citation_detector_agent=citation_detector_agent,
     )
     logger.info(f"detect_citations ({state.config.session_id}): done")
     return results
@@ -29,7 +40,9 @@ async def detect_citations(state: ClaimSubstantiatorState) -> ClaimSubstantiator
 
 @handle_chunk_errors("Citation detection")
 async def _detect_chunk_citations(
-    state: ClaimSubstantiatorState, chunk: DocumentChunk
+    state: ClaimSubstantiatorState,
+    chunk: DocumentChunk,
+    citation_detector_agent: CitationDetectorAgent,
 ) -> DocumentChunk:
     citations = await citation_detector_agent.ainvoke(
         {

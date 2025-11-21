@@ -5,24 +5,17 @@ Validates the list of references in a document, by searching for their online pr
 """
 from __future__ import annotations
 
-
 from enum import Enum
-
+from typing import List
 
 from langchain_core.prompts import PromptTemplate
 from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
-from typing import List
-from lib.services.openai import (
-    get_openai_client,
-    wait_for_response,
-    ensure_structured_output_response,
-)
-from lib.config.llm_models import gpt_5_mini_model, gpt_5_model
-from lib.models.agent import LangChainAgent, DirectOpenAIAgent
-from lib.agents.reference_extractor import (
-    BibliographyItem,
-)
+
+from lib.agents.reference_extractor import BibliographyItem
+from lib.config.llm_models import gpt_5_mini_model
+from lib.models.agent import DirectOpenAIAgent
+from lib.services.openai import ensure_structured_output_response, wait_for_response
 
 
 class FieldProblemType(str, Enum):
@@ -112,11 +105,10 @@ Return one JSON object matching the schema exactly.
 
 class ReferenceValidatorAgent(DirectOpenAIAgent):
     name = "Reference Validator"
-    description = (
-        "Validate a list of references in a document, by searching for their online presence."
-    )
+    description = "Validate a list of references in a document, by searching for their online presence."
     model = gpt_5_mini_model
     temperature = 0.5
+    output_schema = BibliographyValidationResponse
 
     async def ainvoke(
         self,
@@ -147,11 +139,11 @@ class ReferenceValidatorAgent(DirectOpenAIAgent):
         )
 
 
-reference_validator_agent = ReferenceValidatorAgent()
-
 # %%
 if __name__ == "__main__":
     import asyncio
+
+    from lib.config.env import config
 
     # Test cases for reference validation
     test_cases = [
@@ -185,6 +177,9 @@ if __name__ == "__main__":
             ],
         },
     ]
+
+    context = ContextSchema(openai_api_key=config.OPENAI_API_KEY, vector_store=None)
+    reference_validator_agent = ReferenceValidatorAgent(context)
 
     # Run tests and compare results
     for i, test_case in enumerate(test_cases, 1):

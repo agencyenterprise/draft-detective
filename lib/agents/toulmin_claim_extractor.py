@@ -1,6 +1,5 @@
 from typing import Literal
 
-from langchain.chat_models import init_chat_model
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
@@ -123,7 +122,6 @@ Reference: Purdue OWL - Toulmin Argument (for definitions and orientation): http
 class ToulminClaimExtractorAgent(LangChainAgent):
     name = "Claim Extractor (Toulmin)"
     description = "Extract claims in a chunk of text and extract Toulmin elements: data/grounds, warrants (stated or implied), qualifiers, rebuttals, and backing."
-
     model = gpt_5_model
     temperature = 0.2
     output_schema = ToulminClaimResponse
@@ -135,6 +133,3 @@ class ToulminClaimExtractorAgent(LangChainAgent):
     ) -> ToulminClaimResponse:
         messages = _toulmin_claim_extractor_prompt.format_messages(**prompt_kwargs)
         return await self.llm.ainvoke(messages, config=config)
-
-
-toulmin_claim_extractor_agent = ToulminClaimExtractorAgent()

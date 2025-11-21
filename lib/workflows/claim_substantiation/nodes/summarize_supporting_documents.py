@@ -1,15 +1,14 @@
-import asyncio
 import logging
+
+from langgraph.runtime import Runtime
+
 from lib.agents.document_summarizer import (
-    DocumentSummary,
+    DocumentSummarizerAgent,
     DocumentSummarizerResponse,
-    document_summarizer_agent,
 )
 from lib.run_utils import run_tasks
-
-from lib.workflows.claim_substantiation.state import (
-    ClaimSubstantiatorState,
-)
+from lib.workflows.claim_substantiation.context import ContextSchema
+from lib.workflows.claim_substantiation.state import ClaimSubstantiatorState
 from lib.workflows.decorators import handle_workflow_node_errors
 
 logger = logging.getLogger(__name__)
@@ -17,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 @handle_workflow_node_errors()
 async def summarize_supporting_documents(
-    state: ClaimSubstantiatorState,
+    state: ClaimSubstantiatorState, runtime: Runtime[ContextSchema]
 ) -> ClaimSubstantiatorState:
     logger.info(f"summarize_supporting_documents ({state.config.session_id}): starting")
 
@@ -45,6 +44,7 @@ async def summarize_supporting_documents(
         f"summarize_supporting_documents ({state.config.session_id}): Summarizing {len(supporting_files)} files in parallel"
     )
 
+    document_summarizer_agent = DocumentSummarizerAgent(runtime.context)
     tasks = [
         document_summarizer_agent.ainvoke(
             {

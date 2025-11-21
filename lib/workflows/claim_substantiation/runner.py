@@ -8,16 +8,19 @@ from typing import List, Optional
 from lib.config.langfuse import langfuse_handler
 from lib.models.workflow_run import WorkflowRunStatus
 from lib.services.file import FileDocument
+from lib.services.vector_store import VectorStoreService
 from lib.services.workflow_runs import (
     upsert_workflow_run,
 )
 from lib.workflows.claim_substantiation.checkpointer import get_checkpointer
+from lib.workflows.claim_substantiation.context import ContextSchema
 from lib.workflows.claim_substantiation.graph import build_claim_substantiator_graph
 from lib.workflows.claim_substantiation.state import (
     ClaimSubstantiatorState,
     SubstantiationWorkflowConfig,
 )
 from lib.workflows.models import WorkflowError
+from lib.config.env import config
 
 logger = logging.getLogger(__name__)
 
@@ -41,13 +44,15 @@ async def run_claim_substantiator(
     if config is None:
         config = SubstantiationWorkflowConfig()
 
+    context = create_context(config)
+    config.openai_api_key = "[REDACTED]"
     state = ClaimSubstantiatorState(
         file=file,
         supporting_files=supporting_files,
         config=config,
     )
 
-    return await _execute(state)
+    return await _execute(state, context)
 
 
 async def reevaluate_single_chunk(
@@ -80,6 +85,8 @@ async def reevaluate_single_chunk(
     config.agents_to_run = agents_to_run
     config.session_id = config.session_id or original_result.session_id
 
+    context = create_context(config)
+    config.openai_api_key = "[REDACTED]"
     state = original_result.model_copy(
         update={
             "config": config,
@@ -91,10 +98,10 @@ async def reevaluate_single_chunk(
         }
     )
 
-    return await _execute(state)
+    return await _execute(state, context)
 
 
-async def _execute(state: ClaimSubstantiatorState):
+async def _execute(state: ClaimSubstantiatorState, context: ContextSchema):
     """
     Execute the claim substantiation workflow.
 
@@ -137,6 +144,7 @@ async def _execute(state: ClaimSubstantiatorState):
                 state,
                 {"configurable": {"thread_id": state.config.session_id}},
                 stream_mode="values",
+                context=context,
             ):
                 updated_state = ClaimSubstantiatorState(**values)
 
@@ -160,6 +168,26 @@ async def _execute(state: ClaimSubstantiatorState):
             )
 
     return updated_state
+
+
+def create_context(workflow_config: SubstantiationWorkflowConfig) -> ContextSchema:
+    """
+    Create a context object for the langchain workflow.
+    """
+
+    openai_api_key = (
+        workflow_config.openai_api_key
+        or config.OPENAI_API_KEY
+        or config.AZURE_OPENAI_API_KEY
+    )
+
+    if not openai_api_key:
+        raise ValueError("No OpenAI API key found in config or environment variables")
+
+    return ContextSchema(
+        openai_api_key=openai_api_key,
+        vector_store=VectorStoreService(config.DATABASE_URL, openai_api_key),
+    )
 
 
 if __name__ == "__main__":

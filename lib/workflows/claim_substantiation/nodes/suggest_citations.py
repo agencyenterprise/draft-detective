@@ -1,17 +1,20 @@
 import logging
+
+from langgraph.runtime import Runtime
+
 from lib.agents.citation_suggester import (
-    CitationSuggestionResponse,
+    CitationSuggesterAgent,
     CitationSuggestionResultWithClaimIndex,
-    citation_suggester_agent,
+)
+from lib.agents.formatting_utils import (
+    format_bibliography_prompt_section,
+    format_cited_references,
 )
 from lib.workflows.chunk_iterator import iterate_chunks
+from lib.workflows.claim_substantiation.context import ContextSchema
 from lib.workflows.claim_substantiation.state import (
     ClaimSubstantiatorState,
     DocumentChunk,
-)
-from lib.agents.formatting_utils import (
-    format_cited_references,
-    format_bibliography_prompt_section,
 )
 from lib.workflows.decorators import handle_workflow_node_errors
 
@@ -20,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 @handle_workflow_node_errors()
 async def suggest_citations(
-    state: ClaimSubstantiatorState,
+    state: ClaimSubstantiatorState, runtime: Runtime[ContextSchema]
 ) -> ClaimSubstantiatorState:
     logger.info(f"suggest_citations ({state.config.session_id}): starting")
 
@@ -37,15 +40,22 @@ async def suggest_citations(
         )
         return {}
 
+    citation_suggester_agent = CitationSuggesterAgent(runtime.context)
+
     logger.info(f"suggest_citations ({state.config.session_id}): done")
 
     return await iterate_chunks(
-        state, _suggest_chunk_citations, "Suggesting chunk citations"
+        state,
+        _suggest_chunk_citations,
+        "Suggesting chunk citations",
+        citation_suggester_agent=citation_suggester_agent,
     )
 
 
 async def _suggest_chunk_citations(
-    state: ClaimSubstantiatorState, chunk: DocumentChunk
+    state: ClaimSubstantiatorState,
+    chunk: DocumentChunk,
+    citation_suggester_agent: CitationSuggesterAgent,
 ) -> DocumentChunk:
     # Skip if chunk has no claims
     if chunk.claims is None or not chunk.claims.claims:

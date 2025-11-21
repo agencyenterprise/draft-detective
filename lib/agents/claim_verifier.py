@@ -1,7 +1,6 @@
-from enum import IntEnum, StrEnum
+from enum import StrEnum
 from typing import List, Optional
 
-from langchain.chat_models import init_chat_model
 from langchain_core.prompts import ChatPromptTemplate
 from langgraph.graph.state import RunnableConfig
 from pydantic import BaseModel, Field
@@ -121,7 +120,6 @@ For each claim, output an evidence alignment level based on the following defini
 class ClaimVerifierAgent(LangChainAgent):
     name = "Claim Verifier"
     description = "Substantiate a claim based on a supporting document"
-
     model = gpt_5_model
     temperature = 0.2
     output_schema = ClaimSubstantiationResult
@@ -133,6 +131,3 @@ class ClaimVerifierAgent(LangChainAgent):
     ) -> ClaimSubstantiationResult:
         messages = _claim_verifier_prompt.format_messages(**prompt_kwargs)
         return await self.llm.ainvoke(messages, config=config)
-
-
-claim_verifier_agent = ClaimVerifierAgent()

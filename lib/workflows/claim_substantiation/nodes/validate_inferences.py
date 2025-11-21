@@ -1,32 +1,38 @@
 import logging
 
-from lib.agents.formatting_utils import (
-    format_audience_context,
-    format_domain_context,
-)
+from langgraph.runtime import Runtime
+
+from lib.agents.formatting_utils import format_audience_context, format_domain_context
 from lib.agents.inference_validator import (
     InferenceValidationResponseWithClaimIndex,
-    inference_validator_agent,
+    InferenceValidatorAgent,
 )
 from lib.agents.models import ClaimCategory
+from lib.workflows.chunk_iterator import iterate_chunks
+from lib.workflows.claim_substantiation.context import ContextSchema
 from lib.workflows.claim_substantiation.state import (
     ClaimSubstantiatorState,
     DocumentChunk,
 )
-from lib.workflows.chunk_iterator import iterate_chunks
-from lib.workflows.decorators import handle_chunk_errors
+from lib.workflows.decorators import handle_chunk_errors, handle_workflow_node_errors
 
 logger = logging.getLogger(__name__)
 
 
+@handle_workflow_node_errors()
 async def validate_inferences(
-    state: ClaimSubstantiatorState,
+    state: ClaimSubstantiatorState, runtime: Runtime[ContextSchema]
 ) -> ClaimSubstantiatorState:
     """Validate inferential claims using Toulmin model of argumentation."""
     logger.info(f"validate_inferences ({state.config.session_id}): starting")
 
+    inference_validator_agent = InferenceValidatorAgent(runtime.context)
+
     results = await iterate_chunks(
-        state, _validate_chunk_inferences, "Validating inference claims"
+        state,
+        _validate_chunk_inferences,
+        "Validating inference claims",
+        inference_validator_agent=inference_validator_agent,
     )
     logger.info(f"validate_inferences ({state.config.session_id}): done")
     return results
@@ -34,7 +40,9 @@ async def validate_inferences(
 
 @handle_chunk_errors("Inference validation")
 async def _validate_chunk_inferences(
-    state: ClaimSubstantiatorState, chunk: DocumentChunk
+    state: ClaimSubstantiatorState,
+    chunk: DocumentChunk,
+    inference_validator_agent: InferenceValidatorAgent,
 ) -> DocumentChunk:
     """Validate inferences for claims categorized as INTERPRETATION."""
     # Skip if chunk has no claims

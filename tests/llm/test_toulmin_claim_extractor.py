@@ -6,13 +6,14 @@ import pytest
 from lib.agents.formatting_utils import format_audience_context, format_domain_context
 from lib.agents.toulmin_claim_extractor import (
     ToulminClaimResponse,
-    toulmin_claim_extractor_agent,
+    ToulminClaimExtractorAgent,
 )
 from lib.models.agent_test_case import AgentTestCase
 from tests.conftest import (
     create_test_file_document_from_path,
     data_path,
     extract_paragraph_from_chunk,
+    create_test_context,
 )
 from tests.datasets.loader import load_dataset
 
@@ -44,9 +45,7 @@ def _build_cases() -> list[AgentTestCase]:
         cases.append(
             AgentTestCase(
                 name=test_case.name,
-                # agent=claim_extractor_agent,
-                # response_model=ClaimResponse,
-                agent=toulmin_claim_extractor_agent,
+                agent=ToulminClaimExtractorAgent(create_test_context()),
                 response_model=ToulminClaimResponse,
                 prompt_kwargs={
                     "full_document": main_doc.markdown,

@@ -11,18 +11,20 @@ This test suite compares:
 Goal: Measure accuracy, performance, and cost for each approach on footnote text.
 """
 
-import pytest
-import time
-from typing import List, Dict, Any
 import asyncio
+import time
+from typing import Any, Dict, List
+
+import nltk
+import pytest
 from pydantic import BaseModel
 
 from lib.agents.document_chunker_nltk import (
-    split_paragraph_into_sentences,
     llm_tokenize_paragraph,
+    split_paragraph_into_sentences,
 )
 from lib.services.fragment_detection import DetectionMethod
-import nltk
+from tests.conftest import create_test_context
 
 
 class FootnoteTestCase(BaseModel):
@@ -208,7 +210,9 @@ async def run_with_method(
     """
     start = time.perf_counter()
     result = await split_paragraph_into_sentences(
-        test_case.text, detection_method=detection_method
+        test_case.text,
+        detection_method=detection_method,
+        context=create_test_context(),
     )
     elapsed_ms = (time.perf_counter() - start) * 1000
 
@@ -232,7 +236,7 @@ async def run_nltk_only(test_case: FootnoteTestCase) -> tuple[List[str], float]:
 async def run_llm_only(test_case: FootnoteTestCase) -> tuple[List[str], float]:
     """Test with pure LLM (no NLTK)."""
     start = time.perf_counter()
-    result = await llm_tokenize_paragraph(test_case.text)
+    result = await llm_tokenize_paragraph(test_case.text, context=create_test_context())
     elapsed_ms = (time.perf_counter() - start) * 1000
     return result, elapsed_ms
 
@@ -259,7 +263,9 @@ class TestFootnoteWithReconstruction:
     async def test_footnote_reconstruction(self, test_case: FootnoteTestCase):
         """Test each footnote case with reconstruction detection."""
         result = await split_paragraph_into_sentences(
-            test_case.text, detection_method="reconstruction"
+            test_case.text,
+            detection_method="reconstruction",
+            context=create_test_context(),
         )
         assert chunks_match(
             result, test_case.expected_chunks
@@ -294,7 +300,7 @@ class TestPerformanceBenchmarks:
         test_text = FOOTNOTE_TEST_CASES[0].text
 
         start = time.perf_counter()
-        await llm_tokenize_paragraph(test_text)
+        await llm_tokenize_paragraph(test_text, context=create_test_context())
         elapsed_ms = (time.perf_counter() - start) * 1000
 
         print(f"\nLLM single call: {elapsed_ms:.2f}ms")

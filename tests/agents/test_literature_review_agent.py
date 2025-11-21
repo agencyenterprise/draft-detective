@@ -7,8 +7,9 @@ import pytest
 from lib.agents.literature_review import (
     LiteratureReviewResponse,
     Reference,
-    literature_review_agent,
+    LiteratureReviewAgent,
 )
+from tests.conftest import create_test_context
 
 
 class _FakeStructuredLLM:
@@ -80,6 +81,7 @@ def _stub_llm(monkeypatch):
 
 
 def test_attention_paragraph_suggests_attention_is_all_you_need(monkeypatch):
+    literature_review_agent = LiteratureReviewAgent(create_test_context())
     original_tools = literature_review_agent.tools
     original_use_direct_llm = literature_review_agent.use_direct_llm_client
     literature_review_agent.tools = []

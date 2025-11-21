@@ -7,6 +7,7 @@ NOT sentence boundaries (e.g., after author initials, journal abbreviations, etc
 
 import pytest
 from lib.agents.document_chunker_nltk import split_paragraph_into_sentences
+from tests.conftest import create_test_context
 
 
 class TestCitationTokenization:
@@ -22,7 +23,9 @@ class TestCitationTokenization:
         """
         citation = "Smith, J., Doe, A., & Roe, B. (2019). A Comprehensive Study of Gizmos. Proceedings of Gizmo Conf."
 
-        result = await split_paragraph_into_sentences(citation)
+        result = await split_paragraph_into_sentences(
+            citation, context=create_test_context()
+        )
 
         assert len(result) == 1, f"Expected 1 chunk but got {len(result)}: {result}"
         assert result[0] == citation
@@ -36,7 +39,9 @@ class TestCitationTokenization:
         """
         citation = "Johnson et al. (2020). Machine Learning Approaches to Data Analysis. Nature Machine Intelligence, 5(2), 123-145."
 
-        result = await split_paragraph_into_sentences(citation)
+        result = await split_paragraph_into_sentences(
+            citation, context=create_test_context()
+        )
 
         assert len(result) == 1, f"Expected 1 chunk but got {len(result)}: {result}"
         assert result[0] == citation
@@ -46,7 +51,9 @@ class TestCitationTokenization:
         """Citation with journal abbreviations should NOT be split."""
         citation = "Brown, M., & Green, K. (2018). Neural Networks in Practice. J. Neurosci. Methods, 15(3), 45-67."
 
-        result = await split_paragraph_into_sentences(citation)
+        result = await split_paragraph_into_sentences(
+            citation, context=create_test_context()
+        )
 
         assert len(result) == 1, f"Expected 1 chunk but got {len(result)}: {result}"
         assert result[0] == citation
@@ -60,7 +67,9 @@ class TestCitationTokenization:
         """
         footnote = "1. Smith, J. (2020). The Effects of Widgets. Journal of Widgetry. This groundbreaking study examined widget performance. Results showed a 20% improvement."
 
-        result = await split_paragraph_into_sentences(footnote)
+        result = await split_paragraph_into_sentences(
+            footnote, context=create_test_context()
+        )
 
         assert (
             len(result) == 1
@@ -71,7 +80,9 @@ class TestCitationTokenization:
         """Complex citation with multiple problematic periods should remain intact."""
         citation = "Anderson, R. J., Smith, P. K., & Williams, M. T. (2021). Advanced Topics in A.I. Research. Proc. Natl. Acad. Sci. U.S.A., 118(25), e2021234118."
 
-        result = await split_paragraph_into_sentences(citation)
+        result = await split_paragraph_into_sentences(
+            citation, context=create_test_context()
+        )
 
         assert len(result) == 1, f"Expected 1 chunk but got {len(result)}: {result}"
         assert result[0] == citation
@@ -85,7 +96,9 @@ class TestCitationTokenization:
         """
         footnote = "See Smith, J. (2020). Widget Analysis. J. Widgets, 5(2), 10-20. See also Doe, A. (2019). Gadget Performance. Tech. Rev., 8(1), 5-15."
 
-        result = await split_paragraph_into_sentences(footnote)
+        result = await split_paragraph_into_sentences(
+            footnote, context=create_test_context()
+        )
 
         for chunk in result:
             assert len(chunk.split()) > 1, f"Got a fragment chunk: '{chunk}'"
@@ -95,7 +108,9 @@ class TestCitationTokenization:
         """Modern citations with DOIs should not split at periods in URLs."""
         citation = "Martinez, L. et al. (2022). Deep Learning Applications. Nature, 600, 123-128. https://doi.org/10.1038/s41586-022-12345-6"
 
-        result = await split_paragraph_into_sentences(citation)
+        result = await split_paragraph_into_sentences(
+            citation, context=create_test_context()
+        )
 
         assert len(result) == 1, f"Expected 1 chunk but got {len(result)}: {result}"
         assert result[0] == citation
@@ -105,7 +120,9 @@ class TestCitationTokenization:
         """Numbered footnotes have special handling to keep them as single chunks."""
         footnote = "1. National Institute of Standards and Technology (NIST). (2022). Security Guidelines. Tech. Rep. 800-53."
 
-        result = await split_paragraph_into_sentences(footnote)
+        result = await split_paragraph_into_sentences(
+            footnote, context=create_test_context()
+        )
 
         assert len(result) == 1, f"Expected 1 chunk but got {len(result)}: {result}"
         assert result[0] == footnote
@@ -115,7 +132,9 @@ class TestCitationTokenization:
         """Regular prose should still split correctly at sentence boundaries."""
         prose = "This is the first sentence. This is the second sentence. And here is a third."
 
-        result = await split_paragraph_into_sentences(prose)
+        result = await split_paragraph_into_sentences(
+            prose, context=create_test_context()
+        )
 
         assert len(result) == 3, f"Expected 3 chunks but got {len(result)}: {result}"
         assert "first sentence" in result[0]
@@ -138,7 +157,9 @@ class TestCitationTokenization:
             "by AI data centers is expected to grow at an unprecedented rate in the coming years.[[6]](#footnote-5)"
         )
 
-        result = await split_paragraph_into_sentences(paragraph)
+        result = await split_paragraph_into_sentences(
+            paragraph, context=create_test_context()
+        )
 
         # Should be 2 sentences (compound sentence with "and", then a new sentence)
         assert len(result) == 2, f"Expected 2 chunks but got {len(result)}: {result}"
@@ -171,7 +192,9 @@ class TestCitationTokenization:
             "necessary infrastructure in a timely manner[[10]](#footnote-9) and maintain grid stability.[[11]](#footnote-10)"
         )
 
-        result = await split_paragraph_into_sentences(paragraph)
+        result = await split_paragraph_into_sentences(
+            paragraph, context=create_test_context()
+        )
 
         # Should be 2 sentences
         assert len(result) == 2, f"Expected 2 chunks but got {len(result)}: {result}"
@@ -199,7 +222,9 @@ class TestCitationTokenization:
             "and existing facilities are already straining U.S. electrical grids.[[5]](#footnote-4)"
         )
 
-        result = await split_paragraph_into_sentences(paragraph)
+        result = await split_paragraph_into_sentences(
+            paragraph, context=create_test_context()
+        )
 
         # Should be 2 sentences (bold doesn't create a sentence boundary)
         assert len(result) == 2, f"Expected 2 chunks but got {len(result)}: {result}"
@@ -226,7 +251,9 @@ class TestCitationTokenization:
             "of a single state such as Idaho (5.4 GW), Maine (5.3 GW), or New Hampshire (4.5 GW).[[14]](#footnote-13)"
         )
 
-        result = await split_paragraph_into_sentences(paragraph)
+        result = await split_paragraph_into_sentences(
+            paragraph, context=create_test_context()
+        )
 
         # Should be 1 sentence
         assert len(result) == 1, f"Expected 1 chunk but got {len(result)}: {result}"

@@ -18,12 +18,13 @@ def get_target_chunks(state: ClaimSubstantiatorState) -> List[DocumentChunk]:
 
 async def iterate_chunks(
     state: ClaimSubstantiatorState,
-    func: Callable[[ClaimSubstantiatorState, DocumentChunk], DocumentChunk],
+    func: Callable[[ClaimSubstantiatorState, DocumentChunk, ...], DocumentChunk],
     desc: str,
+    **kwargs: ...,
 ) -> ClaimSubstantiatorState:
     target_chunks = get_target_chunks(state)
 
-    tasks = [func(state, chunk) for chunk in target_chunks]
+    tasks = [func(state, chunk, **kwargs) for chunk in target_chunks]
     results: Tuple[List[DocumentChunk], List[Exception]] = await run_tasks(
         tasks, desc=desc
     )

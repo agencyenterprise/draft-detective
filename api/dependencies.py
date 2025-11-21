@@ -22,6 +22,7 @@ async def build_config_from_form(
     document_publication_date: Optional[str] = Form(default=None),
     agents_to_run: Optional[str] = Form(default=None),
     session_id: Optional[str] = Form(default=None),
+    openai_api_key: Optional[str] = Form(default=None),
 ) -> SubstantiationWorkflowConfig:
     """
     Build SubstantiationWorkflowConfig from individual form fields.
@@ -39,6 +40,7 @@ async def build_config_from_form(
         document_publication_date: Publication date of the document (optional)
         agents_to_run: Comma-separated agent names to run (optional)
         session_id: Session ID for Langfuse tracing (optional)
+        openai_api_key: OpenAI API key to use for this workflow execution (optional)
 
     Returns:
         Configured SubstantiationWorkflowConfig instance
@@ -91,4 +93,5 @@ async def build_config_from_form(
         document_publication_date=parsed_publication_date,
         agents_to_run=parsed_agents_to_run,
         session_id=session_id,
+        openai_api_key=openai_api_key,
     )
