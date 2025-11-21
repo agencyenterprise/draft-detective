@@ -1,7 +1,6 @@
-import { MAX_FILE_SIZE_BYTES, MAX_FILE_SIZE_MB } from '../constants';
-import { ProgressCallbacks, ProgressTracker } from './progress-tracker';
-import { analysisService, AnalysisRequest } from '../analysis-service';
+import { AnalysisRequest, analysisService } from '../analysis-service';
 import { StartAnalysisResponse } from '../generated-api';
+import { ProgressCallbacks, ProgressTracker } from './progress-tracker';
 
 export interface ValidationError {
   fileName: string;
@@ -14,22 +13,6 @@ export interface ValidationResult {
 }
 
 export class UploadOrchestrator {
-  validateFiles(files: File[]): ValidationResult {
-    const oversized = files.filter((f) => f.size > MAX_FILE_SIZE_BYTES);
-
-    if (oversized.length > 0) {
-      return {
-        valid: false,
-        errors: oversized.map((f) => ({
-          fileName: f.name,
-          error: `File exceeds ${MAX_FILE_SIZE_MB}MB limit (${(f.size / 1024 / 1024).toFixed(1)}MB)`,
-        })),
-      };
-    }
-
-    return { valid: true };
-  }
-
   formatValidationErrors(errors: ValidationError[]): string {
     const fileList = errors.map((e) => `${e.fileName}: ${e.error}`).join('\n');
     return `File validation failed:\n${fileList}`;
