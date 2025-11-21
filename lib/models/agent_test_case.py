@@ -1,23 +1,13 @@
 from __future__ import annotations
 
-import asyncio
-import json
 import logging
-import uuid
-from typing import Any, Dict, List, Optional, Protocol, Set, Type, TypeVar
+from typing import Any, Dict, List, Optional, Type, TypeVar
 
 from pydantic import BaseModel, Field, ConfigDict
-from langchain.chat_models import init_chat_model
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.runnables.config import RunnableConfig
-from deepdiff import DeepDiff
 
-
-from lib.config.langfuse import langfuse_handler
-from lib.models.agent import BaseAgent
-from lib.models.field_comparator import FieldComparator
-from lib.models.comparison_models import FieldComparison
 from lib.config.llm_models import LLMModel
+from lib.models.agent import BaseAgent
+from lib.models.comparison_models import FieldComparison
 
 logger = logging.getLogger(__name__)
 
@@ -25,9 +15,9 @@ TResponse = TypeVar("TResponse", bound=BaseModel)
 
 
 class EvaluationResult(BaseModel):
-    passed: bool = Field(
-        description="Whether the expected and received results match, thus passed the evaluation"
-    )
+    """Result of evaluating agent output against expected output."""
+
+    passed: bool = Field(description="Whether the expected and received results match")
     rationale: str = Field(description="Brief reason for the decision")
     field_comparisons: List[FieldComparison] = Field(
         default_factory=list, description="Detailed field-by-field comparison results"
@@ -35,13 +25,34 @@ class EvaluationResult(BaseModel):
 
 
 class AgentTestCase(BaseModel):
-    """Generic container for agent test cases with mixed strict/LLM grading.
+    """Test case for agents
 
-    - expected stores the golden output as a dict matching the agent's response model
-    - expected/result are parsed instances of response_model for type-safe access
-    - strict_fields are dotted selectors compared exactly (e.g., "reference_index")
-    - llm_fields are field names to be graded by an LLM (e.g., "claims")
-    - ignore_fields are dotted prefixes to omit from both expected and result prior to checks
+    Architecture:
+        - Test definition: name, agent, inputs, expected output
+        - Comparison rules: strict/llm fields, ignore patterns
+        - Execution state: model_results (populated by run())
+        - Two methods: run(models) and compare_results()
+
+    Usage:
+        test_case = AgentTestCase(
+            name="test_name",
+            agent=my_agent,
+            prompt_kwargs={"text": "..."},
+            expected_dict={"claims": [...]},
+            response_model=ClaimResult,
+            strict_fields={"reference_index"},
+            llm_fields={"claims"},
+        )
+
+        # Run with default model
+        await test_case.run()
+        result = await test_case.compare_results()
+        assert result.passed
+
+        # Or run with multiple models for comparison
+        await test_case.run(models=[model1, model2, model3])
+        result = await test_case.compare_results()  # Returns model1 (baseline)
+        assert result.passed
     """
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
@@ -49,51 +60,59 @@ class AgentTestCase(BaseModel):
     # Class-level shared session ID for all test cases in a run
     _shared_session_id: Optional[str] = None
 
-    name: str
-    agent: BaseAgent
-    response_model: Type[TResponse]
-    prompt_kwargs: Dict[str, Any]
+    # ===== Test Definition =====
+    name: str = Field(description="Test case name")
+    agent: BaseAgent = Field(description="Agent instance to test")
+    response_model: Type[TResponse] = Field(description="Expected response model type")
+    prompt_kwargs: Dict[str, Any] = Field(description="Agent invocation arguments")
+    expected_dict: Dict[str, Any] = Field(description="Expected output as dictionary")
 
-    # Goldens and results
-    expected_dict: Dict[str, Any]
-    expected: Optional[TResponse] = None
-    run_count: int = 1
-    results: Optional[list[TResponse]] = None  # For multiple runs
-
-    # Field selectors (same format as pydantic model_dump's include and exclude inputs)
-    strict_fields: set | dict = Field(default_factory=set)
-    llm_fields: set | dict = Field(default_factory=set)
-    ignore_fields: set | dict = Field(default_factory=set)
-
-    # Special instructions for LLM-as-a-judge evaluation
-    llm_instructions: Optional[str] = Field(
-        default=None,
-        description="Special instructions to include in the LLM-as-a-judge prompt for semantic comparison",
+    # ===== Comparison Rules =====
+    strict_fields: set | dict = Field(
+        default_factory=set,
+        description="Fields to compare with exact matching",
+    )
+    llm_fields: set | dict = Field(
+        default_factory=set,
+        description="Fields to compare with LLM semantic evaluation",
+    )
+    ignore_fields: set | dict = Field(
+        default_factory=set,
+        description="Fields to exclude from all comparisons",
     )
 
-    # Evaluator model (provider:model) for LLM comparisons. Keep temperature 0 for determinism.
-    evaluator_model: str = Field(default="openai:gpt-5-mini")
-
+    # ===== Configuration =====
+    evaluator_model: str = Field(
+        default="openai:gpt-4o-mini",
+        description="LLM model for semantic comparison (provider:model)",
+    )
     fuzzy_threshold: float = Field(
-        default=0.6, description="Minimum similarity score for fuzzy matches (0-1)"
+        default=0.6,
+        description="Minimum similarity score for fuzzy matches (0-1)",
     )
     good_match_threshold: float = Field(
         default=0.8,
         description="Score above which matches are considered excellent (0-1)",
     )
-
-    # Stored intermediate eval results
-    strict_eval_results: Optional[list[EvaluationResult]] = None
-    llm_eval_results: Optional[list[EvaluationResult]] = None
-    _eval_result: Optional[EvaluationResult] = None
-
-    # Langfuse session information for this test run
-    session_id: Optional[str] = None
-
-    # Model comparison results (populated when running with model comparison)
-    model_comparison_results: Optional[Dict[str, Any]] = Field(
+    llm_instructions: Optional[str] = Field(
         default=None,
-        description="Results from running the test with different models",
+        description="Special instructions for LLM-as-judge evaluation",
+    )
+    session_id: Optional[str] = Field(
+        default=None,
+        description="Langfuse session ID for tracing",
+    )
+
+    # ===== Execution State =====
+    model_results: Optional[Dict[str, Dict[str, Any]]] = Field(
+        default=None,
+        description="Results from running agent(s), keyed by model name. Each result contains evaluation and metrics.",
+    )
+
+    # ===== Parsed Expected Output =====
+    expected: Optional[TResponse] = Field(
+        default=None,
+        description="Parsed expected output (initialized from expected_dict)",
     )
 
     @classmethod
@@ -106,310 +125,95 @@ class AgentTestCase(BaseModel):
         """Get the shared session ID for all test cases."""
         return cls._shared_session_id
 
-    def model_post_init(self, __context: Any) -> None:  # type: ignore[override]
-        # Parse expected into the typed model instance
+    def model_post_init(self, __context: Any) -> None:
+        """Initialize parsed expected output and session ID."""
         if self.expected is None:
-            self.expected = self.response_model.model_validate(self.expected_dict)  # type: ignore[arg-type]
+            self.expected = self.response_model.model_validate(self.expected_dict)
 
-        # Use shared session ID if instance session_id is not set
         if self.session_id is None:
             self.session_id = self._shared_session_id
 
-    async def run(self) -> TResponse:
-        """Run the agent and store the typed result."""
+    async def run(self, models: Optional[List[LLMModel]] = None) -> None:
+        """Execute agent with specified model(s) and store results.
 
-        tasks = [
-            self.agent.ainvoke(
-                self.prompt_kwargs,
-                config={
-                    "run_name": self.name,
-                    "callbacks": [langfuse_handler],
-                    "metadata": {
-                        "langfuse_session_id": self.session_id,
-                    },
-                },
-            )
-            for _ in range(self.run_count)
-        ]
-        results = await asyncio.gather(*tasks)
+        This method runs the agent with one or more models in parallel and
+        evaluates each output against the expected result. Results are stored
+        in self.model_results for later retrieval.
 
-        # Ensure result is the expected pydantic type
-        self.results = [self.response_model.model_validate(result) for result in results]  # type: ignore[arg-type]
-        return self.results  # type: ignore[return-value]
+        Args:
+            models: List of models to test. If None, uses agent's default model.
+                    First model in list is treated as baseline.
 
-    async def _compare_llm_given_result(self, result: TResponse) -> EvaluationResult:
-        """Use an LLM to semantically compare selected fields."""
-        assert self.expected is not None and result is not None, "Run the test first"
+        Side Effects:
+            - Populates self.model_results with Dict[str, EvaluationResult]
+            - Overwrites previous results if called multiple times
 
-        if len(self.llm_fields) == 0:
-            return EvaluationResult(
-                passed=True,
-                rationale="No fields require llm comparison",
-                field_comparisons=[],
-            )
+        Example:
+            # Single model (default)
+            await test_case.run()
 
-        expected_llm_json = self.expected.model_dump_json(
-            include=self.llm_fields, exclude=self.ignore_fields, indent=2
-        )
-        result_llm_json = result.model_dump_json(
-            include=self.llm_fields, exclude=self.ignore_fields, indent=2
-        )
+            # Multiple models for comparison
+            await test_case.run(models=[
+                LLMModel.GPT_4,
+                LLMModel.CLAUDE_3_5_SONNET,
+                LLMModel.GEMINI_2_0_FLASH,
+            ])
+        """
+        from lib.services.model_comparison import run_parallel_comparison
 
-        if expected_llm_json == "{}" and result_llm_json == "{}":
-            return EvaluationResult(
-                passed=True,
-                rationale="No fields require llm comparison",
-                field_comparisons=[],
-            )
+        # Default to agent's model if not specified
+        models = models or [self.agent.model]
 
-        evaluator_model_str = str(self.evaluator_model)
-        provider, model = evaluator_model_str.split(":", 1)
-        grader = init_chat_model(
-            model, model_provider=provider, temperature=0, timeout=180
-        )
-        grader = grader.with_structured_output(EvaluationResult)
+        logger.info(f"Running test '{self.name}' with {len(models)} model(s)")
 
-        # Build base instructions
-        base_instructions = """You are a strict evaluator for agent outputs.
+        self.model_results = await run_parallel_comparison(self, models)
 
-Instructions:
-- Compare the EXPECTED and RECEIVED JSON for the selected fields.
-- For list-like fields, ignore order.
-- For textual fields or rationales, accept minor wording differences if the meaning is equivalent.
-- If counts differ in list-like fields or any expected item is missing semantically, return passed=False.
-
-Return a boolean 'passed' (True if the expected and received results match, False otherwise) and a short 'rationale'."""
-
-        # Append special instructions if provided
-        if self.llm_instructions:
-            instructions = f"{base_instructions}\n\nAdditional Instructions:\n{self.llm_instructions}"
-        else:
-            instructions = base_instructions
-
-        prompt = ChatPromptTemplate.from_template(
-            """{instructions}
-
-EXPECTED JSON (selected fields):
-```json
-{expected_llm_json}
-```
-
-RECEIVED JSON (selected fields):
-```json
-{result_llm_json}
-```
-"""
-        )
-
-        messages = prompt.format_messages(
-            instructions=instructions,
-            expected_llm_json=expected_llm_json,
-            result_llm_json=result_llm_json,
-        )
-
-        eval_result = await grader.ainvoke(
-            messages,
-            config={
-                "run_name": f"{self.name}::llm_grader",
-                "callbacks": [langfuse_handler],
-                "metadata": {
-                    "langfuse_session_id": self.session_id,
-                },
-            },
-        )
-
-        # Add field-level comparisons for LLM fields using comparator
-        comparator = FieldComparator(
-            self.llm_fields,
-            self.ignore_fields,
-            fuzzy_threshold=self.fuzzy_threshold,
-            good_match_threshold=self.good_match_threshold,
-        )
-        field_comparisons = comparator.compare_fields(
-            self.expected, result, comparison_type="llm"
-        )
-        eval_result.field_comparisons = field_comparisons
-
-        return eval_result
-
-    async def _compare_strict_given_result(self, result: TResponse) -> EvaluationResult:
-        assert self.expected is not None and result is not None, "Run the test first"
-
-        if len(self.strict_fields) == 0:
-            return EvaluationResult(
-                passed=True,
-                rationale="No strict fields to compare",
-                field_comparisons=[],
-            )
-
-        # Use field comparator for detailed analysis
-        comparator = FieldComparator(
-            self.strict_fields,
-            self.ignore_fields,
-            fuzzy_threshold=self.fuzzy_threshold,
-            good_match_threshold=self.good_match_threshold,
-        )
-        field_comparisons = comparator.compare_fields(
-            self.expected, result, comparison_type="strict"
-        )
-
-        # Aggregate results
-        all_passed = all(fc.passed for fc in field_comparisons)
-
-        # Build summary rationale
-        if all_passed:
-            rationale = f"All {len(field_comparisons)} field(s) passed"
-        else:
-            failed_comps = [fc for fc in field_comparisons if not fc.passed]
-            rationale_lines = ["Failed fields:"]
-            for fc in failed_comps[:5]:
-                rationale_lines.append(f"  • {fc.field_path}: {fc.rationale}")
-            if len(failed_comps) > 5:
-                rationale_lines.append(f"  ... and {len(failed_comps) - 5} more")
-            rationale = "\n".join(rationale_lines)
-
-        return EvaluationResult(
-            passed=all_passed, rationale=rationale, field_comparisons=field_comparisons
-        )
-
-    async def prepare_aggregate_run_evaluation_result(
-        self, eval_results: list[EvaluationResult], test_label: str | None = None
-    ) -> EvaluationResult:
-        num_passed = sum(1 for result in eval_results if result.passed)
-        passed = num_passed == len(eval_results)
-        pass_rate = num_passed / len(eval_results) * 100
-        label_suffix = f" {test_label}" if test_label else ""
-        rationale = f"{pass_rate:0.0f}% ({num_passed}/{len(eval_results)}) of runs passed{label_suffix}"
-
-        if not passed:
-            run_details = []
-            for i, result in enumerate(eval_results):
-                status = "✓" if result.passed else "✗"
-                label = f" - {test_label}" if test_label else ""
-                run_details.append(
-                    f"{status} Run {i+1}/{self.run_count}{label}\n    ```\n    {result.rationale}\n    ```"
-                )
-            rationale += "\n" + "\n".join(run_details)
-
-        # Aggregate field comparisons (use first run's comparisons as representative)
-        field_comparisons = eval_results[0].field_comparisons if eval_results else []
-
-        return EvaluationResult(
-            passed=passed, rationale=rationale, field_comparisons=field_comparisons
-        )
-
-    async def _compare_llm(self) -> EvaluationResult:
-        """Use an LLM to semantically compare selected fields."""
-        assert (
-            self.expected is not None and self.results is not None
-        ), "Run the test first"
-
-        if len(self.llm_fields) == 0:
-            return EvaluationResult(
-                passed=True, rationale="No fields require llm comparison"
-            )
-
-        tasks = [self._compare_llm_given_result(result) for result in self.results]
-        self.llm_eval_results = await asyncio.gather(*tasks)
-        return await self.prepare_aggregate_run_evaluation_result(
-            self.llm_eval_results,
-            "LLM Comparisons",
-        )
-
-    async def _compare_strict(self) -> EvaluationResult:
-        assert (
-            self.expected is not None and self.results is not None
-        ), "Run the test first"
-
-        if len(self.strict_fields) == 0:
-            return EvaluationResult(
-                passed=True, rationale="No strict fields to compare"
-            )
-
-        tasks = [self._compare_strict_given_result(result) for result in self.results]
-        self.strict_eval_results = await asyncio.gather(*tasks)
-        return await self.prepare_aggregate_run_evaluation_result(
-            self.strict_eval_results,
-            "Strict Comparisons",
+        logger.info(
+            f"Test '{self.name}' completed: "
+            f"{sum(1 for r in self.model_results.values() if r['passed'])}/{len(models)} models passed"
         )
 
     async def compare_results(self) -> EvaluationResult:
-        strict_eval = await self._compare_strict()
-        llm_eval = await self._compare_llm()
+        """Retrieve baseline model's evaluation result.
 
-        # Merge field comparisons from both evaluations
-        all_field_comparisons = (
-            strict_eval.field_comparisons + llm_eval.field_comparisons
-        )
-
-        eval_result = EvaluationResult(
-            passed=strict_eval.passed and llm_eval.passed,
-            rationale="\n".join([strict_eval.rationale, llm_eval.rationale]),
-            field_comparisons=all_field_comparisons,
-        )
-
-        self._eval_result = eval_result
-
-        return eval_result
-
-    async def run_with_model_comparison(
-        self, comparison_models: List[LLMModel]
-    ) -> Dict[str, EvaluationResult]:
-        """Run the test case with multiple models and compare results.
-
-        Args:
-            comparison_models: List of models to test (including baseline)
+        Returns the evaluation result for the first model in the list
+        (the baseline model).
 
         Returns:
-            Dictionary mapping model names to their evaluation results
-        """
-        from lib.services.model_comparison_runner import ModelComparisonRunner
+            EvaluationResult for the baseline model (first in models list)
 
-        return await ModelComparisonRunner.run_with_model_comparison(
-            self, comparison_models
-        )
-
-    async def run_and_evaluate(self) -> EvaluationResult:
-        """Run the test case and evaluate results with automatic mode detection.
-
-        This method automatically handles both normal mode and model comparison mode
-        based on pytest configuration flags. Use this in test functions to avoid
-        boilerplate code for mode detection.
-
-        In normal mode:
-            - Runs the agent with default configuration
-            - Evaluates against expected output
-            - Returns single EvaluationResult
-
-        In model comparison mode (--compare-models flag):
-            - Runs the agent with multiple models
-            - Compares results across models
-            - Returns baseline model's EvaluationResult for pass/fail
-            - Stores comparison data in model_comparison_results
-
-        Returns:
-            EvaluationResult with passed status and rationale
+        Raises:
+            RuntimeError: If run() has not been called yet
 
         Example:
-            ```python
-            @pytest.mark.asyncio
-            async def test_my_agent(case: AgentTestCase):
-                result = await case.run_and_evaluate()
-                assert result.passed, result.rationale
-            ```
+            await test_case.run(models=[baseline, model2, model3])
+            result = await test_case.compare_results()  # Returns baseline's result
+            assert result.passed, result.rationale
         """
-        try:
-            from tests.conftest import is_model_comparison_mode, get_comparison_models
-        except ImportError:
-            is_model_comparison_mode = lambda: False
-            get_comparison_models = lambda: []
+        if self.model_results is None:
+            raise RuntimeError(
+                f"Test case '{self.name}': Must call run() before compare_results()"
+            )
 
-        if is_model_comparison_mode():
-            comparison_models = get_comparison_models()
-            results = await self.run_with_model_comparison(comparison_models)
+        if not self.model_results:
+            raise RuntimeError(
+                f"Test case '{self.name}': No results available after run()"
+            )
 
-            baseline_model = str(comparison_models[0])
-            return results[baseline_model]
-        else:
-            await self.run()
-            return await self.compare_results()
+        # Get first model's result (baseline)
+        baseline_model = next(iter(self.model_results.keys()))
+        baseline_data = self.model_results[baseline_model]
+
+        # Reconstruct EvaluationResult from dict
+        baseline_result = EvaluationResult(
+            passed=baseline_data["passed"],
+            rationale=baseline_data["rationale"],
+            field_comparisons=baseline_data["field_comparisons"],
+        )
+
+        logger.debug(
+            f"Test '{self.name}' baseline ({baseline_model}): "
+            f"passed={baseline_result.passed}"
+        )
+
+        return baseline_result

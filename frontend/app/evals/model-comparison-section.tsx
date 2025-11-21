@@ -3,7 +3,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { CheckCircle2, XCircle, TrendingDown, TrendingUp, Info } from 'lucide-react';
 import { ModelComparisonResult } from './types';
-import { formatModelName, calculateCostDifference, formatCostDifference } from './model-comparison-utils';
+import {
+  formatModelName,
+  calculateCostDifference,
+  formatCostDifference,
+  calculateDurationDifference,
+  formatDurationDifference,
+} from './model-comparison-utils';
 import { cn } from '@/lib/utils';
 
 interface ModelComparisonSectionProps {
@@ -51,11 +57,11 @@ export function ModelComparisonSection({
             <TableRow>
               <TableHead>Model</TableHead>
               <TableHead>Result</TableHead>
-              <TableHead className="text-right">Tokens</TableHead>
-              <TableHead className="text-right">Input</TableHead>
-              <TableHead className="text-right">Output</TableHead>
+              <TableHead className="text-right">Latency</TableHead>
+              <TableHead className="text-right">Latency vs</TableHead>
               <TableHead className="text-right">Cost</TableHead>
-              <TableHead className="text-right">vs Baseline</TableHead>
+              <TableHead className="text-right">Cost vs</TableHead>
+              <TableHead className="text-right">Tokens</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -65,6 +71,12 @@ export function ModelComparisonSection({
               const isSelected = selectedModel === modelName;
               const costDiff = calculateCostDifference(result.cost_usd, baselineResult.cost_usd, isBaseline);
               const costDiffFormatted = formatCostDifference(costDiff);
+              const durationDiff = calculateDurationDifference(
+                result.duration_seconds,
+                baselineResult.duration_seconds,
+                isBaseline,
+              );
+              const durationDiffFormatted = formatDurationDifference(durationDiff);
 
               return (
                 <TableRow
@@ -103,14 +115,23 @@ export function ModelComparisonSection({
                       </Badge>
                     </div>
                   </TableCell>
-                  <TableCell className="text-right font-mono text-sm">
-                    {(result.total_tokens ?? 0).toLocaleString()}
-                  </TableCell>
-                  <TableCell className="text-right font-mono text-sm text-muted-foreground">
-                    {(result.input_tokens ?? 0).toLocaleString()}
-                  </TableCell>
-                  <TableCell className="text-right font-mono text-sm text-muted-foreground">
-                    {(result.output_tokens ?? 0).toLocaleString()}
+                  <TableCell className="text-right font-mono text-sm">{result.duration_seconds.toFixed(2)}s</TableCell>
+                  <TableCell className="text-right">
+                    {isBaseline ? (
+                      <span className="text-muted-foreground text-xs">-</span>
+                    ) : (
+                      <div className="flex items-center justify-end gap-1">
+                        {durationDiff < 0 ? (
+                          <TrendingDown className="h-3 w-3 text-green-600" />
+                        ) : (
+                          <TrendingUp className="h-3 w-3 text-red-600" />
+                        )}
+                        <span className={`text-xs font-medium ${durationDiffFormatted.colorClass}`}>
+                          {durationDiffFormatted.sign}
+                          {durationDiffFormatted.formatted}
+                        </span>
+                      </div>
+                    )}
                   </TableCell>
                   <TableCell className="text-right font-mono text-sm">${result.cost_usd.toFixed(4)}</TableCell>
                   <TableCell className="text-right">
@@ -130,6 +151,13 @@ export function ModelComparisonSection({
                       </div>
                     )}
                   </TableCell>
+                  <TableCell className="text-right font-mono text-sm">
+                    {(result.total_tokens ?? 0).toLocaleString()}
+                    <div className="text-xs text-muted-foreground">
+                      {(result.input_tokens ?? 0).toLocaleString()}in · {(result.output_tokens ?? 0).toLocaleString()}
+                      out
+                    </div>
+                  </TableCell>
                 </TableRow>
               );
             })}
@@ -148,7 +176,7 @@ export function ModelComparisonSection({
             <p className="mt-1">All metrics are real usage data, not estimates</p>
           </TooltipContent>
         </Tooltip>
-        <span>Click a model to view its results • Real API Data</span>
+        <span>Click a model to view its results</span>
       </div>
     </div>
   );

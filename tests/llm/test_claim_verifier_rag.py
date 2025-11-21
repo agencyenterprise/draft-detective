@@ -159,13 +159,13 @@ def _build_cases_sync(dataset_file_name: str):
 @pytest.mark.parametrize(
     "case", _build_cases_sync("claim_verifier.yaml"), ids=lambda case: case.name
 )
-async def test_claim_verifier_rag(case: AgentTestCase):
+async def test_claim_verifier_rag(case: AgentTestCase, test_models):
     """Test RAG-based claim substantiation cases.
 
     These tests use the same dataset and evaluation criteria as test_claim_verifier.py,
     allowing for direct comparison between the full-text and RAG approaches.
     """
-    await case.run()
+    await case.run(models=test_models)
     eval_result = await case.compare_results()
 
     assert eval_result.passed, f"{case.name}: {eval_result.rationale}"
@@ -177,9 +177,9 @@ async def test_claim_verifier_rag(case: AgentTestCase):
     _build_cases_sync("rag_stress_tests.yaml"),
     ids=lambda case: case.name,
 )
-async def test_claim_verifier_rag_stress_tests(case: AgentTestCase):
+async def test_claim_verifier_rag_stress_tests(case: AgentTestCase, test_models):
     """Test RAG-based claim substantiation stress test cases."""
-    await case.run()
+    await case.run(models=test_models)
     eval_result = await case.compare_results()
 
     assert eval_result.passed, f"{case.name}: {eval_result.rationale}"

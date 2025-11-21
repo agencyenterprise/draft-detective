@@ -77,6 +77,7 @@ export interface ModelComparisonResult {
   total_tokens: number;
   input_tokens: number;
   output_tokens: number;
+  actual_output: ActualOutput;
 }
 
 export interface AgentTestCase {

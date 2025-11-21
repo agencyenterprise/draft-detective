@@ -2,8 +2,7 @@
 
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { BibliographyItem, FileDocument } from '@/lib/generated-api';
-import { DocumentChunk } from '@/lib/generated-api/models/DocumentChunk';
+import { BibliographyItem, FileDocument, DocumentChunk } from '@/lib/generated-api';
 import { LinkIcon, MessageCirclePlus } from 'lucide-react';
 import { ExpandableResultSection } from './expandable-result-section';
 import { AiGeneratedLabel } from '@/components/ai-generated-label';

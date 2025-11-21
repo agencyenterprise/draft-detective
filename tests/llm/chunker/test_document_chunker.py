@@ -48,8 +48,8 @@ def _build_cases() -> list[AgentTestCase]:
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("case", _build_cases(), ids=lambda case: case.name)
-async def test_document_chunker_agent_cases(case: AgentTestCase):
-    await case.run()
+async def test_document_chunker_agent_cases(case: AgentTestCase, test_models):
+    await case.run(models=test_models)
     eval_result = await case.compare_results()
 
     assert eval_result.passed, f"{case.name}: {eval_result.rationale}"

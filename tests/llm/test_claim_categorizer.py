@@ -78,8 +78,8 @@ def _build_cases():
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("case", _build_cases(), ids=lambda case: case.name)
-async def test_claim_categorizer(case):
+async def test_claim_categorizer(case: AgentTestCase, test_models):
     """Test claim categorizer."""
-    await case.run()
-    eval_result = await case.compare_results()
-    assert eval_result.passed, f"{case.name}: {eval_result.rationale}"
+    await case.run(models=test_models)
+    result = await case.compare_results()
+    assert result.passed, f"{case.name}: {result.rationale}"

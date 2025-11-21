@@ -258,13 +258,16 @@ Each test run will by default generate a `test_results.json` file that can be up
 
 #### Model Comparison / Downgrade Evaluation
 
-**Important**: Model comparison is OPT-IN ONLY. Normal pytest runs will NOT run comparisons.
+**Important**: Model comparison is ENABLED BY DEFAULT. Tests will compare multiple models unless disabled.
 
 Compare different LLM models to evaluate if simpler/cheaper models can replace full models:
 
 ```bash
-# Run tests with model comparison enabled (only runs when flag is set)
-uv run pytest tests/llm/test_claim_extractor.py --compare-models
+# Run tests with model comparison (default behavior)
+uv run pytest tests/llm/test_claim_extractor.py
+
+# Skip model comparison for faster testing (single model only)
+uv run pytest tests/llm/test_claim_extractor.py --skip-compare-models
 
 # View results in frontend eval viewer at /evals
 ```

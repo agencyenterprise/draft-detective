@@ -3,7 +3,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { TrendingDown, TrendingUp, Zap, Info, TriangleAlert } from 'lucide-react';
 import { TestCase } from './types';
-import { formatModelName, calculateCostDifference, formatCostDifference } from './model-comparison-utils';
+import {
+  formatModelName,
+  calculateCostDifference,
+  formatCostDifference,
+  calculateDurationDifference,
+  formatDurationDifference,
+} from './model-comparison-utils';
 
 interface ModelComparisonSummaryProps {
   testCases: TestCase[];
@@ -20,6 +26,8 @@ interface ModelMetrics {
   avgTokens: number;
   totalInputTokens: number;
   totalOutputTokens: number;
+  totalDuration: number;
+  avgDuration: number;
 }
 
 function aggregateModelMetrics(testCases: TestCase[]): Record<string, ModelMetrics> | null {
@@ -48,6 +56,8 @@ function aggregateModelMetrics(testCases: TestCase[]): Record<string, ModelMetri
           avgTokens: 0,
           totalInputTokens: 0,
           totalOutputTokens: 0,
+          totalDuration: 0,
+          avgDuration: 0,
         };
       }
 
@@ -62,6 +72,7 @@ function aggregateModelMetrics(testCases: TestCase[]): Record<string, ModelMetri
       metrics.totalTokens += result.total_tokens || 0;
       metrics.totalInputTokens += result.input_tokens || 0;
       metrics.totalOutputTokens += result.output_tokens || 0;
+      metrics.totalDuration += result.duration_seconds || 0;
     });
   });
 
@@ -69,6 +80,7 @@ function aggregateModelMetrics(testCases: TestCase[]): Record<string, ModelMetri
     metrics.passRate = (metrics.passed / metrics.totalTests) * 100;
     metrics.avgCost = metrics.totalCost / metrics.totalTests;
     metrics.avgTokens = metrics.totalTokens / metrics.totalTests;
+    metrics.avgDuration = metrics.totalDuration / metrics.totalTests;
   });
 
   return modelMetrics;
@@ -115,10 +127,11 @@ export function ModelComparisonSummary({ testCases }: ModelComparisonSummaryProp
             <TableRow>
               <TableHead>Model</TableHead>
               <TableHead className="text-center">Pass Rate</TableHead>
+              <TableHead className="text-right">Avg Latency</TableHead>
+              <TableHead className="text-right">Latency vs Baseline</TableHead>
               <TableHead className="text-right">Avg Cost</TableHead>
-              <TableHead className="text-right">Total Cost</TableHead>
+              <TableHead className="text-right">Cost vs Baseline</TableHead>
               <TableHead className="text-right">Avg Tokens</TableHead>
-              <TableHead className="text-right">vs Baseline</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -128,6 +141,12 @@ export function ModelComparisonSummary({ testCases }: ModelComparisonSummaryProp
               const isBest = modelName === bestModel;
               const costDiff = calculateCostDifference(metrics.avgCost, baselineMetrics.avgCost, isBaseline);
               const costDiffFormatted = formatCostDifference(costDiff);
+              const durationDiff = calculateDurationDifference(
+                metrics.avgDuration,
+                baselineMetrics.avgDuration,
+                isBaseline,
+              );
+              const durationDiffFormatted = formatDurationDifference(durationDiff);
 
               return (
                 <TableRow key={modelName} className={isBaseline ? 'bg-muted/30' : ''}>
@@ -155,17 +174,25 @@ export function ModelComparisonSummary({ testCases }: ModelComparisonSummaryProp
                       </span>
                     </div>
                   </TableCell>
+                  <TableCell className="text-right font-mono text-sm">{metrics.avgDuration.toFixed(2)}s</TableCell>
+                  <TableCell className="text-right">
+                    {isBaseline ? (
+                      <span className="text-muted-foreground text-xs">-</span>
+                    ) : (
+                      <div className="flex items-center justify-end gap-1">
+                        {durationDiff < 0 ? (
+                          <TrendingDown className="h-3 w-3 text-green-600" />
+                        ) : (
+                          <TrendingUp className="h-3 w-3 text-red-600" />
+                        )}
+                        <span className={`text-xs font-medium ${durationDiffFormatted.colorClass}`}>
+                          {durationDiffFormatted.sign}
+                          {durationDiffFormatted.formatted}
+                        </span>
+                      </div>
+                    )}
+                  </TableCell>
                   <TableCell className="text-right font-mono text-sm">${metrics.avgCost.toFixed(4)}</TableCell>
-                  <TableCell className="text-right font-mono text-sm text-muted-foreground">
-                    ${metrics.totalCost.toFixed(4)}
-                  </TableCell>
-                  <TableCell className="text-right font-mono text-sm">
-                    {(Math.round(metrics.avgTokens) || 0).toLocaleString()}
-                    <div className="text-xs text-muted-foreground">
-                      {Math.round(metrics.totalInputTokens / metrics.totalTests) || 0}in ·{' '}
-                      {Math.round(metrics.totalOutputTokens / metrics.totalTests) || 0}out
-                    </div>
-                  </TableCell>
                   <TableCell className="text-right">
                     {isBaseline ? (
                       <span className="text-muted-foreground text-xs">-</span>
@@ -182,6 +209,13 @@ export function ModelComparisonSummary({ testCases }: ModelComparisonSummaryProp
                         </span>
                       </div>
                     )}
+                  </TableCell>
+                  <TableCell className="text-right font-mono text-sm">
+                    {(Math.round(metrics.avgTokens) || 0).toLocaleString()}
+                    <div className="text-xs text-muted-foreground">
+                      {Math.round(metrics.totalInputTokens / metrics.totalTests) || 0}in ·{' '}
+                      {Math.round(metrics.totalOutputTokens / metrics.totalTests) || 0}out
+                    </div>
                   </TableCell>
                 </TableRow>
               );
