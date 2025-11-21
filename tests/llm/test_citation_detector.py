@@ -3,9 +3,13 @@ from pathlib import Path
 
 import pytest
 
-from lib.agents.citation_detector import CitationResponse, citation_detector_agent
+from lib.agents.citation_detector import CitationResponse, CitationDetectorAgent
 from lib.models.agent_test_case import AgentTestCase
-from tests.conftest import create_test_file_document_from_path, data_path
+from tests.conftest import (
+    create_test_file_document_from_path,
+    data_path,
+    create_test_context,
+)
 from tests.datasets.loader import load_dataset
 
 TESTS_DIR = Path(__file__).parent.parent
@@ -31,7 +35,7 @@ def _build_cases() -> list[AgentTestCase]:
         cases.append(
             AgentTestCase(
                 name=test_case.name,
-                agent=citation_detector_agent,
+                agent=CitationDetectorAgent(create_test_context()),
                 response_model=CitationResponse,
                 prompt_kwargs={
                     "full_document": main_doc.markdown,

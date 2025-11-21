@@ -73,6 +73,7 @@ class AnalysisService {
         if (config.documentPublicationDate)
           formData.append('document_publication_date', config.documentPublicationDate.toISOString().split('T')[0]);
         if (config.sessionId) formData.append('session_id', config.sessionId);
+        if (config.openaiApiKey) formData.append('openai_api_key', config.openaiApiKey);
 
         // Use XMLHttpRequest for upload progress tracking
         const xhr = new XMLHttpRequest();

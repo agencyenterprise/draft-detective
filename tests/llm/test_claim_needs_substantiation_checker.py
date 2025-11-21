@@ -6,7 +6,7 @@ import pytest
 
 from lib.agents.claim_needs_substantiation_checker import (
     ClaimCommonKnowledgeResult,
-    claim_needs_substantiation_checker_agent,
+    ClaimNeedsSubstantiationCheckerAgent,
 )
 from lib.agents.formatting_utils import (
     format_audience_context,
@@ -17,6 +17,7 @@ from tests.conftest import (
     TESTS_DIR,
     extract_paragraph_from_chunk,
     create_test_file_document_from_path,
+    create_test_context,
 )
 from tests.datasets.loader import load_dataset
 
@@ -62,7 +63,7 @@ def _build_cases():
         cases.append(
             AgentTestCase(
                 name=test_case.name,
-                agent=claim_needs_substantiation_checker_agent,
+                agent=ClaimNeedsSubstantiationCheckerAgent(create_test_context()),
                 response_model=ClaimCommonKnowledgeResult,
                 prompt_kwargs=prompt_kwargs,
                 expected_dict=test_case.expected_output,

@@ -3,12 +3,16 @@ from pathlib import Path
 
 import pytest
 
-from lib.agents.document_chunker import DocumentChunkerResponse, document_chunker_agent
+from lib.agents.document_chunker import DocumentChunkerResponse, DocumentChunkerAgent
 from lib.models.agent_test_case import AgentTestCase
-from tests.conftest import create_test_file_document_from_path, data_path
+from tests.conftest import (
+    create_test_file_document_from_path,
+    data_path,
+    create_test_context,
+)
 from tests.datasets.loader import load_dataset
 
-TESTS_DIR = Path(__file__).parent.parent
+TESTS_DIR = Path(__file__).parent.parent.parent
 
 
 def _build_cases() -> list[AgentTestCase]:
@@ -32,7 +36,7 @@ def _build_cases() -> list[AgentTestCase]:
         cases.append(
             AgentTestCase(
                 name=test_case.name,
-                agent=document_chunker_agent,
+                agent=DocumentChunkerAgent(create_test_context()),
                 response_model=DocumentChunkerResponse,
                 prompt_kwargs={
                     "full_document": main_doc.markdown,

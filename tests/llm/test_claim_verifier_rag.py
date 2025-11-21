@@ -13,7 +13,7 @@ import pytest
 
 from lib.agents.citation_detector import Citation
 from lib.agents.claim_extractor import Claim, ClaimResponse
-from lib.agents.claim_verifier import ClaimSubstantiationResult, claim_verifier_agent
+from lib.agents.claim_verifier import ClaimSubstantiationResult, ClaimVerifierAgent
 from lib.agents.formatting_utils import format_audience_context, format_domain_context
 from lib.agents.reference_extractor import BibliographyItem
 from lib.config.logger import setup_logger
@@ -35,6 +35,7 @@ from tests.conftest import (
     TESTS_DIR,
     extract_paragraph_from_chunk,
     create_test_file_document_from_path,
+    create_test_context,
 )
 from tests.datasets.loader import load_dataset
 
@@ -139,7 +140,7 @@ async def _build_cases(dataset_file_name: str):
         cases.append(
             AgentTestCase(
                 name=test_case.name,
-                agent=claim_verifier_agent,
+                agent=ClaimVerifierAgent(create_test_context()),
                 response_model=ClaimSubstantiationResult,
                 prompt_kwargs=prompt_kwargs,
                 expected_dict=test_case.expected_output,

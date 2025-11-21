@@ -9,13 +9,14 @@ from lib.agents.formatting_utils import (
 )
 from lib.agents.inference_validator import (
     InferenceValidationResponse,
-    inference_validator_agent,
+    InferenceValidatorAgent,
 )
 from lib.models.agent_test_case import AgentTestCase
 from tests.conftest import (
     TESTS_DIR,
     extract_paragraph_from_chunk,
     create_test_file_document_from_path,
+    create_test_context,
 )
 from tests.datasets.loader import load_dataset
 
@@ -72,7 +73,7 @@ def _build_cases():
         cases.append(
             AgentTestCase(
                 name=test_case.name,
-                agent=inference_validator_agent,
+                agent=InferenceValidatorAgent(create_test_context()),
                 response_model=InferenceValidationResponse,
                 prompt_kwargs=prompt_kwargs,
                 expected_dict=test_case.expected_output,

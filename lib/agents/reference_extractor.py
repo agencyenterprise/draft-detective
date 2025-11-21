@@ -1,4 +1,3 @@
-from langchain.chat_models import init_chat_model
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
@@ -54,7 +53,6 @@ For each bibliographic item, you need to return the following information:
 class ReferenceExtractorAgent(LangChainAgent):
     name = "Reference Extractor"
     description = "Extract bibliographic items from a document"
-
     model = gpt_5_mini_model
     temperature = 0.0
     output_schema = ReferenceExtractorResponse
@@ -66,6 +64,3 @@ class ReferenceExtractorAgent(LangChainAgent):
     ) -> ReferenceExtractorResponse:
         messages = _reference_extractor_prompt.format_messages(**prompt_kwargs)
         return await self.llm.ainvoke(messages, config=config)
-
-
-reference_extractor_agent = ReferenceExtractorAgent()

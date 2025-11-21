@@ -1,12 +1,14 @@
 import logging
 
+from langgraph.runtime import Runtime
+
 from lib.agents.claim_needs_substantiation_checker import (
-    ClaimCommonKnowledgeResult,
     ClaimCommonKnowledgeResultWithClaimIndex,
-    claim_needs_substantiation_checker_agent,
+    ClaimNeedsSubstantiationCheckerAgent,
 )
 from lib.agents.formatting_utils import format_audience_context, format_domain_context
 from lib.workflows.chunk_iterator import iterate_chunks
+from lib.workflows.claim_substantiation.context import ContextSchema
 from lib.workflows.claim_substantiation.state import (
     ClaimSubstantiatorState,
     DocumentChunk,
@@ -23,16 +25,21 @@ logger = logging.getLogger(__name__)
 @requires_agent("needs_substantiation")
 @handle_workflow_node_errors()
 async def check_claim_needs_substantiation(
-    state: ClaimSubstantiatorState,
+    state: ClaimSubstantiatorState, runtime: Runtime[ContextSchema]
 ) -> ClaimSubstantiatorState:
     logger.info(
         f"check_claim_needs_substantiation ({state.config.session_id}): starting"
+    )
+
+    claim_needs_substantiation_checker_agent = ClaimNeedsSubstantiationCheckerAgent(
+        runtime.context
     )
 
     results = await iterate_chunks(
         state,
         _check_chunk_claim_needs_substantiation,
         "Checking chunk claim needs substantiation",
+        claim_needs_substantiation_checker_agent=claim_needs_substantiation_checker_agent,
     )
     logger.info(f"check_claim_needs_substantiation ({state.config.session_id}): done")
     return results
@@ -40,7 +47,9 @@ async def check_claim_needs_substantiation(
 
 @handle_chunk_errors("Claim substantiation check")
 async def _check_chunk_claim_needs_substantiation(
-    state: ClaimSubstantiatorState, chunk: DocumentChunk
+    state: ClaimSubstantiatorState,
+    chunk: DocumentChunk,
+    claim_needs_substantiation_checker_agent: ClaimNeedsSubstantiationCheckerAgent,
 ) -> DocumentChunk:
     if chunk.claims is None or not chunk.claims.claims:
         logger.debug(

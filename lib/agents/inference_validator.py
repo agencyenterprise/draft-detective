@@ -15,7 +15,6 @@ Validate the inference of a model using the toulmin model of argumentation.
 
 from enum import Enum
 
-from langchain.chat_models import init_chat_model
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
@@ -202,7 +201,6 @@ class InferenceValidatorAgent(LangChainAgent):
     description = (
         "Validate the inference of a model using the toulmin model of argumentation."
     )
-
     model = gpt_5_model
     temperature = 0.2
     output_schema = InferenceValidationResponse
@@ -216,15 +214,13 @@ class InferenceValidatorAgent(LangChainAgent):
         return await self.llm.ainvoke(messages, config=config)
 
 
-inference_validator_agent = InferenceValidatorAgent()
-
-
 # %%
 
 
 if __name__ == "__main__":
-    import nest_asyncio
     import asyncio
+
+    import nest_asyncio
 
     nest_asyncio.apply()
 
@@ -359,7 +355,11 @@ if __name__ == "__main__":
     ]
 
     async def run_inference_validator_tests():
-        agent = InferenceValidatorAgent()
+        from lib.config.env import config
+
+        context = ContextSchema(openai_api_key=config.OPENAI_API_KEY, vector_store=None)
+        agent = InferenceValidatorAgent(context)
+
         results = []
         print("\n🔍 Running Inference Validator Tests\n")
         for i, test_case in enumerate(test_cases):

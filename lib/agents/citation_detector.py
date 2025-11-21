@@ -1,7 +1,6 @@
 from enum import Enum
 from typing import Optional
 
-from langchain.chat_models import init_chat_model
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
@@ -125,7 +124,6 @@ Be specific in your feedback to help the agent improve.
 class CitationDetectorAgent(LangChainAgent):
     name = "Citation Detector"
     description = "Detect citations in a chunk of text"
-
     model = gpt_5_mini_model
     temperature = 0.0
     output_schema = CitationResponse
@@ -135,6 +133,3 @@ class CitationDetectorAgent(LangChainAgent):
     ) -> CitationResponse:
         messages = _citation_detector_prompt.format_messages(**prompt_kwargs)
         return await self.llm.ainvoke(messages, config=config)
-
-
-citation_detector_agent = CitationDetectorAgent()

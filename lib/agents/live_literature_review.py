@@ -11,6 +11,7 @@ from lib.agents.literature_review import (
 from lib.config.llm_models import gpt_5_mini_model
 from lib.models.agent import DirectOpenAIAgent
 from lib.services.openai import ensure_structured_output_response
+from lib.workflows.claim_substantiation.context import ContextSchema
 
 
 class ClaimReferenceFactors(BaseModel):
@@ -60,7 +61,7 @@ class LiveLiteratureReviewResponse(BaseModel):
 _live_literature_review_agent_prompt = PromptTemplate.from_template(
     """
 # Role
-You are an expert literature review researcher specializing in finding newer evidence that could update or contextualize existing claims in academic and policy documents. 
+You are an expert literature review researcher specializing in finding newer evidence that could update or contextualize existing claims in academic and policy documents.
 
 # Goal
 Given a claim from a document and the document's publication date, find newer literature (published after the document's publication date) that provides supporting, conflicting, or contextual evidence for the claim. As additional context, you will also be given the argument summary of the document, the paragraph containing the claim, the specific chunk containing the claim, and the original claim being analyzed.
@@ -122,6 +123,7 @@ Provide each piece of evidence related to a claim with one of the following qual
 # Search Guidelines
 - ONLY search for literature published AFTER the document's publication date ({document_publication_date}); Do not present sources that are older than the document's publication date.
 - Use specific search terms related to the claim's key concepts
+- When presenting links to the references, use the full URL of the reference and not just a link to the site's main page
 - If a reference is already cited in the document, then do not include it in the newer references
 - Include variations of terminology and synonyms
 - Search for both references that support the claim and references that contradict the claim
@@ -166,6 +168,7 @@ class LiveLiteratureReviewAgent(DirectOpenAIAgent):
     )
     model = gpt_5_mini_model
     temperature = 0.5
+    output_schema = LiveLiteratureReviewResponse
 
     async def ainvoke(
         self,
@@ -190,11 +193,9 @@ class LiveLiteratureReviewAgent(DirectOpenAIAgent):
         return ensure_structured_output_response(response, LiveLiteratureReviewResponse)
 
 
-live_literature_review_agent = LiveLiteratureReviewAgent()
-
 if __name__ == "__main__":
-
     import asyncio
+    from lib.config.env import config
 
     fake_input = {
         "domain_context": "US public policy; presidential elections; constitutional law",
@@ -210,6 +211,9 @@ One thing that has never happened, is that a one-term president comes back to of
         "bibliography": """1. Skowronek, S. (2011). Presidential Leadership in Political Time. University Press of Kansas.
     2. Achen, C. H., & Bartels, L. M. (2016). Democracy for Realists: Why Elections Do Not Produce Responsive Government. Princeton University Press.""",
     }
+
+    context = ContextSchema(openai_api_key=config.OPENAI_API_KEY, vector_store=None)
+    live_literature_review_agent = LiveLiteratureReviewAgent(context)
 
     response = asyncio.run(live_literature_review_agent.ainvoke(fake_input))
     print("Live Literature Review Response:")

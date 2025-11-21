@@ -5,7 +5,7 @@ import pytest
 
 from lib.agents.citation_suggester import (
     CitationSuggestionResponse,
-    citation_suggester_agent,
+    CitationSuggesterAgent,
 )
 from lib.agents.reference_extractor import BibliographyItem
 from lib.agents.formatting_utils import format_bibliography_prompt_section
@@ -14,6 +14,7 @@ from tests.conftest import (
     extract_paragraph_from_chunk,
     create_test_file_document_from_path,
     TESTS_DIR,
+    create_test_context,
 )
 from tests.datasets.loader import load_dataset
 
@@ -77,7 +78,7 @@ def _build_cases() -> list[AgentTestCase]:
         cases.append(
             AgentTestCase(
                 name=test_case.name,
-                agent=citation_suggester_agent,
+                agent=CitationSuggesterAgent(create_test_context()),
                 response_model=CitationSuggestionResponse,
                 prompt_kwargs=prompt_kwargs,
                 expected_dict=test_case.expected_output,

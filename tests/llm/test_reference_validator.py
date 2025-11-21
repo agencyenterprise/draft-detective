@@ -4,10 +4,11 @@ import pytest
 
 from lib.agents.reference_validator import (
     BibliographyValidationResponse,
-    reference_validator_agent,
+    ReferenceValidatorAgent,
 )
 from lib.models.agent_test_case import AgentTestCase
 from tests.datasets.loader import load_dataset
+from tests.conftest import create_test_context
 
 TESTS_DIR = Path(__file__).parent.parent
 
@@ -25,7 +26,7 @@ def _build_cases() -> list[AgentTestCase]:
         cases.append(
             AgentTestCase(
                 name=test_case.name,
-                agent=reference_validator_agent,
+                agent=ReferenceValidatorAgent(create_test_context()),
                 response_model=BibliographyValidationResponse,
                 prompt_kwargs={
                     "references": test_case.input.get("references", []),

@@ -8,6 +8,7 @@ from openai.types.responses import ParsedResponse
 from pydantic import BaseModel
 
 from lib.config.env import config
+from lib.workflows.claim_substantiation.context import ContextSchema
 
 logger = logging.getLogger(__name__)
 
@@ -15,11 +16,11 @@ logger = logging.getLogger(__name__)
 ResponseFormatT = TypeVar("ResponseFormatT")
 
 
-def get_openai_client() -> AsyncOpenAI:
+def get_openai_client(context: ContextSchema) -> AsyncOpenAI:
     if config.AZURE_OPENAI_API_KEY and config.AZURE_OPENAI_ENDPOINT:
         return AsyncAzureOpenAI()
     else:
-        return AsyncOpenAI()
+        return AsyncOpenAI(api_key=context.openai_api_key)
 
 
 async def wait_for_response(

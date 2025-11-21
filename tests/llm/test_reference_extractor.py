@@ -5,13 +5,17 @@ import pytest
 
 from lib.agents.reference_extractor import (
     ReferenceExtractorResponse,
-    reference_extractor_agent,
+    ReferenceExtractorAgent,
 )
 from lib.agents.formatting_utils import (
     format_supporting_documents_prompt_section_multiple,
 )
 from lib.models.agent_test_case import AgentTestCase
-from tests.conftest import create_test_file_document_from_path, data_path
+from tests.conftest import (
+    create_test_file_document_from_path,
+    data_path,
+    create_test_context,
+)
 from tests.datasets.loader import load_dataset
 
 TESTS_DIR = Path(__file__).parent.parent
@@ -50,7 +54,7 @@ def _build_cases() -> list[AgentTestCase]:
         cases.append(
             AgentTestCase(
                 name=test_case.name,
-                agent=reference_extractor_agent,
+                agent=ReferenceExtractorAgent(create_test_context()),
                 response_model=ReferenceExtractorResponse,
                 prompt_kwargs={
                     "full_document": main_doc.markdown,

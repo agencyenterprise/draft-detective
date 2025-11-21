@@ -33,10 +33,10 @@ def requires_agent(agent_type: str):
     """
 
     def decorator(
-        func: Callable[[ClaimSubstantiatorState], T],
-    ) -> Callable[[ClaimSubstantiatorState], T]:
+        func: Callable[[ClaimSubstantiatorState, ...], T],
+    ) -> Callable[[ClaimSubstantiatorState, ...], T]:
         @wraps(func)
-        async def wrapper(state: ClaimSubstantiatorState) -> T:
+        async def wrapper(state: ClaimSubstantiatorState, *args, **kwargs) -> T:
             agents_to_run = state.config.agents_to_run
             if agents_to_run and agent_type not in agents_to_run:
                 logger.info(
@@ -44,7 +44,7 @@ def requires_agent(agent_type: str):
                     f"Skipping (agent '{agent_type}' not in agents_to_run)"
                 )
                 return {}  # type: ignore
-            return await func(state)
+            return await func(state, *args, **kwargs)
 
         return wrapper
 
@@ -73,14 +73,14 @@ def handle_chunk_errors(operation_name: str):
     """
 
     def decorator(
-        func: Callable[[ClaimSubstantiatorState, DocumentChunk], DocumentChunk],
-    ) -> Callable[[ClaimSubstantiatorState, DocumentChunk], DocumentChunk]:
+        func: Callable[[ClaimSubstantiatorState, DocumentChunk, ...], DocumentChunk],
+    ) -> Callable[[ClaimSubstantiatorState, DocumentChunk, ...], DocumentChunk]:
         @wraps(func)
         async def wrapper(
-            state: ClaimSubstantiatorState, chunk: DocumentChunk
+            state: ClaimSubstantiatorState, chunk: DocumentChunk, *args, **kwargs
         ) -> DocumentChunk:
             try:
-                return await func(state, chunk)
+                return await func(state, chunk, *args, **kwargs)
             except Exception as e:
                 func_logger = logging.getLogger(func.__module__)
                 func_logger.error(
@@ -104,12 +104,14 @@ def handle_workflow_node_errors():
     """
 
     def decorator(
-        func: Callable[[ClaimSubstantiatorState], ClaimSubstantiatorState],
-    ) -> Callable[[ClaimSubstantiatorState], ClaimSubstantiatorState]:
+        func: Callable[[ClaimSubstantiatorState, ...], ClaimSubstantiatorState],
+    ) -> Callable[[ClaimSubstantiatorState, ...], ClaimSubstantiatorState]:
         @wraps(func)
-        async def wrapper(state: ClaimSubstantiatorState) -> ClaimSubstantiatorState:
+        async def wrapper(
+            state: ClaimSubstantiatorState, *args, **kwargs
+        ) -> ClaimSubstantiatorState:
             try:
-                return await func(state)
+                return await func(state, *args, **kwargs)
             except Exception as e:
                 func_logger = logging.getLogger(func.__module__)
                 func_logger.error(

@@ -21,6 +21,7 @@ from xxhash import xxh128
 from lib.config.env import config
 from lib.services.file import create_file_document_from_path
 from lib.models.agent_test_case import AgentTestCase
+from lib.services.vector_store import VectorStoreService
 
 
 # Root tests directory
@@ -416,3 +417,18 @@ def test_models():
         return get_comparison_models()
     # Return None to use agent's default model
     return None
+
+
+def create_test_context():
+    """
+    Create a ContextSchema instance for testing agents.
+
+    Returns:
+        ContextSchema with test configuration (uses config.OPENAI_API_KEY, no vector_store)
+    """
+    from lib.workflows.claim_substantiation.context import ContextSchema
+
+    return ContextSchema(
+        openai_api_key=config.OPENAI_API_KEY,
+        vector_store=VectorStoreService(config.DATABASE_URL, config.OPENAI_API_KEY),
+    )

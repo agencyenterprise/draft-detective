@@ -9,6 +9,7 @@ from pydantic import BaseModel
 
 from lib.config.llm_models import LLMModel
 from lib.services.openai import get_openai_client
+from lib.workflows.claim_substantiation.context import ContextSchema
 
 logger = logging.getLogger(__name__)
 
@@ -45,6 +46,9 @@ class LangChainAgent(BaseAgent):
 
     _llm: Optional[Any] = None
 
+    def __init__(self, context: ContextSchema):
+        self.context = context
+
     @property
     def llm(self) -> Any:
         if self._llm is None:
@@ -52,6 +56,7 @@ class LangChainAgent(BaseAgent):
                 self.model.model_name,
                 temperature=self.temperature,
                 timeout=self.timeout,
+                api_key=self.context.openai_api_key,
             )
             if self.output_schema:
                 llm = llm.with_structured_output(self.output_schema)
@@ -67,10 +72,13 @@ class DirectOpenAIAgent(BaseAgent):
 
     _client: Optional[AsyncOpenAI] = None
 
+    def __init__(self, context: ContextSchema):
+        self.context = context
+
     @property
     def client(self) -> AsyncOpenAI:
         if self._client is None:
-            self._client = get_openai_client()
+            self._client = get_openai_client(self.context)
         return self._client
 
 
