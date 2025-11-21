@@ -2,6 +2,13 @@ import { flatMap, get, isArray, isPlainObject, keys } from 'lodash';
 import { IncEx, TestCase } from './types';
 
 /**
+ * Filter test cases that have valid agent_test_case data
+ */
+export function filterValidTestCases(testCases: TestCase[]): TestCase[] {
+  return testCases.filter((tc) => tc.agent_test_case?.name);
+}
+
+/**
  * Format duration in seconds to display string (e.g., "1.23s")
  */
 export function formatDuration(duration: number): string {
@@ -72,12 +79,10 @@ export interface FieldInsight {
 export function aggregateFieldInsights(testCases: TestCase[]): FieldInsight[] {
   const fieldMap = new Map<string, { passed: number; total: number; failedTests: Set<string> }>();
 
-  testCases.forEach((tc) => {
-    // Skip test cases that don't have the expected structure
-    if (!tc.agent_test_case?.evaluation_result) {
-      return;
-    }
+  // Filter valid test cases once at the start
+  const validTestCases = filterValidTestCases(testCases).filter((tc) => tc.agent_test_case?.evaluation_result);
 
+  validTestCases.forEach((tc) => {
     const comparisons = tc.agent_test_case.evaluation_result?.field_comparisons || [];
     comparisons.forEach((comp) => {
       if (!fieldMap.has(comp.field_path)) {
@@ -110,7 +115,10 @@ export function aggregateFieldInsights(testCases: TestCase[]): FieldInsight[] {
  * and then taking the average.
  */
 export function calculateConsistency(testCases: TestCase[]) {
-  const testsByNames = testCases.reduce(
+  // Filter valid test cases once at the start
+  const validTestCases = filterValidTestCases(testCases);
+
+  const testsByNames = validTestCases.reduce(
     (acc, test) => {
       acc[test.agent_test_case.name] = [...(acc[test.agent_test_case.name] || []), test];
       return acc;
@@ -136,7 +144,10 @@ export function calculateConsistency(testCases: TestCase[]) {
     {} as Record<string, number>,
   );
 
-  const avg = Object.values(stds).reduce((acc, variance) => acc + variance, 0) / Object.values(stds).length;
+  const avg =
+    Object.values(stds).length > 0
+      ? Object.values(stds).reduce((acc, variance) => acc + variance, 0) / Object.values(stds).length
+      : 0;
 
   return { avg, byTestCase: stds };
 }

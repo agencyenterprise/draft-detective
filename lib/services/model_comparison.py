@@ -371,7 +371,7 @@ async def run_parallel_comparison(
 
     Args:
         test_case: The test case to run
-        models: List of models to test (first is baseline)
+        models: List of models to test (first is agent's default baseline)
 
     Returns:
         Dictionary mapping model names to result dictionaries containing:

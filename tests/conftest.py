@@ -385,10 +385,25 @@ def is_model_comparison_mode() -> bool:
 
 def get_comparison_models():
     """Get the list of models to compare in model comparison mode."""
-    from lib.config.llm_models import gpt_5_model, gpt_5_mini_model, gpt_4_1_model
+    from lib.config.llm_models import (
+        gpt_5_model,
+        gpt_5_mini_model,
+        gpt_5_1_model,
+        gpt_4_1_model,
+        claude_3_5_sonnet_model,
+        gemini_2_flash_model,
+    )
 
     # Default models to compare
-    return [gpt_5_model, gpt_5_mini_model, gpt_4_1_model]
+    # Note: Agent's default model will be automatically added as baseline (position 0)
+    return [
+        gpt_5_model,
+        gpt_5_mini_model,
+        gpt_5_1_model,
+        gpt_4_1_model,
+        claude_3_5_sonnet_model,
+        gemini_2_flash_model,
+    ]
 
 
 @pytest.fixture

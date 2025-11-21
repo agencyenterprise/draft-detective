@@ -141,8 +141,8 @@ class AgentTestCase(BaseModel):
         in self.model_results for later retrieval.
 
         Args:
-            models: List of models to test. If None, uses agent's default model.
-                    First model in list is treated as baseline.
+            models: List of models to test. Agent's default model is always
+                    used as baseline (position 0). Duplicates are filtered.
 
         Side Effects:
             - Populates self.model_results with Dict[str, EvaluationResult]
@@ -152,7 +152,7 @@ class AgentTestCase(BaseModel):
             # Single model (default)
             await test_case.run()
 
-            # Multiple models for comparison
+            # Multiple models for comparison (default is always baseline)
             await test_case.run(models=[
                 LLMModel.GPT_4,
                 LLMModel.CLAUDE_3_5_SONNET,
@@ -162,15 +162,22 @@ class AgentTestCase(BaseModel):
         from lib.services.model_comparison import run_parallel_comparison
 
         # Default to agent's model if not specified
-        models = models or [self.agent.model]
+        if models is None:
+            models_to_test = [self.agent.model]
+        else:
+            # Agent's default first, then others without duplicates
+            default_model = self.agent.model
+            models_to_test = [default_model] + [
+                m for m in models if str(m) != str(default_model)
+            ]
 
-        logger.info(f"Running test '{self.name}' with {len(models)} model(s)")
+        logger.info(f"Running test '{self.name}' with {len(models_to_test)} model(s)")
 
-        self.model_results = await run_parallel_comparison(self, models)
+        self.model_results = await run_parallel_comparison(self, models_to_test)
 
         logger.info(
             f"Test '{self.name}' completed: "
-            f"{sum(1 for r in self.model_results.values() if r['passed'])}/{len(models)} models passed"
+            f"{sum(1 for r in self.model_results.values() if r['passed'])}/{len(models_to_test)} models passed"
         )
 
     async def compare_results(self) -> EvaluationResult:

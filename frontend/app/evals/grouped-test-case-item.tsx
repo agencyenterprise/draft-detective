@@ -33,7 +33,15 @@ export function GroupedTestCaseItem({ name, testCases }: GroupedTestCaseItem) {
   const passedTests = testCases.filter((testCase) => testCase.outcome === 'passed');
   const accuracy = passedTests.length / testCases.length;
 
-  const hasModelComparison = testCases[0]?.agent_test_case.model_comparison_results;
+  if (!testCases[0]?.agent_test_case) {
+    return (
+      <div className="p-4 border rounded-lg">
+        <p className="text-sm text-muted-foreground">No test case data available</p>
+      </div>
+    );
+  }
+
+  const hasModelComparison = testCases[0].agent_test_case.model_comparison_results;
 
   const expectedKeys = getFlattenedObjectKeys(testCases[0].agent_test_case.expected_output);
   const actualKeys = getFlattenedObjectKeys(testCases[0].agent_test_case.actual_outputs[0]);

@@ -30,15 +30,94 @@ class TokenUsageCallback(BaseCallbackHandler):
         self.usage: Optional[dict[str, int]] = None
 
     def on_llm_end(self, response, **kwargs):
-        """Capture token usage when LLM completes."""
-        if hasattr(response, "llm_output") and response.llm_output:
-            token_usage = response.llm_output.get("token_usage", {})
-            if token_usage:
-                self.usage = {
-                    "input_tokens": token_usage.get("prompt_tokens", 0),
-                    "output_tokens": token_usage.get("completion_tokens", 0),
-                    "total_tokens": token_usage.get("total_tokens", 0),
-                }
+        """Capture token usage when LLM completes - handles OpenAI, Anthropic, and Google formats."""
+        usage = self._extract_from_generations(
+            response
+        ) or self._extract_from_llm_output(response)
+        if usage:
+            self.usage = usage
+
+    def _extract_from_generations(self, response) -> dict | None:
+        """Extract usage from response.generations (Google Gemini format)."""
+        if not hasattr(response, "generations") or not response.generations:
+            return None
+
+        for generation in response.generations:
+            if not generation or len(generation) == 0:
+                continue
+
+            message = generation[0].message
+            if not hasattr(message, "usage_metadata") or not message.usage_metadata:
+                continue
+
+            return self._normalize_usage(message.usage_metadata)
+
+        return None
+
+    def _extract_from_llm_output(self, response) -> dict | None:
+        """Extract usage from response.llm_output (OpenAI/Anthropic format)."""
+        if not hasattr(response, "llm_output") or not response.llm_output:
+            return None
+
+        llm_output = response.llm_output
+
+        # Try OpenAI format
+        if token_usage := llm_output.get("token_usage"):
+            return self._normalize_usage(
+                token_usage,
+                input_key="prompt_tokens",
+                output_key="completion_tokens",
+            )
+
+        # Try Anthropic format
+        if usage := llm_output.get("usage"):
+            if "input_tokens" in usage or "output_tokens" in usage:
+                return self._normalize_usage(usage)
+
+        return None
+
+    def _get_token_value(
+        self, source: dict | object, key: str, default: int = 0
+    ) -> int:
+        """Get token value from dict or object."""
+        if isinstance(source, dict):
+            return source.get(key, default)
+        return getattr(source, key, default)
+
+    def _normalize_usage(
+        self,
+        source: dict | object,
+        input_key: str = "input_tokens",
+        output_key: str = "output_tokens",
+    ) -> dict | None:
+        """
+        Normalize usage data from dict or object format to standard dict.
+
+        Args:
+            source: Dict or object containing usage data
+            input_key: Key name to map to 'input_tokens'
+            output_key: Key name to map to 'output_tokens'
+
+        Examples:
+            OpenAI: {"prompt_tokens": 10, "completion_tokens": 20}
+            Anthropic: {"input_tokens": 10, "output_tokens": 20}
+            Gemini: UsageMetadata(input_tokens=10, output_tokens=20)
+        """
+        input_tokens = self._get_token_value(source, input_key)
+        output_tokens = self._get_token_value(source, output_key)
+        total_tokens = self._get_token_value(
+            source, "total_tokens", input_tokens + output_tokens
+        )
+
+        # Validate we got real data
+        if input_tokens == 0 and output_tokens == 0:
+            return None
+
+        return {
+            "input_tokens": input_tokens,
+            "output_tokens": output_tokens,
+            "total_tokens": total_tokens,
+        }
 
     def get_usage(self) -> dict[str, int]:
         """Get captured token usage.
@@ -48,7 +127,9 @@ class TokenUsageCallback(BaseCallbackHandler):
             Returns zeros if no usage was captured.
         """
         if self.usage is None:
-            logger.warning("No token usage captured - LLM provider may not return usage info")
+            logger.warning(
+                "No token usage captured - LLM provider may not return usage info"
+            )
             return {"input_tokens": 0, "output_tokens": 0, "total_tokens": 0}
         return self.usage
 
@@ -146,4 +227,3 @@ class AgentExecutionTracker:
             )
         except Exception as e:
             logger.warning(f"Failed to update Langfuse costs: {e}")
-

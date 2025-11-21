@@ -18,6 +18,14 @@ export function OutputComparisonTable({
   selectedModel,
   getDisplayResults,
 }: OutputComparisonTableProps) {
+  if (!testCases.length || !testCases[0]?.agent_test_case) {
+    return (
+      <div className="border-t pt-4">
+        <p className="text-sm text-muted-foreground">No test case data available</p>
+      </div>
+    );
+  }
+
   return (
     <div className="border-t pt-4">
       <h4 className="font-medium mb-3 flex items-center gap-2">

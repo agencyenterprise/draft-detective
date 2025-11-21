@@ -7,7 +7,7 @@ import { useState } from 'react';
 import { percentageFormatter } from './formatters';
 import { GroupedTestCaseItem } from './grouped-test-case-item';
 import { TestCase } from './types';
-import { aggregateFieldInsights, calculateConsistency, formatDuration } from './util';
+import { aggregateFieldInsights, calculateConsistency, filterValidTestCases, formatDuration } from './util';
 import { ModelComparisonSummary } from './model-comparison-summary';
 
 interface AgentSummary {
@@ -174,7 +174,9 @@ export function AgentSummaryCard({ summary, showOnlyFailed = false }: AgentSumma
 
 export function groupTestCasesByName(testCases: TestCase[]): Map<string, TestCase[]> {
   const groupedTestCases = new Map<string, TestCase[]>();
-  testCases.forEach((testCase) => {
+  const validTestCases = filterValidTestCases(testCases);
+
+  validTestCases.forEach((testCase) => {
     const name = testCase.agent_test_case.name;
     if (!groupedTestCases.has(name)) {
       groupedTestCases.set(name, []);
@@ -188,13 +190,9 @@ export function groupTestCasesByName(testCases: TestCase[]): Map<string, TestCas
 export function groupTestCasesByAgent(testCases: TestCase[]): AgentSummary[] {
   const agentGroups = new Map<string, TestCase[]>();
 
-  // Group test cases by agent name
-  testCases.forEach((testCase) => {
-    // Skip test cases that don't have the expected agent structure
-    if (!testCase.agent_test_case?.agent?.name) {
-      return;
-    }
+  const validTestCases = testCases.filter((tc) => tc.agent_test_case?.agent?.name);
 
+  validTestCases.forEach((testCase) => {
     const agentName = testCase.agent_test_case.agent.name;
     if (!agentGroups.has(agentName)) {
       agentGroups.set(agentName, []);

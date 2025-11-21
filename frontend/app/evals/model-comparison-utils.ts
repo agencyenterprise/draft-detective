@@ -21,10 +21,11 @@ export function formatModelName(modelName: string): string {
 
 /**
  * Calculate cost difference as a percentage compared to baseline
- * Returns 0 for baseline model
+ * Returns 0 for baseline model or when baseline cost is zero
  */
 export function calculateCostDifference(currentCost: number, baselineCost: number, isBaseline: boolean): number {
   if (isBaseline) return 0;
+  if (baselineCost === 0) return 0;
   return ((currentCost - baselineCost) / baselineCost) * 100;
 }
 
@@ -93,6 +94,17 @@ export function formatDurationDifference(durationDiff: number): {
  * @returns Display results containing evaluation and actual output
  */
 export function getDisplayResults(testCase: TestCase, selectedModel: string | null): DisplayResults {
+  // Return empty results if agent_test_case is missing
+  if (!testCase.agent_test_case) {
+    return {
+      evaluationResult: {
+        passed: false,
+        rationale: 'Test case data not available',
+      },
+      actualOutput: {},
+    };
+  }
+
   // Default to baseline (first model or no comparison)
   if (!selectedModel || !testCase.agent_test_case.model_comparison_results) {
     // Get baseline model's actual output
@@ -103,7 +115,7 @@ export function getDisplayResults(testCase: TestCase, selectedModel: string | nu
     const actualOutput =
       baselineModelName && testCase.agent_test_case.model_comparison_results?.[baselineModelName]?.actual_output
         ? testCase.agent_test_case.model_comparison_results[baselineModelName].actual_output
-        : testCase.agent_test_case.actual_outputs[0] || testCase.agent_test_case.expected_output;
+        : testCase.agent_test_case.actual_outputs?.[0] || testCase.agent_test_case.expected_output;
 
     return {
       evaluationResult: testCase.agent_test_case.evaluation_result,
@@ -116,7 +128,7 @@ export function getDisplayResults(testCase: TestCase, selectedModel: string | nu
   if (!modelResult) {
     return {
       evaluationResult: testCase.agent_test_case.evaluation_result,
-      actualOutput: testCase.agent_test_case.actual_outputs[0] || testCase.agent_test_case.expected_output,
+      actualOutput: testCase.agent_test_case.actual_outputs?.[0] || testCase.agent_test_case.expected_output,
     };
   }
 

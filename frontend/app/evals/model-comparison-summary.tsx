@@ -10,6 +10,7 @@ import {
   calculateDurationDifference,
   formatDurationDifference,
 } from './model-comparison-utils';
+import { filterValidTestCases } from './util';
 
 interface ModelComparisonSummaryProps {
   testCases: TestCase[];
@@ -33,15 +34,14 @@ interface ModelMetrics {
 function aggregateModelMetrics(testCases: TestCase[]): Record<string, ModelMetrics> | null {
   const modelMetrics: Record<string, ModelMetrics> = {};
 
-  const hasModelComparison = testCases.some((tc) => tc.agent_test_case.model_comparison_results);
+  const validTestCases = filterValidTestCases(testCases).filter((tc) => tc.agent_test_case?.model_comparison_results);
 
-  if (!hasModelComparison) {
+  if (validTestCases.length === 0) {
     return null;
   }
 
-  testCases.forEach((testCase) => {
-    const results = testCase.agent_test_case.model_comparison_results;
-    if (!results) return;
+  validTestCases.forEach((testCase) => {
+    const results = testCase.agent_test_case.model_comparison_results!;
 
     Object.entries(results).forEach(([modelName, result]) => {
       if (!modelMetrics[modelName]) {
@@ -222,19 +222,6 @@ export function ModelComparisonSummary({ testCases }: ModelComparisonSummaryProp
             })}
           </TableBody>
         </Table>
-      </div>
-
-      <div className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground">
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Info className="h-4 w-4 cursor-help" />
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Token counts and costs from actual OpenAI API responses</p>
-            <p className="mt-1">All metrics are real usage data, not estimates</p>
-          </TooltipContent>
-        </Tooltip>
-        <span>Real API Data</span>
       </div>
     </div>
   );
