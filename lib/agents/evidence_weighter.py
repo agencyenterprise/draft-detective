@@ -4,7 +4,10 @@ from langchain_core.prompts import PromptTemplate
 from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
 
-from lib.agents.live_literature_review import ClaimReferenceFactors, QualityLevel
+from lib.agents.unified_literature_review import (
+    ReferenceFactors as ClaimReferenceFactors,
+    QualityLevel,
+)
 from lib.config.llm_models import gpt_5_mini_model
 from lib.models.agent import DirectOpenAIAgent
 from lib.services.openai import ensure_structured_output_response
@@ -154,7 +157,7 @@ Here are the contextual details:
 
 class EvidenceWeighterAgent(DirectOpenAIAgent):
     name = "Evidence Weighter"
-    description = "Analyze and weight evidence from multiple sources to determine overall direction and strength"
+    description = "Analyze and weigh evidence from multiple sources to determine overall direction and strength"
     model = gpt_5_mini_model
     temperature = 0.5
 
@@ -168,12 +171,7 @@ class EvidenceWeighterAgent(DirectOpenAIAgent):
 
         response = await self.client.responses.parse(
             model=self.model.name,
-            tools=[{"type": "web_search"}],
             max_tool_calls=20,
-            # reasoning={
-            #     "effort": "low",  # "minimal", "low", "medium", "high"
-            #     "summary": "auto",
-            # },
             text_format=EvidenceWeighterResponse,
             input=input,
         )

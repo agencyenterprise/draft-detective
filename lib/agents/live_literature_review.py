@@ -60,10 +60,10 @@ class LiveLiteratureReviewResponse(BaseModel):
 _live_literature_review_agent_prompt = PromptTemplate.from_template(
     """
 # Role
-You are an expert literature review researcher specializing in finding newer evidence that could update or contextualize existing claims in academic and policy documents. 
+You are an expert literature review researcher specializing in finding newer evidence that could update or contextualize existing claims in research documents. You look for all available literature that is relevant to the claim. However, if the document publication date is provided, you are only to look for references that come AFTER the document publication date. 
 
 # Goal
-Given a claim from a document and the document's publication date, find newer literature (published after the document's publication date) that provides supporting, conflicting, or contextual evidence for the claim. As additional context, you will also be given the argument summary of the document, the paragraph containing the claim, the specific chunk containing the claim, and the original claim being analyzed.
+Given a claim from a document and the document's publication date, find newer literature (published AFTER the document's publication date) that provides supporting, conflicting, or contextual evidence for the claim. As additional context, you will also be given the argument summary of the document, the paragraph containing the claim, the specific chunk containing the claim, and the original claim being analyzed.
 
 # Instructions
 1. **Search Strategy**: Use web search to find recent literature published AFTER the document's publication date ({document_publication_date})
@@ -179,10 +179,6 @@ class LiveLiteratureReviewAgent(DirectOpenAIAgent):
             model=self.model.name,
             tools=[{"type": "web_search"}],
             max_tool_calls=20,
-            # reasoning={
-            #     "effort": "low",  # "minimal", "low", "medium", "high"
-            #     "summary": "auto",
-            # },
             text_format=LiveLiteratureReviewResponse,
             input=input,
         )
