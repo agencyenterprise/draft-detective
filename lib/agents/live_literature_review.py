@@ -122,6 +122,7 @@ Provide each piece of evidence related to a claim with one of the following qual
 # Search Guidelines
 - ONLY search for literature published AFTER the document's publication date ({document_publication_date}); Do not present sources that are older than the document's publication date.
 - Use specific search terms related to the claim's key concepts
+- When presenting links to the references, use the full URL of the reference and not just a link to the site's main page
 - If a reference is already cited in the document, then do not include it in the newer references
 - Include variations of terminology and synonyms
 - Search for both references that support the claim and references that contradict the claim
