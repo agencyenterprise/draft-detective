@@ -16,7 +16,7 @@ import { Progress } from '../ui/progress';
 import { RadioGroup, RadioGroupItemWithDescription } from '../ui/radio-group-with-description';
 import { AnalysisConfig } from '../wizard/types';
 import { UploadSection } from './upload-section';
-import { useLocalStorage } from '@/lib/hooks/use-local-storage';
+import { useSessionStorage } from '@/lib/hooks/use-session-storage';
 
 export function AnalysisForm() {
   const router = useRouter();
@@ -24,7 +24,7 @@ export function AnalysisForm() {
   const [supportingDocuments, setSupportingDocuments] = React.useState<File[]>([]);
   const [uploadProgress, setUploadProgress] = React.useState(0);
   const [processingStage, setProcessingStage] = React.useState<'idle' | 'uploading' | 'complete'>('idle');
-  const [openaiApiKey, setOpenaiApiKey] = useLocalStorage<string>('openai-api-key', '');
+  const [openaiApiKey, setOpenaiApiKey] = useSessionStorage<string>('openai-api-key', '');
   const hideOpenaiApiKeyInput = process.env.NEXT_PUBLIC_HIDE_CUSTOM_OPENAI_API_KEY_INPUT === 'true';
 
   const form = useForm({
@@ -484,7 +484,7 @@ export function AnalysisForm() {
                 />
                 <p className="text-sm text-muted-foreground">
                   Your OpenAI API key will be used only for this analysis session and will not be stored in our
-                  database. It will only be saved to your browser&apos;s local storage to facilitate future analyses.
+                  database.
                 </p>
                 {!field.state.meta.isValid && (
                   <p className="text-sm text-destructive">{field.state.meta.errors.join(', ')}</p>

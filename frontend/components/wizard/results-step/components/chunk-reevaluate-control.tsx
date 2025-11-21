@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { analysisService } from '@/lib/analysis-service';
 import { ChunkReevaluationRequest, ClaimSubstantiatorStateOutput } from '@/lib/generated-api';
-import { useLocalStorage } from '@/lib/hooks/use-local-storage';
+import { useSessionStorage } from '@/lib/hooks/use-session-storage';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import * as React from 'react';
 import { useAgentSelection } from '../hooks/use-agent-selection';
@@ -37,7 +37,7 @@ export function ChunkReevaluateControl({
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const { supportedAgents, supportedAgentsError } = useSupportedAgents();
   const agentSelection = useAgentSelection({ supportedAgents, supportedAgentsError });
-  const [openaiApiKey, setOpenaiApiKey] = useLocalStorage<string>('openai-api-key', '');
+  const [openaiApiKey, setOpenaiApiKey] = useSessionStorage<string>('openai-api-key', '');
   const hideOpenaiApiKeyInput = process.env.NEXT_PUBLIC_HIDE_CUSTOM_OPENAI_API_KEY_INPUT === 'true';
   const queryClient = useQueryClient();
 
