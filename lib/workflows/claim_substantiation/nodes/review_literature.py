@@ -1,6 +1,6 @@
 import logging
 
-from lib.agents.literature_review import literature_review_agent
+from lib.agents.unified_literature_review import unified_literature_review_agent
 from lib.workflows.claim_substantiation.state import ClaimSubstantiatorState
 from lib.workflows.decorators import handle_workflow_node_errors
 
@@ -28,12 +28,14 @@ async def literature_review(
 
     markdown = state.file.markdown
 
-    literature_review_response = await literature_review_agent.ainvoke(
+    literature_review_response = await unified_literature_review_agent.ainvoke(
         {
             "full_document": markdown,
             "bibliography": state.references,
             "document_publication_date": state.config.document_publication_date.isoformat(),
-        }
+        },
+        time_filter="before",
+        scope="document",
     )
 
     logger.info(f"literature_review ({state.config.session_id}): done")
