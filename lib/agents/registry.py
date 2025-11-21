@@ -108,7 +108,6 @@ agent_registry = AgentRegistry()
 def initialize_default_agents():
     """Initialize the registry with default agents"""
 
-    from lib.agents.literature_review import literature_review_agent
     from lib.agents.claim_extractor import claim_extractor_agent
     from lib.agents.citation_detector import citation_detector_agent
     from lib.agents.claim_needs_substantiation_checker import (
@@ -117,9 +116,12 @@ def initialize_default_agents():
     from lib.agents.claim_verifier import claim_verifier_agent
     from lib.agents.citation_suggester import citation_suggester_agent
     from lib.agents.evidence_weighter import evidence_weighter_agent
-    from lib.agents.live_literature_review import live_literature_review_agent
+
+    # Commented out - functionality consolidated into unified_literature_review_agent
+    # from lib.agents.live_literature_review import live_literature_review_agent
     from lib.agents.reference_extractor import reference_extractor_agent
     from lib.agents.reference_validator import reference_validator_agent
+    from lib.agents.unified_literature_review import unified_literature_review_agent
 
     agent_registry.register(
         agent_type="claims",
@@ -153,8 +155,8 @@ def initialize_default_agents():
 
     agent_registry.register(
         agent_type="literature_review",
-        agent=literature_review_agent,
-        description="Review a document paragraph against the article bibliography and recent literature to propose citation updates",
+        agent=unified_literature_review_agent,
+        description="Unified literature review agent supporting both document-level and claim-level reviews with configurable time filtering",
     )
 
     agent_registry.register(
@@ -163,11 +165,12 @@ def initialize_default_agents():
         description="Analyze and weight evidence from multiple sources to determine overall direction and strength",
     )
 
-    agent_registry.register(
-        agent_type="live_literature_review",
-        agent=live_literature_review_agent,
-        description="Review a document paragraph against the article bibliography and recent literature to propose citation updates",
-    )
+    # Commented out - functionality consolidated into unified_literature_review_agent
+    # agent_registry.register(
+    #     agent_type="live_literature_review",
+    #     agent=live_literature_review_agent,
+    #     description="Review a document paragraph against the article bibliography and recent literature to propose citation updates",
+    # )
 
     agent_registry.register(
         agent_type="references",
