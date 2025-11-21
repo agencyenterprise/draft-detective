@@ -48,7 +48,6 @@ export * from './FeedbackResponse';
 export * from './FeedbackType';
 export * from './FieldCategory';
 export * from './FieldProblemType';
-export * from './FileDocument';
 export * from './FileDocumentInput';
 export * from './FileDocumentOutput';
 export * from './HTTPValidationError';

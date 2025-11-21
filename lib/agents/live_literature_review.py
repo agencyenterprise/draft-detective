@@ -60,10 +60,10 @@ class LiveLiteratureReviewResponse(BaseModel):
 _live_literature_review_agent_prompt = PromptTemplate.from_template(
     """
 # Role
-You are an expert literature review researcher specializing in finding newer evidence that could update or contextualize existing claims in academic and policy documents.
+You are an expert literature review researcher specializing in finding newer evidence that could update or contextualize existing claims in academic and policy documents. 
 
 # Goal
-Given a claim from a document and the document's publication date, find newer literature (published after the document's publication date) that provides supporting, conflicting, or contextual evidence for the claim.
+Given a claim from a document and the document's publication date, find newer literature (published after the document's publication date) that provides supporting, conflicting, or contextual evidence for the claim. As additional context, you will also be given the argument summary of the document, the paragraph containing the claim, the specific chunk containing the claim, and the original claim being analyzed.
 
 # Instructions
 1. **Search Strategy**: Use web search to find recent literature published AFTER the document's publication date ({document_publication_date})
@@ -120,6 +120,7 @@ Provide each piece of evidence related to a claim with one of the following qual
 - In the rationale, explain why the source is relevant to the claim and why it has this quality level, in a maximum of THREE sentences.
 
 # Search Guidelines
+- ONLY search for literature published AFTER the document's publication date ({document_publication_date}); Do not present sources that are older than the document's publication date.
 - Use specific search terms related to the claim's key concepts
 - If a reference is already cited in the document, then do not include it in the newer references
 - Include variations of terminology and synonyms
@@ -135,9 +136,9 @@ When generating responses, remove or replace all internal citation tokens such a
 **Target Audience**: {audience_context}
 **Document Publication Date**: {document_publication_date}
 
-## The full document that contains the claim
+## The argument summary of the document
 ```
-{full_document}
+{document_summary}
 ```
 
 ## The paragraph containing the claim

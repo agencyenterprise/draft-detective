@@ -54,12 +54,6 @@ export interface DocumentIssue {
   severity: SeverityEnum;
   /**
    *
-   * @type {string}
-   * @memberof DocumentIssue
-   */
-  additionalContext?: string | null;
-  /**
-   *
    * @type {number}
    * @memberof DocumentIssue
    */
@@ -100,7 +94,6 @@ export function DocumentIssueFromJSONTyped(json: any, ignoreDiscriminator: boole
     title: json['title'],
     description: json['description'],
     severity: SeverityEnumFromJSON(json['severity']),
-    additionalContext: json['additional_context'] == null ? undefined : json['additional_context'],
     chunkIndex: json['chunk_index'] == null ? undefined : json['chunk_index'],
     claimIndex: json['claim_index'] == null ? undefined : json['claim_index'],
     claimCategory: json['claim_category'] == null ? undefined : ClaimCategoryFromJSON(json['claim_category']),
@@ -120,7 +113,6 @@ export function DocumentIssueToJSONTyped(value?: DocumentIssue | null, ignoreDis
     title: value['title'],
     description: value['description'],
     severity: SeverityEnumToJSON(value['severity']),
-    additional_context: value['additionalContext'],
     chunk_index: value['chunkIndex'],
     claim_index: value['claimIndex'],
     claim_category: ClaimCategoryToJSON(value['claimCategory']),
