@@ -106,8 +106,6 @@ class DocumentReferenceFactors(BaseModel):
     )
 
 
-# note (2025-10-14): for the deep research model, the pydantic data models are not used and the format of the
-# frontend is not setup to use the existing structure of the models. So we might modify this format.
 class LiteratureReviewResponse(BaseModel):
     relevant_references: list[DocumentReferenceFactors] = Field(
         default_factory=list, description="List of relevant references to cite"
@@ -177,9 +175,7 @@ When generating responses, remove or replace all internal citation tokens such a
 
 class LiteratureReviewAgent(DirectOpenAIAgent):
     name = "Literature Review Researcher"
-    description = (
-        "Review a document paragraph against the article bibliography and recent literature to propose citation updates"
-    )
+    description = "Review a document paragraph against the article bibliography and recent literature to propose citation updates"
     model = gpt_5_model
     temperature = 0.5
 
@@ -240,4 +236,3 @@ Skowronek, S. (2011). Presidential Leadership in Political Time. Lawrence, KS: U
     # convert to json
     print("Literature Review Response:")
     print(response.model_dump_json(indent=2))
-    # print(response)
