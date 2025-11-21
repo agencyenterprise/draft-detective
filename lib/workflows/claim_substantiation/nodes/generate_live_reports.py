@@ -1,9 +1,6 @@
 # %%
 import logging
-from lib.agents.live_literature_review import (
-    live_literature_review_agent,
-    LiveLiteratureReviewResponse,
-)
+from lib.agents.unified_literature_review import unified_literature_review_agent
 from lib.agents.evidence_weighter import (
     evidence_weighter_agent,
     EvidenceWeighterResponse,
@@ -78,7 +75,7 @@ async def _analyze_chunk_live_reports(
 
         try:
             # Step 1: Find newer literature
-            literature_review_result = await live_literature_review_agent.ainvoke(
+            literature_review_result = await unified_literature_review_agent.ainvoke(
                 {
                     "document_summary": (
                         state.main_document_summary.summary
@@ -91,7 +88,9 @@ async def _analyze_chunk_live_reports(
                     "domain_context": state.config.domain or "",
                     "audience_context": state.config.target_audience or "",
                     "bibliography": state.references,
-                }
+                },
+                time_filter="after",
+                scope="claim",
             )
 
             # Step 2: Analyze evidence strength and direction and update recommendations
