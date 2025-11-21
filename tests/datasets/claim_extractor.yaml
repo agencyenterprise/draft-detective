@@ -17,9 +17,11 @@ dataset:
           - text: "Prior work such as Smith (2020) and Doe and Roe (2019) provide useful background/insights."
             claim: "Smith (2020) provides useful background/insights."
             rationale: ""
+            central: true
           - text: "Prior work such as Smith (2020) and Doe and Roe (2019) provide useful background/insights."
             claim: "Doe and Roe (2019) provide useful background/insights."
             rationale: ""
+            central: true
         rationale: ""
 
     - name: "claim_case_2"
@@ -32,9 +34,11 @@ dataset:
           - text: "cellphones have a positive impact on the user's writing proficiency in most countries (Smith, 2017)"
             claim: "Cellphones positively affect users' writing proficiency in most countries."
             rationale: ""
+            central: true
           - text: "making them one of the best widgets out there."
             claim: "Cellphones are one of the best widgets."
             rationale: ""
+            central: true
         rationale: ""
 
     - name: "claim_case_3_no_claims"
@@ -65,15 +69,19 @@ dataset:
           - text: "The criminal justice system in the United States is intended to deter, punish, and reform individuals who violate the norms of good order and mutual respect that are enshrined in law."
             claim: "The U.S. criminal justice system is intended to deter individuals who violate legally enshrined norms of good order and mutual respect."
             rationale: ""
+            central: true 
           - text: "The criminal justice system in the United States is intended to deter, punish, and reform individuals who violate the norms of good order and mutual respect that are enshrined in law."
             claim: "The U.S. criminal justice system is intended to punish individuals who violate legally enshrined norms of good order and mutual respect."
             rationale: ""
+            central: true
           - text: "The criminal justice system in the United States is intended to deter, punish, and reform individuals who violate the norms of good order and mutual respect that are enshrined in law."
             claim: "The U.S. criminal justice system is intended to reform individuals who violate legally enshrined norms of good order and mutual respect."
             rationale: ""
-          - text: "...the norms of good order and mutual respect that are enshrined in law."
+            central: true
+          - text: "the norms of good order and mutual respect that are enshrined in law."
             claim: "Norms of good order and mutual respect are enshrined in law."
             rationale: ""
+            central: true
         rationale: ""
 
     - name: "claim_blockchain_legal_structures_timing"
@@ -86,15 +94,19 @@ dataset:
           - text: "The associated legal structures were developed, for the most part, before the development of such information technologies as the postal service, telegraph, and telephone systems."
             claim: "The legal structures were largely developed prior to the advent of information technologies like the postal service, telegraph, and telephone."
             rationale: ""
+            central: true
           - text: "before the development of such information technologies as the postal service, telegraph, and telephone systems."
             claim: "The postal service is considered an information technology."
             rationale: ""
+            central: true
           - text: "before the development of such information technologies as the postal service, telegraph, and telephone systems."
             claim: "The telegraph is considered an information technology."
             rationale: ""
+            central: true
           - text: "before the development of such information technologies as the postal service, telegraph, and telephone systems."
             claim: "The telephone system is considered an information technology."
             rationale: ""
+            central: true
         rationale: ""
 
     - name: "claim_blockchain_digital_shift"
@@ -107,15 +119,19 @@ dataset:
           - text: "With the development of personal computers connected by the internet"
             claim: "Personal computers connected by the internet have been developed."
             rationale: ""
+            central: true
           - text: "much larger portions of economic and interpersonal interactions have moved online"
             claim: "Much larger portions of economic interactions have moved online."
             rationale: ""
+            central: true
           - text: "much larger portions of economic and interpersonal interactions have moved online"
             claim: "Much larger portions of interpersonal interactions have moved online."
             rationale: ""
+            central: true
           - text: "as has criminal activity."
             claim: "Criminal activity has also moved online."
             rationale: ""
+            central: true
         rationale: ""
 
     - name: "claim_blockchain_digital_challenges"
@@ -128,9 +144,11 @@ dataset:
           - text: "This shift of activity into digital spaces has presented a multitude of difficulties"
             claim: "The shift of activity into digital spaces has created many difficulties for criminal justice practitioners."
             rationale: ""
+            central: true
           - text: "as well as opportunities, for criminal justice practitioners"
             claim: "The shift of activity into digital spaces has created many opportunities for criminal justice practitioners."
             rationale: ""
+            central: true
         rationale: ""
 
     - name: "claim_blockchain_reference_entry"
@@ -170,9 +188,11 @@ dataset:
           - text: "Anticipated growth in artificial intelligence (AI) development"
             claim: "Growth in AI development is anticipated."
             rationale: ""
+            central: true
           - text: "Anticipated growth in artificial intelligence (AI) development requires the buildout of additional power capacity at an exceptional scale and speed."
             claim: "Anticipated growth in AI development requires the buildout of additional power capacity at an exceptional scale and speed."
             rationale: ""
+            central: true
         rationale: ""
 
     - name: "claim_power_capacity_grid_concern"
@@ -182,12 +202,14 @@ dataset:
         chunk: "There is concern that the necessary grid loads to power future AI data centers for training and inference activities may exceed the capacity of additions to the U.S. power grid.[[18]](#footnote-18)"
       expected_output:
         claims:
-          - text: "There is concern that the necessary grid loads to power future AI data centers for training and inference activities may exceed the capacity of additions to the U.S. power grid."
-            claim: "There is concern that future AI data center grid loads for training and inference may exceed the capacity of additions to the United States power grid.."
+          - text: "There is concern that the necessary grid loads to power future AI data centers for training and inference activities may exceed the capacity of additions to the U.S. power grid.[[18]](#footnote-18)"
+            claim: "There is concern that future AI data center grid loads for training and inference may exceed the capacity of additions to the United States power grid."
             rationale: ""
+            central: true
           - text: "There is concern that the necessary grid loads to power future AI data centers for training and inference activities may exceed the capacity of additions to the U.S. power grid."
             claim: "Future AI data center grid loads for training and inference may exceed the capacity of additions to the U.S. power grid."
             rationale: ""
+            central: true
         rationale: ""
 
     - name: "claim_machine_learning_image_classification"
@@ -200,15 +222,19 @@ dataset:
           - text: "Machine learning techniques have revolutionized the field of image classification over the past decade"
             claim: "Machine learning techniques have revolutionized the field of image classification over the past decade."
             rationale: ""
+            central: true
           - text: "convolutional Neural Networks (CNNs) enabling significant improvements over previous approaches"
             claim: "Convolutional Neural Networks (CNNs) have enabled significant improvements over previous approaches in image classification."
             rationale: ""
+            central: true
           - text: "researchers like Krizhevsky et al. (2012) reporting unprecedented performance on the ImageNet dataset"
             claim: "Krizhevsky et al. (2012) reported unprecedented performance on the ImageNet dataset."
             rationale: ""
+            central: true
           - text: "which has spurred advances in both academic and industrial applications"
             claim: "Machine learning techniques have spurred advances in both academic and industrial applications."
             rationale: ""
+            central: true
         rationale: ""
 
     - name: "claim_power_capacity_report_assessment"
@@ -221,13 +247,15 @@ dataset:
           - text: "we assess potential increases in supply resources in the contiguous United States"
             claim: "The report assesses potential increases in supply resources in the contiguous United States."
             rationale: ""
+            central: true
           - text: "propose a capacity metric that can be directly compared with load increases."
             claim: "The report proposes a capacity metric that can be directly compared with load increases."
             rationale: ""
+            central: true
         rationale: ""
 
     - name: "claim_power_capacity_research_question"
-      description: "Test case with research question - no claims expected"
+      description: "Test case with research question"
       input:
         main_document: "data/power-capacity-by-2030-published-minimal/_main.md"
         chunk: "We address the following question: What will the United States’ additional power capacity be by 2030?"
@@ -236,6 +264,7 @@ dataset:
           - text: "We address the following question: What will the United States’ additional power capacity be by 2030?"
             claim: "This report addresses the question of what the United States’ additional power capacity will be by 2030."
             rationale: ""
+            central: true
         rationale: ""
 
     - name: "claim_power_capacity_reference_entry_1"
