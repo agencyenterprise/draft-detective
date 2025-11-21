@@ -35,7 +35,12 @@ def create_agent_with_model(
         ```
     """
     agent_class = base_agent.__class__
-    new_agent = agent_class()
+
+    # Pass context if the agent requires it (LangChainAgent or DirectOpenAIAgent)
+    if hasattr(base_agent, "context"):
+        new_agent = agent_class(context=base_agent.context)
+    else:
+        new_agent = agent_class()
 
     new_agent.model = model
     new_agent.temperature = (

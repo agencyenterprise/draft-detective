@@ -52,12 +52,18 @@ class LangChainAgent(BaseAgent):
     @property
     def llm(self) -> Any:
         if self._llm is None:
-            llm = init_chat_model(
-                self.model.model_name,
-                temperature=self.temperature,
-                timeout=self.timeout,
-                api_key=self.context.openai_api_key,
-            )
+            init_kwargs = {
+                "model": self.model.model_name,
+                "temperature": self.temperature,
+                "timeout": self.timeout,
+            }
+            
+            # For OpenAI models: use context API key if provided, otherwise fall back to env var
+            # For other providers (Anthropic, Google): always use environment variables
+            if self.model.provider in ["openai", "azure_openai"] and self.context.openai_api_key:
+                init_kwargs["api_key"] = self.context.openai_api_key
+            
+            llm = init_chat_model(**init_kwargs)
             if self.output_schema:
                 llm = llm.with_structured_output(self.output_schema)
             self._llm = llm
