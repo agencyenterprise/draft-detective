@@ -1,20 +1,19 @@
 # %%
 import logging
 
+from langgraph.runtime import Runtime
+
 from lib.agents.claim_categorizer import (
-    claim_categorizer_agent,
-    ClaimCategorizationResponse,
     ClaimCategorizationResponseWithClaimIndex,
+    ClaimCategorizerAgent,
 )
-from lib.agents.formatting_utils import (
-    format_audience_context,
-    format_domain_context,
-)
+from lib.agents.formatting_utils import format_audience_context, format_domain_context
+from lib.workflows.chunk_iterator import iterate_chunks
+from lib.workflows.claim_substantiation.context import ContextSchema
 from lib.workflows.claim_substantiation.state import (
     ClaimSubstantiatorState,
     DocumentChunk,
 )
-from lib.workflows.chunk_iterator import iterate_chunks
 from lib.workflows.decorators import handle_chunk_errors, handle_workflow_node_errors
 
 logger = logging.getLogger(__name__)
@@ -22,12 +21,17 @@ logger = logging.getLogger(__name__)
 
 @handle_workflow_node_errors()
 async def categorize_claims(
-    state: ClaimSubstantiatorState,
+    state: ClaimSubstantiatorState, runtime: Runtime[ContextSchema]
 ) -> ClaimSubstantiatorState:
     logger.info(f"categorize_claims ({state.config.session_id}): starting")
 
+    claim_categorizer_agent = ClaimCategorizerAgent(runtime.context)
+
     results = await iterate_chunks(
-        state, _categorize_chunk_claims, "Categorizing claims"
+        state,
+        _categorize_chunk_claims,
+        "Categorizing claims",
+        claim_categorizer_agent=claim_categorizer_agent,
     )
     logger.info(f"categorize_claims ({state.config.session_id}): done")
     return results
@@ -35,7 +39,9 @@ async def categorize_claims(
 
 @handle_chunk_errors("Claim categorization")
 async def _categorize_chunk_claims(
-    state: ClaimSubstantiatorState, chunk: DocumentChunk
+    state: ClaimSubstantiatorState,
+    chunk: DocumentChunk,
+    claim_categorizer_agent: ClaimCategorizerAgent,
 ) -> DocumentChunk:
     # Skip if chunk has no claims
     if chunk.claims is None or not chunk.claims.claims:
@@ -71,16 +77,18 @@ async def _categorize_chunk_claims(
 
 
 if __name__ == "__main__":
-    import asyncio
     import argparse
+    import asyncio
+    import json
     from datetime import datetime
-    from lib.services.file import FileDocument
-    from lib.agents.claim_extractor import Claim, ClaimResponse
-    from lib.workflows.claim_substantiation.state import SubstantiationWorkflowConfig
+
+    import nest_asyncio
     from rich.console import Console
     from rich.panel import Panel
-    import nest_asyncio
-    import json
+
+    from lib.agents.claim_extractor import Claim, ClaimResponse
+    from lib.services.file import FileDocument
+    from lib.workflows.claim_substantiation.state import SubstantiationWorkflowConfig
 
     nest_asyncio.apply()
 
@@ -125,8 +133,18 @@ if __name__ == "__main__":
         console.print(Panel(test_chunk.model_dump_json(indent=2), title="Test Chunk"))
 
         try:
+            # Create agent with context for testing
+            from lib.config.env import config
+
+            context = ContextSchema(
+                openai_api_key=config.OPENAI_API_KEY, vector_store=None
+            )
+            claim_categorizer_agent = ClaimCategorizerAgent(context)
+
             # Test the claim categorization
-            result = await _categorize_chunk_claims(test_state, test_chunk)
+            result = await _categorize_chunk_claims(
+                test_state, test_chunk, claim_categorizer_agent
+            )
 
             console.print("\n[green]Categorization Results:[/green]")
             if result.claim_categories:

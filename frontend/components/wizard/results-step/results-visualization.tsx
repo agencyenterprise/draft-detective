@@ -15,7 +15,6 @@ import { DocumentExplorerTab } from './tabs/document-explorer-tab';
 
 interface ResultsVisualizationProps {
   results: ClaimSubstantiatorStateSummary | undefined;
-  onChunkReevaluation: (response: ChunkReevaluationResponse) => void;
   isProcessing?: boolean;
   viewMode: DocRenderMode;
   onViewModeChange: (mode: DocRenderMode) => void;
@@ -25,7 +24,6 @@ interface ResultsVisualizationProps {
 
 export function ResultsVisualization({
   results,
-  onChunkReevaluation,
   isProcessing = false,
   viewMode,
   onViewModeChange,
@@ -86,14 +84,7 @@ export function ResultsVisualization({
       case 'files':
         return <FilesTab results={results} />;
       case 'document-explorer':
-        return (
-          <DocumentExplorerTab
-            results={results}
-            onChunkReevaluation={onChunkReevaluation}
-            isProcessing={isProcessing}
-            viewMode={viewMode}
-          />
-        );
+        return <DocumentExplorerTab results={results} isProcessing={isProcessing} viewMode={viewMode} />;
     }
   };
 

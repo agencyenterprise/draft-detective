@@ -20,9 +20,9 @@ from lib.agents.formatting_utils import (
 from lib.agents.reference_extractor import BibliographyItem
 from lib.services.file import FileDocument
 from lib.services.vector_store import (
+    VectorStoreService,
     get_collection_id,
     get_file_hash_from_path,
-    get_vector_store_service,
 )
 from lib.workflows.claim_substantiation.state import (
     ClaimSubstantiatorState,
@@ -113,6 +113,9 @@ class CitationBasedReferenceProvider:
 class RAGReferenceProvider:
     """Provides references via RAG retrieval from vector store."""
 
+    def __init__(self, vector_store: VectorStoreService):
+        self.vector_store = vector_store
+
     async def get_references_for_claim(
         self,
         state: ClaimSubstantiatorState,
@@ -193,10 +196,8 @@ class RAGReferenceProvider:
     async def _get_passages(
         self, query: str, supporting_files: List[FileDocument]
     ) -> List[RetrievedPassageInfo]:
-        vector_store = get_vector_store_service()
-
         retrieval_tasks = [
-            vector_store.retrieve_relevant_passages(
+            self.vector_store.retrieve_relevant_passages(
                 query=query,
                 collection_id=get_collection_id(
                     get_file_hash_from_path(file_doc.file_path)

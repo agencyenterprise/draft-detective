@@ -1,14 +1,15 @@
-# %%
 from __future__ import annotations
 
 import json
 import logging
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List
 
-from lib.agents.addendum_report_generator import addendum_report_generator_agent
+from langgraph.runtime import Runtime
+
+from lib.agents.addendum_report_generator import AddendumReportGeneratorAgent
+from lib.workflows.claim_substantiation.context import ContextSchema
 from lib.workflows.claim_substantiation.state import ClaimSubstantiatorState
 from lib.workflows.decorators import handle_workflow_node_errors
-
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +26,7 @@ def _get_original_claim_text(chunk: Any, claim_index: int) -> str:
 
 @handle_workflow_node_errors()
 async def generate_addendum_report(
-    state: ClaimSubstantiatorState,
+    state: ClaimSubstantiatorState, runtime: Runtime[ContextSchema]
 ) -> ClaimSubstantiatorState:
     logger.info(f"generate_addendum_report ({state.config.session_id}): starting")
 
@@ -80,6 +81,7 @@ async def generate_addendum_report(
         "records_json": json.dumps(records, default=str),
     }
 
+    addendum_report_generator_agent = AddendumReportGeneratorAgent(runtime.context)
     addendum_report = await addendum_report_generator_agent.ainvoke(prompt_kwargs)
 
     return {"addendum_report": addendum_report}

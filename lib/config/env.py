@@ -49,31 +49,6 @@ class Config(BaseModel):
     )
 
     @model_validator(mode="after")
-    def validate_openai_config(self):
-        """Validate that either OpenAI API key or Azure OpenAI credentials are present."""
-
-        has_openai_key = (
-            self.OPENAI_API_KEY is not None and self.OPENAI_API_KEY.strip() != ""
-        )
-        has_azure_config = all(
-            [
-                field is not None and field.strip() != ""
-                for field in [
-                    self.AZURE_OPENAI_API_KEY,
-                    self.AZURE_OPENAI_ENDPOINT,
-                    self.OPENAI_API_VERSION,
-                ]
-            ]
-        )
-
-        if not has_openai_key and not has_azure_config:
-            raise ValueError(
-                "Either OPENAI_API_KEY or all of AZURE_OPENAI_API_KEY, AZURE_OPENAI_ENDPOINT, and OPENAI_API_VERSION must be provided"
-            )
-
-        return self
-
-    @model_validator(mode="after")
     def validate_docling_serve_api(self):
         if self.FILE_CONVERTER == "docling" and not self.DOCLING_SERVE_API_URL:
             raise ValueError(

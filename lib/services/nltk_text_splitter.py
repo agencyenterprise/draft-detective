@@ -5,11 +5,10 @@ from typing import List, Optional
 from langchain_core.documents import Document
 from langchain_text_splitters.base import TextSplitter
 
-from lib.agents.document_chunker_nltk import (
-    document_chunker_agent,
-    get_chunker_result_as_langchain_documents,
-)
+from lib.agents.document_chunker import DocumentChunkerAgent
+from lib.agents.document_chunker_nltk import get_chunker_result_as_langchain_documents
 from lib.agents.models import ValidatedDocument
+from lib.workflows.claim_substantiation.context import ContextSchema
 
 logger = logging.getLogger(__name__)
 
@@ -24,8 +23,11 @@ class NLTKTextSplitter(TextSplitter):
     3. LLM fallback only when needed
     """
 
+    def __init__(self, context: ContextSchema):
+        self.document_chunker_agent = DocumentChunkerAgent(context=context)
+
     async def split_text(self, text: str) -> List[ValidatedDocument]:
-        result = await document_chunker_agent.ainvoke(
+        result = await self.document_chunker_agent.ainvoke(
             prompt_kwargs={
                 "full_document": text,
             }

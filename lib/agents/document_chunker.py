@@ -1,4 +1,3 @@
-from langchain.chat_models import init_chat_model
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
@@ -69,7 +68,6 @@ I will send the markdown document that you need to chunk as my next message.
 class DocumentChunkerAgent(LangChainAgent):
     name = "Document Chunker"
     description = "Chunk a document into paragraphs and each paragraph into reasonable sentence-level chunks"
-
     model = gpt_4_1_model
     temperature = 0.2
     output_schema = DocumentChunkerResponse
@@ -87,6 +85,3 @@ class DocumentChunkerAgent(LangChainAgent):
         )
         messages = template.invoke(prompt_kwargs)
         return await self.llm.ainvoke(messages, config=config)
-
-
-document_chunker_agent = DocumentChunkerAgent()

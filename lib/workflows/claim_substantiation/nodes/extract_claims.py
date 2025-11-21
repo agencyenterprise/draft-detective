@@ -1,7 +1,11 @@
 import logging
-from lib.agents.claim_extractor import claim_extractor_agent
-from lib.agents.formatting_utils import format_domain_context, format_audience_context
+
+from langgraph.runtime import Runtime
+
+from lib.agents.claim_extractor import ClaimExtractorAgent
+from lib.agents.formatting_utils import format_audience_context, format_domain_context
 from lib.workflows.chunk_iterator import iterate_chunks
+from lib.workflows.claim_substantiation.context import ContextSchema
 from lib.workflows.claim_substantiation.state import (
     ClaimSubstantiatorState,
     DocumentChunk,
@@ -17,11 +21,18 @@ logger = logging.getLogger(__name__)
 
 @requires_agent("claims")
 @handle_workflow_node_errors()
-async def extract_claims(state: ClaimSubstantiatorState) -> ClaimSubstantiatorState:
+async def extract_claims(
+    state: ClaimSubstantiatorState, runtime: Runtime[ContextSchema]
+) -> ClaimSubstantiatorState:
     logger.info(f"extract_claims ({state.config.session_id}): starting")
 
+    claim_extractor_agent = ClaimExtractorAgent(runtime.context)
+
     results = await iterate_chunks(
-        state, _extract_chunk_claims, "Extracting chunk claims"
+        state,
+        _extract_chunk_claims,
+        "Extracting chunk claims",
+        claim_extractor_agent=claim_extractor_agent,
     )
     logger.info(f"extract_claims ({state.config.session_id}): done")
     return results
@@ -29,7 +40,9 @@ async def extract_claims(state: ClaimSubstantiatorState) -> ClaimSubstantiatorSt
 
 @handle_chunk_errors("Claim extraction")
 async def _extract_chunk_claims(
-    state: ClaimSubstantiatorState, chunk: DocumentChunk
+    state: ClaimSubstantiatorState,
+    chunk: DocumentChunk,
+    claim_extractor_agent: ClaimExtractorAgent,
 ) -> DocumentChunk:
     claims = await claim_extractor_agent.ainvoke(
         {

@@ -6,13 +6,14 @@ import pytest
 from lib.models.agent_test_case import AgentTestCase
 from lib.agents.claim_extractor import (
     ClaimResponse,
-    claim_extractor_agent,
+    ClaimExtractorAgent,
 )
 from lib.agents.formatting_utils import format_domain_context, format_audience_context
 from tests.conftest import (
     create_test_file_document_from_path,
     data_path,
     extract_paragraph_from_chunk,
+    create_test_context,
 )
 from tests.datasets.loader import load_dataset
 from lib.agents.document_summarizer import document_summarizer_agent
@@ -59,7 +60,7 @@ def _build_cases() -> list[AgentTestCase]:
         cases.append(
             AgentTestCase(
                 name=test_case.name,
-                agent=claim_extractor_agent,
+                agent=ClaimExtractorAgent(create_test_context()),
                 response_model=ClaimResponse,
                 prompt_kwargs={
                     "summarized_argument": summarized_argument,

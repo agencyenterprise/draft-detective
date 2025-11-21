@@ -1,4 +1,3 @@
-from langchain.chat_models import init_chat_model
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
@@ -101,7 +100,6 @@ class ClaimNeedsSubstantiationCheckerAgent(LangChainAgent):
     description = (
         "Check if a claim needs to be substantiated or not (common knowledge etc)"
     )
-
     model = gpt_5_model
     temperature = 0.2
     output_schema = ClaimCommonKnowledgeResult
@@ -113,6 +111,3 @@ class ClaimNeedsSubstantiationCheckerAgent(LangChainAgent):
             **prompt_kwargs
         )
         return await self.llm.ainvoke(messages, config=config)
-
-
-claim_needs_substantiation_checker_agent = ClaimNeedsSubstantiationCheckerAgent()

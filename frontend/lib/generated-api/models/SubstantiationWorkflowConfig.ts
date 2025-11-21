@@ -91,6 +91,12 @@ export interface SubstantiationWorkflowConfig {
    * @memberof SubstantiationWorkflowConfig
    */
   sessionId?: string | null;
+  /**
+   *
+   * @type {string}
+   * @memberof SubstantiationWorkflowConfig
+   */
+  openaiApiKey?: string | null;
 }
 
 /**
@@ -125,6 +131,7 @@ export function SubstantiationWorkflowConfigFromJSONTyped(
     domain: json['domain'] == null ? undefined : json['domain'],
     targetAudience: json['target_audience'] == null ? undefined : json['target_audience'],
     sessionId: json['session_id'] == null ? undefined : json['session_id'],
+    openaiApiKey: json['openai_api_key'] == null ? undefined : json['openai_api_key'],
   };
 }
 
@@ -156,5 +163,6 @@ export function SubstantiationWorkflowConfigToJSONTyped(
     domain: value['domain'],
     target_audience: value['targetAudience'],
     session_id: value['sessionId'],
+    openai_api_key: value['openaiApiKey'],
   };
 }

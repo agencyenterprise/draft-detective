@@ -6,7 +6,7 @@ import { TabType } from '@/components/wizard/results-step/constants';
 import { ResultsVisualization } from '@/components/wizard/results-step/results-visualization';
 import { workflowsApi } from '@/lib/api';
 import { DocRenderMode } from '@/lib/constants';
-import { ChunkReevaluationResponse, WorkflowRunDetailed, WorkflowRunStatus } from '@/lib/generated-api';
+import { WorkflowRunDetailed, WorkflowRunStatus } from '@/lib/generated-api';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { useParams } from 'next/navigation';
@@ -32,15 +32,6 @@ export default function ResultsPage() {
   });
 
   const isProcessing = workflowRun?.run.status === WorkflowRunStatus.Running;
-
-  const handleChunkReevaluation = (response: ChunkReevaluationResponse) => {
-    queryClient.setQueryData(['workflowRun', workflowRunId], (curr: WorkflowRunDetailed) => {
-      return {
-        ...curr,
-        state: { ...curr.state, ...response.state },
-      };
-    });
-  };
 
   const updateTitleMutation = useMutation({
     mutationFn: async (newTitle: string) => {
@@ -130,7 +121,6 @@ export default function ResultsPage() {
 
       <ResultsVisualization
         results={workflowRun.state || undefined}
-        onChunkReevaluation={handleChunkReevaluation}
         isProcessing={isProcessing}
         viewMode={viewMode}
         onViewModeChange={setViewMode}

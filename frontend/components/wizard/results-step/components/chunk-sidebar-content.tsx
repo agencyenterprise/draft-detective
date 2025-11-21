@@ -1,6 +1,6 @@
 import { AiGeneratedLabel } from '@/components/ai-generated-label';
 import { Badge } from '@/components/ui/badge';
-import type { ChunkReevaluationResponse, ClaimSubstantiatorStateSummary, DocumentIssue } from '@/lib/generated-api';
+import type { ClaimSubstantiatorStateSummary, DocumentIssue } from '@/lib/generated-api';
 import { useChunkDetails } from '@/lib/hooks/use-chunk-details';
 import { getClaimIssues, getMaxSeverity, sortBySeverity } from '@/lib/severity';
 import { Loader2, X } from 'lucide-react';
@@ -14,10 +14,9 @@ import { ErrorsCard } from './errors-card';
 export interface ChunkSidebarContentProps {
   results: ClaimSubstantiatorStateSummary;
   chunkIndex: number;
-  workflowRunId?: string;
+  workflowRunId: string;
   isWorkflowRunning: boolean;
   onSelectIssue: (issue: DocumentIssue) => void;
-  onChunkReevaluation: (response: ChunkReevaluationResponse) => void;
   onClearChunkSelection: () => void;
 }
 
@@ -27,7 +26,6 @@ export function ChunkSidebarContent({
   workflowRunId,
   isWorkflowRunning,
   onSelectIssue,
-  onChunkReevaluation,
   onClearChunkSelection,
 }: ChunkSidebarContentProps) {
   const { data: chunkDetails, isLoading: isLoadingDetails } = useChunkDetails(
@@ -106,8 +104,8 @@ export function ChunkSidebarContent({
           <ChunkReevaluateControl
             chunkIndex={lightweightChunk.chunkIndex}
             originalState={results}
-            onReevaluation={onChunkReevaluation}
             sessionId={results.config?.sessionId}
+            workflowRunId={workflowRunId}
           />
 
           <ChunkEvalGenerator chunkIndex={lightweightChunk.chunkIndex} originalState={results} />

@@ -1,4 +1,3 @@
-import logging
 from datetime import date
 from enum import StrEnum
 from operator import add
@@ -6,9 +5,7 @@ from typing import Annotated, Dict, List, Optional, Union
 
 from pydantic import BaseModel, Field
 
-logger = logging.getLogger(__name__)
-
-# Agent response models
+from lib.agents.addendum_report_generator import ReportOutput
 from lib.agents.citation_detector import CitationResponse
 from lib.agents.citation_suggester import CitationSuggestionResultWithClaimIndex
 from lib.agents.claim_categorizer import ClaimCategorizationResponseWithClaimIndex
@@ -20,19 +17,14 @@ from lib.agents.claim_verifier import ClaimSubstantiationResultWithClaimIndex
 from lib.agents.document_summarizer import DocumentSummary
 from lib.agents.evidence_weighter import EvidenceWeighterResponseWithClaimIndex
 from lib.agents.inference_validator import InferenceValidationResponseWithClaimIndex
-from lib.agents.reference_validator import BibliographyItemValidation
 from lib.agents.literature_review import LiteratureReviewResponse
 from lib.agents.models import ChunkWithIndex, ClaimCategory
 from lib.agents.reference_extractor import BibliographyItem
+from lib.agents.reference_validator import BibliographyItemValidation
 from lib.agents.toulmin_claim_extractor import ToulminClaimResponse
-
-# Service models
-from lib.services.file import FileDocument
 from lib.services.docling_models import ChunkToItems
-
-# Workflow models
+from lib.services.file import FileDocument
 from lib.workflows.models import WorkflowError
-from lib.agents.addendum_report_generator import ReportOutput
 
 
 class SubstantiationWorkflowConfig(BaseModel):
@@ -76,6 +68,9 @@ class SubstantiationWorkflowConfig(BaseModel):
     )
     session_id: Optional[str] = Field(
         default=None, description="Session ID for Langfuse tracing"
+    )
+    openai_api_key: Optional[str] = Field(
+        default=None, description="OpenAI API key to use for this workflow execution"
     )
 
 
@@ -312,6 +307,9 @@ class ChunkReevaluationRequest(BaseModel):
         description="The original workflow state containing the document and chunks"
     )
     session_id: Optional[str] = Field(description="The session ID for Langfuse tracing")
+    openai_api_key: Optional[str] = Field(
+        default=None, description="OpenAI API key to use for this re-evaluation"
+    )
 
 
 class ChunkReevaluationResponse(BaseModel):

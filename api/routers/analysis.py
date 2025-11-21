@@ -131,12 +131,9 @@ async def reevaluate_chunk(
 
         start_time = time.time()
 
-        config_overrides = (
-            SubstantiationWorkflowConfig(
-                session_id=request.session_id or str(uuid.uuid4())
-            )
-            if request.session_id
-            else None
+        config_overrides = SubstantiationWorkflowConfig(
+            session_id=request.session_id or str(uuid.uuid4()),
+            openai_api_key=request.openai_api_key,
         )
 
         updated_state = await reevaluate_single_chunk(

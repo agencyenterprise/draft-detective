@@ -5,6 +5,7 @@ from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
 
 from lib.agents.live_literature_review import ClaimReferenceFactors, QualityLevel
+from lib.services.openai import ensure_structured_output_response
 from lib.config.llm_models import gpt_5_mini_model
 from lib.models.agent import DirectOpenAIAgent
 from lib.services.openai import ensure_structured_output_response
@@ -157,6 +158,7 @@ class EvidenceWeighterAgent(DirectOpenAIAgent):
     description = "Analyze and weight evidence from multiple sources to determine overall direction and strength"
     model = gpt_5_mini_model
     temperature = 0.5
+    output_schema = EvidenceWeighterResponse
 
     async def ainvoke(
         self,
@@ -179,6 +181,3 @@ class EvidenceWeighterAgent(DirectOpenAIAgent):
         )
 
         return ensure_structured_output_response(response, EvidenceWeighterResponse)
-
-
-evidence_weighter_agent = EvidenceWeighterAgent()

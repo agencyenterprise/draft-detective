@@ -207,9 +207,12 @@ class CitationSuggesterAgent(DirectOpenAIAgent):
         return ensure_structured_output_response(response, CitationSuggestionResponse)
 
 
-citation_suggester_agent = CitationSuggesterAgent()
-
 if __name__ == "__main__":
+    from lib.config.env import config
+
+    context = ContextSchema(openai_api_key=config.OPENAI_API_KEY, vector_store=None)
+    citation_suggester_agent = CitationSuggesterAgent(context)
+
     response = asyncio.run(
         citation_suggester_agent.ainvoke(
             {
