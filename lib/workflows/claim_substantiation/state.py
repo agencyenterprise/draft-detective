@@ -21,7 +21,7 @@ from lib.agents.document_summarizer import DocumentSummary
 from lib.agents.evidence_weighter import EvidenceWeighterResponseWithClaimIndex
 from lib.agents.inference_validator import InferenceValidationResponseWithClaimIndex
 from lib.agents.reference_validator import BibliographyItemValidation
-from lib.agents.literature_review import LiteratureReviewResponse
+from lib.agents.unified_literature_review import UnifiedLiteratureReviewResponse
 from lib.agents.models import ChunkWithIndex, ClaimCategory
 from lib.agents.reference_extractor import BibliographyItem
 from lib.agents.toulmin_claim_extractor import ToulminClaimResponse
@@ -250,7 +250,7 @@ class ClaimSubstantiatorState(BaseModel):
     live_reports_analysis: List[EvidenceWeighterResponseWithClaimIndex] = Field(
         default_factory=list, description="Live reports analysis results by chunk index"
     )
-    literature_review: Optional[LiteratureReviewResponse] = None
+    literature_review: Optional[UnifiedLiteratureReviewResponse] = None
     addendum_report: Optional[ReportOutput] = Field(
         default=None, description="Report output from the addendum report generator"
     )
@@ -293,7 +293,7 @@ class ClaimSubstantiatorStateSummary(BaseModel):
     main_document_summary: Optional[DocumentSummary] = None
     supporting_documents_summaries: Optional[Dict[int, DocumentSummary]] = None
     live_reports_analysis: List[EvidenceWeighterResponseWithClaimIndex] = []
-    literature_review: Optional[LiteratureReviewResponse] = None
+    literature_review: Optional[UnifiedLiteratureReviewResponse] = None
     addendum_report: Optional[ReportOutput] = None
     ranked_issues: List[DocumentIssue] = []
     chunk_to_items: Optional[ChunkToItems] = None
