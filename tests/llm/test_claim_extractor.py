@@ -15,6 +15,7 @@ from tests.conftest import (
     extract_paragraph_from_chunk,
 )
 from tests.datasets.loader import load_dataset
+from lib.agents.document_summarizer import document_summarizer_agent
 
 
 TESTS_DIR = Path(__file__).parent.parent
@@ -42,16 +43,34 @@ def _build_cases() -> list[AgentTestCase]:
         chunk = test_case.input["chunk"]
         paragraph = extract_paragraph_from_chunk(main_doc.markdown, chunk)
 
+        # Store the document for lazy summary generation
+        summarized_argument = test_case.input.get("summarized_argument")
+
+        # summarized_argument = test_case.input.get("summarized_argument")
+        # if not summarized_argument:
+        #     summarized_argument = asyncio.run(
+        #         document_summarizer_agent.ainvoke(
+        #             {
+        #                 "document": main_doc.markdown,
+        #             }
+        #         ).summary
+        #     )
+
         cases.append(
             AgentTestCase(
                 name=test_case.name,
                 agent=claim_extractor_agent,
                 response_model=ClaimResponse,
                 prompt_kwargs={
+                    "summarized_argument": summarized_argument,
                     "paragraph": paragraph,
                     "chunk": chunk,
                     "domain_context": format_domain_context(domain),
                     "audience_context": format_audience_context(target_audience),
+                    # Store document for lazy generation
+                    "_main_doc_markdown": (
+                        main_doc.markdown if not summarized_argument else None
+                    ),
                 },
                 expected_dict=test_case.expected_output,
                 strict_fields=strict_fields,
@@ -67,6 +86,15 @@ def _build_cases() -> list[AgentTestCase]:
 @pytest.mark.asyncio
 @pytest.mark.parametrize("case", _build_cases(), ids=lambda case: case.name)
 async def test_claim_extractor_agent_cases(case: AgentTestCase):
+    # Generate summary lazily if needed
+    if case.prompt_kwargs.get("summarized_argument") is None:
+        main_doc_markdown = case.prompt_kwargs.get("_main_doc_markdown")
+        if main_doc_markdown:
+            response = await document_summarizer_agent.ainvoke(
+                {"document": main_doc_markdown}
+            )
+            case.prompt_kwargs["summarized_argument"] = response.summary
+
     await case.run()
     eval_result = await case.compare_results()
 
