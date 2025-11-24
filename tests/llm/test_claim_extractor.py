@@ -16,7 +16,7 @@ from tests.conftest import (
     create_test_context,
 )
 from tests.datasets.loader import load_dataset
-from lib.agents.document_summarizer import document_summarizer_agent
+from lib.agents.document_summarizer import DocumentSummarizerAgent
 
 
 TESTS_DIR = Path(__file__).parent.parent
@@ -81,6 +81,7 @@ async def test_claim_extractor_agent_cases(case: AgentTestCase):
     if case.prompt_kwargs.get("summarized_argument") is None:
         main_doc_markdown = case.prompt_kwargs.get("_main_doc_markdown")
         if main_doc_markdown:
+            document_summarizer_agent = DocumentSummarizerAgent(create_test_context())
             response = await document_summarizer_agent.ainvoke(
                 {"document": main_doc_markdown}
             )
