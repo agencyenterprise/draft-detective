@@ -293,3 +293,48 @@ dataset:
       expected_output:
         claims: []
         rationale: ""
+
+    - name: "claim_military_personnel_not_central"
+      description: "Test case with not central claim"
+      input:
+        main_document: "data/military_personnel/main_document.md"
+        chunk: "Management processes is an interesting phrase that combines the words 'management' and 'processes.'"
+      expected_output:
+        claims:
+          - text: "Management processes is an interesting phrase that combines the words 'management' and 'processes.'"
+            claim: "Management processes is an interesting phrase."
+            rationale: ""
+            central: false        
+          - text: "Management processes is an interesting phrase that combines the words 'management' and 'processes.'"
+            claim: "Management processes combines the words 'management' and 'processes.'"
+            rationale: ""
+            central: false
+        rationale: ""
+
+
+    - name: "claim_military_personnel_not_central"
+      description: "Test case with not central claim"
+      input:
+        main_document: "data/military_personnel/main_document.md"
+        chunk: "Eigenvalues were developed in the 19th century by Cauchy to study planetary motion"
+      expected_output:
+        claims:
+          - text: "Eigenvalues were developed in the 19th century by Cauchy to study planetary motion"
+            claim: "Eigenvalues were developed in the 19th century by Cauchy to study planetary motion"
+            rationale: ""
+            central: false
+        rationale: ""
+
+
+    - name: "claim_military_personnel_not_central"
+      description: "Test case with not central claim"
+      input:
+        main_document: "data/military_personnel/main_document.md"
+        chunk: "B.F. Skinner was a 19th century psychologist"
+      expected_output:
+        claims:
+          - text: "B.F. Skinner was a 19th century psychologist"
+            claim: "B.F. Skinner was a 19th century psychologist"
+            rationale: ""
+            central: false
+        rationale: ""        
