@@ -47,16 +47,6 @@ def _build_cases() -> list[AgentTestCase]:
         # Store the document for lazy summary generation
         summarized_argument = test_case.input.get("summarized_argument")
 
-        # summarized_argument = test_case.input.get("summarized_argument")
-        # if not summarized_argument:
-        #     summarized_argument = asyncio.run(
-        #         document_summarizer_agent.ainvoke(
-        #             {
-        #                 "document": main_doc.markdown,
-        #             }
-        #         ).summary
-        #     )
-
         cases.append(
             AgentTestCase(
                 name=test_case.name,
