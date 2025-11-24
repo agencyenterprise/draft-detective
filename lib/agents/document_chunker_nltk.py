@@ -231,6 +231,9 @@ class DocumentChunkerAgent(BaseAgent):
     temperature = 0.0
     output_schema = None
 
+    def __init__(self, context: ContextSchema):
+        self.context = context
+
     async def ainvoke(
         self,
         prompt_kwargs: dict,
