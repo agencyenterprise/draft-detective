@@ -22,12 +22,15 @@ This project focuses on providing an end-to-end, ready-to-use open source tool t
 The system addresses these primary research questions:
 
 1. **Claim-Reference Alignment**: Does each cited reference provide evidence that substantiates the associated claim?
-2. **References Validation**: Are the references correct, including Author, Title, Year and Publisher fields that have online presence?
+2. **Reference Validation**: Are the references correct, including Author, Title, Year and Publisher fields that have online presence?
 3. **Unsupported claims**: Which claims require citation but lack appropriate references?
-4. **Inference Validation**: Are inferential and interpretive claims supported by valid argument structures according to the Toulmin model of argumentation?
+4. **Inference Validation**: Are inferential and interpretive claims supported by valid argument structures according to the Toulmin model of argumentation[^3][^4]?
 5. **Citation Recommendations**: What additional references could strengthen the document's evidentiary foundation?
 6. **Literature Review**: Is there any other related published work that could be referenced to strengthen or counter the arguments presented?
 7. **Live Reports** (for past published documents): Is there any newer related work that supports, strengthens, contradicts, or brings newer information that should be considered to expand the document's arguments?
+
+[^3]: Toulmin, Stephen E. _The Uses of Argument_. Cambridge: Cambridge University Press, 1958.
+[^4]: Excelsior Online Writing Lab. “Toulmin Argument.” In _Organizing Your Argument, Argument & Critical Thinking_. Excelsior University. Last modified May 26, 2022. Accessed November 24, 2025. https://owl.excelsior.edu/argument-and-critical-thinking/organizing-your-argument/organizing-your-argument-toulmin/.
 
 ## Methodology
 
@@ -153,7 +156,7 @@ The example below demonstrates the system's capability to assess claim-evidence 
 
 ![Claim-Reference Alignment - Example 1](./claim-reference-validation-ex1.png)
 
-### References Validation
+### Reference Validation
 
 The following example demonstrates the system's reference validation capabilities when presented with a fabricated bibliographic entry. The validation agent systematically evaluates the reference's metadata fields (author, title, publication year, publisher) against online sources and correctly identifies the reference as invalid due to the absence of corresponding published work.
 
