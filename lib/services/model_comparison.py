@@ -57,7 +57,6 @@ async def run_single_model_evaluation(
     result = await agent.ainvoke(test_case.prompt_kwargs, config=config)
 
     tracker.stop_timing()
-    tracker.update_langfuse_costs()
 
     metrics = tracker.get_metrics()
 

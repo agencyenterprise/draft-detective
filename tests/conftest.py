@@ -40,6 +40,9 @@ _SESSION_ID_ENV_VAR = "PYTEST_LANGFUSE_SESSION_ID"
 # Model comparison mode flag
 _MODEL_COMPARISON_MODE = False
 
+# User-specified comparison models from CLI
+_COMPARISON_MODELS = None
+
 
 def pytest_addoption(parser):
     """Add CLI options for test diagnostics."""
@@ -69,7 +72,7 @@ def pytest_configure(config):
     For pytest-xdist parallel execution, the controller process generates
     the session_id and shares it with workers via environment variable.
     """
-    global _PRINT_AGENT_FIELDS, _MODEL_COMPARISON_MODE
+    global _PRINT_AGENT_FIELDS, _MODEL_COMPARISON_MODE, _COMPARISON_MODELS
 
     worker_id = os.environ.get("PYTEST_XDIST_WORKER")
 
@@ -95,6 +98,11 @@ def pytest_configure(config):
         or os.getenv("SKIP_MODEL_COMPARISON_MODE")
     )
     _MODEL_COMPARISON_MODE = not skip_comparison
+
+    # Parse comparison models from CLI if provided
+    models_str = config.getoption("comparison_models")
+    if models_str:
+        _COMPARISON_MODELS = [m.strip() for m in models_str.split(",") if m.strip()]
 
 
 def _extract_by_path(obj: Any, parts: list[str]) -> Any:
@@ -385,26 +393,27 @@ def is_model_comparison_mode() -> bool:
 
 
 def get_comparison_models():
-    """Get the list of models to compare in model comparison mode."""
-    from lib.config.llm_models import (
-        gpt_5_model,
-        gpt_5_mini_model,
-        gpt_5_1_model,
-        gpt_4_1_model,
-        claude_3_5_sonnet_model,
-        gemini_2_flash_model,
-    )
+    """Get the list of models to compare in model comparison mode.
 
-    # Default models to compare
+    If --comparison-models was provided via CLI, parse and return those models.
+    Otherwise, return all models from the registry.
+    """
+    from lib.config.llm_models import ALL_MODELS
+
+    if _COMPARISON_MODELS:
+        models = []
+        for model_name in _COMPARISON_MODELS:
+            if model_name not in ALL_MODELS:
+                raise ValueError(
+                    f"Unknown model '{model_name}'. "
+                    f"Available: {', '.join(ALL_MODELS.keys())}"
+                )
+            models.append(ALL_MODELS[model_name])
+        return models
+
+    # Default: use all models from registry
     # Note: Agent's default model will be automatically added as baseline (position 0)
-    return [
-        gpt_5_model,
-        gpt_5_mini_model,
-        gpt_5_1_model,
-        gpt_4_1_model,
-        claude_3_5_sonnet_model,
-        gemini_2_flash_model,
-    ]
+    return list(ALL_MODELS.values())
 
 
 @pytest.fixture

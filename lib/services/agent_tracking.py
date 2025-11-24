@@ -201,29 +201,3 @@ class AgentExecutionTracker:
         )
 
         return metrics
-
-    def update_langfuse_costs(self):
-        """Update Langfuse trace with cost details."""
-        try:
-            if not self.token_callback.usage or not hasattr(
-                self.langfuse_handler, "client"
-            ):
-                return
-
-            from lib.services.langfuse_metrics import get_model_pricing
-
-            pricing = get_model_pricing(str(self.model))
-            usage = self.token_callback.usage
-
-            input_cost = usage.get("input_tokens", 0) * (pricing.input_price or 0)
-            output_cost = usage.get("output_tokens", 0) * (pricing.output_price or 0)
-
-            self.langfuse_handler.client.update_current_generation(
-                cost_details={
-                    "input": input_cost,
-                    "output": output_cost,
-                    "total": input_cost + output_cost,
-                }
-            )
-        except Exception as e:
-            logger.warning(f"Failed to update Langfuse costs: {e}")
