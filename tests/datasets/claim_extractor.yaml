@@ -12,6 +12,7 @@ dataset:
       input:
         main_document: "data/case_1/main_document.md"
         chunk: "Prior work such as Smith (2020) and Doe and Roe (2019) provide useful background/insights."
+
       expected_output:
         claims:
           - text: "Prior work such as Smith (2020) and Doe and Roe (2019) provide useful background/insights."
