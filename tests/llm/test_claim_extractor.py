@@ -93,8 +93,8 @@ async def test_claim_extractor_agent_cases(case: AgentTestCase):
         assert eval_result.passed, f"{case.name}: {eval_result.rationale}"
         return
 
-    # if number of characters is less than 5000, skip summarized argument generation
-    if len(main_doc_markdown) < 5000:
+    # if number of characters is less than 7500, skip summarized argument generation
+    if len(main_doc_markdown) < 7500:
         case.prompt_kwargs["summarized_argument"] = main_doc_markdown
 
     else:
