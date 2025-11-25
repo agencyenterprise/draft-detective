@@ -37,6 +37,12 @@ _agent_test_case_data = {}
 # Environment variable key for sharing session_id across workers
 _SESSION_ID_ENV_VAR = "PYTEST_LANGFUSE_SESSION_ID"
 
+# Model comparison mode flag
+_MODEL_COMPARISON_MODE = False
+
+# User-specified comparison models from CLI
+_COMPARISON_MODELS = None
+
 
 def pytest_addoption(parser):
     """Add CLI options for test diagnostics."""
@@ -46,6 +52,18 @@ def pytest_addoption(parser):
         default=False,
         help="Print detailed per-field agent comparison results after each test",
     )
+    parser.addoption(
+        "--skip-compare-models",
+        action="store_true",
+        default=False,
+        help="Disable model comparison mode (model comparison is enabled by default)",
+    )
+    parser.addoption(
+        "--comparison-models",
+        action="store",
+        default=None,
+        help="Comma-separated list of models to compare (e.g., 'gpt-5,gpt-5-mini,gpt-4.1')",
+    )
 
 
 def pytest_configure(config):
@@ -54,7 +72,7 @@ def pytest_configure(config):
     For pytest-xdist parallel execution, the controller process generates
     the session_id and shares it with workers via environment variable.
     """
-    global _PRINT_AGENT_FIELDS
+    global _PRINT_AGENT_FIELDS, _MODEL_COMPARISON_MODE, _COMPARISON_MODELS
 
     worker_id = os.environ.get("PYTEST_XDIST_WORKER")
 
@@ -72,6 +90,19 @@ def pytest_configure(config):
     _PRINT_AGENT_FIELDS = bool(
         config.getoption("print_agent_fields") or os.getenv("AGENT_TEST_PRINT_FIELDS")
     )
+
+    # Model comparison mode is enabled by default
+    # Disable it only if --skip-compare-models flag is present or env var is set to skip
+    skip_comparison = bool(
+        config.getoption("skip_compare_models")
+        or os.getenv("SKIP_MODEL_COMPARISON_MODE")
+    )
+    _MODEL_COMPARISON_MODE = not skip_comparison
+
+    # Parse comparison models from CLI if provided
+    models_str = config.getoption("comparison_models")
+    if models_str:
+        _COMPARISON_MODELS = [m.strip() for m in models_str.split(",") if m.strip()]
 
 
 def _extract_by_path(obj: Any, parts: list[str]) -> Any:
@@ -91,6 +122,49 @@ def _extract_by_path(obj: Any, parts: list[str]) -> Any:
     return None
 
 
+def _serialize_for_xdist(obj):
+    """Convert enums, sets, and Pydantic models to serializable types for pytest-xdist."""
+    if isinstance(obj, Enum):
+        return obj.value
+    elif isinstance(obj, set):
+        return list(obj)
+    elif isinstance(obj, BaseModel):
+        return _serialize_for_xdist(obj.model_dump())
+    elif isinstance(obj, dict):
+        return {k: _serialize_for_xdist(v) for k, v in obj.items()}
+    elif isinstance(obj, (list, tuple)):
+        return [_serialize_for_xdist(item) for item in obj]
+    else:
+        return obj
+
+
+def _serialize_field_comparisons(field_comparisons):
+    """Serialize field comparisons to dicts."""
+    return [
+        fc.model_dump() if hasattr(fc, "model_dump") else fc for fc in field_comparisons
+    ]
+
+
+def _serialize_model_results(model_results):
+    """Serialize model comparison results."""
+    serialized = {}
+    for model_name, result_data in model_results.items():
+        serialized[model_name] = {
+            "passed": result_data["passed"],
+            "rationale": result_data["rationale"],
+            "field_comparisons": _serialize_field_comparisons(
+                result_data["field_comparisons"]
+            ),
+            "cost_usd": result_data.get("cost_usd", 0.0),
+            "duration_seconds": result_data.get("duration_seconds", 0.0),
+            "input_tokens": result_data.get("input_tokens", 0),
+            "output_tokens": result_data.get("output_tokens", 0),
+            "total_tokens": result_data.get("total_tokens", 0),
+            "actual_output": result_data.get("actual_output", {}),
+        }
+    return serialized
+
+
 @pytest.hookimpl(hookwrapper=True)
 def pytest_runtest_makereport(item, call):
     """Store AgentTestCase metadata during test execution."""
@@ -103,86 +177,52 @@ def pytest_runtest_makereport(item, call):
         if hasattr(item, "callspec") and "case" in item.callspec.params:
             case = item.callspec.params["case"]
 
-            # Get evaluation result if test was run
-            eval_result = None
-            if hasattr(case, "_eval_result") and case._eval_result is not None:
-                eval_result = case._eval_result.model_dump()
+            if not case.model_results:
+                return
 
-            def serialize_for_xdist(obj):
-                """Convert enums, sets, and Pydantic models to serializable types for pytest-xdist.
+            # Get baseline (first) model's result
+            baseline_model = next(iter(case.model_results.keys()))
+            baseline_result = case.model_results[baseline_model]
 
-                This recursively processes dictionaries, lists, and other structures
-                to convert enums to their string values, sets to lists, and Pydantic
-                models to dicts.
-                """
-                if isinstance(obj, Enum):
-                    return obj.value
-                elif isinstance(obj, set):
-                    return list(obj)
-                elif isinstance(obj, BaseModel):
-                    # Handle Pydantic models by converting to dict
-                    return serialize_for_xdist(obj.model_dump())
-                elif isinstance(obj, dict):
-                    return {k: serialize_for_xdist(v) for k, v in obj.items()}
-                elif isinstance(obj, (list, tuple)):
-                    return [serialize_for_xdist(item) for item in obj]
-                else:
-                    return obj
+            # Build minimal test case data
+            # Include actual_outputs for frontend backward compatibility
+            baseline_actual_output = baseline_result.get("actual_output", {})
 
-            session_id = getattr(case, "session_id", None)
+            agent_test_case_data = {
+                "name": case.name,
+                "agent": {"name": case.agent.name},
+                "prompt_kwargs": {
+                    k: (
+                        v[:5000] + "... [Truncated]"
+                        if isinstance(v, str) and len(v) > 5000
+                        else v
+                    )
+                    for k, v in case.prompt_kwargs.items()
+                },
+                "expected_output": case.expected_dict,
+                "actual_outputs": [baseline_actual_output],  # Frontend expects array
+                "evaluation_config": {
+                    "strict_fields": _serialize_for_xdist(case.strict_fields),
+                    "llm_fields": _serialize_for_xdist(case.llm_fields),
+                    "evaluator_model": case.evaluator_model,
+                },
+                "evaluation_result": {
+                    "passed": baseline_result["passed"],
+                    "rationale": baseline_result["rationale"],
+                    "field_comparisons": _serialize_field_comparisons(
+                        baseline_result["field_comparisons"]
+                    ),
+                },
+                "session_id": getattr(case, "session_id", None),
+            }
 
-            # Build summaries for strict and LLM evaluations if available
-            strict_summary = None
-            llm_summary = None
+            # Include model comparison results if present
+            if len(case.model_results) > 1:
+                agent_test_case_data["model_comparison_results"] = (
+                    _serialize_model_results(case.model_results)
+                )
 
-            try:
-                if getattr(case, "strict_eval_results", None):
-                    strict_passed = all(r.passed for r in case.strict_eval_results)
-                    strict_rationale = case.strict_eval_results[0].rationale
-                    strict_summary = {
-                        "passed": strict_passed,
-                        "rationale": strict_rationale,
-                    }
-                if getattr(case, "llm_eval_results", None):
-                    llm_passed = all(r.passed for r in case.llm_eval_results)
-                    llm_rationale = case.llm_eval_results[0].rationale
-                    llm_summary = {"passed": llm_passed, "rationale": llm_rationale}
-            except Exception:
-                # Best-effort; do not break reporting if structure changes
-                pass
-
-            # Serialize all data for xdist compatibility
-            report.agent_test_case_data = serialize_for_xdist(
-                {
-                    "name": case.name,
-                    "agent": {
-                        "name": case.agent.name,
-                    },
-                    "prompt_kwargs": {
-                        # Truncate large fields for readability
-                        k: (
-                            v[:5000] + "... [Truncated]"
-                            if isinstance(v, str) and len(v) > 5000
-                            else v
-                        )
-                        for k, v in case.prompt_kwargs.items()
-                    },
-                    "expected_output": case.expected_dict,
-                    "actual_outputs": [
-                        result.model_dump() for result in (case.results or [])
-                    ],
-                    "evaluation_config": {
-                        "strict_fields": serialize_for_xdist(case.strict_fields),
-                        "llm_fields": serialize_for_xdist(case.llm_fields),
-                        "evaluator_model": case.evaluator_model,
-                        "run_count": case.run_count,
-                    },
-                    "evaluation_result": eval_result,
-                    "strict_summary": strict_summary,
-                    "llm_summary": llm_summary,
-                    "session_id": session_id,
-                }
-            )
+            report.agent_test_case_data = _serialize_for_xdist(agent_test_case_data)
 
 
 @pytest.hookimpl()
@@ -195,84 +235,82 @@ def pytest_runtest_logreport(report):
     if hasattr(report, "agent_test_case_data"):
         _agent_test_case_data[report.nodeid] = report.agent_test_case_data
 
-        # Optionally print summaries and per-field comparison details after the test
+        # Optionally print per-field comparison details after the test
         if _PRINT_AGENT_FIELDS:
-            data = report.agent_test_case_data
-            eval_result = (data or {}).get("evaluation_result") or {}
-            strict_summary = (data or {}).get("strict_summary") or {}
-            llm_summary = (data or {}).get("llm_summary") or {}
-            field_comparisons = eval_result.get("field_comparisons") or []
-            if field_comparisons:
-                print(f"\n=== Agent Field Comparisons: {data.get('name')} ===")
-                # Print high-level summaries first
-                if strict_summary:
-                    status = "PASS" if strict_summary.get("passed") else "FAIL"
-                    print(
-                        f"Strict Summary: {status} \n  -> Rationale: {strict_summary.get('rationale')}"
-                    )
-                if llm_summary:
-                    status = "PASS" if llm_summary.get("passed") else "FAIL"
-                    print(
-                        f"LLM Summary: {status} \n  -> Rationale: {llm_summary.get('rationale')}"
-                    )
+            _print_field_comparisons(report.agent_test_case_data)
 
-                for fc in field_comparisons:
-                    status = "PASS" if fc.get("passed") else "FAIL"
-                    field_path = fc.get("field_path")
-                    comp_type = fc.get("comparison_type")
-                    strategy = fc.get("matching_strategy")
-                    total = fc.get("total_instances")
-                    passed = fc.get("passed_instances")
-                    failed = fc.get("failed_instances")
-                    rationale = fc.get("rationale")
-                    print(
-                        f"[{status}] {field_path}  type={comp_type}  matched={passed}/{total}  strategy={strategy or '-'}"
-                    )
-                    print(f"  -> Passed: {passed}, Failed: {failed}")
-                    print(f"  -> Rationale: {rationale}")
 
-                    # Print expected/actual values for both passing and failing fields
-                    expected_output = data.get("expected_output")
-                    actual_outputs = data.get("actual_outputs") or []
-                    actual_output = actual_outputs[0] if actual_outputs else None
+def _print_field_comparisons(data):
+    """Print detailed field comparison results for a test."""
+    eval_result = data.get("evaluation_result", {})
+    field_comparisons = eval_result.get("field_comparisons", [])
 
-                    # Extract just the field value using the field path
-                    parts = (field_path or "").split(".")
-                    expected_field_value = _extract_by_path(expected_output, parts)
-                    actual_field_value = _extract_by_path(actual_output, parts)
+    if not field_comparisons:
+        return
 
-                    status_label = "PASSED" if fc.get("passed") else "FAILED"
-                    print(f"\n {field_path} {status_label}")
-                    print("  Expected Result:")
-                    try:
-                        print(
-                            json.dumps(
-                                expected_field_value, indent=2, ensure_ascii=False
-                            )
-                        )
-                    except Exception:
-                        print(expected_field_value)
+    print(f"\n=== Agent Field Comparisons: {data.get('name')} ===")
+    print(f"Overall Result: {eval_result.get('rationale', 'No rationale')}\n")
 
-                    print("  Actual Result (first run):")
-                    try:
-                        print(
-                            json.dumps(actual_field_value, indent=2, ensure_ascii=False)
-                        )
-                    except Exception:
-                        print(actual_field_value)
-                    print("\n")
+    for fc in field_comparisons:
+        status = "PASS" if fc.get("passed") else "FAIL"
+        field_path = fc.get("field_path")
+        comp_type = fc.get("comparison_type", "unknown")
+        strategy = fc.get("matching_strategy")
+        total = fc.get("total_instances")
+        passed_count = fc.get("passed_instances")
 
-                print("=== End Agent Field Comparisons ===\n")
+        print(f"[{status}] {field_path}  ({comp_type})")
+        print(f"  Matched: {passed_count}/{total}  Strategy: {strategy or 'N/A'}")
+        print(f"  Rationale: {fc.get('rationale', 'No rationale')}")
+
+        # Print expected/actual values
+        expected_output = data.get("expected_output")
+        actual_output = eval_result.get("actual_output")
+
+        if expected_output and actual_output:
+            parts = (field_path or "").split(".")
+            expected_value = _extract_by_path(expected_output, parts)
+            actual_value = _extract_by_path(actual_output, parts)
+
+            print(f"  Expected: {_format_value(expected_value)}")
+            print(f"  Actual:   {_format_value(actual_value)}")
+        print()
+
+    print("=== End Agent Field Comparisons ===\n")
+
+
+def _format_value(value):
+    """Format a value for display, handling JSON serialization."""
+    try:
+        return json.dumps(value, indent=2, ensure_ascii=False)
+    except Exception:
+        return str(value)
 
 
 @pytest.hookimpl()
 def pytest_json_modifyreport(json_report):
     """Modify the JSON report to include AgentTestCase metadata."""
-    # Add agent_test_case data to each test
+    model_comparison_data = {}
+
     for test in json_report.get("tests", []):
         nodeid = test.get("nodeid")
         if nodeid in _agent_test_case_data:
-            test["agent_test_case"] = _agent_test_case_data[nodeid]
+            test_data = _agent_test_case_data[nodeid]
+            test["agent_test_case"] = test_data
+
+            if "model_comparison_results" in test_data:
+                agent_name = test_data["agent"]["name"]
+                test_name = test_data["name"]
+
+                if agent_name not in model_comparison_data:
+                    model_comparison_data[agent_name] = {}
+
+                model_comparison_data[agent_name][test_name] = test_data[
+                    "model_comparison_results"
+                ]
+
+    if model_comparison_data:
+        json_report["model_comparison"] = model_comparison_data
 
 
 def data_path(path: str) -> str:
@@ -347,6 +385,47 @@ def extract_paragraph_from_chunk(full_document: str, chunk: str) -> str:
             return paragraph
 
     raise ValueError(f"Chunk not found in full document: {chunk}")
+
+
+def is_model_comparison_mode() -> bool:
+    """Check if model comparison mode is enabled."""
+    return _MODEL_COMPARISON_MODE
+
+
+def get_comparison_models():
+    """Get the list of models to compare in model comparison mode.
+
+    If --comparison-models was provided via CLI, parse and return those models.
+    Otherwise, return all models from the registry.
+    """
+    from lib.config.llm_models import ALL_MODELS
+
+    if _COMPARISON_MODELS:
+        models = []
+        for model_name in _COMPARISON_MODELS:
+            if model_name not in ALL_MODELS:
+                raise ValueError(
+                    f"Unknown model '{model_name}'. "
+                    f"Available: {', '.join(ALL_MODELS.keys())}"
+                )
+            models.append(ALL_MODELS[model_name])
+        return models
+
+    # Default: use all models from registry
+    # Note: Agent's default model will be automatically added as baseline (position 0)
+    return list(ALL_MODELS.values())
+
+
+@pytest.fixture
+def test_models():
+    """Fixture providing models for test execution.
+
+    Returns single model in normal mode, multiple models in comparison mode.
+    """
+    if is_model_comparison_mode():
+        return get_comparison_models()
+    # Return None to use agent's default model
+    return None
 
 
 def create_test_context():
