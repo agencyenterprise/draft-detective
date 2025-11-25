@@ -27,7 +27,7 @@ from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
 
 from lib.agents.models import ClaimCategory
-from lib.config.llm_models import gpt_5_model
+from lib.config.llm_models import gpt_5_mini_model
 from lib.models.agent import LangChainAgent
 from lib.workflows.claim_substantiation.context import ContextSchema
 
@@ -169,9 +169,9 @@ with ONE of SIX categories and to determine if it needs EXTERNAL VERIFICATION.
 ## Audience Context
 {audience_context}
 
-## The original document from which we are substantiating claims within a chunk
+## Summary of the document (for context about the document's main argument)
 ```
-{full_document}
+{document_summary}
 ```
 
 ## The paragraph of the original document that contains the chunk of text that we want to substantiate
@@ -195,7 +195,7 @@ with ONE of SIX categories and to determine if it needs EXTERNAL VERIFICATION.
 class ClaimCategorizerAgent(LangChainAgent):
     name = "Claim Categorizer"
     description = "Categorize a claim into one of the six categories"
-    model = gpt_5_model
+    model = gpt_5_mini_model
     temperature = 0.2
     output_schema = ClaimCategorizationResponse
 

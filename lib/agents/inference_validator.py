@@ -173,11 +173,6 @@ In the academic paper example, a backing could be "A thorough review of the lite
 ## Audience context of the document (i.e., the intended audience for the document)
 {audience_context}
 
-## The full document that the chunk is a part of
-```
-{full_document}
-```
-
 ## The paragraph of the original document that contains the chunk of text that we want to analyze
 ```
 {paragraph}

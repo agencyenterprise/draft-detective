@@ -72,11 +72,6 @@ For each citation, you need to return the following information:
 - If the document includes a bibliography entry related to this citation, this will be an exact copy of that bibliography entry from the list of bibliography entries I'm providing separately, otherwise it will be an empty string. Do not include the entry number if there is one, just the full context of the bibliography entry.
 - Your very brief rationale for why you think this is a citation/footnote mark
 
-## The full document that the chunk is a part of
-```
-{full_document}
-```
-
 ## The list of bibliography entries (if any) extracted from the bibliography section of the full document
 The indexes in this list should be used when returning index_of_associated_bibliography.
 ```

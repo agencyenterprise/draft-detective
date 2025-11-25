@@ -90,7 +90,6 @@ async def _validate_chunk_inferences(
 
         result = await inference_validator_agent.ainvoke(
             {
-                "full_document": state.file.markdown,
                 "paragraph": state.get_paragraph(chunk.paragraph_index),
                 "chunk": chunk.content,
                 "claim": claim.claim,

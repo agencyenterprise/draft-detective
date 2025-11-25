@@ -87,11 +87,6 @@ For each claim, output an evidence alignment level based on the following defini
 
 {audience_context}
 
-## The original document from which we are substantiating claims within a chunk
-```
-{full_document}
-```
-
 ## The paragraph of the original document that contains the chunk of text that we want to substantiate
 ```
 {paragraph}
