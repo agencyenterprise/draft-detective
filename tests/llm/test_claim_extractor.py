@@ -21,6 +21,9 @@ from lib.agents.document_summarizer import DocumentSummarizerAgent
 
 TESTS_DIR = Path(__file__).parent.parent
 
+# caching summarized argument
+SUMMARIZED_ARGUMENT_CACHE = {}
+
 
 def _build_cases() -> list[AgentTestCase]:
     # Load dataset from YAML
@@ -62,6 +65,7 @@ def _build_cases() -> list[AgentTestCase]:
                     "_main_doc_markdown": (
                         main_doc.markdown if not summarized_argument else None
                     ),
+                    "_file_path": main_path,
                 },
                 expected_dict=test_case.expected_output,
                 strict_fields=strict_fields,
@@ -78,14 +82,37 @@ def _build_cases() -> list[AgentTestCase]:
 @pytest.mark.parametrize("case", _build_cases(), ids=lambda case: case.name)
 async def test_claim_extractor_agent_cases(case: AgentTestCase):
     # Generate summary lazily if needed
-    if case.prompt_kwargs.get("summarized_argument") is None:
-        main_doc_markdown = case.prompt_kwargs.get("_main_doc_markdown")
-        if main_doc_markdown:
+    # count number of characters in the main_doc_markdown
+    main_doc_markdown = case.prompt_kwargs.get("_main_doc_markdown")
+
+    # Handle None case
+    if main_doc_markdown is None:
+        # Already has summarized_argument, proceed with test
+        await case.run()
+        eval_result = await case.compare_results()
+        assert eval_result.passed, f"{case.name}: {eval_result.rationale}"
+        return
+
+    # if number of characters is less than 5000, skip summarized argument generation
+    if len(main_doc_markdown) < 5000:
+        case.prompt_kwargs["summarized_argument"] = main_doc_markdown
+
+    else:
+        # if summarized argument is not provided, generate it
+        # access summarized argument cache based on file path
+        file_path = case.prompt_kwargs.get("_file_path")
+        summarized_argument = SUMMARIZED_ARGUMENT_CACHE.get(file_path)
+        if summarized_argument:
+            case.prompt_kwargs["summarized_argument"] = summarized_argument
+        else:
+            # generate summarized argument
             document_summarizer_agent = DocumentSummarizerAgent(create_test_context())
             response = await document_summarizer_agent.ainvoke(
                 {"document": main_doc_markdown}
             )
-            case.prompt_kwargs["summarized_argument"] = response.summary
+            summarized_argument = response.summary.summary
+            SUMMARIZED_ARGUMENT_CACHE[file_path] = summarized_argument
+            case.prompt_kwargs["summarized_argument"] = summarized_argument
 
     await case.run()
     eval_result = await case.compare_results()
