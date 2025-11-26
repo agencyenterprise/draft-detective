@@ -9,7 +9,7 @@ from langgraph.runtime import Runtime
 from lib.agents.addendum_report_generator import AddendumReportGeneratorAgent
 from lib.workflows.claim_substantiation.context import ContextSchema
 from lib.workflows.claim_substantiation.state import ClaimSubstantiatorState
-from lib.workflows.decorators import handle_workflow_node_errors
+from lib.workflows.decorators import register_node
 
 logger = logging.getLogger(__name__)
 
@@ -24,22 +24,16 @@ def _get_original_claim_text(chunk: Any, claim_index: int) -> str:
     return ""
 
 
-@handle_workflow_node_errors()
+@register_node(
+    "Live Reports: generate addendum",
+    "Generate an addendum report from the live reports analysis",
+)
 async def generate_addendum_report(
     state: ClaimSubstantiatorState, runtime: Runtime[ContextSchema]
 ) -> ClaimSubstantiatorState:
-    logger.info(f"generate_addendum_report ({state.config.session_id}): starting")
-
     if not state.config.run_live_reports:
         logger.info(
             f"generate_addendum_report ({state.config.session_id}): skipping (run_live_reports is False)"
-        )
-        return {}
-
-    agents_to_run = state.config.agents_to_run
-    if agents_to_run and "live_reports" not in agents_to_run:
-        logger.info(
-            f"generate_addendum_report ({state.config.session_id}): Skipping (live_reports not in agents_to_run)"
         )
         return {}
 

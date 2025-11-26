@@ -12,29 +12,27 @@ from lib.workflows.claim_substantiation.state import (
 )
 from lib.workflows.decorators import (
     handle_chunk_errors,
-    handle_workflow_node_errors,
-    requires_agent,
+    register_node,
 )
 
 logger = logging.getLogger(__name__)
 
 
-@requires_agent("claims")
-@handle_workflow_node_errors()
+@register_node(
+    "Extract claims (Toulmin)",
+    "Extract claims using the Toulmin model",
+)
 async def extract_claims_toulmin(
     state: ClaimSubstantiatorState, runtime: Runtime[ContextSchema]
 ) -> ClaimSubstantiatorState:
-    logger.info(f"extract_claims_toulmin ({state.config.session_id}): starting")
     toulmin_claim_extractor_agent = ToulminClaimExtractorAgent(runtime.context)
 
-    results = await iterate_chunks(
+    return await iterate_chunks(
         state,
         _extract_chunk_claims_toulmin,
         "Extracting chunk claims (Toulmin)",
         toulmin_claim_extractor_agent=toulmin_claim_extractor_agent,
     )
-    logger.info(f"extract_claims_toulmin ({state.config.session_id}): done")
-    return results
 
 
 @handle_chunk_errors("Toulmin claim extraction")

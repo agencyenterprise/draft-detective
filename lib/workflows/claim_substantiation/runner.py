@@ -1,17 +1,14 @@
-# Convenience helpers
-import argparse
-import asyncio
 import logging
 import uuid
 from typing import List, Optional
 
+from lib.config.env import config
 from lib.config.langfuse import langfuse_handler
+from lib.models.user import User
 from lib.models.workflow_run import WorkflowRunStatus
 from lib.services.file import FileDocument
 from lib.services.vector_store import VectorStoreService
-from lib.services.workflow_runs import (
-    upsert_workflow_run,
-)
+from lib.services.workflow_runs import get_workflow_run_detailed, upsert_workflow_run
 from lib.workflows.claim_substantiation.checkpointer import get_checkpointer
 from lib.workflows.claim_substantiation.context import ContextSchema
 from lib.workflows.claim_substantiation.graph import build_claim_substantiator_graph
@@ -20,7 +17,6 @@ from lib.workflows.claim_substantiation.state import (
     SubstantiationWorkflowConfig,
 )
 from lib.workflows.models import WorkflowError
-from lib.config.env import config
 
 logger = logging.getLogger(__name__)
 
@@ -55,46 +51,26 @@ async def run_claim_substantiator(
     return await _execute(state, context)
 
 
-async def reevaluate_single_chunk(
-    original_result: ClaimSubstantiatorState,
-    chunk_index: int,
-    agents_to_run: List[str],
-    config_overrides: SubstantiationWorkflowConfig = None,
+async def rerun_analysis(
+    workflow_run_id: str,
+    config: SubstantiationWorkflowConfig,
+    current_user: User,
 ) -> ClaimSubstantiatorState:
     """
     Re-evaluate a single chunk using unified LangGraph approach.
     """
-    logger.info(f"Re-evaluating chunk {chunk_index} with agents {agents_to_run}")
+    logger.info(
+        f"Rerunning analysis with config: {config.model_dump(exclude_none=True)}"
+    )
 
-    chunks = original_result.chunks
-    if chunk_index >= len(chunks):
-        raise ValueError(
-            f"Chunk index {chunk_index} out of range (max: {len(chunks)-1})"
-        )
-
-    # Create updated config with overrides
-    config = original_result.config.model_copy()
-    if config_overrides:
-        # Update config with any provided overrides
-        config = config.model_copy(
-            update=config_overrides.model_dump(exclude_none=True)
-        )
-
-    # Always override target_chunk_indices and agents_to_run for this specific operation
-    config.target_chunk_indices = [chunk_index]
-    config.agents_to_run = agents_to_run
-    config.session_id = config.session_id or original_result.session_id
+    workflow_run = await get_workflow_run_detailed(workflow_run_id, user=current_user)
+    original_result = workflow_run.state
 
     context = create_context(config)
     config.openai_api_key = "[REDACTED]"
     state = original_result.model_copy(
         update={
             "config": config,
-            "errors": [
-                error
-                for error in original_result.errors
-                if error.chunk_index != chunk_index
-            ],
         }
     )
 
@@ -188,75 +164,3 @@ def create_context(workflow_config: SubstantiationWorkflowConfig) -> ContextSche
         openai_api_key=openai_api_key,
         vector_store=VectorStoreService(config.DATABASE_URL, openai_api_key),
     )
-
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "main_document_path",
-        help="Path to the main document to analyze",
-        nargs="?",
-        default="./tests/data/cryptocurrency-and-blockchain-minimal/main_document.docx",
-    )
-    parser.add_argument(
-        "supporting_documents",
-        nargs="*",
-        default=[
-            "./tests/data/cryptocurrency-and-blockchain-minimal/ref1.pdf",
-            "./tests/data/cryptocurrency-and-blockchain-minimal/ref2.pdf",
-            "./tests/data/cryptocurrency-and-blockchain-minimal/ref3.pdf",
-            "./tests/data/cryptocurrency-and-blockchain-minimal/ref4.pdf",
-            "./tests/data/cryptocurrency-and-blockchain-minimal/ref5.pdf",
-            "./tests/data/cryptocurrency-and-blockchain-minimal/ref6.pdf",
-        ],
-        help="Paths to supporting documents (optional)",
-    )
-    parser.add_argument(
-        "-t",
-        "--use-toulmin",
-        action="store_true",
-        default=True,
-        help="Use Toulmin claim detector",
-    )
-    parser.add_argument(
-        "-s",
-        "--suggest-citations",
-        action="store_true",
-        default=False,
-        help="Suggest citations",
-    )
-    parser.add_argument(
-        "-l",
-        "--literature-review",
-        action="store_true",
-        default=False,
-        help="Run literature review",
-    )
-    parser.add_argument(
-        "-r",
-        "--live-reports",
-        action="store_true",
-        default=False,
-        help="Run live reports",
-    )
-    parser.add_argument(
-        "--session-id",
-        help="Session ID for Langfuse tracing",
-        default=str(uuid.uuid4()),
-    )
-    args = parser.parse_args()
-
-    config = SubstantiationWorkflowConfig(
-        use_toulmin=args.use_toulmin,
-        run_suggest_citations=args.suggest_citations,
-        run_literature_review=args.literature_review,
-        run_live_reports=args.live_reports,
-        session_id=args.session_id,
-    )
-    result_state = asyncio.run(
-        run_claim_substantiator_from_paths(
-            args.main_document_path, args.supporting_documents, config
-        )
-    )
-    print("Result state:")
-    print(result_state)

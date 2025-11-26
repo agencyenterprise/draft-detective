@@ -10,13 +10,16 @@ from lib.services.vector_store import (
 )
 from lib.workflows.claim_substantiation.context import ContextSchema
 from lib.workflows.claim_substantiation.state import ClaimSubstantiatorState
-from lib.workflows.decorators import handle_workflow_node_errors
+from lib.workflows.decorators import register_node
 from lib.workflows.models import WorkflowError
 
 logger = logging.getLogger(__name__)
 
 
-@handle_workflow_node_errors()
+@register_node(
+    "Index supporting documents",
+    "Index supporting documents for RAG retrieval",
+)
 async def index_supporting_documents(
     state: ClaimSubstantiatorState,
     runtime: Runtime[ContextSchema],

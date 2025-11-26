@@ -1,13 +1,12 @@
 /* tslint:disable */
 /* eslint-disable */
+export * from './AgentInfo';
 export * from './BBox';
 export * from './BibliographyFieldValidation';
 export * from './BibliographyItem';
 export * from './BibliographyItemValidationInput';
 export * from './BibliographyItemValidationOutput';
 export * from './ChunkEvalPackageRequest';
-export * from './ChunkReevaluationRequest';
-export * from './ChunkReevaluationResponse';
 export * from './ChunkToItemsInput';
 export * from './ChunkToItemsOutput';
 export * from './Citation';
@@ -24,14 +23,12 @@ export * from './ClaimEvidenceSource';
 export * from './ClaimReferenceFactors';
 export * from './ClaimResponse';
 export * from './ClaimSubstantiationResultWithClaimIndex';
-export * from './ClaimSubstantiatorStateInput';
-export * from './ClaimSubstantiatorStateOutput';
+export * from './ClaimSubstantiatorState';
 export * from './ClaimSubstantiatorStateSummary';
 export * from './Claims';
 export * from './ConfidenceInRecommendation';
 export * from './DoclingPageInfo';
 export * from './DoclingRegion';
-export * from './DocumentChunk';
 export * from './DocumentChunkInput';
 export * from './DocumentChunkOutput';
 export * from './DocumentChunkSummary';
@@ -66,6 +63,7 @@ export * from './ReferenceType';
 export * from './ReportMetadata';
 export * from './ReportOutputInput';
 export * from './ReportOutputOutput';
+export * from './RerunAnalysisRequest';
 export * from './RetrievedPassageInfo';
 export * from './SeverityEnum';
 export * from './StartAnalysisResponse';

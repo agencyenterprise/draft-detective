@@ -1,4 +1,3 @@
-import asyncio
 import logging
 
 from lib.config.env import config
@@ -6,7 +5,9 @@ from lib.run_utils import run_tasks
 from lib.services.converters.base import convert_to_markdown as convert_to_markdown_fn
 from lib.services.file import FileDocument
 from lib.workflows.claim_substantiation.state import ClaimSubstantiatorState
-from lib.workflows.decorators import handle_workflow_node_errors, requires_agent
+from lib.workflows.decorators import (
+    register_node,
+)
 from langchain_core.messages.utils import count_tokens_approximately
 
 logger = logging.getLogger(__name__)
@@ -16,20 +17,13 @@ logger = logging.getLogger(__name__)
 MAX_CONCURRENT_CONVERSIONS = 2
 
 
-@requires_agent("convert_to_markdown")
-@handle_workflow_node_errors()
+@register_node(
+    "Convert to markdown",
+    "Convert the main and supporting documents to markdown",
+)
 async def convert_to_markdown(
     state: ClaimSubstantiatorState,
 ) -> ClaimSubstantiatorState:
-    logger.info(f"convert_to_markdown ({state.config.session_id}): starting")
-
-    agents_to_run = state.config.agents_to_run
-    if agents_to_run and "convert_to_markdown" not in agents_to_run:
-        logger.info(
-            f"convert_to_markdown ({state.config.session_id}): Skipping convert_to_markdown (not in agents_to_run)"
-        )
-        return {}
-
     # We need to convert only the main document with full mode (images, JSON, etc.), supporting documents with simple mode (markdown only)
     tasks = [
         _convert_to_markdown_task(state.file, is_main_document=True),
@@ -52,9 +46,6 @@ async def convert_to_markdown(
         raise failed_errors[0]
 
     [file, *supporting_files] = results
-
-    logger.info(f"convert_to_markdown ({state.config.session_id}): done")
-
     return {"file": file, "supporting_files": supporting_files}
 
 

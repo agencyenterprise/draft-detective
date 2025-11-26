@@ -14,27 +14,29 @@ from lib.workflows.claim_substantiation.state import (
     ClaimSubstantiatorState,
     DocumentChunk,
 )
-from lib.workflows.decorators import handle_chunk_errors, handle_workflow_node_errors
+from lib.workflows.decorators import (
+    handle_chunk_errors,
+    register_node,
+)
 
 logger = logging.getLogger(__name__)
 
 
-@handle_workflow_node_errors()
+@register_node(
+    "Categorize claims",
+    "Categorize claims into categories",
+)
 async def categorize_claims(
     state: ClaimSubstantiatorState, runtime: Runtime[ContextSchema]
 ) -> ClaimSubstantiatorState:
-    logger.info(f"categorize_claims ({state.config.session_id}): starting")
-
     claim_categorizer_agent = ClaimCategorizerAgent(runtime.context)
 
-    results = await iterate_chunks(
+    return await iterate_chunks(
         state,
         _categorize_chunk_claims,
         "Categorizing claims",
         claim_categorizer_agent=claim_categorizer_agent,
     )
-    logger.info(f"categorize_claims ({state.config.session_id}): done")
-    return results
 
 
 @handle_chunk_errors("Claim categorization")

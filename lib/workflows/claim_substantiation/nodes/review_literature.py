@@ -5,27 +5,22 @@ from langgraph.runtime import Runtime
 from lib.agents.literature_review import LiteratureReviewAgent
 from lib.workflows.claim_substantiation.context import ContextSchema
 from lib.workflows.claim_substantiation.state import ClaimSubstantiatorState
-from lib.workflows.decorators import handle_workflow_node_errors
+from lib.workflows.decorators import register_node
 
 logger = logging.getLogger(__name__)
 
 
-@handle_workflow_node_errors()
+@register_node(
+    "Review literature",
+    "Review the literature for the document",
+)
 async def literature_review(
     state: ClaimSubstantiatorState, runtime: Runtime[ContextSchema]
 ) -> ClaimSubstantiatorState:
-    logger.info(f"literature_review ({state.config.session_id}): starting")
 
     if not state.config.run_literature_review:
         logger.info(
             f"literature_review ({state.config.session_id}): skipping literature review (run_literature_review is False)"
-        )
-        return {}
-
-    agents_to_run = state.config.agents_to_run
-    if agents_to_run and "literature_review" not in agents_to_run:
-        logger.info(
-            f"literature_review ({state.config.session_id}): Skipping literature review (not in agents_to_run)"
         )
         return {}
 
@@ -40,5 +35,4 @@ async def literature_review(
         }
     )
 
-    logger.info(f"literature_review ({state.config.session_id}): done")
     return {"literature_review": literature_review_response}

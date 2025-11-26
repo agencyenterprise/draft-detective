@@ -13,18 +13,20 @@
  */
 
 import * as runtime from '../runtime';
+import type { AgentInfo } from '../models/index';
+import { AgentInfoFromJSON, AgentInfoToJSON } from '../models/index';
 
 /**
  *
  */
 export class HealthApi extends runtime.BaseAPI {
   /**
-   * Get list of supported agent types for chunk re-evaluation.  Returns:     List of supported agent type strings with descriptions
+   * Get list of supported agent types for chunk re-evaluation.  Returns:     List of AgentInfo objects
    * Get Supported Agents
    */
   async getSupportedAgentsApiSupportedAgentsGetRaw(
     initOverrides?: RequestInit | runtime.InitOverrideFunction,
-  ): Promise<runtime.ApiResponse<any>> {
+  ): Promise<runtime.ApiResponse<Array<AgentInfo>>> {
     const queryParameters: any = {};
 
     const headerParameters: runtime.HTTPHeaders = {};
@@ -41,20 +43,16 @@ export class HealthApi extends runtime.BaseAPI {
       initOverrides,
     );
 
-    if (this.isJsonMime(response.headers.get('content-type'))) {
-      return new runtime.JSONApiResponse<any>(response);
-    } else {
-      return new runtime.TextApiResponse(response) as any;
-    }
+    return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(AgentInfoFromJSON));
   }
 
   /**
-   * Get list of supported agent types for chunk re-evaluation.  Returns:     List of supported agent type strings with descriptions
+   * Get list of supported agent types for chunk re-evaluation.  Returns:     List of AgentInfo objects
    * Get Supported Agents
    */
   async getSupportedAgentsApiSupportedAgentsGet(
     initOverrides?: RequestInit | runtime.InitOverrideFunction,
-  ): Promise<any> {
+  ): Promise<Array<AgentInfo>> {
     const response = await this.getSupportedAgentsApiSupportedAgentsGetRaw(initOverrides);
     return await response.value();
   }

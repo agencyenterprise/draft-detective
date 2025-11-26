@@ -21,8 +21,7 @@ from lib.workflows.claim_substantiation.state import (
 )
 from lib.workflows.decorators import (
     handle_chunk_errors,
-    handle_workflow_node_errors,
-    requires_agent,
+    register_node,
 )
 
 logger = logging.getLogger(__name__)
@@ -124,25 +123,24 @@ async def _verify_chunk_claims_with_provider(
     return chunk.model_copy(update={"substantiations": substantiations})
 
 
-@requires_agent("substantiation")
-@handle_workflow_node_errors()
+@register_node(
+    "Verify claims (citation-based)",
+    "Verify the claims using citation-based references",
+)
 async def verify_claims(
     state: ClaimSubstantiatorState, runtime: Runtime[ContextSchema]
 ) -> ClaimSubstantiatorState:
     """Verify claims using citation-based references."""
-    logger.info(f"verify_claims ({state.config.session_id}): starting")
 
     claim_verifier_agent = ClaimVerifierAgent(runtime.context)
 
-    results = await iterate_chunks(
+    return await iterate_chunks(
         state,
         _verify_chunk_claims,
         "Verifying chunk claims",
         citation_provider=CitationBasedReferenceProvider(),
         claim_verifier_agent=claim_verifier_agent,
     )
-    logger.info(f"verify_claims ({state.config.session_id}): done")
-    return results
 
 
 @handle_chunk_errors("Claim verification")
@@ -164,27 +162,25 @@ async def _verify_chunk_claims(
     )
 
 
-@requires_agent("substantiation")
-@handle_workflow_node_errors()
+@register_node(
+    "Verify claims (RAG)",
+    "Verify the claims using RAG to retrieve relevant passages",
+)
 async def verify_claims_with_rag(
     state: ClaimSubstantiatorState, runtime: Runtime[ContextSchema]
 ) -> ClaimSubstantiatorState:
     """Verify claims using RAG to retrieve relevant passages."""
-    logger.info(f"verify_claims_with_rag ({state.config.session_id}): starting")
 
     rag_provider = RAGReferenceProvider(runtime.context.vector_store)
     claim_verifier_agent = ClaimVerifierAgent(runtime.context)
 
-    results = await iterate_chunks(
+    return await iterate_chunks(
         state,
         _verify_chunk_claims_rag,
         "Verifying chunk claims with RAG",
         rag_provider=rag_provider,
         claim_verifier_agent=claim_verifier_agent,
     )
-
-    logger.info(f"verify_claims_with_rag ({state.config.session_id}): done")
-    return results
 
 
 @handle_chunk_errors("Claim verification with RAG")
