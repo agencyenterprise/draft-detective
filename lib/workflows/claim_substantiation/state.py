@@ -18,6 +18,7 @@ from lib.agents.document_summarizer import DocumentSummary
 from lib.agents.evidence_weighter import EvidenceWeighterResponseWithClaimIndex
 from lib.agents.inference_validator import InferenceValidationResponseWithClaimIndex
 from lib.agents.literature_review import LiteratureReviewResponse
+from lib.agents.methodology_comparator import MethodologyComparisonResponse
 from lib.agents.models import ChunkWithIndex, ClaimCategory
 from lib.agents.reference_extractor import BibliographyItem
 from lib.agents.reference_validator import BibliographyItemValidation
@@ -48,6 +49,9 @@ class SubstantiationWorkflowConfig(BaseModel):
     )
     run_reference_validation: bool = Field(
         default=False, description="Whether to validate references using web search"
+    )
+    run_align_methods: bool = Field(
+        default=False, description="Whether to run the methodology alignment analysis"
     )
     document_publication_date: Optional[date] = Field(
         default=None,
@@ -246,6 +250,10 @@ class ClaimSubstantiatorState(BaseModel):
         default_factory=list, description="Live reports analysis results by chunk index"
     )
     literature_review: Optional[LiteratureReviewResponse] = None
+    methodology_comparison: Optional[MethodologyComparisonResponse] = Field(
+        default=None,
+        description="Methodology comparison result comparing the paper's methodology to field standards",
+    )
     addendum_report: Optional[ReportOutput] = Field(
         default=None, description="Report output from the addendum report generator"
     )
@@ -289,6 +297,7 @@ class ClaimSubstantiatorStateSummary(BaseModel):
     supporting_documents_summaries: Optional[Dict[int, DocumentSummary]] = None
     live_reports_analysis: List[EvidenceWeighterResponseWithClaimIndex] = []
     literature_review: Optional[LiteratureReviewResponse] = None
+    methodology_comparison: Optional[MethodologyComparisonResponse] = None
     addendum_report: Optional[ReportOutput] = None
     ranked_issues: List[DocumentIssue] = []
     chunk_to_items: Optional[ChunkToItems] = None
