@@ -35,7 +35,7 @@ export interface ReportMetadata {
    */
   title: string;
   /**
-   * A high-level explanation of why the update is required and what the authors should update in the report. Maximum of 200 words.
+   * A statement describing the kinds of new evidence that justify the update to the paper, without prescribing specific revisions. Examples include shifts in policy, new laws, new data, methodological changes, newer recent research or data available etc. Max 100 words.
    * @type {string}
    * @memberof ReportMetadata
    */

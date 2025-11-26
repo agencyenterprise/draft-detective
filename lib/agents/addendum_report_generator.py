@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from enum import Enum
+from typing import List, Optional
 
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableConfig
@@ -23,10 +24,10 @@ class UpdateType(str, Enum):
 class ReportMetadata(BaseModel):
     update_type: UpdateType = Field(description="The type of update")
     title: str = Field(
-        description="Newspaper-style title summarizing the changes (or lack of changes) suggested by the report"
+        description="A short newspaper-style headline summarizing the addendum."
     )
     sentence_summary: str = Field(
-        description="A single sentence summary of what the authors should update in the report"
+        description="A statement describing the kinds of new evidence that justify the update to the paper, without prescribing specific revisions. Examples include shifts in policy, new laws, new data, methodological changes, newer recent research or data available etc. Max 100 words."
     )
     date_generated: str = Field(
         description="The date the report was generated in YYYY-MM-DD format"
@@ -64,7 +65,7 @@ Format your final response in **Markdown** using the following sections, in this
 
 # Addendum: [Report Title or Topic]
 
-### High Level Summary
+## High Level Summary
 Write a short (3-5 sentence) overview that answers these questions:
 - What do the authors need to change in their report? Be specific about which sections or claims need updating.
 - How should they change it? Tell them the direction: should they strengthen their conclusions, soften them, reverse them completely, or add more nuance?
@@ -74,7 +75,7 @@ Think of this like a quick briefing. Someone should be able to read just this se
 
 Example good opening: "Recent studies published in 2024 contradict the main finding in Section 3. The authors should revise their conclusion about X to reflect that Y is now the dominant view. If they don't update this, readers may lose trust in the report's accuracy."
 
-### Background Updates
+## Background Updates
 This section is for fixing the foundation of the report - the context and background information that supports the claims.
 
 For each update, do this:
@@ -84,7 +85,7 @@ For each update, do this:
 
 Keep each item short (1-3 sentences). If you have multiple background updates, use bullets. Make sure each one is actionable - the authors should know exactly what to do. Always include URLs as inline markdown links when available.
 
-### Methodology Updates
+## Methodology Updates
 This is where you tell them how to fix their research methods, procedures, or ways of analyzing data.
 
 Be specific about:
@@ -94,7 +95,7 @@ Be specific about:
 
 Don't just say "update the methodology" - tell them what part of the methodology and what to do about it. Think about what a researcher would need to know to actually make this change.
 
-### Results Updates
+## Results Updates
 Here you explain how the new information changes what the report found or how to interpret those findings.
 
 For each result that needs updating:
@@ -104,7 +105,7 @@ For each result that needs updating:
 
 Remember: results updates aren't just about numbers. Sometimes new information changes how you should interpret the same numbers. Explain that too.
 
-### Implications Updates
+## Implications Updates
 This is the "so what?" section. You've told them what to change in the background, methods, and results. Now explain what all of this means for the big picture.
 
 For each implication:
@@ -114,7 +115,7 @@ For each implication:
 
 Think about what someone reading the updated report would need to understand. What questions would they have? Answer those questions here.
 
-### References
+## References
 Format references as numbered list items with inline markdown links:
 1. [Author(s)]. (Year). *Title*. [Source or journal]. [Link](URL)
 2. [Author(s)]. (Year). *Title*. [Source or journal]. [Link](URL)
@@ -171,27 +172,26 @@ Choose the one that best matches the scale of the recommended changes.
 
 ---
 
-# Additional Metadata to Include in JSON Output
-- **title:** A short newspaper-style headline summarizing the addendum.
-- **sentence_summary:** One-sentence overview of what the authors should update in the report. Include links to the important sources that support the update.
-- **date_generated:** Current date in YYYY-MM-DD.
-
----
-
-#### Input Data:
+## Input Data:
 Live Reports Analysis
 ```
 {records_json}
 ```
 
-#### Additional context:
-Document context: {domain_context}
-Audience Context: {audience_context}
-Title: {document_title}
-Summary (optional): {document_summary}
+## Additional context:
 
-#### Output:
-Return one JSON object matching the required schema exactly.
+{domain_context}
+{audience_context}
+
+**Title:**
+```
+{document_title}
+```
+
+**Summary:**
+```
+{document_summary}
+```
 """
 )
 
