@@ -18,6 +18,8 @@ from lib.agents.claim_verifier import ClaimVerifierAgent
 from lib.agents.evidence_weighter import EvidenceWeighterAgent
 from lib.agents.literature_review import LiteratureReviewAgent
 from lib.agents.live_literature_review import LiveLiteratureReviewAgent
+from lib.agents.methodology_comparator import MethodologyComparisonAgent
+from lib.agents.methodology_extractor import MethodologyExtractorAgent
 from lib.agents.reference_extractor import ReferenceExtractorAgent
 from lib.agents.reference_validator import ReferenceValidatorAgent
 from lib.models.agent import BaseAgent
@@ -183,6 +185,18 @@ def initialize_default_agents():
         agent_type="validate_references",
         agent=ReferenceValidatorAgent(context),
         description="Validate the list of references in a document by ensuring there is online presence from a legitimate source from each one.",
+    )
+
+    agent_registry.register(
+        agent_type="methodology_extractor",
+        agent=MethodologyExtractorAgent(context),
+        description="Extract a concise but detailed description of the methodology used in a research document to obtain its results.",
+    )
+
+    agent_registry.register(
+        agent_type="methodology_comparator",
+        agent=MethodologyComparisonAgent(context),
+        description="Compare an extracted paper methodology to typical methods used in the broader field, using web search to find field methods context.",
     )
 
     logger.info("Initialized default agent registry")
