@@ -12,30 +12,27 @@ from lib.workflows.claim_substantiation.state import (
 )
 from lib.workflows.decorators import (
     handle_chunk_errors,
-    handle_workflow_node_errors,
-    requires_agent,
+    register_node,
 )
 
 logger = logging.getLogger(__name__)
 
 
-@requires_agent("claims")
-@handle_workflow_node_errors()
+@register_node(
+    "Extract claims",
+    "Extract claims from the document",
+)
 async def extract_claims(
     state: ClaimSubstantiatorState, runtime: Runtime[ContextSchema]
 ) -> ClaimSubstantiatorState:
-    logger.info(f"extract_claims ({state.config.session_id}): starting")
-
     claim_extractor_agent = ClaimExtractorAgent(runtime.context)
 
-    results = await iterate_chunks(
+    return await iterate_chunks(
         state,
         _extract_chunk_claims,
         "Extracting chunk claims",
         claim_extractor_agent=claim_extractor_agent,
     )
-    logger.info(f"extract_claims ({state.config.session_id}): done")
-    return results
 
 
 @handle_chunk_errors("Claim extraction")

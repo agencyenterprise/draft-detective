@@ -1,17 +1,23 @@
 'use client';
 
+import { Dialog } from '@/components/ui/dialog';
 import { analysisService } from '@/lib/analysis-service';
 import { DocRenderMode } from '@/lib/constants';
 import { downloadFile, generateEvalFilename } from '@/lib/file-download';
-import { ChunkReevaluationResponse, ClaimSubstantiatorStateSummary } from '@/lib/generated-api';
+import { ClaimSubstantiatorStateSummary, RerunAnalysisRequest } from '@/lib/generated-api';
+import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../ui/card';
 import { TabNavigation } from './components';
 import { AnalysisOptionsMenu } from './components/analysis-options-menu';
+import { ReevaluationDialogContent, ReevaluationFormValues } from './components/reevaluation-dialog-content';
 import { ViewModeToggle } from './components/view-mode-toggle';
 import { TabType } from './constants';
 import { useResultsCalculations } from './hooks/use-results-calculations';
 import { FilesTab, LiteratureReviewTab, LiveReportsTab, ReferencesTab, SummaryTab } from './tabs';
 import { DocumentExplorerTab } from './tabs/document-explorer-tab';
+import { useMutation } from '@tanstack/react-query';
+import { toast } from 'sonner';
+import { analysisApi } from '@/lib/api';
 
 interface ResultsVisualizationProps {
   results: ClaimSubstantiatorStateSummary | undefined;
@@ -31,6 +37,30 @@ export function ResultsVisualization({
   onTabChange,
 }: ResultsVisualizationProps) {
   const calculations = useResultsCalculations(results);
+  const [isReevaluationDialogOpen, setIsReevaluationDialogOpen] = useState(false);
+
+  const reevaluateMutation = useMutation({
+    mutationFn: async (request: RerunAnalysisRequest) => {
+      return await analysisApi.rerunAnalysisEndpointApiRerunAnalysisPost({
+        rerunAnalysisRequest: request,
+      });
+    },
+    onSuccess: (_data, variables, context, { client }) => {
+      setIsReevaluationDialogOpen(false);
+
+      // Invalidate queries to show loading state
+      client.invalidateQueries({
+        queryKey: ['chunkDetails', variables.workflowRunId],
+      });
+      client.invalidateQueries({
+        queryKey: ['workflowRun', variables.workflowRunId],
+      });
+    },
+    onError: (error) => {
+      console.error('Re-evaluation failed:', error);
+      toast.error(error instanceof Error ? error.message : 'Re-evaluation failed');
+    },
+  });
 
   const handleSaveAsEvalTest = async () => {
     if (!results) return;
@@ -46,6 +76,18 @@ export function ResultsVisualization({
     } catch (error) {
       console.error('Failed to generate eval test package:', error);
     }
+  };
+
+  const handleReevaluate = (values: ReevaluationFormValues) => {
+    reevaluateMutation.mutate({
+      workflowRunId: results?.workflowRunId ?? '',
+      config: {
+        ...results?.config,
+        targetChunkIndices: values.targetChunkIndices,
+        agentsToRun: values.selectedAgents,
+        openaiApiKey: values.openaiApiKey,
+      },
+    });
   };
 
   if (!results) {
@@ -102,7 +144,10 @@ export function ResultsVisualization({
               isDoclingAvailable={isDoclingAvailable}
             />
           )}
-          <AnalysisOptionsMenu onSaveAsEvalTest={handleSaveAsEvalTest} />
+          <AnalysisOptionsMenu
+            onSaveAsEvalTest={handleSaveAsEvalTest}
+            onReevaluate={() => setIsReevaluationDialogOpen(true)}
+          />
         </div>
       </div>
 
@@ -111,6 +156,14 @@ export function ResultsVisualization({
           {renderActiveTab()}
         </CardContent>
       </Card>
+
+      <Dialog open={isReevaluationDialogOpen} onOpenChange={setIsReevaluationDialogOpen}>
+        <ReevaluationDialogContent
+          isPending={false}
+          onCancel={() => setIsReevaluationDialogOpen(false)}
+          onConfirm={handleReevaluate}
+        />
+      </Dialog>
     </div>
   );
 }

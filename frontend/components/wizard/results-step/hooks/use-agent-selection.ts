@@ -1,10 +1,8 @@
-'use client';
-
 import * as React from 'react';
-import { SupportedAgentsResponse } from '@/lib/analysis-service';
+import { AgentInfo } from '@/lib/generated-api';
 
 interface UseAgentSelectionProps {
-  supportedAgents: SupportedAgentsResponse | null;
+  supportedAgents: AgentInfo[] | undefined;
   supportedAgentsError: string | null;
 }
 
@@ -16,7 +14,7 @@ export function useAgentSelection({ supportedAgents, supportedAgentsError }: Use
   React.useEffect(() => {
     if (supportedAgents) {
       setSelectedAgents((selectedAgents) =>
-        !selectedAgents.size ? new Set(supportedAgents.supported_agents) : selectedAgents,
+        !selectedAgents.size ? new Set(supportedAgents.map((agent) => agent.functionName)) : selectedAgents,
       );
     }
   }, [supportedAgents]);
@@ -28,19 +26,19 @@ export function useAgentSelection({ supportedAgents, supportedAgentsError }: Use
     }
   }, [supportedAgentsError]);
 
-  const handleAgentToggle = (agentId: string, checked: boolean) => {
+  const handleAgentToggle = (agent: AgentInfo, checked: boolean) => {
     const newSelected = new Set(selectedAgents);
     if (checked) {
-      newSelected.add(agentId);
+      newSelected.add(agent.functionName);
     } else {
-      newSelected.delete(agentId);
+      newSelected.delete(agent.functionName);
     }
     setSelectedAgents(newSelected);
   };
 
   const handleSelectAll = () => {
     if (supportedAgents) {
-      setSelectedAgents(new Set(supportedAgents.supported_agents));
+      setSelectedAgents(new Set(supportedAgents.map((agent) => agent.functionName)));
     }
   };
 

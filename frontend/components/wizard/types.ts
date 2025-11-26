@@ -1,4 +1,4 @@
-import { ClaimSubstantiatorStateOutput } from '@/lib/generated-api';
+import { ClaimSubstantiatorStateSummary } from '@/lib/generated-api';
 
 export interface AnalysisConfig {
   domain: string;
@@ -14,5 +14,5 @@ export interface AnalysisConfig {
 export interface AnalysisResults {
   status: 'processing' | 'completed' | 'error';
   error?: string;
-  fullResults?: ClaimSubstantiatorStateOutput;
+  fullResults?: ClaimSubstantiatorStateSummary;
 }

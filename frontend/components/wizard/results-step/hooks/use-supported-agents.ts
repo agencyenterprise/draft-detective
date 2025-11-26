@@ -1,9 +1,9 @@
-import { SupportedAgentsResponse } from '@/lib/analysis-service';
 import { healthApi } from '@/lib/api';
+import { AgentInfo } from '@/lib/generated-api';
 import { useQuery } from '@tanstack/react-query';
 
 interface UseSupportedAgentsReturn {
-  supportedAgents: SupportedAgentsResponse | null;
+  supportedAgents: AgentInfo[] | undefined;
   supportedAgentsError: string | null;
   isLoading: boolean;
 }
