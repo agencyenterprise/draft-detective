@@ -6,13 +6,14 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { EllipsisVerticalIcon, FileTextIcon } from 'lucide-react';
+import { EllipsisVerticalIcon, FileTextIcon, RefreshCcwIcon } from 'lucide-react';
 
 export interface AnalysisOptionsMenuProps {
   onSaveAsEvalTest: () => void;
+  onReevaluate: () => void;
 }
 
-export function AnalysisOptionsMenu({ onSaveAsEvalTest }: AnalysisOptionsMenuProps) {
+export function AnalysisOptionsMenu({ onSaveAsEvalTest, onReevaluate }: AnalysisOptionsMenuProps) {
   return (
     <DropdownMenu>
       <Tooltip>
@@ -35,8 +36,19 @@ export function AnalysisOptionsMenu({ onSaveAsEvalTest }: AnalysisOptionsMenuPro
               Save as eval test
             </DropdownMenuItem>
           </TooltipTrigger>
-          <TooltipContent>
+          <TooltipContent side="left">
             <p>Generate evaluation test cases from these results for testing agents</p>
+          </TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <DropdownMenuItem className="cursor-pointer" onClick={onReevaluate}>
+              <RefreshCcwIcon />
+              Re-run analysis
+            </DropdownMenuItem>
+          </TooltipTrigger>
+          <TooltipContent side="left">
+            <p>Re-run the analysis with different agents/configuration</p>
           </TooltipContent>
         </Tooltip>
       </DropdownMenuContent>

@@ -16,16 +16,18 @@ from lib.workflows.claim_substantiation.state import (
     ClaimSubstantiatorState,
     DocumentChunk,
 )
-from lib.workflows.decorators import handle_workflow_node_errors
+from lib.workflows.decorators import register_node
 
 logger = logging.getLogger(__name__)
 
 
-@handle_workflow_node_errors()
+@register_node(
+    "Suggest citations",
+    "Suggest citations for the claims",
+)
 async def suggest_citations(
     state: ClaimSubstantiatorState, runtime: Runtime[ContextSchema]
 ) -> ClaimSubstantiatorState:
-    logger.info(f"suggest_citations ({state.config.session_id}): starting")
 
     if not state.config.run_suggest_citations:
         logger.info(
@@ -33,16 +35,7 @@ async def suggest_citations(
         )
         return {}
 
-    agents_to_run = state.config.agents_to_run
-    if agents_to_run and "suggest_citations" not in agents_to_run:
-        logger.info(
-            f"suggest_citations ({state.config.session_id}): Skipping citations suggestion (not in agents_to_run)"
-        )
-        return {}
-
     citation_suggester_agent = CitationSuggesterAgent(runtime.context)
-
-    logger.info(f"suggest_citations ({state.config.session_id}): done")
 
     return await iterate_chunks(
         state,

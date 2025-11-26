@@ -3,31 +3,25 @@ import logging
 from langgraph.runtime import Runtime
 
 from lib.run_utils import call_maybe_async
-from lib.services.nltk_text_splitter import NLTKTextSplitter
 from lib.services.chunk_to_items_mapper import create_chunk_to_items_mapping
+from lib.services.nltk_text_splitter import NLTKTextSplitter
 from lib.workflows.claim_substantiation.context import ContextSchema
 from lib.workflows.claim_substantiation.state import (
     ClaimSubstantiatorState,
     DocumentChunk,
 )
-from lib.workflows.decorators import handle_workflow_node_errors
+from lib.workflows.decorators import register_node
 
 logger = logging.getLogger(__name__)
 
 
-@handle_workflow_node_errors()
+@register_node(
+    "Split into chunks",
+    "Split the main document into chunks",
+)
 async def split_into_chunks(
     state: ClaimSubstantiatorState, runtime: Runtime[ContextSchema]
 ) -> ClaimSubstantiatorState:
-    logger.info(f"split_into_chunks ({state.config.session_id}): starting")
-
-    agents_to_run = state.config.agents_to_run
-    if agents_to_run and "citations" not in agents_to_run:
-        logger.info(
-            f"split_into_chunks ({state.config.session_id}): Skipping split_into_chunks (not in agents_to_run)"
-        )
-        return {}
-
     markdown = state.file.markdown
 
     chunker = NLTKTextSplitter(context=runtime.context)
@@ -51,8 +45,6 @@ async def split_into_chunks(
                 f"split_into_chunks ({state.config.session_id}): "
                 f"failed to create chunk-to-items mapping: {e}"
             )
-
-    logger.info(f"split_into_chunks ({state.config.session_id}): done")
 
     return {
         "chunks": [

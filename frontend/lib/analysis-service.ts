@@ -1,18 +1,16 @@
 import {
   AnalysisApi,
   ChunkEvalPackageRequest,
-  ChunkReevaluationRequest,
-  ChunkReevaluationResponse,
-  ClaimSubstantiatorStateOutput,
-  EvaluationApi,
+  ClaimSubstantiatorStateSummary,
   EvalPackageRequest,
+  EvaluationApi,
   HealthApi,
-  SubstantiationWorkflowConfig,
   StartAnalysisResponse,
   StartAnalysisResponseFromJSON,
+  SubstantiationWorkflowConfig,
 } from '@/lib/generated-api';
 import { downloadBlobResponse, generateDefaultTestName } from '@/lib/utils';
-import { analysisApi, evaluationApi, healthApi, apiUrl, getAuthHeader } from './api';
+import { analysisApi, apiUrl, evaluationApi, getAuthHeader, healthApi } from './api';
 
 interface AnalysisRequest {
   mainDocument: File;
@@ -20,10 +18,6 @@ interface AnalysisRequest {
   config?: SubstantiationWorkflowConfig;
 }
 
-export interface SupportedAgentsResponse {
-  supported_agents: string[];
-  agent_descriptions: Record<string, string>;
-}
 class AnalysisService {
   private readonly analysisApi: AnalysisApi;
   private readonly evaluationApi: EvaluationApi;
@@ -123,35 +117,8 @@ class AnalysisService {
     });
   }
 
-  async getSupportedAgents(): Promise<SupportedAgentsResponse> {
-    try {
-      return await this.healthApi.getSupportedAgentsApiSupportedAgentsGet();
-    } catch (error) {
-      console.error('Error fetching supported agents:', error);
-      throw error;
-    }
-  }
-
-  async reevaluateChunk(
-    request: ChunkReevaluationRequest & { sessionId?: string | null },
-  ): Promise<ChunkReevaluationResponse> {
-    try {
-      const requestWithSession: ChunkReevaluationRequest = {
-        ...request,
-        sessionId: request.sessionId,
-      };
-
-      return await this.analysisApi.reevaluateChunkApiReevaluateChunkPost({
-        chunkReevaluationRequest: requestWithSession,
-      });
-    } catch (error) {
-      console.error('Error re-evaluating chunk:', error);
-      throw error;
-    }
-  }
-
   async generateEvalPackage(
-    results: ClaimSubstantiatorStateOutput,
+    results: ClaimSubstantiatorStateSummary,
     testName?: string,
     description?: string,
   ): Promise<Blob> {
@@ -174,7 +141,7 @@ class AnalysisService {
   }
 
   async generateChunkEvalPackage(
-    results: ClaimSubstantiatorStateOutput,
+    results: ClaimSubstantiatorStateSummary,
     chunkIndex: number,
     selectedAgents: string[],
     testName?: string,

@@ -232,8 +232,8 @@ class ClaimSubstantiatorState(BaseModel):
         default=None,
         description="The UUID of the workflow run (populated when workflow starts)",
     )
-    references: Annotated[List[BibliographyItem], add] = []
-    references_validated: Annotated[List[BibliographyItemValidation], add] = []
+    references: List[BibliographyItem] = []
+    references_validated: List[BibliographyItemValidation] = []
     chunks: Annotated[List[DocumentChunk], conciliate_chunks] = []
     errors: Annotated[List[WorkflowError], add] = Field(
         default_factory=list,
@@ -303,33 +303,10 @@ class ClaimSubstantiatorStateSummary(BaseModel):
     chunk_to_items: Optional[ChunkToItems] = None
 
 
-class ChunkReevaluationRequest(BaseModel):
-    """Request model for re-evaluating a specific chunk"""
+class RerunAnalysisRequest(BaseModel):
+    """Request model for re-running the analysis. Can be used to re-run a specific chunk or the entire analysis."""
 
-    chunk_index: int = Field(
-        ge=0, description="Zero-based index of the chunk to re-evaluate"
-    )
-    agents_to_run: List[str] = Field(
-        description="List of agent types to run on the chunk",
-    )
-    original_state: ClaimSubstantiatorState = Field(
-        description="The original workflow state containing the document and chunks"
-    )
-    session_id: Optional[str] = Field(description="The session ID for Langfuse tracing")
-    openai_api_key: Optional[str] = Field(
-        default=None, description="OpenAI API key to use for this re-evaluation"
-    )
-
-
-class ChunkReevaluationResponse(BaseModel):
-    """Response model for chunk re-evaluation results"""
-
-    state: ClaimSubstantiatorState = Field(
-        description="The updated workflow state, with the re-evaluated chunk included"
-    )
-    agents_run: List[str] = Field(
-        description="List of agents that were successfully run on the chunk"
-    )
-    processing_time_ms: Optional[float] = Field(
-        description="Time taken to process the chunk in milliseconds", default=None
+    workflow_run_id: str = Field(description="The ID of the workflow run to re-run")
+    config: SubstantiationWorkflowConfig = Field(
+        description="Configuration for the re-run. Should include all the original configuration options, plus any overrides.",
     )

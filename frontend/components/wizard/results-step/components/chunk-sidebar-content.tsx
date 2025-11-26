@@ -32,6 +32,7 @@ export function ChunkSidebarContent({
     workflowRunId || '',
     chunkIndex,
     !!workflowRunId,
+    isWorkflowRunning,
   );
 
   const chunkErrors = results.errors?.filter((error) => error.chunkIndex === chunkIndex) ?? [];
@@ -102,9 +103,8 @@ export function ChunkSidebarContent({
           {chunkDetails && <ChunkAnalysisCard results={results} chunk={chunkDetails} />}
 
           <ChunkReevaluateControl
+            results={results}
             chunkIndex={lightweightChunk.chunkIndex}
-            originalState={results}
-            sessionId={results.config?.sessionId}
             workflowRunId={workflowRunId}
           />
 

@@ -17,10 +17,9 @@ from lib.agents.registry import agent_registry
 from lib.config.database import get_db
 from lib.models.user import User
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus
-from lib.workflows.claim_substantiation.runner import reevaluate_single_chunk
+from lib.workflows.claim_substantiation.runner import rerun_analysis
 from lib.workflows.claim_substantiation.state import (
-    ChunkReevaluationRequest,
-    ChunkReevaluationResponse,
+    RerunAnalysisRequest,
     SubstantiationWorkflowConfig,
 )
 
@@ -33,7 +32,6 @@ class StartAnalysisResponse(BaseModel):
     """Response model for starting an async analysis workflow"""
 
     workflow_run_id: str
-    session_id: str
     message: str
 
 
@@ -100,7 +98,6 @@ async def start_analysis(
 
         return StartAnalysisResponse(
             workflow_run_id=workflow_run_id,
-            session_id=config.session_id,
             message="Analysis started. You can track progress using the workflow_run_id.",
         )
 
@@ -111,9 +108,11 @@ async def start_analysis(
         )
 
 
-@router.post("/api/reevaluate-chunk", response_model=ChunkReevaluationResponse)
-async def reevaluate_chunk(
-    request: ChunkReevaluationRequest, current_user: User = Depends(get_current_user)
+@router.post("/api/rerun-analysis", response_model=StartAnalysisResponse)
+async def rerun_analysis_endpoint(
+    request: RerunAnalysisRequest,
+    background_tasks: BackgroundTasks,
+    current_user: User = Depends(get_current_user),
 ):
     """
     Re-evaluate a specific chunk with selected agents using unified LangGraph workflow.
@@ -125,37 +124,26 @@ async def reevaluate_chunk(
         Updated results for the specified chunk
     """
     try:
-        agent_registry.validate_agents(request.agents_to_run)
+        if request.config.agents_to_run:
+            agent_registry.validate_agents(request.config.agents_to_run)
 
-        import time
-
-        start_time = time.time()
-
-        config_overrides = SubstantiationWorkflowConfig(
-            session_id=request.session_id or str(uuid.uuid4()),
-            openai_api_key=request.openai_api_key,
+        background_tasks.add_task(
+            rerun_analysis,
+            workflow_run_id=request.workflow_run_id,
+            config=request.config,
+            current_user=current_user,
         )
 
-        updated_state = await reevaluate_single_chunk(
-            original_result=request.original_state,
-            chunk_index=request.chunk_index,
-            agents_to_run=request.agents_to_run,
-            config_overrides=config_overrides,
-        )
-
-        processing_time_ms = (time.time() - start_time) * 1000
-
-        return ChunkReevaluationResponse(
-            state=updated_state,
-            agents_run=request.agents_to_run,
-            processing_time_ms=processing_time_ms,
+        return StartAnalysisResponse(
+            workflow_run_id=request.workflow_run_id,
+            message="Analysis re-run started. You can track progress using the workflow_run_id.",
         )
 
     except ValueError as e:
-        logger.error(f"Invalid request for chunk re-evaluation: {str(e)}")
+        logger.error(f"Invalid request for re-running the analysis: {str(e)}")
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        logger.error(f"Error re-evaluating chunk: {str(e)}", exc_info=True)
+        logger.error(f"Error re-running the analysis: {str(e)}", exc_info=True)
         raise HTTPException(
-            status_code=500, detail=f"Error re-evaluating chunk: {str(e)}"
+            status_code=500, detail=f"Error re-running the analysis: {str(e)}"
         )

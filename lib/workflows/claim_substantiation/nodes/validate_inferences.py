@@ -14,28 +14,28 @@ from lib.workflows.claim_substantiation.state import (
     ClaimSubstantiatorState,
     DocumentChunk,
 )
-from lib.workflows.decorators import handle_chunk_errors, handle_workflow_node_errors
+from lib.workflows.decorators import handle_chunk_errors, register_node
 
 logger = logging.getLogger(__name__)
 
 
-@handle_workflow_node_errors()
+@register_node(
+    "Validate inferences",
+    "Validate the inferences for the claims",
+)
 async def validate_inferences(
     state: ClaimSubstantiatorState, runtime: Runtime[ContextSchema]
 ) -> ClaimSubstantiatorState:
     """Validate inferential claims using Toulmin model of argumentation."""
-    logger.info(f"validate_inferences ({state.config.session_id}): starting")
 
     inference_validator_agent = InferenceValidatorAgent(runtime.context)
 
-    results = await iterate_chunks(
+    return await iterate_chunks(
         state,
         _validate_chunk_inferences,
         "Validating inference claims",
         inference_validator_agent=inference_validator_agent,
     )
-    logger.info(f"validate_inferences ({state.config.session_id}): done")
-    return results
 
 
 @handle_chunk_errors("Inference validation")

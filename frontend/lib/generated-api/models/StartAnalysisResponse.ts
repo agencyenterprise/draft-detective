@@ -30,12 +30,6 @@ export interface StartAnalysisResponse {
    * @type {string}
    * @memberof StartAnalysisResponse
    */
-  sessionId: string;
-  /**
-   *
-   * @type {string}
-   * @memberof StartAnalysisResponse
-   */
   message: string;
 }
 
@@ -44,7 +38,6 @@ export interface StartAnalysisResponse {
  */
 export function instanceOfStartAnalysisResponse(value: object): value is StartAnalysisResponse {
   if (!('workflowRunId' in value) || value['workflowRunId'] === undefined) return false;
-  if (!('sessionId' in value) || value['sessionId'] === undefined) return false;
   if (!('message' in value) || value['message'] === undefined) return false;
   return true;
 }
@@ -59,7 +52,6 @@ export function StartAnalysisResponseFromJSONTyped(json: any, ignoreDiscriminato
   }
   return {
     workflowRunId: json['workflow_run_id'],
-    sessionId: json['session_id'],
     message: json['message'],
   };
 }
@@ -78,7 +70,6 @@ export function StartAnalysisResponseToJSONTyped(
 
   return {
     workflow_run_id: value['workflowRunId'],
-    session_id: value['sessionId'],
     message: value['message'],
   };
 }

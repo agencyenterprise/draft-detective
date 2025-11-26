@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { Button } from '@/components/ui/button';
-import { SupportedAgentsResponse } from '@/lib/analysis-service';
+import { AgentInfo } from '@/lib/generated-api';
 import { AgentSelector } from './agent-selector';
 import { useAgentSelection } from '../hooks/use-agent-selection';
 
@@ -13,7 +13,7 @@ interface ExpandableControlProps {
   isProcessing: boolean;
   processingText: string;
   chunkIndex: number;
-  supportedAgents: SupportedAgentsResponse | null;
+  supportedAgents: AgentInfo[] | undefined;
   supportedAgentsError: string | null;
   agentSelectorTitle: string;
   backgroundClassName?: string;
