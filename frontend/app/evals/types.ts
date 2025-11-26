@@ -68,6 +68,18 @@ export interface TestWarning {
   lineno: number;
 }
 
+export interface ModelComparisonResult {
+  passed: boolean;
+  rationale: string;
+  field_comparisons: FieldComparison[];
+  cost_usd: number;
+  duration_seconds: number;
+  total_tokens: number;
+  input_tokens: number;
+  output_tokens: number;
+  actual_output: ActualOutput;
+}
+
 export interface AgentTestCase {
   name: string;
   agent: {
@@ -80,6 +92,7 @@ export interface AgentTestCase {
   evaluation_config: EvaluationConfig;
   evaluation_result: EvaluationResult;
   session_id?: string | null;
+  model_comparison_results?: Record<string, ModelComparisonResult>;
 }
 
 export type ExpectedOutput = Record<string, string | number | boolean | undefined>;

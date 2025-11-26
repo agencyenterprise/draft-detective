@@ -1,29 +1,23 @@
 'use client';
 
-import { StartAnalysisResponse } from '@/lib/generated-api';
-import { uploadOrchestrator } from '@/lib/services/upload-orchestrator';
+import { useSessionStorage } from '@/lib/hooks/use-session-storage';
 import { useForm } from '@tanstack/react-form';
-import { useMutation } from '@tanstack/react-query';
-import { AlertCircle, Loader2, Play } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import React from 'react';
+import { Loader2, Play } from 'lucide-react';
 import { Button } from '../ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { CheckboxWithDescription } from '../ui/checkbox-with-description';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
-import { Progress } from '../ui/progress';
 import { RadioGroup, RadioGroupItemWithDescription } from '../ui/radio-group-with-description';
-import { AnalysisConfig } from '../wizard/types';
+import { AnalysisFormData, AnalysisFormValues } from './types';
 import { UploadSection } from './upload-section';
-import { useSessionStorage } from '@/lib/hooks/use-session-storage';
+import { validateAnalysisForm } from './validation';
 
-export function AnalysisForm() {
-  const router = useRouter();
-  const [mainDocument, setMainDocument] = React.useState<File | null>(null);
-  const [supportingDocuments, setSupportingDocuments] = React.useState<File[]>([]);
-  const [uploadProgress, setUploadProgress] = React.useState(0);
-  const [processingStage, setProcessingStage] = React.useState<'idle' | 'uploading' | 'complete'>('idle');
+export interface AnalysisFormProps {
+  onSubmit: (data: AnalysisFormData) => void;
+  isPending?: boolean;
+}
+
+export function AnalysisForm({ onSubmit, isPending = false }: AnalysisFormProps) {
   const [openaiApiKey, setOpenaiApiKey] = useSessionStorage<string>('openai-api-key', '');
   const hideOpenaiApiKeyInput = process.env.NEXT_PUBLIC_HIDE_CUSTOM_OPENAI_API_KEY_INPUT === 'true';
 
@@ -38,63 +32,16 @@ export function AnalysisForm() {
       runReferenceValidation: false,
       webSearchConsent: false,
       openaiApiKey: openaiApiKey,
-    },
+      mainDocument: null,
+      supportingDocuments: [],
+    } as AnalysisFormValues,
     validators: {
-      onChange: ({ value }) => {
-        if (!value.reviewType) {
-          return {
-            fields: {
-              reviewType: 'Review type is required',
-            },
-          };
-        }
-
-        if (!hideOpenaiApiKeyInput && (!value.openaiApiKey || value.openaiApiKey.trim() === '')) {
-          return {
-            fields: {
-              openaiApiKey: 'OpenAI API Key is required',
-            },
-          };
-        }
-
-        if (value.runLiteratureReview || value.reviewType === 'live-reports') {
-          if (!value.documentPublicationDate) {
-            return {
-              fields: {
-                documentPublicationDate: 'Document publication date is required',
-              },
-            };
-          }
-        }
-        if (value.runLiteratureReview || value.reviewType === 'live-reports' || value.runReferenceValidation) {
-          if (!value.webSearchConsent) {
-            return {
-              fields: {
-                webSearchConsent:
-                  'Web search consent is required when using literature review, live reports, or reference validation',
-              },
-            };
-          }
-        }
-        return undefined;
-      },
+      onChange: ({ value }) => validateAnalysisForm(value, hideOpenaiApiKeyInput),
     },
     onSubmit: ({ value }) => {
-      if (!mainDocument) {
-        return;
-      }
-
-      const allFiles = [mainDocument, ...supportingDocuments];
-      const validation = uploadOrchestrator.validateFiles(allFiles);
-
-      if (!validation.valid && validation.errors) {
-        // Show validation errors
-        return;
-      }
-
-      analysisMutation.mutate({
-        mainDocument,
-        supportingDocuments,
+      onSubmit({
+        mainDocument: value.mainDocument!,
+        supportingDocuments: value.supportingDocuments,
         config: {
           domain: value.domain,
           targetAudience: value.targetAudience,
@@ -109,147 +56,15 @@ export function AnalysisForm() {
     },
   });
 
-  const analysisMutation = useMutation<
-    StartAnalysisResponse,
-    Error,
-    {
-      mainDocument: File;
-      supportingDocuments: File[];
-      config: AnalysisConfig;
-    }
-  >({
-    mutationFn: async (data) => {
-      return uploadOrchestrator.startAnalysisWithProgress(
-        {
-          mainDocument: data.mainDocument,
-          supportingDocuments: data.supportingDocuments,
-          config: {
-            useToulmin: false,
-            runLiteratureReview: data.config.runLiteratureReview,
-            runSuggestCitations: data.config.runSuggestCitations,
-            runLiveReports: data.config.runLiveReports,
-            runReferenceValidation: data.config.runReferenceValidation,
-            domain: data.config.domain || undefined,
-            targetAudience: data.config.targetAudience || undefined,
-            documentPublicationDate: data.config.documentPublicationDate
-              ? new Date(data.config.documentPublicationDate)
-              : undefined,
-            sessionId: undefined,
-            openaiApiKey: data.config.openaiApiKey,
-          },
-        },
-        {
-          onProgress: (progress) => {
-            setUploadProgress(progress);
-          },
-          onStageChange: (stage) => {
-            setProcessingStage(stage);
-          },
-        },
-      );
-    },
-    onSuccess: (response) => {
-      router.push(`/results/${response.workflowRunId}`);
-    },
-  });
-
   const removeFile = (type: 'main' | 'supporting', index?: number) => {
     if (type === 'main') {
-      setMainDocument(null);
+      form.setFieldValue('mainDocument', null);
     } else if (typeof index === 'number') {
-      const newFiles = supportingDocuments.filter((_, i) => i !== index);
-      setSupportingDocuments(newFiles);
+      const currentFiles = form.getFieldValue('supportingDocuments');
+      const newFiles = currentFiles.filter((_: File, i: number) => i !== index);
+      form.setFieldValue('supportingDocuments', newFiles);
     }
   };
-
-  const getStageInfo = () => {
-    switch (processingStage) {
-      case 'uploading':
-        return {
-          title: 'Uploading Documents',
-          description: 'Uploading and converting your files...',
-          detail: 'This may take a moment for large PDF files',
-        };
-      case 'complete':
-        return {
-          title: 'Upload Complete',
-          description: 'Documents uploaded successfully',
-          detail: 'Redirecting to analysis...',
-        };
-      default:
-        return {
-          title: 'Preparing Upload',
-          description: 'Getting ready to upload your documents...',
-          detail: 'Please wait',
-        };
-    }
-  };
-
-  if (analysisMutation.isPending) {
-    const stageInfo = getStageInfo();
-
-    return (
-      <div className="space-y-6">
-        <div className="text-center space-y-4">
-          <Loader2 className="w-12 h-12 mx-auto animate-spin text-primary" />
-          <h2 className="text-2xl font-bold">{stageInfo.title}</h2>
-          <p className="text-muted-foreground max-w-md mx-auto">{stageInfo.description}</p>
-        </div>
-        <Card className="max-w-xl mx-auto">
-          <CardContent className="py-8">
-            <div className="space-y-4">
-              <Progress value={uploadProgress} className="w-full" />
-              <p className="text-sm text-center text-muted-foreground">{stageInfo.detail}</p>
-
-              {processingStage === 'uploading' && uploadProgress > 0 && (
-                <div className="text-center">
-                  <p className="text-2xl font-semibold text-primary">{Math.round(uploadProgress)}%</p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Uploading {mainDocument?.name}
-                    {supportingDocuments.length > 0 &&
-                      ` and ${supportingDocuments.length} supporting file${supportingDocuments.length > 1 ? 's' : ''}`}
-                  </p>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  if (analysisMutation.isError) {
-    return (
-      <Card className="max-w-4xl mx-auto border-destructive">
-        <CardHeader>
-          <CardTitle className="text-destructive flex items-center gap-2">
-            <AlertCircle className="h-5 w-5" />
-            Analysis Failed
-          </CardTitle>
-          <CardDescription>There was an error processing your files</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-md">
-            <p className="text-sm text-destructive whitespace-pre-line">
-              {analysisMutation.error?.message || 'Failed to start analysis'}
-            </p>
-          </div>
-
-          <Button
-            onClick={() => {
-              analysisMutation.reset();
-              setUploadProgress(0);
-              setProcessingStage('idle');
-            }}
-            variant="outline"
-            className="w-full"
-          >
-            Try Again
-          </Button>
-        </CardContent>
-      </Card>
-    );
-  }
 
   return (
     <form
@@ -272,7 +87,7 @@ export function AnalysisForm() {
             <RadioGroup
               value={field.state.value}
               onValueChange={(value) => field.handleChange(value)}
-              disabled={analysisMutation.isPending}
+              disabled={isPending}
               required={true}
               className="grid grid-cols-2 gap-3"
             >
@@ -282,7 +97,7 @@ export function AnalysisForm() {
                   value={field.state.value}
                   label="Peer Review"
                   description="Peer review analysis focusing on claim substantiation, evidence quality, and citation completeness."
-                  disabled={analysisMutation.isPending}
+                  disabled={isPending}
                 />
                 {field.state.value === 'peer-review' && (
                   <>
@@ -294,7 +109,7 @@ export function AnalysisForm() {
                           onCheckedChange={(checked) => field.handleChange(checked === true)}
                           label="Reference validation (Optional)"
                           description="Validates references by checking their online presence and verifying author, title, publisher, and year information using web search."
-                          disabled={analysisMutation.isPending}
+                          disabled={isPending}
                         />
                       )}
                     </form.Field>
@@ -306,7 +121,7 @@ export function AnalysisForm() {
                           onCheckedChange={(checked) => field.handleChange(checked === true)}
                           label="Literature review (Optional)"
                           description="Finds and recommends the most relevant, high-quality references (from published literature up to the document's publication date) that should be cited, using advanced web research and analysis of the document's content and bibliography."
-                          disabled={analysisMutation.isPending}
+                          disabled={isPending}
                         />
                       )}
                     </form.Field>
@@ -318,7 +133,7 @@ export function AnalysisForm() {
                           onCheckedChange={(checked) => field.handleChange(checked === true)}
                           label="Suggest citations (Optional)"
                           description="Examines every claim in the document and recommends relevant citations, prioritizing supporting documents first and then incorporating literature review findings when available."
-                          disabled={analysisMutation.isPending}
+                          disabled={isPending}
                         />
                       )}
                     </form.Field>
@@ -338,7 +153,7 @@ export function AnalysisForm() {
                                   value={field.state.value}
                                   onChange={(e) => field.handleChange(e.target.value)}
                                   className={field.state.meta.errors.length > 0 ? 'border-destructive' : ''}
-                                  disabled={analysisMutation.isPending}
+                                  disabled={isPending}
                                   required={true}
                                 />
                                 {!field.state.meta.isValid && (
@@ -359,7 +174,7 @@ export function AnalysisForm() {
                   value={field.state.value}
                   label="Live Reports"
                   description="Analyze whether claims remain accurate given newer literature published after the document's publication date."
-                  disabled={analysisMutation.isPending}
+                  disabled={isPending}
                 />
                 {field.state.value === 'live-reports' && (
                   <>
@@ -376,7 +191,7 @@ export function AnalysisForm() {
                             value={field.state.value}
                             onChange={(e) => field.handleChange(e.target.value)}
                             className={field.state.meta.errors.length > 0 ? 'border-destructive' : ''}
-                            disabled={analysisMutation.isPending}
+                            disabled={isPending}
                             required={true}
                           />
                           {!field.state.meta.isValid && (
@@ -430,27 +245,45 @@ export function AnalysisForm() {
 
       <div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <UploadSection
-            title="Main Document"
-            description="Primary document for analysis"
-            required={true}
-            onFilesChange={(files) => setMainDocument(files[0] || null)}
-            multiple={false}
-            files={mainDocument ? [mainDocument] : []}
-            fileType="main"
-            onRemoveFile={() => removeFile('main')}
-          />
+          <form.Field name="mainDocument">
+            {(field) => (
+              <div className="space-y-2">
+                <UploadSection
+                  title="Main Document"
+                  description="Primary document for analysis"
+                  required={true}
+                  onFilesChange={(files) => field.handleChange(files[0] || null)}
+                  multiple={false}
+                  files={field.state.value ? [field.state.value] : []}
+                  fileType="main"
+                  onRemoveFile={() => removeFile('main')}
+                />
+                {!field.state.meta.isValid && field.state.meta.errors.length > 0 && (
+                  <p className="text-sm text-destructive">{field.state.meta.errors.join(', ')}</p>
+                )}
+              </div>
+            )}
+          </form.Field>
 
-          <UploadSection
-            title="Supporting Documents"
-            description="Documents used as references for the main document"
-            required={false}
-            onFilesChange={setSupportingDocuments}
-            multiple={true}
-            files={supportingDocuments}
-            fileType="supporting"
-            onRemoveFile={(index) => removeFile('supporting', index)}
-          />
+          <form.Field name="supportingDocuments">
+            {(field) => (
+              <div className="space-y-2">
+                <UploadSection
+                  title="Supporting Documents"
+                  description="Documents used as references for the main document"
+                  required={false}
+                  onFilesChange={(files) => field.handleChange(files)}
+                  multiple={true}
+                  files={field.state.value}
+                  fileType="supporting"
+                  onRemoveFile={(index) => removeFile('supporting', index)}
+                />
+                {!field.state.meta.isValid && field.state.meta.errors.length > 0 && (
+                  <p className="text-sm text-destructive">{field.state.meta.errors.join(', ')}</p>
+                )}
+              </div>
+            )}
+          </form.Field>
         </div>
       </div>
 
@@ -479,7 +312,7 @@ export function AnalysisForm() {
                   value={field.state.value}
                   onChange={(e) => field.handleChange(e.target.value)}
                   className={field.state.meta.errors.length > 0 ? 'border-destructive' : ''}
-                  disabled={analysisMutation.isPending}
+                  disabled={isPending}
                   required={true}
                 />
                 <p className="text-sm text-muted-foreground">
@@ -513,7 +346,7 @@ export function AnalysisForm() {
                   placeholder="e.g., Healthcare, Technology, Finance..."
                   value={field.state.value}
                   onChange={(e) => field.handleChange(e.target.value)}
-                  disabled={analysisMutation.isPending}
+                  disabled={isPending}
                 />
                 <p className="text-sm text-muted-foreground">
                   The subject area or field of expertise to contextualize the analysis. This helps tailor the evaluation
@@ -533,7 +366,7 @@ export function AnalysisForm() {
                   placeholder="e.g., General public, Experts, Students..."
                   value={field.state.value}
                   onChange={(e) => field.handleChange(e.target.value)}
-                  disabled={analysisMutation.isPending}
+                  disabled={isPending}
                 />
                 <p className="text-sm text-muted-foreground">
                   The intended readers of the document. Specifying the audience helps adjust the analysis to match
@@ -548,13 +381,8 @@ export function AnalysisForm() {
       <div className="flex justify-center">
         <form.Subscribe selector={(state) => [state.canSubmit, state.isSubmitting]}>
           {([canSubmit]) => (
-            <Button
-              type="submit"
-              disabled={!mainDocument || !canSubmit || analysisMutation.isPending}
-              size="lg"
-              className="min-w-48 gap-2 font-semibold"
-            >
-              {analysisMutation.isPending ? (
+            <Button type="submit" disabled={!canSubmit || isPending} size="lg" className="min-w-48 gap-2 font-semibold">
+              {isPending ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
                   Processing...

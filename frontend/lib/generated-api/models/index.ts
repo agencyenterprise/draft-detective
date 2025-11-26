@@ -31,6 +31,7 @@ export * from './Claims';
 export * from './ConfidenceInRecommendation';
 export * from './DoclingPageInfo';
 export * from './DoclingRegion';
+export * from './DocumentChunk';
 export * from './DocumentChunkInput';
 export * from './DocumentChunkOutput';
 export * from './DocumentChunkSummary';

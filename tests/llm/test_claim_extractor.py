@@ -80,9 +80,13 @@ def _build_cases() -> list[AgentTestCase]:
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("case", _build_cases(), ids=lambda case: case.name)
-async def test_claim_extractor_agent_cases(case: AgentTestCase):
-    # Generate summary lazily if needed
-    # count number of characters in the main_doc_markdown
+async def test_claim_extractor_agent_cases(case: AgentTestCase, test_models):
+    """Test claim extractor agent with unified model comparison.
+
+    Args:
+        case: Test case configuration
+        test_models: List of models to test (from fixture, None for default)
+    """
     main_doc_markdown = case.prompt_kwargs.get("_main_doc_markdown")
 
     # Handle None case
@@ -114,7 +118,6 @@ async def test_claim_extractor_agent_cases(case: AgentTestCase):
             SUMMARIZED_ARGUMENT_CACHE[file_path] = summarized_argument
             case.prompt_kwargs["summarized_argument"] = summarized_argument
 
-    await case.run()
-    eval_result = await case.compare_results()
-
-    assert eval_result.passed, f"{case.name}: {eval_result.rationale}"
+    await case.run(models=test_models)
+    result = await case.compare_results()
+    assert result.passed, f"{case.name}: {result.rationale}"

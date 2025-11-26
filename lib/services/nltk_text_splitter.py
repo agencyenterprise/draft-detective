@@ -5,8 +5,10 @@ from typing import List, Optional
 from langchain_core.documents import Document
 from langchain_text_splitters.base import TextSplitter
 
-from lib.agents.document_chunker import DocumentChunkerAgent
-from lib.agents.document_chunker_nltk import get_chunker_result_as_langchain_documents
+from lib.agents.document_chunker_nltk import (
+    DocumentChunkerAgent,
+    get_chunker_result_as_langchain_documents,
+)
 from lib.agents.models import ValidatedDocument
 from lib.workflows.claim_substantiation.context import ContextSchema
 

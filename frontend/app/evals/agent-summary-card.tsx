@@ -7,7 +7,8 @@ import { useState } from 'react';
 import { percentageFormatter } from './formatters';
 import { GroupedTestCaseItem } from './grouped-test-case-item';
 import { TestCase } from './types';
-import { aggregateFieldInsights, calculateConsistency, formatDuration } from './util';
+import { aggregateFieldInsights, calculateConsistency, filterValidTestCases, formatDuration } from './util';
+import { ModelComparisonSummary } from './model-comparison-summary';
 
 interface AgentSummary {
   agentName: string;
@@ -103,9 +104,12 @@ export function AgentSummaryCard({ summary, showOnlyFailed = false }: AgentSumma
           </div>
         </div>
 
+        {/* Model Comparison Summary */}
+        {isExpanded && <ModelComparisonSummary testCases={summary.testCases} />}
+
         {/* Field Performance Insights */}
         {isExpanded && problematicFields.length > 0 && (
-          <div className="pb-4 border-b">
+          <div className="pb-4 pt-4 border-b">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <AlertCircle className="h-4 w-4 text-orange-500" />
@@ -155,15 +159,6 @@ export function AgentSummaryCard({ summary, showOnlyFailed = false }: AgentSumma
         {isExpanded && (
           <div className="space-y-2 border-t pt-4">
             <h4 className="font-medium text-sm text-muted-foreground">Test Cases</h4>
-            {/* {summary.testCases
-              .filter((testCase) => !showOnlyFailed || testCase.outcome === 'failed')
-              .map((testCase, index) => (
-                <TestCaseItem
-                  key={index}
-                  testCase={testCase}
-                  consistencyProbability={summary.consistencyProbabilityByTestCase[testCase.agent_test_case.name]}
-                />
-              ))} */}
 
             {sortedGroupedTestCases
               .filter(([, testCases]) => !showOnlyFailed || testCases.some((testCase) => testCase.outcome === 'failed'))
@@ -179,7 +174,9 @@ export function AgentSummaryCard({ summary, showOnlyFailed = false }: AgentSumma
 
 export function groupTestCasesByName(testCases: TestCase[]): Map<string, TestCase[]> {
   const groupedTestCases = new Map<string, TestCase[]>();
-  testCases.forEach((testCase) => {
+  const validTestCases = filterValidTestCases(testCases);
+
+  validTestCases.forEach((testCase) => {
     const name = testCase.agent_test_case.name;
     if (!groupedTestCases.has(name)) {
       groupedTestCases.set(name, []);
@@ -193,13 +190,9 @@ export function groupTestCasesByName(testCases: TestCase[]): Map<string, TestCas
 export function groupTestCasesByAgent(testCases: TestCase[]): AgentSummary[] {
   const agentGroups = new Map<string, TestCase[]>();
 
-  // Group test cases by agent name
-  testCases.forEach((testCase) => {
-    // Skip test cases that don't have the expected agent structure
-    if (!testCase.agent_test_case?.agent?.name) {
-      return;
-    }
+  const validTestCases = testCases.filter((tc) => tc.agent_test_case?.agent?.name);
 
+  validTestCases.forEach((testCase) => {
     const agentName = testCase.agent_test_case.agent.name;
     if (!agentGroups.has(agentName)) {
       agentGroups.set(agentName, []);
