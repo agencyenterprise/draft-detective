@@ -59,7 +59,6 @@ def _build_cases():
         # Build prompt kwargs - note: inference validator needs claim_index and chunk_index
         # For these tests we'll use dummy indices since we're testing the agent in isolation
         prompt_kwargs = {
-            "full_document": main_doc.markdown,
             "paragraph": paragraph,
             "chunk": chunk,
             "claim": claim,
