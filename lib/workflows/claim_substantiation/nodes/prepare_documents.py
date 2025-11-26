@@ -25,11 +25,15 @@ async def prepare_documents(
 
     document_summarizer_agent = DocumentSummarizerAgent(runtime.context)
 
-    response = await document_summarizer_agent.ainvoke(
-        {
-            "document": state.file.markdown,
-        }
-    )
+    # only summarize document if it exceeds 7500 characters
+    if len(state.file.markdown) > 7500:
+        response = await document_summarizer_agent.ainvoke(
+            {
+                "document": state.file.markdown,
+            }
+        )
+    else:
+        response = {"summary": state.file.markdown}
 
     logger.info(f"prepare_documents ({state.config.session_id}): done")
 

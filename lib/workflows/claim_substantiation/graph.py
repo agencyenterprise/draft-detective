@@ -83,16 +83,6 @@ def build_claim_substantiator_graph(
     )
     graph.add_node("detect_citations", detect_citations)
     graph.add_node("extract_references", extract_references)
-    graph.add_node("categorize_claims", categorize_claims)
-    graph.add_node("validate_inferences", validate_inferences)
-
-    # Conditional verify node based on RAG setting
-    if use_rag:
-        graph.add_node("index_supporting_documents", index_supporting_documents)
-        verify_node = verify_claims_with_rag
-    else:
-        verify_node = verify_claims
-    graph.add_node("verify_claims", verify_node, defer=True)
 
     # Optional nodes
     if run_reference_validation:
@@ -126,11 +116,23 @@ def build_claim_substantiator_graph(
 
     # Peer review edges
     else:
-        # RAG indexing edge
+        # add categorization and inference validation nodes
+        graph.add_node("categorize_claims", categorize_claims)
+        graph.add_node("validate_inferences", validate_inferences)
+
+        # Conditional verify node based on RAG setting
         if use_rag:
+            # add RAG indexing node
+            graph.add_node("index_supporting_documents", index_supporting_documents)
+            graph.add_node("verify_claims", verify_claims_with_rag, defer=True)
+
             graph.add_edge("prepare_documents", "index_supporting_documents")
             graph.add_edge("index_supporting_documents", "verify_claims")
 
+        else:
+            graph.add_node("verify_claims", verify_claims, defer=True)
+
+        # verify claims edges
         graph.add_edge("extract_claims", "categorize_claims")
         graph.add_edge("categorize_claims", "verify_claims")
         graph.add_edge("detect_citations", "verify_claims")
@@ -173,7 +175,7 @@ if __name__ == "__main__":
     # Paste it into https://mermaid.live/ to see the graph
 
     workflow_graph = build_claim_substantiator_graph(
-        run_literature_review=True, run_suggest_citations=True, run_live_reports=True
+        run_literature_review=False, run_suggest_citations=False, run_live_reports=True
     )
     app = workflow_graph.compile()
     print(app.get_graph().draw_mermaid())

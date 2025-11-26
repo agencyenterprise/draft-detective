@@ -1,3 +1,4 @@
+# %%
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables.config import RunnableConfig
 from pydantic import BaseModel, Field
@@ -117,6 +118,7 @@ if __name__ == "__main__":
 
     # Set the file path here, or pass it as a command line argument
     FILE_PATH = "tests/data/RAND_RRA3307-1.pdf"  # e.g., "tests/data/sample_document.md"
+    FILE_PATH = "tests/data/case_1/main_document.md"
 
     async def test_document_summarizer(file_path: str):
         """Test the document summarizer agent with a given file."""
