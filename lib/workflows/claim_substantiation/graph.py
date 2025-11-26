@@ -167,6 +167,8 @@ def build_claim_substantiator_graph(
             graph.add_edge("summarize_supporting_documents", "suggest_citations")
             if run_literature_review:
                 graph.add_edge("literature_review", "suggest_citations")
+            if run_align_methods:  # ADD THIS
+                graph.add_edge("align_methodology", "suggest_citations")  # ADD THIS
             graph.set_finish_point("suggest_citations")
 
         else:
@@ -175,6 +177,8 @@ def build_claim_substantiator_graph(
             graph.add_node("finalize", finalize)
             graph.add_edge("verify_claims", "finalize")
             graph.add_edge("validate_inferences", "finalize")
+            if run_align_methods:  # ADD THIS
+                graph.add_edge("align_methodology", "finalize")  # ADD THIS
             graph.set_finish_point("finalize")
 
     return graph
