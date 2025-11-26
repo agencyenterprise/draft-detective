@@ -1,5 +1,5 @@
 import { Markdown } from '@/components/markdown';
-import type { ClaimSubstantiatorStateOutput, DocumentChunkOutput } from '@/lib/generated-api';
+import type { ClaimSubstantiatorStateSummary, DocumentChunkOutput } from '@/lib/generated-api';
 import { getMaxChunkSeverity } from '@/lib/severity';
 import { cn } from '@/lib/utils';
 import { useVirtualizer } from '@tanstack/react-virtual';
@@ -8,7 +8,7 @@ import rehypeRaw from 'rehype-raw';
 import { detectBlockSyntax, extractChunkContent } from '../document-reconstruction-utils';
 
 interface DocumentReconstructorProps {
-  results: ClaimSubstantiatorStateOutput;
+  results: ClaimSubstantiatorStateSummary;
   selectedChunkIndex: number | null;
   onChunkSelect: (chunkIndex: number | null) => void;
 }
@@ -121,7 +121,7 @@ export function DocumentReconstructorChunkGroup({
   onChunkSelect,
 }: {
   chunks: DocumentChunkOutput[];
-  results: ClaimSubstantiatorStateOutput;
+  results: ClaimSubstantiatorStateSummary;
   selectedChunkIndex: number | null;
   onChunkSelect: (chunkIndex: number | null) => void;
 }) {

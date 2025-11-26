@@ -4,51 +4,15 @@ import logging
 from functools import wraps
 from typing import Callable, TypeVar
 
+from lib.agents.registry import agent_registry
 from lib.workflows.claim_substantiation.state import (
     ClaimSubstantiatorState,
     DocumentChunk,
 )
 from lib.workflows.models import WorkflowError
 
-logger = logging.getLogger(__name__)
-
 # Type variable for decorator return types
 T = TypeVar("T")
-
-
-def requires_agent(agent_type: str):
-    """
-    Decorator to skip workflow node if agent not in agents_to_run configuration.
-
-    Args:
-        agent_type: The agent type string to check (e.g., "claims", "citations")
-
-    Returns:
-        Decorator that wraps async workflow node functions
-
-    Example:
-        @requires_agent("claims")
-        async def extract_claims(state: ClaimSubstantiatorState) -> ClaimSubstantiatorState:
-            ...
-    """
-
-    def decorator(
-        func: Callable[[ClaimSubstantiatorState, ...], T],
-    ) -> Callable[[ClaimSubstantiatorState, ...], T]:
-        @wraps(func)
-        async def wrapper(state: ClaimSubstantiatorState, *args, **kwargs) -> T:
-            agents_to_run = state.config.agents_to_run
-            if agents_to_run and agent_type not in agents_to_run:
-                logger.info(
-                    f"{func.__name__} ({state.config.session_id}): "
-                    f"Skipping (agent '{agent_type}' not in agents_to_run)"
-                )
-                return {}  # type: ignore
-            return await func(state, *args, **kwargs)
-
-        return wrapper
-
-    return decorator
 
 
 def handle_chunk_errors(operation_name: str):
@@ -95,32 +59,56 @@ def handle_chunk_errors(operation_name: str):
     return decorator
 
 
-def handle_workflow_node_errors():
+def register_node(name: str, description: str):
     """
-    Decorator for consistent workflow node error handling.
+    Decorator to register and control the execution of a workflow node with the workflow registry.
 
-    Catches exceptions during workflow node execution, logs them with context,
-    and update the state with a WorkflowError object.
+    - Registers the node with the agent registry.
+    - Skips the node if it is not in the agents_to_run configuration, during execution
+    - Logs the start and end of the node, during execution
+    - Handles errors and updates the state with a WorkflowError object, during execution
+
+    Args:
+        name: A human-readable name of the node.
+        description: A human-readable description of the node.
     """
 
     def decorator(
         func: Callable[[ClaimSubstantiatorState, ...], ClaimSubstantiatorState],
     ) -> Callable[[ClaimSubstantiatorState, ...], ClaimSubstantiatorState]:
+
+        func_logger = logging.getLogger(func.__module__)
+        agent_registry.register(func.__name__, name, description)
+
         @wraps(func)
         async def wrapper(
             state: ClaimSubstantiatorState, *args, **kwargs
         ) -> ClaimSubstantiatorState:
+
+            func_logger.info(f"{func.__name__} ({state.config.session_id}): starting")
+
+            agents_to_run = state.config.agents_to_run
+            if agents_to_run and func.__name__ not in agents_to_run:
+                func_logger.info(
+                    f"{func.__name__} ({state.config.session_id}): Skipping (not in agents_to_run)"
+                )
+                return {}
+
             try:
-                return await func(state, *args, **kwargs)
+                result = await func(state, *args, **kwargs)
+
             except Exception as e:
-                func_logger = logging.getLogger(func.__module__)
                 func_logger.error(
-                    f"{func.__name__} workflow node execution failed with error: {str(e)}",
+                    f"{func.__name__} ({state.config.session_id}): workflow node execution failed with error: {str(e)}",
                     exc_info=True,
                 )
                 return {
                     "errors": [WorkflowError(task_name=func.__name__, error=str(e))]
                 }
+
+            func_logger.info(f"{func.__name__} ({state.config.session_id}): done")
+
+            return result
 
         return wrapper
 

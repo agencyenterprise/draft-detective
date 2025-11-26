@@ -12,30 +12,28 @@ from lib.workflows.claim_substantiation.state import (
 )
 from lib.workflows.decorators import (
     handle_chunk_errors,
-    handle_workflow_node_errors,
-    requires_agent,
+    register_node,
 )
 
 logger = logging.getLogger(__name__)
 
 
-@requires_agent("citations")
-@handle_workflow_node_errors()
+@register_node(
+    "Detect citations",
+    "Detect citations in the document",
+)
 async def detect_citations(
     state: ClaimSubstantiatorState, runtime: Runtime[ContextSchema]
 ) -> ClaimSubstantiatorState:
-    logger.info(f"detect_citations ({state.config.session_id}): starting")
 
     citation_detector_agent = CitationDetectorAgent(runtime.context)
 
-    results = await iterate_chunks(
+    return await iterate_chunks(
         state,
         _detect_chunk_citations,
         "Detecting chunk citations",
         citation_detector_agent=citation_detector_agent,
     )
-    logger.info(f"detect_citations ({state.config.session_id}): done")
-    return results
 
 
 @handle_chunk_errors("Citation detection")

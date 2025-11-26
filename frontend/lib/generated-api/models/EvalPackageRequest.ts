@@ -13,13 +13,13 @@
  */
 
 import { mapValues } from '../runtime';
-import type { ClaimSubstantiatorStateInput } from './ClaimSubstantiatorStateInput';
+import type { ClaimSubstantiatorState } from './ClaimSubstantiatorState';
 import {
-  ClaimSubstantiatorStateInputFromJSON,
-  ClaimSubstantiatorStateInputFromJSONTyped,
-  ClaimSubstantiatorStateInputToJSON,
-  ClaimSubstantiatorStateInputToJSONTyped,
-} from './ClaimSubstantiatorStateInput';
+  ClaimSubstantiatorStateFromJSON,
+  ClaimSubstantiatorStateFromJSONTyped,
+  ClaimSubstantiatorStateToJSON,
+  ClaimSubstantiatorStateToJSONTyped,
+} from './ClaimSubstantiatorState';
 
 /**
  *
@@ -29,10 +29,10 @@ import {
 export interface EvalPackageRequest {
   /**
    *
-   * @type {ClaimSubstantiatorStateInput}
+   * @type {ClaimSubstantiatorState}
    * @memberof EvalPackageRequest
    */
-  results: ClaimSubstantiatorStateInput;
+  results: ClaimSubstantiatorState;
   /**
    *
    * @type {string}
@@ -64,7 +64,7 @@ export function EvalPackageRequestFromJSONTyped(json: any, ignoreDiscriminator: 
     return json;
   }
   return {
-    results: ClaimSubstantiatorStateInputFromJSON(json['results']),
+    results: ClaimSubstantiatorStateFromJSON(json['results']),
     testName: json['test_name'] == null ? undefined : json['test_name'],
     description: json['description'] == null ? undefined : json['description'],
   };
@@ -83,7 +83,7 @@ export function EvalPackageRequestToJSONTyped(
   }
 
   return {
-    results: ClaimSubstantiatorStateInputToJSON(value['results']),
+    results: ClaimSubstantiatorStateToJSON(value['results']),
     test_name: value['testName'],
     description: value['description'],
   };

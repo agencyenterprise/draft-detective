@@ -14,27 +14,21 @@ from lib.workflows.claim_substantiation.state import (
     DocumentChunk,
     SubstantiationWorkflowConfig,
 )
-from lib.workflows.decorators import handle_workflow_node_errors
+from lib.workflows.decorators import register_node
 
 logger = logging.getLogger(__name__)
 
 
-@handle_workflow_node_errors()
+@register_node(
+    "Live Reports: generate analysis",
+    "Generate a live reports analysis from the document and by searching the web",
+)
 async def generate_live_reports_analysis(
     state: ClaimSubstantiatorState, runtime: Runtime[ContextSchema]
 ) -> ClaimSubstantiatorState:
-    logger.info(f"generate_live_reports_analysis ({state.config.session_id}): starting")
-
     if not state.config.run_live_reports:
         logger.info(
             f"live_reports_analysis ({state.config.session_id}): skipping live reports (run_live_reports is False)"
-        )
-        return {}
-
-    agents_to_run = state.config.agents_to_run
-    if agents_to_run and "live_reports" not in agents_to_run:
-        logger.info(
-            f"live_reports_analysis ({state.config.session_id}): Skipping live reports (not in agents_to_run)"
         )
         return {}
 
@@ -46,8 +40,6 @@ async def generate_live_reports_analysis(
 
     live_literature_review_agent = LiveLiteratureReviewAgent(runtime.context)
     evidence_weighter_agent = EvidenceWeighterAgent(runtime.context)
-
-    logger.info(f"live_reports_analysis ({state.config.session_id}): done")
 
     return await iterate_chunks(
         state,

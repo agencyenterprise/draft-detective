@@ -29,13 +29,13 @@ export interface ReportMetadata {
    */
   updateType: UpdateType;
   /**
-   * Newspaper-style title summarizing the changes (or lack of changes) suggested by the report
+   * A short newspaper-style headline summarizing the addendum.
    * @type {string}
    * @memberof ReportMetadata
    */
   title: string;
   /**
-   * A single sentence summary of what the authors should update in the report
+   * A high-level explanation of why the update is required and what the authors should update in the report. Maximum of 200 words.
    * @type {string}
    * @memberof ReportMetadata
    */

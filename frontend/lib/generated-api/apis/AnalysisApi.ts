@@ -13,25 +13,18 @@
  */
 
 import * as runtime from '../runtime';
-import type {
-  ChunkReevaluationRequest,
-  ChunkReevaluationResponse,
-  HTTPValidationError,
-  StartAnalysisResponse,
-} from '../models/index';
+import type { HTTPValidationError, RerunAnalysisRequest, StartAnalysisResponse } from '../models/index';
 import {
-  ChunkReevaluationRequestFromJSON,
-  ChunkReevaluationRequestToJSON,
-  ChunkReevaluationResponseFromJSON,
-  ChunkReevaluationResponseToJSON,
   HTTPValidationErrorFromJSON,
   HTTPValidationErrorToJSON,
+  RerunAnalysisRequestFromJSON,
+  RerunAnalysisRequestToJSON,
   StartAnalysisResponseFromJSON,
   StartAnalysisResponseToJSON,
 } from '../models/index';
 
-export interface ReevaluateChunkApiReevaluateChunkPostRequest {
-  chunkReevaluationRequest: ChunkReevaluationRequest;
+export interface RerunAnalysisEndpointApiRerunAnalysisPostRequest {
+  rerunAnalysisRequest: RerunAnalysisRequest;
 }
 
 export interface StartAnalysisApiStartAnalysisPostRequest {
@@ -58,16 +51,16 @@ export interface StartAnalysisApiStartAnalysisPostRequest {
 export class AnalysisApi extends runtime.BaseAPI {
   /**
    * Re-evaluate a specific chunk with selected agents using unified LangGraph workflow.  Args:     request: Contains chunk index, agents to run, and original state  Returns:     Updated results for the specified chunk
-   * Reevaluate Chunk
+   * Rerun Analysis Endpoint
    */
-  async reevaluateChunkApiReevaluateChunkPostRaw(
-    requestParameters: ReevaluateChunkApiReevaluateChunkPostRequest,
+  async rerunAnalysisEndpointApiRerunAnalysisPostRaw(
+    requestParameters: RerunAnalysisEndpointApiRerunAnalysisPostRequest,
     initOverrides?: RequestInit | runtime.InitOverrideFunction,
-  ): Promise<runtime.ApiResponse<ChunkReevaluationResponse>> {
-    if (requestParameters['chunkReevaluationRequest'] == null) {
+  ): Promise<runtime.ApiResponse<StartAnalysisResponse>> {
+    if (requestParameters['rerunAnalysisRequest'] == null) {
       throw new runtime.RequiredError(
-        'chunkReevaluationRequest',
-        'Required parameter "chunkReevaluationRequest" was null or undefined when calling reevaluateChunkApiReevaluateChunkPost().',
+        'rerunAnalysisRequest',
+        'Required parameter "rerunAnalysisRequest" was null or undefined when calling rerunAnalysisEndpointApiRerunAnalysisPost().',
       );
     }
 
@@ -86,7 +79,7 @@ export class AnalysisApi extends runtime.BaseAPI {
       }
     }
 
-    let urlPath = `/api/reevaluate-chunk`;
+    let urlPath = `/api/rerun-analysis`;
 
     const response = await this.request(
       {
@@ -94,23 +87,23 @@ export class AnalysisApi extends runtime.BaseAPI {
         method: 'POST',
         headers: headerParameters,
         query: queryParameters,
-        body: ChunkReevaluationRequestToJSON(requestParameters['chunkReevaluationRequest']),
+        body: RerunAnalysisRequestToJSON(requestParameters['rerunAnalysisRequest']),
       },
       initOverrides,
     );
 
-    return new runtime.JSONApiResponse(response, (jsonValue) => ChunkReevaluationResponseFromJSON(jsonValue));
+    return new runtime.JSONApiResponse(response, (jsonValue) => StartAnalysisResponseFromJSON(jsonValue));
   }
 
   /**
    * Re-evaluate a specific chunk with selected agents using unified LangGraph workflow.  Args:     request: Contains chunk index, agents to run, and original state  Returns:     Updated results for the specified chunk
-   * Reevaluate Chunk
+   * Rerun Analysis Endpoint
    */
-  async reevaluateChunkApiReevaluateChunkPost(
-    requestParameters: ReevaluateChunkApiReevaluateChunkPostRequest,
+  async rerunAnalysisEndpointApiRerunAnalysisPost(
+    requestParameters: RerunAnalysisEndpointApiRerunAnalysisPostRequest,
     initOverrides?: RequestInit | runtime.InitOverrideFunction,
-  ): Promise<ChunkReevaluationResponse> {
-    const response = await this.reevaluateChunkApiReevaluateChunkPostRaw(requestParameters, initOverrides);
+  ): Promise<StartAnalysisResponse> {
+    const response = await this.rerunAnalysisEndpointApiRerunAnalysisPostRaw(requestParameters, initOverrides);
     return await response.value();
   }
 
