@@ -6,12 +6,15 @@ from lib.agents.methodology_comparator import MethodologyComparisonAgent
 from lib.agents.methodology_extractor import MethodologyExtractorAgent
 from lib.workflows.claim_substantiation.context import ContextSchema
 from lib.workflows.claim_substantiation.state import ClaimSubstantiatorState
-from lib.workflows.decorators import handle_workflow_node_errors
+from lib.workflows.decorators import register_node
 
 logger = logging.getLogger(__name__)
 
 
-@handle_workflow_node_errors()
+@register_node(
+    "Align methodology",
+    "Compare the document's methodology to typical methods used in the broader field using web search",
+)
 async def align_methodology(
     state: ClaimSubstantiatorState, runtime: Runtime[ContextSchema]
 ) -> ClaimSubstantiatorState:
