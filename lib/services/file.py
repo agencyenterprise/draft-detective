@@ -20,6 +20,10 @@ class FileDocument(BaseModel):
     file_path: str = Field(
         description="The path to the uploaded file, as saved in the file system"
     )
+    original_file_path: Optional[str] = Field(
+        default=None,
+        description="Path to the original file if it was converted (e.g., original .docx before PDF conversion)",
+    )
     file_type: str = Field(description="The MIME type of the uploaded file")
     markdown: str = Field(description="The uploaded file content converted to markdown")
     markdown_token_count: int = Field(
@@ -52,7 +56,10 @@ class FileDocument(BaseModel):
 
 
 async def create_file_document_from_path(
-    file_path: str, original_file_name: str = None, markdown_convert: bool = True
+    file_path: str,
+    original_file_name: str = None,
+    markdown_convert: bool = True,
+    original_file_path: Optional[str] = None,
 ) -> FileDocument:
     # Verify file exists
     if not os.path.exists(file_path):
@@ -70,6 +77,7 @@ async def create_file_document_from_path(
         file_type=file_type,
         markdown=markdown,
         markdown_token_count=markdown_token_count,
+        original_file_path=original_file_path,
     )
 
     return file_document
