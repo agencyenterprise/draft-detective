@@ -27,6 +27,7 @@ from lib.workflows.claim_substantiation.nodes.index_supporting_documents import 
     index_supporting_documents,
 )
 from lib.workflows.claim_substantiation.nodes.prepare_documents import prepare_documents
+from lib.workflows.claim_substantiation.nodes.align_methodology import align_methodology
 from lib.workflows.claim_substantiation.nodes.review_literature import literature_review
 from lib.workflows.claim_substantiation.nodes.split_into_chunks import split_into_chunks
 from lib.workflows.claim_substantiation.nodes.suggest_citations import suggest_citations
@@ -57,6 +58,7 @@ def build_claim_substantiator_graph(
     use_rag: bool = True,
     run_live_reports: bool = False,
     run_reference_validation: bool = False,
+    run_align_methods: bool = False,
 ) -> StateGraph:
     """
     Build a LangGraph workflow for claim substantiation analysis.
@@ -67,6 +69,7 @@ def build_claim_substantiator_graph(
         run_suggest_citations: Include citation suggestion nodes
         use_rag: Use RAG-based claim verification
         run_reference_validation: Include reference validation node
+        run_align_methods: Include methodology alignment node
 
     Returns:
         Configured StateGraph for claim substantiation workflow
@@ -89,6 +92,9 @@ def build_claim_substantiator_graph(
         graph.add_node("validate_references", validate_references)
     if run_literature_review:
         graph.add_node("literature_review", literature_review)
+    # Methodology alignment (non-live reports branch only)
+    if run_align_methods:
+        graph.add_node("align_methodology", align_methodology)
     if run_suggest_citations:
         graph.add_node("summarize_supporting_documents", summarize_supporting_documents)
         graph.add_node("suggest_citations", suggest_citations, defer=True)
@@ -142,6 +148,10 @@ def build_claim_substantiator_graph(
         if run_literature_review:
             graph.add_edge("prepare_documents", "literature_review")
 
+        # Methodology alignment
+        if run_align_methods:
+            graph.add_edge("prepare_documents", "align_methodology")
+
         if run_reference_validation:
             graph.add_edge("extract_references", "validate_references")
             graph.add_edge("validate_references", "detect_citations")
@@ -157,6 +167,8 @@ def build_claim_substantiator_graph(
             graph.add_edge("summarize_supporting_documents", "suggest_citations")
             if run_literature_review:
                 graph.add_edge("literature_review", "suggest_citations")
+            if run_align_methods:
+                graph.add_edge("align_methodology", "suggest_citations")
             graph.set_finish_point("suggest_citations")
 
         else:
@@ -165,6 +177,8 @@ def build_claim_substantiator_graph(
             graph.add_node("finalize", finalize)
             graph.add_edge("verify_claims", "finalize")
             graph.add_edge("validate_inferences", "finalize")
+            if run_align_methods:
+                graph.add_edge("align_methodology", "finalize")
             graph.set_finish_point("finalize")
 
     return graph

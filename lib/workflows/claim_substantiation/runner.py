@@ -91,6 +91,7 @@ async def _execute(state: ClaimSubstantiatorState, context: ContextSchema):
         use_rag=state.config.use_rag,
         run_live_reports=state.config.run_live_reports,
         run_reference_validation=state.config.run_reference_validation,
+        run_align_methods=state.config.run_align_methods,
     )
 
     # Generate a fresh session ID if not provided to avoid checkpoint conflicts
