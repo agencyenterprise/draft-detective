@@ -24,7 +24,7 @@ export interface StartAnalysisResponse {
    * @type {string}
    * @memberof StartAnalysisResponse
    */
-  workflowRunId: string;
+  projectId: string;
   /**
    *
    * @type {string}
@@ -37,7 +37,7 @@ export interface StartAnalysisResponse {
  * Check if a given object implements the StartAnalysisResponse interface.
  */
 export function instanceOfStartAnalysisResponse(value: object): value is StartAnalysisResponse {
-  if (!('workflowRunId' in value) || value['workflowRunId'] === undefined) return false;
+  if (!('projectId' in value) || value['projectId'] === undefined) return false;
   if (!('message' in value) || value['message'] === undefined) return false;
   return true;
 }
@@ -51,7 +51,7 @@ export function StartAnalysisResponseFromJSONTyped(json: any, ignoreDiscriminato
     return json;
   }
   return {
-    workflowRunId: json['workflow_run_id'],
+    projectId: json['project_id'],
     message: json['message'],
   };
 }
@@ -69,7 +69,7 @@ export function StartAnalysisResponseToJSONTyped(
   }
 
   return {
-    workflow_run_id: value['workflowRunId'],
+    project_id: value['projectId'],
     message: value['message'],
   };
 }

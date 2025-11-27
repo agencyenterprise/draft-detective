@@ -28,11 +28,17 @@ import {
  */
 export interface WorkflowRun {
   /**
-   *
+   * The unique identifier for the workflow run
    * @type {string}
    * @memberof WorkflowRun
    */
   id: string;
+  /**
+   * FK for the project that this workflow run belongs to
+   * @type {string}
+   * @memberof WorkflowRun
+   */
+  projectId: string;
   /**
    *
    * @type {string}
@@ -40,35 +46,23 @@ export interface WorkflowRun {
    */
   langgraphThreadId: string;
   /**
-   *
-   * @type {string}
+   * The status of the workflow run
+   * @type {WorkflowRunStatus}
    * @memberof WorkflowRun
    */
-  title: string;
+  status: WorkflowRunStatus;
   /**
-   *
-   * @type {string}
-   * @memberof WorkflowRun
-   */
-  userId?: string | null;
-  /**
-   *
+   * The timestamp when the workflow run was created
    * @type {Date}
    * @memberof WorkflowRun
    */
   createdAt: Date;
   /**
-   *
+   * The timestamp when the workflow run was last updated
    * @type {Date}
    * @memberof WorkflowRun
    */
   lastUpdatedAt: Date;
-  /**
-   *
-   * @type {WorkflowRunStatus}
-   * @memberof WorkflowRun
-   */
-  status: WorkflowRunStatus;
 }
 
 /**
@@ -76,11 +70,11 @@ export interface WorkflowRun {
  */
 export function instanceOfWorkflowRun(value: object): value is WorkflowRun {
   if (!('id' in value) || value['id'] === undefined) return false;
+  if (!('projectId' in value) || value['projectId'] === undefined) return false;
   if (!('langgraphThreadId' in value) || value['langgraphThreadId'] === undefined) return false;
-  if (!('title' in value) || value['title'] === undefined) return false;
+  if (!('status' in value) || value['status'] === undefined) return false;
   if (!('createdAt' in value) || value['createdAt'] === undefined) return false;
   if (!('lastUpdatedAt' in value) || value['lastUpdatedAt'] === undefined) return false;
-  if (!('status' in value) || value['status'] === undefined) return false;
   return true;
 }
 
@@ -94,12 +88,11 @@ export function WorkflowRunFromJSONTyped(json: any, ignoreDiscriminator: boolean
   }
   return {
     id: json['id'],
+    projectId: json['project_id'],
     langgraphThreadId: json['langgraph_thread_id'],
-    title: json['title'],
-    userId: json['user_id'] == null ? undefined : json['user_id'],
+    status: WorkflowRunStatusFromJSON(json['status']),
     createdAt: new Date(json['created_at']),
     lastUpdatedAt: new Date(json['last_updated_at']),
-    status: WorkflowRunStatusFromJSON(json['status']),
   };
 }
 
@@ -114,11 +107,10 @@ export function WorkflowRunToJSONTyped(value?: WorkflowRun | null, ignoreDiscrim
 
   return {
     id: value['id'],
+    project_id: value['projectId'],
     langgraph_thread_id: value['langgraphThreadId'],
-    title: value['title'],
-    user_id: value['userId'],
+    status: WorkflowRunStatusToJSON(value['status']),
     created_at: value['createdAt'].toISOString(),
     last_updated_at: value['lastUpdatedAt'].toISOString(),
-    status: WorkflowRunStatusToJSON(value['status']),
   };
 }

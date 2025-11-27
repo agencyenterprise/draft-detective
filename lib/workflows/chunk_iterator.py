@@ -10,7 +10,7 @@ from lib.workflows.claim_substantiation.state import (
 def get_target_chunks(state: ClaimSubstantiatorState) -> List[DocumentChunk]:
     target_chunk_indices = state.config.target_chunk_indices
 
-    if target_chunk_indices is None:
+    if not target_chunk_indices:
         return state.chunks
 
     return [state.chunks[index] for index in target_chunk_indices]

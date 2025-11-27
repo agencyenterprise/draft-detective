@@ -13,29 +13,17 @@
  */
 
 import * as runtime from '../runtime';
-import type {
-  DocumentChunkOutput,
-  HTTPValidationError,
-  UpdateWorkflowRunRequest,
-  WorkflowRun,
-  WorkflowRunDetailed,
-} from '../models/index';
+import type { DocumentChunkOutput, HTTPValidationError, WorkflowRun, WorkflowRunDetailed } from '../models/index';
 import {
   DocumentChunkOutputFromJSON,
   DocumentChunkOutputToJSON,
   HTTPValidationErrorFromJSON,
   HTTPValidationErrorToJSON,
-  UpdateWorkflowRunRequestFromJSON,
-  UpdateWorkflowRunRequestToJSON,
   WorkflowRunFromJSON,
   WorkflowRunToJSON,
   WorkflowRunDetailedFromJSON,
   WorkflowRunDetailedToJSON,
 } from '../models/index';
-
-export interface DeleteWorkflowRunEndpointApiWorkflowRunWorkflowRunIdDeleteRequest {
-  workflowRunId: string;
-}
 
 export interface GetChunkDetailsEndpointApiWorkflowRunWorkflowRunIdChunkChunkIndexGetRequest {
   workflowRunId: string;
@@ -51,78 +39,10 @@ export interface GetWorkflowRunApiWorkflowRunWorkflowRunIdGetRequest {
   workflowRunId: string;
 }
 
-export interface UpdateWorkflowRunEndpointApiWorkflowRunWorkflowRunIdPatchRequest {
-  workflowRunId: string;
-  updateWorkflowRunRequest: UpdateWorkflowRunRequest;
-}
-
 /**
  *
  */
 export class WorkflowsApi extends runtime.BaseAPI {
-  /**
-   * Delete a workflow run and its associated checkpoint data
-   * Delete Workflow Run Endpoint
-   */
-  async deleteWorkflowRunEndpointApiWorkflowRunWorkflowRunIdDeleteRaw(
-    requestParameters: DeleteWorkflowRunEndpointApiWorkflowRunWorkflowRunIdDeleteRequest,
-    initOverrides?: RequestInit | runtime.InitOverrideFunction,
-  ): Promise<runtime.ApiResponse<any>> {
-    if (requestParameters['workflowRunId'] == null) {
-      throw new runtime.RequiredError(
-        'workflowRunId',
-        'Required parameter "workflowRunId" was null or undefined when calling deleteWorkflowRunEndpointApiWorkflowRunWorkflowRunIdDelete().',
-      );
-    }
-
-    const queryParameters: any = {};
-
-    const headerParameters: runtime.HTTPHeaders = {};
-
-    if (this.configuration && this.configuration.accessToken) {
-      const token = this.configuration.accessToken;
-      const tokenString = await token('HTTPBearer', []);
-
-      if (tokenString) {
-        headerParameters['Authorization'] = `Bearer ${tokenString}`;
-      }
-    }
-
-    let urlPath = `/api/workflow-run/{workflow_run_id}`;
-    urlPath = urlPath.replace(`{${'workflow_run_id'}}`, encodeURIComponent(String(requestParameters['workflowRunId'])));
-
-    const response = await this.request(
-      {
-        path: urlPath,
-        method: 'DELETE',
-        headers: headerParameters,
-        query: queryParameters,
-      },
-      initOverrides,
-    );
-
-    if (this.isJsonMime(response.headers.get('content-type'))) {
-      return new runtime.JSONApiResponse<any>(response);
-    } else {
-      return new runtime.TextApiResponse(response) as any;
-    }
-  }
-
-  /**
-   * Delete a workflow run and its associated checkpoint data
-   * Delete Workflow Run Endpoint
-   */
-  async deleteWorkflowRunEndpointApiWorkflowRunWorkflowRunIdDelete(
-    requestParameters: DeleteWorkflowRunEndpointApiWorkflowRunWorkflowRunIdDeleteRequest,
-    initOverrides?: RequestInit | runtime.InitOverrideFunction,
-  ): Promise<any> {
-    const response = await this.deleteWorkflowRunEndpointApiWorkflowRunWorkflowRunIdDeleteRaw(
-      requestParameters,
-      initOverrides,
-    );
-    return await response.value();
-  }
-
   /**
    * Get detailed analysis for a specific chunk (lazy loading)
    * Get Chunk Details Endpoint
@@ -351,75 +271,6 @@ export class WorkflowsApi extends runtime.BaseAPI {
     initOverrides?: RequestInit | runtime.InitOverrideFunction,
   ): Promise<Array<WorkflowRun>> {
     const response = await this.listWorkflowRunsApiWorkflowRunsGetRaw(initOverrides);
-    return await response.value();
-  }
-
-  /**
-   * Update a workflow run with the provided fields
-   * Update Workflow Run Endpoint
-   */
-  async updateWorkflowRunEndpointApiWorkflowRunWorkflowRunIdPatchRaw(
-    requestParameters: UpdateWorkflowRunEndpointApiWorkflowRunWorkflowRunIdPatchRequest,
-    initOverrides?: RequestInit | runtime.InitOverrideFunction,
-  ): Promise<runtime.ApiResponse<WorkflowRun>> {
-    if (requestParameters['workflowRunId'] == null) {
-      throw new runtime.RequiredError(
-        'workflowRunId',
-        'Required parameter "workflowRunId" was null or undefined when calling updateWorkflowRunEndpointApiWorkflowRunWorkflowRunIdPatch().',
-      );
-    }
-
-    if (requestParameters['updateWorkflowRunRequest'] == null) {
-      throw new runtime.RequiredError(
-        'updateWorkflowRunRequest',
-        'Required parameter "updateWorkflowRunRequest" was null or undefined when calling updateWorkflowRunEndpointApiWorkflowRunWorkflowRunIdPatch().',
-      );
-    }
-
-    const queryParameters: any = {};
-
-    const headerParameters: runtime.HTTPHeaders = {};
-
-    headerParameters['Content-Type'] = 'application/json';
-
-    if (this.configuration && this.configuration.accessToken) {
-      const token = this.configuration.accessToken;
-      const tokenString = await token('HTTPBearer', []);
-
-      if (tokenString) {
-        headerParameters['Authorization'] = `Bearer ${tokenString}`;
-      }
-    }
-
-    let urlPath = `/api/workflow-run/{workflow_run_id}`;
-    urlPath = urlPath.replace(`{${'workflow_run_id'}}`, encodeURIComponent(String(requestParameters['workflowRunId'])));
-
-    const response = await this.request(
-      {
-        path: urlPath,
-        method: 'PATCH',
-        headers: headerParameters,
-        query: queryParameters,
-        body: UpdateWorkflowRunRequestToJSON(requestParameters['updateWorkflowRunRequest']),
-      },
-      initOverrides,
-    );
-
-    return new runtime.JSONApiResponse(response, (jsonValue) => WorkflowRunFromJSON(jsonValue));
-  }
-
-  /**
-   * Update a workflow run with the provided fields
-   * Update Workflow Run Endpoint
-   */
-  async updateWorkflowRunEndpointApiWorkflowRunWorkflowRunIdPatch(
-    requestParameters: UpdateWorkflowRunEndpointApiWorkflowRunWorkflowRunIdPatchRequest,
-    initOverrides?: RequestInit | runtime.InitOverrideFunction,
-  ): Promise<WorkflowRun> {
-    const response = await this.updateWorkflowRunEndpointApiWorkflowRunWorkflowRunIdPatchRaw(
-      requestParameters,
-      initOverrides,
-    );
     return await response.value();
   }
 }

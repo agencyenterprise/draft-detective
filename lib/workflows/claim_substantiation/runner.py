@@ -7,8 +7,9 @@ from lib.config.langfuse import langfuse_handler
 from lib.models.user import User
 from lib.models.workflow_run import WorkflowRunStatus
 from lib.services.file import FileDocument
+from lib.services.projects import get_user_project_detailed, update_project_title
 from lib.services.vector_store import VectorStoreService
-from lib.services.workflow_runs import get_workflow_run_detailed, upsert_workflow_run
+from lib.services.workflow_runs import upsert_workflow_run
 from lib.workflows.claim_substantiation.checkpointer import get_checkpointer
 from lib.workflows.claim_substantiation.context import ContextSchema
 from lib.workflows.claim_substantiation.graph import build_claim_substantiator_graph
@@ -22,6 +23,8 @@ logger = logging.getLogger(__name__)
 
 
 async def run_claim_substantiator(
+    project_id: str,
+    thread_id: str,
     file: FileDocument,
     supporting_files: Optional[List[FileDocument]] = None,
     config: SubstantiationWorkflowConfig = None,
@@ -48,11 +51,11 @@ async def run_claim_substantiator(
         config=config,
     )
 
-    return await _execute(state, context)
+    return await _execute(project_id, thread_id, state, context)
 
 
 async def rerun_analysis(
-    workflow_run_id: str,
+    project_id: str,
     config: SubstantiationWorkflowConfig,
     current_user: User,
 ) -> ClaimSubstantiatorState:
@@ -63,10 +66,12 @@ async def rerun_analysis(
         f"Rerunning analysis with config: {config.model_dump(exclude_none=True)}"
     )
 
-    workflow_run = await get_workflow_run_detailed(workflow_run_id, user=current_user)
-    original_result = workflow_run.state
+    project = await get_user_project_detailed(project_id, current_user)
+    thread_id = project.workflow_run.run.langgraph_thread_id
+    original_result = project.workflow_run.state
 
     context = create_context(config)
+    config.session_id = thread_id
     config.openai_api_key = "[REDACTED]"
     state = original_result.model_copy(
         update={
@@ -74,16 +79,22 @@ async def rerun_analysis(
         }
     )
 
-    return await _execute(state, context)
+    return await _execute(project_id, thread_id, state, context)
 
 
-async def _execute(state: ClaimSubstantiatorState, context: ContextSchema):
+async def _execute(
+    project_id: str,
+    thread_id: str,
+    state: ClaimSubstantiatorState,
+    context: ContextSchema,
+):
     """
     Execute the claim substantiation workflow.
 
-    Note: If reusing a session_id from a previous run with a different graph structure,
-    checkpoints may cause unexpected behavior. Use a fresh session_id after graph changes.
+    Note: If reusing a thread_id from a previous run with a different graph structure,
+    checkpoints may cause unexpected behavior. Use a fresh thread_id after graph changes.
     """
+
     graph = build_claim_substantiator_graph(
         use_toulmin=state.config.use_toulmin,
         run_literature_review=state.config.run_literature_review,
@@ -94,23 +105,18 @@ async def _execute(state: ClaimSubstantiatorState, context: ContextSchema):
         run_align_methods=state.config.run_align_methods,
     )
 
-    # Generate a fresh session ID if not provided to avoid checkpoint conflicts
-    if state.config.session_id is None:
-        state.config.session_id = str(uuid.uuid4())
-        logger.info("Generated new session ID: %s", state.config.session_id)
-
     async with get_checkpointer() as checkpointer:
         app = graph.compile(checkpointer=checkpointer).with_config(
             {
                 "callbacks": [langfuse_handler],
-                "metadata": {"langfuse_session_id": state.config.session_id},
+                "metadata": {"langfuse_session_id": thread_id},
             }
         )
 
         workflow_run_id = await upsert_workflow_run(
-            session_id=state.config.session_id,
+            thread_id=thread_id,
+            project_id=project_id,
             status=WorkflowRunStatus.RUNNING,
-            title=state.file.file_name,
         )
 
         state.workflow_run_id = workflow_run_id
@@ -119,28 +125,34 @@ async def _execute(state: ClaimSubstantiatorState, context: ContextSchema):
         try:
             async for values in app.astream(
                 state,
-                {"configurable": {"thread_id": state.config.session_id}},
+                {"configurable": {"thread_id": thread_id}},
                 stream_mode="values",
                 context=context,
             ):
                 updated_state = ClaimSubstantiatorState(**values)
 
                 await upsert_workflow_run(
-                    session_id=state.config.session_id,
+                    thread_id=thread_id,
+                    project_id=project_id,
                     status=WorkflowRunStatus.RUNNING,
-                    title=(
-                        updated_state.main_document_summary.title
-                        if updated_state.main_document_summary
-                        and updated_state.main_document_summary.title
-                        else None
-                    ),
                 )
+
+                if (
+                    updated_state.main_document_summary
+                    and updated_state.main_document_summary.title
+                ):
+                    await update_project_title(
+                        project_id=project_id,
+                        title=updated_state.main_document_summary.title,
+                    )
+
         except Exception as e:
             logger.error(f"Error streaming state: {e}", exc_info=True)
             updated_state.errors.append(WorkflowError(task_name="global", error=str(e)))
         finally:
             await upsert_workflow_run(
-                session_id=state.config.session_id,
+                thread_id=thread_id,
+                project_id=project_id,
                 status=WorkflowRunStatus.COMPLETED,
             )
 

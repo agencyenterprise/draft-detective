@@ -1,12 +1,9 @@
-"""
-Background workflow execution service
-"""
-
 import logging
+import uuid
 
-from lib.config.database import get_db
-from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus
+from lib.models.workflow_run import WorkflowRunStatus
 from lib.services.file import FileDocument
+from lib.services.workflow_runs import upsert_workflow_run
 from lib.workflows.claim_substantiation.runner import run_claim_substantiator
 from lib.workflows.claim_substantiation.state import SubstantiationWorkflowConfig
 
@@ -14,6 +11,7 @@ logger = logging.getLogger(__name__)
 
 
 async def run_workflow_background(
+    project_id: str,
     main_file: FileDocument,
     supporting_files: list[FileDocument] | None,
     config: SubstantiationWorkflowConfig,
@@ -24,37 +22,34 @@ async def run_workflow_background(
     Updates workflow status from PENDING -> RUNNING -> COMPLETED.
     """
     try:
+        thread_id = str(uuid.uuid4())
+        config.session_id = thread_id
+
         logger.info(
-            f"Starting background workflow execution for session {config.session_id}"
+            f"Starting background workflow execution for project {project_id} and thread {thread_id}"
         )
 
-        with get_db() as db:
-            workflow_run = (
-                db.query(WorkflowRun)
-                .filter(WorkflowRun.langgraph_thread_id == config.session_id)
-                .first()
-            )
-            if workflow_run:
-                workflow_run.status = WorkflowRunStatus.RUNNING
-                db.commit()
+        await upsert_workflow_run(
+            thread_id=thread_id, project_id=project_id, status=WorkflowRunStatus.RUNNING
+        )
 
         await run_claim_substantiator(
+            project_id=project_id,
+            thread_id=thread_id,
             file=main_file,
             supporting_files=supporting_files,
             config=config,
         )
 
-        with get_db() as db:
-            workflow_run = (
-                db.query(WorkflowRun)
-                .filter(WorkflowRun.langgraph_thread_id == config.session_id)
-                .first()
-            )
-            if workflow_run:
-                workflow_run.status = WorkflowRunStatus.COMPLETED
-                db.commit()
+        await upsert_workflow_run(
+            thread_id=thread_id,
+            project_id=project_id,
+            status=WorkflowRunStatus.COMPLETED,
+        )
 
-        logger.info(f"Background workflow completed for session {config.session_id}")
+        logger.info(
+            f"Background workflow completed for project {project_id} and thread {thread_id}"
+        )
 
     except Exception as e:
         logger.error(f"Error in background workflow: {str(e)}", exc_info=True)

@@ -1,6 +1,7 @@
 """Workflow decorators for consistent behavior across nodes."""
 
 import logging
+import time
 from functools import wraps
 from typing import Callable, TypeVar
 
@@ -84,15 +85,15 @@ def register_node(name: str, description: str):
         async def wrapper(
             state: ClaimSubstantiatorState, *args, **kwargs
         ) -> ClaimSubstantiatorState:
-
-            func_logger.info(f"{func.__name__} ({state.config.session_id}): starting")
-
             agents_to_run = state.config.agents_to_run
             if agents_to_run and func.__name__ not in agents_to_run:
                 func_logger.info(
-                    f"{func.__name__} ({state.config.session_id}): Skipping (not in agents_to_run)"
+                    f"{func.__name__} ({state.config.session_id}): skipping (not in agents_to_run)"
                 )
                 return {}
+
+            func_logger.info(f"{func.__name__} ({state.config.session_id}): starting")
+            start_time = time.time()
 
             try:
                 result = await func(state, *args, **kwargs)
@@ -106,7 +107,9 @@ def register_node(name: str, description: str):
                     "errors": [WorkflowError(task_name=func.__name__, error=str(e))]
                 }
 
-            func_logger.info(f"{func.__name__} ({state.config.session_id}): done")
+            func_logger.info(
+                f"{func.__name__} ({state.config.session_id}): done in {time.time() - start_time:.2f} seconds"
+            )
 
             return result
 

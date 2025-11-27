@@ -14,6 +14,7 @@ import { ErrorsCard } from './errors-card';
 export interface ChunkSidebarContentProps {
   results: ClaimSubstantiatorStateSummary;
   chunkIndex: number;
+  projectId: string;
   workflowRunId: string;
   isWorkflowRunning: boolean;
   onSelectIssue: (issue: DocumentIssue) => void;
@@ -23,6 +24,7 @@ export interface ChunkSidebarContentProps {
 export function ChunkSidebarContent({
   results,
   chunkIndex,
+  projectId,
   workflowRunId,
   isWorkflowRunning,
   onSelectIssue,
@@ -102,11 +104,7 @@ export function ChunkSidebarContent({
 
           {chunkDetails && <ChunkAnalysisCard results={results} chunk={chunkDetails} />}
 
-          <ChunkReevaluateControl
-            results={results}
-            chunkIndex={lightweightChunk.chunkIndex}
-            workflowRunId={workflowRunId}
-          />
+          <ChunkReevaluateControl results={results} chunkIndex={lightweightChunk.chunkIndex} projectId={projectId} />
 
           <ChunkEvalGenerator chunkIndex={lightweightChunk.chunkIndex} originalState={results} />
         </>

@@ -14,12 +14,13 @@ import { DocumentReconstructor } from '../components/document-reconstructor';
 import { ErrorsCard } from '../components/errors-card';
 
 interface DocumentExplorerTabProps {
+  projectId: string;
   results: ClaimSubstantiatorStateSummary;
   isProcessing?: boolean;
   viewMode: DocRenderMode;
 }
 
-export function DocumentExplorerTab({ results, isProcessing = false, viewMode }: DocumentExplorerTabProps) {
+export function DocumentExplorerTab({ projectId, results, isProcessing = false, viewMode }: DocumentExplorerTabProps) {
   const pages = results.file?.doclingPages ?? [];
   const chunkToItems = results.chunkToItems?.mapping ?? {};
 
@@ -143,6 +144,7 @@ export function DocumentExplorerTab({ results, isProcessing = false, viewMode }:
               <ChunkSidebarContent
                 results={results}
                 chunkIndex={selectedChunkIndex}
+                projectId={projectId}
                 workflowRunId={results.workflowRunId}
                 isWorkflowRunning={isProcessing}
                 onSelectIssue={handleSelectIssue}

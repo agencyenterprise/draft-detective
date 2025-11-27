@@ -4,9 +4,9 @@ import { EditableTitle } from '@/components/ui/editable-title';
 import { PublicationDateLabel } from '@/components/wizard/results-step/components/publication-date-label';
 import { TabType } from '@/components/wizard/results-step/constants';
 import { ResultsVisualization } from '@/components/wizard/results-step/results-visualization';
-import { workflowsApi } from '@/lib/api';
+import { projectsApi } from '@/lib/api';
 import { DocRenderMode } from '@/lib/constants';
-import { WorkflowRunDetailed, WorkflowRunStatus } from '@/lib/generated-api';
+import { ProjectDetailed, WorkflowRunStatus } from '@/lib/generated-api';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { useParams } from 'next/navigation';
@@ -15,37 +15,37 @@ import { toast } from 'sonner';
 
 export default function ResultsPage() {
   const params = useParams();
-  const workflowRunId = params.workflowRunId as string;
+  const projectId = params.projectId as string;
   const queryClient = useQueryClient();
 
   const [activeTab, setActiveTab] = useState<TabType>('document-explorer');
   const [viewMode, setViewMode] = useState<DocRenderMode>('markdown');
 
   const {
-    data: workflowRun,
+    data: project,
     isLoading,
     error,
   } = useQuery({
-    queryKey: ['workflowRun', workflowRunId],
-    refetchInterval: ({ state }) => (state.data?.run.status === WorkflowRunStatus.Running ? 3000 : false),
-    queryFn: () => workflowsApi.getWorkflowRunApiWorkflowRunWorkflowRunIdGet({ workflowRunId }),
+    queryKey: ['project', projectId],
+    refetchInterval: ({ state }) => (state.data?.workflowRun?.run.status === WorkflowRunStatus.Running ? 3000 : false),
+    queryFn: () => projectsApi.getProjectEndpointApiProjectProjectIdGet({ projectId }),
   });
 
-  const isProcessing = workflowRun?.run.status === WorkflowRunStatus.Running;
+  const isProcessing = project?.workflowRun?.run.status === WorkflowRunStatus.Running;
 
   const updateTitleMutation = useMutation({
     mutationFn: async (newTitle: string) => {
-      return await workflowsApi.updateWorkflowRunEndpointApiWorkflowRunWorkflowRunIdPatch({
-        workflowRunId,
-        updateWorkflowRunRequest: { title: newTitle },
+      return await projectsApi.updateProjectEndpointApiProjectProjectIdPatch({
+        projectId,
+        updateProjectRequest: { title: newTitle },
       });
     },
-    onSuccess: (updatedRun) => {
-      queryClient.setQueryData(['workflowRun', workflowRunId], (curr: WorkflowRunDetailed | undefined) => {
+    onSuccess: (updatedProject) => {
+      queryClient.setQueryData(['project', projectId], (curr: ProjectDetailed | undefined) => {
         if (!curr) return curr;
         return {
           ...curr,
-          run: updatedRun,
+          project: updatedProject,
         };
       });
       toast.success('Title updated successfully');
@@ -79,7 +79,7 @@ export default function ResultsPage() {
       <div className="flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading workflow run...</p>
+          <p className="text-muted-foreground">Loading project...</p>
         </div>
       </div>
     );
@@ -95,32 +95,33 @@ export default function ResultsPage() {
     );
   }
 
-  if (!workflowRun) {
+  if (!project) {
     return null;
   }
 
-  const authors = workflowRun.state?.mainDocumentSummary?.authors;
+  const authors = project.workflowRun?.state?.mainDocumentSummary?.authors;
 
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <hgroup className="w-full space-y-1">
           <EditableTitle
-            title={workflowRun.run.title}
+            title={project.project.title}
             titleClassName="text-xl font-bold"
             onSave={handleTitleSave}
             isLoading={updateTitleMutation.isPending}
           />
           <h2 className="text-muted-foreground text-sm">
             {authors && <span>{authors} — </span>}
-            <PublicationDateLabel results={workflowRun.state} prefix="Published" suffix=" — " />
-            <span>Analysis created {format(workflowRun.run.createdAt || new Date(), 'MMM d, yyyy')}</span>
+            <PublicationDateLabel results={project.workflowRun?.state} prefix="Published" suffix=" — " />
+            <span>Analysis created {format(project.project.createdAt || new Date(), 'MMM d, yyyy')}</span>
           </h2>
         </hgroup>
       </div>
 
       <ResultsVisualization
-        results={workflowRun.state || undefined}
+        projectId={projectId}
+        results={project.workflowRun?.state || undefined}
         isProcessing={isProcessing}
         viewMode={viewMode}
         onViewModeChange={setViewMode}

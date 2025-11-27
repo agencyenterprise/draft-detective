@@ -306,7 +306,7 @@ class ClaimSubstantiatorStateSummary(BaseModel):
 class RerunAnalysisRequest(BaseModel):
     """Request model for re-running the analysis. Can be used to re-run a specific chunk or the entire analysis."""
 
-    workflow_run_id: str = Field(description="The ID of the workflow run to re-run")
+    project_id: str = Field(description="The ID of the project to re-run")
     config: SubstantiationWorkflowConfig = Field(
         description="Configuration for the re-run. Should include all the original configuration options, plus any overrides.",
     )

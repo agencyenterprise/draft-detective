@@ -6,6 +6,7 @@ import {
   HealthApi,
   WorkflowsApi,
   Middleware,
+  ProjectsApi,
 } from './generated-api';
 import { getSession } from 'next-auth/react';
 
@@ -36,6 +37,7 @@ export const evaluationApi = new EvaluationApi(config);
 export const feedbackApi = new FeedbackApi(config);
 export const healthApi = new HealthApi(config);
 export const workflowsApi = new WorkflowsApi(config);
+export const projectsApi = new ProjectsApi(config);
 
 export async function getAuthHeader(): Promise<string | undefined> {
   const session = await getSession();

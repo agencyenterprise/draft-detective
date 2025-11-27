@@ -18,22 +18,31 @@ class WorkflowRun(SQLModel, table=True):
     __tablename__ = "workflow_runs"
 
     id: uuid.UUID = Field(
-        sa_column=Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+        sa_column=Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4),
+        description="The unique identifier for the workflow run",
     )
-    langgraph_thread_id: str = Field(sa_column=Column(String(255), nullable=False))
-    title: str = Field(sa_column=Column(String, nullable=False))
-    user_id: Optional[uuid.UUID] = Field(
-        default=None,
+    project_id: uuid.UUID = Field(
         sa_column=Column(
             UUID(as_uuid=True),
-            ForeignKey("users.id", ondelete="SET NULL"),
-            nullable=True,
+            ForeignKey("projects.id", ondelete="CASCADE"),
+            nullable=False,
         ),
+        description="FK for the project that this workflow run belongs to",
+    )
+    langgraph_thread_id: str = Field(sa_column=Column(String(255), nullable=False))
+    status: WorkflowRunStatus = Field(
+        sa_column=Column(
+            SQLModelEnum(WorkflowRunStatus),
+            nullable=False,
+            default=WorkflowRunStatus.PENDING,
+        ),
+        description="The status of the workflow run",
     )
     created_at: datetime = Field(
         sa_column=Column(
             DateTime(timezone=True), default=datetime.utcnow, nullable=False
-        )
+        ),
+        description="The timestamp when the workflow run was created",
     )
     last_updated_at: datetime = Field(
         sa_column=Column(
@@ -41,14 +50,8 @@ class WorkflowRun(SQLModel, table=True):
             default=datetime.utcnow,
             onupdate=datetime.utcnow,
             nullable=False,
-        )
-    )
-    status: WorkflowRunStatus = Field(
-        sa_column=Column(
-            SQLModelEnum(WorkflowRunStatus),
-            nullable=False,
-            default=WorkflowRunStatus.PENDING,
-        )
+        ),
+        description="The timestamp when the workflow run was last updated",
     )
 
     def __repr__(self):

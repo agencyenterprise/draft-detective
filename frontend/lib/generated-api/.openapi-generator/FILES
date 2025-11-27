@@ -3,6 +3,7 @@ apis/EvaluationApi.ts
 apis/FeedbackApi.ts
 apis/FilesApi.ts
 apis/HealthApi.ts
+apis/ProjectsApi.ts
 apis/WorkflowsApi.ts
 apis/index.ts
 index.ts
@@ -59,6 +60,9 @@ models/LiteratureReviewResponseInput.ts
 models/LiteratureReviewResponseOutput.ts
 models/MethodologyComparisonResponse.ts
 models/PoliticalBias.ts
+models/Project.ts
+models/ProjectDetailed.ts
+models/ProjectListItem.ts
 models/PublicationQuality.ts
 models/QCResult.ts
 models/QualityLevel.ts
@@ -77,8 +81,8 @@ models/StartAnalysisResponse.ts
 models/SubstantiationWorkflowConfig.ts
 models/ToulminClaim.ts
 models/ToulminClaimResponse.ts
+models/UpdateProjectRequest.ts
 models/UpdateType.ts
-models/UpdateWorkflowRunRequest.ts
 models/ValidationError.ts
 models/ValidationErrorLocInner.ts
 models/WorkflowError.ts
