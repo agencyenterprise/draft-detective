@@ -62,6 +62,7 @@ class AnalysisService {
         if (config.runLiveReports !== undefined) formData.append('run_live_reports', String(config.runLiveReports));
         if (config.runReferenceValidation !== undefined)
           formData.append('run_reference_validation', String(config.runReferenceValidation));
+        if (config.runAlignMethods !== undefined) formData.append('run_align_methods', String(config.runAlignMethods));
         if (config.domain) formData.append('domain', config.domain);
         if (config.targetAudience) formData.append('target_audience', config.targetAudience);
         if (config.documentPublicationDate)

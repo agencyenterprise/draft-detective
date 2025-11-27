@@ -39,6 +39,7 @@ export default function New() {
             runSuggestCitations: data.config.runSuggestCitations,
             runLiveReports: data.config.runLiveReports,
             runReferenceValidation: data.config.runReferenceValidation,
+            runAlignMethods: data.config.runAlignMethods,
             domain: data.config.domain || undefined,
             targetAudience: data.config.targetAudience || undefined,
             documentPublicationDate: data.config.documentPublicationDate

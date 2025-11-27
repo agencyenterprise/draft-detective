@@ -18,18 +18,9 @@ logger = logging.getLogger(__name__)
 async def align_methodology(
     state: ClaimSubstantiatorState, runtime: Runtime[ContextSchema]
 ) -> ClaimSubstantiatorState:
-    logger.info(f"align_methodology ({state.config.session_id}): starting")
-
     if not state.config.run_align_methods:
         logger.info(
             f"align_methodology ({state.config.session_id}): skipping methodology alignment (run_align_methods is False)"
-        )
-        return {}
-
-    agents_to_run = state.config.agents_to_run
-    if agents_to_run and "align_methodology" not in agents_to_run:
-        logger.info(
-            f"align_methodology ({state.config.session_id}): Skipping methodology alignment (not in agents_to_run)"
         )
         return {}
 
@@ -58,5 +49,4 @@ async def align_methodology(
         {"paper_methodology": paper_methodology}
     )
 
-    logger.info(f"align_methodology ({state.config.session_id}): done")
     return {"methodology_comparison": comparison_response}

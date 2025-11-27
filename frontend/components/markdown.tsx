@@ -46,12 +46,12 @@ const componentFactory = (
 const createComponents = (highlight: 'red' | 'yellow' | 'blue' | 'green' | 'none') => {
   return {
     p: componentFactory('p', '', highlight),
-    h1: componentFactory('h1', 'text-2xl font-bold', highlight),
-    h2: componentFactory('h2', 'text-xl font-bold', highlight),
-    h3: componentFactory('h3', 'text-lg font-bold', highlight),
-    h4: componentFactory('h4', 'text-base font-bold', highlight),
-    h5: componentFactory('h5', 'text-sm font-bold', highlight),
-    h6: componentFactory('h6', 'text-xs font-bold', highlight),
+    h1: componentFactory('h1', 'text-xl font-bold', highlight),
+    h2: componentFactory('h2', 'text-lg font-bold', highlight),
+    h3: componentFactory('h3', 'text-base font-bold', highlight),
+    h4: componentFactory('h4', 'text-base font-semibold', highlight),
+    h5: componentFactory('h5', 'text-base font-medium', highlight),
+    h6: componentFactory('h6', 'text-base font-medium', highlight),
     ul: componentFactory('ul', 'list-disc'),
     ol: componentFactory('ol', 'list-decimal'),
     li: componentFactory('li', 'ml-4', highlight),

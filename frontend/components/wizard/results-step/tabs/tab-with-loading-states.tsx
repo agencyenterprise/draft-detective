@@ -5,9 +5,9 @@ import { SkeletonList, SkeletonParagraphs } from '@/components/ui/skeleton-list'
 
 interface TabWithLoadingStatesProps<T> {
   title: string;
-  data: T | undefined;
+  data: T | null | undefined;
   isProcessing: boolean;
-  hasData: (data: T | undefined) => boolean;
+  hasData: (data: T | undefined | null) => boolean;
   loadingMessage: { title: string; description: string };
   emptyMessage: { icon: React.ReactNode; title: string; description?: string };
   emptyStateChildren?: React.ReactNode;

@@ -51,6 +51,7 @@ export * from './HTTPValidationError';
 export * from './InferenceValidationResponseWithClaimIndex';
 export * from './LiteratureReviewResponseInput';
 export * from './LiteratureReviewResponseOutput';
+export * from './MethodologyComparisonResponse';
 export * from './PoliticalBias';
 export * from './PublicationQuality';
 export * from './QCResult';
