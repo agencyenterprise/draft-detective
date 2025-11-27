@@ -38,6 +38,7 @@ def _build_cases() -> list[AgentTestCase]:
                 agent=CitationDetectorAgent(create_test_context()),
                 response_model=CitationResponse,
                 prompt_kwargs={
+                    "full_document": main_doc.markdown,
                     "bibliography": "\n\n".join(
                         f"{i+1}. {ref}"
                         for i, ref in enumerate(test_case.input["bibliography"])

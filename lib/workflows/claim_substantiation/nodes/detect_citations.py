@@ -46,6 +46,7 @@ async def _detect_chunk_citations(
 ) -> DocumentChunk:
     citations = await citation_detector_agent.ainvoke(
         {
+            "full_document": state.file.markdown,
             "bibliography": format_bibliography_prompt_section(state.references),
             "chunk": chunk.content,
             "feedback": "",

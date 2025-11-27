@@ -173,6 +173,11 @@ In the academic paper example, a backing could be "A thorough review of the lite
 ## Audience context of the document (i.e., the intended audience for the document)
 {audience_context}
 
+## Summary of the document (for context about the document's main argument)
+```
+{document_summary}
+```
+
 ## The paragraph of the original document that contains the chunk of text that we want to analyze
 ```
 {paragraph}
@@ -224,6 +229,12 @@ if __name__ == "__main__":
     test_cases = [
         {
             "title": "Inference Validator Agent",
+            "document_summary": """
+            Renewable energy capacity has grown significantly in recent years.
+            Solar and wind power installations have increased by 40% since 2020.
+            This growth is driven by declining costs and supportive government policies.
+            However, challenges remain in grid integration and energy storage.
+            """,
             "paragraph": """
             Solar and wind power installations have increased by 40% since 2020.
             This growth is driven by declining costs and supportive government policies.
@@ -237,6 +248,9 @@ if __name__ == "__main__":
         },
         {
             "title": "Invalid Inference",
+            "document_summary": """Solar panel efficiency has improved by 15% over the last decade.
+            Manufacturing costs have decreased due to economies of scale.
+            """,
             "paragraph": """Solar panel efficiency has improved by 15% over the last decade.
             Manufacturing costs have decreased due to economies of scale.
             """,
@@ -249,6 +263,9 @@ if __name__ == "__main__":
         },
         {
             "title": "Valid Inference with Qualifiers",
+            "document_summary": """
+            Solar and wind power installations have increased by 40% since 2020, driven by declining costs and supportive government policies (IEA, 2024; BloombergNEF, 2024). Based on these trends, renewable energy capacity is expanding rapidly. The sustained growth rate, combined with falling costs, suggests that renewables will likely become the dominant energy source within the next two decades, assuming current policy support continues.
+            """,
             "paragraph": "Solar and wind power installations have increased by 40% since 2020, driven by declining costs and supportive government policies (IEA, 2024; BloombergNEF, 2024). Based on these trends, renewable energy capacity is expanding rapidly. The sustained growth rate, combined with falling costs, suggests that renewables will likely become the dominant energy source within the next two decades, assuming current policy support continues.",
             "chunk": "The sustained growth rate, combined with falling costs, suggests that renewables will likely become the dominant energy source within the next two decades, assuming current policy support continues.",
             "claim": "Renewables will likely become the dominant energy source within the next two decades",
@@ -259,6 +276,9 @@ if __name__ == "__main__":
         },
         {
             "title": "Valid Inference with Caveats",
+            "document_summary": """
+            Several hospitals have deployed AI diagnostic tools for radiology and pathology (Johnson et al., 2024). Early studies report 5-8% improvement in diagnostic accuracy when AI assists physicians. Implementation costs range from $500K-$2M per facility. AI-assisted diagnosis may potentially improve healthcare outcomes if properly validated and integrated into clinical workflows. Further research is needed to establish optimal human-AI collaboration models and address liability concerns.
+            """,
             "paragraph": "Several hospitals have deployed AI diagnostic tools for radiology and pathology (Johnson et al., 2024). Early studies report 5-8% improvement in diagnostic accuracy when AI assists physicians. Implementation costs range from $500K-$2M per facility. AI-assisted diagnosis may potentially improve healthcare outcomes if properly validated and integrated into clinical workflows. Further research is needed to establish optimal human-AI collaboration models and address liability concerns.",
             "chunk": "AI-assisted diagnosis may potentially improve healthcare outcomes if properly validated and integrated into clinical workflows.",
             "claim": "AI-assisted diagnosis may improve healthcare outcomes",
@@ -269,6 +289,9 @@ if __name__ == "__main__":
         },
         {
             "title": "Invalid Inference - Missing Warrant",
+            "document_summary": """
+            Machine learning models have shown superior performance on image classification tasks compared to traditional computer vision approaches (Smith et al., 2023). Recent benchmarks indicate 95% accuracy vs. 78% for conventional methods. Processing speed has increased tenfold over five years. These improvements in narrow AI tasks demonstrate that artificial intelligence is fundamentally superior to human cognitive capabilities.
+            """,
             "paragraph": "Machine learning models have shown superior performance on image classification tasks compared to traditional computer vision approaches (Smith et al., 2023). Recent benchmarks indicate 95% accuracy vs. 78% for conventional methods. Processing speed has increased tenfold over five years. These improvements in narrow AI tasks demonstrate that artificial intelligence is fundamentally superior to human cognitive capabilities.",
             "chunk": "These improvements in narrow AI tasks demonstrate that artificial intelligence is fundamentally superior to human cognitive capabilities.",
             "claim": "Artificial intelligence is fundamentally superior to human cognitive capabilities",
@@ -279,6 +302,9 @@ if __name__ == "__main__":
         },
         {
             "title": "Valid Inference with Backing",
+            "document_summary": """
+            Our analysis indicates several key findings: 1. Renewable energy costs have reached grid parity in most markets, 2. Storage technology continues to improve but requires additional development, 3. Policy stability is critical for sustained investment. Based on observation (1), policymakers should prioritize renewable energy deployment through targeted incentives and streamlined permitting processes. Historical precedent from Denmark and Germany shows that such policies can accelerate adoption by 30-50% over a decade.
+            """,
             "paragraph": "Our analysis indicates several key findings: 1. Renewable energy costs have reached grid parity in most markets, 2. Storage technology continues to improve but requires additional development, 3. Policy stability is critical for sustained investment. Based on observation (1), policymakers should prioritize renewable energy deployment through targeted incentives and streamlined permitting processes. Historical precedent from Denmark and Germany shows that such policies can accelerate adoption by 30-50% over a decade.",
             "chunk": "Based on observation (1), policymakers should prioritize renewable energy deployment through targeted incentives and streamlined permitting processes.",
             "claim": "Policymakers should prioritize renewable energy deployment through targeted incentives and streamlined permitting",
@@ -289,6 +315,9 @@ if __name__ == "__main__":
         },
         {
             "title": "Testing Edge Case - Weak but Valid Inference",
+            "document_summary": """
+            RAND Project AIR FORCE (PAF) developed a prototype tool, Personnel Records Scoring System (PReSS), by leveraging existing technology and data sources. Testing showed that PReSS was 20 percent more effective than baseline talent management systems in matching personnel to roles. These results indicate that technology-assisted approaches may offer benefits for personnel management.
+            """,
             "paragraph": "RAND Project AIR FORCE (PAF) developed a prototype tool, Personnel Records Scoring System (PReSS), by leveraging existing technology and data sources. Testing showed that PReSS was 20 percent more effective than baseline talent management systems in matching personnel to roles. These results indicate that technology-assisted approaches may offer benefits for personnel management.",
             "chunk": "These results indicate that technology-assisted approaches may offer benefits for personnel management.",
             "claim": "Technology-assisted approaches may offer benefits for personnel management",
@@ -299,6 +328,9 @@ if __name__ == "__main__":
         },
         {
             "title": "Invalid Inference - Contradicts Context",
+            "document_summary": """
+            However, challenges remain in grid integration and energy storage. Current battery storage costs average $150/kWh, and grid infrastructure upgrades require substantial investment. Studies show that variable renewable energy can reliably supply only up to 70% of grid demand with existing technology (NREL, 2023). Therefore, renewable energy will likely replace all fossil fuel generation by 2030.
+            """,
             "paragraph": "However, challenges remain in grid integration and energy storage. Current battery storage costs average $150/kWh, and grid infrastructure upgrades require substantial investment. Studies show that variable renewable energy can reliably supply only up to 70% of grid demand with existing technology (NREL, 2023). Therefore, renewable energy will likely replace all fossil fuel generation by 2030.",
             "chunk": "Therefore, renewable energy will replace all fossil fuel generation by 2030.",
             "claim": "Renewable energy will replace all fossil fuel generation by 2030",
@@ -309,6 +341,9 @@ if __name__ == "__main__":
         },
         {
             "title": "Valid Inference - Transformation Claim",
+            "document_summary": """
+            The U.S. Air Force has invested in technology modernization programs over the past decade (Schulker et al., 2022; Snyder, 2022). RAND Project AIR FORCE (PAF) developed a prototype tool, Personnel Records Scoring System (PReSS), by leveraging existing technology and data sources. Testing showed that PReSS was 20 percent more effective than baseline talent management systems in matching personnel to roles. These results demonstrate that leveraging advanced technology can transform talent management systems across defense organizations.
+            """,
             "paragraph": "The U.S. Air Force has invested in technology modernization programs over the past decade (Schulker et al., 2022; Snyder, 2022). RAND Project AIR FORCE (PAF) developed a prototype tool, Personnel Records Scoring System (PReSS), by leveraging existing technology and data sources. Testing showed that PReSS was 20 percent more effective than baseline talent management systems in matching personnel to roles. These results demonstrate that leveraging advanced technology can transform talent management systems across defense organizations.",
             "chunk": "These results demonstrate that leveraging advanced technology can transform talent management systems across defense organizations.",
             "claim": "Leveraging advanced technology can transform talent management systems in defense organizations",
