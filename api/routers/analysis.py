@@ -14,9 +14,8 @@ from api.dependencies import build_config_from_form
 from api.services.workflow_runner import run_workflow_background
 from api.upload import convert_uploaded_files_to_file_document
 from lib.agents.registry import agent_registry
-from lib.config.database import get_db
 from lib.models.user import User
-from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus
+from lib.services.projects import create_project
 from lib.workflows.claim_substantiation.runner import rerun_analysis
 from lib.workflows.claim_substantiation.state import (
     RerunAnalysisRequest,
@@ -31,7 +30,7 @@ router = APIRouter(tags=["analysis"])
 class StartAnalysisResponse(BaseModel):
     """Response model for starting an async analysis workflow"""
 
-    workflow_run_id: str
+    project_id: str
     message: str
 
 
@@ -70,35 +69,21 @@ async def start_analysis(
         )
         logger.info(f"File conversion complete for {main_file.file_name}")
 
-        if not config.session_id:
-            config.session_id = str(uuid.uuid4())
+        project = await create_project(title=main_file.file_name, user=current_user)
 
-        with get_db() as db:
-            workflow_run = WorkflowRun(
-                langgraph_thread_id=config.session_id,
-                title=main_file.file_name,
-                status=WorkflowRunStatus.PENDING,
-                user_id=current_user.id,
-            )
-            db.add(workflow_run)
-            db.commit()
-            db.refresh(workflow_run)
-            workflow_run_id = str(workflow_run.id)
-
-        logger.info(
-            f"Created workflow run {workflow_run_id} for session {config.session_id}"
-        )
+        logger.info(f"Created project {project.id}")
 
         background_tasks.add_task(
             run_workflow_background,
+            project.id,
             main_file,
             supporting_files,
             config,
         )
 
         return StartAnalysisResponse(
-            workflow_run_id=workflow_run_id,
-            message="Analysis started. You can track progress using the workflow_run_id.",
+            project_id=str(project.id),
+            message="Analysis started. Track progress by polling the project endpoint `/api/project/{project_id}`.",
         )
 
     except Exception as e:
@@ -129,13 +114,13 @@ async def rerun_analysis_endpoint(
 
         background_tasks.add_task(
             rerun_analysis,
-            workflow_run_id=request.workflow_run_id,
+            project_id=request.project_id,
             config=request.config,
             current_user=current_user,
         )
 
         return StartAnalysisResponse(
-            workflow_run_id=request.workflow_run_id,
+            project_id=request.project_id,
             message="Analysis re-run started. You can track progress using the workflow_run_id.",
         )
 

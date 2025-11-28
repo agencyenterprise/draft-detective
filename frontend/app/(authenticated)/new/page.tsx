@@ -60,7 +60,7 @@ export default function New() {
       );
     },
     onSuccess: (response) => {
-      router.push(`/results/${response.workflowRunId}`);
+      router.push(`/results/${response.projectId}`);
     },
   });
 

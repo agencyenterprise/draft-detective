@@ -10,10 +10,10 @@ import { ReevaluationDialogContent, ReevaluationFormValues } from './reevaluatio
 interface ChunkReevaluateControlProps {
   chunkIndex: number;
   results: ClaimSubstantiatorStateSummary;
-  workflowRunId: string;
+  projectId: string;
 }
 
-export function ChunkReevaluateControl({ results, chunkIndex, workflowRunId }: ChunkReevaluateControlProps) {
+export function ChunkReevaluateControl({ results, chunkIndex, projectId }: ChunkReevaluateControlProps) {
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
 
   const reevaluateMutation = useMutation({
@@ -27,11 +27,10 @@ export function ChunkReevaluateControl({ results, chunkIndex, workflowRunId }: C
 
       // Invalidate queries to show loading state
       client.invalidateQueries({
-        queryKey: ['chunkDetails', variables.workflowRunId, chunkIndex],
-        refetchType: 'all',
+        queryKey: ['chunkDetails'],
       });
       client.invalidateQueries({
-        queryKey: ['workflowRun', variables.workflowRunId],
+        queryKey: ['project', variables.projectId],
       });
     },
     onError: (error) => {
@@ -42,7 +41,7 @@ export function ChunkReevaluateControl({ results, chunkIndex, workflowRunId }: C
 
   const handleReevaluate = (values: ReevaluationFormValues) => {
     reevaluateMutation.mutate({
-      workflowRunId,
+      projectId,
       config: {
         ...results.config,
         targetChunkIndices: [chunkIndex],

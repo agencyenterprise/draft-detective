@@ -10,7 +10,15 @@ import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from api.routers import analysis, evaluation, feedback, health, workflows, files
+from api.routers import (
+    analysis,
+    evaluation,
+    feedback,
+    health,
+    projects,
+    workflows,
+    files,
+)
 from lib.config.logger import setup_logger
 
 setup_logger()
@@ -35,3 +43,4 @@ app.include_router(evaluation.router)
 app.include_router(workflows.router)
 app.include_router(files.router)
 app.include_router(feedback.router)
+app.include_router(projects.router)

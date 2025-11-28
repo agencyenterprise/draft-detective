@@ -28,11 +28,11 @@ import {
  */
 export interface RerunAnalysisRequest {
   /**
-   * The ID of the workflow run to re-run
+   * The ID of the project to re-run
    * @type {string}
    * @memberof RerunAnalysisRequest
    */
-  workflowRunId: string;
+  projectId: string;
   /**
    * Configuration for the re-run. Should include all the original configuration options, plus any overrides.
    * @type {SubstantiationWorkflowConfig}
@@ -45,7 +45,7 @@ export interface RerunAnalysisRequest {
  * Check if a given object implements the RerunAnalysisRequest interface.
  */
 export function instanceOfRerunAnalysisRequest(value: object): value is RerunAnalysisRequest {
-  if (!('workflowRunId' in value) || value['workflowRunId'] === undefined) return false;
+  if (!('projectId' in value) || value['projectId'] === undefined) return false;
   if (!('config' in value) || value['config'] === undefined) return false;
   return true;
 }
@@ -59,7 +59,7 @@ export function RerunAnalysisRequestFromJSONTyped(json: any, ignoreDiscriminator
     return json;
   }
   return {
-    workflowRunId: json['workflow_run_id'],
+    projectId: json['project_id'],
     config: SubstantiationWorkflowConfigFromJSON(json['config']),
   };
 }
@@ -77,7 +77,7 @@ export function RerunAnalysisRequestToJSONTyped(
   }
 
   return {
-    workflow_run_id: value['workflowRunId'],
+    project_id: value['projectId'],
     config: SubstantiationWorkflowConfigToJSON(value['config']),
   };
 }

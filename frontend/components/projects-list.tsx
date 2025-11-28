@@ -3,29 +3,30 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { StatusIndicator } from '@/components/ui/status-indicator';
-import { DeleteWorkflowRunDialog } from './workflow-runs-list/delete-workflow-run-dialog';
-import { workflowsApi } from '@/lib/api';
+import { projectsApi } from '@/lib/api';
 import { useQuery } from '@tanstack/react-query';
 import { formatDistanceToNow } from 'date-fns';
-import Link from 'next/link';
 import { useSession } from 'next-auth/react';
+import Link from 'next/link';
+import { DeleteProjectDialog } from './delete-project-dialog';
+import { WorkflowRunStatus } from '@/lib/generated-api';
 
-interface WorkflowRunsListProps {
+interface ProjectsListProps {
   className?: string;
 }
 
-export function WorkflowRunsList({ className }: WorkflowRunsListProps) {
+export function ProjectsList({ className }: ProjectsListProps) {
   const session = useSession();
 
   const {
-    data: runs,
+    data: projects,
     isLoading,
     error,
   } = useQuery({
-    queryKey: ['workflowRuns'],
+    queryKey: ['projects'],
     enabled: !!session.data?.user,
     refetchInterval: 3000,
-    queryFn: () => workflowsApi.listWorkflowRunsApiWorkflowRunsGet(),
+    queryFn: () => projectsApi.listProjectsEndpointApiProjectsGet(),
   });
 
   if (!session.data?.user) {
@@ -80,7 +81,7 @@ export function WorkflowRunsList({ className }: WorkflowRunsListProps) {
     );
   }
 
-  if (runs?.length === 0) {
+  if (projects?.length === 0) {
     return (
       <Card className={className}>
         <CardHeader>
@@ -104,30 +105,30 @@ export function WorkflowRunsList({ className }: WorkflowRunsListProps) {
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          {runs?.map((run) => (
+          {projects?.map(({ project, status }) => (
             <div
-              key={run.id}
+              key={project.id}
               className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
             >
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1 min-w-0">
-                  <h3 className="font-medium truncate">{run.title}</h3>
-                  <StatusIndicator status={run.status} className="flex-shrink-0 mr-8" />
+                  <h3 className="font-medium truncate">{project.title}</h3>
+                  <StatusIndicator status={status || WorkflowRunStatus.Pending} className="flex-shrink-0 mr-8" />
                 </div>
 
                 <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                  <p>{formatDistanceToNow(run.createdAt, { addSuffix: true })}</p>
+                  <p>{formatDistanceToNow(project.createdAt, { addSuffix: true })}</p>
                 </div>
               </div>
 
               <div className="flex gap-2">
-                <Link href={`/results/${run.id}`}>
+                <Link href={`/results/${project.id}`}>
                   <Button variant="outline" size="sm">
                     View Results
                   </Button>
                 </Link>
 
-                <DeleteWorkflowRunDialog workflowRunId={run.id} workflowRunTitle={run.title} />
+                <DeleteProjectDialog projectId={project.id} projectTitle={project.title} />
               </div>
             </div>
           ))}

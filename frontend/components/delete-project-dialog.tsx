@@ -1,4 +1,3 @@
-import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -10,24 +9,25 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { workflowsApi } from '@/lib/api';
+import { Button } from '@/components/ui/button';
+import { projectsApi } from '@/lib/api';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
-interface DeleteWorkflowRunDialogProps {
-  workflowRunId: string;
-  workflowRunTitle: string;
+interface DeleteProjectDialogProps {
+  projectId: string;
+  projectTitle: string;
 }
 
-export function DeleteWorkflowRunDialog({ workflowRunId, workflowRunTitle }: DeleteWorkflowRunDialogProps) {
+export function DeleteProjectDialog({ projectId, projectTitle }: DeleteProjectDialogProps) {
   const queryClient = useQueryClient();
 
   const deleteMutation = useMutation({
-    mutationFn: () => workflowsApi.deleteWorkflowRunEndpointApiWorkflowRunWorkflowRunIdDelete({ workflowRunId }),
+    mutationFn: () => projectsApi.deleteProjectEndpointApiProjectProjectIdDelete({ projectId }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['workflowRuns'] });
-      toast.success('Analysis deleted successfully');
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+      toast.success('Project deleted successfully');
     },
     onError: (error: Error) => {
       toast.error(`Failed to delete: ${error.message}`);
@@ -43,10 +43,10 @@ export function DeleteWorkflowRunDialog({ workflowRunId, workflowRunTitle }: Del
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Delete Analysis?</AlertDialogTitle>
+          <AlertDialogTitle>Delete Project?</AlertDialogTitle>
           <AlertDialogDescription>
-            This will permanently delete <strong>{workflowRunTitle}</strong> and all associated results. This action
-            cannot be undone.
+            This will permanently delete the project <strong>{projectTitle}</strong> and all associated results. This
+            action cannot be undone.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

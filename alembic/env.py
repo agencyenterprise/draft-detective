@@ -6,11 +6,10 @@ from sqlalchemy import engine_from_config, pool
 from sqlmodel import SQLModel
 
 from alembic import context
-
 from lib.config.env import config as app_config
 
 # Import all models to ensure they are registered with SQLModel.metadata
-from lib.models import WorkflowRun
+from lib.models import Feedback, Project, User, WorkflowRun
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

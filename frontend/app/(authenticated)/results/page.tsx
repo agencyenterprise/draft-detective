@@ -1,9 +1,9 @@
-import { WorkflowRunsList } from '@/components/workflow-runs-list';
+import { ProjectsList } from '@/components/projects-list';
 
 export default function Results() {
   return (
     <>
-      <WorkflowRunsList />
+      <ProjectsList />
     </>
   );
 }
