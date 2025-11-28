@@ -15,7 +15,7 @@ import { toast } from 'sonner';
 export interface AnalysisOptionsMenuProps {
   onSaveAsEvalTest: () => void;
   onReevaluate: () => void;
-  workflowRunId: string | undefined;
+  workflowRunId: string | null | undefined;
   results: ClaimSubstantiatorStateSummary | undefined;
 }
 
