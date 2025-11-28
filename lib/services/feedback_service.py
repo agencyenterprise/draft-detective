@@ -11,6 +11,7 @@ from fastapi import HTTPException
 
 from lib.config.database import get_db
 from lib.models.feedback import Feedback, FeedbackType
+from lib.models.project import Project
 from lib.models.user import User
 from lib.models.workflow_run import WorkflowRun
 
@@ -26,7 +27,11 @@ def _verify_workflow_run_ownership(
     if workflow_run is None:
         raise HTTPException(status_code=404, detail="Workflow run not found")
 
-    if workflow_run.user_id is None or workflow_run.user_id != user.id:
+    # Check access through project
+    project = (
+        session.query(Project).filter(Project.id == workflow_run.project_id).first()
+    )
+    if project is None or project.user_id is None or project.user_id != user.id:
         raise HTTPException(status_code=403, detail="Access denied")
 
 
