@@ -46,10 +46,6 @@ export function LiveReportsTab({ results, isProcessing = false }: LiveReportsTab
       skeletonCount={6}
     >
       {(addendum) => {
-        if (!addendum) {
-          return null;
-        }
-
         const metadata = addendum.reportMetadata;
 
         return (

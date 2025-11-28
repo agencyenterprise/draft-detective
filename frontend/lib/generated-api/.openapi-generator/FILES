@@ -57,6 +57,7 @@ models/HTTPValidationError.ts
 models/InferenceValidationResponseWithClaimIndex.ts
 models/LiteratureReviewResponseInput.ts
 models/LiteratureReviewResponseOutput.ts
+models/MethodologyComparisonResponse.ts
 models/PoliticalBias.ts
 models/PublicationQuality.ts
 models/QCResult.ts

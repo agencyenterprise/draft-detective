@@ -27,6 +27,27 @@ import {
   ChunkToItemsOutputToJSON,
   ChunkToItemsOutputToJSONTyped,
 } from './ChunkToItemsOutput';
+import type { WorkflowError } from './WorkflowError';
+import {
+  WorkflowErrorFromJSON,
+  WorkflowErrorFromJSONTyped,
+  WorkflowErrorToJSON,
+  WorkflowErrorToJSONTyped,
+} from './WorkflowError';
+import type { LiteratureReviewResponseOutput } from './LiteratureReviewResponseOutput';
+import {
+  LiteratureReviewResponseOutputFromJSON,
+  LiteratureReviewResponseOutputFromJSONTyped,
+  LiteratureReviewResponseOutputToJSON,
+  LiteratureReviewResponseOutputToJSONTyped,
+} from './LiteratureReviewResponseOutput';
+import type { DocumentChunkSummary } from './DocumentChunkSummary';
+import {
+  DocumentChunkSummaryFromJSON,
+  DocumentChunkSummaryFromJSONTyped,
+  DocumentChunkSummaryToJSON,
+  DocumentChunkSummaryToJSONTyped,
+} from './DocumentChunkSummary';
 import type { FileDocumentOutput } from './FileDocumentOutput';
 import {
   FileDocumentOutputFromJSON,
@@ -55,27 +76,6 @@ import {
   BibliographyItemToJSON,
   BibliographyItemToJSONTyped,
 } from './BibliographyItem';
-import type { WorkflowError } from './WorkflowError';
-import {
-  WorkflowErrorFromJSON,
-  WorkflowErrorFromJSONTyped,
-  WorkflowErrorToJSON,
-  WorkflowErrorToJSONTyped,
-} from './WorkflowError';
-import type { LiteratureReviewResponseOutput } from './LiteratureReviewResponseOutput';
-import {
-  LiteratureReviewResponseOutputFromJSON,
-  LiteratureReviewResponseOutputFromJSONTyped,
-  LiteratureReviewResponseOutputToJSON,
-  LiteratureReviewResponseOutputToJSONTyped,
-} from './LiteratureReviewResponseOutput';
-import type { DocumentChunkSummary } from './DocumentChunkSummary';
-import {
-  DocumentChunkSummaryFromJSON,
-  DocumentChunkSummaryFromJSONTyped,
-  DocumentChunkSummaryToJSON,
-  DocumentChunkSummaryToJSONTyped,
-} from './DocumentChunkSummary';
 import type { SubstantiationWorkflowConfig } from './SubstantiationWorkflowConfig';
 import {
   SubstantiationWorkflowConfigFromJSON,
@@ -97,6 +97,13 @@ import {
   BibliographyItemValidationOutputToJSON,
   BibliographyItemValidationOutputToJSONTyped,
 } from './BibliographyItemValidationOutput';
+import type { MethodologyComparisonResponse } from './MethodologyComparisonResponse';
+import {
+  MethodologyComparisonResponseFromJSON,
+  MethodologyComparisonResponseFromJSONTyped,
+  MethodologyComparisonResponseToJSON,
+  MethodologyComparisonResponseToJSONTyped,
+} from './MethodologyComparisonResponse';
 
 /**
  * Summary version of ClaimSubstantiatorState with chunk summaries instead of full chunks
@@ -178,6 +185,12 @@ export interface ClaimSubstantiatorStateSummary {
   literatureReview?: LiteratureReviewResponseOutput | null;
   /**
    *
+   * @type {MethodologyComparisonResponse}
+   * @memberof ClaimSubstantiatorStateSummary
+   */
+  methodologyComparison?: MethodologyComparisonResponse | null;
+  /**
+   *
    * @type {ReportOutputOutput}
    * @memberof ClaimSubstantiatorStateSummary
    */
@@ -244,6 +257,10 @@ export function ClaimSubstantiatorStateSummaryFromJSONTyped(
         : (json['live_reports_analysis'] as Array<any>).map(EvidenceWeighterResponseWithClaimIndexOutputFromJSON),
     literatureReview:
       json['literature_review'] == null ? undefined : LiteratureReviewResponseOutputFromJSON(json['literature_review']),
+    methodologyComparison:
+      json['methodology_comparison'] == null
+        ? undefined
+        : MethodologyComparisonResponseFromJSON(json['methodology_comparison']),
     addendumReport: json['addendum_report'] == null ? undefined : ReportOutputOutputFromJSON(json['addendum_report']),
     rankedIssues:
       json['ranked_issues'] == null ? undefined : (json['ranked_issues'] as Array<any>).map(DocumentIssueFromJSON),
@@ -289,6 +306,7 @@ export function ClaimSubstantiatorStateSummaryToJSONTyped(
         ? undefined
         : (value['liveReportsAnalysis'] as Array<any>).map(EvidenceWeighterResponseWithClaimIndexOutputToJSON),
     literature_review: LiteratureReviewResponseOutputToJSON(value['literatureReview']),
+    methodology_comparison: MethodologyComparisonResponseToJSON(value['methodologyComparison']),
     addendum_report: ReportOutputOutputToJSON(value['addendumReport']),
     ranked_issues:
       value['rankedIssues'] == null ? undefined : (value['rankedIssues'] as Array<any>).map(DocumentIssueToJSON),

@@ -14,6 +14,7 @@ export interface AnalysisFormValues {
   runLiteratureReview: boolean;
   runSuggestCitations: boolean;
   runReferenceValidation: boolean;
+  runAlignMethods: boolean;
   webSearchConsent: boolean;
   openaiApiKey: string;
   mainDocument: File | null;

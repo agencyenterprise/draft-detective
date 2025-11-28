@@ -20,6 +20,20 @@ import {
   DocumentChunkInputToJSON,
   DocumentChunkInputToJSONTyped,
 } from './DocumentChunkInput';
+import type { WorkflowError } from './WorkflowError';
+import {
+  WorkflowErrorFromJSON,
+  WorkflowErrorFromJSONTyped,
+  WorkflowErrorToJSON,
+  WorkflowErrorToJSONTyped,
+} from './WorkflowError';
+import type { EvidenceWeighterResponseWithClaimIndexInput } from './EvidenceWeighterResponseWithClaimIndexInput';
+import {
+  EvidenceWeighterResponseWithClaimIndexInputFromJSON,
+  EvidenceWeighterResponseWithClaimIndexInputFromJSONTyped,
+  EvidenceWeighterResponseWithClaimIndexInputToJSON,
+  EvidenceWeighterResponseWithClaimIndexInputToJSONTyped,
+} from './EvidenceWeighterResponseWithClaimIndexInput';
 import type { FileDocumentInput } from './FileDocumentInput';
 import {
   FileDocumentInputFromJSON,
@@ -62,13 +76,6 @@ import {
   LiteratureReviewResponseInputToJSON,
   LiteratureReviewResponseInputToJSONTyped,
 } from './LiteratureReviewResponseInput';
-import type { WorkflowError } from './WorkflowError';
-import {
-  WorkflowErrorFromJSON,
-  WorkflowErrorFromJSONTyped,
-  WorkflowErrorToJSON,
-  WorkflowErrorToJSONTyped,
-} from './WorkflowError';
 import type { SubstantiationWorkflowConfig } from './SubstantiationWorkflowConfig';
 import {
   SubstantiationWorkflowConfigFromJSON,
@@ -90,13 +97,13 @@ import {
   DocumentSummaryToJSON,
   DocumentSummaryToJSONTyped,
 } from './DocumentSummary';
-import type { EvidenceWeighterResponseWithClaimIndexInput } from './EvidenceWeighterResponseWithClaimIndexInput';
+import type { MethodologyComparisonResponse } from './MethodologyComparisonResponse';
 import {
-  EvidenceWeighterResponseWithClaimIndexInputFromJSON,
-  EvidenceWeighterResponseWithClaimIndexInputFromJSONTyped,
-  EvidenceWeighterResponseWithClaimIndexInputToJSON,
-  EvidenceWeighterResponseWithClaimIndexInputToJSONTyped,
-} from './EvidenceWeighterResponseWithClaimIndexInput';
+  MethodologyComparisonResponseFromJSON,
+  MethodologyComparisonResponseFromJSONTyped,
+  MethodologyComparisonResponseToJSON,
+  MethodologyComparisonResponseToJSONTyped,
+} from './MethodologyComparisonResponse';
 
 /**
  *
@@ -178,6 +185,12 @@ export interface ClaimSubstantiatorState {
   literatureReview?: LiteratureReviewResponseInput | null;
   /**
    *
+   * @type {MethodologyComparisonResponse}
+   * @memberof ClaimSubstantiatorState
+   */
+  methodologyComparison?: MethodologyComparisonResponse | null;
+  /**
+   *
    * @type {ReportOutputInput}
    * @memberof ClaimSubstantiatorState
    */
@@ -241,6 +254,10 @@ export function ClaimSubstantiatorStateFromJSONTyped(json: any, ignoreDiscrimina
         : (json['live_reports_analysis'] as Array<any>).map(EvidenceWeighterResponseWithClaimIndexInputFromJSON),
     literatureReview:
       json['literature_review'] == null ? undefined : LiteratureReviewResponseInputFromJSON(json['literature_review']),
+    methodologyComparison:
+      json['methodology_comparison'] == null
+        ? undefined
+        : MethodologyComparisonResponseFromJSON(json['methodology_comparison']),
     addendumReport: json['addendum_report'] == null ? undefined : ReportOutputInputFromJSON(json['addendum_report']),
     rankedIssues:
       json['ranked_issues'] == null ? undefined : (json['ranked_issues'] as Array<any>).map(DocumentIssueFromJSON),
@@ -286,6 +303,7 @@ export function ClaimSubstantiatorStateToJSONTyped(
         ? undefined
         : (value['liveReportsAnalysis'] as Array<any>).map(EvidenceWeighterResponseWithClaimIndexInputToJSON),
     literature_review: LiteratureReviewResponseInputToJSON(value['literatureReview']),
+    methodology_comparison: MethodologyComparisonResponseToJSON(value['methodologyComparison']),
     addendum_report: ReportOutputInputToJSON(value['addendumReport']),
     ranked_issues:
       value['rankedIssues'] == null ? undefined : (value['rankedIssues'] as Array<any>).map(DocumentIssueToJSON),

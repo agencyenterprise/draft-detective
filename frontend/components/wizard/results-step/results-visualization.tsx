@@ -13,7 +13,14 @@ import { ReevaluationDialogContent, ReevaluationFormValues } from './components/
 import { ViewModeToggle } from './components/view-mode-toggle';
 import { TabType } from './constants';
 import { useResultsCalculations } from './hooks/use-results-calculations';
-import { FilesTab, LiteratureReviewTab, LiveReportsTab, ReferencesTab, SummaryTab } from './tabs';
+import {
+  FilesTab,
+  LiteratureReviewTab,
+  LiveReportsTab,
+  ReferencesTab,
+  SummaryTab,
+  MethodologicalAlignmentTab,
+} from './tabs';
 import { DocumentExplorerTab } from './tabs/document-explorer-tab';
 import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -127,6 +134,8 @@ export function ResultsVisualization({
         return <FilesTab results={results} />;
       case 'document-explorer':
         return <DocumentExplorerTab results={results} isProcessing={isProcessing} viewMode={viewMode} />;
+      case 'methodological_alignment':
+        return <MethodologicalAlignmentTab results={results} isProcessing={isProcessing} />;
     }
   };
 

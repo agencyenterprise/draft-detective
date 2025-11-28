@@ -18,15 +18,9 @@ async def prepare_documents(
     state: ClaimSubstantiatorState, runtime: Runtime[ContextSchema]
 ) -> ClaimSubstantiatorState:
     document_summarizer_agent = DocumentSummarizerAgent(runtime.context)
-
-    # only summarize document if it exceeds 7500 characters
-    if len(state.file.markdown) > 7500:
-        response = await document_summarizer_agent.ainvoke(
-            {
-                "document": state.file.markdown,
-            }
-        )
-    else:
-        response = {"summary": state.file.markdown}
-
+    response = await document_summarizer_agent.ainvoke(
+        {
+            "document": state.file.markdown,
+        }
+    )
     return {"main_document_summary": response.summary}

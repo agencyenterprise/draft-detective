@@ -56,6 +56,12 @@ export interface SubstantiationWorkflowConfig {
    */
   runReferenceValidation?: boolean;
   /**
+   * Whether to run the methodology alignment analysis
+   * @type {boolean}
+   * @memberof SubstantiationWorkflowConfig
+   */
+  runAlignMethods?: boolean;
+  /**
    *
    * @type {Date}
    * @memberof SubstantiationWorkflowConfig
@@ -124,6 +130,7 @@ export function SubstantiationWorkflowConfigFromJSONTyped(
     useRag: json['use_rag'] == null ? undefined : json['use_rag'],
     runLiveReports: json['run_live_reports'] == null ? undefined : json['run_live_reports'],
     runReferenceValidation: json['run_reference_validation'] == null ? undefined : json['run_reference_validation'],
+    runAlignMethods: json['run_align_methods'] == null ? undefined : json['run_align_methods'],
     documentPublicationDate:
       json['document_publication_date'] == null ? undefined : new Date(json['document_publication_date']),
     targetChunkIndices: json['target_chunk_indices'] == null ? undefined : json['target_chunk_indices'],
@@ -154,6 +161,7 @@ export function SubstantiationWorkflowConfigToJSONTyped(
     use_rag: value['useRag'],
     run_live_reports: value['runLiveReports'],
     run_reference_validation: value['runReferenceValidation'],
+    run_align_methods: value['runAlignMethods'],
     document_publication_date:
       value['documentPublicationDate'] === null
         ? null

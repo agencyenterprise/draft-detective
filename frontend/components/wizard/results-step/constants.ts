@@ -5,6 +5,7 @@ export const TABS = [
   'references',
   'literature_review',
   'live_reports',
+  'methodological_alignment',
 ] as const;
 
 export type TabType = (typeof TABS)[number];
@@ -16,4 +17,5 @@ export const TAB_LABELS: Record<TabType, string> = {
   references: 'References',
   literature_review: 'Literature Review',
   live_reports: 'Live Reports',
+  methodological_alignment: 'Methodological Alignment',
 };

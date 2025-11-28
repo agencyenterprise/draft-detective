@@ -36,6 +36,7 @@ export interface StartAnalysisApiStartAnalysisPostRequest {
   useRag?: boolean;
   runLiveReports?: boolean;
   runReferenceValidation?: boolean;
+  runAlignMethods?: boolean;
   domain?: string | null;
   targetAudience?: string | null;
   targetChunkIndices?: string | null;
@@ -182,6 +183,10 @@ export class AnalysisApi extends runtime.BaseAPI {
 
     if (requestParameters['runReferenceValidation'] != null) {
       formParams.append('run_reference_validation', requestParameters['runReferenceValidation'] as any);
+    }
+
+    if (requestParameters['runAlignMethods'] != null) {
+      formParams.append('run_align_methods', requestParameters['runAlignMethods'] as any);
     }
 
     if (requestParameters['domain'] != null) {
