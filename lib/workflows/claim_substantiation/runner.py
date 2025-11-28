@@ -109,7 +109,7 @@ async def _execute(
         app = graph.compile(checkpointer=checkpointer).with_config(
             {
                 "callbacks": [langfuse_handler],
-                "metadata": {"langfuse_session_id": thread_id},
+                "metadata": {"langfuse_session_id": project_id},
             }
         )
 
