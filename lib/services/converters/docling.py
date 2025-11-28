@@ -36,8 +36,8 @@ class _TaskPending(Exception):
 class DoclingFileConverter(FileConverterProtocol):
     """Converts documents using docling-serve API with exponential backoff polling."""
 
-    DEFAULT_TIMEOUT_MINUTES = 15
-    TIMEOUT_PER_10MB_MINUTES = 2
+    DEFAULT_TIMEOUT_MINUTES = 30
+    TIMEOUT_PER_10MB_MINUTES = 15
 
     BACKOFF_FACTOR = 1.5
     BACKOFF_BASE = 2

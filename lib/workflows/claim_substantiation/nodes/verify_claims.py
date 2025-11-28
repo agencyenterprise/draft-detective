@@ -91,7 +91,6 @@ async def _verify_chunk_claims_with_provider(
 
         result = await claim_verifier_agent.ainvoke(
             {
-                "full_document": state.file.markdown,
                 "paragraph": state.get_paragraph(chunk.paragraph_index),
                 "chunk": chunk.content,
                 "claim": claim.claim,

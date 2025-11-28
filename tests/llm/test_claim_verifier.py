@@ -67,7 +67,6 @@ def _build_cases():
 
         # Build prompt kwargs
         prompt_kwargs = {
-            "full_document": main_doc.markdown,
             "paragraph": paragraph,
             "chunk": chunk,
             "claim": claim_text,

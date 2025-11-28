@@ -83,7 +83,7 @@ class AgentTestCase(BaseModel):
 
     # ===== Configuration =====
     evaluator_model: str = Field(
-        default="openai:gpt-5o-mini",
+        default="openai:gpt-5-mini",
         description="LLM model for semantic comparison (provider:model)",
     )
     fuzzy_threshold: float = Field(

@@ -57,7 +57,11 @@ async def _categorize_chunk_claims(
     for claim_index, claim in enumerate(chunk.claims.claims):
         result = await claim_categorizer_agent.ainvoke(
             {
-                "full_document": state.file.markdown,
+                "document_summary": (
+                    state.main_document_summary.summary
+                    if state.main_document_summary
+                    else ""
+                ),
                 "paragraph": state.get_paragraph(chunk.paragraph_index),
                 "chunk": chunk.content,
                 "claim": claim.claim,
