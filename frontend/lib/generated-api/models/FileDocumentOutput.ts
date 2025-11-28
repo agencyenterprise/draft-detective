@@ -40,6 +40,12 @@ export interface FileDocumentOutput {
    */
   filePath: string;
   /**
+   *
+   * @type {string}
+   * @memberof FileDocumentOutput
+   */
+  originalFilePath?: string | null;
+  /**
    * The MIME type of the uploaded file
    * @type {string}
    * @memberof FileDocumentOutput
@@ -101,6 +107,7 @@ export function FileDocumentOutputFromJSONTyped(json: any, ignoreDiscriminator: 
   return {
     fileName: json['file_name'],
     filePath: json['file_path'],
+    originalFilePath: json['original_file_path'] == null ? undefined : json['original_file_path'],
     fileType: json['file_type'],
     markdown: json['markdown'],
     markdownTokenCount: json['markdown_token_count'],
@@ -125,6 +132,7 @@ export function FileDocumentOutputToJSONTyped(
   return {
     file_name: value['fileName'],
     file_path: value['filePath'],
+    original_file_path: value['originalFilePath'],
     file_type: value['fileType'],
     markdown: value['markdown'],
     markdown_token_count: value['markdownTokenCount'],

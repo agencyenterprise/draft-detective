@@ -9,6 +9,7 @@ import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../ui/card';
 import { TabNavigation } from './components';
 import { AnalysisOptionsMenu } from './components/analysis-options-menu';
+import { DownloadDocxButton } from './components/download-docx-button';
 import { ReevaluationDialogContent, ReevaluationFormValues } from './components/reevaluation-dialog-content';
 import { ViewModeToggle } from './components/view-mode-toggle';
 import { TabType } from './constants';
@@ -162,6 +163,7 @@ export function ResultsVisualization({
               isDoclingAvailable={isDoclingAvailable}
             />
           )}
+          <DownloadDocxButton workflowRunId={results?.workflowRunId} results={results} />
           <AnalysisOptionsMenu
             onSaveAsEvalTest={handleSaveAsEvalTest}
             onReevaluate={() => setIsReevaluationDialogOpen(true)}

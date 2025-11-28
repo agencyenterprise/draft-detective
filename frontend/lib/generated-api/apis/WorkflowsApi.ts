@@ -25,6 +25,10 @@ import {
   WorkflowRunDetailedToJSON,
 } from '../models/index';
 
+export interface DownloadDocxApiWorkflowRunsWorkflowRunIdDocxDownloadGetRequest {
+  workflowRunId: string;
+}
+
 export interface GetChunkDetailsEndpointApiWorkflowRunWorkflowRunIdChunkChunkIndexGetRequest {
   workflowRunId: string;
   chunkIndex: number;
@@ -43,6 +47,69 @@ export interface GetWorkflowRunApiWorkflowRunWorkflowRunIdGetRequest {
  *
  */
 export class WorkflowsApi extends runtime.BaseAPI {
+  /**
+   * Download DOCX file - reviewed version if available, otherwise original
+   * Download Docx
+   */
+  async downloadDocxApiWorkflowRunsWorkflowRunIdDocxDownloadGetRaw(
+    requestParameters: DownloadDocxApiWorkflowRunsWorkflowRunIdDocxDownloadGetRequest,
+    initOverrides?: RequestInit | runtime.InitOverrideFunction,
+  ): Promise<runtime.ApiResponse<any>> {
+    if (requestParameters['workflowRunId'] == null) {
+      throw new runtime.RequiredError(
+        'workflowRunId',
+        'Required parameter "workflowRunId" was null or undefined when calling downloadDocxApiWorkflowRunsWorkflowRunIdDocxDownloadGet().',
+      );
+    }
+
+    const queryParameters: any = {};
+
+    const headerParameters: runtime.HTTPHeaders = {};
+
+    if (this.configuration && this.configuration.accessToken) {
+      const token = this.configuration.accessToken;
+      const tokenString = await token('HTTPBearer', []);
+
+      if (tokenString) {
+        headerParameters['Authorization'] = `Bearer ${tokenString}`;
+      }
+    }
+
+    let urlPath = `/api/workflow-runs/{workflow_run_id}/docx/download`;
+    urlPath = urlPath.replace(`{${'workflow_run_id'}}`, encodeURIComponent(String(requestParameters['workflowRunId'])));
+
+    const response = await this.request(
+      {
+        path: urlPath,
+        method: 'GET',
+        headers: headerParameters,
+        query: queryParameters,
+      },
+      initOverrides,
+    );
+
+    if (this.isJsonMime(response.headers.get('content-type'))) {
+      return new runtime.JSONApiResponse<any>(response);
+    } else {
+      return new runtime.TextApiResponse(response) as any;
+    }
+  }
+
+  /**
+   * Download DOCX file - reviewed version if available, otherwise original
+   * Download Docx
+   */
+  async downloadDocxApiWorkflowRunsWorkflowRunIdDocxDownloadGet(
+    requestParameters: DownloadDocxApiWorkflowRunsWorkflowRunIdDocxDownloadGetRequest,
+    initOverrides?: RequestInit | runtime.InitOverrideFunction,
+  ): Promise<any> {
+    const response = await this.downloadDocxApiWorkflowRunsWorkflowRunIdDocxDownloadGetRaw(
+      requestParameters,
+      initOverrides,
+    );
+    return await response.value();
+  }
+
   /**
    * Get detailed analysis for a specific chunk (lazy loading)
    * Get Chunk Details Endpoint
