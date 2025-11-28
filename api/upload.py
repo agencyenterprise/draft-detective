@@ -49,6 +49,11 @@ async def convert_uploaded_files_to_file_document(
                 logger.error(f"Error processing uploaded file {filename}: {str(e)}")
                 raise
 
+        # Keep track of original file path for .docx files before conversion
+        original_file_path = (
+            file_path if file_extension.lower() in [".docx", ".doc"] else None
+        )
+
         try:
             file_path = await docx_preprocessor.convert_to_pdf(file_path)
         except Exception as e:
@@ -58,7 +63,10 @@ async def convert_uploaded_files_to_file_document(
             raise
 
         file_document = await create_file_document_from_path(
-            file_path, original_file_name=filename, markdown_convert=False
+            file_path,
+            original_file_name=filename,
+            markdown_convert=False,
+            original_file_path=original_file_path,
         )
         file_documents.append(file_document)
 
