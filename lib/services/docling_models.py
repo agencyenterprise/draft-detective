@@ -177,7 +177,7 @@ def extract_page_info_from_docling(
     pages_data = doc_dict.get("pages", {})
 
     if not pages_data:
-        logger.warning(
+        logger.debug(
             f"Docling document has no pages data. Available keys: {list(doc_dict.keys())}"
         )
         return None
