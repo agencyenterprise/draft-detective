@@ -114,6 +114,20 @@ def rank_issues(state: ClaimSubstantiatorState) -> ClaimSubstantiatorState:
                     ),
                 )
                 issues.append(issue)
+            elif (
+                substantiation.evidence_alignment == EvidenceAlignmentLevel.UNVERIFIABLE
+            ):
+                issue = DocumentIssue(
+                    title="Unverifiable Claim",
+                    description=substantiation.rationale,
+                    severity=SeverityEnum.MEDIUM,
+                    chunk_index=substantiation.chunk_index,
+                    claim_index=substantiation.claim_index,
+                    claim_category=_find_claim_category(
+                        chunk, substantiation.claim_index
+                    ),
+                )
+                issues.append(issue)
 
     # 5. Live Reports Analysis: Add citation and update claim actions
     for live_report in state.live_reports_analysis:
