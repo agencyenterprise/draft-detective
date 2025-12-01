@@ -7,7 +7,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { ClaimSubstantiatorStateSummary } from '@/lib/generated-api';
-import { workflowsApi } from '@/lib/api';
+import { projectsApi } from '@/lib/api';
 import { Download, EllipsisVerticalIcon, FileTextIcon, RefreshCcwIcon } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -26,7 +26,7 @@ export function AnalysisOptionsMenu({ onSaveAsEvalTest, onReevaluate, projectId,
   const handleDownloadDocx = async () => {
     setIsDownloading(true);
     try {
-      const response = await workflowsApi.downloadProjectDocxApiProjectsProjectIdDocxDownloadGetRaw({
+      const response = await projectsApi.downloadProjectDocxApiProjectsProjectIdDocxDownloadGetRaw({
         projectId,
       });
 

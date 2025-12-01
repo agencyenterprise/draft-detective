@@ -25,10 +25,6 @@ import {
   WorkflowRunDetailedToJSON,
 } from '../models/index';
 
-export interface DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetRequest {
-  projectId: string;
-}
-
 export interface GetChunkDetailsEndpointApiWorkflowRunWorkflowRunIdChunkChunkIndexGetRequest {
   workflowRunId: string;
   chunkIndex: number;
@@ -47,69 +43,6 @@ export interface GetWorkflowRunApiWorkflowRunWorkflowRunIdGetRequest {
  *
  */
 export class WorkflowsApi extends runtime.BaseAPI {
-  /**
-   * Download DOCX file for project - reviewed version if available, otherwise original
-   * Download Project Docx
-   */
-  async downloadProjectDocxApiProjectsProjectIdDocxDownloadGetRaw(
-    requestParameters: DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetRequest,
-    initOverrides?: RequestInit | runtime.InitOverrideFunction,
-  ): Promise<runtime.ApiResponse<any>> {
-    if (requestParameters['projectId'] == null) {
-      throw new runtime.RequiredError(
-        'projectId',
-        'Required parameter "projectId" was null or undefined when calling downloadProjectDocxApiProjectsProjectIdDocxDownloadGet().',
-      );
-    }
-
-    const queryParameters: any = {};
-
-    const headerParameters: runtime.HTTPHeaders = {};
-
-    if (this.configuration && this.configuration.accessToken) {
-      const token = this.configuration.accessToken;
-      const tokenString = await token('HTTPBearer', []);
-
-      if (tokenString) {
-        headerParameters['Authorization'] = `Bearer ${tokenString}`;
-      }
-    }
-
-    let urlPath = `/api/projects/{project_id}/docx/download`;
-    urlPath = urlPath.replace(`{${'project_id'}}`, encodeURIComponent(String(requestParameters['projectId'])));
-
-    const response = await this.request(
-      {
-        path: urlPath,
-        method: 'GET',
-        headers: headerParameters,
-        query: queryParameters,
-      },
-      initOverrides,
-    );
-
-    if (this.isJsonMime(response.headers.get('content-type'))) {
-      return new runtime.JSONApiResponse<any>(response);
-    } else {
-      return new runtime.TextApiResponse(response) as any;
-    }
-  }
-
-  /**
-   * Download DOCX file for project - reviewed version if available, otherwise original
-   * Download Project Docx
-   */
-  async downloadProjectDocxApiProjectsProjectIdDocxDownloadGet(
-    requestParameters: DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetRequest,
-    initOverrides?: RequestInit | runtime.InitOverrideFunction,
-  ): Promise<any> {
-    const response = await this.downloadProjectDocxApiProjectsProjectIdDocxDownloadGetRaw(
-      requestParameters,
-      initOverrides,
-    );
-    return await response.value();
-  }
-
   /**
    * Get detailed analysis for a specific chunk (lazy loading)
    * Get Chunk Details Endpoint
