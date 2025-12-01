@@ -16,6 +16,7 @@ from lib.models.user import User
 from lib.models.workflow_run import WorkflowRun
 
 
+# TODO: Update this to use the new project layer instead of the workflow run
 def _verify_workflow_run_ownership(
     session, workflow_run_id: uuid.UUID, user: User
 ) -> None:

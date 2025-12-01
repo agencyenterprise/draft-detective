@@ -165,7 +165,7 @@ export function ResultsVisualization({
           <AnalysisOptionsMenu
             onSaveAsEvalTest={handleSaveAsEvalTest}
             onReevaluate={() => setIsReevaluationDialogOpen(true)}
-            workflowRunId={results?.workflowRunId}
+            projectId={projectId}
             results={results}
           />
         </div>

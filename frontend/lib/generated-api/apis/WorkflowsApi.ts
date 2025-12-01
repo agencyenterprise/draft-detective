@@ -25,8 +25,8 @@ import {
   WorkflowRunDetailedToJSON,
 } from '../models/index';
 
-export interface DownloadDocxApiWorkflowRunsWorkflowRunIdDocxDownloadGetRequest {
-  workflowRunId: string;
+export interface DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetRequest {
+  projectId: string;
 }
 
 export interface GetChunkDetailsEndpointApiWorkflowRunWorkflowRunIdChunkChunkIndexGetRequest {
@@ -48,17 +48,17 @@ export interface GetWorkflowRunApiWorkflowRunWorkflowRunIdGetRequest {
  */
 export class WorkflowsApi extends runtime.BaseAPI {
   /**
-   * Download DOCX file - reviewed version if available, otherwise original
-   * Download Docx
+   * Download DOCX file for project - reviewed version if available, otherwise original
+   * Download Project Docx
    */
-  async downloadDocxApiWorkflowRunsWorkflowRunIdDocxDownloadGetRaw(
-    requestParameters: DownloadDocxApiWorkflowRunsWorkflowRunIdDocxDownloadGetRequest,
+  async downloadProjectDocxApiProjectsProjectIdDocxDownloadGetRaw(
+    requestParameters: DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetRequest,
     initOverrides?: RequestInit | runtime.InitOverrideFunction,
   ): Promise<runtime.ApiResponse<any>> {
-    if (requestParameters['workflowRunId'] == null) {
+    if (requestParameters['projectId'] == null) {
       throw new runtime.RequiredError(
-        'workflowRunId',
-        'Required parameter "workflowRunId" was null or undefined when calling downloadDocxApiWorkflowRunsWorkflowRunIdDocxDownloadGet().',
+        'projectId',
+        'Required parameter "projectId" was null or undefined when calling downloadProjectDocxApiProjectsProjectIdDocxDownloadGet().',
       );
     }
 
@@ -75,8 +75,8 @@ export class WorkflowsApi extends runtime.BaseAPI {
       }
     }
 
-    let urlPath = `/api/workflow-runs/{workflow_run_id}/docx/download`;
-    urlPath = urlPath.replace(`{${'workflow_run_id'}}`, encodeURIComponent(String(requestParameters['workflowRunId'])));
+    let urlPath = `/api/projects/{project_id}/docx/download`;
+    urlPath = urlPath.replace(`{${'project_id'}}`, encodeURIComponent(String(requestParameters['projectId'])));
 
     const response = await this.request(
       {
@@ -96,14 +96,14 @@ export class WorkflowsApi extends runtime.BaseAPI {
   }
 
   /**
-   * Download DOCX file - reviewed version if available, otherwise original
-   * Download Docx
+   * Download DOCX file for project - reviewed version if available, otherwise original
+   * Download Project Docx
    */
-  async downloadDocxApiWorkflowRunsWorkflowRunIdDocxDownloadGet(
-    requestParameters: DownloadDocxApiWorkflowRunsWorkflowRunIdDocxDownloadGetRequest,
+  async downloadProjectDocxApiProjectsProjectIdDocxDownloadGet(
+    requestParameters: DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetRequest,
     initOverrides?: RequestInit | runtime.InitOverrideFunction,
   ): Promise<any> {
-    const response = await this.downloadDocxApiWorkflowRunsWorkflowRunIdDocxDownloadGetRaw(
+    const response = await this.downloadProjectDocxApiProjectsProjectIdDocxDownloadGetRaw(
       requestParameters,
       initOverrides,
     );

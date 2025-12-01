@@ -4,7 +4,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from starlette.responses import FileResponse
 
 from api.auth import get_current_user
+from lib.config.database import get_db
 from lib.config.env import config
+from lib.models.project import Project
 from lib.models.user import User
 from lib.models.workflow_run import WorkflowRun
 from lib.services.docx_manipulator import docx_manipulator_service
@@ -85,27 +87,52 @@ async def get_page_image(
     raise HTTPException(status_code=404, detail=f"Page {page_num} not found")
 
 
-@router.get("/api/workflow-runs/{workflow_run_id}/docx/download")
-async def download_docx(
-    workflow_run_id: str,
+@router.get("/api/projects/{project_id}/docx/download")
+async def download_project_docx(
+    project_id: str,
     current_user: User = Depends(get_current_user),
 ):
-    """Download DOCX file - reviewed version if available, otherwise original"""
+    """Download DOCX file for project - reviewed version if available, otherwise original"""
 
-    workflow_run = await get_workflow_run_detailed(workflow_run_id, user=current_user)
+    # Get project with workflow run
+    with get_db() as db:
+        project = db.query(Project).filter(Project.id == project_id).first()
 
-    if not workflow_run.state or not workflow_run.state.file:
+        if project is None:
+            raise HTTPException(status_code=404, detail="Project not found")
+
+        if project.user_id is None or project.user_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Access denied")
+
+        workflow_run = (
+            db.query(WorkflowRun)
+            .filter(WorkflowRun.project_id == project_id)
+            .order_by(WorkflowRun.created_at.desc())
+            .first()
+        )
+
+        if workflow_run is None:
+            raise HTTPException(
+                status_code=404,
+                detail="No workflow run found for this project",
+            )
+
+    workflow_detailed = await get_workflow_run_detailed(
+        str(workflow_run.id), user=current_user
+    )
+
+    if not workflow_detailed.state or not workflow_detailed.state.file:
         raise HTTPException(status_code=404, detail="Workflow state not found")
 
-    original_file_path = workflow_run.state.file.original_file_path
+    original_file_path = workflow_detailed.state.file.original_file_path
     if not original_file_path or not original_file_path.endswith(".docx"):
         raise HTTPException(
             status_code=404,
-            detail="No DOCX file available for this workflow",
+            detail="No DOCX file available for this project",
         )
 
     # Try to get reviewed version first
-    reviewed_path = docx_manipulator_service.get_output_path(workflow_run_id)
+    reviewed_path = docx_manipulator_service.get_output_path(str(workflow_run.id))
     if reviewed_path.exists():
         file_path = str(reviewed_path)
         is_reviewed = True
@@ -114,7 +141,7 @@ async def download_docx(
         file_path = original_file_path
         is_reviewed = False
 
-    base_name, _ = os.path.splitext(workflow_run.state.file.file_name)
+    base_name, _ = os.path.splitext(workflow_detailed.state.file.file_name)
     filename = f"{base_name}_reviewed.docx" if is_reviewed else f"{base_name}.docx"
 
     return FileResponse(

@@ -15,32 +15,25 @@ import { toast } from 'sonner';
 export interface AnalysisOptionsMenuProps {
   onSaveAsEvalTest: () => void;
   onReevaluate: () => void;
-  workflowRunId: string | null | undefined;
+  projectId: string;
   results: ClaimSubstantiatorStateSummary | undefined;
 }
 
-export function AnalysisOptionsMenu({
-  onSaveAsEvalTest,
-  onReevaluate,
-  workflowRunId,
-  results,
-}: AnalysisOptionsMenuProps) {
+export function AnalysisOptionsMenu({ onSaveAsEvalTest, onReevaluate, projectId, results }: AnalysisOptionsMenuProps) {
   const [isDownloading, setIsDownloading] = useState(false);
   const hasDocx = results?.file?.originalFilePath?.endsWith('.docx');
 
   const handleDownloadDocx = async () => {
-    if (!workflowRunId) return;
-
     setIsDownloading(true);
     try {
-      const response = await workflowsApi.downloadDocxApiWorkflowRunsWorkflowRunIdDocxDownloadGetRaw({
-        workflowRunId,
+      const response = await workflowsApi.downloadProjectDocxApiProjectsProjectIdDocxDownloadGetRaw({
+        projectId,
       });
 
       const blob = await response.raw.blob();
       const contentDisposition = response.raw.headers.get('content-disposition');
       const filenameMatch = contentDisposition?.match(/filename="?(.+?)"?$/);
-      const filename = filenameMatch?.[1] || `document_${workflowRunId}.docx`;
+      const filename = filenameMatch?.[1] || `document_${projectId}.docx`;
 
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
