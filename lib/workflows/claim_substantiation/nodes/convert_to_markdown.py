@@ -83,4 +83,5 @@ async def _convert_to_markdown_task(
         markdown=markdown,
         markdown_token_count=markdown_token_count,
         docling_document=docling_document,
+        original_file_path=file_document.original_file_path,
     )

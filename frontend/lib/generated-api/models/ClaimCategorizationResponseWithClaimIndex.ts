@@ -40,23 +40,17 @@ export interface ClaimCategorizationResponseWithClaimIndex {
    */
   claimCategory: ClaimCategory;
   /**
-   * Reason for the category assignment and reason why the claim needs external verification or not. Maximum of 100 words.
+   * One-line reason for the category assignment.
    * @type {string}
    * @memberof ClaimCategorizationResponseWithClaimIndex
    */
   rationale: string;
   /**
-   * A boolean value indicating whether the claim needs external verification or not, based on the guidelines provided.
+   * True if: (a) the sentence contains a citation, OR (b) it asserts reported/established knowledge that originates outside the current document/analysis and would typically require an external source. False for purely internal methods/results/structure.
    * @type {boolean}
    * @memberof ClaimCategorizationResponseWithClaimIndex
    */
   needsExternalVerification: boolean;
-  /**
-   * Which rule(s) from the instructions most strongly guided your judgment and why
-   * @type {string}
-   * @memberof ClaimCategorizationResponseWithClaimIndex
-   */
-  guidingRules?: string;
   /**
    *
    * @type {number}
@@ -104,7 +98,6 @@ export function ClaimCategorizationResponseWithClaimIndexFromJSONTyped(
     claimCategory: ClaimCategoryFromJSON(json['claim_category']),
     rationale: json['rationale'],
     needsExternalVerification: json['needs_external_verification'],
-    guidingRules: json['guiding_rules'] == null ? undefined : json['guiding_rules'],
     chunkIndex: json['chunk_index'],
     claimIndex: json['claim_index'],
   };
@@ -127,7 +120,6 @@ export function ClaimCategorizationResponseWithClaimIndexToJSONTyped(
     claim_category: ClaimCategoryToJSON(value['claimCategory']),
     rationale: value['rationale'],
     needs_external_verification: value['needsExternalVerification'],
-    guiding_rules: value['guidingRules'],
     chunk_index: value['chunkIndex'],
     claim_index: value['claimIndex'],
   };

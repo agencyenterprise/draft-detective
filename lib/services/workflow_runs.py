@@ -6,6 +6,7 @@ from langgraph.types import StateSnapshot
 from pydantic import BaseModel
 
 from lib.config.database import get_db
+from lib.models.project import Project
 from lib.models.user import User
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus
 from lib.workflows.claim_substantiation.checkpointer import get_checkpointer
@@ -51,11 +52,13 @@ async def get_workflow_run_detailed(id: str, user: User) -> WorkflowRunDetailed:
     with get_db() as db:
         run = db.query(WorkflowRun).filter(WorkflowRun.id == id).first()
 
-    if run is None:
-        raise HTTPException(status_code=404, detail="Workflow run not found")
+        if run is None:
+            raise HTTPException(status_code=404, detail="Workflow run not found")
 
-    if run.user_id is None or run.user_id != user.id:
-        raise HTTPException(status_code=403, detail="Access denied")
+        # Check access through project
+        project = db.query(Project).filter(Project.id == run.project_id).first()
+        if project is None or project.user_id is None or project.user_id != user.id:
+            raise HTTPException(status_code=403, detail="Access denied")
 
     graph = build_claim_substantiator_graph()
 
@@ -94,7 +97,8 @@ async def get_workflow_runs(user: User) -> List[WorkflowRun]:
     with get_db() as db:
         runs = (
             db.query(WorkflowRun)
-            .filter(WorkflowRun.user_id == user.id)
+            .join(Project, WorkflowRun.project_id == Project.id)
+            .filter(Project.user_id == user.id)
             .order_by(WorkflowRun.created_at.desc())
             .limit(100)
             .all()

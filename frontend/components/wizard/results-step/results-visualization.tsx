@@ -165,6 +165,8 @@ export function ResultsVisualization({
           <AnalysisOptionsMenu
             onSaveAsEvalTest={handleSaveAsEvalTest}
             onReevaluate={() => setIsReevaluationDialogOpen(true)}
+            projectId={projectId}
+            results={results}
           />
         </div>
       </div>

@@ -32,6 +32,12 @@ export interface FileDocumentInput {
    */
   filePath: string;
   /**
+   *
+   * @type {string}
+   * @memberof FileDocumentInput
+   */
+  originalFilePath?: string | null;
+  /**
    * The MIME type of the uploaded file
    * @type {string}
    * @memberof FileDocumentInput
@@ -86,6 +92,7 @@ export function FileDocumentInputFromJSONTyped(json: any, ignoreDiscriminator: b
   return {
     fileName: json['file_name'],
     filePath: json['file_path'],
+    originalFilePath: json['original_file_path'] == null ? undefined : json['original_file_path'],
     fileType: json['file_type'],
     markdown: json['markdown'],
     markdownTokenCount: json['markdown_token_count'],
@@ -108,6 +115,7 @@ export function FileDocumentInputToJSONTyped(
   return {
     file_name: value['fileName'],
     file_path: value['filePath'],
+    original_file_path: value['originalFilePath'],
     file_type: value['fileType'],
     markdown: value['markdown'],
     markdown_token_count: value['markdownTokenCount'],
