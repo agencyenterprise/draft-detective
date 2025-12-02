@@ -1,16 +1,15 @@
 'use client';
 
 import { AnalysisForm } from '@/components/analysis-form';
-import { StartAnalysisResponse } from '@/lib/generated-api';
-import { uploadOrchestrator } from '@/lib/services/upload-orchestrator';
-import { useMutation } from '@tanstack/react-query';
-import { useRouter } from 'next/navigation';
-import React from 'react';
-import { AlertCircle, Loader2 } from 'lucide-react';
+import { AnalysisFormData } from '@/components/analysis-form/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { AnalysisConfig } from '@/components/wizard/types';
+import { uploadOrchestrator } from '@/lib/services/upload-orchestrator';
+import { useMutation } from '@tanstack/react-query';
+import { AlertCircle, Loader2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import React from 'react';
 
 export default function New() {
   const router = useRouter();
@@ -19,16 +18,8 @@ export default function New() {
   const [mainDocument, setMainDocument] = React.useState<File | null>(null);
   const [supportingDocuments, setSupportingDocuments] = React.useState<File[]>([]);
 
-  const analysisMutation = useMutation<
-    StartAnalysisResponse,
-    Error,
-    {
-      mainDocument: File;
-      supportingDocuments: File[];
-      config: AnalysisConfig;
-    }
-  >({
-    mutationFn: async (data) => {
+  const analysisMutation = useMutation({
+    mutationFn: async (data: AnalysisFormData) => {
       return uploadOrchestrator.startAnalysisWithProgress(
         {
           mainDocument: data.mainDocument,
@@ -39,7 +30,6 @@ export default function New() {
             runSuggestCitations: data.config.runSuggestCitations,
             runLiveReports: data.config.runLiveReports,
             runReferenceValidation: data.config.runReferenceValidation,
-            runAlignMethods: data.config.runAlignMethods,
             domain: data.config.domain || undefined,
             targetAudience: data.config.targetAudience || undefined,
             documentPublicationDate: data.config.documentPublicationDate

@@ -16,7 +16,6 @@ async def build_config_from_form(
     use_rag: bool = Form(default=True),
     run_live_reports: bool = Form(default=False),
     run_reference_validation: bool = Form(default=False),
-    run_align_methods: bool = Form(default=False),
     domain: Optional[str] = Form(default=None),
     target_audience: Optional[str] = Form(default=None),
     target_chunk_indices: Optional[str] = Form(default=None),
@@ -35,7 +34,6 @@ async def build_config_from_form(
         use_rag: Whether to use RAG for claim verification
         run_live_reports: Whether to run the live reports analysis
         run_reference_validation: Whether to validate references using web search
-        run_align_methods: Whether to run the methodology alignment analysis
         domain: Domain context for more accurate analysis
         target_audience: Target audience context for analysis
         target_chunk_indices: Comma-separated chunk indices to process (optional)
@@ -89,7 +87,6 @@ async def build_config_from_form(
         use_rag=use_rag,
         run_live_reports=run_live_reports,
         run_reference_validation=run_reference_validation,
-        run_align_methods=run_align_methods,
         domain=domain,
         target_audience=target_audience,
         target_chunk_indices=parsed_target_chunk_indices,

@@ -13,16 +13,30 @@
  */
 
 import * as runtime from '../runtime';
-import type { DocumentChunkOutput, HTTPValidationError, WorkflowRun, WorkflowRunDetailed } from '../models/index';
+import type {
+  ClaimSubstantiationWorkflowDetail,
+  DocumentChunkOutput,
+  HTTPValidationError,
+  MethodologicalAlignmentWorkflowConfig,
+  MethodologicalAlignmentWorkflowDetail,
+  StartWorkflowResponse,
+  SubstantiationWorkflowConfig,
+} from '../models/index';
 import {
+  ClaimSubstantiationWorkflowDetailFromJSON,
+  ClaimSubstantiationWorkflowDetailToJSON,
   DocumentChunkOutputFromJSON,
   DocumentChunkOutputToJSON,
   HTTPValidationErrorFromJSON,
   HTTPValidationErrorToJSON,
-  WorkflowRunFromJSON,
-  WorkflowRunToJSON,
-  WorkflowRunDetailedFromJSON,
-  WorkflowRunDetailedToJSON,
+  MethodologicalAlignmentWorkflowConfigFromJSON,
+  MethodologicalAlignmentWorkflowConfigToJSON,
+  MethodologicalAlignmentWorkflowDetailFromJSON,
+  MethodologicalAlignmentWorkflowDetailToJSON,
+  StartWorkflowResponseFromJSON,
+  StartWorkflowResponseToJSON,
+  SubstantiationWorkflowConfigFromJSON,
+  SubstantiationWorkflowConfigToJSON,
 } from '../models/index';
 
 export interface GetChunkDetailsEndpointApiWorkflowRunWorkflowRunIdChunkChunkIndexGetRequest {
@@ -30,13 +44,25 @@ export interface GetChunkDetailsEndpointApiWorkflowRunWorkflowRunIdChunkChunkInd
   chunkIndex: number;
 }
 
+export interface GetClaimSubstantiationWorkflowStateApiWorkflowsClaimSubstantiationWorkflowRunIdGetRequest {
+  workflowRunId: string;
+}
+
+export interface GetMethodologicalAlignmentWorkflowStateApiWorkflowsMethodologicalAlignmentWorkflowRunIdGetRequest {
+  workflowRunId: string;
+}
+
 export interface GetPageImageApiWorkflowRunsWorkflowRunIdPagesPageNumGetRequest {
   workflowRunId: string;
   pageNum: number;
 }
 
-export interface GetWorkflowRunApiWorkflowRunWorkflowRunIdGetRequest {
-  workflowRunId: string;
+export interface StartClaimSubstantiationWorkflowApiWorkflowsClaimSubstantiationStartPostRequest {
+  substantiationWorkflowConfig: SubstantiationWorkflowConfig;
+}
+
+export interface StartMethodologicalAlignmentWorkflowApiWorkflowsMethodologicalAlignmentStartPostRequest {
+  methodologicalAlignmentWorkflowConfig: MethodologicalAlignmentWorkflowConfig;
 }
 
 /**
@@ -98,6 +124,127 @@ export class WorkflowsApi extends runtime.BaseAPI {
       requestParameters,
       initOverrides,
     );
+    return await response.value();
+  }
+
+  /**
+   * Get the state of a workflow of type \"claim_substantiation\"
+   * Get Claim Substantiation Workflow State
+   */
+  async getClaimSubstantiationWorkflowStateApiWorkflowsClaimSubstantiationWorkflowRunIdGetRaw(
+    requestParameters: GetClaimSubstantiationWorkflowStateApiWorkflowsClaimSubstantiationWorkflowRunIdGetRequest,
+    initOverrides?: RequestInit | runtime.InitOverrideFunction,
+  ): Promise<runtime.ApiResponse<ClaimSubstantiationWorkflowDetail>> {
+    if (requestParameters['workflowRunId'] == null) {
+      throw new runtime.RequiredError(
+        'workflowRunId',
+        'Required parameter "workflowRunId" was null or undefined when calling getClaimSubstantiationWorkflowStateApiWorkflowsClaimSubstantiationWorkflowRunIdGet().',
+      );
+    }
+
+    const queryParameters: any = {};
+
+    const headerParameters: runtime.HTTPHeaders = {};
+
+    if (this.configuration && this.configuration.accessToken) {
+      const token = this.configuration.accessToken;
+      const tokenString = await token('HTTPBearer', []);
+
+      if (tokenString) {
+        headerParameters['Authorization'] = `Bearer ${tokenString}`;
+      }
+    }
+
+    let urlPath = `/api/workflows/claim_substantiation/{workflow_run_id}`;
+    urlPath = urlPath.replace(`{${'workflow_run_id'}}`, encodeURIComponent(String(requestParameters['workflowRunId'])));
+
+    const response = await this.request(
+      {
+        path: urlPath,
+        method: 'GET',
+        headers: headerParameters,
+        query: queryParameters,
+      },
+      initOverrides,
+    );
+
+    return new runtime.JSONApiResponse(response, (jsonValue) => ClaimSubstantiationWorkflowDetailFromJSON(jsonValue));
+  }
+
+  /**
+   * Get the state of a workflow of type \"claim_substantiation\"
+   * Get Claim Substantiation Workflow State
+   */
+  async getClaimSubstantiationWorkflowStateApiWorkflowsClaimSubstantiationWorkflowRunIdGet(
+    requestParameters: GetClaimSubstantiationWorkflowStateApiWorkflowsClaimSubstantiationWorkflowRunIdGetRequest,
+    initOverrides?: RequestInit | runtime.InitOverrideFunction,
+  ): Promise<ClaimSubstantiationWorkflowDetail> {
+    const response = await this.getClaimSubstantiationWorkflowStateApiWorkflowsClaimSubstantiationWorkflowRunIdGetRaw(
+      requestParameters,
+      initOverrides,
+    );
+    return await response.value();
+  }
+
+  /**
+   * Get the state of a workflow of type \"methodological_alignment\"
+   * Get Methodological Alignment Workflow State
+   */
+  async getMethodologicalAlignmentWorkflowStateApiWorkflowsMethodologicalAlignmentWorkflowRunIdGetRaw(
+    requestParameters: GetMethodologicalAlignmentWorkflowStateApiWorkflowsMethodologicalAlignmentWorkflowRunIdGetRequest,
+    initOverrides?: RequestInit | runtime.InitOverrideFunction,
+  ): Promise<runtime.ApiResponse<MethodologicalAlignmentWorkflowDetail>> {
+    if (requestParameters['workflowRunId'] == null) {
+      throw new runtime.RequiredError(
+        'workflowRunId',
+        'Required parameter "workflowRunId" was null or undefined when calling getMethodologicalAlignmentWorkflowStateApiWorkflowsMethodologicalAlignmentWorkflowRunIdGet().',
+      );
+    }
+
+    const queryParameters: any = {};
+
+    const headerParameters: runtime.HTTPHeaders = {};
+
+    if (this.configuration && this.configuration.accessToken) {
+      const token = this.configuration.accessToken;
+      const tokenString = await token('HTTPBearer', []);
+
+      if (tokenString) {
+        headerParameters['Authorization'] = `Bearer ${tokenString}`;
+      }
+    }
+
+    let urlPath = `/api/workflows/methodological_alignment/{workflow_run_id}`;
+    urlPath = urlPath.replace(`{${'workflow_run_id'}}`, encodeURIComponent(String(requestParameters['workflowRunId'])));
+
+    const response = await this.request(
+      {
+        path: urlPath,
+        method: 'GET',
+        headers: headerParameters,
+        query: queryParameters,
+      },
+      initOverrides,
+    );
+
+    return new runtime.JSONApiResponse(response, (jsonValue) =>
+      MethodologicalAlignmentWorkflowDetailFromJSON(jsonValue),
+    );
+  }
+
+  /**
+   * Get the state of a workflow of type \"methodological_alignment\"
+   * Get Methodological Alignment Workflow State
+   */
+  async getMethodologicalAlignmentWorkflowStateApiWorkflowsMethodologicalAlignmentWorkflowRunIdGet(
+    requestParameters: GetMethodologicalAlignmentWorkflowStateApiWorkflowsMethodologicalAlignmentWorkflowRunIdGetRequest,
+    initOverrides?: RequestInit | runtime.InitOverrideFunction,
+  ): Promise<MethodologicalAlignmentWorkflowDetail> {
+    const response =
+      await this.getMethodologicalAlignmentWorkflowStateApiWorkflowsMethodologicalAlignmentWorkflowRunIdGetRaw(
+        requestParameters,
+        initOverrides,
+      );
     return await response.value();
   }
 
@@ -173,17 +320,17 @@ export class WorkflowsApi extends runtime.BaseAPI {
   }
 
   /**
-   * Get detailed workflow run information including state
-   * Get Workflow Run
+   * Start a workflow of type \"claim_substantiation\"
+   * Start Claim Substantiation Workflow
    */
-  async getWorkflowRunApiWorkflowRunWorkflowRunIdGetRaw(
-    requestParameters: GetWorkflowRunApiWorkflowRunWorkflowRunIdGetRequest,
+  async startClaimSubstantiationWorkflowApiWorkflowsClaimSubstantiationStartPostRaw(
+    requestParameters: StartClaimSubstantiationWorkflowApiWorkflowsClaimSubstantiationStartPostRequest,
     initOverrides?: RequestInit | runtime.InitOverrideFunction,
-  ): Promise<runtime.ApiResponse<WorkflowRunDetailed>> {
-    if (requestParameters['workflowRunId'] == null) {
+  ): Promise<runtime.ApiResponse<StartWorkflowResponse>> {
+    if (requestParameters['substantiationWorkflowConfig'] == null) {
       throw new runtime.RequiredError(
-        'workflowRunId',
-        'Required parameter "workflowRunId" was null or undefined when calling getWorkflowRunApiWorkflowRunWorkflowRunIdGet().',
+        'substantiationWorkflowConfig',
+        'Required parameter "substantiationWorkflowConfig" was null or undefined when calling startClaimSubstantiationWorkflowApiWorkflowsClaimSubstantiationStartPost().',
       );
     }
 
@@ -191,6 +338,8 @@ export class WorkflowsApi extends runtime.BaseAPI {
 
     const headerParameters: runtime.HTTPHeaders = {};
 
+    headerParameters['Content-Type'] = 'application/json';
+
     if (this.configuration && this.configuration.accessToken) {
       const token = this.configuration.accessToken;
       const tokenString = await token('HTTPBearer', []);
@@ -200,44 +349,57 @@ export class WorkflowsApi extends runtime.BaseAPI {
       }
     }
 
-    let urlPath = `/api/workflow-run/{workflow_run_id}`;
-    urlPath = urlPath.replace(`{${'workflow_run_id'}}`, encodeURIComponent(String(requestParameters['workflowRunId'])));
+    let urlPath = `/api/workflows/claim_substantiation/start`;
 
     const response = await this.request(
       {
         path: urlPath,
-        method: 'GET',
+        method: 'POST',
         headers: headerParameters,
         query: queryParameters,
+        body: SubstantiationWorkflowConfigToJSON(requestParameters['substantiationWorkflowConfig']),
       },
       initOverrides,
     );
 
-    return new runtime.JSONApiResponse(response, (jsonValue) => WorkflowRunDetailedFromJSON(jsonValue));
+    return new runtime.JSONApiResponse(response, (jsonValue) => StartWorkflowResponseFromJSON(jsonValue));
   }
 
   /**
-   * Get detailed workflow run information including state
-   * Get Workflow Run
+   * Start a workflow of type \"claim_substantiation\"
+   * Start Claim Substantiation Workflow
    */
-  async getWorkflowRunApiWorkflowRunWorkflowRunIdGet(
-    requestParameters: GetWorkflowRunApiWorkflowRunWorkflowRunIdGetRequest,
+  async startClaimSubstantiationWorkflowApiWorkflowsClaimSubstantiationStartPost(
+    requestParameters: StartClaimSubstantiationWorkflowApiWorkflowsClaimSubstantiationStartPostRequest,
     initOverrides?: RequestInit | runtime.InitOverrideFunction,
-  ): Promise<WorkflowRunDetailed> {
-    const response = await this.getWorkflowRunApiWorkflowRunWorkflowRunIdGetRaw(requestParameters, initOverrides);
+  ): Promise<StartWorkflowResponse> {
+    const response = await this.startClaimSubstantiationWorkflowApiWorkflowsClaimSubstantiationStartPostRaw(
+      requestParameters,
+      initOverrides,
+    );
     return await response.value();
   }
 
   /**
-   * List all workflow runs
-   * List Workflow Runs
+   * Start a workflow of type \"methodological_alignment\"
+   * Start Methodological Alignment Workflow
    */
-  async listWorkflowRunsApiWorkflowRunsGetRaw(
+  async startMethodologicalAlignmentWorkflowApiWorkflowsMethodologicalAlignmentStartPostRaw(
+    requestParameters: StartMethodologicalAlignmentWorkflowApiWorkflowsMethodologicalAlignmentStartPostRequest,
     initOverrides?: RequestInit | runtime.InitOverrideFunction,
-  ): Promise<runtime.ApiResponse<Array<WorkflowRun>>> {
+  ): Promise<runtime.ApiResponse<StartWorkflowResponse>> {
+    if (requestParameters['methodologicalAlignmentWorkflowConfig'] == null) {
+      throw new runtime.RequiredError(
+        'methodologicalAlignmentWorkflowConfig',
+        'Required parameter "methodologicalAlignmentWorkflowConfig" was null or undefined when calling startMethodologicalAlignmentWorkflowApiWorkflowsMethodologicalAlignmentStartPost().',
+      );
+    }
+
     const queryParameters: any = {};
 
     const headerParameters: runtime.HTTPHeaders = {};
+
+    headerParameters['Content-Type'] = 'application/json';
 
     if (this.configuration && this.configuration.accessToken) {
       const token = this.configuration.accessToken;
@@ -248,29 +410,34 @@ export class WorkflowsApi extends runtime.BaseAPI {
       }
     }
 
-    let urlPath = `/api/workflow-runs`;
+    let urlPath = `/api/workflows/methodological_alignment/start`;
 
     const response = await this.request(
       {
         path: urlPath,
-        method: 'GET',
+        method: 'POST',
         headers: headerParameters,
         query: queryParameters,
+        body: MethodologicalAlignmentWorkflowConfigToJSON(requestParameters['methodologicalAlignmentWorkflowConfig']),
       },
       initOverrides,
     );
 
-    return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(WorkflowRunFromJSON));
+    return new runtime.JSONApiResponse(response, (jsonValue) => StartWorkflowResponseFromJSON(jsonValue));
   }
 
   /**
-   * List all workflow runs
-   * List Workflow Runs
+   * Start a workflow of type \"methodological_alignment\"
+   * Start Methodological Alignment Workflow
    */
-  async listWorkflowRunsApiWorkflowRunsGet(
+  async startMethodologicalAlignmentWorkflowApiWorkflowsMethodologicalAlignmentStartPost(
+    requestParameters: StartMethodologicalAlignmentWorkflowApiWorkflowsMethodologicalAlignmentStartPostRequest,
     initOverrides?: RequestInit | runtime.InitOverrideFunction,
-  ): Promise<Array<WorkflowRun>> {
-    const response = await this.listWorkflowRunsApiWorkflowRunsGetRaw(initOverrides);
+  ): Promise<StartWorkflowResponse> {
+    const response = await this.startMethodologicalAlignmentWorkflowApiWorkflowsMethodologicalAlignmentStartPostRaw(
+      requestParameters,
+      initOverrides,
+    );
     return await response.value();
   }
 }

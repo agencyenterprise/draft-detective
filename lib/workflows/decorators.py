@@ -10,7 +10,7 @@ from lib.workflows.claim_substantiation.state import (
     ClaimSubstantiatorState,
     DocumentChunk,
 )
-from lib.workflows.models import WorkflowError
+from lib.workflows.models import BaseWorkflowState, WorkflowError
 
 # Type variable for decorator return types
 T = TypeVar("T")
@@ -75,24 +75,28 @@ def register_node(name: str, description: str):
     """
 
     def decorator(
-        func: Callable[[ClaimSubstantiatorState, ...], ClaimSubstantiatorState],
-    ) -> Callable[[ClaimSubstantiatorState, ...], ClaimSubstantiatorState]:
+        func: Callable[[BaseWorkflowState, ...], BaseWorkflowState],
+    ) -> Callable[[BaseWorkflowState, ...], BaseWorkflowState]:
 
         func_logger = logging.getLogger(func.__module__)
         agent_registry.register(func.__name__, name, description)
 
         @wraps(func)
         async def wrapper(
-            state: ClaimSubstantiatorState, *args, **kwargs
-        ) -> ClaimSubstantiatorState:
-            agents_to_run = state.config.agents_to_run
+            state: BaseWorkflowState, *args, **kwargs
+        ) -> BaseWorkflowState:
+
+            config = getattr(state, "config", None)
+            project_id = getattr(config, "project_id", None)
+            agents_to_run = getattr(config, "agents_to_run", None)
+
             if agents_to_run and func.__name__ not in agents_to_run:
                 func_logger.info(
-                    f"{func.__name__} ({state.config.session_id}): skipping (not in agents_to_run)"
+                    f"{func.__name__} ({project_id}): skipping (not in agents_to_run)"
                 )
                 return {}
 
-            func_logger.info(f"{func.__name__} ({state.config.session_id}): starting")
+            func_logger.info(f"{func.__name__} ({project_id}): starting")
             start_time = time.time()
 
             try:
@@ -100,7 +104,7 @@ def register_node(name: str, description: str):
 
             except Exception as e:
                 func_logger.error(
-                    f"{func.__name__} ({state.config.session_id}): workflow node execution failed with error: {str(e)}",
+                    f"{func.__name__} ({project_id}): workflow node execution failed with error: {str(e)}",
                     exc_info=True,
                 )
                 return {
@@ -108,7 +112,7 @@ def register_node(name: str, description: str):
                 }
 
             func_logger.info(
-                f"{func.__name__} ({state.config.session_id}): done in {time.time() - start_time:.2f} seconds"
+                f"{func.__name__} ({project_id}): done in {time.time() - start_time:.2f} seconds"
             )
 
             return result

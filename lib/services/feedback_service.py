@@ -9,7 +9,6 @@ import uuid
 
 from fastapi import HTTPException
 
-from lib.config.database import get_db
 from lib.models.feedback import Feedback, FeedbackType
 from lib.models.project import Project
 from lib.models.user import User
@@ -21,18 +20,17 @@ def _verify_workflow_run_ownership(
     session, workflow_run_id: uuid.UUID, user: User
 ) -> None:
     """Verify that the user owns the workflow run, raise 403 if not."""
-    workflow_run = (
-        session.query(WorkflowRun).filter(WorkflowRun.id == workflow_run_id).first()
+    workflow_run, project = (
+        session.query(WorkflowRun, Project)
+        .join(Project)
+        .filter(WorkflowRun.id == workflow_run_id)
+        .first()
     )
 
-    if workflow_run is None:
+    if workflow_run is None or project is None:
         raise HTTPException(status_code=404, detail="Workflow run not found")
 
-    # Check access through project
-    project = (
-        session.query(Project).filter(Project.id == workflow_run.project_id).first()
-    )
-    if project is None or project.user_id is None or project.user_id != user.id:
+    if project.user_id is None or project.user_id != user.id:
         raise HTTPException(status_code=403, detail="Access denied")
 
 

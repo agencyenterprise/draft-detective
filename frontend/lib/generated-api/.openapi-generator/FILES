@@ -30,6 +30,7 @@ models/ClaimEvidenceSource.ts
 models/ClaimReferenceFactors.ts
 models/ClaimResponse.ts
 models/ClaimSubstantiationResultWithClaimIndex.ts
+models/ClaimSubstantiationWorkflowDetail.ts
 models/ClaimSubstantiatorState.ts
 models/ClaimSubstantiatorStateSummary.ts
 models/Claims.ts
@@ -58,6 +59,9 @@ models/HTTPValidationError.ts
 models/InferenceValidationResponseWithClaimIndex.ts
 models/LiteratureReviewResponseInput.ts
 models/LiteratureReviewResponseOutput.ts
+models/MethodologicalAlignmentState.ts
+models/MethodologicalAlignmentWorkflowConfig.ts
+models/MethodologicalAlignmentWorkflowDetail.ts
 models/MethodologyComparisonResponse.ts
 models/PoliticalBias.ts
 models/Project.ts
@@ -77,7 +81,7 @@ models/ReportOutputOutput.ts
 models/RerunAnalysisRequest.ts
 models/RetrievedPassageInfo.ts
 models/SeverityEnum.ts
-models/StartAnalysisResponse.ts
+models/StartWorkflowResponse.ts
 models/SubstantiationWorkflowConfig.ts
 models/ToulminClaim.ts
 models/ToulminClaimResponse.ts
@@ -87,7 +91,7 @@ models/ValidationError.ts
 models/ValidationErrorLocInner.ts
 models/WorkflowError.ts
 models/WorkflowRun.ts
-models/WorkflowRunDetailed.ts
 models/WorkflowRunStatus.ts
+models/WorkflowRunType.ts
 models/index.ts
 runtime.ts

@@ -1,3 +1,5 @@
+from enum import Enum
+from operator import add
 from typing import Annotated, List, Optional
 from pydantic import BaseModel, Field
 
@@ -11,3 +13,30 @@ class WorkflowError(BaseModel):
     )
     task_name: str = Field(description="The name of the task that caused the error.")
     error: str = Field(description="The error message.")
+
+
+class BaseWorkflowState(BaseModel):
+    """Base model for all workflow states."""
+
+    errors: Annotated[List[WorkflowError], add] = Field(
+        default_factory=list,
+        description="Errors that occurred during the workflow execution.",
+    )
+
+
+class BaseWorkflowConfig(BaseModel):
+    """Base model for all workflow configs."""
+
+    project_id: Optional[str] = Field(
+        default=None,
+        description="The ID of the project that this workflow run should be associated with",
+    )
+    openai_api_key: Optional[str] = Field(
+        default=None,
+        description="The OpenAI API key to use for this workflow execution",
+    )
+
+
+class WorkflowRunType(str, Enum):
+    CLAIM_SUBSTANTIATION = "claim_substantiation"
+    METHODOLOGICAL_ALIGNMENT = "methodological_alignment"

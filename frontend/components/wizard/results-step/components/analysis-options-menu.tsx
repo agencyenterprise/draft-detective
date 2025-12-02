@@ -6,8 +6,9 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { ClaimSubstantiatorStateSummary } from '@/lib/generated-api';
 import { projectsApi } from '@/lib/api';
+import { WorkflowRunType } from '@/lib/generated-api';
+import { getWorkflowRunByType, WorkflowRunDetail } from '@/lib/workflow-state';
 import { Download, EllipsisVerticalIcon, FileTextIcon, RefreshCcwIcon } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -16,12 +17,14 @@ export interface AnalysisOptionsMenuProps {
   onSaveAsEvalTest: () => void;
   onReevaluate: () => void;
   projectId: string;
-  results: ClaimSubstantiatorStateSummary | undefined;
+  results: WorkflowRunDetail[];
 }
 
 export function AnalysisOptionsMenu({ onSaveAsEvalTest, onReevaluate, projectId, results }: AnalysisOptionsMenuProps) {
   const [isDownloading, setIsDownloading] = useState(false);
-  const hasDocx = results?.file?.originalFilePath?.endsWith('.docx');
+
+  const claimSubstantiationResults = getWorkflowRunByType(results, WorkflowRunType.ClaimSubstantiation);
+  const hasDocx = claimSubstantiationResults?.state?.file?.originalFilePath?.endsWith('.docx');
 
   const handleDownloadDocx = async () => {
     setIsDownloading(true);

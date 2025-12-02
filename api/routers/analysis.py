@@ -7,10 +7,10 @@ import uuid
 from typing import Optional
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile
-from pydantic import BaseModel
 
 from api.auth import get_current_user
 from api.dependencies import build_config_from_form
+from api.models import StartWorkflowResponse
 from api.services.workflow_runner import run_workflow_background
 from api.upload import convert_uploaded_files_to_file_document
 from lib.agents.registry import agent_registry
@@ -27,14 +27,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=["analysis"])
 
 
-class StartAnalysisResponse(BaseModel):
-    """Response model for starting an async analysis workflow"""
-
-    project_id: str
-    message: str
-
-
-@router.post("/api/start-analysis", response_model=StartAnalysisResponse)
+@router.post("/api/start-analysis", response_model=StartWorkflowResponse)
 async def start_analysis(
     background_tasks: BackgroundTasks,
     main_document: UploadFile = File(...),
@@ -81,7 +74,7 @@ async def start_analysis(
             config,
         )
 
-        return StartAnalysisResponse(
+        return StartWorkflowResponse(
             project_id=str(project.id),
             message="Analysis started. Track progress by polling the project endpoint `/api/project/{project_id}`.",
         )
@@ -93,7 +86,7 @@ async def start_analysis(
         )
 
 
-@router.post("/api/rerun-analysis", response_model=StartAnalysisResponse)
+@router.post("/api/rerun-analysis", response_model=StartWorkflowResponse)
 async def rerun_analysis_endpoint(
     request: RerunAnalysisRequest,
     background_tasks: BackgroundTasks,
@@ -119,7 +112,7 @@ async def rerun_analysis_endpoint(
             current_user=current_user,
         )
 
-        return StartAnalysisResponse(
+        return StartWorkflowResponse(
             project_id=request.project_id,
             message="Analysis re-run started. You can track progress using the workflow_run_id.",
         )

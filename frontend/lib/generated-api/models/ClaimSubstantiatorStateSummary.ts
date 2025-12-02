@@ -113,6 +113,18 @@ import {
 export interface ClaimSubstantiatorStateSummary {
   /**
    *
+   * @type {Array<WorkflowError>}
+   * @memberof ClaimSubstantiatorStateSummary
+   */
+  errors?: Array<WorkflowError>;
+  /**
+   *
+   * @type {string}
+   * @memberof ClaimSubstantiatorStateSummary
+   */
+  type?: ClaimSubstantiatorStateSummaryTypeEnum;
+  /**
+   *
    * @type {FileDocumentOutput}
    * @memberof ClaimSubstantiatorStateSummary
    */
@@ -153,12 +165,6 @@ export interface ClaimSubstantiatorStateSummary {
    * @memberof ClaimSubstantiatorStateSummary
    */
   chunks?: Array<DocumentChunkSummary>;
-  /**
-   *
-   * @type {Array<WorkflowError>}
-   * @memberof ClaimSubstantiatorStateSummary
-   */
-  errors?: Array<WorkflowError>;
   /**
    *
    * @type {DocumentSummary}
@@ -210,6 +216,15 @@ export interface ClaimSubstantiatorStateSummary {
 }
 
 /**
+ * @export
+ */
+export const ClaimSubstantiatorStateSummaryTypeEnum = {
+  ClaimSubstantiation: 'claim_substantiation',
+} as const;
+export type ClaimSubstantiatorStateSummaryTypeEnum =
+  (typeof ClaimSubstantiatorStateSummaryTypeEnum)[keyof typeof ClaimSubstantiatorStateSummaryTypeEnum];
+
+/**
  * Check if a given object implements the ClaimSubstantiatorStateSummary interface.
  */
 export function instanceOfClaimSubstantiatorStateSummary(value: object): value is ClaimSubstantiatorStateSummary {
@@ -230,6 +245,8 @@ export function ClaimSubstantiatorStateSummaryFromJSONTyped(
     return json;
   }
   return {
+    errors: json['errors'] == null ? undefined : (json['errors'] as Array<any>).map(WorkflowErrorFromJSON),
+    type: json['type'] == null ? undefined : json['type'],
     file: FileDocumentOutputFromJSON(json['file']),
     supportingFiles:
       json['supporting_files'] == null
@@ -244,7 +261,6 @@ export function ClaimSubstantiatorStateSummaryFromJSONTyped(
         ? undefined
         : (json['references_validated'] as Array<any>).map(BibliographyItemValidationOutputFromJSON),
     chunks: json['chunks'] == null ? undefined : (json['chunks'] as Array<any>).map(DocumentChunkSummaryFromJSON),
-    errors: json['errors'] == null ? undefined : (json['errors'] as Array<any>).map(WorkflowErrorFromJSON),
     mainDocumentSummary:
       json['main_document_summary'] == null ? undefined : DocumentSummaryFromJSON(json['main_document_summary']),
     supportingDocumentsSummaries:
@@ -281,6 +297,8 @@ export function ClaimSubstantiatorStateSummaryToJSONTyped(
   }
 
   return {
+    errors: value['errors'] == null ? undefined : (value['errors'] as Array<any>).map(WorkflowErrorToJSON),
+    type: value['type'],
     file: FileDocumentOutputToJSON(value['file']),
     supporting_files:
       value['supportingFiles'] == null
@@ -295,7 +313,6 @@ export function ClaimSubstantiatorStateSummaryToJSONTyped(
         ? undefined
         : (value['referencesValidated'] as Array<any>).map(BibliographyItemValidationOutputToJSON),
     chunks: value['chunks'] == null ? undefined : (value['chunks'] as Array<any>).map(DocumentChunkSummaryToJSON),
-    errors: value['errors'] == null ? undefined : (value['errors'] as Array<any>).map(WorkflowErrorToJSON),
     main_document_summary: DocumentSummaryToJSON(value['mainDocumentSummary']),
     supporting_documents_summaries:
       value['supportingDocumentsSummaries'] == null
