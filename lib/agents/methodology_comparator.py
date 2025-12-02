@@ -74,7 +74,7 @@ This is the methodology as extracted from the focal paper:
 You must return a single field called **comparison** which is:
 
 - A **coherent, stand-alone narrative** written in clear prose.
-- Approximately **500–900 words**.
+- Approximately **500–900 words** for the comparison sections (the extracted methodology section adds additional length).
 - Structured using markdown formatting as shown in the template below.
 
 ### Suggested Markdown Format
@@ -82,6 +82,10 @@ You must return a single field called **comparison** which is:
 Format your response using the following markdown structure:
 
 ```markdown
+## Extracted Methodology
+
+[Include the full extracted methodology from the paper here. This should be a complete restatement or copy of the methodology provided in the input. Present it clearly and comprehensively so readers understand exactly what methodology was used in the paper before seeing the comparison.]
+
 ## Field Methods Overview
 
 [Brief overview of standard practices in the field, based on web search findings. Describe typical data sources, experimental setups, analytical techniques, and evaluation practices used in the broader field.]
@@ -120,6 +124,7 @@ Format your response using the following markdown structure:
 
 Additional guidance:
 
+- **Start with the extracted methodology**: The first section must be "## Extracted Methodology" and should contain the full methodology from the paper. This allows readers to understand what was done before seeing how it compares to the field.
 - Base your reasoning on the provided paper methodology and information found through web search.
 - When something seems important but is not specified in the paper methodology, explicitly note that it is **not specified** rather than guessing.
 - You may generalize about the field when it is clearly supported by web search results, but avoid fabricating very specific claims or citations.
