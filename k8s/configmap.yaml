@@ -7,6 +7,8 @@ data:
   POSTGRES_PORT: "5432"
   FILE_UPLOADS_MOUNT_PATH: "/app/uploads"
   LANGFUSE_HOST: "https://cloud.langfuse.com"
+  FILE_CONVERTER: "docling"
+  DOCLING_SERVE_API_URL: "http://docling-serve:5001"
 ---
 apiVersion: v1
 kind: ConfigMap
