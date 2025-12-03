@@ -20,12 +20,9 @@ from lib.workflows.methodological_alignment.state import (
     MethodologicalAlignmentWorkflowConfig,
 )
 from lib.workflows.models import BaseWorkflowConfig, BaseWorkflowState, WorkflowRunType
-from lib.workflows.reference_check.state import ReferenceCheckState
 from lib.config.env import config as env_config
 
-WorkflowState = (
-    ClaimSubstantiatorState | MethodologicalAlignmentState | ReferenceCheckState
-)
+WorkflowState = ClaimSubstantiatorState | MethodologicalAlignmentState
 
 WorkflowStateType = TypeVar("WorkflowStateType", bound=BaseWorkflowState)
 
