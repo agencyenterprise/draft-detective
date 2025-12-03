@@ -6,8 +6,10 @@ import { TabType } from '@/components/wizard/results-step/constants';
 import { ResultsVisualization } from '@/components/wizard/results-step/results-visualization';
 import { projectsApi } from '@/lib/api';
 import { DocRenderMode } from '@/lib/constants';
-import { ProjectDetailed, WorkflowRunStatus } from '@/lib/generated-api';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { ProjectDetailed, WorkflowRunType } from '@/lib/generated-api';
+import { useProjectDetails } from '@/lib/hooks/use-project-details';
+import { getWorkflowRunByType } from '@/lib/workflow-state';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -21,17 +23,7 @@ export default function ResultsPage() {
   const [activeTab, setActiveTab] = useState<TabType>('document-explorer');
   const [viewMode, setViewMode] = useState<DocRenderMode>('markdown');
 
-  const {
-    data: project,
-    isLoading,
-    error,
-  } = useQuery({
-    queryKey: ['project', projectId],
-    refetchInterval: ({ state }) => (state.data?.workflowRun?.run.status === WorkflowRunStatus.Running ? 3000 : false),
-    queryFn: () => projectsApi.getProjectEndpointApiProjectProjectIdGet({ projectId }),
-  });
-
-  const isProcessing = project?.workflowRun?.run.status === WorkflowRunStatus.Running;
+  const { project, workflowDetails, isProcessing, isLoading, error } = useProjectDetails(projectId);
 
   const updateTitleMutation = useMutation({
     mutationFn: async (newTitle: string) => {
@@ -99,7 +91,10 @@ export default function ResultsPage() {
     return null;
   }
 
-  const authors = project.workflowRun?.state?.mainDocumentSummary?.authors;
+  const claimSubstantiationResults = getWorkflowRunByType(workflowDetails, WorkflowRunType.ClaimSubstantiation);
+  const claimSubstantiationStateSummary = claimSubstantiationResults?.state;
+
+  const authors = claimSubstantiationStateSummary?.mainDocumentSummary?.authors;
 
   return (
     <div className="space-y-3">
@@ -113,7 +108,7 @@ export default function ResultsPage() {
           />
           <h2 className="text-muted-foreground text-sm">
             {authors && <span>{authors} — </span>}
-            <PublicationDateLabel results={project.workflowRun?.state} prefix="Published" suffix=" — " />
+            <PublicationDateLabel results={claimSubstantiationStateSummary} prefix="Published" suffix=" — " />
             <span>Analysis created {format(project.project.createdAt || new Date(), 'MMM d, yyyy')}</span>
           </h2>
         </hgroup>
@@ -121,7 +116,7 @@ export default function ResultsPage() {
 
       <ResultsVisualization
         projectId={projectId}
-        results={project.workflowRun?.state || undefined}
+        results={workflowDetails}
         isProcessing={isProcessing}
         viewMode={viewMode}
         onViewModeChange={setViewMode}

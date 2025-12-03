@@ -6,30 +6,13 @@ from starlette.responses import FileResponse
 from api.auth import get_current_user
 from lib.config.env import config
 from lib.models.user import User
-from lib.models.workflow_run import WorkflowRun
-from lib.services.workflow_runs import (
-    WorkflowRunDetailed,
-    get_chunk_details,
-    get_workflow_run_detailed,
-    get_workflow_runs,
+from lib.services.workflow_runs import get_chunk_details, get_workflow_run_state
+from lib.workflows.claim_substantiation.state import (
+    ClaimSubstantiatorState,
+    DocumentChunk,
 )
-from lib.workflows.claim_substantiation.state import DocumentChunk
 
 router = APIRouter(tags=["workflows"])
-
-
-@router.get("/api/workflow-runs", response_model=list[WorkflowRun])
-async def list_workflow_runs(current_user: User = Depends(get_current_user)):
-    """List all workflow runs"""
-    return await get_workflow_runs(user=current_user)
-
-
-@router.get("/api/workflow-run/{workflow_run_id}", response_model=WorkflowRunDetailed)
-async def get_workflow_run(
-    workflow_run_id: str, current_user: User = Depends(get_current_user)
-):
-    """Get detailed workflow run information including state"""
-    return await get_workflow_run_detailed(workflow_run_id, user=current_user)
 
 
 @router.get(
@@ -60,12 +43,14 @@ async def get_page_image(
     if page_num < 0:
         raise HTTPException(status_code=400, detail="Invalid page number")
 
-    workflow_run = await get_workflow_run_detailed(workflow_run_id, user=current_user)
+    state: ClaimSubstantiatorState = await get_workflow_run_state(
+        workflow_run_id, user=current_user
+    )
 
-    if not workflow_run.state or not hasattr(workflow_run.state, "file"):
+    if not hasattr(state, "file"):
         raise HTTPException(status_code=404, detail="Workflow state not found")
 
-    file_path = workflow_run.state.file.file_path
+    file_path = state.file.file_path
     filename = os.path.basename(file_path)
     file_id, _ = os.path.splitext(filename)
 

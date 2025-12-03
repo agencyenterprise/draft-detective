@@ -1,7 +1,7 @@
 from datetime import date
 from enum import StrEnum
 from operator import add
-from typing import Annotated, Dict, List, Optional, Union
+from typing import Annotated, Dict, List, Literal, Optional, Union
 
 from pydantic import BaseModel, Field
 
@@ -25,12 +25,20 @@ from lib.agents.reference_validator import BibliographyItemValidation
 from lib.agents.toulmin_claim_extractor import ToulminClaimResponse
 from lib.services.docling_models import ChunkToItems
 from lib.services.file import FileDocument
-from lib.workflows.models import WorkflowError
+from lib.workflows.models import (
+    BaseWorkflowConfig,
+    BaseWorkflowState,
+    WorkflowError,
+    WorkflowRunType,
+)
 
 
-class SubstantiationWorkflowConfig(BaseModel):
+class SubstantiationWorkflowConfig(BaseWorkflowConfig):
     """Configuration model for claim substantiation workflow"""
 
+    type: Literal[WorkflowRunType.CLAIM_SUBSTANTIATION] = Field(
+        WorkflowRunType.CLAIM_SUBSTANTIATION
+    )
     use_toulmin: bool = Field(
         default=False, description="Whether to use Toulmin claim detection approach"
     )
@@ -49,9 +57,6 @@ class SubstantiationWorkflowConfig(BaseModel):
     )
     run_reference_validation: bool = Field(
         default=False, description="Whether to validate references using web search"
-    )
-    run_align_methods: bool = Field(
-        default=False, description="Whether to run the methodology alignment analysis"
     )
     document_publication_date: Optional[date] = Field(
         default=None,
@@ -72,9 +77,6 @@ class SubstantiationWorkflowConfig(BaseModel):
     )
     session_id: Optional[str] = Field(
         default=None, description="Session ID for Langfuse tracing"
-    )
-    openai_api_key: Optional[str] = Field(
-        default=None, description="OpenAI API key to use for this workflow execution"
     )
 
 
@@ -221,7 +223,11 @@ class DocumentIssue(BaseModel):
     )
 
 
-class ClaimSubstantiatorState(BaseModel):
+class ClaimSubstantiatorState(BaseWorkflowState):
+    type: Literal[WorkflowRunType.CLAIM_SUBSTANTIATION] = Field(
+        WorkflowRunType.CLAIM_SUBSTANTIATION
+    )
+
     # Inputs
     file: FileDocument
     supporting_files: Optional[List[FileDocument]] = None
@@ -235,10 +241,6 @@ class ClaimSubstantiatorState(BaseModel):
     references: List[BibliographyItem] = []
     references_validated: List[BibliographyItemValidation] = []
     chunks: Annotated[List[DocumentChunk], conciliate_chunks] = []
-    errors: Annotated[List[WorkflowError], add] = Field(
-        default_factory=list,
-        description="Errors that occurred during the processing of the document.",
-    )
     main_document_summary: Optional[DocumentSummary] = Field(
         default=None, description="The summary of the main document"
     )
@@ -276,8 +278,12 @@ class ClaimSubstantiatorState(BaseModel):
         return "\n".join([chunk.content for chunk in paragraph_chunks])
 
 
-class ClaimSubstantiatorStateSummary(BaseModel):
+class ClaimSubstantiatorStateSummary(BaseWorkflowState):
     """Summary version of ClaimSubstantiatorState with chunk summaries instead of full chunks"""
+
+    type: Literal[WorkflowRunType.CLAIM_SUBSTANTIATION] = Field(
+        WorkflowRunType.CLAIM_SUBSTANTIATION
+    )
 
     # Inputs
     file: FileDocument

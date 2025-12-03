@@ -2,10 +2,14 @@
 
 import { Dialog } from '@/components/ui/dialog';
 import { analysisService } from '@/lib/analysis-service';
+import { analysisApi } from '@/lib/api';
 import { DocRenderMode } from '@/lib/constants';
 import { downloadFile, generateEvalFilename } from '@/lib/file-download';
-import { ClaimSubstantiatorStateSummary, RerunAnalysisRequest } from '@/lib/generated-api';
+import { RerunAnalysisRequest, WorkflowRunType } from '@/lib/generated-api';
+import { getWorkflowRunByType, WorkflowRunDetail } from '@/lib/workflow-state';
+import { useMutation } from '@tanstack/react-query';
 import { useState } from 'react';
+import { toast } from 'sonner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../ui/card';
 import { TabNavigation } from './components';
 import { AnalysisOptionsMenu } from './components/analysis-options-menu';
@@ -17,18 +21,15 @@ import {
   FilesTab,
   LiteratureReviewTab,
   LiveReportsTab,
+  MethodologicalAlignmentTab,
   ReferencesTab,
   SummaryTab,
-  MethodologicalAlignmentTab,
 } from './tabs';
 import { DocumentExplorerTab } from './tabs/document-explorer-tab';
-import { useMutation } from '@tanstack/react-query';
-import { toast } from 'sonner';
-import { analysisApi } from '@/lib/api';
 
 interface ResultsVisualizationProps {
   projectId: string;
-  results: ClaimSubstantiatorStateSummary | undefined;
+  results: WorkflowRunDetail[];
   isProcessing?: boolean;
   viewMode: DocRenderMode;
   onViewModeChange: (mode: DocRenderMode) => void;
@@ -45,7 +46,12 @@ export function ResultsVisualization({
   activeTab,
   onTabChange,
 }: ResultsVisualizationProps) {
-  const calculations = useResultsCalculations(results);
+  const claimSubstantiationResults = getWorkflowRunByType(results, WorkflowRunType.ClaimSubstantiation);
+  const methodologicalAlignmentResults = getWorkflowRunByType(results, WorkflowRunType.MethodologicalAlignment);
+
+  const claimSubstantiationStateSummary = claimSubstantiationResults?.state;
+
+  const calculations = useResultsCalculations(claimSubstantiationStateSummary);
   const [isReevaluationDialogOpen, setIsReevaluationDialogOpen] = useState(false);
 
   const reevaluateMutation = useMutation({
@@ -72,13 +78,13 @@ export function ResultsVisualization({
   });
 
   const handleSaveAsEvalTest = async () => {
-    if (!results) return;
+    if (!claimSubstantiationStateSummary) return;
 
     try {
       const testName = `eval_${Date.now()}`;
       const description = `Generated from analysis results on ${new Date().toLocaleDateString()}`;
 
-      const blob = await analysisService.generateEvalPackage(results, testName, description);
+      const blob = await analysisService.generateEvalPackage(claimSubstantiationStateSummary, testName, description);
 
       const filename = generateEvalFilename(testName);
       downloadFile({ filename, blob });
@@ -88,10 +94,12 @@ export function ResultsVisualization({
   };
 
   const handleReevaluate = (values: ReevaluationFormValues) => {
+    if (!claimSubstantiationStateSummary) return;
+
     reevaluateMutation.mutate({
       projectId,
       config: {
-        ...results?.config,
+        ...claimSubstantiationStateSummary?.config,
         targetChunkIndices: values.targetChunkIndices,
         agentsToRun: values.selectedAgents,
         openaiApiKey: values.openaiApiKey,
@@ -99,7 +107,7 @@ export function ResultsVisualization({
     });
   };
 
-  if (!results) {
+  if (!claimSubstantiationStateSummary) {
     return (
       <Card className="max-w-4xl mx-auto">
         <CardHeader>
@@ -115,7 +123,7 @@ export function ResultsVisualization({
       case 'summary':
         return (
           <SummaryTab
-            results={results}
+            results={claimSubstantiationStateSummary}
             totalChunks={calculations.totalChunks}
             chunksWithClaims={calculations.chunksWithClaims}
             chunksWithCitations={calculations.chunksWithCitations}
@@ -127,28 +135,30 @@ export function ResultsVisualization({
           />
         );
       case 'references':
-        return <ReferencesTab results={results} isProcessing={isProcessing} />;
+        return <ReferencesTab results={claimSubstantiationStateSummary} isProcessing={isProcessing} />;
       case 'literature_review':
-        return <LiteratureReviewTab results={results} isProcessing={isProcessing} />;
+        return <LiteratureReviewTab results={claimSubstantiationStateSummary} isProcessing={isProcessing} />;
       case 'live_reports':
-        return <LiveReportsTab results={results} isProcessing={isProcessing} />;
+        return <LiveReportsTab results={claimSubstantiationStateSummary} isProcessing={isProcessing} />;
       case 'files':
-        return <FilesTab results={results} />;
+        return <FilesTab results={claimSubstantiationStateSummary} />;
       case 'document-explorer':
         return (
           <DocumentExplorerTab
             projectId={projectId}
-            results={results}
+            results={claimSubstantiationStateSummary}
             isProcessing={isProcessing}
             viewMode={viewMode}
           />
         );
       case 'methodological_alignment':
-        return <MethodologicalAlignmentTab results={results} isProcessing={isProcessing} />;
+        return <MethodologicalAlignmentTab results={methodologicalAlignmentResults} projectId={projectId} />;
     }
   };
 
-  const isDoclingAvailable = !!(results?.file?.doclingPages && results?.chunkToItems?.mapping);
+  const isDoclingAvailable = !!(
+    claimSubstantiationStateSummary?.file?.doclingPages && claimSubstantiationStateSummary?.chunkToItems?.mapping
+  );
 
   return (
     <div className="space-y-3">

@@ -13,6 +13,7 @@ interface TabWithLoadingStatesProps<T> {
   emptyStateChildren?: React.ReactNode;
   skeletonType?: 'list' | 'paragraphs';
   skeletonCount?: number;
+  triggerButton?: React.ReactNode;
   children: (data: T) => React.ReactNode;
 }
 
@@ -33,14 +34,19 @@ export function TabWithLoadingStates<T>({
   emptyStateChildren,
   skeletonType = 'list',
   skeletonCount = 3,
+  triggerButton,
   children,
 }: TabWithLoadingStatesProps<T>) {
   const isLoading = !hasData(data) && isProcessing;
 
-  if (isLoading) {
-    return (
-      <div className="space-y-4">
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
         <h3 className="text-lg font-semibold">{title}</h3>
+        {triggerButton}
+      </div>
+
+      {isLoading && (
         <EmptyState
           icon={<Loader2 className="h-12 w-12 animate-spin text-primary" />}
           title={loadingMessage.title}
@@ -52,23 +58,11 @@ export function TabWithLoadingStates<T>({
             <SkeletonParagraphs count={skeletonCount} />
           )}
         </EmptyState>
-      </div>
-    );
-  }
+      )}
 
-  if (!hasData(data)) {
-    return (
-      <div className="space-y-4">
-        <h3 className="text-lg font-semibold">{title}</h3>
-        <EmptyState {...emptyMessage}>{emptyStateChildren}</EmptyState>
-      </div>
-    );
-  }
+      {!isLoading && !hasData(data) && <EmptyState {...emptyMessage}>{emptyStateChildren}</EmptyState>}
 
-  return (
-    <div className="space-y-4">
-      <h3 className="text-lg font-semibold">{title}</h3>
-      {children(data!)}
+      {!isLoading && hasData(data) && children(data!)}
     </div>
   );
 }

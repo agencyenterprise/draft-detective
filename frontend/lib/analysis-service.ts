@@ -5,8 +5,8 @@ import {
   EvalPackageRequest,
   EvaluationApi,
   HealthApi,
-  StartAnalysisResponse,
-  StartAnalysisResponseFromJSON,
+  StartWorkflowResponse,
+  StartWorkflowResponseFromJSON,
   SubstantiationWorkflowConfig,
 } from '@/lib/generated-api';
 import { downloadBlobResponse, generateDefaultTestName } from '@/lib/utils';
@@ -39,7 +39,7 @@ class AnalysisService {
   async startAnalysis(
     request: AnalysisRequest,
     onProgress?: (progress: number) => void,
-  ): Promise<StartAnalysisResponse> {
+  ): Promise<StartWorkflowResponse> {
     return new Promise(async (resolve, reject) => {
       try {
         const config = request.config || {};
@@ -62,7 +62,6 @@ class AnalysisService {
         if (config.runLiveReports !== undefined) formData.append('run_live_reports', String(config.runLiveReports));
         if (config.runReferenceValidation !== undefined)
           formData.append('run_reference_validation', String(config.runReferenceValidation));
-        if (config.runAlignMethods !== undefined) formData.append('run_align_methods', String(config.runAlignMethods));
         if (config.domain) formData.append('domain', config.domain);
         if (config.targetAudience) formData.append('target_audience', config.targetAudience);
         if (config.documentPublicationDate)
@@ -84,7 +83,7 @@ class AnalysisService {
           if (xhr.status >= 200 && xhr.status < 300) {
             try {
               const rawResponse = JSON.parse(xhr.responseText);
-              const response = StartAnalysisResponseFromJSON(rawResponse);
+              const response = StartWorkflowResponseFromJSON(rawResponse);
               resolve(response);
             } catch {
               reject(new Error('Failed to parse response'));

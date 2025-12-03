@@ -18,7 +18,12 @@ from lib.services.projects import (
     get_user_projects,
     update_user_project,
 )
-from lib.services.workflow_runs import get_workflow_run_detailed
+from lib.services.workflow_runs import (
+    get_project_workflow_run_by_type,
+    get_workflow_run_state_by_thread_id,
+)
+from lib.workflows.claim_substantiation.state import ClaimSubstantiatorStateSummary
+from lib.workflows.models import WorkflowRunType
 
 router = APIRouter(tags=["projects"])
 
@@ -67,36 +72,27 @@ async def download_project_docx(
 ):
     """Download DOCX file for project - reviewed version if available, otherwise original"""
 
-    with get_db() as db:
-        project = db.query(Project).filter(Project.id == project_id).first()
+    project = await get_user_project_detailed(project_id, user=current_user)
 
-        if project is None:
-            raise HTTPException(status_code=404, detail="Project not found")
-
-        if project.user_id is None or project.user_id != current_user.id:
-            raise HTTPException(status_code=403, detail="Access denied")
-
-        workflow_run = (
-            db.query(WorkflowRun)
-            .filter(WorkflowRun.project_id == project_id)
-            .order_by(WorkflowRun.created_at.desc())
-            .first()
+    claim_substantiation_workflow_run = await get_project_workflow_run_by_type(
+        project.id, WorkflowRunType.CLAIM_SUBSTANTIATION
+    )
+    if not claim_substantiation_workflow_run:
+        raise HTTPException(
+            status_code=404, detail="Claim substantiation workflow run not found"
         )
 
-        if workflow_run is None:
-            raise HTTPException(
-                status_code=404,
-                detail="No workflow run found for this project",
-            )
-
-    workflow_detailed = await get_workflow_run_detailed(
-        str(workflow_run.id), user=current_user
+    claim_substantiation_state: ClaimSubstantiatorStateSummary = (
+        await get_workflow_run_state_by_thread_id(
+            claim_substantiation_workflow_run.langgraph_thread_id,
+            claim_substantiation_workflow_run.type,
+        )
     )
 
-    if not workflow_detailed.state or not workflow_detailed.state.file:
+    if not claim_substantiation_state or not claim_substantiation_state.file:
         raise HTTPException(status_code=404, detail="Workflow state not found")
 
-    original_file_path = workflow_detailed.state.file.original_file_path
+    original_file_path = claim_substantiation_state.file.original_file_path
     if not original_file_path or not original_file_path.endswith(".docx"):
         raise HTTPException(
             status_code=404,
@@ -104,7 +100,9 @@ async def download_project_docx(
         )
 
     # Try to get reviewed version first
-    reviewed_path = docx_manipulator_service.get_output_path(str(workflow_run.id))
+    reviewed_path = docx_manipulator_service.get_output_path(
+        str(claim_substantiation_workflow_run.id)
+    )
     if reviewed_path.exists():
         file_path = str(reviewed_path)
         is_reviewed = True
@@ -113,7 +111,7 @@ async def download_project_docx(
         file_path = original_file_path
         is_reviewed = False
 
-    base_name, _ = os.path.splitext(workflow_detailed.state.file.file_name)
+    base_name, _ = os.path.splitext(claim_substantiation_state.file.file_name)
     filename = f"{base_name}_reviewed.docx" if is_reviewed else f"{base_name}.docx"
 
     return FileResponse(

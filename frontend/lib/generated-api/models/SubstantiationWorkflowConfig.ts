@@ -20,6 +20,24 @@ import { mapValues } from '../runtime';
  */
 export interface SubstantiationWorkflowConfig {
   /**
+   *
+   * @type {string}
+   * @memberof SubstantiationWorkflowConfig
+   */
+  projectId?: string | null;
+  /**
+   *
+   * @type {string}
+   * @memberof SubstantiationWorkflowConfig
+   */
+  openaiApiKey?: string | null;
+  /**
+   *
+   * @type {string}
+   * @memberof SubstantiationWorkflowConfig
+   */
+  type?: SubstantiationWorkflowConfigTypeEnum;
+  /**
    * Whether to use Toulmin claim detection approach
    * @type {boolean}
    * @memberof SubstantiationWorkflowConfig
@@ -56,12 +74,6 @@ export interface SubstantiationWorkflowConfig {
    */
   runReferenceValidation?: boolean;
   /**
-   * Whether to run the methodology alignment analysis
-   * @type {boolean}
-   * @memberof SubstantiationWorkflowConfig
-   */
-  runAlignMethods?: boolean;
-  /**
    *
    * @type {Date}
    * @memberof SubstantiationWorkflowConfig
@@ -97,13 +109,16 @@ export interface SubstantiationWorkflowConfig {
    * @memberof SubstantiationWorkflowConfig
    */
   sessionId?: string | null;
-  /**
-   *
-   * @type {string}
-   * @memberof SubstantiationWorkflowConfig
-   */
-  openaiApiKey?: string | null;
 }
+
+/**
+ * @export
+ */
+export const SubstantiationWorkflowConfigTypeEnum = {
+  ClaimSubstantiation: 'claim_substantiation',
+} as const;
+export type SubstantiationWorkflowConfigTypeEnum =
+  (typeof SubstantiationWorkflowConfigTypeEnum)[keyof typeof SubstantiationWorkflowConfigTypeEnum];
 
 /**
  * Check if a given object implements the SubstantiationWorkflowConfig interface.
@@ -124,13 +139,15 @@ export function SubstantiationWorkflowConfigFromJSONTyped(
     return json;
   }
   return {
+    projectId: json['project_id'] == null ? undefined : json['project_id'],
+    openaiApiKey: json['openai_api_key'] == null ? undefined : json['openai_api_key'],
+    type: json['type'] == null ? undefined : json['type'],
     useToulmin: json['use_toulmin'] == null ? undefined : json['use_toulmin'],
     runLiteratureReview: json['run_literature_review'] == null ? undefined : json['run_literature_review'],
     runSuggestCitations: json['run_suggest_citations'] == null ? undefined : json['run_suggest_citations'],
     useRag: json['use_rag'] == null ? undefined : json['use_rag'],
     runLiveReports: json['run_live_reports'] == null ? undefined : json['run_live_reports'],
     runReferenceValidation: json['run_reference_validation'] == null ? undefined : json['run_reference_validation'],
-    runAlignMethods: json['run_align_methods'] == null ? undefined : json['run_align_methods'],
     documentPublicationDate:
       json['document_publication_date'] == null ? undefined : new Date(json['document_publication_date']),
     targetChunkIndices: json['target_chunk_indices'] == null ? undefined : json['target_chunk_indices'],
@@ -138,7 +155,6 @@ export function SubstantiationWorkflowConfigFromJSONTyped(
     domain: json['domain'] == null ? undefined : json['domain'],
     targetAudience: json['target_audience'] == null ? undefined : json['target_audience'],
     sessionId: json['session_id'] == null ? undefined : json['session_id'],
-    openaiApiKey: json['openai_api_key'] == null ? undefined : json['openai_api_key'],
   };
 }
 
@@ -155,13 +171,15 @@ export function SubstantiationWorkflowConfigToJSONTyped(
   }
 
   return {
+    project_id: value['projectId'],
+    openai_api_key: value['openaiApiKey'],
+    type: value['type'],
     use_toulmin: value['useToulmin'],
     run_literature_review: value['runLiteratureReview'],
     run_suggest_citations: value['runSuggestCitations'],
     use_rag: value['useRag'],
     run_live_reports: value['runLiveReports'],
     run_reference_validation: value['runReferenceValidation'],
-    run_align_methods: value['runAlignMethods'],
     document_publication_date:
       value['documentPublicationDate'] === null
         ? null
@@ -171,6 +189,5 @@ export function SubstantiationWorkflowConfigToJSONTyped(
     domain: value['domain'],
     target_audience: value['targetAudience'],
     session_id: value['sessionId'],
-    openai_api_key: value['openaiApiKey'],
   };
 }

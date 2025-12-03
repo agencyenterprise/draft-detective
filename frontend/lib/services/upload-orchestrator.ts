@@ -1,5 +1,5 @@
 import { AnalysisRequest, analysisService } from '../analysis-service';
-import { StartAnalysisResponse } from '../generated-api';
+import { StartWorkflowResponse } from '../generated-api';
 import { ProgressCallbacks, ProgressTracker } from './progress-tracker';
 
 export interface ValidationError {
@@ -21,7 +21,7 @@ export class UploadOrchestrator {
   async startAnalysisWithProgress(
     request: AnalysisRequest,
     callbacks: ProgressCallbacks,
-  ): Promise<StartAnalysisResponse> {
+  ): Promise<StartWorkflowResponse> {
     const tracker = new ProgressTracker('Uploading files');
 
     try {

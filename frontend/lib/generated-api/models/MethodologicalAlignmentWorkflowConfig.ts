@@ -20,17 +20,17 @@ import { mapValues } from '../runtime';
  */
 export interface MethodologicalAlignmentWorkflowConfig {
   /**
-   * The ID of the workflow run this should be associated with
+   *
    * @type {string}
    * @memberof MethodologicalAlignmentWorkflowConfig
    */
-  workflowRunId: string;
+  projectId?: string | null;
   /**
-   * The OpenAI API key to use for this workflow execution
+   *
    * @type {string}
    * @memberof MethodologicalAlignmentWorkflowConfig
    */
-  openaiApiKey: string;
+  openaiApiKey?: string | null;
   /**
    *
    * @type {string}
@@ -54,8 +54,6 @@ export type MethodologicalAlignmentWorkflowConfigTypeEnum =
 export function instanceOfMethodologicalAlignmentWorkflowConfig(
   value: object,
 ): value is MethodologicalAlignmentWorkflowConfig {
-  if (!('workflowRunId' in value) || value['workflowRunId'] === undefined) return false;
-  if (!('openaiApiKey' in value) || value['openaiApiKey'] === undefined) return false;
   return true;
 }
 
@@ -71,8 +69,8 @@ export function MethodologicalAlignmentWorkflowConfigFromJSONTyped(
     return json;
   }
   return {
-    workflowRunId: json['workflow_run_id'],
-    openaiApiKey: json['openai_api_key'],
+    projectId: json['project_id'] == null ? undefined : json['project_id'],
+    openaiApiKey: json['openai_api_key'] == null ? undefined : json['openai_api_key'],
     type: json['type'] == null ? undefined : json['type'],
   };
 }
@@ -90,7 +88,7 @@ export function MethodologicalAlignmentWorkflowConfigToJSONTyped(
   }
 
   return {
-    workflow_run_id: value['workflowRunId'],
+    project_id: value['projectId'],
     openai_api_key: value['openaiApiKey'],
     type: value['type'],
   };

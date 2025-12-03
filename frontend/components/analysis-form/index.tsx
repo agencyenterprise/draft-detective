@@ -30,7 +30,6 @@ export function AnalysisForm({ onSubmit, isPending = false }: AnalysisFormProps)
       runLiteratureReview: false,
       runSuggestCitations: false,
       runReferenceValidation: false,
-      runAlignMethods: false,
       webSearchConsent: false,
       openaiApiKey: openaiApiKey,
       mainDocument: null,
@@ -51,7 +50,6 @@ export function AnalysisForm({ onSubmit, isPending = false }: AnalysisFormProps)
           runLiteratureReview: value.reviewType === 'peer-review' && value.runLiteratureReview,
           runSuggestCitations: value.reviewType === 'peer-review' && value.runSuggestCitations,
           runReferenceValidation: value.reviewType === 'peer-review' && value.runReferenceValidation,
-          runAlignMethods: value.reviewType === 'peer-review' && value.runAlignMethods,
           openaiApiKey: value.openaiApiKey,
         },
       });
@@ -139,18 +137,6 @@ export function AnalysisForm({ onSubmit, isPending = false }: AnalysisFormProps)
                         />
                       )}
                     </form.Field>
-                    <form.Field name="runAlignMethods">
-                      {(field) => (
-                        <CheckboxWithDescription
-                          id="run-align-methods"
-                          checked={field.state.value}
-                          onCheckedChange={(checked) => field.handleChange(checked === true)}
-                          label="Methodological alignment (Optional)"
-                          description="Compares the document's methodology with typical methods used in the broader field, using web search to identify standard practices and assess alignment."
-                          disabled={isPending}
-                        />
-                      )}
-                    </form.Field>
                     <form.Subscribe selector={(state) => [state.values.runLiteratureReview]}>
                       {(showWhenTrue) =>
                         showWhenTrue.some((value) => !!value) && (
@@ -231,11 +217,10 @@ export function AnalysisForm({ onSubmit, isPending = false }: AnalysisFormProps)
           state.values.runLiteratureReview,
           state.values.reviewType,
           state.values.runReferenceValidation,
-          state.values.runAlignMethods,
         ]}
       >
-        {([runLiteratureReview, reviewType, runReferenceValidation, runAlignMethods]) =>
-          (runLiteratureReview || reviewType === 'live-reports' || runReferenceValidation || runAlignMethods) && (
+        {([runLiteratureReview, reviewType, runReferenceValidation]) =>
+          (runLiteratureReview || reviewType === 'live-reports' || runReferenceValidation) && (
             <form.Field name="webSearchConsent">
               {(field) => (
                 <div>

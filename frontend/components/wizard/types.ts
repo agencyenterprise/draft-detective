@@ -8,7 +8,6 @@ export interface AnalysisConfig {
   runSuggestCitations: boolean;
   runLiveReports: boolean;
   runReferenceValidation: boolean;
-  runAlignMethods: boolean;
   openaiApiKey: string;
 }
 

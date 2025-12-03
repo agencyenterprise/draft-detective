@@ -1,14 +1,11 @@
 import logging
-import uuid
 from typing import List, Optional
 
-from lib.config.env import config
 from lib.config.langfuse import langfuse_handler
 from lib.models.user import User
 from lib.models.workflow_run import WorkflowRunStatus
 from lib.services.file import FileDocument
 from lib.services.projects import get_user_project_detailed, update_project_title
-from lib.services.vector_store import VectorStoreService
 from lib.services.workflow_runs import upsert_workflow_run
 from lib.workflows.claim_substantiation.checkpointer import get_checkpointer
 from lib.workflows.claim_substantiation.context import ContextSchema
@@ -17,7 +14,8 @@ from lib.workflows.claim_substantiation.state import (
     ClaimSubstantiatorState,
     SubstantiationWorkflowConfig,
 )
-from lib.workflows.models import WorkflowError
+from lib.workflows.models import WorkflowError, WorkflowRunType
+from lib.workflows.registry import create_context
 
 logger = logging.getLogger(__name__)
 
@@ -102,12 +100,12 @@ async def _execute(
         use_rag=state.config.use_rag,
         run_live_reports=state.config.run_live_reports,
         run_reference_validation=state.config.run_reference_validation,
-        run_align_methods=state.config.run_align_methods,
     )
 
     async with get_checkpointer() as checkpointer:
         app = graph.compile(checkpointer=checkpointer).with_config(
             {
+                "run_name": WorkflowRunType.CLAIM_SUBSTANTIATION.value,
                 "callbacks": [langfuse_handler],
                 "metadata": {"langfuse_session_id": project_id},
             }
@@ -117,6 +115,7 @@ async def _execute(
             thread_id=thread_id,
             project_id=project_id,
             status=WorkflowRunStatus.RUNNING,
+            type=WorkflowRunType.CLAIM_SUBSTANTIATION,
         )
 
         state.workflow_run_id = workflow_run_id
@@ -135,6 +134,7 @@ async def _execute(
                     thread_id=thread_id,
                     project_id=project_id,
                     status=WorkflowRunStatus.RUNNING,
+                    type=WorkflowRunType.CLAIM_SUBSTANTIATION,
                 )
 
                 if (
@@ -154,26 +154,7 @@ async def _execute(
                 thread_id=thread_id,
                 project_id=project_id,
                 status=WorkflowRunStatus.COMPLETED,
+                type=WorkflowRunType.CLAIM_SUBSTANTIATION,
             )
 
     return updated_state
-
-
-def create_context(workflow_config: SubstantiationWorkflowConfig) -> ContextSchema:
-    """
-    Create a context object for the langchain workflow.
-    """
-
-    openai_api_key = (
-        workflow_config.openai_api_key
-        or config.OPENAI_API_KEY
-        or config.AZURE_OPENAI_API_KEY
-    )
-
-    if not openai_api_key:
-        raise ValueError("No OpenAI API key found in config or environment variables")
-
-    return ContextSchema(
-        openai_api_key=openai_api_key,
-        vector_store=VectorStoreService(config.DATABASE_URL, openai_api_key),
-    )

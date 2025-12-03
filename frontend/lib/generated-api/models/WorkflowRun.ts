@@ -20,6 +20,13 @@ import {
   WorkflowRunStatusToJSON,
   WorkflowRunStatusToJSONTyped,
 } from './WorkflowRunStatus';
+import type { WorkflowRunType } from './WorkflowRunType';
+import {
+  WorkflowRunTypeFromJSON,
+  WorkflowRunTypeFromJSONTyped,
+  WorkflowRunTypeToJSON,
+  WorkflowRunTypeToJSONTyped,
+} from './WorkflowRunType';
 
 /**
  *
@@ -39,6 +46,12 @@ export interface WorkflowRun {
    * @memberof WorkflowRun
    */
   projectId: string;
+  /**
+   * The type of the workflow run
+   * @type {WorkflowRunType}
+   * @memberof WorkflowRun
+   */
+  type: WorkflowRunType;
   /**
    *
    * @type {string}
@@ -71,6 +84,7 @@ export interface WorkflowRun {
 export function instanceOfWorkflowRun(value: object): value is WorkflowRun {
   if (!('id' in value) || value['id'] === undefined) return false;
   if (!('projectId' in value) || value['projectId'] === undefined) return false;
+  if (!('type' in value) || value['type'] === undefined) return false;
   if (!('langgraphThreadId' in value) || value['langgraphThreadId'] === undefined) return false;
   if (!('status' in value) || value['status'] === undefined) return false;
   if (!('createdAt' in value) || value['createdAt'] === undefined) return false;
@@ -89,6 +103,7 @@ export function WorkflowRunFromJSONTyped(json: any, ignoreDiscriminator: boolean
   return {
     id: json['id'],
     projectId: json['project_id'],
+    type: WorkflowRunTypeFromJSON(json['type']),
     langgraphThreadId: json['langgraph_thread_id'],
     status: WorkflowRunStatusFromJSON(json['status']),
     createdAt: new Date(json['created_at']),
@@ -108,6 +123,7 @@ export function WorkflowRunToJSONTyped(value?: WorkflowRun | null, ignoreDiscrim
   return {
     id: value['id'],
     project_id: value['projectId'],
+    type: WorkflowRunTypeToJSON(value['type']),
     langgraph_thread_id: value['langgraphThreadId'],
     status: WorkflowRunStatusToJSON(value['status']),
     created_at: value['createdAt'].toISOString(),

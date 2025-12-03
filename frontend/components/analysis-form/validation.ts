@@ -40,15 +40,10 @@ export function validateAnalysisForm(
     }
   }
 
-  if (
-    value.runLiteratureReview ||
-    value.reviewType === 'live-reports' ||
-    value.runReferenceValidation ||
-    value.runAlignMethods
-  ) {
+  if (value.runLiteratureReview || value.reviewType === 'live-reports' || value.runReferenceValidation) {
     if (!value.webSearchConsent) {
       errors.fields.webSearchConsent =
-        'Web search consent is required when using literature review, live reports, reference validation, or methodological alignment';
+        'Web search consent is required when using literature review, live reports or reference validation';
     }
   }
 

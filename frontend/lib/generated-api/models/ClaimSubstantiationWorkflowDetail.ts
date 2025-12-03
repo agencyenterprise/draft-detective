@@ -31,51 +31,55 @@ import {
 /**
  *
  * @export
- * @interface WorkflowRunDetailed
+ * @interface ClaimSubstantiationWorkflowDetail
  */
-export interface WorkflowRunDetailed {
+export interface ClaimSubstantiationWorkflowDetail {
   /**
    *
    * @type {WorkflowRun}
-   * @memberof WorkflowRunDetailed
+   * @memberof ClaimSubstantiationWorkflowDetail
    */
   run: WorkflowRun;
   /**
    *
    * @type {ClaimSubstantiatorStateSummary}
-   * @memberof WorkflowRunDetailed
+   * @memberof ClaimSubstantiationWorkflowDetail
    */
-  state?: ClaimSubstantiatorStateSummary | null;
+  state: ClaimSubstantiatorStateSummary;
 }
 
 /**
- * Check if a given object implements the WorkflowRunDetailed interface.
+ * Check if a given object implements the ClaimSubstantiationWorkflowDetail interface.
  */
-export function instanceOfWorkflowRunDetailed(value: object): value is WorkflowRunDetailed {
+export function instanceOfClaimSubstantiationWorkflowDetail(value: object): value is ClaimSubstantiationWorkflowDetail {
   if (!('run' in value) || value['run'] === undefined) return false;
+  if (!('state' in value) || value['state'] === undefined) return false;
   return true;
 }
 
-export function WorkflowRunDetailedFromJSON(json: any): WorkflowRunDetailed {
-  return WorkflowRunDetailedFromJSONTyped(json, false);
+export function ClaimSubstantiationWorkflowDetailFromJSON(json: any): ClaimSubstantiationWorkflowDetail {
+  return ClaimSubstantiationWorkflowDetailFromJSONTyped(json, false);
 }
 
-export function WorkflowRunDetailedFromJSONTyped(json: any, ignoreDiscriminator: boolean): WorkflowRunDetailed {
+export function ClaimSubstantiationWorkflowDetailFromJSONTyped(
+  json: any,
+  ignoreDiscriminator: boolean,
+): ClaimSubstantiationWorkflowDetail {
   if (json == null) {
     return json;
   }
   return {
     run: WorkflowRunFromJSON(json['run']),
-    state: json['state'] == null ? undefined : ClaimSubstantiatorStateSummaryFromJSON(json['state']),
+    state: ClaimSubstantiatorStateSummaryFromJSON(json['state']),
   };
 }
 
-export function WorkflowRunDetailedToJSON(json: any): WorkflowRunDetailed {
-  return WorkflowRunDetailedToJSONTyped(json, false);
+export function ClaimSubstantiationWorkflowDetailToJSON(json: any): ClaimSubstantiationWorkflowDetail {
+  return ClaimSubstantiationWorkflowDetailToJSONTyped(json, false);
 }
 
-export function WorkflowRunDetailedToJSONTyped(
-  value?: WorkflowRunDetailed | null,
+export function ClaimSubstantiationWorkflowDetailToJSONTyped(
+  value?: ClaimSubstantiationWorkflowDetail | null,
   ignoreDiscriminator: boolean = false,
 ): any {
   if (value == null) {

@@ -3,12 +3,13 @@ from typing import List, Optional
 
 from fastapi import HTTPException
 from langgraph.types import StateSnapshot
-from pydantic import BaseModel
+from sqlalchemy import select
+from sqlmodel import and_
 
 from lib.config.database import get_db
 from lib.models.project import Project
 from lib.models.user import User
-from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus
+from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus, WorkflowRunType
 from lib.workflows.claim_substantiation.checkpointer import get_checkpointer
 from lib.workflows.claim_substantiation.graph import build_claim_substantiator_graph
 from lib.workflows.claim_substantiation.nodes.rank_issues import rank_issues
@@ -17,20 +18,17 @@ from lib.workflows.claim_substantiation.state import (
     ClaimSubstantiatorStateSummary,
     DocumentChunk,
 )
+from lib.workflows.registry import WorkflowState, create_graph, get_state_type
 
 logger = logging.getLogger(__name__)
 
 
-class WorkflowRunDetailed(BaseModel):
-    run: WorkflowRun
-    state: Optional[ClaimSubstantiatorStateSummary] = None
-
-
 def _convert_state_snapshot(
     state_snapshot: StateSnapshot,
-) -> Optional[ClaimSubstantiatorState]:
+    state_type: WorkflowState,
+) -> Optional[WorkflowState]:
     try:
-        return ClaimSubstantiatorState(**state_snapshot.values)
+        return state_type(**state_snapshot.values)
     except Exception as e:
         logger.warning(
             f"Error converting state snapshot for thread {state_snapshot.config['configurable']['thread_id']} (possibly an old state schema version): {e}"
@@ -48,70 +46,58 @@ def _convert_to_summary_state(
     )
 
 
-async def get_workflow_run_detailed(id: str, user: User) -> WorkflowRunDetailed:
-    with get_db() as db:
-        run = db.query(WorkflowRun).filter(WorkflowRun.id == id).first()
-
-        if run is None:
-            raise HTTPException(status_code=404, detail="Workflow run not found")
-
-        # Check access through project
-        project = db.query(Project).filter(Project.id == run.project_id).first()
-        if project is None or project.user_id is None or project.user_id != user.id:
-            raise HTTPException(status_code=403, detail="Access denied")
-
-    graph = build_claim_substantiator_graph()
-
+async def get_workflow_run_state_by_thread_id(
+    thread_id: str, type: WorkflowRunType
+) -> WorkflowState:
     async with get_checkpointer() as checkpointer:
+        graph = create_graph(type)
         app = graph.compile(checkpointer=checkpointer)
-        state = await app.aget_state(
-            {"configurable": {"thread_id": run.langgraph_thread_id}}
+        state_snapshot = await app.aget_state(
+            {"configurable": {"thread_id": thread_id}}
         )
 
-    full_state = _convert_state_snapshot(state)
+    state = _convert_state_snapshot(state_snapshot, get_state_type(type, summary=False))
 
-    if full_state is None:
-        return WorkflowRunDetailed(run=run, state=None)
+    if type == WorkflowRunType.CLAIM_SUBSTANTIATION:
+        # TODO: temporarily rank issues to be able to display them in the UI - add to graph later
+        state.ranked_issues = rank_issues(state).get("ranked_issues", [])
+        state = _convert_to_summary_state(state)
 
-    # TODO: temporarily rank issues to be able to display them in the UI - add to graph later
-    full_state.ranked_issues = rank_issues(full_state).get("ranked_issues", [])
-    summary_state = _convert_to_summary_state(full_state)
-
-    return WorkflowRunDetailed(run=run, state=summary_state)
+    return state
 
 
-async def get_summary_state(thread_id: str) -> ClaimSubstantiatorStateSummary:
-    graph = build_claim_substantiator_graph()
-
-    async with get_checkpointer() as checkpointer:
-        app = graph.compile(checkpointer=checkpointer)
-        state = await app.aget_state({"configurable": {"thread_id": thread_id}})
-
-    full_state = _convert_state_snapshot(state)
-    full_state.ranked_issues = rank_issues(full_state).get("ranked_issues", [])
-
-    return _convert_to_summary_state(full_state)
-
-
-async def get_workflow_runs(user: User) -> List[WorkflowRun]:
+async def get_workflow_run(workflow_run_id: str, user: User = None) -> WorkflowRun:
     with get_db() as db:
-        runs = (
-            db.query(WorkflowRun)
-            .join(Project, WorkflowRun.project_id == Project.id)
-            .filter(Project.user_id == user.id)
-            .order_by(WorkflowRun.created_at.desc())
-            .limit(100)
-            .all()
-        )
+        result = db.execute(
+            select(WorkflowRun, Project)
+            .join(Project)
+            .filter(WorkflowRun.id == workflow_run_id)
+        ).one()
 
-    return runs
+    if result is None:
+        raise HTTPException(status_code=404, detail="Workflow run not found")
+
+    run, project = result
+
+    if user is not None and project.user_id != user.id:
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    return run
+
+
+async def get_workflow_run_state(
+    workflow_run_id: str, user: User = None
+) -> WorkflowState:
+    run = await get_workflow_run(workflow_run_id, user)
+    return await get_workflow_run_state_by_thread_id(run.langgraph_thread_id, run.type)
 
 
 async def upsert_workflow_run(
     thread_id: str,
     project_id: str,
     status: WorkflowRunStatus,
-) -> Optional[str]:
+    type: WorkflowRunType,
+) -> str:
     """Create or update a workflow run using the thread_id as the key."""
 
     with get_db() as db:
@@ -127,6 +113,7 @@ async def upsert_workflow_run(
                 langgraph_thread_id=thread_id,
                 project_id=project_id,
                 status=status,
+                type=type,
             )
             db.add(run)
         else:
@@ -135,29 +122,35 @@ async def upsert_workflow_run(
 
         db.commit()
         db.refresh(run)
-        return str(run.id)
+    return str(run.id)
 
 
-def get_workflow_run_id_by_session(session_id: str) -> Optional[str]:
-    """
-    Get the workflow run ID for a given session ID.
-
-    Args:
-        session_id: The LangGraph thread ID
-
-    Returns:
-        The workflow run UUID as a string, or None if not found
-    """
-    if not session_id:
-        return None
-
+async def get_project_workflow_run_by_type(
+    project_id: str, type: WorkflowRunType
+) -> Optional[WorkflowRun]:
     with get_db() as db:
         run = (
             db.query(WorkflowRun)
-            .filter(WorkflowRun.langgraph_thread_id == session_id)
+            .filter(
+                and_(WorkflowRun.project_id == project_id, WorkflowRun.type == type)
+            )
+            .order_by(WorkflowRun.created_at.desc())
             .first()
         )
-        return str(run.id) if run else None
+        return run
+
+
+async def get_project_workflow_runs(project_id: str) -> List[WorkflowRun]:
+    with get_db() as db:
+        runs = (
+            db.query(WorkflowRun)
+            .filter(WorkflowRun.project_id == project_id)
+            .order_by(WorkflowRun.created_at.desc())
+            .limit(100)
+            .all()
+        )
+
+    return runs
 
 
 async def get_chunk_details(workflow_run_id: str, chunk_index: int) -> DocumentChunk:
@@ -178,7 +171,7 @@ async def get_chunk_details(workflow_run_id: str, chunk_index: int) -> DocumentC
             {"configurable": {"thread_id": run.langgraph_thread_id}}
         )
 
-    full_state = _convert_state_snapshot(state)
+    full_state = _convert_state_snapshot(state, ClaimSubstantiatorState)
     if full_state is None:
         raise HTTPException(status_code=404, detail="Workflow state not found")
 

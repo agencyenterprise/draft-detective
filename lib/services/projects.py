@@ -9,7 +9,7 @@ from lib.config.database import get_db
 from lib.models.project import Project
 from lib.models.user import User
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus
-from lib.services.workflow_runs import WorkflowRunDetailed, get_summary_state
+from lib.services.workflow_runs import get_project_workflow_runs
 from lib.workflows.claim_substantiation.checkpointer import get_checkpointer
 
 logger = logging.getLogger(__name__)
@@ -25,7 +25,10 @@ class ProjectListItem(BaseModel):
 
 class ProjectDetailed(BaseModel):
     project: Project
-    workflow_run: Optional[WorkflowRunDetailed] = None
+    workflow_runs: List[WorkflowRun] = Field(
+        default_factory=list,
+        description="The workflow runs for the project",
+    )
 
 
 class UpdateProjectRequest(BaseModel):
@@ -68,17 +71,8 @@ async def get_user_project_detailed(project_id: str, user: User) -> ProjectDetai
     if project.user_id is None or project.user_id != user.id:
         raise HTTPException(status_code=403, detail="Access denied")
 
-    # TODO: get ALL workflow runs for the project
-    run = db.query(WorkflowRun).filter(WorkflowRun.project_id == project.id).first()
-
-    if run is not None:
-        workflow_run = WorkflowRunDetailed(
-            run=run, state=await get_summary_state(run.langgraph_thread_id)
-        )
-    else:
-        workflow_run = None
-
-    return ProjectDetailed(project=project, workflow_run=workflow_run)
+    workflow_runs = await get_project_workflow_runs(project.id)
+    return ProjectDetailed(project=project, workflow_runs=workflow_runs)
 
 
 async def update_user_project(

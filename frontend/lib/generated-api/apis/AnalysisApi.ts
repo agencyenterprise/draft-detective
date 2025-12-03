@@ -13,14 +13,14 @@
  */
 
 import * as runtime from '../runtime';
-import type { HTTPValidationError, RerunAnalysisRequest, StartAnalysisResponse } from '../models/index';
+import type { HTTPValidationError, RerunAnalysisRequest, StartWorkflowResponse } from '../models/index';
 import {
   HTTPValidationErrorFromJSON,
   HTTPValidationErrorToJSON,
   RerunAnalysisRequestFromJSON,
   RerunAnalysisRequestToJSON,
-  StartAnalysisResponseFromJSON,
-  StartAnalysisResponseToJSON,
+  StartWorkflowResponseFromJSON,
+  StartWorkflowResponseToJSON,
 } from '../models/index';
 
 export interface RerunAnalysisEndpointApiRerunAnalysisPostRequest {
@@ -36,7 +36,6 @@ export interface StartAnalysisApiStartAnalysisPostRequest {
   useRag?: boolean;
   runLiveReports?: boolean;
   runReferenceValidation?: boolean;
-  runAlignMethods?: boolean;
   domain?: string | null;
   targetAudience?: string | null;
   targetChunkIndices?: string | null;
@@ -57,7 +56,7 @@ export class AnalysisApi extends runtime.BaseAPI {
   async rerunAnalysisEndpointApiRerunAnalysisPostRaw(
     requestParameters: RerunAnalysisEndpointApiRerunAnalysisPostRequest,
     initOverrides?: RequestInit | runtime.InitOverrideFunction,
-  ): Promise<runtime.ApiResponse<StartAnalysisResponse>> {
+  ): Promise<runtime.ApiResponse<StartWorkflowResponse>> {
     if (requestParameters['rerunAnalysisRequest'] == null) {
       throw new runtime.RequiredError(
         'rerunAnalysisRequest',
@@ -93,7 +92,7 @@ export class AnalysisApi extends runtime.BaseAPI {
       initOverrides,
     );
 
-    return new runtime.JSONApiResponse(response, (jsonValue) => StartAnalysisResponseFromJSON(jsonValue));
+    return new runtime.JSONApiResponse(response, (jsonValue) => StartWorkflowResponseFromJSON(jsonValue));
   }
 
   /**
@@ -103,7 +102,7 @@ export class AnalysisApi extends runtime.BaseAPI {
   async rerunAnalysisEndpointApiRerunAnalysisPost(
     requestParameters: RerunAnalysisEndpointApiRerunAnalysisPostRequest,
     initOverrides?: RequestInit | runtime.InitOverrideFunction,
-  ): Promise<StartAnalysisResponse> {
+  ): Promise<StartWorkflowResponse> {
     const response = await this.rerunAnalysisEndpointApiRerunAnalysisPostRaw(requestParameters, initOverrides);
     return await response.value();
   }
@@ -115,7 +114,7 @@ export class AnalysisApi extends runtime.BaseAPI {
   async startAnalysisApiStartAnalysisPostRaw(
     requestParameters: StartAnalysisApiStartAnalysisPostRequest,
     initOverrides?: RequestInit | runtime.InitOverrideFunction,
-  ): Promise<runtime.ApiResponse<StartAnalysisResponse>> {
+  ): Promise<runtime.ApiResponse<StartWorkflowResponse>> {
     if (requestParameters['mainDocument'] == null) {
       throw new runtime.RequiredError(
         'mainDocument',
@@ -185,10 +184,6 @@ export class AnalysisApi extends runtime.BaseAPI {
       formParams.append('run_reference_validation', requestParameters['runReferenceValidation'] as any);
     }
 
-    if (requestParameters['runAlignMethods'] != null) {
-      formParams.append('run_align_methods', requestParameters['runAlignMethods'] as any);
-    }
-
     if (requestParameters['domain'] != null) {
       formParams.append('domain', requestParameters['domain'] as any);
     }
@@ -230,7 +225,7 @@ export class AnalysisApi extends runtime.BaseAPI {
       initOverrides,
     );
 
-    return new runtime.JSONApiResponse(response, (jsonValue) => StartAnalysisResponseFromJSON(jsonValue));
+    return new runtime.JSONApiResponse(response, (jsonValue) => StartWorkflowResponseFromJSON(jsonValue));
   }
 
   /**
@@ -240,7 +235,7 @@ export class AnalysisApi extends runtime.BaseAPI {
   async startAnalysisApiStartAnalysisPost(
     requestParameters: StartAnalysisApiStartAnalysisPostRequest,
     initOverrides?: RequestInit | runtime.InitOverrideFunction,
-  ): Promise<StartAnalysisResponse> {
+  ): Promise<StartWorkflowResponse> {
     const response = await this.startAnalysisApiStartAnalysisPostRaw(requestParameters, initOverrides);
     return await response.value();
   }
