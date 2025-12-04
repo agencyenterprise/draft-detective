@@ -83,8 +83,9 @@ class DocxManipulatorService:
             para_idx = chunk_to_para_mapping.get(comment.chunk_index)
 
             if para_idx is None:
-                logger.debug(
-                    f"No paragraph mapping found for chunk {comment.chunk_index}"
+                logger.warning(
+                    f"No paragraph mapping found for chunk {comment.chunk_index}, "
+                    f"comment '{comment.comment_text}...' will be skipped"
                 )
                 comments_skipped += 1
                 continue

@@ -4,9 +4,11 @@ import pytest
 
 from lib.services.docx_manipulator import DocxComment
 from lib.workflows.claim_substantiation.nodes.generate_docx_output import (
-    build_citation_suggestion_comments,
     get_severity_icon,
     issue_to_comment,
+)
+from lib.workflows.claim_substantiation.nodes.rank_issues import (
+    _build_citation_suggestion_issues,
 )
 from lib.workflows.claim_substantiation.state import (
     ClaimSubstantiatorState,
@@ -108,8 +110,8 @@ class TestIssueToComment:
         assert "⚡ Partially Supported" in comment.comment_text
 
 
-class TestBuildCitationSuggestionComments:
-    """Tests for the build_citation_suggestion_comments function"""
+class TestBuildCitationSuggestionIssues:
+    """Tests for the _build_citation_suggestion_issues function"""
 
     @pytest.fixture
     def base_state(self) -> ClaimSubstantiatorState:
@@ -127,8 +129,8 @@ class TestBuildCitationSuggestionComments:
         )
 
     def test_returns_empty_list_when_no_chunks(self, base_state):
-        comments = build_citation_suggestion_comments(base_state)
-        assert comments == []
+        issues = _build_citation_suggestion_issues(base_state)
+        assert issues == []
 
     def test_returns_empty_list_when_no_citation_suggestions(self, base_state):
         base_state.chunks = [
@@ -140,11 +142,11 @@ class TestBuildCitationSuggestionComments:
             )
         ]
 
-        comments = build_citation_suggestion_comments(base_state)
+        issues = _build_citation_suggestion_issues(base_state)
 
-        assert comments == []
+        assert issues == []
 
-    def test_creates_comment_for_add_citation_action(self, base_state):
+    def test_creates_issue_for_add_citation_action(self, base_state):
         from lib.agents.citation_suggester import (
             CitationSuggestionResultWithClaimIndex,
             Reference,
@@ -186,14 +188,15 @@ class TestBuildCitationSuggestionComments:
             )
         ]
 
-        comments = build_citation_suggestion_comments(base_state)
+        issues = _build_citation_suggestion_issues(base_state)
 
-        assert len(comments) == 1
-        assert comments[0].chunk_index == 0
-        assert comments[0].text == "Claim that needs citation"
-        assert "💡 Citation suggestion:" in comments[0].comment_text
-        assert "This claim needs supporting evidence" in comments[0].comment_text
-        assert "Important Study 2024" in comments[0].comment_text
+        assert len(issues) == 1
+        assert isinstance(issues[0], DocumentIssue)
+        assert issues[0].chunk_index == 0
+        assert issues[0].title == "Citation Suggestion"
+        assert issues[0].severity == SeverityEnum.LOW
+        assert "This claim needs supporting evidence" in issues[0].description
+        assert "Important Study 2024" in issues[0].description
 
     def test_ignores_no_action(self, base_state):
         from lib.agents.citation_suggester import (
@@ -237,9 +240,9 @@ class TestBuildCitationSuggestionComments:
             )
         ]
 
-        comments = build_citation_suggestion_comments(base_state)
+        issues = _build_citation_suggestion_issues(base_state)
 
-        assert comments == []
+        assert issues == []
 
     def test_includes_replace_existing_reference_action(self, base_state):
         from lib.agents.citation_suggester import (
@@ -283,10 +286,10 @@ class TestBuildCitationSuggestionComments:
             )
         ]
 
-        comments = build_citation_suggestion_comments(base_state)
+        issues = _build_citation_suggestion_issues(base_state)
 
-        assert len(comments) == 1
-        assert "New Better Study 2025" in comments[0].comment_text
+        assert len(issues) == 1
+        assert "New Better Study 2025" in issues[0].description
 
     def test_limits_references_to_three(self, base_state):
         from lib.agents.citation_suggester import (
@@ -333,13 +336,12 @@ class TestBuildCitationSuggestionComments:
             )
         ]
 
-        comments = build_citation_suggestion_comments(base_state)
+        issues = _build_citation_suggestion_issues(base_state)
 
-        assert len(comments) == 1
+        assert len(issues) == 1
         # Should only include first 3 references
-        assert "Reference 0" in comments[0].comment_text
-        assert "Reference 1" in comments[0].comment_text
-        assert "Reference 2" in comments[0].comment_text
-        assert "Reference 3" not in comments[0].comment_text
-        assert "Reference 4" not in comments[0].comment_text
-
+        assert "Reference 0" in issues[0].description
+        assert "Reference 1" in issues[0].description
+        assert "Reference 2" in issues[0].description
+        assert "Reference 3" not in issues[0].description
+        assert "Reference 4" not in issues[0].description

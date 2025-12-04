@@ -17,7 +17,8 @@ logger = logging.getLogger(__name__)
 
 
 def create_chunk_to_paragraph_mapping(
-    chunks: List[ValidatedDocument], docx_paragraphs: List[Paragraph]
+    chunks: List[ValidatedDocument],
+    docx_paragraphs: List[Paragraph],
 ) -> Dict[int, int]:
     """
     Map chunk_index to DOCX paragraph index using sequential forward matching.
@@ -52,14 +53,25 @@ def create_chunk_to_paragraph_mapping(
 
         chunk_idx = chunk.metadata.chunk_index
 
-        # We must search forward only from current position
+        # Primary: search forward only from current position (handles duplicates correctly)
         for para_idx in range(min_search_idx, len(docx_paragraphs)):
             if text_matches(chunk_text, docx_paragraphs[para_idx].text):
                 mapping[chunk_idx] = para_idx
                 min_search_idx = para_idx
                 break
         else:
-            logger.debug(f"No forward match for chunk {chunk_idx}")
+            # Fallback: search from beginning if forward search fails
+            for para_idx in range(0, min_search_idx):
+                if text_matches(chunk_text, docx_paragraphs[para_idx].text):
+                    mapping[chunk_idx] = para_idx
+                    logger.debug(
+                        f"Chunk {chunk_idx} matched paragraph {para_idx} via fallback"
+                    )
+                    break
+            else:
+                logger.warning(
+                    f"No match for chunk {chunk_idx}: '{chunk_text[:60]}...'"
+                )
 
     logger.info(f"Mapped {len(mapping)}/{len(chunks)} chunks to DOCX paragraphs")
     return mapping

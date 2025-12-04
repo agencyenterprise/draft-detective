@@ -37,8 +37,20 @@ async def test_chunk_to_docx_mapping_agi_minimal():
     print(f"Chunks mapped: {len(mapping)}")
     print(f"Coverage: {len(mapping) / len(chunks) * 100:.1f}%")
 
-    assert len(mapping) > 0, "Should map at least some chunks"
-    assert len(mapping) / len(chunks) > 0.5, "Should map >50% of chunks"
+    # Show any unmapped chunks for debugging
+    unmapped = [c for c in chunks if c.metadata.chunk_index not in mapping]
+    if unmapped:
+        print(f"\n=== Unmapped Chunks ({len(unmapped)}) ===")
+        for chunk in unmapped:
+            print(
+                f"  Chunk {chunk.metadata.chunk_index}: '{chunk.page_content[:60]}...'"
+            )
+
+    # ALL chunks must be mapped
+    assert len(mapping) == len(chunks), (
+        f"All {len(chunks)} chunks must be mapped, but only {len(mapping)} were mapped. "
+        f"Unmapped chunk indices: {[c.metadata.chunk_index for c in unmapped]}"
+    )
 
     for chunk_idx, para_idx in mapping.items():
         assert (
@@ -47,56 +59,9 @@ async def test_chunk_to_docx_mapping_agi_minimal():
 
 
 @pytest.mark.asyncio
-async def test_chunk_to_docx_detailed_inspection():
-    """
-    Detailed inspection test: print actual matches to verify correctness.
-
-    This test helps manually verify the matching is correct by showing
-    what chunks map to which paragraphs.
-    """
-    docx_path = data_path("data/geopolitics-of-agi-minimal-1/_original.docx")
-    file_doc = await create_test_file_document_from_path(
-        "data/geopolitics-of-agi-minimal-1/_original.docx"
-    )
-
-    context = ContextSchema(
-        session_id="test-session", workflow_id="test-workflow", run_id="test-run"
-    )
-    chunker = NLTKTextSplitter(context=context)
-    chunks = await chunker.create_documents([file_doc.markdown])
-
-    doc = Document(docx_path)
-    docx_paragraphs = [p for p in doc.paragraphs if p.text.strip()]
-
-    mapping = create_chunk_to_paragraph_mapping(chunks, docx_paragraphs)
-
-    print(f"\n=== Detailed Chunk to Paragraph Mapping ===\n")
-
-    for i, chunk in enumerate(chunks[:5]):
-        chunk_idx = chunk.metadata.chunk_index
-        para_idx = chunk.metadata.paragraph_index
-
-        print(f"Chunk #{chunk_idx} (paragraph_index={para_idx})")
-        print(f"  Content: {chunk.page_content[:80]}...")
-
-        if chunk_idx in mapping:
-            docx_idx = mapping[chunk_idx]
-            docx_text = docx_paragraphs[docx_idx].text
-            print(f"  → Matched DOCX paragraph #{docx_idx}")
-            print(f"  DOCX text: {docx_text[:80]}...")
-            print(f"  ✓ Match confirmed")
-        else:
-            print(f"  ✗ No match found")
-        print()
-
-    assert len(mapping) > 0, "Should have at least some mappings"
-
-
-@pytest.mark.asyncio
 async def test_chunk_mapping_handles_empty_chunks():
     """Test that empty chunks are handled gracefully"""
     from lib.agents.models import ValidatedDocument, DocumentMetadata
-    from docx import Document
 
     chunks = [
         ValidatedDocument(

@@ -1,35 +1,46 @@
 """
 Text matching utilities for mapping chunks to document elements.
+
+Uses rapidfuzz for fuzzy matching which handles:
+- Unicode variations (curly quotes, dashes, etc.)
+- Substring matching (chunk contained in paragraph)
+- Whitespace differences
+- Minor character variations
 """
 
-import re
+from rapidfuzz import fuzz
+
+# Minimum similarity score (0-100) for a match
+MATCH_THRESHOLD = 85.0
 
 
-def normalize_text(text: str) -> str:
+def _normalize_minimal(text: str) -> str:
+    """Minimal normalization - just whitespace and case."""
+    return " ".join(text.lower().split())
+
+
+def text_matches(text1: str, text2: str, threshold: float = MATCH_THRESHOLD) -> bool:
     """
-    Normalize text for consistent matching.
+    Check if two texts match using fuzzy similarity.
+
+    Uses rapidfuzz partial_ratio which naturally handles:
+    - Unicode quote/dash variants (high similarity to ASCII equivalents)
+    - Substring matching (chunk contained in paragraph)
+    - Whitespace differences
+    - Minor character variations
+
+    Args:
+        text1: First text to compare
+        text2: Second text to compare
+        threshold: Minimum similarity score (0-100)
 
     Returns:
-        Normalized text (lowercase, whitespace collapsed, stripped)
+        True if texts are sufficiently similar
     """
-    return re.sub(r"\s+", " ", text.lower().strip())
+    t1 = _normalize_minimal(text1)
+    t2 = _normalize_minimal(text2)
 
-
-def text_matches(text1: str, text2: str) -> bool:
-    """
-    Check if two texts match via exact or substring matching.
-
-    Returns:
-        True if texts match (exact or substring), False otherwise
-    """
-    normalized1 = normalize_text(text1)
-    normalized2 = normalize_text(text2)
-
-    if not normalized1 or not normalized2:
+    if not t1 or not t2:
         return False
 
-    return (
-        normalized1 == normalized2
-        or normalized1 in normalized2
-        or normalized2 in normalized1
-    )
+    return fuzz.partial_ratio(t1, t2) >= threshold
