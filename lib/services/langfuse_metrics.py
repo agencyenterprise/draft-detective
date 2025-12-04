@@ -80,6 +80,9 @@ def get_model_pricing(model_name: str) -> ModelPricing:
     """
     from lib.config.langfuse import langfuse
 
+    if langfuse is None:
+        return ModelPricing()
+
     if ":" in model_name:
         _, model_name_only = model_name.split(":", 1)
     else:
