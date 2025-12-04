@@ -1,5 +1,5 @@
 import logging
-from typing import TYPE_CHECKING, Dict, List, Optional
+from typing import TYPE_CHECKING, Dict, Optional
 
 from lib.agents.models import DocumentMetadata, ValidatedDocument
 from lib.services.docx_manipulator import DocxComment, docx_manipulator_service
@@ -50,47 +50,6 @@ def issue_to_comment(
     )
 
 
-def build_citation_suggestion_comments(
-    state: ClaimSubstantiatorState,
-) -> List[DocxComment]:
-    """Build comments for citation suggestions (not included in rank_issues)."""
-    from lib.agents.citation_suggester import RecommendedAction
-
-    actionable_actions = {
-        RecommendedAction.ADD_NEW_CITATION,
-        RecommendedAction.REPLACE_EXISTING_REFERENCE,
-        RecommendedAction.CITE_EXISTING_REFERENCE_IN_NEW_PLACE,
-    }
-
-    comments = []
-
-    for chunk in state.chunks:
-        for suggestion in chunk.citation_suggestions:
-            actionable_refs = [
-                ref
-                for ref in (suggestion.relevant_references or [])
-                if ref.recommended_action in actionable_actions
-            ]
-            if actionable_refs:
-                ref_summary = "\n".join(
-                    f"  • {ref.title} ({ref.recommended_action.value})"
-                    for ref in actionable_refs[:3]
-                )
-                comments.append(
-                    DocxComment(
-                        chunk_index=chunk.chunk_index,
-                        text=chunk.content,
-                        comment_text=(
-                            f"💡 Citation suggestion:\n"
-                            f"{suggestion.rationale}\n\n"
-                            f"Consider these references:\n{ref_summary}"
-                        ),
-                    )
-                )
-
-    return comments
-
-
 @register_node(
     name="generate_docx_output",
     description="Generate a reviewed DOCX file with AI comments",
@@ -121,12 +80,11 @@ async def generate_docx_output(
         ranked_issues_result = rank_issues(state)
         ranked_issues = ranked_issues_result.get("ranked_issues", [])
 
-        comments = []
-        for issue in ranked_issues:
-            if comment := issue_to_comment(issue, chunk_content_map):
-                comments.append(comment)
-
-        comments.extend(build_citation_suggestion_comments(state))
+        comments = [
+            comment
+            for issue in ranked_issues
+            if (comment := issue_to_comment(issue, chunk_content_map))
+        ]
 
         validated_chunks = [
             ValidatedDocument(
