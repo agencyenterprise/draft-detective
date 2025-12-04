@@ -60,7 +60,8 @@ kubectl create namespace ai-reviewer
 kubectl create secret generic app-secrets --from-env-file=.env -n ai-reviewer
 
 # Apply all manifests (OpenShift Routes will be ignored)
-kubectl apply -f configmap.yaml -f database.yaml -f docling.yaml -f api.yaml -f frontend.yaml -n ai-reviewer
+kubectl apply -f configmap.yaml -f database.yaml -f api.yaml -f frontend.yaml -n ai-reviewer
+> If you want to run docling, run -f docling.yaml
 
 # Access via port-forward
 kubectl port-forward -n ai-reviewer svc/frontend 3000:3000
