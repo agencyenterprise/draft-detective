@@ -8,6 +8,8 @@ sequential forward-only text matching to handle duplicate text correctly.
 import logging
 from typing import Dict, List
 
+from docx.text.paragraph import Paragraph
+
 from lib.agents.models import ValidatedDocument
 from lib.services.text_matching import text_matches
 
@@ -15,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 def create_chunk_to_paragraph_mapping(
-    chunks: List[ValidatedDocument], docx_paragraphs: List
+    chunks: List[ValidatedDocument], docx_paragraphs: List[Paragraph]
 ) -> Dict[int, int]:
     """
     Map chunk_index to DOCX paragraph index using sequential forward matching.

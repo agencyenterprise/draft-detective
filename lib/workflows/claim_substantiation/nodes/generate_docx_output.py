@@ -1,11 +1,14 @@
 import logging
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Dict, List, Optional
 
-from pydantic import BaseModel
-
-from lib.agents.claim_verifier import EvidenceAlignmentLevel
+from lib.agents.models import DocumentMetadata, ValidatedDocument
 from lib.services.docx_manipulator import DocxComment, docx_manipulator_service
-from lib.workflows.claim_substantiation.state import ClaimSubstantiatorState
+from lib.workflows.claim_substantiation.nodes.rank_issues import rank_issues
+from lib.workflows.claim_substantiation.state import (
+    ClaimSubstantiatorState,
+    DocumentIssue,
+    SeverityEnum,
+)
 from lib.workflows.decorators import register_node
 
 if TYPE_CHECKING:
@@ -14,61 +17,78 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class CommentConfig(BaseModel):
-    """Configuration for generating a DOCX comment."""
-
-    icon: str
-    label: str
-    reason: str
-    suggestion: str
-
-
-def get_alignment_config(alignment: EvidenceAlignmentLevel) -> Optional[CommentConfig]:
-    """Get comment configuration for an evidence alignment level."""
-    match alignment:
-        case EvidenceAlignmentLevel.UNSUPPORTED:
-            return CommentConfig(
-                icon="⚠️",
-                label="Unsupported claim",
-                reason="Reason",
-                suggestion="Suggestion",
-            )
-        case EvidenceAlignmentLevel.PARTIALLY_SUPPORTED:
-            return CommentConfig(
-                icon="⚡",
-                label="Partially supported claim",
-                reason="Reason",
-                suggestion="Suggestion",
-            )
-        case EvidenceAlignmentLevel.UNVERIFIABLE:
-            return CommentConfig(
-                icon="❓",
-                label="Unverifiable claim",
-                reason="Reason",
-                suggestion="Suggestion",
-            )
+def get_severity_icon(severity: SeverityEnum) -> str:
+    """Get icon for a severity level."""
+    match severity:
+        case SeverityEnum.HIGH:
+            return "⚠️"
+        case SeverityEnum.MEDIUM:
+            return "⚡"
+        case SeverityEnum.LOW:
+            return "ℹ️"
         case _:
-            return None
+            return "📝"
 
 
-def build_comment(
-    chunk_index: int,
-    content: str,
-    claim_text: str,
-    config: CommentConfig,
-    rationale: str,
-    feedback: str,
-) -> DocxComment:
-    """Build a DocxComment from configuration and data."""
+def issue_to_comment(
+    issue: DocumentIssue,
+    chunk_content_map: Dict[int, str],
+) -> Optional[DocxComment]:
+    """Convert a DocumentIssue to a DocxComment."""
+    if issue.chunk_index is None:
+        return None
+
+    chunk_content = chunk_content_map.get(issue.chunk_index, "")
+    if not chunk_content:
+        return None
+
+    icon = get_severity_icon(issue.severity)
     return DocxComment(
-        chunk_index=chunk_index,
-        text=content,
-        comment_text=(
-            f"{config.icon} {config.label}: {claim_text}\n"
-            f"{config.reason}: {rationale}\n"
-            f"{config.suggestion}: {feedback}"
-        ),
+        chunk_index=issue.chunk_index,
+        text=chunk_content,
+        comment_text=f"{icon} {issue.title}\n{issue.description}",
     )
+
+
+def build_citation_suggestion_comments(
+    state: ClaimSubstantiatorState,
+) -> List[DocxComment]:
+    """Build comments for citation suggestions (not included in rank_issues)."""
+    from lib.agents.citation_suggester import RecommendedAction
+
+    actionable_actions = {
+        RecommendedAction.ADD_NEW_CITATION,
+        RecommendedAction.REPLACE_EXISTING_REFERENCE,
+        RecommendedAction.CITE_EXISTING_REFERENCE_IN_NEW_PLACE,
+    }
+
+    comments = []
+
+    for chunk in state.chunks:
+        for suggestion in chunk.citation_suggestions:
+            actionable_refs = [
+                ref
+                for ref in (suggestion.relevant_references or [])
+                if ref.recommended_action in actionable_actions
+            ]
+            if actionable_refs:
+                ref_summary = "\n".join(
+                    f"  • {ref.title} ({ref.recommended_action.value})"
+                    for ref in actionable_refs[:3]
+                )
+                comments.append(
+                    DocxComment(
+                        chunk_index=chunk.chunk_index,
+                        text=chunk.content,
+                        comment_text=(
+                            f"💡 Citation suggestion:\n"
+                            f"{suggestion.rationale}\n\n"
+                            f"Consider these references:\n{ref_summary}"
+                        ),
+                    )
+                )
+
+    return comments
 
 
 @register_node(
@@ -96,78 +116,17 @@ async def generate_docx_output(
         return {}
 
     try:
+        chunk_content_map = {chunk.chunk_index: chunk.content for chunk in state.chunks}
+
+        ranked_issues_result = rank_issues(state)
+        ranked_issues = ranked_issues_result.get("ranked_issues", [])
+
         comments = []
+        for issue in ranked_issues:
+            if comment := issue_to_comment(issue, chunk_content_map):
+                comments.append(comment)
 
-        for chunk in state.chunks:
-            claims_list = chunk.claims.claims if chunk.claims else []
-
-            for substantiation in chunk.substantiations:
-                config = get_alignment_config(substantiation.evidence_alignment)
-                if config:
-                    claim = (
-                        claims_list[substantiation.claim_index]
-                        if substantiation.claim_index < len(claims_list)
-                        else None
-                    )
-                    comments.append(
-                        build_comment(
-                            chunk_index=chunk.chunk_index,
-                            content=chunk.content,
-                            claim_text=claim.claim if claim else "Unknown claim",
-                            config=config,
-                            rationale=substantiation.rationale,
-                            feedback=substantiation.feedback,
-                        )
-                    )
-
-            for validation in chunk.inference_validations:
-                if not validation.valid:
-                    claim = (
-                        claims_list[validation.claim_index]
-                        if validation.claim_index < len(claims_list)
-                        else None
-                    )
-                    config = CommentConfig(
-                        icon="⚠️",
-                        label="Invalid inference",
-                        reason="Reason",
-                        suggestion="Suggestion",
-                    )
-                    comments.append(
-                        build_comment(
-                            chunk_index=chunk.chunk_index,
-                            content=chunk.content,
-                            claim_text=claim.claim if claim else "Unknown claim",
-                            config=config,
-                            rationale=validation.rationale,
-                            feedback=validation.suggested_action,
-                        )
-                    )
-
-            for suggestion in chunk.citation_suggestions:
-                if actionable_refs := [
-                    ref
-                    for ref in (suggestion.relevant_references or [])
-                    if ref.recommended_action
-                    in ["add_citation", "replace_existing_reference"]
-                ]:
-                    ref_summary = "\n".join(
-                        f"  • {ref.reference_title} ({ref.recommended_action})"
-                        for ref in actionable_refs[:3]
-                    )
-                    comments.append(
-                        DocxComment(
-                            chunk_index=chunk.chunk_index,
-                            text=chunk.content,
-                            comment_text=(
-                                f"💡 Citation suggestion:\n"
-                                f"{suggestion.rationale}\n\n"
-                                f"Consider these references:\n{ref_summary}"
-                            ),
-                        )
-                    )
-
-        from lib.agents.models import ValidatedDocument, DocumentMetadata
+        comments.extend(build_citation_suggestion_comments(state))
 
         validated_chunks = [
             ValidatedDocument(

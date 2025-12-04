@@ -131,16 +131,14 @@ def test_duplicate_text_maps_to_correct_paragraphs():
     """
     from lib.agents.models import ValidatedDocument, DocumentMetadata
 
-    class MockParagraph:
-        def __init__(self, text):
-            self.text = text
+    # Create a real Document with paragraphs instead of mocks
+    doc = Document()
+    doc.add_paragraph("I repeat myself forever")  # para 0
+    doc.add_paragraph("Something else here")  # para 1
+    doc.add_paragraph("I repeat myself always")  # para 2
+    doc.add_paragraph("Final paragraph")  # para 3
 
-    docx_paragraphs = [
-        MockParagraph("I repeat myself forever"),  # para 0
-        MockParagraph("Something else here"),  # para 1
-        MockParagraph("I repeat myself always"),  # para 2
-        MockParagraph("Final paragraph"),  # para 3
-    ]
+    docx_paragraphs = list(doc.paragraphs)
 
     chunks = [
         ValidatedDocument(
