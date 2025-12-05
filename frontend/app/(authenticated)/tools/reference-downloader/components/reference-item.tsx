@@ -1,0 +1,183 @@
+'use client';
+
+import { LabeledValue } from '@/components/labeled-value';
+import { Markdown } from '@/components/markdown';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { ReferenceFetchConclusion, ReferenceFetchItem } from '@/lib/generated-api';
+import { AlertCircle, CheckCircle2, ChevronDownIcon, ChevronRightIcon, Download, XCircle } from 'lucide-react';
+import * as React from 'react';
+import { apiUrl } from '@/lib/api';
+import { useMemo } from 'react';
+
+interface ReferenceItemProps {
+  item: ReferenceFetchItem;
+  index: number;
+  downloadedReference?: string | null;
+}
+
+function getConclusionBadge(conclusion: ReferenceFetchConclusion) {
+  switch (conclusion) {
+    case ReferenceFetchConclusion.SourceFound:
+      return (
+        <Badge
+          variant="outline"
+          className="bg-green-100 text-green-800 border-green-300 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800"
+        >
+          <CheckCircle2 className="h-3 w-3 mr-1" />
+          Source Found
+        </Badge>
+      );
+    case ReferenceFetchConclusion.SourceFoundButNotAccessible:
+      return (
+        <Badge
+          variant="outline"
+          className="bg-yellow-100 text-yellow-800 border-yellow-300 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-800"
+        >
+          <AlertCircle className="h-3 w-3 mr-1" />
+          Found (Paywalled)
+        </Badge>
+      );
+    case ReferenceFetchConclusion.SourceNotFound:
+      return (
+        <Badge
+          variant="outline"
+          className="bg-red-100 text-red-800 border-red-300 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800"
+        >
+          <XCircle className="h-3 w-3 mr-1" />
+          Not Found
+        </Badge>
+      );
+    default:
+      return null;
+  }
+}
+
+export function ReferenceItem({ item, index, downloadedReference }: ReferenceItemProps) {
+  const [isExpanded, setIsExpanded] = React.useState(false);
+
+  // Handle SourceUrl and ContentExcerpt - they might be strings or objects
+  // TypeScript types show them as empty interfaces, but they're actually strings in practice
+  const sourceUrl =
+    typeof item.sourceUrl === 'string'
+      ? item.sourceUrl
+      : typeof item.sourceUrl === 'object' && item.sourceUrl !== null
+        ? (item.sourceUrl as { url?: string; value?: string }).url ||
+          (item.sourceUrl as { url?: string; value?: string }).value ||
+          null
+        : null;
+
+  const downloadUrl =
+    typeof item.downloadUrl === 'string'
+      ? item.downloadUrl
+      : typeof item.downloadUrl === 'object' && item.downloadUrl !== null
+        ? (item.downloadUrl as { url?: string; value?: string }).url ||
+          (item.downloadUrl as { url?: string; value?: string }).value ||
+          null
+        : null;
+
+  // Generate download URL and filename if downloaded reference exists
+  const downloadLink = useMemo(() => {
+    if (!downloadedReference) return null;
+
+    const sanitizedReference = item.referenceDetails
+      .replace(/[^a-z0-9]/gi, '_')
+      .substring(0, 50)
+      .toLowerCase();
+
+    // Extract file extension from downloadedReference (e.g., .pdf or .md)
+    const fileExtension = downloadedReference.includes('.')
+      ? downloadedReference.substring(downloadedReference.lastIndexOf('.'))
+      : '.pdf';
+
+    const filename = `${sanitizedReference || `reference_${index + 1}`}${fileExtension}`;
+    return `${apiUrl}/api/files/download/${downloadedReference}/${filename}`;
+  }, [downloadedReference, index, item.referenceDetails]);
+
+  return (
+    <div className="border rounded-lg p-4 space-y-2">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex-1 space-y-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-sm font-medium text-muted-foreground">#{index + 1}</span>
+            {getConclusionBadge(item.finalConclusion)}
+            {downloadLink ? (
+              <Badge
+                variant="outline"
+                className="bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800"
+              >
+                <Download className="h-3 w-3 mr-1" />
+                Download Available
+              </Badge>
+            ) : (
+              <Badge
+                variant="outline"
+                className="bg-gray-100 text-gray-600 border-gray-300 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700"
+              >
+                Download not available
+              </Badge>
+            )}
+          </div>
+          <p className="text-sm">{item.referenceDetails}</p>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          {downloadLink && (
+            <Button variant="outline" size="xs" asChild className="text-gray-600 hover:text-gray-900">
+              <a href={downloadLink} target="_blank" rel="noopener noreferrer">
+                <Download className="size-4 mr-1" />
+                Download
+              </a>
+            </Button>
+          )}
+          <Button
+            variant="ghost"
+            size="xs"
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="text-gray-600 hover:text-gray-900"
+          >
+            {isExpanded ? <ChevronDownIcon className="size-4" /> : <ChevronRightIcon className="size-4" />}
+            {isExpanded ? 'Hide details' : 'Show details'}
+          </Button>
+        </div>
+      </div>
+
+      <div>
+        {sourceUrl && (
+          <p>
+            <span className="text-sm font-medium text-muted-foreground">Source URL: </span>
+            <a
+              href={sourceUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm text-blue-600 hover:underline break-all"
+            >
+              {sourceUrl}
+            </a>
+          </p>
+        )}
+
+        {downloadUrl && (
+          <p>
+            <span className="text-sm font-medium text-muted-foreground">Download URL: </span>
+            <a
+              href={downloadUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm text-blue-600 hover:underline break-all"
+            >
+              {downloadUrl}
+            </a>
+          </p>
+        )}
+      </div>
+
+      {isExpanded && (
+        <div className="space-y-2 pt-2 border-t text-sm">
+          <LabeledValue label="Reasoning">
+            <Markdown>{item.reasoning}</Markdown>
+          </LabeledValue>
+        </div>
+      )}
+    </div>
+  );
+}

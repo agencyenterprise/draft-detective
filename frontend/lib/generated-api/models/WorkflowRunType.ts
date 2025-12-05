@@ -19,6 +19,7 @@
 export const WorkflowRunType = {
   ClaimSubstantiation: 'claim_substantiation',
   MethodologicalAlignment: 'methodological_alignment',
+  ReferenceDownloader: 'reference_downloader',
 } as const;
 export type WorkflowRunType = (typeof WorkflowRunType)[keyof typeof WorkflowRunType];
 

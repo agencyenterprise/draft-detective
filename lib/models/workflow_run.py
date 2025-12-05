@@ -1,3 +1,4 @@
+from typing import Optional
 import uuid
 from datetime import datetime
 from enum import Enum
@@ -23,11 +24,11 @@ class WorkflowRun(SQLModel, table=True):
         sa_column=Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4),
         description="The unique identifier for the workflow run",
     )
-    project_id: uuid.UUID = Field(
+    project_id: Optional[uuid.UUID] = Field(
         sa_column=Column(
             UUID(as_uuid=True),
             ForeignKey("projects.id", ondelete="CASCADE"),
-            nullable=False,
+            nullable=True,
         ),
         description="FK for the project that this workflow run belongs to",
     )

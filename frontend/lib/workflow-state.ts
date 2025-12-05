@@ -4,10 +4,14 @@ import {
   MethodologicalAlignmentState,
   MethodologicalAlignmentWorkflowDetail,
   Project,
+  ReferenceDownloaderWorkflowDetail,
   WorkflowRunType,
 } from './generated-api';
 
-export type WorkflowRunDetail = ClaimSubstantiationWorkflowDetail | MethodologicalAlignmentWorkflowDetail;
+export type WorkflowRunDetail =
+  | ClaimSubstantiationWorkflowDetail
+  | MethodologicalAlignmentWorkflowDetail
+  | ReferenceDownloaderWorkflowDetail;
 
 /**
  * Type mapping for workflow types to their corresponding workflow detail types
@@ -15,6 +19,7 @@ export type WorkflowRunDetail = ClaimSubstantiationWorkflowDetail | Methodologic
 type WorkflowTypeToDetail = {
   [WorkflowRunType.ClaimSubstantiation]: ClaimSubstantiationWorkflowDetail;
   [WorkflowRunType.MethodologicalAlignment]: MethodologicalAlignmentWorkflowDetail;
+  [WorkflowRunType.ReferenceDownloader]: ReferenceDownloaderWorkflowDetail;
 };
 
 export type WorkflowState = ClaimSubstantiatorStateSummary | MethodologicalAlignmentState;

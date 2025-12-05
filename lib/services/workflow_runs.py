@@ -70,7 +70,7 @@ async def get_workflow_run(workflow_run_id: str, user: User = None) -> WorkflowR
     with get_db() as db:
         result = db.execute(
             select(WorkflowRun, Project)
-            .join(Project)
+            .outerjoin(Project)
             .filter(WorkflowRun.id == workflow_run_id)
         ).one()
 
@@ -79,7 +79,7 @@ async def get_workflow_run(workflow_run_id: str, user: User = None) -> WorkflowR
 
     run, project = result
 
-    if user is not None and project.user_id != user.id:
+    if user is not None and project is not None and project.user_id != user.id:
         raise HTTPException(status_code=403, detail="Access denied")
 
     return run

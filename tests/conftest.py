@@ -188,6 +188,12 @@ def pytest_runtest_makereport(item, call):
             # Include actual_outputs for frontend backward compatibility
             baseline_actual_output = baseline_result.get("actual_output", {})
 
+            input_kwargs = (
+                case.prompt_kwargs.model_dump()
+                if isinstance(case.prompt_kwargs, BaseModel)
+                else case.prompt_kwargs
+            )
+
             agent_test_case_data = {
                 "name": case.name,
                 "agent": {"name": case.agent.name},
@@ -197,7 +203,7 @@ def pytest_runtest_makereport(item, call):
                         if isinstance(v, str) and len(v) > 5000
                         else v
                     )
-                    for k, v in case.prompt_kwargs.items()
+                    for k, v in input_kwargs.items()
                 },
                 "expected_output": case.expected_dict,
                 "actual_outputs": [baseline_actual_output],  # Frontend expects array

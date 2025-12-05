@@ -41,11 +41,11 @@ export interface WorkflowRun {
    */
   id: string;
   /**
-   * FK for the project that this workflow run belongs to
+   *
    * @type {string}
    * @memberof WorkflowRun
    */
-  projectId: string;
+  projectId: string | null;
   /**
    * The type of the workflow run
    * @type {WorkflowRunType}

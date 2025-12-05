@@ -19,6 +19,8 @@ import type {
   HTTPValidationError,
   MethodologicalAlignmentWorkflowConfig,
   MethodologicalAlignmentWorkflowDetail,
+  ReferenceDownloaderWorkflowConfig,
+  ReferenceDownloaderWorkflowDetail,
   StartWorkflowResponse,
   SubstantiationWorkflowConfig,
 } from '../models/index';
@@ -33,6 +35,10 @@ import {
   MethodologicalAlignmentWorkflowConfigToJSON,
   MethodologicalAlignmentWorkflowDetailFromJSON,
   MethodologicalAlignmentWorkflowDetailToJSON,
+  ReferenceDownloaderWorkflowConfigFromJSON,
+  ReferenceDownloaderWorkflowConfigToJSON,
+  ReferenceDownloaderWorkflowDetailFromJSON,
+  ReferenceDownloaderWorkflowDetailToJSON,
   StartWorkflowResponseFromJSON,
   StartWorkflowResponseToJSON,
   SubstantiationWorkflowConfigFromJSON,
@@ -57,12 +63,20 @@ export interface GetPageImageApiWorkflowRunsWorkflowRunIdPagesPageNumGetRequest 
   pageNum: number;
 }
 
+export interface GetReferenceDownloaderWorkflowStateApiWorkflowsReferenceDownloaderWorkflowRunIdGetRequest {
+  workflowRunId: string;
+}
+
 export interface StartClaimSubstantiationWorkflowApiWorkflowsClaimSubstantiationStartPostRequest {
   substantiationWorkflowConfig: SubstantiationWorkflowConfig;
 }
 
 export interface StartMethodologicalAlignmentWorkflowApiWorkflowsMethodologicalAlignmentStartPostRequest {
   methodologicalAlignmentWorkflowConfig: MethodologicalAlignmentWorkflowConfig;
+}
+
+export interface StartReferenceDownloaderWorkflowApiWorkflowsReferenceDownloaderStartPostRequest {
+  referenceDownloaderWorkflowConfig: ReferenceDownloaderWorkflowConfig;
 }
 
 /**
@@ -320,6 +334,65 @@ export class WorkflowsApi extends runtime.BaseAPI {
   }
 
   /**
+   * Get the state of a workflow of type \"reference_downloader\"
+   * Get Reference Downloader Workflow State
+   */
+  async getReferenceDownloaderWorkflowStateApiWorkflowsReferenceDownloaderWorkflowRunIdGetRaw(
+    requestParameters: GetReferenceDownloaderWorkflowStateApiWorkflowsReferenceDownloaderWorkflowRunIdGetRequest,
+    initOverrides?: RequestInit | runtime.InitOverrideFunction,
+  ): Promise<runtime.ApiResponse<ReferenceDownloaderWorkflowDetail>> {
+    if (requestParameters['workflowRunId'] == null) {
+      throw new runtime.RequiredError(
+        'workflowRunId',
+        'Required parameter "workflowRunId" was null or undefined when calling getReferenceDownloaderWorkflowStateApiWorkflowsReferenceDownloaderWorkflowRunIdGet().',
+      );
+    }
+
+    const queryParameters: any = {};
+
+    const headerParameters: runtime.HTTPHeaders = {};
+
+    if (this.configuration && this.configuration.accessToken) {
+      const token = this.configuration.accessToken;
+      const tokenString = await token('HTTPBearer', []);
+
+      if (tokenString) {
+        headerParameters['Authorization'] = `Bearer ${tokenString}`;
+      }
+    }
+
+    let urlPath = `/api/workflows/reference_downloader/{workflow_run_id}`;
+    urlPath = urlPath.replace(`{${'workflow_run_id'}}`, encodeURIComponent(String(requestParameters['workflowRunId'])));
+
+    const response = await this.request(
+      {
+        path: urlPath,
+        method: 'GET',
+        headers: headerParameters,
+        query: queryParameters,
+      },
+      initOverrides,
+    );
+
+    return new runtime.JSONApiResponse(response, (jsonValue) => ReferenceDownloaderWorkflowDetailFromJSON(jsonValue));
+  }
+
+  /**
+   * Get the state of a workflow of type \"reference_downloader\"
+   * Get Reference Downloader Workflow State
+   */
+  async getReferenceDownloaderWorkflowStateApiWorkflowsReferenceDownloaderWorkflowRunIdGet(
+    requestParameters: GetReferenceDownloaderWorkflowStateApiWorkflowsReferenceDownloaderWorkflowRunIdGetRequest,
+    initOverrides?: RequestInit | runtime.InitOverrideFunction,
+  ): Promise<ReferenceDownloaderWorkflowDetail> {
+    const response = await this.getReferenceDownloaderWorkflowStateApiWorkflowsReferenceDownloaderWorkflowRunIdGetRaw(
+      requestParameters,
+      initOverrides,
+    );
+    return await response.value();
+  }
+
+  /**
    * Start a workflow of type \"claim_substantiation\"
    * Start Claim Substantiation Workflow
    */
@@ -435,6 +508,67 @@ export class WorkflowsApi extends runtime.BaseAPI {
     initOverrides?: RequestInit | runtime.InitOverrideFunction,
   ): Promise<StartWorkflowResponse> {
     const response = await this.startMethodologicalAlignmentWorkflowApiWorkflowsMethodologicalAlignmentStartPostRaw(
+      requestParameters,
+      initOverrides,
+    );
+    return await response.value();
+  }
+
+  /**
+   * Start a workflow of type \"reference_downloader\"
+   * Start Reference Downloader Workflow
+   */
+  async startReferenceDownloaderWorkflowApiWorkflowsReferenceDownloaderStartPostRaw(
+    requestParameters: StartReferenceDownloaderWorkflowApiWorkflowsReferenceDownloaderStartPostRequest,
+    initOverrides?: RequestInit | runtime.InitOverrideFunction,
+  ): Promise<runtime.ApiResponse<StartWorkflowResponse>> {
+    if (requestParameters['referenceDownloaderWorkflowConfig'] == null) {
+      throw new runtime.RequiredError(
+        'referenceDownloaderWorkflowConfig',
+        'Required parameter "referenceDownloaderWorkflowConfig" was null or undefined when calling startReferenceDownloaderWorkflowApiWorkflowsReferenceDownloaderStartPost().',
+      );
+    }
+
+    const queryParameters: any = {};
+
+    const headerParameters: runtime.HTTPHeaders = {};
+
+    headerParameters['Content-Type'] = 'application/json';
+
+    if (this.configuration && this.configuration.accessToken) {
+      const token = this.configuration.accessToken;
+      const tokenString = await token('HTTPBearer', []);
+
+      if (tokenString) {
+        headerParameters['Authorization'] = `Bearer ${tokenString}`;
+      }
+    }
+
+    let urlPath = `/api/workflows/reference_downloader/start`;
+
+    const response = await this.request(
+      {
+        path: urlPath,
+        method: 'POST',
+        headers: headerParameters,
+        query: queryParameters,
+        body: ReferenceDownloaderWorkflowConfigToJSON(requestParameters['referenceDownloaderWorkflowConfig']),
+      },
+      initOverrides,
+    );
+
+    return new runtime.JSONApiResponse(response, (jsonValue) => StartWorkflowResponseFromJSON(jsonValue));
+  }
+
+  /**
+   * Start a workflow of type \"reference_downloader\"
+   * Start Reference Downloader Workflow
+   */
+  async startReferenceDownloaderWorkflowApiWorkflowsReferenceDownloaderStartPost(
+    requestParameters: StartReferenceDownloaderWorkflowApiWorkflowsReferenceDownloaderStartPostRequest,
+    initOverrides?: RequestInit | runtime.InitOverrideFunction,
+  ): Promise<StartWorkflowResponse> {
+    const response = await this.startReferenceDownloaderWorkflowApiWorkflowsReferenceDownloaderStartPostRaw(
       requestParameters,
       initOverrides,
     );

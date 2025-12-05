@@ -32,7 +32,7 @@ export interface StartWorkflowResponse {
    * @type {string}
    * @memberof StartWorkflowResponse
    */
-  projectId: string;
+  projectId?: string | null;
   /**
    *
    * @type {string}
@@ -57,7 +57,6 @@ export interface StartWorkflowResponse {
  * Check if a given object implements the StartWorkflowResponse interface.
  */
 export function instanceOfStartWorkflowResponse(value: object): value is StartWorkflowResponse {
-  if (!('projectId' in value) || value['projectId'] === undefined) return false;
   if (!('message' in value) || value['message'] === undefined) return false;
   return true;
 }
@@ -71,7 +70,7 @@ export function StartWorkflowResponseFromJSONTyped(json: any, ignoreDiscriminato
     return json;
   }
   return {
-    projectId: json['project_id'],
+    projectId: json['project_id'] == null ? undefined : json['project_id'],
     workflowRunId: json['workflow_run_id'] == null ? undefined : json['workflow_run_id'],
     type: json['type'] == null ? undefined : WorkflowRunTypeFromJSON(json['type']),
     message: json['message'],

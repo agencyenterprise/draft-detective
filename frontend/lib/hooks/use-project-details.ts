@@ -64,6 +64,10 @@ function fetchWorkflowState(workflowRun: WorkflowRun): Promise<WorkflowRunDetail
       return workflowsApi.getMethodologicalAlignmentWorkflowStateApiWorkflowsMethodologicalAlignmentWorkflowRunIdGet({
         workflowRunId: workflowRun.id,
       });
+    case WorkflowRunType.ReferenceDownloader:
+      return workflowsApi.getReferenceDownloaderWorkflowStateApiWorkflowsReferenceDownloaderWorkflowRunIdGet({
+        workflowRunId: workflowRun.id,
+      });
     default:
       throw new Error(`Unknown workflow type: ${workflowRun.type satisfies never}`);
   }
