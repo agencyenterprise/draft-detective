@@ -1,6 +1,6 @@
-from typing import List, Optional
+from typing import List, Optional, Set
 
-
+from lib.agents.citation_suggester import RecommendedAction
 from lib.agents.claim_verifier import EvidenceAlignmentLevel
 from lib.agents.evidence_weighter import EvidenceWeighterRecommendedAction
 from lib.agents.models import ClaimCategory
@@ -179,6 +179,9 @@ def rank_issues(state: ClaimSubstantiatorState) -> ClaimSubstantiatorState:
                 )
                 issues.append(issue)
 
+    # 7. Citation Suggestions: Actionable citation recommendations
+    issues.extend(_build_citation_suggestion_issues(state))
+
     issues.sort(key=lambda x: x.severity.sort_index(), reverse=True)
 
     return {"ranked_issues": issues}
@@ -210,3 +213,44 @@ def _find_chunk_index_by_text(state: ClaimSubstantiatorState, text: str) -> int:
             return chunk.chunk_index
 
     return None
+
+
+# Actionable citation actions that warrant an issue
+ACTIONABLE_CITATION_ACTIONS: Set[RecommendedAction] = {
+    RecommendedAction.ADD_NEW_CITATION,
+    RecommendedAction.REPLACE_EXISTING_REFERENCE,
+    RecommendedAction.CITE_EXISTING_REFERENCE_IN_NEW_PLACE,
+}
+
+
+def _build_citation_suggestion_issues(
+    state: ClaimSubstantiatorState,
+) -> List[DocumentIssue]:
+    """Build issues for actionable citation suggestions."""
+    issues = []
+
+    for chunk in state.chunks:
+        for suggestion in chunk.citation_suggestions:
+            actionable_refs = [
+                ref
+                for ref in (suggestion.relevant_references or [])
+                if ref.recommended_action in ACTIONABLE_CITATION_ACTIONS
+            ]
+            if actionable_refs:
+                ref_summary = "\n".join(
+                    f"  • {ref.title} ({ref.recommended_action.value})"
+                    for ref in actionable_refs[:3]
+                )
+                issues.append(
+                    DocumentIssue(
+                        title="Citation Suggestion",
+                        description=(
+                            f"{suggestion.rationale}\n\n"
+                            f"Consider these references:\n{ref_summary}"
+                        ),
+                        severity=SeverityEnum.LOW,
+                        chunk_index=chunk.chunk_index,
+                    )
+                )
+
+    return issues
