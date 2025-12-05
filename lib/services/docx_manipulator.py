@@ -1,6 +1,7 @@
 import logging
+from enum import StrEnum
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 from docx import Document
 from pydantic import BaseModel
@@ -12,13 +13,62 @@ from lib.services.docx_chunk_mapper import create_chunk_to_paragraph_mapping
 logger = logging.getLogger(__name__)
 
 
+class CommentSeverity(StrEnum):
+    """Severity levels for DOCX comments."""
+
+    NONE = "none"
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+
+
+# Severity to author name and icon mapping
+SEVERITY_AUTHORS = {
+    CommentSeverity.HIGH: ("🚨 High Priority", "HP"),
+    CommentSeverity.MEDIUM: ("⚠️ Medium Priority", "MP"),
+    CommentSeverity.LOW: ("💡 Low Priority", "LP"),
+    CommentSeverity.NONE: ("📝 Note", "NT"),
+}
+
+
 class DocxComment(BaseModel):
     """Represents a comment to be added to a docx file"""
 
     chunk_index: int
     text: str
-    author: str = "AI Reviewer"
     comment_text: str
+    severity: Optional[CommentSeverity] = None
+    author: Optional[str] = None  # If not provided, derived from severity
+
+    def get_author(self) -> str:
+        """Get author name, derived from severity if not explicitly set."""
+        if self.author:
+            return self.author
+        if self.severity:
+            return SEVERITY_AUTHORS.get(
+                self.severity, SEVERITY_AUTHORS[CommentSeverity.NONE]
+            )[0]
+        return "AI Reviewer"
+
+    def get_initials(self) -> str:
+        """Get initials for the comment author."""
+        if self.severity and not self.author:
+            return SEVERITY_AUTHORS.get(
+                self.severity, SEVERITY_AUTHORS[CommentSeverity.NONE]
+            )[1]
+        # Derive from author name
+        author = self.get_author()
+        # Skip emoji at start if present
+        parts = author.split()
+        # Filter out emoji-only parts
+        text_parts = [
+            p for p in parts if p.isalpha() or (len(p) > 1 and p[-1].isalpha())
+        ]
+        if len(text_parts) >= 2:
+            return f"{text_parts[0][0]}{text_parts[1][0]}".upper()
+        elif len(text_parts) == 1:
+            return text_parts[0][:2].upper()
+        return "AI"
 
 
 class DocxManipulatorService:
@@ -85,7 +135,7 @@ class DocxManipulatorService:
             if para_idx is None:
                 logger.warning(
                     f"No paragraph mapping found for chunk {comment.chunk_index}, "
-                    f"comment '{comment.comment_text}...' will be skipped"
+                    f"comment '{comment.comment_text[:50]}...' will be skipped"
                 )
                 comments_skipped += 1
                 continue
@@ -100,7 +150,11 @@ class DocxManipulatorService:
             try:
                 paragraph = docx_paragraphs[para_idx]
                 self._add_comment_to_paragraph(
-                    doc, paragraph, comment.comment_text, comment.author
+                    doc,
+                    paragraph,
+                    comment.comment_text,
+                    comment.get_author(),
+                    comment.get_initials(),
                 )
                 comments_added += 1
             except Exception as e:
@@ -118,7 +172,12 @@ class DocxManipulatorService:
         return str(output_path)
 
     def _add_comment_to_paragraph(
-        self, doc: Document, paragraph, comment_text: str, author: str
+        self,
+        doc: Document,
+        paragraph,
+        comment_text: str,
+        author: str,
+        initials: str,
     ):
         """
         Add a comment to a paragraph.
@@ -128,26 +187,18 @@ class DocxManipulatorService:
             paragraph: The paragraph to add comment to
             comment_text: The comment text
             author: The comment author
+            initials: The author initials
         """
         try:
             doc.add_comment(
                 runs=paragraph.runs if paragraph.runs else [paragraph.add_run("")],
                 text=comment_text,
                 author=author,
-                initials=self._get_initials(author),
+                initials=initials,
             )
         except AttributeError as e:
             logger.warning(f"Error inserting comment to docx: {e}")
             raise
-
-    def _get_initials(self, author: str) -> str:
-        """Get initials from author name"""
-        parts = author.split()
-        if len(parts) >= 2:
-            return f"{parts[0][0]}{parts[1][0]}".upper()
-        elif len(parts) == 1:
-            return parts[0][:2].upper()
-        return "AI"
 
 
 docx_manipulator_service = DocxManipulatorService()

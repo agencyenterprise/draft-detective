@@ -156,16 +156,20 @@ def test_duplicate_text_maps_to_correct_paragraphs():
 @pytest.mark.asyncio
 async def test_add_comments_to_docx():
     """
-    Test adding comments to DOCX file.
+    Test adding comments to DOCX file with severity-based authors.
 
     This tests the complete integration:
     1. Load DOCX and convert to markdown
     2. Chunk the markdown
-    3. Create comments for some chunks
+    3. Create comments with different severities
     4. Add comments to DOCX
     5. Verify output file is created
     """
-    from lib.services.docx_manipulator import DocxManipulatorService, DocxComment
+    from lib.services.docx_manipulator import (
+        CommentSeverity,
+        DocxComment,
+        DocxManipulatorService,
+    )
 
     file_doc = await create_test_file_document_from_path(
         "data/geopolitics-of-agi-minimal-1/_original.docx"
@@ -181,22 +185,30 @@ async def test_add_comments_to_docx():
         DocxComment(
             chunk_index=0,
             text=chunks[0].page_content,
-            author="AI Reviewer",
-            comment_text="This is a test comment for chunk 0",
+            comment_text="High priority issue found",
+            severity=CommentSeverity.HIGH,
         ),
         DocxComment(
             chunk_index=1,
             text=chunks[1].page_content,
-            author="Test User",
-            comment_text="Another test comment for chunk 1",
+            comment_text="Medium priority suggestion",
+            severity=CommentSeverity.MEDIUM,
         ),
         DocxComment(
             chunk_index=2,
             text=chunks[2].page_content,
-            author="Reviewer Bot",
-            comment_text="Third test comment for chunk 2",
+            comment_text="Low priority note",
+            severity=CommentSeverity.LOW,
         ),
     ]
+
+    # Verify severity-based authors
+    assert comments[0].get_author() == "🚨 High Priority"
+    assert comments[1].get_author() == "⚠️ Medium Priority"
+    assert comments[2].get_author() == "💡 Low Priority"
+    assert comments[0].get_initials() == "HP"
+    assert comments[1].get_initials() == "MP"
+    assert comments[2].get_initials() == "LP"
 
     service = DocxManipulatorService()
     output_path = await service.add_comments_to_docx(

@@ -2,9 +2,8 @@
 
 import pytest
 
-from lib.services.docx_manipulator import DocxComment
+from lib.services.docx_manipulator import CommentSeverity, DocxComment
 from lib.workflows.claim_substantiation.nodes.generate_docx_output import (
-    get_severity_icon,
     issue_to_comment,
 )
 from lib.workflows.claim_substantiation.nodes.rank_issues import (
@@ -18,22 +17,6 @@ from lib.workflows.claim_substantiation.state import (
     SubstantiationWorkflowConfig,
 )
 from lib.services.file import FileDocument
-
-
-class TestGetSeverityIcon:
-    """Tests for the get_severity_icon function"""
-
-    def test_high_severity_returns_warning_icon(self):
-        assert get_severity_icon(SeverityEnum.HIGH) == "⚠️"
-
-    def test_medium_severity_returns_lightning_icon(self):
-        assert get_severity_icon(SeverityEnum.MEDIUM) == "⚡"
-
-    def test_low_severity_returns_info_icon(self):
-        assert get_severity_icon(SeverityEnum.LOW) == "ℹ️"
-
-    def test_none_severity_returns_default_icon(self):
-        assert get_severity_icon(SeverityEnum.NONE) == "📝"
 
 
 class TestIssueToComment:
@@ -54,8 +37,10 @@ class TestIssueToComment:
         assert isinstance(comment, DocxComment)
         assert comment.chunk_index == 0
         assert comment.text == "The claim content here"
-        assert "⚠️ Unsupported Claim" in comment.comment_text
+        assert "Unsupported Claim" in comment.comment_text
         assert "This claim lacks evidence" in comment.comment_text
+        assert comment.severity == CommentSeverity.HIGH
+        assert comment.get_author() == "🚨 High Priority"
 
     def test_returns_none_when_chunk_index_is_none(self):
         issue = DocumentIssue(
@@ -96,7 +81,7 @@ class TestIssueToComment:
 
         assert comment is None
 
-    def test_medium_severity_uses_correct_icon(self):
+    def test_medium_severity_uses_correct_author(self):
         issue = DocumentIssue(
             title="Partially Supported",
             description="Some evidence found",
@@ -107,7 +92,24 @@ class TestIssueToComment:
 
         comment = issue_to_comment(issue, chunk_content_map)
 
-        assert "⚡ Partially Supported" in comment.comment_text
+        assert comment.severity == CommentSeverity.MEDIUM
+        assert comment.get_author() == "⚠️ Medium Priority"
+        assert comment.get_initials() == "MP"
+
+    def test_low_severity_uses_correct_author(self):
+        issue = DocumentIssue(
+            title="Minor Note",
+            description="Just a suggestion",
+            severity=SeverityEnum.LOW,
+            chunk_index=0,
+        )
+        chunk_content_map = {0: "Chunk content"}
+
+        comment = issue_to_comment(issue, chunk_content_map)
+
+        assert comment.severity == CommentSeverity.LOW
+        assert comment.get_author() == "💡 Low Priority"
+        assert comment.get_initials() == "LP"
 
 
 class TestBuildCitationSuggestionIssues:

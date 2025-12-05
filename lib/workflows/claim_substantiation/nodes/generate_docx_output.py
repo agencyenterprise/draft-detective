@@ -2,7 +2,11 @@ import logging
 from typing import TYPE_CHECKING, Dict, Optional
 
 from lib.agents.models import DocumentMetadata, ValidatedDocument
-from lib.services.docx_manipulator import DocxComment, docx_manipulator_service
+from lib.services.docx_manipulator import (
+    CommentSeverity,
+    DocxComment,
+    docx_manipulator_service,
+)
 from lib.workflows.claim_substantiation.nodes.rank_issues import rank_issues
 from lib.workflows.claim_substantiation.state import (
     ClaimSubstantiatorState,
@@ -17,17 +21,15 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-def get_severity_icon(severity: SeverityEnum) -> str:
-    """Get icon for a severity level."""
-    match severity:
-        case SeverityEnum.HIGH:
-            return "⚠️"
-        case SeverityEnum.MEDIUM:
-            return "⚡"
-        case SeverityEnum.LOW:
-            return "ℹ️"
-        case _:
-            return "📝"
+def _map_severity(severity: SeverityEnum) -> CommentSeverity:
+    """Map workflow SeverityEnum to CommentSeverity."""
+    mapping = {
+        SeverityEnum.HIGH: CommentSeverity.HIGH,
+        SeverityEnum.MEDIUM: CommentSeverity.MEDIUM,
+        SeverityEnum.LOW: CommentSeverity.LOW,
+        SeverityEnum.NONE: CommentSeverity.NONE,
+    }
+    return mapping.get(severity, CommentSeverity.NONE)
 
 
 def issue_to_comment(
@@ -42,11 +44,11 @@ def issue_to_comment(
     if not chunk_content:
         return None
 
-    icon = get_severity_icon(issue.severity)
     return DocxComment(
         chunk_index=issue.chunk_index,
         text=chunk_content,
-        comment_text=f"{icon} {issue.title}\n{issue.description}",
+        comment_text=f"{issue.title}\n\n{issue.description}",
+        severity=_map_severity(issue.severity),
     )
 
 
