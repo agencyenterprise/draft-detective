@@ -342,9 +342,18 @@ if __name__ == "__main__":
         print(f"Class: {comparison_response.reproducibility.class_value}")
         print(f"Rationale: {comparison_response.reproducibility.rationale}")
         print("\n" + "=" * 80)
+        print("REFERENCES")
+        print("=" * 80)
+        for reference in comparison_response.references:
+            print(f"Title: {reference.title}")
+            print(f"Type: {reference.type.value}")
+            print(f"Link: {reference.link}")
+            print(f"Bibliography Info: {reference.bibliography_info}")
+            print("--------------------------------")
+            print()
 
     # Default file path (adjust to your repo layout)
-    DEFAULT_FILE_PATH = "rand-personal/sample_papers_rand/RAND_RRA3034-1.pdf"
+    DEFAULT_FILE_PATH = "rand-personal/sample_papers_rand/RAND_RRA3686-1.pdf"
 
     # Get file path from command line or use default
     if len(sys.argv) > 1:
