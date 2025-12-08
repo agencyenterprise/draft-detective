@@ -1,6 +1,5 @@
-import React from 'react';
-import { Badge } from './badge';
 import { WorkflowRunStatus } from '@/lib/generated-api';
+import { cn } from '@/lib/utils';
 import { AlertTriangle, Check, Clock, Loader2 } from 'lucide-react';
 
 interface StatusIndicatorProps {
@@ -14,25 +13,25 @@ export function StatusIndicator({ status, className }: StatusIndicatorProps) {
       case 'pending':
         return {
           label: 'Pending',
-          variant: 'secondary' as const,
+          className: 'text-yellow-700',
           icon: <Clock className="h-3 w-3" />,
         };
       case 'running':
         return {
           label: 'Running',
-          variant: 'default' as const,
+          className: 'text-blue-700',
           icon: <Loader2 className="h-3 w-3 animate-spin" />,
         };
       case 'completed':
         return {
           label: 'Completed',
-          variant: 'outline' as const,
+          className: 'text-green-700',
           icon: <Check className="h-3 w-3" />,
         };
       default:
         return {
           label: 'Unknown',
-          variant: 'secondary' as const,
+          className: 'text-red-700',
           icon: <AlertTriangle className="h-3 w-3" />,
         };
     }
@@ -41,9 +40,9 @@ export function StatusIndicator({ status, className }: StatusIndicatorProps) {
   const config = getStatusConfig(status);
 
   return (
-    <Badge variant={config.variant} className={className}>
-      {config.icon}
+    <span className={cn('inline-flex text-xs items-center gap-1', config.className, className)}>
       {config.label}
-    </Badge>
+      {config.icon}
+    </span>
   );
 }

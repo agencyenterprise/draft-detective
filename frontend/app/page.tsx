@@ -28,7 +28,7 @@ export default function Home() {
             <Link href="/new">
               <Button size="lg">
                 <FlaskConical className="w-5 h-5" />
-                Start Analysis
+                Start a Project
                 <ArrowRight className="w-4 h-4" />
               </Button>
             </Link>
