@@ -90,7 +90,7 @@ async def _download_direct_url(url: str) -> str | None:
                     logger.warning(f"Downloaded file from {url} is empty")
                     return None
 
-                filename = await _save_pdf_content(content)
+                filename = await _save_content(content, "pdf")
                 logger.info(f"Successfully downloaded and saved PDF to {filename}")
                 return filename
             else:
@@ -100,13 +100,7 @@ async def _download_direct_url(url: str) -> str | None:
                 )
                 return await _download_with_jina_api(url)
 
-    except httpx.HTTPError as e:
-        logger.warning(
-            f"HTTP error downloading content from {url}, falling back to Jina",
-            exc_info=True,
-        )
-        return await _download_with_jina_api(url)
-    except Exception as e:
+    except Exception:
         logger.warning(
             f"Error downloading content from {url}, falling back to Jina", exc_info=True
         )
@@ -128,78 +122,53 @@ async def _download_with_jina_api(url: str) -> str | None:
                 logger.warning(f"Jina API returned empty content for {url}")
                 return None
 
-            filename = await _save_markdown_content(markdown_content)
+            filename = await _save_content(markdown_content, "md")
             logger.info(f"Successfully downloaded and saved markdown to {filename}")
             return filename
-
-    except httpx.HTTPError as e:
-        logger.error(
-            f"HTTP error downloading content with Jina API from {url}", exc_info=True
-        )
-        return None
-    except Exception as e:
+    except Exception:
         logger.error(
             f"Error downloading content with Jina API from {url}", exc_info=True
         )
         return None
 
 
-async def _save_pdf_content(content: bytes) -> str:
-    """Save PDF content to file. Returns the filename."""
-    # Calculate hash and save file
-    xxhash = xxh128(content).hexdigest()
-    upload_dir = config.FILE_UPLOADS_MOUNT_PATH
-    file_path = os.path.join(upload_dir, f"{xxhash}.pdf")
+async def _save_content(content: bytes | str, extension: str) -> str:
+    """Save content to file. Returns the filename.
 
-    # Skip if file already exists
-    if os.path.exists(file_path):
-        logger.info(
-            f"File with hash {xxhash} already exists at {file_path}, skipping download"
-        )
-        return f"{xxhash}.pdf"
+    Args:
+        content: The content to save (bytes for binary files, str for text files)
+        extension: File extension (e.g., 'pdf', 'md')
+    """
 
-    # Ensure upload directory exists
-    Path(upload_dir).mkdir(parents=True, exist_ok=True)
-
-    # Save the file
-    logger.info(f"Saving downloaded PDF with hash {xxhash} to {file_path}")
-    with open(file_path, "wb") as buffer:
-        buffer.write(content)
-
-    if not os.path.exists(file_path):
-        raise Exception(f"File was not created at {file_path}")
-
-    return f"{xxhash}.pdf"
-
-
-async def _save_markdown_content(content: str) -> str:
-    """Save markdown content to file. Returns the filename."""
-
-    # Calculate hash and save file
-    content_bytes = content.encode("utf-8")
+    # Calculate hash from bytes
+    content_bytes = content if isinstance(content, bytes) else content.encode("utf-8")
     xxhash = xxh128(content_bytes).hexdigest()
     upload_dir = config.FILE_UPLOADS_MOUNT_PATH
-    file_path = os.path.join(upload_dir, f"{xxhash}.md")
+    file_path = os.path.join(upload_dir, f"{xxhash}.{extension}")
 
     # Skip if file already exists
     if os.path.exists(file_path):
         logger.info(
             f"File with hash {xxhash} already exists at {file_path}, skipping download"
         )
-        return f"{xxhash}.md"
+        return f"{xxhash}.{extension}"
 
     # Ensure upload directory exists
     Path(upload_dir).mkdir(parents=True, exist_ok=True)
 
     # Save the file
-    logger.info(f"Saving downloaded markdown with hash {xxhash} to {file_path}")
-    with open(file_path, "w", encoding="utf-8") as buffer:
-        buffer.write(content)
+    logger.info(f"Saving downloaded file with hash {xxhash} to {file_path}")
+    if isinstance(content, bytes):
+        with open(file_path, "wb") as buffer:
+            buffer.write(content)
+    else:
+        with open(file_path, "w", encoding="utf-8") as buffer:
+            buffer.write(content)
 
     if not os.path.exists(file_path):
         raise Exception(f"File was not created at {file_path}")
 
-    return f"{xxhash}.md"
+    return f"{xxhash}.{extension}"
 
 
 if __name__ == "__main__":

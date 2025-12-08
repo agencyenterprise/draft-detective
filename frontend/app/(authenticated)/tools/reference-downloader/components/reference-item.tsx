@@ -16,6 +16,20 @@ interface ReferenceItemProps {
   downloadedReference?: string | null;
 }
 
+/**
+ * openapi-generator-cli is not correctly generating the types for the ReferenceFetchItem.sourceUrl and ReferenceFetchItem.downloadUrl,
+ * so we need this function, just for type safety (in practice the values are always string).
+ */
+function extractUrl(value: string | { url?: string; value?: string } | null | undefined): string | null {
+  if (typeof value === 'string') {
+    return value;
+  }
+  if (typeof value === 'object' && value !== null) {
+    return (value as { url?: string; value?: string }).url || (value as { url?: string; value?: string }).value || null;
+  }
+  return null;
+}
+
 function getConclusionBadge(conclusion: ReferenceFetchConclusion) {
   switch (conclusion) {
     case ReferenceFetchConclusion.SourceFound:
@@ -58,23 +72,8 @@ export function ReferenceItem({ item, index, downloadedReference }: ReferenceIte
 
   // Handle SourceUrl and ContentExcerpt - they might be strings or objects
   // TypeScript types show them as empty interfaces, but they're actually strings in practice
-  const sourceUrl =
-    typeof item.sourceUrl === 'string'
-      ? item.sourceUrl
-      : typeof item.sourceUrl === 'object' && item.sourceUrl !== null
-        ? (item.sourceUrl as { url?: string; value?: string }).url ||
-          (item.sourceUrl as { url?: string; value?: string }).value ||
-          null
-        : null;
-
-  const downloadUrl =
-    typeof item.downloadUrl === 'string'
-      ? item.downloadUrl
-      : typeof item.downloadUrl === 'object' && item.downloadUrl !== null
-        ? (item.downloadUrl as { url?: string; value?: string }).url ||
-          (item.downloadUrl as { url?: string; value?: string }).value ||
-          null
-        : null;
+  const sourceUrl = extractUrl(item.sourceUrl);
+  const downloadUrl = extractUrl(item.downloadUrl);
 
   // Generate download URL and filename if downloaded reference exists
   const downloadLink = useMemo(() => {
