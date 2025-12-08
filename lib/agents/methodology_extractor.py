@@ -103,7 +103,7 @@ You must return a single field called **methodology** which is:
 
 [Include the full extracted methodology from the paper here. This should be a complete restatement or copy of the methodology provided in the input. Present it clearly and comprehensively so readers understand exactly what methodology was used in the paper before seeing the comparison.]
 
-Organize the methodology using the following subsections as appropriate (use only those that are relevant to the paper):
+Organize the methodology using the following subsections as appropriate with proper markdown formatting for headings (use only those that are relevant to the paper):
 
 ### Research Design
 
