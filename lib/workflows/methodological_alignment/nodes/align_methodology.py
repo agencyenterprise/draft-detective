@@ -36,7 +36,7 @@ async def align_methodology(
     logger.info(f"align_methodology: Comparing methodology to field standards")
     methodology_comparison_agent = MethodologyComparisonAgent(runtime.context)
     comparison_response = await methodology_comparison_agent.ainvoke(
-        {"paper_methodology": paper_methodology}
+        {"extracted_methodology": extraction_response}
     )
 
     return {"methodology_comparison": comparison_response}
