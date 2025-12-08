@@ -3,6 +3,7 @@ from typing import Type, TypeVar
 from fastapi import HTTPException
 from langgraph.graph import StateGraph
 
+from lib.config.env import config as env_config
 from lib.services.file import FileDocument
 from lib.services.vector_store import VectorStoreService
 from lib.workflows.claim_substantiation.context import ContextSchema
@@ -20,9 +21,15 @@ from lib.workflows.methodological_alignment.state import (
     MethodologicalAlignmentWorkflowConfig,
 )
 from lib.workflows.models import BaseWorkflowConfig, BaseWorkflowState, WorkflowRunType
-from lib.config.env import config as env_config
+from lib.workflows.reference_downloader.graph import build_reference_downloader_graph
+from lib.workflows.reference_downloader.state import (
+    ReferenceDownloaderState,
+    ReferenceDownloaderWorkflowConfig,
+)
 
-WorkflowState = ClaimSubstantiatorState | MethodologicalAlignmentState
+WorkflowState = (
+    ClaimSubstantiatorState | MethodologicalAlignmentState | ReferenceDownloaderState
+)
 
 WorkflowStateType = TypeVar("WorkflowStateType", bound=BaseWorkflowState)
 
@@ -33,6 +40,8 @@ def create_graph(type: WorkflowRunType) -> StateGraph:
             return build_claim_substantiator_graph()
         case WorkflowRunType.METHODOLOGICAL_ALIGNMENT:
             return build_methodological_alignment_graph()
+        case WorkflowRunType.REFERENCE_DOWNLOADER:
+            return build_reference_downloader_graph()
         case _:
             raise ValueError(f"Unknown workflow type: {type}")
 
@@ -43,6 +52,8 @@ def get_config_type(type: WorkflowRunType) -> Type[BaseWorkflowConfig]:
             return SubstantiationWorkflowConfig
         case WorkflowRunType.METHODOLOGICAL_ALIGNMENT:
             return MethodologicalAlignmentWorkflowConfig
+        case WorkflowRunType.REFERENCE_DOWNLOADER:
+            return ReferenceDownloaderWorkflowConfig
         case _:
             raise ValueError(f"Unknown workflow type: {type}")
 
@@ -51,12 +62,14 @@ def get_state_type(
     type: WorkflowRunType, summary: bool = False
 ) -> Type[BaseWorkflowState]:
     match type:
-        case WorkflowRunType.METHODOLOGICAL_ALIGNMENT:
-            return MethodologicalAlignmentState
         case WorkflowRunType.CLAIM_SUBSTANTIATION:
             return (
                 ClaimSubstantiatorStateSummary if summary else ClaimSubstantiatorState
             )
+        case WorkflowRunType.METHODOLOGICAL_ALIGNMENT:
+            return MethodologicalAlignmentState
+        case WorkflowRunType.REFERENCE_DOWNLOADER:
+            return ReferenceDownloaderState
         case _:
             raise ValueError(f"Unknown workflow type: {type}")
 
@@ -90,6 +103,8 @@ async def create_state(config: BaseWorkflowConfig) -> WorkflowStateType:
         case WorkflowRunType.METHODOLOGICAL_ALIGNMENT:
             file = await _get_file_from_project(config.project_id)
             return MethodologicalAlignmentState(file=file)
+        case WorkflowRunType.REFERENCE_DOWNLOADER:
+            return ReferenceDownloaderState(config=config)
         case _:
             raise ValueError(f"Unknown workflow type: {config.type}")
 

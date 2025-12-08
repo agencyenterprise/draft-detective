@@ -43,6 +43,7 @@ models/DocumentChunkSummary.ts
 models/DocumentIssue.ts
 models/DocumentReferenceFactors.ts
 models/DocumentSummary.ts
+models/DownloadUrl.ts
 models/EvalPackageRequest.ts
 models/EvidenceAlignmentLevel.ts
 models/EvidenceWeighterRecommendedAction.ts
@@ -74,6 +75,11 @@ models/RecommendedAction.ts
 models/Reference.ts
 models/ReferenceAlignmentLevel.ts
 models/ReferenceDirection.ts
+models/ReferenceDownloaderState.ts
+models/ReferenceDownloaderWorkflowConfig.ts
+models/ReferenceDownloaderWorkflowDetail.ts
+models/ReferenceFetchConclusion.ts
+models/ReferenceFetchItem.ts
 models/ReferenceType.ts
 models/ReportMetadata.ts
 models/ReportOutputInput.ts
@@ -81,6 +87,7 @@ models/ReportOutputOutput.ts
 models/RerunAnalysisRequest.ts
 models/RetrievedPassageInfo.ts
 models/SeverityEnum.ts
+models/SourceUrl.ts
 models/StartWorkflowResponse.ts
 models/SubstantiationWorkflowConfig.ts
 models/ToulminClaim.ts

@@ -22,8 +22,12 @@ async def run_workflow_from_config(
     config: BaseWorkflowConfig, thread_id: str
 ) -> WorkflowStateType:
     graph = create_graph(config.type)
-    state = await create_state(config)
     context = create_context(config)
+
+    # Redact the OpenAI API key from the config so it doesn't get saved in the state
+    config.openai_api_key = "[REDACTED]"
+
+    state = await create_state(config)
 
     return await run_workflow(
         project_id=config.project_id,

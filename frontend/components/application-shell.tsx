@@ -14,14 +14,23 @@ import { MenuIcon, XIcon } from 'lucide-react';
 import { User } from 'next-auth';
 import Image from 'next/image';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
 const navigation = [
-  { name: 'Review results', href: '/results', current: false },
-  { name: 'Start new review', href: '/new', current: false },
+  { name: 'Review results', href: '/results' },
+  { name: 'Start new review', href: '/new' },
+  { name: 'Tools', href: '/tools' },
 ];
 const userNavigation = [{ name: 'Sign out', href: '/api/auth/signout' }];
 
 export function ApplicationShell({ user, children }: { user: User; children: React.ReactNode }) {
+  const pathname = usePathname();
+
+  const navigationWithCurrent = navigation.map((item) => ({
+    ...item,
+    current: pathname.startsWith(item.href),
+  }));
+
   return (
     <>
       {/*
@@ -43,7 +52,7 @@ export function ApplicationShell({ user, children }: { user: User; children: Rea
                   </Link>
                 </div>
                 <div className="hidden sm:-my-px sm:ml-6 sm:flex sm:space-x-8">
-                  {navigation.map((item) => (
+                  {navigationWithCurrent.map((item) => (
                     <a
                       key={item.name}
                       href={item.href}
@@ -117,7 +126,7 @@ export function ApplicationShell({ user, children }: { user: User; children: Rea
 
           <DisclosurePanel className="sm:hidden">
             <div className="space-y-1 pt-2 pb-3">
-              {navigation.map((item) => (
+              {navigationWithCurrent.map((item) => (
                 <DisclosureButton
                   key={item.name}
                   as="a"

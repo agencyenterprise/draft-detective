@@ -71,15 +71,16 @@ async def run_workflow_background(
 async def start_workflow_run(
     config: BaseWorkflowConfig, user: User, background_tasks: BackgroundTasks
 ):
-    if not config.project_id:
-        raise HTTPException(status_code=400, detail="Project ID is required")
+    if config.project_id is not None:
+        # Check if project exists and is owned by the user
+        await get_user_project_detailed(config.project_id, user)
 
-    # Check if project exists and is owned by the user
-    await get_user_project_detailed(config.project_id, user)
-
-    workflow_run = await get_project_workflow_run_by_type(
-        config.project_id, config.type
-    )
+        workflow_run = await get_project_workflow_run_by_type(
+            config.project_id, config.type
+        )
+    else:
+        # No project ID provided, always create a new workflow run without project association
+        workflow_run = None
 
     if workflow_run is not None:
         thread_id = workflow_run.langgraph_thread_id
