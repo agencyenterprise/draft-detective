@@ -61,6 +61,7 @@ kubectl create secret generic app-secrets --from-env-file=.env -n ai-reviewer
 
 # Apply all manifests (OpenShift Routes will be ignored)
 kubectl apply -f configmap.yaml -f database.yaml -f api.yaml -f frontend.yaml -n ai-reviewer
+> If you want to run docling, run -f docling.yaml
 
 # Access via port-forward
 kubectl port-forward -n ai-reviewer svc/frontend 3000:3000
@@ -116,6 +117,7 @@ spec:
 ```bash
 kubectl logs -f deployment/api -n ai-reviewer
 kubectl logs -f deployment/frontend -n ai-reviewer
+kubectl logs -f deployment/docling-serve -n ai-reviewer
 ```
 
 **Check status:**
@@ -185,10 +187,30 @@ kubectl exec -it deployment/db -n ai-reviewer -- psql -U ai_reviewer_user -d ai_
 | **frontend** | Next.js UI | 3000 |
 | **api** | FastAPI backend with auto-migrations | 8000 |
 | **db** | PostgreSQL 16 + pgvector | 5432 |
+| **docling-serve** | Document conversion service (optional) | 5001 |
 
 **Persistent Storage:**
 - Database data: 20Gi
 - API uploads: 20Gi
+
+## Docling-serve (Document Conversion)
+
+Docling-serve provides advanced document conversion (PDF, DOCX, etc.) with OCR and table extraction.
+
+**Enabling Docling:**
+
+1. Add `DOCLING_SERVE_API_KEY` to your `.env` file (or app-secrets)
+2. Update `api-config` ConfigMap to set `FILE_CONVERTER: "docling"`:
+   ```bash
+   kubectl edit configmap api-config -n ai-reviewer
+   # Change FILE_CONVERTER from "markitdown" to "docling"
+   ```
+3. Restart the API deployment:
+   ```bash
+   kubectl rollout restart deployment/api -n ai-reviewer
+   ```
+
+**Note:** Docling-serve requires more resources (1-4GB RAM). For production, consider scaling resources in `docling.yaml`.
 
 ## Clean Up
 

@@ -1,0 +1,78 @@
+# Docling-serve: Document conversion service
+# https://github.com/docling-project/docling-serve
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: docling-serve
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: docling-serve
+  template:
+    metadata:
+      labels:
+        app: docling-serve
+    spec:
+      securityContext:
+        fsGroup: 1000
+        runAsNonRoot: true
+        runAsUser: 1000
+      containers:
+      - name: docling-serve
+        image: quay.io/docling-project/docling-serve:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 5001
+        env:
+        - name: DOCLING_SERVE_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: DOCLING_SERVE_API_KEY
+        - name: DOCLING_SERVE_ENABLE_UI
+          value: "false"
+        - name: DOCLING_SERVE_ENG_LOC_NUM_WORKERS
+          value: "4"
+        resources:
+          requests:
+            memory: 1Gi
+            cpu: 500m
+          limits:
+            memory: 4Gi
+            cpu: 4000m
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 5001
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 5001
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        securityContext:
+          allowPrivilegeEscalation: false
+          runAsNonRoot: true
+          runAsUser: 1000
+          capabilities:
+            drop:
+            - ALL
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: docling-serve
+spec:
+  type: ClusterIP
+  ports:
+  - port: 5001
+  selector:
+    app: docling-serve
+
