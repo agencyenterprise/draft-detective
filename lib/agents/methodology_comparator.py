@@ -178,7 +178,7 @@ Taken from the extracted methodology:
 ```latex
 $$E = mc^2$$
 ```
-- Always use proper LaTeX syntax for mathematical notation (e.g., `\alpha`, `\beta`, `\sum`, `\prod`, `\frac{a}{b}`, `\sqrt{x}`, etc.)
+- Always use proper LaTeX syntax for mathematical notation (e.g., `\alpha`, `\beta`, `\sum`, `\prod`, `\frac{{a}}{{b}}`, `\sqrt{{x}}`, etc.)
 - When describing equations from the paper, convert them to LaTeX format rather than using plain text or Unicode characters
 
 Additional guidance:
