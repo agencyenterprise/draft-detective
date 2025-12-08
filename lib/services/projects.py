@@ -1,5 +1,6 @@
+from collections import defaultdict
 import logging
-from typing import List, Optional, Tuple
+from typing import List, Optional
 
 from fastapi.exceptions import HTTPException
 from pydantic import BaseModel, Field
@@ -17,9 +18,9 @@ logger = logging.getLogger(__name__)
 
 class ProjectListItem(BaseModel):
     project: Project = Field(description="The project")
-    status: Optional[WorkflowRunStatus] = Field(
-        default=WorkflowRunStatus.PENDING,
-        description="The status of the associated workflow run",
+    workflow_runs: List[WorkflowRun] = Field(
+        default_factory=list,
+        description="The workflow runs for the project",
     )
 
 
@@ -45,20 +46,36 @@ async def create_project(title: str, user: User) -> Project:
 
 
 async def get_user_projects(user: User) -> List[ProjectListItem]:
-    """Retrieve all projects for a user."""
+    """Retrieve all projects for a user with their associated workflow runs."""
 
     with get_db() as db:
-        items: List[Tuple[Project, WorkflowRunStatus]] = (
-            db.query(Project, WorkflowRun.status)
+        results = (
+            db.query(Project, WorkflowRun)
+            .outerjoin(WorkflowRun, WorkflowRun.project_id == Project.id)
             .filter(Project.user_id == user.id)
-            # TODO: we have only 1 workflow run per project for now, but this needs to be changed later
-            .outerjoin(WorkflowRun)
-            .order_by(Project.created_at.desc())
-            .limit(100)
+            .order_by(Project.created_at.desc(), WorkflowRun.created_at.asc())
+            .limit(200)
             .all()
         )
 
-    return [ProjectListItem(project=item[0], status=item[1]) for item in items]
+        if not results:
+            return []
+
+        # Group workflow runs by project
+        projects_dict = defaultdict(lambda: {"project": None, "workflow_runs": []})
+        for project, workflow_run in results:
+            if projects_dict[project.id]["project"] is None:
+                projects_dict[project.id]["project"] = project
+            if workflow_run is not None:
+                projects_dict[project.id]["workflow_runs"].append(workflow_run)
+
+        # Build the result list
+        return [
+            ProjectListItem(
+                project=item["project"], workflow_runs=item["workflow_runs"]
+            )
+            for item in projects_dict.values()
+        ]
 
 
 async def get_user_project_detailed(project_id: str, user: User) -> ProjectDetailed:

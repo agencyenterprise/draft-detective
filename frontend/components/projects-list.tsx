@@ -4,12 +4,13 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { StatusIndicator } from '@/components/ui/status-indicator';
 import { projectsApi } from '@/lib/api';
+import { getWorkflowTypeName } from '@/lib/workflow-state';
 import { useQuery } from '@tanstack/react-query';
 import { formatDistanceToNow } from 'date-fns';
+import { ChevronRightIcon, PlusIcon } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { DeleteProjectDialog } from './delete-project-dialog';
-import { WorkflowRunStatus } from '@/lib/generated-api';
 
 interface ProjectsListProps {
   className?: string;
@@ -33,11 +34,11 @@ export function ProjectsList({ className }: ProjectsListProps) {
     return (
       <Card className={className}>
         <CardHeader>
-          <CardTitle>My analyses</CardTitle>
+          <CardTitle>My projects</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8 space-y-4">
-            <p className="text-muted-foreground">Please sign in to view your analyses</p>
+            <p className="text-muted-foreground">Please sign in to view your projects</p>
             <Button variant="outline" asChild>
               <Link href="/api/auth/signin">Sign in</Link>
             </Button>
@@ -51,12 +52,12 @@ export function ProjectsList({ className }: ProjectsListProps) {
     return (
       <Card className={className}>
         <CardHeader>
-          <CardTitle>My analyses</CardTitle>
+          <CardTitle>My projects</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-            <p className="mt-2 text-muted-foreground">Loading my analyses...</p>
+            <p className="mt-2 text-muted-foreground">Loading your projects...</p>
           </div>
         </CardContent>
       </Card>
@@ -67,7 +68,7 @@ export function ProjectsList({ className }: ProjectsListProps) {
     return (
       <Card className={className}>
         <CardHeader>
-          <CardTitle>My analyses</CardTitle>
+          <CardTitle>My projects</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8">
@@ -85,12 +86,22 @@ export function ProjectsList({ className }: ProjectsListProps) {
     return (
       <Card className={className}>
         <CardHeader>
-          <CardTitle>My analyses</CardTitle>
+          <CardTitle>My projects</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-8">
-            <p className="text-muted-foreground">No analyses found</p>
-            <p className="text-sm text-muted-foreground mt-1">Upload and process documents to see them here</p>
+          <div className="text-center space-y-6">
+            <div className="space-y-1">
+              <p className="text-muted-foreground">You don&apos;t have any projects yet</p>
+              <p className="text-sm text-muted-foreground">
+                Start a new project to <strong>upload your documents</strong> and <strong>analyze them</strong> or to
+                start a new <strong>research project</strong>.
+              </p>
+            </div>
+            <Button variant="outline" asChild>
+              <Link href="/new">
+                <PlusIcon className="w-5 h-5" /> Start a new project
+              </Link>
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -100,31 +111,37 @@ export function ProjectsList({ className }: ProjectsListProps) {
   return (
     <Card className={className}>
       <CardHeader>
-        <CardTitle>My analyses</CardTitle>
-        <p className="text-sm text-muted-foreground">View and revisit your analyses</p>
+        <CardTitle>Your Projects</CardTitle>
+        <p className="text-sm text-muted-foreground">
+          Projects are private and only you can access them, unless explicitly shared with others.
+        </p>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          {projects?.map(({ project, status }) => (
+          {projects?.map(({ project, workflowRuns }) => (
             <div
               key={project.id}
               className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
             >
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1 min-w-0">
+                <div className="flex flex-col mb-1 min-w-0">
                   <h3 className="font-medium truncate">{project.title}</h3>
-                  <StatusIndicator status={status || WorkflowRunStatus.Pending} className="flex-shrink-0 mr-8" />
+                  {workflowRuns?.map((workflowRun) => (
+                    <p key={workflowRun.id} className="text-sm pl-2">
+                      {getWorkflowTypeName(workflowRun.type)}: <StatusIndicator status={workflowRun.status} />
+                    </p>
+                  ))}
                 </div>
 
                 <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                  <p>{formatDistanceToNow(project.createdAt, { addSuffix: true })}</p>
+                  <p>Project created {formatDistanceToNow(project.createdAt, { addSuffix: true })}</p>
                 </div>
               </div>
 
               <div className="flex gap-2">
-                <Link href={`/results/${project.id}`}>
+                <Link href={`/projects/${project.id}`}>
                   <Button variant="outline" size="sm">
-                    View Results
+                    View project <ChevronRightIcon className="w-4 h-4" />
                   </Button>
                 </Link>
 

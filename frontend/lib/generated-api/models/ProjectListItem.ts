@@ -15,13 +15,13 @@
 import { mapValues } from '../runtime';
 import type { Project } from './Project';
 import { ProjectFromJSON, ProjectFromJSONTyped, ProjectToJSON, ProjectToJSONTyped } from './Project';
-import type { WorkflowRunStatus } from './WorkflowRunStatus';
+import type { WorkflowRun } from './WorkflowRun';
 import {
-  WorkflowRunStatusFromJSON,
-  WorkflowRunStatusFromJSONTyped,
-  WorkflowRunStatusToJSON,
-  WorkflowRunStatusToJSONTyped,
-} from './WorkflowRunStatus';
+  WorkflowRunFromJSON,
+  WorkflowRunFromJSONTyped,
+  WorkflowRunToJSON,
+  WorkflowRunToJSONTyped,
+} from './WorkflowRun';
 
 /**
  *
@@ -36,11 +36,11 @@ export interface ProjectListItem {
    */
   project: Project;
   /**
-   *
-   * @type {WorkflowRunStatus}
+   * The workflow runs for the project
+   * @type {Array<WorkflowRun>}
    * @memberof ProjectListItem
    */
-  status?: WorkflowRunStatus | null;
+  workflowRuns?: Array<WorkflowRun>;
 }
 
 /**
@@ -61,7 +61,8 @@ export function ProjectListItemFromJSONTyped(json: any, ignoreDiscriminator: boo
   }
   return {
     project: ProjectFromJSON(json['project']),
-    status: json['status'] == null ? undefined : WorkflowRunStatusFromJSON(json['status']),
+    workflowRuns:
+      json['workflow_runs'] == null ? undefined : (json['workflow_runs'] as Array<any>).map(WorkflowRunFromJSON),
   };
 }
 
@@ -76,6 +77,7 @@ export function ProjectListItemToJSONTyped(value?: ProjectListItem | null, ignor
 
   return {
     project: ProjectToJSON(value['project']),
-    status: WorkflowRunStatusToJSON(value['status']),
+    workflow_runs:
+      value['workflowRuns'] == null ? undefined : (value['workflowRuns'] as Array<any>).map(WorkflowRunToJSON),
   };
 }

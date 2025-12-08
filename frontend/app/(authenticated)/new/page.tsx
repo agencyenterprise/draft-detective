@@ -50,7 +50,7 @@ export default function New() {
       );
     },
     onSuccess: (response) => {
-      router.push(`/results/${response.projectId}`);
+      router.push(`/projects/${response.projectId}`);
     },
   });
 
@@ -83,9 +83,9 @@ export default function New() {
     return (
       <div className="space-y-6">
         <div className="space-y-1">
-          <h1 className="text-xl font-semibold">Start a new analysis</h1>
+          <h1 className="text-xl font-semibold">Start a new project</h1>
           <p className="text-muted-foreground text-sm">
-            Upload your documents and configure your analysis settings to receive a comprehensive review.
+            Upload your documents and configure your settings to receive a comprehensive review.
           </p>
         </div>
 
@@ -121,9 +121,9 @@ export default function New() {
     return (
       <div className="space-y-6">
         <div className="space-y-1">
-          <h1 className="text-xl font-semibold">Start a new analysis</h1>
+          <h1 className="text-xl font-semibold">Start a new project</h1>
           <p className="text-muted-foreground text-sm">
-            Upload your documents and configure your analysis settings to receive a comprehensive review.
+            Upload your documents and configure your settings to receive a comprehensive review.
           </p>
         </div>
 
@@ -162,9 +162,9 @@ export default function New() {
   return (
     <div className="space-y-6">
       <div className="space-y-1">
-        <h1 className="text-xl font-semibold">Start a new analysis</h1>
+        <h1 className="text-xl font-semibold">Start a new project</h1>
         <p className="text-muted-foreground text-sm">
-          Upload your documents and configure your analysis settings to receive a comprehensive review.
+          Upload your documents and configure your settings to receive a comprehensive review.
         </p>
       </div>
 
