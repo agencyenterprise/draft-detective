@@ -108,6 +108,11 @@ Format your response using the following markdown structure:
 
 [Assess the rigor and robustness of the paper's methodology relative to field norms. Explain implications for credibility, generalizability, and interpretability. Highlight any methodological risks or limitations that follow from deviations from standard practice.]
 
+## Suggestions for Improvements
+
+[Based on previous analyses provide a bulleted list of at most three suggestions to change the language of the paper, the data sources used, methodological approaches, etc. to improve the robustness, rigor, or generalizability of the findings.]
+
+
 ### Citations
 
 [When referencing sources found through web search, cite them appropriately using markdown links or inline citations, for example: "According to [Source Name](URL)..." or "Smith et al. (2023) found that..."]
