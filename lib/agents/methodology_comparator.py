@@ -76,6 +76,7 @@ You must return a single field called **comparison** which is:
 - A **coherent, stand-alone narrative** written in clear prose.
 - Approximately **500–900 words** for the comparison sections (the extracted methodology section adds additional length).
 - Structured using markdown formatting as shown in the template below.
+- **Mathematical notation**: Any equations, formulas, or mathematical expressions must be written in LaTeX format using `$...$` for inline math and `$$...$$` for display equations.
 
 ### Suggested Markdown Format
 
@@ -85,6 +86,34 @@ Format your response using the following markdown structure:
 ## Extracted Methodology
 
 [Include the full extracted methodology from the paper here. This should be a complete restatement or copy of the methodology provided in the input. Present it clearly and comprehensively so readers understand exactly what methodology was used in the paper before seeing the comparison.]
+
+Organize the methodology using the following subsections as appropriate (use only those that are relevant to the paper):
+
+### Research Design
+
+[Describe the overall research design, study type (e.g., experimental, observational, simulation, meta-analysis), and the general approach taken.]
+
+### Data Sources and Collection
+
+[Describe the data sources used, how data was collected, sampling methods, data acquisition procedures, and any data preprocessing steps.]
+
+### Experimental Setup
+
+[For experimental studies: describe the experimental conditions, controls, variables manipulated, and experimental procedures. For observational studies: describe the observational framework, measurement instruments, and data collection protocols.]
+
+### Analytical Methods
+
+[Describe the statistical methods, modeling approaches, algorithms, computational techniques, or other analytical methods used to analyze the data or test hypotheses.]
+
+### Evaluation Metrics and Validation
+
+[Describe how results were evaluated, what metrics were used, validation procedures, robustness checks, and any quality assurance measures.]
+
+### Limitations and Constraints
+
+[Note any limitations, constraints, or assumptions explicitly mentioned in the methodology, including sample size limitations, data quality issues, or methodological constraints.]
+
+**Note:** If the extracted methodology does not clearly separate into these categories, present it in a logical flow that best represents the paper's methodological approach. The goal is clarity and comprehensiveness, not rigid adherence to this structure.
 
 ## Field Methods Overview
 
@@ -121,6 +150,14 @@ Format your response using the following markdown structure:
 - Use code blocks (`` ` ``) for technical terms or specific values
 - Include citations with markdown links when referencing web search sources
 - Keep paragraphs focused and well-structured
+- **Mathematical equations**: All equations must be formatted in LaTeX notation:
+- For inline equations, use single dollar signs: `$E = mc^2$`
+- For block/display equations, use double dollar signs on separate lines:
+```latex
+$$E = mc^2$$
+```
+- Always use proper LaTeX syntax for mathematical notation (e.g., `\alpha`, `\beta`, `\sum`, `\prod`, `\frac{a}{b}`, `\sqrt{x}`, etc.)
+- When describing equations from the paper, convert them to LaTeX format rather than using plain text or Unicode characters
 
 Additional guidance:
 
