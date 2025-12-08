@@ -93,7 +93,7 @@ When using web search:
 
 This is the methodology as extracted from the focal paper:
 
-{extracted_methodology.methodology}
+{extracted_methodology}
 
 ## Your goals
 
@@ -130,7 +130,7 @@ Format your response using the following markdown structure:
 
 Taken from the extracted methodology:
 
-{extracted_methodology.methodology}
+{extracted_methodology}
 
 ## Field Methods Overview
 
@@ -217,7 +217,7 @@ class MethodologyComparisonAgent(DirectOpenAIAgent):
         """
         Expected prompt_kwargs:
             {
-                "extracted_methodology": MethodologyExtractionResponse,  # output of MethodologyExtractorAgent
+                "extracted_methodology": str,  # output of MethodologyExtractorAgent
             }
         """
         prompt = _methodology_comparison_agent_prompt.invoke(prompt_kwargs)
@@ -312,7 +312,7 @@ if __name__ == "__main__":
         methodology_comparison_agent = MethodologyComparisonAgent(context)
         comparison_response = await methodology_comparison_agent.ainvoke(
             {
-                "extracted_methodology": extraction_response,
+                "extracted_methodology": extraction_response.methodology,
             }
         )
 
