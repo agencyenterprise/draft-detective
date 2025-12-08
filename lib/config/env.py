@@ -13,10 +13,11 @@ class Config(BaseModel):
     AZURE_OPENAI_API_KEY: Optional[str]
     AZURE_OPENAI_ENDPOINT: Optional[str]
 
-    LANGFUSE_SECRET_KEY: str
-    LANGFUSE_PUBLIC_KEY: str
-    LANGFUSE_HOST: str
-    LANGFUSE_PROJECT_ID: str
+    # Langfuse Configuration
+    LANGFUSE_SECRET_KEY: Optional[str] = None
+    LANGFUSE_PUBLIC_KEY: Optional[str] = None
+    LANGFUSE_HOST: Optional[str] = None
+    LANGFUSE_PROJECT_ID: Optional[str] = None
 
     # Database Configuration
     DATABASE_URL: str

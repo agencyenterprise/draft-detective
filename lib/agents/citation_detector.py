@@ -6,7 +6,13 @@ from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
 
 from lib.config.llm_models import gpt_5_mini_model
-from lib.models.agent import LangChainAgent, QCResult
+from lib.models.agent import LangChainAgent
+
+
+class QCResult(BaseModel):
+    """Quality control result for agent outputs."""
+    valid: bool
+    feedback: str
 
 
 class CitationType(str, Enum):

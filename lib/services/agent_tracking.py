@@ -9,9 +9,9 @@ import time
 from typing import Any, Optional
 
 from langchain_core.callbacks.base import BaseCallbackHandler
-from langfuse.langchain import CallbackHandler as LangfuseCallbackHandler
 from pydantic import BaseModel, Field
 
+from lib.config.langfuse import langfuse_handler
 from lib.config.llm_models import LLMModel
 from lib.services.langfuse_metrics import calculate_metrics, ModelMetrics
 
@@ -148,7 +148,6 @@ class AgentExecutionTracker:
         """
         self.model = model
         self.token_callback = TokenUsageCallback()
-        self.langfuse_handler = LangfuseCallbackHandler()
         self.start_time: Optional[float] = None
         self.end_time: Optional[float] = None
 
@@ -158,7 +157,7 @@ class AgentExecutionTracker:
         Returns:
             List of callback handlers for tracking
         """
-        return [self.token_callback, self.langfuse_handler]
+        return [self.token_callback, langfuse_handler]
 
     def start_timing(self):
         """Start execution timer."""

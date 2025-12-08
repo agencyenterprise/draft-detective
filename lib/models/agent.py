@@ -4,11 +4,10 @@ from typing import Any, Optional
 
 from langchain.chat_models import init_chat_model
 from langchain_core.runnables.config import RunnableConfig
-from langfuse.openai import AsyncOpenAI
 from pydantic import BaseModel
 
 from lib.config.llm_models import LLMModel
-from lib.services.openai import get_openai_client
+from lib.services.openai import AsyncOpenAIClient, get_openai_client
 from lib.workflows.claim_substantiation.context import ContextSchema
 
 logger = logging.getLogger(__name__)
@@ -57,12 +56,15 @@ class LangChainAgent(BaseAgent):
                 "temperature": self.temperature,
                 "timeout": self.timeout,
             }
-            
+
             # For OpenAI models: use context API key if provided, otherwise fall back to env var
             # For other providers (Anthropic, Google): always use environment variables
-            if self.model.provider in ["openai", "azure_openai"] and self.context.openai_api_key:
+            if (
+                self.model.provider in ["openai", "azure_openai"]
+                and self.context.openai_api_key
+            ):
                 init_kwargs["api_key"] = self.context.openai_api_key
-            
+
             llm = init_chat_model(**init_kwargs)
             if self.output_schema:
                 llm = llm.with_structured_output(self.output_schema)
@@ -76,18 +78,13 @@ class DirectOpenAIAgent(BaseAgent):
     Use this for agents that need OpenAI-specific features like web search tools.
     """
 
-    _client: Optional[AsyncOpenAI] = None
+    _client: Optional[AsyncOpenAIClient] = None
 
     def __init__(self, context: ContextSchema):
         self.context = context
 
     @property
-    def client(self) -> AsyncOpenAI:
+    def client(self) -> AsyncOpenAIClient:
         if self._client is None:
-            self._client = get_openai_client(self.context)
+            self._client = get_openai_client(self.context.openai_api_key)
         return self._client
-
-
-class QCResult(BaseModel):
-    valid: bool
-    feedback: str
