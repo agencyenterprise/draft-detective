@@ -48,6 +48,13 @@ import {
   DocumentChunkSummaryToJSON,
   DocumentChunkSummaryToJSONTyped,
 } from './DocumentChunkSummary';
+import type { MethodologyComparisonResponseOutput } from './MethodologyComparisonResponseOutput';
+import {
+  MethodologyComparisonResponseOutputFromJSON,
+  MethodologyComparisonResponseOutputFromJSONTyped,
+  MethodologyComparisonResponseOutputToJSON,
+  MethodologyComparisonResponseOutputToJSONTyped,
+} from './MethodologyComparisonResponseOutput';
 import type { FileDocumentOutput } from './FileDocumentOutput';
 import {
   FileDocumentOutputFromJSON,
@@ -97,13 +104,6 @@ import {
   BibliographyItemValidationOutputToJSON,
   BibliographyItemValidationOutputToJSONTyped,
 } from './BibliographyItemValidationOutput';
-import type { MethodologyComparisonResponse } from './MethodologyComparisonResponse';
-import {
-  MethodologyComparisonResponseFromJSON,
-  MethodologyComparisonResponseFromJSONTyped,
-  MethodologyComparisonResponseToJSON,
-  MethodologyComparisonResponseToJSONTyped,
-} from './MethodologyComparisonResponse';
 
 /**
  * Summary version of ClaimSubstantiatorState with chunk summaries instead of full chunks
@@ -191,10 +191,10 @@ export interface ClaimSubstantiatorStateSummary {
   literatureReview?: LiteratureReviewResponseOutput | null;
   /**
    *
-   * @type {MethodologyComparisonResponse}
+   * @type {MethodologyComparisonResponseOutput}
    * @memberof ClaimSubstantiatorStateSummary
    */
-  methodologyComparison?: MethodologyComparisonResponse | null;
+  methodologyComparison?: MethodologyComparisonResponseOutput | null;
   /**
    *
    * @type {ReportOutputOutput}
@@ -276,7 +276,7 @@ export function ClaimSubstantiatorStateSummaryFromJSONTyped(
     methodologyComparison:
       json['methodology_comparison'] == null
         ? undefined
-        : MethodologyComparisonResponseFromJSON(json['methodology_comparison']),
+        : MethodologyComparisonResponseOutputFromJSON(json['methodology_comparison']),
     addendumReport: json['addendum_report'] == null ? undefined : ReportOutputOutputFromJSON(json['addendum_report']),
     rankedIssues:
       json['ranked_issues'] == null ? undefined : (json['ranked_issues'] as Array<any>).map(DocumentIssueFromJSON),
@@ -323,7 +323,7 @@ export function ClaimSubstantiatorStateSummaryToJSONTyped(
         ? undefined
         : (value['liveReportsAnalysis'] as Array<any>).map(EvidenceWeighterResponseWithClaimIndexOutputToJSON),
     literature_review: LiteratureReviewResponseOutputToJSON(value['literatureReview']),
-    methodology_comparison: MethodologyComparisonResponseToJSON(value['methodologyComparison']),
+    methodology_comparison: MethodologyComparisonResponseOutputToJSON(value['methodologyComparison']),
     addendum_report: ReportOutputOutputToJSON(value['addendumReport']),
     ranked_issues:
       value['rankedIssues'] == null ? undefined : (value['rankedIssues'] as Array<any>).map(DocumentIssueToJSON),
