@@ -67,6 +67,11 @@ class File(SQLModel, table=True):
         ),
         description="The user who uploaded the file",
     )
+    description: str | None = Field(
+        sa_column=Column(String, nullable=True),
+        description="Optional description of the file",
+        default=None,
+    )
     created_at: datetime = Field(
         sa_column=Column(
             DateTime(timezone=True),

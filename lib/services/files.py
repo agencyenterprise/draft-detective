@@ -1,11 +1,15 @@
+import logging
+import os
 import uuid
-from typing import Optional
+from typing import List, Optional
 
 from fastapi import HTTPException
 
 from lib.config.database import get_db
 from lib.models.file import File, FileRole
 from lib.services.file import FileDocument, create_file_document_from_path
+
+logger = logging.getLogger(__name__)
 
 
 def _normalize_uuid(value: uuid.UUID | str, field_name: str) -> uuid.UUID:
@@ -18,9 +22,7 @@ def _normalize_uuid(value: uuid.UUID | str, field_name: str) -> uuid.UUID:
     try:
         return uuid.UUID(value)
     except (ValueError, AttributeError, TypeError):
-        raise HTTPException(
-            status_code=400, detail=f"Invalid {field_name} format"
-        )
+        raise HTTPException(status_code=400, detail=f"Invalid {field_name} format")
 
 
 async def create_file_record(
@@ -33,6 +35,7 @@ async def create_file_record(
     role: FileRole,
     uploaded_by: uuid.UUID,
     original_file_path: Optional[str] = None,
+    description: Optional[str] = None,
 ) -> File:
     """
     Create a file record in the database.
@@ -47,6 +50,7 @@ async def create_file_record(
         role: Role of file in workflow (MAIN, SUPPORT, etc.)
         uploaded_by: UUID of user who uploaded the file
         original_file_path: Optional path to original file if converted
+        description: Optional description of the file
 
     Returns:
         Created File model instance
@@ -62,6 +66,7 @@ async def create_file_record(
             role=role,
             uploaded_by=uploaded_by,
             original_file_path=original_file_path,
+            description=description,
         )
         db.add(file)
         db.commit()
@@ -91,6 +96,16 @@ async def get_file_by_id(file_id: uuid.UUID | str) -> File:
             raise HTTPException(status_code=404, detail="File not found")
 
         return file
+
+
+async def get_files_by_project_id(project_id: uuid.UUID | str) -> List[File]:
+    """
+    Get all files by project ID.
+    """
+    project_id = _normalize_uuid(project_id, "project ID")
+    with get_db() as db:
+        files = db.query(File).filter(File.project_id == project_id).all()
+        return files
 
 
 async def load_file_document(file: File) -> FileDocument:
@@ -155,3 +170,51 @@ async def check_file_access(file_id: uuid.UUID | str, user_id: uuid.UUID) -> Fil
             raise HTTPException(status_code=403, detail="Access denied to this file")
 
         return file
+
+
+async def delete_file(file_or_id: File | uuid.UUID | str) -> None:
+    """
+    Delete a file from the file system and database.
+
+    Args:
+        file_or_id: File model instance or UUID of the file to delete
+
+    Returns:
+        None
+    """
+
+    file: File = (
+        file_or_id if isinstance(file_or_id, File) else await get_file_by_id(file_or_id)
+    )
+
+    await _delete_file_from_disk(file)
+    with get_db() as db:
+        db.delete(file)
+        db.commit()
+
+    return None
+
+
+async def _delete_file_from_disk(file: File) -> None:
+    """
+    Delete a file from the file system.
+
+    Args:
+        file: File model instance to delete
+
+    Returns:
+        None
+    """
+
+    try:
+        os.remove(file.file_path)
+        logger.info(f"Deleted file from disk: {file.file_path}")
+    except Exception as e:
+        logger.error(f"Error deleting file from disk: {e}")
+
+    if file.original_file_path:
+        try:
+            os.remove(file.original_file_path)
+            logger.info(f"Deleted original file from disk: {file.original_file_path}")
+        except Exception as e:
+            logger.error(f"Error deleting original file from disk: {e}")

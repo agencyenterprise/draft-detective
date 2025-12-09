@@ -103,6 +103,8 @@ results = await asyncio.gather(
 
 #### Database & Models
 
+- When doing changes to models and/or database, change only the model file and remind me to run alembic to generate and apply migrations, never run it yourself.
+
 ```python
 # Use SQLModel for database models
 from sqlmodel import SQLModel, Field
@@ -483,7 +485,6 @@ test("file upload handles drag and drop", async () => {
    - Docker containers build successfully
 
 Remember: These rules exist to maintain code quality and consistency. When in doubt, favor readability and maintainability over cleverness.
-
 
 ### Pull Request Descriptions
 

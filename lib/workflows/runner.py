@@ -3,6 +3,7 @@ import logging
 from langgraph.graph import StateGraph
 
 from lib.config.langfuse import langfuse_handler
+from lib.models.user import User
 from lib.models.workflow_run import WorkflowRunStatus, WorkflowRunType
 from lib.services.workflow_runs import upsert_workflow_run
 from lib.workflows.claim_substantiation.checkpointer import get_checkpointer
@@ -19,10 +20,10 @@ logger = logging.getLogger(__name__)
 
 
 async def run_workflow_from_config(
-    config: BaseWorkflowConfig, thread_id: str
+    config: BaseWorkflowConfig, thread_id: str, user: User
 ) -> WorkflowStateType:
     graph = create_graph(config.type)
-    context = create_context(config)
+    context = create_context(config, user)
 
     # Redact the OpenAI API key from the config so it doesn't get saved in the state
     config.openai_api_key = "[REDACTED]"
