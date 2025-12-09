@@ -2,6 +2,8 @@ import { cn } from '@/lib/utils';
 import { ComponentType, JSX } from 'react';
 import ReactMarkdown, { ExtraProps } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import remarkMath from 'remark-math';
+import rehypeMathML from '@daiji256/rehype-mathml';
 
 type MarkdownComponentProps<Key extends keyof JSX.IntrinsicElements> = JSX.IntrinsicElements[Key] & ExtraProps;
 
@@ -102,7 +104,8 @@ export function Markdown(props: MarkdownProps) {
     <ReactMarkdown
       components={componentsByHighlight[highlight]}
       {...rest}
-      remarkPlugins={[remarkGfm, ...(rest.remarkPlugins || [])]}
+      remarkPlugins={[remarkGfm, remarkMath, ...(rest.remarkPlugins || [])]}
+      rehypePlugins={[rehypeMathML]}
     />
   );
 }

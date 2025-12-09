@@ -41,6 +41,13 @@ import {
   FileDocumentInputToJSON,
   FileDocumentInputToJSONTyped,
 } from './FileDocumentInput';
+import type { MethodologyComparisonResponseInput } from './MethodologyComparisonResponseInput';
+import {
+  MethodologyComparisonResponseInputFromJSON,
+  MethodologyComparisonResponseInputFromJSONTyped,
+  MethodologyComparisonResponseInputToJSON,
+  MethodologyComparisonResponseInputToJSONTyped,
+} from './MethodologyComparisonResponseInput';
 import type { DocumentIssue } from './DocumentIssue';
 import {
   DocumentIssueFromJSON,
@@ -97,13 +104,6 @@ import {
   DocumentSummaryToJSON,
   DocumentSummaryToJSONTyped,
 } from './DocumentSummary';
-import type { MethodologyComparisonResponse } from './MethodologyComparisonResponse';
-import {
-  MethodologyComparisonResponseFromJSON,
-  MethodologyComparisonResponseFromJSONTyped,
-  MethodologyComparisonResponseToJSON,
-  MethodologyComparisonResponseToJSONTyped,
-} from './MethodologyComparisonResponse';
 
 /**
  *
@@ -191,10 +191,10 @@ export interface ClaimSubstantiatorState {
   literatureReview?: LiteratureReviewResponseInput | null;
   /**
    *
-   * @type {MethodologyComparisonResponse}
+   * @type {MethodologyComparisonResponseInput}
    * @memberof ClaimSubstantiatorState
    */
-  methodologyComparison?: MethodologyComparisonResponse | null;
+  methodologyComparison?: MethodologyComparisonResponseInput | null;
   /**
    *
    * @type {ReportOutputInput}
@@ -273,7 +273,7 @@ export function ClaimSubstantiatorStateFromJSONTyped(json: any, ignoreDiscrimina
     methodologyComparison:
       json['methodology_comparison'] == null
         ? undefined
-        : MethodologyComparisonResponseFromJSON(json['methodology_comparison']),
+        : MethodologyComparisonResponseInputFromJSON(json['methodology_comparison']),
     addendumReport: json['addendum_report'] == null ? undefined : ReportOutputInputFromJSON(json['addendum_report']),
     rankedIssues:
       json['ranked_issues'] == null ? undefined : (json['ranked_issues'] as Array<any>).map(DocumentIssueFromJSON),
@@ -320,7 +320,7 @@ export function ClaimSubstantiatorStateToJSONTyped(
         ? undefined
         : (value['liveReportsAnalysis'] as Array<any>).map(EvidenceWeighterResponseWithClaimIndexInputToJSON),
     literature_review: LiteratureReviewResponseInputToJSON(value['literatureReview']),
-    methodology_comparison: MethodologyComparisonResponseToJSON(value['methodologyComparison']),
+    methodology_comparison: MethodologyComparisonResponseInputToJSON(value['methodologyComparison']),
     addendum_report: ReportOutputInputToJSON(value['addendumReport']),
     ranked_issues:
       value['rankedIssues'] == null ? undefined : (value['rankedIssues'] as Array<any>).map(DocumentIssueToJSON),
