@@ -93,14 +93,7 @@ async def _execute(
     checkpoints may cause unexpected behavior. Use a fresh thread_id after graph changes.
     """
 
-    graph = build_claim_substantiator_graph(
-        use_toulmin=state.config.use_toulmin,
-        run_literature_review=state.config.run_literature_review,
-        run_suggest_citations=state.config.run_suggest_citations,
-        use_rag=state.config.use_rag,
-        run_live_reports=state.config.run_live_reports,
-        run_reference_validation=state.config.run_reference_validation,
-    )
+    graph = build_claim_substantiator_graph(config=state.config)
 
     async with get_checkpointer() as checkpointer:
         app = graph.compile(checkpointer=checkpointer).with_config(

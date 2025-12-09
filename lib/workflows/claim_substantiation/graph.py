@@ -46,7 +46,10 @@ from lib.workflows.claim_substantiation.nodes.verify_claims import (
     verify_claims,
     verify_claims_with_rag,
 )
-from lib.workflows.claim_substantiation.state import ClaimSubstantiatorState
+from lib.workflows.claim_substantiation.state import (
+    ClaimSubstantiatorState,
+    SubstantiationWorkflowConfig,
+)
 
 
 def finalize(state: ClaimSubstantiatorState) -> ClaimSubstantiatorState:
@@ -54,22 +57,13 @@ def finalize(state: ClaimSubstantiatorState) -> ClaimSubstantiatorState:
 
 
 def build_claim_substantiator_graph(
-    use_toulmin: bool = False,
-    run_literature_review: bool = True,
-    run_suggest_citations: bool = True,
-    use_rag: bool = True,
-    run_live_reports: bool = False,
-    run_reference_validation: bool = False,
+    config: SubstantiationWorkflowConfig = SubstantiationWorkflowConfig(),
 ) -> StateGraph:
     """
     Build a LangGraph workflow for claim substantiation analysis.
 
     Args:
-        use_toulmin: Use Toulmin model for claim extraction
-        run_literature_review: Include literature review node
-        run_suggest_citations: Include citation suggestion nodes
-        use_rag: Use RAG-based claim verification
-        run_reference_validation: Include reference validation node
+        config: Configuration for the claim substantiation workflow
 
     Returns:
         Configured StateGraph for claim substantiation workflow
@@ -82,20 +76,21 @@ def build_claim_substantiator_graph(
     graph.add_node("prepare_documents", prepare_documents)
     graph.add_node("split_into_chunks", split_into_chunks)
     graph.add_node(
-        "extract_claims", extract_claims if not use_toulmin else extract_claims_toulmin
+        "extract_claims",
+        extract_claims if not config.use_toulmin else extract_claims_toulmin,
     )
     graph.add_node("detect_citations", detect_citations)
     graph.add_node("extract_references", extract_references)
 
     # Optional nodes
-    if run_reference_validation:
+    if config.run_reference_validation:
         graph.add_node("validate_references", validate_references)
-    if run_literature_review:
+    if config.run_literature_review:
         graph.add_node("literature_review", literature_review)
-    if run_suggest_citations:
+    if config.run_suggest_citations:
         graph.add_node("summarize_supporting_documents", summarize_supporting_documents)
         graph.add_node("suggest_citations", suggest_citations, defer=True)
-    if run_live_reports:
+    if config.run_live_reports:
         graph.add_node(
             "generate_live_reports_analysis", generate_live_reports_analysis, defer=True
         )
@@ -114,7 +109,7 @@ def build_claim_substantiator_graph(
     graph.add_edge("split_into_chunks", "extract_claims")
 
     # Live reports edges
-    if run_live_reports:
+    if config.run_live_reports:
         graph.add_edge("extract_references", "generate_live_reports_analysis")
         graph.add_edge("extract_claims", "generate_live_reports_analysis")
         graph.add_edge("generate_live_reports_analysis", "generate_addendum_report")
@@ -128,7 +123,7 @@ def build_claim_substantiator_graph(
         graph.add_node("validate_inferences", validate_inferences)
 
         # Conditional verify node based on RAG setting
-        if use_rag:
+        if config.use_rag:
             # add RAG indexing node
             graph.add_node("index_supporting_documents", index_supporting_documents)
             graph.add_node("verify_claims", verify_claims_with_rag, defer=True)
@@ -146,10 +141,10 @@ def build_claim_substantiator_graph(
         graph.add_edge("categorize_claims", "validate_inferences")
 
         # Literature review (aim 1.a)
-        if run_literature_review:
+        if config.run_literature_review:
             graph.add_edge("prepare_documents", "literature_review")
 
-        if run_reference_validation:
+        if config.run_reference_validation:
             graph.add_edge("extract_references", "validate_references")
             graph.add_edge("validate_references", "detect_citations")
         else:
@@ -157,12 +152,12 @@ def build_claim_substantiator_graph(
 
         # Suggest citations (aim 2.a)
         # Must wait for ALL processing to complete before suggesting citations
-        if run_suggest_citations:
+        if config.run_suggest_citations:
             graph.add_edge("prepare_documents", "summarize_supporting_documents")
             graph.add_edge("verify_claims", "suggest_citations")
             graph.add_edge("validate_inferences", "suggest_citations")
             graph.add_edge("summarize_supporting_documents", "suggest_citations")
-            if run_literature_review:
+            if config.run_literature_review:
                 graph.add_edge("literature_review", "suggest_citations")
             graph.add_edge("suggest_citations", "generate_docx_output")
             graph.set_finish_point("generate_docx_output")
@@ -184,7 +179,13 @@ if __name__ == "__main__":
     # Paste it into https://mermaid.live/ to see the graph
 
     workflow_graph = build_claim_substantiator_graph(
-        run_literature_review=False, run_suggest_citations=False, run_live_reports=True
+        SubstantiationWorkflowConfig(
+            run_live_reports=True,
+            run_reference_validation=True,
+            run_literature_review=True,
+            run_suggest_citations=True,
+            use_rag=True,
+        )
     )
     app = workflow_graph.compile()
     print(app.get_graph().draw_mermaid())
