@@ -16,7 +16,7 @@ from api.upload import save_uploaded_files_to_db
 from lib.agents.registry import agent_registry
 from lib.models.file import FileRole
 from lib.models.user import User
-from lib.services.file import create_file_document_from_path
+from lib.services.files import load_file_document
 from lib.services.projects import create_project
 from lib.workflows.claim_substantiation.runner import rerun_analysis
 from lib.workflows.claim_substantiation.state import (
@@ -79,23 +79,8 @@ async def start_analysis(
         logger.info(f"Saved {len(file_records)} files to database")
 
         # Create FileDocuments WITHOUT markdown conversion (workflow will handle that)
-        logger.info("Creating file document references...")
-        main_file = await create_file_document_from_path(
-            file_path=file_records[0].file_path,
-            original_file_name=file_records[0].file_name,
-            markdown_convert=False,
-            original_file_path=file_records[0].original_file_path,
-        )
-        supporting_files = [
-            await create_file_document_from_path(
-                file_path=f.file_path,
-                original_file_name=f.file_name,
-                markdown_convert=False,
-                original_file_path=f.original_file_path,
-            )
-            for f in file_records[1:]
-        ]
-        logger.info(f"File references created for {main_file.file_name}")
+        main_file = await load_file_document(file_records[0])
+        supporting_files = [await load_file_document(f) for f in file_records[1:]]
 
         background_tasks.add_task(
             run_workflow_background,

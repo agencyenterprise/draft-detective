@@ -1,5 +1,4 @@
 import { LabeledValue } from '@/components/labeled-value';
-import { apiUrl } from '@/lib/api';
 import { BibliographyItem, FileDocumentOutput, Reference } from '@/lib/generated-api';
 import Link from 'next/link';
 import {
@@ -47,10 +46,10 @@ export function CitationReferenceItem({ reference, references, supportingFiles }
         </p>
       )}
 
-      {associatedExistingReference && associatedSupportingFile && (
+      {associatedExistingReference && associatedSupportingFile && associatedSupportingFile.fileId && (
         <LabeledValue label="Existing Bibliography Reference">
           <Link
-            href={`${apiUrl}/api/files/download/${associatedSupportingFile.filePath.split('/').pop()}/${associatedSupportingFile.fileName}`}
+            href={`/api/files/download/${associatedSupportingFile.fileId}`}
             target="_blank"
             className="text-blue-600 underline"
           >

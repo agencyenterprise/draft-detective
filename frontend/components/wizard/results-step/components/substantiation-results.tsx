@@ -99,14 +99,20 @@ export function SubstantiationResults({
                               Source {index + 1} of {substantiation.evidenceSources.length}
                             </p>
                             <LabeledValue label="Reference">
-                              <Link
-                                href={`${apiUrl}/api/files/download/${matchedFile?.filePath.split('/').pop()}/${matchedFile?.fileName}`}
-                                target="_blank"
-                                className="text-blue-600 underline text-sm"
-                              >
-                                {source.referenceFileName}
-                              </Link>{' '}
-                              <span className="text-muted-foreground text-sm"> - {matchedReference?.text}</span>
+                              {matchedFile && matchedFile.fileId ? (
+                                <>
+                                  <Link
+                                    href={`/api/files/download/${matchedFile.fileId}`}
+                                    target="_blank"
+                                    className="text-blue-600 underline text-sm"
+                                  >
+                                    {source.referenceFileName}
+                                  </Link>{' '}
+                                  <span className="text-muted-foreground text-sm"> - {matchedReference?.text}</span>
+                                </>
+                              ) : (
+                                <span className="text-muted-foreground text-sm">{source.referenceFileName}</span>
+                              )}
                             </LabeledValue>
                             <LabeledValue label="Location">{source.location}</LabeledValue>
                             <LabeledValue label="Quote">&quot;{source.quote}&quot;</LabeledValue>

@@ -52,8 +52,12 @@ async def save_uploaded_files_to_db(
         xxhash = xxh128(content).hexdigest()
 
         filename = uploaded_file.filename
-        if not filename:
+        if not filename or not filename.strip():
             raise ValueError("Uploaded file has no filename")
+
+        # validate filename doesn't contain path separators
+        if os.sep in filename or os.altsep and os.altsep in filename:
+            raise ValueError("Filename cannot contain path separators")
 
         file_extension = os.path.splitext(filename)[1]
         file_path = os.path.join(upload_dir, xxhash + file_extension)

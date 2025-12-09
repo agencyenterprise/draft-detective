@@ -8,6 +8,21 @@ from lib.models.file import File, FileRole
 from lib.services.file import FileDocument, create_file_document_from_path
 
 
+def _normalize_uuid(value: uuid.UUID | str, field_name: str) -> uuid.UUID:
+    """
+    Ensure a UUID value is actually a uuid.UUID, returning 400 on bad formats.
+    """
+    if isinstance(value, uuid.UUID):
+        return value
+
+    try:
+        return uuid.UUID(value)
+    except (ValueError, AttributeError, TypeError):
+        raise HTTPException(
+            status_code=400, detail=f"Invalid {field_name} format"
+        )
+
+
 async def create_file_record(
     project_id: uuid.UUID,
     file_name: str,
@@ -67,11 +82,7 @@ async def get_file_by_id(file_id: uuid.UUID | str) -> File:
     Raises:
         HTTPException: 404 if file not found
     """
-    if isinstance(file_id, str):
-        try:
-            file_id = uuid.UUID(file_id)
-        except ValueError:
-            raise HTTPException(status_code=400, detail="Invalid file ID format")
+    file_id = _normalize_uuid(file_id, "file ID")
 
     with get_db() as db:
         file = db.query(File).filter(File.id == file_id).first()
@@ -101,6 +112,46 @@ async def load_file_document(file: File) -> FileDocument:
     return await create_file_document_from_path(
         file_path=file.file_path,
         original_file_name=file.file_name,
-        markdown_convert=True,
+        markdown_convert=False,
         original_file_path=file.original_file_path,
+        file_id=str(file.id),
     )
+
+
+async def check_file_access(file_id: uuid.UUID | str, user_id: uuid.UUID) -> File:
+    """
+    Check if a user has access to a file by verifying project ownership.
+
+    Args:
+        file_id: UUID of the file to check access for
+        user_id: UUID of the user requesting access
+
+    Returns:
+        File model instance if access is granted
+
+    Raises:
+        HTTPException: 400 for invalid file ID, 404 if file not found, 403 if access denied
+    """
+
+    # Normalize ID and fail fast on invalid format to avoid DB errors
+    file_id = _normalize_uuid(file_id, "file ID")
+
+    with get_db() as db:
+        from lib.models.project import Project
+
+        result = (
+            db.query(File, Project)
+            .join(Project, File.project_id == Project.id)
+            .filter(File.id == file_id)
+            .first()
+        )
+
+        if result is None:
+            raise HTTPException(status_code=404, detail="File not found")
+
+        file, project = result
+
+        if project.user_id is None or project.user_id != user_id:
+            raise HTTPException(status_code=403, detail="Access denied to this file")
+
+        return file

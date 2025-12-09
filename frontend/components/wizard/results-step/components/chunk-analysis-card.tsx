@@ -3,7 +3,6 @@
 import { LabeledValue } from '@/components/labeled-value';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { apiUrl } from '@/lib/api';
 import { ClaimSubstantiatorStateSummary, DocumentChunkOutput } from '@/lib/generated-api';
 import { getChunkIssues, getMaxSeverity } from '@/lib/severity';
 import { ChevronDownIcon, ChevronRightIcon, LinkIcon, MessageCirclePlus } from 'lucide-react';
@@ -83,9 +82,9 @@ export function ChunkAnalysisCard({ results, chunk }: ChunkAnalysisCardProps) {
                     <LabeledValue label="Type">{citation.type}</LabeledValue>
                     <LabeledValue label="Needs bibliography">{citation.needsBibliography ? 'Yes' : 'No'}</LabeledValue>
                     <LabeledValue label="Associated reference file">
-                      {matchedSupportingFile ? (
+                      {matchedSupportingFile && matchedSupportingFile.fileId ? (
                         <Link
-                          href={`${apiUrl}/api/files/download/${matchedSupportingFile.filePath.split('/').pop()}/${matchedSupportingFile.fileName}`}
+                          href={`/api/files/download/${matchedSupportingFile.fileId}`}
                           target="_blank"
                           className="text-blue-600 underline"
                         >

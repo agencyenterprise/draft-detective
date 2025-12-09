@@ -26,6 +26,7 @@ class File(SQLModel, table=True):
             UUID(as_uuid=True),
             ForeignKey("projects.id", ondelete="CASCADE"),
             nullable=False,
+            index=True,
         ),
         description="The project this file belongs to",
     )
