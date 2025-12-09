@@ -1,24 +1,53 @@
 import logging
-from typing import List
-from fastapi import UploadFile
-from lib.services.file import FileDocument, create_file_document_from_path
-import tempfile
+import mimetypes
 import os
-from lib.config.env import config
-from lib.services.converters.docx_preprocessor import docx_preprocessor
+import uuid
+from typing import List
+
+from fastapi import UploadFile
 from xxhash import xxh128
+
+from lib.config.env import config
+from lib.models.file import File, FileRole
+from lib.services.converters.docx_preprocessor import docx_preprocessor
+from lib.services.files import create_file_record
 
 logger = logging.getLogger(__name__)
 
 
-async def convert_uploaded_files_to_file_document(
+async def save_uploaded_files_to_db(
     uploaded_files: List[UploadFile],
-) -> List[FileDocument]:
-    file_documents = []
+    project_id: uuid.UUID,
+    user_id: uuid.UUID,
+    roles: List[FileRole],
+) -> List[File]:
+    """
+    Save uploaded files to disk and create database records.
+
+    Reuses existing file saving logic (xxhash, deduplication, docx preprocessing)
+    and creates File records in the database for each uploaded file.
+
+    Args:
+        uploaded_files: List of files from multipart form upload
+        project_id: UUID of the project to associate files with
+        user_id: UUID of the user uploading the files
+        roles: List of FileRole values matching uploaded_files order
+
+    Returns:
+        List of File model instances created in database
+
+    Raises:
+        ValueError: If filename is missing or roles length doesn't match files
+    """
+    if len(roles) != len(uploaded_files):
+        raise ValueError(
+            f"Number of roles ({len(roles)}) must match number of files ({len(uploaded_files)})"
+        )
 
     upload_dir = config.FILE_UPLOADS_MOUNT_PATH
+    file_records = []
 
-    for uploaded_file in uploaded_files:
+    for uploaded_file, role in zip(uploaded_files, roles):
         content = await uploaded_file.read()
         xxhash = xxh128(content).hexdigest()
 
@@ -28,7 +57,9 @@ async def convert_uploaded_files_to_file_document(
 
         file_extension = os.path.splitext(filename)[1]
         file_path = os.path.join(upload_dir, xxhash + file_extension)
+        file_size = len(content)
 
+        # Save file if it doesn't already exist
         if os.path.exists(file_path):
             logger.info(
                 f"File {filename} with hash {xxhash} already exists in {file_path}, skipping upload"
@@ -49,11 +80,12 @@ async def convert_uploaded_files_to_file_document(
                 logger.error(f"Error processing uploaded file {filename}: {str(e)}")
                 raise
 
-        # Keep track of original file path for .docx files before conversion
+        # Track original file path for .docx files before conversion
         original_file_path = (
             file_path if file_extension.lower() in [".docx", ".doc"] else None
         )
 
+        # Convert .docx to PDF if needed
         try:
             file_path = await docx_preprocessor.convert_to_pdf(file_path)
         except Exception as e:
@@ -62,12 +94,21 @@ async def convert_uploaded_files_to_file_document(
             )
             raise
 
-        file_document = await create_file_document_from_path(
-            file_path,
-            original_file_name=filename,
-            markdown_convert=False,
+        # Determine MIME type for final file (after conversion)
+        file_type = mimetypes.guess_type(file_path)[0] or "application/octet-stream"
+
+        # Create database record
+        file_record = await create_file_record(
+            project_id=project_id,
+            file_name=filename,
+            file_path=file_path,
+            file_type=file_type,
+            file_size=file_size,
+            content_hash=xxhash,
+            role=role,
+            uploaded_by=user_id,
             original_file_path=original_file_path,
         )
-        file_documents.append(file_document)
+        file_records.append(file_record)
 
-    return file_documents
+    return file_records
