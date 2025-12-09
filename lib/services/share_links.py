@@ -46,7 +46,7 @@ def _to_response(share_link: ShareLink) -> ShareLinkResponse:
     )
 
 
-async def get_share_link_for_resource(
+async def get_active_share_link(
     resource_type: str, resource_id: uuid.UUID
 ) -> Optional[ShareLink]:
     """Get the active share link for a resource if it exists."""
@@ -62,26 +62,27 @@ async def get_share_link_for_resource(
         )
 
 
-async def get_or_create_share_link(
-    resource_type: str, resource_id: uuid.UUID, user: User
-) -> ShareLink:
-    """Get existing active share link or create a new one."""
+async def get_resource_by_token(token: str) -> Optional[ShareLink]:
+    """Get resource info by share token. Returns None if token is invalid or inactive."""
     with get_db() as db:
-        # Check for existing active link
-        existing = (
+        return (
             db.query(ShareLink)
-            .filter(
-                ShareLink.resource_type == resource_type,
-                ShareLink.resource_id == resource_id,
-                ShareLink.is_active == True,
-            )
+            .filter(ShareLink.token == token, ShareLink.is_active == True)
             .first()
         )
 
-        if existing:
-            return existing
 
-        # Create new share link
+async def enable_sharing(
+    resource_type: str, resource_id: uuid.UUID, user: User
+) -> ShareStatusResponse:
+    """Enable sharing for a resource. Returns existing active link or creates new one."""
+    # Check for existing active link
+    existing = await get_active_share_link(resource_type, resource_id)
+    if existing:
+        return ShareStatusResponse(enabled=True, share_link=_to_response(existing))
+
+    # Create new share link
+    with get_db() as db:
         share_link = ShareLink(
             resource_type=resource_type,
             resource_id=resource_id,
@@ -94,67 +95,39 @@ async def get_or_create_share_link(
         logger.info(
             f"Created share link for {resource_type}/{resource_id}: {share_link.token}"
         )
-        return share_link
+        return ShareStatusResponse(enabled=True, share_link=_to_response(share_link))
 
 
-async def get_resource_by_token(token: str) -> Optional[ShareLink]:
-    """Get resource info by share token. Returns None if token is invalid or inactive."""
-    with get_db() as db:
-        return (
-            db.query(ShareLink)
-            .filter(ShareLink.token == token, ShareLink.is_active == True)
-            .first()
-        )
-
-
-async def toggle_share_link(
-    resource_type: str, resource_id: uuid.UUID, user: User, enable: bool
+async def disable_sharing(
+    resource_type: str, resource_id: uuid.UUID
 ) -> ShareStatusResponse:
-    """Enable or disable sharing for a resource."""
+    """Disable ALL active sharing for a resource."""
     with get_db() as db:
-        existing = (
+        # Deactivate ALL active links (fixes potential orphaned links)
+        updated = (
             db.query(ShareLink)
             .filter(
                 ShareLink.resource_type == resource_type,
                 ShareLink.resource_id == resource_id,
+                ShareLink.is_active == True,
             )
-            .first()
+            .update({"is_active": False})
         )
+        db.commit()
 
-        if not enable:
-            if existing:
-                existing.is_active = False
-                db.commit()
-            return ShareStatusResponse(enabled=False, share_link=None)
-
-        # Enable: reuse existing or create new
-        if existing:
-            if not existing.is_active:
-                existing.is_active = True
-                db.commit()
-                db.refresh(existing)
-                return ShareStatusResponse(
-                    enabled=True, share_link=_to_response(existing)
-                )
-
-            share_link = ShareLink(
-                resource_type=resource_type,
-                resource_id=resource_id,
-                created_by_user_id=user.id,
+        if updated:
+            logger.info(
+                f"Disabled {updated} share link(s) for {resource_type}/{resource_id}"
             )
-            db.add(share_link)
-            db.commit()
-            db.refresh(share_link)
-            return ShareStatusResponse(
-                enabled=True, share_link=_to_response(share_link)
-            )
+
+    return ShareStatusResponse(enabled=False, share_link=None)
 
 
 async def get_share_status(
     resource_type: str, resource_id: uuid.UUID
 ) -> ShareStatusResponse:
     """Get the current share status for a resource."""
-    share_link = await get_share_link_for_resource(resource_type, resource_id)
+    share_link = await get_active_share_link(resource_type, resource_id)
 
     if share_link:
         return ShareStatusResponse(enabled=True, share_link=_to_response(share_link))

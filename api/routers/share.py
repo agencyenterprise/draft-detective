@@ -15,8 +15,9 @@ from lib.models.project import Project
 from lib.models.user import User
 from lib.services.share_links import (
     ShareStatusResponse,
+    disable_sharing,
+    enable_sharing,
     get_share_status,
-    toggle_share_link,
 )
 
 router = APIRouter(tags=["share"])
@@ -54,7 +55,7 @@ async def enable_project_sharing(
 ):
     """Enable sharing for a project (creates a share link if none exists)."""
     project_uuid = _verify_project_ownership(project_id, current_user)
-    return await toggle_share_link("project", project_uuid, current_user, enable=True)
+    return await enable_sharing("project", project_uuid, current_user)
 
 
 @router.post(
@@ -66,4 +67,4 @@ async def disable_project_sharing(
 ):
     """Disable sharing for a project (deactivates the share link)."""
     project_uuid = _verify_project_ownership(project_id, current_user)
-    return await toggle_share_link("project", project_uuid, current_user, enable=False)
+    return await disable_sharing("project", project_uuid)
