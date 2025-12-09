@@ -35,6 +35,12 @@ class Config(BaseModel):
     # File uploads
     FILE_UPLOADS_MOUNT_PATH: str
 
+    # Frontend URL for share links
+    FRONTEND_URL: str = Field(
+        default="http://localhost:3000",
+        description="Base URL for the frontend application (used for share links)",
+    )
+
     # File conversion
     FILE_CONVERTER: str = Field(
         default="markitdown",
@@ -74,6 +80,7 @@ config = Config(
     LANGFUSE_PUBLIC_KEY=os.getenv("LANGFUSE_PUBLIC_KEY"),
     LANGFUSE_PROJECT_ID=os.getenv("LANGFUSE_PROJECT_ID"),
     FILE_UPLOADS_MOUNT_PATH=os.getenv("FILE_UPLOADS_MOUNT_PATH", "uploads"),
+    FRONTEND_URL=os.getenv("FRONTEND_URL", "http://localhost:3000"),
     FILE_CONVERTER=os.getenv("FILE_CONVERTER", "markitdown"),
     DOCLING_SERVE_API_URL=os.getenv("DOCLING_SERVE_API_URL"),
     DOCLING_SERVE_API_KEY=os.getenv("DOCLING_SERVE_API_KEY"),

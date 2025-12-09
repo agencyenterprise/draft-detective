@@ -1,10 +1,12 @@
 import logging
+from typing import Optional
 
 import jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from lib.config.env import config
+from lib.models.user import User
 from lib.services.users import get_or_create_user_by_email
 
 logger = logging.getLogger(__name__)
@@ -14,16 +16,11 @@ SECRET_KEY = config.AUTH_SECRET
 ALGORITHM = "HS512"
 
 oauth2_scheme = HTTPBearer()
+oauth2_scheme_optional = HTTPBearer(auto_error=False)
 
 
-async def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(oauth2_scheme),
-):
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
+async def _decode_token(credentials: HTTPAuthorizationCredentials) -> Optional[User]:
+    """Shared token decode logic."""
     try:
         payload = jwt.decode(
             credentials.credentials,
@@ -34,8 +31,33 @@ async def get_current_user(
         email: str = payload.get("email")
         name: str = payload.get("name")
         if not email or not name:
-            raise credentials_exception
+            return None
         return await get_or_create_user_by_email(email=email, name=name)
     except jwt.InvalidTokenError as err:
         logger.error(f"Auth failed: {err}", exc_info=True)
-        raise credentials_exception
+        return None
+
+
+async def get_current_user(
+    credentials: HTTPAuthorizationCredentials = Depends(oauth2_scheme),
+) -> User:
+    """Returns authenticated user or raises 401."""
+    user = await _decode_token(credentials)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return user
+
+
+async def get_current_user_optional(
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(
+        oauth2_scheme_optional
+    ),
+) -> Optional[User]:
+    """Returns authenticated user or None if auth fails."""
+    if not credentials:
+        return None
+    return await _decode_token(credentials)

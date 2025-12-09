@@ -14,7 +14,7 @@
 
 import { mapValues } from '../runtime';
 /**
- *
+ * Quality control result for agent outputs.
  * @export
  * @interface QCResult
  */
