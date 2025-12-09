@@ -4,10 +4,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from starlette.responses import FileResponse
 
 from api.auth import get_current_user
-from lib.config.database import get_db
 from lib.models.project import Project
 from lib.models.user import User
-from lib.models.workflow_run import WorkflowRun
 from lib.services.docx_manipulator import docx_manipulator_service
 from lib.services.projects import (
     ProjectDetailed,

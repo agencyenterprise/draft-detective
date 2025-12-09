@@ -9,8 +9,8 @@ from sqlalchemy import update
 from lib.config.database import get_db
 from lib.models.project import Project
 from lib.models.user import User
-from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus
-from lib.services.files import delete_file, get_files_by_project_id
+from lib.models.workflow_run import WorkflowRun
+from lib.services.files import delete_project_files
 from lib.services.workflow_runs import get_project_workflow_runs
 from lib.workflows.claim_substantiation.checkpointer import get_checkpointer
 
@@ -129,9 +129,7 @@ async def delete_project(project_id: str, user: User) -> None:
         if project.user_id is None or project.user_id != user.id:
             raise HTTPException(status_code=403, detail="Access denied")
 
-        project_files = await get_files_by_project_id(project_id)
-        for file in project_files:
-            await delete_file(file)
+        delete_project_files(project_id)
 
         project_workflow_runs = (
             db.query(WorkflowRun).filter(WorkflowRun.project_id == project_id).all()

@@ -1,9 +1,11 @@
 import logging
 import os
 import uuid
-from typing import List, Optional
+from typing import List, Optional, Set
 
 from fastapi import HTTPException
+from sqlalchemy import or_
+from sqlalchemy.orm import Session
 
 from lib.config.database import get_db
 from lib.models.file import File, FileRole
@@ -172,49 +174,58 @@ async def check_file_access(file_id: uuid.UUID | str, user_id: uuid.UUID) -> Fil
         return file
 
 
-async def delete_file(file_or_id: File | uuid.UUID | str) -> None:
+def delete_project_files(project_id: uuid.UUID | str) -> None:
     """
-    Delete a file from the file system and database.
-
-    Args:
-        file_or_id: File model instance or UUID of the file to delete
-
-    Returns:
-        None
+    Delete all files for a project from the database and remove disk files
+    only when they are not referenced by other projects.
     """
+    normalized_project_id = _normalize_uuid(project_id, "project ID")
 
-    file: File = (
-        file_or_id if isinstance(file_or_id, File) else await get_file_by_id(file_or_id)
-    )
-
-    await _delete_file_from_disk(file)
     with get_db() as db:
-        db.delete(file)
+        project_files = (
+            db.query(File).filter(File.project_id == normalized_project_id).all()
+        )
+
+        for file in project_files:
+            if not _is_path_shared(db, file.file_path, normalized_project_id):
+                _delete_file_from_disk(file.file_path)
+
+            if file.original_file_path and not _is_path_shared(
+                db, file.original_file_path, normalized_project_id
+            ):
+                _delete_file_from_disk(file.original_file_path)
+
+            db.delete(file)
+
         db.commit()
 
     return None
 
 
-async def _delete_file_from_disk(file: File) -> None:
+def _is_path_shared(db: Session, path: str, project_id: uuid.UUID) -> bool:
+    """
+    Check whether another project references the same file path.
+    """
+
+    found_file = (
+        db.query(File)
+        .filter(File.project_id != project_id)
+        .filter(or_(File.file_path == path, File.original_file_path == path))
+        .first()
+    )
+
+    return found_file is not None
+
+
+def _delete_file_from_disk(
+    file_path: str,
+) -> None:
     """
     Delete a file from the file system.
-
-    Args:
-        file: File model instance to delete
-
-    Returns:
-        None
     """
 
     try:
-        os.remove(file.file_path)
-        logger.info(f"Deleted file from disk: {file.file_path}")
+        os.remove(file_path)
+        logger.info(f"Deleted file from disk: {file_path}")
     except Exception as e:
         logger.error(f"Error deleting file from disk: {e}")
-
-    if file.original_file_path:
-        try:
-            os.remove(file.original_file_path)
-            logger.info(f"Deleted original file from disk: {file.original_file_path}")
-        except Exception as e:
-            logger.error(f"Error deleting original file from disk: {e}")
