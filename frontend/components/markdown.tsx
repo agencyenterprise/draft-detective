@@ -105,7 +105,7 @@ export function Markdown(props: MarkdownProps) {
       components={componentsByHighlight[highlight]}
       {...rest}
       remarkPlugins={[remarkGfm, remarkMath, ...(rest.remarkPlugins || [])]}
-      rehypePlugins={[rehypeMathML]}
+      rehypePlugins={[rehypeMathML, ...(rest.rehypePlugins || [])]}
     />
   );
 }
