@@ -1,6 +1,5 @@
 from langgraph.graph import StateGraph
 
-from lib.workflows.claim_substantiation.context import ContextSchema
 from lib.workflows.claim_substantiation.nodes.categorize_claims import categorize_claims
 from lib.workflows.claim_substantiation.nodes.convert_to_markdown import (
     convert_to_markdown,
@@ -46,6 +45,7 @@ from lib.workflows.claim_substantiation.state import (
     ClaimSubstantiatorState,
     SubstantiationWorkflowConfig,
 )
+from lib.workflows.context import ContextSchema
 
 
 def finalize(state: ClaimSubstantiatorState) -> ClaimSubstantiatorState:

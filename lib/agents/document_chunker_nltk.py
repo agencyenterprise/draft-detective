@@ -15,7 +15,7 @@ from lib.services.llm_sentence_tokenizer import (
     llm_tokenize_paragraph,
     FRAGMENT_DETECTION_METHOD,
 )
-from lib.workflows.claim_substantiation.context import ContextSchema
+from lib.workflows.context import ContextSchema
 from langchain_core.runnables.config import RunnableConfig
 
 logger = logging.getLogger(__name__)

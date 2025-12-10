@@ -1,4 +1,6 @@
 # %%
+from enum import Enum
+
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables.config import RunnableConfig
 from pydantic import BaseModel, Field
@@ -6,8 +8,7 @@ from pydantic import BaseModel, Field
 from lib.config.env import config
 from lib.config.llm_models import gpt_5_mini_model
 from lib.models.agent import LangChainAgent
-from lib.workflows.claim_substantiation.context import ContextSchema
-from enum import Enum
+from lib.workflows.context import ContextSchema
 
 
 class ReproducibilityCategory(Enum):
@@ -75,7 +76,7 @@ The document may be long (e.g., 10,000+ words) and may NOT be cleanly structured
 
 - Fully Reproducible (Definition): Methodologies where the logic is fully explained and the necessary data (parameters, equations, prompts, or rubrics) is provided directly within the text or appendices. A coding agent or researcher could replicate these results immediately without external data additions. These studies primarily consist of mathematical models, simulations, and algorithmic pipelines where the "data" consists of algebraic formulas or specific parameters explicitly recorded in the report.
 
-- Reproducible with Web Search (Definition): Methodologies where the logic is fully explained but the necessary data (parameters, equations, prompts, or rubrics) is not provided directly within the text or appendices. However, the data can be easily retrieved with web search. 
+- Reproducible with Web Search (Definition): Methodologies where the logic is fully explained but the necessary data (parameters, equations, prompts, or rubrics) is not provided directly within the text or appendices. However, the data can be easily retrieved with web search.
 
 - Reproducible with External Uploads (Definition): Methodologies where the logic is fully explained but the necessary data (parameters, equations, prompts, or rubrics) is not provided directly within the text or appendices. However, the data consists of public laws, historical documents, or open public datasets that a researcher can easily retrieve with data additions. These studies are largely legal reviews, historical analyses, or quantitative models using large public datasets (like ISO interconnection queues).
 

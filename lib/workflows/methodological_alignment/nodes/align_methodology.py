@@ -4,7 +4,7 @@ from langgraph.runtime import Runtime
 
 from lib.agents.methodology_comparator import MethodologyComparisonAgent
 from lib.agents.methodology_extractor import MethodologyExtractorAgent
-from lib.workflows.claim_substantiation.context import ContextSchema
+from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
 from lib.workflows.methodological_alignment.state import MethodologicalAlignmentState
 

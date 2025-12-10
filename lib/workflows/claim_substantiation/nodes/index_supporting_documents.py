@@ -8,7 +8,7 @@ from lib.services.vector_store import (
     get_collection_id,
     get_file_hash_from_path,
 )
-from lib.workflows.claim_substantiation.context import ContextSchema
+from lib.workflows.context import ContextSchema
 from lib.workflows.claim_substantiation.state import ClaimSubstantiatorState
 from lib.workflows.decorators import register_node
 from lib.workflows.models import WorkflowError

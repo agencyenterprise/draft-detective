@@ -14,7 +14,7 @@ from lib.config.env import config
 from lib.models.file import FileRole
 from lib.run_utils import run_tasks
 from lib.services.files import create_file_record
-from lib.workflows.claim_substantiation.context import ContextSchema
+from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
 from lib.workflows.reference_downloader.agents.reference_fetcher import (
     ReferenceFetchConclusion,

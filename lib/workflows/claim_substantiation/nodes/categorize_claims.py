@@ -9,7 +9,7 @@ from lib.agents.claim_categorizer import (
 )
 from lib.agents.formatting_utils import format_audience_context, format_domain_context
 from lib.workflows.chunk_iterator import iterate_chunks
-from lib.workflows.claim_substantiation.context import ContextSchema
+from lib.workflows.context import ContextSchema
 from lib.workflows.claim_substantiation.state import (
     ClaimSubstantiatorState,
     DocumentChunk,

@@ -1,19 +1,16 @@
-# %%
+from typing import List
+
 from langchain_core.prompts import PromptTemplate
 from langchain_core.runnables.config import RunnableConfig
 from pydantic import BaseModel, Field
 
+from lib.agents.literature_review import ReferenceType
+from lib.agents.methodology_extractor import ReproducibilityCategoryResponse
 from lib.config.env import config
 from lib.config.llm_models import gpt_5_model
 from lib.models.agent import DirectOpenAIAgent
-from lib.services.openai import (
-    ensure_structured_output_response,
-    wait_for_response,
-)
-from lib.workflows.claim_substantiation.context import ContextSchema
-from lib.agents.literature_review import ReferenceType
-from lib.agents.methodology_extractor import ReproducibilityCategoryResponse
-from typing import List, Optional
+from lib.services.openai import ensure_structured_output_response, wait_for_response
+from lib.workflows.context import ContextSchema
 
 
 class SummaryAndOutput(BaseModel):
@@ -184,7 +181,7 @@ $$E = mc^2$$
 Additional guidance:
 
 - **Start with the extracted methodology**: The first section must be "## Extracted Methodology" and should contain the full methodology from the paper. This allows readers to understand what was done before seeing how it compares to the field.
-- **CRITICAL**: You MUST include citations for all claims about field practices that come from web search. 
+- **CRITICAL**: You MUST include citations for all claims about field practices that come from web search.
 - Format citations as markdown links: [Source Title](URL) immediately after the claim.
 - Base your reasoning on the provided paper methodology and information found through web search.
 - When something seems important but is not specified in the paper methodology, explicitly note that it is **not specified** rather than guessing.

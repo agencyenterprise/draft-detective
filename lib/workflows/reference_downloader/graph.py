@@ -1,6 +1,6 @@
 from langgraph.graph import StateGraph
 
-from lib.workflows.claim_substantiation.context import ContextSchema
+from lib.workflows.context import ContextSchema
 from lib.workflows.reference_downloader.nodes.download_references import (
     download_references,
 )
