@@ -23,3 +23,7 @@ class ContextSchema(BaseModel):
         default=None,
         description="The ID of the project that is running the workflow.",
     )
+    workflow_run_id: Optional[str] = Field(
+        default=None,
+        description="The ID of the workflow run record related to this langgraph thread.",
+    )

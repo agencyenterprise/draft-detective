@@ -5,6 +5,7 @@ from langgraph.graph import StateGraph
 
 from lib.config.env import config as env_config
 from lib.models.user import User
+from lib.models.workflow_run import WorkflowRun
 from lib.services.file import FileDocument
 from lib.services.vector_store import VectorStoreService
 from lib.workflows.claim_substantiation.graph import build_claim_substantiator_graph
@@ -76,7 +77,9 @@ def get_state_type(
 
 
 def create_context(
-    config: BaseWorkflowConfig, user: User | None = None
+    config: BaseWorkflowConfig,
+    workflow_run_id: str | None = None,
+    user: User | None = None,
 ) -> ContextSchema:
     openai_api_key = (
         config.openai_api_key
@@ -92,6 +95,7 @@ def create_context(
         vector_store=VectorStoreService(env_config.DATABASE_URL, openai_api_key),
         user_id=str(user.id) if user else None,
         project_id=config.project_id,
+        workflow_run_id=workflow_run_id,
     )
 
 

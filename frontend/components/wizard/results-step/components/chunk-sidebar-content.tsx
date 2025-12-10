@@ -99,6 +99,7 @@ export function ChunkSidebarContent({
               chunkIndex={chunkIndex}
               claimIndex={originalIndex}
               totalClaims={claims.length}
+              workflowRunId={workflowRunId}
             />
           ))}
 
