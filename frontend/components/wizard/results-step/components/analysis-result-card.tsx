@@ -5,11 +5,12 @@ export interface AnalysisResultCardProps {
   title: string;
   severity: SeverityEnum;
   children: React.ReactNode;
+  id?: string;
 }
 
-export function AnalysisResultCard({ title, severity, children }: AnalysisResultCardProps) {
+export function AnalysisResultCard({ title, severity, children, id }: AnalysisResultCardProps) {
   return (
-    <div className="bg-card shadow-sm rounded-xl border px-5 pb-5">
+    <div id={id} className="bg-card shadow-sm rounded-xl border px-5 pb-5">
       <div className="flex items-center justify-between sticky pt-5 pb-3 -top-5 bg-background z-10">
         <p className="font-medium">{title}</p>
 

@@ -5,7 +5,13 @@ import { analysisService } from '@/lib/analysis-service';
 import { analysisApi } from '@/lib/api';
 import { DocRenderMode } from '@/lib/constants';
 import { downloadFile, generateEvalFilename } from '@/lib/file-download';
-import { ClaimSubstantiatorStateSummary, RerunAnalysisRequest, WorkflowRunType } from '@/lib/generated-api';
+import {
+  ClaimSubstantiationWorkflowDetail,
+  ClaimSubstantiatorStateSummary,
+  RerunAnalysisRequest,
+  WorkflowRunStatus,
+  WorkflowRunType,
+} from '@/lib/generated-api';
 import { getWorkflowRunByType, WorkflowRunDetail } from '@/lib/workflow-state';
 import { useMutation } from '@tanstack/react-query';
 import { useState } from 'react';
@@ -51,8 +57,26 @@ export function ResultsVisualization({
   readOnly = false,
   claimSubstantiationStateOverride,
 }: ResultsVisualizationProps) {
-  const claimSubstantiationResults = getWorkflowRunByType(results, WorkflowRunType.ClaimSubstantiation);
+  const claimSubstantiationResultsFromRuns = getWorkflowRunByType(results, WorkflowRunType.ClaimSubstantiation);
   const methodologicalAlignmentResults = getWorkflowRunByType(results, WorkflowRunType.MethodologicalAlignment);
+
+  // For shared view, construct a minimal workflow detail from the override state
+  const claimSubstantiationResults: ClaimSubstantiationWorkflowDetail | undefined =
+    claimSubstantiationResultsFromRuns ??
+    (claimSubstantiationStateOverride?.workflowRunId
+      ? {
+          run: {
+            id: claimSubstantiationStateOverride.workflowRunId,
+            projectId,
+            type: WorkflowRunType.ClaimSubstantiation,
+            langgraphThreadId: '',
+            status: WorkflowRunStatus.Completed,
+            createdAt: new Date(),
+            lastUpdatedAt: new Date(),
+          },
+          state: claimSubstantiationStateOverride,
+        }
+      : undefined);
 
   // Use override state if provided (for shared view), otherwise use state from workflow results
   const claimSubstantiationStateSummary = claimSubstantiationStateOverride ?? claimSubstantiationResults?.state;

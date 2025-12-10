@@ -3,6 +3,7 @@
 import { ClaimFeedback } from '@/components/claim-feedback';
 import { LabeledValue } from '@/components/labeled-value';
 import { Button } from '@/components/ui/button';
+import { getClaimId } from '@/lib/chunk-ids';
 import { ClaimSubstantiatorStateSummary, DocumentChunkOutput, ToulminClaim } from '@/lib/generated-api';
 import { getClaimIssues, getMaxSeverity } from '@/lib/severity';
 import { ChevronDownIcon, ChevronRightIcon } from 'lucide-react';
@@ -54,7 +55,11 @@ export function ClaimAnalysisCard({
   const maxSeverity = getMaxSeverity(claimIssues);
 
   return (
-    <AnalysisResultCard title={`Claim Analysis - ${claimIndex + 1} of ${totalClaims}`} severity={maxSeverity}>
+    <AnalysisResultCard
+      id={getClaimId(chunkIndex, claimIndex)}
+      title={`Claim Analysis - ${claimIndex + 1} of ${totalClaims}`}
+      severity={maxSeverity}
+    >
       <p className="italic text-center">&quot;{claim.text}&quot;</p>
 
       {!claimIssues.length && <p className="text-muted-foreground">No issues found for this claim.</p>}

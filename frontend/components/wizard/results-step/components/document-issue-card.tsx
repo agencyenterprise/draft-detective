@@ -1,8 +1,9 @@
+import { Markdown } from '@/components/markdown';
+import { getIssueId } from '@/lib/chunk-ids';
 import { DocumentIssue, SeverityEnum } from '@/lib/generated-api';
 import { cn } from '@/lib/utils';
 import { CheckCircleIcon, CircleAlertIcon, MessageCircleWarningIcon, TriangleAlertIcon } from 'lucide-react';
 import { SeverityBadge } from './severity-badge';
-import { Markdown } from '@/components/markdown';
 
 interface DocumentIssueCardProps {
   issue: DocumentIssue;
@@ -46,6 +47,7 @@ export function DocumentIssueCard({ issue, onSelect }: DocumentIssueCardProps) {
 
   return (
     <div
+      id={getIssueId(issue.chunkIndex, issue.claimIndex)}
       className={cn('rounded-lg p-4 space-y-3 border-l-4 shadow-sm cursor-pointer break-words', className)}
       role="button"
       tabIndex={0}
