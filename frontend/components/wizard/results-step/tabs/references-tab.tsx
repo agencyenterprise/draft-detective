@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import {
   BibliographyItem,
   BibliographyItemValidationOutput,
-  ClaimSubstantiatorStateSummary,
+  ClaimSubstantiationWorkflowDetail,
   FileDocumentOutput,
 } from '@/lib/generated-api';
 import { ChevronDownIcon, ChevronRightIcon, FileText } from 'lucide-react';
@@ -15,7 +15,7 @@ import { humanizeLabel } from './literature-review-tab/utils';
 import { TabWithLoadingStates } from './tab-with-loading-states';
 
 interface ReferencesTabProps {
-  results: ClaimSubstantiatorStateSummary;
+  workflowDetail: ClaimSubstantiationWorkflowDetail | undefined;
   isProcessing?: boolean;
 }
 
@@ -140,10 +140,12 @@ function ReferenceItem({ reference, validation, supportingFiles }: ReferenceItem
   );
 }
 
-export function ReferencesTab({ results, isProcessing = false }: ReferencesTabProps) {
+export function ReferencesTab({ workflowDetail, isProcessing = false }: ReferencesTabProps) {
+  const results = workflowDetail?.state;
+
   // Create a map of validations by reference text for quick lookup
   const validationMap = React.useMemo(() => {
-    if (!results.referencesValidated) {
+    if (!results?.referencesValidated) {
       return new Map<string, BibliographyItemValidationOutput>();
     }
 
@@ -154,7 +156,11 @@ export function ReferencesTab({ results, isProcessing = false }: ReferencesTabPr
       }
     });
     return map;
-  }, [results.referencesValidated]);
+  }, [results?.referencesValidated]);
+
+  if (!results) {
+    return null;
+  }
 
   return (
     <TabWithLoadingStates

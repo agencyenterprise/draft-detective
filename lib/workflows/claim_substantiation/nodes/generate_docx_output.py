@@ -1,5 +1,7 @@
 import logging
-from typing import TYPE_CHECKING, Dict, Optional
+from typing import Dict, Optional
+
+from langgraph.runtime import Runtime
 
 from lib.agents.models import DocumentMetadata, ValidatedDocument
 from lib.services.docx_manipulator import (
@@ -7,6 +9,7 @@ from lib.services.docx_manipulator import (
     DocxComment,
     docx_manipulator_service,
 )
+from lib.workflows.claim_substantiation.context import ContextSchema
 from lib.workflows.claim_substantiation.nodes.rank_issues import rank_issues
 from lib.workflows.claim_substantiation.state import (
     ClaimSubstantiatorState,
@@ -14,9 +17,6 @@ from lib.workflows.claim_substantiation.state import (
     SeverityEnum,
 )
 from lib.workflows.decorators import register_node
-
-if TYPE_CHECKING:
-    from lib.workflows.runtime import ContextSchema, Runtime
 
 logger = logging.getLogger(__name__)
 
@@ -58,7 +58,7 @@ def issue_to_comment(
 )
 async def generate_docx_output(
     state: ClaimSubstantiatorState,
-    runtime: "Runtime[ContextSchema]",
+    runtime: Runtime[ContextSchema],
 ) -> ClaimSubstantiatorState:
     """
     Generate a DOCX file with AI-generated comments if the original file was .docx

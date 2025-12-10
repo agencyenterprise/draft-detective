@@ -1,6 +1,6 @@
 'use client';
 
-import { ClaimSubstantiatorStateSummary } from '@/lib/generated-api';
+import { ClaimSubstantiationWorkflowDetail } from '@/lib/generated-api';
 import * as React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertCircle, BookOpen } from 'lucide-react';
@@ -10,18 +10,23 @@ import { Badge } from '@/components/ui/badge';
 import { ReferenceFilters, FilterState, filterReferences } from './reference-filters';
 
 interface LiteratureReviewTabProps {
-  results: ClaimSubstantiatorStateSummary;
+  workflowDetail: ClaimSubstantiationWorkflowDetail | undefined;
   isProcessing?: boolean;
 }
 
-export function LiteratureReviewTab({ results, isProcessing = false }: LiteratureReviewTabProps) {
+export function LiteratureReviewTab({ workflowDetail, isProcessing = false }: LiteratureReviewTabProps) {
+  const results = workflowDetail?.state;
   const [filters, setFilters] = React.useState<FilterState>({
     quality: 'all',
     direction: 'all',
     action: 'all',
   });
 
-  const shouldShowLoading = isProcessing && results.config.runLiteratureReview === true;
+  const shouldShowLoading = isProcessing && results?.config.runLiteratureReview === true;
+
+  if (!results) {
+    return null;
+  }
 
   return (
     <TabWithLoadingStates
