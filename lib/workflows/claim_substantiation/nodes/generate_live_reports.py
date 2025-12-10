@@ -8,7 +8,7 @@ from lib.agents.evidence_weighter import (
 )
 from lib.agents.live_literature_review import LiveLiteratureReviewAgent
 from lib.workflows.chunk_iterator import iterate_chunks
-from lib.workflows.claim_substantiation.context import ContextSchema
+from lib.workflows.context import ContextSchema
 from lib.workflows.claim_substantiation.state import (
     ClaimSubstantiatorState,
     DocumentChunk,

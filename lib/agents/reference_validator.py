@@ -16,6 +16,7 @@ from lib.agents.reference_extractor import BibliographyItem
 from lib.config.llm_models import gpt_5_mini_model
 from lib.models.agent import DirectOpenAIAgent
 from lib.services.openai import ensure_structured_output_response, wait_for_response
+from lib.workflows.context import ContextSchema
 
 
 class FieldProblemType(str, Enum):

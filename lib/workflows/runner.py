@@ -8,7 +8,7 @@ from lib.models.workflow_run import WorkflowRunStatus, WorkflowRunType
 from lib.services.projects import update_project_title
 from lib.services.workflow_runs import upsert_workflow_run
 from lib.workflows.claim_substantiation.checkpointer import get_checkpointer
-from lib.workflows.claim_substantiation.context import ContextSchema
+from lib.workflows.context import ContextSchema
 from lib.workflows.models import BaseWorkflowConfig, WorkflowError
 from lib.workflows.registry import (
     WorkflowStateType,

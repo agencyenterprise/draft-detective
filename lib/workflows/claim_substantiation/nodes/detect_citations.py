@@ -5,7 +5,7 @@ from langgraph.runtime import Runtime
 from lib.agents.citation_detector import CitationDetectorAgent
 from lib.agents.formatting_utils import format_bibliography_prompt_section
 from lib.workflows.chunk_iterator import iterate_chunks
-from lib.workflows.claim_substantiation.context import ContextSchema
+from lib.workflows.context import ContextSchema
 from lib.workflows.claim_substantiation.state import (
     ClaimSubstantiatorState,
     DocumentChunk,

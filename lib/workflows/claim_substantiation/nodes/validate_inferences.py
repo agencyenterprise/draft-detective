@@ -9,7 +9,7 @@ from lib.agents.inference_validator import (
 )
 from lib.agents.models import ClaimCategory
 from lib.workflows.chunk_iterator import iterate_chunks
-from lib.workflows.claim_substantiation.context import ContextSchema
+from lib.workflows.context import ContextSchema
 from lib.workflows.claim_substantiation.state import (
     ClaimSubstantiatorState,
     DocumentChunk,

@@ -5,7 +5,7 @@ from langgraph.runtime import Runtime
 from lib.run_utils import call_maybe_async
 from lib.services.chunk_to_items_mapper import create_chunk_to_items_mapping
 from lib.services.nltk_text_splitter import NLTKTextSplitter
-from lib.workflows.claim_substantiation.context import ContextSchema
+from lib.workflows.context import ContextSchema
 from lib.workflows.claim_substantiation.state import (
     ClaimSubstantiatorState,
     DocumentChunk,

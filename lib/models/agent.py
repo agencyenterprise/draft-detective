@@ -8,7 +8,7 @@ from pydantic import BaseModel
 
 from lib.config.llm_models import LLMModel
 from lib.services.openai import AsyncOpenAIClient, get_openai_client
-from lib.workflows.claim_substantiation.context import ContextSchema
+from lib.workflows.context import ContextSchema
 
 logger = logging.getLogger(__name__)
 

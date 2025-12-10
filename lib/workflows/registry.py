@@ -7,13 +7,13 @@ from lib.config.env import config as env_config
 from lib.models.user import User
 from lib.services.file import FileDocument
 from lib.services.vector_store import VectorStoreService
-from lib.workflows.claim_substantiation.context import ContextSchema
 from lib.workflows.claim_substantiation.graph import build_claim_substantiator_graph
 from lib.workflows.claim_substantiation.state import (
     ClaimSubstantiatorState,
     ClaimSubstantiatorStateSummary,
     SubstantiationWorkflowConfig,
 )
+from lib.workflows.context import ContextSchema
 from lib.workflows.methodological_alignment.graph import (
     build_methodological_alignment_graph,
 )

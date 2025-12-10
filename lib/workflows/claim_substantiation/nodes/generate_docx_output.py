@@ -9,13 +9,13 @@ from lib.services.docx_manipulator import (
     DocxComment,
     docx_manipulator_service,
 )
-from lib.workflows.claim_substantiation.context import ContextSchema
 from lib.workflows.claim_substantiation.nodes.rank_issues import rank_issues
 from lib.workflows.claim_substantiation.state import (
     ClaimSubstantiatorState,
     DocumentIssue,
     SeverityEnum,
 )
+from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
 
 logger = logging.getLogger(__name__)
