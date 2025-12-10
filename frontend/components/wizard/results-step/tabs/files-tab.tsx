@@ -1,11 +1,11 @@
 'use client';
 
 import { LabeledValue } from '@/components/labeled-value';
-import { ClaimSubstantiatorStateSummary, FileDocumentOutput } from '@/lib/generated-api';
+import { ClaimSubstantiationWorkflowDetail, FileDocumentOutput } from '@/lib/generated-api';
 import Link from 'next/link';
 
 interface FilesTabProps {
-  results: ClaimSubstantiatorStateSummary;
+  workflowDetail: ClaimSubstantiationWorkflowDetail | undefined;
 }
 
 function FileNameLink({ file }: { file: FileDocumentOutput }) {
@@ -20,7 +20,13 @@ function FileNameLink({ file }: { file: FileDocumentOutput }) {
   );
 }
 
-export function FilesTab({ results }: FilesTabProps) {
+export function FilesTab({ workflowDetail }: FilesTabProps) {
+  const results = workflowDetail?.state;
+
+  if (!results) {
+    return null;
+  }
+
   const mainFile = results.file;
   const supportingFiles = results.supportingFiles || [];
 

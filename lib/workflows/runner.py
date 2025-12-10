@@ -5,6 +5,7 @@ from langgraph.graph import StateGraph
 from lib.config.langfuse import langfuse_handler
 from lib.models.user import User
 from lib.models.workflow_run import WorkflowRunStatus, WorkflowRunType
+from lib.services.projects import update_project_title
 from lib.services.workflow_runs import upsert_workflow_run
 from lib.workflows.claim_substantiation.checkpointer import get_checkpointer
 from lib.workflows.claim_substantiation.context import ContextSchema
@@ -100,6 +101,18 @@ async def run_workflow(
                     status=WorkflowRunStatus.RUNNING,
                     type=workflow_type,
                 )
+
+                # Update the project title if this is a claim substantiation workflow
+                # TODO: remove this after we refactor the project creation flow
+                if (
+                    workflow_type == WorkflowRunType.CLAIM_SUBSTANTIATION
+                    and updated_state.main_document_summary
+                    and updated_state.main_document_summary.title
+                ):
+                    await update_project_title(
+                        project_id=project_id,
+                        title=updated_state.main_document_summary.title,
+                    )
         except Exception as e:
             logger.error(f"Error streaming state: {e}", exc_info=True)
             updated_state.errors.append(WorkflowError(task_name="global", error=str(e)))

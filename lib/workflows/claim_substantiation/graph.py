@@ -2,10 +2,6 @@ from langgraph.graph import StateGraph
 
 from lib.workflows.claim_substantiation.context import ContextSchema
 from lib.workflows.claim_substantiation.nodes.categorize_claims import categorize_claims
-
-# from lib.workflows.claim_substantiation.nodes.check_claim_needs_substantiation import (
-#     check_claim_needs_substantiation,
-# )
 from lib.workflows.claim_substantiation.nodes.convert_to_markdown import (
     convert_to_markdown,
 )

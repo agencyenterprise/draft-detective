@@ -3,7 +3,7 @@
 import { AiGeneratedLabel } from '@/components/ai-generated-label';
 import { Card, CardContent } from '@/components/ui/card';
 import { DocRenderMode } from '@/lib/constants';
-import { ClaimSubstantiatorStateSummary, DocumentIssue } from '@/lib/generated-api';
+import { ClaimSubstantiationWorkflowDetail, DocumentIssue } from '@/lib/generated-api';
 import { Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -15,27 +15,19 @@ import { ErrorsCard } from '../components/errors-card';
 
 interface DocumentExplorerTabProps {
   projectId: string;
-  results: ClaimSubstantiatorStateSummary;
+  workflowDetail: ClaimSubstantiationWorkflowDetail | undefined;
   isProcessing?: boolean;
   viewMode: DocRenderMode;
 }
 
-export function DocumentExplorerTab({ projectId, results, isProcessing = false, viewMode }: DocumentExplorerTabProps) {
-  const pages = results.file?.doclingPages ?? [];
-  const chunkToItems = results.chunkToItems?.mapping ?? {};
-
-  const pageImagesBaseUrl = `/api/images/${results.workflowRunId}`;
-
-  const errors = results.errors || [];
-  const issues = results.rankedIssues || [];
-  const workflowErrors = errors.filter((error) => error.chunkIndex === null || error.chunkIndex === undefined);
-  const hasChunks = (results.chunks?.length || 0) > 0;
-
-  // Check if docling view is available
-  const isDoclingAvailable = Boolean(pages && pages.length > 0 && Object.keys(chunkToItems).length > 0);
-
+export function DocumentExplorerTab({
+  projectId,
+  workflowDetail,
+  isProcessing = false,
+  viewMode,
+}: DocumentExplorerTabProps) {
+  const results = workflowDetail?.state;
   const [selectedChunkIndex, setSelectedChunkIndex] = useState<number | null>(null);
-  const selectedChunk = results.chunks?.find((chunk) => chunk.chunkIndex === selectedChunkIndex);
   const sidebarRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -47,6 +39,25 @@ export function DocumentExplorerTab({ projectId, results, isProcessing = false, 
   const handleChunkSelect = useCallback((chunkIndex: number | null) => {
     setSelectedChunkIndex((curr) => (curr === chunkIndex ? null : chunkIndex));
   }, []);
+
+  if (!results) {
+    return null;
+  }
+
+  const pages = results.file?.doclingPages ?? [];
+  const chunkToItems = results.chunkToItems?.mapping ?? {};
+
+  const pageImagesBaseUrl = `/api/images/${workflowDetail?.run.id}`;
+
+  const errors = results.errors || [];
+  const issues = results.rankedIssues || [];
+  const workflowErrors = errors.filter((error) => error.chunkIndex === null || error.chunkIndex === undefined);
+  const hasChunks = (results.chunks?.length || 0) > 0;
+
+  // Check if docling view is available
+  const isDoclingAvailable = Boolean(pages && pages.length > 0 && Object.keys(chunkToItems).length > 0);
+
+  const selectedChunk = results.chunks?.find((chunk) => chunk.chunkIndex === selectedChunkIndex);
 
   if (isProcessing && !hasChunks) {
     return (
@@ -140,12 +151,12 @@ export function DocumentExplorerTab({ projectId, results, isProcessing = false, 
               </div>
             )}
 
-            {selectedChunk && selectedChunkIndex !== null && results.workflowRunId && (
+            {selectedChunk && selectedChunkIndex !== null && (
               <ChunkSidebarContent
                 results={results}
                 chunkIndex={selectedChunkIndex}
                 projectId={projectId}
-                workflowRunId={results.workflowRunId}
+                workflowRunId={workflowDetail?.run.id}
                 isWorkflowRunning={isProcessing}
                 onSelectIssue={handleSelectIssue}
                 onClearChunkSelection={() => setSelectedChunkIndex(null)}

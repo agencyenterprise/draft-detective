@@ -1,32 +1,32 @@
 'use client';
 
-import { ClaimSubstantiatorStateSummary } from '@/lib/generated-api';
+import { ClaimSubstantiationWorkflowDetail } from '@/lib/generated-api';
 import * as React from 'react';
 import { SummaryCards } from '../components/summary-cards';
+import { useResultsCalculations } from '../hooks/use-results-calculations';
 
 interface SummaryTabProps {
-  results: ClaimSubstantiatorStateSummary;
-  totalChunks: number;
-  chunksWithClaims: number;
-  chunksWithCitations: number;
-  supportedReferences: number;
-  totalClaims: number;
-  totalCitations: number;
-  totalUnsubstantiated: number;
+  workflowDetail: ClaimSubstantiationWorkflowDetail | undefined;
   isProcessing?: boolean;
 }
 
-export function SummaryTab({
-  results,
-  totalChunks,
-  chunksWithClaims,
-  chunksWithCitations,
-  supportedReferences,
-  totalClaims,
-  totalCitations,
-  totalUnsubstantiated,
-  isProcessing = false,
-}: SummaryTabProps) {
+export function SummaryTab({ workflowDetail, isProcessing = false }: SummaryTabProps) {
+  const results = workflowDetail?.state;
+
+  const {
+    totalClaims,
+    totalCitations,
+    totalUnsubstantiated,
+    totalChunks,
+    chunksWithClaims,
+    chunksWithCitations,
+    supportedReferences,
+  } = useResultsCalculations(results);
+
+  if (!results) {
+    return null;
+  }
+
   return (
     <div className="space-y-6">
       <SummaryCards

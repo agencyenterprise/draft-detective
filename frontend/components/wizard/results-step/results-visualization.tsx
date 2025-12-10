@@ -16,7 +16,6 @@ import { AnalysisOptionsMenu } from './components/analysis-options-menu';
 import { ReevaluationDialogContent, ReevaluationFormValues } from './components/reevaluation-dialog-content';
 import { ViewModeToggle } from './components/view-mode-toggle';
 import { TabType } from './constants';
-import { useResultsCalculations } from './hooks/use-results-calculations';
 import {
   FilesTab,
   LiteratureReviewTab,
@@ -51,7 +50,6 @@ export function ResultsVisualization({
 
   const claimSubstantiationStateSummary = claimSubstantiationResults?.state;
 
-  const calculations = useResultsCalculations(claimSubstantiationStateSummary);
   const [isReevaluationDialogOpen, setIsReevaluationDialogOpen] = useState(false);
 
   const reevaluateMutation = useMutation({
@@ -121,32 +119,20 @@ export function ResultsVisualization({
   const renderActiveTab = () => {
     switch (activeTab) {
       case 'summary':
-        return (
-          <SummaryTab
-            results={claimSubstantiationStateSummary}
-            totalChunks={calculations.totalChunks}
-            chunksWithClaims={calculations.chunksWithClaims}
-            chunksWithCitations={calculations.chunksWithCitations}
-            supportedReferences={calculations.supportedReferences}
-            totalClaims={calculations.totalClaims}
-            totalCitations={calculations.totalCitations}
-            totalUnsubstantiated={calculations.totalUnsubstantiated}
-            isProcessing={isProcessing}
-          />
-        );
+        return <SummaryTab workflowDetail={claimSubstantiationResults} isProcessing={isProcessing} />;
       case 'references':
-        return <ReferencesTab results={claimSubstantiationStateSummary} isProcessing={isProcessing} />;
+        return <ReferencesTab workflowDetail={claimSubstantiationResults} isProcessing={isProcessing} />;
       case 'literature_review':
-        return <LiteratureReviewTab results={claimSubstantiationStateSummary} isProcessing={isProcessing} />;
+        return <LiteratureReviewTab workflowDetail={claimSubstantiationResults} isProcessing={isProcessing} />;
       case 'live_reports':
-        return <LiveReportsTab results={claimSubstantiationStateSummary} isProcessing={isProcessing} />;
+        return <LiveReportsTab workflowDetail={claimSubstantiationResults} isProcessing={isProcessing} />;
       case 'files':
-        return <FilesTab results={claimSubstantiationStateSummary} />;
+        return <FilesTab workflowDetail={claimSubstantiationResults} />;
       case 'document-explorer':
         return (
           <DocumentExplorerTab
             projectId={projectId}
-            results={claimSubstantiationStateSummary}
+            workflowDetail={claimSubstantiationResults}
             isProcessing={isProcessing}
             viewMode={viewMode}
           />
