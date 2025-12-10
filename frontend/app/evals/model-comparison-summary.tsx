@@ -1,15 +1,14 @@
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { TrendingDown, TrendingUp, Zap, Info, TriangleAlert } from 'lucide-react';
-import { TestCase } from './types';
+import { TrendingDown, TrendingUp, TriangleAlert, Zap } from 'lucide-react';
 import {
-  formatModelName,
   calculateCostDifference,
-  formatCostDifference,
   calculateDurationDifference,
+  formatCostDifference,
   formatDurationDifference,
+  formatModelName,
 } from './model-comparison-utils';
+import { TestCase } from './types';
 import { filterValidTestCases } from './util';
 
 interface ModelComparisonSummaryProps {

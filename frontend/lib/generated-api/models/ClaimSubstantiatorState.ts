@@ -143,12 +143,6 @@ export interface ClaimSubstantiatorState {
   config: SubstantiationWorkflowConfig;
   /**
    *
-   * @type {string}
-   * @memberof ClaimSubstantiatorState
-   */
-  workflowRunId?: string | null;
-  /**
-   *
    * @type {Array<BibliographyItem>}
    * @memberof ClaimSubstantiatorState
    */
@@ -250,7 +244,6 @@ export function ClaimSubstantiatorStateFromJSONTyped(json: any, ignoreDiscrimina
         ? undefined
         : (json['supporting_files'] as Array<any>).map(FileDocumentInputFromJSON),
     config: SubstantiationWorkflowConfigFromJSON(json['config']),
-    workflowRunId: json['workflow_run_id'] == null ? undefined : json['workflow_run_id'],
     references:
       json['references'] == null ? undefined : (json['references'] as Array<any>).map(BibliographyItemFromJSON),
     referencesValidated:
@@ -302,7 +295,6 @@ export function ClaimSubstantiatorStateToJSONTyped(
         ? undefined
         : (value['supportingFiles'] as Array<any>).map(FileDocumentInputToJSON),
     config: SubstantiationWorkflowConfigToJSON(value['config']),
-    workflow_run_id: value['workflowRunId'],
     references:
       value['references'] == null ? undefined : (value['references'] as Array<any>).map(BibliographyItemToJSON),
     references_validated:
