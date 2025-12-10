@@ -234,10 +234,6 @@ class ClaimSubstantiatorState(BaseWorkflowState):
     config: SubstantiationWorkflowConfig
 
     # Outputs
-    workflow_run_id: Optional[str] = Field(
-        default=None,
-        description="The UUID of the workflow run (populated when workflow starts)",
-    )
     references: List[BibliographyItem] = []
     references_validated: List[BibliographyItemValidation] = []
     chunks: Annotated[List[DocumentChunk], conciliate_chunks] = []
@@ -291,7 +287,6 @@ class ClaimSubstantiatorStateSummary(BaseWorkflowState):
     config: SubstantiationWorkflowConfig
 
     # Outputs - using lightweight chunks
-    workflow_run_id: Optional[str] = None
     references: List[BibliographyItem] = []
     references_validated: List[BibliographyItemValidation] = []
     chunks: List[DocumentChunkSummary] = Field(

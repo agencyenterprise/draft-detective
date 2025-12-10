@@ -72,8 +72,10 @@ async def generate_docx_output(
         logger.info("Original file was not .docx, skipping docx output generation")
         return {}
 
-    if not state.workflow_run_id:
-        logger.warning("No workflow_run_id available, skipping docx output generation")
+    if not runtime.context.workflow_run_id:
+        logger.warning(
+            "No workflow_run_id available in context, skipping docx output generation"
+        )
         return {}
 
     try:
@@ -104,7 +106,7 @@ async def generate_docx_output(
         processed_path = await docx_manipulator_service.add_comments_to_docx(
             original_docx_path=state.file.original_file_path,
             comments=comments,
-            workflow_run_id=state.workflow_run_id,
+            workflow_run_id=runtime.context.workflow_run_id,
             chunks=validated_chunks,
         )
 

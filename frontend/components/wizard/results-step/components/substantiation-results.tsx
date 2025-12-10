@@ -3,7 +3,6 @@
 import { LabeledValue } from '@/components/labeled-value';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
-import { apiUrl } from '@/lib/api';
 import {
   BibliographyItem,
   ClaimSubstantiationResultWithClaimIndex,

@@ -24,7 +24,7 @@ async def run_workflow_from_config(
     config: BaseWorkflowConfig, thread_id: str, user: User
 ) -> WorkflowStateType:
     graph = create_graph(config.type)
-    context = create_context(config, user)
+    context = create_context(config, user=user)
 
     # Redact the OpenAI API key from the config so it doesn't get saved in the state
     config.openai_api_key = "[REDACTED]"
@@ -68,12 +68,15 @@ async def run_workflow(
         f"Starting workflow {workflow_type} for project {project_id} with thread {thread_id}"
     )
 
-    await upsert_workflow_run(
+    workflow_run_id = await upsert_workflow_run(
         project_id=project_id,
         thread_id=thread_id,
         status=WorkflowRunStatus.RUNNING,
         type=workflow_type,
     )
+
+    # Update the context with the workflow run ID so it's available to the workflow nodes
+    context.workflow_run_id = workflow_run_id
 
     async with get_checkpointer() as checkpointer:
         app = graph.compile(checkpointer=checkpointer).with_config(

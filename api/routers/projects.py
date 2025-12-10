@@ -70,10 +70,10 @@ async def download_project_docx(
 ):
     """Download DOCX file for project - reviewed version if available, otherwise original"""
 
-    project = await get_user_project_detailed(project_id, user=current_user)
+    project_detail = await get_user_project_detailed(project_id, user=current_user)
 
     claim_substantiation_workflow_run = await get_project_workflow_run_by_type(
-        project.id, WorkflowRunType.CLAIM_SUBSTANTIATION
+        project_detail.project.id, WorkflowRunType.CLAIM_SUBSTANTIATION
     )
     if not claim_substantiation_workflow_run:
         raise HTTPException(

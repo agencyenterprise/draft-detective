@@ -24,6 +24,7 @@ export interface ClaimAnalysisCardProps {
   claimIndex: number;
   totalClaims: number;
   chunkIndex: number;
+  workflowRunId: string;
 }
 
 export function ClaimAnalysisCard({
@@ -33,6 +34,7 @@ export function ClaimAnalysisCard({
   claimIndex,
   totalClaims,
   chunkIndex,
+  workflowRunId,
 }: ClaimAnalysisCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -47,7 +49,6 @@ export function ClaimAnalysisCard({
   const liveReportsAnalysis = chunkDetails.liveReportsAnalysis?.find((l) => l.claimIndex === claimIndex);
   const inferenceValidation = chunkDetails.inferenceValidations?.find((i) => i.claimIndex === claimIndex);
 
-  const workflowRunId = results.workflowRunId;
   const supportingFiles = results.supportingFiles ?? [];
   const references = results.references ?? [];
   const claimIssues = getClaimIssues(results, chunkIndex, claimIndex);
