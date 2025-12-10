@@ -9,7 +9,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from lib.config.llm_models import gpt_5_1_model
 from lib.models.agent import LangChainAgent
-from lib.workflows.claim_substantiation.context import ContextSchema
+from lib.workflows.context import ContextSchema
 
 
 class ReferenceFetcherAgentInput(BaseModel):

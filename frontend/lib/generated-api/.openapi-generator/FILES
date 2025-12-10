@@ -65,7 +65,8 @@ models/LiteratureReviewResponseOutput.ts
 models/MethodologicalAlignmentState.ts
 models/MethodologicalAlignmentWorkflowConfig.ts
 models/MethodologicalAlignmentWorkflowDetail.ts
-models/MethodologyComparisonResponse.ts
+models/MethodologyComparisonResponseInput.ts
+models/MethodologyComparisonResponseOutput.ts
 models/PoliticalBias.ts
 models/Project.ts
 models/ProjectDetailed.ts
@@ -82,10 +83,13 @@ models/ReferenceDownloaderWorkflowConfig.ts
 models/ReferenceDownloaderWorkflowDetail.ts
 models/ReferenceFetchConclusion.ts
 models/ReferenceFetchItem.ts
+models/ReferenceMinimal.ts
 models/ReferenceType.ts
 models/ReportMetadata.ts
 models/ReportOutputInput.ts
 models/ReportOutputOutput.ts
+models/ReproducibilityCategory.ts
+models/ReproducibilityCategoryResponse.ts
 models/RerunAnalysisRequest.ts
 models/RetrievedPassageInfo.ts
 models/SeverityEnum.ts
@@ -97,6 +101,7 @@ models/SharedWorkflowRun.ts
 models/SourceUrl.ts
 models/StartWorkflowResponse.ts
 models/SubstantiationWorkflowConfig.ts
+models/SummaryAndOutput.ts
 models/ToulminClaim.ts
 models/ToulminClaimResponse.ts
 models/UpdateProjectRequest.ts

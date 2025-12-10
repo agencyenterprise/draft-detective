@@ -10,7 +10,7 @@ from lib.agents.document_chunker_nltk import (
     get_chunker_result_as_langchain_documents,
 )
 from lib.agents.models import ValidatedDocument
-from lib.workflows.claim_substantiation.context import ContextSchema
+from lib.workflows.context import ContextSchema
 
 logger = logging.getLogger(__name__)
 

@@ -3,7 +3,7 @@ import logging
 from langgraph.runtime import Runtime
 
 from lib.agents.literature_review import LiteratureReviewAgent
-from lib.workflows.claim_substantiation.context import ContextSchema
+from lib.workflows.context import ContextSchema
 from lib.workflows.claim_substantiation.state import ClaimSubstantiatorState
 from lib.workflows.decorators import register_node
 

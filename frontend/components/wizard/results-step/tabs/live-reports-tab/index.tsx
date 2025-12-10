@@ -4,19 +4,24 @@ import { LabeledValue } from '@/components/labeled-value';
 import { Markdown } from '@/components/markdown';
 import { Callout } from '@/components/ui/callout';
 import { Card, CardContent } from '@/components/ui/card';
-import { ClaimSubstantiatorStateSummary } from '@/lib/generated-api';
+import { ClaimSubstantiationWorkflowDetail } from '@/lib/generated-api';
 import { format } from 'date-fns';
 import { AlertCircle, FileText } from 'lucide-react';
 import { TabWithLoadingStates } from '../tab-with-loading-states';
 import { PublicationDateLabel } from '../../components/publication-date-label';
 
 interface LiveReportsTabProps {
-  results: ClaimSubstantiatorStateSummary;
+  workflowDetail: ClaimSubstantiationWorkflowDetail | undefined;
   isProcessing?: boolean;
 }
 
-export function LiveReportsTab({ results, isProcessing = false }: LiveReportsTabProps) {
-  const shouldShowLoading = isProcessing && results.config.runLiveReports === true;
+export function LiveReportsTab({ workflowDetail, isProcessing = false }: LiveReportsTabProps) {
+  const results = workflowDetail?.state;
+  const shouldShowLoading = isProcessing && results?.config.runLiveReports === true;
+
+  if (!results) {
+    return null;
+  }
 
   return (
     <TabWithLoadingStates

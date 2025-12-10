@@ -56,6 +56,12 @@ export interface FileDocumentInput {
    */
   markdownTokenCount: number;
   /**
+   *
+   * @type {string}
+   * @memberof FileDocumentInput
+   */
+  fileId?: string | null;
+  /**
    * Raw Docling json_content passed through to frontend
    *
    * We don't parse/transform - just pass the structure as-is.
@@ -96,6 +102,7 @@ export function FileDocumentInputFromJSONTyped(json: any, ignoreDiscriminator: b
     fileType: json['file_type'],
     markdown: json['markdown'],
     markdownTokenCount: json['markdown_token_count'],
+    fileId: json['file_id'] == null ? undefined : json['file_id'],
     doclingDocument: json['docling_document'] == null ? undefined : json['docling_document'],
   };
 }
@@ -119,6 +126,7 @@ export function FileDocumentInputToJSONTyped(
     file_type: value['fileType'],
     markdown: value['markdown'],
     markdown_token_count: value['markdownTokenCount'],
+    file_id: value['fileId'],
     docling_document: value['doclingDocument'],
   };
 }

@@ -15,3 +15,11 @@ class ContextSchema(BaseModel):
         default=None,
         description="The vector store service to use for the workflow execution.",
     )
+    user_id: Optional[str] = Field(
+        default=None,
+        description="The ID of the user that is running the workflow.",
+    )
+    project_id: Optional[str] = Field(
+        default=None,
+        description="The ID of the project that is running the workflow.",
+    )

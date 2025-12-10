@@ -16,9 +16,8 @@ import * as runtime from '../runtime';
 import type { HTTPValidationError } from '../models/index';
 import { HTTPValidationErrorFromJSON, HTTPValidationErrorToJSON } from '../models/index';
 
-export interface DownloadFileApiFilesDownloadXxhashFilenameGetRequest {
-  xxhash: string;
-  filename: string;
+export interface DownloadFileApiFilesDownloadFileIdGetRequest {
+  fileId: string;
 }
 
 /**
@@ -26,24 +25,17 @@ export interface DownloadFileApiFilesDownloadXxhashFilenameGetRequest {
  */
 export class FilesApi extends runtime.BaseAPI {
   /**
-   * Download a file (forces download)
+   * Download a file by ID with access control.  This endpoint verifies that the authenticated user has access to the file by checking if they own the project that the file belongs to.  Args:     file_id: UUID of the file to download     current_user: Authenticated user from JWT token  Returns:     FileResponse with the file contents  Raises:     HTTPException: 400 for invalid file ID, 404 if file not found, 403 if access denied
    * Download File
    */
-  async downloadFileApiFilesDownloadXxhashFilenameGetRaw(
-    requestParameters: DownloadFileApiFilesDownloadXxhashFilenameGetRequest,
+  async downloadFileApiFilesDownloadFileIdGetRaw(
+    requestParameters: DownloadFileApiFilesDownloadFileIdGetRequest,
     initOverrides?: RequestInit | runtime.InitOverrideFunction,
   ): Promise<runtime.ApiResponse<any>> {
-    if (requestParameters['xxhash'] == null) {
+    if (requestParameters['fileId'] == null) {
       throw new runtime.RequiredError(
-        'xxhash',
-        'Required parameter "xxhash" was null or undefined when calling downloadFileApiFilesDownloadXxhashFilenameGet().',
-      );
-    }
-
-    if (requestParameters['filename'] == null) {
-      throw new runtime.RequiredError(
-        'filename',
-        'Required parameter "filename" was null or undefined when calling downloadFileApiFilesDownloadXxhashFilenameGet().',
+        'fileId',
+        'Required parameter "fileId" was null or undefined when calling downloadFileApiFilesDownloadFileIdGet().',
       );
     }
 
@@ -51,9 +43,17 @@ export class FilesApi extends runtime.BaseAPI {
 
     const headerParameters: runtime.HTTPHeaders = {};
 
-    let urlPath = `/api/files/download/{xxhash}/{filename}`;
-    urlPath = urlPath.replace(`{${'xxhash'}}`, encodeURIComponent(String(requestParameters['xxhash'])));
-    urlPath = urlPath.replace(`{${'filename'}}`, encodeURIComponent(String(requestParameters['filename'])));
+    if (this.configuration && this.configuration.accessToken) {
+      const token = this.configuration.accessToken;
+      const tokenString = await token('HTTPBearer', []);
+
+      if (tokenString) {
+        headerParameters['Authorization'] = `Bearer ${tokenString}`;
+      }
+    }
+
+    let urlPath = `/api/files/download/{file_id}`;
+    urlPath = urlPath.replace(`{${'file_id'}}`, encodeURIComponent(String(requestParameters['fileId'])));
 
     const response = await this.request(
       {
@@ -73,14 +73,14 @@ export class FilesApi extends runtime.BaseAPI {
   }
 
   /**
-   * Download a file (forces download)
+   * Download a file by ID with access control.  This endpoint verifies that the authenticated user has access to the file by checking if they own the project that the file belongs to.  Args:     file_id: UUID of the file to download     current_user: Authenticated user from JWT token  Returns:     FileResponse with the file contents  Raises:     HTTPException: 400 for invalid file ID, 404 if file not found, 403 if access denied
    * Download File
    */
-  async downloadFileApiFilesDownloadXxhashFilenameGet(
-    requestParameters: DownloadFileApiFilesDownloadXxhashFilenameGetRequest,
+  async downloadFileApiFilesDownloadFileIdGet(
+    requestParameters: DownloadFileApiFilesDownloadFileIdGetRequest,
     initOverrides?: RequestInit | runtime.InitOverrideFunction,
   ): Promise<any> {
-    const response = await this.downloadFileApiFilesDownloadXxhashFilenameGetRaw(requestParameters, initOverrides);
+    const response = await this.downloadFileApiFilesDownloadFileIdGetRaw(requestParameters, initOverrides);
     return await response.value();
   }
 }

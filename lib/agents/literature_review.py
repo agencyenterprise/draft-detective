@@ -13,7 +13,7 @@ from lib.services.openai import (
     ensure_structured_output_response,
     wait_for_response,
 )
-from lib.workflows.claim_substantiation.context import ContextSchema
+from lib.workflows.context import ContextSchema
 
 logger = logging.getLogger(__name__)
 

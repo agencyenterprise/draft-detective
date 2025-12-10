@@ -6,23 +6,22 @@ This module provides reusable utilities that work across all agent test suites:
 - Supporting documents formatting
 """
 
+import json
 import os
-import uuid
 import shutil
+import uuid
 from enum import Enum
 from pathlib import Path
 from typing import Any
-import json
 
 import pytest
 from pydantic import BaseModel
 from xxhash import xxh128
 
 from lib.config.env import config
-from lib.services.file import create_file_document_from_path
 from lib.models.agent_test_case import AgentTestCase
+from lib.services.file import create_file_document_from_path
 from lib.services.vector_store import VectorStoreService
-
 
 # Root tests directory
 TESTS_DIR = Path(__file__).parent
@@ -441,7 +440,7 @@ def create_test_context():
     Returns:
         ContextSchema with test configuration (uses config.OPENAI_API_KEY, no vector_store)
     """
-    from lib.workflows.claim_substantiation.context import ContextSchema
+    from lib.workflows.context import ContextSchema
 
     return ContextSchema(
         openai_api_key=config.OPENAI_API_KEY,

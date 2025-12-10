@@ -42,3 +42,13 @@ export function getWorkflowRunByType<T extends WorkflowRunType>(
 ): WorkflowTypeToDetail[T] | undefined {
   return workflowRuns.find((workflowRun) => workflowRun.run.type === type) as WorkflowTypeToDetail[T] | undefined;
 }
+
+const workflowTypeNames: Record<WorkflowRunType, string> = {
+  [WorkflowRunType.ClaimSubstantiation]: 'Claim Substantiation',
+  [WorkflowRunType.MethodologicalAlignment]: 'Methodological Alignment',
+  [WorkflowRunType.ReferenceDownloader]: 'Reference Downloader',
+};
+
+export function getWorkflowTypeName(type: WorkflowRunType): string {
+  return workflowTypeNames[type] || type;
+}

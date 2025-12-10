@@ -7,8 +7,6 @@ import { Button } from '@/components/ui/button';
 import { ReferenceFetchConclusion, ReferenceFetchItem } from '@/lib/generated-api';
 import { AlertCircle, CheckCircle2, ChevronDownIcon, ChevronRightIcon, Download, XCircle } from 'lucide-react';
 import * as React from 'react';
-import { apiUrl } from '@/lib/api';
-import { useMemo } from 'react';
 
 interface ReferenceItemProps {
   item: ReferenceFetchItem;
@@ -75,24 +73,6 @@ export function ReferenceItem({ item, index, downloadedReference }: ReferenceIte
   const sourceUrl = extractUrl(item.sourceUrl);
   const downloadUrl = extractUrl(item.downloadUrl);
 
-  // Generate download URL and filename if downloaded reference exists
-  const downloadLink = useMemo(() => {
-    if (!downloadedReference) return null;
-
-    const sanitizedReference = item.referenceDetails
-      .replace(/[^a-z0-9]/gi, '_')
-      .substring(0, 50)
-      .toLowerCase();
-
-    // Extract file extension from downloadedReference (e.g., .pdf or .md)
-    const fileExtension = downloadedReference.includes('.')
-      ? downloadedReference.substring(downloadedReference.lastIndexOf('.'))
-      : '.pdf';
-
-    const filename = `${sanitizedReference || `reference_${index + 1}`}${fileExtension}`;
-    return `${apiUrl}/api/files/download/${downloadedReference}/${filename}`;
-  }, [downloadedReference, index, item.referenceDetails]);
-
   return (
     <div className="border rounded-lg p-4 space-y-2">
       <div className="flex items-start justify-between gap-3">
@@ -100,7 +80,7 @@ export function ReferenceItem({ item, index, downloadedReference }: ReferenceIte
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-sm font-medium text-muted-foreground">#{index + 1}</span>
             {getConclusionBadge(item.finalConclusion)}
-            {downloadLink ? (
+            {downloadedReference ? (
               <Badge
                 variant="outline"
                 className="bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800"
@@ -120,9 +100,9 @@ export function ReferenceItem({ item, index, downloadedReference }: ReferenceIte
           <p className="text-sm">{item.referenceDetails}</p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          {downloadLink && (
+          {downloadedReference && (
             <Button variant="outline" size="xs" asChild className="text-gray-600 hover:text-gray-900">
-              <a href={downloadLink} target="_blank" rel="noopener noreferrer">
+              <a href={`/api/files/download/${downloadedReference}`} target="_blank" rel="noopener noreferrer">
                 <Download className="size-4 mr-1" />
                 Download
               </a>

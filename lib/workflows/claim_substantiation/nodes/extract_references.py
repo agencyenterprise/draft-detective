@@ -6,7 +6,7 @@ from lib.agents.formatting_utils import (
     format_supporting_documents_prompt_section_multiple,
 )
 from lib.agents.reference_extractor import ReferenceExtractorAgent
-from lib.workflows.claim_substantiation.context import ContextSchema
+from lib.workflows.context import ContextSchema
 from lib.workflows.claim_substantiation.state import ClaimSubstantiatorState
 from lib.workflows.decorators import register_node
 

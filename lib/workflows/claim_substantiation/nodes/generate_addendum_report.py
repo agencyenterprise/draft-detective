@@ -7,7 +7,7 @@ from typing import Any, Dict, List
 from langgraph.runtime import Runtime
 
 from lib.agents.addendum_report_generator import AddendumReportGeneratorAgent
-from lib.workflows.claim_substantiation.context import ContextSchema
+from lib.workflows.context import ContextSchema
 from lib.workflows.claim_substantiation.state import ClaimSubstantiatorState
 from lib.workflows.decorators import register_node
 

@@ -27,13 +27,13 @@ import {
   WorkflowErrorToJSON,
   WorkflowErrorToJSONTyped,
 } from './WorkflowError';
-import type { MethodologyComparisonResponse } from './MethodologyComparisonResponse';
+import type { MethodologyComparisonResponseOutput } from './MethodologyComparisonResponseOutput';
 import {
-  MethodologyComparisonResponseFromJSON,
-  MethodologyComparisonResponseFromJSONTyped,
-  MethodologyComparisonResponseToJSON,
-  MethodologyComparisonResponseToJSONTyped,
-} from './MethodologyComparisonResponse';
+  MethodologyComparisonResponseOutputFromJSON,
+  MethodologyComparisonResponseOutputFromJSONTyped,
+  MethodologyComparisonResponseOutputToJSON,
+  MethodologyComparisonResponseOutputToJSONTyped,
+} from './MethodologyComparisonResponseOutput';
 
 /**
  * State for the methodological alignment workflow
@@ -61,10 +61,10 @@ export interface MethodologicalAlignmentState {
   file: FileDocumentOutput;
   /**
    *
-   * @type {MethodologyComparisonResponse}
+   * @type {MethodologyComparisonResponseOutput}
    * @memberof MethodologicalAlignmentState
    */
-  methodologyComparison?: MethodologyComparisonResponse | null;
+  methodologyComparison?: MethodologyComparisonResponseOutput | null;
 }
 
 /**
@@ -102,7 +102,7 @@ export function MethodologicalAlignmentStateFromJSONTyped(
     methodologyComparison:
       json['methodology_comparison'] == null
         ? undefined
-        : MethodologyComparisonResponseFromJSON(json['methodology_comparison']),
+        : MethodologyComparisonResponseOutputFromJSON(json['methodology_comparison']),
   };
 }
 
@@ -122,6 +122,6 @@ export function MethodologicalAlignmentStateToJSONTyped(
     errors: value['errors'] == null ? undefined : (value['errors'] as Array<any>).map(WorkflowErrorToJSON),
     type: value['type'],
     file: FileDocumentOutputToJSON(value['file']),
-    methodology_comparison: MethodologyComparisonResponseToJSON(value['methodologyComparison']),
+    methodology_comparison: MethodologyComparisonResponseOutputToJSON(value['methodologyComparison']),
   };
 }

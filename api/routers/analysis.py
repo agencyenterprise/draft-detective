@@ -12,9 +12,11 @@ from api.auth import get_current_user
 from api.dependencies import build_config_from_form
 from api.models import StartWorkflowResponse
 from api.services.workflow_runner import run_workflow_background
-from api.upload import convert_uploaded_files_to_file_document
+from api.upload import save_uploaded_files_to_db
 from lib.agents.registry import agent_registry
+from lib.models.file import FileRole
 from lib.models.user import User
+from lib.services.files import load_file_document
 from lib.services.projects import create_project
 from lib.workflows.claim_substantiation.runner import rerun_analysis
 from lib.workflows.claim_substantiation.state import (
@@ -39,12 +41,13 @@ async def start_analysis(
     Start claim substantiation analysis - returns workflow_run_id immediately.
 
     This endpoint:
-    1. Uploads and converts documents to markdown
-    2. Creates a workflow run record in the database
-    3. Returns the workflow_run_id immediately
-    4. Starts the analysis workflow in the background
+    1. Creates a project for the analysis
+    2. Saves uploaded files to database with file metadata
+    3. Creates file document references (without markdown conversion)
+    4. Returns immediately with project_id
+    5. Starts the analysis workflow in the background (markdown conversion happens here)
 
-    The client can poll /api/workflow-run/{workflow_run_id} to check progress.
+    The client can poll /api/project/{project_id} to check progress.
 
     Args:
         background_tasks: FastAPI background tasks
@@ -53,22 +56,35 @@ async def start_analysis(
         config: Workflow configuration built from form fields
 
     Returns:
-        workflow_run_id and session_id to track the analysis
+        project_id to track the analysis
     """
     try:
-        logger.info("Converting uploaded files to markdown...")
-        [main_file, *supporting_files] = await convert_uploaded_files_to_file_document(
-            [main_document] + (supporting_documents or [])
+        # Create project first
+        project = await create_project(
+            title=main_document.filename or "Untitled", user=current_user
         )
-        logger.info(f"File conversion complete for {main_file.file_name}")
-
-        project = await create_project(title=main_file.file_name, user=current_user)
-
         logger.info(f"Created project {project.id}")
+
+        # Save files to database
+        logger.info("Saving uploaded files to database...")
+        all_files = [main_document] + (supporting_documents or [])
+        roles = [FileRole.MAIN] + [FileRole.SUPPORT] * len(supporting_documents or [])
+
+        file_records = await save_uploaded_files_to_db(
+            uploaded_files=all_files,
+            project_id=project.id,
+            user_id=current_user.id,
+            roles=roles,
+        )
+        logger.info(f"Saved {len(file_records)} files to database")
+
+        # Create FileDocuments WITHOUT markdown conversion (workflow will handle that)
+        main_file = await load_file_document(file_records[0])
+        supporting_files = [await load_file_document(f) for f in file_records[1:]]
 
         background_tasks.add_task(
             run_workflow_background,
-            project.id,
+            str(project.id),
             main_file,
             supporting_files,
             config,

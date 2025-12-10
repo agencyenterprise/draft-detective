@@ -8,7 +8,7 @@ from langchain.chat_models import init_chat_model
 from lib.config.llm_models import gpt_5_mini_model
 from lib.models.agent import DEFAULT_LLM_TIMEOUT
 from lib.services.fragment_detection import DetectionMethod
-from lib.workflows.claim_substantiation.context import ContextSchema
+from lib.workflows.context import ContextSchema
 
 
 # Default detection method for identifying when to use LLM fallback

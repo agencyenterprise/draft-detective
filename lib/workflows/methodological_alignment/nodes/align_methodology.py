@@ -4,7 +4,7 @@ from langgraph.runtime import Runtime
 
 from lib.agents.methodology_comparator import MethodologyComparisonAgent
 from lib.agents.methodology_extractor import MethodologyExtractorAgent
-from lib.workflows.claim_substantiation.context import ContextSchema
+from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
 from lib.workflows.methodological_alignment.state import MethodologicalAlignmentState
 
@@ -36,7 +36,7 @@ async def align_methodology(
     logger.info(f"align_methodology: Comparing methodology to field standards")
     methodology_comparison_agent = MethodologyComparisonAgent(runtime.context)
     comparison_response = await methodology_comparison_agent.ainvoke(
-        {"paper_methodology": paper_methodology}
+        {"extracted_methodology": extraction_response.methodology}
     )
 
     return {"methodology_comparison": comparison_response}

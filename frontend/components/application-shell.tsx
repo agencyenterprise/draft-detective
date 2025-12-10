@@ -17,8 +17,8 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 const navigation = [
-  { name: 'Review results', href: '/results' },
-  { name: 'Start new review', href: '/new' },
+  { name: 'Projects', href: '/projects' },
+  { name: 'Start new project', href: '/new' },
   { name: 'Tools', href: '/tools' },
 ];
 const userNavigation = [{ name: 'Sign out', href: '/api/auth/signout' }];

@@ -1,14 +1,20 @@
 import logging
+import mimetypes
 import os
+import re
+import uuid
 from pathlib import Path
+from typing import NamedTuple
 
 import httpx
 from langgraph.runtime import Runtime
 from xxhash import xxh128
 
 from lib.config.env import config
+from lib.models.file import FileRole
 from lib.run_utils import run_tasks
-from lib.workflows.claim_substantiation.context import ContextSchema
+from lib.services.files import create_file_record
+from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
 from lib.workflows.reference_downloader.agents.reference_fetcher import (
     ReferenceFetchConclusion,
@@ -27,8 +33,13 @@ async def download_references(
     state: ReferenceDownloaderState, runtime: Runtime[ContextSchema]
 ) -> ReferenceDownloaderState:
     references = state.fetched_references or []
+    project_id = runtime.context.project_id
+    user_id = runtime.context.user_id
 
-    tasks = [_download_reference(reference) for reference in references]
+    tasks = [
+        _download_reference(reference, project_id=project_id, user_id=user_id)
+        for reference in references
+    ]
     results: tuple[list[str | None], list[Exception]] = await run_tasks(
         tasks, desc="Downloading references", max_concurrent=10
     )
@@ -39,11 +50,13 @@ async def download_references(
 
 async def _download_reference(
     reference: ReferenceFetchItem,
+    project_id: str,
+    user_id: str,
 ) -> str | None:
     """Download content from the reference URL and save it to the uploads directory.
 
     Downloads PDFs directly, or uses Jina API to convert non-PDF content to markdown.
-    Returns the filename if successful, None otherwise.
+    Returns the file UUID if successful, None otherwise.
     """
 
     # Only download if source was found
@@ -59,7 +72,16 @@ async def _download_reference(
         logger.warning(f"No URL available for reference: {reference.reference_details}")
         return None
 
-    return await _download_direct_url(url)
+    saved_file = await _download_direct_url(url)
+    if saved_file is None:
+        return None
+
+    return await _persist_file_record(
+        saved_file=saved_file,
+        reference=reference,
+        project_id=project_id,
+        user_id=user_id,
+    )
 
 
 headers = {
@@ -69,8 +91,13 @@ headers = {
 }
 
 
-async def _download_direct_url(url: str) -> str | None:
-    """Download content from URL. Returns filename if successful, None otherwise."""
+class SavedFile(NamedTuple):
+    filename: str
+    content_type: str
+
+
+async def _download_direct_url(url: str) -> SavedFile | None:
+    """Download content from URL. Returns SavedFile if successful, None otherwise."""
     try:
 
         # Download the file and check content type
@@ -92,7 +119,7 @@ async def _download_direct_url(url: str) -> str | None:
 
                 filename = await _save_content(content, "pdf")
                 logger.info(f"Successfully downloaded and saved PDF to {filename}")
-                return filename
+                return SavedFile(filename=filename, content_type="application/pdf")
             else:
                 # Not a PDF, use Jina to convert to markdown
                 logger.info(
@@ -107,8 +134,8 @@ async def _download_direct_url(url: str) -> str | None:
         return await _download_with_jina_api(url)
 
 
-async def _download_with_jina_api(url: str) -> str | None:
-    """Download content using Jina API and save as markdown. Returns filename if successful, None otherwise."""
+async def _download_with_jina_api(url: str) -> SavedFile | None:
+    """Download content using Jina API and save as markdown. Returns SavedFile if successful, None otherwise."""
     try:
         async with httpx.AsyncClient(timeout=120.0) as client:
             logger.info(f"Downloading content with Jina API from {url}")
@@ -124,12 +151,81 @@ async def _download_with_jina_api(url: str) -> str | None:
 
             filename = await _save_content(markdown_content, "md")
             logger.info(f"Successfully downloaded and saved markdown to {filename}")
-            return filename
+            return SavedFile(filename=filename, content_type="text/markdown")
     except Exception:
         logger.error(
             f"Error downloading content with Jina API from {url}", exc_info=True
         )
         return None
+
+
+async def _persist_file_record(
+    saved_file: SavedFile,
+    reference: ReferenceFetchItem,
+    project_id: str | None,
+    user_id: uuid.UUID | None,
+) -> str | None:
+    """Create a File record for a downloaded file and return its UUID."""
+    if not project_id or not user_id:
+        logger.warning(
+            "Cannot create file record because project_id or user_id is missing"
+        )
+        return None
+
+    file_path = os.path.join(config.FILE_UPLOADS_MOUNT_PATH, saved_file.filename)
+
+    if not os.path.exists(file_path):
+        logger.warning(f"Downloaded file not found on disk: {file_path}")
+        return None
+
+    content_hash, extension = _split_filename(saved_file.filename)
+    file_size = os.path.getsize(file_path)
+    file_name = _build_file_name(reference.reference_details, extension)
+    file_type = (
+        saved_file.content_type
+        or mimetypes.guess_type(file_name)[0]
+        or "application/octet-stream"
+    )
+
+    try:
+        project_uuid = uuid.UUID(str(project_id))
+        user_id_uuid = uuid.UUID(str(user_id))
+
+        description = f"[This file was automatically downloaded for the reference: {reference.reference_details}]"
+
+        file = await create_file_record(
+            project_id=project_uuid,
+            file_name=file_name,
+            file_path=file_path,
+            file_type=file_type,
+            file_size=file_size,
+            content_hash=content_hash,
+            role=FileRole.SUPPORT,
+            uploaded_by=user_id_uuid,
+            original_file_path=None,
+            description=description,
+        )
+
+        return str(file.id)
+    except Exception as exc:
+        logger.error(
+            f"Failed to create file record for {file_path}: {exc}", exc_info=True
+        )
+        return None
+
+
+def _split_filename(filename: str) -> tuple[str, str]:
+    """Split hashed filename into (hash, extension)."""
+    base, ext = os.path.splitext(filename)
+    extension = ext.lstrip(".") or "bin"
+    return base, extension
+
+
+def _build_file_name(reference_details: str, extension: str) -> str:
+    """Generate a user-friendly file name based on the reference details."""
+    sanitized = re.sub(r"[^a-z0-9]+", "_", reference_details.lower()).strip("_")
+    trimmed = sanitized[:80] if sanitized else "reference"
+    return f"{trimmed}.{extension}"
 
 
 async def _save_content(content: bytes | str, extension: str) -> str:
@@ -173,6 +269,7 @@ async def _save_content(content: bytes | str, extension: str) -> str:
 
 if __name__ == "__main__":
     import asyncio
+
     from lib.config.logger import setup_logger
 
     setup_logger()
