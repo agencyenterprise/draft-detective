@@ -2,11 +2,12 @@
 
 import { AiGeneratedLabel } from '@/components/ai-generated-label';
 import { Card, CardContent } from '@/components/ui/card';
+import { useChunkHashNavigation } from '@/lib/chunk-ids';
 import { DocRenderMode } from '@/lib/constants';
 import { ClaimSubstantiationWorkflowDetail, DocumentIssue } from '@/lib/generated-api';
 import { Loader2 } from 'lucide-react';
 import Image from 'next/image';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ChunkSidebarContent } from '../components/chunk-sidebar-content';
 import { DoclingViewer } from '../components/docling-viewer';
 import { DocumentIssuesList } from '../components/document-issues-list';
@@ -29,6 +30,10 @@ export function DocumentExplorerTab({
   const results = workflowDetail?.state;
   const [selectedChunkIndex, setSelectedChunkIndex] = useState<number | null>(null);
   const sidebarRef = useRef<HTMLDivElement>(null);
+
+  const validChunkIndices = useMemo(() => results?.chunks?.map((c) => c.chunkIndex), [results?.chunks]);
+  const handleHashSelect = useCallback((idx: number) => setSelectedChunkIndex(idx), []);
+  useChunkHashNavigation(validChunkIndices, handleHashSelect);
 
   useEffect(() => {
     if (sidebarRef.current && selectedChunkIndex !== null) {

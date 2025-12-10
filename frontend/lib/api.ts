@@ -7,6 +7,8 @@ import {
   WorkflowsApi,
   Middleware,
   ProjectsApi,
+  PublicApi,
+  ShareApi,
 } from './generated-api';
 import { getSession } from 'next-auth/react';
 
@@ -32,12 +34,19 @@ const config = new Configuration({
   middleware: [authMiddleware],
 });
 
+// Public config without auth - for unauthenticated endpoints like share links
+const publicConfig = new Configuration({
+  basePath: apiUrl,
+});
+
 export const analysisApi = new AnalysisApi(config);
 export const evaluationApi = new EvaluationApi(config);
 export const feedbackApi = new FeedbackApi(config);
 export const healthApi = new HealthApi(config);
 export const workflowsApi = new WorkflowsApi(config);
 export const projectsApi = new ProjectsApi(config);
+export const publicApi = new PublicApi(publicConfig);
+export const shareApi = new ShareApi(config);
 
 export async function getAuthHeader(): Promise<string | undefined> {
   const session = await getSession();

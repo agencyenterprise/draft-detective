@@ -21,6 +21,8 @@ from api.routers import (
     files,
     health,
     projects,
+    public,
+    share,
     workflows,
 )
 from api.services.workflow_runner import start_workflow_run
@@ -59,6 +61,8 @@ app.include_router(workflows.router)
 app.include_router(files.router)
 app.include_router(feedback.router)
 app.include_router(projects.router)
+app.include_router(share.router)
+app.include_router(public.router)
 
 
 def create_start_workflow_handler(type: WorkflowRunType):

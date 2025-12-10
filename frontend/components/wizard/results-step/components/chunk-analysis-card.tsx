@@ -3,6 +3,7 @@
 import { LabeledValue } from '@/components/labeled-value';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { getChunkId } from '@/lib/chunk-ids';
 import { ClaimSubstantiatorStateSummary, DocumentChunkOutput } from '@/lib/generated-api';
 import { getChunkIssues, getMaxSeverity } from '@/lib/severity';
 import { ChevronDownIcon, ChevronRightIcon, LinkIcon, MessageCirclePlus } from 'lucide-react';
@@ -26,7 +27,7 @@ export function ChunkAnalysisCard({ results, chunk }: ChunkAnalysisCardProps) {
   const maxSeverity = getMaxSeverity(chunkIssues);
 
   return (
-    <AnalysisResultCard title="Chunk Analysis" severity={maxSeverity}>
+    <AnalysisResultCard id={getChunkId(chunk.chunkIndex)} title="Chunk Analysis" severity={maxSeverity}>
       {!chunkIssues.length && <p className="text-muted-foreground">No issues found for this chunk.</p>}
 
       {chunkIssues.map((issue, issueIndex) => (

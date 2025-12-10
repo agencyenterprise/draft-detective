@@ -263,7 +263,7 @@ export class WorkflowsApi extends runtime.BaseAPI {
   }
 
   /**
-   * Serve Docling page images for a workflow run.  Args:     workflow_run_id: The workflow run ID     page_num: The page number (e.g., 0, 1, 2, etc.)  Returns:     The image file for the specified page (PNG, JPEG, WEBP, etc.)
+   * Serve Docling page images for a workflow run.  Allows access if user is authenticated OR if the project has sharing enabled.  Args:     workflow_run_id: The workflow run ID     page_num: The page number (e.g., 0, 1, 2, etc.)  Returns:     The image file for the specified page (PNG, JPEG, WEBP, etc.)
    * Get Page Image
    */
   async getPageImageApiWorkflowRunsWorkflowRunIdPagesPageNumGetRaw(
@@ -319,7 +319,7 @@ export class WorkflowsApi extends runtime.BaseAPI {
   }
 
   /**
-   * Serve Docling page images for a workflow run.  Args:     workflow_run_id: The workflow run ID     page_num: The page number (e.g., 0, 1, 2, etc.)  Returns:     The image file for the specified page (PNG, JPEG, WEBP, etc.)
+   * Serve Docling page images for a workflow run.  Allows access if user is authenticated OR if the project has sharing enabled.  Args:     workflow_run_id: The workflow run ID     page_num: The page number (e.g., 0, 1, 2, etc.)  Returns:     The image file for the specified page (PNG, JPEG, WEBP, etc.)
    * Get Page Image
    */
   async getPageImageApiWorkflowRunsWorkflowRunIdPagesPageNumGet(

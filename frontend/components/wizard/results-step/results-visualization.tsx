@@ -34,6 +34,8 @@ interface ResultsVisualizationProps {
   onViewModeChange: (mode: DocRenderMode) => void;
   activeTab: TabType;
   onTabChange: (tab: TabType) => void;
+  /** When true, hides edit/action controls (for shared view) */
+  readOnly?: boolean;
 }
 
 export function ResultsVisualization({
@@ -44,10 +46,10 @@ export function ResultsVisualization({
   onViewModeChange,
   activeTab,
   onTabChange,
+  readOnly = false,
 }: ResultsVisualizationProps) {
   const claimSubstantiationResults = getWorkflowRunByType(results, WorkflowRunType.ClaimSubstantiation);
   const methodologicalAlignmentResults = getWorkflowRunByType(results, WorkflowRunType.MethodologicalAlignment);
-
   const claimSubstantiationStateSummary = claimSubstantiationResults?.state;
 
   const [isReevaluationDialogOpen, setIsReevaluationDialogOpen] = useState(false);
@@ -158,12 +160,14 @@ export function ResultsVisualization({
               isDoclingAvailable={isDoclingAvailable}
             />
           )}
-          <AnalysisOptionsMenu
-            onSaveAsEvalTest={handleSaveAsEvalTest}
-            onReevaluate={() => setIsReevaluationDialogOpen(true)}
-            projectId={projectId}
-            results={results}
-          />
+          {!readOnly && (
+            <AnalysisOptionsMenu
+              onSaveAsEvalTest={handleSaveAsEvalTest}
+              onReevaluate={() => setIsReevaluationDialogOpen(true)}
+              projectId={projectId}
+              results={results}
+            />
+          )}
         </div>
       </div>
 
@@ -173,13 +177,15 @@ export function ResultsVisualization({
         </CardContent>
       </Card>
 
-      <Dialog open={isReevaluationDialogOpen} onOpenChange={setIsReevaluationDialogOpen}>
-        <ReevaluationDialogContent
-          isPending={false}
-          onCancel={() => setIsReevaluationDialogOpen(false)}
-          onConfirm={handleReevaluate}
-        />
-      </Dialog>
+      {!readOnly && (
+        <Dialog open={isReevaluationDialogOpen} onOpenChange={setIsReevaluationDialogOpen}>
+          <ReevaluationDialogContent
+            isPending={false}
+            onCancel={() => setIsReevaluationDialogOpen(false)}
+            onConfirm={handleReevaluate}
+          />
+        </Dialog>
+      )}
     </div>
   );
 }

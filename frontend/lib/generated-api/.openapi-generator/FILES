@@ -4,6 +4,8 @@ apis/FeedbackApi.ts
 apis/FilesApi.ts
 apis/HealthApi.ts
 apis/ProjectsApi.ts
+apis/PublicApi.ts
+apis/ShareApi.ts
 apis/WorkflowsApi.ts
 apis/index.ts
 index.ts
@@ -91,6 +93,11 @@ models/ReproducibilityCategoryResponse.ts
 models/RerunAnalysisRequest.ts
 models/RetrievedPassageInfo.ts
 models/SeverityEnum.ts
+models/ShareLinkResponse.ts
+models/ShareStatusResponse.ts
+models/SharedProjectInfo.ts
+models/SharedProjectResponse.ts
+models/SharedWorkflowRun.ts
 models/SourceUrl.ts
 models/StartWorkflowResponse.ts
 models/SubstantiationWorkflowConfig.ts
