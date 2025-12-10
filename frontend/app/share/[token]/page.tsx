@@ -4,9 +4,10 @@ import { ResultsVisualization } from '@/components/wizard/results-step/results-v
 import { TabType } from '@/components/wizard/results-step/constants';
 import { publicApi } from '@/lib/api';
 import { DocRenderMode } from '@/lib/constants';
+import { ClaimSubstantiationWorkflowDetail, WorkflowRunStatus, WorkflowRunType } from '@/lib/generated-api';
 import { useQuery } from '@tanstack/react-query';
 import { useParams } from 'next/navigation';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 
 export default function SharedProjectPage() {
   const params = useParams();
@@ -20,6 +21,26 @@ export default function SharedProjectPage() {
     queryFn: () => publicApi.getSharedResourceApiPublicShareTokenGet({ token }),
     retry: false,
   });
+
+  // Construct WorkflowRunDetail from shared data
+  const workflowResults = useMemo(() => {
+    if (!data?.state || !data?.workflowRun) return [];
+
+    const workflowDetail: ClaimSubstantiationWorkflowDetail = {
+      run: {
+        id: data.workflowRun.id,
+        projectId: data.project.id,
+        type: WorkflowRunType.ClaimSubstantiation,
+        langgraphThreadId: '',
+        status: data.workflowRun.status as WorkflowRunStatus,
+        createdAt: new Date(),
+        lastUpdatedAt: new Date(),
+      },
+      state: data.state,
+    };
+
+    return [workflowDetail];
+  }, [data]);
 
   if (isLoading) {
     return (
@@ -61,7 +82,7 @@ export default function SharedProjectPage() {
       <div className="max-w-7xl mx-auto px-4 py-6">
         <ResultsVisualization
           projectId={data.project.id}
-          claimSubstantiationStateOverride={data.state}
+          results={workflowResults}
           isProcessing={false}
           viewMode={viewMode}
           onViewModeChange={setViewMode}

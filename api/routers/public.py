@@ -8,7 +8,7 @@ from datetime import datetime
 from typing import Optional
 
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from lib.config.database import get_db
 from lib.models.project import Project
@@ -28,10 +28,7 @@ class SharedProjectInfo(BaseModel):
 
     id: str
     title: str
-    created_at: datetime = Field(alias="createdAt")
-
-    class Config:
-        populate_by_name = True
+    created_at: datetime
 
 
 class SharedWorkflowRun(BaseModel):
@@ -92,7 +89,7 @@ async def get_shared_resource(token: str):
         project=SharedProjectInfo(
             id=str(project.id),
             title=project.title,
-            createdAt=project.created_at,
+            created_at=project.created_at,
         ),
         workflow_run=workflow_run_info,
         state=state,

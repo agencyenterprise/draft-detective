@@ -5,13 +5,7 @@ import { analysisService } from '@/lib/analysis-service';
 import { analysisApi } from '@/lib/api';
 import { DocRenderMode } from '@/lib/constants';
 import { downloadFile, generateEvalFilename } from '@/lib/file-download';
-import {
-  ClaimSubstantiationWorkflowDetail,
-  ClaimSubstantiatorStateSummary,
-  RerunAnalysisRequest,
-  WorkflowRunStatus,
-  WorkflowRunType,
-} from '@/lib/generated-api';
+import { RerunAnalysisRequest, WorkflowRunType } from '@/lib/generated-api';
 import { getWorkflowRunByType, WorkflowRunDetail } from '@/lib/workflow-state';
 import { useMutation } from '@tanstack/react-query';
 import { useState } from 'react';
@@ -34,7 +28,7 @@ import { DocumentExplorerTab } from './tabs/document-explorer-tab';
 
 interface ResultsVisualizationProps {
   projectId: string;
-  results?: WorkflowRunDetail[];
+  results: WorkflowRunDetail[];
   isProcessing?: boolean;
   viewMode: DocRenderMode;
   onViewModeChange: (mode: DocRenderMode) => void;
@@ -42,44 +36,21 @@ interface ResultsVisualizationProps {
   onTabChange: (tab: TabType) => void;
   /** When true, hides edit/action controls (for shared view) */
   readOnly?: boolean;
-  /** Direct state override - useful for shared view where we don't have full WorkflowRunDetail */
-  claimSubstantiationStateOverride?: ClaimSubstantiatorStateSummary;
 }
 
 export function ResultsVisualization({
   projectId,
-  results = [],
+  results,
   isProcessing = false,
   viewMode,
   onViewModeChange,
   activeTab,
   onTabChange,
   readOnly = false,
-  claimSubstantiationStateOverride,
 }: ResultsVisualizationProps) {
-  const claimSubstantiationResultsFromRuns = getWorkflowRunByType(results, WorkflowRunType.ClaimSubstantiation);
+  const claimSubstantiationResults = getWorkflowRunByType(results, WorkflowRunType.ClaimSubstantiation);
   const methodologicalAlignmentResults = getWorkflowRunByType(results, WorkflowRunType.MethodologicalAlignment);
-
-  // For shared view, construct a minimal workflow detail from the override state
-  const claimSubstantiationResults: ClaimSubstantiationWorkflowDetail | undefined =
-    claimSubstantiationResultsFromRuns ??
-    (claimSubstantiationStateOverride?.workflowRunId
-      ? {
-          run: {
-            id: claimSubstantiationStateOverride.workflowRunId,
-            projectId,
-            type: WorkflowRunType.ClaimSubstantiation,
-            langgraphThreadId: '',
-            status: WorkflowRunStatus.Completed,
-            createdAt: new Date(),
-            lastUpdatedAt: new Date(),
-          },
-          state: claimSubstantiationStateOverride,
-        }
-      : undefined);
-
-  // Use override state if provided (for shared view), otherwise use state from workflow results
-  const claimSubstantiationStateSummary = claimSubstantiationStateOverride ?? claimSubstantiationResults?.state;
+  const claimSubstantiationStateSummary = claimSubstantiationResults?.state;
 
   const [isReevaluationDialogOpen, setIsReevaluationDialogOpen] = useState(false);
 

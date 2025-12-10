@@ -60,7 +60,7 @@ export function SharedProjectInfoFromJSONTyped(json: any, ignoreDiscriminator: b
   return {
     id: json['id'],
     title: json['title'],
-    createdAt: new Date(json['createdAt']),
+    createdAt: new Date(json['created_at']),
   };
 }
 
@@ -79,6 +79,6 @@ export function SharedProjectInfoToJSONTyped(
   return {
     id: value['id'],
     title: value['title'],
-    createdAt: value['createdAt'].toISOString(),
+    created_at: value['createdAt'].toISOString(),
   };
 }

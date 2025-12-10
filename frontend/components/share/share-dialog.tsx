@@ -10,7 +10,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { ShareStatusResponse } from '@/lib/services/share-service';
+import { ShareStatusResponse } from '@/lib/generated-api';
 import { Check, Copy, ExternalLink, Loader2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
@@ -39,7 +39,7 @@ export function ShareDialog({
   const [view, setView] = useState<DialogView>('share');
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const shareUrl = shareStatus?.share_link?.url;
+  const shareUrl = shareStatus?.shareLink?.url;
   const isEnabled = shareStatus?.enabled && shareUrl;
 
   // Reset state when dialog opens/closes
