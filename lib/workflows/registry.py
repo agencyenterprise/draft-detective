@@ -4,6 +4,7 @@ from fastapi import HTTPException
 from langgraph.graph import StateGraph
 
 from lib.config.env import config as env_config
+from lib.models.user import User
 from lib.services.file import FileDocument
 from lib.services.vector_store import VectorStoreService
 from lib.workflows.claim_substantiation.context import ContextSchema
@@ -74,7 +75,9 @@ def get_state_type(
             raise ValueError(f"Unknown workflow type: {type}")
 
 
-def create_context(config: BaseWorkflowConfig) -> ContextSchema:
+def create_context(
+    config: BaseWorkflowConfig, user: User | None = None
+) -> ContextSchema:
     openai_api_key = (
         config.openai_api_key
         or env_config.OPENAI_API_KEY
@@ -87,6 +90,8 @@ def create_context(config: BaseWorkflowConfig) -> ContextSchema:
     return ContextSchema(
         openai_api_key=openai_api_key,
         vector_store=VectorStoreService(env_config.DATABASE_URL, openai_api_key),
+        user_id=str(user.id) if user else None,
+        project_id=config.project_id,
     )
 
 

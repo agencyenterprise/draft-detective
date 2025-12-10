@@ -6,6 +6,7 @@ Business logic is organized in separate routers under api/routers/.
 """
 
 import logging
+from datetime import datetime
 
 from fastapi import BackgroundTasks, Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -33,6 +34,7 @@ from lib.services.workflow_runs import (
 )
 from lib.workflows.models import WorkflowRunType
 from lib.workflows.registry import get_config_type, get_state_type
+from lib.services.projects import create_project
 
 setup_logger()
 
@@ -67,6 +69,15 @@ def create_start_workflow_handler(type: WorkflowRunType):
         background_tasks: BackgroundTasks,
         user: User = Depends(get_current_user),
     ):
+        # TODO: Remove this once we have a proper project creation flow and/or move the
+        # reference downloader to tool inside a project
+        if request.project_id is None and type == WorkflowRunType.REFERENCE_DOWNLOADER:
+            project = await create_project(
+                title=f"Reference Downloader {datetime.utcnow():%Y-%m-%d %H:%M UTC}",
+                user=user,
+            )
+            request.project_id = str(project.id)
+
         workflow_run_id = await start_workflow_run(
             config=request, user=user, background_tasks=background_tasks
         )

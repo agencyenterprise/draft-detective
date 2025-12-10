@@ -108,7 +108,7 @@ export class AnalysisApi extends runtime.BaseAPI {
   }
 
   /**
-   * Start claim substantiation analysis - returns workflow_run_id immediately.  This endpoint: 1. Uploads and converts documents to markdown 2. Creates a workflow run record in the database 3. Returns the workflow_run_id immediately 4. Starts the analysis workflow in the background  The client can poll /api/workflow-run/{workflow_run_id} to check progress.  Args:     background_tasks: FastAPI background tasks     main_document: The main document to analyze for claims     supporting_documents: Optional supporting documents for substantiation     config: Workflow configuration built from form fields  Returns:     workflow_run_id and session_id to track the analysis
+   * Start claim substantiation analysis - returns workflow_run_id immediately.  This endpoint: 1. Creates a project for the analysis 2. Saves uploaded files to database with file metadata 3. Creates file document references (without markdown conversion) 4. Returns immediately with project_id 5. Starts the analysis workflow in the background (markdown conversion happens here)  The client can poll /api/project/{project_id} to check progress.  Args:     background_tasks: FastAPI background tasks     main_document: The main document to analyze for claims     supporting_documents: Optional supporting documents for substantiation     config: Workflow configuration built from form fields  Returns:     project_id to track the analysis
    * Start Analysis
    */
   async startAnalysisApiStartAnalysisPostRaw(
@@ -229,7 +229,7 @@ export class AnalysisApi extends runtime.BaseAPI {
   }
 
   /**
-   * Start claim substantiation analysis - returns workflow_run_id immediately.  This endpoint: 1. Uploads and converts documents to markdown 2. Creates a workflow run record in the database 3. Returns the workflow_run_id immediately 4. Starts the analysis workflow in the background  The client can poll /api/workflow-run/{workflow_run_id} to check progress.  Args:     background_tasks: FastAPI background tasks     main_document: The main document to analyze for claims     supporting_documents: Optional supporting documents for substantiation     config: Workflow configuration built from form fields  Returns:     workflow_run_id and session_id to track the analysis
+   * Start claim substantiation analysis - returns workflow_run_id immediately.  This endpoint: 1. Creates a project for the analysis 2. Saves uploaded files to database with file metadata 3. Creates file document references (without markdown conversion) 4. Returns immediately with project_id 5. Starts the analysis workflow in the background (markdown conversion happens here)  The client can poll /api/project/{project_id} to check progress.  Args:     background_tasks: FastAPI background tasks     main_document: The main document to analyze for claims     supporting_documents: Optional supporting documents for substantiation     config: Workflow configuration built from form fields  Returns:     project_id to track the analysis
    * Start Analysis
    */
   async startAnalysisApiStartAnalysisPost(

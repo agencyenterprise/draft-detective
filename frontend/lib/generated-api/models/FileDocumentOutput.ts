@@ -64,6 +64,12 @@ export interface FileDocumentOutput {
    */
   markdownTokenCount: number;
   /**
+   *
+   * @type {string}
+   * @memberof FileDocumentOutput
+   */
+  fileId?: string | null;
+  /**
    * Raw Docling json_content passed through to frontend
    *
    * We don't parse/transform - just pass the structure as-is.
@@ -111,6 +117,7 @@ export function FileDocumentOutputFromJSONTyped(json: any, ignoreDiscriminator: 
     fileType: json['file_type'],
     markdown: json['markdown'],
     markdownTokenCount: json['markdown_token_count'],
+    fileId: json['file_id'] == null ? undefined : json['file_id'],
     doclingDocument: json['docling_document'] == null ? undefined : json['docling_document'],
     doclingPages:
       json['docling_pages'] == null ? null : (json['docling_pages'] as Array<any>).map(DoclingPageInfoFromJSON),
@@ -136,6 +143,7 @@ export function FileDocumentOutputToJSONTyped(
     file_type: value['fileType'],
     markdown: value['markdown'],
     markdown_token_count: value['markdownTokenCount'],
+    file_id: value['fileId'],
     docling_document: value['doclingDocument'],
     docling_pages:
       value['doclingPages'] == null ? null : (value['doclingPages'] as Array<any>).map(DoclingPageInfoToJSON),

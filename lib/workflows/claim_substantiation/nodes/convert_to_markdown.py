@@ -76,12 +76,10 @@ async def _convert_to_markdown_task(
 
     markdown_token_count = count_tokens_approximately([markdown])
 
-    return FileDocument(
-        file_path=file_document.file_path,
-        file_name=file_document.file_name,
-        file_type=file_document.file_type,
-        markdown=markdown,
-        markdown_token_count=markdown_token_count,
-        docling_document=docling_document,
-        original_file_path=file_document.original_file_path,
+    return file_document.model_copy(
+        update={
+            "markdown": markdown,
+            "markdown_token_count": markdown_token_count,
+            "docling_document": docling_document,
+        }
     )
