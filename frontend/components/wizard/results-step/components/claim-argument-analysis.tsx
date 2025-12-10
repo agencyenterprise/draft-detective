@@ -2,20 +2,24 @@
 
 import { LabeledValue } from '@/components/labeled-value';
 import { Button } from '@/components/ui/button';
-import { ToulminClaim } from '@/lib/generated-api/models/ToulminClaim';
+import { Claim, ToulminClaim } from '@/lib/generated-api';
 import { cn } from '@/lib/utils';
 import { ChevronDown, ChevronRight, Scale } from 'lucide-react';
 import { useState } from 'react';
 
 export interface ClaimArgumentAnalysisProps {
-  claim: ToulminClaim;
+  claim: Claim | ToulminClaim;
   className?: string;
+}
+
+function isToulminClaim(claim: Claim | ToulminClaim): claim is ToulminClaim {
+  return 'data' in claim || 'warrants' in claim || 'qualifiers' in claim || 'rebuttals' in claim || 'backing' in claim;
 }
 
 export function ClaimArgumentAnalysis({ claim, className }: ClaimArgumentAnalysisProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
-  const isToulmin = claim.data || claim.warrants || claim.qualifiers || claim.rebuttals || claim.backing;
+  const isToulmin = isToulminClaim(claim);
 
   return (
     <div className={cn('border-b pb-2 space-y-4', className)}>
@@ -111,8 +115,8 @@ export function ClaimArgumentAnalysis({ claim, className }: ClaimArgumentAnalysi
                   )}
                 </LabeledValue>
                 <LabeledValue label="Warrant Expression">
-                  {claim.warrantExpression ? (
-                    <span>{claim.warrantExpression}</span>
+                  {claim.warrant_expression ? (
+                    <span>{claim.warrant_expression}</span>
                   ) : (
                     <span className="text-muted-foreground">None</span>
                   )}

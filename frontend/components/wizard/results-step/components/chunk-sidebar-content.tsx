@@ -37,8 +37,8 @@ export function ChunkSidebarContent({
     isWorkflowRunning,
   );
 
-  const chunkErrors = results.errors?.filter((error) => error.chunkIndex === chunkIndex) ?? [];
-  const lightweightChunk = results.chunks?.find((chunk) => chunk.chunkIndex === chunkIndex);
+  const chunkErrors = results.errors?.filter((error) => error.chunk_index === chunkIndex) ?? [];
+  const lightweightChunk = results.chunks?.find((chunk) => chunk.chunk_index === chunkIndex);
   const shouldShowStatusBadge = useShouldShowStatusBadge(isWorkflowRunning);
 
   const claims = chunkDetails?.claims?.claims ?? [];
@@ -64,7 +64,7 @@ export function ChunkSidebarContent({
         )}
 
         <Badge variant="secondary" className="gap-1 pl-2.5 pr-1">
-          Chunk #{lightweightChunk.chunkIndex}
+          Chunk #{lightweightChunk.chunk_index}
           <button
             onClick={onClearChunkSelection}
             className="ml-0.5 rounded-sm hover:bg-muted-foreground/20 p-0.5"
@@ -105,9 +105,9 @@ export function ChunkSidebarContent({
 
           {chunkDetails && <ChunkAnalysisCard results={results} chunk={chunkDetails} />}
 
-          <ChunkReevaluateControl results={results} chunkIndex={lightweightChunk.chunkIndex} projectId={projectId} />
+          <ChunkReevaluateControl results={results} chunkIndex={lightweightChunk.chunk_index} projectId={projectId} />
 
-          <ChunkEvalGenerator chunkIndex={lightweightChunk.chunkIndex} originalState={results} />
+          <ChunkEvalGenerator chunkIndex={lightweightChunk.chunk_index} originalState={results} />
         </>
       )}
     </div>

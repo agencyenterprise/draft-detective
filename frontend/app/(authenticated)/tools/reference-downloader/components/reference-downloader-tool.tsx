@@ -2,7 +2,10 @@
 
 import * as React from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { workflowsApi } from '@/lib/api';
+import {
+  getReferenceDownloaderWorkflowStateApiWorkflowsReferenceDownloaderWorkflowRunIdGet,
+  startReferenceDownloaderWorkflowApiWorkflowsReferenceDownloaderStartPost,
+} from '@/lib/generated-api';
 import { toast } from 'sonner';
 import { useSessionStorage } from '@/lib/hooks/use-session-storage';
 import { Button } from '@/components/ui/button';
@@ -26,8 +29,8 @@ export function ReferenceDownloaderTool() {
     queryKey: ['referenceCheckWorkflow', workflowRunId],
     queryFn: async () => {
       if (!workflowRunId) return null;
-      return await workflowsApi.getReferenceDownloaderWorkflowStateApiWorkflowsReferenceDownloaderWorkflowRunIdGet({
-        workflowRunId,
+      return await getReferenceDownloaderWorkflowStateApiWorkflowsReferenceDownloaderWorkflowRunIdGet({
+        path: { workflow_run_id: workflowRunId },
       });
     },
     enabled: !!workflowRunId,
@@ -39,17 +42,17 @@ export function ReferenceDownloaderTool() {
 
   const startWorkflowMutation = useMutation({
     mutationFn: async (references: string[]) => {
-      return await workflowsApi.startReferenceDownloaderWorkflowApiWorkflowsReferenceDownloaderStartPost({
-        referenceDownloaderWorkflowConfig: {
+      return await startReferenceDownloaderWorkflowApiWorkflowsReferenceDownloaderStartPost({
+        body: {
           type: WorkflowRunType.ReferenceDownloader,
-          projectId: null,
-          openaiApiKey,
+          project_id: null,
+          openai_api_key: openaiApiKey || null,
           references,
         },
       });
     },
     onSuccess: (response) => {
-      setWorkflowRunId(response.workflowRunId ?? null);
+      setWorkflowRunId(response.workflow_run_id ?? null);
       toast.success('Workflow started');
     },
     onError: (error) => {
@@ -79,8 +82,8 @@ export function ReferenceDownloaderTool() {
   };
 
   const isProcessing = workflowDetail?.run.status === WorkflowRunStatus.Running || startWorkflowMutation.isPending;
-  const results = workflowDetail?.state.fetchedReferences || [];
-  const downloadedReferences = workflowDetail?.state.downloadedReferences || [];
+  const results = workflowDetail?.state.fetched_references || [];
+  const downloadedReferences = workflowDetail?.state.downloaded_references || [];
   const hasResults = results.length > 0;
   const isCompleted = workflowDetail?.run.status === WorkflowRunStatus.Completed;
 

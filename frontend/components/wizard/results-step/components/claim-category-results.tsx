@@ -45,21 +45,23 @@ export function ClaimCategoryResults({ claimCategory }: ClaimCategoryResultsProp
           </Button>
         </div>
 
-        <ClaimCategoryBadge claimCategory={claimCategory.claimCategory} />
+        <ClaimCategoryBadge claimCategory={claimCategory.claim_category} />
         <Badge
           variant="secondary"
           className={cn(
-            claimCategory.needsExternalVerification ? 'bg-orange-100 text-orange-800' : 'bg-green-100 text-green-800',
+            claimCategory.needs_external_verification ? 'bg-orange-100 text-orange-800' : 'bg-green-100 text-green-800',
           )}
         >
-          {claimCategory.needsExternalVerification ? 'Needs external verification' : 'No external verification needed'}
+          {claimCategory.needs_external_verification
+            ? 'Needs external verification'
+            : 'No external verification needed'}
         </Badge>
       </div>
 
       {isExpanded && (
         <div className="space-y-2">
           <LabeledValue label="Needs External Verification">
-            {claimCategory.needsExternalVerification ? 'Yes' : 'No'}
+            {claimCategory.needs_external_verification ? 'Yes' : 'No'}
           </LabeledValue>
           <LabeledValue label="Rationale">{claimCategory.rationale}</LabeledValue>
         </div>

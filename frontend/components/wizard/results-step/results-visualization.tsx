@@ -2,7 +2,7 @@
 
 import { Dialog } from '@/components/ui/dialog';
 import { analysisService } from '@/lib/analysis-service';
-import { analysisApi } from '@/lib/api';
+import { rerunAnalysisEndpointApiRerunAnalysisPost } from '@/lib/generated-api';
 import { DocRenderMode } from '@/lib/constants';
 import { downloadFile, generateEvalFilename } from '@/lib/file-download';
 import { RerunAnalysisRequest, WorkflowRunType } from '@/lib/generated-api';
@@ -56,8 +56,8 @@ export function ResultsVisualization({
 
   const reevaluateMutation = useMutation({
     mutationFn: async (request: RerunAnalysisRequest) => {
-      return await analysisApi.rerunAnalysisEndpointApiRerunAnalysisPost({
-        rerunAnalysisRequest: request,
+      return await rerunAnalysisEndpointApiRerunAnalysisPost({
+        body: request,
       });
     },
     onSuccess: (_data, variables, context, { client }) => {
@@ -68,7 +68,7 @@ export function ResultsVisualization({
         queryKey: ['chunkDetails'],
       });
       client.invalidateQueries({
-        queryKey: ['project', variables.projectId],
+        queryKey: ['project', variables.project_id],
       });
     },
     onError: (error) => {
@@ -97,12 +97,12 @@ export function ResultsVisualization({
     if (!claimSubstantiationStateSummary) return;
 
     reevaluateMutation.mutate({
-      projectId,
+      project_id: projectId,
       config: {
         ...claimSubstantiationStateSummary?.config,
-        targetChunkIndices: values.targetChunkIndices,
-        agentsToRun: values.selectedAgents,
-        openaiApiKey: values.openaiApiKey,
+        target_chunk_indices: values.targetChunkIndices,
+        agents_to_run: values.selectedAgents,
+        openai_api_key: values.openaiApiKey,
       },
     });
   };
@@ -145,7 +145,7 @@ export function ResultsVisualization({
   };
 
   const isDoclingAvailable = !!(
-    claimSubstantiationStateSummary?.file?.doclingPages && claimSubstantiationStateSummary?.chunkToItems?.mapping
+    claimSubstantiationStateSummary?.file?.docling_pages && claimSubstantiationStateSummary?.chunk_to_items?.mapping
   );
 
   return (

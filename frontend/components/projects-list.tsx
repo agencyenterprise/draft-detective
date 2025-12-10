@@ -3,7 +3,6 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { StatusIndicator } from '@/components/ui/status-indicator';
-import { projectsApi } from '@/lib/api';
 import { getWorkflowTypeName } from '@/lib/workflow-state';
 import { useQuery } from '@tanstack/react-query';
 import { formatDistanceToNow } from 'date-fns';
@@ -11,6 +10,7 @@ import { ChevronRightIcon, PlusIcon } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { DeleteProjectDialog } from './delete-project-dialog';
+import { listProjectsEndpointApiProjectsGet } from '@/lib/generated-api';
 
 interface ProjectsListProps {
   className?: string;
@@ -27,7 +27,7 @@ export function ProjectsList({ className }: ProjectsListProps) {
     queryKey: ['projects'],
     enabled: !!session.data?.user,
     refetchInterval: 3000,
-    queryFn: () => projectsApi.listProjectsEndpointApiProjectsGet(),
+    queryFn: () => listProjectsEndpointApiProjectsGet(),
   });
 
   if (!session.data?.user) {
@@ -118,7 +118,7 @@ export function ProjectsList({ className }: ProjectsListProps) {
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          {projects?.map(({ project, workflowRuns }) => (
+          {projects?.map(({ project, workflow_runs }) => (
             <div
               key={project.id}
               className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
@@ -126,7 +126,7 @@ export function ProjectsList({ className }: ProjectsListProps) {
               <div className="flex-1 min-w-0">
                 <div className="flex flex-col mb-1 min-w-0">
                   <h3 className="font-medium truncate">{project.title}</h3>
-                  {workflowRuns?.map((workflowRun) => (
+                  {workflow_runs?.map((workflowRun) => (
                     <p key={workflowRun.id} className="text-sm pl-2">
                       {getWorkflowTypeName(workflowRun.type)}: <StatusIndicator status={workflowRun.status} />
                     </p>
@@ -134,7 +134,7 @@ export function ProjectsList({ className }: ProjectsListProps) {
                 </div>
 
                 <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                  <p>Project created {formatDistanceToNow(project.createdAt, { addSuffix: true })}</p>
+                  <p>Project created {formatDistanceToNow(project.created_at, { addSuffix: true })}</p>
                 </div>
               </div>
 

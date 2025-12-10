@@ -17,7 +17,7 @@ interface LiveReportsTabProps {
 
 export function LiveReportsTab({ workflowDetail, isProcessing = false }: LiveReportsTabProps) {
   const results = workflowDetail?.state;
-  const shouldShowLoading = isProcessing && results?.config.runLiveReports === true;
+  const shouldShowLoading = isProcessing && results?.config.run_live_reports === true;
 
   if (!results) {
     return null;
@@ -26,7 +26,7 @@ export function LiveReportsTab({ workflowDetail, isProcessing = false }: LiveRep
   return (
     <TabWithLoadingStates
       title="Live Reports"
-      data={results.addendumReport}
+      data={results.addendum_report}
       isProcessing={shouldShowLoading}
       hasData={(addendum) => !!addendum}
       loadingMessage={{
@@ -51,7 +51,7 @@ export function LiveReportsTab({ workflowDetail, isProcessing = false }: LiveRep
       skeletonCount={6}
     >
       {(addendum) => {
-        const metadata = addendum.reportMetadata;
+        const metadata = addendum.report_metadata;
 
         return (
           <div className="space-y-4">
@@ -61,19 +61,19 @@ export function LiveReportsTab({ workflowDetail, isProcessing = false }: LiveRep
                 <PublicationDateLabel results={results} />
               </LabeledValue>
               <LabeledValue label="Live report generation date">
-                {format(new Date(metadata.dateGenerated), 'MMM dd, yyyy')}
+                {format(new Date(metadata.date_generated), 'MMM dd, yyyy')}
               </LabeledValue>
-              <LabeledValue label="Update Type">{metadata.updateType}</LabeledValue>
+              <LabeledValue label="Update Type">{metadata.update_type}</LabeledValue>
             </div>
 
             <Callout title="Sentence Summary" variant="info" icon={FileText}>
-              <Markdown>{metadata.sentenceSummary}</Markdown>
+              <Markdown>{metadata.sentence_summary}</Markdown>
             </Callout>
 
             <Card>
               <CardContent>
                 <div className="space-y-2">
-                  <Markdown>{addendum.reportMarkdown.replace(/\n/g, '\n\n')}</Markdown>
+                  <Markdown>{addendum.report_markdown.replace(/\n/g, '\n\n')}</Markdown>
                 </div>
               </CardContent>
             </Card>

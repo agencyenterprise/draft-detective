@@ -13,18 +13,18 @@ export function useResultsCalculations(detailedResults: ClaimSubstantiatorStateS
     };
   }
 
-  const totalClaims = detailedResults.chunks?.reduce((sum, chunk) => sum + (chunk.claimsCount || 0), 0) || 0;
+  const totalClaims = detailedResults.chunks?.reduce((sum, chunk) => sum + (chunk.claims_count || 0), 0) || 0;
 
-  const totalCitations = detailedResults.chunks?.reduce((sum, chunk) => sum + (chunk.citationsCount || 0), 0) || 0;
+  const totalCitations = detailedResults.chunks?.reduce((sum, chunk) => sum + (chunk.citations_count || 0), 0) || 0;
 
   const totalUnsubstantiated = 0;
 
-  const chunksWithClaims = detailedResults.chunks?.filter((chunk) => chunk.hasClaims).length || 0;
+  const chunksWithClaims = detailedResults.chunks?.filter((chunk) => chunk.has_claims).length || 0;
 
-  const chunksWithCitations = detailedResults.chunks?.filter((chunk) => chunk.hasCitations).length || 0;
+  const chunksWithCitations = detailedResults.chunks?.filter((chunk) => chunk.has_citations).length || 0;
 
   const supportedReferences =
-    detailedResults.references?.filter((ref) => ref.hasAssociatedSupportingDocument).length || 0;
+    detailedResults.references?.filter((ref) => ref.has_associated_supporting_document).length || 0;
 
   const totalChunks = detailedResults.chunks?.length || 0;
 

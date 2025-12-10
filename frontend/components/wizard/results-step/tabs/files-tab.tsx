@@ -9,13 +9,13 @@ interface FilesTabProps {
 }
 
 function FileNameLink({ file }: { file: FileDocumentOutput }) {
-  if (!file.fileId) {
-    return <span>{file.fileName || 'Unknown'}</span>;
+  if (!file.file_id) {
+    return <span>{file.file_name || 'Unknown'}</span>;
   }
 
   return (
-    <Link href={`/api/files/download/${file.fileId}`} target="_blank" className="text-blue-600 hover:underline">
-      {file.fileName || 'Unknown'}
+    <Link href={`/api/files/download/${file.file_id}`} target="_blank" className="text-blue-600 hover:underline">
+      {file.file_name || 'Unknown'}
     </Link>
   );
 }
@@ -28,7 +28,7 @@ export function FilesTab({ workflowDetail }: FilesTabProps) {
   }
 
   const mainFile = results.file;
-  const supportingFiles = results.supportingFiles || [];
+  const supportingFiles = results.supporting_files || [];
 
   return (
     <div className="space-y-6">
@@ -39,10 +39,10 @@ export function FilesTab({ workflowDetail }: FilesTabProps) {
             <LabeledValue label="Name">
               <FileNameLink file={mainFile} />
             </LabeledValue>
-            <LabeledValue label="Type">{mainFile.fileType}</LabeledValue>
-            <LabeledValue label="Path">{mainFile.filePath}</LabeledValue>
+            <LabeledValue label="Type">{mainFile.file_type}</LabeledValue>
+            <LabeledValue label="Path">{mainFile.file_path}</LabeledValue>
             <LabeledValue label="Approximate Token Count (in markdown content)">
-              {mainFile.markdownTokenCount}
+              {mainFile.markdown_token_count}
             </LabeledValue>
             <div className="mt-3">
               <LabeledValue label="Content converted to markdown">
@@ -66,10 +66,10 @@ export function FilesTab({ workflowDetail }: FilesTabProps) {
                 <LabeledValue label="Name">
                   <FileNameLink file={file} />
                 </LabeledValue>
-                <LabeledValue label="Type">{file.fileType}</LabeledValue>
-                <LabeledValue label="Path">{file.filePath}</LabeledValue>
+                <LabeledValue label="Type">{file.file_type}</LabeledValue>
+                <LabeledValue label="Path">{file.file_path}</LabeledValue>
                 <LabeledValue label="Approximate Token Count (in markdown content)">
-                  {file.markdownTokenCount}
+                  {file.markdown_token_count}
                 </LabeledValue>
                 <LabeledValue label="Content converted to markdown">
                   <div className="text-xs whitespace-pre-wrap border rounded-md p-3 max-h-64 overflow-auto bg-muted/30">

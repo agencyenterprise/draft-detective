@@ -14,20 +14,6 @@ interface ReferenceItemProps {
   downloadedReference?: string | null;
 }
 
-/**
- * openapi-generator-cli is not correctly generating the types for the ReferenceFetchItem.sourceUrl and ReferenceFetchItem.downloadUrl,
- * so we need this function, just for type safety (in practice the values are always string).
- */
-function extractUrl(value: string | { url?: string; value?: string } | null | undefined): string | null {
-  if (typeof value === 'string') {
-    return value;
-  }
-  if (typeof value === 'object' && value !== null) {
-    return (value as { url?: string; value?: string }).url || (value as { url?: string; value?: string }).value || null;
-  }
-  return null;
-}
-
 function getConclusionBadge(conclusion: ReferenceFetchConclusion) {
   switch (conclusion) {
     case ReferenceFetchConclusion.SourceFound:
@@ -68,18 +54,13 @@ function getConclusionBadge(conclusion: ReferenceFetchConclusion) {
 export function ReferenceItem({ item, index, downloadedReference }: ReferenceItemProps) {
   const [isExpanded, setIsExpanded] = React.useState(false);
 
-  // Handle SourceUrl and ContentExcerpt - they might be strings or objects
-  // TypeScript types show them as empty interfaces, but they're actually strings in practice
-  const sourceUrl = extractUrl(item.sourceUrl);
-  const downloadUrl = extractUrl(item.downloadUrl);
-
   return (
     <div className="border rounded-lg p-4 space-y-2">
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 space-y-2">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-sm font-medium text-muted-foreground">#{index + 1}</span>
-            {getConclusionBadge(item.finalConclusion)}
+            {getConclusionBadge(item.final_conclusion)}
             {downloadedReference ? (
               <Badge
                 variant="outline"
@@ -97,7 +78,7 @@ export function ReferenceItem({ item, index, downloadedReference }: ReferenceIte
               </Badge>
             )}
           </div>
-          <p className="text-sm">{item.referenceDetails}</p>
+          <p className="text-sm">{item.reference_details}</p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           {downloadedReference && (
@@ -121,30 +102,30 @@ export function ReferenceItem({ item, index, downloadedReference }: ReferenceIte
       </div>
 
       <div>
-        {sourceUrl && (
+        {item.source_url && (
           <p>
             <span className="text-sm font-medium text-muted-foreground">Source URL: </span>
             <a
-              href={sourceUrl}
+              href={item.source_url}
               target="_blank"
               rel="noopener noreferrer"
               className="text-sm text-blue-600 hover:underline break-all"
             >
-              {sourceUrl}
+              {item.source_url}
             </a>
           </p>
         )}
 
-        {downloadUrl && (
+        {item.download_url && (
           <p>
             <span className="text-sm font-medium text-muted-foreground">Download URL: </span>
             <a
-              href={downloadUrl}
+              href={item.download_url}
               target="_blank"
               rel="noopener noreferrer"
               className="text-sm text-blue-600 hover:underline break-all"
             >
-              {downloadUrl}
+              {item.download_url}
             </a>
           </p>
         )}
@@ -153,7 +134,7 @@ export function ReferenceItem({ item, index, downloadedReference }: ReferenceIte
       {isExpanded && (
         <div className="space-y-2 pt-2 border-t text-sm">
           <LabeledValue label="Reasoning">
-            <Markdown>{item.reasoning}</Markdown>
+            <Markdown>{item.reasoning || ''}</Markdown>
           </LabeledValue>
         </div>
       )}

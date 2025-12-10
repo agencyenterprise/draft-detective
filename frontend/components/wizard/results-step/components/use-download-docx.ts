@@ -1,4 +1,4 @@
-import { projectsApi } from '@/lib/api';
+import { downloadProjectDocxApiProjectsProjectIdDocxDownloadGet } from '@/lib/generated-api';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
@@ -8,12 +8,12 @@ export function useDownloadDocx(projectId: string) {
   const download = async () => {
     setIsDownloading(true);
     try {
-      const response = await projectsApi.downloadProjectDocxApiProjectsProjectIdDocxDownloadGetRaw({
-        projectId,
-      });
+      const { response, data: blob } = (await downloadProjectDocxApiProjectsProjectIdDocxDownloadGet({
+        path: { project_id: projectId },
+        responseStyle: 'fields',
+      })) as { response: Response; data: Blob };
 
-      const blob = await response.raw.blob();
-      const contentDisposition = response.raw.headers.get('content-disposition');
+      const contentDisposition = response.headers.get('content-disposition');
       const filenameMatch = contentDisposition?.match(/filename="?(.+?)"?$/);
       const filename = filenameMatch?.[1] || `document_${projectId}.docx`;
 

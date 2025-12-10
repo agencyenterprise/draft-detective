@@ -13,7 +13,7 @@ type ChunkStatus = 'queued' | 'analyzing' | 'complete';
 export function getChunkStatus(chunk: DocumentChunkOutput): ChunkStatus {
   const hasClaims = !!chunk.claims;
   const hasClaimsData = (chunk.claims?.claims?.length || 0) > 0;
-  const hasCommonKnowledgeResults = (chunk.claimCommonKnowledgeResults?.length || 0) > 0;
+  const hasCommonKnowledgeResults = (chunk.claim_common_knowledge_results?.length || 0) > 0;
 
   if (!hasClaims) return 'queued';
   if (!hasClaimsData || !hasCommonKnowledgeResults) return 'analyzing';

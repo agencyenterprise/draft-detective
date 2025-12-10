@@ -14,7 +14,7 @@ export function useAgentSelection({ supportedAgents, supportedAgentsError }: Use
   React.useEffect(() => {
     if (supportedAgents) {
       setSelectedAgents((selectedAgents) =>
-        !selectedAgents.size ? new Set(supportedAgents.map((agent) => agent.functionName)) : selectedAgents,
+        !selectedAgents.size ? new Set(supportedAgents.map((agent) => agent.function_name)) : selectedAgents,
       );
     }
   }, [supportedAgents]);
@@ -29,16 +29,16 @@ export function useAgentSelection({ supportedAgents, supportedAgentsError }: Use
   const handleAgentToggle = (agent: AgentInfo, checked: boolean) => {
     const newSelected = new Set(selectedAgents);
     if (checked) {
-      newSelected.add(agent.functionName);
+      newSelected.add(agent.function_name);
     } else {
-      newSelected.delete(agent.functionName);
+      newSelected.delete(agent.function_name);
     }
     setSelectedAgents(newSelected);
   };
 
   const handleSelectAll = () => {
     if (supportedAgents) {
-      setSelectedAgents(new Set(supportedAgents.map((agent) => agent.functionName)));
+      setSelectedAgents(new Set(supportedAgents.map((agent) => agent.function_name)));
     }
   };
 

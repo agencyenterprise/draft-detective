@@ -1,7 +1,10 @@
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogTrigger } from '@/components/ui/dialog';
-import { analysisApi } from '@/lib/api';
-import { ClaimSubstantiatorStateSummary, RerunAnalysisRequest } from '@/lib/generated-api';
+import {
+  ClaimSubstantiatorStateSummary,
+  rerunAnalysisEndpointApiRerunAnalysisPost,
+  RerunAnalysisRequest,
+} from '@/lib/generated-api';
 import { useMutation } from '@tanstack/react-query';
 import * as React from 'react';
 import { toast } from 'sonner';
@@ -18,8 +21,8 @@ export function ChunkReevaluateControl({ results, chunkIndex, projectId }: Chunk
 
   const reevaluateMutation = useMutation({
     mutationFn: async (request: RerunAnalysisRequest) => {
-      return await analysisApi.rerunAnalysisEndpointApiRerunAnalysisPost({
-        rerunAnalysisRequest: request,
+      return await rerunAnalysisEndpointApiRerunAnalysisPost({
+        body: request,
       });
     },
     onSuccess: (_data, variables, _context, { client }) => {
@@ -30,7 +33,7 @@ export function ChunkReevaluateControl({ results, chunkIndex, projectId }: Chunk
         queryKey: ['chunkDetails'],
       });
       client.invalidateQueries({
-        queryKey: ['project', variables.projectId],
+        queryKey: ['project', variables.project_id],
       });
     },
     onError: (error) => {
@@ -41,12 +44,12 @@ export function ChunkReevaluateControl({ results, chunkIndex, projectId }: Chunk
 
   const handleReevaluate = (values: ReevaluationFormValues) => {
     reevaluateMutation.mutate({
-      projectId,
+      project_id: projectId,
       config: {
         ...results.config,
-        targetChunkIndices: [chunkIndex],
-        agentsToRun: values.selectedAgents,
-        openaiApiKey: values.openaiApiKey,
+        target_chunk_indices: [chunkIndex],
+        agents_to_run: values.selectedAgents,
+        openai_api_key: values.openaiApiKey,
       },
     });
   };

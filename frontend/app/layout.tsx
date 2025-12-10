@@ -5,6 +5,7 @@ import QueryProvider from '@/components/providers';
 import { Toaster } from '@/components/ui/sonner';
 import { VersionBadge } from '@/components/version-badge';
 import { SessionProvider } from 'next-auth/react';
+import { ApiConfig } from '@/components/api-config';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -32,6 +33,7 @@ export default function RootLayout({
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased h-full`}>
         <SessionProvider>
           <QueryProvider>
+            <ApiConfig />
             {children}
             <Toaster />
             <VersionBadge />
