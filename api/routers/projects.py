@@ -1,18 +1,29 @@
+import io
+import logging
 import os
+from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
+from fastapi import File as FastAPIUploadFile
+from fastapi import Form, HTTPException, UploadFile, status
+from fastapi.responses import StreamingResponse
 from starlette.responses import FileResponse
 
 from api.auth import get_current_user
+from api.upload import save_uploaded_files_to_db
+from lib.models.file import File, FileRole
 from lib.models.project import Project
 from lib.models.user import User
 from lib.services.docx_manipulator import docx_manipulator_service
+from lib.services.files import create_project_files_zip
 from lib.services.projects import (
     ProjectDetailed,
     ProjectListItem,
     UpdateProjectRequest,
+    create_project,
     delete_project,
     get_user_project_detailed,
+    get_user_project_files,
     get_user_projects,
     update_user_project,
 )
@@ -24,6 +35,49 @@ from lib.workflows.claim_substantiation.state import ClaimSubstantiatorStateSumm
 from lib.workflows.models import WorkflowRunType
 
 router = APIRouter(tags=["projects"])
+logger = logging.getLogger(__name__)
+
+
+@router.post(
+    "/api/projects", response_model=ProjectDetailed, status_code=status.HTTP_201_CREATED
+)
+async def create_project_endpoint(
+    title: str = Form(...),
+    main_document: UploadFile = FastAPIUploadFile(...),
+    current_user: User = Depends(get_current_user),
+):
+    """Create a project with a main document."""
+
+    project: Project | None = None
+    try:
+        project = await create_project(title=title, user=current_user)
+
+        await save_uploaded_files_to_db(
+            uploaded_files=[main_document],
+            project_id=project.id,
+            user_id=current_user.id,
+            roles=[FileRole.MAIN],
+            description="The main document under analysis",
+        )
+
+        return ProjectDetailed(project=project, workflow_runs=[])
+    except Exception as e:
+        logger.error("Failed to create project: %s", e, exc_info=True)
+
+        if project is not None:
+            try:
+                await delete_project(str(project.id), user=current_user)
+            except Exception as cleanup_error:  # pragma: no cover - best effort cleanup
+                logger.error(
+                    "Failed to clean up project %s after creation error: %s",
+                    project.id,
+                    cleanup_error,
+                )
+
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to create project",
+        )
 
 
 @router.get("/api/projects", response_model=list[ProjectListItem])
@@ -116,4 +170,46 @@ async def download_project_docx(
         path=file_path,
         media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         filename=filename,
+    )
+
+
+@router.get("/api/project/{project_id}/files", response_model=List[File])
+async def list_project_files_endpoint(
+    project_id: str, current_user: User = Depends(get_current_user)
+):
+    """Get all files for a project"""
+
+    return await get_user_project_files(project_id, user=current_user)
+
+
+@router.get("/api/project/{project_id}/files/download-all")
+async def download_all_project_files(
+    project_id: str,
+    current_user: User = Depends(get_current_user),
+):
+    """Download all project files as a ZIP archive"""
+
+    # Verify project access
+    project_detail = await get_user_project_detailed(project_id, user=current_user)
+
+    # Create zip file using service
+    zip_buffer, _ = await create_project_files_zip(project_id)
+
+    # Generate filename from project title
+    project_title = project_detail.project.title or "project"
+
+    # Sanitize filename (remove invalid characters)
+    safe_title = "".join(
+        c for c in project_title if c.isalnum() or c in (" ", "-", "_")
+    ).strip()
+
+    if not safe_title:
+        safe_title = "project"
+
+    zip_filename = f"{safe_title}_files.zip"
+
+    return StreamingResponse(
+        zip_buffer,
+        media_type="application/zip",
+        headers={"Content-Disposition": f'attachment; filename="{zip_filename}"'},
     )

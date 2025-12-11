@@ -133,7 +133,7 @@ export function ResultsVisualization({
       case 'live_reports':
         return <LiveReportsTab workflowDetail={claimSubstantiationResults} isProcessing={isProcessing} />;
       case 'files':
-        return <FilesTab workflowDetail={claimSubstantiationResults} />;
+        return <FilesTab projectId={projectId} />;
       case 'document-explorer':
         return (
           <DocumentExplorerTab
