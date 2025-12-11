@@ -153,6 +153,12 @@ export function DocumentExplorerTab({
                 <div className="flex justify-end">
                   <AiGeneratedLabel />
                 </div>
+                {issues.length === 0 && !isProcessing && (
+                  <div className="text-sm text-muted-foreground space-y-2">
+                    <p>No issues found for this document.</p>
+                    <p>You can still view detailled analysis for each chunk by selecting a chunk from the document.</p>
+                  </div>
+                )}
                 <DocumentIssuesList issues={issues} onSelect={handleSelectIssue} />
               </div>
             )}
