@@ -14,6 +14,7 @@ from lib.services.docling_models import (
     DoclingItem,
     DoclingRegion,
 )
+from lib.services.text_matching import text_matches
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +24,8 @@ DOCLING_COLLECTIONS = ["texts", "tables", "pictures", "key_value_items"]
 def _collect_docling_items(doc_dict: Dict) -> List[DoclingItem]:
     """
     Collect and parse all items from Docling document
+
+    Items are collected in document order from the collections.
 
     Returns list of DoclingItem objects
     """
@@ -41,19 +44,16 @@ def _collect_docling_items(doc_dict: Dict) -> List[DoclingItem]:
     return items
 
 
-def _text_matches(chunk_text: str, item_text: str) -> bool:
-    """Check if chunk and item text match via substring"""
-    chunk_lower = chunk_text.lower().strip()
-    item_lower = item_text.lower().strip()
-    return chunk_lower in item_lower or item_lower in chunk_lower
-
-
 def create_chunk_to_items_mapping(
     chunks: List[ValidatedDocument],
     docling_document: DoclingDocument,
 ) -> ChunkToItems:
     """
-    Map chunks to Docling items based on text content matching
+    Map chunks to Docling items using sequential forward matching.
+
+    Processes chunks in chunk_index order and searches items forward-only
+    from last matched position. Uses fuzzy matching to handle text variations.
+    Can match multiple items per chunk (for bbox regions).
 
     Args:
         chunks: List of document chunks with content and metadata
@@ -71,10 +71,17 @@ def create_chunk_to_items_mapping(
     doc_dict = docling_document.model_dump()
     all_items = _collect_docling_items(doc_dict)
 
+    if not chunks or not all_items:
+        logger.warning("Empty chunks or items provided, returning empty mapping")
+        return mapping
+
     logger.info(f"Mapping {len(chunks)} chunks to {len(all_items)} Docling items")
 
-    # We need to match items, currently based on text overlap
-    for chunk_doc in chunks:
+    sorted_chunks = sorted(chunks, key=lambda c: c.metadata.chunk_index)
+
+    min_search_idx = 0
+
+    for chunk_doc in sorted_chunks:
         chunk_index = chunk_doc.metadata.chunk_index
         chunk_text = chunk_doc.page_content.strip()
 
@@ -82,12 +89,15 @@ def create_chunk_to_items_mapping(
             continue
 
         matched_count = 0
-        for item in all_items:
+
+        for item_idx in range(min_search_idx, len(all_items)):
+            item = all_items[item_idx]
             item_text = item.content
-            if not item_text or not _text_matches(chunk_text, item_text):
+
+            if not item_text or not item.bbox:
                 continue
 
-            if not item.bbox:
+            if not text_matches(chunk_text, item_text):
                 continue
 
             region = DoclingRegion(
@@ -98,7 +108,12 @@ def create_chunk_to_items_mapping(
             mapping.add_item(chunk_index, region)
             matched_count += 1
 
-        if matched_count:
+            if matched_count == 1:
+                min_search_idx = item_idx
+
+        if matched_count == 0:
+            logger.warning(f"No match for chunk {chunk_index}: '{chunk_text}...'")
+        else:
             logger.debug(f"Chunk {chunk_index}: matched {matched_count} items")
 
     mapped_chunks = sum(1 for items in mapping.mapping.values() if items)
