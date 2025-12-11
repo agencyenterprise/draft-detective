@@ -4,7 +4,7 @@ import { AiGeneratedLabel } from '@/components/ai-generated-label';
 import { Card, CardContent } from '@/components/ui/card';
 import { useChunkHashNavigation } from '@/lib/chunk-ids';
 import { DocRenderMode } from '@/lib/constants';
-import { ClaimSubstantiationWorkflowDetail, DocumentIssue } from '@/lib/generated-api';
+import { ClaimSubstantiatorStateSummary, DocumentIssue } from '@/lib/generated-api';
 import { Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -13,10 +13,11 @@ import { DoclingViewer } from '../components/docling-viewer';
 import { DocumentIssuesList } from '../components/document-issues-list';
 import { DocumentReconstructor } from '../components/document-reconstructor';
 import { ErrorsCard } from '../components/errors-card';
+import { WorkflowRunDetailTyped } from '@/lib/workflow-state';
 
 interface DocumentExplorerTabProps {
   projectId: string;
-  workflowDetail: ClaimSubstantiationWorkflowDetail | undefined;
+  workflowDetail: WorkflowRunDetailTyped<ClaimSubstantiatorStateSummary> | undefined;
   isProcessing?: boolean;
   viewMode: DocRenderMode;
 }

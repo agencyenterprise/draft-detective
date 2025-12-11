@@ -30,7 +30,15 @@ from lib.workflows.reference_downloader.state import (
 )
 
 WorkflowState = (
-    ClaimSubstantiatorState | MethodologicalAlignmentState | ReferenceDownloaderState
+    ClaimSubstantiatorStateSummary
+    | MethodologicalAlignmentState
+    | ReferenceDownloaderState
+)
+
+WorkflowConfig = (
+    SubstantiationWorkflowConfig
+    | MethodologicalAlignmentWorkflowConfig
+    | ReferenceDownloaderWorkflowConfig
 )
 
 WorkflowStateType = TypeVar("WorkflowStateType", bound=BaseWorkflowState)

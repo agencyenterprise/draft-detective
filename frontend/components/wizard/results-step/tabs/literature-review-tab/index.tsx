@@ -1,16 +1,17 @@
 'use client';
 
-import { ClaimSubstantiationWorkflowDetail } from '@/lib/generated-api';
-import * as React from 'react';
+import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { ClaimSubstantiatorStateSummary } from '@/lib/generated-api';
+import { WorkflowRunDetailTyped } from '@/lib/workflow-state';
 import { AlertCircle, BookOpen } from 'lucide-react';
+import * as React from 'react';
 import { TabWithLoadingStates } from '../tab-with-loading-states';
 import { ReferenceCard } from './reference-card';
-import { Badge } from '@/components/ui/badge';
-import { ReferenceFilters, FilterState, filterReferences } from './reference-filters';
+import { FilterState, ReferenceFilters, filterReferences } from './reference-filters';
 
 interface LiteratureReviewTabProps {
-  workflowDetail: ClaimSubstantiationWorkflowDetail | undefined;
+  workflowDetail: WorkflowRunDetailTyped<ClaimSubstantiatorStateSummary> | undefined;
   isProcessing?: boolean;
 }
 
