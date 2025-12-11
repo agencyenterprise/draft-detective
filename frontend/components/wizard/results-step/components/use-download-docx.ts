@@ -1,6 +1,7 @@
-import { projectsApi } from '@/lib/api';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { downloadProjectDocxApiProjectsProjectIdDocxDownloadGet } from '@/lib/generated-api';
+import { downloadFile } from '@/lib/file-download';
 
 interface UseDownloadDocxOptions {
   projectId: string;
@@ -8,24 +9,19 @@ interface UseDownloadDocxOptions {
 }
 
 async function downloadDocxFile(projectId: string, shareToken?: string | null): Promise<void> {
-  const response = await projectsApi.downloadProjectDocxApiProjectsProjectIdDocxDownloadGetRaw({
-    projectId,
-    shareToken: shareToken ?? undefined,
+  const response = await downloadProjectDocxApiProjectsProjectIdDocxDownloadGet({
+    path: { project_id: projectId },
+    query: shareToken ? { share_token: shareToken } : undefined,
   });
 
-  const blob = await response.raw.blob();
-  const contentDisposition = response.raw.headers.get('content-disposition');
-  const filenameMatch = contentDisposition?.match(/filename="?(.+?)"?$/);
-  const filename = filenameMatch?.[1] || `document_${projectId}.docx`;
+  if (!(response instanceof Blob)) {
+    throw new Error('Unexpected response type from DOCX download');
+  }
 
-  const blobUrl = window.URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = blobUrl;
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  window.URL.revokeObjectURL(blobUrl);
+  const timestamp = new Date().toISOString().split('T')[0];
+  const filename = `document_${projectId}_${timestamp}.docx`;
+
+  downloadFile({ blob: response, filename });
 }
 
 export function useDownloadDocx({ projectId, shareToken }: UseDownloadDocxOptions) {

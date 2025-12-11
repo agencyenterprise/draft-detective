@@ -21,13 +21,13 @@ export interface ChunkAnalysisCardProps {
 export function ChunkAnalysisCard({ results, chunk }: ChunkAnalysisCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const references = results?.references || [];
-  const supportingFiles = results?.supportingFiles || [];
-  const citationsWithBibliography = chunk.citations?.citations?.filter((citation) => citation.associatedBibliography);
-  const chunkIssues = getChunkIssues(results, chunk.chunkIndex);
+  const supportingFiles = results?.supporting_files || [];
+  const citationsWithBibliography = chunk.citations?.citations?.filter((citation) => citation.associated_bibliography);
+  const chunkIssues = getChunkIssues(results, chunk.chunk_index);
   const maxSeverity = getMaxSeverity(chunkIssues);
 
   return (
-    <AnalysisResultCard id={getChunkId(chunk.chunkIndex)} title="Chunk Analysis" severity={maxSeverity}>
+    <AnalysisResultCard id={getChunkId(chunk.chunk_index)} title="Chunk Analysis" severity={maxSeverity}>
       {!chunkIssues.length && <p className="text-muted-foreground">No issues found for this chunk.</p>}
 
       {chunkIssues.map((issue, issueIndex) => (
@@ -69,11 +69,11 @@ export function ChunkAnalysisCard({ results, chunk }: ChunkAnalysisCardProps) {
               {chunk.citations?.citations?.length === 0 && <p className="text-muted-foreground">No citations found</p>}
 
               {chunk.citations?.citations?.map((citation, index) => {
-                const matchedReference = citation.indexOfAssociatedBibliography
-                  ? references[citation.indexOfAssociatedBibliography - 1]
+                const matchedReference = citation.index_of_associated_bibliography
+                  ? references[citation.index_of_associated_bibliography - 1]
                   : null;
                 const matchedSupportingFile = supportingFiles.find(
-                  (file) => file.fileName === matchedReference?.nameOfAssociatedSupportingDocument,
+                  (file) => file.file_name === matchedReference?.name_of_associated_supporting_document,
                 );
 
                 return (
@@ -81,21 +81,21 @@ export function ChunkAnalysisCard({ results, chunk }: ChunkAnalysisCardProps) {
                     <LabeledValue label="Associated text">{citation.text}</LabeledValue>
                     <LabeledValue label="Format">{citation.format}</LabeledValue>
                     <LabeledValue label="Type">{citation.type}</LabeledValue>
-                    <LabeledValue label="Needs bibliography">{citation.needsBibliography ? 'Yes' : 'No'}</LabeledValue>
+                    <LabeledValue label="Needs bibliography">{citation.needs_bibliography ? 'Yes' : 'No'}</LabeledValue>
                     <LabeledValue label="Associated reference file">
-                      {matchedSupportingFile && matchedSupportingFile.fileId ? (
+                      {matchedSupportingFile && matchedSupportingFile.file_id ? (
                         <Link
-                          href={`/api/files/download/${matchedSupportingFile.fileId}`}
+                          href={`/api/files/download/${matchedSupportingFile.file_id}`}
                           target="_blank"
                           className="text-blue-600 underline"
                         >
-                          {matchedSupportingFile.fileName}
+                          {matchedSupportingFile.file_name}
                         </Link>
                       ) : (
                         'None'
                       )}
                     </LabeledValue>
-                    <LabeledValue label="Associated bibliography">{citation.associatedBibliography}</LabeledValue>
+                    <LabeledValue label="Associated bibliography">{citation.associated_bibliography}</LabeledValue>
                     <LabeledValue label="Rationale">{citation.rationale}</LabeledValue>
                   </div>
                 );

@@ -16,7 +16,7 @@ export interface ClaimNeedsSubstantiationAccordionProps {
 
 export function ClaimNeedsSubstantiationAccordion({ result, className }: ClaimNeedsSubstantiationAccordionProps) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const needsSubstantiation = result.needsSubstantiation;
+  const needs_substantiation = result.needs_substantiation;
 
   return (
     <div className={cn('border-b pb-2 space-y-4', className)}>
@@ -51,9 +51,9 @@ export function ClaimNeedsSubstantiationAccordion({ result, className }: ClaimNe
             <TooltipTrigger asChild>
               <Badge
                 variant="secondary"
-                className={cn(needsSubstantiation ? 'bg-orange-100 text-orange-800' : 'bg-green-100 text-green-800 ')}
+                className={cn(needs_substantiation ? 'bg-orange-100 text-orange-800' : 'bg-green-100 text-green-800 ')}
               >
-                {needsSubstantiation ? 'Needs Substantiation' : 'No Substantiation Needed'}
+                {needs_substantiation ? 'Needs Substantiation' : 'No Substantiation Needed'}
               </Badge>
             </TooltipTrigger>
             <TooltipContent side="top" className="max-w-sm">
@@ -65,7 +65,7 @@ export function ClaimNeedsSubstantiationAccordion({ result, className }: ClaimNe
 
       {isExpanded && (
         <div className="space-y-2">
-          <LabeledValue label="Needs Substantiation">{result.needsSubstantiation ? 'Yes' : 'No'}</LabeledValue>
+          <LabeledValue label="Needs Substantiation">{result.needs_substantiation ? 'Yes' : 'No'}</LabeledValue>
           <LabeledValue label="Rationale">{result.rationale}</LabeledValue>
         </div>
       )}

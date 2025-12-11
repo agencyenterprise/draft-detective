@@ -1,10 +1,15 @@
 'use client';
 
-import { ResultsVisualization } from '@/components/wizard/results-step/results-visualization';
 import { TabType } from '@/components/wizard/results-step/constants';
-import { publicApi } from '@/lib/api';
+import { ResultsVisualization } from '@/components/wizard/results-step/results-visualization';
 import { DocRenderMode } from '@/lib/constants';
-import { ClaimSubstantiationWorkflowDetail, WorkflowRunStatus, WorkflowRunType } from '@/lib/generated-api';
+import {
+  ClaimSubstantiatorStateSummary,
+  getSharedResourceApiPublicShareTokenGet,
+  WorkflowRunStatus,
+  WorkflowRunType,
+} from '@/lib/generated-api';
+import { WorkflowRunDetailTyped } from '@/lib/workflow-state';
 import { useQuery } from '@tanstack/react-query';
 import { useParams } from 'next/navigation';
 import { useMemo, useState } from 'react';
@@ -18,23 +23,23 @@ export default function SharedProjectPage() {
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['sharedProject', token],
-    queryFn: () => publicApi.getSharedResourceApiPublicShareTokenGet({ token }),
+    queryFn: () => getSharedResourceApiPublicShareTokenGet({ path: { token } }),
     retry: false,
   });
 
   // Construct WorkflowRunDetail from shared data
   const workflowResults = useMemo(() => {
-    if (!data?.state || !data?.workflowRun) return [];
+    if (!data?.state || !data?.workflow_run) return [];
 
-    const workflowDetail: ClaimSubstantiationWorkflowDetail = {
+    const workflowDetail: WorkflowRunDetailTyped<ClaimSubstantiatorStateSummary> = {
       run: {
-        id: data.workflowRun.id,
-        projectId: data.project.id,
+        id: data.workflow_run.id,
+        project_id: data.project.id,
         type: WorkflowRunType.ClaimSubstantiation,
-        langgraphThreadId: '',
-        status: data.workflowRun.status as WorkflowRunStatus,
-        createdAt: new Date(),
-        lastUpdatedAt: new Date(),
+        langgraph_thread_id: '',
+        status: data.workflow_run.status as WorkflowRunStatus,
+        created_at: new Date(),
+        last_updated_at: new Date(),
       },
       state: data.state,
     };

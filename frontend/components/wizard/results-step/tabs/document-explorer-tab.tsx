@@ -4,7 +4,7 @@ import { AiGeneratedLabel } from '@/components/ai-generated-label';
 import { Card, CardContent } from '@/components/ui/card';
 import { useChunkHashNavigation } from '@/lib/chunk-ids';
 import { DocRenderMode } from '@/lib/constants';
-import { ClaimSubstantiationWorkflowDetail, DocumentIssue } from '@/lib/generated-api';
+import { ClaimSubstantiatorStateSummary, DocumentIssue } from '@/lib/generated-api';
 import { Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -13,10 +13,11 @@ import { DoclingViewer } from '../components/docling-viewer';
 import { DocumentIssuesList } from '../components/document-issues-list';
 import { DocumentReconstructor } from '../components/document-reconstructor';
 import { ErrorsCard } from '../components/errors-card';
+import { WorkflowRunDetailTyped } from '@/lib/workflow-state';
 
 interface DocumentExplorerTabProps {
   projectId: string;
-  workflowDetail: ClaimSubstantiationWorkflowDetail | undefined;
+  workflowDetail: WorkflowRunDetailTyped<ClaimSubstantiatorStateSummary> | undefined;
   isProcessing?: boolean;
   viewMode: DocRenderMode;
 }
@@ -31,7 +32,7 @@ export function DocumentExplorerTab({
   const [selectedChunkIndex, setSelectedChunkIndex] = useState<number | null>(null);
   const sidebarRef = useRef<HTMLDivElement>(null);
 
-  const validChunkIndices = useMemo(() => results?.chunks?.map((c) => c.chunkIndex), [results?.chunks]);
+  const validChunkIndices = useMemo(() => results?.chunks?.map((c) => c.chunk_index), [results?.chunks]);
   const handleHashSelect = useCallback((idx: number) => setSelectedChunkIndex(idx), []);
   useChunkHashNavigation(validChunkIndices, handleHashSelect);
 
@@ -49,20 +50,20 @@ export function DocumentExplorerTab({
     return null;
   }
 
-  const pages = results.file?.doclingPages ?? [];
-  const chunkToItems = results.chunkToItems?.mapping ?? {};
+  const pages = results.file?.docling_pages ?? [];
+  const chunkToItems = results.chunk_to_items?.mapping ?? {};
 
   const pageImagesBaseUrl = `/api/images/${workflowDetail?.run.id}`;
 
   const errors = results.errors || [];
-  const issues = results.rankedIssues || [];
-  const workflowErrors = errors.filter((error) => error.chunkIndex === null || error.chunkIndex === undefined);
+  const issues = results.ranked_issues || [];
+  const workflowErrors = errors.filter((error) => error.chunk_index === null || error.chunk_index === undefined);
   const hasChunks = (results.chunks?.length || 0) > 0;
 
   // Check if docling view is available
   const isDoclingAvailable = Boolean(pages && pages.length > 0 && Object.keys(chunkToItems).length > 0);
 
-  const selectedChunk = results.chunks?.find((chunk) => chunk.chunkIndex === selectedChunkIndex);
+  const selectedChunk = results.chunks?.find((chunk) => chunk.chunk_index === selectedChunkIndex);
 
   if (isProcessing && !hasChunks) {
     return (
@@ -79,8 +80,8 @@ export function DocumentExplorerTab({
   }
 
   const handleSelectIssue = (issue: DocumentIssue) => {
-    if (issue.chunkIndex !== undefined && issue.chunkIndex !== null) {
-      setSelectedChunkIndex(issue.chunkIndex);
+    if (issue.chunk_index !== undefined && issue.chunk_index !== null) {
+      setSelectedChunkIndex(issue.chunk_index);
     } else {
       setSelectedChunkIndex(null);
     }
@@ -152,6 +153,12 @@ export function DocumentExplorerTab({
                 <div className="flex justify-end">
                   <AiGeneratedLabel />
                 </div>
+                {issues.length === 0 && !isProcessing && (
+                  <div className="text-sm text-muted-foreground space-y-2">
+                    <p>No issues found for this document.</p>
+                    <p>You can still view detailled analysis for each chunk by selecting a chunk from the document.</p>
+                  </div>
+                )}
                 <DocumentIssuesList issues={issues} onSelect={handleSelectIssue} />
               </div>
             )}

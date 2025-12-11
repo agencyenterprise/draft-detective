@@ -17,14 +17,14 @@ interface ClaimFeedbackProps {
 export function ClaimFeedback({ workflowRunId, chunkIndex, claimIndex }: ClaimFeedbackProps) {
   const { feedback, submitFeedback, isSubmitting } = useClaimFeedback(workflowRunId, chunkIndex, claimIndex);
 
-  const [selectedFeedback, setSelectedFeedback] = React.useState<FeedbackType | null>(feedback?.feedbackType || null);
-  const [feedbackText, setFeedbackText] = React.useState(feedback?.feedbackText || '');
+  const [selectedFeedback, setSelectedFeedback] = React.useState<FeedbackType | null>(feedback?.feedback_type || null);
+  const [feedbackText, setFeedbackText] = React.useState(feedback?.feedback_text || '');
   const [hasSubmitted, setHasSubmitted] = React.useState(!!feedback);
 
   React.useEffect(() => {
     if (feedback) {
-      setSelectedFeedback(feedback.feedbackType);
-      setFeedbackText(feedback.feedbackText || '');
+      setSelectedFeedback(feedback.feedback_type);
+      setFeedbackText(feedback.feedback_text || '');
       setHasSubmitted(true);
     } else {
       setSelectedFeedback(null);

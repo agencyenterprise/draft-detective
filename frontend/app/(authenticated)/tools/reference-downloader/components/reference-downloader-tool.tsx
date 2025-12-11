@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { workflowsApi } from '@/lib/api';
+
 import { toast } from 'sonner';
 import { useSessionStorage } from '@/lib/hooks/use-session-storage';
 import { Button } from '@/components/ui/button';
@@ -10,7 +10,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { AlertCircle, Loader2, Play } from 'lucide-react';
-import { WorkflowRunStatus, ReferenceFetchItem, WorkflowRunType } from '@/lib/generated-api';
+import {
+  WorkflowRunStatus,
+  ReferenceFetchItem,
+  WorkflowRunType,
+  getWorkflowStateApiWorkflowsWorkflowRunIdGet,
+  startWorkflowApiWorkflowsStartPost,
+  ReferenceDownloaderState,
+} from '@/lib/generated-api';
 import { ReferenceItem } from './reference-item';
 
 const REFETCH_INTERVAL_MS = 3000;
@@ -26,8 +33,8 @@ export function ReferenceDownloaderTool() {
     queryKey: ['referenceCheckWorkflow', workflowRunId],
     queryFn: async () => {
       if (!workflowRunId) return null;
-      return await workflowsApi.getReferenceDownloaderWorkflowStateApiWorkflowsReferenceDownloaderWorkflowRunIdGet({
-        workflowRunId,
+      return await getWorkflowStateApiWorkflowsWorkflowRunIdGet({
+        path: { workflow_run_id: workflowRunId },
       });
     },
     enabled: !!workflowRunId,
@@ -39,17 +46,17 @@ export function ReferenceDownloaderTool() {
 
   const startWorkflowMutation = useMutation({
     mutationFn: async (references: string[]) => {
-      return await workflowsApi.startReferenceDownloaderWorkflowApiWorkflowsReferenceDownloaderStartPost({
-        referenceDownloaderWorkflowConfig: {
+      return await startWorkflowApiWorkflowsStartPost({
+        body: {
           type: WorkflowRunType.ReferenceDownloader,
-          projectId: null,
-          openaiApiKey,
+          project_id: null,
+          openai_api_key: openaiApiKey || null,
           references,
         },
       });
     },
     onSuccess: (response) => {
-      setWorkflowRunId(response.workflowRunId ?? null);
+      setWorkflowRunId(response.workflow_run_id ?? null);
       toast.success('Workflow started');
     },
     onError: (error) => {
@@ -79,8 +86,9 @@ export function ReferenceDownloaderTool() {
   };
 
   const isProcessing = workflowDetail?.run.status === WorkflowRunStatus.Running || startWorkflowMutation.isPending;
-  const results = workflowDetail?.state.fetchedReferences || [];
-  const downloadedReferences = workflowDetail?.state.downloadedReferences || [];
+  const state = workflowDetail?.state as ReferenceDownloaderState | undefined;
+  const results = state?.fetched_references ?? [];
+  const downloadedReferences = state?.downloaded_references ?? [];
   const hasResults = results.length > 0;
   const isCompleted = workflowDetail?.run.status === WorkflowRunStatus.Completed;
 

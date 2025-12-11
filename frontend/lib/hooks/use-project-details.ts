@@ -1,8 +1,11 @@
 import { Query, useQueries, useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
-import { projectsApi, workflowsApi } from '../api';
-import { WorkflowRun, WorkflowRunStatus, WorkflowRunType } from '../generated-api';
-import { WorkflowRunDetail } from '../workflow-state';
+import {
+  getProjectEndpointApiProjectProjectIdGet,
+  getWorkflowStateApiWorkflowsWorkflowRunIdGet,
+  WorkflowRunDetail,
+  WorkflowRunStatus,
+} from '../generated-api';
 
 const REFETCH_INTERVAL_MS = 3000;
 
@@ -13,19 +16,19 @@ export function useProjectDetails(projectId: string) {
     error: projectError,
   } = useQuery({
     queryKey: ['project', projectId],
-    queryFn: () => projectsApi.getProjectEndpointApiProjectProjectIdGet({ projectId }),
+    queryFn: () => getProjectEndpointApiProjectProjectIdGet({ path: { project_id: projectId } }),
     refetchInterval: (query) => {
-      const workflowRuns = query.state.data?.workflowRuns ?? [];
+      const workflowRuns = query.state.data?.workflow_runs ?? [];
       return workflowRuns.some((run) => run.status === WorkflowRunStatus.Running) ? REFETCH_INTERVAL_MS : false;
     },
   });
 
-  const workflowRuns = project?.workflowRuns ?? [];
+  const workflowRuns = project?.workflow_runs ?? [];
 
   const workflowDetailsQueries = useQueries({
     queries: workflowRuns.map((workflowRun) => ({
       queryKey: ['workflowRun', workflowRun.id],
-      queryFn: () => fetchWorkflowState(workflowRun),
+      queryFn: () => getWorkflowStateApiWorkflowsWorkflowRunIdGet({ path: { workflow_run_id: workflowRun.id } }),
       refetchInterval: (query: Query<WorkflowRunDetail>) => {
         return query.state.data?.run.status === WorkflowRunStatus.Running ? REFETCH_INTERVAL_MS : false;
       },
@@ -52,25 +55,4 @@ export function useProjectDetails(projectId: string) {
     isLoading,
     error: projectError,
   };
-}
-
-function fetchWorkflowState(workflowRun: WorkflowRun): Promise<WorkflowRunDetail> {
-  switch (workflowRun.type) {
-    case WorkflowRunType.ClaimSubstantiation:
-      return workflowsApi.getClaimSubstantiationWorkflowStateApiWorkflowsClaimSubstantiationWorkflowRunIdGet({
-        workflowRunId: workflowRun.id,
-      });
-    case WorkflowRunType.MethodologicalAlignment:
-      return workflowsApi.getMethodologicalAlignmentWorkflowStateApiWorkflowsMethodologicalAlignmentWorkflowRunIdGet({
-        workflowRunId: workflowRun.id,
-      });
-    case WorkflowRunType.ReferenceDownloader:
-      return workflowsApi.getReferenceDownloaderWorkflowStateApiWorkflowsReferenceDownloaderWorkflowRunIdGet({
-        workflowRunId: workflowRun.id,
-      });
-    case WorkflowRunType.DocxGeneration:
-      throw new Error('DOCX generation workflows should not be fetched in frontend');
-    default:
-      throw new Error(`Unknown workflow type: ${workflowRun.type satisfies never}`);
-  }
 }

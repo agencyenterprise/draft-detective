@@ -16,12 +16,14 @@ interface CitationReferenceItemProps {
 
 export function CitationReferenceItem({ reference, references, supportingFiles }: CitationReferenceItemProps) {
   const associatedExistingReference =
-    reference.indexOfAssociatedExistingReference !== -1
-      ? references[reference.indexOfAssociatedExistingReference - 1]
+    reference.index_of_associated_existing_reference !== -1
+      ? references[reference.index_of_associated_existing_reference - 1]
       : null;
 
   const associatedSupportingFile = associatedExistingReference
-    ? supportingFiles.find((file) => file.fileName === associatedExistingReference.nameOfAssociatedSupportingDocument)
+    ? supportingFiles.find(
+        (file) => file.file_name === associatedExistingReference.name_of_associated_supporting_document,
+      )
     : null;
 
   return (
@@ -29,12 +31,12 @@ export function CitationReferenceItem({ reference, references, supportingFiles }
       <h5 className="font-medium">{reference.title}</h5>
       <div className="flex items-center gap-2 flex-wrap">
         <ReferenceTypeBadge type={reference.type} />
-        {reference.isAlreadyCitedElsewhere && (
+        {reference.is_already_cited_elsewhere && (
           <span className="px-2 py-1 rounded text-xs bg-cyan-100 text-cyan-800">Already cited</span>
         )}
-        <RecommendedActionBadge action={reference.recommendedAction} />
-        <ConfidenceBadge confidence={reference.confidenceInRecommendation} />
-        <PublicationQualityBadge quality={reference.publicationQuality} />
+        <RecommendedActionBadge action={reference.recommended_action} />
+        <ConfidenceBadge confidence={reference.confidence_in_recommendation} />
+        <PublicationQualityBadge quality={reference.publication_quality} />
       </div>
 
       {reference.link && (
@@ -46,28 +48,28 @@ export function CitationReferenceItem({ reference, references, supportingFiles }
         </p>
       )}
 
-      {associatedExistingReference && associatedSupportingFile && associatedSupportingFile.fileId && (
+      {associatedExistingReference && associatedSupportingFile && associatedSupportingFile.file_id && (
         <LabeledValue label="Existing Bibliography Reference">
           <Link
-            href={`/api/files/download/${associatedSupportingFile.fileId}`}
+            href={`/api/files/download/${associatedSupportingFile.file_id}`}
             target="_blank"
             className="text-blue-600 underline"
           >
-            {associatedSupportingFile.fileName}
+            {associatedSupportingFile.file_name}
           </Link>{' '}
           - <span className="text-muted-foreground italic">{associatedExistingReference.text}</span>
         </LabeledValue>
       )}
 
-      <LabeledValue label="Bibliography Entry">{reference.bibliographyInfo}</LabeledValue>
+      <LabeledValue label="Bibliography Entry">{reference.bibliography_info}</LabeledValue>
 
-      <LabeledValue label="Related Excerpt (from our document)">&quot;{reference.relatedExcerpt}&quot;</LabeledValue>
+      <LabeledValue label="Related Excerpt (from our document)">&quot;{reference.related_excerpt}&quot;</LabeledValue>
 
-      <LabeledValue label="Related Excerpt (from reference)">{reference.relatedExcerptFromReference}</LabeledValue>
+      <LabeledValue label="Related Excerpt (from reference)">{reference.related_excerpt_from_reference}</LabeledValue>
 
       <LabeledValue label="Rationale">{reference.rationale}</LabeledValue>
 
-      <LabeledValue label="Recommended Action">{reference.explanationForRecommendedAction}</LabeledValue>
+      <LabeledValue label="Recommended Action">{reference.explanation_for_recommended_action}</LabeledValue>
     </div>
   );
 }

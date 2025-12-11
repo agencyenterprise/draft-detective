@@ -1,4 +1,8 @@
-import { shareApi } from '@/lib/api';
+import {
+  disableProjectSharingApiProjectsProjectIdShareDisablePost,
+  enableProjectSharingApiProjectsProjectIdShareEnablePost,
+  getProjectShareStatusApiProjectsProjectIdShareGet,
+} from '@/lib/generated-api';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -9,12 +13,12 @@ export function useShareStatus(projectId: string) {
 
   const query = useQuery({
     queryKey: ['shareStatus', projectId],
-    queryFn: () => shareApi.getProjectShareStatusApiProjectsProjectIdShareGet({ projectId }),
+    queryFn: () => getProjectShareStatusApiProjectsProjectIdShareGet({ path: { project_id: projectId } }),
     staleTime: 30000,
   });
 
   const enableMutation = useMutation({
-    mutationFn: () => shareApi.enableProjectSharingApiProjectsProjectIdShareEnablePost({ projectId }),
+    mutationFn: () => enableProjectSharingApiProjectsProjectIdShareEnablePost({ path: { project_id: projectId } }),
     onSuccess: (data) => {
       queryClient.setQueryData(['shareStatus', projectId], data);
     },
@@ -25,7 +29,7 @@ export function useShareStatus(projectId: string) {
   });
 
   const disableMutation = useMutation({
-    mutationFn: () => shareApi.disableProjectSharingApiProjectsProjectIdShareDisablePost({ projectId }),
+    mutationFn: () => disableProjectSharingApiProjectsProjectIdShareDisablePost({ path: { project_id: projectId } }),
     onSuccess: (data) => {
       queryClient.setQueryData(['shareStatus', projectId], data);
       setIsDialogOpen(false);

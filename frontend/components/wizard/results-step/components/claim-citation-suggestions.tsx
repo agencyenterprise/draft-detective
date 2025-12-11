@@ -26,7 +26,7 @@ export function ClaimCitationSuggestions({
 }: ClaimCitationSuggestionsProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
-  const sortedReferences = [...(citationSuggestion.relevantReferences || [])].sort(
+  const sortedReferences = [...(citationSuggestion.relevant_references || [])].sort(
     (a, b) => scoreReference(b) - scoreReference(a),
   );
 
@@ -59,7 +59,7 @@ export function ClaimCitationSuggestions({
           </Button>
         </div>
 
-        <Badge variant="outline">{citationSuggestion.relevantReferences.length} reference suggestions</Badge>
+        <Badge variant="outline">{citationSuggestion.relevant_references.length} reference suggestions</Badge>
       </div>
 
       {isExpanded && (

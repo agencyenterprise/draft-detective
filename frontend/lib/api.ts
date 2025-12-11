@@ -1,52 +1,6 @@
-import {
-  AnalysisApi,
-  Configuration,
-  EvaluationApi,
-  FeedbackApi,
-  HealthApi,
-  WorkflowsApi,
-  Middleware,
-  ProjectsApi,
-  PublicApi,
-  ShareApi,
-} from './generated-api';
 import { getSession } from 'next-auth/react';
 
-export const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-
-// Middleware to add Bearer token to all requests
-const authMiddleware: Middleware = {
-  pre: async (context) => {
-    const authHeader = await getAuthHeader();
-
-    if (authHeader) {
-      context.init.headers = {
-        ...context.init.headers,
-        Authorization: authHeader,
-      };
-    }
-    return context;
-  },
-};
-
-const config = new Configuration({
-  basePath: apiUrl,
-  middleware: [authMiddleware],
-});
-
-// Public config without auth - for unauthenticated endpoints like share links
-const publicConfig = new Configuration({
-  basePath: apiUrl,
-});
-
-export const analysisApi = new AnalysisApi(config);
-export const evaluationApi = new EvaluationApi(config);
-export const feedbackApi = new FeedbackApi(config);
-export const healthApi = new HealthApi(config);
-export const workflowsApi = new WorkflowsApi(config);
-export const projectsApi = new ProjectsApi(config);
-export const publicApi = new PublicApi(publicConfig);
-export const shareApi = new ShareApi(config);
+export const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 export async function getAuthHeader(): Promise<string | undefined> {
   const session = await getSession();

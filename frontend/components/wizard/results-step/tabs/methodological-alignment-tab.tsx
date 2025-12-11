@@ -1,14 +1,15 @@
 import { Markdown } from '@/components/markdown';
 import { Button } from '@/components/ui/button';
 import { WorkflowConfigDialog, WorkflowConfigFormValues } from '@/components/workflows/workflow-config-dialog';
-import { workflowsApi } from '@/lib/api';
 import {
-  MethodologicalAlignmentWorkflowDetail,
+  MethodologicalAlignmentState,
   ReferenceMinimal,
   ReproducibilityCategory,
+  startWorkflowApiWorkflowsStartPost,
   WorkflowRunStatus,
   WorkflowRunType,
 } from '@/lib/generated-api';
+import { WorkflowRunDetailTyped } from '@/lib/workflow-state';
 import { useMutation } from '@tanstack/react-query';
 import {
   AlertCircle,
@@ -27,7 +28,7 @@ import { toast } from 'sonner';
 import { TabWithLoadingStates } from './tab-with-loading-states';
 
 interface MethodologicalAlignmentTabProps {
-  results: MethodologicalAlignmentWorkflowDetail | undefined;
+  results: WorkflowRunDetailTyped<MethodologicalAlignmentState> | undefined;
   isProcessing?: boolean;
   projectId: string;
 }
@@ -37,11 +38,11 @@ export function MethodologicalAlignmentTab({ results, projectId }: Methodologica
 
   const startWorkflowMutation = useMutation({
     mutationFn: async (values: WorkflowConfigFormValues) => {
-      return await workflowsApi.startMethodologicalAlignmentWorkflowApiWorkflowsMethodologicalAlignmentStartPost({
-        methodologicalAlignmentWorkflowConfig: {
+      return await startWorkflowApiWorkflowsStartPost({
+        body: {
           type: WorkflowRunType.MethodologicalAlignment,
-          projectId,
-          openaiApiKey: values.openaiApiKey || '',
+          project_id: projectId,
+          openai_api_key: values.openaiApiKey || null,
         },
       });
     },
@@ -77,7 +78,7 @@ export function MethodologicalAlignmentTab({ results, projectId }: Methodologica
 
       <TabWithLoadingStates
         title="Methodological Alignment"
-        data={results?.state.methodologyComparison}
+        data={results?.state.methodology_comparison}
         isProcessing={results?.run.status === WorkflowRunStatus.Running}
         hasData={(comparison) => !!comparison}
         loadingMessage={{
@@ -147,28 +148,28 @@ export function MethodologicalAlignmentTab({ results, projectId }: Methodologica
           const summariesAndOutputs = [
             {
               title: 'Extracted Methodology',
-              summary: methodologyComparison.extractedMethodology.summary,
-              output: methodologyComparison.extractedMethodology.markdownOutput,
+              summary: methodologyComparison.extracted_methodology.summary,
+              output: methodologyComparison.extracted_methodology.markdown_output,
             },
             {
               title: 'Field Methods Overview',
-              summary: methodologyComparison.fieldMethodsOverview.summary,
-              output: methodologyComparison.fieldMethodsOverview.markdownOutput,
+              summary: methodologyComparison.field_methods_overview.summary,
+              output: methodologyComparison.field_methods_overview.markdown_output,
             },
             {
               title: 'Alignment with Field Practice',
-              summary: methodologyComparison.alignmentWithFieldPractice.summary,
-              output: methodologyComparison.alignmentWithFieldPractice.markdownOutput,
+              summary: methodologyComparison.alignment_with_field_practice.summary,
+              output: methodologyComparison.alignment_with_field_practice.markdown_output,
             },
             {
               title: 'Methodological Rigor and Risks',
-              summary: methodologyComparison.methodologicalRigorAndRisks.summary,
-              output: methodologyComparison.methodologicalRigorAndRisks.markdownOutput,
+              summary: methodologyComparison.methodological_rigor_and_risks.summary,
+              output: methodologyComparison.methodological_rigor_and_risks.markdown_output,
             },
             {
               title: 'Suggestions for Improvements',
-              summary: methodologyComparison.suggestionsForImprovements.summary,
-              output: methodologyComparison.suggestionsForImprovements.markdownOutput,
+              summary: methodologyComparison.suggestions_for_improvements.summary,
+              output: methodologyComparison.suggestions_for_improvements.markdown_output,
             },
           ];
 
@@ -177,8 +178,8 @@ export function MethodologicalAlignmentTab({ results, projectId }: Methodologica
               {methodologyComparison.reproducibility && (
                 <div className="flex items-start gap-4">
                   <span className="flex items-center gap-2 bg-blue-50 p-2 rounded-md border-blue-200 text-blue-900 text-sm font-medium whitespace-nowrap">
-                    {getReproducibilityIcon(methodologyComparison.reproducibility.classValue)}
-                    {getReproducibilityLabel(methodologyComparison.reproducibility.classValue)}
+                    {getReproducibilityIcon(methodologyComparison.reproducibility.class_value)}
+                    {getReproducibilityLabel(methodologyComparison.reproducibility.class_value)}
                   </span>
                   <div className="text-sm">{methodologyComparison.reproducibility.rationale}</div>
                 </div>
@@ -191,7 +192,6 @@ export function MethodologicalAlignmentTab({ results, projectId }: Methodologica
                     title={summaryAndOutput.title}
                     summary={summaryAndOutput.summary}
                     output={summaryAndOutput.output}
-                    defaultExpanded={summaryAndOutput.title === 'Alignment with Field Practice'}
                   />
                 ))}
               </div>
@@ -308,7 +308,7 @@ function ReferencesSection({ references }: ReferencesSectionProps) {
                       {reference.title}
                     </a>
                   </h3>
-                  <p className="text-sm text-muted-foreground">{reference.bibliographyInfo}</p>
+                  <p className="text-sm text-muted-foreground">{reference.bibliography_info}</p>
                   {reference.link && (
                     <p className="text-sm">
                       <a

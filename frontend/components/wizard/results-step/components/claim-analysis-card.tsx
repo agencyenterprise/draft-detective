@@ -4,7 +4,7 @@ import { ClaimFeedback } from '@/components/claim-feedback';
 import { LabeledValue } from '@/components/labeled-value';
 import { Button } from '@/components/ui/button';
 import { getClaimId } from '@/lib/chunk-ids';
-import { ClaimSubstantiatorStateSummary, DocumentChunkOutput, ToulminClaim } from '@/lib/generated-api';
+import { Claim, ClaimSubstantiatorStateSummary, DocumentChunkOutput, ToulminClaim } from '@/lib/generated-api';
 import { getClaimIssues, getMaxSeverity } from '@/lib/severity';
 import { ChevronDownIcon, ChevronRightIcon } from 'lucide-react';
 import { useState } from 'react';
@@ -20,7 +20,7 @@ import { SubstantiationResults } from './substantiation-results';
 
 export interface ClaimAnalysisCardProps {
   results: ClaimSubstantiatorStateSummary;
-  claim: ToulminClaim;
+  claim: Claim | ToulminClaim;
   chunkDetails: DocumentChunkOutput | undefined | null;
   claimIndex: number;
   totalClaims: number;
@@ -43,14 +43,14 @@ export function ClaimAnalysisCard({
     return null;
   }
 
-  const claimCategory = chunkDetails.claimCategories?.find((c) => c.claimIndex === claimIndex);
-  const commonKnowledgeResult = chunkDetails.claimCommonKnowledgeResults?.find((c) => c.claimIndex === claimIndex);
-  const substantiation = chunkDetails.substantiations?.find((s) => s.claimIndex === claimIndex);
-  const citationSuggestion = chunkDetails.citationSuggestions?.find((c) => c.claimIndex === claimIndex);
-  const liveReportsAnalysis = chunkDetails.liveReportsAnalysis?.find((l) => l.claimIndex === claimIndex);
-  const inferenceValidation = chunkDetails.inferenceValidations?.find((i) => i.claimIndex === claimIndex);
+  const claimCategory = chunkDetails.claim_categories?.find((c) => c.claim_index === claimIndex);
+  const commonKnowledgeResult = chunkDetails.claim_common_knowledge_results?.find((c) => c.claim_index === claimIndex);
+  const substantiation = chunkDetails.substantiations?.find((s) => s.claim_index === claimIndex);
+  const citationSuggestion = chunkDetails.citation_suggestions?.find((c) => c.claim_index === claimIndex);
+  const liveReportsAnalysis = chunkDetails.live_reports_analysis?.find((l) => l.claim_index === claimIndex);
+  const inferenceValidation = chunkDetails.inference_validations?.find((i) => i.claim_index === claimIndex);
 
-  const supportingFiles = results.supportingFiles ?? [];
+  const supportingFiles = results.supporting_files ?? [];
   const references = results.references ?? [];
   const claimIssues = getClaimIssues(results, chunkIndex, claimIndex);
   const maxSeverity = getMaxSeverity(claimIssues);
@@ -89,7 +89,7 @@ export function ClaimAnalysisCard({
                 substantiation={substantiation}
                 references={references}
                 supportingFiles={supportingFiles}
-                retrievedPassages={substantiation.retrievedPassages ?? undefined}
+                retrievedPassages={substantiation.retrieved_passages ?? undefined}
               />
             )}
             {citationSuggestion && (

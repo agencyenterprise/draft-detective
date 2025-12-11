@@ -26,7 +26,7 @@ function AgentCheckbox({ agent, checked, disabled, onChange }: AgentCheckboxProp
       <Checkbox checked={checked} disabled={disabled} onCheckedChange={onChange} />
       <div className="flex-1">
         <p className="text-sm font-medium">
-          {agent.name} <span className="text-xs text-gray-500 font-normal font-mono">({agent.functionName})</span>
+          {agent.name} <span className="text-xs text-gray-500 font-normal font-mono">({agent.function_name})</span>
         </p>
         <p className="text-xs text-gray-500">{agent.description}</p>
       </div>
@@ -69,9 +69,9 @@ export function AgentSelector({
       <div className="space-y-2">
         {supportedAgents.map((agent) => (
           <AgentCheckbox
-            key={agent.functionName}
+            key={agent.function_name}
             agent={agent}
-            checked={selectedAgents.has(agent.functionName)}
+            checked={selectedAgents.has(agent.function_name)}
             disabled={disabled}
             onChange={(checked) => onAgentToggle(agent, checked)}
           />

@@ -3,6 +3,7 @@ from typing import List, Optional
 
 from fastapi import HTTPException
 from langgraph.types import StateSnapshot
+from pydantic import BaseModel
 from sqlalchemy import select
 from sqlmodel import and_
 
@@ -20,6 +21,11 @@ from lib.workflows.claim_substantiation.state import (
 from lib.workflows.registry import WorkflowState, create_graph, get_state_type
 
 logger = logging.getLogger(__name__)
+
+
+class WorkflowRunDetail(BaseModel):
+    run: WorkflowRun
+    state: WorkflowState
 
 
 def _convert_state_snapshot(

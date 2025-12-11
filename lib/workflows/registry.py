@@ -36,9 +36,16 @@ from lib.workflows.reference_downloader.state import (
 
 WorkflowState = (
     ClaimSubstantiatorState
+    | ClaimSubstantiatorStateSummary
     | MethodologicalAlignmentState
     | ReferenceDownloaderState
     | DocxGenerationState
+)
+
+WorkflowConfig = (
+    SubstantiationWorkflowConfig
+    | MethodologicalAlignmentWorkflowConfig
+    | ReferenceDownloaderWorkflowConfig
 )
 
 WorkflowStateType = TypeVar("WorkflowStateType", bound=BaseWorkflowState)

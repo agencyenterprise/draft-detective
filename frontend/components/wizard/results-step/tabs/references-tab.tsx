@@ -6,16 +6,17 @@ import { Button } from '@/components/ui/button';
 import {
   BibliographyItem,
   BibliographyItemValidationOutput,
-  ClaimSubstantiationWorkflowDetail,
+  ClaimSubstantiatorStateSummary,
   FileDocumentOutput,
 } from '@/lib/generated-api';
+import { WorkflowRunDetailTyped } from '@/lib/workflow-state';
 import { ChevronDownIcon, ChevronRightIcon, FileText } from 'lucide-react';
 import * as React from 'react';
 import { humanizeLabel } from './literature-review-tab/utils';
 import { TabWithLoadingStates } from './tab-with-loading-states';
 
 interface ReferencesTabProps {
-  workflowDetail: ClaimSubstantiationWorkflowDetail | undefined;
+  workflowDetail: WorkflowRunDetailTyped<ClaimSubstantiatorStateSummary> | undefined;
   isProcessing?: boolean;
 }
 
@@ -36,32 +37,32 @@ function ReferenceItem({ reference, validation, supportingFiles }: ReferenceItem
           <div className="flex items-center gap-3">
             <div
               className={`px-2 py-1 rounded text-xs ${
-                reference.hasAssociatedSupportingDocument
+                reference.has_associated_supporting_document
                   ? 'bg-green-100 text-green-800'
                   : 'bg-orange-100 text-orange-800'
               }`}
             >
-              {reference.hasAssociatedSupportingDocument ? 'Document provided' : 'Document not provided'}
+              {reference.has_associated_supporting_document ? 'Document provided' : 'Document not provided'}
             </div>
-            {reference.hasAssociatedSupportingDocument && supportingFiles && (
+            {reference.has_associated_supporting_document && supportingFiles && (
               <span className="text-xs text-muted-foreground whitespace-nowrap">
                 <strong>Related document:</strong>{' '}
-                {supportingFiles[reference.indexOfAssociatedSupportingDocument - 1]?.fileName}
+                {supportingFiles[reference.index_of_associated_supporting_document - 1]?.file_name}
               </span>
             )}
             {validation &&
-              validation.bibliographyFieldValidations &&
-              validation.bibliographyFieldValidations.length > 0 && (
+              validation.bibliography_field_validations &&
+              validation.bibliography_field_validations.length > 0 && (
                 <div className="flex items-center gap-2 flex-wrap">
-                  {validation.bibliographyFieldValidations
-                    .filter((field) => field.problemType !== 'correct')
+                  {validation.bibliography_field_validations
+                    .filter((field) => field.problem_type !== 'correct')
                     .map((field, idx) => (
                       <Badge
                         key={idx}
                         variant="outline"
                         className={`text-xs whitespace-nowrap ${'bg-yellow-100 text-yellow-800 border-yellow-300 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-800'}`}
                       >
-                        {humanizeLabel(field.category)}: {humanizeLabel(field.problemType)}
+                        {humanizeLabel(field.category)}: {humanizeLabel(field.problem_type)}
                       </Badge>
                     ))}
                 </div>
@@ -84,7 +85,7 @@ function ReferenceItem({ reference, validation, supportingFiles }: ReferenceItem
             <h3 className="text-base font-medium">Reference validation details</h3>
           </div>
 
-          <LabeledValue label="Suggested Action">{validation.suggestedAction}</LabeledValue>
+          <LabeledValue label="Suggested Action">{validation.suggested_action}</LabeledValue>
           <LabeledValue label="URL">
             <a
               href={validation.url}
@@ -95,12 +96,12 @@ function ReferenceItem({ reference, validation, supportingFiles }: ReferenceItem
               {validation.url}
             </a>
           </LabeledValue>
-          {validation.bibliographyFieldValidations && validation.bibliographyFieldValidations.length > 0 && (
+          {validation.bibliography_field_validations && validation.bibliography_field_validations.length > 0 && (
             <div>
               <h4 className="font-medium mb-2">Field Validations</h4>
               <div className="space-y-2">
-                {validation.bibliographyFieldValidations.map((field, idx) => {
-                  const isCorrect = field.problemType === 'correct';
+                {validation.bibliography_field_validations.map((field, idx) => {
+                  const isCorrect = field.problem_type === 'correct';
                   return (
                     <div key={idx} className="pl-4 border-l-2 border-gray-200">
                       <div className="flex items-center gap-2 mb-1">
@@ -113,18 +114,18 @@ function ReferenceItem({ reference, validation, supportingFiles }: ReferenceItem
                               : 'bg-yellow-100 text-yellow-800 border-yellow-300 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-800'
                           }`}
                         >
-                          {isCorrect ? 'Valid' : humanizeLabel(field.problemType)}
+                          {isCorrect ? 'Valid' : humanizeLabel(field.problem_type)}
                         </Badge>
                       </div>
                       <div className="text-xs text-gray-600 space-y-1">
-                        {field.currentValue && (
+                        {field.current_value && (
                           <div>
-                            <span className="font-medium">Current:</span> {field.currentValue}
+                            <span className="font-medium">Current:</span> {field.current_value}
                           </div>
                         )}
-                        {field.suggestedValue && field.problemType !== 'correct' && (
+                        {field.suggested_value && field.problem_type !== 'correct' && (
                           <div>
-                            <span className="font-medium">Suggested:</span> {field.suggestedValue}
+                            <span className="font-medium">Suggested:</span> {field.suggested_value}
                           </div>
                         )}
                       </div>
@@ -145,18 +146,18 @@ export function ReferencesTab({ workflowDetail, isProcessing = false }: Referenc
 
   // Create a map of validations by reference text for quick lookup
   const validationMap = React.useMemo(() => {
-    if (!results?.referencesValidated) {
+    if (!results?.references_validated) {
       return new Map<string, BibliographyItemValidationOutput>();
     }
 
     const map = new Map<string, BibliographyItemValidationOutput>();
-    results.referencesValidated.forEach((validation) => {
-      if (validation.originalReference?.text) {
-        map.set(validation.originalReference.text, validation);
+    results.references_validated.forEach((validation) => {
+      if (validation.original_reference?.text) {
+        map.set(validation.original_reference.text, validation);
       }
     });
     return map;
-  }, [results?.referencesValidated]);
+  }, [results?.references_validated]);
 
   if (!results) {
     return null;
@@ -187,7 +188,7 @@ export function ReferencesTab({ workflowDetail, isProcessing = false }: Referenc
               key={index}
               reference={reference}
               validation={validationMap.get(reference.text)}
-              supportingFiles={results.supportingFiles}
+              supportingFiles={results.supporting_files}
             />
           ))}
         </div>
