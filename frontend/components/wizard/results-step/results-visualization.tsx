@@ -141,10 +141,17 @@ export function ResultsVisualization({
             workflowDetail={claimSubstantiationResults}
             isProcessing={isProcessing}
             viewMode={viewMode}
+            readOnly={readOnly}
           />
         );
       case 'methodological_alignment':
-        return <MethodologicalAlignmentTab results={methodologicalAlignmentResults} projectId={projectId} />;
+        return (
+          <MethodologicalAlignmentTab
+            results={methodologicalAlignmentResults}
+            projectId={projectId}
+            readOnly={readOnly}
+          />
+        );
     }
   };
 
