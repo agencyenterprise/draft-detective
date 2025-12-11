@@ -26,6 +26,7 @@ export interface ClaimAnalysisCardProps {
   totalClaims: number;
   chunkIndex: number;
   workflowRunId: string;
+  readOnly?: boolean;
 }
 
 export function ClaimAnalysisCard({
@@ -36,6 +37,7 @@ export function ClaimAnalysisCard({
   totalClaims,
   chunkIndex,
   workflowRunId,
+  readOnly = false,
 }: ClaimAnalysisCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -103,7 +105,7 @@ export function ClaimAnalysisCard({
             {inferenceValidation && <ClaimInferenceValidation inferenceValidation={inferenceValidation} />}
           </div>
 
-          {workflowRunId && chunkIndex !== undefined && (
+          {!readOnly && workflowRunId && chunkIndex !== undefined && (
             <ClaimFeedback workflowRunId={workflowRunId} chunkIndex={chunkIndex} claimIndex={claimIndex} />
           )}
         </>
