@@ -27,7 +27,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       : []),
   ],
   callbacks: {
-    authorized: ({ auth }) => !!auth,
     jwt: ({ token, account, user, profile }) => {
       // Add the access token to the token object so it can be used in the session
       if (account) {
