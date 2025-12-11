@@ -22,7 +22,7 @@ export function LiteratureReviewTab({ workflowDetail, isProcessing = false }: Li
     action: 'all',
   });
 
-  const shouldShowLoading = isProcessing && results?.config.runLiteratureReview === true;
+  const shouldShowLoading = isProcessing && results?.config.run_literature_review === true;
 
   if (!results) {
     return null;
@@ -31,7 +31,7 @@ export function LiteratureReviewTab({ workflowDetail, isProcessing = false }: Li
   return (
     <TabWithLoadingStates
       title="Literature Review"
-      data={results.literatureReview}
+      data={results.literature_review}
       isProcessing={shouldShowLoading}
       hasData={(review) => !!review}
       loadingMessage={{
@@ -56,8 +56,12 @@ export function LiteratureReviewTab({ workflowDetail, isProcessing = false }: Li
       skeletonCount={6}
     >
       {(literatureReview) => {
-        if (literatureReview && literatureReview.relevantReferences && literatureReview.relevantReferences.length > 0) {
-          const filteredReferences = filterReferences(literatureReview.relevantReferences, filters);
+        if (
+          literatureReview &&
+          literatureReview.relevant_references &&
+          literatureReview.relevant_references.length > 0
+        ) {
+          const filteredReferences = filterReferences(literatureReview.relevant_references, filters);
 
           return (
             <div className="space-y-6">
@@ -65,8 +69,8 @@ export function LiteratureReviewTab({ workflowDetail, isProcessing = false }: Li
                 <BookOpen className="h-5 w-5 text-blue-600" />
                 <span className="text-sm font-medium">AI-Generated Literature Review</span>
                 <Badge variant="secondary" className="ml-auto">
-                  {literatureReview.relevantReferences.length} Reference
-                  {literatureReview.relevantReferences.length !== 1 ? 's' : ''}
+                  {literatureReview.relevant_references.length} Reference
+                  {literatureReview.relevant_references.length !== 1 ? 's' : ''}
                 </Badge>
               </div>
 
@@ -84,7 +88,7 @@ export function LiteratureReviewTab({ workflowDetail, isProcessing = false }: Li
               <ReferenceFilters
                 filters={filters}
                 onFiltersChange={setFilters}
-                totalCount={literatureReview.relevantReferences.length}
+                totalCount={literatureReview.relevant_references.length}
                 filteredCount={filteredReferences.length}
               />
 
@@ -103,7 +107,7 @@ export function LiteratureReviewTab({ workflowDetail, isProcessing = false }: Li
                     <ReferenceCard
                       key={index}
                       reference={reference}
-                      index={literatureReview.relevantReferences!.indexOf(reference)}
+                      index={literatureReview.relevant_references!.indexOf(reference)}
                     />
                   ))
                 )}

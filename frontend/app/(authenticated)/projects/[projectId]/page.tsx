@@ -4,7 +4,7 @@ import { EditableTitle } from '@/components/ui/editable-title';
 import { PublicationDateLabel } from '@/components/wizard/results-step/components/publication-date-label';
 import { TabType } from '@/components/wizard/results-step/constants';
 import { ResultsVisualization } from '@/components/wizard/results-step/results-visualization';
-import { projectsApi } from '@/lib/api';
+import { updateProjectEndpointApiProjectProjectIdPatch } from '@/lib/generated-api';
 import { DocRenderMode } from '@/lib/constants';
 import { ProjectDetailed, WorkflowRunType } from '@/lib/generated-api';
 import { useProjectDetails } from '@/lib/hooks/use-project-details';
@@ -27,9 +27,9 @@ export default function ResultsPage() {
 
   const updateTitleMutation = useMutation({
     mutationFn: async (newTitle: string) => {
-      return await projectsApi.updateProjectEndpointApiProjectProjectIdPatch({
-        projectId,
-        updateProjectRequest: { title: newTitle },
+      return await updateProjectEndpointApiProjectProjectIdPatch({
+        path: { project_id: projectId },
+        body: { title: newTitle },
       });
     },
     onSuccess: (updatedProject) => {
@@ -94,7 +94,7 @@ export default function ResultsPage() {
   const claimSubstantiationResults = getWorkflowRunByType(workflowDetails, WorkflowRunType.ClaimSubstantiation);
   const claimSubstantiationStateSummary = claimSubstantiationResults?.state;
 
-  const authors = claimSubstantiationStateSummary?.mainDocumentSummary?.authors;
+  const authors = claimSubstantiationStateSummary?.main_document_summary?.authors;
 
   return (
     <div className="space-y-3">
@@ -109,7 +109,7 @@ export default function ResultsPage() {
           <h2 className="text-muted-foreground text-sm">
             {authors && <span>{authors} — </span>}
             <PublicationDateLabel results={claimSubstantiationStateSummary} prefix="Published" suffix=" — " />
-            <span>Project created on {format(project.project.createdAt || new Date(), 'MMM d, yyyy')}</span>
+            <span>Project created on {format(project.project.created_at || new Date(), 'MMM d, yyyy')}</span>
           </h2>
         </hgroup>
       </div>

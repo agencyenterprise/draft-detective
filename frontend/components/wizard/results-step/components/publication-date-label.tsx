@@ -9,8 +9,8 @@ export interface PublicationDateLabelProps {
 }
 
 export function PublicationDateLabel({ results, prefix, suffix }: PublicationDateLabelProps) {
-  const userInformedPublicationDate = results?.config?.documentPublicationDate;
-  const extractedPublicationDate = results?.mainDocumentSummary?.publicationDate;
+  const userInformedPublicationDate = results?.config?.document_publication_date;
+  const extractedPublicationDate = results?.main_document_summary?.publication_date;
 
   const value = userInformedPublicationDate
     ? { date: format(userInformedPublicationDate, 'MMM d, yyyy'), source: 'user-informed' }

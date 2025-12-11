@@ -1,16 +1,14 @@
 import {
-  AnalysisApi,
   ChunkEvalPackageRequest,
   ClaimSubstantiatorStateSummary,
   EvalPackageRequest,
-  EvaluationApi,
-  HealthApi,
+  generateChunkEvalPackageApiGenerateChunkEvalPackagePost,
+  generateEvalPackageApiGenerateEvalPackagePost,
   StartWorkflowResponse,
-  StartWorkflowResponseFromJSON,
   SubstantiationWorkflowConfig,
 } from '@/lib/generated-api';
-import { downloadBlobResponse, generateDefaultTestName } from '@/lib/utils';
-import { analysisApi, apiUrl, evaluationApi, getAuthHeader, healthApi } from './api';
+import { generateDefaultTestName } from '@/lib/utils';
+import { baseUrl, getAuthHeader } from './api';
 
 interface AnalysisRequest {
   mainDocument: File;
@@ -19,15 +17,7 @@ interface AnalysisRequest {
 }
 
 class AnalysisService {
-  private readonly analysisApi: AnalysisApi;
-  private readonly evaluationApi: EvaluationApi;
-  private readonly healthApi: HealthApi;
-
-  constructor() {
-    this.analysisApi = analysisApi;
-    this.evaluationApi = evaluationApi;
-    this.healthApi = healthApi;
-  }
+  constructor() {}
 
   /**
    * Start analysis with upload progress tracking.
@@ -54,20 +44,20 @@ class AnalysisService {
         }
 
         // Add config parameters
-        if (config.useToulmin !== undefined) formData.append('use_toulmin', String(config.useToulmin));
-        if (config.runLiteratureReview !== undefined)
-          formData.append('run_literature_review', String(config.runLiteratureReview));
-        if (config.runSuggestCitations !== undefined)
-          formData.append('run_suggest_citations', String(config.runSuggestCitations));
-        if (config.runLiveReports !== undefined) formData.append('run_live_reports', String(config.runLiveReports));
-        if (config.runReferenceValidation !== undefined)
-          formData.append('run_reference_validation', String(config.runReferenceValidation));
+        if (config.use_toulmin !== undefined) formData.append('use_toulmin', String(config.use_toulmin));
+        if (config.run_literature_review !== undefined)
+          formData.append('run_literature_review', String(config.run_literature_review));
+        if (config.run_suggest_citations !== undefined)
+          formData.append('run_suggest_citations', String(config.run_suggest_citations));
+        if (config.run_live_reports !== undefined) formData.append('run_live_reports', String(config.run_live_reports));
+        if (config.run_reference_validation !== undefined)
+          formData.append('run_reference_validation', String(config.run_reference_validation));
         if (config.domain) formData.append('domain', config.domain);
-        if (config.targetAudience) formData.append('target_audience', config.targetAudience);
-        if (config.documentPublicationDate)
-          formData.append('document_publication_date', config.documentPublicationDate.toISOString().split('T')[0]);
-        if (config.sessionId) formData.append('session_id', config.sessionId);
-        if (config.openaiApiKey) formData.append('openai_api_key', config.openaiApiKey);
+        if (config.target_audience) formData.append('target_audience', config.target_audience);
+        if (config.document_publication_date)
+          formData.append('document_publication_date', config.document_publication_date.toISOString().split('T')[0]);
+        if (config.session_id) formData.append('session_id', config.session_id);
+        if (config.openai_api_key) formData.append('openai_api_key', config.openai_api_key);
 
         // Use XMLHttpRequest for upload progress tracking
         const xhr = new XMLHttpRequest();
@@ -83,7 +73,7 @@ class AnalysisService {
           if (xhr.status >= 200 && xhr.status < 300) {
             try {
               const rawResponse = JSON.parse(xhr.responseText);
-              const response = StartWorkflowResponseFromJSON(rawResponse);
+              const response = rawResponse as StartWorkflowResponse;
               resolve(response);
             } catch {
               reject(new Error('Failed to parse response'));
@@ -101,7 +91,7 @@ class AnalysisService {
           reject(new Error('Upload aborted'));
         });
 
-        xhr.open('POST', `${apiUrl}/api/start-analysis`);
+        xhr.open('POST', `${baseUrl}/api/start-analysis`);
 
         // Set authorization header if available
         const authHeader = await getAuthHeader();
@@ -125,15 +115,21 @@ class AnalysisService {
     try {
       const evalRequest: EvalPackageRequest = {
         results,
-        testName: testName || generateDefaultTestName('eval'),
+        test_name: testName || generateDefaultTestName('eval'),
         description: description || 'Generated from frontend analysis',
       };
 
-      return downloadBlobResponse(() =>
-        this.evaluationApi.generateEvalPackageApiGenerateEvalPackagePostRaw({
-          evalPackageRequest: evalRequest,
-        }),
-      );
+      const response = await generateEvalPackageApiGenerateEvalPackagePost({
+        body: evalRequest,
+      });
+
+      // The response should be a Blob for file downloads
+      if (response instanceof Blob) {
+        return response;
+      }
+
+      // If it's not a Blob, try to convert it
+      throw new Error('Unexpected response type from eval package generation');
     } catch (error) {
       console.error('Error generating eval package:', error);
       throw error;
@@ -150,17 +146,23 @@ class AnalysisService {
     try {
       const evalRequest: ChunkEvalPackageRequest = {
         results,
-        chunkIndex,
-        selectedAgents,
-        testName: testName || generateDefaultTestName('chunk_eval', chunkIndex.toString()),
+        chunk_index: chunkIndex,
+        selected_agents: selectedAgents,
+        test_name: testName || generateDefaultTestName('chunk_eval', chunkIndex.toString()),
         description: description || `Generated from chunk ${chunkIndex} analysis`,
       };
 
-      return downloadBlobResponse(() =>
-        this.evaluationApi.generateChunkEvalPackageApiGenerateChunkEvalPackagePostRaw({
-          chunkEvalPackageRequest: evalRequest,
-        }),
-      );
+      const response = await generateChunkEvalPackageApiGenerateChunkEvalPackagePost({
+        body: evalRequest,
+      });
+
+      // The response should be a Blob for file downloads
+      if (response instanceof Blob) {
+        return response;
+      }
+
+      // If it's not a Blob, try to convert it
+      throw new Error('Unexpected response type from chunk eval package generation');
     } catch (error) {
       console.error('Error generating chunk eval package:', error);
       throw error;

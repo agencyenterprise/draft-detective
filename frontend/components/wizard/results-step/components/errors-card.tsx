@@ -15,7 +15,7 @@ export function ErrorsCard({ errors }: ErrorsCardProps) {
       <div className="space-y-2">
         {errors.map((error, ei) => (
           <pre key={ei} className="whitespace-pre-wrap">
-            <strong>{error.taskName}:</strong> {error.error}
+            <strong>{error.task_name}:</strong> {error.error}
           </pre>
         ))}
       </div>

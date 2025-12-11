@@ -47,7 +47,7 @@ export function DocumentIssueCard({ issue, onSelect }: DocumentIssueCardProps) {
 
   return (
     <div
-      id={getIssueId(issue.chunkIndex, issue.claimIndex)}
+      id={getIssueId(issue.chunk_index, issue.claim_index)}
       className={cn('rounded-lg p-4 space-y-3 border-l-4 shadow-sm cursor-pointer break-words', className)}
       role="button"
       tabIndex={0}
@@ -65,8 +65,8 @@ export function DocumentIssueCard({ issue, onSelect }: DocumentIssueCardProps) {
       <p className="text-sm text-gray-700">{issue.description}</p>
       <div className="flex items-center gap-2 justify-between">
         <p className="text-xs text-muted-foreground italic flex items-center gap-1">
-          {issue.claimIndex !== undefined && issue.claimIndex !== null && <span>Claim {issue.claimIndex + 1}</span>}
-          {issue.chunkIndex !== undefined && issue.chunkIndex !== null && <span>Chunk {issue.chunkIndex}</span>}
+          {issue.claim_index !== undefined && issue.claim_index !== null && <span>Claim {issue.claim_index + 1}</span>}
+          {issue.chunk_index !== undefined && issue.chunk_index !== null && <span>Chunk {issue.chunk_index}</span>}
         </p>
       </div>
     </div>

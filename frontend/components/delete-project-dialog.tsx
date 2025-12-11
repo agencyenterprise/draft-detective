@@ -10,7 +10,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
-import { projectsApi } from '@/lib/api';
+import { deleteProjectEndpointApiProjectProjectIdDelete } from '@/lib/generated-api';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -24,7 +24,7 @@ export function DeleteProjectDialog({ projectId, projectTitle }: DeleteProjectDi
   const queryClient = useQueryClient();
 
   const deleteMutation = useMutation({
-    mutationFn: () => projectsApi.deleteProjectEndpointApiProjectProjectIdDelete({ projectId }),
+    mutationFn: () => deleteProjectEndpointApiProjectProjectIdDelete({ path: { project_id: projectId } }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projects'] });
       toast.success('Project deleted successfully');

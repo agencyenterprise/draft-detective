@@ -22,8 +22,8 @@ interface ReferenceCardProps {
 export function ReferenceCard({ reference, index }: ReferenceCardProps) {
   const [isExpanded, setIsExpanded] = React.useState(false);
   const quality = formatQuality(reference.quality);
-  const direction = formatReferenceDirection(reference.referenceDirection);
-  const action = formatRecommendedAction(reference.recommendedAction);
+  const direction = formatReferenceDirection(reference.reference_direction);
+  const action = formatRecommendedAction(reference.recommended_action);
 
   return (
     <Card className="hover:shadow-md transition-shadow">
@@ -36,7 +36,7 @@ export function ReferenceCard({ reference, index }: ReferenceCardProps) {
                 <h3 className="font-semibold text-base leading-tight">{reference.title}</h3>
               </div>
               <p className="text-sm text-muted-foreground">
-                {reference.authors} ({reference.publicationYear})
+                {reference.authors} ({reference.publication_year})
               </p>
             </div>
             {reference.link && (
@@ -60,7 +60,7 @@ export function ReferenceCard({ reference, index }: ReferenceCardProps) {
               {action.label}
             </Badge>
             <Badge variant="outline" className="text-muted-foreground">
-              {formatReferenceType(reference.referenceType)}
+              {formatReferenceType(reference.reference_type)}
             </Badge>
           </div>
         </div>
@@ -75,7 +75,7 @@ export function ReferenceCard({ reference, index }: ReferenceCardProps) {
         <div className="space-y-2">
           <div className="text-sm font-medium text-muted-foreground">Recommended Action</div>
           <p className="text-sm leading-relaxed bg-muted/50 p-3 rounded-md">
-            {reference.explanationForRecommendedAction}
+            {reference.explanation_for_recommended_action}
           </p>
         </div>
 
@@ -101,7 +101,7 @@ export function ReferenceCard({ reference, index }: ReferenceCardProps) {
                 Reference Excerpt
               </div>
               <blockquote className="border-l-4 border-blue-200 bg-blue-50/50 pl-4 py-3 text-sm italic leading-relaxed">
-                {reference.referenceExcerpt}
+                {reference.reference_excerpt}
               </blockquote>
             </div>
 
@@ -111,18 +111,18 @@ export function ReferenceCard({ reference, index }: ReferenceCardProps) {
                 Related Excerpt from Document
               </div>
               <blockquote className="border-l-4 border-gray-200 bg-gray-50/50 pl-4 py-3 text-sm leading-relaxed">
-                {reference.mainDocumentExcerpt}
+                {reference.main_document_excerpt}
               </blockquote>
             </div>
 
             <div className="grid grid-cols-2 gap-4 pt-2 border-t">
               <div>
                 <div className="text-xs font-medium text-muted-foreground mb-1">Bibliography</div>
-                <p className="text-xs leading-relaxed">{reference.bibliographyInfo}</p>
+                <p className="text-xs leading-relaxed">{reference.bibliography_info}</p>
               </div>
               <div>
                 <div className="text-xs font-medium text-muted-foreground mb-1">Political Bias</div>
-                <p className="text-xs">{formatPoliticalBias(reference.politicalBias)}</p>
+                <p className="text-xs">{formatPoliticalBias(reference.political_bias)}</p>
               </div>
             </div>
           </div>

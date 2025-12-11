@@ -4,7 +4,7 @@ export type ChunkToItems = Record<string, DoclingRegion[]>;
 export type RegionWithChunks = DoclingRegion & { chunkIndices: number[] };
 
 export const getPageNumber = (page: DoclingPageInfo): number => {
-  const pageNum = page.pageNo ?? page.page;
+  const pageNum = page.page_no ?? page.page;
   if (pageNum === null || pageNum === undefined) {
     console.warn('Page number not found in DoclingPageInfo', page);
     return 0;

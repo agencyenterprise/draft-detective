@@ -27,7 +27,7 @@ export function AnalysisOptionsMenu({ onSaveAsEvalTest, onReevaluate, projectId,
   const { download, isDownloading } = useDownloadDocx(projectId);
 
   const claimSubstantiationResults = getWorkflowRunByType(results, WorkflowRunType.ClaimSubstantiation);
-  const hasDocx = claimSubstantiationResults?.state?.file?.originalFilePath?.endsWith('.docx');
+  const hasDocx = claimSubstantiationResults?.state?.file?.original_file_path?.endsWith('.docx');
 
   return (
     <>

@@ -1,5 +1,4 @@
-import { healthApi } from '@/lib/api';
-import { AgentInfo } from '@/lib/generated-api';
+import { AgentInfo, getSupportedAgentsApiSupportedAgentsGet } from '@/lib/generated-api';
 import { useQuery } from '@tanstack/react-query';
 
 interface UseSupportedAgentsReturn {
@@ -16,7 +15,7 @@ export function useSupportedAgents(): UseSupportedAgentsReturn {
   } = useQuery({
     queryKey: ['supportedAgents'],
     staleTime: Infinity,
-    queryFn: () => healthApi.getSupportedAgentsApiSupportedAgentsGet(),
+    queryFn: () => getSupportedAgentsApiSupportedAgentsGet(),
   });
 
   return {

@@ -32,7 +32,7 @@ export function SubstantiationResults({
 }: SubstantiationResultsProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
-  const hasCitationBasedEvidence = substantiation.evidenceSources.length > 0;
+  const hasCitationBasedEvidence = substantiation.evidence_sources.length > 0;
   const hasRagEvidence = retrievedPassages && retrievedPassages.length > 0;
 
   return (
@@ -64,12 +64,12 @@ export function SubstantiationResults({
           </Button>
         </div>
 
-        <EvidenceAlignmentLevelBadge evidenceAlignment={substantiation.evidenceAlignment} variant="solid" />
+        <EvidenceAlignmentLevelBadge evidenceAlignment={substantiation.evidence_alignment} variant="solid" />
       </div>
 
       {isExpanded && (
         <div className="space-y-2">
-          <LabeledValue label="Evidence Alignment">{substantiation.evidenceAlignment}</LabeledValue>
+          <LabeledValue label="Evidence Alignment">{substantiation.evidence_alignment}</LabeledValue>
           <LabeledValue label="Rationale">{substantiation.rationale}</LabeledValue>
           <LabeledValue label="Feedback to resolve">{substantiation.feedback}</LabeledValue>
 
@@ -81,36 +81,39 @@ export function SubstantiationResults({
                   <AccordionTrigger className="text-sm font-medium hover:no-underline">
                     <div className="flex items-center gap-2">
                       <BookOpen className="h-4 w-4" />
-                      Citation-Based Evidence ({substantiation.evidenceSources.length})
+                      Citation-Based Evidence ({substantiation.evidence_sources.length})
                     </div>
                   </AccordionTrigger>
                   <AccordionContent>
                     <div className="space-y-3 mt-2">
-                      {substantiation.evidenceSources.map((source, index) => {
+                      {substantiation.evidence_sources.map((source, index) => {
                         const matchedReference = references.find(
-                          (reference) => reference.nameOfAssociatedSupportingDocument === source.referenceFileName,
+                          (reference) =>
+                            reference.name_of_associated_supporting_document === source.reference_file_name,
                         );
-                        const matchedFile = supportingFiles.find((file) => file.fileName === source.referenceFileName);
+                        const matchedFile = supportingFiles.find(
+                          (file) => file.file_name === source.reference_file_name,
+                        );
 
                         return (
                           <div key={index} className="bg-muted p-3 rounded-md space-y-1">
                             <p className="font-medium text-sm">
-                              Source {index + 1} of {substantiation.evidenceSources.length}
+                              Source {index + 1} of {substantiation.evidence_sources.length}
                             </p>
                             <LabeledValue label="Reference">
-                              {matchedFile && matchedFile.fileId ? (
+                              {matchedFile && matchedFile.file_id ? (
                                 <>
                                   <Link
-                                    href={`/api/files/download/${matchedFile.fileId}`}
+                                    href={`/api/files/download/${matchedFile.file_id}`}
                                     target="_blank"
                                     className="text-blue-600 underline text-sm"
                                   >
-                                    {source.referenceFileName}
+                                    {source.reference_file_name}
                                   </Link>{' '}
                                   <span className="text-muted-foreground text-sm"> - {matchedReference?.text}</span>
                                 </>
                               ) : (
-                                <span className="text-muted-foreground text-sm">{source.referenceFileName}</span>
+                                <span className="text-muted-foreground text-sm">{source.reference_file_name}</span>
                               )}
                             </LabeledValue>
                             <LabeledValue label="Location">{source.location}</LabeledValue>

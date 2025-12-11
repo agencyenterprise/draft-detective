@@ -1,5 +1,5 @@
-import { feedbackApi } from '@/lib/api';
 import type { FeedbackRequest, FeedbackType } from '@/lib/generated-api';
+import { getFeedbackApiFeedbackGet, submitFeedbackApiFeedbackPost } from '@/lib/generated-api';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 /**
@@ -27,9 +27,11 @@ export function useFeedback(workflowRunId: string, entityPath: Record<string, nu
     queryKey,
     queryFn: async () => {
       try {
-        return await feedbackApi.getFeedbackApiFeedbackGet({
-          workflowRunId,
-          entityPath: JSON.stringify(entityPath),
+        return await getFeedbackApiFeedbackGet({
+          query: {
+            workflow_run_id: workflowRunId,
+            entity_path: JSON.stringify(entityPath),
+          },
         });
       } catch {
         return null;
@@ -41,14 +43,14 @@ export function useFeedback(workflowRunId: string, entityPath: Record<string, nu
   const submitMutation = useMutation({
     mutationFn: async (request: { feedback_type: FeedbackType; feedback_text?: string | null }) => {
       const feedbackRequest: FeedbackRequest = {
-        workflowRunId,
-        entityPath,
-        feedbackType: request.feedback_type,
-        feedbackText: request.feedback_text || undefined,
+        workflow_run_id: workflowRunId,
+        entity_path: entityPath,
+        feedback_type: request.feedback_type,
+        feedback_text: request.feedback_text || null,
       };
 
-      return await feedbackApi.submitFeedbackApiFeedbackPost({
-        feedbackRequest,
+      return await submitFeedbackApiFeedbackPost({
+        body: feedbackRequest,
       });
     },
     onSuccess: (data) => {

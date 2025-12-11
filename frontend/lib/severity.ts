@@ -1,20 +1,20 @@
 import { ClaimSubstantiatorStateSummary, DocumentChunkOutput, DocumentIssue, SeverityEnum } from './generated-api';
 
 export function getMaxChunkSeverity(results: ClaimSubstantiatorStateSummary, chunk: DocumentChunkOutput) {
-  const issues = results.rankedIssues?.filter((issue) => issue.chunkIndex === chunk.chunkIndex) || [];
+  const issues = results.ranked_issues?.filter((issue) => issue.chunk_index === chunk.chunk_index) || [];
   return getMaxSeverity(issues);
 }
 
 export function getClaimIssues(results: ClaimSubstantiatorStateSummary, chunkIndex: number, claimIndex: number) {
   return (
-    results.rankedIssues?.filter((issue) => issue.chunkIndex === chunkIndex && issue.claimIndex === claimIndex) || []
+    results.ranked_issues?.filter((issue) => issue.chunk_index === chunkIndex && issue.claim_index === claimIndex) || []
   ).sort(sortDocumentIssueBySeverity);
 }
 
 export function getChunkIssues(results: ClaimSubstantiatorStateSummary, chunkIndex: number) {
   return (
-    results.rankedIssues?.filter(
-      (issue) => issue.chunkIndex === chunkIndex && (issue.claimIndex === null || issue.claimIndex === undefined),
+    results.ranked_issues?.filter(
+      (issue) => issue.chunk_index === chunkIndex && (issue.claim_index === null || issue.claim_index === undefined),
     ) || []
   ).sort(sortDocumentIssueBySeverity);
 }

@@ -44,26 +44,28 @@ export function ClaimLiveReports({ liveReportsAnalysis }: ClaimLiveReportsProps)
           </Button>
         </div>
 
-        <EvidenceWeighterRecommendedActionBadge recommendedAction={liveReportsAnalysis.claimUpdateAction} />
+        <EvidenceWeighterRecommendedActionBadge recommendedAction={liveReportsAnalysis.claim_update_action} />
       </div>
 
       {isExpanded && (
         <div className="space-y-2">
-          <LabeledValue label="Claim Update Action">{liveReportsAnalysis.claimUpdateAction}</LabeledValue>
-          <LabeledValue label="Confidence Level">{liveReportsAnalysis.confidenceLevel}</LabeledValue>
-          <LabeledValue label="Newer References Alignment">{liveReportsAnalysis.newerReferencesAlignment}</LabeledValue>
+          <LabeledValue label="Claim Update Action">{liveReportsAnalysis.claim_update_action}</LabeledValue>
+          <LabeledValue label="Confidence Level">{liveReportsAnalysis.confidence_level}</LabeledValue>
+          <LabeledValue label="Newer References Alignment">
+            {liveReportsAnalysis.newer_references_alignment}
+          </LabeledValue>
           <LabeledValue label="Rationale">{liveReportsAnalysis.rationale}</LabeledValue>
           <LabeledValue label="Rewritten Claim">
-            <p className="italic">&quot;{liveReportsAnalysis.rewrittenClaim}&quot;</p>
+            <p className="italic">&quot;{liveReportsAnalysis.rewritten_claim}&quot;</p>
           </LabeledValue>
 
           <h3 className="font-medium">Newer References:</h3>
           <div className="space-y-2">
-            {liveReportsAnalysis.newerReferences.map((reference) => (
+            {liveReportsAnalysis.newer_references.map((reference) => (
               <div key={reference.title} className="bg-muted p-3 rounded-md">
                 <LabeledValue label="Title">{reference.title}</LabeledValue>
                 <LabeledValue label="Authors">{reference.authors}</LabeledValue>
-                <LabeledValue label="Publication Year">{reference.publicationYear}</LabeledValue>
+                <LabeledValue label="Publication Year">{reference.publication_year}</LabeledValue>
                 <LabeledValue label="Link">
                   <Link
                     href={reference.link}
@@ -74,12 +76,12 @@ export function ClaimLiveReports({ liveReportsAnalysis }: ClaimLiveReportsProps)
                     {reference.link}
                   </Link>
                 </LabeledValue>
-                <LabeledValue label="Bibliography Info">{reference.bibliographyInfo}</LabeledValue>
-                <LabeledValue label="Reference Excerpt">{reference.referenceExcerpt}</LabeledValue>
-                <LabeledValue label="Reference Type">{reference.referenceType}</LabeledValue>
-                <LabeledValue label="Reference Direction">{reference.referenceDirection}</LabeledValue>
+                <LabeledValue label="Bibliography Info">{reference.bibliography_info}</LabeledValue>
+                <LabeledValue label="Reference Excerpt">{reference.reference_excerpt}</LabeledValue>
+                <LabeledValue label="Reference Type">{reference.reference_type}</LabeledValue>
+                <LabeledValue label="Reference Direction">{reference.reference_direction}</LabeledValue>
                 <LabeledValue label="Quality">{reference.quality}</LabeledValue>
-                <LabeledValue label="Political Bias">{reference.politicalBias}</LabeledValue>
+                <LabeledValue label="Political Bias">{reference.political_bias}</LabeledValue>
                 <LabeledValue label="Rationale">{reference.rationale}</LabeledValue>
                 <LabeledValue label="Methodology">{reference.methodology}</LabeledValue>
               </div>

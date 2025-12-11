@@ -56,7 +56,7 @@ export function ClaimInferenceValidation({ inferenceValidation }: ClaimInference
         <div className="space-y-2">
           <LabeledValue label="Valid">{inferenceValidation.valid ? 'Yes' : 'No'}</LabeledValue>
           <LabeledValue label="Rationale">{inferenceValidation.rationale}</LabeledValue>
-          <LabeledValue label="Suggested Action">{inferenceValidation.suggestedAction}</LabeledValue>
+          <LabeledValue label="Suggested Action">{inferenceValidation.suggested_action}</LabeledValue>
         </div>
       )}
     </div>

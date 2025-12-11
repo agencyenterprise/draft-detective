@@ -21,8 +21,8 @@ export function DocumentReconstructor({ results, selectedChunkIndex, onChunkSele
   const chunksGroupedByParagraphIndex = useMemo(() => {
     return chunks.reduce(
       (acc, chunk) => {
-        acc[chunk.paragraphIndex] = acc[chunk.paragraphIndex] || [];
-        acc[chunk.paragraphIndex].push(chunk);
+        acc[chunk.paragraph_index] = acc[chunk.paragraph_index] || [];
+        acc[chunk.paragraph_index].push(chunk);
         return acc;
       },
       {} as Record<number, DocumentChunkOutput[]>,
@@ -58,9 +58,9 @@ export function DocumentReconstructor({ results, selectedChunkIndex, onChunkSele
   useEffect(() => {
     if (selectedChunkIndex !== null) {
       // Find which paragraph contains the selected chunk
-      const chunk = chunks.find((c) => c.chunkIndex === selectedChunkIndex);
+      const chunk = chunks.find((c) => c.chunk_index === selectedChunkIndex);
       if (chunk) {
-        const paragraphRowIndex = paragraphEntries.findIndex(([pIndex]) => Number(pIndex) === chunk.paragraphIndex);
+        const paragraphRowIndex = paragraphEntries.findIndex(([pIndex]) => Number(pIndex) === chunk.paragraph_index);
         if (paragraphRowIndex !== -1) {
           rowVirtualizer.scrollToIndex(paragraphRowIndex, {
             align: 'center',
@@ -140,7 +140,7 @@ export function DocumentReconstructorChunkGroup({
       .map((chunk) => {
         const content = extractChunkContent(chunk.content, blockPrefix);
         const severity = getMaxChunkSeverity(results, chunk);
-        return `<span data-chunk-index="${chunk.chunkIndex}" data-severity="${severity}">${content}</span>`;
+        return `<span data-chunk-index="${chunk.chunk_index}" data-severity="${severity}">${content}</span>`;
       })
       .join(' ');
 

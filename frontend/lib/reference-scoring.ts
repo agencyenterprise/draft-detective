@@ -34,8 +34,8 @@ const qualityRank: Record<PublicationQuality, number> = {
  * @returns A numeric score where higher values indicate better references
  */
 export function scoreReference(ref: Reference): number {
-  const confidence = ref.confidenceInRecommendation;
-  const quality = ref.publicationQuality;
+  const confidence = ref.confidence_in_recommendation;
+  const quality = ref.publication_quality;
 
   const confidenceScore = confidence ? confidenceRank[confidence] || 0 : 0;
   const qualityScore = quality ? qualityRank[quality] || 0 : 0;
@@ -51,7 +51,7 @@ export function scoreReference(ref: Reference): number {
  * @returns The maximum reference score, or 0 if no references exist
  */
 export function scoreSuggestion(suggestion: CitationSuggestionResultWithClaimIndexOutput): number {
-  const refs = suggestion?.relevantReferences || [];
+  const refs = suggestion?.relevant_references || [];
   if (refs.length === 0) return 0;
   return Math.max(...refs.map(scoreReference));
 }

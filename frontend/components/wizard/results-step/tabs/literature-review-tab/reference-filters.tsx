@@ -120,8 +120,8 @@ export function filterReferences(
 ): DocumentReferenceFactors[] {
   return references.filter((ref) => {
     if (filters.quality !== 'all' && ref.quality !== filters.quality) return false;
-    if (filters.direction !== 'all' && ref.referenceDirection !== filters.direction) return false;
-    if (filters.action !== 'all' && ref.recommendedAction !== filters.action) return false;
+    if (filters.direction !== 'all' && ref.reference_direction !== filters.direction) return false;
+    if (filters.action !== 'all' && ref.recommended_action !== filters.action) return false;
     return true;
   });
 }

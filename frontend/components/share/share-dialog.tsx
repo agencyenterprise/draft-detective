@@ -39,7 +39,7 @@ export function ShareDialog({
   const [view, setView] = useState<DialogView>('share');
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const shareUrl = shareStatus?.shareLink?.url;
+  const shareUrl = shareStatus?.share_link?.url;
   const isEnabled = shareStatus?.enabled && shareUrl;
 
   // Reset state when dialog opens/closes

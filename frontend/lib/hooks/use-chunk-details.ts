@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { workflowsApi } from '@/lib/api';
+import { getChunkDetailsEndpointApiWorkflowRunWorkflowRunIdChunkChunkIndexGet } from '@/lib/generated-api';
 
 export function useChunkDetails(
   workflowRunId: string,
@@ -15,9 +15,11 @@ export function useChunkDetails(
         return null;
       }
 
-      return await workflowsApi.getChunkDetailsEndpointApiWorkflowRunWorkflowRunIdChunkChunkIndexGet({
-        workflowRunId,
-        chunkIndex,
+      return await getChunkDetailsEndpointApiWorkflowRunWorkflowRunIdChunkChunkIndexGet({
+        path: {
+          workflow_run_id: workflowRunId,
+          chunk_index: chunkIndex,
+        },
       });
     },
     enabled: enabled && chunkIndex !== null,

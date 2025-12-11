@@ -25,18 +25,18 @@ export default function New() {
           mainDocument: data.mainDocument,
           supportingDocuments: data.supportingDocuments,
           config: {
-            useToulmin: false,
-            runLiteratureReview: data.config.runLiteratureReview,
-            runSuggestCitations: data.config.runSuggestCitations,
-            runLiveReports: data.config.runLiveReports,
-            runReferenceValidation: data.config.runReferenceValidation,
+            use_toulmin: false,
+            run_literature_review: data.config.runLiteratureReview,
+            run_suggest_citations: data.config.runSuggestCitations,
+            run_live_reports: data.config.runLiveReports,
+            run_reference_validation: data.config.runReferenceValidation,
             domain: data.config.domain || undefined,
-            targetAudience: data.config.targetAudience || undefined,
-            documentPublicationDate: data.config.documentPublicationDate
+            target_audience: data.config.targetAudience || undefined,
+            document_publication_date: data.config.documentPublicationDate
               ? new Date(data.config.documentPublicationDate)
               : undefined,
-            sessionId: undefined,
-            openaiApiKey: data.config.openaiApiKey,
+            session_id: undefined,
+            openai_api_key: data.config.openaiApiKey,
           },
         },
         {
@@ -50,7 +50,7 @@ export default function New() {
       );
     },
     onSuccess: (response) => {
-      router.push(`/projects/${response.projectId}`);
+      router.push(`/projects/${response.project_id}`);
     },
   });
 
