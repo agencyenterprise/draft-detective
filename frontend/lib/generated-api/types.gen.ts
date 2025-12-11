@@ -173,6 +173,20 @@ export type BibliographyItemValidationOutput = {
 };
 
 /**
+ * Body_create_project_endpoint_api_projects_post
+ */
+export type BodyCreateProjectEndpointApiProjectsPost = {
+  /**
+   * Title
+   */
+  title: string;
+  /**
+   * Main Document
+   */
+  main_document: Blob | File;
+};
+
+/**
  * Body_start_analysis_api_start_analysis_post
  */
 export type BodyStartAnalysisApiStartAnalysisPost = {
@@ -1469,6 +1483,82 @@ export const FieldProblemType = {
 export type FieldProblemType = (typeof FieldProblemType)[keyof typeof FieldProblemType];
 
 /**
+ * File
+ */
+export type File = {
+  /**
+   * Id
+   *
+   * The unique identifier for the file
+   */
+  id: string;
+  /**
+   * Project Id
+   *
+   * The project this file belongs to
+   */
+  project_id: string;
+  /**
+   * File Name
+   *
+   * The original name of the uploaded file
+   */
+  file_name: string;
+  /**
+   * File Path
+   *
+   * The path to the file in the file system (xxhash-based)
+   */
+  file_path: string;
+  /**
+   * File Type
+   *
+   * The MIME type of the file
+   */
+  file_type: string;
+  /**
+   * File Size
+   *
+   * The size of the file in bytes
+   */
+  file_size: number;
+  /**
+   * Content Hash
+   *
+   * xxhash of file content for deduplication
+   */
+  content_hash: string;
+  /**
+   * Original File Path
+   *
+   * Path to original file if converted (e.g., .docx before PDF conversion)
+   */
+  original_file_path?: string | null;
+  /**
+   * The role of the file in the workflow (main, support, etc.)
+   */
+  role: FileRole;
+  /**
+   * Uploaded By
+   *
+   * The user who uploaded the file
+   */
+  uploaded_by: string;
+  /**
+   * Description
+   *
+   * Optional description of the file
+   */
+  description?: string | null;
+  /**
+   * Created At
+   *
+   * The timestamp when the file was uploaded
+   */
+  created_at: Date;
+};
+
+/**
  * FileDocument
  */
 export type FileDocumentInput = {
@@ -1577,6 +1667,20 @@ export type FileDocumentOutput = {
    */
   readonly docling_pages: Array<DoclingPageInfo> | null;
 };
+
+/**
+ * FileRole
+ *
+ * Extensible enum for file purposes in workflows
+ */
+export const FileRole = { Main: 'main', Support: 'support' } as const;
+
+/**
+ * FileRole
+ *
+ * Extensible enum for file purposes in workflows
+ */
+export type FileRole = (typeof FileRole)[keyof typeof FileRole];
 
 /**
  * HTTPValidationError
@@ -3416,6 +3520,33 @@ export type ListProjectsEndpointApiProjectsGetResponses = {
 export type ListProjectsEndpointApiProjectsGetResponse =
   ListProjectsEndpointApiProjectsGetResponses[keyof ListProjectsEndpointApiProjectsGetResponses];
 
+export type CreateProjectEndpointApiProjectsPostData = {
+  body: BodyCreateProjectEndpointApiProjectsPost;
+  path?: never;
+  query?: never;
+  url: '/api/projects';
+};
+
+export type CreateProjectEndpointApiProjectsPostErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type CreateProjectEndpointApiProjectsPostError =
+  CreateProjectEndpointApiProjectsPostErrors[keyof CreateProjectEndpointApiProjectsPostErrors];
+
+export type CreateProjectEndpointApiProjectsPostResponses = {
+  /**
+   * Successful Response
+   */
+  201: ProjectDetailed;
+};
+
+export type CreateProjectEndpointApiProjectsPostResponse =
+  CreateProjectEndpointApiProjectsPostResponses[keyof CreateProjectEndpointApiProjectsPostResponses];
+
 export type DeleteProjectEndpointApiProjectProjectIdDeleteData = {
   body?: never;
   path: {
@@ -3532,6 +3663,69 @@ export type DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetError =
   DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetErrors[keyof DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetErrors];
 
 export type DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetResponses = {
+  /**
+   * Successful Response
+   */
+  200: unknown;
+};
+
+export type ListProjectFilesEndpointApiProjectProjectIdFilesGetData = {
+  body?: never;
+  path: {
+    /**
+     * Project Id
+     */
+    project_id: string;
+  };
+  query?: never;
+  url: '/api/project/{project_id}/files';
+};
+
+export type ListProjectFilesEndpointApiProjectProjectIdFilesGetErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type ListProjectFilesEndpointApiProjectProjectIdFilesGetError =
+  ListProjectFilesEndpointApiProjectProjectIdFilesGetErrors[keyof ListProjectFilesEndpointApiProjectProjectIdFilesGetErrors];
+
+export type ListProjectFilesEndpointApiProjectProjectIdFilesGetResponses = {
+  /**
+   * Response List Project Files Endpoint Api Project  Project Id  Files Get
+   *
+   * Successful Response
+   */
+  200: Array<File>;
+};
+
+export type ListProjectFilesEndpointApiProjectProjectIdFilesGetResponse =
+  ListProjectFilesEndpointApiProjectProjectIdFilesGetResponses[keyof ListProjectFilesEndpointApiProjectProjectIdFilesGetResponses];
+
+export type DownloadAllProjectFilesApiProjectProjectIdFilesDownloadAllGetData = {
+  body?: never;
+  path: {
+    /**
+     * Project Id
+     */
+    project_id: string;
+  };
+  query?: never;
+  url: '/api/project/{project_id}/files/download-all';
+};
+
+export type DownloadAllProjectFilesApiProjectProjectIdFilesDownloadAllGetErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type DownloadAllProjectFilesApiProjectProjectIdFilesDownloadAllGetError =
+  DownloadAllProjectFilesApiProjectProjectIdFilesDownloadAllGetErrors[keyof DownloadAllProjectFilesApiProjectProjectIdFilesDownloadAllGetErrors];
+
+export type DownloadAllProjectFilesApiProjectProjectIdFilesDownloadAllGetResponses = {
   /**
    * Successful Response
    */
