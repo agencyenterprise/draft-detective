@@ -3,8 +3,8 @@ builder = "dockerfile"
 
 [deploy]
 startCommand = "node server.js"
-# healthcheckPath = "/api/health"
-# healthcheckTimeout = 300
+healthcheckPath = "/api/health"
+healthcheckTimeout = 300
 restartPolicyType = "always"
 
 [env]
