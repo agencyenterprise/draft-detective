@@ -4,14 +4,15 @@ import { LabeledValue } from '@/components/labeled-value';
 import { Markdown } from '@/components/markdown';
 import { Callout } from '@/components/ui/callout';
 import { Card, CardContent } from '@/components/ui/card';
-import { ClaimSubstantiationWorkflowDetail } from '@/lib/generated-api';
+import { ClaimSubstantiatorStateSummary } from '@/lib/generated-api';
+import { WorkflowRunDetailTyped } from '@/lib/workflow-state';
 import { format } from 'date-fns';
 import { AlertCircle, FileText } from 'lucide-react';
-import { TabWithLoadingStates } from '../tab-with-loading-states';
 import { PublicationDateLabel } from '../../components/publication-date-label';
+import { TabWithLoadingStates } from '../tab-with-loading-states';
 
 interface LiveReportsTabProps {
-  workflowDetail: ClaimSubstantiationWorkflowDetail | undefined;
+  workflowDetail: WorkflowRunDetailTyped<ClaimSubstantiatorStateSummary> | undefined;
   isProcessing?: boolean;
 }
 

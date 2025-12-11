@@ -1,15 +1,11 @@
 import { Query, useQueries, useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import {
-  getClaimSubstantiationWorkflowStateApiWorkflowsClaimSubstantiationWorkflowRunIdGet,
-  getMethodologicalAlignmentWorkflowStateApiWorkflowsMethodologicalAlignmentWorkflowRunIdGet,
   getProjectEndpointApiProjectProjectIdGet,
-  getReferenceDownloaderWorkflowStateApiWorkflowsReferenceDownloaderWorkflowRunIdGet,
-  WorkflowRun,
+  getWorkflowStateApiWorkflowsWorkflowRunIdGet,
+  WorkflowRunDetail,
   WorkflowRunStatus,
-  WorkflowRunType,
 } from '../generated-api';
-import { WorkflowRunDetail } from '../workflow-state';
 
 const REFETCH_INTERVAL_MS = 3000;
 
@@ -32,7 +28,7 @@ export function useProjectDetails(projectId: string) {
   const workflowDetailsQueries = useQueries({
     queries: workflowRuns.map((workflowRun) => ({
       queryKey: ['workflowRun', workflowRun.id],
-      queryFn: () => fetchWorkflowState(workflowRun),
+      queryFn: () => getWorkflowStateApiWorkflowsWorkflowRunIdGet({ path: { workflow_run_id: workflowRun.id } }),
       refetchInterval: (query: Query<WorkflowRunDetail>) => {
         return query.state.data?.run.status === WorkflowRunStatus.Running ? REFETCH_INTERVAL_MS : false;
       },
@@ -59,23 +55,4 @@ export function useProjectDetails(projectId: string) {
     isLoading,
     error: projectError,
   };
-}
-
-function fetchWorkflowState(workflowRun: WorkflowRun): Promise<WorkflowRunDetail> {
-  switch (workflowRun.type) {
-    case WorkflowRunType.ClaimSubstantiation:
-      return getClaimSubstantiationWorkflowStateApiWorkflowsClaimSubstantiationWorkflowRunIdGet({
-        path: { workflow_run_id: workflowRun.id },
-      });
-    case WorkflowRunType.MethodologicalAlignment:
-      return getMethodologicalAlignmentWorkflowStateApiWorkflowsMethodologicalAlignmentWorkflowRunIdGet({
-        path: { workflow_run_id: workflowRun.id },
-      });
-    case WorkflowRunType.ReferenceDownloader:
-      return getReferenceDownloaderWorkflowStateApiWorkflowsReferenceDownloaderWorkflowRunIdGet({
-        path: { workflow_run_id: workflowRun.id },
-      });
-    default:
-      throw new Error(`Unknown workflow type: ${workflowRun.type satisfies never}`);
-  }
 }

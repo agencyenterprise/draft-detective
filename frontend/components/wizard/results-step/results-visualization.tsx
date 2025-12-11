@@ -2,11 +2,15 @@
 
 import { Dialog } from '@/components/ui/dialog';
 import { analysisService } from '@/lib/analysis-service';
-import { rerunAnalysisEndpointApiRerunAnalysisPost } from '@/lib/generated-api';
 import { DocRenderMode } from '@/lib/constants';
 import { downloadFile, generateEvalFilename } from '@/lib/file-download';
-import { RerunAnalysisRequest, WorkflowRunType } from '@/lib/generated-api';
-import { getWorkflowRunByType, WorkflowRunDetail } from '@/lib/workflow-state';
+import {
+  rerunAnalysisEndpointApiRerunAnalysisPost,
+  RerunAnalysisRequest,
+  WorkflowRunDetail,
+  WorkflowRunType,
+} from '@/lib/generated-api';
+import { getWorkflowRunByType } from '@/lib/workflow-state';
 import { useMutation } from '@tanstack/react-query';
 import { useState } from 'react';
 import { toast } from 'sonner';

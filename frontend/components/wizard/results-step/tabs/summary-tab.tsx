@@ -1,12 +1,12 @@
 'use client';
 
-import { ClaimSubstantiationWorkflowDetail } from '@/lib/generated-api';
-import * as React from 'react';
+import { ClaimSubstantiatorStateSummary } from '@/lib/generated-api';
+import { WorkflowRunDetailTyped } from '@/lib/workflow-state';
 import { SummaryCards } from '../components/summary-cards';
 import { useResultsCalculations } from '../hooks/use-results-calculations';
 
 interface SummaryTabProps {
-  workflowDetail: ClaimSubstantiationWorkflowDetail | undefined;
+  workflowDetail: WorkflowRunDetailTyped<ClaimSubstantiatorStateSummary> | undefined;
   isProcessing?: boolean;
 }
 

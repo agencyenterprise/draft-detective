@@ -4,11 +4,12 @@ import { TabType } from '@/components/wizard/results-step/constants';
 import { ResultsVisualization } from '@/components/wizard/results-step/results-visualization';
 import { DocRenderMode } from '@/lib/constants';
 import {
-  ClaimSubstantiationWorkflowDetail,
+  ClaimSubstantiatorStateSummary,
   getSharedResourceApiPublicShareTokenGet,
   WorkflowRunStatus,
   WorkflowRunType,
 } from '@/lib/generated-api';
+import { WorkflowRunDetailTyped } from '@/lib/workflow-state';
 import { useQuery } from '@tanstack/react-query';
 import { useParams } from 'next/navigation';
 import { useMemo, useState } from 'react';
@@ -30,7 +31,7 @@ export default function SharedProjectPage() {
   const workflowResults = useMemo(() => {
     if (!data?.state || !data?.workflow_run) return [];
 
-    const workflowDetail: ClaimSubstantiationWorkflowDetail = {
+    const workflowDetail: WorkflowRunDetailTyped<ClaimSubstantiatorStateSummary> = {
       run: {
         id: data.workflow_run.id,
         project_id: data.project.id,

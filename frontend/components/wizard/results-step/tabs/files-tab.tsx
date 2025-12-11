@@ -1,11 +1,12 @@
 'use client';
 
 import { LabeledValue } from '@/components/labeled-value';
-import { ClaimSubstantiationWorkflowDetail, FileDocumentOutput } from '@/lib/generated-api';
+import { ClaimSubstantiatorStateSummary, FileDocumentOutput } from '@/lib/generated-api';
+import { WorkflowRunDetailTyped } from '@/lib/workflow-state';
 import Link from 'next/link';
 
 interface FilesTabProps {
-  workflowDetail: ClaimSubstantiationWorkflowDetail | undefined;
+  workflowDetail: WorkflowRunDetailTyped<ClaimSubstantiatorStateSummary> | undefined;
 }
 
 function FileNameLink({ file }: { file: FileDocumentOutput }) {

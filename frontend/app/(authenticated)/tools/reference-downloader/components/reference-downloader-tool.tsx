@@ -2,10 +2,7 @@
 
 import * as React from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import {
-  getReferenceDownloaderWorkflowStateApiWorkflowsReferenceDownloaderWorkflowRunIdGet,
-  startReferenceDownloaderWorkflowApiWorkflowsReferenceDownloaderStartPost,
-} from '@/lib/generated-api';
+
 import { toast } from 'sonner';
 import { useSessionStorage } from '@/lib/hooks/use-session-storage';
 import { Button } from '@/components/ui/button';
@@ -13,7 +10,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { AlertCircle, Loader2, Play } from 'lucide-react';
-import { WorkflowRunStatus, ReferenceFetchItem, WorkflowRunType } from '@/lib/generated-api';
+import {
+  WorkflowRunStatus,
+  ReferenceFetchItem,
+  WorkflowRunType,
+  getWorkflowStateApiWorkflowsWorkflowRunIdGet,
+  startWorkflowApiWorkflowsStartPost,
+  ReferenceDownloaderState,
+} from '@/lib/generated-api';
 import { ReferenceItem } from './reference-item';
 
 const REFETCH_INTERVAL_MS = 3000;
@@ -29,7 +33,7 @@ export function ReferenceDownloaderTool() {
     queryKey: ['referenceCheckWorkflow', workflowRunId],
     queryFn: async () => {
       if (!workflowRunId) return null;
-      return await getReferenceDownloaderWorkflowStateApiWorkflowsReferenceDownloaderWorkflowRunIdGet({
+      return await getWorkflowStateApiWorkflowsWorkflowRunIdGet({
         path: { workflow_run_id: workflowRunId },
       });
     },
@@ -42,7 +46,7 @@ export function ReferenceDownloaderTool() {
 
   const startWorkflowMutation = useMutation({
     mutationFn: async (references: string[]) => {
-      return await startReferenceDownloaderWorkflowApiWorkflowsReferenceDownloaderStartPost({
+      return await startWorkflowApiWorkflowsStartPost({
         body: {
           type: WorkflowRunType.ReferenceDownloader,
           project_id: null,
@@ -82,8 +86,9 @@ export function ReferenceDownloaderTool() {
   };
 
   const isProcessing = workflowDetail?.run.status === WorkflowRunStatus.Running || startWorkflowMutation.isPending;
-  const results = workflowDetail?.state.fetched_references || [];
-  const downloadedReferences = workflowDetail?.state.downloaded_references || [];
+  const state = workflowDetail?.state as ReferenceDownloaderState | undefined;
+  const results = state?.fetched_references ?? [];
+  const downloadedReferences = state?.downloaded_references ?? [];
   const hasResults = results.length > 0;
   const isCompleted = workflowDetail?.run.status === WorkflowRunStatus.Completed;
 

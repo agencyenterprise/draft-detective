@@ -1,14 +1,15 @@
 import { Markdown } from '@/components/markdown';
 import { Button } from '@/components/ui/button';
 import { WorkflowConfigDialog, WorkflowConfigFormValues } from '@/components/workflows/workflow-config-dialog';
-import { startMethodologicalAlignmentWorkflowApiWorkflowsMethodologicalAlignmentStartPost } from '@/lib/generated-api';
 import {
-  MethodologicalAlignmentWorkflowDetail,
+  MethodologicalAlignmentState,
   ReferenceMinimal,
   ReproducibilityCategory,
+  startWorkflowApiWorkflowsStartPost,
   WorkflowRunStatus,
   WorkflowRunType,
 } from '@/lib/generated-api';
+import { WorkflowRunDetailTyped } from '@/lib/workflow-state';
 import { useMutation } from '@tanstack/react-query';
 import {
   AlertCircle,
@@ -27,7 +28,7 @@ import { toast } from 'sonner';
 import { TabWithLoadingStates } from './tab-with-loading-states';
 
 interface MethodologicalAlignmentTabProps {
-  results: MethodologicalAlignmentWorkflowDetail | undefined;
+  results: WorkflowRunDetailTyped<MethodologicalAlignmentState> | undefined;
   isProcessing?: boolean;
   projectId: string;
 }
@@ -37,7 +38,7 @@ export function MethodologicalAlignmentTab({ results, projectId }: Methodologica
 
   const startWorkflowMutation = useMutation({
     mutationFn: async (values: WorkflowConfigFormValues) => {
-      return await startMethodologicalAlignmentWorkflowApiWorkflowsMethodologicalAlignmentStartPost({
+      return await startWorkflowApiWorkflowsStartPost({
         body: {
           type: WorkflowRunType.MethodologicalAlignment,
           project_id: projectId,
@@ -191,7 +192,6 @@ export function MethodologicalAlignmentTab({ results, projectId }: Methodologica
                     title={summaryAndOutput.title}
                     summary={summaryAndOutput.summary}
                     output={summaryAndOutput.output}
-                    defaultExpanded={summaryAndOutput.title === 'Alignment with Field Practice'}
                   />
                 ))}
               </div>

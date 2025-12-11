@@ -1,32 +1,24 @@
 import {
-  ClaimSubstantiationWorkflowDetail,
   ClaimSubstantiatorStateSummary,
   MethodologicalAlignmentState,
-  MethodologicalAlignmentWorkflowDetail,
-  Project,
-  ReferenceDownloaderWorkflowDetail,
+  ReferenceDownloaderState,
+  WorkflowRun,
+  WorkflowRunDetail,
   WorkflowRunType,
 } from './generated-api';
-
-export type WorkflowRunDetail =
-  | ClaimSubstantiationWorkflowDetail
-  | MethodologicalAlignmentWorkflowDetail
-  | ReferenceDownloaderWorkflowDetail;
 
 /**
  * Type mapping for workflow types to their corresponding workflow detail types
  */
 type WorkflowTypeToDetail = {
-  [WorkflowRunType.ClaimSubstantiation]: ClaimSubstantiationWorkflowDetail;
-  [WorkflowRunType.MethodologicalAlignment]: MethodologicalAlignmentWorkflowDetail;
-  [WorkflowRunType.ReferenceDownloader]: ReferenceDownloaderWorkflowDetail;
+  [WorkflowRunType.ClaimSubstantiation]: ClaimSubstantiatorStateSummary;
+  [WorkflowRunType.MethodologicalAlignment]: MethodologicalAlignmentState;
+  [WorkflowRunType.ReferenceDownloader]: ReferenceDownloaderState;
 };
 
-export type WorkflowState = ClaimSubstantiatorStateSummary | MethodologicalAlignmentState;
-
-export interface ProjectDetails {
-  project: Project;
-  workflowRuns: Array<WorkflowRunDetail>;
+export interface WorkflowRunDetailTyped<T> {
+  run: WorkflowRun;
+  state: T;
 }
 
 /**
@@ -39,8 +31,10 @@ export interface ProjectDetails {
 export function getWorkflowRunByType<T extends WorkflowRunType>(
   workflowRuns: WorkflowRunDetail[],
   type: T,
-): WorkflowTypeToDetail[T] | undefined {
-  return workflowRuns.find((workflowRun) => workflowRun.run.type === type) as WorkflowTypeToDetail[T] | undefined;
+): WorkflowRunDetailTyped<WorkflowTypeToDetail[T]> | undefined {
+  return workflowRuns.find(
+    (workflowRun): workflowRun is WorkflowRunDetailTyped<WorkflowTypeToDetail[T]> => workflowRun.run.type === type,
+  );
 }
 
 const workflowTypeNames: Record<WorkflowRunType, string> = {

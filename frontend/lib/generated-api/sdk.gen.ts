@@ -2,20 +2,93 @@
 
 import { type Client, formDataBodySerializer, type Options as Options2, type TDataShape } from './client';
 import { client } from './client.gen';
-import type { DeleteFeedbackApiFeedbackFeedbackIdDeleteData, DeleteFeedbackApiFeedbackFeedbackIdDeleteErrors, DeleteFeedbackApiFeedbackFeedbackIdDeleteResponses, DeleteProjectEndpointApiProjectProjectIdDeleteData, DeleteProjectEndpointApiProjectProjectIdDeleteErrors, DeleteProjectEndpointApiProjectProjectIdDeleteResponses, DisableProjectSharingApiProjectsProjectIdShareDisablePostData, DisableProjectSharingApiProjectsProjectIdShareDisablePostErrors, DisableProjectSharingApiProjectsProjectIdShareDisablePostResponses, DownloadFileApiFilesDownloadFileIdGetData, DownloadFileApiFilesDownloadFileIdGetErrors, DownloadFileApiFilesDownloadFileIdGetResponses, DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetData, DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetErrors, DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetResponses, EnableProjectSharingApiProjectsProjectIdShareEnablePostData, EnableProjectSharingApiProjectsProjectIdShareEnablePostErrors, EnableProjectSharingApiProjectsProjectIdShareEnablePostResponses, GenerateChunkEvalPackageApiGenerateChunkEvalPackagePostData, GenerateChunkEvalPackageApiGenerateChunkEvalPackagePostErrors, GenerateChunkEvalPackageApiGenerateChunkEvalPackagePostResponses, GenerateEvalPackageApiGenerateEvalPackagePostData, GenerateEvalPackageApiGenerateEvalPackagePostErrors, GenerateEvalPackageApiGenerateEvalPackagePostResponses, GetChunkDetailsEndpointApiWorkflowRunWorkflowRunIdChunkChunkIndexGetData, GetChunkDetailsEndpointApiWorkflowRunWorkflowRunIdChunkChunkIndexGetErrors, GetChunkDetailsEndpointApiWorkflowRunWorkflowRunIdChunkChunkIndexGetResponses, GetClaimSubstantiationWorkflowStateApiWorkflowsClaimSubstantiationWorkflowRunIdGetData, GetClaimSubstantiationWorkflowStateApiWorkflowsClaimSubstantiationWorkflowRunIdGetErrors, GetClaimSubstantiationWorkflowStateApiWorkflowsClaimSubstantiationWorkflowRunIdGetResponses, GetFeedbackApiFeedbackGetData, GetFeedbackApiFeedbackGetErrors, GetFeedbackApiFeedbackGetResponses, GetMethodologicalAlignmentWorkflowStateApiWorkflowsMethodologicalAlignmentWorkflowRunIdGetData, GetMethodologicalAlignmentWorkflowStateApiWorkflowsMethodologicalAlignmentWorkflowRunIdGetErrors, GetMethodologicalAlignmentWorkflowStateApiWorkflowsMethodologicalAlignmentWorkflowRunIdGetResponses, GetPageImageApiWorkflowRunsWorkflowRunIdPagesPageNumGetData, GetPageImageApiWorkflowRunsWorkflowRunIdPagesPageNumGetErrors, GetPageImageApiWorkflowRunsWorkflowRunIdPagesPageNumGetResponses, GetProjectEndpointApiProjectProjectIdGetData, GetProjectEndpointApiProjectProjectIdGetErrors, GetProjectEndpointApiProjectProjectIdGetResponses, GetProjectShareStatusApiProjectsProjectIdShareGetData, GetProjectShareStatusApiProjectsProjectIdShareGetErrors, GetProjectShareStatusApiProjectsProjectIdShareGetResponses, GetReferenceDownloaderWorkflowStateApiWorkflowsReferenceDownloaderWorkflowRunIdGetData, GetReferenceDownloaderWorkflowStateApiWorkflowsReferenceDownloaderWorkflowRunIdGetErrors, GetReferenceDownloaderWorkflowStateApiWorkflowsReferenceDownloaderWorkflowRunIdGetResponses, GetSharedResourceApiPublicShareTokenGetData, GetSharedResourceApiPublicShareTokenGetErrors, GetSharedResourceApiPublicShareTokenGetResponses, GetSupportedAgentsApiSupportedAgentsGetData, GetSupportedAgentsApiSupportedAgentsGetResponses, GetWorkflowFeedbackApiFeedbackWorkflowWorkflowRunIdGetData, GetWorkflowFeedbackApiFeedbackWorkflowWorkflowRunIdGetErrors, GetWorkflowFeedbackApiFeedbackWorkflowWorkflowRunIdGetResponses, ListProjectsEndpointApiProjectsGetData, ListProjectsEndpointApiProjectsGetResponses, ReadHealthApiHealthGetData, ReadHealthApiHealthGetResponses, RerunAnalysisEndpointApiRerunAnalysisPostData, RerunAnalysisEndpointApiRerunAnalysisPostErrors, RerunAnalysisEndpointApiRerunAnalysisPostResponses, StartAnalysisApiStartAnalysisPostData, StartAnalysisApiStartAnalysisPostErrors, StartAnalysisApiStartAnalysisPostResponses, StartClaimSubstantiationWorkflowApiWorkflowsClaimSubstantiationStartPostData, StartClaimSubstantiationWorkflowApiWorkflowsClaimSubstantiationStartPostErrors, StartClaimSubstantiationWorkflowApiWorkflowsClaimSubstantiationStartPostResponses, StartMethodologicalAlignmentWorkflowApiWorkflowsMethodologicalAlignmentStartPostData, StartMethodologicalAlignmentWorkflowApiWorkflowsMethodologicalAlignmentStartPostErrors, StartMethodologicalAlignmentWorkflowApiWorkflowsMethodologicalAlignmentStartPostResponses, StartReferenceDownloaderWorkflowApiWorkflowsReferenceDownloaderStartPostData, StartReferenceDownloaderWorkflowApiWorkflowsReferenceDownloaderStartPostErrors, StartReferenceDownloaderWorkflowApiWorkflowsReferenceDownloaderStartPostResponses, SubmitFeedbackApiFeedbackPostData, SubmitFeedbackApiFeedbackPostErrors, SubmitFeedbackApiFeedbackPostResponses, UpdateProjectEndpointApiProjectProjectIdPatchData, UpdateProjectEndpointApiProjectProjectIdPatchErrors, UpdateProjectEndpointApiProjectProjectIdPatchResponses } from './types.gen';
+import type {
+  DeleteFeedbackApiFeedbackFeedbackIdDeleteData,
+  DeleteFeedbackApiFeedbackFeedbackIdDeleteErrors,
+  DeleteFeedbackApiFeedbackFeedbackIdDeleteResponses,
+  DeleteProjectEndpointApiProjectProjectIdDeleteData,
+  DeleteProjectEndpointApiProjectProjectIdDeleteErrors,
+  DeleteProjectEndpointApiProjectProjectIdDeleteResponses,
+  DisableProjectSharingApiProjectsProjectIdShareDisablePostData,
+  DisableProjectSharingApiProjectsProjectIdShareDisablePostErrors,
+  DisableProjectSharingApiProjectsProjectIdShareDisablePostResponses,
+  DownloadFileApiFilesDownloadFileIdGetData,
+  DownloadFileApiFilesDownloadFileIdGetErrors,
+  DownloadFileApiFilesDownloadFileIdGetResponses,
+  DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetData,
+  DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetErrors,
+  DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetResponses,
+  EnableProjectSharingApiProjectsProjectIdShareEnablePostData,
+  EnableProjectSharingApiProjectsProjectIdShareEnablePostErrors,
+  EnableProjectSharingApiProjectsProjectIdShareEnablePostResponses,
+  GenerateChunkEvalPackageApiGenerateChunkEvalPackagePostData,
+  GenerateChunkEvalPackageApiGenerateChunkEvalPackagePostErrors,
+  GenerateChunkEvalPackageApiGenerateChunkEvalPackagePostResponses,
+  GenerateEvalPackageApiGenerateEvalPackagePostData,
+  GenerateEvalPackageApiGenerateEvalPackagePostErrors,
+  GenerateEvalPackageApiGenerateEvalPackagePostResponses,
+  GetChunkDetailsEndpointApiWorkflowRunWorkflowRunIdChunkChunkIndexGetData,
+  GetChunkDetailsEndpointApiWorkflowRunWorkflowRunIdChunkChunkIndexGetErrors,
+  GetChunkDetailsEndpointApiWorkflowRunWorkflowRunIdChunkChunkIndexGetResponses,
+  GetFeedbackApiFeedbackGetData,
+  GetFeedbackApiFeedbackGetErrors,
+  GetFeedbackApiFeedbackGetResponses,
+  GetPageImageApiWorkflowRunsWorkflowRunIdPagesPageNumGetData,
+  GetPageImageApiWorkflowRunsWorkflowRunIdPagesPageNumGetErrors,
+  GetPageImageApiWorkflowRunsWorkflowRunIdPagesPageNumGetResponses,
+  GetProjectEndpointApiProjectProjectIdGetData,
+  GetProjectEndpointApiProjectProjectIdGetErrors,
+  GetProjectEndpointApiProjectProjectIdGetResponses,
+  GetProjectShareStatusApiProjectsProjectIdShareGetData,
+  GetProjectShareStatusApiProjectsProjectIdShareGetErrors,
+  GetProjectShareStatusApiProjectsProjectIdShareGetResponses,
+  GetSharedResourceApiPublicShareTokenGetData,
+  GetSharedResourceApiPublicShareTokenGetErrors,
+  GetSharedResourceApiPublicShareTokenGetResponses,
+  GetSupportedAgentsApiSupportedAgentsGetData,
+  GetSupportedAgentsApiSupportedAgentsGetResponses,
+  GetWorkflowFeedbackApiFeedbackWorkflowWorkflowRunIdGetData,
+  GetWorkflowFeedbackApiFeedbackWorkflowWorkflowRunIdGetErrors,
+  GetWorkflowFeedbackApiFeedbackWorkflowWorkflowRunIdGetResponses,
+  GetWorkflowStateApiWorkflowsWorkflowRunIdGetData,
+  GetWorkflowStateApiWorkflowsWorkflowRunIdGetErrors,
+  GetWorkflowStateApiWorkflowsWorkflowRunIdGetResponses,
+  ListProjectsEndpointApiProjectsGetData,
+  ListProjectsEndpointApiProjectsGetResponses,
+  ReadHealthApiHealthGetData,
+  ReadHealthApiHealthGetResponses,
+  RerunAnalysisEndpointApiRerunAnalysisPostData,
+  RerunAnalysisEndpointApiRerunAnalysisPostErrors,
+  RerunAnalysisEndpointApiRerunAnalysisPostResponses,
+  StartAnalysisApiStartAnalysisPostData,
+  StartAnalysisApiStartAnalysisPostErrors,
+  StartAnalysisApiStartAnalysisPostResponses,
+  StartWorkflowApiWorkflowsStartPostData,
+  StartWorkflowApiWorkflowsStartPostErrors,
+  StartWorkflowApiWorkflowsStartPostResponses,
+  SubmitFeedbackApiFeedbackPostData,
+  SubmitFeedbackApiFeedbackPostErrors,
+  SubmitFeedbackApiFeedbackPostResponses,
+  UpdateProjectEndpointApiProjectProjectIdPatchData,
+  UpdateProjectEndpointApiProjectProjectIdPatchErrors,
+  UpdateProjectEndpointApiProjectProjectIdPatchResponses,
+} from './types.gen';
 
-export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean> = Options2<TData, ThrowOnError> & {
-    /**
-     * You can provide a client instance returned by `createClient()` instead of
-     * individual options. This might be also useful if you want to implement a
-     * custom client.
-     */
-    client?: Client;
-    /**
-     * You can pass arbitrary values through the `meta` object. This can be
-     * used to access values that aren't defined as part of the SDK function.
-     */
-    meta?: Record<string, unknown>;
+export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean> = Options2<
+  TData,
+  ThrowOnError
+> & {
+  /**
+   * You can provide a client instance returned by `createClient()` instead of
+   * individual options. This might be also useful if you want to implement a
+   * custom client.
+   */
+  client?: Client;
+  /**
+   * You can pass arbitrary values through the `meta` object. This can be
+   * used to access values that aren't defined as part of the SDK function.
+   */
+  meta?: Record<string, unknown>;
 };
 
 /**
@@ -23,11 +96,14 @@ export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends 
  *
  * Health check endpoint
  */
-export const readHealthApiHealthGet = <ThrowOnError extends boolean = true>(options?: Options<ReadHealthApiHealthGetData, ThrowOnError>) => (options?.client ?? client).get<ReadHealthApiHealthGetResponses, unknown, ThrowOnError, 'data'>({
+export const readHealthApiHealthGet = <ThrowOnError extends boolean = true>(
+  options?: Options<ReadHealthApiHealthGetData, ThrowOnError>,
+) =>
+  (options?.client ?? client).get<ReadHealthApiHealthGetResponses, unknown, ThrowOnError, 'data'>({
     responseStyle: 'data',
     url: '/api/health',
-    ...options
-});
+    ...options,
+  });
 
 /**
  * Get Supported Agents
@@ -37,11 +113,14 @@ export const readHealthApiHealthGet = <ThrowOnError extends boolean = true>(opti
  * Returns:
  * List of AgentInfo objects
  */
-export const getSupportedAgentsApiSupportedAgentsGet = <ThrowOnError extends boolean = true>(options?: Options<GetSupportedAgentsApiSupportedAgentsGetData, ThrowOnError>) => (options?.client ?? client).get<GetSupportedAgentsApiSupportedAgentsGetResponses, unknown, ThrowOnError, 'data'>({
+export const getSupportedAgentsApiSupportedAgentsGet = <ThrowOnError extends boolean = true>(
+  options?: Options<GetSupportedAgentsApiSupportedAgentsGetData, ThrowOnError>,
+) =>
+  (options?.client ?? client).get<GetSupportedAgentsApiSupportedAgentsGetResponses, unknown, ThrowOnError, 'data'>({
     responseStyle: 'data',
     url: '/api/supported-agents',
-    ...options
-});
+    ...options,
+  });
 
 /**
  * Start Analysis
@@ -66,17 +145,25 @@ export const getSupportedAgentsApiSupportedAgentsGet = <ThrowOnError extends boo
  * Returns:
  * project_id to track the analysis
  */
-export const startAnalysisApiStartAnalysisPost = <ThrowOnError extends boolean = true>(options: Options<StartAnalysisApiStartAnalysisPostData, ThrowOnError>) => (options.client ?? client).post<StartAnalysisApiStartAnalysisPostResponses, StartAnalysisApiStartAnalysisPostErrors, ThrowOnError, 'data'>({
+export const startAnalysisApiStartAnalysisPost = <ThrowOnError extends boolean = true>(
+  options: Options<StartAnalysisApiStartAnalysisPostData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    StartAnalysisApiStartAnalysisPostResponses,
+    StartAnalysisApiStartAnalysisPostErrors,
+    ThrowOnError,
+    'data'
+  >({
     ...formDataBodySerializer,
     responseStyle: 'data',
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/start-analysis',
     ...options,
     headers: {
-        'Content-Type': null,
-        ...options.headers
-    }
-});
+      'Content-Type': null,
+      ...options.headers,
+    },
+  });
 
 /**
  * Rerun Analysis Endpoint
@@ -89,16 +176,24 @@ export const startAnalysisApiStartAnalysisPost = <ThrowOnError extends boolean =
  * Returns:
  * Updated results for the specified chunk
  */
-export const rerunAnalysisEndpointApiRerunAnalysisPost = <ThrowOnError extends boolean = true>(options: Options<RerunAnalysisEndpointApiRerunAnalysisPostData, ThrowOnError>) => (options.client ?? client).post<RerunAnalysisEndpointApiRerunAnalysisPostResponses, RerunAnalysisEndpointApiRerunAnalysisPostErrors, ThrowOnError, 'data'>({
+export const rerunAnalysisEndpointApiRerunAnalysisPost = <ThrowOnError extends boolean = true>(
+  options: Options<RerunAnalysisEndpointApiRerunAnalysisPostData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    RerunAnalysisEndpointApiRerunAnalysisPostResponses,
+    RerunAnalysisEndpointApiRerunAnalysisPostErrors,
+    ThrowOnError,
+    'data'
+  >({
     responseStyle: 'data',
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/rerun-analysis',
     ...options,
     headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
 
 /**
  * Generate Eval Package
@@ -111,15 +206,23 @@ export const rerunAnalysisEndpointApiRerunAnalysisPost = <ThrowOnError extends b
  * Returns:
  * Zip file containing YAML test files and data files
  */
-export const generateEvalPackageApiGenerateEvalPackagePost = <ThrowOnError extends boolean = true>(options: Options<GenerateEvalPackageApiGenerateEvalPackagePostData, ThrowOnError>) => (options.client ?? client).post<GenerateEvalPackageApiGenerateEvalPackagePostResponses, GenerateEvalPackageApiGenerateEvalPackagePostErrors, ThrowOnError, 'data'>({
+export const generateEvalPackageApiGenerateEvalPackagePost = <ThrowOnError extends boolean = true>(
+  options: Options<GenerateEvalPackageApiGenerateEvalPackagePostData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    GenerateEvalPackageApiGenerateEvalPackagePostResponses,
+    GenerateEvalPackageApiGenerateEvalPackagePostErrors,
+    ThrowOnError,
+    'data'
+  >({
     responseStyle: 'data',
     url: '/api/generate-eval-package',
     ...options,
     headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
 
 /**
  * Generate Chunk Eval Package
@@ -133,26 +236,88 @@ export const generateEvalPackageApiGenerateEvalPackagePost = <ThrowOnError exten
  * Returns:
  * Optimized zip file containing only necessary YAML test files and data files
  */
-export const generateChunkEvalPackageApiGenerateChunkEvalPackagePost = <ThrowOnError extends boolean = true>(options: Options<GenerateChunkEvalPackageApiGenerateChunkEvalPackagePostData, ThrowOnError>) => (options.client ?? client).post<GenerateChunkEvalPackageApiGenerateChunkEvalPackagePostResponses, GenerateChunkEvalPackageApiGenerateChunkEvalPackagePostErrors, ThrowOnError, 'data'>({
+export const generateChunkEvalPackageApiGenerateChunkEvalPackagePost = <ThrowOnError extends boolean = true>(
+  options: Options<GenerateChunkEvalPackageApiGenerateChunkEvalPackagePostData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    GenerateChunkEvalPackageApiGenerateChunkEvalPackagePostResponses,
+    GenerateChunkEvalPackageApiGenerateChunkEvalPackagePostErrors,
+    ThrowOnError,
+    'data'
+  >({
     responseStyle: 'data',
     url: '/api/generate-chunk-eval-package',
     ...options,
     headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * Start Workflow
+ *
+ * Start a workflow
+ */
+export const startWorkflowApiWorkflowsStartPost = <ThrowOnError extends boolean = true>(
+  options: Options<StartWorkflowApiWorkflowsStartPostData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    StartWorkflowApiWorkflowsStartPostResponses,
+    StartWorkflowApiWorkflowsStartPostErrors,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/workflows/start',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * Get Workflow State
+ *
+ * Get the state of a workflow
+ */
+export const getWorkflowStateApiWorkflowsWorkflowRunIdGet = <ThrowOnError extends boolean = true>(
+  options: Options<GetWorkflowStateApiWorkflowsWorkflowRunIdGetData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    GetWorkflowStateApiWorkflowsWorkflowRunIdGetResponses,
+    GetWorkflowStateApiWorkflowsWorkflowRunIdGetErrors,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/workflows/{workflow_run_id}',
+    ...options,
+  });
 
 /**
  * Get Chunk Details Endpoint
  *
  * Get detailed analysis for a specific chunk (lazy loading)
  */
-export const getChunkDetailsEndpointApiWorkflowRunWorkflowRunIdChunkChunkIndexGet = <ThrowOnError extends boolean = true>(options: Options<GetChunkDetailsEndpointApiWorkflowRunWorkflowRunIdChunkChunkIndexGetData, ThrowOnError>) => (options.client ?? client).get<GetChunkDetailsEndpointApiWorkflowRunWorkflowRunIdChunkChunkIndexGetResponses, GetChunkDetailsEndpointApiWorkflowRunWorkflowRunIdChunkChunkIndexGetErrors, ThrowOnError, 'data'>({
+export const getChunkDetailsEndpointApiWorkflowRunWorkflowRunIdChunkChunkIndexGet = <
+  ThrowOnError extends boolean = true,
+>(
+  options: Options<GetChunkDetailsEndpointApiWorkflowRunWorkflowRunIdChunkChunkIndexGetData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    GetChunkDetailsEndpointApiWorkflowRunWorkflowRunIdChunkChunkIndexGetResponses,
+    GetChunkDetailsEndpointApiWorkflowRunWorkflowRunIdChunkChunkIndexGetErrors,
+    ThrowOnError,
+    'data'
+  >({
     responseStyle: 'data',
     url: '/api/workflow-run/{workflow_run_id}/chunk/{chunk_index}',
-    ...options
-});
+    ...options,
+  });
 
 /**
  * Get Page Image
@@ -168,12 +333,20 @@ export const getChunkDetailsEndpointApiWorkflowRunWorkflowRunIdChunkChunkIndexGe
  * Returns:
  * The image file for the specified page (PNG, JPEG, WEBP, etc.)
  */
-export const getPageImageApiWorkflowRunsWorkflowRunIdPagesPageNumGet = <ThrowOnError extends boolean = true>(options: Options<GetPageImageApiWorkflowRunsWorkflowRunIdPagesPageNumGetData, ThrowOnError>) => (options.client ?? client).get<GetPageImageApiWorkflowRunsWorkflowRunIdPagesPageNumGetResponses, GetPageImageApiWorkflowRunsWorkflowRunIdPagesPageNumGetErrors, ThrowOnError, 'data'>({
+export const getPageImageApiWorkflowRunsWorkflowRunIdPagesPageNumGet = <ThrowOnError extends boolean = true>(
+  options: Options<GetPageImageApiWorkflowRunsWorkflowRunIdPagesPageNumGetData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    GetPageImageApiWorkflowRunsWorkflowRunIdPagesPageNumGetResponses,
+    GetPageImageApiWorkflowRunsWorkflowRunIdPagesPageNumGetErrors,
+    ThrowOnError,
+    'data'
+  >({
     responseStyle: 'data',
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/workflow-runs/{workflow_run_id}/pages/{page_num}',
-    ...options
-});
+    ...options,
+  });
 
 /**
  * Download File
@@ -193,12 +366,20 @@ export const getPageImageApiWorkflowRunsWorkflowRunIdPagesPageNumGet = <ThrowOnE
  * Raises:
  * HTTPException: 400 for invalid file ID, 404 if file not found, 403 if access denied
  */
-export const downloadFileApiFilesDownloadFileIdGet = <ThrowOnError extends boolean = true>(options: Options<DownloadFileApiFilesDownloadFileIdGetData, ThrowOnError>) => (options.client ?? client).get<DownloadFileApiFilesDownloadFileIdGetResponses, DownloadFileApiFilesDownloadFileIdGetErrors, ThrowOnError, 'data'>({
+export const downloadFileApiFilesDownloadFileIdGet = <ThrowOnError extends boolean = true>(
+  options: Options<DownloadFileApiFilesDownloadFileIdGetData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    DownloadFileApiFilesDownloadFileIdGetResponses,
+    DownloadFileApiFilesDownloadFileIdGetErrors,
+    ThrowOnError,
+    'data'
+  >({
     responseStyle: 'data',
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/files/download/{file_id}',
-    ...options
-});
+    ...options,
+  });
 
 /**
  * Get Feedback
@@ -207,152 +388,243 @@ export const downloadFileApiFilesDownloadFileIdGet = <ThrowOnError extends boole
  *
  * Example: GET /api/feedback?workflow_run_id=xxx&entity_path={"chunk_index":0,"claim_index":1}
  */
-export const getFeedbackApiFeedbackGet = <ThrowOnError extends boolean = true>(options: Options<GetFeedbackApiFeedbackGetData, ThrowOnError>) => (options.client ?? client).get<GetFeedbackApiFeedbackGetResponses, GetFeedbackApiFeedbackGetErrors, ThrowOnError, 'data'>({
+export const getFeedbackApiFeedbackGet = <ThrowOnError extends boolean = true>(
+  options: Options<GetFeedbackApiFeedbackGetData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    GetFeedbackApiFeedbackGetResponses,
+    GetFeedbackApiFeedbackGetErrors,
+    ThrowOnError,
+    'data'
+  >({
     responseStyle: 'data',
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/feedback',
-    ...options
-});
+    ...options,
+  });
 
 /**
  * Submit Feedback
  *
  * Submit or update feedback for any entity
  */
-export const submitFeedbackApiFeedbackPost = <ThrowOnError extends boolean = true>(options: Options<SubmitFeedbackApiFeedbackPostData, ThrowOnError>) => (options.client ?? client).post<SubmitFeedbackApiFeedbackPostResponses, SubmitFeedbackApiFeedbackPostErrors, ThrowOnError, 'data'>({
+export const submitFeedbackApiFeedbackPost = <ThrowOnError extends boolean = true>(
+  options: Options<SubmitFeedbackApiFeedbackPostData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    SubmitFeedbackApiFeedbackPostResponses,
+    SubmitFeedbackApiFeedbackPostErrors,
+    ThrowOnError,
+    'data'
+  >({
     responseStyle: 'data',
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/feedback',
     ...options,
     headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
 
 /**
  * Get Workflow Feedback
  *
  * Get all feedback for a workflow run
  */
-export const getWorkflowFeedbackApiFeedbackWorkflowWorkflowRunIdGet = <ThrowOnError extends boolean = true>(options: Options<GetWorkflowFeedbackApiFeedbackWorkflowWorkflowRunIdGetData, ThrowOnError>) => (options.client ?? client).get<GetWorkflowFeedbackApiFeedbackWorkflowWorkflowRunIdGetResponses, GetWorkflowFeedbackApiFeedbackWorkflowWorkflowRunIdGetErrors, ThrowOnError, 'data'>({
+export const getWorkflowFeedbackApiFeedbackWorkflowWorkflowRunIdGet = <ThrowOnError extends boolean = true>(
+  options: Options<GetWorkflowFeedbackApiFeedbackWorkflowWorkflowRunIdGetData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    GetWorkflowFeedbackApiFeedbackWorkflowWorkflowRunIdGetResponses,
+    GetWorkflowFeedbackApiFeedbackWorkflowWorkflowRunIdGetErrors,
+    ThrowOnError,
+    'data'
+  >({
     responseStyle: 'data',
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/feedback/workflow/{workflow_run_id}',
-    ...options
-});
+    ...options,
+  });
 
 /**
  * Delete Feedback
  *
  * Delete feedback by ID
  */
-export const deleteFeedbackApiFeedbackFeedbackIdDelete = <ThrowOnError extends boolean = true>(options: Options<DeleteFeedbackApiFeedbackFeedbackIdDeleteData, ThrowOnError>) => (options.client ?? client).delete<DeleteFeedbackApiFeedbackFeedbackIdDeleteResponses, DeleteFeedbackApiFeedbackFeedbackIdDeleteErrors, ThrowOnError, 'data'>({
+export const deleteFeedbackApiFeedbackFeedbackIdDelete = <ThrowOnError extends boolean = true>(
+  options: Options<DeleteFeedbackApiFeedbackFeedbackIdDeleteData, ThrowOnError>,
+) =>
+  (options.client ?? client).delete<
+    DeleteFeedbackApiFeedbackFeedbackIdDeleteResponses,
+    DeleteFeedbackApiFeedbackFeedbackIdDeleteErrors,
+    ThrowOnError,
+    'data'
+  >({
     responseStyle: 'data',
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/feedback/{feedback_id}',
-    ...options
-});
+    ...options,
+  });
 
 /**
  * List Projects Endpoint
  *
  * List all projects for the current user
  */
-export const listProjectsEndpointApiProjectsGet = <ThrowOnError extends boolean = true>(options?: Options<ListProjectsEndpointApiProjectsGetData, ThrowOnError>) => (options?.client ?? client).get<ListProjectsEndpointApiProjectsGetResponses, unknown, ThrowOnError, 'data'>({
+export const listProjectsEndpointApiProjectsGet = <ThrowOnError extends boolean = true>(
+  options?: Options<ListProjectsEndpointApiProjectsGetData, ThrowOnError>,
+) =>
+  (options?.client ?? client).get<ListProjectsEndpointApiProjectsGetResponses, unknown, ThrowOnError, 'data'>({
     responseStyle: 'data',
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/projects',
-    ...options
-});
+    ...options,
+  });
 
 /**
  * Delete Project Endpoint
  *
  * Delete a project and all associated results
  */
-export const deleteProjectEndpointApiProjectProjectIdDelete = <ThrowOnError extends boolean = true>(options: Options<DeleteProjectEndpointApiProjectProjectIdDeleteData, ThrowOnError>) => (options.client ?? client).delete<DeleteProjectEndpointApiProjectProjectIdDeleteResponses, DeleteProjectEndpointApiProjectProjectIdDeleteErrors, ThrowOnError, 'data'>({
+export const deleteProjectEndpointApiProjectProjectIdDelete = <ThrowOnError extends boolean = true>(
+  options: Options<DeleteProjectEndpointApiProjectProjectIdDeleteData, ThrowOnError>,
+) =>
+  (options.client ?? client).delete<
+    DeleteProjectEndpointApiProjectProjectIdDeleteResponses,
+    DeleteProjectEndpointApiProjectProjectIdDeleteErrors,
+    ThrowOnError,
+    'data'
+  >({
     responseStyle: 'data',
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/project/{project_id}',
-    ...options
-});
+    ...options,
+  });
 
 /**
  * Get Project Endpoint
  *
  * Get a project by ID
  */
-export const getProjectEndpointApiProjectProjectIdGet = <ThrowOnError extends boolean = true>(options: Options<GetProjectEndpointApiProjectProjectIdGetData, ThrowOnError>) => (options.client ?? client).get<GetProjectEndpointApiProjectProjectIdGetResponses, GetProjectEndpointApiProjectProjectIdGetErrors, ThrowOnError, 'data'>({
+export const getProjectEndpointApiProjectProjectIdGet = <ThrowOnError extends boolean = true>(
+  options: Options<GetProjectEndpointApiProjectProjectIdGetData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    GetProjectEndpointApiProjectProjectIdGetResponses,
+    GetProjectEndpointApiProjectProjectIdGetErrors,
+    ThrowOnError,
+    'data'
+  >({
     responseStyle: 'data',
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/project/{project_id}',
-    ...options
-});
+    ...options,
+  });
 
 /**
  * Update Project Endpoint
  *
  * Update a project with the provided fields
  */
-export const updateProjectEndpointApiProjectProjectIdPatch = <ThrowOnError extends boolean = true>(options: Options<UpdateProjectEndpointApiProjectProjectIdPatchData, ThrowOnError>) => (options.client ?? client).patch<UpdateProjectEndpointApiProjectProjectIdPatchResponses, UpdateProjectEndpointApiProjectProjectIdPatchErrors, ThrowOnError, 'data'>({
+export const updateProjectEndpointApiProjectProjectIdPatch = <ThrowOnError extends boolean = true>(
+  options: Options<UpdateProjectEndpointApiProjectProjectIdPatchData, ThrowOnError>,
+) =>
+  (options.client ?? client).patch<
+    UpdateProjectEndpointApiProjectProjectIdPatchResponses,
+    UpdateProjectEndpointApiProjectProjectIdPatchErrors,
+    ThrowOnError,
+    'data'
+  >({
     responseStyle: 'data',
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/project/{project_id}',
     ...options,
     headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
 
 /**
  * Download Project Docx
  *
  * Download DOCX file for project - reviewed version if available, otherwise original
  */
-export const downloadProjectDocxApiProjectsProjectIdDocxDownloadGet = <ThrowOnError extends boolean = true>(options: Options<DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetData, ThrowOnError>) => (options.client ?? client).get<DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetResponses, DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetErrors, ThrowOnError, 'data'>({
+export const downloadProjectDocxApiProjectsProjectIdDocxDownloadGet = <ThrowOnError extends boolean = true>(
+  options: Options<DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetResponses,
+    DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetErrors,
+    ThrowOnError,
+    'data'
+  >({
     responseStyle: 'data',
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/projects/{project_id}/docx/download',
-    ...options
-});
+    ...options,
+  });
 
 /**
  * Get Project Share Status
  *
  * Get the sharing status for a project.
  */
-export const getProjectShareStatusApiProjectsProjectIdShareGet = <ThrowOnError extends boolean = true>(options: Options<GetProjectShareStatusApiProjectsProjectIdShareGetData, ThrowOnError>) => (options.client ?? client).get<GetProjectShareStatusApiProjectsProjectIdShareGetResponses, GetProjectShareStatusApiProjectsProjectIdShareGetErrors, ThrowOnError, 'data'>({
+export const getProjectShareStatusApiProjectsProjectIdShareGet = <ThrowOnError extends boolean = true>(
+  options: Options<GetProjectShareStatusApiProjectsProjectIdShareGetData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    GetProjectShareStatusApiProjectsProjectIdShareGetResponses,
+    GetProjectShareStatusApiProjectsProjectIdShareGetErrors,
+    ThrowOnError,
+    'data'
+  >({
     responseStyle: 'data',
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/projects/{project_id}/share',
-    ...options
-});
+    ...options,
+  });
 
 /**
  * Enable Project Sharing
  *
  * Enable sharing for a project (creates a share link if none exists).
  */
-export const enableProjectSharingApiProjectsProjectIdShareEnablePost = <ThrowOnError extends boolean = true>(options: Options<EnableProjectSharingApiProjectsProjectIdShareEnablePostData, ThrowOnError>) => (options.client ?? client).post<EnableProjectSharingApiProjectsProjectIdShareEnablePostResponses, EnableProjectSharingApiProjectsProjectIdShareEnablePostErrors, ThrowOnError, 'data'>({
+export const enableProjectSharingApiProjectsProjectIdShareEnablePost = <ThrowOnError extends boolean = true>(
+  options: Options<EnableProjectSharingApiProjectsProjectIdShareEnablePostData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    EnableProjectSharingApiProjectsProjectIdShareEnablePostResponses,
+    EnableProjectSharingApiProjectsProjectIdShareEnablePostErrors,
+    ThrowOnError,
+    'data'
+  >({
     responseStyle: 'data',
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/projects/{project_id}/share/enable',
-    ...options
-});
+    ...options,
+  });
 
 /**
  * Disable Project Sharing
  *
  * Disable sharing for a project (deactivates the share link).
  */
-export const disableProjectSharingApiProjectsProjectIdShareDisablePost = <ThrowOnError extends boolean = true>(options: Options<DisableProjectSharingApiProjectsProjectIdShareDisablePostData, ThrowOnError>) => (options.client ?? client).post<DisableProjectSharingApiProjectsProjectIdShareDisablePostResponses, DisableProjectSharingApiProjectsProjectIdShareDisablePostErrors, ThrowOnError, 'data'>({
+export const disableProjectSharingApiProjectsProjectIdShareDisablePost = <ThrowOnError extends boolean = true>(
+  options: Options<DisableProjectSharingApiProjectsProjectIdShareDisablePostData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    DisableProjectSharingApiProjectsProjectIdShareDisablePostResponses,
+    DisableProjectSharingApiProjectsProjectIdShareDisablePostErrors,
+    ThrowOnError,
+    'data'
+  >({
     responseStyle: 'data',
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/projects/{project_id}/share/disable',
-    ...options
-});
+    ...options,
+  });
 
 /**
  * Get Shared Resource
@@ -362,92 +634,16 @@ export const disableProjectSharingApiProjectsProjectIdShareDisablePost = <ThrowO
  * This endpoint does not require authentication - the token IS the auth.
  * Returns project info and workflow state in a single call.
  */
-export const getSharedResourceApiPublicShareTokenGet = <ThrowOnError extends boolean = true>(options: Options<GetSharedResourceApiPublicShareTokenGetData, ThrowOnError>) => (options.client ?? client).get<GetSharedResourceApiPublicShareTokenGetResponses, GetSharedResourceApiPublicShareTokenGetErrors, ThrowOnError, 'data'>({
+export const getSharedResourceApiPublicShareTokenGet = <ThrowOnError extends boolean = true>(
+  options: Options<GetSharedResourceApiPublicShareTokenGetData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    GetSharedResourceApiPublicShareTokenGetResponses,
+    GetSharedResourceApiPublicShareTokenGetErrors,
+    ThrowOnError,
+    'data'
+  >({
     responseStyle: 'data',
     url: '/api/public/share/{token}',
-    ...options
-});
-
-/**
- * Start Claim Substantiation Workflow
- *
- * Start a workflow of type "claim_substantiation"
- */
-export const startClaimSubstantiationWorkflowApiWorkflowsClaimSubstantiationStartPost = <ThrowOnError extends boolean = true>(options: Options<StartClaimSubstantiationWorkflowApiWorkflowsClaimSubstantiationStartPostData, ThrowOnError>) => (options.client ?? client).post<StartClaimSubstantiationWorkflowApiWorkflowsClaimSubstantiationStartPostResponses, StartClaimSubstantiationWorkflowApiWorkflowsClaimSubstantiationStartPostErrors, ThrowOnError, 'data'>({
-    responseStyle: 'data',
-    security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/api/workflows/claim_substantiation/start',
     ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * Get Claim Substantiation Workflow State
- *
- * Get the state of a workflow of type "claim_substantiation"
- */
-export const getClaimSubstantiationWorkflowStateApiWorkflowsClaimSubstantiationWorkflowRunIdGet = <ThrowOnError extends boolean = true>(options: Options<GetClaimSubstantiationWorkflowStateApiWorkflowsClaimSubstantiationWorkflowRunIdGetData, ThrowOnError>) => (options.client ?? client).get<GetClaimSubstantiationWorkflowStateApiWorkflowsClaimSubstantiationWorkflowRunIdGetResponses, GetClaimSubstantiationWorkflowStateApiWorkflowsClaimSubstantiationWorkflowRunIdGetErrors, ThrowOnError, 'data'>({
-    responseStyle: 'data',
-    security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/api/workflows/claim_substantiation/{workflow_run_id}',
-    ...options
-});
-
-/**
- * Start Methodological Alignment Workflow
- *
- * Start a workflow of type "methodological_alignment"
- */
-export const startMethodologicalAlignmentWorkflowApiWorkflowsMethodologicalAlignmentStartPost = <ThrowOnError extends boolean = true>(options: Options<StartMethodologicalAlignmentWorkflowApiWorkflowsMethodologicalAlignmentStartPostData, ThrowOnError>) => (options.client ?? client).post<StartMethodologicalAlignmentWorkflowApiWorkflowsMethodologicalAlignmentStartPostResponses, StartMethodologicalAlignmentWorkflowApiWorkflowsMethodologicalAlignmentStartPostErrors, ThrowOnError, 'data'>({
-    responseStyle: 'data',
-    security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/api/workflows/methodological_alignment/start',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * Get Methodological Alignment Workflow State
- *
- * Get the state of a workflow of type "methodological_alignment"
- */
-export const getMethodologicalAlignmentWorkflowStateApiWorkflowsMethodologicalAlignmentWorkflowRunIdGet = <ThrowOnError extends boolean = true>(options: Options<GetMethodologicalAlignmentWorkflowStateApiWorkflowsMethodologicalAlignmentWorkflowRunIdGetData, ThrowOnError>) => (options.client ?? client).get<GetMethodologicalAlignmentWorkflowStateApiWorkflowsMethodologicalAlignmentWorkflowRunIdGetResponses, GetMethodologicalAlignmentWorkflowStateApiWorkflowsMethodologicalAlignmentWorkflowRunIdGetErrors, ThrowOnError, 'data'>({
-    responseStyle: 'data',
-    security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/api/workflows/methodological_alignment/{workflow_run_id}',
-    ...options
-});
-
-/**
- * Start Reference Downloader Workflow
- *
- * Start a workflow of type "reference_downloader"
- */
-export const startReferenceDownloaderWorkflowApiWorkflowsReferenceDownloaderStartPost = <ThrowOnError extends boolean = true>(options: Options<StartReferenceDownloaderWorkflowApiWorkflowsReferenceDownloaderStartPostData, ThrowOnError>) => (options.client ?? client).post<StartReferenceDownloaderWorkflowApiWorkflowsReferenceDownloaderStartPostResponses, StartReferenceDownloaderWorkflowApiWorkflowsReferenceDownloaderStartPostErrors, ThrowOnError, 'data'>({
-    responseStyle: 'data',
-    security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/api/workflows/reference_downloader/start',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * Get Reference Downloader Workflow State
- *
- * Get the state of a workflow of type "reference_downloader"
- */
-export const getReferenceDownloaderWorkflowStateApiWorkflowsReferenceDownloaderWorkflowRunIdGet = <ThrowOnError extends boolean = true>(options: Options<GetReferenceDownloaderWorkflowStateApiWorkflowsReferenceDownloaderWorkflowRunIdGetData, ThrowOnError>) => (options.client ?? client).get<GetReferenceDownloaderWorkflowStateApiWorkflowsReferenceDownloaderWorkflowRunIdGetResponses, GetReferenceDownloaderWorkflowStateApiWorkflowsReferenceDownloaderWorkflowRunIdGetErrors, ThrowOnError, 'data'>({
-    responseStyle: 'data',
-    security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/api/workflows/reference_downloader/{workflow_run_id}',
-    ...options
-});
+  });

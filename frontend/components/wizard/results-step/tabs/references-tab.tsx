@@ -6,16 +6,17 @@ import { Button } from '@/components/ui/button';
 import {
   BibliographyItem,
   BibliographyItemValidationOutput,
-  ClaimSubstantiationWorkflowDetail,
+  ClaimSubstantiatorStateSummary,
   FileDocumentOutput,
 } from '@/lib/generated-api';
+import { WorkflowRunDetailTyped } from '@/lib/workflow-state';
 import { ChevronDownIcon, ChevronRightIcon, FileText } from 'lucide-react';
 import * as React from 'react';
 import { humanizeLabel } from './literature-review-tab/utils';
 import { TabWithLoadingStates } from './tab-with-loading-states';
 
 interface ReferencesTabProps {
-  workflowDetail: ClaimSubstantiationWorkflowDetail | undefined;
+  workflowDetail: WorkflowRunDetailTyped<ClaimSubstantiatorStateSummary> | undefined;
   isProcessing?: boolean;
 }
 
