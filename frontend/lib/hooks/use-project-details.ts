@@ -68,6 +68,8 @@ function fetchWorkflowState(workflowRun: WorkflowRun): Promise<WorkflowRunDetail
       return workflowsApi.getReferenceDownloaderWorkflowStateApiWorkflowsReferenceDownloaderWorkflowRunIdGet({
         workflowRunId: workflowRun.id,
       });
+    case WorkflowRunType.DocxGeneration:
+      throw new Error('DOCX generation workflows should not be fetched in frontend');
     default:
       throw new Error(`Unknown workflow type: ${workflowRun.type satisfies never}`);
   }

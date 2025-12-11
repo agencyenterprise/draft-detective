@@ -16,6 +16,8 @@ import * as runtime from '../runtime';
 import type {
   ClaimSubstantiationWorkflowDetail,
   DocumentChunkOutput,
+  DocxGenerationWorkflowConfig,
+  DocxGenerationWorkflowDetail,
   HTTPValidationError,
   MethodologicalAlignmentWorkflowConfig,
   MethodologicalAlignmentWorkflowDetail,
@@ -29,6 +31,10 @@ import {
   ClaimSubstantiationWorkflowDetailToJSON,
   DocumentChunkOutputFromJSON,
   DocumentChunkOutputToJSON,
+  DocxGenerationWorkflowConfigFromJSON,
+  DocxGenerationWorkflowConfigToJSON,
+  DocxGenerationWorkflowDetailFromJSON,
+  DocxGenerationWorkflowDetailToJSON,
   HTTPValidationErrorFromJSON,
   HTTPValidationErrorToJSON,
   MethodologicalAlignmentWorkflowConfigFromJSON,
@@ -54,6 +60,10 @@ export interface GetClaimSubstantiationWorkflowStateApiWorkflowsClaimSubstantiat
   workflowRunId: string;
 }
 
+export interface GetDocxGenerationWorkflowStateApiWorkflowsDocxGenerationWorkflowRunIdGetRequest {
+  workflowRunId: string;
+}
+
 export interface GetMethodologicalAlignmentWorkflowStateApiWorkflowsMethodologicalAlignmentWorkflowRunIdGetRequest {
   workflowRunId: string;
 }
@@ -69,6 +79,10 @@ export interface GetReferenceDownloaderWorkflowStateApiWorkflowsReferenceDownloa
 
 export interface StartClaimSubstantiationWorkflowApiWorkflowsClaimSubstantiationStartPostRequest {
   substantiationWorkflowConfig: SubstantiationWorkflowConfig;
+}
+
+export interface StartDocxGenerationWorkflowApiWorkflowsDocxGenerationStartPostRequest {
+  docxGenerationWorkflowConfig: DocxGenerationWorkflowConfig;
 }
 
 export interface StartMethodologicalAlignmentWorkflowApiWorkflowsMethodologicalAlignmentStartPostRequest {
@@ -194,6 +208,65 @@ export class WorkflowsApi extends runtime.BaseAPI {
     initOverrides?: RequestInit | runtime.InitOverrideFunction,
   ): Promise<ClaimSubstantiationWorkflowDetail> {
     const response = await this.getClaimSubstantiationWorkflowStateApiWorkflowsClaimSubstantiationWorkflowRunIdGetRaw(
+      requestParameters,
+      initOverrides,
+    );
+    return await response.value();
+  }
+
+  /**
+   * Get the state of a workflow of type \"docx_generation\"
+   * Get Docx Generation Workflow State
+   */
+  async getDocxGenerationWorkflowStateApiWorkflowsDocxGenerationWorkflowRunIdGetRaw(
+    requestParameters: GetDocxGenerationWorkflowStateApiWorkflowsDocxGenerationWorkflowRunIdGetRequest,
+    initOverrides?: RequestInit | runtime.InitOverrideFunction,
+  ): Promise<runtime.ApiResponse<DocxGenerationWorkflowDetail>> {
+    if (requestParameters['workflowRunId'] == null) {
+      throw new runtime.RequiredError(
+        'workflowRunId',
+        'Required parameter "workflowRunId" was null or undefined when calling getDocxGenerationWorkflowStateApiWorkflowsDocxGenerationWorkflowRunIdGet().',
+      );
+    }
+
+    const queryParameters: any = {};
+
+    const headerParameters: runtime.HTTPHeaders = {};
+
+    if (this.configuration && this.configuration.accessToken) {
+      const token = this.configuration.accessToken;
+      const tokenString = await token('HTTPBearer', []);
+
+      if (tokenString) {
+        headerParameters['Authorization'] = `Bearer ${tokenString}`;
+      }
+    }
+
+    let urlPath = `/api/workflows/docx_generation/{workflow_run_id}`;
+    urlPath = urlPath.replace(`{${'workflow_run_id'}}`, encodeURIComponent(String(requestParameters['workflowRunId'])));
+
+    const response = await this.request(
+      {
+        path: urlPath,
+        method: 'GET',
+        headers: headerParameters,
+        query: queryParameters,
+      },
+      initOverrides,
+    );
+
+    return new runtime.JSONApiResponse(response, (jsonValue) => DocxGenerationWorkflowDetailFromJSON(jsonValue));
+  }
+
+  /**
+   * Get the state of a workflow of type \"docx_generation\"
+   * Get Docx Generation Workflow State
+   */
+  async getDocxGenerationWorkflowStateApiWorkflowsDocxGenerationWorkflowRunIdGet(
+    requestParameters: GetDocxGenerationWorkflowStateApiWorkflowsDocxGenerationWorkflowRunIdGetRequest,
+    initOverrides?: RequestInit | runtime.InitOverrideFunction,
+  ): Promise<DocxGenerationWorkflowDetail> {
+    const response = await this.getDocxGenerationWorkflowStateApiWorkflowsDocxGenerationWorkflowRunIdGetRaw(
       requestParameters,
       initOverrides,
     );
@@ -447,6 +520,67 @@ export class WorkflowsApi extends runtime.BaseAPI {
     initOverrides?: RequestInit | runtime.InitOverrideFunction,
   ): Promise<StartWorkflowResponse> {
     const response = await this.startClaimSubstantiationWorkflowApiWorkflowsClaimSubstantiationStartPostRaw(
+      requestParameters,
+      initOverrides,
+    );
+    return await response.value();
+  }
+
+  /**
+   * Start a workflow of type \"docx_generation\"
+   * Start Docx Generation Workflow
+   */
+  async startDocxGenerationWorkflowApiWorkflowsDocxGenerationStartPostRaw(
+    requestParameters: StartDocxGenerationWorkflowApiWorkflowsDocxGenerationStartPostRequest,
+    initOverrides?: RequestInit | runtime.InitOverrideFunction,
+  ): Promise<runtime.ApiResponse<StartWorkflowResponse>> {
+    if (requestParameters['docxGenerationWorkflowConfig'] == null) {
+      throw new runtime.RequiredError(
+        'docxGenerationWorkflowConfig',
+        'Required parameter "docxGenerationWorkflowConfig" was null or undefined when calling startDocxGenerationWorkflowApiWorkflowsDocxGenerationStartPost().',
+      );
+    }
+
+    const queryParameters: any = {};
+
+    const headerParameters: runtime.HTTPHeaders = {};
+
+    headerParameters['Content-Type'] = 'application/json';
+
+    if (this.configuration && this.configuration.accessToken) {
+      const token = this.configuration.accessToken;
+      const tokenString = await token('HTTPBearer', []);
+
+      if (tokenString) {
+        headerParameters['Authorization'] = `Bearer ${tokenString}`;
+      }
+    }
+
+    let urlPath = `/api/workflows/docx_generation/start`;
+
+    const response = await this.request(
+      {
+        path: urlPath,
+        method: 'POST',
+        headers: headerParameters,
+        query: queryParameters,
+        body: DocxGenerationWorkflowConfigToJSON(requestParameters['docxGenerationWorkflowConfig']),
+      },
+      initOverrides,
+    );
+
+    return new runtime.JSONApiResponse(response, (jsonValue) => StartWorkflowResponseFromJSON(jsonValue));
+  }
+
+  /**
+   * Start a workflow of type \"docx_generation\"
+   * Start Docx Generation Workflow
+   */
+  async startDocxGenerationWorkflowApiWorkflowsDocxGenerationStartPost(
+    requestParameters: StartDocxGenerationWorkflowApiWorkflowsDocxGenerationStartPostRequest,
+    initOverrides?: RequestInit | runtime.InitOverrideFunction,
+  ): Promise<StartWorkflowResponse> {
+    const response = await this.startDocxGenerationWorkflowApiWorkflowsDocxGenerationStartPostRaw(
       requestParameters,
       initOverrides,
     );

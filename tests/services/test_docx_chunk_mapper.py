@@ -4,7 +4,7 @@ import pytest
 from docx import Document
 from pathlib import Path
 
-from lib.services.docx_chunk_mapper import create_chunk_to_paragraph_mapping
+from lib.services.docx.chunk_mapper import create_chunk_to_paragraph_mapping
 from lib.services.nltk_text_splitter import NLTKTextSplitter
 from lib.workflows.context import ContextSchema
 from tests.conftest import create_test_file_document_from_path, data_path
@@ -165,7 +165,7 @@ async def test_add_comments_to_docx():
     4. Add comments to DOCX
     5. Verify output file is created
     """
-    from lib.services.docx_manipulator import (
+    from lib.services.docx.manipulator import (
         CommentSeverity,
         DocxComment,
         DocxManipulatorService,

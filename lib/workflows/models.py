@@ -41,3 +41,14 @@ class WorkflowRunType(str, Enum):
     CLAIM_SUBSTANTIATION = "claim_substantiation"
     METHODOLOGICAL_ALIGNMENT = "methodological_alignment"
     REFERENCE_DOWNLOADER = "reference_downloader"
+    DOCX_GENERATION = "docx_generation"
+
+
+INTERNAL_WORKFLOW_TYPES = {
+    WorkflowRunType.DOCX_GENERATION,
+}
+
+
+def is_user_visible_workflow(workflow_type: WorkflowRunType) -> bool:
+    """Check if a workflow type should be visible to users."""
+    return workflow_type not in INTERNAL_WORKFLOW_TYPES

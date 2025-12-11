@@ -39,6 +39,7 @@ export interface DeleteProjectEndpointApiProjectProjectIdDeleteRequest {
 
 export interface DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetRequest {
   projectId: string;
+  shareToken?: string | null;
 }
 
 export interface GetProjectEndpointApiProjectProjectIdGetRequest {
@@ -115,7 +116,7 @@ export class ProjectsApi extends runtime.BaseAPI {
   }
 
   /**
-   * Download DOCX file for project - reviewed version if available, otherwise original
+   * Download DOCX with AI comments.  Uses cached version if available, otherwise generates via workflow. First request may take a few seconds as it generates the DOCX. Subsequent requests with the same share_token (or none) are instant.
    * Download Project Docx
    */
   async downloadProjectDocxApiProjectsProjectIdDocxDownloadGetRaw(
@@ -130,6 +131,10 @@ export class ProjectsApi extends runtime.BaseAPI {
     }
 
     const queryParameters: any = {};
+
+    if (requestParameters['shareToken'] != null) {
+      queryParameters['share_token'] = requestParameters['shareToken'];
+    }
 
     const headerParameters: runtime.HTTPHeaders = {};
 
@@ -163,7 +168,7 @@ export class ProjectsApi extends runtime.BaseAPI {
   }
 
   /**
-   * Download DOCX file for project - reviewed version if available, otherwise original
+   * Download DOCX with AI comments.  Uses cached version if available, otherwise generates via workflow. First request may take a few seconds as it generates the DOCX. Subsequent requests with the same share_token (or none) are instant.
    * Download Project Docx
    */
   async downloadProjectDocxApiProjectsProjectIdDocxDownloadGet(

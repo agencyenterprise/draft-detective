@@ -36,6 +36,7 @@ models/ClaimSubstantiationWorkflowDetail.ts
 models/ClaimSubstantiatorState.ts
 models/ClaimSubstantiatorStateSummary.ts
 models/Claims.ts
+models/CommentSeverity.ts
 models/ConfidenceInRecommendation.ts
 models/DoclingPageInfo.ts
 models/DoclingRegion.ts
@@ -45,6 +46,10 @@ models/DocumentChunkSummary.ts
 models/DocumentIssue.ts
 models/DocumentReferenceFactors.ts
 models/DocumentSummary.ts
+models/DocxComment.ts
+models/DocxGenerationState.ts
+models/DocxGenerationWorkflowConfig.ts
+models/DocxGenerationWorkflowDetail.ts
 models/DownloadUrl.ts
 models/EvalPackageRequest.ts
 models/EvidenceAlignmentLevel.ts

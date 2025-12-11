@@ -1,5 +1,6 @@
 import { ShareDialog } from '@/components/share/share-dialog';
 import { ShareStatusBadge } from '@/components/share/share-status-badge';
+import { ShareWarningDialog } from '@/components/share/share-warning-dialog';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -13,6 +14,7 @@ import { useShareStatus } from '@/hooks/use-share-status';
 import { WorkflowRunType } from '@/lib/generated-api';
 import { getWorkflowRunByType, WorkflowRunDetail } from '@/lib/workflow-state';
 import { Download, EllipsisVerticalIcon, FileTextIcon, Link, RefreshCcwIcon } from 'lucide-react';
+import { useState } from 'react';
 import { useDownloadDocx } from './use-download-docx';
 
 export interface AnalysisOptionsMenuProps {
@@ -24,10 +26,41 @@ export interface AnalysisOptionsMenuProps {
 
 export function AnalysisOptionsMenu({ onSaveAsEvalTest, onReevaluate, projectId, results }: AnalysisOptionsMenuProps) {
   const share = useShareStatus(projectId);
-  const { download, isDownloading } = useDownloadDocx(projectId);
+  const [isWarningDialogOpen, setIsWarningDialogOpen] = useState(false);
+  const [isEnablingForDownload, setIsEnablingForDownload] = useState(false);
+
+  const shareToken = share.shareStatus?.shareLink?.token ?? null;
+  const { download, isDownloading } = useDownloadDocx({ projectId, shareToken });
 
   const claimSubstantiationResults = getWorkflowRunByType(results, WorkflowRunType.ClaimSubstantiation);
   const hasDocx = claimSubstantiationResults?.state?.file?.originalFilePath?.endsWith('.docx');
+
+  const handleDownloadClick = () => {
+    if (share.isEnabled) {
+      download(true);
+    } else {
+      setIsWarningDialogOpen(true);
+    }
+  };
+
+  const handleMakePublicAndDownload = async () => {
+    setIsEnablingForDownload(true);
+    setIsWarningDialogOpen(false);
+    try {
+      // Enable sharing first, then download
+      await share.enable();
+      // Give it a moment for the state to update
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      download(true);
+    } finally {
+      setIsEnablingForDownload(false);
+    }
+  };
+
+  const handleDownloadWithoutLinks = () => {
+    setIsWarningDialogOpen(false);
+    download(false);
+  };
 
   return (
     <>
@@ -58,7 +91,7 @@ export function AnalysisOptionsMenu({ onSaveAsEvalTest, onReevaluate, projectId,
             {hasDocx && (
               <MenuItemWithTooltip
                 icon={Download}
-                onClick={download}
+                onClick={handleDownloadClick}
                 disabled={isDownloading}
                 tooltip="Download reviewed DOCX"
               >
@@ -87,6 +120,15 @@ export function AnalysisOptionsMenu({ onSaveAsEvalTest, onReevaluate, projectId,
         isDisabling={share.isDisabling}
         onEnable={share.enable}
         onDisable={share.disable}
+      />
+
+      <ShareWarningDialog
+        open={isWarningDialogOpen}
+        onOpenChange={setIsWarningDialogOpen}
+        isEnablingShare={isEnablingForDownload || share.isEnabling}
+        isDownloading={isDownloading}
+        onMakePublicAndDownload={handleMakePublicAndDownload}
+        onDownloadWithoutLinks={handleDownloadWithoutLinks}
       />
     </>
   );

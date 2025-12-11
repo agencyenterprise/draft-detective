@@ -13,6 +13,7 @@ from lib.models.workflow_run import WorkflowRun
 from lib.services.files import delete_project_files
 from lib.services.workflow_runs import get_project_workflow_runs
 from lib.workflows.claim_substantiation.checkpointer import get_checkpointer
+from lib.workflows.models import is_user_visible_workflow
 
 logger = logging.getLogger(__name__)
 
@@ -62,12 +63,12 @@ async def get_user_projects(user: User) -> List[ProjectListItem]:
         if not results:
             return []
 
-        # Group workflow runs by project
+        # We need to group workflow runs by project, filtering out internal workflows
         projects_dict = defaultdict(lambda: {"project": None, "workflow_runs": []})
         for project, workflow_run in results:
             if projects_dict[project.id]["project"] is None:
                 projects_dict[project.id]["project"] = project
-            if workflow_run is not None:
+            if workflow_run is not None and is_user_visible_workflow(workflow_run.type):
                 projects_dict[project.id]["workflow_runs"].append(workflow_run)
 
         # Build the result list
@@ -90,7 +91,12 @@ async def get_user_project_detailed(project_id: str, user: User) -> ProjectDetai
         raise HTTPException(status_code=403, detail="Access denied")
 
     workflow_runs = await get_project_workflow_runs(project.id)
-    return ProjectDetailed(project=project, workflow_runs=workflow_runs)
+
+    # We must filter out internal workflows
+    visible_workflow_runs = [
+        run for run in workflow_runs if is_user_visible_workflow(run.type)
+    ]
+    return ProjectDetailed(project=project, workflow_runs=visible_workflow_runs)
 
 
 async def update_user_project(
