@@ -13,7 +13,7 @@ export function ApiConfig() {
     client.setConfig({
       baseUrl,
       headers: {
-        Authorization: `Bearer ${accessToken}`,
+        Authorization: accessToken ? `Bearer ${accessToken}` : undefined,
       },
     });
   }, [accessToken]);
