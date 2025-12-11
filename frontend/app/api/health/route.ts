@@ -1,5 +1,3 @@
-import { NextApiRequest, NextApiResponse } from 'next';
-
-export async function GET(req: NextApiRequest, res: NextApiResponse) {
+export async function GET() {
   return Response.json({ status: 'ok' });
 }
