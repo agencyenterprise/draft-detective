@@ -55,6 +55,7 @@ export function ResultsVisualization({
   const claimSubstantiationResults = getWorkflowRunByType(results, WorkflowRunType.ClaimSubstantiation);
   const methodologicalAlignmentResults = getWorkflowRunByType(results, WorkflowRunType.MethodologicalAlignment);
   const literatureReviewResults = getWorkflowRunByType(results, WorkflowRunType.LiteratureReview);
+  const liveReportsResults = getWorkflowRunByType(results, WorkflowRunType.LiveReports);
   const claimSubstantiationStateSummary = claimSubstantiationResults?.state;
 
   const [isReevaluationDialogOpen, setIsReevaluationDialogOpen] = useState(false);
@@ -124,7 +125,7 @@ export function ResultsVisualization({
           <LiteratureReviewTab workflowDetail={literatureReviewResults} projectId={projectId} readOnly={readOnly} />
         );
       case 'live_reports':
-        return <LiveReportsTab workflowDetail={claimSubstantiationResults} isProcessing={isProcessing} />;
+        return <LiveReportsTab workflowDetail={liveReportsResults} projectId={projectId} readOnly={readOnly} />;
       case 'files':
         return <FilesTab projectId={projectId} />;
       case 'document-explorer':

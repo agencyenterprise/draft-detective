@@ -43,6 +43,7 @@ class WorkflowRunType(str, Enum):
     REFERENCE_DOWNLOADER = "reference_downloader"
     DOCX_GENERATION = "docx_generation"
     LITERATURE_REVIEW = "literature_review"
+    LIVE_REPORTS = "live_reports"
 
 
 def is_user_visible_workflow(workflow_type: WorkflowRunType) -> bool:

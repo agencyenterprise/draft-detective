@@ -211,10 +211,6 @@ export type BodyStartAnalysisApiStartAnalysisPost = {
    */
   use_rag?: boolean;
   /**
-   * Run Live Reports
-   */
-  run_live_reports?: boolean;
-  /**
    * Run Reference Validation
    */
   run_reference_validation?: boolean;
@@ -230,10 +226,6 @@ export type BodyStartAnalysisApiStartAnalysisPost = {
    * Target Chunk Indices
    */
   target_chunk_indices?: string | null;
-  /**
-   * Document Publication Date
-   */
-  document_publication_date?: string | null;
   /**
    * Agents To Run
    */
@@ -2014,6 +2006,90 @@ export type LiteratureReviewWorkflowConfig = {
 };
 
 /**
+ * LiveReportsState
+ *
+ * State for the live reports workflow.
+ */
+export type LiveReportsState = {
+  /**
+   * Errors
+   *
+   * Errors that occurred during the workflow execution.
+   */
+  errors?: Array<WorkflowError>;
+  /**
+   * Type
+   */
+  type?: 'live_reports';
+  config: LiveReportsWorkflowConfig;
+  file: FileDocumentOutput;
+  /**
+   * References
+   */
+  references?: Array<BibliographyItem>;
+  /**
+   * Chunks
+   */
+  chunks?: Array<DocumentChunkOutput>;
+  /**
+   * Summary of the main document
+   */
+  main_document_summary: DocumentSummary;
+  /**
+   * Live Reports Analysis
+   *
+   * Live reports analysis results aggregated across chunks
+   */
+  live_reports_analysis?: Array<EvidenceWeighterResponseWithClaimIndexOutput>;
+  /**
+   * Addendum report output for live reports
+   */
+  addendum_report?: ReportOutputOutput | null;
+};
+
+/**
+ * LiveReportsWorkflowConfig
+ *
+ * Configuration for the live reports workflow.
+ */
+export type LiveReportsWorkflowConfig = {
+  /**
+   * Project Id
+   *
+   * The ID of the project that this workflow run should be associated with
+   */
+  project_id?: string | null;
+  /**
+   * Openai Api Key
+   *
+   * The OpenAI API key to use for this workflow execution
+   */
+  openai_api_key?: string | null;
+  /**
+   * Type
+   */
+  type?: 'live_reports';
+  /**
+   * Document Publication Date
+   *
+   * Publication date (YYYY-MM-DD) of the document. Only references after this date will be considered for live reports.
+   */
+  document_publication_date: Date;
+  /**
+   * Domain
+   *
+   * Domain context for more accurate analysis
+   */
+  domain?: string | null;
+  /**
+   * Target Audience
+   *
+   * Target audience context for analysis
+   */
+  target_audience?: string | null;
+};
+
+/**
  * MethodologicalAlignmentState
  *
  * State for the methodological alignment workflow
@@ -2845,23 +2921,11 @@ export type SubstantiationWorkflowConfig = {
    */
   use_rag?: boolean;
   /**
-   * Run Live Reports
-   *
-   * Whether to run the live reports analysis
-   */
-  run_live_reports?: boolean;
-  /**
    * Run Reference Validation
    *
    * Whether to validate references using web search
    */
   run_reference_validation?: boolean;
-  /**
-   * Document Publication Date
-   *
-   * Publication date (YYYY-MM-DD) of the document for live reports
-   */
-  document_publication_date?: Date | null;
   /**
    * Target Chunk Indices
    *
@@ -3120,7 +3184,8 @@ export type WorkflowRunDetail = {
     | MethodologicalAlignmentState
     | ReferenceDownloaderState
     | DocxGenerationState
-    | LiteratureReviewState;
+    | LiteratureReviewState
+    | LiveReportsState;
 };
 
 /**
@@ -3146,6 +3211,7 @@ export const WorkflowRunType = {
   ReferenceDownloader: 'reference_downloader',
   DocxGeneration: 'docx_generation',
   LiteratureReview: 'literature_review',
+  LiveReports: 'live_reports',
 } as const;
 
 /**
@@ -3372,6 +3438,48 @@ export type LiteratureReviewStateWritable = {
 };
 
 /**
+ * LiveReportsState
+ *
+ * State for the live reports workflow.
+ */
+export type LiveReportsStateWritable = {
+  /**
+   * Errors
+   *
+   * Errors that occurred during the workflow execution.
+   */
+  errors?: Array<WorkflowError>;
+  /**
+   * Type
+   */
+  type?: 'live_reports';
+  config: LiveReportsWorkflowConfig;
+  file: FileDocumentOutputWritable;
+  /**
+   * References
+   */
+  references?: Array<BibliographyItem>;
+  /**
+   * Chunks
+   */
+  chunks?: Array<DocumentChunkOutput>;
+  /**
+   * Summary of the main document
+   */
+  main_document_summary: DocumentSummary;
+  /**
+   * Live Reports Analysis
+   *
+   * Live reports analysis results aggregated across chunks
+   */
+  live_reports_analysis?: Array<EvidenceWeighterResponseWithClaimIndexOutput>;
+  /**
+   * Addendum report output for live reports
+   */
+  addendum_report?: ReportOutputOutput | null;
+};
+
+/**
  * MethodologicalAlignmentState
  *
  * State for the methodological alignment workflow
@@ -3422,7 +3530,8 @@ export type WorkflowRunDetailWritable = {
     | MethodologicalAlignmentStateWritable
     | ReferenceDownloaderState
     | DocxGenerationState
-    | LiteratureReviewStateWritable;
+    | LiteratureReviewStateWritable
+    | LiveReportsStateWritable;
 };
 
 export type ReadHealthApiHealthGetData = {
@@ -3568,7 +3677,8 @@ export type StartWorkflowApiWorkflowsStartPostData = {
     | SubstantiationWorkflowConfig
     | MethodologicalAlignmentWorkflowConfig
     | ReferenceDownloaderWorkflowConfig
-    | LiteratureReviewWorkflowConfig;
+    | LiteratureReviewWorkflowConfig
+    | LiveReportsWorkflowConfig;
   path?: never;
   query?: never;
   url: '/api/workflows/start';

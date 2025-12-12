@@ -34,15 +34,9 @@ export function validateAnalysisForm(
     errors.fields.openaiApiKey = 'OpenAI API Key is required';
   }
 
-  if (value.reviewType === 'live-reports') {
-    if (!value.documentPublicationDate) {
-      errors.fields.documentPublicationDate = 'Document publication date is required';
-    }
-  }
-
-  if (value.reviewType === 'live-reports' || value.runReferenceValidation) {
+  if (value.runReferenceValidation) {
     if (!value.webSearchConsent) {
-      errors.fields.webSearchConsent = 'Web search consent is required when using live reports or reference validation';
+      errors.fields.webSearchConsent = 'Web search consent is required when using reference validation';
     }
   }
 

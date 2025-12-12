@@ -1,3 +1,4 @@
+import logging
 from typing import Type, TypeVar
 
 from fastapi import HTTPException
@@ -18,6 +19,8 @@ from lib.workflows.literature_review.state import (
     LiteratureReviewState,
     LiteratureReviewWorkflowConfig,
 )
+from lib.workflows.live_reports.graph import build_live_reports_graph
+from lib.workflows.live_reports.state import LiveReportsState, LiveReportsWorkflowConfig
 from lib.workflows.methodological_alignment.graph import (
     build_methodological_alignment_graph,
 )
@@ -37,6 +40,8 @@ from lib.workflows.reference_downloader.state import (
     ReferenceDownloaderWorkflowConfig,
 )
 
+logger = logging.getLogger(__name__)
+
 WorkflowState = (
     ClaimSubstantiatorState
     | ClaimSubstantiatorStateSummary
@@ -44,6 +49,7 @@ WorkflowState = (
     | ReferenceDownloaderState
     | DocxGenerationState
     | LiteratureReviewState
+    | LiveReportsState
 )
 
 WorkflowConfig = (
@@ -51,6 +57,7 @@ WorkflowConfig = (
     | MethodologicalAlignmentWorkflowConfig
     | ReferenceDownloaderWorkflowConfig
     | LiteratureReviewWorkflowConfig
+    | LiveReportsWorkflowConfig
 )
 
 WorkflowStateType = TypeVar("WorkflowStateType", bound=BaseWorkflowState)
@@ -68,6 +75,8 @@ def create_graph(type: WorkflowRunType) -> StateGraph:
             return build_docx_generation_graph()
         case WorkflowRunType.LITERATURE_REVIEW:
             return build_literature_review_graph()
+        case WorkflowRunType.LIVE_REPORTS:
+            return build_live_reports_graph()
         case _:
             raise ValueError(f"Unknown workflow type: {type}")
 
@@ -84,6 +93,8 @@ def get_config_type(type: WorkflowRunType) -> Type[BaseWorkflowConfig]:
             return DocxGenerationWorkflowConfig
         case WorkflowRunType.LITERATURE_REVIEW:
             return LiteratureReviewWorkflowConfig
+        case WorkflowRunType.LIVE_REPORTS:
+            return LiveReportsWorkflowConfig
         case _:
             raise ValueError(f"Unknown workflow type: {type}")
 
@@ -104,6 +115,8 @@ def get_state_type(
             return DocxGenerationState
         case WorkflowRunType.LITERATURE_REVIEW:
             return LiteratureReviewState
+        case WorkflowRunType.LIVE_REPORTS:
+            return LiveReportsState
         case _:
             raise ValueError(f"Unknown workflow type: {type}")
 
@@ -155,6 +168,21 @@ async def create_state(config: BaseWorkflowConfig) -> WorkflowStateType:
                 file=claim_state.file,
                 references=claim_state.references,
             )
+        case WorkflowRunType.LIVE_REPORTS:
+            claim_state = await _get_claim_state_from_project(config.project_id)
+            # Carry over optional context from the claim workflow if not provided
+            if config.domain is None:
+                config.domain = claim_state.config.domain
+            if config.target_audience is None:
+                config.target_audience = claim_state.config.target_audience
+
+            return LiveReportsState(
+                config=config,
+                file=claim_state.file,
+                references=claim_state.references,
+                chunks=claim_state.chunks,
+                main_document_summary=claim_state.main_document_summary,
+            )
         case _:
             raise ValueError(f"Unknown workflow type: {config.type}")
 
@@ -195,7 +223,7 @@ async def _get_claim_state_from_project(
             detail=f"No claim substantiation workflow found for project {project_id}. Please run claim substantiation workflow first.",
         )
 
-    claim_state: ClaimSubstantiatorStateSummary = await get_workflow_run_state(
-        claim_workflow_run.id
+    claim_state: ClaimSubstantiatorState = await get_workflow_run_state(
+        claim_workflow_run.id, summary=False
     )
     return claim_state

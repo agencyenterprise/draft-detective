@@ -108,7 +108,7 @@ export default function ResultsPage() {
           />
           <h2 className="text-muted-foreground text-sm">
             {authors && <span>{authors} — </span>}
-            <PublicationDateLabel results={claimSubstantiationStateSummary} prefix="Published" suffix=" — " />
+            <PublicationDateLabel results={workflowDetails} prefix="Published" suffix=" — " />
             <span>Project created on {format(project.project.created_at || new Date(), 'MMM d, yyyy')}</span>
           </h2>
         </hgroup>

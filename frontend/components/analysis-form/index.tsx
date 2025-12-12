@@ -23,10 +23,9 @@ export function AnalysisForm({ onSubmit, isPending = false }: AnalysisFormProps)
 
   const form = useForm({
     defaultValues: {
-      reviewType: '',
+      reviewType: 'peer-review',
       domain: '',
       targetAudience: '',
-      documentPublicationDate: '',
       runSuggestCitations: false,
       runReferenceValidation: false,
       webSearchConsent: false,
@@ -44,10 +43,8 @@ export function AnalysisForm({ onSubmit, isPending = false }: AnalysisFormProps)
         config: {
           domain: value.domain,
           targetAudience: value.targetAudience,
-          documentPublicationDate: value.documentPublicationDate,
-          runLiveReports: value.reviewType === 'live-reports',
-          runSuggestCitations: value.reviewType === 'peer-review' && value.runSuggestCitations,
-          runReferenceValidation: value.reviewType === 'peer-review' && value.runReferenceValidation,
+          runSuggestCitations: value.runSuggestCitations,
+          runReferenceValidation: value.runReferenceValidation,
           openaiApiKey: value.openaiApiKey,
         },
       });
@@ -87,12 +84,12 @@ export function AnalysisForm({ onSubmit, isPending = false }: AnalysisFormProps)
               onValueChange={(value) => field.handleChange(value)}
               disabled={isPending}
               required={true}
-              className="grid grid-cols-2 gap-3"
+              className="grid grid-cols-1 gap-3"
             >
               <div className="space-y-2">
                 <RadioGroupItemWithDescription
                   id="peer-review"
-                  value={field.state.value}
+                  value="peer-review"
                   label="Peer Review"
                   description="Peer review analysis focusing on claim substantiation, evidence quality, and citation completeness."
                   disabled={isPending}
@@ -126,42 +123,6 @@ export function AnalysisForm({ onSubmit, isPending = false }: AnalysisFormProps)
                   </>
                 )}
               </div>
-              <div>
-                <RadioGroupItemWithDescription
-                  id="live-reports"
-                  value={field.state.value}
-                  label="Live Reports"
-                  description="Analyze whether claims remain accurate given newer literature published after the document's publication date."
-                  disabled={isPending}
-                />
-                {field.state.value === 'live-reports' && (
-                  <>
-                    <form.Field name="documentPublicationDate">
-                      {(field) => (
-                        <div className="space-y-1 pt-2">
-                          <Label htmlFor="publication-date">
-                            Document Publication Date
-                            <span className="text-destructive ml-1">*</span>
-                          </Label>
-                          <Input
-                            id="publication-date"
-                            type="date"
-                            value={field.state.value}
-                            onChange={(e) => field.handleChange(e.target.value)}
-                            className={field.state.meta.errors.length > 0 ? 'border-destructive' : ''}
-                            disabled={isPending}
-                            required={true}
-                          />
-                          {!field.state.meta.isValid && (
-                            <p className="text-sm text-destructive">{field.state.meta.errors.join(', ')}</p>
-                          )}
-                        </div>
-                      )}
-                    </form.Field>
-                  </>
-                )}
-              </div>
-
               {!field.state.meta.isValid && (
                 <p className="text-sm text-destructive">{field.state.meta.errors.join(', ')}</p>
               )}
@@ -170,9 +131,9 @@ export function AnalysisForm({ onSubmit, isPending = false }: AnalysisFormProps)
         </form.Field>
       </div>
 
-      <form.Subscribe selector={(state) => [state.values.reviewType, state.values.runReferenceValidation]}>
-        {([reviewType, runReferenceValidation]) =>
-          (reviewType === 'live-reports' || runReferenceValidation) && (
+      <form.Subscribe selector={(state) => state.values.runReferenceValidation}>
+        {(runReferenceValidation) =>
+          runReferenceValidation && (
             <form.Field name="webSearchConsent">
               {(field) => (
                 <div>
@@ -182,7 +143,7 @@ export function AnalysisForm({ onSubmit, isPending = false }: AnalysisFormProps)
                       checked={field.state.value}
                       onCheckedChange={(checked) => field.handleChange(checked === true)}
                       label="I consent to perform web search using parts of the document"
-                      description={`Web search is required to perform "live reports", "reference validation", or "methodological alignment". Parts of the document will be used to perform web search, so we don't recommend using confidential information. Disable these features if you don't consent to perform web search.`}
+                      description={`Web search is required to perform reference validation. Parts of the document will be used to perform web search, so we don't recommend using confidential information. Disable this feature if you don't consent to perform web search.`}
                     />
                   </div>
                   {!field.state.meta.isValid && (

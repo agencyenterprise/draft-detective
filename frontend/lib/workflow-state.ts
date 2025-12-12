@@ -1,6 +1,7 @@
 import {
   ClaimSubstantiatorStateSummary,
   DocxGenerationState,
+  LiveReportsState,
   LiteratureReviewState,
   MethodologicalAlignmentState,
   ReferenceDownloaderState,
@@ -18,6 +19,7 @@ type WorkflowTypeToDetail = {
   [WorkflowRunType.ReferenceDownloader]: ReferenceDownloaderState;
   [WorkflowRunType.DocxGeneration]: DocxGenerationState;
   [WorkflowRunType.LiteratureReview]: LiteratureReviewState;
+  [WorkflowRunType.LiveReports]: LiveReportsState;
 };
 
 export interface WorkflowRunDetailTyped<T> {
@@ -47,6 +49,7 @@ const workflowTypeNames: Record<WorkflowRunType, string> = {
   [WorkflowRunType.ReferenceDownloader]: 'Reference Downloader',
   [WorkflowRunType.DocxGeneration]: 'DOCX Generation',
   [WorkflowRunType.LiteratureReview]: 'Literature Review',
+  [WorkflowRunType.LiveReports]: 'Live Reports',
 };
 
 export function getWorkflowTypeName(type: WorkflowRunType): string {

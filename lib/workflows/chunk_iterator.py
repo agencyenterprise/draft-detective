@@ -1,27 +1,26 @@
 from typing import Callable, List, Tuple
+
 from lib.run_utils import run_tasks
-from lib.workflows.claim_substantiation.state import (
-    WorkflowError,
-    ClaimSubstantiatorState,
-    DocumentChunk,
-)
+from lib.workflows.claim_substantiation.state import DocumentChunk
+from lib.workflows.models import BaseWorkflowState, WorkflowError
 
 
-def get_target_chunks(state: ClaimSubstantiatorState) -> List[DocumentChunk]:
-    target_chunk_indices = state.config.target_chunk_indices
+def get_target_chunks(state: BaseWorkflowState) -> List[DocumentChunk]:
+    config = getattr(state, "config", None)
+    target_chunk_indices = getattr(config, "target_chunk_indices", None)
 
     if not target_chunk_indices:
-        return state.chunks
+        return getattr(state, "chunks", [])
 
     return [state.chunks[index] for index in target_chunk_indices]
 
 
 async def iterate_chunks(
-    state: ClaimSubstantiatorState,
-    func: Callable[[ClaimSubstantiatorState, DocumentChunk, ...], DocumentChunk],
+    state: BaseWorkflowState,
+    func: Callable[[BaseWorkflowState, DocumentChunk, ...], DocumentChunk],
     desc: str,
     **kwargs: ...,
-) -> ClaimSubstantiatorState:
+) -> BaseWorkflowState:
     target_chunks = get_target_chunks(state)
 
     tasks = [func(state, chunk, **kwargs) for chunk in target_chunks]

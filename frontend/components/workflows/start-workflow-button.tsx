@@ -42,11 +42,12 @@ export function StartWorkflowButton({ type, projectId, workflow, onConfirm }: St
     },
   });
 
-  const publicationDate = type === WorkflowRunType.LiteratureReview;
+  const publicationDate = type === WorkflowRunType.LiteratureReview || type === WorkflowRunType.LiveReports;
   const webSearchConsent =
     type === WorkflowRunType.LiteratureReview ||
     type === WorkflowRunType.MethodologicalAlignment ||
-    type === WorkflowRunType.ReferenceDownloader;
+    type === WorkflowRunType.ReferenceDownloader ||
+    type === WorkflowRunType.LiveReports;
 
   return (
     <>

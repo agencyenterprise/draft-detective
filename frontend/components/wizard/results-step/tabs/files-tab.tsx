@@ -84,7 +84,7 @@ export function FilesTab({ projectId }: FilesTabProps) {
       </div>
 
       <div>
-        <h3 className="text-lg font-semibold">Supporting Files</h3>
+        <h3 className="text-lg font-semibold">Supporting Files ({otherFiles.length})</h3>
         {otherFiles.length === 0 ? (
           <p className="text-sm text-muted-foreground mt-2">No supporting files uploaded.</p>
         ) : (

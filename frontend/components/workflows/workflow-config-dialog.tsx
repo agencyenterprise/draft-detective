@@ -127,24 +127,26 @@ export function WorkflowConfigDialog({
             </form.Field>
           )}
 
-          <form.Field name="webSearchConsent">
-            {(field) => (
-              <div>
-                <div className="bg-yellow-50 border border-yellow-400 rounded-lg">
-                  <CheckboxWithDescription
-                    id="web-search-consent"
-                    checked={field.state.value}
-                    onCheckedChange={(checked) => field.handleChange(checked === true)}
-                    label="I consent to perform web search using parts or the whole document for this workflow"
-                    description={`Web search is required to perform this workflow. Parts of the document will be used to perform web search, so we don't recommend using confidential information. Don't proceed if you don't consent to perform web search.`}
-                  />
+          {webSearchConsent && (
+            <form.Field name="webSearchConsent">
+              {(field) => (
+                <div>
+                  <div className="bg-yellow-50 border border-yellow-400 rounded-lg">
+                    <CheckboxWithDescription
+                      id="web-search-consent"
+                      checked={field.state.value}
+                      onCheckedChange={(checked) => field.handleChange(checked === true)}
+                      label="I consent to perform web search using parts or the whole document for this workflow"
+                      description={`Web search is required to perform this workflow. Parts of the document will be used to perform web search, so we don't recommend using confidential information. Don't proceed if you don't consent to perform web search.`}
+                    />
+                  </div>
+                  {!field.state.meta.isValid && (
+                    <p className="text-sm text-destructive mt-1 pl-6">{field.state.meta.errors.join(', ')}</p>
+                  )}
                 </div>
-                {!field.state.meta.isValid && (
-                  <p className="text-sm text-destructive mt-1 pl-6">{field.state.meta.errors.join(', ')}</p>
-                )}
-              </div>
-            )}
-          </form.Field>
+              )}
+            </form.Field>
+          )}
         </div>
 
         <form.Subscribe selector={(state) => [state.canSubmit, state.isSubmitting]}>
@@ -154,7 +156,7 @@ export function WorkflowConfigDialog({
                 Cancel
               </Button>
               <Button onClick={() => form.handleSubmit()} disabled={!canSubmit || isSubmitting}>
-                {isSubmitting ? 'Re-analyzing...' : 'Run Re-analysis'}
+                {isSubmitting ? 'Starting...' : 'Start Workflow'}
               </Button>
             </DialogFooter>
           )}

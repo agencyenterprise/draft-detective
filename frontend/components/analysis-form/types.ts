@@ -10,7 +10,6 @@ export interface AnalysisFormValues {
   reviewType: string;
   domain: string;
   targetAudience: string;
-  documentPublicationDate: string;
   runSuggestCitations: boolean;
   runReferenceValidation: boolean;
   webSearchConsent: boolean;

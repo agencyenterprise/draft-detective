@@ -1,4 +1,3 @@
-from datetime import date
 from enum import StrEnum
 from operator import add
 from typing import Annotated, Dict, List, Literal, Optional, Union
@@ -49,15 +48,8 @@ class SubstantiationWorkflowConfig(BaseWorkflowConfig):
         default=True,
         description="Use RAG for claim verification",
     )
-    run_live_reports: bool = Field(
-        default=False, description="Whether to run the live reports analysis"
-    )
     run_reference_validation: bool = Field(
         default=False, description="Whether to validate references using web search"
-    )
-    document_publication_date: Optional[date] = Field(
-        default=None,
-        description="Publication date (YYYY-MM-DD) of the document for live reports",
     )
     target_chunk_indices: Optional[List[int]] = Field(
         default=None,
