@@ -1,5 +1,6 @@
 import {
   ClaimSubstantiatorStateSummary,
+  DocxGenerationState,
   MethodologicalAlignmentState,
   ReferenceDownloaderState,
   WorkflowRun,
@@ -14,6 +15,7 @@ type WorkflowTypeToDetail = {
   [WorkflowRunType.ClaimSubstantiation]: ClaimSubstantiatorStateSummary;
   [WorkflowRunType.MethodologicalAlignment]: MethodologicalAlignmentState;
   [WorkflowRunType.ReferenceDownloader]: ReferenceDownloaderState;
+  [WorkflowRunType.DocxGeneration]: DocxGenerationState;
 };
 
 export interface WorkflowRunDetailTyped<T> {

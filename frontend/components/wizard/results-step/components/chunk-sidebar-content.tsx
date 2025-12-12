@@ -19,6 +19,7 @@ export interface ChunkSidebarContentProps {
   isWorkflowRunning: boolean;
   onSelectIssue: (issue: DocumentIssue) => void;
   onClearChunkSelection: () => void;
+  readOnly?: boolean;
 }
 
 export function ChunkSidebarContent({
@@ -29,6 +30,7 @@ export function ChunkSidebarContent({
   isWorkflowRunning,
   onSelectIssue,
   onClearChunkSelection,
+  readOnly = false,
 }: ChunkSidebarContentProps) {
   const { data: chunkDetails, isLoading: isLoadingDetails } = useChunkDetails(
     workflowRunId || '',
@@ -100,14 +102,23 @@ export function ChunkSidebarContent({
               claimIndex={originalIndex}
               totalClaims={claims.length}
               workflowRunId={workflowRunId}
+              readOnly={readOnly}
             />
           ))}
 
           {chunkDetails && <ChunkAnalysisCard results={results} chunk={chunkDetails} />}
 
-          <ChunkReevaluateControl results={results} chunkIndex={lightweightChunk.chunk_index} projectId={projectId} />
+          {!readOnly && (
+            <>
+              <ChunkReevaluateControl
+                results={results}
+                chunkIndex={lightweightChunk.chunk_index}
+                projectId={projectId}
+              />
 
-          <ChunkEvalGenerator chunkIndex={lightweightChunk.chunk_index} originalState={results} />
+              <ChunkEvalGenerator chunkIndex={lightweightChunk.chunk_index} originalState={results} />
+            </>
+          )}
         </>
       )}
     </div>

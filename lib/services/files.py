@@ -1,13 +1,16 @@
+import io
 import logging
 import os
 import uuid
-from typing import List, Optional, Set
+import zipfile
+from typing import List, Optional, Tuple
 
 from fastapi import HTTPException
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from lib.config.database import get_db
+from lib.config.env import config
 from lib.models.file import File, FileRole
 from lib.services.file import FileDocument, create_file_document_from_path
 
@@ -229,3 +232,63 @@ def _delete_file_from_disk(
         logger.info(f"Deleted file from disk: {file_path}")
     except Exception as e:
         logger.error(f"Error deleting file from disk: {e}")
+
+
+async def create_project_files_zip(
+    project_id: uuid.UUID | str,
+) -> Tuple[io.BytesIO, int]:
+    """
+    Create a ZIP archive containing all files for a project.
+
+    Args:
+        project_id: UUID of the project
+
+    Returns:
+        Tuple of (BytesIO buffer containing the ZIP file, number of files added)
+
+    Raises:
+        HTTPException: 404 if no files found or no accessible files
+    """
+    files = await get_files_by_project_id(project_id)
+
+    if not files:
+        raise HTTPException(status_code=404, detail="No files found for this project")
+
+    # Create in-memory zip file
+    zip_buffer = io.BytesIO()
+
+    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+        files_added = 0
+        for file in files:
+            # Security check: ensure file path is within upload mount path
+            if not file.file_path.startswith(config.FILE_UPLOADS_MOUNT_PATH):
+                logger.warning(
+                    f"Skipping file {file.id} - path outside mount path: {file.file_path}"
+                )
+                continue
+
+            # Check if file exists on disk
+            if not os.path.isfile(file.file_path):
+                logger.warning(
+                    f"Skipping file {file.id} - file not found on disk: {file.file_path}"
+                )
+                continue
+
+            try:
+                # Add file to zip using original filename
+                zip_file.write(file.file_path, file.file_name)
+                files_added += 1
+            except Exception as e:
+                # Log error but continue with other files
+                logger.error(
+                    f"Error adding file {file.id} ({file.file_name}) to zip: {e}"
+                )
+                continue
+
+    if files_added == 0:
+        raise HTTPException(
+            status_code=404, detail="No accessible files found for this project"
+        )
+
+    zip_buffer.seek(0)
+    return zip_buffer, files_added

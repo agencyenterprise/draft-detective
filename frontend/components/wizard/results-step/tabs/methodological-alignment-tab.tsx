@@ -31,9 +31,10 @@ interface MethodologicalAlignmentTabProps {
   results: WorkflowRunDetailTyped<MethodologicalAlignmentState> | undefined;
   isProcessing?: boolean;
   projectId: string;
+  readOnly?: boolean;
 }
 
-export function MethodologicalAlignmentTab({ results, projectId }: MethodologicalAlignmentTabProps) {
+export function MethodologicalAlignmentTab({ results, projectId, readOnly = false }: MethodologicalAlignmentTabProps) {
   const [isConfigDialogOpen, setIsConfigDialogOpen] = useState(false);
 
   const startWorkflowMutation = useMutation({
@@ -102,16 +103,18 @@ export function MethodologicalAlignmentTab({ results, projectId }: Methodologica
         skeletonType="paragraphs"
         skeletonCount={6}
         triggerButton={
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setIsConfigDialogOpen(true)}
-            disabled={startWorkflowMutation.isPending || results?.run.status === WorkflowRunStatus.Running}
-          >
-            <PlayIcon />
-            {startWorkflowMutation.isPending ? 'Starting...' : 'Start Methodological Alignment'}
-            {results?.run.status === WorkflowRunStatus.Running && <Loader2 className="animate-spin" />}
-          </Button>
+          !readOnly ? (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setIsConfigDialogOpen(true)}
+              disabled={startWorkflowMutation.isPending || results?.run.status === WorkflowRunStatus.Running}
+            >
+              <PlayIcon />
+              {startWorkflowMutation.isPending ? 'Starting...' : 'Start Methodological Alignment'}
+              {results?.run.status === WorkflowRunStatus.Running && <Loader2 className="animate-spin" />}
+            </Button>
+          ) : undefined
         }
       >
         {(methodologyComparison) => {

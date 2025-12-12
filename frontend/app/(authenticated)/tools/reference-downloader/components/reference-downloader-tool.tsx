@@ -5,11 +5,12 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 
 import { toast } from 'sonner';
 import { useSessionStorage } from '@/lib/hooks/use-session-storage';
+import { useDownloadAllProjectFiles } from '@/hooks/use-download-all-project-files';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { AlertCircle, Loader2, Play } from 'lucide-react';
+import { AlertCircle, Download, Loader2, Play } from 'lucide-react';
 import {
   WorkflowRunStatus,
   ReferenceFetchItem,
@@ -91,6 +92,9 @@ export function ReferenceDownloaderTool() {
   const downloadedReferences = state?.downloaded_references ?? [];
   const hasResults = results.length > 0;
   const isCompleted = workflowDetail?.run.status === WorkflowRunStatus.Completed;
+  const projectId = workflowDetail?.run.project_id;
+  const hasDownloadedReferences = downloadedReferences.some((ref) => ref !== null);
+  const { downloadAll, isDownloading } = useDownloadAllProjectFiles(projectId);
 
   return (
     <div className="space-y-6">
@@ -177,9 +181,26 @@ export function ReferenceDownloaderTool() {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-semibold">Results</h3>
-            <span className="text-sm text-muted-foreground">
-              {results.length} reference{results.length !== 1 ? 's' : ''} checked
-            </span>
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-muted-foreground">
+                {results.length} reference{results.length !== 1 ? 's' : ''} checked
+              </span>
+              {projectId && hasDownloadedReferences && (
+                <Button onClick={downloadAll} disabled={isDownloading} variant="outline" size="sm">
+                  {isDownloading ? (
+                    <>
+                      <Loader2 className="size-4 animate-spin" />
+                      Downloading...
+                    </>
+                  ) : (
+                    <>
+                      <Download className="size-4" />
+                      Download all files (.zip)
+                    </>
+                  )}
+                </Button>
+              )}
+            </div>
           </div>
           <div className="space-y-3">
             {results.map((item: ReferenceFetchItem, index: number) => (

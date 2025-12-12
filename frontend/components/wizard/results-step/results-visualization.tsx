@@ -133,7 +133,7 @@ export function ResultsVisualization({
       case 'live_reports':
         return <LiveReportsTab workflowDetail={claimSubstantiationResults} isProcessing={isProcessing} />;
       case 'files':
-        return <FilesTab workflowDetail={claimSubstantiationResults} />;
+        return <FilesTab projectId={projectId} />;
       case 'document-explorer':
         return (
           <DocumentExplorerTab
@@ -141,10 +141,17 @@ export function ResultsVisualization({
             workflowDetail={claimSubstantiationResults}
             isProcessing={isProcessing}
             viewMode={viewMode}
+            readOnly={readOnly}
           />
         );
       case 'methodological_alignment':
-        return <MethodologicalAlignmentTab results={methodologicalAlignmentResults} projectId={projectId} />;
+        return (
+          <MethodologicalAlignmentTab
+            results={methodologicalAlignmentResults}
+            projectId={projectId}
+            readOnly={readOnly}
+          />
+        );
     }
   };
 
