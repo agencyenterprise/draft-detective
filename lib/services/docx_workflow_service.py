@@ -45,11 +45,16 @@ async def get_or_generate_docx(
 
     if cached_path:
         logger.info(f"Serving cached DOCX for {cache_key}")
-        from lib.services.workflow_runs import get_workflow_run, get_full_workflow_state
+        from lib.services.workflow_runs import (
+            get_workflow_run,
+            get_workflow_run_state_by_thread_id,
+        )
 
         claim_run = await get_workflow_run(claim_run_id)
-        claim_state = await get_full_workflow_state(
-            claim_run.langgraph_thread_id, WorkflowRunType.CLAIM_SUBSTANTIATION
+        claim_state = await get_workflow_run_state_by_thread_id(
+            claim_run.langgraph_thread_id,
+            WorkflowRunType.CLAIM_SUBSTANTIATION,
+            summary=False,
         )
         base_name = claim_state.file.file_name.rsplit(".", 1)[0]
         filename = f"{base_name}_reviewed.docx"

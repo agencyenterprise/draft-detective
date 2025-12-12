@@ -24,14 +24,17 @@ async def prepare_docx_inputs(
     """
     claim_run_id = state.config.claim_substantiation_run_id
 
-    from lib.services.workflow_runs import get_workflow_run, get_full_workflow_state
+    from lib.services.workflow_runs import (
+        get_workflow_run,
+        get_workflow_run_state_by_thread_id,
+    )
 
     claim_run = await get_workflow_run(claim_run_id)
     if claim_run.type != WorkflowRunType.CLAIM_SUBSTANTIATION:
         raise ValueError("Provided workflow run is not a claim substantiation run")
 
-    claim_state: ClaimSubstantiatorState = await get_full_workflow_state(
-        claim_run.langgraph_thread_id, WorkflowRunType.CLAIM_SUBSTANTIATION
+    claim_state: ClaimSubstantiatorState = await get_workflow_run_state_by_thread_id(
+        claim_run.langgraph_thread_id, WorkflowRunType.CLAIM_SUBSTANTIATION, summary=False
     )
 
     if (
