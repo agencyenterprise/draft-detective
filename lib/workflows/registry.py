@@ -23,6 +23,11 @@ from lib.workflows.methodological_alignment.state import (
     MethodologicalAlignmentWorkflowConfig,
 )
 from lib.workflows.models import BaseWorkflowConfig, BaseWorkflowState, WorkflowRunType
+from lib.workflows.docx_generation.graph import build_docx_generation_graph
+from lib.workflows.docx_generation.state import (
+    DocxGenerationState,
+    DocxGenerationWorkflowConfig,
+)
 from lib.workflows.reference_downloader.graph import build_reference_downloader_graph
 from lib.workflows.reference_downloader.state import (
     ReferenceDownloaderState,
@@ -30,9 +35,11 @@ from lib.workflows.reference_downloader.state import (
 )
 
 WorkflowState = (
-    ClaimSubstantiatorStateSummary
+    ClaimSubstantiatorState
+    | ClaimSubstantiatorStateSummary
     | MethodologicalAlignmentState
     | ReferenceDownloaderState
+    | DocxGenerationState
 )
 
 WorkflowConfig = (
@@ -52,6 +59,8 @@ def create_graph(type: WorkflowRunType) -> StateGraph:
             return build_methodological_alignment_graph()
         case WorkflowRunType.REFERENCE_DOWNLOADER:
             return build_reference_downloader_graph()
+        case WorkflowRunType.DOCX_GENERATION:
+            return build_docx_generation_graph()
         case _:
             raise ValueError(f"Unknown workflow type: {type}")
 
@@ -64,6 +73,8 @@ def get_config_type(type: WorkflowRunType) -> Type[BaseWorkflowConfig]:
             return MethodologicalAlignmentWorkflowConfig
         case WorkflowRunType.REFERENCE_DOWNLOADER:
             return ReferenceDownloaderWorkflowConfig
+        case WorkflowRunType.DOCX_GENERATION:
+            return DocxGenerationWorkflowConfig
         case _:
             raise ValueError(f"Unknown workflow type: {type}")
 
@@ -80,6 +91,8 @@ def get_state_type(
             return MethodologicalAlignmentState
         case WorkflowRunType.REFERENCE_DOWNLOADER:
             return ReferenceDownloaderState
+        case WorkflowRunType.DOCX_GENERATION:
+            return DocxGenerationState
         case _:
             raise ValueError(f"Unknown workflow type: {type}")
 
@@ -122,6 +135,8 @@ async def create_state(config: BaseWorkflowConfig) -> WorkflowStateType:
             return MethodologicalAlignmentState(file=file)
         case WorkflowRunType.REFERENCE_DOWNLOADER:
             return ReferenceDownloaderState(config=config)
+        case WorkflowRunType.DOCX_GENERATION:
+            return DocxGenerationState(config=config)
         case _:
             raise ValueError(f"Unknown workflow type: {config.type}")
 

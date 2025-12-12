@@ -256,7 +256,7 @@ export type BodyStartAnalysisApiStartAnalysisPost = {
  * ChunkEvalPackageRequest
  */
 export type ChunkEvalPackageRequest = {
-  results: ClaimSubstantiatorState;
+  results: ClaimSubstantiatorStateInput;
   /**
    * Chunk Index
    */
@@ -744,7 +744,7 @@ export type ClaimSubstantiationResultWithClaimIndex = {
 /**
  * ClaimSubstantiatorState
  */
-export type ClaimSubstantiatorState = {
+export type ClaimSubstantiatorStateInput = {
   /**
    * Errors
    *
@@ -813,6 +813,77 @@ export type ClaimSubstantiatorState = {
 };
 
 /**
+ * ClaimSubstantiatorState
+ */
+export type ClaimSubstantiatorStateOutput = {
+  /**
+   * Errors
+   *
+   * Errors that occurred during the workflow execution.
+   */
+  errors?: Array<WorkflowError>;
+  /**
+   * Type
+   */
+  type?: 'claim_substantiation';
+  file: FileDocumentOutput;
+  /**
+   * Supporting Files
+   */
+  supporting_files?: Array<FileDocumentOutput> | null;
+  config: SubstantiationWorkflowConfig;
+  /**
+   * References
+   */
+  references?: Array<BibliographyItem>;
+  /**
+   * References Validated
+   */
+  references_validated?: Array<BibliographyItemValidationOutput>;
+  /**
+   * Chunks
+   */
+  chunks?: Array<DocumentChunkOutput>;
+  /**
+   * The summary of the main document
+   */
+  main_document_summary?: DocumentSummary | null;
+  /**
+   * Supporting Documents Summaries
+   *
+   * Dictionary mapping supporting file indices to their summaries
+   */
+  supporting_documents_summaries?: {
+    [key: string]: DocumentSummary;
+  } | null;
+  /**
+   * Live Reports Analysis
+   *
+   * Live reports analysis results by chunk index
+   */
+  live_reports_analysis?: Array<EvidenceWeighterResponseWithClaimIndexOutput>;
+  literature_review?: LiteratureReviewResponseOutput | null;
+  /**
+   * Methodology comparison result comparing the paper's methodology to field standards
+   */
+  methodology_comparison?: MethodologyComparisonResponseOutput | null;
+  /**
+   * Report output from the addendum report generator
+   */
+  addendum_report?: ReportOutputOutput | null;
+  /**
+   * Ranked Issues
+   *
+   * Ranked list of document issues with severity levels
+   */
+  ranked_issues?: Array<DocumentIssue>;
+  /**
+   * Mapping from chunk indices to Docling items/regions for rendering
+   */
+  chunk_to_items?: ChunkToItemsOutput | null;
+};
+
+/**
  * ClaimSubstantiatorStateSummary
  *
  * Summary version of ClaimSubstantiatorState with chunk summaries instead of full chunks
@@ -866,6 +937,25 @@ export type ClaimSubstantiatorStateSummary = {
   ranked_issues?: Array<DocumentIssue>;
   chunk_to_items?: ChunkToItemsOutput | null;
 };
+
+/**
+ * CommentSeverity
+ *
+ * Severity levels for DOCX comments.
+ */
+export const CommentSeverity = {
+  None: 'none',
+  Low: 'low',
+  Medium: 'medium',
+  High: 'high',
+} as const;
+
+/**
+ * CommentSeverity
+ *
+ * Severity levels for DOCX comments.
+ */
+export type CommentSeverity = (typeof CommentSeverity)[keyof typeof CommentSeverity];
 
 /**
  * ConfidenceInRecommendation
@@ -1241,10 +1331,118 @@ export type DocumentSummary = {
 };
 
 /**
+ * DocxComment
+ *
+ * Represents a comment to be added to a docx file.
+ */
+export type DocxComment = {
+  /**
+   * Chunk Index
+   */
+  chunk_index: number;
+  /**
+   * Text
+   */
+  text: string;
+  /**
+   * Comment Text
+   */
+  comment_text: string;
+  severity?: CommentSeverity | null;
+  /**
+   * Author
+   */
+  author?: string | null;
+  /**
+   * Share Link
+   */
+  share_link?: string | null;
+};
+
+/**
+ * DocxGenerationState
+ *
+ * State for DOCX generation workflow.
+ */
+export type DocxGenerationState = {
+  /**
+   * Errors
+   *
+   * Errors that occurred during the workflow execution.
+   */
+  errors?: Array<WorkflowError>;
+  /**
+   * Type
+   */
+  type?: 'docx_generation';
+  config: DocxGenerationWorkflowConfig;
+  /**
+   * Comments
+   */
+  comments?: Array<DocxComment> | null;
+  /**
+   * Chunks
+   */
+  chunks?: Array<unknown> | null;
+  /**
+   * Original File Path
+   */
+  original_file_path?: string | null;
+  /**
+   * Base File Name
+   */
+  base_file_name?: string | null;
+  /**
+   * Generated File Path
+   */
+  generated_file_path?: string | null;
+  /**
+   * Filename
+   */
+  filename?: string | null;
+};
+
+/**
+ * DocxGenerationWorkflowConfig
+ *
+ * Config for DOCX generation workflow.
+ */
+export type DocxGenerationWorkflowConfig = {
+  /**
+   * Project Id
+   *
+   * The ID of the project that this workflow run should be associated with
+   */
+  project_id?: string | null;
+  /**
+   * Openai Api Key
+   *
+   * The OpenAI API key to use for this workflow execution
+   */
+  openai_api_key?: string | null;
+  /**
+   * Type
+   */
+  type?: 'docx_generation';
+  /**
+   * Claim Substantiation Run Id
+   *
+   * Workflow run ID of the claim substantiation run to generate DOCX from
+   */
+  claim_substantiation_run_id: string;
+  /**
+   * Share Token
+   *
+   * Optional share token to include share links in comments
+   */
+  share_token?: string | null;
+};
+
+/**
  * EvalPackageRequest
  */
 export type EvalPackageRequest = {
-  results: ClaimSubstantiatorState;
+  results: ClaimSubstantiatorStateInput;
   /**
    * Test Name
    */
@@ -2871,7 +3069,7 @@ export type WorkflowRunDetail = {
   /**
    * State
    */
-  state: ClaimSubstantiatorStateSummary | MethodologicalAlignmentState | ReferenceDownloaderState;
+  state: ClaimSubstantiatorStateOutput | MethodologicalAlignmentState | ReferenceDownloaderState | DocxGenerationState;
 };
 
 /**
@@ -2895,12 +3093,84 @@ export const WorkflowRunType = {
   ClaimSubstantiation: 'claim_substantiation',
   MethodologicalAlignment: 'methodological_alignment',
   ReferenceDownloader: 'reference_downloader',
+  DocxGeneration: 'docx_generation',
 } as const;
 
 /**
  * WorkflowRunType
  */
 export type WorkflowRunType = (typeof WorkflowRunType)[keyof typeof WorkflowRunType];
+
+/**
+ * ClaimSubstantiatorState
+ */
+export type ClaimSubstantiatorStateOutputWritable = {
+  /**
+   * Errors
+   *
+   * Errors that occurred during the workflow execution.
+   */
+  errors?: Array<WorkflowError>;
+  /**
+   * Type
+   */
+  type?: 'claim_substantiation';
+  file: FileDocumentOutputWritable;
+  /**
+   * Supporting Files
+   */
+  supporting_files?: Array<FileDocumentOutputWritable> | null;
+  config: SubstantiationWorkflowConfig;
+  /**
+   * References
+   */
+  references?: Array<BibliographyItem>;
+  /**
+   * References Validated
+   */
+  references_validated?: Array<BibliographyItemValidationOutput>;
+  /**
+   * Chunks
+   */
+  chunks?: Array<DocumentChunkOutput>;
+  /**
+   * The summary of the main document
+   */
+  main_document_summary?: DocumentSummary | null;
+  /**
+   * Supporting Documents Summaries
+   *
+   * Dictionary mapping supporting file indices to their summaries
+   */
+  supporting_documents_summaries?: {
+    [key: string]: DocumentSummary;
+  } | null;
+  /**
+   * Live Reports Analysis
+   *
+   * Live reports analysis results by chunk index
+   */
+  live_reports_analysis?: Array<EvidenceWeighterResponseWithClaimIndexOutput>;
+  literature_review?: LiteratureReviewResponseOutput | null;
+  /**
+   * Methodology comparison result comparing the paper's methodology to field standards
+   */
+  methodology_comparison?: MethodologyComparisonResponseOutput | null;
+  /**
+   * Report output from the addendum report generator
+   */
+  addendum_report?: ReportOutputOutput | null;
+  /**
+   * Ranked Issues
+   *
+   * Ranked list of document issues with severity levels
+   */
+  ranked_issues?: Array<DocumentIssue>;
+  /**
+   * Mapping from chunk indices to Docling items/regions for rendering
+   */
+  chunk_to_items?: ChunkToItemsOutput | null;
+};
 
 /**
  * ClaimSubstantiatorStateSummary
@@ -3069,7 +3339,11 @@ export type WorkflowRunDetailWritable = {
   /**
    * State
    */
-  state: ClaimSubstantiatorStateSummaryWritable | MethodologicalAlignmentStateWritable | ReferenceDownloaderState;
+  state:
+    | ClaimSubstantiatorStateOutputWritable
+    | MethodologicalAlignmentStateWritable
+    | ReferenceDownloaderState
+    | DocxGenerationState;
 };
 
 export type ReadHealthApiHealthGetData = {
@@ -3648,7 +3922,14 @@ export type DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetData = {
      */
     project_id: string;
   };
-  query?: never;
+  query?: {
+    /**
+     * Share Token
+     *
+     * Share token to include share links in comments
+     */
+    share_token?: string | null;
+  };
   url: '/api/projects/{project_id}/docx/download';
 };
 

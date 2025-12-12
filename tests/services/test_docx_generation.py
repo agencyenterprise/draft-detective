@@ -1,11 +1,13 @@
-"""Tests for generate_docx_output node helper functions"""
+"""Tests for DOCX generation helper functions"""
 
 import pytest
 
-from lib.services.docx_manipulator import CommentSeverity, DocxComment
-from lib.workflows.claim_substantiation.nodes.generate_docx_output import (
+from lib.services.docx.manipulator import (
+    CommentSeverity,
+    DocxComment,
     issue_to_comment,
 )
+from lib.services.file import FileDocument
 from lib.workflows.claim_substantiation.nodes.rank_issues import (
     _build_citation_suggestion_issues,
 )
@@ -16,7 +18,6 @@ from lib.workflows.claim_substantiation.state import (
     SeverityEnum,
     SubstantiationWorkflowConfig,
 )
-from lib.services.file import FileDocument
 
 
 class TestIssueToComment:

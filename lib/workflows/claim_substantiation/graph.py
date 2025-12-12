@@ -15,9 +15,6 @@ from lib.workflows.claim_substantiation.nodes.extract_references import (
 from lib.workflows.claim_substantiation.nodes.generate_addendum_report import (
     generate_addendum_report,
 )
-from lib.workflows.claim_substantiation.nodes.generate_docx_output import (
-    generate_docx_output,
-)
 from lib.workflows.claim_substantiation.nodes.generate_live_reports import (
     generate_live_reports_analysis,
 )
@@ -92,9 +89,6 @@ def build_claim_substantiator_graph(
         )
         graph.add_node("generate_addendum_report", generate_addendum_report, defer=True)
 
-    # Docx output generation (always added, runs conditionally based on file type)
-    graph.add_node("generate_docx_output", generate_docx_output)
-
     # Entry point
     graph.set_entry_point("convert_to_markdown")
 
@@ -109,8 +103,7 @@ def build_claim_substantiator_graph(
         graph.add_edge("extract_references", "generate_live_reports_analysis")
         graph.add_edge("extract_claims", "generate_live_reports_analysis")
         graph.add_edge("generate_live_reports_analysis", "generate_addendum_report")
-        graph.add_edge("generate_addendum_report", "generate_docx_output")
-        graph.set_finish_point("generate_docx_output")
+        graph.set_finish_point("generate_addendum_report")
 
     # Peer review edges
     else:
@@ -155,8 +148,7 @@ def build_claim_substantiator_graph(
             graph.add_edge("summarize_supporting_documents", "suggest_citations")
             if config.run_literature_review:
                 graph.add_edge("literature_review", "suggest_citations")
-            graph.add_edge("suggest_citations", "generate_docx_output")
-            graph.set_finish_point("generate_docx_output")
+            graph.set_finish_point("suggest_citations")
 
         else:
             # When no downstream nodes exist, create a finalize node to wait for both
@@ -164,8 +156,7 @@ def build_claim_substantiator_graph(
             graph.add_node("finalize", finalize)
             graph.add_edge("verify_claims", "finalize")
             graph.add_edge("validate_inferences", "finalize")
-            graph.add_edge("finalize", "generate_docx_output")
-            graph.set_finish_point("generate_docx_output")
+            graph.set_finish_point("finalize")
 
     return graph
 

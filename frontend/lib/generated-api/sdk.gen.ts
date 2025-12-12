@@ -583,7 +583,11 @@ export const updateProjectEndpointApiProjectProjectIdPatch = <ThrowOnError exten
 /**
  * Download Project Docx
  *
- * Download DOCX file for project - reviewed version if available, otherwise original
+ * Download DOCX with AI comments.
+ *
+ * Uses cached version if available, otherwise generates via workflow.
+ * First request may take a few seconds as it generates the DOCX.
+ * Subsequent requests with the same share_token (or none) are instant.
  */
 export const downloadProjectDocxApiProjectsProjectIdDocxDownloadGet = <ThrowOnError extends boolean = true>(
   options: Options<DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetData, ThrowOnError>,

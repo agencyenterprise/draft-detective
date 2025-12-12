@@ -1,33 +1,34 @@
-"""
-Service to map document chunks to DOCX paragraphs.
+"""Service to map document chunks to DOCX paragraphs.
 
 Maps chunks back to their original DOCX paragraph locations using
 sequential forward-only text matching to handle duplicate text correctly.
 """
 
 import logging
-from typing import Dict, List
+from typing import Dict, List, Protocol
 
 from docx.text.paragraph import Paragraph
 
-from lib.agents.models import ValidatedDocument
 from lib.services.text_matching import text_matches
 
 logger = logging.getLogger(__name__)
 
 
+class ChunkLike(Protocol):
+    """Protocol for objects that can be mapped to DOCX paragraphs."""
+
+    content: str
+    chunk_index: int
+
+
 def create_chunk_to_paragraph_mapping(
-    chunks: List[ValidatedDocument],
+    chunks: List[ChunkLike],
     docx_paragraphs: List[Paragraph],
 ) -> Dict[int, int]:
-    """
-    Map chunk_index to DOCX paragraph index using sequential forward matching.
-
-    Processes chunks in document order and searches forward-only to ensure
-    duplicate text maps to the correct paragraph by position.
+    """Map chunk_index to DOCX paragraph index using sequential forward matching.
 
     Args:
-        chunks: List of document chunks with content and metadata
+        chunks: List of chunk-like objects with content and chunk_index
         docx_paragraphs: List of python-docx Paragraph objects
 
     Returns:
@@ -43,17 +44,17 @@ def create_chunk_to_paragraph_mapping(
         f"Mapping {len(chunks)} chunks to {len(docx_paragraphs)} DOCX paragraphs"
     )
 
-    sorted_chunks = sorted(chunks, key=lambda c: c.metadata.chunk_index)
+    sorted_chunks = sorted(chunks, key=lambda c: c.chunk_index)
     min_search_idx = 0
 
     for chunk in sorted_chunks:
-        chunk_text = chunk.page_content.strip()
+        chunk_text = chunk.content.strip()
         if not chunk_text:
             continue
 
-        chunk_idx = chunk.metadata.chunk_index
+        chunk_idx = chunk.chunk_index
 
-        # Primary: search forward only from current position (handles duplicates correctly)
+        # Primary: search forward only from current position
         for para_idx in range(min_search_idx, len(docx_paragraphs)):
             if text_matches(chunk_text, docx_paragraphs[para_idx].text):
                 mapping[chunk_idx] = para_idx

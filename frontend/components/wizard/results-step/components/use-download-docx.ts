@@ -1,35 +1,48 @@
-import { downloadProjectDocxApiProjectsProjectIdDocxDownloadGet } from '@/lib/generated-api';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { downloadProjectDocxApiProjectsProjectIdDocxDownloadGet } from '@/lib/generated-api';
+import { downloadFile } from '@/lib/file-download';
 
-export function useDownloadDocx(projectId: string) {
+interface UseDownloadDocxOptions {
+  projectId: string;
+  shareToken?: string | null;
+}
+
+async function downloadDocxFile(projectId: string, shareToken?: string | null): Promise<void> {
+  const response = await downloadProjectDocxApiProjectsProjectIdDocxDownloadGet({
+    path: { project_id: projectId },
+    query: shareToken ? { share_token: shareToken } : undefined,
+  });
+
+  if (!(response instanceof Blob)) {
+    throw new Error('Unexpected response type from DOCX download');
+  }
+
+  const timestamp = new Date().toISOString().split('T')[0];
+  const filename = `document_${projectId}_${timestamp}.docx`;
+
+  downloadFile({ blob: response, filename });
+}
+
+export function useDownloadDocx({ projectId, shareToken }: UseDownloadDocxOptions) {
   const [isDownloading, setIsDownloading] = useState(false);
 
-  const download = async () => {
+  const download = async (includeShareLinks: boolean = false) => {
     setIsDownloading(true);
+
+    const loadingMessage = includeShareLinks ? 'Preparing DOCX with share links...' : 'Preparing DOCX for download...';
+
+    const toastId = toast.loading(loadingMessage, {
+      description: 'This may take a few moments',
+    });
+
     try {
-      const { response, data: blob } = (await downloadProjectDocxApiProjectsProjectIdDocxDownloadGet({
-        path: { project_id: projectId },
-        responseStyle: 'fields',
-      })) as { response: Response; data: Blob };
-
-      const contentDisposition = response.headers.get('content-disposition');
-      const filenameMatch = contentDisposition?.match(/filename="?(.+?)"?$/);
-      const filename = filenameMatch?.[1] || `document_${projectId}.docx`;
-
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-
-      toast.success('DOCX file downloaded successfully');
+      const tokenToUse = includeShareLinks ? shareToken : null;
+      await downloadDocxFile(projectId, tokenToUse);
+      toast.success('DOCX file downloaded successfully', { id: toastId });
     } catch (error) {
       console.error('Failed to download docx:', error);
-      toast.error('Failed to download DOCX file');
+      toast.error('Failed to download DOCX file', { id: toastId });
     } finally {
       setIsDownloading(false);
     }

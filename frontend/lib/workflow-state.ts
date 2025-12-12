@@ -1,5 +1,6 @@
 import {
   ClaimSubstantiatorStateSummary,
+  DocxGenerationState,
   MethodologicalAlignmentState,
   ReferenceDownloaderState,
   WorkflowRun,
@@ -14,6 +15,7 @@ type WorkflowTypeToDetail = {
   [WorkflowRunType.ClaimSubstantiation]: ClaimSubstantiatorStateSummary;
   [WorkflowRunType.MethodologicalAlignment]: MethodologicalAlignmentState;
   [WorkflowRunType.ReferenceDownloader]: ReferenceDownloaderState;
+  [WorkflowRunType.DocxGeneration]: DocxGenerationState;
 };
 
 export interface WorkflowRunDetailTyped<T> {
@@ -28,7 +30,7 @@ export interface WorkflowRunDetailTyped<T> {
  * @param type - The type of workflow run to get
  * @returns The workflow run if found, otherwise undefined
  */
-export function getWorkflowRunByType<T extends WorkflowRunType>(
+export function getWorkflowRunByType<T extends keyof WorkflowTypeToDetail>(
   workflowRuns: WorkflowRunDetail[],
   type: T,
 ): WorkflowRunDetailTyped<WorkflowTypeToDetail[T]> | undefined {
@@ -41,6 +43,7 @@ const workflowTypeNames: Record<WorkflowRunType, string> = {
   [WorkflowRunType.ClaimSubstantiation]: 'Claim Substantiation',
   [WorkflowRunType.MethodologicalAlignment]: 'Methodological Alignment',
   [WorkflowRunType.ReferenceDownloader]: 'Reference Downloader',
+  [WorkflowRunType.DocxGeneration]: 'DOCX Generation',
 };
 
 export function getWorkflowTypeName(type: WorkflowRunType): string {

@@ -31,10 +31,11 @@ class ShareStatusResponse(BaseModel):
     )
 
 
-def _build_share_url(token: str) -> str:
-    """Build the full shareable URL from a token."""
+def _build_share_url(token: str, anchor: Optional[str] = None) -> str:
+    """Build the full shareable URL from a token with optional anchor."""
     base_url = config.FRONTEND_URL or "http://localhost:3000"
-    return f"{base_url}/share/{token}"
+    url = f"{base_url}/share/{token}"
+    return f"{url}{anchor}" if anchor else url
 
 
 def _to_response(share_link: ShareLink) -> ShareLinkResponse:

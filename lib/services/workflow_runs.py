@@ -12,7 +12,6 @@ from lib.models.project import Project
 from lib.models.user import User
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus, WorkflowRunType
 from lib.workflows.claim_substantiation.checkpointer import get_checkpointer
-from lib.workflows.claim_substantiation.graph import build_claim_substantiator_graph
 from lib.workflows.claim_substantiation.nodes.rank_issues import rank_issues
 from lib.workflows.claim_substantiation.state import (
     ClaimSubstantiatorState,
@@ -53,7 +52,7 @@ def _convert_to_summary_state(
 
 
 async def get_workflow_run_state_by_thread_id(
-    thread_id: str, type: WorkflowRunType
+    thread_id: str, type: WorkflowRunType, summary: bool = True
 ) -> WorkflowState:
     async with get_checkpointer() as checkpointer:
         graph = create_graph(type)
@@ -62,11 +61,19 @@ async def get_workflow_run_state_by_thread_id(
             {"configurable": {"thread_id": thread_id}}
         )
 
-    state = _convert_state_snapshot(state_snapshot, get_state_type(type, summary=False))
+    if not state_snapshot or not state_snapshot.values:
+        raise HTTPException(status_code=404, detail="Workflow state not found")
 
-    if type == WorkflowRunType.CLAIM_SUBSTANTIATION:
-        # TODO: temporarily rank issues to be able to display them in the UI - add to graph later
+    state_type = get_state_type(type, summary=False)
+    state = _convert_state_snapshot(state_snapshot, state_type)
+
+    if state is None:
+        raise HTTPException(status_code=404, detail="Could not parse workflow state")
+
+    if type == WorkflowRunType.CLAIM_SUBSTANTIATION and not state.ranked_issues:
         state.ranked_issues = rank_issues(state).get("ranked_issues", [])
+
+    if summary and type == WorkflowRunType.CLAIM_SUBSTANTIATION:
         state = _convert_to_summary_state(state)
 
     return state
@@ -160,26 +167,21 @@ async def get_project_workflow_runs(project_id: str) -> List[WorkflowRun]:
 
 
 async def get_chunk_details(workflow_run_id: str, chunk_index: int) -> DocumentChunk:
-    """
-    Get detailed analysis for a specific chunk.
-    Returns the full chunk with all analysis (used for lazy loading chunk details).
-    """
+    """Get detailed analysis for a specific chunk."""
     with get_db() as db:
         run = db.query(WorkflowRun).filter(WorkflowRun.id == workflow_run_id).first()
 
     if run is None:
         raise HTTPException(status_code=404, detail="Workflow run not found")
 
-    graph = build_claim_substantiator_graph()
-    async with get_checkpointer() as checkpointer:
-        app = graph.compile(checkpointer=checkpointer)
-        state = await app.aget_state(
-            {"configurable": {"thread_id": run.langgraph_thread_id}}
-        )
+    full_state = await get_workflow_run_state_by_thread_id(
+        run.langgraph_thread_id, run.type, summary=False
+    )
 
-    full_state = _convert_state_snapshot(state, ClaimSubstantiatorState)
-    if full_state is None:
-        raise HTTPException(status_code=404, detail="Workflow state not found")
+    if not isinstance(full_state, ClaimSubstantiatorState):
+        raise HTTPException(
+            status_code=400, detail="Workflow type does not support chunk details"
+        )
 
     chunk = next((c for c in full_state.chunks if c.chunk_index == chunk_index), None)
     if chunk is None:
