@@ -5,8 +5,6 @@ from langgraph.graph import StateGraph
 
 from lib.config.env import config as env_config
 from lib.models.user import User
-from lib.models.workflow_run import WorkflowRun
-from lib.services.file import FileDocument
 from lib.services.vector_store import VectorStoreService
 from lib.workflows.claim_substantiation.graph import build_claim_substantiator_graph
 from lib.workflows.claim_substantiation.state import (
@@ -15,6 +13,11 @@ from lib.workflows.claim_substantiation.state import (
     SubstantiationWorkflowConfig,
 )
 from lib.workflows.context import ContextSchema
+from lib.workflows.literature_review.graph import build_literature_review_graph
+from lib.workflows.literature_review.state import (
+    LiteratureReviewState,
+    LiteratureReviewWorkflowConfig,
+)
 from lib.workflows.methodological_alignment.graph import (
     build_methodological_alignment_graph,
 )
@@ -40,12 +43,14 @@ WorkflowState = (
     | MethodologicalAlignmentState
     | ReferenceDownloaderState
     | DocxGenerationState
+    | LiteratureReviewState
 )
 
 WorkflowConfig = (
     SubstantiationWorkflowConfig
     | MethodologicalAlignmentWorkflowConfig
     | ReferenceDownloaderWorkflowConfig
+    | LiteratureReviewWorkflowConfig
 )
 
 WorkflowStateType = TypeVar("WorkflowStateType", bound=BaseWorkflowState)
@@ -61,6 +66,8 @@ def create_graph(type: WorkflowRunType) -> StateGraph:
             return build_reference_downloader_graph()
         case WorkflowRunType.DOCX_GENERATION:
             return build_docx_generation_graph()
+        case WorkflowRunType.LITERATURE_REVIEW:
+            return build_literature_review_graph()
         case _:
             raise ValueError(f"Unknown workflow type: {type}")
 
@@ -75,6 +82,8 @@ def get_config_type(type: WorkflowRunType) -> Type[BaseWorkflowConfig]:
             return ReferenceDownloaderWorkflowConfig
         case WorkflowRunType.DOCX_GENERATION:
             return DocxGenerationWorkflowConfig
+        case WorkflowRunType.LITERATURE_REVIEW:
+            return LiteratureReviewWorkflowConfig
         case _:
             raise ValueError(f"Unknown workflow type: {type}")
 
@@ -93,6 +102,8 @@ def get_state_type(
             return ReferenceDownloaderState
         case WorkflowRunType.DOCX_GENERATION:
             return DocxGenerationState
+        case WorkflowRunType.LITERATURE_REVIEW:
+            return LiteratureReviewState
         case _:
             raise ValueError(f"Unknown workflow type: {type}")
 
@@ -131,17 +142,26 @@ async def create_state(config: BaseWorkflowConfig) -> WorkflowStateType:
                 f"Claim substantiation workflow should be temporarily started from its own specific endpoint"
             )
         case WorkflowRunType.METHODOLOGICAL_ALIGNMENT:
-            file = await _get_file_from_project(config.project_id)
-            return MethodologicalAlignmentState(file=file)
+            claim_state = await _get_claim_state_from_project(config.project_id)
+            return MethodologicalAlignmentState(file=claim_state.file)
         case WorkflowRunType.REFERENCE_DOWNLOADER:
             return ReferenceDownloaderState(config=config)
         case WorkflowRunType.DOCX_GENERATION:
             return DocxGenerationState(config=config)
+        case WorkflowRunType.LITERATURE_REVIEW:
+            claim_state = await _get_claim_state_from_project(config.project_id)
+            return LiteratureReviewState(
+                config=config,
+                file=claim_state.file,
+                references=claim_state.references,
+            )
         case _:
             raise ValueError(f"Unknown workflow type: {config.type}")
 
 
-async def _get_file_from_project(project_id: str) -> FileDocument:
+async def _get_claim_state_from_project(
+    project_id: str,
+) -> ClaimSubstantiatorStateSummary:
     """
     Get the file from the CLAIM_SUBSTANTIATION workflow run for the project.
 
@@ -178,4 +198,4 @@ async def _get_file_from_project(project_id: str) -> FileDocument:
     claim_state: ClaimSubstantiatorStateSummary = await get_workflow_run_state(
         claim_workflow_run.id
     )
-    return claim_state.file
+    return claim_state

@@ -4,7 +4,6 @@ export interface AnalysisConfig {
   domain: string;
   targetAudience: string;
   documentPublicationDate: string;
-  runLiteratureReview: boolean;
   runSuggestCitations: boolean;
   runLiveReports: boolean;
   runReferenceValidation: boolean;

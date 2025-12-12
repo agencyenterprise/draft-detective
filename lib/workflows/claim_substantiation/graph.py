@@ -22,7 +22,6 @@ from lib.workflows.claim_substantiation.nodes.index_supporting_documents import 
     index_supporting_documents,
 )
 from lib.workflows.claim_substantiation.nodes.prepare_documents import prepare_documents
-from lib.workflows.claim_substantiation.nodes.review_literature import literature_review
 from lib.workflows.claim_substantiation.nodes.split_into_chunks import split_into_chunks
 from lib.workflows.claim_substantiation.nodes.suggest_citations import suggest_citations
 from lib.workflows.claim_substantiation.nodes.summarize_supporting_documents import (
@@ -78,8 +77,6 @@ def build_claim_substantiator_graph(
     # Optional nodes
     if config.run_reference_validation:
         graph.add_node("validate_references", validate_references)
-    if config.run_literature_review:
-        graph.add_node("literature_review", literature_review)
     if config.run_suggest_citations:
         graph.add_node("summarize_supporting_documents", summarize_supporting_documents)
         graph.add_node("suggest_citations", suggest_citations, defer=True)
@@ -129,10 +126,6 @@ def build_claim_substantiator_graph(
         graph.add_edge("detect_citations", "verify_claims")
         graph.add_edge("categorize_claims", "validate_inferences")
 
-        # Literature review (aim 1.a)
-        if config.run_literature_review:
-            graph.add_edge("prepare_documents", "literature_review")
-
         if config.run_reference_validation:
             graph.add_edge("extract_references", "validate_references")
             graph.add_edge("validate_references", "detect_citations")
@@ -146,10 +139,7 @@ def build_claim_substantiator_graph(
             graph.add_edge("verify_claims", "suggest_citations")
             graph.add_edge("validate_inferences", "suggest_citations")
             graph.add_edge("summarize_supporting_documents", "suggest_citations")
-            if config.run_literature_review:
-                graph.add_edge("literature_review", "suggest_citations")
             graph.set_finish_point("suggest_citations")
-
         else:
             # When no downstream nodes exist, create a finalize node to wait for both
             # verify_claims and validate_inferences to complete in parallel
@@ -169,7 +159,6 @@ if __name__ == "__main__":
         SubstantiationWorkflowConfig(
             run_live_reports=True,
             run_reference_validation=True,
-            run_literature_review=True,
             run_suggest_citations=True,
             use_rag=True,
         )

@@ -42,9 +42,6 @@ class SubstantiationWorkflowConfig(BaseWorkflowConfig):
     use_toulmin: bool = Field(
         default=False, description="Whether to use Toulmin claim detection approach"
     )
-    run_literature_review: bool = Field(
-        default=False, description="Whether to run the literature review"
-    )
     run_suggest_citations: bool = Field(
         default=False, description="Whether to run the citation suggestions"
     )
@@ -60,7 +57,7 @@ class SubstantiationWorkflowConfig(BaseWorkflowConfig):
     )
     document_publication_date: Optional[date] = Field(
         default=None,
-        description="Publication date (YYYY-MM-DD) of the document for literature review and live reports",
+        description="Publication date (YYYY-MM-DD) of the document for live reports",
     )
     target_chunk_indices: Optional[List[int]] = Field(
         default=None,

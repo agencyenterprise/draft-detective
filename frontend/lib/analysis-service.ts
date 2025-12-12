@@ -45,8 +45,6 @@ class AnalysisService {
 
         // Add config parameters
         if (config.use_toulmin !== undefined) formData.append('use_toulmin', String(config.use_toulmin));
-        if (config.run_literature_review !== undefined)
-          formData.append('run_literature_review', String(config.run_literature_review));
         if (config.run_suggest_citations !== undefined)
           formData.append('run_suggest_citations', String(config.run_suggest_citations));
         if (config.run_live_reports !== undefined) formData.append('run_live_reports', String(config.run_live_reports));

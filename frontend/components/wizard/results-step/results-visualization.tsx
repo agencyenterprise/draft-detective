@@ -11,10 +11,10 @@ import {
   WorkflowRunType,
 } from '@/lib/generated-api';
 import { getWorkflowRunByType } from '@/lib/workflow-state';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../ui/card';
+import { Card, CardContent } from '../../ui/card';
 import { TabNavigation } from './components';
 import { AnalysisOptionsMenu } from './components/analysis-options-menu';
 import { ReevaluationDialogContent, ReevaluationFormValues } from './components/reevaluation-dialog-content';
@@ -54,9 +54,11 @@ export function ResultsVisualization({
 }: ResultsVisualizationProps) {
   const claimSubstantiationResults = getWorkflowRunByType(results, WorkflowRunType.ClaimSubstantiation);
   const methodologicalAlignmentResults = getWorkflowRunByType(results, WorkflowRunType.MethodologicalAlignment);
+  const literatureReviewResults = getWorkflowRunByType(results, WorkflowRunType.LiteratureReview);
   const claimSubstantiationStateSummary = claimSubstantiationResults?.state;
 
   const [isReevaluationDialogOpen, setIsReevaluationDialogOpen] = useState(false);
+  const queryClient = useQueryClient();
 
   const reevaluateMutation = useMutation({
     mutationFn: async (request: RerunAnalysisRequest) => {
@@ -64,14 +66,14 @@ export function ResultsVisualization({
         body: request,
       });
     },
-    onSuccess: (_data, variables, context, { client }) => {
+    onSuccess: (_data, variables) => {
       setIsReevaluationDialogOpen(false);
 
       // Invalidate queries to show loading state
-      client.invalidateQueries({
+      queryClient.invalidateQueries({
         queryKey: ['chunkDetails'],
       });
-      client.invalidateQueries({
+      queryClient.invalidateQueries({
         queryKey: ['project', variables.project_id],
       });
     },
@@ -111,17 +113,6 @@ export function ResultsVisualization({
     });
   };
 
-  if (!claimSubstantiationStateSummary) {
-    return (
-      <Card className="max-w-4xl mx-auto">
-        <CardHeader>
-          <CardTitle>No Results Available</CardTitle>
-          <CardDescription>No analysis results to display</CardDescription>
-        </CardHeader>
-      </Card>
-    );
-  }
-
   const renderActiveTab = () => {
     switch (activeTab) {
       case 'summary':
@@ -129,7 +120,9 @@ export function ResultsVisualization({
       case 'references':
         return <ReferencesTab workflowDetail={claimSubstantiationResults} isProcessing={isProcessing} />;
       case 'literature_review':
-        return <LiteratureReviewTab workflowDetail={claimSubstantiationResults} isProcessing={isProcessing} />;
+        return (
+          <LiteratureReviewTab workflowDetail={literatureReviewResults} projectId={projectId} readOnly={readOnly} />
+        );
       case 'live_reports':
         return <LiveReportsTab workflowDetail={claimSubstantiationResults} isProcessing={isProcessing} />;
       case 'files':

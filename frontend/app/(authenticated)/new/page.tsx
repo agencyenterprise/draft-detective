@@ -26,7 +26,6 @@ export default function New() {
           supportingDocuments: data.supportingDocuments,
           config: {
             use_toulmin: false,
-            run_literature_review: data.config.runLiteratureReview,
             run_suggest_citations: data.config.runSuggestCitations,
             run_live_reports: data.config.runLiveReports,
             run_reference_validation: data.config.runReferenceValidation,

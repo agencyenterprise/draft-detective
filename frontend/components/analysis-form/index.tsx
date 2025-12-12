@@ -27,7 +27,6 @@ export function AnalysisForm({ onSubmit, isPending = false }: AnalysisFormProps)
       domain: '',
       targetAudience: '',
       documentPublicationDate: '',
-      runLiteratureReview: false,
       runSuggestCitations: false,
       runReferenceValidation: false,
       webSearchConsent: false,
@@ -47,7 +46,6 @@ export function AnalysisForm({ onSubmit, isPending = false }: AnalysisFormProps)
           targetAudience: value.targetAudience,
           documentPublicationDate: value.documentPublicationDate,
           runLiveReports: value.reviewType === 'live-reports',
-          runLiteratureReview: value.reviewType === 'peer-review' && value.runLiteratureReview,
           runSuggestCitations: value.reviewType === 'peer-review' && value.runSuggestCitations,
           runReferenceValidation: value.reviewType === 'peer-review' && value.runReferenceValidation,
           openaiApiKey: value.openaiApiKey,
@@ -113,18 +111,6 @@ export function AnalysisForm({ onSubmit, isPending = false }: AnalysisFormProps)
                         />
                       )}
                     </form.Field>
-                    <form.Field name="runLiteratureReview">
-                      {(field) => (
-                        <CheckboxWithDescription
-                          id="run-literature-review"
-                          checked={field.state.value}
-                          onCheckedChange={(checked) => field.handleChange(checked === true)}
-                          label="Literature review (Optional)"
-                          description="Finds and recommends the most relevant, high-quality references (from published literature up to the document's publication date) that should be cited, using advanced web research and analysis of the document's content and bibliography."
-                          disabled={isPending}
-                        />
-                      )}
-                    </form.Field>
                     <form.Field name="runSuggestCitations">
                       {(field) => (
                         <CheckboxWithDescription
@@ -137,34 +123,6 @@ export function AnalysisForm({ onSubmit, isPending = false }: AnalysisFormProps)
                         />
                       )}
                     </form.Field>
-                    <form.Subscribe selector={(state) => [state.values.runLiteratureReview]}>
-                      {(showWhenTrue) =>
-                        showWhenTrue.some((value) => !!value) && (
-                          <form.Field name="documentPublicationDate">
-                            {(field) => (
-                              <div className="space-y-1 pt-2">
-                                <Label htmlFor="publication-date">
-                                  Document Publication Date
-                                  <span className="text-destructive ml-1">*</span>
-                                </Label>
-                                <Input
-                                  id="publication-date"
-                                  type="date"
-                                  value={field.state.value}
-                                  onChange={(e) => field.handleChange(e.target.value)}
-                                  className={field.state.meta.errors.length > 0 ? 'border-destructive' : ''}
-                                  disabled={isPending}
-                                  required={true}
-                                />
-                                {!field.state.meta.isValid && (
-                                  <p className="text-sm text-destructive">{field.state.meta.errors.join(', ')}</p>
-                                )}
-                              </div>
-                            )}
-                          </form.Field>
-                        )
-                      }
-                    </form.Subscribe>
                   </>
                 )}
               </div>
@@ -212,15 +170,9 @@ export function AnalysisForm({ onSubmit, isPending = false }: AnalysisFormProps)
         </form.Field>
       </div>
 
-      <form.Subscribe
-        selector={(state) => [
-          state.values.runLiteratureReview,
-          state.values.reviewType,
-          state.values.runReferenceValidation,
-        ]}
-      >
-        {([runLiteratureReview, reviewType, runReferenceValidation]) =>
-          (runLiteratureReview || reviewType === 'live-reports' || runReferenceValidation) && (
+      <form.Subscribe selector={(state) => [state.values.reviewType, state.values.runReferenceValidation]}>
+        {([reviewType, runReferenceValidation]) =>
+          (reviewType === 'live-reports' || runReferenceValidation) && (
             <form.Field name="webSearchConsent">
               {(field) => (
                 <div>
@@ -230,7 +182,7 @@ export function AnalysisForm({ onSubmit, isPending = false }: AnalysisFormProps)
                       checked={field.state.value}
                       onCheckedChange={(checked) => field.handleChange(checked === true)}
                       label="I consent to perform web search using parts of the document"
-                      description={`Web search is required to perform "literature review", "live reports", "reference validation", or "methodological alignment". Parts of the document will be used to perform web search, so we don't recommend using confidential information. Disable these features if you don't consent to perform web search.`}
+                      description={`Web search is required to perform "live reports", "reference validation", or "methodological alignment". Parts of the document will be used to perform web search, so we don't recommend using confidential information. Disable these features if you don't consent to perform web search.`}
                     />
                   </div>
                   {!field.state.meta.isValid && (

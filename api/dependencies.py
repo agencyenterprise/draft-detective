@@ -3,7 +3,7 @@ FastAPI dependencies for form data processing.
 """
 
 import uuid
-from typing import Optional, List
+from typing import Optional
 from fastapi import Form, HTTPException
 from datetime import datetime
 from lib.workflows.claim_substantiation.state import SubstantiationWorkflowConfig
@@ -11,7 +11,6 @@ from lib.workflows.claim_substantiation.state import SubstantiationWorkflowConfi
 
 async def build_config_from_form(
     use_toulmin: bool = Form(default=False),
-    run_literature_review: bool = Form(default=True),
     run_suggest_citations: bool = Form(default=True),
     use_rag: bool = Form(default=True),
     run_live_reports: bool = Form(default=False),
@@ -29,7 +28,6 @@ async def build_config_from_form(
 
     Args:
         use_toulmin: Whether to use Toulmin claim extraction approach
-        run_literature_review: Whether to run the literature review
         run_suggest_citations: Whether to run the citation suggestions
         use_rag: Whether to use RAG for claim verification
         run_live_reports: Whether to run the live reports analysis
@@ -82,7 +80,6 @@ async def build_config_from_form(
 
     return SubstantiationWorkflowConfig(
         use_toulmin=use_toulmin,
-        run_literature_review=run_literature_review,
         run_suggest_citations=run_suggest_citations,
         use_rag=use_rag,
         run_live_reports=run_live_reports,

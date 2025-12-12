@@ -1,6 +1,7 @@
 import { Markdown } from '@/components/markdown';
 import { Button } from '@/components/ui/button';
-import { WorkflowConfigDialog, WorkflowConfigFormValues } from '@/components/workflows/workflow-config-dialog';
+import { StartWorkflowButton } from '@/components/workflows/start-workflow-button';
+import { WorkflowConfigFormValues } from '@/components/workflows/workflow-config-dialog';
 import {
   MethodologicalAlignmentState,
   ReferenceMinimal,
@@ -10,7 +11,6 @@ import {
   WorkflowRunType,
 } from '@/lib/generated-api';
 import { WorkflowRunDetailTyped } from '@/lib/workflow-state';
-import { useMutation } from '@tanstack/react-query';
 import {
   AlertCircle,
   AlertCircleIcon,
@@ -18,13 +18,10 @@ import {
   ChevronDown,
   ChevronRight,
   FileTextIcon,
-  Loader2,
-  PlayIcon,
   SearchIcon,
   UploadIcon,
 } from 'lucide-react';
 import { useState } from 'react';
-import { toast } from 'sonner';
 import { TabWithLoadingStates } from './tab-with-loading-states';
 
 interface MethodologicalAlignmentTabProps {
@@ -35,48 +32,18 @@ interface MethodologicalAlignmentTabProps {
 }
 
 export function MethodologicalAlignmentTab({ results, projectId, readOnly = false }: MethodologicalAlignmentTabProps) {
-  const [isConfigDialogOpen, setIsConfigDialogOpen] = useState(false);
-
-  const startWorkflowMutation = useMutation({
-    mutationFn: async (values: WorkflowConfigFormValues) => {
-      return await startWorkflowApiWorkflowsStartPost({
-        body: {
-          type: WorkflowRunType.MethodologicalAlignment,
-          project_id: projectId,
-          openai_api_key: values.openaiApiKey || null,
-        },
-      });
-    },
-    onSuccess: (_data, variables, context, { client }) => {
-      setIsConfigDialogOpen(false);
-      toast.success('Methodological alignment workflow started');
-      // Invalidate queries to refresh the project data
-      client.invalidateQueries({
-        queryKey: ['project', projectId],
-      });
-      client.invalidateQueries({
-        queryKey: ['workflowRun', results?.run.id],
-      });
-    },
-    onError: (error) => {
-      console.error('Failed to start methodological alignment workflow:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to start methodological alignment workflow');
-    },
-  });
-
-  const handleTriggerWorkflowConfirm = (values: WorkflowConfigFormValues) => {
-    startWorkflowMutation.mutate(values);
+  const handleStartWorkflow = async (values: WorkflowConfigFormValues) => {
+    return await startWorkflowApiWorkflowsStartPost({
+      body: {
+        type: WorkflowRunType.MethodologicalAlignment,
+        project_id: projectId,
+        openai_api_key: values.openaiApiKey || null,
+      },
+    });
   };
 
   return (
     <div>
-      <WorkflowConfigDialog
-        isOpen={isConfigDialogOpen}
-        webSearchConsent={true}
-        onConfirm={handleTriggerWorkflowConfirm}
-        onCancel={() => setIsConfigDialogOpen(false)}
-      />
-
       <TabWithLoadingStates
         title="Methodological Alignment"
         data={results?.state.methodology_comparison}
@@ -89,32 +56,30 @@ export function MethodologicalAlignmentTab({ results, projectId, readOnly = fals
         emptyMessage={{
           icon: <AlertCircle className="h-12 w-12 text-muted-foreground" />,
           title: 'No methodological alignment analysis available',
-          description: 'The methodological alignment agent was not enabled for this analysis',
+          description: 'Run the methodological alignment workflow to generate an analysis.',
         }}
         emptyStateChildren={
-          <div className="text-sm text-muted-foreground text-left max-w-md">
-            <p className="mb-2">This may be because:</p>
-            <ul className="list-disc pl-5 space-y-1">
-              <li>The methodological alignment option was not selected during upload</li>
-              <li>An error occurred during the methodological alignment process</li>
-            </ul>
+          <div className="text-sm text-muted-foreground text-left max-w-md space-y-3">
+            <div>
+              <p className="mb-2 font-medium">Why run this?</p>
+              <ul className="list-disc pl-5 space-y-1">
+                <li>Compare the document&apos;s methodology to typical field practices</li>
+                <li>Identify rigor gaps and concrete improvement suggestions</li>
+              </ul>
+            </div>
           </div>
         }
         skeletonType="paragraphs"
         skeletonCount={6}
         triggerButton={
-          !readOnly ? (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setIsConfigDialogOpen(true)}
-              disabled={startWorkflowMutation.isPending || results?.run.status === WorkflowRunStatus.Running}
-            >
-              <PlayIcon />
-              {startWorkflowMutation.isPending ? 'Starting...' : 'Start Methodological Alignment'}
-              {results?.run.status === WorkflowRunStatus.Running && <Loader2 className="animate-spin" />}
-            </Button>
-          ) : undefined
+          !readOnly && (
+            <StartWorkflowButton
+              type={WorkflowRunType.MethodologicalAlignment}
+              projectId={projectId}
+              workflow={results?.run}
+              onConfirm={handleStartWorkflow}
+            />
+          )
         }
       >
         {(methodologyComparison) => {

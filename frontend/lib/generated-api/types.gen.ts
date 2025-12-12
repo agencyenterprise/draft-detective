@@ -203,10 +203,6 @@ export type BodyStartAnalysisApiStartAnalysisPost = {
    */
   use_toulmin?: boolean;
   /**
-   * Run Literature Review
-   */
-  run_literature_review?: boolean;
-  /**
    * Run Suggest Citations
    */
   run_suggest_citations?: boolean;
@@ -1963,6 +1959,61 @@ export type LiteratureReviewResponseOutput = {
 };
 
 /**
+ * LiteratureReviewState
+ *
+ * State for the literature review workflow.
+ */
+export type LiteratureReviewState = {
+  /**
+   * Errors
+   *
+   * Errors that occurred during the workflow execution.
+   */
+  errors?: Array<WorkflowError>;
+  /**
+   * Type
+   */
+  type?: 'literature_review';
+  config: LiteratureReviewWorkflowConfig;
+  file: FileDocumentOutput;
+  /**
+   * References
+   */
+  references?: Array<BibliographyItem>;
+  literature_review?: LiteratureReviewResponseOutput | null;
+};
+
+/**
+ * LiteratureReviewWorkflowConfig
+ *
+ * Configuration model for the literature review workflow.
+ */
+export type LiteratureReviewWorkflowConfig = {
+  /**
+   * Project Id
+   *
+   * The ID of the project that this workflow run should be associated with
+   */
+  project_id?: string | null;
+  /**
+   * Openai Api Key
+   *
+   * The OpenAI API key to use for this workflow execution
+   */
+  openai_api_key?: string | null;
+  /**
+   * Type
+   */
+  type?: 'literature_review';
+  /**
+   * Document Publication Date
+   *
+   * Publication date (YYYY-MM-DD) of the document for literature review. Must be provided. Only references before this date will be considered.
+   */
+  document_publication_date: Date;
+};
+
+/**
  * MethodologicalAlignmentState
  *
  * State for the methodological alignment workflow
@@ -2782,12 +2833,6 @@ export type SubstantiationWorkflowConfig = {
    */
   use_toulmin?: boolean;
   /**
-   * Run Literature Review
-   *
-   * Whether to run the literature review
-   */
-  run_literature_review?: boolean;
-  /**
    * Run Suggest Citations
    *
    * Whether to run the citation suggestions
@@ -2814,7 +2859,7 @@ export type SubstantiationWorkflowConfig = {
   /**
    * Document Publication Date
    *
-   * Publication date (YYYY-MM-DD) of the document for literature review and live reports
+   * Publication date (YYYY-MM-DD) of the document for live reports
    */
   document_publication_date?: Date | null;
   /**
@@ -3069,7 +3114,13 @@ export type WorkflowRunDetail = {
   /**
    * State
    */
-  state: ClaimSubstantiatorStateOutput | MethodologicalAlignmentState | ReferenceDownloaderState | DocxGenerationState;
+  state:
+    | ClaimSubstantiatorStateOutput
+    | ClaimSubstantiatorStateSummary
+    | MethodologicalAlignmentState
+    | ReferenceDownloaderState
+    | DocxGenerationState
+    | LiteratureReviewState;
 };
 
 /**
@@ -3094,6 +3145,7 @@ export const WorkflowRunType = {
   MethodologicalAlignment: 'methodological_alignment',
   ReferenceDownloader: 'reference_downloader',
   DocxGeneration: 'docx_generation',
+  LiteratureReview: 'literature_review',
 } as const;
 
 /**
@@ -3295,6 +3347,31 @@ export type FileDocumentOutputWritable = {
 };
 
 /**
+ * LiteratureReviewState
+ *
+ * State for the literature review workflow.
+ */
+export type LiteratureReviewStateWritable = {
+  /**
+   * Errors
+   *
+   * Errors that occurred during the workflow execution.
+   */
+  errors?: Array<WorkflowError>;
+  /**
+   * Type
+   */
+  type?: 'literature_review';
+  config: LiteratureReviewWorkflowConfig;
+  file: FileDocumentOutputWritable;
+  /**
+   * References
+   */
+  references?: Array<BibliographyItem>;
+  literature_review?: LiteratureReviewResponseOutput | null;
+};
+
+/**
  * MethodologicalAlignmentState
  *
  * State for the methodological alignment workflow
@@ -3341,9 +3418,11 @@ export type WorkflowRunDetailWritable = {
    */
   state:
     | ClaimSubstantiatorStateOutputWritable
+    | ClaimSubstantiatorStateSummaryWritable
     | MethodologicalAlignmentStateWritable
     | ReferenceDownloaderState
-    | DocxGenerationState;
+    | DocxGenerationState
+    | LiteratureReviewStateWritable;
 };
 
 export type ReadHealthApiHealthGetData = {
@@ -3485,7 +3564,11 @@ export type StartWorkflowApiWorkflowsStartPostData = {
   /**
    * Request
    */
-  body: SubstantiationWorkflowConfig | MethodologicalAlignmentWorkflowConfig | ReferenceDownloaderWorkflowConfig;
+  body:
+    | SubstantiationWorkflowConfig
+    | MethodologicalAlignmentWorkflowConfig
+    | ReferenceDownloaderWorkflowConfig
+    | LiteratureReviewWorkflowConfig;
   path?: never;
   query?: never;
   url: '/api/workflows/start';
