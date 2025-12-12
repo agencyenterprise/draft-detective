@@ -20,7 +20,6 @@ from lib.agents.literature_review import LiteratureReviewResponse
 from lib.agents.methodology_comparator import MethodologyComparisonResponse
 from lib.agents.models import ChunkWithIndex, ClaimCategory
 from lib.agents.reference_extractor import BibliographyItem
-from lib.agents.reference_validator import BibliographyItemValidation
 from lib.agents.toulmin_claim_extractor import ToulminClaimResponse
 from lib.services.docling_models import ChunkToItems
 from lib.services.file import FileDocument
@@ -47,9 +46,6 @@ class SubstantiationWorkflowConfig(BaseWorkflowConfig):
     use_rag: bool = Field(
         default=True,
         description="Use RAG for claim verification",
-    )
-    run_reference_validation: bool = Field(
-        default=False, description="Whether to validate references using web search"
     )
     target_chunk_indices: Optional[List[int]] = Field(
         default=None,
@@ -224,7 +220,6 @@ class ClaimSubstantiatorState(BaseWorkflowState):
 
     # Outputs
     references: List[BibliographyItem] = []
-    references_validated: List[BibliographyItemValidation] = []
     chunks: Annotated[List[DocumentChunk], conciliate_chunks] = []
     main_document_summary: Optional[DocumentSummary] = Field(
         default=None, description="The summary of the main document"
@@ -277,7 +272,6 @@ class ClaimSubstantiatorStateSummary(BaseWorkflowState):
 
     # Outputs - using lightweight chunks
     references: List[BibliographyItem] = []
-    references_validated: List[BibliographyItemValidation] = []
     chunks: List[DocumentChunkSummary] = Field(
         default_factory=list,
         description="Lightweight chunk summaries without detailed analysis",

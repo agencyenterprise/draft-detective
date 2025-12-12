@@ -27,7 +27,6 @@ export function AnalysisForm({ onSubmit, isPending = false }: AnalysisFormProps)
       domain: '',
       targetAudience: '',
       runSuggestCitations: false,
-      runReferenceValidation: false,
       webSearchConsent: false,
       openaiApiKey: openaiApiKey,
       mainDocument: null,
@@ -44,7 +43,6 @@ export function AnalysisForm({ onSubmit, isPending = false }: AnalysisFormProps)
           domain: value.domain,
           targetAudience: value.targetAudience,
           runSuggestCitations: value.runSuggestCitations,
-          runReferenceValidation: value.runReferenceValidation,
           openaiApiKey: value.openaiApiKey,
         },
       });
@@ -96,18 +94,6 @@ export function AnalysisForm({ onSubmit, isPending = false }: AnalysisFormProps)
                 />
                 {field.state.value === 'peer-review' && (
                   <>
-                    <form.Field name="runReferenceValidation">
-                      {(field) => (
-                        <CheckboxWithDescription
-                          id="use-reference-validation"
-                          checked={field.state.value}
-                          onCheckedChange={(checked) => field.handleChange(checked === true)}
-                          label="Reference validation (Optional)"
-                          description="Validates references by checking their online presence and verifying author, title, publisher, and year information using web search."
-                          disabled={isPending}
-                        />
-                      )}
-                    </form.Field>
                     <form.Field name="runSuggestCitations">
                       {(field) => (
                         <CheckboxWithDescription
@@ -131,9 +117,9 @@ export function AnalysisForm({ onSubmit, isPending = false }: AnalysisFormProps)
         </form.Field>
       </div>
 
-      <form.Subscribe selector={(state) => state.values.runReferenceValidation}>
-        {(runReferenceValidation) =>
-          runReferenceValidation && (
+      <form.Subscribe selector={(state) => state.values.runSuggestCitations}>
+        {(runSuggestCitations) =>
+          runSuggestCitations && (
             <form.Field name="webSearchConsent">
               {(field) => (
                 <div>

@@ -39,6 +39,11 @@ from lib.workflows.reference_downloader.state import (
     ReferenceDownloaderState,
     ReferenceDownloaderWorkflowConfig,
 )
+from lib.workflows.reference_validation.graph import build_reference_validation_graph
+from lib.workflows.reference_validation.state import (
+    ReferenceValidationState,
+    ReferenceValidationWorkflowConfig,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -50,6 +55,7 @@ WorkflowState = (
     | DocxGenerationState
     | LiteratureReviewState
     | LiveReportsState
+    | ReferenceValidationState
 )
 
 WorkflowConfig = (
@@ -58,6 +64,7 @@ WorkflowConfig = (
     | ReferenceDownloaderWorkflowConfig
     | LiteratureReviewWorkflowConfig
     | LiveReportsWorkflowConfig
+    | ReferenceValidationWorkflowConfig
 )
 
 WorkflowStateType = TypeVar("WorkflowStateType", bound=BaseWorkflowState)
@@ -77,6 +84,8 @@ def create_graph(type: WorkflowRunType) -> StateGraph:
             return build_literature_review_graph()
         case WorkflowRunType.LIVE_REPORTS:
             return build_live_reports_graph()
+        case WorkflowRunType.REFERENCE_VALIDATION:
+            return build_reference_validation_graph()
         case _:
             raise ValueError(f"Unknown workflow type: {type}")
 
@@ -95,6 +104,8 @@ def get_config_type(type: WorkflowRunType) -> Type[BaseWorkflowConfig]:
             return LiteratureReviewWorkflowConfig
         case WorkflowRunType.LIVE_REPORTS:
             return LiveReportsWorkflowConfig
+        case WorkflowRunType.REFERENCE_VALIDATION:
+            return ReferenceValidationWorkflowConfig
         case _:
             raise ValueError(f"Unknown workflow type: {type}")
 
@@ -117,6 +128,8 @@ def get_state_type(
             return LiteratureReviewState
         case WorkflowRunType.LIVE_REPORTS:
             return LiveReportsState
+        case WorkflowRunType.REFERENCE_VALIDATION:
+            return ReferenceValidationState
         case _:
             raise ValueError(f"Unknown workflow type: {type}")
 
@@ -182,6 +195,12 @@ async def create_state(config: BaseWorkflowConfig) -> WorkflowStateType:
                 references=claim_state.references,
                 chunks=claim_state.chunks,
                 main_document_summary=claim_state.main_document_summary,
+            )
+        case WorkflowRunType.REFERENCE_VALIDATION:
+            claim_state = await _get_claim_state_from_project(config.project_id)
+            return ReferenceValidationState(
+                config=config,
+                references=claim_state.references,
             )
         case _:
             raise ValueError(f"Unknown workflow type: {config.type}")

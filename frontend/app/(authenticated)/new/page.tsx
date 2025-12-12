@@ -27,7 +27,6 @@ export default function New() {
           config: {
             use_toulmin: false,
             run_suggest_citations: data.config.runSuggestCitations,
-            run_reference_validation: data.config.runReferenceValidation,
             domain: data.config.domain || undefined,
             target_audience: data.config.targetAudience || undefined,
             session_id: undefined,

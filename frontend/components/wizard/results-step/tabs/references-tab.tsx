@@ -3,11 +3,16 @@
 import { LabeledValue } from '@/components/labeled-value';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { StartWorkflowButton } from '@/components/workflows/start-workflow-button';
+import { WorkflowConfigFormValues } from '@/components/workflows/workflow-config-dialog';
 import {
   BibliographyItem,
-  BibliographyItemValidationOutput,
+  BibliographyItemValidation,
   ClaimSubstantiatorStateSummary,
   FileDocumentOutput,
+  ReferenceValidationState,
+  startWorkflowApiWorkflowsStartPost,
+  WorkflowRunType,
 } from '@/lib/generated-api';
 import { WorkflowRunDetailTyped } from '@/lib/workflow-state';
 import { ChevronDownIcon, ChevronRightIcon, FileText } from 'lucide-react';
@@ -17,12 +22,15 @@ import { TabWithLoadingStates } from './tab-with-loading-states';
 
 interface ReferencesTabProps {
   workflowDetail: WorkflowRunDetailTyped<ClaimSubstantiatorStateSummary> | undefined;
+  referenceValidationDetail: WorkflowRunDetailTyped<ReferenceValidationState> | undefined;
+  projectId: string;
   isProcessing?: boolean;
+  readOnly?: boolean;
 }
 
 interface ReferenceItemProps {
   reference: BibliographyItem;
-  validation?: BibliographyItemValidationOutput;
+  validation?: BibliographyItemValidation;
   supportingFiles?: FileDocumentOutput[] | null;
 }
 
@@ -141,23 +149,40 @@ function ReferenceItem({ reference, validation, supportingFiles }: ReferenceItem
   );
 }
 
-export function ReferencesTab({ workflowDetail, isProcessing = false }: ReferencesTabProps) {
+export function ReferencesTab({
+  workflowDetail,
+  referenceValidationDetail,
+  projectId,
+  isProcessing = false,
+  readOnly = false,
+}: ReferencesTabProps) {
   const results = workflowDetail?.state;
+  const referenceValidationResults = referenceValidationDetail?.state;
+
+  const handleStartWorkflow = async (values: WorkflowConfigFormValues) => {
+    return await startWorkflowApiWorkflowsStartPost({
+      body: {
+        type: WorkflowRunType.ReferenceValidation,
+        project_id: projectId,
+        openai_api_key: values.openaiApiKey || null,
+      },
+    });
+  };
 
   // Create a map of validations by reference text for quick lookup
   const validationMap = React.useMemo(() => {
-    if (!results?.references_validated) {
-      return new Map<string, BibliographyItemValidationOutput>();
+    if (!referenceValidationResults?.reference_validations) {
+      return new Map<string, BibliographyItemValidation>();
     }
 
-    const map = new Map<string, BibliographyItemValidationOutput>();
-    results.references_validated.forEach((validation) => {
+    const map = new Map<string, BibliographyItemValidation>();
+    referenceValidationResults.reference_validations.forEach((validation) => {
       if (validation.original_reference?.text) {
         map.set(validation.original_reference.text, validation);
       }
     });
     return map;
-  }, [results?.references_validated]);
+  }, [referenceValidationResults?.reference_validations]);
 
   if (!results) {
     return null;
@@ -180,6 +205,16 @@ export function ReferencesTab({ workflowDetail, isProcessing = false }: Referenc
       }}
       skeletonType="list"
       skeletonCount={5}
+      triggerButton={
+        !readOnly && (
+          <StartWorkflowButton
+            type={WorkflowRunType.ReferenceValidation}
+            projectId={projectId}
+            workflow={referenceValidationDetail?.run}
+            onConfirm={handleStartWorkflow}
+          />
+        )
+      }
     >
       {(references) => (
         <div className="space-y-3">

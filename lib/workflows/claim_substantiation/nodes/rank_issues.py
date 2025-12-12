@@ -28,17 +28,17 @@ def rank_issues(state: ClaimSubstantiatorState) -> ClaimSubstantiatorState:
             issues.append(issue)
 
     # 2. Reference Validation: Invalid references
-    for validation in state.references_validated:
-        if not validation.valid_reference:
-            issue = DocumentIssue(
-                title="Invalid reference",
-                description=f'Possible invalid reference: "{validation.original_reference.text}"',
-                severity=SeverityEnum.HIGH,
-                chunk_index=_find_chunk_index_by_text(
-                    state, validation.original_reference.text
-                ),
-            )
-            issues.append(issue)
+    # for validation in state.references_validated:
+    #     if not validation.valid_reference:
+    #         issue = DocumentIssue(
+    #             title="Invalid reference",
+    #             description=f'Possible invalid reference: "{validation.original_reference.text}"',
+    #             severity=SeverityEnum.HIGH,
+    #             chunk_index=_find_chunk_index_by_text(
+    #                 state, validation.original_reference.text
+    #             ),
+    #         )
+    #         issues.append(issue)
 
     # 3. Claim Categorization: Claims needing external verification without citations
     for chunk in state.chunks:

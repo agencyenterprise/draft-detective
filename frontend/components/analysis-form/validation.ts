@@ -34,11 +34,5 @@ export function validateAnalysisForm(
     errors.fields.openaiApiKey = 'OpenAI API Key is required';
   }
 
-  if (value.runReferenceValidation) {
-    if (!value.webSearchConsent) {
-      errors.fields.webSearchConsent = 'Web search consent is required when using reference validation';
-    }
-  }
-
   return errors;
 }

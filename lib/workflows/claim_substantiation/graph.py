@@ -24,9 +24,6 @@ from lib.workflows.claim_substantiation.nodes.summarize_supporting_documents imp
 from lib.workflows.claim_substantiation.nodes.validate_inferences import (
     validate_inferences,
 )
-from lib.workflows.claim_substantiation.nodes.validate_references import (
-    validate_references,
-)
 from lib.workflows.claim_substantiation.nodes.verify_claims import (
     verify_claims,
     verify_claims_with_rag,
@@ -69,8 +66,6 @@ def build_claim_substantiator_graph(
     graph.add_node("extract_references", extract_references)
 
     # Optional nodes
-    if config.run_reference_validation:
-        graph.add_node("validate_references", validate_references)
     if config.run_suggest_citations:
         graph.add_node("summarize_supporting_documents", summarize_supporting_documents)
         graph.add_node("suggest_citations", suggest_citations, defer=True)
@@ -105,12 +100,7 @@ def build_claim_substantiator_graph(
     graph.add_edge("categorize_claims", "verify_claims")
     graph.add_edge("detect_citations", "verify_claims")
     graph.add_edge("categorize_claims", "validate_inferences")
-
-    if config.run_reference_validation:
-        graph.add_edge("extract_references", "validate_references")
-        graph.add_edge("validate_references", "detect_citations")
-    else:
-        graph.add_edge("extract_references", "detect_citations")
+    graph.add_edge("extract_references", "detect_citations")
 
     # Suggest citations (aim 2.a)
     # Must wait for ALL processing to complete before suggesting citations

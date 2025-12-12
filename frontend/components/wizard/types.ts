@@ -4,7 +4,6 @@ export interface AnalysisConfig {
   domain: string;
   targetAudience: string;
   runSuggestCitations: boolean;
-  runReferenceValidation: boolean;
   openaiApiKey: string;
 }
 

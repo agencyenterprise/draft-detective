@@ -11,7 +11,6 @@ export interface AnalysisFormValues {
   domain: string;
   targetAudience: string;
   runSuggestCitations: boolean;
-  runReferenceValidation: boolean;
   webSearchConsent: boolean;
   openaiApiKey: string;
   mainDocument: File | null;

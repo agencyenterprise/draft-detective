@@ -47,8 +47,6 @@ class AnalysisService {
         if (config.use_toulmin !== undefined) formData.append('use_toulmin', String(config.use_toulmin));
         if (config.run_suggest_citations !== undefined)
           formData.append('run_suggest_citations', String(config.run_suggest_citations));
-        if (config.run_reference_validation !== undefined)
-          formData.append('run_reference_validation', String(config.run_reference_validation));
         if (config.domain) formData.append('domain', config.domain);
         if (config.target_audience) formData.append('target_audience', config.target_audience);
         if (config.session_id) formData.append('session_id', config.session_id);

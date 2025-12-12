@@ -47,7 +47,8 @@ export function StartWorkflowButton({ type, projectId, workflow, onConfirm }: St
     type === WorkflowRunType.LiteratureReview ||
     type === WorkflowRunType.MethodologicalAlignment ||
     type === WorkflowRunType.ReferenceDownloader ||
-    type === WorkflowRunType.LiveReports;
+    type === WorkflowRunType.LiveReports ||
+    type === WorkflowRunType.ReferenceValidation;
 
   return (
     <>

@@ -107,41 +107,7 @@ export type BibliographyItem = {
 /**
  * BibliographyItemValidation
  */
-export type BibliographyItemValidationInput = {
-  /**
-   * Original bibliographic item text.
-   */
-  original_reference: BibliographyItem;
-  /**
-   * Valid Reference
-   *
-   * Whether the original reference is valid.
-   */
-  valid_reference: boolean;
-  /**
-   * Bibliography Field Validations
-   *
-   * List of reference field validations.
-   */
-  bibliography_field_validations: Array<BibliographyFieldValidation>;
-  /**
-   * Suggested Action
-   *
-   * Suggested action to take if the reference is not valid. A summary of the suggested changes to make the reference valid. If the reference is valid, return 'No changes needed'.
-   */
-  suggested_action: string;
-  /**
-   * Url
-   *
-   * Found URL for the reference.
-   */
-  url: string;
-};
-
-/**
- * BibliographyItemValidation
- */
-export type BibliographyItemValidationOutput = {
+export type BibliographyItemValidation = {
   /**
    * Original bibliographic item text.
    */
@@ -754,10 +720,6 @@ export type ClaimSubstantiatorStateInput = {
    */
   references?: Array<BibliographyItem>;
   /**
-   * References Validated
-   */
-  references_validated?: Array<BibliographyItemValidationInput>;
-  /**
    * Chunks
    */
   chunks?: Array<DocumentChunkInput>;
@@ -825,10 +787,6 @@ export type ClaimSubstantiatorStateOutput = {
    */
   references?: Array<BibliographyItem>;
   /**
-   * References Validated
-   */
-  references_validated?: Array<BibliographyItemValidationOutput>;
-  /**
    * Chunks
    */
   chunks?: Array<DocumentChunkOutput>;
@@ -895,10 +853,6 @@ export type ClaimSubstantiatorStateSummary = {
    * References
    */
   references?: Array<BibliographyItem>;
-  /**
-   * References Validated
-   */
-  references_validated?: Array<BibliographyItemValidationOutput>;
   /**
    * Chunks
    *
@@ -2615,6 +2569,57 @@ export const ReferenceType = {
 export type ReferenceType = (typeof ReferenceType)[keyof typeof ReferenceType];
 
 /**
+ * ReferenceValidationState
+ *
+ * State for the reference validation workflow.
+ */
+export type ReferenceValidationState = {
+  /**
+   * Errors
+   *
+   * Errors that occurred during the workflow execution.
+   */
+  errors?: Array<WorkflowError>;
+  /**
+   * Type
+   */
+  type?: 'reference_validation';
+  config: ReferenceValidationWorkflowConfig;
+  /**
+   * References
+   */
+  references?: Array<BibliographyItem>;
+  /**
+   * Reference Validations
+   */
+  reference_validations?: Array<BibliographyItemValidation>;
+};
+
+/**
+ * ReferenceValidationWorkflowConfig
+ *
+ * Configuration model for the reference validation workflow.
+ */
+export type ReferenceValidationWorkflowConfig = {
+  /**
+   * Project Id
+   *
+   * The ID of the project that this workflow run should be associated with
+   */
+  project_id?: string | null;
+  /**
+   * Openai Api Key
+   *
+   * The OpenAI API key to use for this workflow execution
+   */
+  openai_api_key?: string | null;
+  /**
+   * Type
+   */
+  type?: 'reference_validation';
+};
+
+/**
  * ReportMetadata
  */
 export type ReportMetadata = {
@@ -2921,12 +2926,6 @@ export type SubstantiationWorkflowConfig = {
    */
   use_rag?: boolean;
   /**
-   * Run Reference Validation
-   *
-   * Whether to validate references using web search
-   */
-  run_reference_validation?: boolean;
-  /**
    * Target Chunk Indices
    *
    * Specific chunk indices to process (None = process all chunks)
@@ -3185,7 +3184,8 @@ export type WorkflowRunDetail = {
     | ReferenceDownloaderState
     | DocxGenerationState
     | LiteratureReviewState
-    | LiveReportsState;
+    | LiveReportsState
+    | ReferenceValidationState;
 };
 
 /**
@@ -3212,6 +3212,7 @@ export const WorkflowRunType = {
   DocxGeneration: 'docx_generation',
   LiteratureReview: 'literature_review',
   LiveReports: 'live_reports',
+  ReferenceValidation: 'reference_validation',
 } as const;
 
 /**
@@ -3243,10 +3244,6 @@ export type ClaimSubstantiatorStateOutputWritable = {
    * References
    */
   references?: Array<BibliographyItem>;
-  /**
-   * References Validated
-   */
-  references_validated?: Array<BibliographyItemValidationOutput>;
   /**
    * Chunks
    */
@@ -3314,10 +3311,6 @@ export type ClaimSubstantiatorStateSummaryWritable = {
    * References
    */
   references?: Array<BibliographyItem>;
-  /**
-   * References Validated
-   */
-  references_validated?: Array<BibliographyItemValidationOutput>;
   /**
    * Chunks
    *
@@ -3531,7 +3524,8 @@ export type WorkflowRunDetailWritable = {
     | ReferenceDownloaderState
     | DocxGenerationState
     | LiteratureReviewStateWritable
-    | LiveReportsStateWritable;
+    | LiveReportsStateWritable
+    | ReferenceValidationState;
 };
 
 export type ReadHealthApiHealthGetData = {
@@ -3678,7 +3672,8 @@ export type StartWorkflowApiWorkflowsStartPostData = {
     | MethodologicalAlignmentWorkflowConfig
     | ReferenceDownloaderWorkflowConfig
     | LiteratureReviewWorkflowConfig
-    | LiveReportsWorkflowConfig;
+    | LiveReportsWorkflowConfig
+    | ReferenceValidationWorkflowConfig;
   path?: never;
   query?: never;
   url: '/api/workflows/start';
