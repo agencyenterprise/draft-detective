@@ -8,6 +8,7 @@ from sqlalchemy import update
 
 from lib.config.database import get_db
 from lib.models.project import Project
+from lib.models.file import File
 from lib.models.user import User
 from lib.models.workflow_run import WorkflowRun
 from lib.services.files import delete_project_files
@@ -97,6 +98,24 @@ async def get_user_project_detailed(project_id: str, user: User) -> ProjectDetai
         run for run in workflow_runs if is_user_visible_workflow(run.type)
     ]
     return ProjectDetailed(project=project, workflow_runs=visible_workflow_runs)
+
+
+async def get_user_project_files(project_id: str, user: User) -> List[File]:
+    with get_db() as db:
+        project = db.query(Project).filter(Project.id == project_id).first()
+
+        if project is None:
+            raise HTTPException(status_code=404, detail="Project not found")
+
+        if project.user_id is None or project.user_id != user.id:
+            raise HTTPException(status_code=403, detail="Access denied")
+
+        return (
+            db.query(File)
+            .filter(File.project_id == project.id)
+            .order_by(File.created_at.asc())
+            .all()
+        )
 
 
 async def update_user_project(

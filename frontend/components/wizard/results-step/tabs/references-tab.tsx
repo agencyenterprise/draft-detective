@@ -165,7 +165,7 @@ export function ReferencesTab({ workflowDetail, isProcessing = false }: Referenc
 
   return (
     <TabWithLoadingStates
-      title="References"
+      title={`References (${results.references?.length || 0})`}
       data={results.references}
       isProcessing={isProcessing}
       hasData={(references) => (references?.length || 0) > 0}

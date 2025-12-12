@@ -20,6 +20,7 @@ interface DocumentExplorerTabProps {
   workflowDetail: WorkflowRunDetailTyped<ClaimSubstantiatorStateSummary> | undefined;
   isProcessing?: boolean;
   viewMode: DocRenderMode;
+  readOnly?: boolean;
 }
 
 export function DocumentExplorerTab({
@@ -27,6 +28,7 @@ export function DocumentExplorerTab({
   workflowDetail,
   isProcessing = false,
   viewMode,
+  readOnly = false,
 }: DocumentExplorerTabProps) {
   const results = workflowDetail?.state;
   const [selectedChunkIndex, setSelectedChunkIndex] = useState<number | null>(null);
@@ -172,6 +174,7 @@ export function DocumentExplorerTab({
                 isWorkflowRunning={isProcessing}
                 onSelectIssue={handleSelectIssue}
                 onClearChunkSelection={() => setSelectedChunkIndex(null)}
+                readOnly={readOnly}
               />
             )}
           </div>

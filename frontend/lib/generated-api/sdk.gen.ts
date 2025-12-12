@@ -3,6 +3,9 @@
 import { type Client, formDataBodySerializer, type Options as Options2, type TDataShape } from './client';
 import { client } from './client.gen';
 import type {
+  CreateProjectEndpointApiProjectsPostData,
+  CreateProjectEndpointApiProjectsPostErrors,
+  CreateProjectEndpointApiProjectsPostResponses,
   DeleteFeedbackApiFeedbackFeedbackIdDeleteData,
   DeleteFeedbackApiFeedbackFeedbackIdDeleteErrors,
   DeleteFeedbackApiFeedbackFeedbackIdDeleteResponses,
@@ -12,6 +15,9 @@ import type {
   DisableProjectSharingApiProjectsProjectIdShareDisablePostData,
   DisableProjectSharingApiProjectsProjectIdShareDisablePostErrors,
   DisableProjectSharingApiProjectsProjectIdShareDisablePostResponses,
+  DownloadAllProjectFilesApiProjectProjectIdFilesDownloadAllGetData,
+  DownloadAllProjectFilesApiProjectProjectIdFilesDownloadAllGetErrors,
+  DownloadAllProjectFilesApiProjectProjectIdFilesDownloadAllGetResponses,
   DownloadFileApiFilesDownloadFileIdGetData,
   DownloadFileApiFilesDownloadFileIdGetErrors,
   DownloadFileApiFilesDownloadFileIdGetResponses,
@@ -53,6 +59,9 @@ import type {
   GetWorkflowStateApiWorkflowsWorkflowRunIdGetData,
   GetWorkflowStateApiWorkflowsWorkflowRunIdGetErrors,
   GetWorkflowStateApiWorkflowsWorkflowRunIdGetResponses,
+  ListProjectFilesEndpointApiProjectProjectIdFilesGetData,
+  ListProjectFilesEndpointApiProjectProjectIdFilesGetErrors,
+  ListProjectFilesEndpointApiProjectProjectIdFilesGetResponses,
   ListProjectsEndpointApiProjectsGetData,
   ListProjectsEndpointApiProjectsGetResponses,
   ReadHealthApiHealthGetData,
@@ -483,6 +492,31 @@ export const listProjectsEndpointApiProjectsGet = <ThrowOnError extends boolean 
   });
 
 /**
+ * Create Project Endpoint
+ *
+ * Create a project with a main document.
+ */
+export const createProjectEndpointApiProjectsPost = <ThrowOnError extends boolean = true>(
+  options: Options<CreateProjectEndpointApiProjectsPostData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    CreateProjectEndpointApiProjectsPostResponses,
+    CreateProjectEndpointApiProjectsPostErrors,
+    ThrowOnError,
+    'data'
+  >({
+    ...formDataBodySerializer,
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/projects',
+    ...options,
+    headers: {
+      'Content-Type': null,
+      ...options.headers,
+    },
+  });
+
+/**
  * Delete Project Endpoint
  *
  * Delete a project and all associated results
@@ -567,6 +601,46 @@ export const downloadProjectDocxApiProjectsProjectIdDocxDownloadGet = <ThrowOnEr
     responseStyle: 'data',
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/projects/{project_id}/docx/download',
+    ...options,
+  });
+
+/**
+ * List Project Files Endpoint
+ *
+ * Get all files for a project
+ */
+export const listProjectFilesEndpointApiProjectProjectIdFilesGet = <ThrowOnError extends boolean = true>(
+  options: Options<ListProjectFilesEndpointApiProjectProjectIdFilesGetData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    ListProjectFilesEndpointApiProjectProjectIdFilesGetResponses,
+    ListProjectFilesEndpointApiProjectProjectIdFilesGetErrors,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/project/{project_id}/files',
+    ...options,
+  });
+
+/**
+ * Download All Project Files
+ *
+ * Download all project files as a ZIP archive
+ */
+export const downloadAllProjectFilesApiProjectProjectIdFilesDownloadAllGet = <ThrowOnError extends boolean = true>(
+  options: Options<DownloadAllProjectFilesApiProjectProjectIdFilesDownloadAllGetData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    DownloadAllProjectFilesApiProjectProjectIdFilesDownloadAllGetResponses,
+    DownloadAllProjectFilesApiProjectProjectIdFilesDownloadAllGetErrors,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/project/{project_id}/files/download-all',
     ...options,
   });
 
