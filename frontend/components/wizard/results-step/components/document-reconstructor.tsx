@@ -1,5 +1,5 @@
 import { Markdown } from '@/components/markdown';
-import type { ClaimSubstantiatorStateSummary, DocumentChunkOutput } from '@/lib/generated-api';
+import type { ClaimSubstantiatorStateOutput, DocumentChunkOutput, DocumentIssue } from '@/lib/generated-api';
 import { getMaxChunkSeverity } from '@/lib/severity';
 import { cn } from '@/lib/utils';
 import { useVirtualizer } from '@tanstack/react-virtual';
@@ -8,12 +8,18 @@ import rehypeRaw from 'rehype-raw';
 import { detectBlockSyntax, extractChunkContent } from '../document-reconstruction-utils';
 
 interface DocumentReconstructorProps {
-  results: ClaimSubstantiatorStateSummary;
+  results: ClaimSubstantiatorStateOutput;
+  issues: DocumentIssue[];
   selectedChunkIndex: number | null;
   onChunkSelect: (chunkIndex: number | null) => void;
 }
 
-export function DocumentReconstructor({ results, selectedChunkIndex, onChunkSelect }: DocumentReconstructorProps) {
+export function DocumentReconstructor({
+  results,
+  issues,
+  selectedChunkIndex,
+  onChunkSelect,
+}: DocumentReconstructorProps) {
   const parentRef = useRef<HTMLDivElement>(null);
   const chunks = useMemo(() => results.chunks || [], [results.chunks]);
 
@@ -101,7 +107,7 @@ export function DocumentReconstructor({ results, selectedChunkIndex, onChunkSele
               <div className="pb-2">
                 <DocumentReconstructorChunkGroup
                   chunks={paragraphChunks}
-                  results={results}
+                  issues={issues}
                   selectedChunkIndex={selectedChunkIndex}
                   onChunkSelect={onChunkSelect}
                 />
@@ -116,12 +122,12 @@ export function DocumentReconstructor({ results, selectedChunkIndex, onChunkSele
 
 export function DocumentReconstructorChunkGroup({
   chunks,
-  results,
+  issues,
   selectedChunkIndex,
   onChunkSelect,
 }: {
   chunks: DocumentChunkOutput[];
-  results: ClaimSubstantiatorStateSummary;
+  issues: DocumentIssue[];
   selectedChunkIndex: number | null;
   onChunkSelect: (chunkIndex: number | null) => void;
 }) {
@@ -139,14 +145,14 @@ export function DocumentReconstructorChunkGroup({
     const wrappedChunks = chunks
       .map((chunk) => {
         const content = extractChunkContent(chunk.content, blockPrefix);
-        const severity = getMaxChunkSeverity(results, chunk);
+        const severity = getMaxChunkSeverity(issues, chunk);
         return `<span data-chunk-index="${chunk.chunk_index}" data-severity="${severity}">${content}</span>`;
       })
       .join(' ');
 
     // Reconstruct markdown with block-level syntax from first chunk
     return blockPrefix ? `${blockPrefix}${wrappedChunks}` : wrappedChunks;
-  }, [chunks, results]);
+  }, [chunks, issues]);
 
   useEffect(() => {
     if (!containerRef.current) {

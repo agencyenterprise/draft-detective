@@ -1,6 +1,6 @@
 import {
   ChunkEvalPackageRequest,
-  ClaimSubstantiatorStateSummary,
+  ClaimSubstantiatorStateOutput,
   EvalPackageRequest,
   generateChunkEvalPackageApiGenerateChunkEvalPackagePost,
   generateEvalPackageApiGenerateEvalPackagePost,
@@ -45,8 +45,6 @@ class AnalysisService {
 
         // Add config parameters
         if (config.use_toulmin !== undefined) formData.append('use_toulmin', String(config.use_toulmin));
-        if (config.run_suggest_citations !== undefined)
-          formData.append('run_suggest_citations', String(config.run_suggest_citations));
         if (config.domain) formData.append('domain', config.domain);
         if (config.target_audience) formData.append('target_audience', config.target_audience);
         if (config.session_id) formData.append('session_id', config.session_id);
@@ -101,7 +99,7 @@ class AnalysisService {
   }
 
   async generateEvalPackage(
-    results: ClaimSubstantiatorStateSummary,
+    results: ClaimSubstantiatorStateOutput,
     testName?: string,
     description?: string,
   ): Promise<Blob> {
@@ -130,7 +128,7 @@ class AnalysisService {
   }
 
   async generateChunkEvalPackage(
-    results: ClaimSubstantiatorStateSummary,
+    results: ClaimSubstantiatorStateOutput,
     chunkIndex: number,
     selectedAgents: string[],
     testName?: string,

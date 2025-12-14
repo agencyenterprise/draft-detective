@@ -26,7 +26,6 @@ export function AnalysisForm({ onSubmit, isPending = false }: AnalysisFormProps)
       reviewType: 'peer-review',
       domain: '',
       targetAudience: '',
-      runSuggestCitations: false,
       webSearchConsent: false,
       openaiApiKey: openaiApiKey,
       mainDocument: null,
@@ -42,7 +41,6 @@ export function AnalysisForm({ onSubmit, isPending = false }: AnalysisFormProps)
         config: {
           domain: value.domain,
           targetAudience: value.targetAudience,
-          runSuggestCitations: value.runSuggestCitations,
           openaiApiKey: value.openaiApiKey,
         },
       });
@@ -92,22 +90,6 @@ export function AnalysisForm({ onSubmit, isPending = false }: AnalysisFormProps)
                   description="Peer review analysis focusing on claim substantiation, evidence quality, and citation completeness."
                   disabled={isPending}
                 />
-                {field.state.value === 'peer-review' && (
-                  <>
-                    <form.Field name="runSuggestCitations">
-                      {(field) => (
-                        <CheckboxWithDescription
-                          id="run-suggest-citations"
-                          checked={field.state.value}
-                          onCheckedChange={(checked) => field.handleChange(checked === true)}
-                          label="Suggest citations (Optional)"
-                          description="Examines every claim in the document and recommends relevant citations, prioritizing supporting documents first and then incorporating literature review findings when available."
-                          disabled={isPending}
-                        />
-                      )}
-                    </form.Field>
-                  </>
-                )}
               </div>
               {!field.state.meta.isValid && (
                 <p className="text-sm text-destructive">{field.state.meta.errors.join(', ')}</p>
@@ -116,31 +98,6 @@ export function AnalysisForm({ onSubmit, isPending = false }: AnalysisFormProps)
           )}
         </form.Field>
       </div>
-
-      <form.Subscribe selector={(state) => state.values.runSuggestCitations}>
-        {(runSuggestCitations) =>
-          runSuggestCitations && (
-            <form.Field name="webSearchConsent">
-              {(field) => (
-                <div>
-                  <div className="bg-yellow-50 border border-yellow-400 rounded-lg">
-                    <CheckboxWithDescription
-                      id="web-search-consent"
-                      checked={field.state.value}
-                      onCheckedChange={(checked) => field.handleChange(checked === true)}
-                      label="I consent to perform web search using parts of the document"
-                      description={`Web search is required to perform reference validation. Parts of the document will be used to perform web search, so we don't recommend using confidential information. Disable this feature if you don't consent to perform web search.`}
-                    />
-                  </div>
-                  {!field.state.meta.isValid && (
-                    <p className="text-sm text-destructive mt-1 pl-6">{field.state.meta.errors.join(', ')}</p>
-                  )}
-                </div>
-              )}
-            </form.Field>
-          )
-        }
-      </form.Subscribe>
 
       <div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">

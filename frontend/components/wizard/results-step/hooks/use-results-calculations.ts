@@ -1,6 +1,6 @@
-import { ClaimSubstantiatorStateSummary } from '@/lib/generated-api';
+import { ClaimSubstantiatorStateOutput } from '@/lib/generated-api';
 
-export function useResultsCalculations(detailedResults: ClaimSubstantiatorStateSummary | undefined) {
+export function useResultsCalculations(detailedResults: ClaimSubstantiatorStateOutput | undefined) {
   if (!detailedResults) {
     return {
       totalClaims: 0,
@@ -13,15 +13,20 @@ export function useResultsCalculations(detailedResults: ClaimSubstantiatorStateS
     };
   }
 
-  const totalClaims = detailedResults.chunks?.reduce((sum, chunk) => sum + (chunk.claims_count || 0), 0) || 0;
+  // Calculate from full chunks now that we have full state
+  const totalClaims = detailedResults.chunks?.reduce((sum, chunk) => sum + (chunk.claims?.claims?.length || 0), 0) || 0;
 
-  const totalCitations = detailedResults.chunks?.reduce((sum, chunk) => sum + (chunk.citations_count || 0), 0) || 0;
+  const totalCitations =
+    detailedResults.chunks?.reduce((sum, chunk) => sum + (chunk.citations?.citations?.length || 0), 0) || 0;
 
   const totalUnsubstantiated = 0;
 
-  const chunksWithClaims = detailedResults.chunks?.filter((chunk) => chunk.has_claims).length || 0;
+  const chunksWithClaims =
+    detailedResults.chunks?.filter((chunk) => chunk.claims !== null && chunk.claims !== undefined).length || 0;
 
-  const chunksWithCitations = detailedResults.chunks?.filter((chunk) => chunk.has_citations).length || 0;
+  const chunksWithCitations =
+    detailedResults.chunks?.filter((chunk) => chunk.citations?.citations && chunk.citations.citations.length > 0)
+      .length || 0;
 
   const supportedReferences =
     detailedResults.references?.filter((ref) => ref.has_associated_supporting_document).length || 0;

@@ -169,10 +169,6 @@ export type BodyStartAnalysisApiStartAnalysisPost = {
    */
   use_toulmin?: boolean;
   /**
-   * Run Suggest Citations
-   */
-  run_suggest_citations?: boolean;
-  /**
    * Use Rag
    */
   use_rag?: boolean;
@@ -356,35 +352,80 @@ export type CitationResponseOutput = {
 };
 
 /**
- * CitationSuggestionResultWithClaimIndex
+ * CitationSuggesterState
+ *
+ * State for the citation suggester workflow.
  */
-export type CitationSuggestionResultWithClaimIndexInput = {
+export type CitationSuggesterState = {
   /**
-   * Relevant References
+   * Errors
    *
-   * Ordered list of the most relevant references the author should consider when revising the paragraph
+   * Errors that occurred during the workflow execution.
    */
-  relevant_references: Array<Reference>;
+  errors?: Array<WorkflowError>;
   /**
-   * Rationale
+   * Type
+   */
+  type?: 'citation_suggester';
+  config: CitationSuggesterWorkflowConfig;
+  file: FileDocumentOutput;
+  /**
+   * References
+   */
+  references?: Array<BibliographyItem>;
+  /**
+   * Chunks
+   */
+  chunks?: Array<DocumentChunkOutput>;
+  /**
+   * Supporting Files
+   */
+  supporting_files?: Array<FileDocumentOutput> | null;
+  /**
+   * Supporting Documents Summaries
    *
-   * High-level reasoning summarizing how the recommendations improve the paragraph's literature coverage
+   * Dictionary mapping supporting file indices to their summaries
    */
-  rationale: string;
+  supporting_documents_summaries?: {
+    [key: string]: DocumentSummary;
+  } | null;
+  literature_review?: LiteratureReviewResponse | null;
   /**
-   * Chunk Index
+   * Citation Suggestions
+   *
+   * Citation suggestions for all chunks and claims
    */
-  chunk_index: number;
+  citation_suggestions?: Array<CitationSuggestionResultWithClaimIndex>;
+};
+
+/**
+ * CitationSuggesterWorkflowConfig
+ *
+ * Configuration model for the citation suggester workflow.
+ */
+export type CitationSuggesterWorkflowConfig = {
   /**
-   * Claim Index
+   * Project Id
+   *
+   * The ID of the project that this workflow run should be associated with
    */
-  claim_index: number;
+  project_id?: string | null;
+  /**
+   * Openai Api Key
+   *
+   * The OpenAI API key to use for this workflow execution
+   */
+  openai_api_key?: string | null;
+  /**
+   * Type
+   */
+  type?: 'citation_suggester';
 };
 
 /**
  * CitationSuggestionResultWithClaimIndex
  */
-export type CitationSuggestionResultWithClaimIndexOutput = {
+export type CitationSuggestionResultWithClaimIndex = {
   /**
    * Relevant References
    *
@@ -736,27 +777,6 @@ export type ClaimSubstantiatorStateInput = {
     [key: string]: DocumentSummary;
   } | null;
   /**
-   * Live Reports Analysis
-   *
-   * Live reports analysis results by chunk index
-   */
-  live_reports_analysis?: Array<EvidenceWeighterResponseWithClaimIndexInput>;
-  literature_review?: LiteratureReviewResponseInput | null;
-  /**
-   * Methodology comparison result comparing the paper's methodology to field standards
-   */
-  methodology_comparison?: MethodologyComparisonResponseInput | null;
-  /**
-   * Report output from the addendum report generator
-   */
-  addendum_report?: ReportOutputInput | null;
-  /**
-   * Ranked Issues
-   *
-   * Ranked list of document issues with severity levels
-   */
-  ranked_issues?: Array<DocumentIssue>;
-  /**
    * Mapping from chunk indices to Docling items/regions for rendering
    */
   chunk_to_items?: ChunkToItemsInput | null;
@@ -803,80 +823,8 @@ export type ClaimSubstantiatorStateOutput = {
     [key: string]: DocumentSummary;
   } | null;
   /**
-   * Live Reports Analysis
-   *
-   * Live reports analysis results by chunk index
-   */
-  live_reports_analysis?: Array<EvidenceWeighterResponseWithClaimIndexOutput>;
-  literature_review?: LiteratureReviewResponseOutput | null;
-  /**
-   * Methodology comparison result comparing the paper's methodology to field standards
-   */
-  methodology_comparison?: MethodologyComparisonResponseOutput | null;
-  /**
-   * Report output from the addendum report generator
-   */
-  addendum_report?: ReportOutputOutput | null;
-  /**
-   * Ranked Issues
-   *
-   * Ranked list of document issues with severity levels
-   */
-  ranked_issues?: Array<DocumentIssue>;
-  /**
    * Mapping from chunk indices to Docling items/regions for rendering
    */
-  chunk_to_items?: ChunkToItemsOutput | null;
-};
-
-/**
- * ClaimSubstantiatorStateSummary
- *
- * Summary version of ClaimSubstantiatorState with chunk summaries instead of full chunks
- */
-export type ClaimSubstantiatorStateSummary = {
-  /**
-   * Errors
-   */
-  errors?: Array<WorkflowError>;
-  /**
-   * Type
-   */
-  type?: 'claim_substantiation';
-  file: FileDocumentOutput;
-  /**
-   * Supporting Files
-   */
-  supporting_files?: Array<FileDocumentOutput> | null;
-  config: SubstantiationWorkflowConfig;
-  /**
-   * References
-   */
-  references?: Array<BibliographyItem>;
-  /**
-   * Chunks
-   *
-   * Lightweight chunk summaries without detailed analysis
-   */
-  chunks?: Array<DocumentChunkSummary>;
-  main_document_summary?: DocumentSummary | null;
-  /**
-   * Supporting Documents Summaries
-   */
-  supporting_documents_summaries?: {
-    [key: string]: DocumentSummary;
-  } | null;
-  /**
-   * Live Reports Analysis
-   */
-  live_reports_analysis?: Array<EvidenceWeighterResponseWithClaimIndexOutput>;
-  literature_review?: LiteratureReviewResponseOutput | null;
-  methodology_comparison?: MethodologyComparisonResponseOutput | null;
-  addendum_report?: ReportOutputOutput | null;
-  /**
-   * Ranked Issues
-   */
-  ranked_issues?: Array<DocumentIssue>;
   chunk_to_items?: ChunkToItemsOutput | null;
 };
 
@@ -1008,14 +956,6 @@ export type DocumentChunkInput = {
    */
   substantiations?: Array<ClaimSubstantiationResultWithClaimIndex>;
   /**
-   * Citation Suggestions
-   */
-  citation_suggestions?: Array<CitationSuggestionResultWithClaimIndexInput>;
-  /**
-   * Live Reports Analysis
-   */
-  live_reports_analysis?: Array<EvidenceWeighterResponseWithClaimIndexInput>;
-  /**
    * Inference Validations
    */
   inference_validations?: Array<InferenceValidationResponseWithClaimIndex>;
@@ -1057,61 +997,9 @@ export type DocumentChunkOutput = {
    */
   substantiations?: Array<ClaimSubstantiationResultWithClaimIndex>;
   /**
-   * Citation Suggestions
-   */
-  citation_suggestions?: Array<CitationSuggestionResultWithClaimIndexOutput>;
-  /**
-   * Live Reports Analysis
-   */
-  live_reports_analysis?: Array<EvidenceWeighterResponseWithClaimIndexOutput>;
-  /**
    * Inference Validations
    */
   inference_validations?: Array<InferenceValidationResponseWithClaimIndex>;
-};
-
-/**
- * DocumentChunkSummary
- *
- * Summary chunk info without detailed analysis (for API responses)
- */
-export type DocumentChunkSummary = {
-  /**
-   * Content
-   */
-  content: string;
-  /**
-   * Chunk Index
-   */
-  chunk_index: number;
-  /**
-   * Paragraph Index
-   */
-  paragraph_index: number;
-  /**
-   * Has Claims
-   *
-   * Whether this chunk has claims
-   */
-  has_claims?: boolean;
-  /**
-   * Claims Count
-   *
-   * Number of claims in this chunk
-   */
-  claims_count?: number;
-  /**
-   * Has Citations
-   *
-   * Whether this chunk has citations
-   */
-  has_citations?: boolean;
-  /**
-   * Citations Count
-   *
-   * Number of citations in this chunk
-   */
-  citations_count?: number;
 };
 
 /**
@@ -1428,51 +1316,7 @@ export type EvidenceWeighterRecommendedAction =
 /**
  * EvidenceWeighterResponseWithClaimIndex
  */
-export type EvidenceWeighterResponseWithClaimIndexInput = {
-  /**
-   * Newer References
-   *
-   * Newer references found from the literature review report
-   */
-  newer_references: Array<ClaimReferenceFactors>;
-  /**
-   * Evidence alignment of the newer references: unverifiable, supported, partially_supported, or unsupported
-   */
-  newer_references_alignment: ReferenceAlignmentLevel;
-  /**
-   * Recommended action for the claim: update_claim, add_citation, or no_change
-   */
-  claim_update_action: EvidenceWeighterRecommendedAction;
-  /**
-   * Rationale
-   *
-   * Explanation of the rationale for the claim update action in a maximum of TWO sentences.
-   */
-  rationale: string;
-  /**
-   * Confidence level in the claim update: high, medium, or low
-   */
-  confidence_level: QualityLevel;
-  /**
-   * Rewritten Claim
-   *
-   * The rewritten claim that is more clear and accurate according to the recommended action and taking the newer sources into account.
-   */
-  rewritten_claim: string;
-  /**
-   * Chunk Index
-   */
-  chunk_index: number;
-  /**
-   * Claim Index
-   */
-  claim_index: number;
-};
-
-/**
- * EvidenceWeighterResponseWithClaimIndex
- */
-export type EvidenceWeighterResponseWithClaimIndexOutput = {
+export type EvidenceWeighterResponseWithClaimIndex = {
   /**
    * Newer References
    *
@@ -1871,25 +1715,7 @@ export type InferenceValidationResponseWithClaimIndex = {
 /**
  * LiteratureReviewResponse
  */
-export type LiteratureReviewResponseInput = {
-  /**
-   * Relevant References
-   *
-   * List of relevant references to cite
-   */
-  relevant_references?: Array<DocumentReferenceFactors>;
-  /**
-   * Rationale
-   *
-   * Overall rationale for the literature review recommendations
-   */
-  rationale: string;
-};
-
-/**
- * LiteratureReviewResponse
- */
-export type LiteratureReviewResponseOutput = {
+export type LiteratureReviewResponse = {
   /**
    * Relevant References
    *
@@ -1926,7 +1752,7 @@ export type LiteratureReviewState = {
    * References
    */
   references?: Array<BibliographyItem>;
-  literature_review?: LiteratureReviewResponseOutput | null;
+  literature_review?: LiteratureReviewResponse | null;
 };
 
 /**
@@ -1994,11 +1820,11 @@ export type LiveReportsState = {
    *
    * Live reports analysis results aggregated across chunks
    */
-  live_reports_analysis?: Array<EvidenceWeighterResponseWithClaimIndexOutput>;
+  live_reports_analysis?: Array<EvidenceWeighterResponseWithClaimIndex>;
   /**
    * Addendum report output for live reports
    */
-  addendum_report?: ReportOutputOutput | null;
+  addendum_report?: ReportOutput | null;
 };
 
 /**
@@ -2066,7 +1892,7 @@ export type MethodologicalAlignmentState = {
   /**
    * Methodology alignment analysis result
    */
-  methodology_comparison?: MethodologyComparisonResponseOutput | null;
+  methodology_comparison?: MethodologyComparisonResponse | null;
 };
 
 /**
@@ -2096,43 +1922,7 @@ export type MethodologicalAlignmentWorkflowConfig = {
 /**
  * MethodologyComparisonResponse
  */
-export type MethodologyComparisonResponseInput = {
-  /**
-   * The class of reproducibility of the methodology.
-   */
-  reproducibility: ReproducibilityCategoryResponse;
-  /**
-   * The extracted methodology of the paper.
-   */
-  extracted_methodology: SummaryAndOutput;
-  /**
-   * The overview of the field methods.
-   */
-  field_methods_overview: SummaryAndOutput;
-  /**
-   * The alignment of the paper's methodology with the field methods.
-   */
-  alignment_with_field_practice: SummaryAndOutput;
-  /**
-   * The rigor and risks of the paper's methodology.
-   */
-  methodological_rigor_and_risks: SummaryAndOutput;
-  /**
-   * The suggestions for improvements to the paper's methodology.
-   */
-  suggestions_for_improvements: SummaryAndOutput;
-  /**
-   * References
-   *
-   * List of sources cited from web search
-   */
-  references?: Array<ReferenceMinimal>;
-};
-
-/**
- * MethodologyComparisonResponse
- */
-export type MethodologyComparisonResponseOutput = {
+export type MethodologyComparisonResponse = {
   /**
    * The class of reproducibility of the methodology.
    */
@@ -2225,7 +2015,13 @@ export type ProjectDetailed = {
    *
    * The workflow runs for the project
    */
-  workflow_runs?: Array<WorkflowRun>;
+  workflow_runs?: Array<WorkflowRunDetail>;
+  /**
+   * Issues
+   *
+   * The issues for the project, converted from the workflow results states
+   */
+  issues?: Array<DocumentIssue>;
 };
 
 /**
@@ -2650,20 +2446,7 @@ export type ReportMetadata = {
 /**
  * ReportOutput
  */
-export type ReportOutputInput = {
-  /**
-   * Report Markdown
-   *
-   * The markdown formatted report
-   */
-  report_markdown: string;
-  report_metadata: ReportMetadata;
-};
-
-/**
- * ReportOutput
- */
-export type ReportOutputOutput = {
+export type ReportOutput = {
   /**
    * Report Markdown
    *
@@ -2814,57 +2597,6 @@ export type ShareStatusResponse = {
 };
 
 /**
- * SharedProjectInfo
- *
- * Minimal project info for shared view (no sensitive data).
- */
-export type SharedProjectInfo = {
-  /**
-   * Id
-   */
-  id: string;
-  /**
-   * Title
-   */
-  title: string;
-  /**
-   * Created At
-   */
-  created_at: Date;
-};
-
-/**
- * SharedProjectResponse
- *
- * Response for a shared project with all necessary data.
- */
-export type SharedProjectResponse = {
-  project: SharedProjectInfo;
-  workflow_run?: SharedWorkflowRun | null;
-  state?: ClaimSubstantiatorStateSummary | null;
-};
-
-/**
- * SharedWorkflowRun
- *
- * Minimal workflow run info for shared view.
- */
-export type SharedWorkflowRun = {
-  /**
-   * Id
-   */
-  id: string;
-  /**
-   * Type
-   */
-  type: string;
-  /**
-   * Status
-   */
-  status: string;
-};
-
-/**
  * StartWorkflowResponse
  *
  * Response model for starting a workflow
@@ -2913,12 +2645,6 @@ export type SubstantiationWorkflowConfig = {
    * Whether to use Toulmin claim detection approach
    */
   use_toulmin?: boolean;
-  /**
-   * Run Suggest Citations
-   *
-   * Whether to run the citation suggestions
-   */
-  run_suggest_citations?: boolean;
   /**
    * Use Rag
    *
@@ -3179,13 +2905,14 @@ export type WorkflowRunDetail = {
    */
   state:
     | ClaimSubstantiatorStateOutput
-    | ClaimSubstantiatorStateSummary
     | MethodologicalAlignmentState
     | ReferenceDownloaderState
     | DocxGenerationState
     | LiteratureReviewState
     | LiveReportsState
-    | ReferenceValidationState;
+    | ReferenceValidationState
+    | CitationSuggesterState
+    | null;
 };
 
 /**
@@ -3213,12 +2940,60 @@ export const WorkflowRunType = {
   LiteratureReview: 'literature_review',
   LiveReports: 'live_reports',
   ReferenceValidation: 'reference_validation',
+  CitationSuggester: 'citation_suggester',
 } as const;
 
 /**
  * WorkflowRunType
  */
 export type WorkflowRunType = (typeof WorkflowRunType)[keyof typeof WorkflowRunType];
+
+/**
+ * CitationSuggesterState
+ *
+ * State for the citation suggester workflow.
+ */
+export type CitationSuggesterStateWritable = {
+  /**
+   * Errors
+   *
+   * Errors that occurred during the workflow execution.
+   */
+  errors?: Array<WorkflowError>;
+  /**
+   * Type
+   */
+  type?: 'citation_suggester';
+  config: CitationSuggesterWorkflowConfig;
+  file: FileDocumentOutputWritable;
+  /**
+   * References
+   */
+  references?: Array<BibliographyItem>;
+  /**
+   * Chunks
+   */
+  chunks?: Array<DocumentChunkOutput>;
+  /**
+   * Supporting Files
+   */
+  supporting_files?: Array<FileDocumentOutputWritable> | null;
+  /**
+   * Supporting Documents Summaries
+   *
+   * Dictionary mapping supporting file indices to their summaries
+   */
+  supporting_documents_summaries?: {
+    [key: string]: DocumentSummary;
+  } | null;
+  literature_review?: LiteratureReviewResponse | null;
+  /**
+   * Citation Suggestions
+   *
+   * Citation suggestions for all chunks and claims
+   */
+  citation_suggestions?: Array<CitationSuggestionResultWithClaimIndex>;
+};
 
 /**
  * ClaimSubstantiatorState
@@ -3261,80 +3036,8 @@ export type ClaimSubstantiatorStateOutputWritable = {
     [key: string]: DocumentSummary;
   } | null;
   /**
-   * Live Reports Analysis
-   *
-   * Live reports analysis results by chunk index
-   */
-  live_reports_analysis?: Array<EvidenceWeighterResponseWithClaimIndexOutput>;
-  literature_review?: LiteratureReviewResponseOutput | null;
-  /**
-   * Methodology comparison result comparing the paper's methodology to field standards
-   */
-  methodology_comparison?: MethodologyComparisonResponseOutput | null;
-  /**
-   * Report output from the addendum report generator
-   */
-  addendum_report?: ReportOutputOutput | null;
-  /**
-   * Ranked Issues
-   *
-   * Ranked list of document issues with severity levels
-   */
-  ranked_issues?: Array<DocumentIssue>;
-  /**
    * Mapping from chunk indices to Docling items/regions for rendering
    */
-  chunk_to_items?: ChunkToItemsOutput | null;
-};
-
-/**
- * ClaimSubstantiatorStateSummary
- *
- * Summary version of ClaimSubstantiatorState with chunk summaries instead of full chunks
- */
-export type ClaimSubstantiatorStateSummaryWritable = {
-  /**
-   * Errors
-   */
-  errors?: Array<WorkflowError>;
-  /**
-   * Type
-   */
-  type?: 'claim_substantiation';
-  file: FileDocumentOutputWritable;
-  /**
-   * Supporting Files
-   */
-  supporting_files?: Array<FileDocumentOutputWritable> | null;
-  config: SubstantiationWorkflowConfig;
-  /**
-   * References
-   */
-  references?: Array<BibliographyItem>;
-  /**
-   * Chunks
-   *
-   * Lightweight chunk summaries without detailed analysis
-   */
-  chunks?: Array<DocumentChunkSummary>;
-  main_document_summary?: DocumentSummary | null;
-  /**
-   * Supporting Documents Summaries
-   */
-  supporting_documents_summaries?: {
-    [key: string]: DocumentSummary;
-  } | null;
-  /**
-   * Live Reports Analysis
-   */
-  live_reports_analysis?: Array<EvidenceWeighterResponseWithClaimIndexOutput>;
-  literature_review?: LiteratureReviewResponseOutput | null;
-  methodology_comparison?: MethodologyComparisonResponseOutput | null;
-  addendum_report?: ReportOutputOutput | null;
-  /**
-   * Ranked Issues
-   */
-  ranked_issues?: Array<DocumentIssue>;
   chunk_to_items?: ChunkToItemsOutput | null;
 };
 
@@ -3427,7 +3130,7 @@ export type LiteratureReviewStateWritable = {
    * References
    */
   references?: Array<BibliographyItem>;
-  literature_review?: LiteratureReviewResponseOutput | null;
+  literature_review?: LiteratureReviewResponse | null;
 };
 
 /**
@@ -3465,11 +3168,11 @@ export type LiveReportsStateWritable = {
    *
    * Live reports analysis results aggregated across chunks
    */
-  live_reports_analysis?: Array<EvidenceWeighterResponseWithClaimIndexOutput>;
+  live_reports_analysis?: Array<EvidenceWeighterResponseWithClaimIndex>;
   /**
    * Addendum report output for live reports
    */
-  addendum_report?: ReportOutputOutput | null;
+  addendum_report?: ReportOutput | null;
 };
 
 /**
@@ -3495,18 +3198,26 @@ export type MethodologicalAlignmentStateWritable = {
   /**
    * Methodology alignment analysis result
    */
-  methodology_comparison?: MethodologyComparisonResponseOutput | null;
+  methodology_comparison?: MethodologyComparisonResponse | null;
 };
 
 /**
- * SharedProjectResponse
- *
- * Response for a shared project with all necessary data.
+ * ProjectDetailed
  */
-export type SharedProjectResponseWritable = {
-  project: SharedProjectInfo;
-  workflow_run?: SharedWorkflowRun | null;
-  state?: ClaimSubstantiatorStateSummaryWritable | null;
+export type ProjectDetailedWritable = {
+  project: Project;
+  /**
+   * Workflow Runs
+   *
+   * The workflow runs for the project
+   */
+  workflow_runs?: Array<WorkflowRunDetailWritable>;
+  /**
+   * Issues
+   *
+   * The issues for the project, converted from the workflow results states
+   */
+  issues?: Array<DocumentIssue>;
 };
 
 /**
@@ -3519,13 +3230,14 @@ export type WorkflowRunDetailWritable = {
    */
   state:
     | ClaimSubstantiatorStateOutputWritable
-    | ClaimSubstantiatorStateSummaryWritable
     | MethodologicalAlignmentStateWritable
     | ReferenceDownloaderState
     | DocxGenerationState
     | LiteratureReviewStateWritable
     | LiveReportsStateWritable
-    | ReferenceValidationState;
+    | ReferenceValidationState
+    | CitationSuggesterStateWritable
+    | null;
 };
 
 export type ReadHealthApiHealthGetData = {
@@ -3673,7 +3385,8 @@ export type StartWorkflowApiWorkflowsStartPostData = {
     | ReferenceDownloaderWorkflowConfig
     | LiteratureReviewWorkflowConfig
     | LiveReportsWorkflowConfig
-    | ReferenceValidationWorkflowConfig;
+    | ReferenceValidationWorkflowConfig
+    | CitationSuggesterWorkflowConfig;
   path?: never;
   query?: never;
   url: '/api/workflows/start';
@@ -3730,42 +3443,6 @@ export type GetWorkflowStateApiWorkflowsWorkflowRunIdGetResponses = {
 
 export type GetWorkflowStateApiWorkflowsWorkflowRunIdGetResponse =
   GetWorkflowStateApiWorkflowsWorkflowRunIdGetResponses[keyof GetWorkflowStateApiWorkflowsWorkflowRunIdGetResponses];
-
-export type GetChunkDetailsEndpointApiWorkflowRunWorkflowRunIdChunkChunkIndexGetData = {
-  body?: never;
-  path: {
-    /**
-     * Workflow Run Id
-     */
-    workflow_run_id: string;
-    /**
-     * Chunk Index
-     */
-    chunk_index: number;
-  };
-  query?: never;
-  url: '/api/workflow-run/{workflow_run_id}/chunk/{chunk_index}';
-};
-
-export type GetChunkDetailsEndpointApiWorkflowRunWorkflowRunIdChunkChunkIndexGetErrors = {
-  /**
-   * Validation Error
-   */
-  422: HttpValidationError;
-};
-
-export type GetChunkDetailsEndpointApiWorkflowRunWorkflowRunIdChunkChunkIndexGetError =
-  GetChunkDetailsEndpointApiWorkflowRunWorkflowRunIdChunkChunkIndexGetErrors[keyof GetChunkDetailsEndpointApiWorkflowRunWorkflowRunIdChunkChunkIndexGetErrors];
-
-export type GetChunkDetailsEndpointApiWorkflowRunWorkflowRunIdChunkChunkIndexGetResponses = {
-  /**
-   * Successful Response
-   */
-  200: DocumentChunkOutput;
-};
-
-export type GetChunkDetailsEndpointApiWorkflowRunWorkflowRunIdChunkChunkIndexGetResponse =
-  GetChunkDetailsEndpointApiWorkflowRunWorkflowRunIdChunkChunkIndexGetResponses[keyof GetChunkDetailsEndpointApiWorkflowRunWorkflowRunIdChunkChunkIndexGetResponses];
 
 export type GetPageImageApiWorkflowRunsWorkflowRunIdPagesPageNumGetData = {
   body?: never;
@@ -4323,7 +4000,7 @@ export type GetSharedResourceApiPublicShareTokenGetResponses = {
   /**
    * Successful Response
    */
-  200: SharedProjectResponse;
+  200: ProjectDetailed;
 };
 
 export type GetSharedResourceApiPublicShareTokenGetResponse =

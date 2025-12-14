@@ -10,7 +10,6 @@ from lib.workflows.claim_substantiation.state import SubstantiationWorkflowConfi
 
 async def build_config_from_form(
     use_toulmin: bool = Form(default=False),
-    run_suggest_citations: bool = Form(default=True),
     use_rag: bool = Form(default=True),
     run_reference_validation: bool = Form(default=False),
     domain: Optional[str] = Form(default=None),
@@ -25,7 +24,6 @@ async def build_config_from_form(
 
     Args:
         use_toulmin: Whether to use Toulmin claim extraction approach
-        run_suggest_citations: Whether to run the citation suggestions
         use_rag: Whether to use RAG for claim verification
         run_reference_validation: Whether to validate references using web search
         domain: Domain context for more accurate analysis
@@ -63,7 +61,6 @@ async def build_config_from_form(
 
     return SubstantiationWorkflowConfig(
         use_toulmin=use_toulmin,
-        run_suggest_citations=run_suggest_citations,
         use_rag=use_rag,
         run_reference_validation=run_reference_validation,
         domain=domain,

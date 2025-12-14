@@ -1,8 +1,9 @@
 import {
-  ClaimSubstantiatorStateSummary,
+  CitationSuggesterState,
+  ClaimSubstantiatorStateOutput,
   DocxGenerationState,
-  LiveReportsState,
   LiteratureReviewState,
+  LiveReportsState,
   MethodologicalAlignmentState,
   ReferenceDownloaderState,
   ReferenceValidationState,
@@ -15,13 +16,14 @@ import {
  * Type mapping for workflow types to their corresponding workflow detail types
  */
 type WorkflowTypeToDetail = {
-  [WorkflowRunType.ClaimSubstantiation]: ClaimSubstantiatorStateSummary;
+  [WorkflowRunType.ClaimSubstantiation]: ClaimSubstantiatorStateOutput;
   [WorkflowRunType.MethodologicalAlignment]: MethodologicalAlignmentState;
   [WorkflowRunType.ReferenceDownloader]: ReferenceDownloaderState;
   [WorkflowRunType.DocxGeneration]: DocxGenerationState;
   [WorkflowRunType.LiteratureReview]: LiteratureReviewState;
   [WorkflowRunType.LiveReports]: LiveReportsState;
   [WorkflowRunType.ReferenceValidation]: ReferenceValidationState;
+  [WorkflowRunType.CitationSuggester]: CitationSuggesterState;
 };
 
 export interface WorkflowRunDetailTyped<T> {
@@ -53,6 +55,7 @@ const workflowTypeNames: Record<WorkflowRunType, string> = {
   [WorkflowRunType.LiteratureReview]: 'Literature Review',
   [WorkflowRunType.LiveReports]: 'Live Reports',
   [WorkflowRunType.ReferenceValidation]: 'Reference Validation',
+  [WorkflowRunType.CitationSuggester]: 'Citation Suggester',
 };
 
 export function getWorkflowTypeName(type: WorkflowRunType): string {

@@ -10,7 +10,6 @@ export interface AnalysisFormValues {
   reviewType: string;
   domain: string;
   targetAudience: string;
-  runSuggestCitations: boolean;
   webSearchConsent: boolean;
   openaiApiKey: string;
   mainDocument: File | null;

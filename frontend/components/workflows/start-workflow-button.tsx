@@ -30,11 +30,6 @@ export function StartWorkflowButton({ type, projectId, workflow, onConfirm }: St
       queryClient.invalidateQueries({
         queryKey: ['project', projectId],
       });
-      if (workflow) {
-        queryClient.invalidateQueries({
-          queryKey: ['workflowRun', workflow.id],
-        });
-      }
     },
     onError: (error) => {
       console.error(`Failed to start ${workflowName} workflow:`, error);

@@ -115,8 +115,7 @@ export default function ResultsPage() {
       </div>
 
       <ResultsVisualization
-        projectId={projectId}
-        results={workflowDetails}
+        projectDetail={project}
         isProcessing={isProcessing}
         viewMode={viewMode}
         onViewModeChange={setViewMode}

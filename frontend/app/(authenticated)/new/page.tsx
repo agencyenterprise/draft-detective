@@ -26,7 +26,6 @@ export default function New() {
           supportingDocuments: data.supportingDocuments,
           config: {
             use_toulmin: false,
-            run_suggest_citations: data.config.runSuggestCitations,
             domain: data.config.domain || undefined,
             target_audience: data.config.targetAudience || undefined,
             session_id: undefined,

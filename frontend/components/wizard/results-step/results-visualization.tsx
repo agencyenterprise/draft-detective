@@ -5,9 +5,9 @@ import { analysisService } from '@/lib/analysis-service';
 import { DocRenderMode } from '@/lib/constants';
 import { downloadFile, generateEvalFilename } from '@/lib/file-download';
 import {
+  ProjectDetailed,
   rerunAnalysisEndpointApiRerunAnalysisPost,
   RerunAnalysisRequest,
-  WorkflowRunDetail,
   WorkflowRunType,
 } from '@/lib/generated-api';
 import { getWorkflowRunByType } from '@/lib/workflow-state';
@@ -21,6 +21,7 @@ import { ReevaluationDialogContent, ReevaluationFormValues } from './components/
 import { ViewModeToggle } from './components/view-mode-toggle';
 import { TabType } from './constants';
 import {
+  CitationSuggesterTab,
   FilesTab,
   LiteratureReviewTab,
   LiveReportsTab,
@@ -31,8 +32,7 @@ import {
 import { DocumentExplorerTab } from './tabs/document-explorer-tab';
 
 interface ResultsVisualizationProps {
-  projectId: string;
-  results: WorkflowRunDetail[];
+  projectDetail: ProjectDetailed;
   isProcessing?: boolean;
   viewMode: DocRenderMode;
   onViewModeChange: (mode: DocRenderMode) => void;
@@ -43,8 +43,7 @@ interface ResultsVisualizationProps {
 }
 
 export function ResultsVisualization({
-  projectId,
-  results,
+  projectDetail,
   isProcessing = false,
   viewMode,
   onViewModeChange,
@@ -52,9 +51,13 @@ export function ResultsVisualization({
   onTabChange,
   readOnly = false,
 }: ResultsVisualizationProps) {
+  const projectId = projectDetail.project.id;
+  const results = projectDetail.workflow_runs ?? [];
+
   const claimSubstantiationResults = getWorkflowRunByType(results, WorkflowRunType.ClaimSubstantiation);
   const methodologicalAlignmentResults = getWorkflowRunByType(results, WorkflowRunType.MethodologicalAlignment);
   const literatureReviewResults = getWorkflowRunByType(results, WorkflowRunType.LiteratureReview);
+  const citationSuggesterResults = getWorkflowRunByType(results, WorkflowRunType.CitationSuggester);
   const liveReportsResults = getWorkflowRunByType(results, WorkflowRunType.LiveReports);
   const referenceValidationResults = getWorkflowRunByType(results, WorkflowRunType.ReferenceValidation);
   const claimSubstantiationStateSummary = claimSubstantiationResults?.state;
@@ -72,9 +75,6 @@ export function ResultsVisualization({
       setIsReevaluationDialogOpen(false);
 
       // Invalidate queries to show loading state
-      queryClient.invalidateQueries({
-        queryKey: ['chunkDetails'],
-      });
       queryClient.invalidateQueries({
         queryKey: ['project', variables.project_id],
       });
@@ -133,6 +133,10 @@ export function ResultsVisualization({
         return (
           <LiteratureReviewTab workflowDetail={literatureReviewResults} projectId={projectId} readOnly={readOnly} />
         );
+      case 'citation_suggester':
+        return (
+          <CitationSuggesterTab workflowDetail={citationSuggesterResults} projectId={projectId} readOnly={readOnly} />
+        );
       case 'live_reports':
         return <LiveReportsTab workflowDetail={liveReportsResults} projectId={projectId} readOnly={readOnly} />;
       case 'files':
@@ -141,7 +145,8 @@ export function ResultsVisualization({
         return (
           <DocumentExplorerTab
             projectId={projectId}
-            workflowDetail={claimSubstantiationResults}
+            allWorkflowDetails={results}
+            issues={projectDetail.issues ?? []}
             isProcessing={isProcessing}
             viewMode={viewMode}
             readOnly={readOnly}

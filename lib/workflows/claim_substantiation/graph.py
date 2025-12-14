@@ -17,10 +17,6 @@ from lib.workflows.claim_substantiation.nodes.index_supporting_documents import 
 )
 from lib.workflows.claim_substantiation.nodes.prepare_documents import prepare_documents
 from lib.workflows.claim_substantiation.nodes.split_into_chunks import split_into_chunks
-from lib.workflows.claim_substantiation.nodes.suggest_citations import suggest_citations
-from lib.workflows.claim_substantiation.nodes.summarize_supporting_documents import (
-    summarize_supporting_documents,
-)
 from lib.workflows.claim_substantiation.nodes.validate_inferences import (
     validate_inferences,
 )
@@ -65,11 +61,6 @@ def build_claim_substantiator_graph(
     graph.add_node("detect_citations", detect_citations)
     graph.add_node("extract_references", extract_references)
 
-    # Optional nodes
-    if config.run_suggest_citations:
-        graph.add_node("summarize_supporting_documents", summarize_supporting_documents)
-        graph.add_node("suggest_citations", suggest_citations, defer=True)
-
     # Entry point
     graph.set_entry_point("convert_to_markdown")
 
@@ -102,22 +93,11 @@ def build_claim_substantiator_graph(
     graph.add_edge("categorize_claims", "validate_inferences")
     graph.add_edge("extract_references", "detect_citations")
 
-    # Suggest citations (aim 2.a)
-    # Must wait for ALL processing to complete before suggesting citations
-    if config.run_suggest_citations:
-        graph.add_edge("prepare_documents", "summarize_supporting_documents")
-        graph.add_edge("verify_claims", "suggest_citations")
-        graph.add_edge("validate_inferences", "suggest_citations")
-        graph.add_edge("summarize_supporting_documents", "suggest_citations")
-        graph.set_finish_point("suggest_citations")
-
-    else:
-        # When no downstream nodes exist, create a finalize node to wait for both
-        # verify_claims and validate_inferences to complete in parallel
-        graph.add_node("finalize", finalize)
-        graph.add_edge("verify_claims", "finalize")
-        graph.add_edge("validate_inferences", "finalize")
-        graph.set_finish_point("finalize")
+    # Create a finalize node to wait for both verify_claims and validate_inferences to complete in parallel
+    graph.add_node("finalize", finalize)
+    graph.add_edge("verify_claims", "finalize")
+    graph.add_edge("validate_inferences", "finalize")
+    graph.set_finish_point("finalize")
 
     return graph
 
@@ -128,8 +108,6 @@ if __name__ == "__main__":
 
     workflow_graph = build_claim_substantiator_graph(
         SubstantiationWorkflowConfig(
-            run_reference_validation=True,
-            run_suggest_citations=True,
             use_rag=True,
         )
     )

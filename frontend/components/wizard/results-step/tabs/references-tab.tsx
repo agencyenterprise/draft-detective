@@ -8,7 +8,7 @@ import { WorkflowConfigFormValues } from '@/components/workflows/workflow-config
 import {
   BibliographyItem,
   BibliographyItemValidation,
-  ClaimSubstantiatorStateSummary,
+  ClaimSubstantiatorStateOutput,
   FileDocumentOutput,
   ReferenceValidationState,
   startWorkflowApiWorkflowsStartPost,
@@ -21,7 +21,7 @@ import { humanizeLabel } from './literature-review-tab/utils';
 import { TabWithLoadingStates } from './tab-with-loading-states';
 
 interface ReferencesTabProps {
-  workflowDetail: WorkflowRunDetailTyped<ClaimSubstantiatorStateSummary> | undefined;
+  workflowDetail: WorkflowRunDetailTyped<ClaimSubstantiatorStateOutput> | undefined;
   referenceValidationDetail: WorkflowRunDetailTyped<ReferenceValidationState> | undefined;
   projectId: string;
   isProcessing?: boolean;

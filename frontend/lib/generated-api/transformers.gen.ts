@@ -52,7 +52,7 @@ export const listProjectsEndpointApiProjectsGetResponseTransformer = async (
 const projectDetailedSchemaResponseTransformer = (data: any) => {
   data.project = projectSchemaResponseTransformer(data.project);
   if (data.workflow_runs) {
-    data.workflow_runs = data.workflow_runs.map((item: any) => workflowRunSchemaResponseTransformer(item));
+    data.workflow_runs = data.workflow_runs.map((item: any) => workflowRunDetailSchemaResponseTransformer(item));
   }
   return data;
 };
@@ -90,19 +90,9 @@ export const listProjectFilesEndpointApiProjectProjectIdFilesGetResponseTransfor
   return data;
 };
 
-const sharedProjectResponseSchemaResponseTransformer = (data: any) => {
-  data.project = sharedProjectInfoSchemaResponseTransformer(data.project);
-  return data;
-};
-
-const sharedProjectInfoSchemaResponseTransformer = (data: any) => {
-  data.created_at = new Date(data.created_at);
-  return data;
-};
-
 export const getSharedResourceApiPublicShareTokenGetResponseTransformer = async (
   data: any,
 ): Promise<GetSharedResourceApiPublicShareTokenGetResponse> => {
-  data = sharedProjectResponseSchemaResponseTransformer(data);
+  data = projectDetailedSchemaResponseTransformer(data);
   return data;
 };

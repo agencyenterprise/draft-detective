@@ -3,16 +3,10 @@
 import { TabType } from '@/components/wizard/results-step/constants';
 import { ResultsVisualization } from '@/components/wizard/results-step/results-visualization';
 import { DocRenderMode } from '@/lib/constants';
-import {
-  ClaimSubstantiatorStateSummary,
-  getSharedResourceApiPublicShareTokenGet,
-  WorkflowRunStatus,
-  WorkflowRunType,
-} from '@/lib/generated-api';
-import { WorkflowRunDetailTyped } from '@/lib/workflow-state';
+import { getSharedResourceApiPublicShareTokenGet } from '@/lib/generated-api';
 import { useQuery } from '@tanstack/react-query';
 import { useParams } from 'next/navigation';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 
 export default function SharedProjectPage() {
   const params = useParams();
@@ -27,26 +21,6 @@ export default function SharedProjectPage() {
     retry: false,
   });
 
-  // Construct WorkflowRunDetail from shared data
-  const workflowResults = useMemo(() => {
-    if (!data?.state || !data?.workflow_run) return [];
-
-    const workflowDetail: WorkflowRunDetailTyped<ClaimSubstantiatorStateSummary> = {
-      run: {
-        id: data.workflow_run.id,
-        project_id: data.project.id,
-        type: WorkflowRunType.ClaimSubstantiation,
-        langgraph_thread_id: '',
-        status: data.workflow_run.status as WorkflowRunStatus,
-        created_at: new Date(),
-        last_updated_at: new Date(),
-      },
-      state: data.state,
-    };
-
-    return [workflowDetail];
-  }, [data]);
-
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -58,7 +32,7 @@ export default function SharedProjectPage() {
     );
   }
 
-  if (error || !data || !data.state) {
+  if (error || !data) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center max-w-md mx-auto p-6">
@@ -86,8 +60,7 @@ export default function SharedProjectPage() {
 
       <div className="max-w-7xl mx-auto px-4 py-6">
         <ResultsVisualization
-          projectId={data.project.id}
-          results={workflowResults}
+          projectDetail={data}
           isProcessing={false}
           viewMode={viewMode}
           onViewModeChange={setViewMode}

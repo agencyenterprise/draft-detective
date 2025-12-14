@@ -13,6 +13,9 @@ export function PublicationDateLabel({ results, prefix, suffix }: PublicationDat
   const userInformedPublicationDate = results
     ?.map((result) => {
       const state = result.state;
+      if (!state) {
+        return undefined;
+      }
       // Check if state has config with document_publication_date
       if ('config' in state && state.config && 'document_publication_date' in state.config) {
         const config = state.config as LiveReportsState['config'] | LiteratureReviewState['config'];
@@ -26,6 +29,9 @@ export function PublicationDateLabel({ results, prefix, suffix }: PublicationDat
   const extractedPublicationDate = results
     ?.map((result) => {
       const state = result.state;
+      if (!state) {
+        return undefined;
+      }
       if ('main_document_summary' in state && state.main_document_summary?.publication_date) {
         return state.main_document_summary.publication_date;
       }
