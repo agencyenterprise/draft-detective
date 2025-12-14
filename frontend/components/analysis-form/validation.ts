@@ -8,10 +8,6 @@ export function validateAnalysisForm(
 ): FormValidationError<AnalysisFormValues> {
   const errors: GlobalFormValidationError<AnalysisFormValues> = { fields: {}, form: undefined };
 
-  if (!value.reviewType) {
-    errors.fields.reviewType = 'Review type is required';
-  }
-
   if (!value.mainDocument) {
     errors.fields.mainDocument = 'Main document is required';
   } else {

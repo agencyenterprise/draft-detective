@@ -7,7 +7,6 @@ export interface AnalysisFormData {
 }
 
 export interface AnalysisFormValues {
-  reviewType: string;
   domain: string;
   targetAudience: string;
   webSearchConsent: boolean;

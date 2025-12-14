@@ -4,10 +4,8 @@ import { useSessionStorage } from '@/lib/hooks/use-session-storage';
 import { useForm } from '@tanstack/react-form';
 import { Loader2, Play } from 'lucide-react';
 import { Button } from '../ui/button';
-import { CheckboxWithDescription } from '../ui/checkbox-with-description';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
-import { RadioGroup, RadioGroupItemWithDescription } from '../ui/radio-group-with-description';
 import { AnalysisFormData, AnalysisFormValues } from './types';
 import { UploadSection } from './upload-section';
 import { validateAnalysisForm } from './validation';
@@ -23,7 +21,6 @@ export function AnalysisForm({ onSubmit, isPending = false }: AnalysisFormProps)
 
   const form = useForm({
     defaultValues: {
-      reviewType: 'peer-review',
       domain: '',
       targetAudience: '',
       webSearchConsent: false,
@@ -66,39 +63,6 @@ export function AnalysisForm({ onSubmit, isPending = false }: AnalysisFormProps)
         form.handleSubmit();
       }}
     >
-      <div className="space-y-4">
-        <div className="space-y-1">
-          <h2 className="text-xl font-semibold">
-            Review Type <span className="text-destructive">*</span>
-          </h2>
-          <p className="text-sm text-muted-foreground">Select the type of review to perform</p>
-        </div>
-        <form.Field name="reviewType">
-          {(field) => (
-            <RadioGroup
-              value={field.state.value}
-              onValueChange={(value) => field.handleChange(value)}
-              disabled={isPending}
-              required={true}
-              className="grid grid-cols-1 gap-3"
-            >
-              <div className="space-y-2">
-                <RadioGroupItemWithDescription
-                  id="peer-review"
-                  value="peer-review"
-                  label="Peer Review"
-                  description="Peer review analysis focusing on claim substantiation, evidence quality, and citation completeness."
-                  disabled={isPending}
-                />
-              </div>
-              {!field.state.meta.isValid && (
-                <p className="text-sm text-destructive">{field.state.meta.errors.join(', ')}</p>
-              )}
-            </RadioGroup>
-          )}
-        </form.Field>
-      </div>
-
       <div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <form.Field name="mainDocument">
