@@ -72,7 +72,7 @@ async def get_workflow_run(workflow_run_id: str, user: User = None) -> WorkflowR
 
 async def get_workflow_run_state(
     workflow_run_id: str, user: User = None
-) -> WorkflowState:
+) -> WorkflowState | None:
     run = await get_workflow_run(workflow_run_id, user)
     return await get_workflow_run_state_by_thread_id(run.langgraph_thread_id, run.type)
 

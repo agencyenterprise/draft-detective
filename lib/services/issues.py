@@ -60,7 +60,7 @@ def _convert_state_to_issues(
         case WorkflowRunType.REFERENCE_VALIDATION:
             return convert_reference_validation_state_issues(state, claim_state)
         case WorkflowRunType.CITATION_SUGGESTER:
-            return convert_citation_suggester_state_issues(state, claim_state)
+            return convert_citation_suggester_state_issues(state)
         case _:
             return []
 
@@ -280,7 +280,6 @@ def convert_reference_validation_state_issues(
 
 def convert_citation_suggester_state_issues(
     state: CitationSuggesterState,
-    claim_state: Optional[ClaimSubstantiatorState] = None,
 ) -> List[DocumentIssue]:
     """Convert CitationSuggesterState to issues."""
 
