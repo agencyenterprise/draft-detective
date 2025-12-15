@@ -9,6 +9,7 @@ import logging
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 
 from api.routers import (
     analysis,
@@ -37,6 +38,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Gzip middleware
+app.add_middleware(GZipMiddleware)
 
 # Register routers
 app.include_router(health.router)
