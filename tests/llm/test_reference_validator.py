@@ -3,12 +3,12 @@ from pathlib import Path
 import pytest
 
 from lib.agents.reference_validator import (
-    BibliographyValidationResponse,
+    BibliographyItemValidation,
     ReferenceValidatorAgent,
 )
 from lib.models.agent_test_case import AgentTestCase
-from tests.datasets.loader import load_dataset
 from tests.conftest import create_test_context
+from tests.datasets.loader import load_dataset
 
 TESTS_DIR = Path(__file__).parent.parent
 
@@ -27,9 +27,9 @@ def _build_cases() -> list[AgentTestCase]:
             AgentTestCase(
                 name=test_case.name,
                 agent=ReferenceValidatorAgent(create_test_context()),
-                response_model=BibliographyValidationResponse,
+                response_model=BibliographyItemValidation,
                 prompt_kwargs={
-                    "references": test_case.input.get("references", []),
+                    "reference": test_case.input.get("reference", ""),
                 },
                 expected_dict=test_case.expected_output,
                 strict_fields=test_config.strict_fields,

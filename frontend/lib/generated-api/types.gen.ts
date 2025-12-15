@@ -109,9 +109,11 @@ export type BibliographyItem = {
  */
 export type BibliographyItemValidation = {
   /**
+   * Original Reference
+   *
    * Original bibliographic item text.
    */
-  original_reference: BibliographyItem;
+  original_reference: string;
   /**
    * Valid Reference
    *
@@ -136,6 +138,18 @@ export type BibliographyItemValidation = {
    * Found URL for the reference.
    */
   url: string;
+  /**
+   * Reasoning
+   *
+   * Step-by-step reasoning describing your approach to validate the reference.
+   */
+  reasoning?: string;
+  /**
+   * Updated Reference
+   *
+   * Updated reference with the suggested changes made to make the reference valid, matching the format of the original reference. If the reference is already valid, return null.
+   */
+  updated_reference?: string | null;
 };
 
 /**
