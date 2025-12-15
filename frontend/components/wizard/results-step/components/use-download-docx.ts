@@ -8,7 +8,7 @@ interface UseDownloadDocxOptions {
   shareToken?: string | null;
 }
 
-async function downloadDocxFile(projectId: string, shareToken?: string | null): Promise<void> {
+export async function downloadDocxFile(projectId: string, shareToken?: string | null): Promise<void> {
   const response = await downloadProjectDocxApiProjectsProjectIdDocxDownloadGet({
     path: { project_id: projectId },
     query: shareToken ? { share_token: shareToken } : undefined,

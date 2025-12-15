@@ -47,7 +47,7 @@ export function useShareStatus(projectId: string) {
     setIsDialogOpen,
     isEnabling: enableMutation.isPending,
     isDisabling: disableMutation.isPending,
-    enable: () => enableMutation.mutate(),
+    enable: () => enableMutation.mutateAsync(),
     disable: () => disableMutation.mutate(),
   };
 }
