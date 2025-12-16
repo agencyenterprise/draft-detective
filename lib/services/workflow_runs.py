@@ -12,7 +12,8 @@ from lib.models.project import Project
 from lib.models.user import User
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus, WorkflowRunType
 from lib.workflows.claim_substantiation.checkpointer import get_checkpointer
-from lib.workflows.registry import WorkflowState, create_graph, get_state_type
+from lib.workflows.registry import create_graph, get_state_type
+from lib.workflows.types import WorkflowState
 
 logger = logging.getLogger(__name__)
 
