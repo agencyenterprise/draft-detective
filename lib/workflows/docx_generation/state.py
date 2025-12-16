@@ -20,6 +20,11 @@ class DocxGenerationWorkflowConfig(BaseWorkflowConfig):
         description="Optional share token to include share links in comments",
     )
 
+    @classmethod
+    def requires_api_key(cls) -> bool:
+        """DOCX generation doesn't use LLMs, only manipulates existing data."""
+        return False
+
 
 class DocxGenerationState(BaseWorkflowState):
     """State for DOCX generation workflow."""
