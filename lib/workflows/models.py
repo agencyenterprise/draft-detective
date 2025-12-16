@@ -42,6 +42,7 @@ class WorkflowRunType(str, Enum):
     METHODOLOGICAL_ALIGNMENT = "methodological_alignment"
     REFERENCE_DOWNLOADER = "reference_downloader"
     DOCX_GENERATION = "docx_generation"
+    RESULTS_EXTRACTION = "results_extraction"
 
 
 INTERNAL_WORKFLOW_TYPES = {
