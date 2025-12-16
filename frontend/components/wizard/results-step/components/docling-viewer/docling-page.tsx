@@ -4,6 +4,7 @@ import { Loader2 } from 'lucide-react';
 import type { DoclingPageInfo, DoclingRegion } from '@/lib/generated-api';
 import { RegionOverlay } from './region-overlay';
 import { getNextChunkIndex, type RegionWithChunks } from './utils';
+import { useShare } from '@/context/share-context';
 
 interface DoclingPageProps {
   page: DoclingPageInfo;
@@ -25,7 +26,10 @@ export function DoclingPage({
   onChunkSelect,
 }: DoclingPageProps) {
   const [isLoading, setIsLoading] = useState(true);
-  const imageUrl = `${pageImagesBaseUrl}/${pageNum}`;
+  const { shareToken } = useShare();
+  const imageUrl = shareToken
+    ? `${pageImagesBaseUrl}/${pageNum}?share_token=${encodeURIComponent(shareToken)}`
+    : `${pageImagesBaseUrl}/${pageNum}`;
   const width = page.width;
   const height = page.height;
   const isFirstPage = pageNum === 0 || pageNum === 1;
