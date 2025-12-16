@@ -1,6 +1,9 @@
 import asyncio
 import logging
 import os
+from typing import Any, List, Tuple
+
+from lib.workflows.models import WorkflowError
 
 logger = logging.getLogger(__name__)
 
@@ -9,7 +12,9 @@ logger = logging.getLogger(__name__)
 MAX_CONCURRENT_TASKS = int(os.getenv("MAX_CONCURRENT_TASKS", "15"))
 
 
-async def run_tasks(tasks, desc="Processing tasks", max_concurrent=None):
+async def run_tasks(
+    tasks, desc="Processing tasks", max_concurrent=None
+) -> Tuple[List[Any | None], List[Exception | None]]:
     """
     Run tasks with concurrency limit to avoid overwhelming systems.
 
@@ -87,3 +92,19 @@ async def call_maybe_async(func, *args, **kwargs):
         return await func(*args, **kwargs)
     else:
         return func(*args, **kwargs)
+
+
+def convert_exceptions_to_workflow_errors(
+    task_name: str, exceptions: List[Exception | None]
+) -> List[WorkflowError]:
+    errors: List[WorkflowError] = []
+    for chunk_index, exception in enumerate(exceptions):
+        if exception is not None:
+            errors.append(
+                WorkflowError(
+                    task_name=task_name,
+                    error=str(exception),
+                    chunk_index=chunk_index,
+                )
+            )
+    return errors

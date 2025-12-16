@@ -16,6 +16,7 @@ import { CheckboxWithDescription } from '../ui/checkbox-with-description';
 interface WorkflowConfigDialogProps {
   isOpen: boolean;
   webSearchConsent?: boolean;
+  publicationDate?: boolean;
   onConfirm: (values: WorkflowConfigFormValues) => void;
   onCancel: () => void;
 }
@@ -23,11 +24,13 @@ interface WorkflowConfigDialogProps {
 export interface WorkflowConfigFormValues {
   openaiApiKey: string;
   webSearchConsent: boolean;
+  publicationDate: string;
 }
 
 export function WorkflowConfigDialog({
   isOpen,
   webSearchConsent = false,
+  publicationDate = false,
   onConfirm,
   onCancel,
 }: WorkflowConfigDialogProps) {
@@ -38,6 +41,7 @@ export function WorkflowConfigDialog({
     defaultValues: {
       openaiApiKey: openaiApiKey,
       webSearchConsent: false,
+      publicationDate: '',
     } as WorkflowConfigFormValues,
     validators: {
       onChange: ({ value }) => {
@@ -47,6 +51,9 @@ export function WorkflowConfigDialog({
         }
         if (webSearchConsent && !value.webSearchConsent) {
           errors.fields.webSearchConsent = 'Web search consent is required';
+        }
+        if (publicationDate && (!value.publicationDate || value.publicationDate.trim() === '')) {
+          errors.fields.publicationDate = 'Document publication date is required';
         }
         return errors;
       },
@@ -64,7 +71,7 @@ export function WorkflowConfigDialog({
           <DialogDescription>Please select the workflow configuration to start.</DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6">
+        <div className="space-y-4">
           {!hideOpenaiApiKeyInput && (
             <form.Field
               name="openaiApiKey"
@@ -97,24 +104,49 @@ export function WorkflowConfigDialog({
             </form.Field>
           )}
 
-          <form.Field name="webSearchConsent">
-            {(field) => (
-              <div>
-                <div className="bg-yellow-50 border border-yellow-400 rounded-lg">
-                  <CheckboxWithDescription
-                    id="web-search-consent"
-                    checked={field.state.value}
-                    onCheckedChange={(checked) => field.handleChange(checked === true)}
-                    label="I consent to perform web search using parts or the whole document for this workflow"
-                    description={`Web search is required to perform this workflow. Parts of the document will be used to perform web search, so we don't recommend using confidential information. Don't proceed if you don't consent to perform web search.`}
+          {publicationDate && (
+            <form.Field name="publicationDate">
+              {(field) => (
+                <div className="space-y-2">
+                  <Label htmlFor="publication-date" required>
+                    Document Publication Date
+                  </Label>
+                  <Input
+                    id="publication-date"
+                    type="date"
+                    value={field.state.value}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    error={!field.state.meta.isValid}
+                    required={true}
                   />
+                  {!field.state.meta.isValid && (
+                    <p className="text-sm text-destructive">{field.state.meta.errors.join(', ')}</p>
+                  )}
                 </div>
-                {!field.state.meta.isValid && (
-                  <p className="text-sm text-destructive mt-1 pl-6">{field.state.meta.errors.join(', ')}</p>
-                )}
-              </div>
-            )}
-          </form.Field>
+              )}
+            </form.Field>
+          )}
+
+          {webSearchConsent && (
+            <form.Field name="webSearchConsent">
+              {(field) => (
+                <div>
+                  <div className="bg-yellow-50 border border-yellow-400 rounded-lg">
+                    <CheckboxWithDescription
+                      id="web-search-consent"
+                      checked={field.state.value}
+                      onCheckedChange={(checked) => field.handleChange(checked === true)}
+                      label="I consent to perform web search using parts or the whole document for this workflow"
+                      description={`Web search is required to perform this workflow. Parts of the document will be used to perform web search, so we don't recommend using confidential information. Don't proceed if you don't consent to perform web search.`}
+                    />
+                  </div>
+                  {!field.state.meta.isValid && (
+                    <p className="text-sm text-destructive mt-1 pl-6">{field.state.meta.errors.join(', ')}</p>
+                  )}
+                </div>
+              )}
+            </form.Field>
+          )}
         </div>
 
         <form.Subscribe selector={(state) => [state.canSubmit, state.isSubmitting]}>
@@ -124,7 +156,7 @@ export function WorkflowConfigDialog({
                 Cancel
               </Button>
               <Button onClick={() => form.handleSubmit()} disabled={!canSubmit || isSubmitting}>
-                {isSubmitting ? 'Re-analyzing...' : 'Run Re-analysis'}
+                {isSubmitting ? 'Starting...' : 'Start Workflow'}
               </Button>
             </DialogFooter>
           )}

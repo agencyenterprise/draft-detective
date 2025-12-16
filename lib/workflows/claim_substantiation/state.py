@@ -1,13 +1,9 @@
-from datetime import date
 from enum import StrEnum
-from operator import add
 from typing import Annotated, Dict, List, Literal, Optional, Union
 
 from pydantic import BaseModel, Field
 
-from lib.agents.addendum_report_generator import ReportOutput
 from lib.agents.citation_detector import CitationResponse
-from lib.agents.citation_suggester import CitationSuggestionResultWithClaimIndex
 from lib.agents.claim_categorizer import ClaimCategorizationResponseWithClaimIndex
 from lib.agents.claim_extractor import ClaimResponse
 from lib.agents.claim_needs_substantiation_checker import (
@@ -15,22 +11,13 @@ from lib.agents.claim_needs_substantiation_checker import (
 )
 from lib.agents.claim_verifier import ClaimSubstantiationResultWithClaimIndex
 from lib.agents.document_summarizer import DocumentSummary
-from lib.agents.evidence_weighter import EvidenceWeighterResponseWithClaimIndex
 from lib.agents.inference_validator import InferenceValidationResponseWithClaimIndex
-from lib.agents.literature_review import LiteratureReviewResponse
-from lib.agents.methodology_comparator import MethodologyComparisonResponse
 from lib.agents.models import ChunkWithIndex, ClaimCategory
 from lib.agents.reference_extractor import BibliographyItem
-from lib.agents.reference_validator import BibliographyItemValidation
 from lib.agents.toulmin_claim_extractor import ToulminClaimResponse
 from lib.services.docling_models import ChunkToItems
 from lib.services.file import FileDocument
-from lib.workflows.models import (
-    BaseWorkflowConfig,
-    BaseWorkflowState,
-    WorkflowError,
-    WorkflowRunType,
-)
+from lib.workflows.models import BaseWorkflowConfig, BaseWorkflowState, WorkflowRunType
 
 
 class SubstantiationWorkflowConfig(BaseWorkflowConfig):
@@ -42,25 +29,9 @@ class SubstantiationWorkflowConfig(BaseWorkflowConfig):
     use_toulmin: bool = Field(
         default=False, description="Whether to use Toulmin claim detection approach"
     )
-    run_literature_review: bool = Field(
-        default=False, description="Whether to run the literature review"
-    )
-    run_suggest_citations: bool = Field(
-        default=False, description="Whether to run the citation suggestions"
-    )
     use_rag: bool = Field(
         default=True,
         description="Use RAG for claim verification",
-    )
-    run_live_reports: bool = Field(
-        default=False, description="Whether to run the live reports analysis"
-    )
-    run_reference_validation: bool = Field(
-        default=False, description="Whether to validate references using web search"
-    )
-    document_publication_date: Optional[date] = Field(
-        default=None,
-        description="Publication date (YYYY-MM-DD) of the document for literature review and live reports",
     )
     target_chunk_indices: Optional[List[int]] = Field(
         default=None,
@@ -80,19 +51,6 @@ class SubstantiationWorkflowConfig(BaseWorkflowConfig):
     )
 
 
-class DocumentChunkSummary(ChunkWithIndex):
-    """Summary chunk info without detailed analysis (for API responses)"""
-
-    has_claims: bool = Field(default=False, description="Whether this chunk has claims")
-    claims_count: int = Field(default=0, description="Number of claims in this chunk")
-    has_citations: bool = Field(
-        default=False, description="Whether this chunk has citations"
-    )
-    citations_count: int = Field(
-        default=0, description="Number of citations in this chunk"
-    )
-
-
 class DocumentChunk(ChunkWithIndex):
     """Independent chunk response object with all processing results"""
 
@@ -101,24 +59,7 @@ class DocumentChunk(ChunkWithIndex):
     claim_categories: List[ClaimCategorizationResponseWithClaimIndex] = []
     claim_common_knowledge_results: List[ClaimCommonKnowledgeResultWithClaimIndex] = []
     substantiations: List[ClaimSubstantiationResultWithClaimIndex] = []
-    citation_suggestions: List[CitationSuggestionResultWithClaimIndex] = []
-    live_reports_analysis: List[EvidenceWeighterResponseWithClaimIndex] = []
     inference_validations: List[InferenceValidationResponseWithClaimIndex] = []
-
-    def to_summary(self) -> DocumentChunkSummary:
-        """Convert full chunk to lightweight summary"""
-        claims_list = self.claims.claims if self.claims else []
-        citations_list = self.citations.citations if self.citations else []
-
-        return DocumentChunkSummary(
-            content=self.content,
-            chunk_index=self.chunk_index,
-            paragraph_index=self.paragraph_index,
-            has_claims=len(claims_list) > 0,
-            claims_count=len(claims_list),
-            has_citations=len(citations_list) > 0,
-            citations_count=len(citations_list),
-        )
 
 
 def conciliate_chunks(
@@ -235,7 +176,6 @@ class ClaimSubstantiatorState(BaseWorkflowState):
 
     # Outputs
     references: List[BibliographyItem] = []
-    references_validated: List[BibliographyItemValidation] = []
     chunks: Annotated[List[DocumentChunk], conciliate_chunks] = []
     main_document_summary: Optional[DocumentSummary] = Field(
         default=None, description="The summary of the main document"
@@ -243,21 +183,6 @@ class ClaimSubstantiatorState(BaseWorkflowState):
     supporting_documents_summaries: Optional[Dict[int, DocumentSummary]] = Field(
         default=None,
         description="Dictionary mapping supporting file indices to their summaries",
-    )
-    live_reports_analysis: List[EvidenceWeighterResponseWithClaimIndex] = Field(
-        default_factory=list, description="Live reports analysis results by chunk index"
-    )
-    literature_review: Optional[LiteratureReviewResponse] = None
-    methodology_comparison: Optional[MethodologyComparisonResponse] = Field(
-        default=None,
-        description="Methodology comparison result comparing the paper's methodology to field standards",
-    )
-    addendum_report: Optional[ReportOutput] = Field(
-        default=None, description="Report output from the addendum report generator"
-    )
-    ranked_issues: List[DocumentIssue] = Field(
-        default_factory=list,
-        description="Ranked list of document issues with severity levels",
     )
     chunk_to_items: Optional[ChunkToItems] = Field(
         default=None,
@@ -272,36 +197,6 @@ class ClaimSubstantiatorState(BaseWorkflowState):
     def get_paragraph(self, paragraph_index: int) -> str:
         paragraph_chunks = self.get_paragraph_chunks(paragraph_index)
         return "\n".join([chunk.content for chunk in paragraph_chunks])
-
-
-class ClaimSubstantiatorStateSummary(BaseWorkflowState):
-    """Summary version of ClaimSubstantiatorState with chunk summaries instead of full chunks"""
-
-    type: Literal[WorkflowRunType.CLAIM_SUBSTANTIATION] = Field(
-        WorkflowRunType.CLAIM_SUBSTANTIATION
-    )
-
-    # Inputs
-    file: FileDocument
-    supporting_files: Optional[List[FileDocument]] = None
-    config: SubstantiationWorkflowConfig
-
-    # Outputs - using lightweight chunks
-    references: List[BibliographyItem] = []
-    references_validated: List[BibliographyItemValidation] = []
-    chunks: List[DocumentChunkSummary] = Field(
-        default_factory=list,
-        description="Lightweight chunk summaries without detailed analysis",
-    )
-    errors: List[WorkflowError] = []
-    main_document_summary: Optional[DocumentSummary] = None
-    supporting_documents_summaries: Optional[Dict[int, DocumentSummary]] = None
-    live_reports_analysis: List[EvidenceWeighterResponseWithClaimIndex] = []
-    literature_review: Optional[LiteratureReviewResponse] = None
-    methodology_comparison: Optional[MethodologyComparisonResponse] = None
-    addendum_report: Optional[ReportOutput] = None
-    ranked_issues: List[DocumentIssue] = []
-    chunk_to_items: Optional[ChunkToItems] = None
 
 
 class RerunAnalysisRequest(BaseModel):

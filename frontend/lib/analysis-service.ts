@@ -1,6 +1,6 @@
 import {
   ChunkEvalPackageRequest,
-  ClaimSubstantiatorStateSummary,
+  ClaimSubstantiatorStateOutput,
   EvalPackageRequest,
   generateChunkEvalPackageApiGenerateChunkEvalPackagePost,
   generateEvalPackageApiGenerateEvalPackagePost,
@@ -45,17 +45,8 @@ class AnalysisService {
 
         // Add config parameters
         if (config.use_toulmin !== undefined) formData.append('use_toulmin', String(config.use_toulmin));
-        if (config.run_literature_review !== undefined)
-          formData.append('run_literature_review', String(config.run_literature_review));
-        if (config.run_suggest_citations !== undefined)
-          formData.append('run_suggest_citations', String(config.run_suggest_citations));
-        if (config.run_live_reports !== undefined) formData.append('run_live_reports', String(config.run_live_reports));
-        if (config.run_reference_validation !== undefined)
-          formData.append('run_reference_validation', String(config.run_reference_validation));
         if (config.domain) formData.append('domain', config.domain);
         if (config.target_audience) formData.append('target_audience', config.target_audience);
-        if (config.document_publication_date)
-          formData.append('document_publication_date', config.document_publication_date.toISOString().split('T')[0]);
         if (config.session_id) formData.append('session_id', config.session_id);
         if (config.openai_api_key) formData.append('openai_api_key', config.openai_api_key);
 
@@ -108,7 +99,7 @@ class AnalysisService {
   }
 
   async generateEvalPackage(
-    results: ClaimSubstantiatorStateSummary,
+    results: ClaimSubstantiatorStateOutput,
     testName?: string,
     description?: string,
   ): Promise<Blob> {
@@ -137,7 +128,7 @@ class AnalysisService {
   }
 
   async generateChunkEvalPackage(
-    results: ClaimSubstantiatorStateSummary,
+    results: ClaimSubstantiatorStateOutput,
     chunkIndex: number,
     selectedAgents: string[],
     testName?: string,

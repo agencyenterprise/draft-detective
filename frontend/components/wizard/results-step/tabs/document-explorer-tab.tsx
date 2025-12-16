@@ -4,7 +4,7 @@ import { AiGeneratedLabel } from '@/components/ai-generated-label';
 import { Card, CardContent } from '@/components/ui/card';
 import { useChunkHashNavigation } from '@/lib/chunk-ids';
 import { DocRenderMode } from '@/lib/constants';
-import { ClaimSubstantiatorStateSummary, DocumentIssue } from '@/lib/generated-api';
+import { DocumentIssue, WorkflowRunDetail, WorkflowRunType } from '@/lib/generated-api';
 import { Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -13,11 +13,12 @@ import { DoclingViewer } from '../components/docling-viewer';
 import { DocumentIssuesList } from '../components/document-issues-list';
 import { DocumentReconstructor } from '../components/document-reconstructor';
 import { ErrorsCard } from '../components/errors-card';
-import { WorkflowRunDetailTyped } from '@/lib/workflow-state';
+import { getWorkflowRunByType } from '@/lib/workflow-state';
 
 interface DocumentExplorerTabProps {
   projectId: string;
-  workflowDetail: WorkflowRunDetailTyped<ClaimSubstantiatorStateSummary> | undefined;
+  allWorkflowDetails: WorkflowRunDetail[];
+  issues: DocumentIssue[];
   isProcessing?: boolean;
   viewMode: DocRenderMode;
   readOnly?: boolean;
@@ -25,12 +26,18 @@ interface DocumentExplorerTabProps {
 
 export function DocumentExplorerTab({
   projectId,
-  workflowDetail,
+  allWorkflowDetails,
+  issues,
   isProcessing = false,
   viewMode,
   readOnly = false,
 }: DocumentExplorerTabProps) {
-  const results = workflowDetail?.state;
+  const claimSubstantiatorDetail = useMemo(
+    () => getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.ClaimSubstantiation),
+    [allWorkflowDetails],
+  );
+
+  const results = claimSubstantiatorDetail?.state;
   const [selectedChunkIndex, setSelectedChunkIndex] = useState<number | null>(null);
   const sidebarRef = useRef<HTMLDivElement>(null);
 
@@ -55,10 +62,9 @@ export function DocumentExplorerTab({
   const pages = results.file?.docling_pages ?? [];
   const chunkToItems = results.chunk_to_items?.mapping ?? {};
 
-  const pageImagesBaseUrl = `/api/images/${workflowDetail?.run.id}`;
+  const pageImagesBaseUrl = `/api/images/${claimSubstantiatorDetail?.run.id}`;
 
   const errors = results.errors || [];
-  const issues = results.ranked_issues || [];
   const workflowErrors = errors.filter((error) => error.chunk_index === null || error.chunk_index === undefined);
   const hasChunks = (results.chunks?.length || 0) > 0;
 
@@ -119,6 +125,7 @@ export function DocumentExplorerTab({
               return (
                 <DocumentReconstructor
                   results={results}
+                  issues={issues}
                   selectedChunkIndex={selectedChunkIndex}
                   onChunkSelect={handleChunkSelect}
                 />
@@ -167,13 +174,12 @@ export function DocumentExplorerTab({
 
             {selectedChunk && selectedChunkIndex !== null && (
               <ChunkSidebarContent
-                results={results}
                 chunkIndex={selectedChunkIndex}
                 projectId={projectId}
-                workflowRunId={workflowDetail?.run.id}
                 isWorkflowRunning={isProcessing}
-                onSelectIssue={handleSelectIssue}
                 onClearChunkSelection={() => setSelectedChunkIndex(null)}
+                allWorkflowDetails={allWorkflowDetails}
+                issues={issues}
                 readOnly={readOnly}
               />
             )}

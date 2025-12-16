@@ -33,9 +33,6 @@ import type {
   GenerateEvalPackageApiGenerateEvalPackagePostData,
   GenerateEvalPackageApiGenerateEvalPackagePostErrors,
   GenerateEvalPackageApiGenerateEvalPackagePostResponses,
-  GetChunkDetailsEndpointApiWorkflowRunWorkflowRunIdChunkChunkIndexGetData,
-  GetChunkDetailsEndpointApiWorkflowRunWorkflowRunIdChunkChunkIndexGetErrors,
-  GetChunkDetailsEndpointApiWorkflowRunWorkflowRunIdChunkChunkIndexGetResponses,
   GetFeedbackApiFeedbackGetData,
   GetFeedbackApiFeedbackGetErrors,
   GetFeedbackApiFeedbackGetResponses,
@@ -304,27 +301,6 @@ export const getWorkflowStateApiWorkflowsWorkflowRunIdGet = <ThrowOnError extend
     responseStyle: 'data',
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/workflows/{workflow_run_id}',
-    ...options,
-  });
-
-/**
- * Get Chunk Details Endpoint
- *
- * Get detailed analysis for a specific chunk (lazy loading)
- */
-export const getChunkDetailsEndpointApiWorkflowRunWorkflowRunIdChunkChunkIndexGet = <
-  ThrowOnError extends boolean = true,
->(
-  options: Options<GetChunkDetailsEndpointApiWorkflowRunWorkflowRunIdChunkChunkIndexGetData, ThrowOnError>,
-) =>
-  (options.client ?? client).get<
-    GetChunkDetailsEndpointApiWorkflowRunWorkflowRunIdChunkChunkIndexGetResponses,
-    GetChunkDetailsEndpointApiWorkflowRunWorkflowRunIdChunkChunkIndexGetErrors,
-    ThrowOnError,
-    'data'
-  >({
-    responseStyle: 'data',
-    url: '/api/workflow-run/{workflow_run_id}/chunk/{chunk_index}',
     ...options,
   });
 

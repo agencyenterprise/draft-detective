@@ -8,10 +8,6 @@ export function validateAnalysisForm(
 ): FormValidationError<AnalysisFormValues> {
   const errors: GlobalFormValidationError<AnalysisFormValues> = { fields: {}, form: undefined };
 
-  if (!value.reviewType) {
-    errors.fields.reviewType = 'Review type is required';
-  }
-
   if (!value.mainDocument) {
     errors.fields.mainDocument = 'Main document is required';
   } else {
@@ -32,19 +28,6 @@ export function validateAnalysisForm(
 
   if (!hideOpenaiApiKeyInput && (!value.openaiApiKey || value.openaiApiKey.trim() === '')) {
     errors.fields.openaiApiKey = 'OpenAI API Key is required';
-  }
-
-  if (value.runLiteratureReview || value.reviewType === 'live-reports') {
-    if (!value.documentPublicationDate) {
-      errors.fields.documentPublicationDate = 'Document publication date is required';
-    }
-  }
-
-  if (value.runLiteratureReview || value.reviewType === 'live-reports' || value.runReferenceValidation) {
-    if (!value.webSearchConsent) {
-      errors.fields.webSearchConsent =
-        'Web search consent is required when using literature review, live reports or reference validation';
-    }
   }
 
   return errors;

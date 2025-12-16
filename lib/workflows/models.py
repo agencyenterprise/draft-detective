@@ -52,13 +52,13 @@ class WorkflowRunType(str, Enum):
     METHODOLOGICAL_ALIGNMENT = "methodological_alignment"
     REFERENCE_DOWNLOADER = "reference_downloader"
     DOCX_GENERATION = "docx_generation"
-
-
-INTERNAL_WORKFLOW_TYPES = {
-    WorkflowRunType.DOCX_GENERATION,
-}
+    LITERATURE_REVIEW = "literature_review"
+    LIVE_REPORTS = "live_reports"
+    REFERENCE_VALIDATION = "reference_validation"
+    CITATION_SUGGESTER = "citation_suggester"
 
 
 def is_user_visible_workflow(workflow_type: WorkflowRunType) -> bool:
     """Check if a workflow type should be visible to users."""
-    return workflow_type not in INTERNAL_WORKFLOW_TYPES
+
+    return workflow_type not in [WorkflowRunType.DOCX_GENERATION]

@@ -7,13 +7,8 @@ export interface AnalysisFormData {
 }
 
 export interface AnalysisFormValues {
-  reviewType: string;
   domain: string;
   targetAudience: string;
-  documentPublicationDate: string;
-  runLiteratureReview: boolean;
-  runSuggestCitations: boolean;
-  runReferenceValidation: boolean;
   webSearchConsent: boolean;
   openaiApiKey: string;
   mainDocument: File | null;

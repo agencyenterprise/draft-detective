@@ -1,15 +1,12 @@
 """Prepare comments and mapping inputs for DOCX generation."""
 
-from typing import Dict, List, Optional
+from typing import Dict
 
 from langgraph.runtime import Runtime
 
 from lib.services.docx.manipulator import issue_to_comment
 from lib.services.share_links import get_resource_by_token
-from lib.workflows.claim_substantiation.state import (
-    ClaimSubstantiatorState,
-    DocumentIssue,
-)
+from lib.workflows.claim_substantiation.state import ClaimSubstantiatorState
 from lib.workflows.context import ContextSchema
 from lib.workflows.docx_generation.state import DocxGenerationState
 from lib.workflows.models import WorkflowRunType
@@ -24,7 +21,9 @@ async def prepare_docx_inputs(
     """
     claim_run_id = state.config.claim_substantiation_run_id
 
+    from lib.services.issues import convert_to_issues
     from lib.services.workflow_runs import (
+        get_project_workflow_runs,
         get_workflow_run,
         get_workflow_run_state_by_thread_id,
     )
@@ -34,7 +33,8 @@ async def prepare_docx_inputs(
         raise ValueError("Provided workflow run is not a claim substantiation run")
 
     claim_state: ClaimSubstantiatorState = await get_workflow_run_state_by_thread_id(
-        claim_run.langgraph_thread_id, WorkflowRunType.CLAIM_SUBSTANTIATION, summary=False
+        claim_run.langgraph_thread_id,
+        WorkflowRunType.CLAIM_SUBSTANTIATION,
     )
 
     if (
@@ -52,7 +52,9 @@ async def prepare_docx_inputs(
         c.chunk_index: c.content for c in claim_state.chunks
     }
 
-    issues: List[DocumentIssue] = claim_state.ranked_issues or []
+    workflow_runs = await get_project_workflow_runs(state.config.project_id)
+    workflow_states = [run.state for run in workflow_runs if run.state is not None]
+    issues = convert_to_issues(workflow_states)
 
     comments = [
         c

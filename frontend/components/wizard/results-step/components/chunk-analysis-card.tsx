@@ -4,7 +4,7 @@ import { LabeledValue } from '@/components/labeled-value';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { getChunkId } from '@/lib/chunk-ids';
-import { ClaimSubstantiatorStateSummary, DocumentChunkOutput } from '@/lib/generated-api';
+import { ClaimSubstantiatorStateOutput, DocumentChunkOutput, DocumentIssue } from '@/lib/generated-api';
 import { getChunkIssues, getMaxSeverity } from '@/lib/severity';
 import { ChevronDownIcon, ChevronRightIcon, LinkIcon, MessageCirclePlus } from 'lucide-react';
 import Link from 'next/link';
@@ -14,16 +14,17 @@ import { DocumentIssueCardMinimal } from './document-issue-card';
 import { ExpandableResultSection } from './expandable-result-section';
 
 export interface ChunkAnalysisCardProps {
-  results: ClaimSubstantiatorStateSummary;
+  results: ClaimSubstantiatorStateOutput;
   chunk: DocumentChunkOutput;
+  issues: DocumentIssue[];
 }
 
-export function ChunkAnalysisCard({ results, chunk }: ChunkAnalysisCardProps) {
+export function ChunkAnalysisCard({ results, chunk, issues }: ChunkAnalysisCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const references = results?.references || [];
   const supportingFiles = results?.supporting_files || [];
   const citationsWithBibliography = chunk.citations?.citations?.filter((citation) => citation.associated_bibliography);
-  const chunkIssues = getChunkIssues(results, chunk.chunk_index);
+  const chunkIssues = getChunkIssues(issues, chunk.chunk_index);
   const maxSeverity = getMaxSeverity(chunkIssues);
 
   return (
