@@ -34,10 +34,17 @@ from lib.workflows.reference_downloader.state import (
     ReferenceDownloaderWorkflowConfig,
 )
 
+from lib.workflows.results_extraction.graph import build_results_extraction_graph
+from lib.workflows.results_extraction.state import (
+    ResultsExtractionState,
+    ResultsExtractionWorkflowConfig,
+)
+
 WorkflowState = (
     ClaimSubstantiatorState
     | ClaimSubstantiatorStateSummary
     | MethodologicalAlignmentState
+    | ResultsExtractionState
     | ReferenceDownloaderState
     | DocxGenerationState
 )
@@ -46,6 +53,7 @@ WorkflowConfig = (
     SubstantiationWorkflowConfig
     | MethodologicalAlignmentWorkflowConfig
     | ReferenceDownloaderWorkflowConfig
+    | ResultsExtractionWorkflowConfig
 )
 
 WorkflowStateType = TypeVar("WorkflowStateType", bound=BaseWorkflowState)
@@ -61,6 +69,8 @@ def create_graph(type: WorkflowRunType) -> StateGraph:
             return build_reference_downloader_graph()
         case WorkflowRunType.DOCX_GENERATION:
             return build_docx_generation_graph()
+        case WorkflowRunType.RESULTS_EXTRACTION:
+            return build_results_extraction_graph()
         case _:
             raise ValueError(f"Unknown workflow type: {type}")
 
@@ -75,6 +85,8 @@ def get_config_type(type: WorkflowRunType) -> Type[BaseWorkflowConfig]:
             return ReferenceDownloaderWorkflowConfig
         case WorkflowRunType.DOCX_GENERATION:
             return DocxGenerationWorkflowConfig
+        case WorkflowRunType.RESULTS_EXTRACTION:
+            return ResultsExtractionWorkflowConfig
         case _:
             raise ValueError(f"Unknown workflow type: {type}")
 
@@ -93,6 +105,8 @@ def get_state_type(
             return ReferenceDownloaderState
         case WorkflowRunType.DOCX_GENERATION:
             return DocxGenerationState
+        case WorkflowRunType.RESULTS_EXTRACTION:
+            return ResultsExtractionState
         case _:
             raise ValueError(f"Unknown workflow type: {type}")
 
@@ -137,6 +151,8 @@ async def create_state(config: BaseWorkflowConfig) -> WorkflowStateType:
             return ReferenceDownloaderState(config=config)
         case WorkflowRunType.DOCX_GENERATION:
             return DocxGenerationState(config=config)
+        case WorkflowRunType.RESULTS_EXTRACTION:
+            return ResultsExtractionState(config=config)
         case _:
             raise ValueError(f"Unknown workflow type: {config.type}")
 
