@@ -1,3 +1,4 @@
+import logging
 from typing import List, Optional, Set
 
 from lib.agents.citation_suggester import RecommendedAction
@@ -20,6 +21,9 @@ from lib.workflows.reference_validation.state import ReferenceValidationState
 from lib.workflows.registry import WorkflowState
 
 
+logger = logging.getLogger(__name__)
+
+
 def convert_to_issues(results: List[WorkflowState]) -> List[DocumentIssue]:
     """Convert workflow results to issues, dispatching to appropriate converter for each state type."""
     all_issues: List[DocumentIssue] = []
@@ -32,8 +36,12 @@ def convert_to_issues(results: List[WorkflowState]) -> List[DocumentIssue]:
             break
 
     for result in results:
-        issues = _convert_state_to_issues(result, claim_state)
-        all_issues.extend(issues)
+        try:
+            issues = _convert_state_to_issues(result, claim_state)
+            all_issues.extend(issues)
+        except Exception as e:
+            logger.error(f"Error converting state to issues: {e}", exc_info=True)
+            continue
 
     # Sort all issues by severity
     all_issues.sort(key=lambda x: x.severity.sort_index(), reverse=True)
@@ -264,12 +272,12 @@ def convert_reference_validation_state_issues(
             chunk_index: Optional[int] = None
             if claim_state:
                 chunk_index = _find_chunk_index_by_text(
-                    claim_state, validation.original_reference.text
+                    claim_state, validation.original_reference
                 )
 
             issue = DocumentIssue(
                 title="Invalid reference",
-                description=f'Possible invalid reference: "{validation.original_reference.text}"',
+                description=f'Possible invalid reference: "{validation.original_reference}"',
                 severity=SeverityEnum.HIGH,
                 chunk_index=chunk_index,
             )

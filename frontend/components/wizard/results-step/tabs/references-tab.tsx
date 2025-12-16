@@ -93,6 +93,9 @@ function ReferenceItem({ reference, validation, supportingFiles }: ReferenceItem
             <h3 className="text-base font-medium">Reference validation details</h3>
           </div>
 
+          <LabeledValue label="Updated Reference">
+            <p>{validation.updated_reference || <span className="text-muted-foreground">No proposed changes</span>}</p>
+          </LabeledValue>
           <LabeledValue label="Suggested Action">{validation.suggested_action}</LabeledValue>
           <LabeledValue label="URL">
             <a
@@ -104,6 +107,7 @@ function ReferenceItem({ reference, validation, supportingFiles }: ReferenceItem
               {validation.url}
             </a>
           </LabeledValue>
+          <LabeledValue label="Reasoning">{validation.reasoning}</LabeledValue>
           {validation.bibliography_field_validations && validation.bibliography_field_validations.length > 0 && (
             <div>
               <h4 className="font-medium mb-2">Field Validations</h4>
@@ -177,8 +181,8 @@ export function ReferencesTab({
 
     const map = new Map<string, BibliographyItemValidation>();
     referenceValidationResults.reference_validations.forEach((validation) => {
-      if (validation.original_reference?.text) {
-        map.set(validation.original_reference.text, validation);
+      if (validation.original_reference) {
+        map.set(validation.original_reference, validation);
       }
     });
     return map;
