@@ -15,7 +15,8 @@ import { WorkflowRunDetail, WorkflowRunType } from '@/lib/generated-api';
 import { getWorkflowRunByType } from '@/lib/workflow-state';
 import { Download, EllipsisVerticalIcon, FileTextIcon, Link, RefreshCcwIcon } from 'lucide-react';
 import { useState } from 'react';
-import { useDownloadDocx } from './use-download-docx';
+import { useDownloadDocx, downloadDocxFile } from './use-download-docx';
+import { toast } from 'sonner';
 
 export interface AnalysisOptionsMenuProps {
   onSaveAsEvalTest: () => void;
@@ -46,12 +47,24 @@ export function AnalysisOptionsMenu({ onSaveAsEvalTest, onReevaluate, projectId,
   const handleMakePublicAndDownload = async () => {
     setIsEnablingForDownload(true);
     setIsWarningDialogOpen(false);
+
+    const toastId = toast.loading('Preparing DOCX with share links...', {
+      description: 'This may take a few moments',
+    });
+
     try {
-      // Enable sharing first, then download
-      await share.enable();
-      // Give it a moment for the state to update
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      download(true);
+      const shareResponse = await share.enable();
+      const freshToken = shareResponse?.share_link?.token;
+
+      if (!freshToken) {
+        throw new Error('Failed to create share token');
+      }
+
+      await downloadDocxFile(projectId, freshToken);
+      toast.success('DOCX file downloaded successfully', { id: toastId });
+    } catch (error) {
+      console.error('Failed to enable sharing and download:', error);
+      toast.error('Failed to download DOCX file', { id: toastId });
     } finally {
       setIsEnablingForDownload(false);
     }

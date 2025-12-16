@@ -2,6 +2,7 @@
 
 import { TabType } from '@/components/wizard/results-step/constants';
 import { ResultsVisualization } from '@/components/wizard/results-step/results-visualization';
+import { ShareProvider } from '@/context/share-context';
 import { DocRenderMode } from '@/lib/constants';
 import { getSharedResourceApiPublicShareTokenGet } from '@/lib/generated-api';
 import { useQuery } from '@tanstack/react-query';
@@ -45,30 +46,32 @@ export default function SharedProjectPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="bg-white border-b shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-xl font-bold text-gray-900">{data.project.title}</h1>
-              <p className="text-sm text-muted-foreground">Shared analysis • Read-only view</p>
+    <ShareProvider token={token}>
+      <div className="min-h-screen bg-gray-50">
+        <div className="bg-white border-b shadow-sm">
+          <div className="max-w-7xl mx-auto px-4 py-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-xl font-bold text-gray-900">{data.project.title}</h1>
+                <p className="text-sm text-muted-foreground">Shared analysis • Read-only view</p>
+              </div>
+              <div className="text-xs text-muted-foreground bg-gray-100 px-3 py-1 rounded-full">AI Reviewer</div>
             </div>
-            <div className="text-xs text-muted-foreground bg-gray-100 px-3 py-1 rounded-full">AI Reviewer</div>
           </div>
         </div>
-      </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-6">
-        <ResultsVisualization
-          projectDetail={data}
-          isProcessing={false}
-          viewMode={viewMode}
-          onViewModeChange={setViewMode}
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-          readOnly
-        />
+        <div className="max-w-7xl mx-auto px-4 py-6">
+          <ResultsVisualization
+            projectDetail={data}
+            isProcessing={false}
+            viewMode={viewMode}
+            onViewModeChange={setViewMode}
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            readOnly
+          />
+        </div>
       </div>
-    </div>
+    </ShareProvider>
   );
 }

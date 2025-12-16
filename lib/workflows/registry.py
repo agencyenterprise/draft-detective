@@ -146,18 +146,32 @@ def create_context(
     workflow_run_id: str | None = None,
     user: User | None = None,
 ) -> ContextSchema:
+    """
+    Create workflow context.
+
+    Each workflow declares whether it requires an API key via requires_api_key().
+    Workflows that don't use LLMs (data manipulation only) can return False.
+    """
     openai_api_key = (
         config.openai_api_key
         or env_config.OPENAI_API_KEY
         or env_config.AZURE_OPENAI_API_KEY
     )
 
-    if not openai_api_key:
+    # Check if workflow requires API key (defined by the workflow config itself)
+    if not openai_api_key and config.requires_api_key():
         raise ValueError("No OpenAI API key found in config or environment variables")
+
+    # Only initialize vector store if we have an API key (needed for embeddings)
+    vector_store = (
+        VectorStoreService(env_config.DATABASE_URL, openai_api_key)
+        if openai_api_key
+        else None
+    )
 
     return ContextSchema(
         openai_api_key=openai_api_key,
-        vector_store=VectorStoreService(env_config.DATABASE_URL, openai_api_key),
+        vector_store=vector_store,
         user_id=str(user.id) if user else None,
         project_id=config.project_id,
         workflow_run_id=workflow_run_id,

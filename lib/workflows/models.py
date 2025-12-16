@@ -36,6 +36,16 @@ class BaseWorkflowConfig(BaseModel):
         description="The OpenAI API key to use for this workflow execution",
     )
 
+    @classmethod
+    def requires_api_key(cls) -> bool:
+        """
+        Whether this workflow requires an OpenAI API key.
+
+        Defaults to True for safety. Workflows that don't use LLMs
+        (e.g., data manipulation only) should override this to return False.
+        """
+        return True
+
 
 class WorkflowRunType(str, Enum):
     CLAIM_SUBSTANTIATION = "claim_substantiation"
