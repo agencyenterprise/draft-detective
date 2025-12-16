@@ -9,7 +9,10 @@ from datetime import datetime
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from lib.services.projects import ProjectDetailed, get_user_project_detailed
+from lib.services.projects import (
+    ProjectDetailed,
+    get_shared_project_detailed,
+)
 from lib.services.share_links import get_resource_by_token
 
 router = APIRouter(prefix="/api/public", tags=["public"])
@@ -46,4 +49,4 @@ async def get_shared_resource(token: str):
     if share_link.resource_type != "project":
         raise HTTPException(status_code=400, detail="Unsupported resource type")
 
-    return await get_user_project_detailed(share_link.resource_id, user=None)
+    return await get_shared_project_detailed(share_link.resource_id)

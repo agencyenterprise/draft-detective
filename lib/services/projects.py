@@ -13,6 +13,7 @@ from lib.models.user import User
 from lib.models.workflow_run import WorkflowRun
 from lib.services.files import delete_project_files
 from lib.services.issues import convert_to_issues
+from lib.services.share_links import is_project_shared
 from lib.services.workflow_runs import WorkflowRunDetail, get_project_workflow_runs
 from lib.workflows.claim_substantiation.checkpointer import get_checkpointer
 from lib.workflows.claim_substantiation.state import DocumentIssue
@@ -87,19 +88,16 @@ async def get_user_projects(user: User) -> List[ProjectListItem]:
         ]
 
 
-async def get_user_project_detailed(
-    project_id: str, user: User | None
-) -> ProjectDetailed:
+async def _get_project_by_id(project_id: str) -> Project | None:
     with get_db() as db:
         project = db.query(Project).filter(Project.id == project_id).first()
 
-    if project is None:
-        raise HTTPException(status_code=404, detail="Project not found")
+    return project
 
-    if user is not None and project.user_id != user.id:
-        raise HTTPException(status_code=403, detail="Access denied")
 
+async def _get_project_detailed_from_project(project: Project) -> ProjectDetailed:
     workflow_runs = await get_project_workflow_runs(project.id)
+
     # We must filter out internal workflows
     visible_workflow_runs = [
         item for item in workflow_runs if is_user_visible_workflow(item.run.type)
@@ -110,6 +108,57 @@ async def get_user_project_detailed(
         workflow_runs=visible_workflow_runs,
         issues=convert_to_issues(states),
     )
+
+
+async def get_shared_project_detailed(project_id: str) -> ProjectDetailed:
+    """
+    Get a project detailed for a shared project.
+
+    Args:
+        project_id: The ID of the project
+
+    Returns:
+        The project detailed
+
+    Raises:
+        HTTPException: 404 if project not found, 403 if project is not shared
+    """
+
+    project = await _get_project_by_id(project_id)
+
+    if project is None:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    if not await is_project_shared(project_id):
+        raise HTTPException(status_code=403, detail="Project is not shared")
+
+    return await _get_project_detailed_from_project(project)
+
+
+async def get_user_project_detailed(project_id: str, user: User) -> ProjectDetailed:
+    """
+    Get a project detailed for a user.
+
+    Args:
+        project_id: The ID of the project
+        user: The user
+
+    Returns:
+        The project detailed
+
+    Raises:
+        HTTPException: 404 if project not found, 403 if user does not have access
+    """
+
+    project = await _get_project_by_id(project_id)
+
+    if project is None:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    if project.user_id != user.id:
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    return await _get_project_detailed_from_project(project)
 
 
 async def get_user_project_files(project_id: str, user: User) -> List[File]:
