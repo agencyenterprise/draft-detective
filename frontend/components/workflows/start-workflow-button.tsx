@@ -37,20 +37,11 @@ export function StartWorkflowButton({ type, projectId, workflow, onConfirm }: St
     },
   });
 
-  const publicationDate = type === WorkflowRunType.LiteratureReview || type === WorkflowRunType.LiveReports;
-  const webSearchConsent =
-    type === WorkflowRunType.LiteratureReview ||
-    type === WorkflowRunType.MethodologicalAlignment ||
-    type === WorkflowRunType.ReferenceDownloader ||
-    type === WorkflowRunType.LiveReports ||
-    type === WorkflowRunType.ReferenceValidation;
-
   return (
     <>
       <WorkflowConfigDialog
         isOpen={isConfigDialogOpen}
-        webSearchConsent={webSearchConsent}
-        publicationDate={publicationDate}
+        type={type}
         onConfirm={(values) => startWorkflowMutation.mutate(values)}
         onCancel={() => setIsConfigDialogOpen(false)}
       />
