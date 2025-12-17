@@ -53,14 +53,19 @@ def register_all_workflow_manifests():
     from lib.workflows.reference_downloader.manifest import ReferenceDownloaderManifest
     from lib.workflows.reference_validation.manifest import ReferenceValidationManifest
 
-    register_workflow_manifest(ClaimSubstantiationManifest())
-    register_workflow_manifest(CitationSuggesterManifest())
-    register_workflow_manifest(DocxGenerationManifest())
-    register_workflow_manifest(LiteratureReviewManifest())
-    register_workflow_manifest(LiveReportsManifest())
-    register_workflow_manifest(MethodologicalAlignmentManifest())
-    register_workflow_manifest(ReferenceDownloaderManifest())
-    register_workflow_manifest(ReferenceValidationManifest())
+    manifests = [
+        ClaimSubstantiationManifest(),
+        CitationSuggesterManifest(),
+        DocxGenerationManifest(),
+        LiteratureReviewManifest(),
+        LiveReportsManifest(),
+        MethodologicalAlignmentManifest(),
+        ReferenceDownloaderManifest(),
+        ReferenceValidationManifest(),
+    ]
+
+    for manifest in manifests:
+        register_workflow_manifest(manifest)
 
 
 register_all_workflow_manifests()
