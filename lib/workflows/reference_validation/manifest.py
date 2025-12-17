@@ -2,7 +2,7 @@ from typing import List, Optional, Type
 
 from langgraph.graph import StateGraph
 
-from lib.workflows.claim_substantiation.manifest import _find_chunk_index_by_text
+from lib.workflows.claim_substantiation.issue_converter import _find_chunk_index_by_text
 from lib.workflows.claim_substantiation.state import (
     ClaimSubstantiatorState,
     DocumentIssue,
