@@ -52,6 +52,7 @@ def register_all_workflow_manifests():
     )
     from lib.workflows.reference_downloader.manifest import ReferenceDownloaderManifest
     from lib.workflows.reference_validation.manifest import ReferenceValidationManifest
+    from lib.workflows.results_extraction.manifest import ResultsExtractionManifest
 
     manifests = [
         ClaimSubstantiationManifest(),
@@ -62,6 +63,7 @@ def register_all_workflow_manifests():
         MethodologicalAlignmentManifest(),
         ReferenceDownloaderManifest(),
         ReferenceValidationManifest(),
+        ResultsExtractionManifest(),
     ]
 
     for manifest in manifests:
