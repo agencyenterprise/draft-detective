@@ -13,6 +13,7 @@ from lib.config.env import config
 from lib.models.share_link import ShareLink
 from lib.models.user import User
 from lib.models.workflow_run import WorkflowRun
+from lib.services.authorization import has_access_to_workflow_run
 from lib.services.projects import create_project
 from lib.services.workflow_runs import (
     WorkflowRunDetail,
@@ -129,11 +130,10 @@ async def get_page_image(
     if page_num < 0:
         raise HTTPException(status_code=400, detail="Invalid page number")
 
-    if current_user:
-        state = await get_workflow_run_state(workflow_run_id, user=current_user)
-    else:
-        _check_share_access(workflow_run_id)
-        state = await get_workflow_run_state(workflow_run_id, user=None)
+    if not has_access_to_workflow_run(current_user, workflow_run_id):
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    state = await get_workflow_run_state(workflow_run_id, user=None)
 
     if not hasattr(state, "file"):
         raise HTTPException(status_code=404, detail="Workflow state not found")

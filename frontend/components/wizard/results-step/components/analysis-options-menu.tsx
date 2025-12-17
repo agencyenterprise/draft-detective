@@ -23,9 +23,16 @@ export interface AnalysisOptionsMenuProps {
   onReevaluate: () => void;
   projectId: string;
   results: WorkflowRunDetail[];
+  readOnly: boolean;
 }
 
-export function AnalysisOptionsMenu({ onSaveAsEvalTest, onReevaluate, projectId, results }: AnalysisOptionsMenuProps) {
+export function AnalysisOptionsMenu({
+  onSaveAsEvalTest,
+  onReevaluate,
+  projectId,
+  results,
+  readOnly,
+}: AnalysisOptionsMenuProps) {
   const share = useShareStatus(projectId);
   const [isWarningDialogOpen, setIsWarningDialogOpen] = useState(false);
   const [isEnablingForDownload, setIsEnablingForDownload] = useState(false);
@@ -78,7 +85,7 @@ export function AnalysisOptionsMenu({ onSaveAsEvalTest, onReevaluate, projectId,
   return (
     <>
       <div className="flex items-center gap-2">
-        <ShareStatusBadge isEnabled={share.isEnabled} onClick={() => share.setIsDialogOpen(true)} />
+        {!readOnly && <ShareStatusBadge isEnabled={share.isEnabled} onClick={() => share.setIsDialogOpen(true)} />}
 
         <DropdownMenu>
           <Tooltip>
@@ -97,9 +104,11 @@ export function AnalysisOptionsMenu({ onSaveAsEvalTest, onReevaluate, projectId,
               Save as eval test
             </MenuItemWithTooltip>
 
-            <MenuItemWithTooltip icon={RefreshCcwIcon} onClick={onReevaluate} tooltip="Re-run with different config">
-              Re-run analysis
-            </MenuItemWithTooltip>
+            {!readOnly && (
+              <MenuItemWithTooltip icon={RefreshCcwIcon} onClick={onReevaluate} tooltip="Re-run with different config">
+                Re-run analysis
+              </MenuItemWithTooltip>
+            )}
 
             {hasDocx && (
               <MenuItemWithTooltip
@@ -112,15 +121,19 @@ export function AnalysisOptionsMenu({ onSaveAsEvalTest, onReevaluate, projectId,
               </MenuItemWithTooltip>
             )}
 
-            <DropdownMenuSeparator />
+            {!readOnly && (
+              <>
+                <DropdownMenuSeparator />
 
-            <MenuItemWithTooltip
-              icon={Link}
-              onClick={() => share.setIsDialogOpen(true)}
-              tooltip={share.isEnabled ? 'View or copy the share link' : 'Create a public link'}
-            >
-              {share.isEnabled ? 'Manage share link' : 'Share this analysis'}
-            </MenuItemWithTooltip>
+                <MenuItemWithTooltip
+                  icon={Link}
+                  onClick={() => share.setIsDialogOpen(true)}
+                  tooltip={share.isEnabled ? 'View or copy the share link' : 'Create a public link'}
+                >
+                  {share.isEnabled ? 'Manage share link' : 'Share this analysis'}
+                </MenuItemWithTooltip>
+              </>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
