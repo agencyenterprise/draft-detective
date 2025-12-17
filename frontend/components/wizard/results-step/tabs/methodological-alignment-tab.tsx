@@ -46,7 +46,7 @@ export function MethodologicalAlignmentTab({ results, projectId, readOnly = fals
     <div>
       <TabWithLoadingStates
         title="Methodological Alignment"
-        data={results?.state.methodology_comparison}
+        data={results?.state?.methodology_comparison}
         isProcessing={results?.run.status === WorkflowRunStatus.Running}
         hasData={(comparison) => !!comparison}
         loadingMessage={{

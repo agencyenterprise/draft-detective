@@ -22,7 +22,7 @@ from lib.services.workflow_runs import (
     get_workflow_run_state_by_thread_id,
 )
 from lib.workflows.models import WorkflowRunType
-from lib.workflows.registry import WorkflowConfig
+from lib.workflows.types import WorkflowConfig
 
 router = APIRouter(tags=["workflows"])
 

@@ -12,11 +12,12 @@ import { Label } from '@/components/ui/label';
 import { useSessionStorage } from '@/lib/hooks/use-session-storage';
 import { GlobalFormValidationError, useForm } from '@tanstack/react-form';
 import { CheckboxWithDescription } from '../ui/checkbox-with-description';
+import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
+import { WorkflowRunType } from '@/lib/generated-api';
 
 interface WorkflowConfigDialogProps {
   isOpen: boolean;
-  webSearchConsent?: boolean;
-  publicationDate?: boolean;
+  type: WorkflowRunType;
   onConfirm: (values: WorkflowConfigFormValues) => void;
   onCancel: () => void;
 }
@@ -25,23 +26,24 @@ export interface WorkflowConfigFormValues {
   openaiApiKey: string;
   webSearchConsent: boolean;
   publicationDate: string;
+  workflowTypes: WorkflowRunType[];
 }
 
-export function WorkflowConfigDialog({
-  isOpen,
-  webSearchConsent = false,
-  publicationDate = false,
-  onConfirm,
-  onCancel,
-}: WorkflowConfigDialogProps) {
+export function WorkflowConfigDialog({ isOpen, type, onConfirm, onCancel }: WorkflowConfigDialogProps) {
   const [openaiApiKey, setOpenaiApiKey] = useSessionStorage<string>('openai-api-key', '');
   const hideOpenaiApiKeyInput = process.env.NEXT_PUBLIC_HIDE_CUSTOM_OPENAI_API_KEY_INPUT === 'true';
+
+  const { data: workflowTypes } = useWorkflowTypes();
+
+  const webSearchConsent = workflowTypes?.find((workflowType) => workflowType.type === type)?.needs_web_search;
+  const publicationDate = type === WorkflowRunType.LiteratureReview || type === WorkflowRunType.LiveReports;
 
   const form = useForm({
     defaultValues: {
       openaiApiKey: openaiApiKey,
       webSearchConsent: false,
       publicationDate: '',
+      workflowTypes: [],
     } as WorkflowConfigFormValues,
     validators: {
       onChange: ({ value }) => {

@@ -2963,6 +2963,25 @@ export const WorkflowRunType = {
 export type WorkflowRunType = (typeof WorkflowRunType)[keyof typeof WorkflowRunType];
 
 /**
+ * WorkflowTypeDescription
+ */
+export type WorkflowTypeDescription = {
+  type: WorkflowRunType;
+  /**
+   * Name
+   */
+  name: string;
+  /**
+   * Description
+   */
+  description: string;
+  /**
+   * Needs Web Search
+   */
+  needs_web_search: boolean;
+};
+
+/**
  * CitationSuggesterState
  *
  * State for the citation suggester workflow.
@@ -3490,6 +3509,25 @@ export type GetPageImageApiWorkflowRunsWorkflowRunIdPagesPageNumGetResponses = {
    */
   200: unknown;
 };
+
+export type GetWorkflowTypesApiWorkflowTypesGetData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/api/workflow-types';
+};
+
+export type GetWorkflowTypesApiWorkflowTypesGetResponses = {
+  /**
+   * Response Get Workflow Types Api Workflow Types Get
+   *
+   * Successful Response
+   */
+  200: Array<WorkflowTypeDescription>;
+};
+
+export type GetWorkflowTypesApiWorkflowTypesGetResponse =
+  GetWorkflowTypesApiWorkflowTypesGetResponses[keyof GetWorkflowTypesApiWorkflowTypesGetResponses];
 
 export type DownloadFileApiFilesDownloadFileIdGetData = {
   body?: never;

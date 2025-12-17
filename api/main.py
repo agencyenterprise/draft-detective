@@ -21,6 +21,7 @@ from api.routers import (
     public,
     share,
     workflows,
+    workflow_types,
 )
 from lib.config.logger import setup_logger
 
@@ -47,6 +48,7 @@ app.include_router(health.router)
 app.include_router(analysis.router)
 app.include_router(evaluation.router)
 app.include_router(workflows.router)
+app.include_router(workflow_types.router)
 app.include_router(files.router)
 app.include_router(feedback.router)
 app.include_router(projects.router)
