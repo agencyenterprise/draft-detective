@@ -41,7 +41,7 @@ class WorkflowManifest[WorkflowStateType, WorkflowConfigType](ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    def create_initial_state(
+    async def create_initial_state(
         self, config: WorkflowConfigType, existing_states: List[WorkflowState]
     ) -> WorkflowStateType:
         """Create and return the initial state of the workflow."""
