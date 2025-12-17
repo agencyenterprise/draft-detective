@@ -179,14 +179,13 @@ export function ResultsVisualization({
               isDoclingAvailable={isDoclingAvailable}
             />
           )}
-          {!readOnly && (
-            <AnalysisOptionsMenu
-              onSaveAsEvalTest={handleSaveAsEvalTest}
-              onReevaluate={() => setIsReevaluationDialogOpen(true)}
-              projectId={projectId}
-              results={results}
-            />
-          )}
+          <AnalysisOptionsMenu
+            onSaveAsEvalTest={handleSaveAsEvalTest}
+            onReevaluate={() => setIsReevaluationDialogOpen(true)}
+            projectId={projectId}
+            results={results}
+            readOnly={readOnly}
+          />
         </div>
       </div>
 
