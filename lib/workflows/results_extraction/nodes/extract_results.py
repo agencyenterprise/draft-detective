@@ -26,4 +26,4 @@ async def extract_results(
     response = await results_extractor_agent.ainvoke({"document": markdown})
 
     logger.info(f"Extracted {len(response.result_sections)} result sections")
-    return {"results": ResultsListResponse(**response.model_dump())}
+    return {"results": response}
