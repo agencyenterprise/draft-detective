@@ -129,32 +129,6 @@ export function WorkflowConfigDialog({ isOpen, type, onConfirm, onCancel }: Work
             </form.Field>
           )}
 
-          {/* <div className="space-y-2">
-            <h2 className="text-base font-medium">Analyses types</h2>
-            <form.Field name="workflowTypes">
-              {(field) => (
-                <div className="space-y-2">
-                  {workflowTypes?.map((workflowType) => (
-                    <CheckboxWithDescription
-                      key={workflowType.type}
-                      id={workflowType.type}
-                      checked={field.state.value.includes(workflowType.type)}
-                      onCheckedChange={(checked) =>
-                        field.handleChange(
-                          checked
-                            ? [...field.state.value, workflowType.type]
-                            : field.state.value.filter((id) => id !== workflowType.type),
-                        )
-                      }
-                      label={workflowType.name}
-                      description={workflowType.description}
-                    />
-                  ))}
-                </div>
-              )}
-            </form.Field>
-          </div> */}
-
           {webSearchConsent && (
             <form.Field name="webSearchConsent">
               {(field) => (
