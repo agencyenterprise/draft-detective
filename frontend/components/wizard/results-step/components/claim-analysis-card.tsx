@@ -4,10 +4,19 @@ import { ClaimFeedback } from '@/components/claim-feedback';
 import { LabeledValue } from '@/components/labeled-value';
 import { Button } from '@/components/ui/button';
 import { getClaimId } from '@/lib/chunk-ids';
-import { Claim, ClaimSubstantiatorStateSummary, DocumentChunkOutput, ToulminClaim } from '@/lib/generated-api';
+import {
+  Claim,
+  ClaimSubstantiatorStateOutput,
+  DocumentChunkOutput,
+  DocumentIssue,
+  ToulminClaim,
+  WorkflowRunDetail,
+  WorkflowRunType,
+} from '@/lib/generated-api';
 import { getClaimIssues, getMaxSeverity } from '@/lib/severity';
+import { getWorkflowRunByType } from '@/lib/workflow-state';
 import { ChevronDownIcon, ChevronRightIcon } from 'lucide-react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { AnalysisResultCard } from './analysis-result-card';
 import { ClaimArgumentAnalysis } from './claim-argument-analysis';
 import { ClaimCategoryResults } from './claim-category-results';
@@ -19,27 +28,40 @@ import { DocumentIssueCardMinimal } from './document-issue-card';
 import { SubstantiationResults } from './substantiation-results';
 
 export interface ClaimAnalysisCardProps {
-  results: ClaimSubstantiatorStateSummary;
+  results: ClaimSubstantiatorStateOutput;
   claim: Claim | ToulminClaim;
   chunkDetails: DocumentChunkOutput | undefined | null;
   claimIndex: number;
   totalClaims: number;
   chunkIndex: number;
   workflowRunId: string;
+  allWorkflowDetails: WorkflowRunDetail[];
+  issues: DocumentIssue[];
   readOnly?: boolean;
 }
 
 export function ClaimAnalysisCard({
-  results,
   claim,
   chunkDetails,
   claimIndex,
   totalClaims,
   chunkIndex,
   workflowRunId,
+  allWorkflowDetails,
+  issues,
   readOnly = false,
 }: ClaimAnalysisCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+
+  // Extract specific workflow states from all workflow details
+  const citationSuggesterDetail = useMemo(
+    () => getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.CitationSuggester),
+    [allWorkflowDetails],
+  );
+  const liveReportsDetail = useMemo(
+    () => getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.LiveReports),
+    [allWorkflowDetails],
+  );
 
   if (!chunkDetails) {
     return null;
@@ -48,13 +70,17 @@ export function ClaimAnalysisCard({
   const claimCategory = chunkDetails.claim_categories?.find((c) => c.claim_index === claimIndex);
   const commonKnowledgeResult = chunkDetails.claim_common_knowledge_results?.find((c) => c.claim_index === claimIndex);
   const substantiation = chunkDetails.substantiations?.find((s) => s.claim_index === claimIndex);
-  const citationSuggestion = chunkDetails.citation_suggestions?.find((c) => c.claim_index === claimIndex);
-  const liveReportsAnalysis = chunkDetails.live_reports_analysis?.find((l) => l.claim_index === claimIndex);
+  const citationSuggestion = citationSuggesterDetail?.state.citation_suggestions?.find(
+    (c) => c.chunk_index === chunkIndex && c.claim_index === claimIndex,
+  );
+  const liveReportsAnalysis = liveReportsDetail?.state.live_reports_analysis?.find(
+    (l) => l.chunk_index === chunkIndex && l.claim_index === claimIndex,
+  );
   const inferenceValidation = chunkDetails.inference_validations?.find((i) => i.claim_index === claimIndex);
 
-  const supportingFiles = results.supporting_files ?? [];
-  const references = results.references ?? [];
-  const claimIssues = getClaimIssues(results, chunkIndex, claimIndex);
+  const supportingFiles = citationSuggesterDetail?.state.supporting_files ?? [];
+  const references = citationSuggesterDetail?.state.references ?? [];
+  const claimIssues = getClaimIssues(issues, chunkIndex, claimIndex);
   const maxSeverity = getMaxSeverity(claimIssues);
 
   return (

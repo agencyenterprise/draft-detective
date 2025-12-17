@@ -4,8 +4,8 @@ from langgraph.runtime import Runtime
 
 from lib.agents.literature_review import LiteratureReviewAgent
 from lib.workflows.context import ContextSchema
-from lib.workflows.claim_substantiation.state import ClaimSubstantiatorState
 from lib.workflows.decorators import register_node
+from lib.workflows.literature_review.state import LiteratureReviewState
 
 logger = logging.getLogger(__name__)
 
@@ -15,23 +15,18 @@ logger = logging.getLogger(__name__)
     "Review the literature for the document",
 )
 async def literature_review(
-    state: ClaimSubstantiatorState, runtime: Runtime[ContextSchema]
-) -> ClaimSubstantiatorState:
-
-    if not state.config.run_literature_review:
-        logger.info(
-            f"literature_review ({state.config.session_id}): skipping literature review (run_literature_review is False)"
-        )
-        return {}
-
+    state: LiteratureReviewState, runtime: Runtime[ContextSchema]
+) -> LiteratureReviewState:
     markdown = state.file.markdown
+    bibliography = state.references or []
+    document_publication_date = state.config.document_publication_date.isoformat()
 
     literature_review_agent = LiteratureReviewAgent(runtime.context)
     literature_review_response = await literature_review_agent.ainvoke(
         {
             "full_document": markdown,
-            "bibliography": state.references,
-            "document_publication_date": state.config.document_publication_date.isoformat(),
+            "bibliography": bibliography,
+            "document_publication_date": document_publication_date,
         }
     )
 

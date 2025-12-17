@@ -1,21 +1,48 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { ClaimSubstantiatorStateSummary } from '@/lib/generated-api';
+import { LiveReportsState, LiteratureReviewState, WorkflowRunDetail } from '@/lib/generated-api';
 import { format } from 'date-fns';
 
 export interface PublicationDateLabelProps {
-  results: ClaimSubstantiatorStateSummary | undefined | null;
+  results: WorkflowRunDetail[];
   prefix?: string;
   suffix?: string;
 }
 
 export function PublicationDateLabel({ results, prefix, suffix }: PublicationDateLabelProps) {
-  const userInformedPublicationDate = results?.config?.document_publication_date;
-  const extractedPublicationDate = results?.main_document_summary?.publication_date;
+  // Extract user-informed publication date from workflow config
+  const userInformedPublicationDate = results
+    ?.map((result) => {
+      const state = result.state;
+      if (!state) {
+        return undefined;
+      }
+      // Check if state has config with document_publication_date
+      if ('config' in state && state.config && 'document_publication_date' in state.config) {
+        const config = state.config as LiveReportsState['config'] | LiteratureReviewState['config'];
+        return config.document_publication_date;
+      }
+      return undefined;
+    })
+    .find((date) => date !== undefined);
+
+  // Extract publication date from main_document_summary as fallback
+  const extractedPublicationDate = results
+    ?.map((result) => {
+      const state = result.state;
+      if (!state) {
+        return undefined;
+      }
+      if ('main_document_summary' in state && state.main_document_summary?.publication_date) {
+        return state.main_document_summary.publication_date;
+      }
+      return undefined;
+    })
+    .find((date) => date !== undefined && date !== 'Unknown');
 
   const value = userInformedPublicationDate
-    ? { date: format(userInformedPublicationDate, 'MMM d, yyyy'), source: 'user-informed' }
+    ? { date: format(new Date(userInformedPublicationDate), 'MMM d, yyyy'), source: 'user-informed' as const }
     : extractedPublicationDate && extractedPublicationDate !== 'Unknown'
-      ? { date: extractedPublicationDate, source: 'extracted' }
+      ? { date: extractedPublicationDate, source: 'extracted' as const }
       : undefined;
 
   if (!value) {

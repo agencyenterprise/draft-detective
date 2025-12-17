@@ -26,15 +26,8 @@ export default function New() {
           supportingDocuments: data.supportingDocuments,
           config: {
             use_toulmin: false,
-            run_literature_review: data.config.runLiteratureReview,
-            run_suggest_citations: data.config.runSuggestCitations,
-            run_live_reports: data.config.runLiveReports,
-            run_reference_validation: data.config.runReferenceValidation,
             domain: data.config.domain || undefined,
             target_audience: data.config.targetAudience || undefined,
-            document_publication_date: data.config.documentPublicationDate
-              ? new Date(data.config.documentPublicationDate)
-              : undefined,
             session_id: undefined,
             openai_api_key: data.config.openaiApiKey,
           },

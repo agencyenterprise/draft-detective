@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogTrigger } from '@/components/ui/dialog';
 import {
-  ClaimSubstantiatorStateSummary,
+  ClaimSubstantiatorStateOutput,
   rerunAnalysisEndpointApiRerunAnalysisPost,
   RerunAnalysisRequest,
 } from '@/lib/generated-api';
@@ -12,7 +12,7 @@ import { ReevaluationDialogContent, ReevaluationFormValues } from './reevaluatio
 
 interface ChunkReevaluateControlProps {
   chunkIndex: number;
-  results: ClaimSubstantiatorStateSummary;
+  results: ClaimSubstantiatorStateOutput;
   projectId: string;
 }
 
@@ -29,9 +29,6 @@ export function ChunkReevaluateControl({ results, chunkIndex, projectId }: Chunk
       setIsDialogOpen(false);
 
       // Invalidate queries to show loading state
-      client.invalidateQueries({
-        queryKey: ['chunkDetails'],
-      });
       client.invalidateQueries({
         queryKey: ['project', variables.project_id],
       });

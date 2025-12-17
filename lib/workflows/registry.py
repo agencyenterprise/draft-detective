@@ -1,114 +1,89 @@
-from typing import Type, TypeVar
+import logging
+from typing import Dict, List, Type
 
-from fastapi import HTTPException
 from langgraph.graph import StateGraph
 
 from lib.config.env import config as env_config
 from lib.models.user import User
-from lib.models.workflow_run import WorkflowRun
-from lib.services.file import FileDocument
 from lib.services.vector_store import VectorStoreService
-from lib.workflows.claim_substantiation.graph import build_claim_substantiator_graph
-from lib.workflows.claim_substantiation.state import (
-    ClaimSubstantiatorState,
-    ClaimSubstantiatorStateSummary,
-    SubstantiationWorkflowConfig,
-)
 from lib.workflows.context import ContextSchema
-from lib.workflows.methodological_alignment.graph import (
-    build_methodological_alignment_graph,
-)
-from lib.workflows.methodological_alignment.state import (
-    MethodologicalAlignmentState,
-    MethodologicalAlignmentWorkflowConfig,
-)
+from lib.workflows.manifest import WorkflowManifest
 from lib.workflows.models import BaseWorkflowConfig, BaseWorkflowState, WorkflowRunType
-from lib.workflows.docx_generation.graph import build_docx_generation_graph
-from lib.workflows.docx_generation.state import (
-    DocxGenerationState,
-    DocxGenerationWorkflowConfig,
-)
-from lib.workflows.reference_downloader.graph import build_reference_downloader_graph
-from lib.workflows.reference_downloader.state import (
-    ReferenceDownloaderState,
-    ReferenceDownloaderWorkflowConfig,
-)
+from lib.workflows.types import WorkflowState
 
-from lib.workflows.results_extraction.graph import build_results_extraction_graph
-from lib.workflows.results_extraction.state import (
-    ResultsExtractionState,
-    ResultsExtractionWorkflowConfig,
-)
+logger = logging.getLogger(__name__)
 
-WorkflowState = (
-    ClaimSubstantiatorState
-    | ClaimSubstantiatorStateSummary
-    | MethodologicalAlignmentState
-    | ResultsExtractionState
-    | ReferenceDownloaderState
-    | DocxGenerationState
-)
 
-WorkflowConfig = (
-    SubstantiationWorkflowConfig
-    | MethodologicalAlignmentWorkflowConfig
-    | ReferenceDownloaderWorkflowConfig
-    | ResultsExtractionWorkflowConfig
-)
+_workflow_manifest_registry: Dict[WorkflowRunType, WorkflowManifest] = {}
 
-WorkflowStateType = TypeVar("WorkflowStateType", bound=BaseWorkflowState)
+
+def register_workflow_manifest(manifest: WorkflowManifest) -> None:
+    """
+    Register a workflow manifest.
+    """
+
+    if manifest.type in _workflow_manifest_registry:
+        raise ValueError(
+            f"Workflow manifest already registered for type: {manifest.type}"
+        )
+
+    _workflow_manifest_registry[manifest.type] = manifest
+
+
+def get_workflow_manifest(type: WorkflowRunType) -> WorkflowManifest:
+    """
+    Get a workflow manifest by type.
+    """
+
+    if type not in _workflow_manifest_registry:
+        raise ValueError(f"No workflow manifest registered for type: {type}")
+
+    return _workflow_manifest_registry[type]
+
+
+def register_all_workflow_manifests():
+    from lib.workflows.citation_suggester.manifest import CitationSuggesterManifest
+    from lib.workflows.claim_substantiation.manifest import ClaimSubstantiationManifest
+    from lib.workflows.docx_generation.manifest import DocxGenerationManifest
+    from lib.workflows.literature_review.manifest import LiteratureReviewManifest
+    from lib.workflows.live_reports.manifest import LiveReportsManifest
+    from lib.workflows.methodological_alignment.manifest import (
+        MethodologicalAlignmentManifest,
+    )
+    from lib.workflows.reference_downloader.manifest import ReferenceDownloaderManifest
+    from lib.workflows.reference_validation.manifest import ReferenceValidationManifest
+
+    manifests = [
+        ClaimSubstantiationManifest(),
+        CitationSuggesterManifest(),
+        DocxGenerationManifest(),
+        LiteratureReviewManifest(),
+        LiveReportsManifest(),
+        MethodologicalAlignmentManifest(),
+        ReferenceDownloaderManifest(),
+        ReferenceValidationManifest(),
+    ]
+
+    for manifest in manifests:
+        register_workflow_manifest(manifest)
+
+
+register_all_workflow_manifests()
 
 
 def create_graph(type: WorkflowRunType) -> StateGraph:
-    match type:
-        case WorkflowRunType.CLAIM_SUBSTANTIATION:
-            return build_claim_substantiator_graph()
-        case WorkflowRunType.METHODOLOGICAL_ALIGNMENT:
-            return build_methodological_alignment_graph()
-        case WorkflowRunType.REFERENCE_DOWNLOADER:
-            return build_reference_downloader_graph()
-        case WorkflowRunType.DOCX_GENERATION:
-            return build_docx_generation_graph()
-        case WorkflowRunType.RESULTS_EXTRACTION:
-            return build_results_extraction_graph()
-        case _:
-            raise ValueError(f"Unknown workflow type: {type}")
+    manifest = get_workflow_manifest(type)
+    return manifest.build_graph()
 
 
 def get_config_type(type: WorkflowRunType) -> Type[BaseWorkflowConfig]:
-    match type:
-        case WorkflowRunType.CLAIM_SUBSTANTIATION:
-            return SubstantiationWorkflowConfig
-        case WorkflowRunType.METHODOLOGICAL_ALIGNMENT:
-            return MethodologicalAlignmentWorkflowConfig
-        case WorkflowRunType.REFERENCE_DOWNLOADER:
-            return ReferenceDownloaderWorkflowConfig
-        case WorkflowRunType.DOCX_GENERATION:
-            return DocxGenerationWorkflowConfig
-        case WorkflowRunType.RESULTS_EXTRACTION:
-            return ResultsExtractionWorkflowConfig
-        case _:
-            raise ValueError(f"Unknown workflow type: {type}")
+    manifest = get_workflow_manifest(type)
+    return manifest.get_config_type()
 
 
-def get_state_type(
-    type: WorkflowRunType, summary: bool = False
-) -> Type[BaseWorkflowState]:
-    match type:
-        case WorkflowRunType.CLAIM_SUBSTANTIATION:
-            return (
-                ClaimSubstantiatorStateSummary if summary else ClaimSubstantiatorState
-            )
-        case WorkflowRunType.METHODOLOGICAL_ALIGNMENT:
-            return MethodologicalAlignmentState
-        case WorkflowRunType.REFERENCE_DOWNLOADER:
-            return ReferenceDownloaderState
-        case WorkflowRunType.DOCX_GENERATION:
-            return DocxGenerationState
-        case WorkflowRunType.RESULTS_EXTRACTION:
-            return ResultsExtractionState
-        case _:
-            raise ValueError(f"Unknown workflow type: {type}")
+def get_state_type(type: WorkflowRunType) -> Type[BaseWorkflowState]:
+    manifest = get_workflow_manifest(type)
+    return manifest.get_state_type()
 
 
 def create_context(
@@ -148,64 +123,15 @@ def create_context(
     )
 
 
-async def create_state(config: BaseWorkflowConfig) -> WorkflowStateType:
+async def create_state(config: BaseWorkflowConfig) -> WorkflowState:
     """
     Create initial state for a workflow from the config.
     """
+    from lib.services.workflow_runs import get_project_workflow_runs
 
-    match config.type:
-        case WorkflowRunType.CLAIM_SUBSTANTIATION:
-            raise ValueError(
-                f"Claim substantiation workflow should be temporarily started from its own specific endpoint"
-            )
-        case WorkflowRunType.METHODOLOGICAL_ALIGNMENT:
-            file = await _get_file_from_project(config.project_id)
-            return MethodologicalAlignmentState(file=file)
-        case WorkflowRunType.REFERENCE_DOWNLOADER:
-            return ReferenceDownloaderState(config=config)
-        case WorkflowRunType.DOCX_GENERATION:
-            return DocxGenerationState(config=config)
-        case WorkflowRunType.RESULTS_EXTRACTION:
-            return ResultsExtractionState(config=config)
-        case _:
-            raise ValueError(f"Unknown workflow type: {config.type}")
-
-
-async def _get_file_from_project(project_id: str) -> FileDocument:
-    """
-    Get the file from the CLAIM_SUBSTANTIATION workflow run for the project.
-
-    Args:
-        project_id: The project ID to get the file from
-
-    Returns:
-        The FileDocument from the CLAIM_SUBSTANTIATION workflow
-
-    Raises:
-        HTTPException: If no CLAIM_SUBSTANTIATION workflow run exists for the project
-    """
-
-    from lib.services.workflow_runs import (
-        get_project_workflow_run_by_type,
-        get_workflow_run_state,
-    )
-    from lib.workflows.models import WorkflowRunType
-
-    if not project_id:
-        raise ValueError("project_id is required to get file from project")
-
-    # Get the CLAIM_SUBSTANTIATION workflow run for this project
-    claim_workflow_run = await get_project_workflow_run_by_type(
-        project_id, WorkflowRunType.CLAIM_SUBSTANTIATION
-    )
-
-    if claim_workflow_run is None:
-        raise HTTPException(
-            status_code=404,
-            detail=f"No claim substantiation workflow found for project {project_id}. Please run claim substantiation workflow first.",
-        )
-
-    claim_state: ClaimSubstantiatorStateSummary = await get_workflow_run_state(
-        claim_workflow_run.id
-    )
-    return claim_state.file
+    workflow_runs = await get_project_workflow_runs(config.project_id)
+    existing_states: List[WorkflowState] = [
+        run.state for run in workflow_runs if run.state is not None
+    ]
+    manifest = get_workflow_manifest(config.type)
+    return await manifest.create_initial_state(config, existing_states)

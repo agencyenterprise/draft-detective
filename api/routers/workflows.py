@@ -17,14 +17,12 @@ from lib.services.authorization import has_access_to_workflow_run
 from lib.services.projects import create_project
 from lib.services.workflow_runs import (
     WorkflowRunDetail,
-    get_chunk_details,
     get_workflow_run,
     get_workflow_run_state,
     get_workflow_run_state_by_thread_id,
 )
-from lib.workflows.claim_substantiation.state import DocumentChunk
 from lib.workflows.models import WorkflowRunType
-from lib.workflows.registry import WorkflowConfig
+from lib.workflows.types import WorkflowConfig
 
 router = APIRouter(tags=["workflows"])
 
@@ -98,15 +96,6 @@ async def get_workflow_state(
     run = await get_workflow_run(workflow_run_id, user=user)
     state = await get_workflow_run_state_by_thread_id(run.langgraph_thread_id, run.type)
     return WorkflowRunDetail(run=run, state=state)
-
-
-@router.get(
-    "/api/workflow-run/{workflow_run_id}/chunk/{chunk_index}",
-    response_model=DocumentChunk,
-)
-async def get_chunk_details_endpoint(workflow_run_id: str, chunk_index: int):
-    """Get detailed analysis for a specific chunk (lazy loading)"""
-    return await get_chunk_details(workflow_run_id, chunk_index)
 
 
 @router.get("/api/workflow-runs/{workflow_run_id}/pages/{page_num}")

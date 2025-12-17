@@ -1,0 +1,40 @@
+from typing import List
+
+from fastapi import APIRouter
+from pydantic import BaseModel
+
+from lib.workflows.models import WorkflowRunType, is_user_visible_workflow
+from lib.workflows.registry import _workflow_manifest_registry
+
+router = APIRouter(tags=["workflow-types"])
+
+
+class WorkflowTypeDescription(BaseModel):
+    type: WorkflowRunType
+    name: str
+    description: str
+    needs_web_search: bool
+
+
+@router.get("/api/workflow-types", response_model=List[WorkflowTypeDescription])
+async def get_workflow_types():
+    """
+    List all available workflow types.
+    """
+    workflow_types = []
+
+    for workflow_type, manifest in _workflow_manifest_registry.items():
+        if is_user_visible_workflow(workflow_type):
+            workflow_types.append(
+                WorkflowTypeDescription(
+                    type=manifest.type,
+                    name=manifest.name,
+                    description=manifest.description,
+                    needs_web_search=manifest.needs_web_search,
+                )
+            )
+
+    # Sort by name for consistent ordering
+    workflow_types.sort(key=lambda x: x.name)
+
+    return workflow_types

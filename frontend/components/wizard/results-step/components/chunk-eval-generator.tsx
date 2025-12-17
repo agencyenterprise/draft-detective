@@ -1,6 +1,6 @@
 import { analysisService } from '@/lib/analysis-service';
 import { downloadFile, generateEvalFilename } from '@/lib/file-download';
-import { ClaimSubstantiatorStateSummary } from '@/lib/generated-api';
+import { ClaimSubstantiatorStateOutput } from '@/lib/generated-api';
 import { FileText } from 'lucide-react';
 import * as React from 'react';
 import { useSupportedAgents } from '../hooks/use-supported-agents';
@@ -8,7 +8,7 @@ import { ExpandableControl } from './expandable-control';
 
 interface ChunkEvalGeneratorProps {
   chunkIndex: number;
-  originalState: ClaimSubstantiatorStateSummary;
+  originalState: ClaimSubstantiatorStateOutput;
 }
 
 interface OptimizationInfoProps {

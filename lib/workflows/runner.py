@@ -10,19 +10,15 @@ from lib.services.workflow_runs import upsert_workflow_run
 from lib.workflows.claim_substantiation.checkpointer import get_checkpointer
 from lib.workflows.context import ContextSchema
 from lib.workflows.models import BaseWorkflowConfig, WorkflowError
-from lib.workflows.registry import (
-    WorkflowStateType,
-    create_context,
-    create_graph,
-    create_state,
-)
+from lib.workflows.registry import create_context, create_graph, create_state
+from lib.workflows.types import WorkflowState
 
 logger = logging.getLogger(__name__)
 
 
 async def run_workflow_from_config(
     config: BaseWorkflowConfig, thread_id: str, user: User
-) -> WorkflowStateType:
+) -> WorkflowState:
     graph = create_graph(config.type)
     context = create_context(config, user=user)
 
@@ -45,10 +41,10 @@ async def run_workflow(
     project_id: str,
     workflow_type: WorkflowRunType,
     graph: StateGraph,
-    state: WorkflowStateType,
+    state: WorkflowState,
     context: ContextSchema,
     thread_id: str,
-) -> WorkflowStateType:
+) -> WorkflowState:
     """
     Run a workflow using LangGraph, persisting the state to the database and associating with the workflow run.
 
