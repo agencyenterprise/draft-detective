@@ -1,7 +1,7 @@
 from typing import List
 
 from fastapi import APIRouter
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from lib.workflows.models import WorkflowRunType, is_user_visible_workflow
 from lib.workflows.registry import _workflow_manifest_registry
@@ -10,10 +10,10 @@ router = APIRouter(tags=["workflow-types"])
 
 
 class WorkflowTypeDescription(BaseModel):
-    type: WorkflowRunType
-    name: str
-    description: str
-    needs_web_search: bool
+    type: WorkflowRunType = Field(description="The type of the workflow")
+    name: str = Field(description="The name of the workflow")
+    description: str = Field(description="The description of the workflow")
+    needs_web_search: bool = Field(description="Whether the workflow needs web search")
 
 
 @router.get("/api/workflow-types", response_model=List[WorkflowTypeDescription])
@@ -24,7 +24,10 @@ async def get_workflow_types():
     workflow_types = []
 
     for workflow_type, manifest in _workflow_manifest_registry.items():
-        if is_user_visible_workflow(workflow_type):
+        if (
+            is_user_visible_workflow(workflow_type)
+            and manifest.can_be_triggered_by_user
+        ):
             workflow_types.append(
                 WorkflowTypeDescription(
                     type=manifest.type,

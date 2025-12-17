@@ -16,46 +16,6 @@ from lib.workflows.runner import run_workflow
 logger = logging.getLogger(__name__)
 
 
-async def run_claim_substantiator(
-    project_id: str,
-    thread_id: str,
-    file: FileDocument,
-    supporting_files: Optional[List[FileDocument]] = None,
-    config: SubstantiationWorkflowConfig = None,
-) -> ClaimSubstantiatorState:
-    """
-    Claim substantiation runner using LangGraph approach.
-
-    Supports both full document processing and selective chunk re-evaluation:
-    - For full processing: leave config.target_chunk_indices and config.agents_to_run as None
-    - For selective re-evaluation: provide config.target_chunk_indices and/or config.agents_to_run
-    - For re-evaluation with existing results: provide existing_state to preserve previous results
-
-    This is the single, authoritative entry point for claim substantiation.
-    """
-
-    if config is None:
-        config = SubstantiationWorkflowConfig()
-
-    context = create_context(config)
-    config.openai_api_key = "[REDACTED]"
-    state = ClaimSubstantiatorState(
-        file=file,
-        supporting_files=supporting_files,
-        config=config,
-    )
-
-    graph = build_claim_substantiator_graph(config=config)
-    return await run_workflow(
-        project_id,
-        WorkflowRunType.CLAIM_SUBSTANTIATION,
-        graph,
-        state,
-        context,
-        thread_id,
-    )
-
-
 async def rerun_analysis(
     project_id: str,
     config: SubstantiationWorkflowConfig,

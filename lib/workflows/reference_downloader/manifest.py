@@ -23,6 +23,8 @@ class ReferenceDownloaderManifest(
     name = "Reference Downloader"
     description = "Download references from the internet"
     needs_web_search = True
+    can_be_triggered_by_user = False
+    required_dependencies = [WorkflowRunType.CLAIM_SUBSTANTIATION]
 
     def get_state_type(self) -> Type[ReferenceDownloaderState]:
         """Get the type of the workflow state."""

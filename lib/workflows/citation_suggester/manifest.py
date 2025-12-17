@@ -25,8 +25,14 @@ class CitationSuggesterManifest(
 ):
     type = WorkflowRunType.CITATION_SUGGESTER
     name = "Citation Suggester"
-    description = "Suggest citations for claims that need additional references"
+    description = "Suggest citations for claims that need additional references. Uses the supporting files plus the literature review analysis results for suggestions, whatever is available."
     needs_web_search = False
+    required_dependencies = [
+        WorkflowRunType.CLAIM_SUBSTANTIATION,
+    ]
+    optional_dependencies = [
+        WorkflowRunType.LITERATURE_REVIEW,
+    ]
 
     def get_state_type(self) -> Type[CitationSuggesterState]:
         """Get the type of the workflow state."""

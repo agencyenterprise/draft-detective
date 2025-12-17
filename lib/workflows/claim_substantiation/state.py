@@ -47,7 +47,13 @@ class SubstantiationWorkflowConfig(BaseWorkflowConfig):
         default=None, description="Target audience context for analysis"
     )
     session_id: Optional[str] = Field(
-        default=None, description="Session ID for Langfuse tracing"
+        default=None, description="Session ID for Langfuse tracing", deprecated=True
+    )
+    publication_date: Optional[str] = Field(
+        default=None, description="Publication date of the document (YYYY-MM-DD format)"
+    )
+    workflow_types: Optional[List[WorkflowRunType]] = Field(
+        default=None, description="List of workflow types to run"
     )
 
 
@@ -112,26 +118,6 @@ def conciliate_chunks(
 
     # Return chunks in order by chunk_index
     return [chunks_by_index[i] for i in sorted(chunks_by_index.keys())]
-
-
-class ClaimCommonKnowledgeResultChunk(BaseModel):
-    """
-    Wrapper for a list of claim common knowledge results for a single chunk.
-
-    openapi-generator does not support List[List[T]] so we need to wrap the list of substantiations in a single model.
-    """
-
-    claim_common_knowledge_results: List[ClaimCommonKnowledgeResultWithClaimIndex]
-
-
-class ClaimSubstantiationChunk(BaseModel):
-    """
-    Wrapper for a list of claim substantiation results for a single chunk.
-
-    openapi-generator does not support List[List[T]] so we need to wrap the list of substantiations in a single model.
-    """
-
-    substantiations: List[ClaimSubstantiationResultWithClaimIndex]
 
 
 class SeverityEnum(StrEnum):

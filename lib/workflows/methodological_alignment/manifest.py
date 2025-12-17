@@ -26,8 +26,9 @@ class MethodologicalAlignmentManifest(
 ):
     type = WorkflowRunType.METHODOLOGICAL_ALIGNMENT
     name = "Methodological Alignment"
-    description = "Analyze and compare the methodology used in the document"
+    description = "Analyze and compare the methodology used in the document against typical methods used in the field. Uses web search to find field methods context."
     needs_web_search = True
+    required_dependencies = [WorkflowRunType.CLAIM_SUBSTANTIATION]
 
     def get_state_type(self) -> Type[MethodologicalAlignmentState]:
         """Get the type of the workflow state."""

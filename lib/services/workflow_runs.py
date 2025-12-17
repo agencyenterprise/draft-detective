@@ -1,4 +1,5 @@
 import logging
+import uuid
 from typing import List, Optional
 
 from fastapi import HTTPException
@@ -11,7 +12,7 @@ from lib.config.database import get_db
 from lib.models.project import Project
 from lib.models.user import User
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus, WorkflowRunType
-from lib.workflows.claim_substantiation.checkpointer import get_checkpointer
+from lib.workflows.checkpointer import get_checkpointer
 from lib.workflows.registry import create_graph, get_state_type
 from lib.workflows.types import WorkflowState
 
@@ -72,7 +73,7 @@ async def get_workflow_run(workflow_run_id: str, user: User = None) -> WorkflowR
 
 
 async def get_workflow_run_state(
-    workflow_run_id: str, user: User = None
+    workflow_run_id: str, user: User | None = None
 ) -> WorkflowState | None:
     run = await get_workflow_run(workflow_run_id, user)
     return await get_workflow_run_state_by_thread_id(run.langgraph_thread_id, run.type)
@@ -144,3 +145,12 @@ async def get_project_workflow_runs(project_id: str) -> List[WorkflowRunDetail]:
         details.append(WorkflowRunDetail(run=run, state=state))
 
     return details
+
+
+def get_thread_id_for_workflow_run(workflow_run: WorkflowRun | None) -> str:
+    """Get the thread ID for a workflow run, or create a new one if it doesn't exist."""
+
+    if workflow_run is not None:
+        return workflow_run.langgraph_thread_id
+    else:
+        return str(uuid.uuid4())

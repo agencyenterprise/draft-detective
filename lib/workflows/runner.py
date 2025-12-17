@@ -1,23 +1,56 @@
 import logging
+from typing import List
 
 from langgraph.graph import StateGraph
 
+from api.services.workflow_orchestration import wait_for_dependencies
 from lib.config.langfuse import langfuse_handler
 from lib.models.user import User
 from lib.models.workflow_run import WorkflowRunStatus, WorkflowRunType
 from lib.services.projects import update_project_title
 from lib.services.workflow_runs import upsert_workflow_run
-from lib.workflows.claim_substantiation.checkpointer import get_checkpointer
+from lib.workflows.checkpointer import get_checkpointer
 from lib.workflows.context import ContextSchema
-from lib.workflows.models import BaseWorkflowConfig, WorkflowError
+from lib.workflows.models import WorkflowError
 from lib.workflows.registry import create_context, create_graph, create_state
-from lib.workflows.types import WorkflowState
+from lib.workflows.types import WorkflowConfig, WorkflowState
 
 logger = logging.getLogger(__name__)
 
 
+async def run_workflow_with_dependency_check(
+    config: WorkflowConfig, thread_id: str, user: User
+) -> None:
+    """
+    Run a workflow after checking and waiting for its dependencies to complete.
+
+    This function:
+    1. Waits for all dependencies to complete
+    2. Updates workflow status to RUNNING
+    3. Executes the workflow
+    """
+
+    try:
+        # Wait for dependencies to complete
+        if config.project_id:
+            await wait_for_dependencies(config.type, config.project_id)
+
+        # Run the workflow
+        await run_workflow_from_config(config=config, thread_id=thread_id, user=user)
+
+    except Exception as e:
+        logger.error(f"Error running workflow: {e}", exc_info=True)
+
+        await upsert_workflow_run(
+            project_id=config.project_id,
+            thread_id=thread_id,
+            status=WorkflowRunStatus.COMPLETED,
+            type=config.type,
+        )
+
+
 async def run_workflow_from_config(
-    config: BaseWorkflowConfig, thread_id: str, user: User
+    config: WorkflowConfig, thread_id: str, user: User
 ) -> WorkflowState:
     graph = create_graph(config.type)
     context = create_context(config, user=user)

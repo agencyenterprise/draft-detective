@@ -49,6 +49,8 @@ class AnalysisService {
         if (config.target_audience) formData.append('target_audience', config.target_audience);
         if (config.session_id) formData.append('session_id', config.session_id);
         if (config.openai_api_key) formData.append('openai_api_key', config.openai_api_key);
+        if (config.publication_date) formData.append('publication_date', config.publication_date);
+        if (config.workflow_types) formData.append('workflow_types', config.workflow_types.join(','));
 
         // Use XMLHttpRequest for upload progress tracking
         const xhr = new XMLHttpRequest();

@@ -22,8 +22,9 @@ class LiteratureReviewManifest(
 ):
     type = WorkflowRunType.LITERATURE_REVIEW
     name = "Literature Review"
-    description = "Generate a literature review based on references in the document"
+    description = "Performs a literature review related to the claims in the document. Performs web search to find new relevant literature, looking only for literature published before the document publication date."
     needs_web_search = True
+    required_dependencies = [WorkflowRunType.CLAIM_SUBSTANTIATION]
 
     def get_state_type(self) -> Type[LiteratureReviewState]:
         """Get the type of the workflow state."""

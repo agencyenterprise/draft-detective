@@ -133,14 +133,14 @@ export const getSupportedAgentsApiSupportedAgentsGet = <ThrowOnError extends boo
 /**
  * Start Analysis
  *
- * Start claim substantiation analysis - returns workflow_run_id immediately.
+ * Create a project and immediately start analysis workflows.
  *
  * This endpoint:
  * 1. Creates a project for the analysis
  * 2. Saves uploaded files to database with file metadata
  * 3. Creates file document references (without markdown conversion)
  * 4. Returns immediately with project_id
- * 5. Starts the analysis workflow in the background (markdown conversion happens here)
+ * 5. Starts the analysis workflows in the background (markdown conversion happens here)
  *
  * The client can poll /api/project/{project_id} to check progress.
  *
