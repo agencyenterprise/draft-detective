@@ -21,6 +21,7 @@ from langchain_core.runnables.config import RunnableConfig
 from rapidfuzz import fuzz
 
 from lib.agents.reference_extractor import ReferenceExtractorAgent
+from lib.config.langfuse import langfuse_handler
 from tests.conftest import (
     create_test_context,
     create_test_file_document_from_path,
@@ -131,10 +132,12 @@ async def test_reference_extraction(reference_extractor, test_case: TestCase):
     start_time = time.time()
     config = RunnableConfig(
         run_name=f"reference_extraction_stress_test_{test_case.name}",
+        callbacks=[langfuse_handler],
         metadata={
             "test_name": test_case.name,
             "doc_filename": test_case.doc_filename,
             "doc_length": len(doc.markdown),
+            "langfuse_session_id": f"stress_test_{test_case.name}",
         },
     )
 
