@@ -6,9 +6,9 @@ from lib.run_utils import call_maybe_async
 from lib.services.chunk_to_items_mapper import create_chunk_to_items_mapping
 from lib.services.nltk_text_splitter import NLTKTextSplitter
 from lib.workflows.context import ContextSchema
-from lib.workflows.claim_substantiation.state import (
-    ClaimSubstantiatorState,
+from lib.workflows.document_processing.state import (
     DocumentChunk,
+    DocumentProcessingState,
 )
 from lib.workflows.decorators import register_node
 
@@ -20,8 +20,8 @@ logger = logging.getLogger(__name__)
     "Split the main document into chunks",
 )
 async def split_into_chunks(
-    state: ClaimSubstantiatorState, runtime: Runtime[ContextSchema]
-) -> ClaimSubstantiatorState:
+    state: DocumentProcessingState, runtime: Runtime[ContextSchema]
+) -> DocumentProcessingState:
     markdown = state.file.markdown
 
     chunker = NLTKTextSplitter(context=runtime.context)
@@ -36,9 +36,13 @@ async def split_into_chunks(
             chunk_to_items = create_chunk_to_items_mapping(
                 docs, state.file.docling_document
             )
-            logger.info(f"created mapping for {len(docs)} chunks to Docling items")
+            logger.info(
+                f"split_into_chunks: created mapping for {len(docs)} chunks to Docling items"
+            )
         except Exception as e:
-            logger.warning(f"failed to create chunk-to-items mapping: {e}")
+            logger.warning(
+                f"split_into_chunks: failed to create chunk-to-items mapping: {e}"
+            )
 
     return {
         "chunks": [
@@ -51,3 +55,4 @@ async def split_into_chunks(
         ],
         "chunk_to_items": chunk_to_items,
     }
+

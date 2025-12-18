@@ -7,8 +7,8 @@ from lib.agents.formatting_utils import format_audience_context, format_domain_c
 from lib.workflows.chunk_iterator import iterate_chunks
 from lib.workflows.context import ContextSchema
 from lib.workflows.claim_substantiation.state import (
+    AnalyzedChunk,
     ClaimSubstantiatorState,
-    DocumentChunk,
 )
 from lib.workflows.decorators import (
     handle_chunk_errors,
@@ -38,9 +38,9 @@ async def extract_claims(
 @handle_chunk_errors("Claim extraction")
 async def _extract_chunk_claims(
     state: ClaimSubstantiatorState,
-    chunk: DocumentChunk,
+    chunk: AnalyzedChunk,
     claim_extractor_agent: ClaimExtractorAgent,
-) -> DocumentChunk:
+) -> AnalyzedChunk:
     claims = await claim_extractor_agent.ainvoke(
         {
             "chunk": chunk.content,

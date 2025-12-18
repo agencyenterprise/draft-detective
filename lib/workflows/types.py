@@ -6,6 +6,10 @@ from lib.workflows.claim_substantiation.state import (
     ClaimSubstantiatorState,
     SubstantiationWorkflowConfig,
 )
+from lib.workflows.document_processing.state import (
+    DocumentProcessingState,
+    DocumentProcessingWorkflowConfig,
+)
 from lib.workflows.docx_generation.state import (
     DocxGenerationState,
     DocxGenerationWorkflowConfig,
@@ -33,7 +37,8 @@ from lib.workflows.reference_validation.state import (
 )
 
 WorkflowState = (
-    ClaimSubstantiatorState
+    DocumentProcessingState
+    | ClaimSubstantiatorState
     | MethodologicalAlignmentState
     | ReferenceDownloaderState
     | DocxGenerationState
@@ -45,7 +50,8 @@ WorkflowState = (
 )
 
 WorkflowConfig = (
-    SubstantiationWorkflowConfig
+    DocumentProcessingWorkflowConfig
+    | SubstantiationWorkflowConfig
     | MethodologicalAlignmentWorkflowConfig
     | ReferenceDownloaderWorkflowConfig
     | LiteratureReviewWorkflowConfig

@@ -8,7 +8,7 @@ from lib.agents.document_summarizer import DocumentSummary
 from lib.agents.evidence_weighter import EvidenceWeighterResponseWithClaimIndex
 from lib.agents.reference_extractor import BibliographyItem
 from lib.services.file import FileDocument
-from lib.workflows.claim_substantiation.state import DocumentChunk
+from lib.workflows.claim_substantiation.state import AnalyzedChunk
 from lib.workflows.models import BaseWorkflowConfig, BaseWorkflowState, WorkflowRunType
 
 
@@ -37,7 +37,7 @@ class LiveReportsState(BaseWorkflowState):
     config: LiveReportsWorkflowConfig
     file: FileDocument
     references: List[BibliographyItem] = Field(default_factory=list)
-    chunks: List[DocumentChunk] = Field(default_factory=list)
+    chunks: List[AnalyzedChunk] = Field(default_factory=list)
     main_document_summary: DocumentSummary = Field(
         description="Summary of the main document"
     )
@@ -50,7 +50,7 @@ class LiveReportsState(BaseWorkflowState):
         description="Addendum report output for live reports",
     )
 
-    def get_paragraph_chunks(self, paragraph_index: int) -> List[DocumentChunk]:
+    def get_paragraph_chunks(self, paragraph_index: int) -> List[AnalyzedChunk]:
         return [
             chunk for chunk in self.chunks if chunk.paragraph_index == paragraph_index
         ]

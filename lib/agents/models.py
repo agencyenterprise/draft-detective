@@ -55,3 +55,11 @@ class ClaimCategory(str, Enum):
     INTERPRETATION = "inferential_interpretive_claims"
     META = "meta_structural_evaluative"
     OTHER = "other"
+
+
+class ReproducibilityCategory(str, Enum):
+    """Reproducibility classification for methodologies and results."""
+    FULLY_REPRODUCIBLE = "fully_reproducible"
+    REPRODUCIBLE_WITH_WEB_SEARCH = "reproducible_with_web_search"
+    REPRODUCIBLE_WITH_EXTERNAL_UPLOADS = "reproducible_with_external_uploads"
+    NOT_REPRODUCIBLE = "not_reproducible"

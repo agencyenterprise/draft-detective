@@ -1,6 +1,6 @@
-import { DocumentChunkOutput, DocumentIssue, SeverityEnum } from './generated-api';
+import { AnalyzedChunkOutput, DocumentIssue, SeverityEnum } from './generated-api';
 
-export function getMaxChunkSeverity(issues: DocumentIssue[], chunk: DocumentChunkOutput) {
+export function getMaxChunkSeverity(issues: DocumentIssue[], chunk: AnalyzedChunkOutput) {
   const chunkIssues = issues.filter((issue) => issue.chunk_index === chunk.chunk_index);
   return getMaxSeverity(chunkIssues);
 }

@@ -13,6 +13,7 @@ from lib.models.project import Project
 from lib.models.user import User
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus, WorkflowRunType
 from lib.workflows.checkpointer import get_checkpointer
+from lib.workflows.models import is_user_visible_workflow
 from lib.workflows.registry import create_graph, get_state_type
 from lib.workflows.types import WorkflowState
 
@@ -127,7 +128,19 @@ async def get_project_workflow_run_by_type(
         return run
 
 
-async def get_project_workflow_runs(project_id: str) -> List[WorkflowRunDetail]:
+async def get_project_workflow_runs(
+    project_id: str, include_internal: bool = False
+) -> List[WorkflowRunDetail]:
+    """
+    Get workflow runs for a project.
+
+    Args:
+        project_id: The project ID
+        include_internal: If True, include internal workflows (for dependency resolution)
+
+    Returns:
+        List of workflow run details
+    """
     with get_db() as db:
         runs = (
             db.query(WorkflowRun)
@@ -139,6 +152,10 @@ async def get_project_workflow_runs(project_id: str) -> List[WorkflowRunDetail]:
 
     details = []
     for run in runs:
+        # Filter out internal workflows unless explicitly requested
+        if not include_internal and not is_user_visible_workflow(run.type):
+            continue
+
         state = await get_workflow_run_state_by_thread_id(
             run.langgraph_thread_id, run.type
         )

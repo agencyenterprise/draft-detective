@@ -95,16 +95,13 @@ async def _get_project_by_id(project_id: str) -> Project | None:
 
 
 async def _get_project_detailed_from_project(project: Project) -> ProjectDetailed:
+    # get_project_workflow_runs already filters out internal workflows
     workflow_runs = await get_project_workflow_runs(project.id)
 
-    # We must filter out internal workflows
-    visible_workflow_runs = [
-        item for item in workflow_runs if is_user_visible_workflow(item.run.type)
-    ]
-    states = [run.state for run in visible_workflow_runs if run.state is not None]
+    states = [run.state for run in workflow_runs if run.state is not None]
     return ProjectDetailed(
         project=project,
-        workflow_runs=visible_workflow_runs,
+        workflow_runs=workflow_runs,
         issues=convert_to_issues(states),
     )
 

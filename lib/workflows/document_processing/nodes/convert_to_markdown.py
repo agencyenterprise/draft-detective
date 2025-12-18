@@ -4,10 +4,8 @@ from lib.config.env import config
 from lib.run_utils import run_tasks
 from lib.services.converters.base import convert_to_markdown as convert_to_markdown_fn
 from lib.services.file import FileDocument
-from lib.workflows.claim_substantiation.state import ClaimSubstantiatorState
-from lib.workflows.decorators import (
-    register_node,
-)
+from lib.workflows.document_processing.state import DocumentProcessingState
+from lib.workflows.decorators import register_node
 from langchain_core.messages.utils import count_tokens_approximately
 
 logger = logging.getLogger(__name__)
@@ -22,8 +20,8 @@ MAX_CONCURRENT_CONVERSIONS = 2
     "Convert the main and supporting documents to markdown",
 )
 async def convert_to_markdown(
-    state: ClaimSubstantiatorState,
-) -> ClaimSubstantiatorState:
+    state: DocumentProcessingState,
+) -> DocumentProcessingState:
     # We need to convert only the main document with full mode (images, JSON, etc.), supporting documents with simple mode (markdown only)
     tasks = [
         _convert_to_markdown_task(state.file, is_main_document=True),
@@ -83,3 +81,4 @@ async def _convert_to_markdown_task(
             "docling_document": docling_document,
         }
     )
+

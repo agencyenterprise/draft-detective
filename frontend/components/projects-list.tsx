@@ -118,37 +118,39 @@ export function ProjectsList({ className }: ProjectsListProps) {
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          {projects?.map(({ project, workflow_runs }) => (
-            <div
-              key={project.id}
-              className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
-            >
-              <div className="flex-1 min-w-0">
-                <div className="flex flex-col mb-1 min-w-0">
-                  <h3 className="font-medium truncate">{project.title}</h3>
-                  {workflow_runs?.map((workflowRun) => (
-                    <p key={workflowRun.id} className="text-sm pl-2">
-                      {getWorkflowTypeName(workflowRun.type)}: <StatusIndicator status={workflowRun.status} />
-                    </p>
-                  ))}
+          {projects?.map(({ project, workflow_runs }) => {
+            return (
+              <div
+                key={project.id}
+                className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="flex flex-col mb-1 min-w-0">
+                    <h3 className="font-medium truncate">{project.title}</h3>
+                    {workflow_runs?.map((workflowRun) => (
+                      <p key={workflowRun.id} className="text-sm pl-2">
+                        {getWorkflowTypeName(workflowRun.type)}: <StatusIndicator status={workflowRun.status} />
+                      </p>
+                    ))}
+                  </div>
+
+                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                    <p>Project created {formatDistanceToNow(project.created_at, { addSuffix: true })}</p>
+                  </div>
                 </div>
 
-                <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                  <p>Project created {formatDistanceToNow(project.created_at, { addSuffix: true })}</p>
+                <div className="flex gap-2">
+                  <Link href={`/projects/${project.id}`}>
+                    <Button variant="outline" size="sm">
+                      View project <ChevronRightIcon className="w-4 h-4" />
+                    </Button>
+                  </Link>
+
+                  <DeleteProjectDialog projectId={project.id} projectTitle={project.title} />
                 </div>
               </div>
-
-              <div className="flex gap-2">
-                <Link href={`/projects/${project.id}`}>
-                  <Button variant="outline" size="sm">
-                    View project <ChevronRightIcon className="w-4 h-4" />
-                  </Button>
-                </Link>
-
-                <DeleteProjectDialog projectId={project.id} projectTitle={project.title} />
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </CardContent>
     </Card>

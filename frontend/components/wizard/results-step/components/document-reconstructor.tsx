@@ -1,5 +1,5 @@
 import { Markdown } from '@/components/markdown';
-import type { ClaimSubstantiatorStateOutput, DocumentChunkOutput, DocumentIssue } from '@/lib/generated-api';
+import type { AnalyzedChunkOutput, ClaimSubstantiatorStateOutput, DocumentIssue } from '@/lib/generated-api';
 import { getMaxChunkSeverity } from '@/lib/severity';
 import { cn } from '@/lib/utils';
 import { useVirtualizer } from '@tanstack/react-virtual';
@@ -31,7 +31,7 @@ export function DocumentReconstructor({
         acc[chunk.paragraph_index].push(chunk);
         return acc;
       },
-      {} as Record<number, DocumentChunkOutput[]>,
+      {} as Record<number, AnalyzedChunkOutput[]>,
     );
   }, [chunks]);
 
@@ -126,7 +126,7 @@ export function DocumentReconstructorChunkGroup({
   selectedChunkIndex,
   onChunkSelect,
 }: {
-  chunks: DocumentChunkOutput[];
+  chunks: AnalyzedChunkOutput[];
   issues: DocumentIssue[];
   selectedChunkIndex: number | null;
   onChunkSelect: (chunkIndex: number | null) => void;

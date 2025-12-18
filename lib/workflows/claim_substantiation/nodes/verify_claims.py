@@ -16,8 +16,8 @@ from lib.workflows.claim_substantiation.reference_providers import (
     get_all_paragraph_citations,
 )
 from lib.workflows.claim_substantiation.state import (
+    AnalyzedChunk,
     ClaimSubstantiatorState,
-    DocumentChunk,
 )
 from lib.workflows.decorators import (
     handle_chunk_errors,
@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 
 
 def _needs_substantiation(
-    state: ClaimSubstantiatorState, chunk: DocumentChunk, claim_index: int
+    state: ClaimSubstantiatorState, chunk: AnalyzedChunk, claim_index: int
 ) -> bool:
     """
     Check if a claim needs substantiation.
@@ -58,10 +58,10 @@ def _needs_substantiation(
 
 async def _verify_chunk_claims_with_provider(
     state: ClaimSubstantiatorState,
-    chunk: DocumentChunk,
+    chunk: AnalyzedChunk,
     reference_provider: ReferenceProvider,
     claim_verifier_agent: ClaimVerifierAgent,
-) -> DocumentChunk:
+) -> AnalyzedChunk:
     """Verify chunk claims using the provided reference provider.
 
     Skips chunks with no claims. For each claim:
@@ -145,10 +145,10 @@ async def verify_claims(
 @handle_chunk_errors("Claim verification")
 async def _verify_chunk_claims(
     state: ClaimSubstantiatorState,
-    chunk: DocumentChunk,
+    chunk: AnalyzedChunk,
     citation_provider: CitationBasedReferenceProvider,
     claim_verifier_agent: ClaimVerifierAgent,
-) -> DocumentChunk:
+) -> AnalyzedChunk:
     """Verify claims using citation-based references."""
     if chunk.citations is None:
         logger.debug(
@@ -185,10 +185,10 @@ async def verify_claims_with_rag(
 @handle_chunk_errors("Claim verification with RAG")
 async def _verify_chunk_claims_rag(
     state: ClaimSubstantiatorState,
-    chunk: DocumentChunk,
+    chunk: AnalyzedChunk,
     rag_provider: RAGReferenceProvider,
     claim_verifier_agent: ClaimVerifierAgent,
-) -> DocumentChunk:
+) -> AnalyzedChunk:
     """Verify claims using RAG-based references.
 
     RAG retrieves relevant passages directly based on claim text,

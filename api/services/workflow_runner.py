@@ -88,21 +88,34 @@ async def start_multiple_workflow_runs(
     # Check if project exists and is owned by the user
     await get_user_project_detailed(base_config.project_id, user)
 
+    # Resolve all required dependencies in dependency order
+    from lib.workflows.dependency_resolver import resolve_workflow_dependencies
+
+    workflow_types = resolve_workflow_dependencies(workflow_types)
+
     logger.info(
-        f"Starting {len(workflow_types)} workflows as PENDING: {[w.value for w in workflow_types]}"
+        f"Resolved to {len(workflow_types)} workflows (including dependencies): {[w.value for w in workflow_types]}"
     )
 
     workflow_configs: List[WorkflowConfig] = []
     thread_ids: List[str] = []
 
     for workflow_type in workflow_types:
+        # We must check if workflow is already completed
+        workflow_run = await get_project_workflow_run_by_type(
+            base_config.project_id, workflow_type
+        )
+
+        if workflow_run and workflow_run.status == WorkflowRunStatus.COMPLETED:
+            logger.info(
+                f"Skipping {workflow_type.value} - already completed for project {base_config.project_id}"
+            )
+            continue
+
         # Create workflow-specific config
         workflow_config = create_workflow_config(workflow_type, base_config)
 
         # Get or create thread_id
-        workflow_run = await get_project_workflow_run_by_type(
-            base_config.project_id, workflow_type
-        )
         thread_id = get_thread_id_for_workflow_run(workflow_run)
 
         # Start workflow as PENDING - it will check dependencies and start when ready
@@ -118,12 +131,17 @@ async def start_multiple_workflow_runs(
 
     # Add a single background task that runs all workflows concurrently
     if workflow_configs:
+        logger.info(
+            f"Starting {len(workflow_configs)} workflows as PENDING: {[c.type.value for c in workflow_configs]}"
+        )
         background_tasks.add_task(
             _run_multiple_workflows_concurrently,
             workflow_configs=workflow_configs,
             thread_ids=thread_ids,
             user=user,
         )
+    else:
+        logger.info("No workflows to start - all requested workflows already completed")
 
 
 async def _run_multiple_workflows_concurrently(

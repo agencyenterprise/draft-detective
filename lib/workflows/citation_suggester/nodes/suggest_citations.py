@@ -13,7 +13,7 @@ from lib.agents.formatting_utils import (
 )
 from lib.run_utils import convert_exceptions_to_workflow_errors, run_tasks
 from lib.workflows.citation_suggester.state import CitationSuggesterState
-from lib.workflows.claim_substantiation.state import DocumentChunk
+from lib.workflows.claim_substantiation.state import AnalyzedChunk
 from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
 
@@ -53,7 +53,7 @@ async def suggest_citations(
 
 async def _suggest_chunk_citations(
     state: CitationSuggesterState,
-    chunk: DocumentChunk,
+    chunk: AnalyzedChunk,
     citation_suggester_agent: CitationSuggesterAgent,
 ) -> List[CitationSuggestionResultWithClaimIndex]:
     # Skip if chunk has no claims

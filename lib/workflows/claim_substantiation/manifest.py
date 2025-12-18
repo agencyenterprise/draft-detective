@@ -2,7 +2,6 @@ from typing import List, Type
 
 from langgraph.graph import StateGraph
 
-from lib.models.file import FileRole
 from lib.workflows.claim_substantiation.graph import build_claim_substantiator_graph
 from lib.workflows.claim_substantiation.issue_converter import convert_state_to_issues
 from lib.workflows.claim_substantiation.state import (
@@ -12,6 +11,7 @@ from lib.workflows.claim_substantiation.state import (
 from lib.workflows.manifest import WorkflowManifest
 from lib.workflows.models import DocumentIssue, WorkflowRunType
 from lib.workflows.types import WorkflowState
+from lib.workflows.util import get_state_by_type_or_raise
 
 
 class ClaimSubstantiationManifest(
@@ -21,6 +21,7 @@ class ClaimSubstantiationManifest(
     name = "Claim Substantiation"
     description = "Extract and verify claims from documents, checking them against supporting documents"
     needs_web_search = False
+    required_dependencies = [WorkflowRunType.DOCUMENT_PROCESSING]
 
     def get_state_type(self) -> Type[ClaimSubstantiatorState]:
         """Get the type of the workflow state."""
@@ -42,24 +43,31 @@ class ClaimSubstantiationManifest(
     ) -> ClaimSubstantiatorState:
         """Create and return the initial state of the workflow."""
 
-        from lib.services.files import get_files_by_project_id, load_file_document
+        from lib.workflows.claim_substantiation.state import AnalyzedChunk
+        from lib.workflows.document_processing.state import DocumentProcessingState
 
-        project_files = await get_files_by_project_id(config.project_id)
-        main_file = next(
-            (file for file in project_files if file.role == FileRole.MAIN),
-            None,
+        # Get document processing artifacts from dependency workflow
+        doc_processing_state: DocumentProcessingState = get_state_by_type_or_raise(
+            WorkflowRunType.DOCUMENT_PROCESSING, existing_states
         )
-        supporting_files = [
-            file for file in project_files if file.role == FileRole.SUPPORT
-        ]
-        main_file_document = await load_file_document(main_file)
-        supporting_file_documents = [
-            await load_file_document(file) for file in supporting_files
+
+        # Convert base chunks to AnalyzedChunk (adds empty fields for claims, citations, etc.)
+        chunks = [
+            AnalyzedChunk(
+                content=chunk.content,
+                chunk_index=chunk.chunk_index,
+                paragraph_index=chunk.paragraph_index,
+            )
+            for chunk in doc_processing_state.chunks
         ]
 
         return ClaimSubstantiatorState(
-            file=main_file_document,
-            supporting_files=supporting_file_documents,
+            file=doc_processing_state.file,
+            supporting_files=doc_processing_state.supporting_files,
+            main_document_summary=doc_processing_state.main_document_summary,
+            supporting_documents_summaries=doc_processing_state.supporting_documents_summaries,
+            chunks=chunks,
+            chunk_to_items=doc_processing_state.chunk_to_items,
             config=config,
         )
 

@@ -7,15 +7,9 @@ from pydantic import BaseModel, Field
 
 from lib.config.env import config
 from lib.config.llm_models import gpt_5_mini_model
+from lib.agents.models import ReproducibilityCategory
 from lib.models.agent import LangChainAgent
 from lib.workflows.context import ContextSchema
-
-
-class ReproducibilityCategory(Enum):
-    FULLY_REPRODUCIBLE = "fully_reproducible"
-    REPRODUCIBLE_WITH_WEB_SEARCH = "reproducible_with_web_search"
-    REPRODUCIBLE_WITH_EXTERNAL_UPLOADS = "reproducible_with_external_uploads"
-    NOT_REPRODUCIBLE = "not_reproducible"
 
 
 class ReproducibilityCategoryResponse(BaseModel):

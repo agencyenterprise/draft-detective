@@ -53,8 +53,12 @@ class SubstantiationWorkflowConfig(BaseWorkflowConfig):
     )
 
 
-class DocumentChunk(ChunkWithIndex):
-    """Independent chunk response object with all processing results"""
+class AnalyzedChunk(ChunkWithIndex):
+    """Enriched document chunk with all claim analysis results.
+    
+    Extends the base ChunkWithIndex with claim extraction, citation detection,
+    categorization, substantiation, and inference validation results.
+    """
 
     claims: Optional[Union[ClaimResponse, ToulminClaimResponse]] = None
     citations: Optional[CitationResponse] = None
@@ -65,20 +69,20 @@ class DocumentChunk(ChunkWithIndex):
 
 
 def conciliate_chunks(
-    a: List[DocumentChunk], b: List[DocumentChunk]
-) -> List[DocumentChunk]:
+    a: List[AnalyzedChunk], b: List[AnalyzedChunk]
+) -> List[AnalyzedChunk]:
     """
-    Conciliate two lists of DocumentChunk by merging their properties.
+    Conciliate two lists of AnalyzedChunk by merging their properties.
 
     This reducer function is used by LangGraph to handle multiple updates to the same
     chunks field from different nodes running in parallel.
 
     Args:
-        a: First list of DocumentChunk (existing state)
-        b: Second list of DocumentChunk (new updates)
+        a: First list of AnalyzedChunk (existing state)
+        b: Second list of AnalyzedChunk (new updates)
 
     Returns:
-        Merged list of DocumentChunk with combined properties
+        Merged list of AnalyzedChunk with combined properties
     """
 
     # Create a dictionary for quick lookup of chunks by index
@@ -110,7 +114,7 @@ def conciliate_chunks(
 
                 merged_data[field] = updated_value
 
-            chunks_by_index[updated_chunk.chunk_index] = DocumentChunk(**merged_data)
+            chunks_by_index[updated_chunk.chunk_index] = AnalyzedChunk(**merged_data)
 
     # Return chunks in order by chunk_index
     return [chunks_by_index[i] for i in sorted(chunks_by_index.keys())]
@@ -128,7 +132,7 @@ class ClaimSubstantiatorState(BaseWorkflowState):
 
     # Outputs
     references: List[BibliographyItem] = []
-    chunks: Annotated[List[DocumentChunk], conciliate_chunks] = []
+    chunks: Annotated[List[AnalyzedChunk], conciliate_chunks] = []
     main_document_summary: Optional[DocumentSummary] = Field(
         default=None, description="The summary of the main document"
     )
@@ -141,7 +145,7 @@ class ClaimSubstantiatorState(BaseWorkflowState):
         description="Mapping from chunk indices to Docling items/regions for rendering",
     )
 
-    def get_paragraph_chunks(self, paragraph_index: int) -> List[DocumentChunk]:
+    def get_paragraph_chunks(self, paragraph_index: int) -> List[AnalyzedChunk]:
         return [
             chunk for chunk in self.chunks if chunk.paragraph_index == paragraph_index
         ]

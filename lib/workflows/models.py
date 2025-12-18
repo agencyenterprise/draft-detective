@@ -51,6 +51,7 @@ class BaseWorkflowConfig(BaseModel):
 
 
 class WorkflowRunType(str, Enum):
+    DOCUMENT_PROCESSING = "document_processing"
     CLAIM_SUBSTANTIATION = "claim_substantiation"
     METHODOLOGICAL_ALIGNMENT = "methodological_alignment"
     REFERENCE_DOWNLOADER = "reference_downloader"
@@ -63,9 +64,16 @@ class WorkflowRunType(str, Enum):
 
 
 def is_user_visible_workflow(workflow_type: WorkflowRunType) -> bool:
-    """Check if a workflow type should be visible to users."""
+    """
+    Check if a workflow type should be visible to users in the workflow list.
+    Uses the is_internal flag from each workflow's manifest.
+    """
+    from lib.workflows.registry import _workflow_manifest_registry
 
-    return workflow_type not in [WorkflowRunType.DOCX_GENERATION]
+    manifest = _workflow_manifest_registry.get(workflow_type)
+    if manifest is None:
+        return False
+    return not manifest.is_internal
 
 
 class SeverityEnum(StrEnum):

@@ -7,7 +7,7 @@ import { getClaimId } from '@/lib/chunk-ids';
 import {
   Claim,
   ClaimSubstantiatorStateOutput,
-  DocumentChunkOutput,
+  AnalyzedChunkOutput,
   DocumentIssue,
   ToulminClaim,
   WorkflowRunDetail,
@@ -30,7 +30,7 @@ import { SubstantiationResults } from './substantiation-results';
 export interface ClaimAnalysisCardProps {
   results: ClaimSubstantiatorStateOutput;
   claim: Claim | ToulminClaim;
-  chunkDetails: DocumentChunkOutput | undefined | null;
+  chunkDetails: AnalyzedChunkOutput | undefined | null;
   claimIndex: number;
   totalClaims: number;
   chunkIndex: number;

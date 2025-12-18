@@ -1,9 +1,6 @@
-from langgraph.graph import StateGraph
+from langgraph.graph import START, StateGraph
 
 from lib.workflows.claim_substantiation.nodes.categorize_claims import categorize_claims
-from lib.workflows.claim_substantiation.nodes.convert_to_markdown import (
-    convert_to_markdown,
-)
 from lib.workflows.claim_substantiation.nodes.detect_citations import detect_citations
 from lib.workflows.claim_substantiation.nodes.extract_claims import extract_claims
 from lib.workflows.claim_substantiation.nodes.extract_claims_toulmin import (
@@ -15,8 +12,6 @@ from lib.workflows.claim_substantiation.nodes.extract_references import (
 from lib.workflows.claim_substantiation.nodes.index_supporting_documents import (
     index_supporting_documents,
 )
-from lib.workflows.claim_substantiation.nodes.prepare_documents import prepare_documents
-from lib.workflows.claim_substantiation.nodes.split_into_chunks import split_into_chunks
 from lib.workflows.claim_substantiation.nodes.validate_inferences import (
     validate_inferences,
 )
@@ -51,9 +46,6 @@ def build_claim_substantiator_graph(
     graph = StateGraph(ClaimSubstantiatorState, context_schema=ContextSchema)
 
     # Core nodes
-    graph.add_node("convert_to_markdown", convert_to_markdown)
-    graph.add_node("prepare_documents", prepare_documents)
-    graph.add_node("split_into_chunks", split_into_chunks)
     graph.add_node(
         "extract_claims",
         extract_claims if not config.use_toulmin else extract_claims_toulmin,
@@ -61,14 +53,9 @@ def build_claim_substantiator_graph(
     graph.add_node("detect_citations", detect_citations)
     graph.add_node("extract_references", extract_references)
 
-    # Entry point
-    graph.set_entry_point("convert_to_markdown")
-
-    # Core edges - main processing pipeline
-    graph.add_edge("convert_to_markdown", "prepare_documents")
-    graph.add_edge("prepare_documents", "split_into_chunks")
-    graph.add_edge("split_into_chunks", "extract_references")
-    graph.add_edge("split_into_chunks", "extract_claims")
+    # We must fan out from START to both extract_references and extract_claims because we need to run both in parallel.
+    graph.add_edge(START, "extract_references")
+    graph.add_edge(START, "extract_claims")
 
     # add categorization and inference validation nodes
     graph.add_node("categorize_claims", categorize_claims)
@@ -80,7 +67,7 @@ def build_claim_substantiator_graph(
         graph.add_node("index_supporting_documents", index_supporting_documents)
         graph.add_node("verify_claims", verify_claims_with_rag, defer=True)
 
-        graph.add_edge("prepare_documents", "index_supporting_documents")
+        graph.add_edge(START, "index_supporting_documents")
         graph.add_edge("index_supporting_documents", "verify_claims")
 
     else:
