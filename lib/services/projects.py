@@ -16,8 +16,7 @@ from lib.services.issues import convert_to_issues
 from lib.services.share_links import is_project_shared
 from lib.services.workflow_runs import WorkflowRunDetail, get_project_workflow_runs
 from lib.workflows.checkpointer import get_checkpointer
-from lib.workflows.claim_substantiation.state import DocumentIssue
-from lib.workflows.models import is_user_visible_workflow
+from lib.workflows.models import DocumentIssue, is_user_visible_workflow
 
 logger = logging.getLogger(__name__)
 

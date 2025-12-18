@@ -3,15 +3,11 @@ from typing import List, Type
 from langgraph.graph import StateGraph
 
 from lib.agents.evidence_weighter import EvidenceWeighterRecommendedAction
-from lib.workflows.claim_substantiation.state import (
-    ClaimSubstantiatorState,
-    DocumentIssue,
-    SeverityEnum,
-)
+from lib.workflows.claim_substantiation.state import ClaimSubstantiatorState
 from lib.workflows.live_reports.graph import build_live_reports_graph
 from lib.workflows.live_reports.state import LiveReportsState, LiveReportsWorkflowConfig
 from lib.workflows.manifest import WorkflowManifest
-from lib.workflows.models import WorkflowRunType
+from lib.workflows.models import DocumentIssue, SeverityEnum, WorkflowRunType
 from lib.workflows.types import WorkflowState
 from lib.workflows.util import get_state_by_type_or_raise
 

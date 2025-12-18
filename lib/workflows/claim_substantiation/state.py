@@ -1,4 +1,3 @@
-from enum import StrEnum
 from typing import Annotated, Dict, List, Literal, Optional, Union
 
 from pydantic import BaseModel, Field
@@ -12,7 +11,7 @@ from lib.agents.claim_needs_substantiation_checker import (
 from lib.agents.claim_verifier import ClaimSubstantiationResultWithClaimIndex
 from lib.agents.document_summarizer import DocumentSummary
 from lib.agents.inference_validator import InferenceValidationResponseWithClaimIndex
-from lib.agents.models import ChunkWithIndex, ClaimCategory
+from lib.agents.models import ChunkWithIndex
 from lib.agents.reference_extractor import BibliographyItem
 from lib.agents.toulmin_claim_extractor import ToulminClaimResponse
 from lib.services.docling_models import ChunkToItems
@@ -118,36 +117,6 @@ def conciliate_chunks(
 
     # Return chunks in order by chunk_index
     return [chunks_by_index[i] for i in sorted(chunks_by_index.keys())]
-
-
-class SeverityEnum(StrEnum):
-    NONE = "none"
-    LOW = "low"
-    MEDIUM = "medium"
-    HIGH = "high"
-
-    def sort_index(self) -> int:
-        return {
-            self.NONE: 0,
-            self.LOW: 1,
-            self.MEDIUM: 2,
-            self.HIGH: 3,
-        }[self]
-
-
-class DocumentIssue(BaseModel):
-    title: str = Field(description="The title of the issue")
-    description: str = Field(description="The description of the issue")
-    severity: SeverityEnum = Field(description="The severity of the issue")
-    chunk_index: Optional[int] = Field(
-        description="The index of the chunk that contains the issue", default=None
-    )
-    claim_index: Optional[int] = Field(
-        description="The index of the claim that contains the issue", default=None
-    )
-    claim_category: Optional[ClaimCategory] = Field(
-        description="The category of the claim that contains the issue", default=None
-    )
 
 
 class ClaimSubstantiatorState(BaseWorkflowState):

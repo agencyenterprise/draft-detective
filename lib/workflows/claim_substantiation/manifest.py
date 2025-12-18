@@ -7,11 +7,10 @@ from lib.workflows.claim_substantiation.graph import build_claim_substantiator_g
 from lib.workflows.claim_substantiation.issue_converter import convert_state_to_issues
 from lib.workflows.claim_substantiation.state import (
     ClaimSubstantiatorState,
-    DocumentIssue,
     SubstantiationWorkflowConfig,
 )
 from lib.workflows.manifest import WorkflowManifest
-from lib.workflows.models import WorkflowRunType
+from lib.workflows.models import DocumentIssue, WorkflowRunType
 from lib.workflows.types import WorkflowState
 
 

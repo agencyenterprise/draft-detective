@@ -5,9 +5,8 @@ from lib.agents.models import ClaimCategory
 from lib.workflows.claim_substantiation.state import (
     ClaimSubstantiatorState,
     DocumentChunk,
-    DocumentIssue,
-    SeverityEnum,
 )
+from lib.workflows.models import DocumentIssue, SeverityEnum
 
 
 def convert_state_to_issues(

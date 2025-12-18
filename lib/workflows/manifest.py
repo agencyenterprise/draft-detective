@@ -3,11 +3,13 @@ from typing import List, Type, TypeVar
 
 from langgraph.graph import StateGraph
 
-from lib.workflows.claim_substantiation.state import (
-    ClaimSubstantiatorState,
+from lib.workflows.claim_substantiation.state import ClaimSubstantiatorState
+from lib.workflows.models import (
+    BaseWorkflowConfig,
+    BaseWorkflowState,
     DocumentIssue,
+    WorkflowRunType,
 )
-from lib.workflows.models import BaseWorkflowConfig, BaseWorkflowState, WorkflowRunType
 from lib.workflows.types import WorkflowState
 
 WorkflowStateType = TypeVar("WorkflowStateType", bound=BaseWorkflowState)

@@ -2,10 +2,7 @@ from typing import List, Type
 
 from langgraph.graph import StateGraph
 
-from lib.workflows.claim_substantiation.state import (
-    ClaimSubstantiatorState,
-    DocumentIssue,
-)
+from lib.workflows.claim_substantiation.state import ClaimSubstantiatorState
 from lib.workflows.manifest import WorkflowManifest
 from lib.workflows.methodological_alignment.graph import (
     build_methodological_alignment_graph,
@@ -14,7 +11,7 @@ from lib.workflows.methodological_alignment.state import (
     MethodologicalAlignmentState,
     MethodologicalAlignmentWorkflowConfig,
 )
-from lib.workflows.models import WorkflowRunType
+from lib.workflows.models import DocumentIssue, WorkflowRunType
 from lib.workflows.types import WorkflowState
 from lib.workflows.util import get_state_by_type_or_raise
 

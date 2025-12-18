@@ -9,7 +9,7 @@ from lib.workflows.citation_suggester.state import (
     CitationSuggesterState,
     CitationSuggesterWorkflowConfig,
 )
-from lib.workflows.claim_substantiation.state import DocumentIssue, SeverityEnum
+from lib.workflows.models import DocumentIssue, SeverityEnum
 
 
 def convert_citation_suggester_state_issues(state: CitationSuggesterState):

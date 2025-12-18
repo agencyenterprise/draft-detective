@@ -10,6 +10,7 @@ from pydantic import BaseModel
 
 from lib.config.env import config
 from lib.services.docx.chunk_mapper import ChunkLike, create_chunk_to_paragraph_mapping
+from lib.workflows.models import SeverityEnum
 
 logger = logging.getLogger(__name__)
 
@@ -17,9 +18,6 @@ logger = logging.getLogger(__name__)
 # Severity mapping from workflow to DOCX
 def _map_severity_enum_to_comment_severity(severity) -> "CommentSeverity":
     """Map workflow SeverityEnum to CommentSeverity."""
-    # Import here to avoid circular dependency
-    from lib.workflows.claim_substantiation.state import SeverityEnum
-    
     mapping = {
         SeverityEnum.HIGH: CommentSeverity.HIGH,
         SeverityEnum.MEDIUM: CommentSeverity.MEDIUM,
@@ -110,7 +108,7 @@ def issue_to_comment(
     share_link = None
     if share_token:
         from lib.services.share_links import _build_share_url
-        
+
         anchor = _build_issue_anchor(issue)
         share_link = _build_share_url(share_token, anchor)
 
@@ -151,14 +149,18 @@ class DocxManipulatorService:
             raise FileNotFoundError(f"Original file not found: {original_docx_path}")
 
         output_path = self.get_output_path(workflow_run_id)
-        logger.info(f"Creating reviewed docx at {output_path} with {len(comments)} comments")
+        logger.info(
+            f"Creating reviewed docx at {output_path} with {len(comments)} comments"
+        )
 
         doc = Document(original_docx_path)
         docx_paragraphs = [p for p in doc.paragraphs if p.text.strip()]
 
         chunk_to_para_mapping = {}
         if chunks:
-            chunk_to_para_mapping = create_chunk_to_paragraph_mapping(chunks, docx_paragraphs)
+            chunk_to_para_mapping = create_chunk_to_paragraph_mapping(
+                chunks, docx_paragraphs
+            )
         else:
             logger.warning("No chunks provided, comments will not be added")
 
@@ -176,7 +178,9 @@ class DocxManipulatorService:
                 continue
 
             if para_idx >= len(docx_paragraphs):
-                logger.warning(f"Invalid paragraph index {para_idx} for chunk {comment.chunk_index}")
+                logger.warning(
+                    f"Invalid paragraph index {para_idx} for chunk {comment.chunk_index}"
+                )
                 comments_skipped += 1
                 continue
 
@@ -184,18 +188,28 @@ class DocxManipulatorService:
                 paragraph = docx_paragraphs[para_idx]
                 full_comment_text = comment.comment_text
                 if comment.share_link:
-                    full_comment_text += f"\n\n🔗 View in AI Reviewer: {comment.share_link}"
+                    full_comment_text += (
+                        f"\n\n🔗 View in AI Reviewer: {comment.share_link}"
+                    )
 
                 self._add_comment_to_paragraph(
-                    doc, paragraph, full_comment_text, comment.get_author(), comment.get_initials()
+                    doc,
+                    paragraph,
+                    full_comment_text,
+                    comment.get_author(),
+                    comment.get_initials(),
                 )
                 comments_added += 1
             except Exception as e:
-                logger.error(f"Failed to add comment to paragraph {para_idx}: {e}", exc_info=True)
+                logger.error(
+                    f"Failed to add comment to paragraph {para_idx}: {e}", exc_info=True
+                )
                 comments_skipped += 1
 
         doc.save(str(output_path))
-        logger.info(f"Created reviewed docx: {comments_added} added, {comments_skipped} skipped")
+        logger.info(
+            f"Created reviewed docx: {comments_added} added, {comments_skipped} skipped"
+        )
         return str(output_path)
 
     def _add_comment_to_paragraph(
@@ -215,4 +229,3 @@ class DocxManipulatorService:
 
 
 docx_manipulator_service = DocxManipulatorService()
-

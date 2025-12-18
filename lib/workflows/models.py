@@ -1,8 +1,10 @@
-from enum import Enum
+from enum import Enum, StrEnum
 from operator import add
 from typing import Annotated, List, Optional
 
 from pydantic import BaseModel, Field
+
+from lib.agents.models import ClaimCategory
 
 
 class WorkflowError(BaseModel):
@@ -63,3 +65,33 @@ def is_user_visible_workflow(workflow_type: WorkflowRunType) -> bool:
     """Check if a workflow type should be visible to users."""
 
     return workflow_type not in [WorkflowRunType.DOCX_GENERATION]
+
+
+class SeverityEnum(StrEnum):
+    NONE = "none"
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+
+    def sort_index(self) -> int:
+        return {
+            self.NONE: 0,
+            self.LOW: 1,
+            self.MEDIUM: 2,
+            self.HIGH: 3,
+        }[self]
+
+
+class DocumentIssue(BaseModel):
+    title: str = Field(description="The title of the issue")
+    description: str = Field(description="The description of the issue")
+    severity: SeverityEnum = Field(description="The severity of the issue")
+    chunk_index: Optional[int] = Field(
+        description="The index of the chunk that contains the issue", default=None
+    )
+    claim_index: Optional[int] = Field(
+        description="The index of the claim that contains the issue", default=None
+    )
+    claim_category: Optional[ClaimCategory] = Field(
+        description="The category of the claim that contains the issue", default=None
+    )

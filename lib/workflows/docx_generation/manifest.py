@@ -2,17 +2,14 @@ from typing import List, Type
 
 from langgraph.graph import StateGraph
 
-from lib.workflows.claim_substantiation.state import (
-    ClaimSubstantiatorState,
-    DocumentIssue,
-)
+from lib.workflows.claim_substantiation.state import ClaimSubstantiatorState
 from lib.workflows.docx_generation.graph import build_docx_generation_graph
 from lib.workflows.docx_generation.state import (
     DocxGenerationState,
     DocxGenerationWorkflowConfig,
 )
 from lib.workflows.manifest import WorkflowManifest
-from lib.workflows.models import WorkflowRunType
+from lib.workflows.models import DocumentIssue, WorkflowRunType
 from lib.workflows.types import WorkflowState
 
 
