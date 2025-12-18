@@ -7,8 +7,8 @@ from typing import Callable, TypeVar
 
 from lib.agents.registry import agent_registry
 from lib.workflows.claim_substantiation.state import (
+    AnalyzedChunk,
     ClaimSubstantiatorState,
-    DocumentChunk,
 )
 from lib.workflows.models import BaseWorkflowState, WorkflowError
 
@@ -32,18 +32,18 @@ def handle_chunk_errors(operation_name: str):
     Example:
         @handle_chunk_errors("Claim extraction")
         async def _extract_chunk_claims(
-            state: ClaimSubstantiatorState, chunk: DocumentChunk
-        ) -> DocumentChunk:
+            state: ClaimSubstantiatorState, chunk: AnalyzedChunk
+        ) -> AnalyzedChunk:
             ...
     """
 
     def decorator(
-        func: Callable[[ClaimSubstantiatorState, DocumentChunk, ...], DocumentChunk],
-    ) -> Callable[[ClaimSubstantiatorState, DocumentChunk, ...], DocumentChunk]:
+        func: Callable[[ClaimSubstantiatorState, AnalyzedChunk, ...], AnalyzedChunk],
+    ) -> Callable[[ClaimSubstantiatorState, AnalyzedChunk, ...], AnalyzedChunk]:
         @wraps(func)
         async def wrapper(
-            state: ClaimSubstantiatorState, chunk: DocumentChunk, *args, **kwargs
-        ) -> DocumentChunk:
+            state: ClaimSubstantiatorState, chunk: AnalyzedChunk, *args, **kwargs
+        ) -> AnalyzedChunk:
             try:
                 return await func(state, chunk, *args, **kwargs)
             except Exception as e:

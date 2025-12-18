@@ -4,7 +4,7 @@ import { LabeledValue } from '@/components/labeled-value';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { getChunkId } from '@/lib/chunk-ids';
-import { ClaimSubstantiatorStateOutput, DocumentChunkOutput, DocumentIssue } from '@/lib/generated-api';
+import { AnalyzedChunkOutput, ClaimSubstantiatorStateOutput, DocumentIssue } from '@/lib/generated-api';
 import { getChunkIssues, getMaxSeverity } from '@/lib/severity';
 import { ChevronDownIcon, ChevronRightIcon, LinkIcon, MessageCirclePlus } from 'lucide-react';
 import Link from 'next/link';
@@ -15,7 +15,7 @@ import { ExpandableResultSection } from './expandable-result-section';
 
 export interface ChunkAnalysisCardProps {
   results: ClaimSubstantiatorStateOutput;
-  chunk: DocumentChunkOutput;
+  chunk: AnalyzedChunkOutput;
   issues: DocumentIssue[];
 }
 

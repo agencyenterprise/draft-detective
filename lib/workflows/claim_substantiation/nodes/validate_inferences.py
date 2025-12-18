@@ -11,8 +11,8 @@ from lib.agents.models import ClaimCategory
 from lib.workflows.chunk_iterator import iterate_chunks
 from lib.workflows.context import ContextSchema
 from lib.workflows.claim_substantiation.state import (
+    AnalyzedChunk,
     ClaimSubstantiatorState,
-    DocumentChunk,
 )
 from lib.workflows.decorators import handle_chunk_errors, register_node
 
@@ -41,9 +41,9 @@ async def validate_inferences(
 @handle_chunk_errors("Inference validation")
 async def _validate_chunk_inferences(
     state: ClaimSubstantiatorState,
-    chunk: DocumentChunk,
+    chunk: AnalyzedChunk,
     inference_validator_agent: InferenceValidatorAgent,
-) -> DocumentChunk:
+) -> AnalyzedChunk:
     """Validate inferences for claims categorized as INTERPRETATION."""
     # Skip if chunk has no claims
     if chunk.claims is None or not chunk.claims.claims:

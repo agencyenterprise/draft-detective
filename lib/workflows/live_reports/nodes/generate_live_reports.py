@@ -9,7 +9,7 @@ from lib.agents.evidence_weighter import (
 from lib.agents.live_literature_review import LiveLiteratureReviewAgent
 from lib.workflows.chunk_iterator import iterate_chunks
 from lib.workflows.context import ContextSchema
-from lib.workflows.claim_substantiation.state import DocumentChunk
+from lib.workflows.claim_substantiation.state import AnalyzedChunk
 from lib.workflows.decorators import register_node
 from lib.workflows.live_reports.state import LiveReportsState
 
@@ -37,10 +37,10 @@ async def generate_live_reports_analysis(
 
 async def _analyze_chunk_live_reports(
     state: LiveReportsState,
-    chunk: DocumentChunk,
+    chunk: AnalyzedChunk,
     live_literature_review_agent: LiveLiteratureReviewAgent,
     evidence_weighter_agent: EvidenceWeighterAgent,
-) -> DocumentChunk:
+) -> AnalyzedChunk:
     # Skip if chunk has no claims
     if chunk.claims is None or not chunk.claims.claims:
         logger.debug(

@@ -7,7 +7,7 @@ from lib.agents.document_summarizer import DocumentSummary
 from lib.agents.literature_review import LiteratureReviewResponse
 from lib.agents.reference_extractor import BibliographyItem
 from lib.services.file import FileDocument
-from lib.workflows.claim_substantiation.state import DocumentChunk
+from lib.workflows.claim_substantiation.state import AnalyzedChunk
 from lib.workflows.models import BaseWorkflowConfig, BaseWorkflowState, WorkflowRunType
 
 
@@ -28,7 +28,7 @@ class CitationSuggesterState(BaseWorkflowState):
     config: CitationSuggesterWorkflowConfig
     file: FileDocument
     references: List[BibliographyItem] = Field(default_factory=list)
-    chunks: List[DocumentChunk] = Field(default_factory=list)
+    chunks: List[AnalyzedChunk] = Field(default_factory=list)
     supporting_files: Optional[List[FileDocument]] = None
     supporting_documents_summaries: Optional[Dict[int, DocumentSummary]] = Field(
         default=None,
@@ -40,7 +40,7 @@ class CitationSuggesterState(BaseWorkflowState):
         description="Citation suggestions for all chunks and claims",
     )
 
-    def get_paragraph_chunks(self, paragraph_index: int) -> List[DocumentChunk]:
+    def get_paragraph_chunks(self, paragraph_index: int) -> List[AnalyzedChunk]:
         return [
             chunk for chunk in self.chunks if chunk.paragraph_index == paragraph_index
         ]

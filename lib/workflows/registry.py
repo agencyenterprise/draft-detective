@@ -44,6 +44,7 @@ def get_workflow_manifest(type: WorkflowRunType) -> WorkflowManifest:
 def register_all_workflow_manifests():
     from lib.workflows.citation_suggester.manifest import CitationSuggesterManifest
     from lib.workflows.claim_substantiation.manifest import ClaimSubstantiationManifest
+    from lib.workflows.document_processing.manifest import DocumentProcessingManifest
     from lib.workflows.docx_generation.manifest import DocxGenerationManifest
     from lib.workflows.literature_review.manifest import LiteratureReviewManifest
     from lib.workflows.live_reports.manifest import LiveReportsManifest
@@ -55,6 +56,7 @@ def register_all_workflow_manifests():
     from lib.workflows.results_extraction.manifest import ResultsExtractionManifest
 
     manifests = [
+        DocumentProcessingManifest(),
         ClaimSubstantiationManifest(),
         CitationSuggesterManifest(),
         DocxGenerationManifest(),
@@ -128,10 +130,15 @@ def create_context(
 async def create_state(config: BaseWorkflowConfig) -> WorkflowState:
     """
     Create initial state for a workflow from the config.
+    
+    Loads all workflow states (including internal ones) to support dependency resolution.
     """
     from lib.services.workflow_runs import get_project_workflow_runs
 
-    workflow_runs = await get_project_workflow_runs(config.project_id)
+    # Include internal workflows so dependencies can access their states
+    workflow_runs = await get_project_workflow_runs(
+        config.project_id, include_internal=True
+    )
     existing_states: List[WorkflowState] = [
         run.state for run in workflow_runs if run.state is not None
     ]

@@ -3,8 +3,8 @@ from typing import List, Optional
 from lib.agents.claim_verifier import EvidenceAlignmentLevel
 from lib.agents.models import ClaimCategory
 from lib.workflows.claim_substantiation.state import (
+    AnalyzedChunk,
     ClaimSubstantiatorState,
-    DocumentChunk,
 )
 from lib.workflows.models import DocumentIssue, SeverityEnum
 
@@ -140,7 +140,7 @@ def convert_state_to_issues(
 
 
 def _find_claim_category(
-    chunk: DocumentChunk, claim_index: int
+    chunk: AnalyzedChunk, claim_index: int
 ) -> Optional[ClaimCategory]:
     """Find claim category for a given claim index in a chunk."""
     for category in chunk.claim_categories:

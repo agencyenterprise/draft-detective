@@ -34,6 +34,9 @@ class WorkflowManifest[WorkflowStateType, WorkflowConfigType](ABC):
     # Whether the workflow can be triggered by the user
     can_be_triggered_by_user: bool = True
 
+    # Internal workflows run as dependencies, not shown in UI
+    is_internal: bool = False
+
     # List of workflow types that this workflow depends on.
     # Used to determine the order in which the workflows should be run.
     # In case a workflow is started and a required dependency is not completed, running or scheduled to run, the workflow will fail to start with an error.

@@ -13,8 +13,8 @@ from lib.agents.formatting_utils import (
 from lib.workflows.chunk_iterator import iterate_chunks
 from lib.workflows.context import ContextSchema
 from lib.workflows.claim_substantiation.state import (
+    AnalyzedChunk,
     ClaimSubstantiatorState,
-    DocumentChunk,
 )
 from lib.workflows.decorators import register_node
 
@@ -41,9 +41,9 @@ async def suggest_citations(
 
 async def _suggest_chunk_citations(
     state: ClaimSubstantiatorState,
-    chunk: DocumentChunk,
+    chunk: AnalyzedChunk,
     citation_suggester_agent: CitationSuggesterAgent,
-) -> DocumentChunk:
+) -> AnalyzedChunk:
     # Skip if chunk has no claims
     if chunk.claims is None or not chunk.claims.claims:
         logger.debug(

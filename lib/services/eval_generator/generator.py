@@ -7,7 +7,7 @@ from typing import Dict, List
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
-from lib.workflows.claim_substantiation.state import ClaimSubstantiatorState, DocumentChunk
+from lib.workflows.claim_substantiation.state import AnalyzedChunk, ClaimSubstantiatorState
 
 from .test_case_builders import (
     CitationTestCaseBuilder,
@@ -165,7 +165,7 @@ class EvalTestGenerator:
         results: ClaimSubstantiatorState,
         test_name: str,
         selected_agents: List[str] = None,
-        target_chunks: List[DocumentChunk] = None
+        target_chunks: List[AnalyzedChunk] = None
     ) -> Dict[str, List[Dict]]:
         """Unified test case extraction for chunks with optional agent filtering."""
         chunks = target_chunks if target_chunks else results.chunks
