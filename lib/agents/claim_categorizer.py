@@ -42,9 +42,11 @@ class ClaimCategorizationResponse(BaseModel):
     rationale: str = Field(description="One-line reason for the category assignment.")
     needs_external_verification: bool = Field(
         description=(
-            "True if: (a) the sentence contains a citation, OR (b) it asserts reported/established "
-            "knowledge that originates outside the current document/analysis and would typically "
-            "require an external source. False for purely internal methods/results/structure."
+            "True ONLY if the claim asserts a specific factual statement from external sources "
+            "that is NOT common knowledge and CAN be verified by external sources. "
+            "False for: common knowledge, authors' own work/results, inferences, "
+            "interpretations, structural statements, or claims that cannot be externally verified. "
+            "IMPORTANT: When uncertain, default to FALSE."
         ),
     )
 
@@ -59,76 +61,144 @@ _claim_categorizer_prompt = ChatPromptTemplate.from_template(
 You are an expert claim categorizer. Your task is to tag the specific claim in a passage
 with ONE of SIX categories and to determine if it needs EXTERNAL VERIFICATION.
 
-## Categories with examples:
+## Decision Framework for Claim Category Assignment:
 
-1. **Established / Reported Knowledge** -> Requires external validation most often
-   - Knowledge that is generally background theory, results, or definitions in a field. The purpose is to anchor subsequent statements in a given context. These claims generally require external validation if they assert something that is not common knowledge within the world or domain or target audience.
-   - Typical content: Contains background facts, prior research findings, textbook principles, or definitions.
-   - Examples:
-       • "Protein folding is governed by the hydrophobic effect (Kauzmann, 1959)."
-       • "Graphene has a Young's modulus of ~1 TPa (Lee et al., 2008)."
-       • "Previous studies have shown that X causes Y (Smith et al., 2021)."
-       • "According to prior studies, neural networks outperform linear models on vision tasks."
-   - Rule of Thumb for needing external validation:
-        - If the knowledge did not originate in this paper and is not universally accepted, then it requires external validation. If the knowledge is common knowledge within the world or domain or target audience, then it does not require external validation
-   - External validation exemptions:
-        - If the knowledge is universally accepted in the domain, then it does not require external validation (The chemical composition of water is H2O; The United States is a country; The speed of light is 299,792,458 meters per second)
+STEP 1: Check for Meta/Structural/Evaluative (Category 5)
+- Does the claim describe the document's organization, structure, or navigation?
+  → Phrases: "in the next section", "in the following section", "this paper", "we discuss"
+- Does it evaluate the work's significance, novelty, or contribution?
+  → Phrases: "this study represents", "significant improvement", "novel contribution"
+- Does it describe limitations, scope, or goals of THIS work?
+  → If YES → Category 5: Meta/Structural/Evaluative
+  → If NO → Continue to STEP 2
 
-2. **Methodological / Procedural Statements** -> Often requires external validation
+STEP 2: Check for Inferential/Interpretive (Category 4)
+- Does the claim interpret, explain, or draw conclusions from results?
+  → Phrases: "suggests", "implies", "indicates", "supports", "argues", "may indicate"
+- Does it propose causality, mechanisms, or theoretical explanations?
+- Does it make inferences from earlier statements in the document?
+- Is it an opinion, evaluation, or interpretation rather than a fact?
+  → If YES → Category 4: Inferential/Interpretive
+  → If NO → Continue to STEP 3
 
-   - Descriptions of the what the authors did in the paper and the methodology and techniques they used. These claims require external validation if the mentioned techniques are not universally known within the domain or to the target audience.
-   - Typical content: description of algorithms, methods, instruments, model architectures, or data sources. Contains phrases like "used" "followed" "took" "collected" "preprocessed" "analyzed" "validated." Includes adjustments, control variables, data processing, or validation steps.
-   - Examples:
-       • "We used a logistic regression with L2 regularization."
-       • "We used the Adam optimizer (Kingma & Ba, 2014)."
-       • "The dataset was taken from the UCI repository (Dua & Graff, 2019)."
-       • "Survey data were collected between 2019-2020 using random sampling."
-       • "Following the approach of Zhao et al. (2022), we fine-tuned BERT for classification."
-   - Rule of Thumb for needing external validation:
-        - If the method, algorithm, dataset, or software package used in the sentence did not originate in this paper and is not universally accepted, then it requires a citation.
-   - External validation exemptions:
-        - External validation is not required for methodologies that are universally accepted in the domain (e.g., stochastic gradient descent in DL and AI; bag of words in NLP; etc.)
+STEP 3: Check for Empirical/Analytical Results (Category 3)
+- Does the claim report NEW findings, measurements, or results from THIS work?
+  → Phrases: "we found", "improved by", "reached", "measured", "discovered"
+- Does it describe quantitative outcomes, error rates, or patterns from analysis?
+- Is it a result that came from the authors' own experiments, analysis, or calculations?
+  → If YES → Category 3: Empirical/Analytical Results
+  → If NO → Continue to STEP 4
 
-3. **Empirical / Analytical Results** -> Usually does not require external validation
-   - Results and new findings obtained from the current work. Can be results related to data and its analysis but does not include interpreting those analysis results.
-   - Typical content: measured values, error rates, or discovered patterns. Contains phrases like "improved by" "reached equilibrium in" "found a strong correlation between"
-   - Examples:
-       • "Accuracy improved by 12 percentage points over baseline."
-       • "The reaction reached equilibrium in 30 seconds."
-       • "We found a strong correlation between the two variables."
-   - Rule of Thumb for needing external validation:
-        - Results obtained from the current work do not require external validation unless these results are compared to prior work or external theory (e.g., "Our accuracy exceeds the 89 percent reported by Li et al., 2023.")
+STEP 4: Check for Methodological/Procedural (Category 2)
+- Does the claim describe WHAT the authors did or HOW they did it?
+  → Phrases: "we used", "we followed", "we collected", "we analyzed", "we applied"
+- Does it describe methods, algorithms, instruments, data sources, or procedures?
+- Does it describe the methodology, techniques, or approach used in THIS paper?
+  → If YES → Category 2: Methodological/Procedural
+  → If NO → Continue to STEP 5
 
-4. **Inferential / Interpretive Claims** -> NEVER requires external validation
-   - Claims that are interpretations of the results or background knowledge within the current work, prior theory, or references. Also includes claims that are inferences drawn from statements in previous sentences or paragraphs.
-   - Typical content: Causality, mechanism, theoretical explanation, or significance interpretation. Contains phrases like "suggests" "implies" "may indicate" "supports" "implies" "suggests" "may indicate" "supports"
-   - Examples:
-       • "This trend suggests that diffusion limits the reaction rate."
-       • "The findings imply that public trust increases with transparency."
-       • "This trend supports the hypothesis that diffusion limits the reaction rate (Anderson et al., 2019)."
-       • "We argue that the observed pattern indicates a causal relationship."
-       • "Consistent with prior models of turbulent mixing (Kolmogorov, 1941)."
-       • "This presents a new way to approach the problem."
-   - Includes explanations, causal reasoning, and theoretical implications.
-   - Rule of Thumb for needing external validation:
-        - Inferences NEVER require external validation.
+STEP 5: Check for Established/Reported Knowledge (Category 1)
+- Does the claim report background knowledge, prior research, or established facts?
+- Does it cite or reference external sources, prior studies, or field knowledge?
+- Is it providing context, definitions, or anchoring information from outside this paper?
+- Does it describe what others have found or what is known in the field?
+  → If YES → Category 1: Established/Reported Knowledge
+  → If NO → Continue to STEP 6
 
-5. **Meta / Structural / Evaluative Claims** -> NEVER requires external validation
+STEP 6: Other (Category 6)
+- Only use if the claim doesn't fit any of the above categories
+- This should be rare - most claims should fit into categories 1-5
 
-   - Claims that are used to manage discourse, describe organization, express novelty or significance. These claims generally never require external validation.
-   - Typical content: section transitions, claims of contribution, limitation statements. Contains phrases like "in the next section" "in the following section"
-   - Examples:
-       • "In the next section we discuss limitations."
-       • "This study represents a significant improvement over previous work."
-   - Includes signposting or self-referential commentary.
-   - Rule of Thumb for needing external validation:
-        - Meta/structural/evaluative claims NEVER require external validation.
+## Key Distinctions to Avoid Common Mistakes:
 
-6. **Other**
-   - Only use if none of the above categories fit.
+### Category 1 vs Category 3:
+- Category 1: "Previous studies showed X" (external knowledge)
+- Category 3: "We found X" (this paper's results)
 
+### Category 2 vs Category 3:
+- Category 2: "We used method X" (how they did it)
+- Category 3: "Method X improved accuracy by 10%" (what they found)
 
-## Guidelines for determining if a claim needs external verification:
+### Category 3 vs Category 4:
+- Category 3: "We found a correlation of 0.8" (factual result)
+- Category 4: "This correlation suggests causation" (interpretation)
+
+### Category 1 vs Category 4:
+- Category 1: "Smith et al. (2020) found that X causes Y" (reporting external finding)
+- Category 4: "This finding supports the theory that X causes Y" (interpreting/connecting)
+
+## Context-Aware Decision Making:
+
+- Use the document summary to understand what is "new" vs "background"
+  → New findings → Category 3
+  → Background/context → Category 1
+
+- Check if the claim describes the authors' own work
+  → Own methodology → Category 2
+  → Own results → Category 3
+  → Own interpretation → Category 4
+
+- Look for temporal indicators
+  → "Previous studies", "Prior work" → Category 1
+  → "We found", "Our results" → Category 3
+  → "This suggests", "This implies" → Category 4
+
+## Decision Priority Order:
+
+When a claim could fit multiple categories, use this priority:
+1. Meta/Structural/Evaluative (if it's about the document structure)
+2. Inferential/Interpretive (if it's an interpretation)
+3. Empirical/Analytical Results (if it's a new finding)
+4. Methodological/Procedural (if it's about methods)
+5. Established/Reported Knowledge (if it's background/prior work)
+6. Other (only as last resort)
+
+## Common Edge Cases:
+
+**"We compared our results to Smith et al. (2020)"**
+→ Category 3 (reporting own results, even if comparing)
+
+**"Following Smith et al. (2020), we used method X"**
+→ Category 2 (describing methodology, even if citing external method)
+
+**"This result is consistent with Smith et al. (2020)"**
+→  Category 3 (reporting own results, even if comparing)
+
+**"Smith et al. (2020) found that X causes Y"**
+→ Category 1 (reporting external knowledge)
+
+**"Our finding that X causes Y supports the theory proposed by Smith et al. (2020)"**
+→ Category 4 (interpretive claim connecting own work to prior theory)
+## Decision Framework for needs_external_verification:
+
+STEP 1: Check category first
+- If category is "Inferential/Interpretive" → ALWAYS FALSE
+- If category is "Meta/Structural/Evaluative" → ALWAYS FALSE  
+- If category is "Empirical/Analytical Results" → Usually FALSE (only TRUE if comparing to external work)
+
+STEP 2: For other categories, check if it's generally accepted knowledge or inferred knowledge
+- Could this be a generally accepted claim in the subject domain of the document? → FALSE
+- Is this basic terminology, definition, or fundamental principle? → FALSE
+- Is this a logical inference from already-cited material? → FALSE
+
+STEP 3: Check if it's the authors' own work
+- Is this describing methodology/results from THIS paper? → FALSE
+- Is this a conclusion drawn from THIS paper's analysis? → FALSE
+
+STEP 4: Only then check if external verification is needed
+- Does it assert a specific factual claim from external sources? → TRUE
+- Does it compare to specific external findings? → TRUE
+- Is it a contested or debatable assertion presented as fact? → TRUE
+
+DEFAULT: When in doubt, set to FALSE. Only set to TRUE if the claim clearly requires external verification.
+
+### Context-Aware Decision Making:
+
+- Check if the claim builds on earlier cited material in the same paragraph → Usually FALSE
+- Check if the claim describes the authors' own methodology/results → FALSE
+- Check if similar claims earlier in the document were already substantiated → May be FALSE
+- Use the document summary to understand what is "new" vs "background" → New findings = FALSE
+
 
 ### Claims that typically do not require external verification:
 
@@ -151,11 +221,15 @@ with ONE of SIX categories and to determine if it needs EXTERNAL VERIFICATION.
 - Structural
     - Statements describing the structure or scope of the work itself that report on the authors' own methodology, goals, or organization rather than asserting an external fact
 
-## Claims that typically require external verification:
+### CRITICAL: Conservative Default Rule
 
-- Something that is not common knowledge and that refers to a specific fact that can be verified by external sources. (If something cannot be externally verified, then it does not require external verification.)
+The default for needs_external_verification should be FALSE. Only set to TRUE if you are confident that:
+1. The claim asserts a specific factual statement from external sources
+2. It is NOT common knowledge for the subject domain of the document
+3. It CAN be verified by external sources
+4. It is NOT the authors' own work, inference, or interpretation
 
-
+When in doubt between TRUE and FALSE, default to FALSE.
 ---
 
 # Output Requirements
