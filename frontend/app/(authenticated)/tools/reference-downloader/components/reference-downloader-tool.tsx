@@ -41,7 +41,9 @@ export function ReferenceDownloaderTool() {
     enabled: !!workflowRunId,
     refetchInterval: (query) => {
       const data = query.state.data;
-      return data?.run.status === WorkflowRunStatus.Running ? REFETCH_INTERVAL_MS : false;
+      return data?.run.status === WorkflowRunStatus.Running || data?.run.status === WorkflowRunStatus.Pending
+        ? REFETCH_INTERVAL_MS
+        : false;
     },
   });
 
@@ -86,14 +88,16 @@ export function ReferenceDownloaderTool() {
     startWorkflowMutation.mutate(referenceList);
   };
 
-  const isProcessing = workflowDetail?.run.status === WorkflowRunStatus.Running || startWorkflowMutation.isPending;
+  const isProcessing =
+    startWorkflowMutation.isPending ||
+    workflowDetail?.run.status === WorkflowRunStatus.Running ||
+    workflowDetail?.run.status === WorkflowRunStatus.Pending;
   const state = workflowDetail?.state as ReferenceDownloaderState | undefined;
   const results = state?.fetched_references ?? [];
-  const downloadedReferences = state?.downloaded_references ?? [];
   const hasResults = results.length > 0;
   const isCompleted = workflowDetail?.run.status === WorkflowRunStatus.Completed;
   const projectId = workflowDetail?.run.project_id;
-  const hasDownloadedReferences = downloadedReferences.some((ref) => ref !== null);
+  const hasDownloadedReferences = results.some((item) => item.file_id !== null);
   const { downloadAll, isDownloading } = useDownloadAllProjectFiles(projectId);
 
   return (
@@ -204,12 +208,7 @@ export function ReferenceDownloaderTool() {
           </div>
           <div className="space-y-3">
             {results.map((item: ReferenceFetchItem, index: number) => (
-              <ReferenceItem
-                key={index}
-                item={item}
-                index={index}
-                downloadedReference={downloadedReferences[index] || null}
-              />
+              <ReferenceItem key={index} item={item} index={index} />
             ))}
           </div>
         </div>

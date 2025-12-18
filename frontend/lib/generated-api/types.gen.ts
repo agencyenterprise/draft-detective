@@ -2476,12 +2476,6 @@ export type ReferenceDownloaderState = {
    * The response from the reference fetcher agent
    */
   fetched_references?: Array<ReferenceFetchItem> | null;
-  /**
-   * Downloaded References
-   *
-   * The hashes of the files that were downloaded, or None if the download failed. Indexes match the fetched_references list.
-   */
-  downloaded_references?: Array<string | null> | null;
 };
 
 /**
@@ -2547,15 +2541,21 @@ export type ReferenceFetchItem = {
   /**
    * Source Url
    *
-   * Direct URL to the located source, or null if no match was found
+   * Direct URL to the downloadable version of the located source, or null if no match was found
    */
   source_url: string | null;
   /**
-   * Download Url
+   * File Id
    *
-   * Direct URL to the downloadable version of the located source, or null if no match was found
+   * The ID of the verified downloaded file containing the full original content. Return null if conclusion is different than 'source_found'
    */
-  download_url: string | null;
+  file_id: string | null;
+  /**
+   * Failed File Ids
+   *
+   * The full list of file IDs that were downloaded in the process but failed to be verified as the correct full original content related to the reference
+   */
+  failed_file_ids: Array<string>;
   final_conclusion: ReferenceFetchConclusion;
 };
 

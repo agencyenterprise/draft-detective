@@ -32,7 +32,3 @@ class ReferenceDownloaderState(BaseWorkflowState):
         default=None,
         description="The response from the reference fetcher agent",
     )
-    downloaded_references: Optional[List[str | None]] = Field(
-        default=None,
-        description="The hashes of the files that were downloaded, or None if the download failed. Indexes match the fetched_references list.",
-    )
