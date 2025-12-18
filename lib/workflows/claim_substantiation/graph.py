@@ -12,9 +12,6 @@ from lib.workflows.claim_substantiation.nodes.extract_references import (
 from lib.workflows.claim_substantiation.nodes.index_supporting_documents import (
     index_supporting_documents,
 )
-from lib.workflows.claim_substantiation.nodes.validate_inferences import (
-    validate_inferences,
-)
 from lib.workflows.claim_substantiation.nodes.verify_claims import (
     verify_claims,
     verify_claims_with_rag,
@@ -57,9 +54,8 @@ def build_claim_substantiator_graph(
     graph.add_edge(START, "extract_references")
     graph.add_edge(START, "extract_claims")
 
-    # add categorization and inference validation nodes
+    # add categorization node
     graph.add_node("categorize_claims", categorize_claims)
-    graph.add_node("validate_inferences", validate_inferences)
 
     # Conditional verify node based on RAG setting
     if config.use_rag:
@@ -77,13 +73,11 @@ def build_claim_substantiator_graph(
     graph.add_edge("extract_claims", "categorize_claims")
     graph.add_edge("categorize_claims", "verify_claims")
     graph.add_edge("detect_citations", "verify_claims")
-    graph.add_edge("categorize_claims", "validate_inferences")
     graph.add_edge("extract_references", "detect_citations")
 
-    # Create a finalize node to wait for both verify_claims and validate_inferences to complete in parallel
+    # Create a finalize node to wait for verify_claims to complete
     graph.add_node("finalize", finalize)
     graph.add_edge("verify_claims", "finalize")
-    graph.add_edge("validate_inferences", "finalize")
     graph.set_finish_point("finalize")
 
     return graph

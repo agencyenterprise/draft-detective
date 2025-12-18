@@ -14,6 +14,10 @@ from lib.workflows.docx_generation.state import (
     DocxGenerationState,
     DocxGenerationWorkflowConfig,
 )
+from lib.workflows.inference_validation.state import (
+    InferenceValidationState,
+    InferenceValidationWorkflowConfig,
+)
 from lib.workflows.literature_review.state import (
     LiteratureReviewState,
     LiteratureReviewWorkflowConfig,
@@ -47,6 +51,7 @@ WorkflowState = (
     | ReferenceValidationState
     | CitationSuggesterState
     | ResultsExtractionState
+    | InferenceValidationState
 )
 
 WorkflowConfig = (
@@ -59,4 +64,5 @@ WorkflowConfig = (
     | ReferenceValidationWorkflowConfig
     | CitationSuggesterWorkflowConfig
     | ResultsExtractionWorkflowConfig
+    | InferenceValidationWorkflowConfig
 )

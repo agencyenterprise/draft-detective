@@ -16,7 +16,6 @@ async def build_config_from_form(
     target_audience: Optional[str] = Form(default=None),
     target_chunk_indices: Optional[str] = Form(default=None),
     agents_to_run: Optional[str] = Form(default=None),
-    session_id: Optional[str] = Form(default=None),
     openai_api_key: Optional[str] = Form(default=None),
     publication_date: Optional[str] = Form(default=None),
     workflow_types: Optional[str] = Form(default=None),
@@ -31,7 +30,6 @@ async def build_config_from_form(
         target_audience: Target audience context for analysis
         target_chunk_indices: Comma-separated chunk indices to process (optional)
         agents_to_run: Comma-separated agent names to run (optional)
-        session_id: Session ID for Langfuse tracing (optional)
         openai_api_key: OpenAI API key to use for this workflow execution (optional)
         publication_date: Publication date of the document in YYYY-MM-DD format (optional)
         web_search_consent: Whether the user has consented to web search (optional)
@@ -71,9 +69,6 @@ async def build_config_from_form(
                 status_code=422,
                 detail=f"Invalid workflow type in workflow_types: {str(e)}",
             )
-
-    if not session_id:
-        session_id = str(uuid.uuid4())
 
     return SubstantiationWorkflowConfig(
         use_toulmin=use_toulmin,

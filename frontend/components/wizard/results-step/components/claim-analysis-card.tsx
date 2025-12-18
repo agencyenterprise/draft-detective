@@ -62,6 +62,10 @@ export function ClaimAnalysisCard({
     () => getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.LiveReports),
     [allWorkflowDetails],
   );
+  const inferenceValidationDetail = useMemo(
+    () => getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.InferenceValidation),
+    [allWorkflowDetails],
+  );
 
   if (!chunkDetails) {
     return null;
@@ -70,16 +74,18 @@ export function ClaimAnalysisCard({
   const claimCategory = chunkDetails.claim_categories?.find((c) => c.claim_index === claimIndex);
   const commonKnowledgeResult = chunkDetails.claim_common_knowledge_results?.find((c) => c.claim_index === claimIndex);
   const substantiation = chunkDetails.substantiations?.find((s) => s.claim_index === claimIndex);
-  const citationSuggestion = citationSuggesterDetail?.state.citation_suggestions?.find(
+  const citationSuggestion = citationSuggesterDetail?.state?.citation_suggestions?.find(
     (c) => c.chunk_index === chunkIndex && c.claim_index === claimIndex,
   );
-  const liveReportsAnalysis = liveReportsDetail?.state.live_reports_analysis?.find(
+  const liveReportsAnalysis = liveReportsDetail?.state?.live_reports_analysis?.find(
     (l) => l.chunk_index === chunkIndex && l.claim_index === claimIndex,
   );
-  const inferenceValidation = chunkDetails.inference_validations?.find((i) => i.claim_index === claimIndex);
+  const inferenceValidation = inferenceValidationDetail?.state?.inference_validations?.find(
+    (i) => i.chunk_index === chunkIndex && i.claim_index === claimIndex,
+  );
 
-  const supportingFiles = citationSuggesterDetail?.state.supporting_files ?? [];
-  const references = citationSuggesterDetail?.state.references ?? [];
+  const supportingFiles = citationSuggesterDetail?.state?.supporting_files ?? [];
+  const references = citationSuggesterDetail?.state?.references ?? [];
   const claimIssues = getClaimIssues(issues, chunkIndex, claimIndex);
   const maxSeverity = getMaxSeverity(claimIssues);
 

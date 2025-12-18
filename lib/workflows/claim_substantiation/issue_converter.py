@@ -119,23 +119,6 @@ def convert_state_to_issues(
                 )
                 issues.append(issue)
 
-    # 4. Inference Validation: Invalid inferences
-    for chunk in state.chunks:
-        if not chunk.inference_validations:
-            continue
-
-        for validation in chunk.inference_validations:
-            if not validation.valid:
-                issue = DocumentIssue(
-                    title="Invalid Inference",
-                    description=validation.rationale,
-                    severity=SeverityEnum.MEDIUM,
-                    chunk_index=validation.chunk_index,
-                    claim_index=validation.claim_index,
-                    claim_category=_find_claim_category(chunk, validation.claim_index),
-                )
-                issues.append(issue)
-
     return issues
 
 
