@@ -6,6 +6,7 @@ in dependency order (dependencies before dependents).
 """
 
 import logging
+from graphlib import TopologicalSorter
 from typing import List, Set
 
 from lib.workflows.models import WorkflowRunType
@@ -94,26 +95,14 @@ def _topological_sort(workflows: Set[WorkflowRunType]) -> List[WorkflowRunType]:
 
     Dependencies appear before their dependents in the result.
 
-    Uses depth-first search with post-order traversal.
+    Uses Python's graphlib.TopologicalSorter for standard topological sorting.
     """
-    sorted_workflows: List[WorkflowRunType] = []
-    visited: Set[WorkflowRunType] = set()
-
-    def visit(workflow_type: WorkflowRunType):
-        """Visit workflow and its dependencies in post-order."""
-        if workflow_type in visited:
-            return
-
-        visited.add(workflow_type)
-
+    graph = {}
+    for workflow_type in workflows:
         manifest = get_workflow_manifest(workflow_type)
-        for dep in manifest.required_dependencies:
-            if dep in workflows:
-                visit(dep)
 
-        sorted_workflows.append(workflow_type)
+        deps = {dep for dep in manifest.required_dependencies if dep in workflows}
+        graph[workflow_type] = deps
 
-    for wf_type in workflows:
-        visit(wf_type)
-
-    return sorted_workflows
+    sorter = TopologicalSorter(graph)
+    return list(sorter.static_order())

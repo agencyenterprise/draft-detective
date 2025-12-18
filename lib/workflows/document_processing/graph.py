@@ -1,6 +1,6 @@
 """Document processing workflow graph."""
 
-from langgraph.graph import StateGraph
+from langgraph.graph import StateGraph, END
 
 from lib.workflows.context import ContextSchema
 from lib.workflows.document_processing.nodes.convert_to_markdown import (
@@ -40,7 +40,6 @@ def build_document_processing_graph(
     # Core edges - main processing pipeline
     graph.add_edge("convert_to_markdown", "prepare_documents")
     graph.add_edge("prepare_documents", "split_into_chunks")
-    graph.add_edge("split_into_chunks", "__end__")
+    graph.add_edge("split_into_chunks", END)
 
     return graph
-
