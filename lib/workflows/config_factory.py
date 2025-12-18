@@ -51,7 +51,6 @@ def create_workflow_config(
             target_audience=base_config.target_audience,
             target_chunk_indices=base_config.target_chunk_indices,
             agents_to_run=base_config.agents_to_run,
-            session_id=base_config.session_id,
             publication_date=base_config.publication_date,
             workflow_types=base_config.workflow_types,
         )

@@ -21,23 +21,12 @@ logger = logging.getLogger(__name__)
 async def summarize_supporting_documents(
     state: ClaimSubstantiatorState, runtime: Runtime[ContextSchema]
 ) -> ClaimSubstantiatorState:
-
-    if not state.config.run_suggest_citations:
-        logger.info(
-            f"summarize_supporting_documents ({state.config.session_id}): skipping summarize_supporting_documents (run_suggest_citations is False)"
-        )
-        return {}
-
     supporting_files = state.supporting_files
     if not supporting_files:
-        logger.info(
-            f"summarize_supporting_documents ({state.config.session_id}): No supporting files to summarize"
-        )
+        logger.info(f"No supporting files to summarize")
         return {}
 
-    logger.info(
-        f"summarize_supporting_documents ({state.config.session_id}): Summarizing {len(supporting_files)} files in parallel"
-    )
+    logger.info(f"Summarizing {len(supporting_files)} files in parallel")
 
     document_summarizer_agent = DocumentSummarizerAgent(runtime.context)
     tasks = [

@@ -28,7 +28,6 @@ export default function New() {
             use_toulmin: false,
             domain: data.config.domain || undefined,
             target_audience: data.config.targetAudience || undefined,
-            session_id: undefined,
             openai_api_key: data.config.openaiApiKey,
             publication_date: data.config.publicationDate || undefined,
             workflow_types: data.config.workflowTypes,

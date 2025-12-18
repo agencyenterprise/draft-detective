@@ -29,12 +29,6 @@ async def suggest_citations(
     state: ClaimSubstantiatorState, runtime: Runtime[ContextSchema]
 ) -> ClaimSubstantiatorState:
 
-    if not state.config.run_suggest_citations:
-        logger.info(
-            f"suggest_citations ({state.config.session_id}): skipping citations suggestion (run_suggest_citations is False)"
-        )
-        return {}
-
     citation_suggester_agent = CitationSuggesterAgent(runtime.context)
 
     return await iterate_chunks(

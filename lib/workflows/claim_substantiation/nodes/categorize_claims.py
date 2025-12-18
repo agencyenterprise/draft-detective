@@ -127,7 +127,6 @@ if __name__ == "__main__":
                 markdown="# Test Document\n\nMachine learning models have shown superior performance on image classification tasks compared to traditional computer vision approaches.",
             ),
             config=SubstantiationWorkflowConfig(
-                session_id="test-session",
                 domain="machine learning",
                 target_audience="technical",
             ),

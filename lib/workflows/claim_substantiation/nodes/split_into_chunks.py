@@ -36,15 +36,9 @@ async def split_into_chunks(
             chunk_to_items = create_chunk_to_items_mapping(
                 docs, state.file.docling_document
             )
-            logger.info(
-                f"split_into_chunks ({state.config.session_id}): "
-                f"created mapping for {len(docs)} chunks to Docling items"
-            )
+            logger.info(f"created mapping for {len(docs)} chunks to Docling items")
         except Exception as e:
-            logger.warning(
-                f"split_into_chunks ({state.config.session_id}): "
-                f"failed to create chunk-to-items mapping: {e}"
-            )
+            logger.warning(f"failed to create chunk-to-items mapping: {e}")
 
     return {
         "chunks": [

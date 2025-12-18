@@ -33,7 +33,6 @@ async def rerun_analysis(
     original_result = project.workflow_run.state
 
     context = create_context(config)
-    config.session_id = thread_id
     config.openai_api_key = "[REDACTED]"
     state = original_result.model_copy(
         update={

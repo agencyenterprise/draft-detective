@@ -764,7 +764,10 @@ export type ClaimSubstantiatorStateInput = {
    * Errors that occurred during the workflow execution.
    */
   errors?: Array<WorkflowError>;
-  type?: WorkflowRunType;
+  /**
+   * Type
+   */
+  type?: 'claim_substantiation';
   file: FileDocumentInput;
   /**
    * Supporting Files
@@ -807,7 +810,10 @@ export type ClaimSubstantiatorStateOutput = {
    * Errors that occurred during the workflow execution.
    */
   errors?: Array<WorkflowError>;
-  type?: WorkflowRunType;
+  /**
+   * Type
+   */
+  type?: 'claim_substantiation';
   file: FileDocumentOutput;
   /**
    * Supporting Files
@@ -2647,7 +2653,10 @@ export type SubstantiationWorkflowConfig = {
    * The OpenAI API key to use for this workflow execution
    */
   openai_api_key?: string | null;
-  type?: WorkflowRunType;
+  /**
+   * Type
+   */
+  type?: 'claim_substantiation';
   /**
    * Use Toulmin
    *
@@ -2684,14 +2693,6 @@ export type SubstantiationWorkflowConfig = {
    * Target audience context for analysis
    */
   target_audience?: string | null;
-  /**
-   * Session Id
-   *
-   * Session ID for Langfuse tracing
-   *
-   * @deprecated
-   */
-  session_id?: string | null;
   /**
    * Publication Date
    *
@@ -3056,7 +3057,10 @@ export type ClaimSubstantiatorStateOutputWritable = {
    * Errors that occurred during the workflow execution.
    */
   errors?: Array<WorkflowError>;
-  type?: WorkflowRunType;
+  /**
+   * Type
+   */
+  type?: 'claim_substantiation';
   file: FileDocumentOutputWritable;
   /**
    * Supporting Files

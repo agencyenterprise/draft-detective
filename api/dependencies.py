@@ -82,7 +82,6 @@ async def build_config_from_form(
         target_audience=target_audience,
         target_chunk_indices=parsed_target_chunk_indices,
         agents_to_run=parsed_agents_to_run,
-        session_id=session_id,
         openai_api_key=openai_api_key,
         publication_date=publication_date,
         workflow_types=parsed_workflow_types,

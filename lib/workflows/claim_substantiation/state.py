@@ -45,9 +45,6 @@ class SubstantiationWorkflowConfig(BaseWorkflowConfig):
     target_audience: Optional[str] = Field(
         default=None, description="Target audience context for analysis"
     )
-    session_id: Optional[str] = Field(
-        default=None, description="Session ID for Langfuse tracing", deprecated=True
-    )
     publication_date: Optional[str] = Field(
         default=None, description="Publication date of the document (YYYY-MM-DD format)"
     )

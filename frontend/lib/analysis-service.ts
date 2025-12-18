@@ -47,7 +47,6 @@ class AnalysisService {
         if (config.use_toulmin !== undefined) formData.append('use_toulmin', String(config.use_toulmin));
         if (config.domain) formData.append('domain', config.domain);
         if (config.target_audience) formData.append('target_audience', config.target_audience);
-        if (config.session_id) formData.append('session_id', config.session_id);
         if (config.openai_api_key) formData.append('openai_api_key', config.openai_api_key);
         if (config.publication_date) formData.append('publication_date', config.publication_date);
         if (config.workflow_types) formData.append('workflow_types', config.workflow_types.join(','));
