@@ -21,8 +21,9 @@ class LiveReportsManifest(
 ):
     type = WorkflowRunType.LIVE_REPORTS
     name = "Live Reports"
-    description = "Analyze claims for updates based on references published after the document date"
+    description = "Analyze claims for updates based on references published after the document date. Performs web search to find new relevant literature, looking only for literature published after the document publication date."
     needs_web_search = True
+    required_dependencies = [WorkflowRunType.CLAIM_SUBSTANTIATION]
 
     def get_state_type(self) -> Type[LiveReportsState]:
         """Get the type of the workflow state."""

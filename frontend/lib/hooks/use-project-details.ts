@@ -14,14 +14,21 @@ export function useProjectDetails(projectId: string) {
     queryFn: () => getProjectEndpointApiProjectProjectIdGet({ path: { project_id: projectId } }),
     refetchInterval: (query) => {
       const workflowRuns = query.state.data?.workflow_runs ?? [];
-      return workflowRuns.some((w) => w.run.status === WorkflowRunStatus.Running) ? REFETCH_INTERVAL_MS : false;
+      return workflowRuns.some(
+        (w) => w.run.status === WorkflowRunStatus.Running || w.run.status === WorkflowRunStatus.Pending,
+      )
+        ? REFETCH_INTERVAL_MS
+        : false;
     },
   });
 
   const workflowDetails = useMemo(() => project?.workflow_runs ?? [], [project]);
 
   const isProcessing = useMemo(
-    () => workflowDetails.some((w) => w.run.status === WorkflowRunStatus.Running),
+    () =>
+      workflowDetails.some(
+        (w) => w.run.status === WorkflowRunStatus.Running || w.run.status === WorkflowRunStatus.Pending,
+      ),
     [workflowDetails],
   );
 

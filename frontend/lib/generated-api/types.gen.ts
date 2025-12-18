@@ -187,10 +187,6 @@ export type BodyStartAnalysisApiStartAnalysisPost = {
    */
   use_rag?: boolean;
   /**
-   * Run Reference Validation
-   */
-  run_reference_validation?: boolean;
-  /**
    * Domain
    */
   domain?: string | null;
@@ -214,6 +210,14 @@ export type BodyStartAnalysisApiStartAnalysisPost = {
    * Openai Api Key
    */
   openai_api_key?: string | null;
+  /**
+   * Publication Date
+   */
+  publication_date?: string | null;
+  /**
+   * Workflow Types
+   */
+  workflow_types?: string | null;
 };
 
 /**
@@ -760,10 +764,7 @@ export type ClaimSubstantiatorStateInput = {
    * Errors that occurred during the workflow execution.
    */
   errors?: Array<WorkflowError>;
-  /**
-   * Type
-   */
-  type?: 'claim_substantiation';
+  type?: WorkflowRunType;
   file: FileDocumentInput;
   /**
    * Supporting Files
@@ -806,10 +807,7 @@ export type ClaimSubstantiatorStateOutput = {
    * Errors that occurred during the workflow execution.
    */
   errors?: Array<WorkflowError>;
-  /**
-   * Type
-   */
-  type?: 'claim_substantiation';
+  type?: WorkflowRunType;
   file: FileDocumentOutput;
   /**
    * Supporting Files
@@ -2649,10 +2647,7 @@ export type SubstantiationWorkflowConfig = {
    * The OpenAI API key to use for this workflow execution
    */
   openai_api_key?: string | null;
-  /**
-   * Type
-   */
-  type?: 'claim_substantiation';
+  type?: WorkflowRunType;
   /**
    * Use Toulmin
    *
@@ -2693,8 +2688,22 @@ export type SubstantiationWorkflowConfig = {
    * Session Id
    *
    * Session ID for Langfuse tracing
+   *
+   * @deprecated
    */
   session_id?: string | null;
+  /**
+   * Publication Date
+   *
+   * Publication date of the document (YYYY-MM-DD format)
+   */
+  publication_date?: string | null;
+  /**
+   * Workflow Types
+   *
+   * List of workflow types to run
+   */
+  workflow_types?: Array<WorkflowRunType> | null;
 };
 
 /**
@@ -2966,17 +2975,26 @@ export type WorkflowRunType = (typeof WorkflowRunType)[keyof typeof WorkflowRunT
  * WorkflowTypeDescription
  */
 export type WorkflowTypeDescription = {
+  /**
+   * The type of the workflow
+   */
   type: WorkflowRunType;
   /**
    * Name
+   *
+   * The name of the workflow
    */
   name: string;
   /**
    * Description
+   *
+   * The description of the workflow
    */
   description: string;
   /**
    * Needs Web Search
+   *
+   * Whether the workflow needs web search
    */
   needs_web_search: boolean;
 };
@@ -3038,10 +3056,7 @@ export type ClaimSubstantiatorStateOutputWritable = {
    * Errors that occurred during the workflow execution.
    */
   errors?: Array<WorkflowError>;
-  /**
-   * Type
-   */
-  type?: 'claim_substantiation';
+  type?: WorkflowRunType;
   file: FileDocumentOutputWritable;
   /**
    * Supporting Files

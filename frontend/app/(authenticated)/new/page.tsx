@@ -30,6 +30,8 @@ export default function New() {
             target_audience: data.config.targetAudience || undefined,
             session_id: undefined,
             openai_api_key: data.config.openaiApiKey,
+            publication_date: data.config.publicationDate || undefined,
+            workflow_types: data.config.workflowTypes,
           },
         },
         {
@@ -161,7 +163,7 @@ export default function New() {
         </p>
       </div>
 
-      <div className="bg-background backdrop-blur-sm border border-border/50 rounded-2xl p-8 shadow-sm">
+      <div className="bg-background backdrop-blur-sm border border-border/50 rounded-2xl p-8 shadow-sm max-w-5xl mx-auto">
         <AnalysisForm
           isPending={analysisMutation.isPending}
           onSubmit={(data) => {

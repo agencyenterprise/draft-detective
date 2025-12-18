@@ -24,10 +24,9 @@ class ReferenceValidationManifest(
 ):
     type = WorkflowRunType.REFERENCE_VALIDATION
     name = "Reference Validation"
-    description = (
-        "Validate the references from the document by checking if their online presence"
-    )
+    description = "Validate each reference from the document by checking if it has an online presence, using web search."
     needs_web_search = True
+    required_dependencies = [WorkflowRunType.CLAIM_SUBSTANTIATION]
 
     def get_state_type(self) -> Type[ReferenceValidationState]:
         """Get the type of the workflow state."""
@@ -71,12 +70,12 @@ class ReferenceValidationManifest(
                 chunk_index: Optional[int] = None
                 if claim_state:
                     chunk_index = _find_chunk_index_by_text(
-                        claim_state, validation.original_reference.text
+                        claim_state, validation.original_reference
                     )
 
                 issue = DocumentIssue(
                     title="Invalid reference",
-                    description=f'Possible invalid reference: "{validation.original_reference.text}"',
+                    description=f'Possible invalid reference: "{validation.original_reference}"',
                     severity=SeverityEnum.HIGH,
                     chunk_index=chunk_index,
                 )

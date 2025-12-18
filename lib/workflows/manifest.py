@@ -17,10 +17,30 @@ WorkflowConfigType = TypeVar("WorkflowConfigType", bound=BaseWorkflowConfig)
 class WorkflowManifest[WorkflowStateType, WorkflowConfigType](ABC):
     """Base class for workflow manifests."""
 
+    # Type of the workflow
     type: WorkflowRunType
+
+    # Name of the workflow
     name: str
+
+    # Description of the workflow
     description: str
+
+    # Whether the workflow needs web search
     needs_web_search: bool = False
+
+    # Whether the workflow can be triggered by the user
+    can_be_triggered_by_user: bool = True
+
+    # List of workflow types that this workflow depends on.
+    # Used to determine the order in which the workflows should be run.
+    # In case a workflow is started and a required dependency is not completed, running or scheduled to run, the workflow will fail to start with an error.
+    required_dependencies: List[WorkflowRunType] = []
+
+    # List of workflow types that this workflow depends on optionally.
+    # Used to determine the order in which the workflows should be run.
+    # In case a workflow is started and an optional dependency is running or scheduled to run, the workflow will wait until it completes to start; otherwise, it will start immediately.
+    optional_dependencies: List[WorkflowRunType] = []
 
     @abstractmethod
     def get_state_type(self) -> Type[WorkflowStateType]:

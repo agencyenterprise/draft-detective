@@ -4,12 +4,17 @@ import pytest
 
 from lib.services.docx.manipulator import CommentSeverity, DocxComment, issue_to_comment
 from lib.services.file import FileDocument
-from lib.services.issues import convert_citation_suggester_state_issues
+from lib.workflows.citation_suggester.manifest import CitationSuggesterManifest
 from lib.workflows.citation_suggester.state import (
     CitationSuggesterState,
     CitationSuggesterWorkflowConfig,
 )
 from lib.workflows.claim_substantiation.state import DocumentIssue, SeverityEnum
+
+
+def convert_citation_suggester_state_issues(state: CitationSuggesterState):
+    manifest = CitationSuggesterManifest()
+    return manifest.convert_state_to_issues(state, None)
 
 
 class TestIssueToComment:

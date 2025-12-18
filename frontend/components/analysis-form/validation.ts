@@ -1,10 +1,12 @@
 import { MAX_FILE_SIZE_BYTES, MAX_FILE_SIZE_MB } from '@/lib/constants';
 import { FormValidationError, GlobalFormValidationError } from '@tanstack/react-form';
 import { AnalysisFormValues } from './types';
+import { WorkflowTypeDescription } from '@/lib/generated-api';
 
 export function validateAnalysisForm(
   value: AnalysisFormValues,
   hideOpenaiApiKeyInput: boolean,
+  workflowTypes?: WorkflowTypeDescription[],
 ): FormValidationError<AnalysisFormValues> {
   const errors: GlobalFormValidationError<AnalysisFormValues> = { fields: {}, form: undefined };
 
@@ -28,6 +30,26 @@ export function validateAnalysisForm(
 
   if (!hideOpenaiApiKeyInput && (!value.openaiApiKey || value.openaiApiKey.trim() === '')) {
     errors.fields.openaiApiKey = 'OpenAI API Key is required';
+  }
+
+  // Validate that at least one workflow type is selected
+  if (!value.workflowTypes || value.workflowTypes.length === 0) {
+    errors.fields.workflowTypes = 'At least one analysis type must be selected';
+  }
+
+  // Validate web search consent if any selected workflow type requires it
+  if (workflowTypes && value.workflowTypes) {
+    const needsWebSearch = value.workflowTypes.some(
+      (selectedType) => workflowTypes.find((wt) => wt.type === selectedType)?.needs_web_search,
+    );
+    if (needsWebSearch && !value.webSearchConsent) {
+      errors.fields.webSearchConsent = 'Web search consent is required';
+    }
+  }
+
+  // Validate publication date is required
+  if (!value.publicationDate || value.publicationDate.trim() === '') {
+    errors.fields.publicationDate = 'Document publication date is required';
   }
 
   return errors;

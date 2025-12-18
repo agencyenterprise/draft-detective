@@ -50,7 +50,11 @@ export function StartWorkflowButton({ type, projectId, workflow, onConfirm }: St
         size="sm"
         variant="outline"
         onClick={() => setIsConfigDialogOpen(true)}
-        disabled={startWorkflowMutation.isPending || workflow?.status === WorkflowRunStatus.Running}
+        disabled={
+          startWorkflowMutation.isPending ||
+          workflow?.status === WorkflowRunStatus.Running ||
+          workflow?.status === WorkflowRunStatus.Pending
+        }
       >
         {startWorkflowMutation.isPending ? (
           <>
@@ -58,6 +62,11 @@ export function StartWorkflowButton({ type, projectId, workflow, onConfirm }: St
             Starting...
           </>
         ) : workflow?.status === WorkflowRunStatus.Running ? (
+          <>
+            <Loader2Icon className="animate-spin" />
+            Running...
+          </>
+        ) : workflow?.status === WorkflowRunStatus.Pending ? (
           <>
             <Loader2Icon className="animate-spin" />
             Running...
