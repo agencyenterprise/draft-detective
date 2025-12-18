@@ -195,8 +195,8 @@ dataset:
           expected_output:
             claim: "Developing advanced AI models requires enormous amounts of power"
             claim_category: "established_reported_knowledge"
-            needs_external_verification: true
-            rationale: "The statement makes an evaluative, magnitude-focused assertion (\"enormous amounts of power\") about AI model development. While broadly plausible, it is not a basic definition or universally uncontested fact; it implies a substantive scale that should be supported with evidence."
+            needs_external_verification: false
+            rationale: "It is generally understood that developing advanced AI models requires large amount of electricity."
 
         - name: "common_knowledge_ai_power_general_concern"
           description: "Synthesis of preceding cited statements - doesn't need substantiation"
@@ -209,7 +209,7 @@ dataset:
           expected_output:
             claim: "Data center power consumption, especially driven by AI, is a significant and increasing concern"
             claim_category: "established_reported_knowledge"
-            needs_external_verification: true
+            needs_external_verification: false
             rationale: "This is a broad characterization of an industry that would benefit from external checks stating the concern"
 
         - name: "common_knowledge_ai_power_without_citation_trend"
@@ -265,8 +265,8 @@ dataset:
           expected_output:
             claim: "AI development requires unprecedented power capacity expansion"
             claim_category: "established_reported_knowledge"
-            needs_external_verification: true
-            rationale: "A claim of necessity and 'unprecedented' scale must be supported by quantitative evidence."
+            needs_external_verification: false
+            rationale: "This is generally understood to be true circa 2025."
 
         - name: "common_knowledge_ai_power_state_comparison"
           description: "Precise numerical comparison with state-level data - needs substantiation"
@@ -307,8 +307,8 @@ dataset:
           expected_output:
             claim: "The associated legal structures were developed, for the most part, before the development of such information technologies as the postal service, telegraph, and telephone systems"
             claim_category: "established_reported_knowledge"
-            needs_external_verification: true
-            rationale: "This is a broad, background chronology claim: core U.S. criminal justice legal structures (rooted in English common law and the late-18th-century constitutional/statutory framework) predate the telegraph (1830s–1840s) and telephone (1870s)."
+            needs_external_verification: false
+            rationale: "It is understood that legal structures for the criminal justice system predate the development of information technologies."
 
         - name: "common_knowledge_crypto_blockchain_economic_interactions_online"
           description: "Broadly accepted trend about digital transformation of society - doesn't need substantiation"
@@ -321,8 +321,8 @@ dataset:
           expected_output:
             claim: "With the development of personal computers connected by the internet, much larger portions of economic and interpersonal interactions have moved online, as has criminal activity"
             claim_category: "established_reported_knowledge"
-            needs_external_verification: true
-            rationale: "This is a claim describing a trend that can be externally checked."
+            needs_external_verification: false
+            rationale: "This is a claim describing a trend that is generally accepted in the domain."
 
         - name: "common_knowledge_crypto_blockchain_digital_spaces_challenges_opportunities"
           description: "Broad background statement about digitization effects - doesn't need substantiation"
@@ -433,7 +433,7 @@ dataset:
           expected_output:
             claim: "AI models' capabilities to take input and interact with the world in a generalized manner are increasing."
             claim_category: "established_reported_knowledge"
-            needs_external_verification: true
+            needs_external_verification: false
             rationale: "The statement asserts a broad, qualitative trend—that AI models are increasingly capable of generalized interaction with the world."
 
         - name: "common_knowledge_geopolitics_minimal_citation_c2"
@@ -447,8 +447,8 @@ dataset:
           expected_output:
             claim: "AI models' generalized interactions with the world often lead to unexpected or harmful consequences"
             claim_category: "established_reported_knowledge"
-            needs_external_verification: true
-            rationale: "The statement makes a broad, frequency-laden assertion (\"often\") about real-world consequences of AI interactions. This is not a basic definition or universally accepted fact and implies a general trend that requires empirical support (e.g., incident data, studies, or systematic analyses). While a citation is provided (Zittrain, 2024), the claim itself is of a type that should be substantiated."
+            needs_external_verification: false
+            rationale: "Although this is a broad assertion, it is understood that AI models have internal bias and can lead to system failures (e.g., car crashes, financial loss) when unmonitored."
 
         - name: "common_knowledge_geopolitics_minimal_risk_a"
           description: "Logical inference in AI safety and cyber-physical security - doesn't need substantiation"
