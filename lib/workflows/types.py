@@ -19,6 +19,10 @@ from lib.workflows.methodological_alignment.state import (
     MethodologicalAlignmentState,
     MethodologicalAlignmentWorkflowConfig,
 )
+from lib.workflows.results_extraction.state import (
+    ResultsExtractionState,
+    ResultsExtractionWorkflowConfig,
+)
 from lib.workflows.reference_downloader.state import (
     ReferenceDownloaderState,
     ReferenceDownloaderWorkflowConfig,
@@ -37,6 +41,7 @@ WorkflowState = (
     | LiveReportsState
     | ReferenceValidationState
     | CitationSuggesterState
+    | ResultsExtractionState
 )
 
 WorkflowConfig = (
@@ -47,4 +52,5 @@ WorkflowConfig = (
     | LiveReportsWorkflowConfig
     | ReferenceValidationWorkflowConfig
     | CitationSuggesterWorkflowConfig
+    | ResultsExtractionWorkflowConfig
 )

@@ -59,6 +59,7 @@ class WorkflowRunType(str, Enum):
     LIVE_REPORTS = "live_reports"
     REFERENCE_VALIDATION = "reference_validation"
     CITATION_SUGGESTER = "citation_suggester"
+    RESULTS_EXTRACTION = "results_extraction"
 
 
 def is_user_visible_workflow(workflow_type: WorkflowRunType) -> bool:
