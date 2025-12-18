@@ -210,6 +210,9 @@ DEFAULT: When in doubt, set to FALSE. Only set to TRUE if the claim clearly requ
     - Basic historical dates and events that are undisputed
     - Well-established facts or general principles widely accepted in the field and appearing across multiple authoritative sources
     - Fundamental principles or theories in the domain that are universally accepted by practitioners
+    - Counter Examples: Statements that are counter to generally accepted knowledge in the domain or opinions that require evidence to support.
+        - "Machine learning has generally few harmful consequences in society."
+        - "It is known that the US's military excursions in the 50s and 60s were widely supported by the public."
 - Inferences that do not require external references
     - Conjectural statements that use words like "might", "could", and "can" that cannot be verified by external sources
     - Opinions, interpretations, or evaluations
