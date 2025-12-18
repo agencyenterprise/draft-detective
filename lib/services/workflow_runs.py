@@ -133,11 +133,11 @@ async def get_project_workflow_runs(
 ) -> List[WorkflowRunDetail]:
     """
     Get workflow runs for a project.
-    
+
     Args:
         project_id: The project ID
         include_internal: If True, include internal workflows (for dependency resolution)
-    
+
     Returns:
         List of workflow run details
     """

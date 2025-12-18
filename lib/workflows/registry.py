@@ -130,7 +130,7 @@ def create_context(
 async def create_state(config: BaseWorkflowConfig) -> WorkflowState:
     """
     Create initial state for a workflow from the config.
-    
+
     Loads all workflow states (including internal ones) to support dependency resolution.
     """
     from lib.services.workflow_runs import get_project_workflow_runs
