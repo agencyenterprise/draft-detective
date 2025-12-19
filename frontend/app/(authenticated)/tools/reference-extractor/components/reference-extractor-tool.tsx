@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import {
   getProjectEndpointApiProjectProjectIdGet,
+  ReferenceExtractionState,
   startAnalysisApiStartAnalysisPost,
   WorkflowRunStatus,
   WorkflowRunType,
@@ -13,11 +14,13 @@ import { Loader2 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
+type ExtractionResults = Pick<ReferenceExtractionState, 'detected_sections' | 'references'>;
+
 export function ReferenceExtractorTool() {
   const [mainDocument, setMainDocument] = useState<File | null>(null);
   const [supportingDocuments, setSupportingDocuments] = useState<File[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [results, setResults] = useState<any>(null);
+  const [results, setResults] = useState<ExtractionResults | null>(null);
 
   const handleExtract = async () => {
     if (!mainDocument) return;
@@ -73,7 +76,7 @@ export function ReferenceExtractorTool() {
 
         if (refExtractionRun?.run.status === WorkflowRunStatus.Completed) {
           completed = true;
-          const state = refExtractionRun.state as any;
+          const state = refExtractionRun.state as ReferenceExtractionState;
 
           setResults({
             detected_sections: state.detected_sections || [],
@@ -170,7 +173,7 @@ export function ReferenceExtractorTool() {
               <div className="p-4 bg-blue-50 border border-blue-200 rounded-md">
                 <h3 className="text-sm font-medium text-blue-900 mb-2">Detected Sections</h3>
                 <ul className="text-xs text-blue-700 space-y-1">
-                  {results.detected_sections.map((section: any, idx: number) => (
+                  {results.detected_sections.map((section, idx) => (
                     <li key={idx}>
                       {section.section_type} (chunks {section.start_chunk_index}-{section.end_chunk_index || 'end'}) -
                       Confidence: {(section.confidence * 100).toFixed(0)}%
@@ -182,7 +185,7 @@ export function ReferenceExtractorTool() {
 
             {results.references && results.references.length > 0 ? (
               <div className="space-y-2">
-                {results.references.map((ref: any, idx: number) => (
+                {results.references.map((ref, idx) => (
                   <div key={idx} className="p-3 border border-gray-200 rounded-md hover:border-gray-300 transition">
                     <div className="flex items-start gap-3">
                       <span className="text-xs font-medium text-gray-500 mt-0.5">#{idx + 1}</span>
