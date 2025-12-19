@@ -368,6 +368,24 @@ export type ChunkToItemsOutput = {
 };
 
 /**
+ * ChunkWithIndex
+ */
+export type ChunkWithIndex = {
+  /**
+   * Content
+   */
+  content: string;
+  /**
+   * Chunk Index
+   */
+  chunk_index: number;
+  /**
+   * Paragraph Index
+   */
+  paragraph_index: number;
+};
+
+/**
  * Citation
  */
 export type Citation = {
@@ -2387,6 +2405,101 @@ export type ReferenceDownloaderWorkflowConfig = {
 };
 
 /**
+ * ReferenceExtractionConfig
+ *
+ * Configuration for reference extraction workflow.
+ */
+export type ReferenceExtractionConfig = {
+  /**
+   * Project Id
+   *
+   * The ID of the project that this workflow run should be associated with
+   */
+  project_id?: string | null;
+  /**
+   * Openai Api Key
+   *
+   * The OpenAI API key to use for this workflow execution
+   */
+  openai_api_key?: string | null;
+  /**
+   * Type
+   */
+  type?: 'reference_extraction';
+  /**
+   * Window Size
+   *
+   * Number of chunks per extraction window
+   */
+  window_size?: number;
+  /**
+   * Overlap Size
+   *
+   * Number of overlapping chunks between windows
+   */
+  overlap_size?: number;
+  /**
+   * Fuzzy Threshold
+   *
+   * Similarity threshold for fuzzy matching (0-1)
+   */
+  fuzzy_threshold?: number;
+  /**
+   * Truncate Supporting Docs At
+   *
+   * Character limit for supporting document content in prompts
+   */
+  truncate_supporting_docs_at?: number;
+};
+
+/**
+ * ReferenceExtractionState
+ *
+ * State for reference extraction workflow.
+ */
+export type ReferenceExtractionState = {
+  /**
+   * Errors
+   *
+   * Errors that occurred during the workflow execution.
+   */
+  errors?: Array<WorkflowError>;
+  /**
+   * Type
+   */
+  type?: 'reference_extraction';
+  config: ReferenceExtractionConfig;
+  /**
+   * Main document with markdown populated
+   */
+  file: FileDocumentOutput;
+  /**
+   * Chunks
+   *
+   * Document chunks for section detection
+   */
+  chunks?: Array<ChunkWithIndex>;
+  /**
+   * Supporting Files
+   *
+   * Optional supporting documents for matching
+   */
+  supporting_files?: Array<FileDocumentOutput> | null;
+  /**
+   * Detected Sections
+   *
+   * Detected reference sections
+   */
+  detected_sections?: Array<ReferenceSection>;
+  /**
+   * References
+   *
+   * Extracted bibliography items
+   */
+  references?: Array<BibliographyItem>;
+};
+
+/**
  * ReferenceFetchConclusion
  */
 export const ReferenceFetchConclusion = {
@@ -2457,6 +2570,44 @@ export type ReferenceMinimal = {
    * Bibliography entry formatted in the article's style; reuse the existing entry when the source is already in the bibliography
    */
   bibliography_info: string;
+};
+
+/**
+ * ReferenceSection
+ *
+ * Detected reference section in document.
+ */
+export type ReferenceSection = {
+  /**
+   * Section Type
+   *
+   * Type of section (bibliography, footnotes, appendix_references)
+   */
+  section_type: string;
+  /**
+   * Start Chunk Index
+   *
+   * Starting chunk index of section
+   */
+  start_chunk_index: number;
+  /**
+   * End Chunk Index
+   *
+   * Ending chunk index (None if goes to end of document)
+   */
+  end_chunk_index?: number | null;
+  /**
+   * Confidence
+   *
+   * Confidence score for section detection (0-1)
+   */
+  confidence: number;
+  /**
+   * Section Header
+   *
+   * Detected section header text
+   */
+  section_header: string;
 };
 
 /**
@@ -3142,6 +3293,7 @@ export type WorkflowRunDetail = {
    */
   state:
     | DocumentProcessingState
+    | ReferenceExtractionState
     | ClaimSubstantiatorStateOutput
     | MethodologicalAlignmentState
     | ReferenceDownloaderState
@@ -3173,6 +3325,7 @@ export type WorkflowRunStatus = (typeof WorkflowRunStatus)[keyof typeof Workflow
  */
 export const WorkflowRunType = {
   DocumentProcessing: 'document_processing',
+  ReferenceExtraction: 'reference_extraction',
   ClaimSubstantiation: 'claim_substantiation',
   MethodologicalAlignment: 'methodological_alignment',
   ReferenceDownloader: 'reference_downloader',
@@ -3536,6 +3689,53 @@ export type ProjectDetailedWritable = {
 };
 
 /**
+ * ReferenceExtractionState
+ *
+ * State for reference extraction workflow.
+ */
+export type ReferenceExtractionStateWritable = {
+  /**
+   * Errors
+   *
+   * Errors that occurred during the workflow execution.
+   */
+  errors?: Array<WorkflowError>;
+  /**
+   * Type
+   */
+  type?: 'reference_extraction';
+  config: ReferenceExtractionConfig;
+  /**
+   * Main document with markdown populated
+   */
+  file: FileDocumentOutputWritable;
+  /**
+   * Chunks
+   *
+   * Document chunks for section detection
+   */
+  chunks?: Array<ChunkWithIndex>;
+  /**
+   * Supporting Files
+   *
+   * Optional supporting documents for matching
+   */
+  supporting_files?: Array<FileDocumentOutputWritable> | null;
+  /**
+   * Detected Sections
+   *
+   * Detected reference sections
+   */
+  detected_sections?: Array<ReferenceSection>;
+  /**
+   * References
+   *
+   * Extracted bibliography items
+   */
+  references?: Array<BibliographyItem>;
+};
+
+/**
  * ResultsExtractionState
  */
 export type ResultsExtractionStateWritable = {
@@ -3569,6 +3769,7 @@ export type WorkflowRunDetailWritable = {
    */
   state:
     | DocumentProcessingStateWritable
+    | ReferenceExtractionStateWritable
     | ClaimSubstantiatorStateOutputWritable
     | MethodologicalAlignmentStateWritable
     | ReferenceDownloaderState
@@ -3722,6 +3923,7 @@ export type StartWorkflowApiWorkflowsStartPostData = {
    */
   body:
     | DocumentProcessingWorkflowConfig
+    | ReferenceExtractionConfig
     | SubstantiationWorkflowConfig
     | MethodologicalAlignmentWorkflowConfig
     | ReferenceDownloaderWorkflowConfig
@@ -4085,7 +4287,12 @@ export type GetProjectEndpointApiProjectProjectIdGetData = {
      */
     project_id: string;
   };
-  query?: never;
+  query?: {
+    /**
+     * Include Internal
+     */
+    include_internal?: boolean;
+  };
   url: '/api/project/{project_id}';
 };
 

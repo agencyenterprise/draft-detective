@@ -6,9 +6,6 @@ from lib.workflows.claim_substantiation.nodes.extract_claims import extract_clai
 from lib.workflows.claim_substantiation.nodes.extract_claims_toulmin import (
     extract_claims_toulmin,
 )
-from lib.workflows.claim_substantiation.nodes.extract_references import (
-    extract_references,
-)
 from lib.workflows.claim_substantiation.nodes.index_supporting_documents import (
     index_supporting_documents,
 )
@@ -51,11 +48,11 @@ def build_claim_substantiator_graph(
         extract_claims if not config.use_toulmin else extract_claims_toulmin,
     )
     graph.add_node("detect_citations", detect_citations)
-    graph.add_node("extract_references", extract_references)
 
-    # We must fan out from START to both extract_references and extract_claims because we need to run both in parallel.
-    graph.add_edge(START, "extract_references")
+    # Fan out from START to run extract_claims and detect_citations in parallel
+    # Note: references are pre-extracted by REFERENCE_EXTRACTION workflow
     graph.add_edge(START, "extract_claims")
+    graph.add_edge(START, "detect_citations")
 
     # add categorization and inference validation nodes
     graph.add_node("categorize_claims", categorize_claims)
@@ -78,7 +75,6 @@ def build_claim_substantiator_graph(
     graph.add_edge("categorize_claims", "verify_claims")
     graph.add_edge("detect_citations", "verify_claims")
     graph.add_edge("categorize_claims", "validate_inferences")
-    graph.add_edge("extract_references", "detect_citations")
 
     # Create a finalize node to wait for both verify_claims and validate_inferences to complete in parallel
     graph.add_node("finalize", finalize)
