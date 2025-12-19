@@ -7,15 +7,9 @@ from pydantic import BaseModel, Field
 
 from lib.config.env import config
 from lib.config.llm_models import gpt_5_mini_model
+from lib.agents.models import ReproducibilityCategory
 from lib.models.agent import LangChainAgent
 from lib.workflows.context import ContextSchema
-
-
-class ReproducibilityCategory(Enum):
-    FULLY_REPRODUCIBLE = "fully_reproducible"
-    REPRODUCIBLE_WITH_WEB_SEARCH = "reproducible_with_web_search"
-    REPRODUCIBLE_WITH_EXTERNAL_UPLOADS = "reproducible_with_external_uploads"
-    NOT_REPRODUCIBLE = "not_reproducible"
 
 
 class ReproducibilityCategoryResponse(BaseModel):
@@ -65,7 +59,8 @@ The document may be long (e.g., 10,000+ words) and may NOT be cleanly structured
    - Any key implementation choices that materially affect the results
 4. Determine the reproducibility class of the methodology based on the following criteria:
    - If the methodology is fully reproducible, return the class value "fully_reproducible".
-   - If the methodology is reproducible with additions, return the class value "reproducible_with_additions".
+   - If the methodology is reproducible if an AI agent is given access to web search, return the class value "reproducible_with_web_search".
+   - If the methodology is reproducible provided the user uploads data, return the class value "reproducible_with_external_uploads".
    - If the methodology is not reproducible, return the class value "not_reproducible".
 3. Exclude:
    - High-level motivation and background theory that do not directly describe what was done
@@ -188,6 +183,7 @@ if __name__ == "__main__":
     FILE_PATH = "tests/data/RAND_RRA3307-1.pdf"  # e.g., "tests/data/sample_document.md"
     # FILE_PATH = "tests/data/case_1/main_document.md"
     FILE_PATH = "rand-personal/sample_papers_rand/RAND_RRA3034-1.pdf"
+    FILE_PATH = "rand-personal/Smaldino_McElreath_(2016).pdf"
 
     async def test_methodology_extractor(file_path: str):
         """Test the methodology extractor agent with a given file."""
@@ -211,17 +207,26 @@ if __name__ == "__main__":
         print("Running methodology extractor agent...")
         print("-" * 80)
 
+        # Initialize context
+        context = ContextSchema(openai_api_key=config.OPENAI_API_KEY, vector_store=None)
+
         # Run the agent
-        methodology_extractor_agent = MethodologyExtractorAgent(
-            ContextSchema(openai_api_key=config.OPENAI_API_KEY, vector_store=None)
-        )
+        methodology_extractor_agent = MethodologyExtractorAgent(context)
         response = await methodology_extractor_agent.ainvoke(
             {"document": markdown_content}
         )
 
-        # Print the results
+        # Print the reproducibility results
         print("\n" + "=" * 80)
-        print("METHODOLOGY EXTRACTION")
+        print("REPRODUCIBILITY ASSESSMENT")
+        print("=" * 80)
+        print(f"Category: {response.reproducibility.class_value.value}")
+        print(f"\nRationale:\n{response.reproducibility.rationale}")
+        print("\n" + "=" * 80)
+
+        # Print the methodology results
+        print("\n" + "=" * 80)
+        print("EXTRACTED METHODOLOGY")
         print("=" * 80)
         print(response.methodology)
         print("\n" + "=" * 80)

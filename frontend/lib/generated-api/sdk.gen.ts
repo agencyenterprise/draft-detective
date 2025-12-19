@@ -33,9 +33,6 @@ import type {
   GenerateEvalPackageApiGenerateEvalPackagePostData,
   GenerateEvalPackageApiGenerateEvalPackagePostErrors,
   GenerateEvalPackageApiGenerateEvalPackagePostResponses,
-  GetChunkDetailsEndpointApiWorkflowRunWorkflowRunIdChunkChunkIndexGetData,
-  GetChunkDetailsEndpointApiWorkflowRunWorkflowRunIdChunkChunkIndexGetErrors,
-  GetChunkDetailsEndpointApiWorkflowRunWorkflowRunIdChunkChunkIndexGetResponses,
   GetFeedbackApiFeedbackGetData,
   GetFeedbackApiFeedbackGetErrors,
   GetFeedbackApiFeedbackGetResponses,
@@ -59,6 +56,8 @@ import type {
   GetWorkflowStateApiWorkflowsWorkflowRunIdGetData,
   GetWorkflowStateApiWorkflowsWorkflowRunIdGetErrors,
   GetWorkflowStateApiWorkflowsWorkflowRunIdGetResponses,
+  GetWorkflowTypesApiWorkflowTypesGetData,
+  GetWorkflowTypesApiWorkflowTypesGetResponses,
   ListProjectFilesEndpointApiProjectProjectIdFilesGetData,
   ListProjectFilesEndpointApiProjectProjectIdFilesGetErrors,
   ListProjectFilesEndpointApiProjectProjectIdFilesGetResponses,
@@ -134,14 +133,14 @@ export const getSupportedAgentsApiSupportedAgentsGet = <ThrowOnError extends boo
 /**
  * Start Analysis
  *
- * Start claim substantiation analysis - returns workflow_run_id immediately.
+ * Create a project and immediately start analysis workflows.
  *
  * This endpoint:
  * 1. Creates a project for the analysis
  * 2. Saves uploaded files to database with file metadata
  * 3. Creates file document references (without markdown conversion)
  * 4. Returns immediately with project_id
- * 5. Starts the analysis workflow in the background (markdown conversion happens here)
+ * 5. Starts the analysis workflows in the background (markdown conversion happens here)
  *
  * The client can poll /api/project/{project_id} to check progress.
  *
@@ -308,27 +307,6 @@ export const getWorkflowStateApiWorkflowsWorkflowRunIdGet = <ThrowOnError extend
   });
 
 /**
- * Get Chunk Details Endpoint
- *
- * Get detailed analysis for a specific chunk (lazy loading)
- */
-export const getChunkDetailsEndpointApiWorkflowRunWorkflowRunIdChunkChunkIndexGet = <
-  ThrowOnError extends boolean = true,
->(
-  options: Options<GetChunkDetailsEndpointApiWorkflowRunWorkflowRunIdChunkChunkIndexGetData, ThrowOnError>,
-) =>
-  (options.client ?? client).get<
-    GetChunkDetailsEndpointApiWorkflowRunWorkflowRunIdChunkChunkIndexGetResponses,
-    GetChunkDetailsEndpointApiWorkflowRunWorkflowRunIdChunkChunkIndexGetErrors,
-    ThrowOnError,
-    'data'
-  >({
-    responseStyle: 'data',
-    url: '/api/workflow-run/{workflow_run_id}/chunk/{chunk_index}',
-    ...options,
-  });
-
-/**
  * Get Page Image
  *
  * Serve Docling page images for a workflow run.
@@ -354,6 +332,20 @@ export const getPageImageApiWorkflowRunsWorkflowRunIdPagesPageNumGet = <ThrowOnE
     responseStyle: 'data',
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/workflow-runs/{workflow_run_id}/pages/{page_num}',
+    ...options,
+  });
+
+/**
+ * Get Workflow Types
+ *
+ * List all available workflow types.
+ */
+export const getWorkflowTypesApiWorkflowTypesGet = <ThrowOnError extends boolean = true>(
+  options?: Options<GetWorkflowTypesApiWorkflowTypesGetData, ThrowOnError>,
+) =>
+  (options?.client ?? client).get<GetWorkflowTypesApiWorkflowTypesGetResponses, unknown, ThrowOnError, 'data'>({
+    responseStyle: 'data',
+    url: '/api/workflow-types',
     ...options,
   });
 

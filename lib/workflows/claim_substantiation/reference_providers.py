@@ -6,7 +6,7 @@ through different methods (citation-based vs RAG-based).
 
 import asyncio
 import logging
-from typing import List, Optional, Protocol, Set
+from typing import List, Optional, Protocol, Set, Union
 
 from pydantic import BaseModel, Field
 
@@ -24,10 +24,8 @@ from lib.services.vector_store import (
     get_collection_id,
     get_file_hash_from_path,
 )
-from lib.workflows.claim_substantiation.state import (
-    ClaimSubstantiatorState,
-    DocumentChunk,
-)
+from lib.workflows.claim_reference_validation.state import ClaimReferenceValidationState
+from lib.workflows.claim_substantiation.state import AnalyzedChunk
 
 logger = logging.getLogger(__name__)
 
@@ -61,8 +59,8 @@ class ReferenceProvider(Protocol):
 
     async def get_references_for_claim(
         self,
-        state: ClaimSubstantiatorState,
-        chunk: DocumentChunk,
+        state: ClaimReferenceValidationState,
+        chunk: AnalyzedChunk,
         claim: Claim,
         claim_index: int,
     ) -> ReferenceContext:
@@ -75,8 +73,8 @@ class CitationBasedReferenceProvider:
 
     async def get_references_for_claim(
         self,
-        state: ClaimSubstantiatorState,
-        chunk: DocumentChunk,
+        state: ClaimReferenceValidationState,
+        chunk: AnalyzedChunk,
         claim: Claim,
         claim_index: int,
     ) -> ReferenceContext:
@@ -118,8 +116,8 @@ class RAGReferenceProvider:
 
     async def get_references_for_claim(
         self,
-        state: ClaimSubstantiatorState,
-        chunk: DocumentChunk,
+        state: ClaimReferenceValidationState,
+        chunk: AnalyzedChunk,
         claim: Claim,
         claim_index: int,
     ) -> ReferenceContext:
@@ -212,7 +210,7 @@ class RAGReferenceProvider:
         all_passages.sort(key=lambda p: p.cosine_distance, reverse=False)
         return all_passages
 
-    def _build_enriched_query(self, chunk: DocumentChunk, claim: Claim) -> str:
+    def _build_enriched_query(self, chunk: AnalyzedChunk, claim: Claim) -> str:
         """
         Build an enriched query by combining the claim with citation and backing context.
         This helps the embedding model match the right document by adding author names
@@ -299,7 +297,7 @@ class RAGReferenceProvider:
 
 
 def get_all_paragraph_citations(
-    state: ClaimSubstantiatorState, target_chunk: DocumentChunk
+    state: ClaimReferenceValidationState, target_chunk: AnalyzedChunk
 ) -> List[Citation]:
     """Get all citations from the paragraph that includes the `target_chunk`."""
 
@@ -324,7 +322,7 @@ def is_bibliographic_citation(citation: Citation) -> bool:
 
 
 def _get_paragraph_citations_not_in_chunk(
-    state: ClaimSubstantiatorState, chunk: DocumentChunk
+    state: ClaimReferenceValidationState, chunk: AnalyzedChunk
 ) -> List:
     """Extract citations from paragraph chunks that aren't in current chunk."""
 

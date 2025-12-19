@@ -7,8 +7,8 @@ from lib.agents.toulmin_claim_extractor import ToulminClaimExtractorAgent
 from lib.workflows.chunk_iterator import iterate_chunks
 from lib.workflows.context import ContextSchema
 from lib.workflows.claim_substantiation.state import (
+    AnalyzedChunk,
     ClaimSubstantiatorState,
-    DocumentChunk,
 )
 from lib.workflows.decorators import (
     handle_chunk_errors,
@@ -38,9 +38,9 @@ async def extract_claims_toulmin(
 @handle_chunk_errors("Toulmin claim extraction")
 async def _extract_chunk_claims_toulmin(
     state: ClaimSubstantiatorState,
-    chunk: DocumentChunk,
+    chunk: AnalyzedChunk,
     toulmin_claim_extractor_agent: ToulminClaimExtractorAgent,
-) -> DocumentChunk:
+) -> AnalyzedChunk:
     claims = await toulmin_claim_extractor_agent.ainvoke(
         {
             "chunk": chunk.content,

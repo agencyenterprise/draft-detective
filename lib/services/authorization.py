@@ -9,7 +9,7 @@ from lib.models.user import User
 from lib.models.workflow_run import WorkflowRun
 
 
-def has_access_to_workflow_run(user: Optional[User], workflow_run_id: User) -> bool:
+def has_access_to_workflow_run(user: Optional[User], workflow_run_id: str) -> bool:
     """Check if a user has access to a workflow run, either by being the owner of the associated project or the project has a share link."""
 
     with get_db() as db:

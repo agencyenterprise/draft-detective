@@ -1,22 +1,22 @@
-import { ClaimSubstantiatorStateSummary, DocumentChunkOutput, DocumentIssue, SeverityEnum } from './generated-api';
+import { AnalyzedChunkOutput, DocumentIssue, SeverityEnum } from './generated-api';
 
-export function getMaxChunkSeverity(results: ClaimSubstantiatorStateSummary, chunk: DocumentChunkOutput) {
-  const issues = results.ranked_issues?.filter((issue) => issue.chunk_index === chunk.chunk_index) || [];
-  return getMaxSeverity(issues);
+export function getMaxChunkSeverity(issues: DocumentIssue[], chunk: AnalyzedChunkOutput) {
+  const chunkIssues = issues.filter((issue) => issue.chunk_index === chunk.chunk_index);
+  return getMaxSeverity(chunkIssues);
 }
 
-export function getClaimIssues(results: ClaimSubstantiatorStateSummary, chunkIndex: number, claimIndex: number) {
-  return (
-    results.ranked_issues?.filter((issue) => issue.chunk_index === chunkIndex && issue.claim_index === claimIndex) || []
-  ).sort(sortDocumentIssueBySeverity);
+export function getClaimIssues(issues: DocumentIssue[], chunkIndex: number, claimIndex: number) {
+  return issues
+    .filter((issue) => issue.chunk_index === chunkIndex && issue.claim_index === claimIndex)
+    .sort(sortDocumentIssueBySeverity);
 }
 
-export function getChunkIssues(results: ClaimSubstantiatorStateSummary, chunkIndex: number) {
-  return (
-    results.ranked_issues?.filter(
+export function getChunkIssues(issues: DocumentIssue[], chunkIndex: number) {
+  return issues
+    .filter(
       (issue) => issue.chunk_index === chunkIndex && (issue.claim_index === null || issue.claim_index === undefined),
-    ) || []
-  ).sort(sortDocumentIssueBySeverity);
+    )
+    .sort(sortDocumentIssueBySeverity);
 }
 
 export function sortDocumentIssueBySeverity(a: DocumentIssue, b: DocumentIssue) {

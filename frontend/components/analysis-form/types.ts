@@ -1,3 +1,4 @@
+import { WorkflowRunType } from '@/lib/generated-api';
 import { AnalysisConfig } from '../wizard/types';
 
 export interface AnalysisFormData {
@@ -7,15 +8,12 @@ export interface AnalysisFormData {
 }
 
 export interface AnalysisFormValues {
-  reviewType: string;
   domain: string;
   targetAudience: string;
-  documentPublicationDate: string;
-  runLiteratureReview: boolean;
-  runSuggestCitations: boolean;
-  runReferenceValidation: boolean;
   webSearchConsent: boolean;
+  publicationDate: string;
   openaiApiKey: string;
   mainDocument: File | null;
   supportingDocuments: File[];
+  workflowTypes: WorkflowRunType[];
 }

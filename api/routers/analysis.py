@@ -11,11 +11,12 @@ from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, Up
 from api.auth import get_current_user
 from api.dependencies import build_config_from_form
 from api.models import StartWorkflowResponse
-from api.services.workflow_runner import run_workflow_background
+from api.services.workflow_runner import start_multiple_workflow_runs
 from api.upload import save_uploaded_files_to_db
 from lib.agents.registry import agent_registry
 from lib.models.file import FileRole
 from lib.models.user import User
+from lib.models.workflow_run import WorkflowRunType
 from lib.services.files import load_file_document
 from lib.services.projects import create_project
 from lib.workflows.claim_substantiation.runner import rerun_analysis
@@ -38,14 +39,14 @@ async def start_analysis(
     current_user: User = Depends(get_current_user),
 ):
     """
-    Start claim substantiation analysis - returns workflow_run_id immediately.
+    Create a project and immediately start analysis workflows.
 
     This endpoint:
     1. Creates a project for the analysis
     2. Saves uploaded files to database with file metadata
     3. Creates file document references (without markdown conversion)
     4. Returns immediately with project_id
-    5. Starts the analysis workflow in the background (markdown conversion happens here)
+    5. Starts the analysis workflows in the background (markdown conversion happens here)
 
     The client can poll /api/project/{project_id} to check progress.
 
@@ -63,7 +64,9 @@ async def start_analysis(
         project = await create_project(
             title=main_document.filename or "Untitled", user=current_user
         )
+
         logger.info(f"Created project {project.id}")
+        config.project_id = str(project.id)
 
         # Save files to database
         logger.info("Saving uploaded files to database...")
@@ -78,16 +81,19 @@ async def start_analysis(
         )
         logger.info(f"Saved {len(file_records)} files to database")
 
-        # Create FileDocuments WITHOUT markdown conversion (workflow will handle that)
-        main_file = await load_file_document(file_records[0])
-        supporting_files = [await load_file_document(f) for f in file_records[1:]]
+        # Determine which workflows to run
+        # Default to claim substantiation if no workflow_types specified
+        workflow_types = config.workflow_types or [WorkflowRunType.CLAIM_SUBSTANTIATION]
 
-        background_tasks.add_task(
-            run_workflow_background,
-            str(project.id),
-            main_file,
-            supporting_files,
-            config,
+        logger.info(
+            f"Starting workflows: {[wt.value for wt in workflow_types]} for project {project.id}"
+        )
+
+        await start_multiple_workflow_runs(
+            workflow_types=workflow_types,
+            base_config=config,
+            user=current_user,
+            background_tasks=background_tasks,
         )
 
         return StartWorkflowResponse(

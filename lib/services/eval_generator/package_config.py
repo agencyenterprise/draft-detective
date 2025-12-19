@@ -1,7 +1,7 @@
 """Configuration classes for eval package generation."""
 
 from typing import List
-from lib.workflows.claim_substantiation.state import DocumentChunk
+from lib.workflows.claim_substantiation.state import AnalyzedChunk
 from .file_operations import AGENT_CONFIGS
 
 
@@ -11,7 +11,7 @@ class PackageConfig:
     def __init__(
         self,
         selected_agents: List[str] = None,
-        target_chunks: List[DocumentChunk] = None
+        target_chunks: List[AnalyzedChunk] = None
     ):
         self.selected_agents = selected_agents or list(AGENT_CONFIGS.keys())
         self.target_chunks = target_chunks  # None = all chunks

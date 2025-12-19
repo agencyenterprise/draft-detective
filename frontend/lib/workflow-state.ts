@@ -1,8 +1,15 @@
 import {
-  ClaimSubstantiatorStateSummary,
+  CitationSuggesterState,
+  ClaimReferenceValidationState,
+  ClaimSubstantiatorStateOutput,
+  DocumentProcessingState,
   DocxGenerationState,
+  InferenceValidationState,
+  LiteratureReviewState,
+  LiveReportsState,
   MethodologicalAlignmentState,
   ReferenceDownloaderState,
+  ReferenceValidationState,
   WorkflowRun,
   WorkflowRunDetail,
   WorkflowRunType,
@@ -12,10 +19,17 @@ import {
  * Type mapping for workflow types to their corresponding workflow detail types
  */
 type WorkflowTypeToDetail = {
-  [WorkflowRunType.ClaimSubstantiation]: ClaimSubstantiatorStateSummary;
+  [WorkflowRunType.DocumentProcessing]: DocumentProcessingState;
+  [WorkflowRunType.ClaimSubstantiation]: ClaimSubstantiatorStateOutput;
+  [WorkflowRunType.ClaimReferenceValidation]: ClaimReferenceValidationState;
   [WorkflowRunType.MethodologicalAlignment]: MethodologicalAlignmentState;
   [WorkflowRunType.ReferenceDownloader]: ReferenceDownloaderState;
   [WorkflowRunType.DocxGeneration]: DocxGenerationState;
+  [WorkflowRunType.InferenceValidation]: InferenceValidationState;
+  [WorkflowRunType.LiteratureReview]: LiteratureReviewState;
+  [WorkflowRunType.LiveReports]: LiveReportsState;
+  [WorkflowRunType.ReferenceValidation]: ReferenceValidationState;
+  [WorkflowRunType.CitationSuggester]: CitationSuggesterState;
 };
 
 export interface WorkflowRunDetailTyped<T> {
@@ -40,10 +54,18 @@ export function getWorkflowRunByType<T extends keyof WorkflowTypeToDetail>(
 }
 
 const workflowTypeNames: Record<WorkflowRunType, string> = {
+  [WorkflowRunType.DocumentProcessing]: 'Document Processing',
   [WorkflowRunType.ClaimSubstantiation]: 'Claim Substantiation',
+  [WorkflowRunType.ClaimReferenceValidation]: 'Claim Reference Validation',
   [WorkflowRunType.MethodologicalAlignment]: 'Methodological Alignment',
   [WorkflowRunType.ReferenceDownloader]: 'Reference Downloader',
   [WorkflowRunType.DocxGeneration]: 'DOCX Generation',
+  [WorkflowRunType.InferenceValidation]: 'Inference Validation',
+  [WorkflowRunType.LiteratureReview]: 'Literature Review',
+  [WorkflowRunType.LiveReports]: 'Live Reports',
+  [WorkflowRunType.ReferenceValidation]: 'Reference Validation',
+  [WorkflowRunType.CitationSuggester]: 'Citation Suggester',
+  [WorkflowRunType.ResultsExtraction]: 'Results Extraction',
 };
 
 export function getWorkflowTypeName(type: WorkflowRunType): string {

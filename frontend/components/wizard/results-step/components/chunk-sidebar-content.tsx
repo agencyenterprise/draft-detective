@@ -1,9 +1,11 @@
 import { AiGeneratedLabel } from '@/components/ai-generated-label';
 import { Badge } from '@/components/ui/badge';
-import type { ClaimSubstantiatorStateSummary, DocumentIssue } from '@/lib/generated-api';
-import { useChunkDetails } from '@/lib/hooks/use-chunk-details';
+import type { DocumentIssue, WorkflowRunDetail } from '@/lib/generated-api';
+import { WorkflowRunType } from '@/lib/generated-api';
 import { getClaimIssues, getMaxSeverity, sortBySeverity } from '@/lib/severity';
-import { Loader2, X } from 'lucide-react';
+import { getWorkflowRunByType } from '@/lib/workflow-state';
+import { X } from 'lucide-react';
+import { useMemo } from 'react';
 import { ChunkAnalysisCard } from './chunk-analysis-card';
 import { ChunkEvalGenerator } from './chunk-eval-generator';
 import { ChunkReevaluateControl } from './chunk-reevaluate-control';
@@ -12,61 +14,62 @@ import { ClaimAnalysisCard } from './claim-analysis-card';
 import { ErrorsCard } from './errors-card';
 
 export interface ChunkSidebarContentProps {
-  results: ClaimSubstantiatorStateSummary;
   chunkIndex: number;
   projectId: string;
-  workflowRunId: string;
   isWorkflowRunning: boolean;
-  onSelectIssue: (issue: DocumentIssue) => void;
   onClearChunkSelection: () => void;
+  allWorkflowDetails: WorkflowRunDetail[];
+  issues: DocumentIssue[];
   readOnly?: boolean;
 }
 
 export function ChunkSidebarContent({
-  results,
   chunkIndex,
   projectId,
-  workflowRunId,
   isWorkflowRunning,
-  onSelectIssue,
   onClearChunkSelection,
+  allWorkflowDetails,
+  issues,
   readOnly = false,
 }: ChunkSidebarContentProps) {
-  const { data: chunkDetails, isLoading: isLoadingDetails } = useChunkDetails(
-    workflowRunId || '',
-    chunkIndex,
-    !!workflowRunId,
-    isWorkflowRunning,
+  // Extract claim substantiation workflow detail from all workflow details
+  const claimSubstantiatorDetail = useMemo(
+    () => getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.ClaimSubstantiation),
+    [allWorkflowDetails],
   );
 
-  const chunkErrors = results.errors?.filter((error) => error.chunk_index === chunkIndex) ?? [];
-  const lightweightChunk = results.chunks?.find((chunk) => chunk.chunk_index === chunkIndex);
+  const results = claimSubstantiatorDetail?.state;
+  const workflowRunId = claimSubstantiatorDetail?.run.id;
   const shouldShowStatusBadge = useShouldShowStatusBadge(isWorkflowRunning);
 
+  if (!results) {
+    return null;
+  }
+
+  const chunkErrors = results.errors?.filter((error) => error.chunk_index === chunkIndex) ?? [];
+  const chunkDetails = results.chunks?.find((chunk) => chunk.chunk_index === chunkIndex);
+
+  if (!chunkDetails) {
+    return null;
+  }
   const claims = chunkDetails?.claims?.claims ?? [];
   const sortedClaimsBySeverity = claims
     .map((claim, originalIndex) => ({ claim, originalIndex }))
     .sort((a, b) => {
-      const aIssues = getClaimIssues(results, chunkIndex, a.originalIndex);
-      const bIssues = getClaimIssues(results, chunkIndex, b.originalIndex);
+      const aIssues = getClaimIssues(issues, chunkIndex, a.originalIndex);
+      const bIssues = getClaimIssues(issues, chunkIndex, b.originalIndex);
       const aMaxSeverity = getMaxSeverity(aIssues);
       const bMaxSeverity = getMaxSeverity(bIssues);
       return sortBySeverity(aMaxSeverity, bMaxSeverity);
     });
 
-  if (!lightweightChunk) {
-    return null;
-  }
-
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-2">
-        {shouldShowStatusBadge && chunkDetails && (
-          <ChunkStatusBadge chunk={chunkDetails} isWorkflowRunning={isWorkflowRunning} />
-        )}
+        {shouldShowStatusBadge && <ChunkStatusBadge chunk={chunkDetails} isWorkflowRunning={isWorkflowRunning} />}
 
         <Badge variant="secondary" className="gap-1 pl-2.5 pr-1">
-          Chunk #{lightweightChunk.chunk_index}
+          Chunk #{chunkDetails.chunk_index}
           <button
             onClick={onClearChunkSelection}
             className="ml-0.5 rounded-sm hover:bg-muted-foreground/20 p-0.5"
@@ -81,44 +84,29 @@ export function ChunkSidebarContent({
 
       {chunkErrors.length > 0 && <ErrorsCard errors={chunkErrors} />}
 
-      {isLoadingDetails && (
-        <div className="flex items-center justify-center py-8">
-          <div className="text-center space-y-3">
-            <Loader2 className="h-6 w-6 animate-spin text-primary mx-auto" />
-            <p className="text-sm text-muted-foreground">Loading detailed analysis...</p>
-          </div>
-        </div>
-      )}
+      {sortedClaimsBySeverity.map(({ claim, originalIndex }) => (
+        <ClaimAnalysisCard
+          key={originalIndex}
+          results={results}
+          claim={claim}
+          chunkDetails={chunkDetails}
+          chunkIndex={chunkIndex}
+          claimIndex={originalIndex}
+          totalClaims={claims.length}
+          workflowRunId={workflowRunId || ''}
+          allWorkflowDetails={allWorkflowDetails}
+          issues={issues}
+          readOnly={readOnly}
+        />
+      ))}
 
-      {!isLoadingDetails && (
+      <ChunkAnalysisCard results={results} chunk={chunkDetails} issues={issues} />
+
+      {!readOnly && (
         <>
-          {sortedClaimsBySeverity.map(({ claim, originalIndex }) => (
-            <ClaimAnalysisCard
-              key={originalIndex}
-              results={results}
-              claim={claim}
-              chunkDetails={chunkDetails}
-              chunkIndex={chunkIndex}
-              claimIndex={originalIndex}
-              totalClaims={claims.length}
-              workflowRunId={workflowRunId}
-              readOnly={readOnly}
-            />
-          ))}
+          <ChunkReevaluateControl results={results} chunkIndex={chunkDetails.chunk_index} projectId={projectId} />
 
-          {chunkDetails && <ChunkAnalysisCard results={results} chunk={chunkDetails} />}
-
-          {!readOnly && (
-            <>
-              <ChunkReevaluateControl
-                results={results}
-                chunkIndex={lightweightChunk.chunk_index}
-                projectId={projectId}
-              />
-
-              <ChunkEvalGenerator chunkIndex={lightweightChunk.chunk_index} originalState={results} />
-            </>
-          )}
+          <ChunkEvalGenerator chunkIndex={chunkDetails.chunk_index} originalState={results} />
         </>
       )}
     </div>

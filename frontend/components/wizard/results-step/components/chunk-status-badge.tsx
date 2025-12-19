@@ -1,7 +1,7 @@
 'use client';
 
 import { Badge } from '@/components/ui/badge';
-import { DocumentChunkOutput } from '@/lib/generated-api';
+import { AnalyzedChunkOutput } from '@/lib/generated-api';
 import { Loader2, CheckCircle2, Clock } from 'lucide-react';
 import * as React from 'react';
 
@@ -10,7 +10,7 @@ const COMPLETE_BADGE_REMOVE_MS = 5000;
 
 type ChunkStatus = 'queued' | 'analyzing' | 'complete';
 
-export function getChunkStatus(chunk: DocumentChunkOutput): ChunkStatus {
+export function getChunkStatus(chunk: AnalyzedChunkOutput): ChunkStatus {
   const hasClaims = !!chunk.claims;
   const hasClaimsData = (chunk.claims?.claims?.length || 0) > 0;
   const hasCommonKnowledgeResults = (chunk.claim_common_knowledge_results?.length || 0) > 0;
@@ -21,7 +21,7 @@ export function getChunkStatus(chunk: DocumentChunkOutput): ChunkStatus {
 }
 
 interface ChunkStatusBadgeProps {
-  chunk: DocumentChunkOutput;
+  chunk: AnalyzedChunkOutput;
   isWorkflowRunning: boolean;
 }
 

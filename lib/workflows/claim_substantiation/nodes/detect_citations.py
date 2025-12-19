@@ -7,8 +7,8 @@ from lib.agents.formatting_utils import format_bibliography_prompt_section
 from lib.workflows.chunk_iterator import iterate_chunks
 from lib.workflows.context import ContextSchema
 from lib.workflows.claim_substantiation.state import (
+    AnalyzedChunk,
     ClaimSubstantiatorState,
-    DocumentChunk,
 )
 from lib.workflows.decorators import (
     handle_chunk_errors,
@@ -39,9 +39,9 @@ async def detect_citations(
 @handle_chunk_errors("Citation detection")
 async def _detect_chunk_citations(
     state: ClaimSubstantiatorState,
-    chunk: DocumentChunk,
+    chunk: AnalyzedChunk,
     citation_detector_agent: CitationDetectorAgent,
-) -> DocumentChunk:
+) -> AnalyzedChunk:
     citations = await citation_detector_agent.ainvoke(
         {
             "full_document": state.file.markdown,

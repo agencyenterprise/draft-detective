@@ -11,7 +11,6 @@ import * as React from 'react';
 interface ReferenceItemProps {
   item: ReferenceFetchItem;
   index: number;
-  downloadedReference?: string | null;
 }
 
 function getConclusionBadge(conclusion: ReferenceFetchConclusion) {
@@ -33,7 +32,7 @@ function getConclusionBadge(conclusion: ReferenceFetchConclusion) {
           className="bg-yellow-100 text-yellow-800 border-yellow-300 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-800"
         >
           <AlertCircle className="h-3 w-3 mr-1" />
-          Found (Paywalled)
+          Found but not accessible
         </Badge>
       );
     case ReferenceFetchConclusion.SourceNotFound:
@@ -51,7 +50,7 @@ function getConclusionBadge(conclusion: ReferenceFetchConclusion) {
   }
 }
 
-export function ReferenceItem({ item, index, downloadedReference }: ReferenceItemProps) {
+export function ReferenceItem({ item, index }: ReferenceItemProps) {
   const [isExpanded, setIsExpanded] = React.useState(false);
 
   return (
@@ -61,7 +60,7 @@ export function ReferenceItem({ item, index, downloadedReference }: ReferenceIte
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-sm font-medium text-muted-foreground">#{index + 1}</span>
             {getConclusionBadge(item.final_conclusion)}
-            {downloadedReference ? (
+            {item.file_id ? (
               <Badge
                 variant="outline"
                 className="bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800"
@@ -81,9 +80,9 @@ export function ReferenceItem({ item, index, downloadedReference }: ReferenceIte
           <p className="text-sm">{item.reference_details}</p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          {downloadedReference && (
+          {item.file_id && (
             <Button variant="outline" size="xs" asChild className="text-gray-600 hover:text-gray-900">
-              <a href={`/api/files/download/${downloadedReference}`} target="_blank" rel="noopener noreferrer">
+              <a href={`/api/files/download/${item.file_id}`} target="_blank" rel="noopener noreferrer">
                 <Download className="size-4 mr-1" />
                 Download
               </a>
@@ -112,20 +111,6 @@ export function ReferenceItem({ item, index, downloadedReference }: ReferenceIte
               className="text-sm text-blue-600 hover:underline break-all"
             >
               {item.source_url}
-            </a>
-          </p>
-        )}
-
-        {item.download_url && (
-          <p>
-            <span className="text-sm font-medium text-muted-foreground">Download URL: </span>
-            <a
-              href={item.download_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm text-blue-600 hover:underline break-all"
-            >
-              {item.download_url}
             </a>
           </p>
         )}

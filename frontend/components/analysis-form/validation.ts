@@ -1,16 +1,14 @@
 import { MAX_FILE_SIZE_BYTES, MAX_FILE_SIZE_MB } from '@/lib/constants';
 import { FormValidationError, GlobalFormValidationError } from '@tanstack/react-form';
 import { AnalysisFormValues } from './types';
+import { WorkflowTypeDescription } from '@/lib/generated-api';
 
 export function validateAnalysisForm(
   value: AnalysisFormValues,
   hideOpenaiApiKeyInput: boolean,
+  workflowTypes?: WorkflowTypeDescription[],
 ): FormValidationError<AnalysisFormValues> {
   const errors: GlobalFormValidationError<AnalysisFormValues> = { fields: {}, form: undefined };
-
-  if (!value.reviewType) {
-    errors.fields.reviewType = 'Review type is required';
-  }
 
   if (!value.mainDocument) {
     errors.fields.mainDocument = 'Main document is required';
@@ -34,17 +32,24 @@ export function validateAnalysisForm(
     errors.fields.openaiApiKey = 'OpenAI API Key is required';
   }
 
-  if (value.runLiteratureReview || value.reviewType === 'live-reports') {
-    if (!value.documentPublicationDate) {
-      errors.fields.documentPublicationDate = 'Document publication date is required';
+  // Validate that at least one workflow type is selected
+  if (!value.workflowTypes || value.workflowTypes.length === 0) {
+    errors.fields.workflowTypes = 'At least one analysis type must be selected';
+  }
+
+  // Validate web search consent if any selected workflow type requires it
+  if (workflowTypes && value.workflowTypes) {
+    const needsWebSearch = value.workflowTypes.some(
+      (selectedType) => workflowTypes.find((wt) => wt.type === selectedType)?.needs_web_search,
+    );
+    if (needsWebSearch && !value.webSearchConsent) {
+      errors.fields.webSearchConsent = 'Web search consent is required';
     }
   }
 
-  if (value.runLiteratureReview || value.reviewType === 'live-reports' || value.runReferenceValidation) {
-    if (!value.webSearchConsent) {
-      errors.fields.webSearchConsent =
-        'Web search consent is required when using literature review, live reports or reference validation';
-    }
+  // Validate publication date is required
+  if (!value.publicationDate || value.publicationDate.trim() === '') {
+    errors.fields.publicationDate = 'Document publication date is required';
   }
 
   return errors;

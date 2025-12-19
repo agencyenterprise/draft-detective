@@ -2,14 +2,14 @@
 
 import { LabeledValue } from '@/components/labeled-value';
 import { Button } from '@/components/ui/button';
-import { EvidenceWeighterResponseWithClaimIndexOutput } from '@/lib/generated-api';
+import { EvidenceWeighterResponseWithClaimIndex } from '@/lib/generated-api';
 import { ChevronDown, ChevronRight, EarthIcon } from 'lucide-react';
 import { useState } from 'react';
 import { EvidenceWeighterRecommendedActionBadge } from './evidence-weighter-recommended-action-badge';
 import Link from 'next/link';
 
 interface ClaimLiveReportsProps {
-  liveReportsAnalysis: EvidenceWeighterResponseWithClaimIndexOutput;
+  liveReportsAnalysis: EvidenceWeighterResponseWithClaimIndex;
 }
 
 export function ClaimLiveReports({ liveReportsAnalysis }: ClaimLiveReportsProps) {

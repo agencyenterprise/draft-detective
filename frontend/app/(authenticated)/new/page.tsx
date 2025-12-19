@@ -26,17 +26,11 @@ export default function New() {
           supportingDocuments: data.supportingDocuments,
           config: {
             use_toulmin: false,
-            run_literature_review: data.config.runLiteratureReview,
-            run_suggest_citations: data.config.runSuggestCitations,
-            run_live_reports: data.config.runLiveReports,
-            run_reference_validation: data.config.runReferenceValidation,
             domain: data.config.domain || undefined,
             target_audience: data.config.targetAudience || undefined,
-            document_publication_date: data.config.documentPublicationDate
-              ? new Date(data.config.documentPublicationDate)
-              : undefined,
-            session_id: undefined,
             openai_api_key: data.config.openaiApiKey,
+            publication_date: data.config.publicationDate || undefined,
+            workflow_types: data.config.workflowTypes,
           },
         },
         {
@@ -168,7 +162,7 @@ export default function New() {
         </p>
       </div>
 
-      <div className="bg-background backdrop-blur-sm border border-border/50 rounded-2xl p-8 shadow-sm">
+      <div className="bg-background backdrop-blur-sm border border-border/50 rounded-2xl p-8 shadow-sm max-w-5xl mx-auto">
         <AnalysisForm
           isPending={analysisMutation.isPending}
           onSubmit={(data) => {

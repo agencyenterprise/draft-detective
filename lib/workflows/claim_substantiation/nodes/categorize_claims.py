@@ -11,8 +11,8 @@ from lib.agents.formatting_utils import format_audience_context, format_domain_c
 from lib.workflows.chunk_iterator import iterate_chunks
 from lib.workflows.context import ContextSchema
 from lib.workflows.claim_substantiation.state import (
+    AnalyzedChunk,
     ClaimSubstantiatorState,
-    DocumentChunk,
 )
 from lib.workflows.decorators import (
     handle_chunk_errors,
@@ -42,9 +42,9 @@ async def categorize_claims(
 @handle_chunk_errors("Claim categorization")
 async def _categorize_chunk_claims(
     state: ClaimSubstantiatorState,
-    chunk: DocumentChunk,
+    chunk: AnalyzedChunk,
     claim_categorizer_agent: ClaimCategorizerAgent,
-) -> DocumentChunk:
+) -> AnalyzedChunk:
     # Skip if chunk has no claims
     if chunk.claims is None or not chunk.claims.claims:
         logger.debug(
@@ -102,7 +102,7 @@ if __name__ == "__main__":
 
     async def test_claim_categorization():
         # Create a test document chunk
-        test_chunk = DocumentChunk(
+        test_chunk = AnalyzedChunk(
             chunk_index=0,
             paragraph_index=0,
             content="Machine learning models have shown superior performance on image classification tasks compared to traditional computer vision approaches.",
@@ -127,7 +127,6 @@ if __name__ == "__main__":
                 markdown="# Test Document\n\nMachine learning models have shown superior performance on image classification tasks compared to traditional computer vision approaches.",
             ),
             config=SubstantiationWorkflowConfig(
-                session_id="test-session",
                 domain="machine learning",
                 target_audience="technical",
             ),
