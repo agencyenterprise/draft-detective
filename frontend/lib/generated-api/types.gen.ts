@@ -62,10 +62,6 @@ export type AnalyzedChunkInput = {
    * Substantiations
    */
   substantiations?: Array<ClaimSubstantiationResultWithClaimIndex>;
-  /**
-   * Inference Validations
-   */
-  inference_validations?: Array<InferenceValidationResponseWithClaimIndex>;
 };
 
 /**
@@ -106,10 +102,6 @@ export type AnalyzedChunkOutput = {
    * Substantiations
    */
   substantiations?: Array<ClaimSubstantiationResultWithClaimIndex>;
-  /**
-   * Inference Validations
-   */
-  inference_validations?: Array<InferenceValidationResponseWithClaimIndex>;
 };
 
 /**
@@ -290,10 +282,6 @@ export type BodyStartAnalysisApiStartAnalysisPost = {
    * Agents To Run
    */
   agents_to_run?: string | null;
-  /**
-   * Session Id
-   */
-  session_id?: string | null;
   /**
    * Openai Api Key
    */
@@ -1827,6 +1815,74 @@ export type InferenceValidationResponseWithClaimIndex = {
 };
 
 /**
+ * InferenceValidationState
+ *
+ * State for the inference validation workflow.
+ */
+export type InferenceValidationState = {
+  /**
+   * Errors
+   *
+   * Errors that occurred during the workflow execution.
+   */
+  errors?: Array<WorkflowError>;
+  /**
+   * Type
+   */
+  type?: 'inference_validation';
+  config: InferenceValidationWorkflowConfig;
+  file: FileDocumentOutput;
+  /**
+   * Chunks
+   */
+  chunks?: Array<AnalyzedChunkOutput>;
+  /**
+   * The summary of the main document
+   */
+  main_document_summary?: DocumentSummary | null;
+  /**
+   * Inference Validations
+   */
+  inference_validations?: Array<InferenceValidationResponseWithClaimIndex>;
+};
+
+/**
+ * InferenceValidationWorkflowConfig
+ *
+ * Configuration model for the inference validation workflow.
+ */
+export type InferenceValidationWorkflowConfig = {
+  /**
+   * Project Id
+   *
+   * The ID of the project that this workflow run should be associated with
+   */
+  project_id?: string | null;
+  /**
+   * Openai Api Key
+   *
+   * The OpenAI API key to use for this workflow execution
+   */
+  openai_api_key?: string | null;
+  /**
+   * Type
+   */
+  type?: 'inference_validation';
+  /**
+   * Domain
+   *
+   * Domain context for more accurate analysis
+   */
+  domain?: string | null;
+  /**
+   * Target Audience
+   *
+   * Target audience context for analysis
+   */
+  target_audience?: string | null;
+};
+
+/**
  * LiteratureReviewResponse
  */
 export type LiteratureReviewResponse = {
@@ -3151,6 +3207,7 @@ export type WorkflowRunDetail = {
     | ReferenceValidationState
     | CitationSuggesterState
     | ResultsExtractionState
+    | InferenceValidationState
     | null;
 };
 
@@ -3182,6 +3239,7 @@ export const WorkflowRunType = {
   ReferenceValidation: 'reference_validation',
   CitationSuggester: 'citation_suggester',
   ResultsExtraction: 'results_extraction',
+  InferenceValidation: 'inference_validation',
 } as const;
 
 /**
@@ -3424,6 +3482,38 @@ export type FileDocumentOutputWritable = {
 };
 
 /**
+ * InferenceValidationState
+ *
+ * State for the inference validation workflow.
+ */
+export type InferenceValidationStateWritable = {
+  /**
+   * Errors
+   *
+   * Errors that occurred during the workflow execution.
+   */
+  errors?: Array<WorkflowError>;
+  /**
+   * Type
+   */
+  type?: 'inference_validation';
+  config: InferenceValidationWorkflowConfig;
+  file: FileDocumentOutputWritable;
+  /**
+   * Chunks
+   */
+  chunks?: Array<AnalyzedChunkOutput>;
+  /**
+   * The summary of the main document
+   */
+  main_document_summary?: DocumentSummary | null;
+  /**
+   * Inference Validations
+   */
+  inference_validations?: Array<InferenceValidationResponseWithClaimIndex>;
+};
+
+/**
  * LiteratureReviewState
  *
  * State for the literature review workflow.
@@ -3578,6 +3668,7 @@ export type WorkflowRunDetailWritable = {
     | ReferenceValidationState
     | CitationSuggesterStateWritable
     | ResultsExtractionStateWritable
+    | InferenceValidationStateWritable
     | null;
 };
 
@@ -3729,7 +3820,8 @@ export type StartWorkflowApiWorkflowsStartPostData = {
     | LiveReportsWorkflowConfig
     | ReferenceValidationWorkflowConfig
     | CitationSuggesterWorkflowConfig
-    | ResultsExtractionWorkflowConfig;
+    | ResultsExtractionWorkflowConfig
+    | InferenceValidationWorkflowConfig;
   path?: never;
   query?: never;
   url: '/api/workflows/start';

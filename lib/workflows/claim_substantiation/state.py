@@ -10,7 +10,6 @@ from lib.agents.claim_needs_substantiation_checker import (
 )
 from lib.agents.claim_verifier import ClaimSubstantiationResultWithClaimIndex
 from lib.agents.document_summarizer import DocumentSummary
-from lib.agents.inference_validator import InferenceValidationResponseWithClaimIndex
 from lib.agents.models import ChunkWithIndex
 from lib.agents.reference_extractor import BibliographyItem
 from lib.agents.toulmin_claim_extractor import ToulminClaimResponse
@@ -65,7 +64,6 @@ class AnalyzedChunk(ChunkWithIndex):
     claim_categories: List[ClaimCategorizationResponseWithClaimIndex] = []
     claim_common_knowledge_results: List[ClaimCommonKnowledgeResultWithClaimIndex] = []
     substantiations: List[ClaimSubstantiationResultWithClaimIndex] = []
-    inference_validations: List[InferenceValidationResponseWithClaimIndex] = []
 
 
 def conciliate_chunks(

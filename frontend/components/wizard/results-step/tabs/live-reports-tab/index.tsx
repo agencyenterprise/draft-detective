@@ -83,9 +83,11 @@ export function LiveReportsTab({ workflowDetail, projectId, readOnly = false }: 
           <div className="space-y-4">
             <div className="space-y-1">
               <LabeledValue label="Title">{metadata.title}</LabeledValue>
-              <LabeledValue label="Document publication date">
-                <PublicationDateLabel results={[workflowDetail!]} />
-              </LabeledValue>
+              {workflowDetail && (
+                <LabeledValue label="Document publication date">
+                  <PublicationDateLabel results={[workflowDetail]} />
+                </LabeledValue>
+              )}
               <LabeledValue label="Live report generation date">
                 {format(new Date(metadata.date_generated), 'MMM dd, yyyy')}
               </LabeledValue>
