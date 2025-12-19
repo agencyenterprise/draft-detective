@@ -153,7 +153,7 @@ if __name__ == "__main__":
         # Resolve the file path (handle relative paths from project root)
         if not os.path.isabs(file_path):
             # Assume relative to project root
-            project_root = Path(__file__).parent.parent.parent
+            project_root = Path(__file__).parent.parent.parent.parent.parent
             file_path = str(project_root / file_path)
 
         if not os.path.exists(file_path):
@@ -183,16 +183,14 @@ if __name__ == "__main__":
             # Print the methodology results
             print("\n" + "=" * 80)
             print("EXTRACTED RESULT")
-            print("=" * 80)
             print("Title:", result.title)
             print("Type:", result.result_type)
             print("Location:", result.location)
             print("Description:", result.description)
-            print("\n" + "=" * 80)
+            print("\n" + "-" * 80)
 
             # Print the reproducibility results
             print("REPRODUCIBILITY ASSESSMENT")
-            print("=" * 80)
             print(f"Category: {result.reproducibility.value}")
             print(f"\nRationale:\n{result.reproducibility_rationale}")
             print("\n" + "=" * 80)
