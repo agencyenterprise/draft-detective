@@ -1,94 +1,93 @@
+import asyncio
 import logging
 import mimetypes
 import os
-import re
-import uuid
 from pathlib import Path
+import re
 from typing import NamedTuple
+import uuid
 
 import httpx
-from langgraph.runtime import Runtime
+from langchain.tools import ToolRuntime, tool
+from pydantic import BaseModel, Field
 from xxhash import xxh128
 
 from lib.config.env import config
 from lib.models.file import FileRole
-from lib.run_utils import run_tasks
 from lib.services.files import create_file_record
 from lib.workflows.context import ContextSchema
-from lib.workflows.decorators import register_node
-from lib.workflows.reference_downloader.agents.reference_fetcher import (
-    ReferenceFetchConclusion,
-    ReferenceFetchItem,
-)
-from lib.workflows.reference_downloader.state import ReferenceDownloaderState
 
 logger = logging.getLogger(__name__)
-
-
-@register_node(
-    "Download references",
-    "Download references from the internet",
-)
-async def download_references(
-    state: ReferenceDownloaderState, runtime: Runtime[ContextSchema]
-) -> ReferenceDownloaderState:
-    references = state.fetched_references or []
-    project_id = runtime.context.project_id
-    user_id = runtime.context.user_id
-
-    tasks = [
-        _download_reference(reference, project_id=project_id, user_id=user_id)
-        for reference in references
-    ]
-    results: tuple[list[str | None], list[Exception]] = await run_tasks(
-        tasks, desc="Downloading references", max_concurrent=10
-    )
-    downloaded_references, errors = results
-
-    return {"downloaded_references": downloaded_references}
-
-
-async def _download_reference(
-    reference: ReferenceFetchItem,
-    project_id: str,
-    user_id: str,
-) -> str | None:
-    """Download content from the reference URL and save it to the uploads directory.
-
-    Downloads PDFs directly, or uses Jina API to convert non-PDF content to markdown.
-    Returns the file UUID if successful, None otherwise.
-    """
-
-    # Only download if source was found
-    if reference.final_conclusion != ReferenceFetchConclusion.SOURCE_FOUND:
-        logger.info(
-            f"Skipping download for reference with conclusion: {reference.final_conclusion}"
-        )
-        return None
-
-    url = reference.download_url or reference.source_url
-
-    if not url:
-        logger.warning(f"No URL available for reference: {reference.reference_details}")
-        return None
-
-    saved_file = await _download_direct_url(url)
-    if saved_file is None:
-        return None
-
-    return await _persist_file_record(
-        saved_file=saved_file,
-        reference=reference,
-        project_id=project_id,
-        user_id=user_id,
-    )
-
 
 headers = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
     "Accept-Language": "en-US,en;q=0.9",
     "Referer": "https://www.google.com/",
 }
+
+
+class DownloadFileFromUrlResponse(BaseModel):
+    file_id: str | None = Field(description="The ID of the downloaded file")
+    message: str = Field(
+        description="A message with the outcome details of the download operation"
+    )
+    success: bool = Field(description="Whether the download operation was successful")
+
+
+@tool()
+def download_file_from_url(
+    url: str, reference: str, runtime: ToolRuntime[ContextSchema]
+) -> str:
+    """
+    Download a file from a URL.
+
+    Args:
+        url: The URL of the file to download.
+        reference: The original reference text of the file being downloaded.
+
+    Returns:
+        A JSON string with the response from the download operation, containing the fields:
+        - file_id: The ID of the downloaded file or null if the download operation failed
+        - message: A message with the outcome details of the download operation or the error message if the download operation failed
+        - success: Whether the download operation was successful or false if it failed
+    """
+
+    response = asyncio.run(
+        _download_file_from_url_async(url, reference, runtime.context)
+    )
+    return response.model_dump_json()
+
+
+async def _download_file_from_url_async(
+    url: str, reference: str, context: ContextSchema
+) -> DownloadFileFromUrlResponse:
+    try:
+        saved_file = await _download_direct_url(url)
+    except httpx.HTTPError as exc:
+        logger.warning(
+            f"Warning: Failed to download content from {url} (HTTP Error: {exc})"
+        )
+        return DownloadFileFromUrlResponse(
+            file_id=None,
+            message=f"Failed to download content from {url}. Error: {exc}",
+            success=False,
+        )
+    except Exception as exc:
+        logger.error(f"Error downloading content from {url} (error: {exc})")
+        raise
+
+    file_id = await _persist_file_record(
+        saved_file=saved_file,
+        reference_details=reference,
+        project_id=context.project_id,
+        user_id=context.user_id,
+    )
+
+    return DownloadFileFromUrlResponse(
+        file_id=file_id,
+        message=f"Successfully downloaded content from {url} and saved to file with ID {file_id}",
+        success=True,
+    )
 
 
 class SavedFile(NamedTuple):
@@ -127,41 +126,34 @@ async def _download_direct_url(url: str) -> SavedFile | None:
                 )
                 return await _download_with_jina_api(url)
 
-    except Exception:
+    except httpx.HTTPStatusError as exc:
         logger.warning(
-            f"Error downloading content from {url}, falling back to Jina", exc_info=True
+            f"Error downloading content from {url}, falling back to Jina (HTTP status error: {exc})"
         )
         return await _download_with_jina_api(url)
 
 
 async def _download_with_jina_api(url: str) -> SavedFile | None:
     """Download content using Jina API and save as markdown. Returns SavedFile if successful, None otherwise."""
-    try:
-        async with httpx.AsyncClient(timeout=120.0) as client:
-            logger.info(f"Downloading content with Jina API from {url}")
-            response = await client.get(
-                f"https://r.jina.ai/{url}", follow_redirects=True
-            )
-            response.raise_for_status()
 
-            markdown_content = response.text
-            if not markdown_content:
-                logger.warning(f"Jina API returned empty content for {url}")
-                return None
+    async with httpx.AsyncClient(timeout=120.0) as client:
+        logger.info(f"Downloading content with Jina API from {url}")
+        response = await client.get(f"https://r.jina.ai/{url}", follow_redirects=True)
+        response.raise_for_status()
 
-            filename = await _save_content(markdown_content, "md")
-            logger.info(f"Successfully downloaded and saved markdown to {filename}")
-            return SavedFile(filename=filename, content_type="text/markdown")
-    except Exception:
-        logger.error(
-            f"Error downloading content with Jina API from {url}", exc_info=True
-        )
-        return None
+        markdown_content = response.text
+        if not markdown_content:
+            logger.warning(f"Jina API returned empty content for {url}")
+            return None
+
+        filename = await _save_content(markdown_content, "md")
+        logger.info(f"Successfully downloaded and saved markdown to {filename}")
+        return SavedFile(filename=filename, content_type="text/markdown")
 
 
 async def _persist_file_record(
     saved_file: SavedFile,
-    reference: ReferenceFetchItem,
+    reference_details: str,
     project_id: str | None,
     user_id: uuid.UUID | None,
 ) -> str | None:
@@ -180,7 +172,7 @@ async def _persist_file_record(
 
     content_hash, extension = _split_filename(saved_file.filename)
     file_size = os.path.getsize(file_path)
-    file_name = _build_file_name(reference.reference_details, extension)
+    file_name = _build_file_name(reference_details, extension)
     file_type = (
         saved_file.content_type
         or mimetypes.guess_type(file_name)[0]
@@ -191,7 +183,7 @@ async def _persist_file_record(
         project_uuid = uuid.UUID(str(project_id))
         user_id_uuid = uuid.UUID(str(user_id))
 
-        description = f"[This file was automatically downloaded for the reference: {reference.reference_details}]"
+        description = f"[This file was automatically downloaded for the reference: {reference_details}]"
 
         file = await create_file_record(
             project_id=project_uuid,
@@ -265,17 +257,3 @@ async def _save_content(content: bytes | str, extension: str) -> str:
         raise Exception(f"File was not created at {file_path}")
 
     return f"{xxhash}.{extension}"
-
-
-if __name__ == "__main__":
-    import asyncio
-
-    from lib.config.logger import setup_logger
-
-    setup_logger()
-
-    asyncio.run(
-        _download_direct_url(
-            "https://www.rand.org/content/dam/rand/pubs/research_reports/RR1700/RR1751/RAND_RR1751.pdf"
-        )
-    )

@@ -29,6 +29,7 @@ gpt_5_model = LLMModel(provider=get_openai_provider(), name="gpt-5")
 gpt_5_mini_model = LLMModel(provider=get_openai_provider(), name="gpt-5-mini")
 gpt_5_1_model = LLMModel(provider=get_openai_provider(), name="gpt-5.1")
 gpt_4_1_model = LLMModel(provider=get_openai_provider(), name="gpt-4.1")
+gpt_5_2_model = LLMModel(provider=get_openai_provider(), name="gpt-5.2")
 
 # Anthropic models
 claude_3_5_sonnet_model = LLMModel(
