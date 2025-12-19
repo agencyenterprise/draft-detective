@@ -4,8 +4,8 @@ from langgraph.graph import StateGraph
 
 from lib.workflows.claim_substantiation.issue_converter import _find_claim_category
 from lib.workflows.claim_substantiation.state import (
-    ClaimSubstantiatorState,
     AnalyzedChunk,
+    ClaimSubstantiatorState,
 )
 from lib.workflows.inference_validation.graph import build_inference_validation_graph
 from lib.workflows.inference_validation.state import (

@@ -9,7 +9,7 @@ from lib.services.vector_store import (
     get_file_hash_from_path,
 )
 from lib.workflows.context import ContextSchema
-from lib.workflows.claim_substantiation.state import ClaimSubstantiatorState
+from lib.workflows.claim_reference_validation.state import ClaimReferenceValidationState
 from lib.workflows.decorators import register_node
 from lib.workflows.models import WorkflowError
 
@@ -21,17 +21,13 @@ logger = logging.getLogger(__name__)
     "Index supporting documents for RAG retrieval",
 )
 async def index_supporting_documents(
-    state: ClaimSubstantiatorState,
+    state: ClaimReferenceValidationState,
     runtime: Runtime[ContextSchema],
-) -> ClaimSubstantiatorState:
+) -> ClaimReferenceValidationState:
     """
     Index supporting documents for RAG retrieval.
-    Skips if use_rag is False or no supporting files provided.
+    Always indexes if supporting files are provided.
     """
-    if not state.config.use_rag:
-        logger.info("RAG disabled, skipping indexing")
-        return {}
-
     if not state.supporting_files:
         logger.info("No supporting files to index")
         return {}

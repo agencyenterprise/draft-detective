@@ -58,10 +58,6 @@ export type AnalyzedChunkInput = {
    * Claim Common Knowledge Results
    */
   claim_common_knowledge_results?: Array<ClaimCommonKnowledgeResultWithClaimIndex>;
-  /**
-   * Substantiations
-   */
-  substantiations?: Array<ClaimSubstantiationResultWithClaimIndex>;
 };
 
 /**
@@ -98,10 +94,6 @@ export type AnalyzedChunkOutput = {
    * Claim Common Knowledge Results
    */
   claim_common_knowledge_results?: Array<ClaimCommonKnowledgeResultWithClaimIndex>;
-  /**
-   * Substantiations
-   */
-  substantiations?: Array<ClaimSubstantiationResultWithClaimIndex>;
 };
 
 /**
@@ -262,10 +254,6 @@ export type BodyStartAnalysisApiStartAnalysisPost = {
    * Use Toulmin
    */
   use_toulmin?: boolean;
-  /**
-   * Use Rag
-   */
-  use_rag?: boolean;
   /**
    * Domain
    */
@@ -768,6 +756,90 @@ export type ClaimReferenceFactors = {
    * Notes about study methodology or data quality
    */
   methodology: string;
+};
+
+/**
+ * ClaimReferenceValidationState
+ *
+ * State for the claim reference validation workflow.
+ */
+export type ClaimReferenceValidationState = {
+  /**
+   * Errors
+   *
+   * Errors that occurred during the workflow execution.
+   */
+  errors?: Array<WorkflowError>;
+  /**
+   * Type
+   */
+  type?: 'claim_reference_validation';
+  config: ClaimReferenceValidationWorkflowConfig;
+  file: FileDocumentOutput;
+  /**
+   * Supporting Files
+   */
+  supporting_files?: Array<FileDocumentOutput> | null;
+  /**
+   * Chunks
+   */
+  chunks?: Array<AnalyzedChunkOutput>;
+  /**
+   * References
+   */
+  references?: Array<BibliographyItem>;
+  /**
+   * The summary of the main document
+   */
+  main_document_summary?: DocumentSummary | null;
+  /**
+   * Substantiations
+   *
+   * Claim substantiation results indexed by chunk_index and claim_index
+   */
+  substantiations?: Array<ClaimSubstantiationResultWithClaimIndex>;
+};
+
+/**
+ * ClaimReferenceValidationWorkflowConfig
+ *
+ * Configuration model for claim reference validation workflow
+ */
+export type ClaimReferenceValidationWorkflowConfig = {
+  /**
+   * Project Id
+   *
+   * The ID of the project that this workflow run should be associated with
+   */
+  project_id?: string | null;
+  /**
+   * Openai Api Key
+   *
+   * The OpenAI API key to use for this workflow execution
+   */
+  openai_api_key?: string | null;
+  /**
+   * Type
+   */
+  type?: 'claim_reference_validation';
+  /**
+   * Domain
+   *
+   * Domain context for more accurate analysis
+   */
+  domain?: string | null;
+  /**
+   * Target Audience
+   *
+   * Target audience context for analysis
+   */
+  target_audience?: string | null;
+  /**
+   * Publication Date
+   *
+   * Publication date of the document (YYYY-MM-DD format)
+   */
+  publication_date?: string | null;
 };
 
 /**
@@ -2933,12 +3005,6 @@ export type SubstantiationWorkflowConfig = {
    */
   use_toulmin?: boolean;
   /**
-   * Use Rag
-   *
-   * Use RAG for claim verification
-   */
-  use_rag?: boolean;
-  /**
    * Target Chunk Indices
    *
    * Specific chunk indices to process (None = process all chunks)
@@ -3199,6 +3265,7 @@ export type WorkflowRunDetail = {
   state:
     | DocumentProcessingState
     | ClaimSubstantiatorStateOutput
+    | ClaimReferenceValidationState
     | MethodologicalAlignmentState
     | ReferenceDownloaderState
     | DocxGenerationState
@@ -3240,6 +3307,7 @@ export const WorkflowRunType = {
   CitationSuggester: 'citation_suggester',
   ResultsExtraction: 'results_extraction',
   InferenceValidation: 'inference_validation',
+  ClaimReferenceValidation: 'claim_reference_validation',
 } as const;
 
 /**
@@ -3320,6 +3388,48 @@ export type CitationSuggesterStateWritable = {
    * Citation suggestions for all chunks and claims
    */
   citation_suggestions?: Array<CitationSuggestionResultWithClaimIndex>;
+};
+
+/**
+ * ClaimReferenceValidationState
+ *
+ * State for the claim reference validation workflow.
+ */
+export type ClaimReferenceValidationStateWritable = {
+  /**
+   * Errors
+   *
+   * Errors that occurred during the workflow execution.
+   */
+  errors?: Array<WorkflowError>;
+  /**
+   * Type
+   */
+  type?: 'claim_reference_validation';
+  config: ClaimReferenceValidationWorkflowConfig;
+  file: FileDocumentOutputWritable;
+  /**
+   * Supporting Files
+   */
+  supporting_files?: Array<FileDocumentOutputWritable> | null;
+  /**
+   * Chunks
+   */
+  chunks?: Array<AnalyzedChunkOutput>;
+  /**
+   * References
+   */
+  references?: Array<BibliographyItem>;
+  /**
+   * The summary of the main document
+   */
+  main_document_summary?: DocumentSummary | null;
+  /**
+   * Substantiations
+   *
+   * Claim substantiation results indexed by chunk_index and claim_index
+   */
+  substantiations?: Array<ClaimSubstantiationResultWithClaimIndex>;
 };
 
 /**
@@ -3660,6 +3770,7 @@ export type WorkflowRunDetailWritable = {
   state:
     | DocumentProcessingStateWritable
     | ClaimSubstantiatorStateOutputWritable
+    | ClaimReferenceValidationStateWritable
     | MethodologicalAlignmentStateWritable
     | ReferenceDownloaderState
     | DocxGenerationState
@@ -3814,6 +3925,7 @@ export type StartWorkflowApiWorkflowsStartPostData = {
   body:
     | DocumentProcessingWorkflowConfig
     | SubstantiationWorkflowConfig
+    | ClaimReferenceValidationWorkflowConfig
     | MethodologicalAlignmentWorkflowConfig
     | ReferenceDownloaderWorkflowConfig
     | LiteratureReviewWorkflowConfig
