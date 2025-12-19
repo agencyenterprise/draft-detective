@@ -17,7 +17,7 @@ def build_reference_extraction_graph(
 ) -> StateGraph:
     """
     Build reference extraction workflow graph.
-    
+
     Extracts references from the document and matches them with supporting documents.
     """
     graph = StateGraph(ReferenceExtractionState, context_schema=ContextSchema)
@@ -30,4 +30,3 @@ def build_reference_extraction_graph(
     graph.set_finish_point("extract_references")
 
     return graph
-

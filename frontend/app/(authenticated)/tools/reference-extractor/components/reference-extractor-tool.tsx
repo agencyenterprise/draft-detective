@@ -3,15 +3,12 @@
 import { UploadSection } from '@/components/analysis-form/upload-section';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import {
-  getProjectEndpointApiProjectProjectIdGet,
-  ReferenceExtractionState,
-  startAnalysisApiStartAnalysisPost,
-  WorkflowRunStatus,
-  WorkflowRunType,
-} from '@/lib/generated-api';
+import { ReferenceExtractionState, startAnalysisApiStartAnalysisPost, WorkflowRunType } from '@/lib/generated-api';
+import { useProjectDetails } from '@/lib/hooks/use-project-details';
+import { useWorkflowStatusNotifications } from '@/hooks/use-workflow-status-notifications';
+import { useMutation } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
-import { useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
 type ExtractionResults = Pick<ReferenceExtractionState, 'detected_sections' | 'references'>;
@@ -19,97 +16,98 @@ type ExtractionResults = Pick<ReferenceExtractionState, 'detected_sections' | 'r
 export function ReferenceExtractorTool() {
   const [mainDocument, setMainDocument] = useState<File | null>(null);
   const [supportingDocuments, setSupportingDocuments] = useState<File[]>([]);
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [projectId, setProjectId] = useState<string | null>(null);
   const [results, setResults] = useState<ExtractionResults | null>(null);
 
-  const handleExtract = async () => {
-    if (!mainDocument) return;
+  const { project, workflowDetails, isProcessing: isWorkflowProcessing } = useProjectDetails(projectId!);
 
-    setIsProcessing(true);
-    setResults(null);
+  const docProcessingRun = useMemo(
+    () => workflowDetails.find((w) => w.run.type === WorkflowRunType.DocumentProcessing),
+    [workflowDetails],
+  );
+  const refExtractionRun = useMemo(
+    () => workflowDetails.find((w) => w.run.type === WorkflowRunType.ReferenceExtraction),
+    [workflowDetails],
+  );
 
-    try {
-      toast.info('Uploading documents...');
+  const handleWorkflowCompleted = useCallback(
+    (type: WorkflowRunType) => {
+      if (type === WorkflowRunType.ReferenceExtraction && refExtractionRun) {
+        const state = refExtractionRun.state as ReferenceExtractionState;
+        setResults({
+          detected_sections: state.detected_sections || [],
+          references: state.references || [],
+        });
+        toast.success(
+          `Extracted ${state.references?.length || 0} references from ${state.detected_sections?.length || 0} section(s)!`,
+        );
+      }
+    },
+    [refExtractionRun],
+  );
 
-      // Upload and start workflows
-      const response = await startAnalysisApiStartAnalysisPost({
+  useWorkflowStatusNotifications({
+    workflows: [
+      {
+        type: WorkflowRunType.DocumentProcessing,
+        status: docProcessingRun?.run.status,
+        messages: {
+          running: 'Converting document to markdown...',
+        },
+      },
+      {
+        type: WorkflowRunType.ReferenceExtraction,
+        status: refExtractionRun?.run.status,
+        messages: {
+          pending: 'Waiting for extraction to start...',
+          running: 'Extracting references from sections...',
+        },
+      },
+    ],
+    onCompleted: handleWorkflowCompleted,
+  });
+
+  const startWorkflowMutation = useMutation({
+    mutationFn: async () => {
+      return await startAnalysisApiStartAnalysisPost({
         body: {
-          main_document: mainDocument,
+          main_document: mainDocument!,
           supporting_documents: supportingDocuments.length > 0 ? supportingDocuments : undefined,
           workflow_types: `${WorkflowRunType.DocumentProcessing},${WorkflowRunType.ReferenceExtraction}`,
-          use_rag: false,
           use_toulmin: false,
         },
       });
-
-      const projectId = response.project_id!;
+    },
+    onSuccess: (response) => {
+      setProjectId(response.project_id!);
+      setResults(null);
       toast.success('Documents uploaded, processing...');
-
-      // Poll for completion
-      let completed = false;
-      let attempts = 0;
-      const maxAttempts = 120; // 4 minutes max
-      const pollInterval = 2000;
-
-      while (!completed && attempts < maxAttempts) {
-        await new Promise((resolve) => setTimeout(resolve, pollInterval));
-        attempts++;
-
-        const project = await getProjectEndpointApiProjectProjectIdGet({
-          path: { project_id: projectId },
-          query: { include_internal: true }, // Include internal workflows for tool
-        });
-
-        const docProcessingRun = project.workflow_runs?.find((w) => w.run.type === WorkflowRunType.DocumentProcessing);
-        const refExtractionRun = project.workflow_runs?.find((w) => w.run.type === WorkflowRunType.ReferenceExtraction);
-
-        // Update status messages
-        if (docProcessingRun?.run.status === WorkflowRunStatus.Running) {
-          toast.info('Converting document to markdown...', { id: 'progress' });
-        } else if (docProcessingRun?.run.status === WorkflowRunStatus.Completed) {
-          if (refExtractionRun?.run.status === WorkflowRunStatus.Pending) {
-            toast.info('Waiting for extraction to start...', { id: 'progress' });
-          } else if (refExtractionRun?.run.status === WorkflowRunStatus.Running) {
-            toast.info('Extracting references from sections...', { id: 'progress' });
-          }
-        }
-
-        if (refExtractionRun?.run.status === WorkflowRunStatus.Completed) {
-          completed = true;
-          const state = refExtractionRun.state as ReferenceExtractionState;
-
-          setResults({
-            detected_sections: state.detected_sections || [],
-            references: state.references || [],
-          });
-
-          toast.dismiss('progress');
-          toast.success(
-            `Extracted ${state.references?.length || 0} references from ${state.detected_sections?.length || 0} section(s)!`,
-          );
-        }
-      }
-
-      if (!completed) {
-        toast.dismiss('progress');
-        toast.error('Extraction timed out. Try again or check the project page.');
-      }
-    } catch (error) {
+    },
+    onError: (error) => {
       console.error('Error extracting references:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to extract references');
-    } finally {
-      setIsProcessing(false);
-    }
+    },
+  });
+
+  const handleExtract = () => {
+    if (!mainDocument) return;
+    toast.info('Uploading documents...');
+    startWorkflowMutation.mutate();
   };
+
+  const handleReset = () => {
+    setResults(null);
+    setProjectId(null);
+  };
+
+  const isProcessing = startWorkflowMutation.isPending || (projectId ? isWorkflowProcessing : false);
 
   return (
     <div className="space-y-6">
-      {/* Upload Form - Hidden when processing or results shown */}
       {!isProcessing && !results && (
         <Card className="p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Upload Documents</h2>
 
-          {/* Side-by-side inputs */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
             <UploadSection
               title="Main Document"
@@ -140,7 +138,6 @@ export function ReferenceExtractorTool() {
         </Card>
       )}
 
-      {/* Loading State */}
       {isProcessing && (
         <Card className="p-8">
           <div className="text-center space-y-4">
@@ -156,14 +153,13 @@ export function ReferenceExtractorTool() {
         </Card>
       )}
 
-      {/* Results */}
       {results && (
         <Card className="p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-gray-900">
               Extracted References ({results.references?.length || 0})
             </h2>
-            <Button variant="outline" size="sm" onClick={() => setResults(null)}>
+            <Button variant="outline" size="sm" onClick={handleReset}>
               Extract Another
             </Button>
           </div>
