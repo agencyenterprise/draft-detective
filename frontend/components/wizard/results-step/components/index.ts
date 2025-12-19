@@ -11,4 +11,3 @@ export { ClaimAnalysisCard } from './claim-analysis-card';
 export { DoclingViewer } from './docling-viewer';
 export { ExpandableControl } from './expandable-control';
 export { SummaryCards } from './summary-cards';
-export { TabNavigation } from './tab-navigation';

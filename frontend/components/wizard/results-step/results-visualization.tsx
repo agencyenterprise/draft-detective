@@ -1,33 +1,25 @@
 'use client';
 
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { analysisService } from '@/lib/analysis-service';
 import { DocRenderMode } from '@/lib/constants';
 import { downloadFile, generateEvalFilename } from '@/lib/file-download';
 import { ProjectDetailed, WorkflowRunType } from '@/lib/generated-api';
 import { getWorkflowRunByType } from '@/lib/workflow-state';
 import { Card, CardContent } from '../../ui/card';
-import { TabNavigation } from './components';
 import { AnalysisOptionsMenu } from './components/analysis-options-menu';
 import { ViewModeToggle } from './components/view-mode-toggle';
 import { TabType } from './constants';
-import {
-  CitationSuggesterTab,
-  FilesTab,
-  LiteratureReviewTab,
-  LiveReportsTab,
-  MethodologicalAlignmentTab,
-  ReferencesTab,
-  SummaryTab,
-} from './tabs';
+import { AnalysesTab, FilesTab, ReferencesTab, SummaryTab } from './tabs';
 import { DocumentExplorerTab } from './tabs/document-explorer-tab';
+import { useState } from 'react';
 
 interface ResultsVisualizationProps {
   projectDetail: ProjectDetailed;
   isProcessing?: boolean;
   viewMode: DocRenderMode;
   onViewModeChange: (mode: DocRenderMode) => void;
-  activeTab: TabType;
-  onTabChange: (tab: TabType) => void;
   /** When true, hides edit/action controls (for shared view) */
   readOnly?: boolean;
 }
@@ -37,20 +29,15 @@ export function ResultsVisualization({
   isProcessing = false,
   viewMode,
   onViewModeChange,
-  activeTab,
-  onTabChange,
   readOnly = false,
 }: ResultsVisualizationProps) {
   const projectId = projectDetail.project.id;
   const results = projectDetail.workflow_runs ?? [];
 
   const claimSubstantiationResults = getWorkflowRunByType(results, WorkflowRunType.ClaimSubstantiation);
-  const methodologicalAlignmentResults = getWorkflowRunByType(results, WorkflowRunType.MethodologicalAlignment);
-  const literatureReviewResults = getWorkflowRunByType(results, WorkflowRunType.LiteratureReview);
-  const citationSuggesterResults = getWorkflowRunByType(results, WorkflowRunType.CitationSuggester);
-  const liveReportsResults = getWorkflowRunByType(results, WorkflowRunType.LiveReports);
   const referenceValidationResults = getWorkflowRunByType(results, WorkflowRunType.ReferenceValidation);
   const claimSubstantiationStateSummary = claimSubstantiationResults?.state;
+  const [activeTab, setActiveTab] = useState<TabType>('document-explorer');
 
   const handleSaveAsEvalTest = async () => {
     if (!claimSubstantiationStateSummary) return;
@@ -82,16 +69,6 @@ export function ResultsVisualization({
             readOnly={readOnly}
           />
         );
-      case 'literature_review':
-        return (
-          <LiteratureReviewTab workflowDetail={literatureReviewResults} projectId={projectId} readOnly={readOnly} />
-        );
-      case 'citation_suggester':
-        return (
-          <CitationSuggesterTab workflowDetail={citationSuggesterResults} projectId={projectId} readOnly={readOnly} />
-        );
-      case 'live_reports':
-        return <LiveReportsTab workflowDetail={liveReportsResults} projectId={projectId} readOnly={readOnly} />;
       case 'files':
         return <FilesTab projectId={projectId} />;
       case 'document-explorer':
@@ -105,12 +82,13 @@ export function ResultsVisualization({
             readOnly={readOnly}
           />
         );
-      case 'methodological_alignment':
+      case 'analyses':
         return (
-          <MethodologicalAlignmentTab
-            results={methodologicalAlignmentResults}
+          <AnalysesTab
             projectId={projectId}
             readOnly={readOnly}
+            onNavigateToDocumentExplorer={() => setActiveTab('document-explorer')}
+            onNavigateToReferences={() => setActiveTab('references')}
           />
         );
     }
@@ -123,7 +101,35 @@ export function ResultsVisualization({
   return (
     <div className="space-y-3">
       <div className="flex flex-col gap-2 md:items-center md:justify-between md:flex-row">
-        <TabNavigation activeTab={activeTab} onTabChange={onTabChange} />
+        <Tabs
+          defaultValue="document-explorer"
+          value={activeTab}
+          onValueChange={(value) => setActiveTab(value as TabType)}
+        >
+          <TabsList>
+            <TabsTrigger value="document-explorer">Document Explorer</TabsTrigger>
+            <TabsTrigger value="summary">Summary</TabsTrigger>
+            <TabsTrigger value="references">
+              References{' '}
+              <Badge className="rounded-full h-4.5 min-w-4.5" variant="secondary">
+                {claimSubstantiationResults?.state?.references?.length}
+              </Badge>
+            </TabsTrigger>
+            <TabsTrigger value="files">
+              Files{' '}
+              <Badge className="rounded-full h-4.5 min-w-4.5" variant="secondary">
+                {projectDetail.files_count}
+              </Badge>
+            </TabsTrigger>
+            <TabsTrigger value="analyses">
+              Analyses{' '}
+              <Badge className="rounded-full h-4.5 min-w-4.5" variant="secondary">
+                {results.length}
+              </Badge>
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+
         <div className="flex items-center gap-1">
           {activeTab === 'document-explorer' && (
             <ViewModeToggle

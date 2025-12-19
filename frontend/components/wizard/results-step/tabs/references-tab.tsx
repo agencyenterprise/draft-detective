@@ -17,8 +17,8 @@ import {
 import { WorkflowRunDetailTyped } from '@/lib/workflow-state';
 import { ChevronDownIcon, ChevronRightIcon, FileText } from 'lucide-react';
 import * as React from 'react';
-import { humanizeLabel } from './literature-review-tab/utils';
 import { TabWithLoadingStates } from './tab-with-loading-states';
+import { humanizeLabel } from '@/components/workflows/results/literature-review/utils';
 
 interface ReferencesTabProps {
   workflowDetail: WorkflowRunDetailTyped<ClaimSubstantiatorStateOutput> | undefined;

@@ -6,7 +6,7 @@ import zipfile
 from typing import List, Optional, Sequence, Tuple
 
 from fastapi import HTTPException
-from sqlalchemy import or_
+from sqlalchemy import or_, func
 from sqlalchemy.orm import Session
 
 from lib.config.database import get_db
@@ -113,6 +113,16 @@ async def get_files_by_project_id(project_id: uuid.UUID | str) -> List[File]:
     with get_db() as db:
         files = db.query(File).filter(File.project_id == project_id).all()
         return files
+
+
+async def get_files_count_by_project_id(project_id: uuid.UUID | str) -> int:
+    """
+    Get the number of files by project ID.
+    """
+    project_id = _normalize_uuid(project_id, "project ID")
+    with get_db() as db:
+        count = db.query(func.count()).filter(File.project_id == project_id).scalar()
+        return count
 
 
 async def load_file_document(file: File) -> FileDocument:

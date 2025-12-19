@@ -2232,6 +2232,12 @@ export type ProjectDetailed = {
    * The issues for the project, converted from the workflow results states
    */
   issues?: Array<DocumentIssue>;
+  /**
+   * Files Count
+   *
+   * The number of files associated with the project
+   */
+  files_count?: number;
 };
 
 /**
@@ -3672,6 +3678,12 @@ export type ProjectDetailedWritable = {
    * The issues for the project, converted from the workflow results states
    */
   issues?: Array<DocumentIssue>;
+  /**
+   * Files Count
+   *
+   * The number of files associated with the project
+   */
+  files_count?: number;
 };
 
 /**
