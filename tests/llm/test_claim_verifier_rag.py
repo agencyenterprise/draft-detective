@@ -105,7 +105,7 @@ async def _build_cases(dataset_file_name: str):
             file=main_doc,
             supporting_files=supporting_docs,
             config=SubstantiationWorkflowConfig(
-                use_rag=True, domain=domain, target_audience=target_audience
+                domain=domain, target_audience=target_audience
             ),
         )
 

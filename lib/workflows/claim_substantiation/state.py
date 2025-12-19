@@ -27,10 +27,6 @@ class SubstantiationWorkflowConfig(BaseWorkflowConfig):
     use_toulmin: bool = Field(
         default=False, description="Whether to use Toulmin claim detection approach"
     )
-    use_rag: bool = Field(
-        default=True,
-        description="Use RAG for claim verification",
-    )
     target_chunk_indices: Optional[List[int]] = Field(
         default=None,
         description="Specific chunk indices to process (None = process all chunks)",
@@ -63,7 +59,6 @@ class AnalyzedChunk(ChunkWithIndex):
     citations: Optional[CitationResponse] = None
     claim_categories: List[ClaimCategorizationResponseWithClaimIndex] = []
     claim_common_knowledge_results: List[ClaimCommonKnowledgeResultWithClaimIndex] = []
-    substantiations: List[ClaimSubstantiationResultWithClaimIndex] = []
 
 
 def conciliate_chunks(
