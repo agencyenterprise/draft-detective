@@ -39,7 +39,9 @@ from lib.workflows.context import ContextSchema
 class ClaimCategorizationResponse(BaseModel):
     claim: str = Field(description="Exact claim text as analyzed.")
     claim_category: ClaimCategory = Field(description="Assigned category.")
-    rationale: str = Field(description="One-line reason for the category assignment.")
+    rationale: str = Field(
+        description="Reason for the category assignment and for the needs_external_verification decision. Maximum two sentences."
+    )
     needs_external_verification: bool = Field(
         description=(
             "True ONLY if the claim asserts a specific factual statement from external sources "
@@ -169,6 +171,7 @@ When a claim could fit multiple categories, use this priority:
 
 **"Our finding that X causes Y supports the theory proposed by Smith et al. (2020)"**
 → Category 4 (interpretive claim connecting own work to prior theory)
+
 ## Decision Framework for needs_external_verification:
 
 STEP 1: Check category first
@@ -188,6 +191,7 @@ STEP 3: Check if it's the authors' own work
 STEP 4: Only then check if external verification is needed
 - Does it assert a specific factual claim from external sources? → TRUE
 - Does it compare to specific external findings? → TRUE
+- Are there citations within the same sentence? → TRUE
 - Is it a contested or debatable assertion presented as fact? → TRUE
 
 DEFAULT: When in doubt, set to FALSE. Only set to TRUE if the claim clearly requires external verification.
