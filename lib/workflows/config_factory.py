@@ -46,7 +46,6 @@ def create_workflow_config(
         return SubstantiationWorkflowConfig(
             **common_fields,
             use_toulmin=base_config.use_toulmin,
-            use_rag=base_config.use_rag,
             domain=base_config.domain,
             target_audience=base_config.target_audience,
             target_chunk_indices=base_config.target_chunk_indices,

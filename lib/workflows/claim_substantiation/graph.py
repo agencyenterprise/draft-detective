@@ -16,6 +16,9 @@ from lib.workflows.claim_substantiation.nodes.verify_claims import (
     verify_claims,
     verify_claims_with_rag,
 )
+from lib.workflows.claim_substantiation.nodes.extract_references import (
+    extract_references,
+)
 from lib.workflows.claim_substantiation.state import (
     ClaimSubstantiatorState,
     SubstantiationWorkflowConfig,
@@ -54,32 +57,16 @@ def build_claim_substantiator_graph(
     graph.add_edge(START, "extract_claims")
     graph.add_edge(START, "detect_citations")
 
-    # add categorization and inference validation nodes
+    # add categorization node
     graph.add_node("categorize_claims", categorize_claims)
-    graph.add_node("validate_inferences", validate_inferences)
 
-    # Conditional verify node based on RAG setting
-    if config.use_rag:
-        # add RAG indexing node
-        graph.add_node("index_supporting_documents", index_supporting_documents)
-        graph.add_node("verify_claims", verify_claims_with_rag, defer=True)
-
-        graph.add_edge(START, "index_supporting_documents")
-        graph.add_edge("index_supporting_documents", "verify_claims")
-
-    else:
-        graph.add_node("verify_claims", verify_claims, defer=True)
-
-    # verify claims edges
+    # Core edges
     graph.add_edge("extract_claims", "categorize_claims")
-    graph.add_edge("categorize_claims", "verify_claims")
-    graph.add_edge("detect_citations", "verify_claims")
-    graph.add_edge("categorize_claims", "validate_inferences")
+    graph.add_edge("detect_citations", "categorize_claims")
 
-    # Create a finalize node to wait for both verify_claims and validate_inferences to complete in parallel
+    # Create a finalize node to wait for categorize_claims to complete
     graph.add_node("finalize", finalize)
-    graph.add_edge("verify_claims", "finalize")
-    graph.add_edge("validate_inferences", "finalize")
+    graph.add_edge("categorize_claims", "finalize")
     graph.set_finish_point("finalize")
 
     return graph
@@ -89,10 +76,6 @@ if __name__ == "__main__":
     # Print the graph in mermaid format
     # Paste it into https://mermaid.live/ to see the graph
 
-    workflow_graph = build_claim_substantiator_graph(
-        SubstantiationWorkflowConfig(
-            use_rag=True,
-        )
-    )
+    workflow_graph = build_claim_substantiator_graph(SubstantiationWorkflowConfig())
     app = workflow_graph.compile()
     print(app.get_graph().draw_mermaid())

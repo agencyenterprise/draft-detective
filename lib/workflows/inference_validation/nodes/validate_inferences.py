@@ -8,13 +8,12 @@ from lib.agents.inference_validator import (
     InferenceValidatorAgent,
 )
 from lib.agents.models import ClaimCategory
-from lib.workflows.chunk_iterator import iterate_chunks
+from lib.run_utils import run_tasks
+from lib.workflows.claim_substantiation.state import AnalyzedChunk
 from lib.workflows.context import ContextSchema
-from lib.workflows.claim_substantiation.state import (
-    AnalyzedChunk,
-    ClaimSubstantiatorState,
-)
-from lib.workflows.decorators import handle_chunk_errors, register_node
+from lib.workflows.decorators import register_node
+from lib.workflows.inference_validation.state import InferenceValidationState
+from lib.workflows.models import WorkflowError
 
 logger = logging.getLogger(__name__)
 
@@ -24,34 +23,62 @@ logger = logging.getLogger(__name__)
     "Validate the inferences for the claims",
 )
 async def validate_inferences(
-    state: ClaimSubstantiatorState, runtime: Runtime[ContextSchema]
-) -> ClaimSubstantiatorState:
+    state: InferenceValidationState, runtime: Runtime[ContextSchema]
+) -> InferenceValidationState:
     """Validate inferential claims using Toulmin model of argumentation."""
 
     inference_validator_agent = InferenceValidatorAgent(runtime.context)
 
-    return await iterate_chunks(
-        state,
-        _validate_chunk_inferences,
-        "Validating inference claims",
-        inference_validator_agent=inference_validator_agent,
-    )
+    # Process all chunks
+    tasks = [
+        _validate_chunk_inferences(state, chunk, inference_validator_agent)
+        for chunk in state.chunks
+    ]
+
+    results: tuple[
+        list[list[InferenceValidationResponseWithClaimIndex] | None],
+        list[Exception | None],
+    ] = await run_tasks(tasks, desc="Validating inference claims")
+    validation_results_raw, exceptions = results
+
+    # Filter out None results
+    validation_results: list[InferenceValidationResponseWithClaimIndex] = []
+    for chunk_results in validation_results_raw:
+        if chunk_results is not None:
+            validation_results.extend(chunk_results)
+
+    # Collect errors
+    errors = []
+    for index, exception in enumerate(exceptions):
+        if exception is not None:
+            chunk_index = state.chunks[index].chunk_index
+            errors.append(
+                WorkflowError(
+                    task_name="validate_inferences",
+                    error=str(exception),
+                    chunk_index=chunk_index,
+                )
+            )
+
+    return {"inference_validations": validation_results, "errors": errors}
 
 
-@handle_chunk_errors("Inference validation")
 async def _validate_chunk_inferences(
-    state: ClaimSubstantiatorState,
+    state: InferenceValidationState,
     chunk: AnalyzedChunk,
     inference_validator_agent: InferenceValidatorAgent,
-) -> AnalyzedChunk:
+) -> list[InferenceValidationResponseWithClaimIndex]:
     """Validate inferences for claims categorized as INTERPRETATION."""
+
+    validation_results: list[InferenceValidationResponseWithClaimIndex] = []
+
     # Skip if chunk has no claims
     if chunk.claims is None or not chunk.claims.claims:
         logger.debug(
             "Skipping inference validation for chunk %s: no claims detected",
             chunk.chunk_index,
         )
-        return chunk
+        return validation_results
 
     # Skip if chunk has no categorization results
     if not chunk.claim_categories:
@@ -59,9 +86,8 @@ async def _validate_chunk_inferences(
             "Skipping inference validation for chunk %s: no claim categories",
             chunk.chunk_index,
         )
-        return chunk
+        return validation_results
 
-    validation_results = []
     for claim_index, claim in enumerate(chunk.claims.claims):
         # Find the categorization result for this claim
         categorization = next(
@@ -97,7 +123,7 @@ async def _validate_chunk_inferences(
                 ),
                 "paragraph": state.get_paragraph(chunk.paragraph_index),
                 "chunk": chunk.content,
-                "claim": claim.claim,
+                "claim": claim.text,
                 "domain_context": format_domain_context(state.config.domain),
                 "audience_context": format_audience_context(
                     state.config.target_audience
@@ -118,4 +144,4 @@ async def _validate_chunk_inferences(
         chunk.chunk_index,
     )
 
-    return chunk.model_copy(update={"inference_validations": validation_results})
+    return validation_results

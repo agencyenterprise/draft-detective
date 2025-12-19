@@ -10,7 +10,6 @@ from lib.agents.claim_needs_substantiation_checker import (
 )
 from lib.agents.claim_verifier import ClaimSubstantiationResultWithClaimIndex
 from lib.agents.document_summarizer import DocumentSummary
-from lib.agents.inference_validator import InferenceValidationResponseWithClaimIndex
 from lib.agents.models import ChunkWithIndex
 from lib.agents.reference_extractor import BibliographyItem
 from lib.agents.toulmin_claim_extractor import ToulminClaimResponse
@@ -27,10 +26,6 @@ class SubstantiationWorkflowConfig(BaseWorkflowConfig):
     )
     use_toulmin: bool = Field(
         default=False, description="Whether to use Toulmin claim detection approach"
-    )
-    use_rag: bool = Field(
-        default=True,
-        description="Use RAG for claim verification",
     )
     target_chunk_indices: Optional[List[int]] = Field(
         default=None,
@@ -64,8 +59,6 @@ class AnalyzedChunk(ChunkWithIndex):
     citations: Optional[CitationResponse] = None
     claim_categories: List[ClaimCategorizationResponseWithClaimIndex] = []
     claim_common_knowledge_results: List[ClaimCommonKnowledgeResultWithClaimIndex] = []
-    substantiations: List[ClaimSubstantiationResultWithClaimIndex] = []
-    inference_validations: List[InferenceValidationResponseWithClaimIndex] = []
 
 
 def conciliate_chunks(

@@ -6,7 +6,7 @@ through different methods (citation-based vs RAG-based).
 
 import asyncio
 import logging
-from typing import List, Optional, Protocol, Set
+from typing import List, Optional, Protocol, Set, Union
 
 from pydantic import BaseModel, Field
 
@@ -24,10 +24,8 @@ from lib.services.vector_store import (
     get_collection_id,
     get_file_hash_from_path,
 )
-from lib.workflows.claim_substantiation.state import (
-    AnalyzedChunk,
-    ClaimSubstantiatorState,
-)
+from lib.workflows.claim_reference_validation.state import ClaimReferenceValidationState
+from lib.workflows.claim_substantiation.state import AnalyzedChunk
 
 logger = logging.getLogger(__name__)
 
@@ -61,7 +59,7 @@ class ReferenceProvider(Protocol):
 
     async def get_references_for_claim(
         self,
-        state: ClaimSubstantiatorState,
+        state: ClaimReferenceValidationState,
         chunk: AnalyzedChunk,
         claim: Claim,
         claim_index: int,
@@ -75,7 +73,7 @@ class CitationBasedReferenceProvider:
 
     async def get_references_for_claim(
         self,
-        state: ClaimSubstantiatorState,
+        state: ClaimReferenceValidationState,
         chunk: AnalyzedChunk,
         claim: Claim,
         claim_index: int,
@@ -118,7 +116,7 @@ class RAGReferenceProvider:
 
     async def get_references_for_claim(
         self,
-        state: ClaimSubstantiatorState,
+        state: ClaimReferenceValidationState,
         chunk: AnalyzedChunk,
         claim: Claim,
         claim_index: int,
@@ -299,7 +297,7 @@ class RAGReferenceProvider:
 
 
 def get_all_paragraph_citations(
-    state: ClaimSubstantiatorState, target_chunk: AnalyzedChunk
+    state: ClaimReferenceValidationState, target_chunk: AnalyzedChunk
 ) -> List[Citation]:
     """Get all citations from the paragraph that includes the `target_chunk`."""
 
@@ -324,7 +322,7 @@ def is_bibliographic_citation(citation: Citation) -> bool:
 
 
 def _get_paragraph_citations_not_in_chunk(
-    state: ClaimSubstantiatorState, chunk: AnalyzedChunk
+    state: ClaimReferenceValidationState, chunk: AnalyzedChunk
 ) -> List:
     """Extract citations from paragraph chunks that aren't in current chunk."""
 

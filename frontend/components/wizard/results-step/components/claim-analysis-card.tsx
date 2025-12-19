@@ -54,12 +54,20 @@ export function ClaimAnalysisCard({
   const [isExpanded, setIsExpanded] = useState(false);
 
   // Extract specific workflow states from all workflow details
+  const claimReferenceValidationDetail = useMemo(
+    () => getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.ClaimReferenceValidation),
+    [allWorkflowDetails],
+  );
   const citationSuggesterDetail = useMemo(
     () => getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.CitationSuggester),
     [allWorkflowDetails],
   );
   const liveReportsDetail = useMemo(
     () => getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.LiveReports),
+    [allWorkflowDetails],
+  );
+  const inferenceValidationDetail = useMemo(
+    () => getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.InferenceValidation),
     [allWorkflowDetails],
   );
 
@@ -69,17 +77,23 @@ export function ClaimAnalysisCard({
 
   const claimCategory = chunkDetails.claim_categories?.find((c) => c.claim_index === claimIndex);
   const commonKnowledgeResult = chunkDetails.claim_common_knowledge_results?.find((c) => c.claim_index === claimIndex);
-  const substantiation = chunkDetails.substantiations?.find((s) => s.claim_index === claimIndex);
-  const citationSuggestion = citationSuggesterDetail?.state.citation_suggestions?.find(
+  const substantiation = claimReferenceValidationDetail?.state?.substantiations?.find(
+    (s) => s.chunk_index === chunkIndex && s.claim_index === claimIndex,
+  );
+  const citationSuggestion = citationSuggesterDetail?.state?.citation_suggestions?.find(
     (c) => c.chunk_index === chunkIndex && c.claim_index === claimIndex,
   );
-  const liveReportsAnalysis = liveReportsDetail?.state.live_reports_analysis?.find(
+  const liveReportsAnalysis = liveReportsDetail?.state?.live_reports_analysis?.find(
     (l) => l.chunk_index === chunkIndex && l.claim_index === claimIndex,
   );
-  const inferenceValidation = chunkDetails.inference_validations?.find((i) => i.claim_index === claimIndex);
+  const inferenceValidation = inferenceValidationDetail?.state?.inference_validations?.find(
+    (i) => i.chunk_index === chunkIndex && i.claim_index === claimIndex,
+  );
 
-  const supportingFiles = citationSuggesterDetail?.state.supporting_files ?? [];
-  const references = citationSuggesterDetail?.state.references ?? [];
+  const supportingFiles =
+    claimReferenceValidationDetail?.state?.supporting_files ?? citationSuggesterDetail?.state?.supporting_files ?? [];
+  const references =
+    claimReferenceValidationDetail?.state?.references ?? citationSuggesterDetail?.state?.references ?? [];
   const claimIssues = getClaimIssues(issues, chunkIndex, claimIndex);
   const maxSeverity = getMaxSeverity(claimIssues);
 
@@ -107,6 +121,7 @@ export function ClaimAnalysisCard({
       {isExpanded && (
         <>
           <LabeledValue label="Extracted Claim">{claim.claim}</LabeledValue>
+          {'central' in claim && <LabeledValue label="Central Claim">{claim.central ? 'Yes' : 'No'}</LabeledValue>}
 
           <div className="space-y-2">
             <ClaimArgumentAnalysis claim={claim} />
