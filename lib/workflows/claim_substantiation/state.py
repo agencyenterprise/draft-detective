@@ -50,7 +50,7 @@ class SubstantiationWorkflowConfig(BaseWorkflowConfig):
 
 class AnalyzedChunk(ChunkWithIndex):
     """Enriched document chunk with all claim analysis results.
-    
+
     Extends the base ChunkWithIndex with claim extraction, citation detection,
     categorization, substantiation, and inference validation results.
     """
@@ -146,12 +146,3 @@ class ClaimSubstantiatorState(BaseWorkflowState):
     def get_paragraph(self, paragraph_index: int) -> str:
         paragraph_chunks = self.get_paragraph_chunks(paragraph_index)
         return "\n".join([chunk.content for chunk in paragraph_chunks])
-
-
-class RerunAnalysisRequest(BaseModel):
-    """Request model for re-running the analysis. Can be used to re-run a specific chunk or the entire analysis."""
-
-    project_id: str = Field(description="The ID of the project to re-run")
-    config: SubstantiationWorkflowConfig = Field(
-        description="Configuration for the re-run. Should include all the original configuration options, plus any overrides.",
-    )
