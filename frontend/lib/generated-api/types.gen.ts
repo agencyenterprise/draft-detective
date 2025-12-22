@@ -2885,24 +2885,6 @@ export type ReproducibilityCategoryResponse = {
 };
 
 /**
- * RerunAnalysisRequest
- *
- * Request model for re-running the analysis. Can be used to re-run a specific chunk or the entire analysis.
- */
-export type RerunAnalysisRequest = {
-  /**
-   * Project Id
-   *
-   * The ID of the project to re-run
-   */
-  project_id: string;
-  /**
-   * Configuration for the re-run. Should include all the original configuration options, plus any overrides.
-   */
-  config: SubstantiationWorkflowConfig;
-};
-
-/**
  * ResultSection
  */
 export type ResultSection = {
@@ -4043,33 +4025,6 @@ export type StartAnalysisApiStartAnalysisPostResponses = {
 
 export type StartAnalysisApiStartAnalysisPostResponse =
   StartAnalysisApiStartAnalysisPostResponses[keyof StartAnalysisApiStartAnalysisPostResponses];
-
-export type RerunAnalysisEndpointApiRerunAnalysisPostData = {
-  body: RerunAnalysisRequest;
-  path?: never;
-  query?: never;
-  url: '/api/rerun-analysis';
-};
-
-export type RerunAnalysisEndpointApiRerunAnalysisPostErrors = {
-  /**
-   * Validation Error
-   */
-  422: HttpValidationError;
-};
-
-export type RerunAnalysisEndpointApiRerunAnalysisPostError =
-  RerunAnalysisEndpointApiRerunAnalysisPostErrors[keyof RerunAnalysisEndpointApiRerunAnalysisPostErrors];
-
-export type RerunAnalysisEndpointApiRerunAnalysisPostResponses = {
-  /**
-   * Successful Response
-   */
-  200: StartWorkflowResponse;
-};
-
-export type RerunAnalysisEndpointApiRerunAnalysisPostResponse =
-  RerunAnalysisEndpointApiRerunAnalysisPostResponses[keyof RerunAnalysisEndpointApiRerunAnalysisPostResponses];
 
 export type GenerateEvalPackageApiGenerateEvalPackagePostData = {
   body: EvalPackageRequest;

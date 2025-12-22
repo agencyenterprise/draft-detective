@@ -3,7 +3,6 @@ Document analysis endpoints
 """
 
 import logging
-import uuid
 from typing import Optional
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile
@@ -13,17 +12,11 @@ from api.dependencies import build_config_from_form
 from api.models import StartWorkflowResponse
 from api.services.workflow_runner import start_multiple_workflow_runs
 from api.upload import save_uploaded_files_to_db
-from lib.agents.registry import agent_registry
 from lib.models.file import FileRole
 from lib.models.user import User
 from lib.models.workflow_run import WorkflowRunType
-from lib.services.files import load_file_document
 from lib.services.projects import create_project
-from lib.workflows.claim_substantiation.runner import rerun_analysis
-from lib.workflows.claim_substantiation.state import (
-    RerunAnalysisRequest,
-    SubstantiationWorkflowConfig,
-)
+from lib.workflows.claim_substantiation.state import SubstantiationWorkflowConfig
 
 logger = logging.getLogger(__name__)
 
@@ -105,45 +98,4 @@ async def start_analysis(
         logger.error(f"Error starting analysis: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=500, detail=f"Error starting analysis: {str(e)}"
-        )
-
-
-@router.post("/api/rerun-analysis", response_model=StartWorkflowResponse)
-async def rerun_analysis_endpoint(
-    request: RerunAnalysisRequest,
-    background_tasks: BackgroundTasks,
-    current_user: User = Depends(get_current_user),
-):
-    """
-    Re-evaluate a specific chunk with selected agents using unified LangGraph workflow.
-
-    Args:
-        request: Contains chunk index, agents to run, and original state
-
-    Returns:
-        Updated results for the specified chunk
-    """
-    try:
-        if request.config.agents_to_run:
-            agent_registry.validate_agents(request.config.agents_to_run)
-
-        background_tasks.add_task(
-            rerun_analysis,
-            project_id=request.project_id,
-            config=request.config,
-            current_user=current_user,
-        )
-
-        return StartWorkflowResponse(
-            project_id=request.project_id,
-            message="Analysis re-run started. You can track progress using the workflow_run_id.",
-        )
-
-    except ValueError as e:
-        logger.error(f"Invalid request for re-running the analysis: {str(e)}")
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        logger.error(f"Error re-running the analysis: {str(e)}", exc_info=True)
-        raise HTTPException(
-            status_code=500, detail=f"Error re-running the analysis: {str(e)}"
         )

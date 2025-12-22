@@ -13,26 +13,19 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { useShareStatus } from '@/hooks/use-share-status';
 import { WorkflowRunDetail, WorkflowRunType } from '@/lib/generated-api';
 import { getWorkflowRunByType } from '@/lib/workflow-state';
-import { Download, EllipsisVerticalIcon, FileTextIcon, Link, RefreshCcwIcon } from 'lucide-react';
+import { Download, EllipsisVerticalIcon, FileTextIcon, Link } from 'lucide-react';
 import { useState } from 'react';
-import { useDownloadDocx, downloadDocxFile } from './use-download-docx';
 import { toast } from 'sonner';
+import { downloadDocxFile, useDownloadDocx } from './use-download-docx';
 
 export interface AnalysisOptionsMenuProps {
   onSaveAsEvalTest: () => void;
-  onReevaluate: () => void;
   projectId: string;
   results: WorkflowRunDetail[];
   readOnly: boolean;
 }
 
-export function AnalysisOptionsMenu({
-  onSaveAsEvalTest,
-  onReevaluate,
-  projectId,
-  results,
-  readOnly,
-}: AnalysisOptionsMenuProps) {
+export function AnalysisOptionsMenu({ onSaveAsEvalTest, projectId, results, readOnly }: AnalysisOptionsMenuProps) {
   const share = useShareStatus(projectId);
   const [isWarningDialogOpen, setIsWarningDialogOpen] = useState(false);
   const [isEnablingForDownload, setIsEnablingForDownload] = useState(false);
@@ -103,12 +96,6 @@ export function AnalysisOptionsMenu({
             <MenuItemWithTooltip icon={FileTextIcon} onClick={onSaveAsEvalTest} tooltip="Generate eval test cases">
               Save as eval test
             </MenuItemWithTooltip>
-
-            {!readOnly && (
-              <MenuItemWithTooltip icon={RefreshCcwIcon} onClick={onReevaluate} tooltip="Re-run with different config">
-                Re-run analysis
-              </MenuItemWithTooltip>
-            )}
 
             {hasDocx && (
               <MenuItemWithTooltip
