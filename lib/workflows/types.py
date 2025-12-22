@@ -31,21 +31,26 @@ from lib.workflows.methodological_alignment.state import (
     MethodologicalAlignmentState,
     MethodologicalAlignmentWorkflowConfig,
 )
-from lib.workflows.results_extraction.state import (
-    ResultsExtractionState,
-    ResultsExtractionWorkflowConfig,
-)
 from lib.workflows.reference_downloader.state import (
     ReferenceDownloaderState,
     ReferenceDownloaderWorkflowConfig,
+)
+from lib.workflows.reference_extraction.state import (
+    ReferenceExtractionConfig,
+    ReferenceExtractionState,
 )
 from lib.workflows.reference_validation.state import (
     ReferenceValidationState,
     ReferenceValidationWorkflowConfig,
 )
+from lib.workflows.results_extraction.state import (
+    ResultsExtractionState,
+    ResultsExtractionWorkflowConfig,
+)
 
 WorkflowState = (
     DocumentProcessingState
+    | ReferenceExtractionState
     | ClaimSubstantiatorState
     | ClaimReferenceValidationState
     | MethodologicalAlignmentState
@@ -61,6 +66,7 @@ WorkflowState = (
 
 WorkflowConfig = (
     DocumentProcessingWorkflowConfig
+    | ReferenceExtractionConfig
     | SubstantiationWorkflowConfig
     | ClaimReferenceValidationWorkflowConfig
     | MethodologicalAlignmentWorkflowConfig

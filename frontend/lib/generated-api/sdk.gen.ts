@@ -531,7 +531,7 @@ export const deleteProjectEndpointApiProjectProjectIdDelete = <ThrowOnError exte
 /**
  * Get Project Endpoint
  *
- * Get a project by ID
+ * Get a project by ID. Set include_internal=true to see internal workflows.
  */
 export const getProjectEndpointApiProjectProjectIdGet = <ThrowOnError extends boolean = true>(
   options: Options<GetProjectEndpointApiProjectProjectIdGetData, ThrowOnError>,

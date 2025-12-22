@@ -1,7 +1,7 @@
 'use client';
 
 import { cn } from '@/lib/utils';
-import { FileDownIcon } from 'lucide-react';
+import { FileDownIcon, FileSearchIcon } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
@@ -12,6 +12,11 @@ interface Tool {
 }
 
 const tools: Tool[] = [
+  {
+    name: 'Reference Extractor',
+    href: '/tools/reference-extractor',
+    icon: FileSearchIcon,
+  },
   {
     name: 'Reference Downloader',
     href: '/tools/reference-downloader',

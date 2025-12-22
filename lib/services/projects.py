@@ -94,9 +94,19 @@ async def _get_project_by_id(project_id: str) -> Project | None:
     return project
 
 
-async def _get_project_detailed_from_project(project: Project) -> ProjectDetailed:
-    # get_project_workflow_runs already filters out internal workflows
-    workflow_runs = await get_project_workflow_runs(project.id)
+async def _get_project_detailed_from_project(
+    project: Project, include_internal: bool = False
+) -> ProjectDetailed:
+    """
+    Get detailed project information with workflow runs.
+
+    Args:
+        project: The project to get details for
+        include_internal: If True, include internal workflows in the response
+    """
+    workflow_runs = await get_project_workflow_runs(
+        project.id, include_internal=include_internal
+    )
 
     states = [run.state for run in workflow_runs if run.state is not None]
     return ProjectDetailed(
@@ -131,7 +141,9 @@ async def get_shared_project_detailed(project_id: str) -> ProjectDetailed:
     return await _get_project_detailed_from_project(project)
 
 
-async def get_user_project_detailed(project_id: str, user: User) -> ProjectDetailed:
+async def get_user_project_detailed(
+    project_id: str, user: User, include_internal: bool = False
+) -> ProjectDetailed:
     """
     Get a project detailed for a user.
 
@@ -154,7 +166,9 @@ async def get_user_project_detailed(project_id: str, user: User) -> ProjectDetai
     if project.user_id != user.id:
         raise HTTPException(status_code=403, detail="Access denied")
 
-    return await _get_project_detailed_from_project(project)
+    return await _get_project_detailed_from_project(
+        project, include_internal=include_internal
+    )
 
 
 async def get_user_project_files(project_id: str, user: User) -> List[File]:
