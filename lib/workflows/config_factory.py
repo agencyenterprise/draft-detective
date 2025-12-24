@@ -45,7 +45,6 @@ def create_workflow_config(
     if workflow_type == WorkflowRunType.CLAIM_SUBSTANTIATION:
         return SubstantiationWorkflowConfig(
             **common_fields,
-            use_toulmin=base_config.use_toulmin,
             domain=base_config.domain,
             target_audience=base_config.target_audience,
             target_chunk_indices=base_config.target_chunk_indices,

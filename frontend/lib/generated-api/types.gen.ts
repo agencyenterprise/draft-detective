@@ -45,19 +45,12 @@ export type AnalyzedChunkInput = {
    * Paragraph Index
    */
   paragraph_index: number;
-  /**
-   * Claims
-   */
-  claims?: ClaimResponse | ToulminClaimResponse | null;
+  claims?: ClaimResponse | null;
   citations?: CitationResponseInput | null;
   /**
    * Claim Categories
    */
   claim_categories?: Array<ClaimCategorizationResponseWithClaimIndex>;
-  /**
-   * Claim Common Knowledge Results
-   */
-  claim_common_knowledge_results?: Array<ClaimCommonKnowledgeResultWithClaimIndex>;
 };
 
 /**
@@ -81,19 +74,12 @@ export type AnalyzedChunkOutput = {
    * Paragraph Index
    */
   paragraph_index: number;
-  /**
-   * Claims
-   */
-  claims?: ClaimResponse | ToulminClaimResponse | null;
+  claims?: ClaimResponse | null;
   citations?: CitationResponseOutput | null;
   /**
    * Claim Categories
    */
   claim_categories?: Array<ClaimCategorizationResponseWithClaimIndex>;
-  /**
-   * Claim Common Knowledge Results
-   */
-  claim_common_knowledge_results?: Array<ClaimCommonKnowledgeResultWithClaimIndex>;
 };
 
 /**
@@ -250,10 +236,6 @@ export type BodyStartAnalysisApiStartAnalysisPost = {
    * Supporting Documents
    */
   supporting_documents?: Array<Blob | File> | null;
-  /**
-   * Use Toulmin
-   */
-  use_toulmin?: boolean;
   /**
    * Domain
    */
@@ -629,38 +611,6 @@ export const ClaimCategory = {
  * ClaimCategory
  */
 export type ClaimCategory = (typeof ClaimCategory)[keyof typeof ClaimCategory];
-
-/**
- * ClaimCommonKnowledgeResultWithClaimIndex
- */
-export type ClaimCommonKnowledgeResultWithClaimIndex = {
-  /**
-   * Needs Substantiation
-   *
-   * A boolean value indicating whether the claim needs to be substantiated.
-   */
-  needs_substantiation: boolean;
-  /**
-   * Rationale
-   *
-   * A brief explanation for why this claim needs to or does not need to be substantiated by references/evidence
-   */
-  rationale: string;
-  /**
-   * Guiding Rules
-   *
-   * Which rule(s) from the instructions most strongly guided your judgment and why
-   */
-  guiding_rules?: string;
-  /**
-   * Chunk Index
-   */
-  chunk_index: number;
-  /**
-   * Claim Index
-   */
-  claim_index: number;
-};
 
 /**
  * ClaimEvidenceSource
@@ -3058,12 +3008,6 @@ export type SubstantiationWorkflowConfig = {
    */
   type?: 'claim_substantiation';
   /**
-   * Use Toulmin
-   *
-   * Whether to use Toulmin claim detection approach
-   */
-  use_toulmin?: boolean;
-  /**
    * Target Chunk Indices
    *
    * Specific chunk indices to process (None = process all chunks)
@@ -3117,84 +3061,6 @@ export type SummaryAndOutput = {
    * Markdown formatted output of the full context of the related section.
    */
   markdown_output: string;
-};
-
-/**
- * ToulminClaim
- */
-export type ToulminClaim = {
-  /**
-   * Text
-   *
-   * The exact excerpt from the chunk that implies the claim
-   */
-  text: string;
-  /**
-   * Claim
-   *
-   * The claim made in the excerpt
-   */
-  claim: string;
-  /**
-   * Rationale
-   *
-   * Why the excerpt implies this claim (brief analytic rationale)
-   */
-  rationale: string;
-  /**
-   * Data
-   *
-   * Data/Grounds: evidence or facts supporting the claim, quoted or paraphrased
-   */
-  data?: Array<string>;
-  /**
-   * Warrants
-   *
-   * Warrants: assumptions that connect the data to the claim (may be cultural, logical, or methodological)
-   */
-  warrants?: Array<string>;
-  /**
-   * Warrant Expression
-   *
-   * Whether the primary warrant is stated explicitly, implied implicitly, or none could be identified
-   */
-  warrant_expression: 'stated' | 'implied' | 'none';
-  /**
-   * Qualifiers
-   *
-   * Qualifiers: words/phrases indicating the strength/scope of the claim (e.g., 'likely', 'some', 'in many cases')
-   */
-  qualifiers?: Array<string>;
-  /**
-   * Rebuttals
-   *
-   * Rebuttals: acknowledged exceptions, counter-arguments, or conditions under which the claim may not hold
-   */
-  rebuttals?: Array<string>;
-  /**
-   * Backing
-   *
-   * Backing: additional support that justifies the warrant (e.g., principles, studies, or theoretical reasons)
-   */
-  backing?: Array<string>;
-};
-
-/**
- * ToulminClaimResponse
- */
-export type ToulminClaimResponse = {
-  /**
-   * Claims
-   *
-   * List of extracted claims with Toulmin elements when available
-   */
-  claims: Array<ToulminClaim>;
-  /**
-   * Rationale
-   *
-   * Overall rationale for the extractions and how the Toulmin elements were identified
-   */
-  rationale: string;
 };
 
 /**

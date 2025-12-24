@@ -44,7 +44,6 @@ class AnalysisService {
         }
 
         // Add config parameters
-        if (config.use_toulmin !== undefined) formData.append('use_toulmin', String(config.use_toulmin));
         if (config.domain) formData.append('domain', config.domain);
         if (config.target_audience) formData.append('target_audience', config.target_audience);
         if (config.openai_api_key) formData.append('openai_api_key', config.openai_api_key);

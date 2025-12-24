@@ -3,9 +3,6 @@ from langgraph.graph import START, StateGraph
 from lib.workflows.claim_substantiation.nodes.categorize_claims import categorize_claims
 from lib.workflows.claim_substantiation.nodes.detect_citations import detect_citations
 from lib.workflows.claim_substantiation.nodes.extract_claims import extract_claims
-from lib.workflows.claim_substantiation.nodes.extract_claims_toulmin import (
-    extract_claims_toulmin,
-)
 from lib.workflows.claim_substantiation.state import (
     ClaimSubstantiatorState,
     SubstantiationWorkflowConfig,
@@ -33,10 +30,7 @@ def build_claim_substantiator_graph(
     graph = StateGraph(ClaimSubstantiatorState, context_schema=ContextSchema)
 
     # Core nodes
-    graph.add_node(
-        "extract_claims",
-        extract_claims if not config.use_toulmin else extract_claims_toulmin,
-    )
+    graph.add_node("extract_claims", extract_claims)
     graph.add_node("detect_citations", detect_citations)
 
     # Fan out from START to run extract_claims and detect_citations in parallel

@@ -5,11 +5,10 @@ import { LabeledValue } from '@/components/labeled-value';
 import { Button } from '@/components/ui/button';
 import { getClaimId } from '@/lib/chunk-ids';
 import {
+  AnalyzedChunkOutput,
   Claim,
   ClaimSubstantiatorStateOutput,
-  AnalyzedChunkOutput,
   DocumentIssue,
-  ToulminClaim,
   WorkflowRunDetail,
   WorkflowRunType,
 } from '@/lib/generated-api';
@@ -23,13 +22,12 @@ import { ClaimCategoryResults } from './claim-category-results';
 import { ClaimCitationSuggestions } from './claim-citation-suggestions';
 import { ClaimInferenceValidation } from './claim-inference-validation';
 import { ClaimLiveReports } from './claim-live-reports';
-import { ClaimNeedsSubstantiationAccordion } from './claim-needs-substantiation-accordion';
 import { DocumentIssueCardMinimal } from './document-issue-card';
 import { SubstantiationResults } from './substantiation-results';
 
 export interface ClaimAnalysisCardProps {
   results: ClaimSubstantiatorStateOutput;
-  claim: Claim | ToulminClaim;
+  claim: Claim;
   chunkDetails: AnalyzedChunkOutput | undefined | null;
   claimIndex: number;
   totalClaims: number;
@@ -76,7 +74,6 @@ export function ClaimAnalysisCard({
   }
 
   const claimCategory = chunkDetails.claim_categories?.find((c) => c.claim_index === claimIndex);
-  const commonKnowledgeResult = chunkDetails.claim_common_knowledge_results?.find((c) => c.claim_index === claimIndex);
   const substantiation = claimReferenceValidationDetail?.state?.substantiations?.find(
     (s) => s.chunk_index === chunkIndex && s.claim_index === claimIndex,
   );
@@ -126,7 +123,6 @@ export function ClaimAnalysisCard({
           <div className="space-y-2">
             <ClaimArgumentAnalysis claim={claim} />
             {claimCategory && <ClaimCategoryResults claimCategory={claimCategory} />}
-            {commonKnowledgeResult && <ClaimNeedsSubstantiationAccordion result={commonKnowledgeResult} />}
             {substantiation && (
               <SubstantiationResults
                 substantiation={substantiation}

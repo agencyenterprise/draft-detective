@@ -75,7 +75,6 @@ export function ReferenceExtractorTool() {
           main_document: mainDocument!,
           supporting_documents: supportingDocuments.length > 0 ? supportingDocuments : undefined,
           workflow_types: `${WorkflowRunType.DocumentProcessing},${WorkflowRunType.ReferenceExtraction}`,
-          use_toulmin: false,
         },
       });
     },
