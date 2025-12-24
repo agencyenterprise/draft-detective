@@ -344,24 +344,6 @@ export type ChunkToItemsOutput = {
 };
 
 /**
- * ChunkWithIndex
- */
-export type ChunkWithIndex = {
-  /**
-   * Content
-   */
-  content: string;
-  /**
-   * Chunk Index
-   */
-  chunk_index: number;
-  /**
-   * Paragraph Index
-   */
-  paragraph_index: number;
-};
-
-/**
  * Citation
  */
 export type Citation = {
@@ -2548,30 +2530,6 @@ export type ReferenceExtractionConfig = {
    * Type
    */
   type?: 'reference_extraction';
-  /**
-   * Window Size
-   *
-   * Number of chunks per extraction window
-   */
-  window_size?: number;
-  /**
-   * Overlap Size
-   *
-   * Number of overlapping chunks between windows
-   */
-  overlap_size?: number;
-  /**
-   * Fuzzy Threshold
-   *
-   * Similarity threshold for fuzzy matching (0-1)
-   */
-  fuzzy_threshold?: number;
-  /**
-   * Truncate Supporting Docs At
-   *
-   * Character limit for supporting document content in prompts
-   */
-  truncate_supporting_docs_at?: number;
 };
 
 /**
@@ -2596,23 +2554,11 @@ export type ReferenceExtractionState = {
    */
   file: FileDocumentOutput;
   /**
-   * Chunks
-   *
-   * Document chunks for section detection
-   */
-  chunks?: Array<ChunkWithIndex>;
-  /**
    * Supporting Files
    *
    * Optional supporting documents for matching
    */
   supporting_files?: Array<FileDocumentOutput> | null;
-  /**
-   * Detected Sections
-   *
-   * Detected reference sections
-   */
-  detected_sections?: Array<ReferenceSection>;
   /**
    * References
    *
@@ -2698,44 +2644,6 @@ export type ReferenceMinimal = {
    * Bibliography entry formatted in the article's style; reuse the existing entry when the source is already in the bibliography
    */
   bibliography_info: string;
-};
-
-/**
- * ReferenceSection
- *
- * Detected reference section in document.
- */
-export type ReferenceSection = {
-  /**
-   * Section Type
-   *
-   * Type of section (bibliography, footnotes, appendix_references)
-   */
-  section_type: string;
-  /**
-   * Start Chunk Index
-   *
-   * Starting chunk index of section
-   */
-  start_chunk_index: number;
-  /**
-   * End Chunk Index
-   *
-   * Ending chunk index (None if goes to end of document)
-   */
-  end_chunk_index?: number | null;
-  /**
-   * Confidence
-   *
-   * Confidence score for section detection (0-1)
-   */
-  confidence: number;
-  /**
-   * Section Header
-   *
-   * Detected section header text
-   */
-  section_header: string;
 };
 
 /**
@@ -3892,23 +3800,11 @@ export type ReferenceExtractionStateWritable = {
    */
   file: FileDocumentOutputWritable;
   /**
-   * Chunks
-   *
-   * Document chunks for section detection
-   */
-  chunks?: Array<ChunkWithIndex>;
-  /**
    * Supporting Files
    *
    * Optional supporting documents for matching
    */
   supporting_files?: Array<FileDocumentOutputWritable> | null;
-  /**
-   * Detected Sections
-   *
-   * Detected reference sections
-   */
-  detected_sections?: Array<ReferenceSection>;
   /**
    * References
    *

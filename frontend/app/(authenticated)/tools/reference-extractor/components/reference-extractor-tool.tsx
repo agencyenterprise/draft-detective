@@ -11,7 +11,8 @@ import { Loader2 } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
-type ExtractionResults = Pick<ReferenceExtractionState, 'detected_sections' | 'references'>;
+// type ExtractionResults = Pick<ReferenceExtractionState, 'detected_sections' | 'references'>;
+type ExtractionResults = ReferenceExtractionState;
 
 export function ReferenceExtractorTool() {
   const [mainDocument, setMainDocument] = useState<File | null>(null);
@@ -34,13 +35,13 @@ export function ReferenceExtractorTool() {
     (type: WorkflowRunType) => {
       if (type === WorkflowRunType.ReferenceExtraction && refExtractionRun) {
         const state = refExtractionRun.state as ReferenceExtractionState;
-        setResults({
-          detected_sections: state.detected_sections || [],
-          references: state.references || [],
-        });
-        toast.success(
-          `Extracted ${state.references?.length || 0} references from ${state.detected_sections?.length || 0} section(s)!`,
-        );
+        // setResults({
+        //   detected_sections: state.detected_sections || [],
+        //   references: state.references || [],
+        // });
+        // toast.success(
+        //   `Extracted ${state.references?.length || 0} references from ${state.detected_sections?.length || 0} section(s)!`,
+        // );
       }
     },
     [refExtractionRun],
@@ -165,7 +166,7 @@ export function ReferenceExtractorTool() {
           </div>
 
           <div className="space-y-4">
-            {results.detected_sections && results.detected_sections.length > 0 && (
+            {/* {results.detected_sections && results.detected_sections.length > 0 && (
               <div className="p-4 bg-blue-50 border border-blue-200 rounded-md">
                 <h3 className="text-sm font-medium text-blue-900 mb-2">Detected Sections</h3>
                 <ul className="text-xs text-blue-700 space-y-1">
@@ -177,7 +178,7 @@ export function ReferenceExtractorTool() {
                   ))}
                 </ul>
               </div>
-            )}
+            )} */}
 
             {results.references && results.references.length > 0 ? (
               <div className="space-y-2">
