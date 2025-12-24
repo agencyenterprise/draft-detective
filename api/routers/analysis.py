@@ -3,6 +3,7 @@ Document analysis endpoints
 """
 
 import logging
+from datetime import date
 from typing import Optional
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile
@@ -55,7 +56,15 @@ async def start_analysis(
     try:
         # Create project first
         project = await create_project(
-            title=main_document.filename or "Untitled", user=current_user
+            title=main_document.filename or "Untitled",
+            user=current_user,
+            publication_date=(
+                date.fromisoformat(config.publication_date)
+                if config.publication_date
+                else None
+            ),
+            domain=config.domain,
+            target_audience=config.target_audience,
         )
 
         logger.info(f"Created project {project.id}")
