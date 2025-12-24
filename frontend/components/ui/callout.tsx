@@ -57,15 +57,15 @@ export function Callout({ title, children, variant = 'info', icon: Icon, classNa
 
   return (
     <div
-      className={cn('border-l-4 rounded-lg p-4 shadow-sm', styles.container, styles.border, className)}
+      className={cn('border-l-4 rounded-lg py-3 px-3 shadow-sm', styles.container, styles.border, className)}
       role="region"
       aria-label={title}
     >
       <div className="flex items-start gap-3">
         {Icon && <Icon className={cn('h-5 w-5 mt-0.5 flex-shrink-0', styles.icon)} />}
-        <div className="flex-1 min-w-0">
-          <h3 className={cn('font-semibold mb-2 text-sm uppercase tracking-wide', styles.title)}>{title}</h3>
-          <div className={cn('text-base leading-relaxed', styles.content)}>{children}</div>
+        <div className="flex-1 min-w-0 space-y-1">
+          <h3 className={cn('font-semibold text-sm uppercase', styles.title)}>{title}</h3>
+          <div className={cn('text-sm', styles.content)}>{children}</div>
         </div>
       </div>
     </div>

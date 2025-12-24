@@ -44,6 +44,9 @@ class ProjectDetailed(BaseModel):
 
 class UpdateProjectRequest(BaseModel):
     title: Optional[str] = None
+    publication_date: Optional[date] = None
+    domain: Optional[str] = None
+    target_audience: Optional[str] = None
 
 
 async def create_project(
@@ -216,6 +219,10 @@ async def update_user_project(
 
         if request.title is not None:
             project.title = request.title
+
+        project.publication_date = request.publication_date
+        project.domain = request.domain
+        project.target_audience = request.target_audience
 
         db.commit()
         db.refresh(project)

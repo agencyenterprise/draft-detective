@@ -39,6 +39,7 @@ const projectListItemSchemaResponseTransformer = (data: any) => {
 const projectSchemaResponseTransformer = (data: any) => {
   data.created_at = new Date(data.created_at);
   data.last_updated_at = new Date(data.last_updated_at);
+  data.publication_date = new Date(data.publication_date);
   return data;
 };
 
