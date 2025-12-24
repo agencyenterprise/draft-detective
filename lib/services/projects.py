@@ -1,3 +1,4 @@
+from datetime import date
 import logging
 from collections import defaultdict
 from typing import List, Optional
@@ -43,11 +44,26 @@ class ProjectDetailed(BaseModel):
 
 class UpdateProjectRequest(BaseModel):
     title: Optional[str] = None
+    publication_date: Optional[date] = None
+    domain: Optional[str] = None
+    target_audience: Optional[str] = None
 
 
-async def create_project(title: str, user: User) -> Project:
+async def create_project(
+    title: str,
+    user: User,
+    publication_date: date | None = None,
+    domain: str | None = None,
+    target_audience: str | None = None,
+) -> Project:
     with get_db() as db:
-        project = Project(title=title, user_id=user.id)
+        project = Project(
+            title=title,
+            user_id=user.id,
+            publication_date=publication_date,
+            domain=domain,
+            target_audience=target_audience,
+        )
         db.add(project)
         db.commit()
         db.refresh(project)
@@ -203,6 +219,10 @@ async def update_user_project(
 
         if request.title is not None:
             project.title = request.title
+
+        project.publication_date = request.publication_date
+        project.domain = request.domain
+        project.target_audience = request.target_audience
 
         db.commit()
         db.refresh(project)

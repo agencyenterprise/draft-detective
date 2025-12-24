@@ -2245,6 +2245,24 @@ export type Project = {
    * The timestamp when the project was last updated
    */
   last_updated_at: Date;
+  /**
+   * Publication Date
+   *
+   * The publication date of the report
+   */
+  publication_date: Date;
+  /**
+   * Domain
+   *
+   * The subject area or field of expertise of the report
+   */
+  domain: string;
+  /**
+   * Target Audience
+   *
+   * The intended readers of the report
+   */
+  target_audience: string;
 };
 
 /**
@@ -3187,6 +3205,18 @@ export type UpdateProjectRequest = {
    * Title
    */
   title?: string | null;
+  /**
+   * Publication Date
+   */
+  publication_date?: Date | null;
+  /**
+   * Domain
+   */
+  domain?: string | null;
+  /**
+   * Target Audience
+   */
+  target_audience?: string | null;
 };
 
 /**

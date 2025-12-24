@@ -134,7 +134,7 @@ export function ResultsVisualization({
           )}
           <AnalysisOptionsMenu
             onSaveAsEvalTest={handleSaveAsEvalTest}
-            projectId={projectId}
+            project={projectDetail.project}
             results={results}
             readOnly={readOnly}
           />

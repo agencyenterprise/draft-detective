@@ -1,7 +1,7 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, date
 
-from sqlalchemy import Column, DateTime, ForeignKey
+from sqlalchemy import Column, DateTime, ForeignKey, Date
 from sqlalchemy.dialects.postgresql import UUID
 from sqlmodel import Field, SQLModel, String
 
@@ -39,4 +39,16 @@ class Project(SQLModel, table=True):
             nullable=False,
         ),
         description="The timestamp when the project was last updated",
+    )
+    publication_date: date = Field(
+        sa_column=Column(Date, nullable=True),
+        description="The publication date of the report",
+    )
+    domain: str = Field(
+        sa_column=Column(String, nullable=True),
+        description="The subject area or field of expertise of the report",
+    )
+    target_audience: str = Field(
+        sa_column=Column(String, nullable=True),
+        description="The intended readers of the report",
     )
