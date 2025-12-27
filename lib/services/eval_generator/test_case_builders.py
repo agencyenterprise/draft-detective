@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from lib.agents.citation_detector import CitationResponse
 from lib.agents.claim_extractor import ClaimResponse
 from lib.agents.toulmin_claim_extractor import ToulminClaimResponse
-from lib.agents.reference_extractor import BibliographyItem
+from lib.models.bibliography_item import BibliographyItem
 
 
 class TestDataPaths:

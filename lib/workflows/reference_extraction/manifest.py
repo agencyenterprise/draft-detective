@@ -52,7 +52,7 @@ class ReferenceExtractionManifest(
         """
         Create initial state from DOCUMENT_PROCESSING dependency.
 
-        Gets file with markdown and chunks from DOCUMENT_PROCESSING workflow.
+        Gets file with markdown from DOCUMENT_PROCESSING workflow.
         """
         # Get document processing artifacts
         doc_processing_state: DocumentProcessingState = get_state_by_type_or_raise(
@@ -62,8 +62,8 @@ class ReferenceExtractionManifest(
         return ReferenceExtractionState(
             config=config,
             file=doc_processing_state.file,  # Already has markdown populated
-            chunks=doc_processing_state.chunks,  # Sentence-level chunks
             supporting_files=doc_processing_state.supporting_files,
+            supporting_documents_summaries=doc_processing_state.supporting_documents_summaries,
         )
 
     def convert_state_to_issues(

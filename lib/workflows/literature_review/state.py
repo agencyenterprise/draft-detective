@@ -4,7 +4,7 @@ from typing import List, Literal, Optional
 from pydantic import Field
 
 from lib.agents.literature_review import LiteratureReviewResponse
-from lib.agents.reference_extractor import BibliographyItem
+from lib.models.bibliography_item import BibliographyItem
 from lib.services.file import FileDocument
 from lib.workflows.models import BaseWorkflowConfig, BaseWorkflowState, WorkflowRunType
 
