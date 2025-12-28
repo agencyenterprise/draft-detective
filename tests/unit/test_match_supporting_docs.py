@@ -221,7 +221,13 @@ class TestMatchSupportingDocsNode:
 
         assert len(result["references"]) == 3
         assert result["references"][0].has_associated_supporting_document is True
-        assert result["references"][0].name_of_associated_supporting_document == "paper_one.pdf"
+        assert (
+            result["references"][0].name_of_associated_supporting_document
+            == "paper_one.pdf"
+        )
         assert result["references"][1].has_associated_supporting_document is True
-        assert result["references"][1].name_of_associated_supporting_document == "paper_two.pdf"
+        assert (
+            result["references"][1].name_of_associated_supporting_document
+            == "paper_two.pdf"
+        )
         assert result["references"][2].has_associated_supporting_document is False
