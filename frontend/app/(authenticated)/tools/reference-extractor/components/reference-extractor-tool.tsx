@@ -20,7 +20,7 @@ export function ReferenceExtractorTool() {
   const [projectId, setProjectId] = useState<string | null>(null);
   const [results, setResults] = useState<ExtractionResults | null>(null);
 
-  const { project, workflowDetails, isProcessing: isWorkflowProcessing } = useProjectDetails(projectId!);
+  const { workflowDetails, isProcessing: isWorkflowProcessing } = useProjectDetails(projectId!);
 
   const docProcessingRun = useMemo(
     () => workflowDetails.find((w) => w.run.type === WorkflowRunType.DocumentProcessing),
@@ -171,8 +171,7 @@ export function ReferenceExtractorTool() {
                 <ul className="text-xs text-blue-700 space-y-1">
                   {results.detected_sections.map((section, idx) => (
                     <li key={idx}>
-                      {section.section_type} (chunks {section.start_chunk_index}-{section.end_chunk_index || 'end'}) -
-                      Confidence: {(section.confidence * 100).toFixed(0)}%
+                      Section {idx + 1}: characters {section.start_offset}-{section.end_offset}
                     </li>
                   ))}
                 </ul>
