@@ -1,9 +1,10 @@
-# Reference Extractor Test Dataset
-# This file contains test cases for the reference extractor agent
+# Reference Extraction Workflow Test Dataset
+# Full pipeline test cases: extraction + matching references to supporting documents
+# Note: For text-only extraction tests, see reference_text_extractor.yaml
 
 dataset:
-  name: "Reference Extractor Dataset"
-  description: "Test cases for validating reference extraction and supporting document matching"
+  name: "Reference Extraction Workflow Dataset"
+  description: "End-to-end test cases for reference extraction workflow with supporting document matching"
   test_config:
     strict_fields:
       references:

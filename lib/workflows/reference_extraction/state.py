@@ -52,7 +52,7 @@ class ReferenceExtractionState(BaseWorkflowState):
         default_factory=list, description="Detected reference sections"
     )
 
-    extracted_texts: List[str] = Field(
+    extracted_reference_texts: List[str] = Field(
         default_factory=list, description="Raw extracted reference texts"
     )
 
