@@ -13,6 +13,7 @@ from langgraph.runtime import Runtime
 from lib.agents.document_summarizer import DocumentSummary
 from lib.agents.reference_matcher import ReferenceMatcherAgent
 from lib.models.bibliography_item import BibliographyItem
+from lib.services.file import FileDocument
 from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
 from lib.workflows.reference_extraction.state import ReferenceExtractionState
@@ -34,6 +35,7 @@ def _format_candidate(idx: int, summary: DocumentSummary) -> str:
 async def _match_reference(
     ref_text: str,
     summaries: Dict[int, DocumentSummary],
+    supporting_files: List[FileDocument],
     context: ContextSchema,
 ) -> tuple[int, str]:
     """Match a single reference to available document summaries using LLM."""
@@ -55,8 +57,8 @@ async def _match_reference(
 
         if result.matched_index > 0 and result.matched_index <= len(summaries):
             doc_idx = result.matched_index - 1
-            if doc_idx in summaries:
-                return (result.matched_index, summaries[doc_idx].title)
+            if doc_idx in summaries and doc_idx < len(supporting_files):
+                return (result.matched_index, supporting_files[doc_idx].file_name)
 
         return (-1, "")
 
@@ -80,6 +82,7 @@ async def match_supporting_docs_node(
     """
     extracted_reference_texts = state.extracted_reference_texts
     summaries = state.supporting_documents_summaries or {}
+    supporting_files = state.supporting_files or []
 
     if not extracted_reference_texts:
         logger.info("No extracted reference texts to match")
@@ -90,12 +93,14 @@ async def match_supporting_docs_node(
     )
 
     # Match references in parallel with rate limiting
-    if summaries:
+    if summaries and supporting_files:
         semaphore = asyncio.Semaphore(MAX_CONCURRENT_MATCHES)
 
         async def match_with_limit(ref_text: str) -> tuple[int, str]:
             async with semaphore:
-                return await _match_reference(ref_text, summaries, runtime.context)
+                return await _match_reference(
+                    ref_text, summaries, supporting_files, runtime.context
+                )
 
         match_results = await asyncio.gather(
             *[match_with_limit(t) for t in extracted_reference_texts]
