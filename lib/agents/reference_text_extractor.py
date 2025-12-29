@@ -33,7 +33,7 @@ Rules:
 - Preserve author names, titles, publication details, years, URLs, DOIs
 - Merge multi-line references into single lines
 - Skip non-reference content
-- If you see `---.` at the start of a reference, replace it with the author from the last reference in PREVIOUS REFERENCES
+- If you see a placeholder for repeated authors at the start of a reference (commonly `---.` but also `———.`, `___`, or similar patterns), replace it with the author from the last reference in PREVIOUS REFERENCES
 
 PREVIOUS REFERENCES (already extracted, use for context only):
 ```

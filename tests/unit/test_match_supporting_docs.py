@@ -1,24 +1,27 @@
 """Unit tests for reference-to-supporting-document matching."""
 
+from contextlib import contextmanager
+from typing import List
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 from lib.agents.document_summarizer import DocumentSummary
-from lib.agents.reference_matcher import ReferenceMatchResult
-from lib.models.bibliography_item import BibliographyItem
+from lib.agents.batched_reference_matcher import (
+    BatchedMatchResult,
+    SingleReferenceMatch,
+)
+from lib.services.reference_embedding_matcher import CandidateMatch
 from lib.workflows.reference_extraction.nodes.match_supporting_docs import (
-    _format_candidate,
-    _match_reference,
+    _resolve_match,
     match_supporting_docs_node,
 )
 
-# Constant for patch target
-MATCHER_AGENT_PATH = "lib.workflows.reference_extraction.nodes.match_supporting_docs.ReferenceMatcherAgent"
+EMBEDDING_MATCHER_PATH = "lib.workflows.reference_extraction.nodes.match_supporting_docs.ReferenceEmbeddingMatcher"
+BATCHED_MATCHER_PATH = "lib.workflows.reference_extraction.nodes.match_supporting_docs.BatchedReferenceMatcherAgent"
 
 
 def make_summary(title: str, authors: str = "Unknown", year: str = "Unknown"):
-    """Create a DocumentSummary for testing."""
     return DocumentSummary(
         title=title,
         authors=authors,
@@ -29,15 +32,64 @@ def make_summary(title: str, authors: str = "Unknown", year: str = "Unknown"):
 
 
 def make_file_document(file_name: str):
-    """Create a mock FileDocument for testing."""
     doc = MagicMock()
     doc.file_name = file_name
     return doc
 
 
+def make_candidate(doc_index: int, summary: DocumentSummary, score: float = 0.9):
+    return CandidateMatch(doc_index=doc_index, similarity_score=score, summary=summary)
+
+
+def make_match(ref_idx: int, candidate: str, confidence: str = "high"):
+    return SingleReferenceMatch(
+        reference_index=ref_idx,
+        matched_candidate=candidate,
+        confidence=confidence,
+        reasoning=f"{'Match' if candidate != 'NONE' else 'No match'}",
+    )
+
+
+@contextmanager
+def mock_two_stage_matching(
+    candidates_per_ref: List, matches: List[SingleReferenceMatch]
+):
+    """Mock both embedding matcher and batched LLM matcher."""
+    with (
+        patch(EMBEDDING_MATCHER_PATH) as MockEmbed,
+        patch(BATCHED_MATCHER_PATH) as MockBatched,
+    ):
+        embed_instance = MagicMock()
+        embed_instance.index_summaries = AsyncMock()
+        embed_instance.find_candidates = AsyncMock(return_value=candidates_per_ref)
+        MockEmbed.return_value = embed_instance
+
+        MockBatched.return_value.match_batch = AsyncMock(
+            return_value=BatchedMatchResult(matches=matches)
+        )
+
+        yield MockEmbed, MockBatched
+
+
+@contextmanager
+def mock_two_stage_matching_error(candidates_per_ref: List, error: Exception):
+    """Mock embedding matcher success but batched LLM matcher failure."""
+    with (
+        patch(EMBEDDING_MATCHER_PATH) as MockEmbed,
+        patch(BATCHED_MATCHER_PATH) as MockBatched,
+    ):
+        embed_instance = MagicMock()
+        embed_instance.index_summaries = AsyncMock()
+        embed_instance.find_candidates = AsyncMock(return_value=candidates_per_ref)
+        MockEmbed.return_value = embed_instance
+
+        MockBatched.return_value.match_batch = AsyncMock(side_effect=error)
+
+        yield MockEmbed, MockBatched
+
+
 @pytest.fixture
 def mock_runtime():
-    """Create mock runtime with context."""
     runtime = MagicMock()
     runtime.context.openai_api_key = "test-key"
     runtime.context.vector_store = None
@@ -46,140 +98,89 @@ def mock_runtime():
 
 @pytest.fixture
 def mock_state():
-    """Factory fixture to create mock states."""
-
-    def _create(
-        texts: list[str],
-        summaries: dict[int, DocumentSummary] | None = None,
-        supporting_files: list | None = None,
-    ):
+    def _create(texts, summaries=None, supporting_files=None):
         state = MagicMock()
         state.extracted_reference_texts = texts
         state.supporting_documents_summaries = summaries
         state.supporting_files = supporting_files
-        state.config = None  # Prevent decorator from checking agents_to_run
+        state.config = None
         return state
 
     return _create
 
 
-class TestFormatCandidate:
-    def test_formats_summary_with_all_fields(self):
-        summary = make_summary("Climate Change", "Smith, J.", "2023")
-        result = _format_candidate(1, summary)
+class TestResolveMatch:
+    """Tests for _resolve_match helper function."""
 
-        assert "1." in result
-        assert "Climate Change" in result
-        assert "Smith, J." in result
-        assert "2023" in result
+    def test_returns_no_match_for_none_candidate(self):
+        candidates = [make_candidate(0, make_summary("Paper"))]
+        files = [make_file_document("paper.pdf")]
+        assert _resolve_match("NONE", candidates, files) == (-1, "")
 
-    def test_handles_unknown_fields(self):
-        summary = make_summary("Some Paper")
-        result = _format_candidate(1, summary)
+    def test_returns_no_match_for_empty_candidates(self):
+        files = [make_file_document("paper.pdf")]
+        assert _resolve_match("A", [], files) == (-1, "")
 
-        assert "Some Paper" in result
-        assert "Unknown" in result
-
-
-class TestMatchReference:
-    @pytest.mark.asyncio
-    async def test_returns_no_match_when_no_summaries(self):
-        result = await _match_reference("Some reference", {}, [], MagicMock())
-        assert result == (-1, "")
-
-    @pytest.mark.asyncio
-    async def test_returns_match_when_found(self):
-        summaries = {0: make_summary("Paper A"), 1: make_summary("Paper B")}
-        supporting_files = [
-            make_file_document("paper_a.pdf"),
-            make_file_document("paper_b.pdf"),
+    def test_resolves_letter_to_document(self):
+        candidates = [
+            make_candidate(0, make_summary("A")),
+            make_candidate(1, make_summary("B")),
         ]
+        files = [make_file_document("a.pdf"), make_file_document("b.pdf")]
 
-        with patch(MATCHER_AGENT_PATH) as MockAgent:
-            MockAgent.return_value.ainvoke = AsyncMock(
-                return_value=ReferenceMatchResult(
-                    matched_index=2, confidence="high", reasoning="Match"
-                )
-            )
-            result = await _match_reference(
-                "Author B. Paper B.", summaries, supporting_files, MagicMock()
-            )
+        assert _resolve_match("A", candidates, files) == (1, "a.pdf")
+        assert _resolve_match("B", candidates, files) == (2, "b.pdf")
 
-        # Should return file_name, not title
-        assert result == (2, "paper_b.pdf")
+    def test_handles_lowercase_letter(self):
+        candidates = [make_candidate(0, make_summary("Paper"))]
+        files = [make_file_document("paper.pdf")]
+        assert _resolve_match("a", candidates, files) == (1, "paper.pdf")
 
-    @pytest.mark.asyncio
-    async def test_returns_no_match_when_agent_finds_none(self):
-        summaries = {0: make_summary("Paper A")}
-        supporting_files = [make_file_document("paper_a.pdf")]
+    def test_returns_no_match_for_invalid_letter(self):
+        candidates = [make_candidate(0, make_summary("Paper"))]
+        files = [make_file_document("paper.pdf")]
+        assert _resolve_match("Z", candidates, files) == (-1, "")
 
-        with patch(MATCHER_AGENT_PATH) as MockAgent:
-            MockAgent.return_value.ainvoke = AsyncMock(
-                return_value=ReferenceMatchResult(
-                    matched_index=-1, confidence="none", reasoning="No match"
-                )
-            )
-            result = await _match_reference(
-                "Unrelated", summaries, supporting_files, MagicMock()
-            )
 
-        assert result == (-1, "")
+class TestTwoStageMatching:
+    """Tests for embedding + batched LLM matching."""
 
     @pytest.mark.asyncio
-    async def test_handles_agent_error_gracefully(self):
-        summaries = {0: make_summary("Paper A")}
-        supporting_files = [make_file_document("paper_a.pdf")]
-
-        with patch(MATCHER_AGENT_PATH) as MockAgent:
-            MockAgent.return_value.ainvoke = AsyncMock(side_effect=Exception("Error"))
-            result = await _match_reference(
-                "Some ref", summaries, supporting_files, MagicMock()
-            )
-
-        assert result == (-1, "")
-
-
-class TestMatchSupportingDocsNode:
-    @pytest.mark.asyncio
-    async def test_empty_texts_returns_empty_list(self, mock_state, mock_runtime):
-        state = mock_state(texts=[])
-        result = await match_supporting_docs_node(state, mock_runtime)
-        assert result["references"] == []
-
-    @pytest.mark.asyncio
-    async def test_no_summaries_returns_unmatched_refs(self, mock_state, mock_runtime):
-        state = mock_state(texts=["Smith (2020). Paper."])
-        result = await match_supporting_docs_node(state, mock_runtime)
-
-        assert len(result["references"]) == 1
-        ref = result["references"][0]
-        assert isinstance(ref, BibliographyItem)
-        assert ref.has_associated_supporting_document is False
-        assert ref.index_of_associated_supporting_document == -1
-
-    @pytest.mark.asyncio
-    async def test_matches_refs_to_summaries(self, mock_state, mock_runtime):
+    async def test_matches_reference_to_document(self, mock_state, mock_runtime):
         summaries = {0: make_summary("Sea Level Rise", "Johnson, M.", "2023")}
-        supporting_files = [make_file_document("sea_level_rise.pdf")]
+        files = [make_file_document("sea_level_rise.pdf")]
         state = mock_state(
             texts=["Johnson (2023). Sea Level Rise."],
             summaries=summaries,
-            supporting_files=supporting_files,
+            supporting_files=files,
         )
 
-        with patch(MATCHER_AGENT_PATH) as MockAgent:
-            MockAgent.return_value.ainvoke = AsyncMock(
-                return_value=ReferenceMatchResult(
-                    matched_index=1, confidence="high", reasoning="Match"
-                )
-            )
+        with mock_two_stage_matching(
+            candidates_per_ref=[[make_candidate(0, summaries[0])]],
+            matches=[make_match(0, "A")],
+        ):
             result = await match_supporting_docs_node(state, mock_runtime)
 
         ref = result["references"][0]
         assert ref.has_associated_supporting_document is True
         assert ref.index_of_associated_supporting_document == 1
-        # Should use file_name, not document title
         assert ref.name_of_associated_supporting_document == "sea_level_rise.pdf"
+
+    @pytest.mark.asyncio
+    async def test_handles_no_match(self, mock_state, mock_runtime):
+        summaries = {0: make_summary("Paper 0")}
+        files = [make_file_document("paper_0.pdf")]
+        state = mock_state(
+            texts=["Unknown reference"], summaries=summaries, supporting_files=files
+        )
+
+        with mock_two_stage_matching(
+            candidates_per_ref=[[make_candidate(0, summaries[0])]],
+            matches=[make_match(0, "NONE", "none")],
+        ):
+            result = await match_supporting_docs_node(state, mock_runtime)
+
+        assert result["references"][0].has_associated_supporting_document is False
 
     @pytest.mark.asyncio
     async def test_handles_mixed_matches(self, mock_state, mock_runtime):
@@ -188,35 +189,28 @@ class TestMatchSupportingDocsNode:
             0: make_summary("Paper One", "Smith", "2020"),
             1: make_summary("Paper Two", "Jones", "2021"),
         }
-        supporting_files = [
+        files = [
             make_file_document("paper_one.pdf"),
             make_file_document("paper_two.pdf"),
         ]
         state = mock_state(
             texts=["Smith (2020). Paper One.", "Jones (2021). Paper Two.", "Unknown."],
             summaries=summaries,
-            supporting_files=supporting_files,
+            supporting_files=files,
         )
 
-        # Return match for first two, no match for third
-        responses = iter(
-            [
-                ReferenceMatchResult(
-                    matched_index=1, confidence="high", reasoning="Match"
-                ),
-                ReferenceMatchResult(
-                    matched_index=2, confidence="high", reasoning="Match"
-                ),
-                ReferenceMatchResult(
-                    matched_index=-1, confidence="none", reasoning="No match"
-                ),
-            ]
-        )
-
-        with patch(MATCHER_AGENT_PATH) as MockAgent:
-            MockAgent.return_value.ainvoke = AsyncMock(
-                side_effect=lambda *a, **k: next(responses)
-            )
+        with mock_two_stage_matching(
+            candidates_per_ref=[
+                [make_candidate(0, summaries[0]), make_candidate(1, summaries[1])],
+                [make_candidate(1, summaries[1]), make_candidate(0, summaries[0])],
+                [make_candidate(0, summaries[0])],
+            ],
+            matches=[
+                make_match(0, "A"),
+                make_match(1, "A"),
+                make_match(2, "NONE", "none"),
+            ],
+        ):
             result = await match_supporting_docs_node(state, mock_runtime)
 
         assert len(result["references"]) == 3
@@ -231,3 +225,49 @@ class TestMatchSupportingDocsNode:
             == "paper_two.pdf"
         )
         assert result["references"][2].has_associated_supporting_document is False
+
+    @pytest.mark.asyncio
+    async def test_handles_batch_error_gracefully(self, mock_state, mock_runtime):
+        """Batch matching errors should result in no matches, not exceptions."""
+        summaries = {0: make_summary("Paper")}
+        files = [make_file_document("paper.pdf")]
+        state = mock_state(
+            texts=["Some reference"], summaries=summaries, supporting_files=files
+        )
+
+        with mock_two_stage_matching_error(
+            candidates_per_ref=[[make_candidate(0, summaries[0])]],
+            error=Exception("API Error"),
+        ):
+            result = await match_supporting_docs_node(state, mock_runtime)
+
+        assert len(result["references"]) == 1
+        assert result["references"][0].has_associated_supporting_document is False
+
+
+class TestMatchSupportingDocsNode:
+    """Tests for the main node entry point."""
+
+    @pytest.mark.asyncio
+    async def test_empty_texts(self, mock_state, mock_runtime):
+        result = await match_supporting_docs_node(mock_state(texts=[]), mock_runtime)
+        assert result["references"] == []
+
+    @pytest.mark.asyncio
+    async def test_no_summaries(self, mock_state, mock_runtime):
+        result = await match_supporting_docs_node(
+            mock_state(texts=["Ref"]), mock_runtime
+        )
+        ref = result["references"][0]
+        assert ref.has_associated_supporting_document is False
+        assert ref.index_of_associated_supporting_document == -1
+
+    @pytest.mark.asyncio
+    async def test_no_supporting_files(self, mock_state, mock_runtime):
+        summaries = {0: make_summary("Paper")}
+        result = await match_supporting_docs_node(
+            mock_state(texts=["Ref"], summaries=summaries, supporting_files=[]),
+            mock_runtime,
+        )
+        ref = result["references"][0]
+        assert ref.has_associated_supporting_document is False

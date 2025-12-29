@@ -1,84 +1,151 @@
 """Node for matching references to supporting documents.
 
-Uses LLM-based matching with pre-computed document summaries for high accuracy.
+Uses a two-stage approach for scalability:
+1. Embedding-based candidate retrieval (fast, handles 300+ documents)
+2. Batched LLM verification (accurate, processes 5 references per call)
 """
 
-import asyncio
 import logging
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 from langchain_core.runnables.config import ensure_config
 from langgraph.runtime import Runtime
 
+from lib.agents.batched_reference_matcher import (
+    REFERENCES_PER_BATCH,
+    BatchedReferenceMatcherAgent,
+)
 from lib.agents.document_summarizer import DocumentSummary
-from lib.agents.reference_matcher import ReferenceMatcherAgent
 from lib.models.bibliography_item import BibliographyItem
+from lib.run_utils import run_tasks
 from lib.services.file import FileDocument
+from lib.services.reference_embedding_matcher import (
+    CandidateMatch,
+    ReferenceEmbeddingMatcher,
+)
 from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
 from lib.workflows.reference_extraction.state import ReferenceExtractionState
 
 logger = logging.getLogger(__name__)
 
-MAX_CONCURRENT_MATCHES = 10
+MAX_CONCURRENT_BATCHES = 5
 
 
-def _format_candidate(idx: int, summary: DocumentSummary) -> str:
-    """Format a document summary as a candidate for matching."""
-    return (
-        f"{idx}. Title: {summary.title}\n"
-        f"   Authors: {summary.authors}\n"
-        f"   Year: {summary.publication_date}"
-    )
+async def _retrieve_candidates(
+    reference_texts: List[str],
+    summaries: Dict[int, DocumentSummary],
+    openai_api_key: str,
+    top_k: int = 15,
+) -> List[List[CandidateMatch]]:
+    matcher = ReferenceEmbeddingMatcher(openai_api_key)
+    await matcher.index_summaries(summaries)
+    return await matcher.find_candidates(reference_texts, top_k=top_k)
 
 
-async def _match_reference(
-    ref_text: str,
+def _resolve_match(
+    match_candidate: str,
+    candidates: List[CandidateMatch],
+    supporting_files: List[FileDocument],
+) -> Tuple[int, str]:
+    """Map LLM's letter response (A/B/C) back to file index and name."""
+    if match_candidate == "NONE" or not candidates:
+        return (-1, "")
+
+    try:
+        cand_idx = ord(match_candidate.upper()) - ord("A")
+        if 0 <= cand_idx < len(candidates):
+            doc_idx = candidates[cand_idx].doc_index
+            if doc_idx < len(supporting_files):
+                # We need to return the document index + 1 because the index starts at 1
+                return (doc_idx + 1, supporting_files[doc_idx].file_name)
+    except (ValueError, IndexError):
+        pass
+
+    return (-1, "")
+
+
+async def _process_batch(
+    batch_refs: List[str],
+    batch_candidates: List[List[CandidateMatch]],
+    supporting_files: List[FileDocument],
+    agent: BatchedReferenceMatcherAgent,
+    config,
+) -> List[Tuple[int, str]]:
+    try:
+        result = await agent.match_batch(batch_refs, batch_candidates, config=config)
+
+        # We need to map results back to document indices to return the correct document index and name
+        results: List[Tuple[int, str]] = [(-1, "")] * len(batch_refs)
+        for match in result.matches:
+            if 0 <= match.reference_index < len(batch_refs):
+                results[match.reference_index] = _resolve_match(
+                    match.matched_candidate,
+                    batch_candidates[match.reference_index],
+                    supporting_files,
+                )
+        return results
+
+    except Exception as e:
+        logger.warning(f"Batch matching failed: {e}")
+        return [(-1, "")] * len(batch_refs)
+
+
+async def _two_stage_match(
+    reference_texts: List[str],
     summaries: Dict[int, DocumentSummary],
     supporting_files: List[FileDocument],
     context: ContextSchema,
-) -> tuple[int, str]:
-    """Match a single reference to available document summaries using LLM."""
-    if not summaries:
-        return (-1, "")
-
-    candidates = "\n".join(
-        _format_candidate(idx + 1, summary) for idx, summary in summaries.items()
+) -> List[Tuple[int, str]]:
+    logger.info("Stage 1: Retrieving candidates via embedding similarity")
+    candidates_per_ref = await _retrieve_candidates(
+        reference_texts, summaries, context.openai_api_key
     )
 
-    agent = ReferenceMatcherAgent(context)
+    logger.info(f"Stage 2: LLM verification in batches of {REFERENCES_PER_BATCH}")
+    agent = BatchedReferenceMatcherAgent(context)
     config = ensure_config()
 
-    try:
-        result = await agent.ainvoke(
-            {"reference_text": ref_text, "candidates": candidates},
-            config=config,
+    tasks = [
+        _process_batch(
+            reference_texts[i : i + REFERENCES_PER_BATCH],
+            candidates_per_ref[i : i + REFERENCES_PER_BATCH],
+            supporting_files,
+            agent,
+            config,
         )
+        for i in range(0, len(reference_texts), REFERENCES_PER_BATCH)
+    ]
 
-        if result.matched_index > 0 and result.matched_index <= len(summaries):
-            doc_idx = result.matched_index - 1
-            if doc_idx in summaries and doc_idx < len(supporting_files):
-                return (result.matched_index, supporting_files[doc_idx].file_name)
+    batch_results, _ = await run_tasks(
+        tasks, desc="Matching references", max_concurrent=MAX_CONCURRENT_BATCHES
+    )
 
-        return (-1, "")
+    # We need to flatten results, treating failed batches as no-matches
+    all_results: List[Tuple[int, str]] = []
+    for i, batch_result in enumerate(batch_results):
+        if batch_result is None:
+            start_idx = i * REFERENCES_PER_BATCH
+            end_idx = min(start_idx + REFERENCES_PER_BATCH, len(reference_texts))
+            all_results.extend([(-1, "")] * (end_idx - start_idx))
+        else:
+            all_results.extend(batch_result)
 
-    except Exception as e:
-        logger.warning(f"Reference matching failed: {e}")
-        return (-1, "")
+    return all_results
 
 
 @register_node(
     "Match references to supporting documents",
-    "Match extracted references to user-provided supporting documents using LLM",
+    "Match extracted references to user-provided supporting documents using two-stage approach",
 )
 async def match_supporting_docs_node(
     state: ReferenceExtractionState, runtime: Runtime[ContextSchema]
 ) -> dict:
-    """
-    Match extracted references to supporting documents.
+    """Match extracted references to supporting documents.
 
-    Uses pre-computed document summaries from document processing workflow
-    and LLM-based matching for high accuracy across different citation formats.
+    Two-stage approach:
+    1. Embedding-based candidate retrieval (top-15 per reference)
+    2. Batched LLM verification (5 references per call)
     """
     extracted_reference_texts = state.extracted_reference_texts
     summaries = state.supporting_documents_summaries or {}
@@ -89,25 +156,18 @@ async def match_supporting_docs_node(
         return {"references": []}
 
     logger.info(
-        f"Matching {len(extracted_reference_texts)} references against {len(summaries)} document summaries"
+        f"Matching {len(extracted_reference_texts)} references "
+        f"against {len(summaries)} document summaries"
     )
 
-    # Match references in parallel with rate limiting
     if summaries and supporting_files:
-        semaphore = asyncio.Semaphore(MAX_CONCURRENT_MATCHES)
-
-        async def match_with_limit(ref_text: str) -> tuple[int, str]:
-            async with semaphore:
-                return await _match_reference(
-                    ref_text, summaries, supporting_files, runtime.context
-                )
-
-        match_results = await asyncio.gather(
-            *[match_with_limit(t) for t in extracted_reference_texts]
+        match_results = await _two_stage_match(
+            extracted_reference_texts, summaries, supporting_files, runtime.context
         )
     else:
         match_results = [(-1, "") for _ in extracted_reference_texts]
 
+    # We need to build bibliography items to return the correct bibliography items
     references: List[BibliographyItem] = []
     matched_count = 0
 
