@@ -4,7 +4,7 @@ import { AiGeneratedLabel } from '@/components/ai-generated-label';
 import { Card, CardContent } from '@/components/ui/card';
 import { useChunkHashNavigation } from '@/lib/chunk-ids';
 import { DocRenderMode } from '@/lib/constants';
-import { DocumentIssue, WorkflowRunDetail, WorkflowRunType } from '@/lib/generated-api';
+import { DocumentIssue, SeverityEnum, WorkflowRunDetail, WorkflowRunType } from '@/lib/generated-api';
 import { Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -13,6 +13,7 @@ import { DoclingViewer } from '../components/docling-viewer';
 import { DocumentIssuesList } from '../components/document-issues-list';
 import { DocumentReconstructor } from '../components/document-reconstructor';
 import { ErrorsCard } from '../components/errors-card';
+import { filterIssuesBySeverity, SeverityFilter } from '../components/severity-filter';
 import { getWorkflowRunByType } from '@/lib/workflow-state';
 
 interface DocumentExplorerTabProps {
@@ -39,6 +40,7 @@ export function DocumentExplorerTab({
 
   const results = claimSubstantiatorDetail?.state;
   const [selectedChunkIndex, setSelectedChunkIndex] = useState<number | null>(null);
+  const [severityFilter, setSeverityFilter] = useState<SeverityEnum[]>([]);
   const sidebarRef = useRef<HTMLDivElement>(null);
 
   const validChunkIndices = useMemo(() => results?.chunks?.map((c) => c.chunk_index), [results?.chunks]);
@@ -72,6 +74,7 @@ export function DocumentExplorerTab({
   const isDoclingAvailable = Boolean(pages && pages.length > 0 && Object.keys(chunkToItems).length > 0);
 
   const selectedChunk = results.chunks?.find((chunk) => chunk.chunk_index === selectedChunkIndex);
+  const filteredIssues = filterIssuesBySeverity(issues, severityFilter);
 
   if (isProcessing && !hasChunks) {
     return (
@@ -159,7 +162,14 @@ export function DocumentExplorerTab({
 
             {!selectedChunk && (
               <div className="space-y-2">
-                <div className="flex justify-end">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs text-muted-foreground">
+                    {issues.length > 0 &&
+                      (filteredIssues.length === issues.length
+                        ? `${issues.length} issues`
+                        : `${filteredIssues.length} of ${issues.length}`)}
+                  </span>
+                  {issues.length > 0 && <SeverityFilter value={severityFilter} onChange={setSeverityFilter} />}
                   <AiGeneratedLabel />
                 </div>
                 {issues.length === 0 && !isProcessing && (
@@ -168,7 +178,7 @@ export function DocumentExplorerTab({
                     <p>You can still view detailled analysis for each chunk by selecting a chunk from the document.</p>
                   </div>
                 )}
-                <DocumentIssuesList issues={issues} onSelect={handleSelectIssue} />
+                <DocumentIssuesList issues={filteredIssues} onSelect={handleSelectIssue} />
               </div>
             )}
 
