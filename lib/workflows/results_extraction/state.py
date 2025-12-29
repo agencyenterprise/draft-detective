@@ -4,7 +4,7 @@ from lib.workflows.results_extraction.agents.results_extractor import (
 )
 from lib.models.workflow_run import WorkflowRunType
 from lib.services.file import FileDocument
-from lib.workflows.models import BaseWorkflowConfig, BaseWorkflowState
+from lib.workflows.base import BaseWorkflowConfig, BaseWorkflowState
 from typing import Literal, Optional
 from pydantic import Field
 

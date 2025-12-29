@@ -9,7 +9,7 @@ from lib.services.share_links import get_resource_by_token
 from lib.workflows.claim_substantiation.state import ClaimSubstantiatorState
 from lib.workflows.context import ContextSchema
 from lib.workflows.docx_generation.state import DocxGenerationState
-from lib.workflows.models import WorkflowRunType
+from lib.workflows.base import WorkflowRunType
 
 
 async def prepare_docx_inputs(

@@ -9,7 +9,7 @@ from lib.agents.literature_review import (
     ReferenceType,
 )
 from lib.config.llm_models import gpt_5_mini_model
-from lib.models.agent import DirectOpenAIAgent
+from lib.agents.base import DirectOpenAIAgent
 from lib.services.openai import ensure_structured_output_response
 from lib.workflows.context import ContextSchema
 

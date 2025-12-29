@@ -11,7 +11,7 @@ from lib.services.projects import update_project_title
 from lib.services.workflow_runs import upsert_workflow_run
 from lib.workflows.checkpointer import get_checkpointer
 from lib.workflows.context import ContextSchema
-from lib.workflows.models import WorkflowError
+from lib.workflows.base import WorkflowError
 from lib.workflows.registry import create_context, create_graph, create_state
 from lib.workflows.types import WorkflowConfig, WorkflowState
 

@@ -2,9 +2,9 @@
 
 from pydantic import BaseModel
 
-from lib.models.array_matchers import ArrayMatcher
-from lib.models.comparison_models import ComparisonExample, FieldComparison
-from lib.models.comparison_utils import build_rationale, serialize_value, to_dict
+from lib.testing.array_matchers import ArrayMatcher
+from lib.testing.comparison_models import ComparisonExample, FieldComparison
+from lib.testing.comparison_utils import build_rationale, serialize_value, to_dict
 
 
 class FieldComparator:

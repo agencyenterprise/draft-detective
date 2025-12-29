@@ -9,7 +9,7 @@ from lib.workflows.docx_generation.state import (
     DocxGenerationWorkflowConfig,
 )
 from lib.workflows.manifest import WorkflowManifest
-from lib.workflows.models import DocumentIssue, WorkflowRunType
+from lib.workflows.base import DocumentIssue, WorkflowRunType
 from lib.workflows.types import WorkflowState
 
 

@@ -13,7 +13,7 @@ from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
 
 from lib.config.llm_models import gpt_5_mini_model
-from lib.models.agent import DirectOpenAIAgent
+from lib.agents.base import DirectOpenAIAgent
 from lib.services.openai import ensure_structured_output_response
 
 

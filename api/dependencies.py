@@ -6,7 +6,7 @@ import uuid
 from typing import Optional
 from fastapi import Form, HTTPException
 from lib.workflows.claim_substantiation.state import SubstantiationWorkflowConfig
-from lib.workflows.models import WorkflowRunType
+from lib.workflows.base import WorkflowRunType
 
 
 async def build_config_from_form(

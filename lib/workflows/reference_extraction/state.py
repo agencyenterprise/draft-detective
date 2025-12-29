@@ -5,9 +5,9 @@ from typing import Dict, List, Literal, Optional
 from pydantic import BaseModel, Field
 
 from lib.agents.document_summarizer import DocumentSummary
-from lib.models.bibliography_item import BibliographyItem
+from lib.agents.models import BibliographyItem
 from lib.services.file import FileDocument
-from lib.workflows.models import (
+from lib.workflows.base import (
     BaseWorkflowConfig,
     BaseWorkflowState,
     WorkflowRunType,

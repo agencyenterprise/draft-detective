@@ -10,7 +10,7 @@ from lib.workflows.docx_generation.state import (
     DocxGenerationWorkflowConfig,
     DocxGenerationState,
 )
-from lib.workflows.models import WorkflowRunType
+from lib.workflows.base import WorkflowRunType
 
 logger = logging.getLogger(__name__)
 

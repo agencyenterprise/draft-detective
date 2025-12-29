@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from lib.models.agent_test_case import AgentTestCase
+from lib.testing.agent_test_case import AgentTestCase
 from lib.agents.claim_extractor import (
     ClaimResponse,
     ClaimExtractorAgent,

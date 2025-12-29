@@ -13,7 +13,7 @@ from lib.workflows.claim_substantiation.state import AnalyzedChunk
 from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
 from lib.workflows.inference_validation.state import InferenceValidationState
-from lib.workflows.models import WorkflowError
+from lib.workflows.base import WorkflowError
 
 logger = logging.getLogger(__name__)
 

@@ -13,15 +13,15 @@ from langchain_core.prompts import ChatPromptTemplate
 
 from lib.config.langfuse import langfuse_handler
 from lib.config.llm_models import LLMModel
-from lib.models.agent import BaseAgent
-from lib.models.field_comparator import FieldComparator
+from lib.agents.base import BaseAgent
+from lib.testing.field_comparator import FieldComparator
 from lib.services.agent_factory import create_agent_with_model
 from lib.services.agent_tracking import AgentExecutionTracker
 
 if TYPE_CHECKING:
-    from lib.models.agent_test_case import AgentTestCase, EvaluationResult
+    from lib.testing.agent_test_case import AgentTestCase, EvaluationResult
     from lib.services.langfuse_metrics import ModelMetrics
-    from lib.models.comparison_models import FieldComparison
+    from lib.testing.comparison_models import FieldComparison
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +41,7 @@ async def run_single_model_evaluation(
     Returns:
         Tuple of (EvaluationResult, ModelMetrics, actual_output) with evaluation, metrics, and the actual model output
     """
-    from lib.models.agent_test_case import EvaluationResult
+    from lib.testing.agent_test_case import EvaluationResult
     from lib.services.langfuse_metrics import ModelMetrics
 
     tracker.start_timing()
@@ -141,7 +141,7 @@ async def evaluate_agent_output(
     Returns:
         EvaluationResult combining strict and LLM evaluations
     """
-    from lib.models.agent_test_case import EvaluationResult
+    from lib.testing.agent_test_case import EvaluationResult
 
     strict_result, llm_result = await asyncio.gather(
         _compare_strict_fields(test_case, actual_output),
@@ -179,7 +179,7 @@ async def _compare_strict_fields(
     Returns:
         EvaluationResult with strict field comparison results
     """
-    from lib.models.agent_test_case import EvaluationResult
+    from lib.testing.agent_test_case import EvaluationResult
 
     if len(test_case.strict_fields) == 0:
         return EvaluationResult(
@@ -270,7 +270,7 @@ async def _invoke_llm_evaluator(
     Returns:
         EvaluationResult from LLM grader
     """
-    from lib.models.agent_test_case import EvaluationResult
+    from lib.testing.agent_test_case import EvaluationResult
 
     evaluator_model_str = str(test_case.evaluator_model)
     provider, model = evaluator_model_str.split(":", 1)
@@ -327,7 +327,7 @@ async def _compare_llm_fields(
     Returns:
         EvaluationResult with LLM field comparison results
     """
-    from lib.models.agent_test_case import EvaluationResult
+    from lib.testing.agent_test_case import EvaluationResult
 
     if len(test_case.llm_fields) == 0:
         return EvaluationResult(
@@ -386,7 +386,7 @@ async def run_parallel_comparison(
     Raises:
         ValueError: If models list is empty
     """
-    from lib.models.agent_test_case import EvaluationResult
+    from lib.testing.agent_test_case import EvaluationResult
 
     if not models:
         raise ValueError("Must provide at least one model")

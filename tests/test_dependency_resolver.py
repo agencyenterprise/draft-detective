@@ -4,7 +4,7 @@ import pytest
 from unittest.mock import patch
 
 from lib.workflows.dependency_resolver import resolve_workflow_dependencies
-from lib.workflows.models import WorkflowRunType
+from lib.workflows.base import WorkflowRunType
 
 
 # Test helpers

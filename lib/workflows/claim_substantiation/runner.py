@@ -9,7 +9,7 @@ from lib.workflows.claim_substantiation.state import (
     ClaimSubstantiatorState,
     SubstantiationWorkflowConfig,
 )
-from lib.workflows.models import WorkflowRunType
+from lib.workflows.base import WorkflowRunType
 from lib.workflows.registry import create_context
 from lib.workflows.runner import run_workflow
 

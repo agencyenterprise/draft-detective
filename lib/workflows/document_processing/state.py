@@ -6,7 +6,7 @@ from lib.agents.document_summarizer import DocumentSummary
 from lib.agents.models import ChunkWithIndex
 from lib.services.docling_models import ChunkToItems
 from lib.services.file import FileDocument
-from lib.workflows.models import BaseWorkflowConfig, BaseWorkflowState, WorkflowRunType
+from lib.workflows.base import BaseWorkflowConfig, BaseWorkflowState, WorkflowRunType
 
 
 class DocumentProcessingWorkflowConfig(BaseWorkflowConfig):

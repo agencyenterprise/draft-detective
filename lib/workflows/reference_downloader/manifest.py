@@ -4,7 +4,7 @@ from langgraph.graph import StateGraph
 
 from lib.workflows.claim_substantiation.state import ClaimSubstantiatorState
 from lib.workflows.manifest import WorkflowManifest
-from lib.workflows.models import DocumentIssue, WorkflowRunType
+from lib.workflows.base import DocumentIssue, WorkflowRunType
 from lib.workflows.reference_downloader.graph import build_reference_downloader_graph
 from lib.workflows.reference_downloader.state import (
     ReferenceDownloaderState,

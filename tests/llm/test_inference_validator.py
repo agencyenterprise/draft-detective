@@ -11,7 +11,7 @@ from lib.agents.inference_validator import (
     InferenceValidationResponse,
     InferenceValidatorAgent,
 )
-from lib.models.agent_test_case import AgentTestCase
+from lib.testing.agent_test_case import AgentTestCase
 from tests.conftest import (
     TESTS_DIR,
     extract_paragraph_from_chunk,

@@ -4,7 +4,7 @@ from langgraph.graph import StateGraph
 
 from lib.workflows.claim_substantiation.state import ClaimSubstantiatorState
 from lib.workflows.manifest import WorkflowManifest
-from lib.workflows.models import DocumentIssue, WorkflowRunType
+from lib.workflows.base import DocumentIssue, WorkflowRunType
 from lib.workflows.results_extraction.graph import build_results_extraction_graph
 from lib.workflows.results_extraction.state import (
     ResultsExtractionState,

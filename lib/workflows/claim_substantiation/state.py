@@ -11,11 +11,11 @@ from lib.agents.claim_needs_substantiation_checker import (
 from lib.agents.claim_verifier import ClaimSubstantiationResultWithClaimIndex
 from lib.agents.document_summarizer import DocumentSummary
 from lib.agents.models import ChunkWithIndex
-from lib.models.bibliography_item import BibliographyItem
+from lib.agents.models import BibliographyItem
 from lib.agents.toulmin_claim_extractor import ToulminClaimResponse
 from lib.services.docling_models import ChunkToItems
 from lib.services.file import FileDocument
-from lib.workflows.models import BaseWorkflowConfig, BaseWorkflowState, WorkflowRunType
+from lib.workflows.base import BaseWorkflowConfig, BaseWorkflowState, WorkflowRunType
 
 
 class SubstantiationWorkflowConfig(BaseWorkflowConfig):

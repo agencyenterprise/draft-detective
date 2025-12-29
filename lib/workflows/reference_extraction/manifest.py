@@ -9,7 +9,7 @@ from lib.workflows.claim_substantiation.state import (
 )
 from lib.workflows.document_processing.state import DocumentProcessingState
 from lib.workflows.manifest import WorkflowManifest
-from lib.workflows.models import DocumentIssue, WorkflowRunType
+from lib.workflows.base import DocumentIssue, WorkflowRunType
 from lib.workflows.reference_extraction.graph import build_reference_extraction_graph
 from lib.workflows.reference_extraction.state import (
     ReferenceExtractionConfig,

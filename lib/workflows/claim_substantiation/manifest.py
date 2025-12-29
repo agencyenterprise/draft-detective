@@ -9,7 +9,7 @@ from lib.workflows.claim_substantiation.state import (
     SubstantiationWorkflowConfig,
 )
 from lib.workflows.manifest import WorkflowManifest
-from lib.workflows.models import DocumentIssue, WorkflowRunType
+from lib.workflows.base import DocumentIssue, WorkflowRunType
 from lib.workflows.types import WorkflowState
 from lib.workflows.util import get_state_by_type_or_raise
 

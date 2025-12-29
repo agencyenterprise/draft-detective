@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 from lib.agents.live_literature_review import ClaimReferenceFactors, QualityLevel
 from lib.services.openai import ensure_structured_output_response
 from lib.config.llm_models import gpt_5_mini_model
-from lib.models.agent import DirectOpenAIAgent
+from lib.agents.base import DirectOpenAIAgent
 from lib.services.openai import ensure_structured_output_response
 
 

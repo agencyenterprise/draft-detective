@@ -4,7 +4,7 @@ from pydantic import BaseModel, Field
 
 from lib.agents.models import ValidatedDocument
 from lib.config.llm_models import gpt_4_1_model
-from lib.models.agent import LangChainAgent
+from lib.agents.base import LangChainAgent
 
 
 class Paragraph(BaseModel):

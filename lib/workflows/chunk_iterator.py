@@ -2,7 +2,7 @@ from typing import Callable, List, Tuple
 
 from lib.run_utils import run_tasks
 from lib.workflows.claim_substantiation.state import AnalyzedChunk
-from lib.workflows.models import BaseWorkflowState, WorkflowError
+from lib.workflows.base import BaseWorkflowState, WorkflowError
 
 
 def get_target_chunks(state: BaseWorkflowState) -> List[AnalyzedChunk]:

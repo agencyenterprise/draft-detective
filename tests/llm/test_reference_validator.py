@@ -6,7 +6,7 @@ from lib.agents.reference_validator import (
     BibliographyItemValidation,
     ReferenceValidatorAgent,
 )
-from lib.models.agent_test_case import AgentTestCase
+from lib.testing.agent_test_case import AgentTestCase
 from tests.conftest import create_test_context
 from tests.datasets.loader import load_dataset
 

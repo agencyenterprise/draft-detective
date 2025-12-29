@@ -6,7 +6,7 @@ import nltk
 from pydantic import BaseModel, Field
 
 from lib.agents.models import ValidatedDocument, DocumentMetadata
-from lib.models.agent import BaseAgent
+from lib.agents.base import BaseAgent
 from lib.services.fragment_detection import (
     has_suspicious_fragments,
     DetectionMethod,

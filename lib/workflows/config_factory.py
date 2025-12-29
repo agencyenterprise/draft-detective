@@ -8,7 +8,7 @@ from lib.workflows.claim_substantiation.state import SubstantiationWorkflowConfi
 from lib.workflows.citation_suggester.state import CitationSuggesterWorkflowConfig
 from lib.workflows.literature_review.state import LiteratureReviewWorkflowConfig
 from lib.workflows.live_reports.state import LiveReportsWorkflowConfig
-from lib.workflows.models import WorkflowRunType
+from lib.workflows.base import WorkflowRunType
 from lib.workflows.reference_validation.state import ReferenceValidationWorkflowConfig
 from lib.workflows.registry import get_config_type
 from lib.workflows.types import WorkflowConfig

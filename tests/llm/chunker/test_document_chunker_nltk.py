@@ -7,7 +7,7 @@ from lib.agents.document_chunker_nltk import (
     DocumentChunkerResponse,
     document_chunker_agent,
 )
-from lib.models.agent_test_case import AgentTestCase
+from lib.testing.agent_test_case import AgentTestCase
 from tests.conftest import create_test_file_document_from_path, data_path
 from tests.datasets.loader import load_dataset
 

@@ -8,7 +8,7 @@ from lib.models.user import User
 from lib.services.vector_store import VectorStoreService
 from lib.workflows.context import ContextSchema
 from lib.workflows.manifest import WorkflowManifest
-from lib.workflows.models import BaseWorkflowConfig, BaseWorkflowState, WorkflowRunType
+from lib.workflows.base import BaseWorkflowConfig, BaseWorkflowState, WorkflowRunType
 from lib.workflows.types import WorkflowState
 
 logger = logging.getLogger(__name__)

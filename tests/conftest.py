@@ -19,7 +19,7 @@ from pydantic import BaseModel
 from xxhash import xxh128
 
 from lib.config.env import config
-from lib.models.agent_test_case import AgentTestCase
+from lib.testing.agent_test_case import AgentTestCase
 from lib.services.file import create_file_document_from_path
 from lib.services.vector_store import VectorStoreService
 

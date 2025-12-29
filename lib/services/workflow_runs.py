@@ -13,7 +13,7 @@ from lib.models.project import Project
 from lib.models.user import User
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus, WorkflowRunType
 from lib.workflows.checkpointer import get_checkpointer
-from lib.workflows.models import is_user_visible_workflow
+from lib.workflows.base import is_user_visible_workflow
 from lib.workflows.registry import create_graph, get_state_type
 from lib.workflows.types import WorkflowState
 

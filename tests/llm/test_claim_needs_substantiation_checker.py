@@ -12,7 +12,7 @@ from lib.agents.formatting_utils import (
     format_audience_context,
     format_domain_context,
 )
-from lib.models.agent_test_case import AgentTestCase
+from lib.testing.agent_test_case import AgentTestCase
 from tests.conftest import (
     TESTS_DIR,
     extract_paragraph_from_chunk,

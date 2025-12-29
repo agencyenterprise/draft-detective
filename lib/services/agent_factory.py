@@ -2,7 +2,7 @@ import logging
 from typing import Optional
 
 from lib.config.llm_models import LLMModel
-from lib.models.agent import BaseAgent, LangChainAgent, DirectOpenAIAgent
+from lib.agents.base import BaseAgent, LangChainAgent, DirectOpenAIAgent
 
 logger = logging.getLogger(__name__)
 

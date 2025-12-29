@@ -6,7 +6,7 @@ from lib.workflows.claim_substantiation.state import (
     AnalyzedChunk,
     ClaimSubstantiatorState,
 )
-from lib.workflows.models import DocumentIssue, SeverityEnum
+from lib.workflows.base import DocumentIssue, SeverityEnum
 
 
 def convert_state_to_issues(

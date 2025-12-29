@@ -28,7 +28,7 @@ from pydantic import BaseModel, Field
 
 from lib.agents.models import ClaimCategory
 from lib.config.llm_models import gpt_5_mini_model
-from lib.models.agent import LangChainAgent
+from lib.agents.base import LangChainAgent
 from lib.workflows.context import ContextSchema
 
 # =========================

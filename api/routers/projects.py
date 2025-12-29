@@ -26,7 +26,7 @@ from lib.services.projects import (
     update_user_project,
 )
 from lib.services.workflow_runs import get_project_workflow_run_by_type
-from lib.workflows.models import WorkflowRunType
+from lib.workflows.base import WorkflowRunType
 
 router = APIRouter(tags=["projects"])
 logger = logging.getLogger(__name__)

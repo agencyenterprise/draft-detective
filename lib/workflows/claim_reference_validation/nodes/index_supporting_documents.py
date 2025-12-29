@@ -11,7 +11,7 @@ from lib.services.vector_store import (
 from lib.workflows.context import ContextSchema
 from lib.workflows.claim_reference_validation.state import ClaimReferenceValidationState
 from lib.workflows.decorators import register_node
-from lib.workflows.models import WorkflowError
+from lib.workflows.base import WorkflowError
 
 logger = logging.getLogger(__name__)
 

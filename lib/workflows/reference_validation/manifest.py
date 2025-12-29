@@ -5,7 +5,7 @@ from langgraph.graph import StateGraph
 from lib.workflows.claim_substantiation.issue_converter import _find_chunk_index_by_text
 from lib.workflows.claim_substantiation.state import ClaimSubstantiatorState
 from lib.workflows.manifest import WorkflowManifest
-from lib.workflows.models import DocumentIssue, SeverityEnum, WorkflowRunType
+from lib.workflows.base import DocumentIssue, SeverityEnum, WorkflowRunType
 from lib.workflows.reference_validation.graph import build_reference_validation_graph
 from lib.workflows.reference_validation.state import (
     ReferenceValidationState,

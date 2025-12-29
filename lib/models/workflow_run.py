@@ -8,7 +8,7 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlmodel import Enum as SQLModelEnum
 from sqlmodel import Field, SQLModel, String
 
-from lib.workflows.models import WorkflowRunType
+from lib.workflows.base import WorkflowRunType
 
 
 class WorkflowRunStatus(str, Enum):

@@ -1,6 +1,6 @@
 from typing import List
 
-from lib.workflows.models import WorkflowRunType
+from lib.workflows.base import WorkflowRunType
 from lib.workflows.types import WorkflowState
 
 

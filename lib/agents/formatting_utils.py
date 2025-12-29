@@ -1,6 +1,6 @@
 from lib.agents.citation_detector import CitationResponse
 from lib.agents.document_summarizer import DocumentSummary
-from lib.models.bibliography_item import BibliographyItem
+from lib.agents.models import BibliographyItem
 from lib.services.file import FileDocument
 from typing import Dict, List, Optional
 from lib.services.vector_store import RetrievedPassage

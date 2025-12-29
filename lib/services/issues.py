@@ -2,7 +2,7 @@ import logging
 from typing import List, Optional
 
 from lib.workflows.claim_substantiation.state import ClaimSubstantiatorState
-from lib.workflows.models import DocumentIssue, WorkflowRunType
+from lib.workflows.base import DocumentIssue, WorkflowRunType
 from lib.workflows.registry import get_workflow_manifest
 from lib.workflows.types import WorkflowState
 

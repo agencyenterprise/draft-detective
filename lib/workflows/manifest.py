@@ -4,7 +4,7 @@ from typing import List, Type, TypeVar
 from langgraph.graph import StateGraph
 
 from lib.workflows.claim_substantiation.state import ClaimSubstantiatorState
-from lib.workflows.models import (
+from lib.workflows.base import (
     BaseWorkflowConfig,
     BaseWorkflowState,
     DocumentIssue,

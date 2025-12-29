@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 
-from lib.workflows.models import WorkflowRunType
+from lib.workflows.base import WorkflowRunType
 
 
 class StartWorkflowResponse(BaseModel):

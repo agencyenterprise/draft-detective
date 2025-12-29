@@ -6,8 +6,8 @@ from typing import Any, Dict, List, Optional, Type, TypeVar
 from pydantic import BaseModel, Field, ConfigDict
 
 from lib.config.llm_models import LLMModel
-from lib.models.agent import BaseAgent
-from lib.models.comparison_models import FieldComparison
+from lib.agents.base import BaseAgent
+from lib.testing.comparison_models import FieldComparison
 
 logger = logging.getLogger(__name__)
 

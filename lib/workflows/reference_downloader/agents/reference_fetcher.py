@@ -8,7 +8,7 @@ from langgraph.graph.state import RunnableConfig
 from pydantic import BaseModel, ConfigDict, Field
 
 from lib.config.llm_models import gpt_5_1_model
-from lib.models.agent import LangChainAgent
+from lib.agents.base import LangChainAgent
 from lib.workflows.context import ContextSchema
 
 

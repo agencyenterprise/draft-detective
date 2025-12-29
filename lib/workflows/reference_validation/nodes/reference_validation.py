@@ -2,7 +2,7 @@ import logging
 
 from langgraph.runtime import Runtime
 
-from lib.models.bibliography_item import BibliographyItem
+from lib.agents.models import BibliographyItem
 from lib.agents.reference_validator import (
     BibliographyItemValidation,
     ReferenceValidatorAgent,

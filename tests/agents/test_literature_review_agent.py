@@ -71,13 +71,13 @@ class _FakeLLM:
 @pytest.fixture(autouse=True)
 def _stub_llm(monkeypatch):
     # Patch init_chat_model to return our fake LLM
-    monkeypatch.setattr("lib.models.agent.init_chat_model", lambda *_, **__: _FakeLLM())
+    monkeypatch.setattr("lib.agents.base.init_chat_model", lambda *_, **__: _FakeLLM())
 
     # Also patch OpenAIWrapper in case use_direct_llm_client is True
     def fake_openai_wrapper(*args, **kwargs):
         return _FakeLLM()
 
-    monkeypatch.setattr("lib.models.agent.OpenAIWrapper", fake_openai_wrapper)
+    monkeypatch.setattr("lib.agents.base.OpenAIWrapper", fake_openai_wrapper)
 
 
 def test_attention_paragraph_suggests_attention_is_all_you_need(monkeypatch):

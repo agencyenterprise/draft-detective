@@ -5,7 +5,7 @@ from pydantic import Field
 from lib.agents.methodology_comparator import MethodologyComparisonResponse
 from lib.models.workflow_run import WorkflowRunType
 from lib.services.file import FileDocument
-from lib.workflows.models import BaseWorkflowConfig, BaseWorkflowState, WorkflowRunType
+from lib.workflows.base import BaseWorkflowConfig, BaseWorkflowState, WorkflowRunType
 
 
 class MethodologicalAlignmentState(BaseWorkflowState):

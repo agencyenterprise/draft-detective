@@ -2,7 +2,7 @@ from typing import List, Literal, Optional
 
 from pydantic import Field
 
-from lib.workflows.models import BaseWorkflowConfig, BaseWorkflowState, WorkflowRunType
+from lib.workflows.base import BaseWorkflowConfig, BaseWorkflowState, WorkflowRunType
 from lib.workflows.reference_downloader.agents.reference_fetcher import (
     ReferenceFetchItem,
 )

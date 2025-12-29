@@ -3,7 +3,7 @@ import logging
 import os
 from typing import Any, List, Tuple
 
-from lib.workflows.models import WorkflowError
+from lib.workflows.base import WorkflowError
 
 logger = logging.getLogger(__name__)
 

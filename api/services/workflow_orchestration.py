@@ -4,7 +4,7 @@ from typing import List
 
 from lib.models.workflow_run import WorkflowRunStatus
 from lib.services.workflow_runs import get_project_workflow_run_by_type
-from lib.workflows.models import WorkflowRunType
+from lib.workflows.base import WorkflowRunType
 from lib.workflows.registry import get_workflow_manifest
 
 logger = logging.getLogger(__name__)

@@ -10,7 +10,7 @@ from pydantic import BaseModel
 
 from lib.config.env import config
 from lib.services.docx.chunk_mapper import ChunkLike, create_chunk_to_paragraph_mapping
-from lib.workflows.models import SeverityEnum
+from lib.workflows.base import SeverityEnum
 
 logger = logging.getLogger(__name__)
 

@@ -5,7 +5,7 @@ from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
 
 from lib.config.llm_models import gpt_5_model
-from lib.models.agent import LangChainAgent
+from lib.agents.base import LangChainAgent
 
 
 class ToulminClaim(BaseModel):

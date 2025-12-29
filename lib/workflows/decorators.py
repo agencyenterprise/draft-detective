@@ -10,7 +10,7 @@ from lib.workflows.claim_substantiation.state import (
     AnalyzedChunk,
     ClaimSubstantiatorState,
 )
-from lib.workflows.models import BaseWorkflowState, WorkflowError
+from lib.workflows.base import BaseWorkflowState, WorkflowError
 
 # Type variable for decorator return types
 T = TypeVar("T")

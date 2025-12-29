@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 
 from lib.config.langfuse import langfuse_handler
 from lib.config.llm_models import gpt_5_model
-from lib.models.agent import DirectOpenAIAgent
+from lib.agents.base import DirectOpenAIAgent
 from lib.services.openai import (
     ensure_structured_output_response,
     wait_for_response,

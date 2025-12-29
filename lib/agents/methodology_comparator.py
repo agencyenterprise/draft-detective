@@ -8,7 +8,7 @@ from lib.agents.literature_review import ReferenceType
 from lib.agents.methodology_extractor import ReproducibilityCategoryResponse
 from lib.config.env import config
 from lib.config.llm_models import gpt_5_model
-from lib.models.agent import DirectOpenAIAgent
+from lib.agents.base import DirectOpenAIAgent
 from lib.services.openai import ensure_structured_output_response, wait_for_response
 from lib.workflows.context import ContextSchema
 

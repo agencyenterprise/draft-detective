@@ -9,7 +9,7 @@ import logging
 from graphlib import TopologicalSorter
 from typing import List, Set
 
-from lib.workflows.models import WorkflowRunType
+from lib.workflows.base import WorkflowRunType
 from lib.workflows.registry import get_workflow_manifest
 
 logger = logging.getLogger(__name__)

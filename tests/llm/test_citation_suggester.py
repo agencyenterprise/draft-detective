@@ -7,9 +7,9 @@ from lib.agents.citation_suggester import (
     CitationSuggestionResponse,
     CitationSuggesterAgent,
 )
-from lib.models.bibliography_item import BibliographyItem
+from lib.agents.models import BibliographyItem
 from lib.agents.formatting_utils import format_bibliography_prompt_section
-from lib.models.agent_test_case import AgentTestCase
+from lib.testing.agent_test_case import AgentTestCase
 from tests.conftest import (
     extract_paragraph_from_chunk,
     create_test_file_document_from_path,

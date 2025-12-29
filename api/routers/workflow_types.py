@@ -3,7 +3,7 @@ from typing import List
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
-from lib.workflows.models import WorkflowRunType, is_user_visible_workflow
+from lib.workflows.base import WorkflowRunType, is_user_visible_workflow
 from lib.workflows.registry import _workflow_manifest_registry
 
 router = APIRouter(tags=["workflow-types"])

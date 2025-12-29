@@ -10,7 +10,7 @@ from lib.workflows.document_processing.state import (
     DocumentProcessingWorkflowConfig,
 )
 from lib.workflows.manifest import WorkflowManifest
-from lib.workflows.models import DocumentIssue, WorkflowRunType
+from lib.workflows.base import DocumentIssue, WorkflowRunType
 from lib.workflows.types import WorkflowState
 
 

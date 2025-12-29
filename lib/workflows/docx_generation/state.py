@@ -5,7 +5,7 @@ from typing import Literal, Optional, List, Any
 from pydantic import Field
 
 from lib.services.docx.manipulator import DocxComment
-from lib.workflows.models import BaseWorkflowConfig, BaseWorkflowState, WorkflowRunType
+from lib.workflows.base import BaseWorkflowConfig, BaseWorkflowState, WorkflowRunType
 
 
 class DocxGenerationWorkflowConfig(BaseWorkflowConfig):

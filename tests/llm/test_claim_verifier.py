@@ -12,7 +12,7 @@ from lib.agents.formatting_utils import (
     format_domain_context,
     format_supporting_documents_prompt_section,
 )
-from lib.models.agent_test_case import AgentTestCase
+from lib.testing.agent_test_case import AgentTestCase
 from lib.workflows.claim_substantiation.nodes.verify_claims import (
     format_evidence_explanation,
 )

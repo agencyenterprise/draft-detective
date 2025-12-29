@@ -8,7 +8,7 @@ from lib.agents.toulmin_claim_extractor import (
     ToulminClaimResponse,
     ToulminClaimExtractorAgent,
 )
-from lib.models.agent_test_case import AgentTestCase
+from lib.testing.agent_test_case import AgentTestCase
 from tests.conftest import (
     create_test_file_document_from_path,
     data_path,
