@@ -148,6 +148,8 @@ export type BibliographyFieldValidation = {
 
 /**
  * BibliographyItem
+ *
+ * Represents a bibliographic reference item extracted from a document.
  */
 export type BibliographyItem = {
   /**
@@ -341,24 +343,6 @@ export type ChunkToItemsOutput = {
   mapping?: {
     [key: string]: Array<DoclingRegion>;
   };
-};
-
-/**
- * ChunkWithIndex
- */
-export type ChunkWithIndex = {
-  /**
-   * Content
-   */
-  content: string;
-  /**
-   * Chunk Index
-   */
-  chunk_index: number;
-  /**
-   * Paragraph Index
-   */
-  paragraph_index: number;
 };
 
 /**
@@ -2554,30 +2538,6 @@ export type ReferenceExtractionConfig = {
    * Type
    */
   type?: 'reference_extraction';
-  /**
-   * Window Size
-   *
-   * Number of chunks per extraction window
-   */
-  window_size?: number;
-  /**
-   * Overlap Size
-   *
-   * Number of overlapping chunks between windows
-   */
-  overlap_size?: number;
-  /**
-   * Fuzzy Threshold
-   *
-   * Similarity threshold for fuzzy matching (0-1)
-   */
-  fuzzy_threshold?: number;
-  /**
-   * Truncate Supporting Docs At
-   *
-   * Character limit for supporting document content in prompts
-   */
-  truncate_supporting_docs_at?: number;
 };
 
 /**
@@ -2602,23 +2562,31 @@ export type ReferenceExtractionState = {
    */
   file: FileDocumentOutput;
   /**
-   * Chunks
-   *
-   * Document chunks for section detection
-   */
-  chunks?: Array<ChunkWithIndex>;
-  /**
    * Supporting Files
    *
    * Optional supporting documents for matching
    */
   supporting_files?: Array<FileDocumentOutput> | null;
   /**
+   * Supporting Documents Summaries
+   *
+   * Pre-computed summaries of supporting documents (from document processing)
+   */
+  supporting_documents_summaries?: {
+    [key: string]: DocumentSummary;
+  } | null;
+  /**
    * Detected Sections
    *
    * Detected reference sections
    */
   detected_sections?: Array<ReferenceSection>;
+  /**
+   * Extracted Texts
+   *
+   * Raw extracted reference texts
+   */
+  extracted_texts?: Array<string>;
   /**
    * References
    *
@@ -2703,39 +2671,21 @@ export type ReferenceMinimal = {
 /**
  * ReferenceSection
  *
- * Detected reference section in document.
+ * A detected reference/bibliography section in the document.
  */
 export type ReferenceSection = {
   /**
-   * Section Type
+   * Start Offset
    *
-   * Type of section (bibliography, footnotes, appendix_references)
+   * Character offset where section starts
    */
-  section_type: string;
+  start_offset: number;
   /**
-   * Start Chunk Index
+   * End Offset
    *
-   * Starting chunk index of section
+   * Character offset where section ends
    */
-  start_chunk_index: number;
-  /**
-   * End Chunk Index
-   *
-   * Ending chunk index (None if goes to end of document)
-   */
-  end_chunk_index?: number | null;
-  /**
-   * Confidence
-   *
-   * Confidence score for section detection (0-1)
-   */
-  confidence: number;
-  /**
-   * Section Header
-   *
-   * Detected section header text
-   */
-  section_header: string;
+  end_offset: number;
 };
 
 /**
@@ -3910,23 +3860,31 @@ export type ReferenceExtractionStateWritable = {
    */
   file: FileDocumentOutputWritable;
   /**
-   * Chunks
-   *
-   * Document chunks for section detection
-   */
-  chunks?: Array<ChunkWithIndex>;
-  /**
    * Supporting Files
    *
    * Optional supporting documents for matching
    */
   supporting_files?: Array<FileDocumentOutputWritable> | null;
   /**
+   * Supporting Documents Summaries
+   *
+   * Pre-computed summaries of supporting documents (from document processing)
+   */
+  supporting_documents_summaries?: {
+    [key: string]: DocumentSummary;
+  } | null;
+  /**
    * Detected Sections
    *
    * Detected reference sections
    */
   detected_sections?: Array<ReferenceSection>;
+  /**
+   * Extracted Texts
+   *
+   * Raw extracted reference texts
+   */
+  extracted_texts?: Array<string>;
   /**
    * References
    *
