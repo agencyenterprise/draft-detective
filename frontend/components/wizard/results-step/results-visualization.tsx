@@ -1,23 +1,13 @@
 'use client';
 
-import { Dialog } from '@/components/ui/dialog';
 import { analysisService } from '@/lib/analysis-service';
 import { DocRenderMode } from '@/lib/constants';
 import { downloadFile, generateEvalFilename } from '@/lib/file-download';
-import {
-  ProjectDetailed,
-  rerunAnalysisEndpointApiRerunAnalysisPost,
-  RerunAnalysisRequest,
-  WorkflowRunType,
-} from '@/lib/generated-api';
+import { ProjectDetailed, WorkflowRunType } from '@/lib/generated-api';
 import { getWorkflowRunByType } from '@/lib/workflow-state';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
-import { toast } from 'sonner';
 import { Card, CardContent } from '../../ui/card';
 import { TabNavigation } from './components';
 import { AnalysisOptionsMenu } from './components/analysis-options-menu';
-import { ReevaluationDialogContent, ReevaluationFormValues } from './components/reevaluation-dialog-content';
 import { ViewModeToggle } from './components/view-mode-toggle';
 import { TabType } from './constants';
 import {
@@ -62,29 +52,6 @@ export function ResultsVisualization({
   const referenceValidationResults = getWorkflowRunByType(results, WorkflowRunType.ReferenceValidation);
   const claimSubstantiationStateSummary = claimSubstantiationResults?.state;
 
-  const [isReevaluationDialogOpen, setIsReevaluationDialogOpen] = useState(false);
-  const queryClient = useQueryClient();
-
-  const reevaluateMutation = useMutation({
-    mutationFn: async (request: RerunAnalysisRequest) => {
-      return await rerunAnalysisEndpointApiRerunAnalysisPost({
-        body: request,
-      });
-    },
-    onSuccess: (_data, variables) => {
-      setIsReevaluationDialogOpen(false);
-
-      // Invalidate queries to show loading state
-      queryClient.invalidateQueries({
-        queryKey: ['project', variables.project_id],
-      });
-    },
-    onError: (error) => {
-      console.error('Re-evaluation failed:', error);
-      toast.error(error instanceof Error ? error.message : 'Re-evaluation failed');
-    },
-  });
-
   const handleSaveAsEvalTest = async () => {
     if (!claimSubstantiationStateSummary) return;
 
@@ -99,20 +66,6 @@ export function ResultsVisualization({
     } catch (error) {
       console.error('Failed to generate eval test package:', error);
     }
-  };
-
-  const handleReevaluate = (values: ReevaluationFormValues) => {
-    if (!claimSubstantiationStateSummary) return;
-
-    reevaluateMutation.mutate({
-      project_id: projectId,
-      config: {
-        ...claimSubstantiationStateSummary?.config,
-        target_chunk_indices: values.targetChunkIndices,
-        agents_to_run: values.selectedAgents,
-        openai_api_key: values.openaiApiKey,
-      },
-    });
   };
 
   const renderActiveTab = () => {
@@ -181,8 +134,7 @@ export function ResultsVisualization({
           )}
           <AnalysisOptionsMenu
             onSaveAsEvalTest={handleSaveAsEvalTest}
-            onReevaluate={() => setIsReevaluationDialogOpen(true)}
-            projectId={projectId}
+            project={projectDetail.project}
             results={results}
             readOnly={readOnly}
           />
@@ -194,16 +146,6 @@ export function ResultsVisualization({
           {renderActiveTab()}
         </CardContent>
       </Card>
-
-      {!readOnly && (
-        <Dialog open={isReevaluationDialogOpen} onOpenChange={setIsReevaluationDialogOpen}>
-          <ReevaluationDialogContent
-            isPending={false}
-            onCancel={() => setIsReevaluationDialogOpen(false)}
-            onConfirm={handleReevaluate}
-          />
-        </Dialog>
-      )}
     </div>
   );
 }

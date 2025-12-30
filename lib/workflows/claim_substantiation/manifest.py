@@ -21,7 +21,10 @@ class ClaimSubstantiationManifest(
     name = "Claim Substantiation"
     description = "Extract and verify claims from documents, checking them against supporting documents"
     needs_web_search = False
-    required_dependencies = [WorkflowRunType.DOCUMENT_PROCESSING]
+    required_dependencies = [
+        WorkflowRunType.DOCUMENT_PROCESSING,
+        WorkflowRunType.REFERENCE_EXTRACTION,
+    ]
 
     def get_state_type(self) -> Type[ClaimSubstantiatorState]:
         """Get the type of the workflow state."""
@@ -45,10 +48,16 @@ class ClaimSubstantiationManifest(
 
         from lib.workflows.claim_substantiation.state import AnalyzedChunk
         from lib.workflows.document_processing.state import DocumentProcessingState
+        from lib.workflows.reference_extraction.state import ReferenceExtractionState
 
         # Get document processing artifacts from dependency workflow
         doc_processing_state: DocumentProcessingState = get_state_by_type_or_raise(
             WorkflowRunType.DOCUMENT_PROCESSING, existing_states
+        )
+
+        # Get extracted references from reference extraction workflow
+        ref_extraction_state: ReferenceExtractionState = get_state_by_type_or_raise(
+            WorkflowRunType.REFERENCE_EXTRACTION, existing_states
         )
 
         # Convert base chunks to AnalyzedChunk (adds empty fields for claims, citations, etc.)
@@ -68,6 +77,7 @@ class ClaimSubstantiationManifest(
             supporting_documents_summaries=doc_processing_state.supporting_documents_summaries,
             chunks=chunks,
             chunk_to_items=doc_processing_state.chunk_to_items,
+            references=ref_extraction_state.references,  # Use pre-extracted references
             config=config,
         )
 

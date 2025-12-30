@@ -1,4 +1,5 @@
 import logging
+from typing import List
 
 from langgraph.runtime import Runtime
 
@@ -7,11 +8,12 @@ from lib.agents.evidence_weighter import (
     EvidenceWeighterResponseWithClaimIndex,
 )
 from lib.agents.live_literature_review import LiveLiteratureReviewAgent
-from lib.workflows.chunk_iterator import iterate_chunks
-from lib.workflows.context import ContextSchema
+from lib.run_utils import run_tasks
 from lib.workflows.claim_substantiation.state import AnalyzedChunk
+from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
 from lib.workflows.live_reports.state import LiveReportsState
+from lib.workflows.models import WorkflowError
 
 logger = logging.getLogger(__name__)
 
@@ -26,13 +28,40 @@ async def generate_live_reports_analysis(
     live_literature_review_agent = LiveLiteratureReviewAgent(runtime.context)
     evidence_weighter_agent = EvidenceWeighterAgent(runtime.context)
 
-    return await iterate_chunks(
-        state,
-        _analyze_chunk_live_reports,
-        "Analyzing chunk live reports",
-        live_literature_review_agent=live_literature_review_agent,
-        evidence_weighter_agent=evidence_weighter_agent,
-    )
+    # Process all chunks
+    tasks = [
+        _analyze_chunk_live_reports(
+            state, chunk, live_literature_review_agent, evidence_weighter_agent
+        )
+        for chunk in state.chunks
+    ]
+
+    results: tuple[
+        list[list[EvidenceWeighterResponseWithClaimIndex] | None],
+        list[Exception | None],
+    ] = await run_tasks(tasks, desc="Analyzing chunk live reports")
+    live_reports_analysis_results_raw, exceptions = results
+
+    # Filter out None results
+    live_reports_analysis_results: List[EvidenceWeighterResponseWithClaimIndex] = []
+    for chunk_results in live_reports_analysis_results_raw:
+        if chunk_results is not None:
+            live_reports_analysis_results.extend(chunk_results)
+
+    # Collect errors
+    errors = []
+    for index, exception in enumerate(exceptions):
+        if exception is not None:
+            chunk_index = state.chunks[index].chunk_index
+            errors.append(
+                WorkflowError(
+                    task_name="generate_live_reports_analysis",
+                    error=str(exception),
+                    chunk_index=chunk_index,
+                )
+            )
+
+    return {"live_reports_analysis": live_reports_analysis_results, "errors": errors}
 
 
 async def _analyze_chunk_live_reports(
@@ -40,16 +69,16 @@ async def _analyze_chunk_live_reports(
     chunk: AnalyzedChunk,
     live_literature_review_agent: LiveLiteratureReviewAgent,
     evidence_weighter_agent: EvidenceWeighterAgent,
-) -> AnalyzedChunk:
+) -> List[EvidenceWeighterResponseWithClaimIndex]:
     # Skip if chunk has no claims
     if chunk.claims is None or not chunk.claims.claims:
         logger.debug(
             "Skipping live reports analysis for chunk %s: no claims detected",
             chunk.chunk_index,
         )
-        return chunk
+        return []
 
-    live_reports_analysis_results = []
+    live_reports_analysis_results: List[EvidenceWeighterResponseWithClaimIndex] = []
 
     for claim_index, claim in enumerate(chunk.claims.claims):
         # Skip non-central claims - only analyze central claims for live reports
@@ -109,8 +138,4 @@ async def _analyze_chunk_live_reports(
             )
         )
 
-    return chunk.model_copy(
-        update={
-            "live_reports_analysis": live_reports_analysis_results,
-        }
-    )
+    return live_reports_analysis_results

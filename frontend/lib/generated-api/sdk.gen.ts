@@ -65,9 +65,6 @@ import type {
   ListProjectsEndpointApiProjectsGetResponses,
   ReadHealthApiHealthGetData,
   ReadHealthApiHealthGetResponses,
-  RerunAnalysisEndpointApiRerunAnalysisPostData,
-  RerunAnalysisEndpointApiRerunAnalysisPostErrors,
-  RerunAnalysisEndpointApiRerunAnalysisPostResponses,
   StartAnalysisApiStartAnalysisPostData,
   StartAnalysisApiStartAnalysisPostErrors,
   StartAnalysisApiStartAnalysisPostResponses,
@@ -169,36 +166,6 @@ export const startAnalysisApiStartAnalysisPost = <ThrowOnError extends boolean =
     ...options,
     headers: {
       'Content-Type': null,
-      ...options.headers,
-    },
-  });
-
-/**
- * Rerun Analysis Endpoint
- *
- * Re-evaluate a specific chunk with selected agents using unified LangGraph workflow.
- *
- * Args:
- * request: Contains chunk index, agents to run, and original state
- *
- * Returns:
- * Updated results for the specified chunk
- */
-export const rerunAnalysisEndpointApiRerunAnalysisPost = <ThrowOnError extends boolean = true>(
-  options: Options<RerunAnalysisEndpointApiRerunAnalysisPostData, ThrowOnError>,
-) =>
-  (options.client ?? client).post<
-    RerunAnalysisEndpointApiRerunAnalysisPostResponses,
-    RerunAnalysisEndpointApiRerunAnalysisPostErrors,
-    ThrowOnError,
-    'data'
-  >({
-    responseStyle: 'data',
-    security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/api/rerun-analysis',
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
       ...options.headers,
     },
   });
@@ -531,7 +498,7 @@ export const deleteProjectEndpointApiProjectProjectIdDelete = <ThrowOnError exte
 /**
  * Get Project Endpoint
  *
- * Get a project by ID
+ * Get a project by ID. Set include_internal=true to see internal workflows.
  */
 export const getProjectEndpointApiProjectProjectIdGet = <ThrowOnError extends boolean = true>(
   options: Options<GetProjectEndpointApiProjectProjectIdGetData, ThrowOnError>,

@@ -25,7 +25,6 @@ export default function New() {
           mainDocument: data.mainDocument,
           supportingDocuments: data.supportingDocuments,
           config: {
-            use_toulmin: false,
             domain: data.config.domain || undefined,
             target_audience: data.config.targetAudience || undefined,
             openai_api_key: data.config.openaiApiKey,

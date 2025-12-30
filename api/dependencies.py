@@ -10,7 +10,6 @@ from lib.workflows.models import WorkflowRunType
 
 
 async def build_config_from_form(
-    use_toulmin: bool = Form(default=False),
     domain: Optional[str] = Form(default=None),
     target_audience: Optional[str] = Form(default=None),
     target_chunk_indices: Optional[str] = Form(default=None),
@@ -23,7 +22,6 @@ async def build_config_from_form(
     Build SubstantiationWorkflowConfig from individual form fields.
 
     Args:
-        use_toulmin: Whether to use Toulmin claim extraction approach
         domain: Domain context for more accurate analysis
         target_audience: Target audience context for analysis
         target_chunk_indices: Comma-separated chunk indices to process (optional)
@@ -69,7 +67,6 @@ async def build_config_from_form(
             )
 
     return SubstantiationWorkflowConfig(
-        use_toulmin=use_toulmin,
         domain=domain,
         target_audience=target_audience,
         target_chunk_indices=parsed_target_chunk_indices,

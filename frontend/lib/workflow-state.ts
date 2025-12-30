@@ -9,6 +9,7 @@ import {
   LiveReportsState,
   MethodologicalAlignmentState,
   ReferenceDownloaderState,
+  ReferenceExtractionState,
   ReferenceValidationState,
   WorkflowRun,
   WorkflowRunDetail,
@@ -20,6 +21,7 @@ import {
  */
 type WorkflowTypeToDetail = {
   [WorkflowRunType.DocumentProcessing]: DocumentProcessingState;
+  [WorkflowRunType.ReferenceExtraction]: ReferenceExtractionState;
   [WorkflowRunType.ClaimSubstantiation]: ClaimSubstantiatorStateOutput;
   [WorkflowRunType.ClaimReferenceValidation]: ClaimReferenceValidationState;
   [WorkflowRunType.MethodologicalAlignment]: MethodologicalAlignmentState;
@@ -55,6 +57,7 @@ export function getWorkflowRunByType<T extends keyof WorkflowTypeToDetail>(
 
 const workflowTypeNames: Record<WorkflowRunType, string> = {
   [WorkflowRunType.DocumentProcessing]: 'Document Processing',
+  [WorkflowRunType.ReferenceExtraction]: 'Reference Extraction',
   [WorkflowRunType.ClaimSubstantiation]: 'Claim Substantiation',
   [WorkflowRunType.ClaimReferenceValidation]: 'Claim Reference Validation',
   [WorkflowRunType.MethodologicalAlignment]: 'Methodological Alignment',

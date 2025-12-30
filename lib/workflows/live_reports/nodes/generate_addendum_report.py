@@ -12,19 +12,6 @@ from lib.workflows.live_reports.state import LiveReportsState
 logger = logging.getLogger(__name__)
 
 
-def _get_original_claim_text(chunk: Any, claim_index: int) -> str:
-    """Get the original claim text from the chunk."""
-    if hasattr(chunk, "claims") and chunk.claims and hasattr(chunk.claims, "claims"):
-        claims = chunk.claims.claims
-        if 0 <= claim_index < len(claims):
-            claim_obj = claims[claim_index]
-            if hasattr(claim_obj, "claim"):
-                return getattr(claim_obj, "claim")
-            if hasattr(claim_obj, "text"):
-                return getattr(claim_obj, "text")
-    return ""
-
-
 @register_node(
     "Live Reports: generate addendum",
     "Generate an addendum report from the live reports analysis",
@@ -35,22 +22,29 @@ async def generate_addendum_report(
     # Collect live reports results across all chunks
     records: List[Dict[str, Any]] = []
 
-    for chunk in state.chunks or []:
-        if not chunk.live_reports_analysis:
+    for live_report in state.live_reports_analysis or []:
+        chunk = state.chunks[live_report.chunk_index]
+
+        if chunk.claims is None or not chunk.claims.claims:
+            logger.debug(
+                "Skipping addendum report for chunk %s: claims not found",
+                live_report.chunk_index,
+            )
             continue
-        for lr in chunk.live_reports_analysis:
-            original_claim = _get_original_claim_text(chunk, lr.claim_index)
-            record: Dict[str, Any] = {
-                "chunk_index": lr.chunk_index,
-                "claim_index": lr.claim_index,
-                "original_claim": original_claim,
-                "rewritten_claim": lr.rewritten_claim,
-                "evidence_alignment": lr.newer_references_alignment,
-                "recommended_action": lr.claim_update_action,
-                "confidence": lr.confidence_level,
-                "rationale": lr.rationale,
-            }
-            records.append(record)
+
+        claim = chunk.claims.claims[live_report.claim_index]
+
+        record: Dict[str, Any] = {
+            "chunk_index": live_report.chunk_index,
+            "claim_index": live_report.claim_index,
+            "original_claim": claim.claim,
+            "rewritten_claim": live_report.rewritten_claim,
+            "evidence_alignment": live_report.newer_references_alignment,
+            "recommended_action": live_report.claim_update_action,
+            "confidence": live_report.confidence_level,
+            "rationale": live_report.rationale,
+        }
+        records.append(record)
 
     if not records:
         logger.info("generate_addendum_report: no live report records, skipping")

@@ -3,12 +3,6 @@ from langgraph.graph import START, StateGraph
 from lib.workflows.claim_substantiation.nodes.categorize_claims import categorize_claims
 from lib.workflows.claim_substantiation.nodes.detect_citations import detect_citations
 from lib.workflows.claim_substantiation.nodes.extract_claims import extract_claims
-from lib.workflows.claim_substantiation.nodes.extract_claims_toulmin import (
-    extract_claims_toulmin,
-)
-from lib.workflows.claim_substantiation.nodes.extract_references import (
-    extract_references,
-)
 from lib.workflows.claim_substantiation.state import (
     ClaimSubstantiatorState,
     SubstantiationWorkflowConfig,
@@ -36,16 +30,13 @@ def build_claim_substantiator_graph(
     graph = StateGraph(ClaimSubstantiatorState, context_schema=ContextSchema)
 
     # Core nodes
-    graph.add_node(
-        "extract_claims",
-        extract_claims if not config.use_toulmin else extract_claims_toulmin,
-    )
+    graph.add_node("extract_claims", extract_claims)
     graph.add_node("detect_citations", detect_citations)
-    graph.add_node("extract_references", extract_references)
 
-    # We must fan out from START to both extract_references and extract_claims because we need to run both in parallel.
-    graph.add_edge(START, "extract_references")
+    # Fan out from START to run extract_claims and detect_citations in parallel
+    # Note: references are pre-extracted by REFERENCE_EXTRACTION workflow
     graph.add_edge(START, "extract_claims")
+    graph.add_edge(START, "detect_citations")
 
     # add categorization node
     graph.add_node("categorize_claims", categorize_claims)
@@ -53,7 +44,6 @@ def build_claim_substantiator_graph(
     # Core edges
     graph.add_edge("extract_claims", "categorize_claims")
     graph.add_edge("detect_citations", "categorize_claims")
-    graph.add_edge("extract_references", "detect_citations")
 
     # Create a finalize node to wait for categorize_claims to complete
     graph.add_node("finalize", finalize)

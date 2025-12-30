@@ -82,10 +82,14 @@ async def list_projects_endpoint(current_user: User = Depends(get_current_user))
 
 @router.get("/api/project/{project_id}", response_model=ProjectDetailed)
 async def get_project_endpoint(
-    project_id: str, current_user: User = Depends(get_current_user)
+    project_id: str,
+    include_internal: bool = False,
+    current_user: User = Depends(get_current_user),
 ):
-    """Get a project by ID"""
-    return await get_user_project_detailed(project_id, user=current_user)
+    """Get a project by ID. Set include_internal=true to see internal workflows."""
+    return await get_user_project_detailed(
+        project_id, user=current_user, include_internal=include_internal
+    )
 
 
 @router.patch("/api/project/{project_id}", response_model=Project)

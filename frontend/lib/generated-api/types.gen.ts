@@ -45,19 +45,12 @@ export type AnalyzedChunkInput = {
    * Paragraph Index
    */
   paragraph_index: number;
-  /**
-   * Claims
-   */
-  claims?: ClaimResponse | ToulminClaimResponse | null;
+  claims?: ClaimResponse | null;
   citations?: CitationResponseInput | null;
   /**
    * Claim Categories
    */
   claim_categories?: Array<ClaimCategorizationResponseWithClaimIndex>;
-  /**
-   * Claim Common Knowledge Results
-   */
-  claim_common_knowledge_results?: Array<ClaimCommonKnowledgeResultWithClaimIndex>;
 };
 
 /**
@@ -81,19 +74,12 @@ export type AnalyzedChunkOutput = {
    * Paragraph Index
    */
   paragraph_index: number;
-  /**
-   * Claims
-   */
-  claims?: ClaimResponse | ToulminClaimResponse | null;
+  claims?: ClaimResponse | null;
   citations?: CitationResponseOutput | null;
   /**
    * Claim Categories
    */
   claim_categories?: Array<ClaimCategorizationResponseWithClaimIndex>;
-  /**
-   * Claim Common Knowledge Results
-   */
-  claim_common_knowledge_results?: Array<ClaimCommonKnowledgeResultWithClaimIndex>;
 };
 
 /**
@@ -250,10 +236,6 @@ export type BodyStartAnalysisApiStartAnalysisPost = {
    * Supporting Documents
    */
   supporting_documents?: Array<Blob | File> | null;
-  /**
-   * Use Toulmin
-   */
-  use_toulmin?: boolean;
   /**
    * Domain
    */
@@ -629,38 +611,6 @@ export const ClaimCategory = {
  * ClaimCategory
  */
 export type ClaimCategory = (typeof ClaimCategory)[keyof typeof ClaimCategory];
-
-/**
- * ClaimCommonKnowledgeResultWithClaimIndex
- */
-export type ClaimCommonKnowledgeResultWithClaimIndex = {
-  /**
-   * Needs Substantiation
-   *
-   * A boolean value indicating whether the claim needs to be substantiated.
-   */
-  needs_substantiation: boolean;
-  /**
-   * Rationale
-   *
-   * A brief explanation for why this claim needs to or does not need to be substantiated by references/evidence
-   */
-  rationale: string;
-  /**
-   * Guiding Rules
-   *
-   * Which rule(s) from the instructions most strongly guided your judgment and why
-   */
-  guiding_rules?: string;
-  /**
-   * Chunk Index
-   */
-  chunk_index: number;
-  /**
-   * Claim Index
-   */
-  claim_index: number;
-};
 
 /**
  * ClaimEvidenceSource
@@ -2245,6 +2195,24 @@ export type Project = {
    * The timestamp when the project was last updated
    */
   last_updated_at: Date;
+  /**
+   * Publication Date
+   *
+   * The publication date of the report
+   */
+  publication_date: Date;
+  /**
+   * Domain
+   *
+   * The subject area or field of expertise of the report
+   */
+  domain: string;
+  /**
+   * Target Audience
+   *
+   * The intended readers of the report
+   */
+  target_audience: string;
 };
 
 /**
@@ -2509,6 +2477,65 @@ export type ReferenceDownloaderWorkflowConfig = {
 };
 
 /**
+ * ReferenceExtractionConfig
+ *
+ * Configuration for reference extraction workflow.
+ */
+export type ReferenceExtractionConfig = {
+  /**
+   * Project Id
+   *
+   * The ID of the project that this workflow run should be associated with
+   */
+  project_id?: string | null;
+  /**
+   * Openai Api Key
+   *
+   * The OpenAI API key to use for this workflow execution
+   */
+  openai_api_key?: string | null;
+  /**
+   * Type
+   */
+  type?: 'reference_extraction';
+};
+
+/**
+ * ReferenceExtractionState
+ *
+ * State for reference extraction workflow.
+ */
+export type ReferenceExtractionState = {
+  /**
+   * Errors
+   *
+   * Errors that occurred during the workflow execution.
+   */
+  errors?: Array<WorkflowError>;
+  /**
+   * Type
+   */
+  type?: 'reference_extraction';
+  config: ReferenceExtractionConfig;
+  /**
+   * Main document with markdown populated
+   */
+  file: FileDocumentOutput;
+  /**
+   * Supporting Files
+   *
+   * Optional supporting documents for matching
+   */
+  supporting_files?: Array<FileDocumentOutput> | null;
+  /**
+   * References
+   *
+   * Extracted bibliography items
+   */
+  references?: Array<BibliographyItem>;
+};
+
+/**
  * ReferenceFetchConclusion
  */
 export const ReferenceFetchConclusion = {
@@ -2731,24 +2758,6 @@ export type ReproducibilityCategoryResponse = {
    * The rationale for why you think the methodology is reproducible or not.
    */
   rationale: string;
-};
-
-/**
- * RerunAnalysisRequest
- *
- * Request model for re-running the analysis. Can be used to re-run a specific chunk or the entire analysis.
- */
-export type RerunAnalysisRequest = {
-  /**
-   * Project Id
-   *
-   * The ID of the project to re-run
-   */
-  project_id: string;
-  /**
-   * Configuration for the re-run. Should include all the original configuration options, plus any overrides.
-   */
-  config: SubstantiationWorkflowConfig;
 };
 
 /**
@@ -2999,12 +3008,6 @@ export type SubstantiationWorkflowConfig = {
    */
   type?: 'claim_substantiation';
   /**
-   * Use Toulmin
-   *
-   * Whether to use Toulmin claim detection approach
-   */
-  use_toulmin?: boolean;
-  /**
    * Target Chunk Indices
    *
    * Specific chunk indices to process (None = process all chunks)
@@ -3061,84 +3064,6 @@ export type SummaryAndOutput = {
 };
 
 /**
- * ToulminClaim
- */
-export type ToulminClaim = {
-  /**
-   * Text
-   *
-   * The exact excerpt from the chunk that implies the claim
-   */
-  text: string;
-  /**
-   * Claim
-   *
-   * The claim made in the excerpt
-   */
-  claim: string;
-  /**
-   * Rationale
-   *
-   * Why the excerpt implies this claim (brief analytic rationale)
-   */
-  rationale: string;
-  /**
-   * Data
-   *
-   * Data/Grounds: evidence or facts supporting the claim, quoted or paraphrased
-   */
-  data?: Array<string>;
-  /**
-   * Warrants
-   *
-   * Warrants: assumptions that connect the data to the claim (may be cultural, logical, or methodological)
-   */
-  warrants?: Array<string>;
-  /**
-   * Warrant Expression
-   *
-   * Whether the primary warrant is stated explicitly, implied implicitly, or none could be identified
-   */
-  warrant_expression: 'stated' | 'implied' | 'none';
-  /**
-   * Qualifiers
-   *
-   * Qualifiers: words/phrases indicating the strength/scope of the claim (e.g., 'likely', 'some', 'in many cases')
-   */
-  qualifiers?: Array<string>;
-  /**
-   * Rebuttals
-   *
-   * Rebuttals: acknowledged exceptions, counter-arguments, or conditions under which the claim may not hold
-   */
-  rebuttals?: Array<string>;
-  /**
-   * Backing
-   *
-   * Backing: additional support that justifies the warrant (e.g., principles, studies, or theoretical reasons)
-   */
-  backing?: Array<string>;
-};
-
-/**
- * ToulminClaimResponse
- */
-export type ToulminClaimResponse = {
-  /**
-   * Claims
-   *
-   * List of extracted claims with Toulmin elements when available
-   */
-  claims: Array<ToulminClaim>;
-  /**
-   * Rationale
-   *
-   * Overall rationale for the extractions and how the Toulmin elements were identified
-   */
-  rationale: string;
-};
-
-/**
  * UpdateProjectRequest
  */
 export type UpdateProjectRequest = {
@@ -3146,6 +3071,18 @@ export type UpdateProjectRequest = {
    * Title
    */
   title?: string | null;
+  /**
+   * Publication Date
+   */
+  publication_date?: Date | null;
+  /**
+   * Domain
+   */
+  domain?: string | null;
+  /**
+   * Target Audience
+   */
+  target_audience?: string | null;
 };
 
 /**
@@ -3264,6 +3201,7 @@ export type WorkflowRunDetail = {
    */
   state:
     | DocumentProcessingState
+    | ReferenceExtractionState
     | ClaimSubstantiatorStateOutput
     | ClaimReferenceValidationState
     | MethodologicalAlignmentState
@@ -3297,6 +3235,7 @@ export type WorkflowRunStatus = (typeof WorkflowRunStatus)[keyof typeof Workflow
  */
 export const WorkflowRunType = {
   DocumentProcessing: 'document_processing',
+  ReferenceExtraction: 'reference_extraction',
   ClaimSubstantiation: 'claim_substantiation',
   MethodologicalAlignment: 'methodological_alignment',
   ReferenceDownloader: 'reference_downloader',
@@ -3736,6 +3675,41 @@ export type ProjectDetailedWritable = {
 };
 
 /**
+ * ReferenceExtractionState
+ *
+ * State for reference extraction workflow.
+ */
+export type ReferenceExtractionStateWritable = {
+  /**
+   * Errors
+   *
+   * Errors that occurred during the workflow execution.
+   */
+  errors?: Array<WorkflowError>;
+  /**
+   * Type
+   */
+  type?: 'reference_extraction';
+  config: ReferenceExtractionConfig;
+  /**
+   * Main document with markdown populated
+   */
+  file: FileDocumentOutputWritable;
+  /**
+   * Supporting Files
+   *
+   * Optional supporting documents for matching
+   */
+  supporting_files?: Array<FileDocumentOutputWritable> | null;
+  /**
+   * References
+   *
+   * Extracted bibliography items
+   */
+  references?: Array<BibliographyItem>;
+};
+
+/**
  * ResultsExtractionState
  */
 export type ResultsExtractionStateWritable = {
@@ -3769,6 +3743,7 @@ export type WorkflowRunDetailWritable = {
    */
   state:
     | DocumentProcessingStateWritable
+    | ReferenceExtractionStateWritable
     | ClaimSubstantiatorStateOutputWritable
     | ClaimReferenceValidationStateWritable
     | MethodologicalAlignmentStateWritable
@@ -3843,33 +3818,6 @@ export type StartAnalysisApiStartAnalysisPostResponses = {
 export type StartAnalysisApiStartAnalysisPostResponse =
   StartAnalysisApiStartAnalysisPostResponses[keyof StartAnalysisApiStartAnalysisPostResponses];
 
-export type RerunAnalysisEndpointApiRerunAnalysisPostData = {
-  body: RerunAnalysisRequest;
-  path?: never;
-  query?: never;
-  url: '/api/rerun-analysis';
-};
-
-export type RerunAnalysisEndpointApiRerunAnalysisPostErrors = {
-  /**
-   * Validation Error
-   */
-  422: HttpValidationError;
-};
-
-export type RerunAnalysisEndpointApiRerunAnalysisPostError =
-  RerunAnalysisEndpointApiRerunAnalysisPostErrors[keyof RerunAnalysisEndpointApiRerunAnalysisPostErrors];
-
-export type RerunAnalysisEndpointApiRerunAnalysisPostResponses = {
-  /**
-   * Successful Response
-   */
-  200: StartWorkflowResponse;
-};
-
-export type RerunAnalysisEndpointApiRerunAnalysisPostResponse =
-  RerunAnalysisEndpointApiRerunAnalysisPostResponses[keyof RerunAnalysisEndpointApiRerunAnalysisPostResponses];
-
 export type GenerateEvalPackageApiGenerateEvalPackagePostData = {
   body: EvalPackageRequest;
   path?: never;
@@ -3924,6 +3872,7 @@ export type StartWorkflowApiWorkflowsStartPostData = {
    */
   body:
     | DocumentProcessingWorkflowConfig
+    | ReferenceExtractionConfig
     | SubstantiationWorkflowConfig
     | ClaimReferenceValidationWorkflowConfig
     | MethodologicalAlignmentWorkflowConfig
@@ -4289,7 +4238,12 @@ export type GetProjectEndpointApiProjectProjectIdGetData = {
      */
     project_id: string;
   };
-  query?: never;
+  query?: {
+    /**
+     * Include Internal
+     */
+    include_internal?: boolean;
+  };
   url: '/api/project/{project_id}';
 };
 

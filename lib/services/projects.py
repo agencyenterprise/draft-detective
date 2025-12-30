@@ -1,3 +1,4 @@
+from datetime import date
 import logging
 from collections import defaultdict
 from typing import List, Optional
@@ -43,11 +44,26 @@ class ProjectDetailed(BaseModel):
 
 class UpdateProjectRequest(BaseModel):
     title: Optional[str] = None
+    publication_date: Optional[date] = None
+    domain: Optional[str] = None
+    target_audience: Optional[str] = None
 
 
-async def create_project(title: str, user: User) -> Project:
+async def create_project(
+    title: str,
+    user: User,
+    publication_date: date | None = None,
+    domain: str | None = None,
+    target_audience: str | None = None,
+) -> Project:
     with get_db() as db:
-        project = Project(title=title, user_id=user.id)
+        project = Project(
+            title=title,
+            user_id=user.id,
+            publication_date=publication_date,
+            domain=domain,
+            target_audience=target_audience,
+        )
         db.add(project)
         db.commit()
         db.refresh(project)
@@ -94,9 +110,19 @@ async def _get_project_by_id(project_id: str) -> Project | None:
     return project
 
 
-async def _get_project_detailed_from_project(project: Project) -> ProjectDetailed:
-    # get_project_workflow_runs already filters out internal workflows
-    workflow_runs = await get_project_workflow_runs(project.id)
+async def _get_project_detailed_from_project(
+    project: Project, include_internal: bool = False
+) -> ProjectDetailed:
+    """
+    Get detailed project information with workflow runs.
+
+    Args:
+        project: The project to get details for
+        include_internal: If True, include internal workflows in the response
+    """
+    workflow_runs = await get_project_workflow_runs(
+        project.id, include_internal=include_internal
+    )
 
     states = [run.state for run in workflow_runs if run.state is not None]
     return ProjectDetailed(
@@ -131,7 +157,9 @@ async def get_shared_project_detailed(project_id: str) -> ProjectDetailed:
     return await _get_project_detailed_from_project(project)
 
 
-async def get_user_project_detailed(project_id: str, user: User) -> ProjectDetailed:
+async def get_user_project_detailed(
+    project_id: str, user: User, include_internal: bool = False
+) -> ProjectDetailed:
     """
     Get a project detailed for a user.
 
@@ -154,7 +182,9 @@ async def get_user_project_detailed(project_id: str, user: User) -> ProjectDetai
     if project.user_id != user.id:
         raise HTTPException(status_code=403, detail="Access denied")
 
-    return await _get_project_detailed_from_project(project)
+    return await _get_project_detailed_from_project(
+        project, include_internal=include_internal
+    )
 
 
 async def get_user_project_files(project_id: str, user: User) -> List[File]:
@@ -189,6 +219,10 @@ async def update_user_project(
 
         if request.title is not None:
             project.title = request.title
+
+        project.publication_date = request.publication_date
+        project.domain = request.domain
+        project.target_audience = request.target_audience
 
         db.commit()
         db.refresh(project)

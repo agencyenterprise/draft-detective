@@ -7,8 +7,6 @@ import { getWorkflowRunByType } from '@/lib/workflow-state';
 import { X } from 'lucide-react';
 import { useMemo } from 'react';
 import { ChunkAnalysisCard } from './chunk-analysis-card';
-import { ChunkEvalGenerator } from './chunk-eval-generator';
-import { ChunkReevaluateControl } from './chunk-reevaluate-control';
 import { ChunkStatusBadge, useShouldShowStatusBadge } from './chunk-status-badge';
 import { ClaimAnalysisCard } from './claim-analysis-card';
 import { ErrorsCard } from './errors-card';
@@ -101,14 +99,6 @@ export function ChunkSidebarContent({
       ))}
 
       <ChunkAnalysisCard results={results} chunk={chunkDetails} issues={issues} />
-
-      {!readOnly && (
-        <>
-          <ChunkReevaluateControl results={results} chunkIndex={chunkDetails.chunk_index} projectId={projectId} />
-
-          <ChunkEvalGenerator chunkIndex={chunkDetails.chunk_index} originalState={results} />
-        </>
-      )}
     </div>
   );
 }

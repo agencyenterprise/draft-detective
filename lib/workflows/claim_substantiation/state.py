@@ -24,9 +24,6 @@ class SubstantiationWorkflowConfig(BaseWorkflowConfig):
     type: Literal[WorkflowRunType.CLAIM_SUBSTANTIATION] = Field(
         WorkflowRunType.CLAIM_SUBSTANTIATION
     )
-    use_toulmin: bool = Field(
-        default=False, description="Whether to use Toulmin claim detection approach"
-    )
     target_chunk_indices: Optional[List[int]] = Field(
         default=None,
         description="Specific chunk indices to process (None = process all chunks)",
@@ -50,15 +47,14 @@ class SubstantiationWorkflowConfig(BaseWorkflowConfig):
 
 class AnalyzedChunk(ChunkWithIndex):
     """Enriched document chunk with all claim analysis results.
-    
+
     Extends the base ChunkWithIndex with claim extraction, citation detection,
     categorization, substantiation, and inference validation results.
     """
 
-    claims: Optional[Union[ClaimResponse, ToulminClaimResponse]] = None
+    claims: Optional[ClaimResponse] = None
     citations: Optional[CitationResponse] = None
     claim_categories: List[ClaimCategorizationResponseWithClaimIndex] = []
-    claim_common_knowledge_results: List[ClaimCommonKnowledgeResultWithClaimIndex] = []
 
 
 def conciliate_chunks(
@@ -146,12 +142,3 @@ class ClaimSubstantiatorState(BaseWorkflowState):
     def get_paragraph(self, paragraph_index: int) -> str:
         paragraph_chunks = self.get_paragraph_chunks(paragraph_index)
         return "\n".join([chunk.content for chunk in paragraph_chunks])
-
-
-class RerunAnalysisRequest(BaseModel):
-    """Request model for re-running the analysis. Can be used to re-run a specific chunk or the entire analysis."""
-
-    project_id: str = Field(description="The ID of the project to re-run")
-    config: SubstantiationWorkflowConfig = Field(
-        description="Configuration for the re-run. Should include all the original configuration options, plus any overrides.",
-    )
