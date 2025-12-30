@@ -1,6 +1,5 @@
 """Node for extracting references using LLM with deduplication."""
 
-import asyncio
 import logging
 from difflib import SequenceMatcher
 from typing import List
@@ -9,6 +8,7 @@ from langchain_core.runnables.config import ensure_config
 from langgraph.runtime import Runtime
 
 from lib.agents.reference_text_extractor import ReferenceTextExtractorAgent
+from lib.run_utils import run_tasks
 from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
 from lib.workflows.reference_extraction.state import (
@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 SIMILARITY_THRESHOLD = 0.85
 MAX_WINDOW_SIZE = 2000
 PREVIOUS_REFS_COUNT = 3
+MAX_CONCURRENT_SECTIONS = 10
 
 
 def _is_duplicate(text: str, existing: List[str]) -> bool:
@@ -111,15 +112,19 @@ async def extract_text_references_node(
     agent = ReferenceTextExtractorAgent(runtime.context)
     config = ensure_config()
 
-    results = await asyncio.gather(
-        *[_extract_from_section(s, markdown, agent, config) for s in sections]
+    tasks = [_extract_from_section(s, markdown, agent, config) for s in sections]
+    results, errors = await run_tasks(
+        tasks,
+        desc="Extracting references from sections",
+        max_concurrent=MAX_CONCURRENT_SECTIONS,
     )
 
     extracted_reference_texts: List[str] = []
     for section_refs in results:
-        for ref_text in section_refs:
-            if ref_text and not _is_duplicate(ref_text, extracted_reference_texts):
-                extracted_reference_texts.append(ref_text)
+        if section_refs is not None:
+            for ref_text in section_refs:
+                if ref_text and not _is_duplicate(ref_text, extracted_reference_texts):
+                    extracted_reference_texts.append(ref_text)
 
     logger.info(f"Extracted {len(extracted_reference_texts)} unique references")
     return {"extracted_reference_texts": extracted_reference_texts}
