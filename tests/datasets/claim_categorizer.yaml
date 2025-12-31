@@ -308,7 +308,7 @@ dataset:
             claim: "The associated legal structures were developed, for the most part, before the development of such information technologies as the postal service, telegraph, and telephone systems"
             claim_category: "established_reported_knowledge"
             needs_external_verification: false
-            rationale: "It is understood that legal structures for the criminal justice system predate the development of information technologies."
+            rationale: "This is a broad, background chronology claim that is understood from a general accounting of US history. U.S. criminal justice legal structures are rooted in English common law and the late-18th-century constitutional/statutory framework which predate the telegraph (1830s–1840s) and telephone (1870s)."
 
         - name: "common_knowledge_crypto_blockchain_economic_interactions_online"
           description: "Broadly accepted trend about digital transformation of society - doesn't need substantiation"
