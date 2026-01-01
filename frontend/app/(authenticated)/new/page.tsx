@@ -10,6 +10,7 @@ import { useMutation } from '@tanstack/react-query';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import React from 'react';
+import { toast } from 'sonner';
 
 export default function New() {
   const router = useRouter();
@@ -43,6 +44,7 @@ export default function New() {
       );
     },
     onSuccess: (response) => {
+      toast.success('Upload complete! Redirecting to your project...');
       router.push(`/projects/${response.project_id}`);
     },
   });
@@ -70,7 +72,7 @@ export default function New() {
     }
   };
 
-  if (analysisMutation.isPending) {
+  if (analysisMutation.isPending || analysisMutation.isSuccess) {
     const stageInfo = getStageInfo();
 
     return (
