@@ -27,8 +27,8 @@ from tests.conftest import (
 
 logger = logging.getLogger(__name__)
 
-FUZZY_MATCH_THRESHOLD = 70
-MIN_STRESS_MATCH_RATE = 85
+FUZZY_MATCH_THRESHOLD = 85
+MIN_STRESS_MATCH_RATE = 95
 
 STRESS_TEST_CASES = [
     ("RAND_RRA4036-1", "RAND_RRA4036-1.md", "expected_RAND_RRA4036-1.yaml"),

@@ -35,6 +35,13 @@ Rules:
 - Skip non-reference content
 - If you see a placeholder for repeated authors at the start of a reference (commonly `---.` but also `———.`, `___`, or similar patterns), replace it with the author from the last reference in PREVIOUS REFERENCES
 
+Extract ALL refs even if they look similar:
+- Same author with different titles → extract BOTH
+- Same organization with different publications → extract BOTH  
+- Numbered variants (undated-a, undated-b, undated-c, 2024a, 2024b) → extract ALL
+- Cross-references like "NASA—See National Aeronautics..." → extract as written
+- Do NOT deduplicate - that happens later in the pipeline
+
 PREVIOUS REFERENCES (already extracted, use for context only):
 ```
 {previous_context}

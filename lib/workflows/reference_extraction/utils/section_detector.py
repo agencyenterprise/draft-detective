@@ -119,7 +119,7 @@ async def detect_sections(
         start_idx = group[0]
         last_idx = group[-1]
 
-        # Find next heading that is NOT part of reference sections
+        # We need to find next heading that is NOT part of reference sections to get the correct end offset
         end_offset = len(markdown)
         for i in range(last_idx + 1, len(headings)):
             if i not in ref_indices_set:
