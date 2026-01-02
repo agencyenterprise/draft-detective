@@ -57,7 +57,7 @@ const createComponents = (highlight: 'red' | 'yellow' | 'blue' | 'green' | 'none
     ul: componentFactory('ul', 'list-disc'),
     ol: componentFactory('ol', 'list-decimal'),
     li: componentFactory('li', 'ml-4', highlight),
-    a: ({ node, ...rest }: MarkdownComponentProps<'a'>) => (
+    a: ({ node: _node, ...rest }: MarkdownComponentProps<'a'>) => (
       <a
         {...rest}
         className={cn('text-blue-600 hover:underline', rest.className)}
