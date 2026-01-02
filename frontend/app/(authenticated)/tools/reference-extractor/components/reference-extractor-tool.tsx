@@ -4,9 +4,10 @@ import { UploadSection } from '@/components/analysis-form/upload-section';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { startAnalysisApiStartAnalysisPost, WorkflowRunType } from '@/lib/generated-api';
+import { useToolProjectUrl } from '@/hooks/use-tool-project-url';
 import { useMutation } from '@tanstack/react-query';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 import { toast } from 'sonner';
 import { ExtractionProcessing } from './extraction-processing';
 import { ExtractionResults } from './extraction-results';
@@ -14,23 +15,12 @@ import { useReferenceExtraction } from '../hooks/use-reference-extraction';
 
 export function ReferenceExtractorTool() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const projectIdFromUrl = searchParams.get('projectId');
-
   const [mainDocument, setMainDocument] = useState<File | null>(null);
   const [supportingDocuments, setSupportingDocuments] = useState<File[]>([]);
-  const [projectId, setProjectId] = useState<string | null>(projectIdFromUrl);
+
+  const { projectId, setProjectId } = useToolProjectUrl();
 
   const { results, isProcessing: isWorkflowProcessing, reset: resetWorkflow } = useReferenceExtraction(projectId);
-
-  // Update URL when projectId changes
-  useEffect(() => {
-    if (projectId && !projectIdFromUrl) {
-      const params = new URLSearchParams(searchParams.toString());
-      params.set('projectId', projectId);
-      router.replace(`?${params.toString()}`, { scroll: false });
-    }
-  }, [projectId, projectIdFromUrl, router, searchParams]);
 
   const startWorkflowMutation = useMutation({
     mutationFn: async () => {
@@ -67,6 +57,12 @@ export function ReferenceExtractorTool() {
     router.replace(window.location.pathname);
   };
 
+  const removeSupporting = (index?: number) => {
+    if (index !== undefined) {
+      setSupportingDocuments((prev) => prev.filter((_, i) => i !== index));
+    }
+  };
+
   const isProcessing = startWorkflowMutation.isPending || isWorkflowProcessing;
 
   // Show results
@@ -89,7 +85,7 @@ export function ReferenceExtractorTool() {
           <UploadSection
             title="Main Document"
             description="Academic document with bibliography"
-            required={true}
+            required
             onFilesChange={(files) => setMainDocument(files[0] || null)}
             multiple={false}
             files={mainDocument ? [mainDocument] : []}
@@ -102,10 +98,10 @@ export function ReferenceExtractorTool() {
             description="Optional - for matching references with sources"
             required={false}
             onFilesChange={setSupportingDocuments}
-            multiple={true}
+            multiple
             files={supportingDocuments}
             fileType="supporting"
-            onRemoveFile={(index) => setSupportingDocuments((prev) => prev.filter((_, i) => i !== index))}
+            onRemoveFile={removeSupporting}
           />
         </div>
 
