@@ -20,19 +20,6 @@ export function ExtractionResults({ results, onReset }: ExtractionResultsProps) 
       </div>
 
       <div className="space-y-4">
-        {results.detected_sections && results.detected_sections.length > 0 && (
-          <div className="p-4 bg-blue-50 border border-blue-200 rounded-md">
-            <h3 className="text-sm font-medium text-blue-900 mb-2">Detected Sections</h3>
-            <ul className="text-xs text-blue-700 space-y-1">
-              {results.detected_sections.map((section, idx) => (
-                <li key={idx}>
-                  Section {idx + 1}: characters {section.start_offset}-{section.end_offset}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
         {results.references && results.references.length > 0 ? (
           <div className="space-y-2">
             {results.references.map((ref, idx) => (
