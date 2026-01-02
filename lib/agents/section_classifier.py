@@ -28,7 +28,8 @@ Headings:
 Rules:
 - Return indices of the main reference/bibliography section heading (e.g., "References", "Bibliography")
 - ALSO include indices of any artifacts that appear AS headings within the reference section
-  (e.g., URLs like "https://..." that got formatted as headings, or malformed entries)
+  (e.g., URLs like "https://..." that got formatted as headings, or malformed entries) or even Chapters, appendinx and others below the reference header that's only for organization purposes inside the Reference section specially in big files.
+  
 - These artifacts are NOT real section titles - they belong to the reference section above them
 
 Return empty list if no reference section exists."""
@@ -51,4 +52,3 @@ class SectionClassifierAgent(LangChainAgent):
     ) -> SectionClassifierResponse:
         messages = _section_classifier_prompt.format_messages(**prompt_kwargs)
         return await self.llm.ainvoke(messages, config=config)
-
