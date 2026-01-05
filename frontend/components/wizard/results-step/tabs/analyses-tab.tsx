@@ -12,14 +12,21 @@ import { MethodologicalAlignmentResults } from '@/components/workflows/results/m
 import { ReferenceDownloaderResults } from '@/components/workflows/results/reference-downloader-results';
 import { ResultsExtractorResults } from '@/components/workflows/results/results-extractor-results';
 import { StartWorkflowButton } from '@/components/workflows/start-workflow-button';
-import { WorkflowConfigFormValues } from '@/components/workflows/workflow-config-dialog';
-import { WorkflowRunDetail, WorkflowRunType, startWorkflowApiWorkflowsStartPost } from '@/lib/generated-api';
+import { WorkflowConfigDialog, WorkflowConfigFormValues } from '@/components/workflows/workflow-config-dialog';
+import {
+  WorkflowRunDetail,
+  WorkflowRunType,
+  startMultipleWorkflowsApiWorkflowsStartMultiplePost,
+  startWorkflowApiWorkflowsStartPost,
+} from '@/lib/generated-api';
 import { useProjectDetails } from '@/lib/hooks/use-project-details';
 import { cn } from '@/lib/utils';
 import { getWorkflowTypeName } from '@/lib/workflow-state';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { formatDistanceToNow } from 'date-fns';
 import { AlertTriangleIcon, ArrowRight, FileText, PlusIcon } from 'lucide-react';
 import { useState } from 'react';
+import { toast } from 'sonner';
 
 interface AnalysesTabProps {
   projectId: string;
@@ -104,6 +111,27 @@ function renderWorkflowResults(
 export function AnalysesTab({ projectId, onNavigateToDocumentExplorer, onNavigateToReferences }: AnalysesTabProps) {
   const { workflowDetails, isLoading } = useProjectDetails(projectId);
   const [selectedWorkflowRunId, setSelectedWorkflowRunId] = useState<string | null>(null);
+  const [isConfigDialogOpen, setIsConfigDialogOpen] = useState(false);
+  const queryClient = useQueryClient();
+
+  const { mutate: startMultipleWorkflows } = useMutation({
+    mutationFn: async (values: WorkflowConfigFormValues) => {
+      return await startMultipleWorkflowsApiWorkflowsStartMultiplePost({
+        body: {
+          project_id: projectId,
+          workflow_types: values.workflowTypes,
+          openai_api_key: values.openaiApiKey,
+        },
+      });
+    },
+    onSuccess: () => {
+      toast.success('Workflows started');
+      queryClient.invalidateQueries({ queryKey: ['project', projectId] });
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : 'Failed to start workflows');
+    },
+  });
 
   const selectedWorkflowRun = workflowDetails.find((workflowDetail) => workflowDetail.run.id === selectedWorkflowRunId);
 
@@ -124,7 +152,12 @@ export function AnalysesTab({ projectId, onNavigateToDocumentExplorer, onNavigat
   }
 
   const handleStartNewAnalysis = () => {
-    // TODO
+    setIsConfigDialogOpen(true);
+  };
+
+  const handleConfirmStartAnalysis = async (values: WorkflowConfigFormValues) => {
+    setIsConfigDialogOpen(false);
+    startMultipleWorkflows(values);
   };
 
   return (
@@ -230,6 +263,12 @@ export function AnalysesTab({ projectId, onNavigateToDocumentExplorer, onNavigat
           </div>
         )}
       </div>
+
+      <WorkflowConfigDialog
+        isOpen={isConfigDialogOpen}
+        onConfirm={handleConfirmStartAnalysis}
+        onCancel={() => setIsConfigDialogOpen(false)}
+      />
     </div>
   );
 }

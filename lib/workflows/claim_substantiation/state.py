@@ -1,18 +1,13 @@
-from typing import Annotated, Dict, List, Literal, Optional, Union
+from typing import Annotated, Dict, List, Literal, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import Field
 
 from lib.agents.citation_detector import CitationResponse
 from lib.agents.claim_categorizer import ClaimCategorizationResponseWithClaimIndex
 from lib.agents.claim_extractor import ClaimResponse
-from lib.agents.claim_needs_substantiation_checker import (
-    ClaimCommonKnowledgeResultWithClaimIndex,
-)
-from lib.agents.claim_verifier import ClaimSubstantiationResultWithClaimIndex
 from lib.agents.document_summarizer import DocumentSummary
 from lib.agents.models import ChunkWithIndex
 from lib.agents.reference_extractor import BibliographyItem
-from lib.agents.toulmin_claim_extractor import ToulminClaimResponse
 from lib.services.docling_models import ChunkToItems
 from lib.services.file import FileDocument
 from lib.workflows.models import BaseWorkflowConfig, BaseWorkflowState, WorkflowRunType
@@ -30,15 +25,6 @@ class SubstantiationWorkflowConfig(BaseWorkflowConfig):
     )
     agents_to_run: Optional[List[str]] = Field(
         default=None, description="Specific agents to run (None = run all agents)"
-    )
-    domain: Optional[str] = Field(
-        default=None, description="Domain context for more accurate analysis"
-    )
-    target_audience: Optional[str] = Field(
-        default=None, description="Target audience context for analysis"
-    )
-    publication_date: Optional[str] = Field(
-        default=None, description="Publication date of the document (YYYY-MM-DD format)"
     )
     workflow_types: Optional[List[WorkflowRunType]] = Field(
         default=None, description="List of workflow types to run"

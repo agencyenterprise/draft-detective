@@ -1,4 +1,5 @@
 import logging
+from datetime import date
 
 from langgraph.runtime import Runtime
 
@@ -19,7 +20,11 @@ async def literature_review(
 ) -> LiteratureReviewState:
     markdown = state.file.markdown
     bibliography = state.references or []
-    document_publication_date = state.config.document_publication_date.isoformat()
+    document_publication_date = (
+        state.config.publication_date
+        if state.config.publication_date
+        else date.today().isoformat()
+    )
 
     literature_review_agent = LiteratureReviewAgent(runtime.context)
     literature_review_response = await literature_review_agent.ainvoke(

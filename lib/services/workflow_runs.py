@@ -52,7 +52,10 @@ async def get_workflow_run_state_by_thread_id(
                 {"configurable": {"thread_id": thread_id}}
             )
         except Exception as e:
-            logger.error(f"Error getting state snapshot for thread {thread_id}: {e}")
+            logger.error(
+                f"Error getting state snapshot for thread {thread_id}: {e}",
+                exc_info=True,
+            )
             return None
 
     return _convert_state_snapshot(state_snapshot, get_state_type(type))

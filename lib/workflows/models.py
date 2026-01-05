@@ -38,6 +38,15 @@ class BaseWorkflowConfig(BaseModel):
         default=None,
         description="The OpenAI API key to use for this workflow execution",
     )
+    domain: Optional[str] = Field(
+        default=None, description="Domain context for more accurate analysis"
+    )
+    target_audience: Optional[str] = Field(
+        default=None, description="Target audience context for analysis"
+    )
+    publication_date: Optional[str] = Field(
+        default=None, description="Publication date of the document (YYYY-MM-DD format)"
+    )
 
     @classmethod
     def requires_api_key(cls) -> bool:
