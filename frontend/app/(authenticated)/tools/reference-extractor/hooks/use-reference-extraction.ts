@@ -1,5 +1,5 @@
 import { ReferenceExtractionState, WorkflowRunStatus, WorkflowRunType } from '@/lib/generated-api';
-import { useProjectDetails } from '@/lib/hooks/use-project-details';
+import { useToolWorkflow } from '@/hooks/use-tool-workflow';
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -7,7 +7,11 @@ type ExtractionResults = Pick<ReferenceExtractionState, 'detected_sections' | 'r
 
 export function useReferenceExtraction(projectId: string | null) {
   const [results, setResults] = useState<ExtractionResults | null>(null);
-  const { workflowDetails, isProcessing: isWorkflowProcessing } = useProjectDetails(projectId!, !!projectId);
+
+  const { workflowDetails, allWorkflowDetails, isProcessing } = useToolWorkflow(projectId, [
+    WorkflowRunType.DocumentProcessing,
+    WorkflowRunType.ReferenceExtraction,
+  ]);
 
   const docProcessingRun = useMemo(
     () => workflowDetails.find((w) => w.run.type === WorkflowRunType.DocumentProcessing),
@@ -19,9 +23,6 @@ export function useReferenceExtraction(projectId: string | null) {
     [workflowDetails],
   );
 
-  const isProcessing = projectId ? isWorkflowProcessing : false;
-
-  // Extract results when workflow completes
   useEffect(() => {
     if (refExtractionRun?.run.status === WorkflowRunStatus.Completed && !results) {
       const state = refExtractionRun.state as ReferenceExtractionState;
@@ -35,17 +36,18 @@ export function useReferenceExtraction(projectId: string | null) {
     }
   }, [refExtractionRun, results]);
 
-  // Handle errors
   useEffect(() => {
-    const hasErrors = workflowDetails.some(
+    const hasErrors = allWorkflowDetails.some(
       (w) => w.state?.errors && Array.isArray(w.state.errors) && w.state.errors.length > 0,
     );
 
     if (hasErrors && refExtractionRun?.run.status === WorkflowRunStatus.Completed) {
-      const errors = workflowDetails.flatMap((w) => w.state?.errors || []);
-      toast.error(`Processing completed with errors: ${errors[0]?.error || 'Unknown error'}`);
+      const errors = allWorkflowDetails.flatMap((w) => w.state?.errors || []);
+      if (errors.length > 0) {
+        toast.error(`Processing completed with errors: ${errors[0]?.error || 'Unknown error'}`);
+      }
     }
-  }, [workflowDetails, refExtractionRun]);
+  }, [allWorkflowDetails, refExtractionRun]);
 
   const reset = () => {
     setResults(null);
