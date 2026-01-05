@@ -12,7 +12,7 @@ from lib.models.file import File
 from lib.models.project import Project
 from lib.models.user import User
 from lib.models.workflow_run import WorkflowRun
-from lib.services.files import delete_project_files
+from lib.services.files import delete_project_files, get_files_count_by_project_id
 from lib.services.issues import convert_to_issues
 from lib.services.share_links import is_project_shared
 from lib.services.workflow_runs import WorkflowRunDetail, get_project_workflow_runs
@@ -39,6 +39,10 @@ class ProjectDetailed(BaseModel):
     issues: List[DocumentIssue] = Field(
         default_factory=list,
         description="The issues for the project, converted from the workflow results states",
+    )
+    files_count: int = Field(
+        description="The number of files associated with the project",
+        default=0,
     )
 
 
@@ -129,6 +133,7 @@ async def _get_project_detailed_from_project(
         project=project,
         workflow_runs=workflow_runs,
         issues=convert_to_issues(states),
+        files_count=await get_files_count_by_project_id(project.id),
     )
 
 

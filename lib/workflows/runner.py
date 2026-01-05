@@ -1,5 +1,4 @@
 import logging
-from typing import List
 
 from langgraph.graph import StateGraph
 
@@ -117,10 +116,11 @@ async def run_workflow(
         )
 
         try:
-            updated_state = state.model_copy(deep=True)
+            # Clear all errors from previous runs
+            updated_state = state.model_copy(deep=True, update={"errors": []})
 
             async for values in app.astream(
-                state,
+                updated_state,
                 {"configurable": {"thread_id": thread_id}},
                 stream_mode="values",
                 context=context,

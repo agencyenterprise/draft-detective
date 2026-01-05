@@ -18,5 +18,17 @@ export function ApiConfig() {
     });
   }, [accessToken]);
 
+  useEffect(() => {
+    // Refresh the session every X minutes to keep the access token valid
+    const interval = setInterval(
+      async () => {
+        await session.update();
+      },
+      1000 * 60 * 5, // X = 5 minutes
+    );
+
+    return () => clearInterval(interval);
+  }, [session]);
+
   return null;
 }

@@ -2,10 +2,9 @@
 Factory for creating workflow-specific configs from base config.
 """
 
-from datetime import date
-
-from lib.workflows.claim_substantiation.state import SubstantiationWorkflowConfig
+from lib.models.project import Project
 from lib.workflows.citation_suggester.state import CitationSuggesterWorkflowConfig
+from lib.workflows.claim_substantiation.state import SubstantiationWorkflowConfig
 from lib.workflows.literature_review.state import LiteratureReviewWorkflowConfig
 from lib.workflows.live_reports.state import LiveReportsWorkflowConfig
 from lib.workflows.models import WorkflowRunType
@@ -15,6 +14,7 @@ from lib.workflows.types import WorkflowConfig
 
 
 def create_workflow_config(
+    project: Project,
     workflow_type: WorkflowRunType,
     base_config: SubstantiationWorkflowConfig,
 ) -> WorkflowConfig:
@@ -39,17 +39,19 @@ def create_workflow_config(
     common_fields = {
         "project_id": base_config.project_id,
         "openai_api_key": base_config.openai_api_key,
+        "domain": project.domain,
+        "target_audience": project.target_audience,
+        "publication_date": (
+            project.publication_date.isoformat() if project.publication_date else None
+        ),
     }
 
     # Handle workflow-specific configs
     if workflow_type == WorkflowRunType.CLAIM_SUBSTANTIATION:
         return SubstantiationWorkflowConfig(
             **common_fields,
-            domain=base_config.domain,
-            target_audience=base_config.target_audience,
             target_chunk_indices=base_config.target_chunk_indices,
             agents_to_run=base_config.agents_to_run,
-            publication_date=base_config.publication_date,
             workflow_types=base_config.workflow_types,
         )
 
@@ -60,38 +62,10 @@ def create_workflow_config(
         return ReferenceValidationWorkflowConfig(**common_fields)
 
     elif workflow_type == WorkflowRunType.LITERATURE_REVIEW:
-        if not base_config.publication_date:
-            raise ValueError(
-                "publication_date is required for LiteratureReview workflow. "
-                "Please provide it in the base config."
-            )
-        # Parse publication_date string to date if needed
-        pub_date = base_config.publication_date
-        if isinstance(pub_date, str):
-            pub_date = date.fromisoformat(pub_date)
-
-        return LiteratureReviewWorkflowConfig(
-            **common_fields,
-            document_publication_date=pub_date,
-        )
+        return LiteratureReviewWorkflowConfig(**common_fields)
 
     elif workflow_type == WorkflowRunType.LIVE_REPORTS:
-        if not base_config.publication_date:
-            raise ValueError(
-                "publication_date is required for LiveReports workflow. "
-                "Please provide it in the base config."
-            )
-        # Parse publication_date string to date if needed
-        pub_date = base_config.publication_date
-        if isinstance(pub_date, str):
-            pub_date = date.fromisoformat(pub_date)
-
-        return LiveReportsWorkflowConfig(
-            **common_fields,
-            document_publication_date=pub_date,
-            domain=base_config.domain,
-            target_audience=base_config.target_audience,
-        )
+        return LiveReportsWorkflowConfig(**common_fields)
 
     else:
         # For other workflow types, try to create with just common fields

@@ -14,10 +14,12 @@ import { GlobalFormValidationError, useForm } from '@tanstack/react-form';
 import { CheckboxWithDescription } from '../ui/checkbox-with-description';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { WorkflowRunType } from '@/lib/generated-api';
+import { WorkflowTypeCheckbox } from '../analysis-form/workflow-type-checkbox';
+import { useEffect } from 'react';
 
 interface WorkflowConfigDialogProps {
   isOpen: boolean;
-  type: WorkflowRunType;
+  type?: WorkflowRunType;
   onConfirm: (values: WorkflowConfigFormValues) => void;
   onCancel: () => void;
 }
@@ -43,7 +45,7 @@ export function WorkflowConfigDialog({ isOpen, type, onConfirm, onCancel }: Work
       openaiApiKey: openaiApiKey,
       webSearchConsent: false,
       publicationDate: '',
-      workflowTypes: [],
+      workflowTypes: type ? [type] : [],
     } as WorkflowConfigFormValues,
     validators: {
       onChange: ({ value }) => {
@@ -57,6 +59,9 @@ export function WorkflowConfigDialog({ isOpen, type, onConfirm, onCancel }: Work
         if (publicationDate && (!value.publicationDate || value.publicationDate.trim() === '')) {
           errors.fields.publicationDate = 'Document publication date is required';
         }
+        if (value.workflowTypes.length === 0) {
+          errors.fields.workflowTypes = 'At least one workflow type must be selected';
+        }
         return errors;
       },
     },
@@ -64,6 +69,13 @@ export function WorkflowConfigDialog({ isOpen, type, onConfirm, onCancel }: Work
       onConfirm(value);
     },
   });
+
+  useEffect(() => {
+    if (isOpen) {
+      // Reset the form every time the dialog is opened
+      form.reset();
+    }
+  }, [form, isOpen]);
 
   return (
     <Dialog open={isOpen} onOpenChange={onCancel}>
@@ -129,26 +141,76 @@ export function WorkflowConfigDialog({ isOpen, type, onConfirm, onCancel }: Work
             </form.Field>
           )}
 
-          {webSearchConsent && (
-            <form.Field name="webSearchConsent">
+          <div className="space-y-4">
+            <div className="space-y-1">
+              <h2 className="text-lg font-semibold">
+                Analyses Type Selection <span className="text-destructive ml-1">*</span>
+              </h2>
+            </div>
+            <form.Field name="workflowTypes">
               {(field) => (
-                <div>
-                  <div className="bg-yellow-50 border border-yellow-400 rounded-lg">
-                    <CheckboxWithDescription
-                      id="web-search-consent"
-                      checked={field.state.value}
-                      onCheckedChange={(checked) => field.handleChange(checked === true)}
-                      label="I consent to perform web search using parts or the whole document for this workflow"
-                      description={`Web search is required to perform this workflow. Parts of the document will be used to perform web search, so we don't recommend using confidential information. Don't proceed if you don't consent to perform web search.`}
-                    />
-                  </div>
-                  {!field.state.meta.isValid && (
-                    <p className="text-sm text-destructive mt-1 pl-6">{field.state.meta.errors.join(', ')}</p>
+                <div className="space-y-2">
+                  {workflowTypes
+                    ?.filter((workflowType) => !type || workflowType.type === type)
+                    .map((workflowType) => (
+                      <WorkflowTypeCheckbox
+                        key={workflowType.type}
+                        workflowType={workflowType}
+                        checked={field.state.value.includes(workflowType.type)}
+                        onCheckedChange={(checked) =>
+                          field.handleChange(
+                            checked
+                              ? [...field.state.value, workflowType.type]
+                              : field.state.value.filter((id) => id !== workflowType.type),
+                          )
+                        }
+                        disabled={workflowType.type === type}
+                      />
+                    ))}
+                  {!workflowTypes && <p className="text-sm text-muted-foreground">Loading available workflows...</p>}
+                  {!field.state.meta.isValid && field.state.meta.errors.length > 0 && (
+                    <p className="text-sm text-destructive">{field.state.meta.errors.join(', ')}</p>
                   )}
                 </div>
               )}
             </form.Field>
-          )}
+          </div>
+
+          <form.Field name="workflowTypes">
+            {(workflowTypesField) => {
+              const selectedWorkflowTypes = workflowTypesField.state.value;
+              const needsWebSearch = selectedWorkflowTypes.some(
+                (selectedType) => workflowTypes?.find((wt) => wt.type === selectedType)?.needs_web_search,
+              );
+
+              if (!needsWebSearch) {
+                return null;
+              }
+
+              return (
+                <div className="space-y-4">
+                  <form.Field name="webSearchConsent">
+                    {(field) => (
+                      <div className="space-y-4">
+                        <div className="bg-yellow-50 border border-yellow-400 rounded-lg">
+                          <CheckboxWithDescription
+                            id="web-search-consent"
+                            checked={field.state.value}
+                            onCheckedChange={(checked) => field.handleChange(checked === true)}
+                            label="I consent to perform web search using parts or the whole document for this analysis"
+                            description={`Web search is required to perform this analysis. Parts of the document will be used to perform web search, so we don't recommend using confidential information. Don't proceed if you don't consent to perform web search.`}
+                          />
+                        </div>
+                        {!field.state.meta.isValid && (
+                          <p className="text-sm text-destructive pl-6">{field.state.meta.errors.join(', ')}</p>
+                        )}
+                      </div>
+                    )}
+                  </form.Field>
+                </div>
+              );
+            }}
+          </form.Field>
         </div>
 
         <form.Subscribe selector={(state) => [state.canSubmit, state.isSubmitting]}>

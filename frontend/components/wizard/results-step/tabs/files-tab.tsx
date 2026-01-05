@@ -1,11 +1,11 @@
 'use client';
 
 import { formatFileSize } from '@/components/analysis-form/utils';
-import { LabeledValue } from '@/components/labeled-value';
 import { Button } from '@/components/ui/button';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { File, FileRole, listProjectFilesEndpointApiProjectProjectIdFilesGet } from '@/lib/generated-api';
 import { useQuery } from '@tanstack/react-query';
-import { Download, Loader2 } from 'lucide-react';
+import { Download, FileText, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useDownloadAllProjectFiles } from '@/hooks/use-download-all-project-files';
 
@@ -13,13 +13,42 @@ interface FilesTabProps {
   projectId: string;
 }
 
+function FileTypeIcon({ fileType }: { fileType?: string | null }) {
+  const normalizedType = fileType?.toLowerCase() || '';
+
+  if (normalizedType.includes('pdf') || normalizedType === 'application/pdf') {
+    return <FileText className="size-4 text-red-700" />;
+  }
+
+  if (
+    normalizedType.includes('docx') ||
+    normalizedType.includes('doc') ||
+    normalizedType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+    normalizedType === 'application/msword'
+  ) {
+    return <FileText className="size-4 text-blue-700" />;
+  }
+
+  return <FileText className="size-4 text-muted-foreground" />;
+}
+
 function FileNameLink({ file }: { file: File }) {
   if (!file.id) {
-    return <span>{file.file_name || 'Unknown'}</span>;
+    return (
+      <div className="flex items-center gap-2">
+        <FileTypeIcon fileType={file.file_type} />
+        <span>{file.file_name || 'Unknown'}</span>
+      </div>
+    );
   }
 
   return (
-    <Link href={`/api/files/download/${file.id}`} target="_blank" className="text-blue-600 hover:underline">
+    <Link
+      href={`/api/files/download/${file.id}`}
+      target="_blank"
+      className="text-blue-600 hover:underline flex items-center gap-2"
+    >
+      <FileTypeIcon fileType={file.file_type} />
       {file.file_name || 'Unknown'}
     </Link>
   );
@@ -33,6 +62,7 @@ export function FilesTab({ projectId }: FilesTabProps) {
 
   const { downloadAll, isDownloading } = useDownloadAllProjectFiles(projectId);
 
+  const allFiles = files || [];
   const mainFile = files?.find((file) => file.role === FileRole.Main);
   const otherFiles = files?.filter((file) => file.role !== FileRole.Main) || [];
 
@@ -56,60 +86,54 @@ export function FilesTab({ projectId }: FilesTabProps) {
           </Button>
         )}
       </div>
-      <div>
-        <h3 className="text-lg font-semibold">Main File</h3>
-        {!mainFile && <div className="text-sm text-muted-foreground mt-2">No main file uploaded.</div>}
-        {mainFile && (
-          <div className="mt-3 border rounded-lg p-4">
-            <div className="text-sm space-y-1">
-              <LabeledValue label="Name">
-                <FileNameLink file={mainFile} />
-              </LabeledValue>
-              <LabeledValue label="Type">{mainFile.file_type}</LabeledValue>
-              <LabeledValue label="Path">{mainFile.file_path}</LabeledValue>
-              <LabeledValue label="Size">{formatFileSize(mainFile.file_size)}</LabeledValue>
-              {/* <LabeledValue label="Approximate Token Count (in markdown content)">
-                {mainFile.markdown_token_count}
-              </LabeledValue>
-              <div className="mt-3">
-                <LabeledValue label="Content converted to markdown">
-                  <div className="text-xs whitespace-pre-wrap border rounded-md p-3 max-h-64 overflow-auto bg-muted/30">
-                    {mainFile.markdown}
-                  </div>
-                </LabeledValue>
-              </div> */}
-            </div>
-          </div>
-        )}
-      </div>
 
-      <div>
-        <h3 className="text-lg font-semibold">Supporting Files ({otherFiles.length})</h3>
-        {otherFiles.length === 0 ? (
-          <p className="text-sm text-muted-foreground mt-2">No supporting files uploaded.</p>
-        ) : (
-          <div className="mt-3 space-y-4">
+      {allFiles.length === 0 ? (
+        <div className="text-sm text-muted-foreground">No files uploaded.</div>
+      ) : (
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Name</TableHead>
+              <TableHead>Role</TableHead>
+              <TableHead>Type</TableHead>
+              <TableHead>Description</TableHead>
+              <TableHead className="text-right">Size</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {mainFile && (
+              <TableRow>
+                <TableCell>
+                  <FileNameLink file={mainFile} />
+                </TableCell>
+                <TableCell>
+                  <span className="inline-flex items-center rounded-full bg-primary/10 px-2 py-1 text-xs font-medium text-primary">
+                    Main
+                  </span>
+                </TableCell>
+                <TableCell>{mainFile.file_type}</TableCell>
+                <TableCell className="font-mono text-xs">{mainFile.description || '-'}</TableCell>
+                <TableCell className="text-right">{formatFileSize(mainFile.file_size)}</TableCell>
+              </TableRow>
+            )}
             {otherFiles.map((file) => (
-              <div key={file.id} className="text-sm space-y-1 border-b pb-4">
-                <LabeledValue label="Name">
+              <TableRow key={file.id}>
+                <TableCell>
                   <FileNameLink file={file} />
-                </LabeledValue>
-                <LabeledValue label="Type">{file.file_type}</LabeledValue>
-                <LabeledValue label="Path">{file.file_path}</LabeledValue>
-                <LabeledValue label="Size">{formatFileSize(file.file_size)}</LabeledValue>
-                {/* <LabeledValue label="Approximate Token Count (in markdown content)">
-                  {file.markdown_token_count}
-                </LabeledValue>
-                <LabeledValue label="Content converted to markdown">
-                  <div className="text-xs whitespace-pre-wrap border rounded-md p-3 max-h-64 overflow-auto bg-muted/30">
-                    {file.markdown}
-                  </div>
-                </LabeledValue> */}
-              </div>
+                </TableCell>
+                <TableCell>
+                  <span className="inline-flex items-center rounded-full bg-secondary px-2 py-1 text-xs font-medium">
+                    Supporting
+                  </span>
+                </TableCell>
+                <TableCell>{file.file_type}</TableCell>
+                <TableCell className="font-mono text-xs">{file.description || '-'}</TableCell>
+                <TableCell className="text-right">{formatFileSize(file.file_size)}</TableCell>
+              </TableRow>
             ))}
-          </div>
-        )}
-      </div>
+          </TableBody>
+        </Table>
+      )}
     </div>
   );
 }

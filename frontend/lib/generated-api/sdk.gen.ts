@@ -68,6 +68,9 @@ import type {
   StartAnalysisApiStartAnalysisPostData,
   StartAnalysisApiStartAnalysisPostErrors,
   StartAnalysisApiStartAnalysisPostResponses,
+  StartMultipleWorkflowsApiWorkflowsStartMultiplePostData,
+  StartMultipleWorkflowsApiWorkflowsStartMultiplePostErrors,
+  StartMultipleWorkflowsApiWorkflowsStartMultiplePostResponses,
   StartWorkflowApiWorkflowsStartPostData,
   StartWorkflowApiWorkflowsStartPostErrors,
   StartWorkflowApiWorkflowsStartPostResponses,
@@ -246,6 +249,30 @@ export const startWorkflowApiWorkflowsStartPost = <ThrowOnError extends boolean 
     responseStyle: 'data',
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/workflows/start',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * Start Multiple Workflows
+ *
+ * Start multiple workflow analyses for a project.
+ */
+export const startMultipleWorkflowsApiWorkflowsStartMultiplePost = <ThrowOnError extends boolean = true>(
+  options: Options<StartMultipleWorkflowsApiWorkflowsStartMultiplePostData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    StartMultipleWorkflowsApiWorkflowsStartMultiplePostResponses,
+    StartMultipleWorkflowsApiWorkflowsStartMultiplePostErrors,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/workflows/start-multiple',
     ...options,
     headers: {
       'Content-Type': 'application/json',

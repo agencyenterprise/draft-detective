@@ -5,21 +5,19 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 
 import { toast } from 'sonner';
 import { useSessionStorage } from '@/lib/hooks/use-session-storage';
-import { useDownloadAllProjectFiles } from '@/hooks/use-download-all-project-files';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { AlertCircle, Download, Loader2, Play } from 'lucide-react';
+import { AlertCircle, Loader2, Play } from 'lucide-react';
 import {
   WorkflowRunStatus,
-  ReferenceFetchItem,
   WorkflowRunType,
   getWorkflowStateApiWorkflowsWorkflowRunIdGet,
   startWorkflowApiWorkflowsStartPost,
   ReferenceDownloaderState,
 } from '@/lib/generated-api';
-import { ReferenceItem } from './reference-item';
+import { ReferenceDownloaderResultsDisplay } from './reference-downloader-results-display';
 
 const REFETCH_INTERVAL_MS = 3000;
 
@@ -97,8 +95,6 @@ export function ReferenceDownloaderTool() {
   const hasResults = results.length > 0;
   const isCompleted = workflowDetail?.run.status === WorkflowRunStatus.Completed;
   const projectId = workflowDetail?.run.project_id;
-  const hasDownloadedReferences = results.some((item) => item.file_id !== null);
-  const { downloadAll, isDownloading } = useDownloadAllProjectFiles(projectId);
 
   return (
     <div className="space-y-6">
@@ -181,38 +177,7 @@ export function ReferenceDownloaderTool() {
         </div>
       )}
 
-      {hasResults && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold">Results</h3>
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-muted-foreground">
-                {results.length} reference{results.length !== 1 ? 's' : ''} checked
-              </span>
-              {projectId && hasDownloadedReferences && (
-                <Button onClick={downloadAll} disabled={isDownloading} variant="outline" size="sm">
-                  {isDownloading ? (
-                    <>
-                      <Loader2 className="size-4 animate-spin" />
-                      Downloading...
-                    </>
-                  ) : (
-                    <>
-                      <Download className="size-4" />
-                      Download all files (.zip)
-                    </>
-                  )}
-                </Button>
-              )}
-            </div>
-          </div>
-          <div className="space-y-3">
-            {results.map((item: ReferenceFetchItem, index: number) => (
-              <ReferenceItem key={index} item={item} index={index} />
-            ))}
-          </div>
-        </div>
-      )}
+      {hasResults && <ReferenceDownloaderResultsDisplay results={results} projectId={projectId} />}
     </div>
   );
 }

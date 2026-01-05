@@ -100,9 +100,7 @@ export function LiveReportsTab({ workflowDetail, projectId, readOnly = false }: 
 
             <Card>
               <CardContent>
-                <div className="space-y-2">
-                  <Markdown>{addendum.report_markdown.replace(/\n/g, '\n\n')}</Markdown>
-                </div>
+                <Markdown>{addendum.report_markdown.replace(/\n/g, '\n\n')}</Markdown>
               </CardContent>
             </Card>
           </div>

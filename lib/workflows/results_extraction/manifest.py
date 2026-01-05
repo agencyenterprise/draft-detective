@@ -3,6 +3,7 @@ from typing import List, Type
 from langgraph.graph import StateGraph
 
 from lib.workflows.claim_substantiation.state import ClaimSubstantiatorState
+from lib.workflows.document_processing.state import DocumentProcessingState
 from lib.workflows.manifest import WorkflowManifest
 from lib.workflows.models import DocumentIssue, WorkflowRunType
 from lib.workflows.results_extraction.graph import build_results_extraction_graph
@@ -23,6 +24,7 @@ class ResultsExtractionManifest(
         "Extract main results from the document and assess their reproducibility"
     )
     needs_web_search = False
+    required_dependencies = [WorkflowRunType.DOCUMENT_PROCESSING]
 
     def get_state_type(self) -> Type[ResultsExtractionState]:
         return ResultsExtractionState
@@ -38,10 +40,10 @@ class ResultsExtractionManifest(
         config: ResultsExtractionWorkflowConfig,
         existing_states: List[WorkflowState],
     ) -> ResultsExtractionState:
-        claim_state: ClaimSubstantiatorState = get_state_by_type_or_raise(
-            WorkflowRunType.CLAIM_SUBSTANTIATION, existing_states
+        document_processing_state: DocumentProcessingState = get_state_by_type_or_raise(
+            WorkflowRunType.DOCUMENT_PROCESSING, existing_states
         )
-        return ResultsExtractionState(file=claim_state.file)
+        return ResultsExtractionState(file=document_processing_state.file)
 
     def convert_state_to_issues(
         self,
