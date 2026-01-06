@@ -15,7 +15,7 @@ from lib.agents.citation_detector import Citation
 from lib.agents.claim_extractor import Claim, ClaimResponse
 from lib.agents.claim_verifier import ClaimSubstantiationResult, ClaimVerifierAgent
 from lib.agents.formatting_utils import format_audience_context, format_domain_context
-from lib.agents.reference_extractor import BibliographyItem
+from lib.models.bibliography_item import BibliographyItem
 from lib.config.logger import setup_logger
 from lib.models.agent_test_case import AgentTestCase
 from lib.services.file import FileDocument

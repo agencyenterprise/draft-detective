@@ -3,7 +3,7 @@ from typing import List
 
 from langgraph.runtime import Runtime
 
-from lib.agents.reference_extractor import BibliographyItem
+from lib.models.bibliography_item import BibliographyItem
 from lib.agents.reference_validator import (
     BibliographyItemValidation,
     ReferenceValidatorAgent,

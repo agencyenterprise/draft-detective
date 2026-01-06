@@ -17,7 +17,7 @@ from lib.agents.formatting_utils import (
     format_cited_references,
     format_retrieved_passages,
 )
-from lib.agents.reference_extractor import BibliographyItem
+from lib.models.bibliography_item import BibliographyItem
 from lib.services.file import FileDocument
 from lib.services.vector_store import (
     VectorStoreService,

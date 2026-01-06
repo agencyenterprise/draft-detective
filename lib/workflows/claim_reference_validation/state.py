@@ -4,7 +4,7 @@ from pydantic import Field
 
 from lib.agents.claim_verifier import ClaimSubstantiationResultWithClaimIndex
 from lib.agents.document_summarizer import DocumentSummary
-from lib.agents.reference_extractor import BibliographyItem
+from lib.models.bibliography_item import BibliographyItem
 from lib.services.file import FileDocument
 from lib.workflows.claim_substantiation.state import AnalyzedChunk
 from lib.workflows.models import BaseWorkflowConfig, BaseWorkflowState, WorkflowRunType

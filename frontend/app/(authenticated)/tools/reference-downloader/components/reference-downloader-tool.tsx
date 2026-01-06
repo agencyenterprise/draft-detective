@@ -1,49 +1,30 @@
 'use client';
 
 import * as React from 'react';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
 
 import { toast } from 'sonner';
 import { useSessionStorage } from '@/lib/hooks/use-session-storage';
+import { useToolProjectUrl } from '@/hooks/use-tool-project-url';
+import { useReferenceDownloader } from '../hooks/use-reference-downloader';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { AlertCircle, Loader2, Play } from 'lucide-react';
-import {
-  WorkflowRunStatus,
-  WorkflowRunType,
-  getWorkflowStateApiWorkflowsWorkflowRunIdGet,
-  startWorkflowApiWorkflowsStartPost,
-  ReferenceDownloaderState,
-} from '@/lib/generated-api';
+import { WorkflowRunType, startWorkflowApiWorkflowsStartPost } from '@/lib/generated-api';
 import { ReferenceDownloaderResultsDisplay } from './reference-downloader-results-display';
 
-const REFETCH_INTERVAL_MS = 3000;
-
 export function ReferenceDownloaderTool() {
+  const router = useRouter();
   const [references, setReferences] = React.useState('');
-  const [workflowRunId, setWorkflowRunId] = React.useState<string | null>(null);
   const [openaiApiKey, setOpenaiApiKey] = useSessionStorage<string>('openai-api-key', '');
   const hideOpenaiApiKeyInput = process.env.NEXT_PUBLIC_HIDE_CUSTOM_OPENAI_API_KEY_INPUT === 'true';
 
-  // Query for workflow state
-  const { data: workflowDetail } = useQuery({
-    queryKey: ['referenceCheckWorkflow', workflowRunId],
-    queryFn: async () => {
-      if (!workflowRunId) return null;
-      return await getWorkflowStateApiWorkflowsWorkflowRunIdGet({
-        path: { workflow_run_id: workflowRunId },
-      });
-    },
-    enabled: !!workflowRunId,
-    refetchInterval: (query) => {
-      const data = query.state.data;
-      return data?.run.status === WorkflowRunStatus.Running || data?.run.status === WorkflowRunStatus.Pending
-        ? REFETCH_INTERVAL_MS
-        : false;
-    },
-  });
+  const { projectId, setProjectId } = useToolProjectUrl();
+
+  const { results, isProcessing: isWorkflowProcessing, reset: resetWorkflow } = useReferenceDownloader(projectId);
 
   const startWorkflowMutation = useMutation({
     mutationFn: async (references: string[]) => {
@@ -57,7 +38,8 @@ export function ReferenceDownloaderTool() {
       });
     },
     onSuccess: (response) => {
-      setWorkflowRunId(response.workflow_run_id ?? null);
+      setProjectId(response.project_id ?? null);
+      resetWorkflow();
       toast.success('Workflow started');
     },
     onError: (error) => {
@@ -86,15 +68,16 @@ export function ReferenceDownloaderTool() {
     startWorkflowMutation.mutate(referenceList);
   };
 
-  const isProcessing =
-    startWorkflowMutation.isPending ||
-    workflowDetail?.run.status === WorkflowRunStatus.Running ||
-    workflowDetail?.run.status === WorkflowRunStatus.Pending;
-  const state = workflowDetail?.state as ReferenceDownloaderState | undefined;
-  const results = state?.fetched_references ?? [];
-  const hasResults = results.length > 0;
-  const isCompleted = workflowDetail?.run.status === WorkflowRunStatus.Completed;
-  const projectId = workflowDetail?.run.project_id;
+  const handleReset = () => {
+    resetWorkflow();
+    setProjectId(null);
+    setReferences('');
+    router.replace(window.location.pathname);
+  };
+
+  const isProcessing = startWorkflowMutation.isPending || isWorkflowProcessing;
+  const fetchedReferences = results?.fetched_references ?? [];
+  const hasResults = fetchedReferences.length > 0;
 
   return (
     <div className="space-y-6">
@@ -137,7 +120,7 @@ export function ReferenceDownloaderTool() {
           {isProcessing ? (
             <>
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              {workflowDetail?.run.status === WorkflowRunStatus.Running ? 'Checking...' : 'Starting...'}
+              {isWorkflowProcessing ? 'Checking...' : 'Starting...'}
             </>
           ) : (
             <>
@@ -146,9 +129,9 @@ export function ReferenceDownloaderTool() {
             </>
           )}
         </Button>
-        {workflowRunId && (
+        {projectId && (
           <span className="text-sm text-muted-foreground">
-            Workflow ID: <code className="text-xs">{workflowRunId}</code>
+            Project ID: <code className="text-xs">{projectId}</code>
           </span>
         )}
       </div>
@@ -165,7 +148,7 @@ export function ReferenceDownloaderTool() {
         </div>
       )}
 
-      {isCompleted && !hasResults && (
+      {!isProcessing && !hasResults && projectId && (
         <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4">
           <div className="flex items-center gap-2">
             <AlertCircle className="h-5 w-5 text-yellow-600" />
@@ -177,7 +160,16 @@ export function ReferenceDownloaderTool() {
         </div>
       )}
 
-      {hasResults && <ReferenceDownloaderResultsDisplay results={results} projectId={projectId} />}
+      {hasResults && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-end mb-2">
+            <Button onClick={handleReset} variant="outline" size="sm">
+              Start New
+            </Button>
+          </div>
+          <ReferenceDownloaderResultsDisplay results={fetchedReferences} projectId={projectId} />
+        </div>
+      )}
     </div>
   );
 }

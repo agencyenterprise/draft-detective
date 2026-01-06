@@ -5,7 +5,7 @@ from pydantic import Field
 from lib.agents.citation_suggester import CitationSuggestionResultWithClaimIndex
 from lib.agents.document_summarizer import DocumentSummary
 from lib.agents.literature_review import LiteratureReviewResponse
-from lib.agents.reference_extractor import BibliographyItem
+from lib.models.bibliography_item import BibliographyItem
 from lib.services.file import FileDocument
 from lib.workflows.claim_substantiation.state import AnalyzedChunk
 from lib.workflows.models import BaseWorkflowConfig, BaseWorkflowState, WorkflowRunType

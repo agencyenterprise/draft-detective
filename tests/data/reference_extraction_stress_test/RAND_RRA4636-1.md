@@ -1826,6 +1826,8 @@ Verifier Systems: Models or tools that check, score, or validate candidate outpu
 
 World  Foundation  Models:  Advanced  models  aimed  at  learning  rich,  general  representations  of  the physical and digital world for prediction and planning.
 
+## References
+
 - Abbott, John. 2025. 'SoftBank, OpenAI, Oracle and MGX Commit to $100B for Stargate AI Infrastructure.' S&amp;P Global Market Intelligence. As of 3 December 2025: https://www.spglobal.com/market-intelligence/en/news-insights/research/softbabnk-openaioracle-and-mgx-commit-to-100b-for-stargate-ai-infrastructure
 - Abecassis, Adrien, Jonathan Barry, Ima Bello, Yoshua Bengio, Antonin Bergeaud, Yann Bonnet, Philipp Hacker, et al. 2025. 'A Blueprint for Multinational Advanced AI Development.' As of 3
 - December 2025: https://aigi.ox.ac.uk/wp-content/uploads/2025/11/A-Blueprint-for-Multinational-AdvancedAI-Development-1.pdf

@@ -90,12 +90,14 @@ async def get_user_projects(user: User) -> List[ProjectListItem]:
         if not results:
             return []
 
-        # We need to group workflow runs by project, filtering out internal workflows
+        # We need to group workflow runs by project to return a list of projects with their workflow runs
+        # Note: We include ALL workflows (even internal ones) for tool detection on frontend
+        # The frontend will use these to detect if a project is a "tool run"
         projects_dict = defaultdict(lambda: {"project": None, "workflow_runs": []})
         for project, workflow_run in results:
             if projects_dict[project.id]["project"] is None:
                 projects_dict[project.id]["project"] = project
-            if workflow_run is not None and is_user_visible_workflow(workflow_run.type):
+            if workflow_run is not None:
                 projects_dict[project.id]["workflow_runs"].append(workflow_run)
 
         # Build the result list

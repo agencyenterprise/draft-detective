@@ -7,7 +7,8 @@ from lib.agents.claim_categorizer import ClaimCategorizationResponseWithClaimInd
 from lib.agents.claim_extractor import ClaimResponse
 from lib.agents.document_summarizer import DocumentSummary
 from lib.agents.models import ChunkWithIndex
-from lib.agents.reference_extractor import BibliographyItem
+from lib.models.bibliography_item import BibliographyItem
+from lib.agents.toulmin_claim_extractor import ToulminClaimResponse
 from lib.services.docling_models import ChunkToItems
 from lib.services.file import FileDocument
 from lib.workflows.models import BaseWorkflowConfig, BaseWorkflowState, WorkflowRunType

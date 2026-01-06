@@ -134,6 +134,8 @@ export type BibliographyFieldValidation = {
 
 /**
  * BibliographyItem
+ *
+ * Represents a bibliographic reference item extracted from a document.
  */
 export type BibliographyItem = {
   /**
@@ -2534,6 +2536,26 @@ export type ReferenceExtractionState = {
    */
   supporting_files?: Array<FileDocumentOutput> | null;
   /**
+   * Supporting Documents Summaries
+   *
+   * Pre-computed summaries of supporting documents (from document processing)
+   */
+  supporting_documents_summaries?: {
+    [key: string]: DocumentSummary;
+  } | null;
+  /**
+   * Detected Sections
+   *
+   * Detected reference sections
+   */
+  detected_sections?: Array<ReferenceSection>;
+  /**
+   * Extracted Reference Texts
+   *
+   * Raw extracted reference texts
+   */
+  extracted_reference_texts?: Array<string>;
+  /**
    * References
    *
    * Extracted bibliography items
@@ -2618,6 +2640,26 @@ export type ReferenceMinimal = {
    * Bibliography entry formatted in the article's style; reuse the existing entry when the source is already in the bibliography
    */
   bibliography_info: string;
+};
+
+/**
+ * ReferenceSection
+ *
+ * A detected reference/bibliography section in the document.
+ */
+export type ReferenceSection = {
+  /**
+   * Start Offset
+   *
+   * Character offset where section starts
+   */
+  start_offset: number;
+  /**
+   * End Offset
+   *
+   * Character offset where section ends
+   */
+  end_offset: number;
 };
 
 /**
@@ -3733,6 +3775,26 @@ export type ReferenceExtractionStateWritable = {
    * Optional supporting documents for matching
    */
   supporting_files?: Array<FileDocumentOutputWritable> | null;
+  /**
+   * Supporting Documents Summaries
+   *
+   * Pre-computed summaries of supporting documents (from document processing)
+   */
+  supporting_documents_summaries?: {
+    [key: string]: DocumentSummary;
+  } | null;
+  /**
+   * Detected Sections
+   *
+   * Detected reference sections
+   */
+  detected_sections?: Array<ReferenceSection>;
+  /**
+   * Extracted Reference Texts
+   *
+   * Raw extracted reference texts
+   */
+  extracted_reference_texts?: Array<string>;
   /**
    * References
    *

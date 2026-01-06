@@ -7,7 +7,7 @@ from lib.agents.citation_suggester import (
     CitationSuggestionResponse,
     CitationSuggesterAgent,
 )
-from lib.agents.reference_extractor import BibliographyItem
+from lib.models.bibliography_item import BibliographyItem
 from lib.agents.formatting_utils import format_bibliography_prompt_section
 from lib.models.agent_test_case import AgentTestCase
 from tests.conftest import (

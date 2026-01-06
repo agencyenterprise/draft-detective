@@ -1,5 +1,5 @@
 from lib.agents.citation_detector import CitationResponse
-from lib.agents.reference_extractor import BibliographyItem
+from lib.models.bibliography_item import BibliographyItem
 from lib.services.file import FileDocument
 from typing import Optional
 
