@@ -51,7 +51,6 @@ async def create_project_endpoint(
             project_id=project.id,
             user_id=current_user.id,
             roles=[FileRole.MAIN],
-            description="The main document under analysis",
         )
 
         return ProjectDetailed(project=project, workflow_runs=[])

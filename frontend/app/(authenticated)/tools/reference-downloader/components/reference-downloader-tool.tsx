@@ -6,16 +6,15 @@ import { useRouter } from 'next/navigation';
 
 import { toast } from 'sonner';
 import { useSessionStorage } from '@/lib/hooks/use-session-storage';
-import { useDownloadAllProjectFiles } from '@/hooks/use-download-all-project-files';
 import { useToolProjectUrl } from '@/hooks/use-tool-project-url';
 import { useReferenceDownloader } from '../hooks/use-reference-downloader';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { AlertCircle, Download, Loader2, Play } from 'lucide-react';
+import { AlertCircle, Loader2, Play } from 'lucide-react';
 import { WorkflowRunType, startWorkflowApiWorkflowsStartPost } from '@/lib/generated-api';
-import { ReferenceItem } from './reference-item';
+import { ReferenceDownloaderResultsDisplay } from './reference-downloader-results-display';
 
 export function ReferenceDownloaderTool() {
   const router = useRouter();
@@ -79,8 +78,6 @@ export function ReferenceDownloaderTool() {
   const isProcessing = startWorkflowMutation.isPending || isWorkflowProcessing;
   const fetchedReferences = results?.fetched_references ?? [];
   const hasResults = fetchedReferences.length > 0;
-  const hasDownloadedReferences = fetchedReferences.some((item) => item.file_id !== null);
-  const { downloadAll, isDownloading } = useDownloadAllProjectFiles(projectId);
 
   return (
     <div className="space-y-6">
@@ -165,37 +162,12 @@ export function ReferenceDownloaderTool() {
 
       {hasResults && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold">Results</h3>
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-muted-foreground">
-                {fetchedReferences.length} reference{fetchedReferences.length !== 1 ? 's' : ''} checked
-              </span>
-              {projectId && hasDownloadedReferences && (
-                <Button onClick={downloadAll} disabled={isDownloading} variant="outline" size="sm">
-                  {isDownloading ? (
-                    <>
-                      <Loader2 className="size-4 animate-spin" />
-                      Downloading...
-                    </>
-                  ) : (
-                    <>
-                      <Download className="size-4" />
-                      Download all files (.zip)
-                    </>
-                  )}
-                </Button>
-              )}
-              <Button onClick={handleReset} variant="outline" size="sm">
-                Start New
-              </Button>
-            </div>
+          <div className="flex items-center justify-end mb-2">
+            <Button onClick={handleReset} variant="outline" size="sm">
+              Start New
+            </Button>
           </div>
-          <div className="space-y-3">
-            {fetchedReferences.map((item, index: number) => (
-              <ReferenceItem key={index} item={item} index={index} />
-            ))}
-          </div>
+          <ReferenceDownloaderResultsDisplay results={fetchedReferences} projectId={projectId} />
         </div>
       )}
     </div>

@@ -13,7 +13,6 @@ export default function SharedProjectPage() {
   const params = useParams();
   const token = params.token as string;
 
-  const [activeTab, setActiveTab] = useState<TabType>('document-explorer');
   const [viewMode, setViewMode] = useState<DocRenderMode>('markdown');
 
   const { data, isLoading, error } = useQuery({
@@ -66,8 +65,6 @@ export default function SharedProjectPage() {
             isProcessing={false}
             viewMode={viewMode}
             onViewModeChange={setViewMode}
-            activeTab={activeTab}
-            onTabChange={setActiveTab}
             readOnly
           />
         </div>

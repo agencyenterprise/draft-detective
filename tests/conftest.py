@@ -256,6 +256,11 @@ def _print_field_comparisons(data):
     print(f"\n=== Agent Field Comparisons: {data.get('name')} ===")
     print(f"Overall Result: {eval_result.get('rationale', 'No rationale')}\n")
 
+    # Get expected and actual outputs
+    expected_output = data.get("expected_output")
+    actual_outputs = data.get("actual_outputs", [])
+    actual_output = actual_outputs[0] if actual_outputs else None
+
     for fc in field_comparisons:
         status = "PASS" if fc.get("passed") else "FAIL"
         field_path = fc.get("field_path")
@@ -268,17 +273,37 @@ def _print_field_comparisons(data):
         print(f"  Matched: {passed_count}/{total}  Strategy: {strategy or 'N/A'}")
         print(f"  Rationale: {fc.get('rationale', 'No rationale')}")
 
-        # Print expected/actual values
-        expected_output = data.get("expected_output")
-        actual_output = eval_result.get("actual_output")
-
+        # Always print both expected and actual values for the field
         if expected_output and actual_output:
             parts = (field_path or "").split(".")
             expected_value = _extract_by_path(expected_output, parts)
             actual_value = _extract_by_path(actual_output, parts)
 
-            print(f"  Expected: {_format_value(expected_value)}")
-            print(f"  Actual:   {_format_value(actual_value)}")
+            print(f"  Expected (Truth): {_format_value(expected_value)}")
+            print(f"  Actual (Model):   {_format_value(actual_value)}")
+        elif expected_output:
+            parts = (field_path or "").split(".")
+            expected_value = _extract_by_path(expected_output, parts)
+            print(f"  Expected (Truth): {_format_value(expected_value)}")
+            print(f"  Actual (Model):   <not available>")
+        elif actual_output:
+            parts = (field_path or "").split(".")
+            actual_value = _extract_by_path(actual_output, parts)
+            print(f"  Expected (Truth): <not available>")
+            print(f"  Actual (Model):   {_format_value(actual_value)}")
+
+        # Print examples if available (for mismatches)
+        examples = fc.get("examples", [])
+        if examples:
+            print(f"  Examples of mismatches:")
+            for example in examples[:3]:  # Limit to first 3 examples
+                print(f"    - {example.get('instance_identifier', 'N/A')}")
+                if example.get("expected_value"):
+                    print(f"      Expected: {example.get('expected_value')}")
+                if example.get("actual_value"):
+                    print(f"      Actual:   {example.get('actual_value')}")
+                if example.get("note"):
+                    print(f"      Note:     {example.get('note')}")
         print()
 
     print("=== End Agent Field Comparisons ===\n")

@@ -20,7 +20,6 @@ export default function ResultsPage() {
   const projectId = params.projectId as string;
   const queryClient = useQueryClient();
 
-  const [activeTab, setActiveTab] = useState<TabType>('document-explorer');
   const [viewMode, setViewMode] = useState<DocRenderMode>('markdown');
 
   const { project, workflowDetails, isProcessing, isLoading, error } = useProjectDetails(projectId);
@@ -119,8 +118,6 @@ export default function ResultsPage() {
         isProcessing={isProcessing}
         viewMode={viewMode}
         onViewModeChange={setViewMode}
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
       />
     </div>
   );

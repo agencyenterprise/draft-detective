@@ -6,8 +6,15 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from starlette.responses import FileResponse
 
 from api.auth import get_current_user, get_current_user_optional
-from api.models import StartWorkflowResponse
-from api.services.workflow_runner import start_workflow_run
+from api.models import (
+    StartMultipleWorkflowsRequest,
+    StartMultipleWorkflowsResponse,
+    StartWorkflowResponse,
+)
+from api.services.workflow_runner import (
+    start_multiple_workflow_runs,
+    start_workflow_run,
+)
 from lib.config.database import get_db
 from lib.config.env import config
 from lib.models.share_link import ShareLink
@@ -21,6 +28,7 @@ from lib.services.workflow_runs import (
     get_workflow_run_state,
     get_workflow_run_state_by_thread_id,
 )
+from lib.workflows.claim_substantiation.state import SubstantiationWorkflowConfig
 from lib.workflows.models import WorkflowRunType
 from lib.workflows.types import WorkflowConfig
 
@@ -84,6 +92,35 @@ async def start_workflow(
         workflow_run_id=workflow_run_id,
         type=request.type,
         message=f"Workflow started. Track progress by polling the workflow result endpoint `/api/workflows/{workflow_run_id}`.",
+    )
+
+
+@router.post("/api/workflows/start-multiple", response_model=StartWorkflowResponse)
+async def start_multiple_workflows(
+    request: StartMultipleWorkflowsRequest,
+    background_tasks: BackgroundTasks,
+    user: User = Depends(get_current_user),
+):
+    """Start multiple workflow analyses for a project."""
+
+    workflow_run_ids = await start_multiple_workflow_runs(
+        workflow_types=request.workflow_types,
+        base_config=SubstantiationWorkflowConfig(
+            # TODO: replace this after we consolidate the workflow config
+            type=WorkflowRunType.CLAIM_SUBSTANTIATION,
+            project_id=request.project_id,
+            workflow_types=request.workflow_types,
+            openai_api_key=request.openai_api_key,
+        ),
+        user=user,
+        background_tasks=background_tasks,
+    )
+
+    return StartMultipleWorkflowsResponse(
+        project_id=request.project_id,
+        types=request.workflow_types,
+        workflow_run_ids=workflow_run_ids,
+        message="Workflows started. Track progress by polling the project endpoint `/api/project/{project_id}`.",
     )
 
 

@@ -7,8 +7,7 @@ from langchain_core.prompts import PromptTemplate
 from langgraph.graph.state import RunnableConfig
 from pydantic import BaseModel, ConfigDict, Field
 
-from lib.config.langfuse import langfuse_handler
-from lib.config.llm_models import gpt_5_1_model, gpt_5_2_model
+from lib.config.llm_models import gpt_5_2_model
 from lib.models.agent import LangChainAgent
 from lib.workflows.context import ContextSchema
 from lib.workflows.reference_downloader.tools.download_file_from_url import (

@@ -1,3 +1,4 @@
+from datetime import date
 import logging
 from typing import List
 
@@ -101,7 +102,11 @@ async def _analyze_chunk_live_reports(
                 ),
                 "paragraph": state.get_paragraph(chunk.paragraph_index),
                 "claim": claim.claim,
-                "document_publication_date": state.config.document_publication_date.isoformat(),
+                "document_publication_date": (
+                    state.config.publication_date
+                    if state.config.publication_date
+                    else date.today().isoformat()
+                ),
                 "domain_context": state.config.domain or "",
                 "audience_context": state.config.target_audience or "",
                 "bibliography": state.references,

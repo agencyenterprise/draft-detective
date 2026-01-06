@@ -104,14 +104,12 @@ export function DocumentReconstructor({
                 transform: `translateY(${virtualRow.start}px)`,
               }}
             >
-              <div className="pb-2">
-                <DocumentReconstructorChunkGroup
-                  chunks={paragraphChunks}
-                  issues={issues}
-                  selectedChunkIndex={selectedChunkIndex}
-                  onChunkSelect={onChunkSelect}
-                />
-              </div>
+              <DocumentReconstructorChunkGroup
+                chunks={paragraphChunks}
+                issues={issues}
+                selectedChunkIndex={selectedChunkIndex}
+                onChunkSelect={onChunkSelect}
+              />
             </div>
           );
         })}

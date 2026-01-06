@@ -1,4 +1,5 @@
 import logging
+from typing import List
 
 from langgraph.runtime import Runtime
 
@@ -10,6 +11,7 @@ from lib.agents.reference_validator import (
 from lib.run_utils import run_tasks
 from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
+from lib.workflows.models import WorkflowError
 from lib.workflows.reference_validation.state import ReferenceValidationState
 
 logger = logging.getLogger(__name__)
@@ -32,9 +34,24 @@ async def reference_validation(
     results: tuple[list[BibliographyItemValidation], list[Exception]] = await run_tasks(
         tasks, desc="Validating references"
     )
-    validation_responses, exceptions = results
+    validation_responses_raw, exceptions = results
 
-    return {"reference_validations": validation_responses}
+    validation_responses: List[BibliographyItemValidation] = []
+    for validation_response in validation_responses_raw:
+        if validation_response is not None:
+            validation_responses.append(validation_response)
+
+    errors = []
+    for index, exception in enumerate(exceptions):
+        if exception is not None:
+            errors.append(
+                WorkflowError(
+                    task_name="validate_references",
+                    error=str(exception),
+                )
+            )
+
+    return {"reference_validations": validation_responses, "errors": errors}
 
 
 async def _validate_reference(

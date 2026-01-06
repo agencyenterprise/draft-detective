@@ -47,9 +47,16 @@ async def get_workflow_run_state_by_thread_id(
     async with get_checkpointer() as checkpointer:
         graph = create_graph(type)
         app = graph.compile(checkpointer=checkpointer)
-        state_snapshot = await app.aget_state(
-            {"configurable": {"thread_id": thread_id}}
-        )
+        try:
+            state_snapshot = await app.aget_state(
+                {"configurable": {"thread_id": thread_id}}
+            )
+        except Exception as e:
+            logger.error(
+                f"Error getting state snapshot for thread {thread_id}: {e}",
+                exc_info=True,
+            )
+            return None
 
     return _convert_state_snapshot(state_snapshot, get_state_type(type))
 

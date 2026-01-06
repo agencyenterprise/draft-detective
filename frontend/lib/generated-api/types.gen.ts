@@ -578,13 +578,13 @@ export type ClaimCategorizationResponseWithClaimIndex = {
   /**
    * Rationale
    *
-   * One-line reason for the category assignment.
+   * Reason for the category assignment and for the needs_external_verification decision. Maximum two sentences.
    */
   rationale: string;
   /**
    * Needs External Verification
    *
-   * True if: (a) the sentence contains a citation, OR (b) it asserts reported/established knowledge that originates outside the current document/analysis and would typically require an external source. False for purely internal methods/results/structure.
+   * True ONLY if the claim asserts a specific factual statement from external sources that is NOT common knowledge and CAN be verified by external sources. False for: common knowledge, authors' own work/results, inferences, interpretations, structural statements, or claims that cannot be externally verified. IMPORTANT: When uncertain, default to FALSE.
    */
   needs_external_verification: boolean;
   /**
@@ -2234,6 +2234,12 @@ export type ProjectDetailed = {
    * The issues for the project, converted from the workflow results states
    */
   issues?: Array<DocumentIssue>;
+  /**
+   * Files Count
+   *
+   * The number of files associated with the project
+   */
+  files_count?: number;
 };
 
 /**
@@ -3007,6 +3013,26 @@ export type ShareStatusResponse = {
 };
 
 /**
+ * StartMultipleWorkflowsRequest
+ *
+ * Request model for starting multiple workflows
+ */
+export type StartMultipleWorkflowsRequest = {
+  /**
+   * Project Id
+   */
+  project_id: string;
+  /**
+   * Workflow Types
+   */
+  workflow_types: Array<WorkflowRunType>;
+  /**
+   * Openai Api Key
+   */
+  openai_api_key?: string | null;
+};
+
+/**
  * StartWorkflowResponse
  *
  * Response model for starting a workflow
@@ -3714,6 +3740,12 @@ export type ProjectDetailedWritable = {
    * The issues for the project, converted from the workflow results states
    */
   issues?: Array<DocumentIssue>;
+  /**
+   * Files Count
+   *
+   * The number of files associated with the project
+   */
+  files_count?: number;
 };
 
 /**
@@ -3969,6 +4001,33 @@ export type StartWorkflowApiWorkflowsStartPostResponses = {
 
 export type StartWorkflowApiWorkflowsStartPostResponse =
   StartWorkflowApiWorkflowsStartPostResponses[keyof StartWorkflowApiWorkflowsStartPostResponses];
+
+export type StartMultipleWorkflowsApiWorkflowsStartMultiplePostData = {
+  body: StartMultipleWorkflowsRequest;
+  path?: never;
+  query?: never;
+  url: '/api/workflows/start-multiple';
+};
+
+export type StartMultipleWorkflowsApiWorkflowsStartMultiplePostErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type StartMultipleWorkflowsApiWorkflowsStartMultiplePostError =
+  StartMultipleWorkflowsApiWorkflowsStartMultiplePostErrors[keyof StartMultipleWorkflowsApiWorkflowsStartMultiplePostErrors];
+
+export type StartMultipleWorkflowsApiWorkflowsStartMultiplePostResponses = {
+  /**
+   * Successful Response
+   */
+  200: StartWorkflowResponse;
+};
+
+export type StartMultipleWorkflowsApiWorkflowsStartMultiplePostResponse =
+  StartMultipleWorkflowsApiWorkflowsStartMultiplePostResponses[keyof StartMultipleWorkflowsApiWorkflowsStartMultiplePostResponses];
 
 export type GetWorkflowStateApiWorkflowsWorkflowRunIdGetData = {
   body?: never;

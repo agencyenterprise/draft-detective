@@ -15,9 +15,6 @@ class LiteratureReviewWorkflowConfig(BaseWorkflowConfig):
     type: Literal[WorkflowRunType.LITERATURE_REVIEW] = Field(
         WorkflowRunType.LITERATURE_REVIEW
     )
-    document_publication_date: date = Field(
-        description="Publication date (YYYY-MM-DD) of the document for literature review. Must be provided. Only references before this date will be considered.",
-    )
 
 
 class LiteratureReviewState(BaseWorkflowState):

@@ -158,7 +158,6 @@ export function AnalysisForm({ onSubmit, isPending = false }: AnalysisFormProps)
         </form.Field>
       </div>
 
-      {/* Web Search Consent Section */}
       <form.Field name="workflowTypes">
         {(workflowTypesField) => {
           const selectedWorkflowTypes = workflowTypesField.state.value;

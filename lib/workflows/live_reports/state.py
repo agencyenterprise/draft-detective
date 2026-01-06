@@ -16,18 +16,6 @@ class LiveReportsWorkflowConfig(BaseWorkflowConfig):
     """Configuration for the live reports workflow."""
 
     type: Literal[WorkflowRunType.LIVE_REPORTS] = Field(WorkflowRunType.LIVE_REPORTS)
-    document_publication_date: date = Field(
-        description=(
-            "Publication date (YYYY-MM-DD) of the document. Only references after this "
-            "date will be considered for live reports."
-        ),
-    )
-    domain: Optional[str] = Field(
-        default=None, description="Domain context for more accurate analysis"
-    )
-    target_audience: Optional[str] = Field(
-        default=None, description="Target audience context for analysis"
-    )
 
 
 class LiveReportsState(BaseWorkflowState):

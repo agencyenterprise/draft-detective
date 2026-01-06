@@ -66,7 +66,7 @@ async def start_multiple_workflow_runs(
     base_config: SubstantiationWorkflowConfig,
     user: User,
     background_tasks: BackgroundTasks,
-) -> None:
+) -> List[str]:
     """
     Start multiple workflows immediately as PENDING.
 
@@ -86,46 +86,56 @@ async def start_multiple_workflow_runs(
         raise HTTPException(status_code=400, detail="Project ID is required")
 
     # Check if project exists and is owned by the user
-    await get_user_project_detailed(base_config.project_id, user)
+    project_detailed = await get_user_project_detailed(base_config.project_id, user)
 
     # Resolve all required dependencies in dependency order
     from lib.workflows.dependency_resolver import resolve_workflow_dependencies
 
-    workflow_types = resolve_workflow_dependencies(workflow_types)
+    resolved_workflow_types = resolve_workflow_dependencies(workflow_types)
 
     logger.info(
-        f"Resolved to {len(workflow_types)} workflows (including dependencies): {[w.value for w in workflow_types]}"
+        f"Resolved to {len(resolved_workflow_types)} workflows (including dependencies): {[w.value for w in resolved_workflow_types]}"
     )
 
+    workflow_run_ids: List[str] = []
     workflow_configs: List[WorkflowConfig] = []
     thread_ids: List[str] = []
 
-    for workflow_type in workflow_types:
+    for workflow_type in resolved_workflow_types:
         # We must check if workflow is already completed
         workflow_run = await get_project_workflow_run_by_type(
             base_config.project_id, workflow_type
         )
 
-        if workflow_run and workflow_run.status == WorkflowRunStatus.COMPLETED:
+        if (
+            workflow_run
+            and workflow_run.status == WorkflowRunStatus.COMPLETED
+            and workflow_run.type not in workflow_types
+        ):
+            # Skip if workflow is already completed and not in the list of requested workflows
+            # If the workflow is in the list of requested workflows, we need to re-run it, regardless of wether it ran already because it might have been re-requested by the user
             logger.info(
                 f"Skipping {workflow_type.value} - already completed for project {base_config.project_id}"
             )
             continue
 
         # Create workflow-specific config
-        workflow_config = create_workflow_config(workflow_type, base_config)
+        workflow_config = create_workflow_config(
+            project_detailed.project, workflow_type, base_config
+        )
 
         # Get or create thread_id
         thread_id = get_thread_id_for_workflow_run(workflow_run)
 
         # Start workflow as PENDING - it will check dependencies and start when ready
-        await upsert_workflow_run(
+        workflow_run_id = await upsert_workflow_run(
             project_id=base_config.project_id,
             thread_id=thread_id,
             status=WorkflowRunStatus.PENDING,
             type=workflow_type,
         )
 
+        workflow_run_ids.append(workflow_run_id)
         workflow_configs.append(workflow_config)
         thread_ids.append(thread_id)
 
@@ -142,6 +152,8 @@ async def start_multiple_workflow_runs(
         )
     else:
         logger.info("No workflows to start - all requested workflows already completed")
+
+    return workflow_run_ids
 
 
 async def _run_multiple_workflows_concurrently(
