@@ -42,29 +42,39 @@ class Config(BaseModel):
     )
 
     # File conversion
-    FILE_CONVERTER: str = Field(
+    MAIN_FILE_CONVERTER: str = Field(
+        default="docling",
+        description="The converter to use for main document conversion ('markitdown' or 'docling')",
+    )
+    SUPPORTING_FILE_CONVERTER: str = Field(
         default="markitdown",
-        description="The converter to use for file to markdown conversion ('markitdown' or 'docling')",
+        description="The converter to use for supporting documents conversion ('markitdown' or 'docling')",
     )
     DOCLING_SERVE_API_URL: Optional[str] = Field(
         default=None,
-        description="Base URL for the docling-serve API (required when FILE_CONVERTER=docling)",
+        description="Base URL for the docling-serve API (required when using docling converter)",
     )
     DOCLING_SERVE_API_KEY: Optional[str] = Field(
         default=None,
-        description="API key for the docling-serve API (required when FILE_CONVERTER=docling)",
+        description="API key for the docling-serve API (required when using docling converter)",
     )
 
     @model_validator(mode="after")
     def validate_docling_serve_api(self):
-        if self.FILE_CONVERTER == "docling" and not self.DOCLING_SERVE_API_URL:
+        # Check if docling is used for either main or supporting files
+        uses_docling = (
+            self.MAIN_FILE_CONVERTER == "docling"
+            or self.SUPPORTING_FILE_CONVERTER == "docling"
+        )
+
+        if uses_docling and not self.DOCLING_SERVE_API_URL:
             raise ValueError(
-                "DOCLING_SERVE_API_URL must be provided when FILE_CONVERTER=docling"
+                "DOCLING_SERVE_API_URL must be provided when using docling converter"
             )
 
-        if self.FILE_CONVERTER == "docling" and not self.DOCLING_SERVE_API_KEY:
+        if uses_docling and not self.DOCLING_SERVE_API_KEY:
             raise ValueError(
-                "DOCLING_SERVE_API_KEY must be provided when FILE_CONVERTER=docling"
+                "DOCLING_SERVE_API_KEY must be provided when using docling converter"
             )
 
         return self
@@ -81,7 +91,8 @@ config = Config(
     LANGFUSE_PROJECT_ID=os.getenv("LANGFUSE_PROJECT_ID"),
     FILE_UPLOADS_MOUNT_PATH=os.getenv("FILE_UPLOADS_MOUNT_PATH", "uploads"),
     FRONTEND_URL=os.getenv("FRONTEND_URL", "http://localhost:3000"),
-    FILE_CONVERTER=os.getenv("FILE_CONVERTER", "markitdown"),
+    MAIN_FILE_CONVERTER=os.getenv("MAIN_FILE_CONVERTER", "docling"),
+    SUPPORTING_FILE_CONVERTER=os.getenv("SUPPORTING_FILE_CONVERTER", "markitdown"),
     DOCLING_SERVE_API_URL=os.getenv("DOCLING_SERVE_API_URL"),
     DOCLING_SERVE_API_KEY=os.getenv("DOCLING_SERVE_API_KEY"),
     DATABASE_URL=os.getenv("DATABASE_URL"),

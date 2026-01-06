@@ -51,18 +51,25 @@ async def _convert_to_markdown_task(
     file_document: FileDocument, is_main_document: bool = True
 ) -> FileDocument:
     """
-    Convert document and capture Docling data if using Docling converter.
+    Convert document using the appropriate converter.
 
     Args:
         file_document: The document to convert
-        is_main_document: If True, process with full mode (images, JSON).
-                         If False, process with simple mode (markdown only).
+        is_main_document: If True, use MAIN_FILE_CONVERTER with full mode (images, JSON).
+                         If False, use SUPPORTING_FILE_CONVERTER with simple mode (markdown only).
     """
     docling_document = None
 
-    if config.FILE_CONVERTER == "docling":
+    # Select converter based on document type
+    converter = (
+        config.MAIN_FILE_CONVERTER if is_main_document else config.SUPPORTING_FILE_CONVERTER
+    )
+
+    if converter == "docling":
         from lib.services.converters.docling import docling_converter
 
+        # Main document: full mode with images and structured data
+        # Supporting documents: simple mode for faster conversion
         simple_mode = not is_main_document
         result = await docling_converter.convert_with_docling(
             file_document.file_path, simple_mode=simple_mode
@@ -70,7 +77,8 @@ async def _convert_to_markdown_task(
         markdown = result["markdown"]
         docling_document = result.get("docling_document")
     else:
-        markdown = await convert_to_markdown_fn(file_document.file_path)
+        # Use markitdown or other converters
+        markdown = await convert_to_markdown_fn(file_document.file_path, converter=converter)
 
     markdown_token_count = count_tokens_approximately([markdown])
 

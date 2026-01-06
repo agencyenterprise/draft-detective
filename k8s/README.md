@@ -197,13 +197,23 @@ kubectl exec -it deployment/db -n ai-reviewer -- psql -U ai_reviewer_user -d ai_
 
 Docling-serve provides advanced document conversion (PDF, DOCX, etc.) with OCR and table extraction.
 
+**File Converter Configuration:**
+
+The system now supports separate converters for main documents and supporting documents:
+
+- `MAIN_FILE_CONVERTER`: Converter for the main document (default: `docling`)
+  - `docling` is recommended for proper heading extraction and reference detection
+- `SUPPORTING_FILE_CONVERTER`: Converter for supporting documents (default: `markitdown`)
+  - `markitdown` is faster and sufficient for supporting materials
+
 **Enabling Docling:**
 
 1. Add `DOCLING_SERVE_API_KEY` to your `.env` file (or app-secrets)
-2. Update `api-config` ConfigMap to set `FILE_CONVERTER: "docling"`:
+2. Update `api-config` ConfigMap to set the converters:
    ```bash
    kubectl edit configmap api-config -n ai-reviewer
-   # Change FILE_CONVERTER from "markitdown" to "docling"
+   # Set MAIN_FILE_CONVERTER: "docling" for main documents
+   # Set SUPPORTING_FILE_CONVERTER: "markitdown" (or "docling") for supporting docs
    ```
 3. Restart the API deployment:
    ```bash
