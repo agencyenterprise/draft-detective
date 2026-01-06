@@ -214,7 +214,7 @@ function MenuItemWithTooltip({ icon: Icon, onClick, tooltip, disabled, children 
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <DropdownMenuItem className="cursor-pointer" onClick={onClick} disabled={disabled}>
+        <DropdownMenuItem onClick={onClick} disabled={disabled}>
           <Icon />
           {children}
         </DropdownMenuItem>

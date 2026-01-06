@@ -70,7 +70,7 @@ export function ResultsVisualization({
           />
         );
       case 'files':
-        return <FilesTab projectId={projectId} />;
+        return <FilesTab projectId={projectId} references={claimSubstantiationResults?.state?.references || []} />;
       case 'document-explorer':
         return (
           <DocumentExplorerTab
@@ -112,7 +112,7 @@ export function ResultsVisualization({
             <TabsTrigger value="references">
               References{' '}
               <Badge className="rounded-full h-4.5 min-w-4.5" variant="secondary">
-                {claimSubstantiationResults?.state?.references?.length}
+                {claimSubstantiationResults?.state?.references?.length || 0}
               </Badge>
             </TabsTrigger>
             <TabsTrigger value="files">
