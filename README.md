@@ -25,6 +25,22 @@ The main goal of AI Reviewer is to assist and streamline the academic peer revie
 
 For detailed development setup instructions, see [DEVELOPMENT.md](DEVELOPMENT.md).
 
+## Testing
+
+Tests are organized by type:
+
+- **`tests/unit/`** - Fast, isolated unit tests
+- **`tests/integration/`** - Multi-component integration tests  
+- **`tests/evals/`** - LLM-based evaluations (explicit only)
+
+```bash
+# Run standard tests (default)
+uv run pytest
+
+# Run evaluations
+uv run pytest tests/evals/
+```
+
 ## License
 
 See [LICENSE](LICENSE) file

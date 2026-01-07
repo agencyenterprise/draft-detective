@@ -1,0 +1,58 @@
+# Document Chunker Test Dataset
+# This file contains test cases for the document chunker agent
+
+dataset:
+  name: "Document Chunker Dataset"
+  description: "Test cases for validating document chunking into paragraphs and sentence-level chunks"
+  test_config:
+    strict_fields:
+      paragraphs:
+        __all__:
+          - chunks
+    llm_fields:
+      paragraphs:
+        __all__:
+          - chunks
+  items:
+    - name: "chunker_case_basic"
+      description: "Basic test case with a simple document structure"
+      input:
+        main_document: "evals/data/case_1/main_document.md"
+      expected_output:
+        paragraphs:
+          - chunks:
+              - "# Effects of Widgets on System Performance"
+              - "This study explores how widgets impact overall gadget performance metrics."
+          - chunks:
+              - "## Introduction"
+              - "Widgets have been widely adopted across industries."
+              - "Prior work such as Smith (2020) and Doe and Roe (2019) provide useful background/insights."
+              - "In this article, we will review what some of the other works in the field, including (Smith, 2017) have found in this domain."
+          - chunks:
+              - "## Methods"
+              - "We conducted experiments using standard gizmo benchmarks."
+          - chunks:
+              - "## Results"
+              - "Widgets improved throughput but increased latency under certain configurations."
+              - "Of note, cellphones have a positive impact on the user's writing proficiency in most countries (Smith, 2017), making them one of the best widgets out there."
+          - chunks:
+              - "## Discussion"
+              - "Findings align with prior work."
+          - chunks:
+              - "## References"
+              - "1. Smith, J. (2020). The Effects of Widgets on Gadgets. Journal of Widgetry."
+              - "2. Doe, A.; Roe, B. (2019). A Comprehensive Study of Gizmos. Proceedings of Gizmo Conf."
+              - "3. Smith, A.; Anderson, T. (2017), A Study of The Effect of Cellphones on Writing Ability. Journal of Big Tech."
+
+    - name: "chunker_case_single_paragraph"
+      description: "Test case with a single paragraph document"
+      input:
+        main_document: "evals/data/case_1/supporting_1.md"
+      expected_output:
+        paragraphs:
+          - chunks:
+              - "The Effects of Widgets on Gadgets"
+              - "Smith, J. (2020)"
+              - "Abstract"
+              - "This paper investigates the impact of widgets on various gadget performance characteristics including throughput and latency."
+              - "We present experimental results and discuss implications for widget deployment."

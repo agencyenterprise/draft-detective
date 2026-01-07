@@ -13,3 +13,49 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           reporter: github-pr-check
           level: error
+
+  test:
+    name: pytest (unit & integration)
+    runs-on: ubuntu-latest
+    continue-on-error: true  # Warning only, don't fail the workflow
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install 3.13
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Run tests
+        continue-on-error: true  # Don't fail the step even if tests fail
+        run: |
+          uv run pytest --tb=short || echo "⚠️ Tests failed but continuing (warning only)"
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+          # Database config (test environment)
+          DATABASE_URL: postgresql://test:test@localhost:5432/test_db
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: "5432"
+          POSTGRES_DB: test_db
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          # Auth config
+          AUTH_SECRET: test-secret-key-for-ci
+          # File uploads (temporary directory for tests)
+          FILE_UPLOADS_MOUNT_PATH: /tmp/test-uploads
+          # File conversion (use markitdown to avoid docling API requirements)
+          MAIN_FILE_CONVERTER: markitdown
+          SUPPORTING_FILE_CONVERTER: markitdown
+          # Optional - use secrets if available for LLM tests
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          # Optional Langfuse tracing
+          LANGFUSE_SECRET_KEY: ${{ secrets.LANGFUSE_SECRET_KEY }}
+          LANGFUSE_PUBLIC_KEY: ${{ secrets.LANGFUSE_PUBLIC_KEY }}
+          LANGFUSE_HOST: ${{ secrets.LANGFUSE_HOST }}
