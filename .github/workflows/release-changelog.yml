@@ -1,0 +1,232 @@
+name: Release Changelog & GitHub Release
+
+on:
+  push:
+    tags:
+      - 'v*'        # Production tags (e.g., v0.3.38)
+      - 'test-v*'   # Test tags (e.g., test-v0.3.38-alpha.1)
+
+jobs:
+  generate-changelog:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: read
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Need full history for git log
+          token: ${{ secrets.PAT_TOKEN }}
+      
+      - name: Detect test mode
+        id: mode
+        run: |
+          # DRY RUN MODE: Set to false when ready for production
+          DRY_RUN_MODE=true
+          
+          if [[ "${{ github.ref }}" == refs/tags/test-* ]]; then
+            echo "test_mode=true" >> $GITHUB_OUTPUT
+            echo "dry_run=true" >> $GITHUB_OUTPUT
+            echo "MODE: Test (no files will be modified)"
+          elif [[ "$DRY_RUN_MODE" == "true" ]]; then
+            echo "test_mode=false" >> $GITHUB_OUTPUT
+            echo "dry_run=true" >> $GITHUB_OUTPUT
+            echo "MODE: Dry run (showing what would be done, no changes)"
+          else
+            echo "test_mode=false" >> $GITHUB_OUTPUT
+            echo "dry_run=false" >> $GITHUB_OUTPUT
+            echo "MODE: Production (changes will be made)"
+          fi
+          
+          # Extract version from tag
+          TAG_NAME="${{ github.ref_name }}"
+          VERSION="${TAG_NAME#test-}"
+          VERSION="${VERSION#v}"
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "Version: ${VERSION}"
+      
+      - name: Validate secrets (production only)
+        if: steps.mode.outputs.dry_run == 'false'
+        run: |
+          echo "Validating required secrets for production mode..."
+          
+          if [ -z "${{ secrets.PAT_TOKEN }}" ]; then
+            echo "ERROR: PAT_TOKEN secret is required for production mode. This token is needed to: checkout repository with full access, push changelog commits to main branch, and create GitHub releases. Please configure PAT_TOKEN in repository secrets."
+            exit 1
+          fi
+          
+          if [ -z "${{ secrets.OPENAI_API_KEY }}" ]; then
+            echo "ERROR: OPENAI_API_KEY secret is required. This key is needed to generate AI-powered changelog entries."
+            exit 1
+          fi
+          
+          echo "All required secrets are configured"
+      
+      - name: Get previous tag
+        id: prev-tag
+        run: |
+          CURRENT_TAG="${{ github.ref_name }}"
+          
+          if [[ "$CURRENT_TAG" == test-* ]]; then
+            PREV_TAG=$(git tag -l 'v*' --sort=-version:refname | grep -v '^test-' | head -n 1)
+          else
+            PREV_TAG=$(git tag -l 'v*' --sort=-version:refname | grep -v '^test-' | grep -v "^${CURRENT_TAG}$" | head -n 1)
+          fi
+          
+          if [ -z "$PREV_TAG" ]; then
+            echo "WARNING: No previous tag found, using first commit"
+            PREV_TAG=$(git rev-list --max-parents=0 HEAD)
+          fi
+          
+          echo "previous_tag=${PREV_TAG}" >> $GITHUB_OUTPUT
+          echo "Comparing: ${PREV_TAG} to ${CURRENT_TAG}"
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      
+      - name: Install dependencies
+        run: |
+          cd .github/scripts
+          npm init -y
+          npm install @octokit/rest openai
+      
+      - name: Collect PRs (3-level traversal)
+        id: collect-prs
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd .github/scripts
+          node collect-prs.js \
+            --from-tag "${{ steps.prev-tag.outputs.previous_tag }}" \
+            --to-tag "${{ github.ref_name }}" \
+            --output pr-data.json
+          echo "PR collection complete. Data saved to pr-data.json"
+      
+      - name: Generate AI changelog
+        id: generate-changelog
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          cd .github/scripts
+          node generate-changelog.js \
+            --pr-data pr-data.json \
+            --version "${{ steps.mode.outputs.version }}" \
+            --output changelog-entry.md
+          
+          echo "Changelog generation complete"
+      
+      - name: Display generated changelog
+        run: |
+          echo "======================================== Generated Changelog for v${{ steps.mode.outputs.version }} ========================================"
+          cat .github/scripts/changelog-entry.md
+          echo "========================================"
+      
+      - name: Update CHANGELOG.md
+        run: |
+          DRY_RUN_FLAG=""
+          if [ "${{ steps.mode.outputs.dry_run }}" == "true" ]; then
+            echo "DRY RUN: Showing what would be written to CHANGELOG.md"
+            DRY_RUN_FLAG="--dry-run"
+          else
+            echo "Updating CHANGELOG.md and committing..."
+          fi
+          
+          ./.github/scripts/update-changelog.sh \
+            --version "${{ steps.mode.outputs.version }}" \
+            --entry .github/scripts/changelog-entry.md \
+            $DRY_RUN_FLAG
+          
+          # Production mode: commit and push changes
+          if [ "${{ steps.mode.outputs.dry_run }}" == "false" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git fetch origin main:main
+            git checkout main
+            git add CHANGELOG.md
+            git commit -m "docs: update changelog for v${{ steps.mode.outputs.version }}"
+            git push origin main
+          else
+            echo "No files were modified. Set DRY_RUN_MODE=false to enable production mode."
+          fi
+      
+      - name: Create or simulate GitHub Release
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.PAT_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const changelogContent = fs.readFileSync('.github/scripts/changelog-entry.md', 'utf8');
+            const isDryRun = '${{ steps.mode.outputs.dry_run }}' === 'true';
+            
+            if (isDryRun) {
+              console.log('DRY RUN: Would create GitHub Release with following content:');
+              console.log('========================================');
+              console.log(`Tag: ${{ github.ref_name }}`);
+              console.log(`Title: Release v${{ steps.mode.outputs.version }}`);
+              console.log('Body:');
+              console.log('----------------------------------------');
+              console.log(changelogContent);
+              console.log('----------------------------------------');
+              console.log('No release was created. Set DRY_RUN_MODE=false to enable production mode.');
+            } else {
+              console.log('Creating GitHub Release...');
+              try {
+                const release = await github.rest.repos.createRelease({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  tag_name: '${{ github.ref_name }}',
+                  name: 'Release v${{ steps.mode.outputs.version }}',
+                  body: changelogContent,
+                  draft: false,
+                  prerelease: false
+                });
+                console.log(`GitHub Release created: ${release.data.html_url}`);
+              } catch (error) {
+                console.error('Failed to create release:', error.message);
+                throw error;
+              }
+            }
+      
+      - name: Upload artifacts (for debugging)
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: changelog-artifacts-${{ steps.mode.outputs.version }}
+          path: |
+            .github/scripts/pr-data.json
+            .github/scripts/changelog-entry.md
+          retention-days: 30
+      
+      - name: Report workflow status
+        if: always()
+        run: |
+          STATUS="${{ job.status }}"
+          MODE_TEXT="DRY RUN (no changes made)"
+          ACTIONS_TEXT="Collected PRs across 3 levels, Generated AI changelog, Showed what would be added to CHANGELOG.md, Showed what GitHub Release would contain"
+          
+          if [ "${{ steps.mode.outputs.dry_run }}" == "false" ]; then
+            MODE_TEXT="PRODUCTION"
+            ACTIONS_TEXT="Collected PRs across 3 levels, Generated AI changelog, Updated CHANGELOG.md, Created GitHub Release"
+          fi
+          
+          if [ "$STATUS" == "success" ]; then
+            echo "======================================== WORKFLOW COMPLETED SUCCESSFULLY ========================================"
+            echo "Version: v${{ steps.mode.outputs.version }} | Tag: ${{ github.ref_name }}"
+            echo "Mode: ${MODE_TEXT}"
+            echo "Actions: ${ACTIONS_TEXT}"
+            if [ "${{ steps.mode.outputs.dry_run }}" == "true" ]; then
+              echo "To enable production mode: Edit .github/workflows/release-changelog.yml and set DRY_RUN_MODE=false in the 'Detect test mode' step"
+            fi
+            echo "========================================"
+          else
+            echo "======================================== WORKFLOW FAILED ========================================"
+            echo "Tag: ${{ github.ref_name }} | Version: ${{ steps.mode.outputs.version }} | Dry run mode: ${{ steps.mode.outputs.dry_run }}"
+            echo "Check the logs above for details. Review artifacts for debugging data."
+            echo "========================================"
+            exit 1
+          fi
+
