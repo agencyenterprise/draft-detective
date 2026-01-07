@@ -3,6 +3,7 @@ import logging
 from lib.config.env import config
 from lib.run_utils import run_tasks
 from lib.services.converters.base import convert_to_markdown as convert_to_markdown_fn
+from lib.services.converters.docx_preprocessor import docx_preprocessor
 from lib.services.file import FileDocument
 from lib.workflows.document_processing.state import DocumentProcessingState
 from lib.workflows.decorators import register_node
@@ -58,29 +59,47 @@ async def _convert_to_markdown_task(
         is_main_document: If True, use MAIN_FILE_CONVERTER with full mode (images, JSON).
                          If False, use SUPPORTING_FILE_CONVERTER with simple mode (markdown only).
     """
-    docling_document = None
+    from lib.services.converters.docling import docling_converter
 
-    # Select converter based on document type
     converter = (
-        config.MAIN_FILE_CONVERTER if is_main_document else config.SUPPORTING_FILE_CONVERTER
+        config.MAIN_FILE_CONVERTER
+        if is_main_document
+        else config.SUPPORTING_FILE_CONVERTER
     )
 
-    if converter == "docling":
-        from lib.services.converters.docling import docling_converter
+    file_path = file_document.file_path
+    file_path_lower = file_document.file_path.lower()
+    is_pdf = file_path_lower.endswith(".pdf")
+    is_docx = file_path_lower.endswith(".docx") or file_path_lower.endswith(".doc")
 
-        # Main document: full mode with images and structured data
-        # Supporting documents: simple mode for faster conversion
+    docling_document = None
+
+    # Convert to markdown using appropriate converter
+    if converter == "docling" and is_pdf:
+        # Use docling for PDF files for improved quality
         simple_mode = not is_main_document
         result = await docling_converter.convert_with_docling(
-            file_document.file_path, simple_mode=simple_mode
+            file_path, simple_mode=simple_mode
         )
         markdown = result["markdown"]
         docling_document = result.get("docling_document")
     else:
-        # Use markitdown or other converters
-        markdown = await convert_to_markdown_fn(file_document.file_path, converter=converter)
+        # Other formats can be converted with markitdown for faster conversion
+        markdown = await convert_to_markdown_fn(file_path, converter="markitdown")
 
     markdown_token_count = count_tokens_approximately([markdown])
+
+    # For main DOCX/DOC documents with docling converter, also convert to PDF
+    # to extract docling_document results (images, tables, etc.)
+    if is_main_document and converter == "docling" and is_docx:
+        pdf_file_path = await docx_preprocessor.convert_to_pdf(file_path)
+        logger.info(
+            f"Converted {file_path} to PDF: {pdf_file_path}, extracting docling_document results..."
+        )
+        result = await docling_converter.convert_with_docling(
+            pdf_file_path, simple_mode=False
+        )
+        docling_document = result.get("docling_document")
 
     return file_document.model_copy(
         update={
@@ -89,4 +108,3 @@ async def _convert_to_markdown_task(
             "docling_document": docling_document,
         }
     )
-

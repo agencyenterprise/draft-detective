@@ -224,7 +224,7 @@ export function FilesTab({ projectId, allWorkflowDetails }: FilesTabProps) {
                       {isMain ? 'Main' : 'Supporting'}
                     </span>
                   </TableCell>
-                  <TableCell className="text-xs">{file.file_type}</TableCell>
+                  <TableCell className="text-xs whitespace-normal">{file.file_type}</TableCell>
                   <TableCell className="text-xs whitespace-normal max-w-sm">
                     {file.description ? (
                       <ExpandableCell>{file.description}</ExpandableCell>

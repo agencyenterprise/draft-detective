@@ -9,7 +9,6 @@ from xxhash import xxh128
 
 from lib.config.env import config
 from lib.models.file import File, FileRole
-from lib.services.converters.docx_preprocessor import docx_preprocessor
 from lib.services.files import create_file_record
 
 logger = logging.getLogger(__name__)
@@ -84,20 +83,6 @@ async def save_uploaded_files_to_db(
                 logger.error(f"Error processing uploaded file {filename}: {str(e)}")
                 raise
 
-        # Track original file path for .docx files before conversion
-        original_file_path = (
-            file_path if file_extension.lower() in [".docx", ".doc"] else None
-        )
-
-        # Convert .docx to PDF if needed
-        try:
-            file_path = await docx_preprocessor.convert_to_pdf(file_path)
-        except Exception as e:
-            logger.error(
-                f"Failed to convert {filename} to PDF: {str(e)}. Processing will fail."
-            )
-            raise
-
         # Determine MIME type for final file (after conversion)
         file_type = mimetypes.guess_type(file_path)[0] or "application/octet-stream"
 
@@ -111,7 +96,6 @@ async def save_uploaded_files_to_db(
             content_hash=xxhash,
             role=role,
             uploaded_by=user_id,
-            original_file_path=original_file_path,
         )
         file_records.append(file_record)
 
