@@ -5,74 +5,6 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-
-## [v0.4.3] - 2026-01-07
-
-### Added
-- Introduced AI-driven suggestion feature to enhance document review accuracy and efficiency.
-- Added support for importing documents directly from cloud storage services.
-
-### Changed
-- Improved user interface for document annotation, providing a more intuitive experience.
-- Enhanced performance of document loading times, reducing wait periods significantly.
-
-### Fixed
-- Resolved issue where certain document formats were not displaying correctly.
-- Fixed bug causing occasional crashes during batch processing of documents.
-
-### Security
-- Implemented enhanced encryption protocols for document storage, ensuring greater data protection.
-
-### Deprecated
-- Deprecated support for legacy document formats; users are encouraged to convert to supported formats for continued compatibility.
-
-
-## [v0.4.2] - 2026-01-07
-
-### Added
-- Introduced a new AI model for document classification, improving accuracy and speed.
-- Added support for batch processing of documents, allowing users to review multiple files simultaneously.
-- Implemented a user-friendly dashboard for monitoring document review progress and statistics.
-
-### Changed
-- Enhanced the user interface for better accessibility and navigation.
-- Updated the document annotation tool to support more file formats.
-
-### Fixed
-- Resolved an issue where the system would occasionally crash during large document uploads.
-- Fixed a bug causing incorrect tagging of certain document types.
-- Addressed a problem with the search functionality not returning all relevant results.
-
-### Security
-- Improved encryption protocols for data in transit, enhancing overall system security.
-- Patched a vulnerability related to user authentication, ensuring safer access controls.
-
-
-## [v0.4.1] - 2026-01-07
-
-### Added
-- Introduced a new AI model for document classification, improving accuracy and processing speed.
-- Added support for importing and exporting documents in XML format.
-
-### Changed
-- Enhanced the user interface for better navigation and accessibility.
-- Updated the document comparison tool to provide more detailed change logs.
-
-### Fixed
-- Resolved an issue where the system would occasionally crash during large document uploads.
-- Fixed a bug that caused incorrect highlighting of changes in certain document formats.
-
-### Security
-- Implemented additional encryption for data at rest to enhance security compliance.
-- Updated authentication protocols to support multi-factor authentication.
-
-### Deprecated
-- Marked the legacy PDF parser as deprecated; it will be removed in a future release.
-
-### Removed
-- Removed the outdated tutorial videos from the help section, replaced with updated guides.
-
-
 ## [v0.4.0] - 2026-01-07
 
 ### Added
@@ -81,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Implemented a severity issues filter in the explorer tab for better issue management.
 - Persisted project configuration options for consistent project settings.
 - Introduced a new **Results Extraction** workflow for extracting and assessing research document results.
+- Added Posthog integration to the front-end.
 
 ### Changed
 - Refactored workflow architecture to extract citation detection and claim extraction into separate workflows, improving modularity.
