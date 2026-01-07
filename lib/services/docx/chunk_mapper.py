@@ -44,15 +44,15 @@ def create_chunk_to_paragraph_mapping(
         f"Mapping {len(chunks)} chunks to {len(docx_paragraphs)} DOCX paragraphs"
     )
 
-    sorted_chunks = sorted(chunks, key=lambda c: c.chunk_index)
+    sorted_chunks = sorted(chunks, key=lambda c: getattr(c, 'chunk_index', c.metadata.chunk_index))
     min_search_idx = 0
 
     for chunk in sorted_chunks:
-        chunk_text = chunk.content.strip()
+        chunk_text = getattr(chunk, 'content', chunk.page_content).strip()
         if not chunk_text:
             continue
 
-        chunk_idx = chunk.chunk_index
+        chunk_idx = getattr(chunk, 'chunk_index', chunk.metadata.chunk_index)
 
         # Primary: search forward only from current position
         for para_idx in range(min_search_idx, len(docx_paragraphs)):

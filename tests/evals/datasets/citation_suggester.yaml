@@ -1,0 +1,74 @@
+dataset:
+    name: "Citation Suggester Dataset — Presidential Example"
+    description: "Tests the citation suggester on a presidential election paragraph using Britannica/AP/Constitution sources"
+    test_config:
+        strict_fields:
+            relevant_references:
+                __all__:
+                    - type
+                    - title
+                    - link
+                    - bibliography_info
+                    - is_already_cited_elsewhere
+                    - index_of_associated_existing_reference
+                    - publication_quality
+                    - related_excerpt
+                    - related_excerpt_from_reference
+                    - recommended_action
+                    - confidence_in_recommendation
+        llm_fields:
+            relevant_references:
+                __all__:
+                    - rationale
+                    - explanation_for_recommended_action
+                    - confidence_in_recommendation
+    items:
+        - name: "presidential_election_case"
+          description: "Paragraph asserts no comeback presidents and speculates on 2024; expect corrections and citations"
+          input:
+              main_document: "evals/data/citation_suggester/main_document.md"
+              chunk: "One thing that has never happened, is that a one-term president comes back to office in a later term after losing one reelection bid. So surely, based on this track record alone it seems exceedingly unlikely that former president Trump would be able to defeat President Joe Biden in the 2024 election."
+              claim: "So surely, based on this track record alone it seems exceedingly unlikely that former president Trump would be able to defeat President Joe Biden in the 2024 election."
+              references:
+                  - text: "Foner, E. (2014). Reconstruction: America's Unfinished Revolution, 1863-1877. New York, NY: Harper & Row."
+                    has_associated_supporting_document: true
+                    index_of_associated_supporting_document: 1
+                    name_of_associated_supporting_document: "supporting_1.md"
+                  - text: "Skowronek, S. (2011). Presidential Leadership in Political Time. Lawrence, KS: University Press of Kansas."
+                    has_associated_supporting_document: true
+                    index_of_associated_supporting_document: 2
+                    name_of_associated_supporting_document: "supporting_2.md"
+              supporting_documents:
+                  - "evals/data/citation_suggester/supporting_1.md"
+                  - "evals/data/citation_suggester/supporting_2.md"
+              cited_references_block: ""
+              literature_review_report: "evals/data/citation_suggester/literature_review.md"
+          expected_output:
+              relevant_references:
+                  - title: "Grover Cleveland"
+                    type: "peer_reviewed_publication"
+                    link: "https://www.britannica.com/biography/Grover-Cleveland"
+                    bibliography_info: "Encyclopaedia Britannica. \"Grover Cleveland.\" Last updated September 13, 2025. https://www.britannica.com/biography/Grover-Cleveland. Accessed October 13, 2025."
+                    is_already_cited_elsewhere: false
+                    index_of_associated_existing_reference: -1
+                    publication_quality: "medium_impact_publication"
+                    related_excerpt: "One thing that has never happened, is that a one-term president comes back to office in a later term after losing one reelection bid."
+                    related_excerpt_from_reference: "Grover Cleveland… was the 22nd and 24th president of the United States (1885–89 and 1893–97) and the first president ever to serve two discontinuous terms."
+                    rationale: "This sentence makes a falsifiable historical claim that is incorrect without citation. Britannica provides an authoritative correction that a president has, in fact, returned after losing reelection (Grover Cleveland)."
+                    recommended_action: "add_new_citation"
+                    explanation_for_recommended_action: "Revise the sentence to: \"This has happened once: Grover Cleveland lost his 1888 reelection bid but returned to win in 1892, serving two nonconsecutive terms,\" and insert the citation immediately after \"nonconsecutive terms.\" Attribution type: fact."
+                    confidence_in_recommendation: "high"
+                  - title: "Trump isn't first to be second: Grover Cleveland set precedent of nonconsecutive presidential terms"
+                    type: "peer_reviewed_publication"
+                    link: "https://apnews.com/article/7ea2c92c72911462ccb1bc2e7352fa23"
+                    bibliography_info: "Hajela, Deepti. \"Trump isn't first to be second: Grover Cleveland set precedent of nonconsecutive presidential terms.\" AP News. https://apnews.com/article/7ea2c92c72911462ccb1bc2e7352fa23. Accessed October 13, 2025."
+                    is_already_cited_elsewhere: false
+                    index_of_associated_existing_reference: -1
+                    publication_quality: "medium_impact_publication"
+                    related_excerpt: "So surely, based on this track record alone it seems exceedingly unlikely that former president Trump would be able to defeat President Joe Biden in the 2024 election."
+                    related_excerpt_from_reference: "\"Donald John Trump has won the 2024 presidential election…\" and \"only one other American president did it the way Trump will — with a gap of four years between terms.\""
+                    rationale: "The sentence makes a predictive claim about the 2024 election that is now outdated. AP provides a definitive, widely relied-on report of the actual outcome and contextualizes the nonconsecutive-terms precedent."
+                    recommended_action: "add_new_citation"
+                    explanation_for_recommended_action: "Replace the sentence with a factually accurate update, e.g., \"In fact, in 2024 Donald Trump won a nonconsecutive second term, becoming only the second president after Grover Cleveland to do so,\" and add the AP citation at the end of the sentence. Attribution type: fact."
+                    confidence_in_recommendation: "high"
+              rationale: "The paragraph contains two attribution problems: an incorrect historical assertion (that no one-term president has ever returned) and a predictive statement about the 2024 election that is now contradicted by events. To meet RAND's Three Rules of Attribution, correct the historical claim and cite an authoritative source (Britannica) and update the election statement to a verifiable fact with a high-quality news source (AP). These targeted citations address missing/incorrect facts without overburdening the paragraph, ensuring accuracy and compliance."

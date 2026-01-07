@@ -40,11 +40,13 @@ dependencies = [
 ]
 
 [tool.pytest.ini_options]
+testpaths = ["tests"]
 addopts = [
     "--json-report",
     "--json-report-file=test_results.json",
     "--json-report-indent=2",
     "-v",
     "-n",
-    "10"
+    "10",
+    "--ignore=tests/evals"
 ]
