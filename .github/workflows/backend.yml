@@ -35,39 +35,23 @@ jobs:
 
       - name: Run tests
         run: |
-          uv run pytest tests/ --tb=short
+          uv run pytest --tb=short
         env:
           PYTHONPATH: ${{ github.workspace }}
-
-      - name: Comment test results on PR
-        if: always()
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const fs = require('fs');
-            let testResults = 'Test results not available';
-            
-            try {
-              const results = JSON.parse(fs.readFileSync('test_results.json', 'utf8'));
-              const summary = results.summary;
-              const passed = summary.passed || 0;
-              const failed = summary.failed || 0;
-              const total = summary.total || 0;
-              
-              testResults = `### 🧪 Test Results
-              
-              - **Total**: ${total} tests
-              - **Passed**: ✅ ${passed}
-              - **Failed**: ❌ ${failed}
-              
-              ${failed > 0 ? '⚠️ Some tests are failing but this is informational only.' : '✅ All tests passing!'}`;
-            } catch (e) {
-              testResults = '⚠️ Could not parse test results';
-            }
-            
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: testResults
-            });
+          # Database config (test environment)
+          DATABASE_URL: postgresql://test:test@localhost:5432/test_db
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: "5432"
+          POSTGRES_DB: test_db
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          # Auth config
+          AUTH_SECRET: test-secret-key-for-ci
+          # File uploads (temporary directory for tests)
+          FILE_UPLOADS_MOUNT_PATH: /tmp/test-uploads
+          # Optional - use secrets if available for LLM tests
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          # Optional Langfuse tracing
+          LANGFUSE_SECRET_KEY: ${{ secrets.LANGFUSE_SECRET_KEY }}
+          LANGFUSE_PUBLIC_KEY: ${{ secrets.LANGFUSE_PUBLIC_KEY }}
+          LANGFUSE_HOST: ${{ secrets.LANGFUSE_HOST }}
