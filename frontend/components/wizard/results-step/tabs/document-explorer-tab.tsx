@@ -11,14 +11,13 @@ import {
   isAnyWorkflowProcessing,
   isWorkflowProcessing,
 } from '@/lib/workflow-state';
-import { Loader2 } from 'lucide-react';
+import { AlertTriangleIcon, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ChunkSidebarContent } from '../components/chunk-sidebar-content';
 import { DoclingViewer } from '../components/docling-viewer';
 import { DocumentIssuesList } from '../components/document-issues-list';
 import { DocumentReconstructor } from '../components/document-reconstructor';
-import { ErrorsCard } from '../components/errors-card';
 import { filterIssuesBySeverity, SeverityFilter } from '../components/severity-filter';
 
 interface DocumentExplorerTabProps {
@@ -27,6 +26,7 @@ interface DocumentExplorerTabProps {
   issues: DocumentIssue[];
   viewMode: DocRenderMode;
   readOnly?: boolean;
+  onNavigateToAnalyses: () => void;
 }
 
 export function DocumentExplorerTab({
@@ -34,6 +34,7 @@ export function DocumentExplorerTab({
   issues,
   viewMode,
   readOnly = false,
+  onNavigateToAnalyses,
 }: DocumentExplorerTabProps) {
   const documentProcessing = getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.DocumentProcessing);
   const isDocumentProcessing = isWorkflowProcessing(documentProcessing);
@@ -74,7 +75,22 @@ export function DocumentExplorerTab({
   if (isDocumentProcessing && !hasChunks) {
     return (
       <div className="space-y-4">
-        {workflowErrors.length > 0 && <ErrorsCard errors={workflowErrors} />}
+        {workflowErrors.length > 0 && (
+          <div className="bg-red-200/40 p-4 rounded-lg text-sm">
+            <div className="flex items-center gap-2">
+              <AlertTriangleIcon className="w-4 h-4" />
+              <span className="font-medium">Unexpected processing errors occurred.</span>
+              <span>Please check the</span>
+              <button
+                onClick={onNavigateToAnalyses}
+                className="text-blue-600 hover:text-blue-800 underline font-medium"
+              >
+                Analyses tab
+              </button>
+              <span>for details.</span>
+            </div>
+          </div>
+        )}
         <div className="flex items-center justify-center py-12">
           <div className="text-center space-y-3">
             <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
@@ -95,16 +111,27 @@ export function DocumentExplorerTab({
 
   return (
     <div className="flex flex-col h-full">
-      {workflowErrors.length > 0 && (
-        <div className="mb-2">
-          <ErrorsCard errors={workflowErrors} />
-        </div>
-      )}
-
       <div className="grid grid-cols-12 gap-4 flex-1 min-h-0">
         <div className="col-span-7 leading-relaxed text-sm overflow-hidden flex flex-col">
           {/* Document Viewer */}
           <div className="flex-1 overflow-hidden">
+            {workflowErrors.length > 0 && (
+              <div className="mb-2 bg-red-200/40 py-3 px-4 rounded-lg text-sm">
+                <div className="flex items-center gap-2">
+                  <AlertTriangleIcon className="w-4 h-4" />
+                  <span className="font-medium">Unexpected processing errors occurred.</span>
+                  <span>Please check the</span>
+                  <button
+                    onClick={onNavigateToAnalyses}
+                    className="text-blue-600 hover:text-blue-800 underline font-medium cursor-pointer"
+                  >
+                    Analyses tab
+                  </button>
+                  <span>for details.</span>
+                </div>
+              </div>
+            )}
+
             {(() => {
               const shouldRenderDocling = viewMode === 'docling' && isDoclingAvailable;
 

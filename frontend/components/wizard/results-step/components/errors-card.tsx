@@ -5,12 +5,13 @@ import { Button } from '@/components/ui/button';
 
 export interface ErrorsCardProps {
   errors: WorkflowError[];
+  maxCount?: number;
 }
 
-export function ErrorsCard({ errors }: ErrorsCardProps) {
+export function ErrorsCard({ errors, maxCount = 3 }: ErrorsCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const displayErrors = isExpanded ? errors : errors.slice(0, 3);
-  const hasMore = errors.length > 3;
+  const displayErrors = isExpanded ? errors : errors.slice(0, maxCount);
+  const hasMore = errors.length > maxCount;
 
   return (
     <div className="bg-red-200/40 p-4 rounded-lg text-sm">
@@ -28,7 +29,7 @@ export function ErrorsCard({ errors }: ErrorsCardProps) {
       {hasMore && (
         <div className="flex items-center justify-center">
           <Button variant="ghost" size="sm" onClick={() => setIsExpanded(!isExpanded)} className="mt-2 text-xs">
-            {isExpanded ? 'Show less' : `Show more (${errors.length - 3} more)`}
+            {isExpanded ? 'Show less' : `Show more (${errors.length - maxCount} more)`}
           </Button>
         </div>
       )}

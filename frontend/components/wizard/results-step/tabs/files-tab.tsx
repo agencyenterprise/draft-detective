@@ -146,7 +146,10 @@ export function FilesTab({ projectId, allWorkflowDetails }: FilesTabProps) {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold">Project Files</h2>
+        <h2 className="text-lg font-semibold">
+          Project Files ({filteredFiles.length}
+          {searchQuery ? ` of ${sortedFiles.length}` : ''})
+        </h2>
         {sortedFiles.length > 0 && (
           <Button onClick={downloadAll} disabled={isDownloading} variant="outline" size="sm">
             {isDownloading ? (
@@ -194,7 +197,7 @@ export function FilesTab({ projectId, allWorkflowDetails }: FilesTabProps) {
                       <HelpCircle className="size-3.5 text-muted-foreground cursor-help" />
                     </TooltipTrigger>
                     <TooltipContent className="max-w-xs">
-                      The bibliography entry from the main document that was matched to this supporting file.
+                      The reference item from the main document that was matched to this supporting file.
                     </TooltipContent>
                   </Tooltip>
                 </div>

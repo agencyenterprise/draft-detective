@@ -3,6 +3,9 @@
 import { LabeledValue } from '@/components/labeled-value';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { humanizeLabel } from '@/components/workflows/results/literature-review/utils';
 import { StartWorkflowButton } from '@/components/workflows/start-workflow-button';
 import { WorkflowConfigFormValues } from '@/components/workflows/workflow-config-dialog';
@@ -15,7 +18,7 @@ import {
   WorkflowRunType,
 } from '@/lib/generated-api';
 import { getWorkflowRunByType, isWorkflowProcessing } from '@/lib/workflow-state';
-import { ChevronDownIcon, ChevronRightIcon, FileText } from 'lucide-react';
+import { ChevronDownIcon, ChevronRightIcon, FileText, HelpCircle, Search } from 'lucide-react';
 import * as React from 'react';
 import { TabWithLoadingStates } from './tab-with-loading-states';
 
@@ -25,54 +28,89 @@ interface ReferencesTabProps {
   readOnly?: boolean;
 }
 
-interface ReferenceItemProps {
+interface ReferenceTableRowProps {
   reference: BibliographyItem;
   validation?: BibliographyItemValidation;
   supportingFiles?: FileDocumentOutput[] | null;
 }
 
-function ReferenceItem({ reference, validation, supportingFiles }: ReferenceItemProps) {
+function ReferenceTableRow({ reference, validation, supportingFiles }: ReferenceTableRowProps) {
   const [isExpanded, setIsExpanded] = React.useState(false);
 
   return (
-    <div className="border rounded-lg p-4">
-      <div className="space-y-2">
-        <p className="text-sm flex-1">{reference.text}</p>
-        <div className="flex justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div
-              className={`px-2 py-1 rounded text-xs ${
-                reference.has_associated_supporting_document
-                  ? 'bg-green-100 text-green-800'
-                  : 'bg-orange-100 text-orange-800'
-              }`}
-            >
-              {reference.has_associated_supporting_document ? 'Document provided' : 'Document not provided'}
-            </div>
-            {reference.has_associated_supporting_document && supportingFiles && (
-              <span className="text-xs text-muted-foreground whitespace-nowrap">
-                <strong>Related document:</strong>{' '}
-                {supportingFiles[reference.index_of_associated_supporting_document - 1]?.file_name}
-              </span>
-            )}
-            {validation &&
-              validation.bibliography_field_validations &&
-              validation.bibliography_field_validations.length > 0 && (
+    <>
+      <TableRow>
+        {/* Reference text column */}
+        <TableCell className="whitespace-normal break-all max-w-lg">
+          <p className="text-sm">{reference.text}</p>
+        </TableCell>
+
+        {/* Related document column */}
+        <TableCell className="text-xs whitespace-normal max-w-sm">
+          {reference.has_associated_supporting_document && supportingFiles ? (
+            (() => {
+              const supportingFile = supportingFiles[reference.index_of_associated_supporting_document - 1];
+              if (supportingFile?.file_id) {
+                return (
+                  <a
+                    href={`/api/files/download/${supportingFile.file_id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:underline"
+                  >
+                    {supportingFile.file_name || 'Unknown'}
+                  </a>
+                );
+              }
+              return <span>{supportingFile?.file_name || 'Unknown'}</span>;
+            })()
+          ) : (
+            <span className="text-orange-600 font-medium">Document not provided</span>
+          )}
+        </TableCell>
+
+        {/* Validation column */}
+        <TableCell className="text-xs">
+          {(() => {
+            // Validation not performed
+            if (!validation) {
+              return <span className="text-muted-foreground/60">-</span>;
+            }
+
+            const issues =
+              validation.bibliography_field_validations?.filter((field) => field.problem_type !== 'correct') || [];
+
+            // Validation performed with issues
+            if (issues.length > 0) {
+              return (
                 <div className="flex items-center gap-2 flex-wrap">
-                  {validation.bibliography_field_validations
-                    .filter((field) => field.problem_type !== 'correct')
-                    .map((field, idx) => (
-                      <Badge
-                        key={idx}
-                        variant="outline"
-                        className={`text-xs whitespace-nowrap ${'bg-yellow-100 text-yellow-800 border-yellow-300 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-800'}`}
-                      >
-                        {humanizeLabel(field.category)}: {humanizeLabel(field.problem_type)}
-                      </Badge>
-                    ))}
+                  {issues.map((field, idx) => (
+                    <Badge
+                      key={idx}
+                      variant="outline"
+                      className="text-xs whitespace-nowrap bg-yellow-100 text-yellow-800 border-yellow-300 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-800"
+                    >
+                      {humanizeLabel(field.category)}: {humanizeLabel(field.problem_type)}
+                    </Badge>
+                  ))}
                 </div>
-              )}
-          </div>
+              );
+            }
+
+            // Validation performed with no issues
+            return (
+              <Badge
+                variant="outline"
+                className="text-xs whitespace-nowrap bg-green-100 text-green-800 border-green-300 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800"
+              >
+                No issues
+              </Badge>
+            );
+          })()}
+        </TableCell>
+
+        {/* Actions column */}
+        <TableCell className="text-center">
           <Button
             variant="ghost"
             size="xs"
@@ -80,77 +118,97 @@ function ReferenceItem({ reference, validation, supportingFiles }: ReferenceItem
             className="text-gray-600 hover:text-gray-900"
           >
             {isExpanded ? <ChevronDownIcon className="size-4" /> : <ChevronRightIcon className="size-4" />}
-            {isExpanded ? 'Hide details' : 'Show more details'}
           </Button>
-        </div>
-      </div>
-      {isExpanded && validation && (
-        <div className="mt-3 text-sm text-gray-700 space-y-2">
-          <div>
-            <h3 className="text-base font-medium">Reference validation details</h3>
-          </div>
+        </TableCell>
+      </TableRow>
 
-          <LabeledValue label="Updated Reference">
-            <p>{validation.updated_reference || <span className="text-muted-foreground">No proposed changes</span>}</p>
-          </LabeledValue>
-          <LabeledValue label="Suggested Action">{validation.suggested_action}</LabeledValue>
-          <LabeledValue label="URL">
-            <a
-              href={validation.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-blue-600 hover:underline break-all"
-            >
-              {validation.url}
-            </a>
-          </LabeledValue>
-          <LabeledValue label="Reasoning">{validation.reasoning}</LabeledValue>
-          {validation.bibliography_field_validations && validation.bibliography_field_validations.length > 0 && (
-            <div>
-              <h4 className="font-medium mb-2">Field Validations</h4>
-              <div className="space-y-2">
-                {validation.bibliography_field_validations.map((field, idx) => {
-                  const isCorrect = field.problem_type === 'correct';
-                  return (
-                    <div key={idx} className="pl-4 border-l-2 border-gray-200">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-medium text-xs uppercase">{field.category}</span>
-                        <Badge
-                          variant={isCorrect ? 'success' : 'outline'}
-                          className={`text-xs ${
-                            isCorrect
-                              ? ''
-                              : 'bg-yellow-100 text-yellow-800 border-yellow-300 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-800'
-                          }`}
-                        >
-                          {isCorrect ? 'Valid' : humanizeLabel(field.problem_type)}
-                        </Badge>
-                      </div>
-                      <div className="text-xs text-gray-600 space-y-1">
-                        {field.current_value && (
-                          <div>
-                            <span className="font-medium">Current:</span> {field.current_value}
+      {/* Expanded row with validation details */}
+      {isExpanded && (
+        <TableRow>
+          <TableCell colSpan={4} className="bg-muted/30 max-w-0">
+            {validation ? (
+              <div className="py-3 text-sm text-gray-700 space-y-2 w-full overflow-hidden">
+                <div>
+                  <h3 className="text-base font-medium">Reference validation details</h3>
+                </div>
+
+                <LabeledValue label="Updated Reference">
+                  <p className="break-words">
+                    {validation.updated_reference || <span className="text-muted-foreground">No proposed changes</span>}
+                  </p>
+                </LabeledValue>
+                <LabeledValue label="Suggested Action">
+                  <span className="break-words">{validation.suggested_action}</span>
+                </LabeledValue>
+                <LabeledValue label="URL">
+                  <a
+                    href={validation.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:underline break-all inline-block max-w-full"
+                  >
+                    {validation.url}
+                  </a>
+                </LabeledValue>
+                <LabeledValue label="Reasoning">
+                  <span className="break-words">{validation.reasoning}</span>
+                </LabeledValue>
+                {validation.bibliography_field_validations && validation.bibliography_field_validations.length > 0 && (
+                  <div>
+                    <h4 className="font-medium mb-2">Field Validations</h4>
+                    <div className="space-y-2">
+                      {validation.bibliography_field_validations.map((field, idx) => {
+                        const isCorrect = field.problem_type === 'correct';
+                        return (
+                          <div key={idx} className="pl-4 border-l-2 border-gray-200">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="font-medium text-xs uppercase">{field.category}</span>
+                              <Badge
+                                variant={isCorrect ? 'success' : 'outline'}
+                                className={`text-xs ${
+                                  isCorrect
+                                    ? ''
+                                    : 'bg-yellow-100 text-yellow-800 border-yellow-300 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-800'
+                                }`}
+                              >
+                                {isCorrect ? 'Valid' : humanizeLabel(field.problem_type)}
+                              </Badge>
+                            </div>
+                            <div className="text-xs text-gray-600 space-y-1">
+                              {field.current_value && (
+                                <div className="break-words">
+                                  <span className="font-medium">Current:</span> {field.current_value}
+                                </div>
+                              )}
+                              {field.suggested_value && field.problem_type !== 'correct' && (
+                                <div className="break-words">
+                                  <span className="font-medium">Suggested:</span> {field.suggested_value}
+                                </div>
+                              )}
+                            </div>
                           </div>
-                        )}
-                        {field.suggested_value && field.problem_type !== 'correct' && (
-                          <div>
-                            <span className="font-medium">Suggested:</span> {field.suggested_value}
-                          </div>
-                        )}
-                      </div>
+                        );
+                      })}
                     </div>
-                  );
-                })}
+                  </div>
+                )}
               </div>
-            </div>
-          )}
-        </div>
+            ) : (
+              <div className="py-6 text-center text-muted-foreground">
+                <p className="text-sm">Validation has not been performed yet for this reference.</p>
+                <p className="text-xs mt-1">Run the validation workflow to see detailed information.</p>
+              </div>
+            )}
+          </TableCell>
+        </TableRow>
       )}
-    </div>
+    </>
   );
 }
 
 export function ReferencesTab({ allWorkflowDetails, projectId, readOnly = false }: ReferencesTabProps) {
+  const [searchQuery, setSearchQuery] = React.useState('');
+
   const documentProcessing = getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.DocumentProcessing);
   const referenceValidation = getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.ReferenceValidation);
   const referenceExtraction = getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.ReferenceExtraction);
@@ -184,9 +242,31 @@ export function ReferencesTab({ allWorkflowDetails, projectId, readOnly = false 
     return map;
   }, [referenceValidationResults?.reference_validations]);
 
+  // Filter references based on search query
+  const filteredReferences = React.useMemo(() => {
+    const references = referencesResults?.references;
+    if (!references) return [];
+    if (!searchQuery.trim()) return references;
+
+    const query = searchQuery.toLowerCase();
+    return references.filter((reference) => {
+      // Search in reference text
+      if (reference.text?.toLowerCase().includes(query)) return true;
+
+      // Search in related document file name
+      if (reference.has_associated_supporting_document && documentProcessingResults?.supporting_files) {
+        const supportingFile =
+          documentProcessingResults.supporting_files[reference.index_of_associated_supporting_document - 1];
+        if (supportingFile?.file_name?.toLowerCase().includes(query)) return true;
+      }
+
+      return false;
+    });
+  }, [referencesResults?.references, searchQuery, documentProcessingResults?.supporting_files]);
+
   return (
     <TabWithLoadingStates
-      title={`References (${referencesResults?.references?.length || 0})`}
+      title={`References (${filteredReferences.length}${searchQuery ? ` of ${referencesResults?.references?.length || 0}` : ''})`}
       data={referencesResults?.references}
       isProcessing={isWorkflowProcessing(referenceExtraction)}
       hasData={(references) => (references?.length || 0) > 0}
@@ -214,15 +294,60 @@ export function ReferencesTab({ allWorkflowDetails, projectId, readOnly = false 
       }
     >
       {(references) => (
-        <div className="space-y-3">
-          {references.map((reference, index) => (
-            <ReferenceItem
-              key={index}
-              reference={reference}
-              validation={validationMap.get(reference.text)}
-              supportingFiles={documentProcessingResults?.supporting_files}
-            />
-          ))}
+        <div className="space-y-4">
+          {/* Search input */}
+          {references.length > 0 && (
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by reference text or file name..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+          )}
+
+          {/* Table */}
+          <div className="w-full overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Reference</TableHead>
+                  <TableHead>
+                    <div className="flex items-center gap-1">
+                      Matched file
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <HelpCircle className="size-3.5 text-muted-foreground cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs">
+                          The supporting file that was matched to this reference item from the main document.
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                  </TableHead>
+                  <TableHead>Validation</TableHead>
+                  <TableHead className="w-8"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredReferences.map((reference, index) => (
+                  <ReferenceTableRow
+                    key={index}
+                    reference={reference}
+                    validation={validationMap.get(reference.text)}
+                    supportingFiles={documentProcessingResults?.supporting_files}
+                  />
+                ))}
+              </TableBody>
+            </Table>
+            {filteredReferences.length === 0 && searchQuery && (
+              <div className="text-center py-8 text-muted-foreground">
+                No references found matching &quot;{searchQuery}&quot;
+              </div>
+            )}
+          </div>
         </div>
       )}
     </TabWithLoadingStates>
