@@ -1,5 +1,4 @@
 from enum import Enum
-from typing import Optional
 
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableConfig
@@ -7,12 +6,6 @@ from pydantic import BaseModel, Field
 
 from lib.config.llm_models import gpt_5_mini_model
 from lib.models.agent import LangChainAgent
-
-
-class QCResult(BaseModel):
-    """Quality control result for agent outputs."""
-    valid: bool
-    feedback: str
 
 
 class CitationType(str, Enum):
@@ -53,9 +46,11 @@ class CitationResponse(BaseModel):
     rationale: str = Field(
         description="Very brief rationale for why you think the chunk of text includes these citations, if any"
     )
-    qc_result: Optional[QCResult] = Field(
-        description="The quality control result for the citation response",
-        default=None,
+
+
+class CitationResponseWithChunkIndex(CitationResponse):
+    chunk_index: int = Field(
+        description="The index of the chunk of text that contains the citations"
     )
 
 
@@ -93,36 +88,6 @@ The indexes in this list should be used when returning index_of_associated_bibli
 ```
 {chunk}
 ```
-
-## Feedback from the quality control assistant
-{feedback}
-"""
-)
-
-citation_detector_qc_prompt = ChatPromptTemplate.from_template(
-    """
-You are a quality control assistant that evaluates the output of another agent.
-
-First, read the original instructions and the agent's produced result below.
-Then evaluate whether the result meets the requirements. Return a structured response.
-
-## AGENT PROMPT
-{AGENT_PROMPT}
-
-## AGENT's RESULT
-{AGENT_RESULT}
-
-Return your evaluation as:
-- valid: boolean indicating if the result meets the requirements
-- feedback: specific, actionable feedback on improvements or what was done well
-
-Focus on:
-1. Completeness - does the result address all parts of the original prompt?
-2. Accuracy - is the result factually correct and appropriate?
-3. Quality - is the result well-formatted and professional?
-4. Relevance - does the result directly answer what was asked?
-
-Be specific in your feedback to help the agent improve.
 """
 )
 

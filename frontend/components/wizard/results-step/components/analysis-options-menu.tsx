@@ -19,7 +19,7 @@ import {
 } from '@/lib/generated-api';
 import { getWorkflowRunByType } from '@/lib/workflow-state';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Download, EllipsisVerticalIcon, FileTextIcon, Link, Pencil } from 'lucide-react';
+import { Download, EllipsisVerticalIcon, Link, Pencil } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { downloadDocxFile, useDownloadDocx } from './use-download-docx';
@@ -31,13 +31,12 @@ type ProjectWithDetails = Project & {
 };
 
 export interface AnalysisOptionsMenuProps {
-  onSaveAsEvalTest: () => void;
   project: ProjectWithDetails;
   results: WorkflowRunDetail[];
   readOnly: boolean;
 }
 
-export function AnalysisOptionsMenu({ onSaveAsEvalTest, project, results, readOnly }: AnalysisOptionsMenuProps) {
+export function AnalysisOptionsMenu({ project, results, readOnly }: AnalysisOptionsMenuProps) {
   const projectId = project.id;
   const share = useShareStatus(projectId);
   const queryClient = useQueryClient();
@@ -74,7 +73,7 @@ export function AnalysisOptionsMenu({ onSaveAsEvalTest, project, results, readOn
     updateProjectMutation.mutate(values);
   };
 
-  const claimSubstantiationResults = getWorkflowRunByType(results, WorkflowRunType.ClaimSubstantiation);
+  const claimSubstantiationResults = getWorkflowRunByType(results, WorkflowRunType.DocumentProcessing);
   const hasDocx = claimSubstantiationResults?.state?.file?.original_file_path?.endsWith('.docx');
 
   const handleDownloadClick = () => {
@@ -134,9 +133,10 @@ export function AnalysisOptionsMenu({ onSaveAsEvalTest, project, results, readOn
           </Tooltip>
 
           <DropdownMenuContent className="w-56">
-            <MenuItemWithTooltip icon={FileTextIcon} onClick={onSaveAsEvalTest} tooltip="Generate eval test cases">
+            {/* TODO: Add eval test generation back after we stabilize the eval test generation */}
+            {/* <MenuItemWithTooltip icon={FileTextIcon} onClick={onSaveAsEvalTest} tooltip="Generate eval test cases">
               Save as eval test
-            </MenuItemWithTooltip>
+            </MenuItemWithTooltip> */}
 
             {hasDocx && (
               <MenuItemWithTooltip

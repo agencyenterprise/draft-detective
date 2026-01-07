@@ -1,19 +1,18 @@
 'use client';
 
+import { ReferenceItem } from '@/app/(authenticated)/tools/reference-downloader/components/reference-item';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { useDownloadAllProjectFiles } from '@/hooks/use-download-all-project-files';
 import {
   ReferenceDownloaderState,
-  ReferenceFetchItem,
   ReferenceFetchConclusion,
+  ReferenceFetchItem,
   WorkflowRunDetail,
 } from '@/lib/generated-api';
-import { AlertCircle, Download, FileDownIcon } from 'lucide-react';
+import { AlertCircle, Download, Loader2 } from 'lucide-react';
 import * as React from 'react';
-import { ReferenceItem } from '@/app/(authenticated)/tools/reference-downloader/components/reference-item';
-import { useDownloadAllProjectFiles } from '@/hooks/use-download-all-project-files';
-import { Button } from '@/components/ui/button';
-import { Loader2 } from 'lucide-react';
 
 interface ReferenceDownloaderResultsProps {
   workflowDetail: WorkflowRunDetail;

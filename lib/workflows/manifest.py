@@ -3,7 +3,6 @@ from typing import List, Type, TypeVar
 
 from langgraph.graph import StateGraph
 
-from lib.workflows.claim_substantiation.state import ClaimSubstantiatorState
 from lib.workflows.models import (
     BaseWorkflowConfig,
     BaseWorkflowState,
@@ -75,7 +74,7 @@ class WorkflowManifest[WorkflowStateType, WorkflowConfigType](ABC):
 
     @abstractmethod
     def convert_state_to_issues(
-        self, state: WorkflowStateType, claim_state: ClaimSubstantiatorState
+        self, state: WorkflowStateType, other_states: List[WorkflowState]
     ) -> List[DocumentIssue]:
         """Get issues for a workflow state result."""
 

@@ -12,9 +12,6 @@ class DocxGenerationWorkflowConfig(BaseWorkflowConfig):
     """Config for DOCX generation workflow."""
 
     type: Literal[WorkflowRunType.DOCX_GENERATION] = WorkflowRunType.DOCX_GENERATION
-    claim_substantiation_run_id: str = Field(
-        description="Workflow run ID of the claim substantiation run to generate DOCX from"
-    )
     share_token: Optional[str] = Field(
         default=None,
         description="Optional share token to include share links in comments",

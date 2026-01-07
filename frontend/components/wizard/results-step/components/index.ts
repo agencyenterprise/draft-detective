@@ -1,6 +1,5 @@
 export { AgentSelector } from './agent-selector';
 export { ChunkEvalGenerator } from './chunk-eval-generator';
-export { ChunkStatusBadge } from './chunk-status-badge';
 export {
   PublicationQualityBadge,
   ConfidenceBadge,

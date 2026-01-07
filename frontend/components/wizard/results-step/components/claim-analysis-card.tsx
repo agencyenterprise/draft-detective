@@ -4,14 +4,7 @@ import { ClaimFeedback } from '@/components/claim-feedback';
 import { LabeledValue } from '@/components/labeled-value';
 import { Button } from '@/components/ui/button';
 import { getClaimId } from '@/lib/chunk-ids';
-import {
-  AnalyzedChunkOutput,
-  Claim,
-  ClaimSubstantiatorStateOutput,
-  DocumentIssue,
-  WorkflowRunDetail,
-  WorkflowRunType,
-} from '@/lib/generated-api';
+import { Claim, DocumentIssue, WorkflowRunDetail, WorkflowRunType } from '@/lib/generated-api';
 import { getClaimIssues, getMaxSeverity } from '@/lib/severity';
 import { getWorkflowRunByType } from '@/lib/workflow-state';
 import { ChevronDownIcon, ChevronRightIcon } from 'lucide-react';
@@ -26,13 +19,10 @@ import { DocumentIssueCardMinimal } from './document-issue-card';
 import { SubstantiationResults } from './substantiation-results';
 
 export interface ClaimAnalysisCardProps {
-  results: ClaimSubstantiatorStateOutput;
   claim: Claim;
-  chunkDetails: AnalyzedChunkOutput | undefined | null;
   claimIndex: number;
   totalClaims: number;
   chunkIndex: number;
-  workflowRunId: string;
   allWorkflowDetails: WorkflowRunDetail[];
   issues: DocumentIssue[];
   readOnly?: boolean;
@@ -40,18 +30,19 @@ export interface ClaimAnalysisCardProps {
 
 export function ClaimAnalysisCard({
   claim,
-  chunkDetails,
   claimIndex,
   totalClaims,
   chunkIndex,
-  workflowRunId,
   allWorkflowDetails,
   issues,
   readOnly = false,
 }: ClaimAnalysisCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
-  // Extract specific workflow states from all workflow details
+  const documentProcessingDetail = useMemo(
+    () => getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.DocumentProcessing),
+    [allWorkflowDetails],
+  );
   const claimReferenceValidationDetail = useMemo(
     () => getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.ClaimReferenceValidation),
     [allWorkflowDetails],
@@ -68,12 +59,18 @@ export function ClaimAnalysisCard({
     () => getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.InferenceValidation),
     [allWorkflowDetails],
   );
+  const claimExtractionDetail = useMemo(
+    () => getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.ClaimExtraction),
+    [allWorkflowDetails],
+  );
+  const referenceExtractionDetail = useMemo(
+    () => getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.ReferenceExtraction),
+    [allWorkflowDetails],
+  );
 
-  if (!chunkDetails) {
-    return null;
-  }
-
-  const claimCategory = chunkDetails.claim_categories?.find((c) => c.claim_index === claimIndex);
+  const claimCategory = claimExtractionDetail?.state?.claim_categories?.find(
+    (c) => c.chunk_index === chunkIndex && c.claim_index === claimIndex,
+  );
   const substantiation = claimReferenceValidationDetail?.state?.substantiations?.find(
     (s) => s.chunk_index === chunkIndex && s.claim_index === claimIndex,
   );
@@ -87,10 +84,8 @@ export function ClaimAnalysisCard({
     (i) => i.chunk_index === chunkIndex && i.claim_index === claimIndex,
   );
 
-  const supportingFiles =
-    claimReferenceValidationDetail?.state?.supporting_files ?? citationSuggesterDetail?.state?.supporting_files ?? [];
-  const references =
-    claimReferenceValidationDetail?.state?.references ?? citationSuggesterDetail?.state?.references ?? [];
+  const supportingFiles = documentProcessingDetail?.state?.supporting_files ?? [];
+  const references = referenceExtractionDetail?.state?.references ?? [];
   const claimIssues = getClaimIssues(issues, chunkIndex, claimIndex);
   const maxSeverity = getMaxSeverity(claimIssues);
 
@@ -142,8 +137,12 @@ export function ClaimAnalysisCard({
             {inferenceValidation && <ClaimInferenceValidation inferenceValidation={inferenceValidation} />}
           </div>
 
-          {!readOnly && workflowRunId && chunkIndex !== undefined && (
-            <ClaimFeedback workflowRunId={workflowRunId} chunkIndex={chunkIndex} claimIndex={claimIndex} />
+          {!readOnly && documentProcessingDetail?.run.id && chunkIndex !== undefined && (
+            <ClaimFeedback
+              workflowRunId={documentProcessingDetail?.run.id}
+              chunkIndex={chunkIndex}
+              claimIndex={claimIndex}
+            />
           )}
         </>
       )}

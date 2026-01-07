@@ -3,7 +3,6 @@ from typing import List, Type
 from langgraph.graph import StateGraph
 
 from lib.models.file import FileRole
-from lib.workflows.claim_substantiation.state import ClaimSubstantiatorState
 from lib.workflows.document_processing.graph import build_document_processing_graph
 from lib.workflows.document_processing.state import (
     DocumentProcessingState,
@@ -47,6 +46,8 @@ class DocumentProcessingManifest(
 
         from lib.services.files import get_files_by_project_id, load_file_document
 
+        assert config.project_id is not None, "Missing project_id in config"
+
         project_files = await get_files_by_project_id(config.project_id)
         main_file = next(
             (file for file in project_files if file.role == FileRole.MAIN),
@@ -55,19 +56,22 @@ class DocumentProcessingManifest(
         supporting_files = [
             file for file in project_files if file.role == FileRole.SUPPORT
         ]
+        assert main_file is not None, "No main file found for project"
         main_file_document = await load_file_document(main_file)
+        assert main_file_document is not None, "Failed to load main file"
         supporting_file_documents = [
             await load_file_document(file) for file in supporting_files
         ]
 
         return DocumentProcessingState(
+            type=WorkflowRunType.DOCUMENT_PROCESSING,
             file=main_file_document,
             supporting_files=supporting_file_documents,
             config=config,
         )
 
     def convert_state_to_issues(
-        self, state: DocumentProcessingState, claim_state: ClaimSubstantiatorState
+        self, state: DocumentProcessingState, other_states: List[WorkflowState]
     ) -> List[DocumentIssue]:
         # Document processing doesn't produce issues
         return []

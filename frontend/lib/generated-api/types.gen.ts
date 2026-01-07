@@ -45,8 +45,8 @@ export type AnalyzedChunkInput = {
    * Paragraph Index
    */
   paragraph_index: number;
-  claims?: ClaimResponse | null;
-  citations?: CitationResponseInput | null;
+  claims?: ClaimResponseWithChunkIndex | null;
+  citations?: CitationResponseWithChunkIndexInput | null;
   /**
    * Claim Categories
    */
@@ -74,8 +74,8 @@ export type AnalyzedChunkOutput = {
    * Paragraph Index
    */
   paragraph_index: number;
-  claims?: ClaimResponse | null;
-  citations?: CitationResponseOutput | null;
+  claims?: ClaimResponseWithChunkIndex | null;
+  citations?: CitationResponseWithChunkIndexOutput | null;
   /**
    * Claim Categories
    */
@@ -374,31 +374,83 @@ export type Citation = {
 };
 
 /**
- * CitationResponse
+ * CitationDetectionConfig
+ *
+ * Configuration model for citation detection workflow
  */
-export type CitationResponseInput = {
+export type CitationDetectionConfig = {
   /**
-   * Citations
+   * Project Id
    *
-   * A list of citations found in the chunk of text
+   * The ID of the project that this workflow run should be associated with
    */
-  citations: Array<Citation>;
+  project_id?: string | null;
   /**
-   * Rationale
+   * Openai Api Key
    *
-   * Very brief rationale for why you think the chunk of text includes these citations, if any
+   * The OpenAI API key to use for this workflow execution
    */
-  rationale: string;
+  openai_api_key?: string | null;
   /**
-   * The quality control result for the citation response
+   * Domain
+   *
+   * Domain context for more accurate analysis
    */
-  qc_result?: QcResult | null;
+  domain?: string | null;
+  /**
+   * Target Audience
+   *
+   * Target audience context for analysis
+   */
+  target_audience?: string | null;
+  /**
+   * Publication Date
+   *
+   * Publication date of the document (YYYY-MM-DD format)
+   */
+  publication_date?: string | null;
+  /**
+   * Type
+   */
+  type?: 'citation_detection';
 };
 
 /**
- * CitationResponse
+ * CitationDetectionState
+ *
+ * State for citation detection workflow.
  */
-export type CitationResponseOutput = {
+export type CitationDetectionState = {
+  /**
+   * Errors
+   *
+   * Errors that occurred during the workflow execution.
+   */
+  errors?: Array<WorkflowError>;
+  /**
+   * Type
+   */
+  type?: 'citation_detection';
+  file: FileDocumentOutput;
+  config: CitationDetectionConfig;
+  /**
+   * Chunks
+   */
+  chunks?: Array<DocumentChunk>;
+  /**
+   * References
+   */
+  references?: Array<BibliographyItem>;
+  /**
+   * Citations
+   */
+  citations?: Array<CitationResponseWithChunkIndexOutput>;
+};
+
+/**
+ * CitationResponseWithChunkIndex
+ */
+export type CitationResponseWithChunkIndexInput = {
   /**
    * Citations
    *
@@ -412,9 +464,35 @@ export type CitationResponseOutput = {
    */
   rationale: string;
   /**
-   * The quality control result for the citation response
+   * Chunk Index
+   *
+   * The index of the chunk of text that contains the citations
    */
-  qc_result?: QcResult | null;
+  chunk_index: number;
+};
+
+/**
+ * CitationResponseWithChunkIndex
+ */
+export type CitationResponseWithChunkIndexOutput = {
+  /**
+   * Citations
+   *
+   * A list of citations found in the chunk of text
+   */
+  citations: Array<Citation>;
+  /**
+   * Rationale
+   *
+   * Very brief rationale for why you think the chunk of text includes these citations, if any
+   */
+  rationale: string;
+  /**
+   * Chunk Index
+   *
+   * The index of the chunk of text that contains the citations
+   */
+  chunk_index: number;
 };
 
 /**
@@ -482,6 +560,24 @@ export type CitationSuggesterWorkflowConfig = {
    * The OpenAI API key to use for this workflow execution
    */
   openai_api_key?: string | null;
+  /**
+   * Domain
+   *
+   * Domain context for more accurate analysis
+   */
+  domain?: string | null;
+  /**
+   * Target Audience
+   *
+   * Target audience context for analysis
+   */
+  target_audience?: string | null;
+  /**
+   * Publication Date
+   *
+   * Publication date of the document (YYYY-MM-DD format)
+   */
+  publication_date?: string | null;
   /**
    * Type
    */
@@ -639,6 +735,95 @@ export type ClaimEvidenceSource = {
 };
 
 /**
+ * ClaimExtractionState
+ *
+ * State for claim extraction workflow.
+ */
+export type ClaimExtractionState = {
+  /**
+   * Errors
+   *
+   * Errors that occurred during the workflow execution.
+   */
+  errors?: Array<WorkflowError>;
+  /**
+   * Type
+   */
+  type?: 'claim_extraction';
+  config: ClaimExtractionWorkflowConfig;
+  /**
+   * Chunks
+   *
+   * Document chunks from main document
+   */
+  chunks?: Array<DocumentChunk>;
+  /**
+   * The summary of the main document
+   */
+  main_document_summary?: DocumentSummary | null;
+  /**
+   * Claims
+   *
+   * List of extracted claims with chunk indices
+   */
+  claims?: Array<ClaimResponseWithChunkIndex>;
+  /**
+   * Claim Categories
+   *
+   * List of claim categorizations with claim indices
+   */
+  claim_categories?: Array<ClaimCategorizationResponseWithClaimIndex>;
+};
+
+/**
+ * ClaimExtractionWorkflowConfig
+ *
+ * Configuration model for claim extraction workflow
+ */
+export type ClaimExtractionWorkflowConfig = {
+  /**
+   * Project Id
+   *
+   * The ID of the project that this workflow run should be associated with
+   */
+  project_id?: string | null;
+  /**
+   * Openai Api Key
+   *
+   * The OpenAI API key to use for this workflow execution
+   */
+  openai_api_key?: string | null;
+  /**
+   * Domain
+   *
+   * Domain context for more accurate analysis
+   */
+  domain?: string | null;
+  /**
+   * Target Audience
+   *
+   * Target audience context for analysis
+   */
+  target_audience?: string | null;
+  /**
+   * Publication Date
+   *
+   * Publication date of the document (YYYY-MM-DD format)
+   */
+  publication_date?: string | null;
+  /**
+   * Type
+   */
+  type?: 'claim_extraction';
+  /**
+   * Target Chunk Indices
+   *
+   * Specific chunk indices to process (None = process all chunks)
+   */
+  target_chunk_indices?: Array<number> | null;
+};
+
+/**
  * ClaimReferenceFactors
  *
  * A newer source that provides evidence for or against a claim
@@ -771,10 +956,6 @@ export type ClaimReferenceValidationWorkflowConfig = {
    */
   openai_api_key?: string | null;
   /**
-   * Type
-   */
-  type?: 'claim_reference_validation';
-  /**
    * Domain
    *
    * Domain context for more accurate analysis
@@ -792,12 +973,16 @@ export type ClaimReferenceValidationWorkflowConfig = {
    * Publication date of the document (YYYY-MM-DD format)
    */
   publication_date?: string | null;
+  /**
+   * Type
+   */
+  type?: 'claim_reference_validation';
 };
 
 /**
- * ClaimResponse
+ * ClaimResponseWithChunkIndex
  */
-export type ClaimResponse = {
+export type ClaimResponseWithChunkIndex = {
   /**
    * Claims
    *
@@ -810,6 +995,12 @@ export type ClaimResponse = {
    * Overall rationale for why you think the chunk of text implies these claims
    */
   rationale: string;
+  /**
+   * Chunk Index
+   *
+   * The index of the chunk of text that contains the claim
+   */
+  chunk_index: number;
 };
 
 /**
@@ -1161,6 +1352,24 @@ export type DocumentProcessingWorkflowConfig = {
    */
   openai_api_key?: string | null;
   /**
+   * Domain
+   *
+   * Domain context for more accurate analysis
+   */
+  domain?: string | null;
+  /**
+   * Target Audience
+   *
+   * Target audience context for analysis
+   */
+  target_audience?: string | null;
+  /**
+   * Publication Date
+   *
+   * Publication date of the document (YYYY-MM-DD format)
+   */
+  publication_date?: string | null;
+  /**
    * Type
    */
   type?: 'document_processing';
@@ -1377,15 +1586,27 @@ export type DocxGenerationWorkflowConfig = {
    */
   openai_api_key?: string | null;
   /**
+   * Domain
+   *
+   * Domain context for more accurate analysis
+   */
+  domain?: string | null;
+  /**
+   * Target Audience
+   *
+   * Target audience context for analysis
+   */
+  target_audience?: string | null;
+  /**
+   * Publication Date
+   *
+   * Publication date of the document (YYYY-MM-DD format)
+   */
+  publication_date?: string | null;
+  /**
    * Type
    */
   type?: 'docx_generation';
-  /**
-   * Claim Substantiation Run Id
-   *
-   * Workflow run ID of the claim substantiation run to generate DOCX from
-   */
-  claim_substantiation_run_id: string;
   /**
    * Share Token
    *
@@ -1889,10 +2110,6 @@ export type InferenceValidationWorkflowConfig = {
    */
   openai_api_key?: string | null;
   /**
-   * Type
-   */
-  type?: 'inference_validation';
-  /**
    * Domain
    *
    * Domain context for more accurate analysis
@@ -1904,6 +2121,16 @@ export type InferenceValidationWorkflowConfig = {
    * Target audience context for analysis
    */
   target_audience?: string | null;
+  /**
+   * Publication Date
+   *
+   * Publication date of the document (YYYY-MM-DD format)
+   */
+  publication_date?: string | null;
+  /**
+   * Type
+   */
+  type?: 'inference_validation';
 };
 
 /**
@@ -1968,15 +2195,27 @@ export type LiteratureReviewWorkflowConfig = {
    */
   openai_api_key?: string | null;
   /**
+   * Domain
+   *
+   * Domain context for more accurate analysis
+   */
+  domain?: string | null;
+  /**
+   * Target Audience
+   *
+   * Target audience context for analysis
+   */
+  target_audience?: string | null;
+  /**
+   * Publication Date
+   *
+   * Publication date of the document (YYYY-MM-DD format)
+   */
+  publication_date?: string | null;
+  /**
    * Type
    */
   type?: 'literature_review';
-  /**
-   * Document Publication Date
-   *
-   * Publication date (YYYY-MM-DD) of the document for literature review. Must be provided. Only references before this date will be considered.
-   */
-  document_publication_date: Date;
 };
 
 /**
@@ -2040,16 +2279,6 @@ export type LiveReportsWorkflowConfig = {
    */
   openai_api_key?: string | null;
   /**
-   * Type
-   */
-  type?: 'live_reports';
-  /**
-   * Document Publication Date
-   *
-   * Publication date (YYYY-MM-DD) of the document. Only references after this date will be considered for live reports.
-   */
-  document_publication_date: Date;
-  /**
    * Domain
    *
    * Domain context for more accurate analysis
@@ -2061,6 +2290,16 @@ export type LiveReportsWorkflowConfig = {
    * Target audience context for analysis
    */
   target_audience?: string | null;
+  /**
+   * Publication Date
+   *
+   * Publication date of the document (YYYY-MM-DD format)
+   */
+  publication_date?: string | null;
+  /**
+   * Type
+   */
+  type?: 'live_reports';
 };
 
 /**
@@ -2107,6 +2346,24 @@ export type MethodologicalAlignmentWorkflowConfig = {
    * The OpenAI API key to use for this workflow execution
    */
   openai_api_key?: string | null;
+  /**
+   * Domain
+   *
+   * Domain context for more accurate analysis
+   */
+  domain?: string | null;
+  /**
+   * Target Audience
+   *
+   * Target audience context for analysis
+   */
+  target_audience?: string | null;
+  /**
+   * Publication Date
+   *
+   * Publication date of the document (YYYY-MM-DD format)
+   */
+  publication_date?: string | null;
   /**
    * Type
    */
@@ -2272,22 +2529,6 @@ export const PublicationQuality = {
  * PublicationQuality
  */
 export type PublicationQuality = (typeof PublicationQuality)[keyof typeof PublicationQuality];
-
-/**
- * QCResult
- *
- * Quality control result for agent outputs.
- */
-export type QcResult = {
-  /**
-   * Valid
-   */
-  valid: boolean;
-  /**
-   * Feedback
-   */
-  feedback: string;
-};
 
 /**
  * QualityLevel
@@ -2473,6 +2714,24 @@ export type ReferenceDownloaderWorkflowConfig = {
    */
   openai_api_key?: string | null;
   /**
+   * Domain
+   *
+   * Domain context for more accurate analysis
+   */
+  domain?: string | null;
+  /**
+   * Target Audience
+   *
+   * Target audience context for analysis
+   */
+  target_audience?: string | null;
+  /**
+   * Publication Date
+   *
+   * Publication date of the document (YYYY-MM-DD format)
+   */
+  publication_date?: string | null;
+  /**
    * Type
    */
   type?: 'reference_downloader';
@@ -2502,6 +2761,24 @@ export type ReferenceExtractionConfig = {
    * The OpenAI API key to use for this workflow execution
    */
   openai_api_key?: string | null;
+  /**
+   * Domain
+   *
+   * Domain context for more accurate analysis
+   */
+  domain?: string | null;
+  /**
+   * Target Audience
+   *
+   * Target audience context for analysis
+   */
+  target_audience?: string | null;
+  /**
+   * Publication Date
+   *
+   * Publication date of the document (YYYY-MM-DD format)
+   */
+  publication_date?: string | null;
   /**
    * Type
    */
@@ -2727,6 +3004,24 @@ export type ReferenceValidationWorkflowConfig = {
    */
   openai_api_key?: string | null;
   /**
+   * Domain
+   *
+   * Domain context for more accurate analysis
+   */
+  domain?: string | null;
+  /**
+   * Target Audience
+   *
+   * Target audience context for analysis
+   */
+  target_audience?: string | null;
+  /**
+   * Publication Date
+   *
+   * Publication date of the document (YYYY-MM-DD format)
+   */
+  publication_date?: string | null;
+  /**
    * Type
    */
   type?: 'reference_validation';
@@ -2904,6 +3199,24 @@ export type ResultsExtractionWorkflowConfig = {
    */
   openai_api_key?: string | null;
   /**
+   * Domain
+   *
+   * Domain context for more accurate analysis
+   */
+  domain?: string | null;
+  /**
+   * Target Audience
+   *
+   * Target audience context for analysis
+   */
+  target_audience?: string | null;
+  /**
+   * Publication Date
+   *
+   * Publication date of the document (YYYY-MM-DD format)
+   */
+  publication_date?: string | null;
+  /**
    * Type
    */
   type?: 'results_extraction';
@@ -3072,22 +3385,6 @@ export type SubstantiationWorkflowConfig = {
    */
   openai_api_key?: string | null;
   /**
-   * Type
-   */
-  type?: 'claim_substantiation';
-  /**
-   * Target Chunk Indices
-   *
-   * Specific chunk indices to process (None = process all chunks)
-   */
-  target_chunk_indices?: Array<number> | null;
-  /**
-   * Agents To Run
-   *
-   * Specific agents to run (None = run all agents)
-   */
-  agents_to_run?: Array<string> | null;
-  /**
    * Domain
    *
    * Domain context for more accurate analysis
@@ -3105,6 +3402,22 @@ export type SubstantiationWorkflowConfig = {
    * Publication date of the document (YYYY-MM-DD format)
    */
   publication_date?: string | null;
+  /**
+   * Type
+   */
+  type?: 'claim_substantiation';
+  /**
+   * Target Chunk Indices
+   *
+   * Specific chunk indices to process (None = process all chunks)
+   */
+  target_chunk_indices?: Array<number> | null;
+  /**
+   * Agents To Run
+   *
+   * Specific agents to run (None = run all agents)
+   */
+  agents_to_run?: Array<string> | null;
   /**
    * Workflow Types
    *
@@ -3270,8 +3583,10 @@ export type WorkflowRunDetail = {
   state:
     | DocumentProcessingState
     | ReferenceExtractionState
+    | ClaimExtractionState
     | ClaimSubstantiatorStateOutput
     | ClaimReferenceValidationState
+    | CitationDetectionState
     | MethodologicalAlignmentState
     | ReferenceDownloaderState
     | DocxGenerationState
@@ -3304,6 +3619,8 @@ export type WorkflowRunStatus = (typeof WorkflowRunStatus)[keyof typeof Workflow
 export const WorkflowRunType = {
   DocumentProcessing: 'document_processing',
   ReferenceExtraction: 'reference_extraction',
+  ClaimExtraction: 'claim_extraction',
+  CitationDetection: 'citation_detection',
   ClaimSubstantiation: 'claim_substantiation',
   MethodologicalAlignment: 'methodological_alignment',
   ReferenceDownloader: 'reference_downloader',
@@ -3348,6 +3665,38 @@ export type WorkflowTypeDescription = {
    * Whether the workflow needs web search
    */
   needs_web_search: boolean;
+};
+
+/**
+ * CitationDetectionState
+ *
+ * State for citation detection workflow.
+ */
+export type CitationDetectionStateWritable = {
+  /**
+   * Errors
+   *
+   * Errors that occurred during the workflow execution.
+   */
+  errors?: Array<WorkflowError>;
+  /**
+   * Type
+   */
+  type?: 'citation_detection';
+  file: FileDocumentOutputWritable;
+  config: CitationDetectionConfig;
+  /**
+   * Chunks
+   */
+  chunks?: Array<DocumentChunk>;
+  /**
+   * References
+   */
+  references?: Array<BibliographyItem>;
+  /**
+   * Citations
+   */
+  citations?: Array<CitationResponseWithChunkIndexOutput>;
 };
 
 /**
@@ -3838,8 +4187,10 @@ export type WorkflowRunDetailWritable = {
   state:
     | DocumentProcessingStateWritable
     | ReferenceExtractionStateWritable
+    | ClaimExtractionState
     | ClaimSubstantiatorStateOutputWritable
     | ClaimReferenceValidationStateWritable
+    | CitationDetectionStateWritable
     | MethodologicalAlignmentStateWritable
     | ReferenceDownloaderState
     | DocxGenerationState
@@ -3967,6 +4318,8 @@ export type StartWorkflowApiWorkflowsStartPostData = {
   body:
     | DocumentProcessingWorkflowConfig
     | ReferenceExtractionConfig
+    | ClaimExtractionWorkflowConfig
+    | CitationDetectionConfig
     | SubstantiationWorkflowConfig
     | ClaimReferenceValidationWorkflowConfig
     | MethodologicalAlignmentWorkflowConfig

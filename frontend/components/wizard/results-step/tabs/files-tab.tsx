@@ -1,6 +1,5 @@
 'use client';
 
-import { useMemo, useState } from 'react';
 import { formatFileSize } from '@/components/analysis-form/utils';
 import { Button } from '@/components/ui/button';
 import {
@@ -12,21 +11,25 @@ import {
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { cn } from '@/lib/utils';
+import { useDownloadAllProjectFiles } from '@/hooks/use-download-all-project-files';
 import {
   BibliographyItem,
   File,
   FileRole,
   listProjectFilesEndpointApiProjectProjectIdFilesGet,
+  WorkflowRunDetail,
+  WorkflowRunType,
 } from '@/lib/generated-api';
+import { cn } from '@/lib/utils';
+import { getWorkflowRunByType } from '@/lib/workflow-state';
 import { useQuery } from '@tanstack/react-query';
 import { Download, FileText, HelpCircle, Loader2, MoreVerticalIcon, Pencil, Search, Trash2 } from 'lucide-react';
 import Link from 'next/link';
-import { useDownloadAllProjectFiles } from '@/hooks/use-download-all-project-files';
+import { useMemo, useState } from 'react';
 
 interface FilesTabProps {
   projectId: string;
-  references: BibliographyItem[];
+  allWorkflowDetails: WorkflowRunDetail[];
 }
 
 function FileTypeIcon({ fileType }: { fileType?: string | null }) {
@@ -86,8 +89,14 @@ function FileNameLink({ file }: { file: File }) {
   );
 }
 
-export function FilesTab({ projectId, references }: FilesTabProps) {
+export function FilesTab({ projectId, allWorkflowDetails }: FilesTabProps) {
   const [searchQuery, setSearchQuery] = useState('');
+
+  const referenceExtraction = getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.ReferenceExtraction);
+  const references = useMemo(
+    () => referenceExtraction?.state?.references || [],
+    [referenceExtraction?.state?.references],
+  );
 
   const { data: files } = useQuery({
     queryKey: ['files', projectId],
@@ -185,8 +194,7 @@ export function FilesTab({ projectId, references }: FilesTabProps) {
                       <HelpCircle className="size-3.5 text-muted-foreground cursor-help" />
                     </TooltipTrigger>
                     <TooltipContent className="max-w-xs">
-                      The bibliography entry from the main document that was automatically matched to this supporting
-                      file.
+                      The bibliography entry from the main document that was matched to this supporting file.
                     </TooltipContent>
                   </Tooltip>
                 </div>

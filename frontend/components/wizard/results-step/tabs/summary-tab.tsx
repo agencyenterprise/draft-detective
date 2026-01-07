@@ -1,17 +1,21 @@
 'use client';
 
-import { ClaimSubstantiatorStateOutput } from '@/lib/generated-api';
-import { WorkflowRunDetailTyped } from '@/lib/workflow-state';
+import { WorkflowRunDetail, WorkflowRunStatus, WorkflowRunType } from '@/lib/generated-api';
+import { getWorkflowRunByType } from '@/lib/workflow-state';
 import { SummaryCards } from '../components/summary-cards';
 import { useResultsCalculations } from '../hooks/use-results-calculations';
 
 interface SummaryTabProps {
-  workflowDetail: WorkflowRunDetailTyped<ClaimSubstantiatorStateOutput> | undefined;
-  isProcessing?: boolean;
+  allWorkflowDetails: WorkflowRunDetail[];
 }
 
-export function SummaryTab({ workflowDetail, isProcessing = false }: SummaryTabProps) {
-  const results = workflowDetail?.state;
+export function SummaryTab({ allWorkflowDetails }: SummaryTabProps) {
+  const documentProcessing = getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.DocumentProcessing);
+  const referenceExtraction = getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.ReferenceExtraction);
+  const claimExtraction = getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.ClaimExtraction);
+  const citationDetection = getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.CitationDetection);
+
+  const isProcessing = documentProcessing?.run.status !== WorkflowRunStatus.Completed;
 
   const {
     totalClaims,
@@ -21,11 +25,12 @@ export function SummaryTab({ workflowDetail, isProcessing = false }: SummaryTabP
     chunksWithClaims,
     chunksWithCitations,
     supportedReferences,
-  } = useResultsCalculations(results);
-
-  if (!results) {
-    return null;
-  }
+  } = useResultsCalculations(
+    documentProcessing?.state,
+    referenceExtraction?.state,
+    claimExtraction?.state,
+    citationDetection?.state,
+  );
 
   return (
     <div className="space-y-6">
@@ -53,7 +58,7 @@ export function SummaryTab({ workflowDetail, isProcessing = false }: SummaryTabP
           </div>
           <div>
             <span className="text-muted-foreground">Total references:</span>
-            <span className="ml-2 font-medium">{results.references?.length}</span>
+            <span className="ml-2 font-medium">{referenceExtraction?.state?.references?.length || 0}</span>
           </div>
           <div>
             <span className="text-muted-foreground">Supported references:</span>

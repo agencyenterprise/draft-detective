@@ -1,18 +1,19 @@
-from typing import List, Optional, Type
+from typing import List, Optional, Type, cast
 
 from langgraph.graph import StateGraph
 
-from lib.workflows.claim_substantiation.issue_converter import _find_chunk_index_by_text
-from lib.workflows.claim_substantiation.state import ClaimSubstantiatorState
+from lib.workflows.chunk_utils import find_chunk_index_by_text
+from lib.workflows.document_processing.state import DocumentProcessingState
 from lib.workflows.manifest import WorkflowManifest
 from lib.workflows.models import DocumentIssue, SeverityEnum, WorkflowRunType
+from lib.workflows.reference_extraction.state import ReferenceExtractionState
 from lib.workflows.reference_validation.graph import build_reference_validation_graph
 from lib.workflows.reference_validation.state import (
     ReferenceValidationState,
     ReferenceValidationWorkflowConfig,
 )
 from lib.workflows.types import WorkflowState
-from lib.workflows.util import get_state_by_type_or_raise
+from lib.workflows.util import get_state_by_type, get_state_by_type_or_raise
 
 
 class ReferenceValidationManifest(
@@ -22,7 +23,7 @@ class ReferenceValidationManifest(
     name = "Reference Validation"
     description = "Validate each reference from the document by checking if it has an online presence, using web search."
     needs_web_search = True
-    required_dependencies = [WorkflowRunType.CLAIM_SUBSTANTIATION]
+    required_dependencies = [WorkflowRunType.REFERENCE_EXTRACTION]
 
     def get_state_type(self) -> Type[ReferenceValidationState]:
         """Get the type of the workflow state."""
@@ -43,30 +44,37 @@ class ReferenceValidationManifest(
     ) -> ReferenceValidationState:
         """Create and return the initial state of the workflow."""
 
-        claim_state: ClaimSubstantiatorState = get_state_by_type_or_raise(
-            WorkflowRunType.CLAIM_SUBSTANTIATION,
-            existing_states,
+        ref_extraction_state = cast(
+            ReferenceExtractionState,
+            get_state_by_type_or_raise(
+                WorkflowRunType.REFERENCE_EXTRACTION,
+                existing_states,
+            ),
         )
 
         return ReferenceValidationState(
+            type=WorkflowRunType.REFERENCE_VALIDATION,
             config=config,
-            references=claim_state.references,
+            references=ref_extraction_state.references,
         )
 
     def convert_state_to_issues(
-        self, state: ReferenceValidationState, claim_state: ClaimSubstantiatorState
+        self, state: ReferenceValidationState, other_states: List[WorkflowState]
     ) -> List[DocumentIssue]:
         """Convert ReferenceValidationState to issues."""
         issues: List[DocumentIssue] = []
+
+        doc_state = get_state_by_type(WorkflowRunType.DOCUMENT_PROCESSING, other_states)
 
         # Reference Validation: Invalid references
         for validation in state.reference_validations:
             if not validation.valid_reference:
                 # Try to find chunk_index from claim_state if available
                 chunk_index: Optional[int] = None
-                if claim_state:
-                    chunk_index = _find_chunk_index_by_text(
-                        claim_state, validation.original_reference
+                if doc_state:
+                    doc_state_typed = cast(DocumentProcessingState, doc_state)
+                    chunk_index = find_chunk_index_by_text(
+                        doc_state_typed.chunks, validation.original_reference
                     )
 
                 issue = DocumentIssue(

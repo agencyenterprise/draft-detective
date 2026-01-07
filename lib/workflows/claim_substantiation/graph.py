@@ -1,8 +1,5 @@
-from langgraph.graph import START, StateGraph
+from langgraph.graph import StateGraph
 
-from lib.workflows.claim_substantiation.nodes.categorize_claims import categorize_claims
-from lib.workflows.claim_substantiation.nodes.detect_citations import detect_citations
-from lib.workflows.claim_substantiation.nodes.extract_claims import extract_claims
 from lib.workflows.claim_substantiation.state import (
     ClaimSubstantiatorState,
     SubstantiationWorkflowConfig,
@@ -29,25 +26,9 @@ def build_claim_substantiator_graph(
 
     graph = StateGraph(ClaimSubstantiatorState, context_schema=ContextSchema)
 
-    # Core nodes
-    graph.add_node("extract_claims", extract_claims)
-    graph.add_node("detect_citations", detect_citations)
-
-    # Fan out from START to run extract_claims and detect_citations in parallel
-    # Note: references are pre-extracted by REFERENCE_EXTRACTION workflow
-    graph.add_edge(START, "extract_claims")
-    graph.add_edge(START, "detect_citations")
-
-    # add categorization node
-    graph.add_node("categorize_claims", categorize_claims)
-
-    # Core edges
-    graph.add_edge("extract_claims", "categorize_claims")
-    graph.add_edge("detect_citations", "categorize_claims")
-
-    # Create a finalize node to wait for categorize_claims to complete
+    # Empty workflow - citations are detected by CITATION_DETECTION workflow
     graph.add_node("finalize", finalize)
-    graph.add_edge("categorize_claims", "finalize")
+    graph.set_entry_point("finalize")
     graph.set_finish_point("finalize")
 
     return graph

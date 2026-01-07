@@ -5,6 +5,12 @@ import { Card, CardContent } from '@/components/ui/card';
 import { useChunkHashNavigation } from '@/lib/chunk-ids';
 import { DocRenderMode } from '@/lib/constants';
 import { DocumentIssue, SeverityEnum, WorkflowRunDetail, WorkflowRunType } from '@/lib/generated-api';
+import {
+  getWorkflowErrors,
+  getWorkflowRunByType,
+  isAnyWorkflowProcessing,
+  isWorkflowProcessing,
+} from '@/lib/workflow-state';
 import { Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -14,36 +20,31 @@ import { DocumentIssuesList } from '../components/document-issues-list';
 import { DocumentReconstructor } from '../components/document-reconstructor';
 import { ErrorsCard } from '../components/errors-card';
 import { filterIssuesBySeverity, SeverityFilter } from '../components/severity-filter';
-import { getWorkflowRunByType } from '@/lib/workflow-state';
 
 interface DocumentExplorerTabProps {
   projectId: string;
   allWorkflowDetails: WorkflowRunDetail[];
   issues: DocumentIssue[];
-  isProcessing?: boolean;
   viewMode: DocRenderMode;
   readOnly?: boolean;
 }
 
 export function DocumentExplorerTab({
-  projectId,
   allWorkflowDetails,
   issues,
-  isProcessing = false,
   viewMode,
   readOnly = false,
 }: DocumentExplorerTabProps) {
-  const claimSubstantiatorDetail = useMemo(
-    () => getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.ClaimSubstantiation),
-    [allWorkflowDetails],
-  );
+  const documentProcessing = getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.DocumentProcessing);
+  const isDocumentProcessing = isWorkflowProcessing(documentProcessing);
+  const isAnyProcessing = isAnyWorkflowProcessing(allWorkflowDetails);
 
-  const results = claimSubstantiatorDetail?.state;
   const [selectedChunkIndex, setSelectedChunkIndex] = useState<number | null>(null);
   const [severityFilter, setSeverityFilter] = useState<SeverityEnum[]>([]);
   const sidebarRef = useRef<HTMLDivElement>(null);
 
-  const validChunkIndices = useMemo(() => results?.chunks?.map((c) => c.chunk_index), [results?.chunks]);
+  const chunks = useMemo(() => documentProcessing?.state?.chunks ?? [], [documentProcessing?.state?.chunks]);
+  const validChunkIndices = useMemo(() => chunks.map((c) => c.chunk_index), [chunks]);
   const handleHashSelect = useCallback((idx: number) => setSelectedChunkIndex(idx), []);
   useChunkHashNavigation(validChunkIndices, handleHashSelect);
 
@@ -57,33 +58,27 @@ export function DocumentExplorerTab({
     setSelectedChunkIndex((curr) => (curr === chunkIndex ? null : chunkIndex));
   }, []);
 
-  if (!results) {
-    return null;
-  }
+  const pages = documentProcessing?.state?.file?.docling_pages ?? [];
+  const chunkToItems = documentProcessing?.state?.chunk_to_items?.mapping ?? {};
+  const pageImagesBaseUrl = `/api/images/${documentProcessing?.run.id}`;
 
-  const pages = results.file?.docling_pages ?? [];
-  const chunkToItems = results.chunk_to_items?.mapping ?? {};
-
-  const pageImagesBaseUrl = `/api/images/${claimSubstantiatorDetail?.run.id}`;
-
-  const errors = results.errors || [];
-  const workflowErrors = errors.filter((error) => error.chunk_index === null || error.chunk_index === undefined);
-  const hasChunks = (results.chunks?.length || 0) > 0;
+  const workflowErrors = getWorkflowErrors(allWorkflowDetails);
+  const hasChunks = chunks.length > 0;
 
   // Check if docling view is available
   const isDoclingAvailable = Boolean(pages && pages.length > 0 && Object.keys(chunkToItems).length > 0);
 
-  const selectedChunk = results.chunks?.find((chunk) => chunk.chunk_index === selectedChunkIndex);
+  const selectedChunk = chunks.find((chunk) => chunk.chunk_index === selectedChunkIndex);
   const filteredIssues = filterIssuesBySeverity(issues, severityFilter);
 
-  if (isProcessing && !hasChunks) {
+  if (isDocumentProcessing && !hasChunks) {
     return (
       <div className="space-y-4">
         {workflowErrors.length > 0 && <ErrorsCard errors={workflowErrors} />}
         <div className="flex items-center justify-center py-12">
           <div className="text-center space-y-3">
             <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
-            <p className="text-sm text-muted-foreground">Breaking document into chunks...</p>
+            <p className="text-sm text-muted-foreground">Processing document(s)...</p>
           </div>
         </div>
       </div>
@@ -127,7 +122,7 @@ export function DocumentExplorerTab({
 
               return (
                 <DocumentReconstructor
-                  results={results}
+                  chunks={chunks}
                   issues={issues}
                   selectedChunkIndex={selectedChunkIndex}
                   onChunkSelect={handleChunkSelect}
@@ -138,7 +133,7 @@ export function DocumentExplorerTab({
         </div>
         <div ref={sidebarRef} className="col-span-5 bg-muted/50 p-4 rounded-lg text-sm overflow-y-auto">
           <div className="space-y-4 pb-8">
-            {isProcessing && (
+            {isAnyProcessing && (
               <Card>
                 <CardContent className="flex flex-col justify-center space-y-2 py-8 text-center items-center">
                   <Image
@@ -172,7 +167,7 @@ export function DocumentExplorerTab({
                   {issues.length > 0 && <SeverityFilter value={severityFilter} onChange={setSeverityFilter} />}
                   <AiGeneratedLabel />
                 </div>
-                {issues.length === 0 && !isProcessing && (
+                {issues.length === 0 && !isAnyProcessing && (
                   <div className="text-sm text-muted-foreground space-y-2">
                     <p>No issues found for this document.</p>
                     <p>You can still view detailled analysis for each chunk by selecting a chunk from the document.</p>
@@ -185,8 +180,6 @@ export function DocumentExplorerTab({
             {selectedChunk && selectedChunkIndex !== null && (
               <ChunkSidebarContent
                 chunkIndex={selectedChunkIndex}
-                projectId={projectId}
-                isWorkflowRunning={isProcessing}
                 onClearChunkSelection={() => setSelectedChunkIndex(null)}
                 allWorkflowDetails={allWorkflowDetails}
                 issues={issues}

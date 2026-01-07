@@ -84,8 +84,8 @@ async def start_analysis(
         logger.info(f"Saved {len(file_records)} files to database")
 
         # Determine which workflows to run
-        # Default to claim substantiation if no workflow_types specified
-        workflow_types = config.workflow_types or [WorkflowRunType.CLAIM_SUBSTANTIATION]
+        # Default to document processing if no workflow_types specified
+        workflow_types = config.workflow_types or [WorkflowRunType.DOCUMENT_PROCESSING]
 
         logger.info(
             f"Starting workflows: {[wt.value for wt in workflow_types]} for project {project.id}"
