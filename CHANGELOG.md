@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+
+## [v0.4.1] - 2026-01-07
+
+### Added
+- Introduced a new AI model for enhanced document classification, improving accuracy and processing speed.
+- Added support for batch document uploads, allowing users to review multiple documents simultaneously.
+
+### Changed
+- Updated the user interface for the document review dashboard to improve navigation and usability.
+- Enhanced the document search functionality with advanced filters and sorting options.
+
+### Fixed
+- Resolved an issue where document annotations were not saving correctly under certain conditions.
+- Fixed a bug causing occasional crashes during document upload.
+
+### Security
+- Implemented additional encryption measures for data at rest, enhancing overall data security.
+
+### Deprecated
+- Deprecated the legacy document export feature; users are encouraged to use the new export functionality for improved performance and compatibility.
+
 ## [v0.4.0] - 2026-01-07
 
 ### Added
