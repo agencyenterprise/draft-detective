@@ -6,6 +6,31 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v0.4.1] - 2026-01-07
+
+### Added
+- Introduced a new AI model for document classification, improving accuracy and processing speed.
+- Added support for importing and exporting documents in XML format.
+
+### Changed
+- Enhanced the user interface for better navigation and accessibility.
+- Updated the document comparison tool to provide more detailed change logs.
+
+### Fixed
+- Resolved an issue where the system would occasionally crash during large document uploads.
+- Fixed a bug that caused incorrect highlighting of changes in certain document formats.
+
+### Security
+- Implemented additional encryption for data at rest to enhance security compliance.
+- Updated authentication protocols to support multi-factor authentication.
+
+### Deprecated
+- Marked the legacy PDF parser as deprecated; it will be removed in a future release.
+
+### Removed
+- Removed the outdated tutorial videos from the help section, replaced with updated guides.
+
+
 ## [v0.4.0] - 2026-01-07
 
 ### Added
