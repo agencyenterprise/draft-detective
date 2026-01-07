@@ -6,6 +6,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v0.4.2] - 2026-01-07
+
+### Added
+- Introduced a new AI model for document classification, improving accuracy and speed.
+- Added support for batch processing of documents, allowing users to review multiple files simultaneously.
+- Implemented a user-friendly dashboard for monitoring document review progress and statistics.
+
+### Changed
+- Enhanced the user interface for better accessibility and navigation.
+- Updated the document annotation tool to support more file formats.
+
+### Fixed
+- Resolved an issue where the system would occasionally crash during large document uploads.
+- Fixed a bug causing incorrect tagging of certain document types.
+- Addressed a problem with the search functionality not returning all relevant results.
+
+### Security
+- Improved encryption protocols for data in transit, enhancing overall system security.
+- Patched a vulnerability related to user authentication, ensuring safer access controls.
+
+
 ## [v0.4.1] - 2026-01-07
 
 ### Added
