@@ -6,6 +6,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v0.4.3] - 2026-01-07
+
+### Added
+- Introduced AI-driven suggestion feature to enhance document review accuracy and efficiency.
+- Added support for importing documents directly from cloud storage services.
+
+### Changed
+- Improved user interface for document annotation, providing a more intuitive experience.
+- Enhanced performance of document loading times, reducing wait periods significantly.
+
+### Fixed
+- Resolved issue where certain document formats were not displaying correctly.
+- Fixed bug causing occasional crashes during batch processing of documents.
+
+### Security
+- Implemented enhanced encryption protocols for document storage, ensuring greater data protection.
+
+### Deprecated
+- Deprecated support for legacy document formats; users are encouraged to convert to supported formats for continued compatibility.
+
+
 ## [v0.4.2] - 2026-01-07
 
 ### Added
