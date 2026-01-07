@@ -37,9 +37,21 @@ function extractPRNumbers(commits) {
 }
 
 /**
+ * Generic error handler for sync operations
+ */
+function withErrorHandling(fn, errorMessage, defaultValue = null) {
+  try {
+    return fn();
+  } catch (error) {
+    console.error(`${errorMessage}: ${error.message}`);
+    return defaultValue;
+  }
+}
+
+/**
  * Generic error handler for async operations
  */
-async function withErrorHandling(fn, errorMessage, defaultValue = null) {
+async function withErrorHandlingAsync(fn, errorMessage, defaultValue = null) {
   try {
     return await fn();
   } catch (error) {
@@ -64,7 +76,7 @@ function getCommitsBetweenTags(fromTag, toTag) {
  * Fetch PR commits from GitHub API
  */
 async function fetchPRCommits(octokit, owner, repo, prNumber) {
-  return withErrorHandling(
+  return withErrorHandlingAsync(
     async () => {
       const { data: commits } = await octokit.rest.pulls.listCommits({
         owner,
@@ -83,7 +95,7 @@ async function fetchPRCommits(octokit, owner, repo, prNumber) {
  * Fetch PR details from GitHub API
  */
 async function fetchPRDetails(octokit, owner, repo, prNumber) {
-  return withErrorHandling(
+  return withErrorHandlingAsync(
     async () => {
       const { data: pr } = await octokit.rest.pulls.get({
         owner,

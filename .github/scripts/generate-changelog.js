@@ -118,11 +118,12 @@ async function generateChangelog(prsByLevel, version, apiKey) {
     console.log('');
   }
   
-  const OpenAI = require('openai');
-  const openai = new OpenAI({ apiKey });
-  
-  const response = await openai.chat.completions.create({
-    model: 'gpt-5.2',
+  try {
+    const OpenAI = require('openai');
+    const openai = new OpenAI({ apiKey });
+    
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o',
     messages: [
       {
         role: 'system',
@@ -137,13 +138,55 @@ async function generateChangelog(prsByLevel, version, apiKey) {
     max_tokens: 1500
   });
   
-  const changelog = response.choices[0].message.content.trim();
+    const changelog = response.choices[0].message.content.trim();
+    
+    console.log(`Changelog generated (${changelog.length} characters)`);
+    console.log(`Tokens used: ${response.usage.total_tokens}`);
+    console.log(`Estimated cost: $${(response.usage.total_tokens * 0.000005).toFixed(4)}`);
+    
+    return changelog;
+  } catch (error) {
+    console.error('Error calling OpenAI API:', error.message);
+    console.log('Falling back to basic changelog generation');
+    return generateFallbackChangelog(prsByLevel);
+  }
+}
+
+/**
+ * Fallback changelog generation (no AI)
+ */
+function generateFallbackChangelog(prsByLevel) {
+  const categories = {
+    Added: [],
+    Changed: [],
+    Fixed: []
+  };
   
-  console.log(`Changelog generated (${changelog.length} characters)`);
-  console.log(`Tokens used: ${response.usage.total_tokens}`);
-  console.log(`Estimated cost: $${(response.usage.total_tokens * 0.000005).toFixed(4)}`);
+  // Categorize PRs based on title keywords
+  for (const level of [1, 2, 3]) {
+    for (const pr of prsByLevel[level] || []) {
+      const title = pr.title.toLowerCase();
+      
+      if (title.includes('feat') || title.includes('add')) {
+        categories.Added.push(`- ${pr.title.replace(/^(feat|feature):\s*/i, '')}`);
+      } else if (title.includes('fix')) {
+        categories.Fixed.push(`- ${pr.title.replace(/^fix:\s*/i, '')}`);
+      } else {
+        categories.Changed.push(`- ${pr.title}`);
+      }
+    }
+  }
   
-  return changelog;
+  let changelog = '';
+  
+  for (const [category, items] of Object.entries(categories)) {
+    if (items.length > 0) {
+      changelog += `### ${category}\n\n`;
+      changelog += items.join('\n') + '\n\n';
+    }
+  }
+  
+  return changelog.trim();
 }
 
 /**
