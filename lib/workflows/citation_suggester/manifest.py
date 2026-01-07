@@ -1,14 +1,14 @@
-from typing import List, Set, Type
+from typing import List, Set, Type, cast
 
 from langgraph.graph import StateGraph
 
 from lib.agents.citation_suggester import RecommendedAction
+from lib.workflows.chunk_utils import build_analyzed_chunks
 from lib.workflows.citation_suggester.graph import build_citation_suggester_graph
 from lib.workflows.citation_suggester.state import (
     CitationSuggesterState,
     CitationSuggesterWorkflowConfig,
 )
-from lib.workflows.claim_substantiation.state import ClaimSubstantiatorState
 from lib.workflows.literature_review.state import LiteratureReviewState
 from lib.workflows.manifest import WorkflowManifest
 from lib.workflows.models import DocumentIssue, SeverityEnum, WorkflowRunType
@@ -24,7 +24,8 @@ class CitationSuggesterManifest(
     description = "Suggest citations for claims that need additional references. Uses the supporting files plus the literature review analysis results for suggestions, whatever is available."
     needs_web_search = False
     required_dependencies = [
-        WorkflowRunType.CLAIM_SUBSTANTIATION,
+        WorkflowRunType.CLAIM_EXTRACTION,
+        WorkflowRunType.CITATION_DETECTION,
     ]
     optional_dependencies = [
         WorkflowRunType.LITERATURE_REVIEW,
@@ -49,22 +50,46 @@ class CitationSuggesterManifest(
     ) -> CitationSuggesterState:
         """Create and return the initial state of the workflow."""
 
-        claim_workflow_state: ClaimSubstantiatorState = get_state_by_type_or_raise(
-            WorkflowRunType.CLAIM_SUBSTANTIATION, existing_states
+        from lib.workflows.document_processing.state import DocumentProcessingState
+        from lib.workflows.reference_extraction.state import ReferenceExtractionState
+
+        # Get document processing artifacts from dependency workflow
+        doc_processing_state = cast(
+            DocumentProcessingState,
+            get_state_by_type_or_raise(
+                WorkflowRunType.DOCUMENT_PROCESSING, existing_states
+            ),
+        )
+
+        # Get extracted references from reference extraction workflow
+        ref_extraction_state = cast(
+            ReferenceExtractionState,
+            get_state_by_type_or_raise(
+                WorkflowRunType.REFERENCE_EXTRACTION, existing_states
+            ),
         )
 
         # Get literature review if available (optional)
-        literature_review_state: LiteratureReviewState | None = get_state_by_type(
+        literature_review_state_raw = get_state_by_type(
             WorkflowRunType.LITERATURE_REVIEW, existing_states
         )
+        literature_review_state = (
+            cast(LiteratureReviewState, literature_review_state_raw)
+            if literature_review_state_raw is not None
+            else None
+        )
+
+        # Build analyzed chunks from existing states
+        chunks = build_analyzed_chunks(existing_states)
 
         return CitationSuggesterState(
+            type=WorkflowRunType.CITATION_SUGGESTER,
             config=config,
-            file=claim_workflow_state.file,
-            references=claim_workflow_state.references,
-            chunks=claim_workflow_state.chunks,
-            supporting_files=claim_workflow_state.supporting_files,
-            supporting_documents_summaries=claim_workflow_state.supporting_documents_summaries,
+            file=doc_processing_state.file,
+            references=ref_extraction_state.references,
+            chunks=chunks,
+            supporting_files=doc_processing_state.supporting_files,
+            supporting_documents_summaries=doc_processing_state.supporting_documents_summaries,
             literature_review=(
                 literature_review_state.literature_review
                 if literature_review_state
@@ -73,7 +98,7 @@ class CitationSuggesterManifest(
         )
 
     def convert_state_to_issues(
-        self, state: CitationSuggesterState, claim_state: ClaimSubstantiatorState
+        self, state: CitationSuggesterState, other_states: List[WorkflowState]
     ) -> List[DocumentIssue]:
         """Convert CitationSuggesterState to issues."""
         issues = []

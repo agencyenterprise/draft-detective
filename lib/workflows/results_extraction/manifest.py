@@ -2,7 +2,6 @@ from typing import List, Type
 
 from langgraph.graph import StateGraph
 
-from lib.workflows.claim_substantiation.state import ClaimSubstantiatorState
 from lib.workflows.document_processing.state import DocumentProcessingState
 from lib.workflows.manifest import WorkflowManifest
 from lib.workflows.models import DocumentIssue, WorkflowRunType
@@ -48,6 +47,6 @@ class ResultsExtractionManifest(
     def convert_state_to_issues(
         self,
         state: ResultsExtractionState,
-        claim_state: ClaimSubstantiatorState,
+        other_states: List[WorkflowState],
     ) -> List[DocumentIssue]:
         return []

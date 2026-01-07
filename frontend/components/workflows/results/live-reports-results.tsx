@@ -2,16 +2,17 @@ import { LabeledValue } from '@/components/labeled-value';
 import { Markdown } from '@/components/markdown';
 import { Callout } from '@/components/ui/callout';
 import { Card, CardContent } from '@/components/ui/card';
-import { LiveReportsState, WorkflowRunDetail } from '@/lib/generated-api';
+import { LiveReportsState, ProjectDetailed, WorkflowRunDetail } from '@/lib/generated-api';
 import { format } from 'date-fns';
 import { FileText } from 'lucide-react';
 import { PublicationDateLabel } from '@/components/wizard/results-step/components/publication-date-label';
 
 interface LiveReportsResultsProps {
+  project: ProjectDetailed;
   workflowDetail: WorkflowRunDetail;
 }
 
-export function LiveReportsResults({ workflowDetail }: LiveReportsResultsProps) {
+export function LiveReportsResults({ project, workflowDetail }: LiveReportsResultsProps) {
   const state = workflowDetail.state as LiveReportsState;
 
   if (!state) {
@@ -31,7 +32,7 @@ export function LiveReportsResults({ workflowDetail }: LiveReportsResultsProps) 
       <div className="space-y-1">
         <LabeledValue label="Title">{metadata.title}</LabeledValue>
         <LabeledValue label="Document publication date">
-          <PublicationDateLabel results={[workflowDetail]} />
+          <PublicationDateLabel project={project} />
         </LabeledValue>
         <LabeledValue label="Live report generation date">
           {format(new Date(metadata.date_generated), 'MMM dd, yyyy')}

@@ -2,7 +2,6 @@ from typing import List, Type
 
 from langgraph.graph import StateGraph
 
-from lib.workflows.claim_substantiation.state import ClaimSubstantiatorState
 from lib.workflows.manifest import WorkflowManifest
 from lib.workflows.models import DocumentIssue, WorkflowRunType
 from lib.workflows.reference_downloader.graph import build_reference_downloader_graph
@@ -21,7 +20,7 @@ class ReferenceDownloaderManifest(
     description = "Download references from the internet"
     needs_web_search = True
     can_be_triggered_by_user = False
-    optional_dependencies = [WorkflowRunType.CLAIM_SUBSTANTIATION]
+    optional_dependencies = []
 
     def get_state_type(self) -> Type[ReferenceDownloaderState]:
         """Get the type of the workflow state."""
@@ -41,12 +40,14 @@ class ReferenceDownloaderManifest(
         existing_states: List[WorkflowState],
     ) -> ReferenceDownloaderState:
         """Create and return the initial state of the workflow."""
-        return ReferenceDownloaderState(config=config)
+        return ReferenceDownloaderState(
+            type=WorkflowRunType.REFERENCE_DOWNLOADER, config=config
+        )
 
     def convert_state_to_issues(
         self,
         state: ReferenceDownloaderState,
-        claim_state: ClaimSubstantiatorState,
+        other_states: List[WorkflowState],
     ) -> List[DocumentIssue]:
         """Convert ReferenceDownloaderState to issues."""
         return []

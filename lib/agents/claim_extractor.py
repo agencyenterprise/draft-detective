@@ -35,6 +35,12 @@ class ClaimResponse(BaseModel):
     )
 
 
+class ClaimResponseWithChunkIndex(ClaimResponse):
+    chunk_index: int = Field(
+        description="The index of the chunk of text that contains the claim"
+    )
+
+
 _claim_extractor_prompt_claimify = ChatPromptTemplate.from_template(
     """
 ### Agent Setup and Terms

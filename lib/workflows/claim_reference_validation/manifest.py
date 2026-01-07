@@ -1,7 +1,8 @@
-from typing import List, Type
+from typing import List, Type, cast
 
 from langgraph.graph import StateGraph
 
+from lib.workflows.chunk_utils import build_analyzed_chunks, find_claim_category
 from lib.workflows.claim_reference_validation.graph import (
     build_claim_reference_validation_graph,
 )
@@ -9,11 +10,7 @@ from lib.workflows.claim_reference_validation.state import (
     ClaimReferenceValidationState,
     ClaimReferenceValidationWorkflowConfig,
 )
-from lib.workflows.claim_substantiation.issue_converter import _find_claim_category
-from lib.workflows.claim_substantiation.state import (
-    ClaimSubstantiatorState,
-    AnalyzedChunk,
-)
+from lib.workflows.claim_substantiation.state import AnalyzedChunk
 from lib.workflows.manifest import WorkflowManifest
 from lib.workflows.models import DocumentIssue, SeverityEnum, WorkflowRunType
 from lib.workflows.types import WorkflowState
@@ -29,7 +26,10 @@ class ClaimReferenceValidationManifest(
     name = "Claim Reference Validation"
     description = """Validate claims by checking them against supporting documents using RAG (Retrieval-Augmented Generation). Retrieves relevant passages from supporting documents and verifies whether claims are supported, partially supported, unsupported, or unverifiable."""
     needs_web_search = False
-    required_dependencies = [WorkflowRunType.CLAIM_SUBSTANTIATION]
+    required_dependencies = [
+        WorkflowRunType.CLAIM_EXTRACTION,
+        WorkflowRunType.CITATION_DETECTION,
+    ]
 
     def get_state_type(self) -> Type[ClaimReferenceValidationState]:
         """Get the type of the workflow state."""
@@ -50,32 +50,42 @@ class ClaimReferenceValidationManifest(
     ) -> ClaimReferenceValidationState:
         """Create and return the initial state of the workflow."""
 
-        claim_state: ClaimSubstantiatorState = get_state_by_type_or_raise(
-            WorkflowRunType.CLAIM_SUBSTANTIATION, existing_states
+        from lib.workflows.document_processing.state import DocumentProcessingState
+        from lib.workflows.reference_extraction.state import ReferenceExtractionState
+
+        # Get document processing artifacts from dependency workflow
+        doc_processing_state = cast(
+            DocumentProcessingState,
+            get_state_by_type_or_raise(
+                WorkflowRunType.DOCUMENT_PROCESSING, existing_states
+            ),
         )
 
-        # Carry over optional context from the claim workflow if not provided
-        if config.domain is None:
-            config.domain = claim_state.config.domain
-        if config.target_audience is None:
-            config.target_audience = claim_state.config.target_audience
-        if config.publication_date is None:
-            config.publication_date = claim_state.config.publication_date
+        # Get extracted references from reference extraction workflow
+        ref_extraction_state = cast(
+            ReferenceExtractionState,
+            get_state_by_type_or_raise(
+                WorkflowRunType.REFERENCE_EXTRACTION, existing_states
+            ),
+        )
+
+        # Build analyzed chunks from existing states
+        chunks = build_analyzed_chunks(existing_states)
 
         return ClaimReferenceValidationState(
             type=WorkflowRunType.CLAIM_REFERENCE_VALIDATION,
             config=config,
-            file=claim_state.file,
-            supporting_files=claim_state.supporting_files,
-            chunks=claim_state.chunks,
-            references=claim_state.references,
-            main_document_summary=claim_state.main_document_summary,
+            file=doc_processing_state.file,
+            supporting_files=doc_processing_state.supporting_files,
+            chunks=chunks,
+            references=ref_extraction_state.references,
+            main_document_summary=doc_processing_state.main_document_summary,
         )
 
     def convert_state_to_issues(
         self,
         state: ClaimReferenceValidationState,
-        claim_state: ClaimSubstantiatorState,
+        other_states: List[WorkflowState],
     ) -> List[DocumentIssue]:
         """Convert ClaimReferenceValidationState to issues."""
         from lib.agents.claim_verifier import EvidenceAlignmentLevel
@@ -99,7 +109,7 @@ class ClaimReferenceValidationManifest(
                     chunk_index=substantiation.chunk_index,
                     claim_index=substantiation.claim_index,
                     claim_category=(
-                        _find_claim_category(chunk, substantiation.claim_index)
+                        find_claim_category(chunk, substantiation.claim_index)
                         if chunk
                         else None
                     ),
@@ -123,7 +133,7 @@ class ClaimReferenceValidationManifest(
                     chunk_index=substantiation.chunk_index,
                     claim_index=substantiation.claim_index,
                     claim_category=(
-                        _find_claim_category(chunk, substantiation.claim_index)
+                        find_claim_category(chunk, substantiation.claim_index)
                         if chunk
                         else None
                     ),
@@ -146,7 +156,7 @@ class ClaimReferenceValidationManifest(
                     chunk_index=substantiation.chunk_index,
                     claim_index=substantiation.claim_index,
                     claim_category=(
-                        _find_claim_category(chunk, substantiation.claim_index)
+                        find_claim_category(chunk, substantiation.claim_index)
                         if chunk
                         else None
                     ),

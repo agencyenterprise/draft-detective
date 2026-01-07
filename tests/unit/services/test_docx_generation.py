@@ -14,7 +14,7 @@ from lib.workflows.models import DocumentIssue, SeverityEnum
 
 def convert_citation_suggester_state_issues(state: CitationSuggesterState):
     manifest = CitationSuggesterManifest()
-    return manifest.convert_state_to_issues(state, None)
+    return manifest.convert_state_to_issues(state, [])
 
 
 class TestIssueToComment:

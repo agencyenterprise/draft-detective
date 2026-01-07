@@ -25,8 +25,6 @@ from lib.services.projects import (
     get_user_projects,
     update_user_project,
 )
-from lib.services.workflow_runs import get_project_workflow_run_by_type
-from lib.workflows.models import WorkflowRunType
 
 router = APIRouter(tags=["projects"])
 logger = logging.getLogger(__name__)
@@ -126,21 +124,13 @@ async def download_project_docx(
     First request may take a few seconds as it generates the DOCX.
     Subsequent requests with the same share_token (or none) are instant.
     """
-    project_detail = await get_user_project_detailed(project_id, user=current_user)
 
-    claim_run = await get_project_workflow_run_by_type(
-        project_detail.project.id, WorkflowRunType.CLAIM_SUBSTANTIATION
-    )
-    if not claim_run:
-        raise HTTPException(
-            status_code=404, detail="Claim substantiation workflow not found"
-        )
+    project_detail = await get_user_project_detailed(project_id, user=current_user)
 
     try:
         # Get cached or generate DOCX via workflow (with caching)
         file_path, filename = await get_or_generate_docx(
-            claim_run_id=str(claim_run.id),
-            project_id=project_id,
+            project_id=str(project_detail.project.id),
             share_token=share_token,
             user=current_user,
         )

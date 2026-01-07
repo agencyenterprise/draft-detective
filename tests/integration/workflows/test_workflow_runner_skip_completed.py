@@ -91,7 +91,7 @@ async def test_skip_completed_dependencies(test_context):
     # Both dependencies completed → only start REFERENCE_VALIDATION
     mock_upsert, _ = await run_workflow_with_mocks(
         test_context,
-        [WorkflowRunType.DOCUMENT_PROCESSING, WorkflowRunType.CLAIM_SUBSTANTIATION],
+        [WorkflowRunType.DOCUMENT_PROCESSING, WorkflowRunType.REFERENCE_EXTRACTION],
     )
 
     assert mock_upsert.call_count == 1
@@ -108,7 +108,7 @@ async def test_start_all_when_none_completed(test_context):
     started_types = {call.kwargs["type"] for call in mock_upsert.call_args_list}
     assert started_types == {
         WorkflowRunType.DOCUMENT_PROCESSING,
-        WorkflowRunType.CLAIM_SUBSTANTIATION,
+        WorkflowRunType.REFERENCE_EXTRACTION,
         WorkflowRunType.REFERENCE_VALIDATION,
     }
 
@@ -124,22 +124,25 @@ async def test_partial_completion(test_context):
     assert mock_upsert.call_count == 2
     started_types = {call.kwargs["type"] for call in mock_upsert.call_args_list}
     assert WorkflowRunType.DOCUMENT_PROCESSING not in started_types
-    assert WorkflowRunType.CLAIM_SUBSTANTIATION in started_types
+    assert WorkflowRunType.REFERENCE_EXTRACTION in started_types
     assert WorkflowRunType.REFERENCE_VALIDATION in started_types
 
 
 @pytest.mark.asyncio
-async def test_skip_all_when_all_completed(test_context):
-    """Test that no workflows start when all are completed."""
-    # All workflows completed → start nothing
+async def test_requested_workflow_is_started_even_if_completed(test_context):
+    """Test that requested workflows are started even if completed, but dependencies are skipped."""
+    # All workflows completed → only start REFERENCE_VALIDATION (requested workflow)
+    # Dependencies are skipped because they're not in the requested list
     mock_upsert, mock_create_config = await run_workflow_with_mocks(
         test_context,
         [
             WorkflowRunType.DOCUMENT_PROCESSING,
-            WorkflowRunType.CLAIM_SUBSTANTIATION,
+            WorkflowRunType.REFERENCE_EXTRACTION,
             WorkflowRunType.REFERENCE_VALIDATION,
         ],
     )
 
-    assert mock_upsert.call_count == 0
-    assert mock_create_config.call_count == 0
+    # Requested workflow is started even if completed (allows re-running)
+    assert mock_upsert.call_count == 1
+    assert mock_upsert.call_args.kwargs["type"] == WorkflowRunType.REFERENCE_VALIDATION
+    assert mock_create_config.call_count == 1

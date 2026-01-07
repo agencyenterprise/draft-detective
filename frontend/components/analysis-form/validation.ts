@@ -32,11 +32,6 @@ export function validateAnalysisForm(
     errors.fields.openaiApiKey = 'OpenAI API Key is required';
   }
 
-  // Validate that at least one workflow type is selected
-  if (!value.workflowTypes || value.workflowTypes.length === 0) {
-    errors.fields.workflowTypes = 'At least one analysis type must be selected';
-  }
-
   // Validate web search consent if any selected workflow type requires it
   if (workflowTypes && value.workflowTypes) {
     const needsWebSearch = value.workflowTypes.some(

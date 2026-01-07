@@ -2,22 +2,19 @@
 
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { analysisService } from '@/lib/analysis-service';
 import { DocRenderMode } from '@/lib/constants';
-import { downloadFile, generateEvalFilename } from '@/lib/file-download';
 import { ProjectDetailed, WorkflowRunType } from '@/lib/generated-api';
 import { getWorkflowRunByType } from '@/lib/workflow-state';
+import { useState } from 'react';
 import { Card, CardContent } from '../../ui/card';
 import { AnalysisOptionsMenu } from './components/analysis-options-menu';
 import { ViewModeToggle } from './components/view-mode-toggle';
 import { TabType } from './constants';
 import { AnalysesTab, FilesTab, ReferencesTab, SummaryTab } from './tabs';
 import { DocumentExplorerTab } from './tabs/document-explorer-tab';
-import { useState } from 'react';
 
 interface ResultsVisualizationProps {
   projectDetail: ProjectDetailed;
-  isProcessing?: boolean;
   viewMode: DocRenderMode;
   onViewModeChange: (mode: DocRenderMode) => void;
   /** When true, hides edit/action controls (for shared view) */
@@ -26,7 +23,6 @@ interface ResultsVisualizationProps {
 
 export function ResultsVisualization({
   projectDetail,
-  isProcessing = false,
   viewMode,
   onViewModeChange,
   readOnly = false,
@@ -34,50 +30,24 @@ export function ResultsVisualization({
   const projectId = projectDetail.project.id;
   const results = projectDetail.workflow_runs ?? [];
 
-  const claimSubstantiationResults = getWorkflowRunByType(results, WorkflowRunType.ClaimSubstantiation);
-  const referenceValidationResults = getWorkflowRunByType(results, WorkflowRunType.ReferenceValidation);
-  const claimSubstantiationStateSummary = claimSubstantiationResults?.state;
+  const documentProcessing = getWorkflowRunByType(results, WorkflowRunType.DocumentProcessing);
+  const referenceExtraction = getWorkflowRunByType(results, WorkflowRunType.ReferenceExtraction);
   const [activeTab, setActiveTab] = useState<TabType>('document-explorer');
-
-  const handleSaveAsEvalTest = async () => {
-    if (!claimSubstantiationStateSummary) return;
-
-    try {
-      const testName = `eval_${Date.now()}`;
-      const description = `Generated from analysis results on ${new Date().toLocaleDateString()}`;
-
-      const blob = await analysisService.generateEvalPackage(claimSubstantiationStateSummary, testName, description);
-
-      const filename = generateEvalFilename(testName);
-      downloadFile({ filename, blob });
-    } catch (error) {
-      console.error('Failed to generate eval test package:', error);
-    }
-  };
 
   const renderActiveTab = () => {
     switch (activeTab) {
       case 'summary':
-        return <SummaryTab workflowDetail={claimSubstantiationResults} isProcessing={isProcessing} />;
+        return <SummaryTab allWorkflowDetails={results} />;
       case 'references':
-        return (
-          <ReferencesTab
-            workflowDetail={claimSubstantiationResults}
-            referenceValidationDetail={referenceValidationResults}
-            projectId={projectId}
-            isProcessing={isProcessing}
-            readOnly={readOnly}
-          />
-        );
+        return <ReferencesTab projectId={projectId} allWorkflowDetails={results} readOnly={readOnly} />;
       case 'files':
-        return <FilesTab projectId={projectId} references={claimSubstantiationResults?.state?.references || []} />;
+        return <FilesTab projectId={projectId} allWorkflowDetails={results} />;
       case 'document-explorer':
         return (
           <DocumentExplorerTab
             projectId={projectId}
             allWorkflowDetails={results}
             issues={projectDetail.issues ?? []}
-            isProcessing={isProcessing}
             viewMode={viewMode}
             readOnly={readOnly}
           />
@@ -95,7 +65,7 @@ export function ResultsVisualization({
   };
 
   const isDoclingAvailable = !!(
-    claimSubstantiationStateSummary?.file?.docling_pages && claimSubstantiationStateSummary?.chunk_to_items?.mapping
+    documentProcessing?.state?.file?.docling_pages && documentProcessing?.state?.chunk_to_items?.mapping
   );
 
   return (
@@ -112,7 +82,7 @@ export function ResultsVisualization({
             <TabsTrigger value="references">
               References{' '}
               <Badge className="rounded-full h-4.5 min-w-4.5" variant="secondary">
-                {claimSubstantiationResults?.state?.references?.length || 0}
+                {referenceExtraction?.state?.references?.length || 0}
               </Badge>
             </TabsTrigger>
             <TabsTrigger value="files">
@@ -138,12 +108,7 @@ export function ResultsVisualization({
               isDoclingAvailable={isDoclingAvailable}
             />
           )}
-          <AnalysisOptionsMenu
-            onSaveAsEvalTest={handleSaveAsEvalTest}
-            project={projectDetail.project}
-            results={results}
-            readOnly={readOnly}
-          />
+          <AnalysisOptionsMenu project={projectDetail.project} results={results} readOnly={readOnly} />
         </div>
       </div>
 

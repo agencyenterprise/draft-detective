@@ -2,7 +2,6 @@ from typing import List, Type
 
 from langgraph.graph import StateGraph
 
-from lib.workflows.claim_substantiation.state import ClaimSubstantiatorState
 from lib.workflows.docx_generation.graph import build_docx_generation_graph
 from lib.workflows.docx_generation.state import (
     DocxGenerationState,
@@ -21,7 +20,7 @@ class DocxGenerationManifest(
     description = "Generate a DOCX file with comments from workflow analysis results"
     needs_web_search = False
     is_internal = True
-    required_dependencies = [WorkflowRunType.CLAIM_SUBSTANTIATION]
+    required_dependencies = [WorkflowRunType.DOCUMENT_PROCESSING]
 
     def get_state_type(self) -> Type[DocxGenerationState]:
         """Get the type of the workflow state."""
@@ -44,7 +43,7 @@ class DocxGenerationManifest(
         return DocxGenerationState(config=config)
 
     def convert_state_to_issues(
-        self, state: DocxGenerationState, claim_state: ClaimSubstantiatorState
+        self, state: DocxGenerationState, other_states: List[WorkflowState]
     ) -> List[DocumentIssue]:
         # DOCX generation doesn't produce issues directly, but uses issues from other workflows
         return []

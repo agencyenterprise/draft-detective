@@ -5,14 +5,13 @@ import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { useForm } from '@tanstack/react-form';
 import { Loader2, Play } from 'lucide-react';
 import { Button } from '../ui/button';
+import { CheckboxWithDescription } from '../ui/checkbox-with-description';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { AnalysisFormData, AnalysisFormValues } from './types';
 import { UploadSection } from './upload-section';
 import { validateAnalysisForm } from './validation';
 import { WorkflowTypeCheckbox } from './workflow-type-checkbox';
-import { WorkflowRunType } from '@/lib/generated-api';
-import { CheckboxWithDescription } from '../ui/checkbox-with-description';
 
 export interface AnalysisFormProps {
   onSubmit: (data: AnalysisFormData) => void;
@@ -36,7 +35,7 @@ export function AnalysisForm({ onSubmit, isPending = false }: AnalysisFormProps)
       openaiApiKey: openaiApiKey,
       mainDocument: null,
       supportingDocuments: [],
-      workflowTypes: [WorkflowRunType.ClaimSubstantiation],
+      workflowTypes: [],
     } as AnalysisFormValues,
     validators: {
       onChange: ({ value }) => validateAnalysisForm(value, hideOpenaiApiKeyInput, workflowTypes),
@@ -129,7 +128,6 @@ export function AnalysisForm({ onSubmit, isPending = false }: AnalysisFormProps)
             Select which types of analyses to perform. Analyses can also be triggered later on, after the project is
             created
           </p>
-          <p className="text-sm text-muted-foreground font-medium"> (Note: Claim Substantiation is always performed)</p>
         </div>
         <form.Field name="workflowTypes">
           {(field) => (
@@ -146,7 +144,7 @@ export function AnalysisForm({ onSubmit, isPending = false }: AnalysisFormProps)
                         : field.state.value.filter((id) => id !== workflowType.type),
                     )
                   }
-                  disabled={isPending || workflowType.type === WorkflowRunType.ClaimSubstantiation}
+                  disabled={isPending}
                 />
               ))}
               {!workflowTypes && <p className="text-sm text-muted-foreground">Loading available workflows...</p>}

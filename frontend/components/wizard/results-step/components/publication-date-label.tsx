@@ -1,46 +1,24 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { LiveReportsState, LiteratureReviewState, WorkflowRunDetail } from '@/lib/generated-api';
+import { ProjectDetailed, WorkflowRunType } from '@/lib/generated-api';
+import { getWorkflowRunByType } from '@/lib/workflow-state';
 import { format } from 'date-fns';
 
 export interface PublicationDateLabelProps {
-  results: WorkflowRunDetail[];
+  project: ProjectDetailed;
   prefix?: string;
   suffix?: string;
 }
 
-export function PublicationDateLabel({ results, prefix, suffix }: PublicationDateLabelProps) {
+export function PublicationDateLabel({ project, prefix, suffix }: PublicationDateLabelProps) {
   // Extract user-informed publication date from workflow config
-  const userInformedPublicationDate = results
-    ?.map((result) => {
-      const state = result.state;
-      if (!state) {
-        return undefined;
-      }
-      // Check if state has config with document_publication_date
-      if ('config' in state && state.config && 'document_publication_date' in state.config) {
-        const config = state.config as LiveReportsState['config'] | LiteratureReviewState['config'];
-        return config.document_publication_date;
-      }
-      return undefined;
-    })
-    .find((date) => date !== undefined);
+  const userInformedPublicationDate = project.project.publication_date;
 
   // Extract publication date from main_document_summary as fallback
-  const extractedPublicationDate = results
-    ?.map((result) => {
-      const state = result.state;
-      if (!state) {
-        return undefined;
-      }
-      if ('main_document_summary' in state && state.main_document_summary?.publication_date) {
-        return state.main_document_summary.publication_date;
-      }
-      return undefined;
-    })
-    .find((date) => date !== undefined && date !== 'Unknown');
+  const documentProcessing = getWorkflowRunByType(project.workflow_runs ?? [], WorkflowRunType.DocumentProcessing);
+  const extractedPublicationDate = documentProcessing?.state?.main_document_summary?.publication_date;
 
   const value = userInformedPublicationDate
-    ? { date: format(new Date(userInformedPublicationDate), 'MMM d, yyyy'), source: 'user-informed' as const }
+    ? { date: format(userInformedPublicationDate, 'MMM d, yyyy'), source: 'user-informed' as const }
     : extractedPublicationDate && extractedPublicationDate !== 'Unknown'
       ? { date: extractedPublicationDate, source: 'extracted' as const }
       : undefined;

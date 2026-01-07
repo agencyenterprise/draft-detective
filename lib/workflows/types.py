@@ -1,6 +1,14 @@
+from lib.workflows.citation_detection.state import (
+    CitationDetectionConfig,
+    CitationDetectionState,
+)
 from lib.workflows.citation_suggester.state import (
     CitationSuggesterState,
     CitationSuggesterWorkflowConfig,
+)
+from lib.workflows.claim_extraction.state import (
+    ClaimExtractionState,
+    ClaimExtractionWorkflowConfig,
 )
 from lib.workflows.claim_reference_validation.state import (
     ClaimReferenceValidationState,
@@ -51,8 +59,10 @@ from lib.workflows.results_extraction.state import (
 WorkflowState = (
     DocumentProcessingState
     | ReferenceExtractionState
+    | ClaimExtractionState
     | ClaimSubstantiatorState
     | ClaimReferenceValidationState
+    | CitationDetectionState
     | MethodologicalAlignmentState
     | ReferenceDownloaderState
     | DocxGenerationState
@@ -67,6 +77,8 @@ WorkflowState = (
 WorkflowConfig = (
     DocumentProcessingWorkflowConfig
     | ReferenceExtractionConfig
+    | ClaimExtractionWorkflowConfig
+    | CitationDetectionConfig
     | SubstantiationWorkflowConfig
     | ClaimReferenceValidationWorkflowConfig
     | MethodologicalAlignmentWorkflowConfig

@@ -2,9 +2,9 @@ from typing import Annotated, Dict, List, Literal, Optional
 
 from pydantic import Field
 
-from lib.agents.citation_detector import CitationResponse
+from lib.agents.citation_detector import CitationResponseWithChunkIndex
 from lib.agents.claim_categorizer import ClaimCategorizationResponseWithClaimIndex
-from lib.agents.claim_extractor import ClaimResponse
+from lib.agents.claim_extractor import ClaimResponse, ClaimResponseWithChunkIndex
 from lib.agents.document_summarizer import DocumentSummary
 from lib.agents.models import ChunkWithIndex
 from lib.models.bibliography_item import BibliographyItem
@@ -39,8 +39,8 @@ class AnalyzedChunk(ChunkWithIndex):
     categorization, substantiation, and inference validation results.
     """
 
-    claims: Optional[ClaimResponse] = None
-    citations: Optional[CitationResponse] = None
+    claims: Optional[ClaimResponseWithChunkIndex] = None
+    citations: Optional[CitationResponseWithChunkIndex] = None
     claim_categories: List[ClaimCategorizationResponseWithClaimIndex] = []
 
 

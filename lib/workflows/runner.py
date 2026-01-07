@@ -134,10 +134,9 @@ async def run_workflow(
                     type=workflow_type,
                 )
 
-                # Update the project title if this is a claim substantiation workflow
-                # TODO: remove this after we refactor the project creation flow
+                # Update the project title if this is a document processing workflow
                 if (
-                    workflow_type == WorkflowRunType.CLAIM_SUBSTANTIATION
+                    workflow_type == WorkflowRunType.DOCUMENT_PROCESSING
                     and updated_state.main_document_summary
                     and updated_state.main_document_summary.title
                 ):

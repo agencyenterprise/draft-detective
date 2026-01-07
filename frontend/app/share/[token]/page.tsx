@@ -1,6 +1,5 @@
 'use client';
 
-import { TabType } from '@/components/wizard/results-step/constants';
 import { ResultsVisualization } from '@/components/wizard/results-step/results-visualization';
 import { ShareProvider } from '@/context/share-context';
 import { DocRenderMode } from '@/lib/constants';
@@ -60,13 +59,7 @@ export default function SharedProjectPage() {
         </div>
 
         <div className="max-w-7xl mx-auto px-4 py-6">
-          <ResultsVisualization
-            projectDetail={data}
-            isProcessing={false}
-            viewMode={viewMode}
-            onViewModeChange={setViewMode}
-            readOnly
-          />
+          <ResultsVisualization projectDetail={data} viewMode={viewMode} onViewModeChange={setViewMode} readOnly />
         </div>
       </div>
     </ShareProvider>

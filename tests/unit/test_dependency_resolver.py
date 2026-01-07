@@ -25,39 +25,39 @@ def test_empty_and_simple_cases():
 
 def test_transitive_dependencies():
     """Test that all transitive dependencies are resolved in correct order."""
-    # REFERENCE_VALIDATION -> CLAIM_SUBSTANTIATION -> DOCUMENT_PROCESSING
+    # REFERENCE_VALIDATION -> REFERENCE_EXTRACTION -> DOCUMENT_PROCESSING
     result = resolve_workflow_dependencies([WorkflowRunType.REFERENCE_VALIDATION])
 
     assert set(result) == {
         WorkflowRunType.DOCUMENT_PROCESSING,
-        WorkflowRunType.CLAIM_SUBSTANTIATION,
+        WorkflowRunType.REFERENCE_EXTRACTION,
         WorkflowRunType.REFERENCE_VALIDATION,
     }
     assert_order(
         result,
         WorkflowRunType.DOCUMENT_PROCESSING,
-        WorkflowRunType.CLAIM_SUBSTANTIATION,
+        WorkflowRunType.REFERENCE_EXTRACTION,
         WorkflowRunType.REFERENCE_VALIDATION,
     )
 
 
 def test_shared_dependencies():
     """Test that shared dependencies are not duplicated."""
-    # REFERENCE_VALIDATION and LITERATURE_REVIEW both depend on CLAIM_SUBSTANTIATION
+    # REFERENCE_VALIDATION and LITERATURE_REVIEW both depend on REFERENCE_EXTRACTION
     result = resolve_workflow_dependencies(
         [WorkflowRunType.REFERENCE_VALIDATION, WorkflowRunType.LITERATURE_REVIEW]
     )
 
     # No duplicates
     assert len(result) == len(set(result))
-    assert result.count(WorkflowRunType.CLAIM_SUBSTANTIATION) == 1
+    assert result.count(WorkflowRunType.REFERENCE_EXTRACTION) == 1
     assert result.count(WorkflowRunType.DOCUMENT_PROCESSING) == 1
 
     # Shared dependencies come first
     assert_order(
         result,
         WorkflowRunType.DOCUMENT_PROCESSING,
-        WorkflowRunType.CLAIM_SUBSTANTIATION,
+        WorkflowRunType.REFERENCE_EXTRACTION,
     )
 
 
@@ -66,7 +66,7 @@ def test_optional_dependencies_excluded():
     # CITATION_SUGGESTER optionally depends on LITERATURE_REVIEW
     result = resolve_workflow_dependencies([WorkflowRunType.CITATION_SUGGESTER])
 
-    assert WorkflowRunType.CLAIM_SUBSTANTIATION in result
+    assert WorkflowRunType.CLAIM_EXTRACTION in result
     assert WorkflowRunType.LITERATURE_REVIEW not in result
 
 
@@ -89,11 +89,11 @@ def test_circular_dependency_detection():
     original_get_manifest = get_workflow_manifest
 
     def mock_get_manifest(workflow_type):
-        # Create artificial cycle: DOCUMENT_PROCESSING -> CLAIM_SUBSTANTIATION -> DOCUMENT_PROCESSING
+        # Create artificial cycle: DOCUMENT_PROCESSING -> REFERENCE_EXTRACTION -> DOCUMENT_PROCESSING
         if workflow_type == WorkflowRunType.DOCUMENT_PROCESSING:
 
             class MockManifest:
-                required_dependencies = [WorkflowRunType.CLAIM_SUBSTANTIATION]
+                required_dependencies = [WorkflowRunType.REFERENCE_EXTRACTION]
 
             return MockManifest()
         return original_get_manifest(workflow_type)

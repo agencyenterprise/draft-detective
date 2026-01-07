@@ -14,6 +14,7 @@ import { ResultsExtractorResults } from '@/components/workflows/results/results-
 import { StartWorkflowButton } from '@/components/workflows/start-workflow-button';
 import { WorkflowConfigDialog, WorkflowConfigFormValues } from '@/components/workflows/workflow-config-dialog';
 import {
+  ProjectDetailed,
   WorkflowRunDetail,
   WorkflowRunType,
   startMultipleWorkflowsApiWorkflowsStartMultiplePost,
@@ -36,6 +37,7 @@ interface AnalysesTabProps {
 }
 
 function renderWorkflowResults(
+  project: ProjectDetailed,
   workflowRun: WorkflowRunDetail,
   onNavigateToDocumentExplorer?: () => void,
   onNavigateToReferences?: () => void,
@@ -51,7 +53,7 @@ function renderWorkflowResults(
     case WorkflowRunType.MethodologicalAlignment:
       return <MethodologicalAlignmentResults workflowDetail={workflowRun} />;
     case WorkflowRunType.LiveReports:
-      return <LiveReportsResults workflowDetail={workflowRun} />;
+      return <LiveReportsResults project={project} workflowDetail={workflowRun} />;
     case WorkflowRunType.LiteratureReview:
       return <LiteratureReviewResults workflowDetail={workflowRun} />;
     case WorkflowRunType.CitationSuggester:
@@ -109,7 +111,7 @@ function renderWorkflowResults(
 }
 
 export function AnalysesTab({ projectId, onNavigateToDocumentExplorer, onNavigateToReferences }: AnalysesTabProps) {
-  const { workflowDetails, isLoading } = useProjectDetails(projectId);
+  const { project, workflowDetails, isLoading } = useProjectDetails(projectId);
   const [selectedWorkflowRunId, setSelectedWorkflowRunId] = useState<string | null>(null);
   const [isConfigDialogOpen, setIsConfigDialogOpen] = useState(false);
   const queryClient = useQueryClient();
@@ -139,14 +141,6 @@ export function AnalysesTab({ projectId, onNavigateToDocumentExplorer, onNavigat
     return (
       <div className="p-4">
         <p className="text-muted-foreground">Loading analyses...</p>
-      </div>
-    );
-  }
-
-  if (!workflowDetails || workflowDetails.length === 0) {
-    return (
-      <div className="p-4">
-        <p className="text-muted-foreground">No analyses found for this project.</p>
       </div>
     );
   }
@@ -226,9 +220,6 @@ export function AnalysesTab({ projectId, onNavigateToDocumentExplorer, onNavigat
                         type: selectedWorkflowRun.run.type as any,
                         project_id: projectId,
                         openai_api_key: values.openaiApiKey || null,
-                        document_publication_date: values.publicationDate
-                          ? new Date(values.publicationDate)
-                          : undefined,
                       },
                     });
                   }}
@@ -248,11 +239,16 @@ export function AnalysesTab({ projectId, onNavigateToDocumentExplorer, onNavigat
               {selectedWorkflowRun.state?.errors && selectedWorkflowRun.state.errors.length > 0 && (
                 <ErrorsCard errors={selectedWorkflowRun.state.errors} />
               )}
-              {renderWorkflowResults(selectedWorkflowRun, onNavigateToDocumentExplorer, onNavigateToReferences)}
+              {renderWorkflowResults(
+                project!,
+                selectedWorkflowRun,
+                onNavigateToDocumentExplorer,
+                onNavigateToReferences,
+              )}
             </div>
           </div>
         ) : (
-          <div className="flex items-center justify-center h-full">
+          <div className="flex items-center justify-center h-32">
             <p className="text-muted-foreground flex items-center gap-2">
               Select an analysis to view its results or{' '}
               <Button size="xs" variant="default" onClick={handleStartNewAnalysis}>

@@ -3,28 +3,25 @@
 import { LabeledValue } from '@/components/labeled-value';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { humanizeLabel } from '@/components/workflows/results/literature-review/utils';
 import { StartWorkflowButton } from '@/components/workflows/start-workflow-button';
 import { WorkflowConfigFormValues } from '@/components/workflows/workflow-config-dialog';
 import {
   BibliographyItem,
   BibliographyItemValidation,
-  ClaimSubstantiatorStateOutput,
   FileDocumentOutput,
-  ReferenceValidationState,
   startWorkflowApiWorkflowsStartPost,
+  WorkflowRunDetail,
   WorkflowRunType,
 } from '@/lib/generated-api';
-import { WorkflowRunDetailTyped } from '@/lib/workflow-state';
+import { getWorkflowRunByType, isWorkflowProcessing } from '@/lib/workflow-state';
 import { ChevronDownIcon, ChevronRightIcon, FileText } from 'lucide-react';
 import * as React from 'react';
 import { TabWithLoadingStates } from './tab-with-loading-states';
-import { humanizeLabel } from '@/components/workflows/results/literature-review/utils';
 
 interface ReferencesTabProps {
-  workflowDetail: WorkflowRunDetailTyped<ClaimSubstantiatorStateOutput> | undefined;
-  referenceValidationDetail: WorkflowRunDetailTyped<ReferenceValidationState> | undefined;
+  allWorkflowDetails: WorkflowRunDetail[];
   projectId: string;
-  isProcessing?: boolean;
   readOnly?: boolean;
 }
 
@@ -153,15 +150,14 @@ function ReferenceItem({ reference, validation, supportingFiles }: ReferenceItem
   );
 }
 
-export function ReferencesTab({
-  workflowDetail,
-  referenceValidationDetail,
-  projectId,
-  isProcessing = false,
-  readOnly = false,
-}: ReferencesTabProps) {
-  const results = workflowDetail?.state;
-  const referenceValidationResults = referenceValidationDetail?.state;
+export function ReferencesTab({ allWorkflowDetails, projectId, readOnly = false }: ReferencesTabProps) {
+  const documentProcessing = getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.DocumentProcessing);
+  const referenceValidation = getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.ReferenceValidation);
+  const referenceExtraction = getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.ReferenceExtraction);
+
+  const documentProcessingResults = documentProcessing?.state;
+  const referencesResults = referenceExtraction?.state;
+  const referenceValidationResults = referenceValidation?.state;
 
   const handleStartWorkflow = async (values: WorkflowConfigFormValues) => {
     return await startWorkflowApiWorkflowsStartPost({
@@ -188,24 +184,21 @@ export function ReferencesTab({
     return map;
   }, [referenceValidationResults?.reference_validations]);
 
-  if (!results) {
-    return null;
-  }
-
   return (
     <TabWithLoadingStates
-      title={`References (${results.references?.length || 0})`}
-      data={results.references}
-      isProcessing={isProcessing}
+      title={`References (${referencesResults?.references?.length || 0})`}
+      data={referencesResults?.references}
+      isProcessing={isWorkflowProcessing(referenceExtraction)}
       hasData={(references) => (references?.length || 0) > 0}
       loadingMessage={{
-        title: 'Extracting bibliography...',
+        title: 'Extracting references...',
         description: 'Identifying references in the document',
       }}
       emptyMessage={{
         icon: <FileText className="h-12 w-12 text-muted-foreground" />,
-        title: 'No references found',
-        description: "This document doesn't contain a bibliography or reference section",
+        title: 'No references extracted',
+        description:
+          "This document doesn't contain a bibliography or reference section or reference extraction was not run yet",
       }}
       skeletonType="list"
       skeletonCount={5}
@@ -214,7 +207,7 @@ export function ReferencesTab({
           <StartWorkflowButton
             type={WorkflowRunType.ReferenceValidation}
             projectId={projectId}
-            workflow={referenceValidationDetail?.run}
+            workflow={referenceValidation?.run}
             onConfirm={handleStartWorkflow}
           />
         )
@@ -227,7 +220,7 @@ export function ReferencesTab({
               key={index}
               reference={reference}
               validation={validationMap.get(reference.text)}
-              supportingFiles={results.supporting_files}
+              supportingFiles={documentProcessingResults?.supporting_files}
             />
           ))}
         </div>

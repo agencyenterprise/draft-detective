@@ -1,5 +1,7 @@
 import {
+  CitationDetectionState,
   CitationSuggesterState,
+  ClaimExtractionState,
   ClaimReferenceValidationState,
   ClaimSubstantiatorStateOutput,
   DocumentProcessingState,
@@ -11,8 +13,11 @@ import {
   ReferenceDownloaderState,
   ReferenceExtractionState,
   ReferenceValidationState,
+  ResultsExtractionState,
+  WorkflowError,
   WorkflowRun,
   WorkflowRunDetail,
+  WorkflowRunStatus,
   WorkflowRunType,
 } from './generated-api';
 
@@ -32,6 +37,9 @@ type WorkflowTypeToDetail = {
   [WorkflowRunType.LiveReports]: LiveReportsState;
   [WorkflowRunType.ReferenceValidation]: ReferenceValidationState;
   [WorkflowRunType.CitationSuggester]: CitationSuggesterState;
+  [WorkflowRunType.ResultsExtraction]: ResultsExtractionState;
+  [WorkflowRunType.ClaimExtraction]: ClaimExtractionState;
+  [WorkflowRunType.CitationDetection]: CitationDetectionState;
 };
 
 export interface WorkflowRunDetailTyped<T> {
@@ -58,7 +66,7 @@ export function getWorkflowRunByType<T extends keyof WorkflowTypeToDetail>(
 const workflowTypeNames: Record<WorkflowRunType, string> = {
   [WorkflowRunType.DocumentProcessing]: 'Document Processing',
   [WorkflowRunType.ReferenceExtraction]: 'Reference Extraction',
-  [WorkflowRunType.ClaimSubstantiation]: 'Claim Substantiation',
+  [WorkflowRunType.ClaimSubstantiation]: 'Claim Substantiation (deprecated)',
   [WorkflowRunType.ClaimReferenceValidation]: 'Claim Reference Validation',
   [WorkflowRunType.MethodologicalAlignment]: 'Methodological Alignment',
   [WorkflowRunType.ReferenceDownloader]: 'Reference Downloader',
@@ -69,8 +77,31 @@ const workflowTypeNames: Record<WorkflowRunType, string> = {
   [WorkflowRunType.ReferenceValidation]: 'Reference Validation',
   [WorkflowRunType.CitationSuggester]: 'Citation Suggester',
   [WorkflowRunType.ResultsExtraction]: 'Results Extraction',
+  [WorkflowRunType.ClaimExtraction]: 'Claim Extraction',
+  [WorkflowRunType.CitationDetection]: 'Citation Detection',
 };
 
 export function getWorkflowTypeName(type: WorkflowRunType): string {
   return workflowTypeNames[type] || type;
+}
+
+export function getWorkflowErrors(workflowRuns: WorkflowRunDetail[]): WorkflowError[] {
+  return workflowRuns
+    .flatMap((result) => result?.state?.errors ?? [])
+    .filter((error) => error.chunk_index === null || error.chunk_index === undefined);
+}
+
+export function getChunkErrors(workflowRuns: WorkflowRunDetail[], chunkIndex: number): WorkflowError[] {
+  return workflowRuns
+    .flatMap((result) => result?.state?.errors ?? [])
+    .filter((error) => error.chunk_index === chunkIndex);
+}
+
+export function isWorkflowProcessing(workflowRun: WorkflowRunDetail | undefined): boolean {
+  if (!workflowRun) return false;
+  return workflowRun.run.status === WorkflowRunStatus.Running || workflowRun.run.status === WorkflowRunStatus.Pending;
+}
+
+export function isAnyWorkflowProcessing(workflowRuns: WorkflowRunDetail[]): boolean {
+  return workflowRuns.some((workflowRun) => isWorkflowProcessing(workflowRun));
 }

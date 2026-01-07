@@ -1,9 +1,9 @@
-from typing import List, Type
+from typing import List, Type, cast
 
 from langgraph.graph import StateGraph
 
 from lib.agents.evidence_weighter import EvidenceWeighterRecommendedAction
-from lib.workflows.claim_substantiation.state import ClaimSubstantiatorState
+from lib.workflows.chunk_utils import build_analyzed_chunks
 from lib.workflows.live_reports.graph import build_live_reports_graph
 from lib.workflows.live_reports.state import LiveReportsState, LiveReportsWorkflowConfig
 from lib.workflows.manifest import WorkflowManifest
@@ -19,7 +19,10 @@ class LiveReportsManifest(
     name = "Live Reports"
     description = "Analyze claims for updates based on references published after the document date. Performs web search to find new relevant literature, looking only for literature published after the document publication date."
     needs_web_search = True
-    required_dependencies = [WorkflowRunType.CLAIM_SUBSTANTIATION]
+    required_dependencies = [
+        WorkflowRunType.CLAIM_EXTRACTION,
+        WorkflowRunType.CITATION_DETECTION,
+    ]
 
     def get_state_type(self) -> Type[LiveReportsState]:
         """Get the type of the workflow state."""
@@ -39,26 +42,40 @@ class LiveReportsManifest(
         existing_states: List[WorkflowState],
     ) -> LiveReportsState:
         """Create and return the initial state of the workflow."""
-        claim_state: ClaimSubstantiatorState = get_state_by_type_or_raise(
-            WorkflowRunType.CLAIM_SUBSTANTIATION, existing_states
+
+        from lib.workflows.document_processing.state import DocumentProcessingState
+        from lib.workflows.reference_extraction.state import ReferenceExtractionState
+
+        # Get document processing artifacts from dependency workflow
+        doc_processing_state = cast(
+            DocumentProcessingState,
+            get_state_by_type_or_raise(
+                WorkflowRunType.DOCUMENT_PROCESSING, existing_states
+            ),
         )
 
-        # Carry over optional context from the claim workflow if not provided
-        if config.domain is None:
-            config.domain = claim_state.config.domain
-        if config.target_audience is None:
-            config.target_audience = claim_state.config.target_audience
+        # Get extracted references from reference extraction workflow
+        ref_extraction_state = cast(
+            ReferenceExtractionState,
+            get_state_by_type_or_raise(
+                WorkflowRunType.REFERENCE_EXTRACTION, existing_states
+            ),
+        )
+
+        # Build analyzed chunks from existing states
+        chunks = build_analyzed_chunks(existing_states)
 
         return LiveReportsState(
+            type=WorkflowRunType.LIVE_REPORTS,
             config=config,
-            file=claim_state.file,
-            references=claim_state.references,
-            chunks=claim_state.chunks,
-            main_document_summary=claim_state.main_document_summary,
+            file=doc_processing_state.file,
+            references=ref_extraction_state.references,
+            chunks=chunks,
+            main_document_summary=doc_processing_state.main_document_summary,
         )
 
     def convert_state_to_issues(
-        self, state: LiveReportsState, claim_state: ClaimSubstantiatorState
+        self, state: LiveReportsState, other_states: List[WorkflowState]
     ) -> List[DocumentIssue]:
         """Convert LiveReportsState to issues."""
         issues: List[DocumentIssue] = []
