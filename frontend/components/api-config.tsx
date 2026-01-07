@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { client } from '@/lib/generated-api/client.gen';
 import { useSession } from 'next-auth/react';
 import { baseUrl } from '@/lib/api';
+import { posthog } from '@/lib/posthog';
 
 export function ApiConfig() {
   const session = useSession();
@@ -29,6 +30,17 @@ export function ApiConfig() {
 
     return () => clearInterval(interval);
   }, [session]);
+
+  useEffect(() => {
+    if (session.status === 'authenticated' && session.data?.user?.email) {
+      posthog.identify(session.data.user.email, {
+        email: session.data.user.email,
+        name: session.data.user.name,
+      });
+    } else if (session.status === 'unauthenticated') {
+      posthog.reset();
+    }
+  }, [session.status, session.data?.user?.email, session.data?.user?.name]);
 
   return null;
 }
