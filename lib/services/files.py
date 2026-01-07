@@ -3,10 +3,10 @@ import logging
 import os
 import uuid
 import zipfile
-from typing import List, Optional, Tuple
+from typing import List, Optional, Sequence, Tuple
 
 from fastapi import HTTPException
-from sqlalchemy import or_
+from sqlalchemy import or_, func
 from sqlalchemy.orm import Session
 
 from lib.config.database import get_db
@@ -27,7 +27,9 @@ def _normalize_uuid(value: uuid.UUID | str, field_name: str) -> uuid.UUID:
     try:
         return uuid.UUID(value)
     except (ValueError, AttributeError, TypeError):
-        raise HTTPException(status_code=400, detail=f"Invalid {field_name} format")
+        raise HTTPException(
+            status_code=400, detail=f"Invalid {field_name} format: {value}"
+        )
 
 
 async def create_file_record(
@@ -113,6 +115,16 @@ async def get_files_by_project_id(project_id: uuid.UUID | str) -> List[File]:
         return files
 
 
+async def get_files_count_by_project_id(project_id: uuid.UUID | str) -> int:
+    """
+    Get the number of files by project ID.
+    """
+    project_id = _normalize_uuid(project_id, "project ID")
+    with get_db() as db:
+        count = db.query(func.count()).filter(File.project_id == project_id).scalar()
+        return count
+
+
 async def load_file_document(file: File) -> FileDocument:
     """
     Convert File model to FileDocument with markdown loaded.
@@ -177,11 +189,19 @@ async def check_file_access(file_id: uuid.UUID | str, user_id: uuid.UUID) -> Fil
         return file
 
 
-def delete_project_files(project_id: uuid.UUID | str) -> None:
+def delete_project_files(
+    project_id: uuid.UUID | str,
+    target_file_ids: Sequence[uuid.UUID | str] | None = None,
+) -> None:
     """
     Delete all files for a project from the database and remove disk files
     only when they are not referenced by other projects.
+
+    Args:
+        project_id: UUID of the project to delete files for
+        target_file_ids: Optional list of file IDs to delete. If not provided, all files for the project will be deleted.
     """
+
     normalized_project_id = _normalize_uuid(project_id, "project ID")
 
     with get_db() as db:
@@ -190,6 +210,9 @@ def delete_project_files(project_id: uuid.UUID | str) -> None:
         )
 
         for file in project_files:
+            if target_file_ids is not None and file.id not in target_file_ids:
+                continue
+
             if not _is_path_shared(db, file.file_path, normalized_project_id):
                 _delete_file_from_disk(file.file_path)
 
@@ -276,7 +299,7 @@ async def create_project_files_zip(
 
             try:
                 # Add file to zip using original filename
-                zip_file.write(file.file_path, file.file_name)
+                zip_file.write(file.file_path, f"{str(file.id)[:4]}_{file.file_name}")
                 files_added += 1
             except Exception as e:
                 # Log error but continue with other files

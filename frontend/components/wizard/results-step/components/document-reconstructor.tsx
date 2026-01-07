@@ -1,5 +1,5 @@
 import { Markdown } from '@/components/markdown';
-import type { ClaimSubstantiatorStateSummary, DocumentChunkOutput } from '@/lib/generated-api';
+import type { DocumentChunk, DocumentIssue } from '@/lib/generated-api';
 import { getMaxChunkSeverity } from '@/lib/severity';
 import { cn } from '@/lib/utils';
 import { useVirtualizer } from '@tanstack/react-virtual';
@@ -8,14 +8,19 @@ import rehypeRaw from 'rehype-raw';
 import { detectBlockSyntax, extractChunkContent } from '../document-reconstruction-utils';
 
 interface DocumentReconstructorProps {
-  results: ClaimSubstantiatorStateSummary;
+  chunks: DocumentChunk[];
+  issues: DocumentIssue[];
   selectedChunkIndex: number | null;
   onChunkSelect: (chunkIndex: number | null) => void;
 }
 
-export function DocumentReconstructor({ results, selectedChunkIndex, onChunkSelect }: DocumentReconstructorProps) {
+export function DocumentReconstructor({
+  chunks,
+  issues,
+  selectedChunkIndex,
+  onChunkSelect,
+}: DocumentReconstructorProps) {
   const parentRef = useRef<HTMLDivElement>(null);
-  const chunks = useMemo(() => results.chunks || [], [results.chunks]);
 
   // Group chunks by paragraph
   const chunksGroupedByParagraphIndex = useMemo(() => {
@@ -25,7 +30,7 @@ export function DocumentReconstructor({ results, selectedChunkIndex, onChunkSele
         acc[chunk.paragraph_index].push(chunk);
         return acc;
       },
-      {} as Record<number, DocumentChunkOutput[]>,
+      {} as Record<number, DocumentChunk[]>,
     );
   }, [chunks]);
 
@@ -98,14 +103,12 @@ export function DocumentReconstructor({ results, selectedChunkIndex, onChunkSele
                 transform: `translateY(${virtualRow.start}px)`,
               }}
             >
-              <div className="pb-2">
-                <DocumentReconstructorChunkGroup
-                  chunks={paragraphChunks}
-                  results={results}
-                  selectedChunkIndex={selectedChunkIndex}
-                  onChunkSelect={onChunkSelect}
-                />
-              </div>
+              <DocumentReconstructorChunkGroup
+                chunks={paragraphChunks}
+                issues={issues}
+                selectedChunkIndex={selectedChunkIndex}
+                onChunkSelect={onChunkSelect}
+              />
             </div>
           );
         })}
@@ -116,12 +119,12 @@ export function DocumentReconstructor({ results, selectedChunkIndex, onChunkSele
 
 export function DocumentReconstructorChunkGroup({
   chunks,
-  results,
+  issues,
   selectedChunkIndex,
   onChunkSelect,
 }: {
-  chunks: DocumentChunkOutput[];
-  results: ClaimSubstantiatorStateSummary;
+  chunks: DocumentChunk[];
+  issues: DocumentIssue[];
   selectedChunkIndex: number | null;
   onChunkSelect: (chunkIndex: number | null) => void;
 }) {
@@ -139,14 +142,14 @@ export function DocumentReconstructorChunkGroup({
     const wrappedChunks = chunks
       .map((chunk) => {
         const content = extractChunkContent(chunk.content, blockPrefix);
-        const severity = getMaxChunkSeverity(results, chunk);
+        const severity = getMaxChunkSeverity(issues, chunk);
         return `<span data-chunk-index="${chunk.chunk_index}" data-severity="${severity}">${content}</span>`;
       })
       .join(' ');
 
     // Reconstruct markdown with block-level syntax from first chunk
     return blockPrefix ? `${blockPrefix}${wrappedChunks}` : wrappedChunks;
-  }, [chunks, results]);
+  }, [chunks, issues]);
 
   useEffect(() => {
     if (!containerRef.current) {

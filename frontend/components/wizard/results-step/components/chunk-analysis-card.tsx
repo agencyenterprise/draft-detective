@@ -4,30 +4,56 @@ import { LabeledValue } from '@/components/labeled-value';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { getChunkId } from '@/lib/chunk-ids';
-import { ClaimSubstantiatorStateSummary, DocumentChunkOutput } from '@/lib/generated-api';
+import { DocumentIssue, WorkflowRunDetail, WorkflowRunType } from '@/lib/generated-api';
 import { getChunkIssues, getMaxSeverity } from '@/lib/severity';
+import { getWorkflowRunByType } from '@/lib/workflow-state';
 import { ChevronDownIcon, ChevronRightIcon, LinkIcon, MessageCirclePlus } from 'lucide-react';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { AnalysisResultCard } from './analysis-result-card';
 import { DocumentIssueCardMinimal } from './document-issue-card';
 import { ExpandableResultSection } from './expandable-result-section';
 
 export interface ChunkAnalysisCardProps {
-  results: ClaimSubstantiatorStateSummary;
-  chunk: DocumentChunkOutput;
+  chunkIndex: number;
+  issues: DocumentIssue[];
+  allWorkflowDetails: WorkflowRunDetail[];
 }
 
-export function ChunkAnalysisCard({ results, chunk }: ChunkAnalysisCardProps) {
+export function ChunkAnalysisCard({ chunkIndex, issues, allWorkflowDetails }: ChunkAnalysisCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const references = results?.references || [];
-  const supportingFiles = results?.supporting_files || [];
-  const citationsWithBibliography = chunk.citations?.citations?.filter((citation) => citation.associated_bibliography);
-  const chunkIssues = getChunkIssues(results, chunk.chunk_index);
+
+  const claimExtractionDetail = useMemo(
+    () => getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.ClaimExtraction),
+    [allWorkflowDetails],
+  );
+  const documentProcessingDetail = useMemo(
+    () => getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.DocumentProcessing),
+    [allWorkflowDetails],
+  );
+  const referenceExtractionDetail = useMemo(
+    () => getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.ReferenceExtraction),
+    [allWorkflowDetails],
+  );
+  const citationDetectionDetail = useMemo(
+    () => getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.CitationDetection),
+    [allWorkflowDetails],
+  );
+
+  const chunkClaims = claimExtractionDetail?.state?.claims?.find((c) => c.chunk_index === chunkIndex);
+  const references = referenceExtractionDetail?.state?.references || [];
+  const supportingFiles = documentProcessingDetail?.state?.supporting_files || [];
+  const citations =
+    citationDetectionDetail?.state?.citations
+      ?.filter((citation) => citation.chunk_index === chunkIndex)
+      .flatMap((citation) => citation.citations ?? []) ?? [];
+  const citationsWithBibliography = citations.filter((citation) => citation.associated_bibliography);
+
+  const chunkIssues = getChunkIssues(issues, chunkIndex);
   const maxSeverity = getMaxSeverity(chunkIssues);
 
   return (
-    <AnalysisResultCard id={getChunkId(chunk.chunk_index)} title="Chunk Analysis" severity={maxSeverity}>
+    <AnalysisResultCard id={getChunkId(chunkIndex)} title="Chunk Analysis" severity={maxSeverity}>
       {!chunkIssues.length && <p className="text-muted-foreground">No issues found for this chunk.</p>}
 
       {chunkIssues.map((issue, issueIndex) => (
@@ -52,7 +78,7 @@ export function ChunkAnalysisCard({ results, chunk }: ChunkAnalysisCardProps) {
                 </h3>
               }
             >
-              <p>{chunk.claims?.rationale}</p>
+              <p>{chunkClaims?.rationale}</p>
             </ExpandableResultSection>
 
             <ExpandableResultSection
@@ -66,9 +92,9 @@ export function ChunkAnalysisCard({ results, chunk }: ChunkAnalysisCardProps) {
                 </div>
               }
             >
-              {chunk.citations?.citations?.length === 0 && <p className="text-muted-foreground">No citations found</p>}
+              {citations.length === 0 && <p className="text-muted-foreground">No citations found</p>}
 
-              {chunk.citations?.citations?.map((citation, index) => {
+              {citations.map((citation, index) => {
                 const matchedReference = citation.index_of_associated_bibliography
                   ? references[citation.index_of_associated_bibliography - 1]
                   : null;

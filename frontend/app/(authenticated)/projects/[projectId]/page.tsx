@@ -2,11 +2,9 @@
 
 import { EditableTitle } from '@/components/ui/editable-title';
 import { PublicationDateLabel } from '@/components/wizard/results-step/components/publication-date-label';
-import { TabType } from '@/components/wizard/results-step/constants';
 import { ResultsVisualization } from '@/components/wizard/results-step/results-visualization';
-import { updateProjectEndpointApiProjectProjectIdPatch } from '@/lib/generated-api';
 import { DocRenderMode } from '@/lib/constants';
-import { ProjectDetailed, WorkflowRunType } from '@/lib/generated-api';
+import { ProjectDetailed, updateProjectEndpointApiProjectProjectIdPatch, WorkflowRunType } from '@/lib/generated-api';
 import { useProjectDetails } from '@/lib/hooks/use-project-details';
 import { getWorkflowRunByType } from '@/lib/workflow-state';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -20,10 +18,9 @@ export default function ResultsPage() {
   const projectId = params.projectId as string;
   const queryClient = useQueryClient();
 
-  const [activeTab, setActiveTab] = useState<TabType>('document-explorer');
   const [viewMode, setViewMode] = useState<DocRenderMode>('markdown');
 
-  const { project, workflowDetails, isProcessing, isLoading, error } = useProjectDetails(projectId);
+  const { project, workflowDetails, isProcessing, isLoading, error } = useProjectDetails(projectId, true);
 
   const updateTitleMutation = useMutation({
     mutationFn: async (newTitle: string) => {
@@ -91,10 +88,8 @@ export default function ResultsPage() {
     return null;
   }
 
-  const claimSubstantiationResults = getWorkflowRunByType(workflowDetails, WorkflowRunType.ClaimSubstantiation);
-  const claimSubstantiationStateSummary = claimSubstantiationResults?.state;
-
-  const authors = claimSubstantiationStateSummary?.main_document_summary?.authors;
+  const documentProcessing = getWorkflowRunByType(workflowDetails, WorkflowRunType.DocumentProcessing);
+  const authors = documentProcessing?.state?.main_document_summary?.authors;
 
   return (
     <div className="space-y-3">
@@ -108,21 +103,13 @@ export default function ResultsPage() {
           />
           <h2 className="text-muted-foreground text-sm">
             {authors && <span>{authors} — </span>}
-            <PublicationDateLabel results={claimSubstantiationStateSummary} prefix="Published" suffix=" — " />
+            <PublicationDateLabel project={project} prefix="Published" suffix=" — " />
             <span>Project created on {format(project.project.created_at || new Date(), 'MMM d, yyyy')}</span>
           </h2>
         </hgroup>
       </div>
 
-      <ResultsVisualization
-        projectId={projectId}
-        results={workflowDetails}
-        isProcessing={isProcessing}
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-      />
+      <ResultsVisualization projectDetail={project} viewMode={viewMode} onViewModeChange={setViewMode} />
     </div>
   );
 }

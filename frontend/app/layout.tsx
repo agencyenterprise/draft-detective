@@ -6,6 +6,7 @@ import { Toaster } from '@/components/ui/sonner';
 import { VersionBadge } from '@/components/version-badge';
 import { SessionProvider } from 'next-auth/react';
 import { ApiConfig } from '@/components/api-config';
+import { PostHogProvider } from '@/lib/posthog';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -31,14 +32,16 @@ export default function RootLayout({
   return (
     <html lang="en" className="h-full">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased h-full`}>
-        <SessionProvider>
-          <QueryProvider>
-            <ApiConfig />
-            {children}
-            <Toaster />
-            <VersionBadge />
-          </QueryProvider>
-        </SessionProvider>
+        <PostHogProvider>
+          <SessionProvider>
+            <QueryProvider>
+              <ApiConfig />
+              {children}
+              <Toaster />
+              <VersionBadge />
+            </QueryProvider>
+          </SessionProvider>
+        </PostHogProvider>
       </body>
     </html>
   );

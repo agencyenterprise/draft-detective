@@ -1,168 +1,105 @@
 'use client';
 
-import { Dialog } from '@/components/ui/dialog';
-import { analysisService } from '@/lib/analysis-service';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DocRenderMode } from '@/lib/constants';
-import { downloadFile, generateEvalFilename } from '@/lib/file-download';
-import {
-  rerunAnalysisEndpointApiRerunAnalysisPost,
-  RerunAnalysisRequest,
-  WorkflowRunDetail,
-  WorkflowRunType,
-} from '@/lib/generated-api';
+import { ProjectDetailed, WorkflowRunType } from '@/lib/generated-api';
 import { getWorkflowRunByType } from '@/lib/workflow-state';
-import { useMutation } from '@tanstack/react-query';
 import { useState } from 'react';
-import { toast } from 'sonner';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../ui/card';
-import { TabNavigation } from './components';
+import { Card, CardContent } from '../../ui/card';
 import { AnalysisOptionsMenu } from './components/analysis-options-menu';
-import { ReevaluationDialogContent, ReevaluationFormValues } from './components/reevaluation-dialog-content';
 import { ViewModeToggle } from './components/view-mode-toggle';
 import { TabType } from './constants';
-import {
-  FilesTab,
-  LiteratureReviewTab,
-  LiveReportsTab,
-  MethodologicalAlignmentTab,
-  ReferencesTab,
-  SummaryTab,
-} from './tabs';
+import { AnalysesTab, FilesTab, ReferencesTab, SummaryTab } from './tabs';
 import { DocumentExplorerTab } from './tabs/document-explorer-tab';
 
 interface ResultsVisualizationProps {
-  projectId: string;
-  results: WorkflowRunDetail[];
-  isProcessing?: boolean;
+  projectDetail: ProjectDetailed;
   viewMode: DocRenderMode;
   onViewModeChange: (mode: DocRenderMode) => void;
-  activeTab: TabType;
-  onTabChange: (tab: TabType) => void;
   /** When true, hides edit/action controls (for shared view) */
   readOnly?: boolean;
 }
 
 export function ResultsVisualization({
-  projectId,
-  results,
-  isProcessing = false,
+  projectDetail,
   viewMode,
   onViewModeChange,
-  activeTab,
-  onTabChange,
   readOnly = false,
 }: ResultsVisualizationProps) {
-  const claimSubstantiationResults = getWorkflowRunByType(results, WorkflowRunType.ClaimSubstantiation);
-  const methodologicalAlignmentResults = getWorkflowRunByType(results, WorkflowRunType.MethodologicalAlignment);
-  const claimSubstantiationStateSummary = claimSubstantiationResults?.state;
+  const projectId = projectDetail.project.id;
+  const results = projectDetail.workflow_runs ?? [];
 
-  const [isReevaluationDialogOpen, setIsReevaluationDialogOpen] = useState(false);
-
-  const reevaluateMutation = useMutation({
-    mutationFn: async (request: RerunAnalysisRequest) => {
-      return await rerunAnalysisEndpointApiRerunAnalysisPost({
-        body: request,
-      });
-    },
-    onSuccess: (_data, variables, context, { client }) => {
-      setIsReevaluationDialogOpen(false);
-
-      // Invalidate queries to show loading state
-      client.invalidateQueries({
-        queryKey: ['chunkDetails'],
-      });
-      client.invalidateQueries({
-        queryKey: ['project', variables.project_id],
-      });
-    },
-    onError: (error) => {
-      console.error('Re-evaluation failed:', error);
-      toast.error(error instanceof Error ? error.message : 'Re-evaluation failed');
-    },
-  });
-
-  const handleSaveAsEvalTest = async () => {
-    if (!claimSubstantiationStateSummary) return;
-
-    try {
-      const testName = `eval_${Date.now()}`;
-      const description = `Generated from analysis results on ${new Date().toLocaleDateString()}`;
-
-      const blob = await analysisService.generateEvalPackage(claimSubstantiationStateSummary, testName, description);
-
-      const filename = generateEvalFilename(testName);
-      downloadFile({ filename, blob });
-    } catch (error) {
-      console.error('Failed to generate eval test package:', error);
-    }
-  };
-
-  const handleReevaluate = (values: ReevaluationFormValues) => {
-    if (!claimSubstantiationStateSummary) return;
-
-    reevaluateMutation.mutate({
-      project_id: projectId,
-      config: {
-        ...claimSubstantiationStateSummary?.config,
-        target_chunk_indices: values.targetChunkIndices,
-        agents_to_run: values.selectedAgents,
-        openai_api_key: values.openaiApiKey,
-      },
-    });
-  };
-
-  if (!claimSubstantiationStateSummary) {
-    return (
-      <Card className="max-w-4xl mx-auto">
-        <CardHeader>
-          <CardTitle>No Results Available</CardTitle>
-          <CardDescription>No analysis results to display</CardDescription>
-        </CardHeader>
-      </Card>
-    );
-  }
+  const documentProcessing = getWorkflowRunByType(results, WorkflowRunType.DocumentProcessing);
+  const referenceExtraction = getWorkflowRunByType(results, WorkflowRunType.ReferenceExtraction);
+  const [activeTab, setActiveTab] = useState<TabType>('document-explorer');
 
   const renderActiveTab = () => {
     switch (activeTab) {
       case 'summary':
-        return <SummaryTab workflowDetail={claimSubstantiationResults} isProcessing={isProcessing} />;
+        return <SummaryTab allWorkflowDetails={results} />;
       case 'references':
-        return <ReferencesTab workflowDetail={claimSubstantiationResults} isProcessing={isProcessing} />;
-      case 'literature_review':
-        return <LiteratureReviewTab workflowDetail={claimSubstantiationResults} isProcessing={isProcessing} />;
-      case 'live_reports':
-        return <LiveReportsTab workflowDetail={claimSubstantiationResults} isProcessing={isProcessing} />;
+        return <ReferencesTab projectId={projectId} allWorkflowDetails={results} readOnly={readOnly} />;
       case 'files':
-        return <FilesTab projectId={projectId} />;
+        return <FilesTab projectId={projectId} allWorkflowDetails={results} />;
       case 'document-explorer':
         return (
           <DocumentExplorerTab
             projectId={projectId}
-            workflowDetail={claimSubstantiationResults}
-            isProcessing={isProcessing}
+            allWorkflowDetails={results}
+            issues={projectDetail.issues ?? []}
             viewMode={viewMode}
             readOnly={readOnly}
           />
         );
-      case 'methodological_alignment':
+      case 'analyses':
         return (
-          <MethodologicalAlignmentTab
-            results={methodologicalAlignmentResults}
+          <AnalysesTab
             projectId={projectId}
             readOnly={readOnly}
+            onNavigateToDocumentExplorer={() => setActiveTab('document-explorer')}
+            onNavigateToReferences={() => setActiveTab('references')}
           />
         );
     }
   };
 
   const isDoclingAvailable = !!(
-    claimSubstantiationStateSummary?.file?.docling_pages && claimSubstantiationStateSummary?.chunk_to_items?.mapping
+    documentProcessing?.state?.file?.docling_pages && documentProcessing?.state?.chunk_to_items?.mapping
   );
 
   return (
     <div className="space-y-3">
       <div className="flex flex-col gap-2 md:items-center md:justify-between md:flex-row">
-        <TabNavigation activeTab={activeTab} onTabChange={onTabChange} />
+        <Tabs
+          defaultValue="document-explorer"
+          value={activeTab}
+          onValueChange={(value) => setActiveTab(value as TabType)}
+        >
+          <TabsList>
+            <TabsTrigger value="document-explorer">Document Explorer</TabsTrigger>
+            <TabsTrigger value="summary">Summary</TabsTrigger>
+            <TabsTrigger value="references">
+              References{' '}
+              <Badge className="rounded-full h-4.5 min-w-4.5" variant="secondary">
+                {referenceExtraction?.state?.references?.length || 0}
+              </Badge>
+            </TabsTrigger>
+            <TabsTrigger value="files">
+              Files{' '}
+              <Badge className="rounded-full h-4.5 min-w-4.5" variant="secondary">
+                {projectDetail.files_count}
+              </Badge>
+            </TabsTrigger>
+            <TabsTrigger value="analyses">
+              Analyses{' '}
+              <Badge className="rounded-full h-4.5 min-w-4.5" variant="secondary">
+                {results.length}
+              </Badge>
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+
         <div className="flex items-center gap-1">
           {activeTab === 'document-explorer' && (
             <ViewModeToggle
@@ -171,13 +108,7 @@ export function ResultsVisualization({
               isDoclingAvailable={isDoclingAvailable}
             />
           )}
-          <AnalysisOptionsMenu
-            onSaveAsEvalTest={handleSaveAsEvalTest}
-            onReevaluate={() => setIsReevaluationDialogOpen(true)}
-            projectId={projectId}
-            results={results}
-            readOnly={readOnly}
-          />
+          <AnalysisOptionsMenu project={projectDetail.project} results={results} readOnly={readOnly} />
         </div>
       </div>
 
@@ -186,16 +117,6 @@ export function ResultsVisualization({
           {renderActiveTab()}
         </CardContent>
       </Card>
-
-      {!readOnly && (
-        <Dialog open={isReevaluationDialogOpen} onOpenChange={setIsReevaluationDialogOpen}>
-          <ReevaluationDialogContent
-            isPending={false}
-            onCancel={() => setIsReevaluationDialogOpen(false)}
-            onConfirm={handleReevaluate}
-          />
-        </Dialog>
-      )}
     </div>
   );
 }

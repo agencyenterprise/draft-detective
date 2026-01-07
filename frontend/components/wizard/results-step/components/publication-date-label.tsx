@@ -1,21 +1,26 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { ClaimSubstantiatorStateSummary } from '@/lib/generated-api';
+import { ProjectDetailed, WorkflowRunType } from '@/lib/generated-api';
+import { getWorkflowRunByType } from '@/lib/workflow-state';
 import { format } from 'date-fns';
 
 export interface PublicationDateLabelProps {
-  results: ClaimSubstantiatorStateSummary | undefined | null;
+  project: ProjectDetailed;
   prefix?: string;
   suffix?: string;
 }
 
-export function PublicationDateLabel({ results, prefix, suffix }: PublicationDateLabelProps) {
-  const userInformedPublicationDate = results?.config?.document_publication_date;
-  const extractedPublicationDate = results?.main_document_summary?.publication_date;
+export function PublicationDateLabel({ project, prefix, suffix }: PublicationDateLabelProps) {
+  // Extract user-informed publication date from workflow config
+  const userInformedPublicationDate = project.project.publication_date;
+
+  // Extract publication date from main_document_summary as fallback
+  const documentProcessing = getWorkflowRunByType(project.workflow_runs ?? [], WorkflowRunType.DocumentProcessing);
+  const extractedPublicationDate = documentProcessing?.state?.main_document_summary?.publication_date;
 
   const value = userInformedPublicationDate
-    ? { date: format(userInformedPublicationDate, 'MMM d, yyyy'), source: 'user-informed' }
+    ? { date: format(userInformedPublicationDate, 'MMM d, yyyy'), source: 'user-informed' as const }
     : extractedPublicationDate && extractedPublicationDate !== 'Unknown'
-      ? { date: extractedPublicationDate, source: 'extracted' }
+      ? { date: extractedPublicationDate, source: 'extracted' as const }
       : undefined;
 
   if (!value) {

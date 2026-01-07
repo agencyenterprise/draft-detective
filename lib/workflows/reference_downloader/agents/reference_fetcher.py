@@ -1,5 +1,5 @@
 from enum import StrEnum
-from typing import Optional
+from typing import List, Optional
 
 from langchain.agents import create_agent
 from langchain.chat_models import init_chat_model
@@ -7,9 +7,13 @@ from langchain_core.prompts import PromptTemplate
 from langgraph.graph.state import RunnableConfig
 from pydantic import BaseModel, ConfigDict, Field
 
-from lib.config.llm_models import gpt_5_1_model
+from lib.config.llm_models import gpt_5_2_model
 from lib.models.agent import LangChainAgent
 from lib.workflows.context import ContextSchema
+from lib.workflows.reference_downloader.tools.download_file_from_url import (
+    download_file_from_url,
+)
+from lib.workflows.reference_downloader.tools.read_file_content import read_file_content
 
 
 class ReferenceFetcherAgentInput(BaseModel):
@@ -34,88 +38,55 @@ class ReferenceFetchItem(BaseModel):
         description="Step-by-step reasoning describing parsing approach, search strategies, sources checked, and how the match was verified"
     )
     source_url: Optional[str] = Field(
-        description="Direct URL to the located source, or null if no match was found",
-    )
-    download_url: Optional[str] = Field(
         description="Direct URL to the downloadable version of the located source, or null if no match was found",
     )
-
+    file_id: Optional[str] = Field(
+        description="The ID of the verified downloaded file containing the full original content. Return null if conclusion is different than 'source_found'",
+    )
+    failed_file_ids: List[str] = Field(
+        description="The full list of file IDs that were downloaded in the process but failed to be verified as the correct full original content related to the reference",
+    )
     final_conclusion: ReferenceFetchConclusion = Field()
 
 
 _system_prompt = PromptTemplate.from_template(
     """
-Find the original content for a user-provided reference via web search, using the reference's details to search for the original publication online and prioritizing sources that host the full original content as referenced.
+Locate the full original content of a user-provided reference with web search; download and verify its completeness; repeat or report failure if needed.
 
-Apply a clear preference for sources that are fully publicly available and not behind a paywall. Only use paywalled sources if no publicly accessible options exist.
+- When given a reference (e.g., citation or bibliographic entry), use web search tool to locate a direct URL for the full, original content of the reference (not an abstract, summary, or metadata-only page).
+- Upon finding a candidate full-content URL, use the available tool to download the file; this tool will return a file ID for the downloaded file.
+- Next, validate the downloaded file: use the provided tool to read/check the file by its ID, ensuring it matches the full original content described in the reference (e.g., contains correct title, authors, and full text/content).
+- If the file is confirmed as the correct full original content, return the downloaded file ID and stop.
+- If the download does not contain the full content (e.g., is incomplete, paywalled, preview-only, or mismatched), resume searching for a different URL hosting the full content; repeat the process.
+- Continue searching and verifying until either the correct file is found or all viable options are exhausted.
+- As "final_conclusion", return one of the following:
+  - "source_found": the full original content is available and accessible; you read the file and confirmed it matches the reference.
+  - "source_found_but_not_accessible": the source exists, but the full original content is behind a paywall or otherwise inaccessible; you download the file but it does not match the reference.
+  - "source_not_found": the source cannot be located; the online presence of the source cannot be confirmed.
 
-For each reference, follow these steps:
+Follow this sequence strictly:
+REASONING (search, download, verify, repeat as needed) → CONCLUSION
 
-- Parse and extract key details: authors, title, publication/platform, date, and any identifiers (e.g., DOI).
-- Reason step-by-step to identify the most reliable method for locating the source (e.g., academic search, publisher website, DOI, web search).
-- Formulate an effective search query based on the extracted details.
-- Locate the original webpage for the reference, preferring an official, authoritative link that provides the complete referenced work.
-- Verify that the source matches the citation in terms of authorship, title, and publication date.
-- Evaluate accessibility: Prefer sources that are fully accessible without a paywall. Only resort to paywalled sources if no publicly accessible copy exists.
-- Check if the full content of the reference is available.
-- Present findings in the required format (see below). Do not guess — if the source cannot be located, or only a paywalled version is available, explain the methods you tried and indicate the appropriate conclusion.
+## Example
 
-**Output Format (use this structure for each reference):**
+**Input:**
+Ablon, Lillian, and Andy Bogart, Zero Days, Thousands of Nights: The Life and Times of Zero-Day Vulnerabilities and Their Exploits, RAND Corporation, RR-1751-RC, 2017. As of February 15, 2024: https://www.rand.org/pubs/research_reports/RR1751.html
 
-- Reference details: copy as given.
-- Step-by-step reasoning: describe how you searched, what sources you checked, which public and paywalled options you found, how you verified the match, and how you determined the source accessibility.
-- Source URL: the direct link to the source; mark as "null" if unsuccessful.
-- Download URL: the direct link to a downloadable version of the full content (for example, a PDF), or "null" if no such version is available or no source was found.
-- Final conclusion: use one of
-  - "Source found": the full original content is available and accessible via the Source URL and/or Download URL.
-  - "Source not found": the source cannot be located.
-  - "Source found but not accessible": the source exists, but the full original content is behind a paywall or otherwise inaccessible.
+**Process (REASONING FIRST):**
+- Search online using the full citation to find the official or reputable link (RAND's official report page) hosting the report.
+- Confirm the link points to the full PDF (not a summary).
+- Download the linked PDF.
+- Read the downloaded file, check metadata: title, author, and full text match reference.
+- If all criteria met, accept and return file ID.
+- If not, continue searching alternative sources, repeat.
+- If all efforts fail, return "source_not_found".
 
-**Example 1 (publicly available):**
-
-Reference: Sevilla, Jaime, Tamay Besiroglu, Ben Cottier, Josh You, Edu Roldán, Pablo Villalobos, and Ege Erdil, “Can AI Scaling Continue Through 2030?” Epoch AI, August 20, 2024.
-
-Step-by-step reasoning: I identified the authors, title, and publication, then constructed a search query using "Can AI Scaling Continue Through 2030? Epoch AI." I reviewed results and found the official Epoch AI site, which hosts the original paper openly. I confirmed the match based on author list and publication date. There was no paywall and the full text was accessible.
-
-Source URL: https://epochai.org/blog/can-ai-scaling-continue-through-2030
-
-Download URL: null (full content is available directly on the page)
-
-Final conclusion: Source found
-
-**Example 2 (paywalled source):**
-
-Reference: Smith, John, "Understanding Market Fluctuations," Financial Analysis Journal, March 12, 2023.
-
-Step-by-step reasoning: I extracted the title and author, then searched the Financial Analysis Journal's website and major academic aggregators. All copies found (via journal site and JSTOR) require paid access or institutional login, and no public preprints or summaries are available. I verified these versions match in author, title, and publication date.
-
-Source URL: https://financialanalysisjournal.example/paywalled-article
-
-Download URL: null (download requires paid access)
-
-Final conclusion: Source found but not accessible
-
-**Example 3 (source not found):**
-
-Reference: Doe, Jane, "Unpublished Insights in Data Science," Data Monthly, July 2019.
-
-Step-by-step reasoning: I extracted the title and author, searched Data Monthly's archives, major academic sources, and web indexes. No credible results matching the citation details could be found.
-
-Source URL: null
-
-Download URL: null
-
-Final conclusion: Source not found
+(Reminder: Always start your output with your reasoning and ensure that you do not output any conclusions before finishing your verification steps. This order is required.)
 
 ---
 
 **Important:**
-- Always reason step-by-step before any conclusion or result; present all reasoning in the "step-by-step reasoning" section, including your approach to public accessibility/paywalls.
-- Prefer non-paywalled ("publicly available") sources. If only paywalled sources are found, this must be clear in reasoning and in the final conclusion.
-- Use concise, precise language, directly supporting the goal of locating the exact source.
-- If complex references or edge cases arise, preserve original instruction structure and apply it.
-- When generating responses, remove or replace all internal citation tokens such as turn1search0, turn2search3, or similar. Do not display raw reference IDs or metadata markers in the final text. Return clean, human-readable output only.
-- Remind: Your core objective is to find and verify the original page and full content for each citation, detailing your search and verification steps, linking to the appropriate source, and quoting or explaining what is or is not accessible.
+- Always perform reasoning steps (search, download, validate) before answering.
 """
 )
 
@@ -123,7 +94,7 @@ Final conclusion: Source not found
 class ReferenceFetcherAgent(LangChainAgent):
     name = "Reference Fetcher"
     description = "Fetch a reference from the internet"
-    model = gpt_5_1_model
+    model = gpt_5_2_model
     temperature = 0.0
     output_schema = ReferenceFetchItem
 
@@ -145,7 +116,7 @@ class ReferenceFetcherAgent(LangChainAgent):
 
         agent = create_agent(
             self.llm,
-            [{"type": "web_search"}],
+            [{"type": "web_search"}, download_file_from_url, read_file_content],
             context_schema=ContextSchema,
             system_prompt=system_prompt.text,
             response_format=self.output_schema,

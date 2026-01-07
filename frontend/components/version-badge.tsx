@@ -2,13 +2,12 @@ import { Badge } from '@/components/ui/badge';
 import packageJson from '@/package.json';
 
 export function VersionBadge() {
-  const repoUrl = packageJson.repository?.url.replace('https://github.com/', '');
-  const releaseUrl = `https://github.com/${repoUrl}/releases/tag/v${packageJson.version}`;
+  const repoUrl = packageJson.repository?.url;
 
   return (
     <div className="fixed bottom-4 right-4 z-50">
       <a
-        href={releaseUrl}
+        href={`${repoUrl}/blob/main/CHANGELOG.md`}
         target="_blank"
         rel="noopener noreferrer"
         className="inline-block"

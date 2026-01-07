@@ -2,27 +2,55 @@ import logging
 
 from langgraph.graph import StateGraph
 
+from api.services.workflow_orchestration import wait_for_dependencies
 from lib.config.langfuse import langfuse_handler
 from lib.models.user import User
 from lib.models.workflow_run import WorkflowRunStatus, WorkflowRunType
 from lib.services.projects import update_project_title
 from lib.services.workflow_runs import upsert_workflow_run
-from lib.workflows.claim_substantiation.checkpointer import get_checkpointer
+from lib.workflows.checkpointer import get_checkpointer
 from lib.workflows.context import ContextSchema
-from lib.workflows.models import BaseWorkflowConfig, WorkflowError
-from lib.workflows.registry import (
-    WorkflowStateType,
-    create_context,
-    create_graph,
-    create_state,
-)
+from lib.workflows.models import WorkflowError
+from lib.workflows.registry import create_context, create_graph, create_state
+from lib.workflows.types import WorkflowConfig, WorkflowState
 
 logger = logging.getLogger(__name__)
 
 
+async def run_workflow_with_dependency_check(
+    config: WorkflowConfig, thread_id: str, user: User
+) -> None:
+    """
+    Run a workflow after checking and waiting for its dependencies to complete.
+
+    This function:
+    1. Waits for all dependencies to complete
+    2. Updates workflow status to RUNNING
+    3. Executes the workflow
+    """
+
+    try:
+        # Wait for dependencies to complete
+        if config.project_id:
+            await wait_for_dependencies(config.type, config.project_id)
+
+        # Run the workflow
+        await run_workflow_from_config(config=config, thread_id=thread_id, user=user)
+
+    except Exception as e:
+        logger.error(f"Error running workflow: {e}", exc_info=True)
+
+        await upsert_workflow_run(
+            project_id=config.project_id,
+            thread_id=thread_id,
+            status=WorkflowRunStatus.COMPLETED,
+            type=config.type,
+        )
+
+
 async def run_workflow_from_config(
-    config: BaseWorkflowConfig, thread_id: str, user: User
-) -> WorkflowStateType:
+    config: WorkflowConfig, thread_id: str, user: User
+) -> WorkflowState:
     graph = create_graph(config.type)
     context = create_context(config, user=user)
 
@@ -45,10 +73,10 @@ async def run_workflow(
     project_id: str,
     workflow_type: WorkflowRunType,
     graph: StateGraph,
-    state: WorkflowStateType,
+    state: WorkflowState,
     context: ContextSchema,
     thread_id: str,
-) -> WorkflowStateType:
+) -> WorkflowState:
     """
     Run a workflow using LangGraph, persisting the state to the database and associating with the workflow run.
 
@@ -88,10 +116,11 @@ async def run_workflow(
         )
 
         try:
-            updated_state = state.model_copy(deep=True)
+            # Clear all errors from previous runs
+            updated_state = state.model_copy(deep=True, update={"errors": []})
 
             async for values in app.astream(
-                state,
+                updated_state,
                 {"configurable": {"thread_id": thread_id}},
                 stream_mode="values",
                 context=context,
@@ -105,10 +134,9 @@ async def run_workflow(
                     type=workflow_type,
                 )
 
-                # Update the project title if this is a claim substantiation workflow
-                # TODO: remove this after we refactor the project creation flow
+                # Update the project title if this is a document processing workflow
                 if (
-                    workflow_type == WorkflowRunType.CLAIM_SUBSTANTIATION
+                    workflow_type == WorkflowRunType.DOCUMENT_PROCESSING
                     and updated_state.main_document_summary
                     and updated_state.main_document_summary.title
                 ):

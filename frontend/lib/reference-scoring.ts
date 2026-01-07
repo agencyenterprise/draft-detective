@@ -1,6 +1,6 @@
 import {
   Reference,
-  CitationSuggestionResultWithClaimIndexOutput,
+  CitationSuggestionResultWithClaimIndex,
   ConfidenceInRecommendation,
   PublicationQuality,
 } from './generated-api';
@@ -50,7 +50,7 @@ export function scoreReference(ref: Reference): number {
  * @param suggestion - The citation suggestion to score
  * @returns The maximum reference score, or 0 if no references exist
  */
-export function scoreSuggestion(suggestion: CitationSuggestionResultWithClaimIndexOutput): number {
+export function scoreSuggestion(suggestion: CitationSuggestionResultWithClaimIndex): number {
   const refs = suggestion?.relevant_references || [];
   if (refs.length === 0) return 0;
   return Math.max(...refs.map(scoreReference));

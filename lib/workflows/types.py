@@ -1,0 +1,92 @@
+from lib.workflows.citation_detection.state import (
+    CitationDetectionConfig,
+    CitationDetectionState,
+)
+from lib.workflows.citation_suggester.state import (
+    CitationSuggesterState,
+    CitationSuggesterWorkflowConfig,
+)
+from lib.workflows.claim_extraction.state import (
+    ClaimExtractionState,
+    ClaimExtractionWorkflowConfig,
+)
+from lib.workflows.claim_reference_validation.state import (
+    ClaimReferenceValidationState,
+    ClaimReferenceValidationWorkflowConfig,
+)
+from lib.workflows.claim_substantiation.state import (
+    ClaimSubstantiatorState,
+    SubstantiationWorkflowConfig,
+)
+from lib.workflows.document_processing.state import (
+    DocumentProcessingState,
+    DocumentProcessingWorkflowConfig,
+)
+from lib.workflows.docx_generation.state import (
+    DocxGenerationState,
+    DocxGenerationWorkflowConfig,
+)
+from lib.workflows.inference_validation.state import (
+    InferenceValidationState,
+    InferenceValidationWorkflowConfig,
+)
+from lib.workflows.literature_review.state import (
+    LiteratureReviewState,
+    LiteratureReviewWorkflowConfig,
+)
+from lib.workflows.live_reports.state import LiveReportsState, LiveReportsWorkflowConfig
+from lib.workflows.methodological_alignment.state import (
+    MethodologicalAlignmentState,
+    MethodologicalAlignmentWorkflowConfig,
+)
+from lib.workflows.reference_downloader.state import (
+    ReferenceDownloaderState,
+    ReferenceDownloaderWorkflowConfig,
+)
+from lib.workflows.reference_extraction.state import (
+    ReferenceExtractionConfig,
+    ReferenceExtractionState,
+)
+from lib.workflows.reference_validation.state import (
+    ReferenceValidationState,
+    ReferenceValidationWorkflowConfig,
+)
+from lib.workflows.results_extraction.state import (
+    ResultsExtractionState,
+    ResultsExtractionWorkflowConfig,
+)
+
+WorkflowState = (
+    DocumentProcessingState
+    | ReferenceExtractionState
+    | ClaimExtractionState
+    | ClaimSubstantiatorState
+    | ClaimReferenceValidationState
+    | CitationDetectionState
+    | MethodologicalAlignmentState
+    | ReferenceDownloaderState
+    | DocxGenerationState
+    | LiteratureReviewState
+    | LiveReportsState
+    | ReferenceValidationState
+    | CitationSuggesterState
+    | ResultsExtractionState
+    | InferenceValidationState
+)
+
+WorkflowConfig = (
+    DocumentProcessingWorkflowConfig
+    | ReferenceExtractionConfig
+    | ClaimExtractionWorkflowConfig
+    | CitationDetectionConfig
+    | SubstantiationWorkflowConfig
+    | ClaimReferenceValidationWorkflowConfig
+    | MethodologicalAlignmentWorkflowConfig
+    | ReferenceDownloaderWorkflowConfig
+    | LiteratureReviewWorkflowConfig
+    | LiveReportsWorkflowConfig
+    | ReferenceValidationWorkflowConfig
+    | CitationSuggesterWorkflowConfig
+    | ResultsExtractionWorkflowConfig
+    | InferenceValidationWorkflowConfig
+)

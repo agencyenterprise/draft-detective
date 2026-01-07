@@ -1,3 +1,4 @@
+import { EditProjectDialog, EditProjectFormValues } from '@/components/projects/edit-project-dialog';
 import { ShareDialog } from '@/components/share/share-dialog';
 import { ShareStatusBadge } from '@/components/share/share-status-badge';
 import { ShareWarningDialog } from '@/components/share/share-warning-dialog';
@@ -6,41 +7,73 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useShareStatus } from '@/hooks/use-share-status';
-import { WorkflowRunDetail, WorkflowRunType } from '@/lib/generated-api';
+import {
+  Project,
+  updateProjectEndpointApiProjectProjectIdPatch,
+  WorkflowRunDetail,
+  WorkflowRunType,
+} from '@/lib/generated-api';
 import { getWorkflowRunByType } from '@/lib/workflow-state';
-import { Download, EllipsisVerticalIcon, FileTextIcon, Link, RefreshCcwIcon } from 'lucide-react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { Download, EllipsisVerticalIcon, Link, Pencil } from 'lucide-react';
 import { useState } from 'react';
-import { useDownloadDocx, downloadDocxFile } from './use-download-docx';
 import { toast } from 'sonner';
+import { downloadDocxFile, useDownloadDocx } from './use-download-docx';
+
+type ProjectWithDetails = Project & {
+  publication_date?: Date | null;
+  domain?: string | null;
+  target_audience?: string | null;
+};
 
 export interface AnalysisOptionsMenuProps {
-  onSaveAsEvalTest: () => void;
-  onReevaluate: () => void;
-  projectId: string;
+  project: ProjectWithDetails;
   results: WorkflowRunDetail[];
   readOnly: boolean;
 }
 
-export function AnalysisOptionsMenu({
-  onSaveAsEvalTest,
-  onReevaluate,
-  projectId,
-  results,
-  readOnly,
-}: AnalysisOptionsMenuProps) {
+export function AnalysisOptionsMenu({ project, results, readOnly }: AnalysisOptionsMenuProps) {
+  const projectId = project.id;
   const share = useShareStatus(projectId);
+  const queryClient = useQueryClient();
   const [isWarningDialogOpen, setIsWarningDialogOpen] = useState(false);
   const [isEnablingForDownload, setIsEnablingForDownload] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
   const shareToken = share.shareStatus?.share_link?.token ?? null;
   const { download, isDownloading } = useDownloadDocx({ projectId, shareToken });
 
-  const claimSubstantiationResults = getWorkflowRunByType(results, WorkflowRunType.ClaimSubstantiation);
+  const updateProjectMutation = useMutation({
+    mutationFn: async (values: EditProjectFormValues) => {
+      return await updateProjectEndpointApiProjectProjectIdPatch({
+        path: { project_id: projectId },
+        body: {
+          title: values.title,
+          publication_date: values.publication_date ? new Date(values.publication_date) : null,
+          domain: values.domain || null,
+          target_audience: values.target_audience || null,
+        },
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['project', projectId] });
+      setIsEditDialogOpen(false);
+      toast.success('Project details updated successfully');
+    },
+    onError: (error) => {
+      toast.error(`Failed to update project: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    },
+  });
+
+  const handleEditProject = (values: EditProjectFormValues) => {
+    updateProjectMutation.mutate(values);
+  };
+
+  const claimSubstantiationResults = getWorkflowRunByType(results, WorkflowRunType.DocumentProcessing);
   const hasDocx = claimSubstantiationResults?.state?.file?.original_file_path?.endsWith('.docx');
 
   const handleDownloadClick = () => {
@@ -100,15 +133,10 @@ export function AnalysisOptionsMenu({
           </Tooltip>
 
           <DropdownMenuContent className="w-56">
-            <MenuItemWithTooltip icon={FileTextIcon} onClick={onSaveAsEvalTest} tooltip="Generate eval test cases">
+            {/* TODO: Add eval test generation back after we stabilize the eval test generation */}
+            {/* <MenuItemWithTooltip icon={FileTextIcon} onClick={onSaveAsEvalTest} tooltip="Generate eval test cases">
               Save as eval test
-            </MenuItemWithTooltip>
-
-            {!readOnly && (
-              <MenuItemWithTooltip icon={RefreshCcwIcon} onClick={onReevaluate} tooltip="Re-run with different config">
-                Re-run analysis
-              </MenuItemWithTooltip>
-            )}
+            </MenuItemWithTooltip> */}
 
             {hasDocx && (
               <MenuItemWithTooltip
@@ -123,7 +151,13 @@ export function AnalysisOptionsMenu({
 
             {!readOnly && (
               <>
-                <DropdownMenuSeparator />
+                <MenuItemWithTooltip
+                  icon={Pencil}
+                  onClick={() => setIsEditDialogOpen(true)}
+                  tooltip="Edit project title, publication date, domain, and target audience"
+                >
+                  Edit project details
+                </MenuItemWithTooltip>
 
                 <MenuItemWithTooltip
                   icon={Link}
@@ -156,6 +190,14 @@ export function AnalysisOptionsMenu({
         onMakePublicAndDownload={handleMakePublicAndDownload}
         onDownloadWithoutLinks={handleDownloadWithoutLinks}
       />
+
+      <EditProjectDialog
+        isOpen={isEditDialogOpen}
+        project={project}
+        onConfirm={handleEditProject}
+        onCancel={() => setIsEditDialogOpen(false)}
+        isSubmitting={updateProjectMutation.isPending}
+      />
     </>
   );
 }
@@ -172,7 +214,7 @@ function MenuItemWithTooltip({ icon: Icon, onClick, tooltip, disabled, children 
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <DropdownMenuItem className="cursor-pointer" onClick={onClick} disabled={disabled}>
+        <DropdownMenuItem onClick={onClick} disabled={disabled}>
           <Icon />
           {children}
         </DropdownMenuItem>

@@ -133,3 +133,19 @@ async def get_share_status(
     if share_link:
         return ShareStatusResponse(enabled=True, share_link=_to_response(share_link))
     return ShareStatusResponse(enabled=False, share_link=None)
+
+
+async def is_project_shared(project_id: str) -> bool:
+    """Check if a project is shared."""
+
+    with get_db() as db:
+        return (
+            db.query(ShareLink)
+            .filter(
+                ShareLink.resource_type == "project",
+                ShareLink.resource_id == project_id,
+                ShareLink.is_active == True,
+            )
+            .first()
+            is not None
+        )

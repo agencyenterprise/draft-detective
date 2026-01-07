@@ -43,11 +43,28 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ detail: errorText || 'Failed to fetch file' }, { status: response.status });
     }
 
-    // Stream the backend response to avoid buffering large files in memory
-    const headers = new Headers(response.headers);
+    // Preserve backend headers so browsers handle the file correctly (e.g., trigger download vs. display)
+    const contentType = response.headers.get('content-type') || 'application/octet-stream';
+    const contentDisposition = response.headers.get('content-disposition');
+
+    // Read as ArrayBuffer to prevent Next.js from truncating large files or corrupting binary data
+    // Streaming directly can cause issues with text files like markdown that need complete content
+    const arrayBuffer = await response.arrayBuffer();
+
+    // Reconstruct headers to ensure browser receives correct metadata for file handling
+    // Content-Type is critical for proper rendering/display behavior
+    const headers = new Headers();
+    headers.set('Content-Type', contentType);
+    if (contentDisposition) {
+      headers.set('Content-Disposition', contentDisposition);
+    }
+    // Use actual buffer size to prevent client-side issues with incorrect Content-Length
+    headers.set('Content-Length', arrayBuffer.byteLength.toString());
+    // Disable caching since files may be updated and we want fresh content on each request
     headers.set('Cache-Control', 'private, no-cache');
 
-    return new NextResponse(response.body, {
+    // Return complete buffer to ensure file integrity (no partial transfers)
+    return new NextResponse(arrayBuffer, {
       status: response.status,
       statusText: response.statusText,
       headers,

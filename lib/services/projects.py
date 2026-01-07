@@ -1,5 +1,6 @@
-from collections import defaultdict
+from datetime import date
 import logging
+from collections import defaultdict
 from typing import List, Optional
 
 from fastapi.exceptions import HTTPException
@@ -7,14 +8,16 @@ from pydantic import BaseModel, Field
 from sqlalchemy import update
 
 from lib.config.database import get_db
-from lib.models.project import Project
 from lib.models.file import File
+from lib.models.project import Project
 from lib.models.user import User
 from lib.models.workflow_run import WorkflowRun
-from lib.services.files import delete_project_files
-from lib.services.workflow_runs import get_project_workflow_runs
-from lib.workflows.claim_substantiation.checkpointer import get_checkpointer
-from lib.workflows.models import is_user_visible_workflow
+from lib.services.files import delete_project_files, get_files_count_by_project_id
+from lib.services.issues import convert_to_issues
+from lib.services.share_links import is_project_shared
+from lib.services.workflow_runs import WorkflowRunDetail, get_project_workflow_runs
+from lib.workflows.checkpointer import get_checkpointer
+from lib.workflows.models import DocumentIssue, is_user_visible_workflow
 
 logger = logging.getLogger(__name__)
 
@@ -29,19 +32,42 @@ class ProjectListItem(BaseModel):
 
 class ProjectDetailed(BaseModel):
     project: Project
-    workflow_runs: List[WorkflowRun] = Field(
+    workflow_runs: List[WorkflowRunDetail] = Field(
         default_factory=list,
         description="The workflow runs for the project",
+    )
+    issues: List[DocumentIssue] = Field(
+        default_factory=list,
+        description="The issues for the project, converted from the workflow results states",
+    )
+    files_count: int = Field(
+        description="The number of files associated with the project",
+        default=0,
     )
 
 
 class UpdateProjectRequest(BaseModel):
     title: Optional[str] = None
+    publication_date: Optional[date] = None
+    domain: Optional[str] = None
+    target_audience: Optional[str] = None
 
 
-async def create_project(title: str, user: User) -> Project:
+async def create_project(
+    title: str,
+    user: User,
+    publication_date: date | None = None,
+    domain: str | None = None,
+    target_audience: str | None = None,
+) -> Project:
     with get_db() as db:
-        project = Project(title=title, user_id=user.id)
+        project = Project(
+            title=title,
+            user_id=user.id,
+            publication_date=publication_date,
+            domain=domain,
+            target_audience=target_audience,
+        )
         db.add(project)
         db.commit()
         db.refresh(project)
@@ -64,12 +90,14 @@ async def get_user_projects(user: User) -> List[ProjectListItem]:
         if not results:
             return []
 
-        # We need to group workflow runs by project, filtering out internal workflows
+        # We need to group workflow runs by project to return a list of projects with their workflow runs
+        # Note: We include ALL workflows (even internal ones) for tool detection on frontend
+        # The frontend will use these to detect if a project is a "tool run"
         projects_dict = defaultdict(lambda: {"project": None, "workflow_runs": []})
         for project, workflow_run in results:
             if projects_dict[project.id]["project"] is None:
                 projects_dict[project.id]["project"] = project
-            if workflow_run is not None and is_user_visible_workflow(workflow_run.type):
+            if workflow_run is not None:
                 projects_dict[project.id]["workflow_runs"].append(workflow_run)
 
         # Build the result list
@@ -81,23 +109,89 @@ async def get_user_projects(user: User) -> List[ProjectListItem]:
         ]
 
 
-async def get_user_project_detailed(project_id: str, user: User) -> ProjectDetailed:
+async def _get_project_by_id(project_id: str) -> Project | None:
     with get_db() as db:
         project = db.query(Project).filter(Project.id == project_id).first()
+
+    return project
+
+
+async def _get_project_detailed_from_project(
+    project: Project, include_internal: bool = False
+) -> ProjectDetailed:
+    """
+    Get detailed project information with workflow runs.
+
+    Args:
+        project: The project to get details for
+        include_internal: If True, include internal workflows in the response
+    """
+    workflow_runs = await get_project_workflow_runs(
+        project.id, include_internal=include_internal
+    )
+
+    states = [run.state for run in workflow_runs if run.state is not None]
+    return ProjectDetailed(
+        project=project,
+        workflow_runs=workflow_runs,
+        issues=convert_to_issues(states),
+        files_count=await get_files_count_by_project_id(project.id),
+    )
+
+
+async def get_shared_project_detailed(project_id: str) -> ProjectDetailed:
+    """
+    Get a project detailed for a shared project.
+
+    Args:
+        project_id: The ID of the project
+
+    Returns:
+        The project detailed
+
+    Raises:
+        HTTPException: 404 if project not found, 403 if project is not shared
+    """
+
+    project = await _get_project_by_id(project_id)
 
     if project is None:
         raise HTTPException(status_code=404, detail="Project not found")
 
-    if project.user_id is None or project.user_id != user.id:
+    if not await is_project_shared(project_id):
+        raise HTTPException(status_code=403, detail="Project is not shared")
+
+    return await _get_project_detailed_from_project(project)
+
+
+async def get_user_project_detailed(
+    project_id: str, user: User, include_internal: bool = False
+) -> ProjectDetailed:
+    """
+    Get a project detailed for a user.
+
+    Args:
+        project_id: The ID of the project
+        user: The user
+
+    Returns:
+        The project detailed
+
+    Raises:
+        HTTPException: 404 if project not found, 403 if user does not have access
+    """
+
+    project = await _get_project_by_id(project_id)
+
+    if project is None:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    if project.user_id != user.id:
         raise HTTPException(status_code=403, detail="Access denied")
 
-    workflow_runs = await get_project_workflow_runs(project.id)
-
-    # We must filter out internal workflows
-    visible_workflow_runs = [
-        run for run in workflow_runs if is_user_visible_workflow(run.type)
-    ]
-    return ProjectDetailed(project=project, workflow_runs=visible_workflow_runs)
+    return await _get_project_detailed_from_project(
+        project, include_internal=include_internal
+    )
 
 
 async def get_user_project_files(project_id: str, user: User) -> List[File]:
@@ -132,6 +226,10 @@ async def update_user_project(
 
         if request.title is not None:
             project.title = request.title
+
+        project.publication_date = request.publication_date
+        project.domain = request.domain
+        project.target_audience = request.target_audience
 
         db.commit()
         db.refresh(project)

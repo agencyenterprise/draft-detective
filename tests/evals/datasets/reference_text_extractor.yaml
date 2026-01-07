@@ -1,0 +1,95 @@
+# Reference Text Extractor Test Dataset
+# Tests the extraction of bibliographic reference text from documents
+# Note: This agent only extracts text, matching happens in a separate workflow step
+
+dataset:
+  name: "Reference Text Extractor Dataset"
+  description: "Test cases for validating reference text extraction from documents"
+  test_config:
+    strict_fields:
+      references:
+        - __all__
+  items:
+    - name: "basic_references"
+      description: "Simple document with 3 references"
+      input:
+        text: |
+          ## References
+
+          1. Smith, J. (2020). The Effects of Widgets on Gadgets. Journal of Widgetry.
+          2. Doe, A.; Roe, B. (2019). A Comprehensive Study of Gizmos. Proceedings of Gizmo Conf.
+          3. Smith, A.; Anderson, T. (2017), A Study of The Effect of Cellphones on Writing Ability. Journal of Big Tech.
+      expected_output:
+        references:
+          - "Smith, J. (2020). The Effects of Widgets on Gadgets. Journal of Widgetry."
+          - "Doe, A.; Roe, B. (2019). A Comprehensive Study of Gizmos. Proceedings of Gizmo Conf."
+          - "Smith, A.; Anderson, T. (2017), A Study of The Effect of Cellphones on Writing Ability. Journal of Big Tech."
+
+    - name: "references_with_urls"
+      description: "References containing URLs and DOIs"
+      input:
+        text: |
+          ## Bibliography
+
+          Goodison, Sean E., Robert C. Davis, and Brian A. Jackson, *Digital Evidence and the U.S. Criminal Justice System*, RAND Corporation, RR-890-NIJ, 2015. As of November 15, 2022: https://www.rand.org/pubs/research_reports/RR890.html
+
+          Vermeer, Michael J. D., Dulani Woods, and Brian A. Jackson, *Identifying Law Enforcement Needs for Access to Digital Evidence in Remote Data Centers*, RAND Corporation, RR-2240-NIJ, 2018. DOI: 10.7249/RR2240
+      expected_output:
+        references:
+          - "Goodison, Sean E., Robert C. Davis, and Brian A. Jackson, *Digital Evidence and the U.S. Criminal Justice System*, RAND Corporation, RR-890-NIJ, 2015. As of November 15, 2022: https://www.rand.org/pubs/research_reports/RR890.html"
+          - "Vermeer, Michael J. D., Dulani Woods, and Brian A. Jackson, *Identifying Law Enforcement Needs for Access to Digital Evidence in Remote Data Centers*, RAND Corporation, RR-2240-NIJ, 2018. DOI: 10.7249/RR2240"
+
+    - name: "dashed_continuation"
+      description: "References with --- continuation indicating same authors"
+      input:
+        text: |
+          ## Works Cited
+
+          Thompson, R. & Davis, K. (2022). Transformer Models for Clinical Text Understanding. Journal of Biomedical Informatics, 125, 103967.
+
+          ---. (2023). Large-Scale EHR Mining: Methods and Applications. JAMIA.
+
+          Chen, Y., Liu, H. (2023). Deep Learning Methods. Radiology, 306(2), 412-425.
+      expected_output:
+        references:
+          - "Thompson, R. & Davis, K. (2022). Transformer Models for Clinical Text Understanding. Journal of Biomedical Informatics, 125, 103967."
+          - "Thompson, R. & Davis, K. (2023). Large-Scale EHR Mining: Methods and Applications. JAMIA."
+          - "Chen, Y., Liu, H. (2023). Deep Learning Methods. Radiology, 306(2), 412-425."
+
+    - name: "empty_references"
+      description: "Document with no references section"
+      input:
+        text: |
+          # Introduction
+
+          This is a document with no references section.
+
+          ## Methods
+
+          We did some analysis.
+
+          ## Conclusion
+
+          The end.
+      expected_output:
+        references: []
+
+    - name: "multiline_references"
+      description: "References that span multiple lines"
+      input:
+        text: |
+          ## References
+
+          1. Bistline, John, Geoffrey Blanford, Maxwell Brown, Dallas Burtraw,
+             Maya Domeshek, Jamil Farbes, Allen Fawcett, Anne Hamilton,
+             Jesse Jenkins, Ryan Jones, et al., "Emissions and Energy Impacts
+             of the Inflation Reduction Act," Science, Vol. 380, No. 6652,
+             June 30, 2023.
+
+          2. Shehabi, Arman, Sarah J. Smith, Alex Hubbard, *2024 United States
+             Data Center Energy Usage Report*, Berkeley Lab, December 2024.
+      expected_output:
+        references:
+          - "Bistline, John, Geoffrey Blanford, Maxwell Brown, Dallas Burtraw, Maya Domeshek, Jamil Farbes, Allen Fawcett, Anne Hamilton, Jesse Jenkins, Ryan Jones, et al., \"Emissions and Energy Impacts of the Inflation Reduction Act,\" Science, Vol. 380, No. 6652, June 30, 2023."
+          - "Shehabi, Arman, Sarah J. Smith, Alex Hubbard, *2024 United States Data Center Energy Usage Report*, Berkeley Lab, December 2024."
+

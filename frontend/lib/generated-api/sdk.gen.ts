@@ -33,9 +33,6 @@ import type {
   GenerateEvalPackageApiGenerateEvalPackagePostData,
   GenerateEvalPackageApiGenerateEvalPackagePostErrors,
   GenerateEvalPackageApiGenerateEvalPackagePostResponses,
-  GetChunkDetailsEndpointApiWorkflowRunWorkflowRunIdChunkChunkIndexGetData,
-  GetChunkDetailsEndpointApiWorkflowRunWorkflowRunIdChunkChunkIndexGetErrors,
-  GetChunkDetailsEndpointApiWorkflowRunWorkflowRunIdChunkChunkIndexGetResponses,
   GetFeedbackApiFeedbackGetData,
   GetFeedbackApiFeedbackGetErrors,
   GetFeedbackApiFeedbackGetResponses,
@@ -59,6 +56,8 @@ import type {
   GetWorkflowStateApiWorkflowsWorkflowRunIdGetData,
   GetWorkflowStateApiWorkflowsWorkflowRunIdGetErrors,
   GetWorkflowStateApiWorkflowsWorkflowRunIdGetResponses,
+  GetWorkflowTypesApiWorkflowTypesGetData,
+  GetWorkflowTypesApiWorkflowTypesGetResponses,
   ListProjectFilesEndpointApiProjectProjectIdFilesGetData,
   ListProjectFilesEndpointApiProjectProjectIdFilesGetErrors,
   ListProjectFilesEndpointApiProjectProjectIdFilesGetResponses,
@@ -66,12 +65,12 @@ import type {
   ListProjectsEndpointApiProjectsGetResponses,
   ReadHealthApiHealthGetData,
   ReadHealthApiHealthGetResponses,
-  RerunAnalysisEndpointApiRerunAnalysisPostData,
-  RerunAnalysisEndpointApiRerunAnalysisPostErrors,
-  RerunAnalysisEndpointApiRerunAnalysisPostResponses,
   StartAnalysisApiStartAnalysisPostData,
   StartAnalysisApiStartAnalysisPostErrors,
   StartAnalysisApiStartAnalysisPostResponses,
+  StartMultipleWorkflowsApiWorkflowsStartMultiplePostData,
+  StartMultipleWorkflowsApiWorkflowsStartMultiplePostErrors,
+  StartMultipleWorkflowsApiWorkflowsStartMultiplePostResponses,
   StartWorkflowApiWorkflowsStartPostData,
   StartWorkflowApiWorkflowsStartPostErrors,
   StartWorkflowApiWorkflowsStartPostResponses,
@@ -134,14 +133,14 @@ export const getSupportedAgentsApiSupportedAgentsGet = <ThrowOnError extends boo
 /**
  * Start Analysis
  *
- * Start claim substantiation analysis - returns workflow_run_id immediately.
+ * Create a project and immediately start analysis workflows.
  *
  * This endpoint:
  * 1. Creates a project for the analysis
  * 2. Saves uploaded files to database with file metadata
  * 3. Creates file document references (without markdown conversion)
  * 4. Returns immediately with project_id
- * 5. Starts the analysis workflow in the background (markdown conversion happens here)
+ * 5. Starts the analysis workflows in the background (markdown conversion happens here)
  *
  * The client can poll /api/project/{project_id} to check progress.
  *
@@ -170,36 +169,6 @@ export const startAnalysisApiStartAnalysisPost = <ThrowOnError extends boolean =
     ...options,
     headers: {
       'Content-Type': null,
-      ...options.headers,
-    },
-  });
-
-/**
- * Rerun Analysis Endpoint
- *
- * Re-evaluate a specific chunk with selected agents using unified LangGraph workflow.
- *
- * Args:
- * request: Contains chunk index, agents to run, and original state
- *
- * Returns:
- * Updated results for the specified chunk
- */
-export const rerunAnalysisEndpointApiRerunAnalysisPost = <ThrowOnError extends boolean = true>(
-  options: Options<RerunAnalysisEndpointApiRerunAnalysisPostData, ThrowOnError>,
-) =>
-  (options.client ?? client).post<
-    RerunAnalysisEndpointApiRerunAnalysisPostResponses,
-    RerunAnalysisEndpointApiRerunAnalysisPostErrors,
-    ThrowOnError,
-    'data'
-  >({
-    responseStyle: 'data',
-    security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/api/rerun-analysis',
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
       ...options.headers,
     },
   });
@@ -288,6 +257,30 @@ export const startWorkflowApiWorkflowsStartPost = <ThrowOnError extends boolean 
   });
 
 /**
+ * Start Multiple Workflows
+ *
+ * Start multiple workflow analyses for a project.
+ */
+export const startMultipleWorkflowsApiWorkflowsStartMultiplePost = <ThrowOnError extends boolean = true>(
+  options: Options<StartMultipleWorkflowsApiWorkflowsStartMultiplePostData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    StartMultipleWorkflowsApiWorkflowsStartMultiplePostResponses,
+    StartMultipleWorkflowsApiWorkflowsStartMultiplePostErrors,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/workflows/start-multiple',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
  * Get Workflow State
  *
  * Get the state of a workflow
@@ -304,27 +297,6 @@ export const getWorkflowStateApiWorkflowsWorkflowRunIdGet = <ThrowOnError extend
     responseStyle: 'data',
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/workflows/{workflow_run_id}',
-    ...options,
-  });
-
-/**
- * Get Chunk Details Endpoint
- *
- * Get detailed analysis for a specific chunk (lazy loading)
- */
-export const getChunkDetailsEndpointApiWorkflowRunWorkflowRunIdChunkChunkIndexGet = <
-  ThrowOnError extends boolean = true,
->(
-  options: Options<GetChunkDetailsEndpointApiWorkflowRunWorkflowRunIdChunkChunkIndexGetData, ThrowOnError>,
-) =>
-  (options.client ?? client).get<
-    GetChunkDetailsEndpointApiWorkflowRunWorkflowRunIdChunkChunkIndexGetResponses,
-    GetChunkDetailsEndpointApiWorkflowRunWorkflowRunIdChunkChunkIndexGetErrors,
-    ThrowOnError,
-    'data'
-  >({
-    responseStyle: 'data',
-    url: '/api/workflow-run/{workflow_run_id}/chunk/{chunk_index}',
     ...options,
   });
 
@@ -354,6 +326,20 @@ export const getPageImageApiWorkflowRunsWorkflowRunIdPagesPageNumGet = <ThrowOnE
     responseStyle: 'data',
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/workflow-runs/{workflow_run_id}/pages/{page_num}',
+    ...options,
+  });
+
+/**
+ * Get Workflow Types
+ *
+ * List all available workflow types.
+ */
+export const getWorkflowTypesApiWorkflowTypesGet = <ThrowOnError extends boolean = true>(
+  options?: Options<GetWorkflowTypesApiWorkflowTypesGetData, ThrowOnError>,
+) =>
+  (options?.client ?? client).get<GetWorkflowTypesApiWorkflowTypesGetResponses, unknown, ThrowOnError, 'data'>({
+    responseStyle: 'data',
+    url: '/api/workflow-types',
     ...options,
   });
 
@@ -539,7 +525,7 @@ export const deleteProjectEndpointApiProjectProjectIdDelete = <ThrowOnError exte
 /**
  * Get Project Endpoint
  *
- * Get a project by ID
+ * Get a project by ID. Set include_internal=true to see internal workflows.
  */
 export const getProjectEndpointApiProjectProjectIdGet = <ThrowOnError extends boolean = true>(
   options: Options<GetProjectEndpointApiProjectProjectIdGetData, ThrowOnError>,

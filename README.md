@@ -12,7 +12,7 @@ The main goal of AI Reviewer is to assist and streamline the academic peer revie
 
 ## Features
 
-- **Validate reference agaisnt claims**: Check the content of each citation to ensure that it backs up the statements made in the text
+- **Validate reference against claims**: Check the content of each citation to ensure that it backs up the statements made in the text
 - **Identify unsupported assertions**: checks whether any statements need the addition of a reference
 - **Suggests citations**: suggests references to add to statements made in the text
 - **Literature review**: conducts literature review over statements made in the text by searching the web, looking for newer, supporting and contradictory evidences
@@ -24,6 +24,22 @@ The main goal of AI Reviewer is to assist and streamline the academic peer revie
 ## Development
 
 For detailed development setup instructions, see [DEVELOPMENT.md](DEVELOPMENT.md).
+
+## Testing
+
+Tests are organized by type:
+
+- **`tests/unit/`** - Fast, isolated unit tests
+- **`tests/integration/`** - Multi-component integration tests  
+- **`tests/evals/`** - LLM-based evaluations (explicit only)
+
+```bash
+# Run standard tests (default)
+uv run pytest
+
+# Run evaluations
+uv run pytest tests/evals/
+```
 
 ## License
 

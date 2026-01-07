@@ -4,57 +4,89 @@ import { ClaimFeedback } from '@/components/claim-feedback';
 import { LabeledValue } from '@/components/labeled-value';
 import { Button } from '@/components/ui/button';
 import { getClaimId } from '@/lib/chunk-ids';
-import { Claim, ClaimSubstantiatorStateSummary, DocumentChunkOutput, ToulminClaim } from '@/lib/generated-api';
+import { Claim, DocumentIssue, WorkflowRunDetail, WorkflowRunType } from '@/lib/generated-api';
 import { getClaimIssues, getMaxSeverity } from '@/lib/severity';
+import { getWorkflowRunByType } from '@/lib/workflow-state';
 import { ChevronDownIcon, ChevronRightIcon } from 'lucide-react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { AnalysisResultCard } from './analysis-result-card';
 import { ClaimArgumentAnalysis } from './claim-argument-analysis';
 import { ClaimCategoryResults } from './claim-category-results';
 import { ClaimCitationSuggestions } from './claim-citation-suggestions';
 import { ClaimInferenceValidation } from './claim-inference-validation';
 import { ClaimLiveReports } from './claim-live-reports';
-import { ClaimNeedsSubstantiationAccordion } from './claim-needs-substantiation-accordion';
 import { DocumentIssueCardMinimal } from './document-issue-card';
 import { SubstantiationResults } from './substantiation-results';
 
 export interface ClaimAnalysisCardProps {
-  results: ClaimSubstantiatorStateSummary;
-  claim: Claim | ToulminClaim;
-  chunkDetails: DocumentChunkOutput | undefined | null;
+  claim: Claim;
   claimIndex: number;
   totalClaims: number;
   chunkIndex: number;
-  workflowRunId: string;
+  allWorkflowDetails: WorkflowRunDetail[];
+  issues: DocumentIssue[];
   readOnly?: boolean;
 }
 
 export function ClaimAnalysisCard({
-  results,
   claim,
-  chunkDetails,
   claimIndex,
   totalClaims,
   chunkIndex,
-  workflowRunId,
+  allWorkflowDetails,
+  issues,
   readOnly = false,
 }: ClaimAnalysisCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
-  if (!chunkDetails) {
-    return null;
-  }
+  const documentProcessingDetail = useMemo(
+    () => getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.DocumentProcessing),
+    [allWorkflowDetails],
+  );
+  const claimReferenceValidationDetail = useMemo(
+    () => getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.ClaimReferenceValidation),
+    [allWorkflowDetails],
+  );
+  const citationSuggesterDetail = useMemo(
+    () => getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.CitationSuggester),
+    [allWorkflowDetails],
+  );
+  const liveReportsDetail = useMemo(
+    () => getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.LiveReports),
+    [allWorkflowDetails],
+  );
+  const inferenceValidationDetail = useMemo(
+    () => getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.InferenceValidation),
+    [allWorkflowDetails],
+  );
+  const claimExtractionDetail = useMemo(
+    () => getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.ClaimExtraction),
+    [allWorkflowDetails],
+  );
+  const referenceExtractionDetail = useMemo(
+    () => getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.ReferenceExtraction),
+    [allWorkflowDetails],
+  );
 
-  const claimCategory = chunkDetails.claim_categories?.find((c) => c.claim_index === claimIndex);
-  const commonKnowledgeResult = chunkDetails.claim_common_knowledge_results?.find((c) => c.claim_index === claimIndex);
-  const substantiation = chunkDetails.substantiations?.find((s) => s.claim_index === claimIndex);
-  const citationSuggestion = chunkDetails.citation_suggestions?.find((c) => c.claim_index === claimIndex);
-  const liveReportsAnalysis = chunkDetails.live_reports_analysis?.find((l) => l.claim_index === claimIndex);
-  const inferenceValidation = chunkDetails.inference_validations?.find((i) => i.claim_index === claimIndex);
+  const claimCategory = claimExtractionDetail?.state?.claim_categories?.find(
+    (c) => c.chunk_index === chunkIndex && c.claim_index === claimIndex,
+  );
+  const substantiation = claimReferenceValidationDetail?.state?.substantiations?.find(
+    (s) => s.chunk_index === chunkIndex && s.claim_index === claimIndex,
+  );
+  const citationSuggestion = citationSuggesterDetail?.state?.citation_suggestions?.find(
+    (c) => c.chunk_index === chunkIndex && c.claim_index === claimIndex,
+  );
+  const liveReportsAnalysis = liveReportsDetail?.state?.live_reports_analysis?.find(
+    (l) => l.chunk_index === chunkIndex && l.claim_index === claimIndex,
+  );
+  const inferenceValidation = inferenceValidationDetail?.state?.inference_validations?.find(
+    (i) => i.chunk_index === chunkIndex && i.claim_index === claimIndex,
+  );
 
-  const supportingFiles = results.supporting_files ?? [];
-  const references = results.references ?? [];
-  const claimIssues = getClaimIssues(results, chunkIndex, claimIndex);
+  const supportingFiles = documentProcessingDetail?.state?.supporting_files ?? [];
+  const references = referenceExtractionDetail?.state?.references ?? [];
+  const claimIssues = getClaimIssues(issues, chunkIndex, claimIndex);
   const maxSeverity = getMaxSeverity(claimIssues);
 
   return (
@@ -81,11 +113,11 @@ export function ClaimAnalysisCard({
       {isExpanded && (
         <>
           <LabeledValue label="Extracted Claim">{claim.claim}</LabeledValue>
+          {'central' in claim && <LabeledValue label="Central Claim">{claim.central ? 'Yes' : 'No'}</LabeledValue>}
 
           <div className="space-y-2">
             <ClaimArgumentAnalysis claim={claim} />
             {claimCategory && <ClaimCategoryResults claimCategory={claimCategory} />}
-            {commonKnowledgeResult && <ClaimNeedsSubstantiationAccordion result={commonKnowledgeResult} />}
             {substantiation && (
               <SubstantiationResults
                 substantiation={substantiation}
@@ -105,8 +137,12 @@ export function ClaimAnalysisCard({
             {inferenceValidation && <ClaimInferenceValidation inferenceValidation={inferenceValidation} />}
           </div>
 
-          {!readOnly && workflowRunId && chunkIndex !== undefined && (
-            <ClaimFeedback workflowRunId={workflowRunId} chunkIndex={chunkIndex} claimIndex={claimIndex} />
+          {!readOnly && documentProcessingDetail?.run.id && chunkIndex !== undefined && (
+            <ClaimFeedback
+              workflowRunId={documentProcessingDetail?.run.id}
+              chunkIndex={chunkIndex}
+              claimIndex={claimIndex}
+            />
           )}
         </>
       )}

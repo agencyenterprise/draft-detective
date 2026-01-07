@@ -1,11 +1,9 @@
-import io
 import logging
-import os
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends
 from fastapi import File as FastAPIUploadFile
-from fastapi import Form, UploadFile, status
+from fastapi import Form, HTTPException, Query, UploadFile, status
 from fastapi.responses import StreamingResponse
 from starlette.responses import FileResponse
 
@@ -27,8 +25,6 @@ from lib.services.projects import (
     get_user_projects,
     update_user_project,
 )
-from lib.services.workflow_runs import get_project_workflow_run_by_type
-from lib.workflows.models import WorkflowRunType
 
 router = APIRouter(tags=["projects"])
 logger = logging.getLogger(__name__)
@@ -53,7 +49,6 @@ async def create_project_endpoint(
             project_id=project.id,
             user_id=current_user.id,
             roles=[FileRole.MAIN],
-            description="The main document under analysis",
         )
 
         return ProjectDetailed(project=project, workflow_runs=[])
@@ -84,10 +79,14 @@ async def list_projects_endpoint(current_user: User = Depends(get_current_user))
 
 @router.get("/api/project/{project_id}", response_model=ProjectDetailed)
 async def get_project_endpoint(
-    project_id: str, current_user: User = Depends(get_current_user)
+    project_id: str,
+    include_internal: bool = False,
+    current_user: User = Depends(get_current_user),
 ):
-    """Get a project by ID"""
-    return await get_user_project_detailed(project_id, user=current_user)
+    """Get a project by ID. Set include_internal=true to see internal workflows."""
+    return await get_user_project_detailed(
+        project_id, user=current_user, include_internal=include_internal
+    )
 
 
 @router.patch("/api/project/{project_id}", response_model=Project)
@@ -125,21 +124,13 @@ async def download_project_docx(
     First request may take a few seconds as it generates the DOCX.
     Subsequent requests with the same share_token (or none) are instant.
     """
-    project_detail = await get_user_project_detailed(project_id, user=current_user)
 
-    claim_run = await get_project_workflow_run_by_type(
-        project_detail.project.id, WorkflowRunType.CLAIM_SUBSTANTIATION
-    )
-    if not claim_run:
-        raise HTTPException(
-            status_code=404, detail="Claim substantiation workflow not found"
-        )
+    project_detail = await get_user_project_detailed(project_id, user=current_user)
 
     try:
         # Get cached or generate DOCX via workflow (with caching)
         file_path, filename = await get_or_generate_docx(
-            claim_run_id=str(claim_run.id),
-            project_id=project_id,
+            project_id=str(project_detail.project.id),
             share_token=share_token,
             user=current_user,
         )
