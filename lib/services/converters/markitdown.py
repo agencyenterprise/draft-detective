@@ -1,3 +1,4 @@
+import asyncio
 from markitdown import MarkItDown
 
 from lib.services.converters.base import FileConverterProtocol
@@ -8,7 +9,7 @@ class MarkitdownFileConverter(FileConverterProtocol):
         self.converter = MarkItDown(enable_plugins=False)
 
     async def convert_to_markdown(self, file_path: str) -> str:
-        result = self.converter.convert(file_path)
+        result = await asyncio.to_thread(self.converter.convert, file_path)
         return result.markdown
 
 

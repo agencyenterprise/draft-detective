@@ -7,6 +7,7 @@ import re
 from typing import NamedTuple
 import uuid
 
+import aiofiles
 import httpx
 from langchain.tools import ToolRuntime, tool
 from pydantic import BaseModel, Field
@@ -247,11 +248,11 @@ async def _save_content(content: bytes | str, extension: str) -> str:
     # Save the file
     logger.info(f"Saving downloaded file with hash {xxhash} to {file_path}")
     if isinstance(content, bytes):
-        with open(file_path, "wb") as buffer:
-            buffer.write(content)
+        async with aiofiles.open(file_path, "wb") as buffer:
+            await buffer.write(content)
     else:
-        with open(file_path, "w", encoding="utf-8") as buffer:
-            buffer.write(content)
+        async with aiofiles.open(file_path, "w", encoding="utf-8") as buffer:
+            await buffer.write(content)
 
     if not os.path.exists(file_path):
         raise Exception(f"File was not created at {file_path}")

@@ -1,5 +1,6 @@
 import asyncio
 
+import aiofiles
 from langchain.tools import ToolRuntime, tool
 
 from lib.services.converters.markitdown import markitdown_converter
@@ -29,7 +30,7 @@ async def _read_file_content_async(file_id: str) -> str | None:
 
     if file.file_type == "text/markdown":
         # If file is already markdown, read directly from disk, no need to convert
-        content = _read_file_directly(file.file_path)
+        content = await _read_file_directly(file.file_path)
         return content[:4000] if content else None
 
     # Use markitdown for conversion of non-markdown files
@@ -37,8 +38,8 @@ async def _read_file_content_async(file_id: str) -> str | None:
     return markdown[:4000]
 
 
-def _read_file_directly(file_path: str) -> str:
+async def _read_file_directly(file_path: str) -> str:
     """Read file content directly from disk."""
 
-    with open(file_path, "r", encoding="utf-8") as f:
-        return f.read()
+    async with aiofiles.open(file_path, "r", encoding="utf-8") as f:
+        return await f.read()
