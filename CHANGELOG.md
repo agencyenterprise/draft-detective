@@ -5,6 +5,43 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+
+## [v0.4.2] - 2026-01-07
+
+### Fixed
+- Resolved an issue with Posthog integration in the production environment, ensuring that user names and emails are now correctly captured for all sessions.
+
+## [v0.4.1] - 2026-01-07
+
+### Fixed
+- Adjusted auto changelog updates.
+
+## [v0.4.0] - 2026-01-07
+
+### Added
+- Introduced a new 'Analyses' page for enhanced document review visualization.
+- Added tool runs as projects to maintain a history of tool executions and access results.
+- Implemented a severity issues filter in the explorer tab for better issue management.
+- Persisted project configuration options for consistent project settings.
+- Introduced a new **Results Extraction** workflow for extracting and assessing research document results.
+- Added Posthog integration to the front-end.
+
+### Changed
+- Refactored workflow architecture to extract citation detection and claim extraction into separate workflows, improving modularity.
+- Improved reference extraction and downloader workflows for better performance and reliability.
+- Enhanced claim categorizer agent to reduce false positives in the `needs_external_verification` field.
+- Improved loading state management between upload completion and analysis start.
+- Enabled multi-workflow execution with dependency management for streamlined operations.
+
+### Fixed
+- Corrected minor spelling errors in documentation.
+
+### Removed
+- Eliminated the unused 're-run analysis' flow from the UI to streamline user experience.
+
+### Deprecated
+- Deprecated claim substantiation workflow in favor of more modular, standalone workflows.
+
 ## [v0.3.37] - 2025-12-17
 
 ### Fixed

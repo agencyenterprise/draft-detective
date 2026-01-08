@@ -10,3 +10,6 @@ restartPolicyType = "always"
 [env]
 NODE_ENV = "production"
 NEXT_PUBLIC_API_URL = "https://${{ai-reviewer-api.RAILWAY_PUBLIC_DOMAIN}}"
+# PostHog Analytics - Set these in Railway dashboard as environment variables
+# NEXT_PUBLIC_POSTHOG_KEY = "phc_your_project_key_here"
+# NEXT_PUBLIC_POSTHOG_HOST = "https://us.i.posthog.com"

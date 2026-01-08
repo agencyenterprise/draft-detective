@@ -23,8 +23,7 @@ jobs:
       - name: Detect test mode
         id: mode
         run: |
-          # DRY RUN MODE: Set to false when ready for production
-          DRY_RUN_MODE=true
+          DRY_RUN_MODE=false
           
           if [[ "${{ github.ref }}" == refs/tags/test-* ]]; then
             echo "test_mode=true" >> $GITHUB_OUTPUT
