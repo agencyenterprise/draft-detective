@@ -14,7 +14,11 @@ from lib.models.file import File, FileRole
 from lib.models.project import Project
 from lib.models.user import User
 from lib.services.docx_workflow_service import get_or_generate_docx
-from lib.services.files import create_project_files_zip
+from lib.services.files import (
+    check_file_access,
+    create_project_files_zip,
+    delete_project_files,
+)
 from lib.services.projects import (
     ProjectDetailed,
     ProjectListItem,
@@ -212,6 +216,53 @@ async def upload_project_files_endpoint(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to upload files",
         )
+
+
+@router.delete("/api/project/{project_id}/files/{file_id}")
+async def delete_project_file_endpoint(
+    project_id: str,
+    file_id: str,
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Delete a single file from a project.
+
+    Verifies that the user has access to the file and prevents deletion of main files.
+    Only supporting files can be deleted.
+
+    Args:
+        project_id: UUID of the project
+        file_id: UUID of the file to delete
+        current_user: Authenticated user from JWT token
+
+    Returns:
+        Success message
+
+    Raises:
+        HTTPException: 400 for invalid file ID or main file deletion, 404 if file not found, 403 if access denied
+    """
+    # Check access and get file record
+    file = await check_file_access(file_id, current_user.id)
+
+    # Prevent main file deletion
+    if file.role == FileRole.MAIN:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot delete main file",
+        )
+
+    # Verify the file belongs to the specified project
+    if str(file.project_id) != project_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="File does not belong to the specified project",
+        )
+
+    # Delete the file
+    delete_project_files(project_id, target_file_ids=[file_id])
+
+    logger.info(f"Deleted file {file_id} from project {project_id}")
+    return {"message": "File deleted successfully", "file_id": file_id}
 
 
 @router.get("/api/project/{project_id}/files/download-all")

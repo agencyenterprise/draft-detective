@@ -62,6 +62,12 @@ export function FileUploadButton({
     if (selectedFiles && selectedFiles.length > 0) {
       onUpload(selectedFiles);
     }
+
+    // Clear the input value to allow the same file to be selected again
+    // Timeout is needed otherwise the value is cleared before caller components are able to read it
+    setTimeout(() => {
+      e.target.value = '';
+    });
   };
 
   const handleUploadClick = () => {

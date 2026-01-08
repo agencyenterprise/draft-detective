@@ -39,12 +39,7 @@ const serializeUrlSearchParamsPair = (data: URLSearchParams, key: string, value:
 };
 
 export const formDataBodySerializer = {
-  bodySerializer: <T extends Record<string, any> | Array<Record<string, any>> | FormData>(body: T): FormData => {
-    // If body is already FormData, return it as-is
-    if (body instanceof FormData) {
-      return body;
-    }
-
+  bodySerializer: <T extends Record<string, any> | Array<Record<string, any>>>(body: T): FormData => {
     const data = new FormData();
 
     Object.entries(body).forEach(([key, value]) => {

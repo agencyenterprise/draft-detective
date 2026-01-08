@@ -12,6 +12,9 @@ import type {
   DeleteProjectEndpointApiProjectProjectIdDeleteData,
   DeleteProjectEndpointApiProjectProjectIdDeleteErrors,
   DeleteProjectEndpointApiProjectProjectIdDeleteResponses,
+  DeleteProjectFileEndpointApiProjectProjectIdFilesFileIdDeleteData,
+  DeleteProjectFileEndpointApiProjectProjectIdFilesFileIdDeleteErrors,
+  DeleteProjectFileEndpointApiProjectProjectIdFilesFileIdDeleteResponses,
   DisableProjectSharingApiProjectsProjectIdShareDisablePostData,
   DisableProjectSharingApiProjectsProjectIdShareDisablePostErrors,
   DisableProjectSharingApiProjectsProjectIdShareDisablePostResponses,
@@ -650,6 +653,40 @@ export const uploadProjectFilesEndpointApiProjectProjectIdFilesPost = <ThrowOnEr
       'Content-Type': null,
       ...options.headers,
     },
+  });
+
+/**
+ * Delete Project File Endpoint
+ *
+ * Delete a single file from a project.
+ *
+ * Verifies that the user has access to the file and prevents deletion of main files.
+ * Only supporting files can be deleted.
+ *
+ * Args:
+ * project_id: UUID of the project
+ * file_id: UUID of the file to delete
+ * current_user: Authenticated user from JWT token
+ *
+ * Returns:
+ * Success message
+ *
+ * Raises:
+ * HTTPException: 400 for invalid file ID or main file deletion, 404 if file not found, 403 if access denied
+ */
+export const deleteProjectFileEndpointApiProjectProjectIdFilesFileIdDelete = <ThrowOnError extends boolean = true>(
+  options: Options<DeleteProjectFileEndpointApiProjectProjectIdFilesFileIdDeleteData, ThrowOnError>,
+) =>
+  (options.client ?? client).delete<
+    DeleteProjectFileEndpointApiProjectProjectIdFilesFileIdDeleteResponses,
+    DeleteProjectFileEndpointApiProjectProjectIdFilesFileIdDeleteErrors,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/project/{project_id}/files/{file_id}',
+    ...options,
   });
 
 /**

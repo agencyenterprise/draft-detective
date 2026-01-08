@@ -1,5 +1,6 @@
 'use client';
 
+import { DeleteFileDialog } from '@/components/delete-file-dialog';
 import { formatFileSize } from '@/components/analysis-form/utils';
 import { Button } from '@/components/ui/button';
 import {
@@ -94,6 +95,7 @@ function FileNameLink({ file }: { file: ApiFile }) {
 
 export function FilesTab({ projectId, allWorkflowDetails }: FilesTabProps) {
   const [searchQuery, setSearchQuery] = useState('');
+  const [fileToDelete, setFileToDelete] = useState<ApiFile | null>(null);
   const queryClient = useQueryClient();
 
   const referenceExtraction = getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.ReferenceExtraction);
@@ -116,15 +118,11 @@ export function FilesTab({ projectId, allWorkflowDetails }: FilesTabProps) {
         throw new Error('No files selected');
       }
 
-      const formData = new FormData();
-      filesArray.forEach((file) => {
-        formData.append('files', file);
-      });
-
       return await uploadProjectFilesEndpointApiProjectProjectIdFilesPost({
         path: { project_id: projectId },
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        body: formData as any,
+        body: {
+          files: filesArray,
+        },
       });
     },
     onSuccess: () => {
@@ -294,7 +292,7 @@ export function FilesTab({ projectId, allWorkflowDetails }: FilesTabProps) {
                           <Pencil className="size-4" />
                           Change matched reference
                         </DropdownMenuItem>
-                        <DropdownMenuItem disabled={isMain || true} variant="destructive" onClick={() => {}}>
+                        <DropdownMenuItem disabled={isMain} variant="destructive" onClick={() => setFileToDelete(file)}>
                           <Trash2 className="size-4" />
                           Remove file
                         </DropdownMenuItem>
@@ -306,6 +304,19 @@ export function FilesTab({ projectId, allWorkflowDetails }: FilesTabProps) {
             })}
           </TableBody>
         </Table>
+      )}
+
+      {fileToDelete && (
+        <DeleteFileDialog
+          projectId={projectId}
+          file={fileToDelete}
+          open={!!fileToDelete}
+          onOpenChange={(open) => {
+            if (!open) {
+              setFileToDelete(null);
+            }
+          }}
+        />
       )}
     </div>
   );

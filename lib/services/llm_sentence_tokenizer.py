@@ -85,4 +85,4 @@ Text to tokenize:
         result = await llm.ainvoke(messages)
         return result.chunks
     except Exception as e:
-        raise Exception(f"LLM tokenization failed for paragraph: {e}") from e
+        raise Exception(f'LLM tokenization failed for paragraph: "{paragraph}"') from e

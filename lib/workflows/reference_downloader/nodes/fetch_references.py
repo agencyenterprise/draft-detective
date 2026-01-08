@@ -54,7 +54,7 @@ async def _fetch_reference(
 
 
 def _cleanup_failed_resources(project_id: str, items: List[ReferenceFetchItem]) -> None:
-    failed_file_ids = []
+    failed_file_ids: List[str] = []
 
     for item in items:
         if item is not None:

@@ -4887,6 +4887,39 @@ export type UploadProjectFilesEndpointApiProjectProjectIdFilesPostResponses = {
 export type UploadProjectFilesEndpointApiProjectProjectIdFilesPostResponse =
   UploadProjectFilesEndpointApiProjectProjectIdFilesPostResponses[keyof UploadProjectFilesEndpointApiProjectProjectIdFilesPostResponses];
 
+export type DeleteProjectFileEndpointApiProjectProjectIdFilesFileIdDeleteData = {
+  body?: never;
+  path: {
+    /**
+     * Project Id
+     */
+    project_id: string;
+    /**
+     * File Id
+     */
+    file_id: string;
+  };
+  query?: never;
+  url: '/api/project/{project_id}/files/{file_id}';
+};
+
+export type DeleteProjectFileEndpointApiProjectProjectIdFilesFileIdDeleteErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type DeleteProjectFileEndpointApiProjectProjectIdFilesFileIdDeleteError =
+  DeleteProjectFileEndpointApiProjectProjectIdFilesFileIdDeleteErrors[keyof DeleteProjectFileEndpointApiProjectProjectIdFilesFileIdDeleteErrors];
+
+export type DeleteProjectFileEndpointApiProjectProjectIdFilesFileIdDeleteResponses = {
+  /**
+   * Successful Response
+   */
+  200: unknown;
+};
+
 export type DownloadAllProjectFilesApiProjectProjectIdFilesDownloadAllGetData = {
   body?: never;
   path: {

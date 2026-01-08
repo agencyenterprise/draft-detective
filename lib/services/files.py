@@ -191,7 +191,7 @@ async def check_file_access(file_id: uuid.UUID | str, user_id: uuid.UUID) -> Fil
 
 def delete_project_files(
     project_id: uuid.UUID | str,
-    target_file_ids: Sequence[uuid.UUID | str] | None = None,
+    target_file_ids: Sequence[str] | None = None,
 ) -> None:
     """
     Delete all files for a project from the database and remove disk files
@@ -210,7 +210,7 @@ def delete_project_files(
         )
 
         for file in project_files:
-            if target_file_ids is not None and file.id not in target_file_ids:
+            if target_file_ids is not None and str(file.id) not in target_file_ids:
                 continue
 
             if not _is_path_shared(db, file.file_path, normalized_project_id):
