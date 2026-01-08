@@ -1,4 +1,4 @@
-name: Deploy to Railway
+name: Deploy to Railway (Production)
 
 on:
   push:
@@ -15,7 +15,7 @@ jobs:
       PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
       BACKEND_SERVICE_ID: ${{ secrets.RAILWAY_BACKEND_SERVICE_ID }}
       FRONTEND_SERVICE_ID: ${{ secrets.RAILWAY_FRONTEND_SERVICE_ID }}
-    
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
