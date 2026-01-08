@@ -1,0 +1,28 @@
+name: Deploy to Railway (Dev)
+
+on:
+  push:
+    branches:
+      - dev
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    container: ghcr.io/railwayapp/cli:latest
+    env:
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
+      DEV_BACKEND_SERVICE_ID: ${{ secrets.RAILWAY_DEV_BACKEND_SERVICE_ID }}
+      DEV_FRONTEND_SERVICE_ID: ${{ secrets.RAILWAY_DEV_FRONTEND_SERVICE_ID }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Deploy Backend to Railway (Dev)
+        run: railway up --service=${{ env.DEV_BACKEND_SERVICE_ID }}
+
+      - name: Deploy Frontend to Railway (Dev)
+        run: |
+          cd frontend
+          railway up --service=${{ env.DEV_FRONTEND_SERVICE_ID }}
