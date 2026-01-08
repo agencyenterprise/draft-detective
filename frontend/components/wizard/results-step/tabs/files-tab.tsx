@@ -8,24 +8,27 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { FileUploadButton } from '@/components/ui/file-upload-button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useDownloadAllProjectFiles } from '@/hooks/use-download-all-project-files';
 import {
   BibliographyItem,
-  File,
+  File as ApiFile,
   FileRole,
   listProjectFilesEndpointApiProjectProjectIdFilesGet,
+  uploadProjectFilesEndpointApiProjectProjectIdFilesPost,
   WorkflowRunDetail,
   WorkflowRunType,
 } from '@/lib/generated-api';
 import { cn } from '@/lib/utils';
 import { getWorkflowRunByType } from '@/lib/workflow-state';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Download, FileText, HelpCircle, Loader2, MoreVerticalIcon, Pencil, Search, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
+import { toast } from 'sonner';
 
 interface FilesTabProps {
   projectId: string;
@@ -67,7 +70,7 @@ function ExpandableCell({ children, className }: { children: React.ReactNode; cl
   );
 }
 
-function FileNameLink({ file }: { file: File }) {
+function FileNameLink({ file }: { file: ApiFile }) {
   if (!file.id) {
     return (
       <div className="flex items-center gap-2">
@@ -91,6 +94,7 @@ function FileNameLink({ file }: { file: File }) {
 
 export function FilesTab({ projectId, allWorkflowDetails }: FilesTabProps) {
   const [searchQuery, setSearchQuery] = useState('');
+  const queryClient = useQueryClient();
 
   const referenceExtraction = getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.ReferenceExtraction);
   const references = useMemo(
@@ -104,6 +108,33 @@ export function FilesTab({ projectId, allWorkflowDetails }: FilesTabProps) {
   });
 
   const { downloadAll, isDownloading } = useDownloadAllProjectFiles(projectId);
+
+  const uploadFilesMutation = useMutation<ApiFile[], Error, FileList>({
+    mutationFn: async (filesToUpload: FileList) => {
+      const filesArray = Array.from(filesToUpload);
+      if (filesArray.length === 0) {
+        throw new Error('No files selected');
+      }
+
+      const formData = new FormData();
+      filesArray.forEach((file) => {
+        formData.append('files', file);
+      });
+
+      return await uploadProjectFilesEndpointApiProjectProjectIdFilesPost({
+        path: { project_id: projectId },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        body: formData as any,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['files', projectId] });
+      toast.success('Files uploaded successfully');
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : 'Failed to upload files');
+    },
+  });
 
   // Build a map of file names to matched references once
   const matchedReferencesMap = useMemo(() => {
@@ -150,21 +181,31 @@ export function FilesTab({ projectId, allWorkflowDetails }: FilesTabProps) {
           Project Files ({filteredFiles.length}
           {searchQuery ? ` of ${sortedFiles.length}` : ''})
         </h2>
-        {sortedFiles.length > 0 && (
-          <Button onClick={downloadAll} disabled={isDownloading} variant="outline" size="sm">
-            {isDownloading ? (
-              <>
-                <Loader2 className="size-4 animate-spin" />
-                Downloading...
-              </>
-            ) : (
-              <>
-                <Download className="size-4" />
-                Download all files (.zip)
-              </>
-            )}
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          <FileUploadButton
+            onUpload={uploadFilesMutation.mutate}
+            isUploading={uploadFilesMutation.isPending}
+            variant="default"
+            size="sm"
+          >
+            Upload Files
+          </FileUploadButton>
+          {sortedFiles.length > 0 && (
+            <Button onClick={downloadAll} disabled={isDownloading} variant="outline" size="sm">
+              {isDownloading ? (
+                <>
+                  <Loader2 className="size-4 animate-spin" />
+                  Downloading...
+                </>
+              ) : (
+                <>
+                  <Download className="size-4" />
+                  Download all files (.zip)
+                </>
+              )}
+            </Button>
+          )}
+        </div>
       </div>
 
       {sortedFiles.length > 0 && (

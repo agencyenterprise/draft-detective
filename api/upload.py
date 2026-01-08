@@ -24,7 +24,7 @@ async def save_uploaded_files_to_db(
     """
     Save uploaded files to disk and create database records.
 
-    Reuses existing file saving logic (xxhash, deduplication, docx preprocessing)
+    Reuses existing file saving logic (xxhash, deduplication)
     and creates File records in the database for each uploaded file.
 
     Args:

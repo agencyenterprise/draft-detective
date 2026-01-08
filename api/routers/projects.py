@@ -1,4 +1,5 @@
 import logging
+import uuid
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends
@@ -156,6 +157,61 @@ async def list_project_files_endpoint(
     """Get all files for a project"""
 
     return await get_user_project_files(project_id, user=current_user)
+
+
+@router.post("/api/project/{project_id}/files", response_model=List[File])
+async def upload_project_files_endpoint(
+    project_id: str,
+    files: List[UploadFile] = FastAPIUploadFile(...),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Upload supporting files to an existing project.
+
+    Accepts multiple files via multipart form data and saves them with SUPPORT role.
+    Verifies that the user has access to the project before allowing uploads.
+
+    Args:
+        project_id: UUID of the project to add files to
+        files: List of files to upload
+        current_user: Authenticated user from JWT token
+
+    Returns:
+        List of created File records
+
+    Raises:
+        HTTPException: 404 if project not found, 403 if access denied, 400 for invalid files
+    """
+    # Verify project access
+    await get_user_project_detailed(project_id, user=current_user)
+
+    if not files:
+        raise HTTPException(status_code=400, detail="No files provided")
+
+    try:
+        file_records = await save_uploaded_files_to_db(
+            uploaded_files=files,
+            project_id=uuid.UUID(project_id),
+            user_id=current_user.id,
+            roles=[FileRole.SUPPORT] * len(files),
+        )
+
+        logger.info(
+            f"Uploaded {len(file_records)} supporting files to project {project_id}"
+        )
+        return file_records
+
+    except ValueError as e:
+        logger.error(f"Invalid file upload for project {project_id}: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(
+            f"Failed to upload files to project {project_id}: {e}", exc_info=True
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to upload files",
+        )
 
 
 @router.get("/api/project/{project_id}/files/download-all")

@@ -56,7 +56,7 @@ function ReferenceTableRow({ reference, validation, supportingFiles }: Reference
                     href={`/api/files/download/${supportingFile.file_id}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-blue-600 hover:underline"
+                    className="text-blue-600 hover:underline break-words"
                   >
                     {supportingFile.file_name || 'Unknown'}
                   </a>

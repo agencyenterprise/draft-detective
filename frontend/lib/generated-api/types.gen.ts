@@ -269,6 +269,16 @@ export type BodyStartAnalysisApiStartAnalysisPost = {
 };
 
 /**
+ * Body_upload_project_files_endpoint_api_project__project_id__files_post
+ */
+export type BodyUploadProjectFilesEndpointApiProjectProjectIdFilesPost = {
+  /**
+   * Files
+   */
+  files: Array<Blob | File>;
+};
+
+/**
  * ChunkEvalPackageRequest
  */
 export type ChunkEvalPackageRequest = {
@@ -4842,6 +4852,40 @@ export type ListProjectFilesEndpointApiProjectProjectIdFilesGetResponses = {
 
 export type ListProjectFilesEndpointApiProjectProjectIdFilesGetResponse =
   ListProjectFilesEndpointApiProjectProjectIdFilesGetResponses[keyof ListProjectFilesEndpointApiProjectProjectIdFilesGetResponses];
+
+export type UploadProjectFilesEndpointApiProjectProjectIdFilesPostData = {
+  body: BodyUploadProjectFilesEndpointApiProjectProjectIdFilesPost;
+  path: {
+    /**
+     * Project Id
+     */
+    project_id: string;
+  };
+  query?: never;
+  url: '/api/project/{project_id}/files';
+};
+
+export type UploadProjectFilesEndpointApiProjectProjectIdFilesPostErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type UploadProjectFilesEndpointApiProjectProjectIdFilesPostError =
+  UploadProjectFilesEndpointApiProjectProjectIdFilesPostErrors[keyof UploadProjectFilesEndpointApiProjectProjectIdFilesPostErrors];
+
+export type UploadProjectFilesEndpointApiProjectProjectIdFilesPostResponses = {
+  /**
+   * Response Upload Project Files Endpoint Api Project  Project Id  Files Post
+   *
+   * Successful Response
+   */
+  200: Array<File>;
+};
+
+export type UploadProjectFilesEndpointApiProjectProjectIdFilesPostResponse =
+  UploadProjectFilesEndpointApiProjectProjectIdFilesPostResponses[keyof UploadProjectFilesEndpointApiProjectProjectIdFilesPostResponses];
 
 export type DownloadAllProjectFilesApiProjectProjectIdFilesDownloadAllGetData = {
   body?: never;

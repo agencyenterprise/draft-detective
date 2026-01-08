@@ -80,6 +80,9 @@ import type {
   UpdateProjectEndpointApiProjectProjectIdPatchData,
   UpdateProjectEndpointApiProjectProjectIdPatchErrors,
   UpdateProjectEndpointApiProjectProjectIdPatchResponses,
+  UploadProjectFilesEndpointApiProjectProjectIdFilesPostData,
+  UploadProjectFilesEndpointApiProjectProjectIdFilesPostErrors,
+  UploadProjectFilesEndpointApiProjectProjectIdFilesPostResponses,
 } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean> = Options2<
@@ -608,6 +611,45 @@ export const listProjectFilesEndpointApiProjectProjectIdFilesGet = <ThrowOnError
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/project/{project_id}/files',
     ...options,
+  });
+
+/**
+ * Upload Project Files Endpoint
+ *
+ * Upload supporting files to an existing project.
+ *
+ * Accepts multiple files via multipart form data and saves them with SUPPORT role.
+ * Verifies that the user has access to the project before allowing uploads.
+ *
+ * Args:
+ * project_id: UUID of the project to add files to
+ * files: List of files to upload
+ * current_user: Authenticated user from JWT token
+ *
+ * Returns:
+ * List of created File records
+ *
+ * Raises:
+ * HTTPException: 404 if project not found, 403 if access denied, 400 for invalid files
+ */
+export const uploadProjectFilesEndpointApiProjectProjectIdFilesPost = <ThrowOnError extends boolean = true>(
+  options: Options<UploadProjectFilesEndpointApiProjectProjectIdFilesPostData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    UploadProjectFilesEndpointApiProjectProjectIdFilesPostResponses,
+    UploadProjectFilesEndpointApiProjectProjectIdFilesPostErrors,
+    ThrowOnError,
+    'data'
+  >({
+    ...formDataBodySerializer,
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/project/{project_id}/files',
+    ...options,
+    headers: {
+      'Content-Type': null,
+      ...options.headers,
+    },
   });
 
 /**
