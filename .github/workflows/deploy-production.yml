@@ -21,9 +21,9 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Deploy Backend to Railway
-        run: railway up --service=${{ env.BACKEND_SERVICE_ID }}
+        run: railway up --service=${{ env.BACKEND_SERVICE_ID }} --environment=production
 
       - name: Deploy Frontend to Railway
         run: |
           cd frontend
-          railway up --service=${{ env.FRONTEND_SERVICE_ID }}
+          railway up --service=${{ env.FRONTEND_SERVICE_ID }} --environment=production
