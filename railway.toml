@@ -3,7 +3,7 @@ builder = "dockerfile"
 
 [deploy]
 preDeployCommand = ["uv run alembic upgrade head"]
-startCommand = "sh -c 'uv run uvicorn api.main:app --host 0.0.0.0 --port ${PORT:-8000}'"
+startCommand = "sh -c 'uv run uvicorn api.main:app --host 0.0.0.0 --port ${PORT:-8000} --workers ${WORKERS:-4}'"
 healthcheckPath = "/api/health"
 healthcheckTimeout = 300
 restartPolicyType = "always"
