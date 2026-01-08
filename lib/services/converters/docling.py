@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 from typing import Optional
 
+import aiofiles
 import backoff
 import httpx
 
@@ -155,13 +156,15 @@ class DoclingFileConverter(FileConverterProtocol):
         params = self._build_conversion_params(simple_mode)
         file_type = mimetypes.guess_type(filename)[0] or "text/plain"
 
-        with open(file_path, "rb") as f:
-            response = await client.post(
-                f"{self.base_url}/v1/convert/file/async",
-                files={"files": (filename, f, file_type)},
-                data=params,
-                headers={"X-Api-Key": self.api_key},
-            )
+        async with aiofiles.open(file_path, "rb") as f:
+            file_content = await f.read()
+
+        response = await client.post(
+            f"{self.base_url}/v1/convert/file/async",
+            files={"files": (filename, file_content, file_type)},
+            data=params,
+            headers={"X-Api-Key": self.api_key},
+        )
 
         if response.status_code != 200:
             raise DoclingConversionError(

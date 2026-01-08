@@ -4,6 +4,7 @@ import os
 import uuid
 from typing import List
 
+import aiofiles
 from fastapi import UploadFile
 from xxhash import xxh128
 
@@ -70,11 +71,11 @@ async def save_uploaded_files_to_db(
         else:
             logger.info(f"Saving file {filename} with hash {xxhash} to {file_path}")
             try:
-                with open(file_path, "wb") as buffer:
+                async with aiofiles.open(file_path, "wb") as buffer:
                     if len(content) == 0:
                         logger.warning(f"Uploaded file {filename} is empty!")
 
-                    buffer.write(content)
+                    await buffer.write(content)
 
                 if not os.path.exists(file_path):
                     raise Exception(f"File was not created at {file_path}")
