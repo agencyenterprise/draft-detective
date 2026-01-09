@@ -73,6 +73,7 @@ def update_progress(
         if total_steps is not None:
             progress.total_steps = total_steps
 
+        # Note: updated_at is handled by onupdate in the model
         db.commit()
 
 
@@ -92,7 +93,7 @@ def complete_progress(progress_id: uuid.UUID) -> None:
 
         progress.completed_at = datetime.utcnow()
         progress.current_step = progress.total_steps
-
+        # Note: updated_at is handled by onupdate in the model
         db.commit()
 
 
