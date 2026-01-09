@@ -48,8 +48,6 @@ import type {
   GetSharedResourceApiPublicShareTokenGetData,
   GetSharedResourceApiPublicShareTokenGetErrors,
   GetSharedResourceApiPublicShareTokenGetResponses,
-  GetSupportedAgentsApiSupportedAgentsGetData,
-  GetSupportedAgentsApiSupportedAgentsGetResponses,
   GetWorkflowFeedbackApiFeedbackWorkflowWorkflowRunIdGetData,
   GetWorkflowFeedbackApiFeedbackWorkflowWorkflowRunIdGetErrors,
   GetWorkflowFeedbackApiFeedbackWorkflowWorkflowRunIdGetResponses,
@@ -110,23 +108,6 @@ export const readHealthApiHealthGet = <ThrowOnError extends boolean = true>(
   (options?.client ?? client).get<ReadHealthApiHealthGetResponses, unknown, ThrowOnError, 'data'>({
     responseStyle: 'data',
     url: '/api/health',
-    ...options,
-  });
-
-/**
- * Get Supported Agents
- *
- * Get list of supported agent types for chunk re-evaluation.
- *
- * Returns:
- * List of AgentInfo objects
- */
-export const getSupportedAgentsApiSupportedAgentsGet = <ThrowOnError extends boolean = true>(
-  options?: Options<GetSupportedAgentsApiSupportedAgentsGetData, ThrowOnError>,
-) =>
-  (options?.client ?? client).get<GetSupportedAgentsApiSupportedAgentsGetResponses, unknown, ThrowOnError, 'data'>({
-    responseStyle: 'data',
-    url: '/api/supported-agents',
     ...options,
   });
 

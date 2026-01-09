@@ -5,7 +5,6 @@ import time
 from functools import wraps
 from typing import Callable, TypeVar
 
-from lib.agents.registry import agent_registry
 from lib.workflows.models import BaseWorkflowState, WorkflowError
 
 # Type variable for decorator return types
@@ -14,10 +13,8 @@ T = TypeVar("T")
 
 def register_node(name: str, description: str):
     """
-    Decorator to register and control the execution of a workflow node with the workflow registry.
+    Decorator to register and control the execution of a workflow node.
 
-    - Registers the node with the agent registry.
-    - Skips the node if it is not in the agents_to_run configuration, during execution
     - Logs the start and end of the node, during execution
     - Handles errors and updates the state with a WorkflowError object, during execution
 
@@ -31,7 +28,6 @@ def register_node(name: str, description: str):
     ) -> Callable[[BaseWorkflowState, ...], BaseWorkflowState]:
 
         func_logger = logging.getLogger(func.__module__)
-        agent_registry.register(func.__name__, name, description)
 
         @wraps(func)
         async def wrapper(
@@ -40,13 +36,6 @@ def register_node(name: str, description: str):
 
             config = getattr(state, "config", None)
             project_id = getattr(config, "project_id", None)
-            agents_to_run = getattr(config, "agents_to_run", None)
-
-            if agents_to_run and func.__name__ not in agents_to_run:
-                func_logger.info(
-                    f"{func.__name__} ({project_id}): skipping (not in agents_to_run)"
-                )
-                return {}
 
             func_logger.info(f"{func.__name__} ({project_id}): starting")
             start_time = time.time()

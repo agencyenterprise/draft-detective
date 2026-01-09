@@ -51,7 +51,6 @@ def create_workflow_config(
         return SubstantiationWorkflowConfig(
             **common_fields,
             target_chunk_indices=base_config.target_chunk_indices,
-            agents_to_run=base_config.agents_to_run,
             workflow_types=base_config.workflow_types,
         )
 

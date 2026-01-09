@@ -24,9 +24,6 @@ class SubstantiationWorkflowConfig(BaseWorkflowConfig):
         default=None,
         description="Specific chunk indices to process (None = process all chunks)",
     )
-    agents_to_run: Optional[List[str]] = Field(
-        default=None, description="Specific agents to run (None = run all agents)"
-    )
     workflow_types: Optional[List[WorkflowRunType]] = Field(
         default=None, description="List of workflow types to run"
     )

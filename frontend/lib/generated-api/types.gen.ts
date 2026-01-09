@@ -5,26 +5,6 @@ export type ClientOptions = {
 };
 
 /**
- * AgentInfo
- *
- * Information about a registered agent
- */
-export type AgentInfo = {
-  /**
-   * Function Name
-   */
-  function_name: string;
-  /**
-   * Name
-   */
-  name: string;
-  /**
-   * Description
-   */
-  description: string;
-};
-
-/**
  * AnalyzedChunk
  *
  * Enriched document chunk with all claim analysis results.
@@ -256,10 +236,6 @@ export type BodyStartAnalysisApiStartAnalysisPost = {
    * Target Chunk Indices
    */
   target_chunk_indices?: string | null;
-  /**
-   * Agents To Run
-   */
-  agents_to_run?: string | null;
   /**
    * Openai Api Key
    */
@@ -3419,12 +3395,6 @@ export type SubstantiationWorkflowConfig = {
    */
   target_chunk_indices?: Array<number> | null;
   /**
-   * Agents To Run
-   *
-   * Specific agents to run (None = run all agents)
-   */
-  agents_to_run?: Array<string> | null;
-  /**
    * Workflow Types
    *
    * List of workflow types to run
@@ -4222,25 +4192,6 @@ export type ReadHealthApiHealthGetResponses = {
    */
   200: unknown;
 };
-
-export type GetSupportedAgentsApiSupportedAgentsGetData = {
-  body?: never;
-  path?: never;
-  query?: never;
-  url: '/api/supported-agents';
-};
-
-export type GetSupportedAgentsApiSupportedAgentsGetResponses = {
-  /**
-   * Response Get Supported Agents Api Supported Agents Get
-   *
-   * Successful Response
-   */
-  200: Array<AgentInfo>;
-};
-
-export type GetSupportedAgentsApiSupportedAgentsGetResponse =
-  GetSupportedAgentsApiSupportedAgentsGetResponses[keyof GetSupportedAgentsApiSupportedAgentsGetResponses];
 
 export type StartAnalysisApiStartAnalysisPostData = {
   body: BodyStartAnalysisApiStartAnalysisPost;
