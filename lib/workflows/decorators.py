@@ -2,10 +2,18 @@
 
 import logging
 import time
+import uuid
+from contextvars import Token
 from functools import wraps
-from typing import Callable, TypeVar
+from typing import Callable, Optional, TypeVar
 
 from lib.agents.registry import agent_registry
+from lib.models.workflow_progress import ProgressLevel
+from lib.services.workflow_progress import (
+    complete_progress,
+    create_and_start_progress,
+)
+from lib.workflows.context import current_progress_id
 from lib.workflows.models import BaseWorkflowState, WorkflowError
 
 # Type variable for decorator return types
@@ -51,8 +59,62 @@ def register_node(name: str, description: str):
             func_logger.info(f"{func.__name__} ({project_id}): starting")
             start_time = time.time()
 
+            # Progress tracking: create and start progress entry
+            progress_id: Optional[uuid.UUID] = None
+            progress_token: Optional[Token] = None
+
+            # Get runtime from args or kwargs (LangGraph may pass it either way)
+            runtime = args[0] if args else kwargs.get("runtime", None)
+
             try:
+                if runtime and hasattr(runtime, "context"):
+                    workflow_run_id_str = getattr(
+                        runtime.context, "workflow_run_id", None
+                    )
+
+                    if workflow_run_id_str:
+                        try:
+                            # Convert string to UUID
+                            workflow_run_id = uuid.UUID(workflow_run_id_str)
+
+                            progress_id = create_and_start_progress(
+                                workflow_run_id=workflow_run_id,
+                                name=name,
+                                level=ProgressLevel.NODE,
+                                total_steps=1,
+                            )
+
+                            # Store token for cleanup to prevent leakage
+                            progress_token = current_progress_id.set(progress_id)
+
+                            func_logger.info(
+                                f"Progress tracking: {name} started (progress_id: {progress_id})"
+                            )
+                        except Exception as e:
+                            func_logger.error(
+                                f"Progress tracking failed for {name}: {e}",
+                                exc_info=True,
+                            )
+
                 result = await func(state, *args, **kwargs)
+
+                # Mark progress as completed on success
+                if progress_id:
+                    try:
+                        complete_progress(progress_id)
+                        func_logger.info(
+                            f"Progress tracking: {name} completed (progress_id: {progress_id})"
+                        )
+                    except Exception as e:
+                        func_logger.error(
+                            f"Failed to complete progress entry: {e}", exc_info=True
+                        )
+
+                func_logger.info(
+                    f"{func.__name__} ({project_id}): done in {time.time() - start_time:.2f} seconds"
+                )
+
+                return result
 
             except Exception as e:
                 func_logger.error(
@@ -63,11 +125,10 @@ def register_node(name: str, description: str):
                     "errors": [WorkflowError(task_name=func.__name__, error=str(e))]
                 }
 
-            func_logger.info(
-                f"{func.__name__} ({project_id}): done in {time.time() - start_time:.2f} seconds"
-            )
-
-            return result
+            finally:
+                # CRITICAL: Reset contextvar to prevent leakage to subsequent nodes
+                if progress_token is not None:
+                    current_progress_id.reset(progress_token)
 
         return wrapper
 

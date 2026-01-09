@@ -53,6 +53,9 @@ import type {
   GetWorkflowFeedbackApiFeedbackWorkflowWorkflowRunIdGetData,
   GetWorkflowFeedbackApiFeedbackWorkflowWorkflowRunIdGetErrors,
   GetWorkflowFeedbackApiFeedbackWorkflowWorkflowRunIdGetResponses,
+  GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdProgressGetData,
+  GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdProgressGetErrors,
+  GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdProgressGetResponses,
   GetWorkflowStateApiWorkflowsWorkflowRunIdGetData,
   GetWorkflowStateApiWorkflowsWorkflowRunIdGetErrors,
   GetWorkflowStateApiWorkflowsWorkflowRunIdGetResponses,
@@ -627,6 +630,30 @@ export const downloadAllProjectFilesApiProjectProjectIdFilesDownloadAllGet = <Th
     responseStyle: 'data',
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/project/{project_id}/files/download-all',
+    ...options,
+  });
+
+/**
+ * Get Workflow Progress Endpoint
+ *
+ * Get all progress entries for a workflow run.
+ *
+ * Returns progress entries ordered by creation time.
+ */
+export const getWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdProgressGet = <
+  ThrowOnError extends boolean = true,
+>(
+  options: Options<GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdProgressGetData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdProgressGetResponses,
+    GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdProgressGetErrors,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/progress/workflow/{workflow_run_id}',
     ...options,
   });
 
