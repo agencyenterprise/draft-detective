@@ -17,7 +17,10 @@ from lib.agents.formatting_utils import (
     format_cited_references,
     format_retrieved_passages,
 )
-from lib.models.bibliography_item import BibliographyItem
+from lib.models.bibliography_item import (
+    BibliographyItem,
+    get_associated_supporting_file,
+)
 from lib.services.file import FileDocument
 from lib.services.vector_store import (
     VectorStoreService,
@@ -258,13 +261,10 @@ class RAGReferenceProvider:
         bibliography_index = citation.index_of_associated_bibliography
         associated_reference = references[bibliography_index - 1]
 
-        if (
-            associated_reference.has_associated_supporting_document
-            and associated_reference.index_of_associated_supporting_document > 0
-        ):
-            supporting_file = supporting_files[
-                associated_reference.index_of_associated_supporting_document - 1
-            ]
+        supporting_file = get_associated_supporting_file(
+            associated_reference, supporting_files
+        )
+        if supporting_file:
             matched_supporting_files.add(supporting_file)
 
         return matched_supporting_files

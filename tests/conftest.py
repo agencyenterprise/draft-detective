@@ -395,7 +395,10 @@ async def create_test_file_document_from_path(path: str):
     original_file_name = filename
 
     return await create_file_document_from_path(
-        dest_path, original_file_name=original_file_name, markdown_convert=True
+        dest_path,
+        file_id=path,
+        original_file_name=original_file_name,
+        markdown_convert=True,
     )
 
 

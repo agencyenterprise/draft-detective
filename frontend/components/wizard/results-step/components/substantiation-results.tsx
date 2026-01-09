@@ -87,13 +87,14 @@ export function SubstantiationResults({
                   <AccordionContent>
                     <div className="space-y-3 mt-2">
                       {substantiation.evidence_sources.map((source, index) => {
-                        const matchedReference = references.find(
-                          (reference) =>
-                            reference.name_of_associated_supporting_document === source.reference_file_name,
-                        );
+                        // Find file by file_name since that's what source.reference_file_name contains
                         const matchedFile = supportingFiles.find(
                           (file) => file.file_name === source.reference_file_name,
                         );
+                        // Find reference using file_id for accurate matching
+                        const matchedReference = matchedFile
+                          ? references.find((reference) => reference.file_id === matchedFile.file_id)
+                          : undefined;
 
                         return (
                           <div key={index} className="bg-muted p-3 rounded-md space-y-1">

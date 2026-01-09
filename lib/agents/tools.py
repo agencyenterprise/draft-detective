@@ -1,5 +1,8 @@
 from lib.agents.citation_detector import CitationResponse
-from lib.models.bibliography_item import BibliographyItem
+from lib.models.bibliography_item import (
+    BibliographyItem,
+    get_associated_supporting_file,
+)
 from lib.services.file import FileDocument
 from typing import Optional
 
@@ -88,10 +91,10 @@ def format_cited_references(
 Citation text: `{citation.text}`
 Bibliography entry text: `{associated_reference.text}`
 """
-        if associated_reference.has_associated_supporting_document:
-            supporting_file = supporting_files[
-                associated_reference.index_of_associated_supporting_document - 1
-            ]
+        supporting_file = get_associated_supporting_file(
+            associated_reference, supporting_files
+        )
+        if supporting_file:
             cited_references_str += format_supporting_documents_prompt_section(
                 supporting_file, truncate_at_character_count=truncate_at_character_count
             )

@@ -29,9 +29,8 @@ class FileDocument(BaseModel):
     markdown_token_count: int = Field(
         description="The approximate number of tokens in the markdown content"
     )
-    file_id: Optional[str] = Field(
-        default=None,
-        description="The UUID of the file record in the database (if available)",
+    file_id: str = Field(
+        description="The UUID of the file record in the database",
     )
     docling_document: Optional[DoclingDocument] = Field(
         default=None,
@@ -61,10 +60,10 @@ class FileDocument(BaseModel):
 
 async def create_file_document_from_path(
     file_path: str,
-    original_file_name: str = None,
-    markdown_convert: bool = True,
+    file_id: str,
+    original_file_name: Optional[str] = None,
     original_file_path: Optional[str] = None,
-    file_id: Optional[str] = None,
+    markdown_convert: bool = True,
 ) -> FileDocument:
     # Verify file exists
     if not os.path.exists(file_path):
@@ -77,13 +76,13 @@ async def create_file_document_from_path(
     markdown_token_count = count_tokens_approximately([markdown])
 
     file_document = FileDocument(
+        file_id=file_id,
         file_path=str(file_path),
         file_name=file_name,
         file_type=file_type,
         markdown=markdown,
         markdown_token_count=markdown_token_count,
         original_file_path=original_file_path,
-        file_id=file_id,
     )
 
     return file_document
