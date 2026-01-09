@@ -21,9 +21,7 @@ export function CitationReferenceItem({ reference, references, supportingFiles }
       : null;
 
   const associatedSupportingFile = associatedExistingReference
-    ? supportingFiles.find(
-        (file) => file.file_name === associatedExistingReference.name_of_associated_supporting_document,
-      )
+    ? supportingFiles.find((file) => file.file_id === associatedExistingReference.file_id)
     : null;
 
   return (

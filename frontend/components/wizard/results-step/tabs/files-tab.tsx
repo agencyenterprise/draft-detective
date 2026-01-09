@@ -105,13 +105,13 @@ export function FilesTab({ projectId, allWorkflowDetails }: FilesTabProps) {
 
   const { downloadAll, isDownloading } = useDownloadAllProjectFiles(projectId);
 
-  // Build a map of file names to matched references once
+  // Build a map of file_id to matched references once
   const matchedReferencesMap = useMemo(() => {
     const map = new Map<string, BibliographyItem>();
     if (references) {
       for (const ref of references) {
-        if (ref.name_of_associated_supporting_document) {
-          map.set(ref.name_of_associated_supporting_document, ref);
+        if (ref.file_id) {
+          map.set(ref.file_id, ref);
         }
       }
     }
@@ -134,7 +134,7 @@ export function FilesTab({ projectId, allWorkflowDetails }: FilesTabProps) {
     if (!searchQuery.trim()) return sortedFiles;
     const query = searchQuery.toLowerCase();
     return sortedFiles.filter((file) => {
-      const matchedReference = file.file_name ? matchedReferencesMap.get(file.file_name) : undefined;
+      const matchedReference = file.id ? matchedReferencesMap.get(file.id) : undefined;
       return (
         file.file_name?.toLowerCase().includes(query) ||
         file.description?.toLowerCase().includes(query) ||
@@ -209,7 +209,7 @@ export function FilesTab({ projectId, allWorkflowDetails }: FilesTabProps) {
           <TableBody>
             {filteredFiles.map((file) => {
               const isMain = file.role === FileRole.Main;
-              const matchedReference = file.file_name ? matchedReferencesMap.get(file.file_name) : undefined;
+              const matchedReference = file.id ? matchedReferencesMap.get(file.id) : undefined;
               return (
                 <TableRow key={file.id}>
                   <TableCell className="whitespace-normal break-all max-w-md">

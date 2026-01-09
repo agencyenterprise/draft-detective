@@ -106,7 +106,19 @@ export function ExtractionResults({ results, onReset }: ExtractionResultsProps) 
                     <p className="text-sm text-gray-900">{ref.text}</p>
                     {ref.has_associated_supporting_document && (
                       <p className="text-xs text-green-600 mt-1">
-                        ✓ Matched with: {ref.name_of_associated_supporting_document}
+                        ✓ Matched with:{' '}
+                        {ref.file_id ? (
+                          <a
+                            href={`/api/files/download/${ref.file_id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="hover:underline"
+                          >
+                            {ref.name_of_associated_supporting_document}
+                          </a>
+                        ) : (
+                          ref.name_of_associated_supporting_document
+                        )}
                       </p>
                     )}
                   </div>
