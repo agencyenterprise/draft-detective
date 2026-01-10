@@ -176,7 +176,7 @@ When a claim could fit multiple categories, use this priority:
 
 STEP 1: Check category first
 - If category is "Inferential/Interpretive" → ALWAYS FALSE
-- If category is "Meta/Structural/Evaluative" → ALWAYS FALSE  
+- If category is "Meta/Structural/Evaluative" → ALWAYS FALSE
 - If category is "Empirical/Analytical Results" → Usually FALSE (only TRUE if comparing to external work)
 
 STEP 2: For other categories, check if it's generally accepted knowledge or inferred knowledge
@@ -381,7 +381,13 @@ if __name__ == "__main__":
         ]
     ]
 
-    context = ContextSchema(openai_api_key=config.OPENAI_API_KEY, vector_store=None)
+    from lib.services.file_artifacts_service.mock import MockFileArtifactsService
+
+    context = ContextSchema(
+        openai_api_key=config.OPENAI_API_KEY,
+        vector_store=None,
+        file_artifacts_service=MockFileArtifactsService(),
+    )
     claim_categorizer_agent = ClaimCategorizerAgent(context)
 
     # Run tests and compare results

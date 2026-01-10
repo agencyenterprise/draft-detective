@@ -279,7 +279,13 @@ if __name__ == "__main__":
         print("-" * 80)
 
         # Initialize context
-        context = ContextSchema(openai_api_key=config.OPENAI_API_KEY, vector_store=None)
+        from lib.services.file_artifacts_service.mock import MockFileArtifactsService
+
+        context = ContextSchema(
+            openai_api_key=config.OPENAI_API_KEY,
+            vector_store=None,
+            file_artifacts_service=MockFileArtifactsService(),
+        )
 
         # Step 1: Extract methodology
         print("Step 1: Extracting methodology from document...")

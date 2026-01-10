@@ -8,9 +8,12 @@ from lib.agents.claim_categorizer import (
     ClaimCategorizerAgent,
 )
 from lib.agents.claim_extractor import Claim, ClaimResponseWithChunkIndex
+from lib.agents.document_summarizer import DocumentSummary
 from lib.agents.formatting_utils import format_audience_context, format_domain_context
 from lib.run_utils import run_tasks
+from lib.services.file_artifacts_service.types import FileArtifactsServiceType
 from lib.workflows.claim_extraction.state import ClaimExtractionState
+from lib.workflows.claim_substantiation.state import AnalyzedChunk
 from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
 from lib.workflows.models import WorkflowError
@@ -26,6 +29,11 @@ async def categorize_claims(
     state: ClaimExtractionState, runtime: Runtime[ContextSchema]
 ) -> Dict[str, Any]:
     claim_categorizer_agent = ClaimCategorizerAgent(runtime.context)
+    file_artifacts_service = runtime.context.file_artifacts_service
+
+    # Fetch artifacts from file artifacts service
+    chunks = await file_artifacts_service.get_chunks()
+    document_summary = await file_artifacts_service.get_document_summary(state.file_id)
 
     # Build list of (claim_response, claim_index) tuples for all claims
     claim_tasks = []
@@ -38,7 +46,14 @@ async def categorize_claims(
     # Categorize all claims
     tasks = [
         _categorize_single_claim(
-            state, claim_response, claim_index, claim, claim_categorizer_agent
+            state,
+            claim_response,
+            claim_index,
+            claim,
+            chunks,
+            document_summary,
+            claim_categorizer_agent,
+            file_artifacts_service,
         )
         for claim_response, claim_index, claim in claim_tasks
     ]
@@ -74,13 +89,16 @@ async def _categorize_single_claim(
     claim_response: ClaimResponseWithChunkIndex,
     claim_index: int,
     claim: Claim,
+    chunks: List[AnalyzedChunk],
+    document_summary: DocumentSummary,
     claim_categorizer_agent: ClaimCategorizerAgent,
+    file_artifacts_service: FileArtifactsServiceType,
 ) -> Optional[ClaimCategorizationResponseWithClaimIndex]:
     """Categorize a single claim."""
 
     # Find the chunk for this claim
     chunk = next(
-        (c for c in state.chunks if c.chunk_index == claim_response.chunk_index),
+        (c for c in chunks if c.chunk_index == claim_response.chunk_index),
         None,
     )
     if chunk is None:
@@ -91,12 +109,10 @@ async def _categorize_single_claim(
 
     result = await claim_categorizer_agent.ainvoke(
         {
-            "document_summary": (
-                state.main_document_summary.summary
-                if state.main_document_summary
-                else ""
+            "document_summary": (document_summary.summary if document_summary else ""),
+            "paragraph": file_artifacts_service.get_paragraph_text(
+                chunks, chunk.paragraph_index
             ),
-            "paragraph": state.get_paragraph(chunk.paragraph_index),
             "chunk": chunk.content,
             "claim": claim.claim,
             "domain_context": format_domain_context(state.config.domain),

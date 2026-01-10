@@ -57,7 +57,7 @@ function renderWorkflowResults(
     case WorkflowRunType.LiteratureReview:
       return <LiteratureReviewResults workflowDetail={workflowRun} />;
     case WorkflowRunType.CitationSuggester:
-      return <CitationSuggesterResults workflowDetail={workflowRun} />;
+      return <CitationSuggesterResults project={project} workflowDetail={workflowRun} />;
     case WorkflowRunType.ReferenceDownloader:
       return <ReferenceDownloaderResults workflowDetail={workflowRun} />;
     case WorkflowRunType.ResultsExtraction:

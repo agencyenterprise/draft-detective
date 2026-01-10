@@ -4,12 +4,15 @@ from typing import List
 
 from langgraph.runtime import Runtime
 
+from lib.agents.document_summarizer import DocumentSummary
 from lib.agents.evidence_weighter import (
     EvidenceWeighterAgent,
     EvidenceWeighterResponseWithClaimIndex,
 )
 from lib.agents.live_literature_review import LiveLiteratureReviewAgent
+from lib.models.bibliography_item import BibliographyItem
 from lib.run_utils import run_tasks
+from lib.services.file_artifacts_service.types import FileArtifactsServiceType
 from lib.workflows.claim_substantiation.state import AnalyzedChunk
 from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
@@ -25,16 +28,29 @@ logger = logging.getLogger(__name__)
 )
 async def generate_live_reports_analysis(
     state: LiveReportsState, runtime: Runtime[ContextSchema]
-) -> LiveReportsState:
+):
     live_literature_review_agent = LiveLiteratureReviewAgent(runtime.context)
     evidence_weighter_agent = EvidenceWeighterAgent(runtime.context)
+    file_artifacts_service = runtime.context.file_artifacts_service
+
+    # Fetch artifacts from file artifacts service
+    chunks = await file_artifacts_service.get_chunks()
+    document_summary = await file_artifacts_service.get_document_summary(state.file_id)
+    references = await file_artifacts_service.get_references()
 
     # Process all chunks
     tasks = [
         _analyze_chunk_live_reports(
-            state, chunk, live_literature_review_agent, evidence_weighter_agent
+            state,
+            chunk,
+            chunks,
+            document_summary,
+            references,
+            live_literature_review_agent,
+            evidence_weighter_agent,
+            file_artifacts_service,
         )
-        for chunk in state.chunks
+        for chunk in chunks
     ]
 
     results: tuple[
@@ -53,7 +69,7 @@ async def generate_live_reports_analysis(
     errors = []
     for index, exception in enumerate(exceptions):
         if exception is not None:
-            chunk_index = state.chunks[index].chunk_index
+            chunk_index = chunks[index].chunk_index
             errors.append(
                 WorkflowError(
                     task_name="generate_live_reports_analysis",
@@ -68,8 +84,12 @@ async def generate_live_reports_analysis(
 async def _analyze_chunk_live_reports(
     state: LiveReportsState,
     chunk: AnalyzedChunk,
+    chunks: List[AnalyzedChunk],
+    document_summary: DocumentSummary,
+    references: List[BibliographyItem],
     live_literature_review_agent: LiveLiteratureReviewAgent,
     evidence_weighter_agent: EvidenceWeighterAgent,
+    file_artifacts_service: FileArtifactsServiceType,
 ) -> List[EvidenceWeighterResponseWithClaimIndex]:
     # Skip if chunk has no claims
     if chunk.claims is None or not chunk.claims.claims:
@@ -96,11 +116,11 @@ async def _analyze_chunk_live_reports(
         literature_review_result = await live_literature_review_agent.ainvoke(
             {
                 "document_summary": (
-                    state.main_document_summary.summary
-                    if state.main_document_summary
-                    else ""
+                    document_summary.summary if document_summary else ""
                 ),
-                "paragraph": state.get_paragraph(chunk.paragraph_index),
+                "paragraph": file_artifacts_service.get_paragraph_text(
+                    chunks, chunk.paragraph_index
+                ),
                 "claim": claim.claim,
                 "document_publication_date": (
                     state.config.publication_date
@@ -109,7 +129,7 @@ async def _analyze_chunk_live_reports(
                 ),
                 "domain_context": state.config.domain or "",
                 "audience_context": state.config.target_audience or "",
-                "bibliography": state.references,
+                "bibliography": references,
             }
         )
 
@@ -117,15 +137,15 @@ async def _analyze_chunk_live_reports(
         live_reports_analysis_result = await evidence_weighter_agent.ainvoke(
             {
                 "document_summary": (
-                    state.main_document_summary.summary
-                    if state.main_document_summary
-                    else ""
+                    document_summary.summary if document_summary else ""
                 ),
                 "cited_references": (
                     chunk.citations.citations if chunk.citations else []
                 ),
                 "cited_references_paragraph": [],  # TODO (2025-10-20): Get citations from paragraph
-                "paragraph": state.get_paragraph(chunk.paragraph_index),
+                "paragraph": file_artifacts_service.get_paragraph_text(
+                    chunks, chunk.paragraph_index
+                ),
                 "chunk": chunk.content,
                 "claim": claim.claim,
                 "domain_context": state.config.domain or "",

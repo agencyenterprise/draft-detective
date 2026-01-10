@@ -32,7 +32,8 @@ async def detect_sections_node(
     Returns:
         Dict with detected_sections list
     """
-    markdown = state.file.markdown
+    main_file = await runtime.context.file_artifacts_service.get_main_file()
+    markdown = main_file.markdown
 
     if not markdown:
         logger.warning("No markdown content in document")

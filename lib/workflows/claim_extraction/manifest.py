@@ -1,4 +1,4 @@
-from typing import List, Type, cast
+from typing import List, Type
 
 from langgraph.graph import StateGraph
 
@@ -7,11 +7,10 @@ from lib.workflows.claim_extraction.state import (
     ClaimExtractionState,
     ClaimExtractionWorkflowConfig,
 )
-from lib.workflows.document_processing.state import DocumentProcessingState
 from lib.workflows.manifest import WorkflowManifest
 from lib.workflows.models import DocumentIssue, WorkflowRunType
 from lib.workflows.types import WorkflowState
-from lib.workflows.util import get_state_by_type_or_raise
+from lib.workflows.util import get_main_file_id
 
 
 class ClaimExtractionManifest(
@@ -46,18 +45,9 @@ class ClaimExtractionManifest(
     ) -> ClaimExtractionState:
         """Create and return the initial state of the workflow."""
 
-        # Get document processing artifacts from dependency workflow
-        doc_processing_state = cast(
-            DocumentProcessingState,
-            get_state_by_type_or_raise(
-                WorkflowRunType.DOCUMENT_PROCESSING, existing_states
-            ),
-        )
-
         return ClaimExtractionState(
             type=WorkflowRunType.CLAIM_EXTRACTION,
-            main_document_summary=doc_processing_state.main_document_summary,
-            chunks=doc_processing_state.chunks,
+            file_id=get_main_file_id(existing_states),
             config=config,
         )
 

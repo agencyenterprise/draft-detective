@@ -1,4 +1,4 @@
-from typing import List, Type, cast
+from typing import List, Type
 
 from langgraph.graph import StateGraph
 
@@ -14,7 +14,6 @@ from lib.workflows.claim_substantiation.state import AnalyzedChunk
 from lib.workflows.manifest import WorkflowManifest
 from lib.workflows.models import DocumentIssue, SeverityEnum, WorkflowRunType
 from lib.workflows.types import WorkflowState
-from lib.workflows.util import get_state_by_type_or_raise
 
 
 class ClaimReferenceValidationManifest(
@@ -50,36 +49,9 @@ class ClaimReferenceValidationManifest(
     ) -> ClaimReferenceValidationState:
         """Create and return the initial state of the workflow."""
 
-        from lib.workflows.document_processing.state import DocumentProcessingState
-        from lib.workflows.reference_extraction.state import ReferenceExtractionState
-
-        # Get document processing artifacts from dependency workflow
-        doc_processing_state = cast(
-            DocumentProcessingState,
-            get_state_by_type_or_raise(
-                WorkflowRunType.DOCUMENT_PROCESSING, existing_states
-            ),
-        )
-
-        # Get extracted references from reference extraction workflow
-        ref_extraction_state = cast(
-            ReferenceExtractionState,
-            get_state_by_type_or_raise(
-                WorkflowRunType.REFERENCE_EXTRACTION, existing_states
-            ),
-        )
-
-        # Build analyzed chunks from existing states
-        chunks = build_analyzed_chunks(existing_states)
-
         return ClaimReferenceValidationState(
             type=WorkflowRunType.CLAIM_REFERENCE_VALIDATION,
             config=config,
-            file=doc_processing_state.file,
-            supporting_files=doc_processing_state.supporting_files,
-            chunks=chunks,
-            references=ref_extraction_state.references,
-            main_document_summary=doc_processing_state.main_document_summary,
         )
 
     def convert_state_to_issues(
@@ -91,13 +63,14 @@ class ClaimReferenceValidationManifest(
         from lib.agents.claim_verifier import EvidenceAlignmentLevel
 
         issues: List[DocumentIssue] = []
+        chunks = build_analyzed_chunks(other_states)
 
         # Claim Verification: Unsupported and partially supported claims
         for substantiation in state.substantiations:
             if substantiation.evidence_alignment == EvidenceAlignmentLevel.UNSUPPORTED:
                 # Find the chunk to get claim category
                 chunk: AnalyzedChunk | None = None
-                for c in state.chunks:
+                for c in chunks:
                     if c.chunk_index == substantiation.chunk_index:
                         chunk = c
                         break
@@ -121,7 +94,7 @@ class ClaimReferenceValidationManifest(
             ):
                 # Find the chunk to get claim category
                 chunk: AnalyzedChunk | None = None
-                for c in state.chunks:
+                for c in chunks:
                     if c.chunk_index == substantiation.chunk_index:
                         chunk = c
                         break
@@ -144,7 +117,7 @@ class ClaimReferenceValidationManifest(
             ):
                 # Find the chunk to get claim category
                 chunk: AnalyzedChunk | None = None
-                for c in state.chunks:
+                for c in chunks:
                     if c.chunk_index == substantiation.chunk_index:
                         chunk = c
                         break
@@ -164,7 +137,7 @@ class ClaimReferenceValidationManifest(
                 issues.append(issue)
 
         # Claim Categorization: Claims needing external verification without citations
-        for chunk in state.chunks:
+        for chunk in chunks:
             if not chunk.claim_categories:
                 continue
 

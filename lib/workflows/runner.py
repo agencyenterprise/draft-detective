@@ -3,15 +3,20 @@ import logging
 from langgraph.graph import StateGraph
 
 from api.services.workflow_orchestration import wait_for_dependencies
+from lib.config.env import config as env_config
 from lib.config.langfuse import langfuse_handler
 from lib.models.user import User
 from lib.models.workflow_run import WorkflowRunStatus, WorkflowRunType
+from lib.services.file_artifacts_service.file_artifacts_service import (
+    FileArtifactsService,
+)
 from lib.services.projects import update_project_title
+from lib.services.vector_store import VectorStoreService
 from lib.services.workflow_runs import upsert_workflow_run
 from lib.workflows.checkpointer import get_checkpointer
 from lib.workflows.context import ContextSchema
-from lib.workflows.models import WorkflowError
-from lib.workflows.registry import create_context, create_graph, create_state
+from lib.workflows.models import BaseWorkflowConfig, WorkflowError
+from lib.workflows.registry import create_graph, create_state
 from lib.workflows.types import WorkflowConfig, WorkflowState
 
 logger = logging.getLogger(__name__)
@@ -160,3 +165,44 @@ async def run_workflow(
     )
 
     return updated_state
+
+
+def create_context(
+    config: BaseWorkflowConfig,
+    workflow_run_id: str | None = None,
+    user: User | None = None,
+) -> ContextSchema:
+    """
+    Create workflow context.
+
+    Each workflow declares whether it requires an API key via requires_api_key().
+    Workflows that don't use LLMs (data manipulation only) can return False.
+    """
+
+    openai_api_key = (
+        config.openai_api_key
+        or env_config.OPENAI_API_KEY
+        or env_config.AZURE_OPENAI_API_KEY
+    )
+
+    # Check if workflow requires API key (defined by the workflow config itself)
+    if not openai_api_key and config.requires_api_key():
+        raise ValueError("No OpenAI API key found in config or environment variables")
+
+    # Only initialize vector store if we have an API key (needed for embeddings)
+    vector_store = (
+        VectorStoreService(env_config.DATABASE_URL, openai_api_key)
+        if openai_api_key
+        else None
+    )
+
+    file_artifacts_service = FileArtifactsService(config.project_id)
+
+    return ContextSchema(
+        openai_api_key=openai_api_key,
+        vector_store=vector_store,
+        user_id=str(user.id) if user else None,
+        project_id=config.project_id,
+        workflow_run_id=workflow_run_id,
+        file_artifacts_service=file_artifacts_service,
+    )
