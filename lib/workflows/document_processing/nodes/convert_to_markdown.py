@@ -11,10 +11,6 @@ from langchain_core.messages.utils import count_tokens_approximately
 
 logger = logging.getLogger(__name__)
 
-# We need to limit concurrent docling conversions to avoid overwhelming docling-serve with big documents
-# Even 3 can be too many for docling-serve with 4 workers, so we use 2
-MAX_CONCURRENT_CONVERSIONS = 2
-
 
 @register_node(
     "Convert to markdown",
@@ -35,7 +31,7 @@ async def convert_to_markdown(
     results, errors = await run_tasks(
         tasks,
         desc="Converting documents",
-        max_concurrent=MAX_CONCURRENT_CONVERSIONS,
+        max_concurrent=10,
     )
 
     failed_errors = [e for e in errors if e is not None]
