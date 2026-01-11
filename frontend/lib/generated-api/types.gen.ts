@@ -162,6 +162,12 @@ export type BibliographyItem = {
    * If the bibliographic item has an associated supporting document, this will be the name of the supporting document, otherwise it will be an empty string.
    */
   name_of_associated_supporting_document: string;
+  /**
+   * File Id
+   *
+   * The UUID of the associated supporting document file in the database (if matched)
+   */
+  file_id?: string | null;
 };
 
 /**
@@ -1932,9 +1938,9 @@ export type FileDocumentInput = {
   /**
    * File Id
    *
-   * The UUID of the file record in the database (if available)
+   * The UUID of the file record in the database
    */
-  file_id?: string | null;
+  file_id: string;
   /**
    * Full Docling document for internal processing (chunk mapping, etc.)
    */
@@ -1984,9 +1990,9 @@ export type FileDocumentOutput = {
   /**
    * File Id
    *
-   * The UUID of the file record in the database (if available)
+   * The UUID of the file record in the database
    */
-  file_id?: string | null;
+  file_id: string;
   /**
    * Full Docling document for internal processing (chunk mapping, etc.)
    */
@@ -3938,9 +3944,9 @@ export type FileDocumentOutputWritable = {
   /**
    * File Id
    *
-   * The UUID of the file record in the database (if available)
+   * The UUID of the file record in the database
    */
-  file_id?: string | null;
+  file_id: string;
   /**
    * Full Docling document for internal processing (chunk mapping, etc.)
    */

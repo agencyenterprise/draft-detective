@@ -105,13 +105,13 @@ export function FilesTab({ projectId, allWorkflowDetails }: FilesTabProps) {
 
   const { downloadAll, isDownloading } = useDownloadAllProjectFiles(projectId);
 
-  // Build a map of file names to matched references once
+  // Build a map of file_id to matched references once
   const matchedReferencesMap = useMemo(() => {
     const map = new Map<string, BibliographyItem>();
     if (references) {
       for (const ref of references) {
-        if (ref.name_of_associated_supporting_document) {
-          map.set(ref.name_of_associated_supporting_document, ref);
+        if (ref.file_id) {
+          map.set(ref.file_id, ref);
         }
       }
     }
@@ -134,7 +134,7 @@ export function FilesTab({ projectId, allWorkflowDetails }: FilesTabProps) {
     if (!searchQuery.trim()) return sortedFiles;
     const query = searchQuery.toLowerCase();
     return sortedFiles.filter((file) => {
-      const matchedReference = file.file_name ? matchedReferencesMap.get(file.file_name) : undefined;
+      const matchedReference = file.id ? matchedReferencesMap.get(file.id) : undefined;
       return (
         file.file_name?.toLowerCase().includes(query) ||
         file.description?.toLowerCase().includes(query) ||
@@ -146,7 +146,10 @@ export function FilesTab({ projectId, allWorkflowDetails }: FilesTabProps) {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold">Project Files</h2>
+        <h2 className="text-lg font-semibold">
+          Project Files ({filteredFiles.length}
+          {searchQuery ? ` of ${sortedFiles.length}` : ''})
+        </h2>
         {sortedFiles.length > 0 && (
           <Button onClick={downloadAll} disabled={isDownloading} variant="outline" size="sm">
             {isDownloading ? (
@@ -194,7 +197,7 @@ export function FilesTab({ projectId, allWorkflowDetails }: FilesTabProps) {
                       <HelpCircle className="size-3.5 text-muted-foreground cursor-help" />
                     </TooltipTrigger>
                     <TooltipContent className="max-w-xs">
-                      The bibliography entry from the main document that was matched to this supporting file.
+                      The reference item from the main document that was matched to this supporting file.
                     </TooltipContent>
                   </Tooltip>
                 </div>
@@ -206,7 +209,7 @@ export function FilesTab({ projectId, allWorkflowDetails }: FilesTabProps) {
           <TableBody>
             {filteredFiles.map((file) => {
               const isMain = file.role === FileRole.Main;
-              const matchedReference = file.file_name ? matchedReferencesMap.get(file.file_name) : undefined;
+              const matchedReference = file.id ? matchedReferencesMap.get(file.id) : undefined;
               return (
                 <TableRow key={file.id}>
                   <TableCell className="whitespace-normal break-all max-w-md">
@@ -221,7 +224,7 @@ export function FilesTab({ projectId, allWorkflowDetails }: FilesTabProps) {
                       {isMain ? 'Main' : 'Supporting'}
                     </span>
                   </TableCell>
-                  <TableCell className="text-xs">{file.file_type}</TableCell>
+                  <TableCell className="text-xs whitespace-normal">{file.file_type}</TableCell>
                   <TableCell className="text-xs whitespace-normal max-w-sm">
                     {file.description ? (
                       <ExpandableCell>{file.description}</ExpandableCell>

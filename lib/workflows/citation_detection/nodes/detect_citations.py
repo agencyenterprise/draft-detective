@@ -72,7 +72,9 @@ async def _detect_chunk_citations(
     citations = await citation_detector_agent.ainvoke(
         {
             "full_document": state.file.markdown,
-            "bibliography": format_bibliography_prompt_section(state.references),
+            "bibliography": format_bibliography_prompt_section(
+                state.references, supporting_files=[]
+            ),
             "chunk": chunk.content,
             "feedback": "",
         }

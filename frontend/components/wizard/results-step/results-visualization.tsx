@@ -50,6 +50,7 @@ export function ResultsVisualization({
             issues={projectDetail.issues ?? []}
             viewMode={viewMode}
             readOnly={readOnly}
+            onNavigateToAnalyses={() => setActiveTab('analyses')}
           />
         );
       case 'analyses':

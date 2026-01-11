@@ -1,29 +1,28 @@
-name: Deploy to Railway
+name: Deploy to Railway (Dev)
 
 on:
   push:
     branches:
-      - main
+      - dev
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     container: ghcr.io/railwayapp/cli:latest
-    if: "${{ github.ref == 'refs/heads/main' && startsWith(github.event.head_commit.message, 'chore: bump version to') }}"
     env:
-      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN_DEV }}
       PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
       BACKEND_SERVICE_ID: ${{ secrets.RAILWAY_BACKEND_SERVICE_ID }}
       FRONTEND_SERVICE_ID: ${{ secrets.RAILWAY_FRONTEND_SERVICE_ID }}
-    
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Deploy Backend to Railway
-        run: railway up --service=${{ env.BACKEND_SERVICE_ID }}
+      - name: Deploy Backend to Railway (Dev)
+        run: railway up --service=${{ env.BACKEND_SERVICE_ID }} --environment=dev
 
-      - name: Deploy Frontend to Railway
+      - name: Deploy Frontend to Railway (Dev)
         run: |
           cd frontend
-          railway up --service=${{ env.FRONTEND_SERVICE_ID }}
+          railway up --service=${{ env.FRONTEND_SERVICE_ID }} --environment=dev

@@ -47,7 +47,7 @@ export function ApplicationShell({ user, children }: { user: User; children: Rea
             <div className="flex h-15 justify-between">
               <div className="flex">
                 <div className="flex shrink-0 items-center">
-                  <Link href="/" className="text-xl font-bold">
+                  <Link href="/" className="text-xl font-bold text-primary">
                     AI Reviewer
                   </Link>
                 </div>

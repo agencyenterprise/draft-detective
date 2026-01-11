@@ -1,6 +1,7 @@
-from typing import Protocol
 import logging
-from lib.config.env import config
+from typing import Protocol
+
+import aiofiles
 
 logger = logging.getLogger(__name__)
 
@@ -23,8 +24,8 @@ async def convert_to_markdown(file_path: str, converter: str = "markitdown") -> 
     """
     if file_path.lower().endswith((".md", ".markdown")):
         logger.info(f"File '{file_path}' is already markdown, reading directly")
-        with open(file_path, "r", encoding="utf-8") as f:
-            return f.read()
+        async with aiofiles.open(file_path, "r", encoding="utf-8") as f:
+            return await f.read()
 
     logger.info(
         f"Converting file '{file_path}' to markdown using converter: '{converter}'"

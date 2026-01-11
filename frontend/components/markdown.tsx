@@ -57,14 +57,20 @@ const createComponents = (highlight: 'red' | 'yellow' | 'blue' | 'green' | 'none
     ul: componentFactory('ul', 'mb-2 list-disc'),
     ol: componentFactory('ol', 'mb-2 list-decimal'),
     li: componentFactory('li', 'mb-2 ml-4', highlight),
-    a: ({ node, ...rest }: MarkdownComponentProps<'a'>) => (
-      <a
-        {...rest}
-        className={cn('text-blue-600 hover:underline', rest.className)}
-        target="_blank"
-        rel="noopener noreferrer"
-      />
-    ),
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    a: ({ node, ...rest }: MarkdownComponentProps<'a'>) => {
+      const isInternalAnchor = rest.href?.startsWith('#');
+      return (
+        <a
+          {...rest}
+          className={cn('text-blue-600 hover:underline', rest.className)}
+          {...(!isInternalAnchor && {
+            target: '_blank',
+            rel: 'noopener noreferrer',
+          })}
+        />
+      );
+    },
     img: componentFactory('img', 'mb-2 w-full'),
     blockquote: componentFactory('blockquote', 'mb-2 border-l-4 border-gray-300 pl-4'),
     code: componentFactory('code', 'bg-gray-100 px-1 py-0.5 rounded'),

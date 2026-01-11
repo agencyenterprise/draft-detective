@@ -88,7 +88,9 @@ async def _suggest_chunk_citations(
             {
                 "full_document": state.file.markdown,
                 "bibliography": format_bibliography_prompt_section(
-                    state.references, state.supporting_documents_summaries
+                    state.references,
+                    state.supporting_files or [],
+                    state.supporting_documents_summaries,
                 ),
                 "paragraph": state.get_paragraph(chunk.paragraph_index),
                 "chunk": chunk.content,
