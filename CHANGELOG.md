@@ -6,6 +6,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v0.5.0] - 2026-01-11
+
+### Added
+- Introduced a multi-workflow execution feature with dependency management to enhance workflow flexibility.
+- Added a new RESULTS_EXTRACTION workflow type to the WorkflowRunType enum for better classification.
+- Implemented a severity issues filter in the explorer tab for improved issue tracking.
+
+### Changed
+- Refactored the reference-to-supporting-document matching system to use `file_id` instead of `file_name`, enhancing reliability and UI file download capabilities.
+- Optimized backend performance by transitioning to non-blocking I/O operations and improving server concurrency.
+- Updated markdown conversion process for DOCX files to use a simpler method, reducing extraction errors while maintaining visualization capabilities.
+
+### Fixed
+- Resolved issues with Posthog integration in the production environment, ensuring user names and emails are captured for all sessions.
+- Addressed loading state inconsistencies between upload completion and analysis start, improving user experience.
+
+### Security
+- Persisted project configuration options to enhance security and maintain consistency across sessions.
+
+
 ## [v0.4.2] - 2026-01-07
 
 ### Fixed
