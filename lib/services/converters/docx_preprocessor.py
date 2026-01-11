@@ -10,7 +10,7 @@ class DocxPreprocessor:
     """Converts DOCX files to PDF using LibreOffice headless mode"""
 
     SUPPORTED_EXTENSIONS = {".docx", ".doc"}
-    CONVERSION_TIMEOUT = 30
+    CONVERSION_TIMEOUT = 60
 
     async def convert_to_pdf(self, file_path: str) -> str:
         """
