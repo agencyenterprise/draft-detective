@@ -6,6 +6,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v0.5.1] - 2026-01-12
+
+### Added
+- Introduced AI-driven suggestion feature for document improvements, enhancing review efficiency (#250).
+- Added support for importing documents directly from cloud storage services, including Google Drive and Dropbox (#245).
+
+### Changed
+- Improved the user interface for the document review dashboard, providing a more intuitive navigation experience (#240).
+- Updated the AI model to version 2.1, offering better accuracy and faster processing times (#238).
+
+### Fixed
+- Resolved an issue where document annotations were not saving correctly under certain conditions (#242).
+- Fixed a bug that caused the application to crash when reviewing large documents (#236).
+
+### Security
+- Enhanced data encryption protocols to ensure better protection of sensitive documents during review and storage (#243).
+
+### Deprecated
+- Marked the legacy document export feature for removal in future releases; users are encouraged to transition to the new export system (#241).
+
+
 ## [v0.5.0] - 2026-01-11
 
 ### Added
