@@ -80,6 +80,7 @@ For each citation, you need to return the following information:
 
 ## The list of bibliography entries (if any) extracted from the bibliography section of the full document
 The indexes in this list should be used when returning index_of_associated_bibliography.
+IMPORTANT: For numbered footnotes like [10], do NOT assume the number matches the list index. Instead, find the footnote definition in the full document (e.g., "10. ...") and match its content to the correct bibliography entry below.
 ```
 {bibliography}
 ```
