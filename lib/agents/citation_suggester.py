@@ -210,8 +210,13 @@ class CitationSuggesterAgent(DirectOpenAIAgent):
 
 if __name__ == "__main__":
     from lib.config.env import config
+    from lib.services.file_artifacts_service.mock import MockFileArtifactsService
 
-    context = ContextSchema(openai_api_key=config.OPENAI_API_KEY, vector_store=None)
+    context = ContextSchema(
+        openai_api_key=config.OPENAI_API_KEY,
+        vector_store=None,
+        file_artifacts_service=MockFileArtifactsService(),
+    )
     citation_suggester_agent = CitationSuggesterAgent(context)
 
     response = asyncio.run(

@@ -143,8 +143,14 @@ if __name__ == "__main__":
         print("-" * 80)
 
         # Run the agent
+        from lib.services.file_artifacts_service.mock import MockFileArtifactsService
+
         document_summarizer_agent = DocumentSummarizerAgent(
-            ContextSchema(openai_api_key=config.OPENAI_API_KEY, vector_store=None)
+            ContextSchema(
+                openai_api_key=config.OPENAI_API_KEY,
+                vector_store=None,
+                file_artifacts_service=MockFileArtifactsService(),
+            )
         )
         response = await document_summarizer_agent.ainvoke(
             {"document": markdown_content}

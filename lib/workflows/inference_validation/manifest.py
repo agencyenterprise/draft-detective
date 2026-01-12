@@ -1,4 +1,4 @@
-from typing import List, Type, cast
+from typing import List, Type
 
 from langgraph.graph import StateGraph
 
@@ -12,7 +12,7 @@ from lib.workflows.inference_validation.state import (
 from lib.workflows.manifest import WorkflowManifest
 from lib.workflows.models import DocumentIssue, SeverityEnum, WorkflowRunType
 from lib.workflows.types import WorkflowState
-from lib.workflows.util import get_state_by_type_or_raise
+from lib.workflows.util import get_main_file_id
 
 
 class InferenceValidationManifest(
@@ -45,25 +45,10 @@ class InferenceValidationManifest(
     ) -> InferenceValidationState:
         """Create and return the initial state of the workflow."""
 
-        from lib.workflows.document_processing.state import DocumentProcessingState
-
-        # Get document processing artifacts from dependency workflow
-        doc_processing_state = cast(
-            DocumentProcessingState,
-            get_state_by_type_or_raise(
-                WorkflowRunType.DOCUMENT_PROCESSING, existing_states
-            ),
-        )
-
-        # Build analyzed chunks from existing states
-        chunks = build_analyzed_chunks(existing_states)
-
         return InferenceValidationState(
             type=WorkflowRunType.INFERENCE_VALIDATION,
             config=config,
-            file=doc_processing_state.file,
-            chunks=chunks,
-            main_document_summary=doc_processing_state.main_document_summary,
+            file_id=get_main_file_id(existing_states),
         )
 
     def convert_state_to_issues(
@@ -72,12 +57,15 @@ class InferenceValidationManifest(
         """Convert InferenceValidationState to issues."""
         issues: List[DocumentIssue] = []
 
+        # Build analyzed chunks from other states
+        chunks = build_analyzed_chunks(other_states)
+
         # Inference Validation: Invalid inferences
         for validation in state.inference_validations:
             if not validation.valid:
                 # Find the chunk to get claim category
                 chunk: AnalyzedChunk | None = None
-                for c in state.chunks:
+                for c in chunks:
                     if c.chunk_index == validation.chunk_index:
                         chunk = c
                         break

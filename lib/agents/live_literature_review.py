@@ -212,7 +212,13 @@ One thing that has never happened, is that a one-term president comes back to of
     2. Achen, C. H., & Bartels, L. M. (2016). Democracy for Realists: Why Elections Do Not Produce Responsive Government. Princeton University Press.""",
     }
 
-    context = ContextSchema(openai_api_key=config.OPENAI_API_KEY, vector_store=None)
+    from lib.services.file_artifacts_service.mock import MockFileArtifactsService
+
+    context = ContextSchema(
+        openai_api_key=config.OPENAI_API_KEY,
+        vector_store=None,
+        file_artifacts_service=MockFileArtifactsService(),
+    )
     live_literature_review_agent = LiveLiteratureReviewAgent(context)
 
     response = asyncio.run(live_literature_review_agent.ainvoke(fake_input))

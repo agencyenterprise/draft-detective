@@ -18,12 +18,28 @@ logger = logging.getLogger(__name__)
 )
 async def generate_addendum_report(
     state: LiveReportsState, runtime: Runtime[ContextSchema]
-) -> LiveReportsState:
+):
+    file_artifacts_service = runtime.context.file_artifacts_service
+
+    # Fetch artifacts from file artifacts service
+    chunks = await file_artifacts_service.get_chunks()
+    document_summary = await file_artifacts_service.get_document_summary(state.file_id)
+
+    # Create a lookup dictionary for chunks by chunk_index
+    chunks_by_index = {chunk.chunk_index: chunk for chunk in chunks}
+
     # Collect live reports results across all chunks
     records: List[Dict[str, Any]] = []
 
     for live_report in state.live_reports_analysis or []:
-        chunk = state.chunks[live_report.chunk_index]
+        chunk = chunks_by_index.get(live_report.chunk_index)
+
+        if chunk is None:
+            logger.debug(
+                "Skipping addendum report for chunk %s: chunk not found",
+                live_report.chunk_index,
+            )
+            continue
 
         if chunk.claims is None or not chunk.claims.claims:
             logger.debug(
@@ -53,12 +69,8 @@ async def generate_addendum_report(
     prompt_kwargs = {
         "domain_context": state.config.domain or "",
         "audience_context": state.config.target_audience or "",
-        "document_title": (
-            state.main_document_summary.title if state.main_document_summary else ""
-        ),
-        "document_summary": (
-            state.main_document_summary.summary if state.main_document_summary else ""
-        ),
+        "document_title": document_summary.title if document_summary else "",
+        "document_summary": document_summary.summary if document_summary else "",
         "records_json": json.dumps(records, default=str),
     }
 

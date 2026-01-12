@@ -357,8 +357,13 @@ if __name__ == "__main__":
 
     async def run_inference_validator_tests():
         from lib.config.env import config
+        from lib.services.file_artifacts_service.mock import MockFileArtifactsService
 
-        context = ContextSchema(openai_api_key=config.OPENAI_API_KEY, vector_store=None)
+        context = ContextSchema(
+            openai_api_key=config.OPENAI_API_KEY,
+            vector_store=None,
+            file_artifacts_service=MockFileArtifactsService(),
+        )
         agent = InferenceValidatorAgent(context)
 
         results = []

@@ -62,7 +62,9 @@ class ReferenceProvider(Protocol):
 
     async def get_references_for_claim(
         self,
-        state: ClaimReferenceValidationState,
+        chunks: List[AnalyzedChunk],
+        supporting_files: List[FileDocument],
+        references: List[BibliographyItem],
         chunk: AnalyzedChunk,
         claim: Claim,
         claim_index: int,
@@ -76,21 +78,23 @@ class CitationBasedReferenceProvider:
 
     async def get_references_for_claim(
         self,
-        state: ClaimReferenceValidationState,
+        chunks: List[AnalyzedChunk],
+        supporting_files: List[FileDocument],
+        references: List[BibliographyItem],
         chunk: AnalyzedChunk,
         claim: Claim,
         claim_index: int,
     ) -> ReferenceContext:
         """Get references based on detected citations."""
         cited_references = format_cited_references(
-            state.references,
-            state.supporting_files,
+            references,
+            supporting_files,
             chunk.citations,
             truncate_at_character_count=MAX_REFERENCE_CHARACTER_COUNT,
         )
 
         paragraph_chunks_citations_not_in_chunk = _get_paragraph_citations_not_in_chunk(
-            state, chunk
+            chunks, chunk
         )
 
         paragraph_other_chunk_citations = CitationResponse(
@@ -99,8 +103,8 @@ class CitationBasedReferenceProvider:
         )
 
         cited_references_paragraph = format_cited_references(
-            state.references,
-            state.supporting_files,
+            references,
+            supporting_files,
             paragraph_other_chunk_citations,
             truncate_at_character_count=MAX_REFERENCE_CHARACTER_COUNT,
         )
@@ -119,7 +123,9 @@ class RAGReferenceProvider:
 
     async def get_references_for_claim(
         self,
-        state: ClaimReferenceValidationState,
+        chunks: List[AnalyzedChunk],
+        supporting_files: List[FileDocument],
+        references: List[BibliographyItem],
         chunk: AnalyzedChunk,
         claim: Claim,
         claim_index: int,
@@ -130,7 +136,7 @@ class RAGReferenceProvider:
         Retrieves relevant passages from ALL supporting documents and lets the
         claim verifier LLM determine if they support/don't support the claim.
         """
-        if not state.supporting_files:
+        if not supporting_files:
             logger.warning(
                 f"No supporting files for RAG retrieval on claim {claim_index}"
             )
@@ -141,8 +147,8 @@ class RAGReferenceProvider:
 
             # Get the passages for the citations in the chunk
             chunk_citation_supporting_files = self._get_supporting_files_for_citations(
-                state.supporting_files,
-                state.references,
+                supporting_files,
+                references,
                 chunk.citations.citations if chunk.citations else [],
             )
             chunk_citation_passages = await self._get_passages(
@@ -155,10 +161,10 @@ class RAGReferenceProvider:
             )
 
             # Get the passages for the other citations in the paragraph
-            all_paragraph_citations = get_all_paragraph_citations(state, chunk)
+            all_paragraph_citations = get_all_paragraph_citations(chunks, chunk)
             paragraph_supportings_files = self._get_supporting_files_for_citations(
-                state.supporting_files,
-                state.references,
+                supporting_files,
+                references,
                 all_paragraph_citations,
             )
             extra_supporting_files = (
@@ -297,12 +303,16 @@ class RAGReferenceProvider:
 
 
 def get_all_paragraph_citations(
-    state: ClaimReferenceValidationState, target_chunk: AnalyzedChunk
+    chunks: List[AnalyzedChunk], target_chunk: AnalyzedChunk
 ) -> List[Citation]:
     """Get all citations from the paragraph that includes the `target_chunk`."""
 
     all_citations = []
-    paragraph_chunks = state.get_paragraph_chunks(target_chunk.paragraph_index)
+    paragraph_chunks = [
+        chunk
+        for chunk in chunks
+        if chunk.paragraph_index == target_chunk.paragraph_index
+    ]
 
     for chunk in paragraph_chunks:
         if not chunk.citations or not chunk.citations.citations:
@@ -322,11 +332,13 @@ def is_bibliographic_citation(citation: Citation) -> bool:
 
 
 def _get_paragraph_citations_not_in_chunk(
-    state: ClaimReferenceValidationState, chunk: AnalyzedChunk
+    chunks: List[AnalyzedChunk], chunk: AnalyzedChunk
 ) -> List:
     """Extract citations from paragraph chunks that aren't in current chunk."""
 
-    paragraph_chunks = state.get_paragraph_chunks(chunk.paragraph_index)
+    paragraph_chunks = [
+        c for c in chunks if chunk.paragraph_index == chunk.paragraph_index
+    ]
     citations_not_in_chunk = []
 
     for other_chunk in paragraph_chunks:
