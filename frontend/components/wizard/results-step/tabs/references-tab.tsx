@@ -39,7 +39,7 @@ function ReferenceTableRow({ reference, validation }: ReferenceTableRowProps) {
     <>
       <TableRow>
         {/* Reference text column */}
-        <TableCell className="whitespace-normal break-all max-w-lg">
+        <TableCell className="whitespace-normal break-all w-2xl">
           <p className="text-sm">{reference.text}</p>
         </TableCell>
 
@@ -64,7 +64,7 @@ function ReferenceTableRow({ reference, validation }: ReferenceTableRowProps) {
         </TableCell>
 
         {/* Validation column */}
-        <TableCell className="text-xs">
+        <TableCell className="text-xs max-w-xs">
           {(() => {
             // Validation not performed
             if (!validation) {
@@ -119,9 +119,9 @@ function ReferenceTableRow({ reference, validation }: ReferenceTableRowProps) {
       {/* Expanded row with validation details */}
       {isExpanded && (
         <TableRow>
-          <TableCell colSpan={4} className="bg-muted/30 max-w-0">
+          <TableCell colSpan={4} className="whitespace-normal bg-muted/30">
             {validation ? (
-              <div className="py-3 text-sm text-gray-700 space-y-2 w-full overflow-hidden">
+              <div className="py-3 text-sm text-gray-700 space-y-2">
                 <div>
                   <h3 className="text-base font-medium">Reference validation details</h3>
                 </div>

@@ -187,7 +187,6 @@ export function FilesTab({ projectId, allWorkflowDetails }: FilesTabProps) {
             <TableRow>
               <TableHead>Name</TableHead>
               <TableHead>Role</TableHead>
-              <TableHead>Type</TableHead>
               <TableHead>Description</TableHead>
               <TableHead>
                 <div className="flex items-center gap-1">
@@ -224,7 +223,6 @@ export function FilesTab({ projectId, allWorkflowDetails }: FilesTabProps) {
                       {isMain ? 'Main' : 'Supporting'}
                     </span>
                   </TableCell>
-                  <TableCell className="text-xs whitespace-normal">{file.file_type}</TableCell>
                   <TableCell className="text-xs whitespace-normal max-w-sm">
                     {file.description ? (
                       <ExpandableCell>{file.description}</ExpandableCell>
