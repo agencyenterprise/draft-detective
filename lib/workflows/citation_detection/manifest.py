@@ -22,8 +22,7 @@ class CitationDetectionManifest(
     name = "Citation Detection"
     description = "Detect citations in document chunks"
     needs_web_search = False
-    is_internal = False
-    can_be_triggered_by_user = True
+    is_internal = True
     required_dependencies = [
         WorkflowRunType.REFERENCE_EXTRACTION,
     ]

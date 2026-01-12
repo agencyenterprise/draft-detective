@@ -289,7 +289,7 @@ dataset:
       expected_output:
         citations:
           - text: "[[22]](#footnote-22)"
-            type: "footnote"
+            type: "bibliography"
             format: "[number] footnote marker"
             needs_bibliography: true
             associated_bibliography: "Pilz, Konstantin F., Yusuf Mahmood, and Lennart Heim, *AI’s Power Requirements Under Exponential Growth: Extrapolating AI Data Center Power Demand and Assessing Its Potential Impact on U.S. Competitiveness*, RAND Corporation, RR-A3572-1, 2025. As of June 3, 2025: https://www.rand.org/pubs/research_reports/RRA3572-1.html"
