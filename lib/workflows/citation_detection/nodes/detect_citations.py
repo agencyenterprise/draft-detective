@@ -46,10 +46,11 @@ async def detect_citations(
     # Fetch artifacts from file artifacts service
     references = await file_artifacts_service.get_references()
     target_chunks = await file_artifacts_service.get_chunks()
+    footnotes = await file_artifacts_service.get_footnotes()
 
     # Detect citations for each chunk
     tasks = [
-        _detect_chunk_citations(state, references, chunk, citation_detector_agent)
+        _detect_chunk_citations(footnotes, references, chunk, citation_detector_agent)
         for chunk in target_chunks
     ]
     results = await run_tasks(tasks, desc="Detecting chunk citations")
@@ -80,7 +81,7 @@ async def detect_citations(
 
 
 async def _detect_chunk_citations(
-    state: CitationDetectionState,
+    footnotes: List[FootnoteItem],
     references: List[BibliographyItem],
     chunk: AnalyzedChunk,
     citation_detector_agent: CitationDetectorAgent,
@@ -88,7 +89,7 @@ async def _detect_chunk_citations(
     """Detect citations in a single chunk."""
 
     # Format footnotes as a list
-    footnotes_list = _format_footnotes_list(state.footnotes)
+    footnotes_list = _format_footnotes_list(footnotes)
 
     citations = await citation_detector_agent.ainvoke(
         {
