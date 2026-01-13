@@ -28,8 +28,9 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONPATH=/app \
     PATH="/app/.venv/bin:$PATH"
 
-# Install system dependencies for document conversion
+# Install system dependencies for mime type detection and document conversion
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    libmagic1 \
     libreoffice-writer-nogui \
     libreoffice-java-common \
     && apt-get clean \
