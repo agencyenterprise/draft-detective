@@ -5,13 +5,14 @@ import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { useForm } from '@tanstack/react-form';
 import { Loader2, Play } from 'lucide-react';
 import { Button } from '../ui/button';
-import { CheckboxWithDescription } from '../ui/checkbox-with-description';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
+import { WorkflowTypeSelector } from '../workflows/workflow-type-selector';
+import { WebSearchConsentCheckbox } from '../workflows/web-search-consent-checkbox';
+import { hasWebSearchRequirement } from '../workflows/utils';
 import { AnalysisFormData, AnalysisFormValues } from './types';
 import { UploadSection } from './upload-section';
 import { validateAnalysisForm } from './validation';
-import { WorkflowTypeCheckbox } from './workflow-type-checkbox';
 
 export interface AnalysisFormProps {
   onSubmit: (data: AnalysisFormData) => void;
@@ -119,76 +120,43 @@ export function AnalysisForm({ onSubmit, isPending = false }: AnalysisFormProps)
       </div>
 
       {/* Workflow Selection Section */}
-      <div className="space-y-4">
-        <div className="space-y-1">
-          <h2 className="text-xl font-semibold">
-            Analyses Type Selection <span className="text-destructive ml-1">*</span>
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            Select which types of analyses to perform. Analyses can also be triggered later on, after the project is
-            created
-          </p>
-        </div>
-        <form.Field name="workflowTypes">
-          {(field) => (
-            <div className="space-y-2">
-              {workflowTypes?.map((workflowType) => (
-                <WorkflowTypeCheckbox
-                  key={workflowType.type}
-                  workflowType={workflowType}
-                  checked={field.state.value.includes(workflowType.type)}
-                  onCheckedChange={(checked) =>
-                    field.handleChange(
-                      checked
-                        ? [...field.state.value, workflowType.type]
-                        : field.state.value.filter((id) => id !== workflowType.type),
-                    )
-                  }
-                  disabled={isPending}
-                />
-              ))}
-              {!workflowTypes && <p className="text-sm text-muted-foreground">Loading available workflows...</p>}
-              {!field.state.meta.isValid && field.state.meta.errors.length > 0 && (
-                <p className="text-sm text-destructive">{field.state.meta.errors.join(', ')}</p>
-              )}
-            </div>
-          )}
-        </form.Field>
-      </div>
+      <form.Field name="workflowTypes">
+        {(field) => (
+          <WorkflowTypeSelector
+            workflowTypes={workflowTypes}
+            selectedTypes={field.state.value}
+            onSelectionChange={field.handleChange}
+            disabled={isPending}
+            headerDescription="Select which types of analyses to perform. Analyses can also be triggered later on, after the project is created"
+            error={
+              !field.state.meta.isValid && field.state.meta.errors.length > 0
+                ? field.state.meta.errors.join(', ')
+                : undefined
+            }
+          />
+        )}
+      </form.Field>
 
       <form.Field name="workflowTypes">
         {(workflowTypesField) => {
-          const selectedWorkflowTypes = workflowTypesField.state.value;
-          const needsWebSearch = selectedWorkflowTypes.some(
-            (selectedType) => workflowTypes?.find((wt) => wt.type === selectedType)?.needs_web_search,
-          );
+          const selectedTypes = workflowTypesField.state.value;
+          const needsWebSearch = hasWebSearchRequirement(selectedTypes, workflowTypes);
 
           if (!needsWebSearch) {
             return null;
           }
 
           return (
-            <div className="space-y-4">
-              <form.Field name="webSearchConsent">
-                {(field) => (
-                  <div className="space-y-4">
-                    <div className="bg-yellow-50 border border-yellow-400 rounded-lg">
-                      <CheckboxWithDescription
-                        id="web-search-consent"
-                        checked={field.state.value}
-                        onCheckedChange={(checked) => field.handleChange(checked === true)}
-                        label="I consent to perform web search using parts or the whole document for this analysis"
-                        description={`Web search is required to perform this analysis. Parts of the document will be used to perform web search, so we don't recommend using confidential information. Don't proceed if you don't consent to perform web search.`}
-                        disabled={isPending}
-                      />
-                    </div>
-                    {!field.state.meta.isValid && (
-                      <p className="text-sm text-destructive pl-6">{field.state.meta.errors.join(', ')}</p>
-                    )}
-                  </div>
-                )}
-              </form.Field>
-            </div>
+            <form.Field name="webSearchConsent">
+              {(field) => (
+                <WebSearchConsentCheckbox
+                  checked={field.state.value}
+                  onCheckedChange={field.handleChange}
+                  disabled={isPending}
+                  error={!field.state.meta.isValid ? field.state.meta.errors.join(', ') : undefined}
+                />
+              )}
+            </form.Field>
           );
         }}
       </form.Field>
