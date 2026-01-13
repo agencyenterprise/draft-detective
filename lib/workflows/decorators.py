@@ -7,13 +7,15 @@ from contextvars import Token
 from functools import wraps
 from typing import Callable, Optional, TypeVar
 
+from langgraph.runtime import Runtime
+
 from lib.agents.registry import agent_registry
 from lib.models.workflow_progress import ProgressLevel
 from lib.services.workflow_progress import (
     complete_progress,
     create_and_start_progress,
 )
-from lib.workflows.context import current_progress_id
+from lib.workflows.context import ContextSchema, current_progress_id
 from lib.workflows.models import BaseWorkflowState, WorkflowError
 
 # Type variable for decorator return types
@@ -43,7 +45,7 @@ def register_node(name: str, description: str):
 
         @wraps(func)
         async def wrapper(
-            state: BaseWorkflowState, *args, **kwargs
+            state: BaseWorkflowState, runtime: Runtime[ContextSchema]
         ) -> BaseWorkflowState:
 
             config = getattr(state, "config", None)
@@ -62,9 +64,6 @@ def register_node(name: str, description: str):
             # Progress tracking: create and start progress entry
             progress_id: Optional[uuid.UUID] = None
             progress_token: Optional[Token] = None
-
-            # Get runtime from args or kwargs (LangGraph may pass it either way)
-            runtime = args[0] if args else kwargs.get("runtime", None)
 
             try:
                 if runtime and hasattr(runtime, "context"):
@@ -96,7 +95,7 @@ def register_node(name: str, description: str):
                                 exc_info=True,
                             )
 
-                result = await func(state, *args, **kwargs)
+                result = await func(state, runtime)
 
                 # Mark progress as completed on success
                 if progress_id:

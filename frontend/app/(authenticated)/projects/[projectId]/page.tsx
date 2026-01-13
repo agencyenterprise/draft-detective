@@ -5,14 +5,9 @@ import { PublicationDateLabel } from '@/components/wizard/results-step/component
 import { ResultsVisualization } from '@/components/wizard/results-step/results-visualization';
 import { useWorkflowProgressToast } from '@/hooks/use-workflow-progress-toast';
 import { DocRenderMode } from '@/lib/constants';
-import {
-  ProjectDetailed,
-  updateProjectEndpointApiProjectProjectIdPatch,
-  WorkflowRunStatus,
-  WorkflowRunType,
-} from '@/lib/generated-api';
+import { ProjectDetailed, updateProjectEndpointApiProjectProjectIdPatch, WorkflowRunType } from '@/lib/generated-api';
 import { useProjectDetails } from '@/lib/hooks/use-project-details';
-import { getWorkflowRunByType } from '@/lib/workflow-state';
+import { getWorkflowRunByType, isAnyWorkflowProcessing } from '@/lib/workflow-state';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { useParams } from 'next/navigation';
@@ -29,11 +24,7 @@ export default function ResultsPage() {
   const { project, workflowDetails, isLoading, error } = useProjectDetails(projectId, true);
 
   const workflowRunIdsToTrack = useMemo(() => {
-    const hasActiveWork = workflowDetails.some(
-      (w) => w.run.status === WorkflowRunStatus.Running || w.run.status === WorkflowRunStatus.Pending,
-    );
-
-    if (!hasActiveWork) return [];
+    if (!isAnyWorkflowProcessing(workflowDetails)) return [];
 
     return workflowDetails.map((w) => w.run.id);
   }, [workflowDetails]);
