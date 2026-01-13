@@ -36,27 +36,20 @@ class ReferenceExtractionState(BaseWorkflowState):
         default=WorkflowRunType.REFERENCE_EXTRACTION
     )
 
+    # Inputs
     config: ReferenceExtractionConfig
-
-    # Inputs (from DOCUMENT_PROCESSING)
-    file: FileDocument = Field(description="Main document with markdown populated")
-    supporting_files: Optional[List[FileDocument]] = Field(
-        default=None, description="Optional supporting documents for matching"
-    )
-    supporting_documents_summaries: Optional[Dict[int, DocumentSummary]] = Field(
-        default=None,
-        description="Pre-computed summaries of supporting documents (from document processing)",
+    file_id: str = Field(description="ID of the main document")
+    supporting_file_ids: List[str] = Field(
+        description="IDs of the supporting documents"
     )
 
+    # Outputs
     detected_sections: List[ReferenceSection] = Field(
         default_factory=list, description="Detected reference sections"
     )
-
     extracted_reference_texts: List[str] = Field(
         default_factory=list, description="Raw extracted reference texts"
     )
-
-    # Final output
     references: List[BibliographyItem] = Field(
         default_factory=list, description="Extracted bibliography items"
     )

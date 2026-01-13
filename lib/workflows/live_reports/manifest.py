@@ -1,15 +1,14 @@
-from typing import List, Type, cast
+from typing import List, Type
 
 from langgraph.graph import StateGraph
 
 from lib.agents.evidence_weighter import EvidenceWeighterRecommendedAction
-from lib.workflows.chunk_utils import build_analyzed_chunks
 from lib.workflows.live_reports.graph import build_live_reports_graph
 from lib.workflows.live_reports.state import LiveReportsState, LiveReportsWorkflowConfig
 from lib.workflows.manifest import WorkflowManifest
 from lib.workflows.models import DocumentIssue, SeverityEnum, WorkflowRunType
 from lib.workflows.types import WorkflowState
-from lib.workflows.util import get_state_by_type_or_raise
+from lib.workflows.util import get_main_file_id
 
 
 class LiveReportsManifest(
@@ -43,35 +42,10 @@ class LiveReportsManifest(
     ) -> LiveReportsState:
         """Create and return the initial state of the workflow."""
 
-        from lib.workflows.document_processing.state import DocumentProcessingState
-        from lib.workflows.reference_extraction.state import ReferenceExtractionState
-
-        # Get document processing artifacts from dependency workflow
-        doc_processing_state = cast(
-            DocumentProcessingState,
-            get_state_by_type_or_raise(
-                WorkflowRunType.DOCUMENT_PROCESSING, existing_states
-            ),
-        )
-
-        # Get extracted references from reference extraction workflow
-        ref_extraction_state = cast(
-            ReferenceExtractionState,
-            get_state_by_type_or_raise(
-                WorkflowRunType.REFERENCE_EXTRACTION, existing_states
-            ),
-        )
-
-        # Build analyzed chunks from existing states
-        chunks = build_analyzed_chunks(existing_states)
-
         return LiveReportsState(
             type=WorkflowRunType.LIVE_REPORTS,
             config=config,
-            file=doc_processing_state.file,
-            references=ref_extraction_state.references,
-            chunks=chunks,
-            main_document_summary=doc_processing_state.main_document_summary,
+            file_id=get_main_file_id(existing_states),
         )
 
     def convert_state_to_issues(

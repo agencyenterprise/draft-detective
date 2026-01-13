@@ -4,6 +4,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from lib.services.file_artifacts_service.types import FileArtifactsServiceType
 from lib.services.vector_store import VectorStoreService
 
 
@@ -13,6 +14,9 @@ class ContextSchema(BaseModel):
     openai_api_key: Optional[str] = Field(
         default=None,
         description="The OpenAI API key to use for the workflow execution.",
+    )
+    file_artifacts_service: FileArtifactsServiceType = Field(
+        description="The file artifacts service to use for the workflow execution.",
     )
     vector_store: Optional[VectorStoreService] = Field(
         default=None,

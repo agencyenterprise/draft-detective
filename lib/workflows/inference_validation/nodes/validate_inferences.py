@@ -3,12 +3,14 @@ import logging
 from langgraph.runtime import Runtime
 
 from lib.agents.formatting_utils import format_audience_context, format_domain_context
+from lib.agents.document_summarizer import DocumentSummary
 from lib.agents.inference_validator import (
     InferenceValidationResponseWithClaimIndex,
     InferenceValidatorAgent,
 )
 from lib.agents.models import ClaimCategory
 from lib.run_utils import run_tasks
+from lib.services.file_artifacts_service.types import FileArtifactsServiceType
 from lib.workflows.claim_substantiation.state import AnalyzedChunk
 from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
@@ -24,15 +26,27 @@ logger = logging.getLogger(__name__)
 )
 async def validate_inferences(
     state: InferenceValidationState, runtime: Runtime[ContextSchema]
-) -> InferenceValidationState:
+):
     """Validate inferential claims using Toulmin model of argumentation."""
 
     inference_validator_agent = InferenceValidatorAgent(runtime.context)
+    file_artifacts_service = runtime.context.file_artifacts_service
+
+    # Fetch artifacts from file artifacts service
+    target_chunks = await file_artifacts_service.get_chunks()
+    document_summary = await file_artifacts_service.get_document_summary(state.file_id)
 
     # Process all chunks
     tasks = [
-        _validate_chunk_inferences(state, chunk, inference_validator_agent)
-        for chunk in state.chunks
+        _validate_chunk_inferences(
+            state,
+            chunk,
+            target_chunks,
+            document_summary,
+            inference_validator_agent,
+            file_artifacts_service,
+        )
+        for chunk in target_chunks
     ]
 
     results: tuple[
@@ -51,7 +65,7 @@ async def validate_inferences(
     errors = []
     for index, exception in enumerate(exceptions):
         if exception is not None:
-            chunk_index = state.chunks[index].chunk_index
+            chunk_index = target_chunks[index].chunk_index
             errors.append(
                 WorkflowError(
                     task_name="validate_inferences",
@@ -66,7 +80,10 @@ async def validate_inferences(
 async def _validate_chunk_inferences(
     state: InferenceValidationState,
     chunk: AnalyzedChunk,
+    chunks: list[AnalyzedChunk],
+    document_summary: DocumentSummary,
     inference_validator_agent: InferenceValidatorAgent,
+    file_artifacts_service: FileArtifactsServiceType,
 ) -> list[InferenceValidationResponseWithClaimIndex]:
     """Validate inferences for claims categorized as INTERPRETATION."""
 
@@ -117,11 +134,11 @@ async def _validate_chunk_inferences(
         result = await inference_validator_agent.ainvoke(
             {
                 "document_summary": (
-                    state.main_document_summary.summary
-                    if state.main_document_summary
-                    else ""
+                    document_summary.summary if document_summary else ""
                 ),
-                "paragraph": state.get_paragraph(chunk.paragraph_index),
+                "paragraph": file_artifacts_service.get_paragraph_text(
+                    chunks, chunk.paragraph_index
+                ),
                 "chunk": chunk.content,
                 "claim": claim.text,
                 "domain_context": format_domain_context(state.config.domain),

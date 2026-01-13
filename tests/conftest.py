@@ -21,6 +21,7 @@ from xxhash import xxh128
 from lib.config.env import config
 from lib.models.agent_test_case import AgentTestCase
 from lib.services.file import create_file_document_from_path
+from lib.services.file_artifacts_service.mock import MockFileArtifactsService
 from lib.services.vector_store import VectorStoreService
 
 # Root tests directory
@@ -395,7 +396,10 @@ async def create_test_file_document_from_path(path: str):
     original_file_name = filename
 
     return await create_file_document_from_path(
-        dest_path, original_file_name=original_file_name, markdown_convert=True
+        dest_path,
+        file_id=path,
+        original_file_name=original_file_name,
+        markdown_convert=True,
     )
 
 
@@ -470,4 +474,5 @@ def create_test_context():
     return ContextSchema(
         openai_api_key=config.OPENAI_API_KEY,
         vector_store=VectorStoreService(config.DATABASE_URL, config.OPENAI_API_KEY),
+        file_artifacts_service=MockFileArtifactsService(),
     )

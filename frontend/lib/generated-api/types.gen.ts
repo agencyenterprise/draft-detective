@@ -162,6 +162,12 @@ export type BibliographyItem = {
    * If the bibliographic item has an associated supporting document, this will be the name of the supporting document, otherwise it will be an empty string.
    */
   name_of_associated_supporting_document: string;
+  /**
+   * File Id
+   *
+   * The UUID of the associated supporting document file in the database (if matched)
+   */
+  file_id?: string | null;
 };
 
 /**
@@ -431,16 +437,11 @@ export type CitationDetectionState = {
    * Type
    */
   type?: 'citation_detection';
-  file: FileDocumentOutput;
+  /**
+   * File Id
+   */
+  file_id: string;
   config: CitationDetectionConfig;
-  /**
-   * Chunks
-   */
-  chunks?: Array<DocumentChunk>;
-  /**
-   * References
-   */
-  references?: Array<BibliographyItem>;
   /**
    * Citations
    */
@@ -512,27 +513,12 @@ export type CitationSuggesterState = {
    */
   type?: 'citation_suggester';
   config: CitationSuggesterWorkflowConfig;
-  file: FileDocumentOutput;
   /**
-   * References
-   */
-  references?: Array<BibliographyItem>;
-  /**
-   * Chunks
-   */
-  chunks?: Array<AnalyzedChunkOutput>;
-  /**
-   * Supporting Files
-   */
-  supporting_files?: Array<FileDocumentOutput> | null;
-  /**
-   * Supporting Documents Summaries
+   * File Id
    *
-   * Dictionary mapping supporting file indices to their summaries
+   * ID of the main document
    */
-  supporting_documents_summaries?: {
-    [key: string]: DocumentSummary;
-  } | null;
+  file_id: string;
   literature_review?: LiteratureReviewResponse | null;
   /**
    * Citation Suggestions
@@ -750,17 +736,11 @@ export type ClaimExtractionState = {
    * Type
    */
   type?: 'claim_extraction';
+  /**
+   * File Id
+   */
+  file_id: string;
   config: ClaimExtractionWorkflowConfig;
-  /**
-   * Chunks
-   *
-   * Document chunks from main document
-   */
-  chunks?: Array<DocumentChunk>;
-  /**
-   * The summary of the main document
-   */
-  main_document_summary?: DocumentSummary | null;
   /**
    * Claims
    *
@@ -815,12 +795,6 @@ export type ClaimExtractionWorkflowConfig = {
    * Type
    */
   type?: 'claim_extraction';
-  /**
-   * Target Chunk Indices
-   *
-   * Specific chunk indices to process (None = process all chunks)
-   */
-  target_chunk_indices?: Array<number> | null;
 };
 
 /**
@@ -912,23 +886,6 @@ export type ClaimReferenceValidationState = {
    */
   type?: 'claim_reference_validation';
   config: ClaimReferenceValidationWorkflowConfig;
-  file: FileDocumentOutput;
-  /**
-   * Supporting Files
-   */
-  supporting_files?: Array<FileDocumentOutput> | null;
-  /**
-   * Chunks
-   */
-  chunks?: Array<AnalyzedChunkOutput>;
-  /**
-   * References
-   */
-  references?: Array<BibliographyItem>;
-  /**
-   * The summary of the main document
-   */
-  main_document_summary?: DocumentSummary | null;
   /**
    * Substantiations
    *
@@ -1932,9 +1889,9 @@ export type FileDocumentInput = {
   /**
    * File Id
    *
-   * The UUID of the file record in the database (if available)
+   * The UUID of the file record in the database
    */
-  file_id?: string | null;
+  file_id: string;
   /**
    * Full Docling document for internal processing (chunk mapping, etc.)
    */
@@ -1984,9 +1941,9 @@ export type FileDocumentOutput = {
   /**
    * File Id
    *
-   * The UUID of the file record in the database (if available)
+   * The UUID of the file record in the database
    */
-  file_id?: string | null;
+  file_id: string;
   /**
    * Full Docling document for internal processing (chunk mapping, etc.)
    */
@@ -2076,15 +2033,10 @@ export type InferenceValidationState = {
    */
   type?: 'inference_validation';
   config: InferenceValidationWorkflowConfig;
-  file: FileDocumentOutput;
   /**
-   * Chunks
+   * File Id
    */
-  chunks?: Array<AnalyzedChunkOutput>;
-  /**
-   * The summary of the main document
-   */
-  main_document_summary?: DocumentSummary | null;
+  file_id: string;
   /**
    * Inference Validations
    */
@@ -2168,11 +2120,12 @@ export type LiteratureReviewState = {
    */
   type?: 'literature_review';
   config: LiteratureReviewWorkflowConfig;
-  file: FileDocumentOutput;
   /**
-   * References
+   * File Id
+   *
+   * ID of the main document
    */
-  references?: Array<BibliographyItem>;
+  file_id: string;
   literature_review?: LiteratureReviewResponse | null;
 };
 
@@ -2235,19 +2188,10 @@ export type LiveReportsState = {
    */
   type?: 'live_reports';
   config: LiveReportsWorkflowConfig;
-  file: FileDocumentOutput;
   /**
-   * References
+   * File Id
    */
-  references?: Array<BibliographyItem>;
-  /**
-   * Chunks
-   */
-  chunks?: Array<AnalyzedChunkOutput>;
-  /**
-   * Summary of the main document
-   */
-  main_document_summary: DocumentSummary;
+  file_id: string;
   /**
    * Live Reports Analysis
    *
@@ -2821,23 +2765,17 @@ export type ReferenceExtractionState = {
   type?: 'reference_extraction';
   config: ReferenceExtractionConfig;
   /**
-   * Main document with markdown populated
-   */
-  file: FileDocumentOutput;
-  /**
-   * Supporting Files
+   * File Id
    *
-   * Optional supporting documents for matching
+   * ID of the main document
    */
-  supporting_files?: Array<FileDocumentOutput> | null;
+  file_id: string;
   /**
-   * Supporting Documents Summaries
+   * Supporting File Ids
    *
-   * Pre-computed summaries of supporting documents (from document processing)
+   * IDs of the supporting documents
    */
-  supporting_documents_summaries?: {
-    [key: string]: DocumentSummary;
-  } | null;
+  supporting_file_ids: Array<string>;
   /**
    * Detected Sections
    *
@@ -3752,127 +3690,6 @@ export type WorkflowTypeDescription = {
 };
 
 /**
- * CitationDetectionState
- *
- * State for citation detection workflow.
- */
-export type CitationDetectionStateWritable = {
-  /**
-   * Errors
-   *
-   * Errors that occurred during the workflow execution.
-   */
-  errors?: Array<WorkflowError>;
-  /**
-   * Type
-   */
-  type?: 'citation_detection';
-  file: FileDocumentOutputWritable;
-  config: CitationDetectionConfig;
-  /**
-   * Chunks
-   */
-  chunks?: Array<DocumentChunk>;
-  /**
-   * References
-   */
-  references?: Array<BibliographyItem>;
-  /**
-   * Citations
-   */
-  citations?: Array<CitationResponseWithChunkIndexOutput>;
-};
-
-/**
- * CitationSuggesterState
- *
- * State for the citation suggester workflow.
- */
-export type CitationSuggesterStateWritable = {
-  /**
-   * Errors
-   *
-   * Errors that occurred during the workflow execution.
-   */
-  errors?: Array<WorkflowError>;
-  /**
-   * Type
-   */
-  type?: 'citation_suggester';
-  config: CitationSuggesterWorkflowConfig;
-  file: FileDocumentOutputWritable;
-  /**
-   * References
-   */
-  references?: Array<BibliographyItem>;
-  /**
-   * Chunks
-   */
-  chunks?: Array<AnalyzedChunkOutput>;
-  /**
-   * Supporting Files
-   */
-  supporting_files?: Array<FileDocumentOutputWritable> | null;
-  /**
-   * Supporting Documents Summaries
-   *
-   * Dictionary mapping supporting file indices to their summaries
-   */
-  supporting_documents_summaries?: {
-    [key: string]: DocumentSummary;
-  } | null;
-  literature_review?: LiteratureReviewResponse | null;
-  /**
-   * Citation Suggestions
-   *
-   * Citation suggestions for all chunks and claims
-   */
-  citation_suggestions?: Array<CitationSuggestionResultWithClaimIndex>;
-};
-
-/**
- * ClaimReferenceValidationState
- *
- * State for the claim reference validation workflow.
- */
-export type ClaimReferenceValidationStateWritable = {
-  /**
-   * Errors
-   *
-   * Errors that occurred during the workflow execution.
-   */
-  errors?: Array<WorkflowError>;
-  /**
-   * Type
-   */
-  type?: 'claim_reference_validation';
-  config: ClaimReferenceValidationWorkflowConfig;
-  file: FileDocumentOutputWritable;
-  /**
-   * Supporting Files
-   */
-  supporting_files?: Array<FileDocumentOutputWritable> | null;
-  /**
-   * Chunks
-   */
-  chunks?: Array<AnalyzedChunkOutput>;
-  /**
-   * References
-   */
-  references?: Array<BibliographyItem>;
-  /**
-   * The summary of the main document
-   */
-  main_document_summary?: DocumentSummary | null;
-  /**
-   * Substantiations
-   *
-   * Claim substantiation results indexed by chunk_index and claim_index
-   */
-  substantiations?: Array<ClaimSubstantiationResultWithClaimIndex>;
-};
-
-/**
  * ClaimSubstantiatorState
  */
 export type ClaimSubstantiatorStateOutputWritable = {
@@ -4022,112 +3839,13 @@ export type FileDocumentOutputWritable = {
   /**
    * File Id
    *
-   * The UUID of the file record in the database (if available)
+   * The UUID of the file record in the database
    */
-  file_id?: string | null;
+  file_id: string;
   /**
    * Full Docling document for internal processing (chunk mapping, etc.)
    */
   docling_document?: DoclingDocumentWritable | null;
-};
-
-/**
- * InferenceValidationState
- *
- * State for the inference validation workflow.
- */
-export type InferenceValidationStateWritable = {
-  /**
-   * Errors
-   *
-   * Errors that occurred during the workflow execution.
-   */
-  errors?: Array<WorkflowError>;
-  /**
-   * Type
-   */
-  type?: 'inference_validation';
-  config: InferenceValidationWorkflowConfig;
-  file: FileDocumentOutputWritable;
-  /**
-   * Chunks
-   */
-  chunks?: Array<AnalyzedChunkOutput>;
-  /**
-   * The summary of the main document
-   */
-  main_document_summary?: DocumentSummary | null;
-  /**
-   * Inference Validations
-   */
-  inference_validations?: Array<InferenceValidationResponseWithClaimIndex>;
-};
-
-/**
- * LiteratureReviewState
- *
- * State for the literature review workflow.
- */
-export type LiteratureReviewStateWritable = {
-  /**
-   * Errors
-   *
-   * Errors that occurred during the workflow execution.
-   */
-  errors?: Array<WorkflowError>;
-  /**
-   * Type
-   */
-  type?: 'literature_review';
-  config: LiteratureReviewWorkflowConfig;
-  file: FileDocumentOutputWritable;
-  /**
-   * References
-   */
-  references?: Array<BibliographyItem>;
-  literature_review?: LiteratureReviewResponse | null;
-};
-
-/**
- * LiveReportsState
- *
- * State for the live reports workflow.
- */
-export type LiveReportsStateWritable = {
-  /**
-   * Errors
-   *
-   * Errors that occurred during the workflow execution.
-   */
-  errors?: Array<WorkflowError>;
-  /**
-   * Type
-   */
-  type?: 'live_reports';
-  config: LiveReportsWorkflowConfig;
-  file: FileDocumentOutputWritable;
-  /**
-   * References
-   */
-  references?: Array<BibliographyItem>;
-  /**
-   * Chunks
-   */
-  chunks?: Array<AnalyzedChunkOutput>;
-  /**
-   * Summary of the main document
-   */
-  main_document_summary: DocumentSummary;
-  /**
-   * Live Reports Analysis
-   *
-   * Live reports analysis results aggregated across chunks
-   */
-  live_reports_analysis?: Array<EvidenceWeighterResponseWithClaimIndex>;
-  /**
-   * Addendum report output for live reports
-   */
-  addendum_report?: ReportOutput | null;
 };
 
 /**
@@ -4182,61 +3900,6 @@ export type ProjectDetailedWritable = {
 };
 
 /**
- * ReferenceExtractionState
- *
- * State for reference extraction workflow.
- */
-export type ReferenceExtractionStateWritable = {
-  /**
-   * Errors
-   *
-   * Errors that occurred during the workflow execution.
-   */
-  errors?: Array<WorkflowError>;
-  /**
-   * Type
-   */
-  type?: 'reference_extraction';
-  config: ReferenceExtractionConfig;
-  /**
-   * Main document with markdown populated
-   */
-  file: FileDocumentOutputWritable;
-  /**
-   * Supporting Files
-   *
-   * Optional supporting documents for matching
-   */
-  supporting_files?: Array<FileDocumentOutputWritable> | null;
-  /**
-   * Supporting Documents Summaries
-   *
-   * Pre-computed summaries of supporting documents (from document processing)
-   */
-  supporting_documents_summaries?: {
-    [key: string]: DocumentSummary;
-  } | null;
-  /**
-   * Detected Sections
-   *
-   * Detected reference sections
-   */
-  detected_sections?: Array<ReferenceSection>;
-  /**
-   * Extracted Reference Texts
-   *
-   * Raw extracted reference texts
-   */
-  extracted_reference_texts?: Array<string>;
-  /**
-   * References
-   *
-   * Extracted bibliography items
-   */
-  references?: Array<BibliographyItem>;
-};
-
-/**
  * ResultsExtractionState
  */
 export type ResultsExtractionStateWritable = {
@@ -4270,20 +3933,20 @@ export type WorkflowRunDetailWritable = {
    */
   state:
     | DocumentProcessingStateWritable
-    | ReferenceExtractionStateWritable
+    | ReferenceExtractionState
     | ClaimExtractionState
     | ClaimSubstantiatorStateOutputWritable
-    | ClaimReferenceValidationStateWritable
-    | CitationDetectionStateWritable
+    | ClaimReferenceValidationState
+    | CitationDetectionState
     | MethodologicalAlignmentStateWritable
     | ReferenceDownloaderState
     | DocxGenerationState
-    | LiteratureReviewStateWritable
-    | LiveReportsStateWritable
+    | LiteratureReviewState
+    | LiveReportsState
     | ReferenceValidationState
-    | CitationSuggesterStateWritable
+    | CitationSuggesterState
     | ResultsExtractionStateWritable
-    | InferenceValidationStateWritable
+    | InferenceValidationState
     | null;
 };
 
@@ -4295,6 +3958,20 @@ export type ReadHealthApiHealthGetData = {
 };
 
 export type ReadHealthApiHealthGetResponses = {
+  /**
+   * Successful Response
+   */
+  200: unknown;
+};
+
+export type ReadHealthApiHealthHeadData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/api/health';
+};
+
+export type ReadHealthApiHealthHeadResponses = {
   /**
    * Successful Response
    */

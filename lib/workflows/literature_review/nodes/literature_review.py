@@ -17,9 +17,15 @@ logger = logging.getLogger(__name__)
 )
 async def literature_review(
     state: LiteratureReviewState, runtime: Runtime[ContextSchema]
-) -> LiteratureReviewState:
-    markdown = state.file.markdown
-    bibliography = state.references or []
+):
+    file_artifacts_service = runtime.context.file_artifacts_service
+
+    # Fetch artifacts from file artifacts service
+    file = await file_artifacts_service.get_file_document(state.file_id)
+    references = await file_artifacts_service.get_references()
+
+    markdown = file.markdown
+    bibliography = references or []
     document_publication_date = (
         state.config.publication_date
         if state.config.publication_date

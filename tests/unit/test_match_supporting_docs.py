@@ -1,7 +1,7 @@
 """Unit tests for reference-to-supporting-document matching."""
 
 from contextlib import contextmanager
-from typing import List
+from typing import List, Optional
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -31,9 +31,10 @@ def make_summary(title: str, authors: str = "Unknown", year: str = "Unknown"):
     )
 
 
-def make_file_document(file_name: str):
+def make_file_document(file_name: str, file_id: Optional[str] = None):
     doc = MagicMock()
     doc.file_name = file_name
+    doc.file_id = file_id
     return doc
 
 
@@ -114,32 +115,41 @@ class TestResolveMatch:
 
     def test_returns_no_match_for_none_candidate(self):
         candidates = [make_candidate(0, make_summary("Paper"))]
-        files = [make_file_document("paper.pdf")]
-        assert _resolve_match("NONE", candidates, files) == (-1, "")
+        files = [make_file_document("paper.pdf", "file-id-1")]
+        assert _resolve_match("NONE", candidates, files) == (-1, "", None)
 
     def test_returns_no_match_for_empty_candidates(self):
-        files = [make_file_document("paper.pdf")]
-        assert _resolve_match("A", [], files) == (-1, "")
+        files = [make_file_document("paper.pdf", "file-id-1")]
+        assert _resolve_match("A", [], files) == (-1, "", None)
 
     def test_resolves_letter_to_document(self):
         candidates = [
             make_candidate(0, make_summary("A")),
             make_candidate(1, make_summary("B")),
         ]
-        files = [make_file_document("a.pdf"), make_file_document("b.pdf")]
+        files = [
+            make_file_document("a.pdf", "file-id-a"),
+            make_file_document("b.pdf", "file-id-b"),
+        ]
 
-        assert _resolve_match("A", candidates, files) == (1, "a.pdf")
-        assert _resolve_match("B", candidates, files) == (2, "b.pdf")
+        assert _resolve_match("A", candidates, files) == (1, "a.pdf", "file-id-a")
+        assert _resolve_match("B", candidates, files) == (2, "b.pdf", "file-id-b")
 
     def test_handles_lowercase_letter(self):
         candidates = [make_candidate(0, make_summary("Paper"))]
-        files = [make_file_document("paper.pdf")]
-        assert _resolve_match("a", candidates, files) == (1, "paper.pdf")
+        files = [make_file_document("paper.pdf", "file-id-1")]
+        assert _resolve_match("a", candidates, files) == (1, "paper.pdf", "file-id-1")
 
     def test_returns_no_match_for_invalid_letter(self):
         candidates = [make_candidate(0, make_summary("Paper"))]
-        files = [make_file_document("paper.pdf")]
-        assert _resolve_match("Z", candidates, files) == (-1, "")
+        files = [make_file_document("paper.pdf", "file-id-1")]
+        assert _resolve_match("Z", candidates, files) == (-1, "", None)
+
+    def test_resolves_with_none_file_id(self):
+        """Test that file_id can be None when FileDocument doesn't have one."""
+        candidates = [make_candidate(0, make_summary("Paper"))]
+        files = [make_file_document("paper.pdf")]  # No file_id
+        assert _resolve_match("A", candidates, files) == (1, "paper.pdf", None)
 
 
 class TestTwoStageMatching:
@@ -148,7 +158,7 @@ class TestTwoStageMatching:
     @pytest.mark.asyncio
     async def test_matches_reference_to_document(self, mock_state, mock_runtime):
         summaries = {0: make_summary("Sea Level Rise", "Johnson, M.", "2023")}
-        files = [make_file_document("sea_level_rise.pdf")]
+        files = [make_file_document("sea_level_rise.pdf", "file-id-123")]
         state = mock_state(
             texts=["Johnson (2023). Sea Level Rise."],
             summaries=summaries,
@@ -163,13 +173,13 @@ class TestTwoStageMatching:
 
         ref = result["references"][0]
         assert ref.has_associated_supporting_document is True
-        assert ref.index_of_associated_supporting_document == 1
         assert ref.name_of_associated_supporting_document == "sea_level_rise.pdf"
+        assert ref.file_id == "file-id-123"
 
     @pytest.mark.asyncio
     async def test_handles_no_match(self, mock_state, mock_runtime):
         summaries = {0: make_summary("Paper 0")}
-        files = [make_file_document("paper_0.pdf")]
+        files = [make_file_document("paper_0.pdf", "file-id-1")]
         state = mock_state(
             texts=["Unknown reference"], summaries=summaries, supporting_files=files
         )
@@ -180,7 +190,9 @@ class TestTwoStageMatching:
         ):
             result = await match_supporting_docs_node(state, mock_runtime)
 
-        assert result["references"][0].has_associated_supporting_document is False
+        ref = result["references"][0]
+        assert ref.has_associated_supporting_document is False
+        assert ref.file_id is None
 
     @pytest.mark.asyncio
     async def test_handles_mixed_matches(self, mock_state, mock_runtime):
@@ -190,8 +202,8 @@ class TestTwoStageMatching:
             1: make_summary("Paper Two", "Jones", "2021"),
         }
         files = [
-            make_file_document("paper_one.pdf"),
-            make_file_document("paper_two.pdf"),
+            make_file_document("paper_one.pdf", "file-id-1"),
+            make_file_document("paper_two.pdf", "file-id-2"),
         ]
         state = mock_state(
             texts=["Smith (2020). Paper One.", "Jones (2021). Paper Two.", "Unknown."],
@@ -219,18 +231,21 @@ class TestTwoStageMatching:
             result["references"][0].name_of_associated_supporting_document
             == "paper_one.pdf"
         )
+        assert result["references"][0].file_id == "file-id-1"
         assert result["references"][1].has_associated_supporting_document is True
         assert (
             result["references"][1].name_of_associated_supporting_document
             == "paper_two.pdf"
         )
+        assert result["references"][1].file_id == "file-id-2"
         assert result["references"][2].has_associated_supporting_document is False
+        assert result["references"][2].file_id is None
 
     @pytest.mark.asyncio
     async def test_handles_batch_error_gracefully(self, mock_state, mock_runtime):
         """Batch matching errors should result in no matches, not exceptions."""
         summaries = {0: make_summary("Paper")}
-        files = [make_file_document("paper.pdf")]
+        files = [make_file_document("paper.pdf", "file-id-1")]
         state = mock_state(
             texts=["Some reference"], summaries=summaries, supporting_files=files
         )
@@ -243,6 +258,7 @@ class TestTwoStageMatching:
 
         assert len(result["references"]) == 1
         assert result["references"][0].has_associated_supporting_document is False
+        assert result["references"][0].file_id is None
 
 
 class TestMatchSupportingDocsNode:
@@ -260,7 +276,7 @@ class TestMatchSupportingDocsNode:
         )
         ref = result["references"][0]
         assert ref.has_associated_supporting_document is False
-        assert ref.index_of_associated_supporting_document == -1
+        assert ref.file_id is None
 
     @pytest.mark.asyncio
     async def test_no_supporting_files(self, mock_state, mock_runtime):
@@ -271,3 +287,4 @@ class TestMatchSupportingDocsNode:
         )
         ref = result["references"][0]
         assert ref.has_associated_supporting_document is False
+        assert ref.file_id is None

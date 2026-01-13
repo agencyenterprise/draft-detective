@@ -99,7 +99,7 @@ export function ChunkAnalysisCard({ chunkIndex, issues, allWorkflowDetails }: Ch
                   ? references[citation.index_of_associated_bibliography - 1]
                   : null;
                 const matchedSupportingFile = supportingFiles.find(
-                  (file) => file.file_name === matchedReference?.name_of_associated_supporting_document,
+                  (file) => file.file_id === matchedReference?.file_id,
                 );
 
                 return (

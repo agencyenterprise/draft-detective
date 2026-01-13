@@ -57,7 +57,7 @@ function renderWorkflowResults(
     case WorkflowRunType.LiteratureReview:
       return <LiteratureReviewResults workflowDetail={workflowRun} />;
     case WorkflowRunType.CitationSuggester:
-      return <CitationSuggesterResults workflowDetail={workflowRun} />;
+      return <CitationSuggesterResults project={project} workflowDetail={workflowRun} />;
     case WorkflowRunType.ReferenceDownloader:
       return <ReferenceDownloaderResults workflowDetail={workflowRun} />;
     case WorkflowRunType.ResultsExtraction:
@@ -110,7 +110,12 @@ function renderWorkflowResults(
   }
 }
 
-export function AnalysesTab({ projectId, onNavigateToDocumentExplorer, onNavigateToReferences }: AnalysesTabProps) {
+export function AnalysesTab({
+  projectId,
+  readOnly,
+  onNavigateToDocumentExplorer,
+  onNavigateToReferences,
+}: AnalysesTabProps) {
   const { project, workflowDetails, isLoading } = useProjectDetails(projectId);
   const [selectedWorkflowRunId, setSelectedWorkflowRunId] = useState<string | null>(null);
   const [isConfigDialogOpen, setIsConfigDialogOpen] = useState(false);
@@ -161,10 +166,12 @@ export function AnalysesTab({ projectId, onNavigateToDocumentExplorer, onNavigat
         <div className="space-y-2">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-sm font-semibold">Analyses</h3>
-            <Button size="xs" variant="outline" onClick={handleStartNewAnalysis}>
-              <PlusIcon className="size-3" />
-              New Analysis
-            </Button>
+            {!readOnly && (
+              <Button size="xs" variant="outline" onClick={handleStartNewAnalysis}>
+                <PlusIcon className="size-3" />
+                New Analysis
+              </Button>
+            )}
           </div>
           {workflowDetails.map((workflowDetail) => (
             <button
@@ -209,21 +216,23 @@ export function AnalysesTab({ projectId, onNavigateToDocumentExplorer, onNavigat
             <div>
               <div className="flex items-center justify-between mb-1">
                 <h2 className="text-xl font-semibold">{getWorkflowTypeName(selectedWorkflowRun.run.type)}</h2>
-                <StartWorkflowButton
-                  type={selectedWorkflowRun.run.type}
-                  projectId={projectId}
-                  workflow={selectedWorkflowRun.run}
-                  onConfirm={async (values: WorkflowConfigFormValues) => {
-                    return await startWorkflowApiWorkflowsStartPost({
-                      body: {
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        type: selectedWorkflowRun.run.type as any,
-                        project_id: projectId,
-                        openai_api_key: values.openaiApiKey || null,
-                      },
-                    });
-                  }}
-                />
+                {!readOnly && (
+                  <StartWorkflowButton
+                    type={selectedWorkflowRun.run.type}
+                    projectId={projectId}
+                    workflow={selectedWorkflowRun.run}
+                    onConfirm={async (values: WorkflowConfigFormValues) => {
+                      return await startWorkflowApiWorkflowsStartPost({
+                        body: {
+                          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                          type: selectedWorkflowRun.run.type as any,
+                          project_id: projectId,
+                          openai_api_key: values.openaiApiKey || null,
+                        },
+                      });
+                    }}
+                  />
+                )}
               </div>
               <div className="flex items-center gap-4 text-sm text-muted-foreground">
                 <div className="flex items-center gap-2">
@@ -250,11 +259,16 @@ export function AnalysesTab({ projectId, onNavigateToDocumentExplorer, onNavigat
         ) : (
           <div className="flex items-center justify-center h-32">
             <p className="text-muted-foreground flex items-center gap-2">
-              Select an analysis to view its results or{' '}
-              <Button size="xs" variant="default" onClick={handleStartNewAnalysis}>
-                <PlusIcon className="size-3" />
-                Start a new analysis
-              </Button>
+              {readOnly && <>Select an analysis to view its results</>}
+              {!readOnly && (
+                <>
+                  Select an analysis to view its results or
+                  <Button size="xs" variant="default" onClick={handleStartNewAnalysis}>
+                    <PlusIcon className="size-3" />
+                    Start a new analysis
+                  </Button>
+                </>
+              )}
             </p>
           </div>
         )}

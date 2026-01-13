@@ -11,6 +11,7 @@ from typing import List
 
 from lib.agents.models import ReproducibilityCategory
 from lib.models.agent import LangChainAgent
+from lib.services.file_artifacts_service.mock import MockFileArtifactsService
 from lib.workflows.context import ContextSchema
 
 
@@ -50,7 +51,7 @@ class ResultsListResponse(BaseModel):
 _results_extractor_agent_prompt = ChatPromptTemplate.from_template(
     """
 # Task
-You are an expert scientific reader and results analyst. You will be given a research document (or a long excerpt of one), and must extract the main results of the document AND determine whether these each of these main results is reproducible given the information provided in the paper. 
+You are an expert scientific reader and results analyst. You will be given a research document (or a long excerpt of one), and must extract the main results of the document AND determine whether these each of these main results is reproducible given the information provided in the paper.
 
 "Results" are defined as any qualitative, mathematical, or quantitative end-points of an analysis. Things that aren't included in results are assumptions or initial conditions.
 
@@ -60,7 +61,7 @@ The document may be long (e.g., 10,000+ words) and may NOT be cleanly structured
 
 1. Read the document holistically. Do not rely solely on section headers.
 2. Identify the main results of the paper. "Results" are defined as any qualitative, mathematical, or quantitative end-points of an analysis. Things that aren't included in results are assumptions or initial conditions.
-3. Determine the "Result Type" 
+3. Determine the "Result Type"
     - Figure: The result is a figure within the text
     - Table: The result is a table within the text
     - Equation: The result is a final equation
@@ -80,7 +81,7 @@ The document may be long (e.g., 10,000+ words) and may NOT be cleanly structured
 
 ## Results extraction guidelines
 
-Results are sometimes represented as equations, figures, tables, or specific numerical quantities stated within the text. In general, they are defined as the end-points of some quantitative or qualitative analysis. For the results extraction, we want to extract results and put them within the same section according to their natural grouping within the paper. For example, a table could countain dozens of values, but it should represent a single result. Similarly with figures. Each of these particular results should have a reproducibility category. 
+Results are sometimes represented as equations, figures, tables, or specific numerical quantities stated within the text. In general, they are defined as the end-points of some quantitative or qualitative analysis. For the results extraction, we want to extract results and put them within the same section according to their natural grouping within the paper. For example, a table could countain dozens of values, but it should represent a single result. Similarly with figures. Each of these particular results should have a reproducibility category.
 
 ## Reproducibility Criteria
 
@@ -171,7 +172,11 @@ if __name__ == "__main__":
         print("-" * 80)
 
         # Initialize context
-        context = ContextSchema(openai_api_key=config.OPENAI_API_KEY, vector_store=None)
+        context = ContextSchema(
+            openai_api_key=config.OPENAI_API_KEY,
+            vector_store=None,
+            file_artifacts_service=MockFileArtifactsService(),
+        )
 
         # Run the agent
         results_extractor_agent = ResultsExtractorAgent(context)

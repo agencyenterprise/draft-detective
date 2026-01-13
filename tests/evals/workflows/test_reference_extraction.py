@@ -108,7 +108,7 @@ async def test_reference_extraction_with_supporting_docs():
     assert len(result["references"]) >= 1
     for ref in result["references"]:
         assert isinstance(ref.has_associated_supporting_document, bool)
-        assert isinstance(ref.index_of_associated_supporting_document, int)
+        assert isinstance(ref.file_id, (str, type(None)))
         assert isinstance(ref.name_of_associated_supporting_document, str)
 
 

@@ -1,0 +1,113 @@
+# Citation Detector Test - Footnote Index Mismatch Bug
+# This test verifies that footnotes [10] and [11] are matched by CONTENT from the
+# footnotes section, NOT by their index position in the bibliography list.
+#
+# BUG DESCRIPTION:
+# The system matches citation markers like [10] to bibliography entry #10 by index,
+# rather than finding the correct reference based on content from the footnotes section.
+# This causes incorrect reference matching in large documents where the bibliography
+# list order doesn't match the footnote numbers.
+#
+# EXPECTED BEHAVIOR:
+# - [10] should match entry #42 (EIA-860) based on footnote content
+# - [11] should match entry #43 (DOE RFI) based on footnote content
+#
+# ACTUAL BEHAVIOR (BUG):
+# - [10] matches entry #10 (Chang/Bloomberg) by index position
+# - [11] matches entry #11 (Tesla) by index position
+
+dataset:
+  name: "Citation Detector - Footnote Index Mismatch Regression Test"
+  description: "Regression test for bug where footnote markers are matched by index position instead of content"
+  test_config:
+    strict_fields:
+      citations:
+        __all__:
+          - type
+          - needs_bibliography
+          - associated_bibliography
+          - index_of_associated_bibliography
+  items:
+    - name: "citation_footnote_index_mismatch_large_document"
+      description: "Verifies footnotes [10] and [11] are matched by CONTENT from footnotes section, NOT by index position. Bug causes [10] to match entry #10 (Chang/Bloomberg) instead of #42 (EIA-860)."
+      input:
+        main_document: "evals/data/footnote_index_mismatch/main_document.md"
+        bibliography:
+          # Entries 1-9: Filler references
+          - "Arciniegas Rueda, Ismael, et al., Additional AI Power Capacity by 2030, RAND Corporation, 2025."
+          - "Secretary of Energy Advisory Board, Recommendations on Powering AI Infrastructure, U.S. Department of Energy, July 2024."
+          - "North American Electric Reliability Corporation, 2024 Long-Term Reliability Assessment, December 2024."
+          - "Pilz, Konstantin F., Yusuf Mahmood, and Lennart Heim, AI Power Requirements Under Exponential Growth, RAND Corporation, RR-A3572-1, 2025."
+          - "Sevilla, Jaime, et al., Can AI Scaling Continue Through 2030, Epoch AI, August 2024."
+          - "Shehabi, Arman, et al., 2024 United States Data Center Energy Usage Report, Berkeley Lab, December 2024."
+          - "Davenport, Carly, et al., Generational Growth AI Data Centers and the Coming US Power Demand Surge, Goldman Sachs Equity Research, April 2024."
+          - "McKinsey and Company, AI Power Expanding Data Center Capacity to Meet Growing Demand, October 2024."
+          - "CAISO, 20 Year Transmission Outlook, July 31, 2024"
+          # Entry #10 - WRONG reference (the bug will match [10] to this by index)
+          - "Chang, Emily, Inside OpenAI Stargate Megafactory with Sam Altman, Bloomberg Originals, The Circuit, May 20, 2025"
+          # Entry #11 - WRONG reference (the bug will match [11] to this by index)
+          - "Tesla Energy, Megapack Grid-Scale Battery Installation Guidelines, Technical Manual, 2024."
+          # Entries 12-41: More filler references
+          - "Microsoft, Sustainability Report Carbon Negative by 2030, Annual Report, 2024."
+          - "Google DeepMind, Scaling Laws for Neural Language Models, Research Paper, 2023."
+          - "Amazon Web Services, Data Center Efficiency Best Practices, White Paper, 2024."
+          - "Meta Platforms, Infrastructure Sustainability Goals, Corporate Report, 2024."
+          - "NVIDIA Corporation, GPU Power Consumption Analysis for AI Workloads, Technical Brief, 2024."
+          - "Intel Corporation, Data Center Power Management Solutions, Product Guide, 2024."
+          - "Bistline, John, et al., Emissions and Energy Impacts of the Inflation Reduction Act, Science, Vol. 380, No. 6652, June 2023."
+          - "Lawrence Berkeley National Laboratory, Energy Efficiency in Data Centers, Research Report, 2024."
+          - "Electric Power Research Institute, Grid Modernization for AI Workloads, Technical Assessment, 2024."
+          - "Federal Energy Regulatory Commission, Interconnection Queue Analysis, Quarterly Report, Q4 2024."
+          - "PJM Interconnection, 2024 Load Forecast Report, January 2024."
+          - "ERCOT, Long-Term System Assessment, December 2024."
+          - "MISO, Transmission Expansion Plan, Annual Report, 2024."
+          - "SPP, Integrated Transmission Planning, 2024 Assessment."
+          - "ISO New England, Regional System Plan, 2024."
+          - "NYISO, Power Trends Report, 2024."
+          - "Scharre, Paul, Future-Proofing Frontier AI Regulation, Center for a New American Security, March 2024."
+          - "OpenAI, GPT-4 Technical Report, March 2023."
+          - "Anthropic, Constitutional AI Harmlessness from AI Feedback, Research Paper, 2023."
+          - "World Economic Forum, Global Energy Transition Report, 2024."
+          - "International Energy Agency, Data Centres and Data Transmission Networks, Energy Report, 2024."
+          - "U.S. Government Accountability Office, Critical Infrastructure Protection, GAO Report, 2024."
+          - "Congressional Research Service, Artificial Intelligence and National Security, CRS Report, 2024."
+          - "Brookings Institution, The Geopolitics of AI Infrastructure, Policy Brief, 2024."
+          - "RAND Corporation, Securing AI Supply Chains, Research Report, 2024."
+          - "MIT Technology Review, The Race for AI Supremacy, Feature Article, 2024."
+          - "Nature Energy, Power Requirements for Large Language Models, Research Article, 2024."
+          - "IEEE Spectrum, Engineering Challenges in AI Data Centers, Technical Article, 2024."
+          - "Science Magazine, Environmental Impact of AI Training, Research Article, 2024."
+          - "Harvard Business Review, Strategic Planning for AI Infrastructure, Business Analysis, 2024."
+          # Entry #42 - CORRECT reference for footnote [10] (EIA-860 data about retired generators)
+          - "U.S. Energy Information Administration, EIA-860 Monthly Generator Data Detailed inventory of generators with operational status capacity and retirement schedules, 2024"
+          # Entry #43 - CORRECT reference for footnote [11] (DOE RFI on AI infrastructure)
+          - "Office of Policy, Department of Energy, Request for Information on Artificial Intelligence Infrastructure on DOE Lands, Federal Register Notice, March 2025."
+          # Entries 44-50: More filler references
+          - "National Renewable Energy Laboratory, Renewable Energy Grid Integration, Technical Report, 2024."
+          - "Sandia National Laboratories, Energy Storage Systems Analysis, Research Report, 2024."
+          - "Oak Ridge National Laboratory, High-Performance Computing Power Requirements, Technical Assessment, 2024."
+          - "Argonne National Laboratory, AI for Scientific Discovery, Research Brief, 2024."
+          - "Pacific Northwest National Laboratory, Grid Resilience Studies, Technical Report, 2024."
+          - "Idaho National Laboratory, Nuclear Power for Data Centers, Feasibility Study, 2024."
+          - "Los Alamos National Laboratory, Advanced Computing Infrastructure, Strategic Plan, 2024."
+        chunk: "Using this framework, we assessed 22 sites: 17 identified by DOE, two private-sector developments by the Stargate consortium, and three recently retired or retiring power plants.[[10]](#footnote-10)[[11]](#footnote-11)"
+      expected_output:
+        citations:
+          - text: "[[10]](#footnote-10)"
+            type: "footnote"
+            format: "[number] footnote marker"
+            needs_bibliography: true
+            # CORRECT: Should match EIA-860 reference (entry #42), NOT Chang/Bloomberg (entry #10)
+            associated_bibliography: "U.S. Energy Information Administration, EIA-860 Monthly Generator Data Detailed inventory of generators with operational status capacity and retirement schedules, 2024"
+            index_of_associated_bibliography: 42
+            rationale: ""
+          - text: "[[11]](#footnote-11)"
+            type: "footnote"
+            format: "[number] footnote marker"
+            needs_bibliography: true
+            # CORRECT: Should match DOE RFI (entry #43), NOT Tesla (entry #11)
+            associated_bibliography: "Office of Policy, Department of Energy, Request for Information on Artificial Intelligence Infrastructure on DOE Lands, Federal Register Notice, March 2025."
+            index_of_associated_bibliography: 43
+            rationale: ""
+        rationale: ""
+

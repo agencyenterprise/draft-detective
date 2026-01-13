@@ -12,7 +12,6 @@ import { WorkflowConfigFormValues } from '@/components/workflows/workflow-config
 import {
   BibliographyItem,
   BibliographyItemValidation,
-  FileDocumentOutput,
   startWorkflowApiWorkflowsStartPost,
   WorkflowRunDetail,
   WorkflowRunType,
@@ -31,46 +30,41 @@ interface ReferencesTabProps {
 interface ReferenceTableRowProps {
   reference: BibliographyItem;
   validation?: BibliographyItemValidation;
-  supportingFiles?: FileDocumentOutput[] | null;
 }
 
-function ReferenceTableRow({ reference, validation, supportingFiles }: ReferenceTableRowProps) {
+function ReferenceTableRow({ reference, validation }: ReferenceTableRowProps) {
   const [isExpanded, setIsExpanded] = React.useState(false);
 
   return (
     <>
       <TableRow>
         {/* Reference text column */}
-        <TableCell className="whitespace-normal break-all max-w-lg">
+        <TableCell className="whitespace-normal break-all w-2xl">
           <p className="text-sm">{reference.text}</p>
         </TableCell>
 
         {/* Related document column */}
         <TableCell className="text-xs whitespace-normal max-w-sm">
-          {reference.has_associated_supporting_document && supportingFiles ? (
-            (() => {
-              const supportingFile = supportingFiles[reference.index_of_associated_supporting_document - 1];
-              if (supportingFile?.file_id) {
-                return (
-                  <a
-                    href={`/api/files/download/${supportingFile.file_id}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 hover:underline"
-                  >
-                    {supportingFile.file_name || 'Unknown'}
-                  </a>
-                );
-              }
-              return <span>{supportingFile?.file_name || 'Unknown'}</span>;
-            })()
+          {reference.has_associated_supporting_document ? (
+            reference.file_id ? (
+              <a
+                href={`/api/files/download/${reference.file_id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:underline"
+              >
+                {reference.name_of_associated_supporting_document || 'Unknown'}
+              </a>
+            ) : (
+              <span>{reference.name_of_associated_supporting_document || 'Unknown'}</span>
+            )
           ) : (
             <span className="text-orange-600 font-medium">Document not provided</span>
           )}
         </TableCell>
 
         {/* Validation column */}
-        <TableCell className="text-xs">
+        <TableCell className="text-xs max-w-xs">
           {(() => {
             // Validation not performed
             if (!validation) {
@@ -125,9 +119,9 @@ function ReferenceTableRow({ reference, validation, supportingFiles }: Reference
       {/* Expanded row with validation details */}
       {isExpanded && (
         <TableRow>
-          <TableCell colSpan={4} className="bg-muted/30 max-w-0">
+          <TableCell colSpan={4} className="whitespace-normal bg-muted/30">
             {validation ? (
-              <div className="py-3 text-sm text-gray-700 space-y-2 w-full overflow-hidden">
+              <div className="py-3 text-sm text-gray-700 space-y-2">
                 <div>
                   <h3 className="text-base font-medium">Reference validation details</h3>
                 </div>
@@ -209,11 +203,9 @@ function ReferenceTableRow({ reference, validation, supportingFiles }: Reference
 export function ReferencesTab({ allWorkflowDetails, projectId, readOnly = false }: ReferencesTabProps) {
   const [searchQuery, setSearchQuery] = React.useState('');
 
-  const documentProcessing = getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.DocumentProcessing);
   const referenceValidation = getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.ReferenceValidation);
   const referenceExtraction = getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.ReferenceExtraction);
 
-  const documentProcessingResults = documentProcessing?.state;
   const referencesResults = referenceExtraction?.state;
   const referenceValidationResults = referenceValidation?.state;
 
@@ -254,15 +246,13 @@ export function ReferencesTab({ allWorkflowDetails, projectId, readOnly = false 
       if (reference.text?.toLowerCase().includes(query)) return true;
 
       // Search in related document file name
-      if (reference.has_associated_supporting_document && documentProcessingResults?.supporting_files) {
-        const supportingFile =
-          documentProcessingResults.supporting_files[reference.index_of_associated_supporting_document - 1];
-        if (supportingFile?.file_name?.toLowerCase().includes(query)) return true;
+      if (reference.has_associated_supporting_document) {
+        if (reference.name_of_associated_supporting_document?.toLowerCase().includes(query)) return true;
       }
 
       return false;
     });
-  }, [referencesResults?.references, searchQuery, documentProcessingResults?.supporting_files]);
+  }, [referencesResults?.references, searchQuery]);
 
   return (
     <TabWithLoadingStates
@@ -333,12 +323,7 @@ export function ReferencesTab({ allWorkflowDetails, projectId, readOnly = false 
               </TableHeader>
               <TableBody>
                 {filteredReferences.map((reference, index) => (
-                  <ReferenceTableRow
-                    key={index}
-                    reference={reference}
-                    validation={validationMap.get(reference.text)}
-                    supportingFiles={documentProcessingResults?.supporting_files}
-                  />
+                  <ReferenceTableRow key={index} reference={reference} validation={validationMap.get(reference.text)} />
                 ))}
               </TableBody>
             </Table>

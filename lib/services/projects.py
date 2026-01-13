@@ -161,7 +161,7 @@ async def get_shared_project_detailed(project_id: str) -> ProjectDetailed:
     if not await is_project_shared(project_id):
         raise HTTPException(status_code=403, detail="Project is not shared")
 
-    return await _get_project_detailed_from_project(project)
+    return await _get_project_detailed_from_project(project, include_internal=True)
 
 
 async def get_user_project_detailed(

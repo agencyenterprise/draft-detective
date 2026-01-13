@@ -80,7 +80,7 @@ class ReferenceValidationManifest(
                 issue = DocumentIssue(
                     title="Invalid reference",
                     description=f'Possible invalid reference: "{validation.original_reference}"',
-                    severity=SeverityEnum.HIGH,
+                    severity=SeverityEnum.MEDIUM,
                     chunk_index=chunk_index,
                 )
                 issues.append(issue)
