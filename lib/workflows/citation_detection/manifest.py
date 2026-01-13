@@ -8,6 +8,7 @@ from lib.workflows.citation_detection.state import (
     CitationDetectionState,
 )
 from lib.workflows.document_processing.state import DocumentProcessingState
+from lib.workflows.footnote_extraction.state import FootnoteExtractionState
 from lib.workflows.manifest import WorkflowManifest
 from lib.workflows.models import DocumentIssue, WorkflowRunType
 from lib.workflows.reference_extraction.state import ReferenceExtractionState
@@ -20,11 +21,12 @@ class CitationDetectionManifest(
 ):
     type = WorkflowRunType.CITATION_DETECTION
     name = "Citation Detection"
-    description = "Detect citations in document chunks"
+    description = "Detect citations in document chunks using footnotes list"
     needs_web_search = False
     is_internal = True
     required_dependencies = [
         WorkflowRunType.REFERENCE_EXTRACTION,
+        WorkflowRunType.FOOTNOTE_EXTRACTION,
     ]
 
     def get_state_type(self) -> Type[CitationDetectionState]:
@@ -56,9 +58,15 @@ class CitationDetectionManifest(
             WorkflowRunType.REFERENCE_EXTRACTION, existing_states
         )
 
+        # Get extracted footnotes from footnote extraction workflow
+        footnote_extraction_state: FootnoteExtractionState = get_state_by_type_or_raise(
+            WorkflowRunType.FOOTNOTE_EXTRACTION, existing_states
+        )
+
         return CitationDetectionState(
             file=doc_processing_state.file,
             references=ref_extraction_state.references,
+            footnotes=footnote_extraction_state.footnotes,
             chunks=doc_processing_state.chunks,
             config=config,
         )
