@@ -3615,6 +3615,12 @@ export type WorkflowTypeDescription = {
    * Whether the workflow needs web search
    */
   needs_web_search: boolean;
+  /**
+   * Is Experimental
+   *
+   * Whether the workflow is experimental
+   */
+  is_experimental: boolean;
 };
 
 /**

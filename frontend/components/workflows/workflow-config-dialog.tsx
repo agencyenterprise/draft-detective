@@ -142,20 +142,27 @@ export function WorkflowConfigDialog({ isOpen, type, onConfirm, onCancel }: Work
           )}
 
           <form.Field name="workflowTypes">
-            {(field) => (
-              <WorkflowTypeSelector
-                workflowTypes={workflowTypes}
-                selectedTypes={field.state.value}
-                onSelectionChange={field.handleChange}
-                filter={type ? (wt) => wt.type === type : undefined}
-                disabledTypes={type ? [type] : undefined}
-                error={
-                  !field.state.meta.isValid && field.state.meta.errors.length > 0
-                    ? field.state.meta.errors.join(', ')
-                    : undefined
-                }
-              />
-            )}
+            {(field) => {
+              const preselectedIsExperimental = type
+                ? workflowTypes?.find((wt) => wt.type === type)?.is_experimental
+                : false;
+
+              return (
+                <WorkflowTypeSelector
+                  workflowTypes={workflowTypes}
+                  selectedTypes={field.state.value}
+                  onSelectionChange={field.handleChange}
+                  filter={type ? (wt) => wt.type === type : undefined}
+                  disabledTypes={type ? [type] : undefined}
+                  defaultShowExperimental={preselectedIsExperimental}
+                  error={
+                    !field.state.meta.isValid && field.state.meta.errors.length > 0
+                      ? field.state.meta.errors.join(', ')
+                      : undefined
+                  }
+                />
+              );
+            }}
           </form.Field>
 
           <form.Field name="workflowTypes">
