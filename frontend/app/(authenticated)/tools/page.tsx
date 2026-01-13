@@ -49,8 +49,7 @@ export default function ToolsPage() {
                   <h3 className="text-lg font-semibold text-gray-900">Reference Downloader</h3>
                 </div>
                 <p className="mt-2 text-sm text-gray-600">
-                  Fetch and download sources for references. Enter references to check their validity and accessibility
-                  online.
+                  Search the web for each reference and download the related full-text when available (PDF or Markdown).
                 </p>
               </div>
             </div>

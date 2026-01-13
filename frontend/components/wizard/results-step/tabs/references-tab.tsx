@@ -12,7 +12,7 @@ import { WorkflowConfigFormValues } from '@/components/workflows/workflow-config
 import {
   BibliographyItem,
   BibliographyItemValidation,
-  startWorkflowApiWorkflowsStartPost,
+  startMultipleWorkflowsApiWorkflowsStartMultiplePost,
   WorkflowRunDetail,
   WorkflowRunType,
 } from '@/lib/generated-api';
@@ -210,11 +210,11 @@ export function ReferencesTab({ allWorkflowDetails, projectId, readOnly = false 
   const referenceValidationResults = referenceValidation?.state;
 
   const handleStartWorkflow = async (values: WorkflowConfigFormValues) => {
-    return await startWorkflowApiWorkflowsStartPost({
+    return await startMultipleWorkflowsApiWorkflowsStartMultiplePost({
       body: {
-        type: WorkflowRunType.ReferenceValidation,
+        workflow_types: [WorkflowRunType.ReferenceValidation],
         project_id: projectId,
-        openai_api_key: values.openaiApiKey || null,
+        openai_api_key: values.openaiApiKey,
       },
     });
   };

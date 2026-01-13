@@ -28,17 +28,6 @@ class ClaimEvidenceSource(BaseModel):
     )
 
 
-class RetrievedPassageInfo(BaseModel):
-    """Information about a passage retrieved via RAG."""
-
-    content: str = Field(description="The text content of the retrieved passage")
-    source_file: str = Field(description="Name of the source file")
-    cosine_distance: float = Field(
-        description="Cosine distance (0-1, lower = more similar)"
-    )
-    chunk_index: int = Field(description="Index of the chunk within the source")
-
-
 class ClaimSubstantiationResult(BaseModel):
     evidence_alignment: EvidenceAlignmentLevel = Field(
         description=f"The degree of evidence that the supporting document(s) provides to support the claim. Possible values: {[e.value for e in EvidenceAlignmentLevel]}"
@@ -51,10 +40,6 @@ class ClaimSubstantiationResult(BaseModel):
     )
     evidence_sources: List[ClaimEvidenceSource] = Field(
         description="The sources that provide the evidence for the claim. If there are multiple sources, include all of them."
-    )
-    retrieved_passages: Optional[List[RetrievedPassageInfo]] = Field(
-        default=None,
-        description="Passages retrieved via RAG that were used for verification",
     )
 
 

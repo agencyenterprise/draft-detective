@@ -63,7 +63,7 @@ const createComponents = (highlight: 'red' | 'yellow' | 'blue' | 'green' | 'none
       return (
         <a
           {...rest}
-          className={cn('text-blue-600 hover:underline', rest.className)}
+          className={cn('text-blue-600 hover:underline break-all', rest.className)}
           {...(!isInternalAnchor && {
             target: '_blank',
             rel: 'noopener noreferrer',
