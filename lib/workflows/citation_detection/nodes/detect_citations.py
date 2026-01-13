@@ -8,6 +8,7 @@ from lib.agents.citation_detector import (
     CitationResponseWithChunkIndex,
 )
 from lib.agents.formatting_utils import format_bibliography_prompt_section
+from lib.models.footnote_item import FootnoteItem
 from lib.run_utils import run_tasks
 from lib.workflows.chunk_iterator import get_target_chunks
 from lib.workflows.citation_detection.state import CitationDetectionState
@@ -17,6 +18,19 @@ from lib.workflows.document_processing.state import DocumentChunk
 from lib.workflows.models import WorkflowError
 
 logger = logging.getLogger(__name__)
+
+
+def _format_footnotes_list(footnotes: List[FootnoteItem]) -> str:
+    """Format footnotes as a numbered list."""
+    if not footnotes:
+        return "No footnotes available."
+
+    lines = []
+    for footnote in footnotes:
+        # Format: [marker]. text
+        lines.append(f"[{footnote.marker}]. {footnote.text}")
+
+    return "\n".join(lines)
 
 
 @register_node(
@@ -69,14 +83,17 @@ async def _detect_chunk_citations(
     citation_detector_agent: CitationDetectorAgent,
 ) -> CitationResponseWithChunkIndex:
     """Detect citations in a single chunk."""
+
+    # Format footnotes as a list
+    footnotes_list = _format_footnotes_list(state.footnotes)
+
     citations = await citation_detector_agent.ainvoke(
         {
-            "full_document": state.file.markdown,
+            "footnotes_list": footnotes_list,
             "bibliography": format_bibliography_prompt_section(
                 state.references, supporting_files=[]
             ),
             "chunk": chunk.content,
-            "feedback": "",
         }
     )
     return CitationResponseWithChunkIndex(
