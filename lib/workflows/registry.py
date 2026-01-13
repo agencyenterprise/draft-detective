@@ -43,9 +43,6 @@ def get_workflow_manifest(type: WorkflowRunType) -> WorkflowManifest:
 
 def register_all_workflow_manifests():
     from lib.workflows.citation_detection.manifest import CitationDetectionManifest
-    from lib.workflows.citation_detection_footnotes.manifest import (
-        CitationDetectionFootnotesManifest,
-    )
     from lib.workflows.citation_suggester.manifest import CitationSuggesterManifest
     from lib.workflows.claim_extraction.manifest import ClaimExtractionManifest
     from lib.workflows.claim_reference_validation.manifest import (
@@ -72,7 +69,6 @@ def register_all_workflow_manifests():
         FootnoteExtractionManifest(),
         ClaimExtractionManifest(),
         CitationDetectionManifest(),
-        CitationDetectionFootnotesManifest(),
         ClaimSubstantiationManifest(),
         ClaimReferenceValidationManifest(),
         CitationSuggesterManifest(),
