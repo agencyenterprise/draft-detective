@@ -11,7 +11,6 @@ from lib.agents.formatting_utils import format_bibliography_prompt_section
 from lib.models.footnote_item import FootnoteItem
 from lib.models.bibliography_item import BibliographyItem
 from lib.run_utils import run_tasks
-from lib.services.file import FileDocument
 from lib.workflows.citation_detection.state import CitationDetectionState
 from lib.workflows.claim_substantiation.state import AnalyzedChunk
 from lib.workflows.context import ContextSchema
@@ -45,7 +44,6 @@ async def detect_citations(
     file_artifacts_service = runtime.context.file_artifacts_service
 
     # Fetch artifacts from file artifacts service
-    file = await file_artifacts_service.get_file_document(state.file_id)
     references = await file_artifacts_service.get_references()
     target_chunks = await file_artifacts_service.get_chunks()
 
