@@ -3470,6 +3470,18 @@ export type WorkflowRun = {
    * The timestamp when the workflow run was last updated
    */
   last_updated_at: Date;
+  /**
+   * Started At
+   *
+   * The timestamp when the workflow started running
+   */
+  started_at?: Date | null;
+  /**
+   * Completed At
+   *
+   * The timestamp when the workflow completed
+   */
+  completed_at?: Date | null;
 };
 
 /**
@@ -3565,6 +3577,18 @@ export type WorkflowTypeDescription = {
    * Whether the workflow needs web search
    */
   needs_web_search: boolean;
+  /**
+   * Is Internal
+   *
+   * Whether the workflow is internal
+   */
+  is_internal: boolean;
+  /**
+   * Can Be Triggered By User
+   *
+   * Whether the workflow can be triggered by the user
+   */
+  can_be_triggered_by_user: boolean;
 };
 
 /**

@@ -14,6 +14,10 @@ class WorkflowTypeDescription(BaseModel):
     name: str = Field(description="The name of the workflow")
     description: str = Field(description="The description of the workflow")
     needs_web_search: bool = Field(description="Whether the workflow needs web search")
+    is_internal: bool = Field(description="Whether the workflow is internal")
+    can_be_triggered_by_user: bool = Field(
+        description="Whether the workflow can be triggered by the user"
+    )
 
 
 @router.get("/api/workflow-types", response_model=List[WorkflowTypeDescription])
@@ -23,19 +27,17 @@ async def get_workflow_types():
     """
     workflow_types = []
 
-    for workflow_type, manifest in _workflow_manifest_registry.items():
-        if (
-            is_user_visible_workflow(workflow_type)
-            and manifest.can_be_triggered_by_user
-        ):
-            workflow_types.append(
-                WorkflowTypeDescription(
-                    type=manifest.type,
-                    name=manifest.name,
-                    description=manifest.description,
-                    needs_web_search=manifest.needs_web_search,
-                )
+    for _workflow_type, manifest in _workflow_manifest_registry.items():
+        workflow_types.append(
+            WorkflowTypeDescription(
+                type=manifest.type,
+                name=manifest.name,
+                description=manifest.description,
+                needs_web_search=manifest.needs_web_search,
+                is_internal=manifest.is_internal,
+                can_be_triggered_by_user=manifest.can_be_triggered_by_user,
             )
+        )
 
     # Sort by name for consistent ordering
     workflow_types.sort(key=lambda x: x.name)

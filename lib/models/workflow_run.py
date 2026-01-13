@@ -60,6 +60,16 @@ class WorkflowRun(SQLModel, table=True):
         ),
         description="The timestamp when the workflow run was last updated",
     )
+    started_at: Optional[datetime] = Field(
+        sa_column=Column(DateTime(timezone=True), nullable=True),
+        default=None,
+        description="The timestamp when the workflow started running",
+    )
+    completed_at: Optional[datetime] = Field(
+        sa_column=Column(DateTime(timezone=True), nullable=True),
+        default=None,
+        description="The timestamp when the workflow completed",
+    )
 
     def __repr__(self):
         return f"<WorkflowRun(id={self.id}, langgraph_thread_id={self.langgraph_thread_id})>"

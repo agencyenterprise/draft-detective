@@ -4,30 +4,28 @@ import { WorkflowRunType, WorkflowTypeDescription } from '@/lib/generated-api';
 import { WorkflowTypeCheckbox } from './workflow-type-checkbox';
 
 interface WorkflowTypeSelectorProps {
+  isPending?: boolean;
   workflowTypes?: WorkflowTypeDescription[];
   selectedTypes: WorkflowRunType[];
   onSelectionChange: (types: WorkflowRunType[]) => void;
   disabled?: boolean;
   disabledTypes?: WorkflowRunType[];
-  filter?: (wt: WorkflowTypeDescription) => boolean;
   showHeader?: boolean;
   headerDescription?: string;
   error?: string;
 }
 
 export function WorkflowTypeSelector({
+  isPending = false,
   workflowTypes,
   selectedTypes,
   onSelectionChange,
   disabled = false,
   disabledTypes = [],
-  filter,
   showHeader = true,
   headerDescription,
   error,
 }: WorkflowTypeSelectorProps) {
-  const filteredWorkflowTypes = filter ? workflowTypes?.filter(filter) : workflowTypes;
-
   const handleCheckedChange = (type: WorkflowRunType, checked: boolean) => {
     if (checked) {
       onSelectionChange([...selectedTypes, type]);
@@ -47,7 +45,7 @@ export function WorkflowTypeSelector({
         </div>
       )}
       <div className="space-y-2">
-        {filteredWorkflowTypes?.map((workflowType) => (
+        {workflowTypes?.map((workflowType) => (
           <WorkflowTypeCheckbox
             key={workflowType.type}
             workflowType={workflowType}
@@ -56,7 +54,7 @@ export function WorkflowTypeSelector({
             disabled={disabled || disabledTypes.includes(workflowType.type)}
           />
         ))}
-        {!workflowTypes && <p className="text-sm text-muted-foreground">Loading available workflows...</p>}
+        {isPending && <p className="text-sm text-muted-foreground">Loading available analyses...</p>}
         {error && <p className="text-sm text-destructive">{error}</p>}
       </div>
     </div>

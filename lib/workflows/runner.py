@@ -50,6 +50,7 @@ async def run_workflow_with_dependency_check(
             thread_id=thread_id,
             status=WorkflowRunStatus.COMPLETED,
             type=config.type,
+            set_completed_at=True,
         )
 
 
@@ -106,6 +107,7 @@ async def run_workflow(
         thread_id=thread_id,
         status=WorkflowRunStatus.RUNNING,
         type=workflow_type,
+        set_started_at=True,
     )
 
     # Update the context with the workflow run ID so it's available to the workflow nodes
@@ -158,6 +160,7 @@ async def run_workflow(
                 thread_id=thread_id,
                 status=WorkflowRunStatus.COMPLETED,
                 type=workflow_type,
+                set_completed_at=True,
             )
 
     logger.info(

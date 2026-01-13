@@ -2,8 +2,8 @@
 
 import { Button } from '@/components/ui/button';
 import { Callout } from '@/components/ui/callout';
-import { StatusIndicator } from '@/components/ui/status-indicator';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { WorkflowStatusWithDuration } from '@/components/ui/workflow-duration';
 import { ErrorsCard } from '@/components/wizard/results-step/components/errors-card';
 import { CitationSuggesterResults } from '@/components/workflows/results/citation-suggester-results';
 import { LiteratureReviewResults } from '@/components/workflows/results/literature-review/literature-review-results';
@@ -21,11 +21,12 @@ import {
   startWorkflowApiWorkflowsStartPost,
 } from '@/lib/generated-api';
 import { useProjectDetails } from '@/lib/hooks/use-project-details';
+import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { cn } from '@/lib/utils';
 import { getWorkflowTypeName } from '@/lib/workflow-state';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { formatDistanceToNow } from 'date-fns';
-import { AlertTriangleIcon, ArrowRight, FileText, PlusIcon } from 'lucide-react';
+import { AlertTriangleIcon, ArrowRight, FileText, InfoIcon, PlusIcon } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
@@ -62,6 +63,10 @@ function renderWorkflowResults(
       return <ReferenceDownloaderResults workflowDetail={workflowRun} />;
     case WorkflowRunType.ResultsExtraction:
       return <ResultsExtractorResults workflowDetail={workflowRun} />;
+    case WorkflowRunType.DocumentProcessing:
+    case WorkflowRunType.ClaimExtraction:
+    case WorkflowRunType.ReferenceExtraction:
+    case WorkflowRunType.CitationDetection:
     case WorkflowRunType.ClaimSubstantiation:
     case WorkflowRunType.InferenceValidation:
     case WorkflowRunType.ClaimReferenceValidation:
@@ -116,7 +121,8 @@ export function AnalysesTab({
   onNavigateToDocumentExplorer,
   onNavigateToReferences,
 }: AnalysesTabProps) {
-  const { project, workflowDetails, isLoading } = useProjectDetails(projectId);
+  const { project, workflowDetails, isLoading } = useProjectDetails(projectId, true);
+  const { data: workflowTypes } = useWorkflowTypes();
   const [selectedWorkflowRunId, setSelectedWorkflowRunId] = useState<string | null>(null);
   const [isConfigDialogOpen, setIsConfigDialogOpen] = useState(false);
   const queryClient = useQueryClient();
@@ -140,7 +146,13 @@ export function AnalysesTab({
     },
   });
 
-  const selectedWorkflowRun = workflowDetails.find((workflowDetail) => workflowDetail.run.id === selectedWorkflowRunId);
+  const filteredWorkflowDetails = workflowDetails.filter(
+    (workflowDetail) => workflowDetail.run.type !== WorkflowRunType.DocxGeneration,
+  );
+  const selectedWorkflowRun = filteredWorkflowDetails.find(
+    (workflowDetail) => workflowDetail.run.id === selectedWorkflowRunId,
+  );
+  const selectedWorkflowType = workflowTypes?.find((wt) => wt.type === selectedWorkflowRun?.run.type);
 
   if (isLoading) {
     return (
@@ -173,7 +185,7 @@ export function AnalysesTab({
               </Button>
             )}
           </div>
-          {workflowDetails.map((workflowDetail) => (
+          {filteredWorkflowDetails.map((workflowDetail) => (
             <button
               key={workflowDetail.run.id}
               onClick={() => setSelectedWorkflowRunId(workflowDetail.run.id)}
@@ -201,7 +213,7 @@ export function AnalysesTab({
                   <div className="text-xs text-muted-foreground">
                     {formatDistanceToNow(workflowDetail.run.last_updated_at, { addSuffix: true })}
                   </div>
-                  <StatusIndicator status={workflowDetail.run.status} />
+                  <WorkflowStatusWithDuration run={workflowDetail.run} />
                 </div>
               </div>
             </button>
@@ -215,7 +227,17 @@ export function AnalysesTab({
           <div className="space-y-4">
             <div>
               <div className="flex items-center justify-between mb-1">
-                <h2 className="text-xl font-semibold">{getWorkflowTypeName(selectedWorkflowRun.run.type)}</h2>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-xl font-semibold">{getWorkflowTypeName(selectedWorkflowRun.run.type)}</h2>
+                  {selectedWorkflowType && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <InfoIcon className="h-4 w-4 text-muted-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs">{selectedWorkflowType.description}</TooltipContent>
+                    </Tooltip>
+                  )}
+                </div>
                 {!readOnly && (
                   <StartWorkflowButton
                     type={selectedWorkflowRun.run.type}
@@ -237,10 +259,7 @@ export function AnalysesTab({
               <div className="flex items-center gap-4 text-sm text-muted-foreground">
                 <div className="flex items-center gap-2">
                   <span className="font-medium">Status:</span>
-                  <StatusIndicator status={selectedWorkflowRun.run.status} />
-                </div>
-                <div>
-                  Last updated {formatDistanceToNow(selectedWorkflowRun.run.last_updated_at, { addSuffix: true })}
+                  <WorkflowStatusWithDuration run={selectedWorkflowRun.run} />
                 </div>
               </div>
             </div>

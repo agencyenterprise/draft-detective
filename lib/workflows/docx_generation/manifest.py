@@ -20,6 +20,7 @@ class DocxGenerationManifest(
     description = "Generate a DOCX file with comments from workflow analysis results"
     needs_web_search = False
     is_internal = True
+    can_be_triggered_by_user = False
     required_dependencies = [WorkflowRunType.DOCUMENT_PROCESSING]
 
     def get_state_type(self) -> Type[DocxGenerationState]:

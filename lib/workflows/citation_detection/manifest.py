@@ -18,9 +18,10 @@ class CitationDetectionManifest(
 ):
     type = WorkflowRunType.CITATION_DETECTION
     name = "Citation Detection"
-    description = "Detect citations in document chunks"
+    description = "Iterate over all document chunks and check if they contain any citations that are linked to the document references"
     needs_web_search = False
     is_internal = True
+    can_be_triggered_by_user = False
     required_dependencies = [
         WorkflowRunType.REFERENCE_EXTRACTION,
     ]

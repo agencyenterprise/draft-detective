@@ -28,7 +28,6 @@ interface WorkflowConfigDialogProps {
 export interface WorkflowConfigFormValues {
   openaiApiKey: string;
   webSearchConsent: boolean;
-  publicationDate: string;
   workflowTypes: WorkflowRunType[];
 }
 
@@ -36,15 +35,12 @@ export function WorkflowConfigDialog({ isOpen, type, onConfirm, onCancel }: Work
   const [openaiApiKey, setOpenaiApiKey] = useSessionStorage<string>('openai-api-key', '');
   const hideOpenaiApiKeyInput = process.env.NEXT_PUBLIC_HIDE_CUSTOM_OPENAI_API_KEY_INPUT === 'true';
 
-  const { data: workflowTypes } = useWorkflowTypes();
-
-  const publicationDate = type === WorkflowRunType.LiteratureReview || type === WorkflowRunType.LiveReports;
+  const { data: workflowTypes, isPending: isWorkflowTypesPending } = useWorkflowTypes();
 
   const form = useForm({
     defaultValues: {
       openaiApiKey: openaiApiKey,
       webSearchConsent: false,
-      publicationDate: '',
       workflowTypes: type ? [type] : [],
     } as WorkflowConfigFormValues,
     validators: {
@@ -55,9 +51,6 @@ export function WorkflowConfigDialog({ isOpen, type, onConfirm, onCancel }: Work
         }
         if (hasWebSearchRequirement(value.workflowTypes, workflowTypes) && !value.webSearchConsent) {
           errors.fields.webSearchConsent = 'Web search consent is required';
-        }
-        if (publicationDate && (!value.publicationDate || value.publicationDate.trim() === '')) {
-          errors.fields.publicationDate = 'Document publication date is required';
         }
         if (value.workflowTypes.length === 0) {
           errors.fields.workflowTypes = 'At least one workflow type must be selected';
@@ -76,6 +69,11 @@ export function WorkflowConfigDialog({ isOpen, type, onConfirm, onCancel }: Work
       form.reset();
     }
   }, [form, isOpen]);
+
+  const filteredWorkflowTypes =
+    workflowTypes?.filter(
+      (workflowType) => workflowType.can_be_triggered_by_user && (type ? workflowType.type === type : true),
+    ) ?? [];
 
   return (
     <Dialog open={isOpen} onOpenChange={onCancel}>
@@ -118,36 +116,13 @@ export function WorkflowConfigDialog({ isOpen, type, onConfirm, onCancel }: Work
             </form.Field>
           )}
 
-          {publicationDate && (
-            <form.Field name="publicationDate">
-              {(field) => (
-                <div className="space-y-2">
-                  <Label htmlFor="publication-date" required>
-                    Document Publication Date
-                  </Label>
-                  <Input
-                    id="publication-date"
-                    type="date"
-                    value={field.state.value}
-                    onChange={(e) => field.handleChange(e.target.value)}
-                    error={!field.state.meta.isValid}
-                    required={true}
-                  />
-                  {!field.state.meta.isValid && (
-                    <p className="text-sm text-destructive">{field.state.meta.errors.join(', ')}</p>
-                  )}
-                </div>
-              )}
-            </form.Field>
-          )}
-
           <form.Field name="workflowTypes">
             {(field) => (
               <WorkflowTypeSelector
-                workflowTypes={workflowTypes}
+                isPending={isWorkflowTypesPending}
+                workflowTypes={filteredWorkflowTypes}
                 selectedTypes={field.state.value}
                 onSelectionChange={field.handleChange}
-                filter={type ? (wt) => wt.type === type : undefined}
                 disabledTypes={type ? [type] : undefined}
                 error={
                   !field.state.meta.isValid && field.state.meta.errors.length > 0

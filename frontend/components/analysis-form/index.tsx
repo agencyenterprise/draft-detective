@@ -22,7 +22,7 @@ export interface AnalysisFormProps {
 export function AnalysisForm({ onSubmit, isPending = false }: AnalysisFormProps) {
   const [openaiApiKey, setOpenaiApiKey] = useSessionStorage<string>('openai-api-key', '');
   const hideOpenaiApiKeyInput = process.env.NEXT_PUBLIC_HIDE_CUSTOM_OPENAI_API_KEY_INPUT === 'true';
-  const { data: workflowTypes } = useWorkflowTypes();
+  const { data: workflowTypes, isPending: isWorkflowTypesPending } = useWorkflowTypes();
 
   // Get today's date in YYYY-MM-DD format for the date input
   const today = new Date().toISOString().split('T')[0];
@@ -65,6 +65,8 @@ export function AnalysisForm({ onSubmit, isPending = false }: AnalysisFormProps)
       form.setFieldValue('supportingDocuments', newFiles);
     }
   };
+
+  const filteredWorkflowTypes = workflowTypes?.filter((workflowType) => workflowType.can_be_triggered_by_user) ?? [];
 
   return (
     <form
@@ -123,7 +125,8 @@ export function AnalysisForm({ onSubmit, isPending = false }: AnalysisFormProps)
       <form.Field name="workflowTypes">
         {(field) => (
           <WorkflowTypeSelector
-            workflowTypes={workflowTypes}
+            isPending={isWorkflowTypesPending}
+            workflowTypes={filteredWorkflowTypes}
             selectedTypes={field.state.value}
             onSelectionChange={field.handleChange}
             disabled={isPending}

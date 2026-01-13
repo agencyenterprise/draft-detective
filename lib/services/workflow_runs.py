@@ -1,5 +1,6 @@
 import logging
 import uuid
+from datetime import datetime
 from typing import List, Optional
 
 from fastapi import HTTPException
@@ -92,6 +93,8 @@ async def upsert_workflow_run(
     project_id: str,
     status: WorkflowRunStatus,
     type: WorkflowRunType,
+    set_started_at: bool = False,
+    set_completed_at: bool = False,
 ) -> str:
     """Create or update a workflow run using the thread_id as the key."""
 
@@ -109,11 +112,17 @@ async def upsert_workflow_run(
                 project_id=project_id,
                 status=status,
                 type=type,
+                started_at=(datetime.utcnow() if set_started_at else None),
+                completed_at=(datetime.utcnow() if set_completed_at else None),
             )
             db.add(run)
         else:
             # Update existing run
             run.status = status
+            if set_started_at:
+                run.started_at = datetime.utcnow()
+            if set_completed_at:
+                run.completed_at = datetime.utcnow()
 
         db.commit()
         db.refresh(run)
