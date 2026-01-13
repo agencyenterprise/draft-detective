@@ -12,7 +12,6 @@ from pydantic import BaseModel, Field
 
 from lib.agents.citation_detector import Citation, CitationResponse
 from lib.agents.claim_extractor import Claim
-from lib.agents.claim_verifier import RetrievedPassageInfo
 from lib.agents.formatting_utils import (
     format_cited_references,
     format_retrieved_passages,
@@ -23,6 +22,7 @@ from lib.models.bibliography_item import (
 )
 from lib.services.file import FileDocument
 from lib.services.vector_store import (
+    RetrievedPassage,
     VectorStoreService,
     get_collection_id,
     get_file_hash_from_path,
@@ -51,9 +51,6 @@ class ReferenceContext(BaseModel):
     )
     cited_references_paragraph: str = Field(
         description="Formatted references from other chunks in the same paragraph"
-    )
-    retrieved_passages: Optional[List[RetrievedPassageInfo]] = Field(
-        default=None, description="Passages retrieved via RAG for this claim"
     )
 
 
@@ -179,22 +176,11 @@ class RAGReferenceProvider:
                 f"from {len(extra_supporting_files)} matched supporting files, using query: '{query}'"
             )
 
-            retrieved_passage_info = [
-                RetrievedPassageInfo(
-                    content=p.content,
-                    source_file=p.source_file,
-                    cosine_distance=p.cosine_distance,
-                    chunk_index=p.chunk_index,
-                )
-                for p in chunk_citation_passages + paragraph_citations_passages
-            ]
-
             return ReferenceContext(
                 cited_references=format_retrieved_passages(chunk_citation_passages),
                 cited_references_paragraph=format_retrieved_passages(
                     paragraph_citations_passages
                 ),
-                retrieved_passages=retrieved_passage_info,
             )
 
         except Exception as e:
@@ -202,7 +188,7 @@ class RAGReferenceProvider:
 
     async def _get_passages(
         self, query: str, supporting_files: List[FileDocument]
-    ) -> List[RetrievedPassageInfo]:
+    ) -> List[RetrievedPassage]:
         retrieval_tasks = [
             self.vector_store.retrieve_relevant_passages(
                 query=query,

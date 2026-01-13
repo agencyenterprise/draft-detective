@@ -107,11 +107,6 @@ async def _verify_chunk_claims_with_provider(
             }
         )
 
-        if ref_context.retrieved_passages:
-            result = result.model_copy(
-                update={"retrieved_passages": ref_context.retrieved_passages}
-            )
-
         substantiations.append(
             ClaimSubstantiationResultWithClaimIndex(
                 chunk_index=chunk.chunk_index,
