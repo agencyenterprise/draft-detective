@@ -20,7 +20,6 @@ dataset:
         reasoning: ""
         source_url: "https://www.rand.org/pubs/research_reports/RR1751.html"
         file_id: null
-        failed_file_ids: []
         final_conclusion: "source_found"
 
     - name: "ref_fetcher_science_article_paywall_alternatives"
@@ -32,7 +31,6 @@ dataset:
         reasoning: "https://pmc.ncbi.nlm.nih.gov/articles/PMC10336889/pdf"
         source_url: "https://www.science.org/doi/10.1126/science.adg3781"
         file_id: null
-        failed_file_ids: []
         # download_url: "https://arxiv.org/pdf/2307.01443.pdf"
         final_conclusion: "source_found"
 
@@ -45,7 +43,6 @@ dataset:
         reasoning: ""
         source_url: "https://www.nerc.com/pa/RAPA/ra/Reliability%20Assessments%20DL/NERC_Long%20Term%20Reliability%20Assessment_2024.pdf"
         file_id: null
-        failed_file_ids: []
         # download_url: "https://www.nerc.com/pa/RAPA/ra/Reliability%20Assessments%20DL/NERC_Long%20Term%20Reliability%20Assessment_2024.pdf"
         final_conclusion: "source_found"
 
@@ -58,7 +55,6 @@ dataset:
         reasoning: ""
         source_url: "https://www.statista.com/forecasts/1449844/ai-tool-users-worldwide"
         file_id: null
-        failed_file_ids: []
         # download_url: null
         final_conclusion: "source_found_but_not_accessible"
 
@@ -71,7 +67,6 @@ dataset:
         reasoning: ""
         source_url: "https://www.anthropic.com/news/anthropics-responsible-scaling-policy"
         file_id: null
-        failed_file_ids: []
         # download_url: "https://www-cdn.anthropic.com/1adf000c8f675958c2ee23805d91aaade1cd4613/responsible-scaling-policy.pdf"
         final_conclusion: "source_found"
 
@@ -84,6 +79,5 @@ dataset:
         reasoning: "Full content is split across multiple HTML pages (no single download url)"
         source_url: "https://google.github.io/building-secure-and-reliable-systems/raw/toc.html"
         file_id: null
-        failed_file_ids: []
         # download_url: null
         final_conclusion: "source_found_but_not_accessible"

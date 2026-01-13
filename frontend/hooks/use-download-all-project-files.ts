@@ -1,8 +1,11 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { downloadAllProjectFilesApiProjectProjectIdFilesDownloadAllGet } from '@/lib/generated-api';
+import { downloadAllProjectFilesApiProjectProjectIdFilesDownloadAllGet, FileRole } from '@/lib/generated-api';
 
-export function useDownloadAllProjectFiles(projectId: string | null | undefined) {
+export function useDownloadAllProjectFiles(
+  projectId: string | null | undefined,
+  roles: FileRole[] = [FileRole.Main, FileRole.Support],
+) {
   const [isDownloading, setIsDownloading] = useState(false);
 
   const downloadAll = async () => {
@@ -15,6 +18,7 @@ export function useDownloadAllProjectFiles(projectId: string | null | undefined)
     try {
       const { response, data: blob } = (await downloadAllProjectFilesApiProjectProjectIdFilesDownloadAllGet({
         path: { project_id: projectId },
+        query: { roles },
         responseStyle: 'fields',
       })) as { response: Response; data: Blob };
 

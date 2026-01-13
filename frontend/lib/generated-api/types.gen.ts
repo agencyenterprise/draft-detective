@@ -1955,7 +1955,11 @@ export type FileDocumentOutput = {
  *
  * Extensible enum for file purposes in workflows
  */
-export const FileRole = { Main: 'main', Support: 'support' } as const;
+export const FileRole = {
+  Main: 'main',
+  Support: 'support',
+  SupportingCandidate: 'supporting_candidate',
+} as const;
 
 /**
  * FileRole
@@ -2632,7 +2636,7 @@ export type ReferenceDownloaderState = {
    *
    * The response from the reference fetcher agent
    */
-  fetched_references?: Array<ReferenceFetchItem> | null;
+  fetched_references?: Array<ReferenceFetchResult>;
 };
 
 /**
@@ -2816,14 +2820,60 @@ export type ReferenceFetchItem = {
    * The ID of the verified downloaded file containing the full original content. Return null if conclusion is different than 'source_found'
    */
   file_id: string | null;
-  /**
-   * Failed File Ids
-   *
-   * The full list of file IDs that were downloaded in the process but failed to be verified as the correct full original content related to the reference
-   */
-  failed_file_ids: Array<string>;
   final_conclusion: ReferenceFetchConclusion;
 };
+
+/**
+ * ReferenceFetchResult
+ *
+ * Wrapper for reference fetch results with status tracking
+ */
+export type ReferenceFetchResult = {
+  /**
+   * Index
+   *
+   * Index of this reference in the input list
+   */
+  index: number;
+  /**
+   * Input Reference
+   *
+   * The original input reference
+   */
+  input_reference: string;
+  /**
+   * Current status of this reference fetch
+   */
+  status?: ReferenceFetchStatus;
+  /**
+   * The fetch result, present on success
+   */
+  result?: ReferenceFetchItem | null;
+  /**
+   * Error
+   *
+   * Error message, present on failure
+   */
+  error?: string | null;
+};
+
+/**
+ * ReferenceFetchStatus
+ *
+ * Status of a reference fetch operation
+ */
+export const ReferenceFetchStatus = {
+  Pending: 'pending',
+  Completed: 'completed',
+  Error: 'error',
+} as const;
+
+/**
+ * ReferenceFetchStatus
+ *
+ * Status of a reference fetch operation
+ */
+export type ReferenceFetchStatus = (typeof ReferenceFetchStatus)[keyof typeof ReferenceFetchStatus];
 
 /**
  * ReferenceMinimal
@@ -4440,7 +4490,14 @@ export type DownloadAllProjectFilesApiProjectProjectIdFilesDownloadAllGetData = 
      */
     project_id: string;
   };
-  query?: never;
+  query?: {
+    /**
+     * Roles
+     *
+     * Filter files by role(s). If not provided, main and support files are included by default.
+     */
+    roles?: Array<FileRole> | null;
+  };
   url: '/api/project/{project_id}/files/download-all';
 };
 
