@@ -8,6 +8,7 @@ from lib.workflows.models import WorkflowRunType
 if TYPE_CHECKING:
     from lib.workflows.document_processing.state import DocumentProcessingState
     from lib.workflows.reference_extraction.state import ReferenceExtractionState
+    from lib.workflows.footnote_extraction.state import FootnoteExtractionState
     from lib.workflows.claim_substantiation.state import AnalyzedChunk
     from lib.agents.document_summarizer import DocumentSummary
     from lib.models.bibliography_item import BibliographyItem
@@ -191,3 +192,23 @@ class FileArtifactsService(FileArtifactsServiceType):
         ]
 
         return build_analyzed_chunks(existing_states)
+
+    async def get_footnotes(self) -> list["FootnoteItem"]:
+        """Retrieve extracted footnotes from the footnote extraction workflow.
+
+        Returns:
+            A list of extracted footnote items from the footnote extraction
+            workflow state.
+
+        Raises:
+            ValueError: If no footnote extraction workflow run or state is found
+                for the project.
+        """
+        footnote_extraction_state = await self._get_state_by_type(
+            WorkflowRunType.FOOTNOTE_EXTRACTION
+        )
+        footnote_extraction_state = cast(
+            "FootnoteExtractionState", footnote_extraction_state
+        )
+
+        return footnote_extraction_state.footnotes
