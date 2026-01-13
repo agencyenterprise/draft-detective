@@ -18,7 +18,6 @@ import {
   WorkflowRunDetail,
   WorkflowRunType,
   startMultipleWorkflowsApiWorkflowsStartMultiplePost,
-  startWorkflowApiWorkflowsStartPost,
 } from '@/lib/generated-api';
 import { useProjectDetails } from '@/lib/hooks/use-project-details';
 import { cn } from '@/lib/utils';
@@ -222,12 +221,11 @@ export function AnalysesTab({
                     projectId={projectId}
                     workflow={selectedWorkflowRun.run}
                     onConfirm={async (values: WorkflowConfigFormValues) => {
-                      return await startWorkflowApiWorkflowsStartPost({
+                      return await startMultipleWorkflowsApiWorkflowsStartMultiplePost({
                         body: {
-                          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                          type: selectedWorkflowRun.run.type as any,
                           project_id: projectId,
-                          openai_api_key: values.openaiApiKey || null,
+                          workflow_types: [selectedWorkflowRun.run.type],
+                          openai_api_key: values.openaiApiKey,
                         },
                       });
                     }}

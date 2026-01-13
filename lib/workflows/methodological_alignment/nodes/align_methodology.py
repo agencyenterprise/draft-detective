@@ -17,8 +17,10 @@ logger = logging.getLogger(__name__)
 )
 async def align_methodology(
     state: MethodologicalAlignmentState, runtime: Runtime[ContextSchema]
-) -> MethodologicalAlignmentState:
-    markdown = state.file.markdown
+):
+    file_artifacts_service = runtime.context.file_artifacts_service
+    file_document = await file_artifacts_service.get_file_document(state.file_id)
+    markdown = file_document.markdown
 
     # Step 1: Extract methodology from document
     logger.info(f"align_methodology: Extracting methodology from document")

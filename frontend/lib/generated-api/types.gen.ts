@@ -2257,9 +2257,11 @@ export type MethodologicalAlignmentState = {
    */
   type?: 'methodological_alignment';
   /**
-   * The main source document
+   * File Id
+   *
+   * The ID of the main source document
    */
-  file: FileDocumentOutput;
+  file_id: string;
   /**
    * Methodology alignment analysis result
    */
@@ -2908,10 +2910,6 @@ export type ReferenceValidationState = {
   type?: 'reference_validation';
   config: ReferenceValidationWorkflowConfig;
   /**
-   * References
-   */
-  references?: Array<BibliographyItem>;
-  /**
    * Reference Validations
    */
   reference_validations?: Array<BibliographyItemValidation>;
@@ -3105,9 +3103,11 @@ export type ResultsExtractionState = {
    */
   type?: 'results_extraction';
   /**
-   * The main source document
+   * File Id
+   *
+   * The ID of the file to extract results from
    */
-  file: FileDocumentOutput;
+  file_id: string;
   /**
    * Extracted results with reproducibility assessments
    */
@@ -3727,32 +3727,6 @@ export type FileDocumentOutputWritable = {
 };
 
 /**
- * MethodologicalAlignmentState
- *
- * State for the methodological alignment workflow
- */
-export type MethodologicalAlignmentStateWritable = {
-  /**
-   * Errors
-   *
-   * Errors that occurred during the workflow execution.
-   */
-  errors?: Array<WorkflowError>;
-  /**
-   * Type
-   */
-  type?: 'methodological_alignment';
-  /**
-   * The main source document
-   */
-  file: FileDocumentOutputWritable;
-  /**
-   * Methodology alignment analysis result
-   */
-  methodology_comparison?: MethodologyComparisonResponse | null;
-};
-
-/**
  * ProjectDetailed
  */
 export type ProjectDetailedWritable = {
@@ -3778,30 +3752,6 @@ export type ProjectDetailedWritable = {
 };
 
 /**
- * ResultsExtractionState
- */
-export type ResultsExtractionStateWritable = {
-  /**
-   * Errors
-   *
-   * Errors that occurred during the workflow execution.
-   */
-  errors?: Array<WorkflowError>;
-  /**
-   * Type
-   */
-  type?: 'results_extraction';
-  /**
-   * The main source document
-   */
-  file: FileDocumentOutputWritable;
-  /**
-   * Extracted results with reproducibility assessments
-   */
-  results?: ResultsListResponse | null;
-};
-
-/**
  * WorkflowRunDetail
  */
 export type WorkflowRunDetailWritable = {
@@ -3816,14 +3766,14 @@ export type WorkflowRunDetailWritable = {
     | ClaimSubstantiatorStateOutputWritable
     | ClaimReferenceValidationState
     | CitationDetectionState
-    | MethodologicalAlignmentStateWritable
+    | MethodologicalAlignmentState
     | ReferenceDownloaderState
     | DocxGenerationState
     | LiteratureReviewState
     | LiveReportsState
     | ReferenceValidationState
     | CitationSuggesterState
-    | ResultsExtractionStateWritable
+    | ResultsExtractionState
     | InferenceValidationState
     | null;
 };

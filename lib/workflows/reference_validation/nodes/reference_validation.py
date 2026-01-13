@@ -23,16 +23,20 @@ logger = logging.getLogger(__name__)
 )
 async def reference_validation(
     state: ReferenceValidationState, runtime: Runtime[ContextSchema]
-) -> ReferenceValidationState:
+):
     reference_validator_agent = ReferenceValidatorAgent(runtime.context)
+    file_artifacts_service = runtime.context.file_artifacts_service
+
+    # Fetch references from file artifacts service
+    references = await file_artifacts_service.get_references()
 
     tasks = [
         _validate_reference(reference, reference_validator_agent)
-        for reference in state.references
+        for reference in references
     ]
 
-    results: tuple[list[BibliographyItemValidation], list[Exception]] = await run_tasks(
-        tasks, desc="Validating references"
+    results: tuple[list[BibliographyItemValidation | None], list[Exception | None]] = (
+        await run_tasks(tasks, desc="Validating references")
     )
     validation_responses_raw, exceptions = results
 
