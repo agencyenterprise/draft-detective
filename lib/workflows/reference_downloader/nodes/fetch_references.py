@@ -134,12 +134,15 @@ async def cleanup_failed_resources(
 
     candidate_files = await get_supporting_candidate_files(project_id)
 
-    files_to_delete = [
-        str(f.id) for f in candidate_files if str(f.id) not in valid_file_ids
-    ]
-    files_to_promote = [
-        str(f.id) for f in candidate_files if str(f.id) in valid_file_ids
-    ]
+    files_to_delete: List[str] = []
+    files_to_promote: List[str] = []
+
+    for f in candidate_files:
+        file_id = str(f.id)
+        if file_id in valid_file_ids:
+            files_to_promote.append(file_id)
+        else:
+            files_to_delete.append(file_id)
 
     if files_to_delete:
         deleted_count = delete_project_files(project_id, files_to_delete)
