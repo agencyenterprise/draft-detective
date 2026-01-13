@@ -59,12 +59,16 @@ _citation_detector_prompt = ChatPromptTemplate.from_template(
 ## Task
 You are a citation detector. You are given a chunk of text and you need to extract any citations made in that chunk of text.
 
-- You will be given a full document, a list of bibliography entries pre-extracted from the bibliography section of the full document and a chunk of text from that document.
+- You will be given a list of extracted footnotes, a list of bibliography entries pre-extracted from the bibliography section of the full document and a chunk of text from that document.
 - You need to return a list of citations made in that chunk of text.
 - If there are no citations made in the chunk, return an empty list.
 - The citation can be a footnote that can refer to multiple bibliography entries, so you need to return all the bibliography entries that the footnote refers to.
 - If the chunk of text is a bibliographic entry itself, do not consider it a citation.
 
+## Handling footnotes
+Note that when you are given a footnote number, you need to look up the footnote in the list of footnotes, and then take the associated text for that footnote use that text to find the correct bibliography entry.  
+
+## Return format
 For each citation, you need to return the following information:
 - The text of the citation/footnote mark
 - The type of the citation/footnote mark. This should be a value from the CitationType enum.
@@ -73,9 +77,9 @@ For each citation, you need to return the following information:
 - If the document includes a bibliography entry related to this citation, this will be an exact copy of that bibliography entry from the list of bibliography entries I'm providing separately, otherwise it will be an empty string. Do not include the entry number if there is one, just the full context of the bibliography entry.
 - Your very brief rationale for why you think this is a citation/footnote mark
 
-## The full document that the chunk is a part of
+## The list of footnotes extracted from the document
 ```
-{full_document}
+{footnotes_list}
 ```
 
 ## The list of bibliography entries (if any) extracted from the bibliography section of the full document
@@ -94,7 +98,7 @@ The indexes in this list should be used when returning index_of_associated_bibli
 
 class CitationDetectorAgent(LangChainAgent):
     name = "Citation Detector"
-    description = "Detect citations in a chunk of text"
+    description = "Detect citations in chunks with footnotes list"
     model = gpt_5_mini_model
     temperature = 0.0
     output_schema = CitationResponse
