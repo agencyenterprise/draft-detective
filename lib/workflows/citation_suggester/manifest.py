@@ -22,6 +22,7 @@ class CitationSuggesterManifest(
     name = "Citation Suggester"
     description = "Suggest citations for claims that need additional references. Uses the supporting files plus the literature review analysis results for suggestions, whatever is available."
     needs_web_search = False
+    is_experimental = True
     required_dependencies = [
         WorkflowRunType.CLAIM_EXTRACTION,
         WorkflowRunType.CITATION_DETECTION,

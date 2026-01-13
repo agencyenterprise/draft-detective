@@ -2365,6 +2365,24 @@ export const PoliticalBias = {
 export type PoliticalBias = (typeof PoliticalBias)[keyof typeof PoliticalBias];
 
 /**
+ * ProgressLevel
+ *
+ * Level of progress tracking.
+ */
+export const ProgressLevel = {
+  Workflow: 'workflow',
+  Node: 'node',
+  Task: 'task',
+} as const;
+
+/**
+ * ProgressLevel
+ *
+ * Level of progress tracking.
+ */
+export type ProgressLevel = (typeof ProgressLevel)[keyof typeof ProgressLevel];
+
+/**
  * Project
  */
 export type Project = {
@@ -3481,6 +3499,72 @@ export type WorkflowError = {
 };
 
 /**
+ * WorkflowProgress
+ *
+ * Progress tracking for workflows, nodes, and tasks.
+ */
+export type WorkflowProgress = {
+  /**
+   * Id
+   *
+   * Unique identifier for the progress entry
+   */
+  id: string;
+  /**
+   * Workflow Run Id
+   *
+   * FK to the workflow run this progress belongs to
+   */
+  workflow_run_id: string;
+  /**
+   * Name
+   *
+   * Human-readable name of what's being tracked
+   */
+  name: string;
+  /**
+   * Level of progress: workflow, node, or task
+   */
+  level: ProgressLevel;
+  /**
+   * Current Step
+   *
+   * Current step/item being processed
+   */
+  current_step?: number;
+  /**
+   * Total Steps
+   *
+   * Total steps/items to process
+   */
+  total_steps?: number;
+  /**
+   * Started At
+   *
+   * When this progress entry started
+   */
+  started_at?: Date | null;
+  /**
+   * Completed At
+   *
+   * When this progress entry completed
+   */
+  completed_at?: Date | null;
+  /**
+   * Created At
+   *
+   * When this progress entry was created
+   */
+  created_at: Date;
+  /**
+   * Updated At
+   *
+   * When this progress entry was last updated
+   */
+  updated_at: Date;
+};
+
+/**
  * WorkflowRun
  */
 export type WorkflowRun = {
@@ -3615,6 +3699,12 @@ export type WorkflowTypeDescription = {
    * Whether the workflow needs web search
    */
   needs_web_search: boolean;
+  /**
+   * Is Experimental
+   *
+   * Whether the workflow is experimental
+   */
+  is_experimental: boolean;
 };
 
 /**
@@ -4517,6 +4607,40 @@ export type DownloadAllProjectFilesApiProjectProjectIdFilesDownloadAllGetRespons
    */
   200: unknown;
 };
+
+export type GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdProgressGetData = {
+  body?: never;
+  path: {
+    /**
+     * Workflow Run Id
+     */
+    workflow_run_id: string;
+  };
+  query?: never;
+  url: '/api/progress/workflow/{workflow_run_id}';
+};
+
+export type GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdProgressGetErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdProgressGetError =
+  GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdProgressGetErrors[keyof GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdProgressGetErrors];
+
+export type GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdProgressGetResponses = {
+  /**
+   * Response Get Workflow Progress Endpoint Api Progress Workflow  Workflow Run Id  Progress Get
+   *
+   * Successful Response
+   */
+  200: Array<WorkflowProgress>;
+};
+
+export type GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdProgressGetResponse =
+  GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdProgressGetResponses[keyof GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdProgressGetResponses];
 
 export type GetProjectShareStatusApiProjectsProjectIdShareGetData = {
   body?: never;

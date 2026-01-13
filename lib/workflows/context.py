@@ -1,4 +1,6 @@
 from typing import TYPE_CHECKING, Any, Optional
+import contextvars
+from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -38,3 +40,12 @@ class ContextSchema(BaseModel):
         default=None,
         description="List of footnotes available for lookup by citation detector tools.",
     )
+
+
+# Context variable for progress tracking (thread-safe for async)
+# This is used instead of storing on ContextSchema because contextvars
+# are properly scoped for async task execution
+current_progress_id: contextvars.ContextVar[Optional[UUID]] = contextvars.ContextVar(
+    "current_progress_id",
+    default=None,
+)

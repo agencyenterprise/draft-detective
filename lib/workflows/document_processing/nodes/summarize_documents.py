@@ -1,19 +1,18 @@
-import asyncio
 import logging
-from typing import Dict, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 from langgraph.runtime import Runtime
 
 from lib.agents.document_summarizer import DocumentSummary, DocumentSummarizerAgent
+from lib.run_utils import run_tasks
 from lib.services.file import FileDocument
 from lib.workflows.context import ContextSchema
-from lib.workflows.document_processing.state import DocumentProcessingState
 from lib.workflows.decorators import register_node
+from lib.workflows.document_processing.state import DocumentProcessingState
 
 logger = logging.getLogger(__name__)
 
 SUPPORTING_DOC_HEADER_SIZE = 4000
-MAX_CONCURRENT_SUMMARIES = 10
 
 
 async def _summarize_supporting_doc(
@@ -32,12 +31,12 @@ async def _summarize_supporting_doc(
 
 
 @register_node(
-    "Prepare documents",
-    "Prepare documents for analysis, including summarizing the main document and supporting documents",
+    "Summarize documents",
+    "Summarize the main document and supporting documents",
 )
-async def prepare_documents(
+async def summarize_documents(
     state: DocumentProcessingState, runtime: Runtime[ContextSchema]
-) -> DocumentProcessingState:
+) -> Dict[str, Any]:
     document_summarizer_agent = DocumentSummarizerAgent(runtime.context)
     main_response = await document_summarizer_agent.ainvoke(
         {"document": state.file.markdown}
@@ -49,25 +48,18 @@ async def prepare_documents(
     if state.supporting_files:
         logger.info(f"Summarizing {len(state.supporting_files)} supporting documents")
 
-        semaphore = asyncio.Semaphore(MAX_CONCURRENT_SUMMARIES)
+        tasks = [
+            _summarize_supporting_doc(idx, f, document_summarizer_agent)
+            for idx, f in enumerate(state.supporting_files)
+        ]
+        results, _ = await run_tasks(tasks, desc="Summarizing supporting documents")
 
-        async def summarize_with_limit(idx: int, file_doc: FileDocument):
-            async with semaphore:
-                return await _summarize_supporting_doc(
-                    idx, file_doc, document_summarizer_agent
-                )
-
-        results = await asyncio.gather(
-            *[
-                summarize_with_limit(idx, f)
-                for idx, f in enumerate(state.supporting_files)
-            ]
-        )
-
-        for idx, summary in results:
-            if summary:
-                supporting_summaries[idx] = summary
-                logger.debug(f"Summarized supporting doc {idx}: {summary.title}")
+        for result in results:
+            if result is not None:
+                idx, summary = result
+                if summary:
+                    supporting_summaries[idx] = summary
+                    logger.debug(f"Summarized supporting doc {idx}: {summary.title}")
 
         logger.info(
             f"Successfully summarized {len(supporting_summaries)}/{len(state.supporting_files)} supporting documents"

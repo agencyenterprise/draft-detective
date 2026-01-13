@@ -1,8 +1,10 @@
 import asyncio
 import logging
 import os
-from typing import Any, List, Tuple
+from typing import Any, List, Optional, Tuple
+from uuid import UUID
 
+from lib.workflows.context import current_progress_id
 from lib.workflows.models import WorkflowError
 
 logger = logging.getLogger(__name__)
@@ -12,8 +14,29 @@ logger = logging.getLogger(__name__)
 MAX_CONCURRENT_TASKS = int(os.getenv("MAX_CONCURRENT_TASKS", "15"))
 
 
+def _get_progress_id() -> Optional[UUID]:
+    """Get progress ID from context variable if available."""
+    try:
+        return current_progress_id.get()
+    except Exception:
+        return None
+
+
+def _update_progress_safely(progress_id: UUID, **kwargs) -> None:
+    """Update progress with error handling."""
+    try:
+        # Import here to avoid circular dependency at module load time
+        from lib.services.workflow_progress import update_progress
+
+        update_progress(progress_id, **kwargs)
+    except Exception as e:
+        logger.warning(f"Failed to update progress: {e}")
+
+
 async def run_tasks(
-    tasks, desc="Processing tasks", max_concurrent=None
+    tasks,
+    desc="Processing tasks",
+    max_concurrent=None,
 ) -> Tuple[List[Any | None], List[Exception | None]]:
     """
     Run tasks with concurrency limit to avoid overwhelming systems.
@@ -29,15 +52,20 @@ async def run_tasks(
     if max_concurrent is None:
         max_concurrent = MAX_CONCURRENT_TASKS
 
-    # Use semaphore to limit concurrent executions
     semaphore = asyncio.Semaphore(max_concurrent)
 
     logger.info(
         f"{desc}: Running {len(tasks)} tasks with max concurrency of {max_concurrent}"
     )
 
+    progress_id = _get_progress_id()
+
+    # Update node's total_steps to reflect actual task count
+    if progress_id and len(tasks) > 1:
+        _update_progress_safely(progress_id, total_steps=len(tasks))
+
     async def track_task(index, coro):
-        async with semaphore:  # Acquire semaphore before running task
+        async with semaphore:
             try:
                 return index, await coro, None
             except Exception as e:
@@ -60,6 +88,9 @@ async def run_tasks(
         logger.info(
             f"{desc}: Completed {completed_count} / {len(tasks)} (Task #{original_index} completed)"
         )
+
+        if progress_id:
+            _update_progress_safely(progress_id, current_step=completed_count)
 
     task_results = []
     task_errors = []

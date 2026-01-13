@@ -36,6 +36,9 @@ class WorkflowManifest[WorkflowStateType, WorkflowConfigType](ABC):
     # Internal workflows run as dependencies, not shown in UI
     is_internal: bool = False
 
+    # Experimental workflows are hidden by default in the UI
+    is_experimental: bool = False
+
     # List of workflow types that this workflow depends on.
     # Used to determine the order in which the workflows should be run.
     # In case a workflow is started and a required dependency is not completed, running or scheduled to run, the workflow will fail to start with an error.

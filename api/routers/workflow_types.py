@@ -14,6 +14,7 @@ class WorkflowTypeDescription(BaseModel):
     name: str = Field(description="The name of the workflow")
     description: str = Field(description="The description of the workflow")
     needs_web_search: bool = Field(description="Whether the workflow needs web search")
+    is_experimental: bool = Field(description="Whether the workflow is experimental")
 
 
 @router.get("/api/workflow-types", response_model=List[WorkflowTypeDescription])
@@ -34,6 +35,7 @@ async def get_workflow_types():
                     name=manifest.name,
                     description=manifest.description,
                     needs_web_search=manifest.needs_web_search,
+                    is_experimental=manifest.is_experimental,
                 )
             )
 
