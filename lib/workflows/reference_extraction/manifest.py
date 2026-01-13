@@ -14,7 +14,11 @@ from lib.workflows.reference_extraction.state import (
     ReferenceExtractionState,
 )
 from lib.workflows.types import WorkflowState
-from lib.workflows.util import get_state_by_type_or_raise
+from lib.workflows.util import (
+    get_main_file_id,
+    get_state_by_type_or_raise,
+    get_supporting_file_ids,
+)
 
 
 class ReferenceExtractionManifest(
@@ -52,20 +56,12 @@ class ReferenceExtractionManifest(
 
         Gets file with markdown from DOCUMENT_PROCESSING workflow.
         """
-        # Get document processing artifacts
-        doc_processing_state = cast(
-            DocumentProcessingState,
-            get_state_by_type_or_raise(
-                WorkflowRunType.DOCUMENT_PROCESSING, existing_states
-            ),
-        )
 
         return ReferenceExtractionState(
             type=WorkflowRunType.REFERENCE_EXTRACTION,
             config=config,
-            file=doc_processing_state.file,  # Already has markdown populated
-            supporting_files=doc_processing_state.supporting_files,
-            supporting_documents_summaries=doc_processing_state.supporting_documents_summaries,
+            file_id=get_main_file_id(existing_states),
+            supporting_file_ids=get_supporting_file_ids(existing_states),
         )
 
     def convert_state_to_issues(

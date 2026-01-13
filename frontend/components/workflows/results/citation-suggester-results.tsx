@@ -2,21 +2,32 @@
 
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { CitationSuggesterState, CitationSuggestionResultWithClaimIndex, WorkflowRunDetail } from '@/lib/generated-api';
+import {
+  CitationSuggesterState,
+  CitationSuggestionResultWithClaimIndex,
+  ProjectDetailed,
+  WorkflowRunDetail,
+  WorkflowRunType,
+} from '@/lib/generated-api';
 import { AlertCircle, Link2Icon } from 'lucide-react';
 import * as React from 'react';
 import { ClaimCitationSuggestions } from '../../wizard/results-step/components/claim-citation-suggestions';
+import { getWorkflowRunByType } from '@/lib/workflow-state';
 
 interface CitationSuggesterResultsProps {
+  project: ProjectDetailed;
   workflowDetail: WorkflowRunDetail;
 }
 
-export function CitationSuggesterResults({ workflowDetail }: CitationSuggesterResultsProps) {
+export function CitationSuggesterResults({ project, workflowDetail }: CitationSuggesterResultsProps) {
   const results = workflowDetail.state as CitationSuggesterState | undefined;
 
+  const documentProcessing = getWorkflowRunByType(project.workflow_runs ?? [], WorkflowRunType.DocumentProcessing);
+  const referenceExtraction = getWorkflowRunByType(project.workflow_runs ?? [], WorkflowRunType.ReferenceExtraction);
+
   const citationSuggestions = React.useMemo(() => results?.citation_suggestions ?? [], [results?.citation_suggestions]);
-  const references = results?.references ?? [];
-  const supportingFiles = results?.supporting_files ?? [];
+  const supportingFiles = documentProcessing?.state?.supporting_files ?? [];
+  const references = referenceExtraction?.state?.references ?? [];
 
   // Group suggestions by chunk_index and claim_index
   const groupedSuggestions = React.useMemo(() => {

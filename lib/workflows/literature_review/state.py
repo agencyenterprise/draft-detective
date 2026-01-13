@@ -1,11 +1,8 @@
-from datetime import date
-from typing import List, Literal, Optional
+from typing import Literal, Optional
 
 from pydantic import Field
 
 from lib.agents.literature_review import LiteratureReviewResponse
-from lib.models.bibliography_item import BibliographyItem
-from lib.services.file import FileDocument
 from lib.workflows.models import BaseWorkflowConfig, BaseWorkflowState, WorkflowRunType
 
 
@@ -24,6 +21,5 @@ class LiteratureReviewState(BaseWorkflowState):
         WorkflowRunType.LITERATURE_REVIEW
     )
     config: LiteratureReviewWorkflowConfig
-    file: FileDocument
-    references: List[BibliographyItem] = Field(default_factory=list)
+    file_id: str = Field(description="ID of the main document")
     literature_review: Optional[LiteratureReviewResponse] = Field(default=None)

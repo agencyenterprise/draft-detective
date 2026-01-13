@@ -5,6 +5,7 @@ from docx import Document
 from pathlib import Path
 
 from lib.services.docx.chunk_mapper import create_chunk_to_paragraph_mapping
+from lib.services.file_artifacts_service.mock import MockFileArtifactsService
 from lib.services.nltk_text_splitter import NLTKTextSplitter
 from lib.workflows.context import ContextSchema
 from tests.conftest import create_test_file_document_from_path, data_path
@@ -20,7 +21,10 @@ async def test_chunk_to_docx_mapping_agi_minimal():
     )
 
     context = ContextSchema(
-        session_id="test-session", workflow_id="test-workflow", run_id="test-run"
+        session_id="test-session",
+        workflow_id="test-workflow",
+        run_id="test-run",
+        file_artifacts_service=MockFileArtifactsService(),
     )
     chunker = NLTKTextSplitter(context=context)
     chunks = await chunker.create_documents([file_doc.markdown])
@@ -176,7 +180,10 @@ async def test_add_comments_to_docx():
     )
 
     context = ContextSchema(
-        session_id="test-session", workflow_id="test-workflow", run_id="test-run"
+        session_id="test-session",
+        workflow_id="test-workflow",
+        run_id="test-run",
+        file_artifacts_service=MockFileArtifactsService(),
     )
     chunker = NLTKTextSplitter(context=context)
     chunks = await chunker.create_documents([file_doc.markdown])

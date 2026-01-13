@@ -3,12 +3,7 @@
 import { LabeledValue } from '@/components/labeled-value';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
-import {
-  BibliographyItem,
-  ClaimSubstantiationResultWithClaimIndex,
-  FileDocumentOutput,
-  RetrievedPassageInfo,
-} from '@/lib/generated-api';
+import { BibliographyItem, ClaimSubstantiationResultWithClaimIndex, FileDocumentOutput } from '@/lib/generated-api';
 import { cn } from '@/lib/utils';
 import { BookOpen, ChevronDown, ChevronRight, FileSearch } from 'lucide-react';
 import Link from 'next/link';
@@ -19,7 +14,6 @@ interface SubstantiationResultsProps {
   substantiation: ClaimSubstantiationResultWithClaimIndex;
   references: BibliographyItem[];
   supportingFiles: FileDocumentOutput[];
-  retrievedPassages?: RetrievedPassageInfo[];
   className?: string;
 }
 
@@ -27,13 +21,11 @@ export function SubstantiationResults({
   substantiation,
   references,
   supportingFiles,
-  retrievedPassages,
   className = '',
 }: SubstantiationResultsProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   const hasCitationBasedEvidence = substantiation.evidence_sources.length > 0;
-  const hasRagEvidence = retrievedPassages && retrievedPassages.length > 0;
 
   return (
     <div className={cn('border-b pb-2 space-y-4', className)}>
@@ -129,9 +121,7 @@ export function SubstantiationResults({
             </div>
           )}
 
-          {!hasCitationBasedEvidence && !hasRagEvidence && (
-            <p className="text-muted-foreground text-sm">No evidence sources found.</p>
-          )}
+          {!hasCitationBasedEvidence && <p className="text-muted-foreground text-sm">No evidence sources found.</p>}
         </div>
       )}
     </div>

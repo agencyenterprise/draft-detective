@@ -65,6 +65,8 @@ import type {
   ListProjectsEndpointApiProjectsGetResponses,
   ReadHealthApiHealthGetData,
   ReadHealthApiHealthGetResponses,
+  ReadHealthApiHealthHeadData,
+  ReadHealthApiHealthHeadResponses,
   StartAnalysisApiStartAnalysisPostData,
   StartAnalysisApiStartAnalysisPostErrors,
   StartAnalysisApiStartAnalysisPostResponses,
@@ -108,6 +110,20 @@ export const readHealthApiHealthGet = <ThrowOnError extends boolean = true>(
   options?: Options<ReadHealthApiHealthGetData, ThrowOnError>,
 ) =>
   (options?.client ?? client).get<ReadHealthApiHealthGetResponses, unknown, ThrowOnError, 'data'>({
+    responseStyle: 'data',
+    url: '/api/health',
+    ...options,
+  });
+
+/**
+ * Read Health
+ *
+ * Health check endpoint
+ */
+export const readHealthApiHealthHead = <ThrowOnError extends boolean = true>(
+  options?: Options<ReadHealthApiHealthHeadData, ThrowOnError>,
+) =>
+  (options?.client ?? client).head<ReadHealthApiHealthHeadResponses, unknown, ThrowOnError, 'data'>({
     responseStyle: 'data',
     url: '/api/health',
     ...options,

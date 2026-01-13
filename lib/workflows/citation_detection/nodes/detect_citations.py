@@ -8,12 +8,13 @@ from lib.agents.citation_detector import (
     CitationResponseWithChunkIndex,
 )
 from lib.agents.formatting_utils import format_bibliography_prompt_section
+from lib.models.bibliography_item import BibliographyItem
 from lib.run_utils import run_tasks
-from lib.workflows.chunk_iterator import get_target_chunks
+from lib.services.file import FileDocument
 from lib.workflows.citation_detection.state import CitationDetectionState
+from lib.workflows.claim_substantiation.state import AnalyzedChunk
 from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
-from lib.workflows.document_processing.state import DocumentChunk
 from lib.workflows.models import WorkflowError
 
 logger = logging.getLogger(__name__)
@@ -27,13 +28,16 @@ async def detect_citations(
     state: CitationDetectionState, runtime: Runtime[ContextSchema]
 ) -> Dict[str, Any]:
     citation_detector_agent = CitationDetectorAgent(runtime.context)
+    file_artifacts_service = runtime.context.file_artifacts_service
 
-    # Get target chunks based on config
-    target_chunks = get_target_chunks(state)
+    # Fetch artifacts from file artifacts service
+    file = await file_artifacts_service.get_file_document(state.file_id)
+    references = await file_artifacts_service.get_references()
+    target_chunks = await file_artifacts_service.get_chunks()
 
     # Detect citations for each chunk
     tasks = [
-        _detect_chunk_citations(state, chunk, citation_detector_agent)
+        _detect_chunk_citations(file, references, chunk, citation_detector_agent)
         for chunk in target_chunks
     ]
     results = await run_tasks(tasks, desc="Detecting chunk citations")
@@ -64,16 +68,17 @@ async def detect_citations(
 
 
 async def _detect_chunk_citations(
-    state: CitationDetectionState,
-    chunk: DocumentChunk,
+    file: FileDocument,
+    references: List[BibliographyItem],
+    chunk: AnalyzedChunk,
     citation_detector_agent: CitationDetectorAgent,
 ) -> CitationResponseWithChunkIndex:
     """Detect citations in a single chunk."""
     citations = await citation_detector_agent.ainvoke(
         {
-            "full_document": state.file.markdown,
+            "full_document": file.markdown,
             "bibliography": format_bibliography_prompt_section(
-                state.references, supporting_files=[]
+                references, supporting_files=[]
             ),
             "chunk": chunk.content,
             "feedback": "",

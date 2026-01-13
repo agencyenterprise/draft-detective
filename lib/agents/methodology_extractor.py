@@ -208,7 +208,13 @@ if __name__ == "__main__":
         print("-" * 80)
 
         # Initialize context
-        context = ContextSchema(openai_api_key=config.OPENAI_API_KEY, vector_store=None)
+        from lib.services.file_artifacts_service.mock import MockFileArtifactsService
+
+        context = ContextSchema(
+            openai_api_key=config.OPENAI_API_KEY,
+            vector_store=None,
+            file_artifacts_service=MockFileArtifactsService(),
+        )
 
         # Run the agent
         methodology_extractor_agent = MethodologyExtractorAgent(context)

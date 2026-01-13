@@ -3,10 +3,6 @@ from typing import Dict, List, Type
 
 from langgraph.graph import StateGraph
 
-from lib.config.env import config as env_config
-from lib.models.user import User
-from lib.services.vector_store import VectorStoreService
-from lib.workflows.context import ContextSchema
 from lib.workflows.manifest import WorkflowManifest
 from lib.workflows.models import BaseWorkflowConfig, BaseWorkflowState, WorkflowRunType
 from lib.workflows.types import WorkflowState
@@ -100,43 +96,6 @@ def get_config_type(type: WorkflowRunType) -> Type[BaseWorkflowConfig]:
 def get_state_type(type: WorkflowRunType) -> Type[BaseWorkflowState]:
     manifest = get_workflow_manifest(type)
     return manifest.get_state_type()
-
-
-def create_context(
-    config: BaseWorkflowConfig,
-    workflow_run_id: str | None = None,
-    user: User | None = None,
-) -> ContextSchema:
-    """
-    Create workflow context.
-
-    Each workflow declares whether it requires an API key via requires_api_key().
-    Workflows that don't use LLMs (data manipulation only) can return False.
-    """
-    openai_api_key = (
-        config.openai_api_key
-        or env_config.OPENAI_API_KEY
-        or env_config.AZURE_OPENAI_API_KEY
-    )
-
-    # Check if workflow requires API key (defined by the workflow config itself)
-    if not openai_api_key and config.requires_api_key():
-        raise ValueError("No OpenAI API key found in config or environment variables")
-
-    # Only initialize vector store if we have an API key (needed for embeddings)
-    vector_store = (
-        VectorStoreService(env_config.DATABASE_URL, openai_api_key)
-        if openai_api_key
-        else None
-    )
-
-    return ContextSchema(
-        openai_api_key=openai_api_key,
-        vector_store=vector_store,
-        user_id=str(user.id) if user else None,
-        project_id=config.project_id,
-        workflow_run_id=workflow_run_id,
-    )
 
 
 async def create_state(config: BaseWorkflowConfig) -> WorkflowState:
