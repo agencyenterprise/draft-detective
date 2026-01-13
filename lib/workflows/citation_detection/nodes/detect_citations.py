@@ -51,7 +51,7 @@ async def detect_citations(
 
     # Detect citations for each chunk
     tasks = [
-        _detect_chunk_citations(file, references, chunk, citation_detector_agent)
+        _detect_chunk_citations(state, references, chunk, citation_detector_agent)
         for chunk in target_chunks
     ]
     results = await run_tasks(tasks, desc="Detecting chunk citations")
