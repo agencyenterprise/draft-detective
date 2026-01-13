@@ -212,10 +212,15 @@ class LiteratureReviewAgent(DirectOpenAIAgent):
 if __name__ == "__main__":
     from lib.config.logger import setup_logger
     from lib.config.env import config
+    from lib.services.file_artifacts_service.mock import MockFileArtifactsService
 
     setup_logger()
 
-    context = ContextSchema(openai_api_key=config.OPENAI_API_KEY, vector_store=None)
+    context = ContextSchema(
+        openai_api_key=config.OPENAI_API_KEY,
+        vector_store=None,
+        file_artifacts_service=MockFileArtifactsService(),
+    )
     literature_review_agent = LiteratureReviewAgent(context)
 
     response = asyncio.run(

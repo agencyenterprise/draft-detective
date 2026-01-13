@@ -42,7 +42,7 @@ def _split_into_windows(text: str, max_size: int) -> List[str]:
 
     windows = []
     lines = text.split("\n")
-    current_window = []
+    current_window: List[str] = []
     current_size = 0
 
     for line in lines:
@@ -102,7 +102,8 @@ async def extract_text_references_node(
     state: ReferenceExtractionState, runtime: Runtime[ContextSchema]
 ) -> dict:
     """Extract references from detected sections using LLM."""
-    markdown = state.file.markdown
+    main_file = await runtime.context.file_artifacts_service.get_main_file()
+    markdown = main_file.markdown
     sections = state.detected_sections
 
     if not sections:

@@ -1,4 +1,4 @@
-from typing import List, Type, cast
+from typing import List, Type
 
 from langgraph.graph import StateGraph
 
@@ -12,7 +12,7 @@ from lib.workflows.methodological_alignment.state import (
 )
 from lib.workflows.models import DocumentIssue, WorkflowRunType
 from lib.workflows.types import WorkflowState
-from lib.workflows.util import get_state_by_type_or_raise
+from lib.workflows.util import get_main_file_id
 
 
 class MethodologicalAlignmentManifest(
@@ -45,18 +45,9 @@ class MethodologicalAlignmentManifest(
     ) -> MethodologicalAlignmentState:
         """Create and return the initial state of the workflow."""
 
-        from lib.workflows.document_processing.state import DocumentProcessingState
-
-        doc_processing_state = cast(
-            DocumentProcessingState,
-            get_state_by_type_or_raise(
-                WorkflowRunType.DOCUMENT_PROCESSING, existing_states
-            ),
-        )
-
         return MethodologicalAlignmentState(
             type=WorkflowRunType.METHODOLOGICAL_ALIGNMENT,
-            file=doc_processing_state.file,
+            file_id=get_main_file_id(existing_states),
         )
 
     def convert_state_to_issues(

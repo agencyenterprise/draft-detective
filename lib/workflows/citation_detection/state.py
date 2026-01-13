@@ -28,7 +28,7 @@ class CitationDetectionState(BaseWorkflowState):
     )
 
     # Inputs
-    file: FileDocument
+    file_id: str
     config: CitationDetectionConfig
     chunks: List[DocumentChunk] = []
     references: List[BibliographyItem] = []

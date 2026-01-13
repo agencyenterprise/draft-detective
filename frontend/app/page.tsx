@@ -1,7 +1,7 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ProjectsList } from '@/components/projects-list';
-import { ArrowRight, Brain, FlaskConical, TestTube } from 'lucide-react';
+import { ArrowRight, Brain, FlaskConical, TestTube, Wrench } from 'lucide-react';
 import Link from 'next/link';
 
 export default function Home() {
@@ -30,6 +30,12 @@ export default function Home() {
                 <FlaskConical className="w-5 h-5" />
                 Start a Project
                 <ArrowRight className="w-4 h-4" />
+              </Button>
+            </Link>
+            <Link href="/tools">
+              <Button size="lg" variant="outline">
+                <Wrench className="w-5 h-5" />
+                Tools
               </Button>
             </Link>
             <Link href="/evals">

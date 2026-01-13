@@ -8,8 +8,10 @@ from lib.agents.claim_verifier import (
     ClaimVerifierAgent,
 )
 from lib.agents.formatting_utils import format_audience_context, format_domain_context
+from lib.models.bibliography_item import BibliographyItem
 from lib.run_utils import run_tasks
-from lib.workflows.chunk_iterator import get_target_chunks
+from lib.services.file import FileDocument
+from lib.services.file_artifacts_service.types import FileArtifactsServiceType
 from lib.workflows.claim_reference_validation.state import ClaimReferenceValidationState
 from lib.workflows.claim_substantiation.reference_providers import (
     RAGReferenceProvider,
@@ -24,7 +26,7 @@ logger = logging.getLogger(__name__)
 
 
 def _needs_substantiation(
-    state: ClaimReferenceValidationState, chunk: AnalyzedChunk, claim_index: int
+    chunks: List[AnalyzedChunk], chunk: AnalyzedChunk, claim_index: int
 ) -> bool:
     """
     Check if a claim needs substantiation.
@@ -34,7 +36,7 @@ def _needs_substantiation(
     2. It needs external verification (or if categorization didn't happen, consider all claims need external verification)
     """
 
-    paragraph_citations = get_all_paragraph_citations(state, chunk)
+    paragraph_citations = get_all_paragraph_citations(chunks, chunk)
     if len(paragraph_citations) == 0:
         # If there's no citations in the paragraph, skip verification since there's no document to verify against
         return False
@@ -54,9 +56,13 @@ def _needs_substantiation(
 
 async def _verify_chunk_claims_with_provider(
     state: ClaimReferenceValidationState,
+    chunks: List[AnalyzedChunk],
     chunk: AnalyzedChunk,
     rag_provider: RAGReferenceProvider,
     claim_verifier_agent: ClaimVerifierAgent,
+    file_artifacts_service: FileArtifactsServiceType,
+    supporting_files: List[FileDocument],
+    references: List[BibliographyItem],
 ) -> List[ClaimSubstantiationResultWithClaimIndex]:
     """Verify chunk claims using RAG reference provider.
 
@@ -74,19 +80,21 @@ async def _verify_chunk_claims_with_provider(
     substantiations = []
 
     for claim_index, claim in enumerate(chunk.claims.claims):
-        if not _needs_substantiation(state, chunk, claim_index):
+        if not _needs_substantiation(chunks, chunk, claim_index):
             logger.debug(
                 f"Chunk {chunk.chunk_index} claim {claim_index} does not need external verification, skipping verification"
             )
             continue
 
         ref_context = await rag_provider.get_references_for_claim(
-            state, chunk, claim, claim_index
+            chunks, supporting_files, references, chunk, claim, claim_index
         )
 
         result = await claim_verifier_agent.ainvoke(
             {
-                "paragraph": state.get_paragraph(chunk.paragraph_index),
+                "paragraph": file_artifacts_service.get_paragraph_text(
+                    chunks, chunk.paragraph_index
+                ),
                 "chunk": chunk.content,
                 "claim": claim.claim,
                 "evidence_context_explanation": format_evidence_explanation(),
@@ -98,11 +106,6 @@ async def _verify_chunk_claims_with_provider(
                 ),
             }
         )
-
-        if ref_context.retrieved_passages:
-            result = result.model_copy(
-                update={"retrieved_passages": ref_context.retrieved_passages}
-            )
 
         substantiations.append(
             ClaimSubstantiationResultWithClaimIndex(
@@ -121,17 +124,28 @@ async def _verify_chunk_claims_with_provider(
 )
 async def verify_claims(
     state: ClaimReferenceValidationState, runtime: Runtime[ContextSchema]
-) -> ClaimReferenceValidationState:
+):
     """Verify claims using RAG to retrieve relevant passages."""
 
+    file_artifacts_service = runtime.context.file_artifacts_service
     rag_provider = RAGReferenceProvider(runtime.context.vector_store)
     claim_verifier_agent = ClaimVerifierAgent(runtime.context)
 
-    target_chunks = get_target_chunks(state)
+    # Fetch artifacts from file artifacts service
+    target_chunks = await file_artifacts_service.get_chunks()
+    supporting_files = await file_artifacts_service.get_supporting_files()
+    references = await file_artifacts_service.get_references()
 
     tasks = [
         _verify_chunk_claims_with_provider(
-            state, chunk, rag_provider, claim_verifier_agent
+            state,
+            target_chunks,
+            chunk,
+            rag_provider,
+            claim_verifier_agent,
+            file_artifacts_service,
+            supporting_files,
+            references,
         )
         for chunk in target_chunks
     ]

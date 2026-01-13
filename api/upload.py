@@ -1,10 +1,10 @@
 import logging
-import mimetypes
 import os
 import uuid
 from typing import List
 
 import aiofiles
+import magic
 from fastapi import UploadFile
 from xxhash import xxh128
 
@@ -84,8 +84,8 @@ async def save_uploaded_files_to_db(
                 logger.error(f"Error processing uploaded file {filename}: {str(e)}")
                 raise
 
-        # Determine MIME type for final file (after conversion)
-        file_type = mimetypes.guess_type(file_path)[0] or "application/octet-stream"
+        # Determine actual MIME type from file content
+        file_type = magic.from_buffer(content, mime=True)
 
         # Create database record
         file_record = await create_file_record(

@@ -162,6 +162,10 @@ async def list_project_files_endpoint(
 async def download_all_project_files(
     project_id: str,
     current_user: User = Depends(get_current_user),
+    roles: Optional[List[FileRole]] = Query(
+        default=[FileRole.MAIN, FileRole.SUPPORT],
+        description="Filter files by role(s). If not provided, main and support files are included by default.",
+    ),
 ):
     """Download all project files as a ZIP archive"""
 
@@ -169,7 +173,7 @@ async def download_all_project_files(
     project_detail = await get_user_project_detailed(project_id, user=current_user)
 
     # Create zip file using service
-    zip_buffer, _ = await create_project_files_zip(project_id)
+    zip_buffer, _ = await create_project_files_zip(project_id, roles=roles)
 
     # Generate filename from project title
     project_title = project_detail.project.title or "project"

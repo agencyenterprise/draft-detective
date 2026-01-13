@@ -9,11 +9,11 @@ from lib.workflows.citation_detection.state import (
 )
 from lib.workflows.document_processing.state import DocumentProcessingState
 from lib.workflows.footnote_extraction.state import FootnoteExtractionState
+from lib.workflows.reference_extraction.state import ReferenceExtractionState
 from lib.workflows.manifest import WorkflowManifest
 from lib.workflows.models import DocumentIssue, WorkflowRunType
-from lib.workflows.reference_extraction.state import ReferenceExtractionState
 from lib.workflows.types import WorkflowState
-from lib.workflows.util import get_state_by_type_or_raise
+from lib.workflows.util import get_main_file_id, get_state_by_type_or_raise
 
 
 class CitationDetectionManifest(
@@ -64,11 +64,12 @@ class CitationDetectionManifest(
         )
 
         return CitationDetectionState(
-            file=doc_processing_state.file,
+            type=WorkflowRunType.CITATION_DETECTION,
+            file_id=get_main_file_id(existing_states),
+            config=config,
             references=ref_extraction_state.references,
             footnotes=footnote_extraction_state.footnotes,
             chunks=doc_processing_state.chunks,
-            config=config,
         )
 
     def convert_state_to_issues(

@@ -23,24 +23,31 @@ logger = logging.getLogger(__name__)
 async def index_supporting_documents(
     state: ClaimReferenceValidationState,
     runtime: Runtime[ContextSchema],
-) -> ClaimReferenceValidationState:
+):
     """
     Index supporting documents for RAG retrieval.
     Always indexes if supporting files are provided.
     """
-    if not state.supporting_files:
+    file_artifacts_service = runtime.context.file_artifacts_service
+    supporting_files = await file_artifacts_service.get_supporting_files()
+    vector_store = runtime.context.vector_store
+
+    if not supporting_files:
         logger.info("No supporting files to index")
         return {}
 
-    logger.info(f"Indexing {len(state.supporting_files)} supporting documents for RAG")
+    if not vector_store:
+        raise ValueError("No vector store found")
+
+    logger.info(f"Indexing {len(supporting_files)} supporting documents for RAG")
 
     indexed_count = 0
     failed_files: list[str] = []
     errors: list[WorkflowError] = []
 
-    for file_doc in state.supporting_files:
+    for file_doc in supporting_files:
         try:
-            await index_file_document(file_doc, runtime.context.vector_store)
+            await index_file_document(file_doc, vector_store)
             indexed_count += 1
 
         except Exception as e:

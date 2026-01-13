@@ -4,13 +4,21 @@ import { LabeledValue } from '@/components/labeled-value';
 import { Markdown } from '@/components/markdown';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ReferenceFetchConclusion, ReferenceFetchItem } from '@/lib/generated-api';
-import { AlertCircle, CheckCircle2, ChevronDownIcon, ChevronRightIcon, Download, XCircle } from 'lucide-react';
+import { ReferenceFetchConclusion, ReferenceFetchResult, ReferenceFetchStatus } from '@/lib/generated-api';
+import {
+  AlertCircle,
+  AlertTriangle,
+  CheckCircle2,
+  ChevronDownIcon,
+  ChevronRightIcon,
+  Download,
+  Loader2,
+  XCircle,
+} from 'lucide-react';
 import * as React from 'react';
 
 interface ReferenceItemProps {
-  item: ReferenceFetchItem;
-  index: number;
+  item: ReferenceFetchResult;
 }
 
 function getConclusionBadge(conclusion: ReferenceFetchConclusion) {
@@ -50,8 +58,36 @@ function getConclusionBadge(conclusion: ReferenceFetchConclusion) {
   }
 }
 
-export function ReferenceItem({ item, index }: ReferenceItemProps) {
+function getErrorBadge() {
+  return (
+    <Badge
+      variant="outline"
+      className="bg-red-100 text-red-800 border-red-300 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800"
+    >
+      <AlertTriangle className="h-3 w-3 mr-1" />
+      Error
+    </Badge>
+  );
+}
+
+function getPendingBadge() {
+  return (
+    <Badge
+      variant="outline"
+      className="bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800"
+    >
+      <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+      Fetching...
+    </Badge>
+  );
+}
+
+export function ReferenceItem({ item }: ReferenceItemProps) {
   const [isExpanded, setIsExpanded] = React.useState(false);
+  const isPending = item.status === ReferenceFetchStatus.Pending;
+  const isError = item.status === ReferenceFetchStatus.Error || item.error != null;
+  const result = item.result;
+  const index = item.index;
 
   return (
     <div className="border rounded-lg p-4 space-y-2">
@@ -59,69 +95,93 @@ export function ReferenceItem({ item, index }: ReferenceItemProps) {
         <div className="flex-1 space-y-2">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-sm font-medium text-muted-foreground">#{index + 1}</span>
-            {getConclusionBadge(item.final_conclusion)}
-            {item.file_id ? (
-              <Badge
-                variant="outline"
-                className="bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800"
-              >
-                <Download className="h-3 w-3 mr-1" />
-                Download Available
-              </Badge>
-            ) : (
-              <Badge
-                variant="outline"
-                className="bg-gray-100 text-gray-600 border-gray-300 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700"
-              >
-                Download not available
-              </Badge>
-            )}
+            {isPending
+              ? getPendingBadge()
+              : isError
+                ? getErrorBadge()
+                : result && getConclusionBadge(result.final_conclusion)}
+            {!isPending &&
+              (result?.file_id ? (
+                <Badge
+                  variant="outline"
+                  className="bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800"
+                >
+                  <Download className="h-3 w-3 mr-1" />
+                  Download Available
+                </Badge>
+              ) : (
+                <Badge
+                  variant="outline"
+                  className="bg-gray-100 text-gray-600 border-gray-300 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700"
+                >
+                  Download not available
+                </Badge>
+              ))}
           </div>
-          <p className="text-sm">{item.reference_details}</p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          {item.file_id && (
+          {result?.file_id && (
             <Button variant="outline" size="xs" asChild className="text-gray-600 hover:text-gray-900">
-              <a href={`/api/files/download/${item.file_id}`} target="_blank" rel="noopener noreferrer">
+              <a href={`/api/files/download/${result.file_id}`} target="_blank" rel="noopener noreferrer">
                 <Download className="size-4 mr-1" />
                 Download
               </a>
             </Button>
           )}
-          <Button
-            variant="ghost"
-            size="xs"
-            onClick={() => setIsExpanded(!isExpanded)}
-            className="text-gray-600 hover:text-gray-900"
-          >
-            {isExpanded ? <ChevronDownIcon className="size-4" /> : <ChevronRightIcon className="size-4" />}
-            {isExpanded ? 'Hide details' : 'Show details'}
-          </Button>
         </div>
       </div>
 
-      <div>
-        {item.source_url && (
+      <div className="text-sm">
+        <Markdown>{result?.reference_details || item.input_reference}</Markdown>
+      </div>
+
+      {isPending && <div className="text-sm text-muted-foreground">Searching for this reference...</div>}
+
+      {result?.source_url && (
+        <div>
           <p>
             <span className="text-sm font-medium text-muted-foreground">Source URL: </span>
             <a
-              href={item.source_url}
+              href={result.source_url}
               target="_blank"
               rel="noopener noreferrer"
               className="text-sm text-blue-600 hover:underline break-all"
             >
-              {item.source_url}
+              {result.source_url}
             </a>
           </p>
-        )}
-      </div>
-
-      {isExpanded && (
-        <div className="space-y-2 pt-2 border-t text-sm">
-          <LabeledValue label="Reasoning">
-            <Markdown>{item.reasoning || ''}</Markdown>
-          </LabeledValue>
         </div>
+      )}
+
+      {isError && (
+        <div className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/10 p-2 rounded">
+          <span className="font-medium">Error: </span>
+          {item.error}
+        </div>
+      )}
+
+      {result && (
+        <>
+          <div className="flex items-center justify-end">
+            <Button
+              variant="ghost"
+              size="xs"
+              onClick={() => setIsExpanded(!isExpanded)}
+              className="text-gray-600 hover:text-gray-900"
+            >
+              {isExpanded ? <ChevronDownIcon className="size-4" /> : <ChevronRightIcon className="size-4" />}
+              {isExpanded ? 'Hide agent reasoning' : 'Show agent reasoning'}
+            </Button>
+          </div>
+
+          {isExpanded && (
+            <div className="space-y-2 pt-2 border-t text-sm">
+              <LabeledValue label="Reasoning">
+                <Markdown>{result.reasoning || ''}</Markdown>
+              </LabeledValue>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

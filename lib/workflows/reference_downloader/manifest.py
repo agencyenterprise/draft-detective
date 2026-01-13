@@ -17,7 +17,7 @@ class ReferenceDownloaderManifest(
 ):
     type = WorkflowRunType.REFERENCE_DOWNLOADER
     name = "Reference Downloader"
-    description = "Download references from the internet"
+    description = "Search the web for each reference and download the related full-text when available (PDF or Markdown)."
     needs_web_search = True
     can_be_triggered_by_user = False
     optional_dependencies = []

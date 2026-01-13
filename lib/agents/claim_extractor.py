@@ -332,8 +332,13 @@ Machine learning will likely continue to drive progress in automated visual unde
 
         # Create agent with context
         from lib.config.env import config
+        from lib.services.file_artifacts_service.mock import MockFileArtifactsService
 
-        context = ContextSchema(openai_api_key=config.OPENAI_API_KEY, vector_store=None)
+        context = ContextSchema(
+            openai_api_key=config.OPENAI_API_KEY,
+            vector_store=None,
+            file_artifacts_service=MockFileArtifactsService(),
+        )
         claim_extractor_agent = ClaimExtractorAgent(context)
 
         # Run claim extraction

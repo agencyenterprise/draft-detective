@@ -6,14 +6,13 @@ from lib.workflows.chunk_utils import find_chunk_index_by_text
 from lib.workflows.document_processing.state import DocumentProcessingState
 from lib.workflows.manifest import WorkflowManifest
 from lib.workflows.models import DocumentIssue, SeverityEnum, WorkflowRunType
-from lib.workflows.reference_extraction.state import ReferenceExtractionState
 from lib.workflows.reference_validation.graph import build_reference_validation_graph
 from lib.workflows.reference_validation.state import (
     ReferenceValidationState,
     ReferenceValidationWorkflowConfig,
 )
 from lib.workflows.types import WorkflowState
-from lib.workflows.util import get_state_by_type, get_state_by_type_or_raise
+from lib.workflows.util import get_state_by_type
 
 
 class ReferenceValidationManifest(
@@ -43,19 +42,9 @@ class ReferenceValidationManifest(
         existing_states: List[WorkflowState],
     ) -> ReferenceValidationState:
         """Create and return the initial state of the workflow."""
-
-        ref_extraction_state = cast(
-            ReferenceExtractionState,
-            get_state_by_type_or_raise(
-                WorkflowRunType.REFERENCE_EXTRACTION,
-                existing_states,
-            ),
-        )
-
         return ReferenceValidationState(
             type=WorkflowRunType.REFERENCE_VALIDATION,
             config=config,
-            references=ref_extraction_state.references,
         )
 
     def convert_state_to_issues(

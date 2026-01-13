@@ -151,8 +151,16 @@ async def match_supporting_docs_node(
     2. Batched LLM verification (5 references per call)
     """
     extracted_reference_texts = state.extracted_reference_texts
-    summaries = state.supporting_documents_summaries or {}
-    supporting_files = state.supporting_files or []
+    summaries = {
+        index: await runtime.context.file_artifacts_service.get_document_summary(
+            file_id
+        )
+        for index, file_id in enumerate(state.supporting_file_ids)
+    }
+    supporting_files = [
+        await runtime.context.file_artifacts_service.get_file_document(file_id)
+        for file_id in state.supporting_file_ids
+    ]
 
     if not extracted_reference_texts:
         logger.info("No extracted reference texts to match")
