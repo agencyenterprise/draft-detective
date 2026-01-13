@@ -1,1 +1,0 @@
-"""Utilities for footnote extraction."""
