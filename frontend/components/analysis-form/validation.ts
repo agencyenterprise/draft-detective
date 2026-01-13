@@ -2,6 +2,7 @@ import { MAX_FILE_SIZE_BYTES, MAX_FILE_SIZE_MB } from '@/lib/constants';
 import { FormValidationError, GlobalFormValidationError } from '@tanstack/react-form';
 import { AnalysisFormValues } from './types';
 import { WorkflowTypeDescription } from '@/lib/generated-api';
+import { hasWebSearchRequirement } from '../workflows/utils';
 
 export function validateAnalysisForm(
   value: AnalysisFormValues,
@@ -33,13 +34,8 @@ export function validateAnalysisForm(
   }
 
   // Validate web search consent if any selected workflow type requires it
-  if (workflowTypes && value.workflowTypes) {
-    const needsWebSearch = value.workflowTypes.some(
-      (selectedType) => workflowTypes.find((wt) => wt.type === selectedType)?.needs_web_search,
-    );
-    if (needsWebSearch && !value.webSearchConsent) {
-      errors.fields.webSearchConsent = 'Web search consent is required';
-    }
+  if (hasWebSearchRequirement(value.workflowTypes, workflowTypes) && !value.webSearchConsent) {
+    errors.fields.webSearchConsent = 'Web search consent is required';
   }
 
   // Validate publication date is required
