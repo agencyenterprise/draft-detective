@@ -2640,7 +2640,7 @@ export type ReferenceDownloaderState = {
    *
    * The response from the reference fetcher agent
    */
-  fetched_references?: Array<ReferenceFetchResult> | null;
+  fetched_references?: Array<ReferenceFetchResult>;
 };
 
 /**
@@ -2830,15 +2830,25 @@ export type ReferenceFetchItem = {
 /**
  * ReferenceFetchResult
  *
- * Wrapper for reference fetch results that handles both success and error cases
+ * Wrapper for reference fetch results with status tracking
  */
 export type ReferenceFetchResult = {
   /**
+   * Index
+   *
+   * Index of this reference in the input list
+   */
+  index: number;
+  /**
    * Input Reference
    *
-   * The original input reference (always present)
+   * The original input reference
    */
   input_reference: string;
+  /**
+   * Current status of this reference fetch
+   */
+  status?: ReferenceFetchStatus;
   /**
    * The fetch result, present on success
    */
@@ -2850,6 +2860,24 @@ export type ReferenceFetchResult = {
    */
   error?: string | null;
 };
+
+/**
+ * ReferenceFetchStatus
+ *
+ * Status of a reference fetch operation
+ */
+export const ReferenceFetchStatus = {
+  Pending: 'pending',
+  Completed: 'completed',
+  Error: 'error',
+} as const;
+
+/**
+ * ReferenceFetchStatus
+ *
+ * Status of a reference fetch operation
+ */
+export type ReferenceFetchStatus = (typeof ReferenceFetchStatus)[keyof typeof ReferenceFetchStatus];
 
 /**
  * ReferenceMinimal
@@ -4550,7 +4578,14 @@ export type DownloadAllProjectFilesApiProjectProjectIdFilesDownloadAllGetData = 
      */
     project_id: string;
   };
-  query?: never;
+  query?: {
+    /**
+     * Roles
+     *
+     * Filter files by role(s). If not provided, main and support files are included by default.
+     */
+    roles?: Array<FileRole> | null;
+  };
   url: '/api/project/{project_id}/files/download-all';
 };
 

@@ -4,7 +4,7 @@ import { LabeledValue } from '@/components/labeled-value';
 import { Markdown } from '@/components/markdown';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ReferenceFetchConclusion, ReferenceFetchResult } from '@/lib/generated-api';
+import { ReferenceFetchConclusion, ReferenceFetchResult, ReferenceFetchStatus } from '@/lib/generated-api';
 import {
   AlertCircle,
   AlertTriangle,
@@ -12,13 +12,13 @@ import {
   ChevronDownIcon,
   ChevronRightIcon,
   Download,
+  Loader2,
   XCircle,
 } from 'lucide-react';
 import * as React from 'react';
 
 interface ReferenceItemProps {
   item: ReferenceFetchResult;
-  index: number;
 }
 
 function getConclusionBadge(conclusion: ReferenceFetchConclusion) {
@@ -70,10 +70,24 @@ function getErrorBadge() {
   );
 }
 
-export function ReferenceItem({ item, index }: ReferenceItemProps) {
+function getPendingBadge() {
+  return (
+    <Badge
+      variant="outline"
+      className="bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800"
+    >
+      <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+      Fetching...
+    </Badge>
+  );
+}
+
+export function ReferenceItem({ item }: ReferenceItemProps) {
   const [isExpanded, setIsExpanded] = React.useState(false);
-  const isError = item.error != null;
+  const isPending = item.status === ReferenceFetchStatus.Pending;
+  const isError = item.status === ReferenceFetchStatus.Error || item.error != null;
   const result = item.result;
+  const index = item.index;
 
   return (
     <div className="border rounded-lg p-4 space-y-2">
@@ -81,23 +95,28 @@ export function ReferenceItem({ item, index }: ReferenceItemProps) {
         <div className="flex-1 space-y-2">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-sm font-medium text-muted-foreground">#{index + 1}</span>
-            {isError ? getErrorBadge() : result && getConclusionBadge(result.final_conclusion)}
-            {result?.file_id ? (
-              <Badge
-                variant="outline"
-                className="bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800"
-              >
-                <Download className="h-3 w-3 mr-1" />
-                Download Available
-              </Badge>
-            ) : (
-              <Badge
-                variant="outline"
-                className="bg-gray-100 text-gray-600 border-gray-300 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700"
-              >
-                Download not available
-              </Badge>
-            )}
+            {isPending
+              ? getPendingBadge()
+              : isError
+                ? getErrorBadge()
+                : result && getConclusionBadge(result.final_conclusion)}
+            {!isPending &&
+              (result?.file_id ? (
+                <Badge
+                  variant="outline"
+                  className="bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800"
+                >
+                  <Download className="h-3 w-3 mr-1" />
+                  Download Available
+                </Badge>
+              ) : (
+                <Badge
+                  variant="outline"
+                  className="bg-gray-100 text-gray-600 border-gray-300 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700"
+                >
+                  Download not available
+                </Badge>
+              ))}
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
@@ -115,6 +134,8 @@ export function ReferenceItem({ item, index }: ReferenceItemProps) {
       <div className="text-sm">
         <Markdown>{result?.reference_details || item.input_reference}</Markdown>
       </div>
+
+      {isPending && <div className="text-sm text-muted-foreground">Searching for this reference...</div>}
 
       {result?.source_url && (
         <div>

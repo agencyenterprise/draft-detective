@@ -1,6 +1,6 @@
 'use client';
 
-import { ReferenceFetchConclusion, ReferenceFetchResult } from '@/lib/generated-api';
+import { FileRole, ReferenceFetchConclusion, ReferenceFetchResult, ReferenceFetchStatus } from '@/lib/generated-api';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Download, Loader2, AlertTriangle } from 'lucide-react';
@@ -17,7 +17,7 @@ interface ReferenceDownloaderResultsDisplayProps {
   title?: string | null;
 }
 
-type FilterType = 'all' | 'found' | 'not-found' | 'errors';
+type FilterType = 'all' | 'found' | 'found-but-not-accessible' | 'not-found' | 'pending';
 
 export function ReferenceDownloaderResultsDisplay({
   results,
@@ -26,13 +26,16 @@ export function ReferenceDownloaderResultsDisplay({
 }: ReferenceDownloaderResultsDisplayProps) {
   const [filter, setFilter] = React.useState<FilterType>('all');
   const hasDownloadedReferences = results.some((item) => item.result?.file_id != null);
-  const { downloadAll, isDownloading } = useDownloadAllProjectFiles(projectId);
+  const { downloadAll, isDownloading } = useDownloadAllProjectFiles(projectId, [FileRole.Support]);
 
   // Calculate statistics
   const stats = React.useMemo(() => {
-    const errorCount = results.filter((item) => item.error != null).length;
+    const pendingCount = results.filter((item) => item.status === ReferenceFetchStatus.Pending).length;
     const foundCount = results.filter(
       (item) => item.result?.final_conclusion === ReferenceFetchConclusion.SourceFound,
+    ).length;
+    const errorCount = results.filter(
+      (item) => item.status === ReferenceFetchStatus.Error || item.error != null,
     ).length;
     const notFoundCount = results.filter(
       (item) => item.result?.final_conclusion === ReferenceFetchConclusion.SourceNotFound,
@@ -40,22 +43,27 @@ export function ReferenceDownloaderResultsDisplay({
     const notAccessibleCount = results.filter(
       (item) => item.result?.final_conclusion === ReferenceFetchConclusion.SourceFoundButNotAccessible,
     ).length;
-    return { foundCount, notFoundCount, notAccessibleCount, errorCount };
+    return { foundCount, notFoundCount, notAccessibleCount, errorCount, pendingCount };
   }, [results]);
 
   // Filter results based on selected filter
   const filteredResults = React.useMemo(() => {
     switch (filter) {
+      case 'pending':
+        return results.filter((item) => item.status === ReferenceFetchStatus.Pending);
       case 'found':
         return results.filter((item) => item.result?.final_conclusion === ReferenceFetchConclusion.SourceFound);
+      case 'found-but-not-accessible':
+        return results.filter(
+          (item) => item.result?.final_conclusion === ReferenceFetchConclusion.SourceFoundButNotAccessible,
+        );
       case 'not-found':
         return results.filter(
           (item) =>
             item.result?.final_conclusion === ReferenceFetchConclusion.SourceNotFound ||
-            item.result?.final_conclusion === ReferenceFetchConclusion.SourceFoundButNotAccessible,
+            item.status === ReferenceFetchStatus.Error ||
+            item.error != null,
         );
-      case 'errors':
-        return results.filter((item) => item.error != null);
       case 'all':
       default:
         return results;
@@ -75,6 +83,12 @@ export function ReferenceDownloaderResultsDisplay({
             {filteredResults.length} Reference{filteredResults.length !== 1 ? 's' : ''}
             {filter !== 'all' && ` of ${results.length}`}
           </Badge>
+          {stats.pendingCount > 0 && (
+            <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-300">
+              <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+              {stats.pendingCount} Pending
+            </Badge>
+          )}
           {stats.foundCount > 0 && (
             <Badge variant="outline" className="bg-green-100 text-green-800 border-green-300">
               {stats.foundCount} Found
@@ -85,14 +99,9 @@ export function ReferenceDownloaderResultsDisplay({
               {stats.notAccessibleCount} Not Accessible
             </Badge>
           )}
-          {stats.notFoundCount > 0 && (
+          {stats.notFoundCount + stats.errorCount > 0 && (
             <Badge variant="outline" className="bg-red-100 text-red-800 border-red-300">
-              {stats.notFoundCount} Not Found
-            </Badge>
-          )}
-          {stats.errorCount > 0 && (
-            <Badge variant="outline" className="bg-red-100 text-red-800 border-red-300">
-              {stats.errorCount} Error{stats.errorCount !== 1 ? 's' : ''}
+              {stats.notFoundCount + stats.errorCount} Not Found
             </Badge>
           )}
         </div>
@@ -115,9 +124,12 @@ export function ReferenceDownloaderResultsDisplay({
       <Tabs value={filter} onValueChange={(value) => setFilter(value as FilterType)}>
         <TabsList>
           <TabsTrigger value="all">All ({results.length})</TabsTrigger>
+          {stats.pendingCount > 0 && <TabsTrigger value="pending">Pending ({stats.pendingCount})</TabsTrigger>}
           <TabsTrigger value="found">Found ({stats.foundCount})</TabsTrigger>
-          <TabsTrigger value="not-found">Not Found ({stats.notFoundCount + stats.notAccessibleCount})</TabsTrigger>
-          {stats.errorCount > 0 && <TabsTrigger value="errors">Errors ({stats.errorCount})</TabsTrigger>}
+          <TabsTrigger value="found-but-not-accessible">
+            Found but not accessible ({stats.notAccessibleCount})
+          </TabsTrigger>
+          <TabsTrigger value="not-found">Not Found ({stats.notFoundCount + stats.errorCount})</TabsTrigger>
         </TabsList>
       </Tabs>
       {hasFailedReferences && filter !== 'found' && (
@@ -131,10 +143,7 @@ export function ReferenceDownloaderResultsDisplay({
       )}
       <div className="space-y-3">
         {filteredResults.length > 0 ? (
-          filteredResults.map((item) => {
-            const originalIndex = results.indexOf(item);
-            return <ReferenceItem key={originalIndex} item={item} index={originalIndex} />;
-          })
+          filteredResults.map((item) => <ReferenceItem key={item.index} item={item} />)
         ) : (
           <div className="text-center py-8 text-muted-foreground text-sm">No references match the selected filter.</div>
         )}

@@ -301,12 +301,14 @@ def _delete_file_from_disk(
 
 async def create_project_files_zip(
     project_id: uuid.UUID | str,
+    roles: Optional[List[FileRole]] = None,
 ) -> Tuple[io.BytesIO, int]:
     """
     Create a ZIP archive containing all files for a project.
 
     Args:
         project_id: UUID of the project
+        roles: Optional list of file roles to filter by. If None, main and support files are included by default.
 
     Returns:
         Tuple of (BytesIO buffer containing the ZIP file, number of files added)
@@ -315,6 +317,14 @@ async def create_project_files_zip(
         HTTPException: 404 if no files found or no accessible files
     """
     files = await get_files_by_project_id(project_id)
+
+    # Default to main and support files if no roles are specified
+    if roles is None:
+        roles = [FileRole.MAIN, FileRole.SUPPORT]
+
+    # Filter files by roles if specified
+    if roles:
+        files = [f for f in files if f.role in roles]
 
     if not files:
         raise HTTPException(status_code=404, detail="No files found for this project")
