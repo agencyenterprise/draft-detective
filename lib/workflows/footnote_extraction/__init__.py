@@ -1,0 +1,1 @@
+"""Footnote extraction workflow."""
