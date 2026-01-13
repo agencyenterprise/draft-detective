@@ -14,10 +14,6 @@ from lib.workflows.claim_reference_validation.state import (
     ClaimReferenceValidationState,
     ClaimReferenceValidationWorkflowConfig,
 )
-from lib.workflows.claim_substantiation.state import (
-    ClaimSubstantiatorState,
-    SubstantiationWorkflowConfig,
-)
 from lib.workflows.document_processing.state import (
     DocumentProcessingState,
     DocumentProcessingWorkflowConfig,
@@ -60,7 +56,6 @@ WorkflowState = (
     DocumentProcessingState
     | ReferenceExtractionState
     | ClaimExtractionState
-    | ClaimSubstantiatorState
     | ClaimReferenceValidationState
     | CitationDetectionState
     | MethodologicalAlignmentState
@@ -79,7 +74,6 @@ WorkflowConfig = (
     | ReferenceExtractionConfig
     | ClaimExtractionWorkflowConfig
     | CitationDetectionConfig
-    | SubstantiationWorkflowConfig
     | ClaimReferenceValidationWorkflowConfig
     | MethodologicalAlignmentWorkflowConfig
     | ReferenceDownloaderWorkflowConfig

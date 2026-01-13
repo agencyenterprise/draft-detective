@@ -1,6 +1,8 @@
-import { analysisService } from '@/lib/analysis-service';
 import { downloadFile, generateEvalFilename } from '@/lib/file-download';
-import { ClaimSubstantiatorStateOutput } from '@/lib/generated-api';
+import {
+  generateChunkEvalPackageApiGenerateChunkEvalPackagePost,
+  generateEvalPackageApiGenerateEvalPackagePost,
+} from '@/lib/generated-api';
 import { FileText } from 'lucide-react';
 import * as React from 'react';
 import { useSupportedAgents } from '../hooks/use-supported-agents';
@@ -8,7 +10,7 @@ import { ExpandableControl } from './expandable-control';
 
 interface ChunkEvalGeneratorProps {
   chunkIndex: number;
-  originalState: ClaimSubstantiatorStateOutput;
+  projectId: string;
 }
 
 interface OptimizationInfoProps {
@@ -35,7 +37,7 @@ function OptimizationInfo({ selectedAgents }: OptimizationInfoProps) {
   );
 }
 
-export function ChunkEvalGenerator({ chunkIndex, originalState }: ChunkEvalGeneratorProps) {
+export function ChunkEvalGenerator({ chunkIndex, projectId }: ChunkEvalGeneratorProps) {
   const [isGenerating, setIsGenerating] = React.useState(false);
   const { supportedAgents, supportedAgentsError } = useSupportedAgents();
 
@@ -46,17 +48,20 @@ export function ChunkEvalGenerator({ chunkIndex, originalState }: ChunkEvalGener
       const testName = `chunk_${chunkIndex}_eval_${Date.now()}`;
       const description = `Generated from chunk ${chunkIndex} analysis on ${new Date().toLocaleDateString()}`;
 
-      const blob = await analysisService.generateChunkEvalPackage(
-        originalState,
-        chunkIndex,
-        Array.from(selectedAgents),
-        testName,
-        description,
-      );
+      const { response, data } = (await generateChunkEvalPackageApiGenerateChunkEvalPackagePost({
+        responseStyle: 'fields',
+        body: {
+          project_id: projectId,
+          test_name: testName,
+          description: description,
+          chunk_index: chunkIndex,
+          selected_agents: Array.from(selectedAgents),
+        },
+      })) as { response: Response; data: Blob };
 
       downloadFile({
         filename: generateEvalFilename(testName, chunkIndex),
-        blob,
+        blob: data,
       });
     } finally {
       setIsGenerating(false);

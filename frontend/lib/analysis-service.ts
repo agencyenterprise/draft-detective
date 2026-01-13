@@ -1,19 +1,10 @@
-import {
-  ChunkEvalPackageRequest,
-  ClaimSubstantiatorStateOutput,
-  EvalPackageRequest,
-  generateChunkEvalPackageApiGenerateChunkEvalPackagePost,
-  generateEvalPackageApiGenerateEvalPackagePost,
-  StartWorkflowResponse,
-  SubstantiationWorkflowConfig,
-} from '@/lib/generated-api';
-import { generateDefaultTestName } from '@/lib/utils';
+import { StartWorkflowResponse, AnalysisFormConfig } from '@/lib/generated-api';
 import { baseUrl, getAuthHeader } from './api';
 
 interface AnalysisRequest {
   mainDocument: File;
   supportingDocuments?: File[];
-  config?: SubstantiationWorkflowConfig;
+  config?: AnalysisFormConfig;
 }
 
 class AnalysisService {
@@ -96,68 +87,6 @@ class AnalysisService {
         reject(error);
       }
     });
-  }
-
-  async generateEvalPackage(
-    results: ClaimSubstantiatorStateOutput,
-    testName?: string,
-    description?: string,
-  ): Promise<Blob> {
-    try {
-      const evalRequest: EvalPackageRequest = {
-        results,
-        test_name: testName || generateDefaultTestName('eval'),
-        description: description || 'Generated from frontend analysis',
-      };
-
-      const response = await generateEvalPackageApiGenerateEvalPackagePost({
-        body: evalRequest,
-      });
-
-      // The response should be a Blob for file downloads
-      if (response instanceof Blob) {
-        return response;
-      }
-
-      // If it's not a Blob, try to convert it
-      throw new Error('Unexpected response type from eval package generation');
-    } catch (error) {
-      console.error('Error generating eval package:', error);
-      throw error;
-    }
-  }
-
-  async generateChunkEvalPackage(
-    results: ClaimSubstantiatorStateOutput,
-    chunkIndex: number,
-    selectedAgents: string[],
-    testName?: string,
-    description?: string,
-  ): Promise<Blob> {
-    try {
-      const evalRequest: ChunkEvalPackageRequest = {
-        results,
-        chunk_index: chunkIndex,
-        selected_agents: selectedAgents,
-        test_name: testName || generateDefaultTestName('chunk_eval', chunkIndex.toString()),
-        description: description || `Generated from chunk ${chunkIndex} analysis`,
-      };
-
-      const response = await generateChunkEvalPackageApiGenerateChunkEvalPackagePost({
-        body: evalRequest,
-      });
-
-      // The response should be a Blob for file downloads
-      if (response instanceof Blob) {
-        return response;
-      }
-
-      // If it's not a Blob, try to convert it
-      throw new Error('Unexpected response type from chunk eval package generation');
-    } catch (error) {
-      console.error('Error generating chunk eval package:', error);
-      throw error;
-    }
   }
 }
 

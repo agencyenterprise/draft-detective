@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, List
 
 if TYPE_CHECKING:
-    from lib.workflows.claim_substantiation.state import AnalyzedChunk
+    from lib.workflows.chunk_utils import AnalyzedChunk
     from lib.agents.document_summarizer import DocumentSummary
     from lib.models.bibliography_item import BibliographyItem
     from lib.services.file import FileDocument

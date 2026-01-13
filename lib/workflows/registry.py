@@ -44,7 +44,6 @@ def register_all_workflow_manifests():
     from lib.workflows.claim_reference_validation.manifest import (
         ClaimReferenceValidationManifest,
     )
-    from lib.workflows.claim_substantiation.manifest import ClaimSubstantiationManifest
     from lib.workflows.document_processing.manifest import DocumentProcessingManifest
     from lib.workflows.docx_generation.manifest import DocxGenerationManifest
     from lib.workflows.inference_validation.manifest import InferenceValidationManifest
@@ -63,7 +62,6 @@ def register_all_workflow_manifests():
         ReferenceExtractionManifest(),
         ClaimExtractionManifest(),
         CitationDetectionManifest(),
-        ClaimSubstantiationManifest(),
         ClaimReferenceValidationManifest(),
         CitationSuggesterManifest(),
         DocxGenerationManifest(),

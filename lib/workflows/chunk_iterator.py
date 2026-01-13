@@ -1,7 +1,7 @@
 from typing import Callable, List, Tuple
 
 from lib.run_utils import run_tasks
-from lib.workflows.claim_substantiation.state import AnalyzedChunk
+from lib.workflows.chunk_utils import AnalyzedChunk
 from lib.workflows.models import BaseWorkflowState, WorkflowError
 
 

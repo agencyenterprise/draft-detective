@@ -12,12 +12,12 @@ from lib.models.bibliography_item import BibliographyItem
 from lib.run_utils import run_tasks
 from lib.services.file import FileDocument
 from lib.services.file_artifacts_service.types import FileArtifactsServiceType
-from lib.workflows.claim_reference_validation.state import ClaimReferenceValidationState
-from lib.workflows.claim_substantiation.reference_providers import (
+from lib.workflows.chunk_utils import AnalyzedChunk
+from lib.workflows.claim_reference_validation.reference_providers import (
     RAGReferenceProvider,
     get_all_paragraph_citations,
 )
-from lib.workflows.claim_substantiation.state import AnalyzedChunk
+from lib.workflows.claim_reference_validation.state import ClaimReferenceValidationState
 from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
 from lib.workflows.models import WorkflowError
