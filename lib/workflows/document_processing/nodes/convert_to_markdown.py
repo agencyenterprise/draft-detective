@@ -1,4 +1,6 @@
 import logging
+import os
+import shutil
 
 from lib.config.env import config
 from lib.run_utils import run_tasks
@@ -94,14 +96,23 @@ async def _convert_to_markdown_using_markitdown(
         FileDocument with markdown content, token count, and docling_document set to None
     """
 
-    file_path = file_document.file_path
-    file_path_lower = file_document.file_path.lower()
-    is_legacy_doc = file_path_lower.endswith(".doc")
+    file_path = file_document.file_path.lower()
+    is_legacy_doc_mime = file_document.file_type == "application/msword"
+    is_legacy_doc_extension = file_path.endswith(".doc")
 
-    if is_legacy_doc:
+    if is_legacy_doc_mime:
+        # If the file is truly a legacy doc format, we need to convert it to docx first
         docx_file_path = await docx_preprocessor.convert_doc_to_docx(file_path)
         logger.info(f"Converted {file_path} to DOCX: {docx_file_path}")
         markdown = await convert_to_markdown_fn(docx_file_path, converter="markitdown")
+        os.remove(docx_file_path)  # Remove the temporary docx file
+    elif is_legacy_doc_extension:
+        # If the file is not a legacy doc format, but has a .doc extension, we need to rename the extension to .docx
+        # so markitdown can convert it
+        docx_file_path = await _copy_doc_to_docx(file_path)
+        logger.info(f"Copied {file_path} to {docx_file_path}")
+        markdown = await convert_to_markdown_fn(docx_file_path, converter="markitdown")
+        os.remove(docx_file_path)  # Remove the temporary docx file
     else:
         markdown = await convert_to_markdown_fn(file_path, converter="markitdown")
 
@@ -169,3 +180,13 @@ async def _convert_to_markdown_using_docling(
             "docling_document": docling_document,
         }
     )
+
+
+async def _copy_doc_to_docx(file_path: str) -> str:
+    """
+    Copy a .doc file to a .docx file in the same directory.
+    """
+
+    docx_file_path = file_path.replace(".doc", ".docx")
+    shutil.copy(file_path, docx_file_path)
+    return docx_file_path

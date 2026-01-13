@@ -144,6 +144,7 @@ async def load_file_document(file: File) -> FileDocument:
     return await create_file_document_from_path(
         file_path=file.file_path,
         file_id=str(file.id),
+        file_type=file.file_type,
         original_file_name=file.file_name,
         original_file_path=file.original_file_path,
         markdown_convert=False,

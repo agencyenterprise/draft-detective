@@ -19,6 +19,19 @@ npm install -g pnpm
 
 - **Docker & Docker Compose**: For containerized development
 
+- **libmagic**: Required for file type detection. Install via:
+
+```bash
+# macOS
+brew install libmagic
+
+# Ubuntu/Debian
+sudo apt-get install libmagic1
+
+# Fedora/RHEL
+sudo dnf install file-libs
+```
+
 Verify installations:
 
 ```bash
