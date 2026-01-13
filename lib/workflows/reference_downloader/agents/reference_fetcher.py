@@ -1,5 +1,5 @@
 from enum import StrEnum
-from typing import List, Optional
+from typing import Optional
 
 from langchain.agents import create_agent
 from langchain.chat_models import init_chat_model
@@ -42,9 +42,6 @@ class ReferenceFetchItem(BaseModel):
     )
     file_id: Optional[str] = Field(
         description="The ID of the verified downloaded file containing the full original content. Return null if conclusion is different than 'source_found'",
-    )
-    failed_file_ids: List[str] = Field(
-        description="The full list of file IDs that were downloaded in the process but failed to be verified as the correct full original content related to the reference",
     )
     final_conclusion: ReferenceFetchConclusion = Field()
 
