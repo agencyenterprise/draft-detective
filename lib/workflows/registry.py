@@ -43,6 +43,9 @@ def get_workflow_manifest(type: WorkflowRunType) -> WorkflowManifest:
 
 def register_all_workflow_manifests():
     from lib.workflows.citation_detection.manifest import CitationDetectionManifest
+    from lib.workflows.citation_detection_footnotes.manifest import (
+        CitationDetectionFootnotesManifest,
+    )
     from lib.workflows.citation_suggester.manifest import CitationSuggesterManifest
     from lib.workflows.claim_extraction.manifest import ClaimExtractionManifest
     from lib.workflows.claim_reference_validation.manifest import (
@@ -51,6 +54,7 @@ def register_all_workflow_manifests():
     from lib.workflows.claim_substantiation.manifest import ClaimSubstantiationManifest
     from lib.workflows.document_processing.manifest import DocumentProcessingManifest
     from lib.workflows.docx_generation.manifest import DocxGenerationManifest
+    from lib.workflows.footnote_extraction.manifest import FootnoteExtractionManifest
     from lib.workflows.inference_validation.manifest import InferenceValidationManifest
     from lib.workflows.literature_review.manifest import LiteratureReviewManifest
     from lib.workflows.live_reports.manifest import LiveReportsManifest
@@ -65,8 +69,10 @@ def register_all_workflow_manifests():
     manifests = [
         DocumentProcessingManifest(),
         ReferenceExtractionManifest(),
+        FootnoteExtractionManifest(),
         ClaimExtractionManifest(),
         CitationDetectionManifest(),
+        CitationDetectionFootnotesManifest(),
         ClaimSubstantiationManifest(),
         ClaimReferenceValidationManifest(),
         CitationSuggesterManifest(),
