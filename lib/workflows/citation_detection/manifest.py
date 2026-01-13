@@ -7,13 +7,10 @@ from lib.workflows.citation_detection.state import (
     CitationDetectionConfig,
     CitationDetectionState,
 )
-from lib.workflows.document_processing.state import DocumentProcessingState
-from lib.workflows.footnote_extraction.state import FootnoteExtractionState
-from lib.workflows.reference_extraction.state import ReferenceExtractionState
 from lib.workflows.manifest import WorkflowManifest
 from lib.workflows.models import DocumentIssue, WorkflowRunType
 from lib.workflows.types import WorkflowState
-from lib.workflows.util import get_main_file_id, get_state_by_type_or_raise
+from lib.workflows.util import get_main_file_id
 
 
 class CitationDetectionManifest(
@@ -48,28 +45,10 @@ class CitationDetectionManifest(
     ) -> CitationDetectionState:
         """Create and return the initial state of the workflow."""
 
-        # Get document processing artifacts from dependency workflow
-        doc_processing_state: DocumentProcessingState = get_state_by_type_or_raise(
-            WorkflowRunType.DOCUMENT_PROCESSING, existing_states
-        )
-
-        # Get extracted references from reference extraction workflow
-        ref_extraction_state: ReferenceExtractionState = get_state_by_type_or_raise(
-            WorkflowRunType.REFERENCE_EXTRACTION, existing_states
-        )
-
-        # Get extracted footnotes from footnote extraction workflow
-        footnote_extraction_state: FootnoteExtractionState = get_state_by_type_or_raise(
-            WorkflowRunType.FOOTNOTE_EXTRACTION, existing_states
-        )
-
         return CitationDetectionState(
             type=WorkflowRunType.CITATION_DETECTION,
             file_id=get_main_file_id(existing_states),
             config=config,
-            references=ref_extraction_state.references,
-            footnotes=footnote_extraction_state.footnotes,
-            chunks=doc_processing_state.chunks,
         )
 
     def convert_state_to_issues(
