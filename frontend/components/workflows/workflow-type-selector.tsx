@@ -10,6 +10,7 @@ interface WorkflowTypeSelectorProps {
   isPending?: boolean;
   workflowTypes?: WorkflowTypeDescription[];
   selectedTypes: WorkflowRunType[];
+  filter?: (wt: WorkflowTypeDescription) => boolean;
   onSelectionChange: (types: WorkflowRunType[]) => void;
   disabled?: boolean;
   disabledTypes?: WorkflowRunType[];
@@ -28,6 +29,7 @@ export function WorkflowTypeSelector({
   disabledTypes = [],
   showHeader = true,
   headerDescription,
+  filter,
   error,
   defaultShowExperimental = false,
 }: WorkflowTypeSelectorProps) {

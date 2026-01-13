@@ -53,9 +53,9 @@ import type {
   GetWorkflowFeedbackApiFeedbackWorkflowWorkflowRunIdGetData,
   GetWorkflowFeedbackApiFeedbackWorkflowWorkflowRunIdGetErrors,
   GetWorkflowFeedbackApiFeedbackWorkflowWorkflowRunIdGetResponses,
-  GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdProgressGetData,
-  GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdProgressGetErrors,
-  GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdProgressGetResponses,
+  GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdGetData,
+  GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdGetErrors,
+  GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdGetResponses,
   GetWorkflowStateApiWorkflowsWorkflowRunIdGetData,
   GetWorkflowStateApiWorkflowsWorkflowRunIdGetErrors,
   GetWorkflowStateApiWorkflowsWorkflowRunIdGetResponses,
@@ -656,14 +656,12 @@ export const downloadAllProjectFilesApiProjectProjectIdFilesDownloadAllGet = <Th
  *
  * Returns progress entries ordered by creation time.
  */
-export const getWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdProgressGet = <
-  ThrowOnError extends boolean = true,
->(
-  options: Options<GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdProgressGetData, ThrowOnError>,
+export const getWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdGet = <ThrowOnError extends boolean = true>(
+  options: Options<GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdGetData, ThrowOnError>,
 ) =>
   (options.client ?? client).get<
-    GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdProgressGetResponses,
-    GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdProgressGetErrors,
+    GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdGetResponses,
+    GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdGetErrors,
     ThrowOnError,
     'data'
   >({
