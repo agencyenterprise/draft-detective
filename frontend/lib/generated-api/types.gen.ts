@@ -987,12 +987,6 @@ export type ClaimSubstantiationResultWithClaimIndex = {
    */
   evidence_sources: Array<ClaimEvidenceSource>;
   /**
-   * Retrieved Passages
-   *
-   * Passages retrieved via RAG that were used for verification
-   */
-  retrieved_passages?: Array<RetrievedPassageInfo> | null;
-  /**
    * Chunk Index
    */
   chunk_index: number;
@@ -3170,38 +3164,6 @@ export type ResultsListResponse = {
    * The list of result sections.
    */
   result_sections: Array<ResultSection>;
-};
-
-/**
- * RetrievedPassageInfo
- *
- * Information about a passage retrieved via RAG.
- */
-export type RetrievedPassageInfo = {
-  /**
-   * Content
-   *
-   * The text content of the retrieved passage
-   */
-  content: string;
-  /**
-   * Source File
-   *
-   * Name of the source file
-   */
-  source_file: string;
-  /**
-   * Cosine Distance
-   *
-   * Cosine distance (0-1, lower = more similar)
-   */
-  cosine_distance: number;
-  /**
-   * Chunk Index
-   *
-   * Index of the chunk within the source
-   */
-  chunk_index: number;
 };
 
 /**
