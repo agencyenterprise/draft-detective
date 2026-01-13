@@ -15,6 +15,16 @@ from tests.evals.datasets.loader import load_dataset
 TESTS_DIR = Path(__file__).parent.parent
 
 
+def _format_footnotes_list(footnotes_data):
+    """Format footnotes list for the agent prompt."""
+    if not footnotes_data:
+        return "No footnotes available."
+    lines = []
+    for fn in footnotes_data:
+        lines.append(f"[{fn['marker']}]. {fn['text']}")
+    return "\n".join(lines)
+
+
 def _build_cases() -> list[AgentTestCase]:
     # Load dataset from YAML
     dataset_path = str(TESTS_DIR / "datasets" / "citation_detector.yaml")
@@ -28,9 +38,8 @@ def _build_cases() -> list[AgentTestCase]:
     cases: list[AgentTestCase] = []
 
     for test_case in dataset.items:
-        # Load main document from input
-        main_path = data_path(test_case.input["main_document"])
-        main_doc = asyncio.run(create_test_file_document_from_path(main_path))
+        # Format footnotes list
+        footnotes_list = _format_footnotes_list(test_case.input.get("footnotes", []))
 
         cases.append(
             AgentTestCase(
@@ -38,13 +47,12 @@ def _build_cases() -> list[AgentTestCase]:
                 agent=CitationDetectorAgent(create_test_context()),
                 response_model=CitationResponse,
                 prompt_kwargs={
-                    "full_document": main_doc.markdown,
+                    "footnotes_list": footnotes_list,
                     "bibliography": "\n\n".join(
                         f"{i+1}. {ref}"
                         for i, ref in enumerate(test_case.input["bibliography"])
                     ),
                     "chunk": test_case.input["chunk"],
-                    "feedback": "",
                 },
                 expected_dict=test_case.expected_output,
                 strict_fields=strict_fields,
