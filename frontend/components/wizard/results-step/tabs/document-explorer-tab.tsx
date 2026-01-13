@@ -1,7 +1,7 @@
 'use client';
 
 import { AiGeneratedLabel } from '@/components/ai-generated-label';
-import { Card, CardContent } from '@/components/ui/card';
+import { SkeletonList } from '@/components/ui/skeleton-list';
 import { useChunkHashNavigation } from '@/lib/chunk-ids';
 import { DocRenderMode } from '@/lib/constants';
 import { DocumentIssue, SeverityEnum, WorkflowRunDetail, WorkflowRunType } from '@/lib/generated-api';
@@ -12,7 +12,6 @@ import {
   isWorkflowProcessing,
 } from '@/lib/workflow-state';
 import { AlertTriangleIcon, Loader2 } from 'lucide-react';
-import Image from 'next/image';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ChunkSidebarContent } from '../components/chunk-sidebar-content';
 import { DoclingViewer } from '../components/docling-viewer';
@@ -160,28 +159,6 @@ export function DocumentExplorerTab({
         </div>
         <div ref={sidebarRef} className="col-span-5 bg-muted/50 p-4 rounded-lg text-sm overflow-y-auto">
           <div className="space-y-4 pb-8">
-            {isAnyProcessing && (
-              <Card>
-                <CardContent className="flex flex-col justify-center space-y-2 py-8 text-center items-center">
-                  <Image
-                    src="/undraw_chat-with-ai_ir62.svg"
-                    alt="Document Explorer"
-                    width={200}
-                    height={100}
-                    className="mb-8"
-                  />
-                  <div className="flex items-center justify-center gap-2">
-                    <Loader2 className="h-6 w-6 animate-spin" />
-                    <p className="font-medium text-xl">Analyzing document</p>
-                  </div>
-                  <p className="text-gray-600">
-                    You can leave this page and come back later to view the results as the analysis runs in the
-                    background.
-                  </p>
-                </CardContent>
-              </Card>
-            )}
-
             {!selectedChunk && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between gap-2">
@@ -190,6 +167,7 @@ export function DocumentExplorerTab({
                       (filteredIssues.length === issues.length
                         ? `${issues.length} issues`
                         : `${filteredIssues.length} of ${issues.length}`)}
+                    {issues.length === 0 && isAnyProcessing && 'Finding issues...'}
                   </span>
                   {issues.length > 0 && <SeverityFilter value={severityFilter} onChange={setSeverityFilter} />}
                   <AiGeneratedLabel />
@@ -201,6 +179,7 @@ export function DocumentExplorerTab({
                   </div>
                 )}
                 <DocumentIssuesList issues={filteredIssues} onSelect={handleSelectIssue} />
+                {isAnyProcessing && <SkeletonList count={3} />}
               </div>
             )}
 
