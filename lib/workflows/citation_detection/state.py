@@ -5,9 +5,6 @@ from pydantic import Field
 from lib.agents.citation_detector import (
     CitationResponseWithChunkIndex,
 )
-from lib.models.bibliography_item import BibliographyItem
-from lib.models.footnote_item import FootnoteItem
-from lib.workflows.document_processing.state import DocumentChunk
 from lib.workflows.models import BaseWorkflowConfig, BaseWorkflowState, WorkflowRunType
 
 
@@ -29,9 +26,6 @@ class CitationDetectionState(BaseWorkflowState):
     # Inputs
     file_id: str
     config: CitationDetectionConfig
-    chunks: List[DocumentChunk] = []
-    references: List[BibliographyItem] = []
-    footnotes: List[FootnoteItem] = []
 
     # Outputs
     citations: List[CitationResponseWithChunkIndex] = []
