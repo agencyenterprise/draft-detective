@@ -1,6 +1,10 @@
-from typing import List
-from pydantic import BaseModel
+from datetime import datetime
+from typing import Any, List, Optional
+from uuid import UUID
 
+from pydantic import BaseModel, Field, computed_field, field_validator
+
+from lib.models.workflow_progress import ProgressLevel
 from lib.workflows.models import WorkflowRunType
 
 
@@ -21,6 +25,16 @@ class StartMultipleWorkflowsRequest(BaseModel):
     openai_api_key: str | None = None
 
 
+class AnalysisFormConfig(BaseModel):
+    """Form config for starting analysis (project creation + workflow start)"""
+
+    domain: Optional[str] = None
+    target_audience: Optional[str] = None
+    openai_api_key: Optional[str] = None
+    publication_date: Optional[str] = None
+    workflow_types: Optional[List[WorkflowRunType]] = None
+
+
 class StartMultipleWorkflowsResponse(BaseModel):
     """Response model for starting multiple workflows"""
 
@@ -28,3 +42,38 @@ class StartMultipleWorkflowsResponse(BaseModel):
     types: List[WorkflowRunType]
     workflow_run_ids: List[str]
     message: str
+
+
+class WorkflowProgressResponse(BaseModel):
+    """Response model for workflow progress entries."""
+
+    id: str
+    workflow_run_id: str
+    name: str
+    level: ProgressLevel
+    current_step: int
+    total_steps: int
+    started_at: Optional[datetime] = None
+    completed_at: Optional[datetime] = None
+    created_at: datetime
+    updated_at: datetime
+
+    @field_validator("id", "workflow_run_id", mode="before")
+    @classmethod
+    def convert_uuid_to_str(cls, v: Any) -> str:
+        """Convert UUID to string for model_validate compatibility."""
+        if isinstance(v, UUID):
+            return str(v)
+        return v
+
+    @computed_field
+    @property
+    def status(self) -> str:
+        """Derive status from timestamps."""
+        if self.completed_at:
+            return "completed"
+        if self.started_at:
+            return "in_progress"
+        return "pending"
+
+    model_config = {"from_attributes": True}

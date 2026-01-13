@@ -1955,7 +1955,11 @@ export type FileDocumentOutput = {
  *
  * Extensible enum for file purposes in workflows
  */
-export const FileRole = { Main: 'main', Support: 'support' } as const;
+export const FileRole = {
+  Main: 'main',
+  Support: 'support',
+  SupportingCandidate: 'supporting_candidate',
+} as const;
 
 /**
  * FileRole
@@ -2257,9 +2261,11 @@ export type MethodologicalAlignmentState = {
    */
   type?: 'methodological_alignment';
   /**
-   * The main source document
+   * File Id
+   *
+   * The ID of the main source document
    */
-  file: FileDocumentOutput;
+  file_id: string;
   /**
    * Methodology alignment analysis result
    */
@@ -2357,6 +2363,24 @@ export const PoliticalBias = {
  * PoliticalBias
  */
 export type PoliticalBias = (typeof PoliticalBias)[keyof typeof PoliticalBias];
+
+/**
+ * ProgressLevel
+ *
+ * Level of progress tracking.
+ */
+export const ProgressLevel = {
+  Workflow: 'workflow',
+  Node: 'node',
+  Task: 'task',
+} as const;
+
+/**
+ * ProgressLevel
+ *
+ * Level of progress tracking.
+ */
+export type ProgressLevel = (typeof ProgressLevel)[keyof typeof ProgressLevel];
 
 /**
  * Project
@@ -2630,7 +2654,7 @@ export type ReferenceDownloaderState = {
    *
    * The response from the reference fetcher agent
    */
-  fetched_references?: Array<ReferenceFetchItem> | null;
+  fetched_references?: Array<ReferenceFetchResult>;
 };
 
 /**
@@ -2814,14 +2838,60 @@ export type ReferenceFetchItem = {
    * The ID of the verified downloaded file containing the full original content. Return null if conclusion is different than 'source_found'
    */
   file_id: string | null;
-  /**
-   * Failed File Ids
-   *
-   * The full list of file IDs that were downloaded in the process but failed to be verified as the correct full original content related to the reference
-   */
-  failed_file_ids: Array<string>;
   final_conclusion: ReferenceFetchConclusion;
 };
+
+/**
+ * ReferenceFetchResult
+ *
+ * Wrapper for reference fetch results with status tracking
+ */
+export type ReferenceFetchResult = {
+  /**
+   * Index
+   *
+   * Index of this reference in the input list
+   */
+  index: number;
+  /**
+   * Input Reference
+   *
+   * The original input reference
+   */
+  input_reference: string;
+  /**
+   * Current status of this reference fetch
+   */
+  status?: ReferenceFetchStatus;
+  /**
+   * The fetch result, present on success
+   */
+  result?: ReferenceFetchItem | null;
+  /**
+   * Error
+   *
+   * Error message, present on failure
+   */
+  error?: string | null;
+};
+
+/**
+ * ReferenceFetchStatus
+ *
+ * Status of a reference fetch operation
+ */
+export const ReferenceFetchStatus = {
+  Pending: 'pending',
+  Completed: 'completed',
+  Error: 'error',
+} as const;
+
+/**
+ * ReferenceFetchStatus
+ *
+ * Status of a reference fetch operation
+ */
+export type ReferenceFetchStatus = (typeof ReferenceFetchStatus)[keyof typeof ReferenceFetchStatus];
 
 /**
  * ReferenceMinimal
@@ -2907,10 +2977,6 @@ export type ReferenceValidationState = {
    */
   type?: 'reference_validation';
   config: ReferenceValidationWorkflowConfig;
-  /**
-   * References
-   */
-  references?: Array<BibliographyItem>;
   /**
    * Reference Validations
    */
@@ -3105,9 +3171,11 @@ export type ResultsExtractionState = {
    */
   type?: 'results_extraction';
   /**
-   * The main source document
+   * File Id
+   *
+   * The ID of the file to extract results from
    */
-  file: FileDocumentOutput;
+  file_id: string;
   /**
    * Extracted results with reproducibility assessments
    */
@@ -3431,6 +3499,72 @@ export type WorkflowError = {
 };
 
 /**
+ * WorkflowProgress
+ *
+ * Progress tracking for workflows, nodes, and tasks.
+ */
+export type WorkflowProgress = {
+  /**
+   * Id
+   *
+   * Unique identifier for the progress entry
+   */
+  id: string;
+  /**
+   * Workflow Run Id
+   *
+   * FK to the workflow run this progress belongs to
+   */
+  workflow_run_id: string;
+  /**
+   * Name
+   *
+   * Human-readable name of what's being tracked
+   */
+  name: string;
+  /**
+   * Level of progress: workflow, node, or task
+   */
+  level: ProgressLevel;
+  /**
+   * Current Step
+   *
+   * Current step/item being processed
+   */
+  current_step?: number;
+  /**
+   * Total Steps
+   *
+   * Total steps/items to process
+   */
+  total_steps?: number;
+  /**
+   * Started At
+   *
+   * When this progress entry started
+   */
+  started_at?: Date | null;
+  /**
+   * Completed At
+   *
+   * When this progress entry completed
+   */
+  completed_at?: Date | null;
+  /**
+   * Created At
+   *
+   * When this progress entry was created
+   */
+  created_at: Date;
+  /**
+   * Updated At
+   *
+   * When this progress entry was last updated
+   */
+  updated_at: Date;
+};
+
+/**
  * WorkflowRun
  */
 export type WorkflowRun = {
@@ -3589,6 +3723,12 @@ export type WorkflowTypeDescription = {
    * Whether the workflow can be triggered by the user
    */
   can_be_triggered_by_user: boolean;
+  /**
+   * Is Experimental
+   *
+   * Whether the workflow is experimental
+   */
+  is_experimental: boolean;
 };
 
 /**
@@ -3751,32 +3891,6 @@ export type FileDocumentOutputWritable = {
 };
 
 /**
- * MethodologicalAlignmentState
- *
- * State for the methodological alignment workflow
- */
-export type MethodologicalAlignmentStateWritable = {
-  /**
-   * Errors
-   *
-   * Errors that occurred during the workflow execution.
-   */
-  errors?: Array<WorkflowError>;
-  /**
-   * Type
-   */
-  type?: 'methodological_alignment';
-  /**
-   * The main source document
-   */
-  file: FileDocumentOutputWritable;
-  /**
-   * Methodology alignment analysis result
-   */
-  methodology_comparison?: MethodologyComparisonResponse | null;
-};
-
-/**
  * ProjectDetailed
  */
 export type ProjectDetailedWritable = {
@@ -3802,30 +3916,6 @@ export type ProjectDetailedWritable = {
 };
 
 /**
- * ResultsExtractionState
- */
-export type ResultsExtractionStateWritable = {
-  /**
-   * Errors
-   *
-   * Errors that occurred during the workflow execution.
-   */
-  errors?: Array<WorkflowError>;
-  /**
-   * Type
-   */
-  type?: 'results_extraction';
-  /**
-   * The main source document
-   */
-  file: FileDocumentOutputWritable;
-  /**
-   * Extracted results with reproducibility assessments
-   */
-  results?: ResultsListResponse | null;
-};
-
-/**
  * WorkflowRunDetail
  */
 export type WorkflowRunDetailWritable = {
@@ -3840,14 +3930,14 @@ export type WorkflowRunDetailWritable = {
     | ClaimSubstantiatorStateOutputWritable
     | ClaimReferenceValidationState
     | CitationDetectionState
-    | MethodologicalAlignmentStateWritable
+    | MethodologicalAlignmentState
     | ReferenceDownloaderState
     | DocxGenerationState
     | LiteratureReviewState
     | LiveReportsState
     | ReferenceValidationState
     | CitationSuggesterState
-    | ResultsExtractionStateWritable
+    | ResultsExtractionState
     | InferenceValidationState
     | null;
 };
@@ -4514,7 +4604,14 @@ export type DownloadAllProjectFilesApiProjectProjectIdFilesDownloadAllGetData = 
      */
     project_id: string;
   };
-  query?: never;
+  query?: {
+    /**
+     * Roles
+     *
+     * Filter files by role(s). If not provided, main and support files are included by default.
+     */
+    roles?: Array<FileRole> | null;
+  };
   url: '/api/project/{project_id}/files/download-all';
 };
 
@@ -4534,6 +4631,40 @@ export type DownloadAllProjectFilesApiProjectProjectIdFilesDownloadAllGetRespons
    */
   200: unknown;
 };
+
+export type GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdProgressGetData = {
+  body?: never;
+  path: {
+    /**
+     * Workflow Run Id
+     */
+    workflow_run_id: string;
+  };
+  query?: never;
+  url: '/api/progress/workflow/{workflow_run_id}';
+};
+
+export type GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdProgressGetErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdProgressGetError =
+  GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdProgressGetErrors[keyof GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdProgressGetErrors];
+
+export type GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdProgressGetResponses = {
+  /**
+   * Response Get Workflow Progress Endpoint Api Progress Workflow  Workflow Run Id  Progress Get
+   *
+   * Successful Response
+   */
+  200: Array<WorkflowProgress>;
+};
+
+export type GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdProgressGetResponse =
+  GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdProgressGetResponses[keyof GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdProgressGetResponses];
 
 export type GetProjectShareStatusApiProjectsProjectIdShareGetData = {
   body?: never;

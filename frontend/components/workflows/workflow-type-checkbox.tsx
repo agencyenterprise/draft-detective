@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import * as CheckboxPrimitive from '@radix-ui/react-checkbox';
-import { CheckIcon, Search } from 'lucide-react';
+import { CheckIcon, FlaskConical, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { WorkflowTypeDescription } from '@/lib/generated-api';
 import { Badge } from '../ui/badge';
@@ -53,12 +53,20 @@ export function WorkflowTypeCheckbox({
             {workflowType.name}
           </span>
         </div>
-        {workflowType.needs_web_search && (
-          <Badge variant="outline" className="flex items-center gap-1 text-xs ml-2 shrink-0">
-            <Search className="size-3" />
-            Performs Web Search
-          </Badge>
-        )}
+        <div className="flex items-center gap-2">
+          {workflowType.is_experimental && (
+            <Badge variant="secondary" className="flex items-center gap-1 text-xs shrink-0">
+              <FlaskConical className="size-3" />
+              Experimental
+            </Badge>
+          )}
+          {workflowType.needs_web_search && (
+            <Badge variant="outline" className="flex items-center gap-1 text-xs shrink-0">
+              <Search className="size-3" />
+              Performs Web Search
+            </Badge>
+          )}
+        </div>
       </div>
       <p className="text-sm text-muted-foreground pl-6">{workflowType.description}</p>
     </label>

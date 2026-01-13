@@ -75,6 +75,10 @@ export function WorkflowConfigDialog({ isOpen, type, onConfirm, onCancel }: Work
       (workflowType) => workflowType.can_be_triggered_by_user && (type ? workflowType.type === type : true),
     ) ?? [];
 
+  const preselectedIsExperimental = type
+    ? (workflowTypes?.find((wt) => wt.type === type)?.is_experimental ?? false)
+    : false;
+
   return (
     <Dialog open={isOpen} onOpenChange={onCancel}>
       <DialogContent className="min-w-2xl max-h-[90vh] overflow-y-auto">
@@ -124,6 +128,7 @@ export function WorkflowConfigDialog({ isOpen, type, onConfirm, onCancel }: Work
                 selectedTypes={field.state.value}
                 onSelectionChange={field.handleChange}
                 disabledTypes={type ? [type] : undefined}
+                defaultShowExperimental={preselectedIsExperimental}
                 error={
                   !field.state.meta.isValid && field.state.meta.errors.length > 0
                     ? field.state.meta.errors.join(', ')

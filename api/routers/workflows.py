@@ -28,7 +28,6 @@ from lib.services.workflow_runs import (
     get_workflow_run_state,
     get_workflow_run_state_by_thread_id,
 )
-from lib.workflows.claim_substantiation.state import SubstantiationWorkflowConfig
 from lib.workflows.models import WorkflowRunType
 from lib.workflows.types import WorkflowConfig
 
@@ -105,13 +104,7 @@ async def start_multiple_workflows(
 
     workflow_run_ids = await start_multiple_workflow_runs(
         workflow_types=request.workflow_types,
-        base_config=SubstantiationWorkflowConfig(
-            # TODO: replace this after we consolidate the workflow config
-            type=WorkflowRunType.CLAIM_SUBSTANTIATION,
-            project_id=request.project_id,
-            workflow_types=request.workflow_types,
-            openai_api_key=request.openai_api_key,
-        ),
+        request=request,
         user=user,
         background_tasks=background_tasks,
     )

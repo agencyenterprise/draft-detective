@@ -1,30 +1,31 @@
 'use client';
 
-import * as React from 'react';
 import { useMutation } from '@tanstack/react-query';
-import { useRouter } from 'next/navigation';
+import * as React from 'react';
 
-import { toast } from 'sonner';
-import { useSessionStorage } from '@/lib/hooks/use-session-storage';
-import { useToolProjectUrl } from '@/hooks/use-tool-project-url';
-import { useReferenceDownloader } from '../hooks/use-reference-downloader';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { AlertCircle, Loader2, Play } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { useToolProjectUrl } from '@/hooks/use-tool-project-url';
 import { WorkflowRunType, startWorkflowApiWorkflowsStartPost } from '@/lib/generated-api';
+import { useProjectDetails } from '@/lib/hooks/use-project-details';
+import { useSessionStorage } from '@/lib/hooks/use-session-storage';
+import { getWorkflowRunByType } from '@/lib/workflow-state';
+import { AlertCircle, Loader2, Play } from 'lucide-react';
+import { toast } from 'sonner';
 import { ReferenceDownloaderResultsDisplay } from './reference-downloader-results-display';
 
 export function ReferenceDownloaderTool() {
-  const router = useRouter();
   const [references, setReferences] = React.useState('');
   const [openaiApiKey, setOpenaiApiKey] = useSessionStorage<string>('openai-api-key', '');
   const hideOpenaiApiKeyInput = process.env.NEXT_PUBLIC_HIDE_CUSTOM_OPENAI_API_KEY_INPUT === 'true';
 
   const { projectId, setProjectId } = useToolProjectUrl();
 
-  const { results, isProcessing: isWorkflowProcessing, reset: resetWorkflow } = useReferenceDownloader(projectId);
+  const { workflowDetails, isProcessing: isWorkflowProcessing } = useProjectDetails(projectId!, !!projectId);
+
+  const referenceDownloader = getWorkflowRunByType(workflowDetails, WorkflowRunType.ReferenceDownloader);
 
   const startWorkflowMutation = useMutation({
     mutationFn: async (references: string[]) => {
@@ -39,7 +40,6 @@ export function ReferenceDownloaderTool() {
     },
     onSuccess: (response) => {
       setProjectId(response.project_id ?? null);
-      resetWorkflow();
       toast.success('Workflow started');
     },
     onError: (error) => {
@@ -68,15 +68,8 @@ export function ReferenceDownloaderTool() {
     startWorkflowMutation.mutate(referenceList);
   };
 
-  const handleReset = () => {
-    resetWorkflow();
-    setProjectId(null);
-    setReferences('');
-    router.replace(window.location.pathname);
-  };
-
   const isProcessing = startWorkflowMutation.isPending || isWorkflowProcessing;
-  const fetchedReferences = results?.fetched_references ?? [];
+  const fetchedReferences = referenceDownloader?.state?.fetched_references ?? [];
   const hasResults = fetchedReferences.length > 0;
 
   return (
@@ -136,7 +129,7 @@ export function ReferenceDownloaderTool() {
         )}
       </div>
 
-      {isProcessing && !hasResults && (
+      {isProcessing && (
         <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
           <div className="flex items-center gap-2">
             <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
@@ -162,11 +155,6 @@ export function ReferenceDownloaderTool() {
 
       {hasResults && (
         <div className="space-y-4">
-          <div className="flex items-center justify-end mb-2">
-            <Button onClick={handleReset} variant="outline" size="sm">
-              Start New
-            </Button>
-          </div>
           <ReferenceDownloaderResultsDisplay results={fetchedReferences} projectId={projectId} />
         </div>
       )}

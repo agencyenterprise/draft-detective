@@ -125,6 +125,42 @@ async def get_files_count_by_project_id(project_id: uuid.UUID | str) -> int:
         return count
 
 
+async def get_supporting_candidate_files(project_id: uuid.UUID | str) -> List[File]:
+    """
+    Get all files with SUPPORTING_CANDIDATE role for a project.
+
+    These are files downloaded by the reference fetcher that are pending validation.
+    """
+    project_id = _normalize_uuid(project_id, "project ID")
+    with get_db() as db:
+        files = (
+            db.query(File)
+            .filter(File.project_id == project_id)
+            .filter(File.role == FileRole.SUPPORTING_CANDIDATE)
+            .all()
+        )
+        return files
+
+
+def update_files_role(file_ids: Sequence[uuid.UUID | str], role: FileRole) -> None:
+    """
+    Update the role of multiple files.
+
+    Args:
+        file_ids: List of file IDs to update
+        role: The new role to set
+    """
+    if not file_ids:
+        return
+
+    with get_db() as db:
+        normalized_ids = [_normalize_uuid(fid, "file ID") for fid in file_ids]
+        db.query(File).filter(File.id.in_(normalized_ids)).update(
+            {File.role: role}, synchronize_session=False
+        )
+        db.commit()
+
+
 async def load_file_document(file: File) -> FileDocument:
     """
     Convert File model to FileDocument with markdown loaded.
@@ -192,8 +228,8 @@ async def check_file_access(file_id: uuid.UUID | str, user_id: uuid.UUID) -> Fil
 
 def delete_project_files(
     project_id: uuid.UUID | str,
-    target_file_ids: Sequence[uuid.UUID | str] | None = None,
-) -> None:
+    target_file_ids: Sequence[str] | None = None,
+) -> int:
     """
     Delete all files for a project from the database and remove disk files
     only when they are not referenced by other projects.
@@ -201,9 +237,13 @@ def delete_project_files(
     Args:
         project_id: UUID of the project to delete files for
         target_file_ids: Optional list of file IDs to delete. If not provided, all files for the project will be deleted.
+
+    Returns:
+        The number of files deleted
     """
 
     normalized_project_id = _normalize_uuid(project_id, "project ID")
+    deleted_count = 0
 
     with get_db() as db:
         project_files = (
@@ -211,7 +251,7 @@ def delete_project_files(
         )
 
         for file in project_files:
-            if target_file_ids is not None and file.id not in target_file_ids:
+            if target_file_ids is not None and str(file.id) not in target_file_ids:
                 continue
 
             if not _is_path_shared(db, file.file_path, normalized_project_id):
@@ -223,10 +263,11 @@ def delete_project_files(
                 _delete_file_from_disk(file.original_file_path)
 
             db.delete(file)
+            deleted_count += 1
 
         db.commit()
 
-    return None
+    return deleted_count
 
 
 def _is_path_shared(db: Session, path: str, project_id: uuid.UUID) -> bool:
@@ -260,12 +301,14 @@ def _delete_file_from_disk(
 
 async def create_project_files_zip(
     project_id: uuid.UUID | str,
+    roles: Optional[List[FileRole]] = None,
 ) -> Tuple[io.BytesIO, int]:
     """
     Create a ZIP archive containing all files for a project.
 
     Args:
         project_id: UUID of the project
+        roles: Optional list of file roles to filter by. If None, main and support files are included by default.
 
     Returns:
         Tuple of (BytesIO buffer containing the ZIP file, number of files added)
@@ -274,6 +317,14 @@ async def create_project_files_zip(
         HTTPException: 404 if no files found or no accessible files
     """
     files = await get_files_by_project_id(project_id)
+
+    # Default to main and support files if no roles are specified
+    if roles is None:
+        roles = [FileRole.MAIN, FileRole.SUPPORT]
+
+    # Filter files by roles if specified
+    if roles:
+        files = [f for f in files if f.role in roles]
 
     if not files:
         raise HTTPException(status_code=404, detail="No files found for this project")
