@@ -12,8 +12,8 @@ class TestDecoratorProgressTracking:
     """Test that the decorator creates and completes progress entries."""
 
     @pytest.mark.asyncio
-    @patch('lib.workflows.decorators.create_and_start_progress')
-    @patch('lib.workflows.decorators.complete_progress')
+    @patch("lib.workflows.decorators.create_and_start_progress")
+    @patch("lib.workflows.decorators.complete_progress")
     async def test_decorator_creates_progress_on_node_execution(
         self, mock_complete, mock_create
     ):
@@ -42,22 +42,23 @@ class TestDecoratorProgressTracking:
         # Verify progress was created with UUID (converted from string)
         mock_create.assert_called_once()
         call_kwargs = mock_create.call_args[1]
-        assert isinstance(call_kwargs['workflow_run_id'], uuid.UUID)
-        assert str(call_kwargs['workflow_run_id']) == workflow_run_id_str
-        assert call_kwargs['name'] == "Test Node"
-        assert call_kwargs['level'] == ProgressLevel.NODE
-        assert call_kwargs['total_steps'] == 1
+        assert isinstance(call_kwargs["workflow_run_id"], uuid.UUID)
+        assert str(call_kwargs["workflow_run_id"]) == workflow_run_id_str
+        assert call_kwargs["name"] == "Test Node"
+        assert call_kwargs["level"] == ProgressLevel.NODE
+        assert call_kwargs["total_steps"] == 1
 
         # Verify progress was completed
         mock_complete.assert_called_once_with(progress_id)
 
     @pytest.mark.asyncio
-    @patch('lib.workflows.decorators.create_and_start_progress')
-    @patch('lib.workflows.decorators.complete_progress')
+    @patch("lib.workflows.decorators.create_and_start_progress")
+    @patch("lib.workflows.decorators.complete_progress")
     async def test_decorator_handles_missing_workflow_run_id(
         self, mock_complete, mock_create
     ):
         """Test that decorator handles missing workflow_run_id gracefully."""
+
         # Create a test node
         @register_node("Test Node 2", "A test node")
         async def test_node(state, runtime):
@@ -79,23 +80,22 @@ class TestDecoratorProgressTracking:
         mock_complete.assert_not_called()
 
     @pytest.mark.asyncio
-    @patch('lib.workflows.decorators.create_and_start_progress')
-    @patch('lib.workflows.decorators.complete_progress')
-    async def test_decorator_handles_missing_runtime(
-        self, mock_complete, mock_create
-    ):
+    @patch("lib.workflows.decorators.create_and_start_progress")
+    @patch("lib.workflows.decorators.complete_progress")
+    async def test_decorator_handles_missing_runtime(self, mock_complete, mock_create):
         """Test that decorator handles missing runtime gracefully."""
+
         # Create a test node
         @register_node("Test Node 3", "A test node")
-        async def test_node(state):
+        async def test_node(state, runtime):
             return {"result": "success"}
 
-        # Execute node WITHOUT runtime
+        # Execute node with runtime=None
         mock_state = Mock()
         mock_state.config = Mock()
         mock_state.config.project_id = None
         mock_state.config.agents_to_run = None
-        result = await test_node(mock_state)
+        result = await test_node(mock_state, None)
 
         # Verify progress was NOT created (no runtime)
         mock_create.assert_not_called()
@@ -119,8 +119,10 @@ class TestRunTasksProgressTracking:
 
         try:
             # Patch update_progress to capture calls
-            with patch('lib.services.workflow_progress.update_progress') as mock_update:
-                mock_update.side_effect = lambda pid, **kwargs: update_calls.append((pid, kwargs))
+            with patch("lib.services.workflow_progress.update_progress") as mock_update:
+                mock_update.side_effect = lambda pid, **kwargs: update_calls.append(
+                    (pid, kwargs)
+                )
 
                 # Create simple async tasks
                 async def task1():
@@ -142,7 +144,9 @@ class TestRunTasksProgressTracking:
                 # With 2 tasks, we expect:
                 # 1. Initial update with total_steps=2
                 # 2. Progress update after each task completion (current_step=1, then 2)
-                assert len(update_calls) >= 2, f"Expected at least 2 progress updates, got {len(update_calls)}"
+                assert (
+                    len(update_calls) >= 2
+                ), f"Expected at least 2 progress updates, got {len(update_calls)}"
 
                 # Verify all updates used the correct progress_id
                 for call_progress_id, _ in update_calls:
@@ -170,4 +174,3 @@ class TestRunTasksProgressTracking:
         # Verify results
         assert results == ["result1", "result2"]
         assert errors == [None, None]
-
