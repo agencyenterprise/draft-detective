@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { getWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdProgressGet } from '@/lib/generated-api';
+import { getWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdGet } from '@/lib/generated-api';
 import {
   getProgressStatus,
   ToastContent,
@@ -28,7 +28,7 @@ export function useWorkflowProgressToast(workflowRunIds: string[]) {
 
       const results = await Promise.all(
         sortedIds.map((id) =>
-          getWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdProgressGet({
+          getWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdGet({
             path: { workflow_run_id: id },
           }),
         ),

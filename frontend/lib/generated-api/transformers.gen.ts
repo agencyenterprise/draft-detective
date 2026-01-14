@@ -4,7 +4,7 @@ import type {
   CreateProjectEndpointApiProjectsPostResponse,
   GetProjectEndpointApiProjectProjectIdGetResponse,
   GetSharedResourceApiPublicShareTokenGetResponse,
-  GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdProgressGetResponse,
+  GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdGetResponse,
   GetWorkflowStateApiWorkflowsWorkflowRunIdGetResponse,
   ListProjectFilesEndpointApiProjectProjectIdFilesGetResponse,
   ListProjectsEndpointApiProjectsGetResponse,
@@ -92,7 +92,7 @@ export const listProjectFilesEndpointApiProjectProjectIdFilesGetResponseTransfor
   return data;
 };
 
-const workflowProgressSchemaResponseTransformer = (data: any) => {
+const workflowProgressResponseSchemaResponseTransformer = (data: any) => {
   if (data.started_at) {
     data.started_at = new Date(data.started_at);
   }
@@ -104,10 +104,10 @@ const workflowProgressSchemaResponseTransformer = (data: any) => {
   return data;
 };
 
-export const getWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdProgressGetResponseTransformer = async (
+export const getWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdGetResponseTransformer = async (
   data: any,
-): Promise<GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdProgressGetResponse> => {
-  data = data.map((item: any) => workflowProgressSchemaResponseTransformer(item));
+): Promise<GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdGetResponse> => {
+  data = data.map((item: any) => workflowProgressResponseSchemaResponseTransformer(item));
   return data;
 };
 
