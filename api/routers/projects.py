@@ -7,7 +7,7 @@ from fastapi import Form, HTTPException, Query, UploadFile, status
 from fastapi.responses import StreamingResponse
 from starlette.responses import FileResponse
 
-from api.auth import get_current_user
+from api.auth import get_current_user, get_current_user_optional
 from api.upload import save_uploaded_files_to_db
 from lib.models.file import File, FileRole
 from lib.models.project import Project
@@ -25,6 +25,7 @@ from lib.services.projects import (
     get_user_projects,
     update_user_project,
 )
+from lib.services.share_links import get_resource_by_token
 
 router = APIRouter(tags=["projects"])
 logger = logging.getLogger(__name__)
@@ -115,7 +116,7 @@ async def download_project_docx(
         default=None,
         description="Share token to include share links in comments",
     ),
-    current_user: User = Depends(get_current_user),
+    current_user: Optional[User] = Depends(get_current_user_optional),
 ):
     """
     Download DOCX with AI comments.
@@ -125,18 +126,25 @@ async def download_project_docx(
     Subsequent requests with the same share_token (or none) are instant.
     """
 
-    project_detail = await get_user_project_detailed(project_id, user=current_user)
+    if current_user is None:
+        if not share_token:
+            raise HTTPException(status_code=403, detail="Access denied")
+
+        share_link = await get_resource_by_token(share_token)
+        if share_link is None or str(share_link.resource_id) != project_id:
+            raise HTTPException(status_code=403, detail="Access denied")
+    else:
+        await get_user_project_detailed(project_id, user=current_user)
 
     try:
         # Get cached or generate DOCX via workflow (with caching)
         file_path, filename = await get_or_generate_docx(
-            project_id=str(project_detail.project.id),
+            project_id=project_id,
             share_token=share_token,
-            user=current_user,
+            use_cache=True,
         )
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
+        logger.error("Failed to generate DOCX: %s", e, exc_info=True)
         raise HTTPException(
             status_code=500,
             detail=f"Failed to generate DOCX: {str(e)}",

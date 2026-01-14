@@ -18,10 +18,6 @@ from lib.workflows.document_processing.state import (
     DocumentProcessingState,
     DocumentProcessingWorkflowConfig,
 )
-from lib.workflows.docx_generation.state import (
-    DocxGenerationState,
-    DocxGenerationWorkflowConfig,
-)
 from lib.workflows.inference_validation.state import (
     InferenceValidationState,
     InferenceValidationWorkflowConfig,
@@ -60,7 +56,6 @@ WorkflowState = (
     | CitationDetectionState
     | MethodologicalAlignmentState
     | ReferenceDownloaderState
-    | DocxGenerationState
     | LiteratureReviewState
     | LiveReportsState
     | ReferenceValidationState

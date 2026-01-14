@@ -14,7 +14,7 @@ from lib.models.user import User
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus, WorkflowRunType
 from lib.workflows.checkpointer import get_checkpointer
 from lib.workflows.models import is_user_visible_workflow
-from lib.workflows.registry import create_graph, get_state_type
+from lib.workflows.registry import create_graph, get_state_type, get_workflow_manifest
 from lib.workflows.types import WorkflowState
 
 logger = logging.getLogger(__name__)
@@ -44,6 +44,10 @@ def _convert_state_snapshot(
 async def get_workflow_run_state_by_thread_id(
     thread_id: str, type: WorkflowRunType
 ) -> WorkflowState | None:
+    manifest = get_workflow_manifest(type, raise_exception=False)
+    if manifest is None:
+        return None
+
     async with get_checkpointer() as checkpointer:
         graph = create_graph(type)
         app = graph.compile(checkpointer=checkpointer)

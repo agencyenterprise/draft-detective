@@ -924,25 +924,6 @@ export type ClaimSubstantiationResultWithClaimIndex = {
 };
 
 /**
- * CommentSeverity
- *
- * Severity levels for DOCX comments.
- */
-export const CommentSeverity = {
-  None: 'none',
-  Low: 'low',
-  Medium: 'medium',
-  High: 'high',
-} as const;
-
-/**
- * CommentSeverity
- *
- * Severity levels for DOCX comments.
- */
-export type CommentSeverity = (typeof CommentSeverity)[keyof typeof CommentSeverity];
-
-/**
  * ConfidenceInRecommendation
  */
 export const ConfidenceInRecommendation = {
@@ -1279,126 +1260,6 @@ export type DocumentSummary = {
    * A ~1000-word miniature version of the document (roughly 900–1100 words) that focuses on the main argument of the work. It should read like a compressed research report: clearly stating the central question or problem, the main claim/argument, the essential methods or analytical framework, the critical results, and how these results support the argument, while omitting tangential or overly detailed implementation information.
    */
   summary: string;
-};
-
-/**
- * DocxComment
- *
- * Represents a comment to be added to a docx file.
- */
-export type DocxComment = {
-  /**
-   * Chunk Index
-   */
-  chunk_index: number;
-  /**
-   * Text
-   */
-  text: string;
-  /**
-   * Comment Text
-   */
-  comment_text: string;
-  severity?: CommentSeverity | null;
-  /**
-   * Author
-   */
-  author?: string | null;
-  /**
-   * Share Link
-   */
-  share_link?: string | null;
-};
-
-/**
- * DocxGenerationState
- *
- * State for DOCX generation workflow.
- */
-export type DocxGenerationState = {
-  /**
-   * Errors
-   *
-   * Errors that occurred during the workflow execution.
-   */
-  errors?: Array<WorkflowError>;
-  /**
-   * Type
-   */
-  type?: 'docx_generation';
-  config: DocxGenerationWorkflowConfig;
-  /**
-   * Comments
-   */
-  comments?: Array<DocxComment> | null;
-  /**
-   * Chunks
-   */
-  chunks?: Array<unknown> | null;
-  /**
-   * Original File Path
-   */
-  original_file_path?: string | null;
-  /**
-   * Base File Name
-   */
-  base_file_name?: string | null;
-  /**
-   * Generated File Path
-   */
-  generated_file_path?: string | null;
-  /**
-   * Filename
-   */
-  filename?: string | null;
-};
-
-/**
- * DocxGenerationWorkflowConfig
- *
- * Config for DOCX generation workflow.
- */
-export type DocxGenerationWorkflowConfig = {
-  /**
-   * Project Id
-   *
-   * The ID of the project that this workflow run should be associated with
-   */
-  project_id?: string | null;
-  /**
-   * Openai Api Key
-   *
-   * The OpenAI API key to use for this workflow execution
-   */
-  openai_api_key?: string | null;
-  /**
-   * Domain
-   *
-   * Domain context for more accurate analysis
-   */
-  domain?: string | null;
-  /**
-   * Target Audience
-   *
-   * Target audience context for analysis
-   */
-  target_audience?: string | null;
-  /**
-   * Publication Date
-   *
-   * Publication date of the document (YYYY-MM-DD format)
-   */
-  publication_date?: string | null;
-  /**
-   * Type
-   */
-  type?: 'docx_generation';
-  /**
-   * Share Token
-   *
-   * Optional share token to include share links in comments
-   */
-  share_token?: string | null;
 };
 
 /**
@@ -3229,69 +3090,54 @@ export type WorkflowError = {
 };
 
 /**
- * WorkflowProgress
+ * WorkflowProgressResponse
  *
- * Progress tracking for workflows, nodes, and tasks.
+ * Response model for workflow progress entries.
  */
-export type WorkflowProgress = {
+export type WorkflowProgressResponse = {
   /**
    * Id
-   *
-   * Unique identifier for the progress entry
    */
   id: string;
   /**
    * Workflow Run Id
-   *
-   * FK to the workflow run this progress belongs to
    */
   workflow_run_id: string;
   /**
    * Name
-   *
-   * Human-readable name of what's being tracked
    */
   name: string;
-  /**
-   * Level of progress: workflow, node, or task
-   */
   level: ProgressLevel;
   /**
    * Current Step
-   *
-   * Current step/item being processed
    */
-  current_step?: number;
+  current_step: number;
   /**
    * Total Steps
-   *
-   * Total steps/items to process
    */
-  total_steps?: number;
+  total_steps: number;
   /**
    * Started At
-   *
-   * When this progress entry started
    */
   started_at?: Date | null;
   /**
    * Completed At
-   *
-   * When this progress entry completed
    */
   completed_at?: Date | null;
   /**
    * Created At
-   *
-   * When this progress entry was created
    */
   created_at: Date;
   /**
    * Updated At
-   *
-   * When this progress entry was last updated
    */
   updated_at: Date;
+  /**
+   * Status
+   *
+   * Derive status from timestamps.
+   */
+  readonly status: string;
 };
 
 /**
@@ -3352,7 +3198,6 @@ export type WorkflowRunDetail = {
     | CitationDetectionState
     | MethodologicalAlignmentState
     | ReferenceDownloaderState
-    | DocxGenerationState
     | LiteratureReviewState
     | LiveReportsState
     | ReferenceValidationState
@@ -3386,7 +3231,6 @@ export const WorkflowRunType = {
   CitationDetection: 'citation_detection',
   MethodologicalAlignment: 'methodological_alignment',
   ReferenceDownloader: 'reference_downloader',
-  DocxGeneration: 'docx_generation',
   LiteratureReview: 'literature_review',
   LiveReports: 'live_reports',
   ReferenceValidation: 'reference_validation',
@@ -3574,6 +3418,51 @@ export type ProjectDetailedWritable = {
 };
 
 /**
+ * WorkflowProgressResponse
+ *
+ * Response model for workflow progress entries.
+ */
+export type WorkflowProgressResponseWritable = {
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * Workflow Run Id
+   */
+  workflow_run_id: string;
+  /**
+   * Name
+   */
+  name: string;
+  level: ProgressLevel;
+  /**
+   * Current Step
+   */
+  current_step: number;
+  /**
+   * Total Steps
+   */
+  total_steps: number;
+  /**
+   * Started At
+   */
+  started_at?: Date | null;
+  /**
+   * Completed At
+   */
+  completed_at?: Date | null;
+  /**
+   * Created At
+   */
+  created_at: Date;
+  /**
+   * Updated At
+   */
+  updated_at: Date;
+};
+
+/**
  * WorkflowRunDetail
  */
 export type WorkflowRunDetailWritable = {
@@ -3589,7 +3478,6 @@ export type WorkflowRunDetailWritable = {
     | CitationDetectionState
     | MethodologicalAlignmentState
     | ReferenceDownloaderState
-    | DocxGenerationState
     | LiteratureReviewState
     | LiveReportsState
     | ReferenceValidationState
@@ -4315,7 +4203,7 @@ export type DownloadAllProjectFilesApiProjectProjectIdFilesDownloadAllGetRespons
   200: unknown;
 };
 
-export type GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdProgressGetData = {
+export type GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdGetData = {
   body?: never;
   path: {
     /**
@@ -4327,27 +4215,27 @@ export type GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdProgressG
   url: '/api/progress/workflow/{workflow_run_id}';
 };
 
-export type GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdProgressGetErrors = {
+export type GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdGetErrors = {
   /**
    * Validation Error
    */
   422: HttpValidationError;
 };
 
-export type GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdProgressGetError =
-  GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdProgressGetErrors[keyof GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdProgressGetErrors];
+export type GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdGetError =
+  GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdGetErrors[keyof GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdGetErrors];
 
-export type GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdProgressGetResponses = {
+export type GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdGetResponses = {
   /**
-   * Response Get Workflow Progress Endpoint Api Progress Workflow  Workflow Run Id  Progress Get
+   * Response Get Workflow Progress Endpoint Api Progress Workflow  Workflow Run Id  Get
    *
    * Successful Response
    */
-  200: Array<WorkflowProgress>;
+  200: Array<WorkflowProgressResponse>;
 };
 
-export type GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdProgressGetResponse =
-  GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdProgressGetResponses[keyof GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdProgressGetResponses];
+export type GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdGetResponse =
+  GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdGetResponses[keyof GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdGetResponses];
 
 export type GetProjectShareStatusApiProjectsProjectIdShareGetData = {
   body?: never;

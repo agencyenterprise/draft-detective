@@ -15,7 +15,6 @@ export interface ToolDefinition {
  */
 export const INTERNAL_WORKFLOW_TYPES = new Set<WorkflowRunType>([
   WorkflowRunType.DocumentProcessing,
-  WorkflowRunType.DocxGeneration,
   WorkflowRunType.ReferenceExtraction,
 ]);
 

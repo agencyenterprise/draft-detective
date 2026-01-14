@@ -1,13 +1,18 @@
 """Tests for DOCX chunk mapping service"""
 
+from pathlib import Path
+
 import pytest
 from docx import Document
-from pathlib import Path
 
 from lib.services.docx.chunk_mapper import create_chunk_to_paragraph_mapping
 from lib.services.file_artifacts_service.mock import MockFileArtifactsService
 from lib.services.nltk_text_splitter import NLTKTextSplitter
 from lib.workflows.context import ContextSchema
+from lib.workflows.document_processing.nodes.split_into_chunks import (
+    convert_validate_documents_to_chunks,
+)
+from lib.workflows.document_processing.state import DocumentChunk
 from tests.conftest import create_test_file_document_from_path, data_path
 
 
@@ -27,7 +32,8 @@ async def test_chunk_to_docx_mapping_agi_minimal():
         file_artifacts_service=MockFileArtifactsService(),
     )
     chunker = NLTKTextSplitter(context=context)
-    chunks = await chunker.create_documents([file_doc.markdown])
+    docs = await chunker.create_documents([file_doc.markdown])
+    chunks = convert_validate_documents_to_chunks(docs)
 
     docx_path = data_path("evals/data/geopolitics-of-agi-minimal-1/_original.docx")
     doc = Document(docx_path)
@@ -42,18 +48,16 @@ async def test_chunk_to_docx_mapping_agi_minimal():
     print(f"Coverage: {len(mapping) / len(chunks) * 100:.1f}%")
 
     # Show any unmapped chunks for debugging
-    unmapped = [c for c in chunks if c.metadata.chunk_index not in mapping]
+    unmapped = [c for c in chunks if c.chunk_index not in mapping]
     if unmapped:
         print(f"\n=== Unmapped Chunks ({len(unmapped)}) ===")
         for chunk in unmapped:
-            print(
-                f"  Chunk {chunk.metadata.chunk_index}: '{chunk.page_content[:60]}...'"
-            )
+            print(f"  Chunk {chunk.chunk_index}: '{chunk.content[:60]}...'")
 
     # ALL chunks must be mapped
     assert len(mapping) == len(chunks), (
         f"All {len(chunks)} chunks must be mapped, but only {len(mapping)} were mapped. "
-        f"Unmapped chunk indices: {[c.metadata.chunk_index for c in unmapped]}"
+        f"Unmapped chunk indices: {[c.chunk_index for c in unmapped]}"
     )
 
     for chunk_idx, para_idx in mapping.items():
@@ -65,9 +69,9 @@ async def test_chunk_to_docx_mapping_agi_minimal():
 @pytest.mark.asyncio
 async def test_chunk_mapping_handles_empty_chunks():
     """Test that empty chunks are handled gracefully"""
-    from lib.agents.models import ValidatedDocument, DocumentMetadata
+    from lib.agents.models import DocumentMetadata, ValidatedDocument
 
-    chunks = [
+    docs = [
         ValidatedDocument(
             page_content="",
             metadata=DocumentMetadata(
@@ -81,6 +85,7 @@ async def test_chunk_mapping_handles_empty_chunks():
             ),
         ),
     ]
+    chunks = convert_validate_documents_to_chunks(docs)
 
     docx_path = data_path("evals/data/geopolitics-of-agi-minimal-1/_original.docx")
     doc = Document(docx_path)
@@ -98,7 +103,7 @@ def test_duplicate_text_maps_to_correct_paragraphs():
     Chunk 1 "I repeat myself" should map to paragraph 1,
     Chunk 3 "I repeat myself" should map to paragraph 3 (not paragraph 1 again).
     """
-    from lib.agents.models import ValidatedDocument, DocumentMetadata
+    from lib.agents.models import DocumentMetadata, ValidatedDocument
 
     # Create a real Document with paragraphs instead of mocks
     doc = Document()
@@ -109,7 +114,7 @@ def test_duplicate_text_maps_to_correct_paragraphs():
 
     docx_paragraphs = list(doc.paragraphs)
 
-    chunks = [
+    docs = [
         ValidatedDocument(
             page_content="I repeat myself",
             metadata=DocumentMetadata(
@@ -141,6 +146,7 @@ def test_duplicate_text_maps_to_correct_paragraphs():
             ),
         ),
     ]
+    chunks = convert_validate_documents_to_chunks(docs)
 
     mapping = create_chunk_to_paragraph_mapping(chunks, docx_paragraphs)
 
@@ -186,24 +192,25 @@ async def test_add_comments_to_docx():
         file_artifacts_service=MockFileArtifactsService(),
     )
     chunker = NLTKTextSplitter(context=context)
-    chunks = await chunker.create_documents([file_doc.markdown])
+    docs = await chunker.create_documents([file_doc.markdown])
+    chunks = convert_validate_documents_to_chunks(docs)
 
     comments = [
         DocxComment(
             chunk_index=0,
-            text=chunks[0].page_content,
+            text=chunks[0].content,
             comment_text="High priority issue found",
             severity=CommentSeverity.HIGH,
         ),
         DocxComment(
             chunk_index=1,
-            text=chunks[1].page_content,
+            text=chunks[1].content,
             comment_text="Medium priority suggestion",
             severity=CommentSeverity.MEDIUM,
         ),
         DocxComment(
             chunk_index=2,
-            text=chunks[2].page_content,
+            text=chunks[2].content,
             comment_text="Low priority note",
             severity=CommentSeverity.LOW,
         ),
