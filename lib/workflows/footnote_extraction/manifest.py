@@ -1,10 +1,9 @@
 """Manifest for footnote extraction workflow."""
 
-from typing import List, Type, cast
+from typing import List, Type
 
 from langgraph.graph import StateGraph
 
-from lib.workflows.document_processing.state import DocumentProcessingState
 from lib.workflows.footnote_extraction.graph import build_footnote_extraction_graph
 from lib.workflows.footnote_extraction.state import (
     FootnoteExtractionConfig,
@@ -13,7 +12,7 @@ from lib.workflows.footnote_extraction.state import (
 from lib.workflows.manifest import WorkflowManifest
 from lib.workflows.models import DocumentIssue, WorkflowRunType
 from lib.workflows.types import WorkflowState
-from lib.workflows.util import get_state_by_type_or_raise
+from lib.workflows.util import get_main_file_id
 
 
 class FootnoteExtractionManifest(
@@ -49,20 +48,12 @@ class FootnoteExtractionManifest(
         """
         Create initial state from DOCUMENT_PROCESSING dependency.
 
-        Gets file with markdown from DOCUMENT_PROCESSING workflow.
+        Gets file_id from DOCUMENT_PROCESSING workflow.
         """
-        # Get document processing artifacts
-        doc_processing_state = cast(
-            DocumentProcessingState,
-            get_state_by_type_or_raise(
-                WorkflowRunType.DOCUMENT_PROCESSING, existing_states
-            ),
-        )
-
         return FootnoteExtractionState(
             type=WorkflowRunType.FOOTNOTE_EXTRACTION,
             config=config,
-            file=doc_processing_state.file,  # Already has markdown populated
+            file_id=get_main_file_id(existing_states),
         )
 
     def convert_state_to_issues(
