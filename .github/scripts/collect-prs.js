@@ -239,8 +239,8 @@ async function main() {
     const mockData = {
       1: [{ number: 126, title: 'Release to main', level: 1, author: 'bot' }],
       2: [
-        { number: 123, title: 'feat: Add AI validation', level: 2, author: 'dev1' },
-        { number: 124, title: 'fix: Handle empty docs', level: 2, author: 'dev2' }
+        { number: 123, title: 'feat: Add AI validation', level: 2, author: 'dev1', body: 'Added new AI validation feature for document processing.' },
+        { number: 124, title: 'fix: Handle empty docs', level: 2, author: 'dev2', body: 'Fixed issue where empty documents caused a crash.' }
       ],
       3: [
         { number: 98, title: 'Implement validation logic', level: 3, author: 'dev1' }
