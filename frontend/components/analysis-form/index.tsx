@@ -3,13 +3,18 @@
 import { useSessionStorage } from '@/lib/hooks/use-session-storage';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { useForm } from '@tanstack/react-form';
-import { Loader2, Play } from 'lucide-react';
+import { ExternalLink, Loader2, Play } from 'lucide-react';
+import Link from 'next/link';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { WorkflowTypeSelector } from '../workflows/workflow-type-selector';
 import { WebSearchConsentCheckbox } from '../workflows/web-search-consent-checkbox';
-import { hasWebSearchRequirement, hasPublicationDateRequirement } from '../workflows/utils';
+import {
+  hasWebSearchRequirement,
+  hasPublicationDateRequirement,
+  hasSupportingDocumentsRequirement,
+} from '../workflows/utils';
 import { AnalysisFormData, AnalysisFormValues } from './types';
 import { UploadSection } from './upload-section';
 import { validateAnalysisForm } from './validation';
@@ -76,59 +81,46 @@ export function AnalysisForm({ onSubmit, isPending = false }: AnalysisFormProps)
         form.handleSubmit();
       }}
     >
-      <div>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <form.Field name="mainDocument">
-            {(field) => (
-              <div className="space-y-2">
-                <UploadSection
-                  title="Main Document"
-                  description="Primary document for analysis"
-                  required={true}
-                  onFilesChange={(files) => field.handleChange(files[0] || null)}
-                  multiple={false}
-                  files={field.state.value ? [field.state.value] : []}
-                  fileType="main"
-                  onRemoveFile={() => removeFile('main')}
-                />
-                {!field.state.meta.isValid && field.state.meta.errors.length > 0 && (
-                  <p className="text-sm text-destructive">{field.state.meta.errors.join(', ')}</p>
-                )}
-              </div>
+      {/* Main Document Upload */}
+      <form.Field name="mainDocument">
+        {(field) => (
+          <div className="space-y-2">
+            <UploadSection
+              title="Main Document"
+              description="Primary document for analysis. Word documents are preferred (less LLM conversion errors) but PDFs are also supported."
+              required={true}
+              onFilesChange={(files) => field.handleChange(files[0] || null)}
+              multiple={false}
+              files={field.state.value ? [field.state.value] : []}
+              fileType="main"
+              onRemoveFile={() => removeFile('main')}
+            />
+            {!field.state.meta.isValid && field.state.meta.errors.length > 0 && (
+              <p className="text-sm text-destructive">{field.state.meta.errors.join(', ')}</p>
             )}
-          </form.Field>
-
-          <form.Field name="supportingDocuments">
-            {(field) => (
-              <div className="space-y-2">
-                <UploadSection
-                  title="Supporting Documents"
-                  description="Documents used as references for the main document"
-                  required={false}
-                  onFilesChange={(files) => field.handleChange(files)}
-                  multiple={true}
-                  files={field.state.value}
-                  fileType="supporting"
-                  onRemoveFile={(index) => removeFile('supporting', index)}
-                />
-                {!field.state.meta.isValid && field.state.meta.errors.length > 0 && (
-                  <p className="text-sm text-destructive">{field.state.meta.errors.join(', ')}</p>
-                )}
-              </div>
-            )}
-          </form.Field>
-        </div>
-      </div>
+          </div>
+        )}
+      </form.Field>
 
       {/* Workflow Selection Section */}
-      <form.Field name="workflowTypes">
+      <form.Field
+        name="workflowTypes"
+        listeners={{
+          onChange: ({ value }) => {
+            // Clear supporting documents when no workflow requires them
+            if (!hasSupportingDocumentsRequirement(value)) {
+              form.setFieldValue('supportingDocuments', []);
+            }
+          },
+        }}
+      >
         {(field) => (
           <WorkflowTypeSelector
             workflowTypes={workflowTypes}
             selectedTypes={field.state.value}
             onSelectionChange={field.handleChange}
             disabled={isPending}
-            headerDescription="Select which types of analyses to perform. Analyses can also be triggered later on, after the project is created"
+            headerDescription="Select which types of analyses to perform"
             error={
               !field.state.meta.isValid && field.state.meta.errors.length > 0
                 ? field.state.meta.errors.join(', ')
@@ -138,6 +130,7 @@ export function AnalysisForm({ onSubmit, isPending = false }: AnalysisFormProps)
         )}
       </form.Field>
 
+      {/* Web Search Consent - only shown when relevant workflows are selected */}
       <form.Field name="workflowTypes">
         {(workflowTypesField) => {
           const selectedTypes = workflowTypesField.state.value;
@@ -156,6 +149,51 @@ export function AnalysisForm({ onSubmit, isPending = false }: AnalysisFormProps)
                   disabled={isPending}
                   error={!field.state.meta.isValid ? field.state.meta.errors.join(', ') : undefined}
                 />
+              )}
+            </form.Field>
+          );
+        }}
+      </form.Field>
+
+      {/* Supporting Documents Section - only shown when relevant workflows are selected */}
+      <form.Field name="workflowTypes">
+        {(workflowTypesField) => {
+          const selectedTypes = workflowTypesField.state.value;
+          const needsSupportingDocuments = hasSupportingDocumentsRequirement(selectedTypes);
+
+          if (!needsSupportingDocuments) {
+            return null;
+          }
+
+          return (
+            <form.Field name="supportingDocuments">
+              {(field) => (
+                <div className="space-y-2">
+                  <UploadSection
+                    title="Supporting Documents"
+                    description="Reference documents cited in your main document's reference section (e.g., PDFs of cited papers or news websites). These enable validation of claims against their cited sources."
+                    required={true}
+                    onFilesChange={(files) => field.handleChange(files)}
+                    multiple={true}
+                    files={field.state.value}
+                    fileType="supporting"
+                    onRemoveFile={(index) => removeFile('supporting', index)}
+                  />
+                  <p className="text-sm text-muted-foreground">
+                    You can automatically download references using the{' '}
+                    <Link
+                      href="/tools/reference-downloader"
+                      target="_blank"
+                      className="text-primary hover:underline inline-flex items-center gap-1"
+                    >
+                      Reference Downloader tool
+                      <ExternalLink className="h-3 w-3" />
+                    </Link>
+                  </p>
+                  {!field.state.meta.isValid && field.state.meta.errors.length > 0 && (
+                    <p className="text-sm text-destructive">{field.state.meta.errors.join(', ')}</p>
+                  )}
+                </div>
               )}
             </form.Field>
           );
@@ -263,7 +301,7 @@ export function AnalysisForm({ onSubmit, isPending = false }: AnalysisFormProps)
                 </Label>
                 <Input
                   id="domain"
-                  placeholder="e.g., Healthcare, Technology, Finance..."
+                  placeholder="e.g., Policy research, Healthcare, Technology, Finance..."
                   value={field.state.value}
                   onChange={(e) => field.handleChange(e.target.value)}
                   disabled={isPending}
@@ -283,7 +321,7 @@ export function AnalysisForm({ onSubmit, isPending = false }: AnalysisFormProps)
                 </Label>
                 <Input
                   id="target-audience"
-                  placeholder="e.g., General public, Experts, Students..."
+                  placeholder="e.g., Policy makers, General public, Experts, Students..."
                   value={field.state.value}
                   onChange={(e) => field.handleChange(e.target.value)}
                   disabled={isPending}

@@ -24,3 +24,18 @@ const WORKFLOWS_REQUIRING_PUBLICATION_DATE: WorkflowRunType[] = [
 export function hasPublicationDateRequirement(selectedTypes: WorkflowRunType[]): boolean {
   return selectedTypes.some((type) => WORKFLOWS_REQUIRING_PUBLICATION_DATE.includes(type));
 }
+
+/**
+ * Workflow types that require supporting documents.
+ */
+const WORKFLOWS_REQUIRING_SUPPORTING_DOCUMENTS: WorkflowRunType[] = [
+  WorkflowRunType.ClaimReferenceValidation,
+  WorkflowRunType.CitationSuggester,
+];
+
+/**
+ * Checks if any of the selected workflow types require supporting documents.
+ */
+export function hasSupportingDocumentsRequirement(selectedTypes: WorkflowRunType[]): boolean {
+  return selectedTypes.some((type) => WORKFLOWS_REQUIRING_SUPPORTING_DOCUMENTS.includes(type));
+}

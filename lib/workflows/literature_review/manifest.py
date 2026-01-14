@@ -20,6 +20,7 @@ class LiteratureReviewManifest(
     name = "Literature Review"
     description = "Performs a literature review related to the claims in the document. Searches for relevant academic sources and references that could strengthen the document's arguments."
     needs_web_search = True
+    is_experimental = True
     order = 6
     required_dependencies = [
         WorkflowRunType.REFERENCE_EXTRACTION,
