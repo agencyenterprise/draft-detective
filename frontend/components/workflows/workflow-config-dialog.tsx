@@ -16,7 +16,8 @@ import { WorkflowRunType } from '@/lib/generated-api';
 import { useEffect } from 'react';
 import { WorkflowTypeSelector } from './workflow-type-selector';
 import { WebSearchConsentCheckbox } from './web-search-consent-checkbox';
-import { hasWebSearchRequirement } from './utils';
+import { hasWebSearchRequirement, hasPublicationDateRequirement } from './utils';
+import { featureFlags } from '@/lib/config';
 
 interface WorkflowConfigDialogProps {
   isOpen: boolean;
@@ -38,13 +39,21 @@ export function WorkflowConfigDialog({ isOpen, type, onConfirm, onCancel }: Work
 
   const { data: workflowTypes } = useWorkflowTypes();
 
-  const publicationDate = type === WorkflowRunType.LiteratureReview || type === WorkflowRunType.LiveReports;
+  const needsPublicationDate = type ? hasPublicationDateRequirement([type]) : false;
+
+  // WHY: Default to today's date so when experimental features are disabled,
+  // the form still submits a valid date without showing the field to the user.
+  const today = new Date().toISOString().split('T')[0];
+
+  // WHY: Only show publication date field when experimental features are enabled.
+  // When disabled, we simplify the UI by hiding this field and using today's date.
+  const showPublicationDateField = featureFlags.showExperimentalFeatures && needsPublicationDate;
 
   const form = useForm({
     defaultValues: {
       openaiApiKey: openaiApiKey,
       webSearchConsent: false,
-      publicationDate: '',
+      publicationDate: today,
       workflowTypes: type ? [type] : [],
     } as WorkflowConfigFormValues,
     validators: {
@@ -56,7 +65,8 @@ export function WorkflowConfigDialog({ isOpen, type, onConfirm, onCancel }: Work
         if (hasWebSearchRequirement(value.workflowTypes, workflowTypes) && !value.webSearchConsent) {
           errors.fields.webSearchConsent = 'Web search consent is required';
         }
-        if (publicationDate && (!value.publicationDate || value.publicationDate.trim() === '')) {
+        // Only require publication date input when the field is shown
+        if (showPublicationDateField && (!value.publicationDate || value.publicationDate.trim() === '')) {
           errors.fields.publicationDate = 'Document publication date is required';
         }
         if (value.workflowTypes.length === 0) {
@@ -118,7 +128,7 @@ export function WorkflowConfigDialog({ isOpen, type, onConfirm, onCancel }: Work
             </form.Field>
           )}
 
-          {publicationDate && (
+          {showPublicationDateField && (
             <form.Field name="publicationDate">
               {(field) => (
                 <div className="space-y-2">
@@ -133,6 +143,10 @@ export function WorkflowConfigDialog({ isOpen, type, onConfirm, onCancel }: Work
                     error={!field.state.meta.isValid}
                     required={true}
                   />
+                  <p className="text-sm text-muted-foreground">
+                    The publication date of the document. For unpublished documents, use the date of the last update or
+                    the current date.
+                  </p>
                   {!field.state.meta.isValid && (
                     <p className="text-sm text-destructive">{field.state.meta.errors.join(', ')}</p>
                   )}

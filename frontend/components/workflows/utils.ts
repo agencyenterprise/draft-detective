@@ -9,3 +9,18 @@ export function hasWebSearchRequirement(
 ): boolean {
   return selectedTypes.some((type) => workflowTypes?.find((wt) => wt.type === type)?.needs_web_search);
 }
+
+/**
+ * Workflow types that require a publication date to be specified.
+ */
+const WORKFLOWS_REQUIRING_PUBLICATION_DATE: WorkflowRunType[] = [
+  WorkflowRunType.LiteratureReview,
+  WorkflowRunType.LiveReports,
+];
+
+/**
+ * Checks if any of the selected workflow types require a publication date.
+ */
+export function hasPublicationDateRequirement(selectedTypes: WorkflowRunType[]): boolean {
+  return selectedTypes.some((type) => WORKFLOWS_REQUIRING_PUBLICATION_DATE.includes(type));
+}

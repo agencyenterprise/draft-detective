@@ -13,6 +13,7 @@ import { Callout } from '@/components/ui/callout';
 import { GlobalFormValidationError, useForm } from '@tanstack/react-form';
 import { Project } from '@/lib/generated-api';
 import { InfoIcon } from 'lucide-react';
+import { featureFlags } from '@/lib/config';
 
 interface EditProjectDialogProps {
   isOpen: boolean;
@@ -107,25 +108,26 @@ export function EditProjectDialog({
             )}
           </form.Field>
 
-          <form.Field name="publication_date">
-            {(field) => (
-              <div className="space-y-2">
-                <Label htmlFor="publication-date">Document Publication Date</Label>
-                <Input
-                  id="publication-date"
-                  type="date"
-                  value={field.state.value}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                  disabled={isSubmitting}
-                />
-                <p className="text-sm text-muted-foreground">
-                  The publication date of the document. This is used for some analyses (literature review, live reports)
-                  to focus on sources published after or before this date. For unpublished documents, use the date of
-                  the last update or the current date.
-                </p>
-              </div>
-            )}
-          </form.Field>
+          {featureFlags.showExperimentalFeatures && (
+            <form.Field name="publication_date">
+              {(field) => (
+                <div className="space-y-2">
+                  <Label htmlFor="publication-date">Document Publication Date</Label>
+                  <Input
+                    id="publication-date"
+                    type="date"
+                    value={field.state.value}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    disabled={isSubmitting}
+                  />
+                  <p className="text-sm text-muted-foreground">
+                    The publication date of the document. For unpublished documents, use the date of the last update or
+                    the current date.
+                  </p>
+                </div>
+              )}
+            </form.Field>
+          )}
 
           <form.Field name="domain">
             {(field) => (
