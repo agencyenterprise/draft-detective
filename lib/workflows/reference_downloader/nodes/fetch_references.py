@@ -52,6 +52,10 @@ async def initialize_references(
     return {"fetched_references": pending_results}
 
 
+@register_node(
+    "Distribute references",
+    "Distribute references to parallel fetch operations",
+)
 async def distribute_references(
     state: ReferenceDownloaderState, runtime: Runtime[ContextSchema]
 ):
@@ -66,6 +70,10 @@ async def distribute_references(
     ]
 
 
+@register_node(
+    "Fetch single reference",
+    "Fetch a single reference",
+)
 async def fetch_single_reference(state: dict, runtime: Runtime[ContextSchema]):
     """Process a single reference and return status update.
 
