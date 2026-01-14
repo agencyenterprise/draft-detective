@@ -5,7 +5,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Optional
 
-from sqlalchemy import Column, DateTime, ForeignKey
+from sqlalchemy import Column, DateTime, ForeignKey, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlmodel import Field, SQLModel
 
@@ -41,7 +41,8 @@ class WorkflowProgress(SQLModel, table=True):
         description="Human-readable name of what's being tracked",
     )
     level: ProgressLevel = Field(
-        description="Level of progress: workflow, node, or task"
+        sa_column=Column(String(50), nullable=False),
+        description="Level of progress: workflow, node, or task",
     )
     current_step: int = Field(
         default=0, description="Current step/item being processed"
@@ -59,7 +60,7 @@ class WorkflowProgress(SQLModel, table=True):
     )
     created_at: datetime = Field(
         sa_column=Column(
-            DateTime(timezone=True), default=datetime.utcnow, nullable=False
+            DateTime(timezone=True), default=datetime.utcnow, nullable=False, index=True
         ),
         description="When this progress entry was created",
     )
