@@ -17,6 +17,10 @@ RAG_TOP_K = 20  # Number of passages to retrieve per query
 RAG_CHUNK_SIZE = 2000  # Characters per chunk when indexing documents
 RAG_CHUNK_OVERLAP = 400  # Character overlap between adjacent chunks
 
+# Batching settings for OpenAI embedding API
+# With ~2000 char chunks averaging ~500-1000 tokens each, 100 chunks is ~50-100k tokens (safe margin for the 300k limit)
+EMBEDDING_BATCH_SIZE = 100
+
 EMBEDDING_MODEL = "text-embedding-3-large"
 
 
@@ -101,27 +105,33 @@ class VectorStoreService:
         """
         Chunk, embed, and index document.
         Returns number of chunks indexed.
+
+        Documents are batched to stay under OpenAI's token limit per request.
         """
         try:
-            docs = self.chunker.create_documents(
-                [markdown_content],
-                metadatas=[
-                    {"file_name": file_name, "collection_id": collection_id}
-                    for _ in range(len(markdown_content))
-                ],
-            )
+            # Create document chunks and set metadata
+            docs = self.chunker.create_documents([markdown_content])
             for i, doc in enumerate(docs):
                 doc.metadata["chunk_index"] = i
                 doc.metadata["file_name"] = file_name
                 doc.metadata["collection_id"] = collection_id
 
             vectorstore = self._get_vectorstore(collection_id)
-            await vectorstore.aadd_documents(docs)
+
+            # Batch documents to avoid OpenAI's token limit per embedding request
+            total_chunks = len(docs)
+            for batch_start in range(0, total_chunks, EMBEDDING_BATCH_SIZE):
+                batch_end = min(batch_start + EMBEDDING_BATCH_SIZE, total_chunks)
+                batch = docs[batch_start:batch_end]
+                await vectorstore.aadd_documents(batch)
+                logger.debug(
+                    f"Indexed batch {batch_start}-{batch_end} of {total_chunks} chunks"
+                )
 
             logger.info(
-                f"Indexed {len(docs)} chunks for {file_name} in collection {collection_id}"
+                f"Indexed {total_chunks} chunks for {file_name} in collection {collection_id}"
             )
-            return len(docs)
+            return total_chunks
 
         except Exception as e:
             raise Exception(
