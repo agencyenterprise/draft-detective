@@ -103,13 +103,8 @@ class VectorStoreService:
         Returns number of chunks indexed.
         """
         try:
-            docs = self.chunker.create_documents(
-                [markdown_content],
-                metadatas=[
-                    {"file_name": file_name, "collection_id": collection_id}
-                    for _ in range(len(markdown_content))
-                ],
-            )
+            # We must recreate document chunks without pre-populating metadata since metadata is set in the loop below after chunking
+            docs = self.chunker.create_documents([markdown_content])
             for i, doc in enumerate(docs):
                 doc.metadata["chunk_index"] = i
                 doc.metadata["file_name"] = file_name
