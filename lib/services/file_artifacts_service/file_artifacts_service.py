@@ -6,10 +6,11 @@ from lib.services.file_artifacts_service.types import FileArtifactsServiceType
 from lib.workflows.models import WorkflowRunType
 
 if TYPE_CHECKING:
+    from lib.models.footnote_item import FootnoteItem
     from lib.workflows.document_processing.state import DocumentProcessingState
     from lib.workflows.reference_extraction.state import ReferenceExtractionState
     from lib.workflows.footnote_extraction.state import FootnoteExtractionState
-    from lib.workflows.claim_substantiation.state import AnalyzedChunk
+    from lib.workflows.chunk_utils import AnalyzedChunk
     from lib.agents.document_summarizer import DocumentSummary
     from lib.models.bibliography_item import BibliographyItem
     from lib.workflows.types import WorkflowState
