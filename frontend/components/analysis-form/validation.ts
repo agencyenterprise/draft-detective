@@ -2,7 +2,8 @@ import { MAX_FILE_SIZE_BYTES, MAX_FILE_SIZE_MB } from '@/lib/constants';
 import { FormValidationError, GlobalFormValidationError } from '@tanstack/react-form';
 import { AnalysisFormValues } from './types';
 import { WorkflowTypeDescription } from '@/lib/generated-api';
-import { hasWebSearchRequirement } from '../workflows/utils';
+import { hasWebSearchRequirement, hasPublicationDateRequirement } from '../workflows/utils';
+import { featureFlags } from '@/lib/config';
 
 export function validateAnalysisForm(
   value: AnalysisFormValues,
@@ -38,9 +39,12 @@ export function validateAnalysisForm(
     errors.fields.webSearchConsent = 'Web search consent is required';
   }
 
-  // Validate publication date is required
-  if (!value.publicationDate || value.publicationDate.trim() === '') {
-    errors.fields.publicationDate = 'Document publication date is required';
+  // WHY: Only validate publication date when experimental features are enabled.
+  // When disabled, the form defaults to today's date internally without user input.
+  if (featureFlags.showExperimentalFeatures && hasPublicationDateRequirement(value.workflowTypes)) {
+    if (!value.publicationDate || value.publicationDate.trim() === '') {
+      errors.fields.publicationDate = 'Document publication date is required';
+    }
   }
 
   return errors;

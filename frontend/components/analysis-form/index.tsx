@@ -9,10 +9,11 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { WorkflowTypeSelector } from '../workflows/workflow-type-selector';
 import { WebSearchConsentCheckbox } from '../workflows/web-search-consent-checkbox';
-import { hasWebSearchRequirement } from '../workflows/utils';
+import { hasWebSearchRequirement, hasPublicationDateRequirement } from '../workflows/utils';
 import { AnalysisFormData, AnalysisFormValues } from './types';
 import { UploadSection } from './upload-section';
 import { validateAnalysisForm } from './validation';
+import { featureFlags } from '@/lib/config';
 
 export interface AnalysisFormProps {
   onSubmit: (data: AnalysisFormData) => void;
@@ -209,31 +210,50 @@ export function AnalysisForm({ onSubmit, isPending = false }: AnalysisFormProps)
           <p className="text-sm text-muted-foreground">Provide context for more accurate analysis</p>
         </div>
         <div className="space-y-4">
-          <form.Field name="publicationDate">
-            {(field) => (
-              <div className="space-y-2">
-                <Label htmlFor="publication-date">
-                  Document Publication Date <span className="text-destructive ml-1">*</span>
-                </Label>
-                <Input
-                  id="publication-date"
-                  type="date"
-                  value={field.state.value}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                  className={field.state.meta.errors.length > 0 ? 'border-destructive' : ''}
-                  disabled={isPending}
-                  required={true}
-                />
-                <p className="text-sm text-muted-foreground">
-                  The publication date of the document. This is used for some analyses (literature review, live reports)
-                  to focus on sources published after or before this date. For unpublished documents, use the date of
-                  the last update or the current date.
-                </p>
-                {!field.state.meta.isValid && (
-                  <p className="text-sm text-destructive">{field.state.meta.errors.join(', ')}</p>
-                )}
-              </div>
-            )}
+          {/*
+           * WHY: Publication date is only relevant for experimental workflows (Literature Review, Live Reports)
+           * that need to filter references by date. When experimental features are disabled, we hide this field
+           * to simplify the UI, and the form defaults to today's date internally. This allows the backend to
+           * still receive a valid date without requiring user input for non-experimental workflows.
+           */}
+          <form.Field name="workflowTypes">
+            {(workflowTypesField) => {
+              const selectedTypes = workflowTypesField.state.value;
+              const needsPublicationDate = hasPublicationDateRequirement(selectedTypes);
+
+              // Only show publication date field when experimental features are enabled and required
+              if (!featureFlags.showExperimentalFeatures || !needsPublicationDate) {
+                return null;
+              }
+
+              return (
+                <form.Field name="publicationDate">
+                  {(field) => (
+                    <div className="space-y-2">
+                      <Label htmlFor="publication-date">
+                        Document Publication Date <span className="text-destructive ml-1">*</span>
+                      </Label>
+                      <Input
+                        id="publication-date"
+                        type="date"
+                        value={field.state.value}
+                        onChange={(e) => field.handleChange(e.target.value)}
+                        className={field.state.meta.errors.length > 0 ? 'border-destructive' : ''}
+                        disabled={isPending}
+                        required={true}
+                      />
+                      <p className="text-sm text-muted-foreground">
+                        The publication date of the document. For unpublished documents, use the date of the last update
+                        or the current date.
+                      </p>
+                      {!field.state.meta.isValid && (
+                        <p className="text-sm text-destructive">{field.state.meta.errors.join(', ')}</p>
+                      )}
+                    </div>
+                  )}
+                </form.Field>
+              );
+            }}
           </form.Field>
           <form.Field name="domain">
             {(field) => (
