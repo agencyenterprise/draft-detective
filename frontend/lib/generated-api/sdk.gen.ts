@@ -33,6 +33,8 @@ import type {
   GenerateEvalPackageApiGenerateEvalPackagePostData,
   GenerateEvalPackageApiGenerateEvalPackagePostErrors,
   GenerateEvalPackageApiGenerateEvalPackagePostResponses,
+  GetCurrentUserInfoApiUsersMeGetData,
+  GetCurrentUserInfoApiUsersMeGetResponses,
   GetFeedbackApiFeedbackGetData,
   GetFeedbackApiFeedbackGetErrors,
   GetFeedbackApiFeedbackGetResponses,
@@ -775,5 +777,20 @@ export const getSharedResourceApiPublicShareTokenGet = <ThrowOnError extends boo
   >({
     responseStyle: 'data',
     url: '/api/public/share/{token}',
+    ...options,
+  });
+
+/**
+ * Get Current User Info
+ *
+ * Get the current authenticated user's information.
+ */
+export const getCurrentUserInfoApiUsersMeGet = <ThrowOnError extends boolean = true>(
+  options?: Options<GetCurrentUserInfoApiUsersMeGetData, ThrowOnError>,
+) =>
+  (options?.client ?? client).get<GetCurrentUserInfoApiUsersMeGetResponses, unknown, ThrowOnError, 'data'>({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/users/me',
     ...options,
   });

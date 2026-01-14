@@ -1,8 +1,5 @@
 import { downloadFile, generateEvalFilename } from '@/lib/file-download';
-import {
-  generateChunkEvalPackageApiGenerateChunkEvalPackagePost,
-  generateEvalPackageApiGenerateEvalPackagePost,
-} from '@/lib/generated-api';
+import { generateChunkEvalPackageApiGenerateChunkEvalPackagePost } from '@/lib/generated-api';
 import { FileText } from 'lucide-react';
 import * as React from 'react';
 import { useSupportedAgents } from '../hooks/use-supported-agents';
@@ -48,7 +45,7 @@ export function ChunkEvalGenerator({ chunkIndex, projectId }: ChunkEvalGenerator
       const testName = `chunk_${chunkIndex}_eval_${Date.now()}`;
       const description = `Generated from chunk ${chunkIndex} analysis on ${new Date().toLocaleDateString()}`;
 
-      const { response, data } = (await generateChunkEvalPackageApiGenerateChunkEvalPackagePost({
+      const { data } = (await generateChunkEvalPackageApiGenerateChunkEvalPackagePost({
         responseStyle: 'fields',
         body: {
           project_id: projectId,

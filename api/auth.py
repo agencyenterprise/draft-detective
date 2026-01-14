@@ -26,6 +26,7 @@ async def _decode_token(credentials: HTTPAuthorizationCredentials) -> Optional[U
             credentials.credentials,
             SECRET_KEY,
             algorithms=[ALGORITHM],
+            issuer="ai-reviewer",
             audience="ai-reviewer-api",
         )
         email: str = payload.get("email")

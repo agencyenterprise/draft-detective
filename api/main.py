@@ -21,6 +21,7 @@ from api.routers import (
     projects,
     public,
     share,
+    users,
     workflows,
     workflow_types,
 )
@@ -56,3 +57,4 @@ app.include_router(projects.router)
 app.include_router(progress.router)
 app.include_router(share.router)
 app.include_router(public.router)
+app.include_router(users.router)
