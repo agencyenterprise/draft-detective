@@ -15,6 +15,9 @@ class WorkflowTypeDescription(BaseModel):
     description: str = Field(description="The description of the workflow")
     needs_web_search: bool = Field(description="Whether the workflow needs web search")
     is_experimental: bool = Field(description="Whether the workflow is experimental")
+    order: int = Field(
+        description="Display order in the UI (lower numbers appear first)"
+    )
 
 
 @router.get("/api/workflow-types", response_model=List[WorkflowTypeDescription])
@@ -36,10 +39,11 @@ async def get_workflow_types():
                     description=manifest.description,
                     needs_web_search=manifest.needs_web_search,
                     is_experimental=manifest.is_experimental,
+                    order=manifest.order,
                 )
             )
 
-    # Sort by name for consistent ordering
-    workflow_types.sort(key=lambda x: x.name)
+    # Sort by order for consistent ordering
+    workflow_types.sort(key=lambda x: x.order)
 
     return workflow_types

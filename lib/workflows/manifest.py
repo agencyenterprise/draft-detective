@@ -39,6 +39,9 @@ class WorkflowManifest[WorkflowStateType, WorkflowConfigType](ABC):
     # Experimental workflows are hidden by default in the UI
     is_experimental: bool = False
 
+    # Display order in the UI (lower numbers appear first)
+    order: int = 99
+
     # List of workflow types that this workflow depends on.
     # Used to determine the order in which the workflows should be run.
     # In case a workflow is started and a required dependency is not completed, running or scheduled to run, the workflow will fail to start with an error.
