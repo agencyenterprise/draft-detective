@@ -2,11 +2,12 @@
 
 import { UploadSection } from '@/components/analysis-form/upload-section';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { startAnalysisApiStartAnalysisPost, WorkflowRunType } from '@/lib/generated-api';
 import { useToolProjectUrl } from '@/hooks/use-tool-project-url';
+import { useSessionStorage } from '@/lib/hooks/use-session-storage';
 import { useMutation } from '@tanstack/react-query';
-import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { ExtractionProcessing } from './extraction-processing';
@@ -14,27 +15,26 @@ import { ExtractionResults } from './extraction-results';
 import { useReferenceExtraction } from '../hooks/use-reference-extraction';
 
 export function ReferenceExtractorTool() {
-  const router = useRouter();
   const [mainDocument, setMainDocument] = useState<File | null>(null);
-  const [supportingDocuments, setSupportingDocuments] = useState<File[]>([]);
+  const [openaiApiKey, setOpenaiApiKey] = useSessionStorage<string>('openai-api-key', '');
+  const hideOpenaiApiKeyInput = process.env.NEXT_PUBLIC_HIDE_CUSTOM_OPENAI_API_KEY_INPUT === 'true';
 
   const { projectId, setProjectId } = useToolProjectUrl();
 
-  const { results, isProcessing: isWorkflowProcessing, reset: resetWorkflow } = useReferenceExtraction(projectId);
+  const { results, isProcessing: isWorkflowProcessing } = useReferenceExtraction(projectId);
 
   const startWorkflowMutation = useMutation({
     mutationFn: async () => {
       return await startAnalysisApiStartAnalysisPost({
         body: {
           main_document: mainDocument!,
-          supporting_documents: supportingDocuments.length > 0 ? supportingDocuments : undefined,
           workflow_types: `${WorkflowRunType.DocumentProcessing},${WorkflowRunType.ReferenceExtraction}`,
+          openai_api_key: openaiApiKey || null,
         },
       });
     },
     onSuccess: (response) => {
       setProjectId(response.project_id!);
-      resetWorkflow();
       toast.success('Documents uploaded, processing...');
     },
     onError: (error) => {
@@ -50,17 +50,8 @@ export function ReferenceExtractorTool() {
   };
 
   const handleReset = () => {
-    resetWorkflow();
     setProjectId(null);
     setMainDocument(null);
-    setSupportingDocuments([]);
-    router.replace(window.location.pathname);
-  };
-
-  const removeSupporting = (index?: number) => {
-    if (index !== undefined) {
-      setSupportingDocuments((prev) => prev.filter((_, i) => i !== index));
-    }
   };
 
   const isProcessing = startWorkflowMutation.isPending || isWorkflowProcessing;
@@ -75,40 +66,44 @@ export function ReferenceExtractorTool() {
     return <ExtractionProcessing />;
   }
 
+  const isSubmitDisabled = !mainDocument || (!hideOpenaiApiKeyInput && !openaiApiKey);
+
   // Show upload form
   return (
     <div className="space-y-6">
-      <Card className="p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Upload Documents</h2>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          <UploadSection
-            title="Main Document"
-            description="Academic document with bibliography"
-            required
-            onFilesChange={(files) => setMainDocument(files[0] || null)}
-            multiple={false}
-            files={mainDocument ? [mainDocument] : []}
-            fileType="main"
-            onRemoveFile={() => setMainDocument(null)}
+      {!hideOpenaiApiKeyInput && (
+        <div className="space-y-2">
+          <Label htmlFor="openai-api-key">
+            OpenAI API Key <span className="text-destructive ml-1">*</span>
+          </Label>
+          <Input
+            id="openai-api-key"
+            type="text"
+            placeholder="sk-..."
+            value={openaiApiKey}
+            onChange={(e) => setOpenaiApiKey(e.target.value)}
+            required={true}
           />
-
-          <UploadSection
-            title="Supporting Documents"
-            description="Optional - for matching references with sources"
-            required={false}
-            onFilesChange={setSupportingDocuments}
-            multiple
-            files={supportingDocuments}
-            fileType="supporting"
-            onRemoveFile={removeSupporting}
-          />
+          <p className="text-xs text-muted-foreground">
+            Your OpenAI API key will be used only for this workflow and will not be stored in our database.
+          </p>
         </div>
+      )}
 
-        <Button onClick={handleExtract} disabled={!mainDocument} className="w-full">
-          Extract References
-        </Button>
-      </Card>
+      <UploadSection
+        title="Main Document"
+        description='Document containing a "references" section (or equivalent) from which reference items will be extracted.'
+        required
+        onFilesChange={(files) => setMainDocument(files[0] || null)}
+        multiple={false}
+        files={mainDocument ? [mainDocument] : []}
+        fileType="main"
+        onRemoveFile={() => setMainDocument(null)}
+      />
+
+      <Button onClick={handleExtract} disabled={isSubmitDisabled} className="w-full">
+        Extract References
+      </Button>
     </div>
   );
 }

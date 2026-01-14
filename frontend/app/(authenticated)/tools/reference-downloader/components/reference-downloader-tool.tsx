@@ -23,7 +23,7 @@ export function ReferenceDownloaderTool() {
 
   const { projectId, setProjectId } = useToolProjectUrl();
 
-  const { workflowDetails, isProcessing: isWorkflowProcessing } = useProjectDetails(projectId!, !!projectId);
+  const { workflowDetails, isProcessing: isWorkflowProcessing } = useProjectDetails(projectId, true);
 
   const referenceDownloader = getWorkflowRunByType(workflowDetails, WorkflowRunType.ReferenceDownloader);
 

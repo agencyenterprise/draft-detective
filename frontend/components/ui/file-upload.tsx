@@ -57,6 +57,12 @@ export function FileUpload({
 
     const files = Array.from(e.target.files);
     handleFiles(files);
+
+    setTimeout(() => {
+      // Reset input value to allow re-selecting the same file
+      // It needs to be done in a separate tick otherwise the file is lost before consumers are able to access it
+      e.target.value = '';
+    }, 0);
   };
 
   const handleFiles = (files: File[]) => {
