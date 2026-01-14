@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Optional, List
 import contextvars
 from uuid import UUID
 
@@ -36,7 +36,7 @@ class ContextSchema(BaseModel):
         default=None,
         description="The ID of the workflow run record related to this langgraph thread.",
     )
-    footnotes: Optional[Any] = Field(
+    footnotes: Optional[List[FootnoteItem]] = Field(
         default=None,
         description="List of footnotes available for lookup by citation detector tools.",
     )
