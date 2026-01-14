@@ -1,5 +1,5 @@
+from typing import Optional, List
 import contextvars
-from typing import Optional
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field

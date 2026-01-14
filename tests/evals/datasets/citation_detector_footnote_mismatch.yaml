@@ -31,7 +31,14 @@ dataset:
     - name: "citation_footnote_index_mismatch_large_document"
       description: "Verifies footnotes [10] and [11] are matched by CONTENT from footnotes section, NOT by index position. Bug causes [10] to match entry #10 (Chang/Bloomberg) instead of #42 (EIA-860)."
       input:
-        main_document: "evals/data/footnote_index_mismatch/main_document.md"
+        footnotes_list: |
+          [8]. In Task 1, we developed a detailed inventory of all ISO generation projects currently in the pipeline as well as historical data on completion rates by resource type and ISO.
+          [9]. We shared earlier versions of our framework with three organizations which provide energy services to datacenters across the United States.
+          [10]. These three sites were selected from the U.S. Energy Information Administration's EIA-860 Monthly Generator Data as large generators either retired within the past five years or scheduled for retirement before 2030. The selection process and criteria are described in Appendix C, "Maximum Capacity at an Individual Site."
+          [11]. Office of Policy, Department of Energy, "Request for Information on Artificial Intelligence Infrastructure on DOE Lands."
+          [12]. Arciniegas Rueda et al., "Barriers and Solutions for Expanding U.S Net Available Power Capacity by 2030"
+          [13]. Pilz, "Trends in AI Supercomputers."
+          [14]. Our focus was on the sites contained in the U.S. Department of Energy's March 2025 Request for Information on Artificial Intelligence Infrastructure on DOE Lands.
         bibliography:
           # Entries 1-9: Filler references
           - "Arciniegas Rueda, Ismael, et al., Additional AI Power Capacity by 2030, RAND Corporation, 2025."

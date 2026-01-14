@@ -8,29 +8,44 @@ toy_example_common_config: &toy_example_common_config
     - "Smith, J. (2020). The Effects of Widgets on Gadgets. Journal of Widgetry."
     - "Doe, A.; Roe, B. (2019). A Comprehensive Study of Gizmos. Proceedings of Gizmo Conf."
     - "Smith, A.; Anderson, T. (2017), A Study of The Effect of Cellphones on Writing Ability. Journal of Big Tech."
+  footnotes: []  # No footnotes in toy example - uses inline citations
 
 cryptocurrency_common_config: &cryptocurrency_common_config
   main_document: "evals/data/cryptocurrency-and-blockchain-minimal/main_document.md"
   bibliography:
-    - "Caldwell, Leslie R., “Assistant Attorney General Leslie R. Caldwell Delivers Remarks at the Securities Enforcement Forum West Conference,” U.S. Department of Justice, May 12, 2016."
-    - "Hill, Jonah Force, “Problematic Alternatives: MLAT Reform for the Digital Age,” *Harvard Law School National Security Journal*, January 28, 2015."
+    - "Caldwell, Leslie R., 'Assistant Attorney General Leslie R. Caldwell Delivers Remarks at the Securities Enforcement Forum West Conference,' U.S. Department of Justice, May 12, 2016."
+    - "Hill, Jonah Force, 'Problematic Alternatives: MLAT Reform for the Digital Age,' *Harvard Law School National Security Journal*, January 28, 2015."
     - "Goodison, Sean E., Robert C. Davis, and Brian A. Jackson, *Digital Evidence and the U.S. Criminal Justice System: Identifying Technology and Other Needs to More Effectively Acquire and Utilize Digital Evidence*, Santa Monica, Calif.: RAND Corporation, RR-890-NIJ, 2015. As of November 15, 2022: https://www.rand.org/pubs/research_reports/RR890.html"
     - "Goodison, Sean E., Dulani Woods, Jeremy D. Barnum, Adam R. Kemerer, and Brian A. Jackson, *Identifying Law Enforcement Needs for Conducting Criminal Investigations Involving Evidence on the Dark Web*, Santa Monica, Calif.: RAND Corporation, RR-2704-NIJ, 2019. As of November 15, 2022: https://www.rand.org/pubs/research_reports/RR2704.html"
-    - "Tanneeru, Manav, “Can the Law Keep Up with Technology?” CNN, November 17, 2009."
+    - "Tanneeru, Manav, 'Can the Law Keep Up with Technology?' CNN, November 17, 2009."
     - "Vermeer, Michael J. D., Dulani Woods, and Brian A. Jackson, *Identifying Law Enforcement Needs for Access to Digital Evidence in Remote Data Centers*, Santa Monica, Calif.: RAND Corporation, RR-2240-NIJ, 2018. As of November 16, 2022: https://www.rand.org/pubs/research_reports/RR2240.html"
+  footnotes: []  # No footnotes in cryptocurrency example - uses inline citations
 
 power_capacity_common_config: &power_capacity_common_config
   main_document: "evals/data/power-capacity-by-2030-published-minimal/_main.md"
   bibliography:
-    - "Bistline, John, Geoffrey Blanford, Maxwell Brown, Dallas Burtraw, Maya Domeshek, Jamil Farbes, Allen Fawcett, Anne Hamilton, Jesse Jenkins, Ryan Jones, et al., “Emissions and Energy Impacts of the Inflation Reduction Act,” Science, Vol. 380, No. 6652, June 30, 2023."
-    - "Davenport, Carly, Brian Singer, Neil Mehta, Brian Lee, and John Mackay, “Generational Growth: AI, Data Centers and the Coming US Power Demand Surge,” Goldman Sachs Equity Research, April 28, 2024."
+    - "Bistline, John, Geoffrey Blanford, Maxwell Brown, Dallas Burtraw, Maya Domeshek, Jamil Farbes, Allen Fawcett, Anne Hamilton, Jesse Jenkins, Ryan Jones, et al., 'Emissions and Energy Impacts of the Inflation Reduction Act,' Science, Vol. 380, No. 6652, June 30, 2023."
+    - "Davenport, Carly, Brian Singer, Neil Mehta, Brian Lee, and John Mackay, 'Generational Growth: AI, Data Centers and the Coming US Power Demand Surge,' Goldman Sachs Equity Research, April 28, 2024."
     - "North American Electric Reliability Corporation, *2024 Long-Term Reliability Assessment*, December 2024."
-    - "Pilz, Konstantin F., Yusuf Mahmood, and Lennart Heim, *AI’s Power Requirements Under Exponential Growth: Extrapolating AI Data Center Power Demand and Assessing Its Potential Impact on U.S. Competitiveness*, RAND Corporation, RR-A3572-1, 2025. As of June 3, 2025: https://www.rand.org/pubs/research_reports/RRA3572-1.html"
+    - "Pilz, Konstantin F., Yusuf Mahmood, and Lennart Heim, *AI's Power Requirements Under Exponential Growth: Extrapolating AI Data Center Power Demand and Assessing Its Potential Impact on U.S. Competitiveness*, RAND Corporation, RR-A3572-1, 2025. As of June 3, 2025: https://www.rand.org/pubs/research_reports/RRA3572-1.html"
     - "Scharre, Paul, *Future-Proofing Frontier AI Regulation: Projecting Future Compute for Frontier AI Models*, Center for a New American Security, March 2024."
-    - "Secretary of Energy Advisory Board, “Recommendations on Powering Artificial Intelligence and Data Center Infrastructure,” U.S. Department of Energy, July 30, 2024."
-    - "Sevilla, Jaime, Tamay Besiroglu, Ben Cottier, Josh You, Edu Roldán, Pablo Villalobos, and Ege Erdil, “Can AI Scaling Continue Through 2030?” Epoch AI, August 20, 2024."
+    - "Secretary of Energy Advisory Board, 'Recommendations on Powering Artificial Intelligence and Data Center Infrastructure,' U.S. Department of Energy, July 30, 2024."
+    - "Sevilla, Jaime, Tamay Besiroglu, Ben Cottier, Josh You, Edu Roldán, Pablo Villalobos, and Ege Erdil, 'Can AI Scaling Continue Through 2030?' Epoch AI, August 20, 2024."
     - "Shehabi, Arman, Sarah J. Smith, Alex Hubbard, Alex Newkirk, Nuoa Lei, Md Abu Bakar Siddik, Billie Holecek, Jonathan Koomey, Eric Masanet, and Dale Sartor, *2024 United States Data Center Energy Usage Report*, Berkeley Lab, December 2024."
-    - "Srivathsan, Bhargs, Marc Sorel, Pankaj Sachdeva, Arjita Bhan, Haripreet Batra, Raman Sharma, Rishi Gupta, and Surbhi Choudhary, “AI Power: Expanding Data Center Capacity to Meet Growing Demand,” McKinsey & Company, October 2024."
+    - "Srivathsan, Bhargs, Marc Sorel, Pankaj Sachdeva, Arjita Bhan, Haripreet Batra, Raman Sharma, Rishi Gupta, and Surbhi Choudhary, 'AI Power: Expanding Data Center Capacity to Meet Growing Demand,' McKinsey & Company, October 2024."
+  footnotes:
+    - marker: "18"
+      text: "Bistline et al., 2023; North American Electric Reliability Corporation, 2024; Pilz, Mahmood, and Heim, 2025."
+      reference_code: "#footnote-ref-18"
+    - marker: "19"
+      text: "Srivathsan et al., 2024; Scharre, 2024."
+      reference_code: "#footnote-ref-19"
+    - marker: "20"
+      text: "Secretary of Energy Advisory Board, 2024."
+      reference_code: "#footnote-ref-20"
+    - marker: "22"
+      text: "Pilz, Mahmood, and Heim, 2025."
+      reference_code: "#footnote-ref-22"
 
 dataset:
   name: "Citation Detector Dataset"
@@ -111,7 +126,7 @@ dataset:
             type: "bibliography"
             format: "author (year)"
             needs_bibliography: true
-            associated_bibliography: "Tanneeru, Manav, “Can the Law Keep Up with Technology?” CNN, November 17, 2009."
+            associated_bibliography: "Tanneeru, Manav, 'Can the Law Keep Up with Technology?' CNN, November 17, 2009."
             index_of_associated_bibliography: 5
             rationale: ""
           - text: "Vermeer, Woods, and Jackson, 2018"
@@ -141,7 +156,7 @@ dataset:
             type: "bibliography"
             format: "author (year)"
             needs_bibliography: true
-            associated_bibliography: "Tanneeru, Manav, “Can the Law Keep Up with Technology?” CNN, November 17, 2009."
+            associated_bibliography: "Tanneeru, Manav, 'Can the Law Keep Up with Technology?' CNN, November 17, 2009."
             index_of_associated_bibliography: 5
             rationale: ""
           - text: "Vermeer, Woods, and Jackson, 2018"
@@ -164,7 +179,7 @@ dataset:
             type: "bibliography"
             format: "author (year)"
             needs_bibliography: true
-            associated_bibliography: "Caldwell, Leslie R., “Assistant Attorney General Leslie R. Caldwell Delivers Remarks at the Securities Enforcement Forum West Conference,” U.S. Department of Justice, May 12, 2016."
+            associated_bibliography: "Caldwell, Leslie R., 'Assistant Attorney General Leslie R. Caldwell Delivers Remarks at the Securities Enforcement Forum West Conference,' U.S. Department of Justice, May 12, 2016."
             index_of_associated_bibliography: 1
             rationale: ""
           - text: "Vermeer, Woods, and Jackson, 2018"
@@ -198,7 +213,7 @@ dataset:
       description: "Test case with bibliographic entry, that should not return any citation"
       input:
         <<: *cryptocurrency_common_config
-        chunk: "Caldwell, Leslie R., “Assistant Attorney General Leslie R. Caldwell Delivers Remarks at the Securities Enforcement Forum West Conference,” U.S. Department of Justice, May 12, 2016."
+        chunk: "Caldwell, Leslie R., 'Assistant Attorney General Leslie R. Caldwell Delivers Remarks at the Securities Enforcement Forum West Conference,' U.S. Department of Justice, May 12, 2016."
       expected_output:
         citations: []
         rationale: ""
@@ -207,7 +222,7 @@ dataset:
       description: "Test case with bibliographic entry, that should not return any citation"
       input:
         <<: *cryptocurrency_common_config
-        chunk: "Goodison, Sean E., Dulani Woods, Jeremy D. Barnum, Adam R. Kemerer, and Brian A. Jackson, *Identifying Law Enforcement Needs for Conducting Criminal Investigations Involving Evidence on the Dark Web*, Santa Monica, Calif.: RAND Corporation, RR-2704-NIJ, 2019. As of November 15, 2022: https://www.rand.org/pubs/research\_reports/RR2704.html"
+        chunk: "Goodison, Sean E., Dulani Woods, Jeremy D. Barnum, Adam R. Kemerer, and Brian A. Jackson, *Identifying Law Enforcement Needs for Conducting Criminal Investigations Involving Evidence on the Dark Web*, Santa Monica, Calif.: RAND Corporation, RR-2704-NIJ, 2019. As of November 15, 2022: https://www.rand.org/pubs/research_reports/RR2704.html"
       expected_output:
         citations: []
         rationale: ""
@@ -223,7 +238,7 @@ dataset:
             type: "footnote"
             format: "[number] footnote marker"
             needs_bibliography: true
-            associated_bibliography: "Bistline, John, Geoffrey Blanford, Maxwell Brown, Dallas Burtraw, Maya Domeshek, Jamil Farbes, Allen Fawcett, Anne Hamilton, Jesse Jenkins, Ryan Jones, et al., “Emissions and Energy Impacts of the Inflation Reduction Act,” Science, Vol. 380, No. 6652, June 30, 2023."
+            associated_bibliography: "Bistline, John, Geoffrey Blanford, Maxwell Brown, Dallas Burtraw, Maya Domeshek, Jamil Farbes, Allen Fawcett, Anne Hamilton, Jesse Jenkins, Ryan Jones, et al., 'Emissions and Energy Impacts of the Inflation Reduction Act,' Science, Vol. 380, No. 6652, June 30, 2023."
             index_of_associated_bibliography: 1
             rationale: ""
           - text: "[[18]](#footnote-18)"
@@ -237,7 +252,7 @@ dataset:
             type: "footnote"
             format: "[number] footnote marker"
             needs_bibliography: true
-            associated_bibliography: "Pilz, Konstantin F., Yusuf Mahmood, and Lennart Heim, *AI’s Power Requirements Under Exponential Growth: Extrapolating AI Data Center Power Demand and Assessing Its Potential Impact on U.S. Competitiveness*, RAND Corporation, RR-A3572-1, 2025. As of June 3, 2025: https://www.rand.org/pubs/research_reports/RRA3572-1.html"
+            associated_bibliography: "Pilz, Konstantin F., Yusuf Mahmood, and Lennart Heim, *AI's Power Requirements Under Exponential Growth: Extrapolating AI Data Center Power Demand and Assessing Its Potential Impact on U.S. Competitiveness*, RAND Corporation, RR-A3572-1, 2025. As of June 3, 2025: https://www.rand.org/pubs/research_reports/RRA3572-1.html"
             index_of_associated_bibliography: 4
             rationale: ""
         rationale: ""
@@ -253,7 +268,7 @@ dataset:
             type: "footnote"
             format: "[number] footnote marker"
             needs_bibliography: true
-            associated_bibliography: "Srivathsan, Bhargs, Marc Sorel, Pankaj Sachdeva, Arjita Bhan, Haripreet Batra, Raman Sharma, Rishi Gupta, and Surbhi Choudhary, “AI Power: Expanding Data Center Capacity to Meet Growing Demand,” McKinsey & Company, October 2024."
+            associated_bibliography: "Srivathsan, Bhargs, Marc Sorel, Pankaj Sachdeva, Arjita Bhan, Haripreet Batra, Raman Sharma, Rishi Gupta, and Surbhi Choudhary, 'AI Power: Expanding Data Center Capacity to Meet Growing Demand,' McKinsey & Company, October 2024."
             index_of_associated_bibliography: 9
             rationale: ""
           - text: "[[19]](#footnote-19)"
@@ -267,7 +282,7 @@ dataset:
             type: "footnote"
             format: "[number] footnote marker"
             needs_bibliography: true
-            associated_bibliography: "Secretary of Energy Advisory Board, “Recommendations on Powering Artificial Intelligence and Data Center Infrastructure,” U.S. Department of Energy, July 30, 2024."
+            associated_bibliography: "Secretary of Energy Advisory Board, 'Recommendations on Powering Artificial Intelligence and Data Center Infrastructure,' U.S. Department of Energy, July 30, 2024."
             index_of_associated_bibliography: 6
             rationale: ""
         rationale: ""
@@ -292,7 +307,7 @@ dataset:
             type: "footnote"
             format: "[number] footnote marker"
             needs_bibliography: true
-            associated_bibliography: "Pilz, Konstantin F., Yusuf Mahmood, and Lennart Heim, *AI’s Power Requirements Under Exponential Growth: Extrapolating AI Data Center Power Demand and Assessing Its Potential Impact on U.S. Competitiveness*, RAND Corporation, RR-A3572-1, 2025. As of June 3, 2025: https://www.rand.org/pubs/research_reports/RRA3572-1.html"
+            associated_bibliography: "Pilz, Konstantin F., Yusuf Mahmood, and Lennart Heim, *AI's Power Requirements Under Exponential Growth: Extrapolating AI Data Center Power Demand and Assessing Its Potential Impact on U.S. Competitiveness*, RAND Corporation, RR-A3572-1, 2025. As of June 3, 2025: https://www.rand.org/pubs/research_reports/RRA3572-1.html"
             index_of_associated_bibliography: 4
             rationale: ""
         rationale: ""

@@ -18,6 +18,10 @@ from lib.workflows.document_processing.state import (
     DocumentProcessingState,
     DocumentProcessingWorkflowConfig,
 )
+from lib.workflows.footnote_extraction.state import (
+    FootnoteExtractionConfig,
+    FootnoteExtractionState,
+)
 from lib.workflows.inference_validation.state import (
     InferenceValidationState,
     InferenceValidationWorkflowConfig,
@@ -51,6 +55,7 @@ from lib.workflows.results_extraction.state import (
 WorkflowState = (
     DocumentProcessingState
     | ReferenceExtractionState
+    | FootnoteExtractionState
     | ClaimExtractionState
     | ClaimReferenceValidationState
     | CitationDetectionState
@@ -67,6 +72,7 @@ WorkflowState = (
 WorkflowConfig = (
     DocumentProcessingWorkflowConfig
     | ReferenceExtractionConfig
+    | FootnoteExtractionConfig
     | ClaimExtractionWorkflowConfig
     | CitationDetectionConfig
     | ClaimReferenceValidationWorkflowConfig
