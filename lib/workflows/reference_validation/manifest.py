@@ -22,6 +22,7 @@ class ReferenceValidationManifest(
     name = "Reference Validation"
     description = "Validate each reference from the document by checking if it has an online presence, using web search."
     needs_web_search = True
+    order = 5
     required_dependencies = [WorkflowRunType.REFERENCE_EXTRACTION]
 
     def get_state_type(self) -> Type[ReferenceValidationState]:

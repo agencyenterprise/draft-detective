@@ -6,6 +6,7 @@ import { CheckIcon, FlaskConical, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { WorkflowTypeDescription } from '@/lib/generated-api';
 import { Badge } from '../ui/badge';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
 
 interface WorkflowTypeCheckboxProps {
   workflowType: WorkflowTypeDescription;
@@ -55,16 +56,32 @@ export function WorkflowTypeCheckbox({
         </div>
         <div className="flex items-center gap-2">
           {workflowType.is_experimental && (
-            <Badge variant="secondary" className="flex items-center gap-1 text-xs shrink-0">
-              <FlaskConical className="size-3" />
-              Experimental
-            </Badge>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Badge variant="secondary" className="flex items-center gap-1 text-xs shrink-0">
+                  <FlaskConical className="size-3" />
+                  Experimental
+                </Badge>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="max-w-xs">
+                This analysis is still highly experimental and being refined. Results may vary and the feature may
+                change in future updates.
+              </TooltipContent>
+            </Tooltip>
           )}
           {workflowType.needs_web_search && (
-            <Badge variant="outline" className="flex items-center gap-1 text-xs shrink-0">
-              <Search className="size-3" />
-              Performs Web Search
-            </Badge>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Badge variant="outline" className="flex items-center gap-1 text-xs shrink-0">
+                  <Search className="size-3" />
+                  Performs Web Search
+                </Badge>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="max-w-xs">
+                This analysis searches the web (using OpenAI&apos;s web search tool) for additional context and
+                information to enhance the analysis. Parts of the document might be used as web search query/context.
+              </TooltipContent>
+            </Tooltip>
           )}
         </div>
       </div>

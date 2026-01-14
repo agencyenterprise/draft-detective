@@ -3277,6 +3277,12 @@ export type WorkflowTypeDescription = {
    * Whether the workflow is experimental
    */
   is_experimental: boolean;
+  /**
+   * Order
+   *
+   * Display order in the UI (lower numbers appear first)
+   */
+  order: number;
 };
 
 /**
