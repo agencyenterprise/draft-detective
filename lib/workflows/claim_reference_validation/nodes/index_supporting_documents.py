@@ -51,11 +51,12 @@ async def index_supporting_documents(
             indexed_count += 1
 
         except Exception as e:
-            logger.error(f"Failed to index {file_doc.file_name}: {e}")
+            error_msg = f"{e}" + (f" (caused by: {e.__cause__})" if e.__cause__ else "")
+            logger.error(f"Failed to index {file_doc.file_name}: {error_msg}")
             errors.append(
                 WorkflowError(
                     task_name="index_supporting_documents",
-                    error=str(e),
+                    error=error_msg,
                 )
             )
             failed_files.append(file_doc.file_name)
