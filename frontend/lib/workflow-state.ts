@@ -3,7 +3,6 @@ import {
   CitationSuggesterState,
   ClaimExtractionState,
   ClaimReferenceValidationState,
-  ClaimSubstantiatorStateOutput,
   DocumentProcessingState,
   DocxGenerationState,
   InferenceValidationState,
@@ -27,7 +26,6 @@ import {
 type WorkflowTypeToDetail = {
   [WorkflowRunType.DocumentProcessing]: DocumentProcessingState;
   [WorkflowRunType.ReferenceExtraction]: ReferenceExtractionState;
-  [WorkflowRunType.ClaimSubstantiation]: ClaimSubstantiatorStateOutput;
   [WorkflowRunType.ClaimReferenceValidation]: ClaimReferenceValidationState;
   [WorkflowRunType.MethodologicalAlignment]: MethodologicalAlignmentState;
   [WorkflowRunType.ReferenceDownloader]: ReferenceDownloaderState;
@@ -66,7 +64,6 @@ export function getWorkflowRunByType<T extends keyof WorkflowTypeToDetail>(
 const workflowTypeNames: Record<WorkflowRunType, string> = {
   [WorkflowRunType.DocumentProcessing]: 'Document Processing',
   [WorkflowRunType.ReferenceExtraction]: 'Reference Extraction',
-  [WorkflowRunType.ClaimSubstantiation]: 'Claim Substantiation (deprecated)',
   [WorkflowRunType.ClaimReferenceValidation]: 'Claim Reference Validation',
   [WorkflowRunType.MethodologicalAlignment]: 'Methodological Alignment',
   [WorkflowRunType.ReferenceDownloader]: 'Reference Downloader',

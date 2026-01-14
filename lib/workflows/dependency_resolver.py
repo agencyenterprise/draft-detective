@@ -25,7 +25,7 @@ def resolve_workflow_dependencies(
 
     Example:
         Input: [REFERENCE_VALIDATION]
-        Output: [DOCUMENT_PROCESSING, CLAIM_SUBSTANTIATION, REFERENCE_VALIDATION]
+        Output: [DOCUMENT_PROCESSING, REFERENCE_EXTRACTION, REFERENCE_VALIDATION]
 
     Args:
         workflow_types: List of workflow types requested by user

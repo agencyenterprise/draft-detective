@@ -64,7 +64,6 @@ class WorkflowRunType(str, Enum):
     REFERENCE_EXTRACTION = "reference_extraction"
     CLAIM_EXTRACTION = "claim_extraction"
     CITATION_DETECTION = "citation_detection"
-    CLAIM_SUBSTANTIATION = "claim_substantiation"
     METHODOLOGICAL_ALIGNMENT = "methodological_alignment"
     REFERENCE_DOWNLOADER = "reference_downloader"
     DOCX_GENERATION = "docx_generation"

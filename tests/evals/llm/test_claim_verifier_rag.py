@@ -20,18 +20,16 @@ from lib.models.bibliography_item import BibliographyItem
 from lib.config.logger import setup_logger
 from lib.models.agent_test_case import AgentTestCase
 from lib.services.file import FileDocument
+from lib.workflows.chunk_utils import AnalyzedChunk
 from lib.workflows.claim_reference_validation.nodes.index_supporting_documents import (
     index_file_document,
 )
 from lib.workflows.claim_reference_validation.nodes.verify_claims import (
     format_evidence_explanation,
 )
-from lib.workflows.claim_substantiation.reference_providers import RAGReferenceProvider
-from lib.workflows.claim_substantiation.state import (
-    ClaimSubstantiatorState,
-    SubstantiationWorkflowConfig,
+from lib.workflows.claim_reference_validation.reference_providers import (
+    RAGReferenceProvider,
 )
-from lib.workflows.document_processing.state import DocumentChunk
 from tests.conftest import (
     extract_paragraph_from_chunk,
     create_test_file_document_from_path,
@@ -113,28 +111,24 @@ async def _build_cases(dataset_file_name: str):
         target_audience = test_case.input.get("target_audience")
         paragraph = extract_paragraph_from_chunk(main_doc.markdown, chunk)
 
-        # Create state and index supporting documents
-        state = ClaimSubstantiatorState(
-            file=main_doc,
-            supporting_files=supporting_docs,
-            config=SubstantiationWorkflowConfig(
-                domain=domain, target_audience=target_audience
-            ),
-        )
-
-        # Instantiate RAG Reference Provider, mock inputs unused by this test
+        # Instantiate RAG Reference Provider
         reference_provider = TestRAGReferenceProvider(vector_store)
         claim1 = Claim(claim=claim_text, text=chunk, rationale="", central=True)
+
+        # Create an AnalyzedChunk for the test
+        analyzed_chunk = AnalyzedChunk(
+            content=chunk,
+            chunk_index=0,
+            paragraph_index=0,
+        )
+
         ref_context = await reference_provider.get_references_for_claim(
-            state,
-            DocumentChunk(
-                claims=ClaimResponse(claims=[claim1], rationale=""),
-                content=chunk,
-                chunk_index=0,
-                paragraph_index=0,
-            ),
-            claim1,
-            0,
+            chunks=[analyzed_chunk],
+            supporting_files=supporting_docs,
+            references=[],  # Empty references list for test
+            chunk=analyzed_chunk,
+            claim=claim1,
+            claim_index=0,
         )
 
         # Build prompt kwargs
@@ -143,7 +137,7 @@ async def _build_cases(dataset_file_name: str):
             "paragraph": paragraph,
             "chunk": chunk,
             "claim": claim_text,
-            "evidence_context_explanation": format_evidence_explanation(True),
+            "evidence_context_explanation": format_evidence_explanation(),
             "cited_references": ref_context.cited_references,
             "cited_references_paragraph": ref_context.cited_references_paragraph,
             "domain_context": format_domain_context(domain),

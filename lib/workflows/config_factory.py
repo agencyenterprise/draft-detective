@@ -48,12 +48,7 @@ def create_workflow_config(
     }
 
     # Handle workflow-specific configs
-    if workflow_type == WorkflowRunType.CLAIM_SUBSTANTIATION:
-        raise ValueError(
-            "CLAIM_SUBSTANTIATION workflow is deprecated. Use specific workflow types instead."
-        )
-
-    elif workflow_type == WorkflowRunType.CITATION_SUGGESTER:
+    if workflow_type == WorkflowRunType.CITATION_SUGGESTER:
         return CitationSuggesterWorkflowConfig(**common_fields)
 
     elif workflow_type == WorkflowRunType.REFERENCE_VALIDATION:

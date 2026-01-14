@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional, Sequence, Tuple, cast
+from typing import TYPE_CHECKING, Dict, List, Optional, Sequence, Tuple, cast
 
 from lib.agents.citation_detector import CitationResponseWithChunkIndex
 from lib.agents.claim_categorizer import ClaimCategorizationResponseWithClaimIndex
@@ -6,14 +6,29 @@ from lib.agents.claim_extractor import ClaimResponseWithChunkIndex
 from lib.agents.models import ChunkWithIndex, ClaimCategory
 from lib.workflows.citation_detection.state import CitationDetectionState
 from lib.workflows.claim_extraction.state import ClaimExtractionState
-from lib.workflows.claim_substantiation.state import AnalyzedChunk
 from lib.workflows.document_processing.state import DocumentProcessingState
 from lib.workflows.models import WorkflowRunType
-from lib.workflows.types import WorkflowState
 from lib.workflows.util import get_state_by_type
 
+if TYPE_CHECKING:
+    from lib.workflows.types import WorkflowState
 
-def build_analyzed_chunks(existing_states: List[WorkflowState]) -> List[AnalyzedChunk]:
+
+class AnalyzedChunk(ChunkWithIndex):
+    """Enriched document chunk with all claim analysis results.
+
+    Extends the base ChunkWithIndex with claim extraction, citation detection,
+    categorization, substantiation, and inference validation results.
+    """
+
+    claims: Optional[ClaimResponseWithChunkIndex] = None
+    citations: Optional[CitationResponseWithChunkIndex] = None
+    claim_categories: List[ClaimCategorizationResponseWithClaimIndex] = []
+
+
+def build_analyzed_chunks(
+    existing_states: List["WorkflowState"],
+) -> List[AnalyzedChunk]:
     """Build AnalyzedChunk objects from existing workflow states.
 
     This function extracts chunks from document processing state and enriches them

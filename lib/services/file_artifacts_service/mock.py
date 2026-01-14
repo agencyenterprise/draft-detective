@@ -2,7 +2,7 @@ from lib.agents.document_summarizer import DocumentSummary
 from lib.models.bibliography_item import BibliographyItem
 from lib.services.file import FileDocument
 from lib.services.file_artifacts_service.types import FileArtifactsServiceType
-from lib.workflows.claim_substantiation.state import AnalyzedChunk
+from lib.workflows.chunk_utils import AnalyzedChunk
 
 
 class MockFileArtifactsService(FileArtifactsServiceType):

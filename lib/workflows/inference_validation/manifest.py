@@ -2,8 +2,11 @@ from typing import List, Type
 
 from langgraph.graph import StateGraph
 
-from lib.workflows.chunk_utils import build_analyzed_chunks, find_claim_category
-from lib.workflows.claim_substantiation.state import AnalyzedChunk
+from lib.workflows.chunk_utils import (
+    AnalyzedChunk,
+    build_analyzed_chunks,
+    find_claim_category,
+)
 from lib.workflows.inference_validation.graph import build_inference_validation_graph
 from lib.workflows.inference_validation.state import (
     InferenceValidationState,

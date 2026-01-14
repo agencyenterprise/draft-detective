@@ -1,12 +1,14 @@
-from typing import List
+from typing import TYPE_CHECKING, List, Optional
 
 from lib.workflows.models import WorkflowRunType
-from lib.workflows.types import WorkflowState
+
+if TYPE_CHECKING:
+    from lib.workflows.types import WorkflowState
 
 
 def get_state_by_type(
-    type: WorkflowRunType, states: List[WorkflowState]
-) -> WorkflowState | None:
+    type: WorkflowRunType, states: List["WorkflowState"]
+) -> Optional["WorkflowState"]:
     """
     Get a state by type from a list of states.
     """
@@ -18,8 +20,8 @@ def get_state_by_type(
 
 
 def get_state_by_type_or_raise(
-    type: WorkflowRunType, states: List[WorkflowState]
-) -> WorkflowState:
+    type: WorkflowRunType, states: List["WorkflowState"]
+) -> "WorkflowState":
     """
     Get a state by type from a list of states, or raise an error if it's not found.
     """
@@ -32,7 +34,7 @@ def get_state_by_type_or_raise(
     return state
 
 
-def get_main_file_id(all_states: List[WorkflowState]) -> str:
+def get_main_file_id(all_states: List["WorkflowState"]) -> str:
     """
     Get the ID of the main file from a list of states.
     """
@@ -43,7 +45,7 @@ def get_main_file_id(all_states: List[WorkflowState]) -> str:
     raise ValueError("No main file found in states")
 
 
-def get_supporting_file_ids(all_states: List[WorkflowState]) -> List[str]:
+def get_supporting_file_ids(all_states: List["WorkflowState"]) -> List[str]:
     """
     Get the IDs of the supporting files from a list of states.
     """

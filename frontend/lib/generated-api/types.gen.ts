@@ -25,61 +25,31 @@ export type AgentInfo = {
 };
 
 /**
- * AnalyzedChunk
+ * AnalysisFormConfig
  *
- * Enriched document chunk with all claim analysis results.
- *
- * Extends the base ChunkWithIndex with claim extraction, citation detection,
- * categorization, substantiation, and inference validation results.
+ * Form config for starting analysis (project creation + workflow start)
  */
-export type AnalyzedChunkInput = {
+export type AnalysisFormConfig = {
   /**
-   * Content
+   * Domain
    */
-  content: string;
+  domain?: string | null;
   /**
-   * Chunk Index
+   * Target Audience
    */
-  chunk_index: number;
+  target_audience?: string | null;
   /**
-   * Paragraph Index
+   * Openai Api Key
    */
-  paragraph_index: number;
-  claims?: ClaimResponseWithChunkIndex | null;
-  citations?: CitationResponseWithChunkIndexInput | null;
+  openai_api_key?: string | null;
   /**
-   * Claim Categories
+   * Publication Date
    */
-  claim_categories?: Array<ClaimCategorizationResponseWithClaimIndex>;
-};
-
-/**
- * AnalyzedChunk
- *
- * Enriched document chunk with all claim analysis results.
- *
- * Extends the base ChunkWithIndex with claim extraction, citation detection,
- * categorization, substantiation, and inference validation results.
- */
-export type AnalyzedChunkOutput = {
+  publication_date?: string | null;
   /**
-   * Content
+   * Workflow Types
    */
-  content: string;
-  /**
-   * Chunk Index
-   */
-  chunk_index: number;
-  /**
-   * Paragraph Index
-   */
-  paragraph_index: number;
-  claims?: ClaimResponseWithChunkIndex | null;
-  citations?: CitationResponseWithChunkIndexOutput | null;
-  /**
-   * Claim Categories
-   */
-  claim_categories?: Array<ClaimCategorizationResponseWithClaimIndex>;
+  workflow_types?: Array<WorkflowRunType> | null;
 };
 
 /**
@@ -253,14 +223,6 @@ export type BodyStartAnalysisApiStartAnalysisPost = {
    */
   target_audience?: string | null;
   /**
-   * Target Chunk Indices
-   */
-  target_chunk_indices?: string | null;
-  /**
-   * Agents To Run
-   */
-  agents_to_run?: string | null;
-  /**
    * Openai Api Key
    */
   openai_api_key?: string | null;
@@ -276,9 +238,16 @@ export type BodyStartAnalysisApiStartAnalysisPost = {
 
 /**
  * ChunkEvalPackageRequest
+ *
+ * Request model for generating chunk-specific eval packages.
  */
 export type ChunkEvalPackageRequest = {
-  results: ClaimSubstantiatorStateInput;
+  /**
+   * Project Id
+   *
+   * The project ID to generate eval package for
+   */
+  project_id: string;
   /**
    * Chunk Index
    */
@@ -304,25 +273,7 @@ export type ChunkEvalPackageRequest = {
  *
  * Keys are string chunk indices, values are lists of regions
  */
-export type ChunkToItemsInput = {
-  /**
-   * Mapping
-   *
-   * Maps chunk_index (as string) to list of regions
-   */
-  mapping?: {
-    [key: string]: Array<DoclingRegion>;
-  };
-};
-
-/**
- * ChunkToItems
- *
- * Mapping from chunk indices to document items/regions
- *
- * Keys are string chunk indices, values are lists of regions
- */
-export type ChunkToItemsOutput = {
+export type ChunkToItems = {
   /**
    * Mapping
    *
@@ -445,37 +396,13 @@ export type CitationDetectionState = {
   /**
    * Citations
    */
-  citations?: Array<CitationResponseWithChunkIndexOutput>;
+  citations?: Array<CitationResponseWithChunkIndex>;
 };
 
 /**
  * CitationResponseWithChunkIndex
  */
-export type CitationResponseWithChunkIndexInput = {
-  /**
-   * Citations
-   *
-   * A list of citations found in the chunk of text
-   */
-  citations: Array<Citation>;
-  /**
-   * Rationale
-   *
-   * Very brief rationale for why you think the chunk of text includes these citations, if any
-   */
-  rationale: string;
-  /**
-   * Chunk Index
-   *
-   * The index of the chunk of text that contains the citations
-   */
-  chunk_index: number;
-};
-
-/**
- * CitationResponseWithChunkIndex
- */
-export type CitationResponseWithChunkIndexOutput = {
+export type CitationResponseWithChunkIndex = {
   /**
    * Citations
    *
@@ -997,98 +924,6 @@ export type ClaimSubstantiationResultWithClaimIndex = {
 };
 
 /**
- * ClaimSubstantiatorState
- */
-export type ClaimSubstantiatorStateInput = {
-  /**
-   * Errors
-   *
-   * Errors that occurred during the workflow execution.
-   */
-  errors?: Array<WorkflowError>;
-  /**
-   * Type
-   */
-  type?: 'claim_substantiation';
-  file: FileDocumentInput;
-  /**
-   * Supporting Files
-   */
-  supporting_files?: Array<FileDocumentInput> | null;
-  config: SubstantiationWorkflowConfig;
-  /**
-   * References
-   */
-  references?: Array<BibliographyItem>;
-  /**
-   * Chunks
-   */
-  chunks?: Array<AnalyzedChunkInput>;
-  /**
-   * The summary of the main document
-   */
-  main_document_summary?: DocumentSummary | null;
-  /**
-   * Supporting Documents Summaries
-   *
-   * Dictionary mapping supporting file indices to their summaries
-   */
-  supporting_documents_summaries?: {
-    [key: string]: DocumentSummary;
-  } | null;
-  /**
-   * Mapping from chunk indices to Docling items/regions for rendering
-   */
-  chunk_to_items?: ChunkToItemsInput | null;
-};
-
-/**
- * ClaimSubstantiatorState
- */
-export type ClaimSubstantiatorStateOutput = {
-  /**
-   * Errors
-   *
-   * Errors that occurred during the workflow execution.
-   */
-  errors?: Array<WorkflowError>;
-  /**
-   * Type
-   */
-  type?: 'claim_substantiation';
-  file: FileDocumentOutput;
-  /**
-   * Supporting Files
-   */
-  supporting_files?: Array<FileDocumentOutput> | null;
-  config: SubstantiationWorkflowConfig;
-  /**
-   * References
-   */
-  references?: Array<BibliographyItem>;
-  /**
-   * Chunks
-   */
-  chunks?: Array<AnalyzedChunkOutput>;
-  /**
-   * The summary of the main document
-   */
-  main_document_summary?: DocumentSummary | null;
-  /**
-   * Supporting Documents Summaries
-   *
-   * Dictionary mapping supporting file indices to their summaries
-   */
-  supporting_documents_summaries?: {
-    [key: string]: DocumentSummary;
-  } | null;
-  /**
-   * Mapping from chunk indices to Docling items/regions for rendering
-   */
-  chunk_to_items?: ChunkToItemsOutput | null;
-};
-
-/**
  * CommentSeverity
  *
  * Severity levels for DOCX comments.
@@ -1254,11 +1089,11 @@ export type DocumentProcessingState = {
    * Type
    */
   type?: 'document_processing';
-  file: FileDocumentOutput;
+  file: FileDocument;
   /**
    * Supporting Files
    */
-  supporting_files?: Array<FileDocumentOutput> | null;
+  supporting_files?: Array<FileDocument> | null;
   config: DocumentProcessingWorkflowConfig;
   /**
    * The summary of the main document
@@ -1281,7 +1116,7 @@ export type DocumentProcessingState = {
   /**
    * Mapping from chunk indices to Docling items/regions for rendering
    */
-  chunk_to_items?: ChunkToItemsOutput | null;
+  chunk_to_items?: ChunkToItems | null;
 };
 
 /**
@@ -1568,9 +1403,16 @@ export type DocxGenerationWorkflowConfig = {
 
 /**
  * EvalPackageRequest
+ *
+ * Request model for generating eval packages.
  */
 export type EvalPackageRequest = {
-  results: ClaimSubstantiatorStateInput;
+  /**
+   * Project Id
+   *
+   * The project ID to generate eval package for
+   */
+  project_id: string;
   /**
    * Test Name
    */
@@ -1843,59 +1685,7 @@ export type File = {
 /**
  * FileDocument
  */
-export type FileDocumentInput = {
-  /**
-   * File Name
-   *
-   * The original name of the uploaded file, as saved in the user file system
-   */
-  file_name: string;
-  /**
-   * File Path
-   *
-   * The path to the uploaded file, as saved in the file system
-   */
-  file_path: string;
-  /**
-   * Original File Path
-   *
-   * Path to the original file if it was converted (e.g., original .docx before PDF conversion)
-   */
-  original_file_path?: string | null;
-  /**
-   * File Type
-   *
-   * The MIME type of the uploaded file
-   */
-  file_type: string;
-  /**
-   * Markdown
-   *
-   * The uploaded file content converted to markdown
-   */
-  markdown: string;
-  /**
-   * Markdown Token Count
-   *
-   * The approximate number of tokens in the markdown content
-   */
-  markdown_token_count: number;
-  /**
-   * File Id
-   *
-   * The UUID of the file record in the database
-   */
-  file_id: string;
-  /**
-   * Full Docling document for internal processing (chunk mapping, etc.)
-   */
-  docling_document?: DoclingDocument | null;
-};
-
-/**
- * FileDocument
- */
-export type FileDocumentOutput = {
+export type FileDocument = {
   /**
    * File Name
    *
@@ -3335,66 +3125,6 @@ export type StartWorkflowResponse = {
 };
 
 /**
- * SubstantiationWorkflowConfig
- *
- * Configuration model for claim substantiation workflow
- */
-export type SubstantiationWorkflowConfig = {
-  /**
-   * Project Id
-   *
-   * The ID of the project that this workflow run should be associated with
-   */
-  project_id?: string | null;
-  /**
-   * Openai Api Key
-   *
-   * The OpenAI API key to use for this workflow execution
-   */
-  openai_api_key?: string | null;
-  /**
-   * Domain
-   *
-   * Domain context for more accurate analysis
-   */
-  domain?: string | null;
-  /**
-   * Target Audience
-   *
-   * Target audience context for analysis
-   */
-  target_audience?: string | null;
-  /**
-   * Publication Date
-   *
-   * Publication date of the document (YYYY-MM-DD format)
-   */
-  publication_date?: string | null;
-  /**
-   * Type
-   */
-  type?: 'claim_substantiation';
-  /**
-   * Target Chunk Indices
-   *
-   * Specific chunk indices to process (None = process all chunks)
-   */
-  target_chunk_indices?: Array<number> | null;
-  /**
-   * Agents To Run
-   *
-   * Specific agents to run (None = run all agents)
-   */
-  agents_to_run?: Array<string> | null;
-  /**
-   * Workflow Types
-   *
-   * List of workflow types to run
-   */
-  workflow_types?: Array<WorkflowRunType> | null;
-};
-
-/**
  * SummaryAndOutput
  */
 export type SummaryAndOutput = {
@@ -3618,7 +3348,6 @@ export type WorkflowRunDetail = {
     | DocumentProcessingState
     | ReferenceExtractionState
     | ClaimExtractionState
-    | ClaimSubstantiatorStateOutput
     | ClaimReferenceValidationState
     | CitationDetectionState
     | MethodologicalAlignmentState
@@ -3655,7 +3384,6 @@ export const WorkflowRunType = {
   ReferenceExtraction: 'reference_extraction',
   ClaimExtraction: 'claim_extraction',
   CitationDetection: 'citation_detection',
-  ClaimSubstantiation: 'claim_substantiation',
   MethodologicalAlignment: 'methodological_alignment',
   ReferenceDownloader: 'reference_downloader',
   DocxGeneration: 'docx_generation',
@@ -3708,52 +3436,6 @@ export type WorkflowTypeDescription = {
 };
 
 /**
- * ClaimSubstantiatorState
- */
-export type ClaimSubstantiatorStateOutputWritable = {
-  /**
-   * Errors
-   *
-   * Errors that occurred during the workflow execution.
-   */
-  errors?: Array<WorkflowError>;
-  /**
-   * Type
-   */
-  type?: 'claim_substantiation';
-  file: FileDocumentOutputWritable;
-  /**
-   * Supporting Files
-   */
-  supporting_files?: Array<FileDocumentOutputWritable> | null;
-  config: SubstantiationWorkflowConfig;
-  /**
-   * References
-   */
-  references?: Array<BibliographyItem>;
-  /**
-   * Chunks
-   */
-  chunks?: Array<AnalyzedChunkOutput>;
-  /**
-   * The summary of the main document
-   */
-  main_document_summary?: DocumentSummary | null;
-  /**
-   * Supporting Documents Summaries
-   *
-   * Dictionary mapping supporting file indices to their summaries
-   */
-  supporting_documents_summaries?: {
-    [key: string]: DocumentSummary;
-  } | null;
-  /**
-   * Mapping from chunk indices to Docling items/regions for rendering
-   */
-  chunk_to_items?: ChunkToItemsOutput | null;
-};
-
-/**
  * DoclingDocument
  *
  * Raw Docling json_content passed through to frontend
@@ -3784,11 +3466,11 @@ export type DocumentProcessingStateWritable = {
    * Type
    */
   type?: 'document_processing';
-  file: FileDocumentOutputWritable;
+  file: FileDocumentWritable;
   /**
    * Supporting Files
    */
-  supporting_files?: Array<FileDocumentOutputWritable> | null;
+  supporting_files?: Array<FileDocumentWritable> | null;
   config: DocumentProcessingWorkflowConfig;
   /**
    * The summary of the main document
@@ -3811,13 +3493,13 @@ export type DocumentProcessingStateWritable = {
   /**
    * Mapping from chunk indices to Docling items/regions for rendering
    */
-  chunk_to_items?: ChunkToItemsOutput | null;
+  chunk_to_items?: ChunkToItems | null;
 };
 
 /**
  * FileDocument
  */
-export type FileDocumentOutputWritable = {
+export type FileDocumentWritable = {
   /**
    * File Name
    *
@@ -3903,7 +3585,6 @@ export type WorkflowRunDetailWritable = {
     | DocumentProcessingStateWritable
     | ReferenceExtractionState
     | ClaimExtractionState
-    | ClaimSubstantiatorStateOutputWritable
     | ClaimReferenceValidationState
     | CitationDetectionState
     | MethodologicalAlignmentState
@@ -3964,6 +3645,33 @@ export type GetSupportedAgentsApiSupportedAgentsGetResponses = {
 
 export type GetSupportedAgentsApiSupportedAgentsGetResponse =
   GetSupportedAgentsApiSupportedAgentsGetResponses[keyof GetSupportedAgentsApiSupportedAgentsGetResponses];
+
+export type StartAnalysisApiStartAnalysisDoNotUsePostData = {
+  body: AnalysisFormConfig;
+  path?: never;
+  query?: never;
+  url: '/api/start-analysis/_do_not_use_';
+};
+
+export type StartAnalysisApiStartAnalysisDoNotUsePostErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type StartAnalysisApiStartAnalysisDoNotUsePostError =
+  StartAnalysisApiStartAnalysisDoNotUsePostErrors[keyof StartAnalysisApiStartAnalysisDoNotUsePostErrors];
+
+export type StartAnalysisApiStartAnalysisDoNotUsePostResponses = {
+  /**
+   * Successful Response
+   */
+  200: StartWorkflowResponse;
+};
+
+export type StartAnalysisApiStartAnalysisDoNotUsePostResponse =
+  StartAnalysisApiStartAnalysisDoNotUsePostResponses[keyof StartAnalysisApiStartAnalysisDoNotUsePostResponses];
 
 export type StartAnalysisApiStartAnalysisPostData = {
   body: BodyStartAnalysisApiStartAnalysisPost;
@@ -4049,7 +3757,6 @@ export type StartWorkflowApiWorkflowsStartPostData = {
     | ReferenceExtractionConfig
     | ClaimExtractionWorkflowConfig
     | CitationDetectionConfig
-    | SubstantiationWorkflowConfig
     | ClaimReferenceValidationWorkflowConfig
     | MethodologicalAlignmentWorkflowConfig
     | ReferenceDownloaderWorkflowConfig

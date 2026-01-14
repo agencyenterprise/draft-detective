@@ -3,9 +3,10 @@
 import zipfile
 import yaml
 from datetime import datetime
-from typing import List, Set, Dict, NamedTuple
+from typing import TYPE_CHECKING, List, Set, Dict, NamedTuple
 
-from lib.workflows.claim_substantiation.state import ClaimSubstantiatorState
+if TYPE_CHECKING:
+    from lib.services.eval_generator.generator import EvalPackageData
 
 
 class AgentConfig(NamedTuple):
@@ -102,34 +103,34 @@ class DataFileManager:
 
     @classmethod
     def save_data_files(
-        cls, zip_file: zipfile.ZipFile, results: ClaimSubstantiatorState, test_name: str
+        cls, zip_file: zipfile.ZipFile, data: "EvalPackageData", test_name: str
     ):
         """Save all document files to the zip."""
-        cls._save_main_document(zip_file, results, test_name)
-        cls._save_supporting_documents(zip_file, results, test_name)
+        cls._save_main_document(zip_file, data, test_name)
+        cls._save_supporting_documents(zip_file, data, test_name)
 
     @classmethod
     def save_required_data_files(
         cls,
         zip_file: zipfile.ZipFile,
-        results: ClaimSubstantiatorState,
+        data: "EvalPackageData",
         test_name: str,
         selected_agents: List[str],
     ):
         """Save only the required data files based on agent needs."""
         required_files = cls.get_required_files(selected_agents)
 
-        cls._save_main_document(zip_file, results, test_name)
+        cls._save_main_document(zip_file, data, test_name)
 
         if "supporting_documents" in required_files:
-            cls._save_supporting_documents(zip_file, results, test_name)
+            cls._save_supporting_documents(zip_file, data, test_name)
 
     @classmethod
     def _save_main_document(
-        cls, zip_file: zipfile.ZipFile, results: ClaimSubstantiatorState, test_name: str
+        cls, zip_file: zipfile.ZipFile, data: "EvalPackageData", test_name: str
     ):
         """Save the main document."""
-        main_file = results.file
+        main_file = data.file
         zip_file.writestr(
             f"data/{test_name}/main_document.md",
             main_file.markdown if main_file else "",
@@ -137,10 +138,10 @@ class DataFileManager:
 
     @classmethod
     def _save_supporting_documents(
-        cls, zip_file: zipfile.ZipFile, results: ClaimSubstantiatorState, test_name: str
+        cls, zip_file: zipfile.ZipFile, data: "EvalPackageData", test_name: str
     ):
         """Save all supporting documents."""
-        supporting_files = results.supporting_files
+        supporting_files = data.supporting_files
         for i, support_doc in enumerate(supporting_files):
             zip_file.writestr(
                 f"data/{test_name}/supporting_{i+1}.md", support_doc.markdown
