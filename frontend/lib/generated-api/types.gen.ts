@@ -924,25 +924,6 @@ export type ClaimSubstantiationResultWithClaimIndex = {
 };
 
 /**
- * CommentSeverity
- *
- * Severity levels for DOCX comments.
- */
-export const CommentSeverity = {
-  None: 'none',
-  Low: 'low',
-  Medium: 'medium',
-  High: 'high',
-} as const;
-
-/**
- * CommentSeverity
- *
- * Severity levels for DOCX comments.
- */
-export type CommentSeverity = (typeof CommentSeverity)[keyof typeof CommentSeverity];
-
-/**
  * ConfidenceInRecommendation
  */
 export const ConfidenceInRecommendation = {
@@ -1279,126 +1260,6 @@ export type DocumentSummary = {
    * A ~1000-word miniature version of the document (roughly 900–1100 words) that focuses on the main argument of the work. It should read like a compressed research report: clearly stating the central question or problem, the main claim/argument, the essential methods or analytical framework, the critical results, and how these results support the argument, while omitting tangential or overly detailed implementation information.
    */
   summary: string;
-};
-
-/**
- * DocxComment
- *
- * Represents a comment to be added to a docx file.
- */
-export type DocxComment = {
-  /**
-   * Chunk Index
-   */
-  chunk_index: number;
-  /**
-   * Text
-   */
-  text: string;
-  /**
-   * Comment Text
-   */
-  comment_text: string;
-  severity?: CommentSeverity | null;
-  /**
-   * Author
-   */
-  author?: string | null;
-  /**
-   * Share Link
-   */
-  share_link?: string | null;
-};
-
-/**
- * DocxGenerationState
- *
- * State for DOCX generation workflow.
- */
-export type DocxGenerationState = {
-  /**
-   * Errors
-   *
-   * Errors that occurred during the workflow execution.
-   */
-  errors?: Array<WorkflowError>;
-  /**
-   * Type
-   */
-  type?: 'docx_generation';
-  config: DocxGenerationWorkflowConfig;
-  /**
-   * Comments
-   */
-  comments?: Array<DocxComment> | null;
-  /**
-   * Chunks
-   */
-  chunks?: Array<unknown> | null;
-  /**
-   * Original File Path
-   */
-  original_file_path?: string | null;
-  /**
-   * Base File Name
-   */
-  base_file_name?: string | null;
-  /**
-   * Generated File Path
-   */
-  generated_file_path?: string | null;
-  /**
-   * Filename
-   */
-  filename?: string | null;
-};
-
-/**
- * DocxGenerationWorkflowConfig
- *
- * Config for DOCX generation workflow.
- */
-export type DocxGenerationWorkflowConfig = {
-  /**
-   * Project Id
-   *
-   * The ID of the project that this workflow run should be associated with
-   */
-  project_id?: string | null;
-  /**
-   * Openai Api Key
-   *
-   * The OpenAI API key to use for this workflow execution
-   */
-  openai_api_key?: string | null;
-  /**
-   * Domain
-   *
-   * Domain context for more accurate analysis
-   */
-  domain?: string | null;
-  /**
-   * Target Audience
-   *
-   * Target audience context for analysis
-   */
-  target_audience?: string | null;
-  /**
-   * Publication Date
-   *
-   * Publication date of the document (YYYY-MM-DD format)
-   */
-  publication_date?: string | null;
-  /**
-   * Type
-   */
-  type?: 'docx_generation';
-  /**
-   * Share Token
-   *
-   * Optional share token to include share links in comments
-   */
-  share_token?: string | null;
 };
 
 /**
@@ -3337,7 +3198,6 @@ export type WorkflowRunDetail = {
     | CitationDetectionState
     | MethodologicalAlignmentState
     | ReferenceDownloaderState
-    | DocxGenerationState
     | LiteratureReviewState
     | LiveReportsState
     | ReferenceValidationState
@@ -3371,7 +3231,6 @@ export const WorkflowRunType = {
   CitationDetection: 'citation_detection',
   MethodologicalAlignment: 'methodological_alignment',
   ReferenceDownloader: 'reference_downloader',
-  DocxGeneration: 'docx_generation',
   LiteratureReview: 'literature_review',
   LiveReports: 'live_reports',
   ReferenceValidation: 'reference_validation',
@@ -3619,7 +3478,6 @@ export type WorkflowRunDetailWritable = {
     | CitationDetectionState
     | MethodologicalAlignmentState
     | ReferenceDownloaderState
-    | DocxGenerationState
     | LiteratureReviewState
     | LiveReportsState
     | ReferenceValidationState

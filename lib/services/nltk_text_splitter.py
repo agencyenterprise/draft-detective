@@ -2,7 +2,6 @@ import asyncio
 import logging
 from typing import List, Optional
 
-from langchain_core.documents import Document
 from langchain_text_splitters.base import TextSplitter
 
 from lib.agents.document_chunker_nltk import (
@@ -38,7 +37,7 @@ class NLTKTextSplitter(TextSplitter):
 
     async def create_documents(
         self, texts: List[str], metadatas: Optional[List[dict]] = None
-    ) -> List[Document]:
+    ) -> List[ValidatedDocument]:
         split_tasks = [self.split_text(text) for text in texts]
         async_results = await asyncio.gather(*split_tasks, return_exceptions=True)
         docs = []
