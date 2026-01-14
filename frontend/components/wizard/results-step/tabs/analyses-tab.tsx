@@ -61,7 +61,6 @@ function renderWorkflowResults(
       return <ReferenceDownloaderResults workflowDetail={workflowRun} />;
     case WorkflowRunType.ResultsExtraction:
       return <ResultsExtractorResults workflowDetail={workflowRun} />;
-    case WorkflowRunType.ClaimSubstantiation:
     case WorkflowRunType.InferenceValidation:
     case WorkflowRunType.ClaimReferenceValidation:
       return (

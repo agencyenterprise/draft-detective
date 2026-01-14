@@ -1,6 +1,0 @@
-{
-  "dependencies": ["."],
-  "graphs": {
-    "claim_substantiation": "lib.workflows.claim_substantiation.graph:build_claim_substantiator_graph"
-  }
-}

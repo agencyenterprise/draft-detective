@@ -27,8 +27,7 @@ from lib.services.vector_store import (
     get_collection_id,
     get_file_hash_from_path,
 )
-from lib.workflows.claim_reference_validation.state import ClaimReferenceValidationState
-from lib.workflows.claim_substantiation.state import AnalyzedChunk
+from lib.workflows.chunk_utils import AnalyzedChunk
 
 logger = logging.getLogger(__name__)
 
@@ -248,9 +247,13 @@ class RAGReferenceProvider:
         Returns:
             The set of supporting files associated with the citation.
         """
-
-        matched_supporting_files = set()
+        matched_supporting_files: Set[FileDocument] = set()
         bibliography_index = citation.index_of_associated_bibliography
+
+        # Validate bibliography index (must be >= 1 and within bounds)
+        if bibliography_index < 1 or bibliography_index > len(references):
+            return matched_supporting_files
+
         associated_reference = references[bibliography_index - 1]
 
         supporting_file = get_associated_supporting_file(
@@ -322,9 +325,7 @@ def _get_paragraph_citations_not_in_chunk(
 ) -> List:
     """Extract citations from paragraph chunks that aren't in current chunk."""
 
-    paragraph_chunks = [
-        c for c in chunks if chunk.paragraph_index == chunk.paragraph_index
-    ]
+    paragraph_chunks = [c for c in chunks if c.paragraph_index == chunk.paragraph_index]
     citations_not_in_chunk = []
 
     for other_chunk in paragraph_chunks:

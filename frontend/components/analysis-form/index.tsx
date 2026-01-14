@@ -47,10 +47,10 @@ export function AnalysisForm({ onSubmit, isPending = false }: AnalysisFormProps)
         supportingDocuments: value.supportingDocuments,
         config: {
           domain: value.domain,
-          targetAudience: value.targetAudience,
-          publicationDate: value.publicationDate,
-          openaiApiKey: value.openaiApiKey,
-          workflowTypes: value.workflowTypes,
+          target_audience: value.targetAudience,
+          publication_date: value.publicationDate,
+          openai_api_key: value.openaiApiKey,
+          workflow_types: value.workflowTypes,
         },
       });
     },

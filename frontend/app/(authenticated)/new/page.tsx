@@ -27,10 +27,10 @@ export default function New() {
           supportingDocuments: data.supportingDocuments,
           config: {
             domain: data.config.domain || undefined,
-            target_audience: data.config.targetAudience || undefined,
-            openai_api_key: data.config.openaiApiKey,
-            publication_date: data.config.publicationDate || undefined,
-            workflow_types: data.config.workflowTypes,
+            target_audience: data.config.target_audience || undefined,
+            openai_api_key: data.config.openai_api_key,
+            publication_date: data.config.publication_date || undefined,
+            workflow_types: data.config.workflow_types,
           },
         },
         {

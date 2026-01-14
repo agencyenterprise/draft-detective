@@ -2,7 +2,11 @@ from typing import List, Type
 
 from langgraph.graph import StateGraph
 
-from lib.workflows.chunk_utils import build_analyzed_chunks, find_claim_category
+from lib.workflows.chunk_utils import (
+    AnalyzedChunk,
+    build_analyzed_chunks,
+    find_claim_category,
+)
 from lib.workflows.claim_reference_validation.graph import (
     build_claim_reference_validation_graph,
 )
@@ -10,7 +14,6 @@ from lib.workflows.claim_reference_validation.state import (
     ClaimReferenceValidationState,
     ClaimReferenceValidationWorkflowConfig,
 )
-from lib.workflows.claim_substantiation.state import AnalyzedChunk
 from lib.workflows.manifest import WorkflowManifest
 from lib.workflows.models import DocumentIssue, SeverityEnum, WorkflowRunType
 from lib.workflows.types import WorkflowState

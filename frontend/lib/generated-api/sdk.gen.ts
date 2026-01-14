@@ -70,6 +70,9 @@ import type {
   ReadHealthApiHealthGetResponses,
   ReadHealthApiHealthHeadData,
   ReadHealthApiHealthHeadResponses,
+  StartAnalysisApiStartAnalysisDoNotUsePostData,
+  StartAnalysisApiStartAnalysisDoNotUsePostErrors,
+  StartAnalysisApiStartAnalysisDoNotUsePostResponses,
   StartAnalysisApiStartAnalysisPostData,
   StartAnalysisApiStartAnalysisPostErrors,
   StartAnalysisApiStartAnalysisPostResponses,
@@ -151,6 +154,28 @@ export const getSupportedAgentsApiSupportedAgentsGet = <ThrowOnError extends boo
 
 /**
  * Start Analysis
+ */
+export const startAnalysisApiStartAnalysisDoNotUsePost = <ThrowOnError extends boolean = true>(
+  options: Options<StartAnalysisApiStartAnalysisDoNotUsePostData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    StartAnalysisApiStartAnalysisDoNotUsePostResponses,
+    StartAnalysisApiStartAnalysisDoNotUsePostErrors,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/start-analysis/_do_not_use_',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * Start Analysis
  *
  * Create a project and immediately start analysis workflows.
  *
@@ -198,7 +223,7 @@ export const startAnalysisApiStartAnalysisPost = <ThrowOnError extends boolean =
  * Generate complete eval test package as downloadable zip.
  *
  * Args:
- * request: Contains analysis results and metadata for test generation
+ * request: Contains project_id and metadata for test generation
  *
  * Returns:
  * Zip file containing YAML test files and data files
@@ -228,7 +253,7 @@ export const generateEvalPackageApiGenerateEvalPackagePost = <ThrowOnError exten
  * Only includes files required by the selected agents.
  *
  * Args:
- * request: Contains analysis results, chunk index, selected agents, and metadata
+ * request: Contains project_id, chunk index, selected agents, and metadata
  *
  * Returns:
  * Optimized zip file containing only necessary YAML test files and data files

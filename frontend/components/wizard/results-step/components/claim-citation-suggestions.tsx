@@ -2,7 +2,7 @@
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { BibliographyItem, CitationSuggestionResultWithClaimIndex, FileDocumentOutput } from '@/lib/generated-api';
+import { BibliographyItem, CitationSuggestionResultWithClaimIndex, FileDocument } from '@/lib/generated-api';
 import { scoreReference } from '@/lib/reference-scoring';
 import { ChevronDown, ChevronRight, Link2Icon } from 'lucide-react';
 import { useState } from 'react';
@@ -12,7 +12,7 @@ import { LabeledValue } from '@/components/labeled-value';
 interface ClaimCitationSuggestionsProps {
   citationSuggestion: CitationSuggestionResultWithClaimIndex;
   references: BibliographyItem[];
-  supportingFiles: FileDocumentOutput[];
+  supportingFiles: FileDocument[];
 }
 
 export function ClaimCitationSuggestions({
