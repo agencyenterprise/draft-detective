@@ -1,11 +1,9 @@
-from typing import TYPE_CHECKING, Optional, List
+from typing import Optional, List
 import contextvars
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
-if TYPE_CHECKING:
-    from lib.models.footnote_item import FootnoteItem
 from lib.services.file_artifacts_service.types import FileArtifactsServiceType
 from lib.services.vector_store import VectorStoreService
 
@@ -35,10 +33,6 @@ class ContextSchema(BaseModel):
     workflow_run_id: Optional[str] = Field(
         default=None,
         description="The ID of the workflow run record related to this langgraph thread.",
-    )
-    footnotes: Optional[List[FootnoteItem]] = Field(
-        default=None,
-        description="List of footnotes available for lookup by citation detector tools.",
     )
 
 
