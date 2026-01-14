@@ -5,7 +5,6 @@ from typing import List, Literal
 from pydantic import BaseModel, Field
 
 from lib.models.footnote_item import FootnoteItem
-from lib.services.file import FileDocument
 from lib.workflows.models import (
     BaseWorkflowConfig,
     BaseWorkflowState,
@@ -37,8 +36,8 @@ class FootnoteExtractionState(BaseWorkflowState):
 
     config: FootnoteExtractionConfig
 
-    # Input (from DOCUMENT_PROCESSING)
-    file: FileDocument = Field(description="Main document with markdown populated")
+    # Input
+    file_id: str = Field(description="The ID of the main document")
 
     # Intermediate outputs
     detected_sections: List[FootnoteSection] = Field(
