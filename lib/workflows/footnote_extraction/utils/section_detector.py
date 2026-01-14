@@ -1,29 +1,9 @@
 """Section detection utilities for footnote extraction."""
 
 import re
-from typing import List, Optional
+from typing import List
 
 from lib.workflows.footnote_extraction.state import FootnoteSection
-
-# Patterns for detecting footnote entries at start of line
-FOOTNOTE_PATTERNS = [
-    re.compile(r"^\d+\.\s+"),  # "1. Text"
-    re.compile(r"^\[\d+\]\s+"),  # "[1] Text"
-    re.compile(r"^\^\d+\s+"),  # "^1 Text"
-]
-
-
-def _matches_footnote_pattern(line: str) -> bool:
-    """
-    Check if a line matches any footnote pattern.
-
-    Args:
-        line: The line to check
-
-    Returns:
-        True if line starts with a footnote marker pattern
-    """
-    return any(pattern.match(line) for pattern in FOOTNOTE_PATTERNS)
 
 
 def _calculate_char_offset(lines: List[str], line_index: int) -> int:
@@ -64,9 +44,7 @@ def detect_footnote_region(markdown: str) -> List[FootnoteSection]:
 
     # Pattern to match footnote with back-reference link
     # e.g., "1. Text [↑](#footnote-ref-2)"
-    footnote_with_ref_pattern = re.compile(
-        r"^(\d+)\.\s+.*\[↑\]\(#footnote-ref-\d+\)"
-    )
+    footnote_with_ref_pattern = re.compile(r"^(\d+)\.\s+.*\[↑\]\(#footnote-ref-\d+\)")
 
     # Find all lines that match the footnote pattern
     footnote_matches = []
