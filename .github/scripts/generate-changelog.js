@@ -13,7 +13,7 @@
 const fs = require('fs');
 
 // Configuration
-const PR_BODY_EXCERPT_LENGTH = 300;
+const PR_BODY_MAX_LENGTH = 4000;
 
 const LEVEL_CONFIG = {
   1: {
@@ -21,8 +21,8 @@ const LEVEL_CONFIG = {
     formatPR: (pr) => {
       let text = `\n#${pr.number} - ${pr.title}\n`;
       if (pr.body && pr.body.length > 0) {
-        const excerpt = pr.body.substring(0, PR_BODY_EXCERPT_LENGTH);
-        text += `Description: ${excerpt}${pr.body.length > PR_BODY_EXCERPT_LENGTH ? '...' : ''}\n`;
+        const excerpt = pr.body.substring(0, PR_BODY_MAX_LENGTH);
+        text += `Description: ${excerpt}${pr.body.length > PR_BODY_MAX_LENGTH ? '...' : ''}\n`;
       }
       return text;
     }
@@ -36,7 +36,8 @@ const LEVEL_CONFIG = {
         text += `Labels: ${pr.labels.join(', ')}\n`;
       }
       if (pr.body) {
-        text += `Description:\n${pr.body}\n`;
+        const excerpt = pr.body.substring(0, PR_BODY_MAX_LENGTH);
+        text += `Description:\n${excerpt}${pr.body.length > PR_BODY_MAX_LENGTH ? '...' : ''}\n`;
       }
       return text;
     }
@@ -67,9 +68,7 @@ function formatLevelSection(level, prs) {
  * Build hierarchical prompt for OpenAI
  */
 function buildPrompt(prsByLevel, version) {
-  let prompt = `You are a technical writer generating a changelog entry for version ${version} of an AI-powered document review system.
-
-Based on the following pull requests organized by merge hierarchy, generate a concise, well-organized changelog entry.
+  let prompt = `Generate a changelog entry for version ${version} based ONLY on the pull request data provided below.
 
 `;
 
@@ -79,26 +78,26 @@ Based on the following pull requests organized by merge hierarchy, generate a co
   }
 
   prompt += `
-INSTRUCTIONS:
-1. Group changes into these categories (only include if applicable):
-   - Added (new features)
-   - Changed (changes in existing functionality)
-   - Fixed (bug fixes)
-   - Security (security improvements)
-   - Deprecated (soon-to-be removed features)
-   - Removed (removed features)
+CRITICAL REQUIREMENTS:
+1. ONLY include changes that are EXPLICITLY stated in the PR titles and descriptions above
+2. DO NOT infer, assume, or hallucinate any details not present in the data
+3. DO NOT invent file paths, function names, or technical implementation details
+4. If a PR description is vague, use the PR title as-is or summarize at a high level
+5. When in doubt, keep descriptions general rather than fabricating specifics
 
-2. Focus on Level 2 PRs as the main content source
-3. Use Level 1 for high-level structure
-4. Use Level 3 for completeness and context
-5. Write for end users, not developers
-6. Be concise but informative
-7. Highlight breaking changes if any exist
-8. Use bullet points (- prefix)
-9. DO NOT include version number or date in output
-10. DO NOT add extra commentary or explanations
+OUTPUT FORMAT:
+- Group into categories: Added, Changed, Fixed, Security, Deprecated, Removed (only include categories with items)
+- Use bullet points (- prefix)
+- Each bullet should be a single concise sentence
+- DO NOT include version number or date
+- DO NOT add commentary or explanations outside the bullets
 
-Generate the changelog entry now:`;
+PRIORITY:
+- Level 2 PRs are the primary source of truth
+- Level 1 provides merge context
+- Level 3 provides implementation details
+
+Generate the changelog now:`;
 
   return prompt;
 }
@@ -113,9 +112,9 @@ async function generateChangelog(prsByLevel, version, apiKey) {
   
   // Log prompt for debugging
   if (process.env.DEBUG) {
-    console.log('\nPROMPT (first 500 chars):');
-    console.log(prompt.substring(0, 500) + '...');
-    console.log('');
+    console.log('\n======================================== FULL PROMPT SENT TO AI ========================================');
+    console.log(prompt);
+    console.log('========================================================================================================\n');
   }
   
   try {
@@ -124,19 +123,27 @@ async function generateChangelog(prsByLevel, version, apiKey) {
     
     const response = await openai.chat.completions.create({
       model: 'gpt-4o',
-    messages: [
-      {
-        role: 'system',
-        content: 'You are a technical writer specializing in software changelogs. You write clear, concise, and user-focused release notes.'
-      },
-      {
-        role: 'user',
-        content: prompt
-      }
-    ],
-    temperature: 0.3,
-    max_tokens: 1500
-  });
+      messages: [
+        {
+          role: 'system',
+          content: `You are a precise changelog generator. Your task is to accurately summarize software changes based ONLY on the provided pull request titles and descriptions.
+
+STRICT RULES:
+- ONLY use information explicitly stated in the PR titles and descriptions
+- NEVER invent file paths, function names, class names, or technical implementation details
+- NEVER assume or hallucinate what code was changed or how
+- If a PR description is vague or missing, use the PR title verbatim
+- Keep descriptions at the same level of detail as the source PR data
+- When in doubt, be general rather than specific`
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      temperature: 0,
+      max_tokens: 2000
+    });
   
     const changelog = response.choices[0].message.content.trim();
     
