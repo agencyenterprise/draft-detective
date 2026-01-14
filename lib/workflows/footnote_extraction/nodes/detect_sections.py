@@ -28,13 +28,15 @@ async def detect_sections_node(
     No LLM needed - scans backwards for patterns like "1.", "[1]", "^1".
 
     Args:
-        state: Current workflow state with file.markdown
+        state: Current workflow state with file_id
         runtime: LangGraph runtime context
 
     Returns:
         Dict with detected_sections list
     """
-    markdown = state.file.markdown
+    file_artifacts_service = runtime.context.file_artifacts_service
+    file_document = await file_artifacts_service.get_file_document(state.file_id)
+    markdown = file_document.markdown
 
     if not markdown:
         logger.warning("No markdown content in document")
