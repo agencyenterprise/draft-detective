@@ -18,7 +18,7 @@ class CitationDetectionManifest(
 ):
     type = WorkflowRunType.CITATION_DETECTION
     name = "Citation Detection"
-    description = "Detect citations in document chunks using footnotes list"
+    description = "Detect citations in document chunks"
     needs_web_search = False
     is_internal = True
     required_dependencies = [
