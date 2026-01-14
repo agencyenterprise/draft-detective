@@ -67,7 +67,6 @@ class WorkflowRunType(str, Enum):
     CITATION_DETECTION = "citation_detection"
     METHODOLOGICAL_ALIGNMENT = "methodological_alignment"
     REFERENCE_DOWNLOADER = "reference_downloader"
-    DOCX_GENERATION = "docx_generation"
     LITERATURE_REVIEW = "literature_review"
     LIVE_REPORTS = "live_reports"
     REFERENCE_VALIDATION = "reference_validation"

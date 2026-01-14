@@ -4,7 +4,6 @@ import {
   ClaimExtractionState,
   ClaimReferenceValidationState,
   DocumentProcessingState,
-  DocxGenerationState,
   InferenceValidationState,
   LiteratureReviewState,
   LiveReportsState,
@@ -29,7 +28,6 @@ type WorkflowTypeToDetail = {
   [WorkflowRunType.ClaimReferenceValidation]: ClaimReferenceValidationState;
   [WorkflowRunType.MethodologicalAlignment]: MethodologicalAlignmentState;
   [WorkflowRunType.ReferenceDownloader]: ReferenceDownloaderState;
-  [WorkflowRunType.DocxGeneration]: DocxGenerationState;
   [WorkflowRunType.InferenceValidation]: InferenceValidationState;
   [WorkflowRunType.LiteratureReview]: LiteratureReviewState;
   [WorkflowRunType.LiveReports]: LiveReportsState;
@@ -67,7 +65,6 @@ const workflowTypeNames: Record<WorkflowRunType, string> = {
   [WorkflowRunType.ClaimReferenceValidation]: 'Claim Reference Validation',
   [WorkflowRunType.MethodologicalAlignment]: 'Methodological Alignment',
   [WorkflowRunType.ReferenceDownloader]: 'Reference Downloader',
-  [WorkflowRunType.DocxGeneration]: 'DOCX Generation',
   [WorkflowRunType.InferenceValidation]: 'Inference Validation',
   [WorkflowRunType.LiteratureReview]: 'Literature Review',
   [WorkflowRunType.LiveReports]: 'Live Reports',

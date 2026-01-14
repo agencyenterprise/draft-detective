@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { getWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdProgressGet } from '@/lib/generated-api';
+import { getWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdGet } from '@/lib/generated-api';
 
 const REFETCH_INTERVAL_MS = 2000;
 
@@ -11,7 +11,7 @@ export function useWorkflowProgress(workflowRunId: string | null) {
   return useQuery({
     queryKey: ['workflow-progress', workflowRunId],
     queryFn: () =>
-      getWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdProgressGet({
+      getWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdGet({
         path: { workflow_run_id: workflowRunId! },
       }),
     enabled: !!workflowRunId,

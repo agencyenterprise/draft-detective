@@ -1,22 +1,16 @@
-"""Service for managing DOCX generation workflow runs with caching."""
+"""Service for managing DOCX generation with caching."""
 
 import logging
-import uuid
 from pathlib import Path
-from typing import Optional
+from typing import Dict, Optional
 
 from lib.config.env import config as env_config
-from lib.models.user import User
-from lib.services.workflow_runs import (
-    get_project_workflow_run_by_type,
-    get_workflow_run_state_by_thread_id,
+from lib.services.docx.manipulator import docx_manipulator_service, issue_to_comment
+from lib.services.file_artifacts_service.file_artifacts_service import (
+    FileArtifactsService,
 )
-from lib.workflows.docx_generation.state import (
-    DocxGenerationState,
-    DocxGenerationWorkflowConfig,
-)
-from lib.workflows.models import WorkflowRunType
-from lib.workflows.runner import run_workflow_from_config
+from lib.services.issues import convert_to_issues
+from lib.services.workflow_runs import get_project_workflow_runs
 
 logger = logging.getLogger(__name__)
 
@@ -37,46 +31,65 @@ def get_cached_docx_path(cache_key: str) -> Optional[Path]:
 async def get_or_generate_docx(
     project_id: str,
     share_token: Optional[str],
-    user: User,
+    use_cache: bool = True,
 ) -> tuple[str, str]:
     """
-    Get cached DOCX or generate new one via workflow.
+    Get cached DOCX or generate a new one.
 
     Returns:
         tuple[str, str]: (file_path, filename)
     """
+
     cache_key = get_cache_key(project_id, share_token)
     cached_path = get_cached_docx_path(cache_key)
+    file_artifacts_service = FileArtifactsService(project_id)
 
-    if cached_path:
+    if use_cache and cached_path:
         logger.info(f"Serving cached DOCX for {cache_key}")
-
-        doc_run = await get_project_workflow_run_by_type(
-            project_id, WorkflowRunType.DOCUMENT_PROCESSING
-        )
-        if not doc_run:
-            raise ValueError("Document processing workflow not found")
-
-        doc_state = await get_workflow_run_state_by_thread_id(
-            doc_run.langgraph_thread_id, WorkflowRunType.DOCUMENT_PROCESSING
-        )
-        base_name = doc_state.file.file_name.rsplit(".", 1)[0]
+        file_document = await file_artifacts_service.get_main_file()
+        base_name = file_document.file_name.rsplit(".", 1)[0]
         filename = f"{base_name}_reviewed.docx"
         return str(cached_path), filename
 
-    logger.info(f"Cache miss for {cache_key}, generating DOCX via workflow")
+    logger.info(f"Cache miss for {cache_key}, generating DOCX")
+    return await generate_docx(project_id, share_token)
 
-    config = DocxGenerationWorkflowConfig(
-        share_token=share_token,
-        project_id=project_id,
+
+async def generate_docx(project_id: str, share_token: Optional[str]) -> tuple[str, str]:
+    """Generate a DOCX file with AI-generated comments from workflow issues and chunks."""
+
+    # Get main file and chunks using FileArtifactsService
+    file_artifacts = FileArtifactsService(project_id)
+    main_file = await file_artifacts.get_main_file()
+    chunks = await file_artifacts.get_chunks()
+
+    # Validate file is a DOCX
+    main_file_path = main_file.file_path.lower()
+    if not main_file_path.endswith(".docx") and not main_file_path.endswith(".doc"):
+        raise ValueError("Main file must be a .docx or .doc to generate reviewed DOCX")
+
+    # Build chunk content map and convert workflow issues to comments
+    chunk_content_map: Dict[int, str] = {c.chunk_index: c.content for c in chunks}
+
+    workflow_runs = await get_project_workflow_runs(project_id)
+    workflow_states = [run.state for run in workflow_runs if run.state is not None]
+    issues = convert_to_issues(workflow_states)
+
+    comments = [
+        c
+        for issue in issues
+        if (c := issue_to_comment(issue, chunk_content_map, share_token))
+    ]
+
+    # Generate the DOCX with comments
+    output_id = get_cache_key(project_id, share_token)
+    output_path = await docx_manipulator_service.add_comments_to_docx(
+        original_docx_path=main_file.file_path,
+        comments=comments,
+        workflow_run_id=output_id,
+        chunks=chunks,
     )
 
-    thread_id = str(uuid.uuid4())
-    final_state: DocxGenerationState = await run_workflow_from_config(
-        config=config, thread_id=thread_id, user=user
-    )
-
-    if not final_state.generated_file_path or not final_state.filename:
-        raise ValueError("DOCX generation workflow completed without output")
-
-    return final_state.generated_file_path, final_state.filename
+    base_name = main_file.file_name.rsplit(".", 1)[0]
+    filename = f"{base_name}_reviewed.docx"
+    return output_path, filename

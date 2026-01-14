@@ -39,10 +39,10 @@ export function useDownloadDocx({ projectId, shareToken }: UseDownloadDocxOption
     try {
       const tokenToUse = includeShareLinks ? shareToken : null;
       await downloadDocxFile(projectId, tokenToUse);
-      toast.success('DOCX file downloaded successfully', { id: toastId });
+      toast.success('DOCX file downloaded successfully', { id: toastId, description: null });
     } catch (error) {
       console.error('Failed to download docx:', error);
-      toast.error('Failed to download DOCX file', { id: toastId });
+      toast.error('Failed to download DOCX file', { id: toastId, description: null });
     } finally {
       setIsDownloading(false);
     }

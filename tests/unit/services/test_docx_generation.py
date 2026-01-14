@@ -9,7 +9,7 @@ from lib.workflows.citation_suggester.state import (
     CitationSuggesterState,
     CitationSuggesterWorkflowConfig,
 )
-from lib.workflows.models import DocumentIssue, SeverityEnum
+from lib.workflows.models import DocumentIssue, SeverityEnum, WorkflowRunType
 
 
 def convert_citation_suggester_state_issues(state: CitationSuggesterState):
@@ -117,15 +117,11 @@ class TestBuildCitationSuggestionIssues:
     def base_state(self) -> CitationSuggesterState:
         """Create a base state for testing"""
         return CitationSuggesterState(
-            file=FileDocument(
-                file_name="test.docx",
-                file_path="/tmp/test.docx",
-                file_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                markdown="Test document content",
-                markdown_token_count=10,
+            type=WorkflowRunType.CITATION_SUGGESTER,
+            file_id="test-file-id",
+            config=CitationSuggesterWorkflowConfig(
+                type=WorkflowRunType.CITATION_SUGGESTER
             ),
-            config=CitationSuggesterWorkflowConfig(),
-            chunks=[],
             citation_suggestions=[],
         )
 

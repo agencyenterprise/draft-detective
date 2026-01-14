@@ -1,6 +1,6 @@
 'use client';
 
-import { WorkflowProgress } from '@/lib/generated-api';
+import { WorkflowProgressResponse } from '@/lib/generated-api';
 import { Progress } from '@/components/ui/progress';
 import { CheckCircle2, Circle, Loader2, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 
 type ProgressStatus = 'pending' | 'in_progress' | 'completed';
 
-export function getProgressStatus(item: WorkflowProgress): ProgressStatus {
+export function getProgressStatus(item: WorkflowProgressResponse): ProgressStatus {
   if (item.completed_at) return 'completed';
   if (item.started_at) return 'in_progress';
   return 'pending';
@@ -20,7 +20,7 @@ const STATUS_STYLES = {
   completed: { icon: CheckCircle2, iconClass: 'text-green-500', bgClass: 'bg-gray-50/80 border-gray-200/80' },
 } as const;
 
-function ProgressItem({ item, isNewlyCompleted }: { item: WorkflowProgress; isNewlyCompleted?: boolean }) {
+function ProgressItem({ item, isNewlyCompleted }: { item: WorkflowProgressResponse; isNewlyCompleted?: boolean }) {
   const status = getProgressStatus(item);
   const { icon: Icon, iconClass, bgClass } = STATUS_STYLES[status];
   const totalSteps = item.total_steps ?? 0;
@@ -92,7 +92,7 @@ function ToastWrapper({ children, actions }: { children: React.ReactNode; action
 }
 
 export interface ToastContentProps {
-  progress: WorkflowProgress[];
+  progress: WorkflowProgressResponse[];
   newlyCompletedIds: Set<string>;
   showCompleted: boolean;
   showAll: boolean;

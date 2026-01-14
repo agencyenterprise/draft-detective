@@ -1,4 +1,5 @@
 from .workflow_run import WorkflowRun
+from .workflow_progress import WorkflowProgress
 from .user import User
 from .feedback import Feedback
 from .project import Project

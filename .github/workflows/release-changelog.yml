@@ -105,10 +105,17 @@ jobs:
             --output pr-data.json
           echo "PR collection complete. Data saved to pr-data.json"
       
+      - name: Display collected PR data (for debugging)
+        run: |
+          echo "======================================== Collected PR Data ========================================"
+          cat .github/scripts/pr-data.json
+          echo "========================================"
+      
       - name: Generate AI changelog
         id: generate-changelog
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          DEBUG: "true"
         run: |
           cd .github/scripts
           node generate-changelog.js \

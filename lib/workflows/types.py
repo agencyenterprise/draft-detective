@@ -18,10 +18,6 @@ from lib.workflows.document_processing.state import (
     DocumentProcessingState,
     DocumentProcessingWorkflowConfig,
 )
-from lib.workflows.docx_generation.state import (
-    DocxGenerationState,
-    DocxGenerationWorkflowConfig,
-)
 from lib.workflows.footnote_extraction.state import (
     FootnoteExtractionConfig,
     FootnoteExtractionState,
@@ -65,7 +61,6 @@ WorkflowState = (
     | CitationDetectionState
     | MethodologicalAlignmentState
     | ReferenceDownloaderState
-    | DocxGenerationState
     | LiteratureReviewState
     | LiveReportsState
     | ReferenceValidationState
