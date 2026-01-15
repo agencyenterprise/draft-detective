@@ -36,6 +36,7 @@ export const UploadSection = ({
     </div>
 
     <FileUpload
+      files={files}
       onFilesChange={onFilesChange}
       accept=".pdf,.doc,.docx,.txt,.md"
       multiple={multiple}
