@@ -110,5 +110,3 @@ config = Config(
     POSTGRES_PASSWORD=os.getenv("POSTGRES_PASSWORD"),
     AUTH_SECRET=os.getenv("AUTH_SECRET"),
 )
-
-print(config.LANGGRAPH_MAX_CONCURRENCY)
