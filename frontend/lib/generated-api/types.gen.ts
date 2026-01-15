@@ -1620,6 +1620,131 @@ export const FileRole = {
 export type FileRole = (typeof FileRole)[keyof typeof FileRole];
 
 /**
+ * FootnoteExtractionConfig
+ *
+ * Configuration for footnote extraction workflow.
+ */
+export type FootnoteExtractionConfig = {
+  /**
+   * Project Id
+   *
+   * The ID of the project that this workflow run should be associated with
+   */
+  project_id?: string | null;
+  /**
+   * Openai Api Key
+   *
+   * The OpenAI API key to use for this workflow execution
+   */
+  openai_api_key?: string | null;
+  /**
+   * Domain
+   *
+   * Domain context for more accurate analysis
+   */
+  domain?: string | null;
+  /**
+   * Target Audience
+   *
+   * Target audience context for analysis
+   */
+  target_audience?: string | null;
+  /**
+   * Publication Date
+   *
+   * Publication date of the document (YYYY-MM-DD format)
+   */
+  publication_date?: string | null;
+  /**
+   * Type
+   */
+  type?: 'footnote_extraction';
+};
+
+/**
+ * FootnoteExtractionState
+ *
+ * State for footnote extraction workflow.
+ */
+export type FootnoteExtractionState = {
+  /**
+   * Errors
+   *
+   * Errors that occurred during the workflow execution.
+   */
+  errors?: Array<WorkflowError>;
+  /**
+   * Type
+   */
+  type?: 'footnote_extraction';
+  config: FootnoteExtractionConfig;
+  /**
+   * File Id
+   *
+   * The ID of the main document
+   */
+  file_id: string;
+  /**
+   * Detected Sections
+   *
+   * Detected footnote sections
+   */
+  detected_sections?: Array<FootnoteSection>;
+  /**
+   * Footnotes
+   *
+   * Extracted footnote items
+   */
+  footnotes?: Array<FootnoteItem>;
+};
+
+/**
+ * FootnoteItem
+ *
+ * Represents a footnote extracted from a document.
+ */
+export type FootnoteItem = {
+  /**
+   * Marker
+   *
+   * The footnote number/marker (e.g., '160', '1', '107')
+   */
+  marker: string;
+  /**
+   * Text
+   *
+   * The full text content of the footnote
+   */
+  text: string;
+  /**
+   * Reference Code
+   *
+   * The reference code/anchor (e.g., '#footnote-ref-161'). Stored as metadata only, no document linking.
+   */
+  reference_code?: string | null;
+};
+
+/**
+ * FootnoteSection
+ *
+ * A detected footnote section in the document.
+ */
+export type FootnoteSection = {
+  /**
+   * Start Offset
+   *
+   * Character offset where section starts
+   */
+  start_offset: number;
+  /**
+   * End Offset
+   *
+   * Character offset where section ends
+   */
+  end_offset: number;
+};
+
+/**
  * HTTPValidationError
  */
 export type HttpValidationError = {
@@ -3297,6 +3422,7 @@ export type WorkflowRunDetail = {
   state:
     | DocumentProcessingState
     | ReferenceExtractionState
+    | FootnoteExtractionState
     | ClaimExtractionState
     | ClaimReferenceValidationState
     | CitationDetectionState
@@ -3331,6 +3457,7 @@ export type WorkflowRunStatus = (typeof WorkflowRunStatus)[keyof typeof Workflow
 export const WorkflowRunType = {
   DocumentProcessing: 'document_processing',
   ReferenceExtraction: 'reference_extraction',
+  FootnoteExtraction: 'footnote_extraction',
   ClaimExtraction: 'claim_extraction',
   CitationDetection: 'citation_detection',
   MethodologicalAlignment: 'methodological_alignment',
@@ -3583,6 +3710,7 @@ export type WorkflowRunDetailWritable = {
   state:
     | DocumentProcessingStateWritable
     | ReferenceExtractionState
+    | FootnoteExtractionState
     | ClaimExtractionState
     | ClaimReferenceValidationState
     | CitationDetectionState
@@ -3780,6 +3908,7 @@ export type StartWorkflowApiWorkflowsStartPostData = {
   body:
     | DocumentProcessingWorkflowConfig
     | ReferenceExtractionConfig
+    | FootnoteExtractionConfig
     | ClaimExtractionWorkflowConfig
     | CitationDetectionConfig
     | ClaimReferenceValidationWorkflowConfig

@@ -4,6 +4,7 @@ import {
   ClaimExtractionState,
   ClaimReferenceValidationState,
   DocumentProcessingState,
+  FootnoteExtractionState,
   InferenceValidationState,
   LiteratureReviewState,
   LiveReportsState,
@@ -36,6 +37,7 @@ type WorkflowTypeToDetail = {
   [WorkflowRunType.ResultsExtraction]: ResultsExtractionState;
   [WorkflowRunType.ClaimExtraction]: ClaimExtractionState;
   [WorkflowRunType.CitationDetection]: CitationDetectionState;
+  [WorkflowRunType.FootnoteExtraction]: FootnoteExtractionState;
 };
 
 export interface WorkflowRunDetailTyped<T> {
@@ -73,6 +75,7 @@ const workflowTypeNames: Record<WorkflowRunType, string> = {
   [WorkflowRunType.ResultsExtraction]: 'Results Extraction',
   [WorkflowRunType.ClaimExtraction]: 'Claim Extraction',
   [WorkflowRunType.CitationDetection]: 'Citation Detection',
+  [WorkflowRunType.FootnoteExtraction]: 'Footnote Extraction',
 };
 
 export function getWorkflowTypeName(type: WorkflowRunType): string {
