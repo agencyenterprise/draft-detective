@@ -31,19 +31,18 @@ export function useProjectDetails(projectId: string | null, includeInternal: boo
 
   const isProcessing = useMemo(
     () =>
+      isProjectLoading ||
       workflowDetails.some(
         (w) => w.run.status === WorkflowRunStatus.Running || w.run.status === WorkflowRunStatus.Pending,
       ),
-    [workflowDetails],
+    [isProjectLoading, workflowDetails],
   );
-
-  const isLoading = isProjectLoading;
 
   return {
     project,
     workflowDetails,
     isProcessing,
-    isLoading,
+    isLoading: isProjectLoading,
     error: projectError,
   };
 }
