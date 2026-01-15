@@ -2,7 +2,7 @@
 /**
  * AI Changelog Generator
  * 
- * Uses OpenAI GPT-4o to generate human-readable changelog entries
+ * Uses OpenAI GPT-5.2 to generate human-readable changelog entries
  * from PR data collected by collect-prs.js
  * 
  * Usage:
@@ -122,7 +122,7 @@ async function generateChangelog(prsByLevel, version, apiKey) {
     const openai = new OpenAI({ apiKey });
     
     const response = await openai.chat.completions.create({
-      model: 'gpt-4o',
+      model: 'gpt-5.2',
       messages: [
         {
           role: 'system',
@@ -154,46 +154,8 @@ STRICT RULES:
     return changelog;
   } catch (error) {
     console.error('Error calling OpenAI API:', error.message);
-    console.log('Falling back to basic changelog generation');
-    return generateFallbackChangelog(prsByLevel);
+    throw error;
   }
-}
-
-/**
- * Fallback changelog generation (no AI)
- */
-function generateFallbackChangelog(prsByLevel) {
-  const categories = {
-    Added: [],
-    Changed: [],
-    Fixed: []
-  };
-  
-  // Categorize PRs based on title keywords
-  for (const level of [1, 2, 3]) {
-    for (const pr of prsByLevel[level] || []) {
-      const title = pr.title.toLowerCase();
-      
-      if (title.includes('feat') || title.includes('add')) {
-        categories.Added.push(`- ${pr.title.replace(/^(feat|feature):\s*/i, '')}`);
-      } else if (title.includes('fix')) {
-        categories.Fixed.push(`- ${pr.title.replace(/^fix:\s*/i, '')}`);
-      } else {
-        categories.Changed.push(`- ${pr.title}`);
-      }
-    }
-  }
-  
-  let changelog = '';
-  
-  for (const [category, items] of Object.entries(categories)) {
-    if (items.length > 0) {
-      changelog += `### ${category}\n\n`;
-      changelog += items.join('\n') + '\n\n';
-    }
-  }
-  
-  return changelog.trim();
 }
 
 /**
