@@ -44,7 +44,8 @@ class PreflightValidationService:
                 )
             ]
 
-        return await self._test_connection(AsyncOpenAI(api_key=api_key), "OpenAI")
+        async with AsyncOpenAI(api_key=api_key) as client:
+            return await self._test_connection(client, "OpenAI")
 
     async def _validate_azure(self) -> List[ValidationIssue]:
         """Validate Azure config and test connection."""
@@ -66,12 +67,12 @@ class PreflightValidationService:
                 )
             ]
 
-        client = AsyncAzureOpenAI(
+        async with AsyncAzureOpenAI(
             api_key=config.AZURE_OPENAI_API_KEY,
             azure_endpoint=config.AZURE_OPENAI_ENDPOINT,
             api_version=config.OPENAI_API_VERSION or "2024-02-15-preview",
-        )
-        return await self._test_connection(client, "Azure OpenAI")
+        ) as client:
+            return await self._test_connection(client, "Azure OpenAI")
 
     async def _test_connection(
         self, client: AsyncClient, provider: str

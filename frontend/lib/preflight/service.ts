@@ -31,8 +31,14 @@ export async function validatePreflight(context: PreflightContext): Promise<Pref
     });
   } catch {
     return {
-      valid: true,
-      issues: [{ code: 'PREFLIGHT_SERVER_ERROR', message: 'Could not validate API key', severity: 'warning' }],
+      valid: false,
+      issues: [
+        {
+          code: 'PREFLIGHT_SERVER_ERROR',
+          message: 'Unable to connect to the server. Please check your network connection and try again.',
+          severity: 'error',
+        },
+      ],
     };
   }
 }
