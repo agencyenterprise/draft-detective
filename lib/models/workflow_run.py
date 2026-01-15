@@ -1,8 +1,9 @@
 import uuid
 from datetime import datetime
 from enum import Enum
-from typing import Optional
+from typing import Any, Optional
 
+from pydantic import field_serializer, field_validator
 from sqlalchemy import Column, DateTime, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 from sqlmodel import Enum as SQLModelEnum
@@ -61,5 +62,29 @@ class WorkflowRun(SQLModel, table=True):
         description="The timestamp when the workflow run was last updated",
     )
 
+    @field_validator("type", mode="before")
+    @classmethod
+    def coerce_type_to_enum(cls, v):
+        """Coerce string values from database to WorkflowRunType enum."""
+        return _coerce_type_to_enum(v)
+
+    @field_serializer("type")
+    def serialize_type(self, value):
+        """Ensure type is serialized as enum, converting from string if needed."""
+        return _coerce_type_to_enum(value)
+
     def __repr__(self):
         return f"<WorkflowRun(id={self.id}, langgraph_thread_id={self.langgraph_thread_id})>"
+
+
+def _coerce_type_to_enum(v: Any):
+    """Coerce string values from database to WorkflowRunType enum."""
+
+    if isinstance(v, str):
+        try:
+            return WorkflowRunType(v)
+        except ValueError:
+            # Return as-is if not a valid enum value (i.e. deprecated types)
+            return v
+
+    return v
