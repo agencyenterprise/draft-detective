@@ -50,6 +50,9 @@ COPY --from=builder --chown=app:app /app/.venv /app/.venv
 # Copy application code with proper ownership
 COPY --chown=app:app . .
 
+# Pre-download NLTK data to avoid race conditions at startup
+RUN python -c "import nltk; nltk.download('punkt_tab')"
+
 # Create uploads directory with proper ownership
 RUN mkdir -p /app/uploads && chown app:app /app/uploads
 
