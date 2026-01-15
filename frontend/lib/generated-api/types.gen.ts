@@ -3046,6 +3046,37 @@ export const UpdateType = {
 export type UpdateType = (typeof UpdateType)[keyof typeof UpdateType];
 
 /**
+ * UserResponse
+ *
+ * Response model for user information
+ */
+export type UserResponse = {
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * Email
+   */
+  email: string;
+  /**
+   * Name
+   */
+  name: string;
+  role: UserRole;
+};
+
+/**
+ * UserRole
+ */
+export const UserRole = { User: 'USER', Admin: 'ADMIN' } as const;
+
+/**
+ * UserRole
+ */
+export type UserRole = (typeof UserRole)[keyof typeof UserRole];
+
+/**
  * ValidationError
  */
 export type ValidationError = {
@@ -4370,3 +4401,20 @@ export type GetSharedResourceApiPublicShareTokenGetResponses = {
 
 export type GetSharedResourceApiPublicShareTokenGetResponse =
   GetSharedResourceApiPublicShareTokenGetResponses[keyof GetSharedResourceApiPublicShareTokenGetResponses];
+
+export type GetCurrentUserInfoApiUsersMeGetData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/api/users/me';
+};
+
+export type GetCurrentUserInfoApiUsersMeGetResponses = {
+  /**
+   * Successful Response
+   */
+  200: UserResponse;
+};
+
+export type GetCurrentUserInfoApiUsersMeGetResponse =
+  GetCurrentUserInfoApiUsersMeGetResponses[keyof GetCurrentUserInfoApiUsersMeGetResponses];

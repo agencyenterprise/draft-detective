@@ -4,6 +4,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field, computed_field, field_validator
 
+from lib.models.user import UserRole
 from lib.models.workflow_progress import ProgressLevel
 from lib.workflows.models import WorkflowRunType
 
@@ -77,3 +78,12 @@ class WorkflowProgressResponse(BaseModel):
         return "pending"
 
     model_config = {"from_attributes": True}
+
+
+class UserResponse(BaseModel):
+    """Response model for user information"""
+
+    id: str
+    email: str
+    name: str
+    role: UserRole
