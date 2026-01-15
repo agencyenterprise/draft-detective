@@ -117,6 +117,7 @@ async def run_workflow(
                 "run_name": f"{workflow_type.value}",
                 "callbacks": [langfuse_handler],
                 "metadata": {"langfuse_session_id": project_id},
+                "max_concurrency": env_config.LANGGRAPH_MAX_CONCURRENCY,
             }
         )
 
