@@ -14,6 +14,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Any
 
+import nltk
 import pytest
 from pydantic import BaseModel
 from xxhash import xxh128
@@ -71,8 +72,19 @@ def pytest_configure(config):
 
     For pytest-xdist parallel execution, the controller process generates
     the session_id and shares it with workers via environment variable.
+
+    Also pre-downloads NLTK data to avoid race conditions when multiple
+    workers try to download simultaneously.
     """
     global _PRINT_AGENT_FIELDS, _MODEL_COMPARISON_MODE, _COMPARISON_MODELS
+
+    # Pre-download NLTK data before workers spawn to avoid race conditions
+    # where multiple processes try to download simultaneously, causing BadZipFile errors
+
+    try:
+        nltk.data.find("tokenizers/punkt_tab")
+    except LookupError:
+        nltk.download("punkt_tab", quiet=True)
 
     worker_id = os.environ.get("PYTEST_XDIST_WORKER")
 
