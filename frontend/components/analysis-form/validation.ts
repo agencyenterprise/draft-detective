@@ -2,7 +2,11 @@ import { MAX_FILE_SIZE_BYTES, MAX_FILE_SIZE_MB } from '@/lib/constants';
 import { FormValidationError, GlobalFormValidationError } from '@tanstack/react-form';
 import { AnalysisFormValues } from './types';
 import { WorkflowTypeDescription } from '@/lib/generated-api';
-import { hasWebSearchRequirement, hasPublicationDateRequirement } from '../workflows/utils';
+import {
+  hasWebSearchRequirement,
+  hasPublicationDateRequirement,
+  hasSupportingDocumentsRequirement,
+} from '../workflows/utils';
 import { featureFlags } from '@/lib/config';
 
 export function validateAnalysisForm(
@@ -19,6 +23,11 @@ export function validateAnalysisForm(
     if (value.mainDocument.size > MAX_FILE_SIZE_BYTES) {
       errors.fields.mainDocument = `File exceeds ${MAX_FILE_SIZE_MB}MB limit (${(value.mainDocument.size / 1024 / 1024).toFixed(1)}MB)`;
     }
+  }
+
+  // Validate supporting documents are provided when required
+  if (hasSupportingDocumentsRequirement(value.workflowTypes) && value.supportingDocuments.length === 0) {
+    errors.fields.supportingDocuments = 'At least one supporting document is required for the selected analyses';
   }
 
   // Validate supporting documents file sizes
