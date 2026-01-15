@@ -3,6 +3,7 @@ import { JWTPayload, SignJWT } from 'jose';
 import NextAuth from 'next-auth';
 import Google from 'next-auth/providers/google';
 import MicrosoftEntraID from 'next-auth/providers/microsoft-entra-id';
+import { baseUrl } from './lib/api';
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   theme: {
@@ -80,6 +81,7 @@ async function createAccessToken(token: Record<string, unknown>): Promise<string
 async function fetchUserRole(accessToken: string): Promise<UserRole> {
   try {
     const response = await getCurrentUserInfoApiUsersMeGet({
+      baseUrl,
       headers: {
         Authorization: `Bearer ${accessToken}`,
       },
