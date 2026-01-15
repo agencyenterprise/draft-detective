@@ -34,6 +34,9 @@ async def _decode_token(credentials: HTTPAuthorizationCredentials) -> Optional[U
         if not email or not name:
             return None
         return await get_or_create_user_by_email(email=email, name=name)
+    except jwt.ExpiredSignatureError as err:
+        logger.warning("Expired token")
+        return None
     except jwt.InvalidTokenError as err:
         logger.error(f"Auth failed: {err}", exc_info=True)
         return None

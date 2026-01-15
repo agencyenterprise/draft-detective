@@ -405,7 +405,7 @@ export const getPageImageApiWorkflowRunsWorkflowRunIdPagesPageNumGet = <ThrowOnE
 /**
  * Get Workflow Types
  *
- * List all available workflow types.
+ * List all available workflow types including internal ones.
  */
 export const getWorkflowTypesApiWorkflowTypesGet = <ThrowOnError extends boolean = true>(
   options?: Options<GetWorkflowTypesApiWorkflowTypesGetData, ThrowOnError>,

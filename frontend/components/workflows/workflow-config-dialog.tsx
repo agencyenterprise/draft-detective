@@ -163,10 +163,9 @@ export function WorkflowConfigDialog({ isOpen, type, onConfirm, onCancel }: Work
 
               return (
                 <WorkflowTypeSelector
-                  workflowTypes={workflowTypes}
+                  workflowTypes={workflowTypes?.filter((wt) => (type ? wt.type === type : true))}
                   selectedTypes={field.state.value}
                   onSelectionChange={field.handleChange}
-                  filter={type ? (wt) => wt.type === type : undefined}
                   disabledTypes={type ? [type] : undefined}
                   defaultShowExperimental={preselectedIsExperimental}
                   error={

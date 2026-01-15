@@ -10,15 +10,6 @@ export interface ToolDefinition {
 }
 
 /**
- * Internal workflows that should not be displayed to users in project lists.
- * These workflows run as dependencies or internal processes.
- */
-export const INTERNAL_WORKFLOW_TYPES = new Set<WorkflowRunType>([
-  WorkflowRunType.DocumentProcessing,
-  WorkflowRunType.ReferenceExtraction,
-]);
-
-/**
  * Registry of all registered tools.
  * Each tool is identified by its unique combination of workflow types.
  */

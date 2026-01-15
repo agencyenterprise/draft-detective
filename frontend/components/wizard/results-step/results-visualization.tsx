@@ -12,6 +12,7 @@ import { ViewModeToggle } from './components/view-mode-toggle';
 import { TabType } from './constants';
 import { AnalysesTab, FilesTab, ReferencesTab, SummaryTab } from './tabs';
 import { DocumentExplorerTab } from './tabs/document-explorer-tab';
+import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 
 interface ResultsVisualizationProps {
   projectDetail: ProjectDetailed;
@@ -33,6 +34,7 @@ export function ResultsVisualization({
   const documentProcessing = getWorkflowRunByType(results, WorkflowRunType.DocumentProcessing);
   const referenceExtraction = getWorkflowRunByType(results, WorkflowRunType.ReferenceExtraction);
   const [activeTab, setActiveTab] = useState<TabType>('document-explorer');
+  const { isWorkflowTypeVisible } = useWorkflowTypes();
 
   const renderActiveTab = () => {
     switch (activeTab) {
@@ -95,7 +97,7 @@ export function ResultsVisualization({
             <TabsTrigger value="analyses">
               Analyses{' '}
               <Badge className="rounded-full h-4.5 min-w-4.5" variant="secondary">
-                {results.length}
+                {results.filter((r) => isWorkflowTypeVisible(r.run.type)).length}
               </Badge>
             </TabsTrigger>
           </TabsList>

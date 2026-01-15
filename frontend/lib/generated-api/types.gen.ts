@@ -3509,6 +3509,18 @@ export type WorkflowTypeDescription = {
    */
   is_experimental: boolean;
   /**
+   * Is Internal
+   *
+   * Whether the workflow is internal (runs as a dependency, not shown in UI)
+   */
+  is_internal: boolean;
+  /**
+   * Can Be Triggered By User
+   *
+   * Whether the workflow can be manually triggered by a user
+   */
+  can_be_triggered_by_user: boolean;
+  /**
    * Order
    *
    * Display order in the UI (lower numbers appear first)

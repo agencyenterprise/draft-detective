@@ -1,11 +1,25 @@
 import { useQuery } from '@tanstack/react-query';
-import { getWorkflowTypesApiWorkflowTypesGet } from '../generated-api';
+import { getWorkflowTypesApiWorkflowTypesGet, WorkflowRunType } from '../generated-api';
+import { useCallback } from 'react';
 
 export function useWorkflowTypes() {
-  return useQuery({
+  const query = useQuery({
     queryKey: ['workflow-types'],
     queryFn: async () => {
       return await getWorkflowTypesApiWorkflowTypesGet();
     },
   });
+
+  const isWorkflowTypeVisible = useCallback(
+    (type: WorkflowRunType) => {
+      const types = query.data ?? [];
+      return types.some((wt) => wt.type === type && !wt.is_internal && wt.can_be_triggered_by_user);
+    },
+    [query.data],
+  );
+
+  return {
+    ...query,
+    isWorkflowTypeVisible,
+  };
 }

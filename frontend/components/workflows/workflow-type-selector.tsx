@@ -13,7 +13,6 @@ interface WorkflowTypeSelectorProps {
   onSelectionChange: (types: WorkflowRunType[]) => void;
   disabled?: boolean;
   disabledTypes?: WorkflowRunType[];
-  filter?: (wt: WorkflowTypeDescription) => boolean;
   showHeader?: boolean;
   headerDescription?: string;
   error?: string;
@@ -26,7 +25,6 @@ export function WorkflowTypeSelector({
   onSelectionChange,
   disabled = false,
   disabledTypes = [],
-  filter,
   showHeader = true,
   headerDescription,
   error,
@@ -34,7 +32,7 @@ export function WorkflowTypeSelector({
 }: WorkflowTypeSelectorProps) {
   const [showExperimental, setShowExperimental] = useState(defaultShowExperimental);
 
-  const filteredWorkflowTypes = filter ? workflowTypes?.filter(filter) : workflowTypes;
+  const filteredWorkflowTypes = workflowTypes?.filter((wt) => wt.can_be_triggered_by_user && !wt.is_internal);
 
   const regularWorkflows = filteredWorkflowTypes?.filter((wt) => !wt.is_experimental);
   const experimentalWorkflows = filteredWorkflowTypes?.filter((wt) => wt.is_experimental);
