@@ -3,7 +3,7 @@
 import { useSessionStorage } from '@/lib/hooks/use-session-storage';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { useForm } from '@tanstack/react-form';
-import { ExternalLink, Loader2, Play } from 'lucide-react';
+import { AlertCircle, ExternalLink, Loader2, Play } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -23,9 +23,10 @@ import { featureFlags } from '@/lib/config';
 export interface AnalysisFormProps {
   onSubmit: (data: AnalysisFormData) => void;
   isPending?: boolean;
+  error?: string;
 }
 
-export function AnalysisForm({ onSubmit, isPending = false }: AnalysisFormProps) {
+export function AnalysisForm({ onSubmit, isPending = false, error }: AnalysisFormProps) {
   const [openaiApiKey, setOpenaiApiKey] = useSessionStorage<string>('openai-api-key', '');
   const hideOpenaiApiKeyInput = process.env.NEXT_PUBLIC_HIDE_CUSTOM_OPENAI_API_KEY_INPUT === 'true';
   const { data: workflowTypes } = useWorkflowTypes();
@@ -81,6 +82,16 @@ export function AnalysisForm({ onSubmit, isPending = false }: AnalysisFormProps)
         form.handleSubmit();
       }}
     >
+      {error && (
+        <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-lg flex items-start gap-3">
+          <AlertCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+          <div className="space-y-1">
+            <p className="font-medium text-destructive">Failed to start analysis</p>
+            <p className="text-sm text-destructive/90 whitespace-pre-line">{error}</p>
+          </div>
+        </div>
+      )}
+
       {/* Main Document Upload */}
       <form.Field name="mainDocument">
         {(field) => (
@@ -348,7 +359,7 @@ export function AnalysisForm({ onSubmit, isPending = false }: AnalysisFormProps)
               ) : (
                 <>
                   <Play className="w-4 h-4" />
-                  Start Analysis
+                  {error ? 'Retry Analysis' : 'Start Analysis'}
                 </>
               )}
             </Button>

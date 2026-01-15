@@ -3,6 +3,9 @@
 import { type Client, formDataBodySerializer, type Options as Options2, type TDataShape } from './client';
 import { client } from './client.gen';
 import type {
+  CheckPreflightApiPreflightPostData,
+  CheckPreflightApiPreflightPostErrors,
+  CheckPreflightApiPreflightPostResponses,
   CreateProjectEndpointApiProjectsPostData,
   CreateProjectEndpointApiProjectsPostErrors,
   CreateProjectEndpointApiProjectsPostResponses,
@@ -215,6 +218,30 @@ export const startAnalysisApiStartAnalysisPost = <ThrowOnError extends boolean =
     ...options,
     headers: {
       'Content-Type': null,
+      ...options.headers,
+    },
+  });
+
+/**
+ * Check Preflight
+ *
+ * Run preflight validation before starting analysis.
+ */
+export const checkPreflightApiPreflightPost = <ThrowOnError extends boolean = true>(
+  options: Options<CheckPreflightApiPreflightPostData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    CheckPreflightApiPreflightPostResponses,
+    CheckPreflightApiPreflightPostErrors,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/preflight',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
       ...options.headers,
     },
   });

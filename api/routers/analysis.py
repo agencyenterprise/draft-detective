@@ -15,6 +15,8 @@ from api.models import (
     StartMultipleWorkflowsRequest,
     StartWorkflowResponse,
 )
+from lib.services.preflight.models import PreflightRequest, PreflightResult
+from lib.services.preflight.service import preflight_service
 from api.services.workflow_runner import start_multiple_workflow_runs
 from api.upload import save_uploaded_files_to_db
 from lib.models.file import FileRole
@@ -125,3 +127,12 @@ async def start_analysis(
         raise HTTPException(
             status_code=500, detail=f"Error starting analysis: {str(e)}"
         )
+
+
+@router.post("/api/preflight", response_model=PreflightResult)
+async def check_preflight(
+    request: PreflightRequest,
+    user: User = Depends(get_current_user),
+):
+    """Run preflight validation before starting analysis."""
+    return await preflight_service.validate(request)

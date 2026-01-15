@@ -2,12 +2,12 @@
 
 import { AnalysisForm } from '@/components/analysis-form';
 import { AnalysisFormData } from '@/components/analysis-form/types';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
+import { usePreflight } from '@/lib/hooks/use-preflight';
 import { uploadOrchestrator } from '@/lib/services/upload-orchestrator';
 import { useMutation } from '@tanstack/react-query';
-import { AlertCircle, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import React from 'react';
 import { toast } from 'sonner';
@@ -19,7 +19,9 @@ export default function New() {
   const [mainDocument, setMainDocument] = React.useState<File | null>(null);
   const [supportingDocuments, setSupportingDocuments] = React.useState<File[]>([]);
 
-  const analysisMutation = useMutation({
+  const { runPreflight, error: preflightError, isValidating, clearError } = usePreflight();
+
+  const uploadMutation = useMutation({
     mutationFn: async (data: AnalysisFormData) => {
       return uploadOrchestrator.startAnalysisWithProgress(
         {
@@ -34,12 +36,8 @@ export default function New() {
           },
         },
         {
-          onProgress: (progress) => {
-            setUploadProgress(progress);
-          },
-          onStageChange: (stage) => {
-            setProcessingStage(stage);
-          },
+          onProgress: setUploadProgress,
+          onStageChange: setProcessingStage,
         },
       );
     },
@@ -49,7 +47,30 @@ export default function New() {
     },
   });
 
+  const handleSubmit = async (data: AnalysisFormData) => {
+    clearError();
+    setMainDocument(data.mainDocument);
+    setSupportingDocuments(data.supportingDocuments);
+
+    const isValid = await runPreflight({
+      mainDocument: data.mainDocument,
+      supportingDocuments: data.supportingDocuments,
+      openaiApiKey: data.config.openai_api_key ?? undefined,
+    });
+
+    if (!isValid) return;
+
+    uploadMutation.mutate(data);
+  };
+
   const getStageInfo = () => {
+    if (isValidating) {
+      return {
+        title: 'Validating',
+        description: 'Checking your configuration...',
+        detail: 'Please wait',
+      };
+    }
     switch (processingStage) {
       case 'uploading':
         return {
@@ -65,33 +86,37 @@ export default function New() {
         };
       default:
         return {
-          title: 'Preparing Upload',
-          description: 'Getting ready to upload your documents...',
+          title: 'Starting',
+          description: 'Preparing your analysis...',
           detail: 'Please wait',
         };
     }
   };
 
-  if (analysisMutation.isPending || analysisMutation.isSuccess) {
-    const stageInfo = getStageInfo();
+  const isProcessing = isValidating || uploadMutation.isPending || uploadMutation.isSuccess;
+  const error = preflightError || uploadMutation.error?.message;
+  const stageInfo = getStageInfo();
 
-    return (
-      <div className="space-y-6">
-        <div className="space-y-1">
-          <h1 className="text-xl font-semibold">Start a new project</h1>
-          <p className="text-muted-foreground text-sm">
-            Upload your documents and configure your settings to receive a comprehensive review.
-          </p>
-        </div>
+  return (
+    <div className="space-y-6">
+      <div className="space-y-1">
+        <h1 className="text-xl font-semibold">Start a new project</h1>
+        <p className="text-muted-foreground text-sm">
+          Upload your documents and configure your settings to receive a comprehensive review.
+        </p>
+      </div>
 
-        <div className="text-center space-y-4">
-          <Loader2 className="w-12 h-12 mx-auto animate-spin text-primary" />
-          <h2 className="text-2xl font-bold">{stageInfo.title}</h2>
-          <p className="text-muted-foreground max-w-md mx-auto">{stageInfo.description}</p>
-        </div>
+      {/* Loading overlay - shown on top when processing */}
+      {isProcessing && (
         <Card className="max-w-xl mx-auto">
           <CardContent className="py-8">
             <div className="space-y-4">
+              <div className="text-center space-y-2">
+                <Loader2 className="w-10 h-10 mx-auto animate-spin text-primary" />
+                <h2 className="text-lg font-semibold">{stageInfo.title}</h2>
+                <p className="text-sm text-muted-foreground">{stageInfo.description}</p>
+              </div>
+
               <Progress value={uploadProgress} className="w-full" />
               <p className="text-sm text-center text-muted-foreground">{stageInfo.detail}</p>
 
@@ -108,70 +133,14 @@ export default function New() {
             </div>
           </CardContent>
         </Card>
-      </div>
-    );
-  }
+      )}
 
-  if (analysisMutation.isError) {
-    return (
-      <div className="space-y-6">
-        <div className="space-y-1">
-          <h1 className="text-xl font-semibold">Start a new project</h1>
-          <p className="text-muted-foreground text-sm">
-            Upload your documents and configure your settings to receive a comprehensive review.
-          </p>
-        </div>
-
-        <Card className="max-w-4xl mx-auto border-destructive">
-          <CardHeader>
-            <CardTitle className="text-destructive flex items-center gap-2">
-              <AlertCircle className="h-5 w-5" />
-              Analysis Failed
-            </CardTitle>
-            <CardDescription>There was an error processing your files</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-md">
-              <p className="text-sm text-destructive whitespace-pre-line">
-                {analysisMutation.error?.message || 'Failed to start analysis'}
-              </p>
-            </div>
-
-            <Button
-              onClick={() => {
-                analysisMutation.reset();
-                setUploadProgress(0);
-                setProcessingStage('idle');
-              }}
-              variant="outline"
-              className="w-full"
-            >
-              Try Again
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-6">
-      <div className="space-y-1">
-        <h1 className="text-xl font-semibold">Start a new project</h1>
-        <p className="text-muted-foreground text-sm">
-          Upload your documents and configure your settings to receive a comprehensive review.
-        </p>
-      </div>
-
-      <div className="bg-background backdrop-blur-sm border border-border/50 rounded-2xl p-8 shadow-sm max-w-5xl mx-auto">
-        <AnalysisForm
-          isPending={analysisMutation.isPending}
-          onSubmit={(data) => {
-            setMainDocument(data.mainDocument);
-            setSupportingDocuments(data.supportingDocuments);
-            analysisMutation.mutate(data);
-          }}
-        />
+      <div
+        className={`bg-background backdrop-blur-sm border border-border/50 rounded-2xl p-8 shadow-sm max-w-5xl mx-auto ${
+          isProcessing ? 'hidden' : ''
+        }`}
+      >
+        <AnalysisForm isPending={isProcessing} error={error} onSubmit={handleSubmit} />
       </div>
     </div>
   );
