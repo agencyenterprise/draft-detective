@@ -18,7 +18,7 @@ class LiteratureReviewManifest(
 ):
     type = WorkflowRunType.LITERATURE_REVIEW
     name = "Literature Review"
-    description = "Performs a literature review related to the claims in the document. Searches for relevant academic sources and references that could strengthen the document's arguments."
+    description = "Discovers new references by searching the web for relevant academic sources and publications related to your document's claims. Useful for finding papers you may not have cited yet."
     needs_web_search = True
     is_experimental = True
     order = 6
