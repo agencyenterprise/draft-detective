@@ -2016,6 +2016,38 @@ export const PoliticalBias = {
 export type PoliticalBias = (typeof PoliticalBias)[keyof typeof PoliticalBias];
 
 /**
+ * PreflightRequest
+ *
+ * Request context for preflight validation.
+ */
+export type PreflightRequest = {
+  /**
+   * Openai Api Key
+   *
+   * User-provided OpenAI API key to validate
+   */
+  openai_api_key?: string | null;
+};
+
+/**
+ * PreflightResult
+ *
+ * Result of running all preflight validators.
+ */
+export type PreflightResult = {
+  /**
+   * Valid
+   *
+   * True if no errors (warnings allowed)
+   */
+  valid: boolean;
+  /**
+   * Issues
+   */
+  issues?: Array<ValidationIssue>;
+};
+
+/**
  * ProgressLevel
  *
  * Level of progress tracking.
@@ -3095,6 +3127,47 @@ export type ValidationError = {
 };
 
 /**
+ * ValidationIssue
+ *
+ * A single validation issue found during preflight check.
+ */
+export type ValidationIssue = {
+  /**
+   * Code
+   *
+   * Machine-readable issue code
+   */
+  code: string;
+  /**
+   * Message
+   *
+   * Human-readable description
+   */
+  message: string;
+  severity?: ValidationSeverity;
+  /**
+   * Details
+   */
+  details?: {
+    [key: string]: unknown;
+  } | null;
+};
+
+/**
+ * ValidationSeverity
+ *
+ * Severity level of a validation issue.
+ */
+export const ValidationSeverity = { Error: 'error', Warning: 'warning' } as const;
+
+/**
+ * ValidationSeverity
+ *
+ * Severity level of a validation issue.
+ */
+export type ValidationSeverity = (typeof ValidationSeverity)[keyof typeof ValidationSeverity];
+
+/**
  * WorkflowError
  *
  * Error object for the overall workflow or specific chunks.
@@ -3624,6 +3697,33 @@ export type StartAnalysisApiStartAnalysisPostResponses = {
 
 export type StartAnalysisApiStartAnalysisPostResponse =
   StartAnalysisApiStartAnalysisPostResponses[keyof StartAnalysisApiStartAnalysisPostResponses];
+
+export type CheckPreflightApiPreflightPostData = {
+  body: PreflightRequest;
+  path?: never;
+  query?: never;
+  url: '/api/preflight';
+};
+
+export type CheckPreflightApiPreflightPostErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type CheckPreflightApiPreflightPostError =
+  CheckPreflightApiPreflightPostErrors[keyof CheckPreflightApiPreflightPostErrors];
+
+export type CheckPreflightApiPreflightPostResponses = {
+  /**
+   * Successful Response
+   */
+  200: PreflightResult;
+};
+
+export type CheckPreflightApiPreflightPostResponse =
+  CheckPreflightApiPreflightPostResponses[keyof CheckPreflightApiPreflightPostResponses];
 
 export type GenerateEvalPackageApiGenerateEvalPackagePostData = {
   body: EvalPackageRequest;
