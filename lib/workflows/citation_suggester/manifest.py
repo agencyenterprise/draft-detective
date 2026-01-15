@@ -21,7 +21,7 @@ class CitationSuggesterManifest(
     type = WorkflowRunType.CITATION_SUGGESTER
     name = "Citation Suggester"
     description = "Identifies claims that would benefit from additional citations and recommends specific references to cite. Uses your uploaded supporting documents as reference sources. Optionally enhanced by Literature Review results if that analysis is also selected."
-    needs_web_search = False
+    needs_web_search = True
     is_experimental = True
     order = 7
     required_dependencies = [
