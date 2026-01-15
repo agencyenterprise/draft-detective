@@ -4,18 +4,18 @@ import { getProjectEndpointApiProjectProjectIdGet, WorkflowRunStatus } from '../
 
 const REFETCH_INTERVAL_MS = 3000;
 
-export function useProjectDetails(projectId: string | null, includeInternal: boolean = false) {
+export function useProjectDetails(projectId: string | null) {
   const {
     data: project,
     isLoading: isProjectLoading,
     error: projectError,
   } = useQuery({
     enabled: !!projectId,
-    queryKey: ['project', projectId, includeInternal],
+    queryKey: ['project', projectId],
     queryFn: () =>
       getProjectEndpointApiProjectProjectIdGet({
         path: { project_id: projectId! },
-        query: { include_internal: includeInternal },
+        query: { include_internal: true },
       }),
     refetchInterval: (query) => {
       const workflowRuns = query.state.data?.workflow_runs ?? [];

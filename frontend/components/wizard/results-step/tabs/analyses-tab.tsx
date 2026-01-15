@@ -20,6 +20,7 @@ import {
   startMultipleWorkflowsApiWorkflowsStartMultiplePost,
 } from '@/lib/generated-api';
 import { useProjectDetails } from '@/lib/hooks/use-project-details';
+import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { cn } from '@/lib/utils';
 import { getWorkflowTypeName } from '@/lib/workflow-state';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -118,6 +119,7 @@ export function AnalysesTab({
   const [selectedWorkflowRunId, setSelectedWorkflowRunId] = useState<string | null>(null);
   const [isConfigDialogOpen, setIsConfigDialogOpen] = useState(false);
   const queryClient = useQueryClient();
+  const { isWorkflowTypeVisible } = useWorkflowTypes();
 
   const { mutate: startMultipleWorkflows } = useMutation({
     mutationFn: async (values: WorkflowConfigFormValues) => {
@@ -139,6 +141,9 @@ export function AnalysesTab({
   });
 
   const selectedWorkflowRun = workflowDetails.find((workflowDetail) => workflowDetail.run.id === selectedWorkflowRunId);
+  const filteredWorkflowDetails = workflowDetails.filter((workflowDetail) =>
+    isWorkflowTypeVisible(workflowDetail.run.type),
+  );
 
   if (isLoading) {
     return (
@@ -171,7 +176,7 @@ export function AnalysesTab({
               </Button>
             )}
           </div>
-          {workflowDetails.map((workflowDetail) => (
+          {filteredWorkflowDetails.map((workflowDetail) => (
             <button
               key={workflowDetail.run.id}
               onClick={() => setSelectedWorkflowRunId(workflowDetail.run.id)}

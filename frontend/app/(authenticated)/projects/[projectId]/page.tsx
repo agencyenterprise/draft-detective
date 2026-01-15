@@ -1,15 +1,12 @@
 'use client';
 
-import { EditableTitle } from '@/components/ui/editable-title';
-import { PublicationDateLabel } from '@/components/wizard/results-step/components/publication-date-label';
 import { ResultsVisualization } from '@/components/wizard/results-step/results-visualization';
 import { useWorkflowProgressToast } from '@/hooks/use-workflow-progress-toast';
 import { DocRenderMode } from '@/lib/constants';
-import { ProjectDetailed, updateProjectEndpointApiProjectProjectIdPatch, WorkflowRunType } from '@/lib/generated-api';
+import { ProjectDetailed, updateProjectEndpointApiProjectProjectIdPatch } from '@/lib/generated-api';
 import { useProjectDetails } from '@/lib/hooks/use-project-details';
-import { getWorkflowRunByType, isAnyWorkflowProcessing } from '@/lib/workflow-state';
+import { isAnyWorkflowProcessing } from '@/lib/workflow-state';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { format } from 'date-fns';
 import { useParams } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
@@ -21,7 +18,7 @@ export default function ResultsPage() {
 
   const [viewMode, setViewMode] = useState<DocRenderMode>('markdown');
 
-  const { project, workflowDetails, isLoading, error } = useProjectDetails(projectId, true);
+  const { project, workflowDetails, isLoading, error } = useProjectDetails(projectId);
 
   const workflowRunIdsToTrack = useMemo(() => {
     if (!isAnyWorkflowProcessing(workflowDetails)) return [];
@@ -83,28 +80,13 @@ export default function ResultsPage() {
     return null;
   }
 
-  const documentProcessing = getWorkflowRunByType(workflowDetails, WorkflowRunType.DocumentProcessing);
-  const authors = documentProcessing?.state?.main_document_summary?.authors;
-
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <hgroup className="w-full space-y-1">
-          <EditableTitle
-            title={project.project.title}
-            titleClassName="text-xl font-bold"
-            onSave={handleTitleSave}
-            isLoading={updateTitleMutation.isPending}
-          />
-          <h2 className="text-muted-foreground text-sm">
-            {authors && <span>{authors} — </span>}
-            <PublicationDateLabel project={project} prefix="Published" suffix=" — " />
-            <span>Project created on {format(project.project.created_at || new Date(), 'MMM d, yyyy')}</span>
-          </h2>
-        </hgroup>
-      </div>
-
-      <ResultsVisualization projectDetail={project} viewMode={viewMode} onViewModeChange={setViewMode} />
-    </div>
+    <ResultsVisualization
+      projectDetail={project}
+      viewMode={viewMode}
+      onViewModeChange={setViewMode}
+      onTitleSave={handleTitleSave}
+      isTitleSaving={updateTitleMutation.isPending}
+    />
   );
 }

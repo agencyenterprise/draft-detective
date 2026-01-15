@@ -22,7 +22,7 @@ export default function SharedProjectPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="flex items-center justify-center py-20">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-muted-foreground">Loading shared analysis...</p>
@@ -33,7 +33,7 @@ export default function SharedProjectPage() {
 
   if (error || !data) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="flex items-center justify-center py-20">
         <div className="text-center max-w-md mx-auto p-6">
           <div className="text-6xl mb-4">🔗</div>
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Link Not Found</h1>
@@ -45,23 +45,7 @@ export default function SharedProjectPage() {
 
   return (
     <ShareProvider token={token}>
-      <div className="min-h-screen bg-gray-50">
-        <div className="bg-white border-b shadow-sm">
-          <div className="max-w-7xl mx-auto px-4 py-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-xl font-bold text-gray-900">{data.project.title}</h1>
-                <p className="text-sm text-muted-foreground">Shared analysis • Read-only view</p>
-              </div>
-              <div className="text-xs text-muted-foreground bg-gray-100 px-3 py-1 rounded-full">AI Reviewer</div>
-            </div>
-          </div>
-        </div>
-
-        <div className="max-w-7xl mx-auto px-4 py-6">
-          <ResultsVisualization projectDetail={data} viewMode={viewMode} onViewModeChange={setViewMode} readOnly />
-        </div>
-      </div>
+      <ResultsVisualization projectDetail={data} viewMode={viewMode} onViewModeChange={setViewMode} readOnly />
     </ShareProvider>
   );
 }

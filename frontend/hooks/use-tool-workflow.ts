@@ -11,7 +11,7 @@ import { useMemo } from 'react';
  * @returns Object containing filtered workflow details and processing state
  */
 export function useToolWorkflow(projectId: string | null, workflowTypes: WorkflowRunType[]) {
-  const { workflowDetails, isProcessing: isWorkflowProcessing, error } = useProjectDetails(projectId, true);
+  const { workflowDetails, isProcessing: isWorkflowProcessing, error } = useProjectDetails(projectId);
 
   const filteredWorkflows = useMemo(() => {
     return workflowDetails.filter((w) => workflowTypes.includes(w.run.type));
