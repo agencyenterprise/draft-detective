@@ -6,9 +6,42 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
-## [v0.5.4] - 2026-01-16
+## [v0.5.3, v0.5.4] - 2026-01-16
 
-No pull request titles or descriptions were provided, so I can’t generate a changelog entry based on PR data.
+### Added
+
+- Added preflight validation to check OpenAI and Azure OpenAI API keys before starting document analysis, including a new `/api/preflight` endpoint and frontend integration to block uploads on invalid keys.
+- Added user roles (`USER`, `ADMIN`) with a new `/api/users/me` endpoint and admin-only navigation for Evaluations and Tools.
+- Added a new Footnote Extraction workflow and refactored Citation Detection to use extracted footnotes instead of the full document.
+- Added real-time workflow progress tracking with database persistence, a new `GET /api/progress/workflow/{workflow_run_id}` endpoint, and a frontend progress toast UI.
+- Added configurable display ordering for workflow types and explanatory tooltips for workflow badges.
+- Added an environment-variable-controlled feature flag to show or hide experimental features and conditionally display the Document Publication Date field.
+- Added parallel fetching with real-time streaming status updates and improved file lifecycle management in the Reference Downloader tool, including a new `SUPPORTING_CANDIDATE` file role.
+  
+### Changed
+
+- Updated Literature Review and Citation Suggester analysis type descriptions to better clarify their purposes and relationship.
+- Marked Citation Suggester and Literature Review workflows as experimental.
+- Changed workflow type sorting from alphabetical to order-based and updated which workflows are considered experimental vs stable.
+- Simplified DOCX export by removing the `docx_generation` workflow and replacing it with a direct service call, including updates to the DOCX download endpoint and related API types.
+- Removed the deprecated `claim_substantiation` workflow and updated eval package generation and related API endpoints to use `project_id`.
+- Improved changelog automation prompts to reduce AI hallucinations and added debugging output for collected PR data and prompts.
+- Refactored the frontend to extract reusable workflow components from the analysis form.
+  
+### Fixed
+
+- Fixed Pydantic enum serialization warnings for `WorkflowRunType` by coercing string values to the enum during model instantiation and handling serialization when values remain strings.
+- Silenced ffmpeg warnings by installing only required `markitdown` extras instead of `markitdown[all]`, and added a `pyjwt` dependency.
+- Prevented an intermittent NLTK startup race condition by pre-downloading `punkt_tab` data during Docker builds and in CI before running pytest.
+- Fixed vector store document indexing by removing buggy metadata construction and adding batched embedding for large documents, with improved error handling for supporting document indexing.
+- Fixed the Reference Extractor tool UX by removing the supporting documents option, adding an OpenAI API key input, tightening accepted file types, and fixing re-selecting the same file not triggering a change event.
+- Made backend tests fail the workflow on failure.
+  
+### Removed
+
+- Removed the `docx_generation` LangGraph workflow and the `DOCX_GENERATION` workflow type.
+- Removed the deprecated `claim_substantiation` workflow and its associated LangGraph configuration.
+- Removed audio/video conversion-related optional dependencies from the `markitdown[all]` installation.
 
 ## [v0.5.2] - 2026-01-13
 
