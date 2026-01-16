@@ -19,7 +19,6 @@ import {
   WorkflowRunType,
   startMultipleWorkflowsApiWorkflowsStartMultiplePost,
 } from '@/lib/generated-api';
-import { useProjectDetails } from '@/lib/hooks/use-project-details';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { cn } from '@/lib/utils';
 import { getWorkflowTypeName } from '@/lib/workflow-state';
@@ -30,7 +29,7 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 
 interface AnalysesTabProps {
-  projectId: string;
+  project: ProjectDetailed;
   readOnly?: boolean;
   onNavigateToDocumentExplorer?: () => void;
   onNavigateToReferences?: () => void;
@@ -110,12 +109,13 @@ function renderWorkflowResults(
 }
 
 export function AnalysesTab({
-  projectId,
+  project,
   readOnly,
   onNavigateToDocumentExplorer,
   onNavigateToReferences,
 }: AnalysesTabProps) {
-  const { project, workflowDetails, isLoading } = useProjectDetails(projectId);
+  const projectId = project.project.id;
+  const workflowDetails = project.workflow_runs ?? [];
   const [selectedWorkflowRunId, setSelectedWorkflowRunId] = useState<string | null>(null);
   const [isConfigDialogOpen, setIsConfigDialogOpen] = useState(false);
   const queryClient = useQueryClient();
@@ -144,14 +144,6 @@ export function AnalysesTab({
   const filteredWorkflowDetails = workflowDetails.filter((workflowDetail) =>
     isWorkflowTypeVisible(workflowDetail.run.type),
   );
-
-  if (isLoading) {
-    return (
-      <div className="p-4">
-        <p className="text-muted-foreground">Loading analyses...</p>
-      </div>
-    );
-  }
 
   const handleStartNewAnalysis = () => {
     setIsConfigDialogOpen(true);
@@ -251,7 +243,7 @@ export function AnalysesTab({
                 <ErrorsCard errors={selectedWorkflowRun.state.errors} />
               )}
               {renderWorkflowResults(
-                project!,
+                project,
                 selectedWorkflowRun,
                 onNavigateToDocumentExplorer,
                 onNavigateToReferences,

@@ -68,7 +68,7 @@ export function ResultsVisualization({
       case 'analyses':
         return (
           <AnalysesTab
-            projectId={projectId}
+            project={projectDetail}
             readOnly={readOnly}
             onNavigateToDocumentExplorer={() => setActiveTab('document-explorer')}
             onNavigateToReferences={() => setActiveTab('references')}
