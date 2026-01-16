@@ -142,7 +142,7 @@ STRICT RULES:
         }
       ],
       temperature: 0,
-      max_tokens: 2000
+      max_completion_tokens: 6000
     });
   
     const changelog = response.choices[0].message.content.trim();
