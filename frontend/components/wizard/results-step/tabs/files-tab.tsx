@@ -12,17 +12,10 @@ import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useDownloadAllProjectFiles } from '@/hooks/use-download-all-project-files';
-import {
-  BibliographyItem,
-  File,
-  FileRole,
-  listProjectFilesEndpointApiProjectProjectIdFilesGet,
-  WorkflowRunDetail,
-  WorkflowRunType,
-} from '@/lib/generated-api';
+import { BibliographyItem, File, FileRole, WorkflowRunDetail, WorkflowRunType } from '@/lib/generated-api';
+import { useProjectFiles } from '@/lib/hooks/use-project-files';
 import { cn } from '@/lib/utils';
 import { getWorkflowRunByType } from '@/lib/workflow-state';
-import { useQuery } from '@tanstack/react-query';
 import { Download, FileText, HelpCircle, Loader2, MoreVerticalIcon, Pencil, Search, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
@@ -98,11 +91,7 @@ export function FilesTab({ projectId, allWorkflowDetails }: FilesTabProps) {
     [referenceExtraction?.state?.references],
   );
 
-  const { data: files } = useQuery({
-    queryKey: ['files', projectId],
-    queryFn: () => listProjectFilesEndpointApiProjectProjectIdFilesGet({ path: { project_id: projectId } }),
-  });
-
+  const { data: files } = useProjectFiles(projectId);
   const { downloadAll, isDownloading } = useDownloadAllProjectFiles(projectId);
 
   // Build a map of file_id to matched references once

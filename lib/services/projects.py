@@ -194,15 +194,14 @@ async def get_user_project_detailed(
     )
 
 
-async def get_user_project_files(project_id: str, user: User) -> List[File]:
+async def get_project_files(project_id: str) -> List[File]:
+    """Get all files for a project. Raises HTTPException if project not found."""
+
     with get_db() as db:
         project = db.query(Project).filter(Project.id == project_id).first()
 
         if project is None:
             raise HTTPException(status_code=404, detail="Project not found")
-
-        if project.user_id is None or project.user_id != user.id:
-            raise HTTPException(status_code=403, detail="Access denied")
 
         return (
             db.query(File)

@@ -4419,7 +4419,14 @@ export type ListProjectFilesEndpointApiProjectProjectIdFilesGetData = {
      */
     project_id: string;
   };
-  query?: never;
+  query?: {
+    /**
+     * Share Token
+     *
+     * Share token for shared projects. If not provided, the current user must be the owner of the project.
+     */
+    share_token?: string | null;
+  };
   url: '/api/project/{project_id}/files';
 };
 
@@ -4454,6 +4461,12 @@ export type DownloadAllProjectFilesApiProjectProjectIdFilesDownloadAllGetData = 
     project_id: string;
   };
   query?: {
+    /**
+     * Share Token
+     *
+     * Share token for shared projects. If not provided, the current user must be the owner of the project.
+     */
+    share_token?: string | null;
     /**
      * Roles
      *
