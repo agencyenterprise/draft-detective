@@ -2605,6 +2605,85 @@ export type ReferenceExtractionState = {
 };
 
 /**
+ * ReferenceExtractionV2Config
+ *
+ * Configuration for reference extraction v2 workflow.
+ */
+export type ReferenceExtractionV2Config = {
+  /**
+   * Project Id
+   *
+   * The ID of the project that this workflow run should be associated with
+   */
+  project_id?: string | null;
+  /**
+   * Openai Api Key
+   *
+   * The OpenAI API key to use for this workflow execution
+   */
+  openai_api_key?: string | null;
+  /**
+   * Domain
+   *
+   * Domain context for more accurate analysis
+   */
+  domain?: string | null;
+  /**
+   * Target Audience
+   *
+   * Target audience context for analysis
+   */
+  target_audience?: string | null;
+  /**
+   * Publication Date
+   *
+   * Publication date of the document (YYYY-MM-DD format)
+   */
+  publication_date?: string | null;
+  /**
+   * Type
+   */
+  type?: 'reference_extraction_v2';
+};
+
+/**
+ * ReferenceExtractionV2State
+ *
+ * State for reference extraction v2 workflow.
+ */
+export type ReferenceExtractionV2State = {
+  /**
+   * Errors
+   *
+   * Errors that occurred during the workflow execution.
+   */
+  errors?: Array<WorkflowError>;
+  /**
+   * Type
+   */
+  type?: 'reference_extraction_v2';
+  config: ReferenceExtractionV2Config;
+  /**
+   * File Id
+   *
+   * ID of the main document
+   */
+  file_id: string;
+  /**
+   * Reasoning
+   *
+   * Agent reasoning explaining how references were found
+   */
+  reasoning?: string | null;
+  /**
+   * References
+   *
+   * Extracted reference texts
+   */
+  references?: Array<string>;
+};
+
+/**
  * ReferenceFetchConclusion
  */
 export const ReferenceFetchConclusion = {
@@ -3434,6 +3513,7 @@ export type WorkflowRunDetail = {
     | CitationSuggesterState
     | ResultsExtractionState
     | InferenceValidationState
+    | ReferenceExtractionV2State
     | null;
 };
 
@@ -3469,6 +3549,7 @@ export const WorkflowRunType = {
   ResultsExtraction: 'results_extraction',
   InferenceValidation: 'inference_validation',
   ClaimReferenceValidation: 'claim_reference_validation',
+  ReferenceExtractionV2: 'reference_extraction_v2',
 } as const;
 
 /**
@@ -3734,6 +3815,7 @@ export type WorkflowRunDetailWritable = {
     | CitationSuggesterState
     | ResultsExtractionState
     | InferenceValidationState
+    | ReferenceExtractionV2State
     | null;
 };
 
@@ -3931,7 +4013,8 @@ export type StartWorkflowApiWorkflowsStartPostData = {
     | ReferenceValidationWorkflowConfig
     | CitationSuggesterWorkflowConfig
     | ResultsExtractionWorkflowConfig
-    | InferenceValidationWorkflowConfig;
+    | InferenceValidationWorkflowConfig
+    | ReferenceExtractionV2Config;
   path?: never;
   query?: never;
   url: '/api/workflows/start';

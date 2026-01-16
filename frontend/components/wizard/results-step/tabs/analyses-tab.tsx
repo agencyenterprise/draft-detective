@@ -10,6 +10,7 @@ import { LiteratureReviewResults } from '@/components/workflows/results/literatu
 import { LiveReportsResults } from '@/components/workflows/results/live-reports-results';
 import { MethodologicalAlignmentResults } from '@/components/workflows/results/methodological-alignment-results';
 import { ReferenceDownloaderResults } from '@/components/workflows/results/reference-downloader-results';
+import { ReferenceExtractionV2Results } from '@/components/workflows/results/reference-extraction-v2-results';
 import { ResultsExtractorResults } from '@/components/workflows/results/results-extractor-results';
 import { StartWorkflowButton } from '@/components/workflows/start-workflow-button';
 import { WorkflowConfigDialog, WorkflowConfigFormValues } from '@/components/workflows/workflow-config-dialog';
@@ -61,6 +62,8 @@ function renderWorkflowResults(
       return <ReferenceDownloaderResults workflowDetail={workflowRun} />;
     case WorkflowRunType.ResultsExtraction:
       return <ResultsExtractorResults workflowDetail={workflowRun} />;
+    case WorkflowRunType.ReferenceExtractionV2:
+      return <ReferenceExtractionV2Results workflowDetail={workflowRun} />;
     case WorkflowRunType.InferenceValidation:
     case WorkflowRunType.ClaimReferenceValidation:
       return (

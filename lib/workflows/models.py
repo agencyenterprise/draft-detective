@@ -74,6 +74,7 @@ class WorkflowRunType(str, Enum):
     RESULTS_EXTRACTION = "results_extraction"
     INFERENCE_VALIDATION = "inference_validation"
     CLAIM_REFERENCE_VALIDATION = "claim_reference_validation"
+    REFERENCE_EXTRACTION_V2 = "reference_extraction_v2"
 
 
 def is_user_visible_workflow(workflow_type: WorkflowRunType) -> bool:

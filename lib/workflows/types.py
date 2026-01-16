@@ -43,6 +43,10 @@ from lib.workflows.reference_extraction.state import (
     ReferenceExtractionConfig,
     ReferenceExtractionState,
 )
+from lib.workflows.reference_extraction_v2.state import (
+    ReferenceExtractionV2Config,
+    ReferenceExtractionV2State,
+)
 from lib.workflows.reference_validation.state import (
     ReferenceValidationState,
     ReferenceValidationWorkflowConfig,
@@ -67,6 +71,7 @@ WorkflowState = (
     | CitationSuggesterState
     | ResultsExtractionState
     | InferenceValidationState
+    | ReferenceExtractionV2State
 )
 
 WorkflowConfig = (
@@ -84,4 +89,5 @@ WorkflowConfig = (
     | CitationSuggesterWorkflowConfig
     | ResultsExtractionWorkflowConfig
     | InferenceValidationWorkflowConfig
+    | ReferenceExtractionV2Config
 )

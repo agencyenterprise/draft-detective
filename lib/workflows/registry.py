@@ -56,6 +56,9 @@ def register_all_workflow_manifests():
     )
     from lib.workflows.reference_downloader.manifest import ReferenceDownloaderManifest
     from lib.workflows.reference_extraction.manifest import ReferenceExtractionManifest
+    from lib.workflows.reference_extraction_v2.manifest import (
+        ReferenceExtractionV2Manifest,
+    )
     from lib.workflows.reference_validation.manifest import ReferenceValidationManifest
     from lib.workflows.results_extraction.manifest import ResultsExtractionManifest
 
@@ -72,6 +75,7 @@ def register_all_workflow_manifests():
         LiveReportsManifest(),
         MethodologicalAlignmentManifest(),
         ReferenceDownloaderManifest(),
+        ReferenceExtractionV2Manifest(),
         ReferenceValidationManifest(),
         ResultsExtractionManifest(),
     ]
