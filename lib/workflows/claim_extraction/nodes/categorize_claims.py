@@ -13,7 +13,7 @@ from lib.agents.formatting_utils import format_audience_context, format_domain_c
 from lib.run_utils import run_tasks
 from lib.services.file_artifacts_service.types import FileArtifactsServiceType
 from lib.workflows.claim_extraction.state import ClaimExtractionState
-from lib.workflows.claim_substantiation.state import AnalyzedChunk
+from lib.workflows.chunk_utils import AnalyzedChunk
 from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
 from lib.workflows.models import WorkflowError

@@ -1,10 +1,9 @@
-import { WorkflowRunType } from '@/lib/generated-api';
-import { AnalysisConfig } from '../wizard/types';
+import { WorkflowRunType, AnalysisFormConfig } from '@/lib/generated-api';
 
 export interface AnalysisFormData {
   mainDocument: File;
   supportingDocuments: File[];
-  config: AnalysisConfig;
+  config: AnalysisFormConfig;
 }
 
 export interface AnalysisFormValues {

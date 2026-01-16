@@ -4,6 +4,7 @@ from typing import List
 
 from fastapi import BackgroundTasks, HTTPException
 
+from api.models import StartMultipleWorkflowsRequest
 from lib.models.user import User
 from lib.models.workflow_run import WorkflowRunStatus, WorkflowRunType
 from lib.services.projects import get_user_project_detailed
@@ -12,8 +13,8 @@ from lib.services.workflow_runs import (
     get_thread_id_for_workflow_run,
     upsert_workflow_run,
 )
-from lib.workflows.claim_substantiation.state import SubstantiationWorkflowConfig
 from lib.workflows.config_factory import create_workflow_config
+from lib.workflows.dependency_resolver import resolve_workflow_dependencies
 from lib.workflows.runner import run_workflow_with_dependency_check
 from lib.workflows.types import WorkflowConfig
 
@@ -63,7 +64,7 @@ async def start_workflow_run(
 
 async def start_multiple_workflow_runs(
     workflow_types: List[WorkflowRunType],
-    base_config: SubstantiationWorkflowConfig,
+    request: StartMultipleWorkflowsRequest,
     user: User,
     background_tasks: BackgroundTasks,
 ) -> List[str]:
@@ -75,22 +76,17 @@ async def start_multiple_workflow_runs(
 
     Args:
         workflow_types: List of workflow types to run
-        base_config: Base config containing common fields
+        request: Request containing project_id and optional openai_api_key
         user: User running the workflows
         background_tasks: FastAPI background tasks
 
     Raises:
         HTTPException: If project_id is missing or project doesn't exist
     """
-    if base_config.project_id is None:
-        raise HTTPException(status_code=400, detail="Project ID is required")
-
     # Check if project exists and is owned by the user
-    project_detailed = await get_user_project_detailed(base_config.project_id, user)
+    project_detailed = await get_user_project_detailed(request.project_id, user)
 
     # Resolve all required dependencies in dependency order
-    from lib.workflows.dependency_resolver import resolve_workflow_dependencies
-
     resolved_workflow_types = resolve_workflow_dependencies(workflow_types)
 
     logger.info(
@@ -104,7 +100,7 @@ async def start_multiple_workflow_runs(
     for workflow_type in resolved_workflow_types:
         # We must check if workflow is already completed
         workflow_run = await get_project_workflow_run_by_type(
-            base_config.project_id, workflow_type
+            request.project_id, workflow_type
         )
 
         if (
@@ -115,13 +111,13 @@ async def start_multiple_workflow_runs(
             # Skip if workflow is already completed and not in the list of requested workflows
             # If the workflow is in the list of requested workflows, we need to re-run it, regardless of wether it ran already because it might have been re-requested by the user
             logger.info(
-                f"Skipping {workflow_type.value} - already completed for project {base_config.project_id}"
+                f"Skipping {workflow_type.value} - already completed for project {request.project_id}"
             )
             continue
 
         # Create workflow-specific config
         workflow_config = create_workflow_config(
-            project_detailed.project, workflow_type, base_config
+            project_detailed.project, workflow_type, request
         )
 
         # Get or create thread_id
@@ -129,7 +125,7 @@ async def start_multiple_workflow_runs(
 
         # Start workflow as PENDING - it will check dependencies and start when ready
         workflow_run_id = await upsert_workflow_run(
-            project_id=base_config.project_id,
+            project_id=request.project_id,
             thread_id=thread_id,
             status=WorkflowRunStatus.PENDING,
             type=workflow_type,

@@ -1,12 +1,13 @@
-import type { Metadata } from 'next';
-import { Geist, Geist_Mono } from 'next/font/google';
-import './globals.css';
+import { ApiConfig } from '@/components/api-config';
+import { ApplicationShell } from '@/components/application-shell';
 import QueryProvider from '@/components/providers';
 import { Toaster } from '@/components/ui/sonner';
 import { VersionBadge } from '@/components/version-badge';
-import { SessionProvider } from 'next-auth/react';
-import { ApiConfig } from '@/components/api-config';
 import { PostHogProvider } from '@/lib/posthog';
+import type { Metadata } from 'next';
+import { SessionProvider } from 'next-auth/react';
+import { Geist, Geist_Mono } from 'next/font/google';
+import './globals.css';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -36,7 +37,7 @@ export default function RootLayout({
           <SessionProvider>
             <QueryProvider>
               <ApiConfig />
-              {children}
+              <ApplicationShell>{children}</ApplicationShell>
               <Toaster />
               <VersionBadge />
             </QueryProvider>

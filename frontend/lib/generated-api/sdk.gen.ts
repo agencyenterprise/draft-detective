@@ -3,6 +3,9 @@
 import { type Client, formDataBodySerializer, type Options as Options2, type TDataShape } from './client';
 import { client } from './client.gen';
 import type {
+  CheckPreflightApiPreflightPostData,
+  CheckPreflightApiPreflightPostErrors,
+  CheckPreflightApiPreflightPostResponses,
   CreateProjectEndpointApiProjectsPostData,
   CreateProjectEndpointApiProjectsPostErrors,
   CreateProjectEndpointApiProjectsPostResponses,
@@ -33,6 +36,8 @@ import type {
   GenerateEvalPackageApiGenerateEvalPackagePostData,
   GenerateEvalPackageApiGenerateEvalPackagePostErrors,
   GenerateEvalPackageApiGenerateEvalPackagePostResponses,
+  GetCurrentUserInfoApiUsersMeGetData,
+  GetCurrentUserInfoApiUsersMeGetResponses,
   GetFeedbackApiFeedbackGetData,
   GetFeedbackApiFeedbackGetErrors,
   GetFeedbackApiFeedbackGetResponses,
@@ -53,6 +58,9 @@ import type {
   GetWorkflowFeedbackApiFeedbackWorkflowWorkflowRunIdGetData,
   GetWorkflowFeedbackApiFeedbackWorkflowWorkflowRunIdGetErrors,
   GetWorkflowFeedbackApiFeedbackWorkflowWorkflowRunIdGetResponses,
+  GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdGetData,
+  GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdGetErrors,
+  GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdGetResponses,
   GetWorkflowStateApiWorkflowsWorkflowRunIdGetData,
   GetWorkflowStateApiWorkflowsWorkflowRunIdGetErrors,
   GetWorkflowStateApiWorkflowsWorkflowRunIdGetResponses,
@@ -67,6 +75,9 @@ import type {
   ReadHealthApiHealthGetResponses,
   ReadHealthApiHealthHeadData,
   ReadHealthApiHealthHeadResponses,
+  StartAnalysisApiStartAnalysisDoNotUsePostData,
+  StartAnalysisApiStartAnalysisDoNotUsePostErrors,
+  StartAnalysisApiStartAnalysisDoNotUsePostResponses,
   StartAnalysisApiStartAnalysisPostData,
   StartAnalysisApiStartAnalysisPostErrors,
   StartAnalysisApiStartAnalysisPostResponses,
@@ -148,6 +159,28 @@ export const getSupportedAgentsApiSupportedAgentsGet = <ThrowOnError extends boo
 
 /**
  * Start Analysis
+ */
+export const startAnalysisApiStartAnalysisDoNotUsePost = <ThrowOnError extends boolean = true>(
+  options: Options<StartAnalysisApiStartAnalysisDoNotUsePostData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    StartAnalysisApiStartAnalysisDoNotUsePostResponses,
+    StartAnalysisApiStartAnalysisDoNotUsePostErrors,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/start-analysis/_do_not_use_',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * Start Analysis
  *
  * Create a project and immediately start analysis workflows.
  *
@@ -190,12 +223,36 @@ export const startAnalysisApiStartAnalysisPost = <ThrowOnError extends boolean =
   });
 
 /**
+ * Check Preflight
+ *
+ * Run preflight validation before starting analysis.
+ */
+export const checkPreflightApiPreflightPost = <ThrowOnError extends boolean = true>(
+  options: Options<CheckPreflightApiPreflightPostData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    CheckPreflightApiPreflightPostResponses,
+    CheckPreflightApiPreflightPostErrors,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/preflight',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
  * Generate Eval Package
  *
  * Generate complete eval test package as downloadable zip.
  *
  * Args:
- * request: Contains analysis results and metadata for test generation
+ * request: Contains project_id and metadata for test generation
  *
  * Returns:
  * Zip file containing YAML test files and data files
@@ -225,7 +282,7 @@ export const generateEvalPackageApiGenerateEvalPackagePost = <ThrowOnError exten
  * Only includes files required by the selected agents.
  *
  * Args:
- * request: Contains analysis results, chunk index, selected agents, and metadata
+ * request: Contains project_id, chunk index, selected agents, and metadata
  *
  * Returns:
  * Optimized zip file containing only necessary YAML test files and data files
@@ -348,7 +405,7 @@ export const getPageImageApiWorkflowRunsWorkflowRunIdPagesPageNumGet = <ThrowOnE
 /**
  * Get Workflow Types
  *
- * List all available workflow types.
+ * List all available workflow types including internal ones.
  */
 export const getWorkflowTypesApiWorkflowTypesGet = <ThrowOnError extends boolean = true>(
   options?: Options<GetWorkflowTypesApiWorkflowTypesGetData, ThrowOnError>,
@@ -647,6 +704,28 @@ export const downloadAllProjectFilesApiProjectProjectIdFilesDownloadAllGet = <Th
   });
 
 /**
+ * Get Workflow Progress Endpoint
+ *
+ * Get all progress entries for a workflow run.
+ *
+ * Returns progress entries ordered by creation time.
+ */
+export const getWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdGet = <ThrowOnError extends boolean = true>(
+  options: Options<GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdGetData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdGetResponses,
+    GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdGetErrors,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/progress/workflow/{workflow_run_id}',
+    ...options,
+  });
+
+/**
  * Get Project Share Status
  *
  * Get the sharing status for a project.
@@ -725,5 +804,20 @@ export const getSharedResourceApiPublicShareTokenGet = <ThrowOnError extends boo
   >({
     responseStyle: 'data',
     url: '/api/public/share/{token}',
+    ...options,
+  });
+
+/**
+ * Get Current User Info
+ *
+ * Get the current authenticated user's information.
+ */
+export const getCurrentUserInfoApiUsersMeGet = <ThrowOnError extends boolean = true>(
+  options?: Options<GetCurrentUserInfoApiUsersMeGetData, ThrowOnError>,
+) =>
+  (options?.client ?? client).get<GetCurrentUserInfoApiUsersMeGetResponses, unknown, ThrowOnError, 'data'>({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/users/me',
     ...options,
   });

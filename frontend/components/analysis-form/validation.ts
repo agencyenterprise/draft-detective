@@ -2,6 +2,12 @@ import { MAX_FILE_SIZE_BYTES, MAX_FILE_SIZE_MB } from '@/lib/constants';
 import { FormValidationError, GlobalFormValidationError } from '@tanstack/react-form';
 import { AnalysisFormValues } from './types';
 import { WorkflowTypeDescription } from '@/lib/generated-api';
+import {
+  hasWebSearchRequirement,
+  hasPublicationDateRequirement,
+  hasSupportingDocumentsRequirement,
+} from '../workflows/utils';
+import { featureFlags } from '@/lib/config';
 
 export function validateAnalysisForm(
   value: AnalysisFormValues,
@@ -19,6 +25,11 @@ export function validateAnalysisForm(
     }
   }
 
+  // Validate supporting documents are provided when required
+  if (hasSupportingDocumentsRequirement(value.workflowTypes) && value.supportingDocuments.length === 0) {
+    errors.fields.supportingDocuments = 'At least one supporting document is required for the selected analyses';
+  }
+
   // Validate supporting documents file sizes
   const oversizedSupporting = value.supportingDocuments.filter((f) => f.size > MAX_FILE_SIZE_BYTES);
   if (oversizedSupporting.length > 0) {
@@ -33,18 +44,16 @@ export function validateAnalysisForm(
   }
 
   // Validate web search consent if any selected workflow type requires it
-  if (workflowTypes && value.workflowTypes) {
-    const needsWebSearch = value.workflowTypes.some(
-      (selectedType) => workflowTypes.find((wt) => wt.type === selectedType)?.needs_web_search,
-    );
-    if (needsWebSearch && !value.webSearchConsent) {
-      errors.fields.webSearchConsent = 'Web search consent is required';
-    }
+  if (hasWebSearchRequirement(value.workflowTypes, workflowTypes) && !value.webSearchConsent) {
+    errors.fields.webSearchConsent = 'Web search consent is required';
   }
 
-  // Validate publication date is required
-  if (!value.publicationDate || value.publicationDate.trim() === '') {
-    errors.fields.publicationDate = 'Document publication date is required';
+  // WHY: Only validate publication date when experimental features are enabled.
+  // When disabled, the form defaults to today's date internally without user input.
+  if (featureFlags.showExperimentalFeatures && hasPublicationDateRequirement(value.workflowTypes)) {
+    if (!value.publicationDate || value.publicationDate.trim() === '') {
+      errors.fields.publicationDate = 'Document publication date is required';
+    }
   }
 
   return errors;

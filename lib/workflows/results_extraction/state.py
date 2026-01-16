@@ -3,7 +3,6 @@ from lib.workflows.results_extraction.agents.results_extractor import (
     ResultsListResponse,
 )
 from lib.models.workflow_run import WorkflowRunType
-from lib.services.file import FileDocument
 from lib.workflows.models import BaseWorkflowConfig, BaseWorkflowState
 from typing import Literal, Optional
 from pydantic import Field
@@ -13,7 +12,7 @@ class ResultsExtractionState(BaseWorkflowState):
     type: Literal[WorkflowRunType.RESULTS_EXTRACTION] = Field(
         WorkflowRunType.RESULTS_EXTRACTION
     )
-    file: FileDocument = Field(description="The main source document")
+    file_id: str = Field(description="The ID of the file to extract results from")
     results: Optional[ResultsListResponse] = Field(
         default=None, description="Extracted results with reproducibility assessments"
     )

@@ -17,7 +17,6 @@ jobs:
   test:
     name: pytest (unit & integration)
     runs-on: ubuntu-latest
-    continue-on-error: true  # Warning only, don't fail the workflow
 
     steps:
       - uses: actions/checkout@v4
@@ -34,9 +33,7 @@ jobs:
         run: uv sync
 
       - name: Run tests
-        continue-on-error: true  # Don't fail the step even if tests fail
-        run: |
-          uv run pytest --tb=short || echo "⚠️ Tests failed but continuing (warning only)"
+        run: uv run pytest --tb=short
         env:
           PYTHONPATH: ${{ github.workspace }}
           # Database config (test environment)

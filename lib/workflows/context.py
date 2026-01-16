@@ -1,4 +1,6 @@
-from typing import Optional
+from typing import Optional, List
+import contextvars
+from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -32,3 +34,12 @@ class ContextSchema(BaseModel):
         default=None,
         description="The ID of the workflow run record related to this langgraph thread.",
     )
+
+
+# Context variable for progress tracking (thread-safe for async)
+# This is used instead of storing on ContextSchema because contextvars
+# are properly scoped for async task execution
+current_progress_id: contextvars.ContextVar[Optional[UUID]] = contextvars.ContextVar(
+    "current_progress_id",
+    default=None,
+)

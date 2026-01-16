@@ -193,7 +193,7 @@ async def _persist_file_record(
             file_type=file_type,
             file_size=file_size,
             content_hash=content_hash,
-            role=FileRole.SUPPORT,
+            role=FileRole.SUPPORTING_CANDIDATE,
             uploaded_by=user_id_uuid,
             original_file_path=None,
             description=description,

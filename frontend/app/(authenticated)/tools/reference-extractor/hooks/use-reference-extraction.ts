@@ -1,12 +1,13 @@
 import { ReferenceExtractionState, WorkflowRunStatus, WorkflowRunType } from '@/lib/generated-api';
 import { useToolWorkflow } from '@/hooks/use-tool-workflow';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { toast } from 'sonner';
 
 type ExtractionResults = Pick<ReferenceExtractionState, 'detected_sections' | 'references'>;
 
 export function useReferenceExtraction(projectId: string | null) {
-  const [results, setResults] = useState<ExtractionResults | null>(null);
+  // Track which run IDs we've shown toasts for (to avoid duplicate toasts)
+  const toastedRunIdRef = useRef<string | null>(null);
 
   const { workflowDetails, allWorkflowDetails, isProcessing } = useToolWorkflow(projectId, [
     WorkflowRunType.DocumentProcessing,
@@ -23,41 +24,44 @@ export function useReferenceExtraction(projectId: string | null) {
     [workflowDetails],
   );
 
+  // Derive results directly from workflow state
+  const results = useMemo<ExtractionResults | null>(() => {
+    if (refExtractionRun?.run.status !== WorkflowRunStatus.Completed) {
+      return null;
+    }
+    const state = refExtractionRun.state as ReferenceExtractionState;
+    return {
+      detected_sections: state.detected_sections || [],
+      references: state.references || [],
+    };
+  }, [refExtractionRun]);
+
+  // Show toast only once per completed run
   useEffect(() => {
-    if (refExtractionRun?.run.status === WorkflowRunStatus.Completed && !results) {
-      const state = refExtractionRun.state as ReferenceExtractionState;
-      setResults({
-        detected_sections: state.detected_sections || [],
-        references: state.references || [],
-      });
+    const runId = refExtractionRun?.run.id;
+    if (results && runId && toastedRunIdRef.current !== runId) {
+      toastedRunIdRef.current = runId;
       toast.success(
-        `Extracted ${state.references?.length || 0} references from ${state.detected_sections?.length || 0} section(s)!`,
+        `Extracted ${results.references?.length || 0} references from ${results.detected_sections?.length || 0} section(s)!`,
       );
     }
-  }, [refExtractionRun, results]);
+  }, [results, refExtractionRun?.run.id]);
 
+  // Show error toast if workflow completed with errors
   useEffect(() => {
-    const hasErrors = allWorkflowDetails.some(
-      (w) => w.state?.errors && Array.isArray(w.state.errors) && w.state.errors.length > 0,
-    );
+    const runId = refExtractionRun?.run.id;
+    if (!runId || refExtractionRun?.run.status !== WorkflowRunStatus.Completed) return;
 
-    if (hasErrors && refExtractionRun?.run.status === WorkflowRunStatus.Completed) {
-      const errors = allWorkflowDetails.flatMap((w) => w.state?.errors || []);
-      if (errors.length > 0) {
-        toast.error(`Processing completed with errors: ${errors[0]?.error || 'Unknown error'}`);
-      }
+    const errors = allWorkflowDetails.flatMap((w) => w.state?.errors || []);
+    if (errors.length > 0) {
+      toast.error(`Processing completed with errors: ${errors[0]?.error || 'Unknown error'}`);
     }
   }, [allWorkflowDetails, refExtractionRun]);
-
-  const reset = () => {
-    setResults(null);
-  };
 
   return {
     results,
     isProcessing,
     docProcessingRun,
     refExtractionRun,
-    reset,
   };
 }

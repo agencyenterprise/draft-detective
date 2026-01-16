@@ -124,7 +124,7 @@ def issue_to_comment(
 class DocxManipulatorService:
     """Service for manipulating DOCX files with AI-generated comments."""
 
-    SUPPORTED_EXTENSIONS = {".docx"}
+    SUPPORTED_EXTENSIONS = {".docx", ".doc"}
 
     def get_output_path(self, workflow_run_id: str) -> Path:
         """Get the deterministic output path for a processed docx file."""

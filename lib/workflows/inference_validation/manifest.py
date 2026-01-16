@@ -2,8 +2,11 @@ from typing import List, Type
 
 from langgraph.graph import StateGraph
 
-from lib.workflows.chunk_utils import build_analyzed_chunks, find_claim_category
-from lib.workflows.claim_substantiation.state import AnalyzedChunk
+from lib.workflows.chunk_utils import (
+    AnalyzedChunk,
+    build_analyzed_chunks,
+    find_claim_category,
+)
 from lib.workflows.inference_validation.graph import build_inference_validation_graph
 from lib.workflows.inference_validation.state import (
     InferenceValidationState,
@@ -22,6 +25,7 @@ class InferenceValidationManifest(
     name = "Inference Validation"
     description = """Validate inferential claims (claims classified as "interpretation") using the Toulmin model of argumentation. Analyzes the logical structure of inferences by examining claims, data/grounds, warrants, qualifiers, rebuttals, and backing. Identifies invalid inferences where the reasoning fails to meet Toulmin argumentation standards and flags them as issues."""
     needs_web_search = False
+    order = 1
     required_dependencies = [
         WorkflowRunType.CLAIM_EXTRACTION,
     ]

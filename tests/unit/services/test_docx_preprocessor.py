@@ -29,10 +29,14 @@ async def test_convert_to_pdf_skips_if_exists(tmp_path):
 async def test_convert_to_pdf_timeout_error(tmp_path, monkeypatch):
     """Test that timeout errors are properly handled"""
     import asyncio
+    import shutil
     from unittest.mock import AsyncMock, MagicMock
 
     docx_file = tmp_path / "test.docx"
     docx_file.write_text("dummy content")
+
+    # Mock shutil.which to return a fake LibreOffice path
+    monkeypatch.setattr(shutil, "which", lambda cmd: "/usr/bin/soffice")
 
     # Mock process that can be killed
     mock_process = MagicMock()
@@ -102,10 +106,14 @@ async def test_convert_doc_to_docx_skips_if_exists(tmp_path):
 async def test_convert_doc_to_docx_timeout_error(tmp_path, monkeypatch):
     """Test that timeout errors are properly handled for DOC to DOCX conversion"""
     import asyncio
+    import shutil
     from unittest.mock import AsyncMock, MagicMock
 
     doc_file = tmp_path / "test.doc"
     doc_file.write_text("dummy content")
+
+    # Mock shutil.which to return a fake LibreOffice path
+    monkeypatch.setattr(shutil, "which", lambda cmd: "/usr/bin/soffice")
 
     # Mock process that can be killed
     mock_process = MagicMock()

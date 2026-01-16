@@ -42,6 +42,7 @@ export const FileListItem = ({ file, type, onRemove }: FileListItemProps) => {
         </div>
       </div>
       <Button
+        type="button"
         variant="ghost"
         size="icon"
         onClick={onRemove}

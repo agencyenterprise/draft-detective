@@ -3,9 +3,8 @@ import {
   CitationSuggesterState,
   ClaimExtractionState,
   ClaimReferenceValidationState,
-  ClaimSubstantiatorStateOutput,
   DocumentProcessingState,
-  DocxGenerationState,
+  FootnoteExtractionState,
   InferenceValidationState,
   LiteratureReviewState,
   LiveReportsState,
@@ -27,11 +26,9 @@ import {
 type WorkflowTypeToDetail = {
   [WorkflowRunType.DocumentProcessing]: DocumentProcessingState;
   [WorkflowRunType.ReferenceExtraction]: ReferenceExtractionState;
-  [WorkflowRunType.ClaimSubstantiation]: ClaimSubstantiatorStateOutput;
   [WorkflowRunType.ClaimReferenceValidation]: ClaimReferenceValidationState;
   [WorkflowRunType.MethodologicalAlignment]: MethodologicalAlignmentState;
   [WorkflowRunType.ReferenceDownloader]: ReferenceDownloaderState;
-  [WorkflowRunType.DocxGeneration]: DocxGenerationState;
   [WorkflowRunType.InferenceValidation]: InferenceValidationState;
   [WorkflowRunType.LiteratureReview]: LiteratureReviewState;
   [WorkflowRunType.LiveReports]: LiveReportsState;
@@ -40,6 +37,7 @@ type WorkflowTypeToDetail = {
   [WorkflowRunType.ResultsExtraction]: ResultsExtractionState;
   [WorkflowRunType.ClaimExtraction]: ClaimExtractionState;
   [WorkflowRunType.CitationDetection]: CitationDetectionState;
+  [WorkflowRunType.FootnoteExtraction]: FootnoteExtractionState;
 };
 
 export interface WorkflowRunDetailTyped<T> {
@@ -66,11 +64,9 @@ export function getWorkflowRunByType<T extends keyof WorkflowTypeToDetail>(
 const workflowTypeNames: Record<WorkflowRunType, string> = {
   [WorkflowRunType.DocumentProcessing]: 'Document Processing',
   [WorkflowRunType.ReferenceExtraction]: 'Reference Extraction',
-  [WorkflowRunType.ClaimSubstantiation]: 'Claim Substantiation (deprecated)',
   [WorkflowRunType.ClaimReferenceValidation]: 'Claim Reference Validation',
   [WorkflowRunType.MethodologicalAlignment]: 'Methodological Alignment',
   [WorkflowRunType.ReferenceDownloader]: 'Reference Downloader',
-  [WorkflowRunType.DocxGeneration]: 'DOCX Generation',
   [WorkflowRunType.InferenceValidation]: 'Inference Validation',
   [WorkflowRunType.LiteratureReview]: 'Literature Review',
   [WorkflowRunType.LiveReports]: 'Live Reports',
@@ -79,6 +75,7 @@ const workflowTypeNames: Record<WorkflowRunType, string> = {
   [WorkflowRunType.ResultsExtraction]: 'Results Extraction',
   [WorkflowRunType.ClaimExtraction]: 'Claim Extraction',
   [WorkflowRunType.CitationDetection]: 'Citation Detection',
+  [WorkflowRunType.FootnoteExtraction]: 'Footnote Extraction',
 };
 
 export function getWorkflowTypeName(type: WorkflowRunType): string {

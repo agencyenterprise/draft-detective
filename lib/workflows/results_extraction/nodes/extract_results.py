@@ -1,12 +1,12 @@
-# lib/workflows/results_extraction/nodes/extract_results.py
 import logging
+
 from langgraph.runtime import Runtime
-from lib.workflows.results_extraction.agents.results_extractor import (
-    ResultsExtractorAgent,
-    ResultsListResponse,
-)
+
 from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
+from lib.workflows.results_extraction.agents.results_extractor import (
+    ResultsExtractorAgent,
+)
 from lib.workflows.results_extraction.state import ResultsExtractionState
 
 logger = logging.getLogger(__name__)
@@ -18,8 +18,10 @@ logger = logging.getLogger(__name__)
 )
 async def extract_results(
     state: ResultsExtractionState, runtime: Runtime[ContextSchema]
-) -> ResultsExtractionState:
-    markdown = state.file.markdown
+):
+    file_artifacts_service = runtime.context.file_artifacts_service
+    file_document = await file_artifacts_service.get_file_document(state.file_id)
+    markdown = file_document.markdown
 
     logger.info("Extracting results from document")
     results_extractor_agent = ResultsExtractorAgent(runtime.context)

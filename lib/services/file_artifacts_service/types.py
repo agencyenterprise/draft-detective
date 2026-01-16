@@ -2,9 +2,10 @@ from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, List
 
 if TYPE_CHECKING:
-    from lib.workflows.claim_substantiation.state import AnalyzedChunk
+    from lib.workflows.chunk_utils import AnalyzedChunk
     from lib.agents.document_summarizer import DocumentSummary
     from lib.models.bibliography_item import BibliographyItem
+    from lib.models.footnote_item import FootnoteItem
     from lib.services.file import FileDocument
 
 
@@ -26,6 +27,9 @@ class FileArtifactsServiceType(ABC):
 
     @abstractmethod
     async def get_chunks(self) -> list["AnalyzedChunk"]: ...
+
+    @abstractmethod
+    async def get_footnotes(self) -> list["FootnoteItem"]: ...
 
     def get_paragraph_chunks(
         self, chunks: List["AnalyzedChunk"], paragraph_index: int

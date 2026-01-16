@@ -14,6 +14,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Any
 
+import nltk
 import pytest
 from pydantic import BaseModel
 from xxhash import xxh128
@@ -71,8 +72,19 @@ def pytest_configure(config):
 
     For pytest-xdist parallel execution, the controller process generates
     the session_id and shares it with workers via environment variable.
+
+    Also pre-downloads NLTK data to avoid race conditions when multiple
+    workers try to download simultaneously.
     """
     global _PRINT_AGENT_FIELDS, _MODEL_COMPARISON_MODE, _COMPARISON_MODELS
+
+    # Pre-download NLTK data before workers spawn to avoid race conditions
+    # where multiple processes try to download simultaneously, causing BadZipFile errors
+
+    try:
+        nltk.data.find("tokenizers/punkt_tab")
+    except LookupError:
+        nltk.download("punkt_tab", quiet=True)
 
     worker_id = os.environ.get("PYTEST_XDIST_WORKER")
 
@@ -387,10 +399,22 @@ async def create_test_file_document_from_path(path: str):
     upload_dir = config.FILE_UPLOADS_MOUNT_PATH
     dest_path = os.path.join(upload_dir, xxhash + file_extension)
 
-    # Copy file to uploads directory if it doesn't already exist
+    # Copy file to uploads directory atomically (safe for parallel test execution)
+    # Use a temp file + rename pattern to avoid race conditions
+    os.makedirs(upload_dir, exist_ok=True)
     if not os.path.exists(dest_path):
-        os.makedirs(upload_dir, exist_ok=True)
-        shutil.copy2(source_path, dest_path)
+        temp_path = dest_path + f".{os.getpid()}.tmp"
+        try:
+            shutil.copy2(source_path, temp_path)
+            os.rename(temp_path, dest_path)  # Atomic on POSIX
+        except FileExistsError:
+            # Another worker already created the file
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+        except OSError:
+            # Clean up temp file on any error
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
 
     # Use original filename for FileDocument
     original_file_name = filename

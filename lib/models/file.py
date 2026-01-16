@@ -12,6 +12,7 @@ class FileRole(str, Enum):
 
     MAIN = "main"
     SUPPORT = "support"
+    SUPPORTING_CANDIDATE = "supporting_candidate"
 
 
 class File(SQLModel, table=True):

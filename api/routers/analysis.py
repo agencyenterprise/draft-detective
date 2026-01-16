@@ -10,18 +10,32 @@ from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, Up
 
 from api.auth import get_current_user
 from api.dependencies import build_config_from_form
-from api.models import StartWorkflowResponse
+from api.models import (
+    AnalysisFormConfig,
+    StartMultipleWorkflowsRequest,
+    StartWorkflowResponse,
+)
+from lib.services.preflight.models import PreflightRequest, PreflightResult
+from lib.services.preflight.service import preflight_service
 from api.services.workflow_runner import start_multiple_workflow_runs
 from api.upload import save_uploaded_files_to_db
 from lib.models.file import FileRole
 from lib.models.user import User
 from lib.models.workflow_run import WorkflowRunType
 from lib.services.projects import create_project
-from lib.workflows.claim_substantiation.state import SubstantiationWorkflowConfig
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["analysis"])
+
+
+@router.post("/api/start-analysis/_do_not_use_", response_model=StartWorkflowResponse)
+async def start_analysis(
+    request: AnalysisFormConfig,
+    current_user: User = Depends(get_current_user),
+):
+    # Temporary empty endpoint to force OpenAPI generation for the AnalysisFormConfig object
+    return None
 
 
 @router.post("/api/start-analysis", response_model=StartWorkflowResponse)
@@ -29,7 +43,7 @@ async def start_analysis(
     background_tasks: BackgroundTasks,
     main_document: UploadFile = File(...),
     supporting_documents: Optional[list[UploadFile]] = File(default=None),
-    config: SubstantiationWorkflowConfig = Depends(build_config_from_form),
+    config: AnalysisFormConfig = Depends(build_config_from_form),
     current_user: User = Depends(get_current_user),
 ):
     """
@@ -68,7 +82,6 @@ async def start_analysis(
         )
 
         logger.info(f"Created project {project.id}")
-        config.project_id = str(project.id)
 
         # Save files to database
         logger.info("Saving uploaded files to database...")
@@ -91,9 +104,15 @@ async def start_analysis(
             f"Starting workflows: {[wt.value for wt in workflow_types]} for project {project.id}"
         )
 
+        request = StartMultipleWorkflowsRequest(
+            project_id=str(project.id),
+            workflow_types=workflow_types,
+            openai_api_key=config.openai_api_key,
+        )
+
         await start_multiple_workflow_runs(
             workflow_types=workflow_types,
-            base_config=config,
+            request=request,
             user=current_user,
             background_tasks=background_tasks,
         )
@@ -108,3 +127,12 @@ async def start_analysis(
         raise HTTPException(
             status_code=500, detail=f"Error starting analysis: {str(e)}"
         )
+
+
+@router.post("/api/preflight", response_model=PreflightResult)
+async def check_preflight(
+    request: PreflightRequest,
+    user: User = Depends(get_current_user),
+):
+    """Run preflight validation before starting analysis."""
+    return await preflight_service.validate(request)

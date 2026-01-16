@@ -23,6 +23,7 @@ import { Download, EllipsisVerticalIcon, Link, Pencil } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { downloadDocxFile, useDownloadDocx } from './use-download-docx';
+import { useShare } from '@/context/share-context';
 
 type ProjectWithDetails = Project & {
   publication_date?: Date | null;
@@ -38,13 +39,14 @@ export interface AnalysisOptionsMenuProps {
 
 export function AnalysisOptionsMenu({ project, results, readOnly }: AnalysisOptionsMenuProps) {
   const projectId = project.id;
-  const share = useShareStatus(projectId);
+  const share = useShareStatus(projectId, !readOnly);
+  const shareContext = useShare();
   const queryClient = useQueryClient();
   const [isWarningDialogOpen, setIsWarningDialogOpen] = useState(false);
   const [isEnablingForDownload, setIsEnablingForDownload] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
-  const shareToken = share.shareStatus?.share_link?.token ?? null;
+  const shareToken = share.shareStatus?.share_link?.token ?? shareContext.shareToken;
   const { download, isDownloading } = useDownloadDocx({ projectId, shareToken });
 
   const updateProjectMutation = useMutation({
@@ -73,11 +75,12 @@ export function AnalysisOptionsMenu({ project, results, readOnly }: AnalysisOpti
     updateProjectMutation.mutate(values);
   };
 
-  const claimSubstantiationResults = getWorkflowRunByType(results, WorkflowRunType.DocumentProcessing);
-  const hasDocx = claimSubstantiationResults?.state?.file?.original_file_path?.endsWith('.docx');
+  const documentProcessing = getWorkflowRunByType(results, WorkflowRunType.DocumentProcessing);
+  const mainFilePath = documentProcessing?.state?.file?.file_path.toLowerCase() ?? '';
+  const hasDocx = mainFilePath.endsWith('.docx') || mainFilePath.endsWith('.doc');
 
   const handleDownloadClick = () => {
-    if (share.isEnabled) {
+    if (readOnly || share.isEnabled) {
       download(true);
     } else {
       setIsWarningDialogOpen(true);

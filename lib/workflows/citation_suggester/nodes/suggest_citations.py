@@ -17,7 +17,7 @@ from lib.run_utils import convert_exceptions_to_workflow_errors, run_tasks
 from lib.services.file import FileDocument
 from lib.services.file_artifacts_service.types import FileArtifactsServiceType
 from lib.workflows.citation_suggester.state import CitationSuggesterState
-from lib.workflows.claim_substantiation.state import AnalyzedChunk
+from lib.workflows.chunk_utils import AnalyzedChunk
 from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
 

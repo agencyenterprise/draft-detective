@@ -23,6 +23,7 @@ class CitationDetectionManifest(
     is_internal = True
     required_dependencies = [
         WorkflowRunType.REFERENCE_EXTRACTION,
+        WorkflowRunType.FOOTNOTE_EXTRACTION,
     ]
 
     def get_state_type(self) -> Type[CitationDetectionState]:

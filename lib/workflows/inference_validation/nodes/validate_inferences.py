@@ -11,7 +11,7 @@ from lib.agents.inference_validator import (
 from lib.agents.models import ClaimCategory
 from lib.run_utils import run_tasks
 from lib.services.file_artifacts_service.types import FileArtifactsServiceType
-from lib.workflows.claim_substantiation.state import AnalyzedChunk
+from lib.workflows.chunk_utils import AnalyzedChunk
 from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
 from lib.workflows.inference_validation.state import InferenceValidationState

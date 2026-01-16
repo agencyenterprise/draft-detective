@@ -25,61 +25,31 @@ export type AgentInfo = {
 };
 
 /**
- * AnalyzedChunk
+ * AnalysisFormConfig
  *
- * Enriched document chunk with all claim analysis results.
- *
- * Extends the base ChunkWithIndex with claim extraction, citation detection,
- * categorization, substantiation, and inference validation results.
+ * Form config for starting analysis (project creation + workflow start)
  */
-export type AnalyzedChunkInput = {
+export type AnalysisFormConfig = {
   /**
-   * Content
+   * Domain
    */
-  content: string;
+  domain?: string | null;
   /**
-   * Chunk Index
+   * Target Audience
    */
-  chunk_index: number;
+  target_audience?: string | null;
   /**
-   * Paragraph Index
+   * Openai Api Key
    */
-  paragraph_index: number;
-  claims?: ClaimResponseWithChunkIndex | null;
-  citations?: CitationResponseWithChunkIndexInput | null;
+  openai_api_key?: string | null;
   /**
-   * Claim Categories
+   * Publication Date
    */
-  claim_categories?: Array<ClaimCategorizationResponseWithClaimIndex>;
-};
-
-/**
- * AnalyzedChunk
- *
- * Enriched document chunk with all claim analysis results.
- *
- * Extends the base ChunkWithIndex with claim extraction, citation detection,
- * categorization, substantiation, and inference validation results.
- */
-export type AnalyzedChunkOutput = {
+  publication_date?: string | null;
   /**
-   * Content
+   * Workflow Types
    */
-  content: string;
-  /**
-   * Chunk Index
-   */
-  chunk_index: number;
-  /**
-   * Paragraph Index
-   */
-  paragraph_index: number;
-  claims?: ClaimResponseWithChunkIndex | null;
-  citations?: CitationResponseWithChunkIndexOutput | null;
-  /**
-   * Claim Categories
-   */
-  claim_categories?: Array<ClaimCategorizationResponseWithClaimIndex>;
+  workflow_types?: Array<WorkflowRunType> | null;
 };
 
 /**
@@ -253,14 +223,6 @@ export type BodyStartAnalysisApiStartAnalysisPost = {
    */
   target_audience?: string | null;
   /**
-   * Target Chunk Indices
-   */
-  target_chunk_indices?: string | null;
-  /**
-   * Agents To Run
-   */
-  agents_to_run?: string | null;
-  /**
    * Openai Api Key
    */
   openai_api_key?: string | null;
@@ -276,9 +238,16 @@ export type BodyStartAnalysisApiStartAnalysisPost = {
 
 /**
  * ChunkEvalPackageRequest
+ *
+ * Request model for generating chunk-specific eval packages.
  */
 export type ChunkEvalPackageRequest = {
-  results: ClaimSubstantiatorStateInput;
+  /**
+   * Project Id
+   *
+   * The project ID to generate eval package for
+   */
+  project_id: string;
   /**
    * Chunk Index
    */
@@ -304,25 +273,7 @@ export type ChunkEvalPackageRequest = {
  *
  * Keys are string chunk indices, values are lists of regions
  */
-export type ChunkToItemsInput = {
-  /**
-   * Mapping
-   *
-   * Maps chunk_index (as string) to list of regions
-   */
-  mapping?: {
-    [key: string]: Array<DoclingRegion>;
-  };
-};
-
-/**
- * ChunkToItems
- *
- * Mapping from chunk indices to document items/regions
- *
- * Keys are string chunk indices, values are lists of regions
- */
-export type ChunkToItemsOutput = {
+export type ChunkToItems = {
   /**
    * Mapping
    *
@@ -445,37 +396,13 @@ export type CitationDetectionState = {
   /**
    * Citations
    */
-  citations?: Array<CitationResponseWithChunkIndexOutput>;
+  citations?: Array<CitationResponseWithChunkIndex>;
 };
 
 /**
  * CitationResponseWithChunkIndex
  */
-export type CitationResponseWithChunkIndexInput = {
-  /**
-   * Citations
-   *
-   * A list of citations found in the chunk of text
-   */
-  citations: Array<Citation>;
-  /**
-   * Rationale
-   *
-   * Very brief rationale for why you think the chunk of text includes these citations, if any
-   */
-  rationale: string;
-  /**
-   * Chunk Index
-   *
-   * The index of the chunk of text that contains the citations
-   */
-  chunk_index: number;
-};
-
-/**
- * CitationResponseWithChunkIndex
- */
-export type CitationResponseWithChunkIndexOutput = {
+export type CitationResponseWithChunkIndex = {
   /**
    * Citations
    *
@@ -997,117 +924,6 @@ export type ClaimSubstantiationResultWithClaimIndex = {
 };
 
 /**
- * ClaimSubstantiatorState
- */
-export type ClaimSubstantiatorStateInput = {
-  /**
-   * Errors
-   *
-   * Errors that occurred during the workflow execution.
-   */
-  errors?: Array<WorkflowError>;
-  /**
-   * Type
-   */
-  type?: 'claim_substantiation';
-  file: FileDocumentInput;
-  /**
-   * Supporting Files
-   */
-  supporting_files?: Array<FileDocumentInput> | null;
-  config: SubstantiationWorkflowConfig;
-  /**
-   * References
-   */
-  references?: Array<BibliographyItem>;
-  /**
-   * Chunks
-   */
-  chunks?: Array<AnalyzedChunkInput>;
-  /**
-   * The summary of the main document
-   */
-  main_document_summary?: DocumentSummary | null;
-  /**
-   * Supporting Documents Summaries
-   *
-   * Dictionary mapping supporting file indices to their summaries
-   */
-  supporting_documents_summaries?: {
-    [key: string]: DocumentSummary;
-  } | null;
-  /**
-   * Mapping from chunk indices to Docling items/regions for rendering
-   */
-  chunk_to_items?: ChunkToItemsInput | null;
-};
-
-/**
- * ClaimSubstantiatorState
- */
-export type ClaimSubstantiatorStateOutput = {
-  /**
-   * Errors
-   *
-   * Errors that occurred during the workflow execution.
-   */
-  errors?: Array<WorkflowError>;
-  /**
-   * Type
-   */
-  type?: 'claim_substantiation';
-  file: FileDocumentOutput;
-  /**
-   * Supporting Files
-   */
-  supporting_files?: Array<FileDocumentOutput> | null;
-  config: SubstantiationWorkflowConfig;
-  /**
-   * References
-   */
-  references?: Array<BibliographyItem>;
-  /**
-   * Chunks
-   */
-  chunks?: Array<AnalyzedChunkOutput>;
-  /**
-   * The summary of the main document
-   */
-  main_document_summary?: DocumentSummary | null;
-  /**
-   * Supporting Documents Summaries
-   *
-   * Dictionary mapping supporting file indices to their summaries
-   */
-  supporting_documents_summaries?: {
-    [key: string]: DocumentSummary;
-  } | null;
-  /**
-   * Mapping from chunk indices to Docling items/regions for rendering
-   */
-  chunk_to_items?: ChunkToItemsOutput | null;
-};
-
-/**
- * CommentSeverity
- *
- * Severity levels for DOCX comments.
- */
-export const CommentSeverity = {
-  None: 'none',
-  Low: 'low',
-  Medium: 'medium',
-  High: 'high',
-} as const;
-
-/**
- * CommentSeverity
- *
- * Severity levels for DOCX comments.
- */
-export type CommentSeverity = (typeof CommentSeverity)[keyof typeof CommentSeverity];
-
-/**
  * ConfidenceInRecommendation
  */
 export const ConfidenceInRecommendation = {
@@ -1254,11 +1070,11 @@ export type DocumentProcessingState = {
    * Type
    */
   type?: 'document_processing';
-  file: FileDocumentOutput;
+  file: FileDocument;
   /**
    * Supporting Files
    */
-  supporting_files?: Array<FileDocumentOutput> | null;
+  supporting_files?: Array<FileDocument> | null;
   config: DocumentProcessingWorkflowConfig;
   /**
    * The summary of the main document
@@ -1281,7 +1097,7 @@ export type DocumentProcessingState = {
   /**
    * Mapping from chunk indices to Docling items/regions for rendering
    */
-  chunk_to_items?: ChunkToItemsOutput | null;
+  chunk_to_items?: ChunkToItems | null;
 };
 
 /**
@@ -1447,130 +1263,17 @@ export type DocumentSummary = {
 };
 
 /**
- * DocxComment
+ * EvalPackageRequest
  *
- * Represents a comment to be added to a docx file.
+ * Request model for generating eval packages.
  */
-export type DocxComment = {
-  /**
-   * Chunk Index
-   */
-  chunk_index: number;
-  /**
-   * Text
-   */
-  text: string;
-  /**
-   * Comment Text
-   */
-  comment_text: string;
-  severity?: CommentSeverity | null;
-  /**
-   * Author
-   */
-  author?: string | null;
-  /**
-   * Share Link
-   */
-  share_link?: string | null;
-};
-
-/**
- * DocxGenerationState
- *
- * State for DOCX generation workflow.
- */
-export type DocxGenerationState = {
-  /**
-   * Errors
-   *
-   * Errors that occurred during the workflow execution.
-   */
-  errors?: Array<WorkflowError>;
-  /**
-   * Type
-   */
-  type?: 'docx_generation';
-  config: DocxGenerationWorkflowConfig;
-  /**
-   * Comments
-   */
-  comments?: Array<DocxComment> | null;
-  /**
-   * Chunks
-   */
-  chunks?: Array<unknown> | null;
-  /**
-   * Original File Path
-   */
-  original_file_path?: string | null;
-  /**
-   * Base File Name
-   */
-  base_file_name?: string | null;
-  /**
-   * Generated File Path
-   */
-  generated_file_path?: string | null;
-  /**
-   * Filename
-   */
-  filename?: string | null;
-};
-
-/**
- * DocxGenerationWorkflowConfig
- *
- * Config for DOCX generation workflow.
- */
-export type DocxGenerationWorkflowConfig = {
+export type EvalPackageRequest = {
   /**
    * Project Id
    *
-   * The ID of the project that this workflow run should be associated with
+   * The project ID to generate eval package for
    */
-  project_id?: string | null;
-  /**
-   * Openai Api Key
-   *
-   * The OpenAI API key to use for this workflow execution
-   */
-  openai_api_key?: string | null;
-  /**
-   * Domain
-   *
-   * Domain context for more accurate analysis
-   */
-  domain?: string | null;
-  /**
-   * Target Audience
-   *
-   * Target audience context for analysis
-   */
-  target_audience?: string | null;
-  /**
-   * Publication Date
-   *
-   * Publication date of the document (YYYY-MM-DD format)
-   */
-  publication_date?: string | null;
-  /**
-   * Type
-   */
-  type?: 'docx_generation';
-  /**
-   * Share Token
-   *
-   * Optional share token to include share links in comments
-   */
-  share_token?: string | null;
-};
-
-/**
- * EvalPackageRequest
- */
-export type EvalPackageRequest = {
-  results: ClaimSubstantiatorStateInput;
+  project_id: string;
   /**
    * Test Name
    */
@@ -1843,59 +1546,7 @@ export type File = {
 /**
  * FileDocument
  */
-export type FileDocumentInput = {
-  /**
-   * File Name
-   *
-   * The original name of the uploaded file, as saved in the user file system
-   */
-  file_name: string;
-  /**
-   * File Path
-   *
-   * The path to the uploaded file, as saved in the file system
-   */
-  file_path: string;
-  /**
-   * Original File Path
-   *
-   * Path to the original file if it was converted (e.g., original .docx before PDF conversion)
-   */
-  original_file_path?: string | null;
-  /**
-   * File Type
-   *
-   * The MIME type of the uploaded file
-   */
-  file_type: string;
-  /**
-   * Markdown
-   *
-   * The uploaded file content converted to markdown
-   */
-  markdown: string;
-  /**
-   * Markdown Token Count
-   *
-   * The approximate number of tokens in the markdown content
-   */
-  markdown_token_count: number;
-  /**
-   * File Id
-   *
-   * The UUID of the file record in the database
-   */
-  file_id: string;
-  /**
-   * Full Docling document for internal processing (chunk mapping, etc.)
-   */
-  docling_document?: DoclingDocument | null;
-};
-
-/**
- * FileDocument
- */
-export type FileDocumentOutput = {
+export type FileDocument = {
   /**
    * File Name
    *
@@ -1955,7 +1606,11 @@ export type FileDocumentOutput = {
  *
  * Extensible enum for file purposes in workflows
  */
-export const FileRole = { Main: 'main', Support: 'support' } as const;
+export const FileRole = {
+  Main: 'main',
+  Support: 'support',
+  SupportingCandidate: 'supporting_candidate',
+} as const;
 
 /**
  * FileRole
@@ -1963,6 +1618,131 @@ export const FileRole = { Main: 'main', Support: 'support' } as const;
  * Extensible enum for file purposes in workflows
  */
 export type FileRole = (typeof FileRole)[keyof typeof FileRole];
+
+/**
+ * FootnoteExtractionConfig
+ *
+ * Configuration for footnote extraction workflow.
+ */
+export type FootnoteExtractionConfig = {
+  /**
+   * Project Id
+   *
+   * The ID of the project that this workflow run should be associated with
+   */
+  project_id?: string | null;
+  /**
+   * Openai Api Key
+   *
+   * The OpenAI API key to use for this workflow execution
+   */
+  openai_api_key?: string | null;
+  /**
+   * Domain
+   *
+   * Domain context for more accurate analysis
+   */
+  domain?: string | null;
+  /**
+   * Target Audience
+   *
+   * Target audience context for analysis
+   */
+  target_audience?: string | null;
+  /**
+   * Publication Date
+   *
+   * Publication date of the document (YYYY-MM-DD format)
+   */
+  publication_date?: string | null;
+  /**
+   * Type
+   */
+  type?: 'footnote_extraction';
+};
+
+/**
+ * FootnoteExtractionState
+ *
+ * State for footnote extraction workflow.
+ */
+export type FootnoteExtractionState = {
+  /**
+   * Errors
+   *
+   * Errors that occurred during the workflow execution.
+   */
+  errors?: Array<WorkflowError>;
+  /**
+   * Type
+   */
+  type?: 'footnote_extraction';
+  config: FootnoteExtractionConfig;
+  /**
+   * File Id
+   *
+   * The ID of the main document
+   */
+  file_id: string;
+  /**
+   * Detected Sections
+   *
+   * Detected footnote sections
+   */
+  detected_sections?: Array<FootnoteSection>;
+  /**
+   * Footnotes
+   *
+   * Extracted footnote items
+   */
+  footnotes?: Array<FootnoteItem>;
+};
+
+/**
+ * FootnoteItem
+ *
+ * Represents a footnote extracted from a document.
+ */
+export type FootnoteItem = {
+  /**
+   * Marker
+   *
+   * The footnote number/marker (e.g., '160', '1', '107')
+   */
+  marker: string;
+  /**
+   * Text
+   *
+   * The full text content of the footnote
+   */
+  text: string;
+  /**
+   * Reference Code
+   *
+   * The reference code/anchor (e.g., '#footnote-ref-161'). Stored as metadata only, no document linking.
+   */
+  reference_code?: string | null;
+};
+
+/**
+ * FootnoteSection
+ *
+ * A detected footnote section in the document.
+ */
+export type FootnoteSection = {
+  /**
+   * Start Offset
+   *
+   * Character offset where section starts
+   */
+  start_offset: number;
+  /**
+   * End Offset
+   *
+   * Character offset where section ends
+   */
+  end_offset: number;
+};
 
 /**
  * HTTPValidationError
@@ -2257,9 +2037,11 @@ export type MethodologicalAlignmentState = {
    */
   type?: 'methodological_alignment';
   /**
-   * The main source document
+   * File Id
+   *
+   * The ID of the main source document
    */
-  file: FileDocumentOutput;
+  file_id: string;
   /**
    * Methodology alignment analysis result
    */
@@ -2357,6 +2139,56 @@ export const PoliticalBias = {
  * PoliticalBias
  */
 export type PoliticalBias = (typeof PoliticalBias)[keyof typeof PoliticalBias];
+
+/**
+ * PreflightRequest
+ *
+ * Request context for preflight validation.
+ */
+export type PreflightRequest = {
+  /**
+   * Openai Api Key
+   *
+   * User-provided OpenAI API key to validate
+   */
+  openai_api_key?: string | null;
+};
+
+/**
+ * PreflightResult
+ *
+ * Result of running all preflight validators.
+ */
+export type PreflightResult = {
+  /**
+   * Valid
+   *
+   * True if no errors (warnings allowed)
+   */
+  valid: boolean;
+  /**
+   * Issues
+   */
+  issues?: Array<ValidationIssue>;
+};
+
+/**
+ * ProgressLevel
+ *
+ * Level of progress tracking.
+ */
+export const ProgressLevel = {
+  Workflow: 'workflow',
+  Node: 'node',
+  Task: 'task',
+} as const;
+
+/**
+ * ProgressLevel
+ *
+ * Level of progress tracking.
+ */
+export type ProgressLevel = (typeof ProgressLevel)[keyof typeof ProgressLevel];
 
 /**
  * Project
@@ -2630,7 +2462,7 @@ export type ReferenceDownloaderState = {
    *
    * The response from the reference fetcher agent
    */
-  fetched_references?: Array<ReferenceFetchItem> | null;
+  fetched_references?: Array<ReferenceFetchResult>;
 };
 
 /**
@@ -2814,14 +2646,60 @@ export type ReferenceFetchItem = {
    * The ID of the verified downloaded file containing the full original content. Return null if conclusion is different than 'source_found'
    */
   file_id: string | null;
-  /**
-   * Failed File Ids
-   *
-   * The full list of file IDs that were downloaded in the process but failed to be verified as the correct full original content related to the reference
-   */
-  failed_file_ids: Array<string>;
   final_conclusion: ReferenceFetchConclusion;
 };
+
+/**
+ * ReferenceFetchResult
+ *
+ * Wrapper for reference fetch results with status tracking
+ */
+export type ReferenceFetchResult = {
+  /**
+   * Index
+   *
+   * Index of this reference in the input list
+   */
+  index: number;
+  /**
+   * Input Reference
+   *
+   * The original input reference
+   */
+  input_reference: string;
+  /**
+   * Current status of this reference fetch
+   */
+  status?: ReferenceFetchStatus;
+  /**
+   * The fetch result, present on success
+   */
+  result?: ReferenceFetchItem | null;
+  /**
+   * Error
+   *
+   * Error message, present on failure
+   */
+  error?: string | null;
+};
+
+/**
+ * ReferenceFetchStatus
+ *
+ * Status of a reference fetch operation
+ */
+export const ReferenceFetchStatus = {
+  Pending: 'pending',
+  Completed: 'completed',
+  Error: 'error',
+} as const;
+
+/**
+ * ReferenceFetchStatus
+ *
+ * Status of a reference fetch operation
+ */
+export type ReferenceFetchStatus = (typeof ReferenceFetchStatus)[keyof typeof ReferenceFetchStatus];
 
 /**
  * ReferenceMinimal
@@ -2907,10 +2785,6 @@ export type ReferenceValidationState = {
    */
   type?: 'reference_validation';
   config: ReferenceValidationWorkflowConfig;
-  /**
-   * References
-   */
-  references?: Array<BibliographyItem>;
   /**
    * Reference Validations
    */
@@ -3105,9 +2979,11 @@ export type ResultsExtractionState = {
    */
   type?: 'results_extraction';
   /**
-   * The main source document
+   * File Id
+   *
+   * The ID of the file to extract results from
    */
-  file: FileDocumentOutput;
+  file_id: string;
   /**
    * Extracted results with reproducibility assessments
    */
@@ -3267,66 +3143,6 @@ export type StartWorkflowResponse = {
 };
 
 /**
- * SubstantiationWorkflowConfig
- *
- * Configuration model for claim substantiation workflow
- */
-export type SubstantiationWorkflowConfig = {
-  /**
-   * Project Id
-   *
-   * The ID of the project that this workflow run should be associated with
-   */
-  project_id?: string | null;
-  /**
-   * Openai Api Key
-   *
-   * The OpenAI API key to use for this workflow execution
-   */
-  openai_api_key?: string | null;
-  /**
-   * Domain
-   *
-   * Domain context for more accurate analysis
-   */
-  domain?: string | null;
-  /**
-   * Target Audience
-   *
-   * Target audience context for analysis
-   */
-  target_audience?: string | null;
-  /**
-   * Publication Date
-   *
-   * Publication date of the document (YYYY-MM-DD format)
-   */
-  publication_date?: string | null;
-  /**
-   * Type
-   */
-  type?: 'claim_substantiation';
-  /**
-   * Target Chunk Indices
-   *
-   * Specific chunk indices to process (None = process all chunks)
-   */
-  target_chunk_indices?: Array<number> | null;
-  /**
-   * Agents To Run
-   *
-   * Specific agents to run (None = run all agents)
-   */
-  agents_to_run?: Array<string> | null;
-  /**
-   * Workflow Types
-   *
-   * List of workflow types to run
-   */
-  workflow_types?: Array<WorkflowRunType> | null;
-};
-
-/**
  * SummaryAndOutput
  */
 export type SummaryAndOutput = {
@@ -3387,6 +3203,37 @@ export const UpdateType = {
 export type UpdateType = (typeof UpdateType)[keyof typeof UpdateType];
 
 /**
+ * UserResponse
+ *
+ * Response model for user information
+ */
+export type UserResponse = {
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * Email
+   */
+  email: string;
+  /**
+   * Name
+   */
+  name: string;
+  role: UserRole;
+};
+
+/**
+ * UserRole
+ */
+export const UserRole = { User: 'USER', Admin: 'ADMIN' } as const;
+
+/**
+ * UserRole
+ */
+export type UserRole = (typeof UserRole)[keyof typeof UserRole];
+
+/**
  * ValidationError
  */
 export type ValidationError = {
@@ -3403,6 +3250,47 @@ export type ValidationError = {
    */
   type: string;
 };
+
+/**
+ * ValidationIssue
+ *
+ * A single validation issue found during preflight check.
+ */
+export type ValidationIssue = {
+  /**
+   * Code
+   *
+   * Machine-readable issue code
+   */
+  code: string;
+  /**
+   * Message
+   *
+   * Human-readable description
+   */
+  message: string;
+  severity?: ValidationSeverity;
+  /**
+   * Details
+   */
+  details?: {
+    [key: string]: unknown;
+  } | null;
+};
+
+/**
+ * ValidationSeverity
+ *
+ * Severity level of a validation issue.
+ */
+export const ValidationSeverity = { Error: 'error', Warning: 'warning' } as const;
+
+/**
+ * ValidationSeverity
+ *
+ * Severity level of a validation issue.
+ */
+export type ValidationSeverity = (typeof ValidationSeverity)[keyof typeof ValidationSeverity];
 
 /**
  * WorkflowError
@@ -3428,6 +3316,57 @@ export type WorkflowError = {
    * The error message.
    */
   error: string;
+};
+
+/**
+ * WorkflowProgressResponse
+ *
+ * Response model for workflow progress entries.
+ */
+export type WorkflowProgressResponse = {
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * Workflow Run Id
+   */
+  workflow_run_id: string;
+  /**
+   * Name
+   */
+  name: string;
+  level: ProgressLevel;
+  /**
+   * Current Step
+   */
+  current_step: number;
+  /**
+   * Total Steps
+   */
+  total_steps: number;
+  /**
+   * Started At
+   */
+  started_at?: Date | null;
+  /**
+   * Completed At
+   */
+  completed_at?: Date | null;
+  /**
+   * Created At
+   */
+  created_at: Date;
+  /**
+   * Updated At
+   */
+  updated_at: Date;
+  /**
+   * Status
+   *
+   * Derive status from timestamps.
+   */
+  readonly status: string;
 };
 
 /**
@@ -3483,13 +3422,12 @@ export type WorkflowRunDetail = {
   state:
     | DocumentProcessingState
     | ReferenceExtractionState
+    | FootnoteExtractionState
     | ClaimExtractionState
-    | ClaimSubstantiatorStateOutput
     | ClaimReferenceValidationState
     | CitationDetectionState
     | MethodologicalAlignmentState
     | ReferenceDownloaderState
-    | DocxGenerationState
     | LiteratureReviewState
     | LiveReportsState
     | ReferenceValidationState
@@ -3519,12 +3457,11 @@ export type WorkflowRunStatus = (typeof WorkflowRunStatus)[keyof typeof Workflow
 export const WorkflowRunType = {
   DocumentProcessing: 'document_processing',
   ReferenceExtraction: 'reference_extraction',
+  FootnoteExtraction: 'footnote_extraction',
   ClaimExtraction: 'claim_extraction',
   CitationDetection: 'citation_detection',
-  ClaimSubstantiation: 'claim_substantiation',
   MethodologicalAlignment: 'methodological_alignment',
   ReferenceDownloader: 'reference_downloader',
-  DocxGeneration: 'docx_generation',
   LiteratureReview: 'literature_review',
   LiveReports: 'live_reports',
   ReferenceValidation: 'reference_validation',
@@ -3565,52 +3502,30 @@ export type WorkflowTypeDescription = {
    * Whether the workflow needs web search
    */
   needs_web_search: boolean;
-};
-
-/**
- * ClaimSubstantiatorState
- */
-export type ClaimSubstantiatorStateOutputWritable = {
   /**
-   * Errors
+   * Is Experimental
    *
-   * Errors that occurred during the workflow execution.
+   * Whether the workflow is experimental
    */
-  errors?: Array<WorkflowError>;
+  is_experimental: boolean;
   /**
-   * Type
-   */
-  type?: 'claim_substantiation';
-  file: FileDocumentOutputWritable;
-  /**
-   * Supporting Files
-   */
-  supporting_files?: Array<FileDocumentOutputWritable> | null;
-  config: SubstantiationWorkflowConfig;
-  /**
-   * References
-   */
-  references?: Array<BibliographyItem>;
-  /**
-   * Chunks
-   */
-  chunks?: Array<AnalyzedChunkOutput>;
-  /**
-   * The summary of the main document
-   */
-  main_document_summary?: DocumentSummary | null;
-  /**
-   * Supporting Documents Summaries
+   * Is Internal
    *
-   * Dictionary mapping supporting file indices to their summaries
+   * Whether the workflow is internal (runs as a dependency, not shown in UI)
    */
-  supporting_documents_summaries?: {
-    [key: string]: DocumentSummary;
-  } | null;
+  is_internal: boolean;
   /**
-   * Mapping from chunk indices to Docling items/regions for rendering
+   * Can Be Triggered By User
+   *
+   * Whether the workflow can be manually triggered by a user
    */
-  chunk_to_items?: ChunkToItemsOutput | null;
+  can_be_triggered_by_user: boolean;
+  /**
+   * Order
+   *
+   * Display order in the UI (lower numbers appear first)
+   */
+  order: number;
 };
 
 /**
@@ -3644,11 +3559,11 @@ export type DocumentProcessingStateWritable = {
    * Type
    */
   type?: 'document_processing';
-  file: FileDocumentOutputWritable;
+  file: FileDocumentWritable;
   /**
    * Supporting Files
    */
-  supporting_files?: Array<FileDocumentOutputWritable> | null;
+  supporting_files?: Array<FileDocumentWritable> | null;
   config: DocumentProcessingWorkflowConfig;
   /**
    * The summary of the main document
@@ -3671,13 +3586,13 @@ export type DocumentProcessingStateWritable = {
   /**
    * Mapping from chunk indices to Docling items/regions for rendering
    */
-  chunk_to_items?: ChunkToItemsOutput | null;
+  chunk_to_items?: ChunkToItems | null;
 };
 
 /**
  * FileDocument
  */
-export type FileDocumentOutputWritable = {
+export type FileDocumentWritable = {
   /**
    * File Name
    *
@@ -3727,32 +3642,6 @@ export type FileDocumentOutputWritable = {
 };
 
 /**
- * MethodologicalAlignmentState
- *
- * State for the methodological alignment workflow
- */
-export type MethodologicalAlignmentStateWritable = {
-  /**
-   * Errors
-   *
-   * Errors that occurred during the workflow execution.
-   */
-  errors?: Array<WorkflowError>;
-  /**
-   * Type
-   */
-  type?: 'methodological_alignment';
-  /**
-   * The main source document
-   */
-  file: FileDocumentOutputWritable;
-  /**
-   * Methodology alignment analysis result
-   */
-  methodology_comparison?: MethodologyComparisonResponse | null;
-};
-
-/**
  * ProjectDetailed
  */
 export type ProjectDetailedWritable = {
@@ -3778,27 +3667,48 @@ export type ProjectDetailedWritable = {
 };
 
 /**
- * ResultsExtractionState
+ * WorkflowProgressResponse
+ *
+ * Response model for workflow progress entries.
  */
-export type ResultsExtractionStateWritable = {
+export type WorkflowProgressResponseWritable = {
   /**
-   * Errors
-   *
-   * Errors that occurred during the workflow execution.
+   * Id
    */
-  errors?: Array<WorkflowError>;
+  id: string;
   /**
-   * Type
+   * Workflow Run Id
    */
-  type?: 'results_extraction';
+  workflow_run_id: string;
   /**
-   * The main source document
+   * Name
    */
-  file: FileDocumentOutputWritable;
+  name: string;
+  level: ProgressLevel;
   /**
-   * Extracted results with reproducibility assessments
+   * Current Step
    */
-  results?: ResultsListResponse | null;
+  current_step: number;
+  /**
+   * Total Steps
+   */
+  total_steps: number;
+  /**
+   * Started At
+   */
+  started_at?: Date | null;
+  /**
+   * Completed At
+   */
+  completed_at?: Date | null;
+  /**
+   * Created At
+   */
+  created_at: Date;
+  /**
+   * Updated At
+   */
+  updated_at: Date;
 };
 
 /**
@@ -3812,18 +3722,17 @@ export type WorkflowRunDetailWritable = {
   state:
     | DocumentProcessingStateWritable
     | ReferenceExtractionState
+    | FootnoteExtractionState
     | ClaimExtractionState
-    | ClaimSubstantiatorStateOutputWritable
     | ClaimReferenceValidationState
     | CitationDetectionState
-    | MethodologicalAlignmentStateWritable
+    | MethodologicalAlignmentState
     | ReferenceDownloaderState
-    | DocxGenerationState
     | LiteratureReviewState
     | LiveReportsState
     | ReferenceValidationState
     | CitationSuggesterState
-    | ResultsExtractionStateWritable
+    | ResultsExtractionState
     | InferenceValidationState
     | null;
 };
@@ -3875,6 +3784,33 @@ export type GetSupportedAgentsApiSupportedAgentsGetResponses = {
 export type GetSupportedAgentsApiSupportedAgentsGetResponse =
   GetSupportedAgentsApiSupportedAgentsGetResponses[keyof GetSupportedAgentsApiSupportedAgentsGetResponses];
 
+export type StartAnalysisApiStartAnalysisDoNotUsePostData = {
+  body: AnalysisFormConfig;
+  path?: never;
+  query?: never;
+  url: '/api/start-analysis/_do_not_use_';
+};
+
+export type StartAnalysisApiStartAnalysisDoNotUsePostErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type StartAnalysisApiStartAnalysisDoNotUsePostError =
+  StartAnalysisApiStartAnalysisDoNotUsePostErrors[keyof StartAnalysisApiStartAnalysisDoNotUsePostErrors];
+
+export type StartAnalysisApiStartAnalysisDoNotUsePostResponses = {
+  /**
+   * Successful Response
+   */
+  200: StartWorkflowResponse;
+};
+
+export type StartAnalysisApiStartAnalysisDoNotUsePostResponse =
+  StartAnalysisApiStartAnalysisDoNotUsePostResponses[keyof StartAnalysisApiStartAnalysisDoNotUsePostResponses];
+
 export type StartAnalysisApiStartAnalysisPostData = {
   body: BodyStartAnalysisApiStartAnalysisPost;
   path?: never;
@@ -3901,6 +3837,33 @@ export type StartAnalysisApiStartAnalysisPostResponses = {
 
 export type StartAnalysisApiStartAnalysisPostResponse =
   StartAnalysisApiStartAnalysisPostResponses[keyof StartAnalysisApiStartAnalysisPostResponses];
+
+export type CheckPreflightApiPreflightPostData = {
+  body: PreflightRequest;
+  path?: never;
+  query?: never;
+  url: '/api/preflight';
+};
+
+export type CheckPreflightApiPreflightPostErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type CheckPreflightApiPreflightPostError =
+  CheckPreflightApiPreflightPostErrors[keyof CheckPreflightApiPreflightPostErrors];
+
+export type CheckPreflightApiPreflightPostResponses = {
+  /**
+   * Successful Response
+   */
+  200: PreflightResult;
+};
+
+export type CheckPreflightApiPreflightPostResponse =
+  CheckPreflightApiPreflightPostResponses[keyof CheckPreflightApiPreflightPostResponses];
 
 export type GenerateEvalPackageApiGenerateEvalPackagePostData = {
   body: EvalPackageRequest;
@@ -3957,9 +3920,9 @@ export type StartWorkflowApiWorkflowsStartPostData = {
   body:
     | DocumentProcessingWorkflowConfig
     | ReferenceExtractionConfig
+    | FootnoteExtractionConfig
     | ClaimExtractionWorkflowConfig
     | CitationDetectionConfig
-    | SubstantiationWorkflowConfig
     | ClaimReferenceValidationWorkflowConfig
     | MethodologicalAlignmentWorkflowConfig
     | ReferenceDownloaderWorkflowConfig
@@ -4456,7 +4419,14 @@ export type ListProjectFilesEndpointApiProjectProjectIdFilesGetData = {
      */
     project_id: string;
   };
-  query?: never;
+  query?: {
+    /**
+     * Share Token
+     *
+     * Share token for shared projects. If not provided, the current user must be the owner of the project.
+     */
+    share_token?: string | null;
+  };
   url: '/api/project/{project_id}/files';
 };
 
@@ -4490,7 +4460,20 @@ export type DownloadAllProjectFilesApiProjectProjectIdFilesDownloadAllGetData = 
      */
     project_id: string;
   };
-  query?: never;
+  query?: {
+    /**
+     * Share Token
+     *
+     * Share token for shared projects. If not provided, the current user must be the owner of the project.
+     */
+    share_token?: string | null;
+    /**
+     * Roles
+     *
+     * Filter files by role(s). If not provided, main and support files are included by default.
+     */
+    roles?: Array<FileRole> | null;
+  };
   url: '/api/project/{project_id}/files/download-all';
 };
 
@@ -4510,6 +4493,40 @@ export type DownloadAllProjectFilesApiProjectProjectIdFilesDownloadAllGetRespons
    */
   200: unknown;
 };
+
+export type GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdGetData = {
+  body?: never;
+  path: {
+    /**
+     * Workflow Run Id
+     */
+    workflow_run_id: string;
+  };
+  query?: never;
+  url: '/api/progress/workflow/{workflow_run_id}';
+};
+
+export type GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdGetErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdGetError =
+  GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdGetErrors[keyof GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdGetErrors];
+
+export type GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdGetResponses = {
+  /**
+   * Response Get Workflow Progress Endpoint Api Progress Workflow  Workflow Run Id  Get
+   *
+   * Successful Response
+   */
+  200: Array<WorkflowProgressResponse>;
+};
+
+export type GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdGetResponse =
+  GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdGetResponses[keyof GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdGetResponses];
 
 export type GetProjectShareStatusApiProjectsProjectIdShareGetData = {
   body?: never;
@@ -4638,3 +4655,20 @@ export type GetSharedResourceApiPublicShareTokenGetResponses = {
 
 export type GetSharedResourceApiPublicShareTokenGetResponse =
   GetSharedResourceApiPublicShareTokenGetResponses[keyof GetSharedResourceApiPublicShareTokenGetResponses];
+
+export type GetCurrentUserInfoApiUsersMeGetData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/api/users/me';
+};
+
+export type GetCurrentUserInfoApiUsersMeGetResponses = {
+  /**
+   * Successful Response
+   */
+  200: UserResponse;
+};
+
+export type GetCurrentUserInfoApiUsersMeGetResponse =
+  GetCurrentUserInfoApiUsersMeGetResponses[keyof GetCurrentUserInfoApiUsersMeGetResponses];

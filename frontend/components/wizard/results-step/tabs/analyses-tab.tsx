@@ -18,9 +18,8 @@ import {
   WorkflowRunDetail,
   WorkflowRunType,
   startMultipleWorkflowsApiWorkflowsStartMultiplePost,
-  startWorkflowApiWorkflowsStartPost,
 } from '@/lib/generated-api';
-import { useProjectDetails } from '@/lib/hooks/use-project-details';
+import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { cn } from '@/lib/utils';
 import { getWorkflowTypeName } from '@/lib/workflow-state';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -30,7 +29,7 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 
 interface AnalysesTabProps {
-  projectId: string;
+  project: ProjectDetailed;
   readOnly?: boolean;
   onNavigateToDocumentExplorer?: () => void;
   onNavigateToReferences?: () => void;
@@ -62,7 +61,6 @@ function renderWorkflowResults(
       return <ReferenceDownloaderResults workflowDetail={workflowRun} />;
     case WorkflowRunType.ResultsExtraction:
       return <ResultsExtractorResults workflowDetail={workflowRun} />;
-    case WorkflowRunType.ClaimSubstantiation:
     case WorkflowRunType.InferenceValidation:
     case WorkflowRunType.ClaimReferenceValidation:
       return (
@@ -111,15 +109,17 @@ function renderWorkflowResults(
 }
 
 export function AnalysesTab({
-  projectId,
+  project,
   readOnly,
   onNavigateToDocumentExplorer,
   onNavigateToReferences,
 }: AnalysesTabProps) {
-  const { project, workflowDetails, isLoading } = useProjectDetails(projectId);
+  const projectId = project.project.id;
+  const workflowDetails = project.workflow_runs ?? [];
   const [selectedWorkflowRunId, setSelectedWorkflowRunId] = useState<string | null>(null);
   const [isConfigDialogOpen, setIsConfigDialogOpen] = useState(false);
   const queryClient = useQueryClient();
+  const { isWorkflowTypeVisible } = useWorkflowTypes();
 
   const { mutate: startMultipleWorkflows } = useMutation({
     mutationFn: async (values: WorkflowConfigFormValues) => {
@@ -141,14 +141,9 @@ export function AnalysesTab({
   });
 
   const selectedWorkflowRun = workflowDetails.find((workflowDetail) => workflowDetail.run.id === selectedWorkflowRunId);
-
-  if (isLoading) {
-    return (
-      <div className="p-4">
-        <p className="text-muted-foreground">Loading analyses...</p>
-      </div>
-    );
-  }
+  const filteredWorkflowDetails = workflowDetails.filter((workflowDetail) =>
+    isWorkflowTypeVisible(workflowDetail.run.type),
+  );
 
   const handleStartNewAnalysis = () => {
     setIsConfigDialogOpen(true);
@@ -173,7 +168,7 @@ export function AnalysesTab({
               </Button>
             )}
           </div>
-          {workflowDetails.map((workflowDetail) => (
+          {filteredWorkflowDetails.map((workflowDetail) => (
             <button
               key={workflowDetail.run.id}
               onClick={() => setSelectedWorkflowRunId(workflowDetail.run.id)}
@@ -222,12 +217,11 @@ export function AnalysesTab({
                     projectId={projectId}
                     workflow={selectedWorkflowRun.run}
                     onConfirm={async (values: WorkflowConfigFormValues) => {
-                      return await startWorkflowApiWorkflowsStartPost({
+                      return await startMultipleWorkflowsApiWorkflowsStartMultiplePost({
                         body: {
-                          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                          type: selectedWorkflowRun.run.type as any,
                           project_id: projectId,
-                          openai_api_key: values.openaiApiKey || null,
+                          workflow_types: [selectedWorkflowRun.run.type],
+                          openai_api_key: values.openaiApiKey,
                         },
                       });
                     }}
@@ -249,7 +243,7 @@ export function AnalysesTab({
                 <ErrorsCard errors={selectedWorkflowRun.state.errors} />
               )}
               {renderWorkflowResults(
-                project!,
+                project,
                 selectedWorkflowRun,
                 onNavigateToDocumentExplorer,
                 onNavigateToReferences,

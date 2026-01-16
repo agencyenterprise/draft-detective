@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { Card, CardContent } from './card';
 
 export interface FileUploadProps {
+  files: File[];
   accept?: string;
   acceptLabel?: string;
   multiple?: boolean;
@@ -17,6 +18,7 @@ export interface FileUploadProps {
 }
 
 export function FileUpload({
+  files,
   accept = '.pdf,.doc,.docx,.txt,.md',
   acceptLabel = 'PDF, DOC, DOCX, TXT, MD',
   multiple = true,
@@ -27,7 +29,6 @@ export function FileUpload({
   compact = false,
 }: FileUploadProps) {
   const [isDragOver, setIsDragOver] = React.useState(false);
-  const [uploadedFiles, setUploadedFiles] = React.useState<File[]>([]);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -57,17 +58,22 @@ export function FileUpload({
 
     const files = Array.from(e.target.files);
     handleFiles(files);
+
+    setTimeout(() => {
+      // Reset input value to allow re-selecting the same file
+      // It needs to be done in a separate tick otherwise the file is lost before consumers are able to access it
+      e.target.value = '';
+    }, 0);
   };
 
-  const handleFiles = (files: File[]) => {
-    const validFiles = files.filter((file) => {
+  const handleFiles = (newFiles: File[]) => {
+    const validFiles = newFiles.filter((file) => {
       const sizeMB = file.size / (1024 * 1024);
       return sizeMB <= maxSize;
     });
 
-    const newFiles = multiple ? [...uploadedFiles, ...validFiles] : validFiles;
-    setUploadedFiles(newFiles);
-    onFilesChange(newFiles);
+    const updatedFiles = multiple ? [...files, ...validFiles] : validFiles;
+    onFilesChange(updatedFiles);
   };
 
   const openFileDialog = () => {

@@ -91,19 +91,47 @@ def mock_two_stage_matching_error(candidates_per_ref: List, error: Exception):
 
 @pytest.fixture
 def mock_runtime():
-    runtime = MagicMock()
-    runtime.context.openai_api_key = "test-key"
-    runtime.context.vector_store = None
-    return runtime
+    def _create(summaries=None, supporting_files=None):
+        """Create mock runtime with file_artifacts_service that returns summaries and files."""
+        runtime = MagicMock()
+        runtime.context.openai_api_key = "test-key"
+        runtime.context.vector_store = None
+
+        # Mock file_artifacts_service
+        file_artifacts_service = AsyncMock()
+
+        # Map file_ids to summaries
+        summaries = summaries or {}
+
+        async def get_summary(file_id):
+            # file_ids are like "file-id-0", "file-id-1", extract index
+            idx = int(file_id.split("-")[-1])
+            return summaries.get(idx)
+
+        file_artifacts_service.get_document_summary = get_summary
+
+        # Map file_ids to file documents
+        supporting_files = supporting_files or []
+
+        async def get_file_doc(file_id):
+            # file_ids are like "file-id-0", "file-id-1", extract index
+            idx = int(file_id.split("-")[-1])
+            return supporting_files[idx] if idx < len(supporting_files) else None
+
+        file_artifacts_service.get_file_document = get_file_doc
+
+        runtime.context.file_artifacts_service = file_artifacts_service
+        return runtime
+
+    return _create
 
 
 @pytest.fixture
 def mock_state():
-    def _create(texts, summaries=None, supporting_files=None):
+    def _create(texts, supporting_file_ids=None):
         state = MagicMock()
         state.extracted_reference_texts = texts
-        state.supporting_documents_summaries = summaries
-        state.supporting_files = supporting_files
+        state.supporting_file_ids = supporting_file_ids or []
         state.config = None
         return state
 
@@ -158,37 +186,39 @@ class TestTwoStageMatching:
     @pytest.mark.asyncio
     async def test_matches_reference_to_document(self, mock_state, mock_runtime):
         summaries = {0: make_summary("Sea Level Rise", "Johnson, M.", "2023")}
-        files = [make_file_document("sea_level_rise.pdf", "file-id-123")]
+        files = [make_file_document("sea_level_rise.pdf", "file-id-0")]
         state = mock_state(
             texts=["Johnson (2023). Sea Level Rise."],
-            summaries=summaries,
-            supporting_files=files,
+            supporting_file_ids=["file-id-0"],
         )
+        runtime = mock_runtime(summaries=summaries, supporting_files=files)
 
         with mock_two_stage_matching(
             candidates_per_ref=[[make_candidate(0, summaries[0])]],
             matches=[make_match(0, "A")],
         ):
-            result = await match_supporting_docs_node(state, mock_runtime)
+            result = await match_supporting_docs_node(state, runtime)
 
         ref = result["references"][0]
         assert ref.has_associated_supporting_document is True
         assert ref.name_of_associated_supporting_document == "sea_level_rise.pdf"
-        assert ref.file_id == "file-id-123"
+        assert ref.file_id == "file-id-0"
 
     @pytest.mark.asyncio
     async def test_handles_no_match(self, mock_state, mock_runtime):
         summaries = {0: make_summary("Paper 0")}
-        files = [make_file_document("paper_0.pdf", "file-id-1")]
+        files = [make_file_document("paper_0.pdf", "file-id-0")]
         state = mock_state(
-            texts=["Unknown reference"], summaries=summaries, supporting_files=files
+            texts=["Unknown reference"],
+            supporting_file_ids=["file-id-0"],
         )
+        runtime = mock_runtime(summaries=summaries, supporting_files=files)
 
         with mock_two_stage_matching(
             candidates_per_ref=[[make_candidate(0, summaries[0])]],
             matches=[make_match(0, "NONE", "none")],
         ):
-            result = await match_supporting_docs_node(state, mock_runtime)
+            result = await match_supporting_docs_node(state, runtime)
 
         ref = result["references"][0]
         assert ref.has_associated_supporting_document is False
@@ -202,14 +232,14 @@ class TestTwoStageMatching:
             1: make_summary("Paper Two", "Jones", "2021"),
         }
         files = [
-            make_file_document("paper_one.pdf", "file-id-1"),
-            make_file_document("paper_two.pdf", "file-id-2"),
+            make_file_document("paper_one.pdf", "file-id-0"),
+            make_file_document("paper_two.pdf", "file-id-1"),
         ]
         state = mock_state(
             texts=["Smith (2020). Paper One.", "Jones (2021). Paper Two.", "Unknown."],
-            summaries=summaries,
-            supporting_files=files,
+            supporting_file_ids=["file-id-0", "file-id-1"],
         )
+        runtime = mock_runtime(summaries=summaries, supporting_files=files)
 
         with mock_two_stage_matching(
             candidates_per_ref=[
@@ -223,7 +253,7 @@ class TestTwoStageMatching:
                 make_match(2, "NONE", "none"),
             ],
         ):
-            result = await match_supporting_docs_node(state, mock_runtime)
+            result = await match_supporting_docs_node(state, runtime)
 
         assert len(result["references"]) == 3
         assert result["references"][0].has_associated_supporting_document is True
@@ -231,13 +261,13 @@ class TestTwoStageMatching:
             result["references"][0].name_of_associated_supporting_document
             == "paper_one.pdf"
         )
-        assert result["references"][0].file_id == "file-id-1"
+        assert result["references"][0].file_id == "file-id-0"
         assert result["references"][1].has_associated_supporting_document is True
         assert (
             result["references"][1].name_of_associated_supporting_document
             == "paper_two.pdf"
         )
-        assert result["references"][1].file_id == "file-id-2"
+        assert result["references"][1].file_id == "file-id-1"
         assert result["references"][2].has_associated_supporting_document is False
         assert result["references"][2].file_id is None
 
@@ -245,16 +275,18 @@ class TestTwoStageMatching:
     async def test_handles_batch_error_gracefully(self, mock_state, mock_runtime):
         """Batch matching errors should result in no matches, not exceptions."""
         summaries = {0: make_summary("Paper")}
-        files = [make_file_document("paper.pdf", "file-id-1")]
+        files = [make_file_document("paper.pdf", "file-id-0")]
         state = mock_state(
-            texts=["Some reference"], summaries=summaries, supporting_files=files
+            texts=["Some reference"],
+            supporting_file_ids=["file-id-0"],
         )
+        runtime = mock_runtime(summaries=summaries, supporting_files=files)
 
         with mock_two_stage_matching_error(
             candidates_per_ref=[[make_candidate(0, summaries[0])]],
             error=Exception("API Error"),
         ):
-            result = await match_supporting_docs_node(state, mock_runtime)
+            result = await match_supporting_docs_node(state, runtime)
 
         assert len(result["references"]) == 1
         assert result["references"][0].has_associated_supporting_document is False
@@ -266,25 +298,25 @@ class TestMatchSupportingDocsNode:
 
     @pytest.mark.asyncio
     async def test_empty_texts(self, mock_state, mock_runtime):
-        result = await match_supporting_docs_node(mock_state(texts=[]), mock_runtime)
+        state = mock_state(texts=[])
+        runtime = mock_runtime()
+        result = await match_supporting_docs_node(state, runtime)
         assert result["references"] == []
 
     @pytest.mark.asyncio
     async def test_no_summaries(self, mock_state, mock_runtime):
-        result = await match_supporting_docs_node(
-            mock_state(texts=["Ref"]), mock_runtime
-        )
+        state = mock_state(texts=["Ref"])
+        runtime = mock_runtime()
+        result = await match_supporting_docs_node(state, runtime)
         ref = result["references"][0]
         assert ref.has_associated_supporting_document is False
         assert ref.file_id is None
 
     @pytest.mark.asyncio
     async def test_no_supporting_files(self, mock_state, mock_runtime):
-        summaries = {0: make_summary("Paper")}
-        result = await match_supporting_docs_node(
-            mock_state(texts=["Ref"], summaries=summaries, supporting_files=[]),
-            mock_runtime,
-        )
+        state = mock_state(texts=["Ref"], supporting_file_ids=[])
+        runtime = mock_runtime()
+        result = await match_supporting_docs_node(state, runtime)
         ref = result["references"][0]
         assert ref.has_associated_supporting_document is False
         assert ref.file_id is None

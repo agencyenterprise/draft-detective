@@ -7,7 +7,7 @@ from fastapi import Form, HTTPException, Query, UploadFile, status
 from fastapi.responses import StreamingResponse
 from starlette.responses import FileResponse
 
-from api.auth import get_current_user
+from api.auth import get_current_user, get_current_user_optional
 from api.upload import save_uploaded_files_to_db
 from lib.models.file import File, FileRole
 from lib.models.project import Project
@@ -20,11 +20,13 @@ from lib.services.projects import (
     UpdateProjectRequest,
     create_project,
     delete_project,
+    get_project_files,
+    get_shared_project_detailed,
     get_user_project_detailed,
-    get_user_project_files,
     get_user_projects,
     update_user_project,
 )
+from lib.services.share_links import get_resource_by_token
 
 router = APIRouter(tags=["projects"])
 logger = logging.getLogger(__name__)
@@ -115,7 +117,7 @@ async def download_project_docx(
         default=None,
         description="Share token to include share links in comments",
     ),
-    current_user: User = Depends(get_current_user),
+    current_user: Optional[User] = Depends(get_current_user_optional),
 ):
     """
     Download DOCX with AI comments.
@@ -125,18 +127,17 @@ async def download_project_docx(
     Subsequent requests with the same share_token (or none) are instant.
     """
 
-    project_detail = await get_user_project_detailed(project_id, user=current_user)
+    await check_project_access(project_id, current_user, share_token)
 
     try:
         # Get cached or generate DOCX via workflow (with caching)
         file_path, filename = await get_or_generate_docx(
-            project_id=str(project_detail.project.id),
+            project_id=project_id,
             share_token=share_token,
-            user=current_user,
+            use_cache=True,
         )
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
+        logger.error("Failed to generate DOCX: %s", e, exc_info=True)
         raise HTTPException(
             status_code=500,
             detail=f"Failed to generate DOCX: {str(e)}",
@@ -151,25 +152,39 @@ async def download_project_docx(
 
 @router.get("/api/project/{project_id}/files", response_model=List[File])
 async def list_project_files_endpoint(
-    project_id: str, current_user: User = Depends(get_current_user)
+    project_id: str,
+    current_user: Optional[User] = Depends(get_current_user_optional),
+    share_token: Optional[str] = Query(
+        default=None,
+        description="Share token for shared projects. If not provided, the current user must be the owner of the project.",
+    ),
 ):
     """Get all files for a project"""
 
-    return await get_user_project_files(project_id, user=current_user)
+    await check_project_access(project_id, current_user, share_token)
+    return await get_project_files(project_id)
 
 
 @router.get("/api/project/{project_id}/files/download-all")
 async def download_all_project_files(
     project_id: str,
-    current_user: User = Depends(get_current_user),
+    current_user: Optional[User] = Depends(get_current_user_optional),
+    share_token: Optional[str] = Query(
+        default=None,
+        description="Share token for shared projects. If not provided, the current user must be the owner of the project.",
+    ),
+    roles: Optional[List[FileRole]] = Query(
+        default=[FileRole.MAIN, FileRole.SUPPORT],
+        description="Filter files by role(s). If not provided, main and support files are included by default.",
+    ),
 ):
     """Download all project files as a ZIP archive"""
 
     # Verify project access
-    project_detail = await get_user_project_detailed(project_id, user=current_user)
+    project_detail = await check_project_access(project_id, current_user, share_token)
 
     # Create zip file using service
-    zip_buffer, _ = await create_project_files_zip(project_id)
+    zip_buffer, _ = await create_project_files_zip(project_id, roles=roles)
 
     # Generate filename from project title
     project_title = project_detail.project.title or "project"
@@ -189,3 +204,21 @@ async def download_all_project_files(
         media_type="application/zip",
         headers={"Content-Disposition": f'attachment; filename="{zip_filename}"'},
     )
+
+
+async def check_project_access(
+    project_id: str,
+    current_user: Optional[User] = None,
+    share_token: Optional[str] = None,
+) -> ProjectDetailed:
+    """Check if a user or share token gives access to a project. Raises HTTPException if access is denied. Returns the project detailed if access is granted."""
+
+    if share_token:
+        share_link = await get_resource_by_token(share_token)
+        if share_link is None or str(share_link.resource_id) != project_id:
+            raise HTTPException(status_code=403, detail="Access denied")
+        return await get_shared_project_detailed(str(share_link.resource_id))
+    elif current_user is not None:
+        return await get_user_project_detailed(project_id, user=current_user)
+    else:
+        raise HTTPException(status_code=403, detail="Access denied")

@@ -26,15 +26,17 @@ def register_workflow_manifest(manifest: WorkflowManifest) -> None:
     _workflow_manifest_registry[manifest.type] = manifest
 
 
-def get_workflow_manifest(type: WorkflowRunType) -> WorkflowManifest:
+def get_workflow_manifest(
+    type: WorkflowRunType, raise_exception: bool = True
+) -> WorkflowManifest:
     """
     Get a workflow manifest by type.
     """
 
-    if type not in _workflow_manifest_registry:
+    if type not in _workflow_manifest_registry and raise_exception:
         raise ValueError(f"No workflow manifest registered for type: {type}")
 
-    return _workflow_manifest_registry[type]
+    return _workflow_manifest_registry.get(type)
 
 
 def register_all_workflow_manifests():
@@ -44,9 +46,8 @@ def register_all_workflow_manifests():
     from lib.workflows.claim_reference_validation.manifest import (
         ClaimReferenceValidationManifest,
     )
-    from lib.workflows.claim_substantiation.manifest import ClaimSubstantiationManifest
     from lib.workflows.document_processing.manifest import DocumentProcessingManifest
-    from lib.workflows.docx_generation.manifest import DocxGenerationManifest
+    from lib.workflows.footnote_extraction.manifest import FootnoteExtractionManifest
     from lib.workflows.inference_validation.manifest import InferenceValidationManifest
     from lib.workflows.literature_review.manifest import LiteratureReviewManifest
     from lib.workflows.live_reports.manifest import LiveReportsManifest
@@ -61,12 +62,11 @@ def register_all_workflow_manifests():
     manifests = [
         DocumentProcessingManifest(),
         ReferenceExtractionManifest(),
+        FootnoteExtractionManifest(),
         ClaimExtractionManifest(),
         CitationDetectionManifest(),
-        ClaimSubstantiationManifest(),
         ClaimReferenceValidationManifest(),
         CitationSuggesterManifest(),
-        DocxGenerationManifest(),
         InferenceValidationManifest(),
         LiteratureReviewManifest(),
         LiveReportsManifest(),

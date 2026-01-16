@@ -15,10 +15,12 @@ import { calculateConsistency, formatDuration } from './util';
 
 export default function EvalsPage() {
   const [uploadedData, setUploadedData] = useState<TestResults | null>(null);
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [showOnlyFailed, setShowOnlyFailed] = useState(false);
 
   const handleFilesChange = (files: File[]) => {
+    setUploadedFiles(files);
     setError(null);
 
     if (files.length === 0) {
@@ -115,6 +117,7 @@ export default function EvalsPage() {
                 acceptLabel="JSON"
                 multiple={false}
                 maxSize={80}
+                files={uploadedFiles}
                 onFilesChange={handleFilesChange}
               />
             </CardContent>

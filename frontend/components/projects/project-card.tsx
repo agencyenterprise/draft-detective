@@ -2,13 +2,14 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { StatusIndicator } from '@/components/ui/status-indicator';
 import { DeleteProjectDialog } from '@/components/delete-project-dialog';
-import { getToolMetadata, ToolDefinition, INTERNAL_WORKFLOW_TYPES } from '@/lib/tool-registry';
+import { getToolMetadata, ToolDefinition } from '@/lib/tool-registry';
 import { getWorkflowTypeName } from '@/lib/workflow-state';
 import { ProjectListItem } from '@/lib/generated-api';
 import { formatDistanceToNow } from 'date-fns';
 import { ChevronRightIcon } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
+import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 
 type ProjectWithToolInfo = ProjectListItem & {
   toolInfo: ToolDefinition | null;
@@ -22,6 +23,7 @@ export function ProjectCard({ item }: ProjectCardProps) {
   const { project, workflow_runs, toolInfo } = item;
   const isToolRun = toolInfo !== null;
 
+  const { isWorkflowTypeVisible } = useWorkflowTypes();
   const toolMetadata = toolInfo ? getToolMetadata(toolInfo.name) : null;
   const ToolIcon = toolMetadata?.icon;
 
@@ -29,7 +31,7 @@ export function ProjectCard({ item }: ProjectCardProps) {
   // Internal workflows are filtered out using the centralized registry
   const displayWorkflows = isToolRun
     ? workflow_runs || []
-    : workflow_runs?.filter((w) => !INTERNAL_WORKFLOW_TYPES.has(w.type)) || [];
+    : workflow_runs?.filter((w) => isWorkflowTypeVisible(w.type)) || [];
 
   return (
     <div

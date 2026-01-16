@@ -3,22 +3,30 @@
 import { useSessionStorage } from '@/lib/hooks/use-session-storage';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { useForm } from '@tanstack/react-form';
-import { Loader2, Play } from 'lucide-react';
+import { AlertCircle, ExternalLink, Loader2, Play } from 'lucide-react';
+import Link from 'next/link';
 import { Button } from '../ui/button';
-import { CheckboxWithDescription } from '../ui/checkbox-with-description';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
+import { WorkflowTypeSelector } from '../workflows/workflow-type-selector';
+import { WebSearchConsentCheckbox } from '../workflows/web-search-consent-checkbox';
+import {
+  hasWebSearchRequirement,
+  hasPublicationDateRequirement,
+  hasSupportingDocumentsRequirement,
+} from '../workflows/utils';
 import { AnalysisFormData, AnalysisFormValues } from './types';
 import { UploadSection } from './upload-section';
 import { validateAnalysisForm } from './validation';
-import { WorkflowTypeCheckbox } from './workflow-type-checkbox';
+import { featureFlags } from '@/lib/config';
 
 export interface AnalysisFormProps {
   onSubmit: (data: AnalysisFormData) => void;
   isPending?: boolean;
+  error?: string;
 }
 
-export function AnalysisForm({ onSubmit, isPending = false }: AnalysisFormProps) {
+export function AnalysisForm({ onSubmit, isPending = false, error }: AnalysisFormProps) {
   const [openaiApiKey, setOpenaiApiKey] = useSessionStorage<string>('openai-api-key', '');
   const hideOpenaiApiKeyInput = process.env.NEXT_PUBLIC_HIDE_CUSTOM_OPENAI_API_KEY_INPUT === 'true';
   const { data: workflowTypes } = useWorkflowTypes();
@@ -46,10 +54,10 @@ export function AnalysisForm({ onSubmit, isPending = false }: AnalysisFormProps)
         supportingDocuments: value.supportingDocuments,
         config: {
           domain: value.domain,
-          targetAudience: value.targetAudience,
-          publicationDate: value.publicationDate,
-          openaiApiKey: value.openaiApiKey,
-          workflowTypes: value.workflowTypes,
+          target_audience: value.targetAudience,
+          publication_date: value.publicationDate,
+          openai_api_key: value.openaiApiKey,
+          workflow_types: value.workflowTypes,
         },
       });
     },
@@ -74,121 +82,131 @@ export function AnalysisForm({ onSubmit, isPending = false }: AnalysisFormProps)
         form.handleSubmit();
       }}
     >
-      <div>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <form.Field name="mainDocument">
-            {(field) => (
-              <div className="space-y-2">
-                <UploadSection
-                  title="Main Document"
-                  description="Primary document for analysis"
-                  required={true}
-                  onFilesChange={(files) => field.handleChange(files[0] || null)}
-                  multiple={false}
-                  files={field.state.value ? [field.state.value] : []}
-                  fileType="main"
-                  onRemoveFile={() => removeFile('main')}
-                />
-                {!field.state.meta.isValid && field.state.meta.errors.length > 0 && (
-                  <p className="text-sm text-destructive">{field.state.meta.errors.join(', ')}</p>
-                )}
-              </div>
-            )}
-          </form.Field>
-
-          <form.Field name="supportingDocuments">
-            {(field) => (
-              <div className="space-y-2">
-                <UploadSection
-                  title="Supporting Documents"
-                  description="Documents used as references for the main document"
-                  required={false}
-                  onFilesChange={(files) => field.handleChange(files)}
-                  multiple={true}
-                  files={field.state.value}
-                  fileType="supporting"
-                  onRemoveFile={(index) => removeFile('supporting', index)}
-                />
-                {!field.state.meta.isValid && field.state.meta.errors.length > 0 && (
-                  <p className="text-sm text-destructive">{field.state.meta.errors.join(', ')}</p>
-                )}
-              </div>
-            )}
-          </form.Field>
+      {error && (
+        <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-lg flex items-start gap-3">
+          <AlertCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+          <div className="space-y-1">
+            <p className="font-medium text-destructive">Failed to start analysis</p>
+            <p className="text-sm text-destructive/90 whitespace-pre-line">{error}</p>
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* Main Document Upload */}
+      <form.Field name="mainDocument">
+        {(field) => (
+          <div className="space-y-2">
+            <UploadSection
+              title="Main Document"
+              description="Primary document for analysis. Word documents are preferred (less LLM conversion errors) but PDFs are also supported."
+              required={true}
+              onFilesChange={(files) => field.handleChange(files[0] || null)}
+              multiple={false}
+              files={field.state.value ? [field.state.value] : []}
+              fileType="main"
+              onRemoveFile={() => removeFile('main')}
+            />
+            {!field.state.meta.isValid && field.state.meta.errors.length > 0 && (
+              <p className="text-sm text-destructive">{field.state.meta.errors.join(', ')}</p>
+            )}
+          </div>
+        )}
+      </form.Field>
 
       {/* Workflow Selection Section */}
-      <div className="space-y-4">
-        <div className="space-y-1">
-          <h2 className="text-xl font-semibold">
-            Analyses Type Selection <span className="text-destructive ml-1">*</span>
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            Select which types of analyses to perform. Analyses can also be triggered later on, after the project is
-            created
-          </p>
-        </div>
-        <form.Field name="workflowTypes">
-          {(field) => (
-            <div className="space-y-2">
-              {workflowTypes?.map((workflowType) => (
-                <WorkflowTypeCheckbox
-                  key={workflowType.type}
-                  workflowType={workflowType}
-                  checked={field.state.value.includes(workflowType.type)}
-                  onCheckedChange={(checked) =>
-                    field.handleChange(
-                      checked
-                        ? [...field.state.value, workflowType.type]
-                        : field.state.value.filter((id) => id !== workflowType.type),
-                    )
-                  }
-                  disabled={isPending}
-                />
-              ))}
-              {!workflowTypes && <p className="text-sm text-muted-foreground">Loading available workflows...</p>}
-              {!field.state.meta.isValid && field.state.meta.errors.length > 0 && (
-                <p className="text-sm text-destructive">{field.state.meta.errors.join(', ')}</p>
-              )}
-            </div>
-          )}
-        </form.Field>
-      </div>
+      <form.Field
+        name="workflowTypes"
+        listeners={{
+          onChange: ({ value }) => {
+            // Clear supporting documents when no workflow requires them
+            if (!hasSupportingDocumentsRequirement(value)) {
+              form.setFieldValue('supportingDocuments', []);
+            }
+          },
+        }}
+      >
+        {(field) => (
+          <WorkflowTypeSelector
+            workflowTypes={workflowTypes}
+            selectedTypes={field.state.value}
+            onSelectionChange={field.handleChange}
+            disabled={isPending}
+            headerDescription="Select which types of analyses to perform"
+            error={
+              !field.state.meta.isValid && field.state.meta.errors.length > 0
+                ? field.state.meta.errors.join(', ')
+                : undefined
+            }
+          />
+        )}
+      </form.Field>
 
+      {/* Web Search Consent - only shown when relevant workflows are selected */}
       <form.Field name="workflowTypes">
         {(workflowTypesField) => {
-          const selectedWorkflowTypes = workflowTypesField.state.value;
-          const needsWebSearch = selectedWorkflowTypes.some(
-            (selectedType) => workflowTypes?.find((wt) => wt.type === selectedType)?.needs_web_search,
-          );
+          const selectedTypes = workflowTypesField.state.value;
+          const needsWebSearch = hasWebSearchRequirement(selectedTypes, workflowTypes);
 
           if (!needsWebSearch) {
             return null;
           }
 
           return (
-            <div className="space-y-4">
-              <form.Field name="webSearchConsent">
-                {(field) => (
-                  <div className="space-y-4">
-                    <div className="bg-yellow-50 border border-yellow-400 rounded-lg">
-                      <CheckboxWithDescription
-                        id="web-search-consent"
-                        checked={field.state.value}
-                        onCheckedChange={(checked) => field.handleChange(checked === true)}
-                        label="I consent to perform web search using parts or the whole document for this analysis"
-                        description={`Web search is required to perform this analysis. Parts of the document will be used to perform web search, so we don't recommend using confidential information. Don't proceed if you don't consent to perform web search.`}
-                        disabled={isPending}
-                      />
-                    </div>
-                    {!field.state.meta.isValid && (
-                      <p className="text-sm text-destructive pl-6">{field.state.meta.errors.join(', ')}</p>
-                    )}
-                  </div>
-                )}
-              </form.Field>
-            </div>
+            <form.Field name="webSearchConsent">
+              {(field) => (
+                <WebSearchConsentCheckbox
+                  checked={field.state.value}
+                  onCheckedChange={field.handleChange}
+                  disabled={isPending}
+                  error={!field.state.meta.isValid ? field.state.meta.errors.join(', ') : undefined}
+                />
+              )}
+            </form.Field>
+          );
+        }}
+      </form.Field>
+
+      {/* Supporting Documents Section - only shown when relevant workflows are selected */}
+      <form.Field name="workflowTypes">
+        {(workflowTypesField) => {
+          const selectedTypes = workflowTypesField.state.value;
+          const needsSupportingDocuments = hasSupportingDocumentsRequirement(selectedTypes);
+
+          if (!needsSupportingDocuments) {
+            return null;
+          }
+
+          return (
+            <form.Field name="supportingDocuments">
+              {(field) => (
+                <div className="space-y-2">
+                  <UploadSection
+                    title="Supporting Documents"
+                    description="Reference documents cited in your main document's reference section (e.g., PDFs of cited papers or news websites). These enable validation of claims against their cited sources."
+                    required={true}
+                    onFilesChange={(files) => field.handleChange(files)}
+                    multiple={true}
+                    files={field.state.value}
+                    fileType="supporting"
+                    onRemoveFile={(index) => removeFile('supporting', index)}
+                  />
+                  <p className="text-sm text-muted-foreground">
+                    You can automatically download references using the{' '}
+                    <Link
+                      href="/tools/reference-downloader"
+                      target="_blank"
+                      className="text-primary hover:underline inline-flex items-center gap-1"
+                    >
+                      Reference Downloader tool
+                      <ExternalLink className="h-3 w-3" />
+                    </Link>
+                  </p>
+                  {!field.state.meta.isValid && field.state.meta.errors.length > 0 && (
+                    <p className="text-sm text-destructive">{field.state.meta.errors.join(', ')}</p>
+                  )}
+                </div>
+              )}
+            </form.Field>
           );
         }}
       </form.Field>
@@ -241,31 +259,50 @@ export function AnalysisForm({ onSubmit, isPending = false }: AnalysisFormProps)
           <p className="text-sm text-muted-foreground">Provide context for more accurate analysis</p>
         </div>
         <div className="space-y-4">
-          <form.Field name="publicationDate">
-            {(field) => (
-              <div className="space-y-2">
-                <Label htmlFor="publication-date">
-                  Document Publication Date <span className="text-destructive ml-1">*</span>
-                </Label>
-                <Input
-                  id="publication-date"
-                  type="date"
-                  value={field.state.value}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                  className={field.state.meta.errors.length > 0 ? 'border-destructive' : ''}
-                  disabled={isPending}
-                  required={true}
-                />
-                <p className="text-sm text-muted-foreground">
-                  The publication date of the document. This is used for some analyses (literature review, live reports)
-                  to focus on sources published after or before this date. For unpublished documents, use the date of
-                  the last update or the current date.
-                </p>
-                {!field.state.meta.isValid && (
-                  <p className="text-sm text-destructive">{field.state.meta.errors.join(', ')}</p>
-                )}
-              </div>
-            )}
+          {/*
+           * WHY: Publication date is only relevant for experimental workflows (Literature Review, Live Reports)
+           * that need to filter references by date. When experimental features are disabled, we hide this field
+           * to simplify the UI, and the form defaults to today's date internally. This allows the backend to
+           * still receive a valid date without requiring user input for non-experimental workflows.
+           */}
+          <form.Field name="workflowTypes">
+            {(workflowTypesField) => {
+              const selectedTypes = workflowTypesField.state.value;
+              const needsPublicationDate = hasPublicationDateRequirement(selectedTypes);
+
+              // Only show publication date field when experimental features are enabled and required
+              if (!featureFlags.showExperimentalFeatures || !needsPublicationDate) {
+                return null;
+              }
+
+              return (
+                <form.Field name="publicationDate">
+                  {(field) => (
+                    <div className="space-y-2">
+                      <Label htmlFor="publication-date">
+                        Document Publication Date <span className="text-destructive ml-1">*</span>
+                      </Label>
+                      <Input
+                        id="publication-date"
+                        type="date"
+                        value={field.state.value}
+                        onChange={(e) => field.handleChange(e.target.value)}
+                        className={field.state.meta.errors.length > 0 ? 'border-destructive' : ''}
+                        disabled={isPending}
+                        required={true}
+                      />
+                      <p className="text-sm text-muted-foreground">
+                        The publication date of the document. For unpublished documents, use the date of the last update
+                        or the current date.
+                      </p>
+                      {!field.state.meta.isValid && (
+                        <p className="text-sm text-destructive">{field.state.meta.errors.join(', ')}</p>
+                      )}
+                    </div>
+                  )}
+                </form.Field>
+              );
+            }}
           </form.Field>
           <form.Field name="domain">
             {(field) => (
@@ -275,7 +312,7 @@ export function AnalysisForm({ onSubmit, isPending = false }: AnalysisFormProps)
                 </Label>
                 <Input
                   id="domain"
-                  placeholder="e.g., Healthcare, Technology, Finance..."
+                  placeholder="e.g., Policy research, Healthcare, Technology, Finance..."
                   value={field.state.value}
                   onChange={(e) => field.handleChange(e.target.value)}
                   disabled={isPending}
@@ -295,7 +332,7 @@ export function AnalysisForm({ onSubmit, isPending = false }: AnalysisFormProps)
                 </Label>
                 <Input
                   id="target-audience"
-                  placeholder="e.g., General public, Experts, Students..."
+                  placeholder="e.g., Policy makers, General public, Experts, Students..."
                   value={field.state.value}
                   onChange={(e) => field.handleChange(e.target.value)}
                   disabled={isPending}
@@ -322,7 +359,7 @@ export function AnalysisForm({ onSubmit, isPending = false }: AnalysisFormProps)
               ) : (
                 <>
                   <Play className="w-4 h-4" />
-                  Start Analysis
+                  {error ? 'Retry Analysis' : 'Start Analysis'}
                 </>
               )}
             </Button>

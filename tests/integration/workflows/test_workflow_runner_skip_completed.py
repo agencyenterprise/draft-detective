@@ -9,7 +9,7 @@ from fastapi import BackgroundTasks
 from api.services.workflow_runner import start_multiple_workflow_runs
 from lib.models.user import User
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus, WorkflowRunType
-from lib.workflows.claim_substantiation.state import SubstantiationWorkflowConfig
+from lib.workflows.reference_validation.state import ReferenceValidationWorkflowConfig
 
 
 @pytest.fixture
@@ -46,9 +46,8 @@ async def run_workflow_with_mocks(test_context, completed_workflows):
     Returns:
         Tuple of (mock_upsert, mock_create_config) for assertions
     """
-    config = SubstantiationWorkflowConfig(
+    config = ReferenceValidationWorkflowConfig(
         project_id=test_context["project_id"],
-        workflow_types=[test_context["workflow_type"]],
     )
 
     completed_runs = {

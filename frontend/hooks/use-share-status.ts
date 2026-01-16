@@ -7,12 +7,13 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
-export function useShareStatus(projectId: string) {
+export function useShareStatus(projectId: string, enabled: boolean = true) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const queryClient = useQueryClient();
 
   const query = useQuery({
     queryKey: ['shareStatus', projectId],
+    enabled,
     queryFn: () => getProjectShareStatusApiProjectsProjectIdShareGet({ path: { project_id: projectId } }),
     staleTime: 30000,
   });

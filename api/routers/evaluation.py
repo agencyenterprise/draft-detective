@@ -23,14 +23,14 @@ async def generate_eval_package(request: EvalPackageRequest):
     Generate complete eval test package as downloadable zip.
 
     Args:
-        request: Contains analysis results and metadata for test generation
+        request: Contains project_id and metadata for test generation
 
     Returns:
         Zip file containing YAML test files and data files
     """
     try:
-        return eval_test_generator.generate_package(
-            results=request.results,
+        return await eval_test_generator.generate_package(
+            project_id=request.project_id,
             test_name=request.test_name,
             description=request.description,
         )
@@ -49,14 +49,14 @@ async def generate_chunk_eval_package(request: ChunkEvalPackageRequest):
     Only includes files required by the selected agents.
 
     Args:
-        request: Contains analysis results, chunk index, selected agents, and metadata
+        request: Contains project_id, chunk index, selected agents, and metadata
 
     Returns:
         Optimized zip file containing only necessary YAML test files and data files
     """
     try:
-        return eval_test_generator.generate_chunk_package(
-            results=request.results,
+        return await eval_test_generator.generate_chunk_package(
+            project_id=request.project_id,
             chunk_index=request.chunk_index,
             selected_agents=request.selected_agents,
             test_name=request.test_name,

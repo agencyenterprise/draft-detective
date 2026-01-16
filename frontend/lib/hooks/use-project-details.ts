@@ -4,17 +4,18 @@ import { getProjectEndpointApiProjectProjectIdGet, WorkflowRunStatus } from '../
 
 const REFETCH_INTERVAL_MS = 3000;
 
-export function useProjectDetails(projectId: string, includeInternal: boolean = false) {
+export function useProjectDetails(projectId: string | null) {
   const {
     data: project,
     isLoading: isProjectLoading,
     error: projectError,
   } = useQuery({
-    queryKey: ['project', projectId, includeInternal],
+    enabled: !!projectId,
+    queryKey: ['project', projectId],
     queryFn: () =>
       getProjectEndpointApiProjectProjectIdGet({
-        path: { project_id: projectId },
-        query: { include_internal: includeInternal },
+        path: { project_id: projectId! },
+        query: { include_internal: true },
       }),
     refetchInterval: (query) => {
       const workflowRuns = query.state.data?.workflow_runs ?? [];
@@ -30,19 +31,18 @@ export function useProjectDetails(projectId: string, includeInternal: boolean = 
 
   const isProcessing = useMemo(
     () =>
+      isProjectLoading ||
       workflowDetails.some(
         (w) => w.run.status === WorkflowRunStatus.Running || w.run.status === WorkflowRunStatus.Pending,
       ),
-    [workflowDetails],
+    [isProjectLoading, workflowDetails],
   );
-
-  const isLoading = isProjectLoading;
 
   return {
     project,
     workflowDetails,
     isProcessing,
-    isLoading,
+    isLoading: isProjectLoading,
     error: projectError,
   };
 }

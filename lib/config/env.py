@@ -19,6 +19,12 @@ class Config(BaseModel):
     LANGFUSE_HOST: Optional[str] = None
     LANGFUSE_PROJECT_ID: Optional[str] = None
 
+    # Langgraph Configuration
+    LANGGRAPH_MAX_CONCURRENCY: int = Field(
+        default=30,
+        description="The maximum number of concurrent langgraph nodes to execute in parallel",
+    )
+
     # Database Configuration
     DATABASE_URL: str
     POSTGRES_HOST: str
@@ -89,6 +95,7 @@ config = Config(
     LANGFUSE_SECRET_KEY=os.getenv("LANGFUSE_SECRET_KEY"),
     LANGFUSE_PUBLIC_KEY=os.getenv("LANGFUSE_PUBLIC_KEY"),
     LANGFUSE_PROJECT_ID=os.getenv("LANGFUSE_PROJECT_ID"),
+    LANGGRAPH_MAX_CONCURRENCY=os.getenv("LANGGRAPH_MAX_CONCURRENCY") or 30,
     FILE_UPLOADS_MOUNT_PATH=os.getenv("FILE_UPLOADS_MOUNT_PATH", "uploads"),
     FRONTEND_URL=os.getenv("FRONTEND_URL", "http://localhost:3000"),
     MAIN_FILE_CONVERTER=os.getenv("MAIN_FILE_CONVERTER", "docling"),
