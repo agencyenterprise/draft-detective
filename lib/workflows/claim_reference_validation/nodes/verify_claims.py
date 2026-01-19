@@ -80,6 +80,13 @@ async def _verify_chunk_claims_with_provider(
     substantiations = []
 
     for claim_index, claim in enumerate(chunk.claims.claims):
+        # Skip non-central claims - only validate central claims
+        if hasattr(claim, "central") and not claim.central:
+            logger.debug(
+                f"Chunk {chunk.chunk_index} claim {claim_index} is not central, skipping verification"
+            )
+            continue
+
         if not _needs_substantiation(chunks, chunk, claim_index):
             logger.debug(
                 f"Chunk {chunk.chunk_index} claim {claim_index} does not need external verification, skipping verification"
