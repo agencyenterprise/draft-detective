@@ -26,7 +26,10 @@ const navigation = [
   { name: 'Tools', href: '/tools' },
 ];
 const userNavigation = [{ name: 'Sign out', href: '/api/auth/signout' }];
-const adminNavigation = [{ name: 'Evaluations', href: '/evals' }];
+const adminNavigation = [
+  { name: 'Evaluations', href: '/evals' },
+  { name: 'Manage Users', href: '/users' },
+];
 
 export interface ApplicationShellProps {
   children: React.ReactNode;

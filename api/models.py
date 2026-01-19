@@ -87,3 +87,19 @@ class UserResponse(BaseModel):
     email: str
     name: str
     role: UserRole
+
+    @field_validator("id", mode="before")
+    @classmethod
+    def convert_uuid_to_str(cls, v: Any) -> str:
+        """Convert UUID to string for model_validate compatibility."""
+        if isinstance(v, UUID):
+            return str(v)
+        return v
+
+    model_config = {"from_attributes": True}
+
+
+class UpdateUserRoleRequest(BaseModel):
+    """Request model for updating a user's role"""
+
+    role: UserRole
