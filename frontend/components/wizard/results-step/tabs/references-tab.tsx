@@ -1,6 +1,7 @@
 'use client';
 
 import { LabeledValue } from '@/components/labeled-value';
+import { NoReferencesCallout } from '@/components/references/no-reference-section-callout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,7 +17,7 @@ import {
   WorkflowRunDetail,
   WorkflowRunType,
 } from '@/lib/generated-api';
-import { getWorkflowRunByType, isWorkflowProcessing } from '@/lib/workflow-state';
+import { getReferenceExtractionWarningStatus, getWorkflowRunByType, isWorkflowProcessing } from '@/lib/workflow-state';
 import { ChevronDownIcon, ChevronRightIcon, FileText, HelpCircle, Search } from 'lucide-react';
 import * as React from 'react';
 import { TabWithLoadingStates } from './tab-with-loading-states';
@@ -208,6 +209,7 @@ export function ReferencesTab({ allWorkflowDetails, projectId, readOnly = false 
 
   const referencesResults = referenceExtraction?.state;
   const referenceValidationResults = referenceValidation?.state;
+  const referenceWarning = getReferenceExtractionWarningStatus(allWorkflowDetails);
 
   const handleStartWorkflow = async (values: WorkflowConfigFormValues) => {
     return await startMultipleWorkflowsApiWorkflowsStartMultiplePost({
@@ -219,7 +221,6 @@ export function ReferencesTab({ allWorkflowDetails, projectId, readOnly = false 
     });
   };
 
-  // Create a map of validations by reference text for quick lookup
   const validationMap = React.useMemo(() => {
     if (!referenceValidationResults?.reference_validations) {
       return new Map<string, BibliographyItemValidation>();
@@ -234,7 +235,6 @@ export function ReferencesTab({ allWorkflowDetails, projectId, readOnly = false 
     return map;
   }, [referenceValidationResults?.reference_validations]);
 
-  // Filter references based on search query
   const filteredReferences = React.useMemo(() => {
     const references = referencesResults?.references;
     if (!references) return [];
@@ -242,99 +242,109 @@ export function ReferencesTab({ allWorkflowDetails, projectId, readOnly = false 
 
     const query = searchQuery.toLowerCase();
     return references.filter((reference) => {
-      // Search in reference text
       if (reference.text?.toLowerCase().includes(query)) return true;
-
-      // Search in related document file name
       if (reference.has_associated_supporting_document) {
         if (reference.name_of_associated_supporting_document?.toLowerCase().includes(query)) return true;
       }
-
       return false;
     });
   }, [referencesResults?.references, searchQuery]);
 
   return (
-    <TabWithLoadingStates
-      title={`References (${filteredReferences.length}${searchQuery ? ` of ${referencesResults?.references?.length || 0}` : ''})`}
-      data={referencesResults?.references}
-      isProcessing={isWorkflowProcessing(referenceExtraction)}
-      hasData={(references) => (references?.length || 0) > 0}
-      loadingMessage={{
-        title: 'Extracting references...',
-        description: 'Identifying references in the document',
-      }}
-      emptyMessage={{
-        icon: <FileText className="h-12 w-12 text-muted-foreground" />,
-        title: 'No references extracted',
-        description:
-          "This document doesn't contain a bibliography or reference section or reference extraction was not run yet",
-      }}
-      skeletonType="list"
-      skeletonCount={5}
-      triggerButton={
-        !readOnly && (
-          <StartWorkflowButton
-            type={WorkflowRunType.ReferenceValidation}
-            projectId={projectId}
-            workflow={referenceValidation?.run}
-            onConfirm={handleStartWorkflow}
-          />
-        )
-      }
-    >
-      {(references) => (
-        <div className="space-y-4">
-          {/* Search input */}
-          {references.length > 0 && (
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-              <Input
-                placeholder="Search by reference text or file name..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
-              />
-            </div>
-          )}
+    <div className="space-y-4">
+      {referenceWarning?.showWarning && (
+        <NoReferencesCallout
+          sectionsDetected={referenceWarning.sectionsDetected}
+          hasErrors={referenceWarning.hasErrors}
+        />
+      )}
 
-          {/* Table */}
-          <div className="w-full overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Reference</TableHead>
-                  <TableHead>
-                    <div className="flex items-center gap-1">
-                      Matched file
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <HelpCircle className="size-3.5 text-muted-foreground cursor-help" />
-                        </TooltipTrigger>
-                        <TooltipContent className="max-w-xs">
-                          The supporting file that was matched to this reference item from the main document.
-                        </TooltipContent>
-                      </Tooltip>
-                    </div>
-                  </TableHead>
-                  <TableHead>Validation</TableHead>
-                  <TableHead className="w-8"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredReferences.map((reference, index) => (
-                  <ReferenceTableRow key={index} reference={reference} validation={validationMap.get(reference.text)} />
-                ))}
-              </TableBody>
-            </Table>
-            {filteredReferences.length === 0 && searchQuery && (
-              <div className="text-center py-8 text-muted-foreground">
-                No references found matching &quot;{searchQuery}&quot;
+      <TabWithLoadingStates
+        title={`References (${filteredReferences.length}${searchQuery ? ` of ${referencesResults?.references?.length || 0}` : ''})`}
+        data={referencesResults?.references}
+        isProcessing={isWorkflowProcessing(referenceExtraction)}
+        hasData={(references) => (references?.length || 0) > 0}
+        loadingMessage={{
+          title: 'Extracting references...',
+          description: 'Identifying references in the document',
+        }}
+        emptyMessage={{
+          icon: <FileText className="h-12 w-12 text-muted-foreground" />,
+          title: 'No references extracted',
+          description: referenceWarning?.showWarning
+            ? 'Reference extraction completed but no references were found. See warning above for details.'
+            : 'Reference extraction has not been run yet. Start a full analysis to extract references.',
+        }}
+        skeletonType="list"
+        skeletonCount={5}
+        triggerButton={
+          !readOnly && (
+            <StartWorkflowButton
+              type={WorkflowRunType.ReferenceValidation}
+              projectId={projectId}
+              workflow={referenceValidation?.run}
+              onConfirm={handleStartWorkflow}
+            />
+          )
+        }
+      >
+        {(references) => (
+          <div className="space-y-4">
+            {/* Search input */}
+            {references.length > 0 && (
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search by reference text or file name..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9"
+                />
               </div>
             )}
+
+            {/* Table */}
+            <div className="w-full overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Reference</TableHead>
+                    <TableHead>
+                      <div className="flex items-center gap-1">
+                        Matched file
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <HelpCircle className="size-3.5 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs">
+                            The supporting file that was matched to this reference item from the main document.
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                    </TableHead>
+                    <TableHead>Validation</TableHead>
+                    <TableHead className="w-8"></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredReferences.map((reference, index) => (
+                    <ReferenceTableRow
+                      key={index}
+                      reference={reference}
+                      validation={validationMap.get(reference.text)}
+                    />
+                  ))}
+                </TableBody>
+              </Table>
+              {filteredReferences.length === 0 && searchQuery && (
+                <div className="text-center py-8 text-muted-foreground">
+                  No references found matching &quot;{searchQuery}&quot;
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      )}
-    </TabWithLoadingStates>
+        )}
+      </TabWithLoadingStates>
+    </div>
   );
 }

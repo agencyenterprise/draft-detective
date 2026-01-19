@@ -12,6 +12,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import { NoReferencesCallout } from '@/components/references/no-reference-section-callout';
 import { Copy, CopyCheck, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import type { ReferenceExtractionState } from '@/lib/generated-api';
@@ -42,6 +43,11 @@ export function ExtractionResults({ results, onReset }: ExtractionResultsProps) 
   };
 
   const hasReferences = (results.references?.length || 0) > 0;
+  const hasSections = (results.detected_sections?.length || 0) > 0;
+
+  const renderEmptyState = () => {
+    return <NoReferencesCallout sectionsDetected={hasSections} />;
+  };
 
   return (
     <Card className="p-6">
@@ -96,9 +102,9 @@ export function ExtractionResults({ results, onReset }: ExtractionResultsProps) 
       </div>
 
       <div className="space-y-4">
-        {results.references && results.references.length > 0 ? (
+        {hasReferences ? (
           <div className="space-y-2">
-            {results.references.map((ref, idx) => (
+            {results.references!.map((ref, idx) => (
               <div key={idx} className="p-3 border border-gray-200 rounded-md hover:border-gray-300 transition">
                 <div className="flex items-start gap-3">
                   <span className="text-xs font-medium text-gray-500 mt-0.5">#{idx + 1}</span>
@@ -127,12 +133,7 @@ export function ExtractionResults({ results, onReset }: ExtractionResultsProps) 
             ))}
           </div>
         ) : (
-          <div className="text-center py-8 space-y-2">
-            <p className="text-sm text-muted-foreground">No references found in this document</p>
-            <p className="text-xs text-muted-foreground">
-              The document may not contain a bibliography section, or the format may not be recognized
-            </p>
-          </div>
+          renderEmptyState()
         )}
       </div>
     </Card>

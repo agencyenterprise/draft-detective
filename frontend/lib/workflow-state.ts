@@ -102,3 +102,26 @@ export function isWorkflowProcessing(workflowRun: WorkflowRunDetail | undefined)
 export function isAnyWorkflowProcessing(workflowRuns: WorkflowRunDetail[]): boolean {
   return workflowRuns.some((workflowRun) => isWorkflowProcessing(workflowRun));
 }
+
+export function getReferenceExtractionWarningStatus(workflowRuns: WorkflowRunDetail[]): {
+  showWarning: boolean;
+  sectionsDetected: boolean;
+  hasErrors: boolean;
+} | null {
+  const referenceExtraction = getWorkflowRunByType(workflowRuns, WorkflowRunType.ReferenceExtraction);
+  if (!referenceExtraction || referenceExtraction.run.status !== WorkflowRunStatus.Completed) {
+    return null;
+  }
+
+  const state = referenceExtraction.state;
+  const hasReferences = (state?.references?.length ?? 0) > 0;
+  if (hasReferences) {
+    return null;
+  }
+
+  return {
+    showWarning: true,
+    sectionsDetected: (state?.detected_sections?.length ?? 0) > 0,
+    hasErrors: (state?.errors?.length ?? 0) > 0,
+  };
+}

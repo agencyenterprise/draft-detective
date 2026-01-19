@@ -1,11 +1,13 @@
 'use client';
 
 import { AiGeneratedLabel } from '@/components/ai-generated-label';
+import { NoReferencesCallout } from '@/components/references/no-reference-section-callout';
 import { SkeletonList } from '@/components/ui/skeleton-list';
 import { useChunkHashNavigation } from '@/lib/chunk-ids';
 import { DocRenderMode } from '@/lib/constants';
 import { DocumentIssue, SeverityEnum, WorkflowRunDetail, WorkflowRunType } from '@/lib/generated-api';
 import {
+  getReferenceExtractionWarningStatus,
   getWorkflowErrors,
   getWorkflowRunByType,
   isAnyWorkflowProcessing,
@@ -65,11 +67,10 @@ export function DocumentExplorerTab({
   const workflowErrors = getWorkflowErrors(allWorkflowDetails);
   const hasChunks = chunks.length > 0;
 
-  // Check if docling view is available
   const isDoclingAvailable = Boolean(pages && pages.length > 0 && Object.keys(chunkToItems).length > 0);
-
   const selectedChunk = chunks.find((chunk) => chunk.chunk_index === selectedChunkIndex);
   const filteredIssues = filterIssuesBySeverity(issues, severityFilter);
+  const referenceWarning = getReferenceExtractionWarningStatus(allWorkflowDetails);
 
   if (isDocumentProcessing && !hasChunks) {
     return (
@@ -110,27 +111,35 @@ export function DocumentExplorerTab({
 
   return (
     <div className="flex flex-col h-full">
+      {workflowErrors.length > 0 && (
+        <div className="mb-4 bg-red-200/40 py-3 px-4 rounded-lg text-sm">
+          <div className="flex items-center gap-2">
+            <AlertTriangleIcon className="w-4 h-4" />
+            <span className="font-medium">Unexpected processing errors occurred.</span>
+            <span>Please check the</span>
+            <button
+              onClick={onNavigateToAnalyses}
+              className="text-blue-600 hover:text-blue-800 underline font-medium cursor-pointer"
+            >
+              Analyses tab
+            </button>
+            <span>for details.</span>
+          </div>
+        </div>
+      )}
+
+      {referenceWarning?.showWarning && (
+        <NoReferencesCallout
+          sectionsDetected={referenceWarning.sectionsDetected}
+          hasErrors={referenceWarning.hasErrors}
+          className="mb-4"
+        />
+      )}
+
       <div className="grid grid-cols-12 gap-4 flex-1 min-h-0">
         <div className="col-span-7 leading-relaxed text-sm overflow-hidden flex flex-col">
           {/* Document Viewer */}
           <div className="flex-1 overflow-hidden">
-            {workflowErrors.length > 0 && (
-              <div className="mb-2 bg-red-200/40 py-3 px-4 rounded-lg text-sm">
-                <div className="flex items-center gap-2">
-                  <AlertTriangleIcon className="w-4 h-4" />
-                  <span className="font-medium">Unexpected processing errors occurred.</span>
-                  <span>Please check the</span>
-                  <button
-                    onClick={onNavigateToAnalyses}
-                    className="text-blue-600 hover:text-blue-800 underline font-medium cursor-pointer"
-                  >
-                    Analyses tab
-                  </button>
-                  <span>for details.</span>
-                </div>
-              </div>
-            )}
-
             {(() => {
               const shouldRenderDocling = viewMode === 'docling' && isDoclingAvailable;
 
