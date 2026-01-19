@@ -2,8 +2,8 @@ import uuid
 from datetime import datetime
 from enum import Enum
 
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlmodel import Field, SQLModel
 
 
@@ -81,3 +81,25 @@ class File(SQLModel, table=True):
         ),
         description="The timestamp when the file was uploaded",
     )
+
+    # Artifact columns for caching processed content
+    markdown: str | None = Field(
+        sa_column=Column(Text, nullable=True),
+        description="Cached markdown conversion of the file",
+        default=None,
+    )
+    summary: dict | None = Field(
+        sa_column=Column(JSONB, nullable=True),
+        description="Document summary as JSON (DocumentSummary schema)",
+        default=None,
+    )
+
+    @property
+    def has_cached_markdown(self) -> bool:
+        """Check if this file has cached markdown content."""
+        return self.markdown is not None
+
+    @property
+    def has_cached_summary(self) -> bool:
+        """Check if this file has a cached summary."""
+        return self.summary is not None
