@@ -71,6 +71,8 @@ import type {
   ListProjectFilesEndpointApiProjectProjectIdFilesGetResponses,
   ListProjectsEndpointApiProjectsGetData,
   ListProjectsEndpointApiProjectsGetResponses,
+  ListUsersApiUsersGetData,
+  ListUsersApiUsersGetResponses,
   ReadHealthApiHealthGetData,
   ReadHealthApiHealthGetResponses,
   ReadHealthApiHealthHeadData,
@@ -93,6 +95,9 @@ import type {
   UpdateProjectEndpointApiProjectProjectIdPatchData,
   UpdateProjectEndpointApiProjectProjectIdPatchErrors,
   UpdateProjectEndpointApiProjectProjectIdPatchResponses,
+  UpdateRoleApiUsersUserIdRolePatchData,
+  UpdateRoleApiUsersUserIdRolePatchErrors,
+  UpdateRoleApiUsersUserIdRolePatchResponses,
 } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean> = Options2<
@@ -820,4 +825,43 @@ export const getCurrentUserInfoApiUsersMeGet = <ThrowOnError extends boolean = t
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/users/me',
     ...options,
+  });
+
+/**
+ * List Users
+ *
+ * List all users (admin only).
+ */
+export const listUsersApiUsersGet = <ThrowOnError extends boolean = true>(
+  options?: Options<ListUsersApiUsersGetData, ThrowOnError>,
+) =>
+  (options?.client ?? client).get<ListUsersApiUsersGetResponses, unknown, ThrowOnError, 'data'>({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/users',
+    ...options,
+  });
+
+/**
+ * Update Role
+ *
+ * Update a user's role (admin only).
+ */
+export const updateRoleApiUsersUserIdRolePatch = <ThrowOnError extends boolean = true>(
+  options: Options<UpdateRoleApiUsersUserIdRolePatchData, ThrowOnError>,
+) =>
+  (options.client ?? client).patch<
+    UpdateRoleApiUsersUserIdRolePatchResponses,
+    UpdateRoleApiUsersUserIdRolePatchErrors,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/users/{user_id}/role',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
   });

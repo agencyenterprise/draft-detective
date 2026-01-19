@@ -6,7 +6,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from lib.config.env import config
-from lib.models.user import User
+from lib.models.user import User, UserRole
 from lib.services.users import get_or_create_user_by_email
 
 logger = logging.getLogger(__name__)
@@ -65,3 +65,13 @@ async def get_current_user_optional(
     if not credentials:
         return None
     return await _decode_token(credentials)
+
+
+async def require_admin(user: User = Depends(get_current_user)) -> User:
+    """Returns authenticated admin user or raises 403."""
+    if user.role != UserRole.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required",
+        )
+    return user

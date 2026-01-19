@@ -3203,6 +3203,15 @@ export const UpdateType = {
 export type UpdateType = (typeof UpdateType)[keyof typeof UpdateType];
 
 /**
+ * UpdateUserRoleRequest
+ *
+ * Request model for updating a user's role
+ */
+export type UpdateUserRoleRequest = {
+  role: UserRole;
+};
+
+/**
  * UserResponse
  *
  * Response model for user information
@@ -4672,3 +4681,53 @@ export type GetCurrentUserInfoApiUsersMeGetResponses = {
 
 export type GetCurrentUserInfoApiUsersMeGetResponse =
   GetCurrentUserInfoApiUsersMeGetResponses[keyof GetCurrentUserInfoApiUsersMeGetResponses];
+
+export type ListUsersApiUsersGetData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/api/users';
+};
+
+export type ListUsersApiUsersGetResponses = {
+  /**
+   * Response List Users Api Users Get
+   *
+   * Successful Response
+   */
+  200: Array<UserResponse>;
+};
+
+export type ListUsersApiUsersGetResponse = ListUsersApiUsersGetResponses[keyof ListUsersApiUsersGetResponses];
+
+export type UpdateRoleApiUsersUserIdRolePatchData = {
+  body: UpdateUserRoleRequest;
+  path: {
+    /**
+     * User Id
+     */
+    user_id: string;
+  };
+  query?: never;
+  url: '/api/users/{user_id}/role';
+};
+
+export type UpdateRoleApiUsersUserIdRolePatchErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type UpdateRoleApiUsersUserIdRolePatchError =
+  UpdateRoleApiUsersUserIdRolePatchErrors[keyof UpdateRoleApiUsersUserIdRolePatchErrors];
+
+export type UpdateRoleApiUsersUserIdRolePatchResponses = {
+  /**
+   * Successful Response
+   */
+  200: UserResponse;
+};
+
+export type UpdateRoleApiUsersUserIdRolePatchResponse =
+  UpdateRoleApiUsersUserIdRolePatchResponses[keyof UpdateRoleApiUsersUserIdRolePatchResponses];
