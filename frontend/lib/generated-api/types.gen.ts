@@ -1541,6 +1541,20 @@ export type File = {
    * The timestamp when the file was uploaded
    */
   created_at: Date;
+  /**
+   * Markdown
+   *
+   * Cached markdown conversion of the file
+   */
+  markdown?: string | null;
+  /**
+   * Summary
+   *
+   * Document summary as JSON (DocumentSummary schema)
+   */
+  summary?: {
+    [key: string]: unknown;
+  } | null;
 };
 
 /**
