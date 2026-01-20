@@ -103,10 +103,8 @@ Within the list of claims, you must include the following information for each c
 
 ### Agent Inputs
 
-## Domain context (context about the domain of the document)
 {domain_context}
 
-## Audience context (context about the audience of the document)
 {audience_context}
 
 ## Summarized Argument
