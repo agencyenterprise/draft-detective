@@ -81,6 +81,14 @@ async def _verify_chunk_claims_with_provider(
 
     for claim_index, claim in enumerate(chunk.claims.claims):
         # Skip non-central claims - only validate central claims
+        # Non-central claims are not validated to reduce processing time and focus
+        # validation efforts on claims that are central to the document's argument.
+        if hasattr(claim, "central") and not claim.central:
+            logger.debug(
+                f"Chunk {chunk.chunk_index} claim {claim_index} is not central, skipping verification"
+            )
+            continue
+
         if hasattr(claim, "central") and not claim.central:
             logger.debug(
                 f"Chunk {chunk.chunk_index} claim {claim_index} is not central, skipping verification"
@@ -132,7 +140,17 @@ async def _verify_chunk_claims_with_provider(
 async def verify_claims(
     state: ClaimReferenceValidationState, runtime: Runtime[ContextSchema]
 ):
-    """Verify claims using RAG to retrieve relevant passages."""
+    """Verify chunk claims using RAG reference provider.
+
+    Returns a list of substantiation results instead of updating the chunk.
+    Skips chunks with no claims. For each claim:
+    - Skips non-central claims (only validates central claims)
+    - ALWAYS verifies if the chunk has citations (even if common knowledge)
+    - Verifies if the claim needs substantiation (not common knowledge)
+
+    This ensures all citations are validated regardless of common knowledge status,
+    but only for claims that are central to the document's argument.
+    """
 
     file_artifacts_service = runtime.context.file_artifacts_service
     rag_provider = RAGReferenceProvider(runtime.context.vector_store)
