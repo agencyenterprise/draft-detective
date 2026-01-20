@@ -2,7 +2,7 @@
 from enum import Enum
 from langchain_core.documents import Document
 from pydantic import BaseModel, Field, field_validator
-from typing import Any
+from typing import Any, Optional
 
 
 class DocumentMetadata(BaseModel):
@@ -12,6 +12,10 @@ class DocumentMetadata(BaseModel):
     chunk_index: int = Field(ge=0, description="Zero-based global chunk index")
     chunk_index_within_paragraph: int = Field(
         ge=0, description="Zero-based index within the paragraph"
+    )
+    headings: Optional[list[str]] = Field(
+        default=None,
+        description="The headings associated with the paragraph, in order of hierarchy",
     )
 
     @field_validator("paragraph_index", "chunk_index", "chunk_index_within_paragraph")
@@ -46,6 +50,10 @@ class ChunkWithIndex(BaseModel):
     content: str
     chunk_index: int
     paragraph_index: int
+    headings: Optional[list[str]] = Field(
+        default=None,
+        description="The headings associated with the chunk, in order of hierarchy",
+    )
 
 
 class ClaimCategory(str, Enum):
@@ -59,6 +67,7 @@ class ClaimCategory(str, Enum):
 
 class ReproducibilityCategory(str, Enum):
     """Reproducibility classification for methodologies and results."""
+
     FULLY_REPRODUCIBLE = "fully_reproducible"
     REPRODUCIBLE_WITH_WEB_SEARCH = "reproducible_with_web_search"
     REPRODUCIBLE_WITH_EXTERNAL_UPLOADS = "reproducible_with_external_uploads"
