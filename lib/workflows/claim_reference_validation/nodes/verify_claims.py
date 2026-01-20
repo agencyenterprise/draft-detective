@@ -143,13 +143,7 @@ async def verify_claims(
     """Verify chunk claims using RAG reference provider.
 
     Returns a list of substantiation results instead of updating the chunk.
-    Skips chunks with no claims. For each claim:
-    - Skips non-central claims (only validates central claims)
-    - ALWAYS verifies if the chunk has citations (even if common knowledge)
-    - Verifies if the claim needs substantiation (not common knowledge)
-
-    This ensures all citations are validated regardless of common knowledge status,
-    but only for claims that are central to the document's argument.
+    Skips chunks with no claims.
     """
 
     file_artifacts_service = runtime.context.file_artifacts_service
