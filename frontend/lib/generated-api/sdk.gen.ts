@@ -50,6 +50,9 @@ import type {
   GetProjectShareStatusApiProjectsProjectIdShareGetData,
   GetProjectShareStatusApiProjectsProjectIdShareGetErrors,
   GetProjectShareStatusApiProjectsProjectIdShareGetResponses,
+  GetProjectWorkflowProgressEndpointApiProjectProjectIdWorkflowProgressGetData,
+  GetProjectWorkflowProgressEndpointApiProjectProjectIdWorkflowProgressGetErrors,
+  GetProjectWorkflowProgressEndpointApiProjectProjectIdWorkflowProgressGetResponses,
   GetSharedResourceApiPublicShareTokenGetData,
   GetSharedResourceApiPublicShareTokenGetErrors,
   GetSharedResourceApiPublicShareTokenGetResponses,
@@ -58,9 +61,6 @@ import type {
   GetWorkflowFeedbackApiFeedbackWorkflowWorkflowRunIdGetData,
   GetWorkflowFeedbackApiFeedbackWorkflowWorkflowRunIdGetErrors,
   GetWorkflowFeedbackApiFeedbackWorkflowWorkflowRunIdGetResponses,
-  GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdGetData,
-  GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdGetErrors,
-  GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdGetResponses,
   GetWorkflowStateApiWorkflowsWorkflowRunIdGetData,
   GetWorkflowStateApiWorkflowsWorkflowRunIdGetErrors,
   GetWorkflowStateApiWorkflowsWorkflowRunIdGetResponses,
@@ -709,24 +709,24 @@ export const downloadAllProjectFilesApiProjectProjectIdFilesDownloadAllGet = <Th
   });
 
 /**
- * Get Workflow Progress Endpoint
+ * Get Project Workflow Progress Endpoint
  *
- * Get all progress entries for a workflow run.
- *
- * Returns progress entries ordered by creation time.
+ * Get all workflow progress entries for a project.
  */
-export const getWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdGet = <ThrowOnError extends boolean = true>(
-  options: Options<GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdGetData, ThrowOnError>,
+export const getProjectWorkflowProgressEndpointApiProjectProjectIdWorkflowProgressGet = <
+  ThrowOnError extends boolean = true,
+>(
+  options: Options<GetProjectWorkflowProgressEndpointApiProjectProjectIdWorkflowProgressGetData, ThrowOnError>,
 ) =>
   (options.client ?? client).get<
-    GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdGetResponses,
-    GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdGetErrors,
+    GetProjectWorkflowProgressEndpointApiProjectProjectIdWorkflowProgressGetResponses,
+    GetProjectWorkflowProgressEndpointApiProjectProjectIdWorkflowProgressGetErrors,
     ThrowOnError,
     'data'
   >({
     responseStyle: 'data',
     security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/api/progress/workflow/{workflow_run_id}',
+    url: '/api/project/{project_id}/workflow-progress',
     ...options,
   });
 
