@@ -63,6 +63,7 @@ def convert_validate_document_to_chunk(doc: ValidatedDocument) -> DocumentChunk:
         content=doc.page_content,
         chunk_index=doc.metadata.chunk_index,
         paragraph_index=doc.metadata.paragraph_index,
+        headings=doc.metadata.headings,
     )
 
 
