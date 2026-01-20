@@ -13,7 +13,7 @@ import { Card, CardContent } from '../../ui/card';
 import { AnalysisOptionsMenu } from './components/analysis-options-menu';
 import { ViewModeToggle } from './components/view-mode-toggle';
 import { TabType } from './constants';
-import { AnalysesTab, FilesTab, ReferencesTab, SummaryTab } from './tabs';
+import { AnalysesTab, FilesTab, ReferenceReviewTab, ReferencesTab, SummaryTab } from './tabs';
 import { DocumentExplorerTab } from './tabs/document-explorer-tab';
 
 interface ResultsVisualizationProps {
@@ -65,6 +65,8 @@ export function ResultsVisualization({
             onNavigateToAnalyses={() => setActiveTab('analyses')}
           />
         );
+      case 'reference-review':
+        return <ReferenceReviewTab projectId={projectId} allWorkflowDetails={results} readOnly={readOnly} />;
       case 'analyses':
         return (
           <AnalysesTab
@@ -114,6 +116,12 @@ export function ResultsVisualization({
             <TabsTrigger value="summary">Summary</TabsTrigger>
             <TabsTrigger value="references">
               References{' '}
+              <Badge className="rounded-full h-4.5 min-w-4.5" variant="secondary">
+                {referenceExtraction?.state?.references?.length || 0}
+              </Badge>
+            </TabsTrigger>
+            <TabsTrigger value="reference-review">
+              References & Files{' '}
               <Badge className="rounded-full h-4.5 min-w-4.5" variant="secondary">
                 {referenceExtraction?.state?.references?.length || 0}
               </Badge>

@@ -9,6 +9,7 @@ import type {
   ListProjectFilesEndpointApiProjectProjectIdFilesGetResponse,
   ListProjectsEndpointApiProjectsGetResponse,
   UpdateProjectEndpointApiProjectProjectIdPatchResponse,
+  UploadProjectFileEndpointApiProjectProjectIdFilesPostResponse,
 } from './types.gen';
 
 const workflowRunDetailSchemaResponseTransformer = (data: any) => {
@@ -89,6 +90,13 @@ export const listProjectFilesEndpointApiProjectProjectIdFilesGetResponseTransfor
   data: any,
 ): Promise<ListProjectFilesEndpointApiProjectProjectIdFilesGetResponse> => {
   data = data.map((item: any) => fileSchemaResponseTransformer(item));
+  return data;
+};
+
+export const uploadProjectFileEndpointApiProjectProjectIdFilesPostResponseTransformer = async (
+  data: any,
+): Promise<UploadProjectFileEndpointApiProjectProjectIdFilesPostResponse> => {
+  data = fileSchemaResponseTransformer(data);
   return data;
 };
 

@@ -7,6 +7,7 @@ from langgraph.types import Send
 from lib.models.file import FileRole
 from lib.services.files import (
     delete_project_files,
+    get_file_by_id,
     get_supporting_candidate_files,
     update_files_role,
 )
@@ -42,11 +43,11 @@ async def initialize_references(
 
     pending_results = [
         ReferenceFetchResult(
-            index=i,
-            input_reference=ref,
+            index=ref.index,
+            input_reference=ref.text,
             status=ReferenceFetchStatus.PENDING,
         )
-        for i, ref in enumerate(references)
+        for ref in references
     ]
 
     return {"fetched_references": pending_results}
@@ -65,13 +66,13 @@ async def distribute_references(
     """
     references = state.config.references or []
     return [
-        Send("fetch_single_reference", {"reference": ref, "index": i})
-        for i, ref in enumerate(references)
+        Send("fetch_single_reference", {"reference": ref.text, "index": ref.index})
+        for ref in references
     ]
 
 
 @register_node(
-    "Fetch single reference",
+    "Fetch reference",
     "Fetch a single reference",
 )
 async def fetch_single_reference(state: dict, runtime: Runtime[ContextSchema]):
@@ -85,6 +86,7 @@ async def fetch_single_reference(state: dict, runtime: Runtime[ContextSchema]):
 
     agent = ReferenceFetcherAgent(runtime.context)
 
+    project_id = runtime.context.project_id
     result = None
     error = None
     status = ReferenceFetchStatus.COMPLETED
@@ -99,6 +101,14 @@ async def fetch_single_reference(state: dict, runtime: Runtime[ContextSchema]):
         ):
             # Sometimes the LLM will return a file ID for a non-found reference, so we need to clean it up
             result.file_id = None
+
+        if (
+            status == ReferenceFetchStatus.COMPLETED
+            and result
+            and result.file_id
+            and project_id
+        ):
+            await _update_reference_file_matching(project_id, result.file_id, index)
 
     except Exception as e:
         logger.error(f"Error fetching reference '{reference}': {e}", exc_info=True)
@@ -119,7 +129,7 @@ async def fetch_single_reference(state: dict, runtime: Runtime[ContextSchema]):
 
 
 @register_node(
-    "Cleanup failed resources",
+    "Cleanup",
     "Clean up files for failed references",
 )
 async def cleanup_failed_resources(
@@ -169,3 +179,20 @@ async def cleanup_failed_resources(
         )
 
     return {}
+
+
+async def _update_reference_file_matching(
+    project_id: str, file_id: str, reference_index: int
+):
+    """Update the reference file matching in the ReferenceExtraction workflow state."""
+
+    from lib.services.references import add_file_to_reference
+
+    file = await get_file_by_id(file_id)
+
+    await add_file_to_reference(
+        project_id=project_id,
+        file_id=str(file.id),
+        file_name=file.file_name,
+        reference_index=reference_index,
+    )
