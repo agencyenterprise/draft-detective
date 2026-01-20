@@ -1,5 +1,6 @@
 import logging
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, cast, Callable, Awaitable, Any
+import asyncio
 
 from lib.models.file import FileRole
 from lib.services.file import FileDocument
@@ -32,11 +33,27 @@ class FileArtifactsService(FileArtifactsServiceType):
     """
 
     def __init__(self, project_id: str) -> None:
-        """Create a service instance bound to a project."""
+        """Initialize the service with a project ID.
+
+        Args:
+            project_id: The unique identifier for the project whose artifacts
+                should be accessed.
+        """
         self.project_id = project_id
 
     async def _get_state_by_type(self, run_type: WorkflowRunType) -> "WorkflowState":
-        """Return the workflow state for a given workflow run type."""
+        """Retrieve workflow state for a specific workflow run type.
+
+        Args:
+            type: The type of workflow run to retrieve state for.
+
+        Returns:
+            The workflow state for the specified workflow run type.
+
+        Raises:
+            ValueError: If no workflow run or state is found for the given type
+                and project ID.
+        """
         from lib.services.workflow_runs import (
             get_project_workflow_run_by_type,
             get_workflow_run_state_by_thread_id,
@@ -61,19 +78,26 @@ class FileArtifactsService(FileArtifactsServiceType):
     async def _try_load(
         self,
         what: str,
-        loader,
+        loader: Callable[[], Awaitable[Any]],
     ):
         """Run a loader and return its value, logging exceptions at debug level."""
         try:
             return await loader()
-        except Exception as exc:  # keep broad: cache layer shouldn't break workflows
-            logger.debug("Could not load %s from DB: %s", what, exc)
+        except Exception as exc:
+            logger.warning("Could not load %s from DB: %s", what, exc)
             return None
 
     async def get_file_document(self, file_id: str) -> FileDocument:
-        """Return the file document for the given file id.
+        """Retrieve the file document for a file by its ID.
 
-        Prefers DB cached markdown artifacts and falls back to workflow state.
+        Args:
+            file_id: The unique identifier of the file to retrieve the document for.
+
+        Returns:
+            The file document for the requested file.
+
+        Raises:
+            ValueError: If no file document is found for the given file ID.
         """
         file_doc = await self._try_load(
             f"file document {file_id}",
@@ -153,10 +177,13 @@ class FileArtifactsService(FileArtifactsServiceType):
                     len(supporting),
                     self.project_id,
                 )
-                return [
-                    await load_file_document(f, use_cached_artifacts=True)
-                    for f in supporting
-                ]
+
+                return await asyncio.gather(
+                    *[
+                        load_file_document(f, use_cached_artifacts=True)
+                        for f in supporting
+                    ]
+                )
 
         state = cast(
             "DocumentProcessingState",
@@ -165,9 +192,18 @@ class FileArtifactsService(FileArtifactsServiceType):
         return state.supporting_files or []
 
     async def get_document_summary(self, file_id: str) -> "DocumentSummary":
-        """Return the document summary for a file.
+        """Retrieve the document summary for a file by its ID.
+        Prefers DB cached summaries and falls back to workflow state.
 
-        Prefers DB cached summary and falls back to workflow state.
+        Args:
+            file_id: The unique identifier of the file to retrieve the summary for.
+
+        Returns:
+            The document summary for the requested file.
+
+        Raises:
+            ValueError: If no document summary with the given file ID is found
+                in the project's document processing workflow state.
         """
         from lib.agents.document_summarizer import DocumentSummary
 
@@ -207,7 +243,16 @@ class FileArtifactsService(FileArtifactsServiceType):
         )
 
     async def get_references(self) -> list["BibliographyItem"]:
-        """Return bibliography references from the reference extraction workflow."""
+        """Retrieve extracted references from the reference extraction workflow.
+
+        Returns:
+            A list of extracted bibliography items from the reference extraction
+            workflow state.
+
+        Raises:
+            ValueError: If no reference extraction workflow run or state is found
+                for the project.
+        """
         state = cast(
             "ReferenceExtractionState",
             await self._get_state_by_type(WorkflowRunType.REFERENCE_EXTRACTION),
@@ -215,7 +260,19 @@ class FileArtifactsService(FileArtifactsServiceType):
         return state.references
 
     async def get_chunks(self) -> list["AnalyzedChunk"]:
-        """Return analyzed chunks built from all available workflow states."""
+        """Retrieve analyzed chunks from workflow states.
+
+        Builds analyzed chunks by extracting chunks from document processing state
+        and enriching them with claims, claim categories, and citations from their
+        respective workflow states (claim extraction, citation detection).
+
+        Returns:
+            A list of analyzed chunks with all available analysis results.
+            Returns empty list if document processing state is not found.
+
+        Raises:
+            ValueError: If no workflow runs are found for the project.
+        """
         from lib.services.workflow_runs import get_project_workflow_runs
         from lib.workflows.chunk_utils import build_analyzed_chunks
 
@@ -228,7 +285,17 @@ class FileArtifactsService(FileArtifactsServiceType):
         return build_analyzed_chunks(states)
 
     async def get_footnotes(self) -> list["FootnoteItem"]:
-        """Return footnotes from the footnote extraction workflow."""
+        """Retrieve extracted footnotes from the footnote extraction workflow.
+
+        Returns:
+            A list of extracted footnote items from the footnote extraction
+            workflow state.
+
+        Raises:
+            ValueError: If no footnote extraction workflow run or state is found
+                for the project.
+        """
+
         state = cast(
             "FootnoteExtractionState",
             await self._get_state_by_type(WorkflowRunType.FOOTNOTE_EXTRACTION),

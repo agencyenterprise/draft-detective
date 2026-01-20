@@ -13,6 +13,7 @@ from lib.services.file import FileDocument
 from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
 from lib.workflows.document_processing.state import DocumentProcessingState
+from lib.services.files import update_file_artifacts
 
 logger = logging.getLogger(__name__)
 
@@ -63,12 +64,9 @@ def _persist_markdown_artifacts(
         file: The main document with markdown content
         supporting_files: List of supporting documents with markdown content
     """
-    from lib.services.files import update_file_artifacts
 
-    # Persist main file markdown
     update_file_artifacts(file_id=file.file_id, markdown=file.markdown)
 
-    # Persist supporting files markdown
     for supporting_file in supporting_files:
         update_file_artifacts(
             file_id=supporting_file.file_id, markdown=supporting_file.markdown

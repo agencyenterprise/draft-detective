@@ -118,34 +118,22 @@ export function getReferenceExtractionWarningStatus(workflowRuns: WorkflowRunDet
   sectionsDetected: boolean;
   hasErrors: boolean;
 } | null {
-  const referenceExtractionWorkflows = workflowRuns.filter((w) => w.run.type === WorkflowRunType.ReferenceExtraction);
+  const referenceExtraction = getWorkflowRunByType(workflowRuns, WorkflowRunType.ReferenceExtraction);
 
-  if (referenceExtractionWorkflows.length === 0) {
+  if (!referenceExtraction || isWorkflowProcessing(referenceExtraction)) {
     return null;
   }
 
-  const hasProcessingWorkflow = referenceExtractionWorkflows.some(
-    (w) => w.run.status === WorkflowRunStatus.Pending || w.run.status === WorkflowRunStatus.Running,
-  );
-  if (hasProcessingWorkflow) {
-    return null;
-  }
+  const state = referenceExtraction.state;
+  const hasReferences = (state.references?.length ?? 0) > 0;
 
-  const completedWorkflow = referenceExtractionWorkflows.find((w) => w.run.status === WorkflowRunStatus.Completed);
-
-  if (!completedWorkflow) {
-    return null;
-  }
-
-  const state = completedWorkflow.state as ReferenceExtractionState | undefined;
-  const hasReferences = (state?.references?.length ?? 0) > 0;
   if (hasReferences) {
     return null;
   }
 
   return {
     showWarning: true,
-    sectionsDetected: (state?.detected_sections?.length ?? 0) > 0,
-    hasErrors: (state?.errors?.length ?? 0) > 0,
+    sectionsDetected: (state.detected_sections?.length ?? 0) > 0,
+    hasErrors: (state.errors?.length ?? 0) > 0,
   };
 }
