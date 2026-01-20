@@ -110,7 +110,6 @@ Use the following markdown format of sections:
 
 Here are the contextual details:
 
-## Document Context
 {domain_context}
 
 {audience_context}

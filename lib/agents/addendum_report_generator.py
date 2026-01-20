@@ -184,7 +184,6 @@ Live Reports Analysis
 {records_json}
 ```
 
-#### Additional context:
 {domain_context}
 
 {audience_context}
