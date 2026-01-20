@@ -111,8 +111,9 @@ Use the following markdown format of sections:
 Here are the contextual details:
 
 ## Document Context
-**Domain**: {domain_context}
-**Target Audience**: {audience_context}
+{domain_context}
+
+{audience_context}
 
 ## The argument summary of the document
 ```

@@ -185,10 +185,12 @@ Live Reports Analysis
 ```
 
 #### Additional context:
-Document context: {domain_context}
-Audience Context: {audience_context}
-Title: {document_title}
-Summary (optional): {document_summary}
+{domain_context}
+
+{audience_context}
+
+## Title: {document_title}
+## Summary (optional): {document_summary}
 
 #### Output:
 Return one JSON object matching the required schema exactly.

@@ -244,10 +244,8 @@ When in doubt between TRUE and FALSE, default to FALSE.
 - Each claim must have exactly one category and a short-sentence rationale.
 - The needs_external_verification field should be set to TRUE if the claim requires external verification, and FALSE otherwise.
 
-## Domain Context
 {domain_context}
 
-## Audience Context
 {audience_context}
 
 ## Summary of the document (for context about the document's main argument)
