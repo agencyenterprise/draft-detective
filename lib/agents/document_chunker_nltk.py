@@ -18,6 +18,8 @@ from lib.services.llm_sentence_tokenizer import (
 from lib.workflows.context import ContextSchema
 from langchain_core.runnables.config import RunnableConfig
 
+from langchain_text_splitters import MarkdownHeaderTextSplitter
+
 logger = logging.getLogger(__name__)
 
 # Download required NLTK data
@@ -36,9 +38,22 @@ except LookupError:
             )
 
 
+headers_to_split_on = [
+    ("#", "H1"),
+    ("##", "H2"),
+    ("###", "H3"),
+    ("####", "H4"),
+]
+
+markdown_splitter = MarkdownHeaderTextSplitter(headers_to_split_on)
+
+
 class Paragraph(BaseModel):
     chunks: List[str] = Field(
         description="The chunks extracted from the paragraph, that when concatenated should recreate the content of the original paragraph"
+    )
+    headings: list[str] = Field(
+        description="The headings associated with the paragraph. Each heading is a string that is the text of the heading listed according to the hierarchy of the heading."
     )
 
 
@@ -62,6 +77,7 @@ def get_chunker_result_as_langchain_documents(
                         paragraph_index=paragraph_index,
                         chunk_index=chunk_index,
                         chunk_index_within_paragraph=index_within_paragraph,
+                        headings=paragraph.headings if paragraph.headings else None,
                     ),
                 )
             )
@@ -254,27 +270,48 @@ class DocumentChunkerAgent(BaseAgent):
         if not full_document.strip():
             return DocumentChunkerResponse(paragraphs=[])
 
-        # Split document into paragraphs
-        paragraphs = split_into_paragraphs(full_document)
+        # Split document by headings
+        md_header_splits = markdown_splitter.split_text(full_document)
 
-        from lib.run_utils import MAX_CONCURRENT_TASKS
+        paragraphs_objects_list = []
+        for text_section in md_header_splits:
+            section_headings_list = []
+            if text_section.metadata:
+                # Sort by heading level to ensure hierarchical order (H1, H2, H3, H4)
+                sorted_metadata = sorted(
+                    text_section.metadata.items(), key=lambda x: x[0]
+                )
+                for _, heading_value in sorted_metadata:
+                    section_headings_list.append(heading_value)
 
-        semaphore = asyncio.Semaphore(MAX_CONCURRENT_TASKS)
+            # Split document into paragraphs
+            paragraphs = split_into_paragraphs(text_section.page_content)
 
-        async def process_paragraph(paragraph_text: str) -> Optional[Paragraph]:
-            if not paragraph_text.strip():
-                return None
+            from lib.run_utils import MAX_CONCURRENT_TASKS
 
-            async with semaphore:
-                sentences = await split_paragraph_into_sentences(
-                    paragraph_text, context=self.context
+            semaphore = asyncio.Semaphore(MAX_CONCURRENT_TASKS)
+
+            async def process_paragraph(
+                paragraph_text: str, section_headings_list: list[str]
+            ) -> Optional[Paragraph]:
+                if not paragraph_text.strip():
+                    return None
+
+                async with semaphore:
+                    sentences = await split_paragraph_into_sentences(
+                        paragraph_text, context=self.context
+                    )
+
+                return (
+                    Paragraph(chunks=sentences, headings=section_headings_list)
+                    if sentences
+                    else None
                 )
 
-            return Paragraph(chunks=sentences) if sentences else None
+            tasks = [process_paragraph(p, section_headings_list) for p in paragraphs]
+            results = await asyncio.gather(*tasks)
 
-        tasks = [process_paragraph(p) for p in paragraphs]
-        results = await asyncio.gather(*tasks)
+            paragraph_objects = [p for p in results if p is not None]
+            paragraphs_objects_list.extend(paragraph_objects)
 
-        paragraph_objects = [p for p in results if p is not None]
-
-        return DocumentChunkerResponse(paragraphs=paragraph_objects)
+        return DocumentChunkerResponse(paragraphs=paragraphs_objects_list)
