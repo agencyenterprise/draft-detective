@@ -9,6 +9,16 @@ from typing import Dict, List, Optional
 from lib.services.vector_store import RetrievedPassage
 
 
+def format_headings_context(headings: Optional[List[str]]) -> str:
+    """Format headings context for agent prompts."""
+    if not headings:
+        return "No section headings available for this chunk."
+
+    # Format with indentation to show hierarchy
+    formatted = "\n".join(f"{'  ' * i}{heading}" for i, heading in enumerate(headings))
+    return formatted
+
+
 def format_domain_context(domain: Optional[str]) -> str:
     """Format domain context for agent prompts."""
     if not domain:
