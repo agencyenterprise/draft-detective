@@ -8,7 +8,7 @@ import { useProjectDetails } from '@/lib/hooks/use-project-details';
 import { isAnyWorkflowProcessing } from '@/lib/workflow-state';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams } from 'next/navigation';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { toast } from 'sonner';
 
 export default function ResultsPage() {
@@ -20,14 +20,10 @@ export default function ResultsPage() {
 
   const { project, workflowDetails, isLoading, error } = useProjectDetails(projectId);
 
-  const workflowRunIdsToTrack = useMemo(() => {
-    if (!isAnyWorkflowProcessing(workflowDetails)) return [];
+  const isProcessing = isAnyWorkflowProcessing(workflowDetails);
 
-    return workflowDetails.map((w) => w.run.id);
-  }, [workflowDetails]);
-
-  // Show progress in toast
-  useWorkflowProgressToast(workflowRunIdsToTrack);
+  // Show progress in toast when workflows are processing
+  useWorkflowProgressToast(projectId, isProcessing);
 
   const updateTitleMutation = useMutation({
     mutationFn: async (newTitle: string) => {

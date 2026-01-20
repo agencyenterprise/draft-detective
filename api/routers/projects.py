@@ -8,6 +8,7 @@ from fastapi.responses import StreamingResponse
 from starlette.responses import FileResponse
 
 from api.auth import get_current_user, get_current_user_optional
+from api.models import WorkflowProgressResponse
 from api.upload import save_uploaded_files_to_db
 from lib.models.file import File, FileRole
 from lib.models.project import Project
@@ -27,6 +28,7 @@ from lib.services.projects import (
     update_user_project,
 )
 from lib.services.share_links import get_resource_by_token
+from lib.services.workflow_progress import get_project_workflow_progress
 
 router = APIRouter(tags=["projects"])
 logger = logging.getLogger(__name__)
@@ -204,6 +206,25 @@ async def download_all_project_files(
         media_type="application/zip",
         headers={"Content-Disposition": f'attachment; filename="{zip_filename}"'},
     )
+
+
+@router.get(
+    "/api/project/{project_id}/workflow-progress",
+    response_model=List[WorkflowProgressResponse],
+)
+async def get_project_workflow_progress_endpoint(
+    project_id: str,
+    current_user: Optional[User] = Depends(get_current_user_optional),
+    share_token: Optional[str] = Query(
+        default=None,
+        description="Share token for shared projects.",
+    ),
+):
+    """Get all workflow progress entries for a project."""
+
+    project_detail = await check_project_access(project_id, current_user, share_token)
+    progress_list = get_project_workflow_progress(project_detail.project.id)
+    return [WorkflowProgressResponse.model_validate(p) for p in progress_list]
 
 
 async def check_project_access(

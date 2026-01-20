@@ -4517,39 +4517,46 @@ export type DownloadAllProjectFilesApiProjectProjectIdFilesDownloadAllGetRespons
   200: unknown;
 };
 
-export type GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdGetData = {
+export type GetProjectWorkflowProgressEndpointApiProjectProjectIdWorkflowProgressGetData = {
   body?: never;
   path: {
     /**
-     * Workflow Run Id
+     * Project Id
      */
-    workflow_run_id: string;
+    project_id: string;
   };
-  query?: never;
-  url: '/api/progress/workflow/{workflow_run_id}';
+  query?: {
+    /**
+     * Share Token
+     *
+     * Share token for shared projects.
+     */
+    share_token?: string | null;
+  };
+  url: '/api/project/{project_id}/workflow-progress';
 };
 
-export type GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdGetErrors = {
+export type GetProjectWorkflowProgressEndpointApiProjectProjectIdWorkflowProgressGetErrors = {
   /**
    * Validation Error
    */
   422: HttpValidationError;
 };
 
-export type GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdGetError =
-  GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdGetErrors[keyof GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdGetErrors];
+export type GetProjectWorkflowProgressEndpointApiProjectProjectIdWorkflowProgressGetError =
+  GetProjectWorkflowProgressEndpointApiProjectProjectIdWorkflowProgressGetErrors[keyof GetProjectWorkflowProgressEndpointApiProjectProjectIdWorkflowProgressGetErrors];
 
-export type GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdGetResponses = {
+export type GetProjectWorkflowProgressEndpointApiProjectProjectIdWorkflowProgressGetResponses = {
   /**
-   * Response Get Workflow Progress Endpoint Api Progress Workflow  Workflow Run Id  Get
+   * Response Get Project Workflow Progress Endpoint Api Project  Project Id  Workflow Progress Get
    *
    * Successful Response
    */
   200: Array<WorkflowProgressResponse>;
 };
 
-export type GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdGetResponse =
-  GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdGetResponses[keyof GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdGetResponses];
+export type GetProjectWorkflowProgressEndpointApiProjectProjectIdWorkflowProgressGetResponse =
+  GetProjectWorkflowProgressEndpointApiProjectProjectIdWorkflowProgressGetResponses[keyof GetProjectWorkflowProgressEndpointApiProjectProjectIdWorkflowProgressGetResponses];
 
 export type GetProjectShareStatusApiProjectsProjectIdShareGetData = {
   body?: never;

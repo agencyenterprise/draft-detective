@@ -7,6 +7,7 @@ from typing import List, Optional
 
 from lib.config.database import get_db
 from lib.models.workflow_progress import ProgressLevel, WorkflowProgress
+from lib.models.workflow_run import WorkflowRun
 
 logger = logging.getLogger(__name__)
 
@@ -113,6 +114,27 @@ def get_workflow_progress(
         progress_list = (
             db.query(WorkflowProgress)
             .filter(WorkflowProgress.workflow_run_id == workflow_run_id)
+            .order_by(WorkflowProgress.created_at)
+            .all()
+        )
+        return list(progress_list)
+
+
+def get_project_workflow_progress(project_id: uuid.UUID) -> List[WorkflowProgress]:
+    """
+    Get all progress entries for all workflow runs in a project.
+
+    Args:
+        project_id: ID of the project
+
+    Returns:
+        List of progress entries ordered by creation time
+    """
+    with get_db() as db:
+        progress_list = (
+            db.query(WorkflowProgress)
+            .join(WorkflowRun, WorkflowProgress.workflow_run_id == WorkflowRun.id)
+            .filter(WorkflowRun.project_id == project_id)
             .order_by(WorkflowProgress.created_at)
             .all()
         )
