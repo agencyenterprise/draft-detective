@@ -133,6 +133,8 @@ Provide each piece of evidence related to a claim with one of the following qual
 # NOTE:
 When generating responses, remove or replace all internal citation tokens such as turn1search0, turn2search3, or similar. Do not display raw reference IDs or metadata markers in the final text. Return clean, human-readable output only.
 
+# Agent Inputs
+
 {domain_context}
 
 {audience_context}

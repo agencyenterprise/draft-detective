@@ -95,8 +95,7 @@ Within the list of claims, you must include the following information for each c
 - rationale: The rationale for why you think the chunk of text implies this claim
 - central: Whether the claim is central to the argument of the document
 
-
-### Agent Inputs
+# Agent Inputs
 
 {domain_context}
 

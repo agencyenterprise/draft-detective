@@ -244,6 +244,8 @@ When in doubt between TRUE and FALSE, default to FALSE.
 - Each claim must have exactly one category and a short-sentence rationale.
 - The needs_external_verification field should be set to TRUE if the claim requires external verification, and FALSE otherwise.
 
+# Agent Inputs
+
 {domain_context}
 
 {audience_context}

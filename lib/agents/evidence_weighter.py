@@ -106,9 +106,7 @@ General Guidelines for Processing
 - Explain the reasoning behind the overall evidence direction
 - Suggest areas where additional evidence might be needed
 
-Use the following markdown format of sections:
-
-Here are the contextual details:
+# Agent Inputs
 
 {domain_context}
 
