@@ -24,6 +24,9 @@ class Claim(BaseModel):
     central: bool = Field(
         description="Whether the claim is central to the argument of the document"
     )
+    centrality_rationale: str = Field(
+        description="The rationale for why you think the claim is central to the argument of the document"
+    )
 
 
 class ClaimResponse(BaseModel):
