@@ -13,6 +13,7 @@ from lib.services.file import FileDocument
 from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
 from lib.workflows.document_processing.state import DocumentProcessingState
+from lib.services.files import update_file_artifacts
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +47,30 @@ async def convert_to_markdown(
         raise failed_errors[0]
 
     [file, *supporting_files] = results
+
+    # Persist markdown artifacts to database for caching
+    _persist_markdown_artifacts(file, supporting_files)
+
     return {"file": file, "supporting_files": supporting_files}
+
+
+def _persist_markdown_artifacts(
+    file: FileDocument, supporting_files: list[FileDocument]
+) -> None:
+    """
+    Persist markdown artifacts to the files table for all converted documents.
+
+    Args:
+        file: The main document with markdown content
+        supporting_files: List of supporting documents with markdown content
+    """
+
+    update_file_artifacts(file_id=file.file_id, markdown=file.markdown)
+
+    for supporting_file in supporting_files:
+        update_file_artifacts(
+            file_id=supporting_file.file_id, markdown=supporting_file.markdown
+        )
 
 
 async def _convert_to_markdown_task(

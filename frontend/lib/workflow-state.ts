@@ -103,25 +103,37 @@ export function isAnyWorkflowProcessing(workflowRuns: WorkflowRunDetail[]): bool
   return workflowRuns.some((workflowRun) => isWorkflowProcessing(workflowRun));
 }
 
+/**
+ * Checks if the "No References Found" warning should be displayed.
+ *
+ * The warning only shows when:
+ * - At least one Reference Extraction workflow has completed
+ * - No Reference Extraction workflow is still processing (pending/running)
+ * - The completed workflow found no references
+ *
+ * This prevents showing stale warnings from old runs while a new extraction is in progress.
+ */
 export function getReferenceExtractionWarningStatus(workflowRuns: WorkflowRunDetail[]): {
   showWarning: boolean;
   sectionsDetected: boolean;
   hasErrors: boolean;
 } | null {
   const referenceExtraction = getWorkflowRunByType(workflowRuns, WorkflowRunType.ReferenceExtraction);
-  if (!referenceExtraction || referenceExtraction.run.status !== WorkflowRunStatus.Completed) {
+
+  if (!referenceExtraction || isWorkflowProcessing(referenceExtraction)) {
     return null;
   }
 
   const state = referenceExtraction.state;
-  const hasReferences = (state?.references?.length ?? 0) > 0;
+  const hasReferences = (state.references?.length ?? 0) > 0;
+
   if (hasReferences) {
     return null;
   }
 
   return {
     showWarning: true,
-    sectionsDetected: (state?.detected_sections?.length ?? 0) > 0,
-    hasErrors: (state?.errors?.length ?? 0) > 0,
+    sectionsDetected: (state.detected_sections?.length ?? 0) > 0,
+    hasErrors: (state.errors?.length ?? 0) > 0,
   };
 }

@@ -161,22 +161,73 @@ def update_files_role(file_ids: Sequence[uuid.UUID | str], role: FileRole) -> No
         db.commit()
 
 
-async def load_file_document(file: File) -> FileDocument:
+def update_file_artifacts(
+    file_id: uuid.UUID | str,
+    markdown: str | None = None,
+    summary: dict | None = None,
+) -> None:
     """
-    Convert File model to FileDocument with markdown loaded.
+    Update file artifacts (markdown, summary) for caching processed content.
 
-    This function lazy-loads the markdown content from the file system
-    on demand, as markdown is not stored in the database.
+    Only updates fields that are explicitly provided (not None).
+
+    Args:
+        file_id: UUID of the file to update
+        markdown: The converted markdown content (optional)
+        summary: Document summary as dict (optional)
+    """
+    file_id = _normalize_uuid(file_id, "file ID")
+
+    with get_db() as db:
+        file = db.query(File).filter(File.id == file_id).first()
+        if file is None:
+            logger.warning(f"File {file_id} not found, skipping artifact update")
+            return
+
+        if markdown is not None:
+            file.markdown = markdown
+        if summary is not None:
+            file.summary = summary
+
+        db.commit()
+        logger.debug(f"Updated artifacts for file {file_id}")
+
+
+async def load_file_document(
+    file: File, use_cached_artifacts: bool = True
+) -> FileDocument:
+    """
+    Convert File model to FileDocument, using cached artifacts from DB if available.
+
+    When use_cached_artifacts is True and the file has cached markdown in the database,
+    the FileDocument is created directly from the cached data without re-converting.
+    Otherwise, creates a FileDocument without markdown (for workflow to convert).
 
     Args:
         file: File model instance from database
+        use_cached_artifacts: If True, use cached markdown from DB when available
 
     Returns:
-        FileDocument with markdown content loaded
+        FileDocument with markdown content (from cache or empty)
 
     Raises:
         FileNotFoundError: If the file doesn't exist on disk
     """
+    from langchain_core.messages.utils import count_tokens_approximately
+
+    # Use cached artifacts if available and requested
+    if use_cached_artifacts and file.markdown is not None:
+        return FileDocument(
+            file_id=str(file.id),
+            file_path=file.file_path,
+            file_name=file.file_name,
+            file_type=file.file_type,
+            markdown=file.markdown,
+            markdown_token_count=count_tokens_approximately([file.markdown]),
+            original_file_path=file.original_file_path,
+        )
+
+    # Fall back to creating without markdown (for workflow to convert)
     return await create_file_document_from_path(
         file_path=file.file_path,
         file_id=str(file.id),

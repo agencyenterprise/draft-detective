@@ -65,7 +65,48 @@ async def summarize_documents(
             f"Successfully summarized {len(supporting_summaries)}/{len(state.supporting_files)} supporting documents"
         )
 
+    # Persist summary artifacts to database for caching
+    _persist_summary_artifacts(
+        main_file_id=state.file.file_id,
+        main_summary=main_response.summary,
+        supporting_files=state.supporting_files,
+        supporting_summaries=supporting_summaries,
+    )
+
     return {
         "main_document_summary": main_response.summary,
         "supporting_documents_summaries": supporting_summaries,
     }
+
+
+def _persist_summary_artifacts(
+    main_file_id: str,
+    main_summary: DocumentSummary,
+    supporting_files: Optional[list[FileDocument]],
+    supporting_summaries: Dict[int, DocumentSummary],
+) -> None:
+    """
+    Persist summary artifacts to the files table for all summarized documents.
+
+    Args:
+        main_file_id: The file ID of the main document
+        main_summary: The summary of the main document
+        supporting_files: List of supporting documents
+        supporting_summaries: Dictionary mapping indices to summaries
+    """
+    from lib.services.files import update_file_artifacts
+
+    # Persist main file summary
+    update_file_artifacts(
+        file_id=main_file_id,
+        summary=main_summary.model_dump(),
+    )
+
+    # Persist supporting files summaries
+    if supporting_files:
+        for idx, summary in supporting_summaries.items():
+            supporting_file = supporting_files[idx]
+            update_file_artifacts(
+                file_id=supporting_file.file_id,
+                summary=summary.model_dump(),
+            )
