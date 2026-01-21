@@ -94,7 +94,12 @@ async def _categorize_single_claim(
     claim_categorizer_agent: ClaimCategorizerAgent,
     file_artifacts_service: FileArtifactsServiceType,
 ) -> Optional[ClaimCategorizationResponseWithClaimIndex]:
-    """Categorize a single claim."""
+    """Categorize a single claim.
+
+    After categorization, applies business rule overrides:
+    - Non-central claims have needs_external_verification set to False
+    regardless of the agent's determination.
+    """
 
     # Find the chunk for this claim
     chunk = next(
@@ -119,8 +124,21 @@ async def _categorize_single_claim(
             "audience_context": format_audience_context(state.config.target_audience),
         }
     )
-    return ClaimCategorizationResponseWithClaimIndex(
+    categorization = ClaimCategorizationResponseWithClaimIndex(
         chunk_index=claim_response.chunk_index,
         claim_index=claim_index,
         **result.model_dump(),
     )
+
+    # Override needs_external_verification for non-central claims
+    if hasattr(claim, "central") and not claim.central:
+        logger.debug(
+            f"Chunk {claim_response.chunk_index} claim {claim_index} is not central, "
+            "overriding needs_external_verification to False"
+        )
+        categorization.needs_external_verification = False
+        categorization.rationale = (
+            "[Claim is not central, so external verification not required.]"
+        )
+
+    return categorization
