@@ -26,7 +26,8 @@ class Claim(BaseModel):
         description="Whether the claim is central to the argument of the document"
     )
     centrality_rationale: Optional[str] = Field(
-        description="The rationale for why you think the claim is central or is not central to the argument of the document"
+        default=None,
+        description="The rationale for why you think the claim is central or is not central to the argument of the document",
     )
 
 
