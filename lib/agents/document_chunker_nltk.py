@@ -45,14 +45,16 @@ headers_to_split_on = [
     ("####", "H4"),
 ]
 
-markdown_splitter = MarkdownHeaderTextSplitter(headers_to_split_on, strip_headers=False)
+markdown_splitter = MarkdownHeaderTextSplitter(
+    headers_to_split_on, strip_headers=False, return_each_line=True
+)
 
 
 class Paragraph(BaseModel):
     chunks: List[str] = Field(
         description="The chunks extracted from the paragraph, that when concatenated should recreate the content of the original paragraph"
     )
-    headings: list[str] = Field(
+    headings: List[str] = Field(
         description="The headings associated with the paragraph. Each heading is a string that is the text of the heading listed according to the hierarchy of the heading."
     )
 
@@ -270,22 +272,13 @@ class DocumentChunkerAgent(BaseAgent):
         if not full_document.strip():
             return DocumentChunkerResponse(paragraphs=[])
 
-        # tag to prevent MarkdownHeaderTextSplitter from removing needed blank lines
-        SENTINEL = "<<BLANK_LINE>>"
-        # replace double newlines or more with sentinel tag
-        prepared_full_document = re.sub(r"\n\s*\n", f"\n{SENTINEL}\n", full_document)
-
         # Split document by headings
-        md_header_splits = markdown_splitter.split_text(prepared_full_document)
+        md_header_splits = markdown_splitter.split_text(full_document)
 
         paragraphs_objects_list = []
         for text_section in md_header_splits:
             # restoring blank lines by replacing tag
-            section_content = text_section.page_content.replace(SENTINEL, "")
 
-            logger.info(f"Section content: {section_content}")
-            logger.info(f"Section metadata: {text_section.metadata}")
-            print()
             section_headings_list = []
             if text_section.metadata:
                 # Sort by heading level to ensure hierarchical order (H1, H2, H3, H4)
@@ -296,14 +289,14 @@ class DocumentChunkerAgent(BaseAgent):
                     section_headings_list.append(heading_value)
 
             # Split document into paragraphs
-            paragraphs = split_into_paragraphs(section_content)
+            paragraphs = split_into_paragraphs(text_section.page_content)
 
             from lib.run_utils import MAX_CONCURRENT_TASKS
 
             semaphore = asyncio.Semaphore(MAX_CONCURRENT_TASKS)
 
             async def process_paragraph(
-                paragraph_text: str, section_headings_list: list[str]
+                paragraph_text: str, section_headings_list: List[str]
             ) -> Optional[Paragraph]:
                 if not paragraph_text.strip():
                     return None
