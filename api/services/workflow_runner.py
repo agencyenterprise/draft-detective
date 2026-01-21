@@ -9,9 +9,9 @@ from lib.models.user import User
 from lib.models.workflow_run import WorkflowRunStatus, WorkflowRunType
 from lib.services.projects import get_user_project_detailed
 from lib.services.workflow_runs import (
+    create_workflow_run,
     get_project_workflow_run_by_type,
     get_thread_id_for_workflow_run,
-    upsert_workflow_run,
 )
 from lib.workflows.config_factory import create_workflow_config
 from lib.workflows.dependency_resolver import resolve_workflow_dependencies
@@ -39,23 +39,28 @@ async def start_workflow_run(
     # Check if project exists and is owned by the user
     await get_user_project_detailed(config.project_id, user)
 
-    workflow_run = await get_project_workflow_run_by_type(
+    existing_run = await get_project_workflow_run_by_type(
         config.project_id, config.type
     )
-    thread_id = get_thread_id_for_workflow_run(workflow_run)
 
-    # Start workflow as PENDING - it will check dependencies and start when ready
-    workflow_run_id = await upsert_workflow_run(
+    # Reuse thread_id from previous runs to maintain LangGraph checkpoint continuity.
+    # This allows workflows to resume from previously computed state (e.g., document
+    # chunks already processed) rather than starting from scratch.
+    thread_id = get_thread_id_for_workflow_run(existing_run)
+
+    # Create new workflow run record
+    workflow_run_id = await create_workflow_run(
         project_id=config.project_id,
-        thread_id=thread_id,
         status=WorkflowRunStatus.PENDING,
         type=config.type,
+        thread_id=thread_id,
     )
 
     background_tasks.add_task(
         run_workflow_with_dependency_check,
         config=config,
         thread_id=thread_id,
+        workflow_run_id=workflow_run_id,
         user=user,
     )
 
@@ -98,18 +103,16 @@ async def start_multiple_workflow_runs(
     thread_ids: List[str] = []
 
     for workflow_type in resolved_workflow_types:
-        # We must check if workflow is already completed
-        workflow_run = await get_project_workflow_run_by_type(
+        existing_run = await get_project_workflow_run_by_type(
             request.project_id, workflow_type
         )
 
+        # Skip if workflow is already completed and not explicitly requested
         if (
-            workflow_run
-            and workflow_run.status == WorkflowRunStatus.COMPLETED
-            and workflow_run.type not in workflow_types
+            existing_run
+            and existing_run.status == WorkflowRunStatus.COMPLETED
+            and workflow_type not in workflow_types
         ):
-            # Skip if workflow is already completed and not in the list of requested workflows
-            # If the workflow is in the list of requested workflows, we need to re-run it, regardless of wether it ran already because it might have been re-requested by the user
             logger.info(
                 f"Skipping {workflow_type.value} - already completed for project {request.project_id}"
             )
@@ -120,15 +123,15 @@ async def start_multiple_workflow_runs(
             project_detailed.project, workflow_type, request
         )
 
-        # Get or create thread_id
-        thread_id = get_thread_id_for_workflow_run(workflow_run)
+        # Reuse thread_id from previous runs to maintain LangGraph checkpoint continuity
+        thread_id = get_thread_id_for_workflow_run(existing_run)
 
-        # Start workflow as PENDING - it will check dependencies and start when ready
-        workflow_run_id = await upsert_workflow_run(
+        # Create new workflow run record
+        workflow_run_id = await create_workflow_run(
             project_id=request.project_id,
-            thread_id=thread_id,
             status=WorkflowRunStatus.PENDING,
             type=workflow_type,
+            thread_id=thread_id,
         )
 
         workflow_run_ids.append(workflow_run_id)
@@ -144,6 +147,7 @@ async def start_multiple_workflow_runs(
             _run_multiple_workflows_concurrently,
             workflow_configs=workflow_configs,
             thread_ids=thread_ids,
+            workflow_run_ids=workflow_run_ids,
             user=user,
         )
     else:
@@ -153,7 +157,10 @@ async def start_multiple_workflow_runs(
 
 
 async def _run_multiple_workflows_concurrently(
-    workflow_configs: List[WorkflowConfig], thread_ids: List[str], user: User
+    workflow_configs: List[WorkflowConfig],
+    thread_ids: List[str],
+    workflow_run_ids: List[str],
+    user: User,
 ) -> None:
     """
     Run multiple workflows concurrently using asyncio.gather().
@@ -164,6 +171,7 @@ async def _run_multiple_workflows_concurrently(
     Args:
         workflow_configs: List of workflow configs to run
         thread_ids: List of thread IDs corresponding to each workflow config
+        workflow_run_ids: List of workflow run IDs for same-type locking
         user: User running the workflows
     """
     if not workflow_configs:
@@ -176,9 +184,14 @@ async def _run_multiple_workflows_concurrently(
     # Create tasks for all workflows - they will run in parallel
     tasks = [
         run_workflow_with_dependency_check(
-            config=config, thread_id=thread_id, user=user
+            config=config,
+            thread_id=thread_id,
+            workflow_run_id=workflow_run_id,
+            user=user,
         )
-        for config, thread_id in zip(workflow_configs, thread_ids)
+        for config, thread_id, workflow_run_id in zip(
+            workflow_configs, thread_ids, workflow_run_ids
+        )
     ]
 
     # Run all workflows concurrently - each will handle its own dependency waiting

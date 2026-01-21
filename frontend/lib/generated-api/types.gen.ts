@@ -189,6 +189,17 @@ export type BibliographyItemValidation = {
 };
 
 /**
+ * Body_add_files_to_project_api_project__project_id__files_post
+ */
+export type BodyAddFilesToProjectApiProjectProjectIdFilesPost = {
+  /**
+   * Files
+   */
+  files: Array<Blob | File>;
+  role?: FileRole;
+};
+
+/**
  * Body_create_project_endpoint_api_projects_post
  */
 export type BodyCreateProjectEndpointApiProjectsPost = {
@@ -4398,42 +4409,6 @@ export type UpdateProjectEndpointApiProjectProjectIdPatchResponses = {
 export type UpdateProjectEndpointApiProjectProjectIdPatchResponse =
   UpdateProjectEndpointApiProjectProjectIdPatchResponses[keyof UpdateProjectEndpointApiProjectProjectIdPatchResponses];
 
-export type DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetData = {
-  body?: never;
-  path: {
-    /**
-     * Project Id
-     */
-    project_id: string;
-  };
-  query?: {
-    /**
-     * Share Token
-     *
-     * Share token to include share links in comments
-     */
-    share_token?: string | null;
-  };
-  url: '/api/projects/{project_id}/docx/download';
-};
-
-export type DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetErrors = {
-  /**
-   * Validation Error
-   */
-  422: HttpValidationError;
-};
-
-export type DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetError =
-  DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetErrors[keyof DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetErrors];
-
-export type DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetResponses = {
-  /**
-   * Successful Response
-   */
-  200: unknown;
-};
-
 export type ListProjectFilesEndpointApiProjectProjectIdFilesGetData = {
   body?: never;
   path: {
@@ -4474,6 +4449,76 @@ export type ListProjectFilesEndpointApiProjectProjectIdFilesGetResponses = {
 
 export type ListProjectFilesEndpointApiProjectProjectIdFilesGetResponse =
   ListProjectFilesEndpointApiProjectProjectIdFilesGetResponses[keyof ListProjectFilesEndpointApiProjectProjectIdFilesGetResponses];
+
+export type AddFilesToProjectApiProjectProjectIdFilesPostData = {
+  body: BodyAddFilesToProjectApiProjectProjectIdFilesPost;
+  path: {
+    /**
+     * Project Id
+     */
+    project_id: string;
+  };
+  query?: never;
+  url: '/api/project/{project_id}/files';
+};
+
+export type AddFilesToProjectApiProjectProjectIdFilesPostErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type AddFilesToProjectApiProjectProjectIdFilesPostError =
+  AddFilesToProjectApiProjectProjectIdFilesPostErrors[keyof AddFilesToProjectApiProjectProjectIdFilesPostErrors];
+
+export type AddFilesToProjectApiProjectProjectIdFilesPostResponses = {
+  /**
+   * Response Add Files To Project Api Project  Project Id  Files Post
+   *
+   * Successful Response
+   */
+  201: Array<File>;
+};
+
+export type AddFilesToProjectApiProjectProjectIdFilesPostResponse =
+  AddFilesToProjectApiProjectProjectIdFilesPostResponses[keyof AddFilesToProjectApiProjectProjectIdFilesPostResponses];
+
+export type DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetData = {
+  body?: never;
+  path: {
+    /**
+     * Project Id
+     */
+    project_id: string;
+  };
+  query?: {
+    /**
+     * Share Token
+     *
+     * Share token to include share links in comments
+     */
+    share_token?: string | null;
+  };
+  url: '/api/projects/{project_id}/docx/download';
+};
+
+export type DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetError =
+  DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetErrors[keyof DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetErrors];
+
+export type DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetResponses = {
+  /**
+   * Successful Response
+   */
+  200: unknown;
+};
 
 export type DownloadAllProjectFilesApiProjectProjectIdFilesDownloadAllGetData = {
   body?: never;

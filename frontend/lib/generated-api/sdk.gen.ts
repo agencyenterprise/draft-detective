@@ -3,6 +3,9 @@
 import { type Client, formDataBodySerializer, type Options as Options2, type TDataShape } from './client';
 import { client } from './client.gen';
 import type {
+  AddFilesToProjectApiProjectProjectIdFilesPostData,
+  AddFilesToProjectApiProjectProjectIdFilesPostErrors,
+  AddFilesToProjectApiProjectProjectIdFilesPostResponses,
   CheckPreflightApiPreflightPostData,
   CheckPreflightApiPreflightPostErrors,
   CheckPreflightApiPreflightPostResponses,
@@ -645,6 +648,51 @@ export const updateProjectEndpointApiProjectProjectIdPatch = <ThrowOnError exten
   });
 
 /**
+ * List Project Files Endpoint
+ *
+ * Get all files for a project
+ */
+export const listProjectFilesEndpointApiProjectProjectIdFilesGet = <ThrowOnError extends boolean = true>(
+  options: Options<ListProjectFilesEndpointApiProjectProjectIdFilesGetData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    ListProjectFilesEndpointApiProjectProjectIdFilesGetResponses,
+    ListProjectFilesEndpointApiProjectProjectIdFilesGetErrors,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/project/{project_id}/files',
+    ...options,
+  });
+
+/**
+ * Add Files To Project
+ *
+ * Add files (supporting documents) to an existing project.
+ */
+export const addFilesToProjectApiProjectProjectIdFilesPost = <ThrowOnError extends boolean = true>(
+  options: Options<AddFilesToProjectApiProjectProjectIdFilesPostData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    AddFilesToProjectApiProjectProjectIdFilesPostResponses,
+    AddFilesToProjectApiProjectProjectIdFilesPostErrors,
+    ThrowOnError,
+    'data'
+  >({
+    ...formDataBodySerializer,
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/project/{project_id}/files',
+    ...options,
+    headers: {
+      'Content-Type': null,
+      ...options.headers,
+    },
+  });
+
+/**
  * Download Project Docx
  *
  * Download DOCX with AI comments.
@@ -665,26 +713,6 @@ export const downloadProjectDocxApiProjectsProjectIdDocxDownloadGet = <ThrowOnEr
     responseStyle: 'data',
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/projects/{project_id}/docx/download',
-    ...options,
-  });
-
-/**
- * List Project Files Endpoint
- *
- * Get all files for a project
- */
-export const listProjectFilesEndpointApiProjectProjectIdFilesGet = <ThrowOnError extends boolean = true>(
-  options: Options<ListProjectFilesEndpointApiProjectProjectIdFilesGetData, ThrowOnError>,
-) =>
-  (options.client ?? client).get<
-    ListProjectFilesEndpointApiProjectProjectIdFilesGetResponses,
-    ListProjectFilesEndpointApiProjectProjectIdFilesGetErrors,
-    ThrowOnError,
-    'data'
-  >({
-    responseStyle: 'data',
-    security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/api/project/{project_id}/files',
     ...options,
   });
 

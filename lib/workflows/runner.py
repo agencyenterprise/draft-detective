@@ -12,7 +12,7 @@ from lib.services.file_artifacts_service.file_artifacts_service import (
 )
 from lib.services.projects import update_project_title
 from lib.services.vector_store import VectorStoreService
-from lib.services.workflow_runs import upsert_workflow_run
+from lib.services.workflow_runs import update_workflow_run_status
 from lib.workflows.checkpointer import get_checkpointer
 from lib.workflows.context import ContextSchema
 from lib.workflows.models import BaseWorkflowConfig, WorkflowError
@@ -23,41 +23,45 @@ logger = logging.getLogger(__name__)
 
 
 async def run_workflow_with_dependency_check(
-    config: WorkflowConfig, thread_id: str, user: User
+    config: WorkflowConfig, thread_id: str, workflow_run_id: str, user: User
 ) -> None:
     """
     Run a workflow after checking and waiting for its dependencies to complete.
 
     This function:
-    1. Waits for all dependencies to complete
-    2. Updates workflow status to RUNNING
-    3. Executes the workflow
+    1. Waits for any same-type workflow and dependencies to complete
+    2. Executes the workflow
+
+    Args:
+        config: The workflow config to run
+        thread_id: The LangGraph thread ID for checkpointing
+        workflow_run_id: The unique ID of this workflow run (for same-type locking)
+        user: The user running the workflow
     """
 
     try:
-        # Wait for dependencies to complete
         if config.project_id:
-            await wait_for_dependencies(config.type, config.project_id)
+            # Wait for same-type lock and dependencies to complete
+            await wait_for_dependencies(config.type, config.project_id, workflow_run_id)
 
         # Run the workflow
-        await run_workflow_from_config(config=config, thread_id=thread_id, user=user)
+        await run_workflow_from_config(
+            config=config,
+            thread_id=thread_id,
+            workflow_run_id=workflow_run_id,
+            user=user,
+        )
 
     except Exception as e:
         logger.error(f"Error running workflow: {e}", exc_info=True)
-
-        await upsert_workflow_run(
-            project_id=config.project_id,
-            thread_id=thread_id,
-            status=WorkflowRunStatus.COMPLETED,
-            type=config.type,
-        )
+        await update_workflow_run_status(workflow_run_id, WorkflowRunStatus.COMPLETED)
 
 
 async def run_workflow_from_config(
-    config: WorkflowConfig, thread_id: str, user: User
+    config: WorkflowConfig, thread_id: str, workflow_run_id: str, user: User
 ) -> WorkflowState:
     graph = create_graph(config.type)
-    context = create_context(config, user=user)
+    context = create_context(config, workflow_run_id=workflow_run_id, user=user)
 
     # Redact the OpenAI API key from the config so it doesn't get saved in the state
     config.openai_api_key = "[REDACTED]"
@@ -65,7 +69,7 @@ async def run_workflow_from_config(
     state = await create_state(config)
 
     return await run_workflow(
-        project_id=config.project_id,
+        workflow_run_id=workflow_run_id,
         workflow_type=config.type,
         graph=graph,
         state=state,
@@ -75,7 +79,7 @@ async def run_workflow_from_config(
 
 
 async def run_workflow(
-    project_id: str,
+    workflow_run_id: str,
     workflow_type: WorkflowRunType,
     graph: StateGraph,
     state: WorkflowState,
@@ -83,33 +87,27 @@ async def run_workflow(
     thread_id: str,
 ) -> WorkflowState:
     """
-    Run a workflow using LangGraph, persisting the state to the database and associating with the workflow run.
+    Run a workflow using LangGraph, persisting the state to the database.
 
     Args:
-        project_id: The ID of the project that this workflow run should be associated with
+        workflow_run_id: The ID of the workflow run record
         workflow_type: The type of the workflow
         graph: The LangGraph graph to run
         state: The initial state of the workflow
         context: The context of the workflow
-        thread_id: The ID of the workflow thread, this is the LangGraph thread ID used by the checkpointer
+        thread_id: The LangGraph thread ID used by the checkpointer
 
     Returns:
         The updated state of the workflow
     """
+    project_id = context.project_id
 
     logger.info(
         f"Starting workflow {workflow_type} for project {project_id} with thread {thread_id}"
     )
 
-    workflow_run_id = await upsert_workflow_run(
-        project_id=project_id,
-        thread_id=thread_id,
-        status=WorkflowRunStatus.RUNNING,
-        type=workflow_type,
-    )
-
-    # Update the context with the workflow run ID so it's available to the workflow nodes
-    context.workflow_run_id = workflow_run_id
+    # Mark as RUNNING
+    await update_workflow_run_status(workflow_run_id, WorkflowRunStatus.RUNNING)
 
     async with get_checkpointer() as checkpointer:
         app = graph.compile(checkpointer=checkpointer).with_config(
@@ -133,13 +131,6 @@ async def run_workflow(
             ):
                 updated_state = updated_state.model_copy(update=values)
 
-                await upsert_workflow_run(
-                    project_id=project_id,
-                    thread_id=thread_id,
-                    status=WorkflowRunStatus.RUNNING,
-                    type=workflow_type,
-                )
-
                 # Update the project title if this is a document processing workflow
                 if (
                     workflow_type == WorkflowRunType.DOCUMENT_PROCESSING
@@ -154,11 +145,8 @@ async def run_workflow(
             logger.error(f"Error streaming state: {e}", exc_info=True)
             updated_state.errors.append(WorkflowError(task_name="global", error=str(e)))
         finally:
-            await upsert_workflow_run(
-                project_id=project_id,
-                thread_id=thread_id,
-                status=WorkflowRunStatus.COMPLETED,
-                type=workflow_type,
+            await update_workflow_run_status(
+                workflow_run_id, WorkflowRunStatus.COMPLETED
             )
 
     logger.info(

@@ -26,7 +26,7 @@ async def test_diagnostic_check_decorator_receives_workflow_run_id(mock_create):
     """Diagnostic: Check if decorator receives workflow_run_id correctly and converts string to UUID."""
 
     # Setup - this simulates how nodes are actually called
-    # workflow_run_id is a STRING in context (as returned by upsert_workflow_run)
+    # workflow_run_id is a STRING in context (as returned by create_workflow_run)
     workflow_run_id_str = str(uuid.uuid4())
     progress_id = uuid.uuid4()
     mock_create.return_value = progress_id
