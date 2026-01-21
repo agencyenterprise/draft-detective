@@ -90,8 +90,8 @@ def split_into_paragraphs(text: str) -> List[str]:
     Split text into paragraphs based on blank lines (double newlines).
     This keeps code blocks, multi-line lists, and other formatted content intact.
     """
-    # Split on blank lines (double newlines or more)
-    paragraphs = re.split(r"\n\s*\n", text)
+    # Split on newlines
+    paragraphs = text.split("\n")
     return [p.strip() for p in paragraphs if p.strip()]
 
 
@@ -272,6 +272,7 @@ class DocumentChunkerAgent(BaseAgent):
 
         # tag to prevent MarkdownHeaderTextSplitter from removing needed blank lines
         SENTINEL = "<<BLANK_LINE>>"
+        # replace double newlines or more with sentinel tag
         prepared_full_document = re.sub(r"\n\s*\n", f"\n{SENTINEL}\n", full_document)
 
         # Split document by headings
@@ -280,9 +281,11 @@ class DocumentChunkerAgent(BaseAgent):
         paragraphs_objects_list = []
         for text_section in md_header_splits:
             # restoring blank lines by replacing tag
-            section_content = text_section.page_content.replace(
-                f"\n{SENTINEL}\n", "\n\n"
-            )
+            section_content = text_section.page_content.replace(SENTINEL, "")
+
+            logger.info(f"Section content: {section_content}")
+            logger.info(f"Section metadata: {text_section.metadata}")
+            print()
             section_headings_list = []
             if text_section.metadata:
                 # Sort by heading level to ensure hierarchical order (H1, H2, H3, H4)
