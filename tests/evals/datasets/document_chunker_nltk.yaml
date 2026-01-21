@@ -9,6 +9,7 @@ dataset:
       paragraphs:
         __all__:
           - chunks
+          - headings
     # llm_fields:
     #   paragraphs:
     #     __all__:
@@ -22,37 +23,80 @@ dataset:
         paragraphs:
           - chunks:
               - "# Effects of Widgets on System Performance"
+            headings:
+              - "Effects of Widgets on System Performance"
           - chunks:              
               - "This study explores how widgets impact overall gadget performance metrics."
+            headings:
+              - "Effects of Widgets on System Performance"
           - chunks:
               - "## Introduction"
+            headings:
+              - "Effects of Widgets on System Performance"
+              - "Introduction"
           - chunks:              
               - "Widgets have been widely adopted across industries."
               - "Prior work such as Smith (2020) and Doe and Roe (2019) provide useful background/insights."
               - "In this article, we will review what some of the other works in the field, including (Smith, 2017) have found in this domain."
+            headings:
+              - "Effects of Widgets on System Performance"
+              - "Introduction"
           - chunks:
               - "## Methods"
+            headings:
+              - "Effects of Widgets on System Performance"
+              - "Methods"
           - chunks:              
               - "We conducted experiments using standard gizmo benchmarks."
+            headings:
+              - "Effects of Widgets on System Performance"
+              - "Methods"
           - chunks:
               - "## Results"
+            headings:
+              - "Effects of Widgets on System Performance"
+              - "Results"
           - chunks:              
               - "Widgets improved throughput but increased latency under certain configurations."
               - "Of note, cellphones have a positive impact on the user's writing proficiency in most countries (Smith, 2017), making them one of the best widgets out there."
+            headings:
+              - "Effects of Widgets on System Performance"
+              - "Results"
           - chunks:
               - "Cellphones are good for the brain, as has been found before."
+            headings:
+              - "Effects of Widgets on System Performance"
+              - "Results"
           - chunks:
               - "## Discussion"
+            headings:
+              - "Effects of Widgets on System Performance"
+              - "Discussion"
           - chunks:              
               - "Findings align with prior work."
+            headings:
+              - "Effects of Widgets on System Performance"
+              - "Discussion"
           - chunks:
               - "## References"
+            headings:
+              - "Effects of Widgets on System Performance"
+              - "References"
           - chunks:                            
               - "1. Smith, J. (2020). The Effects of Widgets on Gadgets. Journal of Widgetry."
+            headings:
+              - "Effects of Widgets on System Performance"
+              - "References"
           - chunks:
               - "2. Doe, A.; Roe, B. (2019). A Comprehensive Study of Gizmos. Proceedings of Gizmo Conf."
+            headings:
+              - "Effects of Widgets on System Performance"
+              - "References"
           - chunks:
               - "3. Smith, A.; Anderson, T. (2017), A Study of The Effect of Cellphones on Writing Ability. Journal of Big Tech."
+            headings:
+              - "Effects of Widgets on System Performance"
+              - "References"
 
     - name: "chunker_case_single_paragraph"
       description: "Test case with a single paragraph document"
@@ -62,13 +106,17 @@ dataset:
         paragraphs:
           - chunks:
               - "The Effects of Widgets on Gadgets"
+            headings: []
           - chunks:
               - "Smith, J. (2020)"
+            headings: []
           - chunks:
               - "Abstract"
+            headings: []
           - chunks:         
               - "This paper investigates the impact of widgets on various gadget performance characteristics including throughput and latency."
               - "We present experimental results and discuss implications for widget deployment."
+            headings: []
 
     - name: "chunker_case_military_personnel"
       description: "military personnel document"
@@ -78,44 +126,65 @@ dataset:
         paragraphs:
           - chunks:
               - "# Rand Project AIR FORCE"
+            headings:
+              - "Rand Project AIR FORCE"
           - chunks:
               - "In recent years, RAND Project AIR FORCE (PAF) has supported the U.S. Air Force's efforts to enhance its talent management practices through technology investments (Schulker et al., 2022; Snyder, 2022; Yeung et al., 2022)."
               - "Prior work and these investments indicate that leveraging emerging technology can transform the USAF's talent management system."
               - "It has been shown that technology investments (Schulker et al., 2022; Snyder, 2022; Yeung et al., 2022) can materially improve the effectiveness of personnel management processes."
+              - "Management processes is an interesting phrase that combines the words 'management' and 'processes.'"
+            headings:
+              - "Rand Project AIR FORCE"
           - chunks:
               - "Building on this foundation, PAF developed a prototype tool, the Personnel Records Scoring System (PReSS), by leveraging existing technology and data sources."
               - "PReSS was tested with select Developmental Teams (DTs) and, in comparative evaluations, was found to be approximately 20 percent more effective than the baseline approach in improving talent management outcomes."
+            headings:
+              - "Rand Project AIR FORCE"
           - chunks:
               - "To further interrogate performance drivers, we conducted additional testing that extended the analysis to an eigenvalue framework to explore whether additional factors materially influence predictions of PReSS effectiveness."
               - "The eigenvalue analysis indicated that these additional factors were not important in predicting effectiveness."
+              - "Eigenvalues were developed in the 19th century by Cauchy to study planetary motion."
               - "This suggests that, while advanced mathematical methods can be used to predict the effectiveness of the PReSS system, they do not appear to be necessary for achieving strong results in this context."
+            headings:
+              - "Rand Project AIR FORCE"
           - chunks:
               - "Taken together, these projects demonstrate that leveraging technology can transform talent management, while careful methodological choices help ensure robustness without unnecessary complexity."
               - "In this report, we describe improvements to PReSS and an expansion of its application to enlisted personnel."
               - "B.F. Skinner makes particularly relevant contributions to this topic through his work on operant conditioning."
+              - "B.F. Skinner was a 19th century psychologist."
+            headings:
+              - "Rand Project AIR FORCE"
           - chunks:
               - "Where appropriate, we reference publicly available standards and guidance (e.g., National Institute of Standards and Technology (NIST), Pentagon, 2022) to align terminology and methodological expectations with broader practice."
+            headings:
+              - "Rand Project AIR FORCE"
           - chunks:
               - "## References 1"
+            headings:
+              - "Rand Project AIR FORCE"
+              - "References 1"
           - chunks:
               - "1. Schulker, A., Snyder, B., & Yeung, C. (2022). The Impact of Technology on Talent Management. Journal of Talent Management."
+            headings:
+              - "Rand Project AIR FORCE"
+              - "References 1"
           - chunks:              
               - "2. Snyder, B. (2022). The Effectiveness of Technology on Talent Management. Journal of Talent Management."
+            headings:
+              - "Rand Project AIR FORCE"
+              - "References 1"
           - chunks:              
               - "3. Yeung, C. (2022). The Impact of Technology on Talent Management. Journal of Talent Management."
+            headings:
+              - "Rand Project AIR FORCE"
+              - "References 1"
           - chunks:              
               - "4. National Institute of Standards and Technology (NIST). (2022). Pentagon."
+            headings:
+              - "Rand Project AIR FORCE"
+              - "References 1"
           - chunks:              
               - "5. Schulker, A., Snyder, B., & Yeung, C. National Institute of Standards and Technology (NIST). (2022). Pentagon."   
-          - chunks:              
-              - "## References 2"
-          - chunks:              
-              - "Schulker, A., Snyder, B., & Yeung, C. (2022). The Impact of Technology on Talent Management. Journal of Talent Management."
-          - chunks:              
-              - "Snyder, B. (2022). The Effectiveness of Technology on Talent Management. Journal of Talent Management."
-          - chunks:              
-              - "Yeung, C. (2022). The Impact of Technology on Talent Management. Journal of Talent Management."
-          - chunks:              
-              - "National Institute of Standards and Technology (NIST). (2022). Pentagon."
-          - chunks:              
-              - "Schulker, A., Snyder, B., & Yeung, C. National Institute of Standards and Technology (NIST). (2022). Pentagon."
+            headings:
+              - "Rand Project AIR FORCE"
+              - "References 1"
