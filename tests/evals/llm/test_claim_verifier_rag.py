@@ -109,6 +109,7 @@ async def _build_cases(dataset_file_name: str):
         claim_text = test_case.input["claim"]
         domain = test_case.input.get("domain")
         target_audience = test_case.input.get("target_audience")
+        headings_context = test_case.input.get("headings")
         paragraph = extract_paragraph_from_chunk(main_doc.markdown, chunk)
 
         # Instantiate RAG Reference Provider
@@ -120,6 +121,7 @@ async def _build_cases(dataset_file_name: str):
             content=chunk,
             chunk_index=0,
             paragraph_index=0,
+            headings=headings_context,
         )
 
         ref_context = await reference_provider.get_references_for_claim(
