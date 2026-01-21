@@ -270,7 +270,7 @@ class DocumentChunkerAgent(BaseAgent):
         if not full_document.strip():
             return DocumentChunkerResponse(paragraphs=[])
 
-        # tag to avoide MarkdownHeaderTextSplitter from removing needed blank lines
+        # tag to prevent MarkdownHeaderTextSplitter from removing needed blank lines
         SENTINEL = "<<BLANK_LINE>>"
         prepared_full_document = re.sub(r"\n\s*\n", f"\n{SENTINEL}\n", full_document)
 
