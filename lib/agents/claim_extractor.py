@@ -2,6 +2,7 @@ from langchain.chat_models import init_chat_model
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
+from typing import Optional
 
 from lib.config.llm_models import gpt_5_mini_model
 from lib.models.agent import LangChainAgent
@@ -23,6 +24,10 @@ class Claim(BaseModel):
     )
     central: bool = Field(
         description="Whether the claim is central to the argument of the document"
+    )
+    centrality_rationale: Optional[str] = Field(
+        default=None,
+        description="The rationale for why you think the claim is central or is not central to the argument of the document",
     )
 
 
@@ -94,6 +99,7 @@ Within the list of claims, you must include the following information for each c
 - claim: The claim text
 - rationale: The rationale for why you think the chunk of text implies this claim
 - central: Whether the claim is central to the argument of the document
+- centrality_rationale: The rationale for why you think the claim is central or is not central to the argument of the document. 
 
 # Agent Inputs
 

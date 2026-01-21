@@ -46,6 +46,17 @@ def _needs_substantiation(
         None,
     )
 
+    claim = chunk.claims.claims[claim_index]
+
+    # Skip non-central claims - only validate central claims
+    # Non-central claims are not validated to reduce processing time and focus
+    # validation efforts on claims that are central to the document's argument.
+    if hasattr(claim, "central") and not claim.central:
+        logger.debug(
+            f"Chunk {chunk.chunk_index} claim {claim_index} is not central, skipping verification"
+        )
+        return False
+
     if not claim_category:
         # In case categorization didn't happen, force verification (consider all claims need external verification)
         return True
@@ -80,6 +91,7 @@ async def _verify_chunk_claims_with_provider(
     substantiations = []
 
     for claim_index, claim in enumerate(chunk.claims.claims):
+
         if not _needs_substantiation(chunks, chunk, claim_index):
             logger.debug(
                 f"Chunk {chunk.chunk_index} claim {claim_index} does not need external verification, skipping verification"
@@ -125,7 +137,11 @@ async def _verify_chunk_claims_with_provider(
 async def verify_claims(
     state: ClaimReferenceValidationState, runtime: Runtime[ContextSchema]
 ):
-    """Verify claims using RAG to retrieve relevant passages."""
+    """Verify chunk claims using RAG reference provider.
+
+    Returns a list of substantiation results instead of updating the chunk.
+    Skips chunks with no claims.
+    """
 
     file_artifacts_service = runtime.context.file_artifacts_service
     rag_provider = RAGReferenceProvider(runtime.context.vector_store)
