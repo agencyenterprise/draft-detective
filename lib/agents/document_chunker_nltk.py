@@ -45,7 +45,7 @@ headers_to_split_on = [
     ("####", "H4"),
 ]
 
-markdown_splitter = MarkdownHeaderTextSplitter(headers_to_split_on)
+markdown_splitter = MarkdownHeaderTextSplitter(headers_to_split_on, strip_headers=False)
 
 
 class Paragraph(BaseModel):
@@ -270,11 +270,19 @@ class DocumentChunkerAgent(BaseAgent):
         if not full_document.strip():
             return DocumentChunkerResponse(paragraphs=[])
 
+        # tag to avoide MarkdownHeaderTextSplitter from removing needed blank lines
+        SENTINEL = "<<BLANK_LINE>>"
+        prepared_full_document = re.sub(r"\n\s*\n", f"\n{SENTINEL}\n", full_document)
+
         # Split document by headings
-        md_header_splits = markdown_splitter.split_text(full_document)
+        md_header_splits = markdown_splitter.split_text(prepared_full_document)
 
         paragraphs_objects_list = []
         for text_section in md_header_splits:
+            # restoring blank lines by replacing tag
+            section_content = text_section.page_content.replace(
+                f"\n{SENTINEL}\n", "\n\n"
+            )
             section_headings_list = []
             if text_section.metadata:
                 # Sort by heading level to ensure hierarchical order (H1, H2, H3, H4)
@@ -285,7 +293,7 @@ class DocumentChunkerAgent(BaseAgent):
                     section_headings_list.append(heading_value)
 
             # Split document into paragraphs
-            paragraphs = split_into_paragraphs(text_section.page_content)
+            paragraphs = split_into_paragraphs(section_content)
 
             from lib.run_utils import MAX_CONCURRENT_TASKS
 
