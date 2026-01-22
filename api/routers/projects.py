@@ -21,9 +21,10 @@ from lib.services.projects import (
     UpdateProjectRequest,
     create_project,
     delete_project,
+    get_project_detailed_from_project,
     get_project_files,
-    get_shared_project_detailed,
-    get_user_project_detailed,
+    get_shared_project,
+    get_user_project,
     get_user_projects,
     update_user_project,
 )
@@ -89,9 +90,12 @@ async def get_project_endpoint(
     current_user: User = Depends(get_current_user),
 ):
     """Get a project by ID. Set include_internal=true to see internal workflows."""
-    return await get_user_project_detailed(
-        project_id, user=current_user, include_internal=include_internal
+
+    project = await get_user_project(project_id, user=current_user)
+    project_detailed = await get_project_detailed_from_project(
+        project, include_internal=include_internal
     )
+    return project_detailed
 
 
 @router.patch("/api/project/{project_id}", response_model=Project)
@@ -187,13 +191,13 @@ async def upload_project_file_endpoint(
     """
 
     # Verify project access (user must be authenticated owner)
-    project_detail = await get_user_project_detailed(project_id, user=current_user)
+    project = await get_user_project(project_id, user=current_user)
 
     try:
         # Save the uploaded file with SUPPORT role
         file_records = await save_uploaded_files_to_db(
             uploaded_files=[file],
-            project_id=project_detail.project.id,
+            project_id=project.id,
             user_id=current_user.id,
             roles=[FileRole.SUPPORT],
         )
@@ -230,10 +234,10 @@ async def delete_project_file_endpoint(
     """Delete a file from a project and unlink it from any references."""
 
     # Verify project access (user must be authenticated owner)
-    await get_user_project_detailed(project_id, user=current_user)
+    project = await get_user_project(project_id, user=current_user)
 
     # Delete the file from the project
-    deleted_count = delete_project_files(project_id, target_file_ids=[file_id])
+    deleted_count = delete_project_files(project.id, target_file_ids=[file_id])
 
     if deleted_count == 0:
         raise HTTPException(status_code=404, detail="File not found in project")
@@ -260,13 +264,13 @@ async def download_all_project_files(
     """Download all project files as a ZIP archive"""
 
     # Verify project access
-    project_detail = await check_project_access(project_id, current_user, share_token)
+    project = await check_project_access(project_id, current_user, share_token)
 
     # Create zip file using service
     zip_buffer, _ = await create_project_files_zip(project_id, roles=roles)
 
     # Generate filename from project title
-    project_title = project_detail.project.title or "project"
+    project_title = project.title or "project"
 
     # Sanitize filename (remove invalid characters)
     safe_title = "".join(
@@ -299,8 +303,8 @@ async def get_project_workflow_progress_endpoint(
 ):
     """Get all workflow progress entries for a project."""
 
-    project_detail = await check_project_access(project_id, current_user, share_token)
-    progress_list = get_project_workflow_progress(project_detail.project.id)
+    project = await check_project_access(project_id, current_user, share_token)
+    progress_list = get_project_workflow_progress(project.id)
     return [WorkflowProgressResponse.model_validate(p) for p in progress_list]
 
 
@@ -308,15 +312,15 @@ async def check_project_access(
     project_id: str,
     current_user: Optional[User] = None,
     share_token: Optional[str] = None,
-) -> ProjectDetailed:
-    """Check if a user or share token gives access to a project. Raises HTTPException if access is denied. Returns the project detailed if access is granted."""
+) -> Project:
+    """Check if a user or share token gives access to a project. Raises HTTPException if access is denied. Returns the project if access is granted."""
 
     if share_token:
         share_link = await get_resource_by_token(share_token)
         if share_link is None or str(share_link.resource_id) != project_id:
             raise HTTPException(status_code=403, detail="Access denied")
-        return await get_shared_project_detailed(str(share_link.resource_id))
+        return await get_shared_project(str(share_link.resource_id))
     elif current_user is not None:
-        return await get_user_project_detailed(project_id, user=current_user)
+        return await get_user_project(project_id, user=current_user)
     else:
         raise HTTPException(status_code=403, detail="Access denied")
