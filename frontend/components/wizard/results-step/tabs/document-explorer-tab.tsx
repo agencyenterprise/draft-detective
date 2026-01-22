@@ -5,7 +5,7 @@ import { NoReferencesCallout } from '@/components/references/no-reference-sectio
 import { SkeletonList } from '@/components/ui/skeleton-list';
 import { useChunkHashNavigation } from '@/lib/chunk-ids';
 import { DocRenderMode } from '@/lib/constants';
-import { DocumentIssue, SeverityEnum, WorkflowRunDetail, WorkflowRunType } from '@/lib/generated-api';
+import { DocumentIssue, ProjectDetailed, SeverityEnum, WorkflowRunType } from '@/lib/generated-api';
 import {
   getReferenceExtractionWarningStatus,
   getWorkflowErrors,
@@ -22,25 +22,24 @@ import { DocumentReconstructor } from '../components/document-reconstructor';
 import { filterIssuesBySeverity, SeverityFilter } from '../components/severity-filter';
 
 interface DocumentExplorerTabProps {
-  projectId: string;
-  allWorkflowDetails: WorkflowRunDetail[];
-  issues: DocumentIssue[];
+  projectDetail: ProjectDetailed;
   viewMode: DocRenderMode;
   readOnly?: boolean;
   onNavigateToAnalyses: () => void;
 }
 
 export function DocumentExplorerTab({
-  projectId,
-  allWorkflowDetails,
-  issues,
+  projectDetail,
   viewMode,
   readOnly = false,
   onNavigateToAnalyses,
 }: DocumentExplorerTabProps) {
-  const documentProcessing = getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.DocumentProcessing);
+  const workflowDetails = projectDetail.workflow_runs ?? [];
+  const issues = projectDetail.issues ?? [];
+
+  const documentProcessing = getWorkflowRunByType(workflowDetails, WorkflowRunType.DocumentProcessing);
   const isDocumentProcessing = isWorkflowProcessing(documentProcessing);
-  const isAnyProcessing = isAnyWorkflowProcessing(allWorkflowDetails);
+  const isAnyProcessing = isAnyWorkflowProcessing(workflowDetails);
 
   const [selectedChunkIndex, setSelectedChunkIndex] = useState<number | null>(null);
   const [severityFilter, setSeverityFilter] = useState<SeverityEnum[]>([]);
@@ -65,13 +64,13 @@ export function DocumentExplorerTab({
   const chunkToItems = documentProcessing?.state?.chunk_to_items?.mapping ?? {};
   const pageImagesBaseUrl = `/api/images/${documentProcessing?.run.id}`;
 
-  const workflowErrors = getWorkflowErrors(allWorkflowDetails);
+  const workflowErrors = getWorkflowErrors(workflowDetails);
   const hasChunks = chunks.length > 0;
 
   const isDoclingAvailable = Boolean(pages && pages.length > 0 && Object.keys(chunkToItems).length > 0);
   const selectedChunk = chunks.find((chunk) => chunk.chunk_index === selectedChunkIndex);
   const filteredIssues = filterIssuesBySeverity(issues, severityFilter);
-  const referenceWarning = getReferenceExtractionWarningStatus(allWorkflowDetails);
+  const referenceWarning = getReferenceExtractionWarningStatus(workflowDetails);
 
   if (isDocumentProcessing && !hasChunks) {
     return (
@@ -196,11 +195,9 @@ export function DocumentExplorerTab({
             {selectedChunk && selectedChunkIndex !== null && (
               <ChunkSidebarContent
                 chunkIndex={selectedChunkIndex}
-                projectId={projectId}
-                onClearChunkSelection={() => setSelectedChunkIndex(null)}
-                allWorkflowDetails={allWorkflowDetails}
-                issues={issues}
+                projectDetail={projectDetail}
                 readOnly={readOnly}
+                onClearChunkSelection={() => setSelectedChunkIndex(null)}
               />
             )}
           </div>

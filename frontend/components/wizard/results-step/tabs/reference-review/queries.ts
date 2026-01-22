@@ -1,47 +1,27 @@
 import { formatFileSize } from '@/components/analysis-form/utils';
 import { composeReferences } from '@/lib/composed-references';
-import { BibliographyItemValidation, ReferenceFetchStatus, WorkflowRunType } from '@/lib/generated-api';
-import { useProjectDetails } from '@/lib/hooks/use-project-details';
-import { useProjectFiles } from '@/lib/hooks/use-project-files';
-import { getWorkflowRunByType, isWorkflowProcessing } from '@/lib/workflow-state';
-import { useQueryClient } from '@tanstack/react-query';
-import { useEffect, useMemo, useRef } from 'react';
+import {
+  BibliographyItemValidation,
+  ProjectDetailed,
+  ReferenceFetchStatus,
+  WorkflowRunType,
+} from '@/lib/generated-api';
+import { getWorkflowRunByType } from '@/lib/workflow-state';
+import { useMemo } from 'react';
 import { ReferenceReviewItem } from './types';
 
-export function useReferenceReviewReferences(projectId: string) {
-  const queryClient = useQueryClient();
-  const projectDetail = useProjectDetails(projectId);
-  const { data: files } = useProjectFiles(projectId);
+export function useReferenceReviewReferences(projectDetail: ProjectDetailed) {
+  const files = useMemo(() => projectDetail.files ?? [], [projectDetail.files]);
+  const workflowDetails = useMemo(() => projectDetail.workflow_runs ?? [], [projectDetail.workflow_runs]);
 
   const { referenceExtraction, referenceFileMatching, referenceDownloader, referenceValidation } = useMemo(() => {
-    const allWorkflowDetails = projectDetail?.workflowDetails ?? [];
     return {
-      referenceExtraction: getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.ReferenceExtraction),
-      referenceFileMatching: getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.ReferenceFileMatching),
-      referenceDownloader: getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.ReferenceDownloader),
-      referenceValidation: getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.ReferenceValidation),
+      referenceExtraction: getWorkflowRunByType(workflowDetails, WorkflowRunType.ReferenceExtraction),
+      referenceFileMatching: getWorkflowRunByType(workflowDetails, WorkflowRunType.ReferenceFileMatching),
+      referenceDownloader: getWorkflowRunByType(workflowDetails, WorkflowRunType.ReferenceDownloader),
+      referenceValidation: getWorkflowRunByType(workflowDetails, WorkflowRunType.ReferenceValidation),
     };
-  }, [projectDetail?.workflowDetails]);
-
-  // Track if we were previously processing to detect completion
-  const wasProcessingRef = useRef(false);
-  const isProcessing = isWorkflowProcessing(referenceDownloader);
-
-  // Poll files every 3 seconds while reference downloader is running
-  // and invalidate once more when it completes
-  useEffect(() => {
-    if (isProcessing) {
-      wasProcessingRef.current = true;
-      const interval = setInterval(() => {
-        queryClient.invalidateQueries({ queryKey: ['files', projectId] });
-      }, 3000);
-      return () => clearInterval(interval);
-    } else if (wasProcessingRef.current) {
-      // Workflow just finished - do final invalidation
-      wasProcessingRef.current = false;
-      queryClient.invalidateQueries({ queryKey: ['files', projectId] });
-    }
-  }, [isProcessing, projectId, queryClient]);
+  }, [workflowDetails]);
 
   // Compose references from extraction and file matching states
   const composedReferences = useMemo(

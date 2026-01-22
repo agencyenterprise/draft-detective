@@ -1629,6 +1629,59 @@ export type FileDocument = {
 };
 
 /**
+ * FileListItem
+ *
+ * File model for list responses, excluding heavy content fields (markdown, summary).
+ */
+export type FileListItem = {
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * Project Id
+   */
+  project_id: string;
+  /**
+   * File Name
+   */
+  file_name: string;
+  /**
+   * File Path
+   */
+  file_path: string;
+  /**
+   * File Type
+   */
+  file_type: string;
+  /**
+   * File Size
+   */
+  file_size: number;
+  /**
+   * Content Hash
+   */
+  content_hash: string;
+  /**
+   * Original File Path
+   */
+  original_file_path?: string | null;
+  role: FileRole;
+  /**
+   * Uploaded By
+   */
+  uploaded_by?: string | null;
+  /**
+   * Description
+   */
+  description?: string | null;
+  /**
+   * Created At
+   */
+  created_at: Date;
+};
+
+/**
  * FileRole
  *
  * Extensible enum for file purposes in workflows
@@ -2289,11 +2342,11 @@ export type ProjectDetailed = {
    */
   issues?: Array<DocumentIssue>;
   /**
-   * Files Count
+   * Files
    *
-   * The number of files associated with the project
+   * The files associated with the project
    */
-  files_count?: number;
+  files?: Array<FileListItem>;
 };
 
 /**
@@ -3804,11 +3857,11 @@ export type ProjectDetailedWritable = {
    */
   issues?: Array<DocumentIssue>;
   /**
-   * Files Count
+   * Files
    *
-   * The number of files associated with the project
+   * The files associated with the project
    */
-  files_count?: number;
+  files?: Array<FileListItem>;
 };
 
 /**
@@ -4466,6 +4519,12 @@ export type GetProjectEndpointApiProjectProjectIdGetData = {
      * Include Internal
      */
     include_internal?: boolean;
+    /**
+     * Share Token
+     *
+     * Share token to get project details
+     */
+    share_token?: string | null;
   };
   url: '/api/project/{project_id}';
 };

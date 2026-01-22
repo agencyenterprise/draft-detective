@@ -1,24 +1,25 @@
+import { NoReferencesCallout } from '@/components/references/no-reference-section-callout';
 import { WorkflowConfigDialog, WorkflowConfigFormValues } from '@/components/workflows/workflow-config-dialog';
-import { WorkflowRunDetail, WorkflowRunType } from '@/lib/generated-api';
+import { ProjectDetailed, WorkflowRunType } from '@/lib/generated-api';
 import { getReferenceExtractionWarningStatus, getWorkflowRunByType, isWorkflowProcessing } from '@/lib/workflow-state';
 import { useState } from 'react';
 import { useFetchAllFromWebMutation } from './mutations';
 import { useReferenceReviewReferences } from './queries';
 import { ReferenceReviewList } from './reference-review-list';
-import { NoReferencesCallout } from '@/components/references/no-reference-section-callout';
 
 interface ReferenceReviewTabProps {
-  projectId: string;
-  allWorkflowDetails: WorkflowRunDetail[];
+  projectDetail: ProjectDetailed;
   readOnly: boolean;
 }
 
-export function ReferenceReviewTab({ projectId, allWorkflowDetails, readOnly }: ReferenceReviewTabProps) {
+export function ReferenceReviewTab({ projectDetail, readOnly }: ReferenceReviewTabProps) {
+  const projectId = projectDetail.project.id;
+  const workflowDetails = projectDetail.workflow_runs ?? [];
   const [isConfigDialogOpen, setIsConfigDialogOpen] = useState(false);
 
-  const references = useReferenceReviewReferences(projectId);
+  const references = useReferenceReviewReferences(projectDetail);
   const fetchAllFromWebMutation = useFetchAllFromWebMutation(projectId);
-  const referenceDownloader = getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.ReferenceDownloader);
+  const referenceDownloader = getWorkflowRunByType(workflowDetails, WorkflowRunType.ReferenceDownloader);
 
   const handleOpenDialog = () => {
     setIsConfigDialogOpen(true);
@@ -34,7 +35,7 @@ export function ReferenceReviewTab({ projectId, allWorkflowDetails, readOnly }: 
     );
   };
 
-  const referenceWarning = getReferenceExtractionWarningStatus(allWorkflowDetails);
+  const referenceWarning = getReferenceExtractionWarningStatus(workflowDetails);
 
   return (
     <div className="space-y-4">

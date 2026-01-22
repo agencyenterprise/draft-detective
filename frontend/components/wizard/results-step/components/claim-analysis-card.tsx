@@ -5,8 +5,7 @@ import { LabeledValue } from '@/components/labeled-value';
 import { Button } from '@/components/ui/button';
 import { getClaimId } from '@/lib/chunk-ids';
 import { composeReferences } from '@/lib/composed-references';
-import { Claim, DocumentIssue, WorkflowRunDetail, WorkflowRunType } from '@/lib/generated-api';
-import { useProjectFiles } from '@/lib/hooks/use-project-files';
+import { Claim, ProjectDetailed, WorkflowRunType } from '@/lib/generated-api';
 import { getClaimIssues, getMaxSeverity } from '@/lib/severity';
 import { getWorkflowRunByType } from '@/lib/workflow-state';
 import { ChevronDownIcon, ChevronRightIcon } from 'lucide-react';
@@ -25,9 +24,7 @@ export interface ClaimAnalysisCardProps {
   claimIndex: number;
   totalClaims: number;
   chunkIndex: number;
-  projectId: string;
-  allWorkflowDetails: WorkflowRunDetail[];
-  issues: DocumentIssue[];
+  projectDetail: ProjectDetailed;
   readOnly?: boolean;
 }
 
@@ -36,46 +33,46 @@ export function ClaimAnalysisCard({
   claimIndex,
   totalClaims,
   chunkIndex,
-  projectId,
-  allWorkflowDetails,
-  issues,
+  projectDetail,
   readOnly = false,
 }: ClaimAnalysisCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
-  const { data: files } = useProjectFiles(projectId);
+  const workflowDetails = useMemo(() => projectDetail.workflow_runs ?? [], [projectDetail.workflow_runs]);
+  const issues = useMemo(() => projectDetail.issues ?? [], [projectDetail.issues]);
+  const files = useMemo(() => projectDetail.files ?? [], [projectDetail.files]);
 
   const documentProcessingDetail = useMemo(
-    () => getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.DocumentProcessing),
-    [allWorkflowDetails],
+    () => getWorkflowRunByType(workflowDetails, WorkflowRunType.DocumentProcessing),
+    [workflowDetails],
   );
   const claimReferenceValidationDetail = useMemo(
-    () => getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.ClaimReferenceValidation),
-    [allWorkflowDetails],
+    () => getWorkflowRunByType(workflowDetails, WorkflowRunType.ClaimReferenceValidation),
+    [workflowDetails],
   );
   const citationSuggesterDetail = useMemo(
-    () => getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.CitationSuggester),
-    [allWorkflowDetails],
+    () => getWorkflowRunByType(workflowDetails, WorkflowRunType.CitationSuggester),
+    [workflowDetails],
   );
   const liveReportsDetail = useMemo(
-    () => getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.LiveReports),
-    [allWorkflowDetails],
+    () => getWorkflowRunByType(workflowDetails, WorkflowRunType.LiveReports),
+    [workflowDetails],
   );
   const inferenceValidationDetail = useMemo(
-    () => getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.InferenceValidation),
-    [allWorkflowDetails],
+    () => getWorkflowRunByType(workflowDetails, WorkflowRunType.InferenceValidation),
+    [workflowDetails],
   );
   const claimExtractionDetail = useMemo(
-    () => getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.ClaimExtraction),
-    [allWorkflowDetails],
+    () => getWorkflowRunByType(workflowDetails, WorkflowRunType.ClaimExtraction),
+    [workflowDetails],
   );
   const referenceExtractionDetail = useMemo(
-    () => getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.ReferenceExtraction),
-    [allWorkflowDetails],
+    () => getWorkflowRunByType(workflowDetails, WorkflowRunType.ReferenceExtraction),
+    [workflowDetails],
   );
   const referenceFileMatchingDetail = useMemo(
-    () => getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.ReferenceFileMatching),
-    [allWorkflowDetails],
+    () => getWorkflowRunByType(workflowDetails, WorkflowRunType.ReferenceFileMatching),
+    [workflowDetails],
   );
 
   const claimCategory = claimExtractionDetail?.state?.claim_categories?.find(

@@ -131,7 +131,7 @@ export function StepAnalyses() {
 
       {/* Workflow Type Selection */}
       <WorkflowTypeSelector
-        workflowTypes={workflowTypes}
+        workflowTypes={workflowTypes?.filter((wt) => !wt.is_internal && wt.can_be_triggered_by_user)}
         selectedTypes={selectedWorkflowTypes}
         onSelectionChange={setSelectedWorkflowTypes}
         headerDescription="Select which types of analyses to perform"

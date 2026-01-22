@@ -36,7 +36,6 @@ export function ResultsVisualization({
   onTitleSave,
   isTitleSaving = false,
 }: ResultsVisualizationProps) {
-  const projectId = projectDetail.project.id;
   const results = projectDetail.workflow_runs ?? [];
 
   const documentProcessing = getWorkflowRunByType(results, WorkflowRunType.DocumentProcessing);
@@ -49,26 +48,24 @@ export function ResultsVisualization({
   const renderActiveTab = () => {
     switch (activeTab) {
       case 'summary':
-        return <SummaryTab allWorkflowDetails={results} />;
+        return <SummaryTab projectDetail={projectDetail} />;
       case 'files':
-        return <FilesTab projectId={projectId} allWorkflowDetails={results} />;
+        return <FilesTab projectDetail={projectDetail} />;
       case 'document-explorer':
         return (
           <DocumentExplorerTab
-            projectId={projectId}
-            allWorkflowDetails={results}
-            issues={projectDetail.issues ?? []}
+            projectDetail={projectDetail}
             viewMode={viewMode}
             readOnly={readOnly}
             onNavigateToAnalyses={() => setActiveTab('analyses')}
           />
         );
       case 'references':
-        return <ReferenceReviewTab projectId={projectId} allWorkflowDetails={results} readOnly={readOnly} />;
+        return <ReferenceReviewTab projectDetail={projectDetail} readOnly={readOnly} />;
       case 'analyses':
         return (
           <AnalysesTab
-            project={projectDetail}
+            projectDetail={projectDetail}
             readOnly={readOnly}
             onNavigateToDocumentExplorer={() => setActiveTab('document-explorer')}
             onNavigateToReferences={() => setActiveTab('references')}
@@ -121,7 +118,7 @@ export function ResultsVisualization({
             <TabsTrigger value="files">
               Files{' '}
               <Badge className="rounded-full h-4.5 min-w-4.5" variant="secondary">
-                {projectDetail.files_count}
+                {projectDetail.files?.length ?? 0}
               </Badge>
             </TabsTrigger>
             <TabsTrigger value="analyses">

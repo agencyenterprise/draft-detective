@@ -13,8 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useDownloadAllProjectFiles } from '@/hooks/use-download-all-project-files';
 import { buildReferenceByFileIdMap, composeReferences } from '@/lib/composed-references';
-import { File, FileRole, WorkflowRunDetail, WorkflowRunType } from '@/lib/generated-api';
-import { useProjectFiles } from '@/lib/hooks/use-project-files';
+import { FileListItem, FileRole, ProjectDetailed, WorkflowRunType } from '@/lib/generated-api';
 import { cn } from '@/lib/utils';
 import { getWorkflowRunByType } from '@/lib/workflow-state';
 import { Download, FileText, HelpCircle, Loader2, MoreVerticalIcon, Pencil, Search, Trash2 } from 'lucide-react';
@@ -22,8 +21,7 @@ import Link from 'next/link';
 import { useMemo, useState } from 'react';
 
 interface FilesTabProps {
-  projectId: string;
-  allWorkflowDetails: WorkflowRunDetail[];
+  projectDetail: ProjectDetailed;
 }
 
 function FileTypeIcon({ fileType }: { fileType?: string | null }) {
@@ -61,7 +59,7 @@ function ExpandableCell({ children, className }: { children: React.ReactNode; cl
   );
 }
 
-function FileNameLink({ file }: { file: File }) {
+function FileNameLink({ file }: { file: FileListItem }) {
   if (!file.id) {
     return (
       <div className="flex items-center gap-2">
@@ -83,13 +81,15 @@ function FileNameLink({ file }: { file: File }) {
   );
 }
 
-export function FilesTab({ projectId, allWorkflowDetails }: FilesTabProps) {
+export function FilesTab({ projectDetail }: FilesTabProps) {
+  const projectId = projectDetail.project.id;
+  const files = useMemo(() => projectDetail.files ?? [], [projectDetail.files]);
+  const workflowDetails = useMemo(() => projectDetail.workflow_runs ?? [], [projectDetail.workflow_runs]);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const referenceExtraction = getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.ReferenceExtraction);
-  const referenceFileMatching = getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.ReferenceFileMatching);
+  const referenceExtraction = getWorkflowRunByType(workflowDetails, WorkflowRunType.ReferenceExtraction);
+  const referenceFileMatching = getWorkflowRunByType(workflowDetails, WorkflowRunType.ReferenceFileMatching);
 
-  const { data: files } = useProjectFiles(projectId);
   const { downloadAll, isDownloading } = useDownloadAllProjectFiles(projectId);
 
   // Compose references from extraction and file matching states

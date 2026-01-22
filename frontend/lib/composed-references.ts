@@ -8,7 +8,7 @@
  * This module provides utilities to compose them into a unified view.
  */
 
-import { ExtractedReference, File, ReferenceFileMatch } from './generated-api';
+import { ExtractedReference, FileListItem, ReferenceFileMatch } from './generated-api';
 
 /**
  * A composed reference combining extraction and file matching data.
@@ -34,7 +34,7 @@ export interface ComposedReference {
 export function composeReferences(
   extractedRefs: ExtractedReference[] | undefined,
   matches: ReferenceFileMatch[] | undefined,
-  files: File[] | undefined,
+  files: FileListItem[] | undefined,
 ): ComposedReference[] {
   if (!extractedRefs || extractedRefs.length === 0) {
     return [];
@@ -48,7 +48,7 @@ export function composeReferences(
     }
   }
 
-  const fileById = new Map<string, File>();
+  const fileById = new Map<string, FileListItem>();
   const fileIndexById = new Map<string, number>();
   if (files) {
     files.forEach((file, index) => {

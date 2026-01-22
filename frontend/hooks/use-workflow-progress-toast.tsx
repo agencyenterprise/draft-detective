@@ -11,7 +11,7 @@ import {
 } from '@/components/workflows/workflow-progress-toast-content';
 import { useShare } from '@/context/share-context';
 
-const REFETCH_INTERVAL_MS = 2000;
+const REFETCH_INTERVAL_MS = 3000;
 const TOAST_ID = 'workflow-progress';
 
 export function useWorkflowProgressToast(projectId: string, enabled: boolean = true) {

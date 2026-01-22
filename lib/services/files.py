@@ -6,12 +6,12 @@ import zipfile
 from typing import List, Optional, Sequence, Tuple
 
 from fastapi import HTTPException
-from sqlalchemy import or_, func
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from lib.config.database import get_db
 from lib.config.env import config
-from lib.models.file import File, FileRole
+from lib.models.file import File, FileListItem, FileRole
 from lib.services.file import FileDocument, create_file_document_from_path
 
 logger = logging.getLogger(__name__)
@@ -115,14 +115,17 @@ async def get_files_by_project_id(project_id: uuid.UUID | str) -> List[File]:
         return files
 
 
-async def get_files_count_by_project_id(project_id: uuid.UUID | str) -> int:
+async def get_project_files_list_items(
+    project_id: uuid.UUID | str,
+) -> List[FileListItem]:
     """
-    Get the number of files by project ID.
+    Get files for a project as lightweight list items (excludes markdown and summary).
     """
     project_id = _normalize_uuid(project_id, "project ID")
     with get_db() as db:
-        count = db.query(func.count()).filter(File.project_id == project_id).scalar()
-        return count
+        stmt = select(File).where(File.project_id == project_id)
+        files = db.execute(stmt).scalars().all()
+        return [FileListItem.model_validate(f, from_attributes=True) for f in files]
 
 
 async def get_supporting_candidate_files(project_id: uuid.UUID | str) -> List[File]:

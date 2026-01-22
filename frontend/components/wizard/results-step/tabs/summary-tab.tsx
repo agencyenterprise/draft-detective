@@ -1,20 +1,21 @@
 'use client';
 
-import { WorkflowRunDetail, WorkflowRunStatus, WorkflowRunType } from '@/lib/generated-api';
+import { ProjectDetailed, WorkflowRunStatus, WorkflowRunType } from '@/lib/generated-api';
 import { getWorkflowRunByType } from '@/lib/workflow-state';
 import { SummaryCards } from '../components/summary-cards';
 import { useResultsCalculations } from '../hooks/use-results-calculations';
 
 interface SummaryTabProps {
-  allWorkflowDetails: WorkflowRunDetail[];
+  projectDetail: ProjectDetailed;
 }
 
-export function SummaryTab({ allWorkflowDetails }: SummaryTabProps) {
-  const documentProcessing = getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.DocumentProcessing);
-  const referenceExtraction = getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.ReferenceExtraction);
-  const referenceFileMatching = getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.ReferenceFileMatching);
-  const claimExtraction = getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.ClaimExtraction);
-  const citationDetection = getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.CitationDetection);
+export function SummaryTab({ projectDetail }: SummaryTabProps) {
+  const workflowDetails = projectDetail.workflow_runs ?? [];
+  const documentProcessing = getWorkflowRunByType(workflowDetails, WorkflowRunType.DocumentProcessing);
+  const referenceExtraction = getWorkflowRunByType(workflowDetails, WorkflowRunType.ReferenceExtraction);
+  const claimExtraction = getWorkflowRunByType(workflowDetails, WorkflowRunType.ClaimExtraction);
+  const citationDetection = getWorkflowRunByType(workflowDetails, WorkflowRunType.CitationDetection);
+  const referenceFileMatching = getWorkflowRunByType(workflowDetails, WorkflowRunType.ReferenceFileMatching);
 
   const isProcessing = documentProcessing?.run.status !== WorkflowRunStatus.Completed;
 

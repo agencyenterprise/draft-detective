@@ -88,11 +88,15 @@ async def list_projects_endpoint(current_user: User = Depends(get_current_user))
 async def get_project_endpoint(
     project_id: str,
     include_internal: bool = False,
-    current_user: User = Depends(get_current_user),
+    share_token: Optional[str] = Query(
+        default=None,
+        description="Share token to get project details",
+    ),
+    current_user: Optional[User] = Depends(get_current_user_optional),
 ):
     """Get a project by ID. Set include_internal=true to see internal workflows."""
 
-    project = await get_user_project(project_id, user=current_user)
+    project = await check_project_access(project_id, current_user, share_token)
     project_detailed = await get_project_detailed_from_project(
         project, include_internal=include_internal
     )
@@ -132,7 +136,6 @@ async def add_files_to_project(
     """Add files (supporting documents) to an existing project."""
 
     project = await get_user_project(project_id, user=current_user)
-
     roles = [role] * len(files)
     return await save_uploaded_files_to_db(
         uploaded_files=files,

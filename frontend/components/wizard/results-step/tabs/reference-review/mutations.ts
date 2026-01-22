@@ -10,7 +10,6 @@ import { toast } from 'sonner';
 function createOnSuccess(queryClient: QueryClient, projectId: string, message: string) {
   return () => {
     queryClient.invalidateQueries({ queryKey: ['project', projectId] });
-    queryClient.invalidateQueries({ queryKey: ['files', projectId] });
     toast.success(message);
   };
 }

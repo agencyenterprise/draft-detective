@@ -58,6 +58,14 @@ const projectDetailedSchemaResponseTransformer = (data: any) => {
   if (data.workflow_runs) {
     data.workflow_runs = data.workflow_runs.map((item: any) => workflowRunDetailSchemaResponseTransformer(item));
   }
+  if (data.files) {
+    data.files = data.files.map((item: any) => fileListItemSchemaResponseTransformer(item));
+  }
+  return data;
+};
+
+const fileListItemSchemaResponseTransformer = (data: any) => {
+  data.created_at = new Date(data.created_at);
   return data;
 };
 

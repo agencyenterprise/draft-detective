@@ -5,6 +5,7 @@ import { useCallback } from 'react';
 export function useWorkflowTypes() {
   const query = useQuery({
     queryKey: ['workflow-types'],
+    staleTime: Infinity,
     queryFn: async () => {
       return await getWorkflowTypesApiWorkflowTypesGet();
     },
