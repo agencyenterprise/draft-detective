@@ -6,7 +6,7 @@ from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus
 from lib.services.workflow_runs import (
     get_project_workflow_run_by_type,
     get_workflow_run_state_by_thread_id,
-    upsert_workflow_run,
+    create_workflow_run,
 )
 from lib.workflows.checkpointer import get_checkpointer
 from lib.workflows.models import WorkflowRunType
@@ -96,11 +96,11 @@ async def _get_file_matching_workflow_state(
     # Create workflow run if it doesn't exist
     if run is None:
         thread_id = str(uuid.uuid4())
-        await upsert_workflow_run(
-            thread_id=thread_id,
+        await create_workflow_run(
             project_id=project_id,
             status=WorkflowRunStatus.COMPLETED,
             type=WorkflowRunType.REFERENCE_FILE_MATCHING,
+            thread_id=thread_id,
         )
 
         # Persist the default state to the checkpointer
