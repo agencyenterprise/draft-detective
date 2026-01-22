@@ -1,12 +1,19 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useWizard, PreflightStatus } from './wizard-context';
 import { usePreflight } from '@/lib/hooks/use-preflight';
 import { useSessionStorage } from '@/lib/hooks/use-session-storage';
-import { projectService } from '@/lib/services/project-service';
 import { MAX_FILE_SIZE_BYTES } from '@/lib/constants';
-import { startMultipleWorkflowsApiWorkflowsStartMultiplePost, WorkflowRunType } from '@/lib/generated-api';
+import {
+  createProjectEndpointApiProjectsPost,
+  startMultipleWorkflowsApiWorkflowsStartMultiplePost,
+  WorkflowRunType,
+} from '@/lib/generated-api';
+
+// Pure validation function - moved outside hook to avoid recreation on each render
+const validateDocument = (file: File | null): PreflightStatus =>
+  !file ? 'idle' : file.size <= MAX_FILE_SIZE_BYTES ? 'valid' : 'invalid';
 
 export function useStepUpload(onComplete: () => void) {
   const wizard = useWizard();
@@ -17,11 +24,7 @@ export function useStepUpload(onComplete: () => void) {
   const hideApiKeyInput = process.env.NEXT_PUBLIC_HIDE_CUSTOM_OPENAI_API_KEY_INPUT === 'true';
   const apiKey = wizard.openaiApiKey || storedApiKey;
 
-  // Validation
-  const validateDocument = (file: File | null): PreflightStatus =>
-    !file ? 'idle' : file.size <= MAX_FILE_SIZE_BYTES ? 'valid' : 'invalid';
-
-  const runApiKeyValidation = async (): Promise<boolean> => {
+  const runApiKeyValidation = useCallback(async (): Promise<boolean> => {
     if (hideApiKeyInput) {
       wizard.setPreflightStatus({ apiKey: 'valid' });
       return true;
@@ -38,18 +41,18 @@ export function useStepUpload(onComplete: () => void) {
     });
     wizard.setPreflightStatus({ apiKey: isValid ? 'valid' : 'invalid' });
     return isValid;
-  };
+  }, [hideApiKeyInput, apiKey, wizard.mainDocument, wizard.setPreflightStatus, runPreflight]);
 
   // Auto-validate on changes
   useEffect(() => {
     wizard.setPreflightStatus({ format: validateDocument(wizard.mainDocument) });
-  }, [wizard.mainDocument]);
+  }, [wizard.mainDocument, wizard.setPreflightStatus]);
 
   useEffect(() => {
     if (wizard.mainDocument && apiKey?.length >= 10 && wizard.preflightStatus.apiKey === 'idle') {
       runApiKeyValidation();
     }
-  }, [wizard.mainDocument, apiKey, wizard.preflightStatus.apiKey]);
+  }, [wizard.mainDocument, apiKey, wizard.preflightStatus.apiKey, runApiKeyValidation]);
 
   // Project creation and document processing
   const createProjectAndProcess = useMutation({
@@ -57,7 +60,9 @@ export function useStepUpload(onComplete: () => void) {
       if (!wizard.mainDocument) throw new Error('No document selected');
 
       // 1. Create the project
-      const projectResponse = await projectService.createProject(wizard.mainDocument, wizard.mainDocument.name);
+      const projectResponse = await createProjectEndpointApiProjectsPost({
+        body: { title: wizard.mainDocument.name, main_document: wizard.mainDocument },
+      });
 
       // 2. Start document processing immediately
       await startMultipleWorkflowsApiWorkflowsStartMultiplePost({

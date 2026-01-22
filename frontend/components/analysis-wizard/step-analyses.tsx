@@ -14,10 +14,10 @@ import { useSessionStorage } from '@/lib/hooks/use-session-storage';
 import { hasSupportingDocumentsRequirement } from '@/components/workflows/utils';
 import {
   WorkflowRunType,
+  addFilesToProjectApiProjectProjectIdFilesPost,
   startMultipleWorkflowsApiWorkflowsStartMultiplePost,
   updateProjectEndpointApiProjectProjectIdPatch,
 } from '@/lib/generated-api';
-import { projectService } from '@/lib/services/project-service';
 import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
@@ -42,7 +42,10 @@ export function StepAnalyses() {
 
       // 1. Upload supporting documents if any
       if (supportingDocuments.length > 0) {
-        await projectService.addFilesToProject(wizard.projectId, supportingDocuments);
+        await addFilesToProjectApiProjectProjectIdFilesPost({
+          path: { project_id: wizard.projectId },
+          body: { files: supportingDocuments, role: 'support' },
+        });
       }
 
       // 2. Update project metadata if domain or target audience is set

@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, ReactNode } from 'react';
+import { createContext, useContext, useState, useCallback, useMemo, ReactNode } from 'react';
 
 export type PreflightStatus = 'idle' | 'pending' | 'valid' | 'invalid';
 
@@ -39,28 +39,29 @@ export function WizardProvider({ children, initialApiKey = '', initialProjectId 
     format: initialProjectId ? 'valid' : 'idle',
   });
 
-  const setPreflightStatus = (status: Partial<WizardState['preflightStatus']>) => {
+  const setPreflightStatus = useCallback((status: Partial<WizardState['preflightStatus']>) => {
     setPreflightStatusState((prev) => ({ ...prev, ...status }));
-  };
+  }, []);
 
-  return (
-    <WizardContext.Provider
-      value={{
-        currentStep,
-        mainDocument,
-        openaiApiKey,
-        projectId,
-        preflightStatus,
-        setMainDocument,
-        setApiKey,
-        setProjectId,
-        setPreflightStatus,
-        nextStep: () => setCurrentStep(2),
-      }}
-    >
-      {children}
-    </WizardContext.Provider>
+  const nextStep = useCallback(() => setCurrentStep(2), []);
+
+  const value = useMemo(
+    () => ({
+      currentStep,
+      mainDocument,
+      openaiApiKey,
+      projectId,
+      preflightStatus,
+      setMainDocument,
+      setApiKey,
+      setProjectId,
+      setPreflightStatus,
+      nextStep,
+    }),
+    [currentStep, mainDocument, openaiApiKey, projectId, preflightStatus, setPreflightStatus, nextStep],
   );
+
+  return <WizardContext.Provider value={value}>{children}</WizardContext.Provider>;
 }
 
 export function useWizard() {

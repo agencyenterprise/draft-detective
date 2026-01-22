@@ -126,12 +126,12 @@ async def add_files_to_project(
 ):
     """Add files (supporting documents) to an existing project."""
 
-    await get_user_project_detailed(project_id, current_user)
+    project_detailed = await get_user_project_detailed(project_id, current_user)
 
     roles = [role] * len(files)
     return await save_uploaded_files_to_db(
         uploaded_files=files,
-        project_id=uuid.UUID(project_id),
+        project_id=project_detailed.project.id,
         user_id=current_user.id,
         roles=roles,
     )

@@ -3,12 +3,13 @@
 import { ResultsVisualization } from '@/components/wizard/results-step/results-visualization';
 import { useWorkflowProgressToast } from '@/hooks/use-workflow-progress-toast';
 import { DocRenderMode } from '@/lib/constants';
-import { ProjectDetailed, updateProjectEndpointApiProjectProjectIdPatch } from '@/lib/generated-api';
+import { ProjectDetailed, updateProjectEndpointApiProjectProjectIdPatch, WorkflowRunType } from '@/lib/generated-api';
 import { useProjectDetails } from '@/lib/hooks/use-project-details';
+import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { isAnyWorkflowProcessing, needsWizardCompletion } from '@/lib/workflow-state';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { toast } from 'sonner';
 
 export default function ResultsPage() {
@@ -24,16 +25,28 @@ export default function ResultsPage() {
   const [viewMode, setViewMode] = useState<DocRenderMode>('markdown');
 
   const { project, workflowDetails, isLoading, error } = useProjectDetails(projectId);
+  const { data: workflowTypes } = useWorkflowTypes();
 
   const isProcessing = isAnyWorkflowProcessing(workflowDetails);
+
+  // Build internal types set from API data
+  const internalTypes = useMemo(() => {
+    if (!workflowTypes) return new Set<WorkflowRunType>();
+    return new Set(workflowTypes.filter((wt) => wt.is_internal).map((wt) => wt.type));
+  }, [workflowTypes]);
 
   // Redirect to wizard step 2 if project only has document processing started
   // Skip if we just came from the wizard (workflows may not be in DB yet)
   useEffect(() => {
-    if (!fromWizard && !isLoading && workflowDetails.length > 0 && needsWizardCompletion(workflowDetails)) {
+    if (
+      !fromWizard &&
+      !isLoading &&
+      workflowDetails.length > 0 &&
+      needsWizardCompletion(workflowDetails, internalTypes)
+    ) {
       router.replace(`/new?projectId=${projectId}`);
     }
-  }, [fromWizard, isLoading, workflowDetails, projectId, router]);
+  }, [fromWizard, isLoading, workflowDetails, projectId, router, internalTypes]);
 
   // Show progress in toast when workflows are processing
   useWorkflowProgressToast(projectId, isProcessing);

@@ -139,11 +139,6 @@ export function getReferenceExtractionWarningStatus(workflowRuns: WorkflowRunDet
 }
 
 /**
- * Internal workflows that are dependencies and not user-triggered analyses
- */
-const INTERNAL_WORKFLOW_TYPES: Set<WorkflowRunType> = new Set([WorkflowRunType.DocumentProcessing]);
-
-/**
  * Checks if a project needs wizard completion (step 2).
  *
  * A project needs completion when:
@@ -151,12 +146,15 @@ const INTERNAL_WORKFLOW_TYPES: Set<WorkflowRunType> = new Set([WorkflowRunType.D
  * - It has NO other user-visible analysis workflows started
  *
  * This indicates the user created a project in step 1 but didn't complete step 2.
+ *
+ * @param workflowRuns - The workflow runs to check
+ * @param internalTypes - Set of workflow types that are internal (from API)
  */
-export function needsWizardCompletion(workflowRuns: WorkflowRunDetail[]): boolean {
+export function needsWizardCompletion(workflowRuns: WorkflowRunDetail[], internalTypes: Set<WorkflowRunType>): boolean {
   if (workflowRuns.length === 0) return false;
 
   const hasDocProcessing = workflowRuns.some((w) => w.run.type === WorkflowRunType.DocumentProcessing);
-  const hasUserWorkflows = workflowRuns.some((w) => !INTERNAL_WORKFLOW_TYPES.has(w.run.type));
+  const hasUserWorkflows = workflowRuns.some((w) => !internalTypes.has(w.run.type));
 
   return hasDocProcessing && !hasUserWorkflows;
 }
