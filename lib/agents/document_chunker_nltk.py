@@ -20,6 +20,10 @@ from langchain_core.runnables.config import RunnableConfig
 
 from langchain_text_splitters import MarkdownHeaderTextSplitter
 
+from lib.run_utils import MAX_CONCURRENT_TASKS
+
+semaphore = asyncio.Semaphore(MAX_CONCURRENT_TASKS)
+
 logger = logging.getLogger(__name__)
 
 # Download required NLTK data
@@ -239,6 +243,24 @@ async def split_paragraph_into_sentences(
     return result
 
 
+async def process_paragraph(
+    paragraph_text: str, section_headings_list: List[str], context: ContextSchema
+) -> Optional[Paragraph]:
+    if not paragraph_text.strip():
+        return None
+
+    async with semaphore:
+        sentences = await split_paragraph_into_sentences(
+            paragraph_text, context=context
+        )
+
+    return (
+        Paragraph(chunks=sentences, headings=section_headings_list)
+        if sentences
+        else None
+    )
+
+
 class DocumentChunkerAgent(BaseAgent):
     name = "Document Chunker (NLTK)"
     description = "Chunk a document into paragraphs and each paragraph into sentence-level chunks using NLTK"
@@ -291,28 +313,10 @@ class DocumentChunkerAgent(BaseAgent):
             # Split document into paragraphs
             paragraphs = split_into_paragraphs(text_section.page_content)
 
-            from lib.run_utils import MAX_CONCURRENT_TASKS
-
-            semaphore = asyncio.Semaphore(MAX_CONCURRENT_TASKS)
-
-            async def process_paragraph(
-                paragraph_text: str, section_headings_list: List[str]
-            ) -> Optional[Paragraph]:
-                if not paragraph_text.strip():
-                    return None
-
-                async with semaphore:
-                    sentences = await split_paragraph_into_sentences(
-                        paragraph_text, context=self.context
-                    )
-
-                return (
-                    Paragraph(chunks=sentences, headings=section_headings_list)
-                    if sentences
-                    else None
-                )
-
-            tasks = [process_paragraph(p, section_headings_list) for p in paragraphs]
+            tasks = [
+                process_paragraph(p, section_headings_list, self.context)
+                for p in paragraphs
+            ]
             results = await asyncio.gather(*tasks)
 
             paragraph_objects = [p for p in results if p is not None]
