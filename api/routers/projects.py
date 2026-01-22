@@ -14,7 +14,7 @@ from lib.models.file import File, FileRole
 from lib.models.project import Project
 from lib.models.user import User
 from lib.services.docx_workflow_service import get_or_generate_docx
-from lib.services.files import create_project_files_zip
+from lib.services.files import create_project_files_zip, delete_project_files
 from lib.services.projects import (
     ProjectDetailed,
     ProjectListItem,
@@ -27,6 +27,7 @@ from lib.services.projects import (
     get_user_projects,
     update_user_project,
 )
+from lib.services.references import add_file_to_reference, remove_file_from_references
 from lib.services.share_links import get_resource_by_token
 from lib.services.workflow_progress import get_project_workflow_progress
 
@@ -165,6 +166,82 @@ async def list_project_files_endpoint(
 
     await check_project_access(project_id, current_user, share_token)
     return await get_project_files(project_id)
+
+
+@router.post(
+    "/api/project/{project_id}/files",
+    response_model=File,
+    status_code=status.HTTP_201_CREATED,
+)
+async def upload_project_file_endpoint(
+    project_id: str,
+    file: UploadFile = FastAPIUploadFile(...),
+    reference_index: Optional[int] = Form(default=None),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Upload a supporting file to a project.
+
+    Optionally link the file to a specific reference by providing reference_index
+    (0-based index of the reference in the ReferenceExtraction workflow state).
+    """
+
+    # Verify project access (user must be authenticated owner)
+    project_detail = await get_user_project_detailed(project_id, user=current_user)
+
+    try:
+        # Save the uploaded file with SUPPORT role
+        file_records = await save_uploaded_files_to_db(
+            uploaded_files=[file],
+            project_id=project_detail.project.id,
+            user_id=current_user.id,
+            roles=[FileRole.SUPPORT],
+        )
+
+        file_record = file_records[0]
+
+        # If reference_index is provided, link the file to that reference
+        if reference_index is not None:
+            await add_file_to_reference(
+                project_id=project_id,
+                file_id=str(file_record.id),
+                file_name=file_record.file_name,
+                reference_index=reference_index,
+            )
+
+        return file_record
+
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error("Failed to upload file: %s", e, exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to upload file",
+        )
+
+
+@router.delete("/api/project/{project_id}/files/{file_id}")
+async def delete_project_file_endpoint(
+    project_id: str,
+    file_id: str,
+    current_user: User = Depends(get_current_user),
+):
+    """Delete a file from a project and unlink it from any references."""
+
+    # Verify project access (user must be authenticated owner)
+    await get_user_project_detailed(project_id, user=current_user)
+
+    # Delete the file from the project
+    deleted_count = delete_project_files(project_id, target_file_ids=[file_id])
+
+    if deleted_count == 0:
+        raise HTTPException(status_code=404, detail="File not found in project")
+
+    # Update workflow state to remove file_id from references
+    await remove_file_from_references(project_id, file_id)
+
+    return {"message": "File deleted successfully", "file_id": file_id}
 
 
 @router.get("/api/project/{project_id}/files/download-all")

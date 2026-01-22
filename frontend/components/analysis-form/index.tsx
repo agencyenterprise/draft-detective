@@ -127,7 +127,7 @@ export function AnalysisForm({ onSubmit, isPending = false, error }: AnalysisFor
       >
         {(field) => (
           <WorkflowTypeSelector
-            workflowTypes={workflowTypes}
+            workflowTypes={workflowTypes?.filter((wt) => wt.can_be_triggered_by_user && !wt.is_internal)}
             selectedTypes={field.state.value}
             onSelectionChange={field.handleChange}
             disabled={isPending}
