@@ -152,17 +152,21 @@ export function StepAnalyses() {
       )}
 
       {/* Domain and Target Audience */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="domain">
             Domain <span className="text-muted-foreground text-xs font-normal">(Optional)</span>
           </Label>
           <Input
             id="domain"
-            placeholder="e.g., Policy research, Healthcare..."
+            placeholder="e.g., Healthcare, Technology, Finance..."
             value={domain}
             onChange={(e) => setDomain(e.target.value)}
           />
+          <p className="text-sm text-muted-foreground">
+            The subject area or field of expertise to contextualize the analysis. This helps tailor the evaluation to
+            domain-specific standards and terminology.
+          </p>
         </div>
         <div className="space-y-2">
           <Label htmlFor="target-audience">
@@ -170,10 +174,14 @@ export function StepAnalyses() {
           </Label>
           <Input
             id="target-audience"
-            placeholder="e.g., Policy makers, General public..."
+            placeholder="e.g., General public, Experts, Students..."
             value={targetAudience}
             onChange={(e) => setTargetAudience(e.target.value)}
           />
+          <p className="text-sm text-muted-foreground">
+            The intended readers of the document. Specifying the audience helps adjust the analysis to match appropriate
+            complexity level and expectations.
+          </p>
         </div>
       </div>
 
