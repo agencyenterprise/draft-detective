@@ -23,6 +23,7 @@ import {
   useFetchFromWebMutation,
 } from './mutations';
 import { ReferenceReviewItem, ReferenceReviewStatus } from './types';
+import { ValidationResultsBox } from './validation-results-box';
 
 function MatchStatusBadge({ status }: { status: ReferenceReviewStatus }) {
   const statusConfig = {
@@ -64,7 +65,7 @@ export interface ReferenceCardProps {
 }
 
 export function ReferenceCard({ reference, projectId, readOnly }: ReferenceCardProps) {
-  const { index, text, status, matchedFile, fetchResult } = reference;
+  const { index, text, status, matchedFile, fetchResult, validation } = reference;
 
   const uploadFileMutation = useUploadFileMutation(projectId, index);
   const removeFileMutation = useRemoveFileMutation(projectId, matchedFile?.id);
@@ -174,6 +175,9 @@ export function ReferenceCard({ reference, projectId, readOnly }: ReferenceCardP
 
           {/* Fetch Results Box */}
           {fetchResult && <FetchResultsBox fetchResult={fetchResult} />}
+
+          {/* Validation Results Box */}
+          {validation && <ValidationResultsBox validation={validation} />}
         </div>
       </div>
     </div>
