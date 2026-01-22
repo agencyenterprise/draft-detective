@@ -299,7 +299,6 @@ class DocumentChunkerAgent(BaseAgent):
 
         paragraphs_objects_list = []
         for text_section in md_header_splits:
-            # restoring blank lines by replacing tag
 
             section_headings_list = []
             if text_section.metadata:
@@ -309,6 +308,8 @@ class DocumentChunkerAgent(BaseAgent):
                 )
                 for _, heading_value in sorted_metadata:
                     section_headings_list.append(heading_value)
+
+            print("Text section: ", text_section.page_content)
 
             # Split document into paragraphs
             paragraphs = split_into_paragraphs(text_section.page_content)
