@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 def create_agent_with_model(
     base_agent: BaseAgent,
-    model: LLMModel,
+    model: Optional[LLMModel] = None,
     temperature: Optional[float] = None,
     timeout: Optional[int] = None,
 ) -> BaseAgent:
@@ -55,7 +55,7 @@ def create_agent_with_model(
         new_agent._client = None
 
     logger.debug(
-        f"Created agent variant: {new_agent.name} with model={model.model_name}, "
+        f"Created agent variant: {new_agent.name} with model={model.model_name if model else None}, "
         f"temperature={new_agent.temperature}, timeout={new_agent.timeout}"
     )
 

@@ -8,7 +8,11 @@ from lib.agents.claim_extractor import (
     ClaimResponse,
     ClaimExtractorAgent,
 )
-from lib.agents.formatting_utils import format_domain_context, format_audience_context
+from lib.agents.formatting_utils import (
+    format_domain_context,
+    format_audience_context,
+    format_headings_context,
+)
 from tests.conftest import (
     create_test_file_document_from_path,
     data_path,
@@ -44,6 +48,7 @@ def _build_cases() -> list[AgentTestCase]:
 
         domain = test_case.input.get("domain")
         target_audience = test_case.input.get("target_audience")
+        headings_context = test_case.input.get("headings")
         chunk = test_case.input["chunk"]
         paragraph = extract_paragraph_from_chunk(main_doc.markdown, chunk)
 
@@ -61,6 +66,7 @@ def _build_cases() -> list[AgentTestCase]:
                     "chunk": chunk,
                     "domain_context": format_domain_context(domain),
                     "audience_context": format_audience_context(target_audience),
+                    "headings_context": format_headings_context(headings_context),
                     # Store document for lazy generation
                     "_main_doc_markdown": (
                         main_doc.markdown if not summarized_argument else None

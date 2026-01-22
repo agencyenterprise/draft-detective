@@ -72,6 +72,7 @@ You must extract and return:
 - The **authors** (if available).
 - The **publication date** (if available).
 - The **abstract** (if available; otherwise return 'Unknown').
+- Use at least fourth level headings (####) to structure the summary.
 - A field called **summary** that is a **coherent, self-contained miniature version** of the document, approximately 900–1100 words, which:
 
   - States the central question or problem.

@@ -87,6 +87,7 @@ Important rules:
 - Each fact-checker will only have access to one claim - they will not have access to the paragraph and other claims
 - Do not classify something as a claim if it cannot be decontextualized (i.e., it cannot be understood or verified in isolation without additional context from the document)
 - If there are no specific claims in the chunk of text, return an empty list of claims.
+- Do NOT extract claims from sections that are about the document itself. This means don't extract claims concerning funding, acknowledgments, or the "about" section of the report. Only extract from the main analysis content. Use the headings context to determine the section of the chunk. 
 
 ### Output Structure
 
@@ -108,7 +109,15 @@ Within the list of claims, you must include the following information for each c
 {audience_context}
 
 ## Summarized Argument
+```
 {summarized_argument}
+```
+
+## Document Section Context
+The following headings provide context about which section of the document this chunk belongs to:
+```
+{headings_context}
+```
 
 ## The paragraph of the original document that contains the chunk of text that we want to analyze
 ```
