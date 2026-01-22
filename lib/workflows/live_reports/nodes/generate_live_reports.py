@@ -1,4 +1,5 @@
 from datetime import date
+from lib.agents.formatting_utils import format_domain_context, format_audience_context
 import logging
 from typing import List
 
@@ -127,8 +128,10 @@ async def _analyze_chunk_live_reports(
                     if state.config.publication_date
                     else date.today().isoformat()
                 ),
-                "domain_context": state.config.domain or "",
-                "audience_context": state.config.target_audience or "",
+                "domain_context": format_domain_context(state.config.domain),
+                "audience_context": format_audience_context(
+                    state.config.target_audience
+                ),
                 "bibliography": references,
             }
         )
@@ -148,8 +151,10 @@ async def _analyze_chunk_live_reports(
                 ),
                 "chunk": chunk.content,
                 "claim": claim.claim,
-                "domain_context": state.config.domain or "",
-                "audience_context": state.config.target_audience or "",
+                "domain_context": format_domain_context(state.config.domain),
+                "audience_context": format_audience_context(
+                    state.config.target_audience
+                ),
                 "newer_references": literature_review_result.newer_references,
                 "evidence_summary": literature_review_result.references_summary,
             }

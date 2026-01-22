@@ -101,8 +101,7 @@ Within the list of claims, you must include the following information for each c
 - central: Whether the claim is central to the argument of the document
 - centrality_rationale: The rationale for why you think the claim is central or is not central to the argument of the document. 
 
-
-### Agent Inputs
+# Agent Inputs
 
 {domain_context}
 

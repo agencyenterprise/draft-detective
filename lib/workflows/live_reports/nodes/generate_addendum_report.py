@@ -5,6 +5,7 @@ from typing import Any, Dict, List
 from langgraph.runtime import Runtime
 
 from lib.agents.addendum_report_generator import AddendumReportGeneratorAgent
+from lib.agents.formatting_utils import format_domain_context, format_audience_context
 from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
 from lib.workflows.live_reports.state import LiveReportsState
@@ -67,8 +68,8 @@ async def generate_addendum_report(
         return {}
 
     prompt_kwargs = {
-        "domain_context": state.config.domain or "",
-        "audience_context": state.config.target_audience or "",
+        "domain_context": format_domain_context(state.config.domain),
+        "audience_context": format_audience_context(state.config.target_audience),
         "document_title": document_summary.title if document_summary else "",
         "document_summary": document_summary.summary if document_summary else "",
         "records_json": json.dumps(records, default=str),
