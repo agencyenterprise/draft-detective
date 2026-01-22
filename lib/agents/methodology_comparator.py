@@ -125,10 +125,6 @@ Format your response using the following markdown structure:
 
 [Include the full extracted methodology from the paper here. This should be a complete restatement or copy of the methodology provided in the input. Present it clearly and comprehensively so readers understand exactly what methodology was used in the paper before seeing the comparison.]
 
-Taken from the extracted methodology:
-
-{extracted_methodology}
-
 ## Field Methods Overview
 
 [Brief overview of standard practices in the field, based on web search findings. Describe typical data sources, experimental setups, analytical techniques, and evaluation practices used in the broader field.]

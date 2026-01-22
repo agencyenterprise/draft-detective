@@ -248,6 +248,20 @@ export type BodyStartAnalysisApiStartAnalysisPost = {
 };
 
 /**
+ * Body_upload_project_file_endpoint_api_project__project_id__files_post
+ */
+export type BodyUploadProjectFileEndpointApiProjectProjectIdFilesPost = {
+  /**
+   * File
+   */
+  file: Blob | File;
+  /**
+   * Reference Index
+   */
+  reference_index?: number | null;
+};
+
+/**
  * ChunkEvalPackageRequest
  *
  * Request model for generating chunk-specific eval packages.
@@ -579,6 +593,12 @@ export type Claim = {
    * Whether the claim is central to the argument of the document
    */
   central: boolean;
+  /**
+   * Centrality Rationale
+   *
+   * The rationale for why you think the claim is central or is not central to the argument of the document
+   */
+  centrality_rationale?: string | null;
 };
 
 /**
@@ -2463,6 +2483,26 @@ export const ReferenceDirection = {
 export type ReferenceDirection = (typeof ReferenceDirection)[keyof typeof ReferenceDirection];
 
 /**
+ * ReferenceDownloaderInputItem
+ *
+ * Input item for the reference downloader workflow
+ */
+export type ReferenceDownloaderInputItem = {
+  /**
+   * Index
+   *
+   * The index of the reference from the reference extraction workflow
+   */
+  index: number;
+  /**
+   * Text
+   *
+   * The text of the reference to fetch from the internet
+   */
+  text: string;
+};
+
+/**
  * ReferenceDownloaderState
  *
  * State for the reference downloader workflow
@@ -2535,7 +2575,7 @@ export type ReferenceDownloaderWorkflowConfig = {
    *
    * The references to fetch from the internet
    */
-  references: Array<string>;
+  references: Array<ReferenceDownloaderInputItem>;
 };
 
 /**
@@ -4450,8 +4490,8 @@ export type ListProjectFilesEndpointApiProjectProjectIdFilesGetResponses = {
 export type ListProjectFilesEndpointApiProjectProjectIdFilesGetResponse =
   ListProjectFilesEndpointApiProjectProjectIdFilesGetResponses[keyof ListProjectFilesEndpointApiProjectProjectIdFilesGetResponses];
 
-export type AddFilesToProjectApiProjectProjectIdFilesPostData = {
-  body: BodyAddFilesToProjectApiProjectProjectIdFilesPost;
+export type UploadProjectFileEndpointApiProjectProjectIdFilesPostData = {
+  body: BodyUploadProjectFileEndpointApiProjectProjectIdFilesPost;
   path: {
     /**
      * Project Id
@@ -4462,27 +4502,25 @@ export type AddFilesToProjectApiProjectProjectIdFilesPostData = {
   url: '/api/project/{project_id}/files';
 };
 
-export type AddFilesToProjectApiProjectProjectIdFilesPostErrors = {
+export type UploadProjectFileEndpointApiProjectProjectIdFilesPostErrors = {
   /**
    * Validation Error
    */
   422: HttpValidationError;
 };
 
-export type AddFilesToProjectApiProjectProjectIdFilesPostError =
-  AddFilesToProjectApiProjectProjectIdFilesPostErrors[keyof AddFilesToProjectApiProjectProjectIdFilesPostErrors];
+export type UploadProjectFileEndpointApiProjectProjectIdFilesPostError =
+  UploadProjectFileEndpointApiProjectProjectIdFilesPostErrors[keyof UploadProjectFileEndpointApiProjectProjectIdFilesPostErrors];
 
-export type AddFilesToProjectApiProjectProjectIdFilesPostResponses = {
+export type UploadProjectFileEndpointApiProjectProjectIdFilesPostResponses = {
   /**
-   * Response Add Files To Project Api Project  Project Id  Files Post
-   *
    * Successful Response
    */
-  201: Array<File>;
+  201: File;
 };
 
-export type AddFilesToProjectApiProjectProjectIdFilesPostResponse =
-  AddFilesToProjectApiProjectProjectIdFilesPostResponses[keyof AddFilesToProjectApiProjectProjectIdFilesPostResponses];
+export type UploadProjectFileEndpointApiProjectProjectIdFilesPostResponse =
+  UploadProjectFileEndpointApiProjectProjectIdFilesPostResponses[keyof UploadProjectFileEndpointApiProjectProjectIdFilesPostResponses];
 
 export type DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetData = {
   body?: never;
@@ -4514,6 +4552,39 @@ export type DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetError =
   DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetErrors[keyof DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetErrors];
 
 export type DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetResponses = {
+  /**
+   * Successful Response
+   */
+  200: unknown;
+};
+
+export type DeleteProjectFileEndpointApiProjectProjectIdFilesFileIdDeleteData = {
+  body?: never;
+  path: {
+    /**
+     * Project Id
+     */
+    project_id: string;
+    /**
+     * File Id
+     */
+    file_id: string;
+  };
+  query?: never;
+  url: '/api/project/{project_id}/files/{file_id}';
+};
+
+export type DeleteProjectFileEndpointApiProjectProjectIdFilesFileIdDeleteErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type DeleteProjectFileEndpointApiProjectProjectIdFilesFileIdDeleteError =
+  DeleteProjectFileEndpointApiProjectProjectIdFilesFileIdDeleteErrors[keyof DeleteProjectFileEndpointApiProjectProjectIdFilesFileIdDeleteErrors];
+
+export type DeleteProjectFileEndpointApiProjectProjectIdFilesFileIdDeleteResponses = {
   /**
    * Successful Response
    */

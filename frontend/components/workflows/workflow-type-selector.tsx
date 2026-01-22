@@ -32,10 +32,8 @@ export function WorkflowTypeSelector({
 }: WorkflowTypeSelectorProps) {
   const [showExperimental, setShowExperimental] = useState(defaultShowExperimental);
 
-  const filteredWorkflowTypes = workflowTypes?.filter((wt) => wt.can_be_triggered_by_user && !wt.is_internal);
-
-  const regularWorkflows = filteredWorkflowTypes?.filter((wt) => !wt.is_experimental);
-  const experimentalWorkflows = filteredWorkflowTypes?.filter((wt) => wt.is_experimental);
+  const regularWorkflows = workflowTypes?.filter((wt) => !wt.is_experimental);
+  const experimentalWorkflows = workflowTypes?.filter((wt) => wt.is_experimental);
 
   // Only show experimental workflows if the feature flag is enabled
   const shouldShowExperimentalSection = featureFlags.showExperimentalFeatures;

@@ -15,19 +15,21 @@ from lib.models.file import File, FileRole
 from lib.models.project import Project
 from lib.models.user import User
 from lib.services.docx_workflow_service import get_or_generate_docx
-from lib.services.files import create_project_files_zip
+from lib.services.files import create_project_files_zip, delete_project_files
 from lib.services.projects import (
     ProjectDetailed,
     ProjectListItem,
     UpdateProjectRequest,
     create_project,
     delete_project,
+    get_project_detailed_from_project,
     get_project_files,
-    get_shared_project_detailed,
-    get_user_project_detailed,
+    get_shared_project,
+    get_user_project,
     get_user_projects,
     update_user_project,
 )
+from lib.services.references import add_file_to_reference, remove_file_from_references
 from lib.services.share_links import get_resource_by_token
 from lib.services.workflow_progress import get_project_workflow_progress
 
@@ -89,9 +91,12 @@ async def get_project_endpoint(
     current_user: User = Depends(get_current_user),
 ):
     """Get a project by ID. Set include_internal=true to see internal workflows."""
-    return await get_user_project_detailed(
-        project_id, user=current_user, include_internal=include_internal
+
+    project = await get_user_project(project_id, user=current_user)
+    project_detailed = await get_project_detailed_from_project(
+        project, include_internal=include_internal
     )
+    return project_detailed
 
 
 @router.patch("/api/project/{project_id}", response_model=Project)
@@ -192,6 +197,82 @@ async def list_project_files_endpoint(
     return await get_project_files(project_id)
 
 
+@router.post(
+    "/api/project/{project_id}/files",
+    response_model=File,
+    status_code=status.HTTP_201_CREATED,
+)
+async def upload_project_file_endpoint(
+    project_id: str,
+    file: UploadFile = FastAPIUploadFile(...),
+    reference_index: Optional[int] = Form(default=None),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Upload a supporting file to a project.
+
+    Optionally link the file to a specific reference by providing reference_index
+    (0-based index of the reference in the ReferenceExtraction workflow state).
+    """
+
+    # Verify project access (user must be authenticated owner)
+    project = await get_user_project(project_id, user=current_user)
+
+    try:
+        # Save the uploaded file with SUPPORT role
+        file_records = await save_uploaded_files_to_db(
+            uploaded_files=[file],
+            project_id=project.id,
+            user_id=current_user.id,
+            roles=[FileRole.SUPPORT],
+        )
+
+        file_record = file_records[0]
+
+        # If reference_index is provided, link the file to that reference
+        if reference_index is not None:
+            await add_file_to_reference(
+                project_id=project_id,
+                file_id=str(file_record.id),
+                file_name=file_record.file_name,
+                reference_index=reference_index,
+            )
+
+        return file_record
+
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error("Failed to upload file: %s", e, exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to upload file",
+        )
+
+
+@router.delete("/api/project/{project_id}/files/{file_id}")
+async def delete_project_file_endpoint(
+    project_id: str,
+    file_id: str,
+    current_user: User = Depends(get_current_user),
+):
+    """Delete a file from a project and unlink it from any references."""
+
+    # Verify project access (user must be authenticated owner)
+    project = await get_user_project(project_id, user=current_user)
+
+    # Delete the file from the project
+    deleted_count = delete_project_files(project.id, target_file_ids=[file_id])
+
+    if deleted_count == 0:
+        raise HTTPException(status_code=404, detail="File not found in project")
+
+    # Update workflow state to remove file_id from references
+    await remove_file_from_references(project_id, file_id)
+
+    return {"message": "File deleted successfully", "file_id": file_id}
+
+
 @router.get("/api/project/{project_id}/files/download-all")
 async def download_all_project_files(
     project_id: str,
@@ -208,13 +289,13 @@ async def download_all_project_files(
     """Download all project files as a ZIP archive"""
 
     # Verify project access
-    project_detail = await check_project_access(project_id, current_user, share_token)
+    project = await check_project_access(project_id, current_user, share_token)
 
     # Create zip file using service
     zip_buffer, _ = await create_project_files_zip(project_id, roles=roles)
 
     # Generate filename from project title
-    project_title = project_detail.project.title or "project"
+    project_title = project.title or "project"
 
     # Sanitize filename (remove invalid characters)
     safe_title = "".join(
@@ -247,8 +328,8 @@ async def get_project_workflow_progress_endpoint(
 ):
     """Get all workflow progress entries for a project."""
 
-    project_detail = await check_project_access(project_id, current_user, share_token)
-    progress_list = get_project_workflow_progress(project_detail.project.id)
+    project = await check_project_access(project_id, current_user, share_token)
+    progress_list = get_project_workflow_progress(project.id)
     return [WorkflowProgressResponse.model_validate(p) for p in progress_list]
 
 
@@ -256,15 +337,15 @@ async def check_project_access(
     project_id: str,
     current_user: Optional[User] = None,
     share_token: Optional[str] = None,
-) -> ProjectDetailed:
-    """Check if a user or share token gives access to a project. Raises HTTPException if access is denied. Returns the project detailed if access is granted."""
+) -> Project:
+    """Check if a user or share token gives access to a project. Raises HTTPException if access is denied. Returns the project if access is granted."""
 
     if share_token:
         share_link = await get_resource_by_token(share_token)
         if share_link is None or str(share_link.resource_id) != project_id:
             raise HTTPException(status_code=403, detail="Access denied")
-        return await get_shared_project_detailed(str(share_link.resource_id))
+        return await get_shared_project(str(share_link.resource_id))
     elif current_user is not None:
-        return await get_user_project_detailed(project_id, user=current_user)
+        return await get_user_project(project_id, user=current_user)
     else:
         raise HTTPException(status_code=403, detail="Access denied")

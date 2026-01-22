@@ -7,7 +7,7 @@ from fastapi import BackgroundTasks, HTTPException
 from api.models import StartMultipleWorkflowsRequest
 from lib.models.user import User
 from lib.models.workflow_run import WorkflowRunStatus, WorkflowRunType
-from lib.services.projects import get_user_project_detailed
+from lib.services.projects import get_user_project
 from lib.services.workflow_runs import (
     create_workflow_run,
     get_project_workflow_run_by_type,
@@ -37,7 +37,7 @@ async def start_workflow_run(
         raise HTTPException(status_code=400, detail="Project ID is required")
 
     # Check if project exists and is owned by the user
-    await get_user_project_detailed(config.project_id, user)
+    await get_user_project(config.project_id, user)
 
     existing_run = await get_project_workflow_run_by_type(
         config.project_id, config.type
@@ -89,7 +89,7 @@ async def start_multiple_workflow_runs(
         HTTPException: If project_id is missing or project doesn't exist
     """
     # Check if project exists and is owned by the user
-    project_detailed = await get_user_project_detailed(request.project_id, user)
+    project = await get_user_project(request.project_id, user)
 
     # Resolve all required dependencies in dependency order
     resolved_workflow_types = resolve_workflow_dependencies(workflow_types)
@@ -119,9 +119,7 @@ async def start_multiple_workflow_runs(
             continue
 
         # Create workflow-specific config
-        workflow_config = create_workflow_config(
-            project_detailed.project, workflow_type, request
-        )
+        workflow_config = create_workflow_config(project, workflow_type, request)
 
         # Reuse thread_id from previous runs to maintain LangGraph checkpoint continuity
         thread_id = get_thread_id_for_workflow_run(existing_run)

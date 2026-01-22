@@ -3,9 +3,6 @@
 import { type Client, formDataBodySerializer, type Options as Options2, type TDataShape } from './client';
 import { client } from './client.gen';
 import type {
-  AddFilesToProjectApiProjectProjectIdFilesPostData,
-  AddFilesToProjectApiProjectProjectIdFilesPostErrors,
-  AddFilesToProjectApiProjectProjectIdFilesPostResponses,
   CheckPreflightApiPreflightPostData,
   CheckPreflightApiPreflightPostErrors,
   CheckPreflightApiPreflightPostResponses,
@@ -18,6 +15,9 @@ import type {
   DeleteProjectEndpointApiProjectProjectIdDeleteData,
   DeleteProjectEndpointApiProjectProjectIdDeleteErrors,
   DeleteProjectEndpointApiProjectProjectIdDeleteResponses,
+  DeleteProjectFileEndpointApiProjectProjectIdFilesFileIdDeleteData,
+  DeleteProjectFileEndpointApiProjectProjectIdFilesFileIdDeleteErrors,
+  DeleteProjectFileEndpointApiProjectProjectIdFilesFileIdDeleteResponses,
   DisableProjectSharingApiProjectsProjectIdShareDisablePostData,
   DisableProjectSharingApiProjectsProjectIdShareDisablePostErrors,
   DisableProjectSharingApiProjectsProjectIdShareDisablePostResponses,
@@ -101,6 +101,9 @@ import type {
   UpdateRoleApiUsersUserIdRolePatchData,
   UpdateRoleApiUsersUserIdRolePatchErrors,
   UpdateRoleApiUsersUserIdRolePatchResponses,
+  UploadProjectFileEndpointApiProjectProjectIdFilesPostData,
+  UploadProjectFileEndpointApiProjectProjectIdFilesPostErrors,
+  UploadProjectFileEndpointApiProjectProjectIdFilesPostResponses,
 } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean> = Options2<
@@ -668,16 +671,19 @@ export const listProjectFilesEndpointApiProjectProjectIdFilesGet = <ThrowOnError
   });
 
 /**
- * Add Files To Project
+ * Upload Project File Endpoint
  *
- * Add files (supporting documents) to an existing project.
+ * Upload a supporting file to a project.
+ *
+ * Optionally link the file to a specific reference by providing reference_index
+ * (0-based index of the reference in the ReferenceExtraction workflow state).
  */
-export const addFilesToProjectApiProjectProjectIdFilesPost = <ThrowOnError extends boolean = true>(
-  options: Options<AddFilesToProjectApiProjectProjectIdFilesPostData, ThrowOnError>,
+export const uploadProjectFileEndpointApiProjectProjectIdFilesPost = <ThrowOnError extends boolean = true>(
+  options: Options<UploadProjectFileEndpointApiProjectProjectIdFilesPostData, ThrowOnError>,
 ) =>
   (options.client ?? client).post<
-    AddFilesToProjectApiProjectProjectIdFilesPostResponses,
-    AddFilesToProjectApiProjectProjectIdFilesPostErrors,
+    UploadProjectFileEndpointApiProjectProjectIdFilesPostResponses,
+    UploadProjectFileEndpointApiProjectProjectIdFilesPostErrors,
     ThrowOnError,
     'data'
   >({
@@ -713,6 +719,26 @@ export const downloadProjectDocxApiProjectsProjectIdDocxDownloadGet = <ThrowOnEr
     responseStyle: 'data',
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/projects/{project_id}/docx/download',
+    ...options,
+  });
+
+/**
+ * Delete Project File Endpoint
+ *
+ * Delete a file from a project and unlink it from any references.
+ */
+export const deleteProjectFileEndpointApiProjectProjectIdFilesFileIdDelete = <ThrowOnError extends boolean = true>(
+  options: Options<DeleteProjectFileEndpointApiProjectProjectIdFilesFileIdDeleteData, ThrowOnError>,
+) =>
+  (options.client ?? client).delete<
+    DeleteProjectFileEndpointApiProjectProjectIdFilesFileIdDeleteResponses,
+    DeleteProjectFileEndpointApiProjectProjectIdFilesFileIdDeleteErrors,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/project/{project_id}/files/{file_id}',
     ...options,
   });
 

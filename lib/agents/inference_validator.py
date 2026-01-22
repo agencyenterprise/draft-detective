@@ -168,10 +168,10 @@ In the academic paper example, a backing could be "A thorough review of the lite
 - In only TWO sentences, explain why you think the inference is valid or not.
 - In only TWO sentences, suggest an action to take if the inference is not valid. If the inference is valid, return 'No changes needed'.
 
-## Domain context of the document (i.e., the subject area the document falls in)
+# Agent Inputs
+
 {domain_context}
 
-## Audience context of the document (i.e., the intended audience for the document)
 {audience_context}
 
 ## Summary of the document (for context about the document's main argument)
