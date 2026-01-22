@@ -33,7 +33,7 @@ async def categorize_claims(
 
     # Fetch artifacts from file artifacts service
     chunks = await file_artifacts_service.get_chunks()
-    document_summary = await file_artifacts_service.get_document_summary(state.file_id)
+    document_summary = await file_artifacts_service.get_file_summary(state.file_id)
 
     # Build list of (claim_response, claim_index) tuples for all claims
     claim_tasks = []

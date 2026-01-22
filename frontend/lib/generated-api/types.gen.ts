@@ -151,6 +151,20 @@ export type BibliographyItemValidation = {
 };
 
 /**
+ * Body_add_file_to_project_api_project__project_id__file_post
+ */
+export type BodyAddFileToProjectApiProjectProjectIdFilePost = {
+  /**
+   * File
+   */
+  file: Blob | File;
+  /**
+   * Reference Index
+   */
+  reference_index?: number | null;
+};
+
+/**
  * Body_add_files_to_project_api_project__project_id__files_post
  */
 export type BodyAddFilesToProjectApiProjectProjectIdFilesPost = {
@@ -207,20 +221,6 @@ export type BodyStartAnalysisApiStartAnalysisPost = {
    * Workflow Types
    */
   workflow_types?: string | null;
-};
-
-/**
- * Body_upload_project_file_endpoint_api_project__project_id__file_post
- */
-export type BodyUploadProjectFileEndpointApiProjectProjectIdFilePost = {
-  /**
-   * File
-   */
-  file: Blob | File;
-  /**
-   * Reference Index
-   */
-  reference_index?: number | null;
 };
 
 /**
@@ -1007,6 +1007,12 @@ export type DocumentChunk = {
    * Paragraph Index
    */
   paragraph_index: number;
+  /**
+   * Headings
+   *
+   * The headings associated with the chunk, in order of hierarchy
+   */
+  headings?: Array<string> | null;
 };
 
 /**
@@ -1070,17 +1076,11 @@ export type DocumentProcessingState = {
   supporting_files?: Array<FileDocument> | null;
   config: DocumentProcessingWorkflowConfig;
   /**
-   * The summary of the main document
-   */
-  main_document_summary?: DocumentSummary | null;
-  /**
-   * Supporting Documents Summaries
+   * Summaries
    *
-   * Dictionary mapping supporting file indices to their summaries
+   * List of document summaries for main and supporting files
    */
-  supporting_documents_summaries?: {
-    [key: string]: DocumentSummary;
-  } | null;
+  summaries?: Array<FileSummary>;
   /**
    * Chunks
    *
@@ -1217,42 +1217,6 @@ export type DocumentReferenceFactors = {
    * How to implement the recommended action
    */
   explanation_for_recommended_action: string;
-};
-
-/**
- * DocumentSummary
- */
-export type DocumentSummary = {
-  /**
-   * Title
-   *
-   * The title of the document. Suggest a clear, concise title if the document does not have one.
-   */
-  title: string;
-  /**
-   * Authors
-   *
-   * The authors of the document (if available, otherwise empty string).
-   */
-  authors: string;
-  /**
-   * Publication Date
-   *
-   * The publication date of the document, or 'Unknown' if not available.
-   */
-  publication_date: string;
-  /**
-   * Abstract
-   *
-   * The abstract of the document, or 'Unknown' if not available.
-   */
-  abstract: string;
-  /**
-   * Summary
-   *
-   * A ~1000-word miniature version of the document (roughly 900–1100 words) that focuses on the main argument of the work. It should read like a compressed research report: clearly stating the central question or problem, the main claim/argument, the essential methods or analytical framework, the critical results, and how these results support the argument, while omitting tangential or overly detailed implementation information.
-   */
-  summary: string;
 };
 
 /**
@@ -1698,6 +1662,50 @@ export const FileRole = {
  * Extensible enum for file purposes in workflows
  */
 export type FileRole = (typeof FileRole)[keyof typeof FileRole];
+
+/**
+ * FileSummary
+ *
+ * Summary of a file. Extends DocumentSummary to include the file ID to match the summary to the file.
+ */
+export type FileSummary = {
+  /**
+   * Title
+   *
+   * The title of the document. Suggest a clear, concise title if the document does not have one.
+   */
+  title: string;
+  /**
+   * Authors
+   *
+   * The authors of the document (if available, otherwise empty string).
+   */
+  authors: string;
+  /**
+   * Publication Date
+   *
+   * The publication date of the document, or 'Unknown' if not available.
+   */
+  publication_date: string;
+  /**
+   * Abstract
+   *
+   * The abstract of the document, or 'Unknown' if not available.
+   */
+  abstract: string;
+  /**
+   * Summary
+   *
+   * A ~1000-word miniature version of the document (roughly 900–1100 words) that focuses on the main argument of the work. It should read like a compressed research report: clearly stating the central question or problem, the main claim/argument, the essential methods or analytical framework, the critical results, and how these results support the argument, while omitting tangential or overly detailed implementation information.
+   */
+  summary: string;
+  /**
+   * File Id
+   *
+   * The ID of the file
+   */
+  file_id: string;
+};
 
 /**
  * FootnoteExtractionConfig
@@ -3764,17 +3772,11 @@ export type DocumentProcessingStateWritable = {
   supporting_files?: Array<FileDocumentWritable> | null;
   config: DocumentProcessingWorkflowConfig;
   /**
-   * The summary of the main document
-   */
-  main_document_summary?: DocumentSummary | null;
-  /**
-   * Supporting Documents Summaries
+   * Summaries
    *
-   * Dictionary mapping supporting file indices to their summaries
+   * List of document summaries for main and supporting files
    */
-  supporting_documents_summaries?: {
-    [key: string]: DocumentSummary;
-  } | null;
+  summaries?: Array<FileSummary>;
   /**
    * Chunks
    *
@@ -4581,6 +4583,42 @@ export type UpdateProjectEndpointApiProjectProjectIdPatchResponses = {
 export type UpdateProjectEndpointApiProjectProjectIdPatchResponse =
   UpdateProjectEndpointApiProjectProjectIdPatchResponses[keyof UpdateProjectEndpointApiProjectProjectIdPatchResponses];
 
+export type DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetData = {
+  body?: never;
+  path: {
+    /**
+     * Project Id
+     */
+    project_id: string;
+  };
+  query?: {
+    /**
+     * Share Token
+     *
+     * Share token to include share links in comments
+     */
+    share_token?: string | null;
+  };
+  url: '/api/projects/{project_id}/docx/download';
+};
+
+export type DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetError =
+  DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetErrors[keyof DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetErrors];
+
+export type DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetResponses = {
+  /**
+   * Successful Response
+   */
+  200: unknown;
+};
+
 export type ListProjectFilesEndpointApiProjectProjectIdFilesGetData = {
   body?: never;
   path: {
@@ -4656,44 +4694,8 @@ export type AddFilesToProjectApiProjectProjectIdFilesPostResponses = {
 export type AddFilesToProjectApiProjectProjectIdFilesPostResponse =
   AddFilesToProjectApiProjectProjectIdFilesPostResponses[keyof AddFilesToProjectApiProjectProjectIdFilesPostResponses];
 
-export type DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetData = {
-  body?: never;
-  path: {
-    /**
-     * Project Id
-     */
-    project_id: string;
-  };
-  query?: {
-    /**
-     * Share Token
-     *
-     * Share token to include share links in comments
-     */
-    share_token?: string | null;
-  };
-  url: '/api/projects/{project_id}/docx/download';
-};
-
-export type DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetErrors = {
-  /**
-   * Validation Error
-   */
-  422: HttpValidationError;
-};
-
-export type DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetError =
-  DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetErrors[keyof DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetErrors];
-
-export type DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetResponses = {
-  /**
-   * Successful Response
-   */
-  200: unknown;
-};
-
-export type UploadProjectFileEndpointApiProjectProjectIdFilePostData = {
-  body: BodyUploadProjectFileEndpointApiProjectProjectIdFilePost;
+export type AddFileToProjectApiProjectProjectIdFilePostData = {
+  body: BodyAddFileToProjectApiProjectProjectIdFilePost;
   path: {
     /**
      * Project Id
@@ -4704,25 +4706,25 @@ export type UploadProjectFileEndpointApiProjectProjectIdFilePostData = {
   url: '/api/project/{project_id}/file';
 };
 
-export type UploadProjectFileEndpointApiProjectProjectIdFilePostErrors = {
+export type AddFileToProjectApiProjectProjectIdFilePostErrors = {
   /**
    * Validation Error
    */
   422: HttpValidationError;
 };
 
-export type UploadProjectFileEndpointApiProjectProjectIdFilePostError =
-  UploadProjectFileEndpointApiProjectProjectIdFilePostErrors[keyof UploadProjectFileEndpointApiProjectProjectIdFilePostErrors];
+export type AddFileToProjectApiProjectProjectIdFilePostError =
+  AddFileToProjectApiProjectProjectIdFilePostErrors[keyof AddFileToProjectApiProjectProjectIdFilePostErrors];
 
-export type UploadProjectFileEndpointApiProjectProjectIdFilePostResponses = {
+export type AddFileToProjectApiProjectProjectIdFilePostResponses = {
   /**
    * Successful Response
    */
   201: File;
 };
 
-export type UploadProjectFileEndpointApiProjectProjectIdFilePostResponse =
-  UploadProjectFileEndpointApiProjectProjectIdFilePostResponses[keyof UploadProjectFileEndpointApiProjectProjectIdFilePostResponses];
+export type AddFileToProjectApiProjectProjectIdFilePostResponse =
+  AddFileToProjectApiProjectProjectIdFilePostResponses[keyof AddFileToProjectApiProjectProjectIdFilePostResponses];
 
 export type DeleteProjectFileEndpointApiProjectProjectIdFilesFileIdDeleteData = {
   body?: never;

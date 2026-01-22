@@ -13,11 +13,13 @@ from lib.services.file_artifacts_service.types import FileArtifactsServiceType
 from lib.workflows.models import WorkflowRunType
 
 if TYPE_CHECKING:
-    from lib.agents.document_summarizer import DocumentSummary
     from lib.models.bibliography_item import BibliographyItem
     from lib.models.footnote_item import FootnoteItem
     from lib.workflows.chunk_utils import AnalyzedChunk
-    from lib.workflows.document_processing.state import DocumentProcessingState
+    from lib.workflows.document_processing.state import (
+        DocumentProcessingState,
+        FileSummary,
+    )
     from lib.workflows.footnote_extraction.state import FootnoteExtractionState
     from lib.workflows.reference_extraction.state import (
         ExtractedReference,
@@ -200,55 +202,57 @@ class FileArtifactsService(FileArtifactsServiceType):
         )
         return state.supporting_files or []
 
-    async def get_document_summary(self, file_id: str) -> "DocumentSummary":
-        """Retrieve the document summary for a file by its ID.
+    async def get_file_summary(self, file_id: str) -> "FileSummary":
+        """Retrieve the file summary for a file by its ID.
         Prefers DB cached summaries and falls back to workflow state.
 
         Args:
             file_id: The unique identifier of the file to retrieve the summary for.
 
         Returns:
-            The document summary for the requested file.
+            The file summary for the requested file.
 
         Raises:
-            ValueError: If no document summary with the given file ID is found
+            ValueError: If no file summary with the given file ID is found
                 in the project's document processing workflow state.
         """
-        from lib.agents.document_summarizer import DocumentSummary
+        from lib.workflows.document_processing.state import FileSummary
 
         summary = await self._try_load(
             f"summary for file {file_id}",
-            lambda: self._get_document_summary_from_db(file_id, DocumentSummary),
+            lambda: self._get_file_summary_from_db(file_id, FileSummary),
         )
         if summary is not None:
             return summary
 
         return await self._get_summary_from_state(file_id)
 
-    async def _get_document_summary_from_db(self, file_id: str, summary_cls):
-        """Return DocumentSummary from DB cached summary when available."""
+    async def _get_file_summary_from_db(
+        self, file_id: str, summary_cls: type["FileSummary"]
+    ) -> "FileSummary | None":
+        """Return FileSummary from DB cached summary when available."""
         file = await get_file_by_id(file_id)
         if not file.has_cached_summary:
             return None
         logger.debug("Loaded summary for file %s from DB cache", file_id)
-        return summary_cls(**file.summary)
+        return summary_cls(file_id=file_id, **file.summary)
 
-    async def _get_summary_from_state(self, file_id: str) -> "DocumentSummary":
-        """Return DocumentSummary from the document processing workflow state."""
+    async def _get_summary_from_state(self, file_id: str) -> "FileSummary":
+        """Return FileSummary from the document processing workflow state."""
         state = cast(
             "DocumentProcessingState",
             await self._get_state_by_type(WorkflowRunType.DOCUMENT_PROCESSING),
         )
 
-        if state.file.file_id == file_id:
-            return state.main_document_summary
-
-        for idx, f in enumerate(state.supporting_files or []):
-            if f.file_id == file_id:
-                return state.supporting_documents_summaries[idx]
+        summary = next(
+            (s for s in state.summaries if s.file_id == file_id),
+            None,
+        )
+        if summary is not None:
+            return summary
 
         raise ValueError(
-            f"No document summary found with id {file_id} for project {self.project_id}"
+            f"No file summary found with id {file_id} for project {self.project_id}"
         )
 
     async def get_extracted_references(self) -> list["ExtractedReference"]:

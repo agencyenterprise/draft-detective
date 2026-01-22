@@ -132,15 +132,13 @@ async def run_workflow(
                 updated_state = updated_state.model_copy(update=values)
 
                 # Update the project title if this is a document processing workflow
-                if (
-                    workflow_type == WorkflowRunType.DOCUMENT_PROCESSING
-                    and updated_state.main_document_summary
-                    and updated_state.main_document_summary.title
-                ):
-                    await update_project_title(
-                        project_id=project_id,
-                        title=updated_state.main_document_summary.title,
-                    )
+                if workflow_type == WorkflowRunType.DOCUMENT_PROCESSING:
+                    main_summary = updated_state.get_main_summary()
+                    if main_summary and main_summary.title:
+                        await update_project_title(
+                            project_id=project_id,
+                            title=main_summary.title,
+                        )
         except Exception as e:
             logger.error(f"Error streaming state: {e}", exc_info=True)
             updated_state.errors.append(WorkflowError(task_name="global", error=str(e)))

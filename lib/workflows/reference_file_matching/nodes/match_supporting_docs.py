@@ -6,7 +6,7 @@ Uses a two-stage approach for scalability:
 """
 
 import logging
-from typing import Dict, List, Optional, Tuple
+from typing import List, Optional
 
 from langchain_core.runnables.config import ensure_config
 from langgraph.runtime import Runtime
@@ -15,9 +15,8 @@ from lib.agents.batched_reference_matcher import (
     REFERENCES_PER_BATCH,
     BatchedReferenceMatcherAgent,
 )
-from lib.agents.document_summarizer import DocumentSummary
 from lib.run_utils import run_tasks
-from lib.services.file import FileDocument
+from lib.workflows.document_processing.state import FileSummary
 from lib.services.reference_embedding_matcher import (
     CandidateMatch,
     ReferenceEmbeddingMatcher,
@@ -37,7 +36,7 @@ MAX_CONCURRENT_BATCHES = 5
 
 async def _retrieve_candidates(
     reference_texts: List[str],
-    summaries: Dict[int, DocumentSummary],
+    summaries: List[FileSummary],
     openai_api_key: str,
     top_k: int = 15,
 ) -> List[List[CandidateMatch]]:
@@ -49,7 +48,6 @@ async def _retrieve_candidates(
 def _resolve_match(
     match_candidate: str,
     candidates: List[CandidateMatch],
-    supporting_files: List[FileDocument],
 ) -> Optional[str]:
     """Map LLM's letter response (A/B/C) back to file_id."""
     if match_candidate == "NONE" or not candidates:
@@ -58,9 +56,7 @@ def _resolve_match(
     try:
         cand_idx = ord(match_candidate.upper()) - ord("A")
         if 0 <= cand_idx < len(candidates):
-            doc_idx = candidates[cand_idx].doc_index
-            if doc_idx < len(supporting_files):
-                return supporting_files[doc_idx].file_id
+            return candidates[cand_idx].file_id
     except (ValueError, IndexError):
         pass
 
@@ -70,7 +66,6 @@ def _resolve_match(
 async def _process_batch(
     batch_refs: List[str],
     batch_candidates: List[List[CandidateMatch]],
-    supporting_files: List[FileDocument],
     agent: BatchedReferenceMatcherAgent,
     config,
 ) -> List[Optional[str]]:
@@ -84,7 +79,6 @@ async def _process_batch(
                 results[match.reference_index] = _resolve_match(
                     match.matched_candidate,
                     batch_candidates[match.reference_index],
-                    supporting_files,
                 )
         return results
 
@@ -95,14 +89,13 @@ async def _process_batch(
 
 async def _two_stage_match(
     reference_texts: List[str],
-    summaries: Dict[int, DocumentSummary],
-    supporting_files: List[FileDocument],
+    summaries: List[FileSummary],
     context: ContextSchema,
 ) -> List[Optional[str]]:
     """Run two-stage matching and return list of matched file_ids (None if no match)."""
     logger.info("Stage 1: Retrieving candidates via embedding similarity")
     candidates_per_ref = await _retrieve_candidates(
-        reference_texts, summaries, context.openai_api_key
+        reference_texts, summaries, context.openai_api_key or ""
     )
 
     logger.info(f"Stage 2: LLM verification in batches of {REFERENCES_PER_BATCH}")
@@ -113,7 +106,6 @@ async def _two_stage_match(
         _process_batch(
             reference_texts[i : i + REFERENCES_PER_BATCH],
             candidates_per_ref[i : i + REFERENCES_PER_BATCH],
-            supporting_files,
             agent,
             config,
         )
@@ -159,16 +151,9 @@ async def match_supporting_docs_node(
         logger.info("No extracted references to match")
         return {"matches": []}
 
-    # Build summaries dict for supporting documents
-    summaries: Dict[int, DocumentSummary] = {}
-    for index, file_id in enumerate(state.supporting_file_ids):
-        summaries[index] = (
-            await runtime.context.file_artifacts_service.get_document_summary(file_id)
-        )
-
-    # Get supporting file documents
-    supporting_files = [
-        await runtime.context.file_artifacts_service.get_file_document(file_id)
+    # Build summaries list for supporting documents
+    summaries: List[FileSummary] = [
+        await runtime.context.file_artifacts_service.get_file_summary(file_id)
         for file_id in state.supporting_file_ids
     ]
 
@@ -180,9 +165,9 @@ async def match_supporting_docs_node(
         f"against {len(summaries)} document summaries"
     )
 
-    if summaries and supporting_files:
+    if summaries:
         match_results = await _two_stage_match(
-            reference_texts, summaries, supporting_files, runtime.context
+            reference_texts, summaries, runtime.context
         )
     else:
         match_results = [None] * len(reference_texts)

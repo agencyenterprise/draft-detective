@@ -24,7 +24,7 @@ async def generate_addendum_report(
 
     # Fetch artifacts from file artifacts service
     chunks = await file_artifacts_service.get_chunks()
-    document_summary = await file_artifacts_service.get_document_summary(state.file_id)
+    document_summary = await file_artifacts_service.get_file_summary(state.file_id)
 
     # Create a lookup dictionary for chunks by chunk_index
     chunks_by_index = {chunk.chunk_index: chunk for chunk in chunks}

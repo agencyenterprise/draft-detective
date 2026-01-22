@@ -1,17 +1,17 @@
 """Unit tests for reference-to-supporting-document matching."""
 
 from contextlib import contextmanager
-from typing import List, Optional
+from typing import List
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from lib.agents.document_summarizer import DocumentSummary
 from lib.agents.batched_reference_matcher import (
     BatchedMatchResult,
     SingleReferenceMatch,
 )
 from lib.services.reference_embedding_matcher import CandidateMatch
+from lib.workflows.document_processing.state import FileSummary
 from lib.workflows.reference_extraction.state import ExtractedReference
 from lib.workflows.reference_file_matching.nodes.match_supporting_docs import (
     _resolve_match,
@@ -22,25 +22,31 @@ EMBEDDING_MATCHER_PATH = "lib.workflows.reference_file_matching.nodes.match_supp
 BATCHED_MATCHER_PATH = "lib.workflows.reference_file_matching.nodes.match_supporting_docs.BatchedReferenceMatcherAgent"
 
 
-def make_summary(title: str, authors: str = "Unknown", year: str = "Unknown"):
-    return DocumentSummary(
+def make_summary(
+    title: str,
+    authors: str = "Unknown",
+    year: str = "Unknown",
+    file_id: str = "test-file-id",
+):
+    return FileSummary(
         title=title,
         authors=authors,
         publication_date=year,
         abstract=f"Abstract for {title}",
         summary=f"Summary of {title}",
+        file_id=file_id,
     )
 
 
-def make_file_document(file_name: str, file_id: Optional[str] = None):
-    doc = MagicMock()
-    doc.file_name = file_name
-    doc.file_id = file_id
-    return doc
-
-
-def make_candidate(doc_index: int, summary: DocumentSummary, score: float = 0.9):
-    return CandidateMatch(doc_index=doc_index, similarity_score=score, summary=summary)
+def make_candidate(
+    doc_index: int,
+    summary: FileSummary,
+    score: float = 0.9,
+    file_id: str | None = None,
+):
+    return CandidateMatch(
+        doc_index=doc_index, similarity_score=score, summary=summary, file_id=file_id
+    )
 
 
 def make_match(ref_idx: int, candidate: str, confidence: str = "high"):
@@ -92,8 +98,8 @@ def mock_two_stage_matching_error(candidates_per_ref: List, error: Exception):
 
 @pytest.fixture
 def mock_runtime():
-    def _create(summaries=None, supporting_files=None, extracted_refs=None):
-        """Create mock runtime with file_artifacts_service that returns summaries and files."""
+    def _create(summaries=None, extracted_refs=None):
+        """Create mock runtime with file_artifacts_service that returns summaries."""
         runtime = MagicMock()
         runtime.context.openai_api_key = "test-key"
         runtime.context.vector_store = None
@@ -109,17 +115,7 @@ def mock_runtime():
             idx = int(file_id.split("-")[-1])
             return summaries.get(idx)
 
-        file_artifacts_service.get_document_summary = get_summary
-
-        # Map file_ids to file documents
-        supporting_files = supporting_files or []
-
-        async def get_file_doc(file_id):
-            # file_ids are like "file-id-0", "file-id-1", extract index
-            idx = int(file_id.split("-")[-1])
-            return supporting_files[idx] if idx < len(supporting_files) else None
-
-        file_artifacts_service.get_file_document = get_file_doc
+        file_artifacts_service.get_file_summary = get_summary
 
         # Mock get_extracted_references
         extracted_refs = extracted_refs or []
@@ -155,42 +151,33 @@ class TestResolveMatch:
     """Tests for _resolve_match helper function."""
 
     def test_returns_no_match_for_none_candidate(self):
-        candidates = [make_candidate(0, make_summary("Paper"))]
-        files = [make_file_document("paper.pdf", "file-id-1")]
-        assert _resolve_match("NONE", candidates, files) is None
+        candidates = [make_candidate(0, make_summary("Paper"), file_id="file-id-1")]
+        assert _resolve_match("NONE", candidates) is None
 
     def test_returns_no_match_for_empty_candidates(self):
-        files = [make_file_document("paper.pdf", "file-id-1")]
-        assert _resolve_match("A", [], files) is None
+        assert _resolve_match("A", []) is None
 
     def test_resolves_letter_to_document(self):
         candidates = [
-            make_candidate(0, make_summary("A")),
-            make_candidate(1, make_summary("B")),
-        ]
-        files = [
-            make_file_document("a.pdf", "file-id-a"),
-            make_file_document("b.pdf", "file-id-b"),
+            make_candidate(0, make_summary("A"), file_id="file-id-a"),
+            make_candidate(1, make_summary("B"), file_id="file-id-b"),
         ]
 
-        assert _resolve_match("A", candidates, files) == "file-id-a"
-        assert _resolve_match("B", candidates, files) == "file-id-b"
+        assert _resolve_match("A", candidates) == "file-id-a"
+        assert _resolve_match("B", candidates) == "file-id-b"
 
     def test_handles_lowercase_letter(self):
-        candidates = [make_candidate(0, make_summary("Paper"))]
-        files = [make_file_document("paper.pdf", "file-id-1")]
-        assert _resolve_match("a", candidates, files) == "file-id-1"
+        candidates = [make_candidate(0, make_summary("Paper"), file_id="file-id-1")]
+        assert _resolve_match("a", candidates) == "file-id-1"
 
     def test_returns_no_match_for_invalid_letter(self):
-        candidates = [make_candidate(0, make_summary("Paper"))]
-        files = [make_file_document("paper.pdf", "file-id-1")]
-        assert _resolve_match("Z", candidates, files) is None
+        candidates = [make_candidate(0, make_summary("Paper"), file_id="file-id-1")]
+        assert _resolve_match("Z", candidates) is None
 
     def test_resolves_with_none_file_id(self):
-        """Test that file_id can be None when FileDocument doesn't have one."""
-        candidates = [make_candidate(0, make_summary("Paper"))]
-        files = [make_file_document("paper.pdf")]  # No file_id
-        assert _resolve_match("A", candidates, files) is None
+        """Test that file_id can be None when candidate doesn't have one."""
+        candidates = [make_candidate(0, make_summary("Paper"))]  # No file_id
+        assert _resolve_match("A", candidates) is None
 
 
 class TestTwoStageMatching:
@@ -199,15 +186,12 @@ class TestTwoStageMatching:
     @pytest.mark.asyncio
     async def test_matches_reference_to_document(self, mock_state, mock_runtime):
         summaries = {0: make_summary("Sea Level Rise", "Johnson, M.", "2023")}
-        files = [make_file_document("sea_level_rise.pdf", "file-id-0")]
         extracted_refs = make_extracted_refs(["Johnson (2023). Sea Level Rise."])
         state = mock_state(supporting_file_ids=["file-id-0"])
-        runtime = mock_runtime(
-            summaries=summaries, supporting_files=files, extracted_refs=extracted_refs
-        )
+        runtime = mock_runtime(summaries=summaries, extracted_refs=extracted_refs)
 
         with mock_two_stage_matching(
-            candidates_per_ref=[[make_candidate(0, summaries[0])]],
+            candidates_per_ref=[[make_candidate(0, summaries[0], file_id="file-id-0")]],
             matches=[make_match(0, "A")],
         ):
             result = await match_supporting_docs_node(state, runtime)
@@ -220,15 +204,12 @@ class TestTwoStageMatching:
     @pytest.mark.asyncio
     async def test_handles_no_match(self, mock_state, mock_runtime):
         summaries = {0: make_summary("Paper 0")}
-        files = [make_file_document("paper_0.pdf", "file-id-0")]
         extracted_refs = make_extracted_refs(["Unknown reference"])
         state = mock_state(supporting_file_ids=["file-id-0"])
-        runtime = mock_runtime(
-            summaries=summaries, supporting_files=files, extracted_refs=extracted_refs
-        )
+        runtime = mock_runtime(summaries=summaries, extracted_refs=extracted_refs)
 
         with mock_two_stage_matching(
-            candidates_per_ref=[[make_candidate(0, summaries[0])]],
+            candidates_per_ref=[[make_candidate(0, summaries[0], file_id="file-id-0")]],
             matches=[make_match(0, "NONE", "none")],
         ):
             result = await match_supporting_docs_node(state, runtime)
@@ -243,23 +224,23 @@ class TestTwoStageMatching:
             0: make_summary("Paper One", "Smith", "2020"),
             1: make_summary("Paper Two", "Jones", "2021"),
         }
-        files = [
-            make_file_document("paper_one.pdf", "file-id-0"),
-            make_file_document("paper_two.pdf", "file-id-1"),
-        ]
         extracted_refs = make_extracted_refs(
             ["Smith (2020). Paper One.", "Jones (2021). Paper Two.", "Unknown."]
         )
         state = mock_state(supporting_file_ids=["file-id-0", "file-id-1"])
-        runtime = mock_runtime(
-            summaries=summaries, supporting_files=files, extracted_refs=extracted_refs
-        )
+        runtime = mock_runtime(summaries=summaries, extracted_refs=extracted_refs)
 
         with mock_two_stage_matching(
             candidates_per_ref=[
-                [make_candidate(0, summaries[0]), make_candidate(1, summaries[1])],
-                [make_candidate(1, summaries[1]), make_candidate(0, summaries[0])],
-                [make_candidate(0, summaries[0])],
+                [
+                    make_candidate(0, summaries[0], file_id="file-id-0"),
+                    make_candidate(1, summaries[1], file_id="file-id-1"),
+                ],
+                [
+                    make_candidate(1, summaries[1], file_id="file-id-1"),
+                    make_candidate(0, summaries[0], file_id="file-id-0"),
+                ],
+                [make_candidate(0, summaries[0], file_id="file-id-0")],
             ],
             matches=[
                 make_match(0, "A"),
@@ -280,15 +261,12 @@ class TestTwoStageMatching:
     async def test_handles_batch_error_gracefully(self, mock_state, mock_runtime):
         """Batch matching errors should result in no matches, not exceptions."""
         summaries = {0: make_summary("Paper")}
-        files = [make_file_document("paper.pdf", "file-id-0")]
         extracted_refs = make_extracted_refs(["Some reference"])
         state = mock_state(supporting_file_ids=["file-id-0"])
-        runtime = mock_runtime(
-            summaries=summaries, supporting_files=files, extracted_refs=extracted_refs
-        )
+        runtime = mock_runtime(summaries=summaries, extracted_refs=extracted_refs)
 
         with mock_two_stage_matching_error(
-            candidates_per_ref=[[make_candidate(0, summaries[0])]],
+            candidates_per_ref=[[make_candidate(0, summaries[0], file_id="file-id-0")]],
             error=Exception("API Error"),
         ):
             result = await match_supporting_docs_node(state, runtime)

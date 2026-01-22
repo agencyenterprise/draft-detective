@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -10,12 +11,13 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
-import { UploadButton } from '@/components/ui/upload-button';
 import { CloudDownload, ExternalLink, FileText, FileX, GlobeIcon, Loader2, Trash2, Upload } from 'lucide-react';
 import Link from 'next/link';
 import { Markdown } from '@/components/markdown';
-import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
+import { WorkflowConfigDialog, WorkflowConfigFormValues } from '@/components/workflows/workflow-config-dialog';
+import { WorkflowRunType } from '@/lib/generated-api';
 import { FetchResultsBox } from './fetch-results-box';
+import { FileUploadDialog } from './file-upload-dialog';
 import {
   useUploadFileMutation,
   useRemoveFileMutation,
@@ -64,8 +66,12 @@ export interface ReferenceCardProps {
   readOnly: boolean;
 }
 
+type DialogMode = 'upload' | 'replace' | null;
+
 export function ReferenceCard({ reference, projectId, readOnly }: ReferenceCardProps) {
   const { index, text, status, matchedFile, fetchResult, validation } = reference;
+  const [dialogMode, setDialogMode] = useState<DialogMode>(null);
+  const [isFetchDialogOpen, setIsFetchDialogOpen] = useState(false);
 
   const uploadFileMutation = useUploadFileMutation(projectId, index);
   const removeFileMutation = useRemoveFileMutation(projectId, matchedFile?.id);
@@ -78,8 +84,58 @@ export function ReferenceCard({ reference, projectId, readOnly }: ReferenceCardP
   const isFetching = fetchFromWebMutation.isPending;
   const isLoading = isUploading || isRemoving || isReplacing || isFetching;
 
+  const handleDialogConfirm = (files: File[], openaiApiKey: string) => {
+    const file = files[0];
+    if (!file) return;
+
+    const onSuccess = () => setDialogMode(null);
+
+    if (dialogMode === 'upload') {
+      uploadFileMutation.mutate({ file, openaiApiKey }, { onSuccess });
+    } else if (dialogMode === 'replace') {
+      replaceFileMutation.mutate({ file, openaiApiKey }, { onSuccess });
+    }
+  };
+
+  const handleFetchFromWebConfirm = (values: WorkflowConfigFormValues) => {
+    fetchFromWebMutation.mutate(
+      { openaiApiKey: values.openaiApiKey },
+      { onSuccess: () => setIsFetchDialogOpen(false) },
+    );
+  };
+
+  const dialogConfig = {
+    upload: {
+      title: 'Upload Supporting Document',
+      description:
+        'Upload a supporting document for this reference. The file will be processed and matched automatically.',
+    },
+    replace: {
+      title: 'Replace Supporting Document',
+      description:
+        'Upload a new supporting document to replace the current one. The file will be processed and matched automatically.',
+    },
+  };
+
   return (
     <div className="border rounded-lg p-4 bg-white transition-colors border-gray-200">
+      <FileUploadDialog
+        isOpen={dialogMode !== null}
+        isUploading={isUploading || isReplacing}
+        title={dialogMode ? dialogConfig[dialogMode].title : ''}
+        description={dialogMode ? dialogConfig[dialogMode].description : ''}
+        multiple={false}
+        onConfirm={handleDialogConfirm}
+        onCancel={() => setDialogMode(null)}
+      />
+
+      <WorkflowConfigDialog
+        isOpen={isFetchDialogOpen}
+        type={WorkflowRunType.ReferenceDownloader}
+        onConfirm={handleFetchFromWebConfirm}
+        onCancel={() => setIsFetchDialogOpen(false)}
+      />
+
       <div className="flex gap-3">
         <span className="text-gray-500 font-medium shrink-0 text-sm">#{index + 1}</span>
         <div className="flex-1 min-w-0 space-y-2">
@@ -88,31 +144,14 @@ export function ReferenceCard({ reference, projectId, readOnly }: ReferenceCardP
             <MatchStatusBadge status={status} />
             {status === 'unmatched' && !readOnly && (
               <div className="flex items-center gap-1">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span>
-                      <Button
-                        variant="outline"
-                        size="xs"
-                        disabled={true}
-                        onClick={() => console.log('Batch upload not implemented')}
-                      >
-                        <GlobeIcon className="w-4 h-4" />
-                        Fetch from the web
-                      </Button>
-                    </span>
-                  </TooltipTrigger>
-                  <TooltipContent>Coming soon</TooltipContent>
-                </Tooltip>
-                <UploadButton
-                  variant="outline"
-                  size="xs"
-                  onFilesSelected={(files) => uploadFileMutation.mutate(files[0])}
-                  disabled={isLoading}
-                >
+                <Button variant="outline" size="xs" disabled={isLoading} onClick={() => setIsFetchDialogOpen(true)}>
+                  {isFetching ? <Loader2 className="w-4 h-4 animate-spin" /> : <GlobeIcon className="w-4 h-4" />}
+                  {isFetching ? 'Fetching...' : 'Fetch from the web'}
+                </Button>
+                <Button variant="outline" size="xs" onClick={() => setDialogMode('upload')} disabled={isLoading}>
                   {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
                   {isUploading ? 'Uploading...' : 'Upload supporting document'}
-                </UploadButton>
+                </Button>
               </div>
             )}
           </div>
@@ -138,15 +177,10 @@ export function ReferenceCard({ reference, projectId, readOnly }: ReferenceCardP
 
               {!readOnly && (
                 <div className="flex gap-2 justify-end">
-                  <UploadButton
-                    variant="outline"
-                    size="xs"
-                    onFilesSelected={(files) => replaceFileMutation.mutate(files[0])}
-                    disabled={isLoading}
-                  >
+                  <Button variant="outline" size="xs" onClick={() => setDialogMode('replace')} disabled={isLoading}>
                     {isReplacing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
                     {isReplacing ? 'Uploading...' : 'Replace'}
-                  </UploadButton>
+                  </Button>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button variant="outline" size="xs" disabled={isLoading}>

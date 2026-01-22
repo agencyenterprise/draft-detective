@@ -68,7 +68,7 @@ export function useStepUpload(onComplete: () => void) {
       await startMultipleWorkflowsApiWorkflowsStartMultiplePost({
         body: {
           project_id: projectResponse.project.id,
-          workflow_types: [WorkflowRunType.DocumentProcessing],
+          workflow_types: [WorkflowRunType.DocumentProcessing, WorkflowRunType.ReferenceExtraction],
           openai_api_key: apiKey || undefined,
         },
       });
