@@ -11,7 +11,8 @@ from pydantic import BaseModel
 
 from lib.services.projects import (
     ProjectDetailed,
-    get_shared_project_detailed,
+    get_project_detailed_from_project,
+    get_shared_project,
 )
 from lib.services.share_links import get_resource_by_token
 
@@ -49,4 +50,8 @@ async def get_shared_resource(token: str):
     if share_link.resource_type != "project":
         raise HTTPException(status_code=400, detail="Unsupported resource type")
 
-    return await get_shared_project_detailed(share_link.resource_id)
+    project = await get_shared_project(str(share_link.resource_id))
+    project_detailed = await get_project_detailed_from_project(
+        project, include_internal=True
+    )
+    return project_detailed

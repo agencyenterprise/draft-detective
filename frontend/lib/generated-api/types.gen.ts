@@ -237,6 +237,20 @@ export type BodyStartAnalysisApiStartAnalysisPost = {
 };
 
 /**
+ * Body_upload_project_file_endpoint_api_project__project_id__files_post
+ */
+export type BodyUploadProjectFileEndpointApiProjectProjectIdFilesPost = {
+  /**
+   * File
+   */
+  file: Blob | File;
+  /**
+   * Reference Index
+   */
+  reference_index?: number | null;
+};
+
+/**
  * ChunkEvalPackageRequest
  *
  * Request model for generating chunk-specific eval packages.
@@ -2452,6 +2466,26 @@ export const ReferenceDirection = {
 export type ReferenceDirection = (typeof ReferenceDirection)[keyof typeof ReferenceDirection];
 
 /**
+ * ReferenceDownloaderInputItem
+ *
+ * Input item for the reference downloader workflow
+ */
+export type ReferenceDownloaderInputItem = {
+  /**
+   * Index
+   *
+   * The index of the reference from the reference extraction workflow
+   */
+  index: number;
+  /**
+   * Text
+   *
+   * The text of the reference to fetch from the internet
+   */
+  text: string;
+};
+
+/**
  * ReferenceDownloaderState
  *
  * State for the reference downloader workflow
@@ -2524,7 +2558,7 @@ export type ReferenceDownloaderWorkflowConfig = {
    *
    * The references to fetch from the internet
    */
-  references: Array<string>;
+  references: Array<ReferenceDownloaderInputItem>;
 };
 
 /**
@@ -4474,6 +4508,71 @@ export type ListProjectFilesEndpointApiProjectProjectIdFilesGetResponses = {
 
 export type ListProjectFilesEndpointApiProjectProjectIdFilesGetResponse =
   ListProjectFilesEndpointApiProjectProjectIdFilesGetResponses[keyof ListProjectFilesEndpointApiProjectProjectIdFilesGetResponses];
+
+export type UploadProjectFileEndpointApiProjectProjectIdFilesPostData = {
+  body: BodyUploadProjectFileEndpointApiProjectProjectIdFilesPost;
+  path: {
+    /**
+     * Project Id
+     */
+    project_id: string;
+  };
+  query?: never;
+  url: '/api/project/{project_id}/files';
+};
+
+export type UploadProjectFileEndpointApiProjectProjectIdFilesPostErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type UploadProjectFileEndpointApiProjectProjectIdFilesPostError =
+  UploadProjectFileEndpointApiProjectProjectIdFilesPostErrors[keyof UploadProjectFileEndpointApiProjectProjectIdFilesPostErrors];
+
+export type UploadProjectFileEndpointApiProjectProjectIdFilesPostResponses = {
+  /**
+   * Successful Response
+   */
+  201: File;
+};
+
+export type UploadProjectFileEndpointApiProjectProjectIdFilesPostResponse =
+  UploadProjectFileEndpointApiProjectProjectIdFilesPostResponses[keyof UploadProjectFileEndpointApiProjectProjectIdFilesPostResponses];
+
+export type DeleteProjectFileEndpointApiProjectProjectIdFilesFileIdDeleteData = {
+  body?: never;
+  path: {
+    /**
+     * Project Id
+     */
+    project_id: string;
+    /**
+     * File Id
+     */
+    file_id: string;
+  };
+  query?: never;
+  url: '/api/project/{project_id}/files/{file_id}';
+};
+
+export type DeleteProjectFileEndpointApiProjectProjectIdFilesFileIdDeleteErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type DeleteProjectFileEndpointApiProjectProjectIdFilesFileIdDeleteError =
+  DeleteProjectFileEndpointApiProjectProjectIdFilesFileIdDeleteErrors[keyof DeleteProjectFileEndpointApiProjectProjectIdFilesFileIdDeleteErrors];
+
+export type DeleteProjectFileEndpointApiProjectProjectIdFilesFileIdDeleteResponses = {
+  /**
+   * Successful Response
+   */
+  200: unknown;
+};
 
 export type DownloadAllProjectFilesApiProjectProjectIdFilesDownloadAllGetData = {
   body?: never;

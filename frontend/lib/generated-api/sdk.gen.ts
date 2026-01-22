@@ -15,6 +15,9 @@ import type {
   DeleteProjectEndpointApiProjectProjectIdDeleteData,
   DeleteProjectEndpointApiProjectProjectIdDeleteErrors,
   DeleteProjectEndpointApiProjectProjectIdDeleteResponses,
+  DeleteProjectFileEndpointApiProjectProjectIdFilesFileIdDeleteData,
+  DeleteProjectFileEndpointApiProjectProjectIdFilesFileIdDeleteErrors,
+  DeleteProjectFileEndpointApiProjectProjectIdFilesFileIdDeleteResponses,
   DisableProjectSharingApiProjectsProjectIdShareDisablePostData,
   DisableProjectSharingApiProjectsProjectIdShareDisablePostErrors,
   DisableProjectSharingApiProjectsProjectIdShareDisablePostResponses,
@@ -98,6 +101,9 @@ import type {
   UpdateRoleApiUsersUserIdRolePatchData,
   UpdateRoleApiUsersUserIdRolePatchErrors,
   UpdateRoleApiUsersUserIdRolePatchResponses,
+  UploadProjectFileEndpointApiProjectProjectIdFilesPostData,
+  UploadProjectFileEndpointApiProjectProjectIdFilesPostErrors,
+  UploadProjectFileEndpointApiProjectProjectIdFilesPostResponses,
 } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean> = Options2<
@@ -685,6 +691,54 @@ export const listProjectFilesEndpointApiProjectProjectIdFilesGet = <ThrowOnError
     responseStyle: 'data',
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/project/{project_id}/files',
+    ...options,
+  });
+
+/**
+ * Upload Project File Endpoint
+ *
+ * Upload a supporting file to a project.
+ *
+ * Optionally link the file to a specific reference by providing reference_index
+ * (0-based index of the reference in the ReferenceExtraction workflow state).
+ */
+export const uploadProjectFileEndpointApiProjectProjectIdFilesPost = <ThrowOnError extends boolean = true>(
+  options: Options<UploadProjectFileEndpointApiProjectProjectIdFilesPostData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    UploadProjectFileEndpointApiProjectProjectIdFilesPostResponses,
+    UploadProjectFileEndpointApiProjectProjectIdFilesPostErrors,
+    ThrowOnError,
+    'data'
+  >({
+    ...formDataBodySerializer,
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/project/{project_id}/files',
+    ...options,
+    headers: {
+      'Content-Type': null,
+      ...options.headers,
+    },
+  });
+
+/**
+ * Delete Project File Endpoint
+ *
+ * Delete a file from a project and unlink it from any references.
+ */
+export const deleteProjectFileEndpointApiProjectProjectIdFilesFileIdDelete = <ThrowOnError extends boolean = true>(
+  options: Options<DeleteProjectFileEndpointApiProjectProjectIdFilesFileIdDeleteData, ThrowOnError>,
+) =>
+  (options.client ?? client).delete<
+    DeleteProjectFileEndpointApiProjectProjectIdFilesFileIdDeleteResponses,
+    DeleteProjectFileEndpointApiProjectProjectIdFilesFileIdDeleteErrors,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/project/{project_id}/files/{file_id}',
     ...options,
   });
 

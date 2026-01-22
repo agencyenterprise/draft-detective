@@ -163,7 +163,9 @@ export function WorkflowConfigDialog({ isOpen, type, onConfirm, onCancel }: Work
 
               return (
                 <WorkflowTypeSelector
-                  workflowTypes={workflowTypes?.filter((wt) => (type ? wt.type === type : true))}
+                  workflowTypes={workflowTypes?.filter((wt) =>
+                    type ? wt.type === type : wt.can_be_triggered_by_user && !wt.is_internal,
+                  )}
                   selectedTypes={field.state.value}
                   onSelectionChange={field.handleChange}
                   disabledTypes={type ? [type] : undefined}

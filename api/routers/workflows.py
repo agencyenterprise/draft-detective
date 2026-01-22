@@ -34,34 +34,6 @@ from lib.workflows.types import WorkflowConfig
 router = APIRouter(tags=["workflows"])
 
 
-def _check_share_access(workflow_run_id: str) -> None:
-    """
-    Check if workflow run's project has an active share link.
-
-    Raises:
-        HTTPException: 404 if workflow run not found, 401 if no active share link
-    """
-    with get_db() as db:
-        workflow_run = (
-            db.query(WorkflowRun).filter(WorkflowRun.id == workflow_run_id).first()
-        )
-        if not workflow_run:
-            raise HTTPException(status_code=404, detail="Workflow run not found")
-
-        share_link = (
-            db.query(ShareLink)
-            .filter(
-                ShareLink.resource_type == "project",
-                ShareLink.resource_id == workflow_run.project_id,
-                ShareLink.is_active == True,
-            )
-            .first()
-        )
-
-        if not share_link:
-            raise HTTPException(status_code=401, detail="Not authenticated")
-
-
 @router.post("/api/workflows/start", response_model=StartWorkflowResponse)
 async def start_workflow(
     request: WorkflowConfig,

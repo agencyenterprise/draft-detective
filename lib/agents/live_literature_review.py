@@ -133,9 +133,12 @@ Provide each piece of evidence related to a claim with one of the following qual
 # NOTE:
 When generating responses, remove or replace all internal citation tokens such as turn1search0, turn2search3, or similar. Do not display raw reference IDs or metadata markers in the final text. Return clean, human-readable output only.
 
-## Document Context
-**Domain**: {domain_context}
-**Target Audience**: {audience_context}
+# Agent Inputs
+
+{domain_context}
+
+{audience_context}
+
 **Document Publication Date**: {document_publication_date}
 
 ## The argument summary of the document
