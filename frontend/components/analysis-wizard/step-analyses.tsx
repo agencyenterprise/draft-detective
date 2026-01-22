@@ -14,7 +14,7 @@ import { useSessionStorage } from '@/lib/hooks/use-session-storage';
 import { hasSupportingDocumentsRequirement } from '@/components/workflows/utils';
 import {
   WorkflowRunType,
-  uploadProjectFileEndpointApiProjectProjectIdFilesPost,
+  addFilesToProjectApiProjectProjectIdFilesPost,
   startMultipleWorkflowsApiWorkflowsStartMultiplePost,
   updateProjectEndpointApiProjectProjectIdPatch,
 } from '@/lib/generated-api';
@@ -42,16 +42,12 @@ export function StepAnalyses() {
 
       const projectId = wizard.projectId;
 
-      // 1. Upload supporting documents if any (one at a time)
+      // 1. Upload supporting documents if any
       if (supportingDocuments.length > 0) {
-        await Promise.all(
-          supportingDocuments.map((file) =>
-            uploadProjectFileEndpointApiProjectProjectIdFilesPost({
-              path: { project_id: projectId },
-              body: { file },
-            }),
-          ),
-        );
+        await addFilesToProjectApiProjectProjectIdFilesPost({
+          path: { project_id: projectId },
+          body: { files: supportingDocuments, role: 'support' },
+        });
       }
 
       // 2. Update project metadata if domain or target audience is set

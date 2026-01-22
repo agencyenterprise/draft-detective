@@ -3,6 +3,9 @@
 import { type Client, formDataBodySerializer, type Options as Options2, type TDataShape } from './client';
 import { client } from './client.gen';
 import type {
+  AddFilesToProjectApiProjectProjectIdFilesPostData,
+  AddFilesToProjectApiProjectProjectIdFilesPostErrors,
+  AddFilesToProjectApiProjectProjectIdFilesPostResponses,
   CheckPreflightApiPreflightPostData,
   CheckPreflightApiPreflightPostErrors,
   CheckPreflightApiPreflightPostResponses,
@@ -101,9 +104,9 @@ import type {
   UpdateRoleApiUsersUserIdRolePatchData,
   UpdateRoleApiUsersUserIdRolePatchErrors,
   UpdateRoleApiUsersUserIdRolePatchResponses,
-  UploadProjectFileEndpointApiProjectProjectIdFilesPostData,
-  UploadProjectFileEndpointApiProjectProjectIdFilesPostErrors,
-  UploadProjectFileEndpointApiProjectProjectIdFilesPostResponses,
+  UploadProjectFileEndpointApiProjectProjectIdFilePostData,
+  UploadProjectFileEndpointApiProjectProjectIdFilePostErrors,
+  UploadProjectFileEndpointApiProjectProjectIdFilePostResponses,
 } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean> = Options2<
@@ -671,19 +674,16 @@ export const listProjectFilesEndpointApiProjectProjectIdFilesGet = <ThrowOnError
   });
 
 /**
- * Upload Project File Endpoint
+ * Add Files To Project
  *
- * Upload a supporting file to a project.
- *
- * Optionally link the file to a specific reference by providing reference_index
- * (0-based index of the reference in the ReferenceExtraction workflow state).
+ * Add files (supporting documents) to an existing project.
  */
-export const uploadProjectFileEndpointApiProjectProjectIdFilesPost = <ThrowOnError extends boolean = true>(
-  options: Options<UploadProjectFileEndpointApiProjectProjectIdFilesPostData, ThrowOnError>,
+export const addFilesToProjectApiProjectProjectIdFilesPost = <ThrowOnError extends boolean = true>(
+  options: Options<AddFilesToProjectApiProjectProjectIdFilesPostData, ThrowOnError>,
 ) =>
   (options.client ?? client).post<
-    UploadProjectFileEndpointApiProjectProjectIdFilesPostResponses,
-    UploadProjectFileEndpointApiProjectProjectIdFilesPostErrors,
+    AddFilesToProjectApiProjectProjectIdFilesPostResponses,
+    AddFilesToProjectApiProjectProjectIdFilesPostErrors,
     ThrowOnError,
     'data'
   >({
@@ -720,6 +720,34 @@ export const downloadProjectDocxApiProjectsProjectIdDocxDownloadGet = <ThrowOnEr
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/projects/{project_id}/docx/download',
     ...options,
+  });
+
+/**
+ * Upload Project File Endpoint
+ *
+ * Upload a single supporting file to a project.
+ *
+ * Optionally link the file to a specific reference by providing reference_index
+ * (0-based index of the reference in the ReferenceExtraction workflow state).
+ */
+export const uploadProjectFileEndpointApiProjectProjectIdFilePost = <ThrowOnError extends boolean = true>(
+  options: Options<UploadProjectFileEndpointApiProjectProjectIdFilePostData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    UploadProjectFileEndpointApiProjectProjectIdFilePostResponses,
+    UploadProjectFileEndpointApiProjectProjectIdFilePostErrors,
+    ThrowOnError,
+    'data'
+  >({
+    ...formDataBodySerializer,
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/project/{project_id}/file',
+    ...options,
+    headers: {
+      'Content-Type': null,
+      ...options.headers,
+    },
   });
 
 /**

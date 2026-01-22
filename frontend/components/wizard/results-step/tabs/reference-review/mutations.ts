@@ -1,7 +1,7 @@
 import {
   deleteProjectFileEndpointApiProjectProjectIdFilesFileIdDelete,
   startWorkflowApiWorkflowsStartPost,
-  uploadProjectFileEndpointApiProjectProjectIdFilesPost,
+  uploadProjectFileEndpointApiProjectProjectIdFilePost,
 } from '@/lib/generated-api';
 import { QueryClient, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -26,7 +26,7 @@ export function useUploadFileMutation(projectId: string, referenceIndex: number)
 
   return useMutation({
     mutationFn: async (file: File) => {
-      return uploadProjectFileEndpointApiProjectProjectIdFilesPost({
+      return uploadProjectFileEndpointApiProjectProjectIdFilePost({
         path: { project_id: projectId },
         body: { file, reference_index: referenceIndex },
       });
@@ -56,7 +56,7 @@ export function useReplaceFileMutation(projectId: string, referenceIndex: number
 
   return useMutation({
     mutationFn: async (file: File) => {
-      await uploadProjectFileEndpointApiProjectProjectIdFilesPost({
+      await uploadProjectFileEndpointApiProjectProjectIdFilePost({
         path: { project_id: projectId },
         body: { file, reference_index: referenceIndex },
       });

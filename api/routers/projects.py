@@ -131,12 +131,12 @@ async def add_files_to_project(
 ):
     """Add files (supporting documents) to an existing project."""
 
-    project_detailed = await get_user_project_detailed(project_id, current_user)
+    project = await get_user_project(project_id, user=current_user)
 
     roles = [role] * len(files)
     return await save_uploaded_files_to_db(
         uploaded_files=files,
-        project_id=project_detailed.project.id,
+        project_id=project.id,
         user_id=current_user.id,
         roles=roles,
     )
@@ -198,7 +198,7 @@ async def list_project_files_endpoint(
 
 
 @router.post(
-    "/api/project/{project_id}/files",
+    "/api/project/{project_id}/file",
     response_model=File,
     status_code=status.HTTP_201_CREATED,
 )
@@ -209,7 +209,7 @@ async def upload_project_file_endpoint(
     current_user: User = Depends(get_current_user),
 ):
     """
-    Upload a supporting file to a project.
+    Upload a single supporting file to a project.
 
     Optionally link the file to a specific reference by providing reference_index
     (0-based index of the reference in the ReferenceExtraction workflow state).
