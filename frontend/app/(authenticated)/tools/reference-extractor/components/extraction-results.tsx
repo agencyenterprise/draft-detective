@@ -9,7 +9,7 @@ import { FileText } from 'lucide-react';
 import type { ReferenceExtractionState } from '@/lib/generated-api';
 
 interface ExtractionResultsProps {
-  results: Pick<ReferenceExtractionState, 'detected_sections' | 'references'>;
+  results: Pick<ReferenceExtractionState, 'detected_sections' | 'extracted_references'>;
   onReset: () => void;
 }
 
@@ -17,8 +17,8 @@ export function ExtractionResults({ results, onReset }: ExtractionResultsProps) 
   const [copyDialogOpen, setCopyDialogOpen] = React.useState(false);
 
   const referenceTexts = React.useMemo(() => {
-    return results.references?.map((ref) => ref.text) || [];
-  }, [results.references]);
+    return results.extracted_references?.map((ref) => ref.text) || [];
+  }, [results.extracted_references]);
 
   const hasReferences = referenceTexts.length > 0;
   const hasSections = (results.detected_sections?.length || 0) > 0;
@@ -31,7 +31,7 @@ export function ExtractionResults({ results, onReset }: ExtractionResultsProps) 
     <Card className="p-6">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-semibold text-gray-900">
-          Extracted References ({results.references?.length || 0})
+          Extracted References ({results.extracted_references?.length || 0})
         </h2>
         <div className="flex items-center gap-2">
           {hasReferences && (
@@ -56,29 +56,15 @@ export function ExtractionResults({ results, onReset }: ExtractionResultsProps) 
       <div className="space-y-4">
         {hasReferences ? (
           <div className="space-y-2">
-            {results.references!.map((ref, idx) => (
-              <div key={idx} className="p-3 border border-gray-200 rounded-md hover:border-gray-300 transition">
+            {results.extracted_references!.map((ref, idx) => (
+              <div
+                key={ref.id || idx}
+                className="p-3 border border-gray-200 rounded-md hover:border-gray-300 transition"
+              >
                 <div className="flex items-start gap-3">
                   <span className="text-xs font-medium text-gray-500 mt-0.5">#{idx + 1}</span>
                   <div className="flex-1">
                     <p className="text-sm text-gray-900">{ref.text}</p>
-                    {ref.has_associated_supporting_document && (
-                      <p className="text-xs text-green-600 mt-1">
-                        ✓ Matched with:{' '}
-                        {ref.file_id ? (
-                          <a
-                            href={`/api/files/download/${ref.file_id}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="hover:underline"
-                          >
-                            {ref.name_of_associated_supporting_document}
-                          </a>
-                        ) : (
-                          ref.name_of_associated_supporting_document
-                        )}
-                      </p>
-                    )}
                   </div>
                 </div>
               </div>

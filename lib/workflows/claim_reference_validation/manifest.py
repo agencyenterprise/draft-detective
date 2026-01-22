@@ -32,6 +32,7 @@ class ClaimReferenceValidationManifest(
     required_dependencies = [
         WorkflowRunType.CLAIM_EXTRACTION,
         WorkflowRunType.CITATION_DETECTION,
+        WorkflowRunType.REFERENCE_FILE_MATCHING,
     ]
 
     def get_state_type(self) -> Type[ClaimReferenceValidationState]:

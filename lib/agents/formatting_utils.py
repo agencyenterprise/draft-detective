@@ -7,6 +7,7 @@ from lib.models.bibliography_item import (
 from lib.services.file import FileDocument
 from typing import Dict, List, Optional
 from lib.services.vector_store import RetrievedPassage
+from lib.workflows.reference_extraction.state import ExtractedReference
 
 
 def format_domain_context(domain: Optional[str]) -> str:
@@ -169,3 +170,11 @@ def format_retrieved_passages(passages: List["RetrievedPassage"]) -> str:
             f"```\n{passage.content}\n```\n"
         )
     return "\n".join(formatted)
+
+
+def format_bibliography(references: list[ExtractedReference]) -> str:
+    """Format extracted references as a simple numbered list for the prompt."""
+
+    if not references:
+        return "No bibliography available."
+    return "\n".join(f"{i + 1}. {ref.text}" for i, ref in enumerate(references))

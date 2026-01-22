@@ -14,6 +14,7 @@ from lib.workflows.chunk_utils import AnalyzedChunk, build_analyzed_chunks
 from lib.workflows.document_processing.state import DocumentProcessingState
 from lib.workflows.models import WorkflowRunType
 from lib.workflows.reference_extraction.state import ReferenceExtractionState
+from lib.workflows.reference_file_matching.state import ReferenceFileMatchingState
 from lib.workflows.types import WorkflowState
 from lib.workflows.util import get_state_by_type
 
@@ -92,14 +93,49 @@ async def build_eval_package_data(project_id: str) -> EvalPackageData:
 
     doc_processing_state = cast(DocumentProcessingState, doc_processing_state_raw)
 
-    # Get reference extraction state for references
+    # Build references from extraction and file matching states
+    references: List[BibliographyItem] = []
     ref_extraction_state_raw = get_state_by_type(
         WorkflowRunType.REFERENCE_EXTRACTION, existing_states
     )
-    references: List[BibliographyItem] = []
     if ref_extraction_state_raw is not None:
         ref_extraction_state = cast(ReferenceExtractionState, ref_extraction_state_raw)
-        references = ref_extraction_state.references
+        extracted_refs = ref_extraction_state.extracted_references
+
+        # Try to get file matching info
+        ref_to_file: dict[str, str] = {}
+        file_matching_state_raw = get_state_by_type(
+            WorkflowRunType.REFERENCE_FILE_MATCHING, existing_states
+        )
+        if file_matching_state_raw is not None:
+            file_matching_state = cast(
+                ReferenceFileMatchingState, file_matching_state_raw
+            )
+            for match in file_matching_state.matches:
+                ref_to_file[match.reference_id] = match.file_id
+
+        # Build file lookup for names and indices
+        supporting_files = doc_processing_state.supporting_files or []
+        file_names = {f.file_id: f.file_name for f in supporting_files}
+        file_indices = {f.file_id: idx + 1 for idx, f in enumerate(supporting_files)}
+
+        # Compose BibliographyItems
+        for ref in extracted_refs:
+            file_id = ref_to_file.get(ref.id)
+            has_match = file_id is not None
+            references.append(
+                BibliographyItem(
+                    text=ref.text,
+                    has_associated_supporting_document=has_match,
+                    index_of_associated_supporting_document=(
+                        file_indices.get(file_id, -1) if file_id else -1
+                    ),
+                    name_of_associated_supporting_document=(
+                        file_names.get(file_id, "") if file_id else ""
+                    ),
+                    file_id=file_id,
+                )
+            )
 
     # Build analyzed chunks from workflow states
     chunks = build_analyzed_chunks(existing_states)

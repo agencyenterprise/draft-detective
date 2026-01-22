@@ -56,7 +56,7 @@ export function useWorkflowProgressToast(projectId: string, enabled: boolean = t
           newIds.forEach((id) => next.delete(id));
           return next;
         });
-      }, 3000);
+      }, 1500);
       return () => clearTimeout(timer);
     }
   }, [allProgress]);

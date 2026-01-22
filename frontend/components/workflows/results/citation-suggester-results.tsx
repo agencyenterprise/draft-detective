@@ -2,6 +2,7 @@
 
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { composeReferences } from '@/lib/composed-references';
 import {
   CitationSuggesterState,
   CitationSuggestionResultWithClaimIndex,
@@ -9,10 +10,11 @@ import {
   WorkflowRunDetail,
   WorkflowRunType,
 } from '@/lib/generated-api';
+import { useProjectFiles } from '@/lib/hooks/use-project-files';
+import { getWorkflowRunByType } from '@/lib/workflow-state';
 import { AlertCircle, Link2Icon } from 'lucide-react';
 import * as React from 'react';
 import { ClaimCitationSuggestions } from '../../wizard/results-step/components/claim-citation-suggestions';
-import { getWorkflowRunByType } from '@/lib/workflow-state';
 
 interface CitationSuggesterResultsProps {
   project: ProjectDetailed;
@@ -24,10 +26,22 @@ export function CitationSuggesterResults({ project, workflowDetail }: CitationSu
 
   const documentProcessing = getWorkflowRunByType(project.workflow_runs ?? [], WorkflowRunType.DocumentProcessing);
   const referenceExtraction = getWorkflowRunByType(project.workflow_runs ?? [], WorkflowRunType.ReferenceExtraction);
+  const referenceFileMatching = getWorkflowRunByType(
+    project.workflow_runs ?? [],
+    WorkflowRunType.ReferenceFileMatching,
+  );
+
+  const { data: files } = useProjectFiles(project.project.id);
 
   const citationSuggestions = React.useMemo(() => results?.citation_suggestions ?? [], [results?.citation_suggestions]);
   const supportingFiles = documentProcessing?.state?.supporting_files ?? [];
-  const references = referenceExtraction?.state?.references ?? [];
+
+  // Compose references from extraction and file matching states
+  const references = React.useMemo(
+    () =>
+      composeReferences(referenceExtraction?.state?.extracted_references, referenceFileMatching?.state?.matches, files),
+    [referenceExtraction?.state?.extracted_references, referenceFileMatching?.state?.matches, files],
+  );
 
   // Group suggestions by chunk_index and claim_index
   const groupedSuggestions = React.useMemo(() => {

@@ -56,12 +56,16 @@ def register_all_workflow_manifests():
     )
     from lib.workflows.reference_downloader.manifest import ReferenceDownloaderManifest
     from lib.workflows.reference_extraction.manifest import ReferenceExtractionManifest
+    from lib.workflows.reference_file_matching.manifest import (
+        ReferenceFileMatchingManifest,
+    )
     from lib.workflows.reference_validation.manifest import ReferenceValidationManifest
     from lib.workflows.results_extraction.manifest import ResultsExtractionManifest
 
     manifests = [
         DocumentProcessingManifest(),
         ReferenceExtractionManifest(),
+        ReferenceFileMatchingManifest(),
         FootnoteExtractionManifest(),
         ClaimExtractionManifest(),
         CitationDetectionManifest(),

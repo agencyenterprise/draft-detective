@@ -3,6 +3,7 @@ from datetime import date
 
 from langgraph.runtime import Runtime
 
+from lib.agents.formatting_utils import format_bibliography
 from lib.agents.literature_review import LiteratureReviewAgent
 from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
@@ -22,10 +23,11 @@ async def literature_review(
 
     # Fetch artifacts from file artifacts service
     file = await file_artifacts_service.get_file_document(state.file_id)
-    references = await file_artifacts_service.get_references()
+    # Use extracted references (no file matching needed for literature review)
+    references = await file_artifacts_service.get_extracted_references()
 
     markdown = file.markdown
-    bibliography = references or []
+    bibliography = format_bibliography(references)
     document_publication_date = (
         state.config.publication_date
         if state.config.publication_date

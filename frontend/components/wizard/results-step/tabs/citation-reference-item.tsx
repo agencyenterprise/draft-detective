@@ -1,5 +1,6 @@
 import { LabeledValue } from '@/components/labeled-value';
-import { BibliographyItem, FileDocument, Reference } from '@/lib/generated-api';
+import { ComposedReference } from '@/lib/composed-references';
+import { FileDocument, Reference } from '@/lib/generated-api';
 import Link from 'next/link';
 import {
   ConfidenceBadge,
@@ -10,7 +11,7 @@ import {
 
 interface CitationReferenceItemProps {
   reference: Reference;
-  references: BibliographyItem[];
+  references: ComposedReference[];
   supportingFiles: FileDocument[];
 }
 

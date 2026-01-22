@@ -3,7 +3,7 @@ import { useToolWorkflow } from '@/hooks/use-tool-workflow';
 import { useEffect, useMemo, useRef } from 'react';
 import { toast } from 'sonner';
 
-type ExtractionResults = Pick<ReferenceExtractionState, 'detected_sections' | 'references'>;
+type ExtractionResults = Pick<ReferenceExtractionState, 'detected_sections' | 'extracted_references'>;
 
 export function useReferenceExtraction(projectId: string | null) {
   // Track which run IDs we've shown toasts for (to avoid duplicate toasts)
@@ -32,7 +32,7 @@ export function useReferenceExtraction(projectId: string | null) {
     const state = refExtractionRun.state as ReferenceExtractionState;
     return {
       detected_sections: state.detected_sections || [],
-      references: state.references || [],
+      extracted_references: state.extracted_references || [],
     };
   }, [refExtractionRun]);
 
@@ -42,7 +42,7 @@ export function useReferenceExtraction(projectId: string | null) {
     if (results && runId && toastedRunIdRef.current !== runId) {
       toastedRunIdRef.current = runId;
       toast.success(
-        `Extracted ${results.references?.length || 0} references from ${results.detected_sections?.length || 0} section(s)!`,
+        `Extracted ${results.extracted_references?.length || 0} references from ${results.detected_sections?.length || 0} section(s)!`,
       );
     }
   }, [results, refExtractionRun?.run.id]);

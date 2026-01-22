@@ -12,6 +12,7 @@ interface SummaryTabProps {
 export function SummaryTab({ allWorkflowDetails }: SummaryTabProps) {
   const documentProcessing = getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.DocumentProcessing);
   const referenceExtraction = getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.ReferenceExtraction);
+  const referenceFileMatching = getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.ReferenceFileMatching);
   const claimExtraction = getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.ClaimExtraction);
   const citationDetection = getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.CitationDetection);
 
@@ -30,6 +31,7 @@ export function SummaryTab({ allWorkflowDetails }: SummaryTabProps) {
     referenceExtraction?.state,
     claimExtraction?.state,
     citationDetection?.state,
+    referenceFileMatching?.state,
   );
 
   return (
@@ -58,7 +60,7 @@ export function SummaryTab({ allWorkflowDetails }: SummaryTabProps) {
           </div>
           <div>
             <span className="text-muted-foreground">Total references:</span>
-            <span className="ml-2 font-medium">{referenceExtraction?.state?.references?.length || 0}</span>
+            <span className="ml-2 font-medium">{referenceExtraction?.state?.extracted_references?.length || 0}</span>
           </div>
           <div>
             <span className="text-muted-foreground">Supported references:</span>

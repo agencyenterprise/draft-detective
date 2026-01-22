@@ -1,12 +1,10 @@
 """State definitions for reference extraction workflow."""
 
-from typing import Dict, List, Literal, Optional
+import uuid
+from typing import List, Literal
 
 from pydantic import BaseModel, Field
 
-from lib.agents.document_summarizer import DocumentSummary
-from lib.models.bibliography_item import BibliographyItem
-from lib.services.file import FileDocument
 from lib.workflows.models import (
     BaseWorkflowConfig,
     BaseWorkflowState,
@@ -19,6 +17,16 @@ class ReferenceSection(BaseModel):
 
     start_offset: int = Field(description="Character offset where section starts")
     end_offset: int = Field(description="Character offset where section ends")
+
+
+class ExtractedReference(BaseModel):
+    """A reference extracted from the document."""
+
+    id: str = Field(
+        default_factory=lambda: str(uuid.uuid4()),
+        description="Unique identifier for this reference",
+    )
+    text: str = Field(description="The extracted reference text")
 
 
 class ReferenceExtractionConfig(BaseWorkflowConfig):
@@ -39,17 +47,11 @@ class ReferenceExtractionState(BaseWorkflowState):
     # Inputs
     config: ReferenceExtractionConfig
     file_id: str = Field(description="ID of the main document")
-    supporting_file_ids: List[str] = Field(
-        description="IDs of the supporting documents"
-    )
 
     # Outputs
     detected_sections: List[ReferenceSection] = Field(
         default_factory=list, description="Detected reference sections"
     )
-    extracted_reference_texts: List[str] = Field(
-        default_factory=list, description="Raw extracted reference texts"
-    )
-    references: List[BibliographyItem] = Field(
-        default_factory=list, description="Extracted bibliography items"
+    extracted_references: List[ExtractedReference] = Field(
+        default_factory=list, description="Extracted references with unique IDs"
     )

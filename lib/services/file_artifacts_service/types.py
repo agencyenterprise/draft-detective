@@ -7,6 +7,7 @@ if TYPE_CHECKING:
     from lib.models.bibliography_item import BibliographyItem
     from lib.models.footnote_item import FootnoteItem
     from lib.services.file import FileDocument
+    from lib.workflows.reference_extraction.state import ExtractedReference
 
 
 class FileArtifactsServiceType(ABC):
@@ -21,6 +22,9 @@ class FileArtifactsServiceType(ABC):
 
     @abstractmethod
     async def get_document_summary(self, file_id: str) -> "DocumentSummary": ...
+
+    @abstractmethod
+    async def get_extracted_references(self) -> list["ExtractedReference"]: ...
 
     @abstractmethod
     async def get_references(self) -> list["BibliographyItem"]: ...

@@ -7,15 +7,14 @@ from lib.agents.citation_detector import (
     CitationDetectorAgent,
     CitationResponseWithChunkIndex,
 )
-from lib.agents.formatting_utils import format_bibliography_prompt_section
 from lib.models.footnote_item import FootnoteItem
-from lib.models.bibliography_item import BibliographyItem
 from lib.run_utils import run_tasks
 from lib.workflows.citation_detection.state import CitationDetectionState
 from lib.workflows.chunk_utils import AnalyzedChunk
 from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
 from lib.workflows.models import WorkflowError
+from lib.workflows.reference_extraction.state import ExtractedReference
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +32,16 @@ def _format_footnotes_list(footnotes: List[FootnoteItem]) -> str:
     return "\n".join(lines)
 
 
+def _format_bibliography(references: List[ExtractedReference]) -> str:
+    """Format extracted references as bibliography entries for the prompt."""
+    if not references:
+        return "No bibliography available."
+    return "\n\n".join(
+        f"### Bibliography entry #{i + 1}\n{ref.text}"
+        for i, ref in enumerate(references)
+    )
+
+
 @register_node(
     "Detect citations",
     "Detect citations in the document",
@@ -44,13 +53,17 @@ async def detect_citations(
     file_artifacts_service = runtime.context.file_artifacts_service
 
     # Fetch artifacts from file artifacts service
-    references = await file_artifacts_service.get_references()
+    # Use extracted references (no file matching needed for citation detection)
+    references = await file_artifacts_service.get_extracted_references()
     target_chunks = await file_artifacts_service.get_chunks()
     footnotes = await file_artifacts_service.get_footnotes()
 
+    # Format bibliography once for all chunks
+    bibliography = _format_bibliography(references)
+
     # Detect citations for each chunk
     tasks = [
-        _detect_chunk_citations(footnotes, references, chunk, citation_detector_agent)
+        _detect_chunk_citations(footnotes, bibliography, chunk, citation_detector_agent)
         for chunk in target_chunks
     ]
     results = await run_tasks(tasks, desc="Detecting chunk citations")
@@ -82,7 +95,7 @@ async def detect_citations(
 
 async def _detect_chunk_citations(
     footnotes: List[FootnoteItem],
-    references: List[BibliographyItem],
+    bibliography: str,
     chunk: AnalyzedChunk,
     citation_detector_agent: CitationDetectorAgent,
 ) -> CitationResponseWithChunkIndex:
@@ -94,9 +107,7 @@ async def _detect_chunk_citations(
     citations = await citation_detector_agent.ainvoke(
         {
             "footnotes_list": footnotes_list,
-            "bibliography": format_bibliography_prompt_section(
-                references, supporting_files=[]
-            ),
+            "bibliography": bibliography,
             "chunk": chunk.content,
         }
     )
