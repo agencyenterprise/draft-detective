@@ -13,7 +13,7 @@ import { Card, CardContent } from '../../ui/card';
 import { AnalysisOptionsMenu } from './components/analysis-options-menu';
 import { ViewModeToggle } from './components/view-mode-toggle';
 import { TabType } from './constants';
-import { AnalysesTab, FilesTab, ReferenceReviewTab, ReferencesTab, SummaryTab } from './tabs';
+import { AnalysesTab, FilesTab, ReferenceReviewTab, SummaryTab } from './tabs';
 import { DocumentExplorerTab } from './tabs/document-explorer-tab';
 
 interface ResultsVisualizationProps {
@@ -50,8 +50,6 @@ export function ResultsVisualization({
     switch (activeTab) {
       case 'summary':
         return <SummaryTab allWorkflowDetails={results} />;
-      case 'references':
-        return <ReferencesTab projectId={projectId} allWorkflowDetails={results} readOnly={readOnly} />;
       case 'files':
         return <FilesTab projectId={projectId} allWorkflowDetails={results} />;
       case 'document-explorer':
@@ -65,7 +63,7 @@ export function ResultsVisualization({
             onNavigateToAnalyses={() => setActiveTab('analyses')}
           />
         );
-      case 'reference-review':
+      case 'references':
         return <ReferenceReviewTab projectId={projectId} allWorkflowDetails={results} readOnly={readOnly} />;
       case 'analyses':
         return (
@@ -116,12 +114,6 @@ export function ResultsVisualization({
             <TabsTrigger value="summary">Summary</TabsTrigger>
             <TabsTrigger value="references">
               References{' '}
-              <Badge className="rounded-full h-4.5 min-w-4.5" variant="secondary">
-                {referenceExtraction?.state?.extracted_references?.length || 0}
-              </Badge>
-            </TabsTrigger>
-            <TabsTrigger value="reference-review">
-              References & Files{' '}
               <Badge className="rounded-full h-4.5 min-w-4.5" variant="secondary">
                 {referenceExtraction?.state?.extracted_references?.length || 0}
               </Badge>

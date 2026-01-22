@@ -1,10 +1,11 @@
 import { WorkflowConfigDialog, WorkflowConfigFormValues } from '@/components/workflows/workflow-config-dialog';
 import { WorkflowRunDetail, WorkflowRunType } from '@/lib/generated-api';
-import { getWorkflowRunByType, isWorkflowProcessing } from '@/lib/workflow-state';
+import { getReferenceExtractionWarningStatus, getWorkflowRunByType, isWorkflowProcessing } from '@/lib/workflow-state';
 import { useState } from 'react';
 import { useFetchAllFromWebMutation } from './mutations';
 import { useReferenceReviewReferences } from './queries';
 import { ReferenceReviewList } from './reference-review-list';
+import { NoReferencesCallout } from '@/components/references/no-reference-section-callout';
 
 interface ReferenceReviewTabProps {
   projectId: string;
@@ -33,14 +34,17 @@ export function ReferenceReviewTab({ projectId, allWorkflowDetails, readOnly }: 
     );
   };
 
+  const referenceWarning = getReferenceExtractionWarningStatus(allWorkflowDetails);
+
   return (
-    <>
+    <div className="space-y-4">
       <WorkflowConfigDialog
         isOpen={isConfigDialogOpen}
         type={WorkflowRunType.ReferenceDownloader}
         onConfirm={handleConfirm}
         onCancel={() => setIsConfigDialogOpen(false)}
       />
+
       <ReferenceReviewList
         references={references}
         projectId={projectId}
@@ -48,6 +52,13 @@ export function ReferenceReviewTab({ projectId, allWorkflowDetails, readOnly }: 
         onFetchAll={handleOpenDialog}
         isFetchingAllFromWeb={fetchAllFromWebMutation.isPending || isWorkflowProcessing(referenceDownloader)}
       />
-    </>
+
+      {referenceWarning?.showWarning && (
+        <NoReferencesCallout
+          sectionsDetected={referenceWarning.sectionsDetected}
+          hasErrors={referenceWarning.hasErrors}
+        />
+      )}
+    </div>
   );
 }
