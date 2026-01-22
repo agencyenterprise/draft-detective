@@ -1,4 +1,5 @@
 import logging
+import uuid
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends
@@ -115,6 +116,30 @@ async def delete_project_endpoint(
     """Delete a project and all associated results"""
     await delete_project(project_id, user=current_user)
     return {"message": "Project deleted successfully", "id": project_id}
+
+
+@router.post(
+    "/api/project/{project_id}/files",
+    response_model=List[File],
+    status_code=status.HTTP_201_CREATED,
+)
+async def add_files_to_project(
+    project_id: str,
+    files: List[UploadFile] = FastAPIUploadFile(...),
+    role: FileRole = Form(default=FileRole.SUPPORT),
+    current_user: User = Depends(get_current_user),
+):
+    """Add files (supporting documents) to an existing project."""
+
+    project_detailed = await get_user_project_detailed(project_id, current_user)
+
+    roles = [role] * len(files)
+    return await save_uploaded_files_to_db(
+        uploaded_files=files,
+        project_id=project_detailed.project.id,
+        user_id=current_user.id,
+        roles=roles,
+    )
 
 
 @router.get("/api/projects/{project_id}/docx/download")

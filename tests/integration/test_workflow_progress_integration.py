@@ -6,7 +6,7 @@ import pytest
 
 from lib.models.workflow_run import WorkflowRunStatus, WorkflowRunType
 from lib.services.workflow_progress import get_workflow_progress
-from lib.services.workflow_runs import upsert_workflow_run
+from lib.services.workflow_runs import create_workflow_run
 from lib.workflows.context import ContextSchema
 
 
@@ -23,11 +23,11 @@ async def test_workflow_execution_tracks_progress():
     workflow_type = WorkflowRunType.DOCUMENT_PROCESSING
 
     # Create workflow run
-    workflow_run_id = await upsert_workflow_run(
-        thread_id=thread_id,
+    workflow_run_id = await create_workflow_run(
         project_id=None,  # No project needed for infrastructure test
         status=WorkflowRunStatus.RUNNING,
         type=workflow_type,
+        thread_id=thread_id,
     )
 
     # Create context with workflow_run_id

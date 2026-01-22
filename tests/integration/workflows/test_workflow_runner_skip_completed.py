@@ -44,7 +44,7 @@ async def run_workflow_with_mocks(test_context, completed_workflows):
         completed_workflows: List of WorkflowRunType that should return as completed
 
     Returns:
-        Tuple of (mock_upsert, mock_create_config) for assertions
+        Tuple of (mock_create, mock_create_config) for assertions
     """
     config = ReferenceValidationWorkflowConfig(
         project_id=test_context["project_id"],
@@ -67,8 +67,8 @@ async def run_workflow_with_mocks(test_context, completed_workflows):
             side_effect=mock_get_run,
         ),
         patch(
-            "api.services.workflow_runner.upsert_workflow_run", new=AsyncMock()
-        ) as mock_upsert,
+            "api.services.workflow_runner.create_workflow_run", new=AsyncMock()
+        ) as mock_create,
         patch(
             "api.services.workflow_runner.create_workflow_config"
         ) as mock_create_config,
@@ -81,30 +81,30 @@ async def run_workflow_with_mocks(test_context, completed_workflows):
             background_tasks=BackgroundTasks(),
         )
 
-        return mock_upsert, mock_create_config
+        return mock_create, mock_create_config
 
 
 @pytest.mark.asyncio
 async def test_skip_completed_dependencies(test_context):
     """Test that completed dependency workflows are not re-run."""
     # Both dependencies completed → only start REFERENCE_VALIDATION
-    mock_upsert, _ = await run_workflow_with_mocks(
+    mock_create, _ = await run_workflow_with_mocks(
         test_context,
         [WorkflowRunType.DOCUMENT_PROCESSING, WorkflowRunType.REFERENCE_EXTRACTION],
     )
 
-    assert mock_upsert.call_count == 1
-    assert mock_upsert.call_args.kwargs["type"] == WorkflowRunType.REFERENCE_VALIDATION
+    assert mock_create.call_count == 1
+    assert mock_create.call_args.kwargs["type"] == WorkflowRunType.REFERENCE_VALIDATION
 
 
 @pytest.mark.asyncio
 async def test_start_all_when_none_completed(test_context):
     """Test that all workflows start when none are completed."""
     # No workflows completed → start all 3 (including dependencies)
-    mock_upsert, _ = await run_workflow_with_mocks(test_context, [])
+    mock_create, _ = await run_workflow_with_mocks(test_context, [])
 
-    assert mock_upsert.call_count == 3
-    started_types = {call.kwargs["type"] for call in mock_upsert.call_args_list}
+    assert mock_create.call_count == 3
+    started_types = {call.kwargs["type"] for call in mock_create.call_args_list}
     assert started_types == {
         WorkflowRunType.DOCUMENT_PROCESSING,
         WorkflowRunType.REFERENCE_EXTRACTION,
@@ -116,12 +116,12 @@ async def test_start_all_when_none_completed(test_context):
 async def test_partial_completion(test_context):
     """Test that only incomplete workflows are started."""
     # Only DOCUMENT_PROCESSING completed → start other 2
-    mock_upsert, _ = await run_workflow_with_mocks(
+    mock_create, _ = await run_workflow_with_mocks(
         test_context, [WorkflowRunType.DOCUMENT_PROCESSING]
     )
 
-    assert mock_upsert.call_count == 2
-    started_types = {call.kwargs["type"] for call in mock_upsert.call_args_list}
+    assert mock_create.call_count == 2
+    started_types = {call.kwargs["type"] for call in mock_create.call_args_list}
     assert WorkflowRunType.DOCUMENT_PROCESSING not in started_types
     assert WorkflowRunType.REFERENCE_EXTRACTION in started_types
     assert WorkflowRunType.REFERENCE_VALIDATION in started_types
@@ -132,7 +132,7 @@ async def test_requested_workflow_is_started_even_if_completed(test_context):
     """Test that requested workflows are started even if completed, but dependencies are skipped."""
     # All workflows completed → only start REFERENCE_VALIDATION (requested workflow)
     # Dependencies are skipped because they're not in the requested list
-    mock_upsert, mock_create_config = await run_workflow_with_mocks(
+    mock_create, mock_create_config = await run_workflow_with_mocks(
         test_context,
         [
             WorkflowRunType.DOCUMENT_PROCESSING,
@@ -142,6 +142,6 @@ async def test_requested_workflow_is_started_even_if_completed(test_context):
     )
 
     # Requested workflow is started even if completed (allows re-running)
-    assert mock_upsert.call_count == 1
-    assert mock_upsert.call_args.kwargs["type"] == WorkflowRunType.REFERENCE_VALIDATION
+    assert mock_create.call_count == 1
+    assert mock_create.call_args.kwargs["type"] == WorkflowRunType.REFERENCE_VALIDATION
     assert mock_create_config.call_count == 1

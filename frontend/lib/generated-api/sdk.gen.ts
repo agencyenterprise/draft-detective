@@ -651,30 +651,6 @@ export const updateProjectEndpointApiProjectProjectIdPatch = <ThrowOnError exten
   });
 
 /**
- * Download Project Docx
- *
- * Download DOCX with AI comments.
- *
- * Uses cached version if available, otherwise generates via workflow.
- * First request may take a few seconds as it generates the DOCX.
- * Subsequent requests with the same share_token (or none) are instant.
- */
-export const downloadProjectDocxApiProjectsProjectIdDocxDownloadGet = <ThrowOnError extends boolean = true>(
-  options: Options<DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetData, ThrowOnError>,
-) =>
-  (options.client ?? client).get<
-    DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetResponses,
-    DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetErrors,
-    ThrowOnError,
-    'data'
-  >({
-    responseStyle: 'data',
-    security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/api/projects/{project_id}/docx/download',
-    ...options,
-  });
-
-/**
  * List Project Files Endpoint
  *
  * Get all files for a project
@@ -720,6 +696,30 @@ export const uploadProjectFileEndpointApiProjectProjectIdFilesPost = <ThrowOnErr
       'Content-Type': null,
       ...options.headers,
     },
+  });
+
+/**
+ * Download Project Docx
+ *
+ * Download DOCX with AI comments.
+ *
+ * Uses cached version if available, otherwise generates via workflow.
+ * First request may take a few seconds as it generates the DOCX.
+ * Subsequent requests with the same share_token (or none) are instant.
+ */
+export const downloadProjectDocxApiProjectsProjectIdDocxDownloadGet = <ThrowOnError extends boolean = true>(
+  options: Options<DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetResponses,
+    DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetErrors,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/projects/{project_id}/docx/download',
+    ...options,
   });
 
 /**
