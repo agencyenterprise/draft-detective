@@ -62,6 +62,7 @@ class BaseWorkflowConfig(BaseModel):
 class WorkflowRunType(str, Enum):
     DOCUMENT_PROCESSING = "document_processing"
     REFERENCE_EXTRACTION = "reference_extraction"
+    REFERENCE_FILE_MATCHING = "reference_file_matching"
     FOOTNOTE_EXTRACTION = "footnote_extraction"
     CLAIM_EXTRACTION = "claim_extraction"
     CITATION_DETECTION = "citation_detection"

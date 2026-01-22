@@ -1,5 +1,5 @@
 import logging
-from typing import TYPE_CHECKING, cast, Callable, Awaitable, Any
+from typing import TYPE_CHECKING, Optional, cast, Callable, Awaitable, Any
 import asyncio
 
 from lib.models.file import FileRole
@@ -19,7 +19,11 @@ if TYPE_CHECKING:
     from lib.workflows.chunk_utils import AnalyzedChunk
     from lib.workflows.document_processing.state import DocumentProcessingState
     from lib.workflows.footnote_extraction.state import FootnoteExtractionState
-    from lib.workflows.reference_extraction.state import ReferenceExtractionState
+    from lib.workflows.reference_extraction.state import (
+        ExtractedReference,
+        ReferenceExtractionState,
+    )
+    from lib.workflows.reference_file_matching.state import ReferenceFileMatchingState
     from lib.workflows.types import WorkflowState
 
 logger = logging.getLogger(__name__)
@@ -41,11 +45,14 @@ class FileArtifactsService(FileArtifactsServiceType):
         """
         self.project_id = project_id
 
-    async def _get_state_by_type(self, run_type: WorkflowRunType) -> "WorkflowState":
+    async def _get_state_by_type(
+        self, run_type: WorkflowRunType, raise_exception: bool = True
+    ) -> Optional["WorkflowState"]:
         """Retrieve workflow state for a specific workflow run type.
 
         Args:
-            type: The type of workflow run to retrieve state for.
+            run_type: The type of workflow run to retrieve state for.
+            raise_exception: Whether to raise an exception if no workflow run or state is found.
 
         Returns:
             The workflow state for the specified workflow run type.
@@ -61,14 +68,16 @@ class FileArtifactsService(FileArtifactsServiceType):
 
         workflow_run = await get_project_workflow_run_by_type(self.project_id, run_type)
         if not workflow_run:
-            raise ValueError(
-                f"No workflow run found for type {run_type} and project {self.project_id}"
-            )
+            if raise_exception:
+                raise ValueError(
+                    f"No workflow run found for type {run_type} and project {self.project_id}"
+                )
+            return None
 
         state = await get_workflow_run_state_by_thread_id(
             workflow_run.langgraph_thread_id, run_type
         )
-        if not state:
+        if not state and raise_exception:
             raise ValueError(
                 f"No state found for type {run_type} and project {self.project_id}"
             )
@@ -242,12 +251,11 @@ class FileArtifactsService(FileArtifactsServiceType):
             f"No document summary found with id {file_id} for project {self.project_id}"
         )
 
-    async def get_references(self) -> list["BibliographyItem"]:
-        """Retrieve extracted references from the reference extraction workflow.
+    async def get_extracted_references(self) -> list["ExtractedReference"]:
+        """Retrieve raw extracted references from the reference extraction workflow.
 
         Returns:
-            A list of extracted bibliography items from the reference extraction
-            workflow state.
+            A list of ExtractedReference objects with id and text.
 
         Raises:
             ValueError: If no reference extraction workflow run or state is found
@@ -257,7 +265,78 @@ class FileArtifactsService(FileArtifactsServiceType):
             "ReferenceExtractionState",
             await self._get_state_by_type(WorkflowRunType.REFERENCE_EXTRACTION),
         )
-        return state.references
+        return state.extracted_references
+
+    async def get_references(self) -> list["BibliographyItem"]:
+        """Retrieve extracted references as BibliographyItem objects.
+
+        Composes BibliographyItem objects from:
+        1. ReferenceExtractionState - provides extracted references (id + text)
+        2. ReferenceFileMatchingState - provides file matches (may not exist)
+
+        Returns:
+            A list of BibliographyItem objects with file matching info if available.
+
+        Raises:
+            ValueError: If no reference extraction workflow run or state is found
+                for the project.
+        """
+        from lib.models.bibliography_item import BibliographyItem
+
+        # Get extracted references (required)
+        extraction_state = cast(
+            "ReferenceExtractionState",
+            await self._get_state_by_type(WorkflowRunType.REFERENCE_EXTRACTION),
+        )
+        extracted_refs = extraction_state.extracted_references
+
+        if not extracted_refs:
+            return []
+
+        # Try to get file matching state (optional)
+        matching_state = cast(
+            Optional["ReferenceFileMatchingState"],
+            await self._get_state_by_type(
+                WorkflowRunType.REFERENCE_FILE_MATCHING, raise_exception=False
+            ),
+        )
+
+        # Build lookup of reference_id -> file info
+        ref_to_file: dict[str, str] = {}
+        file_names: dict[str, str] = {}
+        file_indices: dict[str, int] = {}
+
+        if matching_state is not None:
+            for match in matching_state.matches:
+                ref_to_file[match.reference_id] = match.file_id
+
+            # Load file names for matched files
+            supporting_files = await self.get_supporting_files()
+            for idx, f in enumerate(supporting_files):
+                file_names[f.file_id] = f.file_name
+                file_indices[f.file_id] = idx + 1  # 1-based index
+
+        # Build BibliographyItem objects
+        references: list[BibliographyItem] = []
+        for ref in extracted_refs:
+            file_id = ref_to_file.get(ref.id)
+            has_match = file_id is not None
+
+            references.append(
+                BibliographyItem(
+                    text=ref.text,
+                    has_associated_supporting_document=has_match,
+                    index_of_associated_supporting_document=(
+                        file_indices.get(file_id, -1) if file_id else -1
+                    ),
+                    name_of_associated_supporting_document=(
+                        file_names.get(file_id, "") if file_id else ""
+                    ),
+                    file_id=file_id,
+                )
+            )
+
+        return references
 
     async def get_chunks(self) -> list["AnalyzedChunk"]:
         """Retrieve analyzed chunks from workflow states.

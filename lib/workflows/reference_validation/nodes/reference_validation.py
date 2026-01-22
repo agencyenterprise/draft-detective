@@ -3,7 +3,6 @@ from typing import List
 
 from langgraph.runtime import Runtime
 
-from lib.models.bibliography_item import BibliographyItem
 from lib.agents.reference_validator import (
     BibliographyItemValidation,
     ReferenceValidatorAgent,
@@ -12,6 +11,7 @@ from lib.run_utils import run_tasks
 from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
 from lib.workflows.models import WorkflowError
+from lib.workflows.reference_extraction.state import ExtractedReference
 from lib.workflows.reference_validation.state import ReferenceValidationState
 
 logger = logging.getLogger(__name__)
@@ -27,8 +27,8 @@ async def reference_validation(
     reference_validator_agent = ReferenceValidatorAgent(runtime.context)
     file_artifacts_service = runtime.context.file_artifacts_service
 
-    # Fetch references from file artifacts service
-    references = await file_artifacts_service.get_references()
+    # Fetch extracted references (no file matching needed for validation)
+    references = await file_artifacts_service.get_extracted_references()
 
     tasks = [
         _validate_reference(reference, reference_validator_agent)
@@ -59,7 +59,7 @@ async def reference_validation(
 
 
 async def _validate_reference(
-    reference: BibliographyItem,
+    reference: ExtractedReference,
     reference_validator_agent: ReferenceValidatorAgent,
 ) -> BibliographyItemValidation:
     return await reference_validator_agent.ainvoke(

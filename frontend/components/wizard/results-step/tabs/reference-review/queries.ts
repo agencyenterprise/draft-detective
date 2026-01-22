@@ -1,21 +1,23 @@
+import { formatFileSize } from '@/components/analysis-form/utils';
+import { composeReferences } from '@/lib/composed-references';
 import { ReferenceFetchStatus, WorkflowRunType } from '@/lib/generated-api';
 import { useProjectDetails } from '@/lib/hooks/use-project-details';
+import { useProjectFiles } from '@/lib/hooks/use-project-files';
 import { getWorkflowRunByType, isWorkflowProcessing } from '@/lib/workflow-state';
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useRef } from 'react';
 import { ReferenceReviewItem } from './types';
-import { useProjectFiles } from '@/lib/hooks/use-project-files';
-import { formatFileSize } from '@/components/analysis-form/utils';
 
 export function useReferenceReviewReferences(projectId: string) {
   const queryClient = useQueryClient();
   const projectDetail = useProjectDetails(projectId);
   const { data: files } = useProjectFiles(projectId);
 
-  const { referenceExtraction, referenceDownloader } = useMemo(() => {
+  const { referenceExtraction, referenceFileMatching, referenceDownloader } = useMemo(() => {
     const allWorkflowDetails = projectDetail?.workflowDetails ?? [];
     return {
       referenceExtraction: getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.ReferenceExtraction),
+      referenceFileMatching: getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.ReferenceFileMatching),
       referenceDownloader: getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.ReferenceDownloader),
     };
   }, [projectDetail?.workflowDetails]);
@@ -40,15 +42,20 @@ export function useReferenceReviewReferences(projectId: string) {
     }
   }, [isProcessing, projectId, queryClient]);
 
+  // Compose references from extraction and file matching states
+  const composedReferences = useMemo(
+    () =>
+      composeReferences(referenceExtraction?.state?.extracted_references, referenceFileMatching?.state?.matches, files),
+    [referenceExtraction?.state?.extracted_references, referenceFileMatching?.state?.matches, files],
+  );
+
   const references = useMemo(() => {
     if (!referenceExtraction) {
       return [];
     }
 
-    const bibliographyItems = referenceExtraction.state?.references ?? [];
-
-    return bibliographyItems.map((item, index): ReferenceReviewItem => {
-      const matchedFile = files?.find((file) => file.id === item.file_id);
+    return composedReferences.map((item, index): ReferenceReviewItem => {
+      const matchedFile = item.file_id ? files?.find((file) => file.id === item.file_id) : undefined;
       const fetchedReference = referenceDownloader?.state?.fetched_references?.find(
         (ref) => ref.input_reference === item.text,
       );
@@ -68,15 +75,15 @@ export function useReferenceReviewReferences(projectId: string) {
         matchedFile: matchedFile
           ? {
               id: matchedFile.id,
-              name: item.name_of_associated_supporting_document,
-              url: `/api/files/download/${item.file_id}`,
+              name: matchedFile.file_name,
+              url: `/api/files/download/${matchedFile.id}`,
               size: formatFileSize(matchedFile.file_size),
             }
           : null,
         fetchResult: shouldShowFetchedResult ? fetchedReference : null,
       };
     });
-  }, [files, referenceExtraction, referenceDownloader]);
+  }, [composedReferences, files, referenceExtraction, referenceDownloader]);
 
   return references;
 }

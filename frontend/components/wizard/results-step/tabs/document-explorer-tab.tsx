@@ -31,6 +31,7 @@ interface DocumentExplorerTabProps {
 }
 
 export function DocumentExplorerTab({
+  projectId,
   allWorkflowDetails,
   issues,
   viewMode,
@@ -195,6 +196,7 @@ export function DocumentExplorerTab({
             {selectedChunk && selectedChunkIndex !== null && (
               <ChunkSidebarContent
                 chunkIndex={selectedChunkIndex}
+                projectId={projectId}
                 onClearChunkSelection={() => setSelectedChunkIndex(null)}
                 allWorkflowDetails={allWorkflowDetails}
                 issues={issues}

@@ -43,6 +43,10 @@ from lib.workflows.reference_extraction.state import (
     ReferenceExtractionConfig,
     ReferenceExtractionState,
 )
+from lib.workflows.reference_file_matching.state import (
+    ReferenceFileMatchingConfig,
+    ReferenceFileMatchingState,
+)
 from lib.workflows.reference_validation.state import (
     ReferenceValidationState,
     ReferenceValidationWorkflowConfig,
@@ -55,6 +59,7 @@ from lib.workflows.results_extraction.state import (
 WorkflowState = (
     DocumentProcessingState
     | ReferenceExtractionState
+    | ReferenceFileMatchingState
     | FootnoteExtractionState
     | ClaimExtractionState
     | ClaimReferenceValidationState
@@ -72,6 +77,7 @@ WorkflowState = (
 WorkflowConfig = (
     DocumentProcessingWorkflowConfig
     | ReferenceExtractionConfig
+    | ReferenceFileMatchingConfig
     | FootnoteExtractionConfig
     | ClaimExtractionWorkflowConfig
     | CitationDetectionConfig

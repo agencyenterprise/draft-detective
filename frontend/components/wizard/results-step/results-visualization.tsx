@@ -117,13 +117,13 @@ export function ResultsVisualization({
             <TabsTrigger value="references">
               References{' '}
               <Badge className="rounded-full h-4.5 min-w-4.5" variant="secondary">
-                {referenceExtraction?.state?.references?.length || 0}
+                {referenceExtraction?.state?.extracted_references?.length || 0}
               </Badge>
             </TabsTrigger>
             <TabsTrigger value="reference-review">
               References & Files{' '}
               <Badge className="rounded-full h-4.5 min-w-4.5" variant="secondary">
-                {referenceExtraction?.state?.references?.length || 0}
+                {referenceExtraction?.state?.extracted_references?.length || 0}
               </Badge>
             </TabsTrigger>
             <TabsTrigger value="files">

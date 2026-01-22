@@ -12,6 +12,7 @@ from lib.run_utils import run_tasks
 from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
 from lib.workflows.reference_extraction.state import (
+    ExtractedReference,
     ReferenceExtractionState,
     ReferenceSection,
 )
@@ -95,7 +96,7 @@ async def _extract_from_section(
 
 
 @register_node(
-    "Extract and deduplicate references",
+    "Extract references",
     "Extract references from detected sections using LLM",
 )
 async def extract_text_references_node(
@@ -108,7 +109,7 @@ async def extract_text_references_node(
 
     if not sections:
         logger.info("No reference sections detected")
-        return {"extracted_reference_texts": []}
+        return {"extracted_references": []}
 
     agent = ReferenceTextExtractorAgent(runtime.context)
     config = ensure_config()
@@ -120,12 +121,16 @@ async def extract_text_references_node(
         max_concurrent=MAX_CONCURRENT_SECTIONS,
     )
 
-    extracted_reference_texts: List[str] = []
+    # Collect unique reference texts first
+    unique_texts: List[str] = []
     for section_refs in results:
         if section_refs is not None:
             for ref_text in section_refs:
-                if ref_text and not _is_duplicate(ref_text, extracted_reference_texts):
-                    extracted_reference_texts.append(ref_text)
+                if ref_text and not _is_duplicate(ref_text, unique_texts):
+                    unique_texts.append(ref_text)
 
-    logger.info(f"Extracted {len(extracted_reference_texts)} unique references")
-    return {"extracted_reference_texts": extracted_reference_texts}
+    # Create ExtractedReference objects with unique IDs
+    extracted_references = [ExtractedReference(text=text) for text in unique_texts]
+
+    logger.info(f"Extracted {len(extracted_references)} unique references")
+    return {"extracted_references": extracted_references}

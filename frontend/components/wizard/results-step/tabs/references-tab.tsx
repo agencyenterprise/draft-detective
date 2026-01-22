@@ -10,13 +10,14 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { humanizeLabel } from '@/components/workflows/results/literature-review/utils';
 import { StartWorkflowButton } from '@/components/workflows/start-workflow-button';
 import { WorkflowConfigFormValues } from '@/components/workflows/workflow-config-dialog';
+import { ComposedReference, composeReferences } from '@/lib/composed-references';
 import {
-  BibliographyItem,
   BibliographyItemValidation,
   startMultipleWorkflowsApiWorkflowsStartMultiplePost,
   WorkflowRunDetail,
   WorkflowRunType,
 } from '@/lib/generated-api';
+import { useProjectFiles } from '@/lib/hooks/use-project-files';
 import { getReferenceExtractionWarningStatus, getWorkflowRunByType, isWorkflowProcessing } from '@/lib/workflow-state';
 import { ChevronDownIcon, ChevronRightIcon, FileText, HelpCircle, Search } from 'lucide-react';
 import * as React from 'react';
@@ -29,7 +30,7 @@ interface ReferencesTabProps {
 }
 
 interface ReferenceTableRowProps {
-  reference: BibliographyItem;
+  reference: ComposedReference;
   validation?: BibliographyItemValidation;
 }
 
@@ -206,10 +207,20 @@ export function ReferencesTab({ allWorkflowDetails, projectId, readOnly = false 
 
   const referenceValidation = getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.ReferenceValidation);
   const referenceExtraction = getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.ReferenceExtraction);
+  const referenceFileMatching = getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.ReferenceFileMatching);
 
-  const referencesResults = referenceExtraction?.state;
+  const { data: files } = useProjectFiles(projectId);
+
+  const extractedRefs = referenceExtraction?.state?.extracted_references;
+  const fileMatches = referenceFileMatching?.state?.matches;
   const referenceValidationResults = referenceValidation?.state;
   const referenceWarning = getReferenceExtractionWarningStatus(allWorkflowDetails);
+
+  // Compose references from extraction and file matching states
+  const composedReferences = React.useMemo(
+    () => composeReferences(extractedRefs, fileMatches, files),
+    [extractedRefs, fileMatches, files],
+  );
 
   const handleStartWorkflow = async (values: WorkflowConfigFormValues) => {
     return await startMultipleWorkflowsApiWorkflowsStartMultiplePost({
@@ -236,19 +247,18 @@ export function ReferencesTab({ allWorkflowDetails, projectId, readOnly = false 
   }, [referenceValidationResults?.reference_validations]);
 
   const filteredReferences = React.useMemo(() => {
-    const references = referencesResults?.references;
-    if (!references) return [];
-    if (!searchQuery.trim()) return references;
+    if (!composedReferences.length) return [];
+    if (!searchQuery.trim()) return composedReferences;
 
     const query = searchQuery.toLowerCase();
-    return references.filter((reference) => {
+    return composedReferences.filter((reference) => {
       if (reference.text?.toLowerCase().includes(query)) return true;
       if (reference.has_associated_supporting_document) {
         if (reference.name_of_associated_supporting_document?.toLowerCase().includes(query)) return true;
       }
       return false;
     });
-  }, [referencesResults?.references, searchQuery]);
+  }, [composedReferences, searchQuery]);
 
   return (
     <div className="space-y-4">
@@ -260,8 +270,8 @@ export function ReferencesTab({ allWorkflowDetails, projectId, readOnly = false 
       )}
 
       <TabWithLoadingStates
-        title={`References (${filteredReferences.length}${searchQuery ? ` of ${referencesResults?.references?.length || 0}` : ''})`}
-        data={referencesResults?.references}
+        title={`References (${filteredReferences.length}${searchQuery ? ` of ${composedReferences.length}` : ''})`}
+        data={composedReferences}
         isProcessing={isWorkflowProcessing(referenceExtraction)}
         hasData={(references) => (references?.length || 0) > 0}
         loadingMessage={{
@@ -288,10 +298,10 @@ export function ReferencesTab({ allWorkflowDetails, projectId, readOnly = false 
           )
         }
       >
-        {(references) => (
+        {() => (
           <div className="space-y-4">
             {/* Search input */}
-            {references.length > 0 && (
+            {composedReferences.length > 0 && (
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
                 <Input
@@ -327,9 +337,9 @@ export function ReferencesTab({ allWorkflowDetails, projectId, readOnly = false 
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredReferences.map((reference, index) => (
+                  {filteredReferences.map((reference) => (
                     <ReferenceTableRow
-                      key={index}
+                      key={reference.id}
                       reference={reference}
                       validation={validationMap.get(reference.text)}
                     />

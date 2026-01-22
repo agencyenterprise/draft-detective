@@ -12,6 +12,7 @@ import { ChunkAnalysisCard } from './chunk-analysis-card';
 
 export interface ChunkSidebarContentProps {
   chunkIndex: number;
+  projectId: string;
   onClearChunkSelection: () => void;
   allWorkflowDetails: WorkflowRunDetail[];
   issues: DocumentIssue[];
@@ -20,6 +21,7 @@ export interface ChunkSidebarContentProps {
 
 export function ChunkSidebarContent({
   chunkIndex,
+  projectId,
   onClearChunkSelection,
   allWorkflowDetails,
   issues,
@@ -71,13 +73,19 @@ export function ChunkSidebarContent({
           chunkIndex={chunkIndex}
           claimIndex={originalIndex}
           totalClaims={claims.length}
+          projectId={projectId}
           allWorkflowDetails={allWorkflowDetails}
           issues={issues}
           readOnly={readOnly}
         />
       ))}
 
-      <ChunkAnalysisCard chunkIndex={chunkIndex} issues={issues} allWorkflowDetails={allWorkflowDetails} />
+      <ChunkAnalysisCard
+        chunkIndex={chunkIndex}
+        projectId={projectId}
+        issues={issues}
+        allWorkflowDetails={allWorkflowDetails}
+      />
     </div>
   );
 }

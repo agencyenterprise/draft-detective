@@ -12,7 +12,8 @@ import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useDownloadAllProjectFiles } from '@/hooks/use-download-all-project-files';
-import { BibliographyItem, File, FileRole, WorkflowRunDetail, WorkflowRunType } from '@/lib/generated-api';
+import { buildReferenceByFileIdMap, composeReferences } from '@/lib/composed-references';
+import { File, FileRole, WorkflowRunDetail, WorkflowRunType } from '@/lib/generated-api';
 import { useProjectFiles } from '@/lib/hooks/use-project-files';
 import { cn } from '@/lib/utils';
 import { getWorkflowRunByType } from '@/lib/workflow-state';
@@ -86,26 +87,20 @@ export function FilesTab({ projectId, allWorkflowDetails }: FilesTabProps) {
   const [searchQuery, setSearchQuery] = useState('');
 
   const referenceExtraction = getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.ReferenceExtraction);
-  const references = useMemo(
-    () => referenceExtraction?.state?.references || [],
-    [referenceExtraction?.state?.references],
-  );
+  const referenceFileMatching = getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.ReferenceFileMatching);
 
   const { data: files } = useProjectFiles(projectId);
   const { downloadAll, isDownloading } = useDownloadAllProjectFiles(projectId);
 
+  // Compose references from extraction and file matching states
+  const composedReferences = useMemo(
+    () =>
+      composeReferences(referenceExtraction?.state?.extracted_references, referenceFileMatching?.state?.matches, files),
+    [referenceExtraction?.state?.extracted_references, referenceFileMatching?.state?.matches, files],
+  );
+
   // Build a map of file_id to matched references once
-  const matchedReferencesMap = useMemo(() => {
-    const map = new Map<string, BibliographyItem>();
-    if (references) {
-      for (const ref of references) {
-        if (ref.file_id) {
-          map.set(ref.file_id, ref);
-        }
-      }
-    }
-    return map;
-  }, [references]);
+  const matchedReferencesMap = useMemo(() => buildReferenceByFileIdMap(composedReferences), [composedReferences]);
 
   // Sort files: main file first, then other files sorted alphabetically by name
   const sortedFiles = useMemo(

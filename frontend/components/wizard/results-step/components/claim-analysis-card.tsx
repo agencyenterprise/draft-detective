@@ -4,7 +4,9 @@ import { ClaimFeedback } from '@/components/claim-feedback';
 import { LabeledValue } from '@/components/labeled-value';
 import { Button } from '@/components/ui/button';
 import { getClaimId } from '@/lib/chunk-ids';
+import { composeReferences } from '@/lib/composed-references';
 import { Claim, DocumentIssue, WorkflowRunDetail, WorkflowRunType } from '@/lib/generated-api';
+import { useProjectFiles } from '@/lib/hooks/use-project-files';
 import { getClaimIssues, getMaxSeverity } from '@/lib/severity';
 import { getWorkflowRunByType } from '@/lib/workflow-state';
 import { ChevronDownIcon, ChevronRightIcon } from 'lucide-react';
@@ -23,6 +25,7 @@ export interface ClaimAnalysisCardProps {
   claimIndex: number;
   totalClaims: number;
   chunkIndex: number;
+  projectId: string;
   allWorkflowDetails: WorkflowRunDetail[];
   issues: DocumentIssue[];
   readOnly?: boolean;
@@ -33,11 +36,14 @@ export function ClaimAnalysisCard({
   claimIndex,
   totalClaims,
   chunkIndex,
+  projectId,
   allWorkflowDetails,
   issues,
   readOnly = false,
 }: ClaimAnalysisCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+
+  const { data: files } = useProjectFiles(projectId);
 
   const documentProcessingDetail = useMemo(
     () => getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.DocumentProcessing),
@@ -67,6 +73,10 @@ export function ClaimAnalysisCard({
     () => getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.ReferenceExtraction),
     [allWorkflowDetails],
   );
+  const referenceFileMatchingDetail = useMemo(
+    () => getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.ReferenceFileMatching),
+    [allWorkflowDetails],
+  );
 
   const claimCategory = claimExtractionDetail?.state?.claim_categories?.find(
     (c) => c.chunk_index === chunkIndex && c.claim_index === claimIndex,
@@ -85,7 +95,17 @@ export function ClaimAnalysisCard({
   );
 
   const supportingFiles = documentProcessingDetail?.state?.supporting_files ?? [];
-  const references = referenceExtractionDetail?.state?.references ?? [];
+
+  // Compose references from extraction and file matching states
+  const references = useMemo(
+    () =>
+      composeReferences(
+        referenceExtractionDetail?.state?.extracted_references,
+        referenceFileMatchingDetail?.state?.matches,
+        files,
+      ),
+    [referenceExtractionDetail?.state?.extracted_references, referenceFileMatchingDetail?.state?.matches, files],
+  );
   const claimIssues = getClaimIssues(issues, chunkIndex, claimIndex);
   const maxSeverity = getMaxSeverity(claimIssues);
 

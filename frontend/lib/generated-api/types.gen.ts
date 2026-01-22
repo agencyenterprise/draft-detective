@@ -103,44 +103,6 @@ export type BibliographyFieldValidation = {
 };
 
 /**
- * BibliographyItem
- *
- * Represents a bibliographic reference item extracted from a document.
- */
-export type BibliographyItem = {
-  /**
-   * Text
-   *
-   * The text of the bibliographic item
-   */
-  text: string;
-  /**
-   * Has Associated Supporting Document
-   *
-   * A boolean value indicating whether the bibliographic item has an associated supporting document provided by the user
-   */
-  has_associated_supporting_document: boolean;
-  /**
-   * Index Of Associated Supporting Document
-   *
-   * If the bibliographic item has an associated supporting document, this will be the index of the supporting document in the list of supporting documents provided by the user (index starts at 1), otherwise it will be -1.
-   */
-  index_of_associated_supporting_document: number;
-  /**
-   * Name Of Associated Supporting Document
-   *
-   * If the bibliographic item has an associated supporting document, this will be the name of the supporting document, otherwise it will be an empty string.
-   */
-  name_of_associated_supporting_document: string;
-  /**
-   * File Id
-   *
-   * The UUID of the associated supporting document file in the database (if matched)
-   */
-  file_id?: string | null;
-};
-
-/**
  * BibliographyItemValidation
  */
 export type BibliographyItemValidation = {
@@ -1387,6 +1349,26 @@ export type EvidenceWeighterResponseWithClaimIndex = {
    * Claim Index
    */
   claim_index: number;
+};
+
+/**
+ * ExtractedReference
+ *
+ * A reference extracted from the document.
+ */
+export type ExtractedReference = {
+  /**
+   * Id
+   *
+   * Unique identifier for this reference
+   */
+  id?: string;
+  /**
+   * Text
+   *
+   * The extracted reference text
+   */
+  text: string;
 };
 
 /**
@@ -2644,29 +2626,17 @@ export type ReferenceExtractionState = {
    */
   file_id: string;
   /**
-   * Supporting File Ids
-   *
-   * IDs of the supporting documents
-   */
-  supporting_file_ids: Array<string>;
-  /**
    * Detected Sections
    *
    * Detected reference sections
    */
   detected_sections?: Array<ReferenceSection>;
   /**
-   * Extracted Reference Texts
+   * Extracted References
    *
-   * Raw extracted reference texts
+   * Extracted references with unique IDs
    */
-  extracted_reference_texts?: Array<string>;
-  /**
-   * References
-   *
-   * Extracted bibliography items
-   */
-  references?: Array<BibliographyItem>;
+  extracted_references?: Array<ExtractedReference>;
 };
 
 /**
@@ -2765,6 +2735,105 @@ export const ReferenceFetchStatus = {
  * Status of a reference fetch operation
  */
 export type ReferenceFetchStatus = (typeof ReferenceFetchStatus)[keyof typeof ReferenceFetchStatus];
+
+/**
+ * ReferenceFileMatch
+ *
+ * Links a reference to a matched supporting file.
+ */
+export type ReferenceFileMatch = {
+  /**
+   * Reference Id
+   *
+   * ID of the ExtractedReference
+   */
+  reference_id: string;
+  /**
+   * File Id
+   *
+   * ID of the matched supporting file
+   */
+  file_id: string;
+};
+
+/**
+ * ReferenceFileMatchingConfig
+ *
+ * Configuration for reference file matching workflow.
+ */
+export type ReferenceFileMatchingConfig = {
+  /**
+   * Project Id
+   *
+   * The ID of the project that this workflow run should be associated with
+   */
+  project_id?: string | null;
+  /**
+   * Openai Api Key
+   *
+   * The OpenAI API key to use for this workflow execution
+   */
+  openai_api_key?: string | null;
+  /**
+   * Domain
+   *
+   * Domain context for more accurate analysis
+   */
+  domain?: string | null;
+  /**
+   * Target Audience
+   *
+   * Target audience context for analysis
+   */
+  target_audience?: string | null;
+  /**
+   * Publication Date
+   *
+   * Publication date of the document (YYYY-MM-DD format)
+   */
+  publication_date?: string | null;
+  /**
+   * Type
+   */
+  type?: 'reference_file_matching';
+};
+
+/**
+ * ReferenceFileMatchingState
+ *
+ * State for reference file matching workflow.
+ */
+export type ReferenceFileMatchingState = {
+  /**
+   * Errors
+   *
+   * Errors that occurred during the workflow execution.
+   */
+  errors?: Array<WorkflowError>;
+  /**
+   * Type
+   */
+  type?: 'reference_file_matching';
+  config: ReferenceFileMatchingConfig;
+  /**
+   * File Id
+   *
+   * ID of the main document
+   */
+  file_id: string;
+  /**
+   * Supporting File Ids
+   *
+   * IDs of the supporting documents
+   */
+  supporting_file_ids?: Array<string>;
+  /**
+   * Matches
+   *
+   * List of matches between references and supporting files
+   */
+  matches?: Array<ReferenceFileMatch>;
+};
 
 /**
  * ReferenceMinimal
@@ -3496,6 +3565,7 @@ export type WorkflowRunDetail = {
   state:
     | DocumentProcessingState
     | ReferenceExtractionState
+    | ReferenceFileMatchingState
     | FootnoteExtractionState
     | ClaimExtractionState
     | ClaimReferenceValidationState
@@ -3531,6 +3601,7 @@ export type WorkflowRunStatus = (typeof WorkflowRunStatus)[keyof typeof Workflow
 export const WorkflowRunType = {
   DocumentProcessing: 'document_processing',
   ReferenceExtraction: 'reference_extraction',
+  ReferenceFileMatching: 'reference_file_matching',
   FootnoteExtraction: 'footnote_extraction',
   ClaimExtraction: 'claim_extraction',
   CitationDetection: 'citation_detection',
@@ -3796,6 +3867,7 @@ export type WorkflowRunDetailWritable = {
   state:
     | DocumentProcessingStateWritable
     | ReferenceExtractionState
+    | ReferenceFileMatchingState
     | FootnoteExtractionState
     | ClaimExtractionState
     | ClaimReferenceValidationState
@@ -3994,6 +4066,7 @@ export type StartWorkflowApiWorkflowsStartPostData = {
   body:
     | DocumentProcessingWorkflowConfig
     | ReferenceExtractionConfig
+    | ReferenceFileMatchingConfig
     | FootnoteExtractionConfig
     | ClaimExtractionWorkflowConfig
     | CitationDetectionConfig

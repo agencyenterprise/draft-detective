@@ -11,6 +11,7 @@ import {
   MethodologicalAlignmentState,
   ReferenceDownloaderState,
   ReferenceExtractionState,
+  ReferenceFileMatchingState,
   ReferenceValidationState,
   ResultsExtractionState,
   WorkflowError,
@@ -26,6 +27,7 @@ import {
 type WorkflowTypeToDetail = {
   [WorkflowRunType.DocumentProcessing]: DocumentProcessingState;
   [WorkflowRunType.ReferenceExtraction]: ReferenceExtractionState;
+  [WorkflowRunType.ReferenceFileMatching]: ReferenceFileMatchingState;
   [WorkflowRunType.ClaimReferenceValidation]: ClaimReferenceValidationState;
   [WorkflowRunType.MethodologicalAlignment]: MethodologicalAlignmentState;
   [WorkflowRunType.ReferenceDownloader]: ReferenceDownloaderState;
@@ -64,6 +66,7 @@ export function getWorkflowRunByType<T extends keyof WorkflowTypeToDetail>(
 const workflowTypeNames: Record<WorkflowRunType, string> = {
   [WorkflowRunType.DocumentProcessing]: 'Document Processing',
   [WorkflowRunType.ReferenceExtraction]: 'Reference Extraction',
+  [WorkflowRunType.ReferenceFileMatching]: 'Reference File Matching',
   [WorkflowRunType.ClaimReferenceValidation]: 'Claim Reference Validation',
   [WorkflowRunType.MethodologicalAlignment]: 'Methodological Alignment',
   [WorkflowRunType.ReferenceDownloader]: 'Reference Downloader',
@@ -125,7 +128,7 @@ export function getReferenceExtractionWarningStatus(workflowRuns: WorkflowRunDet
   }
 
   const state = referenceExtraction.state;
-  const hasReferences = (state.references?.length ?? 0) > 0;
+  const hasReferences = (state.extracted_references?.length ?? 0) > 0;
 
   if (hasReferences) {
     return null;

@@ -3,7 +3,8 @@
 import { LabeledValue } from '@/components/labeled-value';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
-import { BibliographyItem, ClaimSubstantiationResultWithClaimIndex, FileDocument } from '@/lib/generated-api';
+import { ComposedReference } from '@/lib/composed-references';
+import { ClaimSubstantiationResultWithClaimIndex, FileDocument } from '@/lib/generated-api';
 import { cn } from '@/lib/utils';
 import { BookOpen, ChevronDown, ChevronRight, FileSearch } from 'lucide-react';
 import Link from 'next/link';
@@ -12,7 +13,7 @@ import { EvidenceAlignmentLevelBadge } from './evidence-alignment-level-badge';
 
 interface SubstantiationResultsProps {
   substantiation: ClaimSubstantiationResultWithClaimIndex;
-  references: BibliographyItem[];
+  references: ComposedReference[];
   supportingFiles: FileDocument[];
   className?: string;
 }
