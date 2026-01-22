@@ -14,7 +14,7 @@ import { useSessionStorage } from '@/lib/hooks/use-session-storage';
 import { hasSupportingDocumentsRequirement } from '@/components/workflows/utils';
 import {
   WorkflowRunType,
-  addFilesToProjectApiProjectProjectIdFilesPost,
+  uploadProjectFileEndpointApiProjectProjectIdFilesPost,
   startMultipleWorkflowsApiWorkflowsStartMultiplePost,
   updateProjectEndpointApiProjectProjectIdPatch,
 } from '@/lib/generated-api';
@@ -40,18 +40,24 @@ export function StepAnalyses() {
       if (!wizard.projectId) throw new Error('No project ID');
       if (selectedWorkflowTypes.length === 0) throw new Error('No workflow types selected');
 
-      // 1. Upload supporting documents if any
+      const projectId = wizard.projectId;
+
+      // 1. Upload supporting documents if any (one at a time)
       if (supportingDocuments.length > 0) {
-        await addFilesToProjectApiProjectProjectIdFilesPost({
-          path: { project_id: wizard.projectId },
-          body: { files: supportingDocuments, role: 'support' },
-        });
+        await Promise.all(
+          supportingDocuments.map((file) =>
+            uploadProjectFileEndpointApiProjectProjectIdFilesPost({
+              path: { project_id: projectId },
+              body: { file },
+            }),
+          ),
+        );
       }
 
       // 2. Update project metadata if domain or target audience is set
       if (domain || targetAudience) {
         await updateProjectEndpointApiProjectProjectIdPatch({
-          path: { project_id: wizard.projectId },
+          path: { project_id: projectId },
           body: {
             domain: domain || undefined,
             target_audience: targetAudience || undefined,
@@ -70,7 +76,7 @@ export function StepAnalyses() {
       const apiKey = wizard.openaiApiKey || storedApiKey;
       return startMultipleWorkflowsApiWorkflowsStartMultiplePost({
         body: {
-          project_id: wizard.projectId,
+          project_id: projectId,
           workflow_types: workflowsToStart,
           openai_api_key: apiKey || undefined,
         },
