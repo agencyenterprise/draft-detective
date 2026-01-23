@@ -199,6 +199,9 @@ function ReferencesReady({ project }: { project: ProjectDetailed }) {
         readOnly={false}
         onFetchAll={handleOpenDialog}
         isFetchingAllFromWeb={fetchAllFromWebMutation.isPending || isWorkflowProcessing(referenceDownloader)}
+        isBatchUploading={false}
+        disableActions={false}
+        onBatchUpload={() => {}}
       />
 
       <Button
