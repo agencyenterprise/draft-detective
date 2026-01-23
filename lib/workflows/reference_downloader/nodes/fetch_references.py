@@ -108,6 +108,9 @@ async def fetch_single_reference(state: dict, runtime: Runtime[ContextSchema]):
             and result.file_id
             and project_id
         ):
+            # Promote file immediately (from SUPPORTING_CANDIDATE to SUPPORT)
+            update_files_role([result.file_id], FileRole.SUPPORT)
+            # Update the reference file matching in the ReferenceExtraction workflow state
             await _update_reference_file_matching(project_id, result.file_id, index)
 
     except Exception as e:
