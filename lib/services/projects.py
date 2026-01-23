@@ -17,7 +17,7 @@ from lib.services.issues import convert_to_issues
 from lib.services.share_links import is_project_shared
 from lib.services.workflow_runs import WorkflowRunDetail, get_project_workflow_runs
 from lib.workflows.checkpointer import get_checkpointer
-from lib.workflows.models import DocumentIssue
+from lib.workflows.models import DocumentIssue, WorkflowRunType
 
 logger = logging.getLogger(__name__)
 
@@ -129,6 +129,14 @@ async def get_project_detailed_from_project(
     workflow_runs = await get_project_workflow_runs(
         project.id, include_internal=include_internal
     )
+
+    # Clear out some heavy data from the workflow runs to reduce payload size
+    # TODO: we should have a better way to do this
+    for run in workflow_runs:
+        if run.run.type == WorkflowRunType.DOCUMENT_PROCESSING:
+            run.state.file.markdown = None
+            for supporting_file in run.state.supporting_files:
+                supporting_file.markdown = None
 
     states = [run.state for run in workflow_runs if run.state is not None]
     return ProjectDetailed(
