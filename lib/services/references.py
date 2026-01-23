@@ -1,9 +1,9 @@
 import asyncio
 import logging
 import uuid
-from collections import defaultdict
 from contextlib import asynccontextmanager
-from typing import Dict, List, Optional, Tuple
+from functools import lru_cache
+from typing import List, Optional, Tuple
 
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus
 from lib.services.workflow_runs import (
@@ -22,8 +22,13 @@ from lib.workflows.registry import create_graph
 
 logger = logging.getLogger(__name__)
 
+
 # Project-level locks to prevent race conditions on concurrent state updates
-_project_locks: Dict[str, asyncio.Lock] = defaultdict(asyncio.Lock)
+# Using LRU cache to limit memory usage - keeps most recently used locks
+@lru_cache(maxsize=128)
+def _get_project_lock(project_id: str) -> asyncio.Lock:
+    """Get or create a lock for a specific project (cached with LRU eviction)."""
+    return asyncio.Lock()
 
 
 @asynccontextmanager
@@ -35,7 +40,7 @@ async def _project_lock(project_id: str):
     state are serialized, while operations on different projects can proceed
     in parallel.
     """
-    lock = _project_locks[project_id]
+    lock = _get_project_lock(project_id)
     async with lock:
         yield
 

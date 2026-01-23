@@ -12,8 +12,8 @@ from langgraph.runtime import Runtime
 from lib.agents.registry import agent_registry
 from lib.models.workflow_progress import ProgressLevel
 from lib.services.workflow_progress import (
-    complete_progress,
-    create_and_start_progress,
+    get_or_create_progress,
+    increment_and_complete_if_done,
 )
 from lib.workflows.context import ContextSchema, current_progress_id
 from lib.workflows.models import BaseWorkflowState, WorkflowError
@@ -76,11 +76,12 @@ def register_node(name: str, description: str):
                             # Convert string to UUID
                             workflow_run_id = uuid.UUID(workflow_run_id_str)
 
-                            progress_id = create_and_start_progress(
+                            # Use get_or_create to enable automatic batching
+                            # of parallel nodes with the same name
+                            progress_id = get_or_create_progress(
                                 workflow_run_id=workflow_run_id,
                                 name=name,
                                 level=ProgressLevel.NODE,
-                                total_steps=1,
                             )
 
                             # Store token for cleanup to prevent leakage
@@ -97,16 +98,21 @@ def register_node(name: str, description: str):
 
                 result = await func(state, runtime)
 
-                # Mark progress as completed on success
+                # Increment progress and complete if all parallel nodes are done
                 if progress_id:
                     try:
-                        complete_progress(progress_id)
-                        func_logger.info(
-                            f"Progress tracking: {name} completed (progress_id: {progress_id})"
-                        )
+                        completed = increment_and_complete_if_done(progress_id)
+                        if completed:
+                            func_logger.info(
+                                f"Progress tracking: {name} batch completed (progress_id: {progress_id})"
+                            )
+                        else:
+                            func_logger.info(
+                                f"Progress tracking: {name} step completed (progress_id: {progress_id})"
+                            )
                     except Exception as e:
                         func_logger.error(
-                            f"Failed to complete progress entry: {e}", exc_info=True
+                            f"Failed to update progress entry: {e}", exc_info=True
                         )
 
                 func_logger.info(
@@ -116,6 +122,16 @@ def register_node(name: str, description: str):
                 return result
 
             except Exception as e:
+                # Still increment progress on error so batch can complete
+                if progress_id:
+                    try:
+                        increment_and_complete_if_done(progress_id)
+                    except Exception as progress_error:
+                        func_logger.error(
+                            f"Failed to update progress on error: {progress_error}",
+                            exc_info=True,
+                        )
+
                 func_logger.error(
                     f"{func.__name__} ({project_id}): workflow node execution failed with error: {str(e)}",
                     exc_info=True,
