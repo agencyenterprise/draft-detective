@@ -35,7 +35,11 @@ class ReferenceFileMatchingManifest(
     needs_web_search = False
     is_internal = True  # Runs as dependency, not user-triggered from workflow list
     can_be_triggered_by_user = True  # Can be used as standalone tool
-    required_dependencies = [WorkflowRunType.REFERENCE_EXTRACTION]
+    required_dependencies = [
+        # Needs a direct dependency to doc processing to wait for files to be processed, when files are uploaded after project creation
+        WorkflowRunType.DOCUMENT_PROCESSING,
+        WorkflowRunType.REFERENCE_EXTRACTION,
+    ]
 
     def get_state_type(self) -> Type[ReferenceFileMatchingState]:
         """Get the type of the workflow state."""

@@ -24,6 +24,11 @@ class DocumentProcessingManifest(
         False  # This is a dependency workflow, not directly triggered
     )
     is_internal = True
+    optional_dependencies = [
+        # This is a hack to make doc processing wait for reference downloader to complete, so we can process the files
+        # that were downloaded by reference downloader
+        WorkflowRunType.REFERENCE_DOWNLOADER,
+    ]
 
     def get_state_type(self) -> Type[DocumentProcessingState]:
         """Get the type of the workflow state."""

@@ -1,11 +1,11 @@
 from typing import Optional
 
-from lib.agents.document_summarizer import DocumentSummary
 from lib.models.bibliography_item import BibliographyItem
 from lib.models.footnote_item import FootnoteItem
 from lib.services.file import FileDocument
 from lib.services.file_artifacts_service.types import FileArtifactsServiceType
 from lib.workflows.chunk_utils import AnalyzedChunk
+from lib.workflows.document_processing.state import FileSummary
 from lib.workflows.reference_extraction.state import ExtractedReference
 
 
@@ -47,8 +47,9 @@ class MockFileArtifactsService(FileArtifactsServiceType):
             return self._supporting_files
         return []
 
-    async def get_document_summary(self, file_id: str) -> DocumentSummary:
-        return DocumentSummary(
+    async def get_file_summary(self, file_id: str) -> FileSummary:
+        return FileSummary(
+            file_id=file_id,
             title="Mock Title",
             authors="Mock Authors",
             publication_date="Mock Publication Date",

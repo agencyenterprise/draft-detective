@@ -120,10 +120,16 @@ async def get_project_files_list_items(
 ) -> List[FileListItem]:
     """
     Get files for a project as lightweight list items (excludes markdown and summary).
+
+    Note: Excludes SUPPORTING_CANDIDATE files as they are temporary files during
+    reference downloading and should not be shown to users.
     """
     project_id = _normalize_uuid(project_id, "project ID")
     with get_db() as db:
-        stmt = select(File).where(File.project_id == project_id)
+        stmt = select(File).where(
+            File.project_id == project_id,
+            File.role != FileRole.SUPPORTING_CANDIDATE,
+        )
         files = db.execute(stmt).scalars().all()
         return [FileListItem.model_validate(f, from_attributes=True) for f in files]
 

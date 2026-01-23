@@ -43,7 +43,10 @@ export function ResultsVisualization({
   const [activeTab, setActiveTab] = useState<TabType>('document-explorer');
   const { isWorkflowTypeVisible } = useWorkflowTypes();
 
-  const authors = documentProcessing?.state?.main_document_summary?.authors;
+  // Find the main document summary from the summaries list
+  const mainFileId = documentProcessing?.state?.file?.file_id;
+  const mainSummary = documentProcessing?.state?.summaries?.find((s) => s.file_id === mainFileId);
+  const authors = mainSummary?.authors;
 
   const renderActiveTab = () => {
     switch (activeTab) {

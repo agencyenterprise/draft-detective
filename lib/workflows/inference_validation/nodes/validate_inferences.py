@@ -34,7 +34,7 @@ async def validate_inferences(
 
     # Fetch artifacts from file artifacts service
     target_chunks = await file_artifacts_service.get_chunks()
-    document_summary = await file_artifacts_service.get_document_summary(state.file_id)
+    document_summary = await file_artifacts_service.get_file_summary(state.file_id)
 
     # Process all chunks
     tasks = [
