@@ -1,7 +1,7 @@
 import asyncio
 import re
 import logging
-from typing import List, Optional
+from typing import List, Optional, Tuple
 import nltk
 from pydantic import BaseModel, Field
 
@@ -297,9 +297,11 @@ class DocumentChunkerAgent(BaseAgent):
         # Split document by headings
         md_header_splits = markdown_splitter.split_text(full_document)
 
-        paragraphs_objects_list = []
-        for text_section in md_header_splits:
+        # List of paragraphs to process later, to break into sentence-level chunks
+        # Tuple of (paragraph, section_headings_list)
+        paragraphs_to_process: List[Tuple[str, List[str]]] = []
 
+        for text_section in md_header_splits:
             section_headings_list = []
             if text_section.metadata:
                 # Sort by heading level to ensure hierarchical order (H1, H2, H3, H4)
@@ -309,18 +311,22 @@ class DocumentChunkerAgent(BaseAgent):
                 for _, heading_value in sorted_metadata:
                     section_headings_list.append(heading_value)
 
-            print("Text section: ", text_section.page_content)
+            logger.debug("Text section: ", text_section.page_content)
 
             # Split document into paragraphs
             paragraphs = split_into_paragraphs(text_section.page_content)
 
-            tasks = [
-                process_paragraph(p, section_headings_list, self.context)
-                for p in paragraphs
-            ]
-            results = await asyncio.gather(*tasks)
+            # Add paragraphs to list to process later
+            paragraphs_to_process.extend(
+                [(p, section_headings_list) for p in paragraphs]
+            )
 
-            paragraph_objects = [p for p in results if p is not None]
-            paragraphs_objects_list.extend(paragraph_objects)
+        # Process all paragraphs to break into sentence-level chunks
+        tasks = [
+            process_paragraph(paragraph, section_headings_list, self.context)
+            for (paragraph, section_headings_list) in paragraphs_to_process
+        ]
+        results = await asyncio.gather(*tasks)
+        paragraphs_objects: List[Paragraph] = [p for p in results if p is not None]
 
-        return DocumentChunkerResponse(paragraphs=paragraphs_objects_list)
+        return DocumentChunkerResponse(paragraphs=paragraphs_objects)
