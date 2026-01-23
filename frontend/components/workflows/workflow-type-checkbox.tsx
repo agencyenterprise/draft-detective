@@ -2,11 +2,63 @@
 
 import * as React from 'react';
 import * as CheckboxPrimitive from '@radix-ui/react-checkbox';
-import { CheckIcon, FlaskConical, Search } from 'lucide-react';
+import {
+  CheckIcon,
+  FlaskConical,
+  Search,
+  FileText,
+  Link,
+  FileSearch,
+  UserCheck,
+  StickyNote,
+  Quote,
+  BookMarked,
+  Scale,
+  Download,
+  Library,
+  Newspaper,
+  FileCheck,
+  Lightbulb,
+  BarChart3,
+  BrainCircuit,
+  ClipboardCheck,
+  Files,
+  type LucideIcon,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { WorkflowTypeDescription } from '@/lib/generated-api';
+import { WorkflowRunType, WorkflowTypeDescription } from '@/lib/generated-api';
 import { Badge } from '../ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
+import { WORKFLOWS_REQUIRING_SUPPORTING_DOCUMENTS } from './utils';
+
+const workflowTypeIcons: Record<WorkflowRunType, LucideIcon> = {
+  [WorkflowRunType.DocumentProcessing]: FileText,
+  [WorkflowRunType.ReferenceExtraction]: Link,
+  [WorkflowRunType.ReferenceFileMatching]: FileSearch,
+  [WorkflowRunType.HumanApproval]: UserCheck,
+  [WorkflowRunType.FootnoteExtraction]: StickyNote,
+  [WorkflowRunType.ClaimExtraction]: Quote,
+  [WorkflowRunType.CitationDetection]: BookMarked,
+  [WorkflowRunType.MethodologicalAlignment]: Scale,
+  [WorkflowRunType.ReferenceDownloader]: Download,
+  [WorkflowRunType.LiteratureReview]: Library,
+  [WorkflowRunType.LiveReports]: Newspaper,
+  [WorkflowRunType.ReferenceValidation]: FileCheck,
+  [WorkflowRunType.CitationSuggester]: Lightbulb,
+  [WorkflowRunType.ResultsExtraction]: BarChart3,
+  [WorkflowRunType.InferenceValidation]: BrainCircuit,
+  [WorkflowRunType.ClaimReferenceValidation]: ClipboardCheck,
+};
+
+const DEFAULT_ICON = FileText;
+
+function getWorkflowIcon(type: WorkflowRunType): LucideIcon {
+  return workflowTypeIcons[type] ?? DEFAULT_ICON;
+}
+
+function needsSupportingFiles(type: WorkflowRunType): boolean {
+  return WORKFLOWS_REQUIRING_SUPPORTING_DOCUMENTS.includes(type);
+}
 
 interface WorkflowTypeCheckboxProps {
   workflowType: WorkflowTypeDescription;
@@ -21,71 +73,104 @@ export function WorkflowTypeCheckbox({
   onCheckedChange,
   disabled = false,
 }: WorkflowTypeCheckboxProps) {
+  const Icon = getWorkflowIcon(workflowType.type);
+  const requiresSupportingFiles = needsSupportingFiles(workflowType.type);
+
   return (
     <label
       htmlFor={workflowType.type}
       className={cn(
-        'rounded-lg p-4 cursor-pointer hover:bg-accent/50 transition-all block space-y-1',
-        'border',
-        checked ? 'border-primary border-1' : '',
+        'group rounded-xl p-4 cursor-pointer transition-all block border',
+        'hover:bg-accent/50 hover:border-accent',
+        checked ? 'border-primary bg-primary/5' : 'border-border',
         disabled && 'cursor-not-allowed opacity-50',
       )}
     >
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-2 flex-1">
-          <CheckboxPrimitive.Root
-            id={workflowType.type}
-            checked={checked}
-            onCheckedChange={onCheckedChange}
-            disabled={disabled}
-            data-slot="checkbox"
-            className={cn(
-              'peer border-input dark:bg-input/30 data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground dark:data-[state=checked]:bg-primary data-[state=checked]:border-primary focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive size-4 shrink-0 rounded-[4px] border shadow-xs transition-shadow outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50',
-            )}
-          >
-            <CheckboxPrimitive.Indicator
-              data-slot="checkbox-indicator"
-              className="flex items-center justify-center text-current transition-none"
-            >
-              <CheckIcon className="size-3.5" />
-            </CheckboxPrimitive.Indicator>
-          </CheckboxPrimitive.Root>
-          <span className={cn('text-sm font-medium leading-none select-none', disabled && 'opacity-70')}>
-            {workflowType.name}
-          </span>
-        </div>
-        <div className="flex items-center gap-2">
-          {workflowType.is_experimental && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Badge variant="secondary" className="flex items-center gap-1 text-xs shrink-0">
-                  <FlaskConical className="size-3" />
-                  Experimental
-                </Badge>
-              </TooltipTrigger>
-              <TooltipContent side="top" className="max-w-xs">
-                This analysis is still highly experimental and being refined. Results may vary and the feature may
-                change in future updates.
-              </TooltipContent>
-            </Tooltip>
+      <div className="flex gap-4">
+        <div
+          className={cn(
+            'flex items-center justify-center size-10 rounded-lg shrink-0 transition-colors',
+            checked ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground',
           )}
-          {workflowType.needs_web_search && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Badge variant="outline" className="flex items-center gap-1 text-xs shrink-0">
-                  <Search className="size-3" />
-                  Performs Web Search
-                </Badge>
-              </TooltipTrigger>
-              <TooltipContent side="top" className="max-w-xs">
-                This analysis searches the web (using OpenAI&apos;s web search tool) for additional context and
-                information to enhance the analysis. Parts of the document might be used as web search query/context.
-              </TooltipContent>
-            </Tooltip>
+        >
+          <Icon className="size-5" />
+        </div>
+
+        <div className="flex-1 min-w-0 space-y-1.5">
+          <div className="flex items-start justify-between gap-3">
+            <span className={cn('text-sm font-medium leading-tight', disabled && 'opacity-70')}>
+              {workflowType.name}
+            </span>
+            <CheckboxPrimitive.Root
+              id={workflowType.type}
+              checked={checked}
+              onCheckedChange={onCheckedChange}
+              disabled={disabled}
+              data-slot="checkbox"
+              className={cn(
+                'peer border-input dark:bg-input/30 data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground dark:data-[state=checked]:bg-primary data-[state=checked]:border-primary focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive size-5 shrink-0 rounded-md border shadow-xs transition-shadow outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50',
+              )}
+            >
+              <CheckboxPrimitive.Indicator
+                data-slot="checkbox-indicator"
+                className="flex items-center justify-center text-current transition-none"
+              >
+                <CheckIcon className="size-4" />
+              </CheckboxPrimitive.Indicator>
+            </CheckboxPrimitive.Root>
+          </div>
+
+          <p className="text-sm text-muted-foreground leading-relaxed">{workflowType.description}</p>
+
+          {(workflowType.is_experimental || workflowType.needs_web_search || requiresSupportingFiles) && (
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              {requiresSupportingFiles && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Badge variant="outline" className="flex items-center gap-1 text-xs">
+                      <Files className="size-3" />
+                      Needs References
+                    </Badge>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-xs">
+                    This analysis requires supporting documents or reference files to validate claims and provide
+                    comprehensive results.
+                  </TooltipContent>
+                </Tooltip>
+              )}
+              {workflowType.needs_web_search && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Badge variant="outline" className="flex items-center gap-1 text-xs">
+                      <Search className="size-3" />
+                      Web Search
+                    </Badge>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-xs">
+                    This analysis searches the web (using OpenAI&apos;s web search tool) for additional context and
+                    information to enhance the analysis. Parts of the document might be used as web search
+                    query/context.
+                  </TooltipContent>
+                </Tooltip>
+              )}
+              {workflowType.is_experimental && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Badge variant="secondary" className="flex items-center gap-1 text-xs">
+                      <FlaskConical className="size-3" />
+                      Experimental
+                    </Badge>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-xs">
+                    This analysis is still highly experimental and being refined. Results may vary and the feature may
+                    change in future updates.
+                  </TooltipContent>
+                </Tooltip>
+              )}
+            </div>
           )}
         </div>
       </div>
-      <p className="text-sm text-muted-foreground pl-6">{workflowType.description}</p>
     </label>
   );
 }

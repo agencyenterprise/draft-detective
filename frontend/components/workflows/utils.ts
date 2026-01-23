@@ -28,7 +28,7 @@ export function hasPublicationDateRequirement(selectedTypes: WorkflowRunType[]):
 /**
  * Workflow types that require supporting documents.
  */
-const WORKFLOWS_REQUIRING_SUPPORTING_DOCUMENTS: WorkflowRunType[] = [
+export const WORKFLOWS_REQUIRING_SUPPORTING_DOCUMENTS: WorkflowRunType[] = [
   WorkflowRunType.ClaimReferenceValidation,
   WorkflowRunType.CitationSuggester,
 ];

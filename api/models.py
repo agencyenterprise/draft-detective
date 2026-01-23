@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field, computed_field, field_validator
 
 from lib.models.user import UserRole
 from lib.models.workflow_progress import ProgressLevel
+from lib.workflows.human_approval.state import ApprovalCheckpoint
 from lib.workflows.models import WorkflowRunType
 
 
@@ -103,3 +104,17 @@ class UpdateUserRoleRequest(BaseModel):
     """Request model for updating a user's role"""
 
     role: UserRole
+
+
+class ApproveCheckpointRequest(BaseModel):
+    """Request body for approving a human checkpoint."""
+
+    checkpoint: ApprovalCheckpoint
+
+
+class ApproveCheckpointResponse(BaseModel):
+    """Response for checkpoint approval."""
+
+    message: str
+    checkpoint: ApprovalCheckpoint
+    workflow_run_id: str

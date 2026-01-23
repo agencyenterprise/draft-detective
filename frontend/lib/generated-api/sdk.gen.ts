@@ -6,6 +6,9 @@ import type {
   AddFilesToProjectApiProjectProjectIdFilesPostData,
   AddFilesToProjectApiProjectProjectIdFilesPostErrors,
   AddFilesToProjectApiProjectProjectIdFilesPostResponses,
+  ApproveCheckpointApiProjectProjectIdApprovePostData,
+  ApproveCheckpointApiProjectProjectIdApprovePostErrors,
+  ApproveCheckpointApiProjectProjectIdApprovePostResponses,
   CheckPreflightApiPreflightPostData,
   CheckPreflightApiPreflightPostErrors,
   CheckPreflightApiPreflightPostResponses,
@@ -414,6 +417,33 @@ export const getPageImageApiWorkflowRunsWorkflowRunIdPagesPageNumGet = <ThrowOnE
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/workflow-runs/{workflow_run_id}/pages/{page_num}',
     ...options,
+  });
+
+/**
+ * Approve Checkpoint
+ *
+ * Approve a human checkpoint and trigger workflow completion.
+ *
+ * This marks the HUMAN_APPROVAL workflow as ready to complete,
+ * which unblocks any dependent workflows (e.g., CLAIM_REFERENCE_VALIDATION).
+ */
+export const approveCheckpointApiProjectProjectIdApprovePost = <ThrowOnError extends boolean = true>(
+  options: Options<ApproveCheckpointApiProjectProjectIdApprovePostData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    ApproveCheckpointApiProjectProjectIdApprovePostResponses,
+    ApproveCheckpointApiProjectProjectIdApprovePostErrors,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/project/{project_id}/approve',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
   });
 
 /**

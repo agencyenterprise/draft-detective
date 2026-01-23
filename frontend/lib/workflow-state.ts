@@ -67,6 +67,7 @@ const workflowTypeNames: Record<WorkflowRunType, string> = {
   [WorkflowRunType.DocumentProcessing]: 'Document Processing',
   [WorkflowRunType.ReferenceExtraction]: 'Reference Extraction',
   [WorkflowRunType.ReferenceFileMatching]: 'Reference File Matching',
+  [WorkflowRunType.HumanApproval]: 'Human Approval',
   [WorkflowRunType.ClaimReferenceValidation]: 'Claim Reference Validation',
   [WorkflowRunType.MethodologicalAlignment]: 'Methodological Alignment',
   [WorkflowRunType.ReferenceDownloader]: 'Reference Downloader',

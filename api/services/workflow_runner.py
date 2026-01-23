@@ -15,6 +15,7 @@ from lib.services.workflow_runs import (
 )
 from lib.workflows.config_factory import create_workflow_config
 from lib.workflows.dependency_resolver import resolve_workflow_dependencies
+from lib.workflows.registry import get_workflow_manifest
 from lib.workflows.runner import run_workflow_with_dependency_check
 from lib.workflows.types import WorkflowConfig
 
@@ -99,8 +100,9 @@ async def start_multiple_workflow_runs(
     )
 
     workflow_run_ids: List[str] = []
-    workflow_configs: List[WorkflowConfig] = []
-    thread_ids: List[str] = []
+    auto_run_configs: List[WorkflowConfig] = []
+    auto_run_thread_ids: List[str] = []
+    auto_run_workflow_run_ids: List[str] = []
 
     for workflow_type in resolved_workflow_types:
         existing_run = await get_project_workflow_run_by_type(
@@ -133,23 +135,33 @@ async def start_multiple_workflow_runs(
         )
 
         workflow_run_ids.append(workflow_run_id)
-        workflow_configs.append(workflow_config)
-        thread_ids.append(thread_id)
 
-    # Add a single background task that runs all workflows concurrently
-    if workflow_configs:
+        manifest = get_workflow_manifest(workflow_type)
+        if manifest.requires_human_trigger:
+            logger.info(
+                f"Workflow {workflow_type.value} requires human trigger - skipping auto-run"
+            )
+            continue
+
+        auto_run_configs.append(workflow_config)
+        auto_run_thread_ids.append(thread_id)
+        auto_run_workflow_run_ids.append(workflow_run_id)
+
+    if auto_run_configs:
         logger.info(
-            f"Starting {len(workflow_configs)} workflows as PENDING: {[c.type.value for c in workflow_configs]}"
+            f"Auto-running {len(auto_run_configs)} workflows: {[c.type.value for c in auto_run_configs]}"
         )
         background_tasks.add_task(
             _run_multiple_workflows_concurrently,
-            workflow_configs=workflow_configs,
-            thread_ids=thread_ids,
-            workflow_run_ids=workflow_run_ids,
+            workflow_configs=auto_run_configs,
+            thread_ids=auto_run_thread_ids,
+            workflow_run_ids=auto_run_workflow_run_ids,
             user=user,
         )
     else:
-        logger.info("No workflows to start - all requested workflows already completed")
+        logger.info(
+            "No workflows to auto-run - all require human trigger or already completed"
+        )
 
     return workflow_run_ids
 

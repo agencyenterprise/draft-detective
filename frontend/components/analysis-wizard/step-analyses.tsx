@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -34,6 +34,12 @@ export function StepAnalyses() {
   const [targetAudience, setTargetAudience] = useState('');
 
   const showSupportingDocs = hasSupportingDocumentsRequirement(selectedWorkflowTypes);
+  const needsReferenceReview = showSupportingDocs && supportingDocuments.length > 0;
+
+  const { setNeedsReferencesStep } = wizard;
+  useEffect(() => {
+    setNeedsReferencesStep(showSupportingDocs);
+  }, [showSupportingDocs, setNeedsReferencesStep]);
 
   const startAnalysisMutation = useMutation({
     mutationFn: async () => {
@@ -42,7 +48,6 @@ export function StepAnalyses() {
 
       const projectId = wizard.projectId;
 
-      // 1. Upload supporting documents if any
       if (supportingDocuments.length > 0) {
         await addFilesToProjectApiProjectProjectIdFilesPost({
           path: { project_id: projectId },
@@ -50,7 +55,6 @@ export function StepAnalyses() {
         });
       }
 
-      // 2. Update project metadata if domain or target audience is set
       if (domain || targetAudience) {
         await updateProjectEndpointApiProjectProjectIdPatch({
           path: { project_id: projectId },
@@ -61,9 +65,7 @@ export function StepAnalyses() {
         });
       }
 
-      // 3. Start workflows
-      // If supporting documents were uploaded, we need to re-run DOCUMENT_PROCESSING
-      // to process them (it was already run in step 1 for main doc only)
+      // Re-run DOCUMENT_PROCESSING for new supporting docs
       const workflowsToStart =
         supportingDocuments.length > 0
           ? [WorkflowRunType.DocumentProcessing, ...selectedWorkflowTypes]
@@ -79,9 +81,13 @@ export function StepAnalyses() {
       });
     },
     onSuccess: () => {
-      toast.success('Analysis started! Redirecting to your project...');
-      // Use fromWizard param to prevent redirect loop (race condition with workflow creation)
-      router.push(`/projects/${wizard.projectId}?fromWizard=true`);
+      if (needsReferenceReview) {
+        toast.success('Analysis started! Review your references...');
+        wizard.goToStep(3);
+      } else {
+        toast.success('Analysis started! Redirecting to your project...');
+        router.push(`/projects/${wizard.projectId}?fromWizard=true`);
+      }
     },
     onError: (error) => {
       toast.error(error instanceof Error ? error.message : 'Failed to start analysis');
@@ -102,7 +108,6 @@ export function StepAnalyses() {
   const canContinue = selectedWorkflowTypes.length > 0;
   const isSubmitting = startAnalysisMutation.isPending || startAnalysisMutation.isSuccess;
 
-  // Show loading screen when submitting
   if (isSubmitting) {
     return (
       <Card className="max-w-xl mx-auto">
@@ -113,7 +118,7 @@ export function StepAnalyses() {
               <h2 className="text-xl font-semibold">Starting Analysis</h2>
               <p className="text-sm text-muted-foreground">
                 {supportingDocuments.length > 0
-                  ? 'Uploading and processing supporting documents...'
+                  ? 'Uploading supporting documents and starting workflows...'
                   : 'Starting workflows...'}
               </p>
             </div>
@@ -129,7 +134,6 @@ export function StepAnalyses() {
         <h1 className="text-2xl font-bold">What do you want to analyze today?</h1>
       </div>
 
-      {/* Workflow Type Selection */}
       <WorkflowTypeSelector
         workflowTypes={workflowTypes?.filter((wt) => !wt.is_internal && wt.can_be_triggered_by_user)}
         selectedTypes={selectedWorkflowTypes}
@@ -137,7 +141,6 @@ export function StepAnalyses() {
         headerDescription="Select which types of analyses to perform"
       />
 
-      {/* Supporting Documents - Conditional */}
       {showSupportingDocs && (
         <UploadSection
           title="Supporting Documents"
@@ -151,7 +154,6 @@ export function StepAnalyses() {
         />
       )}
 
-      {/* Domain and Target Audience */}
       <div className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="domain">
@@ -185,9 +187,8 @@ export function StepAnalyses() {
         </div>
       </div>
 
-      {/* Continue Button */}
       <Button onClick={handleStartAnalysis} disabled={!canContinue} size="lg" className="w-full">
-        Start Analysis
+        Continue
       </Button>
     </div>
   );

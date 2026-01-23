@@ -7,6 +7,8 @@ from starlette.responses import FileResponse
 
 from api.auth import get_current_user, get_current_user_optional
 from api.models import (
+    ApproveCheckpointRequest,
+    ApproveCheckpointResponse,
     StartMultipleWorkflowsRequest,
     StartMultipleWorkflowsResponse,
     StartWorkflowResponse,
@@ -19,16 +21,20 @@ from lib.config.database import get_db
 from lib.config.env import config
 from lib.models.share_link import ShareLink
 from lib.models.user import User
-from lib.models.workflow_run import WorkflowRun
+from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus
 from lib.services.authorization import has_access_to_workflow_run
-from lib.services.projects import create_project
+from lib.services.projects import create_project, get_user_project
 from lib.services.workflow_runs import (
     WorkflowRunDetail,
+    get_project_workflow_run_by_type,
+    get_thread_id_for_workflow_run,
     get_workflow_run,
     get_workflow_run_state,
     get_workflow_run_state_by_thread_id,
 )
+from lib.workflows.human_approval.state import HumanApprovalConfig
 from lib.workflows.models import WorkflowRunType
+from lib.workflows.runner import run_workflow_with_dependency_check
 from lib.workflows.types import WorkflowConfig
 
 router = APIRouter(tags=["workflows"])
@@ -144,3 +150,59 @@ async def get_page_image(
         )
 
     raise HTTPException(status_code=404, detail=f"Page {page_num} not found")
+
+
+@router.post(
+    "/api/project/{project_id}/approve",
+    response_model=ApproveCheckpointResponse,
+)
+async def approve_checkpoint(
+    project_id: str,
+    request: ApproveCheckpointRequest,
+    background_tasks: BackgroundTasks,
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Approve a human checkpoint and trigger workflow completion.
+
+    This marks the HUMAN_APPROVAL workflow as ready to complete,
+    which unblocks any dependent workflows (e.g., CLAIM_REFERENCE_VALIDATION).
+    """
+    await get_user_project(project_id, user=current_user)
+
+    workflow_run = await get_project_workflow_run_by_type(
+        project_id, WorkflowRunType.HUMAN_APPROVAL
+    )
+
+    if workflow_run is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Human approval workflow not found for this project",
+        )
+
+    if workflow_run.status == WorkflowRunStatus.COMPLETED:
+        return ApproveCheckpointResponse(
+            message="Already approved",
+            checkpoint=request.checkpoint,
+            workflow_run_id=str(workflow_run.id),
+        )
+
+    config = HumanApprovalConfig(
+        project_id=project_id,
+        checkpoint=request.checkpoint,
+    )
+    thread_id = get_thread_id_for_workflow_run(workflow_run)
+
+    background_tasks.add_task(
+        run_workflow_with_dependency_check,
+        config=config,
+        thread_id=thread_id,
+        workflow_run_id=str(workflow_run.id),
+        user=current_user,
+    )
+
+    return ApproveCheckpointResponse(
+        message=f"Checkpoint '{request.checkpoint}' approved",
+        checkpoint=request.checkpoint,
+        workflow_run_id=str(workflow_run.id),
+    )

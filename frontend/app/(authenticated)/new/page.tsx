@@ -1,30 +1,40 @@
 'use client';
 
+import { useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { WizardProvider, useWizard } from '@/components/analysis-wizard/wizard-context';
 import { StepIndicator } from '@/components/analysis-wizard/step-indicator';
 import { StepUpload } from '@/components/analysis-wizard/step-upload';
 import { StepAnalyses } from '@/components/analysis-wizard/step-analyses';
+import { StepReferences } from '@/components/analysis-wizard/step-references';
 import { useSessionStorage } from '@/lib/hooks/use-session-storage';
 import { useSearchParams } from 'next/navigation';
 
 function WizardContent() {
   const wizard = useWizard();
 
-  const steps = [
-    { label: 'Upload & Key', completed: wizard.currentStep > 1 },
-    { label: 'Select Analyses', completed: false },
-    { label: 'Review', completed: false },
-  ];
+  const steps = useMemo(() => {
+    const baseSteps = [
+      { label: 'Upload & Key', completed: wizard.currentStep > 1 },
+      { label: 'Select Analyses', completed: wizard.currentStep > 2 },
+    ];
+    if (wizard.needsReferencesStep) {
+      baseSteps.push({ label: 'Review References', completed: false });
+    }
+    return baseSteps;
+  }, [wizard.currentStep, wizard.needsReferencesStep]);
+
+  const cardWidthClass = wizard.currentStep === 3 ? 'max-w-8xl' : 'max-w-2xl';
 
   return (
     <div className="space-y-8">
       <StepIndicator currentStep={wizard.currentStep} steps={steps} className="mb-8" />
 
-      <Card className="max-w-2xl mx-auto">
+      <Card className={`${cardWidthClass} mx-auto transition-all duration-300`}>
         <CardContent className="py-8">
           {wizard.currentStep === 1 && <StepUpload onComplete={wizard.nextStep} />}
           {wizard.currentStep === 2 && <StepAnalyses />}
+          {wizard.currentStep === 3 && <StepReferences />}
         </CardContent>
       </Card>
     </div>

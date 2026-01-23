@@ -53,6 +53,48 @@ export type AnalysisFormConfig = {
 };
 
 /**
+ * ApprovalCheckpoint
+ *
+ * Types of approval checkpoints.
+ * Add new values here as new human-in-the-loop use cases arise.
+ */
+export const ApprovalCheckpoint = { ReferenceReview: 'reference_review' } as const;
+
+/**
+ * ApprovalCheckpoint
+ *
+ * Types of approval checkpoints.
+ * Add new values here as new human-in-the-loop use cases arise.
+ */
+export type ApprovalCheckpoint = (typeof ApprovalCheckpoint)[keyof typeof ApprovalCheckpoint];
+
+/**
+ * ApproveCheckpointRequest
+ *
+ * Request body for approving a human checkpoint.
+ */
+export type ApproveCheckpointRequest = {
+  checkpoint: ApprovalCheckpoint;
+};
+
+/**
+ * ApproveCheckpointResponse
+ *
+ * Response for checkpoint approval.
+ */
+export type ApproveCheckpointResponse = {
+  /**
+   * Message
+   */
+  message: string;
+  checkpoint: ApprovalCheckpoint;
+  /**
+   * Workflow Run Id
+   */
+  workflow_run_id: string;
+};
+
+/**
  * BBox
  *
  * Docling bounding box format (bottom-left origin, PDF standard)
@@ -1007,6 +1049,12 @@ export type DocumentChunk = {
    * Paragraph Index
    */
   paragraph_index: number;
+  /**
+   * Headings
+   *
+   * The headings associated with the chunk, in order of hierarchy
+   */
+  headings?: Array<string> | null;
 };
 
 /**
@@ -1832,6 +1880,80 @@ export type HttpValidationError = {
    * Detail
    */
   detail?: Array<ValidationError>;
+};
+
+/**
+ * HumanApprovalConfig
+ *
+ * Config for human approval workflow.
+ */
+export type HumanApprovalConfig = {
+  /**
+   * Project Id
+   *
+   * The ID of the project that this workflow run should be associated with
+   */
+  project_id?: string | null;
+  /**
+   * Openai Api Key
+   *
+   * The OpenAI API key to use for this workflow execution
+   */
+  openai_api_key?: string | null;
+  /**
+   * Domain
+   *
+   * Domain context for more accurate analysis
+   */
+  domain?: string | null;
+  /**
+   * Target Audience
+   *
+   * Target audience context for analysis
+   */
+  target_audience?: string | null;
+  /**
+   * Publication Date
+   *
+   * Publication date of the document (YYYY-MM-DD format)
+   */
+  publication_date?: string | null;
+  type?: WorkflowRunType;
+  /**
+   * The type of approval checkpoint
+   */
+  checkpoint?: ApprovalCheckpoint;
+};
+
+/**
+ * HumanApprovalState
+ *
+ * State for human approval workflow.
+ *
+ * This is a generic "gate" workflow that waits for human confirmation.
+ * The checkpoint field identifies what is being approved.
+ */
+export type HumanApprovalState = {
+  /**
+   * Errors
+   *
+   * Errors that occurred during the workflow execution.
+   */
+  errors?: Array<WorkflowError>;
+  type?: WorkflowRunType;
+  config?: HumanApprovalConfig;
+  /**
+   * Approved
+   *
+   * Whether human has approved
+   */
+  approved?: boolean;
+  /**
+   * Approved At
+   *
+   * ISO timestamp when approved
+   */
+  approved_at?: string | null;
 };
 
 /**
@@ -3631,6 +3753,7 @@ export type WorkflowRunDetail = {
     | CitationSuggesterState
     | ResultsExtractionState
     | InferenceValidationState
+    | HumanApprovalState
     | null;
 };
 
@@ -3655,6 +3778,7 @@ export const WorkflowRunType = {
   DocumentProcessing: 'document_processing',
   ReferenceExtraction: 'reference_extraction',
   ReferenceFileMatching: 'reference_file_matching',
+  HumanApproval: 'human_approval',
   FootnoteExtraction: 'footnote_extraction',
   ClaimExtraction: 'claim_extraction',
   CitationDetection: 'citation_detection',
@@ -3933,6 +4057,7 @@ export type WorkflowRunDetailWritable = {
     | CitationSuggesterState
     | ResultsExtractionState
     | InferenceValidationState
+    | HumanApprovalState
     | null;
 };
 
@@ -4131,7 +4256,8 @@ export type StartWorkflowApiWorkflowsStartPostData = {
     | ReferenceValidationWorkflowConfig
     | CitationSuggesterWorkflowConfig
     | ResultsExtractionWorkflowConfig
-    | InferenceValidationWorkflowConfig;
+    | InferenceValidationWorkflowConfig
+    | HumanApprovalConfig;
   path?: never;
   query?: never;
   url: '/api/workflows/start';
@@ -4248,6 +4374,38 @@ export type GetPageImageApiWorkflowRunsWorkflowRunIdPagesPageNumGetResponses = {
    */
   200: unknown;
 };
+
+export type ApproveCheckpointApiProjectProjectIdApprovePostData = {
+  body: ApproveCheckpointRequest;
+  path: {
+    /**
+     * Project Id
+     */
+    project_id: string;
+  };
+  query?: never;
+  url: '/api/project/{project_id}/approve';
+};
+
+export type ApproveCheckpointApiProjectProjectIdApprovePostErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type ApproveCheckpointApiProjectProjectIdApprovePostError =
+  ApproveCheckpointApiProjectProjectIdApprovePostErrors[keyof ApproveCheckpointApiProjectProjectIdApprovePostErrors];
+
+export type ApproveCheckpointApiProjectProjectIdApprovePostResponses = {
+  /**
+   * Successful Response
+   */
+  200: ApproveCheckpointResponse;
+};
+
+export type ApproveCheckpointApiProjectProjectIdApprovePostResponse =
+  ApproveCheckpointApiProjectProjectIdApprovePostResponses[keyof ApproveCheckpointApiProjectProjectIdApprovePostResponses];
 
 export type GetWorkflowTypesApiWorkflowTypesGetData = {
   body?: never;
