@@ -5,7 +5,7 @@ from typing import List, Optional
 from fastapi import HTTPException
 from langgraph.types import StateSnapshot
 from pydantic import BaseModel
-from sqlalchemy import select
+from sqlalchemy import case, func, select
 from sqlmodel import and_
 
 from lib.config.database import get_db
@@ -172,23 +172,48 @@ async def get_project_workflow_runs(
     project_id: str, include_internal: bool = False
 ) -> List[WorkflowRunDetail]:
     """
-    Get workflow runs for a project.
+    Get the most relevant workflow run for each type in a project.
+
+    Returns only 1 row per workflow type, using priority: RUNNING > PENDING > latest COMPLETED.
 
     Args:
         project_id: The project ID
         include_internal: If True, include internal workflows (for dependency resolution)
 
     Returns:
-        List of workflow run details
+        List of workflow run details (one per workflow type)
     """
-    with get_db() as db:
-        runs = (
-            db.query(WorkflowRun)
-            .filter(WorkflowRun.project_id == project_id)
-            .order_by(WorkflowRun.created_at.desc())
-            .limit(100)
-            .all()
+    # Build priority ordering: RUNNING (0) > PENDING (1) > others (2)
+    status_priority = case(
+        (WorkflowRun.status == WorkflowRunStatus.RUNNING, 0),
+        (WorkflowRun.status == WorkflowRunStatus.PENDING, 1),
+        else_=2,
+    )
+
+    # Use ROW_NUMBER to rank runs within each type
+    row_num = func.row_number().over(
+        partition_by=WorkflowRun.type,
+        order_by=[status_priority, WorkflowRun.created_at.desc()],
+    )
+
+    # Subquery to get ranked runs
+    ranked_runs_subquery = (
+        select(WorkflowRun, row_num.label("rn"))
+        .where(WorkflowRun.project_id == project_id)
+        .subquery()
+    )
+
+    # Select only the top-ranked run for each type (rn = 1)
+    stmt = (
+        select(WorkflowRun)
+        .join(ranked_runs_subquery, WorkflowRun.id == ranked_runs_subquery.c.id)
+        .where(
+            and_(WorkflowRun.project_id == project_id, ranked_runs_subquery.c.rn == 1)
         )
+    )
+
+    with get_db() as db:
+        runs = db.execute(stmt).scalars().all()
 
     details = []
     for run in runs:

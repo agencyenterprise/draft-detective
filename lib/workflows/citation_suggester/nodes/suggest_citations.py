@@ -1,5 +1,5 @@
 import logging
-from typing import Dict, List, Optional, Tuple
+from typing import List, Optional, Tuple
 
 from langgraph.runtime import Runtime
 
@@ -7,7 +7,6 @@ from lib.agents.citation_suggester import (
     CitationSuggesterAgent,
     CitationSuggestionResultWithClaimIndex,
 )
-from lib.agents.document_summarizer import DocumentSummary
 from lib.agents.formatting_utils import (
     format_bibliography_prompt_section,
     format_cited_references,
@@ -20,6 +19,7 @@ from lib.workflows.citation_suggester.state import CitationSuggesterState
 from lib.workflows.chunk_utils import AnalyzedChunk
 from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
+from lib.workflows.document_processing.state import FileSummary
 
 logger = logging.getLogger(__name__)
 
@@ -39,16 +39,10 @@ async def suggest_citations(
     file = await file_artifacts_service.get_main_file()
     references = await file_artifacts_service.get_references()
     supporting_files = await file_artifacts_service.get_supporting_files()
-
-    # Build supporting documents summaries dictionary
-    supporting_documents_summaries: Optional[Dict[int, DocumentSummary]] = None
-    if supporting_files:
-        supporting_documents_summaries = {
-            index: await file_artifacts_service.get_document_summary(
-                supporting_file.file_id
-            )
-            for index, supporting_file in enumerate(supporting_files)
-        }
+    summaries = [
+        await file_artifacts_service.get_file_summary(f.file_id)
+        for f in supporting_files
+    ] + [await file_artifacts_service.get_file_summary(file.file_id)]
 
     tasks = [
         _suggest_chunk_citations(
@@ -59,7 +53,7 @@ async def suggest_citations(
             file,
             references,
             supporting_files,
-            supporting_documents_summaries,
+            summaries,
             chunks,
         )
         for chunk in chunks
@@ -89,7 +83,7 @@ async def _suggest_chunk_citations(
     file: FileDocument,
     references: List[BibliographyItem],
     supporting_files: List[FileDocument],
-    supporting_documents_summaries: Optional[Dict[int, DocumentSummary]],
+    summaries: List[FileSummary],
     chunks: List[AnalyzedChunk],
 ) -> List[CitationSuggestionResultWithClaimIndex]:
     # Skip if chunk has no claims
@@ -126,7 +120,7 @@ async def _suggest_chunk_citations(
                 "bibliography": format_bibliography_prompt_section(
                     references,
                     supporting_files,
-                    supporting_documents_summaries,
+                    summaries,
                 ),
                 "paragraph": file_artifacts_service.get_paragraph_text(
                     chunks, chunk.paragraph_index

@@ -30,6 +30,7 @@ class WorkflowRun(SQLModel, table=True):
             UUID(as_uuid=True),
             ForeignKey("projects.id", ondelete="CASCADE"),
             nullable=True,
+            index=True,
         ),
         description="FK for the project that this workflow run belongs to",
     )

@@ -37,6 +37,9 @@ interface ReferenceReviewListProps {
   readOnly: boolean;
   isFetchingAllFromWeb: boolean;
   onFetchAll: () => void;
+  isBatchUploading: boolean;
+  disableActions: boolean;
+  onBatchUpload: () => void;
 }
 
 export function ReferenceReviewList({
@@ -45,6 +48,9 @@ export function ReferenceReviewList({
   readOnly,
   isFetchingAllFromWeb,
   onFetchAll,
+  isBatchUploading,
+  disableActions,
+  onBatchUpload,
 }: ReferenceReviewListProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
@@ -144,7 +150,7 @@ export function ReferenceReviewList({
           <div className="flex flex-wrap items-center gap-2">
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="outline" disabled={isFetchingAllFromWeb} onClick={onFetchAll}>
+                <Button variant="outline" disabled={isFetchingAllFromWeb || disableActions} onClick={onFetchAll}>
                   {isFetchingAllFromWeb ? <Loader2 className="w-4 h-4 animate-spin" /> : <Globe className="w-4 h-4" />}
                   Fetch unmatched references from the web
                 </Button>
@@ -155,14 +161,15 @@ export function ReferenceReviewList({
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
-                <span>
-                  <Button variant="outline" disabled={true} onClick={() => console.log('Batch upload not implemented')}>
-                    <Upload className="w-4 h-4" />
-                    Batch upload supporting documents
-                  </Button>
-                </span>
+                <Button variant="outline" disabled={isBatchUploading || disableActions} onClick={onBatchUpload}>
+                  {isBatchUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                  {isBatchUploading ? 'Uploading...' : 'Batch upload supporting documents'}
+                </Button>
               </TooltipTrigger>
-              <TooltipContent>Coming soon</TooltipContent>
+              <TooltipContent className="max-w-xs">
+                Upload multiple supporting documents at once. Files will be processed and matched to references
+                automatically.
+              </TooltipContent>
             </Tooltip>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

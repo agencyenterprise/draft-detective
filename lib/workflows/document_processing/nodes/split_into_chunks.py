@@ -24,6 +24,10 @@ logger = logging.getLogger(__name__)
 async def split_into_chunks(
     state: DocumentProcessingState, runtime: Runtime[ContextSchema]
 ):
+    if state.chunks:
+        logger.info(f"Using cached chunks for main file")
+        return {"chunks": state.chunks, "chunk_to_items": state.chunk_to_items}
+
     markdown = state.file.markdown
 
     chunker = NLTKTextSplitter(context=runtime.context)

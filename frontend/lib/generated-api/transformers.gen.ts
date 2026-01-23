@@ -2,6 +2,7 @@
 
 import type {
   AddFilesToProjectApiProjectProjectIdFilesPostResponse,
+  AddFileToProjectApiProjectProjectIdFilePostResponse,
   CreateProjectEndpointApiProjectsPostResponse,
   GetProjectEndpointApiProjectProjectIdGetResponse,
   GetProjectWorkflowProgressEndpointApiProjectProjectIdWorkflowProgressGetResponse,
@@ -10,7 +11,6 @@ import type {
   ListProjectFilesEndpointApiProjectProjectIdFilesGetResponse,
   ListProjectsEndpointApiProjectsGetResponse,
   UpdateProjectEndpointApiProjectProjectIdPatchResponse,
-  UploadProjectFileEndpointApiProjectProjectIdFilePostResponse,
 } from './types.gen';
 
 const workflowRunDetailSchemaResponseTransformer = (data: any) => {
@@ -109,9 +109,9 @@ export const addFilesToProjectApiProjectProjectIdFilesPostResponseTransformer = 
   return data;
 };
 
-export const uploadProjectFileEndpointApiProjectProjectIdFilePostResponseTransformer = async (
+export const addFileToProjectApiProjectProjectIdFilePostResponseTransformer = async (
   data: any,
-): Promise<UploadProjectFileEndpointApiProjectProjectIdFilePostResponse> => {
+): Promise<AddFileToProjectApiProjectProjectIdFilePostResponse> => {
   data = fileSchemaResponseTransformer(data);
   return data;
 };

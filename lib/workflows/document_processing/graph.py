@@ -1,24 +1,19 @@
 """Document processing workflow graph."""
 
-from langgraph.graph import StateGraph, END
+from langgraph.graph import END, StateGraph
 
 from lib.workflows.context import ContextSchema
 from lib.workflows.document_processing.nodes.convert_to_markdown import (
     convert_to_markdown,
 )
+from lib.workflows.document_processing.nodes.split_into_chunks import split_into_chunks
 from lib.workflows.document_processing.nodes.summarize_documents import (
     summarize_documents,
 )
-from lib.workflows.document_processing.nodes.split_into_chunks import split_into_chunks
-from lib.workflows.document_processing.state import (
-    DocumentProcessingState,
-    DocumentProcessingWorkflowConfig,
-)
+from lib.workflows.document_processing.state import DocumentProcessingState
 
 
-def build_document_processing_graph(
-    config: DocumentProcessingWorkflowConfig = DocumentProcessingWorkflowConfig(),
-) -> StateGraph:
+def build_document_processing_graph() -> StateGraph:
     """
     Build a LangGraph workflow for document processing.
 

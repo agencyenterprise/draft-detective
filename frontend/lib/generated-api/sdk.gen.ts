@@ -6,6 +6,9 @@ import type {
   AddFilesToProjectApiProjectProjectIdFilesPostData,
   AddFilesToProjectApiProjectProjectIdFilesPostErrors,
   AddFilesToProjectApiProjectProjectIdFilesPostResponses,
+  AddFileToProjectApiProjectProjectIdFilePostData,
+  AddFileToProjectApiProjectProjectIdFilePostErrors,
+  AddFileToProjectApiProjectProjectIdFilePostResponses,
   CheckPreflightApiPreflightPostData,
   CheckPreflightApiPreflightPostErrors,
   CheckPreflightApiPreflightPostResponses,
@@ -104,9 +107,6 @@ import type {
   UpdateRoleApiUsersUserIdRolePatchData,
   UpdateRoleApiUsersUserIdRolePatchErrors,
   UpdateRoleApiUsersUserIdRolePatchResponses,
-  UploadProjectFileEndpointApiProjectProjectIdFilePostData,
-  UploadProjectFileEndpointApiProjectProjectIdFilePostErrors,
-  UploadProjectFileEndpointApiProjectProjectIdFilePostResponses,
 } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean> = Options2<
@@ -654,6 +654,30 @@ export const updateProjectEndpointApiProjectProjectIdPatch = <ThrowOnError exten
   });
 
 /**
+ * Download Project Docx
+ *
+ * Download DOCX with AI comments.
+ *
+ * Uses cached version if available, otherwise generates via workflow.
+ * First request may take a few seconds as it generates the DOCX.
+ * Subsequent requests with the same share_token (or none) are instant.
+ */
+export const downloadProjectDocxApiProjectsProjectIdDocxDownloadGet = <ThrowOnError extends boolean = true>(
+  options: Options<DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetResponses,
+    DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetErrors,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/projects/{project_id}/docx/download',
+    ...options,
+  });
+
+/**
  * List Project Files Endpoint
  *
  * Get all files for a project
@@ -699,43 +723,19 @@ export const addFilesToProjectApiProjectProjectIdFilesPost = <ThrowOnError exten
   });
 
 /**
- * Download Project Docx
+ * Add File To Project
  *
- * Download DOCX with AI comments.
- *
- * Uses cached version if available, otherwise generates via workflow.
- * First request may take a few seconds as it generates the DOCX.
- * Subsequent requests with the same share_token (or none) are instant.
- */
-export const downloadProjectDocxApiProjectsProjectIdDocxDownloadGet = <ThrowOnError extends boolean = true>(
-  options: Options<DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetData, ThrowOnError>,
-) =>
-  (options.client ?? client).get<
-    DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetResponses,
-    DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetErrors,
-    ThrowOnError,
-    'data'
-  >({
-    responseStyle: 'data',
-    security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/api/projects/{project_id}/docx/download',
-    ...options,
-  });
-
-/**
- * Upload Project File Endpoint
- *
- * Upload a single supporting file to a project.
+ * Add a single file (supporting document) to a project.
  *
  * Optionally link the file to a specific reference by providing reference_index
  * (0-based index of the reference in the ReferenceExtraction workflow state).
  */
-export const uploadProjectFileEndpointApiProjectProjectIdFilePost = <ThrowOnError extends boolean = true>(
-  options: Options<UploadProjectFileEndpointApiProjectProjectIdFilePostData, ThrowOnError>,
+export const addFileToProjectApiProjectProjectIdFilePost = <ThrowOnError extends boolean = true>(
+  options: Options<AddFileToProjectApiProjectProjectIdFilePostData, ThrowOnError>,
 ) =>
   (options.client ?? client).post<
-    UploadProjectFileEndpointApiProjectProjectIdFilePostResponses,
-    UploadProjectFileEndpointApiProjectProjectIdFilePostErrors,
+    AddFileToProjectApiProjectProjectIdFilePostResponses,
+    AddFileToProjectApiProjectProjectIdFilePostErrors,
     ThrowOnError,
     'data'
   >({

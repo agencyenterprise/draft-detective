@@ -1,12 +1,13 @@
+from typing import List, Optional
+
 from lib.agents.citation_detector import CitationResponse
-from lib.agents.document_summarizer import DocumentSummary
 from lib.models.bibliography_item import (
     BibliographyItem,
     get_associated_supporting_file,
 )
 from lib.services.file import FileDocument
-from typing import Dict, List, Optional
 from lib.services.vector_store import RetrievedPassage
+from lib.workflows.document_processing.state import FileSummary
 from lib.workflows.reference_extraction.state import ExtractedReference
 
 
@@ -123,27 +124,21 @@ def format_bibliography_item_prompt_section(
     index: int,
     item: BibliographyItem,
     supporting_files: List[FileDocument],
-    supporting_documents_summaries: Optional[Dict[int, DocumentSummary]] = None,
+    summaries: Optional[List["FileSummary"]] = None,
 ) -> str:
     result = f"""### Bibliography entry #{index + 1}
 {item.text}"""
 
     # If this bibliography item has an associated supporting document, include its summary
     supporting_file = get_associated_supporting_file(item, supporting_files)
-    if supporting_file and supporting_documents_summaries:
-        # Find the index of this file in the supporting_files list
-        doc_index = next(
-            (
-                i
-                for i, f in enumerate(supporting_files)
-                if f.file_id == supporting_file.file_id
-            ),
+    if supporting_file and summaries:
+        # Find the summary for this file by file_id
+        summary = next(
+            (s for s in summaries if s.file_id == supporting_file.file_id),
             None,
         )
-        if doc_index is not None:
-            summary = supporting_documents_summaries.get(doc_index)
-            if summary:
-                result += f"""
+        if summary:
+            result += f"""
 
 #### Summary of the associated document
 {summary.summary}
@@ -156,12 +151,12 @@ def format_bibliography_item_prompt_section(
 def format_bibliography_prompt_section(
     references: List[BibliographyItem],
     supporting_files: List[FileDocument],
-    supporting_documents_summaries: Optional[Dict[int, DocumentSummary]] = None,
+    summaries: Optional[List["FileSummary"]] = None,
 ) -> str:
     return "\n\n".join(
         [
             format_bibliography_item_prompt_section(
-                index, item, supporting_files, supporting_documents_summaries
+                index, item, supporting_files, summaries
             )
             for index, item in enumerate(references)
         ]

@@ -122,29 +122,6 @@ async def delete_project_endpoint(
     return {"message": "Project deleted successfully", "id": project_id}
 
 
-@router.post(
-    "/api/project/{project_id}/files",
-    response_model=List[File],
-    status_code=status.HTTP_201_CREATED,
-)
-async def add_files_to_project(
-    project_id: str,
-    files: List[UploadFile] = FastAPIUploadFile(...),
-    role: FileRole = Form(default=FileRole.SUPPORT),
-    current_user: User = Depends(get_current_user),
-):
-    """Add files (supporting documents) to an existing project."""
-
-    project = await get_user_project(project_id, user=current_user)
-    roles = [role] * len(files)
-    return await save_uploaded_files_to_db(
-        uploaded_files=files,
-        project_id=project.id,
-        user_id=current_user.id,
-        roles=roles,
-    )
-
-
 @router.get("/api/projects/{project_id}/docx/download")
 async def download_project_docx(
     project_id: str,
@@ -201,18 +178,41 @@ async def list_project_files_endpoint(
 
 
 @router.post(
+    "/api/project/{project_id}/files",
+    response_model=List[File],
+    status_code=status.HTTP_201_CREATED,
+)
+async def add_files_to_project(
+    project_id: str,
+    files: List[UploadFile] = FastAPIUploadFile(...),
+    role: FileRole = Form(default=FileRole.SUPPORT),
+    current_user: User = Depends(get_current_user),
+):
+    """Add files (supporting documents) to an existing project."""
+
+    project = await get_user_project(project_id, user=current_user)
+    roles = [role] * len(files)
+    return await save_uploaded_files_to_db(
+        uploaded_files=files,
+        project_id=project.id,
+        user_id=current_user.id,
+        roles=roles,
+    )
+
+
+@router.post(
     "/api/project/{project_id}/file",
     response_model=File,
     status_code=status.HTTP_201_CREATED,
 )
-async def upload_project_file_endpoint(
+async def add_file_to_project(
     project_id: str,
     file: UploadFile = FastAPIUploadFile(...),
     reference_index: Optional[int] = Form(default=None),
     current_user: User = Depends(get_current_user),
 ):
     """
-    Upload a single supporting file to a project.
+    Add a single file (supporting document) to a project.
 
     Optionally link the file to a specific reference by providing reference_index
     (0-based index of the reference in the ReferenceExtraction workflow state).
