@@ -1,6 +1,9 @@
+import asyncio
 import logging
 import uuid
-from typing import List, Optional, Tuple
+from collections import defaultdict
+from contextlib import asynccontextmanager
+from typing import Dict, List, Optional, Tuple
 
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus
 from lib.services.workflow_runs import (
@@ -18,6 +21,23 @@ from lib.workflows.reference_file_matching.state import (
 from lib.workflows.registry import create_graph
 
 logger = logging.getLogger(__name__)
+
+# Project-level locks to prevent race conditions on concurrent state updates
+_project_locks: Dict[str, asyncio.Lock] = defaultdict(asyncio.Lock)
+
+
+@asynccontextmanager
+async def _project_lock(project_id: str):
+    """
+    Acquire a lock for a specific project to prevent race conditions.
+
+    This ensures that concurrent operations on the same project's reference
+    state are serialized, while operations on different projects can proceed
+    in parallel.
+    """
+    lock = _project_locks[project_id]
+    async with lock:
+        yield
 
 
 async def _get_document_processing_workflow_state(project_id: str):
@@ -168,37 +188,40 @@ async def remove_file_from_references(project_id: str, file_id: str) -> List[str
     Returns:
         List of reference IDs that were unlinked (empty if no update was needed)
     """
-    run, state = await _get_file_matching_workflow_state(project_id)
+    async with _project_lock(project_id):
+        run, state = await _get_file_matching_workflow_state(project_id)
 
-    if run is None or state is None:
-        return []
+        if run is None or state is None:
+            return []
 
-    # Find matches with this file_id
-    removed_reference_ids: List[str] = []
-    for match in state.matches:
-        if match.file_id == file_id:
-            removed_reference_ids.append(match.reference_id)
+        # Find matches with this file_id
+        removed_reference_ids: List[str] = []
+        for match in state.matches:
+            if match.file_id == file_id:
+                removed_reference_ids.append(match.reference_id)
 
-    if not removed_reference_ids:
-        logger.info(f"No matches found with file_id {file_id}")
-        return []
+        if not removed_reference_ids:
+            logger.info(f"No matches found with file_id {file_id}")
+            return []
 
-    # Filter out matches with this file_id
-    updated_matches = [m for m in state.matches if m.file_id != file_id]
+        # Filter out matches with this file_id
+        updated_matches = [m for m in state.matches if m.file_id != file_id]
 
-    # Update the state using LangGraph
-    async with get_checkpointer() as checkpointer:
-        graph = create_graph(WorkflowRunType.REFERENCE_FILE_MATCHING)
-        app = graph.compile(checkpointer=checkpointer)
+        # Update the state using LangGraph
+        async with get_checkpointer() as checkpointer:
+            graph = create_graph(WorkflowRunType.REFERENCE_FILE_MATCHING)
+            app = graph.compile(checkpointer=checkpointer)
 
-        await app.aupdate_state(
-            {"configurable": {"thread_id": run.langgraph_thread_id}},
-            {"matches": updated_matches},
-            as_node="match_supporting_docs",
+            await app.aupdate_state(
+                {"configurable": {"thread_id": run.langgraph_thread_id}},
+                {"matches": updated_matches},
+                as_node="match_supporting_docs",
+            )
+
+        logger.info(
+            f"Removed {len(removed_reference_ids)} matches with file_id {file_id}"
         )
-
-    logger.info(f"Removed {len(removed_reference_ids)} matches with file_id {file_id}")
-    return removed_reference_ids
+        return removed_reference_ids
 
 
 async def add_file_to_reference(
@@ -217,42 +240,45 @@ async def add_file_to_reference(
     Returns:
         True if the reference was linked, False if no update was made
     """
-    # Get file matching state
-    run, state = await _get_file_matching_workflow_state(project_id)
-    if run is None or state is None:
-        logger.warning(
-            f"No file matching workflow found for project {project_id}, cannot add file"
-        )
-        return False
+    async with _project_lock(project_id):
+        # Get file matching state
+        run, state = await _get_file_matching_workflow_state(project_id)
+        if run is None or state is None:
+            logger.warning(
+                f"No file matching workflow found for project {project_id}, cannot add file"
+            )
+            return False
 
-    _, extraction_state = await _get_extraction_workflow_state(project_id)
-    if extraction_state is None:
-        logger.warning(f"No extraction state found for project {project_id}")
-        return False
+        _, extraction_state = await _get_extraction_workflow_state(project_id)
+        if extraction_state is None:
+            logger.warning(f"No extraction state found for project {project_id}")
+            return False
 
-    valid_ids = {ref.id for ref in extraction_state.extracted_references if ref.id}
-    if reference_id not in valid_ids:
-        logger.warning(f"Invalid reference_id {reference_id} for project {project_id}")
-        return False
+        valid_ids = {ref.id for ref in extraction_state.extracted_references if ref.id}
+        if reference_id not in valid_ids:
+            logger.warning(
+                f"Invalid reference_id {reference_id} for project {project_id}"
+            )
+            return False
 
-    # Remove any existing match for this reference_id, then add the new one
-    updated_matches = [m for m in state.matches if m.reference_id != reference_id]
-    updated_matches.append(
-        ReferenceFileMatch(reference_id=reference_id, file_id=file_id)
-    )
-
-    # Update the state using LangGraph
-    async with get_checkpointer() as checkpointer:
-        graph = create_graph(WorkflowRunType.REFERENCE_FILE_MATCHING)
-        app = graph.compile(checkpointer=checkpointer)
-
-        await app.aupdate_state(
-            {"configurable": {"thread_id": run.langgraph_thread_id}},
-            {"matches": updated_matches},
-            as_node="match_supporting_docs",
+        # Remove any existing match for this reference_id, then add the new one
+        updated_matches = [m for m in state.matches if m.reference_id != reference_id]
+        updated_matches.append(
+            ReferenceFileMatch(reference_id=reference_id, file_id=file_id)
         )
 
-    logger.info(
-        f"Linked file {file_id} to reference {reference_id} in project {project_id}"
-    )
-    return True
+        # Update the state using LangGraph
+        async with get_checkpointer() as checkpointer:
+            graph = create_graph(WorkflowRunType.REFERENCE_FILE_MATCHING)
+            app = graph.compile(checkpointer=checkpointer)
+
+            await app.aupdate_state(
+                {"configurable": {"thread_id": run.langgraph_thread_id}},
+                {"matches": updated_matches},
+                as_node="match_supporting_docs",
+            )
+
+        logger.info(
+            f"Linked file {file_id} to reference {reference_id} in project {project_id}"
+        )
+        return True
