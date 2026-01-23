@@ -10,6 +10,7 @@ export interface MatchedFile {
 }
 
 export interface ReferenceReviewItem {
+  id: string;
   index: number;
   text: string;
   status: ReferenceReviewStatus;

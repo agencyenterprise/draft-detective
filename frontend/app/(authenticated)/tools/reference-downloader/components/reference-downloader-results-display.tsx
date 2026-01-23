@@ -143,7 +143,9 @@ export function ReferenceDownloaderResultsDisplay({
       )}
       <div className="space-y-3">
         {filteredResults.length > 0 ? (
-          filteredResults.map((item) => <ReferenceItem key={item.index} item={item} />)
+          filteredResults.map((item, index) => (
+            <ReferenceItem key={item.reference_id} item={item} displayIndex={index} />
+          ))
         ) : (
           <div className="text-center py-8 text-muted-foreground text-sm">No references match the selected filter.</div>
         )}

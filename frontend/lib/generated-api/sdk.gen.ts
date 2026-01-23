@@ -727,8 +727,8 @@ export const addFilesToProjectApiProjectProjectIdFilesPost = <ThrowOnError exten
  *
  * Add a single file (supporting document) to a project.
  *
- * Optionally link the file to a specific reference by providing reference_index
- * (0-based index of the reference in the ReferenceExtraction workflow state).
+ * Optionally link the file to a specific reference by providing reference_id
+ * (the ID of the reference from the ReferenceExtraction workflow state).
  */
 export const addFileToProjectApiProjectProjectIdFilePost = <ThrowOnError extends boolean = true>(
   options: Options<AddFileToProjectApiProjectProjectIdFilePostData, ThrowOnError>,

@@ -29,7 +29,7 @@ export interface UploadFileParams {
   openaiApiKey: string;
 }
 
-export function useUploadFileMutation(projectId: string, referenceIndex: number) {
+export function useUploadFileMutation(projectId: string, referenceId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -37,7 +37,7 @@ export function useUploadFileMutation(projectId: string, referenceIndex: number)
       // 1. Upload the file
       await addFileToProjectApiProjectProjectIdFilePost({
         path: { project_id: projectId },
-        body: { file, reference_index: referenceIndex },
+        body: { file, reference_id: referenceId },
       });
 
       // 2. Start DocumentProcessing and ReferenceFileMatching workflows
@@ -74,7 +74,7 @@ export interface ReplaceFileParams {
   openaiApiKey: string;
 }
 
-export function useReplaceFileMutation(projectId: string, referenceIndex: number, existingFileId: string | undefined) {
+export function useReplaceFileMutation(projectId: string, referenceId: string, existingFileId: string | undefined) {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -82,7 +82,7 @@ export function useReplaceFileMutation(projectId: string, referenceIndex: number
       // 1. Upload the new file
       await addFileToProjectApiProjectProjectIdFilePost({
         path: { project_id: projectId },
-        body: { file, reference_index: referenceIndex },
+        body: { file, reference_id: referenceId },
       });
 
       // 2. Delete the existing file if present
@@ -110,7 +110,7 @@ export interface FetchFromWebParams {
   openaiApiKey: string;
 }
 
-export function useFetchFromWebMutation(projectId: string, referenceIndex: number, referenceText: string) {
+export function useFetchFromWebMutation(projectId: string, referenceId: string, referenceText: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -120,7 +120,7 @@ export function useFetchFromWebMutation(projectId: string, referenceIndex: numbe
         body: {
           type: 'reference_downloader',
           project_id: projectId,
-          references: [{ index: referenceIndex, text: referenceText }],
+          references: [{ reference_id: referenceId, text: referenceText }],
           openai_api_key: openaiApiKey || null,
         },
       });
@@ -140,7 +140,7 @@ export function useFetchFromWebMutation(projectId: string, referenceIndex: numbe
 }
 
 export interface FetchAllFromWebParams {
-  references: Array<{ index: number; text: string }>;
+  references: Array<{ reference_id: string; text: string }>;
   openaiApiKey: string;
 }
 

@@ -7,7 +7,6 @@ from langgraph.types import Send
 from lib.models.file import FileRole
 from lib.services.files import (
     delete_project_files,
-    get_file_by_id,
     get_supporting_candidate_files,
     update_files_role,
 )
@@ -43,7 +42,7 @@ async def initialize_references(
 
     pending_results = [
         ReferenceFetchResult(
-            index=ref.index,
+            reference_id=ref.reference_id,
             input_reference=ref.text,
             status=ReferenceFetchStatus.PENDING,
         )
@@ -66,7 +65,10 @@ async def distribute_references(
     """
     references = state.config.references or []
     return [
-        Send("fetch_single_reference", {"reference": ref.text, "index": ref.index})
+        Send(
+            "fetch_single_reference",
+            {"reference": ref.text, "reference_id": ref.reference_id},
+        )
         for ref in references
     ]
 
@@ -79,10 +81,10 @@ async def fetch_single_reference(state: dict, runtime: Runtime[ContextSchema]):
     """Process a single reference and return status update.
 
     Each call to this node handles one reference and returns an update
-    that the reducer will merge into the state by index.
+    that the reducer will merge into the state by reference_id.
     """
     reference = state["reference"]
-    index = state["index"]
+    reference_id = state["reference_id"]
 
     agent = ReferenceFetcherAgent(runtime.context)
 
@@ -111,7 +113,9 @@ async def fetch_single_reference(state: dict, runtime: Runtime[ContextSchema]):
             # Promote file immediately (from SUPPORTING_CANDIDATE to SUPPORT)
             update_files_role([result.file_id], FileRole.SUPPORT)
             # Update the reference file matching in the ReferenceExtraction workflow state
-            await _update_reference_file_matching(project_id, result.file_id, index)
+            await _update_reference_file_matching(
+                project_id, result.file_id, reference_id
+            )
 
     except Exception as e:
         logger.error(f"Error fetching reference '{reference}': {e}", exc_info=True)
@@ -121,7 +125,7 @@ async def fetch_single_reference(state: dict, runtime: Runtime[ContextSchema]):
     return {
         "fetched_references": [
             ReferenceFetchResult(
-                index=index,
+                reference_id=reference_id,
                 input_reference=reference,
                 status=status,
                 result=result,
@@ -185,17 +189,14 @@ async def cleanup_failed_resources(
 
 
 async def _update_reference_file_matching(
-    project_id: str, file_id: str, reference_index: int
+    project_id: str, file_id: str, reference_id: str
 ):
     """Update the reference file matching in the ReferenceExtraction workflow state."""
 
     from lib.services.references import add_file_to_reference
 
-    file = await get_file_by_id(file_id)
-
     await add_file_to_reference(
         project_id=project_id,
-        file_id=str(file.id),
-        file_name=file.file_name,
-        reference_index=reference_index,
+        file_id=file_id,
+        reference_id=reference_id,
     )

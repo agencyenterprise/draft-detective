@@ -194,6 +194,7 @@ async def remove_file_from_references(project_id: str, file_id: str) -> List[str
         await app.aupdate_state(
             {"configurable": {"thread_id": run.langgraph_thread_id}},
             {"matches": updated_matches},
+            as_node="match_supporting_docs",
         )
 
     logger.info(f"Removed {len(removed_reference_ids)} matches with file_id {file_id}")
@@ -203,8 +204,7 @@ async def remove_file_from_references(project_id: str, file_id: str) -> List[str
 async def add_file_to_reference(
     project_id: str,
     file_id: str,
-    file_name: str,
-    reference_index: int,
+    reference_id: str,
 ) -> bool:
     """
     Link a file to a specific reference in the ReferenceFileMatching workflow state.
@@ -212,37 +212,27 @@ async def add_file_to_reference(
     Args:
         project_id: The project ID
         file_id: The file ID to link to the reference
-        file_name: The name of the file (unused, kept for API compatibility)
-        reference_index: The 0-based index of the reference to update
+        reference_id: The ID of the reference to link the file to
 
     Returns:
         True if the reference was linked, False if no update was made
     """
-    # Get extraction state to find reference_id at the given index
-    _, extraction_state = await _get_extraction_workflow_state(project_id)
-    if extraction_state is None:
-        logger.warning(
-            f"No extraction state found for project {project_id}, cannot add file"
-        )
-        return False
-
-    # Validate reference_index
-    extracted_refs = extraction_state.extracted_references
-    if reference_index < 0 or reference_index >= len(extracted_refs):
-        logger.warning(
-            f"Invalid reference_index {reference_index} for project {project_id} "
-            f"(has {len(extracted_refs)} references)"
-        )
-        return False
-
-    reference_id = extracted_refs[reference_index].id
-
     # Get file matching state
     run, state = await _get_file_matching_workflow_state(project_id)
     if run is None or state is None:
         logger.warning(
             f"No file matching workflow found for project {project_id}, cannot add file"
         )
+        return False
+
+    _, extraction_state = await _get_extraction_workflow_state(project_id)
+    if extraction_state is None:
+        logger.warning(f"No extraction state found for project {project_id}")
+        return False
+
+    valid_ids = {ref.id for ref in extraction_state.extracted_references if ref.id}
+    if reference_id not in valid_ids:
+        logger.warning(f"Invalid reference_id {reference_id} for project {project_id}")
         return False
 
     # Remove any existing match for this reference_id, then add the new one

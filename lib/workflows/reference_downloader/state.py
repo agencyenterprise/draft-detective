@@ -20,7 +20,7 @@ class ReferenceFetchStatus(str, Enum):
 class ReferenceFetchResult(BaseModel):
     """Wrapper for reference fetch results with status tracking"""
 
-    index: int = Field(description="Index of this reference in the input list")
+    reference_id: str = Field(description="ID of the reference being fetched")
     input_reference: str = Field(description="The original input reference")
     status: ReferenceFetchStatus = Field(
         default=ReferenceFetchStatus.PENDING,
@@ -38,26 +38,26 @@ def merge_fetch_results(
     existing: List[ReferenceFetchResult],
     new: List[ReferenceFetchResult],
 ) -> List[ReferenceFetchResult]:
-    """Reducer to merge results by index, preserving order.
+    """Reducer to merge results by reference_id, preserving order.
 
     This reducer function is used by LangGraph to handle incremental updates
     from parallel fetch operations. Each update overwrites the entry with the
-    same index, allowing status transitions from PENDING to COMPLETED/ERROR.
+    same reference_id, allowing status transitions from PENDING to COMPLETED/ERROR.
     """
-    results_by_index = {r.index: r for r in existing}
+    results_by_id = {r.reference_id: r for r in existing}
 
     for item in new:
-        results_by_index[item.index] = item
+        results_by_id[item.reference_id] = item
 
     # Return in insertion order (dict preserves order in Python 3.7+)
-    return list(results_by_index.values())
+    return list(results_by_id.values())
 
 
 class ReferenceDownloaderInputItem(BaseModel):
     """Input item for the reference downloader workflow"""
 
-    index: int = Field(
-        description="The index of the reference from the reference extraction workflow"
+    reference_id: str = Field(
+        description="The ID of the reference from the reference extraction workflow"
     )
     text: str = Field(
         description="The text of the reference to fetch from the internet"
