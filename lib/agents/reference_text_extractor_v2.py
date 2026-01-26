@@ -40,12 +40,7 @@ You are a reference extraction specialist. Your task is to find and extract all 
 
 ## Instructions
 
-1. Use search_document to locate reference/bibliography sections. Try searching for common section headers like:
-   - "References"
-   - "Bibliography"
-   - "Works Cited"
-   - "Literature Cited"
-   - "Sources"
+1. Use search_document to locate reference/bibliography sections. Try searching for common section headers like "References", Bibliography", "Works Cited", "Literature Cited", "Sources" etc. It's possible that the reference section is not labeled, so you may need to search for common patterns in the document.
 
 2. Once you find a reference section (note the line numbers), use read_document to read the full content of that section.
 
@@ -113,20 +108,22 @@ class ReferenceExtractorV2Agent(LangChainAgent):
             f"""Please extract all bibliographic references from the document."""
         )
 
-        # result = await agent.ainvoke(
-        #     {"messages": [{"role": "user", "content": user_message}]},
-        #     config=config,
-        #     context=self.context,
-        # )
-
-        async for chunk in agent.astream(
+        result = await agent.ainvoke(
             {"messages": [{"role": "user", "content": user_message}]},
-            config={"recursion_limit": 100},  # TODO: merge with config from param
+            config={"recursion_limit": 50, **(config or {})},
             context=self.context,
-            stream_mode="updates",
-        ):
-            for step, data in chunk.items():
-                print(f"step: {step}")
-                print(f"content: {data['messages'][-1].content_blocks}")
+        )
 
-        return data["structured_response"]
+        return result["structured_response"]
+
+        # async for chunk in agent.astream(
+        #     {"messages": [{"role": "user", "content": user_message}]},
+        #     config={"recursion_limit": 50, **(config or {})},
+        #     context=self.context,
+        #     stream_mode="updates",
+        # ):
+        #     for step, data in chunk.items():
+        #         print(f"step: {step}")
+        #         print(f"content: {data['messages'][-1].content_blocks}")
+
+        # return data["structured_response"]

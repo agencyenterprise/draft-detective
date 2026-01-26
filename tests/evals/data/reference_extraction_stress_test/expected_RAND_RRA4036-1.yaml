@@ -1,427 +1,155 @@
 document: RAND_RRA4036-1.md
 references:
-- 'Adamala, Katarzyna P., Deepa Agashe, Damon J. Binder, Yizhi Cai, Vaughn S. Cooper,
-  Ryan K. Duncombe, Kevin M. Esvelt, John I. Glass, Timothy W. Hand, Thomas V. Inglesby,
-  et al., Technical Report on Mirror Bacteria: Feasibility and Risks , Stanford Digital
-  Repository, December 2024.'
-- 'Administration for Strategic Preparedness and Response, ''Center for the Strategic
-  National Stockpile,'' webpage, undated-a. As of May 2, 2025:'
-- 'Administration for Strategic Preparedness and Response, ''Requesting SNS Assets,''
-  webpage, undated-b. As of May 2, 2025: https://aspr.hhs.gov/SNS/Pages/Requesting-SNS-Assets.aspx'
-- Alavy, Masih, and Jeffrey A. Siegel, 'In-Situ Effectiveness of Residential HVAC
-  Filters,' Indoor Air , Vol. 30, No. 1, January 2020.
-- Alfaro, Javier Antonio, Peggy Bohländer, Mingjie Dai, Mike Filius, Cecil J. Howard,
-  Xander F. van Kooten, Shilo Ohayon, Adam Pomorski, Sonja Schmid, Aleksei Aksimentiev,
-  et al., 'The Emerging Landscape of SingleMolecule Protein Sequencing Technologies,'
-  Nature Methods , Vol. 18, No. 6, June 2021.
-- American Society of Heating, Refrigerating and Air-Conditioning Engineers, ASHRAE
-  Standard 241, Control of Infectious Aerosols , 2023.
-- 'Animal and Plant Health Inspection Service, ''National Veterinary Stockpile,''
-  webpage, U.S. Department of Agriculture, last updated March 30, 2024. As of May 2,
-  2025:'
-- Arévalo, Maria, Mark Karavis, Adina Doyle, Fran D'Amico, Pierce Roth, Alvin Liem,
-  Samir Deshpande, Jessica Hill, Jackie Harris, Sarah Katoski, and R. Cory Bernhards,
-  'Bioaerosol Surveillance via Untargeted Nanopore Sequencing,' poster presented at
-  the U.S. Army Combat Capabilities Development Command Chemical Biological Center,
-  Chemical and Biological Defense Science and Technology Conference, Defense Threat
-  Reduction Agency, 2022.
-- American Society of Heating, Refrigerating and Air-Conditioning Engineers, ASHRAE
-  Standard 241, Control of Infectious Aerosols, 2023.
-- Australian Government Department of Health and Aged Care, 'Infection Prevention
-  and Control Expert Group-The Hierarchy of Controls for Minimising the Risk of COVID-19
-  Transmission,' September 27, 2022.
-- Baracco, Gio, Sheri Eisert, Aaron Eagan, and Lewis Radonovich, 'Comparative Cost
-  of Stockpiling Various Types of Respiratory Protective Devices to Protect the Health
-  Care Workforce During an Influenza Pandemic,' Disaster Medicine and Public Health
-  Preparedness , Vol. 9, No. 3, June 2015.
-- 'Barandongo, Zoë R., Amélie C. Dolfi, Spencer A. Bruce, Kristyna Rysava, Yen-Hua
-  Huang, Hendrina Joel, Ayesha Hassim, Pauline L. Kamath, Henriette van Heerden, and
-  Wendy C. Turner, ''The Persistence of Time: The Lifespan of Bacillus Anthracis Spores
-  in Environmental Reservoirs,'' Research in Microbiology , Vol. 174, No. 6, July-August
-  2023.'
-- Behr, Marcel A., Paul H. Edelstein, and Lalita Ramakrishnan, 'Revisiting the Timetable
-  of Tuberculosis,' BMJ , Vol. 362, August 2018.
-- Biden, Joseph R., Jr., Ensuring the Future Is Made in All of America by All of America's
-  Workers , Executive Order 14005, January 25, 2021.
-- Biden, Joseph R., Jr., National Security Memorandum on Critical Infrastructure Security
-  and Resilience , National Security Memorandum 22, Executive Office of the President,
-  April 30, 2024.
-- Biomedical Advanced Research and Development Authority, 'BARDA Announces New Partnerships
-  to Develop Next-Gen Diagnostics for Any Respiratory RNA Virus,' webpage, U.S. Department
-  of Health and Human Services, last updated May 3, 2022.
-- 'bioMérieux, “BIOFIRE® Respiratory 2.1 (RP2.1) Panel,” webpage, undated. As of May
-  2, 2025: https://www.biomerieux.com/us/en/our-offer/clinical-products/biofire-respiratory-panels.html'
-- Bowers, Robert M., Amy P. Sullivan, Elizabeth K. Costello, Jeff L. Collett, Jr.,
-  Rob Knight, and Noah Fierer, 'Sources of Bacteria in Outdoor Air Across Cities in
-  the Midwestern United States,' Applied and Environmental Microbiology , Vol. 77,
-  No. 18, September 2011.
-- Briese, Thomas, Amit Kapoor, Nischay Mishra, Komal Jain, Arvind Kumar, Omar J. Jabado,
-  and W. Ian Lipkin, 'Virome Capture Sequencing Enables Sensitive Viral Diagnosis
-  and Comprehensive Virome Analysis,' mBio , Vol. 6, No. 5, October 2015.
-- Bush, George W., National Continuity Policy , National Security Presidential Directive
-  51, Homeland Security Presidential Directive 20, Executive Office of the President,
-  May 4, 2007.
-- Cao, Changchang, Zhaokui Cai, Xia Xiao, Jian Rao, Juan Chen, Naijing Hu, Minnan
-  Yang, Xiaorui Xing, Yongle Wang, Manman Li, et al., 'The Architecture of the SARS-CoV-2
-  RNA Genome Inside Virion,' Nature Communications , Vol. 12, No. 1, June 24, 2021.
-- Carey, R., A. Gomezplata, and A. Sarich, 'An Overview into Submarine CO2 Scrubber
-  Development,' Ocean Engineering , Vol. 10, No. 4, 1983.
-- 'Centers for Disease Control and Prevention, ''Advanced Molecular Detection (AMD),''
-  webpage, undated. As of May 5, 2025: https://www.cdc.gov/advanced-molecular-detection/index.html'
-- 'Centers for Disease Control and Prevention, ''2023 Project: Laboratory Corporation
-  of America (Labcorp),'' webpage, January 29, 2024a. As of May 5, 2025: https://www.cdc.gov/advanced-molecular-detection/php/data-research/baa/2023-labcorp.html'
-- 'Centers for Disease Control and Prevention, ''How Food Irradiation Works,'' webpage,
-  last updated February 27, 2024b. As of May 5, 2025: https://www.cdc.gov/radiation-health/food-irradiation/index.html'
-- 'Centers for Disease Control and Prevention, ''Taking Steps for Cleaner Air for
-  Respiratory Virus Prevention,'' webpage, March 1, 2024c. As of May 2, 2025: https://www.cdc.gov/respiratory-viruses/prevention/air-quality.html'
-- 'Centers for Disease Control and Prevention, ''National Wastewater Surveillance
-  System (NWSS),'' last updated November 6, 2024d. As of May 5, 2025: https://www.cdc.gov/nwss/wastewater-surveillance.html'
-- 'Centers for Disease Control and Prevention, ''About Traveler-Based Genomic Surveillance,''
-  webpage, last updated May 14, 2025a. As of May 5, 2025: https://wwwnc.cdc.gov/travel/page/travel-genomic-surveillance'
-- 'Centers for Disease Control and Prevention, ''Measles Clinical Diagnosis Fact Sheet,''
-  webpage, May 19, 2025b. As of July 31, 2025: https://www.cdc.gov/measles/hcp/communication-resources/clinical-diagnosis-fact-sheet.html'
-- Centers for Medicare and Medicaid Services, 'Medicare EHR Incentive Program Physician
-  Quality Reporting System and Electronic Prescribing Incentive Program Comparison,'
-  fact sheet, last updated May 2013.
-- 'Centers for Medicare and Medicaid Services, ''Conditions for Coverage (CfCs) &
-  Conditions of Participation (CoPs),'' webpage, last updated September 10, 2024a.
-  As of May 5, 2025: https://www.cms.gov/medicare/health-safety-standards/conditions-coverage-participation'
-- 'Centers for Medicare and Medicaid Services, ''What Are the Value-Based Programs?''
-  webpage, last updated September 25, 2024b. As of May 5, 2025: https://www.cms.gov/medicare/quality/value-based-programs'
-- 'Centers for Medicare and Medicaid Services, ''Emergency Preparedness Rule,'' webpage,
-  last updated December 30, 2024c. As of May 2, 2025: https://www.cms.gov/medicare/health-safety-standards/quality-safety-oversight-emergency-preparedness/emergency-preparedness-rule'
-- 'Centers for Medicare and Medicaid Services, ''Hospital Inpatient Quality Reporting
-  Program,'' webpage, last updated June 3, 2025. As of July 31, 2025: https://www.cms.gov/medicare/quality/initiatives/hospital-quality-initiative/inpatient-reporting-program'
-- 'Chappell, Clifton G., Roderick Gainer, and Kristin Guss, Defense National Stockpile
-  Center: America''s Stockpile: An Organizational History, or An Organizational History
-  of the Defense National Stockpile Center: America''s National Stockpile , Defense
-  Logistics Agency, undated.'
-- 'Chemical Hazards Emergency Medical Management, ''Strategic National Stockpile (SNS),''
-  webpage, U.S. Department of Health and Human Services, last updated June 18, 2025.
-  As of July 31, 2025: https://chemm.hhs.gov/sns.htm'
-- 'Chen, Haiqian, Leiyu Shi, Yuyao Zhang, Xiaohan Wang, Jun Jiao, Manfei Yang, and
-  Gang Sun, ''Response to the COVID-19 Pandemic: Comparison of Strategies in Six Countries,''
-  Frontiers in Public Health , Vol. 9, September 2021.'
-- Chen, Zigui, Siaw S. Boon, Maggie H. Wang, Renee W. Y. Chan, and Paul K. S. Chan,
-  'Genomic and Evolutionary Comparison Between SARS-CoV-2 and Other Human Coronaviruses,'
-  Journal of Virological Methods , Vol. 289, March 2021.
-- 'Clauser, F. H., Preliminary Design of an Experimental World-Circling Spaceship,
-  Douglas Aircraft Company, RAND Corporation, SM-11827, 1946. As of May 1, 2025: https://www.rand.org/pubs/special_memoranda/SM11827.html'
-- Cleveland County Health Department, 'Cooking/Reheating the Food to Kill the Bacteria,'
-  fact sheet, undated.
-- Crane, Jonathan T., F. Chip Bullock, and Jonathan Y. Richmond, 'Designing the BSL4
-  Laboratory (Chapter 9),' Journal of the American Biological Safety Association ,
-  Vol. 4, No. 1, March 1999.
-- 'Crossley, Gabriel, ''Wuhan Lockdown ''Unprecedented,'' Shows Commitment to Contain
-  Virus: WHO Representative in China,'' Reuters, January 23, 2020.'
-- 'Curtin, Jennifer, ''The End of New Zealand''s Zero-COVID Policy,'' Think Global
-  Health blog, October 28, 2021. As of May 2, 2025: https://www.thinkglobalhealth.org/article/end-new-zealands-zero-covid-policy'
-- 'Cybersecurity and Infrastructure Security Agency, ''National Critical Functions
-  Set,'' webpage, U.S. Department of Homeland Security, undated. As of May 1, 2025:'
-- Dal Porto, Rachael, Monet N. Kunz, Theresa Pistochini, Richard L. Corsi, and Christopher
-  D. Cappa, 'Characterizing the Performance of a Do-It-Yourself (DIY) Box Fan Air
-  Filter,' Aerosol Science and Technology , Vol. 56, No. 6, 2022.
-- 'D''Alicandro, Andrea Carlo, and Alessandro Mauro, ''Air Change per Hour and Inlet
-  Area: Effects on Ultrafine Particle Concentration and Thermal Comfort in an Operating
-  Room,'' Journal of Aerosol Science , Vol. 171, June 2023.'
-- 'Dattani, Saloni, ''What Were the Death Tolls from Pandemics in History?'' Our World
-  in Data, December 7, 2023. As of May 5, 2025: https://ourworldindata.org/historical-pandemics'
-- 'Defense Advanced Research Projects Agency, ''DIGET: Detect It with Gene Editing
-  Technologies,'' webpage, undated. As of May 2, 2025: https://www.darpa.mil/research/programs/detect-it-with-gene-editing-technologies'
-- Department of Defense Directive 6420.02, DoD Biosurveillance , Office of the Under
-  Secretary of Defense for Personnel and Readiness, U.S. Department of Defense, incorporating
-  change 1, June 21, 2024.
-- Department of Defense Directive 6490.02E, Comprehensive Health Surveillance , Office
-  of the Deputy Secretary of Defense, U.S. Department of Defense, incorporating change
-  2, August 28, 2017.
-- 'Després, Viviane R., J. Alex Huffman, Susannah M. Burrows, Corinna Hoose, Aleksandr
-  S. Safatov, Galina Buryak, Janine Fröhlich-Nowoisky, Wolfgang Elbert, Meinrat O.
-  Andreae, Ulrich Pöschl, and Ruprecht Jaenicke, ''Primary Biological Aerosol Particles
-  in the Atmosphere: A Review,'' Tellus B: Chemical and Physical Meteorology , Vol. 64,
-  No. 1, 2012.'
-- 'Donskey, Curtis J., ''Continuous Surface and Air Decontamination Technologies:
-  Current Concepts and Controversies,'' American Journal of Infection Control , Vol. 51,
-  No. 11S, November 2023.'
-- Duan, Dongli, Changchun Lv, Shubin Si, Zhen Wang, Daqing Li, Jianxi Gao, Shlomo
-  Havlin, H. Eugene Stanley, and Stefano Boccaletti, 'Universal Behavior of Cascading
-  Failures in Interdependent Networks,' Proceedings of the National Academy of Sciences
-  , Vol. 116, No. 45, November 5, 2019.
-- 'Dubin, Rhys, Rassin Lababidi, John Moulton, Harshini Mukundan, Lillian Parr, Christine
-  Parthemore, Saskia Popescu, and Daniel P. Regan, Pathogen Early Warning: A Progress
-  Report and Path Forward , ed. by Francesco Femia, Janne E. Nolan Center on Strategic
-  Weapons, Council on Strategic Risks, December 2022.'
-- 'Edirisooriya, Mihili, and Emily J. Haas, ''Examining the Roles of Training, Fit
-  Testing, and Safety Climate on User Confidence in Respiratory Protection: A Case
-  Example with Reusable Respirators in Health Delivery Settings,'' Sustainability
-  , Vol. 15, No. 17, 2023.'
-- Edwards, David, Anthony Hickey, Richard Batycky, Lester Griel, Michael Lipp, Wes
-  Dehaan, Robert Clarke, David Hava, Jason Perry, Brendan Laurenzi, et al., 'A New
-  Natural Defense Against Airborne Pathogens,' QRB Discovery , Vol. 1, July 7, 2020.
-- 'Environmental Protection Agency, Water Health Series: Filtration Facts , September
-  2005.'
-- 'Environmental Protection Agency, ''Selected EPA-Registered Disinfectants,'' webpage,
-  last updated January 13, 2025a. As of May 2, 2025: https://www.epa.gov/pesticide-registration/selected-epa-registered-disinfectants'
-- 'Environmental Protection Agency, ''How Much Ventilation Do I Need in My Home to
-  Improve Indoor Air Quality?'' webpage, last updated May 23, 2025b. As of July 31,
-  2025: https://www.epa.gov/indoor-air-quality-iaq/how-much-ventilation-do-i-need-my-home-improve-indoor-airquality'
-- Erisman, Jan Willem, Mark A. Sutton, James Galloway, Zbigniew Klimont, and Wilfried
-  Winiwarter, 'How a Century of Ammonia Synthesis Changed the World,' Nature Geoscience
-  , Vol. 1, October 2008.
-- 'Federal Reserve Bank of St. Louis, ''Civilian Labor Force Level,'' webpage, last
-  updated July 3, 2025. As of July 31, 2025: https://fred.stlouisfed.org/series/CLF16OV'
-- 'Freije, Catherine A., and Pardis C. Sabeti, ''Detect and Destroy: CRISPR-Based
-  Technologies for the Response Against Viruses,'' Call Host and Microbe , Vol. 29,
-  No. 5, May 2021.'
-- Gao, Wenjing, Jun Lv, Yuanjie Pang, and Li-Ming Li, 'Role of Asymptomatic and Pre-Symptomatic
-  Infections in COVID-19 Pandemic,' BMJ , Vol. 375, December 1, 2021.
-- 'Garling, D. J. H., ''The AM-GM Inequality,'' Inequalities: A Journey into Linear
-  Analysis , Cambridge University Press, 2007.'
-- 'Gibson, Beth, Daniel J. Wilson, Edward Feil, and Adam Eyre-Walker, ''The Distribution
-  of Bacterial Doubling Times in the Wild,'' Proceedings of the Royal Society B: Biological
-  Sciences , Vol. 285, No. 1880, June 13, 2018.'
-- Goldberg, Emma E., Qianying Lin, Ethan O. Romero-Severson, and Ruian Ke, 'Swift
-  and Extensive Omicron Outbreak in China After Sudden Exit from 'Zero-COVID' Policy,'
-  Nature Communications , Vol. 14, No. 1, July 1, 2023.
-- Gomez, Odessa, Kevin M. McCabe, Emma Biesiada, Blaire Volbers, Emily Kraus, Marina
-  Nieto-Caballero, and Mark Hernandez, 'Airborne Murine Coronavirus Response to Low
-  Levels of Hypochlorous Acid, Hydrogen Peroxide and Glycol Vapors,' Aerosol Science
-  and Technology , Vol. 56, No. 11, 2022.
-- Gonzales, Manuel, John C. Elder, Marvin I. Tillerv, and Harry J. Ettinger, Performance
-  of Multiple HEPA Filters Against Plutonium Aerosols , Los Alamos Scientific Laboratory,
-  November 1976.
-- 'Greenawald, Lee A., Emily J. Haas, and Maryann M. D''Alessandro, ''Elastomeric
-  Half Mask Respirators: An Alternative to Disposable Respirators and a Solution to
-  Shortages During Public Health Emergencies,'' Journal of the International Society
-  for Respiratory Protection , Vol. 38, No. 2, 2021.'
-- Grimm, Simon, 'ONT Swab Sequencing Statistics,' Simon's Public NAO Notebook blog,
-  June 20, 2025.
-- Grimm, Simon, and Will Bradshaw, 'Investigating the Sensitivity of Pooled Swab Sampling
-  for Pathogen Early Detection,' Nucleic Acid Observatory, July 1, 2024.
-- Grimm, Simon L., Jeff T. Kaufman, Daniel P. Rice, Charles Whittaker, William J.
-  Bradshaw, and Michael R. McLaren, 'Inferring the Sensitivity of Wastewater Metagenomic
-  Sequencing for Virus Detection and Monitoring,' Version 3, medRxiv, October 8, 2024.
-- Grimm, Simon, Dan Rice, and Mike McLaren, 'Estimating the Sensitivity of Wastewater
-  Metagenomic Sequencing Using Nasal Swabs,' Nucleic Acid Observatory, June 8, 2025.
-- 'Gryphon Scientific, Towards a Theory of Pandemic-Proof PPE , Blueprint Biosecurity,
-  June 2024. As of May 2, 2025: https://blueprintbiosecurity.org/u/2024/05/BB \_ Next-Gen-Report
-  \_ PRF9-WEB-1.pdf'
-- Gu, Wei, Xianding Deng, Marco Lee, Yasemin D. Sucu, Shaun Arevalo, Doug Stryke,
-  Scot Federman, Allan Gopez, Kevin Reyes, Kelsey Zorn, et al., 'Rapid Pathogen Detection
-  by Metagenomic Next-Generation Sequencing of Infected Body Fluids,' Nature Medicine
-  , Vol. 27, No. 1, January 2021.
-- He, Xinjian, Evanly Vo, M. Horvatin, Y. Liu, M. Bergman, and Z. Zhuang, 'Comparison
-  of Simulated Workplace Protection Factors Offered by N95 and P100 Filtering Facepiece
-  and Elastomeric Half-Mask Respirators Against Particles of 10 to 400 nm,' Journal
-  of Nanotechnology and Materials Science , Vol. 2, No. 2, September 7, 2015.
-- 'Health Emergency Preparedness and Response Authority, ''Launching GLOWACON: A Global
-  Initiative for Wastewater Surveillance for Public Health,'' European Commission,
-  March 21, 2024.'
-- 'HIV.gov, ''A Timeline of HIV and AIDS,'' webpage, undated. As of May 2, 2025: https://www.hiv.gov/hiv-basics/overview/history/hiv-and-aids-timeline'
-- 'Illumina, ''NovaSeq X Series,'' webpage, undated-a. As of May 5, 2025: https://www.illumina.com/systems/sequencing-platforms/novaseq-x-plus.html'
-- 'Illumina, ''NovaSeq X Series Specifications,'' webpage, undated-b. As of May 5,
-  2025:'
-- Illumina, 'Illumina Underscores Commitment to Shareholder Value and Responds to
-  Carl Icahn's Statements,' press release, March 20, 2023.
-- 'Interdisciplinary Center for Biotechnology Research, ''NextGen DNA Sequencing:
-  Services,'' webpage, University of Florida, undated. As of May 5, 2025: https://biotech.ufl.edu/next-gen-dna/ns-services-fees/'
-- 'International Passive House Association, ''Passive House Certification Criteria,''
-  webpage, undated. As of May 5, 2025: https://passivehouse-international.org/index.php?page
-  \_ id=150'
-- Jimenez, Jose L., Linsey C. Marr, Katherine Randall, Edward Thomas Ewing, Zeynep
-  Tufekci, Trish Greenhalgh, Raymond Tellier, Julian W. Tang, Yuguo Li, Lidia Morawska,
-  et al., 'What Were the Historical Reasons for the Resistance to Recognizing Airborne
-  Transmission During the COVID-19 Pandemic?' Indoor Air , Vol. 32, No. 8, August
-  2022.
-- Jones, Rachael M., Mark Nicas, Alan E. Hubbard, and Arthur L. Reingold, 'The Infectious
-  Dose of Coxiella burnetii (Q Fever),' Applied Biosafety , Vol. 11, No. 1, March
-  2006.
-- Joseph, John, Helna Mary Baby, Joselyn Rojas Quintero, Devin Kenney, Yohannes A.
-  Mebratu, Eshant Bhatia, Purna Shah, Kabir Swain, Dongtak Lee, Shahdeep Kaur, et al.,
-  'Toward a Radically Simple Multi-Modal Nasal Spray for Preventing Respiratory Infections,'
-  Advanced Materials , Vol. 36, No. 46, November 2024.
-- Kahn, Herman, 'Thinking About the Unthinkable,' Naval War College Review , Vol. 15,
-  No. 8, 1962.
-- Kahn, Herman, On Thermonuclear War , Transaction Publishers, 2007.
-- Khehra, Nimrat, Inderbir S. Padda, and Cathi J. Swift, Polymerase Chain Reaction
-  (PCR) , StatPearls Publishing, 2025.
-- Ko, Karrie K. K., Kern Rei Chng, and Niranjan Nagarajan, 'Metagenomics-Enabled Microbial
-  Surveillance,' Nature Microbiology , Vol. 7, No. 4, April 2022.
-- Koh, Xue Qi, Anqi Sng, Jing Yee Chee, Anton Sadovoy, Ping Luo, and Dan Daniel, 'Outward
-  and Inward Protection Efficiencies of Different Mask Designs for Different Respiratory
-  Activities,' Journal of Aerosol Science , Vol. 160, February 2022.
-- Lenicov, Federico R., and Nilda E. Fink, 'Ethical Issues in the Use of Leftover
-  Samples and Associated Personal Data Obtained from Diagnostic Laboratories,' Clinica
-  chimica acta , Vol. 548, August 2023.
-- 'Liang, Chelsea, James Wagstaff, Noga Aharony, Virginia Schmit, and David Manheim,
-  ''Managing the Transition to Widespread Metagenomic Monitoring: Policy Considerations
-  for Future Biosurveillance,'' Health Security , Vol. 21, No. 1, January-February
-  2023.'
-- 'Luckey, David, Sara Duhachek Muggy, Taylor Frey, David Stebbins, Tracey Rissman,
-  Bianca Espinosa, Daniel Tapia, Greg McKelvey, Jr., Neeti Pokhriyal, Joseph Dawson,
-  Sara Hughes, Morgan Sandler, Rushil Bakhshi, Marta Kepe, Geoffrey Kirkwood, Sarah
-  W. Denton, David DeSmet, Minami Makino, Ella Guest, Sina Beaghley, Suzanne Genc,
-  Michael Miller, Skye A. Miner, Barbara Del Castello, Forrest W. Crawford, Jeffrey
-  Lee, Clay Strickland, Sunny D. Bhatt, John Vahedi, Lydia Grek, Vanya Barrer, Ramiro
-  Insuasti, Jr., Jack Lashendock, Derek Roberts, Aleksandr Esparza Hartunian, Shannon
-  Walsh, Will Shumate, Elliott Brennan, Tyler Liggett, Kara Jia, Ajay K. Kochhar,
-  James Smith, and James Ryseff, Mitigating Risks at the Intersection of Artificial
-  Intelligence and Chemical and Biological Weapons , Homeland Security Operational
-  Analysis Center operated by the RAND Corporation, RR-A2990-1, 2025. As of May 1,
-  2025:'
-- MacIntyre, C. Raina, Samsung Lim, Deepti Gurdasani, Miguel Miranda, David Metcalf,
-  Ashley Quigley, Danielle Hutchinson, Allan Burr, and David J. Heslop, 'Early Detection
-  of Emerging Infectious DiseasesImplications for Vaccine Development,' Vaccine ,
-  Vol. 42, No. 7, March 2024.
-- 'Mandl, Kenneth D., J. Marc Overhage, Michael M. Wagner, William B. Lober, Paola
-  Sebastiani, Farzad Mostashari, Julie A. Pavlin, Per H. Gesteland, Tracee Treadwell,
-  Eileen Koski, et al., ''Implementing Syndromic Surveillance: A Practical Guide Informed
-  by the Early Experience,'' Journal of the American Medical Informatics Association
-  , Vol. 11, No. 2, March-April 2004.'
-- 'Mikszewski, Alex, Luca Stabile, Giorgio Buonanno, and Lidia Morawska, ''The Airborne
-  Contagiousness of Respiratory Viruses: A Comparative Analysis and Implications for
-  Mitigation,'' Geoscience Frontiers , Vol. 13, No. 6, November 2022.'
-- 'Military Health System, ''Department of Defense Serum Repository,'' webpage, last
-  updated July 22, 2024. As of May 5, 2025: https://www.health.mil/Military-Health-Topics/Health-Readiness/AFHSD/Functional-Information-Technology-Support/Department-of-Defense-Serum-Repository'
-- 'Muniz-Rodriguez, Kamalich, Gerardo Chowell, Chi-Hin Cheung, Dongyu Jia, Po-Ying
-  Lai, Yiseul Lee, Manyun Liu, Sylvia K. Ofori, Kimberlyn M. Roosa, Lone Simonsen,
-  Cecile Viboud, and Isaac Chun-Hai Fung, ''Doubling Time of the COVID-19 Epidemic
-  by Province, China: Appendix,'' Emerging Infectious Diseases , Vol. 26, No. 8, August
-  2020.'
-- NASA - See National Aeronautics and Space Administration.
-- National Academies of Sciences, Engineering, and Medicine, Safeguarding the Bioeconomy
-  , National Academies Press, 2020.
-- National Aeronautics and Space Administration, 'World's Largest Vacuum Chamber,'
-  February 11, 2009.
-- 'National Aeronautics and Space Administration, Office of the Chief Health and Medical
-  Officer, Environmental Control &amp; Life Support System (ECLSS): Human-Centered
-  Approach , NASA-STD-3001 Technical Brief, November 14, 2023.'
-- 'National Infrastructure Advisory Council, The Prioritization of Critical Infrastructure
-  for a Pandemic Outbreak in the United States Working Group: Final Report and Recommendations
-  by the Council , U.S. Department of Homeland Security, January 16, 2007.'
-- 'National Institute for Occupational Safety and Health, ''About Hierarchy of Controls,''
-  webpage, Centers for Disease Control and Prevention, April 10, 2024. As of May 2,
-  2025: https://www.cdc.gov/niosh/hierarchy-of-controls/about/index.html'
-- 'National Institute for Occupational Safety and Health, ''Fit Testing,'' webpage,
-  February 3, 2025. As of May 2, 2025: https://www.cdc.gov/niosh/ppe/respirators/fit-testing.html'
-- 'National Institute of Allergy and Infectious Diseases, ''Vaccines,'' webpage, National
-  Institutes of Health, last updated December 17, 2024. As of May 2, 2025:'
-- 'National Institute of Allergy and Infectious Diseases, ''Therapeutic Development
-  Services,'' webpage, National Institutes of Health, last updated April 28, 2025.
-  As of May 2, 2025: https://www.niaid.nih.gov/research/therapeutic-development-services'
-- Nelson, T. J., 'The Assigned Protection Factor According to ANSI,' American Industrial
-  Hygiene Journal , Vol. 57, No. 8, August 1996.
-- '''NIOSH Approves First Elastomeric Half Mask Respirator Without Exhalation Valve,''
-  The Synergist, January 2021. As of May 2, 2025: https://synergist.aiha.org/202101-ehmr-without-exhalation-valve'
-- The North Atlantic Treaty, signed at Washington, D.C., April 4, 1949.
-- Nucleic Acid Observatory, 'NAO Updates, January 2025,' January 9, 2025.
-- Nucleic Acid Observatory Consortium, 'A Global Nucleic Acid Observatory for Biodefense
-  and Planetary Health,' arXiv, arXiv:2108.02678, August 5, 2021.
-- Occupational Safety and Health Administration, Assigned Protection Factors for the
-  Revised Respiratory Protection Standard , U.S. Department of Labor, OSHA 3352-02,
-  2009.
-- 'Office of the Assistant Secretary for Preparedness and Response, Public Health
-  Emergency Medical Countermeasures Enterprise: Multiyear Budget: Fiscal Years 2023-2027
-  , U.S. Department of Health and Human Services, March 15, 2024.'
-- 'Oxford Nanopore Technologies, ''MinION &amp; GridION,'' webpage, undated-a. As
-  of May 5, 2025: https://store.nanoporetech.com/us/flow-cells.html'
-- 'Oxford Nanopore Technologies, ''PromethION,'' webpage, undated-b. As of May 5,
-  2025: https://nanoporetech.com/products/sequence/promethion'
-- 'Oxford Nanopore Technologies, ''MinION & GridION,'' webpage, undated-a. As of May
-  5, 2025: https://store.nanoporetech.com/us/flow-cells.html'
-- 'Oxford Nanopore Technologies, ''Oxford Nanopore Technologies Price List,'' webpage,
-  undated-d. As of August 4, 2025: https://store.nanoporetech.com/us/priceList.html'
-- 'Paños-Crespo, Anais, Jorge Toledano-Serrabona, María Ángeles Sánchez-Garcés, and
-  Cosme Gay-Escoda, ''Evaluation of the Efficacy of Hydroxyl Radical (OH˙) Release
-  for Disinfection of the Air and Surfaces in the Dental Clinic: An in Vitro Study,''
-  Medicina Oral, Patologia Oral, Cirugia Bucal , Vol. 29, No. 1, January 1, 2024.'
-- 'Parkins, Michael D., Bonita E. Lee, Nicole Acosta, Maria Bautista, Casey R. J.
-  Hubert, Steve E. Hrudey, Kevin Frankowski, and Xiao-Li Pang, ''Wastewater-Based
-  Surveillance as a Tool for Public Health Action: SARS-CoV-2 and Beyond,'' Clinical
-  Microbiology Reviews , Vol. 37, No. 1, March 14, 2024.'
-- Pavlin, Julie A., and Robert A. Welch, 'Ethics, Human Use, and the Department of
-  Defense Serum Repository,' Military Medicine , Vol. 180, Supp. 10, October 2015.
-- Personal Safety Division, Key Considerations Regarding Respiratory Protection Assigned
-  Protection Factors (APF) , 3M, October 2019.
-- 'Petro, James B., Theodore R. Plasse, and Jack A. McNulty, ''Biotechnology: Impact
-  on Biological Warfare and Biodefense,'' Biosecurity and Bioterrorism: Biodefense
-  Strategy, Practice, and Science , Vol. 1, No. 3, September 2003.'
-- Pompeii, Lisa A., Colleen S. Kraft, Erik A. Brownsword, Morgan A. Lane, Elisa Benavides,
-  Janelle Rios, and Lewis J. Radonovich, Jr., 'Training and Fit Testing of Health
-  Care Personnel for Reusable Elastomeric Half-Mask Respirators Compared with Disposable
-  N95 Respirators,' JAMA , Vol. 323, No. 18, May 12, 2020.
-- 'Pompeii, Michael A., Joint Service Collective Protection: Commodity Area Overview
-  , Naval Surface Warfare Center, October 22, 2002.'
-- Prussin, Aaron J., II, Ellen B. Garcia, and Linsey C. Marr, 'Total Concentrations
-  of Virus and Bacteria in Indoor and Outdoor Air,' Environmental Science and Technology
-  Letters , Vol. 2, No. 4, March 6, 2015.
-- 'RAND Corporation, Report on a Study of Non-Military Defense , R-322-RC, 1958. As
-  of May 1, 2025: https://www.rand.org/pubs/reports/R0322.html'
-- Ruiz-Gil, Tay, Jacquelinne J. Acuña, So Fujiyoshi, Daisuke Tanaka, Jun Noda, Fumito
-  Maruyama, and Milko A. Jorquera, 'Airborne Bacterial Communities of Outdoor Environments
-  and Their Associated Influencing Factors,' Environment International , Vol. 145,
-  December 2020.
-- Salam, Alex P., Amanda Rojek, Erhui Cai, Mihaja Raberahona, and Peter Horby, 'Deaths
-  Associated with Pneumonic Plague, 1946-2017,' Emerging Infectious Diseases , Vol. 26,
-  No. 10, October 2020.
-- 'SecureBio, ''Sampling and Sequencing Simulator,'' webpage, undated. As of May 5,
-  2025: https://data.securebio.org/simulator'
-- 'Sharma, Siddhanth, Jaspreet Pannu, Sam Chorlton, Jacob L. Swett, and David J. Ecker,
-  ''Threat Net: A Metagenomic Surveillance Network for Biothreat Detection and Early
-  Warning,'' Health Security , Vol. 21, No. 5, September-October 2023.'
-- Soneson, Charlotte, Yao Yao, Anna Bratus-Neuenschwander, Andrea Patrignani, Mark
-  D. Robinson, and Shobbir Hussain, 'A Comprehensive Examination of Nanopore Native
-  RNA Sequencing for Characterization of Complex Transcriptomes,' Nature Communications
-  , Vol. 10, No. 1, July 31, 2019.
-- Styles, Christine T., Jie Zhou, Katie E. Flight, Jonathan C. Brown, Charlotte Lewis,
-  Xinyu Wang, Michael Vanden Oever, Thomas P. Peacock, Ziyin Wang, Rosie Millns, et al.,
-  'Propylene Glycol Inactivates Respiratory Viruses and Prevents Airborne Transmission,'
-  EMBO Molecular Medicine , Vol. 15, No. 12, December 7, 2023.
-- System for Award Management, 'Elastromeric Half Mask Respirator-COVID-19,' Notice
-  ID 75A50121Q000111, U.S. General Services Administration, last updated April 1,
-  2021.
-- Technical Resources, Assistance Center, and Information Exchange, 'Hospital Operations
-  Toolkit for COVID-19,' U.S. Department of Health and Human Services, last updated
-  September 2021.
-- To, G. N. Sze, and C. Y. H. Chao, 'Review and Comparison Between the Wells-Riley
-  and Dose-Response Approaches to Risk Assessment of Infectious Respiratory Diseases,'
-  Indoor Air , Vol. 20, No. 1, February 2010.
-- Torresi, Joseph, Sarah McGuinness, Karin Leder, Daniel O'Brien, Tilman Ruff, Mike
-  Starr, and Katherine Gibney, 'Non-Vaccine-Preventable Infections,' in Manual of
-  Travel Medicine , 4th ed., Springer, 2019.
-- UK Health Security Agency, 'UKHSA Launches New Metagenomic Surveillance for Health
-  Security,' news release, January 30, 2025.
-- 'U.S. Bureau of Labor Statistics, ''Table A-1. Employment Status of the Civilian
-  Population by Sex and Age,'' webpage, last updated July 3, 2025. As of May 2, 2025:'
-- 'U.S. Census Bureau, ''U.S. and World Population Clock,'' webpage, last updated
-  July 31, 2025. As of July 31, 2025: https://www.census.gov/popclock/'
-- U.S. Code, Title 10, Armed Forces, Section 1074f, Medical Tracking System for Members
-  Deployed Overseas.
-- U.S. Department of Homeland Security, Pandemic Influenza Preparedness, Response,
-  and Recovery Guide for Critical Infrastructure and Key Resources , September 19,
-  2006.
-- U.S. Department of Homeland Security, 'List of Validated Primary Mission Essential
-  Functions (PMEFs) by Department,' last updated April 10, 2025.
-- 'U.S. Department of Veterans Affairs, ''VHA Office of Emergency Management: Pharmaceutical
-  Cache Program,'' webpage, last updated April 4, 2020. As of May 2, 2025: https://www.va.gov/VHAEMERGENCYMANAGEMENT/CEMP/CEMP_Pharmacy_Cache.asp'
-- 'Victoria State Government Department of Health, ''Human Immunodeficiency Virus
-  (HIV) and Acquired Immunodeficiency Syndrome (AIDS),'' webpage, last updated April 9,
-  2025. As of May 5, 2025: https://www.health.vic.gov.au/infectious-diseases/human-immunodeficiency-virus-hiv-and-acquiredimmunodeficiency-syndrome-aids'
-- Wang, Chia C., Kimberly A. Prather, Josué Sznitman, Jose L. Jimenez, Seema S. Lakdawala,
-  Zeynep Tufekci, and Linsey C. Marr, 'Airborne Transmission of Respiratory Viruses,'
-  Science , Vol. 373, No. 6558, August 2021.
-- 'White House, National Biodefense Strategy and Implementation Plan: For Countering
-  Biological Threats, Enhancing Pandemic Preparedness, and Achieving Global Health
-  Security , October 2022.'
-- 'World Health Organization, ''Rabies,'' webpage, June 5, 2024a. As of May 2, 2025:
-  https://www.who.int/news-room/fact-sheets/detail/rabies'
-- 'World Health Organization, ''Measles,'' webpage, November 14, 2024b. As of May 2,
-  2025: https://www.who.int/news-room/fact-sheets/detail/measles'
-- Worobey, Michael, Marlea Gemmel, Dirk E. Teuwen, Tamara Haselkorn, Kevin Kunstman,
-  Michael Bunce, Jean-Jacques Muyembe, Jean-Marie M. Kabongo, Raphaël M. Kalengayi,
-  Eric Van Marck, M. Thomas P. Gilbert, and Steven M. Wolinsky, 'Direct Evidence of
-  Extensive Diversity of HIV-1 in Kinshasa by 1960,' Nature , October 2, 2008.
-- Xu, Zhonglin, Fundamentals of Air Cleaning Technology and Its Application in Cleanrooms
-  , Springer Nature, 2014.
-- Zhang, Mengyang, Laura Roldan-Hernandez, and Alexandria Boehm, 'Persistence of Human
-  Respiratory Viral RNA in Wastewater-Settled Solids,' Applied and Environmental Microbiology
-  , Vol. 90, No. 4, April 2024.
+  - "Adamala, Katarzyna P., Deepa Agashe, Damon J. Binder, Yizhi Cai, Vaughn S. Cooper, Ryan K. Duncombe, Kevin M. Esvelt, John I. Glass, Timothy W. Hand, Thomas V. Inglesby, et al., Technical Report on Mirror Bacteria: Feasibility and Risks , Stanford Digital Repository, December 2024."
+  - "Administration for Strategic Preparedness and Response, 'Center for the Strategic National Stockpile,' webpage, undated-a. As of May 2, 2025:"
+  - "Administration for Strategic Preparedness and Response, 'Requesting SNS Assets,' webpage, undated-b. As of May 2, 2025: https://aspr.hhs.gov/SNS/Pages/Requesting-SNS-Assets.aspx"
+  - Alavy, Masih, and Jeffrey A. Siegel, 'In-Situ Effectiveness of Residential HVAC Filters,' Indoor Air , Vol. 30, No. 1, January 2020.
+  - Alfaro, Javier Antonio, Peggy Bohländer, Mingjie Dai, Mike Filius, Cecil J. Howard, Xander F. van Kooten, Shilo Ohayon, Adam Pomorski, Sonja Schmid, Aleksei Aksimentiev, et al., 'The Emerging Landscape of SingleMolecule Protein Sequencing Technologies,' Nature Methods , Vol. 18, No. 6, June 2021.
+  - American Society of Heating, Refrigerating and Air-Conditioning Engineers, ASHRAE Standard 241, Control of Infectious Aerosols, 2023.
+  - "Animal and Plant Health Inspection Service, 'National Veterinary Stockpile,' webpage, U.S. Department of Agriculture, last updated March 30, 2024. As of May 2, 2025: https://www.aphis.usda.gov/animal-emergencies/nvs"
+  - Arévalo, Maria, Mark Karavis, Adina Doyle, Fran D'Amico, Pierce Roth, Alvin Liem, Samir Deshpande, Jessica Hill, Jackie Harris, Sarah Katoski, and R. Cory Bernhards, 'Bioaerosol Surveillance via Untargeted Nanopore Sequencing,' poster presented at the U.S. Army Combat Capabilities Development Command Chemical Biological Center, Chemical and Biological Defense Science and Technology Conference, Defense Threat Reduction Agency, 2022.
+  - American Society of Heating, Refrigerating and Air-Conditioning Engineers, ASHRAE Standard 241, Control of Infectious Aerosols, 2023.
+  - Australian Government Department of Health and Aged Care, 'Infection Prevention and Control Expert Group-The Hierarchy of Controls for Minimising the Risk of COVID-19 Transmission,' September 27, 2022.
+  - Baracco, Gio, Sheri Eisert, Aaron Eagan, and Lewis Radonovich, 'Comparative Cost of Stockpiling Various Types of Respiratory Protective Devices to Protect the Health Care Workforce During an Influenza Pandemic,' Disaster Medicine and Public Health Preparedness , Vol. 9, No. 3, June 2015.
+  - "Barandongo, Zoë R., Amélie C. Dolfi, Spencer A. Bruce, Kristyna Rysava, Yen-Hua Huang, Hendrina Joel, Ayesha Hassim, Pauline L. Kamath, Henriette van Heerden, and Wendy C. Turner, 'The Persistence of Time: The Lifespan of Bacillus Anthracis Spores in Environmental Reservoirs,' Research in Microbiology , Vol. 174, No. 6, July-August 2023."
+  - Behr, Marcel A., Paul H. Edelstein, and Lalita Ramakrishnan, 'Revisiting the Timetable of Tuberculosis,' BMJ , Vol. 362, August 2018.
+  - Biden, Joseph R., Jr., Ensuring the Future Is Made in All of America by All of America's Workers , Executive Order 14005, January 25, 2021.
+  - Biden, Joseph R., Jr., National Security Memorandum on Critical Infrastructure Security and Resilience , National Security Memorandum 22, Executive Office of the President, April 30, 2024.
+  - Biomedical Advanced Research and Development Authority, 'BARDA Announces New Partnerships to Develop Next-Gen Diagnostics for Any Respiratory RNA Virus,' webpage, U.S. Department of Health and Human Services, last updated May 3, 2022.
+  - "bioMérieux, “BIOFIRE® Respiratory 2.1 (RP2.1) Panel,” webpage, undated. As of May 2, 2025: https://www.biomerieux.com/us/en/our-offer/clinical-products/biofire-respiratory-panels.html"
+  - Bowers, Robert M., Amy P. Sullivan, Elizabeth K. Costello, Jeff L. Collett, Jr., Rob Knight, and Noah Fierer, 'Sources of Bacteria in Outdoor Air Across Cities in the Midwestern United States,' Applied and Environmental Microbiology , Vol. 77, No. 18, September 2011.
+  - Briese, Thomas, Amit Kapoor, Nischay Mishra, Komal Jain, Arvind Kumar, Omar J. Jabado, and W. Ian Lipkin, 'Virome Capture Sequencing Enables Sensitive Viral Diagnosis and Comprehensive Virome Analysis,' mBio , Vol. 6, No. 5, October 2015.
+  - Bush, George W., National Continuity Policy , National Security Presidential Directive 51, Homeland Security Presidential Directive 20, Executive Office of the President, May 4, 2007.
+  - Cao, Changchang, Zhaokui Cai, Xia Xiao, Jian Rao, Juan Chen, Naijing Hu, Minnan Yang, Xiaorui Xing, Yongle Wang, Manman Li, et al., 'The Architecture of the SARS-CoV-2 RNA Genome Inside Virion,' Nature Communications , Vol. 12, No. 1, June 24, 2021.
+  - Carey, R., A. Gomezplata, and A. Sarich, 'An Overview into Submarine CO2 Scrubber Development,' Ocean Engineering , Vol. 10, No. 4, 1983.
+  - "Centers for Disease Control and Prevention, 'Advanced Molecular Detection (AMD),' webpage, undated. As of May 5, 2025: https://www.cdc.gov/advanced-molecular-detection/index.html"
+  - "Centers for Disease Control and Prevention, '2023 Project: Laboratory Corporation of America (Labcorp),' webpage, January 29, 2024a. As of May 5, 2025: https://www.cdc.gov/advanced-molecular-detection/php/data-research/baa/2023-labcorp.html"
+  - "Centers for Disease Control and Prevention, 'How Food Irradiation Works,' webpage, last updated February 27, 2024b. As of May 5, 2025: https://www.cdc.gov/radiation-health/food-irradiation/index.html"
+  - "Centers for Disease Control and Prevention, 'Taking Steps for Cleaner Air for Respiratory Virus Prevention,' webpage, March 1, 2024c. As of May 2, 2025: https://www.cdc.gov/respiratory-viruses/prevention/air-quality.html"
+  - "Centers for Disease Control and Prevention, 'National Wastewater Surveillance System (NWSS),' last updated November 6, 2024d. As of May 5, 2025: https://www.cdc.gov/nwss/wastewater-surveillance.html"
+  - "Centers for Disease Control and Prevention, 'About Traveler-Based Genomic Surveillance,' webpage, last updated May 14, 2025a. As of May 5, 2025: https://wwwnc.cdc.gov/travel/page/travel-genomic-surveillance"
+  - "Centers for Disease Control and Prevention, 'Measles Clinical Diagnosis Fact Sheet,' webpage, May 19, 2025b. As of July 31, 2025: https://www.cdc.gov/measles/hcp/communication-resources/clinical-diagnosis-fact-sheet.html"
+  - Centers for Medicare and Medicaid Services, 'Medicare EHR Incentive Program Physician Quality Reporting System and Electronic Prescribing Incentive Program Comparison,' fact sheet, last updated May 2013.
+  - "Centers for Medicare and Medicaid Services, 'Conditions for Coverage (CfCs) & Conditions of Participation (CoPs),' webpage, last updated September 10, 2024a. As of May 5, 2025: https://www.cms.gov/medicare/health-safety-standards/conditions-coverage-participation"
+  - "Centers for Medicare and Medicaid Services, 'What Are the Value-Based Programs?' webpage, last updated September 25, 2024b. As of May 5, 2025: https://www.cms.gov/medicare/quality/value-based-programs"
+  - "Centers for Medicare and Medicaid Services, 'Emergency Preparedness Rule,' webpage, last updated December 30, 2024c. As of May 2, 2025: https://www.cms.gov/medicare/health-safety-standards/quality-safety-oversight-emergency-preparedness/emergency-preparedness-rule"
+  - "Centers for Medicare and Medicaid Services, 'Hospital Inpatient Quality Reporting Program,' webpage, last updated June 3, 2025. As of July 31, 2025: https://www.cms.gov/medicare/quality/initiatives/hospital-quality-initiative/inpatient-reporting-program"
+  - "Chappell, Clifton G., Roderick Gainer, and Kristin Guss, Defense National Stockpile Center: America's Stockpile: An Organizational History, or An Organizational History of the Defense National Stockpile Center: America's National Stockpile , Defense Logistics Agency, undated."
+  - "Chemical Hazards Emergency Medical Management, 'Strategic National Stockpile (SNS),' webpage, U.S. Department of Health and Human Services, last updated June 18, 2025. As of July 31, 2025: https://chemm.hhs.gov/sns.htm"
+  - "Chen, Haiqian, Leiyu Shi, Yuyao Zhang, Xiaohan Wang, Jun Jiao, Manfei Yang, and Gang Sun, 'Response to the COVID-19 Pandemic: Comparison of Strategies in Six Countries,' Frontiers in Public Health , Vol. 9, September 2021."
+  - Chen, Zigui, Siaw S. Boon, Maggie H. Wang, Renee W. Y. Chan, and Paul K. S. Chan, 'Genomic and Evolutionary Comparison Between SARS-CoV-2 and Other Human Coronaviruses,' Journal of Virological Methods , Vol. 289, March 2021.
+  - "Clauser, F. H., Preliminary Design of an Experimental World-Circling Spaceship, Douglas Aircraft Company, RAND Corporation, SM-11827, 1946. As of May 1, 2025: https://www.rand.org/pubs/special_memoranda/SM11827.html"
+  - Cleveland County Health Department, 'Cooking/Reheating the Food to Kill the Bacteria,' fact sheet, undated.
+  - Crane, Jonathan T., F. Chip Bullock, and Jonathan Y. Richmond, 'Designing the BSL4 Laboratory (Chapter 9),' Journal of the American Biological Safety Association , Vol. 4, No. 1, March 1999.
+  - "Crossley, Gabriel, 'Wuhan Lockdown 'Unprecedented,' Shows Commitment to Contain Virus: WHO Representative in China,' Reuters, January 23, 2020."
+  - "Curtin, Jennifer, 'The End of New Zealand's Zero-COVID Policy,' Think Global Health blog, October 28, 2021. As of May 2, 2025: https://www.thinkglobalhealth.org/article/end-new-zealands-zero-covid-policy"
+  - "Cybersecurity and Infrastructure Security Agency, 'National Critical Functions Set,' webpage, U.S. Department of Homeland Security, undated. As of May 1, 2025: https://www.cisa.gov/national-critical-functions-set"
+  - Dal Porto, Rachael, Monet N. Kunz, Theresa Pistochini, Richard L. Corsi, and Christopher D. Cappa, 'Characterizing the Performance of a Do-It-Yourself (DIY) Box Fan Air Filter,' Aerosol Science and Technology , Vol. 56, No. 6, 2022.
+  - "D'Alicandro, Andrea Carlo, and Alessandro Mauro, 'Air Change per Hour and Inlet Area: Effects on Ultrafine Particle Concentration and Thermal Comfort in an Operating Room,' Journal of Aerosol Science , Vol. 171, June 2023."
+  - "Dattani, Saloni, 'What Were the Death Tolls from Pandemics in History?' Our World in Data, December 7, 2023. As of May 5, 2025: https://ourworldindata.org/historical-pandemics"
+  - "Defense Advanced Research Projects Agency, 'DIGET: Detect It with Gene Editing Technologies,' webpage, undated. As of May 2, 2025: https://www.darpa.mil/research/programs/detect-it-with-gene-editing-technologies"
+  - Department of Defense Directive 6420.02, DoD Biosurveillance , Office of the Under Secretary of Defense for Personnel and Readiness, U.S. Department of Defense, incorporating change 1, June 21, 2024.
+  - Department of Defense Directive 6490.02E, Comprehensive Health Surveillance , Office of the Deputy Secretary of Defense, U.S. Department of Defense, incorporating change 2, August 28, 2017.
+  - "Després, Viviane R., J. Alex Huffman, Susannah M. Burrows, Corinna Hoose, Aleksandr S. Safatov, Galina Buryak, Janine Fröhlich-Nowoisky, Wolfgang Elbert, Meinrat O. Andreae, Ulrich Pöschl, and Ruprecht Jaenicke, 'Primary Biological Aerosol Particles in the Atmosphere: A Review,' Tellus B: Chemical and Physical Meteorology , Vol. 64, No. 1, 2012."
+  - "Donskey, Curtis J., 'Continuous Surface and Air Decontamination Technologies: Current Concepts and Controversies,' American Journal of Infection Control , Vol. 51, No. 11S, November 2023."
+  - Duan, Dongli, Changchun Lv, Shubin Si, Zhen Wang, Daqing Li, Jianxi Gao, Shlomo Havlin, H. Eugene Stanley, and Stefano Boccaletti, 'Universal Behavior of Cascading Failures in Interdependent Networks,' Proceedings of the National Academy of Sciences , Vol. 116, No. 45, November 5, 2019.
+  - "Dubin, Rhys, Rassin Lababidi, John Moulton, Harshini Mukundan, Lillian Parr, Christine Parthemore, Saskia Popescu, and Daniel P. Regan, Pathogen Early Warning: A Progress Report and Path Forward , ed. by Francesco Femia, Janne E. Nolan Center on Strategic Weapons, Council on Strategic Risks, December 2022."
+  - "Edirisooriya, Mihili, and Emily J. Haas, 'Examining the Roles of Training, Fit Testing, and Safety Climate on User Confidence in Respiratory Protection: A Case Example with Reusable Respirators in Health Delivery Settings,' Sustainability , Vol. 15, No. 17, 2023."
+  - Edwards, David, Anthony Hickey, Richard Batycky, Lester Griel, Michael Lipp, Wes Dehaan, Robert Clarke, David Hava, Jason Perry, Brendan Laurenzi, et al., 'A New Natural Defense Against Airborne Pathogens,' QRB Discovery , Vol. 1, July 7, 2020.
+  - "Environmental Protection Agency, Water Health Series: Filtration Facts , September 2005."
+  - "Environmental Protection Agency, 'Selected EPA-Registered Disinfectants,' webpage, last updated January 13, 2025a. As of May 2, 2025: https://www.epa.gov/pesticide-registration/selected-epa-registered-disinfectants"
+  - "Environmental Protection Agency, 'How Much Ventilation Do I Need in My Home to Improve Indoor Air Quality?' webpage, last updated May 23, 2025b. As of July 31, 2025: https://www.epa.gov/indoor-air-quality-iaq/how-much-ventilation-do-i-need-my-home-improve-indoor-airquality"
+  - Erisman, Jan Willem, Mark A. Sutton, James Galloway, Zbigniew Klimont, and Wilfried Winiwarter, 'How a Century of Ammonia Synthesis Changed the World,' Nature Geoscience , Vol. 1, October 2008.
+  - "Federal Reserve Bank of St. Louis, 'Civilian Labor Force Level,' webpage, last updated July 3, 2025. As of July 31, 2025: https://fred.stlouisfed.org/series/CLF16OV"
+  - "Freije, Catherine A., and Pardis C. Sabeti, 'Detect and Destroy: CRISPR-Based Technologies for the Response Against Viruses,' Call Host and Microbe , Vol. 29, No. 5, May 2021."
+  - Gao, Wenjing, Jun Lv, Yuanjie Pang, and Li-Ming Li, 'Role of Asymptomatic and Pre-Symptomatic Infections in COVID-19 Pandemic,' BMJ , Vol. 375, December 1, 2021.
+  - "Garling, D. J. H., 'The AM-GM Inequality,' Inequalities: A Journey into Linear Analysis , Cambridge University Press, 2007."
+  - "Gibson, Beth, Daniel J. Wilson, Edward Feil, and Adam Eyre-Walker, 'The Distribution of Bacterial Doubling Times in the Wild,' Proceedings of the Royal Society B: Biological Sciences , Vol. 285, No. 1880, June 13, 2018."
+  - Goldberg, Emma E., Qianying Lin, Ethan O. Romero-Severson, and Ruian Ke, 'Swift and Extensive Omicron Outbreak in China After Sudden Exit from 'Zero-COVID' Policy,' Nature Communications , Vol. 14, No. 1, July 1, 2023.
+  - Gomez, Odessa, Kevin M. McCabe, Emma Biesiada, Blaire Volbers, Emily Kraus, Marina Nieto-Caballero, and Mark Hernandez, 'Airborne Murine Coronavirus Response to Low Levels of Hypochlorous Acid, Hydrogen Peroxide and Glycol Vapors,' Aerosol Science and Technology , Vol. 56, No. 11, 2022.
+  - Gonzales, Manuel, John C. Elder, Marvin I. Tillerv, and Harry J. Ettinger, Performance of Multiple HEPA Filters Against Plutonium Aerosols , Los Alamos Scientific Laboratory, November 1976.
+  - "Greenawald, Lee A., Emily J. Haas, and Maryann M. D'Alessandro, 'Elastomeric Half Mask Respirators: An Alternative to Disposable Respirators and a Solution to Shortages During Public Health Emergencies,' Journal of the International Society for Respiratory Protection , Vol. 38, No. 2, 2021."
+  - Grimm, Simon, 'ONT Swab Sequencing Statistics,' Simon's Public NAO Notebook blog, June 20, 2025.
+  - Grimm, Simon, and Will Bradshaw, 'Investigating the Sensitivity of Pooled Swab Sampling for Pathogen Early Detection,' Nucleic Acid Observatory, July 1, 2024.
+  - Grimm, Simon L., Jeff T. Kaufman, Daniel P. Rice, Charles Whittaker, William J. Bradshaw, and Michael R. McLaren, 'Inferring the Sensitivity of Wastewater Metagenomic Sequencing for Virus Detection and Monitoring,' Version 3, medRxiv, October 8, 2024.
+  - Grimm, Simon, Dan Rice, and Mike McLaren, 'Estimating the Sensitivity of Wastewater Metagenomic Sequencing Using Nasal Swabs,' Nucleic Acid Observatory, June 8, 2025.
+  - 'Gryphon Scientific, Towards a Theory of Pandemic-Proof PPE , Blueprint Biosecurity, June 2024. As of May 2, 2025: https://blueprintbiosecurity.org/u/2024/05/BB \_ Next-Gen-Report \_ PRF9-WEB-1.pdf'
+  - Gu, Wei, Xianding Deng, Marco Lee, Yasemin D. Sucu, Shaun Arevalo, Doug Stryke, Scot Federman, Allan Gopez, Kevin Reyes, Kelsey Zorn, et al., 'Rapid Pathogen Detection by Metagenomic Next-Generation Sequencing of Infected Body Fluids,' Nature Medicine , Vol. 27, No. 1, January 2021.
+  - He, Xinjian, Evanly Vo, M. Horvatin, Y. Liu, M. Bergman, and Z. Zhuang, 'Comparison of Simulated Workplace Protection Factors Offered by N95 and P100 Filtering Facepiece and Elastomeric Half-Mask Respirators Against Particles of 10 to 400 nm,' Journal of Nanotechnology and Materials Science , Vol. 2, No. 2, September 7, 2015.
+  - "Health Emergency Preparedness and Response Authority, 'Launching GLOWACON: A Global Initiative for Wastewater Surveillance for Public Health,' European Commission, March 21, 2024."
+  - "HIV.gov, 'A Timeline of HIV and AIDS,' webpage, undated. As of May 2, 2025: https://www.hiv.gov/hiv-basics/overview/history/hiv-and-aids-timeline"
+  - "Illumina, 'NovaSeq X Series,' webpage, undated-a. As of May 5, 2025: https://www.illumina.com/systems/sequencing-platforms/novaseq-x-plus.html"
+  - "Illumina, 'NovaSeq X Series Specifications,' webpage, undated-b. As of May 5, 2025: https://www.illumina.com/systems/sequencing-platforms/novaseq-x-plus/specifications.html"
+  - Illumina, 'Illumina Underscores Commitment to Shareholder Value and Responds to Carl Icahn's Statements,' press release, March 20, 2023.
+  - "Interdisciplinary Center for Biotechnology Research, 'NextGen DNA Sequencing: Services,' webpage, University of Florida, undated. As of May 5, 2025: https://biotech.ufl.edu/next-gen-dna/ns-services-fees/"
+  - 'International Passive House Association, ''Passive House Certification Criteria,'' webpage, undated. As of May 5, 2025: https://passivehouse-international.org/index.php?page \_ id=150'
+  - Jimenez, Jose L., Linsey C. Marr, Katherine Randall, Edward Thomas Ewing, Zeynep Tufekci, Trish Greenhalgh, Raymond Tellier, Julian W. Tang, Yuguo Li, Lidia Morawska, et al., 'What Were the Historical Reasons for the Resistance to Recognizing Airborne Transmission During the COVID-19 Pandemic?' Indoor Air , Vol. 32, No. 8, August 2022.
+  - Jones, Rachael M., Mark Nicas, Alan E. Hubbard, and Arthur L. Reingold, 'The Infectious Dose of Coxiella burnetii (Q Fever),' Applied Biosafety , Vol. 11, No. 1, March 2006.
+  - Joseph, John, Helna Mary Baby, Joselyn Rojas Quintero, Devin Kenney, Yohannes A. Mebratu, Eshant Bhatia, Purna Shah, Kabir Swain, Dongtak Lee, Shahdeep Kaur, et al., 'Toward a Radically Simple Multi-Modal Nasal Spray for Preventing Respiratory Infections,' Advanced Materials , Vol. 36, No. 46, November 2024.
+  - Kahn, Herman, 'Thinking About the Unthinkable,' Naval War College Review , Vol. 15, No. 8, 1962.
+  - Kahn, Herman, On Thermonuclear War , Transaction Publishers, 2007.
+  - Khehra, Nimrat, Inderbir S. Padda, and Cathi J. Swift, Polymerase Chain Reaction (PCR) , StatPearls Publishing, 2025.
+  - Ko, Karrie K. K., Kern Rei Chng, and Niranjan Nagarajan, 'Metagenomics-Enabled Microbial Surveillance,' Nature Microbiology , Vol. 7, No. 4, April 2022.
+  - Koh, Xue Qi, Anqi Sng, Jing Yee Chee, Anton Sadovoy, Ping Luo, and Dan Daniel, 'Outward and Inward Protection Efficiencies of Different Mask Designs for Different Respiratory Activities,' Journal of Aerosol Science , Vol. 160, February 2022.
+  - Lenicov, Federico R., and Nilda E. Fink, 'Ethical Issues in the Use of Leftover Samples and Associated Personal Data Obtained from Diagnostic Laboratories,' Clinica chimica acta , Vol. 548, August 2023.
+  - "Liang, Chelsea, James Wagstaff, Noga Aharony, Virginia Schmit, and David Manheim, 'Managing the Transition to Widespread Metagenomic Monitoring: Policy Considerations for Future Biosurveillance,' Health Security , Vol. 21, No. 1, January-February 2023."
+  - "Luckey, David, Sara Duhachek Muggy, Taylor Frey, David Stebbins, Tracey Rissman, Bianca Espinosa, Daniel Tapia, Greg McKelvey, Jr., Neeti Pokhriyal, Joseph Dawson, Sara Hughes, Morgan Sandler, Rushil Bakhshi, Marta Kepe, Geoffrey Kirkwood, Sarah W. Denton, David DeSmet, Minami Makino, Ella Guest, Sina Beaghley, Suzanne Genc, Michael Miller, Skye A. Miner, Barbara Del Castello, Forrest W. Crawford, Jeffrey Lee, Clay Strickland, Sunny D. Bhatt, John Vahedi, Lydia Grek, Vanya Barrer, Ramiro Insuasti, Jr., Jack Lashendock, Derek Roberts, Aleksandr Esparza Hartunian, Shannon Walsh, Will Shumate, Elliott Brennan, Tyler Liggett, Kara Jia, Ajay K. Kochhar, James Smith, and James Ryseff, Mitigating Risks at the Intersection of Artificial Intelligence and Chemical and Biological Weapons , Homeland Security Operational Analysis Center operated by the RAND Corporation, RR-A2990-1, 2025. As of May 1, 2025:"
+  - MacIntyre, C. Raina, Samsung Lim, Deepti Gurdasani, Miguel Miranda, David Metcalf, Ashley Quigley, Danielle Hutchinson, Allan Burr, and David J. Heslop, 'Early Detection of Emerging Infectious DiseasesImplications for Vaccine Development,' Vaccine , Vol. 42, No. 7, March 2024.
+  - "Mandl, Kenneth D., J. Marc Overhage, Michael M. Wagner, William B. Lober, Paola Sebastiani, Farzad Mostashari, Julie A. Pavlin, Per H. Gesteland, Tracee Treadwell, Eileen Koski, et al., 'Implementing Syndromic Surveillance: A Practical Guide Informed by the Early Experience,' Journal of the American Medical Informatics Association , Vol. 11, No. 2, March-April 2004."
+  - "Mikszewski, Alex, Luca Stabile, Giorgio Buonanno, and Lidia Morawska, 'The Airborne Contagiousness of Respiratory Viruses: A Comparative Analysis and Implications for Mitigation,' Geoscience Frontiers , Vol. 13, No. 6, November 2022."
+  - "Military Health System, 'Department of Defense Serum Repository,' webpage, last updated July 22, 2024. As of May 5, 2025: https://www.health.mil/Military-Health-Topics/Health-Readiness/AFHSD/Functional-Information-Technology-Support/Department-of-Defense-Serum-Repository"
+  - "Muniz-Rodriguez, Kamalich, Gerardo Chowell, Chi-Hin Cheung, Dongyu Jia, Po-Ying Lai, Yiseul Lee, Manyun Liu, Sylvia K. Ofori, Kimberlyn M. Roosa, Lone Simonsen, Cecile Viboud, and Isaac Chun-Hai Fung, 'Doubling Time of the COVID-19 Epidemic by Province, China: Appendix,' Emerging Infectious Diseases , Vol. 26, No. 8, August 2020."
+  - NASA - See National Aeronautics and Space Administration.
+  - National Academies of Sciences, Engineering, and Medicine, Safeguarding the Bioeconomy , National Academies Press, 2020.
+  - National Aeronautics and Space Administration, 'World's Largest Vacuum Chamber,' February 11, 2009.
+  - "National Aeronautics and Space Administration, Office of the Chief Health and Medical Officer, Environmental Control &amp; Life Support System (ECLSS): Human-Centered Approach , NASA-STD-3001 Technical Brief, November 14, 2023."
+  - "National Infrastructure Advisory Council, The Prioritization of Critical Infrastructure for a Pandemic Outbreak in the United States Working Group: Final Report and Recommendations by the Council , U.S. Department of Homeland Security, January 16, 2007."
+  - "National Institute for Occupational Safety and Health, 'About Hierarchy of Controls,' webpage, Centers for Disease Control and Prevention, April 10, 2024. As of May 2, 2025: https://www.cdc.gov/niosh/hierarchy-of-controls/about/index.html"
+  - "National Institute for Occupational Safety and Health, 'Fit Testing,' webpage, February 3, 2025. As of May 2, 2025: https://www.cdc.gov/niosh/ppe/respirators/fit-testing.html"
+  - "National Institute of Allergy and Infectious Diseases, 'Vaccines,' webpage, National Institutes of Health, last updated December 17, 2024. As of May 2, 2025: https://www.niaid.nih.gov/research/vaccines"
+  - "National Institute of Allergy and Infectious Diseases, 'Therapeutic Development Services,' webpage, National Institutes of Health, last updated April 28, 2025. As of May 2, 2025: https://www.niaid.nih.gov/research/therapeutic-development-services"
+  - Nelson, T. J., 'The Assigned Protection Factor According to ANSI,' American Industrial Hygiene Journal , Vol. 57, No. 8, August 1996.
+  - "'NIOSH Approves First Elastomeric Half Mask Respirator Without Exhalation Valve,' The Synergist, January 2021. As of May 2, 2025: https://synergist.aiha.org/202101-ehmr-without-exhalation-valve"
+  - The North Atlantic Treaty, signed at Washington, D.C., April 4, 1949.
+  - Nucleic Acid Observatory, 'NAO Updates, January 2025,' January 9, 2025.
+  - Nucleic Acid Observatory Consortium, 'A Global Nucleic Acid Observatory for Biodefense and Planetary Health,' arXiv, arXiv:2108.02678, August 5, 2021.
+  - Occupational Safety and Health Administration, Assigned Protection Factors for the Revised Respiratory Protection Standard , U.S. Department of Labor, OSHA 3352-02, 2009.
+  - "Office of the Assistant Secretary for Preparedness and Response, Public Health Emergency Medical Countermeasures Enterprise: Multiyear Budget: Fiscal Years 2023-2027 , U.S. Department of Health and Human Services, March 15, 2024."
+  - "Oxford Nanopore Technologies, 'MinION &amp; GridION,' webpage, undated-a. As of May 5, 2025: https://store.nanoporetech.com/us/flow-cells.html"
+  - "Oxford Nanopore Technologies, 'PromethION,' webpage, undated-b. As of May 5, 2025: https://nanoporetech.com/products/sequence/promethion"
+  - "Oxford Nanopore Technologies, 'MinION & GridION,' webpage, undated-a. As of May 5, 2025: https://store.nanoporetech.com/us/flow-cells.html"
+  - "Oxford Nanopore Technologies, 'Oxford Nanopore Technologies Price List,' webpage, undated-d. As of August 4, 2025: https://store.nanoporetech.com/us/priceList.html"
+  - "Paños-Crespo, Anais, Jorge Toledano-Serrabona, María Ángeles Sánchez-Garcés, and Cosme Gay-Escoda, 'Evaluation of the Efficacy of Hydroxyl Radical (OH˙) Release for Disinfection of the Air and Surfaces in the Dental Clinic: An in Vitro Study,' Medicina Oral, Patologia Oral, Cirugia Bucal , Vol. 29, No. 1, January 1, 2024."
+  - "Parkins, Michael D., Bonita E. Lee, Nicole Acosta, Maria Bautista, Casey R. J. Hubert, Steve E. Hrudey, Kevin Frankowski, and Xiao-Li Pang, 'Wastewater-Based Surveillance as a Tool for Public Health Action: SARS-CoV-2 and Beyond,' Clinical Microbiology Reviews , Vol. 37, No. 1, March 14, 2024."
+  - Pavlin, Julie A., and Robert A. Welch, 'Ethics, Human Use, and the Department of Defense Serum Repository,' Military Medicine , Vol. 180, Supp. 10, October 2015.
+  - Personal Safety Division, Key Considerations Regarding Respiratory Protection Assigned Protection Factors (APF) , 3M, October 2019.
+  - "Petro, James B., Theodore R. Plasse, and Jack A. McNulty, 'Biotechnology: Impact on Biological Warfare and Biodefense,' Biosecurity and Bioterrorism: Biodefense Strategy, Practice, and Science , Vol. 1, No. 3, September 2003."
+  - Pompeii, Lisa A., Colleen S. Kraft, Erik A. Brownsword, Morgan A. Lane, Elisa Benavides, Janelle Rios, and Lewis J. Radonovich, Jr., 'Training and Fit Testing of Health Care Personnel for Reusable Elastomeric Half-Mask Respirators Compared with Disposable N95 Respirators,' JAMA , Vol. 323, No. 18, May 12, 2020.
+  - "Pompeii, Michael A., Joint Service Collective Protection: Commodity Area Overview , Naval Surface Warfare Center, October 22, 2002."
+  - Prussin, Aaron J., II, Ellen B. Garcia, and Linsey C. Marr, 'Total Concentrations of Virus and Bacteria in Indoor and Outdoor Air,' Environmental Science and Technology Letters , Vol. 2, No. 4, March 6, 2015.
+  - "RAND Corporation, Report on a Study of Non-Military Defense , R-322-RC, 1958. As of May 1, 2025: https://www.rand.org/pubs/reports/R0322.html"
+  - Ruiz-Gil, Tay, Jacquelinne J. Acuña, So Fujiyoshi, Daisuke Tanaka, Jun Noda, Fumito Maruyama, and Milko A. Jorquera, 'Airborne Bacterial Communities of Outdoor Environments and Their Associated Influencing Factors,' Environment International , Vol. 145, December 2020.
+  - Salam, Alex P., Amanda Rojek, Erhui Cai, Mihaja Raberahona, and Peter Horby, 'Deaths Associated with Pneumonic Plague, 1946-2017,' Emerging Infectious Diseases , Vol. 26, No. 10, October 2020.
+  - "SecureBio, 'Sampling and Sequencing Simulator,' webpage, undated. As of May 5, 2025: https://data.securebio.org/simulator"
+  - "Sharma, Siddhanth, Jaspreet Pannu, Sam Chorlton, Jacob L. Swett, and David J. Ecker, 'Threat Net: A Metagenomic Surveillance Network for Biothreat Detection and Early Warning,' Health Security , Vol. 21, No. 5, September-October 2023."
+  - Soneson, Charlotte, Yao Yao, Anna Bratus-Neuenschwander, Andrea Patrignani, Mark D. Robinson, and Shobbir Hussain, 'A Comprehensive Examination of Nanopore Native RNA Sequencing for Characterization of Complex Transcriptomes,' Nature Communications , Vol. 10, No. 1, July 31, 2019.
+  - Styles, Christine T., Jie Zhou, Katie E. Flight, Jonathan C. Brown, Charlotte Lewis, Xinyu Wang, Michael Vanden Oever, Thomas P. Peacock, Ziyin Wang, Rosie Millns, et al., 'Propylene Glycol Inactivates Respiratory Viruses and Prevents Airborne Transmission,' EMBO Molecular Medicine , Vol. 15, No. 12, December 7, 2023.
+  - System for Award Management, 'Elastromeric Half Mask Respirator-COVID-19,' Notice ID 75A50121Q000111, U.S. General Services Administration, last updated April 1, 2021.
+  - Technical Resources, Assistance Center, and Information Exchange, 'Hospital Operations Toolkit for COVID-19,' U.S. Department of Health and Human Services, last updated September 2021.
+  - To, G. N. Sze, and C. Y. H. Chao, 'Review and Comparison Between the Wells-Riley and Dose-Response Approaches to Risk Assessment of Infectious Respiratory Diseases,' Indoor Air , Vol. 20, No. 1, February 2010.
+  - Torresi, Joseph, Sarah McGuinness, Karin Leder, Daniel O'Brien, Tilman Ruff, Mike Starr, and Katherine Gibney, 'Non-Vaccine-Preventable Infections,' in Manual of Travel Medicine , 4th ed., Springer, 2019.
+  - UK Health Security Agency, 'UKHSA Launches New Metagenomic Surveillance for Health Security,' news release, January 30, 2025.
+  - "U.S. Bureau of Labor Statistics, 'Table A-1. Employment Status of the Civilian Population by Sex and Age,' webpage, last updated July 3, 2025. As of May 2, 2025: https://www.bls.gov/news.release/empsit.t01.htm"
+  - "U.S. Census Bureau, 'U.S. and World Population Clock,' webpage, last updated July 31, 2025. As of July 31, 2025: https://www.census.gov/popclock/"
+  - U.S. Code, Title 10, Armed Forces, Section 1074f, Medical Tracking System for Members Deployed Overseas.
+  - U.S. Department of Homeland Security, Pandemic Influenza Preparedness, Response, and Recovery Guide for Critical Infrastructure and Key Resources , September 19, 2006.
+  - U.S. Department of Homeland Security, 'List of Validated Primary Mission Essential Functions (PMEFs) by Department,' last updated April 10, 2025.
+  - "U.S. Department of Veterans Affairs, 'VHA Office of Emergency Management: Pharmaceutical Cache Program,' webpage, last updated April 4, 2020. As of May 2, 2025: https://www.va.gov/VHAEMERGENCYMANAGEMENT/CEMP/CEMP_Pharmacy_Cache.asp"
+  - "Victoria State Government Department of Health, 'Human Immunodeficiency Virus (HIV) and Acquired Immunodeficiency Syndrome (AIDS),' webpage, last updated April 9, 2025. As of May 5, 2025: https://www.health.vic.gov.au/infectious-diseases/human-immunodeficiency-virus-hiv-and-acquiredimmunodeficiency-syndrome-aids"
+  - Wang, Chia C., Kimberly A. Prather, Josué Sznitman, Jose L. Jimenez, Seema S. Lakdawala, Zeynep Tufekci, and Linsey C. Marr, 'Airborne Transmission of Respiratory Viruses,' Science , Vol. 373, No. 6558, August 2021.
+  - "White House, National Biodefense Strategy and Implementation Plan: For Countering Biological Threats, Enhancing Pandemic Preparedness, and Achieving Global Health Security , October 2022."
+  - "World Health Organization, 'Rabies,' webpage, June 5, 2024a. As of May 2, 2025: https://www.who.int/news-room/fact-sheets/detail/rabies"
+  - "World Health Organization, 'Measles,' webpage, November 14, 2024b. As of May 2, 2025: https://www.who.int/news-room/fact-sheets/detail/measles"
+  - Worobey, Michael, Marlea Gemmel, Dirk E. Teuwen, Tamara Haselkorn, Kevin Kunstman, Michael Bunce, Jean-Jacques Muyembe, Jean-Marie M. Kabongo, Raphaël M. Kalengayi, Eric Van Marck, M. Thomas P. Gilbert, and Steven M. Wolinsky, 'Direct Evidence of Extensive Diversity of HIV-1 in Kinshasa by 1960,' Nature , October 2, 2008.
+  - Xu, Zhonglin, Fundamentals of Air Cleaning Technology and Its Application in Cleanrooms , Springer Nature, 2014.
+  - Zhang, Mengyang, Laura Roldan-Hernandez, and Alexandria Boehm, 'Persistence of Human Respiratory Viral RNA in Wastewater-Settled Solids,' Applied and Environmental Microbiology , Vol. 90, No. 4, April 2024.
