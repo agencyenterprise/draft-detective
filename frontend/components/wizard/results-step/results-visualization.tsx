@@ -64,7 +64,7 @@ export function ResultsVisualization({
           />
         );
       case 'references':
-        return <ReferenceReviewTab projectDetail={projectDetail} readOnly={readOnly} />;
+        return <ReferenceReviewTab projectId={projectDetail.project.id} readOnly={readOnly} />;
       case 'analyses':
         return (
           <AnalysesTab

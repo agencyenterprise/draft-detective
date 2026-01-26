@@ -7,19 +7,19 @@ from starlette.responses import FileResponse
 
 from api.auth import get_current_user, get_current_user_optional
 from api.models import (
+    ApproveWorkflowResponse,
     StartMultipleWorkflowsRequest,
     StartMultipleWorkflowsResponse,
     StartWorkflowResponse,
 )
 from api.services.workflow_runner import (
+    resume_workflow_run,
     start_multiple_workflow_runs,
     start_workflow_run,
 )
-from lib.config.database import get_db
 from lib.config.env import config
-from lib.models.share_link import ShareLink
 from lib.models.user import User
-from lib.models.workflow_run import WorkflowRun
+from lib.models.workflow_run import WorkflowRunStatus
 from lib.services.authorization import has_access_to_workflow_run
 from lib.services.projects import create_project
 from lib.services.workflow_runs import (
@@ -28,7 +28,9 @@ from lib.services.workflow_runs import (
     get_workflow_run_state,
     get_workflow_run_state_by_thread_id,
 )
+from lib.workflows.human_approval.state import HumanApprovalConfig
 from lib.workflows.models import WorkflowRunType
+from lib.workflows.registry import get_workflow_manifest
 from lib.workflows.types import WorkflowConfig
 
 router = APIRouter(tags=["workflows"])
@@ -144,3 +146,49 @@ async def get_page_image(
         )
 
     raise HTTPException(status_code=404, detail=f"Page {page_num} not found")
+
+
+@router.post(
+    "/api/workflow-runs/{workflow_run_id}/approve",
+    response_model=ApproveWorkflowResponse,
+)
+async def approve_workflow_run(
+    workflow_run_id: str,
+    background_tasks: BackgroundTasks,
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Approve a workflow run that requires human approval.
+
+    The workflow must:
+    1. Exist and belong to a project owned by the current user
+    2. Be a workflow type that supports human approval (requires_human_trigger=True)
+
+    This unblocks any dependent workflows (e.g., CLAIM_REFERENCE_VALIDATION).
+    """
+    workflow_run = await get_workflow_run(workflow_run_id, user=current_user)
+
+    # Validate this workflow type supports human approval
+    manifest = get_workflow_manifest(workflow_run.type)
+    if not manifest.requires_human_trigger:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Workflow type '{workflow_run.type.value}' does not require human approval",
+        )
+
+    if workflow_run.status == WorkflowRunStatus.COMPLETED:
+        return ApproveWorkflowResponse(
+            message="Already approved",
+            workflow_run_id=workflow_run_id,
+        )
+
+    approval_config = HumanApprovalConfig(
+        project_id=str(workflow_run.project_id),
+    )
+
+    await resume_workflow_run(workflow_run, approval_config, current_user, background_tasks)
+
+    return ApproveWorkflowResponse(
+        message="Workflow approved",
+        workflow_run_id=workflow_run_id,
+    )

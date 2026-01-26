@@ -10,9 +10,9 @@ import { getWorkflowRunByType } from '@/lib/workflow-state';
 import { useMemo } from 'react';
 import { ReferenceReviewItem } from './types';
 
-export function useReferenceReviewReferences(projectDetail: ProjectDetailed) {
-  const files = useMemo(() => projectDetail.files ?? [], [projectDetail.files]);
-  const workflowDetails = useMemo(() => projectDetail.workflow_runs ?? [], [projectDetail.workflow_runs]);
+export function useReferenceReviewReferences(projectDetail: ProjectDetailed | undefined) {
+  const files = useMemo(() => projectDetail?.files ?? [], [projectDetail?.files]);
+  const workflowDetails = useMemo(() => projectDetail?.workflow_runs ?? [], [projectDetail?.workflow_runs]);
 
   const { referenceExtraction, referenceFileMatching, referenceDownloader, referenceValidation } = useMemo(() => {
     return {

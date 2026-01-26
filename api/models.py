@@ -103,3 +103,10 @@ class UpdateUserRoleRequest(BaseModel):
     """Request model for updating a user's role"""
 
     role: UserRole
+
+
+class ApproveWorkflowResponse(BaseModel):
+    """Response for workflow approval."""
+
+    message: str
+    workflow_run_id: str

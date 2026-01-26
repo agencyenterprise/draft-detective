@@ -3,8 +3,8 @@ from typing import List, Type
 from langgraph.graph import StateGraph
 
 from lib.workflows.chunk_utils import (
-    AnalyzedChunk,
     build_analyzed_chunks,
+    find_chunk_by_index,
     find_claim_category,
 )
 from lib.workflows.inference_validation.graph import build_inference_validation_graph
@@ -60,32 +60,20 @@ class InferenceValidationManifest(
     ) -> List[DocumentIssue]:
         """Convert InferenceValidationState to issues."""
         issues: List[DocumentIssue] = []
-
-        # Build analyzed chunks from other states
         chunks = build_analyzed_chunks(other_states)
 
-        # Inference Validation: Invalid inferences
         for validation in state.inference_validations:
             if not validation.valid:
-                # Find the chunk to get claim category
-                chunk: AnalyzedChunk | None = None
-                for c in chunks:
-                    if c.chunk_index == validation.chunk_index:
-                        chunk = c
-                        break
-
-                issue = DocumentIssue(
-                    title="Invalid Inference",
-                    description=validation.rationale,
-                    severity=SeverityEnum.MEDIUM,
-                    chunk_index=validation.chunk_index,
-                    claim_index=validation.claim_index,
-                    claim_category=(
-                        find_claim_category(chunk, validation.claim_index)
-                        if chunk
-                        else None
-                    ),
+                chunk = find_chunk_by_index(chunks, validation.chunk_index)
+                issues.append(
+                    DocumentIssue(
+                        title="Invalid Inference",
+                        description=validation.rationale,
+                        severity=SeverityEnum.MEDIUM,
+                        chunk_index=validation.chunk_index,
+                        claim_index=validation.claim_index,
+                        claim_category=find_claim_category(chunk, validation.claim_index),
+                    )
                 )
-                issues.append(issue)
 
         return issues

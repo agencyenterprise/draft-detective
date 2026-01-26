@@ -1,4 +1,5 @@
-export { WizardProvider, useWizard, type PreflightStatus } from './wizard-context';
+export { WizardProvider, useWizard, type PreflightStatus, type WizardStep } from './wizard-context';
 export { StepIndicator } from './step-indicator';
 export { StepUpload } from './step-upload';
 export { StepAnalyses } from './step-analyses';
+export { StepReferences } from './step-references';

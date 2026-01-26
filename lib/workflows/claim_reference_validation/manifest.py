@@ -3,8 +3,8 @@ from typing import List, Type
 from langgraph.graph import StateGraph
 
 from lib.workflows.chunk_utils import (
-    AnalyzedChunk,
     build_analyzed_chunks,
+    find_chunk_by_index,
     find_claim_category,
 )
 from lib.workflows.claim_reference_validation.graph import (
@@ -33,6 +33,7 @@ class ClaimReferenceValidationManifest(
         WorkflowRunType.CLAIM_EXTRACTION,
         WorkflowRunType.CITATION_DETECTION,
         WorkflowRunType.REFERENCE_FILE_MATCHING,
+        WorkflowRunType.HUMAN_APPROVAL,
     ]
 
     def get_state_type(self) -> Type[ClaimReferenceValidationState]:
@@ -70,76 +71,42 @@ class ClaimReferenceValidationManifest(
         issues: List[DocumentIssue] = []
         chunks = build_analyzed_chunks(other_states)
 
-        # Claim Verification: Unsupported and partially supported claims
+        # Map evidence alignment levels to issue titles and severities
+        issue_config = {
+            EvidenceAlignmentLevel.UNSUPPORTED: (
+                "Unsupported Claim",
+                SeverityEnum.HIGH,
+            ),
+            EvidenceAlignmentLevel.PARTIALLY_SUPPORTED: (
+                "Partially Supported Claim",
+                SeverityEnum.MEDIUM,
+            ),
+            EvidenceAlignmentLevel.UNVERIFIABLE: (
+                "Unverifiable Claim",
+                SeverityEnum.MEDIUM,
+            ),
+        }
+
+        # Claim Verification: Unsupported, partially supported, and unverifiable claims
         for substantiation in state.substantiations:
-            if substantiation.evidence_alignment == EvidenceAlignmentLevel.UNSUPPORTED:
-                # Find the chunk to get claim category
-                chunk: AnalyzedChunk | None = None
-                for c in chunks:
-                    if c.chunk_index == substantiation.chunk_index:
-                        chunk = c
-                        break
+            if substantiation.evidence_alignment not in issue_config:
+                continue
 
-                issue = DocumentIssue(
-                    title="Unsupported Claim",
+            title, severity = issue_config[substantiation.evidence_alignment]
+            chunk = find_chunk_by_index(chunks, substantiation.chunk_index)
+
+            issues.append(
+                DocumentIssue(
+                    title=title,
                     description=substantiation.rationale,
-                    severity=SeverityEnum.HIGH,
+                    severity=severity,
                     chunk_index=substantiation.chunk_index,
                     claim_index=substantiation.claim_index,
-                    claim_category=(
-                        find_claim_category(chunk, substantiation.claim_index)
-                        if chunk
-                        else None
+                    claim_category=find_claim_category(
+                        chunk, substantiation.claim_index
                     ),
                 )
-                issues.append(issue)
-            elif (
-                substantiation.evidence_alignment
-                == EvidenceAlignmentLevel.PARTIALLY_SUPPORTED
-            ):
-                # Find the chunk to get claim category
-                chunk: AnalyzedChunk | None = None
-                for c in chunks:
-                    if c.chunk_index == substantiation.chunk_index:
-                        chunk = c
-                        break
-
-                issue = DocumentIssue(
-                    title="Partially Supported Claim",
-                    description=substantiation.rationale,
-                    severity=SeverityEnum.MEDIUM,
-                    chunk_index=substantiation.chunk_index,
-                    claim_index=substantiation.claim_index,
-                    claim_category=(
-                        find_claim_category(chunk, substantiation.claim_index)
-                        if chunk
-                        else None
-                    ),
-                )
-                issues.append(issue)
-            elif (
-                substantiation.evidence_alignment == EvidenceAlignmentLevel.UNVERIFIABLE
-            ):
-                # Find the chunk to get claim category
-                chunk: AnalyzedChunk | None = None
-                for c in chunks:
-                    if c.chunk_index == substantiation.chunk_index:
-                        chunk = c
-                        break
-
-                issue = DocumentIssue(
-                    title="Unverifiable Claim",
-                    description=substantiation.rationale,
-                    severity=SeverityEnum.MEDIUM,
-                    chunk_index=substantiation.chunk_index,
-                    claim_index=substantiation.claim_index,
-                    claim_category=(
-                        find_claim_category(chunk, substantiation.claim_index)
-                        if chunk
-                        else None
-                    ),
-                )
-                issues.append(issue)
+            )
 
         # Claim Categorization: Claims needing external verification without citations
         for chunk in chunks:

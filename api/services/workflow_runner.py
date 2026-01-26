@@ -3,10 +3,11 @@ import logging
 from typing import List
 
 from fastapi import BackgroundTasks, HTTPException
+from pydantic import BaseModel
 
 from api.models import StartMultipleWorkflowsRequest
 from lib.models.user import User
-from lib.models.workflow_run import WorkflowRunStatus, WorkflowRunType
+from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus, WorkflowRunType
 from lib.services.projects import get_user_project
 from lib.services.workflow_runs import (
     create_workflow_run,
@@ -15,8 +16,18 @@ from lib.services.workflow_runs import (
 )
 from lib.workflows.config_factory import create_workflow_config
 from lib.workflows.dependency_resolver import resolve_workflow_dependencies
+from lib.workflows.registry import get_workflow_manifest
 from lib.workflows.runner import run_workflow_with_dependency_check
 from lib.workflows.types import WorkflowConfig
+
+
+class AutoRunWorkflowItem(BaseModel):
+    """Groups workflow data needed for auto-running a workflow."""
+
+    config: WorkflowConfig
+    thread_id: str
+    workflow_run_id: str
+
 
 logger = logging.getLogger(__name__)
 
@@ -99,8 +110,7 @@ async def start_multiple_workflow_runs(
     )
 
     workflow_run_ids: List[str] = []
-    workflow_configs: List[WorkflowConfig] = []
-    thread_ids: List[str] = []
+    auto_run_items: List[AutoRunWorkflowItem] = []
 
     for workflow_type in resolved_workflow_types:
         existing_run = await get_project_workflow_run_by_type(
@@ -133,31 +143,75 @@ async def start_multiple_workflow_runs(
         )
 
         workflow_run_ids.append(workflow_run_id)
-        workflow_configs.append(workflow_config)
-        thread_ids.append(thread_id)
 
-    # Add a single background task that runs all workflows concurrently
-    if workflow_configs:
+        manifest = get_workflow_manifest(workflow_type)
+        if manifest.requires_human_trigger:
+            logger.info(
+                f"Workflow {workflow_type.value} requires human trigger - skipping auto-run"
+            )
+            continue
+
+        auto_run_items.append(
+            AutoRunWorkflowItem(
+                config=workflow_config,
+                thread_id=thread_id,
+                workflow_run_id=workflow_run_id,
+            )
+        )
+
+    if auto_run_items:
         logger.info(
-            f"Starting {len(workflow_configs)} workflows as PENDING: {[c.type.value for c in workflow_configs]}"
+            f"Auto-running {len(auto_run_items)} workflows: {[item.config.type.value for item in auto_run_items]}"
         )
         background_tasks.add_task(
             _run_multiple_workflows_concurrently,
-            workflow_configs=workflow_configs,
-            thread_ids=thread_ids,
-            workflow_run_ids=workflow_run_ids,
+            items=auto_run_items,
             user=user,
         )
     else:
-        logger.info("No workflows to start - all requested workflows already completed")
+        logger.info(
+            "No workflows to auto-run - all require human trigger or already completed"
+        )
 
     return workflow_run_ids
 
 
+async def resume_workflow_run(
+    workflow_run: WorkflowRun,
+    config: WorkflowConfig,
+    user: User,
+    background_tasks: BackgroundTasks,
+) -> str:
+    """
+    Resume an existing workflow run by scheduling it to continue.
+
+    Unlike start_workflow_run, this doesn't create a new run record -
+    it continues an existing one using its thread_id.
+
+    Args:
+        workflow_run: The existing workflow run to resume
+        config: The workflow config for this run
+        user: The user running the workflow
+        background_tasks: FastAPI background tasks
+
+    Returns:
+        The workflow run ID
+    """
+    thread_id = get_thread_id_for_workflow_run(workflow_run)
+
+    background_tasks.add_task(
+        run_workflow_with_dependency_check,
+        config=config,
+        thread_id=thread_id,
+        workflow_run_id=str(workflow_run.id),
+        user=user,
+    )
+
+    return str(workflow_run.id)
+
+
 async def _run_multiple_workflows_concurrently(
-    workflow_configs: List[WorkflowConfig],
-    thread_ids: List[str],
-    workflow_run_ids: List[str],
+    items: List[AutoRunWorkflowItem],
     user: User,
 ) -> None:
     """
@@ -167,29 +221,25 @@ async def _run_multiple_workflows_concurrently(
     before starting execution. Workflows run in parallel while still respecting dependencies.
 
     Args:
-        workflow_configs: List of workflow configs to run
-        thread_ids: List of thread IDs corresponding to each workflow config
-        workflow_run_ids: List of workflow run IDs for same-type locking
+        items: List of workflow items containing config, thread_id, and workflow_run_id
         user: User running the workflows
     """
-    if not workflow_configs:
+    if not items:
         return
 
     logger.info(
-        f"Running {len(workflow_configs)} workflows concurrently: {[c.type.value for c in workflow_configs]}"
+        f"Running {len(items)} workflows concurrently: {[item.config.type.value for item in items]}"
     )
 
     # Create tasks for all workflows - they will run in parallel
     tasks = [
         run_workflow_with_dependency_check(
-            config=config,
-            thread_id=thread_id,
-            workflow_run_id=workflow_run_id,
+            config=item.config,
+            thread_id=item.thread_id,
+            workflow_run_id=item.workflow_run_id,
             user=user,
         )
-        for config, thread_id, workflow_run_id in zip(
-            workflow_configs, thread_ids, workflow_run_ids
-        )
+        for item in items
     ]
 
     # Run all workflows concurrently - each will handle its own dependency waiting
@@ -199,6 +249,6 @@ async def _run_multiple_workflows_concurrently(
     for i, result in enumerate(results):
         if isinstance(result, Exception):
             logger.error(
-                f"Workflow {workflow_configs[i].type.value} failed: {result}",
+                f"Workflow {items[i].config.type.value} failed: {result}",
                 exc_info=True,
             )

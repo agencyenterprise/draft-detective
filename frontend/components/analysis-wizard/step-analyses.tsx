@@ -8,10 +8,11 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { UploadSection } from '@/components/analysis-form/upload-section';
 import { WorkflowTypeSelector } from '@/components/workflows/workflow-type-selector';
+import { WebSearchConsentCheckbox } from '@/components/workflows/web-search-consent-checkbox';
 import { useWizard } from './wizard-context';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { useSessionStorage } from '@/lib/hooks/use-session-storage';
-import { hasSupportingDocumentsRequirement } from '@/components/workflows/utils';
+import { hasWebSearchRequirement } from '@/components/workflows/utils';
 import {
   WorkflowRunType,
   addFilesToProjectApiProjectProjectIdFilesPost,
@@ -28,12 +29,14 @@ export function StepAnalyses() {
   const { data: workflowTypes } = useWorkflowTypes();
   const [storedApiKey] = useSessionStorage<string>('openai-api-key', '');
 
-  const [selectedWorkflowTypes, setSelectedWorkflowTypes] = useState<WorkflowRunType[]>([]);
+  const { selectedWorkflowTypes, setSelectedWorkflowTypes, needsReferencesStep } = wizard;
   const [supportingDocuments, setSupportingDocuments] = useState<File[]>([]);
   const [domain, setDomain] = useState('');
   const [targetAudience, setTargetAudience] = useState('');
+  const [webSearchConsent, setWebSearchConsent] = useState(false);
 
-  const showSupportingDocs = hasSupportingDocumentsRequirement(selectedWorkflowTypes);
+  const needsWebSearch = hasWebSearchRequirement(selectedWorkflowTypes, workflowTypes);
+  const needsReferenceReview = needsReferencesStep && supportingDocuments.length > 0;
 
   const startAnalysisMutation = useMutation({
     mutationFn: async () => {
@@ -42,7 +45,6 @@ export function StepAnalyses() {
 
       const projectId = wizard.projectId;
 
-      // 1. Upload supporting documents if any
       if (supportingDocuments.length > 0) {
         await addFilesToProjectApiProjectProjectIdFilesPost({
           path: { project_id: projectId },
@@ -50,7 +52,6 @@ export function StepAnalyses() {
         });
       }
 
-      // 2. Update project metadata if domain or target audience is set
       if (domain || targetAudience) {
         await updateProjectEndpointApiProjectProjectIdPatch({
           path: { project_id: projectId },
@@ -61,9 +62,7 @@ export function StepAnalyses() {
         });
       }
 
-      // 3. Start workflows
-      // If supporting documents were uploaded, we need to re-run DOCUMENT_PROCESSING
-      // to process them (it was already run in step 1 for main doc only)
+      // Re-run DOCUMENT_PROCESSING for new supporting docs
       const workflowsToStart =
         supportingDocuments.length > 0
           ? [WorkflowRunType.DocumentProcessing, ...selectedWorkflowTypes]
@@ -79,9 +78,13 @@ export function StepAnalyses() {
       });
     },
     onSuccess: () => {
-      toast.success('Analysis started! Redirecting to your project...');
-      // Use fromWizard param to prevent redirect loop (race condition with workflow creation)
-      router.push(`/projects/${wizard.projectId}?fromWizard=true`);
+      if (needsReferenceReview) {
+        toast.success('Analysis started! Review your references...');
+        wizard.goToStep(3);
+      } else {
+        toast.success('Analysis started! Redirecting to your project...');
+        router.push(`/projects/${wizard.projectId}?fromWizard=true`);
+      }
     },
     onError: (error) => {
       toast.error(error instanceof Error ? error.message : 'Failed to start analysis');
@@ -99,10 +102,9 @@ export function StepAnalyses() {
     startAnalysisMutation.mutate();
   };
 
-  const canContinue = selectedWorkflowTypes.length > 0;
+  const canContinue = selectedWorkflowTypes.length > 0 && (!needsWebSearch || webSearchConsent);
   const isSubmitting = startAnalysisMutation.isPending || startAnalysisMutation.isSuccess;
 
-  // Show loading screen when submitting
   if (isSubmitting) {
     return (
       <Card className="max-w-xl mx-auto">
@@ -113,7 +115,7 @@ export function StepAnalyses() {
               <h2 className="text-xl font-semibold">Starting Analysis</h2>
               <p className="text-sm text-muted-foreground">
                 {supportingDocuments.length > 0
-                  ? 'Uploading and processing supporting documents...'
+                  ? 'Uploading supporting documents and starting workflows...'
                   : 'Starting workflows...'}
               </p>
             </div>
@@ -129,7 +131,6 @@ export function StepAnalyses() {
         <h1 className="text-2xl font-bold">What do you want to analyze today?</h1>
       </div>
 
-      {/* Workflow Type Selection */}
       <WorkflowTypeSelector
         workflowTypes={workflowTypes?.filter((wt) => !wt.is_internal && wt.can_be_triggered_by_user)}
         selectedTypes={selectedWorkflowTypes}
@@ -137,8 +138,9 @@ export function StepAnalyses() {
         headerDescription="Select which types of analyses to perform"
       />
 
-      {/* Supporting Documents - Conditional */}
-      {showSupportingDocs && (
+      {needsWebSearch && <WebSearchConsentCheckbox checked={webSearchConsent} onCheckedChange={setWebSearchConsent} />}
+
+      {needsReferencesStep && (
         <UploadSection
           title="Supporting Documents"
           description="Reference documents cited in your main document's reference section (e.g., PDFs of cited papers or news websites). These enable validation of claims against their cited sources."
@@ -151,7 +153,6 @@ export function StepAnalyses() {
         />
       )}
 
-      {/* Domain and Target Audience */}
       <div className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="domain">
@@ -185,9 +186,8 @@ export function StepAnalyses() {
         </div>
       </div>
 
-      {/* Continue Button */}
       <Button onClick={handleStartAnalysis} disabled={!canContinue} size="lg" className="w-full">
-        Start Analysis
+        Continue
       </Button>
     </div>
   );

@@ -22,6 +22,10 @@ from lib.workflows.footnote_extraction.state import (
     FootnoteExtractionConfig,
     FootnoteExtractionState,
 )
+from lib.workflows.human_approval.state import (
+    HumanApprovalConfig,
+    HumanApprovalState,
+)
 from lib.workflows.inference_validation.state import (
     InferenceValidationState,
     InferenceValidationWorkflowConfig,
@@ -72,6 +76,7 @@ WorkflowState = (
     | CitationSuggesterState
     | ResultsExtractionState
     | InferenceValidationState
+    | HumanApprovalState
 )
 
 WorkflowConfig = (
@@ -90,4 +95,5 @@ WorkflowConfig = (
     | CitationSuggesterWorkflowConfig
     | ResultsExtractionWorkflowConfig
     | InferenceValidationWorkflowConfig
+    | HumanApprovalConfig
 )

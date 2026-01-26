@@ -142,10 +142,22 @@ def find_chunk_index_by_text(
     return None
 
 
+def find_chunk_by_index(
+    chunks: List[AnalyzedChunk], chunk_index: int
+) -> Optional[AnalyzedChunk]:
+    """Find a chunk by its index."""
+    for chunk in chunks:
+        if chunk.chunk_index == chunk_index:
+            return chunk
+    return None
+
+
 def find_claim_category(
-    chunk: AnalyzedChunk, claim_index: int
+    chunk: Optional[AnalyzedChunk], claim_index: int
 ) -> Optional[ClaimCategory]:
     """Find claim category for a given claim index in a chunk."""
+    if chunk is None:
+        return None
 
     for category in chunk.claim_categories:
         if category.claim_index == claim_index:

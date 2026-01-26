@@ -53,6 +53,22 @@ export type AnalysisFormConfig = {
 };
 
 /**
+ * ApproveWorkflowResponse
+ *
+ * Response for workflow approval.
+ */
+export type ApproveWorkflowResponse = {
+  /**
+   * Message
+   */
+  message: string;
+  /**
+   * Workflow Run Id
+   */
+  workflow_run_id: string;
+};
+
+/**
  * BBox
  *
  * Docling bounding box format (bottom-left origin, PDF standard)
@@ -1840,6 +1856,73 @@ export type HttpValidationError = {
    * Detail
    */
   detail?: Array<ValidationError>;
+};
+
+/**
+ * HumanApprovalConfig
+ *
+ * Config for human approval workflow.
+ */
+export type HumanApprovalConfig = {
+  /**
+   * Project Id
+   *
+   * The ID of the project that this workflow run should be associated with
+   */
+  project_id?: string | null;
+  /**
+   * Openai Api Key
+   *
+   * The OpenAI API key to use for this workflow execution
+   */
+  openai_api_key?: string | null;
+  /**
+   * Domain
+   *
+   * Domain context for more accurate analysis
+   */
+  domain?: string | null;
+  /**
+   * Target Audience
+   *
+   * Target audience context for analysis
+   */
+  target_audience?: string | null;
+  /**
+   * Publication Date
+   *
+   * Publication date of the document (YYYY-MM-DD format)
+   */
+  publication_date?: string | null;
+  type?: WorkflowRunType;
+};
+
+/**
+ * HumanApprovalState
+ *
+ * State for human approval workflow.
+ */
+export type HumanApprovalState = {
+  /**
+   * Errors
+   *
+   * Errors that occurred during the workflow execution.
+   */
+  errors?: Array<WorkflowError>;
+  type?: WorkflowRunType;
+  config?: HumanApprovalConfig;
+  /**
+   * Approved
+   *
+   * Whether human has approved
+   */
+  approved?: boolean;
+  /**
+   * Approved At
+   *
+   * ISO timestamp when approved
+   */
+  approved_at?: string | null;
 };
 
 /**
@@ -3639,6 +3722,7 @@ export type WorkflowRunDetail = {
     | CitationSuggesterState
     | ResultsExtractionState
     | InferenceValidationState
+    | HumanApprovalState
     | null;
 };
 
@@ -3663,6 +3747,7 @@ export const WorkflowRunType = {
   DocumentProcessing: 'document_processing',
   ReferenceExtraction: 'reference_extraction',
   ReferenceFileMatching: 'reference_file_matching',
+  HumanApproval: 'human_approval',
   FootnoteExtraction: 'footnote_extraction',
   ClaimExtraction: 'claim_extraction',
   CitationDetection: 'citation_detection',
@@ -3935,6 +4020,7 @@ export type WorkflowRunDetailWritable = {
     | CitationSuggesterState
     | ResultsExtractionState
     | InferenceValidationState
+    | HumanApprovalState
     | null;
 };
 
@@ -4133,7 +4219,8 @@ export type StartWorkflowApiWorkflowsStartPostData = {
     | ReferenceValidationWorkflowConfig
     | CitationSuggesterWorkflowConfig
     | ResultsExtractionWorkflowConfig
-    | InferenceValidationWorkflowConfig;
+    | InferenceValidationWorkflowConfig
+    | HumanApprovalConfig;
   path?: never;
   query?: never;
   url: '/api/workflows/start';
@@ -4250,6 +4337,38 @@ export type GetPageImageApiWorkflowRunsWorkflowRunIdPagesPageNumGetResponses = {
    */
   200: unknown;
 };
+
+export type ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostData = {
+  body?: never;
+  path: {
+    /**
+     * Workflow Run Id
+     */
+    workflow_run_id: string;
+  };
+  query?: never;
+  url: '/api/workflow-runs/{workflow_run_id}/approve';
+};
+
+export type ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostError =
+  ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostErrors[keyof ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostErrors];
+
+export type ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostResponses = {
+  /**
+   * Successful Response
+   */
+  200: ApproveWorkflowResponse;
+};
+
+export type ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostResponse =
+  ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostResponses[keyof ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostResponses];
 
 export type GetWorkflowTypesApiWorkflowTypesGetData = {
   body?: never;
