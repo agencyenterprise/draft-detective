@@ -127,14 +127,13 @@ export function WorkflowTypeCheckbox({
               {requiresSupportingFiles && (
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Badge variant="outline" className="flex items-center gap-1 text-xs">
+                    <Badge variant="warning" className="flex items-center gap-1 text-xs">
                       <Files className="size-3" />
                       Needs References
                     </Badge>
                   </TooltipTrigger>
                   <TooltipContent side="top" className="max-w-xs">
-                    This analysis requires supporting documents or reference files to validate claims and provide
-                    comprehensive results.
+                    This analysis requires reference documents. You can upload them or fetch from the web in Step 3.
                   </TooltipContent>
                 </Tooltip>
               )}

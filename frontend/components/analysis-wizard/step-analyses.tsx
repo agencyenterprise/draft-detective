@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
-import { UploadSection } from '@/components/analysis-form/upload-section';
 import { WorkflowTypeSelector } from '@/components/workflows/workflow-type-selector';
 import { WebSearchConsentCheckbox } from '@/components/workflows/web-search-consent-checkbox';
 import { useWizard } from './wizard-context';
@@ -14,8 +13,6 @@ import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { useSessionStorage } from '@/lib/hooks/use-session-storage';
 import { hasWebSearchRequirement } from '@/components/workflows/utils';
 import {
-  WorkflowRunType,
-  addFilesToProjectApiProjectProjectIdFilesPost,
   startMultipleWorkflowsApiWorkflowsStartMultiplePost,
   updateProjectEndpointApiProjectProjectIdPatch,
 } from '@/lib/generated-api';
@@ -30,13 +27,11 @@ export function StepAnalyses() {
   const [storedApiKey] = useSessionStorage<string>('openai-api-key', '');
 
   const { selectedWorkflowTypes, setSelectedWorkflowTypes, needsReferencesStep } = wizard;
-  const [supportingDocuments, setSupportingDocuments] = useState<File[]>([]);
   const [domain, setDomain] = useState('');
   const [targetAudience, setTargetAudience] = useState('');
   const [webSearchConsent, setWebSearchConsent] = useState(false);
 
   const needsWebSearch = hasWebSearchRequirement(selectedWorkflowTypes, workflowTypes);
-  const needsReferenceReview = needsReferencesStep && supportingDocuments.length > 0;
 
   const startAnalysisMutation = useMutation({
     mutationFn: async () => {
@@ -44,13 +39,6 @@ export function StepAnalyses() {
       if (selectedWorkflowTypes.length === 0) throw new Error('No workflow types selected');
 
       const projectId = wizard.projectId;
-
-      if (supportingDocuments.length > 0) {
-        await addFilesToProjectApiProjectProjectIdFilesPost({
-          path: { project_id: projectId },
-          body: { files: supportingDocuments, role: 'support' },
-        });
-      }
 
       if (domain || targetAudience) {
         await updateProjectEndpointApiProjectProjectIdPatch({
@@ -62,23 +50,17 @@ export function StepAnalyses() {
         });
       }
 
-      // Re-run DOCUMENT_PROCESSING for new supporting docs
-      const workflowsToStart =
-        supportingDocuments.length > 0
-          ? [WorkflowRunType.DocumentProcessing, ...selectedWorkflowTypes]
-          : selectedWorkflowTypes;
-
       const apiKey = wizard.openaiApiKey || storedApiKey;
       return startMultipleWorkflowsApiWorkflowsStartMultiplePost({
         body: {
           project_id: projectId,
-          workflow_types: workflowsToStart,
+          workflow_types: selectedWorkflowTypes,
           openai_api_key: apiKey || undefined,
         },
       });
     },
     onSuccess: () => {
-      if (needsReferenceReview) {
+      if (needsReferencesStep) {
         toast.success('Analysis started! Review your references...');
         wizard.goToStep(3);
       } else {
@@ -90,12 +72,6 @@ export function StepAnalyses() {
       toast.error(error instanceof Error ? error.message : 'Failed to start analysis');
     },
   });
-
-  const handleRemoveSupportingFile = (index?: number) => {
-    if (typeof index === 'number') {
-      setSupportingDocuments((files) => files.filter((_, i) => i !== index));
-    }
-  };
 
   const handleStartAnalysis = () => {
     if (startAnalysisMutation.isPending || startAnalysisMutation.isSuccess) return;
@@ -113,11 +89,7 @@ export function StepAnalyses() {
             <Loader2 className="w-12 h-12 animate-spin text-primary" />
             <div className="text-center space-y-2">
               <h2 className="text-xl font-semibold">Starting Analysis</h2>
-              <p className="text-sm text-muted-foreground">
-                {supportingDocuments.length > 0
-                  ? 'Uploading supporting documents and starting workflows...'
-                  : 'Starting workflows...'}
-              </p>
+              <p className="text-sm text-muted-foreground">Starting workflows...</p>
             </div>
           </div>
         </CardContent>
@@ -128,66 +100,48 @@ export function StepAnalyses() {
   return (
     <div className="space-y-8">
       <div className="space-y-2">
-        <h1 className="text-2xl font-bold">What do you want to analyze today?</h1>
+        <h1 className="text-2xl font-bold">What would you like to check?</h1>
+        <p className="text-muted-foreground">
+          Select the analyses that matter most for your document. You can always run more later.
+        </p>
       </div>
 
       <WorkflowTypeSelector
         workflowTypes={workflowTypes?.filter((wt) => !wt.is_internal && wt.can_be_triggered_by_user)}
         selectedTypes={selectedWorkflowTypes}
         onSelectionChange={setSelectedWorkflowTypes}
-        headerDescription="Select which types of analyses to perform"
+        headerDescription=""
       />
 
       {needsWebSearch && <WebSearchConsentCheckbox checked={webSearchConsent} onCheckedChange={setWebSearchConsent} />}
 
-      {needsReferencesStep && (
-        <UploadSection
-          title="Supporting Documents"
-          description="Reference documents cited in your main document's reference section (e.g., PDFs of cited papers or news websites). These enable validation of claims against their cited sources."
-          required={true}
-          onFilesChange={setSupportingDocuments}
-          multiple={true}
-          files={supportingDocuments}
-          fileType="supporting"
-          onRemoveFile={handleRemoveSupportingFile}
-        />
-      )}
-
       <div className="space-y-4">
+        <div>
+          <h3 className="text-lg font-semibold">Help us understand your context</h3>
+          <p className="text-sm text-muted-foreground">Optional, but helps tailor the analysis.</p>
+        </div>
         <div className="space-y-2">
-          <Label htmlFor="domain">
-            Domain <span className="text-muted-foreground text-xs font-normal">(Optional)</span>
-          </Label>
+          <Label htmlFor="domain">What field is this document about?</Label>
           <Input
             id="domain"
-            placeholder="e.g., Healthcare, Technology, Finance..."
+            placeholder="e.g., Healthcare, Criminal Justice, Education..."
             value={domain}
             onChange={(e) => setDomain(e.target.value)}
           />
-          <p className="text-sm text-muted-foreground">
-            The subject area or field of expertise to contextualize the analysis. This helps tailor the evaluation to
-            domain-specific standards and terminology.
-          </p>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="target-audience">
-            Target Audience <span className="text-muted-foreground text-xs font-normal">(Optional)</span>
-          </Label>
+          <Label htmlFor="target-audience">Who&apos;s the intended reader?</Label>
           <Input
             id="target-audience"
-            placeholder="e.g., General public, Experts, Students..."
+            placeholder="e.g., Policymakers, Researchers, General public..."
             value={targetAudience}
             onChange={(e) => setTargetAudience(e.target.value)}
           />
-          <p className="text-sm text-muted-foreground">
-            The intended readers of the document. Specifying the audience helps adjust the analysis to match appropriate
-            complexity level and expectations.
-          </p>
         </div>
       </div>
 
       <Button onClick={handleStartAnalysis} disabled={!canContinue} size="lg" className="w-full">
-        Continue
+        {needsReferencesStep ? 'Next: Add your sources →' : 'Start Analysis'}
       </Button>
     </div>
   );

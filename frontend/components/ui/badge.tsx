@@ -18,6 +18,8 @@ const badgeVariants = cva(
         // Custom variants
         success:
           'border-transparent bg-green-700 text-white [a&]:hover:bg-green-700/90 focus-visible:ring-green-700/20 dark:focus-visible:ring-green-700/40 dark:bg-green-700/60',
+        warning:
+          'border-transparent bg-amber-600 text-white [a&]:hover:bg-amber-600/90 focus-visible:ring-amber-600/20 dark:focus-visible:ring-amber-600/40 dark:bg-amber-600/60',
       },
     },
     defaultVariants: {

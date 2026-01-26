@@ -38,6 +38,7 @@ interface ReferenceReviewListProps {
   isFetchingAllFromWeb: boolean;
   onFetchAll: () => void;
   isBatchUploading: boolean;
+  isProcessingFiles: boolean;
   disableActions: boolean;
   onBatchUpload: () => void;
 }
@@ -49,6 +50,7 @@ export function ReferenceReviewList({
   isFetchingAllFromWeb,
   onFetchAll,
   isBatchUploading,
+  isProcessingFiles,
   disableActions,
   onBatchUpload,
 }: ReferenceReviewListProps) {
@@ -112,9 +114,8 @@ export function ReferenceReviewList({
               </TooltipTrigger>
               <TooltipContent side="right" className="max-w-xs">
                 <p>
-                  <strong>References</strong> extracted from your main document. <strong>Matched files</strong> are the
-                  original supporting documents that correspond to each reference. This is used by some analyses (claim
-                  reference validation, for example) for verification.
+                  These are the citations we found in your document. Upload the original source PDFs to enable deeper
+                  analysis and claim verification.
                 </p>
               </TooltipContent>
             </Tooltip>
@@ -133,7 +134,7 @@ export function ReferenceReviewList({
               onClick={() => setStatusFilter(statusFilter === 'unmatched' ? 'all' : 'unmatched')}
             >
               <XCircle className="w-4 h-4" />
-              {stats.unmatched} unmatched
+              {stats.unmatched} need sources
             </button>
             {stats.fetching > 0 && (
               <button
@@ -152,22 +153,22 @@ export function ReferenceReviewList({
               <TooltipTrigger asChild>
                 <Button variant="outline" disabled={isFetchingAllFromWeb || disableActions} onClick={onFetchAll}>
                   {isFetchingAllFromWeb ? <Loader2 className="w-4 h-4 animate-spin" /> : <Globe className="w-4 h-4" />}
-                  Fetch unmatched references from the web
+                  Fetch from web
                 </Button>
               </TooltipTrigger>
               <TooltipContent className="max-w-xs">
-                Automatically fetch all unmatched references from the web using their URLs or DOIs
+                We&apos;ll try to download the source PDFs automatically using DOIs and URLs found in your references.
               </TooltipContent>
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button variant="outline" disabled={isBatchUploading || disableActions} onClick={onBatchUpload}>
                   {isBatchUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-                  {isBatchUploading ? 'Uploading...' : 'Batch upload supporting documents'}
+                  {isBatchUploading ? 'Uploading...' : 'Upload PDFs'}
                 </Button>
               </TooltipTrigger>
               <TooltipContent className="max-w-xs">
-                Upload multiple supporting documents at once. Files will be processed and matched to references
+                Have the source PDFs on your computer? Upload them and we&apos;ll match them to references
                 automatically.
               </TooltipContent>
             </Tooltip>
@@ -229,22 +230,39 @@ export function ReferenceReviewList({
         </div>
       )}
 
+      {isProcessingFiles && (
+        <div className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg mb-4">
+          <Loader2 className="w-5 h-5 animate-spin text-blue-600 shrink-0" />
+          <div>
+            <p className="font-medium text-blue-900">Processing your files...</p>
+            <p className="text-sm text-blue-700">
+              We&apos;re indexing and matching documents to references. This usually takes a minute or two.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Unmatched References Warning */}
-      {stats.unmatched > 0 && (
-        <Callout variant="warning" icon={AlertTriangle} title="Unmatched References" className="mb-4">
+      {stats.unmatched > 0 && !isProcessingFiles && (
+        <Callout variant="warning" icon={AlertTriangle} title="Some references need source documents" className="mb-4">
           <button className="text-primary cursor-pointer hover:underline" onClick={() => setStatusFilter('unmatched')}>
-            {stats.unmatched} reference
+            {stats.unmatched} reference{stats.unmatched === 1 ? '' : 's'}
           </button>
-          {stats.unmatched === 1 ? ' is ' : 's are '}
-          not yet matched to supporting documents. Upload the corresponding files or fetch them from the web to complete
-          the review.
+          {stats.unmatched === 1 ? " doesn't " : " don't "}
+          have source PDFs yet. Upload them or click &quot;Fetch from web&quot; to download automatically.
         </Callout>
       )}
 
       {/* References List */}
       <div className="space-y-3">
         {filteredReferences.map((reference) => (
-          <ReferenceCard key={reference.id} reference={reference} projectId={projectId} readOnly={readOnly} />
+          <ReferenceCard
+            key={reference.id}
+            reference={reference}
+            projectId={projectId}
+            readOnly={readOnly}
+            disabled={disableActions}
+          />
         ))}
         {filteredReferences.length === 0 && hasActiveFilters && (
           <div className="text-center py-8 text-muted-foreground">
