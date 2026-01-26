@@ -7,8 +7,7 @@ from starlette.responses import FileResponse
 
 from api.auth import get_current_user, get_current_user_optional
 from api.models import (
-    ApproveCheckpointRequest,
-    ApproveCheckpointResponse,
+    ApproveWorkflowResponse,
     StartMultipleWorkflowsRequest,
     StartMultipleWorkflowsResponse,
     StartWorkflowResponse,
@@ -151,11 +150,10 @@ async def get_page_image(
 
 @router.post(
     "/api/workflow-runs/{workflow_run_id}/approve",
-    response_model=ApproveCheckpointResponse,
+    response_model=ApproveWorkflowResponse,
 )
 async def approve_workflow_run(
     workflow_run_id: str,
-    request: ApproveCheckpointRequest,
     background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
 ):
@@ -179,21 +177,18 @@ async def approve_workflow_run(
         )
 
     if workflow_run.status == WorkflowRunStatus.COMPLETED:
-        return ApproveCheckpointResponse(
+        return ApproveWorkflowResponse(
             message="Already approved",
-            checkpoint=request.checkpoint,
             workflow_run_id=workflow_run_id,
         )
 
-    config = HumanApprovalConfig(
+    approval_config = HumanApprovalConfig(
         project_id=str(workflow_run.project_id),
-        checkpoint=request.checkpoint,
     )
 
-    await resume_workflow_run(workflow_run, config, current_user, background_tasks)
+    await resume_workflow_run(workflow_run, approval_config, current_user, background_tasks)
 
-    return ApproveCheckpointResponse(
-        message=f"Checkpoint '{request.checkpoint}' approved",
-        checkpoint=request.checkpoint,
+    return ApproveWorkflowResponse(
+        message="Workflow approved",
         workflow_run_id=workflow_run_id,
     )

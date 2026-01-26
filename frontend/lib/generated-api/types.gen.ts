@@ -53,39 +53,15 @@ export type AnalysisFormConfig = {
 };
 
 /**
- * ApprovalCheckpoint
+ * ApproveWorkflowResponse
  *
- * Types of approval checkpoints.
+ * Response for workflow approval.
  */
-export const ApprovalCheckpoint = { ReferenceReview: 'reference_review' } as const;
-
-/**
- * ApprovalCheckpoint
- *
- * Types of approval checkpoints.
- */
-export type ApprovalCheckpoint = (typeof ApprovalCheckpoint)[keyof typeof ApprovalCheckpoint];
-
-/**
- * ApproveCheckpointRequest
- *
- * Request body for approving a human checkpoint.
- */
-export type ApproveCheckpointRequest = {
-  checkpoint: ApprovalCheckpoint;
-};
-
-/**
- * ApproveCheckpointResponse
- *
- * Response for checkpoint approval.
- */
-export type ApproveCheckpointResponse = {
+export type ApproveWorkflowResponse = {
   /**
    * Message
    */
   message: string;
-  checkpoint: ApprovalCheckpoint;
   /**
    * Workflow Run Id
    */
@@ -1919,10 +1895,6 @@ export type HumanApprovalConfig = {
    */
   publication_date?: string | null;
   type?: WorkflowRunType;
-  /**
-   * The type of approval checkpoint
-   */
-  checkpoint?: ApprovalCheckpoint;
 };
 
 /**
@@ -4367,7 +4339,7 @@ export type GetPageImageApiWorkflowRunsWorkflowRunIdPagesPageNumGetResponses = {
 };
 
 export type ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostData = {
-  body: ApproveCheckpointRequest;
+  body?: never;
   path: {
     /**
      * Workflow Run Id
@@ -4392,7 +4364,7 @@ export type ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostResponses =
   /**
    * Successful Response
    */
-  200: ApproveCheckpointResponse;
+  200: ApproveWorkflowResponse;
 };
 
 export type ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostResponse =

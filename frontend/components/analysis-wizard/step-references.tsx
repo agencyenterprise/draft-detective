@@ -15,7 +15,6 @@ import {
   ProjectDetailed,
   WorkflowRunDetail,
   WorkflowRunType,
-  ApprovalCheckpoint,
   approveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePost,
 } from '@/lib/generated-api';
 import { getWorkflowRunByType, isWorkflowProcessing } from '@/lib/workflow-state';
@@ -97,7 +96,6 @@ function NoReferencesView({ project }: { project: ProjectDetailed }) {
       }
       return approveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePost({
         path: { workflow_run_id: humanApprovalRun.run.id },
-        body: { checkpoint: ApprovalCheckpoint.ReferenceReview },
       });
     },
     onSuccess: () => {
@@ -158,7 +156,6 @@ function ReferencesReady({ project }: { project: ProjectDetailed }) {
       }
       return approveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePost({
         path: { workflow_run_id: humanApprovalRun.run.id },
-        body: { checkpoint: ApprovalCheckpoint.ReferenceReview },
       });
     },
     onSuccess: () => {

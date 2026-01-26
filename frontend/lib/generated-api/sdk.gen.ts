@@ -443,10 +443,6 @@ export const approveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePost = <ThrowO
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/workflow-runs/{workflow_run_id}/approve',
     ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
   });
 
 /**
