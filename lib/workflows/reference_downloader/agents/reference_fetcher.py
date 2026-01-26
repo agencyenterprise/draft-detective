@@ -117,7 +117,7 @@ class ReferenceFetcherAgent(LangChainAgent):
             context_schema=ContextSchema,
             system_prompt=system_prompt.text,
             response_format=self.output_schema,
-        )
+        ).with_retry(stop_after_attempt=2)
 
         user_message = input.reference
 

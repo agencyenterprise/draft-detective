@@ -244,7 +244,7 @@ export function ReferenceReviewList({
       {/* References List */}
       <div className="space-y-3">
         {filteredReferences.map((reference) => (
-          <ReferenceCard key={reference.index} reference={reference} projectId={projectId} readOnly={readOnly} />
+          <ReferenceCard key={reference.id} reference={reference} projectId={projectId} readOnly={readOnly} />
         ))}
         {filteredReferences.length === 0 && hasActiveFilters && (
           <div className="text-center py-8 text-muted-foreground">

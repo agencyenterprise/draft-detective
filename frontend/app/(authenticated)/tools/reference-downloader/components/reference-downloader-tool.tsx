@@ -34,7 +34,7 @@ export function ReferenceDownloaderTool() {
           type: WorkflowRunType.ReferenceDownloader,
           project_id: null,
           openai_api_key: openaiApiKey || null,
-          references: references.map((reference, index) => ({ index, text: reference })),
+          references: references.map((reference) => ({ reference_id: crypto.randomUUID(), text: reference })),
         },
       });
     },

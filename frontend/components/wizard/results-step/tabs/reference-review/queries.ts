@@ -49,13 +49,14 @@ export function useReferenceReviewReferences(projectDetail: ProjectDetailed | un
     return composedReferences.map((item, index): ReferenceReviewItem => {
       const matchedFile = item.file_id ? files?.find((file) => file.id === item.file_id) : undefined;
       const fetchedReference = referenceDownloader?.state?.fetched_references?.find(
-        (ref) => ref.input_reference === item.text,
+        (ref) => ref.reference_id === item.id,
       );
 
       // In case the reference was fetched but the matching file no longer exists, we don't want to show the fetched result
       const shouldShowFetchedResult = fetchedReference && (fetchedReference.result?.file_id ? !!matchedFile : true);
 
       return {
+        id: item.id,
         index,
         text: item.text,
         status:

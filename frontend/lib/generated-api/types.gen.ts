@@ -175,9 +175,9 @@ export type BodyAddFileToProjectApiProjectProjectIdFilePost = {
    */
   file: Blob | File;
   /**
-   * Reference Index
+   * Reference Id
    */
-  reference_index?: number | null;
+  reference_id?: string | null;
 };
 
 /**
@@ -2615,11 +2615,11 @@ export type ReferenceDirection = (typeof ReferenceDirection)[keyof typeof Refere
  */
 export type ReferenceDownloaderInputItem = {
   /**
-   * Index
+   * Reference Id
    *
-   * The index of the reference from the reference extraction workflow
+   * The ID of the reference from the reference extraction workflow
    */
-  index: number;
+  reference_id: string;
   /**
    * Text
    *
@@ -2835,11 +2835,11 @@ export type ReferenceFetchItem = {
  */
 export type ReferenceFetchResult = {
   /**
-   * Index
+   * Reference Id
    *
-   * Index of this reference in the input list
+   * ID of the reference being fetched
    */
-  index: number;
+  reference_id: string;
   /**
    * Input Reference
    *

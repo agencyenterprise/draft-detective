@@ -208,14 +208,14 @@ async def add_files_to_project(
 async def add_file_to_project(
     project_id: str,
     file: UploadFile = FastAPIUploadFile(...),
-    reference_index: Optional[int] = Form(default=None),
+    reference_id: Optional[str] = Form(default=None),
     current_user: User = Depends(get_current_user),
 ):
     """
     Add a single file (supporting document) to a project.
 
-    Optionally link the file to a specific reference by providing reference_index
-    (0-based index of the reference in the ReferenceExtraction workflow state).
+    Optionally link the file to a specific reference by providing reference_id
+    (the ID of the reference from the ReferenceExtraction workflow state).
     """
 
     # Verify project access (user must be authenticated owner)
@@ -232,13 +232,12 @@ async def add_file_to_project(
 
         file_record = file_records[0]
 
-        # If reference_index is provided, link the file to that reference
-        if reference_index is not None:
+        # If reference_id is provided, link the file to that reference
+        if reference_id is not None:
             await add_file_to_reference(
                 project_id=project_id,
                 file_id=str(file_record.id),
-                file_name=file_record.file_name,
-                reference_index=reference_index,
+                reference_id=reference_id,
             )
 
         return file_record

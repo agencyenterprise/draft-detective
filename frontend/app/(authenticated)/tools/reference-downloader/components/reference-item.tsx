@@ -19,6 +19,8 @@ import * as React from 'react';
 
 interface ReferenceItemProps {
   item: ReferenceFetchResult;
+  /** Display index for UI numbering (optional, uses array position) */
+  displayIndex?: number;
 }
 
 function getConclusionBadge(conclusion: ReferenceFetchConclusion) {
@@ -82,19 +84,20 @@ function getPendingBadge() {
   );
 }
 
-export function ReferenceItem({ item }: ReferenceItemProps) {
+export function ReferenceItem({ item, displayIndex }: ReferenceItemProps) {
   const [isExpanded, setIsExpanded] = React.useState(false);
   const isPending = item.status === ReferenceFetchStatus.Pending;
   const isError = item.status === ReferenceFetchStatus.Error || item.error != null;
   const result = item.result;
-  const index = item.index;
 
   return (
     <div className="border rounded-lg p-4 space-y-2">
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 space-y-2">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm font-medium text-muted-foreground">#{index + 1}</span>
+            {displayIndex !== undefined && (
+              <span className="text-sm font-medium text-muted-foreground">#{displayIndex + 1}</span>
+            )}
             {isPending
               ? getPendingBadge()
               : isError
