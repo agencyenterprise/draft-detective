@@ -9,6 +9,10 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from lib.config.llm_models import gpt_5_2_model
 from lib.models.agent import LangChainAgent
+
+# Recursion limit for the agent's tool-calling loop
+# Each search-download-verify cycle uses ~3 tool calls, so 50 allows ~16 cycles
+REFERENCE_FETCH_RECURSION_LIMIT = 50
 from lib.workflows.context import ContextSchema
 from lib.workflows.reference_downloader.tools.download_file_from_url import (
     download_file_from_url,
@@ -48,7 +52,7 @@ class ReferenceFetchItem(BaseModel):
 
 _system_prompt = PromptTemplate.from_template(
     """
-Locate the full original content of a user-provided reference with web search; download and verify its completeness; repeat or report failure if needed.
+Locate the full original content of a user-provided reference with web search; download and verify its completeness; report failure if needed.
 
 - When given a reference (e.g., citation or bibliographic entry), use web search tool to locate a direct URL for the full, original content of the reference (not an abstract, summary, or metadata-only page).
 - Upon finding a candidate full-content URL, use the available tool to download the file; this tool will return a file ID for the downloaded file.
@@ -75,8 +79,8 @@ Ablon, Lillian, and Andy Bogart, Zero Days, Thousands of Nights: The Life and Ti
 - Download the linked PDF.
 - Read the downloaded file, check metadata: title, author, and full text match reference.
 - If all criteria met, accept and return file ID.
-- If not, continue searching alternative sources, repeat.
-- If all efforts fail, return "source_not_found".
+- If not, try 2-3 alternative sources. If all fail with paywall/access issues, conclude "source_found_but_not_accessible".
+- If all efforts fail to locate the source, return "source_not_found".
 
 (Reminder: Always start your output with your reasoning and ensure that you do not output any conclusions before finishing your verification steps. This order is required.)
 
@@ -123,7 +127,10 @@ class ReferenceFetcherAgent(LangChainAgent):
 
         result = await agent.ainvoke(
             {"messages": [{"role": "user", "content": user_message}]},
-            config=config,
+            config={
+                **(config or {}),
+                "recursion_limit": REFERENCE_FETCH_RECURSION_LIMIT,
+            },
             context=self.context,
         )
 
