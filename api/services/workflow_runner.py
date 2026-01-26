@@ -7,7 +7,7 @@ from pydantic import BaseModel
 
 from api.models import StartMultipleWorkflowsRequest
 from lib.models.user import User
-from lib.models.workflow_run import WorkflowRunStatus, WorkflowRunType
+from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus, WorkflowRunType
 from lib.services.projects import get_user_project
 from lib.services.workflow_runs import (
     create_workflow_run,
@@ -174,6 +174,40 @@ async def start_multiple_workflow_runs(
         )
 
     return workflow_run_ids
+
+
+async def resume_workflow_run(
+    workflow_run: WorkflowRun,
+    config: WorkflowConfig,
+    user: User,
+    background_tasks: BackgroundTasks,
+) -> str:
+    """
+    Resume an existing workflow run by scheduling it to continue.
+
+    Unlike start_workflow_run, this doesn't create a new run record -
+    it continues an existing one using its thread_id.
+
+    Args:
+        workflow_run: The existing workflow run to resume
+        config: The workflow config for this run
+        user: The user running the workflow
+        background_tasks: FastAPI background tasks
+
+    Returns:
+        The workflow run ID
+    """
+    thread_id = get_thread_id_for_workflow_run(workflow_run)
+
+    background_tasks.add_task(
+        run_workflow_with_dependency_check,
+        config=config,
+        thread_id=thread_id,
+        workflow_run_id=str(workflow_run.id),
+        user=user,
+    )
+
+    return str(workflow_run.id)
 
 
 async def _run_multiple_workflows_concurrently(

@@ -19,7 +19,7 @@ import {
   ProjectDetailed,
   WorkflowRunType,
   ApprovalCheckpoint,
-  approveCheckpointApiProjectProjectIdApprovePost,
+  approveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePost,
 } from '@/lib/generated-api';
 import { getWorkflowRunByType, isWorkflowProcessing } from '@/lib/workflow-state';
 
@@ -63,7 +63,7 @@ export function StepReferences() {
   }
 
   if (stepStatus === 'no-references') {
-    return <NoReferencesView projectId={wizard.projectId!} />;
+    return <NoReferencesView project={project!} />;
   }
 
   return <ReferencesReady project={project!} />;
@@ -85,16 +85,24 @@ function LoadingCard({ title, description }: { title: string; description: strin
   );
 }
 
-function NoReferencesView({ projectId }: { projectId: string }) {
+function NoReferencesView({ project }: { project: ProjectDetailed }) {
   const router = useRouter();
   const queryClient = useQueryClient();
 
+  const projectId = project.project.id;
+  const workflowRuns = project.workflow_runs ?? [];
+  const humanApprovalRun = getWorkflowRunByType(workflowRuns, WorkflowRunType.HumanApproval);
+
   const approveMutation = useMutation({
-    mutationFn: () =>
-      approveCheckpointApiProjectProjectIdApprovePost({
-        path: { project_id: projectId },
+    mutationFn: () => {
+      if (!humanApprovalRun) {
+        throw new Error('Human approval workflow not found');
+      }
+      return approveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePost({
+        path: { workflow_run_id: humanApprovalRun.run.id },
         body: { checkpoint: ApprovalCheckpoint.ReferenceReview },
-      }),
+      });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project', projectId] });
       toast.success('Continuing to project...');
@@ -148,13 +156,18 @@ function ReferencesReady({ project }: { project: ProjectDetailed }) {
   const references = useReferenceReviewReferences(project);
   const fetchAllFromWebMutation = useFetchAllFromWebMutation(projectId);
   const referenceDownloader = getWorkflowRunByType(workflowDetails, WorkflowRunType.ReferenceDownloader);
+  const humanApprovalRun = getWorkflowRunByType(workflowDetails, WorkflowRunType.HumanApproval);
 
   const approveMutation = useMutation({
-    mutationFn: () =>
-      approveCheckpointApiProjectProjectIdApprovePost({
-        path: { project_id: projectId },
+    mutationFn: () => {
+      if (!humanApprovalRun) {
+        throw new Error('Human approval workflow not found');
+      }
+      return approveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePost({
+        path: { workflow_run_id: humanApprovalRun.run.id },
         body: { checkpoint: ApprovalCheckpoint.ReferenceReview },
-      }),
+      });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project', projectId] });
       toast.success('References confirmed! Analyses will now proceed.');

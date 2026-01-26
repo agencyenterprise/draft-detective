@@ -9,9 +9,9 @@ import type {
   AddFileToProjectApiProjectProjectIdFilePostData,
   AddFileToProjectApiProjectProjectIdFilePostErrors,
   AddFileToProjectApiProjectProjectIdFilePostResponses,
-  ApproveCheckpointApiProjectProjectIdApprovePostData,
-  ApproveCheckpointApiProjectProjectIdApprovePostErrors,
-  ApproveCheckpointApiProjectProjectIdApprovePostResponses,
+  ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostData,
+  ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostErrors,
+  ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostResponses,
   CheckPreflightApiPreflightPostData,
   CheckPreflightApiPreflightPostErrors,
   CheckPreflightApiPreflightPostResponses,
@@ -420,25 +420,28 @@ export const getPageImageApiWorkflowRunsWorkflowRunIdPagesPageNumGet = <ThrowOnE
   });
 
 /**
- * Approve Checkpoint
+ * Approve Workflow Run
  *
- * Approve a human checkpoint and trigger workflow completion.
+ * Approve a workflow run that requires human approval.
  *
- * This marks the HUMAN_APPROVAL workflow as ready to complete,
- * which unblocks any dependent workflows (e.g., CLAIM_REFERENCE_VALIDATION).
+ * The workflow must:
+ * 1. Exist and belong to a project owned by the current user
+ * 2. Be a workflow type that supports human approval (requires_human_trigger=True)
+ *
+ * This unblocks any dependent workflows (e.g., CLAIM_REFERENCE_VALIDATION).
  */
-export const approveCheckpointApiProjectProjectIdApprovePost = <ThrowOnError extends boolean = true>(
-  options: Options<ApproveCheckpointApiProjectProjectIdApprovePostData, ThrowOnError>,
+export const approveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePost = <ThrowOnError extends boolean = true>(
+  options: Options<ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostData, ThrowOnError>,
 ) =>
   (options.client ?? client).post<
-    ApproveCheckpointApiProjectProjectIdApprovePostResponses,
-    ApproveCheckpointApiProjectProjectIdApprovePostErrors,
+    ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostResponses,
+    ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostErrors,
     ThrowOnError,
     'data'
   >({
     responseStyle: 'data',
     security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/api/project/{project_id}/approve',
+    url: '/api/workflow-runs/{workflow_run_id}/approve',
     ...options,
     headers: {
       'Content-Type': 'application/json',

@@ -14,6 +14,7 @@ from api.models import (
     StartWorkflowResponse,
 )
 from api.services.workflow_runner import (
+    resume_workflow_run,
     start_multiple_workflow_runs,
     start_workflow_run,
 )
@@ -26,15 +27,13 @@ from lib.services.authorization import has_access_to_workflow_run
 from lib.services.projects import create_project, get_user_project
 from lib.services.workflow_runs import (
     WorkflowRunDetail,
-    get_project_workflow_run_by_type,
-    get_thread_id_for_workflow_run,
     get_workflow_run,
     get_workflow_run_state,
     get_workflow_run_state_by_thread_id,
 )
 from lib.workflows.human_approval.state import HumanApprovalConfig
 from lib.workflows.models import WorkflowRunType
-from lib.workflows.runner import run_workflow_with_dependency_check
+from lib.workflows.registry import get_workflow_manifest
 from lib.workflows.types import WorkflowConfig
 
 router = APIRouter(tags=["workflows"])
@@ -153,56 +152,50 @@ async def get_page_image(
 
 
 @router.post(
-    "/api/project/{project_id}/approve",
+    "/api/workflow-runs/{workflow_run_id}/approve",
     response_model=ApproveCheckpointResponse,
 )
-async def approve_checkpoint(
-    project_id: str,
+async def approve_workflow_run(
+    workflow_run_id: str,
     request: ApproveCheckpointRequest,
     background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
 ):
     """
-    Approve a human checkpoint and trigger workflow completion.
+    Approve a workflow run that requires human approval.
 
-    This marks the HUMAN_APPROVAL workflow as ready to complete,
-    which unblocks any dependent workflows (e.g., CLAIM_REFERENCE_VALIDATION).
+    The workflow must:
+    1. Exist and belong to a project owned by the current user
+    2. Be a workflow type that supports human approval (requires_human_trigger=True)
+
+    This unblocks any dependent workflows (e.g., CLAIM_REFERENCE_VALIDATION).
     """
-    await get_user_project(project_id, user=current_user)
+    workflow_run = await get_workflow_run(workflow_run_id, user=current_user)
 
-    workflow_run = await get_project_workflow_run_by_type(
-        project_id, WorkflowRunType.HUMAN_APPROVAL
-    )
-
-    if workflow_run is None:
+    # Validate this workflow type supports human approval
+    manifest = get_workflow_manifest(workflow_run.type)
+    if not manifest.requires_human_trigger:
         raise HTTPException(
-            status_code=404,
-            detail="Human approval workflow not found for this project",
+            status_code=400,
+            detail=f"Workflow type '{workflow_run.type.value}' does not require human approval",
         )
 
     if workflow_run.status == WorkflowRunStatus.COMPLETED:
         return ApproveCheckpointResponse(
             message="Already approved",
             checkpoint=request.checkpoint,
-            workflow_run_id=str(workflow_run.id),
+            workflow_run_id=workflow_run_id,
         )
 
     config = HumanApprovalConfig(
-        project_id=project_id,
+        project_id=str(workflow_run.project_id),
         checkpoint=request.checkpoint,
     )
-    thread_id = get_thread_id_for_workflow_run(workflow_run)
 
-    background_tasks.add_task(
-        run_workflow_with_dependency_check,
-        config=config,
-        thread_id=thread_id,
-        workflow_run_id=str(workflow_run.id),
-        user=current_user,
-    )
+    await resume_workflow_run(workflow_run, config, current_user, background_tasks)
 
     return ApproveCheckpointResponse(
         message=f"Checkpoint '{request.checkpoint}' approved",
         checkpoint=request.checkpoint,
-        workflow_run_id=str(workflow_run.id),
+        workflow_run_id=workflow_run_id,
     )

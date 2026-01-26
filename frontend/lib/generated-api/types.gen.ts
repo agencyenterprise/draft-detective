@@ -4366,37 +4366,37 @@ export type GetPageImageApiWorkflowRunsWorkflowRunIdPagesPageNumGetResponses = {
   200: unknown;
 };
 
-export type ApproveCheckpointApiProjectProjectIdApprovePostData = {
+export type ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostData = {
   body: ApproveCheckpointRequest;
   path: {
     /**
-     * Project Id
+     * Workflow Run Id
      */
-    project_id: string;
+    workflow_run_id: string;
   };
   query?: never;
-  url: '/api/project/{project_id}/approve';
+  url: '/api/workflow-runs/{workflow_run_id}/approve';
 };
 
-export type ApproveCheckpointApiProjectProjectIdApprovePostErrors = {
+export type ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostErrors = {
   /**
    * Validation Error
    */
   422: HttpValidationError;
 };
 
-export type ApproveCheckpointApiProjectProjectIdApprovePostError =
-  ApproveCheckpointApiProjectProjectIdApprovePostErrors[keyof ApproveCheckpointApiProjectProjectIdApprovePostErrors];
+export type ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostError =
+  ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostErrors[keyof ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostErrors];
 
-export type ApproveCheckpointApiProjectProjectIdApprovePostResponses = {
+export type ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostResponses = {
   /**
    * Successful Response
    */
   200: ApproveCheckpointResponse;
 };
 
-export type ApproveCheckpointApiProjectProjectIdApprovePostResponse =
-  ApproveCheckpointApiProjectProjectIdApprovePostResponses[keyof ApproveCheckpointApiProjectProjectIdApprovePostResponses];
+export type ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostResponse =
+  ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostResponses[keyof ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostResponses];
 
 export type GetWorkflowTypesApiWorkflowTypesGetData = {
   body?: never;
