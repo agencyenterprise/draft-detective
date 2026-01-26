@@ -45,7 +45,7 @@ export function ReferenceReviewTab({ projectDetail, readOnly }: ReferenceReviewT
   const handleConfirm = (values: WorkflowConfigFormValues) => {
     const unmatchedReferences = references
       .filter((ref) => ref.status === 'unmatched')
-      .map((ref) => ({ index: ref.index, text: ref.text }));
+      .map((ref) => ({ reference_id: ref.id, text: ref.text }));
     fetchAllFromWebMutation.mutate(
       { references: unmatchedReferences, openaiApiKey: values.openaiApiKey },
       { onSuccess: () => setIsConfigDialogOpen(false) },

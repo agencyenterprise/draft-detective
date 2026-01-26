@@ -69,14 +69,14 @@ export interface ReferenceCardProps {
 type DialogMode = 'upload' | 'replace' | null;
 
 export function ReferenceCard({ reference, projectId, readOnly }: ReferenceCardProps) {
-  const { index, text, status, matchedFile, fetchResult, validation } = reference;
+  const { id, index, text, status, matchedFile, fetchResult, validation } = reference;
   const [dialogMode, setDialogMode] = useState<DialogMode>(null);
   const [isFetchDialogOpen, setIsFetchDialogOpen] = useState(false);
 
-  const uploadFileMutation = useUploadFileMutation(projectId, index);
+  const uploadFileMutation = useUploadFileMutation(projectId, id);
   const removeFileMutation = useRemoveFileMutation(projectId, matchedFile?.id);
-  const replaceFileMutation = useReplaceFileMutation(projectId, index, matchedFile?.id);
-  const fetchFromWebMutation = useFetchFromWebMutation(projectId, index, text);
+  const replaceFileMutation = useReplaceFileMutation(projectId, id, matchedFile?.id);
+  const fetchFromWebMutation = useFetchFromWebMutation(projectId, id, text);
 
   const isUploading = uploadFileMutation.isPending;
   const isRemoving = removeFileMutation.isPending;
