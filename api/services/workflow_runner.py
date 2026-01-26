@@ -3,6 +3,7 @@ import logging
 from typing import List
 
 from fastapi import BackgroundTasks, HTTPException
+from pydantic import BaseModel
 
 from api.models import StartMultipleWorkflowsRequest
 from lib.models.user import User
@@ -18,6 +19,15 @@ from lib.workflows.dependency_resolver import resolve_workflow_dependencies
 from lib.workflows.registry import get_workflow_manifest
 from lib.workflows.runner import run_workflow_with_dependency_check
 from lib.workflows.types import WorkflowConfig
+
+
+class AutoRunWorkflowItem(BaseModel):
+    """Groups workflow data needed for auto-running a workflow."""
+
+    config: WorkflowConfig
+    thread_id: str
+    workflow_run_id: str
+
 
 logger = logging.getLogger(__name__)
 
@@ -100,9 +110,7 @@ async def start_multiple_workflow_runs(
     )
 
     workflow_run_ids: List[str] = []
-    auto_run_configs: List[WorkflowConfig] = []
-    auto_run_thread_ids: List[str] = []
-    auto_run_workflow_run_ids: List[str] = []
+    auto_run_items: List[AutoRunWorkflowItem] = []
 
     for workflow_type in resolved_workflow_types:
         existing_run = await get_project_workflow_run_by_type(
@@ -143,19 +151,21 @@ async def start_multiple_workflow_runs(
             )
             continue
 
-        auto_run_configs.append(workflow_config)
-        auto_run_thread_ids.append(thread_id)
-        auto_run_workflow_run_ids.append(workflow_run_id)
+        auto_run_items.append(
+            AutoRunWorkflowItem(
+                config=workflow_config,
+                thread_id=thread_id,
+                workflow_run_id=workflow_run_id,
+            )
+        )
 
-    if auto_run_configs:
+    if auto_run_items:
         logger.info(
-            f"Auto-running {len(auto_run_configs)} workflows: {[c.type.value for c in auto_run_configs]}"
+            f"Auto-running {len(auto_run_items)} workflows: {[item.config.type.value for item in auto_run_items]}"
         )
         background_tasks.add_task(
             _run_multiple_workflows_concurrently,
-            workflow_configs=auto_run_configs,
-            thread_ids=auto_run_thread_ids,
-            workflow_run_ids=auto_run_workflow_run_ids,
+            items=auto_run_items,
             user=user,
         )
     else:
@@ -167,9 +177,7 @@ async def start_multiple_workflow_runs(
 
 
 async def _run_multiple_workflows_concurrently(
-    workflow_configs: List[WorkflowConfig],
-    thread_ids: List[str],
-    workflow_run_ids: List[str],
+    items: List[AutoRunWorkflowItem],
     user: User,
 ) -> None:
     """
@@ -179,29 +187,25 @@ async def _run_multiple_workflows_concurrently(
     before starting execution. Workflows run in parallel while still respecting dependencies.
 
     Args:
-        workflow_configs: List of workflow configs to run
-        thread_ids: List of thread IDs corresponding to each workflow config
-        workflow_run_ids: List of workflow run IDs for same-type locking
+        items: List of workflow items containing config, thread_id, and workflow_run_id
         user: User running the workflows
     """
-    if not workflow_configs:
+    if not items:
         return
 
     logger.info(
-        f"Running {len(workflow_configs)} workflows concurrently: {[c.type.value for c in workflow_configs]}"
+        f"Running {len(items)} workflows concurrently: {[item.config.type.value for item in items]}"
     )
 
     # Create tasks for all workflows - they will run in parallel
     tasks = [
         run_workflow_with_dependency_check(
-            config=config,
-            thread_id=thread_id,
-            workflow_run_id=workflow_run_id,
+            config=item.config,
+            thread_id=item.thread_id,
+            workflow_run_id=item.workflow_run_id,
             user=user,
         )
-        for config, thread_id, workflow_run_id in zip(
-            workflow_configs, thread_ids, workflow_run_ids
-        )
+        for item in items
     ]
 
     # Run all workflows concurrently - each will handle its own dependency waiting
@@ -211,6 +215,6 @@ async def _run_multiple_workflows_concurrently(
     for i, result in enumerate(results):
         if isinstance(result, Exception):
             logger.error(
-                f"Workflow {workflow_configs[i].type.value} failed: {result}",
+                f"Workflow {items[i].config.type.value} failed: {result}",
                 exc_info=True,
             )

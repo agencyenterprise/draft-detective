@@ -8,10 +8,11 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { UploadSection } from '@/components/analysis-form/upload-section';
 import { WorkflowTypeSelector } from '@/components/workflows/workflow-type-selector';
+import { WebSearchConsentCheckbox } from '@/components/workflows/web-search-consent-checkbox';
 import { useWizard } from './wizard-context';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { useSessionStorage } from '@/lib/hooks/use-session-storage';
-import { hasSupportingDocumentsRequirement } from '@/components/workflows/utils';
+import { hasSupportingDocumentsRequirement, hasWebSearchRequirement } from '@/components/workflows/utils';
 import {
   WorkflowRunType,
   addFilesToProjectApiProjectProjectIdFilesPost,
@@ -32,8 +33,10 @@ export function StepAnalyses() {
   const [supportingDocuments, setSupportingDocuments] = useState<File[]>([]);
   const [domain, setDomain] = useState('');
   const [targetAudience, setTargetAudience] = useState('');
+  const [webSearchConsent, setWebSearchConsent] = useState(false);
 
   const showSupportingDocs = hasSupportingDocumentsRequirement(selectedWorkflowTypes);
+  const needsWebSearch = hasWebSearchRequirement(selectedWorkflowTypes, workflowTypes);
   const needsReferenceReview = showSupportingDocs && supportingDocuments.length > 0;
 
   const { setNeedsReferencesStep } = wizard;
@@ -105,7 +108,7 @@ export function StepAnalyses() {
     startAnalysisMutation.mutate();
   };
 
-  const canContinue = selectedWorkflowTypes.length > 0;
+  const canContinue = selectedWorkflowTypes.length > 0 && (!needsWebSearch || webSearchConsent);
   const isSubmitting = startAnalysisMutation.isPending || startAnalysisMutation.isSuccess;
 
   if (isSubmitting) {
@@ -140,6 +143,8 @@ export function StepAnalyses() {
         onSelectionChange={setSelectedWorkflowTypes}
         headerDescription="Select which types of analyses to perform"
       />
+
+      {needsWebSearch && <WebSearchConsentCheckbox checked={webSearchConsent} onCheckedChange={setWebSearchConsent} />}
 
       {showSupportingDocs && (
         <UploadSection
