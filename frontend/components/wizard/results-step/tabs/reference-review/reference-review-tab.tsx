@@ -1,8 +1,9 @@
 import { NoReferencesCallout } from '@/components/references/no-reference-section-callout';
 import { WorkflowConfigDialog, WorkflowConfigFormValues } from '@/components/workflows/workflow-config-dialog';
-import { ProjectDetailed, WorkflowRunType } from '@/lib/generated-api';
+import { WorkflowRunType } from '@/lib/generated-api';
+import { useProjectDetails } from '@/lib/hooks/use-project-details';
 import { getReferenceExtractionWarningStatus, getWorkflowRunByType, isWorkflowProcessing } from '@/lib/workflow-state';
-import { FileText } from 'lucide-react';
+import { FileText, Loader2 } from 'lucide-react';
 import { useState } from 'react';
 import { FileUploadDialog } from './file-upload-dialog';
 import { useFetchAllFromWebMutation, useBatchUploadMutation } from './mutations';
@@ -10,17 +11,17 @@ import { useReferenceReviewReferences } from './queries';
 import { ReferenceReviewList } from './reference-review-list';
 
 interface ReferenceReviewTabProps {
-  projectDetail: ProjectDetailed;
-  readOnly: boolean;
+  projectId: string;
+  readOnly?: boolean;
 }
 
-export function ReferenceReviewTab({ projectDetail, readOnly }: ReferenceReviewTabProps) {
-  const projectId = projectDetail.project.id;
-  const workflowDetails = projectDetail.workflow_runs ?? [];
+export function ReferenceReviewTab({ projectId, readOnly = false }: ReferenceReviewTabProps) {
+  const { project: projectDetail, isLoading } = useProjectDetails(projectId);
+  const workflowDetails = projectDetail?.workflow_runs ?? [];
   const [isConfigDialogOpen, setIsConfigDialogOpen] = useState(false);
   const [isBatchUploadDialogOpen, setIsBatchUploadDialogOpen] = useState(false);
 
-  const references = useReferenceReviewReferences(projectDetail);
+  const references = useReferenceReviewReferences(projectDetail ?? undefined);
   const fetchAllFromWebMutation = useFetchAllFromWebMutation(projectId);
   const batchUploadMutation = useBatchUploadMutation(projectId);
   const referenceExtraction = getWorkflowRunByType(workflowDetails, WorkflowRunType.ReferenceExtraction);
@@ -55,6 +56,14 @@ export function ReferenceReviewTab({ projectDetail, readOnly }: ReferenceReviewT
   const handleBatchUploadConfirm = (files: File[], openaiApiKey: string) => {
     batchUploadMutation.mutate({ files, openaiApiKey }, { onSuccess: () => setIsBatchUploadDialogOpen(false) });
   };
+
+  if (isLoading || !projectDetail) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   if (isExtractionProcessing) {
     return (

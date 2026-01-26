@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,7 +12,7 @@ import { WebSearchConsentCheckbox } from '@/components/workflows/web-search-cons
 import { useWizard } from './wizard-context';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { useSessionStorage } from '@/lib/hooks/use-session-storage';
-import { hasSupportingDocumentsRequirement, hasWebSearchRequirement } from '@/components/workflows/utils';
+import { hasWebSearchRequirement } from '@/components/workflows/utils';
 import {
   WorkflowRunType,
   addFilesToProjectApiProjectProjectIdFilesPost,
@@ -29,20 +29,14 @@ export function StepAnalyses() {
   const { data: workflowTypes } = useWorkflowTypes();
   const [storedApiKey] = useSessionStorage<string>('openai-api-key', '');
 
-  const [selectedWorkflowTypes, setSelectedWorkflowTypes] = useState<WorkflowRunType[]>([]);
+  const { selectedWorkflowTypes, setSelectedWorkflowTypes, needsReferencesStep } = wizard;
   const [supportingDocuments, setSupportingDocuments] = useState<File[]>([]);
   const [domain, setDomain] = useState('');
   const [targetAudience, setTargetAudience] = useState('');
   const [webSearchConsent, setWebSearchConsent] = useState(false);
 
-  const showSupportingDocs = hasSupportingDocumentsRequirement(selectedWorkflowTypes);
   const needsWebSearch = hasWebSearchRequirement(selectedWorkflowTypes, workflowTypes);
-  const needsReferenceReview = showSupportingDocs && supportingDocuments.length > 0;
-
-  const { setNeedsReferencesStep } = wizard;
-  useEffect(() => {
-    setNeedsReferencesStep(showSupportingDocs);
-  }, [showSupportingDocs, setNeedsReferencesStep]);
+  const needsReferenceReview = needsReferencesStep && supportingDocuments.length > 0;
 
   const startAnalysisMutation = useMutation({
     mutationFn: async () => {
@@ -146,7 +140,7 @@ export function StepAnalyses() {
 
       {needsWebSearch && <WebSearchConsentCheckbox checked={webSearchConsent} onCheckedChange={setWebSearchConsent} />}
 
-      {showSupportingDocs && (
+      {needsReferencesStep && (
         <UploadSection
           title="Supporting Documents"
           description="Reference documents cited in your main document's reference section (e.g., PDFs of cited papers or news websites). These enable validation of claims against their cited sources."

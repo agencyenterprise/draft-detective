@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -11,12 +10,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Callout } from '@/components/ui/callout';
 import { useWizard } from './wizard-context';
 import { useProjectDetails } from '@/lib/hooks/use-project-details';
-import { useReferenceReviewReferences } from '@/components/wizard/results-step/tabs/reference-review/queries';
-import { ReferenceReviewList } from '@/components/wizard/results-step/tabs/reference-review/reference-review-list';
-import { useFetchAllFromWebMutation } from '@/components/wizard/results-step/tabs/reference-review/mutations';
-import { WorkflowConfigDialog, WorkflowConfigFormValues } from '@/components/workflows/workflow-config-dialog';
+import { ReferenceReviewTab } from '@/components/wizard/results-step/tabs/reference-review/reference-review-tab';
 import {
   ProjectDetailed,
+  WorkflowRunDetail,
   WorkflowRunType,
   ApprovalCheckpoint,
   approveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePost,
@@ -90,8 +87,8 @@ function NoReferencesView({ project }: { project: ProjectDetailed }) {
   const queryClient = useQueryClient();
 
   const projectId = project.project.id;
-  const workflowRuns = project.workflow_runs ?? [];
-  const humanApprovalRun = getWorkflowRunByType(workflowRuns, WorkflowRunType.HumanApproval);
+  const workflowRuns: WorkflowRunDetail[] = project.workflow_runs ?? [];
+  const humanApprovalRun = workflowRuns.find((run) => run.run.type === WorkflowRunType.HumanApproval);
 
   const approveMutation = useMutation({
     mutationFn: () => {
@@ -149,14 +146,10 @@ function NoReferencesView({ project }: { project: ProjectDetailed }) {
 function ReferencesReady({ project }: { project: ProjectDetailed }) {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const [isConfigDialogOpen, setIsConfigDialogOpen] = useState(false);
 
   const projectId = project.project.id;
-  const workflowDetails = project.workflow_runs ?? [];
-  const references = useReferenceReviewReferences(project);
-  const fetchAllFromWebMutation = useFetchAllFromWebMutation(projectId);
-  const referenceDownloader = getWorkflowRunByType(workflowDetails, WorkflowRunType.ReferenceDownloader);
-  const humanApprovalRun = getWorkflowRunByType(workflowDetails, WorkflowRunType.HumanApproval);
+  const workflowDetails: WorkflowRunDetail[] = project.workflow_runs ?? [];
+  const humanApprovalRun = workflowDetails.find((run) => run.run.type === WorkflowRunType.HumanApproval);
 
   const approveMutation = useMutation({
     mutationFn: () => {
@@ -178,44 +171,16 @@ function ReferencesReady({ project }: { project: ProjectDetailed }) {
     },
   });
 
-  const handleOpenDialog = () => setIsConfigDialogOpen(true);
-
-  const handleConfirm = (values: WorkflowConfigFormValues) => {
-    const unmatchedReferences = references
-      .filter((ref) => ref.status === 'unmatched')
-      .map((ref) => ({ index: ref.index, text: ref.text }));
-    fetchAllFromWebMutation.mutate(
-      { references: unmatchedReferences, openaiApiKey: values.openaiApiKey },
-      { onSuccess: () => setIsConfigDialogOpen(false) },
-    );
-  };
-
   return (
     <div className="space-y-8">
       <div className="space-y-2">
         <h1 className="text-2xl font-bold">Review References</h1>
         <p className="text-muted-foreground">
-          We found {references.length} references in your document. Match them with supporting documents for validation.
+          Review and match extracted references with supporting documents for validation.
         </p>
       </div>
 
-      <WorkflowConfigDialog
-        isOpen={isConfigDialogOpen}
-        type={WorkflowRunType.ReferenceDownloader}
-        onConfirm={handleConfirm}
-        onCancel={() => setIsConfigDialogOpen(false)}
-      />
-
-      <ReferenceReviewList
-        references={references}
-        projectId={projectId}
-        readOnly={false}
-        onFetchAll={handleOpenDialog}
-        isFetchingAllFromWeb={fetchAllFromWebMutation.isPending || isWorkflowProcessing(referenceDownloader)}
-        isBatchUploading={false}
-        disableActions={false}
-        onBatchUpload={() => {}}
-      />
+      <ReferenceReviewTab projectId={projectId} />
 
       <Button
         onClick={() => approveMutation.mutate()}
