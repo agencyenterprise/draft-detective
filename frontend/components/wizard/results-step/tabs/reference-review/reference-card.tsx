@@ -11,6 +11,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { CloudDownload, ExternalLink, FileText, FileX, GlobeIcon, Loader2, Trash2, Upload } from 'lucide-react';
 import Link from 'next/link';
 import { Markdown } from '@/components/markdown';
@@ -64,11 +65,12 @@ export interface ReferenceCardProps {
   reference: ReferenceReviewItem;
   projectId: string;
   readOnly: boolean;
+  disabled?: boolean;
 }
 
 type DialogMode = 'upload' | 'replace' | null;
 
-export function ReferenceCard({ reference, projectId, readOnly }: ReferenceCardProps) {
+export function ReferenceCard({ reference, projectId, readOnly, disabled = false }: ReferenceCardProps) {
   const { id, index, text, status, matchedFile, fetchResult, validation } = reference;
   const [dialogMode, setDialogMode] = useState<DialogMode>(null);
   const [isFetchDialogOpen, setIsFetchDialogOpen] = useState(false);
@@ -83,6 +85,7 @@ export function ReferenceCard({ reference, projectId, readOnly }: ReferenceCardP
   const isReplacing = replaceFileMutation.isPending;
   const isFetching = fetchFromWebMutation.isPending;
   const isLoading = isUploading || isRemoving || isReplacing || isFetching;
+  const isDisabled = isLoading || disabled;
 
   const handleDialogConfirm = (files: File[], openaiApiKey: string) => {
     const file = files[0];
@@ -118,7 +121,7 @@ export function ReferenceCard({ reference, projectId, readOnly }: ReferenceCardP
   };
 
   return (
-    <div className="border rounded-lg p-4 bg-white transition-colors border-gray-200">
+    <div className={cn('border rounded-lg p-4 bg-white transition-all border-gray-200', disabled && 'opacity-60')}>
       <FileUploadDialog
         isOpen={dialogMode !== null}
         isUploading={isUploading || isReplacing}
@@ -144,11 +147,11 @@ export function ReferenceCard({ reference, projectId, readOnly }: ReferenceCardP
             <MatchStatusBadge status={status} />
             {status === 'unmatched' && !readOnly && (
               <div className="flex items-center gap-1">
-                <Button variant="outline" size="xs" disabled={isLoading} onClick={() => setIsFetchDialogOpen(true)}>
+                <Button variant="outline" size="xs" disabled={isDisabled} onClick={() => setIsFetchDialogOpen(true)}>
                   {isFetching ? <Loader2 className="w-4 h-4 animate-spin" /> : <GlobeIcon className="w-4 h-4" />}
                   {isFetching ? 'Fetching...' : 'Fetch from the web'}
                 </Button>
-                <Button variant="outline" size="xs" onClick={() => setDialogMode('upload')} disabled={isLoading}>
+                <Button variant="outline" size="xs" onClick={() => setDialogMode('upload')} disabled={isDisabled}>
                   {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
                   {isUploading ? 'Uploading...' : 'Upload supporting document'}
                 </Button>
@@ -177,13 +180,13 @@ export function ReferenceCard({ reference, projectId, readOnly }: ReferenceCardP
 
               {!readOnly && (
                 <div className="flex gap-2 justify-end">
-                  <Button variant="outline" size="xs" onClick={() => setDialogMode('replace')} disabled={isLoading}>
+                  <Button variant="outline" size="xs" onClick={() => setDialogMode('replace')} disabled={isDisabled}>
                     {isReplacing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
                     {isReplacing ? 'Uploading...' : 'Replace'}
                   </Button>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <Button variant="outline" size="xs" disabled={isLoading}>
+                      <Button variant="outline" size="xs" disabled={isDisabled}>
                         {isRemoving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
                         {isRemoving ? 'Removing...' : 'Remove'}
                       </Button>

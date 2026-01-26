@@ -6,7 +6,7 @@ import { DocRenderMode } from '@/lib/constants';
 import { ProjectDetailed, updateProjectEndpointApiProjectProjectIdPatch, WorkflowRunType } from '@/lib/generated-api';
 import { useProjectDetails } from '@/lib/hooks/use-project-details';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
-import { isAnyWorkflowProcessing, needsWizardCompletion } from '@/lib/workflow-state';
+import { isAnyWorkflowProcessing, needsHumanApproval, needsWizardCompletion } from '@/lib/workflow-state';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useState, useEffect, useMemo } from 'react';
@@ -38,13 +38,18 @@ export default function ResultsPage() {
   // Redirect to wizard step 2 if project only has document processing started
   // Skip if we just came from the wizard (workflows may not be in DB yet)
   useEffect(() => {
-    if (
-      !fromWizard &&
-      !isLoading &&
-      workflowDetails.length > 0 &&
-      needsWizardCompletion(workflowDetails, internalTypes)
-    ) {
+    if (fromWizard || isLoading || workflowDetails.length === 0) {
+      return;
+    }
+
+    if (needsWizardCompletion(workflowDetails, internalTypes)) {
       router.replace(`/new?projectId=${projectId}`);
+      return;
+    }
+
+    if (needsHumanApproval(workflowDetails)) {
+      router.replace(`/new?projectId=${projectId}&step=3`);
+      return;
     }
   }, [fromWizard, isLoading, workflowDetails, projectId, router, internalTypes]);
 

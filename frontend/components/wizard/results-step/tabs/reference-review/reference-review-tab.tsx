@@ -1,8 +1,13 @@
 import { NoReferencesCallout } from '@/components/references/no-reference-section-callout';
+import { Progress } from '@/components/ui/progress';
 import { WorkflowConfigDialog, WorkflowConfigFormValues } from '@/components/workflows/workflow-config-dialog';
-import { WorkflowRunType } from '@/lib/generated-api';
+import {
+  WorkflowRunType,
+  getProjectWorkflowProgressEndpointApiProjectProjectIdWorkflowProgressGet,
+} from '@/lib/generated-api';
 import { useProjectDetails } from '@/lib/hooks/use-project-details';
 import { getReferenceExtractionWarningStatus, getWorkflowRunByType, isWorkflowProcessing } from '@/lib/workflow-state';
+import { useQuery } from '@tanstack/react-query';
 import { FileText, Loader2 } from 'lucide-react';
 import { useState } from 'react';
 import { FileUploadDialog } from './file-upload-dialog';
@@ -33,11 +38,25 @@ export function ReferenceReviewTab({ projectId, readOnly = false }: ReferenceRev
 
   const isBatchUploading = batchUploadMutation.isPending;
   const isFetchingAllFromWeb = fetchAllFromWebMutation.isPending || isWorkflowProcessing(referenceDownloader);
+  const isProcessingFiles = isWorkflowProcessing(documentProcessing) || isWorkflowProcessing(referenceFileMatching);
 
-  const disableActions =
-    isWorkflowProcessing(documentProcessing) ||
-    isWorkflowProcessing(referenceDownloader) ||
-    isWorkflowProcessing(referenceFileMatching);
+  const disableActions = isProcessingFiles || isWorkflowProcessing(referenceDownloader);
+
+  const { data: progressData } = useQuery({
+    queryKey: ['project-workflow-progress', projectId],
+    queryFn: () =>
+      getProjectWorkflowProgressEndpointApiProjectProjectIdWorkflowProgressGet({
+        path: { project_id: projectId },
+      }),
+    enabled: isExtractionProcessing,
+    refetchInterval: 3000,
+  });
+
+  const extractionProgress = progressData?.find((p) => p.workflow_run_id === referenceExtraction?.run.id);
+  const progressPercent =
+    extractionProgress?.total_steps && extractionProgress.total_steps > 0
+      ? Math.round((extractionProgress.current_step / extractionProgress.total_steps) * 100)
+      : 0;
 
   const handleOpenDialog = () => {
     setIsConfigDialogOpen(true);
@@ -74,10 +93,25 @@ export function ReferenceReviewTab({ projectId, readOnly = false }: ReferenceRev
           </div>
           <div className="absolute inset-0 w-24 h-24 rounded-full border-4 border-blue-200 border-t-blue-500 animate-spin" />
         </div>
-        <div className="text-center space-y-2">
-          <p className="font-medium text-lg">Extracting references...</p>
-          <p className="text-sm text-muted-foreground">
-            This should take approximately 10 minutes for a document with 100 reference list items.
+        <div className="text-center space-y-3 max-w-md">
+          <p className="font-medium text-lg">Finding references in your document...</p>
+
+          {extractionProgress && extractionProgress.total_steps > 0 ? (
+            <div className="space-y-2 w-full max-w-xs mx-auto">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">
+                  Reference {extractionProgress.current_step} of {extractionProgress.total_steps}
+                </span>
+                <span className="font-medium text-primary">{progressPercent}%</span>
+              </div>
+              <Progress value={progressPercent} className="h-2" />
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">This usually takes 2-10 minutes depending on document size.</p>
+          )}
+
+          <p className="text-xs text-muted-foreground">
+            You can leave this page — we&apos;ll keep working in the background.
           </p>
         </div>
       </div>
@@ -110,6 +144,7 @@ export function ReferenceReviewTab({ projectId, readOnly = false }: ReferenceRev
         onFetchAll={handleOpenDialog}
         isFetchingAllFromWeb={isFetchingAllFromWeb}
         isBatchUploading={isBatchUploading}
+        isProcessingFiles={isProcessingFiles}
         disableActions={disableActions}
         onBatchUpload={() => setIsBatchUploadDialogOpen(true)}
       />

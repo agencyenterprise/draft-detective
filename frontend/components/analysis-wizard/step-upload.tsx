@@ -30,11 +30,16 @@ export function StepUpload({ onComplete }: StepUploadProps) {
 
   return (
     <div className="space-y-8">
-      <h1 className="text-2xl font-bold">Document Upload & API Configuration</h1>
+      <div className="space-y-2">
+        <h1 className="text-2xl font-bold">Let's start with your draft</h1>
+        <p className="text-muted-foreground">
+          Upload the document you'd like us to review. We'll extract its content and prepare it for analysis.
+        </p>
+      </div>
 
       <UploadSection
-        title="Main Document"
-        description="Primary document for analysis. Word documents are preferred (less LLM conversion errors) but PDFs are also supported."
+        title="Your document"
+        description="Drop your file here — we support Word (.docx) and PDF formats. Word is recommended for best results."
         required
         onFilesChange={handleDocumentChange}
         multiple={false}
@@ -46,7 +51,7 @@ export function StepUpload({ onComplete }: StepUploadProps) {
       {!hideApiKeyInput && (
         <div className="space-y-2">
           <Label htmlFor="openai-api-key">
-            OpenAI API Key <span className="text-destructive ml-1">*</span>
+            Your OpenAI API Key <span className="text-destructive ml-1">*</span>
           </Label>
           <div className="relative">
             <Input
@@ -68,16 +73,16 @@ export function StepUpload({ onComplete }: StepUploadProps) {
             </button>
           </div>
           <p className="text-sm text-muted-foreground">
-            Your OpenAI API key will be used only for this analysis session and will not be stored in our database.
+            We use this to run the AI analysis. It's never stored on our servers.
           </p>
         </div>
       )}
 
       <div className="space-y-3">
-        <h3 className="text-lg font-semibold">Preflight Validation</h3>
+        <h3 className="text-lg font-semibold">Getting things ready...</h3>
         <div className="space-y-2">
-          {!hideApiKeyInput && <ValidationItem label="OpenAI Key Validation" status={preflightStatus.apiKey} />}
-          <ValidationItem label="Document Format Check" status={preflightStatus.format} />
+          {!hideApiKeyInput && <ValidationItem label="API key looks good" status={preflightStatus.apiKey} />}
+          <ValidationItem label="Document ready to process" status={preflightStatus.format} />
         </div>
       </div>
 
@@ -85,10 +90,10 @@ export function StepUpload({ onComplete }: StepUploadProps) {
         {isLoading ? (
           <>
             <Loader2 className="w-4 h-4 animate-spin mr-2" />
-            {isValidating ? 'Validating...' : 'Creating Project & Starting Processing...'}
+            {isValidating ? 'Validating...' : 'Setting up your project...'}
           </>
         ) : (
-          'Continue'
+          'Next: Choose your analyses →'
         )}
       </Button>
     </div>

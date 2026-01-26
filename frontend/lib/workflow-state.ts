@@ -5,6 +5,7 @@ import {
   ClaimReferenceValidationState,
   DocumentProcessingState,
   FootnoteExtractionState,
+  HumanApprovalState,
   InferenceValidationState,
   LiteratureReviewState,
   LiveReportsState,
@@ -161,4 +162,22 @@ export function needsWizardCompletion(workflowRuns: WorkflowRunDetail[], interna
   const hasUserWorkflows = workflowRuns.some((w) => !internalTypes.has(w.run.type));
 
   return hasDocProcessing && !hasUserWorkflows;
+}
+
+/**
+ * Checks if a project is waiting for human approval (step 3).
+ *
+ * A project needs human approval when:
+ * - It has a HumanApproval workflow run
+ * - The HumanApproval workflow has not been approved yet
+ *
+ * @param workflowRuns - The workflow runs to check
+ */
+export function needsHumanApproval(workflowRuns: WorkflowRunDetail[]): boolean {
+  const humanApprovalRun = workflowRuns.find((w) => w.run.type === WorkflowRunType.HumanApproval);
+
+  if (!humanApprovalRun) return false;
+
+  const state = humanApprovalRun.state as HumanApprovalState | null;
+  return !state?.approved;
 }

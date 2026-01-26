@@ -33,10 +33,17 @@ interface WizardProviderProps {
   children: ReactNode;
   initialApiKey?: string;
   initialProjectId?: string | null;
+  initialStep?: WizardStep;
 }
 
-export function WizardProvider({ children, initialApiKey = '', initialProjectId = null }: WizardProviderProps) {
-  const [currentStep, setCurrentStep] = useState<WizardStep>(initialProjectId ? 2 : 1);
+export function WizardProvider({
+  children,
+  initialApiKey = '',
+  initialProjectId = null,
+  initialStep,
+}: WizardProviderProps) {
+  // If initialStep is provided, use it. Otherwise, default to step 2 if we have a projectId, else step 1
+  const [currentStep, setCurrentStep] = useState<WizardStep>(initialStep ?? (initialProjectId ? 2 : 1));
   const [mainDocument, setMainDocument] = useState<File | null>(null);
   const [openaiApiKey, setApiKey] = useState(initialApiKey);
   const [projectId, setProjectId] = useState<string | null>(initialProjectId);
@@ -46,9 +53,10 @@ export function WizardProvider({ children, initialApiKey = '', initialProjectId 
   });
   const [selectedWorkflowTypes, setSelectedWorkflowTypes] = useState<WorkflowRunType[]>([]);
 
+  // If we're starting at step 3, we inherently need the references step
   const needsReferencesStep = useMemo(
-    () => hasSupportingDocumentsRequirement(selectedWorkflowTypes),
-    [selectedWorkflowTypes],
+    () => initialStep === 3 || hasSupportingDocumentsRequirement(selectedWorkflowTypes),
+    [initialStep, selectedWorkflowTypes],
   );
 
   const setPreflightStatus = useCallback((status: Partial<WizardState['preflightStatus']>) => {

@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { WizardProvider, useWizard } from '@/components/analysis-wizard/wizard-context';
+import { WizardProvider, useWizard, WizardStep } from '@/components/analysis-wizard/wizard-context';
 import { StepIndicator } from '@/components/analysis-wizard/step-indicator';
 import { StepUpload } from '@/components/analysis-wizard/step-upload';
 import { StepAnalyses } from '@/components/analysis-wizard/step-analyses';
@@ -15,11 +15,11 @@ function WizardContent() {
 
   const steps = useMemo(() => {
     const baseSteps = [
-      { label: 'Upload & Key', completed: wizard.currentStep > 1 },
-      { label: 'Select Analyses', completed: wizard.currentStep > 2 },
+      { label: 'Your Document', completed: wizard.currentStep > 1 },
+      { label: 'Choose Analyses', completed: wizard.currentStep > 2 },
     ];
     if (wizard.needsReferencesStep) {
-      baseSteps.push({ label: 'Review References', completed: false });
+      baseSteps.push({ label: 'Add Sources', completed: false });
     }
     return baseSteps;
   }, [wizard.currentStep, wizard.needsReferencesStep]);
@@ -44,10 +44,14 @@ function WizardContent() {
 export default function New() {
   const searchParams = useSearchParams();
   const projectIdFromUrl = searchParams.get('projectId');
+  const stepFromUrl = searchParams.get('step');
   const [storedApiKey] = useSessionStorage<string>('openai-api-key', '');
 
+  const initialStep: WizardStep | undefined =
+    stepFromUrl && ['1', '2', '3'].includes(stepFromUrl) ? (parseInt(stepFromUrl, 10) as WizardStep) : undefined;
+
   return (
-    <WizardProvider initialApiKey={storedApiKey} initialProjectId={projectIdFromUrl}>
+    <WizardProvider initialApiKey={storedApiKey} initialProjectId={projectIdFromUrl} initialStep={initialStep}>
       <WizardContent />
     </WizardProvider>
   );
