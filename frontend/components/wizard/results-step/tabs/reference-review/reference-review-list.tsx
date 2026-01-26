@@ -157,7 +157,7 @@ export function ReferenceReviewList({
                 </Button>
               </TooltipTrigger>
               <TooltipContent className="max-w-xs">
-                We'll try to download the source PDFs automatically using DOIs and URLs found in your references.
+                We&apos;ll try to download the source PDFs automatically using DOIs and URLs found in your references.
               </TooltipContent>
             </Tooltip>
             <Tooltip>
@@ -168,7 +168,8 @@ export function ReferenceReviewList({
                 </Button>
               </TooltipTrigger>
               <TooltipContent className="max-w-xs">
-                Have the source PDFs on your computer? Upload them and we'll match them to references automatically.
+                Have the source PDFs on your computer? Upload them and we&apos;ll match them to references
+                automatically.
               </TooltipContent>
             </Tooltip>
             <DropdownMenu>
@@ -248,7 +249,7 @@ export function ReferenceReviewList({
             {stats.unmatched} reference{stats.unmatched === 1 ? '' : 's'}
           </button>
           {stats.unmatched === 1 ? " doesn't " : " don't "}
-          have source PDFs yet. Upload them or click "Fetch from web" to download automatically.
+          have source PDFs yet. Upload them or click &quot;Fetch from web&quot; to download automatically.
         </Callout>
       )}
 

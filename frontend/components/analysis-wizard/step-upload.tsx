@@ -31,9 +31,9 @@ export function StepUpload({ onComplete }: StepUploadProps) {
   return (
     <div className="space-y-8">
       <div className="space-y-2">
-        <h1 className="text-2xl font-bold">Let's start with your draft</h1>
+        <h1 className="text-2xl font-bold">Let&apos;s start with your draft</h1>
         <p className="text-muted-foreground">
-          Upload the document you'd like us to review. We'll extract its content and prepare it for analysis.
+          Upload the document you&apos;d like us to review. We&apos;ll extract its content and prepare it for analysis.
         </p>
       </div>
 
@@ -73,7 +73,7 @@ export function StepUpload({ onComplete }: StepUploadProps) {
             </button>
           </div>
           <p className="text-sm text-muted-foreground">
-            We use this to run the AI analysis. It's never stored on our servers.
+            We use this to run the AI analysis. It&apos;s never stored on our servers.
           </p>
         </div>
       )}

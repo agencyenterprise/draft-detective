@@ -130,7 +130,7 @@ export function StepAnalyses() {
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="target-audience">Who's the intended reader?</Label>
+          <Label htmlFor="target-audience">Who&apos;s the intended reader?</Label>
           <Input
             id="target-audience"
             placeholder="e.g., Policymakers, Researchers, General public..."

@@ -74,7 +74,7 @@ function NoReferencesView({ project }: { project: ProjectDetailed }) {
       <div className="space-y-2">
         <h1 className="text-2xl font-bold">No references found</h1>
         <p className="text-muted-foreground">
-          We couldn't find any citations in your document — that's okay! You can still continue.
+          We couldn&apos;t find any citations in your document — that&apos;s okay! You can still continue.
         </p>
       </div>
 
