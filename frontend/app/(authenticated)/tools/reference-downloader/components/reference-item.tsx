@@ -4,6 +4,7 @@ import { LabeledValue } from '@/components/labeled-value';
 import { Markdown } from '@/components/markdown';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { FileDownloadLink } from '@/components/ui/file-download-link';
 import { ReferenceFetchConclusion, ReferenceFetchResult, ReferenceFetchStatus } from '@/lib/generated-api';
 import { formatReferenceError } from '@/lib/utils';
 import {
@@ -126,10 +127,10 @@ export function ReferenceItem({ item, displayIndex }: ReferenceItemProps) {
         <div className="flex items-center gap-2 shrink-0">
           {result?.file_id && (
             <Button variant="outline" size="xs" asChild className="text-gray-600 hover:text-gray-900">
-              <a href={`/api/files/download/${result.file_id}`} target="_blank" rel="noopener noreferrer">
+              <FileDownloadLink fileId={result.file_id}>
                 <Download className="size-4 mr-1" />
                 Download
-              </a>
+              </FileDownloadLink>
             </Button>
           )}
         </div>

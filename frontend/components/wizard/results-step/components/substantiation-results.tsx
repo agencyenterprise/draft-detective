@@ -3,11 +3,11 @@
 import { LabeledValue } from '@/components/labeled-value';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
+import { FileDownloadLink } from '@/components/ui/file-download-link';
 import { ComposedReference } from '@/lib/composed-references';
 import { ClaimSubstantiationResultWithClaimIndex, FileDocument } from '@/lib/generated-api';
 import { cn } from '@/lib/utils';
 import { BookOpen, ChevronDown, ChevronRight, FileSearch } from 'lucide-react';
-import Link from 'next/link';
 import { useState } from 'react';
 import { EvidenceAlignmentLevelBadge } from './evidence-alignment-level-badge';
 
@@ -97,13 +97,12 @@ export function SubstantiationResults({
                             <LabeledValue label="Reference">
                               {matchedFile && matchedFile.file_id ? (
                                 <>
-                                  <Link
-                                    href={`/api/files/download/${matchedFile.file_id}`}
-                                    target="_blank"
+                                  <FileDownloadLink
+                                    fileId={matchedFile.file_id}
                                     className="text-blue-600 underline text-sm"
                                   >
                                     {source.reference_file_name}
-                                  </Link>{' '}
+                                  </FileDownloadLink>{' '}
                                   <span className="text-muted-foreground text-sm"> - {matchedReference?.text}</span>
                                 </>
                               ) : (

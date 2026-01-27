@@ -5,7 +5,6 @@ export type ReferenceReviewStatus = 'unmatched' | 'fetching' | 'matched';
 export interface MatchedFile {
   id: string;
   name: string;
-  url: string;
   size: string;
 }
 

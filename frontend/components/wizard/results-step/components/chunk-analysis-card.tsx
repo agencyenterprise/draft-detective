@@ -3,13 +3,13 @@
 import { LabeledValue } from '@/components/labeled-value';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { FileDownloadLink } from '@/components/ui/file-download-link';
 import { getChunkId } from '@/lib/chunk-ids';
 import { composeReferences } from '@/lib/composed-references';
 import { ProjectDetailed, WorkflowRunType } from '@/lib/generated-api';
 import { getChunkIssues, getMaxSeverity } from '@/lib/severity';
 import { getWorkflowRunByType } from '@/lib/workflow-state';
 import { ChevronDownIcon, ChevronRightIcon, LinkIcon, MessageCirclePlus } from 'lucide-react';
-import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { AnalysisResultCard } from './analysis-result-card';
 import { DocumentIssueCardMinimal } from './document-issue-card';
@@ -121,13 +121,9 @@ export function ChunkAnalysisCard({ chunkIndex, projectDetail }: ChunkAnalysisCa
                     <LabeledValue label="Needs bibliography">{citation.needs_bibliography ? 'Yes' : 'No'}</LabeledValue>
                     <LabeledValue label="Associated reference file">
                       {matchedSupportingFile ? (
-                        <Link
-                          href={`/api/files/download/${matchedSupportingFile.id}`}
-                          target="_blank"
-                          className="text-blue-600 underline"
-                        >
+                        <FileDownloadLink fileId={matchedSupportingFile.id} className="text-blue-600 underline">
                           {matchedSupportingFile.file_name}
-                        </Link>
+                        </FileDownloadLink>
                       ) : (
                         'None'
                       )}

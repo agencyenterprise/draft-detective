@@ -69,7 +69,6 @@ export function useReferenceReviewReferences(projectDetail: ProjectDetailed | un
           ? {
               id: matchedFile.id,
               name: matchedFile.file_name,
-              url: `/api/files/download/${matchedFile.id}`,
               size: formatFileSize(matchedFile.file_size),
             }
           : null,

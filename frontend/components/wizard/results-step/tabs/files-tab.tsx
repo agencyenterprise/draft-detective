@@ -11,13 +11,13 @@ import {
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { FileDownloadLink } from '@/components/ui/file-download-link';
 import { useDownloadAllProjectFiles } from '@/hooks/use-download-all-project-files';
 import { buildReferenceByFileIdMap, composeReferences } from '@/lib/composed-references';
 import { FileListItem, FileRole, ProjectDetailed, WorkflowRunType } from '@/lib/generated-api';
 import { cn } from '@/lib/utils';
 import { getWorkflowRunByType } from '@/lib/workflow-state';
 import { Download, FileText, HelpCircle, Loader2, MoreVerticalIcon, Pencil, Search, Trash2 } from 'lucide-react';
-import Link from 'next/link';
 import { useMemo, useState } from 'react';
 
 interface FilesTabProps {
@@ -70,14 +70,10 @@ function FileNameLink({ file }: { file: FileListItem }) {
   }
 
   return (
-    <Link
-      href={`/api/files/download/${file.id}`}
-      target="_blank"
-      className="text-blue-600 hover:underline flex items-center gap-2"
-    >
+    <FileDownloadLink fileId={file.id} className="text-blue-600 hover:underline flex items-center gap-2">
       <FileTypeIcon fileType={file.file_type} />
       {file.file_name || 'Unknown'}
-    </Link>
+    </FileDownloadLink>
   );
 }
 
