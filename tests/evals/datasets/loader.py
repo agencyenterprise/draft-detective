@@ -11,10 +11,10 @@ from pydantic import BaseModel, Field
 class TestConfig(BaseModel):
     """Model for test evaluation configuration."""
 
-    strict_fields: Optional[Union[set, dict]] = Field(default_factory=set)
-    llm_fields: Optional[Union[set, dict]] = Field(default_factory=set)
-    ignore_fields: Optional[Union[set, dict]] = Field(default_factory=set)
-    llm_instructions: Optional[str] = Field(
+    strict_fields: set | dict = Field(default_factory=lambda: set())
+    llm_fields: set | dict = Field(default_factory=lambda: set())
+    ignore_fields: set | dict = Field(default_factory=lambda: set())
+    llm_instructions: str | None = Field(
         default=None,
         description="Special instructions to include in the LLM-as-a-judge prompt for semantic comparison",
     )
@@ -35,7 +35,7 @@ class Dataset(BaseModel):
     name: str
     description: str
     items: List[DatasetItem]
-    test_config: Optional[TestConfig] = None
+    test_config: TestConfig
 
 
 def load_dataset(dataset_path: str) -> Dataset:

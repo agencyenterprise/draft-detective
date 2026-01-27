@@ -55,3 +55,7 @@ class ReferenceExtractionState(BaseWorkflowState):
     extracted_references: List[ExtractedReference] = Field(
         default_factory=list, description="Extracted references with unique IDs"
     )
+    reasoning: str = Field(
+        default="",
+        description="Step-by-step reasoning describing how references were found and extracted",
+    )
