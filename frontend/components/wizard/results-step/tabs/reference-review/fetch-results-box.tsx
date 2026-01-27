@@ -2,6 +2,7 @@ import { Button } from '@/components/ui/button';
 import { LabeledValue } from '@/components/labeled-value';
 import { Markdown } from '@/components/markdown';
 import { ReferenceFetchConclusion, ReferenceFetchResult, ReferenceFetchStatus } from '@/lib/generated-api';
+import { formatReferenceError } from '@/lib/utils';
 import {
   AlertCircle,
   AlertTriangle,
@@ -100,12 +101,7 @@ export function FetchResultsBox({ fetchResult }: FetchResultsBoxProps) {
       </div>
 
       {/* Fetch error message */}
-      {isFetchError && fetchResult.error && (
-        <div className="text-sm text-red-700">
-          <span className="font-medium">Error: </span>
-          {fetchResult.error}
-        </div>
-      )}
+      {isFetchError && <div className="text-sm text-red-700">{formatReferenceError(fetchResult.error)}</div>}
 
       {/* Fetching message */}
       {isFetchPending && (

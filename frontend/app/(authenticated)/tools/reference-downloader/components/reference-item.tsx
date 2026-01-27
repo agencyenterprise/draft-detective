@@ -5,6 +5,7 @@ import { Markdown } from '@/components/markdown';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ReferenceFetchConclusion, ReferenceFetchResult, ReferenceFetchStatus } from '@/lib/generated-api';
+import { formatReferenceError } from '@/lib/utils';
 import {
   AlertCircle,
   AlertTriangle,
@@ -158,8 +159,7 @@ export function ReferenceItem({ item, displayIndex }: ReferenceItemProps) {
 
       {isError && (
         <div className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/10 p-2 rounded">
-          <span className="font-medium">Error: </span>
-          {item.error}
+          {formatReferenceError(item.error)}
         </div>
       )}
 
