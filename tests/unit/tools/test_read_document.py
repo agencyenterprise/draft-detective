@@ -1,13 +1,10 @@
 """Unit tests for the read_document tool."""
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock
 
-from lib.agents.tools.read_document import (
-    _read_content,
-    _read_document_async,
-    MAX_LINES,
-)
+import pytest
+
+from lib.agents.tools.read_document import MAX_LINES, _read_content, read_document
 
 
 class TestReadContent:
@@ -186,16 +183,28 @@ class TestReadContentOutputFormat:
         assert "1|  indented\ttabbed  trailing  " in result
 
 
-class TestReadDocumentAsync:
-    """Tests for the async document read wrapper."""
+class TestReadDocument:
+    """Tests for the read_document tool function."""
+
+    def _create_mock_runtime(self, main_file=None, side_effect=None):
+        """Helper to create a mock ToolRuntime."""
+        mock_runtime = MagicMock()
+        if side_effect:
+            mock_runtime.context.file_artifacts_service.get_main_file = AsyncMock(
+                side_effect=side_effect
+            )
+        else:
+            mock_runtime.context.file_artifacts_service.get_main_file = AsyncMock(
+                return_value=main_file
+            )
+        return mock_runtime
 
     @pytest.mark.asyncio
     async def test_returns_error_when_no_main_file(self):
         """Test error message when main file doesn't exist."""
-        mock_context = MagicMock()
-        mock_context.file_artifacts_service.get_main_file = AsyncMock(return_value=None)
+        mock_runtime = self._create_mock_runtime(main_file=None)
 
-        result = await _read_document_async(1, 10, mock_context)
+        result = await read_document.coroutine(1, 10, mock_runtime)
 
         assert "Error: Main document not found or has no content" in result
 
@@ -205,12 +214,9 @@ class TestReadDocumentAsync:
         mock_file = MagicMock()
         mock_file.markdown = None
 
-        mock_context = MagicMock()
-        mock_context.file_artifacts_service.get_main_file = AsyncMock(
-            return_value=mock_file
-        )
+        mock_runtime = self._create_mock_runtime(main_file=mock_file)
 
-        result = await _read_document_async(1, 10, mock_context)
+        result = await read_document.coroutine(1, 10, mock_runtime)
 
         assert "Error: Main document not found or has no content" in result
 
@@ -220,24 +226,20 @@ class TestReadDocumentAsync:
         mock_file = MagicMock()
         mock_file.markdown = ""
 
-        mock_context = MagicMock()
-        mock_context.file_artifacts_service.get_main_file = AsyncMock(
-            return_value=mock_file
-        )
+        mock_runtime = self._create_mock_runtime(main_file=mock_file)
 
-        result = await _read_document_async(1, 10, mock_context)
+        result = await read_document.coroutine(1, 10, mock_runtime)
 
         assert "Error: Main document not found or has no content" in result
 
     @pytest.mark.asyncio
     async def test_handles_service_exception(self):
         """Test graceful handling of service exceptions."""
-        mock_context = MagicMock()
-        mock_context.file_artifacts_service.get_main_file = AsyncMock(
+        mock_runtime = self._create_mock_runtime(
             side_effect=Exception("Database connection failed")
         )
 
-        result = await _read_document_async(1, 10, mock_context)
+        result = await read_document.coroutine(1, 10, mock_runtime)
 
         assert "Error reading document:" in result
         assert "Database connection failed" in result
@@ -248,12 +250,9 @@ class TestReadDocumentAsync:
         mock_file = MagicMock()
         mock_file.markdown = "Line one\nLine two\nLine three"
 
-        mock_context = MagicMock()
-        mock_context.file_artifacts_service.get_main_file = AsyncMock(
-            return_value=mock_file
-        )
+        mock_runtime = self._create_mock_runtime(main_file=mock_file)
 
-        result = await _read_document_async(2, 2, mock_context)
+        result = await read_document.coroutine(2, 2, mock_runtime)
 
         assert "Lines 2-2 of 3 total lines" in result
         assert "2|Line two" in result

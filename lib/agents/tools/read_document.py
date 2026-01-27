@@ -1,7 +1,5 @@
 """Read tool for main document content by line range."""
 
-import asyncio
-
 from langchain.tools import ToolRuntime, tool
 
 from lib.workflows.context import ContextSchema
@@ -11,7 +9,7 @@ MAX_LINES = 300
 
 
 @tool()
-def read_document(
+async def read_document(
     start_line: int,
     end_line: int,
     runtime: ToolRuntime[ContextSchema],
@@ -30,7 +28,15 @@ def read_document(
         3|Line 3 content
         ...
     """
-    return asyncio.run(_read_document_async(start_line, end_line, runtime.context))
+    try:
+        main_file = await runtime.context.file_artifacts_service.get_main_file()
+        if not main_file or not main_file.markdown:
+            return "Error: Main document not found or has no content."
+
+        return _read_content(main_file.markdown, start_line, end_line)
+
+    except Exception as e:
+        return f"Error reading document: {str(e)}"
 
 
 def _read_content(content: str, start_line: int, end_line: int) -> str:
@@ -73,18 +79,3 @@ def _read_content(content: str, start_line: int, end_line: int) -> str:
     header = f"Lines {start_idx + 1}-{end_idx} of {total_lines} total lines\n\n"
 
     return header + "\n".join(result_lines)
-
-
-async def _read_document_async(
-    start_line: int, end_line: int, context: ContextSchema
-) -> str:
-    """Async implementation of document read."""
-    try:
-        main_file = await context.file_artifacts_service.get_main_file()
-        if not main_file or not main_file.markdown:
-            return "Error: Main document not found or has no content."
-
-        return _read_content(main_file.markdown, start_line, end_line)
-
-    except Exception as e:
-        return f"Error reading document: {str(e)}"

@@ -1,14 +1,14 @@
 """Unit tests for the search_document tool."""
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock
 
+import pytest
+
 from lib.agents.tools.search_document import (
-    _search_content,
-    _search_document_async,
-    CONTEXT_LINES,
     MAX_CHARS_PER_MATCH,
     MAX_MATCHES,
+    _search_content,
+    search_document,
 )
 
 
@@ -206,16 +206,28 @@ class TestSearchContentMaxMatches:
         assert "showing first" not in result
 
 
-class TestSearchDocumentAsync:
-    """Tests for the async document search wrapper."""
+class TestSearchDocument:
+    """Tests for the search_document tool function."""
+
+    def _create_mock_runtime(self, main_file=None, side_effect=None):
+        """Helper to create a mock ToolRuntime."""
+        mock_runtime = MagicMock()
+        if side_effect:
+            mock_runtime.context.file_artifacts_service.get_main_file = AsyncMock(
+                side_effect=side_effect
+            )
+        else:
+            mock_runtime.context.file_artifacts_service.get_main_file = AsyncMock(
+                return_value=main_file
+            )
+        return mock_runtime
 
     @pytest.mark.asyncio
     async def test_returns_error_when_no_main_file(self):
         """Test error message when main file doesn't exist."""
-        mock_context = MagicMock()
-        mock_context.file_artifacts_service.get_main_file = AsyncMock(return_value=None)
+        mock_runtime = self._create_mock_runtime(main_file=None)
 
-        result = await _search_document_async("pattern", mock_context)
+        result = await search_document.coroutine("pattern", mock_runtime)
 
         assert "Error: Main document not found" in result
 
@@ -225,12 +237,9 @@ class TestSearchDocumentAsync:
         mock_file = MagicMock()
         mock_file.markdown = None
 
-        mock_context = MagicMock()
-        mock_context.file_artifacts_service.get_main_file = AsyncMock(
-            return_value=mock_file
-        )
+        mock_runtime = self._create_mock_runtime(main_file=mock_file)
 
-        result = await _search_document_async("pattern", mock_context)
+        result = await search_document.coroutine("pattern", mock_runtime)
 
         assert "Error: Main document not found or has no content" in result
 
@@ -240,12 +249,9 @@ class TestSearchDocumentAsync:
         mock_file = MagicMock()
         mock_file.markdown = ""
 
-        mock_context = MagicMock()
-        mock_context.file_artifacts_service.get_main_file = AsyncMock(
-            return_value=mock_file
-        )
+        mock_runtime = self._create_mock_runtime(main_file=mock_file)
 
-        result = await _search_document_async("pattern", mock_context)
+        result = await search_document.coroutine("pattern", mock_runtime)
 
         # Empty string is falsy, so treated as no content
         assert "Error: Main document not found or has no content" in result
@@ -256,12 +262,9 @@ class TestSearchDocumentAsync:
         mock_file = MagicMock()
         mock_file.markdown = "Line one\nSearchable content here\nLine three"
 
-        mock_context = MagicMock()
-        mock_context.file_artifacts_service.get_main_file = AsyncMock(
-            return_value=mock_file
-        )
+        mock_runtime = self._create_mock_runtime(main_file=mock_file)
 
-        result = await _search_document_async("Searchable", mock_context)
+        result = await search_document.coroutine("Searchable", mock_runtime)
 
         assert "Found 1 matches" in result
         assert "2:Searchable content here" in result
@@ -269,12 +272,11 @@ class TestSearchDocumentAsync:
     @pytest.mark.asyncio
     async def test_handles_service_exception(self):
         """Test graceful handling of service exceptions."""
-        mock_context = MagicMock()
-        mock_context.file_artifacts_service.get_main_file = AsyncMock(
+        mock_runtime = self._create_mock_runtime(
             side_effect=Exception("Database connection failed")
         )
 
-        result = await _search_document_async("pattern", mock_context)
+        result = await search_document.coroutine("pattern", mock_runtime)
 
         assert "Error searching document:" in result
         assert "Database connection failed" in result

@@ -1,8 +1,7 @@
 """Grep-like search tool for main document content."""
 
-import asyncio
 import re
-from typing import List
+from typing import List, Set
 
 from langchain.tools import ToolRuntime, tool
 
@@ -19,7 +18,7 @@ MAX_CHARS_PER_MATCH = 500
 
 
 @tool()
-def search_document(pattern: str, runtime: ToolRuntime[ContextSchema]) -> str:
+async def search_document(pattern: str, runtime: ToolRuntime[ContextSchema]) -> str:
     """
     Search the main document for lines matching a pattern (case-insensitive regex).
     Returns matching lines with surrounding context and line numbers. Returns 2 lines before and after each match as extra context.
@@ -46,13 +45,8 @@ def search_document(pattern: str, runtime: ToolRuntime[ContextSchema]) -> str:
             90-significant improvements in patient outcomes.
             91-
     """
-    return asyncio.run(_search_document_async(pattern, runtime.context))
-
-
-async def _search_document_async(pattern: str, context: ContextSchema) -> str:
-    """Async implementation of document search."""
     try:
-        main_file = await context.file_artifacts_service.get_main_file()
+        main_file = await runtime.context.file_artifacts_service.get_main_file()
         if not main_file or not main_file.markdown:
             return "Error: Main document not found or has no content."
 
@@ -72,7 +66,7 @@ def _search_content(content: str, pattern: str) -> str:
 
     lines = content.split("\n")
     matches: List[str] = []
-    matched_line_indices = set()
+    matched_line_indices: Set[int] = set()
 
     # Find all matching lines
     for i, line in enumerate(lines):
