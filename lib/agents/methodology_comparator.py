@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 
 from langchain_core.prompts import PromptTemplate
 from langchain_core.runnables.config import RunnableConfig
@@ -205,7 +205,7 @@ class MethodologyComparisonAgent(DirectOpenAIAgent):
     async def ainvoke(
         self,
         prompt_kwargs: dict,
-        config: RunnableConfig = None,
+        config: Optional[RunnableConfig] = None,
     ) -> MethodologyComparisonResponse:
         """
         Expected prompt_kwargs:

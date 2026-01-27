@@ -1,6 +1,7 @@
 import asyncio
 import logging
 from enum import Enum
+from typing import Optional
 
 from langchain_core.prompts import PromptTemplate
 from langchain_core.runnables import RunnableConfig
@@ -185,7 +186,7 @@ class LiteratureReviewAgent(DirectOpenAIAgent):
     async def ainvoke(
         self,
         prompt_kwargs: dict,
-        config: RunnableConfig = None,
+        config: Optional[RunnableConfig] = None,
     ) -> LiteratureReviewResponse:
         prompt = _literature_review_agent_prompt.invoke(prompt_kwargs)
         input = [{"role": "user", "content": prompt.text}]

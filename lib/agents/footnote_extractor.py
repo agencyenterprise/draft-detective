@@ -1,6 +1,6 @@
 """Footnote extraction agent for extracting structured footnotes from text."""
 
-from typing import List
+from typing import List, Optional
 
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableConfig
@@ -58,7 +58,7 @@ class FootnoteExtractorAgent(LangChainAgent):
     async def ainvoke(
         self,
         prompt_kwargs: dict,
-        config: RunnableConfig = None,
+        config: Optional[RunnableConfig] = None,
     ) -> FootnoteExtractorResponse:
         messages = _footnote_extractor_prompt.format_messages(**prompt_kwargs)
         return await self.llm.ainvoke(messages, config=config)

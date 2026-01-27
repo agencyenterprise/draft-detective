@@ -14,6 +14,7 @@ Validate the inference of a model using the toulmin model of argumentation.
 
 
 from enum import Enum
+from typing import Optional
 
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableConfig
@@ -209,7 +210,7 @@ class InferenceValidatorAgent(LangChainAgent):
     async def ainvoke(
         self,
         prompt_kwargs: dict,
-        config: RunnableConfig = None,
+        config: Optional[RunnableConfig] = None,
     ) -> InferenceValidationResponse:
         messages = _inference_validation_prompt.format_messages(**prompt_kwargs)
         return await self.llm.ainvoke(messages, config=config)

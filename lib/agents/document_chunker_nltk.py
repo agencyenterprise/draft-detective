@@ -277,7 +277,7 @@ class DocumentChunkerAgent(BaseAgent):
     async def ainvoke(
         self,
         prompt_kwargs: dict,
-        config: RunnableConfig = None,
+        config: Optional[RunnableConfig] = None,
     ) -> DocumentChunkerResponse:
         """
         Process a document using NLTK sentence tokenization.

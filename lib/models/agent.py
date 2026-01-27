@@ -35,7 +35,9 @@ class BaseAgent(ABC):
     output_schema: Optional[type[BaseModel]] = None
 
     @abstractmethod
-    async def ainvoke(self, prompt_kwargs: dict, config: RunnableConfig = None) -> Any:
+    async def ainvoke(
+        self, prompt_kwargs: dict, config: Optional[RunnableConfig] = None
+    ) -> Any:
         """Invoke the agent."""
         pass
 

@@ -111,7 +111,7 @@ class ReferenceFetcherAgent(LangChainAgent):
     async def ainvoke(
         self,
         input: ReferenceFetcherAgentInput,
-        config: RunnableConfig = None,
+        config: Optional[RunnableConfig] = None,
     ) -> ReferenceFetchItem:
         system_prompt = _system_prompt.invoke({})
 

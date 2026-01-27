@@ -109,7 +109,7 @@ class ClaimVerifierAgent(LangChainAgent):
     async def ainvoke(
         self,
         prompt_kwargs: dict,
-        config: RunnableConfig = None,
+        config: Optional[RunnableConfig] = None,
     ) -> ClaimSubstantiationResult:
         messages = _claim_verifier_prompt.format_messages(**prompt_kwargs)
         return await self.llm.ainvoke(messages, config=config)

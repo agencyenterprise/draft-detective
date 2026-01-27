@@ -1,12 +1,11 @@
-from langchain.chat_models import init_chat_model
+from typing import Optional
+
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
-from typing import Optional
 
 from lib.config.llm_models import gpt_5_mini_model
 from lib.models.agent import LangChainAgent
-
 from lib.workflows.context import ContextSchema
 
 
@@ -87,7 +86,7 @@ Important rules:
 - Each fact-checker will only have access to one claim - they will not have access to the paragraph and other claims
 - Do not classify something as a claim if it cannot be decontextualized (i.e., it cannot be understood or verified in isolation without additional context from the document)
 - If there are no specific claims in the chunk of text, return an empty list of claims.
-- Do NOT extract claims from sections that are about the document itself. This means don't extract claims concerning funding, acknowledgments, or the "about" section of the report. Only extract from the main analysis content. Use the headings context to determine the section of the chunk. 
+- Do NOT extract claims from sections that are about the document itself. This means don't extract claims concerning funding, acknowledgments, or the "about" section of the report. Only extract from the main analysis content. Use the headings context to determine the section of the chunk.
 
 ### Output Structure
 
@@ -100,7 +99,7 @@ Within the list of claims, you must include the following information for each c
 - claim: The claim text
 - rationale: The rationale for why you think the chunk of text implies this claim
 - central: Whether the claim is central to the argument of the document
-- centrality_rationale: The rationale for why you think the claim is central or is not central to the argument of the document. 
+- centrality_rationale: The rationale for why you think the claim is central or is not central to the argument of the document.
 
 # Agent Inputs
 
@@ -142,7 +141,7 @@ class ClaimExtractorAgent(LangChainAgent):
     async def ainvoke(
         self,
         prompt_kwargs: dict,
-        config: RunnableConfig = None,
+        config: Optional[RunnableConfig] = None,
     ) -> ClaimResponse:
         messages = _claim_extractor_prompt_claimify.format_messages(**prompt_kwargs)
         return await self.llm.ainvoke(messages, config=config)

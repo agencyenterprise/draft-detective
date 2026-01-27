@@ -1,4 +1,6 @@
 # %%
+from typing import Optional
+
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables.config import RunnableConfig
 from pydantic import BaseModel, Field
@@ -102,7 +104,7 @@ class DocumentSummarizerAgent(LangChainAgent):
     async def ainvoke(
         self,
         prompt_kwargs: dict,
-        config: RunnableConfig = None,
+        config: Optional[RunnableConfig] = None,
     ) -> DocumentSummarizerResponse:
         messages = _document_summarizer_agent_prompt.format_messages(**prompt_kwargs)
         return await self.llm.ainvoke(messages, config=config)

@@ -1,6 +1,5 @@
 import logging
 
-from langchain_core.runnables.config import ensure_config
 from langgraph.runtime import Runtime
 
 from lib.agents.reference_text_extractor_v2 import ReferenceExtractorV2Agent

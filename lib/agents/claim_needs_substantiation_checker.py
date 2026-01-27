@@ -1,3 +1,5 @@
+from typing import Optional
+
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
@@ -105,7 +107,7 @@ class ClaimNeedsSubstantiationCheckerAgent(LangChainAgent):
     output_schema = ClaimCommonKnowledgeResult
 
     async def ainvoke(
-        self, prompt_kwargs: dict, config: RunnableConfig = None
+        self, prompt_kwargs: dict, config: Optional[RunnableConfig] = None
     ) -> ClaimCommonKnowledgeResult:
         messages = _claim_needs_substantiation_checker_prompt.format_messages(
             **prompt_kwargs

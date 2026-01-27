@@ -42,6 +42,7 @@ dependencies = [
     "python-magic>=0.4.27",
     "markitdown[docx,pdf,pptx,xls,xlsx]>=0.1.4",
     "pyjwt>=2.10.1",
+    "mypy>=1.19.1",
 ]
 
 [tool.pytest.ini_options]

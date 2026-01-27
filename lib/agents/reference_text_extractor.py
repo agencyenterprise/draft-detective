@@ -1,6 +1,6 @@
 """Reference extraction agent for extracting bibliographic items from text."""
 
-from typing import List
+from typing import List, Optional
 
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableConfig
@@ -37,7 +37,7 @@ Rules:
 
 Extract ALL refs even if they look similar:
 - Same author with different titles → extract BOTH
-- Same organization with different publications → extract BOTH  
+- Same organization with different publications → extract BOTH
 - Numbered variants (undated-a, undated-b, undated-c, 2024a, 2024b) → extract ALL
 - Cross-references like "NASA—See National Aeronautics..." → extract as written
 - Do NOT deduplicate - that happens later in the pipeline
@@ -61,7 +61,7 @@ class ReferenceTextExtractorAgent(LangChainAgent):
     async def ainvoke(
         self,
         prompt_kwargs: dict,
-        config: RunnableConfig = None,
+        config: Optional[RunnableConfig] = None,
     ) -> ReferenceTextExtractorResponse:
         if "previous_context" not in prompt_kwargs:
             prompt_kwargs["previous_context"] = "(none - this is the first window)"

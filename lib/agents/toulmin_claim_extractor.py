@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Literal, Optional
 
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableConfig
@@ -129,7 +129,7 @@ class ToulminClaimExtractorAgent(LangChainAgent):
     async def ainvoke(
         self,
         prompt_kwargs: dict,
-        config: RunnableConfig = None,
+        config: Optional[RunnableConfig] = None,
     ) -> ToulminClaimResponse:
         messages = _toulmin_claim_extractor_prompt.format_messages(**prompt_kwargs)
         return await self.llm.ainvoke(messages, config=config)

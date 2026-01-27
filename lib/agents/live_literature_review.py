@@ -1,3 +1,5 @@
+from typing import Optional
+
 from langchain_core.prompts import PromptTemplate
 from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
@@ -176,7 +178,7 @@ class LiveLiteratureReviewAgent(DirectOpenAIAgent):
     async def ainvoke(
         self,
         prompt_kwargs: dict,
-        config: RunnableConfig = None,
+        config: Optional[RunnableConfig] = None,
     ) -> LiveLiteratureReviewResponse:
         prompt = _live_literature_review_agent_prompt.invoke(prompt_kwargs)
         input = [{"role": "user", "content": prompt.text}]

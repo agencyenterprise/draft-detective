@@ -1,6 +1,6 @@
 """Reference extractor v2 agent using document search tool."""
 
-from typing import List
+from typing import List, Optional
 
 from langchain.agents import create_agent
 from langchain.chat_models import init_chat_model
@@ -92,7 +92,7 @@ class ReferenceExtractorV2Agent(LangChainAgent):
     async def ainvoke(
         self,
         prompt_kwargs: dict,
-        config: RunnableConfig = None,
+        config: Optional[RunnableConfig] = None,
     ) -> ReferenceExtractorV2Output:
         system_prompt = _system_prompt.invoke({})
 

@@ -1,3 +1,5 @@
+from typing import Optional
+
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
@@ -75,7 +77,7 @@ class DocumentChunkerAgent(LangChainAgent):
     async def ainvoke(
         self,
         prompt_kwargs: dict,
-        config: RunnableConfig = None,
+        config: Optional[RunnableConfig] = None,
     ) -> DocumentChunkerResponse:
         template = ChatPromptTemplate(
             [
