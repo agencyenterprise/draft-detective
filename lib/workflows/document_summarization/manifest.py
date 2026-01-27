@@ -29,6 +29,7 @@ class DocumentSummarizationManifest(
     )
     is_internal = True
     required_dependencies = [WorkflowRunType.DOCUMENT_PROCESSING]
+    always_run = True  # Always run document summarization to ensure new files are summarized. The workflow summarizes only new files in subsequent runs, reusing cached results from previous runs.
 
     def get_state_type(self) -> Type[DocumentSummarizationState]:
         """Get the type of the workflow state."""
