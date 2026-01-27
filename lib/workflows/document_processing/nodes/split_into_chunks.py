@@ -3,10 +3,12 @@ from typing import List
 
 from langgraph.runtime import Runtime
 
+from lib.agents.document_chunker_nltk import (
+    DocumentChunkerAgent,
+    get_chunker_result_as_langchain_documents,
+)
 from lib.agents.models import ValidatedDocument
-from lib.run_utils import call_maybe_async
 from lib.services.chunk_to_items_mapper import create_chunk_to_items_mapping
-from lib.services.nltk_text_splitter import NLTKTextSplitter
 from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
 from lib.workflows.document_processing.state import (
@@ -30,12 +32,9 @@ async def split_into_chunks(
 
     markdown = state.file.markdown
 
-    chunker = NLTKTextSplitter(context=runtime.context)
-
-    # Automatically handle both sync and async chunkers
-    docs: List[ValidatedDocument] = await call_maybe_async(
-        chunker.create_documents, [markdown]
-    )
+    chunker = DocumentChunkerAgent(context=runtime.context)
+    result = await chunker.ainvoke(prompt_kwargs={"full_document": markdown})
+    docs: List[ValidatedDocument] = get_chunker_result_as_langchain_documents(result)
 
     # We need to create the chunk-to-items mapping if Docling data is available
     chunk_to_items = None

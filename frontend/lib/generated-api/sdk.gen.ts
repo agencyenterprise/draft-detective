@@ -464,18 +464,20 @@ export const getWorkflowTypesApiWorkflowTypesGet = <ThrowOnError extends boolean
  *
  * Download a file by ID with access control.
  *
- * This endpoint verifies that the authenticated user has access to the file
- * by checking if they own the project that the file belongs to.
+ * This endpoint supports two access modes:
+ * 1. Authenticated access: User must own the project containing the file
+ * 2. Share token access: Valid share token for the project grants read access
  *
  * Args:
  * file_id: UUID of the file to download
- * current_user: Authenticated user from JWT token
+ * share_token: Optional share token for unauthenticated access
+ * current_user: Authenticated user from JWT token (optional when share_token provided)
  *
  * Returns:
  * FileResponse with the file contents
  *
  * Raises:
- * HTTPException: 400 for invalid file ID, 404 if file not found, 403 if access denied
+ * HTTPException: 400 for invalid file ID, 401 if not authenticated, 404 if file not found, 403 if access denied
  */
 export const downloadFileApiFilesDownloadFileIdGet = <ThrowOnError extends boolean = true>(
   options: Options<DownloadFileApiFilesDownloadFileIdGetData, ThrowOnError>,

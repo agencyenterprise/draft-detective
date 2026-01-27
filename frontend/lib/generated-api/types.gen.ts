@@ -2854,6 +2854,12 @@ export type ReferenceExtractionState = {
    * Extracted references with unique IDs
    */
   extracted_references?: Array<ExtractedReference>;
+  /**
+   * Reasoning
+   *
+   * Step-by-step reasoning describing how references were found and extracted
+   */
+  reasoning?: string;
 };
 
 /**
@@ -4468,7 +4474,14 @@ export type DownloadFileApiFilesDownloadFileIdGetData = {
      */
     file_id: string;
   };
-  query?: never;
+  query?: {
+    /**
+     * Share Token
+     *
+     * Share token for public access
+     */
+    share_token?: string | null;
+  };
   url: '/api/files/download/{file_id}';
 };
 
