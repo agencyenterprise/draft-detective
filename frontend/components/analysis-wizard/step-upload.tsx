@@ -4,9 +4,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { UploadSection } from '@/components/analysis-form/upload-section';
-import { AlertCircle, Check, Loader2, Eye, EyeOff } from 'lucide-react';
+import { AlertCircle, Check, Loader2, Eye, EyeOff, Rocket, AlertTriangle } from 'lucide-react';
 import { useStepUpload } from './use-step-upload';
 import { PreflightStatus } from './wizard-context';
+import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
 
 interface StepUploadProps {
   onComplete: () => void;
@@ -78,13 +80,7 @@ export function StepUpload({ onComplete }: StepUploadProps) {
         </div>
       )}
 
-      <div className="space-y-3">
-        <h3 className="text-lg font-semibold">Getting things ready...</h3>
-        <div className="space-y-2">
-          {!hideApiKeyInput && <ValidationItem label="API key looks good" status={preflightStatus.apiKey} />}
-          <ValidationItem label="Document ready to process" status={preflightStatus.format} />
-        </div>
-      </div>
+      <PreflightChecklist preflightStatus={preflightStatus} hideApiKeyInput={hideApiKeyInput} />
 
       <Button onClick={handleContinue} disabled={!canContinue} size="lg" className="w-full">
         {isLoading ? (
@@ -100,18 +96,105 @@ export function StepUpload({ onComplete }: StepUploadProps) {
   );
 }
 
-function ValidationItem({ label, status }: { label: string; status: PreflightStatus }) {
-  const icons = {
-    idle: <div className="w-5 h-5 rounded-full border-2 border-muted-foreground/30" />,
-    pending: <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />,
-    valid: <Check className="w-5 h-5 text-green-600" />,
-    invalid: <AlertCircle className="w-5 h-5 text-destructive" />,
-  };
+type ChecklistPhase = 'idle' | 'pending' | 'valid' | 'invalid';
+
+const PHASE_CONFIG: Record<ChecklistPhase, { icon: React.ReactNode; header: string; containerClass: string }> = {
+  invalid: {
+    icon: <AlertCircle className="w-4 h-4 text-destructive" />,
+    header: 'Hmm, something needs attention',
+    containerClass: 'border-destructive/50 bg-destructive/5',
+  },
+  valid: {
+    icon: <Check className="w-4 h-4 text-green-600" />,
+    header: 'All set! Ready to continue',
+    containerClass: 'border-green-600/50 bg-green-50/50 dark:bg-green-950/20',
+  },
+  pending: {
+    icon: <Loader2 className="w-4 h-4 animate-spin text-primary" />,
+    header: 'Checking things over...',
+    containerClass: 'border-primary/50 bg-primary/5',
+  },
+  idle: {
+    icon: <Rocket className="w-4 h-4 text-muted-foreground" />,
+    header: "Before we continue, we'll verify:",
+    containerClass: 'border-muted-foreground/30 bg-muted/20',
+  },
+};
+
+function PreflightChecklist({
+  preflightStatus,
+  hideApiKeyInput,
+}: {
+  preflightStatus: { apiKey: PreflightStatus; format: PreflightStatus };
+  hideApiKeyInput: boolean;
+}) {
+  const apiKeyStatus = hideApiKeyInput ? 'valid' : preflightStatus.apiKey;
+  const formatStatus = preflightStatus.format;
+
+  // Determine phase (priority: invalid > valid > pending > idle)
+  const phase: ChecklistPhase =
+    apiKeyStatus === 'invalid' || formatStatus === 'invalid'
+      ? 'invalid'
+      : apiKeyStatus === 'valid' && formatStatus === 'valid'
+        ? 'valid'
+        : apiKeyStatus === 'pending' || formatStatus === 'pending'
+          ? 'pending'
+          : 'idle';
+
+  const { icon, header, containerClass } = PHASE_CONFIG[phase];
 
   return (
-    <div className="flex items-center gap-2">
-      {icons[status]}
-      <span className={status === 'invalid' ? 'text-destructive' : 'text-foreground'}>{label}</span>
+    <div className={cn('rounded-lg border p-4 space-y-3 transition-all duration-300', containerClass)}>
+      <div className="flex items-center gap-2">
+        {icon}
+        <h3 className="text-sm font-medium">{header}</h3>
+      </div>
+
+      <div className="space-y-2">
+        {!hideApiKeyInput && (
+          <ChecklistItem
+            status={apiKeyStatus}
+            labels={{
+              idle: 'API credentials',
+              pending: 'Verifying API key...',
+              valid: 'API key verified',
+              invalid: 'API key invalid — please check and try again',
+            }}
+          />
+        )}
+        <ChecklistItem
+          status={formatStatus}
+          labels={{
+            idle: 'Document format',
+            pending: 'Checking document...',
+            valid: 'Document ready',
+            invalid: 'Document too large or unsupported',
+          }}
+        />
+      </div>
+    </div>
+  );
+}
+
+const ITEM_CONFIG: Record<PreflightStatus, { icon: React.ReactNode; className: string }> = {
+  idle: { icon: <AlertTriangle className="w-4 h-4 text-muted-foreground/60" />, className: 'text-muted-foreground' },
+  pending: { icon: <Loader2 className="w-4 h-4 animate-spin text-primary" />, className: 'text-foreground' },
+  valid: { icon: <Check className="w-4 h-4 text-green-600" />, className: 'text-green-700 dark:text-green-500' },
+  invalid: { icon: <AlertCircle className="w-4 h-4 text-destructive" />, className: 'text-destructive' },
+};
+
+function ChecklistItem({ status, labels }: { status: PreflightStatus; labels: Record<PreflightStatus, string> }) {
+  const { icon, className } = ITEM_CONFIG[status];
+
+  return (
+    <div className={cn('flex items-center gap-2 text-sm transition-colors duration-200', className)}>
+      {icon}
+      <span>{labels[status]}</span>
+      {status === 'idle' && (
+        <Badge variant="outline" className="ml-auto text-[10px] px-1.5 py-0">
+          Awaiting Input
+        </Badge>
+      )}
     </div>
   );
 }

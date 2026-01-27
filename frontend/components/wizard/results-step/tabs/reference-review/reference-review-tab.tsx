@@ -40,7 +40,12 @@ export function ReferenceReviewTab({ projectId, readOnly = false }: ReferenceRev
   const isFetchingAllFromWeb = fetchAllFromWebMutation.isPending || isWorkflowProcessing(referenceDownloader);
   const isProcessingFiles = isWorkflowProcessing(documentProcessing) || isWorkflowProcessing(referenceFileMatching);
 
+  // For batch operations (Fetch All, Upload PDFs buttons): block during any processing
   const disableActions = isProcessingFiles || isWorkflowProcessing(referenceDownloader);
+
+  // For individual cards: only block during ReferenceFileMatching (when file matching could conflict)
+  // NOT during DocumentProcessing or ReferenceDownloader (individual fetches shouldn't block other cards)
+  const disableIndividualCards = isWorkflowProcessing(referenceFileMatching);
 
   const { data: progressData } = useQuery({
     queryKey: ['project-workflow-progress', projectId],
@@ -146,6 +151,7 @@ export function ReferenceReviewTab({ projectId, readOnly = false }: ReferenceRev
         isBatchUploading={isBatchUploading}
         isProcessingFiles={isProcessingFiles}
         disableActions={disableActions}
+        disableIndividualCards={disableIndividualCards}
         onBatchUpload={() => setIsBatchUploadDialogOpen(true)}
       />
 
