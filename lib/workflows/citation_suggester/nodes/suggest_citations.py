@@ -19,7 +19,7 @@ from lib.workflows.citation_suggester.state import CitationSuggesterState
 from lib.workflows.chunk_utils import AnalyzedChunk
 from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
-from lib.workflows.document_processing.state import FileSummary
+from lib.workflows.document_summarization.state import FileSummary
 
 logger = logging.getLogger(__name__)
 

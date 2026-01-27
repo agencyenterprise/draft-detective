@@ -16,8 +16,9 @@ if TYPE_CHECKING:
     from lib.models.bibliography_item import BibliographyItem
     from lib.models.footnote_item import FootnoteItem
     from lib.workflows.chunk_utils import AnalyzedChunk
-    from lib.workflows.document_processing.state import (
-        DocumentProcessingState,
+    from lib.workflows.document_processing.state import DocumentProcessingState
+    from lib.workflows.document_summarization.state import (
+        DocumentSummarizationState,
         FileSummary,
     )
     from lib.workflows.footnote_extraction.state import FootnoteExtractionState
@@ -214,9 +215,9 @@ class FileArtifactsService(FileArtifactsServiceType):
 
         Raises:
             ValueError: If no file summary with the given file ID is found
-                in the project's document processing workflow state.
+                in the project's document summarization workflow state.
         """
-        from lib.workflows.document_processing.state import FileSummary
+        from lib.workflows.document_summarization.state import FileSummary
 
         summary = await self._try_load(
             f"summary for file {file_id}",
@@ -238,10 +239,10 @@ class FileArtifactsService(FileArtifactsServiceType):
         return summary_cls(file_id=file_id, **file.summary)
 
     async def _get_summary_from_state(self, file_id: str) -> "FileSummary":
-        """Return FileSummary from the document processing workflow state."""
+        """Return FileSummary from the document summarization workflow state."""
         state = cast(
-            "DocumentProcessingState",
-            await self._get_state_by_type(WorkflowRunType.DOCUMENT_PROCESSING),
+            "DocumentSummarizationState",
+            await self._get_state_by_type(WorkflowRunType.DOCUMENT_SUMMARIZATION),
         )
 
         summary = next(

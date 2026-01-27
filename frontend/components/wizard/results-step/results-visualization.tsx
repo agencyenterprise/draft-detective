@@ -39,13 +39,14 @@ export function ResultsVisualization({
   const results = projectDetail.workflow_runs ?? [];
 
   const documentProcessing = getWorkflowRunByType(results, WorkflowRunType.DocumentProcessing);
+  const documentSummarization = getWorkflowRunByType(results, WorkflowRunType.DocumentSummarization);
   const referenceExtraction = getWorkflowRunByType(results, WorkflowRunType.ReferenceExtraction);
   const [activeTab, setActiveTab] = useState<TabType>('document-explorer');
   const { isWorkflowTypeVisible } = useWorkflowTypes();
 
   // Find the main document summary from the summaries list
   const mainFileId = documentProcessing?.state?.file?.file_id;
-  const mainSummary = documentProcessing?.state?.summaries?.find((s) => s.file_id === mainFileId);
+  const mainSummary = documentSummarization?.state?.summaries?.find((s) => s.file_id === mainFileId);
   const authors = mainSummary?.authors;
 
   const renderActiveTab = () => {
