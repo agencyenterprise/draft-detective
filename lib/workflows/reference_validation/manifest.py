@@ -56,20 +56,30 @@ class ReferenceValidationManifest(
 
         doc_state = get_state_by_type(WorkflowRunType.DOCUMENT_PROCESSING, other_states)
 
-        # Reference Validation: Invalid references
         for validation in state.reference_validations:
-            if not validation.valid_reference:
-                # Try to find chunk_index from claim_state if available
-                chunk_index: Optional[int] = None
-                if doc_state:
-                    doc_state_typed = cast(DocumentProcessingState, doc_state)
-                    chunk_index = find_chunk_index_by_text(
-                        doc_state_typed.chunks, validation.original_reference
-                    )
+            chunk_index: Optional[int] = None
+            if doc_state:
+                doc_state_typed = cast(DocumentProcessingState, doc_state)
+                chunk_index = find_chunk_index_by_text(
+                    doc_state_typed.chunks, validation.original_reference
+                )
 
+            if not validation.valid_reference:
                 issue = DocumentIssue(
                     title="Invalid reference",
                     description=f'Possible invalid reference: "{validation.original_reference}"',
+                    severity=SeverityEnum.MEDIUM,
+                    chunk_index=chunk_index,
+                )
+                issues.append(issue)
+
+            if validation.cited_url and validation.url != validation.cited_url:
+                issue = DocumentIssue(
+                    title="URL redirect detected",
+                    description=(
+                        f"Cited URL redirects to a different location. "
+                        f"Cited: {validation.cited_url} → Canonical: {validation.url}"
+                    ),
                     severity=SeverityEnum.MEDIUM,
                     chunk_index=chunk_index,
                 )
