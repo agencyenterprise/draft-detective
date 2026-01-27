@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -74,6 +74,8 @@ export function ReferenceCard({ reference, projectId, readOnly, disabled = false
   const { id, index, text, status, matchedFile, fetchResult, validation } = reference;
   const [dialogMode, setDialogMode] = useState<DialogMode>(null);
   const [isFetchDialogOpen, setIsFetchDialogOpen] = useState(false);
+  // Track when fetch was initiated locally (optimistic UI)
+  const [fetchInitiated, setFetchInitiated] = useState(false);
 
   const uploadFileMutation = useUploadFileMutation(projectId, id);
   const removeFileMutation = useRemoveFileMutation(projectId, matchedFile?.id);
@@ -83,9 +85,24 @@ export function ReferenceCard({ reference, projectId, readOnly, disabled = false
   const isUploading = uploadFileMutation.isPending;
   const isRemoving = removeFileMutation.isPending;
   const isReplacing = replaceFileMutation.isPending;
-  const isFetching = fetchFromWebMutation.isPending;
+  // Show fetching state: during API call OR after success until backend confirms
+  const isFetching = fetchFromWebMutation.isPending || (fetchInitiated && status !== 'fetching');
   const isLoading = isUploading || isRemoving || isReplacing || isFetching;
-  const isDisabled = isLoading || disabled;
+  // Card is disabled when:
+  // 1. Local mutation in progress (isLoading)
+  // 2. Backend reports this reference is being fetched (status === 'fetching')
+  // 3. Global file processing is happening (disabled prop from parent)
+  const isDisabled = isLoading || status === 'fetching' || disabled;
+
+  // Clear optimistic state once backend confirms or reference is matched
+  useEffect(() => {
+    if (fetchInitiated && (status === 'fetching' || status === 'matched')) {
+      setFetchInitiated(false);
+    }
+  }, [fetchInitiated, status]);
+
+  // Effective status for display: show 'fetching' during optimistic period
+  const displayStatus = isFetching ? 'fetching' : status;
 
   const handleDialogConfirm = (files: File[], openaiApiKey: string) => {
     const file = files[0];
@@ -103,7 +120,12 @@ export function ReferenceCard({ reference, projectId, readOnly, disabled = false
   const handleFetchFromWebConfirm = (values: WorkflowConfigFormValues) => {
     fetchFromWebMutation.mutate(
       { openaiApiKey: values.openaiApiKey },
-      { onSuccess: () => setIsFetchDialogOpen(false) },
+      {
+        onSuccess: () => {
+          setIsFetchDialogOpen(false);
+          setFetchInitiated(true); // Optimistic UI: show fetching immediately
+        },
+      },
     );
   };
 
@@ -144,8 +166,8 @@ export function ReferenceCard({ reference, projectId, readOnly, disabled = false
         <div className="flex-1 min-w-0 space-y-2">
           {/* Status badges and actions */}
           <div className="flex items-center justify-between gap-2">
-            <MatchStatusBadge status={status} />
-            {status === 'unmatched' && !readOnly && (
+            <MatchStatusBadge status={displayStatus} />
+            {displayStatus === 'unmatched' && !readOnly && (
               <div className="flex items-center gap-1">
                 <Button variant="outline" size="xs" disabled={isDisabled} onClick={() => setIsFetchDialogOpen(true)}>
                   {isFetching ? <Loader2 className="w-4 h-4 animate-spin" /> : <GlobeIcon className="w-4 h-4" />}

@@ -68,6 +68,12 @@ function NoReferencesView({ project }: { project: ProjectDetailed }) {
   const humanApprovalRun = workflowRuns.find((run) => run.run.type === WorkflowRunType.HumanApproval);
 
   const approveMutation = useApproveAndNavigate(projectId, humanApprovalRun?.run.id);
+  const isDisabled = approveMutation.isPending || approveMutation.isSuccess;
+
+  const buttonText =
+    (approveMutation.isSuccess && 'Redirecting...') ||
+    (approveMutation.isPending && 'Starting analysis...') ||
+    'Run Analysis';
 
   return (
     <div className="space-y-6">
@@ -85,13 +91,9 @@ function NoReferencesView({ project }: { project: ProjectDetailed }) {
         </ul>
       </Callout>
 
-      <Button
-        onClick={() => approveMutation.mutate()}
-        disabled={approveMutation.isPending}
-        size="lg"
-        className="w-full"
-      >
-        Run Analysis
+      <Button onClick={() => approveMutation.mutate()} disabled={isDisabled} size="lg" className="w-full">
+        {isDisabled && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+        {buttonText}
       </Button>
     </div>
   );
@@ -105,12 +107,22 @@ function ReferencesReady({ project }: { project: ProjectDetailed }) {
   const documentProcessing = getWorkflowRunByType(workflowDetails, WorkflowRunType.DocumentProcessing);
   const referenceFileMatching = getWorkflowRunByType(workflowDetails, WorkflowRunType.ReferenceFileMatching);
   const referenceDownloader = getWorkflowRunByType(workflowDetails, WorkflowRunType.ReferenceDownloader);
-  const isProcessingFiles =
-    isWorkflowProcessing(documentProcessing) ||
-    isWorkflowProcessing(referenceFileMatching) ||
-    isWorkflowProcessing(referenceDownloader);
+
+  const isDocumentProcessing = isWorkflowProcessing(documentProcessing);
+  const isReferenceMatching = isWorkflowProcessing(referenceFileMatching);
+  const isReferenceDownloading = isWorkflowProcessing(referenceDownloader);
+  const isProcessing = isDocumentProcessing || isReferenceMatching || isReferenceDownloading;
 
   const approveMutation = useApproveAndNavigate(projectId, humanApprovalRun?.run.id);
+  const isDisabled = approveMutation.isPending || approveMutation.isSuccess || isProcessing;
+
+  const buttonText =
+    (approveMutation.isSuccess && 'Redirecting...') ||
+    (approveMutation.isPending && 'Starting analysis...') ||
+    (isDocumentProcessing && 'Indexing files...') ||
+    (isReferenceMatching && 'Matching references...') ||
+    (isReferenceDownloading && 'Fetching references...') ||
+    'Run Analysis';
 
   return (
     <div className="space-y-8">
@@ -125,13 +137,9 @@ function ReferencesReady({ project }: { project: ProjectDetailed }) {
       <ReferenceReviewTab projectId={projectId} />
 
       <div className="space-y-2">
-        <Button
-          onClick={() => approveMutation.mutate()}
-          disabled={approveMutation.isPending || isProcessingFiles}
-          size="lg"
-          className="w-full"
-        >
-          Run Analysis
+        <Button onClick={() => approveMutation.mutate()} disabled={isDisabled} size="lg" className="w-full">
+          {isDisabled && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+          {buttonText}
         </Button>
         <p className="text-xs text-center text-muted-foreground">
           You can always add more source documents later from the project page.

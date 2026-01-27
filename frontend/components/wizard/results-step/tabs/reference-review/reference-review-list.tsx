@@ -40,6 +40,7 @@ interface ReferenceReviewListProps {
   isBatchUploading: boolean;
   isProcessingFiles: boolean;
   disableActions: boolean;
+  disableIndividualCards: boolean;
   onBatchUpload: () => void;
 }
 
@@ -52,6 +53,7 @@ export function ReferenceReviewList({
   isBatchUploading,
   isProcessingFiles,
   disableActions,
+  disableIndividualCards,
   onBatchUpload,
 }: ReferenceReviewListProps) {
   const [searchQuery, setSearchQuery] = useState('');
@@ -261,7 +263,7 @@ export function ReferenceReviewList({
             reference={reference}
             projectId={projectId}
             readOnly={readOnly}
-            disabled={disableActions}
+            disabled={disableIndividualCards}
           />
         ))}
         {filteredReferences.length === 0 && hasActiveFilters && (
