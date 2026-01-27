@@ -1,3 +1,7 @@
+from lib.workflows.chunk_splitting.state import (
+    ChunkSplittingState,
+    ChunkSplittingWorkflowConfig,
+)
 from lib.workflows.citation_detection.state import (
     CitationDetectionConfig,
     CitationDetectionState,
@@ -66,6 +70,7 @@ from lib.workflows.results_extraction.state import (
 
 WorkflowState = (
     DocumentProcessingState
+    | ChunkSplittingState
     | DocumentSummarizationState
     | ReferenceExtractionState
     | ReferenceFileMatchingState
@@ -86,6 +91,7 @@ WorkflowState = (
 
 WorkflowConfig = (
     DocumentProcessingWorkflowConfig
+    | ChunkSplittingWorkflowConfig
     | DocumentSummarizationWorkflowConfig
     | ReferenceExtractionConfig
     | ReferenceFileMatchingConfig

@@ -1,19 +1,19 @@
 import {
+  ChunkSplittingState,
   CitationDetectionState,
   ClaimExtractionState,
-  DocumentProcessingState,
   ReferenceExtractionState,
   ReferenceFileMatchingState,
 } from '@/lib/generated-api';
 
 export function useResultsCalculations(
-  documentProcessing: DocumentProcessingState | undefined,
+  chunkSplitting: ChunkSplittingState | undefined,
   referenceExtraction: ReferenceExtractionState | undefined,
   claimExtraction: ClaimExtractionState | undefined,
   citationDetection: CitationDetectionState | undefined,
   referenceFileMatching?: ReferenceFileMatchingState | undefined,
 ) {
-  if (!documentProcessing) {
+  if (!chunkSplitting) {
     return {
       totalClaims: 0,
       totalCitations: 0,
@@ -25,7 +25,7 @@ export function useResultsCalculations(
     };
   }
 
-  const chunks = documentProcessing.chunks || [];
+  const chunks = chunkSplitting.chunks || [];
   const extractedRefs = referenceExtraction?.extracted_references || [];
   const fileMatches = referenceFileMatching?.matches || [];
   const claims = claimExtraction?.claims || [];

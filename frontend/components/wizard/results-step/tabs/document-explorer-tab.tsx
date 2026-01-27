@@ -38,14 +38,15 @@ export function DocumentExplorerTab({
   const issues = projectDetail.issues ?? [];
 
   const documentProcessing = getWorkflowRunByType(workflowDetails, WorkflowRunType.DocumentProcessing);
-  const isDocumentProcessing = isWorkflowProcessing(documentProcessing);
+  const chunkSplitting = getWorkflowRunByType(workflowDetails, WorkflowRunType.ChunkSplitting);
+  const isDocumentProcessing = isWorkflowProcessing(documentProcessing) || isWorkflowProcessing(chunkSplitting);
   const isAnyProcessing = isAnyWorkflowProcessing(workflowDetails);
 
   const [selectedChunkIndex, setSelectedChunkIndex] = useState<number | null>(null);
   const [severityFilter, setSeverityFilter] = useState<SeverityEnum[]>([]);
   const sidebarRef = useRef<HTMLDivElement>(null);
 
-  const chunks = useMemo(() => documentProcessing?.state?.chunks ?? [], [documentProcessing?.state?.chunks]);
+  const chunks = useMemo(() => chunkSplitting?.state?.chunks ?? [], [chunkSplitting?.state?.chunks]);
   const validChunkIndices = useMemo(() => chunks.map((c) => c.chunk_index), [chunks]);
   const handleHashSelect = useCallback((idx: number) => setSelectedChunkIndex(idx), []);
   useChunkHashNavigation(validChunkIndices, handleHashSelect);
@@ -61,8 +62,8 @@ export function DocumentExplorerTab({
   }, []);
 
   const pages = documentProcessing?.state?.file?.docling_pages ?? [];
-  const chunkToItems = documentProcessing?.state?.chunk_to_items?.mapping ?? {};
-  const pageImagesBaseUrl = `/api/images/${documentProcessing?.run.id}`;
+  const chunkToItems = chunkSplitting?.state?.chunk_to_items?.mapping ?? {};
+  const pageImagesBaseUrl = `/api/images/${chunkSplitting?.run.id ?? documentProcessing?.run.id}`;
 
   const workflowErrors = getWorkflowErrors(workflowDetails);
   const hasChunks = chunks.length > 0;
