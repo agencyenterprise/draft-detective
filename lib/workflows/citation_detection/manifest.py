@@ -22,6 +22,7 @@ class CitationDetectionManifest(
     needs_web_search = False
     is_internal = True
     required_dependencies = [
+        WorkflowRunType.CHUNK_SPLITTING,
         WorkflowRunType.REFERENCE_EXTRACTION,
         WorkflowRunType.FOOTNOTE_EXTRACTION,
     ]

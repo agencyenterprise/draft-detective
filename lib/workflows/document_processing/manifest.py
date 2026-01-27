@@ -18,7 +18,7 @@ class DocumentProcessingManifest(
 ):
     type = WorkflowRunType.DOCUMENT_PROCESSING
     name = "Document Processing"
-    description = "Convert documents to markdown and split into chunks"
+    description = "Convert documents to markdown"
     needs_web_search = False
     can_be_triggered_by_user = (
         False  # This is a dependency workflow, not directly triggered

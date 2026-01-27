@@ -270,6 +270,83 @@ export type ChunkEvalPackageRequest = {
 };
 
 /**
+ * ChunkSplittingState
+ *
+ * State for chunk splitting workflow.
+ */
+export type ChunkSplittingState = {
+  /**
+   * Errors
+   *
+   * Errors that occurred during the workflow execution.
+   */
+  errors?: Array<WorkflowError>;
+  /**
+   * Type
+   */
+  type?: 'chunk_splitting';
+  /**
+   * File Id
+   *
+   * ID of the main document to split into chunks
+   */
+  file_id: string;
+  config: ChunkSplittingWorkflowConfig;
+  /**
+   * Chunks
+   *
+   * Document chunks from main document
+   */
+  chunks?: Array<DocumentChunk>;
+  /**
+   * Mapping from chunk indices to Docling items/regions for rendering
+   */
+  chunk_to_items?: ChunkToItems | null;
+};
+
+/**
+ * ChunkSplittingWorkflowConfig
+ *
+ * Configuration model for chunk splitting workflow.
+ */
+export type ChunkSplittingWorkflowConfig = {
+  /**
+   * Project Id
+   *
+   * The ID of the project that this workflow run should be associated with
+   */
+  project_id?: string | null;
+  /**
+   * Openai Api Key
+   *
+   * The OpenAI API key to use for this workflow execution
+   */
+  openai_api_key?: string | null;
+  /**
+   * Domain
+   *
+   * Domain context for more accurate analysis
+   */
+  domain?: string | null;
+  /**
+   * Target Audience
+   *
+   * Target audience context for analysis
+   */
+  target_audience?: string | null;
+  /**
+   * Publication Date
+   *
+   * Publication date of the document (YYYY-MM-DD format)
+   */
+  publication_date?: string | null;
+  /**
+   * Type
+   */
+  type?: 'chunk_splitting';
+};
+
+/**
  * ChunkToItems
  *
  * Mapping from chunk indices to document items/regions
@@ -1085,22 +1162,12 @@ export type DocumentProcessingState = {
    * Type
    */
   type?: 'document_processing';
+  config: DocumentProcessingWorkflowConfig;
   file: FileDocument;
   /**
    * Supporting Files
    */
   supporting_files?: Array<FileDocument> | null;
-  config: DocumentProcessingWorkflowConfig;
-  /**
-   * Chunks
-   *
-   * Document chunks from main document
-   */
-  chunks?: Array<DocumentChunk>;
-  /**
-   * Mapping from chunk indices to Docling items/regions for rendering
-   */
-  chunk_to_items?: ChunkToItems | null;
 };
 
 /**
@@ -3787,6 +3854,7 @@ export type WorkflowRunDetail = {
    */
   state:
     | DocumentProcessingState
+    | ChunkSplittingState
     | DocumentSummarizationState
     | ReferenceExtractionState
     | ReferenceFileMatchingState
@@ -3825,6 +3893,7 @@ export type WorkflowRunStatus = (typeof WorkflowRunStatus)[keyof typeof Workflow
  */
 export const WorkflowRunType = {
   DocumentProcessing: 'document_processing',
+  ChunkSplitting: 'chunk_splitting',
   DocumentSummarization: 'document_summarization',
   ReferenceExtraction: 'reference_extraction',
   ReferenceFileMatching: 'reference_file_matching',
@@ -3931,22 +4000,12 @@ export type DocumentProcessingStateWritable = {
    * Type
    */
   type?: 'document_processing';
+  config: DocumentProcessingWorkflowConfig;
   file: FileDocumentWritable;
   /**
    * Supporting Files
    */
   supporting_files?: Array<FileDocumentWritable> | null;
-  config: DocumentProcessingWorkflowConfig;
-  /**
-   * Chunks
-   *
-   * Document chunks from main document
-   */
-  chunks?: Array<DocumentChunk>;
-  /**
-   * Mapping from chunk indices to Docling items/regions for rendering
-   */
-  chunk_to_items?: ChunkToItems | null;
 };
 
 /**
@@ -4081,6 +4140,7 @@ export type WorkflowRunDetailWritable = {
    */
   state:
     | DocumentProcessingStateWritable
+    | ChunkSplittingState
     | DocumentSummarizationState
     | ReferenceExtractionState
     | ReferenceFileMatchingState
@@ -4282,6 +4342,7 @@ export type StartWorkflowApiWorkflowsStartPostData = {
    */
   body:
     | DocumentProcessingWorkflowConfig
+    | ChunkSplittingWorkflowConfig
     | DocumentSummarizationWorkflowConfig
     | ReferenceExtractionConfig
     | ReferenceFileMatchingConfig

@@ -68,6 +68,7 @@ export function useStepUpload(onComplete: () => void) {
           workflow_types: [
             WorkflowRunType.DocumentProcessing,
             WorkflowRunType.ReferenceExtraction,
+            WorkflowRunType.ChunkSplitting,
             WorkflowRunType.DocumentSummarization,
           ],
           openai_api_key: apiKey || undefined,
