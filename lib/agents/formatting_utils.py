@@ -11,6 +11,19 @@ from lib.workflows.document_processing.state import FileSummary
 from lib.workflows.reference_extraction.state import ExtractedReference
 
 
+def format_summary_context(summary: Optional[str]) -> str:
+    """Format summary context for agent prompts."""
+    if not summary:
+        return "No summary available for this document."
+
+    return f"""
+## Summary of the document (for context about the document's main argument)
+```
+{summary}
+```
+"""
+
+
 def format_headings_context(headings: Optional[List[str]]) -> str:
     """Format headings context for agent prompts."""
     if not headings:
@@ -18,7 +31,14 @@ def format_headings_context(headings: Optional[List[str]]) -> str:
 
     # Format with indentation to show hierarchy
     formatted = "\n".join(f"{'  ' * i}{heading}" for i, heading in enumerate(headings))
-    return formatted
+
+    return f"""        
+## Document Section Context
+The following headings provide context about which section of the document this chunk belongs to:
+```
+{formatted}
+```
+"""
 
 
 def format_domain_context(domain: Optional[str]) -> str:
