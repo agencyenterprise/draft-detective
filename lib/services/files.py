@@ -8,10 +8,12 @@ from typing import List, Optional, Sequence, Tuple
 from fastapi import HTTPException
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
+from sqlmodel import col
 
 from lib.config.database import get_db
 from lib.config.env import config
 from lib.models.file import File, FileListItem, FileRole
+from lib.models.project import Project
 from lib.services.file import FileDocument, create_file_document_from_path
 
 logger = logging.getLogger(__name__)
@@ -266,14 +268,12 @@ async def check_file_access(file_id: uuid.UUID | str, user_id: uuid.UUID) -> Fil
     file_id = _normalize_uuid(file_id, "file ID")
 
     with get_db() as db:
-        from lib.models.project import Project
-
-        result = (
-            db.query(File, Project)
+        stmt = (
+            select(File, Project)
             .join(Project, File.project_id == Project.id)
-            .filter(File.id == file_id)
-            .first()
+            .where(File.id == file_id)
         )
+        result = db.execute(stmt).one_or_none()
 
         if result is None:
             raise HTTPException(status_code=404, detail="File not found")
@@ -282,6 +282,61 @@ async def check_file_access(file_id: uuid.UUID | str, user_id: uuid.UUID) -> Fil
 
         if project.user_id is None or project.user_id != user_id:
             raise HTTPException(status_code=403, detail="Access denied to this file")
+
+        return file
+
+
+async def check_file_access_by_share_token(
+    file_id: uuid.UUID | str, share_token: str
+) -> File:
+    """
+    Check if a share token grants access to a file.
+
+    Validates that the share token is active and belongs to a project that contains
+    the requested file.
+
+    Args:
+        file_id: UUID of the file to check access for
+        share_token: Share token for public access
+
+    Returns:
+        File model instance if access is granted
+
+    Raises:
+        HTTPException: 400 for invalid file ID, 404 if file/share not found, 403 if access denied
+    """
+    from lib.models.project import Project
+    from lib.models.share_link import ShareLink
+
+    file_id = _normalize_uuid(file_id, "file ID")
+
+    with get_db() as db:
+        # Get the file and its project
+        stmt = (
+            select(File, Project)
+            .join(Project, col(File.project_id) == col(Project.id))
+            .where(col(File.id) == file_id)
+        )
+        result = db.execute(stmt).one_or_none()
+
+        if result is None:
+            raise HTTPException(status_code=404, detail="File not found")
+
+        file, project = result
+
+        # Check if the share token is valid for this project
+        share_link_stmt = select(ShareLink).where(
+            col(ShareLink.token) == share_token,
+            col(ShareLink.is_active).is_(True),
+            col(ShareLink.resource_type) == "project",
+            col(ShareLink.resource_id) == project.id,
+        )
+        share_link = db.execute(share_link_stmt).scalar_one_or_none()
+
+        if share_link is None:
+            raise HTTPException(
+                status_code=403, detail="Invalid or expired share token"
+            )
 
         return file
 

@@ -6,7 +6,7 @@ if TYPE_CHECKING:
     from lib.models.bibliography_item import BibliographyItem
     from lib.models.footnote_item import FootnoteItem
     from lib.services.file import FileDocument
-    from lib.workflows.document_processing.state import FileSummary
+    from lib.workflows.document_summarization.state import FileSummary
     from lib.workflows.reference_extraction.state import ExtractedReference
 
 

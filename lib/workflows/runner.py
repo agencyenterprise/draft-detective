@@ -10,7 +10,6 @@ from lib.models.workflow_run import WorkflowRunStatus, WorkflowRunType
 from lib.services.file_artifacts_service.file_artifacts_service import (
     FileArtifactsService,
 )
-from lib.services.projects import update_project_title
 from lib.services.vector_store import VectorStoreService
 from lib.services.workflow_runs import update_workflow_run_status
 from lib.workflows.checkpointer import get_checkpointer
@@ -130,15 +129,6 @@ async def run_workflow(
                 context=context,
             ):
                 updated_state = updated_state.model_copy(update=values)
-
-                # Update the project title if this is a document processing workflow
-                if workflow_type == WorkflowRunType.DOCUMENT_PROCESSING:
-                    main_summary = updated_state.get_main_summary()
-                    if main_summary and main_summary.title:
-                        await update_project_title(
-                            project_id=project_id,
-                            title=main_summary.title,
-                        )
         except Exception as e:
             logger.error(f"Error streaming state: {e}", exc_info=True)
             updated_state.errors.append(WorkflowError(task_name="global", error=str(e)))

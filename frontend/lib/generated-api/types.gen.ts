@@ -1092,12 +1092,6 @@ export type DocumentProcessingState = {
   supporting_files?: Array<FileDocument> | null;
   config: DocumentProcessingWorkflowConfig;
   /**
-   * Summaries
-   *
-   * List of document summaries for main and supporting files
-   */
-  summaries?: Array<FileSummary>;
-  /**
    * Chunks
    *
    * Document chunks from main document
@@ -1233,6 +1227,85 @@ export type DocumentReferenceFactors = {
    * How to implement the recommended action
    */
   explanation_for_recommended_action: string;
+};
+
+/**
+ * DocumentSummarizationState
+ *
+ * State for document summarization workflow.
+ */
+export type DocumentSummarizationState = {
+  /**
+   * Errors
+   *
+   * Errors that occurred during the workflow execution.
+   */
+  errors?: Array<WorkflowError>;
+  /**
+   * Type
+   */
+  type?: 'document_summarization';
+  config: DocumentSummarizationWorkflowConfig;
+  /**
+   * Main File Id
+   *
+   * ID of the main document to summarize (full content used)
+   */
+  main_file_id: string;
+  /**
+   * Supporting File Ids
+   *
+   * IDs of supporting documents to summarize (truncated content used)
+   */
+  supporting_file_ids?: Array<string>;
+  /**
+   * Summaries
+   *
+   * List of document summaries for main and supporting files
+   */
+  summaries?: Array<FileSummary>;
+};
+
+/**
+ * DocumentSummarizationWorkflowConfig
+ *
+ * Configuration model for document summarization workflow.
+ */
+export type DocumentSummarizationWorkflowConfig = {
+  /**
+   * Project Id
+   *
+   * The ID of the project that this workflow run should be associated with
+   */
+  project_id?: string | null;
+  /**
+   * Openai Api Key
+   *
+   * The OpenAI API key to use for this workflow execution
+   */
+  openai_api_key?: string | null;
+  /**
+   * Domain
+   *
+   * Domain context for more accurate analysis
+   */
+  domain?: string | null;
+  /**
+   * Target Audience
+   *
+   * Target audience context for analysis
+   */
+  target_audience?: string | null;
+  /**
+   * Publication Date
+   *
+   * Publication date of the document (YYYY-MM-DD format)
+   */
+  publication_date?: string | null;
+  /**
+   * Type
+   */
+  type?: 'document_summarization';
 };
 
 /**
@@ -2781,6 +2854,12 @@ export type ReferenceExtractionState = {
    * Extracted references with unique IDs
    */
   extracted_references?: Array<ExtractedReference>;
+  /**
+   * Reasoning
+   *
+   * Step-by-step reasoning describing how references were found and extracted
+   */
+  reasoning?: string;
 };
 
 /**
@@ -3708,6 +3787,7 @@ export type WorkflowRunDetail = {
    */
   state:
     | DocumentProcessingState
+    | DocumentSummarizationState
     | ReferenceExtractionState
     | ReferenceFileMatchingState
     | FootnoteExtractionState
@@ -3745,6 +3825,7 @@ export type WorkflowRunStatus = (typeof WorkflowRunStatus)[keyof typeof Workflow
  */
 export const WorkflowRunType = {
   DocumentProcessing: 'document_processing',
+  DocumentSummarization: 'document_summarization',
   ReferenceExtraction: 'reference_extraction',
   ReferenceFileMatching: 'reference_file_matching',
   HumanApproval: 'human_approval',
@@ -3856,12 +3937,6 @@ export type DocumentProcessingStateWritable = {
    */
   supporting_files?: Array<FileDocumentWritable> | null;
   config: DocumentProcessingWorkflowConfig;
-  /**
-   * Summaries
-   *
-   * List of document summaries for main and supporting files
-   */
-  summaries?: Array<FileSummary>;
   /**
    * Chunks
    *
@@ -4006,6 +4081,7 @@ export type WorkflowRunDetailWritable = {
    */
   state:
     | DocumentProcessingStateWritable
+    | DocumentSummarizationState
     | ReferenceExtractionState
     | ReferenceFileMatchingState
     | FootnoteExtractionState
@@ -4206,6 +4282,7 @@ export type StartWorkflowApiWorkflowsStartPostData = {
    */
   body:
     | DocumentProcessingWorkflowConfig
+    | DocumentSummarizationWorkflowConfig
     | ReferenceExtractionConfig
     | ReferenceFileMatchingConfig
     | FootnoteExtractionConfig
@@ -4397,7 +4474,14 @@ export type DownloadFileApiFilesDownloadFileIdGetData = {
      */
     file_id: string;
   };
-  query?: never;
+  query?: {
+    /**
+     * Share Token
+     *
+     * Share token for public access
+     */
+    share_token?: string | null;
+  };
   url: '/api/files/download/{file_id}';
 };
 

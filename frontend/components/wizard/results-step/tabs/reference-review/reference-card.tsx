@@ -27,6 +27,7 @@ import {
 } from './mutations';
 import { ReferenceReviewItem, ReferenceReviewStatus } from './types';
 import { ValidationResultsBox } from './validation-results-box';
+import { FileDownloadLink } from '@/components/ui/file-download-link';
 
 function MatchStatusBadge({ status }: { status: ReferenceReviewStatus }) {
   const statusConfig = {
@@ -187,9 +188,8 @@ export function ReferenceCard({ reference, projectId, readOnly, disabled = false
 
           {matchedFile && (
             <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded px-2 py-1">
-              <Link
-                href={matchedFile.url}
-                target="_blank"
+              <FileDownloadLink
+                fileId={matchedFile.id}
                 className="inline-flex items-center gap-1.5 text-sm group flex-1"
               >
                 <FileText className="w-3.5 h-3.5 text-gray-400" />
@@ -198,7 +198,7 @@ export function ReferenceCard({ reference, projectId, readOnly, disabled = false
                 </span>
                 <span className="text-gray-400 text-xs">({matchedFile.size})</span>
                 <ExternalLink className="w-3 h-3 text-gray-400" />
-              </Link>
+              </FileDownloadLink>
 
               {!readOnly && (
                 <div className="flex gap-2 justify-end">

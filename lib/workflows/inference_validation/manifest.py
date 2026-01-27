@@ -28,6 +28,7 @@ class InferenceValidationManifest(
     order = 1
     required_dependencies = [
         WorkflowRunType.CLAIM_EXTRACTION,
+        WorkflowRunType.DOCUMENT_SUMMARIZATION,
     ]
 
     def get_state_type(self) -> Type[InferenceValidationState]:
@@ -72,7 +73,9 @@ class InferenceValidationManifest(
                         severity=SeverityEnum.MEDIUM,
                         chunk_index=validation.chunk_index,
                         claim_index=validation.claim_index,
-                        claim_category=find_claim_category(chunk, validation.claim_index),
+                        claim_category=find_claim_category(
+                            chunk, validation.claim_index
+                        ),
                     )
                 )
 

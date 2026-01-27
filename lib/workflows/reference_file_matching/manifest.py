@@ -38,6 +38,7 @@ class ReferenceFileMatchingManifest(
     required_dependencies = [
         # Needs a direct dependency to doc processing to wait for files to be processed, when files are uploaded after project creation
         WorkflowRunType.DOCUMENT_PROCESSING,
+        WorkflowRunType.DOCUMENT_SUMMARIZATION,
         WorkflowRunType.REFERENCE_EXTRACTION,
     ]
 

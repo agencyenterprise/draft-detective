@@ -1,7 +1,7 @@
 import { LabeledValue } from '@/components/labeled-value';
+import { FileDownloadLink } from '@/components/ui/file-download-link';
 import { ComposedReference } from '@/lib/composed-references';
 import { FileDocument, Reference } from '@/lib/generated-api';
-import Link from 'next/link';
 import {
   ConfidenceBadge,
   PublicationQualityBadge,
@@ -49,13 +49,9 @@ export function CitationReferenceItem({ reference, references, supportingFiles }
 
       {associatedExistingReference && associatedSupportingFile && associatedSupportingFile.file_id && (
         <LabeledValue label="Existing Bibliography Reference">
-          <Link
-            href={`/api/files/download/${associatedSupportingFile.file_id}`}
-            target="_blank"
-            className="text-blue-600 underline"
-          >
+          <FileDownloadLink fileId={associatedSupportingFile.file_id} className="text-blue-600 underline">
             {associatedSupportingFile.file_name}
-          </Link>{' '}
+          </FileDownloadLink>{' '}
           - <span className="text-muted-foreground italic">{associatedExistingReference.text}</span>
         </LabeledValue>
       )}

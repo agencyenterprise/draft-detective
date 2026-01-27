@@ -4,6 +4,7 @@ import {
   ClaimExtractionState,
   ClaimReferenceValidationState,
   DocumentProcessingState,
+  DocumentSummarizationState,
   FootnoteExtractionState,
   HumanApprovalState,
   InferenceValidationState,
@@ -27,6 +28,7 @@ import {
  */
 type WorkflowTypeToDetail = {
   [WorkflowRunType.DocumentProcessing]: DocumentProcessingState;
+  [WorkflowRunType.DocumentSummarization]: DocumentSummarizationState;
   [WorkflowRunType.ReferenceExtraction]: ReferenceExtractionState;
   [WorkflowRunType.ReferenceFileMatching]: ReferenceFileMatchingState;
   [WorkflowRunType.ClaimReferenceValidation]: ClaimReferenceValidationState;
@@ -66,6 +68,7 @@ export function getWorkflowRunByType<T extends keyof WorkflowTypeToDetail>(
 
 const workflowTypeNames: Record<WorkflowRunType, string> = {
   [WorkflowRunType.DocumentProcessing]: 'Document Processing',
+  [WorkflowRunType.DocumentSummarization]: 'Document Summarization',
   [WorkflowRunType.ReferenceExtraction]: 'Reference Extraction',
   [WorkflowRunType.ReferenceFileMatching]: 'Reference File Matching',
   [WorkflowRunType.HumanApproval]: 'Human Approval',

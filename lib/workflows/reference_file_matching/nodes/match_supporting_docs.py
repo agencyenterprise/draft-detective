@@ -16,7 +16,7 @@ from lib.agents.batched_reference_matcher import (
     BatchedReferenceMatcherAgent,
 )
 from lib.run_utils import run_tasks
-from lib.workflows.document_processing.state import FileSummary
+from lib.workflows.document_summarization.state import FileSummary
 from lib.services.reference_embedding_matcher import (
     CandidateMatch,
     ReferenceEmbeddingMatcher,
