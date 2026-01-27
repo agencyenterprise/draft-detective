@@ -62,6 +62,10 @@ export function ResultsVisualization({
             viewMode={viewMode}
             readOnly={readOnly}
             onNavigateToAnalyses={() => setActiveTab('analyses')}
+            onNavigateToReferences={(referenceIndex) => {
+              window.location.hash = `reference-${referenceIndex}`;
+              setActiveTab('references');
+            }}
           />
         );
       case 'references':

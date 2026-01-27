@@ -26,6 +26,7 @@ interface DocumentExplorerTabProps {
   viewMode: DocRenderMode;
   readOnly?: boolean;
   onNavigateToAnalyses: () => void;
+  onNavigateToReferences?: (referenceIndex: number) => void;
 }
 
 export function DocumentExplorerTab({
@@ -33,6 +34,7 @@ export function DocumentExplorerTab({
   viewMode,
   readOnly = false,
   onNavigateToAnalyses,
+  onNavigateToReferences,
 }: DocumentExplorerTabProps) {
   const workflowDetails = projectDetail.workflow_runs ?? [];
   const issues = projectDetail.issues ?? [];
@@ -198,6 +200,7 @@ export function DocumentExplorerTab({
                 projectDetail={projectDetail}
                 readOnly={readOnly}
                 onClearChunkSelection={() => setSelectedChunkIndex(null)}
+                onNavigateToReferences={onNavigateToReferences}
               />
             )}
           </div>
