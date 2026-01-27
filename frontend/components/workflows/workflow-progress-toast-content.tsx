@@ -92,7 +92,7 @@ function ToastWrapper({ children, actions }: { children: React.ReactNode; action
         <span className="text-sm font-semibold tracking-tight text-foreground">Analysis in Progress</span>
         {actions}
       </div>
-      {children}
+      <div className="max-h-[80vh] overflow-y-auto space-y-1.5">{children}</div>
     </div>
   );
 }
