@@ -11,7 +11,7 @@ import numpy as np
 from langchain_openai import OpenAIEmbeddings
 from pydantic import BaseModel
 
-from lib.workflows.document_processing.state import FileSummary
+from lib.workflows.document_summarization.state import FileSummary
 
 logger = logging.getLogger(__name__)
 

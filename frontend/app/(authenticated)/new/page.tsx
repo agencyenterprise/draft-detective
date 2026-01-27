@@ -24,14 +24,14 @@ function WizardContent() {
     return baseSteps;
   }, [wizard.currentStep, wizard.needsReferencesStep]);
 
-  const cardWidthClass = wizard.currentStep === 3 ? 'max-w-8xl' : 'max-w-2xl';
+  const cardWidthClass = wizard.currentStep === 3 ? 'max-w-8xl' : 'max-w-3xl';
 
   return (
     <div className="space-y-8">
       <StepIndicator currentStep={wizard.currentStep} steps={steps} className="mb-8" />
 
       <Card className={`${cardWidthClass} mx-auto transition-all duration-300`}>
-        <CardContent className="py-8">
+        <CardContent className="">
           {wizard.currentStep === 1 && <StepUpload onComplete={wizard.nextStep} />}
           {wizard.currentStep === 2 && <StepAnalyses />}
           {wizard.currentStep === 3 && <StepReferences />}

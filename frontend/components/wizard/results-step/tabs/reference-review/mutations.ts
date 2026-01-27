@@ -44,7 +44,7 @@ export function useUploadFileMutation(projectId: string, referenceId: string) {
       return startMultipleWorkflowsApiWorkflowsStartMultiplePost({
         body: {
           project_id: projectId,
-          workflow_types: [WorkflowRunType.DocumentProcessing],
+          workflow_types: [WorkflowRunType.DocumentProcessing, WorkflowRunType.DocumentSummarization],
           openai_api_key: openaiApiKey || undefined,
         },
       });
@@ -96,7 +96,7 @@ export function useReplaceFileMutation(projectId: string, referenceId: string, e
       return startMultipleWorkflowsApiWorkflowsStartMultiplePost({
         body: {
           project_id: projectId,
-          workflow_types: [WorkflowRunType.DocumentProcessing],
+          workflow_types: [WorkflowRunType.DocumentProcessing, WorkflowRunType.DocumentSummarization],
           openai_api_key: openaiApiKey || undefined,
         },
       });
@@ -129,7 +129,7 @@ export function useFetchFromWebMutation(projectId: string, referenceId: string, 
       await startMultipleWorkflowsApiWorkflowsStartMultiplePost({
         body: {
           project_id: projectId,
-          workflow_types: [WorkflowRunType.DocumentProcessing],
+          workflow_types: [WorkflowRunType.DocumentProcessing, WorkflowRunType.DocumentSummarization],
           openai_api_key: openaiApiKey || undefined,
         },
       });
@@ -163,7 +163,7 @@ export function useFetchAllFromWebMutation(projectId: string) {
       await startMultipleWorkflowsApiWorkflowsStartMultiplePost({
         body: {
           project_id: projectId,
-          workflow_types: [WorkflowRunType.DocumentProcessing],
+          workflow_types: [WorkflowRunType.DocumentProcessing, WorkflowRunType.DocumentSummarization],
           openai_api_key: openaiApiKey || undefined,
         },
       });
@@ -193,7 +193,11 @@ export function useBatchUploadMutation(projectId: string) {
       return startMultipleWorkflowsApiWorkflowsStartMultiplePost({
         body: {
           project_id: projectId,
-          workflow_types: [WorkflowRunType.DocumentProcessing, WorkflowRunType.ReferenceFileMatching],
+          workflow_types: [
+            WorkflowRunType.DocumentProcessing,
+            WorkflowRunType.DocumentSummarization,
+            WorkflowRunType.ReferenceFileMatching,
+          ],
           openai_api_key: openaiApiKey || undefined,
         },
       });

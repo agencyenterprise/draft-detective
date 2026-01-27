@@ -7,7 +7,7 @@ from lib.models.bibliography_item import (
 )
 from lib.services.file import FileDocument
 from lib.services.vector_store import RetrievedPassage
-from lib.workflows.document_processing.state import FileSummary
+from lib.workflows.document_summarization.state import FileSummary
 from lib.workflows.reference_extraction.state import ExtractedReference
 
 

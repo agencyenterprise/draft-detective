@@ -23,6 +23,7 @@ class LiveReportsManifest(
     required_dependencies = [
         WorkflowRunType.CLAIM_EXTRACTION,
         WorkflowRunType.CITATION_DETECTION,
+        WorkflowRunType.DOCUMENT_SUMMARIZATION,
     ]
 
     def get_state_type(self) -> Type[LiveReportsState]:

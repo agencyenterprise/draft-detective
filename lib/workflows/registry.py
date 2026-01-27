@@ -47,6 +47,9 @@ def register_all_workflow_manifests():
         ClaimReferenceValidationManifest,
     )
     from lib.workflows.document_processing.manifest import DocumentProcessingManifest
+    from lib.workflows.document_summarization.manifest import (
+        DocumentSummarizationManifest,
+    )
     from lib.workflows.footnote_extraction.manifest import FootnoteExtractionManifest
     from lib.workflows.human_approval.manifest import HumanApprovalManifest
     from lib.workflows.inference_validation.manifest import InferenceValidationManifest
@@ -65,6 +68,7 @@ def register_all_workflow_manifests():
 
     manifests = [
         DocumentProcessingManifest(),
+        DocumentSummarizationManifest(),
         ReferenceExtractionManifest(),
         ReferenceFileMatchingManifest(),
         HumanApprovalManifest(),

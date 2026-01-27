@@ -18,6 +18,10 @@ from lib.workflows.document_processing.state import (
     DocumentProcessingState,
     DocumentProcessingWorkflowConfig,
 )
+from lib.workflows.document_summarization.state import (
+    DocumentSummarizationState,
+    DocumentSummarizationWorkflowConfig,
+)
 from lib.workflows.footnote_extraction.state import (
     FootnoteExtractionConfig,
     FootnoteExtractionState,
@@ -62,6 +66,7 @@ from lib.workflows.results_extraction.state import (
 
 WorkflowState = (
     DocumentProcessingState
+    | DocumentSummarizationState
     | ReferenceExtractionState
     | ReferenceFileMatchingState
     | FootnoteExtractionState
@@ -81,6 +86,7 @@ WorkflowState = (
 
 WorkflowConfig = (
     DocumentProcessingWorkflowConfig
+    | DocumentSummarizationWorkflowConfig
     | ReferenceExtractionConfig
     | ReferenceFileMatchingConfig
     | FootnoteExtractionConfig

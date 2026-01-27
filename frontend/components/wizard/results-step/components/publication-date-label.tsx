@@ -15,8 +15,12 @@ export function PublicationDateLabel({ project, prefix, suffix }: PublicationDat
 
   // Extract publication date from main document summary as fallback
   const documentProcessing = getWorkflowRunByType(project.workflow_runs ?? [], WorkflowRunType.DocumentProcessing);
+  const documentSummarization = getWorkflowRunByType(
+    project.workflow_runs ?? [],
+    WorkflowRunType.DocumentSummarization,
+  );
   const mainFileId = documentProcessing?.state?.file?.file_id;
-  const mainSummary = documentProcessing?.state?.summaries?.find((s) => s.file_id === mainFileId);
+  const mainSummary = documentSummarization?.state?.summaries?.find((s) => s.file_id === mainFileId);
   const extractedPublicationDate = mainSummary?.publication_date;
 
   const value = userInformedPublicationDate
