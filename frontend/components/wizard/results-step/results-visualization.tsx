@@ -63,7 +63,8 @@ export function ResultsVisualization({
             readOnly={readOnly}
             onNavigateToAnalyses={() => setActiveTab('analyses')}
             onNavigateToReferences={(referenceIndex) => {
-              window.location.hash = `reference-${referenceIndex}`;
+              window.history.pushState(null, '', `#reference-${referenceIndex}`);
+              window.dispatchEvent(new HashChangeEvent('hashchange'));
               setActiveTab('references');
             }}
           />

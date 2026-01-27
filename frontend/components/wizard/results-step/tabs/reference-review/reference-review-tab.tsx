@@ -4,34 +4,12 @@ import { WorkflowRunType } from '@/lib/generated-api';
 import { useProjectDetails } from '@/lib/hooks/use-project-details';
 import { getReferenceExtractionWarningStatus, getWorkflowRunByType, isWorkflowProcessing } from '@/lib/workflow-state';
 import { FileText, Loader2 } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { FileUploadDialog } from './file-upload-dialog';
 import { useFetchAllFromWebMutation, useBatchUploadMutation } from './mutations';
 import { useReferenceReviewReferences } from './queries';
 import { ReferenceReviewList } from './reference-review-list';
-
-function useScrollToReference() {
-  useEffect(() => {
-    const scrollToHash = () => {
-      const hash = window.location.hash;
-      if (hash.startsWith('#reference-')) {
-        const element = document.getElementById(hash.slice(1));
-        if (element) {
-          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          element.classList.add('ring-2', 'ring-primary', 'ring-offset-2');
-          setTimeout(() => {
-            element.classList.remove('ring-2', 'ring-primary', 'ring-offset-2');
-          }, 2000);
-        }
-      }
-    };
-
-    // Scroll on mount and hash changes
-    scrollToHash();
-    window.addEventListener('hashchange', scrollToHash);
-    return () => window.removeEventListener('hashchange', scrollToHash);
-  }, []);
-}
+import { useScrollToReference } from './use-scroll-to-reference';
 
 interface ReferenceReviewTabProps {
   projectId: string;
