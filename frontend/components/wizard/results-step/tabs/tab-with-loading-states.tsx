@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Loader2 } from 'lucide-react';
-import { EmptyState } from '@/components/ui/empty-state';
+import { EmptyState } from '@/components/shared';
 import { SkeletonList, SkeletonParagraphs } from '@/components/ui/skeleton-list';
 
 interface TabWithLoadingStatesProps<T> {

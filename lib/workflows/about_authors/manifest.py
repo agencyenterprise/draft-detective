@@ -4,6 +4,7 @@ from typing import List, Type
 
 from langgraph.graph import StateGraph
 
+from lib.workflows.about_authors.constants import RULE_FIELDS, RULE_METADATA
 from lib.workflows.about_authors.graph import build_about_authors_graph
 from lib.workflows.about_authors.state import (
     AboutAuthorsState,
@@ -61,41 +62,18 @@ class AboutAuthorsManifest(
             if result.overall_passed:
                 continue
 
-            # Create issues for each failed rule
+            # Build failed rules using centralized metadata
             failed_rules = []
-
-            if not result.rule_1_sentence_length.passed:
-                failed_rules.append(
-                    f"Sentence count: {result.rule_1_sentence_length.explanation}"
-                )
-
-            if not result.rule_2_position_affiliation.passed:
-                failed_rules.append(
-                    f"Position/Affiliation: {result.rule_2_position_affiliation.explanation}"
-                )
-
-            if (
-                result.rule_3_tasp_statement.applicable
-                and not result.rule_3_tasp_statement.passed
-            ):
-                failed_rules.append(
-                    f"TASP Statement: {result.rule_3_tasp_statement.explanation}"
-                )
-
-            if not result.rule_4_research_focus.passed:
-                failed_rules.append(
-                    f"Research Focus: {result.rule_4_research_focus.explanation}"
-                )
-
-            if not result.rule_5_highest_degree.passed:
-                failed_rules.append(
-                    f"Highest Degree: {result.rule_5_highest_degree.explanation}"
-                )
+            for field in RULE_FIELDS:
+                rule_check = getattr(result, field)
+                if rule_check.applicable and not rule_check.passed:
+                    label = RULE_METADATA[field]["short_name"]
+                    failed_rules.append(f"{label}: {rule_check.explanation}")
 
             description = f"{result.final_comment}"
             if result.guidance:
                 description += f"\n\nGuidance: {result.guidance}"
-            description += f"\n\nFailed rules:\n" + "\n".join(
+            description += "\n\nFailed rules:\n" + "\n".join(
                 f"• {r}" for r in failed_rules
             )
 

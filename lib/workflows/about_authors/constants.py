@@ -48,3 +48,47 @@ TASP_URL = "www.rand.org/tasp-fellows"
 
 # Expected sentence count for author bios
 EXPECTED_SENTENCE_COUNT = 3
+
+# Rule metadata - single source of truth for rule names and descriptions
+# Used by validation node, manifest, and frontend
+RULE_METADATA = {
+    "rule_1_sentence_length": {
+        "key": "rule_1",
+        "name": "Sentence Count",
+        "short_name": "Sentence count",
+        "description": f"Bio must be exactly {EXPECTED_SENTENCE_COUNT} sentences",
+    },
+    "rule_2_position_affiliation": {
+        "key": "rule_2",
+        "name": "Position & Affiliation",
+        "short_name": "Position/Affiliation",
+        "description": "Must include current position and organizational affiliation",
+    },
+    "rule_3_tasp_statement": {
+        "key": "rule_3",
+        "name": "TASP Statement",
+        "short_name": "TASP Statement",
+        "description": "If TASP fellow, must include required TASP statement with URL",
+    },
+    "rule_4_research_focus": {
+        "key": "rule_4",
+        "name": "Research Focus",
+        "short_name": "Research Focus",
+        "description": "Must include research focus or interests",
+    },
+    "rule_5_highest_degree": {
+        "key": "rule_5",
+        "name": "Highest Degree",
+        "short_name": "Highest Degree",
+        "description": "Must include highest degree attained and field",
+    },
+}
+
+# Ordered list of rule field names for iteration
+RULE_FIELDS = [
+    "rule_1_sentence_length",
+    "rule_2_position_affiliation",
+    "rule_3_tasp_statement",
+    "rule_4_research_focus",
+    "rule_5_highest_degree",
+]

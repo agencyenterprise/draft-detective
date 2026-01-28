@@ -25,6 +25,8 @@ from lib.workflows.about_authors.constants import (
     ABBREVIATIONS,
     EXPECTED_SENTENCE_COUNT,
     IGNORE_SENTENCE_PATTERNS,
+    RULE_FIELDS,
+    RULE_METADATA,
 )
 from lib.workflows.about_authors.state import (
     AboutAuthorsState,
@@ -140,16 +142,10 @@ async def _validate_single_author(
         final_comment = "PASS"
         guidance = None
     else:
-        rule_names = [
-            "Rule 1 (Sentence count)",
-            "Rule 2 (Position/Affiliation)",
-            "Rule 3 (TASP Statement)",
-            "Rule 4 (Research Focus)",
-            "Rule 5 (Highest Degree)",
-        ]
+        # Use centralized rule metadata for consistency
         failed_rules = [
-            f"{name}: {check.explanation}"
-            for name, check in zip(rule_names, all_checks)
+            f"{RULE_METADATA[field]['name']}: {check.explanation}"
+            for field, check in zip(RULE_FIELDS, all_checks)
             if check.applicable and not check.passed
         ]
 

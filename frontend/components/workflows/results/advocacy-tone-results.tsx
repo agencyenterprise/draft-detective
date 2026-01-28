@@ -1,11 +1,11 @@
 'use client';
 
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { EmptyState, ExpandableCard, NavigateToChunkButton } from '@/components/shared';
 import { DocumentChunk, ProjectDetailed, WorkflowRunType } from '@/lib/generated-api';
 import { getWorkflowRunByType } from '@/lib/workflow-state';
-import { AlertCircle, AlertTriangle, ChevronDown, ExternalLink, FileWarning, MessageSquareWarning } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, FileWarning, MessageSquareWarning, type LucideIcon } from 'lucide-react';
 import * as React from 'react';
 import { useMemo, useState } from 'react';
 import { cn } from '@/lib/utils';
@@ -43,32 +43,41 @@ interface AdvocacyToneState {
   errors?: unknown[];
 }
 
+// Centralized check type configuration
 const CHECK_CONFIG: Record<
   CheckType,
   {
     label: string;
-    icon: typeof AlertTriangle;
+    singularLabel: string;
+    icon: LucideIcon;
     color: string;
     bgColor: string;
+    ringColor: string;
   }
 > = {
   trigger_words: {
     label: 'Trigger Words',
+    singularLabel: 'Trigger Word',
     icon: FileWarning,
     color: 'text-amber-600',
     bgColor: 'bg-amber-50',
+    ringColor: 'ring-amber-400',
   },
   advocacy_language: {
     label: 'Advocacy Language',
+    singularLabel: 'Advocacy Issue',
     icon: MessageSquareWarning,
     color: 'text-orange-600',
     bgColor: 'bg-orange-50',
+    ringColor: 'ring-orange-400',
   },
   subjective_tone: {
     label: 'Subjective Tone',
+    singularLabel: 'Subjective Tone',
     icon: AlertTriangle,
     color: 'text-red-600',
     bgColor: 'bg-red-50',
+    ringColor: 'ring-red-400',
   },
 };
 
@@ -93,8 +102,6 @@ interface ChunkResultCardProps {
 }
 
 function ChunkResultCard({ result, chunkContent, onNavigateToChunk }: ChunkResultCardProps) {
-  const [isOpen, setIsOpen] = useState(false);
-
   const confirmedChecks = useMemo(() => {
     const checks: { type: CheckType; llmResult: LLMVerificationResult }[] = [];
 
@@ -121,62 +128,77 @@ function ChunkResultCard({ result, chunkContent, onNavigateToChunk }: ChunkResul
 
   if (confirmedChecks.length === 0) return null;
 
+  const header = (
+    <div className="space-y-2">
+      <div className="flex items-center gap-3">
+        <span className="text-sm font-medium">Chunk {result.chunk_index}</span>
+        <div className="flex gap-1.5 flex-wrap">
+          {confirmedChecks.map(({ type }) => (
+            <CheckBadge key={type} type={type} confirmed={true} />
+          ))}
+        </div>
+      </div>
+      {truncatedContent && <p className="text-sm text-muted-foreground line-clamp-2">{truncatedContent}</p>}
+    </div>
+  );
+
   return (
-    <Card>
-      <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => setIsOpen(!isOpen)}>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <CardTitle className="text-sm font-medium">Chunk {result.chunk_index}</CardTitle>
-            <div className="flex gap-1.5 flex-wrap">
-              {confirmedChecks.map(({ type }) => (
-                <CheckBadge key={type} type={type} confirmed={true} />
-              ))}
+    <ExpandableCard header={header} contentClassName="space-y-3">
+      {chunkContent && (
+        <div className="p-3 rounded-md bg-muted/50 border">
+          <p className="text-sm text-foreground whitespace-pre-wrap">{chunkContent}</p>
+          {onNavigateToChunk && <NavigateToChunkButton onClick={onNavigateToChunk} />}
+        </div>
+      )}
+      {confirmedChecks.map(({ type, llmResult }) => {
+        const config = CHECK_CONFIG[type];
+        const Icon = config.icon;
+
+        return (
+          <div key={type} className={cn('p-3 rounded-md', config.bgColor)}>
+            <div className="flex items-start gap-2">
+              <Icon className={cn('h-4 w-4 mt-0.5 flex-shrink-0', config.color)} />
+              <div>
+                <p className={cn('font-medium text-sm', config.color)}>{config.label}</p>
+                <p className="text-sm text-muted-foreground mt-1">{llmResult.explanation}</p>
+              </div>
             </div>
           </div>
-          <ChevronDown className={cn('h-4 w-4 transition-transform flex-shrink-0', isOpen && 'rotate-180')} />
-        </div>
-        {truncatedContent && <p className="text-sm text-muted-foreground mt-2 line-clamp-2">{truncatedContent}</p>}
-      </CardHeader>
-      {isOpen && (
-        <CardContent className="pt-0 space-y-3">
-          {chunkContent && (
-            <div className="p-3 rounded-md bg-muted/50 border">
-              <p className="text-sm text-foreground whitespace-pre-wrap">{chunkContent}</p>
-              {onNavigateToChunk && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="mt-2 gap-1"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onNavigateToChunk();
-                  }}
-                >
-                  <ExternalLink className="h-3 w-3" />
-                  View in Document Explorer
-                </Button>
-              )}
-            </div>
-          )}
-          {confirmedChecks.map(({ type, llmResult }) => {
-            const config = CHECK_CONFIG[type];
-            const Icon = config.icon;
+        );
+      })}
+    </ExpandableCard>
+  );
+}
 
-            return (
-              <div key={type} className={cn('p-3 rounded-md', config.bgColor)}>
-                <div className="flex items-start gap-2">
-                  <Icon className={cn('h-4 w-4 mt-0.5 flex-shrink-0', config.color)} />
-                  <div>
-                    <p className={cn('font-medium text-sm', config.color)}>{config.label}</p>
-                    <p className="text-sm text-muted-foreground mt-1">{llmResult.explanation}</p>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </CardContent>
+interface FilterButtonProps {
+  type: CheckType;
+  count: number;
+  isActive: boolean;
+  isFiltered: boolean;
+  onClick: () => void;
+}
+
+function FilterButton({ type, count, isActive, isFiltered, onClick }: FilterButtonProps) {
+  const config = CHECK_CONFIG[type];
+  const Icon = config.icon;
+
+  if (count === 0) return null;
+
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        'flex items-center gap-2 px-3 py-2 rounded-md transition-all',
+        config.bgColor,
+        isActive && `ring-2 ${config.ringColor} shadow-md`,
+        isFiltered && !isActive && 'opacity-50',
       )}
-    </Card>
+    >
+      <Icon className={cn('h-4 w-4', config.color)} />
+      <span className="text-sm font-medium">
+        {count} {count !== 1 ? config.label : config.singularLabel}
+      </span>
+    </button>
   );
 }
 
@@ -184,7 +206,7 @@ export function AdvocacyToneResults({ project, onNavigateToDocumentExplorer }: A
   const workflowDetails = useMemo(() => project.workflow_runs ?? [], [project.workflow_runs]);
   const [filterType, setFilterType] = useState<CheckType | null>(null);
 
-  // Get the advocacy tone workflow - use type assertion since types may not be generated yet
+  // Get the advocacy tone workflow
   const advocacyToneRun = workflowDetails.find((w) => w.run.type === ('advocacy_tone' as WorkflowRunType));
 
   // Get chunks from chunk splitting workflow for displaying content
@@ -248,35 +270,16 @@ export function AdvocacyToneResults({ project, onNavigateToDocumentExplorer }: A
   };
 
   if (!advocacyToneRun) {
-    return (
-      <Card>
-        <CardContent className="flex items-center justify-center py-12">
-          <div className="text-center space-y-2">
-            <AlertCircle className="h-8 w-8 text-muted-foreground mx-auto" />
-            <p className="text-sm text-muted-foreground">Advocacy & Tone analysis has not been run.</p>
-          </div>
-        </CardContent>
-      </Card>
-    );
+    return <EmptyState message="Advocacy & Tone analysis has not been run." />;
   }
 
   if (chunksWithIssues.length === 0) {
     return (
-      <Card>
-        <CardContent className="flex items-center justify-center py-12">
-          <div className="text-center space-y-2">
-            <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center mx-auto">
-              <svg className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
-            <p className="text-sm font-medium text-green-600">No advocacy or tone issues detected</p>
-            <p className="text-xs text-muted-foreground">
-              {results.length} chunk{results.length !== 1 ? 's' : ''} analyzed
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+      <EmptyState
+        icon={CheckCircle2}
+        message="No advocacy or tone issues detected"
+        description={`${results.length} chunk${results.length !== 1 ? 's' : ''} analyzed`}
+      />
     );
   }
 
@@ -292,54 +295,27 @@ export function AdvocacyToneResults({ project, onNavigateToDocumentExplorer }: A
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-3">
-            {stats.triggerWords > 0 && (
-              <button
-                onClick={() => handleFilterClick('trigger_words')}
-                className={cn(
-                  'flex items-center gap-2 px-3 py-2 rounded-md transition-all',
-                  CHECK_CONFIG.trigger_words.bgColor,
-                  filterType === 'trigger_words' && 'ring-2 ring-amber-400 shadow-md',
-                  filterType && filterType !== 'trigger_words' && 'opacity-50',
-                )}
-              >
-                <FileWarning className={cn('h-4 w-4', CHECK_CONFIG.trigger_words.color)} />
-                <span className="text-sm font-medium">
-                  {stats.triggerWords} Trigger Word{stats.triggerWords !== 1 ? 's' : ''}
-                </span>
-              </button>
-            )}
-            {stats.advocacyLanguage > 0 && (
-              <button
-                onClick={() => handleFilterClick('advocacy_language')}
-                className={cn(
-                  'flex items-center gap-2 px-3 py-2 rounded-md transition-all',
-                  CHECK_CONFIG.advocacy_language.bgColor,
-                  filterType === 'advocacy_language' && 'ring-2 ring-orange-400 shadow-md',
-                  filterType && filterType !== 'advocacy_language' && 'opacity-50',
-                )}
-              >
-                <MessageSquareWarning className={cn('h-4 w-4', CHECK_CONFIG.advocacy_language.color)} />
-                <span className="text-sm font-medium">
-                  {stats.advocacyLanguage} Advocacy Issue{stats.advocacyLanguage !== 1 ? 's' : ''}
-                </span>
-              </button>
-            )}
-            {stats.subjectiveTone > 0 && (
-              <button
-                onClick={() => handleFilterClick('subjective_tone')}
-                className={cn(
-                  'flex items-center gap-2 px-3 py-2 rounded-md transition-all',
-                  CHECK_CONFIG.subjective_tone.bgColor,
-                  filterType === 'subjective_tone' && 'ring-2 ring-red-400 shadow-md',
-                  filterType && filterType !== 'subjective_tone' && 'opacity-50',
-                )}
-              >
-                <AlertTriangle className={cn('h-4 w-4', CHECK_CONFIG.subjective_tone.color)} />
-                <span className="text-sm font-medium">
-                  {stats.subjectiveTone} Subjective Tone{stats.subjectiveTone !== 1 ? 's' : ''}
-                </span>
-              </button>
-            )}
+            <FilterButton
+              type="trigger_words"
+              count={stats.triggerWords}
+              isActive={filterType === 'trigger_words'}
+              isFiltered={filterType !== null}
+              onClick={() => handleFilterClick('trigger_words')}
+            />
+            <FilterButton
+              type="advocacy_language"
+              count={stats.advocacyLanguage}
+              isActive={filterType === 'advocacy_language'}
+              isFiltered={filterType !== null}
+              onClick={() => handleFilterClick('advocacy_language')}
+            />
+            <FilterButton
+              type="subjective_tone"
+              count={stats.subjectiveTone}
+              isActive={filterType === 'subjective_tone'}
+              isFiltered={filterType !== null}
+              onClick={() => handleFilterClick('subjective_tone')}
+            />
             {filterType && (
               <button
                 onClick={() => setFilterType(null)}

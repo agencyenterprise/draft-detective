@@ -2,10 +2,11 @@
 
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { EmptyState } from '@/components/shared';
 import { composeReferences } from '@/lib/composed-references';
 import { CitationSuggestionResultWithClaimIndex, ProjectDetailed, WorkflowRunType } from '@/lib/generated-api';
 import { getWorkflowRunByType } from '@/lib/workflow-state';
-import { AlertCircle, Link2Icon } from 'lucide-react';
+import { Link2Icon } from 'lucide-react';
 import * as React from 'react';
 import { useMemo } from 'react';
 import { ClaimCitationSuggestions } from '../../wizard/results-step/components/claim-citation-suggestions';
@@ -58,16 +59,7 @@ export function CitationSuggesterResults({ project }: CitationSuggesterResultsPr
   );
 
   if (totalSuggestions === 0) {
-    return (
-      <Card>
-        <CardContent className="flex items-center justify-center py-12">
-          <div className="text-center space-y-2">
-            <AlertCircle className="h-8 w-8 text-muted-foreground mx-auto" />
-            <p className="text-sm text-muted-foreground">No citation suggestions found.</p>
-          </div>
-        </CardContent>
-      </Card>
-    );
+    return <EmptyState message="No citation suggestions found." />;
   }
 
   return (

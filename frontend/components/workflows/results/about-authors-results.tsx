@@ -1,12 +1,12 @@
 'use client';
 
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { EmptyState, ExpandableCard, NavigateToChunkButton } from '@/components/shared';
 import { ProjectDetailed, WorkflowRunType } from '@/lib/generated-api';
-import { AlertCircle, CheckCircle2, ChevronDown, ExternalLink, FileQuestion, Users, XCircle } from 'lucide-react';
+import { CheckCircle2, FileQuestion, Users, XCircle } from 'lucide-react';
 import * as React from 'react';
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { cn } from '@/lib/utils';
 
 interface AboutAuthorsResultsProps {
@@ -42,21 +42,22 @@ interface AboutAuthorsState {
   errors?: unknown[];
 }
 
-const RULE_LABELS: Record<string, string> = {
-  rule_1: 'Sentence Count (3 sentences)',
-  rule_2: 'Position & Affiliation',
-  rule_3: 'TASP Statement',
-  rule_4: 'Research Focus',
-  rule_5: 'Highest Degree',
-};
+// Centralized rule configuration - mirrors backend RULE_METADATA
+const RULE_CONFIG = [
+  { field: 'rule_1_sentence_length' as const, key: 'rule_1', label: 'Sentence Count (3 sentences)' },
+  { field: 'rule_2_position_affiliation' as const, key: 'rule_2', label: 'Position & Affiliation' },
+  { field: 'rule_3_tasp_statement' as const, key: 'rule_3', label: 'TASP Statement' },
+  { field: 'rule_4_research_focus' as const, key: 'rule_4', label: 'Research Focus' },
+  { field: 'rule_5_highest_degree' as const, key: 'rule_5', label: 'Highest Degree' },
+];
 
-function RuleStatus({ rule, ruleKey }: { rule: RuleCheckResult; ruleKey: string }) {
+function RuleStatus({ rule, label }: { rule: RuleCheckResult; label: string }) {
   if (!rule.applicable) {
     return (
       <div className="flex items-start gap-2 text-sm text-muted-foreground">
         <span className="text-muted-foreground mt-0.5">—</span>
         <div>
-          <span className="font-medium">{RULE_LABELS[ruleKey]}</span>
+          <span className="font-medium">{label}</span>
           <span className="text-xs ml-2">(N/A)</span>
         </div>
       </div>
@@ -71,7 +72,7 @@ function RuleStatus({ rule, ruleKey }: { rule: RuleCheckResult; ruleKey: string 
         <XCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
       )}
       <div>
-        <span className="font-medium">{RULE_LABELS[ruleKey]}</span>
+        <span className="font-medium">{label}</span>
         {rule.explanation && (
           <p className={cn('text-xs mt-0.5', rule.passed ? 'text-green-600/70' : 'text-muted-foreground')}>
             {rule.explanation}
@@ -88,94 +89,72 @@ interface AuthorResultCardProps {
 }
 
 function AuthorResultCard({ result, onNavigateToChunk }: AuthorResultCardProps) {
-  const [isOpen, setIsOpen] = useState(false);
-
   const failedRulesCount = useMemo(() => {
-    let count = 0;
-    if (!result.rule_1_sentence_length.passed) count++;
-    if (!result.rule_2_position_affiliation.passed) count++;
-    if (result.rule_3_tasp_statement.applicable && !result.rule_3_tasp_statement.passed) count++;
-    if (!result.rule_4_research_focus.passed) count++;
-    if (!result.rule_5_highest_degree.passed) count++;
-    return count;
+    return RULE_CONFIG.filter(({ field }) => {
+      const rule = result[field];
+      return rule.applicable && !rule.passed;
+    }).length;
   }, [result]);
 
-  return (
-    <Card className={cn(result.overall_passed ? 'border-green-200' : 'border-red-200')}>
-      <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => setIsOpen(!isOpen)}>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div
-              className={cn(
-                'h-8 w-8 rounded-full flex items-center justify-center',
-                result.overall_passed ? 'bg-green-100' : 'bg-red-100',
-              )}
-            >
-              {result.overall_passed ? (
-                <CheckCircle2 className="h-4 w-4 text-green-600" />
-              ) : (
-                <XCircle className="h-4 w-4 text-red-600" />
-              )}
-            </div>
-            <div>
-              <CardTitle className="text-sm font-medium">{result.author_name}</CardTitle>
-              <CardDescription className="text-xs">
-                {result.overall_passed ? (
-                  'All rules passed'
-                ) : (
-                  <span className="text-red-600">
-                    {failedRulesCount} rule{failedRulesCount !== 1 ? 's' : ''} failed
-                  </span>
-                )}
-              </CardDescription>
-            </div>
-          </div>
-          <ChevronDown className={cn('h-4 w-4 transition-transform flex-shrink-0', isOpen && 'rotate-180')} />
-        </div>
-      </CardHeader>
-      {isOpen && (
-        <CardContent className="pt-0 space-y-4">
-          {/* Author bio text */}
-          <div className="p-3 rounded-md bg-muted/50 border">
-            <p className="text-sm text-foreground whitespace-pre-wrap">{result.author_text}</p>
-            {onNavigateToChunk && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="mt-2 gap-1"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onNavigateToChunk();
-                }}
-              >
-                <ExternalLink className="h-3 w-3" />
-                View in Document Explorer
-              </Button>
-            )}
-          </div>
-
-          {/* Rule checks */}
-          <div className="space-y-2">
-            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Rule Checks</h4>
-            <div className="grid gap-2">
-              <RuleStatus rule={result.rule_1_sentence_length} ruleKey="rule_1" />
-              <RuleStatus rule={result.rule_2_position_affiliation} ruleKey="rule_2" />
-              <RuleStatus rule={result.rule_3_tasp_statement} ruleKey="rule_3" />
-              <RuleStatus rule={result.rule_4_research_focus} ruleKey="rule_4" />
-              <RuleStatus rule={result.rule_5_highest_degree} ruleKey="rule_5" />
-            </div>
-          </div>
-
-          {/* Guidance if failed */}
-          {!result.overall_passed && result.guidance && (
-            <div className="p-3 rounded-md bg-amber-50 border border-amber-200">
-              <h4 className="text-xs font-semibold text-amber-800 mb-1">Suggested Improvements</h4>
-              <p className="text-sm text-amber-700">{result.guidance}</p>
-            </div>
+  const header = (
+    <div className="flex items-center gap-3">
+      <div
+        className={cn(
+          'h-8 w-8 rounded-full flex items-center justify-center',
+          result.overall_passed ? 'bg-green-100' : 'bg-red-100',
+        )}
+      >
+        {result.overall_passed ? (
+          <CheckCircle2 className="h-4 w-4 text-green-600" />
+        ) : (
+          <XCircle className="h-4 w-4 text-red-600" />
+        )}
+      </div>
+      <div>
+        <CardTitle className="text-sm font-medium">{result.author_name}</CardTitle>
+        <CardDescription className="text-xs">
+          {result.overall_passed ? (
+            'All rules passed'
+          ) : (
+            <span className="text-red-600">
+              {failedRulesCount} rule{failedRulesCount !== 1 ? 's' : ''} failed
+            </span>
           )}
-        </CardContent>
+        </CardDescription>
+      </div>
+    </div>
+  );
+
+  return (
+    <ExpandableCard
+      header={header}
+      className={cn(result.overall_passed ? 'border-green-200' : 'border-red-200')}
+      contentClassName="space-y-4"
+    >
+      {/* Author bio text */}
+      <div className="p-3 rounded-md bg-muted/50 border">
+        <p className="text-sm text-foreground whitespace-pre-wrap">{result.author_text}</p>
+        {onNavigateToChunk && <NavigateToChunkButton onClick={onNavigateToChunk} />}
+      </div>
+
+      {/* Rule checks */}
+      <div className="space-y-2">
+        <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Rule Checks</h4>
+        <div className="grid gap-2">
+          {RULE_CONFIG.map(({ field, label }) => (
+            <RuleStatus key={field} rule={result[field]} label={label} />
+          ))}
+        </div>
+      </div>
+
+      {/* Guidance if failed */}
+      {!result.overall_passed && result.guidance && (
+        <div className="p-3 rounded-md bg-amber-50 border border-amber-200">
+          <h4 className="text-xs font-semibold text-amber-800 mb-1">Suggested Improvements</h4>
+          <p className="text-sm text-amber-700">{result.guidance}</p>
+        </div>
       )}
-    </Card>
+    </ExpandableCard>
   );
 }
 
@@ -198,42 +177,23 @@ export function AboutAuthorsResults({ project, onNavigateToDocumentExplorer }: A
   }, [results]);
 
   if (!aboutAuthorsRun) {
-    return (
-      <Card>
-        <CardContent className="flex items-center justify-center py-12">
-          <div className="text-center space-y-2">
-            <AlertCircle className="h-8 w-8 text-muted-foreground mx-auto" />
-            <p className="text-sm text-muted-foreground">About Authors analysis has not been run.</p>
-          </div>
-        </CardContent>
-      </Card>
-    );
+    return <EmptyState message="About Authors analysis has not been run." />;
   }
 
   // No "About the Authors" section found in the document
   if (results.length === 0) {
     return (
-      <Card>
-        <CardContent className="flex items-center justify-center py-12">
-          <div className="text-center space-y-3">
-            <div className="h-12 w-12 rounded-full bg-slate-100 flex items-center justify-center mx-auto">
-              <FileQuestion className="h-6 w-6 text-slate-500" />
-            </div>
-            <div className="space-y-1">
-              <p className="text-sm font-medium text-slate-700">No &quot;About the Authors&quot; Section Found</p>
-              <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-                The document doesn&apos;t appear to contain an &quot;About the Authors&quot; or &quot;Author
-                Biographies&quot; section. This analysis requires author biography paragraphs to validate.
-              </p>
-            </div>
-            <div className="pt-2">
-              <Badge variant="outline" className="text-xs">
-                <Users className="h-3 w-3 mr-1" />0 authors detected
-              </Badge>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <EmptyState
+        icon={FileQuestion}
+        message='No "About the Authors" Section Found'
+        description='The document doesn&apos;t appear to contain an "About the Authors" or "Author Biographies" section. This analysis requires author biography paragraphs to validate.'
+      >
+        <div className="pt-2">
+          <Badge variant="outline" className="text-xs">
+            <Users className="h-3 w-3 mr-1" />0 authors detected
+          </Badge>
+        </div>
+      </EmptyState>
     );
   }
 
