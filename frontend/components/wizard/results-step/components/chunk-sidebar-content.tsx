@@ -35,10 +35,10 @@ export function ChunkSidebarContent({
   const workflowDetails = projectDetail.workflow_runs ?? [];
   const issues = projectDetail.issues ?? [];
 
-  const { claimExtraction, documentProcessing, referenceExtraction, referenceValidation } = useMemo(
+  const { claimExtraction, chunkSplitting, referenceExtraction, referenceValidation } = useMemo(
     () => ({
       claimExtraction: getWorkflowRunByType(workflowDetails, WorkflowRunType.ClaimExtraction),
-      documentProcessing: getWorkflowRunByType(workflowDetails, WorkflowRunType.DocumentProcessing),
+      chunkSplitting: getWorkflowRunByType(workflowDetails, WorkflowRunType.ChunkSplitting),
       referenceExtraction: getWorkflowRunByType(workflowDetails, WorkflowRunType.ReferenceExtraction),
       referenceValidation: getWorkflowRunByType(workflowDetails, WorkflowRunType.ReferenceValidation),
     }),
@@ -62,7 +62,7 @@ export function ChunkSidebarContent({
 
   // Find if this chunk is a reference by matching chunk content with extracted references
   const matchedReference = useMemo((): MatchedReference | null => {
-    const chunks = documentProcessing?.state?.chunks ?? [];
+    const chunks = chunkSplitting?.state?.chunks ?? [];
     const chunk = chunks.find((c) => c.chunk_index === chunkIndex);
     if (!chunk) return null;
 
@@ -83,7 +83,7 @@ export function ChunkSidebarContent({
     const validation = validations.find((v) => v.original_reference === ref.text) ?? null;
 
     return { index: refIndex, validation };
-  }, [documentProcessing, referenceExtraction, referenceValidation, chunkIndex]);
+  }, [chunkSplitting, referenceExtraction, referenceValidation, chunkIndex]);
 
   return (
     <div className="space-y-2">
