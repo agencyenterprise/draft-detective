@@ -49,12 +49,23 @@ class ReferenceValidationManifest(
     def convert_state_to_issues(
         self, state: ReferenceValidationState, other_states: List[WorkflowState]
     ) -> List[DocumentIssue]:
-        """Convert ReferenceValidationState to issues."""
-        issues: List[DocumentIssue] = []
+        """
+        Convert ReferenceValidationState to issues.
 
+        By default, reference validation results are stored as metadata on each
+        reference entry and displayed in the References tab via the
+        ValidationResultsBox component. This keeps the Document Explorer focused
+        on actionable issues.
+
+        When show_invalid_references_as_issues is enabled in the config, invalid
+        references will also appear as issues in the Document Explorer.
+        """
+        if not state.config.show_invalid_references_as_issues:
+            return []
+
+        issues: List[DocumentIssue] = []
         chunks = build_analyzed_chunks(other_states)
 
-        # Reference Validation: Invalid references
         for validation in state.reference_validations:
             if not validation.valid_reference:
                 chunk_index = find_chunk_index_by_text(
