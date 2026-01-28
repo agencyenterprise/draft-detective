@@ -84,6 +84,7 @@ const workflowTypeNames: Record<WorkflowRunType, string> = {
   [WorkflowRunType.ClaimExtraction]: 'Claim Extraction',
   [WorkflowRunType.CitationDetection]: 'Citation Detection',
   [WorkflowRunType.FootnoteExtraction]: 'Footnote Extraction',
+  [WorkflowRunType.AbbreviationScan]: 'Abbreviation Scan',
 };
 
 export function getWorkflowTypeName(type: WorkflowRunType): string {

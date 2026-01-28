@@ -40,6 +40,7 @@ def get_workflow_manifest(
 
 
 def register_all_workflow_manifests():
+    from lib.workflows.abbreviation_scan.manifest import AbbreviationScanManifest
     from lib.workflows.citation_detection.manifest import CitationDetectionManifest
     from lib.workflows.citation_suggester.manifest import CitationSuggesterManifest
     from lib.workflows.claim_extraction.manifest import ClaimExtractionManifest
@@ -77,6 +78,7 @@ def register_all_workflow_manifests():
         CitationDetectionManifest(),
         ClaimReferenceValidationManifest(),
         CitationSuggesterManifest(),
+        AbbreviationScanManifest(),
         InferenceValidationManifest(),
         LiteratureReviewManifest(),
         LiveReportsManifest(),
