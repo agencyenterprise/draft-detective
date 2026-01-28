@@ -5,6 +5,8 @@ import uuid
 from typing import Optional
 
 from pydantic import BaseModel, Field
+from sqlalchemy import select, update
+from sqlmodel import col
 
 from lib.config.database import get_db
 from lib.config.env import config
@@ -52,25 +54,21 @@ async def get_active_share_link(
 ) -> Optional[ShareLink]:
     """Get the active share link for a resource if it exists."""
     with get_db() as db:
-        return (
-            db.query(ShareLink)
-            .filter(
-                ShareLink.resource_type == resource_type,
-                ShareLink.resource_id == resource_id,
-                ShareLink.is_active == True,
-            )
-            .first()
+        stmt = select(ShareLink).where(
+            col(ShareLink.resource_type) == resource_type,
+            col(ShareLink.resource_id) == resource_id,
+            col(ShareLink.is_active) == True,
         )
+        return db.execute(stmt).scalar_one_or_none()
 
 
 async def get_resource_by_token(token: str) -> Optional[ShareLink]:
     """Get resource info by share token. Returns None if token is invalid or inactive."""
     with get_db() as db:
-        return (
-            db.query(ShareLink)
-            .filter(ShareLink.token == token, ShareLink.is_active == True)
-            .first()
+        stmt = select(ShareLink).where(
+            col(ShareLink.token) == token, col(ShareLink.is_active) == True
         )
+        return db.execute(stmt).scalar_one_or_none()
 
 
 async def enable_sharing(
@@ -105,15 +103,17 @@ async def disable_sharing(
     """Disable ALL active sharing for a resource."""
     with get_db() as db:
         # Deactivate ALL active links (fixes potential orphaned links)
-        updated = (
-            db.query(ShareLink)
-            .filter(
-                ShareLink.resource_type == resource_type,
-                ShareLink.resource_id == resource_id,
-                ShareLink.is_active == True,
+        stmt = (
+            update(ShareLink)
+            .where(
+                col(ShareLink.resource_type) == resource_type,
+                col(ShareLink.resource_id) == resource_id,
+                col(ShareLink.is_active) == True,
             )
-            .update({"is_active": False})
+            .values(is_active=False)
         )
+        result = db.execute(stmt)
+        updated = result.rowcount
         db.commit()
 
         if updated:
@@ -139,13 +139,9 @@ async def is_project_shared(project_id: str) -> bool:
     """Check if a project is shared."""
 
     with get_db() as db:
-        return (
-            db.query(ShareLink)
-            .filter(
-                ShareLink.resource_type == "project",
-                ShareLink.resource_id == project_id,
-                ShareLink.is_active == True,
-            )
-            .first()
-            is not None
+        stmt = select(ShareLink).where(
+            col(ShareLink.resource_type) == "project",
+            col(ShareLink.resource_id) == project_id,
+            col(ShareLink.is_active) == True,
         )
+        return db.execute(stmt).scalar_one_or_none() is not None

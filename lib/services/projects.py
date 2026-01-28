@@ -5,7 +5,8 @@ from typing import List, Optional
 
 from fastapi.exceptions import HTTPException
 from pydantic import BaseModel, Field
-from sqlalchemy import update
+from sqlalchemy import select, update
+from sqlmodel import col
 
 from lib.config.database import get_db
 from lib.models.file import File, FileListItem
@@ -78,14 +79,14 @@ async def get_user_projects(user: User) -> List[ProjectListItem]:
     """Retrieve all projects for a user with their associated workflow runs."""
 
     with get_db() as db:
-        results = (
-            db.query(Project, WorkflowRun)
-            .outerjoin(WorkflowRun, WorkflowRun.project_id == Project.id)
-            .filter(Project.user_id == user.id)
-            .order_by(Project.created_at.desc(), WorkflowRun.created_at.asc())
+        stmt = (
+            select(Project, WorkflowRun)
+            .outerjoin(WorkflowRun, col(WorkflowRun.project_id) == col(Project.id))
+            .where(col(Project.user_id) == user.id)
+            .order_by(col(Project.created_at).desc(), col(WorkflowRun.created_at).asc())
             .limit(200)
-            .all()
         )
+        results = db.execute(stmt).all()
 
         if not results:
             return []
@@ -94,7 +95,8 @@ async def get_user_projects(user: User) -> List[ProjectListItem]:
         # Note: We include ALL workflows (even internal ones) for tool detection on frontend
         # The frontend will use these to detect if a project is a "tool run"
         projects_dict = defaultdict(lambda: {"project": None, "workflow_runs": []})
-        for project, workflow_run in results:
+        for row in results:
+            project, workflow_run = row.tuple()
             if projects_dict[project.id]["project"] is None:
                 projects_dict[project.id]["project"] = project
             if workflow_run is not None:
@@ -111,7 +113,8 @@ async def get_user_projects(user: User) -> List[ProjectListItem]:
 
 async def _get_project_by_id(project_id: str) -> Project | None:
     with get_db() as db:
-        project = db.query(Project).filter(Project.id == project_id).first()
+        stmt = select(Project).where(col(Project.id) == project_id)
+        project = db.execute(stmt).scalar_one_or_none()
 
     return project
 
@@ -202,24 +205,26 @@ async def get_project_files(project_id: str) -> List[File]:
     """Get all files for a project. Raises HTTPException if project not found."""
 
     with get_db() as db:
-        project = db.query(Project).filter(Project.id == project_id).first()
+        stmt = select(Project).where(col(Project.id) == project_id)
+        project = db.execute(stmt).scalar_one_or_none()
 
         if project is None:
             raise HTTPException(status_code=404, detail="Project not found")
 
-        return (
-            db.query(File)
-            .filter(File.project_id == project.id)
-            .order_by(File.created_at.asc())
-            .all()
+        stmt = (
+            select(File)
+            .where(col(File.project_id) == project.id)
+            .order_by(col(File.created_at).asc())
         )
+        return list(db.execute(stmt).scalars().all())
 
 
 async def update_user_project(
     project_id: str, request: UpdateProjectRequest, user: User
 ) -> Project:
     with get_db() as db:
-        project = db.query(Project).filter(Project.id == project_id).first()
+        stmt = select(Project).where(col(Project.id) == project_id)
+        project = db.execute(stmt).scalar_one_or_none()
 
         if project is None:
             raise HTTPException(status_code=404, detail="Project not found")
@@ -239,15 +244,18 @@ async def update_user_project(
         return project
 
 
-async def update_project_title(project_id: str, title: str) -> Project:
+async def update_project_title(project_id: str, title: str) -> None:
     with get_db() as db:
-        db.execute(update(Project).where(Project.id == project_id).values(title=title))
+        db.execute(
+            update(Project).where(col(Project.id) == project_id).values(title=title)
+        )
         db.commit()
 
 
 async def delete_project(project_id: str, user: User) -> None:
     with get_db() as db:
-        project = db.query(Project).filter(Project.id == project_id).first()
+        stmt = select(Project).where(col(Project.id) == project_id)
+        project = db.execute(stmt).scalar_one_or_none()
 
         if project is None:
             raise HTTPException(status_code=404, detail="Project not found")
@@ -257,9 +265,8 @@ async def delete_project(project_id: str, user: User) -> None:
 
         delete_project_files(project_id)
 
-        project_workflow_runs = (
-            db.query(WorkflowRun).filter(WorkflowRun.project_id == project_id).all()
-        )
+        stmt = select(WorkflowRun).where(col(WorkflowRun.project_id) == project_id)
+        project_workflow_runs = db.execute(stmt).scalars().all()
         thread_ids = [
             workflow_run.langgraph_thread_id for workflow_run in project_workflow_runs
         ]
