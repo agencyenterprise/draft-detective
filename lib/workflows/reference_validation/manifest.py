@@ -2,8 +2,9 @@ from typing import List, Type
 
 from langgraph.graph import StateGraph
 
+from lib.workflows.chunk_utils import build_analyzed_chunks, find_chunk_index_by_text
 from lib.workflows.manifest import WorkflowManifest
-from lib.workflows.models import DocumentIssue, WorkflowRunType
+from lib.workflows.models import DocumentIssue, SeverityEnum, WorkflowRunType
 from lib.workflows.reference_validation.graph import build_reference_validation_graph
 from lib.workflows.reference_validation.state import (
     ReferenceValidationState,
@@ -49,10 +50,34 @@ class ReferenceValidationManifest(
         self, state: ReferenceValidationState, other_states: List[WorkflowState]
     ) -> List[DocumentIssue]:
         """
-        Reference validation results are stored as metadata on each reference entry,
-        not as document issues. They are displayed in the References tab via the
-        ValidationResultsBox component. Returning an empty list keeps the Document
-        Explorer focused on actionable issues while validation details remain
-        accessible in the References tab.
+        Convert ReferenceValidationState to issues.
+
+        By default, reference validation results are stored as metadata on each
+        reference entry and displayed in the References tab via the
+        ValidationResultsBox component. This keeps the Document Explorer focused
+        on actionable issues.
+
+        When show_invalid_references_as_issues is enabled in the config, invalid
+        references will also appear as issues in the Document Explorer.
         """
-        return []
+        if not state.config.show_invalid_references_as_issues:
+            return []
+
+        issues: List[DocumentIssue] = []
+        chunks = build_analyzed_chunks(other_states)
+
+        for validation in state.reference_validations:
+            if not validation.valid_reference:
+                chunk_index = find_chunk_index_by_text(
+                    chunks, validation.original_reference
+                )
+
+                issue = DocumentIssue(
+                    title="Invalid reference",
+                    description=f'Possible invalid reference: "{validation.original_reference}"',
+                    severity=SeverityEnum.MEDIUM,
+                    chunk_index=chunk_index,
+                )
+                issues.append(issue)
+
+        return issues

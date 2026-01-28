@@ -1,16 +1,23 @@
-import asyncio
 import logging
 import mimetypes
 import os
-from pathlib import Path
 import re
-from typing import NamedTuple
 import uuid
+from pathlib import Path
+from typing import NamedTuple
 
 import aiofiles
 import httpx
+from aiolimiter import AsyncLimiter
 from langchain.tools import ToolRuntime, tool
 from pydantic import BaseModel, Field
+from tenacity import (
+    before_sleep_log,
+    retry,
+    retry_if_exception,
+    stop_after_attempt,
+    wait_exponential,
+)
 from xxhash import xxh128
 
 from lib.config.env import config
@@ -26,6 +33,9 @@ headers = {
     "Referer": "https://www.google.com/",
 }
 
+# 20 requests per 60 seconds (1 minute) is the free Jina API rate limit for requests without API key
+jina_rate_limiter = AsyncLimiter(20, 60)
+
 
 class DownloadFileFromUrlResponse(BaseModel):
     file_id: str | None = Field(description="The ID of the downloaded file")
@@ -36,7 +46,7 @@ class DownloadFileFromUrlResponse(BaseModel):
 
 
 @tool()
-def download_file_from_url(
+async def download_file_from_url(
     url: str, reference: str, runtime: ToolRuntime[ContextSchema]
 ) -> str:
     """
@@ -53,9 +63,7 @@ def download_file_from_url(
         - success: Whether the download operation was successful or false if it failed
     """
 
-    response = asyncio.run(
-        _download_file_from_url_async(url, reference, runtime.context)
-    )
+    response = await _download_file_from_url_async(url, reference, runtime.context)
     return response.model_dump_json()
 
 
@@ -128,28 +136,40 @@ async def _download_direct_url(url: str) -> SavedFile | None:
                 return await _download_with_jina_api(url)
 
     except httpx.HTTPStatusError as exc:
-        logger.warning(
+        logger.info(
             f"Error downloading content from {url}, falling back to Jina (HTTP status error: {exc})"
         )
         return await _download_with_jina_api(url)
 
 
+def is_rate_limited(exc: Exception) -> bool:
+    return isinstance(exc, httpx.HTTPStatusError) and exc.response.status_code == 429
+
+
+@retry(
+    retry=retry_if_exception(is_rate_limited),
+    stop=stop_after_attempt(5),
+    wait=wait_exponential(multiplier=30, min=30, max=360),
+    before_sleep=before_sleep_log(logger, logging.WARNING),
+)
 async def _download_with_jina_api(url: str) -> SavedFile | None:
     """Download content using Jina API and save as markdown. Returns SavedFile if successful, None otherwise."""
 
-    async with httpx.AsyncClient(timeout=120.0) as client:
-        logger.info(f"Downloading content with Jina API from {url}")
-        response = await client.get(f"https://r.jina.ai/{url}", follow_redirects=True)
-        response.raise_for_status()
+    async with jina_rate_limiter:
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            logger.info(f"Downloading content with Jina API from {url}")
+            response = await client.get(
+                f"https://r.jina.ai/{url}", follow_redirects=True
+            )
+            response.raise_for_status()
 
-        markdown_content = response.text
-        if not markdown_content:
-            logger.warning(f"Jina API returned empty content for {url}")
-            return None
+            markdown_content = response.text
+            if not markdown_content:
+                raise ValueError(f"Jina API returned empty content for {url}")
 
-        filename = await _save_content(markdown_content, "md")
-        logger.info(f"Successfully downloaded and saved markdown to {filename}")
-        return SavedFile(filename=filename, content_type="text/markdown")
+            filename = await _save_content(markdown_content, "md")
+            logger.info(f"Successfully downloaded and saved markdown to {filename}")
+            return SavedFile(filename=filename, content_type="text/markdown")
 
 
 async def _persist_file_record(
@@ -160,16 +180,14 @@ async def _persist_file_record(
 ) -> str | None:
     """Create a File record for a downloaded file and return its UUID."""
     if not project_id or not user_id:
-        logger.warning(
-            "Cannot create file record because project_id or user_id is missing"
+        raise ValueError(
+            "Cannot create file record because project_id or user_id is missing: project_id={project_id}, user_id={user_id}"
         )
-        return None
 
     file_path = os.path.join(config.FILE_UPLOADS_MOUNT_PATH, saved_file.filename)
 
     if not os.path.exists(file_path):
-        logger.warning(f"Downloaded file not found on disk: {file_path}")
-        return None
+        raise ValueError(f"Downloaded file not found on disk: {file_path}")
 
     content_hash, extension = _split_filename(saved_file.filename)
     file_size = os.path.getsize(file_path)
