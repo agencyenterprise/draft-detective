@@ -3,10 +3,10 @@ import logging
 import os
 import uuid
 import zipfile
-from typing import List, Optional, Sequence, Tuple
+from typing import Any, List, Optional, Sequence, Tuple
 
 from fastapi import HTTPException
-from sqlalchemy import or_, select
+from sqlalchemy import func, or_, select, update
 from sqlalchemy.orm import Session
 from sqlmodel import col
 
@@ -17,6 +17,29 @@ from lib.models.project import Project
 from lib.services.file import FileDocument, create_file_document_from_path
 
 logger = logging.getLogger(__name__)
+
+
+def _sanitize_for_postgres(value: Any) -> Any:
+    """
+    Recursively remove null characters (\u0000) from strings in a data structure.
+
+    PostgreSQL's text type (and JSONB) cannot store null characters, which may appear
+    in LLM output or document parsing. This function sanitizes the data before storage.
+
+    Args:
+        value: Any value - strings, dicts, lists, or primitives
+
+    Returns:
+        The same structure with null characters removed from all strings
+    """
+    if isinstance(value, str):
+        return value.replace("\u0000", "")
+    elif isinstance(value, dict):
+        return {k: _sanitize_for_postgres(v) for k, v in value.items()}
+    elif isinstance(value, list):
+        return [_sanitize_for_postgres(item) for item in value]
+    else:
+        return value
 
 
 def _normalize_uuid(value: uuid.UUID | str, field_name: str) -> uuid.UUID:
@@ -99,7 +122,8 @@ async def get_file_by_id(file_id: uuid.UUID | str) -> File:
     file_id = _normalize_uuid(file_id, "file ID")
 
     with get_db() as db:
-        file = db.query(File).filter(File.id == file_id).first()
+        stmt = select(File).where(col(File.id) == file_id)
+        file = db.execute(stmt).scalar_one_or_none()
 
         if file is None:
             raise HTTPException(status_code=404, detail="File not found")
@@ -113,8 +137,9 @@ async def get_files_by_project_id(project_id: uuid.UUID | str) -> List[File]:
     """
     project_id = _normalize_uuid(project_id, "project ID")
     with get_db() as db:
-        files = db.query(File).filter(File.project_id == project_id).all()
-        return files
+        stmt = select(File).where(col(File.project_id) == project_id)
+        files = db.execute(stmt).scalars().all()
+        return list(files)
 
 
 async def get_project_files_list_items(
@@ -129,8 +154,8 @@ async def get_project_files_list_items(
     project_id = _normalize_uuid(project_id, "project ID")
     with get_db() as db:
         stmt = select(File).where(
-            File.project_id == project_id,
-            File.role != FileRole.SUPPORTING_CANDIDATE,
+            col(File.project_id) == project_id,
+            col(File.role) != FileRole.SUPPORTING_CANDIDATE,
         )
         files = db.execute(stmt).scalars().all()
         return [FileListItem.model_validate(f, from_attributes=True) for f in files]
@@ -144,13 +169,12 @@ async def get_supporting_candidate_files(project_id: uuid.UUID | str) -> List[Fi
     """
     project_id = _normalize_uuid(project_id, "project ID")
     with get_db() as db:
-        files = (
-            db.query(File)
-            .filter(File.project_id == project_id)
-            .filter(File.role == FileRole.SUPPORTING_CANDIDATE)
-            .all()
+        stmt = select(File).where(
+            col(File.project_id) == project_id,
+            col(File.role) == FileRole.SUPPORTING_CANDIDATE,
         )
-        return files
+        files = db.execute(stmt).scalars().all()
+        return list(files)
 
 
 def update_files_role(file_ids: Sequence[uuid.UUID | str], role: FileRole) -> None:
@@ -166,9 +190,8 @@ def update_files_role(file_ids: Sequence[uuid.UUID | str], role: FileRole) -> No
 
     with get_db() as db:
         normalized_ids = [_normalize_uuid(fid, "file ID") for fid in file_ids]
-        db.query(File).filter(File.id.in_(normalized_ids)).update(
-            {File.role: role}, synchronize_session=False
-        )
+        stmt = update(File).where(col(File.id).in_(normalized_ids)).values(role=role)
+        db.execute(stmt)
         db.commit()
 
 
@@ -190,15 +213,16 @@ def update_file_artifacts(
     file_id = _normalize_uuid(file_id, "file ID")
 
     with get_db() as db:
-        file = db.query(File).filter(File.id == file_id).first()
+        stmt = select(File).where(col(File.id) == file_id)
+        file = db.execute(stmt).scalar_one_or_none()
         if file is None:
             logger.warning(f"File {file_id} not found, skipping artifact update")
             return
 
         if markdown is not None:
-            file.markdown = markdown
+            file.markdown = _sanitize_for_postgres(markdown)
         if summary is not None:
-            file.summary = summary
+            file.summary = _sanitize_for_postgres(summary)
 
         db.commit()
         logger.debug(f"Updated artifacts for file {file_id}")
@@ -270,8 +294,8 @@ async def check_file_access(file_id: uuid.UUID | str, user_id: uuid.UUID) -> Fil
     with get_db() as db:
         stmt = (
             select(File, Project)
-            .join(Project, File.project_id == Project.id)
-            .where(File.id == file_id)
+            .join(Project, col(File.project_id) == col(Project.id))
+            .where(col(File.id) == file_id)
         )
         result = db.execute(stmt).one_or_none()
 
@@ -361,9 +385,8 @@ def delete_project_files(
     deleted_count = 0
 
     with get_db() as db:
-        project_files = (
-            db.query(File).filter(File.project_id == normalized_project_id).all()
-        )
+        stmt = select(File).where(col(File.project_id) == normalized_project_id)
+        project_files = db.execute(stmt).scalars().all()
 
         for file in project_files:
             if target_file_ids is not None and str(file.id) not in target_file_ids:
@@ -389,15 +412,16 @@ def _is_path_shared(db: Session, path: str, project_id: uuid.UUID) -> bool:
     """
     Check whether another project references the same file path.
     """
-
-    found_file = (
-        db.query(File)
-        .filter(File.project_id != project_id)
-        .filter(or_(File.file_path == path, File.original_file_path == path))
-        .first()
+    stmt = (
+        select(func.count())
+        .select_from(File)
+        .where(
+            col(File.project_id) != project_id,
+            or_(col(File.file_path) == path, col(File.original_file_path) == path),
+        )
     )
-
-    return found_file is not None
+    count = db.execute(stmt).scalar_one()
+    return count > 0
 
 
 def _delete_file_from_disk(
