@@ -25,6 +25,7 @@ import {
   Files,
   ShieldCheck,
   MessageSquareWarning,
+  Users,
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -53,6 +54,7 @@ const workflowTypeIcons: Record<WorkflowRunType, LucideIcon> = {
   [WorkflowRunType.InferenceValidation]: BrainCircuit,
   [WorkflowRunType.ClaimReferenceValidation]: ClipboardCheck,
   [WorkflowRunType.AdvocacyTone]: MessageSquareWarning,
+  [WorkflowRunType.AboutAuthors]: Users,
 };
 
 const DEFAULT_ICON = FileText;

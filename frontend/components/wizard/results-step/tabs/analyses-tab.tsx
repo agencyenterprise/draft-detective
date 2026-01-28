@@ -5,6 +5,7 @@ import { Callout } from '@/components/ui/callout';
 import { StatusIndicator } from '@/components/ui/status-indicator';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { ErrorsCard } from '@/components/wizard/results-step/components/errors-card';
+import { AboutAuthorsResults } from '@/components/workflows/results/about-authors-results';
 import { AdvocacyToneResults } from '@/components/workflows/results/advocacy-tone-results';
 import { CitationSuggesterResults } from '@/components/workflows/results/citation-suggester-results';
 import { LiteratureReviewResults } from '@/components/workflows/results/literature-review/literature-review-results';
@@ -64,6 +65,8 @@ function renderWorkflowResults(
       return <ResultsExtractorResults workflowDetail={workflowRun} />;
     case WorkflowRunType.AdvocacyTone:
       return <AdvocacyToneResults project={project} onNavigateToDocumentExplorer={onNavigateToDocumentExplorer} />;
+    case WorkflowRunType.AboutAuthors:
+      return <AboutAuthorsResults project={project} onNavigateToDocumentExplorer={onNavigateToDocumentExplorer} />;
     case WorkflowRunType.InferenceValidation:
     case WorkflowRunType.ClaimReferenceValidation:
       return (
