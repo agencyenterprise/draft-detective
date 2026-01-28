@@ -3,12 +3,13 @@
 import { LabeledValue } from '@/components/labeled-value';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { FileDownloadLink } from '@/components/ui/file-download-link';
 import { getChunkId } from '@/lib/chunk-ids';
-import { DocumentIssue, WorkflowRunDetail, WorkflowRunType } from '@/lib/generated-api';
+import { composeReferences } from '@/lib/composed-references';
+import { ProjectDetailed, WorkflowRunType } from '@/lib/generated-api';
 import { getChunkIssues, getMaxSeverity } from '@/lib/severity';
 import { getWorkflowRunByType } from '@/lib/workflow-state';
 import { ChevronDownIcon, ChevronRightIcon, LinkIcon, MessageCirclePlus } from 'lucide-react';
-import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { AnalysisResultCard } from './analysis-result-card';
 import { DocumentIssueCardMinimal } from './document-issue-card';
@@ -16,33 +17,45 @@ import { ExpandableResultSection } from './expandable-result-section';
 
 export interface ChunkAnalysisCardProps {
   chunkIndex: number;
-  issues: DocumentIssue[];
-  allWorkflowDetails: WorkflowRunDetail[];
+  projectDetail: ProjectDetailed;
 }
 
-export function ChunkAnalysisCard({ chunkIndex, issues, allWorkflowDetails }: ChunkAnalysisCardProps) {
+export function ChunkAnalysisCard({ chunkIndex, projectDetail }: ChunkAnalysisCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
+  const workflowDetails = useMemo(() => projectDetail.workflow_runs ?? [], [projectDetail.workflow_runs]);
+  const issues = useMemo(() => projectDetail.issues ?? [], [projectDetail.issues]);
+  const files = useMemo(() => projectDetail.files ?? [], [projectDetail.files]);
+
   const claimExtractionDetail = useMemo(
-    () => getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.ClaimExtraction),
-    [allWorkflowDetails],
-  );
-  const documentProcessingDetail = useMemo(
-    () => getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.DocumentProcessing),
-    [allWorkflowDetails],
+    () => getWorkflowRunByType(workflowDetails, WorkflowRunType.ClaimExtraction),
+    [workflowDetails],
   );
   const referenceExtractionDetail = useMemo(
-    () => getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.ReferenceExtraction),
-    [allWorkflowDetails],
+    () => getWorkflowRunByType(workflowDetails, WorkflowRunType.ReferenceExtraction),
+    [workflowDetails],
+  );
+  const referenceFileMatchingDetail = useMemo(
+    () => getWorkflowRunByType(workflowDetails, WorkflowRunType.ReferenceFileMatching),
+    [workflowDetails],
   );
   const citationDetectionDetail = useMemo(
-    () => getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.CitationDetection),
-    [allWorkflowDetails],
+    () => getWorkflowRunByType(workflowDetails, WorkflowRunType.CitationDetection),
+    [workflowDetails],
   );
 
   const chunkClaims = claimExtractionDetail?.state?.claims?.find((c) => c.chunk_index === chunkIndex);
-  const references = referenceExtractionDetail?.state?.references || [];
-  const supportingFiles = documentProcessingDetail?.state?.supporting_files || [];
+
+  // Compose references from extraction and file matching states
+  const references = useMemo(
+    () =>
+      composeReferences(
+        referenceExtractionDetail?.state?.extracted_references,
+        referenceFileMatchingDetail?.state?.matches,
+        files,
+      ),
+    [referenceExtractionDetail?.state?.extracted_references, referenceFileMatchingDetail?.state?.matches, files],
+  );
   const citations =
     citationDetectionDetail?.state?.citations
       ?.filter((citation) => citation.chunk_index === chunkIndex)
@@ -98,9 +111,7 @@ export function ChunkAnalysisCard({ chunkIndex, issues, allWorkflowDetails }: Ch
                 const matchedReference = citation.index_of_associated_bibliography
                   ? references[citation.index_of_associated_bibliography - 1]
                   : null;
-                const matchedSupportingFile = supportingFiles.find(
-                  (file) => file.file_id === matchedReference?.file_id,
-                );
+                const matchedSupportingFile = files?.find((file) => file.id === matchedReference?.file_id);
 
                 return (
                   <div key={index} className="bg-muted p-3 rounded-md space-y-1">
@@ -109,14 +120,10 @@ export function ChunkAnalysisCard({ chunkIndex, issues, allWorkflowDetails }: Ch
                     <LabeledValue label="Type">{citation.type}</LabeledValue>
                     <LabeledValue label="Needs bibliography">{citation.needs_bibliography ? 'Yes' : 'No'}</LabeledValue>
                     <LabeledValue label="Associated reference file">
-                      {matchedSupportingFile && matchedSupportingFile.file_id ? (
-                        <Link
-                          href={`/api/files/download/${matchedSupportingFile.file_id}`}
-                          target="_blank"
-                          className="text-blue-600 underline"
-                        >
+                      {matchedSupportingFile ? (
+                        <FileDownloadLink fileId={matchedSupportingFile.id} className="text-blue-600 underline">
                           {matchedSupportingFile.file_name}
-                        </Link>
+                        </FileDownloadLink>
                       ) : (
                         'None'
                       )}

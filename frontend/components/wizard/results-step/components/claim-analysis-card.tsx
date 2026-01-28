@@ -4,7 +4,8 @@ import { ClaimFeedback } from '@/components/claim-feedback';
 import { LabeledValue } from '@/components/labeled-value';
 import { Button } from '@/components/ui/button';
 import { getClaimId } from '@/lib/chunk-ids';
-import { Claim, DocumentIssue, WorkflowRunDetail, WorkflowRunType } from '@/lib/generated-api';
+import { composeReferences } from '@/lib/composed-references';
+import { Claim, ProjectDetailed, WorkflowRunType } from '@/lib/generated-api';
 import { getClaimIssues, getMaxSeverity } from '@/lib/severity';
 import { getWorkflowRunByType } from '@/lib/workflow-state';
 import { ChevronDownIcon, ChevronRightIcon } from 'lucide-react';
@@ -23,8 +24,7 @@ export interface ClaimAnalysisCardProps {
   claimIndex: number;
   totalClaims: number;
   chunkIndex: number;
-  allWorkflowDetails: WorkflowRunDetail[];
-  issues: DocumentIssue[];
+  projectDetail: ProjectDetailed;
   readOnly?: boolean;
 }
 
@@ -33,39 +33,46 @@ export function ClaimAnalysisCard({
   claimIndex,
   totalClaims,
   chunkIndex,
-  allWorkflowDetails,
-  issues,
+  projectDetail,
   readOnly = false,
 }: ClaimAnalysisCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
+  const workflowDetails = useMemo(() => projectDetail.workflow_runs ?? [], [projectDetail.workflow_runs]);
+  const issues = useMemo(() => projectDetail.issues ?? [], [projectDetail.issues]);
+  const files = useMemo(() => projectDetail.files ?? [], [projectDetail.files]);
+
   const documentProcessingDetail = useMemo(
-    () => getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.DocumentProcessing),
-    [allWorkflowDetails],
+    () => getWorkflowRunByType(workflowDetails, WorkflowRunType.DocumentProcessing),
+    [workflowDetails],
   );
   const claimReferenceValidationDetail = useMemo(
-    () => getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.ClaimReferenceValidation),
-    [allWorkflowDetails],
+    () => getWorkflowRunByType(workflowDetails, WorkflowRunType.ClaimReferenceValidation),
+    [workflowDetails],
   );
   const citationSuggesterDetail = useMemo(
-    () => getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.CitationSuggester),
-    [allWorkflowDetails],
+    () => getWorkflowRunByType(workflowDetails, WorkflowRunType.CitationSuggester),
+    [workflowDetails],
   );
   const liveReportsDetail = useMemo(
-    () => getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.LiveReports),
-    [allWorkflowDetails],
+    () => getWorkflowRunByType(workflowDetails, WorkflowRunType.LiveReports),
+    [workflowDetails],
   );
   const inferenceValidationDetail = useMemo(
-    () => getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.InferenceValidation),
-    [allWorkflowDetails],
+    () => getWorkflowRunByType(workflowDetails, WorkflowRunType.InferenceValidation),
+    [workflowDetails],
   );
   const claimExtractionDetail = useMemo(
-    () => getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.ClaimExtraction),
-    [allWorkflowDetails],
+    () => getWorkflowRunByType(workflowDetails, WorkflowRunType.ClaimExtraction),
+    [workflowDetails],
   );
   const referenceExtractionDetail = useMemo(
-    () => getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.ReferenceExtraction),
-    [allWorkflowDetails],
+    () => getWorkflowRunByType(workflowDetails, WorkflowRunType.ReferenceExtraction),
+    [workflowDetails],
+  );
+  const referenceFileMatchingDetail = useMemo(
+    () => getWorkflowRunByType(workflowDetails, WorkflowRunType.ReferenceFileMatching),
+    [workflowDetails],
   );
 
   const claimCategory = claimExtractionDetail?.state?.claim_categories?.find(
@@ -85,7 +92,17 @@ export function ClaimAnalysisCard({
   );
 
   const supportingFiles = documentProcessingDetail?.state?.supporting_files ?? [];
-  const references = referenceExtractionDetail?.state?.references ?? [];
+
+  // Compose references from extraction and file matching states
+  const references = useMemo(
+    () =>
+      composeReferences(
+        referenceExtractionDetail?.state?.extracted_references,
+        referenceFileMatchingDetail?.state?.matches,
+        files,
+      ),
+    [referenceExtractionDetail?.state?.extracted_references, referenceFileMatchingDetail?.state?.matches, files],
+  );
   const claimIssues = getClaimIssues(issues, chunkIndex, claimIndex);
   const maxSeverity = getMaxSeverity(claimIssues);
 
@@ -112,8 +129,15 @@ export function ClaimAnalysisCard({
 
       {isExpanded && (
         <>
-          <LabeledValue label="Extracted Claim">{claim.claim}</LabeledValue>
-          {'central' in claim && <LabeledValue label="Central Claim">{claim.central ? 'Yes' : 'No'}</LabeledValue>}
+          <div className="space-y-1">
+            <LabeledValue label="Extracted Claim">{claim.claim}</LabeledValue>
+            {'central' in claim && (
+              <>
+                <LabeledValue label="Central Claim">{claim.central ? 'Yes' : 'No'}</LabeledValue>
+                <LabeledValue label="Centrality Rationale">{claim.centrality_rationale}</LabeledValue>
+              </>
+            )}
+          </div>
 
           <div className="space-y-2">
             <ClaimArgumentAnalysis claim={claim} />

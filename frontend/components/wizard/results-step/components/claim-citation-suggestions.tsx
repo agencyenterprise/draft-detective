@@ -2,16 +2,17 @@
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { BibliographyItem, CitationSuggestionResultWithClaimIndex, FileDocument } from '@/lib/generated-api';
+import { LabeledValue } from '@/components/labeled-value';
+import { ComposedReference } from '@/lib/composed-references';
+import { CitationSuggestionResultWithClaimIndex, FileDocument } from '@/lib/generated-api';
 import { scoreReference } from '@/lib/reference-scoring';
 import { ChevronDown, ChevronRight, Link2Icon } from 'lucide-react';
 import { useState } from 'react';
 import { CitationReferenceItem } from '../tabs/citation-reference-item';
-import { LabeledValue } from '@/components/labeled-value';
 
 interface ClaimCitationSuggestionsProps {
   citationSuggestion: CitationSuggestionResultWithClaimIndex;
-  references: BibliographyItem[];
+  references: ComposedReference[];
   supportingFiles: FileDocument[];
 }
 

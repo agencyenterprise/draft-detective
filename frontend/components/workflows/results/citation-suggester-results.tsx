@@ -2,32 +2,39 @@
 
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  CitationSuggesterState,
-  CitationSuggestionResultWithClaimIndex,
-  ProjectDetailed,
-  WorkflowRunDetail,
-  WorkflowRunType,
-} from '@/lib/generated-api';
+import { composeReferences } from '@/lib/composed-references';
+import { CitationSuggestionResultWithClaimIndex, ProjectDetailed, WorkflowRunType } from '@/lib/generated-api';
+import { getWorkflowRunByType } from '@/lib/workflow-state';
 import { AlertCircle, Link2Icon } from 'lucide-react';
 import * as React from 'react';
+import { useMemo } from 'react';
 import { ClaimCitationSuggestions } from '../../wizard/results-step/components/claim-citation-suggestions';
-import { getWorkflowRunByType } from '@/lib/workflow-state';
 
 interface CitationSuggesterResultsProps {
   project: ProjectDetailed;
-  workflowDetail: WorkflowRunDetail;
 }
 
-export function CitationSuggesterResults({ project, workflowDetail }: CitationSuggesterResultsProps) {
-  const results = workflowDetail.state as CitationSuggesterState | undefined;
+export function CitationSuggesterResults({ project }: CitationSuggesterResultsProps) {
+  const files = useMemo(() => project.files ?? [], [project.files]);
+  const workflowDetails = useMemo(() => project.workflow_runs ?? [], [project.workflow_runs]);
 
-  const documentProcessing = getWorkflowRunByType(project.workflow_runs ?? [], WorkflowRunType.DocumentProcessing);
-  const referenceExtraction = getWorkflowRunByType(project.workflow_runs ?? [], WorkflowRunType.ReferenceExtraction);
+  const documentProcessing = getWorkflowRunByType(workflowDetails, WorkflowRunType.DocumentProcessing);
+  const referenceExtraction = getWorkflowRunByType(workflowDetails, WorkflowRunType.ReferenceExtraction);
+  const referenceFileMatching = getWorkflowRunByType(workflowDetails, WorkflowRunType.ReferenceFileMatching);
+  const citationSuggester = getWorkflowRunByType(workflowDetails, WorkflowRunType.CitationSuggester);
 
-  const citationSuggestions = React.useMemo(() => results?.citation_suggestions ?? [], [results?.citation_suggestions]);
+  const citationSuggestions = useMemo(
+    () => citationSuggester?.state?.citation_suggestions ?? [],
+    [citationSuggester?.state?.citation_suggestions],
+  );
   const supportingFiles = documentProcessing?.state?.supporting_files ?? [];
-  const references = referenceExtraction?.state?.references ?? [];
+
+  // Compose references from extraction and file matching states
+  const references = useMemo(
+    () =>
+      composeReferences(referenceExtraction?.state?.extracted_references, referenceFileMatching?.state?.matches, files),
+    [referenceExtraction?.state?.extracted_references, referenceFileMatching?.state?.matches, files],
+  );
 
   // Group suggestions by chunk_index and claim_index
   const groupedSuggestions = React.useMemo(() => {

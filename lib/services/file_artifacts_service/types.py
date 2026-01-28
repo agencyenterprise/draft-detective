@@ -3,10 +3,11 @@ from typing import TYPE_CHECKING, List
 
 if TYPE_CHECKING:
     from lib.workflows.chunk_utils import AnalyzedChunk
-    from lib.agents.document_summarizer import DocumentSummary
     from lib.models.bibliography_item import BibliographyItem
     from lib.models.footnote_item import FootnoteItem
     from lib.services.file import FileDocument
+    from lib.workflows.document_summarization.state import FileSummary
+    from lib.workflows.reference_extraction.state import ExtractedReference
 
 
 class FileArtifactsServiceType(ABC):
@@ -20,7 +21,10 @@ class FileArtifactsServiceType(ABC):
     async def get_supporting_files(self) -> list["FileDocument"]: ...
 
     @abstractmethod
-    async def get_document_summary(self, file_id: str) -> "DocumentSummary": ...
+    async def get_file_summary(self, file_id: str) -> "FileSummary": ...
+
+    @abstractmethod
+    async def get_extracted_references(self) -> list["ExtractedReference"]: ...
 
     @abstractmethod
     async def get_references(self) -> list["BibliographyItem"]: ...

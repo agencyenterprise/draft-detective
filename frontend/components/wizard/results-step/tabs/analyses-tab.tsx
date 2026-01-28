@@ -29,7 +29,7 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 
 interface AnalysesTabProps {
-  project: ProjectDetailed;
+  projectDetail: ProjectDetailed;
   readOnly?: boolean;
   onNavigateToDocumentExplorer?: () => void;
   onNavigateToReferences?: () => void;
@@ -56,7 +56,7 @@ function renderWorkflowResults(
     case WorkflowRunType.LiteratureReview:
       return <LiteratureReviewResults workflowDetail={workflowRun} />;
     case WorkflowRunType.CitationSuggester:
-      return <CitationSuggesterResults project={project} workflowDetail={workflowRun} />;
+      return <CitationSuggesterResults project={project} />;
     case WorkflowRunType.ReferenceDownloader:
       return <ReferenceDownloaderResults workflowDetail={workflowRun} />;
     case WorkflowRunType.ResultsExtraction:
@@ -109,13 +109,13 @@ function renderWorkflowResults(
 }
 
 export function AnalysesTab({
-  project,
+  projectDetail,
   readOnly,
   onNavigateToDocumentExplorer,
   onNavigateToReferences,
 }: AnalysesTabProps) {
-  const projectId = project.project.id;
-  const workflowDetails = project.workflow_runs ?? [];
+  const projectId = projectDetail.project.id;
+  const workflowDetails = projectDetail.workflow_runs ?? [];
   const [selectedWorkflowRunId, setSelectedWorkflowRunId] = useState<string | null>(null);
   const [isConfigDialogOpen, setIsConfigDialogOpen] = useState(false);
   const queryClient = useQueryClient();
@@ -243,7 +243,7 @@ export function AnalysesTab({
                 <ErrorsCard errors={selectedWorkflowRun.state.errors} />
               )}
               {renderWorkflowResults(
-                project,
+                projectDetail,
                 selectedWorkflowRun,
                 onNavigateToDocumentExplorer,
                 onNavigateToReferences,

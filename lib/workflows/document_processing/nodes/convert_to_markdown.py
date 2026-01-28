@@ -13,6 +13,7 @@ from lib.services.file import FileDocument
 from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
 from lib.workflows.document_processing.state import DocumentProcessingState
+from lib.services.files import update_file_artifacts
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +24,7 @@ logger = logging.getLogger(__name__)
 )
 async def convert_to_markdown(
     state: DocumentProcessingState, runtime: Runtime[ContextSchema]
-) -> DocumentProcessingState:
+):
     # We need to convert only the main document with full mode (images, JSON, etc.), supporting documents with simple mode (markdown only)
     tasks = [
         _convert_to_markdown_task(state.file, is_main_document=True),
@@ -38,6 +39,7 @@ async def convert_to_markdown(
         desc="Converting documents",
         max_concurrent=10,
     )
+    files: list[FileDocument] = [file for file in results if file is not None]
 
     failed_errors = [e for e in errors if e is not None]
     if failed_errors:
@@ -45,8 +47,25 @@ async def convert_to_markdown(
         logger.error(f"{error_msg}: {failed_errors[0]}")
         raise failed_errors[0]
 
-    [file, *supporting_files] = results
+    [file, *supporting_files] = files
+
+    # Persist markdown artifacts to database for caching
+    _persist_markdown_artifacts(files)
+
     return {"file": file, "supporting_files": supporting_files}
+
+
+def _persist_markdown_artifacts(files: list[FileDocument]) -> None:
+    """
+    Persist markdown artifacts to the files table for all converted documents.
+
+    Args:
+        file: The main document with markdown content
+        supporting_files: List of supporting documents with markdown content
+    """
+
+    for file in files:
+        update_file_artifacts(file_id=file.file_id, markdown=file.markdown)
 
 
 async def _convert_to_markdown_task(
@@ -65,7 +84,12 @@ async def _convert_to_markdown_task(
     Returns:
         FileDocument with converted markdown content and metadata
     """
-    from lib.services.converters.docling import docling_converter
+
+    if file_document.markdown:
+        logger.info(
+            f"Using cached markdown for file {file_document.file_name} ({file_document.file_id})"
+        )
+        return file_document
 
     converter = (
         config.MAIN_FILE_CONVERTER

@@ -1,5 +1,7 @@
 """Agent for matching bibliographic references to documents."""
 
+from typing import Optional
+
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables.config import RunnableConfig
 from pydantic import BaseModel, Field
@@ -14,9 +16,7 @@ class ReferenceMatchResult(BaseModel):
     matched_index: int = Field(
         description="1-based index of matched document, or -1 if no match"
     )
-    confidence: str = Field(
-        description="Confidence level: high, medium, low, or none"
-    )
+    confidence: str = Field(description="Confidence level: high, medium, low, or none")
     reasoning: str = Field(description="Brief explanation for the match decision")
 
 
@@ -54,8 +54,7 @@ class ReferenceMatcherAgent(LangChainAgent):
     async def ainvoke(
         self,
         prompt_kwargs: dict,
-        config: RunnableConfig = None,
+        config: Optional[RunnableConfig] = None,
     ) -> ReferenceMatchResult:
         messages = _reference_matcher_prompt.format_messages(**prompt_kwargs)
         return await self.llm.ainvoke(messages, config=config)
-

@@ -1,16 +1,20 @@
 import {
+  ChunkSplittingState,
   CitationDetectionState,
   CitationSuggesterState,
   ClaimExtractionState,
   ClaimReferenceValidationState,
   DocumentProcessingState,
+  DocumentSummarizationState,
   FootnoteExtractionState,
+  HumanApprovalState,
   InferenceValidationState,
   LiteratureReviewState,
   LiveReportsState,
   MethodologicalAlignmentState,
   ReferenceDownloaderState,
   ReferenceExtractionState,
+  ReferenceFileMatchingState,
   ReferenceValidationState,
   ResultsExtractionState,
   WorkflowError,
@@ -25,7 +29,10 @@ import {
  */
 type WorkflowTypeToDetail = {
   [WorkflowRunType.DocumentProcessing]: DocumentProcessingState;
+  [WorkflowRunType.ChunkSplitting]: ChunkSplittingState;
+  [WorkflowRunType.DocumentSummarization]: DocumentSummarizationState;
   [WorkflowRunType.ReferenceExtraction]: ReferenceExtractionState;
+  [WorkflowRunType.ReferenceFileMatching]: ReferenceFileMatchingState;
   [WorkflowRunType.ClaimReferenceValidation]: ClaimReferenceValidationState;
   [WorkflowRunType.MethodologicalAlignment]: MethodologicalAlignmentState;
   [WorkflowRunType.ReferenceDownloader]: ReferenceDownloaderState;
@@ -63,7 +70,11 @@ export function getWorkflowRunByType<T extends keyof WorkflowTypeToDetail>(
 
 const workflowTypeNames: Record<WorkflowRunType, string> = {
   [WorkflowRunType.DocumentProcessing]: 'Document Processing',
+  [WorkflowRunType.ChunkSplitting]: 'Chunk Splitting',
+  [WorkflowRunType.DocumentSummarization]: 'Document Summarization',
   [WorkflowRunType.ReferenceExtraction]: 'Reference Extraction',
+  [WorkflowRunType.ReferenceFileMatching]: 'Reference File Matching',
+  [WorkflowRunType.HumanApproval]: 'Human Approval',
   [WorkflowRunType.ClaimReferenceValidation]: 'Claim Reference Validation',
   [WorkflowRunType.MethodologicalAlignment]: 'Methodological Alignment',
   [WorkflowRunType.ReferenceDownloader]: 'Reference Downloader',
@@ -101,4 +112,78 @@ export function isWorkflowProcessing(workflowRun: WorkflowRunDetail | undefined)
 
 export function isAnyWorkflowProcessing(workflowRuns: WorkflowRunDetail[]): boolean {
   return workflowRuns.some((workflowRun) => isWorkflowProcessing(workflowRun));
+}
+
+/**
+ * Checks if the "No References Found" warning should be displayed.
+ *
+ * The warning only shows when:
+ * - At least one Reference Extraction workflow has completed
+ * - No Reference Extraction workflow is still processing (pending/running)
+ * - The completed workflow found no references
+ *
+ * This prevents showing stale warnings from old runs while a new extraction is in progress.
+ */
+export function getReferenceExtractionWarningStatus(workflowRuns: WorkflowRunDetail[]): {
+  showWarning: boolean;
+  sectionsDetected: boolean;
+  hasErrors: boolean;
+} | null {
+  const referenceExtraction = getWorkflowRunByType(workflowRuns, WorkflowRunType.ReferenceExtraction);
+
+  if (!referenceExtraction || isWorkflowProcessing(referenceExtraction)) {
+    return null;
+  }
+
+  const state = referenceExtraction.state;
+  const hasReferences = (state.extracted_references?.length ?? 0) > 0;
+
+  if (hasReferences) {
+    return null;
+  }
+
+  return {
+    showWarning: true,
+    sectionsDetected: (state.detected_sections?.length ?? 0) > 0,
+    hasErrors: (state.errors?.length ?? 0) > 0,
+  };
+}
+
+/**
+ * Checks if a project needs wizard completion (step 2).
+ *
+ * A project needs completion when:
+ * - It has DOCUMENT_PROCESSING workflow (started via step 1)
+ * - It has NO other user-visible analysis workflows started
+ *
+ * This indicates the user created a project in step 1 but didn't complete step 2.
+ *
+ * @param workflowRuns - The workflow runs to check
+ * @param internalTypes - Set of workflow types that are internal (from API)
+ */
+export function needsWizardCompletion(workflowRuns: WorkflowRunDetail[], internalTypes: Set<WorkflowRunType>): boolean {
+  if (workflowRuns.length === 0) return false;
+
+  const hasDocProcessing = workflowRuns.some((w) => w.run.type === WorkflowRunType.DocumentProcessing);
+  const hasUserWorkflows = workflowRuns.some((w) => !internalTypes.has(w.run.type));
+
+  return hasDocProcessing && !hasUserWorkflows;
+}
+
+/**
+ * Checks if a project is waiting for human approval (step 3).
+ *
+ * A project needs human approval when:
+ * - It has a HumanApproval workflow run
+ * - The HumanApproval workflow has not been approved yet
+ *
+ * @param workflowRuns - The workflow runs to check
+ */
+export function needsHumanApproval(workflowRuns: WorkflowRunDetail[]): boolean {
+  const humanApprovalRun = workflowRuns.find((w) => w.run.type === WorkflowRunType.HumanApproval);
+
+  if (!humanApprovalRun) return false;
+
+  const state = humanApprovalRun.state as HumanApprovalState | null;
+  return !state?.approved;
 }

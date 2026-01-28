@@ -1,21 +1,23 @@
 'use client';
 
-import { WorkflowRunDetail, WorkflowRunStatus, WorkflowRunType } from '@/lib/generated-api';
-import { getWorkflowRunByType } from '@/lib/workflow-state';
+import { ProjectDetailed, WorkflowRunType } from '@/lib/generated-api';
+import { getWorkflowRunByType, isWorkflowProcessing } from '@/lib/workflow-state';
 import { SummaryCards } from '../components/summary-cards';
 import { useResultsCalculations } from '../hooks/use-results-calculations';
 
 interface SummaryTabProps {
-  allWorkflowDetails: WorkflowRunDetail[];
+  projectDetail: ProjectDetailed;
 }
 
-export function SummaryTab({ allWorkflowDetails }: SummaryTabProps) {
-  const documentProcessing = getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.DocumentProcessing);
-  const referenceExtraction = getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.ReferenceExtraction);
-  const claimExtraction = getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.ClaimExtraction);
-  const citationDetection = getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.CitationDetection);
+export function SummaryTab({ projectDetail }: SummaryTabProps) {
+  const workflowDetails = projectDetail.workflow_runs ?? [];
+  const chunkSplitting = getWorkflowRunByType(workflowDetails, WorkflowRunType.ChunkSplitting);
+  const referenceExtraction = getWorkflowRunByType(workflowDetails, WorkflowRunType.ReferenceExtraction);
+  const claimExtraction = getWorkflowRunByType(workflowDetails, WorkflowRunType.ClaimExtraction);
+  const citationDetection = getWorkflowRunByType(workflowDetails, WorkflowRunType.CitationDetection);
+  const referenceFileMatching = getWorkflowRunByType(workflowDetails, WorkflowRunType.ReferenceFileMatching);
 
-  const isProcessing = documentProcessing?.run.status !== WorkflowRunStatus.Completed;
+  const isProcessing = isWorkflowProcessing(chunkSplitting);
 
   const {
     totalClaims,
@@ -26,10 +28,11 @@ export function SummaryTab({ allWorkflowDetails }: SummaryTabProps) {
     chunksWithCitations,
     supportedReferences,
   } = useResultsCalculations(
-    documentProcessing?.state,
+    chunkSplitting?.state,
     referenceExtraction?.state,
     claimExtraction?.state,
     citationDetection?.state,
+    referenceFileMatching?.state,
   );
 
   return (
@@ -58,7 +61,7 @@ export function SummaryTab({ allWorkflowDetails }: SummaryTabProps) {
           </div>
           <div>
             <span className="text-muted-foreground">Total references:</span>
-            <span className="ml-2 font-medium">{referenceExtraction?.state?.references?.length || 0}</span>
+            <span className="ml-2 font-medium">{referenceExtraction?.state?.extracted_references?.length || 0}</span>
           </div>
           <div>
             <span className="text-muted-foreground">Supported references:</span>

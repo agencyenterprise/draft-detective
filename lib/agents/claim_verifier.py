@@ -68,6 +68,8 @@ For each claim, output an evidence alignment level based on the following defini
 
 - Citations may appear in the same chunk of the text that the claim belongs to, or potentially in a later chunk of the paragraph. So you will also be given info for the paragraph and all the citations in the paragraph. Use your judgement to determine whether a reference is cited close enough to the actual claim of the text for readers to understand the author's intent that the citation is supporting that claim or not. For example, if all citations of an introduction paragraph are at the end of the paragraph, then it's likely that the citations are supporting all the claims in the whole paragraph together, rather than just supporting the last sentence/chunk of the paragraph.
 
+# Agent Inputs
+
 {domain_context}
 
 {audience_context}
@@ -107,7 +109,7 @@ class ClaimVerifierAgent(LangChainAgent):
     async def ainvoke(
         self,
         prompt_kwargs: dict,
-        config: RunnableConfig = None,
+        config: Optional[RunnableConfig] = None,
     ) -> ClaimSubstantiationResult:
         messages = _claim_verifier_prompt.format_messages(**prompt_kwargs)
         return await self.llm.ainvoke(messages, config=config)

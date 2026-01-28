@@ -13,7 +13,7 @@ import { Card, CardContent } from '../../ui/card';
 import { AnalysisOptionsMenu } from './components/analysis-options-menu';
 import { ViewModeToggle } from './components/view-mode-toggle';
 import { TabType } from './constants';
-import { AnalysesTab, FilesTab, ReferencesTab, SummaryTab } from './tabs';
+import { AnalysesTab, FilesTab, ReferenceReviewTab, SummaryTab } from './tabs';
 import { DocumentExplorerTab } from './tabs/document-explorer-tab';
 
 interface ResultsVisualizationProps {
@@ -36,39 +36,41 @@ export function ResultsVisualization({
   onTitleSave,
   isTitleSaving = false,
 }: ResultsVisualizationProps) {
-  const projectId = projectDetail.project.id;
   const results = projectDetail.workflow_runs ?? [];
 
   const documentProcessing = getWorkflowRunByType(results, WorkflowRunType.DocumentProcessing);
+  const chunkSplitting = getWorkflowRunByType(results, WorkflowRunType.ChunkSplitting);
+  const documentSummarization = getWorkflowRunByType(results, WorkflowRunType.DocumentSummarization);
   const referenceExtraction = getWorkflowRunByType(results, WorkflowRunType.ReferenceExtraction);
   const [activeTab, setActiveTab] = useState<TabType>('document-explorer');
   const { isWorkflowTypeVisible } = useWorkflowTypes();
 
-  const authors = documentProcessing?.state?.main_document_summary?.authors;
+  // Find the main document summary from the summaries list
+  const mainFileId = documentProcessing?.state?.file?.file_id;
+  const mainSummary = documentSummarization?.state?.summaries?.find((s) => s.file_id === mainFileId);
+  const authors = mainSummary?.authors;
 
   const renderActiveTab = () => {
     switch (activeTab) {
       case 'summary':
-        return <SummaryTab allWorkflowDetails={results} />;
-      case 'references':
-        return <ReferencesTab projectId={projectId} allWorkflowDetails={results} readOnly={readOnly} />;
+        return <SummaryTab projectDetail={projectDetail} />;
       case 'files':
-        return <FilesTab projectId={projectId} allWorkflowDetails={results} />;
+        return <FilesTab projectDetail={projectDetail} />;
       case 'document-explorer':
         return (
           <DocumentExplorerTab
-            projectId={projectId}
-            allWorkflowDetails={results}
-            issues={projectDetail.issues ?? []}
+            projectDetail={projectDetail}
             viewMode={viewMode}
             readOnly={readOnly}
             onNavigateToAnalyses={() => setActiveTab('analyses')}
           />
         );
+      case 'references':
+        return <ReferenceReviewTab projectId={projectDetail.project.id} readOnly={readOnly} />;
       case 'analyses':
         return (
           <AnalysesTab
-            project={projectDetail}
+            projectDetail={projectDetail}
             readOnly={readOnly}
             onNavigateToDocumentExplorer={() => setActiveTab('document-explorer')}
             onNavigateToReferences={() => setActiveTab('references')}
@@ -78,7 +80,7 @@ export function ResultsVisualization({
   };
 
   const isDoclingAvailable = !!(
-    documentProcessing?.state?.file?.docling_pages && documentProcessing?.state?.chunk_to_items?.mapping
+    documentProcessing?.state?.file?.docling_pages && chunkSplitting?.state?.chunk_to_items?.mapping
   );
 
   return (
@@ -115,13 +117,13 @@ export function ResultsVisualization({
             <TabsTrigger value="references">
               References{' '}
               <Badge className="rounded-full h-4.5 min-w-4.5" variant="secondary">
-                {referenceExtraction?.state?.references?.length || 0}
+                {referenceExtraction?.state?.extracted_references?.length || 0}
               </Badge>
             </TabsTrigger>
             <TabsTrigger value="files">
               Files{' '}
               <Badge className="rounded-full h-4.5 min-w-4.5" variant="secondary">
-                {projectDetail.files_count}
+                {projectDetail.files?.length ?? 0}
               </Badge>
             </TabsTrigger>
             <TabsTrigger value="analyses">

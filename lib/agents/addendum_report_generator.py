@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from enum import Enum
+from typing import Optional
 
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableConfig
@@ -184,11 +185,12 @@ Live Reports Analysis
 {records_json}
 ```
 
-#### Additional context:
-Document context: {domain_context}
-Audience Context: {audience_context}
-Title: {document_title}
-Summary (optional): {document_summary}
+{domain_context}
+
+{audience_context}
+
+## Title: {document_title}
+## Summary (optional): {document_summary}
 
 #### Output:
 Return one JSON object matching the required schema exactly.
@@ -206,7 +208,7 @@ class AddendumReportGeneratorAgent(LangChainAgent):
     output_schema = ReportOutput
 
     async def ainvoke(
-        self, prompt_kwargs: dict, config: RunnableConfig = None
+        self, prompt_kwargs: dict, config: Optional[RunnableConfig] = None
     ) -> ReportOutput:
         messages = _addendum_prompt.format_messages(**prompt_kwargs)
         return await self.llm.ainvoke(messages, config=config)

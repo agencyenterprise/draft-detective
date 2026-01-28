@@ -1,4 +1,5 @@
 from enum import Enum
+from typing import Optional
 
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableConfig
@@ -66,7 +67,7 @@ You are a citation detector. You are given a chunk of text and you need to extra
 - If the chunk of text is a bibliographic entry itself, do not consider it a citation.
 
 ## Handling footnotes
-Note that when you are given a footnote number, you need to look up the footnote in the list of footnotes, and then take the associated text for that footnote use that text to find the correct bibliography entry.  
+Note that when you are given a footnote number, you need to look up the footnote in the list of footnotes, and then take the associated text for that footnote use that text to find the correct bibliography entry.
 
 ## Return format
 For each citation, you need to return the following information:
@@ -105,7 +106,7 @@ class CitationDetectorAgent(LangChainAgent):
     output_schema = CitationResponse
 
     async def ainvoke(
-        self, prompt_kwargs: dict, config: RunnableConfig = None
+        self, prompt_kwargs: dict, config: Optional[RunnableConfig] = None
     ) -> CitationResponse:
         messages = _citation_detector_prompt.format_messages(**prompt_kwargs)
         return await self.llm.ainvoke(messages, config=config)

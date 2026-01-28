@@ -4,9 +4,9 @@ from lib.agents.citation_detector import CitationResponseWithChunkIndex
 from lib.agents.claim_categorizer import ClaimCategorizationResponseWithClaimIndex
 from lib.agents.claim_extractor import ClaimResponseWithChunkIndex
 from lib.agents.models import ChunkWithIndex, ClaimCategory
+from lib.workflows.chunk_splitting.state import ChunkSplittingState
 from lib.workflows.citation_detection.state import CitationDetectionState
 from lib.workflows.claim_extraction.state import ClaimExtractionState
-from lib.workflows.document_processing.state import DocumentProcessingState
 from lib.workflows.models import WorkflowRunType
 from lib.workflows.util import get_state_by_type
 
@@ -31,7 +31,7 @@ def build_analyzed_chunks(
 ) -> List[AnalyzedChunk]:
     """Build AnalyzedChunk objects from existing workflow states.
 
-    This function extracts chunks from document processing state and enriches them
+    This function extracts chunks from chunk splitting state and enriches them
     with claims, claim categories, and citations from their respective workflow states.
     If any of the optional states (claim extraction, citation detection) are not present,
     the corresponding fields will not be populated.
@@ -41,16 +41,16 @@ def build_analyzed_chunks(
 
     Returns:
         List of AnalyzedChunk objects with all available analysis results.
-        Returns empty list if document processing state is not found.
+        Returns empty list if chunk splitting state is not found.
     """
-    # Get document processing artifacts from dependency workflow
-    doc_processing_state_raw = get_state_by_type(
-        WorkflowRunType.DOCUMENT_PROCESSING, existing_states
+    # Get chunks from chunk splitting workflow
+    chunk_splitting_state_raw = get_state_by_type(
+        WorkflowRunType.CHUNK_SPLITTING, existing_states
     )
-    if doc_processing_state_raw is None:
+    if chunk_splitting_state_raw is None:
         return []
 
-    doc_processing_state = cast(DocumentProcessingState, doc_processing_state_raw)
+    chunk_splitting_state = cast(ChunkSplittingState, chunk_splitting_state_raw)
 
     # Get extracted claims and categories from claim extraction workflow (optional)
     claim_extraction_state_raw = get_state_by_type(
@@ -100,11 +100,12 @@ def build_analyzed_chunks(
 
     # Convert base chunks to AnalyzedChunk and populate with claims, categories, and citations
     chunks = []
-    for doc_chunk in doc_processing_state.chunks:
+    for doc_chunk in chunk_splitting_state.chunks:
         analyzed_chunk = AnalyzedChunk(
             content=doc_chunk.content,
             chunk_index=doc_chunk.chunk_index,
             paragraph_index=doc_chunk.paragraph_index,
+            headings=doc_chunk.headings,
         )
 
         # Add claims if available
@@ -141,10 +142,22 @@ def find_chunk_index_by_text(
     return None
 
 
+def find_chunk_by_index(
+    chunks: List[AnalyzedChunk], chunk_index: int
+) -> Optional[AnalyzedChunk]:
+    """Find a chunk by its index."""
+    for chunk in chunks:
+        if chunk.chunk_index == chunk_index:
+            return chunk
+    return None
+
+
 def find_claim_category(
-    chunk: AnalyzedChunk, claim_index: int
+    chunk: Optional[AnalyzedChunk], claim_index: int
 ) -> Optional[ClaimCategory]:
     """Find claim category for a given claim index in a chunk."""
+    if chunk is None:
+        return None
 
     for category in chunk.claim_categories:
         if category.claim_index == claim_index:

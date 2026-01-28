@@ -3,31 +3,58 @@
 import { ResultsVisualization } from '@/components/wizard/results-step/results-visualization';
 import { useWorkflowProgressToast } from '@/hooks/use-workflow-progress-toast';
 import { DocRenderMode } from '@/lib/constants';
-import { ProjectDetailed, updateProjectEndpointApiProjectProjectIdPatch } from '@/lib/generated-api';
+import { ProjectDetailed, updateProjectEndpointApiProjectProjectIdPatch, WorkflowRunType } from '@/lib/generated-api';
 import { useProjectDetails } from '@/lib/hooks/use-project-details';
-import { isAnyWorkflowProcessing } from '@/lib/workflow-state';
+import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
+import { isAnyWorkflowProcessing, needsHumanApproval, needsWizardCompletion } from '@/lib/workflow-state';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useParams } from 'next/navigation';
-import { useMemo, useState } from 'react';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { useState, useEffect, useMemo } from 'react';
 import { toast } from 'sonner';
 
 export default function ResultsPage() {
   const params = useParams();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const projectId = params.projectId as string;
   const queryClient = useQueryClient();
+
+  // Skip redirect check if coming from wizard (prevents race condition)
+  const fromWizard = searchParams.get('fromWizard') === 'true';
 
   const [viewMode, setViewMode] = useState<DocRenderMode>('markdown');
 
   const { project, workflowDetails, isLoading, error } = useProjectDetails(projectId);
+  const { data: workflowTypes } = useWorkflowTypes();
 
-  const workflowRunIdsToTrack = useMemo(() => {
-    if (!isAnyWorkflowProcessing(workflowDetails)) return [];
+  const isProcessing = isAnyWorkflowProcessing(workflowDetails);
 
-    return workflowDetails.map((w) => w.run.id);
-  }, [workflowDetails]);
+  // Build internal types set from API data
+  const internalTypes = useMemo(() => {
+    if (!workflowTypes) return new Set<WorkflowRunType>();
+    return new Set(workflowTypes.filter((wt) => wt.is_internal).map((wt) => wt.type));
+  }, [workflowTypes]);
 
-  // Show progress in toast
-  useWorkflowProgressToast(workflowRunIdsToTrack);
+  // Redirect to wizard step 2 if project only has document processing started
+  // Skip if we just came from the wizard (workflows may not be in DB yet)
+  useEffect(() => {
+    if (fromWizard || isLoading || workflowDetails.length === 0) {
+      return;
+    }
+
+    if (needsWizardCompletion(workflowDetails, internalTypes)) {
+      router.replace(`/new?projectId=${projectId}`);
+      return;
+    }
+
+    if (needsHumanApproval(workflowDetails)) {
+      router.replace(`/new?projectId=${projectId}&step=3`);
+      return;
+    }
+  }, [fromWizard, isLoading, workflowDetails, projectId, router, internalTypes]);
+
+  // Show progress in toast when workflows are processing
+  useWorkflowProgressToast(projectId, isProcessing);
 
   const updateTitleMutation = useMutation({
     mutationFn: async (newTitle: string) => {

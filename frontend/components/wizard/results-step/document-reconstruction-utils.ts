@@ -21,10 +21,10 @@ export function detectBlockSyntax(chunk: string): string | null {
   }
 
   // Ordered lists: digits followed by . and space
-  const orderedListMatch = trimmed.match(/^\d+\.\s/);
-  if (orderedListMatch) {
-    return orderedListMatch[0];
-  }
+  // const orderedListMatch = trimmed.match(/^\d+\.\s/);
+  // if (orderedListMatch) {
+  //   return orderedListMatch[0];
+  // }
 
   // Blockquotes: > followed by space
   if (/^>\s/.test(trimmed)) {

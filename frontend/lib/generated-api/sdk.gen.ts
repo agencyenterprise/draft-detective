@@ -3,6 +3,15 @@
 import { type Client, formDataBodySerializer, type Options as Options2, type TDataShape } from './client';
 import { client } from './client.gen';
 import type {
+  AddFilesToProjectApiProjectProjectIdFilesPostData,
+  AddFilesToProjectApiProjectProjectIdFilesPostErrors,
+  AddFilesToProjectApiProjectProjectIdFilesPostResponses,
+  AddFileToProjectApiProjectProjectIdFilePostData,
+  AddFileToProjectApiProjectProjectIdFilePostErrors,
+  AddFileToProjectApiProjectProjectIdFilePostResponses,
+  ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostData,
+  ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostErrors,
+  ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostResponses,
   CheckPreflightApiPreflightPostData,
   CheckPreflightApiPreflightPostErrors,
   CheckPreflightApiPreflightPostResponses,
@@ -15,6 +24,9 @@ import type {
   DeleteProjectEndpointApiProjectProjectIdDeleteData,
   DeleteProjectEndpointApiProjectProjectIdDeleteErrors,
   DeleteProjectEndpointApiProjectProjectIdDeleteResponses,
+  DeleteProjectFileEndpointApiProjectProjectIdFilesFileIdDeleteData,
+  DeleteProjectFileEndpointApiProjectProjectIdFilesFileIdDeleteErrors,
+  DeleteProjectFileEndpointApiProjectProjectIdFilesFileIdDeleteResponses,
   DisableProjectSharingApiProjectsProjectIdShareDisablePostData,
   DisableProjectSharingApiProjectsProjectIdShareDisablePostErrors,
   DisableProjectSharingApiProjectsProjectIdShareDisablePostResponses,
@@ -50,6 +62,9 @@ import type {
   GetProjectShareStatusApiProjectsProjectIdShareGetData,
   GetProjectShareStatusApiProjectsProjectIdShareGetErrors,
   GetProjectShareStatusApiProjectsProjectIdShareGetResponses,
+  GetProjectWorkflowProgressEndpointApiProjectProjectIdWorkflowProgressGetData,
+  GetProjectWorkflowProgressEndpointApiProjectProjectIdWorkflowProgressGetErrors,
+  GetProjectWorkflowProgressEndpointApiProjectProjectIdWorkflowProgressGetResponses,
   GetSharedResourceApiPublicShareTokenGetData,
   GetSharedResourceApiPublicShareTokenGetErrors,
   GetSharedResourceApiPublicShareTokenGetResponses,
@@ -58,9 +73,6 @@ import type {
   GetWorkflowFeedbackApiFeedbackWorkflowWorkflowRunIdGetData,
   GetWorkflowFeedbackApiFeedbackWorkflowWorkflowRunIdGetErrors,
   GetWorkflowFeedbackApiFeedbackWorkflowWorkflowRunIdGetResponses,
-  GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdGetData,
-  GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdGetErrors,
-  GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdGetResponses,
   GetWorkflowStateApiWorkflowsWorkflowRunIdGetData,
   GetWorkflowStateApiWorkflowsWorkflowRunIdGetErrors,
   GetWorkflowStateApiWorkflowsWorkflowRunIdGetResponses,
@@ -71,6 +83,8 @@ import type {
   ListProjectFilesEndpointApiProjectProjectIdFilesGetResponses,
   ListProjectsEndpointApiProjectsGetData,
   ListProjectsEndpointApiProjectsGetResponses,
+  ListUsersApiUsersGetData,
+  ListUsersApiUsersGetResponses,
   ReadHealthApiHealthGetData,
   ReadHealthApiHealthGetResponses,
   ReadHealthApiHealthHeadData,
@@ -93,6 +107,9 @@ import type {
   UpdateProjectEndpointApiProjectProjectIdPatchData,
   UpdateProjectEndpointApiProjectProjectIdPatchErrors,
   UpdateProjectEndpointApiProjectProjectIdPatchResponses,
+  UpdateRoleApiUsersUserIdRolePatchData,
+  UpdateRoleApiUsersUserIdRolePatchErrors,
+  UpdateRoleApiUsersUserIdRolePatchResponses,
 } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean> = Options2<
@@ -403,6 +420,32 @@ export const getPageImageApiWorkflowRunsWorkflowRunIdPagesPageNumGet = <ThrowOnE
   });
 
 /**
+ * Approve Workflow Run
+ *
+ * Approve a workflow run that requires human approval.
+ *
+ * The workflow must:
+ * 1. Exist and belong to a project owned by the current user
+ * 2. Be a workflow type that supports human approval (requires_human_trigger=True)
+ *
+ * This unblocks any dependent workflows (e.g., CLAIM_REFERENCE_VALIDATION).
+ */
+export const approveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePost = <ThrowOnError extends boolean = true>(
+  options: Options<ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostResponses,
+    ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostErrors,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/workflow-runs/{workflow_run_id}/approve',
+    ...options,
+  });
+
+/**
  * Get Workflow Types
  *
  * List all available workflow types including internal ones.
@@ -421,18 +464,20 @@ export const getWorkflowTypesApiWorkflowTypesGet = <ThrowOnError extends boolean
  *
  * Download a file by ID with access control.
  *
- * This endpoint verifies that the authenticated user has access to the file
- * by checking if they own the project that the file belongs to.
+ * This endpoint supports two access modes:
+ * 1. Authenticated access: User must own the project containing the file
+ * 2. Share token access: Valid share token for the project grants read access
  *
  * Args:
  * file_id: UUID of the file to download
- * current_user: Authenticated user from JWT token
+ * share_token: Optional share token for unauthenticated access
+ * current_user: Authenticated user from JWT token (optional when share_token provided)
  *
  * Returns:
  * FileResponse with the file contents
  *
  * Raises:
- * HTTPException: 400 for invalid file ID, 404 if file not found, 403 if access denied
+ * HTTPException: 400 for invalid file ID, 401 if not authenticated, 404 if file not found, 403 if access denied
  */
 export const downloadFileApiFilesDownloadFileIdGet = <ThrowOnError extends boolean = true>(
   options: Options<DownloadFileApiFilesDownloadFileIdGetData, ThrowOnError>,
@@ -684,6 +729,79 @@ export const listProjectFilesEndpointApiProjectProjectIdFilesGet = <ThrowOnError
   });
 
 /**
+ * Add Files To Project
+ *
+ * Add files (supporting documents) to an existing project.
+ */
+export const addFilesToProjectApiProjectProjectIdFilesPost = <ThrowOnError extends boolean = true>(
+  options: Options<AddFilesToProjectApiProjectProjectIdFilesPostData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    AddFilesToProjectApiProjectProjectIdFilesPostResponses,
+    AddFilesToProjectApiProjectProjectIdFilesPostErrors,
+    ThrowOnError,
+    'data'
+  >({
+    ...formDataBodySerializer,
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/project/{project_id}/files',
+    ...options,
+    headers: {
+      'Content-Type': null,
+      ...options.headers,
+    },
+  });
+
+/**
+ * Add File To Project
+ *
+ * Add a single file (supporting document) to a project.
+ *
+ * Optionally link the file to a specific reference by providing reference_id
+ * (the ID of the reference from the ReferenceExtraction workflow state).
+ */
+export const addFileToProjectApiProjectProjectIdFilePost = <ThrowOnError extends boolean = true>(
+  options: Options<AddFileToProjectApiProjectProjectIdFilePostData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    AddFileToProjectApiProjectProjectIdFilePostResponses,
+    AddFileToProjectApiProjectProjectIdFilePostErrors,
+    ThrowOnError,
+    'data'
+  >({
+    ...formDataBodySerializer,
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/project/{project_id}/file',
+    ...options,
+    headers: {
+      'Content-Type': null,
+      ...options.headers,
+    },
+  });
+
+/**
+ * Delete Project File Endpoint
+ *
+ * Delete a file from a project and unlink it from any references.
+ */
+export const deleteProjectFileEndpointApiProjectProjectIdFilesFileIdDelete = <ThrowOnError extends boolean = true>(
+  options: Options<DeleteProjectFileEndpointApiProjectProjectIdFilesFileIdDeleteData, ThrowOnError>,
+) =>
+  (options.client ?? client).delete<
+    DeleteProjectFileEndpointApiProjectProjectIdFilesFileIdDeleteResponses,
+    DeleteProjectFileEndpointApiProjectProjectIdFilesFileIdDeleteErrors,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/project/{project_id}/files/{file_id}',
+    ...options,
+  });
+
+/**
  * Download All Project Files
  *
  * Download all project files as a ZIP archive
@@ -704,24 +822,24 @@ export const downloadAllProjectFilesApiProjectProjectIdFilesDownloadAllGet = <Th
   });
 
 /**
- * Get Workflow Progress Endpoint
+ * Get Project Workflow Progress Endpoint
  *
- * Get all progress entries for a workflow run.
- *
- * Returns progress entries ordered by creation time.
+ * Get all workflow progress entries for a project.
  */
-export const getWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdGet = <ThrowOnError extends boolean = true>(
-  options: Options<GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdGetData, ThrowOnError>,
+export const getProjectWorkflowProgressEndpointApiProjectProjectIdWorkflowProgressGet = <
+  ThrowOnError extends boolean = true,
+>(
+  options: Options<GetProjectWorkflowProgressEndpointApiProjectProjectIdWorkflowProgressGetData, ThrowOnError>,
 ) =>
   (options.client ?? client).get<
-    GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdGetResponses,
-    GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdGetErrors,
+    GetProjectWorkflowProgressEndpointApiProjectProjectIdWorkflowProgressGetResponses,
+    GetProjectWorkflowProgressEndpointApiProjectProjectIdWorkflowProgressGetErrors,
     ThrowOnError,
     'data'
   >({
     responseStyle: 'data',
     security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/api/progress/workflow/{workflow_run_id}',
+    url: '/api/project/{project_id}/workflow-progress',
     ...options,
   });
 
@@ -820,4 +938,43 @@ export const getCurrentUserInfoApiUsersMeGet = <ThrowOnError extends boolean = t
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/users/me',
     ...options,
+  });
+
+/**
+ * List Users
+ *
+ * List all users (admin only).
+ */
+export const listUsersApiUsersGet = <ThrowOnError extends boolean = true>(
+  options?: Options<ListUsersApiUsersGetData, ThrowOnError>,
+) =>
+  (options?.client ?? client).get<ListUsersApiUsersGetResponses, unknown, ThrowOnError, 'data'>({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/users',
+    ...options,
+  });
+
+/**
+ * Update Role
+ *
+ * Update a user's role (admin only).
+ */
+export const updateRoleApiUsersUserIdRolePatch = <ThrowOnError extends boolean = true>(
+  options: Options<UpdateRoleApiUsersUserIdRolePatchData, ThrowOnError>,
+) =>
+  (options.client ?? client).patch<
+    UpdateRoleApiUsersUserIdRolePatchResponses,
+    UpdateRoleApiUsersUserIdRolePatchErrors,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/users/{user_id}/role',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
   });

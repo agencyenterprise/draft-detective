@@ -23,7 +23,8 @@ class ClaimExtractionManifest(
     can_be_triggered_by_user = False  # This is a dependency workflow
     is_internal = True
     required_dependencies = [
-        WorkflowRunType.DOCUMENT_PROCESSING,
+        WorkflowRunType.CHUNK_SPLITTING,
+        WorkflowRunType.DOCUMENT_SUMMARIZATION,
     ]
 
     def get_state_type(self) -> Type[ClaimExtractionState]:

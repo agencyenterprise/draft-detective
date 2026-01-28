@@ -1,52 +1,52 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { getWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdGet } from '@/lib/generated-api';
+import { getProjectWorkflowProgressEndpointApiProjectProjectIdWorkflowProgressGet } from '@/lib/generated-api';
 import {
   getProgressStatus,
   ToastContent,
   LoadingToastContent,
 } from '@/components/workflows/workflow-progress-toast-content';
+import { useShare } from '@/context/share-context';
 
-const REFETCH_INTERVAL_MS = 2000;
+const REFETCH_INTERVAL_MS = 3000;
 const TOAST_ID = 'workflow-progress';
 
-export function useWorkflowProgressToast(workflowRunIds: string[]) {
-  const sortedIds = useMemo(() => [...workflowRunIds].sort(), [workflowRunIds]);
+export function useWorkflowProgressToast(projectId: string, enabled: boolean = true) {
+  const { shareToken } = useShare();
   const [showCompleted, setShowCompleted] = useState(false);
   const [showAll, setShowAll] = useState(false);
   const [newlyCompletedIds, setNewlyCompletedIds] = useState<Set<string>>(new Set());
-  const prevCompletedIdsRef = useRef<Set<string>>(new Set());
+  const seenInProgressRef = useRef<Set<string>>(new Set());
   const isActiveRef = useRef(false);
 
   const { data: allProgress } = useQuery({
-    queryKey: ['workflows-progress', sortedIds.join(',')],
+    queryKey: ['project-workflow-progress', projectId],
     queryFn: async () => {
-      if (sortedIds.length === 0) return [];
-
-      const results = await Promise.all(
-        sortedIds.map((id) =>
-          getWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdGet({
-            path: { workflow_run_id: id },
-          }),
-        ),
-      );
-
-      return results.flat().sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+      return getProjectWorkflowProgressEndpointApiProjectProjectIdWorkflowProgressGet({
+        path: { project_id: projectId },
+        query: { share_token: shareToken },
+      });
     },
-    enabled: sortedIds.length > 0,
+    enabled,
     refetchInterval: REFETCH_INTERVAL_MS,
   });
 
   useEffect(() => {
     if (!allProgress) return;
 
-    const currentCompleted = new Set(allProgress.filter((p) => getProgressStatus(p) === 'completed').map((p) => p.id));
-    const newIds = [...currentCompleted].filter((id) => !prevCompletedIdsRef.current.has(id));
+    // Track items currently in progress
+    const inProgressIds = allProgress.filter((p) => getProgressStatus(p) === 'in_progress').map((p) => p.id);
+    inProgressIds.forEach((id) => seenInProgressRef.current.add(id));
 
-    prevCompletedIdsRef.current = currentCompleted;
+    // Only mark as newly completed if they were previously seen in progress
+    const completedIds = allProgress.filter((p) => getProgressStatus(p) === 'completed').map((p) => p.id);
+    const newIds = completedIds.filter((id) => seenInProgressRef.current.has(id));
+
+    // Remove completed items from the in-progress tracking
+    completedIds.forEach((id) => seenInProgressRef.current.delete(id));
 
     if (newIds.length > 0) {
       setNewlyCompletedIds((prev) => new Set([...prev, ...newIds]));
@@ -62,21 +62,20 @@ export function useWorkflowProgressToast(workflowRunIds: string[]) {
   }, [allProgress]);
 
   useEffect(() => {
-    const hasWorkflows = sortedIds.length > 0;
-
-    if (hasWorkflows && !isActiveRef.current) {
+    if (enabled && !isActiveRef.current) {
       isActiveRef.current = true;
     }
 
-    if (!hasWorkflows && isActiveRef.current) {
+    if (!enabled && isActiveRef.current) {
       toast.dismiss(TOAST_ID);
       isActiveRef.current = false;
+      seenInProgressRef.current = new Set();
       setShowCompleted(false);
       setShowAll(false);
       return;
     }
 
-    if (!hasWorkflows) return;
+    if (!enabled) return;
 
     const hasProgress = allProgress && allProgress.length > 0;
 
@@ -96,7 +95,7 @@ export function useWorkflowProgressToast(workflowRunIds: string[]) {
         ),
       { id: TOAST_ID, duration: Infinity },
     );
-  }, [sortedIds, allProgress, newlyCompletedIds, showCompleted, showAll]);
+  }, [projectId, allProgress, newlyCompletedIds, showCompleted, showAll, enabled]);
 
   useEffect(() => {
     return () => {

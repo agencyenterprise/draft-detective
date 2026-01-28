@@ -6,12 +6,14 @@ import zipfile
 from typing import List, Optional, Sequence, Tuple
 
 from fastapi import HTTPException
-from sqlalchemy import or_, func
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
+from sqlmodel import col
 
 from lib.config.database import get_db
 from lib.config.env import config
-from lib.models.file import File, FileRole
+from lib.models.file import File, FileListItem, FileRole
+from lib.models.project import Project
 from lib.services.file import FileDocument, create_file_document_from_path
 
 logger = logging.getLogger(__name__)
@@ -115,14 +117,23 @@ async def get_files_by_project_id(project_id: uuid.UUID | str) -> List[File]:
         return files
 
 
-async def get_files_count_by_project_id(project_id: uuid.UUID | str) -> int:
+async def get_project_files_list_items(
+    project_id: uuid.UUID | str,
+) -> List[FileListItem]:
     """
-    Get the number of files by project ID.
+    Get files for a project as lightweight list items (excludes markdown and summary).
+
+    Note: Excludes SUPPORTING_CANDIDATE files as they are temporary files during
+    reference downloading and should not be shown to users.
     """
     project_id = _normalize_uuid(project_id, "project ID")
     with get_db() as db:
-        count = db.query(func.count()).filter(File.project_id == project_id).scalar()
-        return count
+        stmt = select(File).where(
+            File.project_id == project_id,
+            File.role != FileRole.SUPPORTING_CANDIDATE,
+        )
+        files = db.execute(stmt).scalars().all()
+        return [FileListItem.model_validate(f, from_attributes=True) for f in files]
 
 
 async def get_supporting_candidate_files(project_id: uuid.UUID | str) -> List[File]:
@@ -161,22 +172,73 @@ def update_files_role(file_ids: Sequence[uuid.UUID | str], role: FileRole) -> No
         db.commit()
 
 
-async def load_file_document(file: File) -> FileDocument:
+def update_file_artifacts(
+    file_id: uuid.UUID | str,
+    markdown: str | None = None,
+    summary: dict | None = None,
+) -> None:
     """
-    Convert File model to FileDocument with markdown loaded.
+    Update file artifacts (markdown, summary) for caching processed content.
 
-    This function lazy-loads the markdown content from the file system
-    on demand, as markdown is not stored in the database.
+    Only updates fields that are explicitly provided (not None).
+
+    Args:
+        file_id: UUID of the file to update
+        markdown: The converted markdown content (optional)
+        summary: Document summary as dict (optional)
+    """
+    file_id = _normalize_uuid(file_id, "file ID")
+
+    with get_db() as db:
+        file = db.query(File).filter(File.id == file_id).first()
+        if file is None:
+            logger.warning(f"File {file_id} not found, skipping artifact update")
+            return
+
+        if markdown is not None:
+            file.markdown = markdown
+        if summary is not None:
+            file.summary = summary
+
+        db.commit()
+        logger.debug(f"Updated artifacts for file {file_id}")
+
+
+async def load_file_document(
+    file: File, use_cached_artifacts: bool = True
+) -> FileDocument:
+    """
+    Convert File model to FileDocument, using cached artifacts from DB if available.
+
+    When use_cached_artifacts is True and the file has cached markdown in the database,
+    the FileDocument is created directly from the cached data without re-converting.
+    Otherwise, creates a FileDocument without markdown (for workflow to convert).
 
     Args:
         file: File model instance from database
+        use_cached_artifacts: If True, use cached markdown from DB when available
 
     Returns:
-        FileDocument with markdown content loaded
+        FileDocument with markdown content (from cache or empty)
 
     Raises:
         FileNotFoundError: If the file doesn't exist on disk
     """
+    from langchain_core.messages.utils import count_tokens_approximately
+
+    # Use cached artifacts if available and requested
+    if use_cached_artifacts and file.markdown is not None:
+        return FileDocument(
+            file_id=str(file.id),
+            file_path=file.file_path,
+            file_name=file.file_name,
+            file_type=file.file_type,
+            markdown=file.markdown,
+            markdown_token_count=count_tokens_approximately([file.markdown]),
+            original_file_path=file.original_file_path,
+        )
+
+    # Fall back to creating without markdown (for workflow to convert)
     return await create_file_document_from_path(
         file_path=file.file_path,
         file_id=str(file.id),
@@ -206,14 +268,12 @@ async def check_file_access(file_id: uuid.UUID | str, user_id: uuid.UUID) -> Fil
     file_id = _normalize_uuid(file_id, "file ID")
 
     with get_db() as db:
-        from lib.models.project import Project
-
-        result = (
-            db.query(File, Project)
+        stmt = (
+            select(File, Project)
             .join(Project, File.project_id == Project.id)
-            .filter(File.id == file_id)
-            .first()
+            .where(File.id == file_id)
         )
+        result = db.execute(stmt).one_or_none()
 
         if result is None:
             raise HTTPException(status_code=404, detail="File not found")
@@ -222,6 +282,61 @@ async def check_file_access(file_id: uuid.UUID | str, user_id: uuid.UUID) -> Fil
 
         if project.user_id is None or project.user_id != user_id:
             raise HTTPException(status_code=403, detail="Access denied to this file")
+
+        return file
+
+
+async def check_file_access_by_share_token(
+    file_id: uuid.UUID | str, share_token: str
+) -> File:
+    """
+    Check if a share token grants access to a file.
+
+    Validates that the share token is active and belongs to a project that contains
+    the requested file.
+
+    Args:
+        file_id: UUID of the file to check access for
+        share_token: Share token for public access
+
+    Returns:
+        File model instance if access is granted
+
+    Raises:
+        HTTPException: 400 for invalid file ID, 404 if file/share not found, 403 if access denied
+    """
+    from lib.models.project import Project
+    from lib.models.share_link import ShareLink
+
+    file_id = _normalize_uuid(file_id, "file ID")
+
+    with get_db() as db:
+        # Get the file and its project
+        stmt = (
+            select(File, Project)
+            .join(Project, col(File.project_id) == col(Project.id))
+            .where(col(File.id) == file_id)
+        )
+        result = db.execute(stmt).one_or_none()
+
+        if result is None:
+            raise HTTPException(status_code=404, detail="File not found")
+
+        file, project = result
+
+        # Check if the share token is valid for this project
+        share_link_stmt = select(ShareLink).where(
+            col(ShareLink.token) == share_token,
+            col(ShareLink.is_active).is_(True),
+            col(ShareLink.resource_type) == "project",
+            col(ShareLink.resource_id) == project.id,
+        )
+        share_link = db.execute(share_link_stmt).scalar_one_or_none()
+
+        if share_link is None:
+            raise HTTPException(
+                status_code=403, detail="Invalid or expired share token"
+            )
 
         return file
 

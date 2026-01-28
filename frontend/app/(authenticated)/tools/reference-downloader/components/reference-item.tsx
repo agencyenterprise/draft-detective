@@ -4,7 +4,9 @@ import { LabeledValue } from '@/components/labeled-value';
 import { Markdown } from '@/components/markdown';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { FileDownloadLink } from '@/components/ui/file-download-link';
 import { ReferenceFetchConclusion, ReferenceFetchResult, ReferenceFetchStatus } from '@/lib/generated-api';
+import { formatReferenceError } from '@/lib/utils';
 import {
   AlertCircle,
   AlertTriangle,
@@ -19,6 +21,8 @@ import * as React from 'react';
 
 interface ReferenceItemProps {
   item: ReferenceFetchResult;
+  /** Display index for UI numbering (optional, uses array position) */
+  displayIndex?: number;
 }
 
 function getConclusionBadge(conclusion: ReferenceFetchConclusion) {
@@ -82,19 +86,20 @@ function getPendingBadge() {
   );
 }
 
-export function ReferenceItem({ item }: ReferenceItemProps) {
+export function ReferenceItem({ item, displayIndex }: ReferenceItemProps) {
   const [isExpanded, setIsExpanded] = React.useState(false);
   const isPending = item.status === ReferenceFetchStatus.Pending;
   const isError = item.status === ReferenceFetchStatus.Error || item.error != null;
   const result = item.result;
-  const index = item.index;
 
   return (
     <div className="border rounded-lg p-4 space-y-2">
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 space-y-2">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm font-medium text-muted-foreground">#{index + 1}</span>
+            {displayIndex !== undefined && (
+              <span className="text-sm font-medium text-muted-foreground">#{displayIndex + 1}</span>
+            )}
             {isPending
               ? getPendingBadge()
               : isError
@@ -122,10 +127,10 @@ export function ReferenceItem({ item }: ReferenceItemProps) {
         <div className="flex items-center gap-2 shrink-0">
           {result?.file_id && (
             <Button variant="outline" size="xs" asChild className="text-gray-600 hover:text-gray-900">
-              <a href={`/api/files/download/${result.file_id}`} target="_blank" rel="noopener noreferrer">
+              <FileDownloadLink fileId={result.file_id}>
                 <Download className="size-4 mr-1" />
                 Download
-              </a>
+              </FileDownloadLink>
             </Button>
           )}
         </div>
@@ -155,8 +160,7 @@ export function ReferenceItem({ item }: ReferenceItemProps) {
 
       {isError && (
         <div className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/10 p-2 rounded">
-          <span className="font-medium">Error: </span>
-          {item.error}
+          {formatReferenceError(item.error)}
         </div>
       )}
 

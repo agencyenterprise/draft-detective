@@ -39,6 +39,9 @@ class WorkflowManifest[WorkflowStateType, WorkflowConfigType](ABC):
     # Experimental workflows are hidden by default in the UI
     is_experimental: bool = False
 
+    # If True, workflow stays PENDING until explicitly triggered via API
+    requires_human_trigger: bool = False
+
     # Display order in the UI (lower numbers appear first)
     order: int = 99
 

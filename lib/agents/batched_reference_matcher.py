@@ -5,7 +5,7 @@ Part of the two-stage reference matching approach:
 - Stage 2: This agent - LLM verification of candidates in batches
 """
 
-from typing import List
+from typing import List, Optional
 
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables.config import RunnableConfig
@@ -120,7 +120,7 @@ class BatchedReferenceMatcherAgent(LangChainAgent):
     async def ainvoke(
         self,
         prompt_kwargs: dict,
-        config: RunnableConfig = None,
+        config: Optional[RunnableConfig] = None,
     ) -> BatchedMatchResult:
         messages = _batched_reference_matcher_prompt.format_messages(**prompt_kwargs)
         return await self.llm.ainvoke(messages, config=config)
@@ -129,7 +129,7 @@ class BatchedReferenceMatcherAgent(LangChainAgent):
         self,
         reference_texts: List[str],
         candidates_per_ref: List[List[CandidateMatch]],
-        config: RunnableConfig = None,
+        config: Optional[RunnableConfig] = None,
     ) -> BatchedMatchResult:
         """Convenience wrapper that handles prompt formatting."""
         batch_content = format_batch_prompt(reference_texts, candidates_per_ref)

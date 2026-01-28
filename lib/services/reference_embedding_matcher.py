@@ -5,13 +5,13 @@ For larger scale, consider migrating to pgvector.
 """
 
 import logging
-from typing import Dict, List
+from typing import List, Optional
 
 import numpy as np
 from langchain_openai import OpenAIEmbeddings
 from pydantic import BaseModel
 
-from lib.agents.document_summarizer import DocumentSummary
+from lib.workflows.document_summarization.state import FileSummary
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +24,8 @@ class CandidateMatch(BaseModel):
 
     doc_index: int
     similarity_score: float
-    summary: DocumentSummary
+    summary: FileSummary
+    file_id: Optional[str] = None
 
 
 def _normalize(embeddings: np.ndarray) -> np.ndarray:
@@ -32,7 +33,7 @@ def _normalize(embeddings: np.ndarray) -> np.ndarray:
     return embeddings / np.linalg.norm(embeddings, axis=1, keepdims=True)
 
 
-def _format_summary(summary: DocumentSummary) -> str:
+def _format_summary(summary: FileSummary) -> str:
     """Title/Authors/Year/Abstract order mirrors typical citation structure,
     improving semantic similarity with reference text."""
     return (
@@ -56,22 +57,19 @@ class ReferenceEmbeddingMatcher:
             model=EMBEDDING_MODEL, api_key=openai_api_key
         )
         self._doc_embeddings_normalized: np.ndarray | None = None
-        self._doc_indices: List[int] = []
-        self._summaries: Dict[int, DocumentSummary] = {}
+        self._summaries: List[FileSummary] = []
 
-    async def index_summaries(self, summaries: Dict[int, DocumentSummary]) -> None:
+    async def index_summaries(self, summaries: List[FileSummary]) -> None:
         """Pre-index at workflow start to avoid re-embedding on each lookup."""
         if not summaries:
             logger.warning("No summaries to index")
             self._doc_embeddings_normalized = None
-            self._doc_indices = []
-            self._summaries = {}
+            self._summaries = []
             return
 
         self._summaries = summaries
-        self._doc_indices = list(summaries.keys())
 
-        texts = [_format_summary(summaries[idx]) for idx in self._doc_indices]
+        texts = [_format_summary(summary) for summary in summaries]
         logger.info(f"Embedding {len(texts)} document summaries")
 
         vectors = await self._embeddings.aembed_documents(texts)
@@ -79,7 +77,7 @@ class ReferenceEmbeddingMatcher:
         self._doc_embeddings_normalized = _normalize(np.array(vectors))
 
         logger.info(
-            f"Indexed {len(self._doc_indices)} document summaries "
+            f"Indexed {len(self._summaries)} document summaries "
             f"(embedding dim: {self._doc_embeddings_normalized.shape[1]})"
         )
 
@@ -89,7 +87,7 @@ class ReferenceEmbeddingMatcher:
         top_k: int = DEFAULT_TOP_K,
     ) -> List[List[CandidateMatch]]:
         """Batch-embed references and find top-K similar docs via cosine similarity."""
-        if self._doc_embeddings_normalized is None or not self._doc_indices:
+        if self._doc_embeddings_normalized is None or not self._summaries:
             logger.warning("No documents indexed, returning empty candidates")
             return [[] for _ in reference_texts]
 
@@ -103,16 +101,17 @@ class ReferenceEmbeddingMatcher:
         # We need to compute cosine similarity via dot product of normalized vectors: (num_refs, num_docs) to return the correct similarity scores
         similarities = ref_normalized @ self._doc_embeddings_normalized.T
 
-        effective_k = min(top_k, len(self._doc_indices))
+        effective_k = min(top_k, len(self._summaries))
 
         results: List[List[CandidateMatch]] = []
         for ref_similarities in similarities:
             top_indices = np.argsort(ref_similarities)[-effective_k:][::-1]
             candidates = [
                 CandidateMatch(
-                    doc_index=self._doc_indices[idx],
+                    doc_index=idx,
                     similarity_score=float(ref_similarities[idx]),
-                    summary=self._summaries[self._doc_indices[idx]],
+                    summary=self._summaries[idx],
+                    file_id=getattr(self._summaries[idx], "file_id", None),
                 )
                 for idx in top_indices
             ]
@@ -126,4 +125,4 @@ class ReferenceEmbeddingMatcher:
         return results
 
     def get_indexed_count(self) -> int:
-        return len(self._doc_indices)
+        return len(self._summaries)

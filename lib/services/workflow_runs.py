@@ -5,7 +5,7 @@ from typing import List, Optional
 from fastapi import HTTPException
 from langgraph.types import StateSnapshot
 from pydantic import BaseModel
-from sqlalchemy import select
+from sqlalchemy import case, func, select
 from sqlmodel import and_
 
 from lib.config.database import get_db
@@ -91,44 +91,74 @@ async def get_workflow_run_state(
     return await get_workflow_run_state_by_thread_id(run.langgraph_thread_id, run.type)
 
 
-async def upsert_workflow_run(
-    thread_id: str,
+async def create_workflow_run(
     project_id: str,
     status: WorkflowRunStatus,
     type: WorkflowRunType,
+    thread_id: str,
 ) -> str:
-    """Create or update a workflow run using the thread_id as the key."""
-
+    """Create a new workflow run record."""
     with get_db() as db:
-        run = (
-            db.query(WorkflowRun)
-            .filter(WorkflowRun.langgraph_thread_id == thread_id)
-            .first()
+        run = WorkflowRun(
+            langgraph_thread_id=thread_id,
+            project_id=project_id,
+            status=status,
+            type=type,
         )
-
-        if run is None:
-            # Create new run
-            run = WorkflowRun(
-                langgraph_thread_id=thread_id,
-                project_id=project_id,
-                status=status,
-                type=type,
-            )
-            db.add(run)
-        else:
-            # Update existing run
-            run.status = status
-
+        db.add(run)
         db.commit()
         db.refresh(run)
     return str(run.id)
 
 
+async def update_workflow_run_status(
+    workflow_run_id: str,
+    status: WorkflowRunStatus,
+) -> None:
+    """Update an existing workflow run's status."""
+    with get_db() as db:
+        run = db.query(WorkflowRun).filter(WorkflowRun.id == workflow_run_id).first()
+        if run:
+            run.status = status
+            db.commit()
+
+
 async def get_project_workflow_run_by_type(
     project_id: str, type: WorkflowRunType
 ) -> Optional[WorkflowRun]:
+    """
+    Get the most relevant workflow run for a project and type.
+
+    Priority: RUNNING > PENDING > latest COMPLETED
+    This ensures UI shows correct status when multiple runs exist.
+    """
     with get_db() as db:
-        run = (
+        # First, try to find an active (RUNNING or PENDING) workflow run
+        # This is the most common case and avoids loading all historical runs
+        active_run = (
+            db.query(WorkflowRun)
+            .filter(
+                and_(
+                    WorkflowRun.project_id == project_id,
+                    WorkflowRun.type == type,
+                    WorkflowRun.status.in_(
+                        [WorkflowRunStatus.RUNNING, WorkflowRunStatus.PENDING]
+                    ),
+                )
+            )
+            .order_by(
+                # RUNNING takes priority over PENDING
+                (WorkflowRun.status == WorkflowRunStatus.RUNNING).desc(),
+                WorkflowRun.created_at.desc(),
+            )
+            .first()
+        )
+
+        if active_run:
+            return active_run
+
+        # No active run found, get the latest completed run
+        return (
             db.query(WorkflowRun)
             .filter(
                 and_(WorkflowRun.project_id == project_id, WorkflowRun.type == type)
@@ -136,30 +166,54 @@ async def get_project_workflow_run_by_type(
             .order_by(WorkflowRun.created_at.desc())
             .first()
         )
-        return run
 
 
 async def get_project_workflow_runs(
     project_id: str, include_internal: bool = False
 ) -> List[WorkflowRunDetail]:
     """
-    Get workflow runs for a project.
+    Get the most relevant workflow run for each type in a project.
+
+    Returns only 1 row per workflow type, using priority: RUNNING > PENDING > latest COMPLETED.
 
     Args:
         project_id: The project ID
         include_internal: If True, include internal workflows (for dependency resolution)
 
     Returns:
-        List of workflow run details
+        List of workflow run details (one per workflow type)
     """
-    with get_db() as db:
-        runs = (
-            db.query(WorkflowRun)
-            .filter(WorkflowRun.project_id == project_id)
-            .order_by(WorkflowRun.created_at.desc())
-            .limit(100)
-            .all()
+    # Build priority ordering: RUNNING (0) > PENDING (1) > others (2)
+    status_priority = case(
+        (WorkflowRun.status == WorkflowRunStatus.RUNNING, 0),
+        (WorkflowRun.status == WorkflowRunStatus.PENDING, 1),
+        else_=2,
+    )
+
+    # Use ROW_NUMBER to rank runs within each type
+    row_num = func.row_number().over(
+        partition_by=WorkflowRun.type,
+        order_by=[status_priority, WorkflowRun.created_at.desc()],
+    )
+
+    # Subquery to get ranked runs
+    ranked_runs_subquery = (
+        select(WorkflowRun, row_num.label("rn"))
+        .where(WorkflowRun.project_id == project_id)
+        .subquery()
+    )
+
+    # Select only the top-ranked run for each type (rn = 1)
+    stmt = (
+        select(WorkflowRun)
+        .join(ranked_runs_subquery, WorkflowRun.id == ranked_runs_subquery.c.id)
+        .where(
+            and_(WorkflowRun.project_id == project_id, ranked_runs_subquery.c.rn == 1)
         )
+    )
+
+    with get_db() as db:
+        runs = db.execute(stmt).scalars().all()
 
     details = []
     for run in runs:
@@ -176,9 +230,19 @@ async def get_project_workflow_runs(
 
 
 def get_thread_id_for_workflow_run(workflow_run: WorkflowRun | None) -> str:
-    """Get the thread ID for a workflow run, or create a new one if it doesn't exist."""
+    """
+    Get the thread ID for a workflow run, or create a new one if it doesn't exist.
 
+    Thread IDs are reused across workflow runs of the same type for a project to maintain
+    LangGraph checkpoint continuity. This allows subsequent runs to resume from previously
+    computed state (e.g., already-processed document chunks) rather than starting fresh.
+
+    Args:
+        workflow_run: An existing workflow run to get the thread_id from, or None for new projects
+
+    Returns:
+        The existing thread_id if a run exists, otherwise a new UUID
+    """
     if workflow_run is not None:
         return workflow_run.langgraph_thread_id
-    else:
-        return str(uuid.uuid4())
+    return str(uuid.uuid4())

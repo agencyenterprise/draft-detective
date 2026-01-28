@@ -20,7 +20,7 @@ class ReferenceFetchStatus(str, Enum):
 class ReferenceFetchResult(BaseModel):
     """Wrapper for reference fetch results with status tracking"""
 
-    index: int = Field(description="Index of this reference in the input list")
+    reference_id: str = Field(description="ID of the reference being fetched")
     input_reference: str = Field(description="The original input reference")
     status: ReferenceFetchStatus = Field(
         default=ReferenceFetchStatus.PENDING,
@@ -33,28 +33,35 @@ class ReferenceFetchResult(BaseModel):
         default=None, description="Error message, present on failure"
     )
 
-    @property
-    def is_error(self) -> bool:
-        return self.status == ReferenceFetchStatus.ERROR
-
 
 def merge_fetch_results(
     existing: List[ReferenceFetchResult],
     new: List[ReferenceFetchResult],
 ) -> List[ReferenceFetchResult]:
-    """Reducer to merge results by index, preserving order.
+    """Reducer to merge results by reference_id, preserving order.
 
     This reducer function is used by LangGraph to handle incremental updates
-    from parallel fetch operations. Each update overwrites the entry at the
-    same index, allowing status transitions from PENDING to COMPLETED/ERROR.
+    from parallel fetch operations. Each update overwrites the entry with the
+    same reference_id, allowing status transitions from PENDING to COMPLETED/ERROR.
     """
-    results_by_index = {r.index: r for r in existing}
+    results_by_id = {r.reference_id: r for r in existing}
 
     for item in new:
-        results_by_index[item.index] = item
+        results_by_id[item.reference_id] = item
 
-    # Return sorted by index to maintain consistent order
-    return [results_by_index[i] for i in sorted(results_by_index.keys())]
+    # Return in insertion order (dict preserves order in Python 3.7+)
+    return list(results_by_id.values())
+
+
+class ReferenceDownloaderInputItem(BaseModel):
+    """Input item for the reference downloader workflow"""
+
+    reference_id: str = Field(
+        description="The ID of the reference from the reference extraction workflow"
+    )
+    text: str = Field(
+        description="The text of the reference to fetch from the internet"
+    )
 
 
 class ReferenceDownloaderWorkflowConfig(BaseWorkflowConfig):
@@ -63,7 +70,7 @@ class ReferenceDownloaderWorkflowConfig(BaseWorkflowConfig):
     type: Literal[WorkflowRunType.REFERENCE_DOWNLOADER] = Field(
         WorkflowRunType.REFERENCE_DOWNLOADER
     )
-    references: List[str] = Field(
+    references: List[ReferenceDownloaderInputItem] = Field(
         description="The references to fetch from the internet",
     )
 

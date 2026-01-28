@@ -1,3 +1,7 @@
+from lib.workflows.chunk_splitting.state import (
+    ChunkSplittingState,
+    ChunkSplittingWorkflowConfig,
+)
 from lib.workflows.citation_detection.state import (
     CitationDetectionConfig,
     CitationDetectionState,
@@ -18,9 +22,17 @@ from lib.workflows.document_processing.state import (
     DocumentProcessingState,
     DocumentProcessingWorkflowConfig,
 )
+from lib.workflows.document_summarization.state import (
+    DocumentSummarizationState,
+    DocumentSummarizationWorkflowConfig,
+)
 from lib.workflows.footnote_extraction.state import (
     FootnoteExtractionConfig,
     FootnoteExtractionState,
+)
+from lib.workflows.human_approval.state import (
+    HumanApprovalConfig,
+    HumanApprovalState,
 )
 from lib.workflows.inference_validation.state import (
     InferenceValidationState,
@@ -43,6 +55,10 @@ from lib.workflows.reference_extraction.state import (
     ReferenceExtractionConfig,
     ReferenceExtractionState,
 )
+from lib.workflows.reference_file_matching.state import (
+    ReferenceFileMatchingConfig,
+    ReferenceFileMatchingState,
+)
 from lib.workflows.reference_validation.state import (
     ReferenceValidationState,
     ReferenceValidationWorkflowConfig,
@@ -54,7 +70,10 @@ from lib.workflows.results_extraction.state import (
 
 WorkflowState = (
     DocumentProcessingState
+    | ChunkSplittingState
+    | DocumentSummarizationState
     | ReferenceExtractionState
+    | ReferenceFileMatchingState
     | FootnoteExtractionState
     | ClaimExtractionState
     | ClaimReferenceValidationState
@@ -67,11 +86,15 @@ WorkflowState = (
     | CitationSuggesterState
     | ResultsExtractionState
     | InferenceValidationState
+    | HumanApprovalState
 )
 
 WorkflowConfig = (
     DocumentProcessingWorkflowConfig
+    | ChunkSplittingWorkflowConfig
+    | DocumentSummarizationWorkflowConfig
     | ReferenceExtractionConfig
+    | ReferenceFileMatchingConfig
     | FootnoteExtractionConfig
     | ClaimExtractionWorkflowConfig
     | CitationDetectionConfig
@@ -84,4 +107,5 @@ WorkflowConfig = (
     | CitationSuggesterWorkflowConfig
     | ResultsExtractionWorkflowConfig
     | InferenceValidationWorkflowConfig
+    | HumanApprovalConfig
 )

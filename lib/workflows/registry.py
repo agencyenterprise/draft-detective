@@ -40,6 +40,7 @@ def get_workflow_manifest(
 
 
 def register_all_workflow_manifests():
+    from lib.workflows.chunk_splitting.manifest import ChunkSplittingManifest
     from lib.workflows.citation_detection.manifest import CitationDetectionManifest
     from lib.workflows.citation_suggester.manifest import CitationSuggesterManifest
     from lib.workflows.claim_extraction.manifest import ClaimExtractionManifest
@@ -47,7 +48,11 @@ def register_all_workflow_manifests():
         ClaimReferenceValidationManifest,
     )
     from lib.workflows.document_processing.manifest import DocumentProcessingManifest
+    from lib.workflows.document_summarization.manifest import (
+        DocumentSummarizationManifest,
+    )
     from lib.workflows.footnote_extraction.manifest import FootnoteExtractionManifest
+    from lib.workflows.human_approval.manifest import HumanApprovalManifest
     from lib.workflows.inference_validation.manifest import InferenceValidationManifest
     from lib.workflows.literature_review.manifest import LiteratureReviewManifest
     from lib.workflows.live_reports.manifest import LiveReportsManifest
@@ -56,12 +61,19 @@ def register_all_workflow_manifests():
     )
     from lib.workflows.reference_downloader.manifest import ReferenceDownloaderManifest
     from lib.workflows.reference_extraction.manifest import ReferenceExtractionManifest
+    from lib.workflows.reference_file_matching.manifest import (
+        ReferenceFileMatchingManifest,
+    )
     from lib.workflows.reference_validation.manifest import ReferenceValidationManifest
     from lib.workflows.results_extraction.manifest import ResultsExtractionManifest
 
     manifests = [
         DocumentProcessingManifest(),
+        ChunkSplittingManifest(),
+        DocumentSummarizationManifest(),
         ReferenceExtractionManifest(),
+        ReferenceFileMatchingManifest(),
+        HumanApprovalManifest(),
         FootnoteExtractionManifest(),
         ClaimExtractionManifest(),
         CitationDetectionManifest(),

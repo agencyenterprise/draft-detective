@@ -1,17 +1,19 @@
 import {
+  ChunkSplittingState,
   CitationDetectionState,
   ClaimExtractionState,
-  DocumentProcessingState,
   ReferenceExtractionState,
+  ReferenceFileMatchingState,
 } from '@/lib/generated-api';
 
 export function useResultsCalculations(
-  documentProcessing: DocumentProcessingState | undefined,
+  chunkSplitting: ChunkSplittingState | undefined,
   referenceExtraction: ReferenceExtractionState | undefined,
   claimExtraction: ClaimExtractionState | undefined,
   citationDetection: CitationDetectionState | undefined,
+  referenceFileMatching?: ReferenceFileMatchingState | undefined,
 ) {
-  if (!documentProcessing) {
+  if (!chunkSplitting) {
     return {
       totalClaims: 0,
       totalCitations: 0,
@@ -23,8 +25,9 @@ export function useResultsCalculations(
     };
   }
 
-  const chunks = documentProcessing.chunks || [];
-  const references = referenceExtraction?.references || [];
+  const chunks = chunkSplitting.chunks || [];
+  const extractedRefs = referenceExtraction?.extracted_references || [];
+  const fileMatches = referenceFileMatching?.matches || [];
   const claims = claimExtraction?.claims || [];
   const citations = citationDetection?.citations || [];
 
@@ -38,7 +41,10 @@ export function useResultsCalculations(
     (citation) =>
       citation.chunk_index !== null && citation.chunk_index !== undefined && (citation.citations?.length || 0) > 0,
   ).length;
-  const supportedReferences = references.filter((ref) => ref.has_associated_supporting_document).length;
+
+  // Count references that have file matches
+  const matchedRefIds = new Set(fileMatches.map((m) => m.reference_id));
+  const supportedReferences = extractedRefs.filter((ref) => ref.id && matchedRefIds.has(ref.id)).length;
   const totalChunks = chunks.length;
 
   return {

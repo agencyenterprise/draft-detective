@@ -1,3 +1,5 @@
+from typing import Optional
+
 from langchain_core.prompts import PromptTemplate
 from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
@@ -133,9 +135,12 @@ Provide each piece of evidence related to a claim with one of the following qual
 # NOTE:
 When generating responses, remove or replace all internal citation tokens such as turn1search0, turn2search3, or similar. Do not display raw reference IDs or metadata markers in the final text. Return clean, human-readable output only.
 
-## Document Context
-**Domain**: {domain_context}
-**Target Audience**: {audience_context}
+# Agent Inputs
+
+{domain_context}
+
+{audience_context}
+
 **Document Publication Date**: {document_publication_date}
 
 ## The argument summary of the document
@@ -173,7 +178,7 @@ class LiveLiteratureReviewAgent(DirectOpenAIAgent):
     async def ainvoke(
         self,
         prompt_kwargs: dict,
-        config: RunnableConfig = None,
+        config: Optional[RunnableConfig] = None,
     ) -> LiveLiteratureReviewResponse:
         prompt = _live_literature_review_agent_prompt.invoke(prompt_kwargs)
         input = [{"role": "user", "content": prompt.text}]

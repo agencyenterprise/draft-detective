@@ -11,18 +11,17 @@ import {
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { FileDownloadLink } from '@/components/ui/file-download-link';
 import { useDownloadAllProjectFiles } from '@/hooks/use-download-all-project-files';
-import { BibliographyItem, File, FileRole, WorkflowRunDetail, WorkflowRunType } from '@/lib/generated-api';
-import { useProjectFiles } from '@/lib/hooks/use-project-files';
+import { buildReferenceByFileIdMap, composeReferences } from '@/lib/composed-references';
+import { FileListItem, FileRole, ProjectDetailed, WorkflowRunType } from '@/lib/generated-api';
 import { cn } from '@/lib/utils';
 import { getWorkflowRunByType } from '@/lib/workflow-state';
 import { Download, FileText, HelpCircle, Loader2, MoreVerticalIcon, Pencil, Search, Trash2 } from 'lucide-react';
-import Link from 'next/link';
 import { useMemo, useState } from 'react';
 
 interface FilesTabProps {
-  projectId: string;
-  allWorkflowDetails: WorkflowRunDetail[];
+  projectDetail: ProjectDetailed;
 }
 
 function FileTypeIcon({ fileType }: { fileType?: string | null }) {
@@ -50,7 +49,7 @@ function ExpandableCell({ children, className }: { children: React.ReactNode; cl
       <div
         className={cn(
           'line-clamp-2',
-          'hover:absolute hover:z-10 hover:line-clamp-none hover:bg-background hover:shadow-lg hover:rounded-lg hover:p-3 hover:-my-7 hover:-mx-3 hover:min-w-full hover:w-max hover:max-w-xl',
+          'hover:absolute hover:z-10 hover:line-clamp-none hover:bg-background hover:shadow-lg hover:rounded-lg hover:p-3 hover:-my-7 hover:-mx-3 hover:min-w-full hover:w-max hover:max-w-md',
           className,
         )}
       >
@@ -60,7 +59,7 @@ function ExpandableCell({ children, className }: { children: React.ReactNode; cl
   );
 }
 
-function FileNameLink({ file }: { file: File }) {
+function FileNameLink({ file }: { file: FileListItem }) {
   if (!file.id) {
     return (
       <div className="flex items-center gap-2">
@@ -71,41 +70,33 @@ function FileNameLink({ file }: { file: File }) {
   }
 
   return (
-    <Link
-      href={`/api/files/download/${file.id}`}
-      target="_blank"
-      className="text-blue-600 hover:underline flex items-center gap-2"
-    >
+    <FileDownloadLink fileId={file.id} className="text-blue-600 hover:underline flex items-center gap-2">
       <FileTypeIcon fileType={file.file_type} />
       {file.file_name || 'Unknown'}
-    </Link>
+    </FileDownloadLink>
   );
 }
 
-export function FilesTab({ projectId, allWorkflowDetails }: FilesTabProps) {
+export function FilesTab({ projectDetail }: FilesTabProps) {
+  const projectId = projectDetail.project.id;
+  const files = useMemo(() => projectDetail.files ?? [], [projectDetail.files]);
+  const workflowDetails = useMemo(() => projectDetail.workflow_runs ?? [], [projectDetail.workflow_runs]);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const referenceExtraction = getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.ReferenceExtraction);
-  const references = useMemo(
-    () => referenceExtraction?.state?.references || [],
-    [referenceExtraction?.state?.references],
-  );
+  const referenceExtraction = getWorkflowRunByType(workflowDetails, WorkflowRunType.ReferenceExtraction);
+  const referenceFileMatching = getWorkflowRunByType(workflowDetails, WorkflowRunType.ReferenceFileMatching);
 
-  const { data: files } = useProjectFiles(projectId);
   const { downloadAll, isDownloading } = useDownloadAllProjectFiles(projectId);
 
+  // Compose references from extraction and file matching states
+  const composedReferences = useMemo(
+    () =>
+      composeReferences(referenceExtraction?.state?.extracted_references, referenceFileMatching?.state?.matches, files),
+    [referenceExtraction?.state?.extracted_references, referenceFileMatching?.state?.matches, files],
+  );
+
   // Build a map of file_id to matched references once
-  const matchedReferencesMap = useMemo(() => {
-    const map = new Map<string, BibliographyItem>();
-    if (references) {
-      for (const ref of references) {
-        if (ref.file_id) {
-          map.set(ref.file_id, ref);
-        }
-      }
-    }
-    return map;
-  }, [references]);
+  const matchedReferencesMap = useMemo(() => buildReferenceByFileIdMap(composedReferences), [composedReferences]);
 
   // Sort files: main file first, then other files sorted alphabetically by name
   const sortedFiles = useMemo(
@@ -171,7 +162,15 @@ export function FilesTab({ projectId, allWorkflowDetails }: FilesTabProps) {
       {sortedFiles.length === 0 ? (
         <div className="text-sm text-muted-foreground">No files uploaded.</div>
       ) : (
-        <Table>
+        <Table className="table-fixed w-full overflow-x-visible">
+          <colgroup>
+            <col className="w-[45%]" />
+            <col className="w-[10%]" />
+            <col className="w-[20%]" />
+            <col className="w-[20%]" />
+            <col className="w-[10%]" />
+            <col className="w-[5%]" />
+          </colgroup>
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
@@ -200,10 +199,10 @@ export function FilesTab({ projectId, allWorkflowDetails }: FilesTabProps) {
               const matchedReference = file.id ? matchedReferencesMap.get(file.id) : undefined;
               return (
                 <TableRow key={file.id}>
-                  <TableCell className="whitespace-normal break-all max-w-md">
+                  <TableCell className="whitespace-normal break-all">
                     <FileNameLink file={file} />
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="">
                     <span
                       className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
                         isMain ? 'bg-primary/10 text-primary' : 'bg-secondary'
@@ -212,14 +211,14 @@ export function FilesTab({ projectId, allWorkflowDetails }: FilesTabProps) {
                       {isMain ? 'Main' : 'Supporting'}
                     </span>
                   </TableCell>
-                  <TableCell className="text-xs whitespace-normal max-w-sm">
+                  <TableCell className="text-xs whitespace-normal">
                     {file.description ? (
                       <ExpandableCell>{file.description}</ExpandableCell>
                     ) : (
                       <span className="text-muted-foreground/60">-</span>
                     )}
                   </TableCell>
-                  <TableCell className="text-xs whitespace-normal max-w-sm">
+                  <TableCell className="text-xs whitespace-normal">
                     {matchedReference ? (
                       <ExpandableCell className="italic">{matchedReference.text}</ExpandableCell>
                     ) : (

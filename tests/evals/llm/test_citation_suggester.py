@@ -58,7 +58,7 @@ def _build_cases() -> list[AgentTestCase]:
             BibliographyItem(**ref) for ref in test_case.input["references"]
         ]
         bibliography_str = format_bibliography_prompt_section(
-            reference_items, supporting_files=[], supporting_documents_summaries=None
+            reference_items, supporting_files=[], summaries=None
         )
 
         # Build cited references block (default to explicit "no citations" text)

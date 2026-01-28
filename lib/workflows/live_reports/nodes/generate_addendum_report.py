@@ -5,6 +5,7 @@ from typing import Any, Dict, List
 from langgraph.runtime import Runtime
 
 from lib.agents.addendum_report_generator import AddendumReportGeneratorAgent
+from lib.agents.formatting_utils import format_domain_context, format_audience_context
 from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
 from lib.workflows.live_reports.state import LiveReportsState
@@ -23,7 +24,7 @@ async def generate_addendum_report(
 
     # Fetch artifacts from file artifacts service
     chunks = await file_artifacts_service.get_chunks()
-    document_summary = await file_artifacts_service.get_document_summary(state.file_id)
+    document_summary = await file_artifacts_service.get_file_summary(state.file_id)
 
     # Create a lookup dictionary for chunks by chunk_index
     chunks_by_index = {chunk.chunk_index: chunk for chunk in chunks}
@@ -67,8 +68,8 @@ async def generate_addendum_report(
         return {}
 
     prompt_kwargs = {
-        "domain_context": state.config.domain or "",
-        "audience_context": state.config.target_audience or "",
+        "domain_context": format_domain_context(state.config.domain),
+        "audience_context": format_audience_context(state.config.target_audience),
         "document_title": document_summary.title if document_summary else "",
         "document_summary": document_summary.summary if document_summary else "",
         "records_json": json.dumps(records, default=str),

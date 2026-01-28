@@ -27,6 +27,7 @@ class CitationSuggesterManifest(
     required_dependencies = [
         WorkflowRunType.CLAIM_EXTRACTION,
         WorkflowRunType.CITATION_DETECTION,
+        WorkflowRunType.DOCUMENT_SUMMARIZATION,
     ]
     optional_dependencies = [
         WorkflowRunType.LITERATURE_REVIEW,

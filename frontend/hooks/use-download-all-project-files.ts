@@ -17,6 +17,7 @@ export function useDownloadAllProjectFiles(
     }
 
     setIsDownloading(true);
+    const toastId = toast.loading('Preparing download...');
     try {
       const { response, data: blob } = (await downloadAllProjectFilesApiProjectProjectIdFilesDownloadAllGet({
         path: { project_id: projectId },
@@ -37,10 +38,10 @@ export function useDownloadAllProjectFiles(
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
 
-      toast.success('All files downloaded successfully');
+      toast.success('All files downloaded successfully', { id: toastId });
     } catch (error) {
       console.error('Failed to download files:', error);
-      toast.error('Failed to download files');
+      toast.error('Failed to download files', { id: toastId });
     } finally {
       setIsDownloading(false);
     }

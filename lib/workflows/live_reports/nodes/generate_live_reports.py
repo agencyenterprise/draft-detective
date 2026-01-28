@@ -1,5 +1,7 @@
 from datetime import date
+from lib.agents.formatting_utils import format_domain_context, format_audience_context
 import logging
+from datetime import date
 from typing import List
 
 from langgraph.runtime import Runtime
@@ -9,8 +11,8 @@ from lib.agents.evidence_weighter import (
     EvidenceWeighterAgent,
     EvidenceWeighterResponseWithClaimIndex,
 )
+from lib.agents.formatting_utils import format_bibliography
 from lib.agents.live_literature_review import LiveLiteratureReviewAgent
-from lib.models.bibliography_item import BibliographyItem
 from lib.run_utils import run_tasks
 from lib.services.file_artifacts_service.types import FileArtifactsServiceType
 from lib.workflows.chunk_utils import AnalyzedChunk
@@ -18,6 +20,7 @@ from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
 from lib.workflows.live_reports.state import LiveReportsState
 from lib.workflows.models import WorkflowError
+from lib.workflows.reference_extraction.state import ExtractedReference
 
 logger = logging.getLogger(__name__)
 
@@ -35,8 +38,9 @@ async def generate_live_reports_analysis(
 
     # Fetch artifacts from file artifacts service
     chunks = await file_artifacts_service.get_chunks()
-    document_summary = await file_artifacts_service.get_document_summary(state.file_id)
-    references = await file_artifacts_service.get_references()
+    document_summary = await file_artifacts_service.get_file_summary(state.file_id)
+    # Use extracted references (no file matching needed for live reports)
+    references = await file_artifacts_service.get_extracted_references()
 
     # Process all chunks
     tasks = [
@@ -86,7 +90,7 @@ async def _analyze_chunk_live_reports(
     chunk: AnalyzedChunk,
     chunks: List[AnalyzedChunk],
     document_summary: DocumentSummary,
-    references: List[BibliographyItem],
+    references: List[ExtractedReference],
     live_literature_review_agent: LiveLiteratureReviewAgent,
     evidence_weighter_agent: EvidenceWeighterAgent,
     file_artifacts_service: FileArtifactsServiceType,
@@ -127,9 +131,11 @@ async def _analyze_chunk_live_reports(
                     if state.config.publication_date
                     else date.today().isoformat()
                 ),
-                "domain_context": state.config.domain or "",
-                "audience_context": state.config.target_audience or "",
-                "bibliography": references,
+                "domain_context": format_domain_context(state.config.domain),
+                "audience_context": format_audience_context(
+                    state.config.target_audience
+                ),
+                "bibliography": format_bibliography(references),
             }
         )
 
@@ -148,8 +154,10 @@ async def _analyze_chunk_live_reports(
                 ),
                 "chunk": chunk.content,
                 "claim": claim.claim,
-                "domain_context": state.config.domain or "",
-                "audience_context": state.config.target_audience or "",
+                "domain_context": format_domain_context(state.config.domain),
+                "audience_context": format_audience_context(
+                    state.config.target_audience
+                ),
                 "newer_references": literature_review_result.newer_references,
                 "evidence_summary": literature_review_result.references_summary,
             }

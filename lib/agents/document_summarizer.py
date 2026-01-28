@@ -1,4 +1,6 @@
 # %%
+from typing import Optional
+
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables.config import RunnableConfig
 from pydantic import BaseModel, Field
@@ -72,6 +74,7 @@ You must extract and return:
 - The **authors** (if available).
 - The **publication date** (if available).
 - The **abstract** (if available; otherwise return 'Unknown').
+- Use at least fourth level headings (####) to structure the summary.
 - A field called **summary** that is a **coherent, self-contained miniature version** of the document, approximately 900–1100 words, which:
 
   - States the central question or problem.
@@ -101,7 +104,7 @@ class DocumentSummarizerAgent(LangChainAgent):
     async def ainvoke(
         self,
         prompt_kwargs: dict,
-        config: RunnableConfig = None,
+        config: Optional[RunnableConfig] = None,
     ) -> DocumentSummarizerResponse:
         messages = _document_summarizer_agent_prompt.format_messages(**prompt_kwargs)
         return await self.llm.ainvoke(messages, config=config)

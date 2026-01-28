@@ -53,6 +53,22 @@ export type AnalysisFormConfig = {
 };
 
 /**
+ * ApproveWorkflowResponse
+ *
+ * Response for workflow approval.
+ */
+export type ApproveWorkflowResponse = {
+  /**
+   * Message
+   */
+  message: string;
+  /**
+   * Workflow Run Id
+   */
+  workflow_run_id: string;
+};
+
+/**
  * BBox
  *
  * Docling bounding box format (bottom-left origin, PDF standard)
@@ -103,44 +119,6 @@ export type BibliographyFieldValidation = {
 };
 
 /**
- * BibliographyItem
- *
- * Represents a bibliographic reference item extracted from a document.
- */
-export type BibliographyItem = {
-  /**
-   * Text
-   *
-   * The text of the bibliographic item
-   */
-  text: string;
-  /**
-   * Has Associated Supporting Document
-   *
-   * A boolean value indicating whether the bibliographic item has an associated supporting document provided by the user
-   */
-  has_associated_supporting_document: boolean;
-  /**
-   * Index Of Associated Supporting Document
-   *
-   * If the bibliographic item has an associated supporting document, this will be the index of the supporting document in the list of supporting documents provided by the user (index starts at 1), otherwise it will be -1.
-   */
-  index_of_associated_supporting_document: number;
-  /**
-   * Name Of Associated Supporting Document
-   *
-   * If the bibliographic item has an associated supporting document, this will be the name of the supporting document, otherwise it will be an empty string.
-   */
-  name_of_associated_supporting_document: string;
-  /**
-   * File Id
-   *
-   * The UUID of the associated supporting document file in the database (if matched)
-   */
-  file_id?: string | null;
-};
-
-/**
  * BibliographyItemValidation
  */
 export type BibliographyItemValidation = {
@@ -186,6 +164,31 @@ export type BibliographyItemValidation = {
    * Updated reference with the suggested changes made to make the reference valid, matching the format of the original reference. If the reference is already valid, return null.
    */
   updated_reference?: string | null;
+};
+
+/**
+ * Body_add_file_to_project_api_project__project_id__file_post
+ */
+export type BodyAddFileToProjectApiProjectProjectIdFilePost = {
+  /**
+   * File
+   */
+  file: Blob | File;
+  /**
+   * Reference Id
+   */
+  reference_id?: string | null;
+};
+
+/**
+ * Body_add_files_to_project_api_project__project_id__files_post
+ */
+export type BodyAddFilesToProjectApiProjectProjectIdFilesPost = {
+  /**
+   * Files
+   */
+  files: Array<Blob | File>;
+  role?: FileRole;
 };
 
 /**
@@ -264,6 +267,83 @@ export type ChunkEvalPackageRequest = {
    * Description
    */
   description?: string;
+};
+
+/**
+ * ChunkSplittingState
+ *
+ * State for chunk splitting workflow.
+ */
+export type ChunkSplittingState = {
+  /**
+   * Errors
+   *
+   * Errors that occurred during the workflow execution.
+   */
+  errors?: Array<WorkflowError>;
+  /**
+   * Type
+   */
+  type?: 'chunk_splitting';
+  /**
+   * File Id
+   *
+   * ID of the main document to split into chunks
+   */
+  file_id: string;
+  config: ChunkSplittingWorkflowConfig;
+  /**
+   * Chunks
+   *
+   * Document chunks from main document
+   */
+  chunks?: Array<DocumentChunk>;
+  /**
+   * Mapping from chunk indices to Docling items/regions for rendering
+   */
+  chunk_to_items?: ChunkToItems | null;
+};
+
+/**
+ * ChunkSplittingWorkflowConfig
+ *
+ * Configuration model for chunk splitting workflow.
+ */
+export type ChunkSplittingWorkflowConfig = {
+  /**
+   * Project Id
+   *
+   * The ID of the project that this workflow run should be associated with
+   */
+  project_id?: string | null;
+  /**
+   * Openai Api Key
+   *
+   * The OpenAI API key to use for this workflow execution
+   */
+  openai_api_key?: string | null;
+  /**
+   * Domain
+   *
+   * Domain context for more accurate analysis
+   */
+  domain?: string | null;
+  /**
+   * Target Audience
+   *
+   * Target audience context for analysis
+   */
+  target_audience?: string | null;
+  /**
+   * Publication Date
+   *
+   * Publication date of the document (YYYY-MM-DD format)
+   */
+  publication_date?: string | null;
+  /**
+   * Type
+   */
+  type?: 'chunk_splitting';
 };
 
 /**
@@ -568,6 +648,12 @@ export type Claim = {
    * Whether the claim is central to the argument of the document
    */
   central: boolean;
+  /**
+   * Centrality Rationale
+   *
+   * The rationale for why you think the claim is central or is not central to the argument of the document
+   */
+  centrality_rationale?: string | null;
 };
 
 /**
@@ -1014,6 +1100,12 @@ export type DocumentChunk = {
    * Paragraph Index
    */
   paragraph_index: number;
+  /**
+   * Headings
+   *
+   * The headings associated with the chunk, in order of hierarchy
+   */
+  headings?: Array<string> | null;
 };
 
 /**
@@ -1070,34 +1162,12 @@ export type DocumentProcessingState = {
    * Type
    */
   type?: 'document_processing';
+  config: DocumentProcessingWorkflowConfig;
   file: FileDocument;
   /**
    * Supporting Files
    */
   supporting_files?: Array<FileDocument> | null;
-  config: DocumentProcessingWorkflowConfig;
-  /**
-   * The summary of the main document
-   */
-  main_document_summary?: DocumentSummary | null;
-  /**
-   * Supporting Documents Summaries
-   *
-   * Dictionary mapping supporting file indices to their summaries
-   */
-  supporting_documents_summaries?: {
-    [key: string]: DocumentSummary;
-  } | null;
-  /**
-   * Chunks
-   *
-   * Document chunks from main document
-   */
-  chunks?: Array<DocumentChunk>;
-  /**
-   * Mapping from chunk indices to Docling items/regions for rendering
-   */
-  chunk_to_items?: ChunkToItems | null;
 };
 
 /**
@@ -1227,39 +1297,82 @@ export type DocumentReferenceFactors = {
 };
 
 /**
- * DocumentSummary
+ * DocumentSummarizationState
+ *
+ * State for document summarization workflow.
  */
-export type DocumentSummary = {
+export type DocumentSummarizationState = {
   /**
-   * Title
+   * Errors
    *
-   * The title of the document. Suggest a clear, concise title if the document does not have one.
+   * Errors that occurred during the workflow execution.
    */
-  title: string;
+  errors?: Array<WorkflowError>;
   /**
-   * Authors
-   *
-   * The authors of the document (if available, otherwise empty string).
+   * Type
    */
-  authors: string;
+  type?: 'document_summarization';
+  config: DocumentSummarizationWorkflowConfig;
+  /**
+   * Main File Id
+   *
+   * ID of the main document to summarize (full content used)
+   */
+  main_file_id: string;
+  /**
+   * Supporting File Ids
+   *
+   * IDs of supporting documents to summarize (truncated content used)
+   */
+  supporting_file_ids?: Array<string>;
+  /**
+   * Summaries
+   *
+   * List of document summaries for main and supporting files
+   */
+  summaries?: Array<FileSummary>;
+};
+
+/**
+ * DocumentSummarizationWorkflowConfig
+ *
+ * Configuration model for document summarization workflow.
+ */
+export type DocumentSummarizationWorkflowConfig = {
+  /**
+   * Project Id
+   *
+   * The ID of the project that this workflow run should be associated with
+   */
+  project_id?: string | null;
+  /**
+   * Openai Api Key
+   *
+   * The OpenAI API key to use for this workflow execution
+   */
+  openai_api_key?: string | null;
+  /**
+   * Domain
+   *
+   * Domain context for more accurate analysis
+   */
+  domain?: string | null;
+  /**
+   * Target Audience
+   *
+   * Target audience context for analysis
+   */
+  target_audience?: string | null;
   /**
    * Publication Date
    *
-   * The publication date of the document, or 'Unknown' if not available.
+   * Publication date of the document (YYYY-MM-DD format)
    */
-  publication_date: string;
+  publication_date?: string | null;
   /**
-   * Abstract
-   *
-   * The abstract of the document, or 'Unknown' if not available.
+   * Type
    */
-  abstract: string;
-  /**
-   * Summary
-   *
-   * A ~1000-word miniature version of the document (roughly 900–1100 words) that focuses on the main argument of the work. It should read like a compressed research report: clearly stating the central question or problem, the main claim/argument, the essential methods or analytical framework, the critical results, and how these results support the argument, while omitting tangential or overly detailed implementation information.
-   */
-  summary: string;
+  type?: 'document_summarization';
 };
 
 /**
@@ -1356,6 +1469,26 @@ export type EvidenceWeighterResponseWithClaimIndex = {
    * Claim Index
    */
   claim_index: number;
+};
+
+/**
+ * ExtractedReference
+ *
+ * A reference extracted from the document.
+ */
+export type ExtractedReference = {
+  /**
+   * Id
+   *
+   * Unique identifier for this reference
+   */
+  id?: string;
+  /**
+   * Text
+   *
+   * The extracted reference text
+   */
+  text: string;
 };
 
 /**
@@ -1541,6 +1674,20 @@ export type File = {
    * The timestamp when the file was uploaded
    */
   created_at: Date;
+  /**
+   * Markdown
+   *
+   * Cached markdown conversion of the file
+   */
+  markdown?: string | null;
+  /**
+   * Summary
+   *
+   * Document summary as JSON (DocumentSummary schema)
+   */
+  summary?: {
+    [key: string]: unknown;
+  } | null;
 };
 
 /**
@@ -1602,6 +1749,59 @@ export type FileDocument = {
 };
 
 /**
+ * FileListItem
+ *
+ * File model for list responses, excluding heavy content fields (markdown, summary).
+ */
+export type FileListItem = {
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * Project Id
+   */
+  project_id: string;
+  /**
+   * File Name
+   */
+  file_name: string;
+  /**
+   * File Path
+   */
+  file_path: string;
+  /**
+   * File Type
+   */
+  file_type: string;
+  /**
+   * File Size
+   */
+  file_size: number;
+  /**
+   * Content Hash
+   */
+  content_hash: string;
+  /**
+   * Original File Path
+   */
+  original_file_path?: string | null;
+  role: FileRole;
+  /**
+   * Uploaded By
+   */
+  uploaded_by?: string | null;
+  /**
+   * Description
+   */
+  description?: string | null;
+  /**
+   * Created At
+   */
+  created_at: Date;
+};
+
+/**
  * FileRole
  *
  * Extensible enum for file purposes in workflows
@@ -1618,6 +1818,50 @@ export const FileRole = {
  * Extensible enum for file purposes in workflows
  */
 export type FileRole = (typeof FileRole)[keyof typeof FileRole];
+
+/**
+ * FileSummary
+ *
+ * Summary of a file. Extends DocumentSummary to include the file ID to match the summary to the file.
+ */
+export type FileSummary = {
+  /**
+   * Title
+   *
+   * The title of the document. Suggest a clear, concise title if the document does not have one.
+   */
+  title: string;
+  /**
+   * Authors
+   *
+   * The authors of the document (if available, otherwise empty string).
+   */
+  authors: string;
+  /**
+   * Publication Date
+   *
+   * The publication date of the document, or 'Unknown' if not available.
+   */
+  publication_date: string;
+  /**
+   * Abstract
+   *
+   * The abstract of the document, or 'Unknown' if not available.
+   */
+  abstract: string;
+  /**
+   * Summary
+   *
+   * A ~1000-word miniature version of the document (roughly 900–1100 words) that focuses on the main argument of the work. It should read like a compressed research report: clearly stating the central question or problem, the main claim/argument, the essential methods or analytical framework, the critical results, and how these results support the argument, while omitting tangential or overly detailed implementation information.
+   */
+  summary: string;
+  /**
+   * File Id
+   *
+   * The ID of the file
+   */
+  file_id: string;
+};
 
 /**
  * FootnoteExtractionConfig
@@ -1752,6 +1996,73 @@ export type HttpValidationError = {
    * Detail
    */
   detail?: Array<ValidationError>;
+};
+
+/**
+ * HumanApprovalConfig
+ *
+ * Config for human approval workflow.
+ */
+export type HumanApprovalConfig = {
+  /**
+   * Project Id
+   *
+   * The ID of the project that this workflow run should be associated with
+   */
+  project_id?: string | null;
+  /**
+   * Openai Api Key
+   *
+   * The OpenAI API key to use for this workflow execution
+   */
+  openai_api_key?: string | null;
+  /**
+   * Domain
+   *
+   * Domain context for more accurate analysis
+   */
+  domain?: string | null;
+  /**
+   * Target Audience
+   *
+   * Target audience context for analysis
+   */
+  target_audience?: string | null;
+  /**
+   * Publication Date
+   *
+   * Publication date of the document (YYYY-MM-DD format)
+   */
+  publication_date?: string | null;
+  type?: WorkflowRunType;
+};
+
+/**
+ * HumanApprovalState
+ *
+ * State for human approval workflow.
+ */
+export type HumanApprovalState = {
+  /**
+   * Errors
+   *
+   * Errors that occurred during the workflow execution.
+   */
+  errors?: Array<WorkflowError>;
+  type?: WorkflowRunType;
+  config?: HumanApprovalConfig;
+  /**
+   * Approved
+   *
+   * Whether human has approved
+   */
+  approved?: boolean;
+  /**
+   * Approved At
+   *
+   * ISO timestamp when approved
+   */
+  approved_at?: string | null;
 };
 
 /**
@@ -2262,11 +2573,11 @@ export type ProjectDetailed = {
    */
   issues?: Array<DocumentIssue>;
   /**
-   * Files Count
+   * Files
    *
-   * The number of files associated with the project
+   * The files associated with the project
    */
-  files_count?: number;
+  files?: Array<FileListItem>;
 };
 
 /**
@@ -2438,6 +2749,26 @@ export const ReferenceDirection = {
 export type ReferenceDirection = (typeof ReferenceDirection)[keyof typeof ReferenceDirection];
 
 /**
+ * ReferenceDownloaderInputItem
+ *
+ * Input item for the reference downloader workflow
+ */
+export type ReferenceDownloaderInputItem = {
+  /**
+   * Reference Id
+   *
+   * The ID of the reference from the reference extraction workflow
+   */
+  reference_id: string;
+  /**
+   * Text
+   *
+   * The text of the reference to fetch from the internet
+   */
+  text: string;
+};
+
+/**
  * ReferenceDownloaderState
  *
  * State for the reference downloader workflow
@@ -2510,7 +2841,7 @@ export type ReferenceDownloaderWorkflowConfig = {
    *
    * The references to fetch from the internet
    */
-  references: Array<string>;
+  references: Array<ReferenceDownloaderInputItem>;
 };
 
 /**
@@ -2579,29 +2910,23 @@ export type ReferenceExtractionState = {
    */
   file_id: string;
   /**
-   * Supporting File Ids
-   *
-   * IDs of the supporting documents
-   */
-  supporting_file_ids: Array<string>;
-  /**
    * Detected Sections
    *
    * Detected reference sections
    */
   detected_sections?: Array<ReferenceSection>;
   /**
-   * Extracted Reference Texts
+   * Extracted References
    *
-   * Raw extracted reference texts
+   * Extracted references with unique IDs
    */
-  extracted_reference_texts?: Array<string>;
+  extracted_references?: Array<ExtractedReference>;
   /**
-   * References
+   * Reasoning
    *
-   * Extracted bibliography items
+   * Step-by-step reasoning describing how references were found and extracted
    */
-  references?: Array<BibliographyItem>;
+  reasoning?: string;
 };
 
 /**
@@ -2656,11 +2981,11 @@ export type ReferenceFetchItem = {
  */
 export type ReferenceFetchResult = {
   /**
-   * Index
+   * Reference Id
    *
-   * Index of this reference in the input list
+   * ID of the reference being fetched
    */
-  index: number;
+  reference_id: string;
   /**
    * Input Reference
    *
@@ -2700,6 +3025,105 @@ export const ReferenceFetchStatus = {
  * Status of a reference fetch operation
  */
 export type ReferenceFetchStatus = (typeof ReferenceFetchStatus)[keyof typeof ReferenceFetchStatus];
+
+/**
+ * ReferenceFileMatch
+ *
+ * Links a reference to a matched supporting file.
+ */
+export type ReferenceFileMatch = {
+  /**
+   * Reference Id
+   *
+   * ID of the ExtractedReference
+   */
+  reference_id: string;
+  /**
+   * File Id
+   *
+   * ID of the matched supporting file
+   */
+  file_id: string;
+};
+
+/**
+ * ReferenceFileMatchingConfig
+ *
+ * Configuration for reference file matching workflow.
+ */
+export type ReferenceFileMatchingConfig = {
+  /**
+   * Project Id
+   *
+   * The ID of the project that this workflow run should be associated with
+   */
+  project_id?: string | null;
+  /**
+   * Openai Api Key
+   *
+   * The OpenAI API key to use for this workflow execution
+   */
+  openai_api_key?: string | null;
+  /**
+   * Domain
+   *
+   * Domain context for more accurate analysis
+   */
+  domain?: string | null;
+  /**
+   * Target Audience
+   *
+   * Target audience context for analysis
+   */
+  target_audience?: string | null;
+  /**
+   * Publication Date
+   *
+   * Publication date of the document (YYYY-MM-DD format)
+   */
+  publication_date?: string | null;
+  /**
+   * Type
+   */
+  type?: 'reference_file_matching';
+};
+
+/**
+ * ReferenceFileMatchingState
+ *
+ * State for reference file matching workflow.
+ */
+export type ReferenceFileMatchingState = {
+  /**
+   * Errors
+   *
+   * Errors that occurred during the workflow execution.
+   */
+  errors?: Array<WorkflowError>;
+  /**
+   * Type
+   */
+  type?: 'reference_file_matching';
+  config: ReferenceFileMatchingConfig;
+  /**
+   * File Id
+   *
+   * ID of the main document
+   */
+  file_id: string;
+  /**
+   * Supporting File Ids
+   *
+   * IDs of the supporting documents
+   */
+  supporting_file_ids?: Array<string>;
+  /**
+   * Matches
+   *
+   * List of matches between references and supporting files
+   */
+  matches?: Array<ReferenceFileMatch>;
+};
 
 /**
  * ReferenceMinimal
@@ -3203,6 +3627,15 @@ export const UpdateType = {
 export type UpdateType = (typeof UpdateType)[keyof typeof UpdateType];
 
 /**
+ * UpdateUserRoleRequest
+ *
+ * Request model for updating a user's role
+ */
+export type UpdateUserRoleRequest = {
+  role: UserRole;
+};
+
+/**
  * UserResponse
  *
  * Response model for user information
@@ -3421,7 +3854,10 @@ export type WorkflowRunDetail = {
    */
   state:
     | DocumentProcessingState
+    | ChunkSplittingState
+    | DocumentSummarizationState
     | ReferenceExtractionState
+    | ReferenceFileMatchingState
     | FootnoteExtractionState
     | ClaimExtractionState
     | ClaimReferenceValidationState
@@ -3434,6 +3870,7 @@ export type WorkflowRunDetail = {
     | CitationSuggesterState
     | ResultsExtractionState
     | InferenceValidationState
+    | HumanApprovalState
     | null;
 };
 
@@ -3456,7 +3893,11 @@ export type WorkflowRunStatus = (typeof WorkflowRunStatus)[keyof typeof Workflow
  */
 export const WorkflowRunType = {
   DocumentProcessing: 'document_processing',
+  ChunkSplitting: 'chunk_splitting',
+  DocumentSummarization: 'document_summarization',
   ReferenceExtraction: 'reference_extraction',
+  ReferenceFileMatching: 'reference_file_matching',
+  HumanApproval: 'human_approval',
   FootnoteExtraction: 'footnote_extraction',
   ClaimExtraction: 'claim_extraction',
   CitationDetection: 'citation_detection',
@@ -3559,34 +4000,12 @@ export type DocumentProcessingStateWritable = {
    * Type
    */
   type?: 'document_processing';
+  config: DocumentProcessingWorkflowConfig;
   file: FileDocumentWritable;
   /**
    * Supporting Files
    */
   supporting_files?: Array<FileDocumentWritable> | null;
-  config: DocumentProcessingWorkflowConfig;
-  /**
-   * The summary of the main document
-   */
-  main_document_summary?: DocumentSummary | null;
-  /**
-   * Supporting Documents Summaries
-   *
-   * Dictionary mapping supporting file indices to their summaries
-   */
-  supporting_documents_summaries?: {
-    [key: string]: DocumentSummary;
-  } | null;
-  /**
-   * Chunks
-   *
-   * Document chunks from main document
-   */
-  chunks?: Array<DocumentChunk>;
-  /**
-   * Mapping from chunk indices to Docling items/regions for rendering
-   */
-  chunk_to_items?: ChunkToItems | null;
 };
 
 /**
@@ -3659,11 +4078,11 @@ export type ProjectDetailedWritable = {
    */
   issues?: Array<DocumentIssue>;
   /**
-   * Files Count
+   * Files
    *
-   * The number of files associated with the project
+   * The files associated with the project
    */
-  files_count?: number;
+  files?: Array<FileListItem>;
 };
 
 /**
@@ -3721,7 +4140,10 @@ export type WorkflowRunDetailWritable = {
    */
   state:
     | DocumentProcessingStateWritable
+    | ChunkSplittingState
+    | DocumentSummarizationState
     | ReferenceExtractionState
+    | ReferenceFileMatchingState
     | FootnoteExtractionState
     | ClaimExtractionState
     | ClaimReferenceValidationState
@@ -3734,6 +4156,7 @@ export type WorkflowRunDetailWritable = {
     | CitationSuggesterState
     | ResultsExtractionState
     | InferenceValidationState
+    | HumanApprovalState
     | null;
 };
 
@@ -3919,7 +4342,10 @@ export type StartWorkflowApiWorkflowsStartPostData = {
    */
   body:
     | DocumentProcessingWorkflowConfig
+    | ChunkSplittingWorkflowConfig
+    | DocumentSummarizationWorkflowConfig
     | ReferenceExtractionConfig
+    | ReferenceFileMatchingConfig
     | FootnoteExtractionConfig
     | ClaimExtractionWorkflowConfig
     | CitationDetectionConfig
@@ -3931,7 +4357,8 @@ export type StartWorkflowApiWorkflowsStartPostData = {
     | ReferenceValidationWorkflowConfig
     | CitationSuggesterWorkflowConfig
     | ResultsExtractionWorkflowConfig
-    | InferenceValidationWorkflowConfig;
+    | InferenceValidationWorkflowConfig
+    | HumanApprovalConfig;
   path?: never;
   query?: never;
   url: '/api/workflows/start';
@@ -4049,6 +4476,38 @@ export type GetPageImageApiWorkflowRunsWorkflowRunIdPagesPageNumGetResponses = {
   200: unknown;
 };
 
+export type ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostData = {
+  body?: never;
+  path: {
+    /**
+     * Workflow Run Id
+     */
+    workflow_run_id: string;
+  };
+  query?: never;
+  url: '/api/workflow-runs/{workflow_run_id}/approve';
+};
+
+export type ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostError =
+  ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostErrors[keyof ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostErrors];
+
+export type ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostResponses = {
+  /**
+   * Successful Response
+   */
+  200: ApproveWorkflowResponse;
+};
+
+export type ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostResponse =
+  ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostResponses[keyof ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostResponses];
+
 export type GetWorkflowTypesApiWorkflowTypesGetData = {
   body?: never;
   path?: never;
@@ -4076,7 +4535,14 @@ export type DownloadFileApiFilesDownloadFileIdGetData = {
      */
     file_id: string;
   };
-  query?: never;
+  query?: {
+    /**
+     * Share Token
+     *
+     * Share token for public access
+     */
+    share_token?: string | null;
+  };
   url: '/api/files/download/{file_id}';
 };
 
@@ -4319,6 +4785,12 @@ export type GetProjectEndpointApiProjectProjectIdGetData = {
      * Include Internal
      */
     include_internal?: boolean;
+    /**
+     * Share Token
+     *
+     * Share token to get project details
+     */
+    share_token?: string | null;
   };
   url: '/api/project/{project_id}';
 };
@@ -4452,6 +4924,105 @@ export type ListProjectFilesEndpointApiProjectProjectIdFilesGetResponses = {
 export type ListProjectFilesEndpointApiProjectProjectIdFilesGetResponse =
   ListProjectFilesEndpointApiProjectProjectIdFilesGetResponses[keyof ListProjectFilesEndpointApiProjectProjectIdFilesGetResponses];
 
+export type AddFilesToProjectApiProjectProjectIdFilesPostData = {
+  body: BodyAddFilesToProjectApiProjectProjectIdFilesPost;
+  path: {
+    /**
+     * Project Id
+     */
+    project_id: string;
+  };
+  query?: never;
+  url: '/api/project/{project_id}/files';
+};
+
+export type AddFilesToProjectApiProjectProjectIdFilesPostErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type AddFilesToProjectApiProjectProjectIdFilesPostError =
+  AddFilesToProjectApiProjectProjectIdFilesPostErrors[keyof AddFilesToProjectApiProjectProjectIdFilesPostErrors];
+
+export type AddFilesToProjectApiProjectProjectIdFilesPostResponses = {
+  /**
+   * Response Add Files To Project Api Project  Project Id  Files Post
+   *
+   * Successful Response
+   */
+  201: Array<File>;
+};
+
+export type AddFilesToProjectApiProjectProjectIdFilesPostResponse =
+  AddFilesToProjectApiProjectProjectIdFilesPostResponses[keyof AddFilesToProjectApiProjectProjectIdFilesPostResponses];
+
+export type AddFileToProjectApiProjectProjectIdFilePostData = {
+  body: BodyAddFileToProjectApiProjectProjectIdFilePost;
+  path: {
+    /**
+     * Project Id
+     */
+    project_id: string;
+  };
+  query?: never;
+  url: '/api/project/{project_id}/file';
+};
+
+export type AddFileToProjectApiProjectProjectIdFilePostErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type AddFileToProjectApiProjectProjectIdFilePostError =
+  AddFileToProjectApiProjectProjectIdFilePostErrors[keyof AddFileToProjectApiProjectProjectIdFilePostErrors];
+
+export type AddFileToProjectApiProjectProjectIdFilePostResponses = {
+  /**
+   * Successful Response
+   */
+  201: File;
+};
+
+export type AddFileToProjectApiProjectProjectIdFilePostResponse =
+  AddFileToProjectApiProjectProjectIdFilePostResponses[keyof AddFileToProjectApiProjectProjectIdFilePostResponses];
+
+export type DeleteProjectFileEndpointApiProjectProjectIdFilesFileIdDeleteData = {
+  body?: never;
+  path: {
+    /**
+     * Project Id
+     */
+    project_id: string;
+    /**
+     * File Id
+     */
+    file_id: string;
+  };
+  query?: never;
+  url: '/api/project/{project_id}/files/{file_id}';
+};
+
+export type DeleteProjectFileEndpointApiProjectProjectIdFilesFileIdDeleteErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type DeleteProjectFileEndpointApiProjectProjectIdFilesFileIdDeleteError =
+  DeleteProjectFileEndpointApiProjectProjectIdFilesFileIdDeleteErrors[keyof DeleteProjectFileEndpointApiProjectProjectIdFilesFileIdDeleteErrors];
+
+export type DeleteProjectFileEndpointApiProjectProjectIdFilesFileIdDeleteResponses = {
+  /**
+   * Successful Response
+   */
+  200: unknown;
+};
+
 export type DownloadAllProjectFilesApiProjectProjectIdFilesDownloadAllGetData = {
   body?: never;
   path: {
@@ -4494,39 +5065,46 @@ export type DownloadAllProjectFilesApiProjectProjectIdFilesDownloadAllGetRespons
   200: unknown;
 };
 
-export type GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdGetData = {
+export type GetProjectWorkflowProgressEndpointApiProjectProjectIdWorkflowProgressGetData = {
   body?: never;
   path: {
     /**
-     * Workflow Run Id
+     * Project Id
      */
-    workflow_run_id: string;
+    project_id: string;
   };
-  query?: never;
-  url: '/api/progress/workflow/{workflow_run_id}';
+  query?: {
+    /**
+     * Share Token
+     *
+     * Share token for shared projects.
+     */
+    share_token?: string | null;
+  };
+  url: '/api/project/{project_id}/workflow-progress';
 };
 
-export type GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdGetErrors = {
+export type GetProjectWorkflowProgressEndpointApiProjectProjectIdWorkflowProgressGetErrors = {
   /**
    * Validation Error
    */
   422: HttpValidationError;
 };
 
-export type GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdGetError =
-  GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdGetErrors[keyof GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdGetErrors];
+export type GetProjectWorkflowProgressEndpointApiProjectProjectIdWorkflowProgressGetError =
+  GetProjectWorkflowProgressEndpointApiProjectProjectIdWorkflowProgressGetErrors[keyof GetProjectWorkflowProgressEndpointApiProjectProjectIdWorkflowProgressGetErrors];
 
-export type GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdGetResponses = {
+export type GetProjectWorkflowProgressEndpointApiProjectProjectIdWorkflowProgressGetResponses = {
   /**
-   * Response Get Workflow Progress Endpoint Api Progress Workflow  Workflow Run Id  Get
+   * Response Get Project Workflow Progress Endpoint Api Project  Project Id  Workflow Progress Get
    *
    * Successful Response
    */
   200: Array<WorkflowProgressResponse>;
 };
 
-export type GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdGetResponse =
-  GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdGetResponses[keyof GetWorkflowProgressEndpointApiProgressWorkflowWorkflowRunIdGetResponses];
+export type GetProjectWorkflowProgressEndpointApiProjectProjectIdWorkflowProgressGetResponse =
+  GetProjectWorkflowProgressEndpointApiProjectProjectIdWorkflowProgressGetResponses[keyof GetProjectWorkflowProgressEndpointApiProjectProjectIdWorkflowProgressGetResponses];
 
 export type GetProjectShareStatusApiProjectsProjectIdShareGetData = {
   body?: never;
@@ -4672,3 +5250,53 @@ export type GetCurrentUserInfoApiUsersMeGetResponses = {
 
 export type GetCurrentUserInfoApiUsersMeGetResponse =
   GetCurrentUserInfoApiUsersMeGetResponses[keyof GetCurrentUserInfoApiUsersMeGetResponses];
+
+export type ListUsersApiUsersGetData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/api/users';
+};
+
+export type ListUsersApiUsersGetResponses = {
+  /**
+   * Response List Users Api Users Get
+   *
+   * Successful Response
+   */
+  200: Array<UserResponse>;
+};
+
+export type ListUsersApiUsersGetResponse = ListUsersApiUsersGetResponses[keyof ListUsersApiUsersGetResponses];
+
+export type UpdateRoleApiUsersUserIdRolePatchData = {
+  body: UpdateUserRoleRequest;
+  path: {
+    /**
+     * User Id
+     */
+    user_id: string;
+  };
+  query?: never;
+  url: '/api/users/{user_id}/role';
+};
+
+export type UpdateRoleApiUsersUserIdRolePatchErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type UpdateRoleApiUsersUserIdRolePatchError =
+  UpdateRoleApiUsersUserIdRolePatchErrors[keyof UpdateRoleApiUsersUserIdRolePatchErrors];
+
+export type UpdateRoleApiUsersUserIdRolePatchResponses = {
+  /**
+   * Successful Response
+   */
+  200: UserResponse;
+};
+
+export type UpdateRoleApiUsersUserIdRolePatchResponse =
+  UpdateRoleApiUsersUserIdRolePatchResponses[keyof UpdateRoleApiUsersUserIdRolePatchResponses];

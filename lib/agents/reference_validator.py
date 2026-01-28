@@ -109,7 +109,7 @@ class ReferenceValidatorAgent(DirectOpenAIAgent):
     async def ainvoke(
         self,
         prompt_kwargs: dict,
-        config: RunnableConfig = None,
+        config: Optional[RunnableConfig] = None,
     ) -> BibliographyItemValidation:
         prompt = _reference_validator_prompt.invoke(prompt_kwargs)
         input = [

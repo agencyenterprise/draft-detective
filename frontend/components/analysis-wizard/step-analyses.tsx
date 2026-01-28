@@ -1,0 +1,148 @@
+'use client';
+
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent } from '@/components/ui/card';
+import { WorkflowTypeSelector } from '@/components/workflows/workflow-type-selector';
+import { WebSearchConsentCheckbox } from '@/components/workflows/web-search-consent-checkbox';
+import { useWizard } from './wizard-context';
+import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
+import { useSessionStorage } from '@/lib/hooks/use-session-storage';
+import { hasWebSearchRequirement } from '@/components/workflows/utils';
+import {
+  startMultipleWorkflowsApiWorkflowsStartMultiplePost,
+  updateProjectEndpointApiProjectProjectIdPatch,
+} from '@/lib/generated-api';
+import { useMutation } from '@tanstack/react-query';
+import { toast } from 'sonner';
+import { Loader2 } from 'lucide-react';
+
+export function StepAnalyses() {
+  const router = useRouter();
+  const wizard = useWizard();
+  const { data: workflowTypes } = useWorkflowTypes();
+  const [storedApiKey] = useSessionStorage<string>('openai-api-key', '');
+
+  const { selectedWorkflowTypes, setSelectedWorkflowTypes, needsReferencesStep } = wizard;
+  const [domain, setDomain] = useState('');
+  const [targetAudience, setTargetAudience] = useState('');
+  const [webSearchConsent, setWebSearchConsent] = useState(false);
+
+  const needsWebSearch = hasWebSearchRequirement(selectedWorkflowTypes, workflowTypes);
+
+  const startAnalysisMutation = useMutation({
+    mutationFn: async () => {
+      if (!wizard.projectId) throw new Error('No project ID');
+      if (selectedWorkflowTypes.length === 0) throw new Error('No workflow types selected');
+
+      const projectId = wizard.projectId;
+
+      if (domain || targetAudience) {
+        await updateProjectEndpointApiProjectProjectIdPatch({
+          path: { project_id: projectId },
+          body: {
+            domain: domain || undefined,
+            target_audience: targetAudience || undefined,
+          },
+        });
+      }
+
+      const apiKey = wizard.openaiApiKey || storedApiKey;
+      return startMultipleWorkflowsApiWorkflowsStartMultiplePost({
+        body: {
+          project_id: projectId,
+          workflow_types: selectedWorkflowTypes,
+          openai_api_key: apiKey || undefined,
+        },
+      });
+    },
+    onSuccess: () => {
+      if (needsReferencesStep) {
+        toast.success('Analysis started! Review your references...');
+        wizard.goToStep(3);
+      } else {
+        toast.success('Analysis started! Redirecting to your project...');
+        router.push(`/projects/${wizard.projectId}?fromWizard=true`);
+      }
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : 'Failed to start analysis');
+    },
+  });
+
+  const handleStartAnalysis = () => {
+    if (startAnalysisMutation.isPending || startAnalysisMutation.isSuccess) return;
+    startAnalysisMutation.mutate();
+  };
+
+  const canContinue = selectedWorkflowTypes.length > 0 && (!needsWebSearch || webSearchConsent);
+  const isSubmitting = startAnalysisMutation.isPending || startAnalysisMutation.isSuccess;
+
+  if (isSubmitting) {
+    return (
+      <Card className="max-w-xl mx-auto">
+        <CardContent className="py-12">
+          <div className="flex flex-col items-center justify-center space-y-4">
+            <Loader2 className="w-12 h-12 animate-spin text-primary" />
+            <div className="text-center space-y-2">
+              <h2 className="text-xl font-semibold">Starting Analysis</h2>
+              <p className="text-sm text-muted-foreground">Starting workflows...</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-8">
+      <div className="space-y-2">
+        <h1 className="text-2xl font-bold">What would you like to check?</h1>
+        <p className="text-muted-foreground">
+          Select the analyses that matter most for your document. You can always run more later.
+        </p>
+      </div>
+
+      <WorkflowTypeSelector
+        workflowTypes={workflowTypes?.filter((wt) => !wt.is_internal && wt.can_be_triggered_by_user)}
+        selectedTypes={selectedWorkflowTypes}
+        onSelectionChange={setSelectedWorkflowTypes}
+        headerDescription=""
+      />
+
+      {needsWebSearch && <WebSearchConsentCheckbox checked={webSearchConsent} onCheckedChange={setWebSearchConsent} />}
+
+      <div className="space-y-4">
+        <div>
+          <h3 className="text-lg font-semibold">Help us understand your context</h3>
+          <p className="text-sm text-muted-foreground">Optional, but helps tailor the analysis.</p>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="domain">What field is this document about?</Label>
+          <Input
+            id="domain"
+            placeholder="e.g., Healthcare, Criminal Justice, Education..."
+            value={domain}
+            onChange={(e) => setDomain(e.target.value)}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="target-audience">Who&apos;s the intended reader?</Label>
+          <Input
+            id="target-audience"
+            placeholder="e.g., Policymakers, Researchers, General public..."
+            value={targetAudience}
+            onChange={(e) => setTargetAudience(e.target.value)}
+          />
+        </div>
+      </div>
+
+      <Button onClick={handleStartAnalysis} disabled={!canContinue} size="lg" className="w-full">
+        {needsReferencesStep ? 'Next: Add your sources →' : 'Start Analysis'}
+      </Button>
+    </div>
+  );
+}

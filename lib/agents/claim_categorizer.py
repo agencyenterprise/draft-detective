@@ -22,6 +22,8 @@ The categories are:
 """
 from __future__ import annotations
 
+from typing import Optional
+
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
@@ -244,10 +246,10 @@ When in doubt between TRUE and FALSE, default to FALSE.
 - Each claim must have exactly one category and a short-sentence rationale.
 - The needs_external_verification field should be set to TRUE if the claim requires external verification, and FALSE otherwise.
 
-## Domain Context
+# Agent Inputs
+
 {domain_context}
 
-## Audience Context
 {audience_context}
 
 ## Summary of the document (for context about the document's main argument)
@@ -281,7 +283,7 @@ class ClaimCategorizerAgent(LangChainAgent):
     output_schema = ClaimCategorizationResponse
 
     async def ainvoke(
-        self, prompt_kwargs: dict, config: RunnableConfig = None
+        self, prompt_kwargs: dict, config: Optional[RunnableConfig] = None
     ) -> ClaimCategorizationResponse:
         messages = _claim_categorizer_prompt.format_messages(**prompt_kwargs)
         return await self.llm.ainvoke(messages, config=config)

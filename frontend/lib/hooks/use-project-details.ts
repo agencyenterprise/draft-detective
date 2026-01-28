@@ -1,10 +1,13 @@
 import { useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { getProjectEndpointApiProjectProjectIdGet, WorkflowRunStatus } from '../generated-api';
+import { useShare } from '@/context/share-context';
 
 const REFETCH_INTERVAL_MS = 3000;
 
 export function useProjectDetails(projectId: string | null) {
+  const { shareToken } = useShare();
+
   const {
     data: project,
     isLoading: isProjectLoading,
@@ -12,10 +15,11 @@ export function useProjectDetails(projectId: string | null) {
   } = useQuery({
     enabled: !!projectId,
     queryKey: ['project', projectId],
+    staleTime: 60 * 1000 * 5, // 5 minutes
     queryFn: () =>
       getProjectEndpointApiProjectProjectIdGet({
         path: { project_id: projectId! },
-        query: { include_internal: true },
+        query: { include_internal: true, share_token: shareToken },
       }),
     refetchInterval: (query) => {
       const workflowRuns = query.state.data?.workflow_runs ?? [];
@@ -28,6 +32,8 @@ export function useProjectDetails(projectId: string | null) {
   });
 
   const workflowDetails = useMemo(() => project?.workflow_runs ?? [], [project]);
+  const files = useMemo(() => project?.files ?? [], [project]);
+  const issues = useMemo(() => project?.issues ?? [], [project]);
 
   const isProcessing = useMemo(
     () =>
@@ -41,6 +47,8 @@ export function useProjectDetails(projectId: string | null) {
   return {
     project,
     workflowDetails,
+    files,
+    issues,
     isProcessing,
     isLoading: isProjectLoading,
     error: projectError,

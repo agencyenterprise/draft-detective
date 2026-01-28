@@ -1,36 +1,37 @@
 import { AiGeneratedLabel } from '@/components/ai-generated-label';
 import { Badge } from '@/components/ui/badge';
-import type { DocumentIssue, WorkflowRunDetail } from '@/lib/generated-api';
+import type { ProjectDetailed } from '@/lib/generated-api';
 import { WorkflowRunType } from '@/lib/generated-api';
 import { getClaimIssues, getMaxSeverity, sortBySeverity } from '@/lib/severity';
 import { getChunkErrors, getWorkflowRunByType } from '@/lib/workflow-state';
 import { X } from 'lucide-react';
 import { useMemo } from 'react';
+import { ChunkAnalysisCard } from './chunk-analysis-card';
 import { ClaimAnalysisCard } from './claim-analysis-card';
 import { ErrorsCard } from './errors-card';
-import { ChunkAnalysisCard } from './chunk-analysis-card';
 
 export interface ChunkSidebarContentProps {
   chunkIndex: number;
-  onClearChunkSelection: () => void;
-  allWorkflowDetails: WorkflowRunDetail[];
-  issues: DocumentIssue[];
+  projectDetail: ProjectDetailed;
   readOnly?: boolean;
+  onClearChunkSelection: () => void;
 }
 
 export function ChunkSidebarContent({
   chunkIndex,
-  onClearChunkSelection,
-  allWorkflowDetails,
-  issues,
+  projectDetail,
   readOnly = false,
+  onClearChunkSelection,
 }: ChunkSidebarContentProps) {
+  const workflowDetails = useMemo(() => projectDetail.workflow_runs ?? [], [projectDetail.workflow_runs]);
+  const issues = useMemo(() => projectDetail.issues ?? [], [projectDetail.issues]);
+
   const claimExtractionDetail = useMemo(
-    () => getWorkflowRunByType(allWorkflowDetails, WorkflowRunType.ClaimExtraction),
-    [allWorkflowDetails],
+    () => getWorkflowRunByType(workflowDetails, WorkflowRunType.ClaimExtraction),
+    [workflowDetails],
   );
 
-  const chunkErrors = getChunkErrors(allWorkflowDetails, chunkIndex);
+  const chunkErrors = getChunkErrors(workflowDetails, chunkIndex);
 
   const claims =
     claimExtractionDetail?.state?.claims?.filter((c) => c.chunk_index === chunkIndex).flatMap((c) => c.claims) ?? [];
@@ -71,13 +72,12 @@ export function ChunkSidebarContent({
           chunkIndex={chunkIndex}
           claimIndex={originalIndex}
           totalClaims={claims.length}
-          allWorkflowDetails={allWorkflowDetails}
-          issues={issues}
+          projectDetail={projectDetail}
           readOnly={readOnly}
         />
       ))}
 
-      <ChunkAnalysisCard chunkIndex={chunkIndex} issues={issues} allWorkflowDetails={allWorkflowDetails} />
+      <ChunkAnalysisCard chunkIndex={chunkIndex} projectDetail={projectDetail} />
     </div>
   );
 }

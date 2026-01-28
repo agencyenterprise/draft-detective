@@ -5,7 +5,11 @@ from langgraph.runtime import Runtime
 
 from lib.agents.claim_extractor import ClaimExtractorAgent, ClaimResponseWithChunkIndex
 from lib.agents.document_summarizer import DocumentSummary
-from lib.agents.formatting_utils import format_audience_context, format_domain_context
+from lib.agents.formatting_utils import (
+    format_audience_context,
+    format_domain_context,
+    format_headings_context,
+)
 from lib.run_utils import run_tasks
 from lib.services.file_artifacts_service.types import FileArtifactsServiceType
 from lib.workflows.claim_extraction.state import ClaimExtractionState
@@ -29,7 +33,7 @@ async def extract_claims(
 
     # Fetch artifacts from file artifacts service
     target_chunks = await file_artifacts_service.get_chunks()
-    document_summary = await file_artifacts_service.get_document_summary(state.file_id)
+    document_summary = await file_artifacts_service.get_file_summary(state.file_id)
 
     # Extract claims for each chunk
     tasks = [
@@ -89,6 +93,7 @@ async def _extract_chunk_claims(
             "summarized_argument": (
                 document_summary.summary if document_summary else ""
             ),
+            "headings_context": format_headings_context(chunk.headings),
             "domain_context": format_domain_context(state.config.domain),
             "audience_context": format_audience_context(state.config.target_audience),
         }

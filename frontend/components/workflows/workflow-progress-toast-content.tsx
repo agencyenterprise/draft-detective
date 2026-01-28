@@ -20,7 +20,13 @@ const STATUS_STYLES = {
   completed: { icon: CheckCircle2, iconClass: 'text-green-500', bgClass: 'bg-gray-50/80 border-gray-200/80' },
 } as const;
 
-function ProgressItem({ item, isNewlyCompleted }: { item: WorkflowProgressResponse; isNewlyCompleted?: boolean }) {
+export function ProgressItem({
+  item,
+  isNewlyCompleted,
+}: {
+  item: WorkflowProgressResponse;
+  isNewlyCompleted?: boolean;
+}) {
   const status = getProgressStatus(item);
   const { icon: Icon, iconClass, bgClass } = STATUS_STYLES[status];
   const totalSteps = item.total_steps ?? 0;
@@ -86,7 +92,7 @@ function ToastWrapper({ children, actions }: { children: React.ReactNode; action
         <span className="text-sm font-semibold tracking-tight text-foreground">Analysis in Progress</span>
         {actions}
       </div>
-      {children}
+      <div className="max-h-[80vh] overflow-y-auto space-y-1.5">{children}</div>
     </div>
   );
 }

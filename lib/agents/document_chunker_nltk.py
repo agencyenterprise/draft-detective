@@ -1,7 +1,7 @@
 import asyncio
 import re
 import logging
-from typing import List, Optional
+from typing import List, Optional, Tuple
 import nltk
 from pydantic import BaseModel, Field
 
@@ -17,6 +17,12 @@ from lib.services.llm_sentence_tokenizer import (
 )
 from lib.workflows.context import ContextSchema
 from langchain_core.runnables.config import RunnableConfig
+
+from langchain_text_splitters import MarkdownHeaderTextSplitter
+
+from lib.run_utils import MAX_CONCURRENT_TASKS
+
+semaphore = asyncio.Semaphore(MAX_CONCURRENT_TASKS)
 
 logger = logging.getLogger(__name__)
 
@@ -36,9 +42,24 @@ except LookupError:
             )
 
 
+headers_to_split_on = [
+    ("#", "H1"),
+    ("##", "H2"),
+    ("###", "H3"),
+    ("####", "H4"),
+]
+
+markdown_splitter = MarkdownHeaderTextSplitter(
+    headers_to_split_on, strip_headers=False, return_each_line=True
+)
+
+
 class Paragraph(BaseModel):
     chunks: List[str] = Field(
         description="The chunks extracted from the paragraph, that when concatenated should recreate the content of the original paragraph"
+    )
+    headings: List[str] = Field(
+        description="The headings associated with the paragraph. Each heading is a string that is the text of the heading listed according to the hierarchy of the heading."
     )
 
 
@@ -62,6 +83,7 @@ def get_chunker_result_as_langchain_documents(
                         paragraph_index=paragraph_index,
                         chunk_index=chunk_index,
                         chunk_index_within_paragraph=index_within_paragraph,
+                        headings=paragraph.headings if paragraph.headings else None,
                     ),
                 )
             )
@@ -74,8 +96,8 @@ def split_into_paragraphs(text: str) -> List[str]:
     Split text into paragraphs based on blank lines (double newlines).
     This keeps code blocks, multi-line lists, and other formatted content intact.
     """
-    # Split on blank lines (double newlines or more)
-    paragraphs = re.split(r"\n\s*\n", text)
+    # Split on newlines
+    paragraphs = text.split("\n")
     return [p.strip() for p in paragraphs if p.strip()]
 
 
@@ -106,87 +128,6 @@ async def split_paragraph_into_sentences(
     # Now that we split on blank lines, code blocks come as complete multi-line paragraphs
     if "```" in paragraph:
         return [paragraph.strip()]
-
-    # Reference-style numbered entries: split multiple references into separate chunks
-    lines = [ln.strip() for ln in paragraph.split("\n") if ln.strip()]
-    if any(re.match(r"^\d+\.\s+", ln) for ln in lines):
-        # This paragraph contains numbered references
-        chunks = []
-        for line in lines:
-            if re.match(r"^\d+\.\s+", line):
-                # This is a numbered reference item - keep as one chunk
-                chunks.append(line)
-            else:
-                # Continuation line - attach to previous chunk
-                if chunks:
-                    chunks[-1] = f"{chunks[-1]} {line}"
-                else:
-                    chunks.append(line)
-        return chunks
-
-    # Detect unnumbered citations/references
-    # Must start VERY specifically like a citation
-    has_year = re.search(r"\b(19|20)\d{2}\b", paragraph)
-    starts_like_citation = (
-        # Author format: "LastName, FirstInitial."
-        re.match(r"^[A-Z][a-z]+,\s+[A-Z]\.", paragraph)
-        or
-        # Organization with year early: "Org Name (Acronym). (Year)"
-        (
-            re.match(r"^[A-Z].*\(.*\)\.\s*\(", paragraph)
-            and len(paragraph.split()[0]) > 2
-        )
-    )
-
-    if has_year and starts_like_citation:
-        return [paragraph.strip()]
-
-    # For list items (-, *) we want sentence-level chunks, while preserving marker on first sentence
-    if (
-        paragraph.startswith("- ")
-        or paragraph.startswith("* ")
-        or paragraph.startswith("1. ")
-    ):
-        # Extract the list marker
-        if paragraph.startswith("- "):
-            marker = "- "
-        elif paragraph.startswith("* "):
-            marker = "* "
-        elif paragraph.startswith("1. "):
-            marker = "1. "
-        else:
-            marker = ""
-
-        # Remove the marker and split into sentences
-        content = paragraph[len(marker) :].strip()
-        sentences = nltk.sent_tokenize(content)
-
-        # Clean up sentences and add marker back to first sentence
-        cleaned_sentences = []
-        for i, sentence in enumerate(sentences):
-            sentence = sentence.strip()
-            if sentence:
-                if i == 0 and marker:
-                    cleaned_sentences.append(f"{marker}{sentence}")
-                else:
-                    cleaned_sentences.append(sentence)
-
-        # Check for suspicious fragments before returning
-        method = detection_method or FRAGMENT_DETECTION_METHOD
-        suspicion_detected, suspicion_score = await has_suspicious_fragments(
-            cleaned_sentences, paragraph, method=method
-        )
-
-        if suspicion_detected:
-            logger.info(
-                f"Fragment detection triggered LLM fallback for list item: method={method}, "
-                f"score={suspicion_score}, nltk_fragments={len(cleaned_sentences)}, "
-                f"paragraph={paragraph}..."
-            )
-            result = await llm_tokenize_paragraph(paragraph, context=context)
-            return result
-
-        return cleaned_sentences
 
     # Use NLTK sentence tokenizer for regular text
     sentences = nltk.sent_tokenize(paragraph)
@@ -221,6 +162,24 @@ async def split_paragraph_into_sentences(
     return result
 
 
+async def process_paragraph(
+    paragraph_text: str, section_headings_list: List[str], context: ContextSchema
+) -> Optional[Paragraph]:
+    if not paragraph_text.strip():
+        return None
+
+    async with semaphore:
+        sentences = await split_paragraph_into_sentences(
+            paragraph_text, context=context
+        )
+
+    return (
+        Paragraph(chunks=sentences, headings=section_headings_list)
+        if sentences
+        else None
+    )
+
+
 class DocumentChunkerAgent(BaseAgent):
     name = "Document Chunker (NLTK)"
     description = "Chunk a document into paragraphs and each paragraph into sentence-level chunks using NLTK"
@@ -237,7 +196,7 @@ class DocumentChunkerAgent(BaseAgent):
     async def ainvoke(
         self,
         prompt_kwargs: dict,
-        config: RunnableConfig = None,
+        config: Optional[RunnableConfig] = None,
     ) -> DocumentChunkerResponse:
         """
         Process a document using NLTK sentence tokenization.
@@ -254,27 +213,39 @@ class DocumentChunkerAgent(BaseAgent):
         if not full_document.strip():
             return DocumentChunkerResponse(paragraphs=[])
 
-        # Split document into paragraphs
-        paragraphs = split_into_paragraphs(full_document)
+        # Split document by headings
+        md_header_splits = markdown_splitter.split_text(full_document)
 
-        from lib.run_utils import MAX_CONCURRENT_TASKS
+        # List of paragraphs to process later, to break into sentence-level chunks
+        # Tuple of (paragraph, section_headings_list)
+        paragraphs_to_process: List[Tuple[str, List[str]]] = []
 
-        semaphore = asyncio.Semaphore(MAX_CONCURRENT_TASKS)
-
-        async def process_paragraph(paragraph_text: str) -> Optional[Paragraph]:
-            if not paragraph_text.strip():
-                return None
-
-            async with semaphore:
-                sentences = await split_paragraph_into_sentences(
-                    paragraph_text, context=self.context
+        for text_section in md_header_splits:
+            section_headings_list = []
+            if text_section.metadata:
+                # Sort by heading level to ensure hierarchical order (H1, H2, H3, H4)
+                sorted_metadata = sorted(
+                    text_section.metadata.items(), key=lambda x: x[0]
                 )
+                for _, heading_value in sorted_metadata:
+                    section_headings_list.append(heading_value)
 
-            return Paragraph(chunks=sentences) if sentences else None
+            logger.debug("Text section: ", text_section.page_content)
 
-        tasks = [process_paragraph(p) for p in paragraphs]
+            # Split document into paragraphs
+            paragraphs = split_into_paragraphs(text_section.page_content)
+
+            # Add paragraphs to list to process later
+            paragraphs_to_process.extend(
+                [(p, section_headings_list) for p in paragraphs]
+            )
+
+        # Process all paragraphs to break into sentence-level chunks
+        tasks = [
+            process_paragraph(paragraph, section_headings_list, self.context)
+            for (paragraph, section_headings_list) in paragraphs_to_process
+        ]
         results = await asyncio.gather(*tasks)
+        paragraphs_objects: List[Paragraph] = [p for p in results if p is not None]
 
-        paragraph_objects = [p for p in results if p is not None]
-
-        return DocumentChunkerResponse(paragraphs=paragraph_objects)
+        return DocumentChunkerResponse(paragraphs=paragraphs_objects)

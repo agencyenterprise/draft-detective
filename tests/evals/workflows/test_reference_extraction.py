@@ -6,15 +6,18 @@ import pytest
 import yaml
 from rapidfuzz import fuzz
 
-from lib.models.bibliography_item import BibliographyItem
 from lib.services.file import FileDocument
+from lib.services.file_artifacts_service.mock import MockFileArtifactsService
+from lib.workflows.context import ContextSchema
 from lib.workflows.document_processing.graph import build_document_processing_graph
 from lib.workflows.document_processing.state import (
     DocumentProcessingState,
     DocumentProcessingWorkflowConfig,
 )
+from lib.workflows.models import WorkflowRunType
 from lib.workflows.reference_extraction.graph import build_reference_extraction_graph
 from lib.workflows.reference_extraction.state import (
+    ExtractedReference,
     ReferenceExtractionConfig,
     ReferenceExtractionState,
     ReferenceSection,
@@ -36,29 +39,43 @@ STRESS_TEST_CASES = [
 ]
 
 
-async def run_workflow(graph_builder, state):
-    """Run a workflow graph with test context."""
-    return await graph_builder().compile().ainvoke(state, context=create_test_context())
+def create_context_with_file(main_file: FileDocument) -> ContextSchema:
+    """Create a context with a mock file_artifacts_service configured with the file."""
 
-
-async def run_full_pipeline(
-    file: FileDocument, supporting_files: list[FileDocument] | None = None
-) -> dict:
-    """Run document processing → reference extraction pipeline."""
-    doc_state = DocumentProcessingState(
-        config=DocumentProcessingWorkflowConfig(project_id="test"),
-        file=file,
-        supporting_files=supporting_files,
+    return create_test_context(
+        file_artifacts_service=MockFileArtifactsService(main_file=main_file)
     )
-    doc_result = await run_workflow(build_document_processing_graph, doc_state)
+
+
+async def run_full_pipeline(file: FileDocument) -> dict:
+    """Run document processing → reference extraction pipeline."""
+    # Run document processing first to get the processed file
+    doc_state = DocumentProcessingState(
+        type=WorkflowRunType.DOCUMENT_PROCESSING,
+        config=DocumentProcessingWorkflowConfig(
+            type=WorkflowRunType.DOCUMENT_PROCESSING, project_id="test"
+        ),
+        file=file,
+    )
+    doc_result = (
+        await build_document_processing_graph()
+        .compile()
+        .ainvoke(doc_state, context=create_test_context())
+    )
+
+    # Create context with the processed file so reference extraction can access it
+    processed_file = doc_result["file"]
+    context = create_context_with_file(processed_file)
 
     ref_state = ReferenceExtractionState(
         config=ReferenceExtractionConfig(project_id="test"),
-        file=doc_result["file"],
-        supporting_files=doc_result.get("supporting_files"),
-        supporting_documents_summaries=doc_result.get("supporting_documents_summaries"),
+        file_id=processed_file.file_id,
     )
-    return await run_workflow(build_reference_extraction_graph, ref_state)
+    return (
+        await build_reference_extraction_graph()
+        .compile()
+        .ainvoke(ref_state, context=context)
+    )
 
 
 def validate_references(expected: list[str], extracted: list[str]) -> tuple[int, list]:
@@ -78,43 +95,27 @@ def validate_references(expected: list[str], extracted: list[str]) -> tuple[int,
 @pytest.mark.asyncio
 async def test_basic_reference_extraction():
     file = await create_test_file_document_from_path(
-        data_path("data/case_1/main_document.md")
+        "evals/data/case_1/main_document.md"
     )
     result = await run_full_pipeline(file)
 
     assert len(result["detected_sections"]) >= 1
-    assert len(result["references"]) >= 1
+    assert len(result["extracted_references"]) >= 1
 
     for section in result["detected_sections"]:
         assert isinstance(section, ReferenceSection)
         assert section.end_offset > section.start_offset >= 0
 
-    for ref in result["references"]:
-        assert isinstance(ref, BibliographyItem)
+    for ref in result["extracted_references"]:
+        assert isinstance(ref, ExtractedReference)
+        assert ref.id  # Should have a unique ID
         assert ref.text
-
-
-@pytest.mark.asyncio
-async def test_reference_extraction_with_supporting_docs():
-    main_file = await create_test_file_document_from_path(
-        data_path("data/case_1/main_document.md")
-    )
-    supporting_file = await create_test_file_document_from_path(
-        data_path("data/case_1/supporting_1.md")
-    )
-
-    result = await run_full_pipeline(main_file, [supporting_file])
-
-    assert len(result["references"]) >= 1
-    for ref in result["references"]:
-        assert isinstance(ref.has_associated_supporting_document, bool)
-        assert isinstance(ref.file_id, (str, type(None)))
-        assert isinstance(ref.name_of_associated_supporting_document, str)
 
 
 @pytest.mark.asyncio
 async def test_empty_document_no_references():
     file = FileDocument(
+        file_id="empty.md",
         file_name="empty.md",
         file_path="empty.md",
         file_type="text/markdown",
@@ -122,12 +123,18 @@ async def test_empty_document_no_references():
         markdown_token_count=10,
     )
 
+    context = create_context_with_file(file)
     state = ReferenceExtractionState(
-        config=ReferenceExtractionConfig(project_id="test"), file=file
+        config=ReferenceExtractionConfig(project_id="test"),
+        file_id=file.file_id,
     )
-    result = await run_workflow(build_reference_extraction_graph, state)
+    result = (
+        await build_reference_extraction_graph()
+        .compile()
+        .ainvoke(state, context=context)
+    )
 
-    assert result["references"] == []
+    assert result["extracted_references"] == []
     assert result["detected_sections"] == []
 
 
@@ -141,7 +148,7 @@ async def test_stress_large_document(
     doc_name: str, doc_filename: str, expected_yaml: str
 ):
     file = await create_test_file_document_from_path(
-        data_path(f"data/reference_extraction_stress_test/{doc_filename}")
+        f"evals/data/reference_extraction_stress_test/{doc_filename}"
     )
     result = await run_full_pipeline(file)
 
@@ -151,7 +158,7 @@ async def test_stress_large_document(
     with open(yaml_path) as f:
         expected_refs = yaml.safe_load(f)["references"]
 
-    extracted_reference_texts = [r.text for r in result["references"]]
+    extracted_reference_texts = [r.text for r in result["extracted_references"]]
     matched, missing = validate_references(expected_refs, extracted_reference_texts)
     match_rate = matched / len(expected_refs) * 100
 
