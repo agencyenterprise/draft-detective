@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils';
 
 interface AboutAuthorsResultsProps {
   project: ProjectDetailed;
-  onNavigateToDocumentExplorer?: (chunkIndex?: number) => void;
+  onNavigateToDocumentExplorer?: (chunkIndices?: number[]) => void;
 }
 
 interface RuleCheckResult {
@@ -246,7 +246,7 @@ export function AboutAuthorsResults({ project, onNavigateToDocumentExplorer }: A
             result={result}
             onNavigateToChunk={
               onNavigateToDocumentExplorer && result.chunk_indices.length > 0
-                ? () => onNavigateToDocumentExplorer(result.chunk_indices[0])
+                ? () => onNavigateToDocumentExplorer(result.chunk_indices)
                 : undefined
             }
           />

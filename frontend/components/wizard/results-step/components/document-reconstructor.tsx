@@ -10,14 +10,14 @@ import { detectBlockSyntax, extractChunkContent } from '../document-reconstructi
 interface DocumentReconstructorProps {
   chunks: DocumentChunk[];
   issues: DocumentIssue[];
-  selectedChunkIndex: number | null;
+  selectedChunkIndices: number[];
   onChunkSelect: (chunkIndex: number | null) => void;
 }
 
 export function DocumentReconstructor({
   chunks,
   issues,
-  selectedChunkIndex,
+  selectedChunkIndices,
   onChunkSelect,
 }: DocumentReconstructorProps) {
   const parentRef = useRef<HTMLDivElement>(null);
@@ -59,11 +59,9 @@ export function DocumentReconstructor({
     overscan: viewportBasedOverscan,
   });
 
-  // Scroll to selected chunk when selection changes
   useEffect(() => {
-    if (selectedChunkIndex !== null) {
-      // Find which paragraph contains the selected chunk
-      const chunk = chunks.find((c) => c.chunk_index === selectedChunkIndex);
+    if (selectedChunkIndices.length > 0) {
+      const chunk = chunks.find((c) => c.chunk_index === selectedChunkIndices[0]);
       if (chunk) {
         const paragraphRowIndex = paragraphEntries.findIndex(([pIndex]) => Number(pIndex) === chunk.paragraph_index);
         if (paragraphRowIndex !== -1) {
@@ -74,7 +72,7 @@ export function DocumentReconstructor({
         }
       }
     }
-  }, [selectedChunkIndex, chunks, paragraphEntries, rowVirtualizer]);
+  }, [selectedChunkIndices, chunks, paragraphEntries, rowVirtualizer]);
 
   return (
     <div ref={parentRef} className="h-full overflow-y-auto">
@@ -106,7 +104,7 @@ export function DocumentReconstructor({
               <DocumentReconstructorChunkGroup
                 chunks={paragraphChunks}
                 issues={issues}
-                selectedChunkIndex={selectedChunkIndex}
+                selectedChunkIndices={selectedChunkIndices}
                 onChunkSelect={onChunkSelect}
               />
             </div>
@@ -120,12 +118,12 @@ export function DocumentReconstructor({
 export function DocumentReconstructorChunkGroup({
   chunks,
   issues,
-  selectedChunkIndex,
+  selectedChunkIndices,
   onChunkSelect,
 }: {
   chunks: DocumentChunk[];
   issues: DocumentIssue[];
-  selectedChunkIndex: number | null;
+  selectedChunkIndices: number[];
   onChunkSelect: (chunkIndex: number | null) => void;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -151,22 +149,24 @@ export function DocumentReconstructorChunkGroup({
     return blockPrefix ? `${blockPrefix}${wrappedChunks}` : wrappedChunks;
   }, [chunks, issues]);
 
+  const selectedIndicesSet = useMemo(() => new Set(selectedChunkIndices), [selectedChunkIndices]);
+
   useEffect(() => {
     if (!containerRef.current) {
       return;
     }
     const targets = containerRef.current.querySelectorAll('[data-chunk-index]');
+
     targets.forEach((target: Element) => {
-      if (selectedChunkIndex !== null) {
-        target.setAttribute(
-          'data-chunk-selected',
-          selectedChunkIndex === parseInt(target.getAttribute('data-chunk-index') || '0') ? 'true' : 'false',
-        );
+      const chunkIndex = parseInt(target.getAttribute('data-chunk-index') || '0');
+      if (selectedChunkIndices.length > 0) {
+        const isSelected = selectedIndicesSet.has(chunkIndex);
+        target.setAttribute('data-chunk-selected', isSelected ? 'true' : 'false');
       } else {
         target.removeAttribute('data-chunk-selected');
       }
     });
-  }, [selectedChunkIndex]);
+  }, [selectedChunkIndices, selectedIndicesSet]);
 
   useEffect(() => {
     if (!containerRef.current) {

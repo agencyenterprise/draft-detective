@@ -54,9 +54,17 @@ markdown_splitter = MarkdownHeaderTextSplitter(
 )
 
 
+class ChunkWithLines(BaseModel):
+    """A chunk with its line range in the original markdown."""
+
+    text: str = Field(description="The chunk text")
+    start_line: int = Field(ge=1, description="1-indexed starting line in markdown")
+    end_line: int = Field(ge=1, description="1-indexed ending line in markdown")
+
+
 class Paragraph(BaseModel):
-    chunks: List[str] = Field(
-        description="The chunks extracted from the paragraph, that when concatenated should recreate the content of the original paragraph"
+    chunks: List[ChunkWithLines] = Field(
+        description="The chunks extracted from the paragraph with line information"
     )
     headings: List[str] = Field(
         description="The headings associated with the paragraph. Each heading is a string that is the text of the heading listed according to the hierarchy of the heading."
@@ -78,17 +86,54 @@ def get_chunker_result_as_langchain_documents(
         for index_within_paragraph, chunk in enumerate(paragraph.chunks):
             chunks.append(
                 ValidatedDocument(
-                    page_content=chunk,
+                    page_content=chunk.text,
                     metadata=DocumentMetadata(
                         paragraph_index=paragraph_index,
                         chunk_index=chunk_index,
                         chunk_index_within_paragraph=index_within_paragraph,
                         headings=paragraph.headings if paragraph.headings else None,
+                        start_line=chunk.start_line,
+                        end_line=chunk.end_line,
                     ),
                 )
             )
             chunk_index += 1
     return chunks
+
+
+def char_offset_to_line(text: str, char_offset: int) -> int:
+    """Convert a character offset to a 1-indexed line number."""
+    return text[:char_offset].count("\n") + 1
+
+
+def find_text_line_range(
+    full_text: str, search_text: str, search_start: int = 0
+) -> Tuple[int, int, int]:
+    """
+    Find the line range of search_text within full_text.
+
+    Args:
+        full_text: The full markdown text
+        search_text: The text to find
+        search_start: Character offset to start searching from
+
+    Returns:
+        Tuple of (start_line, end_line, char_end_position)
+        If not found, returns (1, 1, search_start)
+    """
+    pos = full_text.find(search_text, search_start)
+    if pos == -1:
+        # Fallback: try to find with stripped text
+        stripped = search_text.strip()
+        pos = full_text.find(stripped, search_start)
+        if pos == -1:
+            return (1, 1, search_start)
+        search_text = stripped
+
+    start_line = char_offset_to_line(full_text, pos)
+    end_pos = pos + len(search_text)
+    end_line = char_offset_to_line(full_text, end_pos - 1)  # -1 to get line of last char
+    return (start_line, end_line, end_pos)
 
 
 def split_into_paragraphs(text: str) -> List[str]:
@@ -162,24 +207,6 @@ async def split_paragraph_into_sentences(
     return result
 
 
-async def process_paragraph(
-    paragraph_text: str, section_headings_list: List[str], context: ContextSchema
-) -> Optional[Paragraph]:
-    if not paragraph_text.strip():
-        return None
-
-    async with semaphore:
-        sentences = await split_paragraph_into_sentences(
-            paragraph_text, context=context
-        )
-
-    return (
-        Paragraph(chunks=sentences, headings=section_headings_list)
-        if sentences
-        else None
-    )
-
-
 class DocumentChunkerAgent(BaseAgent):
     name = "Document Chunker (NLTK)"
     description = "Chunk a document into paragraphs and each paragraph into sentence-level chunks using NLTK"
@@ -240,12 +267,48 @@ class DocumentChunkerAgent(BaseAgent):
                 [(p, section_headings_list) for p in paragraphs]
             )
 
-        # Process all paragraphs to break into sentence-level chunks
+        # Process paragraphs with sentence tokenization (parallel)
+        # First pass: get sentence chunks without line numbers
+        async def process_paragraph_sentences(
+            para_text: str, headings: List[str]
+        ) -> Tuple[str, List[str], List[str]]:
+            """Process paragraph to get sentences, return (para_text, headings, sentences)."""
+            if not para_text.strip():
+                return (para_text, headings, [])
+            async with semaphore:
+                sentences = await split_paragraph_into_sentences(
+                    para_text, context=self.context
+                )
+            return (para_text, headings, sentences)
+
         tasks = [
-            process_paragraph(paragraph, section_headings_list, self.context)
-            for (paragraph, section_headings_list) in paragraphs_to_process
+            process_paragraph_sentences(para, headings)
+            for (para, headings) in paragraphs_to_process
         ]
-        results = await asyncio.gather(*tasks)
-        paragraphs_objects: List[Paragraph] = [p for p in results if p is not None]
+        sentence_results = await asyncio.gather(*tasks)
+
+        # Second pass: assign line numbers sequentially
+        paragraphs_objects: List[Paragraph] = []
+        search_pos = 0
+
+        for para_text, headings, sentences in sentence_results:
+            if not sentences:
+                continue
+
+            chunks_with_lines: List[ChunkWithLines] = []
+            for sentence in sentences:
+                start_line, end_line, next_pos = find_text_line_range(
+                    full_document, sentence, search_pos
+                )
+                chunks_with_lines.append(
+                    ChunkWithLines(
+                        text=sentence, start_line=start_line, end_line=end_line
+                    )
+                )
+                search_pos = next_pos
+
+            paragraphs_objects.append(
+                Paragraph(chunks=chunks_with_lines, headings=headings)
+            )
 
         return DocumentChunkerResponse(paragraphs=paragraphs_objects)
