@@ -143,4 +143,3 @@ class AuthorBioExtractorAgent(LangChainAgent):
         )
 
         return result["structured_response"]
-

@@ -67,4 +67,3 @@ class AboutAuthorsState(BaseWorkflowState):
     type: Literal[WorkflowRunType.ABOUT_AUTHORS] = Field(WorkflowRunType.ABOUT_AUTHORS)
     config: AboutAuthorsWorkflowConfig
     results: List[AuthorValidationResult] = Field(default_factory=list)
-

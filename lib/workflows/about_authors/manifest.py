@@ -95,7 +95,9 @@ class AboutAuthorsManifest(
             description = f"{result.final_comment}"
             if result.guidance:
                 description += f"\n\nGuidance: {result.guidance}"
-            description += f"\n\nFailed rules:\n" + "\n".join(f"• {r}" for r in failed_rules)
+            description += f"\n\nFailed rules:\n" + "\n".join(
+                f"• {r}" for r in failed_rules
+            )
 
             # Use first chunk index for navigation
             chunk_index = result.chunk_indices[0] if result.chunk_indices else None
@@ -110,4 +112,3 @@ class AboutAuthorsManifest(
             )
 
         return issues
-

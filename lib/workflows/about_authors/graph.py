@@ -16,4 +16,3 @@ def build_about_authors_graph() -> StateGraph:
     graph.set_finish_point("validate_authors")
 
     return graph
-
