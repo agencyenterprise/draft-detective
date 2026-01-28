@@ -3910,6 +3910,7 @@ export const WorkflowRunType = {
   ResultsExtraction: 'results_extraction',
   InferenceValidation: 'inference_validation',
   ClaimReferenceValidation: 'claim_reference_validation',
+  AdvocacyTone: 'advocacy_tone',
 } as const;
 
 /**
