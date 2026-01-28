@@ -3,7 +3,14 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { DocumentChunk, ProjectDetailed, WorkflowRunType } from '@/lib/generated-api';
+import {
+  AdvocacyToneState,
+  ChunkAdvocacyToneResult,
+  DocumentChunk,
+  LlmVerificationResult,
+  ProjectDetailed,
+  WorkflowRunType,
+} from '@/lib/generated-api';
 import { getWorkflowRunByType } from '@/lib/workflow-state';
 import { AlertCircle, AlertTriangle, ChevronDown, ExternalLink, FileWarning, MessageSquareWarning } from 'lucide-react';
 import * as React from 'react';
@@ -16,32 +23,6 @@ interface AdvocacyToneResultsProps {
 }
 
 type CheckType = 'trigger_words' | 'advocacy_language' | 'subjective_tone';
-
-interface LLMVerificationResult {
-  confirmed: boolean;
-  explanation: string;
-  word_positions: number[];
-}
-
-interface ProceduralFlags {
-  trigger_words: boolean;
-  advocacy_language: boolean;
-  subjective_tone: boolean;
-}
-
-interface ChunkAdvocacyToneResult {
-  chunk_index: number;
-  procedural_flags: ProceduralFlags;
-  llm_trigger_words?: LLMVerificationResult | null;
-  llm_advocacy_language?: LLMVerificationResult | null;
-  llm_subjective_tone?: LLMVerificationResult | null;
-}
-
-interface AdvocacyToneState {
-  type: string;
-  results: ChunkAdvocacyToneResult[];
-  errors?: unknown[];
-}
 
 const CHECK_CONFIG: Record<
   CheckType,
@@ -96,7 +77,7 @@ function ChunkResultCard({ result, chunkContent, onNavigateToChunk }: ChunkResul
   const [isOpen, setIsOpen] = useState(false);
 
   const confirmedChecks = useMemo(() => {
-    const checks: { type: CheckType; llmResult: LLMVerificationResult }[] = [];
+    const checks: { type: CheckType; llmResult: LlmVerificationResult }[] = [];
 
     if (result.llm_trigger_words?.confirmed) {
       checks.push({ type: 'trigger_words', llmResult: result.llm_trigger_words });
@@ -184,8 +165,8 @@ export function AdvocacyToneResults({ project, onNavigateToDocumentExplorer }: A
   const workflowDetails = useMemo(() => project.workflow_runs ?? [], [project.workflow_runs]);
   const [filterType, setFilterType] = useState<CheckType | null>(null);
 
-  // Get the advocacy tone workflow - use type assertion since types may not be generated yet
-  const advocacyToneRun = workflowDetails.find((w) => w.run.type === ('advocacy_tone' as WorkflowRunType));
+  // Get the advocacy tone workflow
+  const advocacyToneRun = workflowDetails.find((w) => w.run.type === WorkflowRunType.AdvocacyTone);
 
   // Get chunks from chunk splitting workflow for displaying content
   const chunkSplittingRun = getWorkflowRunByType(workflowDetails, WorkflowRunType.ChunkSplitting);
