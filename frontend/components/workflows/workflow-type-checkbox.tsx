@@ -33,6 +33,7 @@ import { WORKFLOWS_REQUIRING_SUPPORTING_DOCUMENTS } from './utils';
 
 const workflowTypeIcons: Record<WorkflowRunType, LucideIcon> = {
   [WorkflowRunType.DocumentProcessing]: FileText,
+  [WorkflowRunType.ChunkSplitting]: FileText,
   [WorkflowRunType.DocumentSummarization]: FileText,
   [WorkflowRunType.ReferenceExtraction]: Link,
   [WorkflowRunType.ReferenceFileMatching]: FileSearch,
