@@ -44,6 +44,7 @@ dependencies = [
     "pyjwt>=2.10.1",
     "mypy>=1.19.1",
     "aiolimiter>=1.2.1",
+    "textblob>=0.18.0",
 ]
 
 [tool.pytest.ini_options]

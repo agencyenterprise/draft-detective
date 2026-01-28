@@ -77,7 +77,13 @@ export function ResultsVisualization({
           <AnalysesTab
             projectDetail={projectDetail}
             readOnly={readOnly}
-            onNavigateToDocumentExplorer={() => setActiveTab('document-explorer')}
+            onNavigateToDocumentExplorer={(chunkIndex?: number) => {
+              if (chunkIndex !== undefined) {
+                window.history.pushState(null, '', `#chunk-${chunkIndex}`);
+                window.dispatchEvent(new HashChangeEvent('hashchange'));
+              }
+              setActiveTab('document-explorer');
+            }}
             onNavigateToReferences={() => setActiveTab('references')}
           />
         );

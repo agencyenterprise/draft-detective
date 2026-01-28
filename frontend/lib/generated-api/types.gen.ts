@@ -5,6 +5,71 @@ export type ClientOptions = {
 };
 
 /**
+ * AdvocacyToneState
+ *
+ * State for the advocacy and tone workflow.
+ */
+export type AdvocacyToneState = {
+  /**
+   * Errors
+   *
+   * Errors that occurred during the workflow execution.
+   */
+  errors?: Array<WorkflowError>;
+  /**
+   * Type
+   */
+  type?: 'advocacy_tone';
+  config: AdvocacyToneWorkflowConfig;
+  /**
+   * Results
+   */
+  results?: Array<ChunkAdvocacyToneResult>;
+};
+
+/**
+ * AdvocacyToneWorkflowConfig
+ *
+ * Configuration for the advocacy and tone workflow.
+ */
+export type AdvocacyToneWorkflowConfig = {
+  /**
+   * Project Id
+   *
+   * The ID of the project that this workflow run should be associated with
+   */
+  project_id?: string | null;
+  /**
+   * Openai Api Key
+   *
+   * The OpenAI API key to use for this workflow execution
+   */
+  openai_api_key?: string | null;
+  /**
+   * Domain
+   *
+   * Domain context for more accurate analysis
+   */
+  domain?: string | null;
+  /**
+   * Target Audience
+   *
+   * Target audience context for analysis
+   */
+  target_audience?: string | null;
+  /**
+   * Publication Date
+   *
+   * Publication date of the document (YYYY-MM-DD format)
+   */
+  publication_date?: string | null;
+  /**
+   * Type
+   */
+  type?: 'advocacy_tone';
+};
+
+/**
  * AgentInfo
  *
  * Information about a registered agent
@@ -237,6 +302,36 @@ export type BodyStartAnalysisApiStartAnalysisPost = {
    * Workflow Types
    */
   workflow_types?: string | null;
+};
+
+/**
+ * ChunkAdvocacyToneResult
+ *
+ * Advocacy and tone analysis result for a single chunk.
+ */
+export type ChunkAdvocacyToneResult = {
+  /**
+   * Chunk Index
+   *
+   * Index of the analyzed chunk
+   */
+  chunk_index: number;
+  /**
+   * Flags from procedural detection
+   */
+  procedural_flags?: ProceduralFlags;
+  /**
+   * LLM verification for trigger words
+   */
+  llm_trigger_words?: LlmVerificationResult | null;
+  /**
+   * LLM verification for advocacy language
+   */
+  llm_advocacy_language?: LlmVerificationResult | null;
+  /**
+   * LLM verification for subjective tone
+   */
+  llm_subjective_tone?: LlmVerificationResult | null;
 };
 
 /**
@@ -2171,6 +2266,32 @@ export type InferenceValidationWorkflowConfig = {
 };
 
 /**
+ * LLMVerificationResult
+ *
+ * Result from LLM verification of a procedural flag.
+ */
+export type LlmVerificationResult = {
+  /**
+   * Confirmed
+   *
+   * Whether the LLM confirmed the issue
+   */
+  confirmed: boolean;
+  /**
+   * Explanation
+   *
+   * LLM explanation of the finding
+   */
+  explanation: string;
+  /**
+   * Word Positions
+   *
+   * 0-indexed word positions that caused the issue
+   */
+  word_positions?: Array<number>;
+};
+
+/**
  * LiteratureReviewResponse
  */
 export type LiteratureReviewResponse = {
@@ -2481,6 +2602,26 @@ export type PreflightResult = {
    * Issues
    */
   issues?: Array<ValidationIssue>;
+};
+
+/**
+ * ProceduralFlags
+ *
+ * Flags from procedural (non-LLM) detection.
+ */
+export type ProceduralFlags = {
+  /**
+   * Trigger Words
+   */
+  trigger_words?: boolean;
+  /**
+   * Advocacy Language
+   */
+  advocacy_language?: boolean;
+  /**
+   * Subjective Tone
+   */
+  subjective_tone?: boolean;
 };
 
 /**
@@ -3255,6 +3396,12 @@ export type ReferenceValidationWorkflowConfig = {
    * Type
    */
   type?: 'reference_validation';
+  /**
+   * Show Invalid References As Issues
+   *
+   * When True, invalid references will appear as issues in the Document Explorer. When False (default), validation results are only shown in the References tab.
+   */
+  show_invalid_references_as_issues?: boolean;
 };
 
 /**
@@ -3853,6 +4000,7 @@ export type WorkflowRunDetail = {
    * State
    */
   state:
+    | AdvocacyToneState
     | DocumentProcessingState
     | ChunkSplittingState
     | DocumentSummarizationState
@@ -3910,6 +4058,7 @@ export const WorkflowRunType = {
   ResultsExtraction: 'results_extraction',
   InferenceValidation: 'inference_validation',
   ClaimReferenceValidation: 'claim_reference_validation',
+  AdvocacyTone: 'advocacy_tone',
 } as const;
 
 /**
@@ -4139,6 +4288,7 @@ export type WorkflowRunDetailWritable = {
    * State
    */
   state:
+    | AdvocacyToneState
     | DocumentProcessingStateWritable
     | ChunkSplittingState
     | DocumentSummarizationState
@@ -4341,6 +4491,7 @@ export type StartWorkflowApiWorkflowsStartPostData = {
    * Request
    */
   body:
+    | AdvocacyToneWorkflowConfig
     | DocumentProcessingWorkflowConfig
     | ChunkSplittingWorkflowConfig
     | DocumentSummarizationWorkflowConfig
