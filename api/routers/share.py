@@ -8,6 +8,8 @@ for their own resources.
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import select
+from sqlmodel import col
 
 from api.auth import get_current_user
 from lib.config.database import get_db
@@ -26,7 +28,8 @@ router = APIRouter(tags=["share"])
 def _verify_project_ownership(project_id: str, user: User) -> uuid.UUID:
     """Verify user owns the project and return the project UUID."""
     with get_db() as db:
-        project = db.query(Project).filter(Project.id == project_id).first()
+        stmt = select(Project).where(col(Project.id) == project_id)
+        project = db.execute(stmt).scalar_one_or_none()
 
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
