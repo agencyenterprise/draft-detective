@@ -235,9 +235,12 @@ async def test_reference_text_extractor_large_v2(
     agent = ReferenceExtractorV2Agent(create_test_context(file_artifacts_service))
     result = await agent.ainvoke(prompt_kwargs={})
 
+    # Extract text from ExtractedReferenceWithLines objects for comparison
+    actual_references = [ref.text for ref in result.references]
+
     comparison = compare_references_relaxed(
         expected_references,
-        result.references,
+        actual_references,
         similarity_threshold=SIMILARITY_THRESHOLD,
     )
 
