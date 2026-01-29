@@ -70,6 +70,121 @@ export type AboutAuthorsWorkflowConfig = {
 };
 
 /**
+ * AboutThisState
+ *
+ * State for the About This (Preface) validation workflow.
+ */
+export type AboutThisState = {
+  /**
+   * Errors
+   *
+   * Errors that occurred during the workflow execution.
+   */
+  errors?: Array<WorkflowError>;
+  /**
+   * Type
+   */
+  type?: 'about_this';
+  config: AboutThisWorkflowConfig;
+  /**
+   * Found Section
+   *
+   * Whether a preface section was found
+   */
+  found_section?: boolean;
+  /**
+   * Section Title
+   *
+   * Title of the found section (e.g., 'About This Report')
+   */
+  section_title?: string;
+  /**
+   * Section Text
+   *
+   * Full text content of the preface section
+   */
+  section_text?: string;
+  /**
+   * Result for: establishes context
+   */
+  context?: RequirementCheckResult | null;
+  /**
+   * Result for: explains objectives
+   */
+  objectives?: RequirementCheckResult | null;
+  /**
+   * Result for: explains relationship to RAND work
+   */
+  relationship?: RequirementCheckResult | null;
+  /**
+   * Result for: identifies intended audience
+   */
+  audience?: RequirementCheckResult | null;
+  /**
+   * Result for: contains TASP boilerplate
+   */
+  source_tasp?: RequirementCheckResult | null;
+  /**
+   * Result for: contains funding statement
+   */
+  source_funding?: RequirementCheckResult | null;
+  /**
+   * Overall Passed
+   *
+   * Whether all requirements passed
+   */
+  overall_passed?: boolean;
+  /**
+   * Final Summary
+   *
+   * Summary of the evaluation (generated if any failed)
+   */
+  final_summary?: string;
+};
+
+/**
+ * AboutThisWorkflowConfig
+ *
+ * Configuration for the About This validation workflow.
+ */
+export type AboutThisWorkflowConfig = {
+  /**
+   * Project Id
+   *
+   * The ID of the project that this workflow run should be associated with
+   */
+  project_id?: string | null;
+  /**
+   * Openai Api Key
+   *
+   * The OpenAI API key to use for this workflow execution
+   */
+  openai_api_key?: string | null;
+  /**
+   * Domain
+   *
+   * Domain context for more accurate analysis
+   */
+  domain?: string | null;
+  /**
+   * Target Audience
+   *
+   * Target audience context for analysis
+   */
+  target_audience?: string | null;
+  /**
+   * Publication Date
+   *
+   * Publication date of the document (YYYY-MM-DD format)
+   */
+  publication_date?: string | null;
+  /**
+   * Type
+   */
+  type?: 'about_this';
+};
+
+/**
  * AdvocacyToneState
  *
  * State for the advocacy and tone workflow.
@@ -370,6 +485,12 @@ export type BibliographyItemValidation = {
    * Updated reference with the suggested changes made to make the reference valid, matching the format of the original reference. If the reference is already valid, return null.
    */
   updated_reference?: string | null;
+  /**
+   * Cited Url
+   *
+   * The original URL cited in the reference text (before redirect resolution).
+   */
+  cited_url?: string | null;
 };
 
 /**
@@ -3622,6 +3743,38 @@ export type ReproducibilityCategoryResponse = {
 };
 
 /**
+ * RequirementCheckResult
+ *
+ * Result for a single requirement check.
+ */
+export type RequirementCheckResult = {
+  /**
+   * Passed
+   *
+   * Whether the requirement check passed
+   */
+  passed: boolean;
+  /**
+   * Explanation
+   *
+   * Explanation of the result
+   */
+  explanation: string;
+  /**
+   * Matched Index
+   *
+   * Index of the sentence/paragraph that satisfied the requirement (-1 if none)
+   */
+  matched_index?: number;
+  /**
+   * Matched Text
+   *
+   * The text that satisfied the requirement (empty if none)
+   */
+  matched_text?: string;
+};
+
+/**
  * ResultSection
  */
 export type ResultSection = {
@@ -4174,6 +4327,7 @@ export type WorkflowRunDetail = {
    */
   state:
     | AboutAuthorsState
+    | AboutThisState
     | AdvocacyToneState
     | DocumentProcessingState
     | ChunkSplittingState
@@ -4234,6 +4388,7 @@ export const WorkflowRunType = {
   ClaimReferenceValidation: 'claim_reference_validation',
   AdvocacyTone: 'advocacy_tone',
   AboutAuthors: 'about_authors',
+  AboutThis: 'about_this',
 } as const;
 
 /**
@@ -4464,6 +4619,7 @@ export type WorkflowRunDetailWritable = {
    */
   state:
     | AboutAuthorsState
+    | AboutThisState
     | AdvocacyToneState
     | DocumentProcessingStateWritable
     | ChunkSplittingState
@@ -4668,6 +4824,7 @@ export type StartWorkflowApiWorkflowsStartPostData = {
    */
   body:
     | AboutAuthorsWorkflowConfig
+    | AboutThisWorkflowConfig
     | AdvocacyToneWorkflowConfig
     | DocumentProcessingWorkflowConfig
     | ChunkSplittingWorkflowConfig
