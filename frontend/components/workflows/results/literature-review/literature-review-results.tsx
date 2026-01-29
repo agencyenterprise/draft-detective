@@ -2,8 +2,9 @@
 
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
+import { EmptyState } from '@/components/shared/empty-state';
 import { LiteratureReviewState, WorkflowRunDetail } from '@/lib/generated-api';
-import { AlertCircle, BookOpen } from 'lucide-react';
+import { BookOpen } from 'lucide-react';
 import * as React from 'react';
 import { ReferenceCard } from './reference-card';
 import { filterReferences, FilterState, ReferenceFilters } from './reference-filters';
@@ -59,14 +60,7 @@ export function LiteratureReviewResults({ workflowDetail }: LiteratureReviewResu
 
       <div className="space-y-4">
         {filteredReferences.length === 0 ? (
-          <Card>
-            <CardContent className="flex items-center justify-center py-12">
-              <div className="text-center space-y-2">
-                <AlertCircle className="h-8 w-8 text-muted-foreground mx-auto" />
-                <p className="text-sm text-muted-foreground">No references match the selected filters</p>
-              </div>
-            </CardContent>
-          </Card>
+          <EmptyState message="No references match the selected filters" />
         ) : (
           filteredReferences.map((reference, index) => (
             <ReferenceCard
