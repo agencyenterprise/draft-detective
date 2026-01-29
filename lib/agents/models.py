@@ -17,6 +17,8 @@ class DocumentMetadata(BaseModel):
         default=None,
         description="The headings associated with the paragraph, in order of hierarchy",
     )
+    start_line: int = Field(ge=1, description="1-indexed starting line in markdown")
+    end_line: int = Field(ge=1, description="1-indexed ending line in markdown")
 
     @field_validator("paragraph_index", "chunk_index", "chunk_index_within_paragraph")
     @classmethod
@@ -54,6 +56,8 @@ class ChunkWithIndex(BaseModel):
         default=None,
         description="The headings associated with the chunk, in order of hierarchy",
     )
+    start_line: int = Field(ge=1, description="1-indexed starting line in markdown")
+    end_line: int = Field(ge=1, description="1-indexed ending line in markdown")
 
 
 class ClaimCategory(str, Enum):

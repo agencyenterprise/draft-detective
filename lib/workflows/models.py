@@ -119,7 +119,12 @@ class DocumentIssue(BaseModel):
     description: str = Field(description="The description of the issue")
     severity: SeverityEnum = Field(description="The severity of the issue")
     chunk_index: Optional[int] = Field(
-        description="The index of the chunk that contains the issue", default=None
+        description="The index of the chunk that contains the issue (deprecated, use chunk_indices)",
+        default=None,
+    )
+    chunk_indices: Optional[List[int]] = Field(
+        description="The indices of all chunks that contain the issue",
+        default=None,
     )
     claim_index: Optional[int] = Field(
         description="The index of the claim that contains the issue", default=None

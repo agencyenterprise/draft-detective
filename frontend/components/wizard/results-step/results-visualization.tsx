@@ -77,9 +77,9 @@ export function ResultsVisualization({
           <AnalysesTab
             projectDetail={projectDetail}
             readOnly={readOnly}
-            onNavigateToDocumentExplorer={(chunkIndex?: number) => {
-              if (chunkIndex !== undefined) {
-                window.history.pushState(null, '', `#chunk-${chunkIndex}`);
+            onNavigateToDocumentExplorer={(chunkIndices?: number[]) => {
+              if (chunkIndices && chunkIndices.length > 0) {
+                window.history.pushState(null, '', `#chunks-${chunkIndices.join(',')}`);
                 window.dispatchEvent(new HashChangeEvent('hashchange'));
               }
               setActiveTab('document-explorer');

@@ -29,7 +29,7 @@ import { toast } from 'sonner';
 interface AnalysesTabProps {
   projectDetail: ProjectDetailed;
   readOnly?: boolean;
-  onNavigateToDocumentExplorer?: (chunkIndex?: number) => void;
+  onNavigateToDocumentExplorer?: (chunkIndices?: number[]) => void;
   onNavigateToReferences?: () => void;
 }
 

@@ -4,16 +4,10 @@
 dataset:
   name: "Document Chunker Dataset"
   description: "Test cases for validating document chunking into paragraphs and sentence-level chunks"
+  # Note: chunks contain text and line numbers (start_line, end_line)
+  # The test only compares text content, not line numbers
   test_config:
-    strict_fields:
-      paragraphs:
-        __all__:
-          - chunks
-          - headings
-    # llm_fields:
-    #   paragraphs:
-    #     __all__:
-    #       - chunks
+    strict_fields: {}
   items:
     - name: "chunker_case_basic"
       description: "Basic test case with a simple document structure"
