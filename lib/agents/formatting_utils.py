@@ -32,7 +32,7 @@ def format_headings_context(headings: Optional[List[str]]) -> str:
     # Format with indentation to show hierarchy
     formatted = "\n".join(f"{'  ' * i}{heading}" for i, heading in enumerate(headings))
 
-    return f"""        
+    return f"""
 ## Document Section Context
 The following headings provide context about which section of the document this chunk belongs to:
 ```
