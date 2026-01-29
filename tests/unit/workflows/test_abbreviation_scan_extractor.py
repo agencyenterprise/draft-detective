@@ -7,7 +7,7 @@ from lib.workflows.chunk_utils import AnalyzedChunk
 def test_extracts_definitions_and_acronyms():
     chunks = [
         AnalyzedChunk(
-            start_line=0,
+            start_line=1,
             end_line=1,
             chunk_index=0,
             paragraph_index=0,
@@ -48,7 +48,7 @@ def test_extracts_definitions_and_acronyms():
 def test_dedup_prefers_definition():
     chunks = [
         AnalyzedChunk(
-            start_line=0,
+            start_line=1,
             end_line=1,
             chunk_index=0,
             paragraph_index=0,
@@ -82,7 +82,7 @@ def test_dedup_prefers_definition():
 def test_excludes_reference_section_chunks_by_heading_keywords():
     chunks = [
         AnalyzedChunk(
-            start_line=0,
+            start_line=1,
             end_line=1,
             chunk_index=0,
             paragraph_index=0,
