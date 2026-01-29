@@ -6,6 +6,48 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v0.5.5] - 2026-01-28
+
+### Added
+- Extracted chunk splitting into a standalone `chunk_splitting` workflow and added `WorkflowRunType.CHUNK_SPLITTING`.
+- Added rate limiting and retry logic for Jina API calls in the reference downloader workflow.
+- Added an `AGENTS.md` file.
+- Extracted document summarization into a separate `document_summarization` workflow and added `DOCUMENT_SUMMARIZATION` to `WorkflowRunType`.
+- Added UX improvements for uploading and reference review, including parallel reference fetching and improved loading feedback.
+- Added a new agentic reference extractor (v2) using tool-calling, plus new document search and line-range read tools.
+- Added automatic batching for parallel workflow node progress tracking.
+- Added support for deep-linking to wizard steps via a `?step=` URL parameter and added `initialStep` support in the wizard context.
+- Added a human review step in the analysis wizard with a new human approval workflow and an API endpoint for approving workflow runs.
+- Added batch upload for supporting documents with incremental processing capabilities.
+- Added heading context propagation through chunking and claim extraction, and introduced file artifact caching (markdown/summary).
+- Added reference validation results to the reference review card component.
+- Added a reference file matching review screen (tab hidden) with supporting API endpoints and UI components.
+- Added an admin-only user role management page with endpoints to list users and update roles.
+- Added warning callouts when reference extraction completes without finding any references.
+- Added a new project-level workflow progress endpoint (`GET /api/projects/{project_id}/workflow-progress`).
+
+### Changed
+- Refactored the `document_processing` workflow to remove chunk splitting responsibilities and updated dependent workflows to retrieve chunks via a helper.
+- Updated the upload flow and results calculations to use the new chunk splitting workflow state and regenerated API types accordingly.
+- Converted reference downloader file download and content reading utilities from sync wrappers to native async and improved error visibility.
+- Simplified the analysis wizard UX, improved loading states, and moved supporting document uploads to Step 3 (reference review).
+- Split the `reference_extraction` workflow into separate extraction and `reference_file_matching` workflows and updated frontend to compose references from both states.
+- Replaced `reference_index` with UUID-based `reference_id` across reference downloader and file matching workflows and updated related frontend usage.
+- Implemented a two-step wizard flow that starts document processing immediately after upload and refactored workflow orchestration to prevent race conditions when re-running workflows.
+- Removed unneeded context statements from `{domain_context}` and `{audience_context}` inputs and added an `# Agent Inputs` section to the prompt.
+- Refactored workflow progress tracking from per-workflow-run polling to a project-level API and updated the frontend progress toast hook accordingly.
+
+### Fixed
+- Improved recursion limit error handling for reference downloads by increasing the recursion limit and adding user-friendly frontend error messages.
+- Updated claim reference validation and claim categorization to only process and flag central claims, skipping non-central claims.
+
+### Security
+- Added admin-only protection for user management endpoints via a `require_admin` dependency and frontend route guarding.
+
+### Removed
+- Removed the per-workflow-run progress endpoint (`/api/progress/workflow/{workflow_run_id}`) and the unused frontend `use-workflow-progress.ts` hook.
+
+
 ## [v0.5.3, v0.5.4] - 2026-01-16
 
 ### Added
