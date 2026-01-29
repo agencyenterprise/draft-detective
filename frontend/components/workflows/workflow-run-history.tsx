@@ -20,7 +20,8 @@ interface WorkflowRunHistoryProps {
   projectId: string;
   workflowType: WorkflowRunType;
   currentRunId: string;
-  onSelectRun: (runId: string) => void;
+  /** Called with the full run detail when user selects a run from history */
+  onSelectRun: (run: WorkflowRunDetail) => void;
 }
 
 export function WorkflowRunHistory({ projectId, workflowType, currentRunId, onSelectRun }: WorkflowRunHistoryProps) {
@@ -36,8 +37,8 @@ export function WorkflowRunHistory({ projectId, workflowType, currentRunId, onSe
     enabled: isOpen,
   });
 
-  const handleSelectRun = (runId: string) => {
-    onSelectRun(runId);
+  const handleSelectRun = (run: WorkflowRunDetail) => {
+    onSelectRun(run);
     setIsOpen(false);
   };
 
@@ -71,7 +72,7 @@ export function WorkflowRunHistory({ projectId, workflowType, currentRunId, onSe
                   detail={detail}
                   isLatest={index === 0}
                   isSelected={detail.run.id === currentRunId}
-                  onSelect={() => handleSelectRun(detail.run.id)}
+                  onSelect={() => handleSelectRun(detail)}
                 />
               ))}
             </div>

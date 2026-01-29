@@ -20,16 +20,15 @@ import {
   ProjectDetailed,
   WorkflowRunDetail,
   WorkflowRunType,
-  getWorkflowStateApiWorkflowsWorkflowRunIdGet,
   startMultipleWorkflowsApiWorkflowsStartMultiplePost,
 } from '@/lib/generated-api';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { cn } from '@/lib/utils';
 import { getCurrentRunErrors, getDisplayStatus, getWorkflowTypeName, hasCurrentRunErrors } from '@/lib/workflow-state';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { formatDistanceToNow } from 'date-fns';
 import { AlertTriangleIcon, ArrowRight, FileText, PlusIcon } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { toast } from 'sonner';
 
 interface AnalysesTabProps {
@@ -116,6 +115,28 @@ function renderWorkflowResults(
   }
 }
 
+/** Renders errors card (if any) and workflow results for a selected run */
+function WorkflowResultsContent({
+  projectDetail,
+  workflowRun,
+  onNavigateToDocumentExplorer,
+  onNavigateToReferences,
+}: {
+  projectDetail: ProjectDetailed;
+  workflowRun: WorkflowRunDetail;
+  onNavigateToDocumentExplorer?: (chunkIndex?: number) => void;
+  onNavigateToReferences?: () => void;
+}) {
+  const currentErrors = getCurrentRunErrors(workflowRun);
+
+  return (
+    <>
+      {currentErrors.length > 0 && <ErrorsCard errors={currentErrors} />}
+      {renderWorkflowResults(projectDetail, workflowRun, onNavigateToDocumentExplorer, onNavigateToReferences)}
+    </>
+  );
+}
+
 export function AnalysesTab({
   projectDetail,
   readOnly,
@@ -124,9 +145,8 @@ export function AnalysesTab({
 }: AnalysesTabProps) {
   const projectId = projectDetail.project.id;
   const workflowDetails = projectDetail.workflow_runs ?? [];
-  const [selectedWorkflowRunId, setSelectedWorkflowRunId] = useState<string | null>(null);
-  // Track if user selected a historical run (not from the current project details)
-  const [historicalRunId, setHistoricalRunId] = useState<string | null>(null);
+  // Store the full selected workflow run (either from list or history)
+  const [selectedWorkflowRun, setSelectedWorkflowRun] = useState<WorkflowRunDetail | null>(null);
   const [isConfigDialogOpen, setIsConfigDialogOpen] = useState(false);
   const queryClient = useQueryClient();
   const { isWorkflowTypeVisible } = useWorkflowTypes();
@@ -144,52 +164,15 @@ export function AnalysesTab({
     onSuccess: () => {
       toast.success('Workflows started');
       queryClient.invalidateQueries({ queryKey: ['project', projectId] });
-      // Clear historical run selection when starting new workflows
-      setHistoricalRunId(null);
     },
     onError: (error) => {
       toast.error(error instanceof Error ? error.message : 'Failed to start workflows');
     },
   });
 
-  // Fetch historical run details if a historical run is selected
-  const { data: historicalRunDetail, isLoading: isLoadingHistorical } = useQuery({
-    queryKey: ['workflow-run', historicalRunId],
-    queryFn: () =>
-      getWorkflowStateApiWorkflowsWorkflowRunIdGet({
-        path: { workflow_run_id: historicalRunId! },
-      }),
-    enabled: !!historicalRunId,
-  });
-
   const filteredWorkflowDetails = workflowDetails.filter((workflowDetail) =>
     isWorkflowTypeVisible(workflowDetail.run.type),
   );
-
-  // Determine the selected workflow run - either from project details or historical fetch
-  const selectedWorkflowRun = useMemo(() => {
-    // If a historical run is selected and loaded, use it
-    if (historicalRunId && historicalRunDetail) {
-      return historicalRunDetail;
-    }
-    // Otherwise use the run from project details
-    return workflowDetails.find((workflowDetail) => workflowDetail.run.id === selectedWorkflowRunId);
-  }, [historicalRunId, historicalRunDetail, workflowDetails, selectedWorkflowRunId]);
-
-  // Handle selecting a run from history
-  const handleSelectHistoricalRun = (runId: string) => {
-    // Check if this run is in the current project details
-    const existsInDetails = workflowDetails.some((w) => w.run.id === runId);
-    if (existsInDetails) {
-      // Use the existing data, no need to fetch
-      setSelectedWorkflowRunId(runId);
-      setHistoricalRunId(null);
-    } else {
-      // Need to fetch the historical run
-      setHistoricalRunId(runId);
-      setSelectedWorkflowRunId(null);
-    }
-  };
 
   const handleStartNewAnalysis = () => {
     setIsConfigDialogOpen(true);
@@ -198,12 +181,6 @@ export function AnalysesTab({
   const handleConfirmStartAnalysis = async (values: WorkflowConfigFormValues) => {
     setIsConfigDialogOpen(false);
     startMultipleWorkflows(values);
-  };
-
-  // Handle selecting a workflow type from the list
-  const handleSelectWorkflowType = (runId: string) => {
-    setSelectedWorkflowRunId(runId);
-    setHistoricalRunId(null); // Clear any historical selection
   };
 
   return (
@@ -227,7 +204,7 @@ export function AnalysesTab({
             return (
               <button
                 key={workflowDetail.run.id}
-                onClick={() => handleSelectWorkflowType(workflowDetail.run.id)}
+                onClick={() => setSelectedWorkflowRun(workflowDetail)}
                 className={cn(
                   'w-full text-left p-3 rounded-lg border transition-colors hover:bg-muted/50 cursor-pointer shadow-xs',
                   selectedWorkflowRun?.run.id === workflowDetail.run.id && 'bg-muted border-primary shadow',
@@ -272,7 +249,7 @@ export function AnalysesTab({
                     projectId={projectId}
                     workflowType={selectedWorkflowRun.run.type}
                     currentRunId={selectedWorkflowRun.run.id}
-                    onSelectRun={handleSelectHistoricalRun}
+                    onSelectRun={setSelectedWorkflowRun}
                   />
                   {!readOnly && (
                     <StartWorkflowButton
@@ -303,27 +280,12 @@ export function AnalysesTab({
               </div>
             </div>
             <div className="border-t pt-4 space-y-4">
-              {isLoadingHistorical ? (
-                <div className="flex items-center justify-center py-8">
-                  <div className="text-center space-y-2">
-                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto" />
-                    <p className="text-sm text-muted-foreground">Loading historical run...</p>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  {(() => {
-                    const currentErrors = getCurrentRunErrors(selectedWorkflowRun);
-                    return currentErrors.length > 0 && <ErrorsCard errors={currentErrors} />;
-                  })()}
-                  {renderWorkflowResults(
-                    projectDetail,
-                    selectedWorkflowRun,
-                    onNavigateToDocumentExplorer,
-                    onNavigateToReferences,
-                  )}
-                </>
-              )}
+              <WorkflowResultsContent
+                projectDetail={projectDetail}
+                workflowRun={selectedWorkflowRun}
+                onNavigateToDocumentExplorer={onNavigateToDocumentExplorer}
+                onNavigateToReferences={onNavigateToReferences}
+              />
             </div>
           </div>
         ) : (
