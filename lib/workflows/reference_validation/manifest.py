@@ -1,9 +1,8 @@
-from typing import List, Optional, Type, cast
+from typing import List, Type
 
 from langgraph.graph import StateGraph
 
-from lib.workflows.chunk_utils import find_chunk_index_by_text
-from lib.workflows.document_processing.state import DocumentProcessingState
+from lib.workflows.chunk_utils import build_analyzed_chunks, find_chunk_index_by_text
 from lib.workflows.manifest import WorkflowManifest
 from lib.workflows.models import DocumentIssue, SeverityEnum, WorkflowRunType
 from lib.workflows.reference_validation.graph import build_reference_validation_graph
@@ -12,7 +11,6 @@ from lib.workflows.reference_validation.state import (
     ReferenceValidationWorkflowConfig,
 )
 from lib.workflows.types import WorkflowState
-from lib.workflows.util import get_state_by_type
 
 
 class ReferenceValidationManifest(
@@ -54,18 +52,14 @@ class ReferenceValidationManifest(
         """Convert ReferenceValidationState to issues."""
         issues: List[DocumentIssue] = []
 
-        doc_state = get_state_by_type(WorkflowRunType.DOCUMENT_PROCESSING, other_states)
+        chunks = build_analyzed_chunks(other_states)
 
         # Reference Validation: Invalid references
         for validation in state.reference_validations:
             if not validation.valid_reference:
-                # Try to find chunk_index from claim_state if available
-                chunk_index: Optional[int] = None
-                if doc_state:
-                    doc_state_typed = cast(DocumentProcessingState, doc_state)
-                    chunk_index = find_chunk_index_by_text(
-                        doc_state_typed.chunks, validation.original_reference
-                    )
+                chunk_index = find_chunk_index_by_text(
+                    chunks, validation.original_reference
+                )
 
                 issue = DocumentIssue(
                     title="Invalid reference",

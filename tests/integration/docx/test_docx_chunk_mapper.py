@@ -5,9 +5,12 @@ from pathlib import Path
 import pytest
 from docx import Document
 
+from lib.agents.document_chunker_nltk import (
+    DocumentChunkerAgent,
+    get_chunker_result_as_langchain_documents,
+)
 from lib.services.docx.chunk_mapper import create_chunk_to_paragraph_mapping
 from lib.services.file_artifacts_service.mock import MockFileArtifactsService
-from lib.services.nltk_text_splitter import NLTKTextSplitter
 from lib.workflows.context import ContextSchema
 from lib.workflows.document_processing.nodes.split_into_chunks import (
     convert_validate_documents_to_chunks,
@@ -31,8 +34,9 @@ async def test_chunk_to_docx_mapping_agi_minimal():
         run_id="test-run",
         file_artifacts_service=MockFileArtifactsService(),
     )
-    chunker = NLTKTextSplitter(context=context)
-    docs = await chunker.create_documents([file_doc.markdown])
+    chunker = DocumentChunkerAgent(context=context)
+    result = await chunker.ainvoke(prompt_kwargs={"full_document": file_doc.markdown})
+    docs = get_chunker_result_as_langchain_documents(result)
     chunks = convert_validate_documents_to_chunks(docs)
 
     docx_path = data_path("evals/data/geopolitics-of-agi-minimal-1/_original.docx")
@@ -191,8 +195,9 @@ async def test_add_comments_to_docx():
         run_id="test-run",
         file_artifacts_service=MockFileArtifactsService(),
     )
-    chunker = NLTKTextSplitter(context=context)
-    docs = await chunker.create_documents([file_doc.markdown])
+    chunker = DocumentChunkerAgent(context=context)
+    result = await chunker.ainvoke(prompt_kwargs={"full_document": file_doc.markdown})
+    docs = get_chunker_result_as_langchain_documents(result)
     chunks = convert_validate_documents_to_chunks(docs)
 
     comments = [

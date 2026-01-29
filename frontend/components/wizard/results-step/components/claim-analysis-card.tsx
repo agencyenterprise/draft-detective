@@ -129,8 +129,15 @@ export function ClaimAnalysisCard({
 
       {isExpanded && (
         <>
-          <LabeledValue label="Extracted Claim">{claim.claim}</LabeledValue>
-          {'central' in claim && <LabeledValue label="Central Claim">{claim.central ? 'Yes' : 'No'}</LabeledValue>}
+          <div className="space-y-1">
+            <LabeledValue label="Extracted Claim">{claim.claim}</LabeledValue>
+            {'central' in claim && (
+              <>
+                <LabeledValue label="Central Claim">{claim.central ? 'Yes' : 'No'}</LabeledValue>
+                <LabeledValue label="Centrality Rationale">{claim.centrality_rationale}</LabeledValue>
+              </>
+            )}
+          </div>
 
           <div className="space-y-2">
             <ClaimArgumentAnalysis claim={claim} />

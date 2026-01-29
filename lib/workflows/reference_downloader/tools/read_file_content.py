@@ -1,5 +1,3 @@
-import asyncio
-
 import aiofiles
 from langchain.tools import ToolRuntime, tool
 
@@ -9,7 +7,7 @@ from lib.workflows.context import ContextSchema
 
 
 @tool()
-def read_file_content(file_id: str, runtime: ToolRuntime[ContextSchema]):
+async def read_file_content(file_id: str, runtime: ToolRuntime[ContextSchema]):
     """
     Read the content of a file by its ID. Returns the content of the file in markdown format. Truncates the content to the first 4000 characters.
 
@@ -20,7 +18,7 @@ def read_file_content(file_id: str, runtime: ToolRuntime[ContextSchema]):
         The first 4000 characters of the content of the file in markdown format.
     """
 
-    return asyncio.run(_read_file_content_async(file_id))
+    return await _read_file_content_async(file_id)
 
 
 async def _read_file_content_async(file_id: str) -> str | None:

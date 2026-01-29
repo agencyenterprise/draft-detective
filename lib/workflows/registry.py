@@ -41,6 +41,7 @@ def get_workflow_manifest(
 
 def register_all_workflow_manifests():
     from lib.workflows.abbreviation_scan.manifest import AbbreviationScanManifest
+    from lib.workflows.chunk_splitting.manifest import ChunkSplittingManifest
     from lib.workflows.citation_detection.manifest import CitationDetectionManifest
     from lib.workflows.citation_suggester.manifest import CitationSuggesterManifest
     from lib.workflows.claim_extraction.manifest import ClaimExtractionManifest
@@ -69,6 +70,7 @@ def register_all_workflow_manifests():
 
     manifests = [
         DocumentProcessingManifest(),
+        ChunkSplittingManifest(),
         DocumentSummarizationManifest(),
         ReferenceExtractionManifest(),
         ReferenceFileMatchingManifest(),

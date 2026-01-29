@@ -1,4 +1,5 @@
 import {
+  ChunkSplittingState,
   CitationDetectionState,
   CitationSuggesterState,
   ClaimExtractionState,
@@ -28,6 +29,7 @@ import {
  */
 type WorkflowTypeToDetail = {
   [WorkflowRunType.DocumentProcessing]: DocumentProcessingState;
+  [WorkflowRunType.ChunkSplitting]: ChunkSplittingState;
   [WorkflowRunType.DocumentSummarization]: DocumentSummarizationState;
   [WorkflowRunType.ReferenceExtraction]: ReferenceExtractionState;
   [WorkflowRunType.ReferenceFileMatching]: ReferenceFileMatchingState;
@@ -68,6 +70,7 @@ export function getWorkflowRunByType<T extends keyof WorkflowTypeToDetail>(
 
 const workflowTypeNames: Record<WorkflowRunType, string> = {
   [WorkflowRunType.DocumentProcessing]: 'Document Processing',
+  [WorkflowRunType.ChunkSplitting]: 'Chunk Splitting',
   [WorkflowRunType.DocumentSummarization]: 'Document Summarization',
   [WorkflowRunType.ReferenceExtraction]: 'Reference Extraction',
   [WorkflowRunType.ReferenceFileMatching]: 'Reference File Matching',
