@@ -1,3 +1,11 @@
+from lib.workflows.about_authors.state import (
+    AboutAuthorsState,
+    AboutAuthorsWorkflowConfig,
+)
+from lib.workflows.advocacy_tone.state import (
+    AdvocacyToneState,
+    AdvocacyToneWorkflowConfig,
+)
 from lib.workflows.chunk_splitting.state import (
     ChunkSplittingState,
     ChunkSplittingWorkflowConfig,
@@ -73,7 +81,9 @@ from lib.workflows.results_extraction.state import (
 )
 
 WorkflowState = (
-    DocumentProcessingState
+    AboutAuthorsState
+    | AdvocacyToneState
+    | DocumentProcessingState
     | ChunkSplittingState
     | DocumentSummarizationState
     | ReferenceExtractionState
@@ -95,7 +105,9 @@ WorkflowState = (
 )
 
 WorkflowConfig = (
-    DocumentProcessingWorkflowConfig
+    AboutAuthorsWorkflowConfig
+    | AdvocacyToneWorkflowConfig
+    | DocumentProcessingWorkflowConfig
     | ChunkSplittingWorkflowConfig
     | DocumentSummarizationWorkflowConfig
     | ReferenceExtractionConfig

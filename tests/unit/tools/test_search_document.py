@@ -1,5 +1,6 @@
 """Unit tests for the search_document tool."""
 
+from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -10,6 +11,9 @@ from lib.agents.tools.search_document import (
     _search_content,
     search_document,
 )
+
+# Path to test data files
+TEST_DATA_DIR = Path(__file__).parent.parent.parent / "evals" / "data"
 
 
 class TestSearchContent:
@@ -181,6 +185,19 @@ Results from the clinical trial demonstrate improvement."""
 
         # Blocks should be separated by --
         assert "--" in result
+
+    def test_reference_section_regex_on_air_force_document(self):
+        """Test searching for reference section headers in air-force-ai-generated document."""
+        markdown_path = TEST_DATA_DIR / "air-force-ai-generated" / "_main.md"
+        content = markdown_path.read_text()
+
+        # This regex matches markdown headings (with optional # prefix) for reference sections
+        pattern = r"^\s{0,3}#{0,6}\s*(references|bibliography|works cited|literature cited|sources)\b"
+        result = _search_content(content, pattern)
+
+        # The document has "# References" at line 581
+        assert "Found 1 matches" in result
+        assert "# References" in result
 
 
 class TestSearchContentMaxMatches:

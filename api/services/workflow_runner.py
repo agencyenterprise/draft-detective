@@ -113,18 +113,25 @@ async def start_multiple_workflow_runs(
     auto_run_items: List[AutoRunWorkflowItem] = []
 
     for workflow_type in resolved_workflow_types:
+        manifest = get_workflow_manifest(workflow_type)
         existing_run = await get_project_workflow_run_by_type(
             request.project_id, workflow_type
         )
 
         # Skip if workflow is already completed and not explicitly requested
+        # unless the workflow is configured to always run
         if (
             existing_run
-            and existing_run.status == WorkflowRunStatus.COMPLETED
             and workflow_type not in workflow_types
+            and not manifest.always_run
+            and (
+                existing_run.status == WorkflowRunStatus.COMPLETED
+                # Reference extraction should always run only once per project
+                or existing_run.type == WorkflowRunType.REFERENCE_EXTRACTION
+            )
         ):
             logger.info(
-                f"Skipping {workflow_type.value} - already completed for project {request.project_id}"
+                f"Skipping {workflow_type.value} - already exists for project {request.project_id} with status {existing_run.status}"
             )
             continue
 
@@ -144,7 +151,6 @@ async def start_multiple_workflow_runs(
 
         workflow_run_ids.append(workflow_run_id)
 
-        manifest = get_workflow_manifest(workflow_type)
         if manifest.requires_human_trigger:
             logger.info(
                 f"Workflow {workflow_type.value} requires human trigger - skipping auto-run"

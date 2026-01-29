@@ -23,13 +23,16 @@ import {
   BrainCircuit,
   ClipboardCheck,
   Files,
+  ShieldCheck,
+  MessageSquareWarning,
+  Users,
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { WorkflowRunType, WorkflowTypeDescription } from '@/lib/generated-api';
 import { Badge } from '../ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
-import { WORKFLOWS_REQUIRING_SUPPORTING_DOCUMENTS } from './utils';
+import { isQaScreenerWorkflow, WORKFLOWS_REQUIRING_SUPPORTING_DOCUMENTS } from './utils';
 
 const workflowTypeIcons: Record<WorkflowRunType, LucideIcon> = {
   [WorkflowRunType.DocumentProcessing]: FileText,
@@ -50,6 +53,8 @@ const workflowTypeIcons: Record<WorkflowRunType, LucideIcon> = {
   [WorkflowRunType.ResultsExtraction]: BarChart3,
   [WorkflowRunType.InferenceValidation]: BrainCircuit,
   [WorkflowRunType.ClaimReferenceValidation]: ClipboardCheck,
+  [WorkflowRunType.AdvocacyTone]: MessageSquareWarning,
+  [WorkflowRunType.AboutAuthors]: Users,
 };
 
 const DEFAULT_ICON = FileText;
@@ -60,6 +65,10 @@ function getWorkflowIcon(type: WorkflowRunType): LucideIcon {
 
 function needsSupportingFiles(type: WorkflowRunType): boolean {
   return WORKFLOWS_REQUIRING_SUPPORTING_DOCUMENTS.includes(type);
+}
+
+function isFromQaScreener(type: WorkflowRunType): boolean {
+  return isQaScreenerWorkflow(type);
 }
 
 interface WorkflowTypeCheckboxProps {
@@ -77,6 +86,7 @@ export function WorkflowTypeCheckbox({
 }: WorkflowTypeCheckboxProps) {
   const Icon = getWorkflowIcon(workflowType.type);
   const requiresSupportingFiles = needsSupportingFiles(workflowType.type);
+  const isQaScreener = isFromQaScreener(workflowType.type);
 
   return (
     <label
@@ -124,8 +134,25 @@ export function WorkflowTypeCheckbox({
 
           <p className="text-sm text-muted-foreground leading-relaxed">{workflowType.description}</p>
 
-          {(workflowType.is_experimental || workflowType.needs_web_search || requiresSupportingFiles) && (
+          {(workflowType.is_experimental ||
+            workflowType.needs_web_search ||
+            requiresSupportingFiles ||
+            isQaScreener) && (
             <div className="flex flex-wrap items-center gap-2 pt-1">
+              {isQaScreener && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Badge variant="default" className="flex items-center gap-1 text-xs bg-blue-600 hover:bg-blue-700">
+                      <ShieldCheck className="size-3" />
+                      QA Screener
+                    </Badge>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-xs">
+                    This analysis is part of the QA Screener tool, designed for quality assurance screening of
+                    documents.
+                  </TooltipContent>
+                </Tooltip>
+              )}
               {requiresSupportingFiles && (
                 <Tooltip>
                   <TooltipTrigger asChild>

@@ -3,6 +3,8 @@
 import uuid
 
 import pytest
+from sqlalchemy import select
+from sqlmodel import col
 
 from lib.config.database import get_db
 from lib.models.workflow_progress import ProgressLevel, WorkflowProgress
@@ -38,7 +40,8 @@ def workflow_run_id():
 
     # Cleanup: delete the workflow run (will cascade to progress entries)
     with get_db() as db:
-        run = db.query(WorkflowRun).filter(WorkflowRun.id == run_id).first()
+        stmt = select(WorkflowRun).where(col(WorkflowRun.id) == run_id)
+        run = db.execute(stmt).scalar_one_or_none()
         if run:
             db.delete(run)
             db.commit()
