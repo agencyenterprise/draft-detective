@@ -127,12 +127,18 @@ def find_text_line_range(
         stripped = search_text.strip()
         pos = full_text.find(stripped, search_start)
         if pos == -1:
+            logger.warning(
+                f"Could not find text in document, defaulting to line 1. "
+                f"search_text={search_text[:100]!r}..."
+            )
             return (1, 1, search_start)
         search_text = stripped
 
     start_line = char_offset_to_line(full_text, pos)
     end_pos = pos + len(search_text)
-    end_line = char_offset_to_line(full_text, end_pos - 1)  # -1 to get line of last char
+    end_line = char_offset_to_line(
+        full_text, end_pos - 1
+    )  # -1 to get line of last char
     return (start_line, end_line, end_pos)
 
 
@@ -207,6 +213,17 @@ async def split_paragraph_into_sentences(
     return result
 
 
+async def process_paragraph_sentences(
+    para_text: str, headings: List[str], context: ContextSchema
+) -> Tuple[str, List[str], List[str]]:
+    """Process paragraph to get sentences, return (para_text, headings, sentences)."""
+    if not para_text.strip():
+        return (para_text, headings, [])
+    async with semaphore:
+        sentences = await split_paragraph_into_sentences(para_text, context=context)
+    return (para_text, headings, sentences)
+
+
 class DocumentChunkerAgent(BaseAgent):
     name = "Document Chunker (NLTK)"
     description = "Chunk a document into paragraphs and each paragraph into sentence-level chunks using NLTK"
@@ -269,20 +286,8 @@ class DocumentChunkerAgent(BaseAgent):
 
         # Process paragraphs with sentence tokenization (parallel)
         # First pass: get sentence chunks without line numbers
-        async def process_paragraph_sentences(
-            para_text: str, headings: List[str]
-        ) -> Tuple[str, List[str], List[str]]:
-            """Process paragraph to get sentences, return (para_text, headings, sentences)."""
-            if not para_text.strip():
-                return (para_text, headings, [])
-            async with semaphore:
-                sentences = await split_paragraph_into_sentences(
-                    para_text, context=self.context
-                )
-            return (para_text, headings, sentences)
-
         tasks = [
-            process_paragraph_sentences(para, headings)
+            process_paragraph_sentences(para, headings, self.context)
             for (para, headings) in paragraphs_to_process
         ]
         sentence_results = await asyncio.gather(*tasks)

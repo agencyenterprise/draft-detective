@@ -133,9 +133,7 @@ class ReferenceExtractorV2Agent(LangChainAgent):
             response_format=self.output_schema,
         )
 
-        user_message = (
-            f"""Please extract all bibliographic references from the document."""
-        )
+        user_message = "Please extract all bibliographic references from the document."
 
         result = await agent.ainvoke(
             {"messages": [{"role": "user", "content": user_message}]},
@@ -144,15 +142,3 @@ class ReferenceExtractorV2Agent(LangChainAgent):
         )
 
         return result["structured_response"]
-
-        # async for chunk in agent.astream(
-        #     {"messages": [{"role": "user", "content": user_message}]},
-        #     config={"recursion_limit": 50, **(config or {})},
-        #     context=self.context,
-        #     stream_mode="updates",
-        # ):
-        #     for step, data in chunk.items():
-        #         print(f"step: {step}")
-        #         print(f"content: {data['messages'][-1].content_blocks}")
-
-        # return data["structured_response"]

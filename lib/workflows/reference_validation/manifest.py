@@ -83,9 +83,8 @@ class ReferenceValidationManifest(
                 ref_to_chunks[ref.text] = ref.chunk_indices
 
         for validation in state.reference_validations:
-            if not validation.valid_reference:
-                chunk_indices = ref_to_chunks.get(validation.original_reference, [])
-                chunk_index = chunk_indices[0] if chunk_indices else None
+            chunk_indices = ref_to_chunks.get(validation.original_reference, [])
+            chunk_index = chunk_indices[0] if chunk_indices else None
 
             if not validation.valid_reference:
                 issue = DocumentIssue(

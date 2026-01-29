@@ -1,10 +1,10 @@
 """Utility for matching line ranges to chunk indices."""
 
-from typing import Any, List, Optional, Protocol, Sequence
+from typing import List, Optional, Protocol, Sequence
 
 
-class ChunkWithLines(Protocol):
-    """Protocol for chunks with line information."""
+class IndexedChunkWithLines(Protocol):
+    """Protocol for indexed chunks with line information."""
 
     chunk_index: int
     start_line: int
@@ -12,7 +12,7 @@ class ChunkWithLines(Protocol):
 
 
 def find_chunks_by_line_range(
-    chunks: Sequence[Any],
+    chunks: Sequence[IndexedChunkWithLines],
     start_line: int,
     end_line: int,
 ) -> List[int]:
@@ -38,7 +38,7 @@ def find_chunks_by_line_range(
 
 
 def find_chunk_by_line(
-    chunks: Sequence[Any],
+    chunks: Sequence[IndexedChunkWithLines],
     line: int,
 ) -> Optional[int]:
     """
@@ -55,4 +55,3 @@ def find_chunk_by_line(
         if chunk.start_line <= line <= chunk.end_line:
             return chunk.chunk_index
     return None
-
