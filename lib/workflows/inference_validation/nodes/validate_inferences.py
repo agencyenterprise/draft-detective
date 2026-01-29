@@ -9,13 +9,12 @@ from lib.agents.inference_validator import (
     InferenceValidatorAgent,
 )
 from lib.agents.models import ClaimCategory
-from lib.run_utils import run_tasks
+from lib.run_utils import convert_exceptions_to_workflow_errors, run_tasks
 from lib.services.file_artifacts_service.types import FileArtifactsServiceType
 from lib.workflows.chunk_utils import AnalyzedChunk
-from lib.workflows.context import ContextSchema, get_current_workflow_run_id
+from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
 from lib.workflows.inference_validation.state import InferenceValidationState
-from lib.workflows.models import WorkflowError
 
 logger = logging.getLogger(__name__)
 
@@ -62,18 +61,10 @@ async def validate_inferences(
             validation_results.extend(chunk_results)
 
     # Collect errors
-    errors = []
-    for index, exception in enumerate(exceptions):
-        if exception is not None:
-            chunk_index = target_chunks[index].chunk_index
-            errors.append(
-                WorkflowError(
-                    task_name="validate_inferences",
-                    error=str(exception),
-                    chunk_index=chunk_index,
-                    workflow_run_id=get_current_workflow_run_id(),
-                )
-            )
+    chunk_indices = [c.chunk_index for c in target_chunks]
+    errors = convert_exceptions_to_workflow_errors(
+        "validate_inferences", exceptions, chunk_indices
+    )
 
     return {"inference_validations": validation_results, "errors": errors}
 

@@ -6,15 +6,14 @@ from langgraph.runtime import Runtime
 
 from lib.agents.document_summarizer import DocumentSummarizerAgent
 from lib.models.file import FileRole
-from lib.run_utils import run_tasks
+from lib.run_utils import convert_exceptions_to_workflow_errors, run_tasks
 from lib.services.file import FileDocument
-from lib.workflows.context import ContextSchema, get_current_workflow_run_id
+from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
 from lib.workflows.document_summarization.state import (
     DocumentSummarizationState,
     FileSummary,
 )
-from lib.workflows.models import WorkflowError
 
 logger = logging.getLogger(__name__)
 
@@ -108,16 +107,7 @@ async def summarize_documents(
     results, exceptions = await run_tasks(tasks, desc="Summarizing documents")
 
     summaries: List[FileSummary] = [result for result in results if result is not None]
-    workflow_run_id = get_current_workflow_run_id()
-    errors = [
-        WorkflowError(
-            task_name="summarize_documents",
-            error=str(exception),
-            workflow_run_id=workflow_run_id,
-        )
-        for exception in exceptions
-        if exception is not None
-    ]
+    errors = convert_exceptions_to_workflow_errors("summarize_documents", exceptions)
 
     # Persist summary artifacts to database for caching
     _persist_summary_artifacts(summaries)

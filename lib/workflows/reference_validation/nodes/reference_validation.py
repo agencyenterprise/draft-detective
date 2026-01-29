@@ -8,11 +8,10 @@ from lib.agents.reference_validator import (
     BibliographyItemValidation,
     ReferenceValidatorAgent,
 )
-from lib.run_utils import run_tasks
-from lib.workflows.context import ContextSchema, get_current_workflow_run_id
+from lib.run_utils import convert_exceptions_to_workflow_errors, run_tasks
+from lib.workflows.context import ContextSchema
 from lib.services.url_redirect_checker import get_final_url
 from lib.workflows.decorators import register_node
-from lib.workflows.models import WorkflowError
 from lib.workflows.reference_extraction.state import ExtractedReference
 from lib.workflows.reference_validation.state import ReferenceValidationState
 
@@ -47,17 +46,7 @@ async def reference_validation(
         if validation_response is not None:
             validation_responses.append(validation_response)
 
-    errors = []
-    workflow_run_id = get_current_workflow_run_id()
-    for index, exception in enumerate(exceptions):
-        if exception is not None:
-            errors.append(
-                WorkflowError(
-                    task_name="validate_references",
-                    error=str(exception),
-                    workflow_run_id=workflow_run_id,
-                )
-            )
+    errors = convert_exceptions_to_workflow_errors("validate_references", exceptions)
 
     return {"reference_validations": validation_responses, "errors": errors}
 

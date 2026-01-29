@@ -9,7 +9,7 @@ from lib.agents.claim_verifier import (
 )
 from lib.agents.formatting_utils import format_audience_context, format_domain_context
 from lib.models.bibliography_item import BibliographyItem
-from lib.run_utils import run_tasks
+from lib.run_utils import convert_exceptions_to_workflow_errors, run_tasks
 from lib.services.file import FileDocument
 from lib.services.file_artifacts_service.types import FileArtifactsServiceType
 from lib.workflows.chunk_utils import AnalyzedChunk
@@ -18,9 +18,8 @@ from lib.workflows.claim_reference_validation.reference_providers import (
     get_all_paragraph_citations,
 )
 from lib.workflows.claim_reference_validation.state import ClaimReferenceValidationState
-from lib.workflows.context import ContextSchema, get_current_workflow_run_id
+from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
-from lib.workflows.models import WorkflowError
 
 logger = logging.getLogger(__name__)
 
@@ -175,18 +174,10 @@ async def verify_claims(
         if substantiations_list is not None:
             all_substantiations.extend(substantiations_list)
 
-    errors = []
-    for index, exception in enumerate(exceptions):
-        if exception is not None:
-            chunk_index = target_chunks[index].chunk_index
-            errors.append(
-                WorkflowError(
-                    task_name="verify_claims",
-                    error=str(exception),
-                    chunk_index=chunk_index,
-                    workflow_run_id=get_current_workflow_run_id(),
-                )
-            )
+    chunk_indices = [c.chunk_index for c in target_chunks]
+    errors = convert_exceptions_to_workflow_errors(
+        "verify_claims", exceptions, chunk_indices
+    )
 
     return {"substantiations": all_substantiations, "errors": errors}
 

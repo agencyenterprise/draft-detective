@@ -1,9 +1,8 @@
 from typing import Callable, List, Tuple
 
-from lib.run_utils import run_tasks
+from lib.run_utils import convert_exceptions_to_workflow_errors, run_tasks
 from lib.workflows.chunk_utils import AnalyzedChunk
-from lib.workflows.context import get_current_workflow_run_id
-from lib.workflows.models import BaseWorkflowState, WorkflowError
+from lib.workflows.models import BaseWorkflowState
 
 
 def get_target_chunks(state: BaseWorkflowState) -> List[AnalyzedChunk]:
@@ -46,18 +45,9 @@ async def iterate_chunks(
     )
     updated_chunks, exceptions = results
 
-    errors = []
-    workflow_run_id = get_current_workflow_run_id()
-    for index, exception in enumerate(exceptions):
-        if exception is not None:
-            chunk_index = target_chunks[index].chunk_index
-            errors.append(
-                WorkflowError(
-                    task_name=func.__name__,
-                    error=str(exception),
-                    chunk_index=chunk_index,
-                    workflow_run_id=workflow_run_id,
-                )
-            )
+    chunk_indices = [c.chunk_index for c in target_chunks]
+    errors = convert_exceptions_to_workflow_errors(
+        func.__name__, exceptions, chunk_indices
+    )
 
     return {"chunks": updated_chunks, "errors": errors}

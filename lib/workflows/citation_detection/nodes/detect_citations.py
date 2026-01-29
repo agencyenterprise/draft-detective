@@ -8,12 +8,11 @@ from lib.agents.citation_detector import (
     CitationResponseWithChunkIndex,
 )
 from lib.models.footnote_item import FootnoteItem
-from lib.run_utils import run_tasks
+from lib.run_utils import convert_exceptions_to_workflow_errors, run_tasks
 from lib.workflows.citation_detection.state import CitationDetectionState
 from lib.workflows.chunk_utils import AnalyzedChunk
-from lib.workflows.context import ContextSchema, get_current_workflow_run_id
+from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
-from lib.workflows.models import WorkflowError
 from lib.workflows.reference_extraction.state import ExtractedReference
 
 logger = logging.getLogger(__name__)
@@ -70,18 +69,10 @@ async def detect_citations(
     detected_citations, exceptions = results
 
     # Collect errors
-    errors = []
-    for index, exception in enumerate(exceptions):
-        if exception is not None:
-            chunk_index = target_chunks[index].chunk_index
-            errors.append(
-                WorkflowError(
-                    task_name="_detect_chunk_citations",
-                    error=str(exception),
-                    chunk_index=chunk_index,
-                    workflow_run_id=get_current_workflow_run_id(),
-                )
-            )
+    chunk_indices = [c.chunk_index for c in target_chunks]
+    errors = convert_exceptions_to_workflow_errors(
+        "_detect_chunk_citations", exceptions, chunk_indices
+    )
 
     # Filter out None results (from errors)
     valid_citations: List[CitationResponseWithChunkIndex] = [
