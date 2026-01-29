@@ -87,12 +87,25 @@ class ReferenceValidationManifest(
                 chunk_indices = ref_to_chunks.get(validation.original_reference, [])
                 chunk_index = chunk_indices[0] if chunk_indices else None
 
+            if not validation.valid_reference:
                 issue = DocumentIssue(
                     title="Invalid reference",
                     description=f'Possible invalid reference: "{validation.original_reference}"',
                     severity=SeverityEnum.MEDIUM,
                     chunk_index=chunk_index,
                     chunk_indices=chunk_indices if chunk_indices else None,
+                )
+                issues.append(issue)
+
+            if validation.cited_url and validation.url != validation.cited_url:
+                issue = DocumentIssue(
+                    title="URL redirect detected",
+                    description=(
+                        f"Cited URL redirects to a different location. "
+                        f"Cited: {validation.cited_url} → Canonical: {validation.url}"
+                    ),
+                    severity=SeverityEnum.MEDIUM,
+                    chunk_index=chunk_index,
                 )
                 issues.append(issue)
 

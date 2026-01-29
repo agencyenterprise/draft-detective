@@ -29,6 +29,7 @@ class DocumentProcessingManifest(
         # that were downloaded by reference downloader
         WorkflowRunType.REFERENCE_DOWNLOADER,
     ]
+    always_run = True  # Always run document processing to ensure new files are processed. The workflow processes only new files in subsequent runs, reusing cached results from previous runs.
 
     def get_state_type(self) -> Type[DocumentProcessingState]:
         """Get the type of the workflow state."""

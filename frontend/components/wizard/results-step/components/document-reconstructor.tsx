@@ -59,19 +59,34 @@ export function DocumentReconstructor({
     overscan: viewportBasedOverscan,
   });
 
+  // Scroll to selected chunk when selection changes
+  // Uses a retry mechanism to handle TanStack Virtual's inaccurate positioning
+  // with variable-height items that haven't been measured yet
   useEffect(() => {
-    if (selectedChunkIndices.length > 0) {
-      const chunk = chunks.find((c) => c.chunk_index === selectedChunkIndices[0]);
-      if (chunk) {
-        const paragraphRowIndex = paragraphEntries.findIndex(([pIndex]) => Number(pIndex) === chunk.paragraph_index);
-        if (paragraphRowIndex !== -1) {
-          rowVirtualizer.scrollToIndex(paragraphRowIndex, {
-            align: 'center',
-            behavior: 'smooth',
-          });
-        }
-      }
-    }
+    if (selectedChunkIndices.length === 0) return;
+
+    // Find which paragraph contains the first selected chunk
+    const chunk = chunks.find((c) => c.chunk_index === selectedChunkIndices[0]);
+    if (!chunk) return;
+
+    const paragraphRowIndex = paragraphEntries.findIndex(([pIndex]) => Number(pIndex) === chunk.paragraph_index);
+    if (paragraphRowIndex === -1) return;
+
+    // Check if the target paragraph is currently visible
+    // Use 'center' to bring off-screen items into view, 'auto' to avoid jumps when already visible
+    const range = rowVirtualizer.range;
+    const isVisible = range && paragraphRowIndex >= range.startIndex && paragraphRowIndex <= range.endIndex;
+    const align = isVisible ? 'auto' : 'center';
+
+    // Initial scroll (may be inaccurate due to unmeasured items)
+    rowVirtualizer.scrollToIndex(paragraphRowIndex, { align });
+
+    // Retry after measurements stabilize for accurate positioning
+    const timeoutId = setTimeout(() => {
+      rowVirtualizer.scrollToIndex(paragraphRowIndex, { align });
+    }, 100);
+
+    return () => clearTimeout(timeoutId);
   }, [selectedChunkIndices, chunks, paragraphEntries, rowVirtualizer]);
 
   return (

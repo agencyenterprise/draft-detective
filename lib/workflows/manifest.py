@@ -42,6 +42,10 @@ class WorkflowManifest[WorkflowStateType, WorkflowConfigType](ABC):
     # If True, workflow stays PENDING until explicitly triggered via API
     requires_human_trigger: bool = False
 
+    # If True, workflow always runs even if already completed (when included as dependency)
+    # The workflows needs to be idempotent, meaning it can be run multiple times without changing the result and typical execute only "new" content that was not processed in a previous run, reusing cached results from previous runs, like summarization, document conversion, etc (should process only new files in subsequent runs).
+    always_run: bool = False
+
     # Display order in the UI (lower numbers appear first)
     order: int = 99
 

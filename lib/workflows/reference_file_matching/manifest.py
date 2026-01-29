@@ -39,6 +39,7 @@ class ReferenceFileMatchingManifest(
         WorkflowRunType.DOCUMENT_SUMMARIZATION,
         WorkflowRunType.REFERENCE_EXTRACTION,
     ]
+    always_run = True  # Always run reference file matching to ensure new files are matched. The workflow matches only new files in subsequent runs, reusing cached results from previous runs.
 
     def get_state_type(self) -> Type[ReferenceFileMatchingState]:
         """Get the type of the workflow state."""

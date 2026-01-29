@@ -60,19 +60,6 @@ export function useChunkHashNavigation(
 
     onSelectChunk(parsed.chunkIndex);
     hasHandled.current = true;
-
-    // Poll for the element (sidebar content loads async)
-    const elementId = window.location.hash.slice(1);
-    let attempts = 0;
-    const intervalId = setInterval(() => {
-      const element = document.getElementById(elementId);
-      if (element) {
-        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        clearInterval(intervalId);
-      } else if (++attempts >= 20) {
-        clearInterval(intervalId);
-      }
-    }, 100);
   }, [validChunkIndices, onSelectChunk]);
 }
 
