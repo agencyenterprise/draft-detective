@@ -12,7 +12,8 @@ import {
   RuleCheckResult,
   WorkflowRunType,
 } from '@/lib/generated-api';
-import { CheckCircle2, ChevronDown, FileQuestion, Users, XCircle } from 'lucide-react';
+import { isWorkflowProcessing } from '@/lib/workflow-state';
+import { CheckCircle2, ChevronDown, FileQuestion, Loader2, Users, XCircle } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { cn } from '@/lib/utils';
 
@@ -169,7 +170,22 @@ export function AboutAuthorsResults({ project, onNavigateToDocumentExplorer }: A
     return <EmptyState message="About Authors analysis has not been run." />;
   }
 
-  // No "About the Authors" section found in the document
+  // Show loading state while workflow is still processing
+  if (isWorkflowProcessing(aboutAuthorsRun)) {
+    return (
+      <EmptyState
+        icon={Loader2}
+        message="Analyzing Author Biographies..."
+        description="The About Authors analysis is currently running. Results will appear here once complete."
+      >
+        <div className="pt-2">
+          <Loader2 className="h-5 w-5 animate-spin text-primary" />
+        </div>
+      </EmptyState>
+    );
+  }
+
+  // No "About the Authors" section found in the document (only show after workflow completes)
   if (results.length === 0) {
     return (
       <EmptyState

@@ -1,4 +1,6 @@
 import {
+  AboutAuthorsState,
+  AboutThisState,
   ChunkSplittingState,
   CitationDetectionState,
   CitationSuggesterState,
@@ -45,6 +47,8 @@ type WorkflowTypeToDetail = {
   [WorkflowRunType.ClaimExtraction]: ClaimExtractionState;
   [WorkflowRunType.CitationDetection]: CitationDetectionState;
   [WorkflowRunType.FootnoteExtraction]: FootnoteExtractionState;
+  [WorkflowRunType.AboutThis]: AboutThisState;
+  [WorkflowRunType.AboutAuthors]: AboutAuthorsState;
 };
 
 export interface WorkflowRunDetailTyped<T> {
@@ -239,4 +243,71 @@ export function needsHumanApproval(workflowRuns: WorkflowRunDetail[]): boolean {
 
   const state = humanApprovalRun.state as HumanApprovalState | null;
   return !state?.approved;
+}
+
+/**
+ * Checks if the "No Preface Section Found" warning should be displayed.
+ *
+ * The warning only shows when:
+ * - The About This workflow has completed
+ * - No About This workflow is still processing (pending/running)
+ * - The completed workflow did not find a preface section
+ *
+ * This prevents showing stale warnings from old runs while a new analysis is in progress.
+ */
+export function getAboutThisWarningStatus(workflowRuns: WorkflowRunDetail[]): {
+  showWarning: boolean;
+  hasErrors: boolean;
+} | null {
+  const aboutThisRun = getWorkflowRunByType(workflowRuns, WorkflowRunType.AboutThis);
+
+  if (!aboutThisRun || isWorkflowProcessing(aboutThisRun)) {
+    return null;
+  }
+
+  const state = aboutThisRun.state as AboutThisState | null;
+
+  // If section was found, no warning needed
+  if (state?.found_section) {
+    return null;
+  }
+
+  return {
+    showWarning: true,
+    hasErrors: (state?.errors?.length ?? 0) > 0,
+  };
+}
+
+/**
+ * Checks if the "No Authors Section Found" warning should be displayed.
+ *
+ * The warning only shows when:
+ * - The About Authors workflow has completed
+ * - No About Authors workflow is still processing (pending/running)
+ * - The completed workflow found no author biographies
+ *
+ * This prevents showing stale warnings from old runs while a new analysis is in progress.
+ */
+export function getAboutAuthorsWarningStatus(workflowRuns: WorkflowRunDetail[]): {
+  showWarning: boolean;
+  hasErrors: boolean;
+} | null {
+  const aboutAuthorsRun = getWorkflowRunByType(workflowRuns, WorkflowRunType.AboutAuthors);
+
+  if (!aboutAuthorsRun || isWorkflowProcessing(aboutAuthorsRun)) {
+    return null;
+  }
+
+  const state = aboutAuthorsRun.state as AboutAuthorsState | null;
+  const hasResults = (state?.results?.length ?? 0) > 0;
+
+  // If authors were found, no warning needed
+  if (hasResults) {
+    return null;
+  }
+
+  return {
+    showWarning: true,
+    hasErrors: (state?.errors?.length ?? 0) > 0,
+  };
 }

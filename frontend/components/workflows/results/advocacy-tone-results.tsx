@@ -13,12 +13,13 @@ import {
   ProjectDetailed,
   WorkflowRunType,
 } from '@/lib/generated-api';
-import { getWorkflowRunByType } from '@/lib/workflow-state';
+import { getWorkflowRunByType, isWorkflowProcessing } from '@/lib/workflow-state';
 import {
   AlertTriangle,
   CheckCircle2,
   ChevronDown,
   FileWarning,
+  Loader2,
   MessageSquareWarning,
   type LucideIcon,
 } from 'lucide-react';
@@ -271,6 +272,21 @@ export function AdvocacyToneResults({ project, onNavigateToDocumentExplorer }: A
 
   if (!advocacyToneRun) {
     return <EmptyState message="Advocacy & Tone analysis has not been run." />;
+  }
+
+  // Show loading state while workflow is still processing
+  if (isWorkflowProcessing(advocacyToneRun)) {
+    return (
+      <EmptyState
+        icon={Loader2}
+        message="Analyzing Advocacy & Tone..."
+        description="The Advocacy & Tone analysis is currently running. Results will appear here once complete."
+      >
+        <div className="pt-2">
+          <Loader2 className="h-5 w-5 animate-spin text-primary" />
+        </div>
+      </EmptyState>
+    );
   }
 
   if (chunksWithIssues.length === 0) {

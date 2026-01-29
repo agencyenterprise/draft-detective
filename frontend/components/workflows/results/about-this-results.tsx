@@ -5,7 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { EmptyState } from '@/components/shared/empty-state';
 import { AboutThisState, ProjectDetailed, RequirementCheckResult, WorkflowRunType } from '@/lib/generated-api';
-import { CheckCircle2, ChevronDown, FileQuestion, FileText, XCircle } from 'lucide-react';
+import { isWorkflowProcessing } from '@/lib/workflow-state';
+import { CheckCircle2, ChevronDown, FileQuestion, FileText, Loader2, XCircle } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { cn } from '@/lib/utils';
 
@@ -119,7 +120,22 @@ export function AboutThisResults({ project, onNavigateToDocumentExplorer }: Abou
     return <EmptyState message="About This (Preface) analysis has not been run." />;
   }
 
-  // No preface section found in the document
+  // Show loading state while workflow is still processing
+  if (isWorkflowProcessing(aboutThisRun)) {
+    return (
+      <EmptyState
+        icon={Loader2}
+        message="Analyzing Preface Section..."
+        description="The About This (Preface) analysis is currently running. Results will appear here once complete."
+      >
+        <div className="pt-2">
+          <Loader2 className="h-5 w-5 animate-spin text-primary" />
+        </div>
+      </EmptyState>
+    );
+  }
+
+  // No preface section found in the document (only show after workflow completes)
   if (!state?.found_section) {
     return (
       <EmptyState
