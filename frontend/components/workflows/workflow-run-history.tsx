@@ -20,22 +20,31 @@ interface WorkflowRunHistoryProps {
   projectId: string;
   workflowType: WorkflowRunType;
   currentRunId: string;
-  /** Called with the full run detail when user selects a run from history */
   onSelectRun: (run: WorkflowRunDetail) => void;
+  /** Pre-loaded history data to avoid fetching on popover open */
+  historyData?: WorkflowRunDetail[];
 }
 
-export function WorkflowRunHistory({ projectId, workflowType, currentRunId, onSelectRun }: WorkflowRunHistoryProps) {
+export function WorkflowRunHistory({
+  projectId,
+  workflowType,
+  currentRunId,
+  onSelectRun,
+  historyData,
+}: WorkflowRunHistoryProps) {
   const [isOpen, setIsOpen] = useState(false);
 
-  const { data: runDetails, isLoading } = useQuery({
+  const { data: fetchedData, isLoading } = useQuery({
     queryKey: ['workflow-runs-history', projectId, workflowType],
     queryFn: () =>
       getProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGet({
         path: { project_id: projectId },
         query: { workflow_type: workflowType },
       }),
-    enabled: isOpen,
+    enabled: isOpen && !historyData,
   });
+
+  const runDetails = historyData ?? fetchedData;
 
   const handleSelectRun = (run: WorkflowRunDetail) => {
     onSelectRun(run);

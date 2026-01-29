@@ -139,7 +139,16 @@ def convert_exceptions_to_workflow_errors(
         chunk_indices: Optional list of chunk indices corresponding to each exception.
                       If None, no chunk_index is set on errors.
                       If provided, must be same length as exceptions.
+
+    Raises:
+        ValueError: If chunk_indices is provided but has different length than exceptions.
     """
+    if chunk_indices is not None and len(chunk_indices) != len(exceptions):
+        raise ValueError(
+            f"chunk_indices length ({len(chunk_indices)}) must match "
+            f"exceptions length ({len(exceptions)})"
+        )
+
     errors: List[WorkflowError] = []
     workflow_run_id = get_current_workflow_run_id()
     for i, exception in enumerate(exceptions):

@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import uuid
 from typing import List, Optional
@@ -223,14 +224,15 @@ async def get_project_workflow_runs_by_type_with_details(
     """
     runs = await get_project_workflow_runs_by_type(project_id, workflow_type)
 
-    details = []
-    for run in runs:
-        state = await get_workflow_run_state_by_thread_id(
-            run.langgraph_thread_id, run.type
-        )
-        details.append(WorkflowRunDetail(run=run, state=state))
+    # Fetch all workflow states in parallel to avoid N+1 query pattern
+    states = await asyncio.gather(
+        *[
+            get_workflow_run_state_by_thread_id(run.langgraph_thread_id, run.type)
+            for run in runs
+        ]
+    )
 
-    return details
+    return [WorkflowRunDetail(run=run, state=state) for run, state in zip(runs, states)]
 
 
 async def get_project_workflow_runs(
@@ -283,18 +285,23 @@ async def get_project_workflow_runs(
     with get_db() as db:
         runs = db.execute(stmt).scalars().all()
 
-    details = []
-    for run in runs:
-        # Filter out internal workflows unless explicitly requested
-        if not include_internal and not is_user_visible_workflow(run.type):
-            continue
+    # Filter out internal workflows unless explicitly requested
+    visible_runs = [
+        run for run in runs if include_internal or is_user_visible_workflow(run.type)
+    ]
 
-        state = await get_workflow_run_state_by_thread_id(
-            run.langgraph_thread_id, run.type
-        )
-        details.append(WorkflowRunDetail(run=run, state=state))
+    # Fetch all workflow states in parallel to avoid N+1 query pattern
+    states = await asyncio.gather(
+        *[
+            get_workflow_run_state_by_thread_id(run.langgraph_thread_id, run.type)
+            for run in visible_runs
+        ]
+    )
 
-    return details
+    return [
+        WorkflowRunDetail(run=run, state=state)
+        for run, state in zip(visible_runs, states)
+    ]
 
 
 def get_thread_id_for_workflow_run(workflow_run: WorkflowRun | None) -> str:
