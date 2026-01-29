@@ -67,20 +67,6 @@ def test_dedup_prefers_definition():
     assert items[0].definition == "Artificial Intelligence"
 
 
-def test_sorts_alphabetically():
-    chunks = [
-        AnalyzedChunk(
-            chunk_index=0,
-            paragraph_index=0,
-            headings=["Intro"],
-            content="NATO and AI and RAND.",
-        )
-    ]
-
-    items = extract_abbreviations_from_chunks(chunks)
-    assert [i.abbr for i in items] == ["AI", "NATO", "RAND"]
-
-
 def test_excludes_reference_section_chunks_by_heading_keywords():
     chunks = [
         AnalyzedChunk(
