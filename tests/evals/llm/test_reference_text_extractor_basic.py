@@ -65,6 +65,14 @@ def _build_cases_v2() -> list[AgentTestCase]:
             )
         )
 
+        # Transform expected_output to match new ReferenceExtractorV2Output structure
+        # The YAML has references as list of strings, but v2 expects ExtractedReferenceWithLines
+        expected_output = test_case.expected_output.copy()
+        expected_output["references"] = [
+            {"text": ref, "start_line": 0, "end_line": 0}
+            for ref in test_case.expected_output.get("references", [])
+        ]
+
         cases.append(
             AgentTestCase(
                 name=test_case.name,
@@ -73,8 +81,8 @@ def _build_cases_v2() -> list[AgentTestCase]:
                 ),
                 response_model=ReferenceExtractorV2Output,
                 prompt_kwargs={},
-                expected_dict=test_case.expected_output,
-                strict_fields=dataset.test_config.strict_fields,
+                expected_dict=expected_output,
+                strict_fields={"references.text"},  # Only compare text, not line numbers
                 llm_fields=dataset.test_config.llm_fields,
                 fuzzy_threshold=1.0,
                 good_match_threshold=1.0,

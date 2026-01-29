@@ -1,5 +1,6 @@
 import asyncio
 from pathlib import Path
+from typing import Any, Dict, List
 
 import pytest
 
@@ -7,7 +8,6 @@ from lib.agents.document_chunker_nltk import (
     DocumentChunkerResponse,
     DocumentChunkerAgent,
 )
-from lib.models.agent_test_case import AgentTestCase
 from tests.conftest import (
     create_test_file_document_from_path,
     data_path,
@@ -18,45 +18,77 @@ from tests.evals.datasets.loader import load_dataset
 TESTS_DIR = Path(__file__).parent.parent.parent
 
 
-def _build_cases() -> list[AgentTestCase]:
-    # Load dataset from YAML
+def _extract_text_from_chunks(response: DocumentChunkerResponse) -> Dict[str, Any]:
+    """
+    Extract only text content from chunks for comparison.
+
+    This normalizes the response to match the expected format in YAML,
+    ignoring line numbers which are not specified in test data.
+    """
+    return {
+        "paragraphs": [
+            {
+                "chunks": [chunk.text for chunk in paragraph.chunks],
+                "headings": paragraph.headings,
+            }
+            for paragraph in response.paragraphs
+        ]
+    }
+
+
+def _build_test_data() -> List[Dict[str, Any]]:
+    """Load test cases from YAML dataset."""
     dataset_path = str(TESTS_DIR / "datasets" / "document_chunker_nltk.yaml")
     dataset = load_dataset(dataset_path)
 
-    # Get test configuration from dataset, with defaults if not present
-    test_config = dataset.test_config
-    if test_config:
-        strict_fields = test_config.strict_fields or set()
-        llm_fields = test_config.llm_fields or set()
-
-    cases: list[AgentTestCase] = []
-
+    test_data = []
     for test_case in dataset.items:
-        # Load main document from input
         main_path = data_path(test_case.input["main_document"])
         main_doc = asyncio.run(create_test_file_document_from_path(main_path))
 
-        cases.append(
-            AgentTestCase(
-                name=test_case.name,
-                agent=DocumentChunkerAgent(create_test_context()),
-                response_model=DocumentChunkerResponse,
-                prompt_kwargs={
-                    "full_document": main_doc.markdown,
-                },
-                expected_dict=test_case.expected_output,
-                strict_fields=strict_fields,
-                llm_fields=llm_fields,
-            )
+        test_data.append(
+            {
+                "name": test_case.name,
+                "markdown": main_doc.markdown,
+                "expected": test_case.expected_output,
+            }
         )
 
-    return cases
+    return test_data
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("case", _build_cases(), ids=lambda case: case.name)
-async def test_document_chunker_nltk_agent_cases(case: AgentTestCase, test_models):
-    await case.run(models=test_models)
-    eval_result = await case.compare_results()
+@pytest.mark.parametrize(
+    "test_data", _build_test_data(), ids=lambda d: d["name"]
+)
+async def test_document_chunker_nltk_agent_cases(test_data):
+    """Test document chunker produces correct text chunks.
 
-    assert eval_result.passed, f"{case.name}: {eval_result.rationale}"
+    Line numbers are tracked but not compared - only text content and headings matter.
+    """
+    agent = DocumentChunkerAgent(create_test_context())
+    result = await agent.ainvoke(prompt_kwargs={"full_document": test_data["markdown"]})
+
+    # Extract text content for comparison (ignoring line numbers)
+    actual = _extract_text_from_chunks(result)
+    expected = test_data["expected"]
+
+    # Compare paragraph by paragraph
+    assert len(actual["paragraphs"]) == len(expected["paragraphs"]), (
+        f"Paragraph count mismatch: got {len(actual['paragraphs'])}, "
+        f"expected {len(expected['paragraphs'])}"
+    )
+
+    for i, (act_para, exp_para) in enumerate(
+        zip(actual["paragraphs"], expected["paragraphs"])
+    ):
+        assert act_para["headings"] == exp_para["headings"], (
+            f"Paragraph {i} headings mismatch:\n"
+            f"  got: {act_para['headings']}\n"
+            f"  expected: {exp_para['headings']}"
+        )
+        assert act_para["chunks"] == exp_para["chunks"], (
+            f"Paragraph {i} chunks mismatch:\n"
+            f"  got: {act_para['chunks']}\n"
+            f"  expected: {exp_para['chunks']}"
+        )

@@ -15,6 +15,20 @@ from lib.models.agent import LangChainAgent
 from lib.workflows.context import ContextSchema
 
 
+class ExtractedReferenceWithLines(BaseModel):
+    """A single reference with its location in the document."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    text: str = Field(description="The complete bibliographic reference text")
+    start_line: int = Field(
+        description="1-indexed starting line number where this reference begins"
+    )
+    end_line: int = Field(
+        description="1-indexed ending line number where this reference ends"
+    )
+
+
 class ReferenceExtractorV2Output(BaseModel):
     """Output from the reference extractor agent."""
 
@@ -23,8 +37,8 @@ class ReferenceExtractorV2Output(BaseModel):
     reasoning: str = Field(
         description="Step-by-step reasoning describing how references were found and extracted"
     )
-    references: List[str] = Field(
-        description="List of extracted bibliographic references from the document"
+    references: List[ExtractedReferenceWithLines] = Field(
+        description="List of extracted bibliographic references with their line locations"
     )
 
 
@@ -36,7 +50,7 @@ You are a reference extraction specialist. Your task is to find and extract all 
 
 1. **search_document(pattern)**: Search the document for lines matching a regex pattern (case-insensitive). Returns matching lines with line numbers and context. Use this to locate reference sections.
 
-2. **read_document(start_line, end_line)**: Read a specific range of lines from the document. Use this after finding a reference section to read its full content.
+2. **read_document(start_line, end_line)**: Read a specific range of lines from the document. Use this after finding a reference section to read its full content. The output format is "LINE_NUMBER|content" for each line.
 
 ## Instructions
 
@@ -55,7 +69,22 @@ You are a reference extraction specialist. Your task is to find and extract all 
 
 After searching and reading, provide:
 - Your reasoning explaining what you searched for and found
-- A complete list of all extracted references
+- A list of all extracted references, each with:
+  - **text**: The complete reference text
+  - **start_line**: The 1-indexed line number where this reference starts (from read_document output)
+  - **end_line**: The 1-indexed line number where this reference ends
+
+For example, if read_document shows:
+```
+152|Smith, J. (2020). Title of Paper. Journal, 5(2), 123-145.
+153|Doe, A. (2019). Another Paper Title. Publisher.
+```
+
+You would output:
+- Reference 1: text="Smith, J. (2020). Title of Paper. Journal, 5(2), 123-145.", start_line=152, end_line=152
+- Reference 2: text="Doe, A. (2019). Another Paper Title. Publisher.", start_line=153, end_line=153
+
+If a reference spans multiple lines, use the first line as start_line and last line as end_line.
 
 ## Document Format
 
@@ -108,9 +137,7 @@ class ReferenceExtractorV2Agent(LangChainAgent):
             response_format=self.output_schema,
         )
 
-        user_message = (
-            f"""Please extract all bibliographic references from the document."""
-        )
+        user_message = "Please extract all bibliographic references from the document."
 
         result = await agent.ainvoke(
             {"messages": [{"role": "user", "content": user_message}]},
@@ -119,15 +146,3 @@ class ReferenceExtractorV2Agent(LangChainAgent):
         )
 
         return result["structured_response"]
-
-        # async for chunk in agent.astream(
-        #     {"messages": [{"role": "user", "content": user_message}]},
-        #     config={"recursion_limit": 50, **(config or {})},
-        #     context=self.context,
-        #     stream_mode="updates",
-        # ):
-        #     for step, data in chunk.items():
-        #         print(f"step: {step}")
-        #         print(f"content: {data['messages'][-1].content_blocks}")
-
-        # return data["structured_response"]

@@ -106,6 +106,8 @@ def build_analyzed_chunks(
             chunk_index=doc_chunk.chunk_index,
             paragraph_index=doc_chunk.paragraph_index,
             headings=doc_chunk.headings,
+            start_line=doc_chunk.start_line,
+            end_line=doc_chunk.end_line,
         )
 
         # Add claims if available
