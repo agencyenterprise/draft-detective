@@ -4,8 +4,6 @@ from lib.agents.formatting_utils import (
     format_audience_context,
     format_summary_context,
 )
-import logging
-from datetime import date
 from typing import List
 
 from langgraph.runtime import Runtime
@@ -25,6 +23,9 @@ from lib.workflows.decorators import register_node
 from lib.workflows.live_reports.state import LiveReportsState
 from lib.workflows.models import WorkflowError
 from lib.workflows.reference_extraction.state import ExtractedReference
+
+
+import logging
 
 logger = logging.getLogger(__name__)
 
