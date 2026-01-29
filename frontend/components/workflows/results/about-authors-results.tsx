@@ -2,44 +2,23 @@
 
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { EmptyState, ExpandableCard, NavigateToChunkButton } from '@/components/shared';
-import { ProjectDetailed, WorkflowRunType } from '@/lib/generated-api';
-import { CheckCircle2, FileQuestion, Users, XCircle } from 'lucide-react';
-import * as React from 'react';
-import { useMemo } from 'react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { EmptyState } from '@/components/shared/empty-state';
+import { NavigateToChunkButton } from '@/components/shared/navigate-to-chunk-button';
+import {
+  AboutAuthorsState,
+  AuthorValidationResult,
+  ProjectDetailed,
+  RuleCheckResult,
+  WorkflowRunType,
+} from '@/lib/generated-api';
+import { CheckCircle2, ChevronDown, FileQuestion, Users, XCircle } from 'lucide-react';
+import { useMemo, useState } from 'react';
 import { cn } from '@/lib/utils';
 
 interface AboutAuthorsResultsProps {
   project: ProjectDetailed;
   onNavigateToDocumentExplorer?: (chunkIndices?: number[]) => void;
-}
-
-interface RuleCheckResult {
-  passed: boolean;
-  explanation: string;
-  applicable: boolean;
-}
-
-interface AuthorValidationResult {
-  author_id: string;
-  author_text: string;
-  author_name: string;
-  author_name_positions: number[];
-  chunk_indices: number[];
-  rule_1_sentence_length: RuleCheckResult;
-  rule_2_position_affiliation: RuleCheckResult;
-  rule_3_tasp_statement: RuleCheckResult;
-  rule_4_research_focus: RuleCheckResult;
-  rule_5_highest_degree: RuleCheckResult;
-  overall_passed: boolean;
-  final_comment: string;
-  guidance?: string | null;
-}
-
-interface AboutAuthorsState {
-  type: string;
-  results: AuthorValidationResult[];
-  errors?: unknown[];
 }
 
 // Centralized rule configuration - mirrors backend RULE_METADATA
@@ -52,7 +31,9 @@ const RULE_CONFIG = [
 ];
 
 function RuleStatus({ rule, label }: { rule: RuleCheckResult; label: string }) {
-  if (!rule.applicable) {
+  const isApplicable = rule.applicable ?? true;
+
+  if (!isApplicable) {
     return (
       <div className="flex items-start gap-2 text-sm text-muted-foreground">
         <span className="text-muted-foreground mt-0.5">—</span>
@@ -89,72 +70,80 @@ interface AuthorResultCardProps {
 }
 
 function AuthorResultCard({ result, onNavigateToChunk }: AuthorResultCardProps) {
+  const [isOpen, setIsOpen] = useState(false);
+
   const failedRulesCount = useMemo(() => {
     return RULE_CONFIG.filter(({ field }) => {
       const rule = result[field];
-      return rule.applicable && !rule.passed;
+      return (rule.applicable ?? true) && !rule.passed;
     }).length;
   }, [result]);
 
-  const header = (
-    <div className="flex items-center gap-3">
-      <div
-        className={cn(
-          'h-8 w-8 rounded-full flex items-center justify-center',
-          result.overall_passed ? 'bg-green-100' : 'bg-red-100',
-        )}
-      >
-        {result.overall_passed ? (
-          <CheckCircle2 className="h-4 w-4 text-green-600" />
-        ) : (
-          <XCircle className="h-4 w-4 text-red-600" />
-        )}
-      </div>
-      <div>
-        <CardTitle className="text-sm font-medium">{result.author_name}</CardTitle>
-        <CardDescription className="text-xs">
-          {result.overall_passed ? (
-            'All rules passed'
-          ) : (
-            <span className="text-red-600">
-              {failedRulesCount} rule{failedRulesCount !== 1 ? 's' : ''} failed
-            </span>
-          )}
-        </CardDescription>
-      </div>
-    </div>
-  );
-
   return (
-    <ExpandableCard
-      header={header}
-      className={cn(result.overall_passed ? 'border-green-200' : 'border-red-200')}
-      contentClassName="space-y-4"
-    >
-      {/* Author bio text */}
-      <div className="p-3 rounded-md bg-muted/50 border">
-        <p className="text-sm text-foreground whitespace-pre-wrap">{result.author_text}</p>
-        {onNavigateToChunk && <NavigateToChunkButton onClick={onNavigateToChunk} />}
-      </div>
+    <Card className={cn(result.overall_passed ? 'border-green-200' : 'border-red-200')}>
+      <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+        <CollapsibleTrigger asChild>
+          <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div
+                  className={cn(
+                    'h-8 w-8 rounded-full flex items-center justify-center',
+                    result.overall_passed ? 'bg-green-100' : 'bg-red-100',
+                  )}
+                >
+                  {result.overall_passed ? (
+                    <CheckCircle2 className="h-4 w-4 text-green-600" />
+                  ) : (
+                    <XCircle className="h-4 w-4 text-red-600" />
+                  )}
+                </div>
+                <div>
+                  <CardTitle className="text-sm font-medium">{result.author_name}</CardTitle>
+                  <CardDescription className="text-xs">
+                    {result.overall_passed ? (
+                      'All rules passed'
+                    ) : (
+                      <span className="text-red-600">
+                        {failedRulesCount} rule{failedRulesCount !== 1 ? 's' : ''} failed
+                      </span>
+                    )}
+                  </CardDescription>
+                </div>
+              </div>
+              <ChevronDown className={cn('h-4 w-4 transition-transform flex-shrink-0 ml-2', isOpen && 'rotate-180')} />
+            </div>
+          </CardHeader>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <CardContent className="pt-0 space-y-4">
+            {/* Author bio text */}
+            <div className="p-3 rounded-md bg-muted/50 border">
+              <p className="text-sm text-foreground whitespace-pre-wrap">{result.author_text}</p>
+              {onNavigateToChunk && <NavigateToChunkButton onClick={onNavigateToChunk} />}
+            </div>
 
-      {/* Rule checks */}
-      <div className="space-y-2">
-        <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Rule Checks</h4>
-        <div className="grid gap-2">
-          {RULE_CONFIG.map(({ field, label }) => (
-            <RuleStatus key={field} rule={result[field]} label={label} />
-          ))}
-        </div>
-      </div>
+            {/* Rule checks */}
+            <div className="space-y-2">
+              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Rule Checks</h4>
+              <div className="grid gap-2">
+                {RULE_CONFIG.map(({ field, label }) => (
+                  <RuleStatus key={field} rule={result[field]} label={label} />
+                ))}
+              </div>
+            </div>
 
-      {/* Guidance if failed */}
-      {!result.overall_passed && result.guidance && (
-        <div className="p-3 rounded-md bg-amber-50 border border-amber-200">
-          <h4 className="text-xs font-semibold text-amber-800 mb-1">Suggested Improvements</h4>
-          <p className="text-sm text-amber-700">{result.guidance}</p>
-        </div>
-      )}
-    </ExpandableCard>
+            {/* Guidance if failed */}
+            {!result.overall_passed && result.guidance && (
+              <div className="p-3 rounded-md bg-amber-50 border border-amber-200">
+                <h4 className="text-xs font-semibold text-amber-800 mb-1">Suggested Improvements</h4>
+                <p className="text-sm text-amber-700">{result.guidance}</p>
+              </div>
+            )}
+          </CardContent>
+        </CollapsibleContent>
+      </Collapsible>
+    </Card>
   );
 }
 
@@ -245,8 +234,8 @@ export function AboutAuthorsResults({ project, onNavigateToDocumentExplorer }: A
             key={result.author_id}
             result={result}
             onNavigateToChunk={
-              onNavigateToDocumentExplorer && result.chunk_indices.length > 0
-                ? () => onNavigateToDocumentExplorer(result.chunk_indices)
+              onNavigateToDocumentExplorer && result.chunk_indices?.length
+                ? () => onNavigateToDocumentExplorer(result.chunk_indices!)
                 : undefined
             }
           />

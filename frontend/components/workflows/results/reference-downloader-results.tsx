@@ -1,7 +1,7 @@
 'use client';
 
 import { ReferenceDownloaderResultsDisplay } from '@/app/(authenticated)/tools/reference-downloader/components/reference-downloader-results-display';
-import { EmptyState } from '@/components/shared';
+import { EmptyState } from '@/components/shared/empty-state';
 import { ReferenceDownloaderState, WorkflowRunDetail } from '@/lib/generated-api';
 import * as React from 'react';
 

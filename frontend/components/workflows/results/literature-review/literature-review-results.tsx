@@ -2,7 +2,7 @@
 
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { EmptyState } from '@/components/shared';
+import { EmptyState } from '@/components/shared/empty-state';
 import { LiteratureReviewState, WorkflowRunDetail } from '@/lib/generated-api';
 import { BookOpen } from 'lucide-react';
 import * as React from 'react';
