@@ -2,7 +2,7 @@
 
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { EmptyState } from '@/components/shared';
+import { EmptyState } from '@/components/shared/empty-state';
 import {
   ResultsExtractionState,
   ResultSection,

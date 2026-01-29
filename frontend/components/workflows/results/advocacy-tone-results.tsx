@@ -2,7 +2,9 @@
 
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { EmptyState, ExpandableCard, NavigateToChunkButton } from '@/components/shared';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { EmptyState } from '@/components/shared/empty-state';
+import { NavigateToChunkButton } from '@/components/shared/navigate-to-chunk-button';
 import {
   AdvocacyToneState,
   ChunkAdvocacyToneResult,
@@ -12,8 +14,14 @@ import {
   WorkflowRunType,
 } from '@/lib/generated-api';
 import { getWorkflowRunByType } from '@/lib/workflow-state';
-import { AlertTriangle, CheckCircle2, FileWarning, MessageSquareWarning, type LucideIcon } from 'lucide-react';
-import * as React from 'react';
+import {
+  AlertTriangle,
+  CheckCircle2,
+  ChevronDown,
+  FileWarning,
+  MessageSquareWarning,
+  type LucideIcon,
+} from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { cn } from '@/lib/utils';
 
@@ -82,6 +90,8 @@ interface ChunkResultCardProps {
 }
 
 function ChunkResultCard({ result, chunkContent, onNavigateToChunk }: ChunkResultCardProps) {
+  const [isOpen, setIsOpen] = useState(false);
+
   const confirmedChecks = useMemo(() => {
     const checks: { type: CheckType; llmResult: LlmVerificationResult }[] = [];
 
@@ -108,45 +118,55 @@ function ChunkResultCard({ result, chunkContent, onNavigateToChunk }: ChunkResul
 
   if (confirmedChecks.length === 0) return null;
 
-  const header = (
-    <div className="space-y-2">
-      <div className="flex items-center gap-3">
-        <span className="text-sm font-medium">Chunk {result.chunk_index}</span>
-        <div className="flex gap-1.5 flex-wrap">
-          {confirmedChecks.map(({ type }) => (
-            <CheckBadge key={type} type={type} confirmed={true} />
-          ))}
-        </div>
-      </div>
-      {truncatedContent && <p className="text-sm text-muted-foreground line-clamp-2">{truncatedContent}</p>}
-    </div>
-  );
-
   return (
-    <ExpandableCard header={header} contentClassName="space-y-3">
-      {chunkContent && (
-        <div className="p-3 rounded-md bg-muted/50 border">
-          <p className="text-sm text-foreground whitespace-pre-wrap">{chunkContent}</p>
-          {onNavigateToChunk && <NavigateToChunkButton onClick={onNavigateToChunk} />}
-        </div>
-      )}
-      {confirmedChecks.map(({ type, llmResult }) => {
-        const config = CHECK_CONFIG[type];
-        const Icon = config.icon;
-
-        return (
-          <div key={type} className={cn('p-3 rounded-md', config.bgColor)}>
-            <div className="flex items-start gap-2">
-              <Icon className={cn('h-4 w-4 mt-0.5 flex-shrink-0', config.color)} />
-              <div>
-                <p className={cn('font-medium text-sm', config.color)}>{config.label}</p>
-                <p className="text-sm text-muted-foreground mt-1">{llmResult.explanation}</p>
+    <Card>
+      <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+        <CollapsibleTrigger asChild>
+          <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+            <div className="flex items-center justify-between">
+              <div className="space-y-2 flex-1">
+                <div className="flex items-center gap-3">
+                  <span className="text-sm font-medium">Chunk {result.chunk_index}</span>
+                  <div className="flex gap-1.5 flex-wrap">
+                    {confirmedChecks.map(({ type }) => (
+                      <CheckBadge key={type} type={type} confirmed={true} />
+                    ))}
+                  </div>
+                </div>
+                {truncatedContent && <p className="text-sm text-muted-foreground line-clamp-2">{truncatedContent}</p>}
               </div>
+              <ChevronDown className={cn('h-4 w-4 transition-transform flex-shrink-0 ml-2', isOpen && 'rotate-180')} />
             </div>
-          </div>
-        );
-      })}
-    </ExpandableCard>
+          </CardHeader>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <CardContent className="pt-0 space-y-3">
+            {chunkContent && (
+              <div className="p-3 rounded-md bg-muted/50 border">
+                <p className="text-sm text-foreground whitespace-pre-wrap">{chunkContent}</p>
+                {onNavigateToChunk && <NavigateToChunkButton onClick={onNavigateToChunk} />}
+              </div>
+            )}
+            {confirmedChecks.map(({ type, llmResult }) => {
+              const config = CHECK_CONFIG[type];
+              const Icon = config.icon;
+
+              return (
+                <div key={type} className={cn('p-3 rounded-md', config.bgColor)}>
+                  <div className="flex items-start gap-2">
+                    <Icon className={cn('h-4 w-4 mt-0.5 flex-shrink-0', config.color)} />
+                    <div>
+                      <p className={cn('font-medium text-sm', config.color)}>{config.label}</p>
+                      <p className="text-sm text-muted-foreground mt-1">{llmResult.explanation}</p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </CardContent>
+        </CollapsibleContent>
+      </Collapsible>
+    </Card>
   );
 }
 
