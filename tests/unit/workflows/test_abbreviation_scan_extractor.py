@@ -7,6 +7,8 @@ from lib.workflows.chunk_utils import AnalyzedChunk
 def test_extracts_definitions_and_acronyms():
     chunks = [
         AnalyzedChunk(
+            start_line=0,
+            end_line=1,
             chunk_index=0,
             paragraph_index=0,
             headings=["Introduction"],
@@ -14,11 +16,15 @@ def test_extracts_definitions_and_acronyms():
         ),
         AnalyzedChunk(
             chunk_index=1,
+            start_line=1,
+            end_line=2,
             paragraph_index=1,
             headings=["Introduction"],
             content="RAND and NATO are organizations.",
         ),
         AnalyzedChunk(
+            start_line=2,
+            end_line=3,
             chunk_index=2,
             paragraph_index=2,
             headings=["Introduction"],
@@ -42,18 +48,24 @@ def test_extracts_definitions_and_acronyms():
 def test_dedup_prefers_definition():
     chunks = [
         AnalyzedChunk(
+            start_line=0,
+            end_line=1,
             chunk_index=0,
             paragraph_index=0,
             headings=["Intro"],
             content="We mention AI here.",
         ),
         AnalyzedChunk(
+            start_line=1,
+            end_line=2,
             chunk_index=1,
             paragraph_index=1,
             headings=["Intro"],
             content="Artificial Intelligence (AI) is defined here.",
         ),
         AnalyzedChunk(
+            start_line=2,
+            end_line=3,
             chunk_index=2,
             paragraph_index=2,
             headings=["Intro"],
@@ -70,18 +82,24 @@ def test_dedup_prefers_definition():
 def test_excludes_reference_section_chunks_by_heading_keywords():
     chunks = [
         AnalyzedChunk(
+            start_line=0,
+            end_line=1,
             chunk_index=0,
             paragraph_index=0,
             headings=["Intro"],
             content="Artificial Intelligence (AI) is here.",
         ),
         AnalyzedChunk(
+            start_line=1,
+            end_line=2,
             chunk_index=1,
             paragraph_index=10,
             headings=["References"],
             content="Some reference text mentioning NATO.",
         ),
         AnalyzedChunk(
+            start_line=2,
+            end_line=3,
             chunk_index=2,
             paragraph_index=11,
             headings=["References", "More"],

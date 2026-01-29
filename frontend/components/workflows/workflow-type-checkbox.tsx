@@ -25,6 +25,7 @@ import {
   Files,
   ShieldCheck,
   MessageSquareWarning,
+  ALargeSmall,
   Users,
   type LucideIcon,
 } from 'lucide-react';
@@ -53,6 +54,7 @@ const workflowTypeIcons: Record<WorkflowRunType, LucideIcon> = {
   [WorkflowRunType.ResultsExtraction]: BarChart3,
   [WorkflowRunType.InferenceValidation]: BrainCircuit,
   [WorkflowRunType.ClaimReferenceValidation]: ClipboardCheck,
+  [WorkflowRunType.AbbreviationScan]: ALargeSmall,
   [WorkflowRunType.AdvocacyTone]: MessageSquareWarning,
   [WorkflowRunType.AboutAuthors]: Users,
 };
