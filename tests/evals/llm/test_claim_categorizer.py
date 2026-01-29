@@ -11,6 +11,7 @@ from lib.agents.claim_categorizer import (
 from lib.agents.formatting_utils import (
     format_audience_context,
     format_domain_context,
+    format_summary_context,
 )
 from lib.models.agent_test_case import AgentTestCase
 from tests.conftest import (
@@ -55,7 +56,7 @@ def _build_cases():
 
         # Build prompt kwargs
         prompt_kwargs = {
-            "document_summary": main_doc.markdown,
+            "summary_context": format_summary_context(main_doc.summary),
             "paragraph": paragraph,
             "chunk": chunk,
             "claim": claim,
