@@ -53,6 +53,7 @@ const workflowTypeIcons: Record<WorkflowRunType, LucideIcon> = {
   [WorkflowRunType.InferenceValidation]: BrainCircuit,
   [WorkflowRunType.ClaimReferenceValidation]: ClipboardCheck,
   [WorkflowRunType.AdvocacyTone]: MessageSquareWarning,
+  [WorkflowRunType.AboutAuthors]: Files,
 };
 
 const DEFAULT_ICON = FileText;

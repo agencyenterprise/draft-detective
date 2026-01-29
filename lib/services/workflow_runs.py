@@ -175,6 +175,64 @@ async def get_project_workflow_run_by_type(
         return db.execute(stmt).scalar_one_or_none()
 
 
+async def get_project_workflow_runs_by_type(
+    project_id: str, workflow_type: WorkflowRunType
+) -> List[WorkflowRun]:
+    """
+    Get all workflow runs of a specific type for a project.
+
+    Returns all runs ordered by created_at descending (newest first).
+    Used for displaying workflow run history in the UI.
+
+    Args:
+        project_id: The project ID
+        workflow_type: The workflow type to filter by
+
+    Returns:
+        List of workflow runs (metadata only, no state)
+    """
+    with get_db() as db:
+        stmt = (
+            select(WorkflowRun)
+            .where(
+                and_(
+                    col(WorkflowRun.project_id) == project_id,
+                    col(WorkflowRun.type) == workflow_type,
+                )
+            )
+            .order_by(col(WorkflowRun.created_at).desc())
+        )
+        return list(db.execute(stmt).scalars().all())
+
+
+async def get_project_workflow_runs_by_type_with_details(
+    project_id: str, workflow_type: WorkflowRunType
+) -> List[WorkflowRunDetail]:
+    """
+    Get all workflow runs of a specific type for a project, including full state.
+
+    Returns all runs ordered by created_at descending (newest first).
+    Used for displaying workflow run history in the UI with error status.
+
+    Args:
+        project_id: The project ID
+        workflow_type: The workflow type to filter by
+
+    Returns:
+        List of workflow run details (includes state with errors)
+    """
+    runs = await get_project_workflow_runs_by_type(project_id, workflow_type)
+
+    details = []
+    for run in runs:
+        state = await get_workflow_run_state_by_thread_id(
+            run.langgraph_thread_id, run.type
+        )
+        details.append(WorkflowRunDetail(run=run, state=state))
+
+    return details
+
+
 async def get_project_workflow_runs(
     project_id: str, include_internal: bool = False
 ) -> List[WorkflowRunDetail]:

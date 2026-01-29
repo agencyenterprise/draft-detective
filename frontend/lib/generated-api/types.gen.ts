@@ -3896,6 +3896,12 @@ export type WorkflowError = {
    * The error message.
    */
   error: string;
+  /**
+   * Workflow Run Id
+   *
+   * The workflow run ID when this error occurred. Used to filter errors to current run only.
+   */
+  workflow_run_id?: string | null;
 };
 
 /**
@@ -4059,6 +4065,7 @@ export const WorkflowRunType = {
   InferenceValidation: 'inference_validation',
   ClaimReferenceValidation: 'claim_reference_validation',
   AdvocacyTone: 'advocacy_tone',
+  AboutAuthors: 'about_authors',
 } as const;
 
 /**
@@ -5256,6 +5263,51 @@ export type GetProjectWorkflowProgressEndpointApiProjectProjectIdWorkflowProgres
 
 export type GetProjectWorkflowProgressEndpointApiProjectProjectIdWorkflowProgressGetResponse =
   GetProjectWorkflowProgressEndpointApiProjectProjectIdWorkflowProgressGetResponses[keyof GetProjectWorkflowProgressEndpointApiProjectProjectIdWorkflowProgressGetResponses];
+
+export type GetProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGetData = {
+  body?: never;
+  path: {
+    /**
+     * Project Id
+     */
+    project_id: string;
+  };
+  query: {
+    /**
+     * The workflow type to filter runs by
+     */
+    workflow_type: WorkflowRunType;
+    /**
+     * Share Token
+     *
+     * Share token for shared projects.
+     */
+    share_token?: string | null;
+  };
+  url: '/api/project/{project_id}/workflow-runs';
+};
+
+export type GetProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGetErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type GetProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGetError =
+  GetProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGetErrors[keyof GetProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGetErrors];
+
+export type GetProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGetResponses = {
+  /**
+   * Response Get Project Workflow Runs By Type Endpoint Api Project  Project Id  Workflow Runs Get
+   *
+   * Successful Response
+   */
+  200: Array<WorkflowRunDetail>;
+};
+
+export type GetProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGetResponse =
+  GetProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGetResponses[keyof GetProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGetResponses];
 
 export type GetProjectShareStatusApiProjectsProjectIdShareGetData = {
   body?: never;

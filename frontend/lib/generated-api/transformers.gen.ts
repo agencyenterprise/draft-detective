@@ -6,6 +6,7 @@ import type {
   CreateProjectEndpointApiProjectsPostResponse,
   GetProjectEndpointApiProjectProjectIdGetResponse,
   GetProjectWorkflowProgressEndpointApiProjectProjectIdWorkflowProgressGetResponse,
+  GetProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGetResponse,
   GetSharedResourceApiPublicShareTokenGetResponse,
   GetWorkflowStateApiWorkflowsWorkflowRunIdGetResponse,
   ListProjectFilesEndpointApiProjectProjectIdFilesGetResponse,
@@ -132,6 +133,13 @@ export const getProjectWorkflowProgressEndpointApiProjectProjectIdWorkflowProgre
   data: any,
 ): Promise<GetProjectWorkflowProgressEndpointApiProjectProjectIdWorkflowProgressGetResponse> => {
   data = data.map((item: any) => workflowProgressResponseSchemaResponseTransformer(item));
+  return data;
+};
+
+export const getProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGetResponseTransformer = async (
+  data: any,
+): Promise<GetProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGetResponse> => {
+  data = data.map((item: any) => workflowRunDetailSchemaResponseTransformer(item));
   return data;
 };
 

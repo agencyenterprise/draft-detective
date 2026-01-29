@@ -15,7 +15,12 @@ from lib.services.workflow_progress import (
     get_or_create_progress,
     increment_and_complete_if_done,
 )
-from lib.workflows.context import ContextSchema, current_progress_id
+from lib.workflows.context import (
+    ContextSchema,
+    current_progress_id,
+    current_workflow_run_id,
+    get_current_workflow_run_id,
+)
 from lib.workflows.models import BaseWorkflowState, WorkflowError
 
 # Type variable for decorator return types
@@ -64,6 +69,7 @@ def register_node(name: str, description: str):
             # Progress tracking: create and start progress entry
             progress_id: Optional[uuid.UUID] = None
             progress_token: Optional[Token] = None
+            workflow_run_id_token: Optional[Token] = None
 
             try:
                 if runtime and hasattr(runtime, "context"):
@@ -72,6 +78,11 @@ def register_node(name: str, description: str):
                     )
 
                     if workflow_run_id_str:
+                        # Set workflow_run_id contextvar for error tagging
+                        workflow_run_id_token = current_workflow_run_id.set(
+                            workflow_run_id_str
+                        )
+
                         try:
                             # Convert string to UUID
                             workflow_run_id = uuid.UUID(workflow_run_id_str)
@@ -137,13 +148,21 @@ def register_node(name: str, description: str):
                     exc_info=True,
                 )
                 return {
-                    "errors": [WorkflowError(task_name=func.__name__, error=str(e))]
+                    "errors": [
+                        WorkflowError(
+                            task_name=func.__name__,
+                            error=str(e),
+                            workflow_run_id=get_current_workflow_run_id(),
+                        )
+                    ]
                 }
 
             finally:
-                # CRITICAL: Reset contextvar to prevent leakage to subsequent nodes
+                # CRITICAL: Reset contextvars to prevent leakage to subsequent nodes
                 if progress_token is not None:
                     current_progress_id.reset(progress_token)
+                if workflow_run_id_token is not None:
+                    current_workflow_run_id.reset(workflow_run_id_token)
 
         return wrapper
 

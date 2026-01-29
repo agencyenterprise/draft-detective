@@ -14,19 +14,21 @@ import { ReferenceDownloaderResults } from '@/components/workflows/results/refer
 import { ResultsExtractorResults } from '@/components/workflows/results/results-extractor-results';
 import { StartWorkflowButton } from '@/components/workflows/start-workflow-button';
 import { WorkflowConfigDialog, WorkflowConfigFormValues } from '@/components/workflows/workflow-config-dialog';
+import { WorkflowRunHistory } from '@/components/workflows/workflow-run-history';
 import {
   ProjectDetailed,
   WorkflowRunDetail,
   WorkflowRunType,
+  getWorkflowStateApiWorkflowsWorkflowRunIdGet,
   startMultipleWorkflowsApiWorkflowsStartMultiplePost,
 } from '@/lib/generated-api';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { cn } from '@/lib/utils';
-import { getWorkflowTypeName } from '@/lib/workflow-state';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { getCurrentRunErrors, getDisplayStatus, getWorkflowTypeName, hasCurrentRunErrors } from '@/lib/workflow-state';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { formatDistanceToNow } from 'date-fns';
 import { AlertTriangleIcon, ArrowRight, FileText, PlusIcon } from 'lucide-react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
 interface AnalysesTabProps {
@@ -120,6 +122,8 @@ export function AnalysesTab({
   const projectId = projectDetail.project.id;
   const workflowDetails = projectDetail.workflow_runs ?? [];
   const [selectedWorkflowRunId, setSelectedWorkflowRunId] = useState<string | null>(null);
+  // Track if user selected a historical run (not from the current project details)
+  const [historicalRunId, setHistoricalRunId] = useState<string | null>(null);
   const [isConfigDialogOpen, setIsConfigDialogOpen] = useState(false);
   const queryClient = useQueryClient();
   const { isWorkflowTypeVisible } = useWorkflowTypes();
@@ -137,16 +141,52 @@ export function AnalysesTab({
     onSuccess: () => {
       toast.success('Workflows started');
       queryClient.invalidateQueries({ queryKey: ['project', projectId] });
+      // Clear historical run selection when starting new workflows
+      setHistoricalRunId(null);
     },
     onError: (error) => {
       toast.error(error instanceof Error ? error.message : 'Failed to start workflows');
     },
   });
 
-  const selectedWorkflowRun = workflowDetails.find((workflowDetail) => workflowDetail.run.id === selectedWorkflowRunId);
+  // Fetch historical run details if a historical run is selected
+  const { data: historicalRunDetail, isLoading: isLoadingHistorical } = useQuery({
+    queryKey: ['workflow-run', historicalRunId],
+    queryFn: () =>
+      getWorkflowStateApiWorkflowsWorkflowRunIdGet({
+        path: { workflow_run_id: historicalRunId! },
+      }),
+    enabled: !!historicalRunId,
+  });
+
   const filteredWorkflowDetails = workflowDetails.filter((workflowDetail) =>
     isWorkflowTypeVisible(workflowDetail.run.type),
   );
+
+  // Determine the selected workflow run - either from project details or historical fetch
+  const selectedWorkflowRun = useMemo(() => {
+    // If a historical run is selected and loaded, use it
+    if (historicalRunId && historicalRunDetail) {
+      return historicalRunDetail;
+    }
+    // Otherwise use the run from project details
+    return workflowDetails.find((workflowDetail) => workflowDetail.run.id === selectedWorkflowRunId);
+  }, [historicalRunId, historicalRunDetail, workflowDetails, selectedWorkflowRunId]);
+
+  // Handle selecting a run from history
+  const handleSelectHistoricalRun = (runId: string) => {
+    // Check if this run is in the current project details
+    const existsInDetails = workflowDetails.some((w) => w.run.id === runId);
+    if (existsInDetails) {
+      // Use the existing data, no need to fetch
+      setSelectedWorkflowRunId(runId);
+      setHistoricalRunId(null);
+    } else {
+      // Need to fetch the historical run
+      setHistoricalRunId(runId);
+      setSelectedWorkflowRunId(null);
+    }
+  };
 
   const handleStartNewAnalysis = () => {
     setIsConfigDialogOpen(true);
@@ -155,6 +195,12 @@ export function AnalysesTab({
   const handleConfirmStartAnalysis = async (values: WorkflowConfigFormValues) => {
     setIsConfigDialogOpen(false);
     startMultipleWorkflows(values);
+  };
+
+  // Handle selecting a workflow type from the list
+  const handleSelectWorkflowType = (runId: string) => {
+    setSelectedWorkflowRunId(runId);
+    setHistoricalRunId(null); // Clear any historical selection
   };
 
   return (
@@ -171,39 +217,43 @@ export function AnalysesTab({
               </Button>
             )}
           </div>
-          {filteredWorkflowDetails.map((workflowDetail) => (
-            <button
-              key={workflowDetail.run.id}
-              onClick={() => setSelectedWorkflowRunId(workflowDetail.run.id)}
-              className={cn(
-                'w-full text-left p-3 rounded-lg border transition-colors hover:bg-muted/50 cursor-pointer shadow-xs',
-                selectedWorkflowRun?.run.id === workflowDetail.run.id && 'bg-muted border-primary shadow',
-              )}
-            >
-              <div className="flex flex-col gap-1">
-                <div className="flex items-center gap-2 font-medium text-sm">
-                  {getWorkflowTypeName(workflowDetail.run.type)}
-                  {workflowDetail.state?.errors && workflowDetail.state.errors.length > 0 && (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <AlertTriangleIcon className="w-4 h-4 text-destructive cursor-help" />
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        This workflow completed with {workflowDetail.state.errors.length} error
-                        {workflowDetail.state.errors.length > 1 ? 's' : ''}. Please check them and try again.
-                      </TooltipContent>
-                    </Tooltip>
-                  )}
-                </div>
-                <div className="flex items-center gap-2 justify-between">
-                  <div className="text-xs text-muted-foreground">
-                    {formatDistanceToNow(workflowDetail.run.last_updated_at, { addSuffix: true })}
+          {filteredWorkflowDetails.map((workflowDetail) => {
+            const displayStatus = getDisplayStatus(workflowDetail);
+            const hasErrors = hasCurrentRunErrors(workflowDetail);
+
+            return (
+              <button
+                key={workflowDetail.run.id}
+                onClick={() => handleSelectWorkflowType(workflowDetail.run.id)}
+                className={cn(
+                  'w-full text-left p-3 rounded-lg border transition-colors hover:bg-muted/50 cursor-pointer shadow-xs',
+                  selectedWorkflowRun?.run.id === workflowDetail.run.id && 'bg-muted border-primary shadow',
+                )}
+              >
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center gap-2 font-medium text-sm">
+                    {getWorkflowTypeName(workflowDetail.run.type)}
+                    {hasErrors && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <AlertTriangleIcon className="w-4 h-4 text-destructive cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          This workflow completed with errors. Please check them and try again.
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
                   </div>
-                  <StatusIndicator status={workflowDetail.run.status} />
+                  <div className="flex items-center gap-2 justify-between">
+                    <div className="text-xs text-muted-foreground">
+                      {formatDistanceToNow(workflowDetail.run.last_updated_at, { addSuffix: true })}
+                    </div>
+                    <StatusIndicator status={displayStatus} />
+                  </div>
                 </div>
-              </div>
-            </button>
-          ))}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -214,27 +264,35 @@ export function AnalysesTab({
             <div>
               <div className="flex items-center justify-between mb-1">
                 <h2 className="text-xl font-semibold">{getWorkflowTypeName(selectedWorkflowRun.run.type)}</h2>
-                {!readOnly && (
-                  <StartWorkflowButton
-                    type={selectedWorkflowRun.run.type}
+                <div className="flex items-center gap-2">
+                  <WorkflowRunHistory
                     projectId={projectId}
-                    workflow={selectedWorkflowRun.run}
-                    onConfirm={async (values: WorkflowConfigFormValues) => {
-                      return await startMultipleWorkflowsApiWorkflowsStartMultiplePost({
-                        body: {
-                          project_id: projectId,
-                          workflow_types: [selectedWorkflowRun.run.type],
-                          openai_api_key: values.openaiApiKey,
-                        },
-                      });
-                    }}
+                    workflowType={selectedWorkflowRun.run.type}
+                    currentRunId={selectedWorkflowRun.run.id}
+                    onSelectRun={handleSelectHistoricalRun}
                   />
-                )}
+                  {!readOnly && (
+                    <StartWorkflowButton
+                      type={selectedWorkflowRun.run.type}
+                      projectId={projectId}
+                      workflow={selectedWorkflowRun.run}
+                      onConfirm={async (values: WorkflowConfigFormValues) => {
+                        return await startMultipleWorkflowsApiWorkflowsStartMultiplePost({
+                          body: {
+                            project_id: projectId,
+                            workflow_types: [selectedWorkflowRun.run.type],
+                            openai_api_key: values.openaiApiKey,
+                          },
+                        });
+                      }}
+                    />
+                  )}
+                </div>
               </div>
               <div className="flex items-center gap-4 text-sm text-muted-foreground">
                 <div className="flex items-center gap-2">
                   <span className="font-medium">Status:</span>
-                  <StatusIndicator status={selectedWorkflowRun.run.status} />
+                  <StatusIndicator status={getDisplayStatus(selectedWorkflowRun)} />
                 </div>
                 <div>
                   Last updated {formatDistanceToNow(selectedWorkflowRun.run.last_updated_at, { addSuffix: true })}
@@ -242,14 +300,26 @@ export function AnalysesTab({
               </div>
             </div>
             <div className="border-t pt-4 space-y-4">
-              {selectedWorkflowRun.state?.errors && selectedWorkflowRun.state.errors.length > 0 && (
-                <ErrorsCard errors={selectedWorkflowRun.state.errors} />
-              )}
-              {renderWorkflowResults(
-                projectDetail,
-                selectedWorkflowRun,
-                onNavigateToDocumentExplorer,
-                onNavigateToReferences,
+              {isLoadingHistorical ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="text-center space-y-2">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto" />
+                    <p className="text-sm text-muted-foreground">Loading historical run...</p>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {(() => {
+                    const currentErrors = getCurrentRunErrors(selectedWorkflowRun);
+                    return currentErrors.length > 0 && <ErrorsCard errors={currentErrors} />;
+                  })()}
+                  {renderWorkflowResults(
+                    projectDetail,
+                    selectedWorkflowRun,
+                    onNavigateToDocumentExplorer,
+                    onNavigateToReferences,
+                  )}
+                </>
               )}
             </div>
           </div>

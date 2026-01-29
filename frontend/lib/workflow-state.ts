@@ -88,21 +88,72 @@ const workflowTypeNames: Record<WorkflowRunType, string> = {
   [WorkflowRunType.CitationDetection]: 'Citation Detection',
   [WorkflowRunType.FootnoteExtraction]: 'Footnote Extraction',
   [WorkflowRunType.AdvocacyTone]: 'Advocacy & Tone',
+  [WorkflowRunType.AboutAuthors]: 'About Authors',
 };
 
 export function getWorkflowTypeName(type: WorkflowRunType): string {
   return workflowTypeNames[type] || type;
 }
 
+/**
+ * Filter errors to only include those from the current workflow run.
+ * Only errors with matching workflow_run_id are included.
+ * Errors without workflow_run_id are excluded to prevent showing accumulated errors from previous runs.
+ */
+function filterErrorsToCurrentRun(errors: WorkflowError[], runId: string): WorkflowError[] {
+  return errors.filter((error) => error.workflow_run_id === runId);
+}
+
+/**
+ * Check if a workflow run has errors from the current run only.
+ * Used to determine if a run should be displayed as "failed".
+ */
+export function hasCurrentRunErrors(workflowRun: WorkflowRunDetail): boolean {
+  const errors = workflowRun.state?.errors ?? [];
+  const runId = workflowRun.run.id;
+  return filterErrorsToCurrentRun(errors, runId).length > 0;
+}
+
+/**
+ * Get errors filtered to only include those from the current workflow run.
+ * Used for displaying errors in the UI.
+ */
+export function getCurrentRunErrors(workflowRun: WorkflowRunDetail): WorkflowError[] {
+  const errors = workflowRun.state?.errors ?? [];
+  return filterErrorsToCurrentRun(errors, workflowRun.run.id);
+}
+
+/**
+ * Display status type that includes "failed" for completed runs with errors.
+ */
+export type DisplayStatus = WorkflowRunStatus | 'failed';
+
+/**
+ * Get the display status for a workflow run.
+ * Returns "failed" if completed with errors, otherwise returns the actual status.
+ */
+export function getDisplayStatus(workflowRun: WorkflowRunDetail): DisplayStatus {
+  if (workflowRun.run.status === WorkflowRunStatus.Completed && hasCurrentRunErrors(workflowRun)) {
+    return 'failed';
+  }
+  return workflowRun.run.status;
+}
+
 export function getWorkflowErrors(workflowRuns: WorkflowRunDetail[]): WorkflowError[] {
   return workflowRuns
-    .flatMap((result) => result?.state?.errors ?? [])
+    .flatMap((result) => {
+      const errors = result?.state?.errors ?? [];
+      return filterErrorsToCurrentRun(errors, result.run.id);
+    })
     .filter((error) => error.chunk_index === null || error.chunk_index === undefined);
 }
 
 export function getChunkErrors(workflowRuns: WorkflowRunDetail[], chunkIndex: number): WorkflowError[] {
   return workflowRuns
-    .flatMap((result) => result?.state?.errors ?? [])
+    .flatMap((result) => {
+      const errors = result?.state?.errors ?? [];
+      return filterErrorsToCurrentRun(errors, result.run.id);
+    })
     .filter((error) => error.chunk_index === chunkIndex);
 }
 

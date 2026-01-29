@@ -8,7 +8,7 @@ from lib.agents.reference_validator import (
     ReferenceValidatorAgent,
 )
 from lib.run_utils import run_tasks
-from lib.workflows.context import ContextSchema
+from lib.workflows.context import ContextSchema, get_current_workflow_run_id
 from lib.workflows.decorators import register_node
 from lib.workflows.models import WorkflowError
 from lib.workflows.reference_extraction.state import ExtractedReference
@@ -46,12 +46,14 @@ async def reference_validation(
             validation_responses.append(validation_response)
 
     errors = []
+    workflow_run_id = get_current_workflow_run_id()
     for index, exception in enumerate(exceptions):
         if exception is not None:
             errors.append(
                 WorkflowError(
                     task_name="validate_references",
                     error=str(exception),
+                    workflow_run_id=workflow_run_id,
                 )
             )
 

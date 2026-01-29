@@ -1,10 +1,11 @@
+import { useMemo } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { StatusIndicator } from '@/components/ui/status-indicator';
 import { DeleteProjectDialog } from '@/components/delete-project-dialog';
 import { getToolMetadata, ToolDefinition } from '@/lib/tool-registry';
 import { getWorkflowTypeName } from '@/lib/workflow-state';
-import { ProjectListItem } from '@/lib/generated-api';
+import { ProjectListItem, WorkflowRun, WorkflowRunType } from '@/lib/generated-api';
 import { formatDistanceToNow } from 'date-fns';
 import { ChevronRightIcon } from 'lucide-react';
 import Link from 'next/link';
@@ -17,6 +18,41 @@ type ProjectWithToolInfo = ProjectListItem & {
 
 interface ProjectCardProps {
   item: ProjectWithToolInfo;
+}
+
+interface WorkflowTypeSummary {
+  type: WorkflowRunType;
+  count: number;
+  latestRun: WorkflowRun;
+}
+
+/**
+ * Groups workflow runs by type and returns summary with count and latest run.
+ * Latest run is determined by most recent created_at timestamp.
+ */
+function groupWorkflowsByType(runs: WorkflowRun[]): WorkflowTypeSummary[] {
+  const grouped = runs.reduce(
+    (acc, run) => {
+      if (!acc[run.type]) {
+        acc[run.type] = [];
+      }
+      acc[run.type].push(run);
+      return acc;
+    },
+    {} as Record<WorkflowRunType, WorkflowRun[]>,
+  );
+
+  return Object.entries(grouped).map(([type, typeRuns]) => {
+    // Sort by created_at descending to get latest first
+    const sortedRuns = [...typeRuns].sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+    );
+    return {
+      type: type as WorkflowRunType,
+      count: typeRuns.length,
+      latestRun: sortedRuns[0],
+    };
+  });
 }
 
 export function ProjectCard({ item }: ProjectCardProps) {
@@ -32,6 +68,9 @@ export function ProjectCard({ item }: ProjectCardProps) {
   const displayWorkflows = isToolRun
     ? workflow_runs || []
     : workflow_runs?.filter((w) => isWorkflowTypeVisible(w.type)) || [];
+
+  // Group workflows by type for display
+  const workflowSummaries = useMemo(() => groupWorkflowsByType(displayWorkflows), [displayWorkflows]);
 
   return (
     <div
@@ -59,9 +98,11 @@ export function ProjectCard({ item }: ProjectCardProps) {
           </p>
         ) : (
           <div className="flex flex-col mb-1 min-w-0">
-            {displayWorkflows.map((workflowRun) => (
-              <p key={workflowRun.id} className="text-sm pl-2">
-                {getWorkflowTypeName(workflowRun.type)}: <StatusIndicator status={workflowRun.status} />
+            {workflowSummaries.map((summary) => (
+              <p key={summary.type} className="text-sm pl-2">
+                {getWorkflowTypeName(summary.type)}
+                {summary.count > 1 && <span className="text-muted-foreground ml-1">({summary.count} runs)</span>}
+                : <StatusIndicator status={summary.latestRun.status} />
               </p>
             ))}
           </div>

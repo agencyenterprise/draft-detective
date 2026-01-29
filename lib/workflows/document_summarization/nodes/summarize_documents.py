@@ -8,7 +8,7 @@ from lib.agents.document_summarizer import DocumentSummarizerAgent
 from lib.models.file import FileRole
 from lib.run_utils import run_tasks
 from lib.services.file import FileDocument
-from lib.workflows.context import ContextSchema
+from lib.workflows.context import ContextSchema, get_current_workflow_run_id
 from lib.workflows.decorators import register_node
 from lib.workflows.document_summarization.state import (
     DocumentSummarizationState,
@@ -108,8 +108,13 @@ async def summarize_documents(
     results, exceptions = await run_tasks(tasks, desc="Summarizing documents")
 
     summaries: List[FileSummary] = [result for result in results if result is not None]
+    workflow_run_id = get_current_workflow_run_id()
     errors = [
-        WorkflowError(task_name="summarize_documents", error=str(exception))
+        WorkflowError(
+            task_name="summarize_documents",
+            error=str(exception),
+            workflow_run_id=workflow_run_id,
+        )
         for exception in exceptions
         if exception is not None
     ]

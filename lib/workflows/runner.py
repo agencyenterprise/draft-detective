@@ -131,7 +131,13 @@ async def run_workflow(
                 updated_state = updated_state.model_copy(update=values)
         except Exception as e:
             logger.error(f"Error streaming state: {e}", exc_info=True)
-            updated_state.errors.append(WorkflowError(task_name="global", error=str(e)))
+            updated_state.errors.append(
+                WorkflowError(
+                    task_name="global",
+                    error=str(e),
+                    workflow_run_id=workflow_run_id,
+                )
+            )
         finally:
             await update_workflow_run_status(
                 workflow_run_id, WorkflowRunStatus.COMPLETED

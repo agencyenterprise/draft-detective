@@ -26,7 +26,7 @@ from lib.workflows.advocacy_tone.state import (
     ChunkAdvocacyToneResult,
     LLMVerificationResult,
 )
-from lib.workflows.context import ContextSchema
+from lib.workflows.context import ContextSchema, get_current_workflow_run_id
 from lib.workflows.decorators import register_node
 from lib.workflows.models import WorkflowError
 
@@ -88,6 +88,7 @@ async def _run_llm_verification(flagged, chunks, agent):
     llm_results, exceptions = await run_tasks(tasks, desc="Verifying advocacy/tone")
 
     errors = []
+    workflow_run_id = get_current_workflow_run_id()
     for i, (llm_result, exc) in enumerate(zip(llm_results, exceptions)):
         result_obj, check_type, chunk_idx = metadata[i]
 
@@ -97,6 +98,7 @@ async def _run_llm_verification(flagged, chunks, agent):
                     task_name=f"verify_{check_type}",
                     error=str(exc),
                     chunk_index=chunk_idx,
+                    workflow_run_id=workflow_run_id,
                 )
             )
             continue

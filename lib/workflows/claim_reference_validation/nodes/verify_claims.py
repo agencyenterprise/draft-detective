@@ -18,7 +18,7 @@ from lib.workflows.claim_reference_validation.reference_providers import (
     get_all_paragraph_citations,
 )
 from lib.workflows.claim_reference_validation.state import ClaimReferenceValidationState
-from lib.workflows.context import ContextSchema
+from lib.workflows.context import ContextSchema, get_current_workflow_run_id
 from lib.workflows.decorators import register_node
 from lib.workflows.models import WorkflowError
 
@@ -184,6 +184,7 @@ async def verify_claims(
                     task_name="verify_claims",
                     error=str(exception),
                     chunk_index=chunk_index,
+                    workflow_run_id=get_current_workflow_run_id(),
                 )
             )
 
