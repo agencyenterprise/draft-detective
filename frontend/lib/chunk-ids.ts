@@ -46,28 +46,14 @@ export function parseMultiChunkHash(hash: string): number[] | null {
   return null;
 }
 
-export function useChunkHashNavigation(
-  validChunkIndices: number[] | undefined,
-  onSelectChunk: (chunkIndex: number) => void,
-): void {
-  const hasHandled = useRef(false);
-
-  useEffect(() => {
-    if (hasHandled.current || !validChunkIndices?.length) return;
-
-    const parsed = parseChunkHash(window.location.hash);
-    if (!parsed || !validChunkIndices.includes(parsed.chunkIndex)) return;
-
-    onSelectChunk(parsed.chunkIndex);
-    hasHandled.current = true;
-  }, [validChunkIndices, onSelectChunk]);
-}
-
 /**
- * Hook for handling multi-chunk hash navigation (#chunks-1,2,3 format).
+ * Hook for handling chunk hash navigation.
  * Supports both #chunk-N (single) and #chunks-N,M,O (multiple) formats.
+ *
+ * @param validChunkIndices - Array of valid chunk indices to accept
+ * @param onSelectChunks - Callback when chunks are selected from hash
  */
-export function useMultiChunkHashNavigation(
+export function useChunkHashNavigation(
   validChunkIndices: number[] | undefined,
   onSelectChunks: (chunkIndices: number[]) => void,
 ): void {
@@ -98,17 +84,6 @@ export function useMultiChunkHashNavigation(
       lastProcessedHash.current = currentHash;
 
       onSelectChunks(validParsed);
-
-      let attempts = 0;
-      const intervalId = setInterval(() => {
-        const element = document.querySelector(`[data-chunk-index="${validParsed[0]}"]`);
-        if (element) {
-          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          clearInterval(intervalId);
-        } else if (++attempts >= 20) {
-          clearInterval(intervalId);
-        }
-      }, 100);
     };
 
     handleHashChange();

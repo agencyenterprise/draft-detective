@@ -3,7 +3,7 @@
 import { AiGeneratedLabel } from '@/components/ai-generated-label';
 import { NoReferencesCallout } from '@/components/references/no-reference-section-callout';
 import { SkeletonList } from '@/components/ui/skeleton-list';
-import { useChunkHashNavigation, useMultiChunkHashNavigation } from '@/lib/chunk-ids';
+import { useChunkHashNavigation } from '@/lib/chunk-ids';
 import { DocRenderMode } from '@/lib/constants';
 import { DocumentIssue, ProjectDetailed, SeverityEnum, WorkflowRunType } from '@/lib/generated-api';
 import {
@@ -51,11 +51,8 @@ export function DocumentExplorerTab({
   const chunks = useMemo(() => chunkSplitting?.state?.chunks ?? [], [chunkSplitting?.state?.chunks]);
   const validChunkIndices = useMemo(() => chunks.map((c) => c.chunk_index), [chunks]);
 
-  const handleSingleHashSelect = useCallback((idx: number) => setSelectedChunkIndices([idx]), []);
-  useChunkHashNavigation(validChunkIndices, handleSingleHashSelect);
-
-  const handleMultiHashSelect = useCallback((indices: number[]) => setSelectedChunkIndices(indices), []);
-  useMultiChunkHashNavigation(validChunkIndices, handleMultiHashSelect);
+  const handleHashSelect = useCallback((indices: number[]) => setSelectedChunkIndices(indices), []);
+  useChunkHashNavigation(validChunkIndices, handleHashSelect);
 
   useEffect(() => {
     if (sidebarRef.current && selectedChunkIndices.length > 0) {
