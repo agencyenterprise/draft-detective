@@ -85,11 +85,9 @@ def extract_abbreviations_from_chunks(
         if item.abbr in seen:
             continue
 
-        with_def = next(
-            (i for i in raw_items if i.abbr == item.abbr and i.definition), None
-        )
-        if with_def and with_def.definition:
-            item = item.model_copy(update={"definition": with_def.definition})
+        definition = definition_map.get(item.abbr)
+        if definition:
+            item = item.model_copy(update={"definition": definition})
 
         unique.append(item)
         seen.add(item.abbr)

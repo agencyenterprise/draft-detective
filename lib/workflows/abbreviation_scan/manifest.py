@@ -25,7 +25,7 @@ class AbbreviationScanManifest(
     can_be_triggered_by_user = True
     is_internal = False
     order = 9
-    required_dependencies = [WorkflowRunType.DOCUMENT_PROCESSING]
+    required_dependencies = [WorkflowRunType.CHUNK_SPLITTING]
 
     def get_state_type(self) -> Type[AbbreviationScanState]:
         return AbbreviationScanState
