@@ -2,18 +2,17 @@ import logging
 
 from langgraph.runtime import Runtime
 
-from lib.agents.formatting_utils import format_audience_context, format_domain_context
+from lib.agents.formatting_utils import (
+    format_audience_context,
+    format_domain_context,
+    format_summary_context,
+)
 from lib.agents.document_summarizer import DocumentSummary
 from lib.agents.inference_validator import (
     InferenceValidationResponseWithClaimIndex,
     InferenceValidatorAgent,
 )
 from lib.agents.models import ClaimCategory
-from lib.agents.formatting_utils import (
-    format_summary_context,
-    format_domain_context,
-    format_audience_context,
-)
 from lib.run_utils import run_tasks
 from lib.services.file_artifacts_service.types import FileArtifactsServiceType
 from lib.workflows.chunk_utils import AnalyzedChunk
