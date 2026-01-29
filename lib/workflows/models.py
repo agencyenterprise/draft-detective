@@ -61,6 +61,7 @@ class BaseWorkflowConfig(BaseModel):
 
 class WorkflowRunType(str, Enum):
     DOCUMENT_PROCESSING = "document_processing"
+    CHUNK_SPLITTING = "chunk_splitting"
     DOCUMENT_SUMMARIZATION = "document_summarization"
     REFERENCE_EXTRACTION = "reference_extraction"
     REFERENCE_FILE_MATCHING = "reference_file_matching"
@@ -77,6 +78,8 @@ class WorkflowRunType(str, Enum):
     RESULTS_EXTRACTION = "results_extraction"
     INFERENCE_VALIDATION = "inference_validation"
     CLAIM_REFERENCE_VALIDATION = "claim_reference_validation"
+    ADVOCACY_TONE = "advocacy_tone"
+    ABOUT_AUTHORS = "about_authors"
 
 
 def is_user_visible_workflow(workflow_type: WorkflowRunType) -> bool:

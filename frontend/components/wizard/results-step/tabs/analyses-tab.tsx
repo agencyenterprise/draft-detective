@@ -5,6 +5,8 @@ import { Callout } from '@/components/ui/callout';
 import { StatusIndicator } from '@/components/ui/status-indicator';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { ErrorsCard } from '@/components/wizard/results-step/components/errors-card';
+import { AboutAuthorsResults } from '@/components/workflows/results/about-authors-results';
+import { AdvocacyToneResults } from '@/components/workflows/results/advocacy-tone-results';
 import { CitationSuggesterResults } from '@/components/workflows/results/citation-suggester-results';
 import { LiteratureReviewResults } from '@/components/workflows/results/literature-review/literature-review-results';
 import { LiveReportsResults } from '@/components/workflows/results/live-reports-results';
@@ -31,14 +33,14 @@ import { toast } from 'sonner';
 interface AnalysesTabProps {
   projectDetail: ProjectDetailed;
   readOnly?: boolean;
-  onNavigateToDocumentExplorer?: () => void;
+  onNavigateToDocumentExplorer?: (chunkIndex?: number) => void;
   onNavigateToReferences?: () => void;
 }
 
 function renderWorkflowResults(
   project: ProjectDetailed,
   workflowRun: WorkflowRunDetail,
-  onNavigateToDocumentExplorer?: () => void,
+  onNavigateToDocumentExplorer?: (chunkIndex?: number) => void,
   onNavigateToReferences?: () => void,
 ) {
   const { type } = workflowRun.run;
@@ -61,6 +63,10 @@ function renderWorkflowResults(
       return <ReferenceDownloaderResults workflowDetail={workflowRun} />;
     case WorkflowRunType.ResultsExtraction:
       return <ResultsExtractorResults workflowDetail={workflowRun} />;
+    case WorkflowRunType.AdvocacyTone:
+      return <AdvocacyToneResults project={project} onNavigateToDocumentExplorer={onNavigateToDocumentExplorer} />;
+    case WorkflowRunType.AboutAuthors:
+      return <AboutAuthorsResults project={project} onNavigateToDocumentExplorer={onNavigateToDocumentExplorer} />;
     case WorkflowRunType.InferenceValidation:
     case WorkflowRunType.ClaimReferenceValidation:
       return (
@@ -72,7 +78,7 @@ function renderWorkflowResults(
               claims.
             </p>
             {onNavigateToDocumentExplorer && (
-              <Button onClick={onNavigateToDocumentExplorer} size="sm" variant="outline" className="mt-2">
+              <Button onClick={() => onNavigateToDocumentExplorer()} size="sm" variant="outline" className="mt-2">
                 Go to Document Explorer
                 <ArrowRight className="h-4 w-4" />
               </Button>

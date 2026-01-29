@@ -49,7 +49,7 @@ function ExpandableCell({ children, className }: { children: React.ReactNode; cl
       <div
         className={cn(
           'line-clamp-2',
-          'hover:absolute hover:z-10 hover:line-clamp-none hover:bg-background hover:shadow-lg hover:rounded-lg hover:p-3 hover:-my-7 hover:-mx-3 hover:min-w-full hover:w-max hover:max-w-xl',
+          'hover:absolute hover:z-10 hover:line-clamp-none hover:bg-background hover:shadow-lg hover:rounded-lg hover:p-3 hover:-my-7 hover:-mx-3 hover:min-w-full hover:w-max hover:max-w-md',
           className,
         )}
       >
@@ -162,7 +162,15 @@ export function FilesTab({ projectDetail }: FilesTabProps) {
       {sortedFiles.length === 0 ? (
         <div className="text-sm text-muted-foreground">No files uploaded.</div>
       ) : (
-        <Table>
+        <Table className="table-fixed w-full overflow-x-visible">
+          <colgroup>
+            <col className="w-[45%]" />
+            <col className="w-[10%]" />
+            <col className="w-[20%]" />
+            <col className="w-[20%]" />
+            <col className="w-[10%]" />
+            <col className="w-[5%]" />
+          </colgroup>
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
@@ -191,10 +199,10 @@ export function FilesTab({ projectDetail }: FilesTabProps) {
               const matchedReference = file.id ? matchedReferencesMap.get(file.id) : undefined;
               return (
                 <TableRow key={file.id}>
-                  <TableCell className="whitespace-normal break-all max-w-md">
+                  <TableCell className="whitespace-normal break-all">
                     <FileNameLink file={file} />
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="">
                     <span
                       className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
                         isMain ? 'bg-primary/10 text-primary' : 'bg-secondary'
@@ -203,14 +211,14 @@ export function FilesTab({ projectDetail }: FilesTabProps) {
                       {isMain ? 'Main' : 'Supporting'}
                     </span>
                   </TableCell>
-                  <TableCell className="text-xs whitespace-normal max-w-sm">
+                  <TableCell className="text-xs whitespace-normal">
                     {file.description ? (
                       <ExpandableCell>{file.description}</ExpandableCell>
                     ) : (
                       <span className="text-muted-foreground/60">-</span>
                     )}
                   </TableCell>
-                  <TableCell className="text-xs whitespace-normal max-w-sm">
+                  <TableCell className="text-xs whitespace-normal">
                     {matchedReference ? (
                       <ExpandableCell className="italic">{matchedReference.text}</ExpandableCell>
                     ) : (

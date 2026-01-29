@@ -1,11 +1,11 @@
 import {
-  deleteProjectFileEndpointApiProjectProjectIdFilesFileIdDelete,
-  startWorkflowApiWorkflowsStartPost,
-  addFileToProjectApiProjectProjectIdFilePost,
   addFilesToProjectApiProjectProjectIdFilesPost,
-  startMultipleWorkflowsApiWorkflowsStartMultiplePost,
-  WorkflowRunType,
+  addFileToProjectApiProjectProjectIdFilePost,
+  deleteProjectFileEndpointApiProjectProjectIdFilesFileIdDelete,
   FileRole,
+  startMultipleWorkflowsApiWorkflowsStartMultiplePost,
+  startWorkflowApiWorkflowsStartPost,
+  WorkflowRunType,
 } from '@/lib/generated-api';
 import { QueryClient, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -34,19 +34,9 @@ export function useUploadFileMutation(projectId: string, referenceId: string) {
 
   return useMutation({
     mutationFn: async ({ file, openaiApiKey }: UploadFileParams) => {
-      // 1. Upload the file
       await addFileToProjectApiProjectProjectIdFilePost({
         path: { project_id: projectId },
         body: { file, reference_id: referenceId },
-      });
-
-      // 2. Start DocumentProcessing and ReferenceFileMatching workflows
-      return startMultipleWorkflowsApiWorkflowsStartMultiplePost({
-        body: {
-          project_id: projectId,
-          workflow_types: [WorkflowRunType.DocumentProcessing, WorkflowRunType.DocumentSummarization],
-          openai_api_key: openaiApiKey || undefined,
-        },
       });
     },
     onSuccess: createOnSuccess(queryClient, projectId, 'File uploaded. Processing started.'),
@@ -91,15 +81,6 @@ export function useReplaceFileMutation(projectId: string, referenceId: string, e
           path: { project_id: projectId, file_id: existingFileId },
         });
       }
-
-      // 3. Start DocumentProcessing and ReferenceFileMatching workflows
-      return startMultipleWorkflowsApiWorkflowsStartMultiplePost({
-        body: {
-          project_id: projectId,
-          workflow_types: [WorkflowRunType.DocumentProcessing, WorkflowRunType.DocumentSummarization],
-          openai_api_key: openaiApiKey || undefined,
-        },
-      });
     },
     onSuccess: createOnSuccess(queryClient, projectId, 'File replaced. Processing started.'),
     onError: createOnError('Failed to replace file'),
@@ -115,22 +96,12 @@ export function useFetchFromWebMutation(projectId: string, referenceId: string, 
 
   return useMutation({
     mutationFn: async ({ openaiApiKey }: FetchFromWebParams) => {
-      // 1. Start ReferenceDownloader workflow
       await startWorkflowApiWorkflowsStartPost({
         body: {
           type: 'reference_downloader',
           project_id: projectId,
           references: [{ reference_id: referenceId, text: referenceText }],
           openai_api_key: openaiApiKey || null,
-        },
-      });
-
-      // 2. Start DocumentProcessing workflow
-      await startMultipleWorkflowsApiWorkflowsStartMultiplePost({
-        body: {
-          project_id: projectId,
-          workflow_types: [WorkflowRunType.DocumentProcessing, WorkflowRunType.DocumentSummarization],
-          openai_api_key: openaiApiKey || undefined,
         },
       });
     },
@@ -149,22 +120,12 @@ export function useFetchAllFromWebMutation(projectId: string) {
 
   return useMutation({
     mutationFn: async ({ references, openaiApiKey }: FetchAllFromWebParams) => {
-      // 1. Start ReferenceDownloader workflow
       await startWorkflowApiWorkflowsStartPost({
         body: {
           type: 'reference_downloader',
           project_id: projectId,
           references: references,
           openai_api_key: openaiApiKey || null,
-        },
-      });
-
-      // 2. Start DocumentProcessing workflow
-      await startMultipleWorkflowsApiWorkflowsStartMultiplePost({
-        body: {
-          project_id: projectId,
-          workflow_types: [WorkflowRunType.DocumentProcessing, WorkflowRunType.DocumentSummarization],
-          openai_api_key: openaiApiKey || undefined,
         },
       });
     },
@@ -183,21 +144,16 @@ export function useBatchUploadMutation(projectId: string) {
 
   return useMutation({
     mutationFn: async ({ files, openaiApiKey }: BatchUploadParams) => {
-      // 1. Upload all files as supporting documents
       await addFilesToProjectApiProjectProjectIdFilesPost({
         path: { project_id: projectId },
         body: { files, role: FileRole.Support },
       });
 
-      // 2. Start DocumentProcessing and ReferenceFileMatching workflows
+      // 2. Start ReferenceFileMatching workflow to immediately match the new files to the references
       return startMultipleWorkflowsApiWorkflowsStartMultiplePost({
         body: {
           project_id: projectId,
-          workflow_types: [
-            WorkflowRunType.DocumentProcessing,
-            WorkflowRunType.DocumentSummarization,
-            WorkflowRunType.ReferenceFileMatching,
-          ],
+          workflow_types: [WorkflowRunType.ReferenceFileMatching],
           openai_api_key: openaiApiKey || undefined,
         },
       });

@@ -18,7 +18,7 @@ class DocumentProcessingManifest(
 ):
     type = WorkflowRunType.DOCUMENT_PROCESSING
     name = "Document Processing"
-    description = "Convert documents to markdown and split into chunks"
+    description = "Convert documents to markdown"
     needs_web_search = False
     can_be_triggered_by_user = (
         False  # This is a dependency workflow, not directly triggered
@@ -29,6 +29,7 @@ class DocumentProcessingManifest(
         # that were downloaded by reference downloader
         WorkflowRunType.REFERENCE_DOWNLOADER,
     ]
+    always_run = True  # Always run document processing to ensure new files are processed. The workflow processes only new files in subsequent runs, reusing cached results from previous runs.
 
     def get_state_type(self) -> Type[DocumentProcessingState]:
         """Get the type of the workflow state."""

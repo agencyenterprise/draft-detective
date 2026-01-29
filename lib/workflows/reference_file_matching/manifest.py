@@ -4,8 +4,7 @@ from typing import List, Type, cast
 
 from langgraph.graph import StateGraph
 
-from lib.workflows.chunk_utils import find_chunk_index_by_text
-from lib.workflows.document_processing.state import DocumentProcessingState
+from lib.workflows.chunk_utils import build_analyzed_chunks, find_chunk_index_by_text
 from lib.workflows.manifest import WorkflowManifest
 from lib.workflows.models import DocumentIssue, SeverityEnum, WorkflowRunType
 from lib.workflows.reference_extraction.state import ReferenceExtractionState
@@ -41,6 +40,7 @@ class ReferenceFileMatchingManifest(
         WorkflowRunType.DOCUMENT_SUMMARIZATION,
         WorkflowRunType.REFERENCE_EXTRACTION,
     ]
+    always_run = True  # Always run reference file matching to ensure new files are matched. The workflow matches only new files in subsequent runs, reusing cached results from previous runs.
 
     def get_state_type(self) -> Type[ReferenceFileMatchingState]:
         """Get the type of the workflow state."""
@@ -77,16 +77,9 @@ class ReferenceFileMatchingManifest(
         other_states: List[WorkflowState],
     ) -> List[DocumentIssue]:
         """Convert reference file matching state to issues."""
+
         issues: List[DocumentIssue] = []
-
-        # Get document processing state for chunk lookup
-        doc_processing_state = get_state_by_type(
-            WorkflowRunType.DOCUMENT_PROCESSING, other_states
-        )
-        if doc_processing_state is None:
-            return issues
-
-        doc_processing_state = cast(DocumentProcessingState, doc_processing_state)
+        chunks = build_analyzed_chunks(other_states)
 
         # Get reference extraction state to access extracted references
         ref_extraction_state = get_state_by_type(
@@ -107,9 +100,7 @@ class ReferenceFileMatchingManifest(
                     title="Missing supporting document for reference",
                     description=f'Reference does not have an associated supporting document: "{reference.text}"',
                     severity=SeverityEnum.LOW,
-                    chunk_index=find_chunk_index_by_text(
-                        doc_processing_state.chunks, reference.text
-                    ),
+                    chunk_index=find_chunk_index_by_text(chunks, reference.text),
                 )
                 issues.append(issue)
 

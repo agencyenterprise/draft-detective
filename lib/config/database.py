@@ -3,11 +3,11 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
-from .env import config
+from lib.config.env import config as env_config
 
 # SQLAlchemy engine
 engine = create_engine(
-    config.DATABASE_URL,
+    env_config.DATABASE_URL,
     echo=False,
 )
 

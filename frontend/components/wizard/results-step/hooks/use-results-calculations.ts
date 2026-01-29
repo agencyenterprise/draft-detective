@@ -1,19 +1,22 @@
 import {
+  ChunkSplittingState,
   CitationDetectionState,
   ClaimExtractionState,
-  DocumentProcessingState,
+  ClaimReferenceValidationState,
+  EvidenceAlignmentLevel,
   ReferenceExtractionState,
   ReferenceFileMatchingState,
 } from '@/lib/generated-api';
 
 export function useResultsCalculations(
-  documentProcessing: DocumentProcessingState | undefined,
+  chunkSplitting: ChunkSplittingState | undefined,
   referenceExtraction: ReferenceExtractionState | undefined,
   claimExtraction: ClaimExtractionState | undefined,
   citationDetection: CitationDetectionState | undefined,
   referenceFileMatching?: ReferenceFileMatchingState | undefined,
+  claimReferenceValidation?: ClaimReferenceValidationState | undefined,
 ) {
-  if (!documentProcessing) {
+  if (!chunkSplitting) {
     return {
       totalClaims: 0,
       totalCitations: 0,
@@ -25,7 +28,7 @@ export function useResultsCalculations(
     };
   }
 
-  const chunks = documentProcessing.chunks || [];
+  const chunks = chunkSplitting.chunks || [];
   const extractedRefs = referenceExtraction?.extracted_references || [];
   const fileMatches = referenceFileMatching?.matches || [];
   const claims = claimExtraction?.claims || [];
@@ -33,7 +36,14 @@ export function useResultsCalculations(
 
   const totalClaims = claims.reduce((sum, claimResponse) => sum + (claimResponse.claims?.length || 0), 0);
   const totalCitations = citations.length;
-  const totalUnsubstantiated = 0; // TODO
+
+  // Count claims with unsupported or partially_supported evidence alignment
+  const substantiations = claimReferenceValidation?.substantiations || [];
+  const totalUnsubstantiated = substantiations.filter(
+    (s) =>
+      s.evidence_alignment === EvidenceAlignmentLevel.Unsupported ||
+      s.evidence_alignment === EvidenceAlignmentLevel.PartiallySupported,
+  ).length;
   const chunksWithClaims = claims.filter(
     (claim) => claim.chunk_index !== null && claim.chunk_index !== undefined && (claim.claims?.length || 0) > 0,
   ).length;

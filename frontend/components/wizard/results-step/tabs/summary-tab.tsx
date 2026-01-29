@@ -1,7 +1,7 @@
 'use client';
 
-import { ProjectDetailed, WorkflowRunStatus, WorkflowRunType } from '@/lib/generated-api';
-import { getWorkflowRunByType } from '@/lib/workflow-state';
+import { ProjectDetailed, WorkflowRunType } from '@/lib/generated-api';
+import { getWorkflowRunByType, isWorkflowProcessing } from '@/lib/workflow-state';
 import { SummaryCards } from '../components/summary-cards';
 import { useResultsCalculations } from '../hooks/use-results-calculations';
 
@@ -11,13 +11,14 @@ interface SummaryTabProps {
 
 export function SummaryTab({ projectDetail }: SummaryTabProps) {
   const workflowDetails = projectDetail.workflow_runs ?? [];
-  const documentProcessing = getWorkflowRunByType(workflowDetails, WorkflowRunType.DocumentProcessing);
+  const chunkSplitting = getWorkflowRunByType(workflowDetails, WorkflowRunType.ChunkSplitting);
   const referenceExtraction = getWorkflowRunByType(workflowDetails, WorkflowRunType.ReferenceExtraction);
   const claimExtraction = getWorkflowRunByType(workflowDetails, WorkflowRunType.ClaimExtraction);
   const citationDetection = getWorkflowRunByType(workflowDetails, WorkflowRunType.CitationDetection);
   const referenceFileMatching = getWorkflowRunByType(workflowDetails, WorkflowRunType.ReferenceFileMatching);
+  const claimReferenceValidation = getWorkflowRunByType(workflowDetails, WorkflowRunType.ClaimReferenceValidation);
 
-  const isProcessing = documentProcessing?.run.status !== WorkflowRunStatus.Completed;
+  const isProcessing = isWorkflowProcessing(chunkSplitting);
 
   const {
     totalClaims,
@@ -28,11 +29,12 @@ export function SummaryTab({ projectDetail }: SummaryTabProps) {
     chunksWithCitations,
     supportedReferences,
   } = useResultsCalculations(
-    documentProcessing?.state,
+    chunkSplitting?.state,
     referenceExtraction?.state,
     claimExtraction?.state,
     citationDetection?.state,
     referenceFileMatching?.state,
+    claimReferenceValidation?.state,
   );
 
   return (

@@ -8,6 +8,9 @@ from typing import Optional
 import uuid
 
 from fastapi import HTTPException
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+from sqlmodel import col
 
 from lib.models.feedback import Feedback, FeedbackType
 from lib.models.project import Project
@@ -17,25 +20,27 @@ from lib.models.workflow_run import WorkflowRun
 
 # TODO: Update this to use the new project layer instead of the workflow run
 def _verify_workflow_run_ownership(
-    session, workflow_run_id: uuid.UUID, user: User
+    session: Session, workflow_run_id: uuid.UUID, user: User
 ) -> None:
     """Verify that the user owns the workflow run, raise 403 if not."""
-    workflow_run, project = (
-        session.query(WorkflowRun, Project)
+    stmt = (
+        select(WorkflowRun, Project)
         .join(Project)
-        .filter(WorkflowRun.id == workflow_run_id)
-        .first()
+        .where(col(WorkflowRun.id) == workflow_run_id)
     )
+    result = session.execute(stmt).one_or_none()
 
-    if workflow_run is None or project is None:
+    if result is None:
         raise HTTPException(status_code=404, detail="Workflow run not found")
+
+    workflow_run, project = result.tuple()
 
     if project.user_id is None or project.user_id != user.id:
         raise HTTPException(status_code=403, detail="Access denied")
 
 
 def create_feedback(
-    session,
+    session: Session,
     workflow_run_id: uuid.UUID,
     entity_path: dict,
     feedback_type: FeedbackType,
@@ -80,7 +85,7 @@ def create_feedback(
 
 
 def create_or_update_feedback(
-    session,
+    session: Session,
     workflow_run_id: uuid.UUID,
     entity_path: dict,
     feedback_type: FeedbackType,
@@ -109,13 +114,13 @@ def create_or_update_feedback(
     """
     _verify_workflow_run_ownership(session, workflow_run_id, user)
 
-    existing_feedback = (
-        session.query(Feedback)
-        .filter(Feedback.workflow_run_id == workflow_run_id)
-        .filter(Feedback.user_id == user.id)
-        .filter(Feedback.entity_path == entity_path)
-        .first()
+    stmt = (
+        select(Feedback)
+        .where(col(Feedback.workflow_run_id) == workflow_run_id)
+        .where(col(Feedback.user_id) == user.id)
+        .where(col(Feedback.entity_path) == entity_path)
     )
+    existing_feedback = session.execute(stmt).scalar_one_or_none()
 
     if existing_feedback:
         existing_feedback.feedback_type = feedback_type
@@ -136,7 +141,7 @@ def create_or_update_feedback(
 
 
 def get_feedback(
-    session, workflow_run_id: uuid.UUID, entity_path: dict, user: User
+    session: Session, workflow_run_id: uuid.UUID, entity_path: dict, user: User
 ) -> Optional[Feedback]:
     """
     Get feedback for a specific entity.
@@ -155,17 +160,17 @@ def get_feedback(
     """
     _verify_workflow_run_ownership(session, workflow_run_id, user)
 
-    return (
-        session.query(Feedback)
-        .filter(Feedback.workflow_run_id == workflow_run_id)
-        .filter(Feedback.user_id == user.id)
-        .filter(Feedback.entity_path == entity_path)
-        .first()
+    stmt = (
+        select(Feedback)
+        .where(col(Feedback.workflow_run_id) == workflow_run_id)
+        .where(col(Feedback.user_id) == user.id)
+        .where(col(Feedback.entity_path) == entity_path)
     )
+    return session.execute(stmt).scalar_one_or_none()
 
 
 def get_workflow_feedback(
-    session, workflow_run_id: uuid.UUID, user: User
+    session: Session, workflow_run_id: uuid.UUID, user: User
 ) -> list[Feedback]:
     """
     Get all feedback for a workflow run.
@@ -183,15 +188,15 @@ def get_workflow_feedback(
     """
     _verify_workflow_run_ownership(session, workflow_run_id, user)
 
-    return (
-        session.query(Feedback)
-        .filter(Feedback.workflow_run_id == workflow_run_id)
-        .filter(Feedback.user_id == user.id)
-        .all()
+    stmt = (
+        select(Feedback)
+        .where(col(Feedback.workflow_run_id) == workflow_run_id)
+        .where(col(Feedback.user_id) == user.id)
     )
+    return list(session.execute(stmt).scalars().all())
 
 
-def delete_feedback(session, feedback_id: uuid.UUID, user: User) -> bool:
+def delete_feedback(session: Session, feedback_id: uuid.UUID, user: User) -> bool:
     """
     Delete feedback by ID.
 
@@ -206,7 +211,8 @@ def delete_feedback(session, feedback_id: uuid.UUID, user: User) -> bool:
     Raises:
         HTTPException: If user doesn't own the feedback
     """
-    feedback = session.query(Feedback).filter(Feedback.id == feedback_id).first()
+    stmt = select(Feedback).where(col(Feedback.id) == feedback_id)
+    feedback = session.execute(stmt).scalar_one_or_none()
 
     if feedback is None:
         return False

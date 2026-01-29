@@ -1,9 +1,8 @@
-from typing import List, Optional, Type, cast
+from typing import List, Type
 
 from langgraph.graph import StateGraph
 
-from lib.workflows.chunk_utils import find_chunk_index_by_text
-from lib.workflows.document_processing.state import DocumentProcessingState
+from lib.workflows.chunk_utils import build_analyzed_chunks, find_chunk_index_by_text
 from lib.workflows.manifest import WorkflowManifest
 from lib.workflows.models import DocumentIssue, SeverityEnum, WorkflowRunType
 from lib.workflows.reference_validation.graph import build_reference_validation_graph
@@ -12,7 +11,6 @@ from lib.workflows.reference_validation.state import (
     ReferenceValidationWorkflowConfig,
 )
 from lib.workflows.types import WorkflowState
-from lib.workflows.util import get_state_by_type
 
 
 class ReferenceValidationManifest(
@@ -51,25 +49,44 @@ class ReferenceValidationManifest(
     def convert_state_to_issues(
         self, state: ReferenceValidationState, other_states: List[WorkflowState]
     ) -> List[DocumentIssue]:
-        """Convert ReferenceValidationState to issues."""
+        """
+        Convert ReferenceValidationState to issues.
+
+        By default, reference validation results are stored as metadata on each
+        reference entry and displayed in the References tab via the
+        ValidationResultsBox component. This keeps the Document Explorer focused
+        on actionable issues.
+
+        When show_invalid_references_as_issues is enabled in the config, invalid
+        references will also appear as issues in the Document Explorer.
+        """
+        if not state.config.show_invalid_references_as_issues:
+            return []
+
         issues: List[DocumentIssue] = []
+        chunks = build_analyzed_chunks(other_states)
 
-        doc_state = get_state_by_type(WorkflowRunType.DOCUMENT_PROCESSING, other_states)
-
-        # Reference Validation: Invalid references
         for validation in state.reference_validations:
-            if not validation.valid_reference:
-                # Try to find chunk_index from claim_state if available
-                chunk_index: Optional[int] = None
-                if doc_state:
-                    doc_state_typed = cast(DocumentProcessingState, doc_state)
-                    chunk_index = find_chunk_index_by_text(
-                        doc_state_typed.chunks, validation.original_reference
-                    )
+            chunk_index = find_chunk_index_by_text(
+                chunks, validation.original_reference
+            )
 
+            if not validation.valid_reference:
                 issue = DocumentIssue(
                     title="Invalid reference",
                     description=f'Possible invalid reference: "{validation.original_reference}"',
+                    severity=SeverityEnum.MEDIUM,
+                    chunk_index=chunk_index,
+                )
+                issues.append(issue)
+
+            if validation.cited_url and validation.url != validation.cited_url:
+                issue = DocumentIssue(
+                    title="URL redirect detected",
+                    description=(
+                        f"Cited URL redirects to a different location. "
+                        f"Cited: {validation.cited_url} → Canonical: {validation.url}"
+                    ),
                     severity=SeverityEnum.MEDIUM,
                     chunk_index=chunk_index,
                 )

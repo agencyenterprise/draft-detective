@@ -39,6 +39,7 @@ export function ResultsVisualization({
   const results = projectDetail.workflow_runs ?? [];
 
   const documentProcessing = getWorkflowRunByType(results, WorkflowRunType.DocumentProcessing);
+  const chunkSplitting = getWorkflowRunByType(results, WorkflowRunType.ChunkSplitting);
   const documentSummarization = getWorkflowRunByType(results, WorkflowRunType.DocumentSummarization);
   const referenceExtraction = getWorkflowRunByType(results, WorkflowRunType.ReferenceExtraction);
   const [activeTab, setActiveTab] = useState<TabType>('document-explorer');
@@ -62,6 +63,11 @@ export function ResultsVisualization({
             viewMode={viewMode}
             readOnly={readOnly}
             onNavigateToAnalyses={() => setActiveTab('analyses')}
+            onNavigateToReferences={(referenceIndex) => {
+              window.history.pushState(null, '', `#reference-${referenceIndex}`);
+              window.dispatchEvent(new HashChangeEvent('hashchange'));
+              setActiveTab('references');
+            }}
           />
         );
       case 'references':
@@ -71,7 +77,13 @@ export function ResultsVisualization({
           <AnalysesTab
             projectDetail={projectDetail}
             readOnly={readOnly}
-            onNavigateToDocumentExplorer={() => setActiveTab('document-explorer')}
+            onNavigateToDocumentExplorer={(chunkIndex?: number) => {
+              if (chunkIndex !== undefined) {
+                window.history.pushState(null, '', `#chunk-${chunkIndex}`);
+                window.dispatchEvent(new HashChangeEvent('hashchange'));
+              }
+              setActiveTab('document-explorer');
+            }}
             onNavigateToReferences={() => setActiveTab('references')}
           />
         );
@@ -79,7 +91,7 @@ export function ResultsVisualization({
   };
 
   const isDoclingAvailable = !!(
-    documentProcessing?.state?.file?.docling_pages && documentProcessing?.state?.chunk_to_items?.mapping
+    documentProcessing?.state?.file?.docling_pages && chunkSplitting?.state?.chunk_to_items?.mapping
   );
 
   return (
