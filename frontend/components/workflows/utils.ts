@@ -44,7 +44,7 @@ export function hasSupportingDocumentsRequirement(selectedTypes: WorkflowRunType
  * Workflow types that are part of the QA Screener tool.
  * These are analyses designed for quality assurance screening.
  */
-export const QA_SCREENER_WORKFLOWS: WorkflowRunType[] = [WorkflowRunType.AdvocacyTone];
+export const QA_SCREENER_WORKFLOWS: WorkflowRunType[] = [WorkflowRunType.AdvocacyTone, WorkflowRunType.AboutAuthors];
 
 /**
  * Checks if a workflow type is part of the QA Screener tool.

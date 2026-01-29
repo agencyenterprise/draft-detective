@@ -58,6 +58,10 @@ class BibliographyItemValidation(BaseModel):
         default=None,
         description="Updated reference with the suggested changes made to make the reference valid, matching the format of the original reference. If the reference is already valid, return null.",
     )
+    cited_url: Optional[str] = Field(
+        default=None,
+        description="The original URL cited in the reference text (before redirect resolution).",
+    )
 
 
 _reference_validator_prompt = PromptTemplate.from_template(

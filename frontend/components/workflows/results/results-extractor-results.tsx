@@ -2,6 +2,7 @@
 
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { EmptyState } from '@/components/shared/empty-state';
 import {
   ResultsExtractionState,
   ResultSection,
@@ -10,7 +11,6 @@ import {
   WorkflowRunDetail,
 } from '@/lib/generated-api';
 import {
-  AlertCircle,
   AlertCircleIcon,
   CheckCircleIcon,
   FileTextIcon,
@@ -51,16 +51,7 @@ export function ResultsExtractorResults({ workflowDetail }: ResultsExtractorResu
   }, [resultSections]);
 
   if (resultSections.length === 0) {
-    return (
-      <Card>
-        <CardContent className="flex items-center justify-center py-12">
-          <div className="text-center space-y-2">
-            <AlertCircle className="h-8 w-8 text-muted-foreground mx-auto" />
-            <p className="text-sm text-muted-foreground">No results extracted yet.</p>
-          </div>
-        </CardContent>
-      </Card>
-    );
+    return <EmptyState message="No results extracted yet." />;
   }
 
   return (

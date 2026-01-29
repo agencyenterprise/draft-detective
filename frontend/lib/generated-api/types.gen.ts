@@ -5,6 +5,71 @@ export type ClientOptions = {
 };
 
 /**
+ * AboutAuthorsState
+ *
+ * State for the About Authors validation workflow.
+ */
+export type AboutAuthorsState = {
+  /**
+   * Errors
+   *
+   * Errors that occurred during the workflow execution.
+   */
+  errors?: Array<WorkflowError>;
+  /**
+   * Type
+   */
+  type?: 'about_authors';
+  config: AboutAuthorsWorkflowConfig;
+  /**
+   * Results
+   */
+  results?: Array<AuthorValidationResult>;
+};
+
+/**
+ * AboutAuthorsWorkflowConfig
+ *
+ * Configuration for the About Authors validation workflow.
+ */
+export type AboutAuthorsWorkflowConfig = {
+  /**
+   * Project Id
+   *
+   * The ID of the project that this workflow run should be associated with
+   */
+  project_id?: string | null;
+  /**
+   * Openai Api Key
+   *
+   * The OpenAI API key to use for this workflow execution
+   */
+  openai_api_key?: string | null;
+  /**
+   * Domain
+   *
+   * Domain context for more accurate analysis
+   */
+  domain?: string | null;
+  /**
+   * Target Audience
+   *
+   * Target audience context for analysis
+   */
+  target_audience?: string | null;
+  /**
+   * Publication Date
+   *
+   * Publication date of the document (YYYY-MM-DD format)
+   */
+  publication_date?: string | null;
+  /**
+   * Type
+   */
+  type?: 'about_authors';
+};
+
+/**
  * AdvocacyToneState
  *
  * State for the advocacy and tone workflow.
@@ -131,6 +196,82 @@ export type ApproveWorkflowResponse = {
    * Workflow Run Id
    */
   workflow_run_id: string;
+};
+
+/**
+ * AuthorValidationResult
+ *
+ * Validation result for a single author bio.
+ */
+export type AuthorValidationResult = {
+  /**
+   * Author Id
+   *
+   * Paragraph ID from document
+   */
+  author_id: string;
+  /**
+   * Author Text
+   *
+   * Raw author bio text
+   */
+  author_text: string;
+  /**
+   * Author Name
+   *
+   * Extracted author name
+   */
+  author_name: string;
+  /**
+   * Author Name Positions
+   *
+   * 0-indexed token positions for name highlighting
+   */
+  author_name_positions?: Array<number>;
+  /**
+   * Chunk Indices
+   *
+   * Chunk indices this author bio spans (for Document Explorer)
+   */
+  chunk_indices?: Array<number>;
+  /**
+   * Rule 1: Bio must be exactly 3 sentences
+   */
+  rule_1_sentence_length: RuleCheckResult;
+  /**
+   * Rule 2: Must include position and affiliation
+   */
+  rule_2_position_affiliation: RuleCheckResult;
+  /**
+   * Rule 3: If TASP fellow, must include TASP statement
+   */
+  rule_3_tasp_statement: RuleCheckResult;
+  /**
+   * Rule 4: Must include research focus
+   */
+  rule_4_research_focus: RuleCheckResult;
+  /**
+   * Rule 5: Must include highest degree
+   */
+  rule_5_highest_degree: RuleCheckResult;
+  /**
+   * Overall Passed
+   *
+   * Whether all applicable rules passed
+   */
+  overall_passed: boolean;
+  /**
+   * Final Comment
+   *
+   * Final pass/fail comment
+   */
+  final_comment: string;
+  /**
+   * Guidance
+   *
+   * Guidance for fixing failed rules
+   */
+  guidance?: string | null;
 };
 
 /**
@@ -3614,6 +3755,32 @@ export type ResultsListResponse = {
 };
 
 /**
+ * RuleCheckResult
+ *
+ * Result for a single rule check.
+ */
+export type RuleCheckResult = {
+  /**
+   * Passed
+   *
+   * Whether the rule check passed
+   */
+  passed: boolean;
+  /**
+   * Explanation
+   *
+   * Explanation of the result
+   */
+  explanation: string;
+  /**
+   * Applicable
+   *
+   * Whether this rule applies
+   */
+  applicable?: boolean;
+};
+
+/**
  * SeverityEnum
  */
 export const SeverityEnum = {
@@ -4006,6 +4173,7 @@ export type WorkflowRunDetail = {
    * State
    */
   state:
+    | AboutAuthorsState
     | AdvocacyToneState
     | DocumentProcessingState
     | ChunkSplittingState
@@ -4295,6 +4463,7 @@ export type WorkflowRunDetailWritable = {
    * State
    */
   state:
+    | AboutAuthorsState
     | AdvocacyToneState
     | DocumentProcessingStateWritable
     | ChunkSplittingState
@@ -4498,6 +4667,7 @@ export type StartWorkflowApiWorkflowsStartPostData = {
    * Request
    */
   body:
+    | AboutAuthorsWorkflowConfig
     | AdvocacyToneWorkflowConfig
     | DocumentProcessingWorkflowConfig
     | ChunkSplittingWorkflowConfig
