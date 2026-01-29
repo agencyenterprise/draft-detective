@@ -197,7 +197,7 @@ export function getReferenceExtractionWarningStatus(workflowRuns: WorkflowRunDet
   return {
     showWarning: true,
     sectionsDetected: (state.detected_sections?.length ?? 0) > 0,
-    hasErrors: (state.errors?.length ?? 0) > 0,
+    hasErrors: hasCurrentRunErrors(referenceExtraction),
   };
 }
 
