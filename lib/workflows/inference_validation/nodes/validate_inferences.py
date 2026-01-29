@@ -9,6 +9,11 @@ from lib.agents.inference_validator import (
     InferenceValidatorAgent,
 )
 from lib.agents.models import ClaimCategory
+from lib.agents.formatting_utils import (
+    format_summary_context,
+    format_domain_context,
+    format_audience_context,
+)
 from lib.run_utils import run_tasks
 from lib.services.file_artifacts_service.types import FileArtifactsServiceType
 from lib.workflows.chunk_utils import AnalyzedChunk
@@ -133,8 +138,10 @@ async def _validate_chunk_inferences(
 
         result = await inference_validator_agent.ainvoke(
             {
-                "document_summary": (
-                    document_summary.summary if document_summary else ""
+                "summary_context": (
+                    format_summary_context(document_summary.summary)
+                    if document_summary
+                    else ""
                 ),
                 "paragraph": file_artifacts_service.get_paragraph_text(
                     chunks, chunk.paragraph_index

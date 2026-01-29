@@ -107,10 +107,7 @@ Within the list of claims, you must include the following information for each c
 
 {audience_context}
 
-## Summarized Argument
-```
-{summarized_argument}
-```
+{summary_context}
 
 ## Document Section Context
 The following headings provide context about which section of the document this chunk belongs to:

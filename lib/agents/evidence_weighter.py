@@ -113,10 +113,7 @@ General Guidelines for Processing
 
 {audience_context}
 
-## The argument summary of the document
-```
-{document_summary}
-```
+{summary_context}
 
 ## The list of references already cited in this chunk of text to support the claim and their associated supporting document (if any)
 {cited_references}

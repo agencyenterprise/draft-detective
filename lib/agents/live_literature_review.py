@@ -143,10 +143,7 @@ When generating responses, remove or replace all internal citation tokens such a
 
 **Document Publication Date**: {document_publication_date}
 
-## The argument summary of the document
-```
-{document_summary}
-```
+{summary_context}
 
 ## The paragraph containing the claim
 ```

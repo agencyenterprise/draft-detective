@@ -175,10 +175,7 @@ In the academic paper example, a backing could be "A thorough review of the lite
 
 {audience_context}
 
-## Summary of the document (for context about the document's main argument)
-```
-{document_summary}
-```
+{summary_context}
 
 ## The paragraph of the original document that contains the chunk of text that we want to analyze
 ```
