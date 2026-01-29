@@ -56,12 +56,13 @@ def _build_cases():
 
         # Build prompt kwargs
         prompt_kwargs = {
-            "summary_context": format_summary_context(main_doc.summary),
             "paragraph": paragraph,
             "chunk": chunk,
             "claim": claim,
             "domain_context": format_domain_context(domain),
             "audience_context": format_audience_context(target_audience),
+            "summary_context": format_summary_context(main_doc.summary),
+            "headings_context": "",
         }
 
         # Build test case
