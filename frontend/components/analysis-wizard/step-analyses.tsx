@@ -15,6 +15,7 @@ import { hasWebSearchRequirement } from '@/components/workflows/utils';
 import {
   startMultipleWorkflowsApiWorkflowsStartMultiplePost,
   updateProjectEndpointApiProjectProjectIdPatch,
+  WorkflowRunType,
 } from '@/lib/generated-api';
 import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -54,7 +55,9 @@ export function StepAnalyses() {
       return startMultipleWorkflowsApiWorkflowsStartMultiplePost({
         body: {
           project_id: projectId,
-          workflow_types: selectedWorkflowTypes,
+          workflow_types: needsReferencesStep
+            ? [...selectedWorkflowTypes, WorkflowRunType.HumanApproval]
+            : selectedWorkflowTypes,
           openai_api_key: apiKey || undefined,
         },
       });

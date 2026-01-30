@@ -1,3 +1,11 @@
+from lib.workflows.about_authors.state import (
+    AboutAuthorsState,
+    AboutAuthorsWorkflowConfig,
+)
+from lib.workflows.advocacy_tone.state import (
+    AdvocacyToneState,
+    AdvocacyToneWorkflowConfig,
+)
 from lib.workflows.chunk_splitting.state import (
     ChunkSplittingState,
     ChunkSplittingWorkflowConfig,
@@ -5,6 +13,10 @@ from lib.workflows.chunk_splitting.state import (
 from lib.workflows.citation_detection.state import (
     CitationDetectionConfig,
     CitationDetectionState,
+)
+from lib.workflows.abbreviation_scan.state import (
+    AbbreviationScanState,
+    AbbreviationScanWorkflowConfig,
 )
 from lib.workflows.citation_suggester.state import (
     CitationSuggesterState,
@@ -69,7 +81,9 @@ from lib.workflows.results_extraction.state import (
 )
 
 WorkflowState = (
-    DocumentProcessingState
+    AboutAuthorsState
+    | AdvocacyToneState
+    | DocumentProcessingState
     | ChunkSplittingState
     | DocumentSummarizationState
     | ReferenceExtractionState
@@ -78,6 +92,7 @@ WorkflowState = (
     | ClaimExtractionState
     | ClaimReferenceValidationState
     | CitationDetectionState
+    | AbbreviationScanState
     | MethodologicalAlignmentState
     | ReferenceDownloaderState
     | LiteratureReviewState
@@ -90,7 +105,9 @@ WorkflowState = (
 )
 
 WorkflowConfig = (
-    DocumentProcessingWorkflowConfig
+    AboutAuthorsWorkflowConfig
+    | AdvocacyToneWorkflowConfig
+    | DocumentProcessingWorkflowConfig
     | ChunkSplittingWorkflowConfig
     | DocumentSummarizationWorkflowConfig
     | ReferenceExtractionConfig
@@ -99,6 +116,7 @@ WorkflowConfig = (
     | ClaimExtractionWorkflowConfig
     | CitationDetectionConfig
     | ClaimReferenceValidationWorkflowConfig
+    | AbbreviationScanWorkflowConfig
     | MethodologicalAlignmentWorkflowConfig
     | ReferenceDownloaderWorkflowConfig
     | LiteratureReviewWorkflowConfig

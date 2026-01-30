@@ -78,6 +78,9 @@ class WorkflowRunType(str, Enum):
     RESULTS_EXTRACTION = "results_extraction"
     INFERENCE_VALIDATION = "inference_validation"
     CLAIM_REFERENCE_VALIDATION = "claim_reference_validation"
+    ABBREVIATION_SCAN = "abbreviation_scan"
+    ADVOCACY_TONE = "advocacy_tone"
+    ABOUT_AUTHORS = "about_authors"
 
 
 def is_user_visible_workflow(workflow_type: WorkflowRunType) -> bool:
@@ -113,7 +116,12 @@ class DocumentIssue(BaseModel):
     description: str = Field(description="The description of the issue")
     severity: SeverityEnum = Field(description="The severity of the issue")
     chunk_index: Optional[int] = Field(
-        description="The index of the chunk that contains the issue", default=None
+        description="The index of the chunk that contains the issue (deprecated, use chunk_indices)",
+        default=None,
+    )
+    chunk_indices: Optional[List[int]] = Field(
+        description="The indices of all chunks that contain the issue",
+        default=None,
     )
     claim_index: Optional[int] = Field(
         description="The index of the claim that contains the issue", default=None

@@ -1,5 +1,16 @@
+"""Logging configuration for the application.
+
+Provides centralized logging setup with support for rich console output
+or simple stdout/stderr handlers based on environment configuration.
+"""
+
 import logging
 import sys
+from rich.logging import RichHandler
+
+from lib.config.env import config as env_config
+
+logger = logging.getLogger(__name__)
 
 
 class _MaxLevelFilter(logging.Filter):
@@ -13,28 +24,24 @@ class _MaxLevelFilter(logging.Filter):
         return record.levelno < self.max_level
 
 
-def setup_logger():
+def setup_logger() -> None:
+    """Configure the root logger with appropriate handlers and filters.
+
+    Sets up logging based on the LOG_RICH_HANDLER environment configuration:
+    - If enabled, uses RichHandler for colorized console output with tracebacks
+    - If disabled, uses simple stdout/stderr handlers with standard formatting
+
+    Also suppresses noisy logs from OpenTelemetry, LangChain, and SQLAlchemy.
+    """
     root_logger = logging.getLogger()
     root_logger.setLevel(logging.INFO)
 
-    formatter = logging.Formatter(
-        fmt="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S",
-    )
-
-    # INFO and below to stdout
-    stdout_handler = logging.StreamHandler(sys.stdout)
-    stdout_handler.setLevel(logging.DEBUG)
-    stdout_handler.addFilter(_MaxLevelFilter(logging.WARNING))
-    stdout_handler.setFormatter(formatter)
-
-    # WARNING and above to stderr
-    stderr_handler = logging.StreamHandler(sys.stderr)
-    stderr_handler.setLevel(logging.WARNING)
-    stderr_handler.setFormatter(formatter)
-
-    root_logger.addHandler(stdout_handler)
-    root_logger.addHandler(stderr_handler)
+    if env_config.LOG_RICH_HANDLER:
+        _attach_rich_handler(root_logger)
+        logger.info("Using rich handler for logging")
+    else:
+        _attach_simple_stdout_stderr_handlers(root_logger)
+        logger.info("Using simple stdout/stderr handlers for logging")
 
     # Suppress noisy OpenTelemetry errors for trace export failures
     # These don't affect the actual workflow execution, they're just telemetry issues
@@ -49,3 +56,44 @@ def setup_logger():
 
     # Suppress noisy logs from sqlalchemy
     logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)
+
+
+def _attach_rich_handler(logger: logging.Logger) -> None:
+    """Attach a RichHandler to the logger for colorized console output.
+
+    Args:
+        logger: The logger instance to attach the handler to.
+    """
+    rich_handler = RichHandler(
+        rich_tracebacks=True,
+        show_time=True,
+        show_path=True,
+        log_time_format="%d/%m %H:%M:%S",
+    )
+    logger.addHandler(rich_handler)
+
+
+def _attach_simple_stdout_stderr_handlers(logger: logging.Logger) -> None:
+    """Attach stdout and stderr handlers to the logger.
+
+    Configures logging to send INFO/DEBUG messages to stdout and
+    WARNING/ERROR/CRITICAL messages to stderr.
+
+    Args:
+        logger: The logger instance to attach the handlers to.
+    """
+    formatter = logging.Formatter(
+        fmt="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
+
+    stdout_handler = logging.StreamHandler(sys.stdout)
+    stdout_handler.setLevel(logging.DEBUG)
+    stdout_handler.addFilter(_MaxLevelFilter(logging.WARNING))
+    stdout_handler.setFormatter(formatter)
+    logger.addHandler(stdout_handler)
+
+    stderr_handler = logging.StreamHandler(sys.stderr)
+    stderr_handler.setLevel(logging.WARNING)
+    stderr_handler.setFormatter(formatter)
+    logger.addHandler(stderr_handler)

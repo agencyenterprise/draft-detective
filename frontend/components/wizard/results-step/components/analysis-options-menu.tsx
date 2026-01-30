@@ -13,6 +13,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { useShareStatus } from '@/hooks/use-share-status';
 import {
   Project,
+  SeverityEnum,
   updateProjectEndpointApiProjectProjectIdPatch,
   WorkflowRunDetail,
   WorkflowRunType,
@@ -35,9 +36,10 @@ export interface AnalysisOptionsMenuProps {
   project: ProjectWithDetails;
   results: WorkflowRunDetail[];
   readOnly: boolean;
+  severityFilter: SeverityEnum[];
 }
 
-export function AnalysisOptionsMenu({ project, results, readOnly }: AnalysisOptionsMenuProps) {
+export function AnalysisOptionsMenu({ project, results, readOnly, severityFilter }: AnalysisOptionsMenuProps) {
   const projectId = project.id;
   const share = useShareStatus(projectId, !readOnly);
   const shareContext = useShare();
@@ -47,7 +49,7 @@ export function AnalysisOptionsMenu({ project, results, readOnly }: AnalysisOpti
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
   const shareToken = share.shareStatus?.share_link?.token ?? shareContext.shareToken;
-  const { download, isDownloading } = useDownloadDocx({ projectId, shareToken });
+  const { download, isDownloading } = useDownloadDocx({ projectId, shareToken, severities: severityFilter });
 
   const updateProjectMutation = useMutation({
     mutationFn: async (values: EditProjectFormValues) => {
@@ -103,7 +105,7 @@ export function AnalysisOptionsMenu({ project, results, readOnly }: AnalysisOpti
         throw new Error('Failed to create share token');
       }
 
-      await downloadDocxFile(projectId, freshToken);
+      await downloadDocxFile(projectId, freshToken, severityFilter);
       toast.success('DOCX file downloaded successfully', { id: toastId });
     } catch (error) {
       console.error('Failed to enable sharing and download:', error);

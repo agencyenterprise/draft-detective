@@ -13,6 +13,12 @@ class ReferenceValidationWorkflowConfig(BaseWorkflowConfig):
         WorkflowRunType.REFERENCE_VALIDATION
     )
 
+    show_invalid_references_as_issues: bool = Field(
+        default=False,
+        description="When True, invalid references will appear as issues in the Document Explorer. "
+        "When False (default), validation results are only shown in the References tab.",
+    )
+
 
 class ReferenceValidationState(BaseWorkflowState):
     """State for the reference validation workflow."""

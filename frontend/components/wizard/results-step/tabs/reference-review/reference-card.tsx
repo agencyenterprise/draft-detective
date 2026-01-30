@@ -144,7 +144,10 @@ export function ReferenceCard({ reference, projectId, readOnly, disabled = false
   };
 
   return (
-    <div className={cn('border rounded-lg p-4 bg-white transition-all border-gray-200', disabled && 'opacity-60')}>
+    <div
+      id={`reference-${index}`}
+      className={cn('border rounded-lg p-4 bg-white transition-all border-gray-200', disabled && 'opacity-60')}
+    >
       <FileUploadDialog
         isOpen={dialogMode !== null}
         isUploading={isUploading || isReplacing}

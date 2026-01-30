@@ -10,7 +10,7 @@ interface DoclingViewerProps {
   pages: DoclingPageInfo[];
   chunkToItems: ChunkToItems;
   pageImagesBaseUrl: string;
-  selectedChunkIndex: number | null;
+  selectedChunkIndices: number[];
   onChunkSelect: (chunkIndex: number | null) => void;
 }
 
@@ -18,7 +18,7 @@ export function DoclingViewer({
   pages,
   chunkToItems,
   pageImagesBaseUrl,
-  selectedChunkIndex,
+  selectedChunkIndices,
   onChunkSelect,
 }: DoclingViewerProps) {
   const sortedPages = useMemo(() => {
@@ -27,9 +27,9 @@ export function DoclingViewer({
   }, [pages]);
 
   const selectedRegions = useMemo(() => {
-    if (selectedChunkIndex === null) return [];
-    return getRegionsForChunk(chunkToItems, selectedChunkIndex);
-  }, [chunkToItems, selectedChunkIndex]);
+    if (selectedChunkIndices.length === 0) return [];
+    return selectedChunkIndices.flatMap((idx) => getRegionsForChunk(chunkToItems, idx));
+  }, [chunkToItems, selectedChunkIndices]);
 
   const regionsByPage = useMemo(() => buildRegionsByPage(chunkToItems), [chunkToItems]);
 
@@ -53,7 +53,7 @@ export function DoclingViewer({
               pageNum={pageNum}
               regions={regionsByPage[pageNum] ?? []}
               selectedRegions={selectedRegions}
-              selectedChunkIndex={selectedChunkIndex}
+              selectedChunkIndices={selectedChunkIndices}
               pageImagesBaseUrl={pageImagesBaseUrl}
               onChunkSelect={onChunkSelect}
             />

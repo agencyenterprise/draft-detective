@@ -5,6 +5,9 @@ import uuid
 from datetime import datetime
 from typing import List, Optional
 
+from sqlalchemy import select
+from sqlmodel import col
+
 from lib.config.database import get_db
 from lib.models.workflow_progress import ProgressLevel, WorkflowProgress
 from lib.models.workflow_run import WorkflowRun
@@ -68,16 +71,16 @@ def get_or_create_progress(
     """
     with get_db() as db:
         # Find existing active progress with same name
-        existing = (
-            db.query(WorkflowProgress)
-            .filter(
-                WorkflowProgress.workflow_run_id == workflow_run_id,
-                WorkflowProgress.name == name,
-                WorkflowProgress.completed_at.is_(None),
+        stmt = (
+            select(WorkflowProgress)
+            .where(
+                col(WorkflowProgress.workflow_run_id) == workflow_run_id,
+                col(WorkflowProgress.name) == name,
+                col(WorkflowProgress.completed_at).is_(None),
             )
             .with_for_update()  # Lock row to prevent race conditions
-            .first()
         )
+        existing = db.execute(stmt).scalar_one_or_none()
 
         if existing:
             # Increment total_steps for the batch
@@ -101,7 +104,8 @@ def get_or_create_progress(
 
 def _get_progress_by_id(db, progress_id: uuid.UUID) -> Optional[WorkflowProgress]:
     """Get a progress entry by ID."""
-    return db.query(WorkflowProgress).filter(WorkflowProgress.id == progress_id).first()
+    stmt = select(WorkflowProgress).where(col(WorkflowProgress.id) == progress_id)
+    return db.execute(stmt).scalar_one_or_none()
 
 
 def update_progress(
@@ -168,12 +172,12 @@ def increment_and_complete_if_done(progress_id: uuid.UUID) -> bool:
         True if the progress was marked complete, False otherwise
     """
     with get_db() as db:
-        progress = (
-            db.query(WorkflowProgress)
-            .filter(WorkflowProgress.id == progress_id)
+        stmt = (
+            select(WorkflowProgress)
+            .where(col(WorkflowProgress.id) == progress_id)
             .with_for_update()  # Lock row to prevent race conditions
-            .first()
         )
+        progress = db.execute(stmt).scalar_one_or_none()
 
         if not progress:
             logger.warning(f"Progress entry {progress_id} not found")
@@ -203,12 +207,12 @@ def get_workflow_progress(
         List of progress entries ordered by creation time
     """
     with get_db() as db:
-        progress_list = (
-            db.query(WorkflowProgress)
-            .filter(WorkflowProgress.workflow_run_id == workflow_run_id)
-            .order_by(WorkflowProgress.created_at)
-            .all()
+        stmt = (
+            select(WorkflowProgress)
+            .where(col(WorkflowProgress.workflow_run_id) == workflow_run_id)
+            .order_by(col(WorkflowProgress.created_at))
         )
+        progress_list = db.execute(stmt).scalars().all()
         return list(progress_list)
 
 
@@ -223,11 +227,14 @@ def get_project_workflow_progress(project_id: uuid.UUID) -> List[WorkflowProgres
         List of progress entries ordered by creation time
     """
     with get_db() as db:
-        progress_list = (
-            db.query(WorkflowProgress)
-            .join(WorkflowRun, WorkflowProgress.workflow_run_id == WorkflowRun.id)
-            .filter(WorkflowRun.project_id == project_id)
-            .order_by(WorkflowProgress.created_at)
-            .all()
+        stmt = (
+            select(WorkflowProgress)
+            .join(
+                WorkflowRun,
+                col(WorkflowProgress.workflow_run_id) == col(WorkflowRun.id),
+            )
+            .where(col(WorkflowRun.project_id) == project_id)
+            .order_by(col(WorkflowProgress.created_at))
         )
+        progress_list = db.execute(stmt).scalars().all()
         return list(progress_list)

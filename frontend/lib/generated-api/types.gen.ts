@@ -5,6 +5,136 @@ export type ClientOptions = {
 };
 
 /**
+ * AboutAuthorsState
+ *
+ * State for the About Authors validation workflow.
+ */
+export type AboutAuthorsState = {
+  /**
+   * Errors
+   *
+   * Errors that occurred during the workflow execution.
+   */
+  errors?: Array<WorkflowError>;
+  /**
+   * Type
+   */
+  type?: 'about_authors';
+  config: AboutAuthorsWorkflowConfig;
+  /**
+   * Results
+   */
+  results?: Array<AuthorValidationResult>;
+};
+
+/**
+ * AboutAuthorsWorkflowConfig
+ *
+ * Configuration for the About Authors validation workflow.
+ */
+export type AboutAuthorsWorkflowConfig = {
+  /**
+   * Project Id
+   *
+   * The ID of the project that this workflow run should be associated with
+   */
+  project_id?: string | null;
+  /**
+   * Openai Api Key
+   *
+   * The OpenAI API key to use for this workflow execution
+   */
+  openai_api_key?: string | null;
+  /**
+   * Domain
+   *
+   * Domain context for more accurate analysis
+   */
+  domain?: string | null;
+  /**
+   * Target Audience
+   *
+   * Target audience context for analysis
+   */
+  target_audience?: string | null;
+  /**
+   * Publication Date
+   *
+   * Publication date of the document (YYYY-MM-DD format)
+   */
+  publication_date?: string | null;
+  /**
+   * Type
+   */
+  type?: 'about_authors';
+};
+
+/**
+ * AdvocacyToneState
+ *
+ * State for the advocacy and tone workflow.
+ */
+export type AdvocacyToneState = {
+  /**
+   * Errors
+   *
+   * Errors that occurred during the workflow execution.
+   */
+  errors?: Array<WorkflowError>;
+  /**
+   * Type
+   */
+  type?: 'advocacy_tone';
+  config: AdvocacyToneWorkflowConfig;
+  /**
+   * Results
+   */
+  results?: Array<ChunkAdvocacyToneResult>;
+};
+
+/**
+ * AdvocacyToneWorkflowConfig
+ *
+ * Configuration for the advocacy and tone workflow.
+ */
+export type AdvocacyToneWorkflowConfig = {
+  /**
+   * Project Id
+   *
+   * The ID of the project that this workflow run should be associated with
+   */
+  project_id?: string | null;
+  /**
+   * Openai Api Key
+   *
+   * The OpenAI API key to use for this workflow execution
+   */
+  openai_api_key?: string | null;
+  /**
+   * Domain
+   *
+   * Domain context for more accurate analysis
+   */
+  domain?: string | null;
+  /**
+   * Target Audience
+   *
+   * Target audience context for analysis
+   */
+  target_audience?: string | null;
+  /**
+   * Publication Date
+   *
+   * Publication date of the document (YYYY-MM-DD format)
+   */
+  publication_date?: string | null;
+  /**
+   * Type
+   */
+  type?: 'advocacy_tone';
+};
+
+/**
  * AgentInfo
  *
  * Information about a registered agent
@@ -66,6 +196,82 @@ export type ApproveWorkflowResponse = {
    * Workflow Run Id
    */
   workflow_run_id: string;
+};
+
+/**
+ * AuthorValidationResult
+ *
+ * Validation result for a single author bio.
+ */
+export type AuthorValidationResult = {
+  /**
+   * Author Id
+   *
+   * Paragraph ID from document
+   */
+  author_id: string;
+  /**
+   * Author Text
+   *
+   * Raw author bio text
+   */
+  author_text: string;
+  /**
+   * Author Name
+   *
+   * Extracted author name
+   */
+  author_name: string;
+  /**
+   * Author Name Positions
+   *
+   * 0-indexed token positions for name highlighting
+   */
+  author_name_positions?: Array<number>;
+  /**
+   * Chunk Indices
+   *
+   * Chunk indices this author bio spans (for Document Explorer)
+   */
+  chunk_indices?: Array<number>;
+  /**
+   * Rule 1: Bio must be exactly 3 sentences
+   */
+  rule_1_sentence_length: RuleCheckResult;
+  /**
+   * Rule 2: Must include position and affiliation
+   */
+  rule_2_position_affiliation: RuleCheckResult;
+  /**
+   * Rule 3: If TASP fellow, must include TASP statement
+   */
+  rule_3_tasp_statement: RuleCheckResult;
+  /**
+   * Rule 4: Must include research focus
+   */
+  rule_4_research_focus: RuleCheckResult;
+  /**
+   * Rule 5: Must include highest degree
+   */
+  rule_5_highest_degree: RuleCheckResult;
+  /**
+   * Overall Passed
+   *
+   * Whether all applicable rules passed
+   */
+  overall_passed: boolean;
+  /**
+   * Final Comment
+   *
+   * Final pass/fail comment
+   */
+  final_comment: string;
+  /**
+   * Guidance
+   *
+   * Guidance for fixing failed rules
+   */
+  guidance?: string | null;
 };
 
 /**
@@ -164,6 +370,12 @@ export type BibliographyItemValidation = {
    * Updated reference with the suggested changes made to make the reference valid, matching the format of the original reference. If the reference is already valid, return null.
    */
   updated_reference?: string | null;
+  /**
+   * Cited Url
+   *
+   * The original URL cited in the reference text (before redirect resolution).
+   */
+  cited_url?: string | null;
 };
 
 /**
@@ -237,6 +449,36 @@ export type BodyStartAnalysisApiStartAnalysisPost = {
    * Workflow Types
    */
   workflow_types?: string | null;
+};
+
+/**
+ * ChunkAdvocacyToneResult
+ *
+ * Advocacy and tone analysis result for a single chunk.
+ */
+export type ChunkAdvocacyToneResult = {
+  /**
+   * Chunk Index
+   *
+   * Index of the analyzed chunk
+   */
+  chunk_index: number;
+  /**
+   * Flags from procedural detection
+   */
+  procedural_flags?: ProceduralFlags;
+  /**
+   * LLM verification for trigger words
+   */
+  llm_trigger_words?: LlmVerificationResult | null;
+  /**
+   * LLM verification for advocacy language
+   */
+  llm_advocacy_language?: LlmVerificationResult | null;
+  /**
+   * LLM verification for subjective tone
+   */
+  llm_subjective_tone?: LlmVerificationResult | null;
 };
 
 /**
@@ -1106,6 +1348,18 @@ export type DocumentChunk = {
    * The headings associated with the chunk, in order of hierarchy
    */
   headings?: Array<string> | null;
+  /**
+   * Start Line
+   *
+   * 1-indexed starting line in markdown
+   */
+  start_line: number;
+  /**
+   * End Line
+   *
+   * 1-indexed ending line in markdown
+   */
+  end_line: number;
 };
 
 /**
@@ -1131,9 +1385,15 @@ export type DocumentIssue = {
   /**
    * Chunk Index
    *
-   * The index of the chunk that contains the issue
+   * The index of the chunk that contains the issue (deprecated, use chunk_indices)
    */
   chunk_index?: number | null;
+  /**
+   * Chunk Indices
+   *
+   * The indices of all chunks that contain the issue
+   */
+  chunk_indices?: Array<number> | null;
   /**
    * Claim Index
    *
@@ -1489,6 +1749,24 @@ export type ExtractedReference = {
    * The extracted reference text
    */
   text: string;
+  /**
+   * Start Line
+   *
+   * 1-indexed starting line number in the markdown
+   */
+  start_line?: number | null;
+  /**
+   * End Line
+   *
+   * 1-indexed ending line number in the markdown
+   */
+  end_line?: number | null;
+  /**
+   * Chunk Indices
+   *
+   * Chunk indices that overlap with this reference's line range
+   */
+  chunk_indices?: Array<number>;
 };
 
 /**
@@ -2171,6 +2449,32 @@ export type InferenceValidationWorkflowConfig = {
 };
 
 /**
+ * LLMVerificationResult
+ *
+ * Result from LLM verification of a procedural flag.
+ */
+export type LlmVerificationResult = {
+  /**
+   * Confirmed
+   *
+   * Whether the LLM confirmed the issue
+   */
+  confirmed: boolean;
+  /**
+   * Explanation
+   *
+   * LLM explanation of the finding
+   */
+  explanation: string;
+  /**
+   * Word Positions
+   *
+   * 0-indexed word positions that caused the issue
+   */
+  word_positions?: Array<number>;
+};
+
+/**
  * LiteratureReviewResponse
  */
 export type LiteratureReviewResponse = {
@@ -2481,6 +2785,26 @@ export type PreflightResult = {
    * Issues
    */
   issues?: Array<ValidationIssue>;
+};
+
+/**
+ * ProceduralFlags
+ *
+ * Flags from procedural (non-LLM) detection.
+ */
+export type ProceduralFlags = {
+  /**
+   * Trigger Words
+   */
+  trigger_words?: boolean;
+  /**
+   * Advocacy Language
+   */
+  advocacy_language?: boolean;
+  /**
+   * Subjective Tone
+   */
+  subjective_tone?: boolean;
 };
 
 /**
@@ -3255,6 +3579,12 @@ export type ReferenceValidationWorkflowConfig = {
    * Type
    */
   type?: 'reference_validation';
+  /**
+   * Show Invalid References As Issues
+   *
+   * When True, invalid references will appear as issues in the Document Explorer. When False (default), validation results are only shown in the References tab.
+   */
+  show_invalid_references_as_issues?: boolean;
 };
 
 /**
@@ -3464,6 +3794,32 @@ export type ResultsListResponse = {
    * The list of result sections.
    */
   result_sections: Array<ResultSection>;
+};
+
+/**
+ * RuleCheckResult
+ *
+ * Result for a single rule check.
+ */
+export type RuleCheckResult = {
+  /**
+   * Passed
+   *
+   * Whether the rule check passed
+   */
+  passed: boolean;
+  /**
+   * Explanation
+   *
+   * Explanation of the result
+   */
+  explanation: string;
+  /**
+   * Applicable
+   *
+   * Whether this rule applies
+   */
+  applicable?: boolean;
 };
 
 /**
@@ -3853,6 +4209,8 @@ export type WorkflowRunDetail = {
    * State
    */
   state:
+    | AboutAuthorsState
+    | AdvocacyToneState
     | DocumentProcessingState
     | ChunkSplittingState
     | DocumentSummarizationState
@@ -3910,6 +4268,9 @@ export const WorkflowRunType = {
   ResultsExtraction: 'results_extraction',
   InferenceValidation: 'inference_validation',
   ClaimReferenceValidation: 'claim_reference_validation',
+  AbbreviationScan: 'abbreviation_scan',
+  AdvocacyTone: 'advocacy_tone',
+  AboutAuthors: 'about_authors',
 } as const;
 
 /**
@@ -4139,6 +4500,8 @@ export type WorkflowRunDetailWritable = {
    * State
    */
   state:
+    | AboutAuthorsState
+    | AdvocacyToneState
     | DocumentProcessingStateWritable
     | ChunkSplittingState
     | DocumentSummarizationState
@@ -4341,6 +4704,8 @@ export type StartWorkflowApiWorkflowsStartPostData = {
    * Request
    */
   body:
+    | AboutAuthorsWorkflowConfig
+    | AdvocacyToneWorkflowConfig
     | DocumentProcessingWorkflowConfig
     | ChunkSplittingWorkflowConfig
     | DocumentSummarizationWorkflowConfig
@@ -4862,6 +5227,12 @@ export type DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetData = {
      * Share token to include share links in comments
      */
     share_token?: string | null;
+    /**
+     * Severities
+     *
+     * Filter issues by severity levels (e.g., high, medium, low)
+     */
+    severities?: Array<string> | null;
   };
   url: '/api/projects/{project_id}/docx/download';
 };

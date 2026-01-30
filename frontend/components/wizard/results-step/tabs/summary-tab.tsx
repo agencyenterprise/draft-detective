@@ -16,6 +16,7 @@ export function SummaryTab({ projectDetail }: SummaryTabProps) {
   const claimExtraction = getWorkflowRunByType(workflowDetails, WorkflowRunType.ClaimExtraction);
   const citationDetection = getWorkflowRunByType(workflowDetails, WorkflowRunType.CitationDetection);
   const referenceFileMatching = getWorkflowRunByType(workflowDetails, WorkflowRunType.ReferenceFileMatching);
+  const claimReferenceValidation = getWorkflowRunByType(workflowDetails, WorkflowRunType.ClaimReferenceValidation);
 
   const isProcessing = isWorkflowProcessing(chunkSplitting);
 
@@ -33,6 +34,7 @@ export function SummaryTab({ projectDetail }: SummaryTabProps) {
     claimExtraction?.state,
     citationDetection?.state,
     referenceFileMatching?.state,
+    claimReferenceValidation?.state,
   );
 
   return (

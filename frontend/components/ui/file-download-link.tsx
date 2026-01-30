@@ -16,7 +16,7 @@ export function FileDownloadLink({ fileId, children, ...props }: FileDownloadLin
   const href = shareToken ? `/api/files/download/${fileId}?share_token=${shareToken}` : `/api/files/download/${fileId}`;
 
   return (
-    <Link href={href} target="_blank" {...props}>
+    <Link href={href} target="_blank" prefetch={false} {...props}>
       {children}
     </Link>
   );

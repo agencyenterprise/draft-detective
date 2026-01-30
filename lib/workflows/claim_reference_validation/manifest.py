@@ -33,6 +33,8 @@ class ClaimReferenceValidationManifest(
         WorkflowRunType.CLAIM_EXTRACTION,
         WorkflowRunType.CITATION_DETECTION,
         WorkflowRunType.REFERENCE_FILE_MATCHING,
+    ]
+    optional_dependencies = [
         WorkflowRunType.HUMAN_APPROVAL,
     ]
 

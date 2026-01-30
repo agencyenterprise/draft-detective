@@ -26,32 +26,69 @@ export function parseChunkHash(hash: string): { chunkIndex: number; claimIndex?:
   };
 }
 
+/**
+ * Parse hash format for multiple chunks: #chunks-1,2,3 | #chunk-3
+ * Returns array of chunk indices, or null if invalid format
+ */
+export function parseMultiChunkHash(hash: string): number[] | null {
+  if (!hash.startsWith('#')) return null;
+
+  const multiMatch = hash.match(/^#chunks-(\d+(?:,\d+)*)$/);
+  if (multiMatch) {
+    return multiMatch[1].split(',').map((s) => parseInt(s, 10));
+  }
+
+  const singleMatch = hash.match(/^#chunk-(\d+)$/);
+  if (singleMatch) {
+    return [parseInt(singleMatch[1], 10)];
+  }
+
+  return null;
+}
+
+/**
+ * Hook for handling chunk hash navigation.
+ * Supports both #chunk-N (single) and #chunks-N,M,O (multiple) formats.
+ *
+ * @param validChunkIndices - Array of valid chunk indices to accept
+ * @param onSelectChunks - Callback when chunks are selected from hash
+ */
 export function useChunkHashNavigation(
   validChunkIndices: number[] | undefined,
-  onSelectChunk: (chunkIndex: number) => void,
+  onSelectChunks: (chunkIndices: number[]) => void,
 ): void {
-  const hasHandled = useRef(false);
+  const lastProcessedHash = useRef<string | null>(null);
 
   useEffect(() => {
-    if (hasHandled.current || !validChunkIndices?.length) return;
-
-    const parsed = parseChunkHash(window.location.hash);
-    if (!parsed || !validChunkIndices.includes(parsed.chunkIndex)) return;
-
-    onSelectChunk(parsed.chunkIndex);
-    hasHandled.current = true;
-
-    // Poll for the element (sidebar content loads async)
-    const elementId = window.location.hash.slice(1);
-    let attempts = 0;
-    const intervalId = setInterval(() => {
-      const element = document.getElementById(elementId);
-      if (element) {
-        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        clearInterval(intervalId);
-      } else if (++attempts >= 20) {
-        clearInterval(intervalId);
+    const handleHashChange = () => {
+      if (!validChunkIndices?.length) {
+        return;
       }
-    }, 100);
-  }, [validChunkIndices, onSelectChunk]);
+
+      const currentHash = window.location.hash;
+      const parsed = parseMultiChunkHash(currentHash);
+
+      if (!parsed) {
+        return;
+      }
+
+      const validParsed = parsed.filter((idx) => validChunkIndices.includes(idx));
+
+      if (validParsed.length === 0) {
+        return;
+      }
+
+      if (lastProcessedHash.current === currentHash) {
+        return;
+      }
+      lastProcessedHash.current = currentHash;
+
+      onSelectChunks(validParsed);
+    };
+
+    handleHashChange();
+
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, [validChunkIndices, onSelectChunks]);
 }

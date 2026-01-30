@@ -11,7 +11,7 @@ interface DoclingPageProps {
   pageNum: number;
   regions: RegionWithChunks[];
   selectedRegions: DoclingRegion[];
-  selectedChunkIndex: number | null;
+  selectedChunkIndices: number[];
   pageImagesBaseUrl: string;
   onChunkSelect: (chunkIndex: number | null) => void;
 }
@@ -21,7 +21,7 @@ export function DoclingPage({
   pageNum,
   regions,
   selectedRegions,
-  selectedChunkIndex,
+  selectedChunkIndices,
   pageImagesBaseUrl,
   onChunkSelect,
 }: DoclingPageProps) {
@@ -56,11 +56,14 @@ export function DoclingPage({
       <div className="absolute inset-0">
         {regions.map((region, idx) => {
           const isSelected = selectedRegions.some((r) => r.id === region.id);
-          const currentChunkPosition = region.chunkIndices.indexOf(selectedChunkIndex ?? -1);
+          const selectedChunkInRegion = selectedChunkIndices.find((chunkIdx) => region.chunkIndices.includes(chunkIdx));
+          const currentChunkPosition =
+            selectedChunkInRegion !== undefined ? region.chunkIndices.indexOf(selectedChunkInRegion) : -1;
           const hasSelectedChunk = currentChunkPosition !== -1;
 
           const handleRegionClick = () => {
-            const nextChunkIndex = getNextChunkIndex(selectedChunkIndex, region.chunkIndices);
+            const firstSelected = selectedChunkIndices.length > 0 ? selectedChunkIndices[0] : null;
+            const nextChunkIndex = getNextChunkIndex(firstSelected, region.chunkIndices);
             onChunkSelect(nextChunkIndex);
           };
 

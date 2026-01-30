@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from typing import List
 
@@ -8,6 +9,7 @@ from lib.agents.reference_validator import (
     ReferenceValidatorAgent,
 )
 from lib.run_utils import run_tasks
+from lib.services.url_redirect_checker import get_final_url
 from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
 from lib.workflows.models import WorkflowError
@@ -62,8 +64,21 @@ async def _validate_reference(
     reference: ExtractedReference,
     reference_validator_agent: ReferenceValidatorAgent,
 ) -> BibliographyItemValidation:
-    return await reference_validator_agent.ainvoke(
-        {
-            "reference": reference.text,
-        }
+    llm_task = reference_validator_agent.ainvoke({"reference": reference.text})
+    url_task = get_final_url(reference.text)
+
+    llm_result, url_result = await asyncio.gather(
+        llm_task, url_task, return_exceptions=True
     )
+
+    if isinstance(llm_result, Exception):
+        raise llm_result
+
+    if not isinstance(url_result, Exception):
+        cited_url, final_url = url_result
+        if cited_url:
+            llm_result.cited_url = cited_url
+            if final_url and final_url != cited_url:
+                llm_result.url = final_url
+
+    return llm_result

@@ -12,6 +12,7 @@ from lib.agents.reference_text_extractor import (
 from lib.agents.reference_text_extractor_v2 import (
     ReferenceExtractorV2Agent,
 )
+from lib.config.langfuse import langfuse_handler
 from lib.services.file import FileDocument
 from lib.services.file_artifacts_service.mock import MockFileArtifactsService
 from tests.conftest import create_test_context
@@ -193,7 +194,13 @@ async def test_reference_text_extractor_large_v1(
     document_content, expected_references = _load_stress_test_yaml(yaml_filename)
 
     agent = ReferenceTextExtractorAgent(create_test_context())
-    result = await agent.ainvoke(prompt_kwargs={"text": document_content})
+    result = await agent.ainvoke(
+        prompt_kwargs={"text": document_content},
+        config={
+            "run_name": f"test::reference_extractor_v1::{case_name}",
+            "callbacks": [langfuse_handler],
+        },
+    )
 
     comparison = compare_references_relaxed(
         expected_references,
@@ -233,11 +240,20 @@ async def test_reference_text_extractor_large_v2(
     )
 
     agent = ReferenceExtractorV2Agent(create_test_context(file_artifacts_service))
-    result = await agent.ainvoke(prompt_kwargs={})
+    result = await agent.ainvoke(
+        prompt_kwargs={},
+        config={
+            "run_name": f"test::reference_extractor_v2::{case_name}",
+            "callbacks": [langfuse_handler],
+        },
+    )
+
+    # Extract text from ExtractedReferenceWithLines objects for comparison
+    actual_references = [ref.text for ref in result.references]
 
     comparison = compare_references_relaxed(
         expected_references,
-        result.references,
+        actual_references,
         similarity_threshold=SIMILARITY_THRESHOLD,
     )
 

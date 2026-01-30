@@ -6,6 +6,8 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 from docx import Document
+from docx.document import Document as DocumentObject
+from docx.text.paragraph import Paragraph
 from pydantic import BaseModel
 
 from lib.config.env import config
@@ -213,7 +215,12 @@ class DocxManipulatorService:
         return str(output_path)
 
     def _add_comment_to_paragraph(
-        self, doc: Document, paragraph, comment_text: str, author: str, initials: str
+        self,
+        doc: DocumentObject,
+        paragraph: Paragraph,
+        comment_text: str,
+        author: str,
+        initials: str,
     ):
         """Add a comment to a paragraph."""
         try:

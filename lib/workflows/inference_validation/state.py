@@ -27,7 +27,7 @@ class InferenceValidationState(BaseWorkflowState):
         WorkflowRunType.INFERENCE_VALIDATION
     )
     config: InferenceValidationWorkflowConfig
-    file_id: str
+    file_id: str = Field(default="", description="File ID for backward compatibility")
     inference_validations: List[InferenceValidationResponseWithClaimIndex] = Field(
         default_factory=list
     )

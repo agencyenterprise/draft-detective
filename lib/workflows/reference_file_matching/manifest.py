@@ -4,7 +4,6 @@ from typing import List, Type, cast
 
 from langgraph.graph import StateGraph
 
-from lib.workflows.chunk_utils import build_analyzed_chunks, find_chunk_index_by_text
 from lib.workflows.manifest import WorkflowManifest
 from lib.workflows.models import DocumentIssue, SeverityEnum, WorkflowRunType
 from lib.workflows.reference_extraction.state import ReferenceExtractionState
@@ -40,6 +39,7 @@ class ReferenceFileMatchingManifest(
         WorkflowRunType.DOCUMENT_SUMMARIZATION,
         WorkflowRunType.REFERENCE_EXTRACTION,
     ]
+    always_run = True  # Always run reference file matching to ensure new files are matched. The workflow matches only new files in subsequent runs, reusing cached results from previous runs.
 
     def get_state_type(self) -> Type[ReferenceFileMatchingState]:
         """Get the type of the workflow state."""
@@ -78,7 +78,6 @@ class ReferenceFileMatchingManifest(
         """Convert reference file matching state to issues."""
 
         issues: List[DocumentIssue] = []
-        chunks = build_analyzed_chunks(other_states)
 
         # Get reference extraction state to access extracted references
         ref_extraction_state = get_state_by_type(
@@ -95,11 +94,15 @@ class ReferenceFileMatchingManifest(
         # References without matching supporting documents
         for reference in ref_extraction_state.extracted_references:
             if reference.id not in matched_ref_ids:
+                chunk_indices = reference.chunk_indices
+                chunk_index = chunk_indices[0] if chunk_indices else None
+
                 issue = DocumentIssue(
                     title="Missing supporting document for reference",
                     description=f'Reference does not have an associated supporting document: "{reference.text}"',
                     severity=SeverityEnum.LOW,
-                    chunk_index=find_chunk_index_by_text(chunks, reference.text),
+                    chunk_index=chunk_index,
+                    chunk_indices=chunk_indices if chunk_indices else None,
                 )
                 issues.append(issue)
 
