@@ -1,4 +1,4 @@
-import { NoReferencesCallout } from '@/components/references/no-reference-section-callout';
+import { SectionNotFoundCallout } from '@/components/shared/section-not-found-callout';
 import { WorkflowConfigDialog, WorkflowConfigFormValues } from '@/components/workflows/workflow-config-dialog';
 import { WorkflowRunType } from '@/lib/generated-api';
 import { useProjectDetails } from '@/lib/hooks/use-project-details';
@@ -125,9 +125,10 @@ export function ReferenceReviewTab({ projectId, readOnly = false }: ReferenceRev
       />
 
       {referenceWarning?.showWarning && (
-        <NoReferencesCallout
-          sectionsDetected={referenceWarning.sectionsDetected}
+        <SectionNotFoundCallout
+          type="references"
           hasErrors={referenceWarning.hasErrors}
+          sectionsDetectedButEmpty={referenceWarning.sectionsDetected}
         />
       )}
     </div>

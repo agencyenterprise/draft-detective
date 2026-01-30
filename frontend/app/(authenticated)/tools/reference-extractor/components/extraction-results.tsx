@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { NoReferencesCallout } from '@/components/references/no-reference-section-callout';
+import { SectionNotFoundCallout } from '@/components/shared/section-not-found-callout';
 import { CopyReferencesDialog } from '@/components/references/copy-references-dialog';
 import { FileText } from 'lucide-react';
 import type { ReferenceExtractionState } from '@/lib/generated-api';
@@ -24,7 +24,7 @@ export function ExtractionResults({ results, onReset }: ExtractionResultsProps) 
   const hasSections = (results.detected_sections?.length || 0) > 0;
 
   const renderEmptyState = () => {
-    return <NoReferencesCallout sectionsDetected={hasSections} />;
+    return <SectionNotFoundCallout type="references" sectionsDetectedButEmpty={hasSections} />;
   };
 
   return (

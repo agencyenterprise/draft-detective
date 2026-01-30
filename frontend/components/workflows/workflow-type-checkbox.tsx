@@ -27,6 +27,7 @@ import {
   MessageSquareWarning,
   ALargeSmall,
   Users,
+  BookOpen,
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -57,6 +58,7 @@ const workflowTypeIcons: Record<WorkflowRunType, LucideIcon> = {
   [WorkflowRunType.AbbreviationScan]: ALargeSmall,
   [WorkflowRunType.AdvocacyTone]: MessageSquareWarning,
   [WorkflowRunType.AboutAuthors]: Users,
+  [WorkflowRunType.AboutThis]: BookOpen,
 };
 
 const DEFAULT_ICON = FileText;

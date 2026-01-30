@@ -85,6 +85,7 @@ class WorkflowRunType(str, Enum):
     ABBREVIATION_SCAN = "abbreviation_scan"
     ADVOCACY_TONE = "advocacy_tone"
     ABOUT_AUTHORS = "about_authors"
+    ABOUT_THIS = "about_this"
 
 
 def is_user_visible_workflow(workflow_type: WorkflowRunType) -> bool:
