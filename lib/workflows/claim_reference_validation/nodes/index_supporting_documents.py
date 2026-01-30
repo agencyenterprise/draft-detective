@@ -8,7 +8,7 @@ from lib.services.vector_store import (
     get_collection_id,
     get_file_hash_from_path,
 )
-from lib.workflows.context import ContextSchema, get_current_workflow_run_id
+from lib.workflows.context import ContextSchema
 from lib.workflows.claim_reference_validation.state import ClaimReferenceValidationState
 from lib.workflows.decorators import register_node
 from lib.workflows.models import WorkflowError
@@ -57,7 +57,7 @@ async def index_supporting_documents(
                 WorkflowError(
                     task_name="index_supporting_documents",
                     error=error_msg,
-                    workflow_run_id=get_current_workflow_run_id(),
+                    workflow_run_id=runtime.context.workflow_run_id,
                 )
             )
             failed_files.append(file_doc.file_name)

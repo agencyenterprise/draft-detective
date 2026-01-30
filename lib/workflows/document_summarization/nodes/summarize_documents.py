@@ -107,7 +107,11 @@ async def summarize_documents(
     results, exceptions = await run_tasks(tasks, desc="Summarizing documents")
 
     summaries: List[FileSummary] = [result for result in results if result is not None]
-    errors = convert_exceptions_to_workflow_errors("summarize_documents", exceptions)
+    errors = convert_exceptions_to_workflow_errors(
+        "summarize_documents",
+        exceptions,
+        workflow_run_id=runtime.context.workflow_run_id,
+    )
 
     # Persist summary artifacts to database for caching
     _persist_summary_artifacts(summaries)

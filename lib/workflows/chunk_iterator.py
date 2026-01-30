@@ -1,4 +1,4 @@
-from typing import Callable, List, Tuple
+from typing import Callable, List, Optional, Tuple
 
 from lib.run_utils import convert_exceptions_to_workflow_errors, run_tasks
 from lib.workflows.chunk_utils import AnalyzedChunk
@@ -19,18 +19,20 @@ async def iterate_chunks(
     state: BaseWorkflowState,
     func: Callable[[BaseWorkflowState, AnalyzedChunk, ...], AnalyzedChunk],
     desc: str,
+    workflow_run_id: Optional[str] = None,
     **kwargs: ...,
 ) -> BaseWorkflowState:
     """
     Iterate over chunks and process them with automatic progress tracking.
 
     Progress tracking is handled automatically via contextvars set by the
-    @register_node decorator. No explicit runtime parameter needed.
+    @register_node decorator.
 
     Args:
         state: Workflow state
         func: Function to process each chunk
         desc: Description for logging and progress
+        workflow_run_id: Optional workflow run ID for error tagging
         **kwargs: Additional arguments to pass to func
 
     Returns:
@@ -47,7 +49,10 @@ async def iterate_chunks(
 
     chunk_indices = [c.chunk_index for c in target_chunks]
     errors = convert_exceptions_to_workflow_errors(
-        func.__name__, exceptions, chunk_indices
+        func.__name__,
+        exceptions,
+        chunk_indices,
+        workflow_run_id=workflow_run_id,
     )
 
     return {"chunks": updated_chunks, "errors": errors}

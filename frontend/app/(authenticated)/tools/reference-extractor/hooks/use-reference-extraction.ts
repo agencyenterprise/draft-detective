@@ -1,5 +1,6 @@
 import { ReferenceExtractionState, WorkflowRunStatus, WorkflowRunType } from '@/lib/generated-api';
 import { useToolWorkflow } from '@/hooks/use-tool-workflow';
+import { getWorkflowErrors } from '@/lib/workflow-state';
 import { useEffect, useMemo, useRef } from 'react';
 import { toast } from 'sonner';
 
@@ -52,7 +53,7 @@ export function useReferenceExtraction(projectId: string | null) {
     const runId = refExtractionRun?.run.id;
     if (!runId || refExtractionRun?.run.status !== WorkflowRunStatus.Completed) return;
 
-    const errors = allWorkflowDetails.flatMap((w) => w.state?.errors || []);
+    const errors = getWorkflowErrors(allWorkflowDetails);
     if (errors.length > 0) {
       toast.error(`Processing completed with errors: ${errors[0]?.error || 'Unknown error'}`);
     }

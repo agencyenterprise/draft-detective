@@ -71,7 +71,10 @@ async def detect_citations(
     # Collect errors
     chunk_indices = [c.chunk_index for c in target_chunks]
     errors = convert_exceptions_to_workflow_errors(
-        "_detect_chunk_citations", exceptions, chunk_indices
+        "_detect_chunk_citations",
+        exceptions,
+        chunk_indices,
+        workflow_run_id=runtime.context.workflow_run_id,
     )
 
     # Filter out None results (from errors)

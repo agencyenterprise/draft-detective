@@ -71,7 +71,10 @@ async def generate_live_reports_analysis(
     # Collect errors
     chunk_indices = [c.chunk_index for c in chunks]
     errors = convert_exceptions_to_workflow_errors(
-        "generate_live_reports_analysis", exceptions, chunk_indices
+        "generate_live_reports_analysis",
+        exceptions,
+        chunk_indices,
+        workflow_run_id=runtime.context.workflow_run_id,
     )
 
     return {"live_reports_analysis": live_reports_analysis_results, "errors": errors}

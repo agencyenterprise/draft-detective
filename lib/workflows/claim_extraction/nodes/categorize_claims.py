@@ -62,7 +62,10 @@ async def categorize_claims(
     # Collect errors
     chunk_indices = [claim_response.chunk_index for claim_response, _, _ in claim_tasks]
     errors = convert_exceptions_to_workflow_errors(
-        "_categorize_single_claim", exceptions, chunk_indices
+        "_categorize_single_claim",
+        exceptions,
+        chunk_indices,
+        workflow_run_id=runtime.context.workflow_run_id,
     )
 
     # Filter out None results (from errors)

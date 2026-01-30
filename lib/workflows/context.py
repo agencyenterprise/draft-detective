@@ -1,4 +1,4 @@
-from typing import Optional, List
+from typing import Optional
 import contextvars
 from uuid import UUID
 
@@ -43,19 +43,3 @@ current_progress_id: contextvars.ContextVar[Optional[UUID]] = contextvars.Contex
     "current_progress_id",
     default=None,
 )
-
-# Context variable for workflow run ID (thread-safe for async)
-# Used to tag errors with the run they occurred in, enabling filtering
-# of errors to only show those from the current run
-current_workflow_run_id: contextvars.ContextVar[Optional[str]] = contextvars.ContextVar(
-    "current_workflow_run_id",
-    default=None,
-)
-
-
-def get_current_workflow_run_id() -> Optional[str]:
-    """Get the current workflow run ID from context variable."""
-    try:
-        return current_workflow_run_id.get()
-    except Exception:
-        return None
