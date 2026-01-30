@@ -6,6 +6,31 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v0.5.6] - 2026-01-30
+
+### Added
+- Added an Abbreviation Scan workflow that detects abbreviations/acronyms missing in-text definitions and surfaces LOW-severity issues in the UI.
+- Added severity filtering support to DOCX export so downloads can include only issues matching the currently selected severity filter.
+- Added line number tracking to document chunks and enabled multi-chunk selection in the Document Explorer to improve reference-to-chunk matching and navigation.
+- Added a new Advocacy & Tone analysis workflow (QA Screener) to detect problematic language such as legal/regulatory terms, advocacy language, and subjective tone.
+- Added optional rich console logging with a configurable `LOG_RICH_HANDLER` setting and a new `rich` dependency.
+
+### Changed
+- Refactored workflow results UI to reduce duplication by extracting shared components and refactored About Authors rule metadata to be centralized in the backend.
+- Added an `always_run` flag for idempotent workflows to bypass “already completed” skip logic when included as dependencies, and simplified related frontend workflow triggering.
+- Migrated database queries across service modules from SQLAlchemy 1.x `query()` usage to SQLAlchemy 2.0 `select()` style.
+- Removed “Possible invalid reference” issues from the Document Explorer and instead displayed reference validation results as metadata in the References tab, including cross-tab navigation support.
+- chore: merge cursorrules to agents.md and improve prompt
+
+### Fixed
+- Fixed the Document Explorer severity filter so it applies to both the sidebar list and the main document reconstructor view.
+- Improved Document Explorer scroll-to-chunk accuracy with a retry mechanism and removed redundant polling-based scroll logic from hash navigation.
+- Added URL redirect detection to the reference validation workflow and generated a MEDIUM-severity issue when a cited URL redirects to a different final URL.
+
+### Removed
+- Removed the reference extraction progress bar that showed “Reference X of Y” during extraction.
+
+
 ## [v0.5.5] - 2026-01-28
 
 ### Added
