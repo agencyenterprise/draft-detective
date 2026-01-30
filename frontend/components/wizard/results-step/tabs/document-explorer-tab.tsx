@@ -168,7 +168,7 @@ export function DocumentExplorerTab({
               return (
                 <DocumentReconstructor
                   chunks={chunks}
-                  issues={issues}
+                  issues={filteredIssues}
                   selectedChunkIndices={selectedChunkIndices}
                   onChunkSelect={handleChunkSelect}
                 />
