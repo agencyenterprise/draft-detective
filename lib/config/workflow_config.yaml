@@ -84,28 +84,29 @@ workflows:
       - "i.e."
       - "etc."
 
-  # Advocacy and Tone Detection
+  # Writing Objectivity Analysis
   advocacy_tone:
-    subjectivity_threshold: 0.75
+    subjectivity_threshold: 0.70
     context_k: 2
 
+    # Words that may indicate opinion rather than evidence-based claims
     trigger_words:
-      - "law"
-      - "regulation"
-      - "compliance"
-      - "policy"
-      - "liability"
-      - "penalty"
-      - "enforcement"
+      - "obviously"
+      - "clearly"
+      - "undoubtedly"
+      - "certainly"
+      - "definitely"
+      - "absolutely"
+      - "always"
+      - "never"
 
+    # Patterns suggesting unsupported recommendations
     advocacy_patterns:
-      - "\\bwe should\\b"
-      - "\\bwe must\\b"
-      - "\\bmust ensure\\b"
-      - "\\bneed to\\b"
-      - "\\brecommend that\\b"
-      - "\\bcall for\\b"
-      - "\\bshould be adopted\\b"
+      - "\\bwe believe\\b"
+      - "\\bin our opinion\\b"
+      - "\\bit is clear that\\b"
+      - "\\bwithout doubt\\b"
+      - "\\beveryone knows\\b"
 
     ignored_section_keywords:
       - "author"
@@ -116,17 +117,17 @@ workflows:
 
     check_types:
       trigger_words:
-        description: "potentially sensitive language"
+        description: "certainty language without evidence"
         definitions: >-
-          Language that may require review before publication, such as
-          legal terms, compliance language, or liability-related phrases.
+          Words implying certainty or universal truth without supporting
+          evidence. Academic writing should hedge claims appropriately.
       advocacy_language:
-        description: "normative or prescriptive language"
+        description: "unsupported recommendations"
         definitions: >-
-          Language that promotes a position or calls for action without
-          supporting evidence. Look for "should", "must", "need to" statements.
+          Statements promoting positions without citing evidence.
+          Research should distinguish between findings and opinions.
       subjective_tone:
-        description: "subjective or biased language"
+        description: "subjective evaluations"
         definitions: >-
-          Judgments, opinions, or emotionally loaded language that goes
-          beyond neutral reporting. Look for evaluative words and emotive terms.
+          Value judgments or emotional language that may indicate bias.
+          Research writing should maintain neutral, evidence-based tone.
