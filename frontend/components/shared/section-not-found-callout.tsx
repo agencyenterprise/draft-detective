@@ -83,17 +83,7 @@ export function SectionNotFoundCallout({
     return (
       <Callout title={config.errorTitle} variant="warning" icon={AlertTriangle} className={className}>
         <div className="space-y-2">
-          <p>
-            {config.errorDescription.split(' encountered errors ').map((part, i) =>
-              i === 0 ? (
-                <span key={i}>
-                  {part} <strong>encountered errors</strong>{' '}
-                </span>
-              ) : (
-                part
-              ),
-            )}
-          </p>
+          <p>{config.errorDescription}</p>
           <p>
             Check the <strong>Analyses tab</strong> for error details. You may need to re-run the analysis.
           </p>

@@ -21,6 +21,7 @@ from langgraph.runtime import Runtime
 from lib.agents.preface_requirement_checker import (
     PrefaceRequirementCheckerAgent,
     PrefaceRequirementType,
+    RequirementCheckResponse,
 )
 from lib.agents.preface_section_extractor import PrefaceSectionExtractorAgent
 from lib.run_utils import run_tasks
@@ -63,7 +64,7 @@ def _split_into_paragraphs(text: str) -> List[str]:
 
 
 def _to_requirement_result(
-    result: Optional[object],
+    result: Optional[RequirementCheckResponse],
     text_items: List[str],
     default_explanation: str,
 ) -> RequirementCheckResult:
