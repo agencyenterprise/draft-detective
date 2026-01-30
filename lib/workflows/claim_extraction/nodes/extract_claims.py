@@ -52,7 +52,10 @@ async def extract_claims(
     # Collect errors
     chunk_indices = [c.chunk_index for c in target_chunks]
     errors = convert_exceptions_to_workflow_errors(
-        "_extract_chunk_claims", exceptions, chunk_indices
+        "_extract_chunk_claims",
+        exceptions,
+        chunk_indices,
+        workflow_run_id=runtime.context.workflow_run_id,
     )
 
     # Filter out None results (from errors)

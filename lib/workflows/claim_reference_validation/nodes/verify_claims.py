@@ -176,7 +176,10 @@ async def verify_claims(
 
     chunk_indices = [c.chunk_index for c in target_chunks]
     errors = convert_exceptions_to_workflow_errors(
-        "verify_claims", exceptions, chunk_indices
+        "verify_claims",
+        exceptions,
+        chunk_indices,
+        workflow_run_id=runtime.context.workflow_run_id,
     )
 
     return {"substantiations": all_substantiations, "errors": errors}

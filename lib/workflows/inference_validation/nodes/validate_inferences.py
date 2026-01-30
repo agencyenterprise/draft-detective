@@ -63,7 +63,10 @@ async def validate_inferences(
     # Collect errors
     chunk_indices = [c.chunk_index for c in target_chunks]
     errors = convert_exceptions_to_workflow_errors(
-        "validate_inferences", exceptions, chunk_indices
+        "validate_inferences",
+        exceptions,
+        chunk_indices,
+        workflow_run_id=runtime.context.workflow_run_id,
     )
 
     return {"inference_validations": validation_results, "errors": errors}

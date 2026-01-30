@@ -46,7 +46,11 @@ async def reference_validation(
         if validation_response is not None:
             validation_responses.append(validation_response)
 
-    errors = convert_exceptions_to_workflow_errors("validate_references", exceptions)
+    errors = convert_exceptions_to_workflow_errors(
+        "validate_references",
+        exceptions,
+        workflow_run_id=runtime.context.workflow_run_id,
+    )
 
     return {"reference_validations": validation_responses, "errors": errors}
 

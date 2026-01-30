@@ -4,7 +4,7 @@ import os
 from typing import Any, List, Optional, Tuple
 from uuid import UUID
 
-from lib.workflows.context import current_progress_id, get_current_workflow_run_id
+from lib.workflows.context import current_progress_id
 from lib.workflows.models import WorkflowError
 
 logger = logging.getLogger(__name__)
@@ -129,6 +129,7 @@ def convert_exceptions_to_workflow_errors(
     task_name: str,
     exceptions: List[Exception | None],
     chunk_indices: Optional[List[int]] = None,
+    workflow_run_id: Optional[str] = None,
 ) -> List[WorkflowError]:
     """
     Convert a list of exceptions to WorkflowError objects.
@@ -139,6 +140,7 @@ def convert_exceptions_to_workflow_errors(
         chunk_indices: Optional list of chunk indices corresponding to each exception.
                       If None, no chunk_index is set on errors.
                       If provided, must be same length as exceptions.
+        workflow_run_id: Optional workflow run ID to tag errors with.
 
     Raises:
         ValueError: If chunk_indices is provided but has different length than exceptions.
@@ -150,7 +152,6 @@ def convert_exceptions_to_workflow_errors(
         )
 
     errors: List[WorkflowError] = []
-    workflow_run_id = get_current_workflow_run_id()
     for i, exception in enumerate(exceptions):
         if exception is not None:
             errors.append(

@@ -65,7 +65,11 @@ async def suggest_citations(
     ] = await run_tasks(tasks, desc="Suggesting chunk citations")
 
     citation_suggestions_list, exceptions = results
-    errors = convert_exceptions_to_workflow_errors("suggest_citations", exceptions)
+    errors = convert_exceptions_to_workflow_errors(
+        "suggest_citations",
+        exceptions,
+        workflow_run_id=runtime.context.workflow_run_id,
+    )
 
     citation_suggestions: List[CitationSuggestionResultWithClaimIndex] = []
     for result_item in citation_suggestions_list:
