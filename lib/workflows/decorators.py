@@ -15,7 +15,10 @@ from lib.services.workflow_progress import (
     get_or_create_progress,
     increment_and_complete_if_done,
 )
-from lib.workflows.context import ContextSchema, current_progress_id
+from lib.workflows.context import (
+    ContextSchema,
+    current_progress_id,
+)
 from lib.workflows.models import BaseWorkflowState, WorkflowError
 
 # Type variable for decorator return types
@@ -64,6 +67,7 @@ def register_node(name: str, description: str):
             # Progress tracking: create and start progress entry
             progress_id: Optional[uuid.UUID] = None
             progress_token: Optional[Token] = None
+            workflow_run_id_str: Optional[str] = None
 
             try:
                 if runtime and hasattr(runtime, "context"):
@@ -137,11 +141,17 @@ def register_node(name: str, description: str):
                     exc_info=True,
                 )
                 return {
-                    "errors": [WorkflowError(task_name=func.__name__, error=str(e))]
+                    "errors": [
+                        WorkflowError(
+                            task_name=func.__name__,
+                            error=str(e),
+                            workflow_run_id=workflow_run_id_str,
+                        )
+                    ]
                 }
 
             finally:
-                # CRITICAL: Reset contextvar to prevent leakage to subsequent nodes
+                # CRITICAL: Reset contextvars to prevent leakage to subsequent nodes
                 if progress_token is not None:
                     current_progress_id.reset(progress_token)
 

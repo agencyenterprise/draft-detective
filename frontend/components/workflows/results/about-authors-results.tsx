@@ -18,7 +18,7 @@ import { cn } from '@/lib/utils';
 
 interface AboutAuthorsResultsProps {
   project: ProjectDetailed;
-  onNavigateToDocumentExplorer?: (chunkIndex?: number) => void;
+  onNavigateToDocumentExplorer?: (chunkIndices?: number[]) => void;
 }
 
 // Centralized rule configuration - mirrors backend RULE_METADATA
@@ -234,8 +234,8 @@ export function AboutAuthorsResults({ project, onNavigateToDocumentExplorer }: A
             key={result.author_id}
             result={result}
             onNavigateToChunk={
-              onNavigateToDocumentExplorer && (result.chunk_indices?.length ?? 0) > 0
-                ? () => onNavigateToDocumentExplorer(result.chunk_indices?.[0])
+              onNavigateToDocumentExplorer && result.chunk_indices?.length
+                ? () => onNavigateToDocumentExplorer(result.chunk_indices!)
                 : undefined
             }
           />

@@ -65,6 +65,9 @@ import type {
   GetProjectWorkflowProgressEndpointApiProjectProjectIdWorkflowProgressGetData,
   GetProjectWorkflowProgressEndpointApiProjectProjectIdWorkflowProgressGetErrors,
   GetProjectWorkflowProgressEndpointApiProjectProjectIdWorkflowProgressGetResponses,
+  GetProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGetData,
+  GetProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGetErrors,
+  GetProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGetResponses,
   GetSharedResourceApiPublicShareTokenGetData,
   GetSharedResourceApiPublicShareTokenGetErrors,
   GetSharedResourceApiPublicShareTokenGetResponses,
@@ -691,7 +694,7 @@ export const updateProjectEndpointApiProjectProjectIdPatch = <ThrowOnError exten
  *
  * Uses cached version if available, otherwise generates via workflow.
  * First request may take a few seconds as it generates the DOCX.
- * Subsequent requests with the same share_token (or none) are instant.
+ * Subsequent requests with the same share_token and severities filter are instant.
  */
 export const downloadProjectDocxApiProjectsProjectIdDocxDownloadGet = <ThrowOnError extends boolean = true>(
   options: Options<DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetData, ThrowOnError>,
@@ -840,6 +843,31 @@ export const getProjectWorkflowProgressEndpointApiProjectProjectIdWorkflowProgre
     responseStyle: 'data',
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/project/{project_id}/workflow-progress',
+    ...options,
+  });
+
+/**
+ * Get Project Workflow Runs By Type Endpoint
+ *
+ * Get all workflow runs of a specific type for a project.
+ *
+ * Returns workflow run details (including state with errors) ordered by creation date descending.
+ * Used for displaying workflow run history in the UI with correct error status.
+ */
+export const getProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGet = <
+  ThrowOnError extends boolean = true,
+>(
+  options: Options<GetProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGetData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    GetProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGetResponses,
+    GetProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGetErrors,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/project/{project_id}/workflow-runs',
     ...options,
   });
 

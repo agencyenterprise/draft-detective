@@ -16,11 +16,12 @@ import nltk
 
 from langgraph.runtime import Runtime
 
-from lib.agents.author_bio_extractor import AuthorBioExtractorAgent
+from lib.agents.author_bio_extractor import AuthorBio, AuthorBioExtractorAgent
 from lib.agents.author_final_judge import AuthorFinalJudgeAgent
 from lib.agents.author_name_extractor import AuthorNameExtractorAgent
 from lib.agents.author_rule_checker import AuthorRuleCheckerAgent, AuthorRuleType
 from lib.run_utils import run_tasks
+from lib.services.chunk_line_matcher import find_chunks_by_line_range
 from lib.workflows.about_authors.constants import (
     ABBREVIATIONS,
     EXPECTED_SENTENCE_COUNT,
@@ -68,6 +69,7 @@ async def _validate_single_author(
     name_agent: AuthorNameExtractorAgent,
     rule_agent: AuthorRuleCheckerAgent,
     judge_agent: AuthorFinalJudgeAgent,
+    chunk_indices: List[int],
 ) -> AuthorValidationResult:
     """Validate a single author bio against all 5 rules."""
 
@@ -160,7 +162,7 @@ async def _validate_single_author(
         author_text=author_text,
         author_name=author_name,
         author_name_positions=name_positions,
-        chunk_indices=[],  # Not used with agentic approach
+        chunk_indices=chunk_indices,
         rule_1_sentence_length=rule_1,
         rule_2_position_affiliation=rule_2,
         rule_3_tasp_statement=rule_3,
@@ -175,6 +177,13 @@ async def _validate_single_author(
 # ============================================================================
 # Main Node
 # ============================================================================
+
+
+def _get_chunk_indices_for_bio(bio: AuthorBio, chunks: List) -> List[int]:
+    """Find chunk indices that overlap with the bio's line range."""
+    if not chunks:
+        return []
+    return find_chunks_by_line_range(chunks, bio.start_line, bio.end_line)
 
 
 @register_node(
@@ -206,6 +215,9 @@ async def validate_authors(state: AboutAuthorsState, runtime: Runtime[ContextSch
 
     logger.info(f"[AboutAuthors] Found {len(author_bios)} author bios")
 
+    # Get chunks for line-based matching
+    chunks = await runtime.context.file_artifacts_service.get_chunks()
+
     # Initialize validation agents
     name_agent = AuthorNameExtractorAgent(runtime.context)
     rule_agent = AuthorRuleCheckerAgent(runtime.context)
@@ -219,6 +231,7 @@ async def validate_authors(state: AboutAuthorsState, runtime: Runtime[ContextSch
             name_agent=name_agent,
             rule_agent=rule_agent,
             judge_agent=judge_agent,
+            chunk_indices=_get_chunk_indices_for_bio(bio, chunks),
         )
         for i, bio in enumerate(author_bios)
     ]

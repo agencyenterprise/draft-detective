@@ -73,9 +73,7 @@ async def _download_file_from_url_async(
     try:
         saved_file = await _download_direct_url(url)
     except httpx.HTTPError as exc:
-        logger.warning(
-            f"Warning: Failed to download content from {url} (HTTP Error: {exc})"
-        )
+        logger.debug(f"Failed to download content from {url} (HTTP Error: {exc})")
         return DownloadFileFromUrlResponse(
             file_id=None,
             message=f"Failed to download content from {url}. Error: {exc}",
@@ -110,7 +108,7 @@ async def _download_direct_url(url: str) -> SavedFile | None:
 
         # Download the file and check content type
         async with httpx.AsyncClient(timeout=30.0, headers=headers) as client:
-            logger.info(f"Downloading file from {url}")
+            logger.debug(f"Downloading file from direct URL: {url}")
             response = await client.get(url, follow_redirects=True)
             response.raise_for_status()
 
@@ -122,21 +120,21 @@ async def _download_direct_url(url: str) -> SavedFile | None:
                 content = response.content
 
                 if len(content) == 0:
-                    logger.warning(f"Downloaded file from {url} is empty")
+                    logger.warning(f"Downloaded file from url is empty: {url}")
                     return None
 
                 filename = await _save_content(content, "pdf")
-                logger.info(f"Successfully downloaded and saved PDF to {filename}")
+                logger.debug(f"Successfully downloaded and saved PDF to: {filename}")
                 return SavedFile(filename=filename, content_type="application/pdf")
             else:
                 # Not a PDF, use Jina to convert to markdown
-                logger.info(
+                logger.debug(
                     f"Content is not PDF (Content-Type: {content_type}), using Jina to convert to markdown"
                 )
                 return await _download_with_jina_api(url)
 
     except httpx.HTTPStatusError as exc:
-        logger.info(
+        logger.debug(
             f"Error downloading content from {url}, falling back to Jina (HTTP status error: {exc})"
         )
         return await _download_with_jina_api(url)
@@ -157,7 +155,7 @@ async def _download_with_jina_api(url: str) -> SavedFile | None:
 
     async with jina_rate_limiter:
         async with httpx.AsyncClient(timeout=120.0) as client:
-            logger.info(f"Downloading content with Jina API from {url}")
+            logger.debug(f"Downloading content with Jina API from URL: {url}")
             response = await client.get(
                 f"https://r.jina.ai/{url}", follow_redirects=True
             )
@@ -168,7 +166,7 @@ async def _download_with_jina_api(url: str) -> SavedFile | None:
                 raise ValueError(f"Jina API returned empty content for {url}")
 
             filename = await _save_content(markdown_content, "md")
-            logger.info(f"Successfully downloaded and saved markdown to {filename}")
+            logger.debug(f"Successfully downloaded and saved markdown to {filename}")
             return SavedFile(filename=filename, content_type="text/markdown")
 
 
@@ -255,7 +253,7 @@ async def _save_content(content: bytes | str, extension: str) -> str:
 
     # Skip if file already exists
     if os.path.exists(file_path):
-        logger.info(
+        logger.debug(
             f"File with hash {xxhash} already exists at {file_path}, skipping download"
         )
         return f"{xxhash}.{extension}"
@@ -264,7 +262,7 @@ async def _save_content(content: bytes | str, extension: str) -> str:
     Path(upload_dir).mkdir(parents=True, exist_ok=True)
 
     # Save the file
-    logger.info(f"Saving downloaded file with hash {xxhash} to {file_path}")
+    logger.debug(f"Saving downloaded file with hash {xxhash} to {file_path}")
     if isinstance(content, bytes):
         async with aiofiles.open(file_path, "wb") as buffer:
             await buffer.write(content)

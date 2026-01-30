@@ -16,12 +16,12 @@ from lib.agents.formatting_utils import (
     format_summary_context,
 )
 from lib.run_utils import run_tasks
+from lib.run_utils import convert_exceptions_to_workflow_errors, run_tasks
 from lib.services.file_artifacts_service.types import FileArtifactsServiceType
 from lib.workflows.claim_extraction.state import ClaimExtractionState
 from lib.workflows.chunk_utils import AnalyzedChunk
 from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
-from lib.workflows.models import WorkflowError
 
 logger = logging.getLogger(__name__)
 
@@ -66,17 +66,13 @@ async def categorize_claims(
     categorizations, exceptions = results
 
     # Collect errors
-    errors = []
-    for index, exception in enumerate(exceptions):
-        if exception is not None:
-            claim_response, claim_index, _ = claim_tasks[index]
-            errors.append(
-                WorkflowError(
-                    task_name="_categorize_single_claim",
-                    error=str(exception),
-                    chunk_index=claim_response.chunk_index,
-                )
-            )
+    chunk_indices = [claim_response.chunk_index for claim_response, _, _ in claim_tasks]
+    errors = convert_exceptions_to_workflow_errors(
+        "_categorize_single_claim",
+        exceptions,
+        chunk_indices,
+        workflow_run_id=runtime.context.workflow_run_id,
+    )
 
     # Filter out None results (from errors)
     valid_categorizations: List[ClaimCategorizationResponseWithClaimIndex] = [

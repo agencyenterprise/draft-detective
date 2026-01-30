@@ -15,13 +15,12 @@ from lib.agents.evidence_weighter import (
 )
 from lib.agents.formatting_utils import format_bibliography
 from lib.agents.live_literature_review import LiveLiteratureReviewAgent
-from lib.run_utils import run_tasks
+from lib.run_utils import convert_exceptions_to_workflow_errors, run_tasks
 from lib.services.file_artifacts_service.types import FileArtifactsServiceType
 from lib.workflows.chunk_utils import AnalyzedChunk
 from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
 from lib.workflows.live_reports.state import LiveReportsState
-from lib.workflows.models import WorkflowError
 from lib.workflows.reference_extraction.state import ExtractedReference
 
 
@@ -75,17 +74,13 @@ async def generate_live_reports_analysis(
             live_reports_analysis_results.extend(chunk_results)
 
     # Collect errors
-    errors = []
-    for index, exception in enumerate(exceptions):
-        if exception is not None:
-            chunk_index = chunks[index].chunk_index
-            errors.append(
-                WorkflowError(
-                    task_name="generate_live_reports_analysis",
-                    error=str(exception),
-                    chunk_index=chunk_index,
-                )
-            )
+    chunk_indices = [c.chunk_index for c in chunks]
+    errors = convert_exceptions_to_workflow_errors(
+        "generate_live_reports_analysis",
+        exceptions,
+        chunk_indices,
+        workflow_run_id=runtime.context.workflow_run_id,
+    )
 
     return {"live_reports_analysis": live_reports_analysis_results, "errors": errors}
 

@@ -57,6 +57,7 @@ async def index_supporting_documents(
                 WorkflowError(
                     task_name="index_supporting_documents",
                     error=error_msg,
+                    workflow_run_id=runtime.context.workflow_run_id,
                 )
             )
             failed_files.append(file_doc.file_name)

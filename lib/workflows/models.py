@@ -16,6 +16,10 @@ class WorkflowError(BaseModel):
     )
     task_name: str = Field(description="The name of the task that caused the error.")
     error: str = Field(description="The error message.")
+    workflow_run_id: Optional[str] = Field(
+        default=None,
+        description="The workflow run ID when this error occurred. Used to filter errors to current run only.",
+    )
 
 
 class BaseWorkflowState(BaseModel):
@@ -78,6 +82,7 @@ class WorkflowRunType(str, Enum):
     RESULTS_EXTRACTION = "results_extraction"
     INFERENCE_VALIDATION = "inference_validation"
     CLAIM_REFERENCE_VALIDATION = "claim_reference_validation"
+    ABBREVIATION_SCAN = "abbreviation_scan"
     ADVOCACY_TONE = "advocacy_tone"
     ABOUT_AUTHORS = "about_authors"
 
@@ -115,7 +120,12 @@ class DocumentIssue(BaseModel):
     description: str = Field(description="The description of the issue")
     severity: SeverityEnum = Field(description="The severity of the issue")
     chunk_index: Optional[int] = Field(
-        description="The index of the chunk that contains the issue", default=None
+        description="The index of the chunk that contains the issue (deprecated, use chunk_indices)",
+        default=None,
+    )
+    chunk_indices: Optional[List[int]] = Field(
+        description="The indices of all chunks that contain the issue",
+        default=None,
     )
     claim_index: Optional[int] = Field(
         description="The index of the claim that contains the issue", default=None

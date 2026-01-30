@@ -126,16 +126,40 @@ async def call_maybe_async(func, *args, **kwargs):
 
 
 def convert_exceptions_to_workflow_errors(
-    task_name: str, exceptions: List[Exception | None]
+    task_name: str,
+    exceptions: List[Exception | None],
+    chunk_indices: Optional[List[int]] = None,
+    workflow_run_id: Optional[str] = None,
 ) -> List[WorkflowError]:
+    """
+    Convert a list of exceptions to WorkflowError objects.
+
+    Args:
+        task_name: The name of the task that caused the errors.
+        exceptions: List of exceptions (None for successful tasks).
+        chunk_indices: Optional list of chunk indices corresponding to each exception.
+                      If None, no chunk_index is set on errors.
+                      If provided, must be same length as exceptions.
+        workflow_run_id: Optional workflow run ID to tag errors with.
+
+    Raises:
+        ValueError: If chunk_indices is provided but has different length than exceptions.
+    """
+    if chunk_indices is not None and len(chunk_indices) != len(exceptions):
+        raise ValueError(
+            f"chunk_indices length ({len(chunk_indices)}) must match "
+            f"exceptions length ({len(exceptions)})"
+        )
+
     errors: List[WorkflowError] = []
-    for chunk_index, exception in enumerate(exceptions):
+    for i, exception in enumerate(exceptions):
         if exception is not None:
             errors.append(
                 WorkflowError(
                     task_name=task_name,
                     error=str(exception),
-                    chunk_index=chunk_index,
+                    chunk_index=chunk_indices[i] if chunk_indices else None,
+                    workflow_run_id=workflow_run_id,
                 )
             )
     return errors

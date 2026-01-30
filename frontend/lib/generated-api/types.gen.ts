@@ -370,6 +370,12 @@ export type BibliographyItemValidation = {
    * Updated reference with the suggested changes made to make the reference valid, matching the format of the original reference. If the reference is already valid, return null.
    */
   updated_reference?: string | null;
+  /**
+   * Cited Url
+   *
+   * The original URL cited in the reference text (before redirect resolution).
+   */
+  cited_url?: string | null;
 };
 
 /**
@@ -1342,6 +1348,18 @@ export type DocumentChunk = {
    * The headings associated with the chunk, in order of hierarchy
    */
   headings?: Array<string> | null;
+  /**
+   * Start Line
+   *
+   * 1-indexed starting line in markdown
+   */
+  start_line: number;
+  /**
+   * End Line
+   *
+   * 1-indexed ending line in markdown
+   */
+  end_line: number;
 };
 
 /**
@@ -1367,9 +1385,15 @@ export type DocumentIssue = {
   /**
    * Chunk Index
    *
-   * The index of the chunk that contains the issue
+   * The index of the chunk that contains the issue (deprecated, use chunk_indices)
    */
   chunk_index?: number | null;
+  /**
+   * Chunk Indices
+   *
+   * The indices of all chunks that contain the issue
+   */
+  chunk_indices?: Array<number> | null;
   /**
    * Claim Index
    *
@@ -1725,6 +1749,24 @@ export type ExtractedReference = {
    * The extracted reference text
    */
   text: string;
+  /**
+   * Start Line
+   *
+   * 1-indexed starting line number in the markdown
+   */
+  start_line?: number | null;
+  /**
+   * End Line
+   *
+   * 1-indexed ending line number in the markdown
+   */
+  end_line?: number | null;
+  /**
+   * Chunk Indices
+   *
+   * Chunk indices that overlap with this reference's line range
+   */
+  chunk_indices?: Array<number>;
 };
 
 /**
@@ -4063,6 +4105,12 @@ export type WorkflowError = {
    * The error message.
    */
   error: string;
+  /**
+   * Workflow Run Id
+   *
+   * The workflow run ID when this error occurred. Used to filter errors to current run only.
+   */
+  workflow_run_id?: string | null;
 };
 
 /**
@@ -4226,6 +4274,7 @@ export const WorkflowRunType = {
   ResultsExtraction: 'results_extraction',
   InferenceValidation: 'inference_validation',
   ClaimReferenceValidation: 'claim_reference_validation',
+  AbbreviationScan: 'abbreviation_scan',
   AdvocacyTone: 'advocacy_tone',
   AboutAuthors: 'about_authors',
 } as const;
@@ -5184,6 +5233,12 @@ export type DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetData = {
      * Share token to include share links in comments
      */
     share_token?: string | null;
+    /**
+     * Severities
+     *
+     * Filter issues by severity levels (e.g., high, medium, low)
+     */
+    severities?: Array<string> | null;
   };
   url: '/api/projects/{project_id}/docx/download';
 };
@@ -5427,6 +5482,51 @@ export type GetProjectWorkflowProgressEndpointApiProjectProjectIdWorkflowProgres
 
 export type GetProjectWorkflowProgressEndpointApiProjectProjectIdWorkflowProgressGetResponse =
   GetProjectWorkflowProgressEndpointApiProjectProjectIdWorkflowProgressGetResponses[keyof GetProjectWorkflowProgressEndpointApiProjectProjectIdWorkflowProgressGetResponses];
+
+export type GetProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGetData = {
+  body?: never;
+  path: {
+    /**
+     * Project Id
+     */
+    project_id: string;
+  };
+  query: {
+    /**
+     * The workflow type to filter runs by
+     */
+    workflow_type: WorkflowRunType;
+    /**
+     * Share Token
+     *
+     * Share token for shared projects.
+     */
+    share_token?: string | null;
+  };
+  url: '/api/project/{project_id}/workflow-runs';
+};
+
+export type GetProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGetErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type GetProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGetError =
+  GetProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGetErrors[keyof GetProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGetErrors];
+
+export type GetProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGetResponses = {
+  /**
+   * Response Get Project Workflow Runs By Type Endpoint Api Project  Project Id  Workflow Runs Get
+   *
+   * Successful Response
+   */
+  200: Array<WorkflowRunDetail>;
+};
+
+export type GetProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGetResponse =
+  GetProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGetResponses[keyof GetProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGetResponses];
 
 export type GetProjectShareStatusApiProjectsProjectIdShareGetData = {
   body?: never;

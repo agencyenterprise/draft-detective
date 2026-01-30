@@ -32,6 +32,11 @@ from lib.services.projects import (
 from lib.services.references import add_file_to_reference, remove_file_from_references
 from lib.services.share_links import get_resource_by_token
 from lib.services.workflow_progress import get_project_workflow_progress
+from lib.services.workflow_runs import (
+    WorkflowRunDetail,
+    get_project_workflow_runs_by_type_with_details,
+)
+from lib.models.workflow_run import WorkflowRun, WorkflowRunType
 
 router = APIRouter(tags=["projects"])
 logger = logging.getLogger(__name__)
@@ -129,6 +134,10 @@ async def download_project_docx(
         default=None,
         description="Share token to include share links in comments",
     ),
+    severities: Optional[List[str]] = Query(
+        default=None,
+        description="Filter issues by severity levels (e.g., high, medium, low)",
+    ),
     current_user: Optional[User] = Depends(get_current_user_optional),
 ):
     """
@@ -136,7 +145,7 @@ async def download_project_docx(
 
     Uses cached version if available, otherwise generates via workflow.
     First request may take a few seconds as it generates the DOCX.
-    Subsequent requests with the same share_token (or none) are instant.
+    Subsequent requests with the same share_token and severities filter are instant.
     """
 
     await check_project_access(project_id, current_user, share_token)
@@ -146,6 +155,7 @@ async def download_project_docx(
         file_path, filename = await get_or_generate_docx(
             project_id=project_id,
             share_token=share_token,
+            severities=severities,
             use_cache=True,
         )
     except Exception as e:
@@ -333,6 +343,33 @@ async def get_project_workflow_progress_endpoint(
     project = await check_project_access(project_id, current_user, share_token)
     progress_list = get_project_workflow_progress(project.id)
     return [WorkflowProgressResponse.model_validate(p) for p in progress_list]
+
+
+@router.get(
+    "/api/project/{project_id}/workflow-runs",
+    response_model=List[WorkflowRunDetail],
+)
+async def get_project_workflow_runs_by_type_endpoint(
+    project_id: str,
+    workflow_type: WorkflowRunType = Query(
+        ...,
+        description="The workflow type to filter runs by",
+    ),
+    current_user: Optional[User] = Depends(get_current_user_optional),
+    share_token: Optional[str] = Query(
+        default=None,
+        description="Share token for shared projects.",
+    ),
+):
+    """
+    Get all workflow runs of a specific type for a project.
+
+    Returns workflow run details (including state with errors) ordered by creation date descending.
+    Used for displaying workflow run history in the UI with correct error status.
+    """
+
+    await check_project_access(project_id, current_user, share_token)
+    return await get_project_workflow_runs_by_type_with_details(project_id, workflow_type)
 
 
 async def check_project_access(
