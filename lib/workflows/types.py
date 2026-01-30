@@ -18,6 +18,10 @@ from lib.workflows.citation_detection.state import (
     CitationDetectionConfig,
     CitationDetectionState,
 )
+from lib.workflows.abbreviation_scan.state import (
+    AbbreviationScanState,
+    AbbreviationScanWorkflowConfig,
+)
 from lib.workflows.citation_suggester.state import (
     CitationSuggesterState,
     CitationSuggesterWorkflowConfig,
@@ -93,6 +97,7 @@ WorkflowState = (
     | ClaimExtractionState
     | ClaimReferenceValidationState
     | CitationDetectionState
+    | AbbreviationScanState
     | MethodologicalAlignmentState
     | ReferenceDownloaderState
     | LiteratureReviewState
@@ -117,6 +122,7 @@ WorkflowConfig = (
     | ClaimExtractionWorkflowConfig
     | CitationDetectionConfig
     | ClaimReferenceValidationWorkflowConfig
+    | AbbreviationScanWorkflowConfig
     | MethodologicalAlignmentWorkflowConfig
     | ReferenceDownloaderWorkflowConfig
     | LiteratureReviewWorkflowConfig

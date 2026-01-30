@@ -4422,6 +4422,7 @@ export const WorkflowRunType = {
   ResultsExtraction: 'results_extraction',
   InferenceValidation: 'inference_validation',
   ClaimReferenceValidation: 'claim_reference_validation',
+  AbbreviationScan: 'abbreviation_scan',
   AdvocacyTone: 'advocacy_tone',
   AboutAuthors: 'about_authors',
   AboutThis: 'about_this',
