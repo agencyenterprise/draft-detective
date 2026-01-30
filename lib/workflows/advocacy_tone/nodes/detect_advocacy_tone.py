@@ -54,7 +54,9 @@ async def detect_advocacy_tone(
         return {"results": results}
 
     # Step 2: LLM verification for flagged chunks
-    errors = await _run_llm_verification(flagged, chunks, agent)
+    errors = await _run_llm_verification(
+        flagged, chunks, agent, runtime.context.workflow_run_id
+    )
     logger.info(f"[AdvocacyTone] LLM verification complete")
 
     return {"results": results, "errors": errors}
@@ -81,7 +83,7 @@ def _run_procedural_checks(chunks):
     return results, flagged
 
 
-async def _run_llm_verification(flagged, chunks, agent):
+async def _run_llm_verification(flagged, chunks, agent, workflow_run_id: str | None):
     """Run LLM verification for flagged chunks."""
     tasks, metadata = _build_verification_tasks(flagged, chunks, agent)
 
@@ -97,6 +99,7 @@ async def _run_llm_verification(flagged, chunks, agent):
                     task_name=f"verify_{check_type}",
                     error=str(exc),
                     chunk_index=chunk_idx,
+                    workflow_run_id=workflow_run_id,
                 )
             )
             continue

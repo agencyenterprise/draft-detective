@@ -14,6 +14,7 @@ import { ValidationResultsBox } from '../tabs/reference-review/validation-result
 import { ChunkAnalysisCard } from './chunk-analysis-card';
 import { ClaimAnalysisCard } from './claim-analysis-card';
 import { ErrorsCard } from './errors-card';
+import { cn } from '@/lib/utils';
 
 export interface SingleChunkContentProps {
   chunkIndex: number;
@@ -32,7 +33,7 @@ export function SingleChunkContent({
   onNavigateToReferences,
   showChunkLabel,
 }: SingleChunkContentProps) {
-  const issues = projectDetail.issues ?? [];
+  const issues = useMemo(() => projectDetail.issues ?? [], [projectDetail.issues]);
   const chunkErrors = getChunkErrors(workflowRuns, chunkIndex);
 
   const { claimExtractionState, referenceExtractionState, referenceValidationState } =
@@ -56,7 +57,7 @@ export function SingleChunkContent({
   );
 
   return (
-    <div className={showChunkLabel ? 'border-t pt-3 mt-3 first:border-t-0 first:pt-0 first:mt-0' : ''}>
+    <div className={cn('space-y-2', showChunkLabel ? 'border-t pt-3 mt-3 first:border-t-0 first:pt-0 first:mt-0' : '')}>
       {showChunkLabel && (
         <div className="text-xs font-semibold text-muted-foreground mb-2 bg-muted/50 px-2 py-1 rounded">
           Chunk #{chunkIndex}

@@ -16,6 +16,10 @@ class WorkflowError(BaseModel):
     )
     task_name: str = Field(description="The name of the task that caused the error.")
     error: str = Field(description="The error message.")
+    workflow_run_id: Optional[str] = Field(
+        default=None,
+        description="The workflow run ID when this error occurred. Used to filter errors to current run only.",
+    )
 
 
 class BaseWorkflowState(BaseModel):
