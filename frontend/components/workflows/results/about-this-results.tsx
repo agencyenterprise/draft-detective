@@ -3,16 +3,16 @@
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { CheckStatusItem } from '@/components/shared/check-status-item';
 import { EmptyState } from '@/components/shared/empty-state';
-import { AboutThisState, ProjectDetailed, RequirementCheckResult, WorkflowRunType } from '@/lib/generated-api';
-import { isWorkflowProcessing } from '@/lib/workflow-state';
-import { CheckCircle2, ChevronDown, FileQuestion, FileText, Loader2, XCircle } from 'lucide-react';
-import { useMemo, useState } from 'react';
-import { cn } from '@/lib/utils';
+import { ValidationSummaryCard } from '@/components/shared/validation-summary-card';
+import { AboutThisState, ProjectDetailed, WorkflowRunType } from '@/lib/generated-api';
+import { getWorkflowRunByType, isWorkflowProcessing } from '@/lib/workflow-state';
+import { ChevronDown, FileQuestion, FileText, Loader2 } from 'lucide-react';
+import { useMemo } from 'react';
 
 interface AboutThisResultsProps {
   project: ProjectDetailed;
-  onNavigateToDocumentExplorer?: (chunkIndex?: number) => void;
 }
 
 // Centralized requirement configuration - mirrors backend REQUIREMENT_METADATA
@@ -23,104 +23,40 @@ const REQUIREMENT_CONFIG = [
   { field: 'audience' as const, label: 'Intended Audience', level: 'sentence' },
   { field: 'source_tasp' as const, label: 'TASP Boilerplate', level: 'paragraph' },
   { field: 'source_funding' as const, label: 'Funding Statement', level: 'paragraph' },
-];
+] as const;
 
-function RequirementStatus({
-  requirement,
-  label,
-  level,
-}: {
-  requirement: RequirementCheckResult | null | undefined;
-  label: string;
-  level: string;
-}) {
-  const [isOpen, setIsOpen] = useState(false);
+type RequirementField = (typeof REQUIREMENT_CONFIG)[number]['field'];
 
-  if (!requirement) {
-    return (
-      <div className="flex items-start gap-2 text-sm text-muted-foreground">
-        <span className="text-muted-foreground mt-0.5">—</span>
-        <div>
-          <span className="font-medium">{label}</span>
-          <span className="text-xs ml-2">(Not checked)</span>
-        </div>
-      </div>
-    );
+/**
+ * Calculate validation statistics from the workflow state.
+ */
+function calculateStats(state: AboutThisState | undefined) {
+  if (!state) return { passed: 0, failed: 0, total: REQUIREMENT_CONFIG.length };
+
+  let passed = 0;
+  let failed = 0;
+
+  for (const { field } of REQUIREMENT_CONFIG) {
+    const result = state[field as RequirementField];
+    if (result) {
+      if (result.passed) passed++;
+      else failed++;
+    }
   }
 
-  return (
-    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-      <CollapsibleTrigger asChild>
-        <button
-          className={cn(
-            'w-full flex items-start gap-2 text-sm p-2 rounded-md transition-colors hover:bg-muted/50',
-            requirement.passed ? 'text-green-700' : 'text-red-700',
-          )}
-        >
-          {requirement.passed ? (
-            <CheckCircle2 className="h-4 w-4 mt-0.5 flex-shrink-0" />
-          ) : (
-            <XCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
-          )}
-          <div className="flex-1 text-left">
-            <span className="font-medium">{label}</span>
-            <Badge variant="outline" className="ml-2 text-xs">
-              {level}
-            </Badge>
-          </div>
-          <ChevronDown className={cn('h-4 w-4 transition-transform', isOpen && 'rotate-180')} />
-        </button>
-      </CollapsibleTrigger>
-      <CollapsibleContent>
-        <div className="ml-6 p-2 space-y-2">
-          <p className={cn('text-xs', requirement.passed ? 'text-green-600/70' : 'text-muted-foreground')}>
-            {requirement.explanation}
-          </p>
-          {requirement.matched_text && (
-            <div className="p-2 rounded-md bg-muted/50 border text-xs">
-              <p className="font-medium text-muted-foreground mb-1">Matched {level}:</p>
-              <p className="text-foreground">{requirement.matched_text}</p>
-            </div>
-          )}
-        </div>
-      </CollapsibleContent>
-    </Collapsible>
-  );
+  return { passed, failed, total: REQUIREMENT_CONFIG.length };
 }
 
-export function AboutThisResults({ project, onNavigateToDocumentExplorer }: AboutThisResultsProps) {
-  const workflowDetails = useMemo(() => project.workflow_runs ?? [], [project.workflow_runs]);
+export function AboutThisResults({ project }: AboutThisResultsProps) {
+  const workflowRuns = useMemo(() => project.workflow_runs ?? [], [project.workflow_runs]);
+  const aboutThisRun = getWorkflowRunByType(workflowRuns, WorkflowRunType.AboutThis);
 
-  // Get the about this workflow
-  const aboutThisRun = workflowDetails.find((w) => w.run.type === WorkflowRunType.AboutThis);
-
-  const state = useMemo(() => {
-    return aboutThisRun?.state as AboutThisState | undefined;
-  }, [aboutThisRun?.state]);
-
-  // Stats
-  const stats = useMemo(() => {
-    if (!state) return { passed: 0, failed: 0, total: 6 };
-
-    let passed = 0;
-    let failed = 0;
-
-    for (const { field } of REQUIREMENT_CONFIG) {
-      const result = state[field];
-      if (result) {
-        if (result.passed) passed++;
-        else failed++;
-      }
-    }
-
-    return { passed, failed, total: 6 };
-  }, [state]);
-
+  // Not run yet
   if (!aboutThisRun) {
     return <EmptyState message="About This (Preface) analysis has not been run." />;
   }
 
-  // Show loading state while workflow is still processing
+  // Still processing
   if (isWorkflowProcessing(aboutThisRun)) {
     return (
       <EmptyState
@@ -135,8 +71,18 @@ export function AboutThisResults({ project, onNavigateToDocumentExplorer }: Abou
     );
   }
 
-  // No preface section found in the document (only show after workflow completes)
-  if (!state?.found_section) {
+  return <AboutThisContent state={aboutThisRun.state} />;
+}
+
+interface AboutThisContentProps {
+  state: AboutThisState;
+}
+
+function AboutThisContent({ state }: AboutThisContentProps) {
+  const stats = useMemo(() => calculateStats(state), [state]);
+
+  // No preface section found in the document
+  if (!state.found_section) {
     return (
       <EmptyState
         icon={FileQuestion}
@@ -158,41 +104,13 @@ export function AboutThisResults({ project, onNavigateToDocumentExplorer }: Abou
   return (
     <div className="space-y-6">
       {/* Summary */}
-      <Card className={allPassed ? 'border-green-200 bg-green-50/30' : undefined}>
-        <CardHeader>
-          <div className="flex items-center gap-3">
-            {allPassed && (
-              <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
-                <CheckCircle2 className="h-5 w-5 text-green-600" />
-              </div>
-            )}
-            <div>
-              <CardTitle className="text-base">
-                {allPassed ? 'All Preface Requirements Pass' : 'Preface Validation'}
-              </CardTitle>
-              <CardDescription>
-                {allPassed
-                  ? `Section "${state.section_title}" meets all 6 publication requirements`
-                  : `Validates "${state.section_title}" against 6 publication requirements`}
-              </CardDescription>
-            </div>
-          </div>
-        </CardHeader>
-        {!allPassed && (
-          <CardContent>
-            <div className="flex flex-wrap gap-3">
-              <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-green-50">
-                <CheckCircle2 className="h-4 w-4 text-green-600" />
-                <span className="text-sm font-medium text-green-700">{stats.passed} Passed</span>
-              </div>
-              <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-red-50">
-                <XCircle className="h-4 w-4 text-red-600" />
-                <span className="text-sm font-medium text-red-700">{stats.failed} Failed</span>
-              </div>
-            </div>
-          </CardContent>
-        )}
-      </Card>
+      <ValidationSummaryCard
+        stats={stats}
+        allPassedTitle="All Preface Requirements Pass"
+        defaultTitle="Preface Validation"
+        allPassedDescription={`Section "${state.section_title}" meets all ${REQUIREMENT_CONFIG.length} publication requirements`}
+        defaultDescription={`Validates "${state.section_title}" against ${REQUIREMENT_CONFIG.length} publication requirements`}
+      />
 
       {/* Requirement checks */}
       <Card>
@@ -201,9 +119,21 @@ export function AboutThisResults({ project, onNavigateToDocumentExplorer }: Abou
           <CardDescription className="text-xs">Click each requirement to see details and matched text</CardDescription>
         </CardHeader>
         <CardContent className="space-y-1">
-          {REQUIREMENT_CONFIG.map(({ field, label, level }) => (
-            <RequirementStatus key={field} requirement={state[field]} label={label} level={level} />
-          ))}
+          {REQUIREMENT_CONFIG.map(({ field, label, level }) => {
+            const requirement = state[field as RequirementField];
+            return (
+              <CheckStatusItem
+                key={field}
+                passed={requirement?.passed ?? false}
+                label={label}
+                level={level}
+                explanation={requirement?.explanation}
+                matchedText={requirement?.matched_text}
+                applicable={!!requirement}
+                expandable={true}
+              />
+            );
+          })}
         </CardContent>
       </Card>
 
@@ -219,7 +149,7 @@ export function AboutThisResults({ project, onNavigateToDocumentExplorer }: Abou
         </Card>
       )}
 
-      {/* Section text preview */}
+      {/* Section text preview - inlined since only used here */}
       <Card>
         <Collapsible>
           <CollapsibleTrigger asChild>

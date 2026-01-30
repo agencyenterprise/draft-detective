@@ -1,6 +1,7 @@
 import {
   AboutAuthorsState,
   AboutThisState,
+  AdvocacyToneState,
   ChunkSplittingState,
   CitationDetectionState,
   CitationSuggesterState,
@@ -49,6 +50,7 @@ type WorkflowTypeToDetail = {
   [WorkflowRunType.FootnoteExtraction]: FootnoteExtractionState;
   [WorkflowRunType.AboutThis]: AboutThisState;
   [WorkflowRunType.AboutAuthors]: AboutAuthorsState;
+  [WorkflowRunType.AdvocacyTone]: AdvocacyToneState;
 };
 
 export interface WorkflowRunDetailTyped<T> {
@@ -172,6 +174,18 @@ export function isAnyWorkflowProcessing(workflowRuns: WorkflowRunDetail[]): bool
 }
 
 /**
+ * Helper to get a completed (non-processing) workflow run for warning status checks.
+ * Returns null if workflow not found or still processing.
+ */
+function getCompletedWorkflow<T extends keyof WorkflowTypeToDetail>(
+  workflowRuns: WorkflowRunDetail[],
+  type: T,
+): WorkflowRunDetailTyped<WorkflowTypeToDetail[T]> | null {
+  const workflowRun = getWorkflowRunByType(workflowRuns, type);
+  return workflowRun && !isWorkflowProcessing(workflowRun) ? workflowRun : null;
+}
+
+/**
  * Checks if the "No References Found" warning should be displayed.
  *
  * The warning only shows when:
@@ -186,23 +200,16 @@ export function getReferenceExtractionWarningStatus(workflowRuns: WorkflowRunDet
   sectionsDetected: boolean;
   hasErrors: boolean;
 } | null {
-  const referenceExtraction = getWorkflowRunByType(workflowRuns, WorkflowRunType.ReferenceExtraction);
+  const workflowRun = getCompletedWorkflow(workflowRuns, WorkflowRunType.ReferenceExtraction);
+  if (!workflowRun) return null;
 
-  if (!referenceExtraction || isWorkflowProcessing(referenceExtraction)) {
-    return null;
-  }
-
-  const state = referenceExtraction.state;
-  const hasReferences = (state.extracted_references?.length ?? 0) > 0;
-
-  if (hasReferences) {
-    return null;
-  }
+  const { state } = workflowRun;
+  if ((state.extracted_references?.length ?? 0) > 0) return null;
 
   return {
     showWarning: true,
     sectionsDetected: (state.detected_sections?.length ?? 0) > 0,
-    hasErrors: hasCurrentRunErrors(referenceExtraction),
+    hasErrors: hasCurrentRunErrors(workflowRun),
   };
 }
 
@@ -259,22 +266,14 @@ export function getAboutThisWarningStatus(workflowRuns: WorkflowRunDetail[]): {
   showWarning: boolean;
   hasErrors: boolean;
 } | null {
-  const aboutThisRun = getWorkflowRunByType(workflowRuns, WorkflowRunType.AboutThis);
+  const workflowRun = getCompletedWorkflow(workflowRuns, WorkflowRunType.AboutThis);
+  if (!workflowRun) return null;
 
-  if (!aboutThisRun || isWorkflowProcessing(aboutThisRun)) {
-    return null;
-  }
-
-  const state = aboutThisRun.state as AboutThisState | null;
-
-  // If section was found, no warning needed
-  if (state?.found_section) {
-    return null;
-  }
+  if (workflowRun.state.found_section) return null;
 
   return {
     showWarning: true,
-    hasErrors: (state?.errors?.length ?? 0) > 0,
+    hasErrors: (workflowRun.state.errors?.length ?? 0) > 0,
   };
 }
 
@@ -292,22 +291,13 @@ export function getAboutAuthorsWarningStatus(workflowRuns: WorkflowRunDetail[]):
   showWarning: boolean;
   hasErrors: boolean;
 } | null {
-  const aboutAuthorsRun = getWorkflowRunByType(workflowRuns, WorkflowRunType.AboutAuthors);
+  const workflowRun = getCompletedWorkflow(workflowRuns, WorkflowRunType.AboutAuthors);
+  if (!workflowRun) return null;
 
-  if (!aboutAuthorsRun || isWorkflowProcessing(aboutAuthorsRun)) {
-    return null;
-  }
-
-  const state = aboutAuthorsRun.state as AboutAuthorsState | null;
-  const hasResults = (state?.results?.length ?? 0) > 0;
-
-  // If authors were found, no warning needed
-  if (hasResults) {
-    return null;
-  }
+  if ((workflowRun.state.results?.length ?? 0) > 0) return null;
 
   return {
     showWarning: true,
-    hasErrors: (state?.errors?.length ?? 0) > 0,
+    hasErrors: (workflowRun.state.errors?.length ?? 0) > 0,
   };
 }

@@ -204,14 +204,13 @@ function FilterButton({ type, count, isActive, isFiltered, onClick }: FilterButt
 }
 
 export function AdvocacyToneResults({ project, onNavigateToDocumentExplorer }: AdvocacyToneResultsProps) {
-  const workflowDetails = useMemo(() => project.workflow_runs ?? [], [project.workflow_runs]);
-  const [filterType, setFilterType] = useState<CheckType | null>(null);
+  const workflowRuns = useMemo(() => project.workflow_runs ?? [], [project.workflow_runs]);
 
-  // Get the advocacy tone workflow
-  const advocacyToneRun = workflowDetails.find((w) => w.run.type === WorkflowRunType.AdvocacyTone);
+  // Use type-safe utility to get the workflow runs
+  const advocacyToneRun = getWorkflowRunByType(workflowRuns, WorkflowRunType.AdvocacyTone);
+  const chunkSplittingRun = getWorkflowRunByType(workflowRuns, WorkflowRunType.ChunkSplitting);
 
-  // Get chunks from chunk splitting workflow for displaying content
-  const chunkSplittingRun = getWorkflowRunByType(workflowDetails, WorkflowRunType.ChunkSplitting);
+  // Get chunks for displaying content
   const chunks: DocumentChunk[] = useMemo(
     () => chunkSplittingRun?.state?.chunks ?? [],
     [chunkSplittingRun?.state?.chunks],
@@ -226,10 +225,44 @@ export function AdvocacyToneResults({ project, onNavigateToDocumentExplorer }: A
     return map;
   }, [chunks]);
 
-  const results = useMemo(() => {
-    const state = advocacyToneRun?.state as AdvocacyToneState | undefined;
-    return state?.results ?? [];
-  }, [advocacyToneRun?.state]);
+  // Not run yet
+  if (!advocacyToneRun) {
+    return <EmptyState message="Advocacy & Tone analysis has not been run." />;
+  }
+
+  // Still processing
+  if (isWorkflowProcessing(advocacyToneRun)) {
+    return (
+      <EmptyState
+        icon={Loader2}
+        message="Analyzing Advocacy & Tone..."
+        description="The Advocacy & Tone analysis is currently running. Results will appear here once complete."
+      >
+        <div className="pt-2">
+          <Loader2 className="h-5 w-5 animate-spin text-primary" />
+        </div>
+      </EmptyState>
+    );
+  }
+
+  return (
+    <AdvocacyToneContent
+      state={advocacyToneRun.state}
+      chunkContentMap={chunkContentMap}
+      onNavigateToDocumentExplorer={onNavigateToDocumentExplorer}
+    />
+  );
+}
+
+interface AdvocacyToneContentProps {
+  state: AdvocacyToneState;
+  chunkContentMap: Map<number, string>;
+  onNavigateToDocumentExplorer?: (chunkIndices?: number[]) => void;
+}
+
+function AdvocacyToneContent({ state, chunkContentMap, onNavigateToDocumentExplorer }: AdvocacyToneContentProps) {
+  const [filterType, setFilterType] = useState<CheckType | null>(null);
+  const results = useMemo(() => state.results ?? [], [state.results]);
 
   // Count confirmed issues by type
   const stats = useMemo(() => {
@@ -270,25 +303,7 @@ export function AdvocacyToneResults({ project, onNavigateToDocumentExplorer }: A
     setFilterType((prev) => (prev === type ? null : type));
   };
 
-  if (!advocacyToneRun) {
-    return <EmptyState message="Advocacy & Tone analysis has not been run." />;
-  }
-
-  // Show loading state while workflow is still processing
-  if (isWorkflowProcessing(advocacyToneRun)) {
-    return (
-      <EmptyState
-        icon={Loader2}
-        message="Analyzing Advocacy & Tone..."
-        description="The Advocacy & Tone analysis is currently running. Results will appear here once complete."
-      >
-        <div className="pt-2">
-          <Loader2 className="h-5 w-5 animate-spin text-primary" />
-        </div>
-      </EmptyState>
-    );
-  }
-
+  // No issues found
   if (chunksWithIssues.length === 0) {
     return (
       <EmptyState

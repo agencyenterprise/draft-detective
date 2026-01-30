@@ -57,19 +57,9 @@ class AboutThisManifest(WorkflowManifest[AboutThisState, AboutThisWorkflowConfig
         """Convert AboutThisState to issues for Document Explorer."""
         issues: List[DocumentIssue] = []
 
-        # If no section found, create a single issue
+        # If no section found, don't create an issue here.
+        # The frontend shows a SectionNotFoundCallout warning banner instead.
         if not state.found_section:
-            issues.append(
-                DocumentIssue(
-                    title="Preface Section Not Found",
-                    description=(
-                        "No 'About This Report', 'Preface', or similar section was found "
-                        "in the document. This section is required to meet publication standards."
-                    ),
-                    severity=SeverityEnum.HIGH,
-                    chunk_index=None,
-                )
-            )
             return issues
 
         # Create issues for failed requirements
@@ -93,4 +83,3 @@ class AboutThisManifest(WorkflowManifest[AboutThisState, AboutThisWorkflowConfig
                 )
 
         return issues
-
