@@ -2,7 +2,7 @@
 Author Rule Checker Agent
 
 Checks individual publication rules for author biographies.
-Handles rules 2-5 and TASP fellow detection.
+Prompts loaded from workflow_config.yaml.
 """
 
 from enum import StrEnum
@@ -13,6 +13,7 @@ from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
 
 from lib.config.llm_models import gpt_5_mini_model
+from lib.config.workflow_config import get_workflow_config
 from lib.models.agent import LangChainAgent
 
 
@@ -33,68 +34,37 @@ class RuleCheckResponse(BaseModel):
     explanation: str = Field(description="Brief explanation of the result")
 
 
-# Prompts for each rule type (matching reference implementation)
-RULE_PROMPTS = {
-    AuthorRuleType.POSITION_AFFILIATION: """Verify whether the following author description contains the author's 
-current position and overall affiliation with RAND or another organization.
+def _build_rule_prompts() -> dict:
+    """Build rule prompts from YAML config."""
+    rules = get_workflow_config("about_authors", "rules")
+    prompts = {}
 
-Valid examples:
-- "[Author] is a senior statistician at RAND"
-- "[Author] is an associate professor at [University] and an adjunct senior research engineer with RAND"
+    if "rule_2_position_affiliation" in rules:
+        prompt = rules["rule_2_position_affiliation"].get("prompt")
+        if prompt:
+            prompts["position_affiliation"] = prompt
 
-Respond with passed=true if the position and affiliation are present, passed=false otherwise.
-Provide a brief explanation.
+    if "rule_3_tasp_statement" in rules:
+        rule = rules["rule_3_tasp_statement"]
+        if rule.get("tasp_fellow_prompt"):
+            prompts["tasp_fellow"] = rule["tasp_fellow_prompt"]
+        if rule.get("tasp_statement_prompt"):
+            prompts["tasp_statement"] = rule["tasp_statement_prompt"]
 
-Author description:
-{author_text}""",
-    AuthorRuleType.TASP_FELLOW: """Based on the following author description, is the author identified 
-as a Technology and Security Policy (TASP) fellow?
+    if "rule_4_research_focus" in rules:
+        prompt = rules["rule_4_research_focus"].get("prompt")
+        if prompt:
+            prompts["research_focus"] = prompt
 
-Respond with passed=true if the author IS a TASP fellow, passed=false otherwise.
-Provide a brief explanation.
+    if "rule_5_highest_degree" in rules:
+        prompt = rules["rule_5_highest_degree"].get("prompt")
+        if prompt:
+            prompts["highest_degree"] = prompt
 
-Author description:
-{author_text}""",
-    AuthorRuleType.TASP_STATEMENT: """Verify whether the author description includes the required TASP statement:
-"[Author] is [any non-RAND affiliation or position and] a Technology and Security Policy fellow at RAND; 
-for more information on the fellowship program, visit www.rand.org/tasp-fellows"
+    return prompts
 
-The key requirements are:
-1. Mention of "Technology and Security Policy fellow at RAND"
-2. The URL "www.rand.org/tasp-fellows"
 
-Respond with passed=true if the statement is present, passed=false otherwise.
-Provide a brief explanation.
-
-Author description:
-{author_text}""",
-    AuthorRuleType.RESEARCH_FOCUS: """Does the author description contain a research focus?
-
-Valid examples:
-- "[Pronoun] conducts technical and policy research on such topics as cybersecurity, privacy..."
-- "[Pronoun]'s research interests include..."
-- "[Pronoun] focuses on research related to..."
-
-Respond with passed=true if a research focus is present, passed=false otherwise.
-Provide a brief explanation.
-
-Author description:
-{author_text}""",
-    AuthorRuleType.HIGHEST_DEGREE: """Does the following author description contain highest degree attained 
-and associated field (e.g., "[Author] holds a Ph.D. in macroeconomics")?
-
-Instructions:
-- It is okay if only a single academic degree is mentioned (don't assume a higher degree exists)
-- It is okay if the author is a Ph.D. student (no highest degree required)
-- Multiple degrees at the same level are acceptable (e.g., "MPhil in Science and M.Sc. in Physics")
-- Omit other education details like year or institution
-
-Respond with passed=true if the highest degree is mentioned, passed=false otherwise.
-Provide a brief explanation.
-
-Author description:
-{author_text}""",
-}
+RULE_PROMPTS = _build_rule_prompts()
 
 
 class AuthorRuleCheckerAgent(LangChainAgent):
@@ -111,12 +81,7 @@ class AuthorRuleCheckerAgent(LangChainAgent):
         prompt_kwargs: dict,
         config: Optional[RunnableConfig] = None,
     ) -> RuleCheckResponse:
-        """Check a specific rule for an author bio.
-
-        Expected prompt_kwargs:
-            - author_text: str (the full author bio text)
-            - rule_type: AuthorRuleType (which rule to check)
-        """
+        """Check a specific rule for an author bio."""
         author_text = prompt_kwargs["author_text"]
         rule_type = prompt_kwargs["rule_type"]
 
@@ -126,4 +91,3 @@ class AuthorRuleCheckerAgent(LangChainAgent):
 
         result = await self.llm.ainvoke(messages, config=config)
         return result
-

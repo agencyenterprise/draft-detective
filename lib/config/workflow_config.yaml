@@ -1,0 +1,141 @@
+# Workflow Configuration
+# Organization-specific prompts and rules for document analysis workflows.
+
+workflows:
+  about_this:
+    # Required boilerplate text for organizational attribution
+    organization_boilerplate: ""
+
+    # Accepted funding statement patterns
+    funding_statement_variants:
+      - "This research was sponsored by [organization name]."
+      - "Funding for this work was provided by [donor/organization]."
+
+    # Preface section requirements
+    requirements:
+      context:
+        name: "Establishes Context"
+        short_name: "Context"
+        description: "Does the section establish the context that prompted the study?"
+        level: "sentence"
+        prompt: >-
+          Does the section establish the context that prompted the study?
+          Look for sentences that explain WHY this research was undertaken,
+          what problem or situation motivated it, or what circumstances led to this work.
+      objectives:
+        name: "Explains Objectives"
+        short_name: "Objectives"
+        description: "Does the section explain the publication's objectives?"
+        level: "sentence"
+        prompt: >-
+          Does the section explain the publication's objectives?
+          Look for sentences that state WHAT this publication aims to achieve,
+          its goals, purpose, or what questions it seeks to answer.
+      relationship:
+        name: "Explains Relationship"
+        short_name: "Relationship"
+        description: "Does the section explain the relationship to other work?"
+        level: "sentence"
+        prompt: >-
+          Does the section explain the relationship of the publication to other work?
+          Look for sentences that mention how this work relates to, builds upon, or complements
+          other research, reports, or projects.
+      audience:
+        name: "Identifies Audience"
+        short_name: "Audience"
+        description: "Does the section identify the intended audience?"
+        level: "sentence"
+        prompt: >-
+          Does the section identify the intended audience of the publication?
+          Look for sentences that specify WHO this publication is for,
+          such as policymakers, researchers, practitioners, or specific organizations.
+      source_funding:
+        name: "Funding Statement"
+        short_name: "Funding"
+        description: "Does a paragraph contain a funding statement?"
+        level: "paragraph"
+
+    section_headers:
+      - "About This Report"
+      - "About This"
+      - "Preface"
+      - "Introduction"
+      - "Executive Summary"
+
+  about_authors:
+    expected_sentence_count: 3
+    
+    ignore_sentence_patterns: []
+
+    rules:
+      rule_1_sentence_length:
+        name: "Sentence Count"
+        short_name: "Sentence count"
+        description: "Bio should be concise (approximately 3 sentences)"
+      rule_2_position_affiliation:
+        name: "Position & Affiliation"
+        short_name: "Position/Affiliation"
+        description: "Must include current position and organizational affiliation"
+        prompt: >-
+          Verify whether the author description contains the author's 
+          current position and organizational affiliation.
+
+          Valid examples:
+          - "[Author] is a senior researcher at [Organization]"
+          - "[Author] is a professor at [University]"
+
+          Respond with passed=true if position and affiliation are present, passed=false otherwise.
+          Provide a brief explanation.
+
+          Author description:
+          {author_text}
+      rule_3_research_focus:
+        name: "Research Focus"
+        short_name: "Research Focus"
+        description: "Must include research focus or interests"
+        prompt: >-
+          Does the author description contain a research focus?
+
+          Valid examples:
+          - "Their research focuses on..."
+          - "Their interests include..."
+
+          Respond with passed=true if a research focus is present, passed=false otherwise.
+          Provide a brief explanation.
+
+          Author description:
+          {author_text}
+      rule_4_highest_degree:
+        name: "Highest Degree"
+        short_name: "Highest Degree"
+        description: "Must include highest degree attained and field"
+        prompt: >-
+          Does the author description contain highest degree attained 
+          and associated field (e.g., "holds a Ph.D. in economics")?
+
+          Respond with passed=true if the highest degree is mentioned, passed=false otherwise.
+          Provide a brief explanation.
+
+          Author description:
+          {author_text}
+
+    abbreviations:
+      - "Ph.D."
+      - "M.D."
+      - "J.D."
+      - "M.S."
+      - "B.S."
+      - "M.A."
+      - "B.A."
+      - "Dr."
+      - "Mr."
+      - "Ms."
+      - "Jr."
+      - "Sr."
+      - "Inc."
+      - "Ltd."
+      - "e.g."
+      - "i.e."
+      - "etc."
+      - "U.S."
+      - "U.K."
