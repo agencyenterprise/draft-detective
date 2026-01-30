@@ -6,6 +6,28 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v0.5.7] - 2026-01-30
+
+### Added
+- Added workflow run history viewing and selection in the UI.
+- Added a new `/api/project/{project_id}/workflow-runs` endpoint for fetching workflow runs by type.
+- Added a `workflow_run_id` field to workflow errors to tag errors to a specific run.
+- Added a `current_workflow_run_id` context variable to track the active workflow run.
+- Added `getDisplayStatus()` and `hasCurrentRunErrors()` utilities.
+
+### Changed
+- Updated workflow error handling to tag errors with the originating workflow run ID and filter displayed errors to the current run.
+- Refactored multiple workflow nodes to use a centralized `convert_exceptions_to_workflow_errors` function.
+- Refactored the analyses tab and related UI to use new hooks and extracted components for workflow selection, sidebar, and results rendering.
+- Updated the project card to use the new display status logic.
+- Added support for a "failed" display status in the status indicator.
+- Regenerated frontend API types for the new endpoint.
+- Parallelized workflow run state fetching with `asyncio.gather`.
+
+### Fixed
+- Fixed an issue where errors from previous workflow runs were displayed after a new run completed successfully.
+
+
 ## [v0.5.6] - 2026-01-30
 
 ### Added
