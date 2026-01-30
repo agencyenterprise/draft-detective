@@ -1,7 +1,7 @@
 """State definitions for reference extraction workflow."""
 
 import uuid
-from typing import List, Literal
+from typing import List, Literal, Optional
 
 from pydantic import BaseModel, Field
 
@@ -27,6 +27,16 @@ class ExtractedReference(BaseModel):
         description="Unique identifier for this reference",
     )
     text: str = Field(description="The extracted reference text")
+    start_line: Optional[int] = Field(
+        default=None, description="1-indexed starting line number in the markdown"
+    )
+    end_line: Optional[int] = Field(
+        default=None, description="1-indexed ending line number in the markdown"
+    )
+    chunk_indices: List[int] = Field(
+        default_factory=list,
+        description="Chunk indices that overlap with this reference's line range",
+    )
 
 
 class ReferenceExtractionConfig(BaseWorkflowConfig):

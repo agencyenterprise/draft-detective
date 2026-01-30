@@ -35,14 +35,14 @@ import { toast } from 'sonner';
 interface AnalysesTabProps {
   projectDetail: ProjectDetailed;
   readOnly?: boolean;
-  onNavigateToDocumentExplorer?: (chunkIndex?: number) => void;
+  onNavigateToDocumentExplorer?: (chunkIndices?: number[]) => void;
   onNavigateToReferences?: () => void;
 }
 
 function renderWorkflowResults(
   project: ProjectDetailed,
   workflowRun: WorkflowRunDetail,
-  onNavigateToDocumentExplorer?: (chunkIndex?: number) => void,
+  onNavigateToDocumentExplorer?: (chunkIndices?: number[]) => void,
   onNavigateToReferences?: () => void,
 ) {
   const { type } = workflowRun.run;
@@ -82,7 +82,7 @@ function renderWorkflowResults(
               claims.
             </p>
             {onNavigateToDocumentExplorer && (
-              <Button onClick={() => onNavigateToDocumentExplorer()} size="sm" variant="outline" className="mt-2">
+              <Button onClick={() => onNavigateToDocumentExplorer([])} size="sm" variant="outline" className="mt-2">
                 Go to Document Explorer
                 <ArrowRight className="h-4 w-4" />
               </Button>

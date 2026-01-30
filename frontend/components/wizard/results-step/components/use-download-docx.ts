@@ -1,17 +1,25 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { downloadProjectDocxApiProjectsProjectIdDocxDownloadGet } from '@/lib/generated-api';
+import { downloadProjectDocxApiProjectsProjectIdDocxDownloadGet, SeverityEnum } from '@/lib/generated-api';
 import { downloadFile } from '@/lib/file-download';
 
 interface UseDownloadDocxOptions {
   projectId: string;
   shareToken?: string | null;
+  severities?: SeverityEnum[];
 }
 
-export async function downloadDocxFile(projectId: string, shareToken?: string | null): Promise<void> {
+export async function downloadDocxFile(
+  projectId: string,
+  shareToken?: string | null,
+  severities?: SeverityEnum[],
+): Promise<void> {
   const response = await downloadProjectDocxApiProjectsProjectIdDocxDownloadGet({
     path: { project_id: projectId },
-    query: shareToken ? { share_token: shareToken } : undefined,
+    query: {
+      share_token: shareToken,
+      severities: severities,
+    },
   });
 
   if (!(response instanceof Blob)) {
@@ -24,7 +32,7 @@ export async function downloadDocxFile(projectId: string, shareToken?: string | 
   downloadFile({ blob: response, filename });
 }
 
-export function useDownloadDocx({ projectId, shareToken }: UseDownloadDocxOptions) {
+export function useDownloadDocx({ projectId, shareToken, severities }: UseDownloadDocxOptions) {
   const [isDownloading, setIsDownloading] = useState(false);
 
   const download = async (includeShareLinks: boolean = false) => {
@@ -38,7 +46,7 @@ export function useDownloadDocx({ projectId, shareToken }: UseDownloadDocxOption
 
     try {
       const tokenToUse = includeShareLinks ? shareToken : null;
-      await downloadDocxFile(projectId, tokenToUse);
+      await downloadDocxFile(projectId, tokenToUse, severities);
       toast.success('DOCX file downloaded successfully', { id: toastId, description: null });
     } catch (error) {
       console.error('Failed to download docx:', error);

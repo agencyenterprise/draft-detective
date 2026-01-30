@@ -24,7 +24,7 @@ class CitationDetectionState(BaseWorkflowState):
     )
 
     # Inputs
-    file_id: str
+    file_id: str = Field(default="", description="File ID for backward compatibility")
     config: CitationDetectionConfig
 
     # Outputs

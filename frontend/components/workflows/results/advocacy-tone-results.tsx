@@ -28,7 +28,7 @@ import { cn } from '@/lib/utils';
 
 interface AdvocacyToneResultsProps {
   project: ProjectDetailed;
-  onNavigateToDocumentExplorer?: (chunkIndex?: number) => void;
+  onNavigateToDocumentExplorer?: (chunkIndices?: number[]) => void;
 }
 
 type CheckType = 'trigger_words' | 'advocacy_language' | 'subjective_tone';
@@ -357,7 +357,7 @@ export function AdvocacyToneResults({ project, onNavigateToDocumentExplorer }: A
                 result={result}
                 chunkContent={chunkContentMap.get(result.chunk_index)}
                 onNavigateToChunk={
-                  onNavigateToDocumentExplorer ? () => onNavigateToDocumentExplorer(result.chunk_index) : undefined
+                  onNavigateToDocumentExplorer ? () => onNavigateToDocumentExplorer([result.chunk_index]) : undefined
                 }
               />
             ))

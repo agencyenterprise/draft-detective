@@ -27,6 +27,8 @@ interface DocumentExplorerTabProps {
   projectDetail: ProjectDetailed;
   viewMode: DocRenderMode;
   readOnly?: boolean;
+  severityFilter: SeverityEnum[];
+  onSeverityFilterChange: (value: SeverityEnum[]) => void;
   onNavigateToAnalyses: () => void;
   onNavigateToReferences?: (referenceIndex: number) => void;
 }
@@ -35,6 +37,8 @@ export function DocumentExplorerTab({
   projectDetail,
   viewMode,
   readOnly = false,
+  severityFilter,
+  onSeverityFilterChange,
   onNavigateToAnalyses,
   onNavigateToReferences,
 }: DocumentExplorerTabProps) {
@@ -46,23 +50,27 @@ export function DocumentExplorerTab({
   const isDocumentProcessing = isWorkflowProcessing(documentProcessing) || isWorkflowProcessing(chunkSplitting);
   const isAnyProcessing = isAnyWorkflowProcessing(workflowDetails);
 
-  const [selectedChunkIndex, setSelectedChunkIndex] = useState<number | null>(null);
-  const [severityFilter, setSeverityFilter] = useState<SeverityEnum[]>([]);
+  const [selectedChunkIndices, setSelectedChunkIndices] = useState<number[]>([]);
   const sidebarRef = useRef<HTMLDivElement>(null);
 
   const chunks = useMemo(() => chunkSplitting?.state?.chunks ?? [], [chunkSplitting?.state?.chunks]);
   const validChunkIndices = useMemo(() => chunks.map((c) => c.chunk_index), [chunks]);
-  const handleHashSelect = useCallback((idx: number) => setSelectedChunkIndex(idx), []);
+
+  const handleHashSelect = useCallback((indices: number[]) => setSelectedChunkIndices(indices), []);
   useChunkHashNavigation(validChunkIndices, handleHashSelect);
 
   useEffect(() => {
-    if (sidebarRef.current && selectedChunkIndex !== null) {
+    if (sidebarRef.current && selectedChunkIndices.length > 0) {
       sidebarRef.current.scrollTop = 0;
     }
-  }, [selectedChunkIndex]);
+  }, [selectedChunkIndices]);
 
   const handleChunkSelect = useCallback((chunkIndex: number | null) => {
-    setSelectedChunkIndex((curr) => (curr === chunkIndex ? null : chunkIndex));
+    if (chunkIndex === null) {
+      setSelectedChunkIndices([]);
+    } else {
+      setSelectedChunkIndices((curr) => (curr.length === 1 && curr[0] === chunkIndex ? [] : [chunkIndex]));
+    }
   }, []);
 
   const pages = documentProcessing?.state?.file?.docling_pages ?? [];
@@ -73,7 +81,6 @@ export function DocumentExplorerTab({
   const hasChunks = chunks.length > 0;
 
   const isDoclingAvailable = Boolean(pages && pages.length > 0 && Object.keys(chunkToItems).length > 0);
-  const selectedChunk = chunks.find((chunk) => chunk.chunk_index === selectedChunkIndex);
   const filteredIssues = filterIssuesBySeverity(issues, severityFilter);
   const referenceWarning = getReferenceExtractionWarningStatus(workflowDetails);
   const prefaceWarning = getAboutThisWarningStatus(workflowDetails);
@@ -110,9 +117,9 @@ export function DocumentExplorerTab({
 
   const handleSelectIssue = (issue: DocumentIssue) => {
     if (issue.chunk_index !== undefined && issue.chunk_index !== null) {
-      setSelectedChunkIndex(issue.chunk_index);
+      setSelectedChunkIndices([issue.chunk_index]);
     } else {
-      setSelectedChunkIndex(null);
+      setSelectedChunkIndices([]);
     }
   };
 
@@ -165,7 +172,7 @@ export function DocumentExplorerTab({
                     pages={pages}
                     chunkToItems={chunkToItems}
                     pageImagesBaseUrl={pageImagesBaseUrl}
-                    selectedChunkIndex={selectedChunkIndex}
+                    selectedChunkIndices={selectedChunkIndices}
                     onChunkSelect={handleChunkSelect}
                   />
                 );
@@ -174,8 +181,8 @@ export function DocumentExplorerTab({
               return (
                 <DocumentReconstructor
                   chunks={chunks}
-                  issues={filteredIssues}
-                  selectedChunkIndex={selectedChunkIndex}
+                  issues={issues}
+                  selectedChunkIndices={selectedChunkIndices}
                   onChunkSelect={handleChunkSelect}
                 />
               );
@@ -184,7 +191,7 @@ export function DocumentExplorerTab({
         </div>
         <div ref={sidebarRef} className="col-span-5 bg-muted/50 p-4 rounded-lg text-sm overflow-y-auto">
           <div className="space-y-4 pb-8">
-            {!selectedChunk && (
+            {selectedChunkIndices.length === 0 && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-xs text-muted-foreground">
@@ -194,7 +201,7 @@ export function DocumentExplorerTab({
                         : `${filteredIssues.length} of ${issues.length}`)}
                     {issues.length === 0 && isAnyProcessing && 'Finding issues...'}
                   </span>
-                  {issues.length > 0 && <SeverityFilter value={severityFilter} onChange={setSeverityFilter} />}
+                  {issues.length > 0 && <SeverityFilter value={severityFilter} onChange={onSeverityFilterChange} />}
                   <AiGeneratedLabel />
                 </div>
                 {issues.length === 0 && !isAnyProcessing && (
@@ -208,12 +215,12 @@ export function DocumentExplorerTab({
               </div>
             )}
 
-            {selectedChunk && selectedChunkIndex !== null && (
+            {selectedChunkIndices.length > 0 && (
               <ChunkSidebarContent
-                chunkIndex={selectedChunkIndex}
+                chunkIndices={selectedChunkIndices}
                 projectDetail={projectDetail}
                 readOnly={readOnly}
-                onClearChunkSelection={() => setSelectedChunkIndex(null)}
+                onClearChunkSelection={() => setSelectedChunkIndices([])}
                 onNavigateToReferences={onNavigateToReferences}
               />
             )}

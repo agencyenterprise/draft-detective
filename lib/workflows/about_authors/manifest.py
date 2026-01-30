@@ -77,8 +77,9 @@ class AboutAuthorsManifest(
                 f"• {r}" for r in failed_rules
             )
 
-            # Use first chunk index for navigation
-            chunk_index = result.chunk_indices[0] if result.chunk_indices else None
+            # Use all chunk indices for highlighting, first one for backward compat
+            chunk_indices = result.chunk_indices if result.chunk_indices else []
+            chunk_index = chunk_indices[0] if chunk_indices else None
 
             issues.append(
                 DocumentIssue(
@@ -86,6 +87,7 @@ class AboutAuthorsManifest(
                     description=description,
                     severity=SeverityEnum.MEDIUM,
                     chunk_index=chunk_index,
+                    chunk_indices=chunk_indices,
                 )
             )
 

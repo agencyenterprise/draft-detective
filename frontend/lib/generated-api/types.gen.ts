@@ -1463,6 +1463,18 @@ export type DocumentChunk = {
    * The headings associated with the chunk, in order of hierarchy
    */
   headings?: Array<string> | null;
+  /**
+   * Start Line
+   *
+   * 1-indexed starting line in markdown
+   */
+  start_line: number;
+  /**
+   * End Line
+   *
+   * 1-indexed ending line in markdown
+   */
+  end_line: number;
 };
 
 /**
@@ -1488,9 +1500,15 @@ export type DocumentIssue = {
   /**
    * Chunk Index
    *
-   * The index of the chunk that contains the issue
+   * The index of the chunk that contains the issue (deprecated, use chunk_indices)
    */
   chunk_index?: number | null;
+  /**
+   * Chunk Indices
+   *
+   * The indices of all chunks that contain the issue
+   */
+  chunk_indices?: Array<number> | null;
   /**
    * Claim Index
    *
@@ -1846,6 +1864,24 @@ export type ExtractedReference = {
    * The extracted reference text
    */
   text: string;
+  /**
+   * Start Line
+   *
+   * 1-indexed starting line number in the markdown
+   */
+  start_line?: number | null;
+  /**
+   * End Line
+   *
+   * 1-indexed ending line number in the markdown
+   */
+  end_line?: number | null;
+  /**
+   * Chunk Indices
+   *
+   * Chunk indices that overlap with this reference's line range
+   */
+  chunk_indices?: Array<number>;
 };
 
 /**
@@ -5347,6 +5383,12 @@ export type DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetData = {
      * Share token to include share links in comments
      */
     share_token?: string | null;
+    /**
+     * Severities
+     *
+     * Filter issues by severity levels (e.g., high, medium, low)
+     */
+    severities?: Array<string> | null;
   };
   url: '/api/projects/{project_id}/docx/download';
 };

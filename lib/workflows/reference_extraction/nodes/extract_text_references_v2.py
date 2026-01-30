@@ -3,6 +3,7 @@ import logging
 from langgraph.runtime import Runtime
 
 from lib.agents.reference_text_extractor_v2 import ReferenceExtractorV2Agent
+from lib.services.chunk_line_matcher import find_chunks_by_line_range
 from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
 from lib.workflows.reference_extraction.state import (
@@ -26,8 +27,27 @@ async def extract_text_references_v2_node(
 
     result = await agent.ainvoke({})
 
-    # Create ExtractedReference objects with unique IDs
-    extracted_references = [ExtractedReference(text=text) for text in result.references]
+    # Get chunks for line-based matching
+    chunks = await runtime.context.file_artifacts_service.get_chunks()
+
+    # Create ExtractedReference objects with line numbers and chunk indices
+    extracted_references = []
+    for ref in result.references:
+        # Find matching chunks by line overlap
+        chunk_indices = []
+        if chunks:
+            chunk_indices = find_chunks_by_line_range(
+                chunks, ref.start_line, ref.end_line
+            )
+
+        extracted_references.append(
+            ExtractedReference(
+                text=ref.text,
+                start_line=ref.start_line,
+                end_line=ref.end_line,
+                chunk_indices=chunk_indices,
+            )
+        )
 
     logger.info(f"Extracted {len(extracted_references)} unique references")
     return {"extracted_references": extracted_references, "reasoning": result.reasoning}
