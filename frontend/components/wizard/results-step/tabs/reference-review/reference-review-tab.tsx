@@ -120,6 +120,7 @@ export function ReferenceReviewTab({ projectId, readOnly = false }: ReferenceRev
         isProcessingFiles={isProcessingFiles}
         disableActions={disableActions}
         disableIndividualCards={disableIndividualCards}
+        enableInternalScroll={true}
         onBatchUpload={() => setIsBatchUploadDialogOpen(true)}
       />
 
