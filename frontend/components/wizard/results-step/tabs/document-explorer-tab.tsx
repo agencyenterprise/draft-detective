@@ -25,6 +25,8 @@ interface DocumentExplorerTabProps {
   projectDetail: ProjectDetailed;
   viewMode: DocRenderMode;
   readOnly?: boolean;
+  severityFilter: SeverityEnum[];
+  onSeverityFilterChange: (value: SeverityEnum[]) => void;
   onNavigateToAnalyses: () => void;
   onNavigateToReferences?: (referenceIndex: number) => void;
 }
@@ -33,6 +35,8 @@ export function DocumentExplorerTab({
   projectDetail,
   viewMode,
   readOnly = false,
+  severityFilter,
+  onSeverityFilterChange,
   onNavigateToAnalyses,
   onNavigateToReferences,
 }: DocumentExplorerTabProps) {
@@ -45,7 +49,6 @@ export function DocumentExplorerTab({
   const isAnyProcessing = isAnyWorkflowProcessing(workflowDetails);
 
   const [selectedChunkIndices, setSelectedChunkIndices] = useState<number[]>([]);
-  const [severityFilter, setSeverityFilter] = useState<SeverityEnum[]>([]);
   const sidebarRef = useRef<HTMLDivElement>(null);
 
   const chunks = useMemo(() => chunkSplitting?.state?.chunks ?? [], [chunkSplitting?.state?.chunks]);
@@ -185,7 +188,7 @@ export function DocumentExplorerTab({
                         : `${filteredIssues.length} of ${issues.length}`)}
                     {issues.length === 0 && isAnyProcessing && 'Finding issues...'}
                   </span>
-                  {issues.length > 0 && <SeverityFilter value={severityFilter} onChange={setSeverityFilter} />}
+                  {issues.length > 0 && <SeverityFilter value={severityFilter} onChange={onSeverityFilterChange} />}
                   <AiGeneratedLabel />
                 </div>
                 {issues.length === 0 && !isAnyProcessing && (

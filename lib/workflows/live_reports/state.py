@@ -18,7 +18,7 @@ class LiveReportsState(BaseWorkflowState):
 
     type: Literal[WorkflowRunType.LIVE_REPORTS] = Field(WorkflowRunType.LIVE_REPORTS)
     config: LiveReportsWorkflowConfig
-    file_id: str
+    file_id: str = Field(default="", description="File ID for backward compatibility")
     live_reports_analysis: List[EvidenceWeighterResponseWithClaimIndex] = Field(
         default_factory=list,
         description="Live reports analysis results aggregated across chunks",

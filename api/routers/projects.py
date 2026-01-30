@@ -134,6 +134,10 @@ async def download_project_docx(
         default=None,
         description="Share token to include share links in comments",
     ),
+    severities: Optional[List[str]] = Query(
+        default=None,
+        description="Filter issues by severity levels (e.g., high, medium, low)",
+    ),
     current_user: Optional[User] = Depends(get_current_user_optional),
 ):
     """
@@ -141,7 +145,7 @@ async def download_project_docx(
 
     Uses cached version if available, otherwise generates via workflow.
     First request may take a few seconds as it generates the DOCX.
-    Subsequent requests with the same share_token (or none) are instant.
+    Subsequent requests with the same share_token and severities filter are instant.
     """
 
     await check_project_access(project_id, current_user, share_token)
@@ -151,6 +155,7 @@ async def download_project_docx(
         file_path, filename = await get_or_generate_docx(
             project_id=project_id,
             share_token=share_token,
+            severities=severities,
             use_cache=True,
         )
     except Exception as e:

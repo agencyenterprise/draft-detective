@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { EditableTitle } from '@/components/ui/editable-title';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DocRenderMode } from '@/lib/constants';
-import { ProjectDetailed, WorkflowRunType } from '@/lib/generated-api';
+import { ProjectDetailed, SeverityEnum, WorkflowRunType } from '@/lib/generated-api';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { getWorkflowRunByType } from '@/lib/workflow-state';
 import { format } from 'date-fns';
@@ -43,6 +43,7 @@ export function ResultsVisualization({
   const documentSummarization = getWorkflowRunByType(results, WorkflowRunType.DocumentSummarization);
   const referenceExtraction = getWorkflowRunByType(results, WorkflowRunType.ReferenceExtraction);
   const [activeTab, setActiveTab] = useState<TabType>('document-explorer');
+  const [severityFilter, setSeverityFilter] = useState<SeverityEnum[]>([]);
   const { isWorkflowTypeVisible } = useWorkflowTypes();
 
   // Find the main document summary from the summaries list
@@ -62,6 +63,8 @@ export function ResultsVisualization({
             projectDetail={projectDetail}
             viewMode={viewMode}
             readOnly={readOnly}
+            severityFilter={severityFilter}
+            onSeverityFilterChange={setSeverityFilter}
             onNavigateToAnalyses={() => setActiveTab('analyses')}
             onNavigateToReferences={(referenceIndex) => {
               window.history.pushState(null, '', `#reference-${referenceIndex}`);
@@ -159,7 +162,12 @@ export function ResultsVisualization({
               Read-only view
             </Badge>
           )}
-          <AnalysisOptionsMenu project={projectDetail.project} results={results} readOnly={readOnly} />
+          <AnalysisOptionsMenu
+            project={projectDetail.project}
+            results={results}
+            readOnly={readOnly}
+            severityFilter={severityFilter}
+          />
         </div>
       </div>
 

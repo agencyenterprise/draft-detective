@@ -370,6 +370,12 @@ export type BibliographyItemValidation = {
    * Updated reference with the suggested changes made to make the reference valid, matching the format of the original reference. If the reference is already valid, return null.
    */
   updated_reference?: string | null;
+  /**
+   * Cited Url
+   *
+   * The original URL cited in the reference text (before redirect resolution).
+   */
+  cited_url?: string | null;
 };
 
 /**
@@ -5226,6 +5232,12 @@ export type DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetData = {
      * Share token to include share links in comments
      */
     share_token?: string | null;
+    /**
+     * Severities
+     *
+     * Filter issues by severity levels (e.g., high, medium, low)
+     */
+    severities?: Array<string> | null;
   };
   url: '/api/projects/{project_id}/docx/download';
 };
