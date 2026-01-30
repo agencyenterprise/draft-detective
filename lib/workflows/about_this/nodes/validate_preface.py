@@ -24,12 +24,23 @@ from lib.agents.preface_requirement_checker import (
 )
 from lib.agents.preface_section_extractor import PrefaceSectionExtractorAgent
 from lib.run_utils import run_tasks
-from lib.workflows.about_this.constants import REQUIREMENT_FIELDS, REQUIREMENT_METADATA
+from lib.workflows.about_this.constants import REQUIREMENT_METADATA
 from lib.workflows.about_this.state import AboutThisState, RequirementCheckResult
 from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
 
 logger = logging.getLogger(__name__)
+
+# Config mapping: (field_name, requirement_type, text_level)
+# text_level determines whether to check sentences or paragraphs
+REQUIREMENT_CHECK_CONFIG = [
+    ("context", PrefaceRequirementType.CONTEXT, "sentences"),
+    ("objectives", PrefaceRequirementType.OBJECTIVES, "sentences"),
+    ("relationship", PrefaceRequirementType.RELATIONSHIP, "sentences"),
+    ("audience", PrefaceRequirementType.AUDIENCE, "sentences"),
+    ("source_tasp", PrefaceRequirementType.SOURCE_TASP, "paragraphs"),
+    ("source_funding", PrefaceRequirementType.SOURCE_FUNDING, "paragraphs"),
+]
 
 
 def _split_into_sentences(text: str) -> List[str]:
@@ -108,13 +119,17 @@ async def validate_preface(state: AboutThisState, runtime: Runtime[ContextSchema
     section_title = extraction_result.section_title
     section_text = extraction_result.section_text
 
-    logger.info(f"[AboutThis] Found section: '{section_title}' ({len(section_text)} chars)")
+    logger.info(
+        f"[AboutThis] Found section: '{section_title}' ({len(section_text)} chars)"
+    )
 
     # Step 2: Split into sentences and paragraphs
     sentences = _split_into_sentences(section_text)
     paragraphs = _split_into_paragraphs(section_text)
 
-    logger.info(f"[AboutThis] Split into {len(sentences)} sentences, {len(paragraphs)} paragraphs")
+    logger.info(
+        f"[AboutThis] Split into {len(sentences)} sentences, {len(paragraphs)} paragraphs"
+    )
 
     if not sentences:
         logger.warning("[AboutThis] No sentences found in section")
@@ -126,72 +141,48 @@ async def validate_preface(state: AboutThisState, runtime: Runtime[ContextSchema
             "final_summary": "The preface section appears to be empty or unparseable.",
         }
 
-    # Step 3: Run all 6 checks in parallel
+    # Step 3: Run all checks in parallel
     checker = PrefaceRequirementCheckerAgent(context)
+    text_items_map = {"sentences": sentences, "paragraphs": paragraphs}
 
     tasks = [
-        # Sentence-level checks
         checker.ainvoke(
-            {"text_items": sentences, "requirement_type": PrefaceRequirementType.CONTEXT}
-        ),
-        checker.ainvoke(
-            {"text_items": sentences, "requirement_type": PrefaceRequirementType.OBJECTIVES}
-        ),
-        checker.ainvoke(
-            {"text_items": sentences, "requirement_type": PrefaceRequirementType.RELATIONSHIP}
-        ),
-        checker.ainvoke(
-            {"text_items": sentences, "requirement_type": PrefaceRequirementType.AUDIENCE}
-        ),
-        # Paragraph-level checks
-        checker.ainvoke(
-            {"text_items": paragraphs, "requirement_type": PrefaceRequirementType.SOURCE_TASP}
-        ),
-        checker.ainvoke(
-            {"text_items": paragraphs, "requirement_type": PrefaceRequirementType.SOURCE_FUNDING}
-        ),
+            {"text_items": text_items_map[level], "requirement_type": req_type}
+        )
+        for _, req_type, level in REQUIREMENT_CHECK_CONFIG
     ]
 
-    results, errors = await run_tasks(tasks, desc="Checking preface requirements")
+    results, _ = await run_tasks(tasks, desc="Checking preface requirements")
 
     # Step 4: Convert results to RequirementCheckResult
-    context_result = _to_requirement_result(results[0], sentences, "Failed to check context")
-    objectives_result = _to_requirement_result(results[1], sentences, "Failed to check objectives")
-    relationship_result = _to_requirement_result(results[2], sentences, "Failed to check relationship")
-    audience_result = _to_requirement_result(results[3], sentences, "Failed to check audience")
-    source_tasp_result = _to_requirement_result(results[4], paragraphs, "Failed to check TASP")
-    source_funding_result = _to_requirement_result(results[5], paragraphs, "Failed to check funding")
+    requirement_results = {}
+    for i, (field, _, level) in enumerate(REQUIREMENT_CHECK_CONFIG):
+        text_items = text_items_map[level]
+        meta = REQUIREMENT_METADATA[field]
+        requirement_results[field] = _to_requirement_result(
+            results[i], text_items, f"Failed to check {meta['name'].lower()}"
+        )
 
-    all_results = [
-        context_result,
-        objectives_result,
-        relationship_result,
-        audience_result,
-        source_tasp_result,
-        source_funding_result,
-    ]
+    # Step 5: Determine overall pass/fail and generate summary
+    failed_requirements = []
+    for field, result in requirement_results.items():
+        if not result.passed:
+            meta = REQUIREMENT_METADATA[field]
+            failed_requirements.append(f"• {meta['name']}: {result.explanation}")
 
-    # Step 5: Determine overall pass/fail
-    all_passed = all(r.passed for r in all_results)
+    all_passed = len(failed_requirements) == 0
+    passed_count = len(requirement_results) - len(failed_requirements)
 
-    # Step 6: Generate summary if any failed
     if all_passed:
         final_summary = "All preface requirements passed."
     else:
-        failed_requirements = []
-        for field, result in zip(REQUIREMENT_FIELDS, all_results):
-            if not result.passed:
-                meta = REQUIREMENT_METADATA[field]
-                failed_requirements.append(f"• {meta['name']}: {result.explanation}")
-
         final_summary = (
             f"The preface section failed {len(failed_requirements)} requirement(s):\n"
             + "\n".join(failed_requirements)
         )
 
-    passed_count = sum(1 for r in all_results if r.passed)
     logger.info(
-        f"[AboutThis] Results: {passed_count}/6 requirements passed, "
+        f"[AboutThis] Results: {passed_count}/{len(requirement_results)} requirements passed, "
         f"overall: {'PASS' if all_passed else 'FAIL'}"
     )
 
@@ -199,13 +190,7 @@ async def validate_preface(state: AboutThisState, runtime: Runtime[ContextSchema
         "found_section": True,
         "section_title": section_title,
         "section_text": section_text,
-        "context": context_result,
-        "objectives": objectives_result,
-        "relationship": relationship_result,
-        "audience": audience_result,
-        "source_tasp": source_tasp_result,
-        "source_funding": source_funding_result,
+        **requirement_results,
         "overall_passed": all_passed,
         "final_summary": final_summary,
     }
-

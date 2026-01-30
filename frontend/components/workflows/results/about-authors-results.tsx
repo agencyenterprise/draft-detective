@@ -129,14 +129,10 @@ export function AboutAuthorsResults({
   if (isWorkflowProcessing(aboutAuthorsRun)) {
     return (
       <EmptyState
-        icon={Loader2}
+        icon={<Loader2 className="h-8 w-8 animate-spin text-muted-foreground mx-auto" />}
         message="Analyzing Author Biographies..."
         description="The About Authors analysis is currently running. Results will appear here once complete."
-      >
-        <div className="pt-2">
-          <Loader2 className="h-5 w-5 animate-spin text-primary" />
-        </div>
-      </EmptyState>
+      />
     );
   }
 

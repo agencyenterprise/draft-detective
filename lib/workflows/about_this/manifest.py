@@ -24,7 +24,7 @@ class AboutThisManifest(WorkflowManifest[AboutThisState, AboutThisWorkflowConfig
         "TASP boilerplate, and funding statement."
     )
     needs_web_search = False
-    order = 9
+    order = 12  # QA Screener group (10-12)
     required_dependencies = [WorkflowRunType.CHUNK_SPLITTING]
     is_experimental = True
 
@@ -56,11 +56,6 @@ class AboutThisManifest(WorkflowManifest[AboutThisState, AboutThisWorkflowConfig
     ) -> List[DocumentIssue]:
         """Convert AboutThisState to issues for Document Explorer."""
         issues: List[DocumentIssue] = []
-
-        # If no section found, don't create an issue here.
-        # The frontend shows a SectionNotFoundCallout warning banner instead.
-        if not state.found_section:
-            return issues
 
         # Create issues for failed requirements
         for field in REQUIREMENT_FIELDS:

@@ -22,7 +22,7 @@ class AdvocacyToneManifest(
         "Uses two-layer detection: fast procedural checks (regex) followed by LLM verification."
     )
     needs_web_search = False
-    order = 7
+    order = 10  # QA Screener group (10-12)
     required_dependencies = [WorkflowRunType.CHUNK_SPLITTING]
     is_experimental = True
 

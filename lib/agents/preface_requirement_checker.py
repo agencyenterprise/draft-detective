@@ -37,27 +37,31 @@ class RequirementCheckResponse(BaseModel):
     )
 
 
-# Requirement prompts for sentence-level checks
-SENTENCE_REQUIREMENT_PROMPTS = {
+# Unified config for sentence-level requirements: (description, prompt)
+SENTENCE_REQUIREMENT_CONFIG = {
     PrefaceRequirementType.CONTEXT: (
+        "Establishes Context",
         "Does the section establish the context that prompted the study? "
         "Look for sentences that explain WHY this research was undertaken, "
-        "what problem or situation motivated it, or what circumstances led to this work."
+        "what problem or situation motivated it, or what circumstances led to this work.",
     ),
     PrefaceRequirementType.OBJECTIVES: (
+        "Explains Objectives",
         "Does the section explain the publication's objectives? "
         "Look for sentences that state WHAT this publication aims to achieve, "
-        "its goals, purpose, or what questions it seeks to answer."
+        "its goals, purpose, or what questions it seeks to answer.",
     ),
     PrefaceRequirementType.RELATIONSHIP: (
+        "Explains Relationship to RAND Work",
         "Does the section explain the relationship of the publication to other RAND work? "
         "Look for sentences that mention how this work relates to, builds upon, or complements "
-        "other RAND research, reports, or projects."
+        "other RAND research, reports, or projects.",
     ),
     PrefaceRequirementType.AUDIENCE: (
+        "Identifies Intended Audience",
         "Does the section identify the intended audience of the publication? "
         "Look for sentences that specify WHO this publication is for, "
-        "such as policymakers, researchers, practitioners, or specific organizations."
+        "such as policymakers, researchers, practitioners, or specific organizations.",
     ),
 }
 
@@ -164,28 +168,20 @@ class PrefaceRequirementCheckerAgent(LangChainAgent):
         elif requirement_type == PrefaceRequirementType.SOURCE_FUNDING:
             funding_variants = "\n\n".join(
                 f"Pattern {i+1}:\n{variant}"
-                for i, variant in enumerate(FUNDING_STATEMENT_VARIANTS[:4])  # Show first 4 variants
+                for i, variant in enumerate(FUNDING_STATEMENT_VARIANTS[:4])
             )
             messages = _paragraph_funding_check_prompt.format_messages(
                 funding_variants=funding_variants,
                 numbered_items=numbered_items,
             )
         else:
-            # Sentence-level requirement
-            requirement_prompt = SENTENCE_REQUIREMENT_PROMPTS.get(
-                requirement_type, "Check if the requirement is satisfied."
+            # Sentence-level requirement - get config or use fallback
+            description, prompt = SENTENCE_REQUIREMENT_CONFIG.get(
+                requirement_type, (requirement_type.value, "Check if the requirement is satisfied.")
             )
-            requirement_descriptions = {
-                PrefaceRequirementType.CONTEXT: "Establishes Context",
-                PrefaceRequirementType.OBJECTIVES: "Explains Objectives",
-                PrefaceRequirementType.RELATIONSHIP: "Explains Relationship to RAND Work",
-                PrefaceRequirementType.AUDIENCE: "Identifies Intended Audience",
-            }
             messages = _sentence_check_prompt.format_messages(
-                requirement_description=requirement_descriptions.get(
-                    requirement_type, requirement_type.value
-                ),
-                requirement_prompt=requirement_prompt,
+                requirement_description=description,
+                requirement_prompt=prompt,
                 numbered_items=numbered_items,
             )
 

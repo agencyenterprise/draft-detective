@@ -4,7 +4,6 @@ from typing import List, Optional
 
 from langchain.agents import create_agent
 from langchain.chat_models import init_chat_model
-from langchain_core.prompts import PromptTemplate
 from langgraph.graph.state import RunnableConfig
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -14,34 +13,8 @@ from lib.config.llm_models import gpt_5_2_model
 from lib.models.agent import LangChainAgent
 from lib.workflows.context import ContextSchema
 
-
-class PrefaceSectionExtractorOutput(BaseModel):
-    """Output from the preface section extractor agent."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    reasoning: str = Field(
-        description="Step-by-step reasoning describing how the preface section was found"
-    )
-    found_section: bool = Field(
-        description="Whether a preface/introduction section was found in the document"
-    )
-    section_title: str = Field(
-        description="The title of the preface section if found (e.g., 'About This Report'), or empty string if not found"
-    )
-    section_text: str = Field(
-        description="The full text content of the preface section (empty if no section found)"
-    )
-    start_line: int = Field(
-        description="Starting line number where the section was found (-1 if not found)"
-    )
-    end_line: int = Field(
-        description="Ending line number where the section ends (-1 if not found)"
-    )
-
-
-_system_prompt = PromptTemplate.from_template(
-    """
+# System prompt for the preface extraction agent
+_SYSTEM_PROMPT = """
 You are a document section extraction specialist. Your task is to find and extract the preface/introduction section from academic documents.
 
 ## Available Tools
@@ -91,7 +64,33 @@ After searching and reading, provide:
 - The section title if found
 - The complete text content of the preface section
 """
-)
+
+
+class PrefaceSectionExtractorOutput(BaseModel):
+    """Output from the preface section extractor agent."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    reasoning: str = Field(
+        description="Step-by-step reasoning describing how the preface section was found"
+    )
+    found_section: bool = Field(
+        description="Whether a preface/introduction section was found in the document"
+    )
+    section_title: str = Field(
+        description="The title of the preface section if found (e.g., 'About This Report'), or empty string if not found"
+    )
+    section_text: str = Field(
+        description="The full text content of the preface section (empty if no section found)"
+    )
+    start_line: int = Field(
+        description="Starting line number where the section was found (-1 if not found)"
+    )
+    end_line: int = Field(
+        description="Ending line number where the section ends (-1 if not found)"
+    )
+
+
 
 
 class PrefaceSectionExtractorAgent(LangChainAgent):
@@ -117,13 +116,12 @@ class PrefaceSectionExtractorAgent(LangChainAgent):
         prompt_kwargs: dict,
         config: Optional[RunnableConfig] = None,
     ) -> PrefaceSectionExtractorOutput:
-        system_prompt = _system_prompt.invoke({})
 
         agent = create_agent(
             self.llm,
             [search_document, read_document],
             context_schema=ContextSchema,
-            system_prompt=system_prompt.text,
+            system_prompt=_SYSTEM_PROMPT,
             response_format=self.output_schema,
         )
 
