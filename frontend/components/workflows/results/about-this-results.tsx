@@ -11,10 +11,6 @@ import { getWorkflowRunByType, isWorkflowProcessing } from '@/lib/workflow-state
 import { ChevronDown, FileQuestion, FileText, Loader2 } from 'lucide-react';
 import { useMemo } from 'react';
 
-interface AboutThisResultsProps {
-  project: ProjectDetailed;
-}
-
 // Centralized requirement configuration - mirrors backend REQUIREMENT_METADATA
 const REQUIREMENT_CONFIG = [
   { field: 'context' as const, label: 'Establishes Context', level: 'sentence' },
@@ -27,12 +23,7 @@ const REQUIREMENT_CONFIG = [
 
 type RequirementField = (typeof REQUIREMENT_CONFIG)[number]['field'];
 
-/**
- * Calculate validation statistics from the workflow state.
- */
-function calculateStats(state: AboutThisState | undefined) {
-  if (!state) return { passed: 0, failed: 0, total: REQUIREMENT_CONFIG.length };
-
+function calculateStats(state: AboutThisState) {
   let passed = 0;
   let failed = 0;
 
@@ -47,16 +38,13 @@ function calculateStats(state: AboutThisState | undefined) {
   return { passed, failed, total: REQUIREMENT_CONFIG.length };
 }
 
-export function AboutThisResults({ project }: AboutThisResultsProps) {
-  const workflowRuns = useMemo(() => project.workflow_runs ?? [], [project.workflow_runs]);
-  const aboutThisRun = getWorkflowRunByType(workflowRuns, WorkflowRunType.AboutThis);
+export function AboutThisResults({ project }: { project: ProjectDetailed }) {
+  const aboutThisRun = getWorkflowRunByType(project.workflow_runs ?? [], WorkflowRunType.AboutThis);
 
-  // Not run yet
   if (!aboutThisRun) {
     return <EmptyState message="About This (Preface) analysis has not been run." />;
   }
 
-  // Still processing
   if (isWorkflowProcessing(aboutThisRun)) {
     return (
       <EmptyState
@@ -74,14 +62,9 @@ export function AboutThisResults({ project }: AboutThisResultsProps) {
   return <AboutThisContent state={aboutThisRun.state} />;
 }
 
-interface AboutThisContentProps {
-  state: AboutThisState;
-}
-
-function AboutThisContent({ state }: AboutThisContentProps) {
+function AboutThisContent({ state }: { state: AboutThisState }) {
   const stats = useMemo(() => calculateStats(state), [state]);
 
-  // No preface section found in the document
   if (!state.found_section) {
     return (
       <EmptyState
@@ -99,11 +82,8 @@ function AboutThisContent({ state }: AboutThisContentProps) {
     );
   }
 
-  const allPassed = stats.failed === 0 && stats.passed > 0;
-
   return (
     <div className="space-y-6">
-      {/* Summary */}
       <ValidationSummaryCard
         stats={stats}
         allPassedTitle="All Preface Requirements Pass"
@@ -112,7 +92,6 @@ function AboutThisContent({ state }: AboutThisContentProps) {
         defaultDescription={`Validates "${state.section_title}" against ${REQUIREMENT_CONFIG.length} publication requirements`}
       />
 
-      {/* Requirement checks */}
       <Card>
         <CardHeader>
           <CardTitle className="text-sm">Requirement Checks</CardTitle>
@@ -137,8 +116,7 @@ function AboutThisContent({ state }: AboutThisContentProps) {
         </CardContent>
       </Card>
 
-      {/* Final summary if any failed */}
-      {!allPassed && state.final_summary && (
+      {stats.failed > 0 && state.final_summary && (
         <Card className="border-amber-200">
           <CardHeader>
             <CardTitle className="text-sm text-amber-800">Summary</CardTitle>
@@ -149,7 +127,6 @@ function AboutThisContent({ state }: AboutThisContentProps) {
         </Card>
       )}
 
-      {/* Section text preview - inlined since only used here */}
       <Card>
         <Collapsible>
           <CollapsibleTrigger asChild>

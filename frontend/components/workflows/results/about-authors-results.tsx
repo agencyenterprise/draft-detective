@@ -13,11 +13,6 @@ import { CheckCircle2, ChevronDown, FileQuestion, Loader2, Users, XCircle } from
 import { useMemo, useState } from 'react';
 import { cn } from '@/lib/utils';
 
-interface AboutAuthorsResultsProps {
-  project: ProjectDetailed;
-  onNavigateToDocumentExplorer?: (chunkIndices?: number[]) => void;
-}
-
 // Centralized rule configuration - mirrors backend RULE_METADATA
 const RULE_CONFIG = [
   { field: 'rule_1_sentence_length' as const, label: 'Sentence Count (3 sentences)' },
@@ -29,20 +24,19 @@ const RULE_CONFIG = [
 
 type RuleField = (typeof RULE_CONFIG)[number]['field'];
 
-interface AuthorResultCardProps {
+function AuthorResultCard({
+  result,
+  onNavigateToChunk,
+}: {
   result: AuthorValidationResult;
   onNavigateToChunk?: () => void;
-}
-
-function AuthorResultCard({ result, onNavigateToChunk }: AuthorResultCardProps) {
+}) {
   const [isOpen, setIsOpen] = useState(false);
 
-  const failedRulesCount = useMemo(() => {
-    return RULE_CONFIG.filter(({ field }) => {
-      const rule = result[field as RuleField];
-      return (rule.applicable ?? true) && !rule.passed;
-    }).length;
-  }, [result]);
+  const failedRulesCount = RULE_CONFIG.filter(({ field }) => {
+    const rule = result[field as RuleField];
+    return (rule.applicable ?? true) && !rule.passed;
+  }).length;
 
   return (
     <Card className={cn(result.overall_passed ? 'border-green-200' : 'border-red-200')}>
@@ -82,13 +76,11 @@ function AuthorResultCard({ result, onNavigateToChunk }: AuthorResultCardProps) 
         </CollapsibleTrigger>
         <CollapsibleContent>
           <CardContent className="pt-0 space-y-4">
-            {/* Author bio text */}
             <div className="p-3 rounded-md bg-muted/50 border">
               <p className="text-sm text-foreground whitespace-pre-wrap">{result.author_text}</p>
               {onNavigateToChunk && <NavigateToChunkButton onClick={onNavigateToChunk} />}
             </div>
 
-            {/* Rule checks using shared CheckStatusItem */}
             <div className="space-y-2">
               <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Rule Checks</h4>
               <div className="grid gap-2">
@@ -108,7 +100,6 @@ function AuthorResultCard({ result, onNavigateToChunk }: AuthorResultCardProps) 
               </div>
             </div>
 
-            {/* Guidance if failed */}
             {!result.overall_passed && result.guidance && (
               <div className="p-3 rounded-md bg-amber-50 border border-amber-200">
                 <h4 className="text-xs font-semibold text-amber-800 mb-1">Suggested Improvements</h4>
@@ -122,16 +113,19 @@ function AuthorResultCard({ result, onNavigateToChunk }: AuthorResultCardProps) 
   );
 }
 
-export function AboutAuthorsResults({ project, onNavigateToDocumentExplorer }: AboutAuthorsResultsProps) {
-  const workflowRuns = useMemo(() => project.workflow_runs ?? [], [project.workflow_runs]);
-  const aboutAuthorsRun = getWorkflowRunByType(workflowRuns, WorkflowRunType.AboutAuthors);
+export function AboutAuthorsResults({
+  project,
+  onNavigateToDocumentExplorer,
+}: {
+  project: ProjectDetailed;
+  onNavigateToDocumentExplorer?: (chunkIndices?: number[]) => void;
+}) {
+  const aboutAuthorsRun = getWorkflowRunByType(project.workflow_runs ?? [], WorkflowRunType.AboutAuthors);
 
-  // Not run yet
   if (!aboutAuthorsRun) {
     return <EmptyState message="About Authors analysis has not been run." />;
   }
 
-  // Still processing
   if (isWorkflowProcessing(aboutAuthorsRun)) {
     return (
       <EmptyState
@@ -151,22 +145,21 @@ export function AboutAuthorsResults({ project, onNavigateToDocumentExplorer }: A
   );
 }
 
-interface AboutAuthorsContentProps {
+function AboutAuthorsContent({
+  state,
+  onNavigateToDocumentExplorer,
+}: {
   state: AboutAuthorsState;
   onNavigateToDocumentExplorer?: (chunkIndices?: number[]) => void;
-}
+}) {
+  const results = state.results ?? [];
 
-function AboutAuthorsContent({ state, onNavigateToDocumentExplorer }: AboutAuthorsContentProps) {
-  const results = useMemo(() => state.results ?? [], [state.results]);
-
-  // Stats
   const stats = useMemo(() => {
     const passed = results.filter((r) => r.overall_passed).length;
     const failed = results.filter((r) => !r.overall_passed).length;
     return { passed, failed, total: results.length };
   }, [results]);
 
-  // No "About the Authors" section found in the document
   if (results.length === 0) {
     return (
       <EmptyState
@@ -185,7 +178,6 @@ function AboutAuthorsContent({ state, onNavigateToDocumentExplorer }: AboutAutho
 
   return (
     <div className="space-y-6">
-      {/* Summary */}
       <ValidationSummaryCard
         stats={stats}
         allPassedTitle="All Author Biographies Pass Validation"
@@ -194,7 +186,6 @@ function AboutAuthorsContent({ state, onNavigateToDocumentExplorer }: AboutAutho
         defaultDescription={`Validates author biographies against ${RULE_CONFIG.length} publication rules: sentence count, position/affiliation, TASP statement, research focus, and highest degree.`}
       />
 
-      {/* Results by author */}
       <div className="max-h-[50vh] overflow-y-auto space-y-3 pr-1">
         {results.map((result) => (
           <AuthorResultCard
