@@ -1,5 +1,6 @@
 'use client';
 
+import { useExperimentalFeatures } from '@/context/experimental-features-context';
 import { useSessionStorage } from '@/lib/hooks/use-session-storage';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { useForm } from '@tanstack/react-form';
@@ -18,7 +19,6 @@ import {
 import { AnalysisFormData, AnalysisFormValues } from './types';
 import { UploadSection } from './upload-section';
 import { validateAnalysisForm } from './validation';
-import { featureFlags } from '@/lib/config';
 
 export interface AnalysisFormProps {
   onSubmit: (data: AnalysisFormData) => void;
@@ -29,6 +29,7 @@ export interface AnalysisFormProps {
 export function AnalysisForm({ onSubmit, isPending = false, error }: AnalysisFormProps) {
   const [openaiApiKey, setOpenaiApiKey] = useSessionStorage<string>('openai-api-key', '');
   const hideOpenaiApiKeyInput = process.env.NEXT_PUBLIC_HIDE_CUSTOM_OPENAI_API_KEY_INPUT === 'true';
+  const { showExperimentalFeatures } = useExperimentalFeatures();
   const { data: workflowTypes } = useWorkflowTypes();
 
   // Get today's date in YYYY-MM-DD format for the date input
@@ -46,7 +47,8 @@ export function AnalysisForm({ onSubmit, isPending = false, error }: AnalysisFor
       workflowTypes: [],
     } as AnalysisFormValues,
     validators: {
-      onChange: ({ value }) => validateAnalysisForm(value, hideOpenaiApiKeyInput, workflowTypes),
+      onChange: ({ value }) =>
+        validateAnalysisForm(value, hideOpenaiApiKeyInput, workflowTypes, showExperimentalFeatures),
     },
     onSubmit: ({ value }) => {
       onSubmit({
@@ -270,8 +272,8 @@ export function AnalysisForm({ onSubmit, isPending = false, error }: AnalysisFor
               const selectedTypes = workflowTypesField.state.value;
               const needsPublicationDate = hasPublicationDateRequirement(selectedTypes);
 
-              // Only show publication date field when experimental features are enabled and required
-              if (!featureFlags.showExperimentalFeatures || !needsPublicationDate) {
+              // Only show publication date field when the user has opted into experimental features and it's required
+              if (!showExperimentalFeatures || !needsPublicationDate) {
                 return null;
               }
 

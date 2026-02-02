@@ -5,6 +5,117 @@ export type ClientOptions = {
 };
 
 /**
+ * AbbreviationItem
+ *
+ * Item representing an abbreviation/acronym and its definition.
+ */
+export type AbbreviationItem = {
+  /**
+   * Abbr
+   *
+   * The acronym/abbreviation text, e.g. AI, RAND, NATO
+   */
+  abbr: string;
+  /**
+   * Definition
+   *
+   * Full definition if available, e.g. Artificial Intelligence
+   */
+  definition?: string;
+  /**
+   * Context
+   *
+   * Text content of the chunk where the abbreviation was found/defined
+   */
+  context: string;
+  /**
+   * Is Definition
+   *
+   * True if found as a definition like 'Definition (ABBR)'
+   */
+  is_definition: boolean;
+  /**
+   * Chunk Index
+   *
+   * 0-based chunk index where this abbreviation was found
+   */
+  chunk_index: number;
+};
+
+/**
+ * AbbreviationScanState
+ *
+ * State for abbreviation scan workflow.
+ */
+export type AbbreviationScanState = {
+  /**
+   * Errors
+   *
+   * Errors that occurred during the workflow execution.
+   */
+  errors?: Array<WorkflowError>;
+  /**
+   * Type
+   */
+  type?: 'abbreviation_scan';
+  config: AbbreviationScanWorkflowConfig;
+  /**
+   * File Id
+   *
+   * ID of the main document
+   */
+  file_id: string;
+  /**
+   * Abbreviations
+   *
+   * Unique abbreviations found in the document
+   */
+  abbreviations?: Array<AbbreviationItem>;
+};
+
+/**
+ * AbbreviationScanWorkflowConfig
+ *
+ * Configuration for abbreviation scan workflow.
+ */
+export type AbbreviationScanWorkflowConfig = {
+  /**
+   * Project Id
+   *
+   * The ID of the project that this workflow run should be associated with
+   */
+  project_id?: string | null;
+  /**
+   * Openai Api Key
+   *
+   * The OpenAI API key to use for this workflow execution
+   */
+  openai_api_key?: string | null;
+  /**
+   * Domain
+   *
+   * Domain context for more accurate analysis
+   */
+  domain?: string | null;
+  /**
+   * Target Audience
+   *
+   * Target audience context for analysis
+   */
+  target_audience?: string | null;
+  /**
+   * Publication Date
+   *
+   * Publication date of the document (YYYY-MM-DD format)
+   */
+  publication_date?: string | null;
+  /**
+   * Type
+   */
+  type?: 'abbreviation_scan';
+};
+
+/**
  * AboutAuthorsState
  *
  * State for the About Authors validation workflow.
@@ -712,8 +823,10 @@ export type CitationDetectionState = {
   type?: 'citation_detection';
   /**
    * File Id
+   *
+   * File ID for backward compatibility
    */
-  file_id: string;
+  file_id?: string;
   config: CitationDetectionConfig;
   /**
    * Citations
@@ -993,8 +1106,10 @@ export type ClaimExtractionState = {
   type?: 'claim_extraction';
   /**
    * File Id
+   *
+   * File ID for backward compatibility
    */
-  file_id: string;
+  file_id?: string;
   config: ClaimExtractionWorkflowConfig;
   /**
    * Claims
@@ -2398,8 +2513,10 @@ export type InferenceValidationState = {
   config: InferenceValidationWorkflowConfig;
   /**
    * File Id
+   *
+   * File ID for backward compatibility
    */
-  file_id: string;
+  file_id?: string;
   /**
    * Inference Validations
    */
@@ -2579,8 +2696,10 @@ export type LiveReportsState = {
   config: LiveReportsWorkflowConfig;
   /**
    * File Id
+   *
+   * File ID for backward compatibility
    */
-  file_id: string;
+  file_id?: string;
   /**
    * Live Reports Analysis
    *
@@ -3983,6 +4102,18 @@ export const UpdateType = {
 export type UpdateType = (typeof UpdateType)[keyof typeof UpdateType];
 
 /**
+ * UpdateUserPreferencesRequest
+ *
+ * Request model for updating user preferences
+ */
+export type UpdateUserPreferencesRequest = {
+  /**
+   * Show Experimental Features
+   */
+  show_experimental_features: boolean;
+};
+
+/**
  * UpdateUserRoleRequest
  *
  * Request model for updating a user's role
@@ -4010,6 +4141,10 @@ export type UserResponse = {
    */
   name: string;
   role: UserRole;
+  /**
+   * Show Experimental Features
+   */
+  show_experimental_features: boolean;
 };
 
 /**
@@ -4226,6 +4361,7 @@ export type WorkflowRunDetail = {
     | ClaimExtractionState
     | ClaimReferenceValidationState
     | CitationDetectionState
+    | AbbreviationScanState
     | MethodologicalAlignmentState
     | ReferenceDownloaderState
     | LiteratureReviewState
@@ -4517,6 +4653,7 @@ export type WorkflowRunDetailWritable = {
     | ClaimExtractionState
     | ClaimReferenceValidationState
     | CitationDetectionState
+    | AbbreviationScanState
     | MethodologicalAlignmentState
     | ReferenceDownloaderState
     | LiteratureReviewState
@@ -4721,6 +4858,7 @@ export type StartWorkflowApiWorkflowsStartPostData = {
     | ClaimExtractionWorkflowConfig
     | CitationDetectionConfig
     | ClaimReferenceValidationWorkflowConfig
+    | AbbreviationScanWorkflowConfig
     | MethodologicalAlignmentWorkflowConfig
     | ReferenceDownloaderWorkflowConfig
     | LiteratureReviewWorkflowConfig
@@ -5722,3 +5860,30 @@ export type UpdateRoleApiUsersUserIdRolePatchResponses = {
 
 export type UpdateRoleApiUsersUserIdRolePatchResponse =
   UpdateRoleApiUsersUserIdRolePatchResponses[keyof UpdateRoleApiUsersUserIdRolePatchResponses];
+
+export type UpdatePreferencesApiUsersMePreferencesPatchData = {
+  body: UpdateUserPreferencesRequest;
+  path?: never;
+  query?: never;
+  url: '/api/users/me/preferences';
+};
+
+export type UpdatePreferencesApiUsersMePreferencesPatchErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type UpdatePreferencesApiUsersMePreferencesPatchError =
+  UpdatePreferencesApiUsersMePreferencesPatchErrors[keyof UpdatePreferencesApiUsersMePreferencesPatchErrors];
+
+export type UpdatePreferencesApiUsersMePreferencesPatchResponses = {
+  /**
+   * Successful Response
+   */
+  200: UserResponse;
+};
+
+export type UpdatePreferencesApiUsersMePreferencesPatchResponse =
+  UpdatePreferencesApiUsersMePreferencesPatchResponses[keyof UpdatePreferencesApiUsersMePreferencesPatchResponses];

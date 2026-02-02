@@ -9,6 +9,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useExperimentalFeatures } from '@/context/experimental-features-context';
 import { useSessionStorage } from '@/lib/hooks/use-session-storage';
 import { GlobalFormValidationError, useForm } from '@tanstack/react-form';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
@@ -17,7 +18,6 @@ import { useEffect } from 'react';
 import { WorkflowTypeSelector } from './workflow-type-selector';
 import { WebSearchConsentCheckbox } from './web-search-consent-checkbox';
 import { hasWebSearchRequirement, hasPublicationDateRequirement } from './utils';
-import { featureFlags } from '@/lib/config';
 
 interface WorkflowConfigDialogProps {
   isOpen: boolean;
@@ -36,6 +36,7 @@ export interface WorkflowConfigFormValues {
 export function WorkflowConfigDialog({ isOpen, type, onConfirm, onCancel }: WorkflowConfigDialogProps) {
   const [openaiApiKey, setOpenaiApiKey] = useSessionStorage<string>('openai-api-key', '');
   const hideOpenaiApiKeyInput = process.env.NEXT_PUBLIC_HIDE_CUSTOM_OPENAI_API_KEY_INPUT === 'true';
+  const { showExperimentalFeatures } = useExperimentalFeatures();
 
   const { data: workflowTypes } = useWorkflowTypes();
 
@@ -45,9 +46,9 @@ export function WorkflowConfigDialog({ isOpen, type, onConfirm, onCancel }: Work
   // the form still submits a valid date without showing the field to the user.
   const today = new Date().toISOString().split('T')[0];
 
-  // WHY: Only show publication date field when experimental features are enabled.
+  // WHY: Only show publication date field when the user has opted into experimental features.
   // When disabled, we simplify the UI by hiding this field and using today's date.
-  const showPublicationDateField = featureFlags.showExperimentalFeatures && needsPublicationDate;
+  const showPublicationDateField = showExperimentalFeatures && needsPublicationDate;
 
   const form = useForm({
     defaultValues: {

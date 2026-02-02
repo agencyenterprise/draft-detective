@@ -5,7 +5,7 @@ import { ChevronDown, ChevronUp } from 'lucide-react';
 import { WorkflowRunType, WorkflowTypeDescription } from '@/lib/generated-api';
 import { WorkflowTypeCheckbox } from './workflow-type-checkbox';
 import { Button } from '../ui/button';
-import { featureFlags } from '@/lib/config';
+import { useExperimentalFeatures } from '@/context/experimental-features-context';
 
 interface WorkflowTypeSelectorProps {
   workflowTypes?: WorkflowTypeDescription[];
@@ -31,12 +31,13 @@ export function WorkflowTypeSelector({
   defaultShowExperimental = false,
 }: WorkflowTypeSelectorProps) {
   const [showExperimental, setShowExperimental] = useState(defaultShowExperimental);
+  const { showExperimentalFeatures } = useExperimentalFeatures();
 
   const regularWorkflows = workflowTypes?.filter((wt) => !wt.is_experimental);
   const experimentalWorkflows = workflowTypes?.filter((wt) => wt.is_experimental);
 
-  // Only show experimental workflows if the feature flag is enabled
-  const shouldShowExperimentalSection = featureFlags.showExperimentalFeatures;
+  // Only show experimental workflows if the user has opted in
+  const shouldShowExperimentalSection = showExperimentalFeatures;
   const hasExperimentalWorkflows =
     shouldShowExperimentalSection && experimentalWorkflows && experimentalWorkflows.length > 0;
 

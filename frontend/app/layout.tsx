@@ -1,8 +1,10 @@
+import { auth } from '@/auth';
 import { ApiConfig } from '@/components/api-config';
-import { ApplicationShell } from '@/components/application-shell';
+import { ApplicationShell } from '@/components/layout/application-shell';
 import QueryProvider from '@/components/providers';
 import { Toaster } from '@/components/ui/sonner';
 import { VersionBadge } from '@/components/version-badge';
+import { ExperimentalFeaturesProvider } from '@/context/experimental-features-context';
 import { PostHogProvider } from '@/lib/posthog';
 import type { Metadata } from 'next';
 import { SessionProvider } from 'next-auth/react';
@@ -25,21 +27,25 @@ export const metadata: Metadata = {
     'AI-powered document review and analysis platform for accurate citations, fact-checking, and quality assessment',
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const session = await auth();
+
   return (
     <html lang="en" className="h-full">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased h-full`}>
         <PostHogProvider>
-          <SessionProvider>
+          <SessionProvider session={session}>
             <QueryProvider>
-              <ApiConfig />
-              <ApplicationShell>{children}</ApplicationShell>
-              <Toaster />
-              <VersionBadge />
+              <ExperimentalFeaturesProvider>
+                <ApiConfig />
+                <ApplicationShell>{children}</ApplicationShell>
+                <Toaster />
+                <VersionBadge />
+              </ExperimentalFeaturesProvider>
             </QueryProvider>
           </SessionProvider>
         </PostHogProvider>
