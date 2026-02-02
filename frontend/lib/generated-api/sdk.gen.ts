@@ -107,6 +107,9 @@ import type {
   SubmitFeedbackApiFeedbackPostData,
   SubmitFeedbackApiFeedbackPostErrors,
   SubmitFeedbackApiFeedbackPostResponses,
+  UpdatePreferencesApiUsersMePreferencesPatchData,
+  UpdatePreferencesApiUsersMePreferencesPatchErrors,
+  UpdatePreferencesApiUsersMePreferencesPatchResponses,
   UpdateProjectEndpointApiProjectProjectIdPatchData,
   UpdateProjectEndpointApiProjectProjectIdPatchErrors,
   UpdateProjectEndpointApiProjectProjectIdPatchResponses,
@@ -1000,6 +1003,30 @@ export const updateRoleApiUsersUserIdRolePatch = <ThrowOnError extends boolean =
     responseStyle: 'data',
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/users/{user_id}/role',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * Update Preferences
+ *
+ * Update the current user's preferences.
+ */
+export const updatePreferencesApiUsersMePreferencesPatch = <ThrowOnError extends boolean = true>(
+  options: Options<UpdatePreferencesApiUsersMePreferencesPatchData, ThrowOnError>,
+) =>
+  (options.client ?? client).patch<
+    UpdatePreferencesApiUsersMePreferencesPatchResponses,
+    UpdatePreferencesApiUsersMePreferencesPatchErrors,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/users/me/preferences',
     ...options,
     headers: {
       'Content-Type': 'application/json',

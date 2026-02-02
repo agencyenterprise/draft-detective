@@ -7,12 +7,12 @@ import {
   hasPublicationDateRequirement,
   hasSupportingDocumentsRequirement,
 } from '../workflows/utils';
-import { featureFlags } from '@/lib/config';
 
 export function validateAnalysisForm(
   value: AnalysisFormValues,
   hideOpenaiApiKeyInput: boolean,
   workflowTypes?: WorkflowTypeDescription[],
+  showExperimentalFeatures: boolean = false,
 ): FormValidationError<AnalysisFormValues> {
   const errors: GlobalFormValidationError<AnalysisFormValues> = { fields: {}, form: undefined };
 
@@ -48,9 +48,9 @@ export function validateAnalysisForm(
     errors.fields.webSearchConsent = 'Web search consent is required';
   }
 
-  // WHY: Only validate publication date when experimental features are enabled.
+  // WHY: Only validate publication date when the user has opted into experimental features.
   // When disabled, the form defaults to today's date internally without user input.
-  if (featureFlags.showExperimentalFeatures && hasPublicationDateRequirement(value.workflowTypes)) {
+  if (showExperimentalFeatures && hasPublicationDateRequirement(value.workflowTypes)) {
     if (!value.publicationDate || value.publicationDate.trim() === '') {
       errors.fields.publicationDate = 'Document publication date is required';
     }

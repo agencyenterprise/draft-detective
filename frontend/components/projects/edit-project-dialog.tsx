@@ -10,10 +10,10 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Callout } from '@/components/ui/callout';
+import { useExperimentalFeatures } from '@/context/experimental-features-context';
 import { GlobalFormValidationError, useForm } from '@tanstack/react-form';
 import { Project } from '@/lib/generated-api';
 import { InfoIcon } from 'lucide-react';
-import { featureFlags } from '@/lib/config';
 
 interface EditProjectDialogProps {
   isOpen: boolean;
@@ -55,6 +55,7 @@ export function EditProjectDialog({
   onCancel,
   isSubmitting = false,
 }: EditProjectDialogProps) {
+  const { showExperimentalFeatures } = useExperimentalFeatures();
   const form = useForm({
     defaultValues: {
       title: project.title || '',
@@ -108,7 +109,7 @@ export function EditProjectDialog({
             )}
           </form.Field>
 
-          {featureFlags.showExperimentalFeatures && (
+          {showExperimentalFeatures && (
             <form.Field name="publication_date">
               {(field) => (
                 <div className="space-y-2">

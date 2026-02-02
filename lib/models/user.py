@@ -2,6 +2,7 @@ import uuid
 from datetime import datetime
 from enum import Enum
 
+from sqlalchemy import Boolean
 from sqlalchemy.dialects.postgresql import UUID
 from sqlmodel import Column, DateTime, Field, SQLModel, String
 from sqlmodel import Enum as SQLModelEnum
@@ -42,4 +43,8 @@ class User(SQLModel, table=True):
             onupdate=datetime.utcnow,
             nullable=False,
         )
+    )
+    show_experimental_features: bool = Field(
+        sa_column=Column(Boolean, nullable=False, default=False),
+        description="Whether the user has opted into experimental features",
     )

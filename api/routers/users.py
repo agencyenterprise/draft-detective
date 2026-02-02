@@ -7,9 +7,9 @@ from typing import List
 from fastapi import APIRouter, Depends
 
 from api.auth import get_current_user, require_admin
-from api.models import UpdateUserRoleRequest, UserResponse
+from api.models import UpdateUserPreferencesRequest, UpdateUserRoleRequest, UserResponse
 from lib.models.user import User
-from lib.services.users import get_all_users, update_user_role
+from lib.services.users import get_all_users, update_user_preferences, update_user_role
 
 router = APIRouter(prefix="/api/users", tags=["users"])
 
@@ -36,3 +36,15 @@ async def update_role(
     """Update a user's role (admin only)."""
     user = await update_user_role(user_id, request.role)
     return UserResponse.model_validate(user)
+
+
+@router.patch("/me/preferences", response_model=UserResponse)
+async def update_preferences(
+    request: UpdateUserPreferencesRequest,
+    user: User = Depends(get_current_user),
+) -> UserResponse:
+    """Update the current user's preferences."""
+    updated_user = await update_user_preferences(
+        str(user.id), request.show_experimental_features
+    )
+    return UserResponse.model_validate(updated_user)

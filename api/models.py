@@ -87,6 +87,7 @@ class UserResponse(BaseModel):
     email: str
     name: str
     role: UserRole
+    show_experimental_features: bool
 
     @field_validator("id", mode="before")
     @classmethod
@@ -103,6 +104,12 @@ class UpdateUserRoleRequest(BaseModel):
     """Request model for updating a user's role"""
 
     role: UserRole
+
+
+class UpdateUserPreferencesRequest(BaseModel):
+    """Request model for updating user preferences"""
+
+    show_experimental_features: bool
 
 
 class ApproveWorkflowResponse(BaseModel):
