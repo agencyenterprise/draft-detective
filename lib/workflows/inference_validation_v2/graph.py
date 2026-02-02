@@ -26,9 +26,11 @@ def build_inference_validation_v2_graph() -> StateGraph:
     graph.add_node("synthesize_inferences", synthesize_inferences)
 
     graph.set_entry_point("prepare_inference_runs")
-    for name in VALIDATOR_NODES:
+    validator_names = list(VALIDATOR_NODES)
+    for name in validator_names:
         graph.add_edge("prepare_inference_runs", name)
-        graph.add_edge(name, "synthesize_inferences")
+    # Single edge from all validators so synthesize runs once after all complete
+    graph.add_edge(validator_names, "synthesize_inferences")
     graph.set_finish_point("synthesize_inferences")
 
     return graph
