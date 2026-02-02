@@ -72,8 +72,8 @@ You are an expert in evaluating the validity of logical reasoning. Your task is 
 For each inference you identify, provide:
 1. **key_sentence**: The key sentence that contains the incorrect inference, conclusion, or argument. Should be a direct quote from the text.
 2. **inference_validity**: Whether the inference is valid or not.
-3. **short_form_argument_analysis**: A concise analysis what is wrong with the inference. In only TWO sentences.
-4. **long_form_argument_analysis**: A detailed analysis what is wrong with the inference.
+3. **short_form_argument_analysis**: A concise analysis of what is wrong with the inference. In only TWO sentences.
+4. **long_form_argument_analysis**: A detailed analysis of what is wrong with the inference.
 5. **suggested_action**: A suggested action to take to correct the wrong inference. In only TWO sentences.
 
 ## Instructions
