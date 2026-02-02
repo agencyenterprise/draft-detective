@@ -162,11 +162,12 @@ export function WorkflowTypeCheckbox({
                   <TooltipTrigger asChild>
                     <Badge variant="warning" className="flex items-center gap-1 text-xs">
                       <Files className="size-3" />
-                      Needs References
+                      Needs Full Text References
                     </Badge>
                   </TooltipTrigger>
                   <TooltipContent side="top" className="max-w-xs">
-                    This analysis requires reference documents. You can upload them or fetch from the web in Step 3.
+                    This analysis requires finding / uploading the full text of reference documents. You can upload them
+                    or fetch from the web in Step 3.
                   </TooltipContent>
                 </Tooltip>
               )}
