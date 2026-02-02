@@ -3,6 +3,8 @@ Advocacy and Tone Verifier Agent
 
 Verifies procedurally-flagged sentences using LLM to confirm and explain
 trigger words, advocacy language, or subjective tone issues.
+
+Check type configurations loaded from workflow_config.yaml.
 """
 
 from typing import List, Optional
@@ -12,6 +14,7 @@ from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
 
 from lib.config.llm_models import gpt_5_mini_model
+from lib.config.workflow_config import get_workflow_config
 from lib.models.agent import LangChainAgent
 from lib.workflows.advocacy_tone.state import AdvocacyToneCheckType
 
@@ -60,61 +63,23 @@ Important: Simple, factual mentions of legal terms or policies in an objective c
 """
 )
 
-CHECK_TYPE_CONFIGS = {
-    AdvocacyToneCheckType.TRIGGER_WORDS: {
-        "description": "legally sensitive language that requires special review before publication",
-        "definitions": """Legally Sensitive Language: Words or phrases that could imply legal risk, 
-liability, compliance, guarantees, obligations, punishments, or contractual commitments.
 
-Categories and examples include (but are not limited to):
-- Liability / Responsibility: liable, indemnify, responsible for damages, binding
-- Compliance / Legal Duty: must comply, mandatory, prohibited, illegal, unlawful
-- Enforcement / Punishment: penalty, punishable, fine, prosecution
-- Contractual Terms: agreement, terms and conditions, obligation
+def _build_check_type_configs() -> dict:
+    """Build check type configs from YAML."""
+    check_types = get_workflow_config("advocacy_tone", "check_types", {})
+    configs = {}
 
-Important exceptions to NOT flag:
-- Simple usage of "laws" in physics or natural sciences context
-- "Policy" in "policy researcher" or "policy research" context
-- Objective, factual descriptions like "the policy states" or "according to the law"
-- Academic discussion of legal concepts without advocacy""",
-    },
-    AdvocacyToneCheckType.ADVOCACY_LANGUAGE: {
-        "description": "normative advocacy that should be minimized in objective research",
-        "definitions": """Advocacy Language: Promotes a position, expresses approval/disapproval, 
-or calls for action without substantial facts or evidence. Neutral language is factual, 
-descriptive, or analytical.
+    for check_type in AdvocacyToneCheckType:
+        yaml_config = check_types.get(check_type.value, {})
+        configs[check_type] = {
+            "description": yaml_config.get("description", ""),
+            "definitions": yaml_config.get("definitions", ""),
+        }
 
-Examples of advocacy patterns to flag:
-- Strong recommendations: "we should", "we must", "must ensure", "have to", "need to"
-- Imperative framing: "it is essential that", "it is imperative that", "it is our duty to"
-- Calls to action: "recommend that", "call for", "urge X to", "advocate for", "lobby for"
-- Strong evaluative: "critical to", "vital to", "of utmost importance", "unacceptable that"
-- Policy advocacy: "policy should", "should be adopted", "should be implemented"
+    return configs
 
-Important exceptions to NOT flag:
-- Recommendations backed by evidence with appropriate qualifiers
-- Standard academic conclusions section language
-- Hedged suggestions (e.g., "one possible approach might be")""",
-    },
-    AdvocacyToneCheckType.SUBJECTIVE_TONE: {
-        "description": "strong subjectivity not backed by facts or research",
-        "definitions": """Subjective Tone: Judgments, opinions, evaluations, or emotionally loaded 
-language that goes beyond neutral research reporting. Signals bias or advocacy instead of 
-objective description.
 
-Categories of subjective language to flag:
-- Positive/Negative evaluations: excellent, terrible, remarkable, inadequate, wonderful, awful
-- Emotive language: alarming, shocking, tragic, promising, catastrophic, outrageous
-- Persuasive/certainty cues: clearly, obviously, undoubtedly, certainly, definitely, absolutely
-- Overgeneralizations: everyone knows, always, never, unquestionably, indisputably
-
-Objective language (do NOT flag) is factual, descriptive, measurable, and backed by data:
-- "GDP grew by 3.2%"
-- "The survey included 200 respondents"
-- "The sample was drawn from three districts"
-- Evidence-backed evaluations with citations""",
-    },
-}
+CHECK_TYPE_CONFIGS = _build_check_type_configs()
 
 
 class AdvocacyToneVerifierAgent(LangChainAgent):

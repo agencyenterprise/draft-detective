@@ -1,4 +1,7 @@
-"""Preface requirement checker agent for validating preface section requirements."""
+"""Preface requirement checker agent for validating preface section requirements.
+
+Prompts loaded from workflow_config.yaml.
+"""
 
 from enum import StrEnum
 from typing import List, Optional
@@ -8,11 +11,8 @@ from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
 
 from lib.config.llm_models import gpt_5_mini_model
+from lib.config.workflow_config import get_workflow_config
 from lib.models.agent import LangChainAgent
-from lib.workflows.about_this.constants import (
-    FUNDING_STATEMENT_VARIANTS,
-    TASP_BOILERPLATE,
-)
 
 
 class PrefaceRequirementType(StrEnum):
@@ -29,7 +29,9 @@ class PrefaceRequirementType(StrEnum):
 class RequirementCheckResponse(BaseModel):
     """Response from LLM for a requirement check."""
 
-    passed: bool = Field(description="True if the requirement is satisfied, False otherwise")
+    passed: bool = Field(
+        description="True if the requirement is satisfied, False otherwise"
+    )
     explanation: str = Field(description="Brief explanation for the pass/fail decision")
     matched_index: int = Field(
         default=-1,
@@ -37,33 +39,17 @@ class RequirementCheckResponse(BaseModel):
     )
 
 
-# Unified config for sentence-level requirements: (description, prompt)
-SENTENCE_REQUIREMENT_CONFIG = {
-    PrefaceRequirementType.CONTEXT: (
-        "Establishes Context",
-        "Does the section establish the context that prompted the study? "
-        "Look for sentences that explain WHY this research was undertaken, "
-        "what problem or situation motivated it, or what circumstances led to this work.",
-    ),
-    PrefaceRequirementType.OBJECTIVES: (
-        "Explains Objectives",
-        "Does the section explain the publication's objectives? "
-        "Look for sentences that state WHAT this publication aims to achieve, "
-        "its goals, purpose, or what questions it seeks to answer.",
-    ),
-    PrefaceRequirementType.RELATIONSHIP: (
-        "Explains Relationship to RAND Work",
-        "Does the section explain the relationship of the publication to other RAND work? "
-        "Look for sentences that mention how this work relates to, builds upon, or complements "
-        "other RAND research, reports, or projects.",
-    ),
-    PrefaceRequirementType.AUDIENCE: (
-        "Identifies Intended Audience",
-        "Does the section identify the intended audience of the publication? "
-        "Look for sentences that specify WHO this publication is for, "
-        "such as policymakers, researchers, practitioners, or specific organizations.",
-    ),
-}
+def _build_sentence_config() -> dict:
+    """Build sentence requirement config from YAML."""
+    requirements = get_workflow_config("about_this", "requirements")
+    config = {}
+    for key, req in requirements.items():
+        if req.get("level") == "sentence" and req.get("prompt"):
+            config[key] = (req.get("name", ""), req.get("prompt", ""))
+    return config
+
+
+SENTENCE_REQUIREMENT_CONFIG = _build_sentence_config()
 
 _sentence_check_prompt = ChatPromptTemplate.from_template(
     """You are an impartial text analyzer verifying preface sections against publication requirements.
@@ -135,7 +121,9 @@ class PrefaceRequirementCheckerAgent(LangChainAgent):
     """Agent that checks preface section requirements."""
 
     name = "Preface Requirement Checker"
-    description = "Verifies if a preface section satisfies a specific publication requirement."
+    description = (
+        "Verifies if a preface section satisfies a specific publication requirement."
+    )
     model = gpt_5_mini_model
     temperature = 0.1
     output_schema = RequirementCheckResponse
@@ -145,39 +133,36 @@ class PrefaceRequirementCheckerAgent(LangChainAgent):
         prompt_kwargs: dict,
         config: Optional[RunnableConfig] = None,
     ) -> RequirementCheckResponse:
-        """Invoke the agent to check a specific requirement.
-
-        Expected prompt_kwargs:
-            - text_items: List[str] (list of sentences or paragraphs to check)
-            - requirement_type: PrefaceRequirementType (the requirement to check)
-        """
+        """Invoke the agent to check a specific requirement."""
         text_items: List[str] = prompt_kwargs["text_items"]
         requirement_type = prompt_kwargs["requirement_type"]
 
-        # Number the items for the prompt
         numbered_items = "\n".join(
             f"{i+1}. {item}" for i, item in enumerate(text_items)
         )
 
-        # Build the appropriate prompt based on requirement type
         if requirement_type == PrefaceRequirementType.SOURCE_TASP:
+            tasp_boilerplate = get_workflow_config("about_this", "tasp_boilerplate", "")
             messages = _paragraph_tasp_check_prompt.format_messages(
-                tasp_boilerplate=TASP_BOILERPLATE,
+                tasp_boilerplate=tasp_boilerplate,
                 numbered_items=numbered_items,
             )
         elif requirement_type == PrefaceRequirementType.SOURCE_FUNDING:
+            funding_variants_list = get_workflow_config(
+                "about_this", "funding_statement_variants", []
+            )
             funding_variants = "\n\n".join(
                 f"Pattern {i+1}:\n{variant}"
-                for i, variant in enumerate(FUNDING_STATEMENT_VARIANTS[:4])
+                for i, variant in enumerate(funding_variants_list[:4])
             )
             messages = _paragraph_funding_check_prompt.format_messages(
                 funding_variants=funding_variants,
                 numbered_items=numbered_items,
             )
         else:
-            # Sentence-level requirement - get config or use fallback
             description, prompt = SENTENCE_REQUIREMENT_CONFIG.get(
-                requirement_type, (requirement_type.value, "Check if the requirement is satisfied.")
+                requirement_type,
+                (requirement_type.value, "Check if the requirement is satisfied."),
             )
             messages = _sentence_check_prompt.format_messages(
                 requirement_description=description,
@@ -187,4 +172,3 @@ class PrefaceRequirementCheckerAgent(LangChainAgent):
 
         result = await self.llm.ainvoke(messages, config=config)
         return result
-

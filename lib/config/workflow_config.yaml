@@ -1,0 +1,215 @@
+# Workflow Configuration
+# ----------------------
+# Default configuration for document analysis workflows.
+# Customize these settings for your organization's needs.
+#
+# IMPORTANT: All keys are required. Missing keys will raise KeyError at startup.
+# Empty values ("" or []) are valid and disable the associated feature.
+
+workflows:
+  # =============================================================================
+  # ABOUT THIS (Preface/Introduction Section Analysis)
+  # =============================================================================
+  # Analyzes the preface or introduction section for required elements like
+  # context, objectives, and intended audience.
+  about_this:
+    # Section headers to search for when locating the preface/introduction.
+    # The workflow will look for sections with these exact headings (case-insensitive).
+    # Add your organization's preferred section titles here.
+    section_headers:
+      - "About This"
+      - "Preface"
+      - "Introduction"
+      - "Executive Summary"
+
+    # Required boilerplate text that must appear verbatim in the section.
+    # Used for compliance checks (e.g., TASP source attribution).
+    # Leave empty ("") to skip boilerplate validation.
+    # Example: "This publication was produced by the TASP Fellowship Program."
+    tasp_boilerplate: ""
+
+    # Acceptable funding statement variants. The section must contain at least
+    # one of these phrases to pass the funding disclosure check.
+    # Leave empty ([]) to skip funding statement validation.
+    # Example: ["This work was funded by", "Funding provided by", "Grant support from"]
+    funding_statement_variants: []
+
+    # Requirements define what the preface section should contain.
+    # Each requirement is checked via LLM analysis using the provided prompt.
+    # Fields:
+    #   - name: Full display name shown in reports
+    #   - short_name: Abbreviated name for compact UI displays
+    #   - description: Human-readable explanation of what's being checked
+    #   - level: Granularity of analysis ("sentence" or "section")
+    #   - prompt: LLM prompt template for evaluation
+    requirements:
+      context:
+        name: "Establishes Context"
+        short_name: "Context"
+        description: "Does the section establish the context for the study?"
+        level: "sentence"
+        prompt: >-
+          Does the section establish the context that prompted the study?
+          Look for sentences explaining WHY this work was undertaken.
+      objectives:
+        name: "Explains Objectives"
+        short_name: "Objectives"
+        description: "Does the section explain the objectives?"
+        level: "sentence"
+        prompt: >-
+          Does the section explain the publication's objectives?
+          Look for sentences stating WHAT this publication aims to achieve.
+      audience:
+        name: "Identifies Audience"
+        short_name: "Audience"
+        description: "Does the section identify the intended audience?"
+        level: "sentence"
+        prompt: >-
+          Does the section identify the intended audience?
+          Look for sentences specifying WHO this publication is for.
+
+  # =============================================================================
+  # ABOUT AUTHORS (Author Biography Analysis)
+  # =============================================================================
+  # Validates author biographies for consistency, completeness, and style
+  # compliance (sentence count, required information, etc.).
+  about_authors:
+    # Target number of sentences for each author biography.
+    # Biographies with more or fewer sentences will be flagged.
+    expected_sentence_count: 3
+
+    # URL to link authors to fellowship programs or organizational pages.
+    # Used when generating hyperlinks in author bio suggestions.
+    # Leave empty ("") if no fellowship URL is applicable.
+    # Example: "https://example.org/fellowship"
+    tasp_url: ""
+
+    # Regex patterns for sentences to exclude from the sentence count.
+    # Useful for ignoring boilerplate like "The author can be reached at..."
+    # Leave empty ([]) to count all sentences.
+    # Example: ["^The author can be reached", "^Contact:"]
+    ignore_sentence_patterns: []
+
+    # Rules define validation checks applied to each author biography.
+    # Fields:
+    #   - name: Full display name shown in reports
+    #   - short_name: Abbreviated name for compact UI displays
+    #   - description: Human-readable explanation of the rule
+    #   - prompt: (optional) LLM prompt for rules requiring AI evaluation
+    #             Use {author_text} placeholder for the biography text
+    rules:
+      rule_1_sentence_length:
+        name: "Sentence Count"
+        short_name: "Length"
+        description: "Bio should be concise"
+      rule_2_position_affiliation:
+        name: "Position & Affiliation"
+        short_name: "Position"
+        description: "Should include position and affiliation"
+        prompt: >-
+          Does the author description contain position and affiliation?
+
+          Respond with passed=true if present, passed=false otherwise.
+
+          Author description:
+          {author_text}
+      rule_3_research_focus:
+        name: "Research Focus"
+        short_name: "Focus"
+        description: "Should include research focus"
+        prompt: >-
+          Does the author description contain a research focus?
+
+          Respond with passed=true if present, passed=false otherwise.
+
+          Author description:
+          {author_text}
+
+    # Common abbreviations that should NOT be treated as sentence endings.
+    # The sentence splitter will keep these intact rather than breaking on the period.
+    # Add domain-specific abbreviations as needed.
+    abbreviations:
+      - "Ph.D."
+      - "M.D."
+      - "J.D."
+      - "M.S."
+      - "B.S."
+      - "M.A."
+      - "B.A."
+      - "Dr."
+      - "Mr."
+      - "Ms."
+      - "e.g."
+      - "i.e."
+      - "etc."
+
+  # =============================================================================
+  # ADVOCACY TONE (Writing Objectivity Analysis)
+  # =============================================================================
+  # Detects subjective language, unsupported claims, and advocacy patterns
+  # that may indicate bias in research writing.
+  advocacy_tone:
+    # TextBlob subjectivity threshold (0.0 = fully objective, 1.0 = fully subjective).
+    # Sentences scoring above this threshold are flagged for review.
+    # Lower values are stricter; 0.70 is a reasonable default for academic writing.
+    subjectivity_threshold: 0.70
+
+    # Number of surrounding chunks to include as context when verifying
+    # flagged text with the LLM. Higher values provide more context but
+    # increase token usage.
+    context_k: 2
+
+    # Trigger words that may indicate opinion rather than evidence-based claims.
+    # These words suggest certainty without proper hedging (e.g., "obviously",
+    # "clearly"). Flagged for human review to determine if evidence supports the claim.
+    trigger_words:
+      - "obviously"
+      - "clearly"
+      - "undoubtedly"
+      - "certainly"
+      - "definitely"
+      - "absolutely"
+      - "always"
+      - "never"
+
+    # Regex patterns for advocacy language (unsupported recommendations).
+    # Use word boundaries (\b) for precise matching.
+    # These patterns indicate the author is stating opinions rather than findings.
+    advocacy_patterns:
+      - "\\bwe believe\\b"
+      - "\\bin our opinion\\b"
+      - "\\bit is clear that\\b"
+      - "\\bwithout doubt\\b"
+      - "\\beveryone knows\\b"
+
+    # Section keywords to skip during analysis (case-insensitive substring match).
+    # Sections like references and acknowledgments naturally contain different
+    # language patterns and should be excluded from objectivity checks.
+    ignored_section_keywords:
+      - "author"
+      - "reference"
+      - "bibliography"
+      - "appendix"
+      - "acknowledgment"
+
+    # Metadata for different types of objectivity issues.
+    # Used to categorize and explain flagged content in reports.
+    # Fields:
+    #   - description: Short label for the issue type
+    #   - definitions: Detailed explanation shown to reviewers
+    check_types:
+      trigger_words:
+        description: "certainty language without evidence"
+        definitions: >-
+          Words implying certainty or universal truth without supporting
+          evidence. Academic writing should hedge claims appropriately.
+      advocacy_language:
+        description: "unsupported recommendations"
+        definitions: >-
+          Statements promoting positions without citing evidence.
+          Research should distinguish between findings and opinions.
+      subjective_tone:
+        description: "subjective evaluations"
+        definitions: >-
+          Value judgments or emotional language that may indicate bias.
+          Research writing should maintain neutral, evidence-based tone.
