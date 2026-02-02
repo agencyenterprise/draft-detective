@@ -5,6 +5,7 @@ import uuid
 import pytest
 
 from lib.models.workflow_run import WorkflowRunStatus, WorkflowRunType
+from lib.services.file_artifacts_service.mock import MockFileArtifactsService
 from lib.services.workflow_progress import get_workflow_progress
 from lib.services.workflow_runs import create_workflow_run
 from lib.workflows.context import ContextSchema
@@ -34,13 +35,17 @@ async def test_workflow_execution_tracks_progress():
     context = ContextSchema(
         workflow_run_id=str(workflow_run_id),
         project_id=None,
+        file_artifacts_service=MockFileArtifactsService(),
+        openai_api_key=None,
+        vector_store=None,
+        user_id=None,
     )
 
     # Verify context has workflow_run_id
     assert context.workflow_run_id == str(workflow_run_id)
 
     # Verify we can query progress (should be empty for now)
-    progress_list = get_workflow_progress(uuid.UUID(workflow_run_id))
+    progress_list = await get_workflow_progress(uuid.UUID(workflow_run_id))
     assert isinstance(progress_list, list)
 
     # The fact that we got here means:

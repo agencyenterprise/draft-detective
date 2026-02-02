@@ -12,10 +12,10 @@ from lib.agents.document_chunker_nltk import (
 from lib.services.docx.chunk_mapper import create_chunk_to_paragraph_mapping
 from lib.services.file_artifacts_service.mock import MockFileArtifactsService
 from lib.workflows.context import ContextSchema
-from lib.workflows.document_processing.nodes.split_into_chunks import (
+from lib.workflows.chunk_splitting.nodes.split_into_chunks import (
     convert_validate_documents_to_chunks,
 )
-from lib.workflows.document_processing.state import DocumentChunk
+from lib.workflows.chunk_splitting.state import DocumentChunk
 from tests.conftest import create_test_file_document_from_path, data_path
 
 
@@ -79,13 +79,21 @@ async def test_chunk_mapping_handles_empty_chunks():
         ValidatedDocument(
             page_content="",
             metadata=DocumentMetadata(
-                chunk_index=0, paragraph_index=0, chunk_index_within_paragraph=0
+                chunk_index=0,
+                paragraph_index=0,
+                chunk_index_within_paragraph=0,
+                start_line=1,
+                end_line=1,
             ),
         ),
         ValidatedDocument(
             page_content="Some actual content",
             metadata=DocumentMetadata(
-                chunk_index=1, paragraph_index=1, chunk_index_within_paragraph=0
+                chunk_index=1,
+                paragraph_index=1,
+                chunk_index_within_paragraph=0,
+                start_line=2,
+                end_line=2,
             ),
         ),
     ]
@@ -122,31 +130,51 @@ def test_duplicate_text_maps_to_correct_paragraphs():
         ValidatedDocument(
             page_content="I repeat myself",
             metadata=DocumentMetadata(
-                chunk_index=0, paragraph_index=0, chunk_index_within_paragraph=0
+                chunk_index=0,
+                paragraph_index=0,
+                chunk_index_within_paragraph=0,
+                start_line=1,
+                end_line=1,
             ),
         ),
         ValidatedDocument(
             page_content="forever",
             metadata=DocumentMetadata(
-                chunk_index=1, paragraph_index=0, chunk_index_within_paragraph=1
+                chunk_index=1,
+                paragraph_index=0,
+                chunk_index_within_paragraph=1,
+                start_line=1,
+                end_line=1,
             ),
         ),
         ValidatedDocument(
             page_content="Something else",
             metadata=DocumentMetadata(
-                chunk_index=2, paragraph_index=1, chunk_index_within_paragraph=0
+                chunk_index=2,
+                paragraph_index=1,
+                chunk_index_within_paragraph=0,
+                start_line=2,
+                end_line=2,
             ),
         ),
         ValidatedDocument(
             page_content="I repeat myself",  # Same text as chunk 0!
             metadata=DocumentMetadata(
-                chunk_index=3, paragraph_index=2, chunk_index_within_paragraph=0
+                chunk_index=3,
+                paragraph_index=2,
+                chunk_index_within_paragraph=0,
+                start_line=3,
+                end_line=3,
             ),
         ),
         ValidatedDocument(
             page_content="always",
             metadata=DocumentMetadata(
-                chunk_index=4, paragraph_index=2, chunk_index_within_paragraph=1
+                chunk_index=4,
+                paragraph_index=2,
+                chunk_index_within_paragraph=1,
+                start_line=3,
+                end_line=3,
             ),
         ),
     ]
