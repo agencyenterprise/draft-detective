@@ -1,6 +1,7 @@
 import { Markdown } from '@/components/markdown';
 import { getIssueId } from '@/lib/chunk-ids';
 import { DocumentIssue, SeverityEnum } from '@/lib/generated-api';
+import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { cn } from '@/lib/utils';
 import { CheckCircleIcon, CircleAlertIcon, MessageCircleWarningIcon, TriangleAlertIcon } from 'lucide-react';
 import { SeverityBadge } from './severity-badge';
@@ -37,6 +38,7 @@ export const severityColorMap: Record<
 
 export function DocumentIssueCard({ issue, onSelect }: DocumentIssueCardProps) {
   const { className, icon } = severityColorMap[issue.severity];
+  const { getWorkflowTypeName } = useWorkflowTypes();
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' || e.key === ' ') {
@@ -62,8 +64,11 @@ export function DocumentIssueCard({ issue, onSelect }: DocumentIssueCardProps) {
         </div>
         <SeverityBadge severity={issue.severity} hideIcon={true} />
       </div>
-      <p className="text-sm text-gray-700">{issue.description}</p>
+      <Markdown>{issue.description}</Markdown>
       <div className="flex items-center gap-2 justify-between">
+        <p className="text-xs text-muted-foreground italic flex items-center gap-1">
+          {getWorkflowTypeName(issue.type)}
+        </p>
         <p className="text-xs text-muted-foreground italic flex items-center gap-1">
           {issue.claim_index !== undefined && issue.claim_index !== null && <span>Claim {issue.claim_index + 1}</span>}
           {issue.chunk_index !== undefined && issue.chunk_index !== null && <span>Chunk {issue.chunk_index}</span>}
@@ -79,7 +84,7 @@ export interface DocumentIssueCardMinimalProps {
 
 export function DocumentIssueCardMinimal({ issue }: DocumentIssueCardMinimalProps) {
   const { className, icon } = severityColorMap[issue.severity];
-
+  const { getWorkflowTypeName } = useWorkflowTypes();
   return (
     <div className={cn('space-y-2 px-3 py-2 rounded-md', className)}>
       <div className="flex items-center gap-2">
@@ -87,6 +92,15 @@ export function DocumentIssueCardMinimal({ issue }: DocumentIssueCardMinimalProp
         <h4 className="font-medium">{issue.title}</h4>
       </div>
       <Markdown>{issue.description}</Markdown>
+      <div className="flex items-center gap-2 justify-between">
+        <p className="text-xs text-muted-foreground italic flex items-center gap-1">
+          {getWorkflowTypeName(issue.type)}
+        </p>
+        <p className="text-xs text-muted-foreground italic flex items-center gap-1">
+          {issue.claim_index !== undefined && issue.claim_index !== null && <span>Claim {issue.claim_index + 1}</span>}
+          {issue.chunk_index !== undefined && issue.chunk_index !== null && <span>Chunk {issue.chunk_index}</span>}
+        </p>
+      </div>
     </div>
   );
 }

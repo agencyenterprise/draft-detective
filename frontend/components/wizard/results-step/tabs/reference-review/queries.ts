@@ -1,11 +1,6 @@
 import { formatFileSize } from '@/components/analysis-form/utils';
 import { composeReferences } from '@/lib/composed-references';
-import {
-  BibliographyItemValidation,
-  ProjectDetailed,
-  ReferenceFetchStatus,
-  WorkflowRunType,
-} from '@/lib/generated-api';
+import { ProjectDetailed, ReferenceFetchStatus, ReferenceValidationItem, WorkflowRunType } from '@/lib/generated-api';
 import { getWorkflowRunByType } from '@/lib/workflow-state';
 import { useMemo } from 'react';
 import { ReferenceReviewItem } from './types';
@@ -32,10 +27,10 @@ export function useReferenceReviewReferences(projectDetail: ProjectDetailed | un
 
   // Create validation map from reference validation workflow (keyed by reference_id)
   const validationMap = useMemo(() => {
-    const map = new Map<string, BibliographyItemValidation>();
+    const map = new Map<string, ReferenceValidationItem>();
     referenceValidation?.state?.reference_validations?.forEach((v) => {
       if (v.reference_id) {
-        map.set(v.reference_id, v.validation_result);
+        map.set(v.reference_id, v);
       }
     });
     return map;

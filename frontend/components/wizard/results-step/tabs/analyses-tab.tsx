@@ -10,27 +10,27 @@
 
 import { Button } from '@/components/ui/button';
 import { StatusIndicator } from '@/components/ui/status-indicator';
-import { useShare } from '@/context/share-context';
-import { useWorkflowSelection } from './use-workflow-selection';
-import { WorkflowListSidebar } from './workflow-list-sidebar';
-import { WorkflowResultsContent } from './workflow-results-renderer';
 import { StartWorkflowButton } from '@/components/workflows/start-workflow-button';
 import { WorkflowConfigDialog, WorkflowConfigFormValues } from '@/components/workflows/workflow-config-dialog';
 import { WorkflowRunHistory } from '@/components/workflows/workflow-run-history';
+import { useShare } from '@/context/share-context';
 import { ProjectDetailed, startMultipleWorkflowsApiWorkflowsStartMultiplePost } from '@/lib/generated-api';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
-import { getDisplayStatus, getWorkflowTypeName } from '@/lib/workflow-state';
+import { getDisplayStatus } from '@/lib/workflow-state';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { formatDistanceToNow } from 'date-fns';
 import { PlusIcon } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { useWorkflowSelection } from './use-workflow-selection';
+import { WorkflowListSidebar } from './workflow-list-sidebar';
+import { WorkflowResultsContent } from './workflow-results-renderer';
 
 interface AnalysesTabProps {
   projectDetail: ProjectDetailed;
   readOnly?: boolean;
-  onNavigateToDocumentExplorer?: (chunkIndices?: number[]) => void;
-  onNavigateToReferences?: () => void;
+  onNavigateToDocumentExplorer: (chunkIndices?: number[]) => void;
+  onNavigateToReferences: () => void;
 }
 
 export function AnalysesTab({
@@ -45,7 +45,7 @@ export function AnalysesTab({
 
   const [isConfigDialogOpen, setIsConfigDialogOpen] = useState(false);
   const queryClient = useQueryClient();
-  const { isWorkflowTypeVisible } = useWorkflowTypes();
+  const { isWorkflowTypeVisible, getWorkflowTypeName } = useWorkflowTypes();
 
   const { selectedWorkflowType, selectedWorkflowRun, historyData, handleSelectWorkflowType, handleSelectRun } =
     useWorkflowSelection({

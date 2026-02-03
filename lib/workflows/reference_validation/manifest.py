@@ -8,6 +8,7 @@ from lib.workflows.reference_extraction.state import ReferenceExtractionState
 from lib.workflows.reference_validation.graph import build_reference_validation_graph
 from lib.workflows.reference_validation.state import (
     ReferenceValidationState,
+    ReferenceValidationStatus,
     ReferenceValidationWorkflowConfig,
 )
 from lib.workflows.types import WorkflowState
@@ -83,13 +84,20 @@ class ReferenceValidationManifest(
                 ref_to_chunks[ref.text] = ref.chunk_indices
 
         for validation in state.reference_validations:
-            chunk_indices = ref_to_chunks.get(validation.original_reference, [])
+            # Only process completed validations with results
+            if validation.status != ReferenceValidationStatus.COMPLETED:
+                continue
+            if validation.validation_result is None:
+                continue
+
+            result = validation.validation_result
+            chunk_indices = ref_to_chunks.get(result.original_reference, [])
             chunk_index = chunk_indices[0] if chunk_indices else None
 
-            if not validation.valid_reference:
+            if not result.valid_reference:
                 issue = DocumentIssue(
                     title="Invalid reference",
-                    description=f'Possible invalid reference: "{validation.original_reference}"',
+                    description=f'Possible invalid reference: "{result.original_reference}"',
                     severity=SeverityEnum.MEDIUM,
                     type=self.type,
                     chunk_index=chunk_index,
@@ -97,12 +105,12 @@ class ReferenceValidationManifest(
                 )
                 issues.append(issue)
 
-            if validation.cited_url and validation.url != validation.cited_url:
+            if result.cited_url and result.url != result.cited_url:
                 issue = DocumentIssue(
                     title="URL redirect detected",
                     description=(
                         f"Cited URL redirects to a different location. "
-                        f"Cited: {validation.cited_url} → Canonical: {validation.url}"
+                        f"Cited: {result.cited_url} → Canonical: {result.url}"
                     ),
                     severity=SeverityEnum.MEDIUM,
                     type=self.type,

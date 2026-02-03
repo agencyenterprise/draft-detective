@@ -1,8 +1,10 @@
 """Service layer for workflow progress tracking."""
 
+import asyncio
 import logging
 import uuid
 from datetime import datetime
+from functools import lru_cache
 from typing import List, Optional
 
 from sqlalchemy import select
@@ -14,6 +16,15 @@ from lib.models.workflow_progress import ProgressLevel, WorkflowProgress
 from lib.models.workflow_run import WorkflowRun
 
 logger = logging.getLogger(__name__)
+
+
+@lru_cache(maxsize=256)
+def _get_progress_lock(workflow_run_id: uuid.UUID, name: str) -> asyncio.Lock:
+    """Get or create a lock for a specific (workflow_run_id, name) combination.
+
+    Uses LRU cache to automatically evict old locks and prevent unbounded memory growth.
+    """
+    return asyncio.Lock()
 
 
 async def create_and_start_progress(
@@ -62,6 +73,10 @@ async def get_or_create_progress(
 
     This enables automatic batching of parallel nodes with the same name.
 
+    Uses an asyncio lock to prevent race conditions when multiple parallel nodes
+    try to create progress entries simultaneously. The lock serializes access
+    so only one coroutine can create/update at a time for a given key.
+
     Args:
         workflow_run_id: ID of the workflow run
         name: Human-readable name
@@ -70,38 +85,38 @@ async def get_or_create_progress(
     Returns:
         UUID of the progress entry (existing or newly created)
     """
-    async with get_async_db_session() as session:
-        # Find existing active progress with same name
-        stmt = (
-            select(WorkflowProgress)
-            .where(
+
+    lock = _get_progress_lock(workflow_run_id, name)
+
+    async with lock:
+        async with get_async_db_session() as session:
+            # Find existing active progress with same name
+            stmt = select(WorkflowProgress).where(
                 col(WorkflowProgress.workflow_run_id) == workflow_run_id,
                 col(WorkflowProgress.name) == name,
                 col(WorkflowProgress.completed_at).is_(None),
             )
-            .with_for_update()  # Lock row to prevent race conditions
-        )
-        result = await session.execute(stmt)
-        existing = result.scalar_one_or_none()
+            result = await session.execute(stmt)
+            existing = result.scalar_one_or_none()
 
-        if existing:
-            # Increment total_steps for the batch
-            existing.total_steps += 1
+            if existing:
+                # Increment total_steps for the batch
+                existing.total_steps += 1
+                await session.commit()
+                return existing.id
+
+            # Create new progress entry
+            progress = WorkflowProgress(
+                workflow_run_id=workflow_run_id,
+                name=name,
+                level=level,
+                total_steps=1,
+                started_at=datetime.utcnow(),
+            )
+            session.add(progress)
             await session.commit()
-            return existing.id
-
-        # Create new progress entry
-        progress = WorkflowProgress(
-            workflow_run_id=workflow_run_id,
-            name=name,
-            level=level,
-            total_steps=1,
-            started_at=datetime.utcnow(),
-        )
-        session.add(progress)
-        await session.commit()
-        await session.refresh(progress)
-        return progress.id
+            await session.refresh(progress)
+            return progress.id
 
 
 async def _get_progress_by_id(
