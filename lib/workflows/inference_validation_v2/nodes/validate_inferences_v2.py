@@ -38,7 +38,9 @@ async def _run_single_validator(
 
     agent = InferenceValidatorV2Agent(runtime.context)
     try:
-        response = await agent.ainvoke({"text": markdown})
+        response = await agent.ainvoke(
+            {"text": markdown}, config={"run_index": run_index}
+        )
         return {"validator_results": {run_index: response}}
     except Exception as e:
         logger.error(
