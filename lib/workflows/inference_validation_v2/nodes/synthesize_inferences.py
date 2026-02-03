@@ -5,7 +5,6 @@ from langgraph.runtime import Runtime
 
 from lib.agents.inference_synthesizer import InferenceSynthesizerAgent
 from lib.agents.inference_validator_v2 import InferenceResultResponse
-from lib.agents.inference_synthesizer import ConsolidatedInferenceResultResponse
 from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
 from lib.workflows.inference_validation_v2.nodes.validate_inferences_v2 import (
