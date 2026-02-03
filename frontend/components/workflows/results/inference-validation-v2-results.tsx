@@ -72,15 +72,15 @@ export function InferenceValidationV2Results({
           Found {invalidInferences.length} inference {invalidInferences.length === 1 ? 'issue' : 'issues'}
         </span>
         <div className="flex gap-2">
-          {severityCounts[SeverityEnum.High] > 0 && (
+          {(severityCounts[SeverityEnum.High] ?? 0) > 0 && (
             <Badge variant="destructive" className="bg-red-600">
               {severityCounts[SeverityEnum.High]} High
             </Badge>
           )}
-          {severityCounts[SeverityEnum.Medium] > 0 && (
+          {(severityCounts[SeverityEnum.Medium] ?? 0) > 0 && (
             <Badge className="bg-yellow-600 text-white">{severityCounts[SeverityEnum.Medium]} Medium</Badge>
           )}
-          {severityCounts[SeverityEnum.Low] > 0 && (
+          {(severityCounts[SeverityEnum.Low] ?? 0) > 0 && (
             <Badge className="bg-blue-600 text-white">{severityCounts[SeverityEnum.Low]} Low</Badge>
           )}
         </div>
@@ -90,7 +90,7 @@ export function InferenceValidationV2Results({
       <div className="space-y-3">
         {results.map((analysis, index) => (
           <InferenceAnalysisCard
-            key={index}
+            key={`${analysis.start_line}-${analysis.end_line}-${index}`}
             analysis={analysis}
             index={index}
             onNavigateToDocumentExplorer={onNavigateToDocumentExplorer}
