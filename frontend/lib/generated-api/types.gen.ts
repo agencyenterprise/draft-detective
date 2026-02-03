@@ -1496,62 +1496,6 @@ export const ConfidenceInRecommendation = {
 export type ConfidenceInRecommendation = (typeof ConfidenceInRecommendation)[keyof typeof ConfidenceInRecommendation];
 
 /**
- * ConsolidatedInferenceAnalysis
- *
- * The consolidated result of the inference check.
- */
-export type ConsolidatedInferenceAnalysis = {
-  /**
-   * Key Sentence
-   *
-   * The key sentence that contains the incorrect inference, conclusion, or argument. Should be a direct quote from the text.
-   */
-  key_sentence: string;
-  /**
-   * The severity level of the inference analysis. HIGH if the inference problem leads the conclusion to be completely invalid. MEDIUM if the inference problem weakens the justification for the conclusion. LOW if the inference problem is a minor/tangential issue that does not significantly weaken the justification for the conclusion.
-   */
-  severity: SeverityEnum;
-  /**
-   * Inference Validity
-   *
-   * Whether the inference is valid or not.
-   */
-  inference_validity: boolean;
-  /**
-   * Short Form Argument Analysis
-   *
-   * A concise analysis what is wrong with the inference. In only TWO sentences.
-   */
-  short_form_argument_analysis: string;
-  /**
-   * Long Form Argument Analysis
-   *
-   * A detailed analysis what is wrong with the inference.
-   */
-  long_form_argument_analysis: string;
-  /**
-   * Suggested Action
-   *
-   * A suggested action to take to correct the wrong inference. In only TWO sentences.
-   */
-  suggested_action: string;
-};
-
-/**
- * ConsolidatedInferenceResultResponse
- *
- * Response containing the consolidated result of the inference check.
- */
-export type ConsolidatedInferenceResultResponse = {
-  /**
-   * Results
-   *
-   * The result of the inference check
-   */
-  results: Array<ConsolidatedInferenceAnalysis>;
-};
-
-/**
  * DoclingDocument
  *
  * Raw Docling json_content passed through to frontend
@@ -2015,6 +1959,80 @@ export type EvidenceWeighterResponseWithClaimIndex = {
    * Claim Index
    */
   claim_index: number;
+};
+
+/**
+ * ExtractedInferenceResult
+ *
+ * An inference result with document-derived chunk indices.
+ */
+export type ExtractedInferenceResult = {
+  /**
+   * Key Sentence
+   *
+   * The key sentence that contains the incorrect inference, conclusion, or argument. Should be a direct quote from the text.
+   */
+  key_sentence: string;
+  /**
+   * The severity level of the inference analysis. HIGH if the inference problem leads the conclusion to be completely invalid. MEDIUM if the inference problem weakens the justification for the conclusion. LOW if the inference problem is a minor/tangential issue that does not significantly weaken the justification for the conclusion.
+   */
+  severity: SeverityEnum;
+  /**
+   * Inference Validity
+   *
+   * Whether the inference is valid or not.
+   */
+  inference_validity: boolean;
+  /**
+   * Short Form Argument Analysis
+   *
+   * A concise analysis what is wrong with the inference. In only TWO sentences.
+   */
+  short_form_argument_analysis: string;
+  /**
+   * Long Form Argument Analysis
+   *
+   * A detailed analysis what is wrong with the inference.
+   */
+  long_form_argument_analysis: string;
+  /**
+   * Suggested Action
+   *
+   * A suggested action to take to correct the wrong inference. In only TWO sentences.
+   */
+  suggested_action: string;
+  /**
+   * Start Line
+   *
+   * The starting line number of the key sentence in the full document.
+   */
+  start_line: number;
+  /**
+   * End Line
+   *
+   * The ending line number of the key sentence in the full document.
+   */
+  end_line: number;
+  /**
+   * Chunk Indices
+   *
+   * Chunk indices that overlap with the inference (by line range).
+   */
+  chunk_indices?: Array<number>;
+};
+
+/**
+ * ExtractedInferenceResultResponse
+ *
+ * Response containing extracted inference results with chunk indices.
+ */
+export type ExtractedInferenceResultResponse = {
+  /**
+   * Results
+   *
+   * Consolidated inference results with line and chunk info.
+   */
+  results: Array<ExtractedInferenceResult>;
 };
 
 /**
@@ -2779,7 +2797,7 @@ export type InferenceValidationV2State = {
   /**
    * Consolidated inference analysis result with severity
    */
-  inference_results?: ConsolidatedInferenceResultResponse | null;
+  inference_results?: ExtractedInferenceResultResponse | null;
 };
 
 /**

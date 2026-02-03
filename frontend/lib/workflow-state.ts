@@ -85,7 +85,7 @@ const workflowTypeNames: Record<WorkflowRunType, string> = {
   [WorkflowRunType.MethodologicalAlignment]: 'Methodological Alignment',
   [WorkflowRunType.ReferenceDownloader]: 'Reference Downloader',
   [WorkflowRunType.InferenceValidation]: 'Inference Validation',
-  [WorkflowRunType.InferenceValidationV2]: 'Inference Validation (Full Document)',
+  [WorkflowRunType.InferenceValidationV2]: 'Inference Validation V2',
   [WorkflowRunType.LiteratureReview]: 'Literature Review',
   [WorkflowRunType.LiveReports]: 'Live Reports',
   [WorkflowRunType.ReferenceValidation]: 'Reference Validation',
