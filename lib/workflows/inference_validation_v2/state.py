@@ -1,4 +1,4 @@
-from typing import Annotated, Dict, Literal, Optional
+from typing import Annotated, Dict, Literal, Optional, List
 
 from pydantic import Field
 
@@ -6,7 +6,6 @@ from lib.agents.inference_synthesizer import (
     ConsolidatedInferenceAnalysis,
     ConsolidatedInferenceResultResponse,
 )
-from typing import List
 from lib.agents.inference_validator_v2 import InferenceResultResponse
 from lib.workflows.models import BaseWorkflowConfig, BaseWorkflowState, WorkflowRunType
 
