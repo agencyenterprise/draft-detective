@@ -1,13 +1,12 @@
 'use client';
 
 import { Markdown } from '@/components/markdown';
-import { NavigateToChunkButton } from '@/components/shared/navigate-to-chunk-button';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Callout } from '@/components/ui/callout';
 import { SeverityBadge } from '@/components/wizard/results-step/components/severity-badge';
 import {
-  ExtractedInferenceResult,
+  ConsolidatedInferenceAnalysis,
   InferenceValidationV2State,
   SeverityEnum,
   WorkflowRunDetail,
@@ -18,13 +17,9 @@ import { useState } from 'react';
 
 interface InferenceValidationV2ResultsProps {
   workflowDetail: WorkflowRunDetail;
-  onNavigateToDocumentExplorer?: (chunkIndices?: number[]) => void;
 }
 
-export function InferenceValidationV2Results({
-  workflowDetail,
-  onNavigateToDocumentExplorer,
-}: InferenceValidationV2ResultsProps) {
+export function InferenceValidationV2Results({ workflowDetail }: InferenceValidationV2ResultsProps) {
   const state = workflowDetail.state as InferenceValidationV2State;
 
   if (!state) {
@@ -72,15 +67,15 @@ export function InferenceValidationV2Results({
           Found {invalidInferences.length} inference {invalidInferences.length === 1 ? 'issue' : 'issues'}
         </span>
         <div className="flex gap-2">
-          {(severityCounts[SeverityEnum.High] ?? 0) > 0 && (
+          {severityCounts[SeverityEnum.High] > 0 && (
             <Badge variant="destructive" className="bg-red-600">
               {severityCounts[SeverityEnum.High]} High
             </Badge>
           )}
-          {(severityCounts[SeverityEnum.Medium] ?? 0) > 0 && (
+          {severityCounts[SeverityEnum.Medium] > 0 && (
             <Badge className="bg-yellow-600 text-white">{severityCounts[SeverityEnum.Medium]} Medium</Badge>
           )}
-          {(severityCounts[SeverityEnum.Low] ?? 0) > 0 && (
+          {severityCounts[SeverityEnum.Low] > 0 && (
             <Badge className="bg-blue-600 text-white">{severityCounts[SeverityEnum.Low]} Low</Badge>
           )}
         </div>
@@ -89,12 +84,7 @@ export function InferenceValidationV2Results({
       {/* Results list */}
       <div className="space-y-3">
         {results.map((analysis, index) => (
-          <InferenceAnalysisCard
-            key={`${analysis.start_line}-${analysis.end_line}-${index}`}
-            analysis={analysis}
-            index={index}
-            onNavigateToDocumentExplorer={onNavigateToDocumentExplorer}
-          />
+          <InferenceAnalysisCard key={index} analysis={analysis} index={index} />
         ))}
       </div>
     </div>
@@ -102,12 +92,11 @@ export function InferenceValidationV2Results({
 }
 
 interface InferenceAnalysisCardProps {
-  analysis: ExtractedInferenceResult;
+  analysis: ConsolidatedInferenceAnalysis;
   index: number;
-  onNavigateToDocumentExplorer?: (chunkIndices?: number[]) => void;
 }
 
-function InferenceAnalysisCard({ analysis, index, onNavigateToDocumentExplorer }: InferenceAnalysisCardProps) {
+function InferenceAnalysisCard({ analysis, index }: InferenceAnalysisCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   return (
@@ -158,10 +147,6 @@ function InferenceAnalysisCard({ analysis, index, onNavigateToDocumentExplorer }
         <blockquote className="border-l-2 border-muted-foreground/30 pl-3 text-sm italic text-muted-foreground">
           &ldquo;{analysis.key_sentence}&rdquo;
         </blockquote>
-
-        {onNavigateToDocumentExplorer && analysis.chunk_indices?.length && (
-          <NavigateToChunkButton onClick={() => onNavigateToDocumentExplorer(analysis.chunk_indices ?? [])} />
-        )}
 
         <p className="text-sm">{analysis.short_form_argument_analysis}</p>
       </div>

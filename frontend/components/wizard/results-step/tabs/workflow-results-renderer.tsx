@@ -57,12 +57,7 @@ function renderWorkflowResults(
     case WorkflowRunType.AboutThis:
       return <AboutThisResults project={project} />;
     case WorkflowRunType.InferenceValidationV2:
-      return (
-        <InferenceValidationV2Results
-          workflowDetail={workflowRun}
-          onNavigateToDocumentExplorer={onNavigateToDocumentExplorer}
-        />
-      );
+      return <InferenceValidationV2Results workflowDetail={workflowRun} />;
     case WorkflowRunType.InferenceValidation:
     case WorkflowRunType.ClaimReferenceValidation:
     case WorkflowRunType.AbbreviationScan:

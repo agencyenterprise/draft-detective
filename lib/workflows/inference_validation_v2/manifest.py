@@ -19,7 +19,7 @@ class InferenceValidationV2Manifest(
     WorkflowManifest[InferenceValidationV2State, InferenceValidationV2WorkflowConfig]
 ):
     type = WorkflowRunType.INFERENCE_VALIDATION_V2
-    name = "Inference Validation V2"
+    name = "Inference Validation (Full Document)"
     description = "Analyze the full document for invalid inferences. Identifies logical fallacies, unsupported conclusions, and faulty reasoning. Each finding includes the key sentence, argument analysis, and suggested correction."
     needs_web_search = False
     is_experimental = False
@@ -68,18 +68,12 @@ class InferenceValidationV2Manifest(
                     analysis.short_form_argument_analysis
                     or analysis.long_form_argument_analysis
                 )
-
-                # Use all chunk indices for highlighting, first one for backward compat
-                chunk_indices = analysis.chunk_indices if analysis.chunk_indices else []
-                chunk_index = chunk_indices[0] if chunk_indices else None
-
                 issues.append(
                     DocumentIssue(
                         title="Invalid Inference",
                         description=description,
                         severity=analysis.severity,
-                        chunk_index=chunk_index,
-                        chunk_indices=chunk_indices,
+                        chunk_index=None,
                         claim_index=None,
                     )
                 )
