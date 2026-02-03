@@ -55,17 +55,21 @@ async def _run_single_validator(
 def _make_validator_node(run_index: int):
     """Factory: returns a registered validator node for the given run index."""
 
-    @register_node(
-        f"Validate inferences run {run_index}",
-        f"Run {run_index} of {NUM_VALIDATOR_RUNS} parallel inference validator runs.",
-    )
     async def node(
         state: InferenceValidationV2State, runtime: Runtime[ContextSchema]
     ) -> dict:
         return await _run_single_validator(state, runtime, run_index)
 
+    # Set __name__ before the decorator runs so agent_registry.register() and
+    # agents_to_run see "validate_inference_1" etc., not "node".
     node.__name__ = f"validate_inference_{run_index}"
-    return node
+
+    decorator = register_node(
+        f"Validate inferences run {run_index}",
+        f"Run {run_index} of {NUM_VALIDATOR_RUNS} parallel inference validator runs.",
+    )
+
+    return decorator(node)
 
 
 VALIDATOR_NODES = {
