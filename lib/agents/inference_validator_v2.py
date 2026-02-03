@@ -7,15 +7,12 @@ sentence, argument analysis, and suggested action. Ported from long_inference_ch
 
 from typing import Optional
 
-from langchain.agents import create_agent
-from langchain.chat_models import init_chat_model
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, ConfigDict, Field
 
 from lib.config.llm_models import gpt_5_mini_model
 from lib.models.agent import LangChainAgent
-from lib.workflows.context import ContextSchema
 
 import logging
 
@@ -109,16 +106,7 @@ class InferenceValidatorV2Agent(LangChainAgent):
     model = gpt_5_mini_model
     temperature = 0.2
     output_schema = InferenceResultResponse
-
-    def create_llm(self):
-        llm = init_chat_model(
-            self.model.model_name,
-            temperature=self.temperature,
-            timeout=self.timeout,
-            api_key=self.context.openai_api_key,
-            reasoning={"effort": "low", "summary": "auto"},
-        )
-        return llm.with_structured_output(InferenceResultResponse)
+    reasoning = {"effort": "low", "summary": "auto"}
 
     async def ainvoke(
         self,

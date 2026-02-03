@@ -97,16 +97,7 @@ class ReferenceFetcherAgent(LangChainAgent):
     description = "Fetch a reference from the internet"
     model = gpt_5_2_model
     temperature = 0.0
-    output_schema = ReferenceFetchItem
-
-    def create_llm(self):
-        return init_chat_model(
-            self.model.model_name,
-            temperature=self.temperature,
-            timeout=self.timeout,
-            api_key=self.context.openai_api_key,
-            reasoning={"effort": "low", "summary": "auto"},
-        )
+    reasoning = {"effort": "low", "summary": "auto"}
 
     async def ainvoke(
         self,
@@ -118,9 +109,9 @@ class ReferenceFetcherAgent(LangChainAgent):
         agent = create_agent(
             self.llm,
             [{"type": "web_search"}, download_file_from_url, read_file_content],
-            context_schema=ContextSchema,
             system_prompt=system_prompt.text,
-            response_format=self.output_schema,
+            context_schema=ContextSchema,
+            response_format=ReferenceFetchItem,
         ).with_retry(stop_after_attempt=2)
 
         user_message = input.reference
