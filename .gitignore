@@ -31,3 +31,6 @@ trivy-*.sarif
 
 # personal rand files
 rand-personal/
+
+# cursor plans
+.cursor/plans/
