@@ -77,7 +77,7 @@ You are given three independent inference-check results for the same document in
 1. Merge findings that refer to the same inference (same key sentence or same underlying issue). Treat paraphrased or semantically equivalent key sentences as the same finding.
 2. Re-evaluate the merged findings to determine if they are valid and should be kept as inference analyses for the document. Analyses that are determined as invalid should be dropped as problems. Analyses that are determined to be valid should be kept as inference analyses for the document.
 3. Determine the severity level of the inference analysis. HIGH if the inference problem leads the conclusion to be completely invalid. MEDIUM if the inference problem weakens the justification for the conclusion. LOW if the inference problem is a minor/tangential issue that does not significantly weaken the justification for the conclusion.
-4. Output a single list in the exact schema: each item has key_sentence, inference_validity, short_form_argument_analysis, long_form_argument_analysis, and suggested_action. Keep analyses concise (e.g., two sentences where specified).
+4. Output a single list in the exact schema: each item has key_sentence, inference_validity, severity, short_form_argument_analysis, long_form_argument_analysis, and suggested_action. Keep analyses concise (e.g., two sentences where specified).
 5. If all three runs found no issues, output an empty list. Do not invent findings.
 
 When merging findings, ask yourself the following questions:
