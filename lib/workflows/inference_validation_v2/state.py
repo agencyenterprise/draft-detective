@@ -23,7 +23,7 @@ class ExtractedInferenceResultResponse(ConsolidatedInferenceResultResponse):
     """Response containing extracted inference results with chunk indices."""
 
     results: List[ExtractedInferenceResult] = Field(
-        description="Consolidated inference results with line and chunk info.",
+        description="Extracted inference results with chunk indices and severity.",
     )
 
 
@@ -56,7 +56,7 @@ class InferenceValidationV2State(BaseWorkflowState):
 
     inference_results: Optional[ExtractedInferenceResultResponse] = Field(
         default=None,
-        description="Consolidated inference analysis result with severity",
+        description="Extracted inference analysis result with chunk indices and severity",
     )
 
 
