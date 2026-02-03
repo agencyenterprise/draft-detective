@@ -132,7 +132,7 @@ async def get_project_detailed_from_project(
     # Clear out some heavy data from the workflow runs to reduce payload size
     # TODO: we should have a better way to do this
     for run in workflow_runs:
-        if run.run.type == WorkflowRunType.DOCUMENT_PROCESSING:
+        if run.run.type == WorkflowRunType.DOCUMENT_PROCESSING and run.state.file:
             run.state.file.markdown = None
             for supporting_file in run.state.supporting_files:
                 supporting_file.markdown = None

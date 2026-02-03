@@ -1,15 +1,11 @@
 'use client';
 
 import { AiGeneratedLabel } from '@/components/ai-generated-label';
-import { SectionNotFoundCallout } from '@/components/shared/section-not-found-callout';
 import { SkeletonList } from '@/components/ui/skeleton-list';
 import { useChunkHashNavigation } from '@/lib/chunk-ids';
 import { DocRenderMode } from '@/lib/constants';
 import { DocumentIssue, ProjectDetailed, SeverityEnum, WorkflowRunType } from '@/lib/generated-api';
 import {
-  getAboutAuthorsWarningStatus,
-  getAboutThisWarningStatus,
-  getReferenceExtractionWarningStatus,
   getWorkflowErrors,
   getWorkflowRunByType,
   isAnyWorkflowProcessing,
@@ -87,9 +83,6 @@ export function DocumentExplorerTab({
 
   const isDoclingAvailable = Boolean(pages && pages.length > 0 && Object.keys(chunkToItems).length > 0);
   const filteredIssues = filterIssuesByWorkflowType(filterIssuesBySeverity(issues, severityFilter), workflowTypeFilter);
-  const referenceWarning = getReferenceExtractionWarningStatus(workflowDetails);
-  const prefaceWarning = getAboutThisWarningStatus(workflowDetails);
-  const authorsWarning = getAboutAuthorsWarningStatus(workflowDetails);
 
   if (isDocumentProcessing && !hasChunks) {
     return (
@@ -145,23 +138,6 @@ export function DocumentExplorerTab({
             <span>for details.</span>
           </div>
         </div>
-      )}
-
-      {referenceWarning?.showWarning && (
-        <SectionNotFoundCallout
-          type="references"
-          hasErrors={referenceWarning.hasErrors}
-          sectionsDetectedButEmpty={referenceWarning.sectionsDetected}
-          className="mb-4"
-        />
-      )}
-
-      {prefaceWarning?.showWarning && (
-        <SectionNotFoundCallout type="preface" hasErrors={prefaceWarning.hasErrors} className="mb-4" />
-      )}
-
-      {authorsWarning?.showWarning && (
-        <SectionNotFoundCallout type="authors" hasErrors={authorsWarning.hasErrors} className="mb-4" />
       )}
 
       <div className="grid grid-cols-12 gap-4 flex-1 min-h-0">
