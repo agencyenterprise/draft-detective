@@ -132,19 +132,18 @@ function ReferencesReady({ project }: { project: ProjectDetailed }) {
           We found references in your document. To validate claims against their sources, upload the full-text PDFs of
           the cited papers — or let us fetch them from the web.
         </p>
+        <p className="text-sm text-muted-foreground">
+          <strong>Note:</strong> Claims citing references without matched documents will be skipped during validation.
+          You can always add more source documents later from the project page.
+        </p>
       </div>
 
       <ReferenceReviewTab projectId={projectId} />
 
-      <div className="space-y-2">
-        <Button onClick={() => approveMutation.mutate()} disabled={isDisabled} size="lg" className="w-full">
-          {isDisabled && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
-          {buttonText}
-        </Button>
-        <p className="text-xs text-center text-muted-foreground">
-          You can always add more source documents later from the project page.
-        </p>
-      </div>
+      <Button onClick={() => approveMutation.mutate()} disabled={isDisabled} size="lg" className="w-full">
+        {isDisabled && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+        {buttonText}
+      </Button>
     </div>
   );
 }

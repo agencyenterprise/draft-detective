@@ -13,6 +13,11 @@ logger = logging.getLogger(__name__)
 _workflow_manifest_registry: Dict[WorkflowRunType, WorkflowManifest] = {}
 
 
+def get_all_manifests() -> Dict[WorkflowRunType, WorkflowManifest]:
+    """Get all registered workflow manifests."""
+    return dict(_workflow_manifest_registry)
+
+
 def register_workflow_manifest(manifest: WorkflowManifest) -> None:
     """
     Register a workflow manifest.

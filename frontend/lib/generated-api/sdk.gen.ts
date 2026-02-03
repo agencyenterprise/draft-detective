@@ -454,13 +454,16 @@ export const approveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePost = <ThrowO
 /**
  * Get Workflow Types
  *
- * List all available workflow types including internal ones.
+ * List available workflow types based on user permissions.
+ *
+ * QA Screener workflows are only visible to RAND and ADMIN roles.
  */
 export const getWorkflowTypesApiWorkflowTypesGet = <ThrowOnError extends boolean = true>(
   options?: Options<GetWorkflowTypesApiWorkflowTypesGetData, ThrowOnError>,
 ) =>
   (options?.client ?? client).get<GetWorkflowTypesApiWorkflowTypesGetResponses, unknown, ThrowOnError, 'data'>({
     responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/workflow-types',
     ...options,
   });

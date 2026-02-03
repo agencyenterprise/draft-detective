@@ -11,6 +11,7 @@ from sqlmodel import Enum as SQLModelEnum
 class UserRole(str, Enum):
     USER = "USER"
     ADMIN = "ADMIN"
+    RAND = "RAND"
 
 
 class User(SQLModel, table=True):
