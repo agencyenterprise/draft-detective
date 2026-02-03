@@ -121,6 +121,9 @@ class DocumentIssue(BaseModel):
     title: str = Field(description="The title of the issue")
     description: str = Field(description="The description of the issue")
     severity: SeverityEnum = Field(description="The severity of the issue")
+    type: WorkflowRunType = Field(
+        description="The workflow type that generated this issue"
+    )
     chunk_index: Optional[int] = Field(
         description="The index of the chunk that contains the issue (deprecated, use chunk_indices)",
         default=None,

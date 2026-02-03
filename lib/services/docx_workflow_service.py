@@ -5,26 +5,36 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 from lib.config.env import config as env_config
+from lib.models.workflow_run import WorkflowRunType
 from lib.services.docx.manipulator import docx_manipulator_service, issue_to_comment
 from lib.services.file_artifacts_service.file_artifacts_service import (
     FileArtifactsService,
 )
 from lib.services.issues import convert_to_issues
 from lib.services.workflow_runs import get_project_workflow_runs
+from lib.workflows.models import SeverityEnum
 
 logger = logging.getLogger(__name__)
 
 
 def get_cache_key(
-    project_id: str, share_token: Optional[str], severities: Optional[List[str]] = None
+    project_id: str,
+    share_token: Optional[str],
+    severities: Optional[List[SeverityEnum]] = None,
+    workflow_types: Optional[List[WorkflowRunType]] = None,
 ) -> str:
     """Generate cache key for DOCX file."""
     suffix = "shared" if share_token else "base"
+    key = f"{project_id}_{suffix}"
     if severities:
         # Sort for consistent cache keys regardless of order
-        severity_suffix = "_".join(sorted(severities))
-        return f"{project_id}_{suffix}_{severity_suffix}"
-    return f"{project_id}_{suffix}"
+        severity_suffix = "_".join(sorted(s.value for s in severities))
+        key = f"{key}_sev_{severity_suffix}"
+    if workflow_types:
+        # Sort for consistent cache keys regardless of order
+        workflow_suffix = "_".join(sorted(w.value for w in workflow_types))
+        key = f"{key}_wf_{workflow_suffix}"
+    return key
 
 
 def get_cached_docx_path(cache_key: str) -> Optional[Path]:
@@ -37,7 +47,8 @@ def get_cached_docx_path(cache_key: str) -> Optional[Path]:
 async def get_or_generate_docx(
     project_id: str,
     share_token: Optional[str],
-    severities: Optional[List[str]] = None,
+    severities: Optional[List[SeverityEnum]] = None,
+    workflow_types: Optional[List[WorkflowRunType]] = None,
     use_cache: bool = True,
 ) -> tuple[str, str]:
     """
@@ -46,14 +57,15 @@ async def get_or_generate_docx(
     Args:
         project_id: The project ID
         share_token: Optional share token for share links in comments
-        severities: Optional list of severity levels to filter issues (e.g., ["high", "medium"])
+        severities: Optional list of severity levels to filter issues
+        workflow_types: Optional list of workflow types to filter issues
         use_cache: Whether to use cached version if available
 
     Returns:
         tuple[str, str]: (file_path, filename)
     """
 
-    cache_key = get_cache_key(project_id, share_token, severities)
+    cache_key = get_cache_key(project_id, share_token, severities, workflow_types)
     cached_path = get_cached_docx_path(cache_key)
     file_artifacts_service = FileArtifactsService(project_id)
 
@@ -65,20 +77,22 @@ async def get_or_generate_docx(
         return str(cached_path), filename
 
     logger.info(f"Cache miss for {cache_key}, generating DOCX")
-    return await generate_docx(project_id, share_token, severities)
+    return await generate_docx(project_id, share_token, severities, workflow_types)
 
 
 async def generate_docx(
     project_id: str,
     share_token: Optional[str],
-    severities: Optional[List[str]] = None,
+    severities: Optional[List[SeverityEnum]] = None,
+    workflow_types: Optional[List[WorkflowRunType]] = None,
 ) -> tuple[str, str]:
     """Generate a DOCX file with AI-generated comments from workflow issues and chunks.
 
     Args:
         project_id: The project ID
         share_token: Optional share token for share links in comments
-        severities: Optional list of severity levels to filter issues (e.g., ["high", "medium"])
+        severities: Optional list of severity levels to filter issues
+        workflow_types: Optional list of workflow types to filter issues
 
     Returns:
         tuple[str, str]: (file_path, filename)
@@ -105,6 +119,10 @@ async def generate_docx(
     if severities:
         issues = [issue for issue in issues if issue.severity in severities]
 
+    # Filter issues by workflow type if specified
+    if workflow_types:
+        issues = [issue for issue in issues if issue.type in workflow_types]
+
     comments = [
         c
         for issue in issues
@@ -112,7 +130,7 @@ async def generate_docx(
     ]
 
     # Generate the DOCX with comments
-    output_id = get_cache_key(project_id, share_token, severities)
+    output_id = get_cache_key(project_id, share_token, severities, workflow_types)
     output_path = await docx_manipulator_service.add_comments_to_docx(
         original_docx_path=main_file.file_path,
         comments=comments,

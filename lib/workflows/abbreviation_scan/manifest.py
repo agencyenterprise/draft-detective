@@ -62,6 +62,7 @@ class AbbreviationScanManifest(
                     title="Abbreviation without definition found",
                     description=f"The abbreviation '{abbreviation.abbr}' was found without a definition. Please add a definition for this abbreviation.",
                     severity=SeverityEnum.LOW,
+                    type=self.type,
                     chunk_index=abbreviation.chunk_index,
                 )
                 issues.append(issue)

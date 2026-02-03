@@ -71,6 +71,7 @@ class InferenceValidationManifest(
                         title="Invalid Inference",
                         description=validation.rationale,
                         severity=SeverityEnum.MEDIUM,
+                        type=self.type,
                         chunk_index=validation.chunk_index,
                         claim_index=validation.claim_index,
                         claim_category=find_claim_category(

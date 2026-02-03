@@ -1669,6 +1669,10 @@ export type DocumentIssue = {
    */
   severity: SeverityEnum;
   /**
+   * The workflow type that generated this issue
+   */
+  type: WorkflowRunType;
+  /**
    * Chunk Index
    *
    * The index of the chunk that contains the issue (deprecated, use chunk_indices)
@@ -5715,9 +5719,15 @@ export type DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetData = {
     /**
      * Severities
      *
-     * Filter issues by severity levels (e.g., high, medium, low)
+     * Filter issues by severity levels
      */
-    severities?: Array<string> | null;
+    severities?: Array<SeverityEnum> | null;
+    /**
+     * Workflow Types
+     *
+     * Filter issues by workflow types
+     */
+    workflow_types?: Array<WorkflowRunType> | null;
   };
   url: '/api/projects/{project_id}/docx/download';
 };

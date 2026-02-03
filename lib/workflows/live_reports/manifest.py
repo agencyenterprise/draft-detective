@@ -66,6 +66,7 @@ class LiveReportsManifest(
                     title="Additional Citation Recommended",
                     description=live_report.rationale,
                     severity=SeverityEnum.MEDIUM,
+                    type=self.type,
                     chunk_index=live_report.chunk_index,
                     claim_index=live_report.claim_index,
                 )
@@ -78,6 +79,7 @@ class LiveReportsManifest(
                     title="Claim Update Recommended",
                     description=live_report.rationale,
                     severity=SeverityEnum.MEDIUM,
+                    type=self.type,
                     chunk_index=live_report.chunk_index,
                     claim_index=live_report.claim_index,
                 )

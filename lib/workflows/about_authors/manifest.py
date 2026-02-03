@@ -86,6 +86,7 @@ class AboutAuthorsManifest(
                     title=f"Author Bio Issue: {result.author_name}",
                     description=description,
                     severity=SeverityEnum.MEDIUM,
+                    type=self.type,
                     chunk_index=chunk_index,
                     chunk_indices=chunk_indices,
                 )

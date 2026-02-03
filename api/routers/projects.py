@@ -37,6 +37,7 @@ from lib.services.workflow_runs import (
     get_project_workflow_runs_by_type_with_details,
 )
 from lib.models.workflow_run import WorkflowRun, WorkflowRunType
+from lib.workflows.models import SeverityEnum
 
 router = APIRouter(tags=["projects"])
 logger = logging.getLogger(__name__)
@@ -134,9 +135,13 @@ async def download_project_docx(
         default=None,
         description="Share token to include share links in comments",
     ),
-    severities: Optional[List[str]] = Query(
+    severities: Optional[List[SeverityEnum]] = Query(
         default=None,
-        description="Filter issues by severity levels (e.g., high, medium, low)",
+        description="Filter issues by severity levels",
+    ),
+    workflow_types: Optional[List[WorkflowRunType]] = Query(
+        default=None,
+        description="Filter issues by workflow types",
     ),
     current_user: Optional[User] = Depends(get_current_user_optional),
 ):
@@ -145,7 +150,7 @@ async def download_project_docx(
 
     Uses cached version if available, otherwise generates via workflow.
     First request may take a few seconds as it generates the DOCX.
-    Subsequent requests with the same share_token and severities filter are instant.
+    Subsequent requests with the same share_token, severities, and workflow_types filters are instant.
     """
 
     await check_project_access(project_id, current_user, share_token)
@@ -156,6 +161,7 @@ async def download_project_docx(
             project_id=project_id,
             share_token=share_token,
             severities=severities,
+            workflow_types=workflow_types,
             use_cache=True,
         )
     except Exception as e:

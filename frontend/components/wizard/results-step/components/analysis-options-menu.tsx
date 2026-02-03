@@ -38,9 +38,16 @@ export interface AnalysisOptionsMenuProps {
   results: WorkflowRunDetail[];
   readOnly: boolean;
   severityFilter: SeverityEnum[];
+  workflowTypeFilter: WorkflowRunType[];
 }
 
-export function AnalysisOptionsMenu({ project, results, readOnly, severityFilter }: AnalysisOptionsMenuProps) {
+export function AnalysisOptionsMenu({
+  project,
+  results,
+  readOnly,
+  severityFilter,
+  workflowTypeFilter,
+}: AnalysisOptionsMenuProps) {
   const projectId = project.id;
   const share = useShareStatus(projectId, !readOnly);
   const shareContext = useShare();
@@ -53,9 +60,16 @@ export function AnalysisOptionsMenu({ project, results, readOnly, severityFilter
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
   const shareToken = share.shareStatus?.share_link?.token ?? shareContext.shareToken;
-  const { download, isDownloading } = useDownloadDocx({ projectId, shareToken, severities: severityFilter });
+  const { download, isDownloading } = useDownloadDocx({
+    projectId,
+    shareToken,
+    severities: severityFilter,
+    workflowTypes: workflowTypeFilter,
+  });
 
   const hasActiveSeverityFilter = severityFilter.length > 0 && severityFilter.length < 3;
+  const hasActiveWorkflowTypeFilter = workflowTypeFilter.length > 0;
+  const hasActiveFilter = hasActiveSeverityFilter || hasActiveWorkflowTypeFilter;
 
   const documentProcessing = getWorkflowRunByType(results, WorkflowRunType.DocumentProcessing);
   const mainFilePath = documentProcessing?.state?.file?.file_path.toLowerCase() ?? '';
@@ -92,7 +106,7 @@ export function AnalysisOptionsMenu({ project, results, readOnly, severityFilter
       const token = shareResponse?.share_link?.token;
       if (!token) throw new Error('Failed to create share token');
 
-      await downloadDocxFile(projectId, token, severityFilter);
+      await downloadDocxFile(projectId, token, severityFilter, workflowTypeFilter);
       toast.success('DOCX file downloaded successfully', { id: toastId });
     } catch (error) {
       console.error('Failed to enable sharing and download:', error);
@@ -113,7 +127,7 @@ export function AnalysisOptionsMenu({ project, results, readOnly, severityFilter
 
   // Show filter warning or execute download
   const proceedWithDownload = (withLinks: boolean) => {
-    if (hasActiveSeverityFilter) {
+    if (hasActiveFilter) {
       setPendingWithLinks(withLinks);
       setShowFilterWarning(true);
     } else {
@@ -210,6 +224,7 @@ export function AnalysisOptionsMenu({ project, results, readOnly, severityFilter
         open={showFilterWarning}
         onOpenChange={setShowFilterWarning}
         severityFilter={severityFilter}
+        workflowTypeFilter={workflowTypeFilter}
         onConfirm={() => {
           setShowFilterWarning(false);
           executeDownload(pendingWithLinks);
