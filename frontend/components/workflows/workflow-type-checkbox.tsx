@@ -54,6 +54,7 @@ const workflowTypeIcons: Record<WorkflowRunType, LucideIcon> = {
   [WorkflowRunType.CitationSuggester]: Lightbulb,
   [WorkflowRunType.ResultsExtraction]: BarChart3,
   [WorkflowRunType.InferenceValidation]: BrainCircuit,
+  [WorkflowRunType.InferenceValidationV2]: BrainCircuit,
   [WorkflowRunType.ClaimReferenceValidation]: ClipboardCheck,
   [WorkflowRunType.AbbreviationScan]: ALargeSmall,
   [WorkflowRunType.AdvocacyTone]: MessageSquareWarning,
