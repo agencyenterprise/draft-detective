@@ -70,7 +70,7 @@ class InferenceValidationV2Manifest(
                 )
 
                 # Use all chunk indices for highlighting, first one for backward compat
-                chunk_indices = analysis.chunk_indices if analysis.chunk_indices else []
+                chunk_indices = getattr(analysis, "chunk_indices", None) or []
                 chunk_index = chunk_indices[0] if chunk_indices else None
 
                 issues.append(
