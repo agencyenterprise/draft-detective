@@ -34,3 +34,10 @@ def build_inference_validation_v2_graph() -> StateGraph:
     graph.set_finish_point("synthesize_inferences")
 
     return graph
+
+
+if __name__ == "__main__":
+
+    builder = build_inference_validation_v2_graph()
+    graph = builder.compile()
+    graph.get_graph().draw_mermaid_png(output_file_path="inference_validation_v2.png")
