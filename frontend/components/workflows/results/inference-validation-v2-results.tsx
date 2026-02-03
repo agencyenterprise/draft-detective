@@ -1,12 +1,13 @@
 'use client';
 
 import { Markdown } from '@/components/markdown';
+import { NavigateToChunkButton } from '@/components/shared/navigate-to-chunk-button';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Callout } from '@/components/ui/callout';
 import { SeverityBadge } from '@/components/wizard/results-step/components/severity-badge';
 import {
-  ConsolidatedInferenceAnalysis,
+  ExtractedInferenceResult,
   InferenceValidationV2State,
   SeverityEnum,
   WorkflowRunDetail,
@@ -17,9 +18,13 @@ import { useState } from 'react';
 
 interface InferenceValidationV2ResultsProps {
   workflowDetail: WorkflowRunDetail;
+  onNavigateToDocumentExplorer?: (chunkIndices?: number[]) => void;
 }
 
-export function InferenceValidationV2Results({ workflowDetail }: InferenceValidationV2ResultsProps) {
+export function InferenceValidationV2Results({
+  workflowDetail,
+  onNavigateToDocumentExplorer,
+}: InferenceValidationV2ResultsProps) {
   const state = workflowDetail.state as InferenceValidationV2State;
 
   if (!state) {
@@ -84,7 +89,12 @@ export function InferenceValidationV2Results({ workflowDetail }: InferenceValida
       {/* Results list */}
       <div className="space-y-3">
         {results.map((analysis, index) => (
-          <InferenceAnalysisCard key={index} analysis={analysis} index={index} />
+          <InferenceAnalysisCard
+            key={index}
+            analysis={analysis}
+            index={index}
+            onNavigateToDocumentExplorer={onNavigateToDocumentExplorer}
+          />
         ))}
       </div>
     </div>
@@ -92,11 +102,12 @@ export function InferenceValidationV2Results({ workflowDetail }: InferenceValida
 }
 
 interface InferenceAnalysisCardProps {
-  analysis: ConsolidatedInferenceAnalysis;
+  analysis: ExtractedInferenceResult;
   index: number;
+  onNavigateToDocumentExplorer?: (chunkIndices?: number[]) => void;
 }
 
-function InferenceAnalysisCard({ analysis, index }: InferenceAnalysisCardProps) {
+function InferenceAnalysisCard({ analysis, index, onNavigateToDocumentExplorer }: InferenceAnalysisCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   return (
@@ -147,6 +158,10 @@ function InferenceAnalysisCard({ analysis, index }: InferenceAnalysisCardProps) 
         <blockquote className="border-l-2 border-muted-foreground/30 pl-3 text-sm italic text-muted-foreground">
           &ldquo;{analysis.key_sentence}&rdquo;
         </blockquote>
+
+        {onNavigateToDocumentExplorer && analysis.chunk_indices?.length && (
+          <NavigateToChunkButton onClick={() => onNavigateToDocumentExplorer(analysis.chunk_indices ?? [])} />
+        )}
 
         <p className="text-sm">{analysis.short_form_argument_analysis}</p>
       </div>
