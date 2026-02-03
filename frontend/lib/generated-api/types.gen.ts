@@ -1496,6 +1496,62 @@ export const ConfidenceInRecommendation = {
 export type ConfidenceInRecommendation = (typeof ConfidenceInRecommendation)[keyof typeof ConfidenceInRecommendation];
 
 /**
+ * ConsolidatedInferenceAnalysis
+ *
+ * The consolidated result of the inference check.
+ */
+export type ConsolidatedInferenceAnalysis = {
+  /**
+   * Key Sentence
+   *
+   * The key sentence that contains the incorrect inference, conclusion, or argument. Should be a direct quote from the text.
+   */
+  key_sentence: string;
+  /**
+   * The severity level of the inference analysis. HIGH if the inference problem leads the conclusion to be completely invalid. MEDIUM if the inference problem weakens the justification for the conclusion. LOW if the inference problem is a minor/tangential issue that does not significantly weaken the justification for the conclusion.
+   */
+  severity: SeverityEnum;
+  /**
+   * Inference Validity
+   *
+   * Whether the inference is valid or not.
+   */
+  inference_validity: boolean;
+  /**
+   * Short Form Argument Analysis
+   *
+   * A concise analysis what is wrong with the inference. In only TWO sentences.
+   */
+  short_form_argument_analysis: string;
+  /**
+   * Long Form Argument Analysis
+   *
+   * A detailed analysis what is wrong with the inference.
+   */
+  long_form_argument_analysis: string;
+  /**
+   * Suggested Action
+   *
+   * A suggested action to take to correct the wrong inference. In only TWO sentences.
+   */
+  suggested_action: string;
+};
+
+/**
+ * ConsolidatedInferenceResultResponse
+ *
+ * Response containing the consolidated result of the inference check.
+ */
+export type ConsolidatedInferenceResultResponse = {
+  /**
+   * Results
+   *
+   * The result of the inference check
+   */
+  results: Array<ConsolidatedInferenceAnalysis>;
+};
+
+/**
  * DoclingDocument
  *
  * Raw Docling json_content passed through to frontend
@@ -2574,6 +2630,58 @@ export type HumanApprovalState = {
 };
 
 /**
+ * InferenceAnalysis
+ *
+ * The result of the inference check.
+ */
+export type InferenceAnalysis = {
+  /**
+   * Key Sentence
+   *
+   * The key sentence that contains the incorrect inference, conclusion, or argument. Should be a direct quote from the text.
+   */
+  key_sentence: string;
+  /**
+   * Inference Validity
+   *
+   * Whether the inference is valid or not.
+   */
+  inference_validity: boolean;
+  /**
+   * Short Form Argument Analysis
+   *
+   * A concise analysis what is wrong with the inference. In only TWO sentences.
+   */
+  short_form_argument_analysis: string;
+  /**
+   * Long Form Argument Analysis
+   *
+   * A detailed analysis what is wrong with the inference.
+   */
+  long_form_argument_analysis: string;
+  /**
+   * Suggested Action
+   *
+   * A suggested action to take to correct the wrong inference. In only TWO sentences.
+   */
+  suggested_action: string;
+};
+
+/**
+ * InferenceResultResponse
+ *
+ * Response containing the result of the inference check.
+ */
+export type InferenceResultResponse = {
+  /**
+   * Results
+   *
+   * The result of the inference check
+   */
+  results: Array<InferenceAnalysis>;
+};
+
+/**
  * InferenceValidationResponseWithClaimIndex
  */
 export type InferenceValidationResponseWithClaimIndex = {
@@ -2636,6 +2744,84 @@ export type InferenceValidationState = {
    * Inference Validations
    */
   inference_validations?: Array<InferenceValidationResponseWithClaimIndex>;
+};
+
+/**
+ * InferenceValidationV2State
+ *
+ * State for the inference validation v2 workflow.
+ */
+export type InferenceValidationV2State = {
+  /**
+   * Errors
+   *
+   * Errors that occurred during the workflow execution.
+   */
+  errors?: Array<WorkflowError>;
+  /**
+   * Type
+   */
+  type?: 'inference_validation_v2';
+  /**
+   * File Id
+   *
+   * The ID of the main source document
+   */
+  file_id: string;
+  /**
+   * Validator Results
+   *
+   * Results from parallel inference validator runs keyed by run index (1, 2, 3, ...)
+   */
+  validator_results?: {
+    [key: string]: InferenceResultResponse;
+  };
+  /**
+   * Consolidated inference analysis result with severity
+   */
+  inference_results?: ConsolidatedInferenceResultResponse | null;
+};
+
+/**
+ * InferenceValidationV2WorkflowConfig
+ *
+ * Configuration model for the inference validation v2 workflow.
+ */
+export type InferenceValidationV2WorkflowConfig = {
+  /**
+   * Project Id
+   *
+   * The ID of the project that this workflow run should be associated with
+   */
+  project_id?: string | null;
+  /**
+   * Openai Api Key
+   *
+   * The OpenAI API key to use for this workflow execution
+   */
+  openai_api_key?: string | null;
+  /**
+   * Domain
+   *
+   * Domain context for more accurate analysis
+   */
+  domain?: string | null;
+  /**
+   * Target Audience
+   *
+   * Target audience context for analysis
+   */
+  target_audience?: string | null;
+  /**
+   * Publication Date
+   *
+   * Publication date of the document (YYYY-MM-DD format)
+   */
+  publication_date?: string | null;
+  /**
+   * Type
+   */
+  type?: 'inference_validation_v2';
 };
 
 /**
@@ -4518,6 +4704,7 @@ export type WorkflowRunDetail = {
     | CitationSuggesterState
     | ResultsExtractionState
     | InferenceValidationState
+    | InferenceValidationV2State
     | HumanApprovalState
     | null;
 };
@@ -4557,6 +4744,7 @@ export const WorkflowRunType = {
   CitationSuggester: 'citation_suggester',
   ResultsExtraction: 'results_extraction',
   InferenceValidation: 'inference_validation',
+  InferenceValidationV2: 'inference_validation_v2',
   ClaimReferenceValidation: 'claim_reference_validation',
   AbbreviationScan: 'abbreviation_scan',
   AdvocacyTone: 'advocacy_tone',
@@ -4812,6 +5000,7 @@ export type WorkflowRunDetailWritable = {
     | CitationSuggesterState
     | ResultsExtractionState
     | InferenceValidationState
+    | InferenceValidationV2State
     | HumanApprovalState
     | null;
 };
@@ -5018,6 +5207,7 @@ export type StartWorkflowApiWorkflowsStartPostData = {
     | CitationSuggesterWorkflowConfig
     | ResultsExtractionWorkflowConfig
     | InferenceValidationWorkflowConfig
+    | InferenceValidationV2WorkflowConfig
     | HumanApprovalConfig;
   path?: never;
   query?: never;
