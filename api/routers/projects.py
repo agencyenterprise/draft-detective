@@ -274,7 +274,7 @@ async def delete_project_file_endpoint(
     project = await get_user_project(project_id, user=current_user)
 
     # Delete the file from the project
-    deleted_count = delete_project_files(project.id, target_file_ids=[file_id])
+    deleted_count = await delete_project_files(project.id, target_file_ids=[file_id])
 
     if deleted_count == 0:
         raise HTTPException(status_code=404, detail="File not found in project")
@@ -341,7 +341,7 @@ async def get_project_workflow_progress_endpoint(
     """Get all workflow progress entries for a project."""
 
     project = await check_project_access(project_id, current_user, share_token)
-    progress_list = get_project_workflow_progress(project.id)
+    progress_list = await get_project_workflow_progress(project.id)
     return [WorkflowProgressResponse.model_validate(p) for p in progress_list]
 
 
@@ -369,7 +369,9 @@ async def get_project_workflow_runs_by_type_endpoint(
     """
 
     await check_project_access(project_id, current_user, share_token)
-    return await get_project_workflow_runs_by_type_with_details(project_id, workflow_type)
+    return await get_project_workflow_runs_by_type_with_details(
+        project_id, workflow_type
+    )
 
 
 async def check_project_access(

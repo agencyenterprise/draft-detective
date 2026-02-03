@@ -82,7 +82,7 @@ def register_node(name: str, description: str):
 
                             # Use get_or_create to enable automatic batching
                             # of parallel nodes with the same name
-                            progress_id = get_or_create_progress(
+                            progress_id = await get_or_create_progress(
                                 workflow_run_id=workflow_run_id,
                                 name=name,
                                 level=ProgressLevel.NODE,
@@ -105,7 +105,7 @@ def register_node(name: str, description: str):
                 # Increment progress and complete if all parallel nodes are done
                 if progress_id:
                     try:
-                        completed = increment_and_complete_if_done(progress_id)
+                        completed = await increment_and_complete_if_done(progress_id)
                         if completed:
                             func_logger.info(
                                 f"Progress tracking: {name} batch completed (progress_id: {progress_id})"
@@ -129,7 +129,7 @@ def register_node(name: str, description: str):
                 # Still increment progress on error so batch can complete
                 if progress_id:
                     try:
-                        increment_and_complete_if_done(progress_id)
+                        await increment_and_complete_if_done(progress_id)
                     except Exception as progress_error:
                         func_logger.error(
                             f"Failed to update progress on error: {progress_error}",

@@ -11,7 +11,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
 from api.auth import get_current_user
-from lib.config.database import get_db
+from lib.config.database import get_async_db_session
 from lib.models.feedback import Feedback, FeedbackType
 from lib.models.user import User
 from lib.services import feedback_service
@@ -70,10 +70,10 @@ async def submit_feedback(
     current_user: User = Depends(get_current_user),
 ) -> FeedbackResponse:
     """Submit or update feedback for any entity"""
-    with get_db() as session:
+    async with get_async_db_session() as session:
         feedback_type = FeedbackType(request.feedback_type)
 
-        feedback = feedback_service.create_or_update_feedback(
+        feedback = await feedback_service.create_or_update_feedback(
             session=session,
             workflow_run_id=request.workflow_run_id,
             entity_path=request.entity_path,
@@ -97,10 +97,10 @@ async def get_feedback(
     """
     import json
 
-    with get_db() as session:
+    async with get_async_db_session() as session:
         parsed_path = json.loads(entity_path)
 
-        feedback = feedback_service.get_feedback(
+        feedback = await feedback_service.get_feedback(
             session=session,
             workflow_run_id=workflow_run_id,
             entity_path=parsed_path,
@@ -119,8 +119,8 @@ async def get_workflow_feedback(
     workflow_run_id: UUID, current_user: User = Depends(get_current_user)
 ) -> list[FeedbackResponse]:
     """Get all feedback for a workflow run"""
-    with get_db() as session:
-        feedbacks = feedback_service.get_workflow_feedback(
+    async with get_async_db_session() as session:
+        feedbacks = await feedback_service.get_workflow_feedback(
             session=session, workflow_run_id=workflow_run_id, user=current_user
         )
 
@@ -132,8 +132,8 @@ async def delete_feedback(
     feedback_id: UUID, current_user: User = Depends(get_current_user)
 ) -> dict:
     """Delete feedback by ID"""
-    with get_db() as session:
-        success = feedback_service.delete_feedback(
+    async with get_async_db_session() as session:
+        success = await feedback_service.delete_feedback(
             session=session, feedback_id=feedback_id, user=current_user
         )
 

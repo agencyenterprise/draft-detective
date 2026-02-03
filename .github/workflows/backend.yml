@@ -33,7 +33,8 @@ jobs:
         run: uv sync
 
       - name: Run tests
-        run: uv run pytest --tb=short
+        # Run only unit tests to avoid running integration tests which require a database
+        run: uv run pytest tests/unit --tb=short
         env:
           PYTHONPATH: ${{ github.workspace }}
           # Database config (test environment)

@@ -111,7 +111,7 @@ async def fetch_single_reference(state: dict, runtime: Runtime[ContextSchema]):
             and project_id
         ):
             # Promote file immediately (from SUPPORTING_CANDIDATE to SUPPORT)
-            update_files_role([result.file_id], FileRole.SUPPORT)
+            await update_files_role([result.file_id], FileRole.SUPPORT)
             # Update the reference file matching in the ReferenceExtraction workflow state
             await _update_reference_file_matching(
                 project_id, result.file_id, reference_id
@@ -170,7 +170,7 @@ async def cleanup_failed_resources(
             files_to_delete.append(file_id)
 
     if files_to_delete:
-        deleted_count = delete_project_files(project_id, files_to_delete)
+        deleted_count = await delete_project_files(project_id, files_to_delete)
         logger.info(
             f"Deleted {deleted_count} failed reference files for project {project_id}"
         )
@@ -180,7 +180,7 @@ async def cleanup_failed_resources(
             )
 
     if files_to_promote:
-        update_files_role(files_to_promote, FileRole.SUPPORT)
+        await update_files_role(files_to_promote, FileRole.SUPPORT)
         logger.info(
             f"Promoted {len(files_to_promote)} reference files to SUPPORT for project {project_id}"
         )
