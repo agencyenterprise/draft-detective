@@ -57,6 +57,17 @@ class AboutThisManifest(WorkflowManifest[AboutThisState, AboutThisWorkflowConfig
         """Convert AboutThisState to issues for Document Explorer."""
         issues: List[DocumentIssue] = []
 
+        if not state.found_section:
+            issues.append(
+                DocumentIssue(
+                    title="No preface section found",
+                    description=f'We could not find an "About This Report", "Preface", or similar introductory section. Preface validation requires a clearly titled section heading. Please ensure your document contains an appropriately titled section and run "{self.name}" analysis again.',
+                    severity=SeverityEnum.MEDIUM,
+                    chunk_index=0,
+                )
+            )
+            return issues
+
         # Create issues for failed requirements
         for field in REQUIREMENT_FIELDS:
             requirement_result = getattr(state, field, None)

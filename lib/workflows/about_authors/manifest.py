@@ -58,6 +58,16 @@ class AboutAuthorsManifest(
         """Convert AboutAuthorsState to issues for Document Explorer."""
         issues: List[DocumentIssue] = []
 
+        if not state.results:
+            issues.append(
+                DocumentIssue(
+                    title='No "About the Authors" section found',
+                    description=f'We could not find an "About the Authors" or "Author Biographies" section. Author validation requires a section containing author biography paragraphs. Please ensure your document contains an appropriately titled section and run "{self.name}" analysis again.',
+                    severity=SeverityEnum.MEDIUM,
+                    chunk_index=0,
+                )
+            )
+
         for result in state.results:
             if result.overall_passed:
                 continue
