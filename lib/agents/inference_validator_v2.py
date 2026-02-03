@@ -111,38 +111,23 @@ class InferenceValidatorV2Agent(LangChainAgent):
     output_schema = InferenceResultResponse
 
     def create_llm(self):
-        return init_chat_model(
+        llm = init_chat_model(
             self.model.model_name,
             temperature=self.temperature,
             timeout=self.timeout,
             api_key=self.context.openai_api_key,
             reasoning={"effort": "low", "summary": "auto"},
         )
+        return llm.with_structured_output(InferenceResultResponse)
 
     async def ainvoke(
         self,
         prompt_kwargs: dict,
         config: Optional[RunnableConfig] = None,
     ) -> InferenceResultResponse:
-        agent = create_agent(
-            self.llm,
-            tools=[],
-            context_schema=ContextSchema,
-            system_prompt=None,
-            response_format=InferenceResultResponse,
-        )
-
         messages = _inference_checker_prompt.format_messages(**prompt_kwargs)
+        structured = await self.llm.ainvoke(messages, config=config)
 
-        result = await agent.ainvoke(
-            {"messages": messages},
-            config={"recursion_limit": 50, **(config or {})},
-            context=self.context,
-        )
-
-        structured = result["structured_response"]
-
-        # for verbose execution testing
         if verbose:
             n = len(structured.results)
             print(f"InferenceValidatorV2: {n} inference(s) found")
@@ -150,7 +135,6 @@ class InferenceValidatorV2Agent(LangChainAgent):
                 print(
                     f"  [{i}] validity={r.inference_validity} key_sentence={r.key_sentence[:60] + '...' if len(r.key_sentence) > 60 else r.key_sentence}"
                 )
-
             run_index = (config or {}).get("run_index", "?")
             print(
                 f"InferenceValidatorV2 run {run_index}: {len(structured.results)} inference(s)"
