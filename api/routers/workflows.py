@@ -123,12 +123,12 @@ async def get_page_image(
     if page_num < 0:
         raise HTTPException(status_code=400, detail="Invalid page number")
 
-    if not has_access_to_workflow_run(current_user, workflow_run_id):
+    if not await has_access_to_workflow_run(current_user, workflow_run_id):
         raise HTTPException(status_code=403, detail="Access denied")
 
     state = await get_workflow_run_state(workflow_run_id, user=None)
 
-    if not hasattr(state, "file"):
+    if not state or not hasattr(state, "file"):
         raise HTTPException(status_code=404, detail="Workflow state not found")
 
     file_path = state.file.file_path
@@ -186,7 +186,9 @@ async def approve_workflow_run(
         project_id=str(workflow_run.project_id),
     )
 
-    await resume_workflow_run(workflow_run, approval_config, current_user, background_tasks)
+    await resume_workflow_run(
+        workflow_run, approval_config, current_user, background_tasks
+    )
 
     return ApproveWorkflowResponse(
         message="Workflow approved",

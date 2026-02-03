@@ -6,16 +6,17 @@ from datetime import datetime
 from typing import List, Optional
 
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import col
 
-from lib.config.database import get_db
+from lib.config.database import get_async_db_session
 from lib.models.workflow_progress import ProgressLevel, WorkflowProgress
 from lib.models.workflow_run import WorkflowRun
 
 logger = logging.getLogger(__name__)
 
 
-def create_and_start_progress(
+async def create_and_start_progress(
     workflow_run_id: uuid.UUID,
     name: str,
     level: ProgressLevel,
@@ -33,7 +34,7 @@ def create_and_start_progress(
     Returns:
         UUID of the created progress entry
     """
-    with get_db() as db:
+    async with get_async_db_session() as session:
         progress = WorkflowProgress(
             workflow_run_id=workflow_run_id,
             name=name,
@@ -41,13 +42,13 @@ def create_and_start_progress(
             total_steps=total_steps,
             started_at=datetime.utcnow(),
         )
-        db.add(progress)
-        db.commit()
-        db.refresh(progress)
+        session.add(progress)
+        await session.commit()
+        await session.refresh(progress)
         return progress.id
 
 
-def get_or_create_progress(
+async def get_or_create_progress(
     workflow_run_id: uuid.UUID,
     name: str,
     level: ProgressLevel,
@@ -69,7 +70,7 @@ def get_or_create_progress(
     Returns:
         UUID of the progress entry (existing or newly created)
     """
-    with get_db() as db:
+    async with get_async_db_session() as session:
         # Find existing active progress with same name
         stmt = (
             select(WorkflowProgress)
@@ -80,12 +81,13 @@ def get_or_create_progress(
             )
             .with_for_update()  # Lock row to prevent race conditions
         )
-        existing = db.execute(stmt).scalar_one_or_none()
+        result = await session.execute(stmt)
+        existing = result.scalar_one_or_none()
 
         if existing:
             # Increment total_steps for the batch
             existing.total_steps += 1
-            db.commit()
+            await session.commit()
             return existing.id
 
         # Create new progress entry
@@ -96,19 +98,22 @@ def get_or_create_progress(
             total_steps=1,
             started_at=datetime.utcnow(),
         )
-        db.add(progress)
-        db.commit()
-        db.refresh(progress)
+        session.add(progress)
+        await session.commit()
+        await session.refresh(progress)
         return progress.id
 
 
-def _get_progress_by_id(db, progress_id: uuid.UUID) -> Optional[WorkflowProgress]:
+async def _get_progress_by_id(
+    session: AsyncSession, progress_id: uuid.UUID
+) -> Optional[WorkflowProgress]:
     """Get a progress entry by ID."""
     stmt = select(WorkflowProgress).where(col(WorkflowProgress.id) == progress_id)
-    return db.execute(stmt).scalar_one_or_none()
+    result = await session.execute(stmt)
+    return result.scalar_one_or_none()
 
 
-def update_progress(
+async def update_progress(
     progress_id: uuid.UUID,
     current_step: Optional[int] = None,
     total_steps: Optional[int] = None,
@@ -121,8 +126,8 @@ def update_progress(
         current_step: Update current step (optional)
         total_steps: Update total steps (optional)
     """
-    with get_db() as db:
-        progress = _get_progress_by_id(db, progress_id)
+    async with get_async_db_session() as session:
+        progress = await _get_progress_by_id(session, progress_id)
 
         if not progress:
             logger.warning(f"Progress entry {progress_id} not found")
@@ -134,18 +139,18 @@ def update_progress(
             progress.total_steps = total_steps
 
         # Note: updated_at is handled by onupdate in the model
-        db.commit()
+        await session.commit()
 
 
-def complete_progress(progress_id: uuid.UUID) -> None:
+async def complete_progress(progress_id: uuid.UUID) -> None:
     """
     Mark a progress entry as completed.
 
     Args:
         progress_id: ID of the progress entry
     """
-    with get_db() as db:
-        progress = _get_progress_by_id(db, progress_id)
+    async with get_async_db_session() as session:
+        progress = await _get_progress_by_id(session, progress_id)
 
         if not progress:
             logger.warning(f"Progress entry {progress_id} not found")
@@ -154,10 +159,10 @@ def complete_progress(progress_id: uuid.UUID) -> None:
         progress.completed_at = datetime.utcnow()
         progress.current_step = progress.total_steps
         # Note: updated_at is handled by onupdate in the model
-        db.commit()
+        await session.commit()
 
 
-def increment_and_complete_if_done(progress_id: uuid.UUID) -> bool:
+async def increment_and_complete_if_done(progress_id: uuid.UUID) -> bool:
     """
     Atomically increment current_step and mark complete if current >= total.
 
@@ -171,13 +176,14 @@ def increment_and_complete_if_done(progress_id: uuid.UUID) -> bool:
     Returns:
         True if the progress was marked complete, False otherwise
     """
-    with get_db() as db:
+    async with get_async_db_session() as session:
         stmt = (
             select(WorkflowProgress)
             .where(col(WorkflowProgress.id) == progress_id)
             .with_for_update()  # Lock row to prevent race conditions
         )
-        progress = db.execute(stmt).scalar_one_or_none()
+        result = await session.execute(stmt)
+        progress = result.scalar_one_or_none()
 
         if not progress:
             logger.warning(f"Progress entry {progress_id} not found")
@@ -187,14 +193,14 @@ def increment_and_complete_if_done(progress_id: uuid.UUID) -> bool:
 
         if progress.current_step >= progress.total_steps:
             progress.completed_at = datetime.utcnow()
-            db.commit()
+            await session.commit()
             return True
 
-        db.commit()
+        await session.commit()
         return False
 
 
-def get_workflow_progress(
+async def get_workflow_progress(
     workflow_run_id: uuid.UUID,
 ) -> List[WorkflowProgress]:
     """
@@ -206,17 +212,20 @@ def get_workflow_progress(
     Returns:
         List of progress entries ordered by creation time
     """
-    with get_db() as db:
+    async with get_async_db_session() as session:
         stmt = (
             select(WorkflowProgress)
             .where(col(WorkflowProgress.workflow_run_id) == workflow_run_id)
             .order_by(col(WorkflowProgress.created_at))
         )
-        progress_list = db.execute(stmt).scalars().all()
+        result = await session.execute(stmt)
+        progress_list = result.scalars().all()
         return list(progress_list)
 
 
-def get_project_workflow_progress(project_id: uuid.UUID) -> List[WorkflowProgress]:
+async def get_project_workflow_progress(
+    project_id: uuid.UUID,
+) -> List[WorkflowProgress]:
     """
     Get all progress entries for all workflow runs in a project.
 
@@ -226,7 +235,7 @@ def get_project_workflow_progress(project_id: uuid.UUID) -> List[WorkflowProgres
     Returns:
         List of progress entries ordered by creation time
     """
-    with get_db() as db:
+    async with get_async_db_session() as session:
         stmt = (
             select(WorkflowProgress)
             .join(
@@ -236,5 +245,6 @@ def get_project_workflow_progress(project_id: uuid.UUID) -> List[WorkflowProgres
             .where(col(WorkflowRun.project_id) == project_id)
             .order_by(col(WorkflowProgress.created_at))
         )
-        progress_list = db.execute(stmt).scalars().all()
+        result = await session.execute(stmt)
+        progress_list = result.scalars().all()
         return list(progress_list)

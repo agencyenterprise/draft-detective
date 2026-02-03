@@ -111,16 +111,7 @@ class ReferenceExtractorV2Agent(LangChainAgent):
     description = "Extract bibliographic references using intelligent document search"
     model = gpt_5_2_model
     temperature = 0.0
-    output_schema = ReferenceExtractorV2Output
-
-    def create_llm(self):
-        return init_chat_model(
-            self.model.model_name,
-            temperature=self.temperature,
-            timeout=self.timeout,
-            api_key=self.context.openai_api_key,
-            reasoning={"effort": "low", "summary": "auto"},
-        )
+    reasoning = {"effort": "low", "summary": "auto"}
 
     async def ainvoke(
         self,
@@ -132,9 +123,9 @@ class ReferenceExtractorV2Agent(LangChainAgent):
         agent = create_agent(
             self.llm,
             [search_document, read_document],
-            context_schema=ContextSchema,
             system_prompt=system_prompt.text,
-            response_format=self.output_schema,
+            context_schema=ContextSchema,
+            response_format=ReferenceExtractorV2Output,
         )
 
         user_message = "Please extract all bibliographic references from the document."

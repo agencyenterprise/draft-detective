@@ -114,12 +114,12 @@ async def summarize_documents(
     )
 
     # Persist summary artifacts to database for caching
-    _persist_summary_artifacts(summaries)
+    await _persist_summary_artifacts(summaries)
 
     return {"summaries": summaries, "errors": errors}
 
 
-def _persist_summary_artifacts(summaries: List[FileSummary]) -> None:
+async def _persist_summary_artifacts(summaries: List[FileSummary]) -> None:
     """
     Persist summary artifacts to the files table for all summarized documents.
 
@@ -129,7 +129,7 @@ def _persist_summary_artifacts(summaries: List[FileSummary]) -> None:
     from lib.services.files import update_file_artifacts
 
     for summary in summaries:
-        update_file_artifacts(
+        await update_file_artifacts(
             file_id=summary.file_id,
             summary=summary.model_dump(exclude={"file_id"}),
         )

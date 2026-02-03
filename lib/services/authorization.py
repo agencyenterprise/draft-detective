@@ -4,23 +4,25 @@ from fastapi import HTTPException
 from sqlalchemy import select
 from sqlmodel import col
 
-from lib.config.database import get_db
+from lib.config.database import get_async_db_session
 from lib.models.project import Project
 from lib.models.share_link import ShareLink
 from lib.models.user import User
 from lib.models.workflow_run import WorkflowRun
 
 
-def has_access_to_workflow_run(user: Optional[User], workflow_run_id: str) -> bool:
+async def has_access_to_workflow_run(
+    user: Optional[User], workflow_run_id: str
+) -> bool:
     """Check if a user has access to a workflow run, either by being the owner of the associated project or the project has a share link."""
 
-    with get_db() as db:
+    async with get_async_db_session() as session:
         stmt = (
             select(WorkflowRun, Project)
             .join(Project, col(WorkflowRun.project_id) == col(Project.id))
             .where(col(WorkflowRun.id) == workflow_run_id)
         )
-        result = db.execute(stmt).one_or_none()
+        result = (await session.execute(stmt)).one_or_none()
         if not result:
             raise HTTPException(status_code=404, detail="Workflow run not found")
 
@@ -31,7 +33,7 @@ def has_access_to_workflow_run(user: Optional[User], workflow_run_id: str) -> bo
             col(ShareLink.resource_id) == workflow_run.project_id,
             col(ShareLink.is_active) == True,
         )
-        share_link = db.execute(share_link_stmt).scalar_one_or_none()
+        share_link = (await session.execute(share_link_stmt)).scalar_one_or_none()
 
         return share_link is not None or (
             user is not None and project.user_id == user.id

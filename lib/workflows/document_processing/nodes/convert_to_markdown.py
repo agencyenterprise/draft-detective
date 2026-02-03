@@ -50,12 +50,12 @@ async def convert_to_markdown(
     [file, *supporting_files] = files
 
     # Persist markdown artifacts to database for caching
-    _persist_markdown_artifacts(files)
+    await _persist_markdown_artifacts(files)
 
     return {"file": file, "supporting_files": supporting_files}
 
 
-def _persist_markdown_artifacts(files: list[FileDocument]) -> None:
+async def _persist_markdown_artifacts(files: list[FileDocument]) -> None:
     """
     Persist markdown artifacts to the files table for all converted documents.
 
@@ -65,7 +65,7 @@ def _persist_markdown_artifacts(files: list[FileDocument]) -> None:
     """
 
     for file in files:
-        update_file_artifacts(file_id=file.file_id, markdown=file.markdown)
+        await update_file_artifacts(file_id=file.file_id, markdown=file.markdown)
 
 
 async def _convert_to_markdown_task(

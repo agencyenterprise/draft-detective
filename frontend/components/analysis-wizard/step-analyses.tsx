@@ -107,7 +107,8 @@ export function StepAnalyses() {
       <div className="space-y-2">
         <h1 className="text-2xl font-bold">What would you like to check?</h1>
         <p className="text-muted-foreground">
-          Select the analyses that matter most for your document. You can always run more later.
+          Select the analyses that matter most for your document. <strong>You can also trigger analyses later</strong>,
+          after project is created, so you can skip this step for now if you want.
         </p>
       </div>
 
@@ -152,9 +153,19 @@ export function StepAnalyses() {
         </div>
       </div>
 
-      <Button onClick={handleStartAnalysis} disabled={!canContinue} size="lg" className="w-full">
-        {needsReferencesStep ? 'Next: Add your sources →' : 'Start Analysis'}
-      </Button>
+      <div className="flex flex-col gap-3">
+        <Button onClick={handleStartAnalysis} disabled={!canContinue} size="lg" className="w-full">
+          {needsReferencesStep ? 'Next: Add your sources →' : 'Start Analysis'}
+        </Button>
+        <Button
+          variant="outline"
+          size="lg"
+          className="w-full"
+          onClick={() => router.push(`/projects/${wizard.projectId}?fromWizard=true`)}
+        >
+          Skip for now
+        </Button>
+      </div>
     </div>
   );
 }

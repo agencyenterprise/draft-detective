@@ -54,6 +54,7 @@ const workflowTypeIcons: Record<WorkflowRunType, LucideIcon> = {
   [WorkflowRunType.CitationSuggester]: Lightbulb,
   [WorkflowRunType.ResultsExtraction]: BarChart3,
   [WorkflowRunType.InferenceValidation]: BrainCircuit,
+  [WorkflowRunType.InferenceValidationV2]: BrainCircuit,
   [WorkflowRunType.ClaimReferenceValidation]: ClipboardCheck,
   [WorkflowRunType.AbbreviationScan]: ALargeSmall,
   [WorkflowRunType.AdvocacyTone]: MessageSquareWarning,
@@ -157,12 +158,12 @@ export function WorkflowTypeCheckbox({
                   <TooltipTrigger asChild>
                     <Badge variant="warning" className="flex items-center gap-1 text-xs">
                       <Files className="size-3" />
-                      Needs References
+                      Needs Full Text References
                     </Badge>
                   </TooltipTrigger>
                   <TooltipContent side="top" className="max-w-xs">
-                    This analysis requires reference documents. Claims citing references without matched source
-                    documents will be skipped. You can upload them or fetch from the web in Step 3.
+                    This analysis requires the full text of referenced documents. Claims citing references without
+                    matched source documents will be skipped. You can upload PDFs or fetch from the web in Step 3.
                   </TooltipContent>
                 </Tooltip>
               )}

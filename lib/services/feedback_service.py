@@ -9,7 +9,7 @@ import uuid
 
 from fastapi import HTTPException
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import col
 
 from lib.models.feedback import Feedback, FeedbackType
@@ -18,9 +18,8 @@ from lib.models.user import User
 from lib.models.workflow_run import WorkflowRun
 
 
-# TODO: Update this to use the new project layer instead of the workflow run
-def _verify_workflow_run_ownership(
-    session: Session, workflow_run_id: uuid.UUID, user: User
+async def _verify_workflow_run_ownership(
+    session: AsyncSession, workflow_run_id: uuid.UUID, user: User
 ) -> None:
     """Verify that the user owns the workflow run, raise 403 if not."""
     stmt = (
@@ -28,19 +27,20 @@ def _verify_workflow_run_ownership(
         .join(Project)
         .where(col(WorkflowRun.id) == workflow_run_id)
     )
-    result = session.execute(stmt).one_or_none()
+    result = await session.execute(stmt)
+    row = result.one_or_none()
 
-    if result is None:
+    if row is None:
         raise HTTPException(status_code=404, detail="Workflow run not found")
 
-    workflow_run, project = result.tuple()
+    workflow_run, project = row.tuple()
 
     if project.user_id is None or project.user_id != user.id:
         raise HTTPException(status_code=403, detail="Access denied")
 
 
-def create_feedback(
-    session: Session,
+async def create_feedback(
+    session: AsyncSession,
     workflow_run_id: uuid.UUID,
     entity_path: dict,
     feedback_type: FeedbackType,
@@ -68,7 +68,7 @@ def create_feedback(
     Raises:
         HTTPException: If workflow run not found or user doesn't own it
     """
-    _verify_workflow_run_ownership(session, workflow_run_id, user)
+    await _verify_workflow_run_ownership(session, workflow_run_id, user)
 
     feedback = Feedback(
         workflow_run_id=workflow_run_id,
@@ -79,13 +79,13 @@ def create_feedback(
     )
 
     session.add(feedback)
-    session.commit()
-    session.refresh(feedback)
+    await session.commit()
+    await session.refresh(feedback)
     return feedback
 
 
-def create_or_update_feedback(
-    session: Session,
+async def create_or_update_feedback(
+    session: AsyncSession,
     workflow_run_id: uuid.UUID,
     entity_path: dict,
     feedback_type: FeedbackType,
@@ -112,7 +112,7 @@ def create_or_update_feedback(
     Raises:
         HTTPException: If workflow run not found or user doesn't own it
     """
-    _verify_workflow_run_ownership(session, workflow_run_id, user)
+    await _verify_workflow_run_ownership(session, workflow_run_id, user)
 
     stmt = (
         select(Feedback)
@@ -120,17 +120,18 @@ def create_or_update_feedback(
         .where(col(Feedback.user_id) == user.id)
         .where(col(Feedback.entity_path) == entity_path)
     )
-    existing_feedback = session.execute(stmt).scalar_one_or_none()
+    result = await session.execute(stmt)
+    existing_feedback = result.scalar_one_or_none()
 
     if existing_feedback:
         existing_feedback.feedback_type = feedback_type
         existing_feedback.feedback_text = feedback_text
         session.add(existing_feedback)
-        session.commit()
-        session.refresh(existing_feedback)
+        await session.commit()
+        await session.refresh(existing_feedback)
         return existing_feedback
 
-    return create_feedback(
+    return await create_feedback(
         session=session,
         workflow_run_id=workflow_run_id,
         entity_path=entity_path,
@@ -140,8 +141,8 @@ def create_or_update_feedback(
     )
 
 
-def get_feedback(
-    session: Session, workflow_run_id: uuid.UUID, entity_path: dict, user: User
+async def get_feedback(
+    session: AsyncSession, workflow_run_id: uuid.UUID, entity_path: dict, user: User
 ) -> Optional[Feedback]:
     """
     Get feedback for a specific entity.
@@ -158,7 +159,7 @@ def get_feedback(
     Raises:
         HTTPException: If workflow run not found or user doesn't own it
     """
-    _verify_workflow_run_ownership(session, workflow_run_id, user)
+    await _verify_workflow_run_ownership(session, workflow_run_id, user)
 
     stmt = (
         select(Feedback)
@@ -166,11 +167,12 @@ def get_feedback(
         .where(col(Feedback.user_id) == user.id)
         .where(col(Feedback.entity_path) == entity_path)
     )
-    return session.execute(stmt).scalar_one_or_none()
+    result = await session.execute(stmt)
+    return result.scalar_one_or_none()
 
 
-def get_workflow_feedback(
-    session: Session, workflow_run_id: uuid.UUID, user: User
+async def get_workflow_feedback(
+    session: AsyncSession, workflow_run_id: uuid.UUID, user: User
 ) -> list[Feedback]:
     """
     Get all feedback for a workflow run.
@@ -186,17 +188,20 @@ def get_workflow_feedback(
     Raises:
         HTTPException: If workflow run not found or user doesn't own it
     """
-    _verify_workflow_run_ownership(session, workflow_run_id, user)
+    await _verify_workflow_run_ownership(session, workflow_run_id, user)
 
     stmt = (
         select(Feedback)
         .where(col(Feedback.workflow_run_id) == workflow_run_id)
         .where(col(Feedback.user_id) == user.id)
     )
-    return list(session.execute(stmt).scalars().all())
+    result = await session.execute(stmt)
+    return list(result.scalars().all())
 
 
-def delete_feedback(session: Session, feedback_id: uuid.UUID, user: User) -> bool:
+async def delete_feedback(
+    session: AsyncSession, feedback_id: uuid.UUID, user: User
+) -> bool:
     """
     Delete feedback by ID.
 
@@ -212,7 +217,8 @@ def delete_feedback(session: Session, feedback_id: uuid.UUID, user: User) -> boo
         HTTPException: If user doesn't own the feedback
     """
     stmt = select(Feedback).where(col(Feedback.id) == feedback_id)
-    feedback = session.execute(stmt).scalar_one_or_none()
+    result = await session.execute(stmt)
+    feedback = result.scalar_one_or_none()
 
     if feedback is None:
         return False
@@ -220,6 +226,6 @@ def delete_feedback(session: Session, feedback_id: uuid.UUID, user: User) -> boo
     if feedback.user_id != user.id:
         raise HTTPException(status_code=403, detail="Access denied")
 
-    session.delete(feedback)
-    session.commit()
+    await session.delete(feedback)
+    await session.commit()
     return True

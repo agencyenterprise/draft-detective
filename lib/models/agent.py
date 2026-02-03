@@ -1,8 +1,11 @@
+from functools import lru_cache
+import hashlib
 import logging
 from abc import ABC, abstractmethod
 from typing import Any, Optional
 
-from langchain.chat_models import init_chat_model
+from langchain.chat_models import BaseChatModel, init_chat_model
+from langchain_core.rate_limiters import InMemoryRateLimiter
 from langchain_core.runnables.config import RunnableConfig
 from pydantic import BaseModel
 
@@ -25,6 +28,7 @@ class BaseAgent(ABC):
         - temperature: float
         - timeout: int = DEFAULT_LLM_TIMEOUT (optional, has default)
         - output_schema: Optional[type[BaseModel]] = None (optional)
+        - reasoning: Optional[dict] = None (optional, should be for example: {"effort": "low", "summary": "auto"})
     """
 
     name: str
@@ -32,6 +36,7 @@ class BaseAgent(ABC):
     model: LLMModel
     temperature: float
     timeout: int = DEFAULT_LLM_TIMEOUT
+    reasoning: Optional[dict] = None
     output_schema: Optional[type[BaseModel]] = None
 
     @abstractmethod
@@ -45,17 +50,26 @@ class BaseAgent(ABC):
 class LangChainAgent(BaseAgent):
     """Base class for agents using LangChain."""
 
-    _llm: Optional[Any] = None
+    _llm: Optional[BaseChatModel] = None
 
     def __init__(self, context: ContextSchema):
         self.context = context
 
-    def create_llm(self) -> Any:
+    def get_rate_limiter(self) -> InMemoryRateLimiter:
+        api_key = self.context.openai_api_key or "default"
+        key_hash = hashlib.sha256(api_key.encode()).hexdigest()[:16]
+        return get_rate_limiter(key_hash)
+
+    def get_init_chat_model_kwargs(self) -> dict:
         init_kwargs = {
             "model": self.model.model_name,
             "temperature": self.temperature,
             "timeout": self.timeout,
+            "rate_limiter": self.get_rate_limiter(),
         }
+
+        if self.reasoning:
+            init_kwargs["reasoning"] = self.reasoning
 
         # For OpenAI models: use context API key if provided, otherwise fall back to env var
         # For other providers (Anthropic, Google): always use environment variables
@@ -65,6 +79,11 @@ class LangChainAgent(BaseAgent):
         ):
             init_kwargs["api_key"] = self.context.openai_api_key
 
+        return init_kwargs
+
+    def create_llm(self) -> BaseChatModel:
+        init_kwargs = self.get_init_chat_model_kwargs()
+
         llm = init_chat_model(**init_kwargs)
         if self.output_schema:
             llm = llm.with_structured_output(self.output_schema)
@@ -72,7 +91,7 @@ class LangChainAgent(BaseAgent):
         return llm
 
     @property
-    def llm(self) -> Any:
+    def llm(self) -> BaseChatModel:
         if self._llm is None:
             self._llm = self.create_llm()
         return self._llm
@@ -94,3 +113,12 @@ class DirectOpenAIAgent(BaseAgent):
         if self._client is None:
             self._client = get_openai_client(self.context.openai_api_key)
         return self._client
+
+
+@lru_cache(maxsize=256)
+def get_rate_limiter(api_key_hash: str) -> InMemoryRateLimiter:
+    return InMemoryRateLimiter(
+        requests_per_second=32,  # How many requests per second are allowed
+        check_every_n_seconds=0.2,  # Wake up every X seconds to check whether allowed to make a request
+        max_bucket_size=100,  # Controls the maximum burst size
+    )

@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select, update
 from sqlmodel import col
 
-from lib.config.database import get_db
+from lib.config.database import get_async_db_session
 from lib.models.file import File, FileListItem
 from lib.models.project import Project
 from lib.models.user import User
@@ -61,7 +61,7 @@ async def create_project(
     domain: str | None = None,
     target_audience: str | None = None,
 ) -> Project:
-    with get_db() as db:
+    async with get_async_db_session() as session:
         project = Project(
             title=title,
             user_id=user.id,
@@ -69,16 +69,16 @@ async def create_project(
             domain=domain,
             target_audience=target_audience,
         )
-        db.add(project)
-        db.commit()
-        db.refresh(project)
+        session.add(project)
+        await session.commit()
+        await session.refresh(project)
         return project
 
 
 async def get_user_projects(user: User) -> List[ProjectListItem]:
     """Retrieve all projects for a user with their associated workflow runs."""
 
-    with get_db() as db:
+    async with get_async_db_session() as session:
         stmt = (
             select(Project, WorkflowRun)
             .outerjoin(WorkflowRun, col(WorkflowRun.project_id) == col(Project.id))
@@ -86,10 +86,7 @@ async def get_user_projects(user: User) -> List[ProjectListItem]:
             .order_by(col(Project.created_at).desc(), col(WorkflowRun.created_at).asc())
             .limit(200)
         )
-        results = db.execute(stmt).all()
-
-        if not results:
-            return []
+        results = (await session.execute(stmt)).all()
 
         # We need to group workflow runs by project to return a list of projects with their workflow runs
         # Note: We include ALL workflows (even internal ones) for tool detection on frontend
@@ -112,11 +109,10 @@ async def get_user_projects(user: User) -> List[ProjectListItem]:
 
 
 async def _get_project_by_id(project_id: str) -> Project | None:
-    with get_db() as db:
+    async with get_async_db_session() as session:
         stmt = select(Project).where(col(Project.id) == project_id)
-        project = db.execute(stmt).scalar_one_or_none()
-
-    return project
+        result = await session.execute(stmt)
+        return result.scalar_one_or_none()
 
 
 async def get_project_detailed_from_project(
@@ -204,9 +200,10 @@ async def get_user_project(project_id: str, user: User) -> Project:
 async def get_project_files(project_id: str) -> List[File]:
     """Get all files for a project. Raises HTTPException if project not found."""
 
-    with get_db() as db:
+    async with get_async_db_session() as session:
         stmt = select(Project).where(col(Project.id) == project_id)
-        project = db.execute(stmt).scalar_one_or_none()
+        result = await session.execute(stmt)
+        project = result.scalar_one_or_none()
 
         if project is None:
             raise HTTPException(status_code=404, detail="Project not found")
@@ -216,15 +213,17 @@ async def get_project_files(project_id: str) -> List[File]:
             .where(col(File.project_id) == project.id)
             .order_by(col(File.created_at).asc())
         )
-        return list(db.execute(stmt).scalars().all())
+        result = await session.execute(stmt)
+        return list(result.scalars().all())
 
 
 async def update_user_project(
     project_id: str, request: UpdateProjectRequest, user: User
 ) -> Project:
-    with get_db() as db:
+    async with get_async_db_session() as session:
         stmt = select(Project).where(col(Project.id) == project_id)
-        project = db.execute(stmt).scalar_one_or_none()
+        result = await session.execute(stmt)
+        project = result.scalar_one_or_none()
 
         if project is None:
             raise HTTPException(status_code=404, detail="Project not found")
@@ -239,23 +238,24 @@ async def update_user_project(
         project.domain = request.domain
         project.target_audience = request.target_audience
 
-        db.commit()
-        db.refresh(project)
+        await session.commit()
+        await session.refresh(project)
         return project
 
 
 async def update_project_title(project_id: str, title: str) -> None:
-    with get_db() as db:
-        db.execute(
+    async with get_async_db_session() as session:
+        await session.execute(
             update(Project).where(col(Project.id) == project_id).values(title=title)
         )
-        db.commit()
+        await session.commit()
 
 
 async def delete_project(project_id: str, user: User) -> None:
-    with get_db() as db:
+    async with get_async_db_session() as session:
         stmt = select(Project).where(col(Project.id) == project_id)
-        project = db.execute(stmt).scalar_one_or_none()
+        result = await session.execute(stmt)
+        project = result.scalar_one_or_none()
 
         if project is None:
             raise HTTPException(status_code=404, detail="Project not found")
@@ -263,16 +263,17 @@ async def delete_project(project_id: str, user: User) -> None:
         if project.user_id is None or project.user_id != user.id:
             raise HTTPException(status_code=403, detail="Access denied")
 
-        delete_project_files(project_id)
+        await delete_project_files(project_id)
 
         stmt = select(WorkflowRun).where(col(WorkflowRun.project_id) == project_id)
-        project_workflow_runs = db.execute(stmt).scalars().all()
+        result = await session.execute(stmt)
+        project_workflow_runs = result.scalars().all()
         thread_ids = [
             workflow_run.langgraph_thread_id for workflow_run in project_workflow_runs
         ]
 
-        db.delete(project)
-        db.commit()
+        await session.delete(project)
+        await session.commit()
 
     try:
         async with get_checkpointer() as checkpointer:

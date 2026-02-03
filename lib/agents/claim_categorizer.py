@@ -87,9 +87,8 @@ STEP 2: Check for Inferential/Interpretive (Category 4)
 
 STEP 3: Check for Empirical/Analytical Results (Category 3)
 - Does the claim report NEW findings, measurements, or results from THIS work?
-  → Phrases: "we found", "improved by", "reached", "measured", "discovered"
-- Does it describe quantitative outcomes, error rates, or patterns from analysis?
-- Is it a result that came from the authors' own experiments, analysis, or calculations?
+  → Phrases: "we found", "we obtained", "we reached", "measured", "discovered"
+- Is it a result that came from the authors' own experiments, analysis, or calculations WITHIN this work?
   → If YES → Category 3: Empirical/Analytical Results
   → If NO → Continue to STEP 4
 
@@ -97,13 +96,14 @@ STEP 4: Check for Methodological/Procedural (Category 2)
 - Does the claim describe WHAT the authors did or HOW they did it?
   → Phrases: "we used", "we followed", "we collected", "we analyzed", "we applied"
 - Does it describe methods, algorithms, instruments, data sources, or procedures?
-- Does it describe the methodology, techniques, or approach used in THIS paper?
+- Does it describe the methodology, techniques, or approach used WITHIN this paper?
   → If YES → Category 2: Methodological/Procedural
   → If NO → Continue to STEP 5
 
 STEP 5: Check for Established/Reported Knowledge (Category 1)
 - Does the claim report background knowledge, prior research, or established facts?
-- Does it cite or reference external sources, prior studies, or field knowledge?
+- Does it cite quantitative outcomes, error rates, or patterns from OUTSIDE this work?
+- Does it have a CITATION or REFERENCE to external sources, prior studies, or field knowledge?
 - Is it providing context, definitions, or anchoring information from outside this paper?
 - Does it describe what others have found or what is known in the field?
   → If YES → Category 1: Established/Reported Knowledge
@@ -252,10 +252,9 @@ When in doubt between TRUE and FALSE, default to FALSE.
 
 {audience_context}
 
-## Summary of the document (for context about the document's main argument)
-```
-{document_summary}
-```
+{summary_context}
+
+{headings_context}
 
 ## The paragraph of the original document that contains the chunk of text that we want to substantiate
 ```

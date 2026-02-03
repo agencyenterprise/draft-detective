@@ -3,8 +3,8 @@
 from langgraph.graph import StateGraph
 
 from lib.workflows.context import ContextSchema
-from lib.workflows.footnote_extraction.nodes.detect_sections import (
-    detect_sections_node,
+from lib.workflows.footnote_extraction.nodes.detect_footnotes_section import (
+    detect_footnotes_section_node,
 )
 from lib.workflows.footnote_extraction.nodes.extract_footnotes import (
     extract_footnotes_node,
@@ -28,7 +28,7 @@ def build_footnote_extraction_graph(
     """
     graph = StateGraph(FootnoteExtractionState, context_schema=ContextSchema)
 
-    graph.add_node("detect_sections", detect_sections_node)
+    graph.add_node("detect_sections", detect_footnotes_section_node)
     graph.add_node("extract_footnotes", extract_footnotes_node)
 
     graph.set_entry_point("detect_sections")
