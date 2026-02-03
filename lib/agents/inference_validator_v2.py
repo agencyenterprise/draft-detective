@@ -17,6 +17,12 @@ from lib.config.llm_models import gpt_5_mini_model
 from lib.models.agent import LangChainAgent
 from lib.workflows.context import ContextSchema
 
+import logging
+
+logger = logging.getLogger(__name__)
+
+# for per validator testing
+verbose = False
 
 # =========================
 #  Pydantic data contracts
@@ -134,4 +140,20 @@ class InferenceValidatorV2Agent(LangChainAgent):
             context=self.context,
         )
 
-        return result["structured_response"]
+        structured = result["structured_response"]
+
+        if verbose:
+            n = len(structured.results)
+            print(f"InferenceValidatorV2: {n} inference(s) found")
+            for i, r in enumerate(structured.results, 1):
+                print(
+                    f"  [{i}] validity={r.inference_validity} key_sentence={r.key_sentence[:60] + '...' if len(r.key_sentence) > 60 else r.key_sentence}"
+                )
+
+            run_index = (config or {}).get("run_index", "?")
+            # ... after getting structured ...
+            print(
+                f"InferenceValidatorV2 run {run_index}: {len(structured.results)} inference(s)"
+            )
+
+        return structured
