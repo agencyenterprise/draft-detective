@@ -142,6 +142,7 @@ class InferenceValidatorV2Agent(LangChainAgent):
 
         structured = result["structured_response"]
 
+        # for verbose execution testing
         if verbose:
             n = len(structured.results)
             print(f"InferenceValidatorV2: {n} inference(s) found")
@@ -151,7 +152,6 @@ class InferenceValidatorV2Agent(LangChainAgent):
                 )
 
             run_index = (config or {}).get("run_index", "?")
-            # ... after getting structured ...
             print(
                 f"InferenceValidatorV2 run {run_index}: {len(structured.results)} inference(s)"
             )
