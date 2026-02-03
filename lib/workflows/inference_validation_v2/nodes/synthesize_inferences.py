@@ -12,7 +12,6 @@ from lib.workflows.inference_validation_v2.nodes.validate_inferences_v2 import (
 )
 from typing import List
 
-from pydantic import BaseModel, Field
 from lib.workflows.inference_validation_v2.state import (
     InferenceValidationV2State,
     ExtractedInferenceResultResponse,
