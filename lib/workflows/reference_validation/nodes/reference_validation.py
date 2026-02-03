@@ -13,7 +13,10 @@ from lib.workflows.context import ContextSchema
 from lib.services.url_redirect_checker import get_final_url
 from lib.workflows.decorators import register_node
 from lib.workflows.reference_extraction.state import ExtractedReference
-from lib.workflows.reference_validation.state import ReferenceValidationState
+from lib.workflows.reference_validation.state import (
+    ReferenceValidationItem,
+    ReferenceValidationState,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -36,12 +39,12 @@ async def reference_validation(
         for reference in references
     ]
 
-    results: tuple[list[BibliographyItemValidation | None], list[Exception | None]] = (
+    results: tuple[list[ReferenceValidationItem | None], list[Exception | None]] = (
         await run_tasks(tasks, desc="Validating references")
     )
     validation_responses_raw, exceptions = results
 
-    validation_responses: List[BibliographyItemValidation] = []
+    validation_responses: List[ReferenceValidationItem] = []
     for validation_response in validation_responses_raw:
         if validation_response is not None:
             validation_responses.append(validation_response)
@@ -58,7 +61,7 @@ async def reference_validation(
 async def _validate_reference(
     reference: ExtractedReference,
     reference_validator_agent: ReferenceValidatorAgent,
-) -> BibliographyItemValidation:
+) -> ReferenceValidationItem:
     llm_task = reference_validator_agent.ainvoke({"reference": reference.text})
     url_task = get_final_url(reference.text)
 
@@ -66,14 +69,16 @@ async def _validate_reference(
         llm_task, url_task, return_exceptions=True
     )
 
-    if isinstance(llm_result, Exception):
+    if isinstance(llm_result, BaseException):
         raise llm_result
 
-    if not isinstance(url_result, Exception):
+    if not isinstance(url_result, BaseException):
         cited_url, final_url = url_result
         if cited_url:
             llm_result.cited_url = cited_url
             if final_url and final_url != cited_url:
                 llm_result.url = final_url
 
-    return llm_result
+    return ReferenceValidationItem(
+        reference_id=reference.id, validation_result=llm_result
+    )

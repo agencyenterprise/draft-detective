@@ -1,5 +1,6 @@
 from typing import List, Literal
 
+from openai import BaseModel
 from pydantic import Field
 
 from lib.agents.reference_validator import BibliographyItemValidation
@@ -20,6 +21,13 @@ class ReferenceValidationWorkflowConfig(BaseWorkflowConfig):
     )
 
 
+class ReferenceValidationItem(BaseModel):
+    reference_id: str = Field(description="The ID of the reference to validate.")
+    validation_result: BibliographyItemValidation = Field(
+        description="The validation result for the reference."
+    )
+
+
 class ReferenceValidationState(BaseWorkflowState):
     """State for the reference validation workflow."""
 
@@ -27,6 +35,4 @@ class ReferenceValidationState(BaseWorkflowState):
         WorkflowRunType.REFERENCE_VALIDATION
     )
     config: ReferenceValidationWorkflowConfig
-    reference_validations: List[BibliographyItemValidation] = Field(
-        default_factory=list
-    )
+    reference_validations: List[ReferenceValidationItem] = Field(default_factory=list)

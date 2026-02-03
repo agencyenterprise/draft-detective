@@ -30,12 +30,12 @@ export function useReferenceReviewReferences(projectDetail: ProjectDetailed | un
     [referenceExtraction?.state?.extracted_references, referenceFileMatching?.state?.matches, files],
   );
 
-  // Create validation map from reference validation workflow
+  // Create validation map from reference validation workflow (keyed by reference_id)
   const validationMap = useMemo(() => {
     const map = new Map<string, BibliographyItemValidation>();
     referenceValidation?.state?.reference_validations?.forEach((v) => {
-      if (v.original_reference) {
-        map.set(v.original_reference, v);
+      if (v.reference_id) {
+        map.set(v.reference_id, v.validation_result);
       }
     });
     return map;
@@ -73,7 +73,7 @@ export function useReferenceReviewReferences(projectDetail: ProjectDetailed | un
             }
           : null,
         fetchResult: shouldShowFetchedResult ? fetchedReference : null,
-        validation: validationMap.get(item.text) || null,
+        validation: (item.id && validationMap.get(item.id)) || null,
       };
     });
   }, [composedReferences, files, referenceExtraction, referenceDownloader, validationMap]);

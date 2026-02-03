@@ -3941,6 +3941,23 @@ export const ReferenceType = {
 export type ReferenceType = (typeof ReferenceType)[keyof typeof ReferenceType];
 
 /**
+ * ReferenceValidationItem
+ */
+export type ReferenceValidationItem = {
+  /**
+   * Reference Id
+   *
+   * The ID of the reference to validate.
+   */
+  reference_id: string;
+  /**
+   * The validation result for the reference.
+   */
+  validation_result: BibliographyItemValidation;
+  [key: string]: unknown | string | BibliographyItemValidation;
+};
+
+/**
  * ReferenceValidationState
  *
  * State for the reference validation workflow.
@@ -3960,7 +3977,7 @@ export type ReferenceValidationState = {
   /**
    * Reference Validations
    */
-  reference_validations?: Array<BibliographyItemValidation>;
+  reference_validations?: Array<ReferenceValidationItem>;
 };
 
 /**
