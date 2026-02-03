@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
     "Detect footnote sections",
     "Detect footnote sections at the end of the document using pattern matching",
 )
-async def detect_sections_node(
+async def detect_footnotes_section_node(
     state: FootnoteExtractionState, runtime: Runtime[ContextSchema]
 ) -> dict:
     """
