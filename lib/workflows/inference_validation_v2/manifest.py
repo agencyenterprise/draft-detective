@@ -82,6 +82,7 @@ class InferenceValidationV2Manifest(
                         chunk_index=chunk_index,
                         chunk_indices=chunk_indices,
                         claim_index=None,
+                        long_description=f"# Detailed Analysis\n\n{analysis.long_form_argument_analysis}\n\n# Suggested Action\n\n{analysis.suggested_action}\n\n# Key Sentence\n\n> {analysis.key_sentence}",
                     )
                 )
 

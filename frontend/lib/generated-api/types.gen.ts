@@ -1605,9 +1605,15 @@ export type DocumentIssue = {
   /**
    * Description
    *
-   * The description of the issue
+   * A short description of the issue, enough to understand the issue at a glance. Can be markdown.
    */
   description: string;
+  /**
+   * Long Description
+   *
+   * A long description of the issue, including all the details necessary to understand the issue in detail. Can be markdown.
+   */
+  long_description?: string | null;
   /**
    * The severity of the issue
    */

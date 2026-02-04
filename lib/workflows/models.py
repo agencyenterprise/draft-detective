@@ -119,7 +119,13 @@ class SeverityEnum(StrEnum):
 
 class DocumentIssue(BaseModel):
     title: str = Field(description="The title of the issue")
-    description: str = Field(description="The description of the issue")
+    description: str = Field(
+        description="A short description of the issue, enough to understand the issue at a glance. Can be markdown."
+    )
+    long_description: Optional[str] = Field(
+        description="A long description of the issue, including all the details necessary to understand the issue in detail. Can be markdown.",
+        default=None,
+    )
     severity: SeverityEnum = Field(description="The severity of the issue")
     type: WorkflowRunType = Field(
         description="The workflow type that generated this issue"
