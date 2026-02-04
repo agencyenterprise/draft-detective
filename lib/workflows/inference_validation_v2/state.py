@@ -1,10 +1,30 @@
-from typing import Annotated, Dict, Literal, Optional
+from typing import Annotated, Dict, Literal, Optional, List
 
 from pydantic import Field
 
-from lib.agents.inference_synthesizer import ConsolidatedInferenceResultResponse
+from lib.agents.inference_synthesizer import (
+    ConsolidatedInferenceAnalysis,
+    ConsolidatedInferenceResultResponse,
+)
 from lib.agents.inference_validator_v2 import InferenceResultResponse
 from lib.workflows.models import BaseWorkflowConfig, BaseWorkflowState, WorkflowRunType
+
+
+class ExtractedInferenceResult(ConsolidatedInferenceAnalysis):
+    """An inference result with document-derived chunk indices."""
+
+    chunk_indices: List[int] = Field(
+        default_factory=list,
+        description="Chunk indices that overlap with the inference (by line range).",
+    )
+
+
+class ExtractedInferenceResultResponse(ConsolidatedInferenceResultResponse):
+    """Response containing extracted inference results with chunk indices."""
+
+    results: List[ExtractedInferenceResult] = Field(
+        description="Extracted inference results with chunk indices and severity.",
+    )
 
 
 def merge_validator_results(
@@ -34,9 +54,9 @@ class InferenceValidationV2State(BaseWorkflowState):
         description="Results from parallel inference validator runs keyed by run index (1, 2, 3, ...)",
     )
 
-    inference_results: Optional[ConsolidatedInferenceResultResponse] = Field(
+    inference_results: Optional[ExtractedInferenceResultResponse] = Field(
         default=None,
-        description="Consolidated inference analysis result with severity",
+        description="Extracted inference analysis result with chunk indices and severity",
     )
 
 
