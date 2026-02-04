@@ -155,13 +155,14 @@ dataset:
   description: "Test cases for validating citation detection and bibliography matching"
   test_config:
     strict_fields:
-      citations:
+      results:
         __all__:
-          # - text
-          - type
-          - needs_bibliography
-          - associated_bibliography
-          - index_of_associated_bibliography
+          citations:
+            __all__:
+              - type
+              - needs_bibliography
+              - associated_bibliography
+              - index_of_associated_bibliography
   items:
     - name: "citation_toy_example_1"
       description: "Test case with multiple citations in author (year) format"

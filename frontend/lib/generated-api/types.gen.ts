@@ -946,13 +946,13 @@ export type CitationDetectionState = {
   /**
    * Citations
    */
-  citations?: Array<CitationResponseWithChunkIndex>;
+  citations?: Array<CitationResponse>;
 };
 
 /**
- * CitationResponseWithChunkIndex
+ * CitationResponse
  */
-export type CitationResponseWithChunkIndex = {
+export type CitationResponse = {
   /**
    * Citations
    *
@@ -2034,7 +2034,7 @@ export type ExtractedInferenceResultResponse = {
   /**
    * Results
    *
-   * Consolidated inference results with line and chunk info.
+   * Extracted inference results with chunk indices and severity.
    */
   results: Array<ExtractedInferenceResult>;
 };
@@ -2799,7 +2799,7 @@ export type InferenceValidationV2State = {
     [key: string]: InferenceResultResponse;
   };
   /**
-   * Consolidated inference analysis result with severity
+   * Extracted inference analysis result with chunk indices and severity
    */
   inference_results?: ExtractedInferenceResultResponse | null;
 };

@@ -1,11 +1,13 @@
-import asyncio
 from pathlib import Path
 
 import pytest
 
-from lib.agents.citation_detector import CitationDetectorAgent, CitationResponse
+from lib.agents.citation_detector import (
+    BatchedCitationResult,
+    CitationDetectorAgent,
+    CitationDetectorPromptKwargs,
+)
 from lib.models.agent_test_case import AgentTestCase
-from lib.models.bibliography_item import BibliographyItem
 from lib.models.footnote_item import FootnoteItem
 from lib.workflows.citation_detection.nodes.detect_citations import (
     _format_bibliography,
@@ -42,17 +44,31 @@ def _build_cases() -> list[AgentTestCase]:
         ]
         bibliography_list = _format_bibliography(bibliography_items)
 
+        # Wrap single chunk in batch format: list of (chunk_index, content) tuples
+        chunk_content = test_case.input["chunk"]
+        input_kwargs: CitationDetectorPromptKwargs = {
+            "footnotes_list": footnotes_list,
+            "bibliography": bibliography_list,
+            "chunks": [(0, chunk_content)],
+        }
+
+        # Wrap expected output in batched format with single chunk at index 0
+        batched_expected = {
+            "results": [
+                {
+                    "chunk_index": 0,
+                    **test_case.expected_output,
+                }
+            ]
+        }
+
         cases.append(
             AgentTestCase(
                 name=test_case.name,
                 agent=CitationDetectorAgent(create_test_context()),
-                response_model=CitationResponse,
-                prompt_kwargs={
-                    "footnotes_list": footnotes_list,
-                    "bibliography": bibliography_list,
-                    "chunk": test_case.input["chunk"],
-                },
-                expected_dict=test_case.expected_output,
+                response_model=BatchedCitationResult,
+                prompt_kwargs=input_kwargs,
+                expected_dict=batched_expected,
                 strict_fields=strict_fields,
                 llm_fields=llm_fields,
             )

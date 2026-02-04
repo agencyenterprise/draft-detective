@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING, Dict, List, Optional, Sequence, Tuple, cast
 
-from lib.agents.citation_detector import CitationResponseWithChunkIndex
+from lib.agents.citation_detector import CitationResponse
 from lib.agents.claim_categorizer import ClaimCategorizationResponseWithClaimIndex
 from lib.agents.claim_extractor import ClaimResponseWithChunkIndex
 from lib.agents.models import ChunkWithIndex, ClaimCategory
@@ -22,7 +22,7 @@ class AnalyzedChunk(ChunkWithIndex):
     """
 
     claims: Optional[ClaimResponseWithChunkIndex] = None
-    citations: Optional[CitationResponseWithChunkIndex] = None
+    citations: Optional[CitationResponse] = None
     claim_categories: List[ClaimCategorizationResponseWithClaimIndex] = []
 
 
@@ -91,7 +91,7 @@ def build_analyzed_chunks(
             categories_by_chunk_and_claim[key].append(category)
 
     # Build map of citations by chunk index from citation detection state (optional)
-    citations_by_chunk_index: Dict[int, CitationResponseWithChunkIndex] = {}
+    citations_by_chunk_index: Dict[int, CitationResponse] = {}
     if citation_detection_state is not None:
         for citation_response_with_index in citation_detection_state.citations:
             citations_by_chunk_index[citation_response_with_index.chunk_index] = (
