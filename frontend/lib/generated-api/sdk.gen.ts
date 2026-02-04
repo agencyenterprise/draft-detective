@@ -454,13 +454,16 @@ export const approveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePost = <ThrowO
 /**
  * Get Workflow Types
  *
- * List all available workflow types including internal ones.
+ * List available workflow types based on user permissions.
+ *
+ * QA Screener workflows are only visible to RAND and ADMIN roles.
  */
 export const getWorkflowTypesApiWorkflowTypesGet = <ThrowOnError extends boolean = true>(
   options?: Options<GetWorkflowTypesApiWorkflowTypesGetData, ThrowOnError>,
 ) =>
   (options?.client ?? client).get<GetWorkflowTypesApiWorkflowTypesGetResponses, unknown, ThrowOnError, 'data'>({
     responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/workflow-types',
     ...options,
   });
@@ -697,7 +700,7 @@ export const updateProjectEndpointApiProjectProjectIdPatch = <ThrowOnError exten
  *
  * Uses cached version if available, otherwise generates via workflow.
  * First request may take a few seconds as it generates the DOCX.
- * Subsequent requests with the same share_token and severities filter are instant.
+ * Subsequent requests with the same share_token, severities, and workflow_types filters are instant.
  */
 export const downloadProjectDocxApiProjectsProjectIdDocxDownloadGet = <ThrowOnError extends boolean = true>(
   options: Options<DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetData, ThrowOnError>,

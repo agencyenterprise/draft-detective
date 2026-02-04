@@ -14,6 +14,13 @@ from lib.workflows.types import WorkflowState
 WorkflowStateType = TypeVar("WorkflowStateType", bound=BaseWorkflowState)
 WorkflowConfigType = TypeVar("WorkflowConfigType", bound=BaseWorkflowConfig)
 
+# QA Screener workflows - only visible to RAND and ADMIN roles
+QA_SCREENER_WORKFLOWS = {
+    WorkflowRunType.ADVOCACY_TONE,
+    WorkflowRunType.ABOUT_AUTHORS,
+    WorkflowRunType.ABOUT_THIS,
+}
+
 
 class WorkflowManifest[WorkflowStateType, WorkflowConfigType](ABC):
     """Base class for workflow manifests."""
@@ -48,6 +55,11 @@ class WorkflowManifest[WorkflowStateType, WorkflowConfigType](ABC):
 
     # Display order in the UI (lower numbers appear first)
     order: int = 99
+
+    @property
+    def is_qa_screener(self) -> bool:
+        """Whether the workflow is part of the QA Screener tool."""
+        return self.type in QA_SCREENER_WORKFLOWS
 
     # List of workflow types that this workflow depends on.
     # Used to determine the order in which the workflows should be run.

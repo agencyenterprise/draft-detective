@@ -102,6 +102,7 @@ class ClaimReferenceValidationManifest(
                     title=title,
                     description=substantiation.rationale,
                     severity=severity,
+                    type=self.type,
                     chunk_index=substantiation.chunk_index,
                     claim_index=substantiation.claim_index,
                     claim_category=find_claim_category(
@@ -146,6 +147,7 @@ class ClaimReferenceValidationManifest(
                         title="Unsupported claim",
                         description=f"Claim '{category.claim}' requires external verification but no citations were found.",
                         severity=SeverityEnum.MEDIUM,
+                        type=self.type,
                         chunk_index=category.chunk_index,
                         claim_index=category.claim_index,
                         claim_category=category.claim_category,

@@ -1,79 +1,139 @@
 import asyncio
 import logging
-from typing import List
 
 from langgraph.runtime import Runtime
+from langgraph.types import Send
 
-from lib.agents.reference_validator import (
-    BibliographyItemValidation,
-    ReferenceValidatorAgent,
-)
-from lib.run_utils import convert_exceptions_to_workflow_errors, run_tasks
-from lib.workflows.context import ContextSchema
+from lib.agents.reference_validator import ReferenceValidatorAgent
 from lib.services.url_redirect_checker import get_final_url
+from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
-from lib.workflows.reference_extraction.state import ExtractedReference
-from lib.workflows.reference_validation.state import ReferenceValidationState
+from lib.workflows.reference_validation.state import (
+    ReferenceValidationItem,
+    ReferenceValidationState,
+    ReferenceValidationStatus,
+)
 
 logger = logging.getLogger(__name__)
 
 
 @register_node(
-    "Validate references",
-    "Validate the references for the document",
+    "Initialize validations",
+    "Initialize all references with pending status",
 )
-async def reference_validation(
+async def initialize_validations(
     state: ReferenceValidationState, runtime: Runtime[ContextSchema]
 ):
-    reference_validator_agent = ReferenceValidatorAgent(runtime.context)
-    file_artifacts_service = runtime.context.file_artifacts_service
+    """Initialize all references with PENDING status immediately.
 
-    # Fetch extracted references (no file matching needed for validation)
+    This allows the frontend to display all references right away
+    before any validation has started.
+    """
+    file_artifacts_service = runtime.context.file_artifacts_service
     references = await file_artifacts_service.get_extracted_references()
 
-    tasks = [
-        _validate_reference(reference, reference_validator_agent)
-        for reference in references
+    pending_results = [
+        ReferenceValidationItem(
+            reference_id=ref.id,
+            input_reference=ref.text,
+            status=ReferenceValidationStatus.PENDING,
+        )
+        for ref in references
     ]
 
-    results: tuple[list[BibliographyItemValidation | None], list[Exception | None]] = (
-        await run_tasks(tasks, desc="Validating references")
-    )
-    validation_responses_raw, exceptions = results
-
-    validation_responses: List[BibliographyItemValidation] = []
-    for validation_response in validation_responses_raw:
-        if validation_response is not None:
-            validation_responses.append(validation_response)
-
-    errors = convert_exceptions_to_workflow_errors(
-        "validate_references",
-        exceptions,
-        workflow_run_id=runtime.context.workflow_run_id,
-    )
-
-    return {"reference_validations": validation_responses, "errors": errors}
+    return {"reference_validations": pending_results}
 
 
-async def _validate_reference(
-    reference: ExtractedReference,
-    reference_validator_agent: ReferenceValidatorAgent,
-) -> BibliographyItemValidation:
-    llm_task = reference_validator_agent.ainvoke({"reference": reference.text})
-    url_task = get_final_url(reference.text)
+@register_node(
+    "Distribute validations",
+    "Distribute references to parallel validation operations",
+)
+async def distribute_validations(
+    state: ReferenceValidationState, runtime: Runtime[ContextSchema]
+):
+    """Fan-out node: creates a Send for each reference.
 
-    llm_result, url_result = await asyncio.gather(
-        llm_task, url_task, return_exceptions=True
-    )
+    This node dispatches parallel validation operations for each reference.
+    """
+    return [
+        Send(
+            "validate_single_reference",
+            {
+                "reference_id": item.reference_id,
+                "input_reference": item.input_reference,
+            },
+        )
+        for item in state.reference_validations
+    ]
 
-    if isinstance(llm_result, Exception):
-        raise llm_result
 
-    if not isinstance(url_result, Exception):
-        cited_url, final_url = url_result
-        if cited_url:
-            llm_result.cited_url = cited_url
-            if final_url and final_url != cited_url:
-                llm_result.url = final_url
+@register_node(
+    "Validate reference",
+    "Validate a single reference",
+)
+async def validate_single_reference(state: dict, runtime: Runtime[ContextSchema]):
+    """Process a single reference and return status update.
 
-    return llm_result
+    Each call to this node handles one reference and returns an update
+    that the reducer will merge into the state by reference_id.
+    """
+    reference_id = state["reference_id"]
+    input_reference = state["input_reference"]
+
+    agent = ReferenceValidatorAgent(runtime.context)
+
+    validation_result = None
+    error = None
+    status = ReferenceValidationStatus.COMPLETED
+
+    try:
+        # Run LLM validation and URL check in parallel
+        llm_task = agent.ainvoke({"reference": input_reference})
+        url_task = get_final_url(input_reference)
+
+        llm_result, url_result = await asyncio.gather(
+            llm_task, url_task, return_exceptions=True
+        )
+
+        if isinstance(llm_result, BaseException):
+            raise llm_result
+
+        # Update URL fields if redirect check succeeded
+        if not isinstance(url_result, BaseException):
+            cited_url, final_url = url_result
+            if cited_url:
+                llm_result.cited_url = cited_url
+                if final_url and final_url != cited_url:
+                    llm_result.url = final_url
+
+        validation_result = llm_result
+
+    except Exception as e:
+        logger.error(
+            f"Error validating reference '{input_reference}': {e}", exc_info=True
+        )
+        status = ReferenceValidationStatus.ERROR
+        error = str(e)
+
+    return {
+        "reference_validations": [
+            ReferenceValidationItem(
+                reference_id=reference_id,
+                input_reference=input_reference,
+                status=status,
+                validation_result=validation_result,
+                error=error,
+            )
+        ]
+    }
+
+
+@register_node(
+    "Finalize validations",
+    "Finalize validation results",
+)
+async def finalize_validations(
+    state: ReferenceValidationState, runtime: Runtime[ContextSchema]
+):
+    """Finalize validation results after all parallel validations complete."""
+    return {}

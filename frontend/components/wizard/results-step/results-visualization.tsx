@@ -44,6 +44,7 @@ export function ResultsVisualization({
   const referenceExtraction = getWorkflowRunByType(results, WorkflowRunType.ReferenceExtraction);
   const [activeTab, setActiveTab] = useState<TabType>('document-explorer');
   const [severityFilter, setSeverityFilter] = useState<SeverityEnum[]>([]);
+  const [workflowTypeFilter, setWorkflowTypeFilter] = useState<WorkflowRunType[]>([]);
   const { isWorkflowTypeVisible } = useWorkflowTypes();
 
   // Find the main document summary from the summaries list
@@ -65,6 +66,8 @@ export function ResultsVisualization({
             readOnly={readOnly}
             severityFilter={severityFilter}
             onSeverityFilterChange={setSeverityFilter}
+            workflowTypeFilter={workflowTypeFilter}
+            onWorkflowTypeFilterChange={setWorkflowTypeFilter}
             onNavigateToAnalyses={() => setActiveTab('analyses')}
             onNavigateToReferences={(referenceIndex) => {
               window.history.pushState(null, '', `#reference-${referenceIndex}`);
@@ -167,6 +170,7 @@ export function ResultsVisualization({
             results={results}
             readOnly={readOnly}
             severityFilter={severityFilter}
+            workflowTypeFilter={workflowTypeFilter}
           />
         </div>
       </div>

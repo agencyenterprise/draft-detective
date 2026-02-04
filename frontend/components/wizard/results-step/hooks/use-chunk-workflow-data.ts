@@ -1,10 +1,10 @@
 import { useMemo } from 'react';
 import type {
-  BibliographyItemValidation,
   ChunkSplittingState,
   ClaimExtractionState,
   ExtractedReference,
   ReferenceExtractionState,
+  ReferenceValidationItem,
   ReferenceValidationState,
   WorkflowRunDetail,
 } from '@/lib/generated-api';
@@ -36,7 +36,7 @@ export function useChunkWorkflowData(workflowRuns: WorkflowRunDetail[]): ChunkWo
 export interface MatchedReference {
   index: number;
   reference: ExtractedReference;
-  validation: BibliographyItemValidation | null;
+  validation: ReferenceValidationItem | null;
 }
 
 /**
@@ -56,7 +56,7 @@ export function findReferenceForChunk(
   if (refIndex === -1) return null;
 
   const ref = extractedRefs[refIndex];
-  const validation = validations.find((v) => v.original_reference === ref.text) ?? null;
+  const validation = validations.find((v) => v.reference_id === ref.id) ?? null;
 
   return { index: refIndex, reference: ref, validation };
 }

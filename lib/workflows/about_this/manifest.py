@@ -73,6 +73,7 @@ class AboutThisManifest(WorkflowManifest[AboutThisState, AboutThisWorkflowConfig
                             f"Result: {requirement_result.explanation}"
                         ),
                         severity=SeverityEnum.MEDIUM,
+                        type=self.type,
                         chunk_index=None,  # Preface issues are section-level
                     )
                 )

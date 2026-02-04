@@ -10,18 +10,31 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Badge } from '@/components/ui/badge';
 import { SeverityBadge } from '@/components/wizard/results-step/components/severity-badge';
-import { SeverityEnum } from '@/lib/generated-api';
+import { SeverityEnum, WorkflowRunType } from '@/lib/generated-api';
+import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { Filter } from 'lucide-react';
 
 interface FilterWarningDialogProps {
   open: boolean;
-  onOpenChange: (open: boolean) => void;
   severityFilter: SeverityEnum[];
+  workflowTypeFilter: WorkflowRunType[];
   onConfirm: () => void;
+  onOpenChange: (open: boolean) => void;
 }
 
-export function FilterWarningDialog({ open, onOpenChange, severityFilter, onConfirm }: FilterWarningDialogProps) {
+export function FilterWarningDialog({
+  open,
+  onOpenChange,
+  severityFilter,
+  workflowTypeFilter,
+  onConfirm,
+}: FilterWarningDialogProps) {
+  const { getWorkflowTypeName } = useWorkflowTypes();
+  const hasSeverityFilter = severityFilter.length > 0 && severityFilter.length < 3;
+  const hasWorkflowTypeFilter = workflowTypeFilter.length > 0;
+
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
@@ -30,16 +43,33 @@ export function FilterWarningDialog({ open, onOpenChange, severityFilter, onConf
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100">
               <Filter className="h-5 w-5 text-blue-600" />
             </div>
-            <AlertDialogTitle>Severity filter active</AlertDialogTitle>
+            <AlertDialogTitle>Filters active</AlertDialogTitle>
           </div>
           <AlertDialogDescription asChild>
             <div className="space-y-3">
-              <p>Your export will only include issues with these severity levels:</p>
-              <div className="flex gap-2">
-                {severityFilter.map((severity) => (
-                  <SeverityBadge key={severity} severity={severity} hideIcon />
-                ))}
-              </div>
+              <p>Your export will only include issues matching your active filters:</p>
+              {hasSeverityFilter && (
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-foreground">Severity levels:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {severityFilter.map((severity) => (
+                      <SeverityBadge key={severity} severity={severity} hideIcon />
+                    ))}
+                  </div>
+                </div>
+              )}
+              {hasWorkflowTypeFilter && (
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-foreground">Analysis types:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {workflowTypeFilter.map((type) => (
+                      <Badge key={type} variant="secondary">
+                        {getWorkflowTypeName(type)}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </AlertDialogDescription>
         </AlertDialogHeader>

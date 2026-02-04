@@ -1,8 +1,17 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { LabeledValue } from '@/components/labeled-value';
-import { BibliographyItemValidation } from '@/lib/generated-api';
-import { AlertTriangle, CheckCircle2, ChevronDownIcon, ChevronRightIcon, ClipboardCheck } from 'lucide-react';
+import { Markdown } from '@/components/markdown';
+import { ReferenceValidationItem, ReferenceValidationStatus } from '@/lib/generated-api';
+import {
+  AlertTriangle,
+  CheckCircle2,
+  ChevronDownIcon,
+  ChevronRightIcon,
+  ClipboardCheck,
+  Loader2,
+  XCircle,
+} from 'lucide-react';
 import * as React from 'react';
 
 function humanizeLabel(value: string): string {
@@ -10,15 +19,101 @@ function humanizeLabel(value: string): string {
 }
 
 export interface ValidationResultsBoxProps {
-  validation: BibliographyItemValidation;
+  validation: ReferenceValidationItem;
+  /** Whether to show the reference text in the header. Defaults to false (used in reference review tab where reference is shown elsewhere) */
+  showReference?: boolean;
+  /** Label for the reference text when showReference is true. Defaults to "Reference" */
+  referenceLabel?: string;
+  /** Size variant controlling padding. 'sm' is compact (default), 'default' has more padding */
+  size?: 'sm' | 'default';
 }
 
-export function ValidationResultsBox({ validation }: ValidationResultsBoxProps) {
+const sizeClasses = {
+  sm: 'py-1 px-2',
+  default: 'py-3 px-4',
+} as const;
+
+export function ValidationResultsBox({
+  validation,
+  showReference = false,
+  referenceLabel = 'Reference',
+  size = 'sm',
+}: ValidationResultsBoxProps) {
+  const paddingClass = sizeClasses[size];
   const [isExpanded, setIsExpanded] = React.useState(false);
 
-  const issues = validation.bibliography_field_validations?.filter((field) => field.problem_type !== 'correct') || [];
+  const status = validation.status ?? ReferenceValidationStatus.Pending;
+  const result = validation.validation_result;
+
+  // Handle pending state
+  if (status === ReferenceValidationStatus.Pending) {
+    return (
+      <div className={`rounded border ${paddingClass} bg-blue-50/80 border-blue-200`}>
+        <div className="flex items-center gap-2">
+          <ClipboardCheck className="w-4 h-4 text-muted-foreground" />
+          <span className="text-xs font-medium text-gray-700">Validation results</span>
+          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 text-xs font-medium rounded-full border bg-blue-50 text-blue-700 border-blue-200">
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            Validating...
+          </span>
+        </div>
+        {showReference && validation.input_reference && (
+          <div className="pt-2 mt-2 border-t border-current/10">
+            <span className="text-xs font-medium text-muted-foreground">{referenceLabel}:</span>
+            <div className="text-sm mt-1 break-words">
+              <Markdown>{validation.input_reference}</Markdown>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Handle error state
+  if (status === ReferenceValidationStatus.Error) {
+    return (
+      <div className={`rounded border ${paddingClass} bg-red-50/80 border-red-200`}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <ClipboardCheck className="w-4 h-4 text-muted-foreground" />
+            <span className="text-xs font-medium text-gray-700">Validation results</span>
+            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 text-xs font-medium rounded-full border bg-red-50 text-red-700 border-red-200">
+              <XCircle className="w-3.5 h-3.5" />
+              Error
+            </span>
+          </div>
+          <Button variant="outline" size="xs" onClick={() => setIsExpanded(!isExpanded)}>
+            {isExpanded ? <ChevronDownIcon className="size-4" /> : <ChevronRightIcon className="size-4" />}
+            {isExpanded ? 'Hide details' : 'Show details'}
+          </Button>
+        </div>
+        {showReference && validation.input_reference && (
+          <div className="pt-2 mt-2 border-t border-current/10">
+            <span className="text-xs font-medium text-muted-foreground">{referenceLabel}:</span>
+            <div className="text-sm mt-1 break-words">
+              <Markdown>{validation.input_reference}</Markdown>
+            </div>
+          </div>
+        )}
+        {isExpanded && validation.error && (
+          <div
+            className={`pt-2 mt-2 border-t border-current/10 text-sm text-red-700 ${showReference && validation.input_reference ? '' : ''}`}
+          >
+            {validation.error}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Handle completed state without result (shouldn't happen, but be defensive)
+  if (!result) {
+    return null;
+  }
+
+  const issues = result.bibliography_field_validations?.filter((field) => field.problem_type !== 'correct') || [];
   const hasIssues = issues.length > 0;
-  const isValid = validation.valid_reference && !hasIssues;
+  const isValid = result.valid_reference && !hasIssues;
 
   const getBoxColorClass = () => {
     if (isValid) return 'bg-green-50/80 border-green-200';
@@ -26,7 +121,7 @@ export function ValidationResultsBox({ validation }: ValidationResultsBoxProps) 
   };
 
   return (
-    <div className={`rounded border py-1 px-2 ${getBoxColorClass()}`}>
+    <div className={`rounded border ${paddingClass} ${getBoxColorClass()}`}>
       {/* Header with title and badge */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -50,50 +145,60 @@ export function ValidationResultsBox({ validation }: ValidationResultsBoxProps) 
         </Button>
       </div>
 
+      {/* Reference text (when showReference is enabled) */}
+      {showReference && validation.input_reference && (
+        <div className="pt-2 mt-2 border-t border-current/10">
+          <span className="text-xs font-medium text-muted-foreground">{referenceLabel}:</span>
+          <div className="text-sm mt-1 break-words">
+            <Markdown>{validation.input_reference}</Markdown>
+          </div>
+        </div>
+      )}
+
       {/* Expanded details */}
       {isExpanded && (
         <div className="space-y-3 pt-2 mt-2 border-t border-current/10 text-sm leading-relaxed">
           {/* Suggested action */}
           <LabeledValue label="Suggested Action">
-            <span className="break-words">{validation.suggested_action}</span>
+            <span className="break-words">{result.suggested_action}</span>
           </LabeledValue>
 
           {/* Updated reference if available */}
-          {validation.updated_reference && (
+          {result.updated_reference && (
             <LabeledValue label="Updated Reference">
               <p className="break-words text-xs bg-white/50 p-2 rounded border border-gray-200">
-                {validation.updated_reference}
+                {result.updated_reference}
               </p>
             </LabeledValue>
           )}
 
           {/* URL */}
-          {validation.url && (
+          {result.url && (
             <LabeledValue label="URL">
               <a
-                href={validation.url}
+                href={result.url}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-blue-600 hover:underline break-all"
               >
-                {validation.url}
+                {result.url}
               </a>
             </LabeledValue>
           )}
 
           {/* Reasoning */}
-          {validation.reasoning && (
+          {result.reasoning && (
             <LabeledValue label="Reasoning">
-              <span className="break-words">{validation.reasoning}</span>
+              <span className="break-words">{result.reasoning}</span>
             </LabeledValue>
           )}
 
           {/* Field validations */}
-          {validation.bibliography_field_validations && validation.bibliography_field_validations.length > 0 && (
+          {result.bibliography_field_validations && result.bibliography_field_validations.length > 0 && (
             <div>
               <h4 className="text-xs font-medium text-muted-foreground mb-2">Field Validations</h4>
               <div className="space-y-2">
-                {validation.bibliography_field_validations.map((field, idx) => {
+                {result.bibliography_field_validations.map((field, idx) => {
                   const isCorrect = field.problem_type === 'correct';
                   return (
                     <div key={idx} className="pl-3 border-l-2 border-gray-200 text-xs">

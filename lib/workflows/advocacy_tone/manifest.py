@@ -63,6 +63,7 @@ class AdvocacyToneManifest(
                         title="Trigger Words Detected",
                         description=result.llm_trigger_words.explanation,
                         severity=SeverityEnum.LOW,
+                        type=self.type,
                         chunk_index=result.chunk_index,
                     )
                 )
@@ -73,6 +74,7 @@ class AdvocacyToneManifest(
                         title="Advocacy Language Detected",
                         description=result.llm_advocacy_language.explanation,
                         severity=SeverityEnum.MEDIUM,
+                        type=self.type,
                         chunk_index=result.chunk_index,
                     )
                 )
@@ -83,6 +85,7 @@ class AdvocacyToneManifest(
                         title="Subjective Tone Detected",
                         description=result.llm_subjective_tone.explanation,
                         severity=SeverityEnum.MEDIUM,
+                        type=self.type,
                         chunk_index=result.chunk_index,
                     )
                 )

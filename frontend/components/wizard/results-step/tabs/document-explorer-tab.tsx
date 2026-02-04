@@ -22,6 +22,7 @@ import { DoclingViewer } from '../components/docling-viewer';
 import { DocumentIssuesList } from '../components/document-issues-list';
 import { DocumentReconstructor } from '../components/document-reconstructor';
 import { filterIssuesBySeverity, SeverityFilter } from '../components/severity-filter';
+import { filterIssuesByWorkflowType, WorkflowTypeFilter } from '../components/workflow-type-filter';
 
 interface DocumentExplorerTabProps {
   projectDetail: ProjectDetailed;
@@ -29,6 +30,8 @@ interface DocumentExplorerTabProps {
   readOnly?: boolean;
   severityFilter: SeverityEnum[];
   onSeverityFilterChange: (value: SeverityEnum[]) => void;
+  workflowTypeFilter: WorkflowRunType[];
+  onWorkflowTypeFilterChange: (value: WorkflowRunType[]) => void;
   onNavigateToAnalyses: () => void;
   onNavigateToReferences?: (referenceIndex: number) => void;
 }
@@ -39,6 +42,8 @@ export function DocumentExplorerTab({
   readOnly = false,
   severityFilter,
   onSeverityFilterChange,
+  workflowTypeFilter,
+  onWorkflowTypeFilterChange,
   onNavigateToAnalyses,
   onNavigateToReferences,
 }: DocumentExplorerTabProps) {
@@ -81,7 +86,7 @@ export function DocumentExplorerTab({
   const hasChunks = chunks.length > 0;
 
   const isDoclingAvailable = Boolean(pages && pages.length > 0 && Object.keys(chunkToItems).length > 0);
-  const filteredIssues = filterIssuesBySeverity(issues, severityFilter);
+  const filteredIssues = filterIssuesByWorkflowType(filterIssuesBySeverity(issues, severityFilter), workflowTypeFilter);
   const referenceWarning = getReferenceExtractionWarningStatus(workflowDetails);
   const prefaceWarning = getAboutThisWarningStatus(workflowDetails);
   const authorsWarning = getAboutAuthorsWarningStatus(workflowDetails);
@@ -201,8 +206,16 @@ export function DocumentExplorerTab({
                         : `${filteredIssues.length} of ${issues.length}`)}
                     {issues.length === 0 && isAnyProcessing && 'Finding issues...'}
                   </span>
-                  {issues.length > 0 && <SeverityFilter value={severityFilter} onChange={onSeverityFilterChange} />}
-                  <AiGeneratedLabel />
+                  {issues.length > 0 && (
+                    <div className="flex items-center gap-1">
+                      <SeverityFilter value={severityFilter} onChange={onSeverityFilterChange} />
+                      <WorkflowTypeFilter
+                        issues={issues}
+                        value={workflowTypeFilter}
+                        onChange={onWorkflowTypeFilterChange}
+                      />
+                    </div>
+                  )}
                 </div>
                 {issues.length === 0 && !isAnyProcessing && (
                   <div className="text-sm text-muted-foreground space-y-2">
