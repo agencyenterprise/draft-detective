@@ -25,6 +25,11 @@ The main goal of AI Reviewer is to assist and streamline the academic peer revie
 
 For detailed development setup instructions, see [DEVELOPMENT.md](DEVELOPMENT.md).
 
+## Deployment
+
+- **Railway**: See [docs/railway-deployment.md](docs/railway-deployment.md) for production deployment on Railway
+- **Kubernetes**: See [k8s/README.md](k8s/README.md) for Kubernetes/OpenShift deployment
+
 ## Testing
 
 Tests are organized by type:

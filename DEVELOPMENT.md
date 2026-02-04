@@ -208,6 +208,8 @@ cp .env.template .env
 # Edit the file with your actual values
 nano .env  # or use your preferred editor
 ```
+For production deployment, see [docs/railway-deployment.md](docs/railway-deployment.md).
+
 
 ## Development Workflow
 
