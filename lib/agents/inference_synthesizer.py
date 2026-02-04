@@ -101,7 +101,6 @@ For each retained inference you identify, provide:
 4. **short_form_argument_analysis**: A concise analysis of what is wrong with the inference. In only TWO sentences.
 5. **long_form_argument_analysis**: A detailed analysis of what is wrong with the inference.
 6. **suggested_action**: A suggested action to take to correct the wrong inference. In only TWO sentences.
-
 7. **start_line**: The starting line number of the key sentence in the full document.
 8. **end_line**: The ending line number of the key sentence in the full document.
 
