@@ -76,6 +76,7 @@ class InferenceValidationV2Manifest(
                 issues.append(
                     DocumentIssue(
                         title="Invalid Inference",
+                        type=self.type,
                         description=description,
                         severity=analysis.severity,
                         chunk_index=chunk_index,
