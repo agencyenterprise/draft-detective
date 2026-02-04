@@ -1,16 +1,15 @@
-import { useMemo } from 'react';
+import { DeleteProjectDialog } from '@/components/delete-project-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { StatusIndicator } from '@/components/ui/status-indicator';
-import { DeleteProjectDialog } from '@/components/delete-project-dialog';
-import { getToolMetadata, ToolDefinition } from '@/lib/tool-registry';
-import { getWorkflowTypeName } from '@/lib/workflow-state';
 import { ProjectListItem, WorkflowRun, WorkflowRunType } from '@/lib/generated-api';
+import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
+import { getToolMetadata, ToolDefinition } from '@/lib/tool-registry';
+import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { ChevronRightIcon } from 'lucide-react';
 import Link from 'next/link';
-import { cn } from '@/lib/utils';
-import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
+import { useMemo } from 'react';
 
 type ProjectWithToolInfo = ProjectListItem & {
   toolInfo: ToolDefinition | null;
@@ -59,15 +58,16 @@ export function ProjectCard({ item }: ProjectCardProps) {
   const { project, workflow_runs, toolInfo } = item;
   const isToolRun = toolInfo !== null;
 
-  const { isWorkflowTypeVisible } = useWorkflowTypes();
+  const { isWorkflowTypeVisible, getWorkflowTypeName } = useWorkflowTypes();
   const toolMetadata = toolInfo ? getToolMetadata(toolInfo.name) : null;
   const ToolIcon = toolMetadata?.icon;
 
   // For regular projects, filter to only show user-visible workflows
   // Internal workflows are filtered out using the centralized registry
-  const displayWorkflows = isToolRun
-    ? workflow_runs || []
-    : workflow_runs?.filter((w) => isWorkflowTypeVisible(w.type)) || [];
+  const displayWorkflows = useMemo(
+    () => (isToolRun ? workflow_runs || [] : workflow_runs?.filter((w) => isWorkflowTypeVisible(w.type)) || []),
+    [isToolRun, workflow_runs, isWorkflowTypeVisible],
+  );
 
   // Group workflows by type for display
   const workflowSummaries = useMemo(() => groupWorkflowsByType(displayWorkflows), [displayWorkflows]);

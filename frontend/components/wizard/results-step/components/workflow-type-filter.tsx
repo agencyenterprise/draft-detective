@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { DocumentIssue, WorkflowRunType } from '@/lib/generated-api';
-import { getWorkflowTypeName } from '@/lib/workflow-state';
+import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { FilterIcon } from 'lucide-react';
 import { useMemo } from 'react';
 
@@ -16,6 +16,8 @@ interface WorkflowTypeFilterProps {
 }
 
 export function WorkflowTypeFilter({ issues, value, onChange }: WorkflowTypeFilterProps) {
+  const { getWorkflowTypeName } = useWorkflowTypes();
+
   // Convert selected values to Set for O(1) lookups
   const selectedSet = useMemo(() => new Set(value), [value]);
 
@@ -35,7 +37,7 @@ export function WorkflowTypeFilter({ issues, value, onChange }: WorkflowTypeFilt
         label: getWorkflowTypeName(type),
         count,
       }));
-  }, [issues]);
+  }, [issues, getWorkflowTypeName]);
 
   if (workflowTypeOptions.length <= 0) {
     return null;

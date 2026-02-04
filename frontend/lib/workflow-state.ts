@@ -74,36 +74,6 @@ export function getWorkflowRunByType<T extends keyof WorkflowTypeToDetail>(
   );
 }
 
-const workflowTypeNames: Record<WorkflowRunType, string> = {
-  [WorkflowRunType.DocumentProcessing]: 'Document Processing',
-  [WorkflowRunType.ChunkSplitting]: 'Chunk Splitting',
-  [WorkflowRunType.DocumentSummarization]: 'Document Summarization',
-  [WorkflowRunType.ReferenceExtraction]: 'Reference Extraction',
-  [WorkflowRunType.ReferenceFileMatching]: 'Reference File Matching',
-  [WorkflowRunType.HumanApproval]: 'Human Approval',
-  [WorkflowRunType.ClaimReferenceValidation]: 'Claim Reference Validation',
-  [WorkflowRunType.MethodologicalAlignment]: 'Methodological Alignment',
-  [WorkflowRunType.ReferenceDownloader]: 'Reference Downloader',
-  [WorkflowRunType.InferenceValidation]: 'Inference Validation',
-  [WorkflowRunType.InferenceValidationV2]: 'Inference Validation (Full Document)',
-  [WorkflowRunType.LiteratureReview]: 'Literature Review',
-  [WorkflowRunType.LiveReports]: 'Live Reports',
-  [WorkflowRunType.ReferenceValidation]: 'Reference Validation',
-  [WorkflowRunType.CitationSuggester]: 'Citation Suggester',
-  [WorkflowRunType.ResultsExtraction]: 'Results Extraction',
-  [WorkflowRunType.ClaimExtraction]: 'Claim Extraction',
-  [WorkflowRunType.CitationDetection]: 'Citation Detection',
-  [WorkflowRunType.FootnoteExtraction]: 'Footnote Extraction',
-  [WorkflowRunType.AbbreviationScan]: 'Abbreviation Scan',
-  [WorkflowRunType.AdvocacyTone]: 'Advocacy & Tone',
-  [WorkflowRunType.AboutAuthors]: 'About Authors',
-  [WorkflowRunType.AboutThis]: 'About This (Preface)',
-};
-
-export function getWorkflowTypeName(type: WorkflowRunType): string {
-  return workflowTypeNames[type] || type;
-}
-
 /**
  * Filter errors to only include those from the current workflow run.
  * Only errors with matching workflow_run_id are included.

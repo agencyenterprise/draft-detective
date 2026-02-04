@@ -13,7 +13,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { SeverityBadge } from '@/components/wizard/results-step/components/severity-badge';
 import { SeverityEnum, WorkflowRunType } from '@/lib/generated-api';
-import { getWorkflowTypeName } from '@/lib/workflow-state';
+import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { Filter } from 'lucide-react';
 
 interface FilterWarningDialogProps {
@@ -31,6 +31,7 @@ export function FilterWarningDialog({
   workflowTypeFilter,
   onConfirm,
 }: FilterWarningDialogProps) {
+  const { getWorkflowTypeName } = useWorkflowTypes();
   const hasSeverityFilter = severityFilter.length > 0 && severityFilter.length < 3;
   const hasWorkflowTypeFilter = workflowTypeFilter.length > 0;
 

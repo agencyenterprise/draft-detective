@@ -3941,6 +3941,40 @@ export const ReferenceType = {
 export type ReferenceType = (typeof ReferenceType)[keyof typeof ReferenceType];
 
 /**
+ * ReferenceValidationItem
+ *
+ * Item for tracking individual reference validation with status
+ */
+export type ReferenceValidationItem = {
+  /**
+   * Reference Id
+   *
+   * The ID of the reference to validate.
+   */
+  reference_id: string;
+  /**
+   * Input Reference
+   *
+   * The original reference text.
+   */
+  input_reference: string;
+  /**
+   * Current status of this reference validation.
+   */
+  status?: ReferenceValidationStatus;
+  /**
+   * The validation result for the reference, present on success.
+   */
+  validation_result?: BibliographyItemValidation | null;
+  /**
+   * Error
+   *
+   * Error message, present on failure.
+   */
+  error?: string | null;
+};
+
+/**
  * ReferenceValidationState
  *
  * State for the reference validation workflow.
@@ -3960,8 +3994,26 @@ export type ReferenceValidationState = {
   /**
    * Reference Validations
    */
-  reference_validations?: Array<BibliographyItemValidation>;
+  reference_validations?: Array<ReferenceValidationItem>;
 };
+
+/**
+ * ReferenceValidationStatus
+ *
+ * Status of a reference validation operation
+ */
+export const ReferenceValidationStatus = {
+  Pending: 'pending',
+  Completed: 'completed',
+  Error: 'error',
+} as const;
+
+/**
+ * ReferenceValidationStatus
+ *
+ * Status of a reference validation operation
+ */
+export type ReferenceValidationStatus = (typeof ReferenceValidationStatus)[keyof typeof ReferenceValidationStatus];
 
 /**
  * ReferenceValidationWorkflowConfig

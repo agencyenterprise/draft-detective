@@ -1,4 +1,4 @@
-import { BibliographyItemValidation, ReferenceFetchResult } from '@/lib/generated-api';
+import { ReferenceValidationItem, ReferenceFetchResult } from '@/lib/generated-api';
 
 export type ReferenceReviewStatus = 'unmatched' | 'fetching' | 'matched';
 
@@ -15,5 +15,5 @@ export interface ReferenceReviewItem {
   status: ReferenceReviewStatus;
   matchedFile: null | MatchedFile;
   fetchResult?: ReferenceFetchResult | null;
-  validation?: BibliographyItemValidation | null;
+  validation?: ReferenceValidationItem | null;
 }
