@@ -101,6 +101,7 @@ class ReferenceFileMatchingManifest(
                     title="Missing supporting document for reference",
                     description=f'Reference does not have an associated supporting document: "{reference.text}"',
                     severity=SeverityEnum.LOW,
+                    type=self.type,
                     chunk_index=chunk_index,
                     chunk_indices=chunk_indices if chunk_indices else None,
                 )

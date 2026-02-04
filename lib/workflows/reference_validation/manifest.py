@@ -91,6 +91,7 @@ class ReferenceValidationManifest(
                     title="Invalid reference",
                     description=f'Possible invalid reference: "{validation.original_reference}"',
                     severity=SeverityEnum.MEDIUM,
+                    type=self.type,
                     chunk_index=chunk_index,
                     chunk_indices=chunk_indices if chunk_indices else None,
                 )
@@ -104,6 +105,7 @@ class ReferenceValidationManifest(
                         f"Cited: {validation.cited_url} → Canonical: {validation.url}"
                     ),
                     severity=SeverityEnum.MEDIUM,
+                    type=self.type,
                     chunk_index=chunk_index,
                 )
                 issues.append(issue)
