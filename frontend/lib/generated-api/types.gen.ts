@@ -4539,7 +4539,11 @@ export type UserResponse = {
 /**
  * UserRole
  */
-export const UserRole = { User: 'USER', Admin: 'ADMIN' } as const;
+export const UserRole = {
+  User: 'USER',
+  Admin: 'ADMIN',
+  Rand: 'RAND',
+} as const;
 
 /**
  * UserRole
@@ -4815,52 +4819,41 @@ export type WorkflowRunType = (typeof WorkflowRunType)[keyof typeof WorkflowRunT
 
 /**
  * WorkflowTypeDescription
+ *
+ * Workflow type description for API responses.
  */
 export type WorkflowTypeDescription = {
-  /**
-   * The type of the workflow
-   */
   type: WorkflowRunType;
   /**
    * Name
-   *
-   * The name of the workflow
    */
   name: string;
   /**
    * Description
-   *
-   * The description of the workflow
    */
   description: string;
   /**
    * Needs Web Search
-   *
-   * Whether the workflow needs web search
    */
   needs_web_search: boolean;
   /**
    * Is Experimental
-   *
-   * Whether the workflow is experimental
    */
   is_experimental: boolean;
   /**
    * Is Internal
-   *
-   * Whether the workflow is internal (runs as a dependency, not shown in UI)
    */
   is_internal: boolean;
   /**
    * Can Be Triggered By User
-   *
-   * Whether the workflow can be manually triggered by a user
    */
   can_be_triggered_by_user: boolean;
   /**
+   * Is Qa Screener
+   */
+  is_qa_screener: boolean;
+  /**
    * Order
-   *
-   * Display order in the UI (lower numbers appear first)
    */
   order: number;
 };

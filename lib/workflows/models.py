@@ -94,9 +94,9 @@ def is_user_visible_workflow(workflow_type: WorkflowRunType) -> bool:
     Check if a workflow type should be visible to users in the workflow list.
     Uses the is_internal flag from each workflow's manifest.
     """
-    from lib.workflows.registry import _workflow_manifest_registry
+    from lib.workflows.registry import get_all_manifests
 
-    manifest = _workflow_manifest_registry.get(workflow_type)
+    manifest = get_all_manifests().get(workflow_type)
     if manifest is None:
         return False
     return not manifest.is_internal
