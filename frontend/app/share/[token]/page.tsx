@@ -1,9 +1,11 @@
 'use client';
 
+import { OwnerSharedBanner } from '@/components/share/owner-shared-banner';
 import { ResultsVisualization } from '@/components/wizard/results-step/results-visualization';
 import { ShareProvider } from '@/context/share-context';
 import { DocRenderMode } from '@/lib/constants';
 import { getSharedResourceApiPublicShareTokenGet } from '@/lib/generated-api';
+import { useUserMe } from '@/lib/hooks/use-user-me';
 import { useQuery } from '@tanstack/react-query';
 import { useParams } from 'next/navigation';
 import { useState } from 'react';
@@ -14,11 +16,16 @@ export default function SharedProjectPage() {
 
   const [viewMode, setViewMode] = useState<DocRenderMode>('markdown');
 
+  const { data: currentUser } = useUserMe();
+
   const { data, isLoading, error } = useQuery({
     queryKey: ['sharedProject', token],
     queryFn: () => getSharedResourceApiPublicShareTokenGet({ path: { token } }),
     retry: false,
   });
+
+  // Check if the current authenticated user is the owner of this project
+  const isOwner = currentUser?.id && data?.project?.user_id && currentUser.id === data.project.user_id;
 
   if (isLoading) {
     return (
@@ -45,6 +52,7 @@ export default function SharedProjectPage() {
 
   return (
     <ShareProvider token={token}>
+      {isOwner && <OwnerSharedBanner projectId={data.project.id} />}
       <ResultsVisualization projectDetail={data} viewMode={viewMode} onViewModeChange={setViewMode} readOnly />
     </ShareProvider>
   );
