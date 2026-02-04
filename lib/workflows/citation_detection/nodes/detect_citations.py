@@ -36,7 +36,7 @@ def _format_bibliography(references: List[ExtractedReference]) -> str:
     if not references:
         return "No bibliography available."
     return "\n\n".join(
-        f"### Bibliography entry #{i + 1}\n{ref.text}"
+        f"### Bibliography entry #{i + 1} (id `{ref.id}`)\n\n{ref.text}"
         for i, ref in enumerate(references)
     )
 

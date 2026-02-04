@@ -65,32 +65,40 @@ You are a citation detector. You are given a chunk of text and you need to extra
 - If there are no citations made in the chunk, return an empty list.
 - The citation can be a footnote that can refer to multiple bibliography entries, so you need to return all the bibliography entries that the footnote refers to.
 - If the chunk of text is a bibliographic entry itself, do not consider it a citation.
+- If you're unable to match footnote indexes to the actual footnote content, either because the footnote is not in the list of footnotes or because no footnote content was provided, then you should use the bibliography entry index instead. For example, if [[10]](#fn10) has no footnote content you should use the bibliography entry of index 10 instead.
 
 ## Handling footnotes
+
 Note that when you are given a footnote number, you need to look up the footnote in the list of footnotes, and then take the associated text for that footnote use that text to find the correct bibliography entry.
 
 ## Return format
+
 For each citation, you need to return the following information:
 - The text of the citation/footnote mark
 - The type of the citation/footnote mark. This should be a value from the CitationType enum.
 - The format of the citation/footnote mark, e.g., [number] or (Name, et al., Year), url, etc.
 - A boolean value indicating whether the citation refers to a bibliography entry or footnote in the document so it expected to have an associated bibliography entry or footnote. For example, URLs often do not refer to a bibliography entry so this should be False, but something like (Doe, et al., 2025) does refer to a bibliography entry so this should be True.
 - If the document includes a bibliography entry related to this citation, this will be an exact copy of that bibliography entry from the list of bibliography entries I'm providing separately, otherwise it will be an empty string. Do not include the entry number if there is one, just the full context of the bibliography entry.
-- Your very brief rationale for why you think this is a citation/footnote mark
+- Your very brief rationale for why you think this is a citation/footnote mark.
 
 ## The list of footnotes extracted from the document
+
 ```
 {footnotes_list}
 ```
 
 ## The list of bibliography entries (if any) extracted from the bibliography section of the full document
+
 The indexes in this list should be used when returning index_of_associated_bibliography.
+
 IMPORTANT: For numbered footnotes like [10], do NOT assume the number matches the list index. Instead, find the footnote definition in the full document (e.g., "10. ...") and match its content to the correct bibliography entry below.
+
 ```
 {bibliography}
 ```
 
 ## The chunk of text to extract citations from
+
 ```
 {chunk}
 ```
