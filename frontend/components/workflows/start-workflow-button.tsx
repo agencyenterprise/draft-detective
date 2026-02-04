@@ -43,6 +43,7 @@ export function StartWorkflowButton({ type, projectId, workflow, onConfirm }: St
       <WorkflowConfigDialog
         isOpen={isConfigDialogOpen}
         type={type}
+        projectId={projectId}
         onConfirm={(values) => startWorkflowMutation.mutate(values)}
         onCancel={() => setIsConfigDialogOpen(false)}
       />

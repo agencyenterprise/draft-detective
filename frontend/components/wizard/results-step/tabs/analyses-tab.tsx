@@ -165,6 +165,7 @@ export function AnalysesTab({
 
       <WorkflowConfigDialog
         isOpen={isConfigDialogOpen}
+        projectId={projectId}
         onConfirm={handleConfirmStartAnalysis}
         onCancel={() => setIsConfigDialogOpen(false)}
       />

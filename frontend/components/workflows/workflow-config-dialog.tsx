@@ -18,10 +18,12 @@ import { useEffect } from 'react';
 import { WorkflowTypeSelector } from './workflow-type-selector';
 import { WebSearchConsentCheckbox } from './web-search-consent-checkbox';
 import { hasWebSearchRequirement, hasPublicationDateRequirement } from './utils';
+import { useWebSearchConsent } from '@/lib/hooks/use-web-search-consent';
 
 interface WorkflowConfigDialogProps {
   isOpen: boolean;
   type?: WorkflowRunType;
+  projectId: string;
   onConfirm: (values: WorkflowConfigFormValues) => void;
   onCancel: () => void;
 }
@@ -33,8 +35,9 @@ export interface WorkflowConfigFormValues {
   workflowTypes: WorkflowRunType[];
 }
 
-export function WorkflowConfigDialog({ isOpen, type, onConfirm, onCancel }: WorkflowConfigDialogProps) {
+export function WorkflowConfigDialog({ isOpen, type, projectId, onConfirm, onCancel }: WorkflowConfigDialogProps) {
   const [openaiApiKey, setOpenaiApiKey] = useSessionStorage<string>('openai-api-key', '');
+  const [storedWebSearchConsent] = useWebSearchConsent(projectId);
   const hideOpenaiApiKeyInput = process.env.NEXT_PUBLIC_HIDE_CUSTOM_OPENAI_API_KEY_INPUT === 'true';
   const { showExperimentalFeatures } = useExperimentalFeatures();
 
@@ -53,7 +56,7 @@ export function WorkflowConfigDialog({ isOpen, type, onConfirm, onCancel }: Work
   const form = useForm({
     defaultValues: {
       openaiApiKey: openaiApiKey,
-      webSearchConsent: false,
+      webSearchConsent: storedWebSearchConsent,
       publicationDate: today,
       workflowTypes: type ? [type] : [],
     } as WorkflowConfigFormValues,

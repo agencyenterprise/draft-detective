@@ -96,6 +96,7 @@ export function ReferenceReviewTab({ projectId, readOnly = false }: ReferenceRev
       <WorkflowConfigDialog
         isOpen={isConfigDialogOpen}
         type={WorkflowRunType.ReferenceDownloader}
+        projectId={projectId}
         onConfirm={handleConfirm}
         onCancel={() => setIsConfigDialogOpen(false)}
       />
