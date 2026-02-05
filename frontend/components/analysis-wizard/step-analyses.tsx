@@ -13,6 +13,7 @@ import { WebSearchConsentCheckbox } from '@/components/workflows/web-search-cons
 import { useWizard } from './wizard-context';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { useSessionStorage } from '@/lib/hooks/use-session-storage';
+import { useWebSearchConsent } from '@/lib/hooks/use-web-search-consent';
 import { hasWebSearchRequirement, hasSupportingDocumentsRequirement } from '@/components/workflows/utils';
 import {
   startMultipleWorkflowsApiWorkflowsStartMultiplePost,
@@ -31,7 +32,7 @@ export function StepAnalyses() {
   const { selectedWorkflowTypes, setSelectedWorkflowTypes, needsReferencesStep } = wizard;
   const [domain, setDomain] = useState('');
   const [targetAudience, setTargetAudience] = useState('');
-  const [webSearchConsent, setWebSearchConsent] = useState(false);
+  const [webSearchConsent, setWebSearchConsent] = useWebSearchConsent(wizard.projectId);
 
   const needsWebSearch = hasWebSearchRequirement(selectedWorkflowTypes, workflowTypes);
   const needsSupportingDocs = hasSupportingDocumentsRequirement(selectedWorkflowTypes);

@@ -161,6 +161,7 @@ export function ReferenceCard({ reference, projectId, readOnly, disabled = false
       <WorkflowConfigDialog
         isOpen={isFetchDialogOpen}
         type={WorkflowRunType.ReferenceDownloader}
+        projectId={projectId}
         onConfirm={handleFetchFromWebConfirm}
         onCancel={() => setIsFetchDialogOpen(false)}
       />
