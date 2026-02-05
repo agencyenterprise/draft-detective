@@ -13,18 +13,12 @@ import {
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { CloudDownload, ExternalLink, FileText, FileX, GlobeIcon, Loader2, Trash2, Upload } from 'lucide-react';
-import Link from 'next/link';
 import { Markdown } from '@/components/markdown';
 import { WorkflowConfigDialog, WorkflowConfigFormValues } from '@/components/workflows/workflow-config-dialog';
 import { WorkflowRunType } from '@/lib/generated-api';
 import { FetchResultsBox } from './fetch-results-box';
 import { FileUploadDialog } from './file-upload-dialog';
-import {
-  useUploadFileMutation,
-  useRemoveFileMutation,
-  useReplaceFileMutation,
-  useFetchFromWebMutation,
-} from './mutations';
+import { useRemoveFileMutation, useFetchFromWebMutation } from './mutations';
 import { ReferenceReviewItem, ReferenceReviewStatus } from './types';
 import { ValidationResultsBox } from './validation-results-box';
 import { FileDownloadLink } from '@/components/ui/file-download-link';
@@ -78,17 +72,13 @@ export function ReferenceCard({ reference, projectId, readOnly, disabled = false
   // Track when fetch was initiated locally (optimistic UI)
   const [fetchInitiated, setFetchInitiated] = useState(false);
 
-  const uploadFileMutation = useUploadFileMutation(projectId, id);
   const removeFileMutation = useRemoveFileMutation(projectId, matchedFile?.id);
-  const replaceFileMutation = useReplaceFileMutation(projectId, id, matchedFile?.id);
   const fetchFromWebMutation = useFetchFromWebMutation(projectId, id, text);
 
-  const isUploading = uploadFileMutation.isPending;
   const isRemoving = removeFileMutation.isPending;
-  const isReplacing = replaceFileMutation.isPending;
   // Show fetching state: during API call OR after success until backend confirms
   const isFetching = fetchFromWebMutation.isPending || (fetchInitiated && status !== 'fetching');
-  const isLoading = isUploading || isRemoving || isReplacing || isFetching;
+  const isLoading = isRemoving || isFetching || dialogMode !== null;
   // Card is disabled when:
   // 1. Local mutation in progress (isLoading)
   // 2. Backend reports this reference is being fetched (status === 'fetching')
@@ -104,19 +94,6 @@ export function ReferenceCard({ reference, projectId, readOnly, disabled = false
 
   // Effective status for display: show 'fetching' during optimistic period
   const displayStatus = isFetching ? 'fetching' : status;
-
-  const handleDialogConfirm = (files: File[], openaiApiKey: string) => {
-    const file = files[0];
-    if (!file) return;
-
-    const onSuccess = () => setDialogMode(null);
-
-    if (dialogMode === 'upload') {
-      uploadFileMutation.mutate({ file, openaiApiKey }, { onSuccess });
-    } else if (dialogMode === 'replace') {
-      replaceFileMutation.mutate({ file, openaiApiKey }, { onSuccess });
-    }
-  };
 
   const handleFetchFromWebConfirm = (values: WorkflowConfigFormValues) => {
     fetchFromWebMutation.mutate(
@@ -150,12 +127,12 @@ export function ReferenceCard({ reference, projectId, readOnly, disabled = false
     >
       <FileUploadDialog
         isOpen={dialogMode !== null}
-        isUploading={isUploading || isReplacing}
         title={dialogMode ? dialogConfig[dialogMode].title : ''}
         description={dialogMode ? dialogConfig[dialogMode].description : ''}
         multiple={false}
-        onConfirm={handleDialogConfirm}
+        projectId={projectId}
         onCancel={() => setDialogMode(null)}
+        onComplete={() => setDialogMode(null)}
       />
 
       <WorkflowConfigDialog
@@ -179,8 +156,8 @@ export function ReferenceCard({ reference, projectId, readOnly, disabled = false
                   {isFetching ? 'Fetching...' : 'Fetch from the web'}
                 </Button>
                 <Button variant="outline" size="xs" onClick={() => setDialogMode('upload')} disabled={isDisabled}>
-                  {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-                  {isUploading ? 'Uploading...' : 'Upload supporting document'}
+                  <Upload className="w-4 h-4" />
+                  Upload supporting document
                 </Button>
               </div>
             )}
@@ -207,8 +184,8 @@ export function ReferenceCard({ reference, projectId, readOnly, disabled = false
               {!readOnly && (
                 <div className="flex gap-2 justify-end">
                   <Button variant="outline" size="xs" onClick={() => setDialogMode('replace')} disabled={isDisabled}>
-                    {isReplacing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-                    {isReplacing ? 'Uploading...' : 'Replace'}
+                    <Upload className="w-4 h-4" />
+                    Replace
                   </Button>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>

@@ -12,12 +12,21 @@ import type {
   ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostData,
   ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostErrors,
   ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostResponses,
+  CancelUploadApiUploadSessionIdDeleteData,
+  CancelUploadApiUploadSessionIdDeleteErrors,
+  CancelUploadApiUploadSessionIdDeleteResponses,
   CheckPreflightApiPreflightPostData,
   CheckPreflightApiPreflightPostErrors,
   CheckPreflightApiPreflightPostResponses,
+  CompleteUploadApiUploadSessionIdCompletePostData,
+  CompleteUploadApiUploadSessionIdCompletePostErrors,
+  CompleteUploadApiUploadSessionIdCompletePostResponses,
   CreateProjectEndpointApiProjectsPostData,
   CreateProjectEndpointApiProjectsPostErrors,
   CreateProjectEndpointApiProjectsPostResponses,
+  CreateUploadSessionApiUploadPostData,
+  CreateUploadSessionApiUploadPostErrors,
+  CreateUploadSessionApiUploadPostResponses,
   DeleteFeedbackApiFeedbackFeedbackIdDeleteData,
   DeleteFeedbackApiFeedbackFeedbackIdDeleteErrors,
   DeleteFeedbackApiFeedbackFeedbackIdDeleteResponses,
@@ -71,6 +80,12 @@ import type {
   GetSharedResourceApiPublicShareTokenGetData,
   GetSharedResourceApiPublicShareTokenGetErrors,
   GetSharedResourceApiPublicShareTokenGetResponses,
+  GetUploadOffsetApiUploadSessionIdHeadData,
+  GetUploadOffsetApiUploadSessionIdHeadErrors,
+  GetUploadOffsetApiUploadSessionIdHeadResponses,
+  GetUploadStatusApiUploadSessionIdStatusGetData,
+  GetUploadStatusApiUploadSessionIdStatusGetErrors,
+  GetUploadStatusApiUploadSessionIdStatusGetResponses,
   GetWorkflowFeedbackApiFeedbackWorkflowWorkflowRunIdGetData,
   GetWorkflowFeedbackApiFeedbackWorkflowWorkflowRunIdGetErrors,
   GetWorkflowFeedbackApiFeedbackWorkflowWorkflowRunIdGetResponses,
@@ -105,6 +120,10 @@ import type {
   SubmitFeedbackApiFeedbackPostData,
   SubmitFeedbackApiFeedbackPostErrors,
   SubmitFeedbackApiFeedbackPostResponses,
+  TusOptionsApiUploadOptionsData,
+  TusOptionsApiUploadOptionsResponses,
+  TusOptionsApiUploadSessionIdOptionsData,
+  TusOptionsApiUploadSessionIdOptionsResponses,
   UpdatePreferencesApiUsersMePreferencesPatchData,
   UpdatePreferencesApiUsersMePreferencesPatchErrors,
   UpdatePreferencesApiUsersMePreferencesPatchResponses,
@@ -114,6 +133,9 @@ import type {
   UpdateRoleApiUsersUserIdRolePatchData,
   UpdateRoleApiUsersUserIdRolePatchErrors,
   UpdateRoleApiUsersUserIdRolePatchResponses,
+  UploadChunkApiUploadSessionIdPatchData,
+  UploadChunkApiUploadSessionIdPatchErrors,
+  UploadChunkApiUploadSessionIdPatchResponses,
 } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean> = Options2<
@@ -588,7 +610,10 @@ export const listProjectsEndpointApiProjectsGet = <ThrowOnError extends boolean 
 /**
  * Create Project Endpoint
  *
- * Create a project with a main document.
+ * Create a project.
+ *
+ * This endpoint creates the project first, then files are uploaded
+ * separately via the /api/upload endpoints.
  */
 export const createProjectEndpointApiProjectsPost = <ThrowOnError extends boolean = true>(
   options: Options<CreateProjectEndpointApiProjectsPostData, ThrowOnError>,
@@ -599,13 +624,12 @@ export const createProjectEndpointApiProjectsPost = <ThrowOnError extends boolea
     ThrowOnError,
     'data'
   >({
-    ...formDataBodySerializer,
     responseStyle: 'data',
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/projects',
     ...options,
     headers: {
-      'Content-Type': null,
+      'Content-Type': 'application/json',
       ...options.headers,
     },
   });
@@ -937,6 +961,189 @@ export const getSharedResourceApiPublicShareTokenGet = <ThrowOnError extends boo
   >({
     responseStyle: 'data',
     url: '/api/public/share/{token}',
+    ...options,
+  });
+
+/**
+ * Cancel Upload
+ *
+ * Cancel and cleanup an upload session (Tus DELETE).
+ */
+export const cancelUploadApiUploadSessionIdDelete = <ThrowOnError extends boolean = true>(
+  options: Options<CancelUploadApiUploadSessionIdDeleteData, ThrowOnError>,
+) =>
+  (options.client ?? client).delete<
+    CancelUploadApiUploadSessionIdDeleteResponses,
+    CancelUploadApiUploadSessionIdDeleteErrors,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/upload/{session_id}',
+    ...options,
+  });
+
+/**
+ * Get Upload Offset
+ *
+ * Get current upload offset (Tus HEAD).
+ *
+ * Used by clients to resume interrupted uploads.
+ *
+ * Returns:
+ * 204 with Upload-Offset header
+ */
+export const getUploadOffsetApiUploadSessionIdHead = <ThrowOnError extends boolean = true>(
+  options: Options<GetUploadOffsetApiUploadSessionIdHeadData, ThrowOnError>,
+) =>
+  (options.client ?? client).head<
+    GetUploadOffsetApiUploadSessionIdHeadResponses,
+    GetUploadOffsetApiUploadSessionIdHeadErrors,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/upload/{session_id}',
+    ...options,
+  });
+
+/**
+ * Tus Options
+ *
+ * Tus OPTIONS - Return server capabilities.
+ */
+export const tusOptionsApiUploadSessionIdOptions = <ThrowOnError extends boolean = true>(
+  options?: Options<TusOptionsApiUploadSessionIdOptionsData, ThrowOnError>,
+) =>
+  (options?.client ?? client).options<TusOptionsApiUploadSessionIdOptionsResponses, unknown, ThrowOnError, 'data'>({
+    responseStyle: 'data',
+    url: '/api/upload/{session_id}',
+    ...options,
+  });
+
+/**
+ * Upload Chunk
+ *
+ * Upload a chunk of data (Tus PATCH).
+ *
+ * Headers:
+ * Upload-Offset: Byte offset for this chunk
+ * Content-Type: Must be application/offset+octet-stream
+ *
+ * Body:
+ * Raw chunk bytes
+ *
+ * Returns:
+ * 204 with new Upload-Offset header
+ */
+export const uploadChunkApiUploadSessionIdPatch = <ThrowOnError extends boolean = true>(
+  options: Options<UploadChunkApiUploadSessionIdPatchData, ThrowOnError>,
+) =>
+  (options.client ?? client).patch<
+    UploadChunkApiUploadSessionIdPatchResponses,
+    UploadChunkApiUploadSessionIdPatchErrors,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/upload/{session_id}',
+    ...options,
+  });
+
+/**
+ * Tus Options
+ *
+ * Tus OPTIONS - Return server capabilities.
+ */
+export const tusOptionsApiUploadOptions = <ThrowOnError extends boolean = true>(
+  options?: Options<TusOptionsApiUploadOptionsData, ThrowOnError>,
+) =>
+  (options?.client ?? client).options<TusOptionsApiUploadOptionsResponses, unknown, ThrowOnError, 'data'>({
+    responseStyle: 'data',
+    url: '/api/upload',
+    ...options,
+  });
+
+/**
+ * Create Upload Session
+ *
+ * Create a new upload session (Tus POST).
+ *
+ * Headers:
+ * Upload-Length: Total file size in bytes
+ * Upload-Metadata: Base64-encoded metadata (filename required)
+ *
+ * Query params:
+ * project_id: Project to upload file to
+ *
+ * Returns:
+ * UploadSessionResponse with session_id and upload_url
+ */
+export const createUploadSessionApiUploadPost = <ThrowOnError extends boolean = true>(
+  options: Options<CreateUploadSessionApiUploadPostData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    CreateUploadSessionApiUploadPostResponses,
+    CreateUploadSessionApiUploadPostErrors,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/upload',
+    ...options,
+  });
+
+/**
+ * Get Upload Status
+ *
+ * Get detailed upload session status. Returns progress information for the upload.
+ */
+export const getUploadStatusApiUploadSessionIdStatusGet = <ThrowOnError extends boolean = true>(
+  options: Options<GetUploadStatusApiUploadSessionIdStatusGetData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    GetUploadStatusApiUploadSessionIdStatusGetResponses,
+    GetUploadStatusApiUploadSessionIdStatusGetErrors,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/upload/{session_id}/status',
+    ...options,
+  });
+
+/**
+ * Complete Upload
+ *
+ * Complete an upload and create the file record.
+ *
+ * Finalizes the upload by computing hash, moving to permanent storage,
+ * and creating the database record.
+ *
+ * Args:
+ * session_id: Upload session ID
+ * role: File role (default: SUPPORT)
+ *
+ * Returns:
+ * Created File record
+ */
+export const completeUploadApiUploadSessionIdCompletePost = <ThrowOnError extends boolean = true>(
+  options: Options<CompleteUploadApiUploadSessionIdCompletePostData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    CompleteUploadApiUploadSessionIdCompletePostResponses,
+    CompleteUploadApiUploadSessionIdCompletePostErrors,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/upload/{session_id}/complete',
     ...options,
   });
 

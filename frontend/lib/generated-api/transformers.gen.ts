@@ -3,6 +3,7 @@
 import type {
   AddFilesToProjectApiProjectProjectIdFilesPostResponse,
   AddFileToProjectApiProjectProjectIdFilePostResponse,
+  CompleteUploadApiUploadSessionIdCompletePostResponse,
   CreateProjectEndpointApiProjectsPostResponse,
   GetProjectEndpointApiProjectProjectIdGetResponse,
   GetProjectWorkflowProgressEndpointApiProjectProjectIdWorkflowProgressGetResponse,
@@ -147,5 +148,12 @@ export const getSharedResourceApiPublicShareTokenGetResponseTransformer = async 
   data: any,
 ): Promise<GetSharedResourceApiPublicShareTokenGetResponse> => {
   data = projectDetailedSchemaResponseTransformer(data);
+  return data;
+};
+
+export const completeUploadApiUploadSessionIdCompletePostResponseTransformer = async (
+  data: any,
+): Promise<CompleteUploadApiUploadSessionIdCompletePostResponse> => {
+  data = fileSchemaResponseTransformer(data);
   return data;
 };

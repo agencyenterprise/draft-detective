@@ -610,20 +610,6 @@ export type BodyAddFilesToProjectApiProjectProjectIdFilesPost = {
 };
 
 /**
- * Body_create_project_endpoint_api_projects_post
- */
-export type BodyCreateProjectEndpointApiProjectsPost = {
-  /**
-   * Title
-   */
-  title: string;
-  /**
-   * Main Document
-   */
-  main_document: Blob | File;
-};
-
-/**
  * Body_start_analysis_api_start_analysis_post
  */
 export type BodyStartAnalysisApiStartAnalysisPost = {
@@ -1474,6 +1460,18 @@ export const ConfidenceInRecommendation = {
  * ConfidenceInRecommendation
  */
 export type ConfidenceInRecommendation = (typeof ConfidenceInRecommendation)[keyof typeof ConfidenceInRecommendation];
+
+/**
+ * CreateProjectRequest
+ *
+ * Request body for creating a project.
+ */
+export type CreateProjectRequest = {
+  /**
+   * Title
+   */
+  title: string;
+};
 
 /**
  * DoclingDocument
@@ -4500,6 +4498,58 @@ export type UpdateUserRoleRequest = {
 };
 
 /**
+ * UploadSessionResponse
+ *
+ * Response for upload session creation.
+ */
+export type UploadSessionResponse = {
+  /**
+   * Session Id
+   */
+  session_id: string;
+  /**
+   * Upload Url
+   */
+  upload_url: string;
+  /**
+   * Chunk Size
+   */
+  chunk_size: number;
+};
+
+/**
+ * UploadStatusResponse
+ *
+ * Response for upload status query.
+ */
+export type UploadStatusResponse = {
+  /**
+   * Session Id
+   */
+  session_id: string;
+  /**
+   * Filename
+   */
+  filename: string;
+  /**
+   * Total Size
+   */
+  total_size: number;
+  /**
+   * Uploaded Size
+   */
+  uploaded_size: number;
+  /**
+   * Progress Percent
+   */
+  progress_percent: number;
+  /**
+   * Is Complete
+   */
+  is_complete: boolean;
+};
+
+/**
  * UserResponse
  *
  * Response model for user information
@@ -5585,7 +5635,7 @@ export type ListProjectsEndpointApiProjectsGetResponse =
   ListProjectsEndpointApiProjectsGetResponses[keyof ListProjectsEndpointApiProjectsGetResponses];
 
 export type CreateProjectEndpointApiProjectsPostData = {
-  body: BodyCreateProjectEndpointApiProjectsPost;
+  body: CreateProjectRequest;
   path?: never;
   query?: never;
   url: '/api/projects';
@@ -6158,6 +6208,242 @@ export type GetSharedResourceApiPublicShareTokenGetResponses = {
 
 export type GetSharedResourceApiPublicShareTokenGetResponse =
   GetSharedResourceApiPublicShareTokenGetResponses[keyof GetSharedResourceApiPublicShareTokenGetResponses];
+
+export type CancelUploadApiUploadSessionIdDeleteData = {
+  body?: never;
+  path: {
+    /**
+     * Session Id
+     */
+    session_id: string;
+  };
+  query?: never;
+  url: '/api/upload/{session_id}';
+};
+
+export type CancelUploadApiUploadSessionIdDeleteErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type CancelUploadApiUploadSessionIdDeleteError =
+  CancelUploadApiUploadSessionIdDeleteErrors[keyof CancelUploadApiUploadSessionIdDeleteErrors];
+
+export type CancelUploadApiUploadSessionIdDeleteResponses = {
+  /**
+   * Successful Response
+   */
+  204: void;
+};
+
+export type CancelUploadApiUploadSessionIdDeleteResponse =
+  CancelUploadApiUploadSessionIdDeleteResponses[keyof CancelUploadApiUploadSessionIdDeleteResponses];
+
+export type GetUploadOffsetApiUploadSessionIdHeadData = {
+  body?: never;
+  path: {
+    /**
+     * Session Id
+     */
+    session_id: string;
+  };
+  query?: never;
+  url: '/api/upload/{session_id}';
+};
+
+export type GetUploadOffsetApiUploadSessionIdHeadErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type GetUploadOffsetApiUploadSessionIdHeadError =
+  GetUploadOffsetApiUploadSessionIdHeadErrors[keyof GetUploadOffsetApiUploadSessionIdHeadErrors];
+
+export type GetUploadOffsetApiUploadSessionIdHeadResponses = {
+  /**
+   * Successful Response
+   */
+  200: unknown;
+};
+
+export type TusOptionsApiUploadSessionIdOptionsData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/api/upload/{session_id}';
+};
+
+export type TusOptionsApiUploadSessionIdOptionsResponses = {
+  /**
+   * Successful Response
+   */
+  200: unknown;
+};
+
+export type UploadChunkApiUploadSessionIdPatchData = {
+  body?: never;
+  headers: {
+    /**
+     * Upload-Offset
+     */
+    'Upload-Offset': number;
+    /**
+     * Content-Type
+     */
+    'Content-Type': string;
+  };
+  path: {
+    /**
+     * Session Id
+     */
+    session_id: string;
+  };
+  query?: never;
+  url: '/api/upload/{session_id}';
+};
+
+export type UploadChunkApiUploadSessionIdPatchErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type UploadChunkApiUploadSessionIdPatchError =
+  UploadChunkApiUploadSessionIdPatchErrors[keyof UploadChunkApiUploadSessionIdPatchErrors];
+
+export type UploadChunkApiUploadSessionIdPatchResponses = {
+  /**
+   * Successful Response
+   */
+  200: unknown;
+};
+
+export type TusOptionsApiUploadOptionsData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/api/upload';
+};
+
+export type TusOptionsApiUploadOptionsResponses = {
+  /**
+   * Successful Response
+   */
+  200: unknown;
+};
+
+export type CreateUploadSessionApiUploadPostData = {
+  body?: never;
+  headers: {
+    /**
+     * Upload-Length
+     */
+    'Upload-Length': number;
+    /**
+     * Upload-Metadata
+     */
+    'Upload-Metadata'?: string | null;
+  };
+  path?: never;
+  query: {
+    /**
+     * Project Id
+     */
+    project_id: string;
+  };
+  url: '/api/upload';
+};
+
+export type CreateUploadSessionApiUploadPostErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type CreateUploadSessionApiUploadPostError =
+  CreateUploadSessionApiUploadPostErrors[keyof CreateUploadSessionApiUploadPostErrors];
+
+export type CreateUploadSessionApiUploadPostResponses = {
+  /**
+   * Successful Response
+   */
+  201: UploadSessionResponse;
+};
+
+export type CreateUploadSessionApiUploadPostResponse =
+  CreateUploadSessionApiUploadPostResponses[keyof CreateUploadSessionApiUploadPostResponses];
+
+export type GetUploadStatusApiUploadSessionIdStatusGetData = {
+  body?: never;
+  path: {
+    /**
+     * Session Id
+     */
+    session_id: string;
+  };
+  query?: never;
+  url: '/api/upload/{session_id}/status';
+};
+
+export type GetUploadStatusApiUploadSessionIdStatusGetErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type GetUploadStatusApiUploadSessionIdStatusGetError =
+  GetUploadStatusApiUploadSessionIdStatusGetErrors[keyof GetUploadStatusApiUploadSessionIdStatusGetErrors];
+
+export type GetUploadStatusApiUploadSessionIdStatusGetResponses = {
+  /**
+   * Successful Response
+   */
+  200: UploadStatusResponse;
+};
+
+export type GetUploadStatusApiUploadSessionIdStatusGetResponse =
+  GetUploadStatusApiUploadSessionIdStatusGetResponses[keyof GetUploadStatusApiUploadSessionIdStatusGetResponses];
+
+export type CompleteUploadApiUploadSessionIdCompletePostData = {
+  body?: never;
+  path: {
+    /**
+     * Session Id
+     */
+    session_id: string;
+  };
+  query?: {
+    role?: FileRole;
+  };
+  url: '/api/upload/{session_id}/complete';
+};
+
+export type CompleteUploadApiUploadSessionIdCompletePostErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type CompleteUploadApiUploadSessionIdCompletePostError =
+  CompleteUploadApiUploadSessionIdCompletePostErrors[keyof CompleteUploadApiUploadSessionIdCompletePostErrors];
+
+export type CompleteUploadApiUploadSessionIdCompletePostResponses = {
+  /**
+   * Successful Response
+   */
+  200: File;
+};
+
+export type CompleteUploadApiUploadSessionIdCompletePostResponse =
+  CompleteUploadApiUploadSessionIdCompletePostResponses[keyof CompleteUploadApiUploadSessionIdCompletePostResponses];
 
 export type GetCurrentUserInfoApiUsersMeGetData = {
   body?: never;

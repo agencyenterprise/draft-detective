@@ -20,6 +20,7 @@ from api.routers import (
     projects,
     public,
     share,
+    upload,
     users,
     workflows,
     workflow_types,
@@ -39,6 +40,16 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    # Expose Tus headers so frontend can read them
+    expose_headers=[
+        "Upload-Offset",
+        "Upload-Length",
+        "Tus-Version",
+        "Tus-Resumable",
+        "Tus-Extension",
+        "Tus-Max-Size",
+        "Location",
+    ],
 )
 
 # Gzip middleware
@@ -55,4 +66,5 @@ app.include_router(feedback.router)
 app.include_router(projects.router)
 app.include_router(share.router)
 app.include_router(public.router)
+app.include_router(upload.router)
 app.include_router(users.router)

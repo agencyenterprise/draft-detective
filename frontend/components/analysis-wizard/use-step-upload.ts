@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback, useRef, useMemo } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useWizard, PreflightStatus } from './wizard-context';
@@ -6,13 +6,76 @@ import { usePreflight } from '@/lib/hooks/use-preflight';
 import { useSessionStorage } from '@/lib/hooks/use-session-storage';
 import { MAX_FILE_SIZE_BYTES } from '@/lib/constants';
 import {
-  createProjectEndpointApiProjectsPost,
-  startMultipleWorkflowsApiWorkflowsStartMultiplePost,
-  WorkflowRunType,
-} from '@/lib/generated-api';
+  uploadFile,
+  formatBytes,
+  UploadProgress,
+  ChunkedUploadState,
+  cancelUpload,
+} from '@/lib/services/chunked-upload';
+import { startMultipleWorkflowsApiWorkflowsStartMultiplePost, WorkflowRunType, FileRole } from '@/lib/generated-api';
+import { getAuthHeader, baseUrl } from '@/lib/api';
 
-const validateDocument = (file: File | null): PreflightStatus =>
-  !file ? 'idle' : file.size <= MAX_FILE_SIZE_BYTES ? 'valid' : 'invalid';
+export type UploadStage = 'idle' | 'creating' | 'uploading' | 'processing' | 'complete';
+
+const MIN_API_KEY_LENGTH = 10;
+const HIDE_API_KEY_INPUT = process.env.NEXT_PUBLIC_HIDE_CUSTOM_OPENAI_API_KEY_INPUT === 'true';
+
+const INITIAL_WORKFLOWS = [
+  WorkflowRunType.DocumentProcessing,
+  WorkflowRunType.ReferenceExtraction,
+  WorkflowRunType.ChunkSplitting,
+  WorkflowRunType.DocumentSummarization,
+];
+
+/**
+ * Create a project. Files are uploaded separately via chunked upload.
+ * TODO: Use generated SDK once types are regenerated for JSON body endpoint.
+ */
+async function createProject(title: string): Promise<{ project: { id: string } }> {
+  const authHeader = await getAuthHeader();
+  if (!authHeader) {
+    throw new Error('Authentication required');
+  }
+
+  const response = await fetch(`${baseUrl}/api/projects`, {
+    method: 'POST',
+    headers: {
+      Authorization: authHeader,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ title }),
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Failed to create project: ${error}`);
+  }
+
+  return response.json();
+}
+
+function validateDocument(file: File | null): PreflightStatus {
+  if (!file) return 'idle';
+  return file.size <= MAX_FILE_SIZE_BYTES ? 'valid' : 'invalid';
+}
+
+function getStageMessage(stage: UploadStage, progress: UploadProgress | null, fileSizeLabel: string): string {
+  switch (stage) {
+    case 'creating':
+      return 'Creating project...';
+    case 'uploading':
+      if (progress) {
+        return `Uploading document... ${progress.progress_percent}% (${formatBytes(progress.uploaded_size)} / ${fileSizeLabel})`;
+      }
+      return 'Uploading document...';
+    case 'processing':
+      return 'Starting document processing...';
+    case 'complete':
+      return 'Upload complete!';
+    default:
+      return '';
+  }
+}
 
 export function useStepUpload(onComplete: () => void) {
   const wizard = useWizard();
@@ -21,110 +84,147 @@ export function useStepUpload(onComplete: () => void) {
   const [storedApiKey, setStoredApiKey] = useSessionStorage<string>('openai-api-key', '');
   const { runPreflight, isValidating } = usePreflight();
   const [showApiKey, setShowApiKey] = useState(false);
+  const [uploadStage, setUploadStage] = useState<UploadStage>('idle');
+  const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
+  const uploadStateRef = useRef<ChunkedUploadState | null>(null);
 
-  const hideApiKeyInput = process.env.NEXT_PUBLIC_HIDE_CUSTOM_OPENAI_API_KEY_INPUT === 'true';
   const apiKey = openaiApiKey || storedApiKey;
+  const fileSizeLabel = mainDocument ? formatBytes(mainDocument.size) : '';
+
+  // Derived state - no useEffect needed
+  const formatStatus = validateDocument(mainDocument);
 
   const runApiKeyValidation = useCallback(async (): Promise<boolean> => {
-    if (hideApiKeyInput) {
+    if (HIDE_API_KEY_INPUT) {
       setPreflightStatus({ apiKey: 'valid' });
       return true;
     }
-    if (!apiKey || apiKey.length < 10) {
+    if (!apiKey || apiKey.length < MIN_API_KEY_LENGTH) {
       setPreflightStatus({ apiKey: 'idle' });
       return false;
     }
     setPreflightStatus({ apiKey: 'pending' });
     const isValid = await runPreflight({
-      mainDocument: mainDocument,
+      mainDocument,
       supportingDocuments: [],
       openaiApiKey: apiKey,
     });
     setPreflightStatus({ apiKey: isValid ? 'valid' : 'invalid' });
     return isValid;
-  }, [hideApiKeyInput, apiKey, mainDocument, setPreflightStatus, runPreflight]);
-
-  useEffect(() => {
-    setPreflightStatus({ format: validateDocument(mainDocument) });
-  }, [mainDocument, setPreflightStatus]);
-
-  useEffect(() => {
-    if (mainDocument && apiKey?.length >= 10 && preflightStatus.apiKey === 'idle') {
-      runApiKeyValidation();
-    }
-  }, [mainDocument, apiKey, preflightStatus.apiKey, runApiKeyValidation]);
+  }, [apiKey, mainDocument, setPreflightStatus, runPreflight]);
 
   const createProjectAndProcess = useMutation({
     mutationFn: async () => {
       if (!mainDocument) throw new Error('No document selected');
 
-      const projectResponse = await createProjectEndpointApiProjectsPost({
-        body: { title: mainDocument.name, main_document: mainDocument },
-      });
+      // Step 1: Create project
+      setUploadStage('creating');
+      const { project } = await createProject(mainDocument.name);
+
+      // Step 2: Upload main document via chunked upload
+      setUploadStage('uploading');
+      setUploadProgress({ uploaded_size: 0, total_size: mainDocument.size, progress_percent: 0 });
+
+      const uploadState = await uploadFile(
+        mainDocument,
+        { projectId: project.id, filename: mainDocument.name, fileRole: FileRole.Main },
+        { onProgress: setUploadProgress },
+      );
+
+      uploadStateRef.current = uploadState;
+
+      if (uploadState.status === 'error') {
+        throw new Error(uploadState.error || 'Upload failed');
+      }
+
+      // Step 3: Start workflows
+      setUploadStage('processing');
 
       await startMultipleWorkflowsApiWorkflowsStartMultiplePost({
         body: {
-          project_id: projectResponse.project.id,
-          workflow_types: [
-            WorkflowRunType.DocumentProcessing,
-            WorkflowRunType.ReferenceExtraction,
-            WorkflowRunType.ChunkSplitting,
-            WorkflowRunType.DocumentSummarization,
-          ],
+          project_id: project.id,
+          workflow_types: INITIAL_WORKFLOWS,
           openai_api_key: apiKey || undefined,
         },
       });
 
-      return projectResponse;
+      setUploadStage('complete');
+      return project.id;
     },
-    onSuccess: (response) => {
-      setProjectId(response.project.id);
+    onSuccess: (projectId) => {
+      setProjectId(projectId);
       toast.success('Project created - document processing started');
       onComplete();
     },
     onError: (error) => {
+      setUploadStage('idle');
+      setUploadProgress(null);
+      if (uploadStateRef.current) {
+        cancelUpload(uploadStateRef.current);
+        uploadStateRef.current = null;
+      }
       toast.error(error instanceof Error ? error.message : 'Failed to create project');
     },
   });
 
-  const handleDocumentChange = (files: File[]) => {
-    setMainDocument(files[0] || null);
-    if (!hideApiKeyInput) setPreflightStatus({ apiKey: 'idle' });
-  };
+  const handleDocumentChange = useCallback(
+    (files: File[]) => {
+      setMainDocument(files[0] || null);
+      setUploadStage('idle');
+      setUploadProgress(null);
+      if (!HIDE_API_KEY_INPUT) setPreflightStatus({ apiKey: 'idle' });
+    },
+    [setMainDocument, setPreflightStatus],
+  );
 
-  const handleApiKeyChange = (value: string) => {
-    setApiKey(value);
-    setStoredApiKey(value);
-    setPreflightStatus({ apiKey: 'idle' });
-  };
+  const handleApiKeyChange = useCallback(
+    (value: string) => {
+      setApiKey(value);
+      setStoredApiKey(value);
+      setPreflightStatus({ apiKey: 'idle' });
+    },
+    [setApiKey, setStoredApiKey, setPreflightStatus],
+  );
 
-  const handleContinue = async () => {
-    if (preflightStatus.format !== 'valid') {
+  const handleContinue = useCallback(async () => {
+    // Sync format status before validation
+    setPreflightStatus({ format: formatStatus });
+
+    if (formatStatus !== 'valid') {
       toast.error('Please upload a valid document');
       return;
     }
-    if (!hideApiKeyInput && preflightStatus.apiKey !== 'valid') {
+    if (!HIDE_API_KEY_INPUT && preflightStatus.apiKey !== 'valid') {
       if (!(await runApiKeyValidation())) {
         toast.error('Please enter a valid OpenAI API key');
         return;
       }
     }
     createProjectAndProcess.mutate();
-  };
+  }, [formatStatus, preflightStatus.apiKey, setPreflightStatus, runApiKeyValidation, createProjectAndProcess]);
 
   const isLoading = isValidating || createProjectAndProcess.isPending;
   const canContinue =
-    preflightStatus.format === 'valid' && (hideApiKeyInput || preflightStatus.apiKey === 'valid') && !isLoading;
+    formatStatus === 'valid' && (HIDE_API_KEY_INPUT || preflightStatus.apiKey === 'valid') && !isLoading;
+
+  const stageMessage = useMemo(
+    () => getStageMessage(uploadStage, uploadProgress, fileSizeLabel),
+    [uploadStage, uploadProgress, fileSizeLabel],
+  );
 
   return {
     mainDocument,
     apiKey,
     showApiKey,
-    preflightStatus,
-    hideApiKeyInput,
+    preflightStatus: { ...preflightStatus, format: formatStatus },
+    hideApiKeyInput: HIDE_API_KEY_INPUT,
     isLoading,
     isValidating,
     canContinue,
+    uploadStage,
+    uploadProgress,
+    stageMessage,
+    fileSizeLabel,
     setShowApiKey,
     handleDocumentChange,
     handleApiKeyChange,

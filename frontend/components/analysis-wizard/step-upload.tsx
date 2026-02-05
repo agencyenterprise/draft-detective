@@ -24,6 +24,9 @@ export function StepUpload({ onComplete }: StepUploadProps) {
     isLoading,
     isValidating,
     canContinue,
+    uploadStage,
+    stageMessage,
+    uploadProgress,
     setShowApiKey,
     handleDocumentChange,
     handleApiKeyChange,
@@ -82,16 +85,34 @@ export function StepUpload({ onComplete }: StepUploadProps) {
 
       <PreflightChecklist preflightStatus={preflightStatus} hideApiKeyInput={hideApiKeyInput} />
 
-      <Button onClick={handleContinue} disabled={!canContinue} size="lg" className="w-full">
-        {isLoading ? (
-          <>
-            <Loader2 className="w-4 h-4 animate-spin mr-2" />
-            {isValidating ? 'Validating...' : 'Setting up your project...'}
-          </>
-        ) : (
-          'Next: Choose your analyses →'
+      <div className="space-y-3">
+        {/* Upload progress bar */}
+        {uploadStage === 'uploading' && uploadProgress && (
+          <div className="space-y-2">
+            <div className="flex justify-between text-sm text-muted-foreground">
+              <span>Uploading...</span>
+              <span>{uploadProgress.percentage}%</span>
+            </div>
+            <div className="h-2 bg-muted rounded-full overflow-hidden">
+              <div
+                className="h-full bg-primary transition-all duration-300"
+                style={{ width: `${uploadProgress.percentage}%` }}
+              />
+            </div>
+          </div>
         )}
-      </Button>
+
+        <Button onClick={handleContinue} disabled={!canContinue} size="lg" className="w-full">
+          {isLoading ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin mr-2" />
+              {isValidating ? 'Validating...' : stageMessage || 'Setting up your project...'}
+            </>
+          ) : (
+            'Next: Choose your analyses →'
+          )}
+        </Button>
+      </div>
     </div>
   );
 }
