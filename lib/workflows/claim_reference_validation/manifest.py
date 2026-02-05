@@ -1,7 +1,9 @@
-from typing import List, Type
+from typing import List, Optional, Type, cast
 
 from langgraph.graph import StateGraph
 
+from lib.agents.claim_verifier import ClaimEvidenceSource
+from lib.services.file import FileDocument
 from lib.workflows.chunk_utils import build_analyzed_chunks, find_chunk_by_index
 from lib.workflows.claim_reference_validation.graph import (
     build_claim_reference_validation_graph,
@@ -10,9 +12,24 @@ from lib.workflows.claim_reference_validation.state import (
     ClaimReferenceValidationState,
     ClaimReferenceValidationWorkflowConfig,
 )
+from lib.workflows.document_processing.state import DocumentProcessingState
 from lib.workflows.manifest import WorkflowManifest
 from lib.workflows.models import DocumentIssue, SeverityEnum, WorkflowRunType
 from lib.workflows.types import WorkflowState
+from lib.workflows.util import get_state_by_type
+
+
+def _get_file_id_by_name(
+    supporting_files: Optional[List[FileDocument]],
+    file_name: str,
+) -> Optional[str]:
+    """Look up file ID by file name from supporting files."""
+    if not supporting_files:
+        return None
+    for file in supporting_files:
+        if file.file_name == file_name:
+            return file.file_id
+    return None
 
 
 class ClaimReferenceValidationManifest(
@@ -58,6 +75,20 @@ class ClaimReferenceValidationManifest(
             config=config,
         )
 
+    def _format_evidence_source(
+        self,
+        source: ClaimEvidenceSource,
+        supporting_files: Optional[List[FileDocument]],
+    ) -> str:
+        """Format an evidence source with a download link if file ID is available."""
+        file_id = _get_file_id_by_name(supporting_files, source.reference_file_name)
+        if file_id:
+            file_link = f"[{source.reference_file_name}](/api/files/download/{file_id})"
+        else:
+            file_link = source.reference_file_name
+
+        return f"- {file_link} - {source.location}\n\n\t> *{source.quote}*"
+
     def convert_state_to_issues(
         self,
         state: ClaimReferenceValidationState,
@@ -68,6 +99,16 @@ class ClaimReferenceValidationManifest(
 
         issues: List[DocumentIssue] = []
         chunks = build_analyzed_chunks(other_states)
+
+        # Get supporting files from document processing state for file download links
+        doc_processing_state = get_state_by_type(
+            WorkflowRunType.DOCUMENT_PROCESSING, other_states
+        )
+        supporting_files = (
+            cast(DocumentProcessingState, doc_processing_state).supporting_files
+            if doc_processing_state
+            else None
+        )
 
         # Map evidence alignment levels to issue titles and severities
         issue_config = {
@@ -96,7 +137,7 @@ class ClaimReferenceValidationManifest(
             sources_text = (
                 "\n".join(
                     [
-                        f"- {source.reference_file_name} - {source.location}\n\n\t> *{source.quote}*"
+                        self._format_evidence_source(source, supporting_files)
                         for source in substantiation.evidence_sources
                     ]
                 )
