@@ -17,7 +17,9 @@ from lib.workflows.inference_validation_v2.state import (
     ExtractedInferenceResultResponse,
     ExtractedInferenceResult,
 )
-from lib.services.chunk_line_matcher import find_chunks_by_line_range
+from lib.services.chunk_line_matcher import (
+    find_chunks_by_fuzzy_match,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -41,9 +43,9 @@ async def synthesize_inferences(
     markdown = file_document.markdown
 
     # add line numbers to markdown for downstream processing
-    lines = markdown.split("\n")
-    numbered_markdown_lines = [f"{i+1}| {line}" for i, line in enumerate(lines)]
-    numbered_markdown = "\n".join(numbered_markdown_lines)
+    # lines = markdown.split("\n")
+    # numbered_markdown_lines = [f"{i+1}|{line}" for i, line in enumerate(lines)]
+    # numbered_markdown = "\n".join(numbered_markdown_lines)
 
     logger.info(
         "synthesize_inferences: Running synthesizer agent on %s runs",
@@ -52,7 +54,7 @@ async def synthesize_inferences(
     agent = InferenceSynthesizerAgent(runtime.context)
 
     # gather input
-    consolidated_input = {"full_document": numbered_markdown}
+    consolidated_input = {"full_document": markdown}
     for i in range(NUM_VALIDATOR_RUNS):
         consolidated_input[f"run{i+1}_json"] = json.dumps(
             [x.model_dump() for x in ordered[i].results], indent=2
@@ -66,9 +68,11 @@ async def synthesize_inferences(
     for result in consolidated.results:
         chunk_indices: List[int] = []
         if chunks:
-            chunk_indices = find_chunks_by_line_range(
-                chunks, result.start_line, result.end_line
-            )
+            chunk_indices_v3 = find_chunks_by_fuzzy_match(chunks, result.key_sentence)
+            logger.info(f"Key sentence: {result.key_sentence}")
+            # logger.info(f"Start line: {result.start_line}")
+            # logger.info(f"End line: {result.end_line}")
+            logger.info(f"Chunk indices v3: {chunk_indices_v3}")
         extracted_inference_results.append(
             ExtractedInferenceResult(
                 key_sentence=result.key_sentence,
@@ -77,9 +81,7 @@ async def synthesize_inferences(
                 short_form_argument_analysis=result.short_form_argument_analysis,
                 long_form_argument_analysis=result.long_form_argument_analysis,
                 suggested_action=result.suggested_action,
-                start_line=result.start_line,
-                end_line=result.end_line,
-                chunk_indices=chunk_indices,
+                chunk_indices=chunk_indices_v3,
             )
         )
 
