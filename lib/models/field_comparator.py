@@ -185,22 +185,64 @@ class FieldComparator:
             examples=examples,
         )
 
+    def _parse_array_field_config(
+        self, field_config: list[str] | dict
+    ) -> tuple[list[str], dict]:
+        """Separate simple field names from nested array configurations.
+
+        Args:
+            field_config: Either a list of field names or a dict with nested configs
+
+        Returns:
+            Tuple of (simple_fields, nested_configs) where:
+            - simple_fields: List of field names for direct comparison
+            - nested_configs: Dict of {field_name: nested_config} for nested arrays
+        """
+        if isinstance(field_config, list):
+            # Simple list of field names
+            return field_config, {}
+
+        if isinstance(field_config, dict):
+            simple_fields = []
+            nested_configs = {}
+
+            for key, value in field_config.items():
+                if isinstance(value, dict) and "__all__" in value:
+                    # Nested array config: {field: {__all__: [...]}}
+                    nested_configs[key] = value["__all__"]
+                elif isinstance(value, list):
+                    # Could be nested array with direct field list: {field: [...]}
+                    # Treat as nested array config
+                    nested_configs[key] = value
+                else:
+                    # Simple field name as key (unusual but handle it)
+                    simple_fields.append(key)
+
+            return simple_fields, nested_configs
+
+        return [], {}
+
     def _compare_array_fields(
         self,
         expected: BaseModel,
         result: BaseModel,
         array_field: str,
-        field_names: list[str],
+        field_config: list[str] | dict,
         comparison_type: str,
+        parent_path: str = "",
     ) -> list[FieldComparison]:
         """Compare fields across array items with intelligent matching.
+
+        Supports nested array configurations for deeply nested structures.
 
         Args:
             expected: Expected output model
             result: Actual output model
             array_field: Name of the array field
-            field_names: List of field names within array items to compare
-            comparison_type: Type of comparison
+            field_config: Field configuration - either list of field names or dict
+                with nested configs (e.g., {'citations': {'__all__': [...]}})
+            comparison_type: Type of comparison ("strict" or "llm")
+            parent_path: Dot-separated path to parent (for nested comparisons)
 
         Returns:
             List of FieldComparison results for each field
@@ -212,16 +254,31 @@ class FieldComparator:
         exp_items = [to_dict(item) for item in exp_array]
         res_items = [to_dict(item) for item in res_array]
 
-        # Try multiple matching strategies
-        matches, strategy = self.matcher.match_items(exp_items, res_items, field_names)
+        # Parse config to separate simple fields from nested array configs
+        simple_fields, nested_configs = self._parse_array_field_config(field_config)
 
-        # Compare each field across matched items
+        # Try multiple matching strategies using simple fields
+        matches, strategy = self.matcher.match_items(
+            exp_items, res_items, simple_fields
+        )
+
+        # Build current path for field comparisons
+        current_path = f"{parent_path}.{array_field}" if parent_path else array_field
+
+        # Compare each simple field across matched items
         comparisons = []
-        for field_name in field_names:
+        for field_name in simple_fields:
             comparison = self._compare_field_across_matches(
-                matches, field_name, array_field, comparison_type, strategy
+                matches, field_name, current_path, comparison_type, strategy
             )
             comparisons.append(comparison)
+
+        # Recursively compare nested arrays
+        for nested_field, nested_config in nested_configs.items():
+            nested_comparisons = self._compare_nested_arrays(
+                matches, nested_field, nested_config, current_path, comparison_type
+            )
+            comparisons.extend(nested_comparisons)
 
         return comparisons
 
@@ -229,7 +286,7 @@ class FieldComparator:
         self,
         matches: list[tuple[dict | None, dict | None, str]],
         field_name: str,
-        array_field: str,
+        parent_path: str,
         comparison_type: str,
         matching_strategy: str,
     ) -> FieldComparison:
@@ -238,7 +295,7 @@ class FieldComparator:
         Args:
             matches: List of (expected, actual, match_id) tuples
             field_name: Name of the field to compare
-            array_field: Name of the parent array field
+            parent_path: Dot-separated path to the parent (e.g., "results.citations")
             comparison_type: Type of comparison
             matching_strategy: Strategy used for matching
 
@@ -300,7 +357,7 @@ class FieldComparator:
                         )
 
         total = passed + failed
-        field_path = f"{array_field}.{field_name}"
+        field_path = f"{parent_path}.{field_name}" if parent_path else field_name
 
         return FieldComparison(
             field_path=field_path,
@@ -313,3 +370,71 @@ class FieldComparator:
             examples=examples,
             matching_strategy=matching_strategy,
         )
+
+    def _compare_nested_arrays(
+        self,
+        matches: list[tuple[dict | None, dict | None, str]],
+        nested_field: str,
+        nested_config: list[str] | dict,
+        parent_path: str,
+        comparison_type: str,
+    ) -> list[FieldComparison]:
+        """Compare nested arrays across all matched parent pairs.
+
+        For each matched pair of parent items, extracts the nested array field
+        and recursively compares items within those arrays.
+
+        Args:
+            matches: List of (expected_item, actual_item, match_id) tuples from parent
+            nested_field: Name of the nested array field within each item
+            nested_config: Field configuration for nested array items
+            parent_path: Dot-separated path to the parent array
+            comparison_type: Type of comparison ("strict" or "llm")
+
+        Returns:
+            List of FieldComparison results for all nested fields
+        """
+        # Parse nested config to get simple fields and further nested configs
+        simple_fields, further_nested = self._parse_array_field_config(nested_config)
+
+        # Collect all nested items across all matched pairs
+        all_exp_nested = []
+        all_res_nested = []
+
+        for exp_item, res_item, _match_id in matches:
+            if exp_item is not None:
+                exp_nested = exp_item.get(nested_field, []) or []
+                # Convert to dicts if needed
+                all_exp_nested.extend([to_dict(item) for item in exp_nested])
+            if res_item is not None:
+                res_nested = res_item.get(nested_field, []) or []
+                all_res_nested.extend([to_dict(item) for item in res_nested])
+
+        # Match nested items using simple fields
+        nested_matches, strategy = self.matcher.match_items(
+            all_exp_nested, all_res_nested, simple_fields
+        )
+
+        # Build the nested field path
+        nested_path = f"{parent_path}.{nested_field}"
+
+        # Compare simple fields across matched nested items
+        comparisons = []
+        for field_name in simple_fields:
+            comparison = self._compare_field_across_matches(
+                nested_matches, field_name, nested_path, comparison_type, strategy
+            )
+            comparisons.append(comparison)
+
+        # Recursively handle further nested arrays
+        for further_field, further_config in further_nested.items():
+            further_comparisons = self._compare_nested_arrays(
+                nested_matches,
+                further_field,
+                further_config,
+                nested_path,
+                comparison_type,
+            )
+            comparisons.extend(further_comparisons)
+
+        return comparisons

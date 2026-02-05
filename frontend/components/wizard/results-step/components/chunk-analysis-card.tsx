@@ -14,6 +14,7 @@ import { useMemo, useState } from 'react';
 import { AnalysisResultCard } from './analysis-result-card';
 import { DocumentIssueCardMinimal } from './document-issue-card';
 import { ExpandableResultSection } from './expandable-result-section';
+import { Markdown } from '@/components/markdown';
 
 export interface ChunkAnalysisCardProps {
   chunkIndex: number;
@@ -119,6 +120,13 @@ export function ChunkAnalysisCard({ chunkIndex, projectDetail }: ChunkAnalysisCa
                     <LabeledValue label="Format">{citation.format}</LabeledValue>
                     <LabeledValue label="Type">{citation.type}</LabeledValue>
                     <LabeledValue label="Needs bibliography">{citation.needs_bibliography ? 'Yes' : 'No'}</LabeledValue>
+                    <LabeledValue label="Associated bibliography index">
+                      {citation.index_of_associated_bibliography}
+                    </LabeledValue>
+                    <LabeledValue label="Associated bibliography">
+                      <Markdown>{citation.associated_bibliography}</Markdown>
+                    </LabeledValue>
+                    <LabeledValue label="Rationale">{citation.rationale}</LabeledValue>
                     <LabeledValue label="Associated reference file">
                       {matchedSupportingFile ? (
                         <FileDownloadLink fileId={matchedSupportingFile.id} className="text-blue-600 underline">
@@ -128,8 +136,6 @@ export function ChunkAnalysisCard({ chunkIndex, projectDetail }: ChunkAnalysisCa
                         'None'
                       )}
                     </LabeledValue>
-                    <LabeledValue label="Associated bibliography">{citation.associated_bibliography}</LabeledValue>
-                    <LabeledValue label="Rationale">{citation.rationale}</LabeledValue>
                   </div>
                 );
               })}

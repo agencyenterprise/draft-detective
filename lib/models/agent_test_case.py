@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List, Optional, Type, TypeVar
+from typing import Any, Dict, List, Optional, Type, TypedDict, TypeVar
 
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from lib.config.llm_models import LLMModel
 from lib.models.agent import BaseAgent
@@ -64,7 +64,7 @@ class AgentTestCase(BaseModel):
     name: str = Field(description="Test case name")
     agent: BaseAgent = Field(description="Agent instance to test")
     response_model: Type[TResponse] = Field(description="Expected response model type")
-    prompt_kwargs: Dict[str, Any] | BaseModel = Field(
+    prompt_kwargs: Dict[str, Any] | BaseModel | TypedDict = Field(
         description="Agent invocation arguments"
     )
     expected_dict: Dict[str, Any] = Field(description="Expected output as dictionary")

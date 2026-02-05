@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 
 # This prevents overwhelming the tracing system and LLM APIs
-MAX_CONCURRENT_TASKS = int(os.getenv("MAX_CONCURRENT_TASKS", "15"))
+MAX_CONCURRENT_TASKS = int(os.getenv("MAX_CONCURRENT_TASKS", "20"))
 
 
 def _get_progress_id() -> Optional[UUID]:
