@@ -157,7 +157,6 @@ class ClaimReferenceValidationManifest(
                     severity=severity,
                     type=self.type,
                     chunk_index=substantiation.chunk_index,
-                    claim_index=substantiation.claim_index,
                     long_description=long_description,
                 )
             )
@@ -200,7 +199,6 @@ class ClaimReferenceValidationManifest(
                         severity=SeverityEnum.MEDIUM,
                         type=self.type,
                         chunk_index=category.chunk_index,
-                        claim_index=category.claim_index,
                         long_description=f"**Rationale:** {category.rationale}",
                     )
                     issues.append(issue)

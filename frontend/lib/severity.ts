@@ -17,21 +17,6 @@ export function getMaxChunkSeverity(issues: DocumentIssue[], chunk: DocumentChun
   return getMaxSeverity(chunkIssues);
 }
 
-export function getClaimIssues(issues: DocumentIssue[], chunkIndex: number, claimIndex: number) {
-  return issues
-    .filter((issue) => issueMatchesChunk(issue, chunkIndex) && issue.claim_index === claimIndex)
-    .sort(sortDocumentIssueBySeverity);
-}
-
-export function getChunkIssues(issues: DocumentIssue[], chunkIndex: number) {
-  return issues
-    .filter(
-      (issue) =>
-        issueMatchesChunk(issue, chunkIndex) && (issue.claim_index === null || issue.claim_index === undefined),
-    )
-    .sort(sortDocumentIssueBySeverity);
-}
-
 /**
  * Returns the issues that are associated with any of the given chunk indices.
  * @param issues - The issues to filter
@@ -45,10 +30,6 @@ export function getChunkIssuesByIndices(issues: DocumentIssue[], chunkIndices: n
 
 export function sortDocumentIssueBySeverity(a: DocumentIssue, b: DocumentIssue) {
   return severitySortIndex[b.severity] - severitySortIndex[a.severity];
-}
-
-export function sortBySeverity(a: SeverityEnum, b: SeverityEnum) {
-  return severitySortIndex[b] - severitySortIndex[a];
 }
 
 export function getMaxSeverity(issues: DocumentIssue[]) {

@@ -119,7 +119,7 @@ class SeverityEnum(StrEnum):
 class DocumentIssue(BaseModel):
     id: str = Field(
         default="",
-        description="A unique identifier for the issue, generated as a hash of type + title + description + severity + chunk_index + claim_index + chunk_indices.",
+        description="A unique identifier for the issue, generated as a hash of type + title + description + severity + chunk_index + chunk_indices.",
     )
     title: str = Field(description="The title of the issue")
     description: str = Field(
@@ -141,9 +141,6 @@ class DocumentIssue(BaseModel):
         description="The indices of all chunks that contain the issue",
         default=None,
     )
-    claim_index: Optional[int] = Field(
-        description="The index of the claim that contains the issue", default=None
-    )
 
     @model_validator(mode="after")
     def generate_id(self) -> Self:
@@ -154,7 +151,7 @@ class DocumentIssue(BaseModel):
 
         hash_input = (
             f"{self.type.value}|{self.title}|{self.description}|"
-            f"{self.severity.value}|{self.chunk_index}|{self.claim_index}|{self.chunk_indices}"
+            f"{self.severity.value}|{self.chunk_index}|{self.chunk_indices}"
         )
         self.id = hashlib.sha256(hash_input.encode()).hexdigest()[:16]
         return self

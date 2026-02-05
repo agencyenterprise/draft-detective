@@ -100,7 +100,6 @@ class CitationSuggesterManifest(
                         severity=SeverityEnum.LOW,
                         type=self.type,
                         chunk_index=suggestion.chunk_index,
-                        claim_index=suggestion.claim_index,
                     )
                 )
 

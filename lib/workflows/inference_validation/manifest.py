@@ -71,7 +71,6 @@ class InferenceValidationManifest(
                         severity=SeverityEnum.MEDIUM,
                         type=self.type,
                         chunk_index=validation.chunk_index,
-                        claim_index=validation.claim_index,
                     )
                 )
 

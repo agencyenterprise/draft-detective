@@ -1640,12 +1640,6 @@ export type DocumentIssue = {
    * The indices of all chunks that contain the issue
    */
   chunk_indices?: Array<number> | null;
-  /**
-   * Claim Index
-   *
-   * The index of the claim that contains the issue
-   */
-  claim_index?: number | null;
 };
 
 /**

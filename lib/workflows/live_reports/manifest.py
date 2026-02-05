@@ -68,7 +68,6 @@ class LiveReportsManifest(
                     severity=SeverityEnum.MEDIUM,
                     type=self.type,
                     chunk_index=live_report.chunk_index,
-                    claim_index=live_report.claim_index,
                 )
                 issues.append(issue)
             elif (
@@ -81,7 +80,6 @@ class LiveReportsManifest(
                     severity=SeverityEnum.MEDIUM,
                     type=self.type,
                     chunk_index=live_report.chunk_index,
-                    claim_index=live_report.claim_index,
                 )
                 issues.append(issue)
 
