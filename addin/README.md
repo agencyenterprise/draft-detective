@@ -11,7 +11,11 @@
 
 ### Prepare the manifest
 1. Copy `addin/manifest-dev.xml` to a new file (for example, `addin/manifest-dev.local.xml`).
-2. Replace `{NGROK_FRONTEND}` with the ngrok frontend URL on this new file.
+2. Replace `{NGROK_FRONTEND}` with the ngrok frontend URL on this new file (the 3000 tunnel).
+   - Example: `sed -i "" "s|{NGROK_FRONTEND}|https://<your-ngrok-frontend>.ngrok-free.app|g" addin/manifest-dev.local.xml`
+
+### Frontend API URL
+- Set `NEXT_PUBLIC_API_URL` in `frontend/.env` to the ngrok API URL (the 8000 tunnel).
 
 ### Add to Office
 1. Open Word Web (https://word.cloud.microsoft/) and cerate a blank file.
