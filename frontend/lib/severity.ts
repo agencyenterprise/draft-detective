@@ -32,6 +32,17 @@ export function getChunkIssues(issues: DocumentIssue[], chunkIndex: number) {
     .sort(sortDocumentIssueBySeverity);
 }
 
+/**
+ * Returns the issues that are associated with any of the given chunk indices.
+ * @param issues - The issues to filter
+ * @param chunkIndices - The chunk indices to filter by
+ */
+export function getChunkIssuesByIndices(issues: DocumentIssue[], chunkIndices: number[]): DocumentIssue[] {
+  return issues
+    .filter((issue) => chunkIndices.some((chunkIndex) => issueMatchesChunk(issue, chunkIndex)))
+    .sort(sortDocumentIssueBySeverity);
+}
+
 export function sortDocumentIssueBySeverity(a: DocumentIssue, b: DocumentIssue) {
   return severitySortIndex[b.severity] - severitySortIndex[a.severity];
 }

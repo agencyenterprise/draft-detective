@@ -2,17 +2,14 @@
 
 import { LabeledValue } from '@/components/labeled-value';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { FileDownloadLink } from '@/components/ui/file-download-link';
 import { getChunkId } from '@/lib/chunk-ids';
 import { composeReferences } from '@/lib/composed-references';
 import { ProjectDetailed, WorkflowRunType } from '@/lib/generated-api';
-import { getChunkIssues, getMaxSeverity } from '@/lib/severity';
 import { getWorkflowRunByType } from '@/lib/workflow-state';
-import { ChevronDownIcon, ChevronRightIcon, LinkIcon, MessageCirclePlus } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { LinkIcon, MessageCirclePlus } from 'lucide-react';
+import { useMemo } from 'react';
 import { AnalysisResultCard } from './analysis-result-card';
-import { DocumentIssueCardMinimal } from './document-issue-card';
 import { ExpandableResultSection } from './expandable-result-section';
 import { Markdown } from '@/components/markdown';
 
@@ -22,10 +19,7 @@ export interface ChunkAnalysisCardProps {
 }
 
 export function ChunkAnalysisCard({ chunkIndex, projectDetail }: ChunkAnalysisCardProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
-
   const workflowDetails = useMemo(() => projectDetail.workflow_runs ?? [], [projectDetail.workflow_runs]);
-  const issues = useMemo(() => projectDetail.issues ?? [], [projectDetail.issues]);
   const files = useMemo(() => projectDetail.files ?? [], [projectDetail.files]);
 
   const claimExtractionDetail = useMemo(
@@ -63,86 +57,66 @@ export function ChunkAnalysisCard({ chunkIndex, projectDetail }: ChunkAnalysisCa
       .flatMap((citation) => citation.citations ?? []) ?? [];
   const citationsWithBibliography = citations.filter((citation) => citation.associated_bibliography);
 
-  const chunkIssues = getChunkIssues(issues, chunkIndex);
-  const maxSeverity = getMaxSeverity(chunkIssues);
-
   return (
-    <AnalysisResultCard id={getChunkId(chunkIndex)} title="Chunk Analysis" severity={maxSeverity}>
-      {!chunkIssues.length && <p className="text-muted-foreground">No issues found for this chunk.</p>}
+    <AnalysisResultCard id={getChunkId(chunkIndex)} title="Chunk Analysis">
+      <div className="space-y-2">
+        <ExpandableResultSection
+          initialIsExpanded={false}
+          title={
+            <h3 className="font-semibold flex items-center gap-2">
+              <MessageCirclePlus className="w-4 h-4" /> Claim extraction rationale
+            </h3>
+          }
+        >
+          <p>{chunkClaims?.rationale}</p>
+        </ExpandableResultSection>
 
-      {chunkIssues.map((issue, issueIndex) => (
-        <DocumentIssueCardMinimal key={issueIndex} issue={issue} />
-      ))}
+        <ExpandableResultSection
+          title={
+            <div className="flex items-center gap-2">
+              <h3 className="font-semibold flex items-center gap-2">
+                <LinkIcon className="w-4 h-4" /> Citations
+              </h3>
 
-      <div className="flex items-center justify-end">
-        <Button variant="ghost" size="xs" onClick={() => setIsExpanded(!isExpanded)}>
-          {isExpanded ? <ChevronDownIcon className="size-4" /> : <ChevronRightIcon className="size-4" />}
-          {isExpanded ? 'Hide details' : 'Show details'}
-        </Button>
+              <Badge variant="outline">{citationsWithBibliography?.length || 0} with bibliography</Badge>
+            </div>
+          }
+        >
+          {citations.length === 0 && <p className="text-muted-foreground">No citations found</p>}
+
+          {citations.map((citation, index) => {
+            const matchedReference = citation.index_of_associated_bibliography
+              ? references[citation.index_of_associated_bibliography - 1]
+              : null;
+            const matchedSupportingFile = files?.find((file) => file.id === matchedReference?.file_id);
+
+            return (
+              <div key={index} className="bg-muted p-3 rounded-md space-y-1">
+                <LabeledValue label="Associated text">{citation.text}</LabeledValue>
+                <LabeledValue label="Format">{citation.format}</LabeledValue>
+                <LabeledValue label="Type">{citation.type}</LabeledValue>
+                <LabeledValue label="Needs bibliography">{citation.needs_bibliography ? 'Yes' : 'No'}</LabeledValue>
+                <LabeledValue label="Associated bibliography index">
+                  {citation.index_of_associated_bibliography}
+                </LabeledValue>
+                <LabeledValue label="Associated bibliography">
+                  <Markdown>{citation.associated_bibliography}</Markdown>
+                </LabeledValue>
+                <LabeledValue label="Rationale">{citation.rationale}</LabeledValue>
+                <LabeledValue label="Associated reference file">
+                  {matchedSupportingFile ? (
+                    <FileDownloadLink fileId={matchedSupportingFile.id} className="text-blue-600 underline">
+                      {matchedSupportingFile.file_name}
+                    </FileDownloadLink>
+                  ) : (
+                    'None'
+                  )}
+                </LabeledValue>
+              </div>
+            );
+          })}
+        </ExpandableResultSection>
       </div>
-
-      {isExpanded && (
-        <>
-          <div className="space-y-2">
-            <ExpandableResultSection
-              initialIsExpanded={false}
-              title={
-                <h3 className="font-semibold flex items-center gap-2">
-                  <MessageCirclePlus className="w-4 h-4" /> Claim extraction rationale
-                </h3>
-              }
-            >
-              <p>{chunkClaims?.rationale}</p>
-            </ExpandableResultSection>
-
-            <ExpandableResultSection
-              title={
-                <div className="flex items-center gap-2">
-                  <h3 className="font-semibold flex items-center gap-2">
-                    <LinkIcon className="w-4 h-4" /> Citations
-                  </h3>
-
-                  <Badge variant="outline">{citationsWithBibliography?.length || 0} with bibliography</Badge>
-                </div>
-              }
-            >
-              {citations.length === 0 && <p className="text-muted-foreground">No citations found</p>}
-
-              {citations.map((citation, index) => {
-                const matchedReference = citation.index_of_associated_bibliography
-                  ? references[citation.index_of_associated_bibliography - 1]
-                  : null;
-                const matchedSupportingFile = files?.find((file) => file.id === matchedReference?.file_id);
-
-                return (
-                  <div key={index} className="bg-muted p-3 rounded-md space-y-1">
-                    <LabeledValue label="Associated text">{citation.text}</LabeledValue>
-                    <LabeledValue label="Format">{citation.format}</LabeledValue>
-                    <LabeledValue label="Type">{citation.type}</LabeledValue>
-                    <LabeledValue label="Needs bibliography">{citation.needs_bibliography ? 'Yes' : 'No'}</LabeledValue>
-                    <LabeledValue label="Associated bibliography index">
-                      {citation.index_of_associated_bibliography}
-                    </LabeledValue>
-                    <LabeledValue label="Associated bibliography">
-                      <Markdown>{citation.associated_bibliography}</Markdown>
-                    </LabeledValue>
-                    <LabeledValue label="Rationale">{citation.rationale}</LabeledValue>
-                    <LabeledValue label="Associated reference file">
-                      {matchedSupportingFile ? (
-                        <FileDownloadLink fileId={matchedSupportingFile.id} className="text-blue-600 underline">
-                          {matchedSupportingFile.file_name}
-                        </FileDownloadLink>
-                      ) : (
-                        'None'
-                      )}
-                    </LabeledValue>
-                  </div>
-                );
-              })}
-            </ExpandableResultSection>
-          </div>
-        </>
-      )}
     </AnalysisResultCard>
   );
 }

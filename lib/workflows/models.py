@@ -1,10 +1,9 @@
+import hashlib
 from enum import Enum, StrEnum
 from operator import add
-from typing import Annotated, List, Optional
+from typing import Annotated, List, Optional, Self
 
-from pydantic import BaseModel, Field
-
-from lib.agents.models import ClaimCategory
+from pydantic import BaseModel, Field, model_validator
 
 
 class WorkflowError(BaseModel):
@@ -118,8 +117,18 @@ class SeverityEnum(StrEnum):
 
 
 class DocumentIssue(BaseModel):
+    id: str = Field(
+        default="",
+        description="A unique identifier for the issue, generated as a hash of type + title + description + severity + chunk_index + claim_index + chunk_indices.",
+    )
     title: str = Field(description="The title of the issue")
-    description: str = Field(description="The description of the issue")
+    description: str = Field(
+        description="A short description of the issue, enough to understand the issue at a glance. Can be markdown."
+    )
+    long_description: Optional[str] = Field(
+        description="A long description of the issue, including all the details necessary to understand the issue in detail. Can be markdown.",
+        default=None,
+    )
     severity: SeverityEnum = Field(description="The severity of the issue")
     type: WorkflowRunType = Field(
         description="The workflow type that generated this issue"
@@ -135,6 +144,17 @@ class DocumentIssue(BaseModel):
     claim_index: Optional[int] = Field(
         description="The index of the claim that contains the issue", default=None
     )
-    claim_category: Optional[ClaimCategory] = Field(
-        description="The category of the claim that contains the issue", default=None
-    )
+
+    @model_validator(mode="after")
+    def generate_id(self) -> Self:
+        """Generate a deterministic ID based on issue content, only if not already set."""
+
+        if self.id:
+            return self
+
+        hash_input = (
+            f"{self.type.value}|{self.title}|{self.description}|"
+            f"{self.severity.value}|{self.chunk_index}|{self.claim_index}|{self.chunk_indices}"
+        )
+        self.id = hashlib.sha256(hash_input.encode()).hexdigest()[:16]
+        return self

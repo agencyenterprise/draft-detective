@@ -9,11 +9,6 @@ export const getChunkId = (chunkIndex: number): string => `chunk-${chunkIndex}`;
 
 export const getClaimId = (chunkIndex: number, claimIndex: number): string => `chunk-${chunkIndex}-claim-${claimIndex}`;
 
-export function getIssueId(chunkIndex: number | null | undefined, claimIndex?: number | null): string | undefined {
-  if (chunkIndex == null) return undefined;
-  return claimIndex != null ? getClaimId(chunkIndex, claimIndex) : getChunkId(chunkIndex);
-}
-
 export function parseChunkHash(hash: string): { chunkIndex: number; claimIndex?: number } | null {
   if (!hash.startsWith('#')) return null;
 

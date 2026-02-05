@@ -15,6 +15,7 @@ import { ViewModeToggle } from './components/view-mode-toggle';
 import { TabType } from './constants';
 import { AnalysesTab, FilesTab, ReferenceReviewTab, SummaryTab } from './tabs';
 import { DocumentExplorerTab } from './tabs/document-explorer-tab';
+import { cn } from '@/lib/utils';
 
 interface ResultsVisualizationProps {
   projectDetail: ProjectDetailed;
@@ -175,11 +176,13 @@ export function ResultsVisualization({
         </div>
       </div>
 
-      <Card>
-        <CardContent className={activeTab === 'document-explorer' ? 'h-[calc(100vh-17.5rem)]' : ''}>
-          {renderActiveTab()}
-        </CardContent>
-      </Card>
+      <div
+        className={cn('border rounded-lg shadow-sm p-4', {
+          'h-[calc(100vh-13rem)] p-0': activeTab === 'document-explorer',
+        })}
+      >
+        {renderActiveTab()}
+      </div>
     </div>
   );
 }

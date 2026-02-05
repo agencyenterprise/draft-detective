@@ -146,46 +146,6 @@ export function isAnyWorkflowProcessing(workflowRuns: WorkflowRunDetail[]): bool
 }
 
 /**
- * Helper to get a completed (non-processing) workflow run for warning status checks.
- * Returns null if workflow not found or still processing.
- */
-function getCompletedWorkflow<T extends keyof WorkflowTypeToDetail>(
-  workflowRuns: WorkflowRunDetail[],
-  type: T,
-): WorkflowRunDetailTyped<WorkflowTypeToDetail[T]> | null {
-  const workflowRun = getWorkflowRunByType(workflowRuns, type);
-  return workflowRun && !isWorkflowProcessing(workflowRun) ? workflowRun : null;
-}
-
-/**
- * Checks if the "No References Found" warning should be displayed.
- *
- * The warning only shows when:
- * - At least one Reference Extraction workflow has completed
- * - No Reference Extraction workflow is still processing (pending/running)
- * - The completed workflow found no references
- *
- * This prevents showing stale warnings from old runs while a new extraction is in progress.
- */
-export function getReferenceExtractionWarningStatus(workflowRuns: WorkflowRunDetail[]): {
-  showWarning: boolean;
-  sectionsDetected: boolean;
-  hasErrors: boolean;
-} | null {
-  const workflowRun = getCompletedWorkflow(workflowRuns, WorkflowRunType.ReferenceExtraction);
-  if (!workflowRun) return null;
-
-  const { state } = workflowRun;
-  if ((state.extracted_references?.length ?? 0) > 0) return null;
-
-  return {
-    showWarning: true,
-    sectionsDetected: (state.detected_sections?.length ?? 0) > 0,
-    hasErrors: hasCurrentRunErrors(workflowRun),
-  };
-}
-
-/**
  * Checks if a project needs wizard completion (step 2).
  *
  * A project needs completion when:
@@ -222,54 +182,4 @@ export function needsHumanApproval(workflowRuns: WorkflowRunDetail[]): boolean {
 
   const state = humanApprovalRun.state as HumanApprovalState | null;
   return !state?.approved;
-}
-
-/**
- * Checks if the "No Preface Section Found" warning should be displayed.
- *
- * The warning only shows when:
- * - The About This workflow has completed
- * - No About This workflow is still processing (pending/running)
- * - The completed workflow did not find a preface section
- *
- * This prevents showing stale warnings from old runs while a new analysis is in progress.
- */
-export function getAboutThisWarningStatus(workflowRuns: WorkflowRunDetail[]): {
-  showWarning: boolean;
-  hasErrors: boolean;
-} | null {
-  const workflowRun = getCompletedWorkflow(workflowRuns, WorkflowRunType.AboutThis);
-  if (!workflowRun) return null;
-
-  if (workflowRun.state.found_section) return null;
-
-  return {
-    showWarning: true,
-    hasErrors: (workflowRun.state.errors?.length ?? 0) > 0,
-  };
-}
-
-/**
- * Checks if the "No Authors Section Found" warning should be displayed.
- *
- * The warning only shows when:
- * - The About Authors workflow has completed
- * - No About Authors workflow is still processing (pending/running)
- * - The completed workflow found no author biographies
- *
- * This prevents showing stale warnings from old runs while a new analysis is in progress.
- */
-export function getAboutAuthorsWarningStatus(workflowRuns: WorkflowRunDetail[]): {
-  showWarning: boolean;
-  hasErrors: boolean;
-} | null {
-  const workflowRun = getCompletedWorkflow(workflowRuns, WorkflowRunType.AboutAuthors);
-  if (!workflowRun) return null;
-
-  if ((workflowRun.state.results?.length ?? 0) > 0) return null;
-
-  return {
-    showWarning: true,
-    hasErrors: (workflowRun.state.errors?.length ?? 0) > 0,
-  };
 }
