@@ -152,17 +152,3 @@ def find_chunk_by_index(
         if chunk.chunk_index == chunk_index:
             return chunk
     return None
-
-
-def find_claim_category(
-    chunk: Optional[AnalyzedChunk], claim_index: int
-) -> Optional[ClaimCategory]:
-    """Find claim category for a given claim index in a chunk."""
-    if chunk is None:
-        return None
-
-    for category in chunk.claim_categories:
-        if category.claim_index == claim_index:
-            return category.claim_category
-
-    return None

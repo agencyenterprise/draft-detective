@@ -2,21 +2,17 @@
 
 import { ClaimFeedback } from '@/components/claim-feedback';
 import { LabeledValue } from '@/components/labeled-value';
-import { Button } from '@/components/ui/button';
 import { getClaimId } from '@/lib/chunk-ids';
 import { composeReferences } from '@/lib/composed-references';
 import { Claim, ProjectDetailed, WorkflowRunType } from '@/lib/generated-api';
-import { getClaimIssues, getMaxSeverity } from '@/lib/severity';
 import { getWorkflowRunByType } from '@/lib/workflow-state';
-import { ChevronDownIcon, ChevronRightIcon } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { AnalysisResultCard } from './analysis-result-card';
 import { ClaimArgumentAnalysis } from './claim-argument-analysis';
 import { ClaimCategoryResults } from './claim-category-results';
 import { ClaimCitationSuggestions } from './claim-citation-suggestions';
 import { ClaimInferenceValidation } from './claim-inference-validation';
 import { ClaimLiveReports } from './claim-live-reports';
-import { DocumentIssueCardMinimal } from './document-issue-card';
 import { SubstantiationResults } from './substantiation-results';
 
 export interface ClaimAnalysisCardProps {
@@ -36,10 +32,7 @@ export function ClaimAnalysisCard({
   projectDetail,
   readOnly = false,
 }: ClaimAnalysisCardProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
-
   const workflowDetails = useMemo(() => projectDetail.workflow_runs ?? [], [projectDetail.workflow_runs]);
-  const issues = useMemo(() => projectDetail.issues ?? [], [projectDetail.issues]);
   const files = useMemo(() => projectDetail.files ?? [], [projectDetail.files]);
 
   const documentProcessingDetail = useMemo(
@@ -103,71 +96,51 @@ export function ClaimAnalysisCard({
       ),
     [referenceExtractionDetail?.state?.extracted_references, referenceFileMatchingDetail?.state?.matches, files],
   );
-  const claimIssues = getClaimIssues(issues, chunkIndex, claimIndex);
-  const maxSeverity = getMaxSeverity(claimIssues);
 
   return (
     <AnalysisResultCard
       id={getClaimId(chunkIndex, claimIndex)}
       title={`Claim Analysis - ${claimIndex + 1} of ${totalClaims}`}
-      severity={maxSeverity}
     >
       <p className="italic text-center">&quot;{claim.text}&quot;</p>
 
-      {!claimIssues.length && <p className="text-muted-foreground">No issues found for this claim.</p>}
-
-      {claimIssues.map((issue, issueIndex) => (
-        <DocumentIssueCardMinimal key={issueIndex} issue={issue} />
-      ))}
-
-      <div className="flex items-center justify-end">
-        <Button variant="ghost" size="xs" onClick={() => setIsExpanded(!isExpanded)}>
-          {isExpanded ? <ChevronDownIcon className="size-4" /> : <ChevronRightIcon className="size-4" />}
-          {isExpanded ? 'Hide details' : 'Show details'}
-        </Button>
+      <div className="space-y-1">
+        <LabeledValue label="Extracted Claim">{claim.claim}</LabeledValue>
+        {'central' in claim && (
+          <>
+            <LabeledValue label="Central Claim">{claim.central ? 'Yes' : 'No'}</LabeledValue>
+            <LabeledValue label="Centrality Rationale">{claim.centrality_rationale}</LabeledValue>
+          </>
+        )}
       </div>
 
-      {isExpanded && (
-        <>
-          <div className="space-y-1">
-            <LabeledValue label="Extracted Claim">{claim.claim}</LabeledValue>
-            {'central' in claim && (
-              <>
-                <LabeledValue label="Central Claim">{claim.central ? 'Yes' : 'No'}</LabeledValue>
-                <LabeledValue label="Centrality Rationale">{claim.centrality_rationale}</LabeledValue>
-              </>
-            )}
-          </div>
+      <div className="space-y-2">
+        <ClaimArgumentAnalysis claim={claim} />
+        {claimCategory && <ClaimCategoryResults claimCategory={claimCategory} />}
+        {substantiation && (
+          <SubstantiationResults
+            substantiation={substantiation}
+            references={references}
+            supportingFiles={supportingFiles}
+          />
+        )}
+        {citationSuggestion && (
+          <ClaimCitationSuggestions
+            citationSuggestion={citationSuggestion}
+            references={references}
+            supportingFiles={supportingFiles}
+          />
+        )}
+        {liveReportsAnalysis && <ClaimLiveReports liveReportsAnalysis={liveReportsAnalysis} />}
+        {inferenceValidation && <ClaimInferenceValidation inferenceValidation={inferenceValidation} />}
+      </div>
 
-          <div className="space-y-2">
-            <ClaimArgumentAnalysis claim={claim} />
-            {claimCategory && <ClaimCategoryResults claimCategory={claimCategory} />}
-            {substantiation && (
-              <SubstantiationResults
-                substantiation={substantiation}
-                references={references}
-                supportingFiles={supportingFiles}
-              />
-            )}
-            {citationSuggestion && (
-              <ClaimCitationSuggestions
-                citationSuggestion={citationSuggestion}
-                references={references}
-                supportingFiles={supportingFiles}
-              />
-            )}
-            {liveReportsAnalysis && <ClaimLiveReports liveReportsAnalysis={liveReportsAnalysis} />}
-            {inferenceValidation && <ClaimInferenceValidation inferenceValidation={inferenceValidation} />}
-          </div>
-
-          {!readOnly && documentProcessingDetail?.run.id && chunkIndex !== undefined && (
-            <ClaimFeedback
-              workflowRunId={documentProcessingDetail?.run.id}
-              chunkIndex={chunkIndex}
-              claimIndex={claimIndex}
-            />
-          )}
-        </>
+      {!readOnly && documentProcessingDetail?.run.id && chunkIndex !== undefined && (
+        <ClaimFeedback
+          workflowRunId={documentProcessingDetail?.run.id}
+          chunkIndex={chunkIndex}
+          claimIndex={claimIndex}
+        />
       )}
     </AnalysisResultCard>
   );

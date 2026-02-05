@@ -1597,6 +1597,12 @@ export type DocumentChunk = {
  */
 export type DocumentIssue = {
   /**
+   * Id
+   *
+   * A unique identifier for the issue, generated as a hash of type + title + description + severity + chunk_index + chunk_indices.
+   */
+  id?: string;
+  /**
    * Title
    *
    * The title of the issue
@@ -1640,10 +1646,6 @@ export type DocumentIssue = {
    * The index of the claim that contains the issue
    */
   claim_index?: number | null;
-  /**
-   * The category of the claim that contains the issue
-   */
-  claim_category?: ClaimCategory | null;
 };
 
 /**

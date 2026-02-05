@@ -2,11 +2,7 @@ from typing import List, Type
 
 from langgraph.graph import StateGraph
 
-from lib.workflows.chunk_utils import (
-    build_analyzed_chunks,
-    find_chunk_by_index,
-    find_claim_category,
-)
+from lib.workflows.chunk_utils import build_analyzed_chunks, find_chunk_by_index
 from lib.workflows.inference_validation.graph import build_inference_validation_graph
 from lib.workflows.inference_validation.state import (
     InferenceValidationState,
@@ -74,9 +70,6 @@ class InferenceValidationManifest(
                         type=self.type,
                         chunk_index=validation.chunk_index,
                         claim_index=validation.claim_index,
-                        claim_category=find_claim_category(
-                            chunk, validation.claim_index
-                        ),
                     )
                 )
 

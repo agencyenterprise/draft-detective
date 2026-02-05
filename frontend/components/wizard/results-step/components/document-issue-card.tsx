@@ -1,6 +1,5 @@
-import { useState } from 'react';
 import { Markdown } from '@/components/markdown';
-import { getIssueId } from '@/lib/chunk-ids';
+import { Button } from '@/components/ui/button';
 import { DocumentIssue, SeverityEnum } from '@/lib/generated-api';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { cn } from '@/lib/utils';
@@ -13,11 +12,12 @@ import {
   MessageCircleWarningIcon,
   TriangleAlertIcon,
 } from 'lucide-react';
+import { memo, useState } from 'react';
 import { SeverityBadge } from './severity-badge';
-import { Button } from '@/components/ui/button';
 
 interface DocumentIssueCardProps {
   issue: DocumentIssue;
+  hideJumpToChunk?: boolean;
   onSelect: (issue: DocumentIssue) => void;
 }
 
@@ -51,14 +51,14 @@ export const severityColorMap: Record<
   },
 };
 
-export function DocumentIssueCard({ issue, onSelect }: DocumentIssueCardProps) {
+function DocumentIssueCardRaw({ issue, hideJumpToChunk = false, onSelect }: DocumentIssueCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const { className, icon, accentClassName } = severityColorMap[issue.severity];
   const { getWorkflowTypeName } = useWorkflowTypes();
 
   return (
     <div
-      id={getIssueId(issue.chunk_index, issue.claim_index)}
+      id={`issue-${issue.id}`}
       className={cn('rounded-lg p-4 space-y-3 border-l-4 shadow-sm break-words', className)}
     >
       <div className="flex items-center gap-2 justify-between">
@@ -74,16 +74,18 @@ export function DocumentIssueCard({ issue, onSelect }: DocumentIssueCardProps) {
 
       <Markdown>{issue.description}</Markdown>
 
-      <div className="flex items-center gap-2 justify-between border-t pt-1">
-        <Button variant="ghost" size="xs" className={accentClassName} onClick={() => onSelect(issue)}>
-          <ExternalLinkIcon className="size-3" />
-          Jump to chunk {issue.chunk_index !== undefined ? issue.chunk_index : ''}
-        </Button>
+      <div className={cn('flex items-center gap-2', { 'border-t pt-1': !hideJumpToChunk || !!issue.long_description })}>
+        {!hideJumpToChunk && issue.chunk_index !== undefined && issue.chunk_index !== null && (
+          <Button variant="ghost" size="xs" className={accentClassName} onClick={() => onSelect(issue)}>
+            <ExternalLinkIcon className="size-3" />
+            Jump to chunk {issue.chunk_index !== undefined ? issue.chunk_index : ''}
+          </Button>
+        )}
         {issue.long_description && (
           <Button
             variant="ghost"
             size="xs"
-            className={accentClassName}
+            className={cn(accentClassName, 'ml-auto')}
             onClick={() => setIsExpanded(!isExpanded)}
             aria-expanded={isExpanded}
           >
@@ -102,7 +104,7 @@ export function DocumentIssueCard({ issue, onSelect }: DocumentIssueCardProps) {
         )}
       </div>
       {issue.long_description && isExpanded && (
-        <div className="leading-relaxed">
+        <div>
           <Markdown>{issue.long_description}</Markdown>
         </div>
       )}
@@ -110,29 +112,4 @@ export function DocumentIssueCard({ issue, onSelect }: DocumentIssueCardProps) {
   );
 }
 
-export interface DocumentIssueCardMinimalProps {
-  issue: DocumentIssue;
-}
-
-export function DocumentIssueCardMinimal({ issue }: DocumentIssueCardMinimalProps) {
-  const { className, icon } = severityColorMap[issue.severity];
-  const { getWorkflowTypeName } = useWorkflowTypes();
-  return (
-    <div className={cn('space-y-2 px-3 py-2 rounded-md', className)}>
-      <div className="flex items-center gap-2">
-        {icon}
-        <h4 className="font-medium">{issue.title}</h4>
-      </div>
-      <Markdown>{issue.description}</Markdown>
-      <div className="flex items-center gap-2 justify-between">
-        <p className="text-xs text-muted-foreground italic flex items-center gap-1">
-          {getWorkflowTypeName(issue.type)}
-        </p>
-        <p className="text-xs text-muted-foreground italic flex items-center gap-1">
-          {issue.claim_index !== undefined && issue.claim_index !== null && <span>Claim {issue.claim_index + 1}</span>}
-          {issue.chunk_index !== undefined && issue.chunk_index !== null && <span>Chunk {issue.chunk_index}</span>}
-        </p>
-      </div>
-    </div>
-  );
-}
+export const DocumentIssueCard = memo(DocumentIssueCardRaw);

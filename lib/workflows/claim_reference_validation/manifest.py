@@ -2,11 +2,7 @@ from typing import List, Type
 
 from langgraph.graph import StateGraph
 
-from lib.workflows.chunk_utils import (
-    build_analyzed_chunks,
-    find_chunk_by_index,
-    find_claim_category,
-)
+from lib.workflows.chunk_utils import build_analyzed_chunks, find_chunk_by_index
 from lib.workflows.claim_reference_validation.graph import (
     build_claim_reference_validation_graph,
 )
@@ -97,6 +93,22 @@ class ClaimReferenceValidationManifest(
             title, severity = issue_config[substantiation.evidence_alignment]
             chunk = find_chunk_by_index(chunks, substantiation.chunk_index)
 
+            sources_text = (
+                "\n".join(
+                    [
+                        f"- {source.reference_file_name} - {source.location}\n\n\t> *{source.quote}*"
+                        for source in substantiation.evidence_sources
+                    ]
+                )
+                if substantiation.evidence_sources
+                else "*No sources found*"
+            )
+            long_description = (
+                f"**Evidence Alignment:** {substantiation.evidence_alignment}\n\n"
+                f"**Feedback to resolve:** {substantiation.feedback}\n\n"
+                f"### Checked sources\n\n{sources_text}"
+            )
+
             issues.append(
                 DocumentIssue(
                     title=title,
@@ -105,9 +117,7 @@ class ClaimReferenceValidationManifest(
                     type=self.type,
                     chunk_index=substantiation.chunk_index,
                     claim_index=substantiation.claim_index,
-                    claim_category=find_claim_category(
-                        chunk, substantiation.claim_index
-                    ),
+                    long_description=long_description,
                 )
             )
 
@@ -145,12 +155,12 @@ class ClaimReferenceValidationManifest(
                 ):
                     issue = DocumentIssue(
                         title="Unsupported claim",
-                        description=f"Claim '{category.claim}' requires external verification but no citations were found.",
+                        description=f'Claim requires external verification but no citations/references were found or used: "{category.claim}"',
                         severity=SeverityEnum.MEDIUM,
                         type=self.type,
                         chunk_index=category.chunk_index,
                         claim_index=category.claim_index,
-                        claim_category=category.claim_category,
+                        long_description=f"**Rationale:** {category.rationale}",
                     )
                     issues.append(issue)
 
