@@ -1,6 +1,7 @@
-import { useState, useCallback, useRef, useMemo } from 'react';
+import { useState, useCallback, useRef, useMemo, useEffect } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import debounce from 'lodash/debounce';
 import { useWizard, PreflightStatus } from './wizard-context';
 import { usePreflight } from '@/lib/hooks/use-preflight';
 import { useSessionStorage } from '@/lib/hooks/use-session-storage';
@@ -91,6 +92,12 @@ export function useStepUpload(onComplete: () => void) {
   const apiKey = openaiApiKey || storedApiKey;
   const fileSizeLabel = mainDocument ? formatBytes(mainDocument.size) : '';
 
+  // Refs to track current values for debounced validation (avoids stale closures)
+  const apiKeyRef = useRef(apiKey);
+  const mainDocumentRef = useRef(mainDocument);
+  apiKeyRef.current = apiKey;
+  mainDocumentRef.current = mainDocument;
+
   // Derived state - no useEffect needed
   const formatStatus = validateDocument(mainDocument);
 
@@ -112,6 +119,35 @@ export function useStepUpload(onComplete: () => void) {
     setPreflightStatus({ apiKey: isValid ? 'valid' : 'invalid' });
     return isValid;
   }, [apiKey, mainDocument, setPreflightStatus, runPreflight]);
+
+  // Debounced automatic validation - triggers when API key or document changes
+  const debouncedValidation = useMemo(
+    () =>
+      debounce(async () => {
+        if (HIDE_API_KEY_INPUT) return;
+        const currentApiKey = apiKeyRef.current;
+        const currentDocument = mainDocumentRef.current;
+        // Only validate if we have both a document and a sufficiently long API key
+        if (!currentDocument || !currentApiKey || currentApiKey.length < MIN_API_KEY_LENGTH) {
+          return;
+        }
+        setPreflightStatus({ apiKey: 'pending' });
+        const isValid = await runPreflight({
+          mainDocument: currentDocument,
+          supportingDocuments: [],
+          openaiApiKey: currentApiKey,
+        });
+        setPreflightStatus({ apiKey: isValid ? 'valid' : 'invalid' });
+      }, 500),
+    [setPreflightStatus, runPreflight],
+  );
+
+  // Cleanup debounced function on unmount
+  useEffect(() => {
+    return () => {
+      debouncedValidation.cancel();
+    };
+  }, [debouncedValidation]);
 
   const createProjectAndProcess = useMutation({
     mutationFn: async () => {
@@ -172,9 +208,13 @@ export function useStepUpload(onComplete: () => void) {
       setMainDocument(files[0] || null);
       setUploadStage('idle');
       setUploadProgress(null);
-      if (!HIDE_API_KEY_INPUT) setPreflightStatus({ apiKey: 'idle' });
+      if (!HIDE_API_KEY_INPUT) {
+        setPreflightStatus({ apiKey: 'idle' });
+        // Trigger validation if we have an API key
+        debouncedValidation();
+      }
     },
-    [setMainDocument, setPreflightStatus],
+    [setMainDocument, setPreflightStatus, debouncedValidation],
   );
 
   const handleApiKeyChange = useCallback(
@@ -182,8 +222,10 @@ export function useStepUpload(onComplete: () => void) {
       setApiKey(value);
       setStoredApiKey(value);
       setPreflightStatus({ apiKey: 'idle' });
+      // Trigger automatic validation after debounce
+      debouncedValidation();
     },
-    [setApiKey, setStoredApiKey, setPreflightStatus],
+    [setApiKey, setStoredApiKey, setPreflightStatus, debouncedValidation],
   );
 
   const handleContinue = useCallback(async () => {

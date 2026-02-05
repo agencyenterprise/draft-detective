@@ -91,12 +91,12 @@ export function StepUpload({ onComplete }: StepUploadProps) {
           <div className="space-y-2">
             <div className="flex justify-between text-sm text-muted-foreground">
               <span>Uploading...</span>
-              <span>{uploadProgress.percentage}%</span>
+              <span>{uploadProgress.progress_percent}%</span>
             </div>
             <div className="h-2 bg-muted rounded-full overflow-hidden">
               <div
                 className="h-full bg-primary transition-all duration-300"
-                style={{ width: `${uploadProgress.percentage}%` }}
+                style={{ width: `${uploadProgress.progress_percent}%` }}
               />
             </div>
           </div>

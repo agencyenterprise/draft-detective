@@ -4,6 +4,8 @@ import { toast } from 'sonner';
 import {
   uploadFile,
   cancelUpload as cancelChunkedUpload,
+  pauseUpload as pauseChunkedUpload,
+  resumeUpload as resumeChunkedUpload,
   ChunkedUploadState,
   UploadProgress,
   isActiveStatus,
@@ -12,7 +14,7 @@ import {
 import { FileRole, File as FileRecord } from '../generated-api';
 
 // Derive from ChunkedUploadState, excluding internal implementation details
-export type UploadFileState = Omit<ChunkedUploadState, 'sessionId' | 'abortController'>;
+export type UploadFileState = Omit<ChunkedUploadState, 'sessionId' | 'abortController' | 'isPaused' | 'metadata'>;
 
 export interface UseUploadOptions {
   projectId: string;
@@ -33,6 +35,10 @@ export interface UseUploadReturn {
   addFiles: (files: File[]) => void;
   removeFile: (fileId: string) => void;
   startUpload: (filesToUpload?: File[]) => Promise<FileRecord[]>;
+  pauseFile: (fileId: string) => void;
+  resumeFile: (fileId: string) => Promise<void>;
+  pauseAll: () => void;
+  resumeAll: () => Promise<void>;
   cancelAll: () => void;
   reset: () => void;
 }
@@ -187,12 +193,75 @@ export function useUpload(options: UseUploadOptions): UseUploadReturn {
     [maxConcurrent, uploadSingleFile, onAllComplete, createFileState, syncToReactState],
   );
 
+  const pauseFile = useCallback(
+    (fileId: string) => {
+      const upload = uploadsRef.current.get(fileId);
+      if (upload && upload.status === 'uploading') {
+        pauseChunkedUpload(upload);
+        updateFileStateInternal(fileId, { status: 'paused' });
+      }
+    },
+    [updateFileStateInternal],
+  );
+
+  const resumeFile = useCallback(
+    async (fileId: string) => {
+      const upload = uploadsRef.current.get(fileId);
+      if (!upload || upload.status !== 'paused') return;
+
+      updateFileStateInternal(fileId, { status: 'uploading' });
+
+      const updatedState = await resumeChunkedUpload(upload, {
+        onProgress: (progress) => {
+          updateFileStateInternal(fileId, { progress });
+        },
+        onSuccess: (fileRecord) => {
+          updateFileStateInternal(fileId, {
+            status: 'completed',
+            progress: createProgress(upload.file.size, upload.file.size),
+            fileRecord,
+          });
+          uploadsRef.current.delete(fileId);
+          onFileComplete?.(upload.file, fileRecord);
+          queryClient.invalidateQueries({ queryKey: ['project', projectId] });
+        },
+        onError: (error) => {
+          updateFileStateInternal(fileId, { status: 'error', error: error.message });
+          uploadsRef.current.delete(fileId);
+          onError?.(error, upload.file.name);
+          toast.error(`Failed to upload ${upload.file.name}: ${error.message}`);
+        },
+      });
+
+      // Update state if paused again during resume
+      if (updatedState.status === 'paused') {
+        updateFileStateInternal(fileId, { status: 'paused' });
+      }
+    },
+    [updateFileStateInternal, onFileComplete, onError, queryClient, projectId],
+  );
+
+  const pauseAll = useCallback(() => {
+    uploadsRef.current.forEach((upload, fileId) => {
+      if (upload.status === 'uploading') {
+        pauseChunkedUpload(upload);
+        updateFileStateInternal(fileId, { status: 'paused' });
+      }
+    });
+  }, [updateFileStateInternal]);
+
+  const resumeAll = useCallback(async () => {
+    const pausedUploads = Array.from(uploadsRef.current.entries()).filter(([, upload]) => upload.status === 'paused');
+
+    await Promise.all(pausedUploads.map(([fileId]) => resumeFile(fileId)));
+  }, [resumeFile]);
+
   const cancelAll = useCallback(() => {
     uploadsRef.current.forEach((upload) => cancelChunkedUpload(upload));
     uploadsRef.current.clear();
 
     fileStatesRef.current.forEach((fs, id) => {
-      if (isActiveStatus(fs.status)) {
+      if (isActiveStatus(fs.status) || fs.status === 'paused') {
         fileStatesRef.current.set(id, { ...fs, status: 'error', error: 'Cancelled' });
       }
     });
@@ -230,6 +299,10 @@ export function useUpload(options: UseUploadOptions): UseUploadReturn {
     addFiles,
     removeFile,
     startUpload,
+    pauseFile,
+    resumeFile,
+    pauseAll,
+    resumeAll,
     cancelAll,
     reset,
   };

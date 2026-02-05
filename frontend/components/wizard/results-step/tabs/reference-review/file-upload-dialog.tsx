@@ -139,20 +139,22 @@ export function FileUploadDialog({
             </DialogDescription>
           </DialogHeader>
 
-          <div className="flex-1 min-h-0 overflow-hidden">
-            <UploadProgressList
-              files={uploadHook.files}
-              overallProgress={uploadHook.overallProgress}
-              completedCount={uploadHook.completedCount}
-              totalCount={uploadHook.totalCount}
-              onCancelFile={uploadHook.removeFile}
-              onCancelAll={() => {
-                uploadHook.cancelAll();
-                handleClose();
-              }}
-              className="h-full"
-            />
-          </div>
+          <UploadProgressList
+            files={uploadHook.files}
+            overallProgress={uploadHook.overallProgress}
+            completedCount={uploadHook.completedCount}
+            totalCount={uploadHook.totalCount}
+            onCancelFile={uploadHook.removeFile}
+            onPauseFile={uploadHook.pauseFile}
+            onResumeFile={uploadHook.resumeFile}
+            onCancelAll={() => {
+              uploadHook.cancelAll();
+              handleClose();
+            }}
+            onPauseAll={uploadHook.pauseAll}
+            onResumeAll={uploadHook.resumeAll}
+            className="flex-1 min-h-0"
+          />
 
           {allCompleted && !isStartingWorkflow && (
             <DialogFooter className="flex-shrink-0">

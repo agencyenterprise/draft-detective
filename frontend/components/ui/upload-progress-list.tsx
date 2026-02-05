@@ -5,7 +5,7 @@ import { formatBytes, UploadStatus, isActiveStatus } from '@/lib/services/chunke
 import { Progress } from './progress';
 import { Button } from './button';
 import { cn } from '@/lib/utils';
-import { Clock, Upload, CheckCircle2, XCircle, X, FileText, Loader2, LucideIcon } from 'lucide-react';
+import { Clock, CheckCircle2, XCircle, X, FileText, Loader2, Pause, Play, LucideIcon } from 'lucide-react';
 
 interface StatusConfig {
   icon: LucideIcon;
@@ -15,18 +15,20 @@ interface StatusConfig {
 
 const STATUS_CONFIG: Record<UploadStatus, StatusConfig> = {
   pending: { icon: Clock, color: 'text-muted-foreground', label: 'Queued' },
-  uploading: { icon: Upload, color: 'text-primary', label: 'Uploading' },
+  uploading: { icon: Loader2, color: 'text-primary', label: 'Uploading' },
   completing: { icon: Loader2, color: 'text-primary', label: 'Completing' },
   completed: { icon: CheckCircle2, color: 'text-green-500', label: 'Complete' },
   error: { icon: XCircle, color: 'text-destructive', label: 'Failed' },
   paused: { icon: Clock, color: 'text-amber-500', label: 'Paused' },
 };
 
-const PROGRESS_STATUSES = new Set<UploadStatus>(['uploading', 'completing']);
+const PROGRESS_STATUSES = new Set<UploadStatus>(['uploading', 'completing', 'paused']);
 
 interface UploadProgressItemProps {
   file: UploadFileState;
   onCancel?: () => void;
+  onPause?: () => void;
+  onResume?: () => void;
   showControls?: boolean;
 }
 
@@ -52,11 +54,13 @@ function StatusDetail({ file }: { file: UploadFileState }) {
   return <span className="text-xs text-muted-foreground">{formatBytes(file.file.size)}</span>;
 }
 
-function UploadProgressItem({ file, onCancel, showControls = true }: UploadProgressItemProps) {
+function UploadProgressItem({ file, onCancel, onPause, onResume, showControls = true }: UploadProgressItemProps) {
   const config = STATUS_CONFIG[file.status];
   const Icon = config.icon;
-  const isSpinning = PROGRESS_STATUSES.has(file.status);
-  const canCancel = showControls && isActiveStatus(file.status) && onCancel;
+  const isSpinning = file.status === 'uploading' || file.status === 'completing';
+  const canPause = showControls && file.status === 'uploading' && onPause;
+  const canResume = showControls && file.status === 'paused' && onResume;
+  const canCancel = showControls && (isActiveStatus(file.status) || file.status === 'paused') && onCancel;
 
   return (
     <div className="flex items-center gap-3 p-3 rounded-lg border bg-card min-w-0">
@@ -77,17 +81,41 @@ function UploadProgressItem({ file, onCancel, showControls = true }: UploadProgr
         <StatusDetail file={file} />
       </div>
 
-      {canCancel && (
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-7 w-7 flex-shrink-0 text-muted-foreground hover:text-destructive"
-          onClick={onCancel}
-          title="Cancel upload"
-        >
-          <X className="h-3.5 w-3.5" />
-        </Button>
-      )}
+      <div className="flex items-center gap-1 flex-shrink-0">
+        {canPause && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 text-muted-foreground hover:text-amber-500"
+            onClick={onPause}
+            title="Pause upload"
+          >
+            <Pause className="h-3.5 w-3.5" />
+          </Button>
+        )}
+        {canResume && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 text-muted-foreground hover:text-primary"
+            onClick={onResume}
+            title="Resume upload"
+          >
+            <Play className="h-3.5 w-3.5" />
+          </Button>
+        )}
+        {canCancel && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 text-muted-foreground hover:text-destructive"
+            onClick={onCancel}
+            title="Cancel upload"
+          >
+            <X className="h-3.5 w-3.5" />
+          </Button>
+        )}
+      </div>
     </div>
   );
 }
@@ -98,7 +126,11 @@ export interface UploadProgressListProps {
   completedCount: number;
   totalCount: number;
   onCancelFile?: (fileId: string) => void;
+  onPauseFile?: (fileId: string) => void;
+  onResumeFile?: (fileId: string) => void;
   onCancelAll?: () => void;
+  onPauseAll?: () => void;
+  onResumeAll?: () => void;
   showGlobalControls?: boolean;
   className?: string;
 }
@@ -109,13 +141,20 @@ export function UploadProgressList({
   completedCount,
   totalCount,
   onCancelFile,
+  onPauseFile,
+  onResumeFile,
   onCancelAll,
+  onPauseAll,
+  onResumeAll,
   showGlobalControls = true,
   className,
 }: UploadProgressListProps) {
   if (files.length === 0) return null;
 
   const hasActiveUploads = files.some((f) => isActiveStatus(f.status));
+  const hasUploadingFiles = files.some((f) => f.status === 'uploading');
+  const hasPausedFiles = files.some((f) => f.status === 'paused');
+  const showControls = hasActiveUploads || hasPausedFiles;
 
   return (
     <div className={cn('flex flex-col', className)}>
@@ -131,12 +170,31 @@ export function UploadProgressList({
       </div>
 
       {/* Global controls */}
-      {showGlobalControls && hasActiveUploads && onCancelAll && (
+      {showGlobalControls && showControls && (
         <div className="flex items-center justify-end gap-2 pt-4 flex-shrink-0">
-          <Button variant="outline" size="sm" className="text-destructive hover:text-destructive" onClick={onCancelAll}>
-            <X className="h-4 w-4 mr-1.5" />
-            Cancel All
-          </Button>
+          {hasUploadingFiles && onPauseAll && (
+            <Button variant="outline" size="sm" onClick={onPauseAll}>
+              <Pause className="h-4 w-4 mr-1.5" />
+              Pause All
+            </Button>
+          )}
+          {hasPausedFiles && onResumeAll && (
+            <Button variant="outline" size="sm" onClick={onResumeAll}>
+              <Play className="h-4 w-4 mr-1.5" />
+              Resume All
+            </Button>
+          )}
+          {onCancelAll && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-destructive hover:text-destructive"
+              onClick={onCancelAll}
+            >
+              <X className="h-4 w-4 mr-1.5" />
+              Cancel All
+            </Button>
+          )}
         </div>
       )}
 
@@ -147,7 +205,9 @@ export function UploadProgressList({
             key={file.id}
             file={file}
             onCancel={onCancelFile ? () => onCancelFile(file.id) : undefined}
-            showControls={hasActiveUploads}
+            onPause={onPauseFile ? () => onPauseFile(file.id) : undefined}
+            onResume={onResumeFile ? () => onResumeFile(file.id) : undefined}
+            showControls={showControls}
           />
         ))}
       </div>
