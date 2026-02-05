@@ -1,10 +1,17 @@
 """DOCX manipulation service for adding AI-generated comments."""
 
+import json
 import logging
+import os
+import shutil
+import tempfile
+import uuid
+import zipfile
 from enum import StrEnum
 from pathlib import Path
 from typing import Dict, List, Optional
 
+from lxml import etree
 from docx import Document
 from docx.document import Document as DocumentObject
 from docx.text.paragraph import Paragraph
@@ -134,6 +141,41 @@ class DocxManipulatorService:
         output_dir.mkdir(exist_ok=True)
         return output_dir / f"{workflow_run_id}_reviewed.docx"
 
+    async def add_addin_metadata_to_docx(
+        self,
+        original_docx_path: str,
+        project_id: str,
+        share_token: str,
+        chunks: List[ChunkLike] | None = None,
+    ) -> str:
+        """Add custom properties and a comment to a DOCX file."""
+        original_path = Path(original_docx_path)
+        if not original_path.exists():
+            raise FileNotFoundError(f"Original file not found: {original_docx_path}")
+
+        output_dir = Path(config.FILE_UPLOADS_MOUNT_PATH) / "processed_docx"
+        output_dir.mkdir(exist_ok=True, parents=True)
+        output_path = output_dir / f"{uuid.uuid4()}_with_metadata.docx"
+
+        doc = Document(original_docx_path)
+        docx_paragraphs = [p for p in doc.paragraphs if p.text.strip()]
+
+        chunk_to_para_mapping = {}
+        if chunks:
+            chunk_to_para_mapping = create_chunk_to_paragraph_mapping(
+                chunks, docx_paragraphs
+            )
+
+        doc.save(str(output_path))
+        self.add_custom_property(output_path, "AIReviewer_ProjectId", project_id)
+        self.add_custom_property(output_path, "AIReviewer_AuthToken", share_token)
+        self.add_custom_property(
+            output_path,
+            "AIReviewer_ChunkToParagraphMapping",
+            json.dumps(chunk_to_para_mapping) if chunk_to_para_mapping else None,
+        )
+        return str(output_path)
+
     async def add_comments_to_docx(
         self,
         original_docx_path: str,
@@ -233,6 +275,115 @@ class DocxManipulatorService:
         except AttributeError as e:
             logger.warning(f"Error inserting comment to docx: {e}")
             raise
+
+    def add_custom_property(self, docx_path, prop_name, prop_value, output_path=None):
+        if output_path is None:
+            output_path = docx_path
+
+        CUSTOM_NS = (
+            "http://schemas.openxmlformats.org/officeDocument/2006/custom-properties"
+        )
+        VT_NS = "http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes"
+        CONTENT_TYPES_NS = (
+            "http://schemas.openxmlformats.org/package/2006/content-types"
+        )
+
+        temp_dir = tempfile.mkdtemp()
+
+        try:
+            with zipfile.ZipFile(docx_path, "r") as zip_ref:
+                zip_ref.extractall(temp_dir)
+
+            docprops_dir = os.path.join(temp_dir, "docProps")
+            os.makedirs(docprops_dir, exist_ok=True)
+
+            custom_xml_path = os.path.join(docprops_dir, "custom.xml")
+
+            # create custom.xml if it doesn't exist
+            if os.path.exists(custom_xml_path):
+                tree = etree.parse(custom_xml_path)
+                root = tree.getroot()
+            else:
+                root = etree.Element(
+                    f"{{{CUSTOM_NS}}}Properties", nsmap={None: CUSTOM_NS, "vt": VT_NS}
+                )
+                tree = etree.ElementTree(root)
+
+            # find next available pid
+            existing_pids = [
+                int(p.get("pid"))
+                for p in root.findall(f"{{{CUSTOM_NS}}}property")
+                if p.get("pid") is not None
+            ]
+            next_pid = max(existing_pids, default=1) + 1
+
+            # check if property already exists
+            for prop in root.findall(f"{{{CUSTOM_NS}}}property"):
+                if prop.get("name") == prop_name:
+                    root.remove(prop)
+
+            # create new property
+            prop_el = etree.SubElement(
+                root,
+                f"{{{CUSTOM_NS}}}property",
+                {
+                    "fmtid": "{D5CDD505-2E9C-101B-9397-08002B2CF9AE}",
+                    "pid": str(next_pid),
+                    "name": prop_name,
+                },
+            )
+
+            val_el = etree.SubElement(prop_el, f"{{{VT_NS}}}lpwstr")
+            val_el.text = str(prop_value) if prop_value is not None else ""
+
+            # write custom.xml
+            tree.write(
+                custom_xml_path,
+                xml_declaration=True,
+                encoding="UTF-8",
+                pretty_print=True,
+            )
+
+            # update [Content_Types].xml
+            content_types_path = os.path.join(temp_dir, "[Content_Types].xml")
+            ct_tree = etree.parse(content_types_path)
+            ct_root = ct_tree.getroot()
+
+            override_xpath = f"{{{CONTENT_TYPES_NS}}}Override"
+            exists = False
+
+            for child in ct_root.findall(override_xpath):
+                if child.get("PartName") == "/docProps/custom.xml":
+                    exists = True
+                    break
+
+            if not exists:
+                etree.SubElement(
+                    ct_root,
+                    override_xpath,
+                    {
+                        "PartName": "/docProps/custom.xml",
+                        "ContentType": "application/vnd.openxmlformats-officedocument.custom-properties+xml",
+                    },
+                )
+
+            ct_tree.write(
+                content_types_path,
+                xml_declaration=True,
+                encoding="UTF-8",
+                pretty_print=True,
+            )
+
+            # zip back
+            with zipfile.ZipFile(output_path, "w", zipfile.ZIP_DEFLATED) as zip_out:
+                for foldername, _, filenames in os.walk(temp_dir):
+                    for filename in filenames:
+                        filepath = os.path.join(foldername, filename)
+                        arcname = os.path.relpath(filepath, temp_dir)
+                        zip_out.write(filepath, arcname)
+
+        finally:
+            shutil.rmtree(temp_dir)
 
 
 docx_manipulator_service = DocxManipulatorService()

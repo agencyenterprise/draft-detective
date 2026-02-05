@@ -94,31 +94,39 @@ async def generate_docx(
     if not main_file_path.endswith(".docx") and not main_file_path.endswith(".doc"):
         raise ValueError("Main file must be a .docx or .doc to generate reviewed DOCX")
 
-    # Build chunk content map and convert workflow issues to comments
-    chunk_content_map: Dict[int, str] = {c.chunk_index: c.content for c in chunks}
+    if share_token:
+        output_path = await docx_manipulator_service.add_addin_metadata_to_docx(
+            original_docx_path=main_file.file_path,
+            project_id=project_id,
+            share_token=share_token,
+            chunks=chunks,
+        )
+    else:
+        # Build chunk content map and convert workflow issues to comments
+        chunk_content_map: Dict[int, str] = {c.chunk_index: c.content for c in chunks}
 
-    workflow_runs = await get_project_workflow_runs(project_id)
-    workflow_states = [run.state for run in workflow_runs if run.state is not None]
-    issues = convert_to_issues(workflow_states)
+        workflow_runs = await get_project_workflow_runs(project_id)
+        workflow_states = [run.state for run in workflow_runs if run.state is not None]
+        issues = convert_to_issues(workflow_states)
 
-    # Filter issues by severity if specified
-    if severities:
-        issues = [issue for issue in issues if issue.severity in severities]
+        # Filter issues by severity if specified
+        if severities:
+            issues = [issue for issue in issues if issue.severity in severities]
 
-    comments = [
-        c
-        for issue in issues
-        if (c := issue_to_comment(issue, chunk_content_map, share_token))
-    ]
+        comments = [
+            c
+            for issue in issues
+            if (c := issue_to_comment(issue, chunk_content_map, share_token))
+        ]
 
-    # Generate the DOCX with comments
-    output_id = get_cache_key(project_id, share_token, severities)
-    output_path = await docx_manipulator_service.add_comments_to_docx(
-        original_docx_path=main_file.file_path,
-        comments=comments,
-        workflow_run_id=output_id,
-        chunks=chunks,
-    )
+        # Generate the DOCX with comments
+        output_id = get_cache_key(project_id, share_token, severities)
+        output_path = await docx_manipulator_service.add_comments_to_docx(
+            original_docx_path=main_file.file_path,
+            comments=comments,
+            workflow_run_id=output_id,
+            chunks=chunks,
+        )
 
     base_name = main_file.file_name.rsplit(".", 1)[0]
     filename = f"{base_name}_reviewed.docx"
