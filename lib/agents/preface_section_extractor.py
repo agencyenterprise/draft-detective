@@ -91,25 +91,16 @@ class PrefaceSectionExtractorOutput(BaseModel):
     )
 
 
-
-
 class PrefaceSectionExtractorAgent(LangChainAgent):
     """Agent that extracts preface/introduction sections using intelligent document search."""
 
     name = "Preface Section Extractor"
-    description = "Extract preface/introduction sections using intelligent document search"
+    description = (
+        "Extract preface/introduction sections using intelligent document search"
+    )
     model = gpt_5_2_model
     temperature = 0.0
-    output_schema = PrefaceSectionExtractorOutput
-
-    def create_llm(self):
-        return init_chat_model(
-            self.model.model_name,
-            temperature=self.temperature,
-            timeout=self.timeout,
-            api_key=self.context.openai_api_key,
-            reasoning={"effort": "low", "summary": "auto"},
-        )
+    reasoning = {"effort": "low", "summary": "auto"}
 
     async def ainvoke(
         self,
@@ -120,9 +111,9 @@ class PrefaceSectionExtractorAgent(LangChainAgent):
         agent = create_agent(
             self.llm,
             [search_document, read_document],
-            context_schema=ContextSchema,
             system_prompt=_SYSTEM_PROMPT,
-            response_format=self.output_schema,
+            context_schema=ContextSchema,
+            response_format=PrefaceSectionExtractorOutput,
         )
 
         user_message = (
@@ -138,4 +129,3 @@ class PrefaceSectionExtractorAgent(LangChainAgent):
         )
 
         return result["structured_response"]
-

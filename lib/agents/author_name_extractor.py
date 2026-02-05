@@ -71,3 +71,4 @@ class AuthorNameExtractorAgent(LangChainAgent):
         result = await self.llm.ainvoke(messages, config=config)
 
         return result
+

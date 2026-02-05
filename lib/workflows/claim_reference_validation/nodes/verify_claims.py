@@ -45,17 +45,6 @@ def _needs_substantiation(
         None,
     )
 
-    claim = chunk.claims.claims[claim_index]
-
-    # Skip non-central claims - only validate central claims
-    # Non-central claims are not validated to reduce processing time and focus
-    # validation efforts on claims that are central to the document's argument.
-    if hasattr(claim, "central") and not claim.central:
-        logger.debug(
-            f"Chunk {chunk.chunk_index} claim {claim_index} is not central, skipping verification"
-        )
-        return False
-
     if not claim_category:
         # In case categorization didn't happen, force verification (consider all claims need external verification)
         return True

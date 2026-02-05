@@ -184,13 +184,13 @@ Live Reports Analysis
 ```
 {records_json}
 ```
-
 {domain_context}
 
 {audience_context}
 
 ## Title: {document_title}
-## Summary (optional): {document_summary}
+
+{summary_context}
 
 #### Output:
 Return one JSON object matching the required schema exactly.

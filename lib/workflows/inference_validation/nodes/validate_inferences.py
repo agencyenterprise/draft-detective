@@ -2,7 +2,11 @@ import logging
 
 from langgraph.runtime import Runtime
 
-from lib.agents.formatting_utils import format_audience_context, format_domain_context
+from lib.agents.formatting_utils import (
+    format_audience_context,
+    format_domain_context,
+    format_summary_context,
+)
 from lib.agents.document_summarizer import DocumentSummary
 from lib.agents.inference_validator import (
     InferenceValidationResponseWithClaimIndex,
@@ -128,8 +132,10 @@ async def _validate_chunk_inferences(
 
         result = await inference_validator_agent.ainvoke(
             {
-                "document_summary": (
-                    document_summary.summary if document_summary else ""
+                "summary_context": (
+                    format_summary_context(document_summary.summary)
+                    if document_summary
+                    else ""
                 ),
                 "paragraph": file_artifacts_service.get_paragraph_text(
                     chunks, chunk.paragraph_index

@@ -2,16 +2,19 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { AlertCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
+import { Callout } from '@/components/ui/callout';
 import { WorkflowTypeSelector } from '@/components/workflows/workflow-type-selector';
 import { WebSearchConsentCheckbox } from '@/components/workflows/web-search-consent-checkbox';
 import { useWizard } from './wizard-context';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { useSessionStorage } from '@/lib/hooks/use-session-storage';
-import { hasWebSearchRequirement } from '@/components/workflows/utils';
+import { useWebSearchConsent } from '@/lib/hooks/use-web-search-consent';
+import { hasWebSearchRequirement, hasSupportingDocumentsRequirement } from '@/components/workflows/utils';
 import {
   startMultipleWorkflowsApiWorkflowsStartMultiplePost,
   updateProjectEndpointApiProjectProjectIdPatch,
@@ -19,7 +22,6 @@ import {
 } from '@/lib/generated-api';
 import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { Loader2 } from 'lucide-react';
 
 export function StepAnalyses() {
   const router = useRouter();
@@ -30,9 +32,10 @@ export function StepAnalyses() {
   const { selectedWorkflowTypes, setSelectedWorkflowTypes, needsReferencesStep } = wizard;
   const [domain, setDomain] = useState('');
   const [targetAudience, setTargetAudience] = useState('');
-  const [webSearchConsent, setWebSearchConsent] = useState(false);
+  const [webSearchConsent, setWebSearchConsent] = useWebSearchConsent(wizard.projectId);
 
   const needsWebSearch = hasWebSearchRequirement(selectedWorkflowTypes, workflowTypes);
+  const needsSupportingDocs = hasSupportingDocumentsRequirement(selectedWorkflowTypes);
 
   const startAnalysisMutation = useMutation({
     mutationFn: async () => {
@@ -105,7 +108,8 @@ export function StepAnalyses() {
       <div className="space-y-2">
         <h1 className="text-2xl font-bold">What would you like to check?</h1>
         <p className="text-muted-foreground">
-          Select the analyses that matter most for your document. You can always run more later.
+          Select the analyses that matter most for your document. <strong>You can also trigger analyses later</strong>,
+          after project is created, so you can skip this step for now if you want.
         </p>
       </div>
 
@@ -115,6 +119,13 @@ export function StepAnalyses() {
         onSelectionChange={setSelectedWorkflowTypes}
         headerDescription=""
       />
+
+      {needsSupportingDocs && (
+        <Callout variant="info" icon={AlertCircle} title="Source documents required">
+          Some selected analyses need reference documents to verify claims. In the next step, you&apos;ll be able to
+          upload PDFs or fetch them from the web. Claims citing references without matched documents will be skipped.
+        </Callout>
+      )}
 
       {needsWebSearch && <WebSearchConsentCheckbox checked={webSearchConsent} onCheckedChange={setWebSearchConsent} />}
 
@@ -143,9 +154,19 @@ export function StepAnalyses() {
         </div>
       </div>
 
-      <Button onClick={handleStartAnalysis} disabled={!canContinue} size="lg" className="w-full">
-        {needsReferencesStep ? 'Next: Add your sources →' : 'Start Analysis'}
-      </Button>
+      <div className="flex flex-col gap-3">
+        <Button onClick={handleStartAnalysis} disabled={!canContinue} size="lg" className="w-full">
+          {needsReferencesStep ? 'Next: Add your sources →' : 'Start Analysis'}
+        </Button>
+        <Button
+          variant="outline"
+          size="lg"
+          className="w-full"
+          onClick={() => router.push(`/projects/${wizard.projectId}?fromWizard=true`)}
+        >
+          Skip for now
+        </Button>
+      </div>
     </div>
   );
 }

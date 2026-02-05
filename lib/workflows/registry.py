@@ -13,6 +13,11 @@ logger = logging.getLogger(__name__)
 _workflow_manifest_registry: Dict[WorkflowRunType, WorkflowManifest] = {}
 
 
+def get_all_manifests() -> Dict[WorkflowRunType, WorkflowManifest]:
+    """Get all registered workflow manifests."""
+    return dict(_workflow_manifest_registry)
+
+
 def register_workflow_manifest(manifest: WorkflowManifest) -> None:
     """
     Register a workflow manifest.
@@ -58,6 +63,9 @@ def register_all_workflow_manifests():
     from lib.workflows.footnote_extraction.manifest import FootnoteExtractionManifest
     from lib.workflows.human_approval.manifest import HumanApprovalManifest
     from lib.workflows.inference_validation.manifest import InferenceValidationManifest
+    from lib.workflows.inference_validation_v2.manifest import (
+        InferenceValidationV2Manifest,
+    )
     from lib.workflows.literature_review.manifest import LiteratureReviewManifest
     from lib.workflows.live_reports.manifest import LiveReportsManifest
     from lib.workflows.methodological_alignment.manifest import (
@@ -85,6 +93,7 @@ def register_all_workflow_manifests():
         CitationSuggesterManifest(),
         AbbreviationScanManifest(),
         InferenceValidationManifest(),
+        InferenceValidationV2Manifest(),
         LiteratureReviewManifest(),
         LiveReportsManifest(),
         MethodologicalAlignmentManifest(),

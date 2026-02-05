@@ -2,11 +2,7 @@ from typing import List, Type
 
 from langgraph.graph import StateGraph
 
-from lib.workflows.chunk_utils import (
-    build_analyzed_chunks,
-    find_chunk_by_index,
-    find_claim_category,
-)
+from lib.workflows.chunk_utils import build_analyzed_chunks, find_chunk_by_index
 from lib.workflows.inference_validation.graph import build_inference_validation_graph
 from lib.workflows.inference_validation.state import (
     InferenceValidationState,
@@ -24,6 +20,8 @@ class InferenceValidationManifest(
     type = WorkflowRunType.INFERENCE_VALIDATION
     name = "Inference Validation"
     description = """Validate inferential claims (claims classified as "interpretation") using the Toulmin model of argumentation. Analyzes the logical structure of inferences by examining claims, data/grounds, warrants, qualifiers, rebuttals, and backing. Identifies invalid inferences where the reasoning fails to meet Toulmin argumentation standards and flags them as issues."""
+    is_internal = True
+    can_be_triggered_by_user = False
     needs_web_search = False
     order = 1
     required_dependencies = [
@@ -71,11 +69,8 @@ class InferenceValidationManifest(
                         title="Invalid Inference",
                         description=validation.rationale,
                         severity=SeverityEnum.MEDIUM,
+                        type=self.type,
                         chunk_index=validation.chunk_index,
-                        claim_index=validation.claim_index,
-                        claim_category=find_claim_category(
-                            chunk, validation.claim_index
-                        ),
                     )
                 )
 

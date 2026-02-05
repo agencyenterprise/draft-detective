@@ -1,6 +1,17 @@
 'use client';
 
 import { formatFileSize } from '@/components/analysis-form/utils';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -13,12 +24,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { FileDownloadLink } from '@/components/ui/file-download-link';
 import { useDownloadAllProjectFiles } from '@/hooks/use-download-all-project-files';
-import { buildReferenceByFileIdMap, composeReferences } from '@/lib/composed-references';
+import { buildReferenceByFileIdMap, composeReferences, ComposedReference } from '@/lib/composed-references';
 import { FileListItem, FileRole, ProjectDetailed, WorkflowRunType } from '@/lib/generated-api';
 import { cn } from '@/lib/utils';
 import { getWorkflowRunByType } from '@/lib/workflow-state';
-import { Download, FileText, HelpCircle, Loader2, MoreVerticalIcon, Pencil, Search, Trash2 } from 'lucide-react';
+import { Download, FileText, HelpCircle, Loader2, MoreVerticalIcon, Search, Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { useRemoveFileMutation } from './reference-review/mutations';
 
 interface FilesTabProps {
   projectDetail: ProjectDetailed;
@@ -74,6 +86,83 @@ function FileNameLink({ file }: { file: FileListItem }) {
       <FileTypeIcon fileType={file.file_type} />
       {file.file_name || 'Unknown'}
     </FileDownloadLink>
+  );
+}
+
+interface FileTableRowProps {
+  file: FileListItem;
+  projectId: string;
+  matchedReference?: ComposedReference;
+}
+
+function FileTableRow({ file, projectId, matchedReference }: FileTableRowProps) {
+  const isMain = file.role === FileRole.Main;
+  const removeFileMutation = useRemoveFileMutation(projectId, file.id);
+  const isRemoving = removeFileMutation.isPending;
+
+  return (
+    <TableRow key={file.id}>
+      <TableCell className="whitespace-normal break-all">
+        <FileNameLink file={file} />
+      </TableCell>
+      <TableCell className="">
+        <span
+          className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
+            isMain ? 'bg-primary/10 text-primary' : 'bg-secondary'
+          }`}
+        >
+          {isMain ? 'Main' : 'Supporting'}
+        </span>
+      </TableCell>
+      <TableCell className="text-xs whitespace-normal">
+        {file.description ? (
+          <ExpandableCell>{file.description}</ExpandableCell>
+        ) : (
+          <span className="text-muted-foreground/60">-</span>
+        )}
+      </TableCell>
+      <TableCell className="text-xs whitespace-normal">
+        {matchedReference ? (
+          <ExpandableCell className="italic">{matchedReference.text}</ExpandableCell>
+        ) : (
+          <span className="text-muted-foreground/60">-</span>
+        )}
+      </TableCell>
+      <TableCell className="text-xs text-right">{formatFileSize(file.file_size)}</TableCell>
+      <TableCell>
+        <AlertDialog>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="size-8" disabled={isRemoving}>
+                {isRemoving ? <Loader2 className="size-4 animate-spin" /> : <MoreVerticalIcon className="size-4" />}
+                <span className="sr-only">Open menu</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <AlertDialogTrigger asChild>
+                <DropdownMenuItem disabled={isMain} variant="destructive">
+                  <Trash2 className="size-4" />
+                  Remove file
+                </DropdownMenuItem>
+              </AlertDialogTrigger>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Remove file?</AlertDialogTitle>
+              <AlertDialogDescription className="break-all">
+                Are you sure you want to remove &quot;{file.file_name}&quot; from this project? This action cannot be
+                undone. The associated reference (if any) will become unmatched.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={() => removeFileMutation.mutate()}>Remove</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </TableCell>
+    </TableRow>
   );
 }
 
@@ -194,61 +283,14 @@ export function FilesTab({ projectDetail }: FilesTabProps) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredFiles.map((file) => {
-              const isMain = file.role === FileRole.Main;
-              const matchedReference = file.id ? matchedReferencesMap.get(file.id) : undefined;
-              return (
-                <TableRow key={file.id}>
-                  <TableCell className="whitespace-normal break-all">
-                    <FileNameLink file={file} />
-                  </TableCell>
-                  <TableCell className="">
-                    <span
-                      className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
-                        isMain ? 'bg-primary/10 text-primary' : 'bg-secondary'
-                      }`}
-                    >
-                      {isMain ? 'Main' : 'Supporting'}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-xs whitespace-normal">
-                    {file.description ? (
-                      <ExpandableCell>{file.description}</ExpandableCell>
-                    ) : (
-                      <span className="text-muted-foreground/60">-</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-xs whitespace-normal">
-                    {matchedReference ? (
-                      <ExpandableCell className="italic">{matchedReference.text}</ExpandableCell>
-                    ) : (
-                      <span className="text-muted-foreground/60">-</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-xs text-right">{formatFileSize(file.file_size)}</TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="size-8">
-                          <MoreVerticalIcon className="size-4" />
-                          <span className="sr-only">Open menu</span>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem disabled={isMain || true} onClick={() => {}}>
-                          <Pencil className="size-4" />
-                          Change matched reference
-                        </DropdownMenuItem>
-                        <DropdownMenuItem disabled={isMain || true} variant="destructive" onClick={() => {}}>
-                          <Trash2 className="size-4" />
-                          Remove file
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              );
-            })}
+            {filteredFiles.map((file) => (
+              <FileTableRow
+                key={file.id}
+                file={file}
+                projectId={projectId}
+                matchedReference={file.id ? matchedReferencesMap.get(file.id) : undefined}
+              />
+            ))}
           </TableBody>
         </Table>
       )}

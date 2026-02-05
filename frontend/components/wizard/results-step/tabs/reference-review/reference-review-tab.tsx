@@ -1,12 +1,11 @@
-import { SectionNotFoundCallout } from '@/components/shared/section-not-found-callout';
 import { WorkflowConfigDialog, WorkflowConfigFormValues } from '@/components/workflows/workflow-config-dialog';
 import { WorkflowRunType } from '@/lib/generated-api';
 import { useProjectDetails } from '@/lib/hooks/use-project-details';
-import { getReferenceExtractionWarningStatus, getWorkflowRunByType, isWorkflowProcessing } from '@/lib/workflow-state';
+import { getWorkflowRunByType, isWorkflowProcessing } from '@/lib/workflow-state';
 import { FileText, Loader2 } from 'lucide-react';
 import { useState } from 'react';
 import { FileUploadDialog } from './file-upload-dialog';
-import { useFetchAllFromWebMutation, useBatchUploadMutation } from './mutations';
+import { useBatchUploadMutation, useFetchAllFromWebMutation } from './mutations';
 import { useReferenceReviewReferences } from './queries';
 import { ReferenceReviewList } from './reference-review-list';
 import { useScrollToReference } from './use-scroll-to-reference';
@@ -31,7 +30,6 @@ export function ReferenceReviewTab({ projectId, readOnly = false }: ReferenceRev
   const referenceDownloader = getWorkflowRunByType(workflowDetails, WorkflowRunType.ReferenceDownloader);
   const documentProcessing = getWorkflowRunByType(workflowDetails, WorkflowRunType.DocumentProcessing);
   const referenceFileMatching = getWorkflowRunByType(workflowDetails, WorkflowRunType.ReferenceFileMatching);
-  const referenceWarning = getReferenceExtractionWarningStatus(workflowDetails);
   const isExtractionProcessing = isWorkflowProcessing(referenceExtraction);
 
   const isBatchUploading = batchUploadMutation.isPending;
@@ -96,6 +94,7 @@ export function ReferenceReviewTab({ projectId, readOnly = false }: ReferenceRev
       <WorkflowConfigDialog
         isOpen={isConfigDialogOpen}
         type={WorkflowRunType.ReferenceDownloader}
+        projectId={projectId}
         onConfirm={handleConfirm}
         onCancel={() => setIsConfigDialogOpen(false)}
       />
@@ -123,14 +122,6 @@ export function ReferenceReviewTab({ projectId, readOnly = false }: ReferenceRev
         enableInternalScroll={true}
         onBatchUpload={() => setIsBatchUploadDialogOpen(true)}
       />
-
-      {referenceWarning?.showWarning && (
-        <SectionNotFoundCallout
-          type="references"
-          hasErrors={referenceWarning.hasErrors}
-          sectionsDetectedButEmpty={referenceWarning.sectionsDetected}
-        />
-      )}
     </div>
   );
 }

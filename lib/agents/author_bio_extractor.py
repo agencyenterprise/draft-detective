@@ -59,7 +59,7 @@ You are an author biography extraction specialist. Your task is to find and extr
 
 1. Use search_document to locate author biography sections. Try searching for common section headers:
    - "About the Author" / "About the Authors"
-   - "Author Biographies" / "Author Biography"  
+   - "Author Biographies" / "Author Biography"
    - "Contributors"
    - "The Authors"
    - "Author Information"
@@ -105,16 +105,7 @@ class AuthorBioExtractorAgent(LangChainAgent):
     description = "Extract author biographies using intelligent document search"
     model = gpt_5_2_model
     temperature = 0.0
-    output_schema = AuthorBioExtractorOutput
-
-    def create_llm(self):
-        return init_chat_model(
-            self.model.model_name,
-            temperature=self.temperature,
-            timeout=self.timeout,
-            api_key=self.context.openai_api_key,
-            reasoning={"effort": "low", "summary": "auto"},
-        )
+    reasoning = {"effort": "low", "summary": "auto"}
 
     async def ainvoke(
         self,
@@ -126,9 +117,9 @@ class AuthorBioExtractorAgent(LangChainAgent):
         agent = create_agent(
             self.llm,
             [search_document, read_document],
-            context_schema=ContextSchema,
             system_prompt=system_prompt.text,
-            response_format=self.output_schema,
+            context_schema=ContextSchema,
+            response_format=AuthorBioExtractorOutput,
         )
 
         user_message = (

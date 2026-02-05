@@ -48,9 +48,9 @@ const componentFactory = (
 const createComponents = (highlight: 'red' | 'yellow' | 'blue' | 'green' | 'none') => {
   return {
     p: componentFactory('p', 'mb-2', highlight),
-    h1: componentFactory('h1', 'mb-2 text-xl font-bold', highlight),
-    h2: componentFactory('h2', 'mb-2 text-lg font-bold', highlight),
-    h3: componentFactory('h3', 'mb-2 text-base font-bold', highlight),
+    h1: componentFactory('h1', 'mb-2 text-xl font-semibold', highlight),
+    h2: componentFactory('h2', 'mb-2 text-lg font-semibold', highlight),
+    h3: componentFactory('h3', 'mb-2 text-base font-semibold', highlight),
     h4: componentFactory('h4', 'mb-2 text-base font-semibold', highlight),
     h5: componentFactory('h5', 'mb-2 text-base font-medium', highlight),
     h6: componentFactory('h6', 'mb-2 text-base font-medium', highlight),
@@ -84,7 +84,7 @@ const createComponents = (highlight: 'red' | 'yellow' | 'blue' | 'green' | 'none
     hr: componentFactory('hr', 'my-4'),
     br: componentFactory('br', ''),
     em: componentFactory('em', 'italic'),
-    strong: componentFactory('strong', 'font-bold'),
+    strong: componentFactory('strong', 'font-semibold'),
     del: componentFactory('del', 'line-through'),
     ins: componentFactory('ins', 'underline'),
     sup: componentFactory('sup', 'text-sm'),

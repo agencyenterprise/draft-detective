@@ -1,12 +1,12 @@
 'use client';
 
-import * as React from 'react';
+import { CopyReferencesDialog } from '@/components/references/copy-references-dialog';
+import { EmptyState } from '@/components/shared/empty-state';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { SectionNotFoundCallout } from '@/components/shared/section-not-found-callout';
-import { CopyReferencesDialog } from '@/components/references/copy-references-dialog';
-import { FileText } from 'lucide-react';
 import type { ReferenceExtractionState } from '@/lib/generated-api';
+import { FileText } from 'lucide-react';
+import * as React from 'react';
 
 interface ExtractionResultsProps {
   results: Pick<ReferenceExtractionState, 'detected_sections' | 'extracted_references'>;
@@ -21,10 +21,9 @@ export function ExtractionResults({ results, onReset }: ExtractionResultsProps) 
   }, [results.extracted_references]);
 
   const hasReferences = referenceTexts.length > 0;
-  const hasSections = (results.detected_sections?.length || 0) > 0;
 
   const renderEmptyState = () => {
-    return <SectionNotFoundCallout type="references" sectionsDetectedButEmpty={hasSections} />;
+    return <EmptyState icon={FileText} message="No references extracted yet." />;
   };
 
   return (

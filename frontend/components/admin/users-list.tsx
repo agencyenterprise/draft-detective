@@ -17,7 +17,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { listUsersApiUsersGet, updateRoleApiUsersUserIdRolePatch, UserResponse, UserRole } from '@/lib/generated-api';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { Loader2, ShieldCheck, User } from 'lucide-react';
+import { Loader2, ShieldCheck, ShieldQuestion, User } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -144,6 +144,13 @@ export function UsersList() {
                             </TooltipTrigger>
                             <TooltipContent>Administrator</TooltipContent>
                           </Tooltip>
+                        ) : user.role === UserRole.Rand ? (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <ShieldQuestion className="h-4 w-4 text-blue-600 cursor-help" />
+                            </TooltipTrigger>
+                            <TooltipContent>Rand User</TooltipContent>
+                          </Tooltip>
                         ) : (
                           <Tooltip>
                             <TooltipTrigger asChild>
@@ -158,7 +165,13 @@ export function UsersList() {
                     <TableCell className="text-muted-foreground">{user.email}</TableCell>
                     <TableCell>
                       <span
-                        className={user.role === UserRole.Admin ? 'text-primary font-medium' : 'text-muted-foreground'}
+                        className={
+                          user.role === UserRole.Admin
+                            ? 'text-primary font-medium'
+                            : user.role === UserRole.Rand
+                              ? 'text-blue-600 font-medium'
+                              : 'text-muted-foreground'
+                        }
                       >
                         {user.role}
                       </span>
@@ -174,6 +187,7 @@ export function UsersList() {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value={UserRole.User}>User</SelectItem>
+                          <SelectItem value={UserRole.Rand}>Rand</SelectItem>
                           <SelectItem value={UserRole.Admin}>Admin</SelectItem>
                         </SelectContent>
                       </Select>
@@ -197,6 +211,9 @@ export function UsersList() {
                 <span className="block mt-2 text-amber-600">
                   Warning: This will grant full administrative privileges to this user.
                 </span>
+              )}
+              {pendingChange?.newRole === UserRole.Rand && (
+                <span className="block mt-2 text-blue-600">Note: This will grant access to QA Screener workflows.</span>
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>

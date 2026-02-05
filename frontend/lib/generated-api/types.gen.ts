@@ -946,13 +946,13 @@ export type CitationDetectionState = {
   /**
    * Citations
    */
-  citations?: Array<CitationResponseWithChunkIndex>;
+  citations?: Array<CitationResponse>;
 };
 
 /**
- * CitationResponseWithChunkIndex
+ * CitationResponse
  */
-export type CitationResponseWithChunkIndex = {
+export type CitationResponse = {
   /**
    * Citations
    *
@@ -1597,6 +1597,12 @@ export type DocumentChunk = {
  */
 export type DocumentIssue = {
   /**
+   * Id
+   *
+   * A unique identifier for the issue, generated as a hash of type + title + description + severity + chunk_index + chunk_indices.
+   */
+  id?: string;
+  /**
    * Title
    *
    * The title of the issue
@@ -1605,13 +1611,23 @@ export type DocumentIssue = {
   /**
    * Description
    *
-   * The description of the issue
+   * A short description of the issue, enough to understand the issue at a glance. Can be markdown.
    */
   description: string;
+  /**
+   * Long Description
+   *
+   * A long description of the issue, including all the details necessary to understand the issue in detail. Can be markdown.
+   */
+  long_description?: string | null;
   /**
    * The severity of the issue
    */
   severity: SeverityEnum;
+  /**
+   * The workflow type that generated this issue
+   */
+  type: WorkflowRunType;
   /**
    * Chunk Index
    *
@@ -1624,16 +1640,6 @@ export type DocumentIssue = {
    * The indices of all chunks that contain the issue
    */
   chunk_indices?: Array<number> | null;
-  /**
-   * Claim Index
-   *
-   * The index of the claim that contains the issue
-   */
-  claim_index?: number | null;
-  /**
-   * The category of the claim that contains the issue
-   */
-  claim_category?: ClaimCategory | null;
 };
 
 /**
@@ -1959,6 +1965,80 @@ export type EvidenceWeighterResponseWithClaimIndex = {
    * Claim Index
    */
   claim_index: number;
+};
+
+/**
+ * ExtractedInferenceResult
+ *
+ * An inference result with document-derived chunk indices.
+ */
+export type ExtractedInferenceResult = {
+  /**
+   * Key Sentence
+   *
+   * The key sentence that contains the incorrect inference, conclusion, or argument. Should be a direct quote from the text.
+   */
+  key_sentence: string;
+  /**
+   * The severity level of the inference analysis. HIGH if the inference problem leads the conclusion to be completely invalid. MEDIUM if the inference problem weakens the justification for the conclusion. LOW if the inference problem is a minor/tangential issue that does not significantly weaken the justification for the conclusion.
+   */
+  severity: SeverityEnum;
+  /**
+   * Inference Validity
+   *
+   * Whether the inference is valid or not.
+   */
+  inference_validity: boolean;
+  /**
+   * Short Form Argument Analysis
+   *
+   * A concise analysis what is wrong with the inference. In only TWO sentences.
+   */
+  short_form_argument_analysis: string;
+  /**
+   * Long Form Argument Analysis
+   *
+   * A detailed analysis what is wrong with the inference.
+   */
+  long_form_argument_analysis: string;
+  /**
+   * Suggested Action
+   *
+   * A suggested action to take to correct the wrong inference. In only TWO sentences.
+   */
+  suggested_action: string;
+  /**
+   * Start Line
+   *
+   * The starting line number of the key sentence in the full document.
+   */
+  start_line: number;
+  /**
+   * End Line
+   *
+   * The ending line number of the key sentence in the full document.
+   */
+  end_line: number;
+  /**
+   * Chunk Indices
+   *
+   * Chunk indices that overlap with the inference (by line range).
+   */
+  chunk_indices?: Array<number>;
+};
+
+/**
+ * ExtractedInferenceResultResponse
+ *
+ * Response containing extracted inference results with chunk indices.
+ */
+export type ExtractedInferenceResultResponse = {
+  /**
+   * Results
+   *
+   * Extracted inference results with chunk indices and severity.
+   */
+  results: Array<ExtractedInferenceResult>;
 };
 
 /**
@@ -2574,6 +2654,58 @@ export type HumanApprovalState = {
 };
 
 /**
+ * InferenceAnalysis
+ *
+ * The result of the inference check.
+ */
+export type InferenceAnalysis = {
+  /**
+   * Key Sentence
+   *
+   * The key sentence that contains the incorrect inference, conclusion, or argument. Should be a direct quote from the text.
+   */
+  key_sentence: string;
+  /**
+   * Inference Validity
+   *
+   * Whether the inference is valid or not.
+   */
+  inference_validity: boolean;
+  /**
+   * Short Form Argument Analysis
+   *
+   * A concise analysis what is wrong with the inference. In only TWO sentences.
+   */
+  short_form_argument_analysis: string;
+  /**
+   * Long Form Argument Analysis
+   *
+   * A detailed analysis what is wrong with the inference.
+   */
+  long_form_argument_analysis: string;
+  /**
+   * Suggested Action
+   *
+   * A suggested action to take to correct the wrong inference. In only TWO sentences.
+   */
+  suggested_action: string;
+};
+
+/**
+ * InferenceResultResponse
+ *
+ * Response containing the result of the inference check.
+ */
+export type InferenceResultResponse = {
+  /**
+   * Results
+   *
+   * The result of the inference check
+   */
+  results: Array<InferenceAnalysis>;
+};
+
+/**
  * InferenceValidationResponseWithClaimIndex
  */
 export type InferenceValidationResponseWithClaimIndex = {
@@ -2636,6 +2768,84 @@ export type InferenceValidationState = {
    * Inference Validations
    */
   inference_validations?: Array<InferenceValidationResponseWithClaimIndex>;
+};
+
+/**
+ * InferenceValidationV2State
+ *
+ * State for the inference validation v2 workflow.
+ */
+export type InferenceValidationV2State = {
+  /**
+   * Errors
+   *
+   * Errors that occurred during the workflow execution.
+   */
+  errors?: Array<WorkflowError>;
+  /**
+   * Type
+   */
+  type?: 'inference_validation_v2';
+  /**
+   * File Id
+   *
+   * The ID of the main source document
+   */
+  file_id: string;
+  /**
+   * Validator Results
+   *
+   * Results from parallel inference validator runs keyed by run index (1, 2, 3, ...)
+   */
+  validator_results?: {
+    [key: string]: InferenceResultResponse;
+  };
+  /**
+   * Extracted inference analysis result with chunk indices and severity
+   */
+  inference_results?: ExtractedInferenceResultResponse | null;
+};
+
+/**
+ * InferenceValidationV2WorkflowConfig
+ *
+ * Configuration model for the inference validation v2 workflow.
+ */
+export type InferenceValidationV2WorkflowConfig = {
+  /**
+   * Project Id
+   *
+   * The ID of the project that this workflow run should be associated with
+   */
+  project_id?: string | null;
+  /**
+   * Openai Api Key
+   *
+   * The OpenAI API key to use for this workflow execution
+   */
+  openai_api_key?: string | null;
+  /**
+   * Domain
+   *
+   * Domain context for more accurate analysis
+   */
+  domain?: string | null;
+  /**
+   * Target Audience
+   *
+   * Target audience context for analysis
+   */
+  target_audience?: string | null;
+  /**
+   * Publication Date
+   *
+   * Publication date of the document (YYYY-MM-DD format)
+   */
+  publication_date?: string | null;
+  /**
+   * Type
+   */
+  type?: 'inference_validation_v2';
 };
 
 /**
@@ -3751,6 +3961,40 @@ export const ReferenceType = {
 export type ReferenceType = (typeof ReferenceType)[keyof typeof ReferenceType];
 
 /**
+ * ReferenceValidationItem
+ *
+ * Item for tracking individual reference validation with status
+ */
+export type ReferenceValidationItem = {
+  /**
+   * Reference Id
+   *
+   * The ID of the reference to validate.
+   */
+  reference_id: string;
+  /**
+   * Input Reference
+   *
+   * The original reference text.
+   */
+  input_reference: string;
+  /**
+   * Current status of this reference validation.
+   */
+  status?: ReferenceValidationStatus;
+  /**
+   * The validation result for the reference, present on success.
+   */
+  validation_result?: BibliographyItemValidation | null;
+  /**
+   * Error
+   *
+   * Error message, present on failure.
+   */
+  error?: string | null;
+};
+
+/**
  * ReferenceValidationState
  *
  * State for the reference validation workflow.
@@ -3770,8 +4014,26 @@ export type ReferenceValidationState = {
   /**
    * Reference Validations
    */
-  reference_validations?: Array<BibliographyItemValidation>;
+  reference_validations?: Array<ReferenceValidationItem>;
 };
+
+/**
+ * ReferenceValidationStatus
+ *
+ * Status of a reference validation operation
+ */
+export const ReferenceValidationStatus = {
+  Pending: 'pending',
+  Completed: 'completed',
+  Error: 'error',
+} as const;
+
+/**
+ * ReferenceValidationStatus
+ *
+ * Status of a reference validation operation
+ */
+export type ReferenceValidationStatus = (typeof ReferenceValidationStatus)[keyof typeof ReferenceValidationStatus];
 
 /**
  * ReferenceValidationWorkflowConfig
@@ -4297,7 +4559,11 @@ export type UserResponse = {
 /**
  * UserRole
  */
-export const UserRole = { User: 'USER', Admin: 'ADMIN' } as const;
+export const UserRole = {
+  User: 'USER',
+  Admin: 'ADMIN',
+  Rand: 'RAND',
+} as const;
 
 /**
  * UserRole
@@ -4518,6 +4784,7 @@ export type WorkflowRunDetail = {
     | CitationSuggesterState
     | ResultsExtractionState
     | InferenceValidationState
+    | InferenceValidationV2State
     | HumanApprovalState
     | null;
 };
@@ -4557,6 +4824,7 @@ export const WorkflowRunType = {
   CitationSuggester: 'citation_suggester',
   ResultsExtraction: 'results_extraction',
   InferenceValidation: 'inference_validation',
+  InferenceValidationV2: 'inference_validation_v2',
   ClaimReferenceValidation: 'claim_reference_validation',
   AbbreviationScan: 'abbreviation_scan',
   AdvocacyTone: 'advocacy_tone',
@@ -4571,52 +4839,41 @@ export type WorkflowRunType = (typeof WorkflowRunType)[keyof typeof WorkflowRunT
 
 /**
  * WorkflowTypeDescription
+ *
+ * Workflow type description for API responses.
  */
 export type WorkflowTypeDescription = {
-  /**
-   * The type of the workflow
-   */
   type: WorkflowRunType;
   /**
    * Name
-   *
-   * The name of the workflow
    */
   name: string;
   /**
    * Description
-   *
-   * The description of the workflow
    */
   description: string;
   /**
    * Needs Web Search
-   *
-   * Whether the workflow needs web search
    */
   needs_web_search: boolean;
   /**
    * Is Experimental
-   *
-   * Whether the workflow is experimental
    */
   is_experimental: boolean;
   /**
    * Is Internal
-   *
-   * Whether the workflow is internal (runs as a dependency, not shown in UI)
    */
   is_internal: boolean;
   /**
    * Can Be Triggered By User
-   *
-   * Whether the workflow can be manually triggered by a user
    */
   can_be_triggered_by_user: boolean;
   /**
+   * Is Qa Screener
+   */
+  is_qa_screener: boolean;
+  /**
    * Order
-   *
-   * Display order in the UI (lower numbers appear first)
    */
   order: number;
 };
@@ -4812,6 +5069,7 @@ export type WorkflowRunDetailWritable = {
     | CitationSuggesterState
     | ResultsExtractionState
     | InferenceValidationState
+    | InferenceValidationV2State
     | HumanApprovalState
     | null;
 };
@@ -5018,6 +5276,7 @@ export type StartWorkflowApiWorkflowsStartPostData = {
     | CitationSuggesterWorkflowConfig
     | ResultsExtractionWorkflowConfig
     | InferenceValidationWorkflowConfig
+    | InferenceValidationV2WorkflowConfig
     | HumanApprovalConfig;
   path?: never;
   query?: never;
@@ -5525,9 +5784,15 @@ export type DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetData = {
     /**
      * Severities
      *
-     * Filter issues by severity levels (e.g., high, medium, low)
+     * Filter issues by severity levels
      */
-    severities?: Array<string> | null;
+    severities?: Array<SeverityEnum> | null;
+    /**
+     * Workflow Types
+     *
+     * Filter issues by workflow types
+     */
+    workflow_types?: Array<WorkflowRunType> | null;
   };
   url: '/api/projects/{project_id}/docx/download';
 };

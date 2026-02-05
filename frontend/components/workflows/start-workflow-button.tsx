@@ -1,5 +1,5 @@
 import { WorkflowRun, WorkflowRunStatus, WorkflowRunType } from '@/lib/generated-api';
-import { getWorkflowTypeName } from '@/lib/workflow-state';
+import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Loader2Icon, PlayIcon } from 'lucide-react';
 import { useState } from 'react';
@@ -17,6 +17,7 @@ export interface StartWorkflowButtonProps {
 export function StartWorkflowButton({ type, projectId, workflow, onConfirm }: StartWorkflowButtonProps) {
   const [isConfigDialogOpen, setIsConfigDialogOpen] = useState(false);
   const queryClient = useQueryClient();
+  const { getWorkflowTypeName } = useWorkflowTypes();
   const workflowName = getWorkflowTypeName(type);
 
   const startWorkflowMutation = useMutation({
@@ -42,6 +43,7 @@ export function StartWorkflowButton({ type, projectId, workflow, onConfirm }: St
       <WorkflowConfigDialog
         isOpen={isConfigDialogOpen}
         type={type}
+        projectId={projectId}
         onConfirm={(values) => startWorkflowMutation.mutate(values)}
         onCancel={() => setIsConfigDialogOpen(false)}
       />

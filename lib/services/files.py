@@ -7,10 +7,10 @@ from typing import Any, List, Optional, Sequence, Tuple
 
 from fastapi import HTTPException
 from sqlalchemy import func, or_, select, update
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import col
 
-from lib.config.database import get_db
+from lib.config.database import get_async_db_session
 from lib.config.env import config
 from lib.models.file import File, FileListItem, FileRole
 from lib.models.project import Project
@@ -87,7 +87,7 @@ async def create_file_record(
     Returns:
         Created File model instance
     """
-    with get_db() as db:
+    async with get_async_db_session() as session:
         file = File(
             project_id=project_id,
             file_name=file_name,
@@ -100,9 +100,9 @@ async def create_file_record(
             original_file_path=original_file_path,
             description=description,
         )
-        db.add(file)
-        db.commit()
-        db.refresh(file)
+        session.add(file)
+        await session.commit()
+        await session.refresh(file)
         return file
 
 
@@ -121,9 +121,10 @@ async def get_file_by_id(file_id: uuid.UUID | str) -> File:
     """
     file_id = _normalize_uuid(file_id, "file ID")
 
-    with get_db() as db:
+    async with get_async_db_session() as session:
         stmt = select(File).where(col(File.id) == file_id)
-        file = db.execute(stmt).scalar_one_or_none()
+        result = await session.execute(stmt)
+        file = result.scalar_one_or_none()
 
         if file is None:
             raise HTTPException(status_code=404, detail="File not found")
@@ -136,9 +137,10 @@ async def get_files_by_project_id(project_id: uuid.UUID | str) -> List[File]:
     Get all files by project ID.
     """
     project_id = _normalize_uuid(project_id, "project ID")
-    with get_db() as db:
+    async with get_async_db_session() as session:
         stmt = select(File).where(col(File.project_id) == project_id)
-        files = db.execute(stmt).scalars().all()
+        result = await session.execute(stmt)
+        files = result.scalars().all()
         return list(files)
 
 
@@ -152,12 +154,13 @@ async def get_project_files_list_items(
     reference downloading and should not be shown to users.
     """
     project_id = _normalize_uuid(project_id, "project ID")
-    with get_db() as db:
+    async with get_async_db_session() as session:
         stmt = select(File).where(
             col(File.project_id) == project_id,
             col(File.role) != FileRole.SUPPORTING_CANDIDATE,
         )
-        files = db.execute(stmt).scalars().all()
+        result = await session.execute(stmt)
+        files = result.scalars().all()
         return [FileListItem.model_validate(f, from_attributes=True) for f in files]
 
 
@@ -168,16 +171,19 @@ async def get_supporting_candidate_files(project_id: uuid.UUID | str) -> List[Fi
     These are files downloaded by the reference fetcher that are pending validation.
     """
     project_id = _normalize_uuid(project_id, "project ID")
-    with get_db() as db:
+    async with get_async_db_session() as session:
         stmt = select(File).where(
             col(File.project_id) == project_id,
             col(File.role) == FileRole.SUPPORTING_CANDIDATE,
         )
-        files = db.execute(stmt).scalars().all()
+        result = await session.execute(stmt)
+        files = result.scalars().all()
         return list(files)
 
 
-def update_files_role(file_ids: Sequence[uuid.UUID | str], role: FileRole) -> None:
+async def update_files_role(
+    file_ids: Sequence[uuid.UUID | str], role: FileRole
+) -> None:
     """
     Update the role of multiple files.
 
@@ -188,14 +194,14 @@ def update_files_role(file_ids: Sequence[uuid.UUID | str], role: FileRole) -> No
     if not file_ids:
         return
 
-    with get_db() as db:
+    async with get_async_db_session() as session:
         normalized_ids = [_normalize_uuid(fid, "file ID") for fid in file_ids]
         stmt = update(File).where(col(File.id).in_(normalized_ids)).values(role=role)
-        db.execute(stmt)
-        db.commit()
+        await session.execute(stmt)
+        await session.commit()
 
 
-def update_file_artifacts(
+async def update_file_artifacts(
     file_id: uuid.UUID | str,
     markdown: str | None = None,
     summary: dict | None = None,
@@ -212,9 +218,10 @@ def update_file_artifacts(
     """
     file_id = _normalize_uuid(file_id, "file ID")
 
-    with get_db() as db:
+    async with get_async_db_session() as session:
         stmt = select(File).where(col(File.id) == file_id)
-        file = db.execute(stmt).scalar_one_or_none()
+        result = await session.execute(stmt)
+        file = result.scalar_one_or_none()
         if file is None:
             logger.warning(f"File {file_id} not found, skipping artifact update")
             return
@@ -224,7 +231,7 @@ def update_file_artifacts(
         if summary is not None:
             file.summary = _sanitize_for_postgres(summary)
 
-        db.commit()
+        await session.commit()
         logger.debug(f"Updated artifacts for file {file_id}")
 
 
@@ -291,13 +298,13 @@ async def check_file_access(file_id: uuid.UUID | str, user_id: uuid.UUID) -> Fil
     # Normalize ID and fail fast on invalid format to avoid DB errors
     file_id = _normalize_uuid(file_id, "file ID")
 
-    with get_db() as db:
+    async with get_async_db_session() as session:
         stmt = (
             select(File, Project)
             .join(Project, col(File.project_id) == col(Project.id))
             .where(col(File.id) == file_id)
         )
-        result = db.execute(stmt).one_or_none()
+        result = (await session.execute(stmt)).one_or_none()
 
         if result is None:
             raise HTTPException(status_code=404, detail="File not found")
@@ -334,14 +341,14 @@ async def check_file_access_by_share_token(
 
     file_id = _normalize_uuid(file_id, "file ID")
 
-    with get_db() as db:
+    async with get_async_db_session() as session:
         # Get the file and its project
         stmt = (
             select(File, Project)
             .join(Project, col(File.project_id) == col(Project.id))
             .where(col(File.id) == file_id)
         )
-        result = db.execute(stmt).one_or_none()
+        result = (await session.execute(stmt)).one_or_none()
 
         if result is None:
             raise HTTPException(status_code=404, detail="File not found")
@@ -355,7 +362,7 @@ async def check_file_access_by_share_token(
             col(ShareLink.resource_type) == "project",
             col(ShareLink.resource_id) == project.id,
         )
-        share_link = db.execute(share_link_stmt).scalar_one_or_none()
+        share_link = (await session.execute(share_link_stmt)).scalar_one_or_none()
 
         if share_link is None:
             raise HTTPException(
@@ -365,7 +372,7 @@ async def check_file_access_by_share_token(
         return file
 
 
-def delete_project_files(
+async def delete_project_files(
     project_id: uuid.UUID | str,
     target_file_ids: Sequence[str] | None = None,
 ) -> int:
@@ -384,31 +391,36 @@ def delete_project_files(
     normalized_project_id = _normalize_uuid(project_id, "project ID")
     deleted_count = 0
 
-    with get_db() as db:
+    async with get_async_db_session() as session:
         stmt = select(File).where(col(File.project_id) == normalized_project_id)
-        project_files = db.execute(stmt).scalars().all()
+        result = await session.execute(stmt)
+        project_files = result.scalars().all()
 
         for file in project_files:
             if target_file_ids is not None and str(file.id) not in target_file_ids:
                 continue
 
-            if not _is_path_shared(db, file.file_path, normalized_project_id):
+            if not await _is_path_shared(
+                session, file.file_path, normalized_project_id
+            ):
                 _delete_file_from_disk(file.file_path)
 
-            if file.original_file_path and not _is_path_shared(
-                db, file.original_file_path, normalized_project_id
+            if file.original_file_path and not await _is_path_shared(
+                session, file.original_file_path, normalized_project_id
             ):
                 _delete_file_from_disk(file.original_file_path)
 
-            db.delete(file)
+            await session.delete(file)
             deleted_count += 1
 
-        db.commit()
+        await session.commit()
 
     return deleted_count
 
 
-def _is_path_shared(db: Session, path: str, project_id: uuid.UUID) -> bool:
+async def _is_path_shared(
+    session: AsyncSession, path: str, project_id: uuid.UUID
+) -> bool:
     """
     Check whether another project references the same file path.
     """
@@ -420,7 +432,8 @@ def _is_path_shared(db: Session, path: str, project_id: uuid.UUID) -> bool:
             or_(col(File.file_path) == path, col(File.original_file_path) == path),
         )
     )
-    count = db.execute(stmt).scalar_one()
+    result = await session.execute(stmt)
+    count = result.scalar_one()
     return count > 0
 
 

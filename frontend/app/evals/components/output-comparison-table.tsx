@@ -37,7 +37,7 @@ export function OutputComparisonTable({
         )}
       </h4>
 
-      <div className="space-y-4">
+      <div className="overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>

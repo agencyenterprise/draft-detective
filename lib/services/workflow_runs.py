@@ -9,7 +9,7 @@ from pydantic import BaseModel
 from sqlalchemy import case, func, select
 from sqlmodel import and_, col
 
-from lib.config.database import get_db
+from lib.config.database import get_async_db_session
 from lib.models.project import Project
 from lib.models.user import User
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus, WorkflowRunType
@@ -67,13 +67,13 @@ async def get_workflow_run_state_by_thread_id(
 
 
 async def get_workflow_run(workflow_run_id: str, user: User = None) -> WorkflowRun:
-    with get_db() as db:
+    async with get_async_db_session() as session:
         stmt = (
             select(WorkflowRun, Project)
             .outerjoin(Project)
             .where(col(WorkflowRun.id) == workflow_run_id)
         )
-        result = db.execute(stmt).one_or_none()
+        result = (await session.execute(stmt)).one_or_none()
 
     if result is None:
         raise HTTPException(status_code=404, detail="Workflow run not found")
@@ -100,16 +100,16 @@ async def create_workflow_run(
     thread_id: str,
 ) -> str:
     """Create a new workflow run record."""
-    with get_db() as db:
+    async with get_async_db_session() as session:
         run = WorkflowRun(
             langgraph_thread_id=thread_id,
             project_id=project_id,
             status=status,
             type=type,
         )
-        db.add(run)
-        db.commit()
-        db.refresh(run)
+        session.add(run)
+        await session.commit()
+        await session.refresh(run)
     return str(run.id)
 
 
@@ -118,12 +118,12 @@ async def update_workflow_run_status(
     status: WorkflowRunStatus,
 ) -> None:
     """Update an existing workflow run's status."""
-    with get_db() as db:
+    async with get_async_db_session() as session:
         stmt = select(WorkflowRun).where(col(WorkflowRun.id) == workflow_run_id)
-        run = db.execute(stmt).scalar_one_or_none()
+        run = (await session.execute(stmt)).scalar_one_or_none()
         if run:
             run.status = status
-            db.commit()
+            await session.commit()
 
 
 async def get_project_workflow_run_by_type(
@@ -135,7 +135,7 @@ async def get_project_workflow_run_by_type(
     Priority: RUNNING > PENDING > latest COMPLETED
     This ensures UI shows correct status when multiple runs exist.
     """
-    with get_db() as db:
+    async with get_async_db_session() as session:
         # First, try to find an active (RUNNING or PENDING) workflow run
         # This is the most common case and avoids loading all historical runs
         stmt = (
@@ -156,7 +156,7 @@ async def get_project_workflow_run_by_type(
             )
             .limit(1)
         )
-        active_run = db.execute(stmt).scalar_one_or_none()
+        active_run = (await session.execute(stmt)).scalar_one_or_none()
 
         if active_run:
             return active_run
@@ -173,7 +173,7 @@ async def get_project_workflow_run_by_type(
             .order_by(col(WorkflowRun.created_at).desc())
             .limit(1)
         )
-        return db.execute(stmt).scalar_one_or_none()
+        return (await session.execute(stmt)).scalar_one_or_none()
 
 
 async def get_project_workflow_runs_by_type(
@@ -192,7 +192,7 @@ async def get_project_workflow_runs_by_type(
     Returns:
         List of workflow runs (metadata only, no state)
     """
-    with get_db() as db:
+    async with get_async_db_session() as session:
         stmt = (
             select(WorkflowRun)
             .where(
@@ -203,7 +203,7 @@ async def get_project_workflow_runs_by_type(
             )
             .order_by(col(WorkflowRun.created_at).desc())
         )
-        return list(db.execute(stmt).scalars().all())
+        return list((await session.execute(stmt)).scalars().all())
 
 
 async def get_project_workflow_runs_by_type_with_details(
@@ -282,8 +282,8 @@ async def get_project_workflow_runs(
         )
     )
 
-    with get_db() as db:
-        runs = db.execute(stmt).scalars().all()
+    async with get_async_db_session() as session:
+        runs = (await session.execute(stmt)).scalars().all()
 
     # Filter out internal workflows unless explicitly requested
     visible_runs = [

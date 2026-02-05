@@ -8,7 +8,7 @@ toy_example_common_config: &toy_example_common_config
     - "Smith, J. (2020). The Effects of Widgets on Gadgets. Journal of Widgetry."
     - "Doe, A.; Roe, B. (2019). A Comprehensive Study of Gizmos. Proceedings of Gizmo Conf."
     - "Smith, A.; Anderson, T. (2017), A Study of The Effect of Cellphones on Writing Ability. Journal of Big Tech."
-  footnotes: []  # No footnotes in toy example - uses inline citations
+  footnotes: [] # No footnotes in toy example - uses inline citations
 
 cryptocurrency_common_config: &cryptocurrency_common_config
   main_document: "evals/data/cryptocurrency-and-blockchain-minimal/main_document.md"
@@ -19,7 +19,7 @@ cryptocurrency_common_config: &cryptocurrency_common_config
     - "Goodison, Sean E., Dulani Woods, Jeremy D. Barnum, Adam R. Kemerer, and Brian A. Jackson, *Identifying Law Enforcement Needs for Conducting Criminal Investigations Involving Evidence on the Dark Web*, Santa Monica, Calif.: RAND Corporation, RR-2704-NIJ, 2019. As of November 15, 2022: https://www.rand.org/pubs/research_reports/RR2704.html"
     - "Tanneeru, Manav, 'Can the Law Keep Up with Technology?' CNN, November 17, 2009."
     - "Vermeer, Michael J. D., Dulani Woods, and Brian A. Jackson, *Identifying Law Enforcement Needs for Access to Digital Evidence in Remote Data Centers*, Santa Monica, Calif.: RAND Corporation, RR-2240-NIJ, 2018. As of November 16, 2022: https://www.rand.org/pubs/research_reports/RR2240.html"
-  footnotes: []  # No footnotes in cryptocurrency example - uses inline citations
+  footnotes: [] # No footnotes in cryptocurrency example - uses inline citations
 
 power_capacity_common_config: &power_capacity_common_config
   main_document: "evals/data/power-capacity-by-2030-published-minimal/_main.md"
@@ -47,18 +47,122 @@ power_capacity_common_config: &power_capacity_common_config
       text: "Pilz, Mahmood, and Heim, 2025."
       reference_code: "#footnote-ref-22"
 
+air_force_common_config: &air_force_common_config
+  main_document: "evals/data/air-force-ai-generated/_main.md"
+  footnotes: [] # No footnotes in air force example - uses index of references
+  bibliography:
+    - "[https://www.defensenews.com/air/2025/03/06/air-force-aircraft-readiness-plunges-to-new-low-alarmi](https://www.defensenews.com/air/2025/03/06/air-force-aircraft-readiness-plunges-to-new-low-alarming-chief/) [ng-chief/](https://www.defensenews.com/air/2025/03/06/air-force-aircraft-readiness-plunges-to-new-low-alarming-chief/)"
+    - "[https://www.airforcetimes.com/news/your-air-force/2025/01/27/air-force-needs-more-fighter-pilots-fo](https://www.airforcetimes.com/news/your-air-force/2025/01/27/air-force-needs-more-fighter-pilots-for-more-airpower-report-says/) [r-more-airpower-report-says/](https://www.airforcetimes.com/news/your-air-force/2025/01/27/air-force-needs-more-fighter-pilots-for-more-airpower-report-says/)"
+    - "<https://www.airandspaceforces.com/article/usafs-capacity-capability-and-readiness-crisis/>"
+    - "[https://www.acq.osd.mil/eie/imr/mc/Downloads/2025-Briefing-to-Congress-on-Extreme-Weather-Dama](https://www.acq.osd.mil/eie/imr/mc/Downloads/2025-Briefing-to-Congress-on-Extreme-Weather-Damage-to-Military-Installations.pdf) [ge-to-Military -Installations.pdf](https://www.acq.osd.mil/eie/imr/mc/Downloads/2025-Briefing-to-Congress-on-Extreme-Weather-Damage-to-Military-Installations.pdf)"
+    - "[https://www.aetc.af.mil/News/Article-Display/Article/4205462/boosting-readiness-aetcs-plan-to-train-1](https://www.aetc.af.mil/News/Article-Display/Article/4205462/boosting-readiness-aetcs-plan-to-train-1500-pilots-annually/) [500-pilots-annually/](https://www.aetc.af.mil/News/Article-Display/Article/4205462/boosting-readiness-aetcs-plan-to-train-1500-pilots-annually/)"
+    - "<https://www.idga.org/aviation/articles/air-force-strategies-to-reduce-its-ongoing-pilot-shortage>"
+    - "[https://www.airandspaceforces.com/article/strateg y -policy-new-undergraduate-pilot-training-program](https://www.airandspaceforces.com/article/strategy-policy-new-undergraduate-pilot-training-program-targets-1500-pilots-annually/) [-targets-1500-pilots-annually/](https://www.airandspaceforces.com/article/strategy-policy-new-undergraduate-pilot-training-program-targets-1500-pilots-annually/)"
+    - "[https://www.defensenews.com/air/2025/01/16/t-7-trainer-production-delayed-again-as-air-force-boein](https://www.defensenews.com/air/2025/01/16/t-7-trainer-production-delayed-again-as-air-force-boeing_adjust-plan/) [g-adjust-plan/](https://www.defensenews.com/air/2025/01/16/t-7-trainer-production-delayed-again-as-air-force-boeing_adjust-plan/)"
+    - "[https://www.flightglobal.com/fixed-wing/t-38c-phase-out-begins-as-usaf-flight-school-receives-first-](https://www.flightglobal.com/fixed-wing/t-38c-phase-out-begins-as-usaf-flight-school-receives-first-t-7a-trainer/165672.article)[t-7a-trainer/165672.article](https://www.flightglobal.com/fixed-wing/t-38c-phase-out-begins-as-usaf-flight-school-receives-first-t-7a-trainer/165672.article)"
+    - "<https://www.airandspaceforces.com/air-force-progress-t-7-future-t-6/>"
+    - "[https://www.acc.af.mil/News/Article-Display/Article/3034082/total-force-integration-495-fg-guard-res](https://www.acc.af.mil/News/Article-Display/Article/3034082/total-force-integration-495-fg-guard-reserve-generate-fighter-pilots/) [erve-generate-fighter-pilots/](https://www.acc.af.mil/News/Article-Display/Article/3034082/total-force-integration-495-fg-guard-reserve-generate-fighter-pilots/)"
+    - "<https://warontherocks.com/2018/02/air-force-crisis-part-pilot-retention-matters-right-now/>"
+    - "<https://www.airandspaceforces.com/article/fixing-the-air-force-pilot-crisis/>"
+    - "<https://www.airandspaceforces.com/article/0101pilots/>"
+    - "<https://warontherocks.com/2020/10/the-air-force-pilot-retention-crisis-is-not-over/>"
+    - "<https://www.aviathrust.com/article/aviation-maintenance-staff-shortage-710000-technicians-needed>"
+    - "<https://www.airandspaceforces.com/kendall-one-size-doesnt-fit-all-deployment-cycles/>"
+    - "[https://www.af.mil/News/Article-Display/Article/3440970/airmen-to-see-changes-in-deployment-cycle](https://www.af.mil/News/Article-Display/Article/3440970/airmen-to-see-changes-in-deployment-cycles-with-afforgen/) [s-with-afforgen/](https://www.af.mil/News/Article-Display/Article/3440970/airmen-to-see-changes-in-deployment-cycles-with-afforgen/)"
+    - "<https://www.youtube.com/watch?v=ktR9J7wMldk>"
+    - "<https://www.heritage.org/military-strength/assessment-us-military-power/us-air-force>"
+    - "<https://www.af.mil/News/Article-Display/Article/920094/af-to-reduce-additional-duties/>"
+    - "[https://warontherocks.com/2018/09/difficult-decisions-practical-policy -for-the-air-forces-pilot-retenti](https://warontherocks.com/2018/09/difficult-decisions-practical-policy-for-the-air-forces-pilot-retention-crisis/) [on-crisis/](https://warontherocks.com/2018/09/difficult-decisions-practical-policy-for-the-air-forces-pilot-retention-crisis/)"
+    - "[https://www.afpc.af.mil/News/Article/4188241/air-force-closing-fy25-selective-retention-bonus-progra](https://www.afpc.af.mil/News/Article/4188241/air-force-closing-fy25-selective-retention-bonus-program/) [m/](https://www.afpc.af.mil/News/Article/4188241/air-force-closing-fy25-selective-retention-bonus-program/)"
+    - "<https://www.airandspaceforces.com/air-force-aircrew-bonus-2026/>"
+    - "[https://www.airforcetimes.com/news/your-air-force/2023/08/18/heres-how-the-air-forces-new-pilot-re](https://www.airforcetimes.com/news/your-air-force/2023/08/18/heres-how-the-air-forces-new-pilot-retention-bonuses-will-work/) [tention-bonuses-will-work/](https://www.airforcetimes.com/news/your-air-force/2023/08/18/heres-how-the-air-forces-new-pilot-retention-bonuses-will-work/)"
+    - "[https://www.coloradopolitics.com/2025/02/19/mission-capability-rates-for-air-force-fleets-at-lowest-le](https://www.coloradopolitics.com/2025/02/19/mission-capability-rates-for-air-force-fleets-at-lowest-levels-in-over-two-decades/) [vels-in-over-two-decades/](https://www.coloradopolitics.com/2025/02/19/mission-capability-rates-for-air-force-fleets-at-lowest-levels-in-over-two-decades/)"
+    - "<https://www.statista.com/chart/15897/mission-capable-rates-of-selected-us-air-force-platforms/>"
+    - "<https://www.airandspaceforces.com/article/risking-americas-long-range-strike-capability/>"
+    - "[https://www.twz.com/how-the-f-35s-lack-of-spare-parts-became-as-big-a-threat-as-enemy -missiles](https://www.twz.com/how-the-f-35s-lack-of-spare-parts-became-as-big-a-threat-as-enemy-missiles)"
+    - "[https://www.aviationtoday.com/2026/01/08/pentagon-inspector-general-highlights-continuing-f-35-rea](https://www.aviationtoday.com/2026/01/08/pentagon-inspector-general-highlights-continuing-f-35-readiness-concerns/) [diness-concerns/](https://www.aviationtoday.com/2026/01/08/pentagon-inspector-general-highlights-continuing-f-35-readiness-concerns/)"
+    - "[https://www.dla.mil/About-DLA/News/News-Article-View/Article/1981898/dla-preparing-to-assume-war](https://www.dla.mil/About-DLA/News/News-Article-View/Article/1981898/dla-preparing-to-assume-warehousing-for-some-f-35-spare-parts/) [ehousing-for-some-f-35-spare-parts/](https://www.dla.mil/About-DLA/News/News-Article-View/Article/1981898/dla-preparing-to-assume-warehousing-for-some-f-35-spare-parts/)"
+    - "[https://warontherocks.com/2024/07/turbulence-ahead-the-maintenance-workforce-dilemma-threateni](https://warontherocks.com/2024/07/turbulence-ahead-the-maintenance-workforce-dilemma-threatening-the-future-of-airpower/) [ng-the-future-of-airpower/](https://warontherocks.com/2024/07/turbulence-ahead-the-maintenance-workforce-dilemma-threatening-the-future-of-airpower/)"
+    - "<https://www.idga.org/aviation/articles/air-force-overhauls-aircraft-maintenance-training>"
+    - "<https://www.airandspaceforces.com/air-force-maintainers-force-design-feedback/>"
+    - "<https://aws.amazon.com/blogs/publicsector/the-us-air-force-improves-aircraft-readiness-with-ai-and-predictive-maintenance-solutions/>"
+    - "<https://defensescoop.com/2023/05/10/air-force-selects-ai-enabled-predictive-maintenance-program-as-system-of-record/>"
+    - "[https://c3.ai/c3-ai-awarded-13-million-task-order-to-expand-predictive-maintenance-program-across](https://c3.ai/c3-ai-awarded-13-million-task-order-to-expand-predictive-maintenance-program-across-u-s-air-force-fleet/) [-u-s-air-force-fleet/](https://c3.ai/c3-ai-awarded-13-million-task-order-to-expand-predictive-maintenance-program-across-u-s-air-force-fleet/)"
+    - "[https://federalbudgetiq.com/insights/dods-deferred-building-maintenance-topline-threat-or-moderniz](https://federalbudgetiq.com/insights/dods-deferred-building-maintenance-topline-threat-or-modernization-opportunity/) [ation-opportunity/](https://federalbudgetiq.com/insights/dods-deferred-building-maintenance-topline-threat-or-modernization-opportunity/)"
+    - "<https://www.cbo.gov/system/files/2024-08/60192-Maintenance-Backlog.pdf>"
+    - "<https://www.saffm.hq.af.mil/FM-Resources/Budget/Air-Force-Presidents-Budget-FY26/>"
+    - "<https://www.youtube.com/watch?v=Jpb5JoyYtjc>"
+    - "[https://www.nttrleis.com/documents/review/2025 Air Test and Training Range Enhancement](https://www.nttrleis.com/documents/review/2025%20Air%20Test%20and%20Training%20Range%20Enhancement%20Plan_Jan2014.pdf) [Plan\_Jan2014.pdf](https://www.nttrleis.com/documents/review/2025%20Air%20Test%20and%20Training%20Range%20Enhancement%20Plan_Jan2014.pdf)"
+    - "[https://www.airforce-technolog y.com/news/l3harris-team-to-update-usaf-aircraft-training-simulators/](https://www.airforce-technology.com/news/l3harris-team-to-update-usaf-aircraft-training-simulators/)"
+    - "[https://www.airandspaceforces.com/air-force-industry -lvc-training-tech/](https://www.airandspaceforces.com/air-force-industry-lvc-training-tech/)"
+    - "[https://www.190arw.ang.af.mil/News/Article-Display/Article/3925679/enhancing-training-capabilities-vi](https://www.190arw.ang.af.mil/News/Article-Display/Article/3925679/enhancing-training-capabilities-virtual-reality-simulators-revolutionize-mainte/) [rtual-reality-simulators-revolutionize-mainte/](https://www.190arw.ang.af.mil/News/Article-Display/Article/3925679/enhancing-training-capabilities-virtual-reality-simulators-revolutionize-mainte/)"
+    - "[https://www.aetc.af.mil/News/Article-Display/Article/3905233/department-announces-latest-efforts-to-improve-quality -of-life-for-service-memb/](https://www.aetc.af.mil/News/Article-Display/Article/3905233/department-announces-latest-efforts-to-improve-quality-of-life-for-service-memb/)"
+    - "[https://www.militaryfamily.org/military-family-impact-celebrating-victories-and-moving-ahead-for-a-](https://www.militaryfamily.org/military-family-impact-celebrating-victories-and-moving-ahead-for-a-better-2024/)[better-2024/](https://www.militaryfamily.org/military-family-impact-celebrating-victories-and-moving-ahead-for-a-better-2024/)"
+    - "<https://download.militaryonesource.mil/12038/MOS/Infographic/tcop-infographic.pdf>"
+    - "[https://www.mfan.org/blog/quality -of-life-panel-unveils-final-report/](https://www.mfan.org/blog/quality-of-life-panel-unveils-final-report/)"
+    - "[https://en.wikipedia.org/wiki/Boeing–Saab\_T-7\_Red\_Hawk](https://en.wikipedia.org/wiki/Boeing%E2%80%93Saab_T-7_Red_Hawk)"
+    - "[https://www.airforcetimes.com/news/your-air-force/2016/03/29/air-force-deployment-tempo-brings-n](https://www.airforcetimes.com/news/your-air-force/2016/03/29/air-force-deployment-tempo-brings-new-kinds-of-strains/) [ew-kinds-of-strains/](https://www.airforcetimes.com/news/your-air-force/2016/03/29/air-force-deployment-tempo-brings-new-kinds-of-strains/)"
+    - "<https://www.youtube.com/watch?v=ey0lfEyoicI>"
+    - "[https://www.twz.com/air/u-s-air-force-fighters-deploy -to-reinforce-middle-east](https://www.twz.com/air/u-s-air-force-fighters-deploy-to-reinforce-middle-east)"
+    - "[https://www.mitchellaerospacepower.org/app/uploads/2025/01/58-Want-Combat-Airpower-Then-Fix-th](https://www.mitchellaerospacepower.org/app/uploads/2025/01/58-Want-Combat-Airpower-Then-Fix-the-Air-Force-Pilot-Crisis-B.pdf) [e-Air-Force-Pilot-Crisis-B.pdf](https://www.mitchellaerospacepower.org/app/uploads/2025/01/58-Want-Combat-Airpower-Then-Fix-the-Air-Force-Pilot-Crisis-B.pdf)"
+    - "<https://www.armed-services.senate.gov/imo/media/doc/meink_opening_statement.pdf>"
+    - "[https://www.same.org/tmearticle/grounded-by-uncertainty-the-adverse-effects-of-continuing-resoluti](https://www.same.org/tmearticle/grounded-by-uncertainty-the-adverse-effects-of-continuing-resolutions/) [ons/](https://www.same.org/tmearticle/grounded-by-uncertainty-the-adverse-effects-of-continuing-resolutions/)"
+    - "<https://www.airandspaceforces.com/new-budget-deal-could-cost-usaf/>"
+    - "<https://www.mitchellaerospacepower.org/app/uploads/2025/02/Want-Combat-Airpower-FINAL.pdf>"
+    - "[https://www.meritalk.com/articles/military -leaders-warn-of-budget-impact-on-readiness/](https://www.meritalk.com/articles/military-leaders-warn-of-budget-impact-on-readiness/)"
+    - "<https://www.youtube.com/watch?v=PTbeO_ibNC4>"
+    - "[https://www.fltacademy.com/blog/2025/03/20/pilot-demand-and-the-ongoing-pilot-shortage-in-the-un](https://www.fltacademy.com/blog/2025/03/20/pilot-demand-and-the-ongoing-pilot-shortage-in-the-united-states/) [ited-states/](https://www.fltacademy.com/blog/2025/03/20/pilot-demand-and-the-ongoing-pilot-shortage-in-the-united-states/)"
+    - "<https://www.facebook.com/DefenseNews/posts/wilsbachs-emphasis-on-aircraft-readiness-comes-as-mission-capable-rates-have-ste/1250907693737954/>"
+    - "[https://www.newsweek.com/air-force-fleet-mission-ready -aircraft-readiness-2041182](https://www.newsweek.com/air-force-fleet-mission-ready-aircraft-readiness-2041182)"
+    - "<https://www.af.mil/News/Photos/igphoto/2003489512/>"
+    - "[https://www.mitchellaerospacepower.org/app/uploads/2021/02/a2dd91\_99fdf5c8631940f4a541b5c64c](https://www.mitchellaerospacepower.org/app/uploads/2021/02/a2dd91_99fdf5c8631940f4a541b5c64c409388.pdf) [409388.pdf](https://www.mitchellaerospacepower.org/app/uploads/2021/02/a2dd91_99fdf5c8631940f4a541b5c64c409388.pdf)"
+    - "<https://www.reddit.com/r/FighterJets/comments/1i2ciuf/rethinking_their_approach_to_a_program_thats/>"
+    - "[https://www.af.mil/News/Article-Display/Article/1793099/air-force-unveils-new-infrastructure-strategy -](https://www.af.mil/News/Article-Display/Article/1793099/air-force-unveils-new-infrastructure-strategy-to-get-more-value-for-money-impro/) [to-get-more-value-for-money-impro/](https://www.af.mil/News/Article-Display/Article/1793099/air-force-unveils-new-infrastructure-strategy-to-get-more-value-for-money-impro/)"
+    - "<https://nationalinterest.org/blog/buzz/the-air-force-has-a-big-problem-its-running-out-of-pilots>"
+    - "[https://ac.cto.mil/wp-content/uploads/2022/12/Advancing-Gaming-Exercising-Modeling-and-Simulation](https://ac.cto.mil/wp-content/uploads/2022/12/Advancing-Gaming-Exercising-Modeling-and-Simulation-GEMS-Capabilities.pdf) [-GEMS-Capabilities.pdf](https://ac.cto.mil/wp-content/uploads/2022/12/Advancing-Gaming-Exercising-Modeling-and-Simulation-GEMS-Capabilities.pdf)"
+    - "[https://www.defence.gov.au/news-events/news/2024-02-19/f-35a-readiness-boosted-deployed-spare](https://www.defence.gov.au/news-events/news/2024-02-19/f-35a-readiness-boosted-deployed-spares-pack) [s-pack](https://www.defence.gov.au/news-events/news/2024-02-19/f-35a-readiness-boosted-deployed-spares-pack)"
+    - "<https://avweb.com/aviation-news/report-details-aviation-mechanic-shortage/>"
+    - "<https://www.af.mil/Portals/1/documents/2024SAF/FY25_Posture_Statement.pdf>"
+    - "<https://www.armed-services.senate.gov/download/airland-joint-statement-050824>"
+    - "<https://www.airandspaceforces.com/air-force-flying-hours-spare-parts-wilsbach/>"
+    - "<https://www.afpc.af.mil/News/Article/4022949/air-force-releases-fy25-selective-retention-bonus-list/>"
+    - "<https://www.volckeralliance.org/resources/meeting-trillion-dollar-challenge-case-studies>"
+    - "<https://www.mitchellaerospacepower.org/app/uploads/2025/01/Pilot-Rollout-Presentation-FINAL.pdf>"
+    - "[https://www.military.com/daily -news/2024/03/11/air-force-reduces-end-strength-goal-budget-proposa](https://www.military.com/daily-news/2024/03/11/air-force-reduces-end-strength-goal-budget-proposal-bets-big-recruitment-bonuses.html) [l-bets-big-recruitment-bonuses.html](https://www.military.com/daily-news/2024/03/11/air-force-reduces-end-strength-goal-budget-proposal-bets-big-recruitment-bonuses.html)"
+    - "<https://www.everycrsreport.com/reports/R48211.html>"
+    - "[https://www.twz.com/air/20-billion-price-tag-to-complete-development-of-usafs-next-generation-figh](https://www.twz.com/air/20-billion-price-tag-to-complete-development-of-usafs-next-generation-fighter) [ter](https://www.twz.com/air/20-billion-price-tag-to-complete-development-of-usafs-next-generation-fighter)"
+    - "<https://ieworldconference.org/content/WP2023/Papers/GDRKMCC23_9.pdf>"
+    - "<https://aerospaceglobalnews.com/news/f47-6th-generation-fighter-budget-2026/>"
+    - "<https://blog.sumaria.com/predictive-maintenance>"
+    - "[https://www.defensenews.com/air/2025/03/21/boeing-wins-contract-for-ngad-fighter-jet-dubbed-f-4](https://www.defensenews.com/air/2025/03/21/boeing-wins-contract-for-ngad-fighter-jet-dubbed-f-47/) [7/](https://www.defensenews.com/air/2025/03/21/boeing-wins-contract-for-ngad-fighter-jet-dubbed-f-47/)"
+    - "[https://www.downwindbeachhouse.com/post/turning-retention-into-readiness-addressing-the-air-force](https://www.downwindbeachhouse.com/post/turning-retention-into-readiness-addressing-the-air-force-s-fighter-pilot-crisis) [-s-fighter-pilot-crisis](https://www.downwindbeachhouse.com/post/turning-retention-into-readiness-addressing-the-air-force-s-fighter-pilot-crisis)"
+    - "<https://defensescoop.com/2025/06/27/dod-2026-budget-request-air-force-f47-navy-faxx/>"
+    - "[https://c3.ai/improving-us-air-force-mission-capability -with-ai/](https://c3.ai/improving-us-air-force-mission-capability-with-ai/)"
+    - "[https://www.airuniversity.af.edu/Portals/10/AUPress/Papers/WF\_0077\_EWING\_WIDENING\_THE\_TRAINING](https://www.airuniversity.af.edu/Portals/10/AUPress/Papers/WF_0077_EWING_WIDENING_THE_TRAINING_PIPELINE_ARE_WARRANT_OFFICER_INSTRUCTOR_PILOTS_THE_BEST_SOLUTION_TO_INCREASE_PILOT_PRODUCTION.PDF) [\_PIPELINE\_ARE\_WARRANT\_OFFICER\_INSTRUCTOR\_PILOTS\_THE\_BEST\_SOLUTION\_TO\_INCREASE\_PILOT](https://www.airuniversity.af.edu/Portals/10/AUPress/Papers/WF_0077_EWING_WIDENING_THE_TRAINING_PIPELINE_ARE_WARRANT_OFFICER_INSTRUCTOR_PILOTS_THE_BEST_SOLUTION_TO_INCREASE_PILOT_PRODUCTION.PDF) [\_PRODUCTION.PDF](https://www.airuniversity.af.edu/Portals/10/AUPress/Papers/WF_0077_EWING_WIDENING_THE_TRAINING_PIPELINE_ARE_WARRANT_OFFICER_INSTRUCTOR_PILOTS_THE_BEST_SOLUTION_TO_INCREASE_PILOT_PRODUCTION.PDF)"
+    - "[https://www.af.mil/News/Article-Display/Article/4131345/air-force-awards-contract-for-next-generation](https://www.af.mil/News/Article-Display/Article/4131345/air-force-awards-contract-for-next-generation-air-dominance-ngad-platform-f-47/) [-air-dominance-ngad-platform-f-47/](https://www.af.mil/News/Article-Display/Article/4131345/air-force-awards-contract-for-next-generation-air-dominance-ngad-platform-f-47/)"
+    - "[https://militarywatchmagazine.com/article/f15ex-procurements-32percent-why -air-force-more](https://militarywatchmagazine.com/article/f15ex-procurements-32percent-why-air-force-more)"
+    - "<https://en.wikipedia.org/wiki/Manned-unmanned_teaming>"
+    - "[https://www.19fortyfive.com/2026/01/the-air-forces-f-15-fighter-keeps-getting-so-many -upgrades-it-might-fly -past-2040/](https://www.19fortyfive.com/2026/01/the-air-forces-f-15-fighter-keeps-getting-so-many-upgrades-it-might-fly-past-2040/)"
+    - "[https://www.airforce-technolog y.com/projects/collaborative-combat-aircraft-cca-usa/](https://www.airforce-technology.com/projects/collaborative-combat-aircraft-cca-usa/)"
+    - "<https://www.twz.com/air/f-15ex-planned-fleet-size-grows-to-129-jets-from-98>"
+    - "<https://simpleflying.com/review-uav-usaf-collaborative-combat-aircraft-programs/>"
+    - "[https://www.airforcetimes.com/news/your-air-force/2022/02/14/us-air-force-fleets-mission-capable-ra](https://www.airforcetimes.com/news/your-air-force/2022/02/14/us-air-force-fleets-mission-capable-rates-are-stagnating-heres-the-plan-to-change-that/) [tes-are-stagnating-heres-the-plan-to-change-that/](https://www.airforcetimes.com/news/your-air-force/2022/02/14/us-air-force-fleets-mission-capable-rates-are-stagnating-heres-the-plan-to-change-that/)"
+    - "<https://www.congress.gov/crs_external_products/R/PDF/R46801/R46801.2.pdf>"
+  footnotes: [] # No footnotes in air force example - uses inline citations
+
 dataset:
   name: "Citation Detector Dataset"
   description: "Test cases for validating citation detection and bibliography matching"
   test_config:
     strict_fields:
-      citations:
+      results:
         __all__:
-          # - text
-          - type
-          - needs_bibliography
-          - associated_bibliography
-          - index_of_associated_bibliography
+          citations:
+            __all__:
+              - type
+              - needs_bibliography
+              - associated_bibliography
+              - index_of_associated_bibliography
   items:
     - name: "citation_toy_example_1"
       description: "Test case with multiple citations in author (year) format"
@@ -309,5 +413,58 @@ dataset:
             needs_bibliography: true
             associated_bibliography: "Pilz, Konstantin F., Yusuf Mahmood, and Lennart Heim, *AI's Power Requirements Under Exponential Growth: Extrapolating AI Data Center Power Demand and Assessing Its Potential Impact on U.S. Competitiveness*, RAND Corporation, RR-A3572-1, 2025. As of June 3, 2025: https://www.rand.org/pubs/research_reports/RRA3572-1.html"
             index_of_associated_bibliography: 4
+            rationale: ""
+        rationale: ""
+
+    - name: "citation_air_force_1"
+      description: ""
+      input:
+        <<: *air_force_common_config
+        chunk: "With fleet-wide mission capable rates at a historic low of 62% in FY2024—leaving nearly 1,900 aircraft unavailable on any given day—and a persistent shortage of approximately 1,850 pilots, the service confronts systemic challenges across pilot production and retention, aircraft availability, and critical infrastructure.[[1](#fn1)] [[2]](#fn2)"
+      expected_output:
+        citations:
+          - text: "[[1](#fn1)]"
+            type: "footnote"
+            format: "[number] footnote marker"
+            needs_bibliography: true
+            associated_bibliography: "[https://www.defensenews.com/air/2025/03/06/air-force-aircraft-readiness-plunges-to-new-low-alarmi](https://www.defensenews.com/air/2025/03/06/air-force-aircraft-readiness-plunges-to-new-low-alarming-chief/) [ng-chief/](https://www.defensenews.com/air/2025/03/06/air-force-aircraft-readiness-plunges-to-new-low-alarming-chief/)"
+            index_of_associated_bibliography: 1
+            rationale: ""
+          - text: "[[2]](#fn2)"
+            type: "footnote"
+            format: "[number] footnote marker"
+            needs_bibliography: true
+            associated_bibliography: "[https://www.airforcetimes.com/news/your-air-force/2025/01/27/air-force-needs-more-fighter-pilots-fo](https://www.airforcetimes.com/news/your-air-force/2025/01/27/air-force-needs-more-fighter-pilots-for-more-airpower-report-says/) [r-more-airpower-report-says/](https://www.airforcetimes.com/news/your-air-force/2025/01/27/air-force-needs-more-fighter-pilots-for-more-airpower-report-says/)"
+            index_of_associated_bibliography: 2
+            rationale: ""
+        rationale: ""
+
+    - name: "citation_air_force_2"
+      description: ""
+      input:
+        <<: *air_force_common_config
+        chunk: "This assessment identifies key vulnerabilities across three operational pillars and proposes evidence-based, non-partisan policy recommendations to restore combat effectiveness. The analysis reveals that decades of deferred investment, compounded by an aging fleet averaging 32 years old and a $49.5 billion infrastructure maintenance backlog, have created cascading readiness shortfalls that require immediate attention. With China rapidly expanding its military capabilities and the Air Force operating at the smallest force structure in its 78-year history (5,025 aircraft), addressing these systemic gaps is imperative to maintaining deterrence and warfighting capacity.[[3](#fn3)] [[4](#fn4)] [[1]](#fn1)"
+      expected_output:
+        citations:
+          - text: "[[3](#fn3)]"
+            type: "footnote"
+            format: "[number] footnote marker"
+            needs_bibliography: true
+            associated_bibliography: "<https://www.airandspaceforces.com/article/usafs-capacity-capability-and-readiness-crisis/>"
+            index_of_associated_bibliography: 3
+            rationale: ""
+          - text: "[[4](#fn4)]"
+            type: "footnote"
+            format: "[number] footnote marker"
+            needs_bibliography: true
+            associated_bibliography: "[https://www.acq.osd.mil/eie/imr/mc/Downloads/2025-Briefing-to-Congress-on-Extreme-Weather-Dama](https://www.acq.osd.mil/eie/imr/mc/Downloads/2025-Briefing-to-Congress-on-Extreme-Weather-Damage-to-Military-Installations.pdf) [ge-to-Military -Installations.pdf](https://www.acq.osd.mil/eie/imr/mc/Downloads/2025-Briefing-to-Congress-on-Extreme-Weather-Damage-to-Military-Installations.pdf)"
+            index_of_associated_bibliography: 4
+            rationale: ""
+          - text: "[[1](#fn1)]"
+            type: "footnote"
+            format: "[number] footnote marker"
+            needs_bibliography: true
+            associated_bibliography: "[https://www.defensenews.com/air/2025/03/06/air-force-aircraft-readiness-plunges-to-new-low-alarmi](https://www.defensenews.com/air/2025/03/06/air-force-aircraft-readiness-plunges-to-new-low-alarming-chief/) [ng-chief/](https://www.defensenews.com/air/2025/03/06/air-force-aircraft-readiness-plunges-to-new-low-alarming-chief/)"
+            index_of_associated_bibliography: 1
             rationale: ""
         rationale: ""

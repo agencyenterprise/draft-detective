@@ -9,7 +9,13 @@ from lib.agents.claim_categorizer import (
 )
 from lib.agents.claim_extractor import Claim, ClaimResponseWithChunkIndex
 from lib.agents.document_summarizer import DocumentSummary
-from lib.agents.formatting_utils import format_audience_context, format_domain_context
+from lib.agents.formatting_utils import (
+    format_audience_context,
+    format_domain_context,
+    format_headings_context,
+    format_summary_context,
+)
+from lib.run_utils import run_tasks
 from lib.run_utils import convert_exceptions_to_workflow_errors, run_tasks
 from lib.services.file_artifacts_service.types import FileArtifactsServiceType
 from lib.workflows.claim_extraction.state import ClaimExtractionState
@@ -109,12 +115,17 @@ async def _categorize_single_claim(
 
     result = await claim_categorizer_agent.ainvoke(
         {
-            "document_summary": (document_summary.summary if document_summary else ""),
+            "summary_context": (
+                format_summary_context(document_summary.summary)
+                if document_summary
+                else ""
+            ),
             "paragraph": file_artifacts_service.get_paragraph_text(
                 chunks, chunk.paragraph_index
             ),
             "chunk": chunk.content,
             "claim": claim.claim,
+            "headings_context": format_headings_context(chunk.headings),
             "domain_context": format_domain_context(state.config.domain),
             "audience_context": format_audience_context(state.config.target_audience),
         }
@@ -126,14 +137,15 @@ async def _categorize_single_claim(
     )
 
     # Override needs_external_verification for non-central claims
-    if hasattr(claim, "central") and not claim.central:
-        logger.debug(
-            f"Chunk {claim_response.chunk_index} claim {claim_index} is not central, "
-            "overriding needs_external_verification to False"
-        )
-        categorization.needs_external_verification = False
-        categorization.rationale = (
-            "[Claim is not central, so external verification not required.]"
-        )
+    # NOTE: (01/29/2026) - Blocking override for now to prevent false negatives and inconsistency in centrality
+    # if hasattr(claim, "central") and not claim.central:
+    #     logger.debug(
+    #         f"Chunk {claim_response.chunk_index} claim {claim_index} is not central, "
+    #         "overriding needs_external_verification to False"
+    #     )
+    #     categorization.needs_external_verification = False
+    #     categorization.rationale = (
+    #         "[Claim is not central, so external verification not required.]"
+    #     )
 
     return categorization

@@ -25,6 +25,7 @@ class TestIssueToComment:
             title="Unsupported Claim",
             description="This claim lacks evidence",
             severity=SeverityEnum.HIGH,
+            type=WorkflowRunType.CLAIM_REFERENCE_VALIDATION,
             chunk_index=0,
         )
         chunk_content_map = {0: "The claim content here"}
@@ -45,6 +46,7 @@ class TestIssueToComment:
             title="Invalid reference",
             description="Reference not found",
             severity=SeverityEnum.HIGH,
+            type=WorkflowRunType.REFERENCE_VALIDATION,
             chunk_index=None,
         )
         chunk_content_map = {0: "Some content"}
@@ -58,6 +60,7 @@ class TestIssueToComment:
             title="Some issue",
             description="Issue description",
             severity=SeverityEnum.MEDIUM,
+            type=WorkflowRunType.CLAIM_REFERENCE_VALIDATION,
             chunk_index=99,  # Not in the map
         )
         chunk_content_map = {0: "Some content", 1: "Other content"}
@@ -71,6 +74,7 @@ class TestIssueToComment:
             title="Some issue",
             description="Issue description",
             severity=SeverityEnum.LOW,
+            type=WorkflowRunType.CLAIM_REFERENCE_VALIDATION,
             chunk_index=0,
         )
         chunk_content_map = {0: ""}  # Empty content
@@ -84,6 +88,7 @@ class TestIssueToComment:
             title="Partially Supported",
             description="Some evidence found",
             severity=SeverityEnum.MEDIUM,
+            type=WorkflowRunType.CLAIM_REFERENCE_VALIDATION,
             chunk_index=0,
         )
         chunk_content_map = {0: "Chunk content"}
@@ -99,6 +104,7 @@ class TestIssueToComment:
             title="Minor Note",
             description="Just a suggestion",
             severity=SeverityEnum.LOW,
+            type=WorkflowRunType.CITATION_SUGGESTER,
             chunk_index=0,
         )
         chunk_content_map = {0: "Chunk content"}

@@ -14,6 +14,8 @@ from lib.workflows.models import DocumentIssue, SeverityEnum, WorkflowRunType
 from lib.workflows.types import WorkflowState
 from lib.workflows.util import get_main_file_id
 
+NON_ISSUE_ABBREVIATIONS = ["RAND"]
+
 
 class AbbreviationScanManifest(
     WorkflowManifest[AbbreviationScanState, AbbreviationScanWorkflowConfig]
@@ -52,11 +54,15 @@ class AbbreviationScanManifest(
     ) -> List[DocumentIssue]:
         issues: List[DocumentIssue] = []
         for abbreviation in state.abbreviations:
-            if not abbreviation.definition:
+            if (
+                not abbreviation.definition
+                and abbreviation.abbr not in NON_ISSUE_ABBREVIATIONS
+            ):
                 issue = DocumentIssue(
                     title="Abbreviation without definition found",
                     description=f"The abbreviation '{abbreviation.abbr}' was found without a definition. Please add a definition for this abbreviation.",
                     severity=SeverityEnum.LOW,
+                    type=self.type,
                     chunk_index=abbreviation.chunk_index,
                 )
                 issues.append(issue)

@@ -58,7 +58,6 @@ addopts = [
     "-n",
     "10",
     "--ignore=tests/evals",
-    "--ignore=tests/integration"
 ]
 
 [dependency-groups]

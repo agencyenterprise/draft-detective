@@ -19,13 +19,13 @@ from pydantic import BaseModel
 
 from lib.config.env import config
 from lib.services.docx.chunk_mapper import ChunkLike, create_chunk_to_paragraph_mapping
-from lib.workflows.models import SeverityEnum
+from lib.workflows.models import DocumentIssue, SeverityEnum
 
 logger = logging.getLogger(__name__)
 
 
 # Severity mapping from workflow to DOCX
-def _map_severity_enum_to_comment_severity(severity) -> "CommentSeverity":
+def _map_severity_enum_to_comment_severity(severity: SeverityEnum) -> "CommentSeverity":
     """Map workflow SeverityEnum to CommentSeverity."""
     mapping = {
         SeverityEnum.HIGH: CommentSeverity.HIGH,
@@ -36,11 +36,9 @@ def _map_severity_enum_to_comment_severity(severity) -> "CommentSeverity":
     return mapping.get(severity, CommentSeverity.NONE)
 
 
-def _build_issue_anchor(issue) -> Optional[str]:
+def _build_issue_anchor(issue: DocumentIssue) -> Optional[str]:
     """Build URL anchor fragment for an issue."""
-    if issue.claim_index is not None and issue.chunk_index is not None:
-        return f"#chunk-{issue.chunk_index}-claim-{issue.claim_index}"
-    elif issue.chunk_index is not None:
+    if issue.chunk_index is not None:
         return f"#chunk-{issue.chunk_index}"
     return None
 
@@ -102,7 +100,7 @@ class DocxComment(BaseModel):
 
 
 def issue_to_comment(
-    issue,
+    issue: DocumentIssue,
     chunk_content_map: Dict[int, str],
     share_token: Optional[str] = None,
 ) -> Optional["DocxComment"]:
