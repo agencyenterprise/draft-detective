@@ -1599,7 +1599,7 @@ export type DocumentIssue = {
   /**
    * Id
    *
-   * A unique identifier for the issue, generated as a hash of type + title + description + severity + chunk_index + chunk_indices.
+   * A unique identifier for the issue, generated as a hash of type + title + description + severity + chunk_index + claim_index + chunk_indices.
    */
   id?: string;
   /**
@@ -1980,7 +1980,7 @@ export type ExtractedInferenceResult = {
    */
   key_sentence: string;
   /**
-   * The severity level of the inference analysis. HIGH if the inference problem leads the conclusion to be completely invalid. MEDIUM if the inference problem weakens the justification for the conclusion. LOW if the inference problem is a minor/tangential issue that does not significantly weaken the justification for the conclusion.
+   * The severity level of the inference analysis. HIGH if the inference problem leads the conclusion to be completely invalid. MEDIUM if the inference problem weakens the justification for the conclusion. LOW if the inference problem is a minor/tangential issue that does not significantly weaken the justification for the conclusion. NONE if the inference is valid and correct.
    */
   severity: SeverityEnum;
   /**
@@ -2007,18 +2007,6 @@ export type ExtractedInferenceResult = {
    * A suggested action to take to correct the wrong inference. In only TWO sentences.
    */
   suggested_action: string;
-  /**
-   * Start Line
-   *
-   * The starting line number of the key sentence in the full document.
-   */
-  start_line: number;
-  /**
-   * End Line
-   *
-   * The ending line number of the key sentence in the full document.
-   */
-  end_line: number;
   /**
    * Chunk Indices
    *

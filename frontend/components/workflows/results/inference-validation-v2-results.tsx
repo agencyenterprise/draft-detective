@@ -90,7 +90,7 @@ export function InferenceValidationV2Results({
       <div className="space-y-3">
         {results.map((analysis, index) => (
           <InferenceAnalysisCard
-            key={`${analysis.start_line}-${analysis.end_line}-${index}`}
+            key={`${analysis.chunk_indices?.join(',') ?? 'none'}-${index}`}
             analysis={analysis}
             index={index}
             onNavigateToDocumentExplorer={onNavigateToDocumentExplorer}
@@ -160,7 +160,11 @@ function InferenceAnalysisCard({ analysis, index, onNavigateToDocumentExplorer }
         </blockquote>
 
         {onNavigateToDocumentExplorer && analysis.chunk_indices?.length && (
-          <NavigateToChunkButton onClick={() => onNavigateToDocumentExplorer(analysis.chunk_indices ?? [])} />
+          <NavigateToChunkButton
+            onClick={() =>
+              onNavigateToDocumentExplorer(analysis.chunk_indices?.length ? [analysis.chunk_indices[0]] : [])
+            }
+          />
         )}
 
         <p className="text-sm">{analysis.short_form_argument_analysis}</p>
