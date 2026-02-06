@@ -56,6 +56,8 @@ function DocumentIssueCardRaw({ issue, hideJumpToChunk = false, onSelect }: Docu
   const { className, icon, accentClassName } = severityColorMap[issue.severity];
   const { getWorkflowTypeName } = useWorkflowTypes();
 
+  const showHideJumpToChunkButton = !hideJumpToChunk && issue.chunk_index !== undefined && issue.chunk_index !== null;
+
   return (
     <div
       id={`issue-${issue.id}`}
@@ -74,8 +76,12 @@ function DocumentIssueCardRaw({ issue, hideJumpToChunk = false, onSelect }: Docu
 
       <Markdown>{issue.description}</Markdown>
 
-      <div className={cn('flex items-center gap-2', { 'border-t pt-1': !hideJumpToChunk || !!issue.long_description })}>
-        {!hideJumpToChunk && issue.chunk_index !== undefined && issue.chunk_index !== null && (
+      <div
+        className={cn('flex items-center gap-2', {
+          'border-t pt-1': showHideJumpToChunkButton || !!issue.long_description,
+        })}
+      >
+        {showHideJumpToChunkButton && (
           <Button variant="ghost" size="xs" className={accentClassName} onClick={() => onSelect(issue)}>
             <ExternalLinkIcon className="size-3" />
             Jump to chunk {issue.chunk_index !== undefined ? issue.chunk_index : ''}
