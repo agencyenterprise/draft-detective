@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -16,7 +16,7 @@ import { FileUpload } from '@/components/ui/file-upload';
 import { FileListItem } from '@/components/analysis-form/file-list-item';
 import { UploadProgressList } from '@/components/ui/upload-progress-list';
 import { useSessionStorage } from '@/lib/hooks/use-session-storage';
-import { useUpload } from '@/lib/hooks/use-upload';
+import { useUpload } from '@/lib/hooks/upload';
 import { FileRole, startMultipleWorkflowsApiWorkflowsStartMultiplePost, WorkflowRunType } from '@/lib/generated-api';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
@@ -47,8 +47,8 @@ export function FileUploadDialog({
   const [isStartingWorkflow, setIsStartingWorkflow] = useState(false);
   const hideOpenaiApiKeyInput = process.env.NEXT_PUBLIC_HIDE_CUSTOM_OPENAI_API_KEY_INPUT === 'true';
   const queryClient = useQueryClient();
+  const resetRef = useRef<(() => void) | null>(null);
 
-  // Start ReferenceFileMatching workflow after all files are uploaded
   const handleAllComplete = useCallback(async () => {
     try {
       setIsStartingWorkflow(true);
@@ -61,7 +61,7 @@ export function FileUploadDialog({
       });
       queryClient.invalidateQueries({ queryKey: ['project', projectId] });
       toast.success('Files uploaded. Matching workflow started.');
-    } catch (error) {
+    } catch {
       toast.error('Failed to start file matching workflow');
     } finally {
       setIsStartingWorkflow(false);
@@ -69,28 +69,27 @@ export function FileUploadDialog({
     }
   }, [projectId, openaiApiKey, queryClient, onComplete]);
 
-  // Always use chunked upload
   const uploadHook = useUpload({
     projectId,
     fileRole: FileRole.Support,
     onAllComplete: handleAllComplete,
   });
 
-  // Hide API key input if env var is set OR if user already has a key saved
+  // Store reset in ref to avoid effect dependency on uploadHook
+  resetRef.current = uploadHook.reset;
+
   const shouldHideApiKeyInput = hideOpenaiApiKeyInput || openaiApiKey.trim() !== '';
 
   // Reset state when dialog opens
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- reset is stable, only run when isOpen changes
   useEffect(() => {
     if (isOpen) {
       setSelectedFiles([]);
       setIsStartingWorkflow(false);
-      uploadHook.reset();
+      resetRef.current?.();
     }
   }, [isOpen]);
 
   const handleFilesChange = (newFiles: File[]) => {
-    // In single file mode, only keep the last selected file
     setSelectedFiles(multiple ? newFiles : newFiles.slice(-1));
   };
 
@@ -107,8 +106,6 @@ export function FileUploadDialog({
   const handleConfirm = async () => {
     if (selectedFiles.length === 0) return;
     if (!shouldHideApiKeyInput && !openaiApiKey.trim()) return;
-
-    // Start upload with the selected files directly
     uploadHook.startUpload(selectedFiles);
   };
 
@@ -119,13 +116,12 @@ export function FileUploadDialog({
     if (multiple) {
       return `Upload ${selectedFiles.length} file${selectedFiles.length !== 1 ? 's' : ''}`;
     }
-    return selectedFiles.length > 0 ? 'Upload' : 'Upload';
+    return 'Upload';
   };
 
   const isUploading = uploadHook.isUploading || isStartingWorkflow;
   const allCompleted = uploadHook.completedCount > 0 && uploadHook.completedCount === uploadHook.totalCount;
 
-  // Show progress view when upload is active
   if (uploadHook.files.length > 0 && isOpen) {
     return (
       <Dialog open={isOpen} onOpenChange={() => {}}>
@@ -175,7 +171,6 @@ export function FileUploadDialog({
         </DialogHeader>
 
         <div className="space-y-4 flex-1 overflow-y-auto min-h-0">
-          {/* OpenAI API Key Input */}
           {!shouldHideApiKeyInput && (
             <div className="space-y-2">
               <Label htmlFor="openai-key" required>
@@ -197,7 +192,6 @@ export function FileUploadDialog({
             </div>
           )}
 
-          {/* File Upload Area */}
           <div className="space-y-2">
             <Label>{multiple ? 'Select Files' : 'Select File'}</Label>
             <FileUpload
@@ -212,7 +206,6 @@ export function FileUploadDialog({
             />
           </div>
 
-          {/* Selected Files List */}
           {selectedFiles.length > 0 && (
             <div className="space-y-2">
               <Label>{multiple ? `Selected Files (${selectedFiles.length})` : 'Selected File'}</Label>

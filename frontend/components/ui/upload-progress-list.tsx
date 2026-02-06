@@ -1,7 +1,6 @@
 'use client';
 
-import { UploadFileState } from '@/lib/hooks/use-upload';
-import { formatBytes, UploadStatus, isActiveStatus } from '@/lib/services/chunked-upload';
+import { UploadFileState, UploadStatus, formatBytes, isActiveStatus } from '@/lib/hooks/upload';
 import { Progress } from './progress';
 import { Button } from './button';
 import { cn } from '@/lib/utils';
@@ -158,7 +157,6 @@ export function UploadProgressList({
 
   return (
     <div className={cn('flex flex-col', className)}>
-      {/* Overall progress summary */}
       <div className="space-y-2 flex-shrink-0">
         <div className="flex items-center justify-between text-sm">
           <span className="font-medium">
@@ -169,7 +167,6 @@ export function UploadProgressList({
         <Progress value={overallProgress} className="h-2" />
       </div>
 
-      {/* Global controls */}
       {showGlobalControls && showControls && (
         <div className="flex items-center justify-end gap-2 pt-4 flex-shrink-0">
           {hasUploadingFiles && onPauseAll && (
@@ -198,7 +195,6 @@ export function UploadProgressList({
         </div>
       )}
 
-      {/* File list */}
       <div className="space-y-2 mt-4 flex-1 min-h-0 overflow-y-auto">
         {files.map((file) => (
           <UploadProgressItem

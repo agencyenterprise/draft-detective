@@ -4498,58 +4498,6 @@ export type UpdateUserRoleRequest = {
 };
 
 /**
- * UploadSessionResponse
- *
- * Response for upload session creation.
- */
-export type UploadSessionResponse = {
-  /**
-   * Session Id
-   */
-  session_id: string;
-  /**
-   * Upload Url
-   */
-  upload_url: string;
-  /**
-   * Chunk Size
-   */
-  chunk_size: number;
-};
-
-/**
- * UploadStatusResponse
- *
- * Response for upload status query.
- */
-export type UploadStatusResponse = {
-  /**
-   * Session Id
-   */
-  session_id: string;
-  /**
-   * Filename
-   */
-  filename: string;
-  /**
-   * Total Size
-   */
-  total_size: number;
-  /**
-   * Uploaded Size
-   */
-  uploaded_size: number;
-  /**
-   * Progress Percent
-   */
-  progress_percent: number;
-  /**
-   * Is Complete
-   */
-  is_complete: boolean;
-};
-
-/**
  * UserResponse
  *
  * Response model for user information
@@ -6209,241 +6157,259 @@ export type GetSharedResourceApiPublicShareTokenGetResponses = {
 export type GetSharedResourceApiPublicShareTokenGetResponse =
   GetSharedResourceApiPublicShareTokenGetResponses[keyof GetSharedResourceApiPublicShareTokenGetResponses];
 
-export type CancelUploadApiUploadSessionIdDeleteData = {
+export type ExtensionTerminationRouteTusUuidDeleteData = {
   body?: never;
+  headers?: {
+    /**
+     * Tus-Resumable
+     */
+    'tus-resumable'?: string;
+  };
   path: {
     /**
-     * Session Id
+     * Uuid
      */
-    session_id: string;
+    uuid: string;
   };
   query?: never;
-  url: '/api/upload/{session_id}';
+  url: '/tus/{uuid}';
 };
 
-export type CancelUploadApiUploadSessionIdDeleteErrors = {
+export type ExtensionTerminationRouteTusUuidDeleteErrors = {
   /**
    * Validation Error
    */
   422: HttpValidationError;
 };
 
-export type CancelUploadApiUploadSessionIdDeleteError =
-  CancelUploadApiUploadSessionIdDeleteErrors[keyof CancelUploadApiUploadSessionIdDeleteErrors];
+export type ExtensionTerminationRouteTusUuidDeleteError =
+  ExtensionTerminationRouteTusUuidDeleteErrors[keyof ExtensionTerminationRouteTusUuidDeleteErrors];
 
-export type CancelUploadApiUploadSessionIdDeleteResponses = {
+export type ExtensionTerminationRouteTusUuidDeleteResponses = {
   /**
    * Successful Response
    */
   204: void;
 };
 
-export type CancelUploadApiUploadSessionIdDeleteResponse =
-  CancelUploadApiUploadSessionIdDeleteResponses[keyof CancelUploadApiUploadSessionIdDeleteResponses];
+export type ExtensionTerminationRouteTusUuidDeleteResponse =
+  ExtensionTerminationRouteTusUuidDeleteResponses[keyof ExtensionTerminationRouteTusUuidDeleteResponses];
 
-export type GetUploadOffsetApiUploadSessionIdHeadData = {
+export type CoreHeadRouteTusUuidHeadData = {
   body?: never;
+  headers?: {
+    /**
+     * Tus-Resumable
+     */
+    'tus-resumable'?: string;
+  };
   path: {
     /**
-     * Session Id
+     * Uuid
      */
-    session_id: string;
+    uuid: string;
   };
   query?: never;
-  url: '/api/upload/{session_id}';
+  url: '/tus/{uuid}';
 };
 
-export type GetUploadOffsetApiUploadSessionIdHeadErrors = {
+export type CoreHeadRouteTusUuidHeadErrors = {
   /**
    * Validation Error
    */
   422: HttpValidationError;
 };
 
-export type GetUploadOffsetApiUploadSessionIdHeadError =
-  GetUploadOffsetApiUploadSessionIdHeadErrors[keyof GetUploadOffsetApiUploadSessionIdHeadErrors];
+export type CoreHeadRouteTusUuidHeadError = CoreHeadRouteTusUuidHeadErrors[keyof CoreHeadRouteTusUuidHeadErrors];
 
-export type GetUploadOffsetApiUploadSessionIdHeadResponses = {
+export type CoreHeadRouteTusUuidHeadResponses = {
   /**
    * Successful Response
    */
   200: unknown;
 };
 
-export type TusOptionsApiUploadSessionIdOptionsData = {
-  body?: never;
-  path?: never;
-  query?: never;
-  url: '/api/upload/{session_id}';
-};
-
-export type TusOptionsApiUploadSessionIdOptionsResponses = {
-  /**
-   * Successful Response
-   */
-  200: unknown;
-};
-
-export type UploadChunkApiUploadSessionIdPatchData = {
+export type CorePatchRouteTusUuidPatchData = {
   body?: never;
   headers: {
+    /**
+     * Content-Length
+     */
+    'content-length': number;
     /**
      * Upload-Offset
      */
-    'Upload-Offset': number;
-    /**
-     * Content-Type
-     */
-    'Content-Type': string;
-  };
-  path: {
-    /**
-     * Session Id
-     */
-    session_id: string;
-  };
-  query?: never;
-  url: '/api/upload/{session_id}';
-};
-
-export type UploadChunkApiUploadSessionIdPatchErrors = {
-  /**
-   * Validation Error
-   */
-  422: HttpValidationError;
-};
-
-export type UploadChunkApiUploadSessionIdPatchError =
-  UploadChunkApiUploadSessionIdPatchErrors[keyof UploadChunkApiUploadSessionIdPatchErrors];
-
-export type UploadChunkApiUploadSessionIdPatchResponses = {
-  /**
-   * Successful Response
-   */
-  200: unknown;
-};
-
-export type TusOptionsApiUploadOptionsData = {
-  body?: never;
-  path?: never;
-  query?: never;
-  url: '/api/upload';
-};
-
-export type TusOptionsApiUploadOptionsResponses = {
-  /**
-   * Successful Response
-   */
-  200: unknown;
-};
-
-export type CreateUploadSessionApiUploadPostData = {
-  body?: never;
-  headers: {
+    'upload-offset': number;
     /**
      * Upload-Length
      */
-    'Upload-Length': number;
+    'upload-length'?: number;
+    /**
+     * Content-Type
+     */
+    'content-type'?: string;
+    /**
+     * Tus-Resumable
+     */
+    'tus-resumable'?: string;
+  };
+  path: {
+    /**
+     * Uuid
+     */
+    uuid: string;
+  };
+  query?: {
+    /**
+     * Post Request
+     */
+    post_request?: boolean;
+  };
+  url: '/tus/{uuid}';
+};
+
+export type CorePatchRouteTusUuidPatchErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type CorePatchRouteTusUuidPatchError = CorePatchRouteTusUuidPatchErrors[keyof CorePatchRouteTusUuidPatchErrors];
+
+export type CorePatchRouteTusUuidPatchResponses = {
+  /**
+   * Successful Response
+   */
+  204: void;
+};
+
+export type CorePatchRouteTusUuidPatchResponse =
+  CorePatchRouteTusUuidPatchResponses[keyof CorePatchRouteTusUuidPatchResponses];
+
+export type CoreOptionsRouteTusOptionsData = {
+  body?: never;
+  headers?: {
+    /**
+     * Tus-Resumable
+     */
+    'tus-resumable'?: string;
+  };
+  path?: never;
+  query?: never;
+  url: '/tus/';
+};
+
+export type CoreOptionsRouteTusOptionsErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type CoreOptionsRouteTusOptionsError = CoreOptionsRouteTusOptionsErrors[keyof CoreOptionsRouteTusOptionsErrors];
+
+export type CoreOptionsRouteTusOptionsResponses = {
+  /**
+   * Successful Response
+   */
+  204: void;
+};
+
+export type CoreOptionsRouteTusOptionsResponse =
+  CoreOptionsRouteTusOptionsResponses[keyof CoreOptionsRouteTusOptionsResponses];
+
+export type ExtensionCreationRouteTusPostData = {
+  body?: never;
+  headers?: {
     /**
      * Upload-Metadata
      */
-    'Upload-Metadata'?: string | null;
+    'upload-metadata'?: string;
+    /**
+     * Upload-Length
+     */
+    'upload-length'?: number;
+    /**
+     * Upload-Defer-Length
+     */
+    'upload-defer-length'?: number;
+    /**
+     * Upload-Concat
+     */
+    'upload-concat'?: string;
+    /**
+     * Tus-Resumable
+     */
+    'tus-resumable'?: string;
   };
   path?: never;
-  query: {
-    /**
-     * Project Id
-     */
-    project_id: string;
-  };
-  url: '/api/upload';
-};
-
-export type CreateUploadSessionApiUploadPostErrors = {
-  /**
-   * Validation Error
-   */
-  422: HttpValidationError;
-};
-
-export type CreateUploadSessionApiUploadPostError =
-  CreateUploadSessionApiUploadPostErrors[keyof CreateUploadSessionApiUploadPostErrors];
-
-export type CreateUploadSessionApiUploadPostResponses = {
-  /**
-   * Successful Response
-   */
-  201: UploadSessionResponse;
-};
-
-export type CreateUploadSessionApiUploadPostResponse =
-  CreateUploadSessionApiUploadPostResponses[keyof CreateUploadSessionApiUploadPostResponses];
-
-export type GetUploadStatusApiUploadSessionIdStatusGetData = {
-  body?: never;
-  path: {
-    /**
-     * Session Id
-     */
-    session_id: string;
-  };
   query?: never;
-  url: '/api/upload/{session_id}/status';
+  url: '/tus/';
 };
 
-export type GetUploadStatusApiUploadSessionIdStatusGetErrors = {
+export type ExtensionCreationRouteTusPostErrors = {
   /**
    * Validation Error
    */
   422: HttpValidationError;
 };
 
-export type GetUploadStatusApiUploadSessionIdStatusGetError =
-  GetUploadStatusApiUploadSessionIdStatusGetErrors[keyof GetUploadStatusApiUploadSessionIdStatusGetErrors];
+export type ExtensionCreationRouteTusPostError =
+  ExtensionCreationRouteTusPostErrors[keyof ExtensionCreationRouteTusPostErrors];
 
-export type GetUploadStatusApiUploadSessionIdStatusGetResponses = {
+export type ExtensionCreationRouteTusPostResponses = {
   /**
    * Successful Response
    */
-  200: UploadStatusResponse;
+  201: unknown;
 };
 
-export type GetUploadStatusApiUploadSessionIdStatusGetResponse =
-  GetUploadStatusApiUploadSessionIdStatusGetResponses[keyof GetUploadStatusApiUploadSessionIdStatusGetResponses];
-
-export type CompleteUploadApiUploadSessionIdCompletePostData = {
+export type ExtensionCreationRouteTusPost2Data = {
   body?: never;
-  path: {
+  headers?: {
     /**
-     * Session Id
+     * Upload-Metadata
      */
-    session_id: string;
+    'upload-metadata'?: string;
+    /**
+     * Upload-Length
+     */
+    'upload-length'?: number;
+    /**
+     * Upload-Defer-Length
+     */
+    'upload-defer-length'?: number;
+    /**
+     * Upload-Concat
+     */
+    'upload-concat'?: string;
+    /**
+     * Tus-Resumable
+     */
+    'tus-resumable'?: string;
   };
-  query?: {
-    role?: FileRole;
-  };
-  url: '/api/upload/{session_id}/complete';
+  path?: never;
+  query?: never;
+  url: '/tus';
 };
 
-export type CompleteUploadApiUploadSessionIdCompletePostErrors = {
+export type ExtensionCreationRouteTusPost2Errors = {
   /**
    * Validation Error
    */
   422: HttpValidationError;
 };
 
-export type CompleteUploadApiUploadSessionIdCompletePostError =
-  CompleteUploadApiUploadSessionIdCompletePostErrors[keyof CompleteUploadApiUploadSessionIdCompletePostErrors];
+export type ExtensionCreationRouteTusPost2Error =
+  ExtensionCreationRouteTusPost2Errors[keyof ExtensionCreationRouteTusPost2Errors];
 
-export type CompleteUploadApiUploadSessionIdCompletePostResponses = {
+export type ExtensionCreationRouteTusPost2Responses = {
   /**
    * Successful Response
    */
-  200: File;
+  201: unknown;
 };
-
-export type CompleteUploadApiUploadSessionIdCompletePostResponse =
-  CompleteUploadApiUploadSessionIdCompletePostResponses[keyof CompleteUploadApiUploadSessionIdCompletePostResponses];
 
 export type GetCurrentUserInfoApiUsersMeGetData = {
   body?: never;

@@ -6,13 +6,7 @@ import { useWizard, PreflightStatus } from './wizard-context';
 import { usePreflight } from '@/lib/hooks/use-preflight';
 import { useSessionStorage } from '@/lib/hooks/use-session-storage';
 import { MAX_FILE_SIZE_BYTES } from '@/lib/constants';
-import {
-  uploadFile,
-  formatBytes,
-  UploadProgress,
-  ChunkedUploadState,
-  cancelUpload,
-} from '@/lib/services/chunked-upload';
+import { uploadSingleFile, formatBytes, UploadProgress } from '@/lib/hooks/upload';
 import { startMultipleWorkflowsApiWorkflowsStartMultiplePost, WorkflowRunType, FileRole } from '@/lib/generated-api';
 import { getAuthHeader, baseUrl } from '@/lib/api';
 
@@ -28,10 +22,6 @@ const INITIAL_WORKFLOWS = [
   WorkflowRunType.DocumentSummarization,
 ];
 
-/**
- * Create a project. Files are uploaded separately via chunked upload.
- * TODO: Use generated SDK once types are regenerated for JSON body endpoint.
- */
 async function createProject(title: string): Promise<{ project: { id: string } }> {
   const authHeader = await getAuthHeader();
   if (!authHeader) {
@@ -87,7 +77,6 @@ export function useStepUpload(onComplete: () => void) {
   const [showApiKey, setShowApiKey] = useState(false);
   const [uploadStage, setUploadStage] = useState<UploadStage>('idle');
   const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
-  const uploadStateRef = useRef<ChunkedUploadState | null>(null);
 
   const apiKey = openaiApiKey || storedApiKey;
   const fileSizeLabel = mainDocument ? formatBytes(mainDocument.size) : '';
@@ -98,7 +87,6 @@ export function useStepUpload(onComplete: () => void) {
   apiKeyRef.current = apiKey;
   mainDocumentRef.current = mainDocument;
 
-  // Derived state - no useEffect needed
   const formatStatus = validateDocument(mainDocument);
 
   const runApiKeyValidation = useCallback(async (): Promise<boolean> => {
@@ -120,14 +108,12 @@ export function useStepUpload(onComplete: () => void) {
     return isValid;
   }, [apiKey, mainDocument, setPreflightStatus, runPreflight]);
 
-  // Debounced automatic validation - triggers when API key or document changes
   const debouncedValidation = useMemo(
     () =>
       debounce(async () => {
         if (HIDE_API_KEY_INPUT) return;
         const currentApiKey = apiKeyRef.current;
         const currentDocument = mainDocumentRef.current;
-        // Only validate if we have both a document and a sufficiently long API key
         if (!currentDocument || !currentApiKey || currentApiKey.length < MIN_API_KEY_LENGTH) {
           return;
         }
@@ -142,7 +128,6 @@ export function useStepUpload(onComplete: () => void) {
     [setPreflightStatus, runPreflight],
   );
 
-  // Cleanup debounced function on unmount
   useEffect(() => {
     return () => {
       debouncedValidation.cancel();
@@ -153,27 +138,18 @@ export function useStepUpload(onComplete: () => void) {
     mutationFn: async () => {
       if (!mainDocument) throw new Error('No document selected');
 
-      // Step 1: Create project
       setUploadStage('creating');
       const { project } = await createProject(mainDocument.name);
 
-      // Step 2: Upload main document via chunked upload
       setUploadStage('uploading');
       setUploadProgress({ uploaded_size: 0, total_size: mainDocument.size, progress_percent: 0 });
 
-      const uploadState = await uploadFile(
-        mainDocument,
-        { projectId: project.id, filename: mainDocument.name, fileRole: FileRole.Main },
-        { onProgress: setUploadProgress },
-      );
+      await uploadSingleFile(mainDocument, {
+        projectId: project.id,
+        fileRole: FileRole.Main,
+        onProgress: setUploadProgress,
+      });
 
-      uploadStateRef.current = uploadState;
-
-      if (uploadState.status === 'error') {
-        throw new Error(uploadState.error || 'Upload failed');
-      }
-
-      // Step 3: Start workflows
       setUploadStage('processing');
 
       await startMultipleWorkflowsApiWorkflowsStartMultiplePost({
@@ -195,10 +171,6 @@ export function useStepUpload(onComplete: () => void) {
     onError: (error) => {
       setUploadStage('idle');
       setUploadProgress(null);
-      if (uploadStateRef.current) {
-        cancelUpload(uploadStateRef.current);
-        uploadStateRef.current = null;
-      }
       toast.error(error instanceof Error ? error.message : 'Failed to create project');
     },
   });
@@ -210,7 +182,6 @@ export function useStepUpload(onComplete: () => void) {
       setUploadProgress(null);
       if (!HIDE_API_KEY_INPUT) {
         setPreflightStatus({ apiKey: 'idle' });
-        // Trigger validation if we have an API key
         debouncedValidation();
       }
     },
@@ -222,14 +193,12 @@ export function useStepUpload(onComplete: () => void) {
       setApiKey(value);
       setStoredApiKey(value);
       setPreflightStatus({ apiKey: 'idle' });
-      // Trigger automatic validation after debounce
       debouncedValidation();
     },
     [setApiKey, setStoredApiKey, setPreflightStatus, debouncedValidation],
   );
 
   const handleContinue = useCallback(async () => {
-    // Sync format status before validation
     setPreflightStatus({ format: formatStatus });
 
     if (formatStatus !== 'valid') {
