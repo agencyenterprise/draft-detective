@@ -6,6 +6,37 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v0.5.8] - 2026-02-06
+
+### Added
+- Added support for a `long_description` field and a UUID `id` on document issues, and updated the Document Explorer with a unified issues sidebar while converting missing section warnings into standard issues.
+- Added persistence of web search consent per project using localStorage so users aren’t repeatedly prompted.
+- Added a contextual banner for project owners when viewing their own shared link, with an “Edit Project” shortcut.
+- Added a new RAND user role for QA Screener access and added QA Screener workflow identification/visibility support.
+- Added workflow type filtering in the Document Explorer and DOCX exporting, including a `workflow_types` query parameter for DOCX generation.
+- Added an “About This (Preface)” validation workflow to the QA Screener suite, along with new/refactored shared UI components for displaying validation results.
+- Added internal scrolling support to the reference review list component via an optional prop.
+- Added a per-user `show_experimental_features` preference with a UI toggle and supporting API endpoint.
+
+### Changed
+- Hid the legacy Inference Validation V1 workflow from the workflow selection UI and renamed Inference Validation V2 to “Inference Validation.”
+- Replaced LLM-generated line numbers in the Inference Validation V2 workflow with chunk indices derived from fuzzy matching, and updated related UI and generated API types accordingly.
+- Refactored the Reference Validation workflow to use a fan-out pattern with real-time incremental status updates, introduced per-reference status tracking, and renamed the workflow to “Reference Error Checking.”
+- Migrated the database layer from synchronous SQLAlchemy to async SQLAlchemy and updated services, routers, workflows, and tests accordingly.
+- Centralized QA Screener workflow configuration into a YAML-based configuration file and updated related workflows/agents to load from it.
+- Refined claim categorization and standardized how document summary and headings context are formatted and passed to agents, and removed skipping verification for non-central claims.
+- Improved project creation and export UX by adding warning dialogs for unmatched references and active severity filters, and updated related tooltip/badge text.
+- Allowed users to skip the analysis selection step in the project creation wizard and proceed directly to the project page.
+
+### Fixed
+- Fixed incorrect citation-to-reference matching in the citation detector when numbered footnote markers have missing footnote content, and updated UI display and tests for this scenario.
+- Fixed an agent registry collision between footnote extraction and reference extraction by giving the footnote extraction node a unique name.
+- Added “RAND” as a non-issue abbreviation when there’s no definition of it.
+
+### Removed
+- Reverted “Feature/randz-397-include-line-numbers-in-inference-validator-output.”
+
+
 ## [v0.5.7] - 2026-01-30
 
 ### Added
