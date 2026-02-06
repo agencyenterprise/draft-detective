@@ -9,6 +9,7 @@ from lib.agents.formatting_utils import (
     format_audience_context,
     format_domain_context,
     format_headings_context,
+    format_summary_context,
 )
 from lib.run_utils import convert_exceptions_to_workflow_errors, run_tasks
 from lib.services.file_artifacts_service.types import FileArtifactsServiceType
@@ -85,8 +86,10 @@ async def _extract_chunk_claims(
             "paragraph": file_artifacts_service.get_paragraph_text(
                 chunks, chunk.paragraph_index
             ),
-            "summarized_argument": (
-                document_summary.summary if document_summary else ""
+            "summary_context": (
+                format_summary_context(document_summary.summary)
+                if document_summary
+                else ""
             ),
             "headings_context": format_headings_context(chunk.headings),
             "domain_context": format_domain_context(state.config.domain),

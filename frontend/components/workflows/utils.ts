@@ -39,16 +39,3 @@ export const WORKFLOWS_REQUIRING_SUPPORTING_DOCUMENTS: WorkflowRunType[] = [
 export function hasSupportingDocumentsRequirement(selectedTypes: WorkflowRunType[]): boolean {
   return selectedTypes.some((type) => WORKFLOWS_REQUIRING_SUPPORTING_DOCUMENTS.includes(type));
 }
-
-/**
- * Workflow types that are part of the QA Screener tool.
- * These are analyses designed for quality assurance screening.
- */
-export const QA_SCREENER_WORKFLOWS: WorkflowRunType[] = [WorkflowRunType.AdvocacyTone, WorkflowRunType.AboutAuthors];
-
-/**
- * Checks if a workflow type is part of the QA Screener tool.
- */
-export function isQaScreenerWorkflow(type: WorkflowRunType): boolean {
-  return QA_SCREENER_WORKFLOWS.includes(type);
-}

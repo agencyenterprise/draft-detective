@@ -27,13 +27,14 @@ import {
   MessageSquareWarning,
   ALargeSmall,
   Users,
+  BookOpen,
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { WorkflowRunType, WorkflowTypeDescription } from '@/lib/generated-api';
 import { Badge } from '../ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
-import { isQaScreenerWorkflow, WORKFLOWS_REQUIRING_SUPPORTING_DOCUMENTS } from './utils';
+import { WORKFLOWS_REQUIRING_SUPPORTING_DOCUMENTS } from './utils';
 
 const workflowTypeIcons: Record<WorkflowRunType, LucideIcon> = {
   [WorkflowRunType.DocumentProcessing]: FileText,
@@ -53,10 +54,12 @@ const workflowTypeIcons: Record<WorkflowRunType, LucideIcon> = {
   [WorkflowRunType.CitationSuggester]: Lightbulb,
   [WorkflowRunType.ResultsExtraction]: BarChart3,
   [WorkflowRunType.InferenceValidation]: BrainCircuit,
+  [WorkflowRunType.InferenceValidationV2]: BrainCircuit,
   [WorkflowRunType.ClaimReferenceValidation]: ClipboardCheck,
   [WorkflowRunType.AbbreviationScan]: ALargeSmall,
   [WorkflowRunType.AdvocacyTone]: MessageSquareWarning,
   [WorkflowRunType.AboutAuthors]: Users,
+  [WorkflowRunType.AboutThis]: BookOpen,
 };
 
 const DEFAULT_ICON = FileText;
@@ -67,10 +70,6 @@ function getWorkflowIcon(type: WorkflowRunType): LucideIcon {
 
 function needsSupportingFiles(type: WorkflowRunType): boolean {
   return WORKFLOWS_REQUIRING_SUPPORTING_DOCUMENTS.includes(type);
-}
-
-function isFromQaScreener(type: WorkflowRunType): boolean {
-  return isQaScreenerWorkflow(type);
 }
 
 interface WorkflowTypeCheckboxProps {
@@ -88,7 +87,6 @@ export function WorkflowTypeCheckbox({
 }: WorkflowTypeCheckboxProps) {
   const Icon = getWorkflowIcon(workflowType.type);
   const requiresSupportingFiles = needsSupportingFiles(workflowType.type);
-  const isQaScreener = isFromQaScreener(workflowType.type);
 
   return (
     <label
@@ -139,9 +137,9 @@ export function WorkflowTypeCheckbox({
           {(workflowType.is_experimental ||
             workflowType.needs_web_search ||
             requiresSupportingFiles ||
-            isQaScreener) && (
+            workflowType.is_qa_screener) && (
             <div className="flex flex-wrap items-center gap-2 pt-1">
-              {isQaScreener && (
+              {workflowType.is_qa_screener && (
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Badge variant="default" className="flex items-center gap-1 text-xs bg-blue-600 hover:bg-blue-700">
@@ -160,11 +158,12 @@ export function WorkflowTypeCheckbox({
                   <TooltipTrigger asChild>
                     <Badge variant="warning" className="flex items-center gap-1 text-xs">
                       <Files className="size-3" />
-                      Needs References
+                      Needs Full Text References
                     </Badge>
                   </TooltipTrigger>
                   <TooltipContent side="top" className="max-w-xs">
-                    This analysis requires reference documents. You can upload them or fetch from the web in Step 3.
+                    This analysis requires the full text of referenced documents. Claims citing references without
+                    matched source documents will be skipped. You can upload PDFs or fetch from the web in Step 3.
                   </TooltipContent>
                 </Tooltip>
               )}

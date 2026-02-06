@@ -1,4 +1,7 @@
 import {
+  AboutAuthorsState,
+  AboutThisState,
+  AdvocacyToneState,
   ChunkSplittingState,
   CitationDetectionState,
   CitationSuggesterState,
@@ -45,6 +48,9 @@ type WorkflowTypeToDetail = {
   [WorkflowRunType.ClaimExtraction]: ClaimExtractionState;
   [WorkflowRunType.CitationDetection]: CitationDetectionState;
   [WorkflowRunType.FootnoteExtraction]: FootnoteExtractionState;
+  [WorkflowRunType.AboutThis]: AboutThisState;
+  [WorkflowRunType.AboutAuthors]: AboutAuthorsState;
+  [WorkflowRunType.AdvocacyTone]: AdvocacyToneState;
 };
 
 export interface WorkflowRunDetailTyped<T> {
@@ -66,34 +72,6 @@ export function getWorkflowRunByType<T extends keyof WorkflowTypeToDetail>(
   return workflowRuns.find(
     (workflowRun): workflowRun is WorkflowRunDetailTyped<WorkflowTypeToDetail[T]> => workflowRun.run.type === type,
   );
-}
-
-const workflowTypeNames: Record<WorkflowRunType, string> = {
-  [WorkflowRunType.DocumentProcessing]: 'Document Processing',
-  [WorkflowRunType.ChunkSplitting]: 'Chunk Splitting',
-  [WorkflowRunType.DocumentSummarization]: 'Document Summarization',
-  [WorkflowRunType.ReferenceExtraction]: 'Reference Extraction',
-  [WorkflowRunType.ReferenceFileMatching]: 'Reference File Matching',
-  [WorkflowRunType.HumanApproval]: 'Human Approval',
-  [WorkflowRunType.ClaimReferenceValidation]: 'Claim Reference Validation',
-  [WorkflowRunType.MethodologicalAlignment]: 'Methodological Alignment',
-  [WorkflowRunType.ReferenceDownloader]: 'Reference Downloader',
-  [WorkflowRunType.InferenceValidation]: 'Inference Validation',
-  [WorkflowRunType.LiteratureReview]: 'Literature Review',
-  [WorkflowRunType.LiveReports]: 'Live Reports',
-  [WorkflowRunType.ReferenceValidation]: 'Reference Validation',
-  [WorkflowRunType.CitationSuggester]: 'Citation Suggester',
-  [WorkflowRunType.ResultsExtraction]: 'Results Extraction',
-  [WorkflowRunType.ClaimExtraction]: 'Claim Extraction',
-  [WorkflowRunType.CitationDetection]: 'Citation Detection',
-  [WorkflowRunType.FootnoteExtraction]: 'Footnote Extraction',
-  [WorkflowRunType.AbbreviationScan]: 'Abbreviation Scan',
-  [WorkflowRunType.AdvocacyTone]: 'Advocacy & Tone',
-  [WorkflowRunType.AboutAuthors]: 'About Authors',
-};
-
-export function getWorkflowTypeName(type: WorkflowRunType): string {
-  return workflowTypeNames[type] || type;
 }
 
 /**
@@ -165,41 +143,6 @@ export function isWorkflowProcessing(workflowRun: WorkflowRunDetail | undefined)
 
 export function isAnyWorkflowProcessing(workflowRuns: WorkflowRunDetail[]): boolean {
   return workflowRuns.some((workflowRun) => isWorkflowProcessing(workflowRun));
-}
-
-/**
- * Checks if the "No References Found" warning should be displayed.
- *
- * The warning only shows when:
- * - At least one Reference Extraction workflow has completed
- * - No Reference Extraction workflow is still processing (pending/running)
- * - The completed workflow found no references
- *
- * This prevents showing stale warnings from old runs while a new extraction is in progress.
- */
-export function getReferenceExtractionWarningStatus(workflowRuns: WorkflowRunDetail[]): {
-  showWarning: boolean;
-  sectionsDetected: boolean;
-  hasErrors: boolean;
-} | null {
-  const referenceExtraction = getWorkflowRunByType(workflowRuns, WorkflowRunType.ReferenceExtraction);
-
-  if (!referenceExtraction || isWorkflowProcessing(referenceExtraction)) {
-    return null;
-  }
-
-  const state = referenceExtraction.state;
-  const hasReferences = (state.extracted_references?.length ?? 0) > 0;
-
-  if (hasReferences) {
-    return null;
-  }
-
-  return {
-    showWarning: true,
-    sectionsDetected: (state.detected_sections?.length ?? 0) > 0,
-    hasErrors: hasCurrentRunErrors(referenceExtraction),
-  };
 }
 
 /**

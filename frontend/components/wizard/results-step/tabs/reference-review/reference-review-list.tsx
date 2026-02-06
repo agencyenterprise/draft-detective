@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useDownloadAllProjectFiles } from '@/hooks/use-download-all-project-files';
 import { FileRole } from '@/lib/generated-api';
+import { cn } from '@/lib/utils';
 import {
   AlertTriangle,
   CheckCircle2,
@@ -42,6 +43,8 @@ interface ReferenceReviewListProps {
   disableActions: boolean;
   disableIndividualCards: boolean;
   onBatchUpload: () => void;
+  /** When true, the references list will have internal scrolling with a max height */
+  enableInternalScroll?: boolean;
 }
 
 export function ReferenceReviewList({
@@ -55,6 +58,7 @@ export function ReferenceReviewList({
   disableActions,
   disableIndividualCards,
   onBatchUpload,
+  enableInternalScroll = false,
 }: ReferenceReviewListProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
@@ -256,7 +260,7 @@ export function ReferenceReviewList({
       )}
 
       {/* References List */}
-      <div className="space-y-3">
+      <div className={cn('space-y-3', enableInternalScroll && 'overflow-y-auto max-h-[60vh] pr-2')}>
         {filteredReferences.map((reference) => (
           <ReferenceCard
             key={reference.id}

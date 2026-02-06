@@ -2,9 +2,7 @@ from typing import List, Literal
 
 from pydantic import Field
 
-from lib.agents.citation_detector import (
-    CitationResponseWithChunkIndex,
-)
+from lib.agents.citation_detector import CitationResponse
 from lib.workflows.models import BaseWorkflowConfig, BaseWorkflowState, WorkflowRunType
 
 
@@ -28,4 +26,4 @@ class CitationDetectionState(BaseWorkflowState):
     config: CitationDetectionConfig
 
     # Outputs
-    citations: List[CitationResponseWithChunkIndex] = []
+    citations: List[CitationResponse] = []

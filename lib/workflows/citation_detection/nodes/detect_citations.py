@@ -4,18 +4,23 @@ from typing import Any, Dict, List
 from langgraph.runtime import Runtime
 
 from lib.agents.citation_detector import (
+    BatchedCitationResult,
     CitationDetectorAgent,
-    CitationResponseWithChunkIndex,
+    CitationDetectorPromptKwargs,
+    CitationResponse,
 )
 from lib.models.footnote_item import FootnoteItem
 from lib.run_utils import convert_exceptions_to_workflow_errors, run_tasks
-from lib.workflows.citation_detection.state import CitationDetectionState
 from lib.workflows.chunk_utils import AnalyzedChunk
+from lib.workflows.citation_detection.state import CitationDetectionState
 from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
 from lib.workflows.reference_extraction.state import ExtractedReference
 
 logger = logging.getLogger(__name__)
+
+# Number of chunks to process per LLM call
+CHUNKS_PER_BATCH = 20
 
 
 def _format_footnotes_list(footnotes: List[FootnoteItem]) -> str:
@@ -36,9 +41,16 @@ def _format_bibliography(references: List[ExtractedReference]) -> str:
     if not references:
         return "No bibliography available."
     return "\n\n".join(
-        f"### Bibliography entry #{i + 1}\n{ref.text}"
+        f"### Bibliography entry #{i + 1} (id `{ref.id}`)\n\n{ref.text}"
         for i, ref in enumerate(references)
     )
+
+
+def _batch_chunks(
+    chunks: List[AnalyzedChunk], batch_size: int
+) -> List[List[AnalyzedChunk]]:
+    """Split chunks into batches of specified size."""
+    return [chunks[i : i + batch_size] for i in range(0, len(chunks), batch_size)]
 
 
 @register_node(
@@ -57,30 +69,41 @@ async def detect_citations(
     target_chunks = await file_artifacts_service.get_chunks()
     footnotes = await file_artifacts_service.get_footnotes()
 
-    # Format bibliography once for all chunks
+    # Format shared context once for all chunks
     bibliography = _format_bibliography(references)
+    footnotes_list = _format_footnotes_list(footnotes)
 
-    # Detect citations for each chunk
+    # Batch chunks for efficient LLM processing
+    batches = _batch_chunks(target_chunks, CHUNKS_PER_BATCH)
+    logger.info(
+        f"Processing {len(target_chunks)} chunks in {len(batches)} batches "
+        f"(batch size: {CHUNKS_PER_BATCH})"
+    )
+
+    # Create tasks for each batch
     tasks = [
-        _detect_chunk_citations(footnotes, bibliography, chunk, citation_detector_agent)
-        for chunk in target_chunks
+        _detect_batch_citations(
+            footnotes_list, bibliography, batch, citation_detector_agent
+        )
+        for batch in batches
     ]
     results = await run_tasks(tasks, desc="Detecting chunk citations")
-    detected_citations, exceptions = results
+    batch_results, exceptions = results
 
-    # Collect errors
-    chunk_indices = [c.chunk_index for c in target_chunks]
+    # Collect errors - use first chunk index of each batch for error reporting
+    batch_first_indices = [batch[0].chunk_index for batch in batches]
     errors = convert_exceptions_to_workflow_errors(
         "_detect_chunk_citations",
         exceptions,
-        chunk_indices,
+        batch_first_indices,
         workflow_run_id=runtime.context.workflow_run_id,
     )
 
-    # Filter out None results (from errors)
-    valid_citations: List[CitationResponseWithChunkIndex] = [
-        citation for citation in detected_citations if citation is not None
-    ]
+    # Flatten batch results into individual chunk citations
+    valid_citations: List[CitationResponse] = []
+    for batch_result in batch_results:
+        if batch_result is not None:
+            valid_citations.extend(batch_result.results)
 
     return {
         "citations": valid_citations,
@@ -88,25 +111,20 @@ async def detect_citations(
     }
 
 
-async def _detect_chunk_citations(
-    footnotes: List[FootnoteItem],
+async def _detect_batch_citations(
+    footnotes_list: str,
     bibliography: str,
-    chunk: AnalyzedChunk,
+    chunks: List[AnalyzedChunk],
     citation_detector_agent: CitationDetectorAgent,
-) -> CitationResponseWithChunkIndex:
-    """Detect citations in a single chunk."""
+) -> BatchedCitationResult:
+    """Detect citations in a batch of chunks."""
 
-    # Format footnotes as a list
-    footnotes_list = _format_footnotes_list(footnotes)
+    # Convert chunks to (index, content) tuples for the agent
+    chunk_tuples = [(chunk.chunk_index, chunk.content) for chunk in chunks]
 
-    citations = await citation_detector_agent.ainvoke(
-        {
-            "footnotes_list": footnotes_list,
-            "bibliography": bibliography,
-            "chunk": chunk.content,
-        }
-    )
-    return CitationResponseWithChunkIndex(
-        chunk_index=chunk.chunk_index,
-        **citations.model_dump(),
-    )
+    prompt_kwargs: CitationDetectorPromptKwargs = {
+        "footnotes_list": footnotes_list,
+        "bibliography": bibliography,
+        "chunks": chunk_tuples,
+    }
+    return await citation_detector_agent.ainvoke(prompt_kwargs)

@@ -1,10 +1,9 @@
+import hashlib
 from enum import Enum, StrEnum
 from operator import add
-from typing import Annotated, List, Optional
+from typing import Annotated, List, Optional, Self
 
-from pydantic import BaseModel, Field
-
-from lib.agents.models import ClaimCategory
+from pydantic import BaseModel, Field, model_validator
 
 
 class WorkflowError(BaseModel):
@@ -81,10 +80,12 @@ class WorkflowRunType(str, Enum):
     CITATION_SUGGESTER = "citation_suggester"
     RESULTS_EXTRACTION = "results_extraction"
     INFERENCE_VALIDATION = "inference_validation"
+    INFERENCE_VALIDATION_V2 = "inference_validation_v2"
     CLAIM_REFERENCE_VALIDATION = "claim_reference_validation"
     ABBREVIATION_SCAN = "abbreviation_scan"
     ADVOCACY_TONE = "advocacy_tone"
     ABOUT_AUTHORS = "about_authors"
+    ABOUT_THIS = "about_this"
 
 
 def is_user_visible_workflow(workflow_type: WorkflowRunType) -> bool:
@@ -92,9 +93,9 @@ def is_user_visible_workflow(workflow_type: WorkflowRunType) -> bool:
     Check if a workflow type should be visible to users in the workflow list.
     Uses the is_internal flag from each workflow's manifest.
     """
-    from lib.workflows.registry import _workflow_manifest_registry
+    from lib.workflows.registry import get_all_manifests
 
-    manifest = _workflow_manifest_registry.get(workflow_type)
+    manifest = get_all_manifests().get(workflow_type)
     if manifest is None:
         return False
     return not manifest.is_internal
@@ -116,9 +117,22 @@ class SeverityEnum(StrEnum):
 
 
 class DocumentIssue(BaseModel):
+    id: str = Field(
+        default="",
+        description="A unique identifier for the issue, generated as a hash of type + title + description + severity + chunk_index + chunk_indices.",
+    )
     title: str = Field(description="The title of the issue")
-    description: str = Field(description="The description of the issue")
+    description: str = Field(
+        description="A short description of the issue, enough to understand the issue at a glance. Can be markdown."
+    )
+    long_description: Optional[str] = Field(
+        description="A long description of the issue, including all the details necessary to understand the issue in detail. Can be markdown.",
+        default=None,
+    )
     severity: SeverityEnum = Field(description="The severity of the issue")
+    type: WorkflowRunType = Field(
+        description="The workflow type that generated this issue"
+    )
     chunk_index: Optional[int] = Field(
         description="The index of the chunk that contains the issue (deprecated, use chunk_indices)",
         default=None,
@@ -127,9 +141,17 @@ class DocumentIssue(BaseModel):
         description="The indices of all chunks that contain the issue",
         default=None,
     )
-    claim_index: Optional[int] = Field(
-        description="The index of the claim that contains the issue", default=None
-    )
-    claim_category: Optional[ClaimCategory] = Field(
-        description="The category of the claim that contains the issue", default=None
-    )
+
+    @model_validator(mode="after")
+    def generate_id(self) -> Self:
+        """Generate a deterministic ID based on issue content, only if not already set."""
+
+        if self.id:
+            return self
+
+        hash_input = (
+            f"{self.type.value}|{self.title}|{self.description}|"
+            f"{self.severity.value}|{self.chunk_index}|{self.chunk_indices}"
+        )
+        self.id = hashlib.sha256(hash_input.encode()).hexdigest()[:16]
+        return self

@@ -34,7 +34,7 @@ class ArrayMatcher:
         Args:
             expected_items: List of expected items as dicts
             result_items: List of actual items as dicts
-            field_names: List of field names to use for matching
+            field_names: List of field names to use for matching (can be empty)
 
         Returns:
             Tuple of (matches, strategy_name) where matches is a list of
@@ -44,7 +44,7 @@ class ArrayMatcher:
             return [], "empty"
 
         # Strategy 1: Match by first field (usually 'text' or similar)
-        if field_names:
+        if field_names and len(field_names) > 0:
             primary_field = field_names[0]
             matches = self._match_by_field(expected_items, result_items, primary_field)
             if self._is_good_match(matches):
@@ -60,9 +60,38 @@ class ArrayMatcher:
             ]
             return matches, "by_index"
 
-        # Strategy 3: Best effort with fuzzy matching
-        matches = self._match_best_effort(expected_items, result_items, field_names)
-        return matches, "best_effort"
+        # Strategy 3: Best effort with fuzzy matching (only if we have fields to match on)
+        if field_names and len(field_names) > 0:
+            matches = self._match_best_effort(expected_items, result_items, field_names)
+            return matches, "best_effort"
+
+        # Fallback: pair up what we can, mark extras
+        matches = self._match_fallback(expected_items, result_items)
+        return matches, "fallback"
+
+    def _match_fallback(
+        self, expected_items: list[dict], result_items: list[dict]
+    ) -> list[tuple[dict | None, dict | None, str]]:
+        """Fallback matching when no field names available.
+
+        Pairs items by position, marks extras as unmatched.
+        """
+        matches = []
+        min_len = min(len(expected_items), len(result_items))
+
+        # Pair up items by position
+        for i in range(min_len):
+            matches.append((expected_items[i], result_items[i], f"index_{i}"))
+
+        # Mark extra expected items as missing
+        for i in range(min_len, len(expected_items)):
+            matches.append((expected_items[i], None, f"missing_exp[{i}]"))
+
+        # Mark extra result items as extra
+        for i in range(min_len, len(result_items)):
+            matches.append((None, result_items[i], f"extra_actual[{i}]"))
+
+        return matches
 
     def _match_by_field(
         self, expected_items: list[dict], result_items: list[dict], match_field: str

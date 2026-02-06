@@ -1,7 +1,9 @@
 from datetime import date
-from lib.agents.formatting_utils import format_domain_context, format_audience_context
-import logging
-from datetime import date
+from lib.agents.formatting_utils import (
+    format_domain_context,
+    format_audience_context,
+    format_summary_context,
+)
 from typing import List
 
 from langgraph.runtime import Runtime
@@ -20,6 +22,9 @@ from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
 from lib.workflows.live_reports.state import LiveReportsState
 from lib.workflows.reference_extraction.state import ExtractedReference
+
+
+import logging
 
 logger = logging.getLogger(__name__)
 
@@ -114,8 +119,10 @@ async def _analyze_chunk_live_reports(
         # Step 1: Find newer literature
         literature_review_result = await live_literature_review_agent.ainvoke(
             {
-                "document_summary": (
-                    document_summary.summary if document_summary else ""
+                "summary_context": (
+                    format_summary_context(document_summary.summary)
+                    if document_summary
+                    else ""
                 ),
                 "paragraph": file_artifacts_service.get_paragraph_text(
                     chunks, chunk.paragraph_index
@@ -137,8 +144,10 @@ async def _analyze_chunk_live_reports(
         # Step 2: Analyze evidence strength and direction and update recommendations
         live_reports_analysis_result = await evidence_weighter_agent.ainvoke(
             {
-                "document_summary": (
-                    document_summary.summary if document_summary else ""
+                "summary_context": (
+                    format_summary_context(document_summary.summary)
+                    if document_summary
+                    else ""
                 ),
                 "cited_references": (
                     chunk.citations.citations if chunk.citations else []

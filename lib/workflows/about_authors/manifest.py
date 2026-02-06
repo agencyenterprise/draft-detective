@@ -25,7 +25,7 @@ class AboutAuthorsManifest(
         "sentence count, position/affiliation, TASP statement, research focus, and highest degree."
     )
     needs_web_search = False
-    order = 8
+    order = 11  # QA Screener group (10-12)
     required_dependencies = [WorkflowRunType.CHUNK_SPLITTING]
     is_experimental = True
 
@@ -58,6 +58,17 @@ class AboutAuthorsManifest(
         """Convert AboutAuthorsState to issues for Document Explorer."""
         issues: List[DocumentIssue] = []
 
+        if not state.results:
+            issues.append(
+                DocumentIssue(
+                    title='No "About the Authors" section found',
+                    type=self.type,
+                    description=f'We could not find an "About the Authors" or "Author Biographies" section. Author validation requires a section containing author biography paragraphs. Please ensure your document contains an appropriately titled section and run "{self.name}" analysis again.',
+                    severity=SeverityEnum.MEDIUM,
+                    chunk_index=0,
+                )
+            )
+
         for result in state.results:
             if result.overall_passed:
                 continue
@@ -84,6 +95,7 @@ class AboutAuthorsManifest(
             issues.append(
                 DocumentIssue(
                     title=f"Author Bio Issue: {result.author_name}",
+                    type=self.type,
                     description=description,
                     severity=SeverityEnum.MEDIUM,
                     chunk_index=chunk_index,

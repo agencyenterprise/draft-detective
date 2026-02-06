@@ -24,13 +24,10 @@ The system addresses these primary research questions:
 1. **Claim-Reference Alignment**: Does each cited reference provide evidence that substantiates the associated claim?
 2. **Reference Validation**: Are the references correct, including Author, Title, Year and Publisher fields that have online presence?
 3. **Unsupported claims**: Which claims require citation but lack appropriate references?
-4. **Inference Validation**: Are inferential and interpretive claims supported by valid argument structures according to the Toulmin model of argumentation[^3] [^4]?
+4. **Inference Validation**: Are the inferences made within the paper logically valid and supported by premises of the argument?
 5. **Citation Recommendations**: What additional references could strengthen the document's evidentiary foundation?
 6. **Literature Review**: Is there any other related published work that could be referenced to strengthen or counter the arguments presented?
 7. **Live Reports** (for past published documents): Is there any newer related work that supports, strengthens, contradicts, or brings newer information that should be considered to expand the document's arguments?
-
-[^3]: Toulmin, Stephen E. _The Uses of Argument_. Cambridge: Cambridge University Press, 1958.
-[^4]: Excelsior Online Writing Lab. “Toulmin Argument.” In _Organizing Your Argument, Argument & Critical Thinking_. Excelsior University. Last modified May 26, 2022. Accessed November 24, 2025. [https://owl.excelsior.edu/argument-and-critical-thinking/organizing-your-argument/organizing-your-argument-toulmin/](https://owl.excelsior.edu/argument-and-critical-thinking/organizing-your-argument/organizing-your-argument-toulmin/).
 
 ## Methodology
 

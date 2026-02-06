@@ -2,6 +2,10 @@ from lib.workflows.about_authors.state import (
     AboutAuthorsState,
     AboutAuthorsWorkflowConfig,
 )
+from lib.workflows.about_this.state import (
+    AboutThisState,
+    AboutThisWorkflowConfig,
+)
 from lib.workflows.advocacy_tone.state import (
     AdvocacyToneState,
     AdvocacyToneWorkflowConfig,
@@ -50,6 +54,10 @@ from lib.workflows.inference_validation.state import (
     InferenceValidationState,
     InferenceValidationWorkflowConfig,
 )
+from lib.workflows.inference_validation_v2.state import (
+    InferenceValidationV2State,
+    InferenceValidationV2WorkflowConfig,
+)
 from lib.workflows.literature_review.state import (
     LiteratureReviewState,
     LiteratureReviewWorkflowConfig,
@@ -82,6 +90,7 @@ from lib.workflows.results_extraction.state import (
 
 WorkflowState = (
     AboutAuthorsState
+    | AboutThisState
     | AdvocacyToneState
     | DocumentProcessingState
     | ChunkSplittingState
@@ -101,11 +110,13 @@ WorkflowState = (
     | CitationSuggesterState
     | ResultsExtractionState
     | InferenceValidationState
+    | InferenceValidationV2State
     | HumanApprovalState
 )
 
 WorkflowConfig = (
     AboutAuthorsWorkflowConfig
+    | AboutThisWorkflowConfig
     | AdvocacyToneWorkflowConfig
     | DocumentProcessingWorkflowConfig
     | ChunkSplittingWorkflowConfig
@@ -125,5 +136,6 @@ WorkflowConfig = (
     | CitationSuggesterWorkflowConfig
     | ResultsExtractionWorkflowConfig
     | InferenceValidationWorkflowConfig
+    | InferenceValidationV2WorkflowConfig
     | HumanApprovalConfig
 )

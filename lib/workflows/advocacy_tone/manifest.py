@@ -22,7 +22,7 @@ class AdvocacyToneManifest(
         "Uses two-layer detection: fast procedural checks (regex) followed by LLM verification."
     )
     needs_web_search = False
-    order = 7
+    order = 10  # QA Screener group (10-12)
     required_dependencies = [WorkflowRunType.CHUNK_SPLITTING]
     is_experimental = True
 
@@ -63,6 +63,7 @@ class AdvocacyToneManifest(
                         title="Trigger Words Detected",
                         description=result.llm_trigger_words.explanation,
                         severity=SeverityEnum.LOW,
+                        type=self.type,
                         chunk_index=result.chunk_index,
                     )
                 )
@@ -73,6 +74,7 @@ class AdvocacyToneManifest(
                         title="Advocacy Language Detected",
                         description=result.llm_advocacy_language.explanation,
                         severity=SeverityEnum.MEDIUM,
+                        type=self.type,
                         chunk_index=result.chunk_index,
                     )
                 )
@@ -83,6 +85,7 @@ class AdvocacyToneManifest(
                         title="Subjective Tone Detected",
                         description=result.llm_subjective_tone.explanation,
                         severity=SeverityEnum.MEDIUM,
+                        type=self.type,
                         chunk_index=result.chunk_index,
                     )
                 )

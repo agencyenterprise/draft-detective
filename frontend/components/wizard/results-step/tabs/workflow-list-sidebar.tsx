@@ -4,8 +4,9 @@ import { Button } from '@/components/ui/button';
 import { StatusIndicator } from '@/components/ui/status-indicator';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { WorkflowRunDetail, WorkflowRunType } from '@/lib/generated-api';
+import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { cn } from '@/lib/utils';
-import { getDisplayStatus, getWorkflowTypeName, hasCurrentRunErrors } from '@/lib/workflow-state';
+import { getDisplayStatus, hasCurrentRunErrors } from '@/lib/workflow-state';
 import { formatDistanceToNow } from 'date-fns';
 import { AlertTriangleIcon, PlusIcon } from 'lucide-react';
 
@@ -18,6 +19,7 @@ interface WorkflowListItemProps {
 function WorkflowListItem({ workflowDetail, isSelected, onSelect }: WorkflowListItemProps) {
   const displayStatus = getDisplayStatus(workflowDetail);
   const hasErrors = hasCurrentRunErrors(workflowDetail);
+  const { getWorkflowTypeName } = useWorkflowTypes();
 
   return (
     <button

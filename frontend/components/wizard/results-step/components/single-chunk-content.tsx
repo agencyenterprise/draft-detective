@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button';
 import type { ProjectDetailed, WorkflowRunDetail } from '@/lib/generated-api';
-import { getClaimIssues, getMaxSeverity, sortBySeverity } from '@/lib/severity';
+import { cn } from '@/lib/utils';
 import { getChunkErrors } from '@/lib/workflow-state';
 import { ExternalLink } from 'lucide-react';
 import { useMemo } from 'react';
@@ -14,7 +14,6 @@ import { ValidationResultsBox } from '../tabs/reference-review/validation-result
 import { ChunkAnalysisCard } from './chunk-analysis-card';
 import { ClaimAnalysisCard } from './claim-analysis-card';
 import { ErrorsCard } from './errors-card';
-import { cn } from '@/lib/utils';
 
 export interface SingleChunkContentProps {
   chunkIndex: number;
@@ -33,23 +32,12 @@ export function SingleChunkContent({
   onNavigateToReferences,
   showChunkLabel,
 }: SingleChunkContentProps) {
-  const issues = useMemo(() => projectDetail.issues ?? [], [projectDetail.issues]);
   const chunkErrors = getChunkErrors(workflowRuns, chunkIndex);
 
   const { claimExtractionState, referenceExtractionState, referenceValidationState } =
     useChunkWorkflowData(workflowRuns);
 
   const claims = useMemo(() => getChunkClaims(chunkIndex, claimExtractionState), [chunkIndex, claimExtractionState]);
-
-  const sortedClaimsBySeverity = useMemo(
-    () =>
-      claims.sort((a, b) => {
-        const aIssues = getClaimIssues(issues, chunkIndex, a.originalIndex);
-        const bIssues = getClaimIssues(issues, chunkIndex, b.originalIndex);
-        return sortBySeverity(getMaxSeverity(aIssues), getMaxSeverity(bIssues));
-      }),
-    [claims, issues, chunkIndex],
-  );
 
   const matchedReference = useMemo(
     () => findReferenceForChunk(chunkIndex, referenceExtractionState, referenceValidationState),
@@ -66,7 +54,7 @@ export function SingleChunkContent({
 
       {chunkErrors.length > 0 && <ErrorsCard errors={chunkErrors} />}
 
-      {sortedClaimsBySeverity.map(({ claim, originalIndex }) => (
+      {claims.map(({ claim, originalIndex }) => (
         <ClaimAnalysisCard
           key={`${chunkIndex}-${originalIndex}`}
           claim={claim}

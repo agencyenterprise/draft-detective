@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 
 # This prevents overwhelming the tracing system and LLM APIs
-MAX_CONCURRENT_TASKS = int(os.getenv("MAX_CONCURRENT_TASKS", "15"))
+MAX_CONCURRENT_TASKS = int(os.getenv("MAX_CONCURRENT_TASKS", "20"))
 
 
 def _get_progress_id() -> Optional[UUID]:
@@ -22,13 +22,13 @@ def _get_progress_id() -> Optional[UUID]:
         return None
 
 
-def _update_progress_safely(progress_id: UUID, **kwargs) -> None:
+async def _update_progress_safely(progress_id: UUID, **kwargs) -> None:
     """Update progress with error handling."""
     try:
         # Import here to avoid circular dependency at module load time
         from lib.services.workflow_progress import update_progress
 
-        update_progress(progress_id, **kwargs)
+        await update_progress(progress_id, **kwargs)
     except Exception as e:
         logger.warning(f"Failed to update progress: {e}")
 
@@ -62,7 +62,7 @@ async def run_tasks(
 
     # Update node's total_steps to reflect actual task count
     if progress_id and len(tasks) > 1:
-        _update_progress_safely(progress_id, total_steps=len(tasks))
+        await _update_progress_safely(progress_id, total_steps=len(tasks))
 
     async def track_task(index, coro):
         async with semaphore:
@@ -90,10 +90,10 @@ async def run_tasks(
         )
 
         if progress_id:
-            _update_progress_safely(progress_id, current_step=completed_count)
+            await _update_progress_safely(progress_id, current_step=completed_count)
 
-    task_results = []
-    task_errors = []
+    task_results: List[Any | None] = []
+    task_errors: List[Exception | None] = []
 
     for chunk_index in range(len(tasks)):
         if chunk_index not in task_results_dict:

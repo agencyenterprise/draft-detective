@@ -90,14 +90,12 @@ export function DocumentReconstructor({
   }, [selectedChunkIndices, chunks, paragraphEntries, rowVirtualizer]);
 
   return (
-    <div ref={parentRef} className="h-full overflow-y-auto">
+    <div ref={parentRef} className="h-full overflow-y-auto p-4">
       <div
         style={{
           height: `${rowVirtualizer.getTotalSize()}px`,
           width: '100%',
           position: 'relative',
-          paddingTop: '1rem',
-          paddingBottom: '4rem',
         }}
       >
         {rowVirtualizer.getVirtualItems().map((virtualRow) => {

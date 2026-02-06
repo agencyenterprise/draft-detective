@@ -1,28 +1,23 @@
-import asyncio
 from pathlib import Path
 
 import pytest
 
-from lib.agents.citation_detector import CitationResponse, CitationDetectorAgent
-from lib.models.agent_test_case import AgentTestCase
-from tests.conftest import (
-    create_test_file_document_from_path,
-    data_path,
-    create_test_context,
+from lib.agents.citation_detector import (
+    BatchedCitationResult,
+    CitationDetectorAgent,
+    CitationDetectorPromptKwargs,
 )
+from lib.models.agent_test_case import AgentTestCase
+from lib.models.footnote_item import FootnoteItem
+from lib.workflows.citation_detection.nodes.detect_citations import (
+    _format_bibliography,
+    _format_footnotes_list,
+)
+from lib.workflows.reference_extraction.state import ExtractedReference
+from tests.conftest import create_test_context
 from tests.evals.datasets.loader import load_dataset
 
 TESTS_DIR = Path(__file__).parent.parent
-
-
-def _format_footnotes_list(footnotes_data):
-    """Format footnotes list for the agent prompt."""
-    if not footnotes_data:
-        return "No footnotes available."
-    lines = []
-    for fn in footnotes_data:
-        lines.append(f"[{fn['marker']}]. {fn['text']}")
-    return "\n".join(lines)
 
 
 def _build_cases() -> list[AgentTestCase]:
@@ -38,23 +33,42 @@ def _build_cases() -> list[AgentTestCase]:
     cases: list[AgentTestCase] = []
 
     for test_case in dataset.items:
-        # Format footnotes list
-        footnotes_list = _format_footnotes_list(test_case.input.get("footnotes", []))
+        footnotes = test_case.input.get("footnotes", [])
+        footnote_items = [FootnoteItem.model_validate(fn) for fn in footnotes]
+        footnotes_list = _format_footnotes_list(footnote_items)
+
+        bibliography = test_case.input.get("bibliography", [])
+        bibliography_items = [
+            ExtractedReference(id=f"bibliography-{i+1}", text=ref)
+            for i, ref in enumerate(bibliography)
+        ]
+        bibliography_list = _format_bibliography(bibliography_items)
+
+        # Wrap single chunk in batch format: list of (chunk_index, content) tuples
+        chunk_content = test_case.input["chunk"]
+        input_kwargs: CitationDetectorPromptKwargs = {
+            "footnotes_list": footnotes_list,
+            "bibliography": bibliography_list,
+            "chunks": [(0, chunk_content)],
+        }
+
+        # Wrap expected output in batched format with single chunk at index 0
+        batched_expected = {
+            "results": [
+                {
+                    "chunk_index": 0,
+                    **test_case.expected_output,
+                }
+            ]
+        }
 
         cases.append(
             AgentTestCase(
                 name=test_case.name,
                 agent=CitationDetectorAgent(create_test_context()),
-                response_model=CitationResponse,
-                prompt_kwargs={
-                    "footnotes_list": footnotes_list,
-                    "bibliography": "\n\n".join(
-                        f"{i+1}. {ref}"
-                        for i, ref in enumerate(test_case.input["bibliography"])
-                    ),
-                    "chunk": test_case.input["chunk"],
-                },
-                expected_dict=test_case.expected_output,
+                response_model=BatchedCitationResult,
+                prompt_kwargs=input_kwargs,
+                expected_dict=batched_expected,
                 strict_fields=strict_fields,
                 llm_fields=llm_fields,
             )

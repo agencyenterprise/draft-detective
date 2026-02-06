@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select, update
 from sqlmodel import col
 
-from lib.config.database import get_db
+from lib.config.database import get_async_db_session
 from lib.config.env import config
 from lib.models.share_link import ShareLink
 from lib.models.user import User
@@ -53,22 +53,24 @@ async def get_active_share_link(
     resource_type: str, resource_id: uuid.UUID
 ) -> Optional[ShareLink]:
     """Get the active share link for a resource if it exists."""
-    with get_db() as db:
+    async with get_async_db_session() as session:
         stmt = select(ShareLink).where(
             col(ShareLink.resource_type) == resource_type,
             col(ShareLink.resource_id) == resource_id,
-            col(ShareLink.is_active) == True,
+            col(ShareLink.is_active).is_(True),
         )
-        return db.execute(stmt).scalar_one_or_none()
+        result = await session.execute(stmt)
+        return result.scalar_one_or_none()
 
 
 async def get_resource_by_token(token: str) -> Optional[ShareLink]:
     """Get resource info by share token. Returns None if token is invalid or inactive."""
-    with get_db() as db:
+    async with get_async_db_session() as session:
         stmt = select(ShareLink).where(
-            col(ShareLink.token) == token, col(ShareLink.is_active) == True
+            col(ShareLink.token) == token, col(ShareLink.is_active).is_(True)
         )
-        return db.execute(stmt).scalar_one_or_none()
+        result = await session.execute(stmt)
+        return result.scalar_one_or_none()
 
 
 async def enable_sharing(
@@ -81,15 +83,15 @@ async def enable_sharing(
         return ShareStatusResponse(enabled=True, share_link=_to_response(existing))
 
     # Create new share link
-    with get_db() as db:
+    async with get_async_db_session() as session:
         share_link = ShareLink(
             resource_type=resource_type,
             resource_id=resource_id,
             created_by_user_id=user.id,
         )
-        db.add(share_link)
-        db.commit()
-        db.refresh(share_link)
+        session.add(share_link)
+        await session.commit()
+        await session.refresh(share_link)
 
         logger.info(
             f"Created share link for {resource_type}/{resource_id}: {share_link.token}"
@@ -101,20 +103,20 @@ async def disable_sharing(
     resource_type: str, resource_id: uuid.UUID
 ) -> ShareStatusResponse:
     """Disable ALL active sharing for a resource."""
-    with get_db() as db:
+    async with get_async_db_session() as session:
         # Deactivate ALL active links (fixes potential orphaned links)
         stmt = (
             update(ShareLink)
             .where(
                 col(ShareLink.resource_type) == resource_type,
                 col(ShareLink.resource_id) == resource_id,
-                col(ShareLink.is_active) == True,
+                col(ShareLink.is_active).is_(True),
             )
             .values(is_active=False)
         )
-        result = db.execute(stmt)
+        result = await session.execute(stmt)
         updated = result.rowcount
-        db.commit()
+        await session.commit()
 
         if updated:
             logger.info(
@@ -138,10 +140,11 @@ async def get_share_status(
 async def is_project_shared(project_id: str) -> bool:
     """Check if a project is shared."""
 
-    with get_db() as db:
+    async with get_async_db_session() as session:
         stmt = select(ShareLink).where(
             col(ShareLink.resource_type) == "project",
             col(ShareLink.resource_id) == project_id,
-            col(ShareLink.is_active) == True,
+            col(ShareLink.is_active).is_(True),
         )
-        return db.execute(stmt).scalar_one_or_none() is not None
+        result = await session.execute(stmt)
+        return result.scalar_one_or_none() is not None
