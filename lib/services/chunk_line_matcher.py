@@ -7,6 +7,7 @@ from rapidfuzz import fuzz
 from nltk.tokenize import sent_tokenize
 
 MIN_LENGTH = 5
+MIN_SCORE = 50
 
 
 class IndexedChunkWithLines(Protocol):
@@ -104,7 +105,7 @@ def find_chunk_by_fuzzy_match(
     for chunk in chunks:
         if not chunk.content:
             continue
-        score = fuzz.partial_ratio(input_text, chunk.content)
+        score = fuzz.partial_ratio(input_text, chunk.content, score_cutoff=MIN_SCORE)
         if score > best_score:
             best_score = score
             best_matches = [chunk]
