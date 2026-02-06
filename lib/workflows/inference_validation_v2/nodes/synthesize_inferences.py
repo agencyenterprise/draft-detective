@@ -42,11 +42,6 @@ async def synthesize_inferences(
     file_document = await file_artifacts_service.get_file_document(state.file_id)
     markdown = file_document.markdown
 
-    # add line numbers to markdown for downstream processing
-    # lines = markdown.split("\n")
-    # numbered_markdown_lines = [f"{i+1}|{line}" for i, line in enumerate(lines)]
-    # numbered_markdown = "\n".join(numbered_markdown_lines)
-
     logger.info(
         "synthesize_inferences: Running synthesizer agent on %s runs",
         NUM_VALIDATOR_RUNS,
@@ -68,11 +63,8 @@ async def synthesize_inferences(
     for result in consolidated.results:
         chunk_indices: List[int] = []
         if chunks:
-            chunk_indices_v3 = find_chunks_by_fuzzy_match(chunks, result.key_sentence)
-            logger.info(f"Key sentence: {result.key_sentence}")
-            # logger.info(f"Start line: {result.start_line}")
-            # logger.info(f"End line: {result.end_line}")
-            logger.info(f"Chunk indices v3: {chunk_indices_v3}")
+            chunk_indices = find_chunks_by_fuzzy_match(chunks, result.key_sentence)
+
         extracted_inference_results.append(
             ExtractedInferenceResult(
                 key_sentence=result.key_sentence,
@@ -81,7 +73,7 @@ async def synthesize_inferences(
                 short_form_argument_analysis=result.short_form_argument_analysis,
                 long_form_argument_analysis=result.long_form_argument_analysis,
                 suggested_action=result.suggested_action,
-                chunk_indices=chunk_indices_v3,
+                chunk_indices=chunk_indices,
             )
         )
 
