@@ -138,7 +138,7 @@ def find_chunks_by_fuzzy_match(
     sentences = sent_tokenize(input_text.strip())
 
     chunk_indices: List[int] = []
-    prev_end_line: Optional[int] = start_line - 1  # for continuity tie-break
+    prev_end_line: Optional[int] = start_line  # for continuity tie-break
 
     for sentence in sentences:
         idx = find_chunk_by_fuzzy_match(
