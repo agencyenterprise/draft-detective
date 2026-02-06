@@ -118,7 +118,7 @@ class DirectOpenAIAgent(BaseAgent):
 @lru_cache(maxsize=256)
 def get_rate_limiter(api_key_hash: str) -> InMemoryRateLimiter:
     return InMemoryRateLimiter(
-        requests_per_second=32,  # How many requests per second are allowed
+        requests_per_second=64,  # How many requests per second are allowed
         check_every_n_seconds=0.2,  # Wake up every X seconds to check whether allowed to make a request
-        max_bucket_size=100,  # Controls the maximum burst size
+        max_bucket_size=200,  # Controls the maximum burst size
     )
