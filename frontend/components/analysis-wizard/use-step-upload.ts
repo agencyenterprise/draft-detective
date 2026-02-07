@@ -7,8 +7,12 @@ import { usePreflight } from '@/lib/hooks/use-preflight';
 import { useSessionStorage } from '@/lib/hooks/use-session-storage';
 import { MAX_FILE_SIZE_BYTES } from '@/lib/constants';
 import { uploadSingleFile, formatBytes, UploadProgress } from '@/lib/hooks/upload';
-import { startMultipleWorkflowsApiWorkflowsStartMultiplePost, WorkflowRunType, FileRole } from '@/lib/generated-api';
-import { getAuthHeader, baseUrl } from '@/lib/api';
+import {
+  createProjectEndpointApiProjectsPost,
+  startMultipleWorkflowsApiWorkflowsStartMultiplePost,
+  WorkflowRunType,
+  FileRole,
+} from '@/lib/generated-api';
 
 export type UploadStage = 'idle' | 'creating' | 'uploading' | 'processing' | 'complete';
 
@@ -21,29 +25,6 @@ const INITIAL_WORKFLOWS = [
   WorkflowRunType.ChunkSplitting,
   WorkflowRunType.DocumentSummarization,
 ];
-
-async function createProject(title: string): Promise<{ project: { id: string } }> {
-  const authHeader = await getAuthHeader();
-  if (!authHeader) {
-    throw new Error('Authentication required');
-  }
-
-  const response = await fetch(`${baseUrl}/api/projects`, {
-    method: 'POST',
-    headers: {
-      Authorization: authHeader,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ title }),
-  });
-
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Failed to create project: ${error}`);
-  }
-
-  return response.json();
-}
 
 function validateDocument(file: File | null): PreflightStatus {
   if (!file) return 'idle';
@@ -139,7 +120,9 @@ export function useStepUpload(onComplete: () => void) {
       if (!mainDocument) throw new Error('No document selected');
 
       setUploadStage('creating');
-      const { project } = await createProject(mainDocument.name);
+      const { project } = await createProjectEndpointApiProjectsPost({
+        body: { title: mainDocument.name },
+      });
 
       setUploadStage('uploading');
       setUploadProgress({ uploaded_size: 0, total_size: mainDocument.size, progress_percent: 0 });
