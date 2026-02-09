@@ -82,6 +82,7 @@ class WorkflowRunType(str, Enum):
     INFERENCE_VALIDATION = "inference_validation"
     INFERENCE_VALIDATION_V2 = "inference_validation_v2"
     CLAIM_REFERENCE_VALIDATION = "claim_reference_validation"
+    CLAIM_REFERENCE_VALIDATION_V2 = "claim_reference_validation_v2"
     ABBREVIATION_SCAN = "abbreviation_scan"
     ADVOCACY_TONE = "advocacy_tone"
     ABOUT_AUTHORS = "about_authors"

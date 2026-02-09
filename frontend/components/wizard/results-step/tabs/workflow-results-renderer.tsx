@@ -7,6 +7,7 @@ import { AboutAuthorsResults } from '@/components/workflows/results/about-author
 import { AboutThisResults } from '@/components/workflows/results/about-this-results';
 import { AdvocacyToneResults } from '@/components/workflows/results/advocacy-tone-results';
 import { CitationSuggesterResults } from '@/components/workflows/results/citation-suggester-results';
+import { ClaimReferenceValidationV2Results } from '@/components/workflows/results/claim-reference-validation-v2-results';
 import { InferenceValidationV2Results } from '@/components/workflows/results/inference-validation-v2-results';
 import { LiteratureReviewResults } from '@/components/workflows/results/literature-review/literature-review-results';
 import { LiveReportsResults } from '@/components/workflows/results/live-reports-results';
@@ -65,6 +66,8 @@ function renderWorkflowResults(
           onNavigateToDocumentExplorer={onNavigateToDocumentExplorer}
         />
       );
+    case WorkflowRunType.ClaimReferenceValidationV2:
+      return <ClaimReferenceValidationV2Results workflowDetail={workflowRun} />;
     case WorkflowRunType.InferenceValidation:
     case WorkflowRunType.ClaimReferenceValidation:
     case WorkflowRunType.AbbreviationScan:

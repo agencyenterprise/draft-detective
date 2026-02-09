@@ -5,6 +5,177 @@ export type ClientOptions = {
 };
 
 /**
+ * AIMessage
+ *
+ * Message from an AI.
+ *
+ * An `AIMessage` is returned from a chat model as a response to a prompt.
+ *
+ * This message represents the output of the model and consists of both
+ * the raw output as returned by the model and standardized fields
+ * (e.g., tool calls, usage metadata) added by the LangChain framework.
+ */
+export type AiMessage = {
+  /**
+   * Content
+   */
+  content:
+    | string
+    | Array<
+        | string
+        | {
+            [key: string]: unknown;
+          }
+      >;
+  /**
+   * Additional Kwargs
+   */
+  additional_kwargs?: {
+    [key: string]: unknown;
+  };
+  /**
+   * Response Metadata
+   */
+  response_metadata?: {
+    [key: string]: unknown;
+  };
+  /**
+   * Type
+   */
+  type?: 'ai';
+  /**
+   * Name
+   */
+  name?: string | null;
+  /**
+   * Id
+   */
+  id?: string | null;
+  /**
+   * Tool Calls
+   */
+  tool_calls?: Array<ToolCall>;
+  /**
+   * Invalid Tool Calls
+   */
+  invalid_tool_calls?: Array<InvalidToolCall>;
+  usage_metadata?: UsageMetadata | null;
+  [key: string]:
+    | unknown
+    | string
+    | Array<
+        | string
+        | {
+            [key: string]: unknown;
+          }
+      >
+    | {
+        [key: string]: unknown;
+      }
+    | {
+        [key: string]: unknown;
+      }
+    | 'ai'
+    | string
+    | null
+    | string
+    | null
+    | Array<ToolCall>
+    | Array<InvalidToolCall>
+    | UsageMetadata
+    | null
+    | undefined;
+};
+
+/**
+ * AIMessageChunk
+ *
+ * Message chunk from an AI (yielded when streaming).
+ */
+export type AiMessageChunk = {
+  /**
+   * Content
+   */
+  content:
+    | string
+    | Array<
+        | string
+        | {
+            [key: string]: unknown;
+          }
+      >;
+  /**
+   * Additional Kwargs
+   */
+  additional_kwargs?: {
+    [key: string]: unknown;
+  };
+  /**
+   * Response Metadata
+   */
+  response_metadata?: {
+    [key: string]: unknown;
+  };
+  /**
+   * Type
+   */
+  type?: 'AIMessageChunk';
+  /**
+   * Name
+   */
+  name?: string | null;
+  /**
+   * Id
+   */
+  id?: string | null;
+  /**
+   * Tool Calls
+   */
+  tool_calls?: Array<ToolCall>;
+  /**
+   * Invalid Tool Calls
+   */
+  invalid_tool_calls?: Array<InvalidToolCall>;
+  usage_metadata?: UsageMetadata | null;
+  /**
+   * Tool Call Chunks
+   */
+  tool_call_chunks?: Array<ToolCallChunk>;
+  /**
+   * Chunk Position
+   */
+  chunk_position?: 'last' | null;
+  [key: string]:
+    | unknown
+    | string
+    | Array<
+        | string
+        | {
+            [key: string]: unknown;
+          }
+      >
+    | {
+        [key: string]: unknown;
+      }
+    | {
+        [key: string]: unknown;
+      }
+    | 'AIMessageChunk'
+    | string
+    | null
+    | string
+    | null
+    | Array<ToolCall>
+    | Array<InvalidToolCall>
+    | UsageMetadata
+    | null
+    | Array<ToolCallChunk>
+    | 'last'
+    | null
+    | undefined;
+};
+
+/**
  * AbbreviationItem
  *
  * Item representing an abbreviation/acronym and its definition.
@@ -655,6 +826,144 @@ export type BodyStartAnalysisApiStartAnalysisPost = {
    * Workflow Types
    */
   workflow_types?: string | null;
+};
+
+/**
+ * ChatMessage
+ *
+ * Message that can be assigned an arbitrary speaker (i.e. role).
+ */
+export type ChatMessage = {
+  /**
+   * Content
+   */
+  content:
+    | string
+    | Array<
+        | string
+        | {
+            [key: string]: unknown;
+          }
+      >;
+  /**
+   * Additional Kwargs
+   */
+  additional_kwargs?: {
+    [key: string]: unknown;
+  };
+  /**
+   * Response Metadata
+   */
+  response_metadata?: {
+    [key: string]: unknown;
+  };
+  /**
+   * Type
+   */
+  type?: 'chat';
+  /**
+   * Name
+   */
+  name?: string | null;
+  /**
+   * Id
+   */
+  id?: string | null;
+  /**
+   * Role
+   */
+  role: string;
+  [key: string]:
+    | unknown
+    | string
+    | Array<
+        | string
+        | {
+            [key: string]: unknown;
+          }
+      >
+    | {
+        [key: string]: unknown;
+      }
+    | {
+        [key: string]: unknown;
+      }
+    | 'chat'
+    | string
+    | null
+    | string
+    | null
+    | string
+    | undefined;
+};
+
+/**
+ * ChatMessageChunk
+ *
+ * Chat Message chunk.
+ */
+export type ChatMessageChunk = {
+  /**
+   * Content
+   */
+  content:
+    | string
+    | Array<
+        | string
+        | {
+            [key: string]: unknown;
+          }
+      >;
+  /**
+   * Additional Kwargs
+   */
+  additional_kwargs?: {
+    [key: string]: unknown;
+  };
+  /**
+   * Response Metadata
+   */
+  response_metadata?: {
+    [key: string]: unknown;
+  };
+  /**
+   * Type
+   */
+  type?: 'ChatMessageChunk';
+  /**
+   * Name
+   */
+  name?: string | null;
+  /**
+   * Id
+   */
+  id?: string | null;
+  /**
+   * Role
+   */
+  role: string;
+  [key: string]:
+    | unknown
+    | string
+    | Array<
+        | string
+        | {
+            [key: string]: unknown;
+          }
+      >
+    | {
+        [key: string]: unknown;
+      }
+    | {
+        [key: string]: unknown;
+      }
+    | 'ChatMessageChunk'
+    | string
+    | null
+    | string
+    | null
+    | string
+    | undefined;
 };
 
 /**
@@ -1357,6 +1666,194 @@ export type ClaimReferenceValidationState = {
    * Claim substantiation results indexed by chunk_index and claim_index
    */
   substantiations?: Array<ClaimSubstantiationResultWithClaimIndex>;
+};
+
+/**
+ * ClaimReferenceValidationV2Config
+ *
+ * Configuration for claim reference validation v2 workflow
+ */
+export type ClaimReferenceValidationV2Config = {
+  /**
+   * Project Id
+   *
+   * The ID of the project that this workflow run should be associated with
+   */
+  project_id?: string | null;
+  /**
+   * Openai Api Key
+   *
+   * The OpenAI API key to use for this workflow execution
+   */
+  openai_api_key?: string | null;
+  /**
+   * Domain
+   *
+   * Domain context for more accurate analysis
+   */
+  domain?: string | null;
+  /**
+   * Target Audience
+   *
+   * Target audience context for analysis
+   */
+  target_audience?: string | null;
+  /**
+   * Publication Date
+   *
+   * Publication date of the document (YYYY-MM-DD format)
+   */
+  publication_date?: string | null;
+  /**
+   * Type
+   */
+  type?: 'claim_reference_validation_v2';
+};
+
+/**
+ * ClaimReferenceValidationV2Item
+ */
+export type ClaimReferenceValidationV2Item = {
+  /**
+   * Key Sentence
+   *
+   * The key sentence from the main document that is being validated. Should be a direct quote from the text.
+   */
+  key_sentence: string;
+  /**
+   * Line Start
+   *
+   * The start line of the key sentence in the main document
+   */
+  line_start: number;
+  /**
+   * Line End
+   *
+   * The end line of the key sentence in the main document
+   */
+  line_end: number;
+  /**
+   * The degree of evidence that the supporting document(s) provides to support the claim. Possible values: ['unverifiable', 'supported', 'partially_supported', 'unsupported']
+   */
+  evidence_alignment: EvidenceAlignmentLevel;
+  /**
+   * Rationale
+   *
+   * A brief rationale for why you think the claim is substantiated or not substantiated by the cited supporting document(s)
+   */
+  rationale: string;
+  /**
+   * Long Rationale
+   *
+   * A detailed rationale for why you think the claim is substantiated or not substantiated by the cited supporting document(s), in markdown format
+   */
+  long_rationale: string;
+  /**
+   * Feedback
+   *
+   * A brief suggestion on how the issue can be resolved, e.g., by adding more supporting documents or by rephrasing the original chunk, etc. Return 'No changes needed' if there are no significant issues with the substantiation of the claim.
+   */
+  feedback: string;
+  /**
+   * Evidence Sources
+   *
+   * The sources that provide the evidence for the claim. If there are multiple sources, include all of them.
+   */
+  evidence_sources: Array<ClaimReferenceValidationV2ItemSource>;
+};
+
+/**
+ * ClaimReferenceValidationV2ItemSource
+ */
+export type ClaimReferenceValidationV2ItemSource = {
+  /**
+   * The type of source: 'file' for a local supporting document, 'web' for a web page found via search
+   */
+  type: SourceType;
+  /**
+   * Snippet
+   *
+   * A relevant excerpt from the source. For file sources, a direct quote from the document. For web sources, the relevant passage or snippet from the web page.
+   */
+  snippet: string;
+  /**
+   * Location
+   *
+   * The location of the snippet within the source. For file sources: page number, section, figure, etc. For web sources: the section or heading where the snippet was found.
+   */
+  location: string;
+  /**
+   * Title
+   *
+   * The title of the source. For file sources, the document title. For web sources, the web page or article title.
+   */
+  title: string;
+  /**
+   * Source Reference
+   *
+   * The reference identifier for the source. For file sources, the full file path (e.g., '/supporting/abc123.md'). For web sources, the URL of the page.
+   */
+  source_reference: string;
+};
+
+/**
+ * ClaimReferenceValidationV2Response
+ */
+export type ClaimReferenceValidationV2Response = {
+  /**
+   * Results
+   *
+   * The results of the claim reference validation
+   */
+  results: Array<ClaimReferenceValidationV2Item>;
+  /**
+   * Reasoning
+   *
+   * The step-by-step reasoning you used to perform the validation, in markdown format
+   */
+  reasoning: string;
+};
+
+/**
+ * ClaimReferenceValidationV2State
+ *
+ * State for claim reference validation v2 workflow.
+ */
+export type ClaimReferenceValidationV2State = {
+  /**
+   * Errors
+   *
+   * Errors that occurred during the workflow execution.
+   */
+  errors?: Array<WorkflowError>;
+  /**
+   * Type
+   */
+  type?: 'claim_reference_validation_v2';
+  config: ClaimReferenceValidationV2Config;
+  /**
+   * Messages
+   *
+   * Messages from the LLM
+   */
+  messages?: Array<
+    | AiMessage
+    | HumanMessage
+    | ChatMessage
+    | SystemMessage
+    | FunctionMessage
+    | ToolMessage
+    | AiMessageChunk
+    | HumanMessageChunk
+    | ChatMessageChunk
+    | SystemMessageChunk
+    | FunctionMessageChunk
+    | ToolMessageChunk
+  >;
+  /**
+   * The response from the claim reference validation agent
+   */
+  response?: ClaimReferenceValidationV2Response | null;
 };
 
 /**
@@ -2545,6 +3042,139 @@ export type FootnoteSection = {
 };
 
 /**
+ * FunctionMessage
+ *
+ * Message for passing the result of executing a tool back to a model.
+ *
+ * `FunctionMessage` are an older version of the `ToolMessage` schema, and
+ * do not contain the `tool_call_id` field.
+ *
+ * The `tool_call_id` field is used to associate the tool call request with the
+ * tool call response. Useful in situations where a chat model is able
+ * to request multiple tool calls in parallel.
+ */
+export type FunctionMessage = {
+  /**
+   * Content
+   */
+  content:
+    | string
+    | Array<
+        | string
+        | {
+            [key: string]: unknown;
+          }
+      >;
+  /**
+   * Additional Kwargs
+   */
+  additional_kwargs?: {
+    [key: string]: unknown;
+  };
+  /**
+   * Response Metadata
+   */
+  response_metadata?: {
+    [key: string]: unknown;
+  };
+  /**
+   * Type
+   */
+  type?: 'function';
+  /**
+   * Name
+   */
+  name: string;
+  /**
+   * Id
+   */
+  id?: string | null;
+  [key: string]:
+    | unknown
+    | string
+    | Array<
+        | string
+        | {
+            [key: string]: unknown;
+          }
+      >
+    | {
+        [key: string]: unknown;
+      }
+    | {
+        [key: string]: unknown;
+      }
+    | 'function'
+    | string
+    | string
+    | null
+    | undefined;
+};
+
+/**
+ * FunctionMessageChunk
+ *
+ * Function Message chunk.
+ */
+export type FunctionMessageChunk = {
+  /**
+   * Content
+   */
+  content:
+    | string
+    | Array<
+        | string
+        | {
+            [key: string]: unknown;
+          }
+      >;
+  /**
+   * Additional Kwargs
+   */
+  additional_kwargs?: {
+    [key: string]: unknown;
+  };
+  /**
+   * Response Metadata
+   */
+  response_metadata?: {
+    [key: string]: unknown;
+  };
+  /**
+   * Type
+   */
+  type?: 'FunctionMessageChunk';
+  /**
+   * Name
+   */
+  name: string;
+  /**
+   * Id
+   */
+  id?: string | null;
+  [key: string]:
+    | unknown
+    | string
+    | Array<
+        | string
+        | {
+            [key: string]: unknown;
+          }
+      >
+    | {
+        [key: string]: unknown;
+      }
+    | {
+        [key: string]: unknown;
+      }
+    | 'FunctionMessageChunk'
+    | string
+    | string
+    | null
+    | undefined;
+};
+
+/**
  * HTTPValidationError
  */
 export type HttpValidationError = {
@@ -2619,6 +3249,150 @@ export type HumanApprovalState = {
    * ISO timestamp when approved
    */
   approved_at?: string | null;
+};
+
+/**
+ * HumanMessage
+ *
+ * Message from the user.
+ *
+ * A `HumanMessage` is a message that is passed in from a user to the model.
+ *
+ * Example:
+ * ```python
+ * from langchain_core.messages import HumanMessage, SystemMessage
+ *
+ * messages = [
+ * SystemMessage(content="You are a helpful assistant! Your name is Bob."),
+ * HumanMessage(content="What is your name?"),
+ * ]
+ *
+ * # Instantiate a chat model and invoke it with the messages
+ * model = ...
+ * print(model.invoke(messages))
+ * ```
+ */
+export type HumanMessage = {
+  /**
+   * Content
+   */
+  content:
+    | string
+    | Array<
+        | string
+        | {
+            [key: string]: unknown;
+          }
+      >;
+  /**
+   * Additional Kwargs
+   */
+  additional_kwargs?: {
+    [key: string]: unknown;
+  };
+  /**
+   * Response Metadata
+   */
+  response_metadata?: {
+    [key: string]: unknown;
+  };
+  /**
+   * Type
+   */
+  type?: 'human';
+  /**
+   * Name
+   */
+  name?: string | null;
+  /**
+   * Id
+   */
+  id?: string | null;
+  [key: string]:
+    | unknown
+    | string
+    | Array<
+        | string
+        | {
+            [key: string]: unknown;
+          }
+      >
+    | {
+        [key: string]: unknown;
+      }
+    | {
+        [key: string]: unknown;
+      }
+    | 'human'
+    | string
+    | null
+    | string
+    | null
+    | undefined;
+};
+
+/**
+ * HumanMessageChunk
+ *
+ * Human Message chunk.
+ */
+export type HumanMessageChunk = {
+  /**
+   * Content
+   */
+  content:
+    | string
+    | Array<
+        | string
+        | {
+            [key: string]: unknown;
+          }
+      >;
+  /**
+   * Additional Kwargs
+   */
+  additional_kwargs?: {
+    [key: string]: unknown;
+  };
+  /**
+   * Response Metadata
+   */
+  response_metadata?: {
+    [key: string]: unknown;
+  };
+  /**
+   * Type
+   */
+  type?: 'HumanMessageChunk';
+  /**
+   * Name
+   */
+  name?: string | null;
+  /**
+   * Id
+   */
+  id?: string | null;
+  [key: string]:
+    | unknown
+    | string
+    | Array<
+        | string
+        | {
+            [key: string]: unknown;
+          }
+      >
+    | {
+        [key: string]: unknown;
+      }
+    | {
+        [key: string]: unknown;
+      }
+    | 'HumanMessageChunk'
+    | string
+    | null
+    | string
+    | null
+    | undefined;
 };
 
 /**
@@ -2856,6 +3630,100 @@ export type InferenceValidationWorkflowConfig = {
    * Type
    */
   type?: 'inference_validation';
+};
+
+/**
+ * InputTokenDetails
+ *
+ * Breakdown of input token counts.
+ *
+ * Does *not* need to sum to full input token count. Does *not* need to have all keys.
+ *
+ * Example:
+ * ```python
+ * {
+ * "audio": 10,
+ * "cache_creation": 200,
+ * "cache_read": 100,
+ * }
+ * ```
+ *
+ * May also hold extra provider-specific keys.
+ *
+ * !!! version-added "Added in `langchain-core` 0.3.9"
+ */
+export type InputTokenDetails = {
+  /**
+   * Audio
+   */
+  audio?: number;
+  /**
+   * Cache Creation
+   */
+  cache_creation?: number;
+  /**
+   * Cache Read
+   */
+  cache_read?: number;
+  [key: string]: unknown | number | undefined;
+};
+
+/**
+ * InvalidToolCall
+ *
+ * Allowance for errors made by LLM.
+ *
+ * Here we add an `error` key to surface errors made during generation
+ * (e.g., invalid JSON arguments.)
+ */
+export type InvalidToolCall = {
+  /**
+   * Type
+   */
+  type: 'invalid_tool_call';
+  /**
+   * Id
+   */
+  id: string | null;
+  /**
+   * Name
+   */
+  name: string | null;
+  /**
+   * Args
+   */
+  args: string | null;
+  /**
+   * Error
+   */
+  error: string | null;
+  /**
+   * Index
+   */
+  index?: number | string;
+  /**
+   * Extras
+   */
+  extras?: {
+    [key: string]: unknown;
+  };
+  [key: string]:
+    | unknown
+    | 'invalid_tool_call'
+    | string
+    | null
+    | string
+    | null
+    | string
+    | null
+    | string
+    | null
+    | number
+    | string
+    | {
+        [key: string]: unknown;
+      }
+    | undefined;
 };
 
 /**
@@ -3151,6 +4019,37 @@ export type MethodologyComparisonResponse = {
    * List of sources cited from web search
    */
   references?: Array<ReferenceMinimal>;
+};
+
+/**
+ * OutputTokenDetails
+ *
+ * Breakdown of output token counts.
+ *
+ * Does *not* need to sum to full output token count. Does *not* need to have all keys.
+ *
+ * Example:
+ * ```python
+ * {
+ * "audio": 10,
+ * "reasoning": 200,
+ * }
+ * ```
+ *
+ * May also hold extra provider-specific keys.
+ *
+ * !!! version-added "Added in `langchain-core` 0.3.9"
+ */
+export type OutputTokenDetails = {
+  /**
+   * Audio
+   */
+  audio?: number;
+  /**
+   * Reasoning
+   */
+  reasoning?: number;
+  [key: string]: unknown | number | undefined;
 };
 
 /**
@@ -4378,6 +5277,16 @@ export type ShareStatusResponse = {
 };
 
 /**
+ * SourceType
+ */
+export const SourceType = { File: 'file', Web: 'web' } as const;
+
+/**
+ * SourceType
+ */
+export type SourceType = (typeof SourceType)[keyof typeof SourceType];
+
+/**
  * StartMultipleWorkflowsRequest
  *
  * Request model for starting multiple workflows
@@ -4434,6 +5343,444 @@ export type SummaryAndOutput = {
    * Markdown formatted output of the full context of the related section.
    */
   markdown_output: string;
+};
+
+/**
+ * SystemMessage
+ *
+ * Message for priming AI behavior.
+ *
+ * The system message is usually passed in as the first of a sequence
+ * of input messages.
+ *
+ * Example:
+ * ```python
+ * from langchain_core.messages import HumanMessage, SystemMessage
+ *
+ * messages = [
+ * SystemMessage(content="You are a helpful assistant! Your name is Bob."),
+ * HumanMessage(content="What is your name?"),
+ * ]
+ *
+ * # Define a chat model and invoke it with the messages
+ * print(model.invoke(messages))
+ * ```
+ */
+export type SystemMessage = {
+  /**
+   * Content
+   */
+  content:
+    | string
+    | Array<
+        | string
+        | {
+            [key: string]: unknown;
+          }
+      >;
+  /**
+   * Additional Kwargs
+   */
+  additional_kwargs?: {
+    [key: string]: unknown;
+  };
+  /**
+   * Response Metadata
+   */
+  response_metadata?: {
+    [key: string]: unknown;
+  };
+  /**
+   * Type
+   */
+  type?: 'system';
+  /**
+   * Name
+   */
+  name?: string | null;
+  /**
+   * Id
+   */
+  id?: string | null;
+  [key: string]:
+    | unknown
+    | string
+    | Array<
+        | string
+        | {
+            [key: string]: unknown;
+          }
+      >
+    | {
+        [key: string]: unknown;
+      }
+    | {
+        [key: string]: unknown;
+      }
+    | 'system'
+    | string
+    | null
+    | string
+    | null
+    | undefined;
+};
+
+/**
+ * SystemMessageChunk
+ *
+ * System Message chunk.
+ */
+export type SystemMessageChunk = {
+  /**
+   * Content
+   */
+  content:
+    | string
+    | Array<
+        | string
+        | {
+            [key: string]: unknown;
+          }
+      >;
+  /**
+   * Additional Kwargs
+   */
+  additional_kwargs?: {
+    [key: string]: unknown;
+  };
+  /**
+   * Response Metadata
+   */
+  response_metadata?: {
+    [key: string]: unknown;
+  };
+  /**
+   * Type
+   */
+  type?: 'SystemMessageChunk';
+  /**
+   * Name
+   */
+  name?: string | null;
+  /**
+   * Id
+   */
+  id?: string | null;
+  [key: string]:
+    | unknown
+    | string
+    | Array<
+        | string
+        | {
+            [key: string]: unknown;
+          }
+      >
+    | {
+        [key: string]: unknown;
+      }
+    | {
+        [key: string]: unknown;
+      }
+    | 'SystemMessageChunk'
+    | string
+    | null
+    | string
+    | null
+    | undefined;
+};
+
+/**
+ * ToolCall
+ *
+ * Represents an AI's request to call a tool.
+ *
+ * Example:
+ * ```python
+ * {"name": "foo", "args": {"a": 1}, "id": "123"}
+ * ```
+ *
+ * This represents a request to call the tool named `'foo'` with arguments
+ * `{"a": 1}` and an identifier of `'123'`.
+ */
+export type ToolCall = {
+  /**
+   * Name
+   */
+  name: string;
+  /**
+   * Args
+   */
+  args: {
+    [key: string]: unknown;
+  };
+  /**
+   * Id
+   */
+  id: string | null;
+  /**
+   * Type
+   */
+  type?: 'tool_call';
+  [key: string]:
+    | unknown
+    | string
+    | {
+        [key: string]: unknown;
+      }
+    | string
+    | null
+    | 'tool_call'
+    | undefined;
+};
+
+/**
+ * ToolCallChunk
+ *
+ * A chunk of a tool call (yielded when streaming).
+ *
+ * When merging `ToolCallChunk`s (e.g., via `AIMessageChunk.__add__`),
+ * all string attributes are concatenated. Chunks are only merged if their
+ * values of `index` are equal and not None.
+ *
+ * Example:
+ * ```python
+ * left_chunks = [ToolCallChunk(name="foo", args='{"a":', index=0)]
+ * right_chunks = [ToolCallChunk(name=None, args="1}", index=0)]
+ *
+ * (
+ * AIMessageChunk(content="", tool_call_chunks=left_chunks)
+ * + AIMessageChunk(content="", tool_call_chunks=right_chunks)
+ * ).tool_call_chunks == [ToolCallChunk(name="foo", args='{"a":1}', index=0)]
+ * ```
+ */
+export type ToolCallChunk = {
+  /**
+   * Name
+   */
+  name: string | null;
+  /**
+   * Args
+   */
+  args: string | null;
+  /**
+   * Id
+   */
+  id: string | null;
+  /**
+   * Index
+   */
+  index: number | null;
+  /**
+   * Type
+   */
+  type?: 'tool_call_chunk';
+  [key: string]:
+    | unknown
+    | string
+    | null
+    | string
+    | null
+    | string
+    | null
+    | number
+    | null
+    | 'tool_call_chunk'
+    | undefined;
+};
+
+/**
+ * ToolMessage
+ *
+ * Message for passing the result of executing a tool back to a model.
+ *
+ * `ToolMessage` objects contain the result of a tool invocation. Typically, the result
+ * is encoded inside the `content` field.
+ *
+ * `tool_call_id` is used to associate the tool call request with the tool call
+ * response. Useful in situations where a chat model is able to request multiple tool
+ * calls in parallel.
+ *
+ * Example:
+ * A `ToolMessage` representing a result of `42` from a tool call with id
+ *
+ * ```python
+ * from langchain_core.messages import ToolMessage
+ *
+ * ToolMessage(content="42", tool_call_id="call_Jja7J89XsjrOLA5r!MEOW!SL")
+ * ```
+ *
+ * Example:
+ * A `ToolMessage` where only part of the tool output is sent to the model
+ * and the full output is passed in to artifact.
+ *
+ * ```python
+ * from langchain_core.messages import ToolMessage
+ *
+ * tool_output = {
+ * "stdout": "From the graph we can see that the correlation between "
+ * "x and y is ...",
+ * "stderr": None,
+ * "artifacts": {"type": "image", "base64_data": "/9j/4gIcSU..."},
+ * }
+ *
+ * ToolMessage(
+ * content=tool_output["stdout"],
+ * artifact=tool_output,
+ * tool_call_id="call_Jja7J89XsjrOLA5r!MEOW!SL",
+ * )
+ * ```
+ */
+export type ToolMessage = {
+  /**
+   * Content
+   */
+  content:
+    | string
+    | Array<
+        | string
+        | {
+            [key: string]: unknown;
+          }
+      >;
+  /**
+   * Additional Kwargs
+   */
+  additional_kwargs?: {
+    [key: string]: unknown;
+  };
+  /**
+   * Response Metadata
+   */
+  response_metadata?: {
+    [key: string]: unknown;
+  };
+  /**
+   * Type
+   */
+  type?: 'tool';
+  /**
+   * Name
+   */
+  name?: string | null;
+  /**
+   * Id
+   */
+  id?: string | null;
+  /**
+   * Tool Call Id
+   */
+  tool_call_id: string;
+  /**
+   * Artifact
+   */
+  artifact?: unknown;
+  /**
+   * Status
+   */
+  status?: 'success' | 'error';
+  [key: string]:
+    | unknown
+    | string
+    | Array<
+        | string
+        | {
+            [key: string]: unknown;
+          }
+      >
+    | {
+        [key: string]: unknown;
+      }
+    | {
+        [key: string]: unknown;
+      }
+    | 'tool'
+    | string
+    | null
+    | string
+    | null
+    | string
+    | 'success'
+    | 'error'
+    | undefined;
+};
+
+/**
+ * ToolMessageChunk
+ *
+ * Tool Message chunk.
+ */
+export type ToolMessageChunk = {
+  /**
+   * Content
+   */
+  content:
+    | string
+    | Array<
+        | string
+        | {
+            [key: string]: unknown;
+          }
+      >;
+  /**
+   * Additional Kwargs
+   */
+  additional_kwargs?: {
+    [key: string]: unknown;
+  };
+  /**
+   * Response Metadata
+   */
+  response_metadata?: {
+    [key: string]: unknown;
+  };
+  /**
+   * Type
+   */
+  type?: 'ToolMessageChunk';
+  /**
+   * Name
+   */
+  name?: string | null;
+  /**
+   * Id
+   */
+  id?: string | null;
+  /**
+   * Tool Call Id
+   */
+  tool_call_id: string;
+  /**
+   * Artifact
+   */
+  artifact?: unknown;
+  /**
+   * Status
+   */
+  status?: 'success' | 'error';
+  [key: string]:
+    | unknown
+    | string
+    | Array<
+        | string
+        | {
+            [key: string]: unknown;
+          }
+      >
+    | {
+        [key: string]: unknown;
+      }
+    | {
+        [key: string]: unknown;
+      }
+    | 'ToolMessageChunk'
+    | string
+    | null
+    | string
+    | null
+    | string
+    | 'success'
+    | 'error'
+    | undefined;
 };
 
 /**
@@ -4497,6 +5844,59 @@ export type UpdateUserPreferencesRequest = {
  */
 export type UpdateUserRoleRequest = {
   role: UserRole;
+};
+
+/**
+ * UsageMetadata
+ *
+ * Usage metadata for a message, such as token counts.
+ *
+ * This is a standard representation of token usage that is consistent across models.
+ *
+ * Example:
+ * ```python
+ * {
+ * "input_tokens": 350,
+ * "output_tokens": 240,
+ * "total_tokens": 590,
+ * "input_token_details": {
+ * "audio": 10,
+ * "cache_creation": 200,
+ * "cache_read": 100,
+ * },
+ * "output_token_details": {
+ * "audio": 10,
+ * "reasoning": 200,
+ * },
+ * }
+ * ```
+ *
+ * !!! warning "Behavior changed in `langchain-core` 0.3.9"
+ *
+ * Added `input_token_details` and `output_token_details`.
+ *
+ * !!! note "LangSmith SDK"
+ *
+ * The LangSmith SDK also has a `UsageMetadata` class. While the two share fields,
+ * LangSmith's `UsageMetadata` has additional fields to capture cost information
+ * used by the LangSmith platform.
+ */
+export type UsageMetadata = {
+  /**
+   * Input Tokens
+   */
+  input_tokens: number;
+  /**
+   * Output Tokens
+   */
+  output_tokens: number;
+  /**
+   * Total Tokens
+   */
+  total_tokens: number;
+  input_token_details?: InputTokenDetails;
+  output_token_details?: OutputTokenDetails;
+  [key: string]: unknown | number | InputTokenDetails | OutputTokenDetails | undefined;
 };
 
 /**
@@ -4742,6 +6142,7 @@ export type WorkflowRunDetail = {
     | FootnoteExtractionState
     | ClaimExtractionState
     | ClaimReferenceValidationState
+    | ClaimReferenceValidationV2State
     | CitationDetectionState
     | AbbreviationScanState
     | MethodologicalAlignmentState
@@ -4794,6 +6195,7 @@ export const WorkflowRunType = {
   InferenceValidation: 'inference_validation',
   InferenceValidationV2: 'inference_validation_v2',
   ClaimReferenceValidation: 'claim_reference_validation',
+  ClaimReferenceValidationV2: 'claim_reference_validation_v2',
   AbbreviationScan: 'abbreviation_scan',
   AdvocacyTone: 'advocacy_tone',
   AboutAuthors: 'about_authors',
@@ -5027,6 +6429,7 @@ export type WorkflowRunDetailWritable = {
     | FootnoteExtractionState
     | ClaimExtractionState
     | ClaimReferenceValidationState
+    | ClaimReferenceValidationV2State
     | CitationDetectionState
     | AbbreviationScanState
     | MethodologicalAlignmentState
@@ -5216,6 +6619,7 @@ export type StartWorkflowApiWorkflowsStartPostData = {
     | ClaimExtractionWorkflowConfig
     | CitationDetectionConfig
     | ClaimReferenceValidationWorkflowConfig
+    | ClaimReferenceValidationV2Config
     | AbbreviationScanWorkflowConfig
     | MethodologicalAlignmentWorkflowConfig
     | ReferenceDownloaderWorkflowConfig
