@@ -361,26 +361,6 @@ export type AdvocacyToneWorkflowConfig = {
 };
 
 /**
- * AgentInfo
- *
- * Information about a registered agent
- */
-export type AgentInfo = {
-  /**
-   * Function Name
-   */
-  function_name: string;
-  /**
-   * Name
-   */
-  name: string;
-  /**
-   * Description
-   */
-  description: string;
-};
-
-/**
  * AnalysisFormConfig
  *
  * Form config for starting analysis (project creation + workflow start)
@@ -1599,7 +1579,7 @@ export type DocumentIssue = {
   /**
    * Id
    *
-   * A unique identifier for the issue, generated as a hash of type + title + description + severity + chunk_index + claim_index + chunk_indices.
+   * A unique identifier for the issue, generated as a hash of type + title + description + severity + chunk_index + chunk_indices.
    */
   id?: string;
   /**
@@ -5089,25 +5069,6 @@ export type ReadHealthApiHealthHeadResponses = {
    */
   200: unknown;
 };
-
-export type GetSupportedAgentsApiSupportedAgentsGetData = {
-  body?: never;
-  path?: never;
-  query?: never;
-  url: '/api/supported-agents';
-};
-
-export type GetSupportedAgentsApiSupportedAgentsGetResponses = {
-  /**
-   * Response Get Supported Agents Api Supported Agents Get
-   *
-   * Successful Response
-   */
-  200: Array<AgentInfo>;
-};
-
-export type GetSupportedAgentsApiSupportedAgentsGetResponse =
-  GetSupportedAgentsApiSupportedAgentsGetResponses[keyof GetSupportedAgentsApiSupportedAgentsGetResponses];
 
 export type StartAnalysisApiStartAnalysisDoNotUsePostData = {
   body: AnalysisFormConfig;
