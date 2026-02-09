@@ -1,6 +1,9 @@
 import { Markdown } from '@/components/markdown';
 import { Button } from '@/components/ui/button';
-import { DocumentIssue, SeverityEnum } from '@/lib/generated-api';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Textarea } from '@/components/ui/textarea';
+import { DocumentIssue, FeedbackType, SeverityEnum, WorkflowRunDetail } from '@/lib/generated-api';
+import { useIssueFeedback } from '@/lib/hooks/use-issue-feedback';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { cn } from '@/lib/utils';
 import {
@@ -10,15 +13,20 @@ import {
   CircleAlertIcon,
   ExternalLinkIcon,
   MessageCircleWarningIcon,
+  ThumbsDown,
+  ThumbsUp,
   TriangleAlertIcon,
 } from 'lucide-react';
-import { memo, useState } from 'react';
+import { memo, useMemo, useState } from 'react';
+import { toast } from 'sonner';
 import { SeverityBadge } from './severity-badge';
 
 interface DocumentIssueCardProps {
   issue: DocumentIssue;
   hideJumpToChunk?: boolean;
   onSelect: (issue: DocumentIssue) => void;
+  workflowRuns?: WorkflowRunDetail[];
+  readOnly?: boolean;
 }
 
 export const severityColorMap: Record<
@@ -51,12 +59,106 @@ export const severityColorMap: Record<
   },
 };
 
-function DocumentIssueCardRaw({ issue, hideJumpToChunk = false, onSelect }: DocumentIssueCardProps) {
+function IssueFeedbackButtons({ workflowRunId, issueId }: { workflowRunId: string; issueId: string }) {
+  const { feedback, submitFeedback, isSubmitting } = useIssueFeedback(workflowRunId, issueId);
+  const [feedbackText, setFeedbackText] = useState('');
+  const [isPopoverOpen, setIsPopoverOpen] = useState(false);
+
+  const selectedFeedback = feedback?.feedback_type ?? null;
+  const hasSubmitted = selectedFeedback !== null;
+
+  const handleThumbsUp = () => {
+    if (hasSubmitted && selectedFeedback === FeedbackType.ThumbsUp) return;
+
+    submitFeedback(
+      { feedback_type: FeedbackType.ThumbsUp, feedback_text: null },
+      {
+        onSuccess: () => toast.success('Thanks for your feedback!'),
+        onError: () => toast.error('Failed to submit feedback'),
+      },
+    );
+  };
+
+  const handleThumbsDownSubmit = () => {
+    submitFeedback(
+      { feedback_type: FeedbackType.ThumbsDown, feedback_text: feedbackText || null },
+      {
+        onSuccess: () => {
+          toast.success('Thanks for your feedback!');
+          setIsPopoverOpen(false);
+          setFeedbackText('');
+        },
+        onError: () => toast.error('Failed to submit feedback'),
+      },
+    );
+  };
+
+  return (
+    <div className="flex items-center gap-0.5">
+      <Button
+        variant={selectedFeedback === FeedbackType.ThumbsUp ? 'default' : 'ghost'}
+        size="xs"
+        onClick={handleThumbsUp}
+        className="h-6 w-6 p-0"
+        disabled={isSubmitting || (hasSubmitted && selectedFeedback === FeedbackType.ThumbsUp)}
+        title="Helpful"
+      >
+        <ThumbsUp className="h-3 w-3" />
+      </Button>
+      <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant={selectedFeedback === FeedbackType.ThumbsDown ? 'default' : 'ghost'}
+            size="xs"
+            className="h-6 w-6 p-0"
+            disabled={hasSubmitted && selectedFeedback === FeedbackType.ThumbsDown}
+            title="Not helpful"
+          >
+            <ThumbsDown className="h-3 w-3" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-72" align="end">
+          <div className="space-y-3">
+            <p className="text-sm font-medium">What could be improved?</p>
+            <Textarea
+              placeholder="Tell us what's wrong with this issue..."
+              value={feedbackText}
+              onChange={(e) => setFeedbackText(e.target.value)}
+              rows={3}
+              className="resize-none text-sm"
+            />
+            <div className="flex justify-end gap-2">
+              <Button variant="ghost" size="sm" onClick={() => setIsPopoverOpen(false)}>
+                Cancel
+              </Button>
+              <Button size="sm" onClick={handleThumbsDownSubmit} disabled={isSubmitting}>
+                {isSubmitting ? 'Submitting...' : 'Submit'}
+              </Button>
+            </div>
+          </div>
+        </PopoverContent>
+      </Popover>
+    </div>
+  );
+}
+
+function DocumentIssueCardRaw({
+  issue,
+  hideJumpToChunk = false,
+  onSelect,
+  workflowRuns = [],
+  readOnly = false,
+}: DocumentIssueCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const { className, icon, accentClassName } = severityColorMap[issue.severity];
   const { getWorkflowTypeName } = useWorkflowTypes();
 
-  const showHideJumpToChunkButton = !hideJumpToChunk && issue.chunk_index !== undefined && issue.chunk_index !== null;
+const showHideJumpToChunkButton = !hideJumpToChunk && issue.chunk_index !== undefined && issue.chunk_index !== null;
+
+  const workflowRunId = useMemo(() => {
+    const workflowRun = workflowRuns.find((wr) => wr.run.type === issue.type);
+    return workflowRun?.run.id;
+  }, [workflowRuns, issue.type]);
 
   return (
     <div
@@ -71,7 +173,12 @@ function DocumentIssueCardRaw({ issue, hideJumpToChunk = false, onSelect }: Docu
             <p className="text-xs text-muted-foreground italic">{getWorkflowTypeName(issue.type)}</p>
           </hgroup>
         </div>
-        <SeverityBadge severity={issue.severity} hideIcon={true} />
+        <div className="flex items-center gap-2">
+          {!readOnly && workflowRunId && issue.id && (
+            <IssueFeedbackButtons workflowRunId={workflowRunId} issueId={issue.id} />
+          )}
+          <SeverityBadge severity={issue.severity} hideIcon={true} />
+        </div>
       </div>
 
       <Markdown>{issue.description}</Markdown>
