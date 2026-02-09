@@ -6,8 +6,8 @@
   <DefaultLocale>en-US</DefaultLocale>
   <DisplayName DefaultValue="AI Reviewer"/>
   <Description DefaultValue="A template to get started."/>
-  <IconUrl DefaultValue="{NGROK_FRONTEND}/logo.svg"/>
-  <HighResolutionIconUrl DefaultValue="{NGROK_FRONTEND}/logo.svg"/>
+  <IconUrl DefaultValue="{NGROK_FRONTEND}/logo_160x160.png"/>
+  <HighResolutionIconUrl DefaultValue="{NGROK_FRONTEND}/logo_160x160.png"/>
   <SupportUrl DefaultValue="{NGROK_FRONTEND}/"/>
   <AppDomains>
     <AppDomain>https://www.ai-reviewer.com</AppDomain>
@@ -19,11 +19,7 @@
     <SourceLocation DefaultValue="{NGROK_FRONTEND}/addin"/>
   </DefaultSettings>
   <Permissions>ReadWriteDocument</Permissions>
-  <Requirements>
-    <Sets>
-      <Set Name="SharedRuntime" MinVersion="1.1"/>
-    </Sets>
-  </Requirements>
+
   <VersionOverrides xmlns="http://schemas.microsoft.com/office/taskpaneappversionoverrides" xsi:type="VersionOverridesV1_0">
     <Hosts>
       <Host xsi:type="Document">
@@ -70,9 +66,9 @@
     </Hosts>
     <Resources>
       <bt:Images>
-        <bt:Image id="Icon.16x16" DefaultValue="{NGROK_FRONTEND}/logo.svg"/>
-        <bt:Image id="Icon.32x32" DefaultValue="{NGROK_FRONTEND}/logo.svg"/>
-        <bt:Image id="Icon.80x80" DefaultValue="{NGROK_FRONTEND}/logo.svg"/>
+        <bt:Image id="Icon.16x16" DefaultValue="{NGROK_FRONTEND}/logo_16x16.png"/>
+        <bt:Image id="Icon.32x32" DefaultValue="{NGROK_FRONTEND}/logo_32x32.png"/>
+        <bt:Image id="Icon.80x80" DefaultValue="{NGROK_FRONTEND}/logo_80x80.png"/>
       </bt:Images>
       <bt:Urls>
         <bt:Url id="GetStarted.LearnMoreUrl" DefaultValue="https://go.microsoft.com/fwlink/?LinkId=276812"/>
