@@ -1,4 +1,4 @@
-import { DocumentIssue, SeverityEnum } from '@/lib/generated-api';
+import { DocumentIssue } from '@/lib/generated-api';
 
 function buildIssuesMap(
   issues: DocumentIssue[],
@@ -30,18 +30,14 @@ function buildIssuesMap(
 }
 
 export async function loadSettings(): Promise<{
-  projectId: string | null;
   authToken: string | null;
-  issueMarkersApplied: boolean;
   chunkToParagraphMapping: Record<string, number> | null;
 }> {
   return new Promise((resolve, reject) => {
     try {
       if (typeof Office === 'undefined' || !Office.context || !Office.context.document) {
         resolve({
-          projectId: null,
           authToken: null,
-          issueMarkersApplied: false,
           chunkToParagraphMapping: null,
         });
         return;
@@ -51,9 +47,7 @@ export async function loadSettings(): Promise<{
         if (result.status === Office.AsyncResultStatus.Succeeded) {
           const customProps = await getCustomDocumentProperties();
           resolve({
-            projectId: customProps.projectId,
             authToken: customProps.authToken,
-            issueMarkersApplied: customProps.issueMarkersApplied,
             chunkToParagraphMapping: customProps.chunkToParagraphMapping,
           });
         } else {
@@ -69,25 +63,19 @@ export async function loadSettings(): Promise<{
 }
 
 export async function getCustomDocumentProperties(): Promise<{
-  projectId: string | null;
   authToken: string | null;
-  issueMarkersApplied: boolean;
   chunkToParagraphMapping: Record<string, number> | null;
 }> {
   if (typeof Word === 'undefined') {
-    return { projectId: null, authToken: null, issueMarkersApplied: false, chunkToParagraphMapping: null };
+    return { authToken: null, chunkToParagraphMapping: null };
   }
 
   try {
     return await Word.run(async (context) => {
       const props = context.document.properties.customProperties;
-      const projectProp = props.getItemOrNullObject('AIReviewer_ProjectId');
       const tokenProp = props.getItemOrNullObject('AIReviewer_AuthToken');
-      const markersProp = props.getItemOrNullObject('AIReviewer_IssueMarkersApplied');
       const chunkToParagraphMappingProp = props.getItemOrNullObject('AIReviewer_ChunkToParagraphMapping');
-      projectProp.load(['name', 'value']);
       tokenProp.load(['name', 'value']);
-      markersProp.load(['name', 'value']);
       chunkToParagraphMappingProp.load(['name', 'value']);
       await context.sync();
 
@@ -96,26 +84,14 @@ export async function getCustomDocumentProperties(): Promise<{
         : JSON.parse(String(chunkToParagraphMappingProp.value ?? '{}'));
 
       return {
-        projectId: projectProp.isNullObject ? null : String(projectProp.value ?? ''),
         authToken: tokenProp.isNullObject ? null : String(tokenProp.value ?? ''),
-        issueMarkersApplied: !markersProp.isNullObject && Boolean(markersProp.value),
         chunkToParagraphMapping,
       };
     });
   } catch (error) {
     console.error('Error reading custom document properties:', error);
-    return { projectId: null, authToken: null, issueMarkersApplied: false, chunkToParagraphMapping: null };
+    return { authToken: null, chunkToParagraphMapping: null };
   }
-}
-
-async function setIssueMarkersApplied(value: boolean): Promise<void> {
-  if (typeof Word === 'undefined') return;
-
-  await Word.run(async (context) => {
-    const props = context.document.properties.customProperties;
-    props.add('AIReviewer_IssueMarkersApplied', value);
-    await context.sync();
-  });
 }
 
 export async function getCurrentParagraphIndex(): Promise<number> {
@@ -144,56 +120,15 @@ export async function getCurrentParagraphIndex(): Promise<number> {
 }
 
 const MARKER_TAG = 'AIReviewer_Issue_Marker';
-const severityOrder = [SeverityEnum.None, SeverityEnum.Low, SeverityEnum.Medium, SeverityEnum.High];
-const severityColors: Record<string, string> = {
-  [SeverityEnum.None]: '',
-  [SeverityEnum.Low]: '#52aeff', // bg-blue-600
-  [SeverityEnum.Medium]: '#cd8900', // bg-yellow-600
-  [SeverityEnum.High]: '#f87274', // bg-red-600
-};
 
 export async function addIssueMarkers(issues: DocumentIssue[]): Promise<Map<number, DocumentIssue[]>> {
   if (typeof Word === 'undefined') return new Map();
 
   const issuesMap = await Word.run(async (context) => {
-    const { chunkToParagraphMapping, issueMarkersApplied } = await getCustomDocumentProperties();
+    const { chunkToParagraphMapping } = await getCustomDocumentProperties();
     if (!chunkToParagraphMapping) return new Map();
-
-    const issuesMap = buildIssuesMap(issues, chunkToParagraphMapping);
-    if (issueMarkersApplied) {
-      return issuesMap;
-    }
-
-    const body = context.document.body;
-    const paragraphs = body.paragraphs;
-    paragraphs.load('items');
-    await context.sync();
-
-    for (const index of Array.from(issuesMap.keys())) {
-      const issues = issuesMap.get(index) || [];
-      if (index >= 0) {
-        const paragraphSeverityIndex = issues.reduce(
-          (max, issue) => Math.max(max, severityOrder.indexOf(issue.severity)),
-          0,
-        );
-        const highlightColor = severityColors[severityOrder[paragraphSeverityIndex]] || '';
-        if (highlightColor !== '') {
-          const paragraph = paragraphs.items[index];
-          if (!paragraph || paragraph.isNullObject) continue;
-          const cc = paragraph.insertContentControl();
-          cc.tag = `${MARKER_TAG}:${index}`;
-          cc.title = `${issues.length} AI Reviewer Issues`;
-          cc.appearance = 'BoundingBox';
-          cc.color = highlightColor;
-        }
-      }
-    }
-    await context.sync();
-
-    return issuesMap;
+    return buildIssuesMap(issues, chunkToParagraphMapping);
   });
-
-  await setIssueMarkersApplied(true);
 
   return issuesMap;
 }

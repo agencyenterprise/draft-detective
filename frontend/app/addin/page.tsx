@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { DocumentIssuesList } from '@/components/wizard/results-step/components/document-issues-list';
-import { getProjectEndpointApiProjectProjectIdGet, DocumentIssue } from '@/lib/generated-api';
+import { DocumentIssue, getSharedResourceApiPublicShareTokenGet } from '@/lib/generated-api';
 import { loadSettings, getCurrentParagraphIndex, addIssueMarkers } from '@/lib/addin/office-utils';
 import { RotateCwIcon } from 'lucide-react';
 
@@ -20,7 +20,6 @@ const debounce = <Args extends unknown[]>(func: (...args: Args) => void, wait: n
 };
 
 export default function AddinPage() {
-  const [projectId, setProjectIdState] = useState<string | null>(null);
   const [token, setTokenState] = useState<string | null>(null);
   const [currentParagraphIndex, setCurrentParagraphIndex] = useState<number | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
@@ -59,7 +58,7 @@ export default function AddinPage() {
             return;
           }
 
-          const { projectId: savedProjectId, authToken: savedToken } = await loadSettings();
+          const { authToken: savedToken } = await loadSettings();
 
           try {
             if (Office.addin && Office.addin.setStartupBehavior) {
@@ -79,7 +78,6 @@ export default function AddinPage() {
           }
 
           if (mounted) {
-            setProjectIdState(savedProjectId);
             setTokenState(savedToken);
           }
 
@@ -134,14 +132,13 @@ export default function AddinPage() {
     error,
     refetch,
   } = useQuery({
-    enabled: !!projectId && !!token,
-    queryKey: ['project', projectId, token],
+    enabled: !!token,
+    queryKey: ['share', token],
     // Cache for 10 minutes
     staleTime: 60 * 1000 * 10,
     queryFn: () =>
-      getProjectEndpointApiProjectProjectIdGet({
-        path: { project_id: projectId! },
-        query: { include_internal: true, share_token: token! },
+      getSharedResourceApiPublicShareTokenGet({
+        path: { token: token! },
       }),
   });
 
@@ -160,7 +157,7 @@ export default function AddinPage() {
 
   if (!isInitialized) return <div className="p-4 text-center">Loading Add-in...</div>;
 
-  if (!projectId || !token) {
+  if (!token) {
     return (
       <div className="min-h-screen bg-gray-50 p-4 flex flex-col">
         <div className="flex-1 flex items-center justify-center">
@@ -189,12 +186,12 @@ export default function AddinPage() {
         ) : filteredIssues.length > 0 ? (
           <>
             <div className="text-xs text-gray-500 border-b pb-2 mb-2">Paragraph issues</div>
-            <DocumentIssuesList issues={filteredIssues} onSelect={() => {}} />
+            <DocumentIssuesList issues={filteredIssues} onSelect={() => {}} hideJumpToChunk />
           </>
         ) : (
           <>
             <div className="text-xs text-gray-500 border-b pb-2 mb-2">All issues</div>
-            <DocumentIssuesList issues={project?.issues ?? []} onSelect={() => {}} />
+            <DocumentIssuesList issues={project?.issues ?? []} onSelect={() => {}} hideJumpToChunk />
           </>
         )}
       </div>

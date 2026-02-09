@@ -108,20 +108,20 @@ async def generate_docx(
     if not main_file_path.endswith(".docx") and not main_file_path.endswith(".doc"):
         raise ValueError("Main file must be a .docx or .doc to generate reviewed DOCX")
 
+    workflow_runs = await get_project_workflow_runs(project_id, include_internal=True)
+    workflow_states = [run.state for run in workflow_runs if run.state is not None]
+    issues = convert_to_issues(workflow_states)
+
     if share_token:
         output_path = await docx_manipulator_service.add_addin_metadata_to_docx(
             original_docx_path=main_file.file_path,
-            project_id=project_id,
             share_token=share_token,
             chunks=chunks,
+            issues=issues,
         )
     else:
         # Build chunk content map and convert workflow issues to comments
         chunk_content_map: Dict[int, str] = {c.chunk_index: c.content for c in chunks}
-
-        workflow_runs = await get_project_workflow_runs(project_id)
-        workflow_states = [run.state for run in workflow_runs if run.state is not None]
-        issues = convert_to_issues(workflow_states)
 
         # Filter issues by severity if specified
         if severities:

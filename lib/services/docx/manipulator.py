@@ -1,5 +1,6 @@
 """DOCX manipulation service for adding AI-generated comments."""
 
+from collections import defaultdict
 import json
 import logging
 import os
@@ -14,6 +15,8 @@ from typing import Dict, List, Optional
 from lxml import etree
 from docx import Document
 from docx.document import Document as DocumentObject
+from docx.oxml import OxmlElement
+from docx.oxml.ns import qn
 from docx.text.paragraph import Paragraph
 from pydantic import BaseModel
 
@@ -59,6 +62,16 @@ SEVERITY_AUTHORS = {
     CommentSeverity.LOW: ("💡 Low Priority", "LP"),
     CommentSeverity.NONE: ("📝 Note", "NT"),
 }
+
+ISSUE_MARKER_TAG = "AIReviewer_Issue_Marker"
+
+SEVERITY_HIGHLIGHT_COLORS = {
+    SeverityEnum.HIGH: "F87274",
+    SeverityEnum.MEDIUM: "CD8900",
+    SeverityEnum.LOW: "52AEFF",
+}
+
+W_2012_WORDML_NAMESPACE_URI = "http://schemas.microsoft.com/office/word/2012/wordml"
 
 
 class DocxComment(BaseModel):
@@ -128,6 +141,112 @@ def issue_to_comment(
     )
 
 
+def _build_issue_map(
+    issues: List[DocumentIssue],
+    chunk_to_paragraph_mapping: Dict[int, int],
+) -> Dict[int, List[DocumentIssue]]:
+    issue_map: Dict[int, List[DocumentIssue]] = defaultdict[int, List[DocumentIssue]](
+        list
+    )
+    for issue in issues:
+        indices_to_process = set()
+        if issue.chunk_index is not None:
+            indices_to_process.add(issue.chunk_index)
+        if issue.chunk_indices:
+            indices_to_process.update(issue.chunk_indices)
+        for chunk_index in indices_to_process:
+            paragraph_index = chunk_to_paragraph_mapping.get(chunk_index)
+            if paragraph_index is None:
+                continue
+            issues_for_paragraph = issue_map[paragraph_index]
+            if issue.id not in [issue.id for issue in issues_for_paragraph]:
+                issues_for_paragraph.append(issue)
+    return issue_map
+
+
+def _get_paragraph_severity(issues: List[DocumentIssue]) -> SeverityEnum:
+    if not issues:
+        return SeverityEnum.NONE
+    return max(issues, key=lambda issue: issue.severity.sort_index()).severity
+
+
+def _set_sdt_prop(sdt_pr: etree._Element, tag: str, value: Optional[str]) -> None:
+    qualified_tag = tag
+    if tag.startswith("{"):
+        qualified_tag = tag
+    elif ":" in tag:
+        prefix, local_name = tag.split(":", 1)
+        namespace_uri = sdt_pr.nsmap.get(prefix)
+        if namespace_uri:
+            qualified_tag = f"{{{namespace_uri}}}{local_name}"
+        else:
+            qualified_tag = qn(tag)
+    element = sdt_pr.find(qualified_tag)
+    if value:
+        if element is None:
+            try:
+                element = OxmlElement(tag)
+            except (KeyError, ValueError):
+                element = etree.Element(qualified_tag)
+            sdt_pr.append(element)
+        element.set(qn("w:val"), value)
+    elif element is not None:
+        sdt_pr.remove(element)
+
+
+def _get_namespace_tag(
+    element: etree._Element, namespace_uri: str, local_name: str
+) -> str:
+    for prefix, uri in element.nsmap.items():
+        if uri == namespace_uri and prefix:
+            return f"{prefix}:{local_name}"
+    return f"{{{namespace_uri}}}{local_name}"
+
+
+def _wrap_paragraph_with_content_control(
+    paragraph: Paragraph,
+    tag_value: str,
+    title: str,
+    color_hex: Optional[str],
+) -> None:
+    paragraph_element = paragraph._p
+    parent = paragraph_element.getparent()
+    if parent is None:
+        return
+
+    sdt = None
+    if parent.tag == qn("w:sdtContent"):
+        potential_sdt = parent.getparent()
+        if potential_sdt is not None and potential_sdt.tag == qn("w:sdt"):
+            sdt = potential_sdt
+
+    if sdt is None:
+        sdt = OxmlElement("w:sdt")
+        sdt_pr = OxmlElement("w:sdtPr")
+        sdt.append(sdt_pr)
+        sdt_content = OxmlElement("w:sdtContent")
+        sdt.append(sdt_content)
+
+        parent_index = parent.index(paragraph_element)
+        parent.remove(paragraph_element)
+        sdt_content.append(paragraph_element)
+        parent.insert(parent_index, sdt)
+    else:
+        sdt_pr = sdt.find(qn("w:sdtPr"))
+        if sdt_pr is None:
+            sdt_pr = OxmlElement("w:sdtPr")
+            sdt.insert(0, sdt_pr)
+
+    _set_sdt_prop(sdt_pr, "w:tag", tag_value)
+    _set_sdt_prop(sdt_pr, "w:alias", title)
+    _set_sdt_prop(
+        sdt_pr,
+        _get_namespace_tag(sdt_pr, W_2012_WORDML_NAMESPACE_URI, "color"),
+        color_hex,
+    )
+    _set_sdt_prop(sdt_pr, "w:appearance", "boundingBox")
+
+
 class DocxManipulatorService:
     """Service for manipulating DOCX files with AI-generated comments."""
 
@@ -142,9 +261,9 @@ class DocxManipulatorService:
     async def add_addin_metadata_to_docx(
         self,
         original_docx_path: str,
-        project_id: str,
         share_token: str,
         chunks: List[ChunkLike] | None = None,
+        issues: List[DocumentIssue] | None = None,
     ) -> str:
         """Add custom properties and a comment to a DOCX file."""
         original_path = Path(original_docx_path)
@@ -163,9 +282,28 @@ class DocxManipulatorService:
             chunk_to_para_mapping = create_chunk_to_paragraph_mapping(
                 chunks, docx_paragraphs
             )
+        # Create the content controls to each paragraph that has issues
+        if issues is not None:
+            if chunk_to_para_mapping:
+                issue_map = _build_issue_map(issues, chunk_to_para_mapping)
+                for paragraph_index, paragraph in enumerate(docx_paragraphs):
+                    paragraph_issues = issue_map.get(paragraph_index, [])
+                    if not paragraph_issues:
+                        continue
+                    paragraph_severity = _get_paragraph_severity(paragraph_issues)
+                    highlight_color = SEVERITY_HIGHLIGHT_COLORS.get(paragraph_severity)
+                    _wrap_paragraph_with_content_control(
+                        paragraph=paragraph,
+                        tag_value=f"{ISSUE_MARKER_TAG}:{paragraph_index}",
+                        title=f"{len(paragraph_issues)} AI Reviewer Issues",
+                        color_hex=highlight_color,
+                    )
+            else:
+                logger.warning(
+                    "Issue markers skipped: missing chunk-to-paragraph mapping"
+                )
 
         doc.save(str(output_path))
-        self.add_custom_property(output_path, "AIReviewer_ProjectId", project_id)
         self.add_custom_property(output_path, "AIReviewer_AuthToken", share_token)
         self.add_custom_property(
             output_path,
