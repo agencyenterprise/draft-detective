@@ -36,15 +36,19 @@ export function ShareWarningDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <AlertTriangle className="h-5 w-5 text-amber-500" />
-            Share Links in Document
+            Choose DOCX Export Format
           </DialogTitle>
           <DialogDescription asChild>
             <div className="text-sm text-muted-foreground space-y-3 pt-2">
+              <p>You can export this reviewed document in one of two ways:</p>
               <p>
-                The downloaded DOCX can include links to view each issue in the AI Reviewer. However, these links{' '}
-                <strong>only work when sharing is enabled</strong>.
+                <strong>AI Reviewer add-in:</strong> reviewers can see the issues directly in the add-in as they see in
+                the app. Requires Add-In to be installed.
               </p>
-              <p>Would you like to make this analysis public so the links work for anyone with the document?</p>
+              <p>
+                <strong>Regular comments:</strong> adds standard Word comments without links, for use outside the
+                add-in.
+              </p>
             </div>
           </DialogDescription>
         </DialogHeader>
@@ -54,12 +58,12 @@ export function ShareWarningDialog({
             {isEnablingShare || isDownloading ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
-                {isEnablingShare ? 'Enabling sharing...' : 'Downloading...'}
+                {isEnablingShare ? 'Preparing add-in export...' : 'Downloading...'}
               </>
             ) : (
               <>
                 <Globe className="h-4 w-4" />
-                Make Public & Download with Links
+                Export for AI Reviewer Add-In
               </>
             )}
           </Button>
@@ -71,7 +75,7 @@ export function ShareWarningDialog({
             className="w-full justify-center gap-2"
           >
             <Download className="h-4 w-4" />
-            Download Without Links
+            Export with Regular Comments
           </Button>
         </DialogFooter>
       </DialogContent>
