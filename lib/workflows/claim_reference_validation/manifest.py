@@ -144,6 +144,7 @@ class ClaimReferenceValidationManifest(
                 else "*No sources found*"
             )
             long_description = (
+                f"**Key sentence:** \n\n> {substantiation.key_sentence}\n\n"
                 f"**Evidence Alignment:** {substantiation.evidence_alignment}\n\n"
                 f"**Feedback to resolve:** {substantiation.feedback}\n\n"
                 f"### Checked sources\n\n{sources_text}"

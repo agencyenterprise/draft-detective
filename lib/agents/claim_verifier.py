@@ -29,6 +29,9 @@ class ClaimEvidenceSource(BaseModel):
 
 
 class ClaimSubstantiationResult(BaseModel):
+    key_sentence: str = Field(
+        description="The key sentence that contains the claim to be substantiated. Should be a direct quote from the text."
+    )
     evidence_alignment: EvidenceAlignmentLevel = Field(
         description=f"The degree of evidence that the supporting document(s) provides to support the claim. Possible values: {[e.value for e in EvidenceAlignmentLevel]}"
     )

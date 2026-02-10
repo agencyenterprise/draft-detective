@@ -1416,6 +1416,12 @@ export type ClaimResponseWithChunkIndex = {
  */
 export type ClaimSubstantiationResultWithClaimIndex = {
   /**
+   * Key Sentence
+   *
+   * The key sentence that contains the claim to be substantiated. Should be a direct quote from the text.
+   */
+  key_sentence: string;
+  /**
    * The degree of evidence that the supporting document(s) provides to support the claim. Possible values: ['unverifiable', 'supported', 'partially_supported', 'unsupported']
    */
   evidence_alignment: EvidenceAlignmentLevel;
