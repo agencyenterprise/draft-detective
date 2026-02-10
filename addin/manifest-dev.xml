@@ -6,17 +6,17 @@
   <DefaultLocale>en-US</DefaultLocale>
   <DisplayName DefaultValue="AI Reviewer"/>
   <Description DefaultValue="A template to get started."/>
-  <IconUrl DefaultValue="{NGROK_FRONTEND}/logo_160x160.png"/>
-  <HighResolutionIconUrl DefaultValue="{NGROK_FRONTEND}/logo_160x160.png"/>
-  <SupportUrl DefaultValue="{NGROK_FRONTEND}/"/>
+  <IconUrl DefaultValue="{FRONTEND_URL}/logo_160x160.png"/>
+  <HighResolutionIconUrl DefaultValue="{FRONTEND_URL}/logo_160x160.png"/>
+  <SupportUrl DefaultValue="{FRONTEND_URL}/"/>
   <AppDomains>
-    <AppDomain>https://www.ai-reviewer.com</AppDomain>
+    <AppDomain>https://ai-reviewer-app-production.up.railway.app</AppDomain>
   </AppDomains>
   <Hosts>
     <Host Name="Document"/>
   </Hosts>
   <DefaultSettings>
-    <SourceLocation DefaultValue="{NGROK_FRONTEND}/addin"/>
+    <SourceLocation DefaultValue="{FRONTEND_URL}/addin"/>
   </DefaultSettings>
   <Permissions>ReadWriteDocument</Permissions>
 
@@ -66,13 +66,13 @@
     </Hosts>
     <Resources>
       <bt:Images>
-        <bt:Image id="Icon.16x16" DefaultValue="{NGROK_FRONTEND}/logo_16x16.png"/>
-        <bt:Image id="Icon.32x32" DefaultValue="{NGROK_FRONTEND}/logo_32x32.png"/>
-        <bt:Image id="Icon.80x80" DefaultValue="{NGROK_FRONTEND}/logo_80x80.png"/>
+        <bt:Image id="Icon.16x16" DefaultValue="{FRONTEND_URL}/logo_16x16.png"/>
+        <bt:Image id="Icon.32x32" DefaultValue="{FRONTEND_URL}/logo_32x32.png"/>
+        <bt:Image id="Icon.80x80" DefaultValue="{FRONTEND_URL}/logo_80x80.png"/>
       </bt:Images>
       <bt:Urls>
         <bt:Url id="GetStarted.LearnMoreUrl" DefaultValue="https://go.microsoft.com/fwlink/?LinkId=276812"/>
-        <bt:Url id="Taskpane.Url" DefaultValue="{NGROK_FRONTEND}/addin"/>
+        <bt:Url id="Taskpane.Url" DefaultValue="{FRONTEND_URL}/addin"/>
       </bt:Urls>
       <bt:ShortStrings>
         <bt:String id="GetStarted.Title" DefaultValue="Get started with the AI Reviewer add-in!"/>

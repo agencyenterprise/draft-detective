@@ -4,21 +4,34 @@
 - Run the backend API locally with `uv run dev.py`
 - Run the frontend locally with `pnpm dev` from `frontend/`
 
-### Start ngrok
-1. Copy the `addin/ngrok.yaml` to a new file (for example, `addin/ngrok-dev.yaml`)
-2. Change this new file adding your ngrok token
-3. From `addin/`, run `ngrok start --config ngrok-dev.yaml --all`
+### Expose local apps (tunnel)
+You need public HTTPS URLs for:
+- frontend (`localhost:3000`)
+- API (`localhost:8000`)
+
+Use any tunnel provider. Two common options:
+
+#### Ngrok
+1. Copy `addin/ngrok.yaml` to a new file (for example, `addin/ngrok-dev.yaml`).
+2. Update the new file with your ngrok token.
+3. From `addin/`, run `ngrok start --config ngrok-dev.yaml --all`.
+
+#### Port Forward 
+Forward the ports 3000 and 8000 in VSCode/Cursor. Make sure they are public.
+
+
+Use the generated public HTTPS URLs in the steps below.
 
 ### Prepare the manifest
 1. Copy `addin/manifest-dev.xml` to a new file (for example, `addin/manifest-dev.local.xml`).
-2. Replace `{NGROK_FRONTEND}` with the ngrok frontend URL on this new file (the 3000 tunnel).
-   - Example: `sed -i "" "s|{NGROK_FRONTEND}|https://<your-ngrok-frontend>.ngrok-free.app|g" addin/manifest-dev.local.xml`
+2. Replace `{FRONTEND_URL}` with your public frontend URL (the 3000 tunnel).
+   - Example: `sed -i "" "s|{FRONTEND_URL}|https://<your-frontend-url>|g" addin/manifest-dev.local.xml`
 
 ### Frontend API URL
-- Set `NEXT_PUBLIC_API_URL` in `frontend/.env` to the ngrok API URL (the 8000 tunnel).
+- Set `NEXT_PUBLIC_API_URL` in `frontend/.env` to your public API URL (the 8000 tunnel).
 
 ### Add to Office
-1. Open Word Web (https://word.cloud.microsoft/) and cerate a blank file.
+1. Open Word Web (https://word.cloud.microsoft/) and create a blank file.
 2. Go to `Home` → `Add-ins` → `More Add-ins`.
 2. Go to `My Add-ins`.
 3. Choose `Manage My Add-in` → `Upload My Add-in`.
@@ -26,4 +39,4 @@
 
 ### Notes
 - Keep both the API and frontend running while testing.
-- If the ngrok URL changes, update the manifest and re-upload it.
+- If your tunnel URLs change, update the manifest and `.env`, then reload/re-upload the add-in.

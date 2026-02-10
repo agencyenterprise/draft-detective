@@ -7,17 +7,10 @@ import { DocumentIssuesList } from '@/components/wizard/results-step/components/
 import { DocumentIssue, getSharedResourceApiPublicShareTokenGet } from '@/lib/generated-api';
 import { loadSettings, getCurrentParagraphIndex, addIssueMarkers } from '@/lib/addin/office-utils';
 import { RotateCwIcon } from 'lucide-react';
+import { debounce } from 'lodash';
 
 // Office onReady check to prevent double initialization issues
 let isOfficeReady = false;
-
-const debounce = <Args extends unknown[]>(func: (...args: Args) => void, wait: number) => {
-  let timeout: ReturnType<typeof setTimeout> | undefined;
-  return (...args: Args) => {
-    if (timeout) clearTimeout(timeout);
-    timeout = setTimeout(() => func(...args), wait);
-  };
-};
 
 export default function AddinPage() {
   const [token, setTokenState] = useState<string | null>(null);
@@ -178,7 +171,7 @@ export default function AddinPage() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 text-sm">
         {error ? <div className="text-red-500 text-sm">Failed to load issues. Please check your settings.</div> : null}
 
         {isLoading ? (
