@@ -610,20 +610,6 @@ export type BodyAddFilesToProjectApiProjectProjectIdFilesPost = {
 };
 
 /**
- * Body_create_project_endpoint_api_projects_post
- */
-export type BodyCreateProjectEndpointApiProjectsPost = {
-  /**
-   * Title
-   */
-  title: string;
-  /**
-   * Main Document
-   */
-  main_document: Blob | File;
-};
-
-/**
  * Body_start_analysis_api_start_analysis_post
  */
 export type BodyStartAnalysisApiStartAnalysisPost = {
@@ -1474,6 +1460,18 @@ export const ConfidenceInRecommendation = {
  * ConfidenceInRecommendation
  */
 export type ConfidenceInRecommendation = (typeof ConfidenceInRecommendation)[keyof typeof ConfidenceInRecommendation];
+
+/**
+ * CreateProjectRequest
+ *
+ * Request body for creating a project.
+ */
+export type CreateProjectRequest = {
+  /**
+   * Title
+   */
+  title: string;
+};
 
 /**
  * DoclingDocument
@@ -5585,7 +5583,7 @@ export type ListProjectsEndpointApiProjectsGetResponse =
   ListProjectsEndpointApiProjectsGetResponses[keyof ListProjectsEndpointApiProjectsGetResponses];
 
 export type CreateProjectEndpointApiProjectsPostData = {
-  body: BodyCreateProjectEndpointApiProjectsPost;
+  body: CreateProjectRequest;
   path?: never;
   query?: never;
   url: '/api/projects';
@@ -6158,6 +6156,260 @@ export type GetSharedResourceApiPublicShareTokenGetResponses = {
 
 export type GetSharedResourceApiPublicShareTokenGetResponse =
   GetSharedResourceApiPublicShareTokenGetResponses[keyof GetSharedResourceApiPublicShareTokenGetResponses];
+
+export type ExtensionTerminationRouteTusUuidDeleteData = {
+  body?: never;
+  headers?: {
+    /**
+     * Tus-Resumable
+     */
+    'tus-resumable'?: string;
+  };
+  path: {
+    /**
+     * Uuid
+     */
+    uuid: string;
+  };
+  query?: never;
+  url: '/tus/{uuid}';
+};
+
+export type ExtensionTerminationRouteTusUuidDeleteErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type ExtensionTerminationRouteTusUuidDeleteError =
+  ExtensionTerminationRouteTusUuidDeleteErrors[keyof ExtensionTerminationRouteTusUuidDeleteErrors];
+
+export type ExtensionTerminationRouteTusUuidDeleteResponses = {
+  /**
+   * Successful Response
+   */
+  204: void;
+};
+
+export type ExtensionTerminationRouteTusUuidDeleteResponse =
+  ExtensionTerminationRouteTusUuidDeleteResponses[keyof ExtensionTerminationRouteTusUuidDeleteResponses];
+
+export type CoreHeadRouteTusUuidHeadData = {
+  body?: never;
+  headers?: {
+    /**
+     * Tus-Resumable
+     */
+    'tus-resumable'?: string;
+  };
+  path: {
+    /**
+     * Uuid
+     */
+    uuid: string;
+  };
+  query?: never;
+  url: '/tus/{uuid}';
+};
+
+export type CoreHeadRouteTusUuidHeadErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type CoreHeadRouteTusUuidHeadError = CoreHeadRouteTusUuidHeadErrors[keyof CoreHeadRouteTusUuidHeadErrors];
+
+export type CoreHeadRouteTusUuidHeadResponses = {
+  /**
+   * Successful Response
+   */
+  200: unknown;
+};
+
+export type CorePatchRouteTusUuidPatchData = {
+  body?: never;
+  headers: {
+    /**
+     * Content-Length
+     */
+    'content-length': number;
+    /**
+     * Upload-Offset
+     */
+    'upload-offset': number;
+    /**
+     * Upload-Length
+     */
+    'upload-length'?: number;
+    /**
+     * Content-Type
+     */
+    'content-type'?: string;
+    /**
+     * Tus-Resumable
+     */
+    'tus-resumable'?: string;
+  };
+  path: {
+    /**
+     * Uuid
+     */
+    uuid: string;
+  };
+  query?: {
+    /**
+     * Post Request
+     */
+    post_request?: boolean;
+  };
+  url: '/tus/{uuid}';
+};
+
+export type CorePatchRouteTusUuidPatchErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type CorePatchRouteTusUuidPatchError = CorePatchRouteTusUuidPatchErrors[keyof CorePatchRouteTusUuidPatchErrors];
+
+export type CorePatchRouteTusUuidPatchResponses = {
+  /**
+   * Successful Response
+   */
+  204: void;
+};
+
+export type CorePatchRouteTusUuidPatchResponse =
+  CorePatchRouteTusUuidPatchResponses[keyof CorePatchRouteTusUuidPatchResponses];
+
+export type CoreOptionsRouteTusOptionsData = {
+  body?: never;
+  headers?: {
+    /**
+     * Tus-Resumable
+     */
+    'tus-resumable'?: string;
+  };
+  path?: never;
+  query?: never;
+  url: '/tus/';
+};
+
+export type CoreOptionsRouteTusOptionsErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type CoreOptionsRouteTusOptionsError = CoreOptionsRouteTusOptionsErrors[keyof CoreOptionsRouteTusOptionsErrors];
+
+export type CoreOptionsRouteTusOptionsResponses = {
+  /**
+   * Successful Response
+   */
+  204: void;
+};
+
+export type CoreOptionsRouteTusOptionsResponse =
+  CoreOptionsRouteTusOptionsResponses[keyof CoreOptionsRouteTusOptionsResponses];
+
+export type ExtensionCreationRouteTusPostData = {
+  body?: never;
+  headers?: {
+    /**
+     * Upload-Metadata
+     */
+    'upload-metadata'?: string;
+    /**
+     * Upload-Length
+     */
+    'upload-length'?: number;
+    /**
+     * Upload-Defer-Length
+     */
+    'upload-defer-length'?: number;
+    /**
+     * Upload-Concat
+     */
+    'upload-concat'?: string;
+    /**
+     * Tus-Resumable
+     */
+    'tus-resumable'?: string;
+  };
+  path?: never;
+  query?: never;
+  url: '/tus/';
+};
+
+export type ExtensionCreationRouteTusPostErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type ExtensionCreationRouteTusPostError =
+  ExtensionCreationRouteTusPostErrors[keyof ExtensionCreationRouteTusPostErrors];
+
+export type ExtensionCreationRouteTusPostResponses = {
+  /**
+   * Successful Response
+   */
+  201: unknown;
+};
+
+export type ExtensionCreationRouteTusPost2Data = {
+  body?: never;
+  headers?: {
+    /**
+     * Upload-Metadata
+     */
+    'upload-metadata'?: string;
+    /**
+     * Upload-Length
+     */
+    'upload-length'?: number;
+    /**
+     * Upload-Defer-Length
+     */
+    'upload-defer-length'?: number;
+    /**
+     * Upload-Concat
+     */
+    'upload-concat'?: string;
+    /**
+     * Tus-Resumable
+     */
+    'tus-resumable'?: string;
+  };
+  path?: never;
+  query?: never;
+  url: '/tus';
+};
+
+export type ExtensionCreationRouteTusPost2Errors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type ExtensionCreationRouteTusPost2Error =
+  ExtensionCreationRouteTusPost2Errors[keyof ExtensionCreationRouteTusPost2Errors];
+
+export type ExtensionCreationRouteTusPost2Responses = {
+  /**
+   * Successful Response
+   */
+  201: unknown;
+};
 
 export type GetCurrentUserInfoApiUsersMeGetData = {
   body?: never;

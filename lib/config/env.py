@@ -47,6 +47,16 @@ class Config(BaseModel):
     # File uploads
     FILE_UPLOADS_MOUNT_PATH: str
 
+    # Resumable upload configuration
+    UPLOAD_CHUNK_SIZE: int = Field(
+        default=5 * 1024 * 1024,
+        description="Chunk size for resumable uploads in bytes (default: 5MB)",
+    )
+    UPLOAD_SESSION_TTL_HOURS: int = Field(
+        default=24,
+        description="Upload session time-to-live in hours (default: 24)",
+    )
+
     # Frontend URL for share links
     FRONTEND_URL: str = Field(
         default="http://localhost:3000",
@@ -104,6 +114,8 @@ config = Config(
     LANGFUSE_PROJECT_ID=os.getenv("LANGFUSE_PROJECT_ID"),
     LANGGRAPH_MAX_CONCURRENCY=os.getenv("LANGGRAPH_MAX_CONCURRENCY") or 30,
     FILE_UPLOADS_MOUNT_PATH=os.getenv("FILE_UPLOADS_MOUNT_PATH", "uploads"),
+    UPLOAD_CHUNK_SIZE=int(os.getenv("UPLOAD_CHUNK_SIZE", str(5 * 1024 * 1024))),
+    UPLOAD_SESSION_TTL_HOURS=int(os.getenv("UPLOAD_SESSION_TTL_HOURS", "24")),
     FRONTEND_URL=os.getenv("FRONTEND_URL", "http://localhost:3000"),
     MAIN_FILE_CONVERTER=os.getenv("MAIN_FILE_CONVERTER", "docling"),
     SUPPORTING_FILE_CONVERTER=os.getenv("SUPPORTING_FILE_CONVERTER", "markitdown"),
