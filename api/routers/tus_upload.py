@@ -19,18 +19,11 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_FILENAME = "unknown"
 
-# Stores upload context between pre-create and completion hooks, keyed by user:project:filename
-_upload_context: dict[str, dict] = {}
-
-
-def _context_key(user_id: uuid.UUID, project_id: str, filename: str) -> str:
-    return f"{user_id}:{project_id}:{filename or DEFAULT_FILENAME}"
-
 
 def _get_pre_create_hook(
     current_user: User = Depends(get_current_user),
 ) -> Callable[[dict, dict], Awaitable[None]]:
-    """Validates user access and stores context for completion hook."""
+    """Validates user access before upload starts."""
 
     async def handler(metadata: dict, upload_info: dict) -> None:
         project_id = metadata.get("project_id")
@@ -38,15 +31,6 @@ def _get_pre_create_hook(
             raise HTTPException(status_code=400, detail="project_id is required")
 
         await get_user_project(project_id, user=current_user)
-
-        key = _context_key(
-            current_user.id, project_id, metadata.get("filename", DEFAULT_FILENAME)
-        )
-        _upload_context[key] = {
-            "project_id": project_id,
-            "user_id": str(current_user.id),
-            "role": metadata.get("role", FileRole.SUPPORT.value),
-        }
 
     return handler
 
@@ -58,22 +42,11 @@ def _get_completion_hook(
 
     async def handler(file_path: str, metadata: dict) -> None:
         project_id = metadata.get("project_id", "")
-        key = _context_key(
-            current_user.id, project_id, metadata.get("filename", DEFAULT_FILENAME)
-        )
-        context = _upload_context.pop(key, None)
 
-        if not context:
-            context = {
-                "project_id": project_id,
-                "user_id": str(current_user.id),
-                "role": metadata.get("role", FileRole.SUPPORT.value),
-            }
-
-        if not context["project_id"]:
+        if not project_id:
             raise HTTPException(status_code=400, detail="project_id is required")
 
-        role_str = context.get("role", FileRole.SUPPORT.value)
+        role_str = metadata.get("role", FileRole.SUPPORT.value)
         try:
             role = FileRole(role_str)
         except ValueError:
@@ -82,8 +55,8 @@ def _get_completion_hook(
         file_record, was_deduplicated = await finalize_file_from_path(
             file_path=file_path,
             filename=metadata.get("filename", DEFAULT_FILENAME),
-            project_id=uuid.UUID(context["project_id"]),
-            user_id=uuid.UUID(context["user_id"]),
+            project_id=uuid.UUID(project_id),
+            user_id=current_user.id,
             role=role,
         )
 
