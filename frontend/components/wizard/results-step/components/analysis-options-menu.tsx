@@ -25,7 +25,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Download, EllipsisVerticalIcon, Link, Pencil } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { downloadDocxFile, useDownloadDocx } from './use-download-docx';
+import { downloadDocxFile, DocxType, useDownloadDocx } from './use-download-docx';
 
 type ProjectWithDetails = Project & {
   publication_date?: Date | null;
@@ -55,7 +55,7 @@ export function AnalysisOptionsMenu({
 
   const [showShareWarning, setShowShareWarning] = useState(false);
   const [showFilterWarning, setShowFilterWarning] = useState(false);
-  const [pendingWithLinks, setPendingWithLinks] = useState(true);
+  const [pendingDocxType, setPendingDocxType] = useState<DocxType>('original');
   const [isEnablingForDownload, setIsEnablingForDownload] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
@@ -65,6 +65,7 @@ export function AnalysisOptionsMenu({
     shareToken,
     severities: severityFilter,
     workflowTypes: workflowTypeFilter,
+    docxType: pendingDocxType,
   });
 
   const hasActiveSeverityFilter = severityFilter.length > 0 && severityFilter.length < 3;
@@ -97,7 +98,7 @@ export function AnalysisOptionsMenu({
     },
   });
 
-  const downloadWithShare = async () => {
+  const downloadWithShare = async (docxType: DocxType) => {
     setIsEnablingForDownload(true);
     const toastId = toast.loading('Preparing DOCX with share links...', { description: 'This may take a few moments' });
 
@@ -106,7 +107,7 @@ export function AnalysisOptionsMenu({
       const token = shareResponse?.share_link?.token;
       if (!token) throw new Error('Failed to create share token');
 
-      await downloadDocxFile(projectId, token, severityFilter, workflowTypeFilter);
+      await downloadDocxFile(projectId, token, severityFilter, workflowTypeFilter, docxType);
       toast.success('DOCX file downloaded successfully', { id: toastId });
     } catch (error) {
       console.error('Failed to enable sharing and download:', error);
@@ -117,30 +118,28 @@ export function AnalysisOptionsMenu({
   };
 
   // Execute the actual download based on pending action
-  const executeDownload = (withLinks: boolean) => {
-    if (withLinks && !share.isEnabled) {
-      downloadWithShare();
+  const executeDownload = (docxType: DocxType) => {
+    const notShared = !share.isEnabled && !shareContext.shareToken;
+    const needsShare = docxType === 'add-in' || docxType === 'comments-with-links';
+    if (needsShare && notShared) {
+      downloadWithShare(docxType);
     } else {
-      download(withLinks);
+      download(docxType);
     }
   };
 
   // Show filter warning or execute download
-  const proceedWithDownload = (withLinks: boolean) => {
+  const proceedWithDownload = (docxType: DocxType) => {
     if (hasActiveFilter) {
-      setPendingWithLinks(withLinks);
+      setPendingDocxType(docxType);
       setShowFilterWarning(true);
     } else {
-      executeDownload(withLinks);
+      executeDownload(docxType);
     }
   };
 
   const handleDownloadClick = () => {
-    if (!readOnly && !share.isEnabled) {
-      setShowShareWarning(true);
-    } else {
-      proceedWithDownload(true);
-    }
+    setShowShareWarning(true);
   };
 
   return (
@@ -149,16 +148,18 @@ export function AnalysisOptionsMenu({
         {!readOnly && <ShareStatusBadge isEnabled={share.isEnabled} onClick={() => share.setIsDialogOpen(true)} />}
 
         <DropdownMenu>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <EllipsisVerticalIcon />
-                </Button>
-              </DropdownMenuTrigger>
-            </TooltipTrigger>
-            <TooltipContent>See more options</TooltipContent>
-          </Tooltip>
+          {(hasDocx || !readOnly) && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon">
+                    <EllipsisVerticalIcon />
+                  </Button>
+                </DropdownMenuTrigger>
+              </TooltipTrigger>
+              <TooltipContent>See more options</TooltipContent>
+            </Tooltip>
+          )}
 
           <DropdownMenuContent className="w-56">
             {hasDocx && (
@@ -208,15 +209,12 @@ export function AnalysisOptionsMenu({
       <ShareWarningDialog
         open={showShareWarning}
         onOpenChange={setShowShareWarning}
+        isProjectPublic={share.isEnabled || !!shareContext.shareToken}
         isEnablingShare={isEnablingForDownload || share.isEnabling}
         isDownloading={isDownloading}
-        onMakePublicAndDownload={() => {
+        onDownload={(type) => {
           setShowShareWarning(false);
-          proceedWithDownload(true);
-        }}
-        onDownloadWithoutLinks={() => {
-          setShowShareWarning(false);
-          proceedWithDownload(false);
+          proceedWithDownload(type);
         }}
       />
 
@@ -227,7 +225,7 @@ export function AnalysisOptionsMenu({
         workflowTypeFilter={workflowTypeFilter}
         onConfirm={() => {
           setShowFilterWarning(false);
-          executeDownload(pendingWithLinks);
+          executeDownload(pendingDocxType);
         }}
       />
 

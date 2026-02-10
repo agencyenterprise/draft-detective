@@ -153,7 +153,7 @@ function DocumentIssueCardRaw({
   const { className, icon, accentClassName } = severityColorMap[issue.severity];
   const { getWorkflowTypeName } = useWorkflowTypes();
 
-const showHideJumpToChunkButton = !hideJumpToChunk && issue.chunk_index !== undefined && issue.chunk_index !== null;
+  const showHideJumpToChunkButton = !hideJumpToChunk && issue.chunk_index !== undefined && issue.chunk_index !== null;
 
   const workflowRunId = useMemo(() => {
     const workflowRun = workflowRuns.find((wr) => wr.run.type === issue.type);

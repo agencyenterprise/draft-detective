@@ -2,16 +2,20 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import {
   downloadProjectDocxApiProjectsProjectIdDocxDownloadGet,
+  DocxManipulatorType,
   SeverityEnum,
   WorkflowRunType,
 } from '@/lib/generated-api';
 import { downloadFile } from '@/lib/file-download';
+
+export type DocxType = DocxManipulatorType | 'original';
 
 interface UseDownloadDocxOptions {
   projectId: string;
   shareToken?: string | null;
   severities?: SeverityEnum[];
   workflowTypes?: WorkflowRunType[];
+  docxType?: DocxType;
 }
 
 export async function downloadDocxFile(
@@ -19,6 +23,7 @@ export async function downloadDocxFile(
   shareToken?: string | null,
   severities?: SeverityEnum[],
   workflowTypes?: WorkflowRunType[],
+  docxType?: DocxType,
 ): Promise<void> {
   const response = await downloadProjectDocxApiProjectsProjectIdDocxDownloadGet({
     path: { project_id: projectId },
@@ -26,6 +31,7 @@ export async function downloadDocxFile(
       share_token: shareToken,
       severities: severities,
       workflow_types: workflowTypes,
+      docx_type: docxType ?? 'original',
     },
   });
 
@@ -39,21 +45,32 @@ export async function downloadDocxFile(
   downloadFile({ blob: response, filename });
 }
 
-export function useDownloadDocx({ projectId, shareToken, severities, workflowTypes }: UseDownloadDocxOptions) {
+export function useDownloadDocx({
+  projectId,
+  shareToken,
+  severities,
+  workflowTypes,
+  docxType: initialDocxType,
+}: UseDownloadDocxOptions) {
   const [isDownloading, setIsDownloading] = useState(false);
 
-  const download = async (includeShareLinks: boolean = false) => {
+  const download = async (docxType?: DocxType) => {
     setIsDownloading(true);
 
-    const loadingMessage = includeShareLinks ? 'Preparing DOCX with share links...' : 'Preparing DOCX for download...';
+    const dType = docxType ?? initialDocxType ?? 'original';
+    const loadingMessage =
+      dType === 'add-in'
+        ? 'Preparing DOCX for AI Reviewer Add-In...'
+        : dType === 'comments-with-links'
+          ? 'Preparing DOCX with share links...'
+          : 'Preparing DOCX for download...';
 
     const toastId = toast.loading(loadingMessage, {
       description: 'This may take a few moments',
     });
 
     try {
-      const tokenToUse = includeShareLinks ? shareToken : null;
-      await downloadDocxFile(projectId, tokenToUse, severities, workflowTypes);
+      await downloadDocxFile(projectId, shareToken, severities, workflowTypes, dType);
       toast.success('DOCX file downloaded successfully', { id: toastId, description: null });
     } catch (error) {
       console.error('Failed to download docx:', error);

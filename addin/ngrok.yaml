@@ -1,0 +1,10 @@
+version: 2
+authtoken: [REPLACE WITH YOUR AUTH TOKEN]
+tunnels:
+  first:
+    proto: http
+    addr: 3000
+    host_header: rewrite
+  second:
+    proto: http
+    addr: 8000

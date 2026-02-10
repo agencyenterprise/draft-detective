@@ -1850,6 +1850,24 @@ export type DocumentSummarizationWorkflowConfig = {
 };
 
 /**
+ * DocxManipulatorType
+ *
+ * Type of DOCX to generate.
+ */
+export const DocxManipulatorType = {
+  AddIn: 'add-in',
+  Comments: 'comments',
+  CommentsWithLinks: 'comments-with-links',
+} as const;
+
+/**
+ * DocxManipulatorType
+ *
+ * Type of DOCX to generate.
+ */
+export type DocxManipulatorType = (typeof DocxManipulatorType)[keyof typeof DocxManipulatorType];
+
+/**
  * EvalPackageRequest
  *
  * Request model for generating eval packages.
@@ -5740,6 +5758,12 @@ export type DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetData = {
      * Filter issues by workflow types
      */
     workflow_types?: Array<WorkflowRunType> | null;
+    /**
+     * Docx Type
+     *
+     * Docx type
+     */
+    docx_type?: DocxManipulatorType | 'original';
   };
   url: '/api/projects/{project_id}/docx/download';
 };

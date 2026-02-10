@@ -1,5 +1,8 @@
 """DOCX manipulation service for adding AI-generated comments."""
 
+import asyncio
+from collections import defaultdict
+import json
 import logging
 from enum import StrEnum
 from pathlib import Path
@@ -12,9 +15,21 @@ from pydantic import BaseModel
 
 from lib.config.env import config
 from lib.services.docx.chunk_mapper import ChunkLike, create_chunk_to_paragraph_mapping
+from lib.services.docx.docx_xml import (
+    add_custom_properties_to_docx,
+    wrap_paragraph_with_content_control,
+)
 from lib.workflows.models import DocumentIssue, SeverityEnum
 
 logger = logging.getLogger(__name__)
+
+
+class DocxManipulatorType(StrEnum):
+    """Type of DOCX to generate."""
+
+    ADD_IN = "add-in"
+    COMMENTS = "comments"
+    COMMENTS_WITH_LINKS = "comments-with-links"
 
 
 # Severity mapping from workflow to DOCX
@@ -51,6 +66,14 @@ SEVERITY_AUTHORS = {
     CommentSeverity.MEDIUM: ("⚠️ Medium Priority", "MP"),
     CommentSeverity.LOW: ("💡 Low Priority", "LP"),
     CommentSeverity.NONE: ("📝 Note", "NT"),
+}
+
+ISSUE_MARKER_TAG = "AIReviewer_Issue_Marker"
+
+SEVERITY_HIGHLIGHT_COLORS = {
+    SeverityEnum.HIGH: "F87274",
+    SeverityEnum.MEDIUM: "CD8900",
+    SeverityEnum.LOW: "52AEFF",
 }
 
 
@@ -121,16 +144,122 @@ def issue_to_comment(
     )
 
 
+def _build_issue_map(
+    issues: List[DocumentIssue],
+    chunk_to_paragraph_mapping: Dict[int, int],
+) -> Dict[int, List[DocumentIssue]]:
+    issue_map: Dict[int, List[DocumentIssue]] = defaultdict[int, List[DocumentIssue]](
+        list
+    )
+    for issue in issues:
+        indices_to_process = set()
+        if issue.chunk_index is not None:
+            indices_to_process.add(issue.chunk_index)
+        if issue.chunk_indices:
+            indices_to_process.update(issue.chunk_indices)
+        for chunk_index in indices_to_process:
+            paragraph_index = chunk_to_paragraph_mapping.get(chunk_index)
+            if paragraph_index is None:
+                continue
+            issues_for_paragraph = issue_map[paragraph_index]
+            if issue.id not in [i.id for i in issues_for_paragraph]:
+                issues_for_paragraph.append(issue)
+    return issue_map
+
+
+def _get_paragraph_severity(issues: List[DocumentIssue]) -> SeverityEnum:
+    if not issues:
+        return SeverityEnum.NONE
+    return max(issues, key=lambda issue: issue.severity.sort_index()).severity
+
+
 class DocxManipulatorService:
     """Service for manipulating DOCX files with AI-generated comments."""
 
     SUPPORTED_EXTENSIONS = {".docx", ".doc"}
 
-    def get_output_path(self, workflow_run_id: str) -> Path:
+    def get_output_path(
+        self, workflow_run_id: str, docx_type: DocxManipulatorType
+    ) -> Path:
         """Get the deterministic output path for a processed docx file."""
         output_dir = Path(config.FILE_UPLOADS_MOUNT_PATH) / "processed_docx"
         output_dir.mkdir(exist_ok=True)
-        return output_dir / f"{workflow_run_id}_reviewed.docx"
+        return output_dir / f"{workflow_run_id}_{docx_type.value}.docx"
+
+    async def add_addin_metadata_to_docx(
+        self,
+        original_docx_path: str,
+        share_token: str,
+        workflow_run_id: str,
+        chunks: List[ChunkLike] | None = None,
+        issues: List[DocumentIssue] | None = None,
+    ) -> str:
+        """Add custom properties and a comment to a DOCX file."""
+        return await asyncio.to_thread(
+            self._add_addin_metadata_to_docx_sync,
+            original_docx_path,
+            share_token,
+            workflow_run_id,
+            chunks,
+            issues,
+        )
+
+    def _add_addin_metadata_to_docx_sync(
+        self,
+        original_docx_path: str,
+        share_token: str,
+        workflow_run_id: str,
+        chunks: List[ChunkLike] | None = None,
+        issues: List[DocumentIssue] | None = None,
+    ) -> str:
+        """Sync implementation for add-in metadata generation."""
+        original_path = Path(original_docx_path)
+        if not original_path.exists():
+            raise FileNotFoundError(f"Original file not found: {original_docx_path}")
+
+        output_path = self.get_output_path(workflow_run_id, DocxManipulatorType.ADD_IN)
+        logger.info(f"Creating reviewed docx at {output_path} with add-in metadata")
+
+        doc = Document(original_docx_path)
+        docx_paragraphs = [p for p in doc.paragraphs if p.text.strip()]
+
+        chunk_to_para_mapping = {}
+        if chunks:
+            chunk_to_para_mapping = create_chunk_to_paragraph_mapping(
+                chunks, docx_paragraphs
+            )
+        # Create the content controls to each paragraph that has issues
+        if issues is not None:
+            if chunk_to_para_mapping:
+                issue_map = _build_issue_map(issues, chunk_to_para_mapping)
+                for paragraph_index, paragraph in enumerate(docx_paragraphs):
+                    paragraph_issues = issue_map.get(paragraph_index, [])
+                    if not paragraph_issues:
+                        continue
+                    paragraph_severity = _get_paragraph_severity(paragraph_issues)
+                    highlight_color = SEVERITY_HIGHLIGHT_COLORS.get(paragraph_severity)
+                    wrap_paragraph_with_content_control(
+                        paragraph=paragraph,
+                        tag_value=f"{ISSUE_MARKER_TAG}:{paragraph_index}",
+                        title=f"{len(paragraph_issues)} AI Reviewer Issues",
+                        color_hex=highlight_color,
+                    )
+            else:
+                logger.warning(
+                    "Issue markers skipped: missing chunk-to-paragraph mapping"
+                )
+
+        doc.save(str(output_path))
+        add_custom_properties_to_docx(
+            output_path,
+            {
+                "AIReviewer_AuthToken": share_token,
+                "AIReviewer_ChunkToParagraphMapping": (
+                    json.dumps(chunk_to_para_mapping) if chunk_to_para_mapping else None
+                ),
+            },
+        )
+        return str(output_path)
 
     async def add_comments_to_docx(
         self,
@@ -138,8 +267,27 @@ class DocxManipulatorService:
         comments: List[DocxComment],
         workflow_run_id: str,
         chunks: List[ChunkLike] | None = None,
+        docx_type: DocxManipulatorType = DocxManipulatorType.COMMENTS,
     ) -> str:
         """Add comments to a DOCX file based on chunk indices."""
+        return await asyncio.to_thread(
+            self._add_comments_to_docx_sync,
+            original_docx_path,
+            comments,
+            workflow_run_id,
+            chunks,
+            docx_type,
+        )
+
+    def _add_comments_to_docx_sync(
+        self,
+        original_docx_path: str,
+        comments: List[DocxComment],
+        workflow_run_id: str,
+        chunks: List[ChunkLike] | None = None,
+        docx_type: DocxManipulatorType = DocxManipulatorType.COMMENTS,
+    ) -> str:
+        """Sync implementation for adding comments to DOCX."""
         original_path = Path(original_docx_path)
 
         if original_path.suffix.lower() not in self.SUPPORTED_EXTENSIONS:
@@ -148,7 +296,7 @@ class DocxManipulatorService:
         if not original_path.exists():
             raise FileNotFoundError(f"Original file not found: {original_docx_path}")
 
-        output_path = self.get_output_path(workflow_run_id)
+        output_path = self.get_output_path(workflow_run_id, docx_type)
         logger.info(
             f"Creating reviewed docx at {output_path} with {len(comments)} comments"
         )

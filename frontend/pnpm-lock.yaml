@@ -159,6 +159,9 @@ importers:
       '@types/node':
         specifier: ^20
         version: 20.19.13
+      '@types/office-js':
+        specifier: ^1.0.570
+        version: 1.0.570
       '@types/react':
         specifier: ^19
         version: 19.1.12
@@ -1248,6 +1251,9 @@ packages:
 
   '@types/node@20.19.13':
     resolution: {integrity: sha512-yCAeZl7a0DxgNVteXFHt9+uyFbqXGy/ShC4BlcHkoE0AfGXYv/BUiplV72DjMYXHDBXFjhvr6DD1NiRVfB4j8g==}
+
+  '@types/office-js@1.0.570':
+    resolution: {integrity: sha512-vyNt+hMyFk+eYTzYeyZULnbycqNOrFQmU4OWsq3a6yWLMQdSAqZ1ou9m5eV2yCyMsL68w6vRwlduvTZcrZb+Hw==}
 
   '@types/react-dom@19.1.9':
     resolution: {integrity: sha512-qXRuZaOsAdXKFyOhRBg6Lqqc0yay13vN7KrIg4L7N4aaHN68ma9OK3NE1BoDFgFOTfM7zg+3/8+2n8rLUH3OKQ==}
@@ -4552,6 +4558,8 @@ snapshots:
   '@types/node@20.19.13':
     dependencies:
       undici-types: 6.21.0
+
+  '@types/office-js@1.0.570': {}
 
   '@types/react-dom@19.1.9(@types/react@19.1.12)':
     dependencies:
