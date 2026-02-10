@@ -117,6 +117,8 @@ export function DocumentExplorerSidebar({
           issues={selectedFilteredIssues}
           hideJumpToChunk={selectedChunkIndices.length > 0}
           onSelect={onSelectIssue}
+          workflowRuns={projectDetail.workflow_runs}
+          readOnly={readOnly}
         />
 
         {selectedChunkIndices.map((chunkIndex) => (
