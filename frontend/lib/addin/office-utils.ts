@@ -123,12 +123,7 @@ const MARKER_TAG = 'AIReviewer_Issue_Marker';
 
 export async function addIssueMarkers(issues: DocumentIssue[]): Promise<Map<number, DocumentIssue[]>> {
   if (typeof Word === 'undefined') return new Map();
-
-  const issuesMap = await Word.run(async (context) => {
-    const { chunkToParagraphMapping } = await getCustomDocumentProperties();
-    if (!chunkToParagraphMapping) return new Map();
-    return buildIssuesMap(issues, chunkToParagraphMapping);
-  });
-
-  return issuesMap;
+  const { chunkToParagraphMapping } = await getCustomDocumentProperties();
+  if (!chunkToParagraphMapping) return new Map();
+  return buildIssuesMap(issues, chunkToParagraphMapping);
 }

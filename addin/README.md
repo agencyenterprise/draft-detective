@@ -33,9 +33,9 @@ Use the generated public HTTPS URLs in the steps below.
 ### Add to Office
 1. Open Word Web (https://word.cloud.microsoft/) and create a blank file.
 2. Go to `Home` → `Add-ins` → `More Add-ins`.
-2. Go to `My Add-ins`.
-3. Choose `Manage My Add-in` → `Upload My Add-in`.
-4. Select your updated manifest file.
+3. Go to `My Add-ins`.
+4. Choose `Manage My Add-in` → `Upload My Add-in`.
+5. Select your updated manifest file.
 
 ### Notes
 - Keep both the API and frontend running while testing.

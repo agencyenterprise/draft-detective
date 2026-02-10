@@ -9,7 +9,7 @@
   <ProviderName>AI Reviewer</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
   <DisplayName DefaultValue="AI Reviewer" />
-  <Description DefaultValue="A template to get started." />
+  <Description DefaultValue="AI Reviewer add-in allows you to see the issues on AI Reviewer in your word document." />
   <IconUrl DefaultValue="https://ai-reviewer-app-production.up.railway.app/logo_160x160.png" />
   <HighResolutionIconUrl
     DefaultValue="https://ai-reviewer-app-production.up.railway.app/logo_160x160.png" />
