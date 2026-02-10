@@ -23,9 +23,9 @@ workflows:
       - "Executive Summary"
 
     # Required boilerplate text that must appear verbatim in the section.
-    # Used for compliance checks (e.g., TASP source attribution).
+    # Used for compliance checks (e.g., institutional attribution, program credits).
     # Leave empty ("") to skip boilerplate validation.
-    # Example: "This publication was produced by the TASP Fellowship Program."
+    # Example: "This publication was produced by the Research Excellence Program."
     tasp_boilerplate: ""
 
     # Acceptable funding statement variants. The section must contain at least
@@ -67,6 +67,33 @@ workflows:
         prompt: >-
           Does the section identify the intended audience?
           Look for sentences specifying WHO this publication is for.
+      relationship:
+        name: "Situates Within Literature"
+        short_name: "Prior Work"
+        description: "Does the section situate this work within existing research and literature?"
+        level: "sentence"
+        prompt: >-
+          Does the section explain how this publication relates to existing research?
+          Look for sentences explaining HOW this work fits into, builds upon,
+          addresses gaps in, or extends prior research in the field.
+      source_tasp:
+        name: "States Contribution"
+        short_name: "Contribution"
+        description: "Does the section clearly state the paper's novel contribution?"
+        level: "paragraph"
+        prompt: >-
+          Does the section articulate what this paper contributes to the field?
+          Look for statements about novel findings, new methods, unique insights,
+          or advances over existing work.
+      source_funding:
+        name: "Defines Scope"
+        short_name: "Scope"
+        description: "Does the section define the scope and boundaries of the study?"
+        level: "paragraph"
+        prompt: >-
+          Does the section define what is and is not covered by this research?
+          Look for statements about the study's boundaries, limitations,
+          or explicit inclusions/exclusions.
 
   # =============================================================================
   # ABOUT AUTHORS (Author Biography Analysis)
@@ -80,8 +107,8 @@ workflows:
 
     # URL to link authors to fellowship programs or organizational pages.
     # Used when generating hyperlinks in author bio suggestions.
-    # Leave empty ("") if no fellowship URL is applicable.
-    # Example: "https://example.org/fellowship"
+    # Leave empty ("") if no program URL is applicable.
+    # Example: "https://example.org/research-program"
     tasp_url: ""
 
     # Regex patterns for sentences to exclude from the sentence count.

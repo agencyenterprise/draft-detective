@@ -164,7 +164,6 @@ function ReferencesReady({ project }: { project: ProjectDetailed }) {
         </p>
         <p className="text-sm text-muted-foreground">
           <strong>Note:</strong> Claims citing references without matched documents will be skipped during validation.
-          You can always add more source documents later from the project page.
         </p>
       </div>
 
@@ -192,14 +191,18 @@ function ReferencesReady({ project }: { project: ProjectDetailed }) {
                 {unmatchedCount === 1 ? "doesn't" : "don't"} have source PDFs yet.
               </p>
               <p>
-                Claims citing these references will be skipped during validation. You can still run the analysis now and
-                add source documents later from the project page.
+                Without source documents, we won&apos;t be able to fully verify claims that cite these references. You
+                can still run the analysis, but results may be incomplete.
               </p>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex-row gap-2 sm:justify-end">
-            <AlertDialogCancel className="mt-0">Go back and add sources</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmRunAnalysis}>Continue anyway</AlertDialogAction>
+            <AlertDialogAction onClick={handleConfirmRunAnalysis} className="bg-red-600 hover:bg-red-700 text-white">
+              Continue anyway
+            </AlertDialogAction>
+            <AlertDialogCancel className="mt-0 bg-primary text-primary-foreground hover:bg-primary/90">
+              Go back and add sources
+            </AlertDialogCancel>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

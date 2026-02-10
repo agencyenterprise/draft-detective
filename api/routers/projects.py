@@ -37,6 +37,7 @@ from lib.services.workflow_runs import (
 )
 from lib.models.workflow_run import WorkflowRunType
 from lib.workflows.models import SeverityEnum
+from api.models import CreateProjectRequest
 
 router = APIRouter(tags=["projects"])
 logger = logging.getLogger(__name__)
@@ -46,37 +47,20 @@ logger = logging.getLogger(__name__)
     "/api/projects", response_model=ProjectDetailed, status_code=status.HTTP_201_CREATED
 )
 async def create_project_endpoint(
-    title: str = Form(...),
-    main_document: UploadFile = FastAPIUploadFile(...),
+    request: CreateProjectRequest,
     current_user: User = Depends(get_current_user),
 ):
-    """Create a project with a main document."""
+    """
+    Create a project.
 
-    project: Project | None = None
+    This endpoint creates the project first, then files are uploaded
+    separately via the /api/upload endpoints.
+    """
     try:
-        project = await create_project(title=title, user=current_user)
-
-        await save_uploaded_files_to_db(
-            uploaded_files=[main_document],
-            project_id=project.id,
-            user_id=current_user.id,
-            roles=[FileRole.MAIN],
-        )
-
+        project = await create_project(title=request.title, user=current_user)
         return ProjectDetailed(project=project, workflow_runs=[])
     except Exception as e:
         logger.error("Failed to create project: %s", e, exc_info=True)
-
-        if project is not None:
-            try:
-                await delete_project(str(project.id), user=current_user)
-            except Exception as cleanup_error:  # pragma: no cover - best effort cleanup
-                logger.error(
-                    "Failed to clean up project %s after creation error: %s",
-                    project.id,
-                    cleanup_error,
-                )
-
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to create project",

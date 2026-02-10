@@ -31,7 +31,7 @@ class ConsolidatedInferenceAnalysis(BaseModel):
     )
 
     severity: SeverityEnum = Field(
-        description="The severity level of the inference analysis. HIGH if the inference problem leads the conclusion to be completely invalid. MEDIUM if the inference problem weakens the justification for the conclusion. LOW if the inference problem is a minor/tangential issue that does not significantly weaken the justification for the conclusion."
+        description="The severity level of the inference analysis. HIGH if the inference problem leads the conclusion to be completely invalid. MEDIUM if the inference problem weakens the justification for the conclusion. LOW if the inference problem is a minor/tangential issue that does not significantly weaken the justification for the conclusion. NONE if the inference is valid and correct."
     )
 
     inference_validity: bool = Field(
@@ -48,14 +48,6 @@ class ConsolidatedInferenceAnalysis(BaseModel):
 
     suggested_action: str = Field(
         description="A suggested action to take to correct the wrong inference. In only TWO sentences."
-    )
-
-    start_line: int = Field(
-        description="The starting line number of the key sentence in the full document."
-    )
-
-    end_line: int = Field(
-        description="The ending line number of the key sentence in the full document."
     )
 
 
@@ -82,8 +74,8 @@ You are given three independent inference-check results for the same document in
 ## Instructions
 1. Merge findings that refer to the same inference (same key sentence or same underlying issue). Treat paraphrased or semantically equivalent key sentences as the same finding.
 2. Re-evaluate the merged findings to determine if they are valid and should be kept as inference analyses for the document. Analyses that are determined as invalid should be dropped as problems. Analyses that are determined to be valid should be kept as inference analyses for the document.
-3. Determine the severity level of the inference analysis. HIGH if the inference problem leads the conclusion to be completely invalid. MEDIUM if the inference problem weakens the justification for the conclusion. LOW if the inference problem is a minor/tangential issue that does not significantly weaken the justification for the conclusion.
-4. Output a single list in the exact schema: each item has key_sentence, inference_validity, severity, short_form_argument_analysis, long_form_argument_analysis, suggested_action, start_line, and end_line. Keep analyses concise (e.g., two sentences where specified).
+3. Determine the severity level of the inference analysis. HIGH if the inference problem leads the conclusion to be completely invalid. MEDIUM if the inference problem weakens the justification for the conclusion. LOW if the inference problem is a minor/tangential issue that does not significantly weaken the justification for the conclusion. NONE if the inference is valid and correct.
+4. Output a single list in the exact schema: each item has key_sentence, inference_validity, severity, short_form_argument_analysis, long_form_argument_analysis, suggested_action. Keep analyses concise (e.g., two sentences where specified).
 5. If all three runs found no issues, output an empty list. Do not invent findings.
 
 When merging findings, ask yourself the following questions:
@@ -101,8 +93,6 @@ For each retained inference you identify, provide:
 4. **short_form_argument_analysis**: A concise analysis of what is wrong with the inference. In only TWO sentences.
 5. **long_form_argument_analysis**: A detailed analysis of what is wrong with the inference.
 6. **suggested_action**: A suggested action to take to correct the wrong inference. In only TWO sentences.
-7. **start_line**: The starting line number of the key sentence in the full document.
-8. **end_line**: The ending line number of the key sentence in the full document.
 
 # Agent Inputs
 

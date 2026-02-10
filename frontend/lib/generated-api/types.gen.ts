@@ -361,26 +361,6 @@ export type AdvocacyToneWorkflowConfig = {
 };
 
 /**
- * AgentInfo
- *
- * Information about a registered agent
- */
-export type AgentInfo = {
-  /**
-   * Function Name
-   */
-  function_name: string;
-  /**
-   * Name
-   */
-  name: string;
-  /**
-   * Description
-   */
-  description: string;
-};
-
-/**
  * AnalysisFormConfig
  *
  * Form config for starting analysis (project creation + workflow start)
@@ -627,20 +607,6 @@ export type BodyAddFilesToProjectApiProjectProjectIdFilesPost = {
    */
   files: Array<Blob | File>;
   role?: FileRole;
-};
-
-/**
- * Body_create_project_endpoint_api_projects_post
- */
-export type BodyCreateProjectEndpointApiProjectsPost = {
-  /**
-   * Title
-   */
-  title: string;
-  /**
-   * Main Document
-   */
-  main_document: Blob | File;
 };
 
 /**
@@ -1496,6 +1462,18 @@ export const ConfidenceInRecommendation = {
 export type ConfidenceInRecommendation = (typeof ConfidenceInRecommendation)[keyof typeof ConfidenceInRecommendation];
 
 /**
+ * CreateProjectRequest
+ *
+ * Request body for creating a project.
+ */
+export type CreateProjectRequest = {
+  /**
+   * Title
+   */
+  title: string;
+};
+
+/**
  * DoclingDocument
  *
  * Raw Docling json_content passed through to frontend
@@ -1998,7 +1976,7 @@ export type ExtractedInferenceResult = {
    */
   key_sentence: string;
   /**
-   * The severity level of the inference analysis. HIGH if the inference problem leads the conclusion to be completely invalid. MEDIUM if the inference problem weakens the justification for the conclusion. LOW if the inference problem is a minor/tangential issue that does not significantly weaken the justification for the conclusion.
+   * The severity level of the inference analysis. HIGH if the inference problem leads the conclusion to be completely invalid. MEDIUM if the inference problem weakens the justification for the conclusion. LOW if the inference problem is a minor/tangential issue that does not significantly weaken the justification for the conclusion. NONE if the inference is valid and correct.
    */
   severity: SeverityEnum;
   /**
@@ -2025,18 +2003,6 @@ export type ExtractedInferenceResult = {
    * A suggested action to take to correct the wrong inference. In only TWO sentences.
    */
   suggested_action: string;
-  /**
-   * Start Line
-   *
-   * The starting line number of the key sentence in the full document.
-   */
-  start_line: number;
-  /**
-   * End Line
-   *
-   * The ending line number of the key sentence in the full document.
-   */
-  end_line: number;
   /**
    * Chunk Indices
    *
@@ -5120,25 +5086,6 @@ export type ReadHealthApiHealthHeadResponses = {
   200: unknown;
 };
 
-export type GetSupportedAgentsApiSupportedAgentsGetData = {
-  body?: never;
-  path?: never;
-  query?: never;
-  url: '/api/supported-agents';
-};
-
-export type GetSupportedAgentsApiSupportedAgentsGetResponses = {
-  /**
-   * Response Get Supported Agents Api Supported Agents Get
-   *
-   * Successful Response
-   */
-  200: Array<AgentInfo>;
-};
-
-export type GetSupportedAgentsApiSupportedAgentsGetResponse =
-  GetSupportedAgentsApiSupportedAgentsGetResponses[keyof GetSupportedAgentsApiSupportedAgentsGetResponses];
-
 export type StartAnalysisApiStartAnalysisDoNotUsePostData = {
   body: AnalysisFormConfig;
   path?: never;
@@ -5654,7 +5601,7 @@ export type ListProjectsEndpointApiProjectsGetResponse =
   ListProjectsEndpointApiProjectsGetResponses[keyof ListProjectsEndpointApiProjectsGetResponses];
 
 export type CreateProjectEndpointApiProjectsPostData = {
-  body: BodyCreateProjectEndpointApiProjectsPost;
+  body: CreateProjectRequest;
   path?: never;
   query?: never;
   url: '/api/projects';
@@ -6233,6 +6180,260 @@ export type GetSharedResourceApiPublicShareTokenGetResponses = {
 
 export type GetSharedResourceApiPublicShareTokenGetResponse =
   GetSharedResourceApiPublicShareTokenGetResponses[keyof GetSharedResourceApiPublicShareTokenGetResponses];
+
+export type ExtensionTerminationRouteTusUuidDeleteData = {
+  body?: never;
+  headers?: {
+    /**
+     * Tus-Resumable
+     */
+    'tus-resumable'?: string;
+  };
+  path: {
+    /**
+     * Uuid
+     */
+    uuid: string;
+  };
+  query?: never;
+  url: '/tus/{uuid}';
+};
+
+export type ExtensionTerminationRouteTusUuidDeleteErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type ExtensionTerminationRouteTusUuidDeleteError =
+  ExtensionTerminationRouteTusUuidDeleteErrors[keyof ExtensionTerminationRouteTusUuidDeleteErrors];
+
+export type ExtensionTerminationRouteTusUuidDeleteResponses = {
+  /**
+   * Successful Response
+   */
+  204: void;
+};
+
+export type ExtensionTerminationRouteTusUuidDeleteResponse =
+  ExtensionTerminationRouteTusUuidDeleteResponses[keyof ExtensionTerminationRouteTusUuidDeleteResponses];
+
+export type CoreHeadRouteTusUuidHeadData = {
+  body?: never;
+  headers?: {
+    /**
+     * Tus-Resumable
+     */
+    'tus-resumable'?: string;
+  };
+  path: {
+    /**
+     * Uuid
+     */
+    uuid: string;
+  };
+  query?: never;
+  url: '/tus/{uuid}';
+};
+
+export type CoreHeadRouteTusUuidHeadErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type CoreHeadRouteTusUuidHeadError = CoreHeadRouteTusUuidHeadErrors[keyof CoreHeadRouteTusUuidHeadErrors];
+
+export type CoreHeadRouteTusUuidHeadResponses = {
+  /**
+   * Successful Response
+   */
+  200: unknown;
+};
+
+export type CorePatchRouteTusUuidPatchData = {
+  body?: never;
+  headers: {
+    /**
+     * Content-Length
+     */
+    'content-length': number;
+    /**
+     * Upload-Offset
+     */
+    'upload-offset': number;
+    /**
+     * Upload-Length
+     */
+    'upload-length'?: number;
+    /**
+     * Content-Type
+     */
+    'content-type'?: string;
+    /**
+     * Tus-Resumable
+     */
+    'tus-resumable'?: string;
+  };
+  path: {
+    /**
+     * Uuid
+     */
+    uuid: string;
+  };
+  query?: {
+    /**
+     * Post Request
+     */
+    post_request?: boolean;
+  };
+  url: '/tus/{uuid}';
+};
+
+export type CorePatchRouteTusUuidPatchErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type CorePatchRouteTusUuidPatchError = CorePatchRouteTusUuidPatchErrors[keyof CorePatchRouteTusUuidPatchErrors];
+
+export type CorePatchRouteTusUuidPatchResponses = {
+  /**
+   * Successful Response
+   */
+  204: void;
+};
+
+export type CorePatchRouteTusUuidPatchResponse =
+  CorePatchRouteTusUuidPatchResponses[keyof CorePatchRouteTusUuidPatchResponses];
+
+export type CoreOptionsRouteTusOptionsData = {
+  body?: never;
+  headers?: {
+    /**
+     * Tus-Resumable
+     */
+    'tus-resumable'?: string;
+  };
+  path?: never;
+  query?: never;
+  url: '/tus/';
+};
+
+export type CoreOptionsRouteTusOptionsErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type CoreOptionsRouteTusOptionsError = CoreOptionsRouteTusOptionsErrors[keyof CoreOptionsRouteTusOptionsErrors];
+
+export type CoreOptionsRouteTusOptionsResponses = {
+  /**
+   * Successful Response
+   */
+  204: void;
+};
+
+export type CoreOptionsRouteTusOptionsResponse =
+  CoreOptionsRouteTusOptionsResponses[keyof CoreOptionsRouteTusOptionsResponses];
+
+export type ExtensionCreationRouteTusPostData = {
+  body?: never;
+  headers?: {
+    /**
+     * Upload-Metadata
+     */
+    'upload-metadata'?: string;
+    /**
+     * Upload-Length
+     */
+    'upload-length'?: number;
+    /**
+     * Upload-Defer-Length
+     */
+    'upload-defer-length'?: number;
+    /**
+     * Upload-Concat
+     */
+    'upload-concat'?: string;
+    /**
+     * Tus-Resumable
+     */
+    'tus-resumable'?: string;
+  };
+  path?: never;
+  query?: never;
+  url: '/tus/';
+};
+
+export type ExtensionCreationRouteTusPostErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type ExtensionCreationRouteTusPostError =
+  ExtensionCreationRouteTusPostErrors[keyof ExtensionCreationRouteTusPostErrors];
+
+export type ExtensionCreationRouteTusPostResponses = {
+  /**
+   * Successful Response
+   */
+  201: unknown;
+};
+
+export type ExtensionCreationRouteTusPost2Data = {
+  body?: never;
+  headers?: {
+    /**
+     * Upload-Metadata
+     */
+    'upload-metadata'?: string;
+    /**
+     * Upload-Length
+     */
+    'upload-length'?: number;
+    /**
+     * Upload-Defer-Length
+     */
+    'upload-defer-length'?: number;
+    /**
+     * Upload-Concat
+     */
+    'upload-concat'?: string;
+    /**
+     * Tus-Resumable
+     */
+    'tus-resumable'?: string;
+  };
+  path?: never;
+  query?: never;
+  url: '/tus';
+};
+
+export type ExtensionCreationRouteTusPost2Errors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type ExtensionCreationRouteTusPost2Error =
+  ExtensionCreationRouteTusPost2Errors[keyof ExtensionCreationRouteTusPost2Errors];
+
+export type ExtensionCreationRouteTusPost2Responses = {
+  /**
+   * Successful Response
+   */
+  201: unknown;
+};
 
 export type GetCurrentUserInfoApiUsersMeGetData = {
   body?: never;

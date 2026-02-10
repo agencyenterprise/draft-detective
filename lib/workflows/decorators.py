@@ -9,7 +9,6 @@ from typing import Callable, Optional, TypeVar
 
 from langgraph.runtime import Runtime
 
-from lib.agents.registry import agent_registry
 from lib.models.workflow_progress import ProgressLevel
 from lib.services.workflow_progress import (
     get_or_create_progress,
@@ -27,9 +26,8 @@ T = TypeVar("T")
 
 def register_node(name: str, description: str):
     """
-    Decorator to register and control the execution of a workflow node with the workflow registry.
+    Decorator to control the execution of a workflow node.
 
-    - Registers the node with the agent registry.
     - Skips the node if it is not in the agents_to_run configuration, during execution
     - Logs the start and end of the node, during execution
     - Handles errors and updates the state with a WorkflowError object, during execution
@@ -44,7 +42,6 @@ def register_node(name: str, description: str):
     ) -> Callable[[BaseWorkflowState, ...], BaseWorkflowState]:
 
         func_logger = logging.getLogger(func.__module__)
-        agent_registry.register(func.__name__, name, description)
 
         @wraps(func)
         async def wrapper(
