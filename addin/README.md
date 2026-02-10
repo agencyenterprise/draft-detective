@@ -19,7 +19,6 @@ Use any tunnel provider. Two common options:
 #### Port Forward 
 Forward the ports 3000 and 8000 in VSCode/Cursor. Make sure they are public.
 
-
 Use the generated public HTTPS URLs in the steps below.
 
 ### Prepare the manifest

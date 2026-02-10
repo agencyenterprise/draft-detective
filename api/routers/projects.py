@@ -1,6 +1,5 @@
 import logging
-import uuid
-from typing import List, Optional
+from typing import List, Literal, Optional
 
 from fastapi import APIRouter, Depends
 from fastapi import File as FastAPIUploadFile
@@ -14,7 +13,7 @@ from api.upload import save_uploaded_files_to_db
 from lib.models.file import File, FileRole
 from lib.models.project import Project
 from lib.models.user import User
-from lib.services.docx_workflow_service import get_or_generate_docx
+from lib.services.docx_workflow_service import DocxManipulatorType, get_or_generate_docx
 from lib.services.files import create_project_files_zip, delete_project_files
 from lib.services.projects import (
     ProjectDetailed,
@@ -36,7 +35,7 @@ from lib.services.workflow_runs import (
     WorkflowRunDetail,
     get_project_workflow_runs_by_type_with_details,
 )
-from lib.models.workflow_run import WorkflowRun, WorkflowRunType
+from lib.models.workflow_run import WorkflowRunType
 from lib.workflows.models import SeverityEnum
 
 router = APIRouter(tags=["projects"])
@@ -143,6 +142,10 @@ async def download_project_docx(
         default=None,
         description="Filter issues by workflow types",
     ),
+    docx_type: DocxManipulatorType | Literal["original"] = Query(
+        default="original",
+        description="Docx type",
+    ),
     current_user: Optional[User] = Depends(get_current_user_optional),
 ):
     """
@@ -162,6 +165,7 @@ async def download_project_docx(
             share_token=share_token,
             severities=severities,
             workflow_types=workflow_types,
+            docx_type=docx_type,
             use_cache=True,
         )
     except Exception as e:
