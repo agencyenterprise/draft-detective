@@ -153,12 +153,14 @@ function DocumentIssueCardRaw({
   const { className, icon, accentClassName } = severityColorMap[issue.severity];
   const { getWorkflowTypeName } = useWorkflowTypes();
 
-  const showHideJumpToChunkButton = !hideJumpToChunk && issue.chunk_index !== undefined && issue.chunk_index !== null;
-
   const workflowRunId = useMemo(() => {
     const workflowRun = workflowRuns.find((wr) => wr.run.type === issue.type);
     return workflowRun?.run.id;
   }, [workflowRuns, issue.type]);
+
+  const showJumpToChunkButton =
+    !hideJumpToChunk &&
+    ((issue.chunk_index !== undefined && issue.chunk_index !== null) || (issue.chunk_indices?.length ?? 0) > 0);
 
   return (
     <div
@@ -185,13 +187,13 @@ function DocumentIssueCardRaw({
 
       <div
         className={cn('flex items-center gap-2', {
-          'border-t pt-1': showHideJumpToChunkButton || !!issue.long_description,
+          'border-t pt-1': showJumpToChunkButton || !!issue.long_description,
         })}
       >
-        {showHideJumpToChunkButton && (
+        {showJumpToChunkButton && (
           <Button variant="ghost" size="xs" className={accentClassName} onClick={() => onSelect(issue)}>
             <ExternalLinkIcon className="size-3" />
-            Jump to chunk {issue.chunk_index !== undefined ? issue.chunk_index : ''}
+            Jump to chunk {issue.chunk_index ?? issue.chunk_indices?.[0] ?? ''}
           </Button>
         )}
         {issue.long_description && (

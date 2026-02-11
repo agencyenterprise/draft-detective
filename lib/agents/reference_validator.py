@@ -12,7 +12,7 @@ from langchain_core.prompts import PromptTemplate
 from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
 
-from lib.config.llm_models import gpt_5_mini_model
+from lib.config.llm_models import gpt_5_2_model
 from lib.models.agent import DirectOpenAIAgent
 from lib.services.openai import ensure_structured_output_response
 
@@ -65,48 +65,54 @@ class BibliographyItemValidation(BaseModel):
 
 
 _reference_validator_prompt = PromptTemplate.from_template(
-    """
-You are an expert reference validator. Your task is to validate a reference from a document by ensuring there is online presence from a legitimate source.
+    """Validate a single bibliographic reference by searching for it online and checking its accuracy.
 
-# Reference Field Categories and what to check
-- AUTHOR (The author of the reference): Check if all the authors are present and their names are spelled correctly.
-- TITLE (The title of the reference): Check that the title of the reference is correct
-- PUBLISHER (The publisher of the reference): Check that the publisher of the reference matches that online
-- YEAR (The year of the reference): Ensure that the reference year is correct and is a valid year.
+You will receive one reference item from a document's bibliography. Use web search to locate the cited work, then verify each field against the authoritative source you find.
 
-# Reference Problem Types
-- CORRECT: The reference field is correct.
-- MISSING: The reference field is missing.
-- INCORRECT: The reference field is incorrect.
-- OTHER: The reference field is other.
+# Validation procedure
 
-# Output Requirements
-- For the validation result, provide the category, current value, suggested value, and problem type. If the suggested value is the same as the current value, set the problem type to CORRECT.
-- If all the fields in the reference item validation are correct, set valid_reference to True.
-- If any of the fields in the reference item validation are incorrect, set the valid_reference to False.
-- If the reference is not valid, set the suggested action to a single-sentence action to take to fix the reference. Should be a summary of the suggested changes to make the reference valid.
+1. Search for the reference online to find a matching legitimate source.
+2. For each field (author, title, publisher, year), compare the reference's value against what you found online.
+3. Determine whether the reference is valid overall.
 
-Guidelines for checking the reference fields:
-- For publisher, abbreviations should be considered equivalent to the full name.
-- For author lists, first and last names should both be validated if they are present within the reference. If last name and first initial are present then those strings should be validated. Abbreviating remaining authors as "et al." is valid.
-- For title, upper and lower case lettering is unimportant to validation (e.g., "The Title" and "the title" are considered the same title).
-- For determining the title of online articles linked to PDF documents, use the title within the PDF document if available. If not, use the title of the online article.
+# Field validation rules
+
+- **Author**: Verify all listed authors exist and names are spelled correctly. Both "first last" and "last, F." formats are acceptable. "et al." is valid for truncating author lists.
+- **Title**: Verify the title matches the source. Case differences are not errors. For PDF-linked articles, prefer the title inside the PDF over the webpage title.
+- **Publisher**: Verify the publisher matches. Abbreviations are equivalent to full names (e.g., "ACM" = "Association for Computing Machinery").
+- **Year**: Verify the publication year is correct.
+
+# Formatting policy
+
+Accept any broadly recognizable citation style (APA, Chicago, MLA, IEEE, etc.). Do not flag minor stylistic differences such as punctuation choice, field ordering, or comma vs. period usage. Focus on content accuracy, not style conformance.
+
+# Bare URL references
+
+A reference consisting solely of a URL with no bibliographic metadata is always invalid. Mark all four fields as MISSING and reconstruct the full citation from the URL's content in updated_reference.
+
+# Output logic
+
+- Set problem_type to CORRECT when the field's value matches the authoritative source (suggested_value equals current_value).
+- Set problem_type to MISSING when the field is absent from the reference.
+- Set problem_type to INCORRECT when the field is present but wrong.
+- Set valid_reference to true only if every field is CORRECT.
+- When invalid, write a single-sentence suggested_action summarizing what to fix.
+- When invalid, provide updated_reference with corrections applied, preserving the original citation format. When valid, set updated_reference to null.
+
+# Response hygiene
+
+Never include internal search tokens (e.g., turn0search0, turn2search3) or raw metadata markers in any output field. All text must be clean and human-readable.
+
 ---
 
-# NOTE:
-When generating responses, remove or replace all internal citation tokens such as turn1search0, turn2search3, or similar. Do not display raw reference IDs or metadata markers in the final text. Return clean, human-readable output only.
-
----
-
-I'm going to give you the reference to validate in my next message.
-"""
+The reference to validate will be provided in the next message."""
 )
 
 
 class ReferenceValidatorAgent(DirectOpenAIAgent):
     name = "Reference Validator"
     description = "Validate a list of references in a document, by searching for their online presence."
-    model = gpt_5_mini_model
+    model = gpt_5_2_model
     temperature = 0.0
     output_schema = BibliographyItemValidation
 

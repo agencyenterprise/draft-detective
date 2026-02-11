@@ -6,16 +6,15 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DocRenderMode } from '@/lib/constants';
 import { ProjectDetailed, SeverityEnum, WorkflowRunType } from '@/lib/generated-api';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
+import { cn } from '@/lib/utils';
 import { getWorkflowRunByType } from '@/lib/workflow-state';
 import { format } from 'date-fns';
 import { useState } from 'react';
-import { Card, CardContent } from '../../ui/card';
 import { AnalysisOptionsMenu } from './components/analysis-options-menu';
 import { ViewModeToggle } from './components/view-mode-toggle';
 import { TabType } from './constants';
 import { AnalysesTab, FilesTab, ReferenceReviewTab, SummaryTab } from './tabs';
 import { DocumentExplorerTab } from './tabs/document-explorer-tab';
-import { cn } from '@/lib/utils';
 
 interface ResultsVisualizationProps {
   projectDetail: ProjectDetailed;
@@ -70,11 +69,6 @@ export function ResultsVisualization({
             workflowTypeFilter={workflowTypeFilter}
             onWorkflowTypeFilterChange={setWorkflowTypeFilter}
             onNavigateToAnalyses={() => setActiveTab('analyses')}
-            onNavigateToReferences={(referenceIndex) => {
-              window.history.pushState(null, '', `#reference-${referenceIndex}`);
-              window.dispatchEvent(new HashChangeEvent('hashchange'));
-              setActiveTab('references');
-            }}
           />
         );
       case 'references':
