@@ -97,11 +97,11 @@ export async function getCustomDocumentProperties(): Promise<{
 export async function getCurrentParagraphIndex(): Promise<number> {
   if (typeof Word === 'undefined') return -1;
 
-  return Word.run(async (context) => {
+  return await Word.run(async (context) => {
     try {
       const selection = context.document.getSelection();
-      const contentControl = selection.contentControls.getFirstOrNullObject();
-      contentControl.load(['tag', 'title']);
+      const contentControl = selection.parentContentControlOrNullObject;
+      contentControl.load('tag');
       await context.sync();
       if (!contentControl.isNullObject && contentControl.tag.startsWith(MARKER_TAG)) {
         const tag = String(contentControl.tag ?? '');
