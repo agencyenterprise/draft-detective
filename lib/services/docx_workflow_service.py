@@ -1,6 +1,7 @@
 """Service for managing DOCX generation with caching."""
 
 import logging
+import uuid
 from pathlib import Path
 from typing import Dict, List, Literal, Optional
 
@@ -14,8 +15,7 @@ from lib.services.docx.manipulator import (
 from lib.services.file_artifacts_service.file_artifacts_service import (
     FileArtifactsService,
 )
-from lib.services.issues import convert_to_issues
-from lib.services.workflow_runs import get_project_workflow_runs
+from lib.services.issue_persistence import get_project_issues
 from lib.workflows.models import SeverityEnum
 
 logger = logging.getLogger(__name__)
@@ -124,9 +124,20 @@ async def generate_docx(
     if not main_file_path.endswith(".docx") and not main_file_path.endswith(".doc"):
         raise ValueError("Main file must be a .docx or .doc to generate reviewed DOCX")
 
-    workflow_runs = await get_project_workflow_runs(project_id, include_internal=True)
-    workflow_states = [run.state for run in workflow_runs if run.state is not None]
-    issues = convert_to_issues(workflow_states)
+    # Build chunk content map
+    chunk_content_map: Dict[int, str] = {c.chunk_index: c.content for c in chunks}
+
+    # Query persisted issues directly from DB (faster than computing from workflow states)
+    issues = list(
+        await get_project_issues(
+            project_id=uuid.UUID(project_id),
+            workflow_types=workflow_types,
+        )
+    )
+
+    # Filter issues by severity if specified
+    if severities:
+        issues = [issue for issue in issues if issue.severity in severities]
 
     output_path = None
     if not share_token:
@@ -136,17 +147,6 @@ async def generate_docx(
         DocxManipulatorType.COMMENTS,
         DocxManipulatorType.COMMENTS_WITH_LINKS,
     ]:
-        # Build chunk content map and convert workflow issues to comments
-        chunk_content_map: Dict[int, str] = {c.chunk_index: c.content for c in chunks}
-
-        # Filter issues by severity if specified
-        if severities:
-            issues = [issue for issue in issues if issue.severity in severities]
-
-        # Filter issues by workflow type if specified
-        if workflow_types:
-            issues = [issue for issue in issues if issue.type in workflow_types]
-
         share_token_for_comments = (
             share_token
             if docx_type == DocxManipulatorType.COMMENTS_WITH_LINKS

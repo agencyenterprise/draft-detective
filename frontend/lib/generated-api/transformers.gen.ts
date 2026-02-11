@@ -59,9 +59,21 @@ const projectDetailedSchemaResponseTransformer = (data: any) => {
   if (data.workflow_runs) {
     data.workflow_runs = data.workflow_runs.map((item: any) => workflowRunDetailSchemaResponseTransformer(item));
   }
+  if (data.issues) {
+    data.issues = data.issues.map((item: any) => issueSchemaResponseTransformer(item));
+  }
   if (data.files) {
     data.files = data.files.map((item: any) => fileListItemSchemaResponseTransformer(item));
   }
+  return data;
+};
+
+const issueSchemaResponseTransformer = (data: any) => {
+  if (data.resolved_at) {
+    data.resolved_at = new Date(data.resolved_at);
+  }
+  data.created_at = new Date(data.created_at);
+  data.updated_at = new Date(data.updated_at);
   return data;
 };
 

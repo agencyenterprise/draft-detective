@@ -1,5 +1,6 @@
 from datetime import date
 import logging
+import uuid
 from collections import defaultdict
 from typing import List, Optional
 
@@ -10,15 +11,16 @@ from sqlmodel import col
 
 from lib.config.database import get_async_db_session
 from lib.models.file import File, FileListItem
+from lib.models.issue import Issue
 from lib.models.project import Project
 from lib.models.user import User
 from lib.models.workflow_run import WorkflowRun
 from lib.services.files import delete_project_files, get_project_files_list_items
-from lib.services.issues import convert_to_issues
+from lib.services.issue_persistence import get_project_issues
 from lib.services.share_links import is_project_shared
 from lib.services.workflow_runs import WorkflowRunDetail, get_project_workflow_runs
 from lib.workflows.checkpointer import get_checkpointer
-from lib.workflows.models import DocumentIssue, WorkflowRunType
+from lib.workflows.models import WorkflowRunType
 
 logger = logging.getLogger(__name__)
 
@@ -37,9 +39,9 @@ class ProjectDetailed(BaseModel):
         default_factory=list,
         description="The workflow runs for the project",
     )
-    issues: List[DocumentIssue] = Field(
+    issues: List[Issue] = Field(
         default_factory=list,
-        description="The issues for the project, converted from the workflow results states",
+        description="The persisted issues for the project",
     )
     files: List[FileListItem] = Field(
         default_factory=list,
@@ -137,11 +139,13 @@ async def get_project_detailed_from_project(
             for supporting_file in run.state.supporting_files:
                 supporting_file.markdown = None
 
-    states = [run.state for run in workflow_runs if run.state is not None]
+    # Query persisted issues from the database (faster than computing from state)
+    issues = await get_project_issues(uuid.UUID(str(project.id)))
+
     return ProjectDetailed(
         project=project,
         workflow_runs=workflow_runs,
-        issues=convert_to_issues(states),
+        issues=list(issues),
         files=await get_project_files_list_items(project.id),
     )
 

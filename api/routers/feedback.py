@@ -22,15 +22,23 @@ router = APIRouter(tags=["feedback"])
 class FeedbackRequest(BaseModel):
     """Generic request model for any entity feedback"""
 
-    workflow_run_id: UUID
+    workflow_run_id: Optional[UUID] = Field(
+        default=None,
+        description="Workflow run ID (optional if issue_id is provided)",
+    )
     entity_path: dict = Field(
+        default_factory=dict,
         description="JSONB path identifying the entity",
         examples=[
             {"chunk_index": 0, "claim_index": 1},  # claim
             {"chunk_index": 0},  # chunk
             {"reference_index": 2},  # reference
-            {},  # workflow-level
+            {},  # workflow-level or issue-level (when issue_id is set)
         ],
+    )
+    issue_id: Optional[UUID] = Field(
+        default=None,
+        description="Issue ID for issue-level feedback (preferred, derives workflow_run_id automatically)",
     )
     feedback_type: str  # Accept as string, convert in endpoint
     feedback_text: Optional[str] = Field(
@@ -45,6 +53,7 @@ class FeedbackResponse(BaseModel):
     id: UUID
     workflow_run_id: UUID
     entity_path: dict
+    issue_id: Optional[UUID]
     feedback_type: FeedbackType
     feedback_text: Optional[str]
     created_at: str
@@ -57,6 +66,7 @@ class FeedbackResponse(BaseModel):
             id=feedback.id,
             workflow_run_id=feedback.workflow_run_id,
             entity_path=feedback.entity_path,
+            issue_id=feedback.issue_id,
             feedback_type=feedback.feedback_type,
             feedback_text=feedback.feedback_text,
             created_at=feedback.created_at.isoformat(),
@@ -70,16 +80,37 @@ async def submit_feedback(
     current_user: User = Depends(get_current_user),
 ) -> FeedbackResponse:
     """Submit or update feedback for any entity"""
+    from lib.models.issue import Issue
+    from sqlalchemy import select
+    from sqlmodel import col
+
     async with get_async_db_session() as session:
         feedback_type = FeedbackType(request.feedback_type)
+        workflow_run_id = request.workflow_run_id
+
+        # If issue_id is provided, derive workflow_run_id from the issue
+        if request.issue_id:
+            stmt = select(Issue).where(col(Issue.id) == request.issue_id)
+            result = await session.execute(stmt)
+            issue = result.scalar_one_or_none()
+            if issue is None:
+                raise HTTPException(status_code=404, detail="Issue not found")
+            workflow_run_id = issue.workflow_run_id
+
+        if workflow_run_id is None:
+            raise HTTPException(
+                status_code=400,
+                detail="Either workflow_run_id or issue_id is required",
+            )
 
         feedback = await feedback_service.create_or_update_feedback(
             session=session,
-            workflow_run_id=request.workflow_run_id,
+            workflow_run_id=workflow_run_id,
             entity_path=request.entity_path,
             feedback_type=feedback_type,
             user=current_user,
             feedback_text=request.feedback_text,
+            issue_id=request.issue_id,
         )
 
         return FeedbackResponse.from_model(feedback)
@@ -87,25 +118,40 @@ async def submit_feedback(
 
 @router.get("/api/feedback", response_model=Optional[FeedbackResponse])
 async def get_feedback(
-    workflow_run_id: UUID,
-    entity_path: str,  # JSON string, we'll parse it
+    workflow_run_id: Optional[UUID] = None,
+    entity_path: Optional[str] = None,  # JSON string, we'll parse it
+    issue_id: Optional[UUID] = None,
     current_user: User = Depends(get_current_user),
 ) -> Optional[FeedbackResponse]:
-    """Get feedback for a specific entity
+    """Get feedback for a specific entity or issue
 
-    Example: GET /api/feedback?workflow_run_id=xxx&entity_path={"chunk_index":0,"claim_index":1}
+    Examples:
+    - GET /api/feedback?workflow_run_id=xxx&entity_path={"chunk_index":0,"claim_index":1}
+    - GET /api/feedback?issue_id=xxx
     """
     import json
 
     async with get_async_db_session() as session:
-        parsed_path = json.loads(entity_path)
-
-        feedback = await feedback_service.get_feedback(
-            session=session,
-            workflow_run_id=workflow_run_id,
-            entity_path=parsed_path,
-            user=current_user,
-        )
+        # Support getting feedback by issue_id or workflow_run_id/entity_path
+        if issue_id:
+            feedback = await feedback_service.get_feedback_by_issue(
+                session=session,
+                issue_id=issue_id,
+                user=current_user,
+            )
+        elif workflow_run_id and entity_path:
+            parsed_path = json.loads(entity_path)
+            feedback = await feedback_service.get_feedback(
+                session=session,
+                workflow_run_id=workflow_run_id,
+                entity_path=parsed_path,
+                user=current_user,
+            )
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail="Either issue_id or both workflow_run_id and entity_path are required",
+            )
 
         if feedback:
             return FeedbackResponse.from_model(feedback)
@@ -122,6 +168,21 @@ async def get_workflow_feedback(
     async with get_async_db_session() as session:
         feedbacks = await feedback_service.get_workflow_feedback(
             session=session, workflow_run_id=workflow_run_id, user=current_user
+        )
+
+        return [FeedbackResponse.from_model(f) for f in feedbacks]
+
+
+@router.get(
+    "/api/feedback/project/{project_id}", response_model=list[FeedbackResponse]
+)
+async def get_project_feedback(
+    project_id: UUID, current_user: User = Depends(get_current_user)
+) -> list[FeedbackResponse]:
+    """Get all issue feedback for a project (single call for all issues)"""
+    async with get_async_db_session() as session:
+        feedbacks = await feedback_service.get_project_issue_feedback(
+            session=session, project_id=project_id, user=current_user
         )
 
         return [FeedbackResponse.from_model(f) for f in feedbacks]

@@ -95,6 +95,8 @@ The default workflow configuration (`lib/config/workflow_config.yaml`) is self-d
 3. Upload your custom `workflow_config.yaml` to the volume
 4. Set environment variable: `WORKFLOW_CONFIG_PATH=/app/config/workflow_config.yaml`
 
+> Railway doesn't allow scp or have a text editor, so use pbcopy with pipe to send changes through ssh.
+
 ## Troubleshooting
 
 ### Database Connection Issues
