@@ -23,11 +23,21 @@ The system addresses these primary research questions:
 
 1. **Claim-Reference Alignment**: Does each cited reference provide evidence that substantiates the associated claim?
 2. **Reference Validation**: Are the references correct, including Author, Title, Year and Publisher fields that have online presence?
-3. **Unsupported claims**: Which claims require citation but lack appropriate references?
+3. **Unsupported Claims**: Which claims require citation but lack appropriate references?
 4. **Inference Validation**: Are the inferences made within the paper logically valid and supported by premises of the argument?
 5. **Citation Recommendations**: What additional references could strengthen the document's evidentiary foundation?
 6. **Literature Review**: Is there any other related published work that could be referenced to strengthen or counter the arguments presented?
 7. **Live Reports** (for past published documents): Is there any newer related work that supports, strengthens, contradicts, or brings newer information that should be considered to expand the document's arguments?
+8. **Methodological Alignment**: Does the methodology used align with typical methods in the field?
+9. **Results Extraction**: What are the main results of the document, and are they reproducible?
+
+### QA Screener (Experimental)
+
+For organizational quality assurance workflows, the system also includes experimental analyses:
+
+10. **Advocacy & Tone Detection**: Does the document contain subjective language, unsupported recommendations, or advocacy patterns that may indicate bias?
+11. **Preface/Introduction Validation**: Does the preface section contain required elements (context, objectives, audience, funding statements)?
+12. **Author Biography Validation**: Are author biographies consistent, complete, and compliant with organizational style guidelines?
 
 ## Methodology
 
@@ -39,9 +49,15 @@ The system accepts two primary inputs: a **main document** to be reviewed and a 
 
 The system processes documents through a multi-stage pipeline implemented using LangGraph, which orchestrates a series of specialized AI agents:
 
-1. **Document Conversion**: Input documents (PDF, DOCX, Markdown) are converted to structured markdown format while preserving semantic structure.
+1. **Document Conversion**: Input documents (PDF, DOCX, Markdown) are converted to structured markdown format while preserving semantic structure. Multiple converters are supported (Markitdown, Docling).
 
-2. **Document Chunking**: Documents are segmented into semantically coherent chunks using recursive character text splitting. Chunks maintain paragraph boundaries and are sized to preserve context while enabling granular analysis.
+2. **Document Chunking**: Documents are segmented into semantically coherent chunks using NLTK-based sentence splitting with LLM fallback for complex text. The chunking process:
+   - Converts documents to markdown
+   - Splits into paragraphs on double newlines
+   - Splits each paragraph into sentence-level chunks using NLTK
+   - Falls back to LLM for complex sentences that NLTK cannot handle
+   - Maintains chunk_index, paragraph_index, and chunk_index_within_paragraph metadata
+   - Processes paragraphs in parallel for performance (3-10x faster for documents with LLM fallbacks)
 
 3. **Claim Extraction**: An LLM-based agent extracts factual claims from each chunk. Claims are defined as decontextualized propositions—assertions that can be understood and verified independently of their surrounding context. The extraction process considers:
 
@@ -52,9 +68,11 @@ The system processes documents through a multi-stage pipeline implemented using 
 
 4. **Citation Detection**: Citations are identified and mapped to their corresponding references in the document's bibliography. The system handles various citation formats and associates citations with claims based on proximity and paragraph-level context.
 
-5. **Reference Extraction**: Bibliographic references are extracted and structured, enabling mapping between in-text citations and their full reference entries.
+5. **Reference Extraction**: Bibliographic references are extracted using section detection and windowed extraction, enabling mapping between in-text citations and their full reference entries.
 
-6. **Claim Categorization**: Extracted claims are classified into six categories:
+6. **Reference File Matching**: Supporting documents are matched to extracted references to enable verification against full-text sources.
+
+7. **Claim Categorization**: Extracted claims are classified into six categories:
 
    - Established/reported knowledge
    - Methodological/procedural statements
@@ -65,7 +83,7 @@ The system processes documents through a multi-stage pipeline implemented using 
 
    Each category determination includes an assessment of whether external verification is required, filtering out common knowledge claims that do not necessitate citation.
 
-7. **Claim Verification**: Claims are verified against supporting documents using RAG-Based verification:
+8. **Claim Verification**: Claims are verified against supporting documents using RAG-Based verification:
 
    - Supporting documents are indexed in a vector store using OpenAI's `text-embedding-3-large` embeddings
    - Documents are chunked (2000 characters with 400-character overlap) and embedded
@@ -74,20 +92,51 @@ The system processes documents through a multi-stage pipeline implemented using 
    - Retrieved passages are ranked by cosine distance and presented to the verification agent
    - The LLM evaluates whether retrieved passages substantiate the claim
 
-8. **Inference Validation**: Claims identified as inferential or interpretive are analyzed to detect potential logical fallacies, unsupported leaps, or missing intermediate reasoning steps.
+9. **Inference Validation**: Claims identified as inferential or interpretive are analyzed using the Toulmin model of argumentation to detect potential logical fallacies, unsupported leaps, or missing intermediate reasoning steps. The system examines claims, data/grounds, warrants, qualifiers, rebuttals, and backing to identify invalid inferences.
 
-9. **Literature Review**: The system conducts automated literature reviews by:
+10. **Reference Validation**: Uses web search to check if each reference from the document is available online and matches author, title, year, and publisher against public internet sources. Useful for detecting fabricated or hallucinated references.
 
-   - Searching external sources for supporting or conflicting evidence
-   - Identifying newer publications relevant to the claims
-   - Evaluating reference quality and source credibility
-   - Recommending citation additions, replacements, or discussions
+11. **Literature Review**: The system conducts automated literature reviews by:
 
-10. **Citation Suggestion**: For claims lacking citations, the system suggests relevant references from the document's bibliography or external sources, considering:
+    - Searching external sources for supporting or conflicting evidence
+    - Identifying newer publications relevant to the claims
+    - Evaluating reference quality and source credibility
+    - Recommending citation additions, replacements, or discussions
+
+12. **Citation Suggestion**: For claims lacking citations, the system suggests relevant references from the document's bibliography or external sources, considering:
     - Relevance to the claim
     - Source quality and credibility
     - Publication recency
     - Domain appropriateness
+
+13. **Methodological Alignment**: Analyzes the methodology used in the document against typical methods used in the field, using web search to find field methods context.
+
+14. **Results Extraction**: Extracts main results from the document and assesses their reproducibility.
+
+### QA Screener Analyses (Experimental)
+
+For organizational compliance and quality assurance:
+
+15. **Advocacy & Tone Detection**: Uses a two-layer detection approach:
+    - Fast procedural checks (regex patterns) for trigger words and advocacy language
+    - LLM verification to confirm and contextualize flagged content
+    - Detects subjective tone using TextBlob subjectivity analysis
+
+16. **Preface Validation**: Validates preface/introduction sections against configurable requirements:
+    - Context establishment
+    - Objectives explanation
+    - Audience identification
+    - Relationship to existing literature
+    - Contribution statement
+    - Scope definition
+    - Boilerplate text verification
+    - Funding statement presence
+
+17. **Author Biography Validation**: Validates author biographies for:
+    - Sentence count compliance
+    - Position and affiliation presence
+    - Research focus inclusion
+    - Style consistency
 
 ### Technical Architecture
 
@@ -99,6 +148,8 @@ The system processes documents through a multi-stage pipeline implemented using 
 - Parallel processing of independent operations
 - State persistence and checkpointing for resumable workflows
 - Error handling and graceful degradation
+- Dependency resolution between workflows
+- Human-in-the-loop checkpoints for approval workflows
 
 **Vector Storage**: Supporting documents are indexed in PostgreSQL with pgvector extension:
 
@@ -107,7 +158,7 @@ The system processes documents through a multi-stage pipeline implemented using 
 - Similarity search uses cosine distance metric
 - Collections are cached and reused across workflow runs
 
-**State Management**: The workflow maintains a comprehensive state object (`ClaimSubstantiatorState`) that tracks:
+**State Management**: The workflow maintains a comprehensive state object that tracks:
 
 - Original documents and their markdown representations
 - Extracted chunks with associated metadata
@@ -134,8 +185,9 @@ The system includes evaluation capabilities for:
 - Citation detection precision and recall
 - Verification alignment classification
 - End-to-end workflow performance
+- Model comparison for cost optimization
 
-Evaluation datasets are maintained in YAML format with ground truth annotations for systematic testing.
+Evaluation datasets are maintained in YAML format with ground truth annotations for systematic testing. Results can be exported and visualized in a dedicated frontend evaluation viewer.
 
 ### System architecture
 
@@ -202,5 +254,9 @@ The following example demonstrates the system's "live reports" capabilities for 
 5. **Citation Proximity**: The system associates citations with claims based on paragraph-level proximity. In cases where citations are distant from their claims, associations may be incorrect.
 
 6. **Processing Scale**: Large documents with many claims require significant computational resources. The system supports selective re-evaluation of specific chunks to optimize resource usage.
+
+7. **Web Search Dependency**: Literature review, reference validation, and methodological alignment analyses require web search access. Results depend on search engine availability and the indexed web content.
+
+8. **QA Screener Customization**: The experimental QA screener workflows (advocacy tone, preface validation, author bios) are configurable via YAML but require tuning for different organizational requirements.
 
 ## References
