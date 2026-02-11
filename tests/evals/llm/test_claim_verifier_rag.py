@@ -121,6 +121,8 @@ async def _build_cases(dataset_file_name: str):
             content=chunk,
             chunk_index=0,
             paragraph_index=0,
+            start_line=1,
+            end_line=1,
             headings=headings_context,
         )
 
