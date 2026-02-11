@@ -9,7 +9,6 @@ import { ProjectDetailed, SeverityEnum, WorkflowRunType } from '@/lib/generated-
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { cn } from '@/lib/utils';
 import { getWorkflowRunByType } from '@/lib/workflow-state';
-import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { useState } from 'react';
 import { AnalysisOptionsMenu } from './components/analysis-options-menu';
