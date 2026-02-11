@@ -4,7 +4,7 @@
   xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0"
   xmlns:ov="http://schemas.microsoft.com/office/taskpaneappversionoverrides"
   xsi:type="TaskPaneApp">
-  <Id>d11b2ab1-20e0-4baf-abcf-e54ed028ce7d</Id>
+  <Id>e8f82310-9703-42b4-8e7c-996e237f7d23</Id>
   <Version>1.0.0.0</Version>
   <ProviderName>AI Reviewer</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>

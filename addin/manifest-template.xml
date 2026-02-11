@@ -1,22 +1,22 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <OfficeApp xmlns="http://schemas.microsoft.com/office/appforoffice/1.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0" xmlns:ov="http://schemas.microsoft.com/office/taskpaneappversionoverrides" xsi:type="TaskPaneApp">
-  <Id>4ebc6824-f166-4bf3-a691-cc07c6b2221e</Id>
+  <Id>d11b2ab1-20e0-4baf-abcf-e54ed028ce7d</Id>
   <Version>1.0.0.0</Version>
-  <ProviderName>AI Reviewer (DEV)</ProviderName>
+  <ProviderName>AI Reviewer</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
-  <DisplayName DefaultValue="AI Reviewer (DEV)"/>
+  <DisplayName DefaultValue="AI Reviewer"/>
   <Description DefaultValue="AI Reviewer add-in allows you to see the issues on AI Reviewer in your word document." />
-  <IconUrl DefaultValue="https://ai-reviewer-app-dev.up.railway.app/logo_160x160.png"/>
-  <HighResolutionIconUrl DefaultValue="https://ai-reviewer-app-dev.up.railway.app/logo_160x160.png"/>
-  <SupportUrl DefaultValue="https://ai-reviewer-app-dev.up.railway.app/"/>
+  <IconUrl DefaultValue="{FRONTEND_URL}/logo_160x160.png"/>
+  <HighResolutionIconUrl DefaultValue="{FRONTEND_URL}/logo_160x160.png"/>
+  <SupportUrl DefaultValue="{FRONTEND_URL}/"/>
   <AppDomains>
-    <AppDomain>https://ai-reviewer-app-dev.up.railway.app</AppDomain>
+    <AppDomain>{FRONTEND_URL}</AppDomain>
   </AppDomains>
   <Hosts>
     <Host Name="Document"/>
   </Hosts>
   <DefaultSettings>
-    <SourceLocation DefaultValue="https://ai-reviewer-app-dev.up.railway.app/addin"/>
+    <SourceLocation DefaultValue="{FRONTEND_URL}/addin"/>
   </DefaultSettings>
   <Permissions>ReadWriteDocument</Permissions>
 
@@ -66,22 +66,22 @@
     </Hosts>
     <Resources>
       <bt:Images>
-        <bt:Image id="Icon.16x16" DefaultValue="https://ai-reviewer-app-dev.up.railway.app/logo_16x16.png"/>
-        <bt:Image id="Icon.32x32" DefaultValue="https://ai-reviewer-app-dev.up.railway.app/logo_32x32.png"/>
-        <bt:Image id="Icon.80x80" DefaultValue="https://ai-reviewer-app-dev.up.railway.app/logo_80x80.png"/>
+        <bt:Image id="Icon.16x16" DefaultValue="{FRONTEND_URL}/logo_16x16.png"/>
+        <bt:Image id="Icon.32x32" DefaultValue="{FRONTEND_URL}/logo_32x32.png"/>
+        <bt:Image id="Icon.80x80" DefaultValue="{FRONTEND_URL}/logo_80x80.png"/>
       </bt:Images>
       <bt:Urls>
         <bt:Url id="GetStarted.LearnMoreUrl" DefaultValue="https://go.microsoft.com/fwlink/?LinkId=276812"/>
-        <bt:Url id="Taskpane.Url" DefaultValue="https://ai-reviewer-app-dev.up.railway.app/addin"/>
+        <bt:Url id="Taskpane.Url" DefaultValue="{FRONTEND_URL}/addin"/>
       </bt:Urls>
       <bt:ShortStrings>
-        <bt:String id="GetStarted.Title" DefaultValue="Get started with the AI Reviewer (DEV) add-in!"/>
-        <bt:String id="CommandsGroup.Label" DefaultValue="AI Reviewer (DEV)"/>
-        <bt:String id="TaskpaneButton.Label" DefaultValue="AI Reviewer (DEV)"/>
+        <bt:String id="GetStarted.Title" DefaultValue="Get started with the AI Reviewer add-in!"/>
+        <bt:String id="CommandsGroup.Label" DefaultValue="AI Reviewer"/>
+        <bt:String id="TaskpaneButton.Label" DefaultValue="AI Reviewer"/>
       </bt:ShortStrings>
       <bt:LongStrings>
-        <bt:String id="GetStarted.Description" DefaultValue="The AI Reviewer (DEV) add-in loaded successfully. Go to the HOME tab and click the 'AI Reviewer (DEV)' button to get started."/>
-        <bt:String id="TaskpaneButton.Tooltip" DefaultValue="Click to open the AI Reviewer (DEV) add-in."/>
+        <bt:String id="GetStarted.Description" DefaultValue="The AI Reviewer add-in loaded successfully. Go to the HOME tab and click the 'AI Reviewer' button to get started."/>
+        <bt:String id="TaskpaneButton.Tooltip" DefaultValue="Click to open the AI Reviewer add-in."/>
       </bt:LongStrings>
     </Resources>
   </VersionOverrides>
