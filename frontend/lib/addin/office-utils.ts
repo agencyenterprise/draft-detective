@@ -121,6 +121,32 @@ export async function getCurrentParagraphIndex(): Promise<number> {
 
 const MARKER_TAG = 'AIReviewer_Issue_Marker';
 
+export async function jumpToChunk(chunkIndex: number): Promise<void> {
+  if (typeof Word === 'undefined') return;
+
+  const { chunkToParagraphMapping } = await getCustomDocumentProperties();
+  if (!chunkToParagraphMapping) {
+    console.warn('No chunk mapping found');
+    return;
+  }
+
+  const paragraphIndex = chunkToParagraphMapping[String(chunkIndex)];
+  if (paragraphIndex === undefined) {
+    console.warn(`No paragraph found for chunk ${chunkIndex}`);
+    return;
+  }
+
+  await Word.run(async (context) => {
+    const tag = `${MARKER_TAG}:${paragraphIndex}`;
+    const contentControls = context.document.contentControls.getByTag(tag).getFirstOrNullObject();
+    await context.sync();
+    if (!contentControls.isNullObject) {
+      contentControls.select();
+      await context.sync();
+    }
+  });
+}
+
 export async function addIssueMarkers(issues: DocumentIssue[]): Promise<Map<number, DocumentIssue[]>> {
   if (typeof Word === 'undefined') return new Map();
   const { chunkToParagraphMapping } = await getCustomDocumentProperties();

@@ -55,8 +55,28 @@ To test the add-in locally on MacOS, inside installed word (Microsoft 365):
 
 https://learn.microsoft.com/en-us/office/dev/add-ins/testing/sideload-an-office-add-in-on-mac
 
-```
+```bash
 cp addin/manifest-dev.local.xml ~/Library/Containers/com.microsoft.Word/Data/Documents/wef
 ```
 
 Requires re-opening Word every time manifest changes.
+
+## Preview in browser (without Word)
+
+To speed up development, you can preview the add-in sidebar directly in the browser.
+
+1. Remove the Office script import from `frontend/app/addin/layout.tsx`.
+2. Open `http://localhost:3000/addin?token=SHARE_TOKEN`, replacing SHARE_TOKEN by the project shared token.
+
+Limitations: paragraph-related features do not work (for example, paragraph filtering and jump to paragraph).
+
+## Publish the Word add-in in your organization
+
+Official deployment guide:
+https://learn.microsoft.com/en-us/microsoft-365/admin/manage/office-addins?view=o365-worldwide#upload-custom-office-add-ins-in-your-organization
+
+In step 3, choose **Add-in only manifest** and provide the manifest URL.
+
+Manifest URL from this repo: `https://raw.githubusercontent.com/agencyenterprise/ai-reviewer/refs/heads/dev/addin/manifest.xml`
+
+Reference video (older, but still useful): https://www.youtube.com/watch?v=p3aeO9muEI8&t=181s

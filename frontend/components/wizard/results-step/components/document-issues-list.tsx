@@ -4,6 +4,7 @@ import { DocumentIssueCard } from './document-issue-card';
 interface DocumentIssuesListProps {
   issues: DocumentIssue[];
   hideJumpToChunk?: boolean;
+  jumpToAlias?: string;
   onSelect: (issue: DocumentIssue) => void;
   workflowRuns?: WorkflowRunDetail[];
   readOnly?: boolean;
@@ -12,6 +13,7 @@ interface DocumentIssuesListProps {
 export function DocumentIssuesList({
   issues,
   hideJumpToChunk = false,
+  jumpToAlias,
   onSelect,
   workflowRuns,
   readOnly,
@@ -23,6 +25,7 @@ export function DocumentIssuesList({
           key={issue.id}
           issue={issue}
           hideJumpToChunk={hideJumpToChunk}
+          jumpToAlias={jumpToAlias}
           onSelect={onSelect}
           workflowRuns={workflowRuns}
           readOnly={readOnly}
