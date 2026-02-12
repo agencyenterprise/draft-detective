@@ -66,7 +66,7 @@ def test_optional_dependencies_excluded():
     # CITATION_SUGGESTER optionally depends on LITERATURE_REVIEW
     result = resolve_workflow_dependencies([WorkflowRunType.CITATION_SUGGESTER])
 
-    assert WorkflowRunType.CLAIM_EXTRACTION in result
+    assert WorkflowRunType.CLAIM_EXTRACTION_V2 in result
     assert WorkflowRunType.LITERATURE_REVIEW not in result
 
 
