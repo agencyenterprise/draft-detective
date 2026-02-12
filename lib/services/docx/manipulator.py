@@ -6,7 +6,7 @@ import logging
 from collections import defaultdict
 from enum import StrEnum
 from pathlib import Path
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional
 
 from docx import Document
 from docx.document import Document as DocumentObject
@@ -20,13 +20,9 @@ from lib.services.docx.docx_xml import (
     wrap_paragraph_with_content_control,
 )
 from lib.models.issue import Issue
-from lib.workflows.models import DocumentIssue, SeverityEnum
+from lib.workflows.models import SeverityEnum
 
 logger = logging.getLogger(__name__)
-
-# Both Issue (DB model) and DocumentIssue (workflow model) share the same
-# structural shape (chunk_index, chunk_indices, title, description, severity).
-IssueType = Union[Issue, DocumentIssue]
 
 
 class DocxManipulatorType(StrEnum):
@@ -49,7 +45,7 @@ def _map_severity_enum_to_comment_severity(severity: SeverityEnum) -> "CommentSe
     return mapping.get(severity, CommentSeverity.NONE)
 
 
-def _build_issue_anchor(issue: IssueType) -> Optional[str]:
+def _build_issue_anchor(issue: Issue) -> Optional[str]:
     """Build URL anchor fragment for an issue."""
     if issue.chunk_index is not None:
         return f"#chunk-{issue.chunk_index}"
@@ -121,11 +117,11 @@ class DocxComment(BaseModel):
 
 
 def issue_to_comment(
-    issue: IssueType,
+    issue: Issue,
     chunk_content_map: Dict[int, str],
     share_token: Optional[str] = None,
 ) -> Optional["DocxComment"]:
-    """Convert any issue-like object to DocxComment with optional share link."""
+    """Convert an Issue to DocxComment with optional share link."""
     if issue.chunk_index is None:
         return None
 
@@ -150,10 +146,10 @@ def issue_to_comment(
 
 
 def _build_issue_map(
-    issues: List[IssueType],
+    issues: List[Issue],
     chunk_to_paragraph_mapping: Dict[int, int],
-) -> Dict[int, List[IssueType]]:
-    issue_map: Dict[int, List[IssueType]] = defaultdict(list)
+) -> Dict[int, List[Issue]]:
+    issue_map: Dict[int, List[Issue]] = defaultdict(list)
     for issue in issues:
         indices_to_process = set()
         if issue.chunk_index is not None:
@@ -166,17 +162,13 @@ def _build_issue_map(
                 continue
             issues_for_paragraph = issue_map[paragraph_index]
 
-            issue_id = getattr(issue, "issue_hash", None) or getattr(issue, "id", None)
-            existing_ids = [
-                getattr(i, "issue_hash", None) or getattr(i, "id", None)
-                for i in issues_for_paragraph
-            ]
-            if issue_id not in existing_ids:
+            existing_hashes = {i.issue_hash for i in issues_for_paragraph}
+            if issue.issue_hash not in existing_hashes:
                 issues_for_paragraph.append(issue)
     return issue_map
 
 
-def _get_paragraph_severity(issues: List[IssueType]) -> SeverityEnum:
+def _get_paragraph_severity(issues: List[Issue]) -> SeverityEnum:
     if not issues:
         return SeverityEnum.NONE
     return max(issues, key=lambda issue: issue.severity.sort_index()).severity
@@ -201,7 +193,7 @@ class DocxManipulatorService:
         share_token: str,
         workflow_run_id: str,
         chunks: List[ChunkLike] | None = None,
-        issues: List[IssueType] | None = None,
+        issues: List[Issue] | None = None,
     ) -> str:
         """Add custom properties and a comment to a DOCX file."""
         return await asyncio.to_thread(
@@ -219,7 +211,7 @@ class DocxManipulatorService:
         share_token: str,
         workflow_run_id: str,
         chunks: List[ChunkLike] | None = None,
-        issues: List[IssueType] | None = None,
+        issues: List[Issue] | None = None,
     ) -> str:
         """Sync implementation for add-in metadata generation."""
         original_path = Path(original_docx_path)
