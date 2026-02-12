@@ -25,7 +25,7 @@ class InferenceValidationManifest(
     needs_web_search = False
     order = 1
     required_dependencies = [
-        WorkflowRunType.CLAIM_EXTRACTION,
+        WorkflowRunType.CLAIM_EXTRACTION_V2,
         WorkflowRunType.DOCUMENT_SUMMARIZATION,
     ]
 
