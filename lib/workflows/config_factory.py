@@ -45,6 +45,7 @@ def create_workflow_config(
         "publication_date": (
             project.publication_date.isoformat() if project.publication_date else None
         ),
+        "claim_extraction_version": request.claim_extraction_version,
     }
 
     # Handle workflow-specific configs
