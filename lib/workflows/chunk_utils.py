@@ -1,17 +1,21 @@
+import logging
 from typing import TYPE_CHECKING, Dict, List, Optional, Sequence, Tuple, cast
 
 from lib.agents.citation_detector import CitationResponse
 from lib.agents.claim_categorizer import ClaimCategorizationResponseWithClaimIndex
 from lib.agents.claim_extractor import ClaimResponseWithChunkIndex
-from lib.agents.models import ChunkWithIndex, ClaimCategory
+from lib.agents.models import ChunkWithIndex
 from lib.workflows.chunk_splitting.state import ChunkSplittingState
 from lib.workflows.citation_detection.state import CitationDetectionState
 from lib.workflows.claim_extraction.state import ClaimExtractionState
+from lib.workflows.claim_extraction_v2.state import ClaimExtractionV2State
 from lib.workflows.models import WorkflowRunType
 from lib.workflows.util import get_state_by_type
 
 if TYPE_CHECKING:
     from lib.workflows.types import WorkflowState
+
+logger = logging.getLogger(__name__)
 
 
 class AnalyzedChunk(ChunkWithIndex):
@@ -26,6 +30,37 @@ class AnalyzedChunk(ChunkWithIndex):
     claim_categories: List[ClaimCategorizationResponseWithClaimIndex] = []
 
 
+def _resolve_claim_state(
+    existing_states: List["WorkflowState"],
+) -> Tuple[
+    List[ClaimResponseWithChunkIndex],
+    List[ClaimCategorizationResponseWithClaimIndex],
+]:
+    """Resolve claims and categories from existing states.
+
+    Prefers v2 claim extraction state when present, falls back to v1.
+    V2 has no categories (always empty list).
+    """
+    # Try v2 first
+    v2_state_raw = get_state_by_type(
+        WorkflowRunType.CLAIM_EXTRACTION_V2, existing_states
+    )
+    if v2_state_raw is not None:
+        v2_state = cast(ClaimExtractionV2State, v2_state_raw)
+        logger.info("Using claim extraction v2 state for chunk enrichment")
+        return v2_state.claims, v2_state.claim_categories
+
+    # Fall back to v1
+    v1_state_raw = get_state_by_type(
+        WorkflowRunType.CLAIM_EXTRACTION, existing_states
+    )
+    if v1_state_raw is not None:
+        v1_state = cast(ClaimExtractionState, v1_state_raw)
+        return v1_state.claims, v1_state.claim_categories
+
+    return [], []
+
+
 def build_analyzed_chunks(
     existing_states: List["WorkflowState"],
 ) -> List[AnalyzedChunk]:
@@ -33,8 +68,8 @@ def build_analyzed_chunks(
 
     This function extracts chunks from chunk splitting state and enriches them
     with claims, claim categories, and citations from their respective workflow states.
-    If any of the optional states (claim extraction, citation detection) are not present,
-    the corresponding fields will not be populated.
+    Prefers v2 claim extraction state when present, falls back to v1.
+    If neither is present, claim fields will not be populated.
 
     Args:
         existing_states: List of workflow states from dependency workflows
@@ -52,15 +87,8 @@ def build_analyzed_chunks(
 
     chunk_splitting_state = cast(ChunkSplittingState, chunk_splitting_state_raw)
 
-    # Get extracted claims and categories from claim extraction workflow (optional)
-    claim_extraction_state_raw = get_state_by_type(
-        WorkflowRunType.CLAIM_EXTRACTION, existing_states
-    )
-    claim_extraction_state = (
-        cast(ClaimExtractionState, claim_extraction_state_raw)
-        if claim_extraction_state_raw is not None
-        else None
-    )
+    # Resolve claims and categories (v2 preferred, v1 fallback)
+    claims_list, categories_list = _resolve_claim_state(existing_states)
 
     # Get citation detection results from citation detection workflow (optional)
     citation_detection_state_raw = get_state_by_type(
@@ -72,23 +100,21 @@ def build_analyzed_chunks(
         else None
     )
 
-    # Build maps for efficient lookup (only if states exist)
+    # Build maps for efficient lookup
     claims_by_chunk_index: Dict[int, ClaimResponseWithChunkIndex] = {}
-    if claim_extraction_state is not None:
-        for claim_response in claim_extraction_state.claims:
-            chunk_index = claim_response.chunk_index
-            if chunk_index not in claims_by_chunk_index:
-                claims_by_chunk_index[chunk_index] = claim_response
+    for claim_response in claims_list:
+        chunk_index = claim_response.chunk_index
+        if chunk_index not in claims_by_chunk_index:
+            claims_by_chunk_index[chunk_index] = claim_response
 
     categories_by_chunk_and_claim: Dict[
         Tuple[int, int], List[ClaimCategorizationResponseWithClaimIndex]
     ] = {}
-    if claim_extraction_state is not None:
-        for category in claim_extraction_state.claim_categories:
-            key = (category.chunk_index, category.claim_index)
-            if key not in categories_by_chunk_and_claim:
-                categories_by_chunk_and_claim[key] = []
-            categories_by_chunk_and_claim[key].append(category)
+    for category in categories_list:
+        key = (category.chunk_index, category.claim_index)
+        if key not in categories_by_chunk_and_claim:
+            categories_by_chunk_and_claim[key] = []
+        categories_by_chunk_and_claim[key].append(category)
 
     # Build map of citations by chunk index from citation detection state (optional)
     citations_by_chunk_index: Dict[int, CitationResponse] = {}
