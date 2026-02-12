@@ -1,4 +1,4 @@
-"""Grep-like search tool for main document content."""
+"""Grep-like search tool for document content."""
 
 import re
 from typing import List, Set
@@ -18,12 +18,15 @@ MAX_CHARS_PER_MATCH = 500
 
 
 @tool()
-async def search_document(pattern: str, runtime: ToolRuntime[ContextSchema]) -> str:
+async def search_document(
+    file_id: str, pattern: str, runtime: ToolRuntime[ContextSchema]
+) -> str:
     """
-    Search the main document for lines matching a pattern (case-insensitive regex).
+    Search a document for lines matching a pattern (case-insensitive regex).
     Returns matching lines with surrounding context and line numbers. Returns 2 lines before and after each match as extra context.
 
     Args:
+        file_id: The unique identifier of the document file to search.
         pattern: A regex pattern to search for in the document.
 
     Returns:
@@ -46,18 +49,18 @@ async def search_document(pattern: str, runtime: ToolRuntime[ContextSchema]) -> 
             91-
     """
     try:
-        main_file = await runtime.context.file_artifacts_service.get_main_file()
-        if not main_file or not main_file.markdown:
-            return "Error: Main document not found or has no content."
+        file = await runtime.context.file_artifacts_service.get_file_document(file_id)
+        if not file or not file.markdown:
+            return f"Error: Document with id {file_id} not found or has no content."
 
-        markdown = main_file.markdown
-        return _search_content(markdown, pattern)
+        markdown = file.markdown
+        return search_content(markdown, pattern)
 
     except Exception as e:
         return f"Error searching document: {str(e)}"
 
 
-def _search_content(content: str, pattern: str) -> str:
+def search_content(content: str, pattern: str) -> str:
     """Search content for pattern and return formatted results."""
     try:
         regex = re.compile(pattern, re.IGNORECASE)

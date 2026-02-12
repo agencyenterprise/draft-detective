@@ -1,14 +1,13 @@
 """Preface section extractor agent using document search tool (v2 approach)."""
 
-from typing import List, Optional
+from typing import Optional
 
 from langchain.agents import create_agent
-from langchain.chat_models import init_chat_model
 from langgraph.graph.state import RunnableConfig
 from pydantic import BaseModel, ConfigDict, Field
 
-from lib.agents.tools.read_document import read_document
-from lib.agents.tools.search_document import search_document
+from lib.agents.tools.read_main_document import read_document
+from lib.agents.tools.search_main_document import search_document
 from lib.config.llm_models import gpt_5_2_model
 from lib.models.agent import LangChainAgent
 from lib.workflows.context import ContextSchema

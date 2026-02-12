@@ -212,6 +212,7 @@ export function DocumentReconstructorChunkGroup({
         "[&_[data-severity='high']]:bg-red-100",
         "[&_[data-severity='medium']]:bg-yellow-100",
         "[&_[data-severity='low']]:bg-blue-100",
+        "[&_[data-severity='none']]:bg-green-100",
         '[&_[data-severity]]:hover:bg-gray-300/50 [&_[data-severity]]:cursor-pointer',
         '[&_[data-chunk-selected="true"]]:shadow-lg',
         '[&_[data-chunk-selected="false"]]:opacity-50',
