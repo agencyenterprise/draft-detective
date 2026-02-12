@@ -9,6 +9,7 @@ interface UseWorkflowHealthResult {
   totalIssues: number;
   highSeverityTotal: number;
   mediumSeverityTotal: number;
+  lowSeverityTotal: number;
   isLoading: boolean;
 }
 
@@ -35,8 +36,9 @@ export function useWorkflowHealth(workflowRuns: WorkflowRunDetail[], issues: Doc
         totalIssues: acc.totalIssues + data.issueCount,
         highSeverityTotal: acc.highSeverityTotal + data.highSeverityCount,
         mediumSeverityTotal: acc.mediumSeverityTotal + data.mediumSeverityCount,
+        lowSeverityTotal: acc.lowSeverityTotal + data.lowSeverityCount,
       }),
-      { totalIssues: 0, highSeverityTotal: 0, mediumSeverityTotal: 0 },
+      { totalIssues: 0, highSeverityTotal: 0, mediumSeverityTotal: 0, lowSeverityTotal: 0 },
     );
   }, [healthData]);
 

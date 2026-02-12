@@ -125,9 +125,9 @@ export const healthStatusConfig: Record<
   healthy: {
     label: 'Healthy',
     description: 'No significant issues found',
-    colorClass: 'text-emerald-600',
-    bgClass: 'bg-emerald-50',
-    borderClass: 'border-emerald-200',
+    colorClass: 'text-green-600',
+    bgClass: 'bg-green-50',
+    borderClass: 'border-green-200',
   },
   issues: {
     label: 'Issues Found',

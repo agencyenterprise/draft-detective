@@ -22,8 +22,15 @@ export function HealthMonitorDashboard({
   const workflowRuns = projectDetail.workflow_runs ?? [];
   const issues = projectDetail.issues ?? [];
 
-  const { healthData, overallHealth, totalIssues, highSeverityTotal, mediumSeverityTotal, isLoading } =
-    useWorkflowHealth(workflowRuns, issues);
+  const {
+    healthData,
+    overallHealth,
+    totalIssues,
+    highSeverityTotal,
+    mediumSeverityTotal,
+    lowSeverityTotal,
+    isLoading,
+  } = useWorkflowHealth(workflowRuns, issues);
 
   const { data: workflowTypes } = useWorkflowTypes();
 
@@ -72,6 +79,7 @@ export function HealthMonitorDashboard({
         totalIssues={totalIssues}
         highSeverityTotal={highSeverityTotal}
         mediumSeverityTotal={mediumSeverityTotal}
+        lowSeverityTotal={lowSeverityTotal}
       />
 
       {/* Workflow Widgets Grid */}

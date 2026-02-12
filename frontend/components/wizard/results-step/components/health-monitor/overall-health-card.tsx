@@ -5,6 +5,7 @@ import { HealthStatus, healthStatusConfig } from '@/lib/health-status';
 import { cn } from '@/lib/utils';
 import { Activity } from 'lucide-react';
 import { HealthStatusIndicator } from './health-status-indicator';
+import { SeverityDonutChart } from './severity-donut-chart';
 
 interface OverallHealthCardProps {
   overallHealth: HealthStatus;
@@ -12,6 +13,7 @@ interface OverallHealthCardProps {
   totalIssues: number;
   highSeverityTotal: number;
   mediumSeverityTotal: number;
+  lowSeverityTotal: number;
 }
 
 export function OverallHealthCard({
@@ -20,48 +22,40 @@ export function OverallHealthCard({
   totalIssues,
   highSeverityTotal,
   mediumSeverityTotal,
+  lowSeverityTotal,
 }: OverallHealthCardProps) {
   const config = healthStatusConfig[overallHealth];
 
   return (
-    <Card className={cn('border-2', config.borderClass, config.bgClass)}>
+    <Card className="border bg-white">
       <CardContent className="p-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className={cn('p-3 rounded-full', config.bgClass, 'border', config.borderClass)}>
+            <div className="p-3 rounded-full bg-gray-50 border border-gray-200">
               <Activity className={cn('h-8 w-8', config.colorClass)} />
             </div>
             <div>
               <h2 className="text-2xl font-bold flex items-center gap-2">
                 Project Health
-                <HealthStatusIndicator status={overallHealth} size="lg" showLabel={false} />
+                <HealthStatusIndicator status={overallHealth} />
               </h2>
-              <p className={cn('text-sm', config.colorClass)}>{config.description}</p>
+              <p className="text-sm text-muted-foreground">{config.description}</p>
             </div>
           </div>
 
-          <div className="flex gap-8 text-center">
-            <div>
+          <div className="flex items-center gap-8">
+            <div className="text-center">
               <div className="text-3xl font-bold">{totalWorkflows}</div>
               <div className="text-sm text-muted-foreground">Analyses</div>
             </div>
-            <div>
+            <div className="text-center">
               <div className={cn('text-3xl font-bold', totalIssues > 0 ? 'text-amber-600' : 'text-emerald-600')}>
                 {totalIssues}
               </div>
               <div className="text-sm text-muted-foreground">Total Issues</div>
             </div>
-            {highSeverityTotal > 0 && (
-              <div>
-                <div className="text-3xl font-bold text-red-600">{highSeverityTotal}</div>
-                <div className="text-sm text-muted-foreground">High Severity</div>
-              </div>
-            )}
-            {mediumSeverityTotal > 0 && (
-              <div>
-                <div className="text-3xl font-bold text-amber-600">{mediumSeverityTotal}</div>
-                <div className="text-sm text-muted-foreground">Medium Severity</div>
-              </div>
+            {totalIssues > 0 && (
+              <SeverityDonutChart high={highSeverityTotal} medium={mediumSeverityTotal} low={lowSeverityTotal} />
             )}
           </div>
         </div>
