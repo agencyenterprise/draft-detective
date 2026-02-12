@@ -34,6 +34,7 @@ import { SeverityBadge } from './severity-badge';
 interface DocumentIssueCardProps {
   issue: Issue;
   hideJumpToChunk?: boolean;
+  jumpToAlias?: string;
   onSelect: (issue: Issue) => void;
   readOnly?: boolean;
 }
@@ -164,7 +165,13 @@ function IssueActionsMenu({ issue }: { issue: Issue }) {
   );
 }
 
-function DocumentIssueCardRaw({ issue, hideJumpToChunk = false, onSelect, readOnly = false }: DocumentIssueCardProps) {
+function DocumentIssueCardRaw({
+  issue,
+  hideJumpToChunk = false,
+  jumpToAlias = 'chunk',
+  onSelect,
+  readOnly = false,
+}: DocumentIssueCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const { className, icon, accentClassName } = severityColorMap[issue.severity];
   const { getWorkflowTypeName } = useWorkflowTypes();
@@ -214,7 +221,7 @@ function DocumentIssueCardRaw({ issue, hideJumpToChunk = false, onSelect, readOn
         {showJumpToChunkButton && (
           <Button variant="ghost" size="xs" className={accentClassName} onClick={() => onSelect(issue)}>
             <ExternalLinkIcon className="size-3" />
-            Jump to chunk {issue.chunk_index ?? issue.chunk_indices?.[0] ?? ''}
+            Jump to {jumpToAlias} {issue.chunk_index ?? issue.chunk_indices?.[0] ?? ''}
           </Button>
         )}
         {issue.long_description && (

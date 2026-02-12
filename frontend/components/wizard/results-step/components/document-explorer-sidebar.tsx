@@ -6,10 +6,9 @@ import { Issue, ProjectDetailed, SeverityEnum, WorkflowRunType } from '@/lib/gen
 import { getChunkIssuesByIndices } from '@/lib/severity';
 import { EyeIcon, EyeOffIcon, X } from 'lucide-react';
 import { Ref, useImperativeHandle, useMemo, useRef, useState } from 'react';
+import { DocumentExplorerSidebarFilter } from './document-explorer-sidebar-filter';
 import { DocumentIssuesList } from './document-issues-list';
-import { SeverityFilter } from './severity-filter';
 import { SingleChunkContent } from './single-chunk-content';
-import { WorkflowTypeFilter } from './workflow-type-filter';
 
 export interface DocumentExplorerSidebarHandle {
   scrollToTop: () => void;
@@ -130,8 +129,13 @@ export function DocumentExplorerSidebar({
                   {resolvedCount} resolved
                 </Button>
               )}
-              <SeverityFilter value={severityFilter} onChange={onSeverityFilterChange} />
-              <WorkflowTypeFilter issues={issues} value={workflowTypeFilter} onChange={onWorkflowTypeFilterChange} />
+              <DocumentExplorerSidebarFilter
+                issues={issues}
+                severityFilter={severityFilter}
+                onSeverityFilterChange={onSeverityFilterChange}
+                workflowTypeFilter={workflowTypeFilter}
+                onWorkflowTypeFilterChange={onWorkflowTypeFilterChange}
+              />
             </>
           )}
         </div>

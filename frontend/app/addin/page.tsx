@@ -5,14 +5,19 @@ import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { DocumentIssuesList } from '@/components/wizard/results-step/components/document-issues-list';
 import { ProjectFeedbackProvider } from '@/lib/contexts/project-feedback-context';
-import { Issue, getSharedResourceApiPublicShareTokenGet } from '@/lib/generated-api';
-import { addIssueMarkers } from '@/lib/addin/office-utils';
+import { DocumentExplorerSidebarFilter } from '@/components/wizard/results-step/components/document-explorer-sidebar-filter';
+import { filterIssuesBySeverity } from '@/components/wizard/results-step/components/severity-filter';
+import { filterIssuesByWorkflowType } from '@/components/wizard/results-step/components/workflow-type-filter';
+import { Issue, getSharedResourceApiPublicShareTokenGet, SeverityEnum, WorkflowRunType } from '@/lib/generated-api';
+import { addIssueMarkers, jumpToChunk } from '@/lib/addin/office-utils';
 import { useOfficeInit } from '@/lib/addin/use-office-init';
 import { RotateCwIcon } from 'lucide-react';
 
 export default function AddinPage() {
   const { token, currentParagraphIndex, isInitialized } = useOfficeInit();
   const [issuesPerParagraph, setIssuesPerParagraph] = useState<Map<number, Issue[]>>(new Map());
+  const [severityFilter, setSeverityFilter] = useState<SeverityEnum[]>([]);
+  const [workflowTypeFilter, setWorkflowTypeFilter] = useState<WorkflowRunType[]>([]);
 
   const {
     data: project,
@@ -38,10 +43,20 @@ export default function AddinPage() {
     }
   }, [project]);
 
-  const filteredIssues = useMemo(() => {
+  const paragraphIssues = useMemo(() => {
     if (!project?.issues || currentParagraphIndex === null) return [];
     return issuesPerParagraph.get(currentParagraphIndex) ?? [];
   }, [project, currentParagraphIndex, issuesPerParagraph]);
+
+  const activeIssues = paragraphIssues.length > 0 ? paragraphIssues : (project?.issues ?? []);
+  const isParagraphView = paragraphIssues.length > 0;
+
+  const filteredIssues = useMemo(
+    () => filterIssuesByWorkflowType(filterIssuesBySeverity(activeIssues, severityFilter), workflowTypeFilter),
+    [activeIssues, severityFilter, workflowTypeFilter],
+  );
+
+  const hasActiveFilters = severityFilter.length > 0 || workflowTypeFilter.length > 0;
 
   if (!isInitialized) return <div className="p-4 text-center">Loading Add-in...</div>;
 
@@ -58,31 +73,58 @@ export default function AddinPage() {
   return (
     <ProjectFeedbackProvider projectId={undefined}>
       <div className="flex flex-col h-screen bg-white">
-        <div className="border-b p-3 flex justify-between items-center bg-gray-50">
-          <h1 className="font-semibold text-sm">Review Issues</h1>
-          <div className="flex items-center gap-1">
+        <div className="border-b p-3 flex flex-col items-center bg-gray-50">
+          <div className="flex items-center justify-between gap-2 w-full">
+            <h1 className="font-semibold text-sm">Review Issues</h1>
             <Button variant="ghost" size="icon" onClick={() => refetch()} disabled={isLoading} title="Refresh">
               <RotateCwIcon className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
             </Button>
           </div>
+
+          <div className="flex items-center justify-between gap-2 w-full flex-wrap">
+            <span className="text-xs text-muted-foreground">
+              {project?.issues &&
+                project.issues.length > 0 &&
+                (filteredIssues.length === project.issues.length
+                  ? `${project.issues.length} issues`
+                  : `${filteredIssues.length} of ${project.issues.length} issues`)}
+            </span>
+            {project?.issues && project.issues.length > 0 && (
+              <div className="text-right flex flex-row flex-wrap gap-1">
+                {isParagraphView && (
+                  <Button variant="outline" size="sm" className="text-xs h-6 px-2 gap-1 shadow-xs bg-white">
+                    Paragraph #{currentParagraphIndex}
+                  </Button>
+                )}
+                <DocumentExplorerSidebarFilter
+                  issues={isParagraphView ? paragraphIssues : project.issues}
+                  severityFilter={severityFilter}
+                  onSeverityFilterChange={setSeverityFilter}
+                  workflowTypeFilter={workflowTypeFilter}
+                  onWorkflowTypeFilterChange={setWorkflowTypeFilter}
+                />
+              </div>
+            )}
+          </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4 space-y-4 text-sm">
+        <div className="flex-1 overflow-y-auto p-2 space-y-4 text-sm">
           {error ? (
             <div className="text-red-500 text-sm">Failed to load issues. Please check your settings.</div>
           ) : null}
 
           {isLoading ? (
             <div className="text-sm text-gray-500">Loading...</div>
-          ) : filteredIssues.length > 0 ? (
-            <>
-              <div className="text-xs text-gray-500 border-b pb-2 mb-2">Paragraph issues</div>
-              <DocumentIssuesList issues={filteredIssues} onSelect={() => {}} hideJumpToChunk readOnly />
-            </>
           ) : (
             <>
-              <div className="text-xs text-gray-500 border-b pb-2 mb-2">All issues</div>
-              <DocumentIssuesList issues={project?.issues ?? []} onSelect={() => {}} hideJumpToChunk readOnly />
+              <DocumentIssuesList
+                issues={filteredIssues}
+                onSelect={(issue) => jumpToChunk(issue.chunk_index ?? issue.chunk_indices?.[0] ?? 0)}
+                jumpToAlias="paragraph"
+              />
+              {hasActiveFilters && filteredIssues.length === 0 && (
+                <div className="text-xs text-gray-500 pt-2 mt-2">No issues found for your filters</div>
+              )}
             </>
           )}
         </div>

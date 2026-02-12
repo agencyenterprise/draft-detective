@@ -4,11 +4,18 @@ import { DocumentIssueCard } from './document-issue-card';
 interface DocumentIssuesListProps {
   issues: Issue[];
   hideJumpToChunk?: boolean;
+  jumpToAlias?: string;
   onSelect: (issue: Issue) => void;
   readOnly?: boolean;
 }
 
-export function DocumentIssuesList({ issues, hideJumpToChunk = false, onSelect, readOnly }: DocumentIssuesListProps) {
+export function DocumentIssuesList({
+  issues,
+  hideJumpToChunk = false,
+  jumpToAlias,
+  onSelect,
+  readOnly,
+}: DocumentIssuesListProps) {
   return (
     <div className="space-y-2">
       {issues.map((issue) => (
@@ -16,6 +23,7 @@ export function DocumentIssuesList({ issues, hideJumpToChunk = false, onSelect, 
           key={issue.id}
           issue={issue}
           hideJumpToChunk={hideJumpToChunk}
+          jumpToAlias={jumpToAlias}
           onSelect={onSelect}
           readOnly={readOnly}
         />
