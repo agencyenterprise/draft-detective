@@ -24,6 +24,7 @@ import { SeverityBadge } from './severity-badge';
 interface DocumentIssueCardProps {
   issue: DocumentIssue;
   hideJumpToChunk?: boolean;
+  jumpToAlias?: string;
   onSelect: (issue: DocumentIssue) => void;
   workflowRuns?: WorkflowRunDetail[];
   readOnly?: boolean;
@@ -145,6 +146,7 @@ function IssueFeedbackButtons({ workflowRunId, issueId }: { workflowRunId: strin
 function DocumentIssueCardRaw({
   issue,
   hideJumpToChunk = false,
+  jumpToAlias = 'chunk',
   onSelect,
   workflowRuns = [],
   readOnly = false,
@@ -193,7 +195,7 @@ function DocumentIssueCardRaw({
         {showJumpToChunkButton && (
           <Button variant="ghost" size="xs" className={accentClassName} onClick={() => onSelect(issue)}>
             <ExternalLinkIcon className="size-3" />
-            Jump to chunk {issue.chunk_index ?? issue.chunk_indices?.[0] ?? ''}
+            Jump to {jumpToAlias} {issue.chunk_index ?? issue.chunk_indices?.[0] ?? ''}
           </Button>
         )}
         {issue.long_description && (
