@@ -25,7 +25,7 @@ class CitationSuggesterManifest(
     is_experimental = True
     order = 7
     required_dependencies = [
-        WorkflowRunType.CLAIM_EXTRACTION,
+        WorkflowRunType.CLAIM_EXTRACTION_V2,
         WorkflowRunType.CITATION_DETECTION,
         WorkflowRunType.DOCUMENT_SUMMARIZATION,
     ]
