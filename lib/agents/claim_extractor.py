@@ -28,6 +28,14 @@ class Claim(BaseModel):
         default=None,
         description="The rationale for why you think the claim is central or is not central to the argument of the document",
     )
+    needs_external_verification: Optional[bool] = Field(
+        default=None,
+        description=(
+            "Whether the claim needs external verification. "
+            "Set by v2 claim extraction (from needs_substantiation). "
+            "None for v1 claims (use category-based logic instead)."
+        ),
+    )
 
 
 class ClaimResponse(BaseModel):
