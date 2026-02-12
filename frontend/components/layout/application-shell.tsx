@@ -30,6 +30,10 @@ export function ApplicationShell({ children }: ApplicationShellProps) {
     current: pathname.startsWith(item.href),
   }));
 
+  if (pathname.startsWith('/addin')) {
+    return <>{children}</>;
+  }
+
   return (
     <div className="min-h-full">
       <Disclosure as="nav" className="border-b border-gray-200 bg-white">

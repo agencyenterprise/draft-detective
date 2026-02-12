@@ -26,7 +26,6 @@ interface DocumentExplorerTabProps {
   workflowTypeFilter: WorkflowRunType[];
   onWorkflowTypeFilterChange: (value: WorkflowRunType[]) => void;
   onNavigateToAnalyses: () => void;
-  onNavigateToReferences?: (referenceIndex: number) => void;
 }
 
 export function DocumentExplorerTab({
@@ -38,7 +37,6 @@ export function DocumentExplorerTab({
   workflowTypeFilter,
   onWorkflowTypeFilterChange,
   onNavigateToAnalyses,
-  onNavigateToReferences,
 }: DocumentExplorerTabProps) {
   const workflowDetails = useMemo(() => projectDetail.workflow_runs ?? [], [projectDetail.workflow_runs]);
   const issues = useMemo(() => projectDetail.issues ?? [], [projectDetail.issues]);
@@ -87,6 +85,9 @@ export function DocumentExplorerTab({
   const handleSelectIssue = useCallback((issue: DocumentIssue) => {
     if (issue.chunk_index !== undefined && issue.chunk_index !== null) {
       setSelectedChunkIndices([issue.chunk_index]);
+      sidebarRef.current?.scrollToIssue(issue);
+    } else if ((issue.chunk_indices?.length ?? 0) > 0) {
+      setSelectedChunkIndices(issue.chunk_indices ?? []);
       sidebarRef.current?.scrollToIssue(issue);
     } else {
       setSelectedChunkIndices([]);
@@ -186,7 +187,6 @@ export function DocumentExplorerTab({
           readOnly={readOnly}
           onSelectIssue={handleSelectIssue}
           onClearChunkSelection={handleClearChunkSelection}
-          onNavigateToReferences={onNavigateToReferences}
         />
       </div>
     </div>

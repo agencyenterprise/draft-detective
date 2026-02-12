@@ -15,6 +15,15 @@ import type {
   CheckPreflightApiPreflightPostData,
   CheckPreflightApiPreflightPostErrors,
   CheckPreflightApiPreflightPostResponses,
+  CoreHeadRouteTusUuidHeadData,
+  CoreHeadRouteTusUuidHeadErrors,
+  CoreHeadRouteTusUuidHeadResponses,
+  CoreOptionsRouteTusOptionsData,
+  CoreOptionsRouteTusOptionsErrors,
+  CoreOptionsRouteTusOptionsResponses,
+  CorePatchRouteTusUuidPatchData,
+  CorePatchRouteTusUuidPatchErrors,
+  CorePatchRouteTusUuidPatchResponses,
   CreateProjectEndpointApiProjectsPostData,
   CreateProjectEndpointApiProjectsPostErrors,
   CreateProjectEndpointApiProjectsPostResponses,
@@ -42,6 +51,15 @@ import type {
   EnableProjectSharingApiProjectsProjectIdShareEnablePostData,
   EnableProjectSharingApiProjectsProjectIdShareEnablePostErrors,
   EnableProjectSharingApiProjectsProjectIdShareEnablePostResponses,
+  ExtensionCreationRouteTusPost2Data,
+  ExtensionCreationRouteTusPost2Errors,
+  ExtensionCreationRouteTusPost2Responses,
+  ExtensionCreationRouteTusPostData,
+  ExtensionCreationRouteTusPostErrors,
+  ExtensionCreationRouteTusPostResponses,
+  ExtensionTerminationRouteTusUuidDeleteData,
+  ExtensionTerminationRouteTusUuidDeleteErrors,
+  ExtensionTerminationRouteTusUuidDeleteResponses,
   GenerateChunkEvalPackageApiGenerateChunkEvalPackagePostData,
   GenerateChunkEvalPackageApiGenerateChunkEvalPackagePostErrors,
   GenerateChunkEvalPackageApiGenerateChunkEvalPackagePostResponses,
@@ -71,8 +89,6 @@ import type {
   GetSharedResourceApiPublicShareTokenGetData,
   GetSharedResourceApiPublicShareTokenGetErrors,
   GetSharedResourceApiPublicShareTokenGetResponses,
-  GetSupportedAgentsApiSupportedAgentsGetData,
-  GetSupportedAgentsApiSupportedAgentsGetResponses,
   GetWorkflowFeedbackApiFeedbackWorkflowWorkflowRunIdGetData,
   GetWorkflowFeedbackApiFeedbackWorkflowWorkflowRunIdGetErrors,
   GetWorkflowFeedbackApiFeedbackWorkflowWorkflowRunIdGetResponses,
@@ -160,23 +176,6 @@ export const readHealthApiHealthHead = <ThrowOnError extends boolean = true>(
   (options?.client ?? client).head<ReadHealthApiHealthHeadResponses, unknown, ThrowOnError, 'data'>({
     responseStyle: 'data',
     url: '/api/health',
-    ...options,
-  });
-
-/**
- * Get Supported Agents
- *
- * Get list of supported agent types for chunk re-evaluation.
- *
- * Returns:
- * List of AgentInfo objects
- */
-export const getSupportedAgentsApiSupportedAgentsGet = <ThrowOnError extends boolean = true>(
-  options?: Options<GetSupportedAgentsApiSupportedAgentsGetData, ThrowOnError>,
-) =>
-  (options?.client ?? client).get<GetSupportedAgentsApiSupportedAgentsGetResponses, unknown, ThrowOnError, 'data'>({
-    responseStyle: 'data',
-    url: '/api/supported-agents',
     ...options,
   });
 
@@ -607,7 +606,10 @@ export const listProjectsEndpointApiProjectsGet = <ThrowOnError extends boolean 
 /**
  * Create Project Endpoint
  *
- * Create a project with a main document.
+ * Create a project.
+ *
+ * This endpoint creates the project first, then files are uploaded
+ * separately via the /api/upload endpoints.
  */
 export const createProjectEndpointApiProjectsPost = <ThrowOnError extends boolean = true>(
   options: Options<CreateProjectEndpointApiProjectsPostData, ThrowOnError>,
@@ -618,13 +620,12 @@ export const createProjectEndpointApiProjectsPost = <ThrowOnError extends boolea
     ThrowOnError,
     'data'
   >({
-    ...formDataBodySerializer,
     responseStyle: 'data',
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/projects',
     ...options,
     headers: {
-      'Content-Type': null,
+      'Content-Type': 'application/json',
       ...options.headers,
     },
   });
@@ -956,6 +957,114 @@ export const getSharedResourceApiPublicShareTokenGet = <ThrowOnError extends boo
   >({
     responseStyle: 'data',
     url: '/api/public/share/{token}',
+    ...options,
+  });
+
+/**
+ * Extension Termination Route
+ */
+export const extensionTerminationRouteTusUuidDelete = <ThrowOnError extends boolean = true>(
+  options: Options<ExtensionTerminationRouteTusUuidDeleteData, ThrowOnError>,
+) =>
+  (options.client ?? client).delete<
+    ExtensionTerminationRouteTusUuidDeleteResponses,
+    ExtensionTerminationRouteTusUuidDeleteErrors,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/tus/{uuid}',
+    ...options,
+  });
+
+/**
+ * Core Head Route
+ */
+export const coreHeadRouteTusUuidHead = <ThrowOnError extends boolean = true>(
+  options: Options<CoreHeadRouteTusUuidHeadData, ThrowOnError>,
+) =>
+  (options.client ?? client).head<
+    CoreHeadRouteTusUuidHeadResponses,
+    CoreHeadRouteTusUuidHeadErrors,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/tus/{uuid}',
+    ...options,
+  });
+
+/**
+ * Core Patch Route
+ */
+export const corePatchRouteTusUuidPatch = <ThrowOnError extends boolean = true>(
+  options: Options<CorePatchRouteTusUuidPatchData, ThrowOnError>,
+) =>
+  (options.client ?? client).patch<
+    CorePatchRouteTusUuidPatchResponses,
+    CorePatchRouteTusUuidPatchErrors,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/tus/{uuid}',
+    ...options,
+  });
+
+/**
+ * Core Options Route
+ */
+export const coreOptionsRouteTusOptions = <ThrowOnError extends boolean = true>(
+  options?: Options<CoreOptionsRouteTusOptionsData, ThrowOnError>,
+) =>
+  (options?.client ?? client).options<
+    CoreOptionsRouteTusOptionsResponses,
+    CoreOptionsRouteTusOptionsErrors,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/tus/',
+    ...options,
+  });
+
+/**
+ * Extension Creation Route
+ */
+export const extensionCreationRouteTusPost = <ThrowOnError extends boolean = true>(
+  options?: Options<ExtensionCreationRouteTusPostData, ThrowOnError>,
+) =>
+  (options?.client ?? client).post<
+    ExtensionCreationRouteTusPostResponses,
+    ExtensionCreationRouteTusPostErrors,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/tus/',
+    ...options,
+  });
+
+/**
+ * Extension Creation Route
+ */
+export const extensionCreationRouteTusPost2 = <ThrowOnError extends boolean = true>(
+  options?: Options<ExtensionCreationRouteTusPost2Data, ThrowOnError>,
+) =>
+  (options?.client ?? client).post<
+    ExtensionCreationRouteTusPost2Responses,
+    ExtensionCreationRouteTusPost2Errors,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/tus',
     ...options,
   });
 

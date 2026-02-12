@@ -30,7 +30,6 @@ interface DocumentExplorerSidebarProps {
   readOnly: boolean;
   onSelectIssue: (issue: DocumentIssue) => void;
   onClearChunkSelection: () => void;
-  onNavigateToReferences?: (referenceIndex: number) => void;
 }
 
 export function DocumentExplorerSidebar({
@@ -47,7 +46,6 @@ export function DocumentExplorerSidebar({
   readOnly,
   onSelectIssue,
   onClearChunkSelection,
-  onNavigateToReferences,
 }: DocumentExplorerSidebarProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -117,6 +115,8 @@ export function DocumentExplorerSidebar({
           issues={selectedFilteredIssues}
           hideJumpToChunk={selectedChunkIndices.length > 0}
           onSelect={onSelectIssue}
+          workflowRuns={projectDetail.workflow_runs}
+          readOnly={readOnly}
         />
 
         {selectedChunkIndices.map((chunkIndex) => (
@@ -126,7 +126,6 @@ export function DocumentExplorerSidebar({
             projectDetail={projectDetail}
             workflowRuns={projectDetail.workflow_runs ?? []}
             readOnly={readOnly}
-            onNavigateToReferences={onNavigateToReferences}
             showChunkLabel={selectedChunkIndices.length > 1}
           />
         ))}

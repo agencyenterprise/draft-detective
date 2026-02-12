@@ -1,18 +1,15 @@
-import logging
-import os
+"""
+Upload utilities for direct multipart form uploads.
+For resumable uploads, use the tus_upload router.
+"""
+
 import uuid
 from typing import List
 
-import aiofiles
-import magic
 from fastapi import UploadFile
-from xxhash import xxh128
 
-from lib.config.env import config
 from lib.models.file import File, FileRole
-from lib.services.files import create_file_record
-
-logger = logging.getLogger(__name__)
+from lib.services.file_finalization import finalize_file
 
 
 async def save_uploaded_files_to_db(
@@ -21,82 +18,25 @@ async def save_uploaded_files_to_db(
     user_id: uuid.UUID,
     roles: List[FileRole],
 ) -> List[File]:
-    """
-    Save uploaded files to disk and create database records.
-
-    Reuses existing file saving logic (xxhash, deduplication, docx preprocessing)
-    and creates File records in the database for each uploaded file.
-
-    Args:
-        uploaded_files: List of files from multipart form upload
-        project_id: UUID of the project to associate files with
-        user_id: UUID of the user uploading the files
-        roles: List of FileRole values matching uploaded_files order
-
-    Returns:
-        List of File model instances created in database
-
-    Raises:
-        ValueError: If filename is missing or roles length doesn't match files
-    """
+    """Save uploaded files to disk and create database records."""
     if len(roles) != len(uploaded_files):
         raise ValueError(
             f"Number of roles ({len(roles)}) must match number of files ({len(uploaded_files)})"
         )
 
-    upload_dir = config.FILE_UPLOADS_MOUNT_PATH
     file_records = []
-
     for uploaded_file, role in zip(uploaded_files, roles):
         content = await uploaded_file.read()
-        xxhash = xxh128(content).hexdigest()
-
         filename = uploaded_file.filename
-        if not filename or not filename.strip():
+        if not filename:
             raise ValueError("Uploaded file has no filename")
 
-        # validate filename doesn't contain path separators
-        if os.sep in filename or os.altsep and os.altsep in filename:
-            raise ValueError("Filename cannot contain path separators")
-
-        file_extension = os.path.splitext(filename)[1]
-        file_path = os.path.join(upload_dir, xxhash + file_extension)
-        file_size = len(content)
-
-        # Save file if it doesn't already exist
-        if os.path.exists(file_path):
-            logger.info(
-                f"File {filename} with hash {xxhash} already exists in {file_path}, skipping upload"
-            )
-        else:
-            logger.info(f"Saving file {filename} with hash {xxhash} to {file_path}")
-            try:
-                async with aiofiles.open(file_path, "wb") as buffer:
-                    if len(content) == 0:
-                        logger.warning(f"Uploaded file {filename} is empty!")
-
-                    await buffer.write(content)
-
-                if not os.path.exists(file_path):
-                    raise Exception(f"File was not created at {file_path}")
-
-            except Exception as e:
-                logger.error(f"Error processing uploaded file {filename}: {str(e)}")
-                raise
-
-        # Determine actual MIME type from file content
-        file_type = magic.from_buffer(content, mime=True)
-
-        # Create database record
-        file_record = await create_file_record(
+        file_record = await finalize_file(
+            content=content,
+            filename=filename,
             project_id=project_id,
-            file_name=filename,
-            file_path=file_path,
-            file_type=file_type,
-            file_size=file_size,
-            content_hash=xxhash,
+            user_id=user_id,
             role=role,
-            uploaded_by=user_id,
         )
         file_records.append(file_record)
 

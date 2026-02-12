@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { getCurrentUserInfoApiUsersMeGet, UserResponse } from '../generated-api';
+import { useSession } from 'next-auth/react';
 
 export const USER_ME_QUERY_KEY = ['user', 'me'] as const;
 
@@ -19,7 +20,10 @@ export const USER_ME_QUERY_KEY = ['user', 'me'] as const;
  * ```
  */
 export function useUserMe() {
+  const session = useSession();
+
   return useQuery({
+    enabled: session.status === 'authenticated',
     queryKey: USER_ME_QUERY_KEY,
     queryFn: () => getCurrentUserInfoApiUsersMeGet(),
     staleTime: 5 * 60 * 1000, // 5 minutes

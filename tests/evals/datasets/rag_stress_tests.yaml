@@ -7,6 +7,7 @@ dataset:
     llm_fields:
       - rationale
       - feedback
+      - key_sentence
   items:
     # Logical reasoning challenges
     - name: "rag_numerical_reasoning_majority"
@@ -18,6 +19,7 @@ dataset:
         chunk: "The majority of new AI infrastructure will be built in regions with renewable energy capacity."
         claim: "The majority of new AI infrastructure will be built in regions with renewable energy capacity"
       expected_output:
+        key_sentence: "The majority of new AI infrastructure will be built in regions with renewable energy capacity."
         evidence_alignment: "supported"
         rationale: "The source indicates 65% of new capacity is planned for renewable-rich regions, which constitutes a majority."
         feedback: "No changes needed."
@@ -32,6 +34,7 @@ dataset:
         chunk: "RAND projects global AI data center capacity will reach 327 GW by 2030."
         claim: "Global AI data center capacity will reach 327 GW by 2030"
       expected_output:
+        key_sentence: "RAND projects global AI data center capacity will reach 327 GW by 2030."
         evidence_alignment: "partially_supported"
         rationale: "The RAND report projects approximately 327 GW by 2030, but the claim states 'will reach' which implies certainty rather than a projection."
         feedback: "Rephrase to reflect the projection nature, e.g., 'RAND projects global AI data center capacity to be approximately 327 GW by 2030.'"
@@ -46,6 +49,7 @@ dataset:
         chunk: "RAND projects that global AI data center power demand could reach 500 GW by 2030."
         claim: "Global AI data center power demand could reach 500 GW by 2030"
       expected_output:
+        key_sentence: "RAND projects that global AI data center power demand could reach 500 GW by 2030."
         evidence_alignment: "unsupported"
         rationale: "The RAND report projects 327 GW, not 500 GW, by 2030."
         feedback: "Revise the claim or provide a different citation that supports the estimate."
@@ -60,6 +64,7 @@ dataset:
         chunk: "OpenAI describes the agenticness of an AI model as an 'impact multiplier' (Shavit et al., 2023)"
         claim: "OpenAI describes the agenticness of an AI model as an 'impact multiplier.'"
       expected_output:
+        key_sentence: "OpenAI describes the agenticness of an AI model as an 'impact multiplier' (Shavit et al., 2023)"
         evidence_alignment: "supported"
         rationale: "The cited passage from Shavit et al. (2023) explicitly states: “We characterize agenticness as an ‘impact multiplier’ of AI capabilities,” matching the claim’s wording that agenticness is described as an “impact multiplier.”"
         feedback: "No changes needed"
@@ -74,6 +79,7 @@ dataset:
         chunk: "The projection methodology assumes 1.3 to 2.0x annual growth in AI chip supply."
         claim: "The projection methodology assumes 1.3 to 2.0x annual growth in AI chip supply"
       expected_output:
+        key_sentence: "The projection methodology assumes 1.3 to 2.0x annual growth in AI chip supply."
         evidence_alignment: "supported"
         rationale: "The RAND report's methodology section describes assumptions including 1.3-2.0x annual AI chip supply growth."
         feedback: "No changes needed."

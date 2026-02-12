@@ -132,7 +132,6 @@ class ClaimReferenceValidationManifest(
                 continue
 
             title, severity = issue_config[substantiation.evidence_alignment]
-            chunk = find_chunk_by_index(chunks, substantiation.chunk_index)
 
             sources_text = (
                 "\n".join(
@@ -145,6 +144,7 @@ class ClaimReferenceValidationManifest(
                 else "*No sources found*"
             )
             long_description = (
+                f"**Key sentence:** \n\n> {substantiation.key_sentence}\n\n"
                 f"**Evidence Alignment:** {substantiation.evidence_alignment}\n\n"
                 f"**Feedback to resolve:** {substantiation.feedback}\n\n"
                 f"### Checked sources\n\n{sources_text}"
@@ -162,45 +162,45 @@ class ClaimReferenceValidationManifest(
             )
 
         # Claim Categorization: Claims needing external verification without citations
-        for chunk in chunks:
-            if not chunk.claim_categories:
-                continue
+        # for chunk in chunks:
+        #     if not chunk.claim_categories:
+        #         continue
 
-            # Check if chunk has citations
-            has_citations = (
-                chunk.citations
-                and chunk.citations.citations
-                and len(chunk.citations.citations) > 0
-            )
+        #     # Check if chunk has citations
+        #     has_citations = (
+        #         chunk.citations
+        #         and chunk.citations.citations
+        #         and len(chunk.citations.citations) > 0
+        #     )
 
-            for category in chunk.claim_categories:
-                claim_verification = next(
-                    (
-                        s
-                        for s in state.substantiations
-                        if chunk.chunk_index == s.chunk_index
-                        and s.claim_index == category.claim_index
-                    ),
-                    None,
-                )
+        #     for category in chunk.claim_categories:
+        #         claim_verification = next(
+        #             (
+        #                 s
+        #                 for s in state.substantiations
+        #                 if chunk.chunk_index == s.chunk_index
+        #                 and s.claim_index == category.claim_index
+        #             ),
+        #             None,
+        #         )
 
-                if (
-                    category.needs_external_verification
-                    and not has_citations
-                    and (
-                        claim_verification is None
-                        or claim_verification.evidence_alignment
-                        != EvidenceAlignmentLevel.SUPPORTED
-                    )
-                ):
-                    issue = DocumentIssue(
-                        title="Unsupported claim",
-                        description=f'Claim requires external verification but no citations/references were found or used: "{category.claim}"',
-                        severity=SeverityEnum.MEDIUM,
-                        type=self.type,
-                        chunk_index=category.chunk_index,
-                        long_description=f"**Rationale:** {category.rationale}",
-                    )
-                    issues.append(issue)
+        #         if (
+        #             category.needs_external_verification
+        #             and not has_citations
+        #             and (
+        #                 claim_verification is None
+        #                 or claim_verification.evidence_alignment
+        #                 != EvidenceAlignmentLevel.SUPPORTED
+        #             )
+        #         ):
+        #             issue = DocumentIssue(
+        #                 title="Unsupported claim",
+        #                 description=f'Claim requires external verification but no citations/references were found or used: "{category.claim}"',
+        #                 severity=SeverityEnum.MEDIUM,
+        #                 type=self.type,
+        #                 chunk_index=category.chunk_index,
+        #                 long_description=f"**Rationale:** {category.rationale}",
+        #             )
+        #             issues.append(issue)
 
         return issues

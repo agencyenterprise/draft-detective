@@ -1,6 +1,8 @@
 'use client';
 
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
   DialogContent,
@@ -9,69 +11,126 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { AlertTriangle, Download, Globe, Loader2 } from 'lucide-react';
+import { RadioGroup, RadioGroupItemWithDescription } from '@/components/ui/radio-group-with-description';
+import { AlertTriangle, Download, Loader2 } from 'lucide-react';
+import { DocxType } from '../wizard/results-step/components/use-download-docx';
 
 interface ShareWarningDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  isProjectPublic: boolean;
   isEnablingShare: boolean;
   isDownloading: boolean;
-  onMakePublicAndDownload: () => void;
-  onDownloadWithoutLinks: () => void;
+  onDownload: (type: DocxType) => void;
 }
 
 export function ShareWarningDialog({
   open,
   onOpenChange,
+  isProjectPublic,
   isEnablingShare,
   isDownloading,
-  onMakePublicAndDownload,
-  onDownloadWithoutLinks,
+  onDownload,
 }: ShareWarningDialogProps) {
   const isProcessing = isEnablingShare || isDownloading;
+  const [selectedExportType, setSelectedExportType] = useState<'comments' | 'add-in'>('add-in');
+  const [makePublicAndAddLinks, setMakePublicAndAddLinks] = useState(isProjectPublic);
+
+  const shouldShowLinksCheckbox = selectedExportType === 'comments' && !isProjectPublic;
+  const shouldShowAddInDisclaimer = selectedExportType === 'add-in';
+
+  const handleOpenChange = (isOpen: boolean) => {
+    if (!isOpen) {
+      setSelectedExportType('add-in');
+      setMakePublicAndAddLinks(isProjectPublic);
+    }
+    onOpenChange(isOpen);
+  };
+
+  const handleDownload = () => {
+    const docxType: DocxType =
+      selectedExportType === 'add-in' ? 'add-in' : makePublicAndAddLinks ? 'comments-with-links' : 'comments';
+
+    onDownload(docxType);
+    setSelectedExportType('add-in');
+    setMakePublicAndAddLinks(isProjectPublic);
+  };
 
   return (
-    <Dialog open={open} onOpenChange={isProcessing ? undefined : onOpenChange}>
+    <Dialog open={open} onOpenChange={isProcessing ? undefined : handleOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <AlertTriangle className="h-5 w-5 text-amber-500" />
-            Share Links in Document
+            Choose How Issues Are Shown
           </DialogTitle>
           <DialogDescription asChild>
-            <div className="text-sm text-muted-foreground space-y-3 pt-2">
-              <p>
-                The downloaded DOCX can include links to view each issue in the AI Reviewer. However, these links{' '}
-                <strong>only work when sharing is enabled</strong>.
-              </p>
-              <p>Would you like to make this analysis public so the links work for anyone with the document?</p>
+            <div className="text-sm text-muted-foreground pt-2">
+              Choose how reviewers should see this analysis in the downloaded DOCX.
             </div>
           </DialogDescription>
         </DialogHeader>
 
-        <DialogFooter className="flex-col sm:flex-col gap-2 pt-4">
-          <Button onClick={onMakePublicAndDownload} disabled={isProcessing} className="w-full justify-center gap-2">
-            {isEnablingShare || isDownloading ? (
+        <div className="space-y-3 pt-2">
+          <RadioGroup
+            value={selectedExportType}
+            onValueChange={(value) => setSelectedExportType(value as 'comments' | 'add-in')}
+            className="gap-2"
+          >
+            <RadioGroupItemWithDescription
+              id="add-in"
+              value={selectedExportType}
+              label="AI Reviewer add-in"
+              description="Reviewers can see issues directly in the add-in as they do in the app."
+              disabled={isProcessing}
+            />
+            <RadioGroupItemWithDescription
+              id="comments"
+              value={selectedExportType}
+              label="Regular comments"
+              description="Adds standard Word comments for use outside the add-in."
+              disabled={isProcessing}
+            />
+          </RadioGroup>
+
+          {shouldShowLinksCheckbox && (
+            <label className="flex items-start gap-2 rounded-md border p-3 cursor-pointer">
+              <Checkbox
+                checked={makePublicAndAddLinks}
+                disabled={isProcessing}
+                onCheckedChange={(checked) => setMakePublicAndAddLinks(checked === true)}
+                className="mt-0.5"
+              />
+              <span className="text-sm text-muted-foreground">
+                Make this analysis public and add links to comments redirecting to the full analysis page.
+              </span>
+            </label>
+          )}
+
+          {shouldShowAddInDisclaimer && (
+            <div className="flex items-start gap-2 rounded-md border p-3">
+              <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
+              <span className="text-sm text-muted-foreground">
+                Requires the AI Reviewer Word add-in.
+                {!isProjectPublic && ' This will make this analysis public.'}
+              </span>
+            </div>
+          )}
+        </div>
+
+        <DialogFooter className="pt-4">
+          <Button onClick={handleDownload} disabled={isProcessing} className="w-full justify-center gap-2">
+            {isProcessing ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
-                {isEnablingShare ? 'Enabling sharing...' : 'Downloading...'}
+                Downloading...
               </>
             ) : (
               <>
-                <Globe className="h-4 w-4" />
-                Make Public & Download with Links
+                <Download className="h-4 w-4" />
+                Download
               </>
             )}
-          </Button>
-
-          <Button
-            variant="outline"
-            onClick={onDownloadWithoutLinks}
-            disabled={isProcessing}
-            className="w-full justify-center gap-2"
-          >
-            <Download className="h-4 w-4" />
-            Download Without Links
           </Button>
         </DialogFooter>
       </DialogContent>

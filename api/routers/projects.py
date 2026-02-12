@@ -1,6 +1,5 @@
 import logging
-import uuid
-from typing import List, Optional
+from typing import List, Literal, Optional
 
 from fastapi import APIRouter, Depends
 from fastapi import File as FastAPIUploadFile
@@ -14,7 +13,7 @@ from api.upload import save_uploaded_files_to_db
 from lib.models.file import File, FileRole
 from lib.models.project import Project
 from lib.models.user import User
-from lib.services.docx_workflow_service import get_or_generate_docx
+from lib.services.docx_workflow_service import DocxManipulatorType, get_or_generate_docx
 from lib.services.files import create_project_files_zip, delete_project_files
 from lib.services.projects import (
     ProjectDetailed,
@@ -36,8 +35,9 @@ from lib.services.workflow_runs import (
     WorkflowRunDetail,
     get_project_workflow_runs_by_type_with_details,
 )
-from lib.models.workflow_run import WorkflowRun, WorkflowRunType
+from lib.models.workflow_run import WorkflowRunType
 from lib.workflows.models import SeverityEnum
+from api.models import CreateProjectRequest
 
 router = APIRouter(tags=["projects"])
 logger = logging.getLogger(__name__)
@@ -47,37 +47,20 @@ logger = logging.getLogger(__name__)
     "/api/projects", response_model=ProjectDetailed, status_code=status.HTTP_201_CREATED
 )
 async def create_project_endpoint(
-    title: str = Form(...),
-    main_document: UploadFile = FastAPIUploadFile(...),
+    request: CreateProjectRequest,
     current_user: User = Depends(get_current_user),
 ):
-    """Create a project with a main document."""
+    """
+    Create a project.
 
-    project: Project | None = None
+    This endpoint creates the project first, then files are uploaded
+    separately via the /api/upload endpoints.
+    """
     try:
-        project = await create_project(title=title, user=current_user)
-
-        await save_uploaded_files_to_db(
-            uploaded_files=[main_document],
-            project_id=project.id,
-            user_id=current_user.id,
-            roles=[FileRole.MAIN],
-        )
-
+        project = await create_project(title=request.title, user=current_user)
         return ProjectDetailed(project=project, workflow_runs=[])
     except Exception as e:
         logger.error("Failed to create project: %s", e, exc_info=True)
-
-        if project is not None:
-            try:
-                await delete_project(str(project.id), user=current_user)
-            except Exception as cleanup_error:  # pragma: no cover - best effort cleanup
-                logger.error(
-                    "Failed to clean up project %s after creation error: %s",
-                    project.id,
-                    cleanup_error,
-                )
-
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to create project",
@@ -143,6 +126,10 @@ async def download_project_docx(
         default=None,
         description="Filter issues by workflow types",
     ),
+    docx_type: DocxManipulatorType | Literal["original"] = Query(
+        default="original",
+        description="Docx type",
+    ),
     current_user: Optional[User] = Depends(get_current_user_optional),
 ):
     """
@@ -162,6 +149,7 @@ async def download_project_docx(
             share_token=share_token,
             severities=severities,
             workflow_types=workflow_types,
+            docx_type=docx_type,
             use_cache=True,
         )
     except Exception as e:

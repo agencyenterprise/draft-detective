@@ -39,6 +39,10 @@ async def extract_text_references_v2_node(
             chunk_indices = find_chunks_by_line_range(
                 chunks, ref.start_line, ref.end_line
             )
+            if not chunk_indices:
+                logger.warning(
+                    f'No chunk indices found for reference: "{ref.text}", start line: {ref.start_line}, end line: {ref.end_line}'
+                )
 
         extracted_references.append(
             ExtractedReference(

@@ -361,26 +361,6 @@ export type AdvocacyToneWorkflowConfig = {
 };
 
 /**
- * AgentInfo
- *
- * Information about a registered agent
- */
-export type AgentInfo = {
-  /**
-   * Function Name
-   */
-  function_name: string;
-  /**
-   * Name
-   */
-  name: string;
-  /**
-   * Description
-   */
-  description: string;
-};
-
-/**
  * AnalysisFormConfig
  *
  * Form config for starting analysis (project creation + workflow start)
@@ -627,20 +607,6 @@ export type BodyAddFilesToProjectApiProjectProjectIdFilesPost = {
    */
   files: Array<Blob | File>;
   role?: FileRole;
-};
-
-/**
- * Body_create_project_endpoint_api_projects_post
- */
-export type BodyCreateProjectEndpointApiProjectsPost = {
-  /**
-   * Title
-   */
-  title: string;
-  /**
-   * Main Document
-   */
-  main_document: Blob | File;
 };
 
 /**
@@ -1450,6 +1416,12 @@ export type ClaimResponseWithChunkIndex = {
  */
 export type ClaimSubstantiationResultWithClaimIndex = {
   /**
+   * Key Sentence
+   *
+   * The key sentence that contains the claim to be substantiated. Should be a direct quote from the text.
+   */
+  key_sentence: string;
+  /**
    * The degree of evidence that the supporting document(s) provides to support the claim. Possible values: ['unverifiable', 'supported', 'partially_supported', 'unsupported']
    */
   evidence_alignment: EvidenceAlignmentLevel;
@@ -1494,6 +1466,18 @@ export const ConfidenceInRecommendation = {
  * ConfidenceInRecommendation
  */
 export type ConfidenceInRecommendation = (typeof ConfidenceInRecommendation)[keyof typeof ConfidenceInRecommendation];
+
+/**
+ * CreateProjectRequest
+ *
+ * Request body for creating a project.
+ */
+export type CreateProjectRequest = {
+  /**
+   * Title
+   */
+  title: string;
+};
 
 /**
  * DoclingDocument
@@ -1599,7 +1583,7 @@ export type DocumentIssue = {
   /**
    * Id
    *
-   * A unique identifier for the issue, generated as a hash of type + title + description + severity + chunk_index + claim_index + chunk_indices.
+   * A unique identifier for the issue, generated as a hash of type + title + description + severity + chunk_index + chunk_indices.
    */
   id?: string;
   /**
@@ -1870,6 +1854,24 @@ export type DocumentSummarizationWorkflowConfig = {
    */
   type?: 'document_summarization';
 };
+
+/**
+ * DocxManipulatorType
+ *
+ * Type of DOCX to generate.
+ */
+export const DocxManipulatorType = {
+  AddIn: 'add-in',
+  Comments: 'comments',
+  CommentsWithLinks: 'comments-with-links',
+} as const;
+
+/**
+ * DocxManipulatorType
+ *
+ * Type of DOCX to generate.
+ */
+export type DocxManipulatorType = (typeof DocxManipulatorType)[keyof typeof DocxManipulatorType];
 
 /**
  * EvalPackageRequest
@@ -5090,25 +5092,6 @@ export type ReadHealthApiHealthHeadResponses = {
   200: unknown;
 };
 
-export type GetSupportedAgentsApiSupportedAgentsGetData = {
-  body?: never;
-  path?: never;
-  query?: never;
-  url: '/api/supported-agents';
-};
-
-export type GetSupportedAgentsApiSupportedAgentsGetResponses = {
-  /**
-   * Response Get Supported Agents Api Supported Agents Get
-   *
-   * Successful Response
-   */
-  200: Array<AgentInfo>;
-};
-
-export type GetSupportedAgentsApiSupportedAgentsGetResponse =
-  GetSupportedAgentsApiSupportedAgentsGetResponses[keyof GetSupportedAgentsApiSupportedAgentsGetResponses];
-
 export type StartAnalysisApiStartAnalysisDoNotUsePostData = {
   body: AnalysisFormConfig;
   path?: never;
@@ -5624,7 +5607,7 @@ export type ListProjectsEndpointApiProjectsGetResponse =
   ListProjectsEndpointApiProjectsGetResponses[keyof ListProjectsEndpointApiProjectsGetResponses];
 
 export type CreateProjectEndpointApiProjectsPostData = {
-  body: BodyCreateProjectEndpointApiProjectsPost;
+  body: CreateProjectRequest;
   path?: never;
   query?: never;
   url: '/api/projects';
@@ -5781,6 +5764,12 @@ export type DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetData = {
      * Filter issues by workflow types
      */
     workflow_types?: Array<WorkflowRunType> | null;
+    /**
+     * Docx Type
+     *
+     * Docx type
+     */
+    docx_type?: DocxManipulatorType | 'original';
   };
   url: '/api/projects/{project_id}/docx/download';
 };
@@ -6197,6 +6186,260 @@ export type GetSharedResourceApiPublicShareTokenGetResponses = {
 
 export type GetSharedResourceApiPublicShareTokenGetResponse =
   GetSharedResourceApiPublicShareTokenGetResponses[keyof GetSharedResourceApiPublicShareTokenGetResponses];
+
+export type ExtensionTerminationRouteTusUuidDeleteData = {
+  body?: never;
+  headers?: {
+    /**
+     * Tus-Resumable
+     */
+    'tus-resumable'?: string;
+  };
+  path: {
+    /**
+     * Uuid
+     */
+    uuid: string;
+  };
+  query?: never;
+  url: '/tus/{uuid}';
+};
+
+export type ExtensionTerminationRouteTusUuidDeleteErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type ExtensionTerminationRouteTusUuidDeleteError =
+  ExtensionTerminationRouteTusUuidDeleteErrors[keyof ExtensionTerminationRouteTusUuidDeleteErrors];
+
+export type ExtensionTerminationRouteTusUuidDeleteResponses = {
+  /**
+   * Successful Response
+   */
+  204: void;
+};
+
+export type ExtensionTerminationRouteTusUuidDeleteResponse =
+  ExtensionTerminationRouteTusUuidDeleteResponses[keyof ExtensionTerminationRouteTusUuidDeleteResponses];
+
+export type CoreHeadRouteTusUuidHeadData = {
+  body?: never;
+  headers?: {
+    /**
+     * Tus-Resumable
+     */
+    'tus-resumable'?: string;
+  };
+  path: {
+    /**
+     * Uuid
+     */
+    uuid: string;
+  };
+  query?: never;
+  url: '/tus/{uuid}';
+};
+
+export type CoreHeadRouteTusUuidHeadErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type CoreHeadRouteTusUuidHeadError = CoreHeadRouteTusUuidHeadErrors[keyof CoreHeadRouteTusUuidHeadErrors];
+
+export type CoreHeadRouteTusUuidHeadResponses = {
+  /**
+   * Successful Response
+   */
+  200: unknown;
+};
+
+export type CorePatchRouteTusUuidPatchData = {
+  body?: never;
+  headers: {
+    /**
+     * Content-Length
+     */
+    'content-length': number;
+    /**
+     * Upload-Offset
+     */
+    'upload-offset': number;
+    /**
+     * Upload-Length
+     */
+    'upload-length'?: number;
+    /**
+     * Content-Type
+     */
+    'content-type'?: string;
+    /**
+     * Tus-Resumable
+     */
+    'tus-resumable'?: string;
+  };
+  path: {
+    /**
+     * Uuid
+     */
+    uuid: string;
+  };
+  query?: {
+    /**
+     * Post Request
+     */
+    post_request?: boolean;
+  };
+  url: '/tus/{uuid}';
+};
+
+export type CorePatchRouteTusUuidPatchErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type CorePatchRouteTusUuidPatchError = CorePatchRouteTusUuidPatchErrors[keyof CorePatchRouteTusUuidPatchErrors];
+
+export type CorePatchRouteTusUuidPatchResponses = {
+  /**
+   * Successful Response
+   */
+  204: void;
+};
+
+export type CorePatchRouteTusUuidPatchResponse =
+  CorePatchRouteTusUuidPatchResponses[keyof CorePatchRouteTusUuidPatchResponses];
+
+export type CoreOptionsRouteTusOptionsData = {
+  body?: never;
+  headers?: {
+    /**
+     * Tus-Resumable
+     */
+    'tus-resumable'?: string;
+  };
+  path?: never;
+  query?: never;
+  url: '/tus/';
+};
+
+export type CoreOptionsRouteTusOptionsErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type CoreOptionsRouteTusOptionsError = CoreOptionsRouteTusOptionsErrors[keyof CoreOptionsRouteTusOptionsErrors];
+
+export type CoreOptionsRouteTusOptionsResponses = {
+  /**
+   * Successful Response
+   */
+  204: void;
+};
+
+export type CoreOptionsRouteTusOptionsResponse =
+  CoreOptionsRouteTusOptionsResponses[keyof CoreOptionsRouteTusOptionsResponses];
+
+export type ExtensionCreationRouteTusPostData = {
+  body?: never;
+  headers?: {
+    /**
+     * Upload-Metadata
+     */
+    'upload-metadata'?: string;
+    /**
+     * Upload-Length
+     */
+    'upload-length'?: number;
+    /**
+     * Upload-Defer-Length
+     */
+    'upload-defer-length'?: number;
+    /**
+     * Upload-Concat
+     */
+    'upload-concat'?: string;
+    /**
+     * Tus-Resumable
+     */
+    'tus-resumable'?: string;
+  };
+  path?: never;
+  query?: never;
+  url: '/tus/';
+};
+
+export type ExtensionCreationRouteTusPostErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type ExtensionCreationRouteTusPostError =
+  ExtensionCreationRouteTusPostErrors[keyof ExtensionCreationRouteTusPostErrors];
+
+export type ExtensionCreationRouteTusPostResponses = {
+  /**
+   * Successful Response
+   */
+  201: unknown;
+};
+
+export type ExtensionCreationRouteTusPost2Data = {
+  body?: never;
+  headers?: {
+    /**
+     * Upload-Metadata
+     */
+    'upload-metadata'?: string;
+    /**
+     * Upload-Length
+     */
+    'upload-length'?: number;
+    /**
+     * Upload-Defer-Length
+     */
+    'upload-defer-length'?: number;
+    /**
+     * Upload-Concat
+     */
+    'upload-concat'?: string;
+    /**
+     * Tus-Resumable
+     */
+    'tus-resumable'?: string;
+  };
+  path?: never;
+  query?: never;
+  url: '/tus';
+};
+
+export type ExtensionCreationRouteTusPost2Errors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type ExtensionCreationRouteTusPost2Error =
+  ExtensionCreationRouteTusPost2Errors[keyof ExtensionCreationRouteTusPost2Errors];
+
+export type ExtensionCreationRouteTusPost2Responses = {
+  /**
+   * Successful Response
+   */
+  201: unknown;
+};
 
 export type GetCurrentUserInfoApiUsersMeGetData = {
   body?: never;

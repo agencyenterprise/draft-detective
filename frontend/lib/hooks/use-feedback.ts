@@ -17,8 +17,11 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
  *
  * // For a reference
  * const ref = useFeedback(workflowId, { reference_index: 2 });
+ *
+ * // For an issue (uses string hash ID)
+ * const issue = useFeedback(workflowId, { issue_id: 'abc123' });
  */
-export function useFeedback(workflowRunId: string, entityPath: Record<string, number>) {
+export function useFeedback(workflowRunId: string, entityPath: Record<string, number | string>) {
   const queryClient = useQueryClient();
 
   const queryKey = ['feedback', workflowRunId, entityPath];

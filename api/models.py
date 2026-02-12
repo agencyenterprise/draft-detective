@@ -117,3 +117,9 @@ class ApproveWorkflowResponse(BaseModel):
 
     message: str
     workflow_run_id: str
+
+
+class CreateProjectRequest(BaseModel):
+    """Request body for creating a project."""
+
+    title: str

@@ -77,44 +77,40 @@ class ReferenceValidationManifest(
             else None
         )
 
-        # Build lookup from reference text to chunk_indices
+        # Build lookup from reference id to chunk_indices
         ref_to_chunks: dict[str, List[int]] = {}
         if ref_extraction_state:
             for ref in ref_extraction_state.extracted_references:
-                ref_to_chunks[ref.text] = ref.chunk_indices
+                ref_to_chunks[ref.id] = ref.chunk_indices
 
         for validation in state.reference_validations:
             # Only process completed validations with results
             if validation.status != ReferenceValidationStatus.COMPLETED:
                 continue
+
             if validation.validation_result is None:
                 continue
 
             result = validation.validation_result
-            chunk_indices = ref_to_chunks.get(result.original_reference, [])
+            chunk_indices = ref_to_chunks.get(validation.reference_id, [])
             chunk_index = chunk_indices[0] if chunk_indices else None
 
             if not result.valid_reference:
+                field_validations = "\n\n".join(
+                    [
+                        f"- **{item.category.value.capitalize()}**: {item.problem_type.value.capitalize()}\n\n\t*Current*: {item.current_value or "-"}\n\n\t*Suggested*: {item.suggested_value}"
+                        for item in result.bibliography_field_validations
+                    ]
+                )
+
                 issue = DocumentIssue(
                     title="Invalid reference",
-                    description=f'Possible invalid reference: "{result.original_reference}"',
+                    description=f'Possible invalid reference: "{result.original_reference}".\n\n{result.suggested_action}',
                     severity=SeverityEnum.MEDIUM,
                     type=self.type,
                     chunk_index=chunk_index,
                     chunk_indices=chunk_indices if chunk_indices else None,
-                )
-                issues.append(issue)
-
-            if result.cited_url and result.url != result.cited_url:
-                issue = DocumentIssue(
-                    title="URL redirect detected",
-                    description=(
-                        f"Cited URL redirects to a different location. "
-                        f"Cited: {result.cited_url} → Canonical: {result.url}"
-                    ),
-                    severity=SeverityEnum.MEDIUM,
-                    type=self.type,
-                    chunk_index=chunk_index,
+                    long_description=f"{f'### Suggested updated reference\n\n> {result.updated_reference}' if result.updated_reference else ''}\n\n### Field validations\n\n{field_validations}\n\n### Reasoning\n\n{result.reasoning}",
                 )
                 issues.append(issue)
 

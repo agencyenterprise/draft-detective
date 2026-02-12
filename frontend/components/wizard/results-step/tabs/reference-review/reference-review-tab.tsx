@@ -5,7 +5,7 @@ import { getWorkflowRunByType, isWorkflowProcessing } from '@/lib/workflow-state
 import { FileText, Loader2 } from 'lucide-react';
 import { useState } from 'react';
 import { FileUploadDialog } from './file-upload-dialog';
-import { useBatchUploadMutation, useFetchAllFromWebMutation } from './mutations';
+import { useFetchAllFromWebMutation } from './mutations';
 import { useReferenceReviewReferences } from './queries';
 import { ReferenceReviewList } from './reference-review-list';
 import { useScrollToReference } from './use-scroll-to-reference';
@@ -25,14 +25,12 @@ export function ReferenceReviewTab({ projectId, readOnly = false }: ReferenceRev
 
   const references = useReferenceReviewReferences(projectDetail ?? undefined);
   const fetchAllFromWebMutation = useFetchAllFromWebMutation(projectId);
-  const batchUploadMutation = useBatchUploadMutation(projectId);
   const referenceExtraction = getWorkflowRunByType(workflowDetails, WorkflowRunType.ReferenceExtraction);
   const referenceDownloader = getWorkflowRunByType(workflowDetails, WorkflowRunType.ReferenceDownloader);
   const documentProcessing = getWorkflowRunByType(workflowDetails, WorkflowRunType.DocumentProcessing);
   const referenceFileMatching = getWorkflowRunByType(workflowDetails, WorkflowRunType.ReferenceFileMatching);
   const isExtractionProcessing = isWorkflowProcessing(referenceExtraction);
 
-  const isBatchUploading = batchUploadMutation.isPending;
   const isFetchingAllFromWeb = fetchAllFromWebMutation.isPending || isWorkflowProcessing(referenceDownloader);
   const isProcessingFiles = isWorkflowProcessing(documentProcessing) || isWorkflowProcessing(referenceFileMatching);
 
@@ -55,10 +53,6 @@ export function ReferenceReviewTab({ projectId, readOnly = false }: ReferenceRev
       { references: unmatchedReferences, openaiApiKey: values.openaiApiKey },
       { onSuccess: () => setIsConfigDialogOpen(false) },
     );
-  };
-
-  const handleBatchUploadConfirm = (files: File[], openaiApiKey: string) => {
-    batchUploadMutation.mutate({ files, openaiApiKey }, { onSuccess: () => setIsBatchUploadDialogOpen(false) });
   };
 
   if (isLoading || !projectDetail) {
@@ -101,12 +95,12 @@ export function ReferenceReviewTab({ projectId, readOnly = false }: ReferenceRev
 
       <FileUploadDialog
         isOpen={isBatchUploadDialogOpen}
-        isUploading={batchUploadMutation.isPending}
         title="Batch Upload Supporting Documents"
         description="Upload multiple supporting documents at once. After upload, the files will be processed and automatically matched to your extracted references."
         multiple={true}
-        onConfirm={handleBatchUploadConfirm}
+        projectId={projectId}
         onCancel={() => setIsBatchUploadDialogOpen(false)}
+        onComplete={() => setIsBatchUploadDialogOpen(false)}
       />
 
       <ReferenceReviewList
@@ -115,7 +109,7 @@ export function ReferenceReviewTab({ projectId, readOnly = false }: ReferenceRev
         readOnly={readOnly}
         onFetchAll={handleOpenDialog}
         isFetchingAllFromWeb={isFetchingAllFromWeb}
-        isBatchUploading={isBatchUploading}
+        isBatchUploading={isBatchUploadDialogOpen}
         isProcessingFiles={isProcessingFiles}
         disableActions={disableActions}
         disableIndividualCards={disableIndividualCards}
