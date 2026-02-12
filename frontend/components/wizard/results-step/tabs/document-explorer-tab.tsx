@@ -2,7 +2,7 @@
 
 import { useChunkHashNavigation } from '@/lib/chunk-ids';
 import { DocRenderMode } from '@/lib/constants';
-import { DocumentIssue, ProjectDetailed, SeverityEnum, WorkflowRunType } from '@/lib/generated-api';
+import { Issue, ProjectDetailed, SeverityEnum, WorkflowRunType } from '@/lib/generated-api';
 import {
   getWorkflowErrors,
   getWorkflowRunByType,
@@ -71,18 +71,21 @@ export function DocumentExplorerTab({
 
   const pages = documentProcessing?.state?.file?.docling_pages ?? [];
   const chunkToItems = chunkSplitting?.state?.chunk_to_items?.mapping ?? {};
-  const pageImagesBaseUrl = `/api/images/${chunkSplitting?.run.id ?? documentProcessing?.run.id}`;
+  const workflowRunId = chunkSplitting?.run.id || documentProcessing?.run.id;
+  const pageImagesBaseUrl = workflowRunId ? `/api/images/${workflowRunId}` : null;
 
   const workflowErrors = useMemo(() => getWorkflowErrors(workflowDetails), [workflowDetails]);
   const hasChunks = useMemo(() => chunks.length > 0, [chunks]);
 
-  const isDoclingAvailable = Boolean(pages && pages.length > 0 && Object.keys(chunkToItems).length > 0);
+  const isDoclingAvailable = Boolean(
+    pages && pages.length > 0 && Object.keys(chunkToItems).length > 0 && pageImagesBaseUrl,
+  );
   const filteredIssues = useMemo(
     () => filterIssuesByWorkflowType(filterIssuesBySeverity(issues, severityFilter), workflowTypeFilter),
     [issues, severityFilter, workflowTypeFilter],
   );
 
-  const handleSelectIssue = useCallback((issue: DocumentIssue) => {
+  const handleSelectIssue = useCallback((issue: Issue) => {
     if (issue.chunk_index !== undefined && issue.chunk_index !== null) {
       setSelectedChunkIndices([issue.chunk_index]);
       sidebarRef.current?.scrollToIssue(issue);
@@ -149,7 +152,7 @@ export function DocumentExplorerTab({
             {(() => {
               const shouldRenderDocling = viewMode === 'docling' && isDoclingAvailable;
 
-              if (shouldRenderDocling) {
+              if (shouldRenderDocling && pageImagesBaseUrl) {
                 return (
                   <DoclingViewer
                     pages={pages}

@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { EditableTitle } from '@/components/ui/editable-title';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DocRenderMode } from '@/lib/constants';
+import { ProjectFeedbackProvider } from '@/lib/contexts/project-feedback-context';
 import { ProjectDetailed, SeverityEnum, WorkflowRunType } from '@/lib/generated-api';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { cn } from '@/lib/utils';
@@ -96,87 +97,89 @@ export function ResultsVisualization({
   );
 
   return (
-    <div className="space-y-3">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <hgroup className="w-full space-y-1">
-          {!readOnly && onTitleSave ? (
-            <EditableTitle
-              title={projectDetail.project.title}
-              titleClassName="text-xl font-bold"
-              onSave={onTitleSave}
-              isLoading={isTitleSaving}
-            />
-          ) : (
-            <h1 className="text-xl font-bold">{projectDetail.project.title}</h1>
-          )}
-          <h2 className="text-muted-foreground text-sm">
-            {authors && <span>{authors} — </span>}
-            <span>Project created on {format(projectDetail.project.created_at || new Date(), 'MMM d, yyyy')}</span>
-          </h2>
-        </hgroup>
-      </div>
+    <ProjectFeedbackProvider projectId={readOnly ? undefined : projectDetail.project.id}>
+      <div className="space-y-3">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <hgroup className="w-full space-y-1">
+            {!readOnly && onTitleSave ? (
+              <EditableTitle
+                title={projectDetail.project.title}
+                titleClassName="text-xl font-bold"
+                onSave={onTitleSave}
+                isLoading={isTitleSaving}
+              />
+            ) : (
+              <h1 className="text-xl font-bold">{projectDetail.project.title}</h1>
+            )}
+            <h2 className="text-muted-foreground text-sm">
+              {authors && <span>{authors} — </span>}
+              <span>Project created on {format(projectDetail.project.created_at || new Date(), 'MMM d, yyyy')}</span>
+            </h2>
+          </hgroup>
+        </div>
 
-      <div className="flex flex-col gap-2 md:items-center md:justify-between md:flex-row">
-        <Tabs
-          defaultValue="document-explorer"
-          value={activeTab}
-          onValueChange={(value) => setActiveTab(value as TabType)}
+        <div className="flex flex-col gap-2 md:items-center md:justify-between md:flex-row">
+          <Tabs
+            defaultValue="document-explorer"
+            value={activeTab}
+            onValueChange={(value) => setActiveTab(value as TabType)}
+          >
+            <TabsList>
+              <TabsTrigger value="document-explorer">Document Explorer</TabsTrigger>
+              <TabsTrigger value="summary">Summary</TabsTrigger>
+              <TabsTrigger value="references">
+                References{' '}
+                <Badge className="rounded-full h-4.5 min-w-4.5" variant="secondary">
+                  {referenceExtraction?.state?.extracted_references?.length || 0}
+                </Badge>
+              </TabsTrigger>
+              <TabsTrigger value="files">
+                Files{' '}
+                <Badge className="rounded-full h-4.5 min-w-4.5" variant="secondary">
+                  {projectDetail.files?.length ?? 0}
+                </Badge>
+              </TabsTrigger>
+              <TabsTrigger value="analyses">
+                Analyses{' '}
+                <Badge className="rounded-full h-4.5 min-w-4.5" variant="secondary">
+                  {results.filter((r) => isWorkflowTypeVisible(r.run.type)).length}
+                </Badge>
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+
+          <div className="flex items-center gap-1">
+            {activeTab === 'document-explorer' && (
+              <ViewModeToggle
+                onViewModeChange={onViewModeChange}
+                viewMode={viewMode}
+                isDoclingAvailable={isDoclingAvailable}
+              />
+            )}
+            {readOnly && (
+              <Badge variant="secondary" className="text-xs">
+                Read-only view
+              </Badge>
+            )}
+            <AnalysisOptionsMenu
+              project={projectDetail.project}
+              results={results}
+              readOnly={readOnly}
+              severityFilter={severityFilter}
+              workflowTypeFilter={workflowTypeFilter}
+            />
+          </div>
+        </div>
+
+        <div
+          className={cn('border rounded-lg shadow-sm p-4', {
+            'h-[calc(100vh-13rem)] p-0': activeTab === 'document-explorer',
+          })}
         >
-          <TabsList>
-            <TabsTrigger value="document-explorer">Document Explorer</TabsTrigger>
-            <TabsTrigger value="summary">Summary</TabsTrigger>
-            <TabsTrigger value="references">
-              References{' '}
-              <Badge className="rounded-full h-4.5 min-w-4.5" variant="secondary">
-                {referenceExtraction?.state?.extracted_references?.length || 0}
-              </Badge>
-            </TabsTrigger>
-            <TabsTrigger value="files">
-              Files{' '}
-              <Badge className="rounded-full h-4.5 min-w-4.5" variant="secondary">
-                {projectDetail.files?.length ?? 0}
-              </Badge>
-            </TabsTrigger>
-            <TabsTrigger value="analyses">
-              Analyses{' '}
-              <Badge className="rounded-full h-4.5 min-w-4.5" variant="secondary">
-                {results.filter((r) => isWorkflowTypeVisible(r.run.type)).length}
-              </Badge>
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
-
-        <div className="flex items-center gap-1">
-          {activeTab === 'document-explorer' && (
-            <ViewModeToggle
-              onViewModeChange={onViewModeChange}
-              viewMode={viewMode}
-              isDoclingAvailable={isDoclingAvailable}
-            />
-          )}
-          {readOnly && (
-            <Badge variant="secondary" className="text-xs">
-              Read-only view
-            </Badge>
-          )}
-          <AnalysisOptionsMenu
-            project={projectDetail.project}
-            results={results}
-            readOnly={readOnly}
-            severityFilter={severityFilter}
-            workflowTypeFilter={workflowTypeFilter}
-          />
+          {renderActiveTab()}
         </div>
       </div>
-
-      <div
-        className={cn('border rounded-lg shadow-sm p-4', {
-          'h-[calc(100vh-13rem)] p-0': activeTab === 'document-explorer',
-        })}
-      >
-        {renderActiveTab()}
-      </div>
-    </div>
+    </ProjectFeedbackProvider>
   );
 }

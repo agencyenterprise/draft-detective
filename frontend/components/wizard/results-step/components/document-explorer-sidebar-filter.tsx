@@ -1,9 +1,9 @@
-import { DocumentIssue, SeverityEnum, WorkflowRunType } from '@/lib/generated-api';
+import { Issue, SeverityEnum, WorkflowRunType } from '@/lib/generated-api';
 import { SeverityFilter } from './severity-filter';
 import { WorkflowTypeFilter } from './workflow-type-filter';
 
 interface DocumentExplorerSidebarFilterProps {
-  issues: DocumentIssue[];
+  issues: Issue[];
   severityFilter: SeverityEnum[];
   onSeverityFilterChange: (value: SeverityEnum[]) => void;
   workflowTypeFilter: WorkflowRunType[];

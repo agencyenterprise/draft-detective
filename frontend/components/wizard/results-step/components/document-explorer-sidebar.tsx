@@ -2,24 +2,24 @@
 
 import { Button } from '@/components/ui/button';
 import { SkeletonList } from '@/components/ui/skeleton-list';
-import { DocumentIssue, ProjectDetailed, SeverityEnum, WorkflowRunType } from '@/lib/generated-api';
+import { Issue, ProjectDetailed, SeverityEnum, WorkflowRunType } from '@/lib/generated-api';
 import { getChunkIssuesByIndices } from '@/lib/severity';
-import { X } from 'lucide-react';
-import { Ref, useImperativeHandle, useMemo, useRef } from 'react';
+import { EyeIcon, EyeOffIcon, X } from 'lucide-react';
+import { Ref, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { DocumentExplorerSidebarFilter } from './document-explorer-sidebar-filter';
 import { DocumentIssuesList } from './document-issues-list';
 import { SingleChunkContent } from './single-chunk-content';
 
 export interface DocumentExplorerSidebarHandle {
   scrollToTop: () => void;
-  scrollToIssue: (issue: DocumentIssue) => void;
+  scrollToIssue: (issue: Issue) => void;
 }
 
 interface DocumentExplorerSidebarProps {
   ref?: Ref<DocumentExplorerSidebarHandle>;
   selectedChunkIndices: number[];
-  issues: DocumentIssue[];
-  filteredIssues: DocumentIssue[];
+  issues: Issue[];
+  filteredIssues: Issue[];
   isAnyProcessing: boolean;
   severityFilter: SeverityEnum[];
   onSeverityFilterChange: (value: SeverityEnum[]) => void;
@@ -27,7 +27,7 @@ interface DocumentExplorerSidebarProps {
   onWorkflowTypeFilterChange: (value: WorkflowRunType[]) => void;
   projectDetail: ProjectDetailed;
   readOnly: boolean;
-  onSelectIssue: (issue: DocumentIssue) => void;
+  onSelectIssue: (issue: Issue) => void;
   onClearChunkSelection: () => void;
 }
 
@@ -47,12 +47,13 @@ export function DocumentExplorerSidebar({
   onClearChunkSelection,
 }: DocumentExplorerSidebarProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [showResolved, setShowResolved] = useState(true);
 
   useImperativeHandle(ref, () => ({
     scrollToTop: () => {
       scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'instant' });
     },
-    scrollToIssue: (issue: DocumentIssue) => {
+    scrollToIssue: (issue: Issue) => {
       requestAnimationFrame(() => {
         const element = document.getElementById(`issue-${issue.id}`);
         element?.scrollIntoView({ behavior: 'instant' });
@@ -61,20 +62,43 @@ export function DocumentExplorerSidebar({
   }));
 
   const selectedFilteredIssues = useMemo(() => {
-    if (selectedChunkIndices.length === 0) {
-      return filteredIssues;
+    let result = filteredIssues;
+
+    if (selectedChunkIndices.length > 0) {
+      result = getChunkIssuesByIndices(result, selectedChunkIndices);
     }
-    return getChunkIssuesByIndices(filteredIssues, selectedChunkIndices);
+
+    return result;
   }, [filteredIssues, selectedChunkIndices]);
+
+  const sortedIssues = useMemo(() => {
+    let result = [...selectedFilteredIssues];
+
+    if (!showResolved) {
+      result = result.filter((issue) => !issue.resolved_by);
+    }
+
+    return result.sort((a, b) => {
+      const aResolved = !!a.resolved_by;
+      const bResolved = !!b.resolved_by;
+      if (aResolved !== bResolved) return aResolved ? 1 : -1;
+      return 0;
+    });
+  }, [selectedFilteredIssues, showResolved]);
+
+  const resolvedCount = useMemo(
+    () => selectedFilteredIssues.filter((issue) => issue.resolved_by).length,
+    [selectedFilteredIssues],
+  );
+
+  const displayCount = showResolved ? selectedFilteredIssues.length : selectedFilteredIssues.length - resolvedCount;
 
   return (
     <div className="col-span-5 bg-muted/50 rounded-lg rounded-l-none text-sm flex flex-col overflow-hidden">
       <div className="flex items-center justify-between gap-2 flex-wrap px-4 pt-4 pb-2 flex-shrink-0">
         <span className="text-xs text-muted-foreground">
           {issues.length > 0 &&
-            (selectedFilteredIssues.length === issues.length
-              ? `${issues.length} issues`
-              : `${selectedFilteredIssues.length} of ${issues.length} issues`)}
+            (displayCount === issues.length ? `${issues.length} issues` : `${displayCount} of ${issues.length} issues`)}
           {issues.length === 0 && isAnyProcessing && 'Finding issues...'}
         </span>
         <div className="flex items-center flex-wrap gap-1">
@@ -92,13 +116,27 @@ export function DocumentExplorerSidebar({
             </Button>
           )}
           {issues.length > 0 && (
-            <DocumentExplorerSidebarFilter
-              issues={issues}
-              severityFilter={severityFilter}
-              onSeverityFilterChange={onSeverityFilterChange}
-              workflowTypeFilter={workflowTypeFilter}
-              onWorkflowTypeFilterChange={onWorkflowTypeFilterChange}
-            />
+            <>
+              {resolvedCount > 0 && (
+                <Button
+                  variant={showResolved ? 'secondary' : 'outline'}
+                  size="sm"
+                  className="text-xs h-6 px-2 gap-1 shadow-xs"
+                  onClick={() => setShowResolved(!showResolved)}
+                  title={showResolved ? 'Hide resolved issues' : 'Show resolved issues'}
+                >
+                  {showResolved ? <EyeIcon className="size-3" /> : <EyeOffIcon className="size-3" />}
+                  {resolvedCount} resolved
+                </Button>
+              )}
+              <DocumentExplorerSidebarFilter
+                issues={issues}
+                severityFilter={severityFilter}
+                onSeverityFilterChange={onSeverityFilterChange}
+                workflowTypeFilter={workflowTypeFilter}
+                onWorkflowTypeFilterChange={onWorkflowTypeFilterChange}
+              />
+            </>
           )}
         </div>
       </div>
@@ -114,10 +152,9 @@ export function DocumentExplorerSidebar({
         {isAnyProcessing && <SkeletonList count={3} />}
 
         <DocumentIssuesList
-          issues={selectedFilteredIssues}
+          issues={sortedIssues}
           hideJumpToChunk={selectedChunkIndices.length > 0}
           onSelect={onSelectIssue}
-          workflowRuns={projectDetail.workflow_runs}
           readOnly={readOnly}
         />
 

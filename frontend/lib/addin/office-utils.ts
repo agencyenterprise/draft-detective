@@ -1,10 +1,7 @@
-import { DocumentIssue } from '@/lib/generated-api';
+import { Issue } from '@/lib/generated-api';
 
-function buildIssuesMap(
-  issues: DocumentIssue[],
-  chunkToParagraphMapping: Record<string, number>,
-): Map<number, DocumentIssue[]> {
-  const map = new Map<number, DocumentIssue[]>();
+function buildIssuesMap(issues: Issue[], chunkToParagraphMapping: Record<string, number>): Map<number, Issue[]> {
+  const map = new Map<number, Issue[]>();
   issues.forEach((issue) => {
     const indicesToProcess = new Set<number>();
     if (issue.chunk_index !== undefined && issue.chunk_index !== null) {
@@ -147,7 +144,7 @@ export async function jumpToChunk(chunkIndex: number): Promise<void> {
   });
 }
 
-export async function addIssueMarkers(issues: DocumentIssue[]): Promise<Map<number, DocumentIssue[]>> {
+export async function addIssueMarkers(issues: Issue[]): Promise<Map<number, Issue[]>> {
   if (typeof Word === 'undefined') return new Map();
   const { chunkToParagraphMapping } = await getCustomDocumentProperties();
   if (!chunkToParagraphMapping) return new Map();

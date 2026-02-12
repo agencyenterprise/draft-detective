@@ -1,32 +1,41 @@
-import { Markdown } from '@/components/markdown';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Textarea } from '@/components/ui/textarea';
-import { DocumentIssue, FeedbackType, SeverityEnum, WorkflowRunDetail } from '@/lib/generated-api';
-import { useIssueFeedback } from '@/lib/hooks/use-issue-feedback';
+import { useIssueFeedbackFromContext } from '@/lib/contexts/project-feedback-context';
+import { FeedbackType, Issue, SeverityEnum } from '@/lib/generated-api';
+import { useIssueActions } from '@/lib/hooks/use-issue-actions';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { cn } from '@/lib/utils';
 import {
   CheckCircleIcon,
+  CheckIcon,
   ChevronDownIcon,
   ChevronUpIcon,
   CircleAlertIcon,
   ExternalLinkIcon,
   MessageCircleWarningIcon,
+  MoreHorizontalIcon,
   ThumbsDown,
   ThumbsUp,
   TriangleAlertIcon,
+  UndoIcon,
 } from 'lucide-react';
-import { memo, useMemo, useState } from 'react';
-import { toast } from 'sonner';
+import { memo, useState } from 'react';
+import { Markdown } from '@/components/markdown';
 import { SeverityBadge } from './severity-badge';
 
 interface DocumentIssueCardProps {
-  issue: DocumentIssue;
+  issue: Issue;
   hideJumpToChunk?: boolean;
   jumpToAlias?: string;
-  onSelect: (issue: DocumentIssue) => void;
-  workflowRuns?: WorkflowRunDetail[];
+  onSelect: (issue: Issue) => void;
   readOnly?: boolean;
 }
 
@@ -60,8 +69,8 @@ export const severityColorMap: Record<
   },
 };
 
-function IssueFeedbackButtons({ workflowRunId, issueId }: { workflowRunId: string; issueId: string }) {
-  const { feedback, submitFeedback, isSubmitting } = useIssueFeedback(workflowRunId, issueId);
+function IssueFeedbackButtons({ issueId }: { issueId: string }) {
+  const { feedback, submitFeedback, isSubmitting } = useIssueFeedbackFromContext(issueId);
   const [feedbackText, setFeedbackText] = useState('');
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
 
@@ -70,28 +79,13 @@ function IssueFeedbackButtons({ workflowRunId, issueId }: { workflowRunId: strin
 
   const handleThumbsUp = () => {
     if (hasSubmitted && selectedFeedback === FeedbackType.ThumbsUp) return;
-
-    submitFeedback(
-      { feedback_type: FeedbackType.ThumbsUp, feedback_text: null },
-      {
-        onSuccess: () => toast.success('Thanks for your feedback!'),
-        onError: () => toast.error('Failed to submit feedback'),
-      },
-    );
+    submitFeedback({ feedback_type: FeedbackType.ThumbsUp, feedback_text: null });
   };
 
   const handleThumbsDownSubmit = () => {
-    submitFeedback(
-      { feedback_type: FeedbackType.ThumbsDown, feedback_text: feedbackText || null },
-      {
-        onSuccess: () => {
-          toast.success('Thanks for your feedback!');
-          setIsPopoverOpen(false);
-          setFeedbackText('');
-        },
-        onError: () => toast.error('Failed to submit feedback'),
-      },
-    );
+    submitFeedback({ feedback_type: FeedbackType.ThumbsDown, feedback_text: feedbackText || null });
+    setIsPopoverOpen(false);
+    setFeedbackText('');
   };
 
   return (
@@ -143,22 +137,45 @@ function IssueFeedbackButtons({ workflowRunId, issueId }: { workflowRunId: strin
   );
 }
 
+function IssueActionsMenu({ issue }: { issue: Issue }) {
+  const { resolveIssue, unresolveIssue, isResolving, isUnresolving } = useIssueActions();
+  const isResolved = !!issue.resolved_by;
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="xs" className="h-6 w-6 p-0" disabled={isResolving || isUnresolving}>
+          <MoreHorizontalIcon className="h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        {isResolved ? (
+          <DropdownMenuItem onClick={() => unresolveIssue(issue.id)}>
+            <UndoIcon className="h-4 w-4 mr-2" />
+            Mark as unresolved
+          </DropdownMenuItem>
+        ) : (
+          <DropdownMenuItem onClick={() => resolveIssue(issue.id)}>
+            <CheckIcon className="h-4 w-4 mr-2" />
+            Mark as resolved
+          </DropdownMenuItem>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 function DocumentIssueCardRaw({
   issue,
   hideJumpToChunk = false,
   jumpToAlias = 'chunk',
   onSelect,
-  workflowRuns = [],
   readOnly = false,
 }: DocumentIssueCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const { className, icon, accentClassName } = severityColorMap[issue.severity];
   const { getWorkflowTypeName } = useWorkflowTypes();
-
-  const workflowRunId = useMemo(() => {
-    const workflowRun = workflowRuns.find((wr) => wr.run.type === issue.type);
-    return workflowRun?.run.id;
-  }, [workflowRuns, issue.type]);
+  const isResolved = !!issue.resolved_by;
 
   const showJumpToChunkButton =
     !hideJumpToChunk &&
@@ -167,20 +184,29 @@ function DocumentIssueCardRaw({
   return (
     <div
       id={`issue-${issue.id}`}
-      className={cn('rounded-lg p-4 space-y-3 border-l-4 shadow-sm break-words', className)}
+      className={cn('rounded-lg p-4 space-y-3 border-l-4 shadow-sm break-words transition-opacity', className, {
+        'opacity-60': isResolved,
+      })}
     >
       <div className="flex items-center gap-2 justify-between">
         <div className="flex gap-2">
           <div className="mt-1">{icon}</div>
           <hgroup>
-            <h3 className="font-semibold text-normal">{issue.title}</h3>
-            <p className="text-xs text-muted-foreground italic">{getWorkflowTypeName(issue.type)}</p>
+            <div className="flex items-center gap-2">
+              <h3 className="font-semibold text-normal">{issue.title}</h3>
+              {isResolved && (
+                <Badge variant="outline" className="text-xs h-5 bg-white/50">
+                  <CheckIcon className="h-3 w-3 mr-1" />
+                  Resolved
+                </Badge>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground italic">{getWorkflowTypeName(issue.workflow_type)}</p>
           </hgroup>
         </div>
-        <div className="flex items-center gap-2">
-          {!readOnly && workflowRunId && issue.id && (
-            <IssueFeedbackButtons workflowRunId={workflowRunId} issueId={issue.id} />
-          )}
+        <div className="flex items-center gap-1">
+          {!readOnly && issue.id && <IssueFeedbackButtons issueId={issue.id} />}
+          {!readOnly && issue.id && <IssueActionsMenu issue={issue} />}
           <SeverityBadge severity={issue.severity} hideIcon={true} />
         </div>
       </div>

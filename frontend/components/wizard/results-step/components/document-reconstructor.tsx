@@ -1,5 +1,5 @@
 import { Markdown } from '@/components/markdown';
-import type { DocumentChunk, DocumentIssue } from '@/lib/generated-api';
+import type { DocumentChunk, Issue } from '@/lib/generated-api';
 import { getMaxChunkSeverity } from '@/lib/severity';
 import { cn } from '@/lib/utils';
 import { useVirtualizer } from '@tanstack/react-virtual';
@@ -9,7 +9,7 @@ import { detectBlockSyntax, extractChunkContent } from '../document-reconstructi
 
 interface DocumentReconstructorProps {
   chunks: DocumentChunk[];
-  issues: DocumentIssue[];
+  issues: Issue[];
   selectedChunkIndices: number[];
   onChunkSelect: (chunkIndex: number | null) => void;
 }
@@ -135,7 +135,7 @@ export function DocumentReconstructorChunkGroup({
   onChunkSelect,
 }: {
   chunks: DocumentChunk[];
-  issues: DocumentIssue[];
+  issues: Issue[];
   selectedChunkIndices: number[];
   onChunkSelect: (chunkIndex: number | null) => void;
 }) {
