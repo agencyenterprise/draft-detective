@@ -6,6 +6,36 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v0.5.9] - 2026-02-12
+
+### Added
+- Introduced a Microsoft Word add-in for AI Reviewer, including manifests, local development setup, and a new add-in page in the frontend.
+- Implemented resumable file uploads using the TUS protocol via `tuspyserver` (backend) and `Uppy` (frontend), enabling progress tracking, retry, and resume for large files (up to 500MB).
+- Added thumbs up/down feedback on document issues in the results view, including text feedback when marking an issue as unhelpful.
+- Added a `key_sentence` field to claim reference validation results to show the exact sentence from the source text containing the claim.
+
+### Changed
+- Improved reference validation by surfacing detailed per-field validation results in document issues and enriching the "Invalid reference" issue with suggested corrections and reasoning.
+- Changed reference validation chunk lookup to use reference ID instead of reference text.
+- Set `show_invalid_references_as_issues` default to `True` so invalid references appear in the Document Explorer by default.
+- Increased the rate limiter from 32 to 64 requests/sec and max bucket size from 100 to 200.
+- Updated the "Jump to chunk" button to support issues that only have `chunk_indices` (no single `chunk_index`).
+- Updated share/export dialog behavior and messaging for DOCX download paths.
+- Regenerated API types to include the new `key_sentence` field and to remove types/functions related to supported agents.
+
+### Fixed
+- Fixed paragraph selection on the Word add-in on desktop when selecting a paragraph.
+- Fixed a bug where chunk lookup failed for some references.
+- Added DOCX generation support for content controls to keep issue/comment placement aligned and reduce paragraph mismatch issues during export.
+
+### Removed
+- Removed the unused agent registry system and associated backend and frontend code, including the `/api/supported-agents` endpoint.
+- Removed reference extraction/validation state and the `findReferenceForChunk` helper from chunk view, and removed the inline reference validation section from the chunk detail view.
+- Deleted the previous single-request upload orchestrator in favor of the Uppy-based TUS upload implementation.
+- Removed the separate "URL redirect detected" issue in favor of a single enriched "Invalid reference" issue.
+- Removed `onNavigateToReferences` prop threading that was no longer needed.
+
+
 ## [v0.5.8] - 2026-02-06
 
 ### Added
