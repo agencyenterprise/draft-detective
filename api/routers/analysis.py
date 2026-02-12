@@ -108,6 +108,7 @@ async def start_analysis(
             project_id=str(project.id),
             workflow_types=workflow_types,
             openai_api_key=config.openai_api_key,
+            claim_extraction_version=config.claim_extraction_version,
         )
 
         await start_multiple_workflow_runs(
