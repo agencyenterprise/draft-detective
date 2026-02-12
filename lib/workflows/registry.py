@@ -53,6 +53,7 @@ def register_all_workflow_manifests():
     from lib.workflows.citation_detection.manifest import CitationDetectionManifest
     from lib.workflows.citation_suggester.manifest import CitationSuggesterManifest
     from lib.workflows.claim_extraction.manifest import ClaimExtractionManifest
+    from lib.workflows.claim_extraction_v2.manifest import ClaimExtractionV2Manifest
     from lib.workflows.claim_reference_validation.manifest import (
         ClaimReferenceValidationManifest,
     )
@@ -88,6 +89,7 @@ def register_all_workflow_manifests():
         HumanApprovalManifest(),
         FootnoteExtractionManifest(),
         ClaimExtractionManifest(),
+        ClaimExtractionV2Manifest(),
         CitationDetectionManifest(),
         ClaimReferenceValidationManifest(),
         CitationSuggesterManifest(),
