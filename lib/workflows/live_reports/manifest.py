@@ -21,7 +21,7 @@ class LiveReportsManifest(
     order = 8
     is_experimental = True
     required_dependencies = [
-        WorkflowRunType.CLAIM_EXTRACTION,
+        WorkflowRunType.CLAIM_EXTRACTION_V2,
         WorkflowRunType.CITATION_DETECTION,
         WorkflowRunType.DOCUMENT_SUMMARIZATION,
     ]
