@@ -7,7 +7,7 @@ Provides RESTful API for managing persisted issues (resolve/unresolve).
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 from api.auth import get_current_user
 from lib.models.issue import Issue, IssueStatus
@@ -17,8 +17,19 @@ from lib.services.issue_persistence import (
     resolve_issue,
     unresolve_issue,
 )
+from lib.services.projects import get_user_project
 
 router = APIRouter(tags=["issues"])
+
+
+async def _verify_issue_ownership(issue_id: UUID, user: User) -> Issue:
+    """Fetch an issue and verify the current user owns its project."""
+    issue = await get_issue_by_id(issue_id)
+    if issue is None:
+        raise HTTPException(status_code=404, detail="Issue not found")
+    # Raises 404/403 if project doesn't exist or user doesn't own it
+    await get_user_project(str(issue.project_id), user)
+    return issue
 
 
 class IssueResponse(BaseModel):
@@ -41,33 +52,24 @@ class IssueResponse(BaseModel):
     created_at: str
     updated_at: str
 
+    @field_validator("severity", "workflow_type", mode="before")
+    @classmethod
+    def _extract_enum_value(cls, v: object) -> str:
+        """Extract .value from enums; pass strings through."""
+        return v.value if hasattr(v, "value") else str(v)
+
+    @field_validator("resolved_at", "created_at", "updated_at", mode="before")
+    @classmethod
+    def _datetime_to_iso(cls, v: object) -> str | None:
+        """Convert datetime objects to ISO-format strings."""
+        if v is None:
+            return None
+        return v.isoformat() if hasattr(v, "isoformat") else str(v)
+
     @classmethod
     def from_model(cls, issue: Issue) -> "IssueResponse":
-        """Convert from Issue model"""
-        # workflow_type is stored as string in DB (not enum), so handle both cases
-        workflow_type = (
-            issue.workflow_type.value
-            if hasattr(issue.workflow_type, "value")
-            else str(issue.workflow_type)
-        )
-        return cls(
-            id=issue.id,
-            project_id=issue.project_id,
-            workflow_run_id=issue.workflow_run_id,
-            issue_hash=issue.issue_hash,
-            title=issue.title,
-            description=issue.description,
-            long_description=issue.long_description,
-            severity=issue.severity.value,
-            workflow_type=workflow_type,
-            chunk_index=issue.chunk_index,
-            chunk_indices=issue.chunk_indices,
-            status=issue.status,
-            resolved_by=issue.resolved_by,
-            resolved_at=issue.resolved_at.isoformat() if issue.resolved_at else None,
-            created_at=issue.created_at.isoformat(),
-            updated_at=issue.updated_at.isoformat(),
-        )
+        """Convert from Issue model using Pydantic model_validate."""
+        return cls.model_validate(issue, from_attributes=True)
 
 
 @router.post("/api/issues/{issue_id}/resolve", response_model=IssueResponse)
@@ -76,6 +78,7 @@ async def resolve_issue_endpoint(
     current_user: User = Depends(get_current_user),
 ) -> IssueResponse:
     """Mark an issue as resolved."""
+    await _verify_issue_ownership(issue_id, current_user)
     issue = await resolve_issue(issue_id, current_user.id)
 
     if issue is None:
@@ -90,6 +93,7 @@ async def unresolve_issue_endpoint(
     current_user: User = Depends(get_current_user),
 ) -> IssueResponse:
     """Mark an issue as unresolved."""
+    await _verify_issue_ownership(issue_id, current_user)
     issue = await unresolve_issue(issue_id)
 
     if issue is None:
@@ -104,9 +108,5 @@ async def get_issue_endpoint(
     current_user: User = Depends(get_current_user),
 ) -> IssueResponse:
     """Get a single issue by ID."""
-    issue = await get_issue_by_id(issue_id)
-
-    if issue is None:
-        raise HTTPException(status_code=404, detail="Issue not found")
-
+    issue = await _verify_issue_ownership(issue_id, current_user)
     return IssueResponse.from_model(issue)

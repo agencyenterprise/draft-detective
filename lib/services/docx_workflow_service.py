@@ -128,12 +128,16 @@ async def generate_docx(
     chunk_content_map: Dict[int, str] = {c.chunk_index: c.content for c in chunks}
 
     # Query persisted issues directly from DB (faster than computing from workflow states)
-    issues = list(
+    # get_project_issues excludes archived issues by default
+    all_issues = list(
         await get_project_issues(
             project_id=uuid.UUID(project_id),
             workflow_types=workflow_types,
         )
     )
+
+    # Exclude resolved issues from export
+    issues = [issue for issue in all_issues if not issue.is_resolved]
 
     # Filter issues by severity if specified
     if severities:

@@ -226,6 +226,9 @@ async def _persist_issues_from_state(
     Persist issues from workflow state to the database.
 
     Uses the workflow manifest to convert state to issues.
+    Loads all existing workflow states for the project so manifests that
+    depend on other workflow states (e.g. reference_validation reading
+    reference_extraction) can resolve their data correctly.
     """
     if not project_id:
         logger.debug("No project_id, skipping issue persistence")
@@ -237,8 +240,19 @@ async def _persist_issues_from_state(
             logger.debug(f"No manifest for {workflow_type}, skipping issue persistence")
             return
 
+        # Load all existing workflow states for the project so manifests
+        # that read data from other workflow states can resolve correctly.
+        from lib.services.workflow_runs import get_project_workflow_runs
+
+        workflow_runs = await get_project_workflow_runs(
+            project_id, include_internal=True
+        )
+        existing_states: list[WorkflowState] = [
+            run.state for run in workflow_runs if run.state is not None
+        ]
+
         # Convert state to issues using the manifest
-        issues = manifest.convert_state_to_issues(state, [state])
+        issues = manifest.convert_state_to_issues(state, existing_states)
 
         if not issues:
             logger.debug(f"No issues to persist for {workflow_type}")

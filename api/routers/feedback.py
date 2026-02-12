@@ -4,15 +4,20 @@ Feedback API endpoints.
 Provides RESTful API for managing user feedback on analysis results.
 """
 
+import json
 from typing import Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
+from sqlalchemy import select
+from sqlmodel import col
+
 from api.auth import get_current_user
 from lib.config.database import get_async_db_session
 from lib.models.feedback import Feedback, FeedbackType
+from lib.models.issue import Issue
 from lib.models.user import User
 from lib.services import feedback_service
 
@@ -80,10 +85,6 @@ async def submit_feedback(
     current_user: User = Depends(get_current_user),
 ) -> FeedbackResponse:
     """Submit or update feedback for any entity"""
-    from lib.models.issue import Issue
-    from sqlalchemy import select
-    from sqlmodel import col
-
     async with get_async_db_session() as session:
         feedback_type = FeedbackType(request.feedback_type)
         workflow_run_id = request.workflow_run_id
@@ -129,8 +130,6 @@ async def get_feedback(
     - GET /api/feedback?workflow_run_id=xxx&entity_path={"chunk_index":0,"claim_index":1}
     - GET /api/feedback?issue_id=xxx
     """
-    import json
-
     async with get_async_db_session() as session:
         # Support getting feedback by issue_id or workflow_run_id/entity_path
         if issue_id:

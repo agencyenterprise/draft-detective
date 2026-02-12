@@ -6,7 +6,7 @@ import logging
 from collections import defaultdict
 from enum import StrEnum
 from pathlib import Path
-from typing import Dict, List, Optional, Protocol, Union, runtime_checkable
+from typing import Dict, List, Optional, Union
 
 from docx import Document
 from docx.document import Document as DocumentObject
@@ -19,19 +19,14 @@ from lib.services.docx.docx_xml import (
     add_custom_properties_to_docx,
     wrap_paragraph_with_content_control,
 )
+from lib.models.issue import Issue
 from lib.workflows.models import DocumentIssue, SeverityEnum
 
 logger = logging.getLogger(__name__)
 
-
-@runtime_checkable
-class IssueLike(Protocol):
-    """Protocol for issue-like objects (DocumentIssue or persisted Issue)."""
-
-    chunk_index: Optional[int]
-    title: str
-    description: str
-    severity: SeverityEnum
+# Both Issue (DB model) and DocumentIssue (workflow model) share the same
+# structural shape (chunk_index, chunk_indices, title, description, severity).
+IssueType = Union[Issue, DocumentIssue]
 
 
 class DocxManipulatorType(StrEnum):
@@ -54,7 +49,7 @@ def _map_severity_enum_to_comment_severity(severity: SeverityEnum) -> "CommentSe
     return mapping.get(severity, CommentSeverity.NONE)
 
 
-def _build_issue_anchor(issue: IssueLike) -> Optional[str]:
+def _build_issue_anchor(issue: IssueType) -> Optional[str]:
     """Build URL anchor fragment for an issue."""
     if issue.chunk_index is not None:
         return f"#chunk-{issue.chunk_index}"
@@ -126,7 +121,7 @@ class DocxComment(BaseModel):
 
 
 def issue_to_comment(
-    issue: IssueLike,
+    issue: IssueType,
     chunk_content_map: Dict[int, str],
     share_token: Optional[str] = None,
 ) -> Optional["DocxComment"]:
@@ -155,22 +150,22 @@ def issue_to_comment(
 
 
 def _build_issue_map(
-    issues: Union[List[DocumentIssue], List[IssueLike]],
+    issues: List[IssueType],
     chunk_to_paragraph_mapping: Dict[int, int],
-) -> Dict[int, List[IssueLike]]:
-    issue_map: Dict[int, List[IssueLike]] = defaultdict(list)
+) -> Dict[int, List[IssueType]]:
+    issue_map: Dict[int, List[IssueType]] = defaultdict(list)
     for issue in issues:
         indices_to_process = set()
         if issue.chunk_index is not None:
             indices_to_process.add(issue.chunk_index)
-        if hasattr(issue, "chunk_indices") and issue.chunk_indices:
+        if issue.chunk_indices:
             indices_to_process.update(issue.chunk_indices)
         for chunk_index in indices_to_process:
             paragraph_index = chunk_to_paragraph_mapping.get(chunk_index)
             if paragraph_index is None:
                 continue
             issues_for_paragraph = issue_map[paragraph_index]
-            # Use issue hash or id for deduplication
+
             issue_id = getattr(issue, "issue_hash", None) or getattr(issue, "id", None)
             existing_ids = [
                 getattr(i, "issue_hash", None) or getattr(i, "id", None)
@@ -181,7 +176,7 @@ def _build_issue_map(
     return issue_map
 
 
-def _get_paragraph_severity(issues: List[IssueLike]) -> SeverityEnum:
+def _get_paragraph_severity(issues: List[IssueType]) -> SeverityEnum:
     if not issues:
         return SeverityEnum.NONE
     return max(issues, key=lambda issue: issue.severity.sort_index()).severity
@@ -206,7 +201,7 @@ class DocxManipulatorService:
         share_token: str,
         workflow_run_id: str,
         chunks: List[ChunkLike] | None = None,
-        issues: Union[List[DocumentIssue], List[IssueLike]] | None = None,
+        issues: List[IssueType] | None = None,
     ) -> str:
         """Add custom properties and a comment to a DOCX file."""
         return await asyncio.to_thread(
@@ -224,7 +219,7 @@ class DocxManipulatorService:
         share_token: str,
         workflow_run_id: str,
         chunks: List[ChunkLike] | None = None,
-        issues: Union[List[DocumentIssue], List[IssueLike]] | None = None,
+        issues: List[IssueType] | None = None,
     ) -> str:
         """Sync implementation for add-in metadata generation."""
         original_path = Path(original_docx_path)

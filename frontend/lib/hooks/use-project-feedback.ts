@@ -1,6 +1,7 @@
 import type { FeedbackRequest, FeedbackResponse, FeedbackType } from '@/lib/generated-api';
 import { getProjectFeedbackApiFeedbackProjectProjectIdGet, submitFeedbackApiFeedbackPost } from '@/lib/generated-api';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useCallback, useMemo } from 'react';
 import { toast } from 'sonner';
 
 /**
@@ -27,17 +28,24 @@ export function useProjectFeedback(projectId: string | undefined) {
     staleTime: 30000, // Cache for 30 seconds
   });
 
-  // Create a map for O(1) lookup by issue_id
-  const feedbackByIssueId = new Map<string, FeedbackResponse>();
-  feedbackList?.forEach((f) => {
-    if (f.issue_id) {
-      feedbackByIssueId.set(f.issue_id, f);
-    }
-  });
+  // Create a map for O(1) lookup by issue_id, memoized to avoid
+  // re-creating on every render and causing unnecessary consumer re-renders.
+  const feedbackByIssueId = useMemo(() => {
+    const map = new Map<string, FeedbackResponse>();
+    feedbackList?.forEach((f) => {
+      if (f.issue_id) {
+        map.set(f.issue_id, f);
+      }
+    });
+    return map;
+  }, [feedbackList]);
 
-  const getFeedbackForIssue = (issueId: string): FeedbackResponse | null => {
-    return feedbackByIssueId.get(issueId) ?? null;
-  };
+  const getFeedbackForIssue = useCallback(
+    (issueId: string): FeedbackResponse | null => {
+      return feedbackByIssueId.get(issueId) ?? null;
+    },
+    [feedbackByIssueId],
+  );
 
   const submitMutation = useMutation({
     mutationFn: async ({
