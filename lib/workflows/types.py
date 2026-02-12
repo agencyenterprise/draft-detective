@@ -30,6 +30,10 @@ from lib.workflows.claim_extraction.state import (
     ClaimExtractionState,
     ClaimExtractionWorkflowConfig,
 )
+from lib.workflows.claim_extraction_v2.state import (
+    ClaimExtractionV2State,
+    ClaimExtractionV2WorkflowConfig,
+)
 from lib.workflows.claim_reference_validation.state import (
     ClaimReferenceValidationState,
     ClaimReferenceValidationWorkflowConfig,
@@ -99,6 +103,7 @@ WorkflowState = (
     | ReferenceFileMatchingState
     | FootnoteExtractionState
     | ClaimExtractionState
+    | ClaimExtractionV2State
     | ClaimReferenceValidationState
     | CitationDetectionState
     | AbbreviationScanState
@@ -125,6 +130,7 @@ WorkflowConfig = (
     | ReferenceFileMatchingConfig
     | FootnoteExtractionConfig
     | ClaimExtractionWorkflowConfig
+    | ClaimExtractionV2WorkflowConfig
     | CitationDetectionConfig
     | ClaimReferenceValidationWorkflowConfig
     | AbbreviationScanWorkflowConfig
