@@ -6,6 +6,13 @@ from typing import Annotated, List, Optional, Self
 from pydantic import BaseModel, Field, model_validator
 
 
+class ClaimExtractionVersion(str, Enum):
+    """Version selector for claim extraction pipeline."""
+
+    V1 = "v1"
+    V2 = "v2"
+
+
 class WorkflowError(BaseModel):
     """Error object for the overall workflow or specific chunks."""
 
@@ -50,6 +57,10 @@ class BaseWorkflowConfig(BaseModel):
     publication_date: Optional[str] = Field(
         default=None, description="Publication date of the document (YYYY-MM-DD format)"
     )
+    claim_extraction_version: ClaimExtractionVersion = Field(
+        default=ClaimExtractionVersion.V1,
+        description="Which claim extraction pipeline to use (v1 or v2)",
+    )
 
     @classmethod
     def requires_api_key(cls) -> bool:
@@ -71,6 +82,7 @@ class WorkflowRunType(str, Enum):
     HUMAN_APPROVAL = "human_approval"
     FOOTNOTE_EXTRACTION = "footnote_extraction"
     CLAIM_EXTRACTION = "claim_extraction"
+    CLAIM_EXTRACTION_V2 = "claim_extraction_v2"
     CITATION_DETECTION = "citation_detection"
     METHODOLOGICAL_ALIGNMENT = "methodological_alignment"
     REFERENCE_DOWNLOADER = "reference_downloader"
