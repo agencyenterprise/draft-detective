@@ -52,10 +52,23 @@ export function ResultsVisualization({
   const mainSummary = documentSummarization?.state?.summaries?.find((s) => s.file_id === mainFileId);
   const authors = mainSummary?.authors;
 
+  const handleNavigateToDocumentExplorerFromSummary = (workflowType?: WorkflowRunType) => {
+    if (workflowType) {
+      setWorkflowTypeFilter([workflowType]);
+    }
+    setActiveTab('document-explorer');
+  };
+
   const renderActiveTab = () => {
     switch (activeTab) {
       case 'summary':
-        return <SummaryTab projectDetail={projectDetail} />;
+        return (
+          <SummaryTab
+            projectDetail={projectDetail}
+            onNavigateToAnalyses={() => setActiveTab('analyses')}
+            onNavigateToDocumentExplorer={handleNavigateToDocumentExplorerFromSummary}
+          />
+        );
       case 'files':
         return <FilesTab projectDetail={projectDetail} />;
       case 'document-explorer':
