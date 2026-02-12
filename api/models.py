@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field, computed_field, field_validator
 
 from lib.models.user import UserRole
 from lib.models.workflow_progress import ProgressLevel
-from lib.workflows.models import WorkflowRunType
+from lib.workflows.models import ClaimExtractionVersion, WorkflowRunType
 
 
 class StartWorkflowResponse(BaseModel):
@@ -24,6 +24,7 @@ class StartMultipleWorkflowsRequest(BaseModel):
     project_id: str
     workflow_types: List[WorkflowRunType]
     openai_api_key: str | None = None
+    claim_extraction_version: ClaimExtractionVersion = ClaimExtractionVersion.V1
 
 
 class AnalysisFormConfig(BaseModel):
@@ -34,6 +35,7 @@ class AnalysisFormConfig(BaseModel):
     openai_api_key: Optional[str] = None
     publication_date: Optional[str] = None
     workflow_types: Optional[List[WorkflowRunType]] = None
+    claim_extraction_version: ClaimExtractionVersion = ClaimExtractionVersion.V1
 
 
 class StartMultipleWorkflowsResponse(BaseModel):
