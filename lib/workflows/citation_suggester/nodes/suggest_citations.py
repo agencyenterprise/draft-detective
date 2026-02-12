@@ -20,8 +20,42 @@ from lib.workflows.chunk_utils import AnalyzedChunk
 from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
 from lib.workflows.document_summarization.state import FileSummary
+from lib.workflows.models import ClaimExtractionVersion
 
 logger = logging.getLogger(__name__)
+
+
+def _claim_needs_citation_suggestion(
+    chunk: AnalyzedChunk,
+    claim_index: int,
+    claim_extraction_version: ClaimExtractionVersion,
+) -> bool:
+    """Determine whether a claim should receive citation suggestions.
+
+    For v1: skip claims whose category says no external verification needed.
+    For v2: skip claims whose claim-level needs_external_verification is False.
+    """
+    if claim_extraction_version == ClaimExtractionVersion.V2:
+        if chunk.claims is None or claim_index >= len(chunk.claims.claims):
+            return True
+        claim = chunk.claims.claims[claim_index]
+        if claim.needs_external_verification is None:
+            return True
+        return claim.needs_external_verification
+
+    # V1: category-based logic
+    category = next(
+        (
+            result
+            for result in chunk.claim_categories
+            if result.claim_index == claim_index
+        ),
+        None,
+    )
+    if category and not category.needs_external_verification:
+        return False
+
+    return True
 
 
 @register_node(
@@ -98,17 +132,13 @@ async def _suggest_chunk_citations(
         )
         return []
 
+    claim_extraction_version = state.config.claim_extraction_version
+
     citation_suggestions = []
     for claim_index, claim in enumerate(chunk.claims.claims):
-        category = next(
-            (
-                result
-                for result in chunk.claim_categories
-                if result.claim_index == claim_index
-            ),
-            None,
-        )
-        if category and not category.needs_external_verification:
+        if not _claim_needs_citation_suggestion(
+            chunk, claim_index, claim_extraction_version
+        ):
             continue
 
         cited_references = format_cited_references(
