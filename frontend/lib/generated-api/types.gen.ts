@@ -2097,6 +2097,41 @@ export type FeedbackResponse = {
 };
 
 /**
+ * FeedbackSummary
+ *
+ * Lightweight feedback representation for project detail responses.
+ */
+export type FeedbackSummary = {
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * Workflow Run Id
+   */
+  workflow_run_id: string;
+  /**
+   * Entity Path
+   */
+  entity_path: {
+    [key: string]: unknown;
+  };
+  feedback_type: FeedbackType;
+  /**
+   * Feedback Text
+   */
+  feedback_text?: string | null;
+  /**
+   * Created At
+   */
+  created_at: string;
+  /**
+   * Updated At
+   */
+  updated_at: string;
+};
+
+/**
  * FeedbackType
  *
  * Type of feedback provided by users
@@ -3488,6 +3523,12 @@ export type ProjectDetailed = {
    * The files associated with the project
    */
   files?: Array<FileListItem>;
+  /**
+   * Feedbacks
+   *
+   * All user feedback for this project's workflow runs
+   */
+  feedbacks?: Array<FeedbackSummary>;
 };
 
 /**
@@ -4220,7 +4261,7 @@ export type ReferenceValidationWorkflowConfig = {
   /**
    * Show Invalid References As Issues
    *
-   * When True, invalid references will appear as issues in the Document Explorer. When False (default), validation results are only shown in the References tab.
+   * When True, invalid references will appear as issues in the Document Explorer. When False, validation results are only shown in the References tab.
    */
   show_invalid_references_as_issues?: boolean;
 };
@@ -5134,6 +5175,12 @@ export type ProjectDetailedWritable = {
    * The files associated with the project
    */
   files?: Array<FileListItem>;
+  /**
+   * Feedbacks
+   *
+   * All user feedback for this project's workflow runs
+   */
+  feedbacks?: Array<FeedbackSummary>;
 };
 
 /**

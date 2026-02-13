@@ -252,6 +252,30 @@ async def get_workflow_feedback(
     return list(result.scalars().all())
 
 
+async def get_project_feedbacks(
+    session: AsyncSession, project_id: uuid.UUID, user: User
+) -> list[Feedback]:
+    """
+    Get all feedback for a project by querying across all its workflow runs.
+
+    Args:
+        session: Database session
+        project_id: The project ID
+        user: The user requesting the feedback
+
+    Returns:
+        List of Feedback objects for all workflow runs in the project
+    """
+    stmt = (
+        select(Feedback)
+        .join(WorkflowRun, col(Feedback.workflow_run_id) == col(WorkflowRun.id))
+        .where(col(WorkflowRun.project_id) == project_id)
+        .where(col(Feedback.user_id) == user.id)
+    )
+    result = await session.execute(stmt)
+    return list(result.scalars().all())
+
+
 async def get_project_issue_feedback(
     session: AsyncSession, project_id: uuid.UUID, user: User
 ) -> list[Feedback]:
@@ -266,6 +290,7 @@ async def get_project_issue_feedback(
     Returns:
         List of Feedback objects for all issues in the project
     """
+    from lib.models.issue import Issue
     from lib.models.project import Project
 
     # Verify project ownership
@@ -280,8 +305,6 @@ async def get_project_issue_feedback(
         raise HTTPException(status_code=403, detail="Access denied")
 
     # Get all feedback for issues in this project (issue_id is not null)
-    from lib.models.issue import Issue
-
     stmt = (
         select(Feedback)
         .join(Issue, col(Feedback.issue_id) == col(Issue.id))
