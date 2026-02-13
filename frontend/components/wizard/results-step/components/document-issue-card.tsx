@@ -36,6 +36,7 @@ interface DocumentIssueCardProps {
   issue: Issue;
   hideJumpToChunk?: boolean;
   jumpToAlias?: string;
+  hideJumpToChunkIndex?: boolean;
   onSelect: (issue: Issue) => void;
   readOnly?: boolean;
 }
@@ -170,6 +171,7 @@ function DocumentIssueCardRaw({
   issue,
   hideJumpToChunk = false,
   jumpToAlias = 'chunk',
+  hideJumpToChunkIndex = false,
   onSelect,
   readOnly = false,
 }: DocumentIssueCardProps) {
@@ -222,7 +224,7 @@ function DocumentIssueCardRaw({
         {showJumpToChunkButton && (
           <Button variant="ghost" size="xs" className={accentClassName} onClick={() => onSelect(issue)}>
             <ExternalLinkIcon className="size-3" />
-            Jump to {jumpToAlias} {issue.chunk_index ?? issue.chunk_indices?.[0] ?? ''}
+            Jump to {jumpToAlias} {!hideJumpToChunkIndex && (issue.chunk_index ?? issue.chunk_indices?.[0] ?? '')}
           </Button>
         )}
         {issue.long_description && (

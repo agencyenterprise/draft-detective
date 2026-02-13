@@ -134,6 +134,7 @@ export default function AddinPage() {
                 issues={filteredIssues}
                 onSelect={(issue) => jumpToChunk(issue.chunk_index ?? issue.chunk_indices?.[0] ?? 0)}
                 jumpToAlias="paragraph"
+                hideJumpToChunkIndex={true}
               />
               {hasActiveFilters && filteredIssues.length === 0 && (
                 <div className="text-xs text-gray-500 pt-2 mt-2">No issues found for your filters</div>
