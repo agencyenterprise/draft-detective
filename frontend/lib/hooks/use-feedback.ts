@@ -1,14 +1,15 @@
 import type { FeedbackRequest, FeedbackType } from '@/lib/generated-api';
 import { submitFeedbackApiFeedbackPost } from '@/lib/generated-api';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { makeFeedbackKey, useBatchFeedbackContext } from './use-batch-feedback';
+import { makeFeedbackKey, useFeedbackContext } from './use-batch-feedback';
 
 /**
  * Generic feedback hook for any entity.
  *
- * When used inside a BatchFeedbackProvider, reads from the pre-fetched
- * feedback map (zero additional requests). Falls back to returning null
- * if no batch context is available.
+ * Reads from the FeedbackProvider context (populated from ProjectDetailed.feedbacks)
+ * so there are zero additional HTTP requests for reading feedback.
+ *
+ * On submit, invalidates the project query so the feedbacks list refreshes.
  *
  * @example
  * // For a claim
@@ -19,11 +20,10 @@ import { makeFeedbackKey, useBatchFeedbackContext } from './use-batch-feedback';
  */
 export function useFeedback(workflowRunId: string, entityPath: Record<string, number | string>) {
   const queryClient = useQueryClient();
-  const batchContext = useBatchFeedbackContext();
+  const feedbackCtx = useFeedbackContext();
 
   const lookupKey = makeFeedbackKey(workflowRunId, entityPath as Record<string, unknown>);
-  const feedback = batchContext?.feedbackMap.get(lookupKey) ?? null;
-  const isLoading = batchContext?.isLoading ?? false;
+  const feedback = feedbackCtx?.feedbackMap.get(lookupKey) ?? null;
 
   const submitMutation = useMutation({
     mutationFn: async (request: { feedback_type: FeedbackType; feedback_text?: string | null }) => {
@@ -39,14 +39,14 @@ export function useFeedback(workflowRunId: string, entityPath: Record<string, nu
       });
     },
     onSuccess: () => {
-      // Invalidate the batch query so it re-fetches with the new feedback
-      queryClient.invalidateQueries({ queryKey: ['workflow-feedback', workflowRunId] });
+      // Invalidate the project query so feedbacks refresh from ProjectDetailed
+      queryClient.invalidateQueries({ queryKey: ['project'] });
     },
   });
 
   return {
     feedback,
-    isLoading,
+    isLoading: false,
     submitFeedback: submitMutation.mutate,
     isSubmitting: submitMutation.isPending,
   };

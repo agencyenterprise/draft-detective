@@ -1,22 +1,22 @@
 'use client';
 
-import { BatchFeedbackContext, useBatchFeedback } from '@/lib/hooks/use-batch-feedback';
+import type { FeedbackResponse } from '@/lib/generated-api';
+import { FeedbackContext, useProjectFeedbackMap } from '@/lib/hooks/use-batch-feedback';
 import type { ReactNode } from 'react';
 
-interface BatchFeedbackProviderProps {
-  workflowRunIds: string[];
+interface FeedbackProviderProps {
+  feedbacks: FeedbackResponse[];
   children: ReactNode;
 }
 
 /**
- * Wraps children with batch feedback context.
+ * Provides pre-loaded project feedback to descendant components via context.
  *
- * Fetches ALL feedback for the given workflow run IDs in a single request
- * per workflow run, then provides a lookup map via context so that
- * individual useFeedback() calls don't make separate HTTP requests.
+ * Receives the feedbacks array from ProjectDetailed and builds a lookup map
+ * so that individual useFeedback() calls can resolve feedback in O(1)
+ * without any additional HTTP requests.
  */
-export function BatchFeedbackProvider({ workflowRunIds, children }: BatchFeedbackProviderProps) {
-  const batchFeedback = useBatchFeedback(workflowRunIds);
-
-  return <BatchFeedbackContext.Provider value={batchFeedback}>{children}</BatchFeedbackContext.Provider>;
+export function FeedbackProvider({ feedbacks, children }: FeedbackProviderProps) {
+  const value = useProjectFeedbackMap(feedbacks);
+  return <FeedbackContext.Provider value={value}>{children}</FeedbackContext.Provider>;
 }

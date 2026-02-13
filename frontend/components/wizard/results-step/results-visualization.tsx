@@ -1,6 +1,6 @@
 'use client';
 
-import { BatchFeedbackProvider } from '@/components/batch-feedback-provider';
+import { FeedbackProvider } from '@/components/batch-feedback-provider';
 import { Badge } from '@/components/ui/badge';
 import { EditableTitle } from '@/components/ui/editable-title';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -10,7 +10,7 @@ import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { cn } from '@/lib/utils';
 import { getWorkflowRunByType } from '@/lib/workflow-state';
 import { format } from 'date-fns';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { AnalysisOptionsMenu } from './components/analysis-options-menu';
 import { ViewModeToggle } from './components/view-mode-toggle';
 import { TabType } from './constants';
@@ -47,9 +47,6 @@ export function ResultsVisualization({
   const [severityFilter, setSeverityFilter] = useState<SeverityEnum[]>([]);
   const [workflowTypeFilter, setWorkflowTypeFilter] = useState<WorkflowRunType[]>([]);
   const { isWorkflowTypeVisible } = useWorkflowTypes();
-
-  // Collect all workflow run IDs for batch feedback fetching
-  const workflowRunIds = useMemo(() => results.map((r) => r.run.id).filter(Boolean), [results]);
 
   // Find the main document summary from the summaries list
   const mainFileId = documentProcessing?.state?.file?.file_id;
@@ -113,7 +110,7 @@ export function ResultsVisualization({
   );
 
   return (
-    <BatchFeedbackProvider workflowRunIds={workflowRunIds}>
+    <FeedbackProvider feedbacks={projectDetail.feedbacks ?? []}>
       <div className="space-y-3">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -196,6 +193,6 @@ export function ResultsVisualization({
           {renderActiveTab()}
         </div>
       </div>
-    </BatchFeedbackProvider>
+    </FeedbackProvider>
   );
 }

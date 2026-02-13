@@ -9,6 +9,7 @@ from sqlalchemy import select, update
 from sqlmodel import col
 
 from lib.config.database import get_async_db_session
+from lib.models.feedback import FeedbackType
 from lib.models.file import File, FileListItem
 from lib.models.project import Project
 from lib.models.user import User
@@ -31,6 +32,18 @@ class ProjectListItem(BaseModel):
     )
 
 
+class FeedbackSummary(BaseModel):
+    """Lightweight feedback representation for project detail responses."""
+
+    id: str
+    workflow_run_id: str
+    entity_path: dict
+    feedback_type: FeedbackType
+    feedback_text: Optional[str] = None
+    created_at: str
+    updated_at: str
+
+
 class ProjectDetailed(BaseModel):
     project: Project
     workflow_runs: List[WorkflowRunDetail] = Field(
@@ -44,6 +57,10 @@ class ProjectDetailed(BaseModel):
     files: List[FileListItem] = Field(
         default_factory=list,
         description="The files associated with the project",
+    )
+    feedbacks: List[FeedbackSummary] = Field(
+        default_factory=list,
+        description="All user feedback for this project's workflow runs",
     )
 
 
@@ -116,7 +133,9 @@ async def _get_project_by_id(project_id: str) -> Project | None:
 
 
 async def get_project_detailed_from_project(
-    project: Project, include_internal: bool = False
+    project: Project,
+    include_internal: bool = False,
+    user: Optional[User] = None,
 ) -> ProjectDetailed:
     """
     Get detailed project information with workflow runs.
@@ -124,7 +143,10 @@ async def get_project_detailed_from_project(
     Args:
         project: The project to get details for
         include_internal: If True, include internal workflows in the response
+        user: If provided, load all feedback for this user on the project
     """
+    from lib.services import feedback_service
+
     workflow_runs = await get_project_workflow_runs(
         project.id, include_internal=include_internal
     )
@@ -138,11 +160,32 @@ async def get_project_detailed_from_project(
                 supporting_file.markdown = None
 
     states = [run.state for run in workflow_runs if run.state is not None]
+
+    feedbacks: list[FeedbackSummary] = []
+    if user is not None:
+        async with get_async_db_session() as session:
+            feedback_models = await feedback_service.get_project_feedbacks(
+                session=session, project_id=project.id, user=user
+            )
+            feedbacks = [
+                FeedbackSummary(
+                    id=str(f.id),
+                    workflow_run_id=str(f.workflow_run_id),
+                    entity_path=f.entity_path,
+                    feedback_type=f.feedback_type,
+                    feedback_text=f.feedback_text,
+                    created_at=f.created_at.isoformat(),
+                    updated_at=f.updated_at.isoformat(),
+                )
+                for f in feedback_models
+            ]
+
     return ProjectDetailed(
         project=project,
         workflow_runs=workflow_runs,
         issues=convert_to_issues(states),
         files=await get_project_files_list_items(project.id),
+        feedbacks=feedbacks,
     )
 
 
