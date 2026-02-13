@@ -82,6 +82,14 @@ async function initializeOffice(handlers: OfficeInitHandlers): Promise<void> {
   const officeAvailable = await waitForOfficeAvailability(isMounted);
   if (!officeAvailable) {
     console.warn('Office.js not available, running in browser mode');
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const debugToken = params.get('token');
+      if (debugToken && isMounted()) {
+        setToken(debugToken);
+      }
+    }
+    await updateCurrentParagraph();
     if (isMounted()) {
       setIsInitialized(true);
     }

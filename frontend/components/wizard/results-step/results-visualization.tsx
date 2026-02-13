@@ -1,10 +1,10 @@
 'use client';
 
-import { FeedbackProvider } from '@/components/batch-feedback-provider';
 import { Badge } from '@/components/ui/badge';
 import { EditableTitle } from '@/components/ui/editable-title';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DocRenderMode } from '@/lib/constants';
+import { ProjectFeedbackProvider } from '@/lib/contexts/project-feedback-context';
 import { ProjectDetailed, SeverityEnum, WorkflowRunType } from '@/lib/generated-api';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { cn } from '@/lib/utils';
@@ -46,6 +46,7 @@ export function ResultsVisualization({
   const [activeTab, setActiveTab] = useState<TabType>('document-explorer');
   const [severityFilter, setSeverityFilter] = useState<SeverityEnum[]>([]);
   const [workflowTypeFilter, setWorkflowTypeFilter] = useState<WorkflowRunType[]>([]);
+  const [showResolved, setShowResolved] = useState(false);
   const { isWorkflowTypeVisible } = useWorkflowTypes();
 
   // Find the main document summary from the summaries list
@@ -82,6 +83,8 @@ export function ResultsVisualization({
             onSeverityFilterChange={setSeverityFilter}
             workflowTypeFilter={workflowTypeFilter}
             onWorkflowTypeFilterChange={setWorkflowTypeFilter}
+            showResolved={showResolved}
+            onShowResolvedChange={setShowResolved}
             onNavigateToAnalyses={() => setActiveTab('analyses')}
           />
         );
@@ -110,7 +113,7 @@ export function ResultsVisualization({
   );
 
   return (
-    <FeedbackProvider feedbacks={projectDetail.feedbacks ?? []}>
+    <ProjectFeedbackProvider projectId={readOnly ? undefined : projectDetail.project.id}>
       <div className="space-y-3">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -193,6 +196,6 @@ export function ResultsVisualization({
           {renderActiveTab()}
         </div>
       </div>
-    </FeedbackProvider>
+    </ProjectFeedbackProvider>
   );
 }

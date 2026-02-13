@@ -1,6 +1,6 @@
 'use client';
 
-import { DocumentIssue, SeverityEnum } from '@/lib/generated-api';
+import { Issue, SeverityEnum } from '@/lib/generated-api';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { cn } from '@/lib/utils';
 
@@ -29,6 +29,7 @@ export function SeverityFilter({ value, onChange }: SeverityFilterProps) {
         <ToggleGroupItem
           key={option.value}
           value={option.value}
+          title={value.includes(option.value) ? `Hide ${option.label} issues` : `Show ${option.label} issues`}
           className={cn('text-xs h-6 px-2 cursor-pointer', option.className)}
         >
           {option.label}
@@ -38,7 +39,7 @@ export function SeverityFilter({ value, onChange }: SeverityFilterProps) {
   );
 }
 
-export function filterIssuesBySeverity(issues: DocumentIssue[], severities: SeverityEnum[]): DocumentIssue[] {
+export function filterIssuesBySeverity(issues: Issue[], severities: SeverityEnum[]): Issue[] {
   if (severities.length === 0) return issues;
   return issues.filter((issue) => severities.includes(issue.severity));
 }
