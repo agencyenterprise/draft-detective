@@ -3,6 +3,7 @@
 import { useChunkHashNavigation } from '@/lib/chunk-ids';
 import { DocRenderMode } from '@/lib/constants';
 import { Issue, ProjectDetailed, SeverityEnum, WorkflowRunType } from '@/lib/generated-api';
+import { isIssueResolved } from '@/lib/severity';
 import {
   getWorkflowErrors,
   getWorkflowRunByType,
@@ -90,7 +91,7 @@ export function DocumentExplorerTab({
   );
 
   const visibleIssues = useMemo(
-    () => (showResolved ? filteredIssues : filteredIssues.filter((issue) => !issue.resolved_by)),
+    () => (showResolved ? filteredIssues : filteredIssues.filter((issue) => !isIssueResolved(issue))),
     [filteredIssues, showResolved],
   );
 

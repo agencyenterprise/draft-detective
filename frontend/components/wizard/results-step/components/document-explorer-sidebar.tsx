@@ -3,8 +3,8 @@
 import { Button } from '@/components/ui/button';
 import { SkeletonList } from '@/components/ui/skeleton-list';
 import { Issue, ProjectDetailed, SeverityEnum, WorkflowRunType } from '@/lib/generated-api';
-import { getChunkIssuesByIndices } from '@/lib/severity';
-import { EyeIcon, EyeOffIcon, X } from 'lucide-react';
+import { getChunkIssuesByIndices, isIssueResolved } from '@/lib/severity';
+import { X } from 'lucide-react';
 import { Ref, useImperativeHandle, useMemo, useRef } from 'react';
 import { DocumentExplorerSidebarFilter } from './document-explorer-sidebar-filter';
 import { DocumentIssuesList } from './document-issues-list';
@@ -78,23 +78,20 @@ export function DocumentExplorerSidebar({
     let result = [...selectedFilteredIssues];
 
     if (!showResolved) {
-      result = result.filter((issue) => !issue.resolved_by);
+      result = result.filter((issue) => !isIssueResolved(issue));
     }
 
     return result.sort((a, b) => {
-      const aResolved = !!a.resolved_by;
-      const bResolved = !!b.resolved_by;
+      const aResolved = isIssueResolved(a);
+      const bResolved = isIssueResolved(b);
       if (aResolved !== bResolved) return aResolved ? 1 : -1;
       return 0;
     });
   }, [selectedFilteredIssues, showResolved]);
 
-  const resolvedCount = useMemo(
-    () => selectedFilteredIssues.filter((issue) => issue.resolved_by).length,
-    [selectedFilteredIssues],
-  );
+  const resolvedCount = useMemo(() => selectedFilteredIssues.filter(isIssueResolved).length, [selectedFilteredIssues]);
 
-  const totalCount = showResolved ? issues.length : issues.filter((issue) => !issue.resolved_by).length;
+  const totalCount = showResolved ? issues.length : issues.filter((issue) => !isIssueResolved(issue)).length;
   const displayCount = showResolved ? selectedFilteredIssues.length : selectedFilteredIssues.length - resolvedCount;
   const hasActiveFilters = severityFilter.length > 0 || workflowTypeFilter.length > 0 || !showResolved;
 
@@ -127,34 +124,23 @@ export function DocumentExplorerSidebar({
             </Button>
           )}
           {issues.length > 0 && (
-            <>
-              {resolvedCount > 0 && (
-                <Button
-                  variant={showResolved ? 'secondary' : 'outline'}
-                  size="sm"
-                  className="text-xs h-6 px-2 gap-1 shadow-xs"
-                  onClick={() => onShowResolvedChange(!showResolved)}
-                  title={showResolved ? 'Hide resolved issues' : 'Show resolved issues'}
-                >
-                  {showResolved ? <EyeIcon className="size-3" /> : <EyeOffIcon className="size-3" />}
-                  {resolvedCount} resolved
-                </Button>
-              )}
-              <DocumentExplorerSidebarFilter
-                issues={issues}
-                severityFilter={severityFilter}
-                onSeverityFilterChange={onSeverityFilterChange}
-                workflowTypeFilter={workflowTypeFilter}
-                onWorkflowTypeFilterChange={onWorkflowTypeFilterChange}
-              />
-            </>
+            <DocumentExplorerSidebarFilter
+              issues={issues}
+              severityFilter={severityFilter}
+              onSeverityFilterChange={onSeverityFilterChange}
+              workflowTypeFilter={workflowTypeFilter}
+              onWorkflowTypeFilterChange={onWorkflowTypeFilterChange}
+              resolvedCount={resolvedCount}
+              showResolved={showResolved}
+              onShowResolvedChange={onShowResolvedChange}
+            />
           )}
         </div>
       </div>
 
       <div ref={scrollContainerRef} className="space-y-2 overflow-y-auto flex-1 px-4 pt-0 pb-4">
         {issues.length === 0 && !isAnyProcessing && (
-          <div className="text-sm text-muted-foreground space-y-2">
+          <div className="text-sm text-muted-foreground py-4 space-y-2">
             <p>No issues found for this document.</p>
             <p>You can still view detailed analysis for each chunk by selecting a chunk from the document.</p>
           </div>

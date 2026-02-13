@@ -9,6 +9,7 @@ import { DocumentExplorerSidebarFilter } from '@/components/wizard/results-step/
 import { filterIssuesBySeverity } from '@/components/wizard/results-step/components/severity-filter';
 import { filterIssuesByWorkflowType } from '@/components/wizard/results-step/components/workflow-type-filter';
 import { Issue, getSharedResourceApiPublicShareTokenGet, SeverityEnum, WorkflowRunType } from '@/lib/generated-api';
+import { isIssueResolved } from '@/lib/severity';
 import { addIssueMarkers, jumpToChunk } from '@/lib/addin/office-utils';
 import { useOfficeInit } from '@/lib/addin/use-office-init';
 import { RotateCwIcon } from 'lucide-react';
@@ -18,6 +19,7 @@ export default function AddinPage() {
   const [issuesPerParagraph, setIssuesPerParagraph] = useState<Map<number, Issue[]>>(new Map());
   const [severityFilter, setSeverityFilter] = useState<SeverityEnum[]>([]);
   const [workflowTypeFilter, setWorkflowTypeFilter] = useState<WorkflowRunType[]>([]);
+  const [showResolved, setShowResolved] = useState(false);
 
   const {
     data: project,
@@ -48,15 +50,23 @@ export default function AddinPage() {
     return issuesPerParagraph.get(currentParagraphIndex) ?? [];
   }, [project, currentParagraphIndex, issuesPerParagraph]);
 
-  const activeIssues = paragraphIssues.length > 0 ? paragraphIssues : (project?.issues ?? []);
+  const activeIssues = useMemo(
+    () => (paragraphIssues.length > 0 ? paragraphIssues : (project?.issues ?? [])),
+    [paragraphIssues, project],
+  );
   const isParagraphView = paragraphIssues.length > 0;
 
-  const filteredIssues = useMemo(
-    () => filterIssuesByWorkflowType(filterIssuesBySeverity(activeIssues, severityFilter), workflowTypeFilter),
-    [activeIssues, severityFilter, workflowTypeFilter],
-  );
+  const resolvedCount = useMemo(() => activeIssues.filter(isIssueResolved).length, [activeIssues]);
 
-  const hasActiveFilters = severityFilter.length > 0 || workflowTypeFilter.length > 0;
+  const filteredIssues = useMemo(() => {
+    let result = filterIssuesByWorkflowType(filterIssuesBySeverity(activeIssues, severityFilter), workflowTypeFilter);
+    if (!showResolved) {
+      result = result.filter((issue) => !isIssueResolved(issue));
+    }
+    return result;
+  }, [activeIssues, severityFilter, workflowTypeFilter, showResolved]);
+
+  const hasActiveFilters = severityFilter.length > 0 || workflowTypeFilter.length > 0 || !showResolved;
 
   if (!isInitialized) return <div className="p-4 text-center">Loading Add-in...</div>;
 
@@ -102,6 +112,9 @@ export default function AddinPage() {
                   onSeverityFilterChange={setSeverityFilter}
                   workflowTypeFilter={workflowTypeFilter}
                   onWorkflowTypeFilterChange={setWorkflowTypeFilter}
+                  resolvedCount={resolvedCount}
+                  showResolved={showResolved}
+                  onShowResolvedChange={setShowResolved}
                 />
               </div>
             )}
