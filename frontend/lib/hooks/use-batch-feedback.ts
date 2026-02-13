@@ -26,10 +26,10 @@ export function makeFeedbackKey(workflowRunId: string, entityPath: Record<string
 }
 
 /**
- * Hook that fetches all feedback for multiple workflow runs in batch.
- * Returns a lookup map for O(1) access by workflowRunId + entityPath.
+ * Fetches all feedback for multiple workflow runs in batch, returning
+ * a lookup map for O(1) access by workflowRunId + entityPath.
  *
- * Use this with BatchFeedbackContext.Provider to avoid N+1 feedback requests.
+ * Avoids N+1 requests: one query per workflow run replaces one per entity.
  */
 export function useBatchFeedback(workflowRunIds: string[]): BatchFeedbackContextValue {
   const uniqueIds = useMemo(() => [...new Set(workflowRunIds.filter(Boolean))], [workflowRunIds]);
