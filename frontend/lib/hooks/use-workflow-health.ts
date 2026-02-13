@@ -30,9 +30,6 @@ export function useWorkflowHealth(workflowRuns: WorkflowRunDetail[], issues: Iss
 
   const overallHealth = useMemo(() => calculateOverallHealth(healthData), [healthData]);
 
-  console.log(healthData);
-  console.log(overallHealth);
-
   const totals = useMemo(() => {
     return healthData.reduce(
       (acc, data) => ({

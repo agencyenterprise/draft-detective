@@ -60,7 +60,6 @@ function determineHealthStatusFromIssues(workflowRun: WorkflowRunDetail, workflo
  */
 export function aggregateWorkflowHealth(workflowRuns: WorkflowRunDetail[], issues: Issue[]): WorkflowHealthData[] {
   return workflowRuns.map((workflowRun) => {
-    console.log(issues);
     const workflowIssues = issues.filter((issue) => issue.workflow_type === workflowRun.run.type);
     const { high, medium, low, total } = countBySeverity(workflowIssues);
 
