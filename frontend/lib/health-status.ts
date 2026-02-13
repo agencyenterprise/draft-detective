@@ -1,4 +1,4 @@
-import { DocumentIssue, SeverityEnum, WorkflowRunDetail, WorkflowRunStatus, WorkflowRunType } from './generated-api';
+import { Issue, SeverityEnum, WorkflowRunDetail, WorkflowRunStatus, WorkflowRunType } from './generated-api';
 import { getDisplayStatus } from './workflow-state';
 
 /**
@@ -23,14 +23,14 @@ export interface WorkflowHealthData {
  * Determines if an issue should be considered as affecting health status.
  * Only Medium and High severity issues affect the health status.
  */
-export function isHealthAffectingIssue(issue: DocumentIssue): boolean {
+export function isHealthAffectingIssue(issue: Issue): boolean {
   return issue.severity === SeverityEnum.High || issue.severity === SeverityEnum.Medium;
 }
 
 /**
  * Counts issues by severity from a pre-filtered list
  */
-function countBySeverity(issues: DocumentIssue[]): { high: number; medium: number; low: number; total: number } {
+function countBySeverity(issues: Issue[]): { high: number; medium: number; low: number; total: number } {
   return {
     high: issues.filter((i) => i.severity === SeverityEnum.High).length,
     medium: issues.filter((i) => i.severity === SeverityEnum.Medium).length,
@@ -43,10 +43,7 @@ function countBySeverity(issues: DocumentIssue[]): { high: number; medium: numbe
  * Determines the health status for a workflow based on its run status and issues.
  * Accepts pre-filtered issues to avoid redundant filtering in aggregateWorkflowHealth.
  */
-function determineHealthStatusFromIssues(
-  workflowRun: WorkflowRunDetail,
-  workflowIssues: DocumentIssue[],
-): HealthStatus {
+function determineHealthStatusFromIssues(workflowRun: WorkflowRunDetail, workflowIssues: Issue[]): HealthStatus {
   const displayStatus = getDisplayStatus(workflowRun);
 
   if (displayStatus === 'failed') return 'error';
@@ -61,12 +58,10 @@ function determineHealthStatusFromIssues(
 /**
  * Aggregates health data for all workflow runs
  */
-export function aggregateWorkflowHealth(
-  workflowRuns: WorkflowRunDetail[],
-  issues: DocumentIssue[],
-): WorkflowHealthData[] {
+export function aggregateWorkflowHealth(workflowRuns: WorkflowRunDetail[], issues: Issue[]): WorkflowHealthData[] {
   return workflowRuns.map((workflowRun) => {
-    const workflowIssues = issues.filter((issue) => issue.type === workflowRun.run.type);
+    console.log(issues);
+    const workflowIssues = issues.filter((issue) => issue.workflow_type === workflowRun.run.type);
     const { high, medium, low, total } = countBySeverity(workflowIssues);
 
     return {

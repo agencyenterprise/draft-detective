@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { DocumentIssue, WorkflowRunDetail } from '../generated-api';
+import { Issue, WorkflowRun, WorkflowRunDetail } from '../generated-api';
 import { aggregateWorkflowHealth, calculateOverallHealth, HealthStatus, WorkflowHealthData } from '../health-status';
 import { useWorkflowTypes } from './use-workflow-types';
 
@@ -17,7 +17,7 @@ interface UseWorkflowHealthResult {
  * Hook to aggregate workflow health data for display in the health monitor dashboard.
  * Filters to only include user-visible workflows that have been started.
  */
-export function useWorkflowHealth(workflowRuns: WorkflowRunDetail[], issues: DocumentIssue[]): UseWorkflowHealthResult {
+export function useWorkflowHealth(workflowRuns: WorkflowRunDetail[], issues: Issue[]): UseWorkflowHealthResult {
   const { isWorkflowTypeVisible, isLoading } = useWorkflowTypes();
 
   const healthData = useMemo(() => {
@@ -29,6 +29,9 @@ export function useWorkflowHealth(workflowRuns: WorkflowRunDetail[], issues: Doc
   }, [workflowRuns, issues, isWorkflowTypeVisible]);
 
   const overallHealth = useMemo(() => calculateOverallHealth(healthData), [healthData]);
+
+  console.log(healthData);
+  console.log(overallHealth);
 
   const totals = useMemo(() => {
     return healthData.reduce(
