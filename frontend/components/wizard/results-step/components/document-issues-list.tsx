@@ -5,6 +5,7 @@ interface DocumentIssuesListProps {
   issues: Issue[];
   hideJumpToChunk?: boolean;
   jumpToAlias?: string;
+  hideJumpToChunkIndex?: boolean;
   onSelect: (issue: Issue) => void;
   readOnly?: boolean;
 }
@@ -13,6 +14,7 @@ export function DocumentIssuesList({
   issues,
   hideJumpToChunk = false,
   jumpToAlias,
+  hideJumpToChunkIndex,
   onSelect,
   readOnly,
 }: DocumentIssuesListProps) {
@@ -24,6 +26,7 @@ export function DocumentIssuesList({
           issue={issue}
           hideJumpToChunk={hideJumpToChunk}
           jumpToAlias={jumpToAlias}
+          hideJumpToChunkIndex={hideJumpToChunkIndex}
           onSelect={onSelect}
           readOnly={readOnly}
         />
