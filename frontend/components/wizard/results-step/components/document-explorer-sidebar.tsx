@@ -5,7 +5,7 @@ import { SkeletonList } from '@/components/ui/skeleton-list';
 import { Issue, ProjectDetailed, SeverityEnum, WorkflowRunType } from '@/lib/generated-api';
 import { getChunkIssuesByIndices } from '@/lib/severity';
 import { EyeIcon, EyeOffIcon, X } from 'lucide-react';
-import { Ref, useImperativeHandle, useMemo, useRef, useState } from 'react';
+import { Ref, useImperativeHandle, useMemo, useRef } from 'react';
 import { DocumentExplorerSidebarFilter } from './document-explorer-sidebar-filter';
 import { DocumentIssuesList } from './document-issues-list';
 import { SingleChunkContent } from './single-chunk-content';
@@ -25,6 +25,8 @@ interface DocumentExplorerSidebarProps {
   onSeverityFilterChange: (value: SeverityEnum[]) => void;
   workflowTypeFilter: WorkflowRunType[];
   onWorkflowTypeFilterChange: (value: WorkflowRunType[]) => void;
+  showResolved: boolean;
+  onShowResolvedChange: (value: boolean) => void;
   projectDetail: ProjectDetailed;
   readOnly: boolean;
   onSelectIssue: (issue: Issue) => void;
@@ -41,13 +43,14 @@ export function DocumentExplorerSidebar({
   onSeverityFilterChange,
   workflowTypeFilter,
   onWorkflowTypeFilterChange,
+  showResolved,
+  onShowResolvedChange,
   projectDetail,
   readOnly,
   onSelectIssue,
   onClearChunkSelection,
 }: DocumentExplorerSidebarProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const [showResolved, setShowResolved] = useState(true);
 
   useImperativeHandle(ref, () => ({
     scrollToTop: () => {
@@ -91,14 +94,22 @@ export function DocumentExplorerSidebar({
     [selectedFilteredIssues],
   );
 
+  const totalCount = showResolved ? issues.length : issues.filter((issue) => !issue.resolved_by).length;
   const displayCount = showResolved ? selectedFilteredIssues.length : selectedFilteredIssues.length - resolvedCount;
+  const hasActiveFilters = severityFilter.length > 0 || workflowTypeFilter.length > 0 || !showResolved;
+
+  const handleClearFilters = () => {
+    onSeverityFilterChange([]);
+    onWorkflowTypeFilterChange([]);
+    onShowResolvedChange(true);
+  };
 
   return (
     <div className="col-span-5 bg-muted/50 rounded-lg rounded-l-none text-sm flex flex-col overflow-hidden">
       <div className="flex items-center justify-between gap-2 flex-wrap px-4 pt-4 pb-2 flex-shrink-0">
         <span className="text-xs text-muted-foreground">
           {issues.length > 0 &&
-            (displayCount === issues.length ? `${issues.length} issues` : `${displayCount} of ${issues.length} issues`)}
+            (displayCount === totalCount ? `${totalCount} issues` : `${displayCount} of ${totalCount} issues`)}
           {issues.length === 0 && isAnyProcessing && 'Finding issues...'}
         </span>
         <div className="flex items-center flex-wrap gap-1">
@@ -122,7 +133,7 @@ export function DocumentExplorerSidebar({
                   variant={showResolved ? 'secondary' : 'outline'}
                   size="sm"
                   className="text-xs h-6 px-2 gap-1 shadow-xs"
-                  onClick={() => setShowResolved(!showResolved)}
+                  onClick={() => onShowResolvedChange(!showResolved)}
                   title={showResolved ? 'Hide resolved issues' : 'Show resolved issues'}
                 >
                   {showResolved ? <EyeIcon className="size-3" /> : <EyeOffIcon className="size-3" />}
@@ -150,6 +161,19 @@ export function DocumentExplorerSidebar({
         )}
 
         {isAnyProcessing && <SkeletonList count={3} />}
+
+        {issues.length > 0 &&
+          sortedIssues.length === 0 &&
+          !isAnyProcessing &&
+          hasActiveFilters &&
+          selectedChunkIndices.length === 0 && (
+            <div className="text-sm text-muted-foreground space-y-1 py-8 text-center">
+              <p>No issues match the current filters.</p>
+              <Button variant="link" size="sm" className="text-xs" onClick={handleClearFilters}>
+                Clear filters
+              </Button>
+            </div>
+          )}
 
         <DocumentIssuesList
           issues={sortedIssues}

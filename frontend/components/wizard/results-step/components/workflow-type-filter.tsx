@@ -81,7 +81,7 @@ export function WorkflowTypeFilter({ issues, value, onChange }: WorkflowTypeFilt
           ))}
           {activeCount > 0 && (
             <Button variant="ghost" size="sm" className="w-full h-7 text-xs mt-1" onClick={() => onChange([])}>
-              Clear filters
+              Clear
             </Button>
           )}
         </div>

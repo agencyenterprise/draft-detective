@@ -25,6 +25,8 @@ interface DocumentExplorerTabProps {
   onSeverityFilterChange: (value: SeverityEnum[]) => void;
   workflowTypeFilter: WorkflowRunType[];
   onWorkflowTypeFilterChange: (value: WorkflowRunType[]) => void;
+  showResolved: boolean;
+  onShowResolvedChange: (value: boolean) => void;
   onNavigateToAnalyses: () => void;
 }
 
@@ -36,6 +38,8 @@ export function DocumentExplorerTab({
   onSeverityFilterChange,
   workflowTypeFilter,
   onWorkflowTypeFilterChange,
+  showResolved,
+  onShowResolvedChange,
   onNavigateToAnalyses,
 }: DocumentExplorerTabProps) {
   const workflowDetails = useMemo(() => projectDetail.workflow_runs ?? [], [projectDetail.workflow_runs]);
@@ -83,6 +87,11 @@ export function DocumentExplorerTab({
   const filteredIssues = useMemo(
     () => filterIssuesByWorkflowType(filterIssuesBySeverity(issues, severityFilter), workflowTypeFilter),
     [issues, severityFilter, workflowTypeFilter],
+  );
+
+  const visibleIssues = useMemo(
+    () => (showResolved ? filteredIssues : filteredIssues.filter((issue) => !issue.resolved_by)),
+    [filteredIssues, showResolved],
   );
 
   const handleSelectIssue = useCallback((issue: Issue) => {
@@ -167,7 +176,7 @@ export function DocumentExplorerTab({
               return (
                 <DocumentReconstructor
                   chunks={chunks}
-                  issues={filteredIssues}
+                  issues={visibleIssues}
                   selectedChunkIndices={selectedChunkIndices}
                   onChunkSelect={handleChunkSelect}
                 />
@@ -186,6 +195,8 @@ export function DocumentExplorerTab({
           onSeverityFilterChange={onSeverityFilterChange}
           workflowTypeFilter={workflowTypeFilter}
           onWorkflowTypeFilterChange={onWorkflowTypeFilterChange}
+          showResolved={showResolved}
+          onShowResolvedChange={onShowResolvedChange}
           projectDetail={projectDetail}
           readOnly={readOnly}
           onSelectIssue={handleSelectIssue}
