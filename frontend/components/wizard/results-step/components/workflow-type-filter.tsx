@@ -56,7 +56,12 @@ export function WorkflowTypeFilter({ issues, value, onChange }: WorkflowTypeFilt
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="outline" size="sm" className="h-6 px-2 text-xs gap-1 flex items-center">
+        <Button
+          variant="outline"
+          size="sm"
+          title="Filter by analysis type"
+          className="h-6 px-2 text-xs gap-1 flex items-center"
+        >
           <FilterIcon className="size-3.5" />
           <span>Type</span>
           {activeCount > 0 && (
@@ -81,7 +86,7 @@ export function WorkflowTypeFilter({ issues, value, onChange }: WorkflowTypeFilt
           ))}
           {activeCount > 0 && (
             <Button variant="ghost" size="sm" className="w-full h-7 text-xs mt-1" onClick={() => onChange([])}>
-              Clear filters
+              Clear
             </Button>
           )}
         </div>

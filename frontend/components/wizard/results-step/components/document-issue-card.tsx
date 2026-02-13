@@ -10,6 +10,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Textarea } from '@/components/ui/textarea';
 import { useIssueFeedbackFromContext } from '@/lib/contexts/project-feedback-context';
 import { FeedbackType, Issue, SeverityEnum } from '@/lib/generated-api';
+import { isIssueResolved } from '@/lib/severity';
 import { useIssueActions } from '@/lib/hooks/use-issue-actions';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { cn } from '@/lib/utils';
@@ -139,7 +140,7 @@ function IssueFeedbackButtons({ issueId }: { issueId: string }) {
 
 function IssueActionsMenu({ issue }: { issue: Issue }) {
   const { resolveIssue, unresolveIssue, isResolving, isUnresolving } = useIssueActions();
-  const isResolved = !!issue.resolved_by;
+  const isResolved = isIssueResolved(issue);
 
   return (
     <DropdownMenu>
@@ -175,7 +176,7 @@ function DocumentIssueCardRaw({
   const [isExpanded, setIsExpanded] = useState(false);
   const { className, icon, accentClassName } = severityColorMap[issue.severity];
   const { getWorkflowTypeName } = useWorkflowTypes();
-  const isResolved = !!issue.resolved_by;
+  const isResolved = isIssueResolved(issue);
 
   const showJumpToChunkButton =
     !hideJumpToChunk &&

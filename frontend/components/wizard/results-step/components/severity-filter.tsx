@@ -29,6 +29,7 @@ export function SeverityFilter({ value, onChange }: SeverityFilterProps) {
         <ToggleGroupItem
           key={option.value}
           value={option.value}
+          title={value.includes(option.value) ? `Hide ${option.label} issues` : `Show ${option.label} issues`}
           className={cn('text-xs h-6 px-2 cursor-pointer', option.className)}
         >
           {option.label}

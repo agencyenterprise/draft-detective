@@ -3,9 +3,9 @@
 import { Button } from '@/components/ui/button';
 import { SkeletonList } from '@/components/ui/skeleton-list';
 import { Issue, ProjectDetailed, SeverityEnum, WorkflowRunType } from '@/lib/generated-api';
-import { getChunkIssuesByIndices } from '@/lib/severity';
-import { EyeIcon, EyeOffIcon, X } from 'lucide-react';
-import { Ref, useImperativeHandle, useMemo, useRef, useState } from 'react';
+import { getChunkIssuesByIndices, isIssueResolved } from '@/lib/severity';
+import { X } from 'lucide-react';
+import { Ref, useImperativeHandle, useMemo, useRef } from 'react';
 import { DocumentExplorerSidebarFilter } from './document-explorer-sidebar-filter';
 import { DocumentIssuesList } from './document-issues-list';
 import { SingleChunkContent } from './single-chunk-content';
@@ -25,6 +25,8 @@ interface DocumentExplorerSidebarProps {
   onSeverityFilterChange: (value: SeverityEnum[]) => void;
   workflowTypeFilter: WorkflowRunType[];
   onWorkflowTypeFilterChange: (value: WorkflowRunType[]) => void;
+  showResolved: boolean;
+  onShowResolvedChange: (value: boolean) => void;
   projectDetail: ProjectDetailed;
   readOnly: boolean;
   onSelectIssue: (issue: Issue) => void;
@@ -41,13 +43,14 @@ export function DocumentExplorerSidebar({
   onSeverityFilterChange,
   workflowTypeFilter,
   onWorkflowTypeFilterChange,
+  showResolved,
+  onShowResolvedChange,
   projectDetail,
   readOnly,
   onSelectIssue,
   onClearChunkSelection,
 }: DocumentExplorerSidebarProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const [showResolved, setShowResolved] = useState(true);
 
   useImperativeHandle(ref, () => ({
     scrollToTop: () => {
@@ -75,30 +78,35 @@ export function DocumentExplorerSidebar({
     let result = [...selectedFilteredIssues];
 
     if (!showResolved) {
-      result = result.filter((issue) => !issue.resolved_by);
+      result = result.filter((issue) => !isIssueResolved(issue));
     }
 
     return result.sort((a, b) => {
-      const aResolved = !!a.resolved_by;
-      const bResolved = !!b.resolved_by;
+      const aResolved = isIssueResolved(a);
+      const bResolved = isIssueResolved(b);
       if (aResolved !== bResolved) return aResolved ? 1 : -1;
       return 0;
     });
   }, [selectedFilteredIssues, showResolved]);
 
-  const resolvedCount = useMemo(
-    () => selectedFilteredIssues.filter((issue) => issue.resolved_by).length,
-    [selectedFilteredIssues],
-  );
+  const resolvedCount = useMemo(() => selectedFilteredIssues.filter(isIssueResolved).length, [selectedFilteredIssues]);
 
+  const totalCount = showResolved ? issues.length : issues.filter((issue) => !isIssueResolved(issue)).length;
   const displayCount = showResolved ? selectedFilteredIssues.length : selectedFilteredIssues.length - resolvedCount;
+  const hasActiveFilters = severityFilter.length > 0 || workflowTypeFilter.length > 0 || !showResolved;
+
+  const handleClearFilters = () => {
+    onSeverityFilterChange([]);
+    onWorkflowTypeFilterChange([]);
+    onShowResolvedChange(true);
+  };
 
   return (
     <div className="col-span-5 bg-muted/50 rounded-lg rounded-l-none text-sm flex flex-col overflow-hidden">
       <div className="flex items-center justify-between gap-2 flex-wrap px-4 pt-4 pb-2 flex-shrink-0">
         <span className="text-xs text-muted-foreground">
           {issues.length > 0 &&
-            (displayCount === issues.length ? `${issues.length} issues` : `${displayCount} of ${issues.length} issues`)}
+            (displayCount === totalCount ? `${totalCount} issues` : `${displayCount} of ${totalCount} issues`)}
           {issues.length === 0 && isAnyProcessing && 'Finding issues...'}
         </span>
         <div className="flex items-center flex-wrap gap-1">
@@ -116,40 +124,42 @@ export function DocumentExplorerSidebar({
             </Button>
           )}
           {issues.length > 0 && (
-            <>
-              {resolvedCount > 0 && (
-                <Button
-                  variant={showResolved ? 'secondary' : 'outline'}
-                  size="sm"
-                  className="text-xs h-6 px-2 gap-1 shadow-xs"
-                  onClick={() => setShowResolved(!showResolved)}
-                  title={showResolved ? 'Hide resolved issues' : 'Show resolved issues'}
-                >
-                  {showResolved ? <EyeIcon className="size-3" /> : <EyeOffIcon className="size-3" />}
-                  {resolvedCount} resolved
-                </Button>
-              )}
-              <DocumentExplorerSidebarFilter
-                issues={issues}
-                severityFilter={severityFilter}
-                onSeverityFilterChange={onSeverityFilterChange}
-                workflowTypeFilter={workflowTypeFilter}
-                onWorkflowTypeFilterChange={onWorkflowTypeFilterChange}
-              />
-            </>
+            <DocumentExplorerSidebarFilter
+              issues={issues}
+              severityFilter={severityFilter}
+              onSeverityFilterChange={onSeverityFilterChange}
+              workflowTypeFilter={workflowTypeFilter}
+              onWorkflowTypeFilterChange={onWorkflowTypeFilterChange}
+              resolvedCount={resolvedCount}
+              showResolved={showResolved}
+              onShowResolvedChange={onShowResolvedChange}
+            />
           )}
         </div>
       </div>
 
       <div ref={scrollContainerRef} className="space-y-2 overflow-y-auto flex-1 px-4 pt-0 pb-4">
         {issues.length === 0 && !isAnyProcessing && (
-          <div className="text-sm text-muted-foreground space-y-2">
+          <div className="text-sm text-muted-foreground py-4 space-y-2">
             <p>No issues found for this document.</p>
             <p>You can still view detailed analysis for each chunk by selecting a chunk from the document.</p>
           </div>
         )}
 
         {isAnyProcessing && <SkeletonList count={3} />}
+
+        {issues.length > 0 &&
+          sortedIssues.length === 0 &&
+          !isAnyProcessing &&
+          hasActiveFilters &&
+          selectedChunkIndices.length === 0 && (
+            <div className="text-sm text-muted-foreground space-y-1 py-8 text-center">
+              <p>No issues match the current filters.</p>
+              <Button variant="link" size="sm" className="text-xs" onClick={handleClearFilters}>
+                Clear filters
+              </Button>
+            </div>
+          )}
 
         <DocumentIssuesList
           issues={sortedIssues}

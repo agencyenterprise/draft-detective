@@ -1,6 +1,13 @@
 import { DocumentChunk, Issue, SeverityEnum } from './generated-api';
 
 /**
+ * Check if an issue has been resolved.
+ */
+export function isIssueResolved(issue: Issue): boolean {
+  return !!issue.resolved_at;
+}
+
+/**
  * Check if an issue is associated with a given chunk index.
  * Supports both legacy chunk_index and new chunk_indices array.
  */

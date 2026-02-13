@@ -46,6 +46,7 @@ export function ResultsVisualization({
   const [activeTab, setActiveTab] = useState<TabType>('document-explorer');
   const [severityFilter, setSeverityFilter] = useState<SeverityEnum[]>([]);
   const [workflowTypeFilter, setWorkflowTypeFilter] = useState<WorkflowRunType[]>([]);
+  const [showResolved, setShowResolved] = useState(false);
   const { isWorkflowTypeVisible } = useWorkflowTypes();
 
   // Find the main document summary from the summaries list
@@ -69,6 +70,8 @@ export function ResultsVisualization({
             onSeverityFilterChange={setSeverityFilter}
             workflowTypeFilter={workflowTypeFilter}
             onWorkflowTypeFilterChange={setWorkflowTypeFilter}
+            showResolved={showResolved}
+            onShowResolvedChange={setShowResolved}
             onNavigateToAnalyses={() => setActiveTab('analyses')}
           />
         );
