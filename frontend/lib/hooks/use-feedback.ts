@@ -1,47 +1,29 @@
 import type { FeedbackRequest, FeedbackType } from '@/lib/generated-api';
-import { getFeedbackApiFeedbackGet, submitFeedbackApiFeedbackPost } from '@/lib/generated-api';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { submitFeedbackApiFeedbackPost } from '@/lib/generated-api';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { makeFeedbackKey, useBatchFeedbackContext } from './use-batch-feedback';
 
 /**
- * Generic feedback hook for any entity
+ * Generic feedback hook for any entity.
+ *
+ * When used inside a BatchFeedbackProvider, reads from the pre-fetched
+ * feedback map (zero additional requests). Falls back to returning null
+ * if no batch context is available.
  *
  * @example
  * // For a claim
  * const claim = useFeedback(workflowId, { chunk_index: 0, claim_index: 1 });
- *
- * // For a chunk
- * const chunk = useFeedback(workflowId, { chunk_index: 0 });
- *
- * // For workflow
- * const workflow = useFeedback(workflowId, {});
- *
- * // For a reference
- * const ref = useFeedback(workflowId, { reference_index: 2 });
  *
  * // For an issue (uses string hash ID)
  * const issue = useFeedback(workflowId, { issue_id: 'abc123' });
  */
 export function useFeedback(workflowRunId: string, entityPath: Record<string, number | string>) {
   const queryClient = useQueryClient();
+  const batchContext = useBatchFeedbackContext();
 
-  const queryKey = ['feedback', workflowRunId, entityPath];
-
-  const { data: feedback, isLoading } = useQuery({
-    queryKey,
-    queryFn: async () => {
-      try {
-        return await getFeedbackApiFeedbackGet({
-          query: {
-            workflow_run_id: workflowRunId,
-            entity_path: JSON.stringify(entityPath),
-          },
-        });
-      } catch {
-        return null;
-      }
-    },
-    enabled: !!workflowRunId,
-  });
+  const lookupKey = makeFeedbackKey(workflowRunId, entityPath as Record<string, unknown>);
+  const feedback = batchContext?.feedbackMap.get(lookupKey) ?? null;
+  const isLoading = batchContext?.isLoading ?? false;
 
   const submitMutation = useMutation({
     mutationFn: async (request: { feedback_type: FeedbackType; feedback_text?: string | null }) => {
@@ -56,8 +38,9 @@ export function useFeedback(workflowRunId: string, entityPath: Record<string, nu
         body: feedbackRequest,
       });
     },
-    onSuccess: (data) => {
-      queryClient.setQueryData(queryKey, data);
+    onSuccess: () => {
+      // Invalidate the batch query so it re-fetches with the new feedback
+      queryClient.invalidateQueries({ queryKey: ['workflow-feedback', workflowRunId] });
     },
   });
 

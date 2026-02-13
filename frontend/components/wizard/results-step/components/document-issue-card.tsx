@@ -33,32 +33,27 @@ export const severityColorMap: Record<
   SeverityEnum,
   {
     className: string;
-    borderClass: string;
     accentClassName: string;
     icon: React.ReactNode;
   }
 > = {
   [SeverityEnum.None]: {
-    className: 'bg-white',
-    borderClass: 'border-l-green-400',
+    className: 'bg-green-50 border-green-400',
     accentClassName: 'text-green-700',
-    icon: <CheckCircleIcon className="size-4 text-green-600" />,
+    icon: <CheckCircleIcon className="size-4 text-white" />,
   },
   [SeverityEnum.Low]: {
-    className: 'bg-white',
-    borderClass: 'border-l-blue-400',
+    className: 'bg-blue-50 border-blue-400',
     accentClassName: 'text-blue-700',
     icon: <MessageCircleWarningIcon className="size-4 text-blue-600" />,
   },
   [SeverityEnum.Medium]: {
-    className: 'bg-white',
-    borderClass: 'border-l-amber-400',
-    accentClassName: 'text-amber-700',
-    icon: <TriangleAlertIcon className="size-4 text-amber-600" />,
+    className: 'bg-yellow-50 border-yellow-400',
+    accentClassName: 'text-yellow-700',
+    icon: <TriangleAlertIcon className="size-4 text-yellow-600" />,
   },
   [SeverityEnum.High]: {
-    className: 'bg-white',
-    borderClass: 'border-l-red-400',
+    className: 'bg-red-50 border-red-400',
     accentClassName: 'text-red-700',
     icon: <CircleAlertIcon className="size-4 text-red-600" />,
   },
@@ -155,7 +150,7 @@ function DocumentIssueCardRaw({
   readOnly = false,
 }: DocumentIssueCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const { className, borderClass, icon, accentClassName } = severityColorMap[issue.severity];
+  const { className, icon, accentClassName } = severityColorMap[issue.severity];
   const { getWorkflowTypeName } = useWorkflowTypes();
 
   const workflowRunId = useMemo(() => {
@@ -170,7 +165,7 @@ function DocumentIssueCardRaw({
   return (
     <div
       id={`issue-${issue.id}`}
-      className={cn('rounded-lg p-4 space-y-3 border-l-4 shadow-sm break-words', className, borderClass)}
+      className={cn('rounded-lg p-4 space-y-3 border-l-4 shadow-sm break-words', className)}
     >
       <div className="flex items-center gap-2 justify-between">
         <div className="flex gap-2">
