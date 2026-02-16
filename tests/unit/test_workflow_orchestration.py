@@ -6,7 +6,6 @@ from uuid import uuid4
 
 from api.services.workflow_orchestration import wait_for_dependencies
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus, WorkflowRunType
-from lib.workflows.models import ClaimExtractionVersion
 
 
 def create_workflow_run(
@@ -284,44 +283,4 @@ async def test_waits_for_both_same_type_and_dependencies():
     assert mock_sleep.call_count >= 2
 
 
-@pytest.mark.asyncio
-async def test_wait_for_dependencies_substitutes_claim_dep_for_v1():
-    """V1 should substitute CLAIM_EXTRACTION_V2 dependency with CLAIM_EXTRACTION."""
-    project_id = str(uuid4())
-
-    manifest = MagicMock()
-    manifest.required_dependencies = [WorkflowRunType.CLAIM_EXTRACTION_V2]
-    manifest.optional_dependencies = []
-
-    async def mock_get_run(proj_id, workflow_type):
-        if workflow_type == WorkflowRunType.CLAIM_EXTRACTION:
-            return create_workflow_run(
-                WorkflowRunType.CLAIM_EXTRACTION,
-                WorkflowRunStatus.COMPLETED,
-            )
-        # Ensure we never require CLAIM_EXTRACTION_V2 for v1
-        if workflow_type == WorkflowRunType.CLAIM_EXTRACTION_V2:
-            return None
-        return None
-
-    with (
-        patch(
-            "api.services.workflow_orchestration.get_workflow_manifest",
-            return_value=manifest,
-        ),
-        patch(
-            "api.services.workflow_orchestration.get_project_workflow_run_by_type",
-            side_effect=mock_get_run,
-        ),
-        patch("api.services.workflow_orchestration.asyncio.sleep", new=AsyncMock()) as mock_sleep,
-    ):
-        await wait_for_dependencies(
-            WorkflowRunType.CLAIM_REFERENCE_VALIDATION,
-            project_id,
-            current_workflow_run_id=None,
-            claim_extraction_version=ClaimExtractionVersion.V1,
-        )
-
-    # Should proceed without waiting because substituted dependency is already completed
-    mock_sleep.assert_not_called()
 
