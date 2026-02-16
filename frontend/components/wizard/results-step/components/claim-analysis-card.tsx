@@ -5,7 +5,7 @@ import { LabeledValue } from '@/components/labeled-value';
 import { getClaimId } from '@/lib/chunk-ids';
 import { composeReferences } from '@/lib/composed-references';
 import { Claim, ProjectDetailed, WorkflowRunType } from '@/lib/generated-api';
-import { getWorkflowRunByType } from '@/lib/workflow-state';
+import { getClaimExtractionDetail, getWorkflowRunByType } from '@/lib/workflow-state';
 import { useMemo } from 'react';
 import { AnalysisResultCard } from './analysis-result-card';
 import { ClaimArgumentAnalysis } from './claim-argument-analysis';
@@ -55,10 +55,7 @@ export function ClaimAnalysisCard({
     () => getWorkflowRunByType(workflowDetails, WorkflowRunType.InferenceValidation),
     [workflowDetails],
   );
-  const claimExtractionDetail = useMemo(
-    () => getWorkflowRunByType(workflowDetails, WorkflowRunType.ClaimExtraction),
-    [workflowDetails],
-  );
+  const claimExtractionDetail = useMemo(() => getClaimExtractionDetail(workflowDetails), [workflowDetails]);
   const referenceExtractionDetail = useMemo(
     () => getWorkflowRunByType(workflowDetails, WorkflowRunType.ReferenceExtraction),
     [workflowDetails],

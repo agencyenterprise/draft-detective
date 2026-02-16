@@ -6,6 +6,7 @@ import {
   CitationDetectionState,
   CitationSuggesterState,
   ClaimExtractionState,
+  ClaimExtractionV2State,
   ClaimReferenceValidationState,
   DocumentProcessingState,
   DocumentSummarizationState,
@@ -46,6 +47,7 @@ type WorkflowTypeToDetail = {
   [WorkflowRunType.CitationSuggester]: CitationSuggesterState;
   [WorkflowRunType.ResultsExtraction]: ResultsExtractionState;
   [WorkflowRunType.ClaimExtraction]: ClaimExtractionState;
+  [WorkflowRunType.ClaimExtractionV2]: ClaimExtractionV2State;
   [WorkflowRunType.CitationDetection]: CitationDetectionState;
   [WorkflowRunType.FootnoteExtraction]: FootnoteExtractionState;
   [WorkflowRunType.AboutThis]: AboutThisState;
@@ -71,6 +73,21 @@ export function getWorkflowRunByType<T extends keyof WorkflowTypeToDetail>(
 ): WorkflowRunDetailTyped<WorkflowTypeToDetail[T]> | undefined {
   return workflowRuns.find(
     (workflowRun): workflowRun is WorkflowRunDetailTyped<WorkflowTypeToDetail[T]> => workflowRun.run.type === type,
+  );
+}
+
+/**
+ * Get claim extraction workflow detail, preferring v2 over v1.
+ *
+ * Both v1 and v2 states share the same claims/claim_categories fields,
+ * so the return type is a union that consumers can use interchangeably.
+ */
+export function getClaimExtractionDetail(
+  workflowRuns: WorkflowRunDetail[],
+): WorkflowRunDetailTyped<ClaimExtractionV2State> | WorkflowRunDetailTyped<ClaimExtractionState> | undefined {
+  return (
+    getWorkflowRunByType(workflowRuns, WorkflowRunType.ClaimExtractionV2) ??
+    getWorkflowRunByType(workflowRuns, WorkflowRunType.ClaimExtraction)
   );
 }
 
