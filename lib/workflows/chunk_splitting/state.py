@@ -1,11 +1,10 @@
 """State definitions for chunk splitting workflow."""
 
-from typing import Annotated, List, Literal, Optional
+from typing import Annotated, List, Literal
 
 from pydantic import Field
 
 from lib.agents.models import ChunkWithIndex
-from lib.services.docling_models import ChunkToItems
 from lib.workflows.models import BaseWorkflowConfig, BaseWorkflowState, WorkflowRunType
 
 
@@ -55,8 +54,4 @@ class ChunkSplittingState(BaseWorkflowState):
     # Outputs
     chunks: Annotated[List[DocumentChunk], merge_chunks] = Field(
         default_factory=list, description="Document chunks from main document"
-    )
-    chunk_to_items: Optional[ChunkToItems] = Field(
-        default=None,
-        description="Mapping from chunk indices to Docling items/regions for rendering",
     )

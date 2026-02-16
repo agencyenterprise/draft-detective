@@ -74,9 +74,6 @@ import type {
   GetIssueEndpointApiIssuesIssueIdGetData,
   GetIssueEndpointApiIssuesIssueIdGetErrors,
   GetIssueEndpointApiIssuesIssueIdGetResponses,
-  GetPageImageApiWorkflowRunsWorkflowRunIdPagesPageNumGetData,
-  GetPageImageApiWorkflowRunsWorkflowRunIdPagesPageNumGetErrors,
-  GetPageImageApiWorkflowRunsWorkflowRunIdPagesPageNumGetResponses,
   GetProjectEndpointApiProjectProjectIdGetData,
   GetProjectEndpointApiProjectProjectIdGetErrors,
   GetProjectEndpointApiProjectProjectIdGetResponses,
@@ -404,35 +401,6 @@ export const getWorkflowStateApiWorkflowsWorkflowRunIdGet = <ThrowOnError extend
     responseStyle: 'data',
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/workflows/{workflow_run_id}',
-    ...options,
-  });
-
-/**
- * Get Page Image
- *
- * Serve Docling page images for a workflow run.
- *
- * Allows access if user is authenticated OR if the project has sharing enabled.
- *
- * Args:
- * workflow_run_id: The workflow run ID
- * page_num: The page number (e.g., 0, 1, 2, etc.)
- *
- * Returns:
- * The image file for the specified page (PNG, JPEG, WEBP, etc.)
- */
-export const getPageImageApiWorkflowRunsWorkflowRunIdPagesPageNumGet = <ThrowOnError extends boolean = true>(
-  options: Options<GetPageImageApiWorkflowRunsWorkflowRunIdPagesPageNumGetData, ThrowOnError>,
-) =>
-  (options.client ?? client).get<
-    GetPageImageApiWorkflowRunsWorkflowRunIdPagesPageNumGetResponses,
-    GetPageImageApiWorkflowRunsWorkflowRunIdPagesPageNumGetErrors,
-    ThrowOnError,
-    'data'
-  >({
-    responseStyle: 'data',
-    security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/api/workflow-runs/{workflow_run_id}/pages/{page_num}',
     ...options,
   });
 
