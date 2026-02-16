@@ -103,9 +103,7 @@ async def start_multiple_workflow_runs(
     project = await get_user_project(request.project_id, user)
 
     # Resolve all required dependencies in dependency order
-    resolved_workflow_types = resolve_workflow_dependencies(
-        workflow_types, request.claim_extraction_version
-    )
+    resolved_workflow_types = resolve_workflow_dependencies(workflow_types)
 
     logger.info(
         f"Resolved to {len(resolved_workflow_types)} workflows (including dependencies): {[w.value for w in resolved_workflow_types]}"
