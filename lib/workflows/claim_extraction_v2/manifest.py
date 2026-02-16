@@ -24,7 +24,6 @@ class ClaimExtractionV2Manifest(
     is_internal = True
     required_dependencies = [
         WorkflowRunType.CHUNK_SPLITTING,
-        WorkflowRunType.DOCUMENT_SUMMARIZATION,
     ]
 
     def get_state_type(self) -> Type[ClaimExtractionV2State]:
