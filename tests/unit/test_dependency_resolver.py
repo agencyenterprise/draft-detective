@@ -4,7 +4,7 @@ import pytest
 from unittest.mock import patch
 
 from lib.workflows.dependency_resolver import resolve_workflow_dependencies
-from lib.workflows.models import ClaimExtractionVersion, WorkflowRunType
+from lib.workflows.models import WorkflowRunType
 
 
 # Test helpers
@@ -105,24 +105,11 @@ def test_circular_dependency_detection():
             resolve_workflow_dependencies([WorkflowRunType.DOCUMENT_PROCESSING])
 
 
-# Version-aware substitution tests
-def test_v1_substitutes_claim_extraction():
-    """Test that V1 substitutes CLAIM_EXTRACTION_V2 with CLAIM_EXTRACTION."""
+def test_v2_claim_extraction_resolved_for_downstream():
+    """Test that downstream workflows resolve CLAIM_EXTRACTION_V2 as a dependency."""
     result = resolve_workflow_dependencies(
         [WorkflowRunType.CLAIM_REFERENCE_VALIDATION],
-        claim_extraction_version=ClaimExtractionVersion.V1,
     )
 
-    assert WorkflowRunType.CLAIM_EXTRACTION in result
-    assert WorkflowRunType.CLAIM_EXTRACTION_V2 not in result
-
-
-def test_no_version_param_uses_manifests_as_is():
-    """Test that omitting claim_extraction_version uses manifests without substitution."""
-    result = resolve_workflow_dependencies(
-        [WorkflowRunType.CITATION_SUGGESTER],
-    )
-
-    # Without version param, manifests are used as-is (they declare V2)
     assert WorkflowRunType.CLAIM_EXTRACTION_V2 in result
     assert WorkflowRunType.CLAIM_EXTRACTION not in result
