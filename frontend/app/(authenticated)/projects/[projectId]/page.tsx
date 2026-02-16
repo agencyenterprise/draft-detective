@@ -1,6 +1,6 @@
 'use client';
 
-import { ResultsVisualization } from '@/components/wizard/results-step/results-visualization';
+import { ResultsVisualization } from '@/components/results/results-visualization';
 import { useWorkflowProgressToast } from '@/hooks/use-workflow-progress-toast';
 import { DocRenderMode } from '@/lib/constants';
 import { ProjectDetailed, updateProjectEndpointApiProjectProjectIdPatch, WorkflowRunType } from '@/lib/generated-api';

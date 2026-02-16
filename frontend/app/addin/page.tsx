@@ -1,8 +1,8 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { DocumentExplorerSidebarFilter } from '@/components/wizard/results-step/components/document-explorer-sidebar-filter';
-import { DocumentIssuesList } from '@/components/wizard/results-step/components/document-issues-list';
+import { DocumentExplorerSidebarFilter } from '@/components/results/components/document-explorer-sidebar-filter';
+import { DocumentIssuesList } from '@/components/results/components/document-issues-list';
 import { addIssueMarkers, jumpToChunk } from '@/lib/addin/office-utils';
 import { useOfficeInit } from '@/lib/addin/use-office-init';
 import { ProjectFeedbackProvider } from '@/lib/contexts/project-feedback-context';

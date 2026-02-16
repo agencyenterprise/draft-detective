@@ -2,8 +2,8 @@
 
 import * as React from 'react';
 import { FileText, BookOpen, AlertTriangle, Loader2, LucideIcon } from 'lucide-react';
-import { Card, CardContent } from '../../../ui/card';
-import { AnimatedNumber } from '../../../ui/animated-number';
+import { Card, CardContent } from '../../ui/card';
+import { AnimatedNumber } from '../../ui/animated-number';
 
 interface SummaryCardProps {
   icon: LucideIcon;

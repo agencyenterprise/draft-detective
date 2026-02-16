@@ -2,7 +2,7 @@
 
 import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/shared/empty-state';
-import { ValidationResultsBox } from '@/components/wizard/results-step/tabs/reference-review/validation-results-box';
+import { ValidationResultsBox } from '@/components/results/tabs/reference-review/validation-results-box';
 import {
   ReferenceValidationItem,
   ReferenceValidationState,

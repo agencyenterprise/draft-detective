@@ -5,7 +5,7 @@ import { NavigateToChunkButton } from '@/components/shared/navigate-to-chunk-but
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Callout } from '@/components/ui/callout';
-import { SeverityBadge } from '@/components/wizard/results-step/components/severity-badge';
+import { SeverityBadge } from '@/components/results/components/severity-badge';
 import {
   ExtractedInferenceResult,
   InferenceValidationV2State,

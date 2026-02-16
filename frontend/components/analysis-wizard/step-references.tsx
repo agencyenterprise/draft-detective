@@ -18,8 +18,8 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useWizard } from './wizard-context';
 import { useProjectDetails } from '@/lib/hooks/use-project-details';
-import { ReferenceReviewTab } from '@/components/wizard/results-step/tabs/reference-review/reference-review-tab';
-import { useReferenceReviewReferences } from '@/components/wizard/results-step/tabs/reference-review/queries';
+import { ReferenceReviewTab } from '@/components/results/tabs/reference-review/reference-review-tab';
+import { useReferenceReviewReferences } from '@/components/results/tabs/reference-review/queries';
 import { ProjectDetailed, WorkflowRunDetail, WorkflowRunType } from '@/lib/generated-api';
 import { getWorkflowRunByType, isWorkflowProcessing } from '@/lib/workflow-state';
 import { useApproveAndNavigate } from './use-approve-workflow';

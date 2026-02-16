@@ -1,7 +1,7 @@
 'use client';
 
 import { OwnerSharedBanner } from '@/components/share/owner-shared-banner';
-import { ResultsVisualization } from '@/components/wizard/results-step/results-visualization';
+import { ResultsVisualization } from '@/components/results/results-visualization';
 import { ShareProvider } from '@/context/share-context';
 import { DocRenderMode } from '@/lib/constants';
 import { getSharedResourceApiPublicShareTokenGet } from '@/lib/generated-api';
