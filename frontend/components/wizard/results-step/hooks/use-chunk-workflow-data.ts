@@ -1,6 +1,5 @@
 import type { ClaimExtractionState, WorkflowRunDetail } from '@/lib/generated-api';
-import { WorkflowRunType } from '@/lib/generated-api';
-import { getWorkflowRunByType } from '@/lib/workflow-state';
+import { getClaimExtractionDetail } from '@/lib/workflow-state';
 import { useMemo } from 'react';
 
 /**
@@ -9,7 +8,7 @@ import { useMemo } from 'react';
 export function useChunkWorkflowData(workflowRuns: WorkflowRunDetail[]) {
   return useMemo(
     () => ({
-      claimExtractionState: getWorkflowRunByType(workflowRuns, WorkflowRunType.ClaimExtraction)?.state,
+      claimExtractionState: getClaimExtractionDetail(workflowRuns)?.state,
     }),
     [workflowRuns],
   );
