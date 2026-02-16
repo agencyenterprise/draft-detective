@@ -1,11 +1,16 @@
 import logging
 from collections import defaultdict
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from langgraph.runtime import Runtime
+from pydantic import BaseModel, Field
 
 from lib.agents.claim_extractor import Claim, ClaimResponseWithChunkIndex
-from lib.agents.claim_extractor_v2 import ClaimExtractorV2Agent, ClaimResponseV2, ClaimV2
+from lib.agents.claim_extractor_v2 import (
+    ClaimExtractorV2Agent,
+    ClaimResponseV2,
+    ClaimV2,
+)
 from lib.run_utils import convert_exceptions_to_workflow_errors, run_tasks
 from lib.services.chunk_line_matcher import find_chunks_by_fuzzy_match
 from lib.workflows.chunk_utils import AnalyzedChunk
@@ -17,16 +22,29 @@ from lib.workflows.models import WorkflowError
 logger = logging.getLogger(__name__)
 
 
-def _build_paragraph_texts(
+class ParagraphContext(BaseModel):
+    """Structured context for a single paragraph including section metadata."""
+
+    paragraph_index: int = Field(description="Zero-based index of the paragraph")
+    paragraph_text: str = Field(description="Full text content of the paragraph")
+    headings: Optional[List[str]] = Field(
+        default=None,
+        description="Section headings hierarchy for this paragraph",
+    )
+    word_count: int = Field(description="Word count of the paragraph text")
+
+
+def _build_paragraph_contexts(
     chunks: List[AnalyzedChunk],
     file_artifacts_service: Any,
-) -> List[Tuple[int, str]]:
-    """Build an ordered list of (paragraph_index, paragraph_text) tuples.
+) -> List[ParagraphContext]:
+    """Build an ordered list of ParagraphContext objects.
 
     Uses only unique paragraph indices seen in chunks, preserving order.
+    Includes section heading metadata from chunk data.
     """
     seen: set[int] = set()
-    paragraphs: List[Tuple[int, str]] = []
+    paragraphs: List[ParagraphContext] = []
     for chunk in chunks:
         if chunk.paragraph_index not in seen:
             seen.add(chunk.paragraph_index)
@@ -34,38 +52,74 @@ def _build_paragraph_texts(
                 chunks, chunk.paragraph_index
             )
             if text.strip():
-                paragraphs.append((chunk.paragraph_index, text))
+                paragraphs.append(
+                    ParagraphContext(
+                        paragraph_index=chunk.paragraph_index,
+                        paragraph_text=text,
+                        headings=chunk.headings,
+                        word_count=len(text.split()),
+                    )
+                )
     return paragraphs
 
 
 def _batch_paragraphs_by_word_limit(
-    paragraphs: List[Tuple[int, str]],
+    paragraphs: List[ParagraphContext],
     word_limit: int,
-) -> List[List[Tuple[int, str]]]:
+) -> List[List[ParagraphContext]]:
     """Group consecutive paragraphs into batches under the word limit.
 
-    Each batch is a list of (paragraph_index, paragraph_text) tuples.
+    Each batch is a list of ParagraphContext objects.
     A single paragraph exceeding the limit gets its own batch.
     """
-    batches: List[List[Tuple[int, str]]] = []
-    current_batch: List[Tuple[int, str]] = []
+    batches: List[List[ParagraphContext]] = []
+    current_batch: List[ParagraphContext] = []
     current_word_count = 0
 
-    for para_index, para_text in paragraphs:
-        para_word_count = len(para_text.split())
-
-        if current_batch and current_word_count + para_word_count > word_limit:
+    for para in paragraphs:
+        if current_batch and current_word_count + para.word_count > word_limit:
             batches.append(current_batch)
             current_batch = []
             current_word_count = 0
 
-        current_batch.append((para_index, para_text))
-        current_word_count += para_word_count
+        current_batch.append(para)
+        current_word_count += para.word_count
 
     if current_batch:
         batches.append(current_batch)
 
     return batches
+
+
+def _format_heading_path(headings: Optional[List[str]]) -> str:
+    """Format a heading list as a readable path string."""
+    if not headings:
+        return ""
+    return " > ".join(headings)
+
+
+def _format_batch_text(batch: List[ParagraphContext]) -> str:
+    """Serialize a batch of paragraphs with heading transition markers.
+
+    Heading markers are emitted only when the heading path changes from the
+    previous paragraph in the batch. This keeps the payload compact while
+    preserving section context for the extraction agent.
+    """
+    sections: List[str] = []
+    prev_heading_path: Optional[str] = None
+
+    for para in batch:
+        current_heading_path = _format_heading_path(para.headings)
+
+        # Emit heading marker only on transitions
+        if current_heading_path != prev_heading_path:
+            if current_heading_path:
+                sections.append(f"[Section: {current_heading_path}]")
+            prev_heading_path = current_heading_path
+
+        sections.append(para.paragraph_text)
+
+    return "\n\n".join(sections)
 
 
 def _adapt_v2_claim_to_v1(claim_v2: ClaimV2) -> Claim:
@@ -76,7 +130,7 @@ def _adapt_v2_claim_to_v1(claim_v2: ClaimV2) -> Claim:
         rationale=claim_v2.rationale,
         central=claim_v2.central,
         centrality_rationale=claim_v2.centrality_rationale,
-        needs_external_verification=claim_v2.needs_substantiation,
+        needs_external_verification=claim_v2.needs_external_verification,
     )
 
 
@@ -139,12 +193,12 @@ def _build_claims_with_chunk_indices(
 
 async def _extract_batch_claims(
     agent: ClaimExtractorV2Agent,
-    batch: List[Tuple[int, str]],
+    batch: List[ParagraphContext],
     chunks: List[AnalyzedChunk],
     workflow_run_id: str | None = None,
 ) -> Tuple[List[ClaimResponseWithChunkIndex], List[WorkflowError]]:
     """Extract claims from a single paragraph-group batch."""
-    batch_text = "\n\n".join(para_text for _, para_text in batch)
+    batch_text = _format_batch_text(batch)
     v2_response = await agent.ainvoke({"text": batch_text})
     return _build_claims_with_chunk_indices(v2_response, chunks, workflow_run_id)
 
@@ -162,8 +216,8 @@ async def extract_claims_v2(
     # Get chunks
     chunks = await file_artifacts_service.get_chunks()
 
-    # Build paragraph list and batch by word limit
-    paragraphs = _build_paragraph_texts(chunks, file_artifacts_service)
+    # Build paragraph contexts and batch by word limit
+    paragraphs = _build_paragraph_contexts(chunks, file_artifacts_service)
     word_limit = state.config.paragraph_group_word_limit
     batches = _batch_paragraphs_by_word_limit(paragraphs, word_limit)
 
@@ -173,6 +227,20 @@ async def extract_claims_v2(
         len(batches),
         word_limit,
     )
+
+    # Log representative heading paths per batch for observability
+    for batch_idx, batch in enumerate(batches):
+        heading_paths = [
+            _format_heading_path(p.headings) or "(no headings)"
+            for p in batch
+        ]
+        unique_paths = list(dict.fromkeys(heading_paths))
+        logger.debug(
+            "  batch %d: %d paragraphs, sections=%s",
+            batch_idx,
+            len(batch),
+            unique_paths[:3],
+        )
 
     workflow_run_id = runtime.context.workflow_run_id
 
