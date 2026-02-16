@@ -30,12 +30,12 @@ export default function Home() {
               <ArrowRight className="w-4 h-4" />
             </Button>
           </Link>
-          <Link href="/tools">
+          {/* <Link href="/tools">
             <Button size="lg" variant="outline">
               <Wrench className="w-5 h-5" />
               Tools
             </Button>
-          </Link>
+          </Link> */}
         </div>
       </div>
 
