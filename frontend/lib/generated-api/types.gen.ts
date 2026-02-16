@@ -1152,21 +1152,21 @@ export type ClaimEvidenceSource = {
   /**
    * Quote
    *
-   * A quote from the document that contains the evidence for the claim
+   * A quote from the document that contains the evidence for the claim. If no quote was found, return an empty string.
    */
   quote: string;
   /**
    * Location
    *
-   * The location of the quote in the document, e.g., 'page 3', 'section 2', 'figure 3', etc. Be as specific as possible
+   * The location of the quote in the document, e.g., 'page 3', 'section 2', 'figure 3', etc. Be as specific as possible. Don't use line numbers, but rather section titles or other section identifiers. If no location was found, return an empty string.
    */
   location: string;
   /**
-   * Reference File Name
+   * File Id
    *
-   * The name of the reference file that contains the evidence for the claim, as provided in the 'list of references cited' section of the input
+   * The ID of the reference file that was checked as provided in the citation-to-file mapping.
    */
-  reference_file_name: string;
+  file_id: string;
 };
 
 /**
@@ -1338,6 +1338,10 @@ export type ClaimReferenceValidationState = {
   type?: 'claim_reference_validation';
   config: ClaimReferenceValidationWorkflowConfig;
   /**
+   * Paragraph Verifications
+   */
+  paragraph_verifications?: Array<ParagraphVerificationItem>;
+  /**
    * Substantiations
    *
    * Claim substantiation results indexed by chunk_index and claim_index
@@ -1422,6 +1426,12 @@ export type ClaimSubstantiationResultWithClaimIndex = {
    */
   key_sentence: string;
   /**
+   * Claim Number
+   *
+   * The number of the claim from the provided numbered list
+   */
+  claim_number: number;
+  /**
    * The degree of evidence that the supporting document(s) provides to support the claim. Possible values: ['unverifiable', 'supported', 'partially_supported', 'unsupported']
    */
   evidence_alignment: EvidenceAlignmentLevel;
@@ -1440,9 +1450,15 @@ export type ClaimSubstantiationResultWithClaimIndex = {
   /**
    * Evidence Sources
    *
-   * The sources that provide the evidence for the claim. If there are multiple sources, include all of them.
+   * The sources/documents that were checked in the validation process. If there are multiple sources, include all of them. If no sources were checked, return an empty list.
    */
   evidence_sources: Array<ClaimEvidenceSource>;
+  /**
+   * Citation To File Mapping
+   *
+   * A string representation of the citation-to-file mapping that was used to check the evidence. Do not include file IDs. Null if no citation-to-file mapping was provided.
+   */
+  citation_to_file_mapping?: string | null;
   /**
    * Chunk Index
    */
@@ -2943,12 +2959,6 @@ export type Issue = {
    */
   workflow_type: WorkflowRunType;
   /**
-   * Chunk Index
-   *
-   * Primary chunk index (deprecated, use chunk_indices)
-   */
-  chunk_index?: number | null;
-  /**
    * Chunk Indices
    *
    * All chunk indices related to this issue
@@ -3026,10 +3036,6 @@ export type IssueResponse = {
    * Workflow Type
    */
   workflow_type: string;
-  /**
-   * Chunk Index
-   */
-  chunk_index: number | null;
   /**
    * Chunk Indices
    */
@@ -3361,6 +3367,61 @@ export type MethodologyComparisonResponse = {
    */
   references?: Array<ReferenceMinimal>;
 };
+
+/**
+ * ParagraphVerificationItem
+ *
+ * Item for tracking individual paragraph verification with status.
+ */
+export type ParagraphVerificationItem = {
+  /**
+   * Paragraph Index
+   *
+   * The paragraph index being verified.
+   */
+  paragraph_index: number;
+  /**
+   * Current status of this paragraph verification.
+   */
+  status?: ParagraphVerificationStatus;
+  /**
+   * Num Claims
+   *
+   * Number of claims being verified in this paragraph.
+   */
+  num_claims?: number;
+  /**
+   * Substantiations
+   *
+   * Verification results for claims in this paragraph.
+   */
+  substantiations?: Array<ClaimSubstantiationResultWithClaimIndex>;
+  /**
+   * Error
+   *
+   * Error message, present on failure.
+   */
+  error?: string | null;
+};
+
+/**
+ * ParagraphVerificationStatus
+ *
+ * Status of a paragraph verification operation.
+ */
+export const ParagraphVerificationStatus = {
+  Pending: 'pending',
+  Completed: 'completed',
+  Error: 'error',
+} as const;
+
+/**
+ * ParagraphVerificationStatus
+ *
+ * Status of a paragraph verification operation.
+ */
+export type ParagraphVerificationStatus =
+  (typeof ParagraphVerificationStatus)[keyof typeof ParagraphVerificationStatus];
 
 /**
  * PoliticalBias

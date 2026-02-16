@@ -64,7 +64,7 @@ class AboutThisManifest(WorkflowManifest[AboutThisState, AboutThisWorkflowConfig
                     type=self.type,
                     description=f'We could not find an "About This Report", "Preface", or similar introductory section. Preface validation requires a clearly titled section heading. Please ensure your document contains an appropriately titled section and run "{self.name}" analysis again.',
                     severity=SeverityEnum.MEDIUM,
-                    chunk_index=0,
+                    chunk_indices=[0],
                 )
             )
             return issues
@@ -86,7 +86,6 @@ class AboutThisManifest(WorkflowManifest[AboutThisState, AboutThisWorkflowConfig
                             f"Result: {requirement_result.explanation}"
                         ),
                         severity=SeverityEnum.MEDIUM,
-                        chunk_index=None,  # Preface issues are section-level
                     )
                 )
 

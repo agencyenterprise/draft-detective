@@ -95,14 +95,12 @@ class ReferenceFileMatchingManifest(
         for reference in ref_extraction_state.extracted_references:
             if reference.id not in matched_ref_ids:
                 chunk_indices = reference.chunk_indices
-                chunk_index = chunk_indices[0] if chunk_indices else None
 
                 issue = DocumentIssue(
                     title="Missing supporting document for reference",
                     description=f'Reference does not have an associated supporting document: "{reference.text}"',
                     severity=SeverityEnum.LOW,
                     type=self.type,
-                    chunk_index=chunk_index,
                     chunk_indices=chunk_indices if chunk_indices else None,
                 )
                 issues.append(issue)

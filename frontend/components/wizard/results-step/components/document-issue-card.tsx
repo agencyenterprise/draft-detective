@@ -180,9 +180,7 @@ function DocumentIssueCardRaw({
   const { getWorkflowTypeName } = useWorkflowTypes();
   const isResolved = isIssueResolved(issue);
 
-  const showJumpToChunkButton =
-    !hideJumpToChunk &&
-    ((issue.chunk_index !== undefined && issue.chunk_index !== null) || (issue.chunk_indices?.length ?? 0) > 0);
+  const showJumpToChunkButton = !hideJumpToChunk && (issue.chunk_indices?.length ?? 0) > 0;
 
   return (
     <div
@@ -224,7 +222,7 @@ function DocumentIssueCardRaw({
         {showJumpToChunkButton && (
           <Button variant="ghost" size="xs" className={accentClassName} onClick={() => onSelect(issue)}>
             <ExternalLinkIcon className="size-3" />
-            Jump to {jumpToAlias} {!hideJumpToChunkIndex && (issue.chunk_index ?? issue.chunk_indices?.[0] ?? '')}
+            Jump to {jumpToAlias} {!hideJumpToChunkIndex && (issue.chunk_indices?.[0] ?? '')}
           </Button>
         )}
         {issue.long_description && (

@@ -4,9 +4,6 @@ function buildIssuesMap(issues: Issue[], chunkToParagraphMapping: Record<string,
   const map = new Map<number, Issue[]>();
   issues.forEach((issue) => {
     const indicesToProcess = new Set<number>();
-    if (issue.chunk_index !== undefined && issue.chunk_index !== null) {
-      indicesToProcess.add(issue.chunk_index);
-    }
     if (issue.chunk_indices) {
       issue.chunk_indices.forEach((idx) => indicesToProcess.add(idx));
     }

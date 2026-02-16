@@ -99,7 +99,7 @@ class CitationSuggesterManifest(
                         ),
                         severity=SeverityEnum.LOW,
                         type=self.type,
-                        chunk_index=suggestion.chunk_index,
+                        chunk_indices=[suggestion.chunk_index],
                     )
                 )
 
