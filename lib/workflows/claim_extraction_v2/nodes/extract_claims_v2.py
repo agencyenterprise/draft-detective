@@ -18,6 +18,7 @@ from lib.workflows.claim_extraction_v2.state import ClaimExtractionV2State
 from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
 from lib.workflows.models import WorkflowError
+from lib.services.file_artifacts_service.types import FileArtifactsServiceType
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +37,7 @@ class ParagraphContext(BaseModel):
 
 def _build_paragraph_contexts(
     chunks: List[AnalyzedChunk],
-    file_artifacts_service: Any,
+    file_artifacts_service: FileArtifactsServiceType,
 ) -> List[ParagraphContext]:
     """Build an ordered list of ParagraphContext objects.
 
@@ -231,8 +232,7 @@ async def extract_claims_v2(
     # Log representative heading paths per batch for observability
     for batch_idx, batch in enumerate(batches):
         heading_paths = [
-            _format_heading_path(p.headings) or "(no headings)"
-            for p in batch
+            _format_heading_path(p.headings) or "(no headings)" for p in batch
         ]
         unique_paths = list(dict.fromkeys(heading_paths))
         logger.debug(
