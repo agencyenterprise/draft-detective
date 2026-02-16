@@ -15,11 +15,11 @@ import { useShare } from '@/context/share-context';
 import { useShareStatus } from '@/hooks/use-share-status';
 import {
   Project,
-  SeverityEnum,
   updateProjectEndpointApiProjectProjectIdPatch,
   WorkflowRunDetail,
   WorkflowRunType,
 } from '@/lib/generated-api';
+import { useDocumentExplorerStore } from '@/lib/stores/document-explorer-store';
 import { getWorkflowRunByType } from '@/lib/workflow-state';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Download, EllipsisVerticalIcon, Link, Pencil } from 'lucide-react';
@@ -37,17 +37,10 @@ export interface AnalysisOptionsMenuProps {
   project: ProjectWithDetails;
   results: WorkflowRunDetail[];
   readOnly: boolean;
-  severityFilter: SeverityEnum[];
-  workflowTypeFilter: WorkflowRunType[];
 }
 
-export function AnalysisOptionsMenu({
-  project,
-  results,
-  readOnly,
-  severityFilter,
-  workflowTypeFilter,
-}: AnalysisOptionsMenuProps) {
+export function AnalysisOptionsMenu({ project, results, readOnly }: AnalysisOptionsMenuProps) {
+  const { severityFilter, workflowTypeFilter } = useDocumentExplorerStore();
   const projectId = project.id;
   const share = useShareStatus(projectId, !readOnly);
   const shareContext = useShare();

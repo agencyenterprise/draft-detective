@@ -1,7 +1,7 @@
 'use client';
 
-import { Issue, SeverityEnum } from '@/lib/generated-api';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { SeverityEnum } from '@/lib/generated-api';
 import { cn } from '@/lib/utils';
 
 const severityOptions = [
@@ -37,9 +37,4 @@ export function SeverityFilter({ value, onChange }: SeverityFilterProps) {
       ))}
     </ToggleGroup>
   );
-}
-
-export function filterIssuesBySeverity(issues: Issue[], severities: SeverityEnum[]): Issue[] {
-  if (severities.length === 0) return issues;
-  return issues.filter((issue) => severities.includes(issue.severity));
 }

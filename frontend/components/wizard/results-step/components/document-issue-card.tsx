@@ -10,7 +10,6 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Textarea } from '@/components/ui/textarea';
 import { useIssueFeedbackFromContext } from '@/lib/contexts/project-feedback-context';
 import { FeedbackType, Issue, SeverityEnum } from '@/lib/generated-api';
-import { isIssueResolved } from '@/lib/severity';
 import { useIssueActions } from '@/lib/hooks/use-issue-actions';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { cn } from '@/lib/utils';
@@ -31,6 +30,7 @@ import {
 import { memo, useState } from 'react';
 import { Markdown } from '@/components/markdown';
 import { SeverityBadge } from './severity-badge';
+import { isIssueResolved } from '@/lib/stores/document-explorer-store';
 
 interface DocumentIssueCardProps {
   issue: Issue;

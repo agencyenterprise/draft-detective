@@ -94,9 +94,3 @@ export function WorkflowTypeFilter({ issues, value, onChange }: WorkflowTypeFilt
     </Popover>
   );
 }
-
-export function filterIssuesByWorkflowType(issues: Issue[], workflowTypes: WorkflowRunType[]): Issue[] {
-  if (workflowTypes.length === 0) return issues;
-  const typeSet = new Set(workflowTypes);
-  return issues.filter((issue) => issue.workflow_type && typeSet.has(issue.workflow_type));
-}

@@ -2,8 +2,8 @@
 
 import { useChunkHashNavigation } from '@/lib/chunk-ids';
 import { DocRenderMode } from '@/lib/constants';
-import { Issue, ProjectDetailed, SeverityEnum, WorkflowRunType } from '@/lib/generated-api';
-import { isIssueResolved } from '@/lib/severity';
+import { Issue, ProjectDetailed, WorkflowRunType } from '@/lib/generated-api';
+import { getFilteredIssues, getVisibleIssues, useDocumentExplorerStore } from '@/lib/stores/document-explorer-store';
 import {
   getWorkflowErrors,
   getWorkflowRunByType,
@@ -11,23 +11,15 @@ import {
   isWorkflowProcessing,
 } from '@/lib/workflow-state';
 import { AlertTriangleIcon, Loader2 } from 'lucide-react';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef } from 'react';
 import { DoclingViewer } from '../components/docling-viewer';
 import { DocumentExplorerSidebar, DocumentExplorerSidebarHandle } from '../components/document-explorer-sidebar';
 import { DocumentReconstructor } from '../components/document-reconstructor';
-import { filterIssuesBySeverity } from '../components/severity-filter';
-import { filterIssuesByWorkflowType } from '../components/workflow-type-filter';
 
 interface DocumentExplorerTabProps {
   projectDetail: ProjectDetailed;
   viewMode: DocRenderMode;
   readOnly?: boolean;
-  severityFilter: SeverityEnum[];
-  onSeverityFilterChange: (value: SeverityEnum[]) => void;
-  workflowTypeFilter: WorkflowRunType[];
-  onWorkflowTypeFilterChange: (value: WorkflowRunType[]) => void;
-  showResolved: boolean;
-  onShowResolvedChange: (value: boolean) => void;
   onNavigateToAnalyses: () => void;
 }
 
@@ -35,14 +27,18 @@ export function DocumentExplorerTab({
   projectDetail,
   viewMode,
   readOnly = false,
-  severityFilter,
-  onSeverityFilterChange,
-  workflowTypeFilter,
-  onWorkflowTypeFilterChange,
-  showResolved,
-  onShowResolvedChange,
   onNavigateToAnalyses,
 }: DocumentExplorerTabProps) {
+  const {
+    selectedChunkIndices,
+    selectChunkIndices,
+    toggleChunk,
+    clearChunkSelection,
+    severityFilter,
+    workflowTypeFilter,
+    showResolved,
+  } = useDocumentExplorerStore();
+
   const workflowDetails = useMemo(() => projectDetail.workflow_runs ?? [], [projectDetail.workflow_runs]);
   const issues = useMemo(() => projectDetail.issues ?? [], [projectDetail.issues]);
 
@@ -51,28 +47,26 @@ export function DocumentExplorerTab({
   const isDocumentProcessing = isWorkflowProcessing(documentProcessing) || isWorkflowProcessing(chunkSplitting);
   const isAnyProcessing = isAnyWorkflowProcessing(workflowDetails);
 
-  const [selectedChunkIndices, setSelectedChunkIndices] = useState<number[]>([]);
   const sidebarRef = useRef<DocumentExplorerSidebarHandle>(null);
 
   const chunks = useMemo(() => chunkSplitting?.state?.chunks ?? [], [chunkSplitting?.state?.chunks]);
   const validChunkIndices = useMemo(() => chunks.map((c) => c.chunk_index), [chunks]);
 
-  const handleHashSelect = useCallback((indices: number[]) => setSelectedChunkIndices(indices), []);
+  const handleHashSelect = useCallback((indices: number[]) => selectChunkIndices(indices), [selectChunkIndices]);
   useChunkHashNavigation(validChunkIndices, handleHashSelect);
 
-  const handleChunkSelect = useCallback((chunkIndex: number | null) => {
-    sidebarRef.current?.scrollToTop();
+  const handleChunkSelect = useCallback(
+    (chunkIndex: number | null) => {
+      sidebarRef.current?.scrollToTop();
 
-    if (chunkIndex === null) {
-      setSelectedChunkIndices([]);
-    } else {
-      setSelectedChunkIndices((curr) => (curr.length === 1 && curr[0] === chunkIndex ? [] : [chunkIndex]));
-    }
-  }, []);
-
-  const handleClearChunkSelection = useCallback(() => {
-    setSelectedChunkIndices([]);
-  }, []);
+      if (chunkIndex === null) {
+        clearChunkSelection();
+      } else {
+        toggleChunk(chunkIndex);
+      }
+    },
+    [clearChunkSelection, toggleChunk],
+  );
 
   const pages = documentProcessing?.state?.file?.docling_pages ?? [];
   const chunkToItems = chunkSplitting?.state?.chunk_to_items?.mapping ?? {};
@@ -85,27 +79,29 @@ export function DocumentExplorerTab({
   const isDoclingAvailable = Boolean(
     pages && pages.length > 0 && Object.keys(chunkToItems).length > 0 && pageImagesBaseUrl,
   );
+  const { visibleIssues, resolvedCount } = useMemo(
+    () => getVisibleIssues(issues, showResolved, selectedChunkIndices),
+    [issues, showResolved, selectedChunkIndices],
+  );
   const filteredIssues = useMemo(
-    () => filterIssuesByWorkflowType(filterIssuesBySeverity(issues, severityFilter), workflowTypeFilter),
-    [issues, severityFilter, workflowTypeFilter],
+    () => getFilteredIssues(visibleIssues, workflowTypeFilter, severityFilter, selectedChunkIndices),
+    [visibleIssues, severityFilter, workflowTypeFilter, selectedChunkIndices],
   );
 
-  const visibleIssues = useMemo(
-    () => (showResolved ? filteredIssues : filteredIssues.filter((issue) => !isIssueResolved(issue))),
-    [filteredIssues, showResolved],
+  const handleSelectIssue = useCallback(
+    (issue: Issue) => {
+      if (issue.chunk_index !== undefined && issue.chunk_index !== null) {
+        selectChunkIndices([issue.chunk_index]);
+        sidebarRef.current?.scrollToIssue(issue);
+      } else if ((issue.chunk_indices?.length ?? 0) > 0) {
+        selectChunkIndices(issue.chunk_indices ?? []);
+        sidebarRef.current?.scrollToIssue(issue);
+      } else {
+        clearChunkSelection();
+      }
+    },
+    [selectChunkIndices, clearChunkSelection],
   );
-
-  const handleSelectIssue = useCallback((issue: Issue) => {
-    if (issue.chunk_index !== undefined && issue.chunk_index !== null) {
-      setSelectedChunkIndices([issue.chunk_index]);
-      sidebarRef.current?.scrollToIssue(issue);
-    } else if ((issue.chunk_indices?.length ?? 0) > 0) {
-      setSelectedChunkIndices(issue.chunk_indices ?? []);
-      sidebarRef.current?.scrollToIssue(issue);
-    } else {
-      setSelectedChunkIndices([]);
-    }
-  }, []);
 
   if (isDocumentProcessing && !hasChunks) {
     return (
@@ -188,20 +184,13 @@ export function DocumentExplorerTab({
 
         <DocumentExplorerSidebar
           ref={sidebarRef}
-          selectedChunkIndices={selectedChunkIndices}
-          issues={issues}
+          visibleIssues={visibleIssues}
           filteredIssues={filteredIssues}
+          resolvedCount={resolvedCount}
           isAnyProcessing={isAnyProcessing}
-          severityFilter={severityFilter}
-          onSeverityFilterChange={onSeverityFilterChange}
-          workflowTypeFilter={workflowTypeFilter}
-          onWorkflowTypeFilterChange={onWorkflowTypeFilterChange}
-          showResolved={showResolved}
-          onShowResolvedChange={onShowResolvedChange}
           projectDetail={projectDetail}
           readOnly={readOnly}
           onSelectIssue={handleSelectIssue}
-          onClearChunkSelection={handleClearChunkSelection}
         />
       </div>
     </div>
