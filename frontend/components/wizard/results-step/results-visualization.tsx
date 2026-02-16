@@ -5,8 +5,9 @@ import { EditableTitle } from '@/components/ui/editable-title';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DocRenderMode } from '@/lib/constants';
 import { ProjectFeedbackProvider } from '@/lib/contexts/project-feedback-context';
-import { ProjectDetailed, SeverityEnum, WorkflowRunType } from '@/lib/generated-api';
+import { ProjectDetailed, WorkflowRunType } from '@/lib/generated-api';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
+import { useDocumentExplorerStore } from '@/lib/stores/document-explorer-store';
 import { cn } from '@/lib/utils';
 import { getWorkflowRunByType } from '@/lib/workflow-state';
 import { format } from 'date-fns';
@@ -44,9 +45,7 @@ export function ResultsVisualization({
   const documentSummarization = getWorkflowRunByType(results, WorkflowRunType.DocumentSummarization);
   const referenceExtraction = getWorkflowRunByType(results, WorkflowRunType.ReferenceExtraction);
   const [activeTab, setActiveTab] = useState<TabType>('document-explorer');
-  const [severityFilter, setSeverityFilter] = useState<SeverityEnum[]>([]);
-  const [workflowTypeFilter, setWorkflowTypeFilter] = useState<WorkflowRunType[]>([]);
-  const [showResolved, setShowResolved] = useState(false);
+  const setWorkflowTypeFilter = useDocumentExplorerStore((s) => s.setWorkflowTypeFilter);
   const { isWorkflowTypeVisible } = useWorkflowTypes();
 
   // Find the main document summary from the summaries list
@@ -79,12 +78,6 @@ export function ResultsVisualization({
             projectDetail={projectDetail}
             viewMode={viewMode}
             readOnly={readOnly}
-            severityFilter={severityFilter}
-            onSeverityFilterChange={setSeverityFilter}
-            workflowTypeFilter={workflowTypeFilter}
-            onWorkflowTypeFilterChange={setWorkflowTypeFilter}
-            showResolved={showResolved}
-            onShowResolvedChange={setShowResolved}
             onNavigateToAnalyses={() => setActiveTab('analyses')}
           />
         );
@@ -178,13 +171,7 @@ export function ResultsVisualization({
                 Read-only view
               </Badge>
             )}
-            <AnalysisOptionsMenu
-              project={projectDetail.project}
-              results={results}
-              readOnly={readOnly}
-              severityFilter={severityFilter}
-              workflowTypeFilter={workflowTypeFilter}
-            />
+            <AnalysisOptionsMenu project={projectDetail.project} results={results} readOnly={readOnly} />
           </div>
         </div>
 

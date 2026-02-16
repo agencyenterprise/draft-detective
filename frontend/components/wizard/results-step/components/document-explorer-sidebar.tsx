@@ -2,10 +2,10 @@
 
 import { Button } from '@/components/ui/button';
 import { SkeletonList } from '@/components/ui/skeleton-list';
-import { Issue, ProjectDetailed, SeverityEnum, WorkflowRunType } from '@/lib/generated-api';
-import { getChunkIssuesByIndices, isIssueResolved } from '@/lib/severity';
+import { Issue, ProjectDetailed } from '@/lib/generated-api';
+import { useDocumentExplorerStore } from '@/lib/stores/document-explorer-store';
 import { X } from 'lucide-react';
-import { Ref, useImperativeHandle, useMemo, useRef } from 'react';
+import { Ref, useImperativeHandle, useRef } from 'react';
 import { DocumentExplorerSidebarFilter } from './document-explorer-sidebar-filter';
 import { DocumentIssuesList } from './document-issues-list';
 import { SingleChunkContent } from './single-chunk-content';
@@ -17,39 +17,37 @@ export interface DocumentExplorerSidebarHandle {
 
 interface DocumentExplorerSidebarProps {
   ref?: Ref<DocumentExplorerSidebarHandle>;
-  selectedChunkIndices: number[];
-  issues: Issue[];
+  visibleIssues: Issue[];
   filteredIssues: Issue[];
+  resolvedCount: number;
   isAnyProcessing: boolean;
-  severityFilter: SeverityEnum[];
-  onSeverityFilterChange: (value: SeverityEnum[]) => void;
-  workflowTypeFilter: WorkflowRunType[];
-  onWorkflowTypeFilterChange: (value: WorkflowRunType[]) => void;
-  showResolved: boolean;
-  onShowResolvedChange: (value: boolean) => void;
   projectDetail: ProjectDetailed;
   readOnly: boolean;
   onSelectIssue: (issue: Issue) => void;
-  onClearChunkSelection: () => void;
 }
 
 export function DocumentExplorerSidebar({
   ref,
-  selectedChunkIndices,
-  issues,
+  visibleIssues,
   filteredIssues,
+  resolvedCount,
   isAnyProcessing,
-  severityFilter,
-  onSeverityFilterChange,
-  workflowTypeFilter,
-  onWorkflowTypeFilterChange,
-  showResolved,
-  onShowResolvedChange,
   projectDetail,
   readOnly,
   onSelectIssue,
-  onClearChunkSelection,
 }: DocumentExplorerSidebarProps) {
+  const {
+    selectedChunkIndices,
+    clearChunkSelection,
+    severityFilter,
+    setSeverityFilter,
+    workflowTypeFilter,
+    setWorkflowTypeFilter,
+    showResolved,
+    setShowResolved,
+    clearFilters,
+  } = useDocumentExplorerStore();
+
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   useImperativeHandle(ref, () => ({
@@ -64,50 +62,19 @@ export function DocumentExplorerSidebar({
     },
   }));
 
-  const selectedFilteredIssues = useMemo(() => {
-    let result = filteredIssues;
-
-    if (selectedChunkIndices.length > 0) {
-      result = getChunkIssuesByIndices(result, selectedChunkIndices);
-    }
-
-    return result;
-  }, [filteredIssues, selectedChunkIndices]);
-
-  const sortedIssues = useMemo(() => {
-    let result = [...selectedFilteredIssues];
-
-    if (!showResolved) {
-      result = result.filter((issue) => !isIssueResolved(issue));
-    }
-
-    return result.sort((a, b) => {
-      const aResolved = isIssueResolved(a);
-      const bResolved = isIssueResolved(b);
-      if (aResolved !== bResolved) return aResolved ? 1 : -1;
-      return 0;
-    });
-  }, [selectedFilteredIssues, showResolved]);
-
-  const resolvedCount = useMemo(() => selectedFilteredIssues.filter(isIssueResolved).length, [selectedFilteredIssues]);
-
-  const totalCount = showResolved ? issues.length : issues.filter((issue) => !isIssueResolved(issue)).length;
-  const displayCount = showResolved ? selectedFilteredIssues.length : selectedFilteredIssues.length - resolvedCount;
+  const visibleIssuesCount = visibleIssues.length;
+  const filteredIssuesCount = filteredIssues.length;
   const hasActiveFilters = severityFilter.length > 0 || workflowTypeFilter.length > 0 || !showResolved;
-
-  const handleClearFilters = () => {
-    onSeverityFilterChange([]);
-    onWorkflowTypeFilterChange([]);
-    onShowResolvedChange(true);
-  };
 
   return (
     <div className="col-span-5 bg-muted/50 rounded-lg rounded-l-none text-sm flex flex-col overflow-hidden">
       <div className="flex items-center justify-between gap-2 flex-wrap px-4 pt-4 pb-2 flex-shrink-0">
         <span className="text-xs text-muted-foreground">
-          {issues.length > 0 &&
-            (displayCount === totalCount ? `${totalCount} issues` : `${displayCount} of ${totalCount} issues`)}
-          {issues.length === 0 && isAnyProcessing && 'Finding issues...'}
+          {visibleIssuesCount > 0 &&
+            (filteredIssuesCount === visibleIssuesCount
+              ? `${visibleIssuesCount} issues`
+              : `${filteredIssuesCount} of ${visibleIssuesCount} issues`)}
+          {visibleIssuesCount === 0 && isAnyProcessing && 'Finding issues...'}
         </span>
         <div className="flex items-center flex-wrap gap-1">
           {selectedChunkIndices.length > 0 && (
@@ -115,7 +82,7 @@ export function DocumentExplorerSidebar({
               variant="outline"
               size="sm"
               className="text-xs h-6 px-2 gap-1 shadow-xs bg-white"
-              onClick={onClearChunkSelection}
+              onClick={clearChunkSelection}
             >
               {selectedChunkIndices.length === 1
                 ? `Chunk #${selectedChunkIndices[0]}`
@@ -123,23 +90,23 @@ export function DocumentExplorerSidebar({
               <X />
             </Button>
           )}
-          {issues.length > 0 && (
+          {visibleIssuesCount > 0 && (
             <DocumentExplorerSidebarFilter
-              issues={issues}
+              issues={visibleIssues}
               severityFilter={severityFilter}
-              onSeverityFilterChange={onSeverityFilterChange}
+              onSeverityFilterChange={setSeverityFilter}
               workflowTypeFilter={workflowTypeFilter}
-              onWorkflowTypeFilterChange={onWorkflowTypeFilterChange}
+              onWorkflowTypeFilterChange={setWorkflowTypeFilter}
               resolvedCount={resolvedCount}
               showResolved={showResolved}
-              onShowResolvedChange={onShowResolvedChange}
+              onShowResolvedChange={setShowResolved}
             />
           )}
         </div>
       </div>
 
       <div ref={scrollContainerRef} className="space-y-2 overflow-y-auto flex-1 px-4 pt-0 pb-4">
-        {issues.length === 0 && !isAnyProcessing && (
+        {visibleIssuesCount === 0 && !isAnyProcessing && (
           <div className="text-sm text-muted-foreground py-4 space-y-2">
             <p>No issues found for this document.</p>
             <p>You can still view detailed analysis for each chunk by selecting a chunk from the document.</p>
@@ -148,21 +115,21 @@ export function DocumentExplorerSidebar({
 
         {isAnyProcessing && <SkeletonList count={3} />}
 
-        {issues.length > 0 &&
-          sortedIssues.length === 0 &&
+        {visibleIssuesCount > 0 &&
+          filteredIssuesCount === 0 &&
           !isAnyProcessing &&
           hasActiveFilters &&
           selectedChunkIndices.length === 0 && (
             <div className="text-sm text-muted-foreground space-y-1 py-8 text-center">
               <p>No issues match the current filters.</p>
-              <Button variant="link" size="sm" className="text-xs" onClick={handleClearFilters}>
+              <Button variant="link" size="sm" className="text-xs" onClick={clearFilters}>
                 Clear filters
               </Button>
             </div>
           )}
 
         <DocumentIssuesList
-          issues={sortedIssues}
+          issues={filteredIssues}
           hideJumpToChunk={selectedChunkIndices.length > 0}
           onSelect={onSelectIssue}
           readOnly={readOnly}

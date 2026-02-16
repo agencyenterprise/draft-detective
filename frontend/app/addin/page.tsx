@@ -1,18 +1,16 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
-import { DocumentIssuesList } from '@/components/wizard/results-step/components/document-issues-list';
-import { ProjectFeedbackProvider } from '@/lib/contexts/project-feedback-context';
 import { DocumentExplorerSidebarFilter } from '@/components/wizard/results-step/components/document-explorer-sidebar-filter';
-import { filterIssuesBySeverity } from '@/components/wizard/results-step/components/severity-filter';
-import { filterIssuesByWorkflowType } from '@/components/wizard/results-step/components/workflow-type-filter';
-import { Issue, getSharedResourceApiPublicShareTokenGet, SeverityEnum, WorkflowRunType } from '@/lib/generated-api';
-import { isIssueResolved } from '@/lib/severity';
+import { DocumentIssuesList } from '@/components/wizard/results-step/components/document-issues-list';
 import { addIssueMarkers, jumpToChunk } from '@/lib/addin/office-utils';
 import { useOfficeInit } from '@/lib/addin/use-office-init';
+import { ProjectFeedbackProvider } from '@/lib/contexts/project-feedback-context';
+import { getSharedResourceApiPublicShareTokenGet, Issue, SeverityEnum, WorkflowRunType } from '@/lib/generated-api';
+import { getFilteredIssues, getVisibleIssues } from '@/lib/stores/document-explorer-store';
+import { useQuery } from '@tanstack/react-query';
 import { RotateCwIcon } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 
 export default function AddinPage() {
   const { token, currentParagraphIndex, isInitialized } = useOfficeInit();
@@ -56,16 +54,17 @@ export default function AddinPage() {
   );
   const isParagraphView = paragraphIssues.length > 0;
 
-  const resolvedCount = useMemo(() => activeIssues.filter(isIssueResolved).length, [activeIssues]);
+  const { visibleIssues, resolvedCount } = useMemo(
+    () => getVisibleIssues(activeIssues, showResolved, []),
+    [activeIssues, showResolved],
+  );
+  const filteredIssues = useMemo(
+    () => getFilteredIssues(visibleIssues, workflowTypeFilter, severityFilter, []),
+    [visibleIssues, workflowTypeFilter, severityFilter],
+  );
 
-  const filteredIssues = useMemo(() => {
-    let result = filterIssuesByWorkflowType(filterIssuesBySeverity(activeIssues, severityFilter), workflowTypeFilter);
-    if (!showResolved) {
-      result = result.filter((issue) => !isIssueResolved(issue));
-    }
-    return result;
-  }, [activeIssues, severityFilter, workflowTypeFilter, showResolved]);
-
+  const visibleIssuesCount = visibleIssues.length;
+  const filteredIssuesCount = filteredIssues.length;
   const hasActiveFilters = severityFilter.length > 0 || workflowTypeFilter.length > 0 || !showResolved;
 
   if (!isInitialized) return <div className="p-4 text-center">Loading Add-in...</div>;
@@ -93,11 +92,10 @@ export default function AddinPage() {
 
           <div className="flex items-center justify-between gap-2 w-full flex-wrap">
             <span className="text-xs text-muted-foreground">
-              {project?.issues &&
-                project.issues.length > 0 &&
-                (filteredIssues.length === project.issues.length
-                  ? `${project.issues.length} issues`
-                  : `${filteredIssues.length} of ${project.issues.length} issues`)}
+              {visibleIssuesCount > 0 &&
+                (filteredIssuesCount === visibleIssuesCount
+                  ? `${visibleIssuesCount} issues`
+                  : `${filteredIssuesCount} of ${visibleIssuesCount} issues`)}
             </span>
             {project?.issues && project.issues.length > 0 && (
               <div className="text-right flex flex-row flex-wrap gap-1">
