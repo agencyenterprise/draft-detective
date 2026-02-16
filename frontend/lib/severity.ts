@@ -2,14 +2,9 @@ import { DocumentChunk, Issue, SeverityEnum } from './generated-api';
 
 /**
  * Check if an issue is associated with a given chunk index.
- * Supports both legacy chunk_index and new chunk_indices array.
  */
 function issueMatchesChunk(issue: Issue, chunkIndex: number): boolean {
-  if (issue.chunk_indices && issue.chunk_indices.includes(chunkIndex)) {
-    return true;
-  }
-
-  return issue.chunk_index === chunkIndex;
+  return issue.chunk_indices?.includes(chunkIndex) ?? false;
 }
 
 export function getMaxChunkSeverity(issues: Issue[], chunk: DocumentChunk): SeverityEnum | undefined {

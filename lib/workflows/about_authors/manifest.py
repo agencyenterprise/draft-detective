@@ -65,7 +65,7 @@ class AboutAuthorsManifest(
                     type=self.type,
                     description=f'We could not find an "About the Authors" or "Author Biographies" section. Author validation requires a section containing author biography paragraphs. Please ensure your document contains an appropriately titled section and run "{self.name}" analysis again.',
                     severity=SeverityEnum.MEDIUM,
-                    chunk_index=0,
+                    chunk_indices=[0],
                 )
             )
 
@@ -88,18 +88,13 @@ class AboutAuthorsManifest(
                 f"• {r}" for r in failed_rules
             )
 
-            # Use all chunk indices for highlighting, first one for backward compat
-            chunk_indices = result.chunk_indices if result.chunk_indices else []
-            chunk_index = chunk_indices[0] if chunk_indices else None
-
             issues.append(
                 DocumentIssue(
                     title=f"Author Bio Issue: {result.author_name}",
                     type=self.type,
                     description=description,
                     severity=SeverityEnum.MEDIUM,
-                    chunk_index=chunk_index,
-                    chunk_indices=chunk_indices,
+                    chunk_indices=result.chunk_indices,
                 )
             )
 

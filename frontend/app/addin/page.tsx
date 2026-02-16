@@ -130,7 +130,7 @@ export default function AddinPage() {
             <>
               <DocumentIssuesList
                 issues={filteredIssues}
-                onSelect={(issue) => jumpToChunk(issue.chunk_index ?? issue.chunk_indices?.[0] ?? 0)}
+                onSelect={(issue) => jumpToChunk(issue.chunk_indices?.[0] ?? 0)}
                 jumpToAlias="paragraph"
                 hideJumpToChunkIndex={true}
               />

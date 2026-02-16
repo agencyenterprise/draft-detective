@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Issue, WorkflowRun, WorkflowRunDetail } from '../generated-api';
+import { Issue, WorkflowRunDetail } from '../generated-api';
 import { aggregateWorkflowHealth, calculateOverallHealth, HealthStatus, WorkflowHealthData } from '../health-status';
 import { useWorkflowTypes } from './use-workflow-types';
 

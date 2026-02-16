@@ -90,10 +90,7 @@ export function DocumentExplorerTab({
 
   const handleSelectIssue = useCallback(
     (issue: Issue) => {
-      if (issue.chunk_index !== undefined && issue.chunk_index !== null) {
-        selectChunkIndices([issue.chunk_index]);
-        sidebarRef.current?.scrollToIssue(issue);
-      } else if ((issue.chunk_indices?.length ?? 0) > 0) {
+      if ((issue.chunk_indices?.length ?? 0) > 0) {
         selectChunkIndices(issue.chunk_indices ?? []);
         sidebarRef.current?.scrollToIssue(issue);
       } else {

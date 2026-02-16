@@ -81,10 +81,7 @@ export function getVisibleIssues(allIssues: Issue[], showResolved: boolean, sele
     .filter(isIssueResolved)
     .filter(
       (issue) =>
-        selectedChunkIndices.length === 0 ||
-        selectedChunkIndices.some(
-          (idx) => issue.chunk_index === idx || (issue.chunk_indices && issue.chunk_indices.includes(idx)),
-        ),
+        selectedChunkIndices.length === 0 || selectedChunkIndices.some((idx) => issue.chunk_indices?.includes(idx)),
     ).length;
 
   const visibleIssues = nonNoneIssues.filter((issue) => showResolved || !isIssueResolved(issue));

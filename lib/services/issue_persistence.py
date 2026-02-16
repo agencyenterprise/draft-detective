@@ -56,7 +56,6 @@ async def persist_workflow_issues(
                 long_description=doc_issue.long_description,
                 severity=doc_issue.severity,
                 workflow_type=doc_issue.type,
-                chunk_index=doc_issue.chunk_index,
                 chunk_indices=doc_issue.chunk_indices,
                 status=IssueStatus.ACTIVE,
             )

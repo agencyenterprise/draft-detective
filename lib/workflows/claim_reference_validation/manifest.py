@@ -168,7 +168,7 @@ class ClaimReferenceValidationManifest(
                     description=substantiation.rationale,
                     severity=severity,
                     type=self.type,
-                    chunk_index=substantiation.chunk_index,
+                    chunk_indices=[substantiation.chunk_index],
                     long_description=long_description,
                 )
             )
