@@ -3,7 +3,6 @@
 import { Badge } from '@/components/ui/badge';
 import { EditableTitle } from '@/components/ui/editable-title';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { DocRenderMode } from '@/lib/constants';
 import { ProjectFeedbackProvider } from '@/lib/contexts/project-feedback-context';
 import { ProjectDetailed, WorkflowRunType } from '@/lib/generated-api';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
@@ -13,15 +12,12 @@ import { getWorkflowRunByType } from '@/lib/workflow-state';
 import { format } from 'date-fns';
 import { useState } from 'react';
 import { AnalysisOptionsMenu } from './components/analysis-options-menu';
-import { ViewModeToggle } from './components/view-mode-toggle';
 import { TabType } from './constants';
 import { AnalysesTab, FilesTab, ReferenceReviewTab, SummaryTab } from './tabs';
 import { DocumentExplorerTab } from './tabs/document-explorer-tab';
 
 interface ResultsVisualizationProps {
   projectDetail: ProjectDetailed;
-  viewMode: DocRenderMode;
-  onViewModeChange: (mode: DocRenderMode) => void;
   /** When true, hides edit/action controls (for shared view) */
   readOnly?: boolean;
   /** Callback for saving title (only used when readOnly=false) */
@@ -32,8 +28,6 @@ interface ResultsVisualizationProps {
 
 export function ResultsVisualization({
   projectDetail,
-  viewMode,
-  onViewModeChange,
   readOnly = false,
   onTitleSave,
   isTitleSaving = false,
@@ -41,7 +35,6 @@ export function ResultsVisualization({
   const results = projectDetail.workflow_runs ?? [];
 
   const documentProcessing = getWorkflowRunByType(results, WorkflowRunType.DocumentProcessing);
-  const chunkSplitting = getWorkflowRunByType(results, WorkflowRunType.ChunkSplitting);
   const documentSummarization = getWorkflowRunByType(results, WorkflowRunType.DocumentSummarization);
   const referenceExtraction = getWorkflowRunByType(results, WorkflowRunType.ReferenceExtraction);
   const [activeTab, setActiveTab] = useState<TabType>('document-explorer');
@@ -76,7 +69,6 @@ export function ResultsVisualization({
         return (
           <DocumentExplorerTab
             projectDetail={projectDetail}
-            viewMode={viewMode}
             readOnly={readOnly}
             onNavigateToAnalyses={() => setActiveTab('analyses')}
           />
@@ -100,10 +92,6 @@ export function ResultsVisualization({
         );
     }
   };
-
-  const isDoclingAvailable = !!(
-    documentProcessing?.state?.file?.docling_pages && chunkSplitting?.state?.chunk_to_items?.mapping
-  );
 
   return (
     <ProjectFeedbackProvider projectId={readOnly ? undefined : projectDetail.project.id}>
@@ -159,13 +147,6 @@ export function ResultsVisualization({
           </Tabs>
 
           <div className="flex items-center gap-1">
-            {activeTab === 'document-explorer' && (
-              <ViewModeToggle
-                onViewModeChange={onViewModeChange}
-                viewMode={viewMode}
-                isDoclingAvailable={isDoclingAvailable}
-              />
-            )}
             {readOnly && (
               <Badge variant="secondary" className="text-xs">
                 Read-only view

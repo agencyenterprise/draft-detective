@@ -1,7 +1,6 @@
 'use client';
 
 import { useChunkHashNavigation } from '@/lib/chunk-ids';
-import { DocRenderMode } from '@/lib/constants';
 import { Issue, ProjectDetailed, WorkflowRunType } from '@/lib/generated-api';
 import { getFilteredIssues, getVisibleIssues, useDocumentExplorerStore } from '@/lib/stores/document-explorer-store';
 import {
@@ -12,20 +11,17 @@ import {
 } from '@/lib/workflow-state';
 import { AlertTriangleIcon, Loader2 } from 'lucide-react';
 import { useCallback, useMemo, useRef } from 'react';
-import { DoclingViewer } from '../components/docling-viewer';
 import { DocumentExplorerSidebar, DocumentExplorerSidebarHandle } from '../components/document-explorer-sidebar';
 import { DocumentReconstructor } from '../components/document-reconstructor';
 
 interface DocumentExplorerTabProps {
   projectDetail: ProjectDetailed;
-  viewMode: DocRenderMode;
   readOnly?: boolean;
   onNavigateToAnalyses: () => void;
 }
 
 export function DocumentExplorerTab({
   projectDetail,
-  viewMode,
   readOnly = false,
   onNavigateToAnalyses,
 }: DocumentExplorerTabProps) {
@@ -68,17 +64,8 @@ export function DocumentExplorerTab({
     [clearChunkSelection, toggleChunk],
   );
 
-  const pages = documentProcessing?.state?.file?.docling_pages ?? [];
-  const chunkToItems = chunkSplitting?.state?.chunk_to_items?.mapping ?? {};
-  const workflowRunId = chunkSplitting?.run.id || documentProcessing?.run.id;
-  const pageImagesBaseUrl = workflowRunId ? `/api/images/${workflowRunId}` : null;
-
   const workflowErrors = useMemo(() => getWorkflowErrors(workflowDetails), [workflowDetails]);
   const hasChunks = useMemo(() => chunks.length > 0, [chunks]);
-
-  const isDoclingAvailable = Boolean(
-    pages && pages.length > 0 && Object.keys(chunkToItems).length > 0 && pageImagesBaseUrl,
-  );
   const { visibleIssues, resolvedCount } = useMemo(
     () => getVisibleIssues(issues, showResolved, selectedChunkIndices),
     [issues, showResolved, selectedChunkIndices],
@@ -150,32 +137,13 @@ export function DocumentExplorerTab({
 
       <div className="grid grid-cols-12 flex-1 min-h-0">
         <div className="col-span-7 leading-relaxed text-sm overflow-hidden flex flex-col">
-          {/* Document Viewer */}
           <div className="flex-1 overflow-hidden">
-            {(() => {
-              const shouldRenderDocling = viewMode === 'docling' && isDoclingAvailable;
-
-              if (shouldRenderDocling && pageImagesBaseUrl) {
-                return (
-                  <DoclingViewer
-                    pages={pages}
-                    chunkToItems={chunkToItems}
-                    pageImagesBaseUrl={pageImagesBaseUrl}
-                    selectedChunkIndices={selectedChunkIndices}
-                    onChunkSelect={handleChunkSelect}
-                  />
-                );
-              }
-
-              return (
-                <DocumentReconstructor
-                  chunks={chunks}
-                  issues={visibleIssues}
-                  selectedChunkIndices={selectedChunkIndices}
-                  onChunkSelect={handleChunkSelect}
-                />
-              );
-            })()}
+            <DocumentReconstructor
+              chunks={chunks}
+              issues={visibleIssues}
+              selectedChunkIndices={selectedChunkIndices}
+              onChunkSelect={handleChunkSelect}
+            />
           </div>
         </div>
 
