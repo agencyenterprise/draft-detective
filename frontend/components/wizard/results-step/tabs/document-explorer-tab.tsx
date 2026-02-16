@@ -2,7 +2,8 @@
 
 import { useChunkHashNavigation } from '@/lib/chunk-ids';
 import { DocRenderMode } from '@/lib/constants';
-import { DocumentIssue, ProjectDetailed, SeverityEnum, WorkflowRunType } from '@/lib/generated-api';
+import { Issue, ProjectDetailed, SeverityEnum, WorkflowRunType } from '@/lib/generated-api';
+import { isIssueResolved } from '@/lib/severity';
 import {
   getWorkflowErrors,
   getWorkflowRunByType,
@@ -25,6 +26,8 @@ interface DocumentExplorerTabProps {
   onSeverityFilterChange: (value: SeverityEnum[]) => void;
   workflowTypeFilter: WorkflowRunType[];
   onWorkflowTypeFilterChange: (value: WorkflowRunType[]) => void;
+  showResolved: boolean;
+  onShowResolvedChange: (value: boolean) => void;
   onNavigateToAnalyses: () => void;
 }
 
@@ -36,6 +39,8 @@ export function DocumentExplorerTab({
   onSeverityFilterChange,
   workflowTypeFilter,
   onWorkflowTypeFilterChange,
+  showResolved,
+  onShowResolvedChange,
   onNavigateToAnalyses,
 }: DocumentExplorerTabProps) {
   const workflowDetails = useMemo(() => projectDetail.workflow_runs ?? [], [projectDetail.workflow_runs]);
@@ -71,18 +76,26 @@ export function DocumentExplorerTab({
 
   const pages = documentProcessing?.state?.file?.docling_pages ?? [];
   const chunkToItems = chunkSplitting?.state?.chunk_to_items?.mapping ?? {};
-  const pageImagesBaseUrl = `/api/images/${chunkSplitting?.run.id ?? documentProcessing?.run.id}`;
+  const workflowRunId = chunkSplitting?.run.id || documentProcessing?.run.id;
+  const pageImagesBaseUrl = workflowRunId ? `/api/images/${workflowRunId}` : null;
 
   const workflowErrors = useMemo(() => getWorkflowErrors(workflowDetails), [workflowDetails]);
   const hasChunks = useMemo(() => chunks.length > 0, [chunks]);
 
-  const isDoclingAvailable = Boolean(pages && pages.length > 0 && Object.keys(chunkToItems).length > 0);
+  const isDoclingAvailable = Boolean(
+    pages && pages.length > 0 && Object.keys(chunkToItems).length > 0 && pageImagesBaseUrl,
+  );
   const filteredIssues = useMemo(
     () => filterIssuesByWorkflowType(filterIssuesBySeverity(issues, severityFilter), workflowTypeFilter),
     [issues, severityFilter, workflowTypeFilter],
   );
 
-  const handleSelectIssue = useCallback((issue: DocumentIssue) => {
+  const visibleIssues = useMemo(
+    () => (showResolved ? filteredIssues : filteredIssues.filter((issue) => !isIssueResolved(issue))),
+    [filteredIssues, showResolved],
+  );
+
+  const handleSelectIssue = useCallback((issue: Issue) => {
     if (issue.chunk_index !== undefined && issue.chunk_index !== null) {
       setSelectedChunkIndices([issue.chunk_index]);
       sidebarRef.current?.scrollToIssue(issue);
@@ -149,7 +162,7 @@ export function DocumentExplorerTab({
             {(() => {
               const shouldRenderDocling = viewMode === 'docling' && isDoclingAvailable;
 
-              if (shouldRenderDocling) {
+              if (shouldRenderDocling && pageImagesBaseUrl) {
                 return (
                   <DoclingViewer
                     pages={pages}
@@ -164,7 +177,7 @@ export function DocumentExplorerTab({
               return (
                 <DocumentReconstructor
                   chunks={chunks}
-                  issues={filteredIssues}
+                  issues={visibleIssues}
                   selectedChunkIndices={selectedChunkIndices}
                   onChunkSelect={handleChunkSelect}
                 />
@@ -183,6 +196,8 @@ export function DocumentExplorerTab({
           onSeverityFilterChange={onSeverityFilterChange}
           workflowTypeFilter={workflowTypeFilter}
           onWorkflowTypeFilterChange={onWorkflowTypeFilterChange}
+          showResolved={showResolved}
+          onShowResolvedChange={onShowResolvedChange}
           projectDetail={projectDetail}
           readOnly={readOnly}
           onSelectIssue={handleSelectIssue}

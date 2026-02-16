@@ -4,13 +4,13 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { DocumentIssue, WorkflowRunType } from '@/lib/generated-api';
+import { Issue, WorkflowRunType } from '@/lib/generated-api';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { FilterIcon } from 'lucide-react';
 import { useMemo } from 'react';
 
 interface WorkflowTypeFilterProps {
-  issues: DocumentIssue[];
+  issues: Issue[];
   value: WorkflowRunType[];
   onChange: (value: WorkflowRunType[]) => void;
 }
@@ -25,8 +25,8 @@ export function WorkflowTypeFilter({ issues, value, onChange }: WorkflowTypeFilt
   const workflowTypeOptions = useMemo(() => {
     const typeCounts = new Map<WorkflowRunType, number>();
     for (const issue of issues) {
-      if (issue.type) {
-        typeCounts.set(issue.type, (typeCounts.get(issue.type) ?? 0) + 1);
+      if (issue.workflow_type) {
+        typeCounts.set(issue.workflow_type, (typeCounts.get(issue.workflow_type) ?? 0) + 1);
       }
     }
 
@@ -56,7 +56,12 @@ export function WorkflowTypeFilter({ issues, value, onChange }: WorkflowTypeFilt
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="outline" size="sm" className="h-6 px-2 text-xs gap-1 flex items-center">
+        <Button
+          variant="outline"
+          size="sm"
+          title="Filter by analysis type"
+          className="h-6 px-2 text-xs gap-1 flex items-center"
+        >
           <FilterIcon className="size-3.5" />
           <span>Type</span>
           {activeCount > 0 && (
@@ -81,7 +86,7 @@ export function WorkflowTypeFilter({ issues, value, onChange }: WorkflowTypeFilt
           ))}
           {activeCount > 0 && (
             <Button variant="ghost" size="sm" className="w-full h-7 text-xs mt-1" onClick={() => onChange([])}>
-              Clear filters
+              Clear
             </Button>
           )}
         </div>
@@ -90,8 +95,8 @@ export function WorkflowTypeFilter({ issues, value, onChange }: WorkflowTypeFilt
   );
 }
 
-export function filterIssuesByWorkflowType(issues: DocumentIssue[], workflowTypes: WorkflowRunType[]): DocumentIssue[] {
+export function filterIssuesByWorkflowType(issues: Issue[], workflowTypes: WorkflowRunType[]): Issue[] {
   if (workflowTypes.length === 0) return issues;
   const typeSet = new Set(workflowTypes);
-  return issues.filter((issue) => issue.type && typeSet.has(issue.type));
+  return issues.filter((issue) => issue.workflow_type && typeSet.has(issue.workflow_type));
 }

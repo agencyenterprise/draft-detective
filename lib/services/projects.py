@@ -1,5 +1,6 @@
 from datetime import date
 import logging
+import uuid
 from collections import defaultdict
 from typing import List, Optional
 
@@ -9,16 +10,18 @@ from sqlalchemy import select, update
 from sqlmodel import col
 
 from lib.config.database import get_async_db_session
+from lib.models.feedback import FeedbackType
 from lib.models.file import File, FileListItem
+from lib.models.issue import Issue
 from lib.models.project import Project
 from lib.models.user import User
 from lib.models.workflow_run import WorkflowRun
 from lib.services.files import delete_project_files, get_project_files_list_items
-from lib.services.issues import convert_to_issues
+from lib.services.issue_persistence import get_project_issues
 from lib.services.share_links import is_project_shared
 from lib.services.workflow_runs import WorkflowRunDetail, get_project_workflow_runs
 from lib.workflows.checkpointer import get_checkpointer
-from lib.workflows.models import DocumentIssue, WorkflowRunType
+from lib.workflows.models import WorkflowRunType
 
 logger = logging.getLogger(__name__)
 
@@ -31,19 +34,35 @@ class ProjectListItem(BaseModel):
     )
 
 
+class FeedbackSummary(BaseModel):
+    """Lightweight feedback representation for project detail responses."""
+
+    id: str
+    workflow_run_id: str
+    entity_path: dict
+    feedback_type: FeedbackType
+    feedback_text: Optional[str] = None
+    created_at: str
+    updated_at: str
+
+
 class ProjectDetailed(BaseModel):
     project: Project
     workflow_runs: List[WorkflowRunDetail] = Field(
         default_factory=list,
         description="The workflow runs for the project",
     )
-    issues: List[DocumentIssue] = Field(
+    issues: List[Issue] = Field(
         default_factory=list,
-        description="The issues for the project, converted from the workflow results states",
+        description="The persisted issues for the project",
     )
     files: List[FileListItem] = Field(
         default_factory=list,
         description="The files associated with the project",
+    )
+    feedbacks: List[FeedbackSummary] = Field(
+        default_factory=list,
+        description="All user feedback for this project's workflow runs",
     )
 
 
@@ -116,7 +135,9 @@ async def _get_project_by_id(project_id: str) -> Project | None:
 
 
 async def get_project_detailed_from_project(
-    project: Project, include_internal: bool = False
+    project: Project,
+    include_internal: bool = False,
+    user: Optional[User] = None,
 ) -> ProjectDetailed:
     """
     Get detailed project information with workflow runs.
@@ -124,7 +145,10 @@ async def get_project_detailed_from_project(
     Args:
         project: The project to get details for
         include_internal: If True, include internal workflows in the response
+        user: If provided, load all feedback for this user on the project
     """
+    from lib.services import feedback_service
+
     workflow_runs = await get_project_workflow_runs(
         project.id, include_internal=include_internal
     )
@@ -137,12 +161,34 @@ async def get_project_detailed_from_project(
             for supporting_file in run.state.supporting_files:
                 supporting_file.markdown = None
 
-    states = [run.state for run in workflow_runs if run.state is not None]
+    # Query persisted issues from the database (faster than computing from state)
+    issues = await get_project_issues(uuid.UUID(str(project.id)))
+
+    feedbacks: list[FeedbackSummary] = []
+    if user is not None:
+        async with get_async_db_session() as session:
+            feedback_models = await feedback_service.get_project_feedbacks(
+                session=session, project_id=project.id, user=user
+            )
+            feedbacks = [
+                FeedbackSummary(
+                    id=str(f.id),
+                    workflow_run_id=str(f.workflow_run_id),
+                    entity_path=f.entity_path,
+                    feedback_type=f.feedback_type,
+                    feedback_text=f.feedback_text,
+                    created_at=f.created_at.isoformat(),
+                    updated_at=f.updated_at.isoformat(),
+                )
+                for f in feedback_models
+            ]
+
     return ProjectDetailed(
         project=project,
         workflow_runs=workflow_runs,
-        issues=convert_to_issues(states),
+        issues=list(issues),
         files=await get_project_files_list_items(project.id),
+        feedbacks=feedbacks,
     )
 
 

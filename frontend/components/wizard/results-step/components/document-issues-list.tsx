@@ -1,19 +1,21 @@
-import { DocumentIssue, WorkflowRunDetail } from '@/lib/generated-api';
+import { Issue } from '@/lib/generated-api';
 import { DocumentIssueCard } from './document-issue-card';
 
 interface DocumentIssuesListProps {
-  issues: DocumentIssue[];
+  issues: Issue[];
   hideJumpToChunk?: boolean;
-  onSelect: (issue: DocumentIssue) => void;
-  workflowRuns?: WorkflowRunDetail[];
+  jumpToAlias?: string;
+  hideJumpToChunkIndex?: boolean;
+  onSelect: (issue: Issue) => void;
   readOnly?: boolean;
 }
 
 export function DocumentIssuesList({
   issues,
   hideJumpToChunk = false,
+  jumpToAlias,
+  hideJumpToChunkIndex,
   onSelect,
-  workflowRuns,
   readOnly,
 }: DocumentIssuesListProps) {
   return (
@@ -23,8 +25,9 @@ export function DocumentIssuesList({
           key={issue.id}
           issue={issue}
           hideJumpToChunk={hideJumpToChunk}
+          jumpToAlias={jumpToAlias}
+          hideJumpToChunkIndex={hideJumpToChunkIndex}
           onSelect={onSelect}
-          workflowRuns={workflowRuns}
           readOnly={readOnly}
         />
       ))}

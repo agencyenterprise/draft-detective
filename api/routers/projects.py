@@ -87,7 +87,7 @@ async def get_project_endpoint(
 
     project = await check_project_access(project_id, current_user, share_token)
     project_detailed = await get_project_detailed_from_project(
-        project, include_internal=include_internal
+        project, include_internal=include_internal, user=current_user
     )
     return project_detailed
 
