@@ -20,7 +20,6 @@ from lib.workflows.claim_reference_validation.reference_providers import (
 from lib.workflows.claim_reference_validation.state import ClaimReferenceValidationState
 from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
-from lib.workflows.models import ClaimExtractionVersion
 
 logger = logging.getLogger(__name__)
 
@@ -29,20 +28,13 @@ def _needs_substantiation(
     chunks: List[AnalyzedChunk],
     chunk: AnalyzedChunk,
     claim_index: int,
-    claim_extraction_version: ClaimExtractionVersion = ClaimExtractionVersion.V1,
 ) -> bool:
     """
-    Check if a claim needs substantiation.
+    Check if a claim needs substantiation (V2 logic).
 
-    For v1:
-        A claim needs substantiation if:
-        1. It has citations in the paragraph that includes the chunk; AND
-        2. It needs external verification (from categorizer, or all claims if no categorization)
-
-    For v2:
-        A claim needs substantiation if:
-        1. It has citations in the paragraph that includes the chunk; AND
-        2. The claim-level needs_external_verification flag is set (or True if flag is missing)
+    A claim needs substantiation if:
+    1. It has citations in the paragraph that includes the chunk; AND
+    2. The claim-level needs_external_verification flag is set (or True if flag is missing)
     """
 
     paragraph_citations = get_all_paragraph_citations(chunks, chunk)
@@ -50,28 +42,13 @@ def _needs_substantiation(
         # If there's no citations in the paragraph, skip verification since there's no document to verify against
         return False
 
-    if claim_extraction_version == ClaimExtractionVersion.V2:
-        # V2: use claim-level verification signal
-        if chunk.claims is None or claim_index >= len(chunk.claims.claims):
-            return True
-        claim = chunk.claims.claims[claim_index]
-        if claim.needs_external_verification is None:
-            # Safety fallback: if flag not set, verify
-            return True
-        return claim.needs_external_verification
-
-    # V1: use category-driven logic
-    claim_category = next(
-        (c for c in chunk.claim_categories if c.claim_index == claim_index),
-        None,
-    )
-
-    if not claim_category:
-        # In case categorization didn't happen, force verification (consider all claims need external verification)
+    if chunk.claims is None or claim_index >= len(chunk.claims.claims):
         return True
-
-    # If the claim needs external verification, verify it
-    return claim_category.needs_external_verification
+    claim = chunk.claims.claims[claim_index]
+    if claim.needs_external_verification is None:
+        # Safety fallback: if flag not set, verify
+        return True
+    return claim.needs_external_verification
 
 
 async def _verify_chunk_claims_with_provider(
@@ -97,14 +74,11 @@ async def _verify_chunk_claims_with_provider(
         logger.debug(f"Chunk {chunk.chunk_index} has no claims")
         return []
 
-    claim_extraction_version = state.config.claim_extraction_version
     substantiations = []
 
     for claim_index, claim in enumerate(chunk.claims.claims):
 
-        if not _needs_substantiation(
-            chunks, chunk, claim_index, claim_extraction_version
-        ):
+        if not _needs_substantiation(chunks, chunk, claim_index):
             logger.debug(
                 f"Chunk {chunk.chunk_index} claim {claim_index} does not need external verification, skipping verification"
             )
