@@ -481,30 +481,6 @@ export type AuthorValidationResult = {
 };
 
 /**
- * BBox
- *
- * Docling bounding box format (bottom-left origin, PDF standard)
- */
-export type BBox = {
-  /**
-   * L
-   */
-  l: number;
-  /**
-   * B
-   */
-  b: number;
-  /**
-   * R
-   */
-  r: number;
-  /**
-   * T
-   */
-  t: number;
-};
-
-/**
  * BibliographyFieldValidation
  */
 export type BibliographyFieldValidation = {
@@ -732,10 +708,6 @@ export type ChunkSplittingState = {
    * Document chunks from main document
    */
   chunks?: Array<DocumentChunk>;
-  /**
-   * Mapping from chunk indices to Docling items/regions for rendering
-   */
-  chunk_to_items?: ChunkToItems | null;
 };
 
 /**
@@ -778,24 +750,6 @@ export type ChunkSplittingWorkflowConfig = {
    * Type
    */
   type?: 'chunk_splitting';
-};
-
-/**
- * ChunkToItems
- *
- * Mapping from chunk indices to document items/regions
- *
- * Keys are string chunk indices, values are lists of regions
- */
-export type ChunkToItems = {
-  /**
-   * Mapping
-   *
-   * Maps chunk_index (as string) to list of regions
-   */
-  mapping?: {
-    [key: string]: Array<DoclingRegion>;
-  };
 };
 
 /**
@@ -1493,65 +1447,6 @@ export type CreateProjectRequest = {
    * Title
    */
   title: string;
-};
-
-/**
- * DoclingDocument
- *
- * Raw Docling json_content passed through to frontend
- *
- * We don't parse/transform - just pass the structure as-is.
- * Frontend will handle the Docling format directly.
- *
- * All fields from Docling's json_content are stored in __pydantic_extra__
- * and serialized properly.
- */
-export type DoclingDocument = {
-  [key: string]: unknown;
-};
-
-/**
- * DoclingPageInfo
- *
- * Minimal page info for frontend rendering
- *
- * Only includes the fields actually used by the frontend.
- * Note: Docling documents may use either 'page' or 'page_no' field.
- */
-export type DoclingPageInfo = {
-  /**
-   * Page
-   */
-  page?: number | null;
-  /**
-   * Page No
-   */
-  page_no?: number | null;
-  /**
-   * Width
-   */
-  width?: number | null;
-  /**
-   * Height
-   */
-  height?: number | null;
-};
-
-/**
- * DoclingRegion
- *
- * Region mapping for frontend overlay
- */
-export type DoclingRegion = {
-  /**
-   * Id
-   */
-  id: string;
-  /**
-   * Page
-   */
-  page: number;
-  bbox: BBox;
 };
 
 /**
@@ -2327,16 +2222,6 @@ export type FileDocument = {
    * The UUID of the file record in the database
    */
   file_id: string;
-  /**
-   * Full Docling document for internal processing (chunk mapping, etc.)
-   */
-  docling_document?: DoclingDocument | null;
-  /**
-   * Docling Pages
-   *
-   * Computed from docling_document for API responses
-   */
-  readonly docling_pages: Array<DoclingPageInfo> | null;
 };
 
 /**
@@ -5123,128 +5008,6 @@ export type WorkflowTypeDescription = {
 };
 
 /**
- * DoclingDocument
- *
- * Raw Docling json_content passed through to frontend
- *
- * We don't parse/transform - just pass the structure as-is.
- * Frontend will handle the Docling format directly.
- *
- * All fields from Docling's json_content are stored in __pydantic_extra__
- * and serialized properly.
- */
-export type DoclingDocumentWritable = {
-  [key: string]: unknown;
-};
-
-/**
- * DocumentProcessingState
- *
- * State for document processing workflow.
- */
-export type DocumentProcessingStateWritable = {
-  /**
-   * Errors
-   *
-   * Errors that occurred during the workflow execution.
-   */
-  errors?: Array<WorkflowError>;
-  /**
-   * Type
-   */
-  type?: 'document_processing';
-  config: DocumentProcessingWorkflowConfig;
-  file: FileDocumentWritable;
-  /**
-   * Supporting Files
-   */
-  supporting_files?: Array<FileDocumentWritable> | null;
-};
-
-/**
- * FileDocument
- */
-export type FileDocumentWritable = {
-  /**
-   * File Name
-   *
-   * The original name of the uploaded file, as saved in the user file system
-   */
-  file_name: string;
-  /**
-   * File Path
-   *
-   * The path to the uploaded file, as saved in the file system
-   */
-  file_path: string;
-  /**
-   * Original File Path
-   *
-   * Path to the original file if it was converted (e.g., original .docx before PDF conversion)
-   */
-  original_file_path?: string | null;
-  /**
-   * File Type
-   *
-   * The MIME type of the uploaded file
-   */
-  file_type: string;
-  /**
-   * Markdown
-   *
-   * The uploaded file content converted to markdown
-   */
-  markdown: string;
-  /**
-   * Markdown Token Count
-   *
-   * The approximate number of tokens in the markdown content
-   */
-  markdown_token_count: number;
-  /**
-   * File Id
-   *
-   * The UUID of the file record in the database
-   */
-  file_id: string;
-  /**
-   * Full Docling document for internal processing (chunk mapping, etc.)
-   */
-  docling_document?: DoclingDocumentWritable | null;
-};
-
-/**
- * ProjectDetailed
- */
-export type ProjectDetailedWritable = {
-  project: Project;
-  /**
-   * Workflow Runs
-   *
-   * The workflow runs for the project
-   */
-  workflow_runs?: Array<WorkflowRunDetailWritable>;
-  /**
-   * Issues
-   *
-   * The persisted issues for the project
-   */
-  issues?: Array<Issue>;
-  /**
-   * Files
-   *
-   * The files associated with the project
-   */
-  files?: Array<FileListItem>;
-  /**
-   * Feedbacks
-   *
-   * All user feedback for this project's workflow runs
-   */
-  feedbacks?: Array<FeedbackSummary>;
-};
-
-/**
  * WorkflowProgressResponse
  *
  * Response model for workflow progress entries.
@@ -5287,41 +5050,6 @@ export type WorkflowProgressResponseWritable = {
    * Updated At
    */
   updated_at: Date;
-};
-
-/**
- * WorkflowRunDetail
- */
-export type WorkflowRunDetailWritable = {
-  run: WorkflowRun;
-  /**
-   * State
-   */
-  state:
-    | AboutAuthorsState
-    | AboutThisState
-    | AdvocacyToneState
-    | DocumentProcessingStateWritable
-    | ChunkSplittingState
-    | DocumentSummarizationState
-    | ReferenceExtractionState
-    | ReferenceFileMatchingState
-    | FootnoteExtractionState
-    | ClaimExtractionState
-    | ClaimReferenceValidationState
-    | CitationDetectionState
-    | AbbreviationScanState
-    | MethodologicalAlignmentState
-    | ReferenceDownloaderState
-    | LiteratureReviewState
-    | LiveReportsState
-    | ReferenceValidationState
-    | CitationSuggesterState
-    | ResultsExtractionState
-    | InferenceValidationState
-    | InferenceValidationV2State
-    | HumanApprovalState
-    | null;
 };
 
 export type ReadHealthApiHealthGetData = {
@@ -5592,39 +5320,6 @@ export type GetWorkflowStateApiWorkflowsWorkflowRunIdGetResponses = {
 
 export type GetWorkflowStateApiWorkflowsWorkflowRunIdGetResponse =
   GetWorkflowStateApiWorkflowsWorkflowRunIdGetResponses[keyof GetWorkflowStateApiWorkflowsWorkflowRunIdGetResponses];
-
-export type GetPageImageApiWorkflowRunsWorkflowRunIdPagesPageNumGetData = {
-  body?: never;
-  path: {
-    /**
-     * Workflow Run Id
-     */
-    workflow_run_id: string;
-    /**
-     * Page Num
-     */
-    page_num: number;
-  };
-  query?: never;
-  url: '/api/workflow-runs/{workflow_run_id}/pages/{page_num}';
-};
-
-export type GetPageImageApiWorkflowRunsWorkflowRunIdPagesPageNumGetErrors = {
-  /**
-   * Validation Error
-   */
-  422: HttpValidationError;
-};
-
-export type GetPageImageApiWorkflowRunsWorkflowRunIdPagesPageNumGetError =
-  GetPageImageApiWorkflowRunsWorkflowRunIdPagesPageNumGetErrors[keyof GetPageImageApiWorkflowRunsWorkflowRunIdPagesPageNumGetErrors];
-
-export type GetPageImageApiWorkflowRunsWorkflowRunIdPagesPageNumGetResponses = {
-  /**
-   * Successful Response
-   */
-  200: unknown;
-};
 
 export type ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostData = {
   body?: never;

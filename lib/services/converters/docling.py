@@ -1,8 +1,6 @@
 import logging
 import mimetypes
 import os
-from pathlib import Path
-from typing import Optional
 
 import aiofiles
 import backoff
@@ -10,8 +8,6 @@ import httpx
 
 from lib.config.env import config
 from lib.services.converters.base import FileConverterProtocol
-from lib.services.converters.docling_zip_processor import docling_zip_processor
-from lib.services.docling_models import DoclingDocument
 
 logger = logging.getLogger(__name__)
 
@@ -59,22 +55,8 @@ class DoclingFileConverter(FileConverterProtocol):
         self.api_key = config.DOCLING_SERVE_API_KEY
 
     async def convert_to_markdown(self, file_path: str) -> str:
-        """Convert file to markdown only (for supporting files)"""
-        result = await self.convert_with_docling(file_path, simple_mode=True)
-        return result["markdown"]
-
-    async def convert_with_docling(
-        self, file_path: str, simple_mode: bool = False
-    ) -> dict[str, str | Optional[DoclingDocument]]:
         """
-        Convert file using docling-serve.
-
-        Args:
-            file_path: Path to file
-            simple_mode: If True, return markdown only. If False, include structured data.
-
-        Returns:
-            dict with 'markdown' and 'docling_document' keys
+        Convert file to markdown using docling-serve.
 
         Raises:
             DoclingConversionError: When conversion fails
@@ -83,21 +65,20 @@ class DoclingFileConverter(FileConverterProtocol):
         filename = os.path.basename(file_path)
         timeout_minutes = self._calculate_timeout(file_path)
 
-        logger.info(
-            f"Converting '{filename}' (timeout: {timeout_minutes}m, simple: {simple_mode})"
-        )
+        logger.info(f"Converting '{filename}' (timeout: {timeout_minutes}m)")
 
         async with self._create_client(timeout_minutes) as client:
-            task_id = await self._submit_task(client, file_path, simple_mode)
+            task_id = await self._submit_task(client, file_path)
             logger.info(f"Task {task_id} created for '{filename}'")
 
             await self._poll_until_complete(client, task_id, filename, timeout_minutes)
 
             response = await self._fetch_result(client, task_id)
-            result = self._process_result(response, file_path, simple_mode)
+            data = response.json()
 
+        markdown = data.get("document", {}).get("md_content", "")
         logger.info(f"Successfully converted '{filename}'")
-        return result
+        return markdown
 
     def _calculate_timeout(self, file_path: str) -> int:
         """
@@ -122,38 +103,22 @@ class DoclingFileConverter(FileConverterProtocol):
         )
         return httpx.AsyncClient(timeout=timeout)
 
-    def _build_conversion_params(self, simple_mode: bool) -> dict:
-        """Build docling API parameters based on mode"""
+    def _build_conversion_params(self) -> dict:
+        """Build docling API parameters for markdown conversion"""
         params = {**self.BASE_CONVERSION_PARAMS}
-
-        if simple_mode:
-            params.update(
-                {
-                    "to_formats": ["md"],
-                    "image_export_mode": "placeholder",
-                    "include_images": False,
-                }
-            )
-        else:
-            params.update(
-                {
-                    "to_formats": ["md", "json"],
-                    "image_export_mode": "referenced",
-                    "include_images": True,
-                    "ocr_engine": "auto",
-                    "ocr_lang": ["en"],
-                    "target_type": "zip",
-                }
-            )
-
+        params.update(
+            {
+                "to_formats": ["md"],
+                "image_export_mode": "placeholder",
+                "include_images": False,
+            }
+        )
         return params
 
-    async def _submit_task(
-        self, client: httpx.AsyncClient, file_path: str, simple_mode: bool
-    ) -> str:
+    async def _submit_task(self, client: httpx.AsyncClient, file_path: str) -> str:
         """Submit conversion task to docling-serve, return task_id"""
         filename = os.path.basename(file_path)
-        params = self._build_conversion_params(simple_mode)
+        params = self._build_conversion_params()
         file_type = mimetypes.guess_type(filename)[0] or "text/plain"
 
         async with aiofiles.open(file_path, "rb") as f:
@@ -234,31 +199,6 @@ class DoclingFileConverter(FileConverterProtocol):
             f"{self.base_url}/v1/result/{task_id}",
             headers={"X-Api-Key": self.api_key},
         )
-
-    def _process_result(
-        self, response: httpx.Response, file_path: str, simple_mode: bool
-    ) -> dict[str, str | Optional[DoclingDocument]]:
-        """Extract markdown and optionally docling document from result"""
-        if simple_mode:
-            data = response.json()
-            return {
-                "markdown": data.get("document", {}).get("md_content", ""),
-                "docling_document": None,
-            }
-
-        images_dir = self._get_images_dir(file_path)
-        result = docling_zip_processor.process_zip(response.content, images_dir)
-
-        docling_doc = None
-        if result["json_content"]:
-            docling_doc = DoclingDocument.from_json_content(result["json_content"])
-
-        return {"markdown": result["markdown"], "docling_document": docling_doc}
-
-    def _get_images_dir(self, file_path: str) -> Path:
-        """Get directory for extracted images (based on file hash)"""
-        file_id = os.path.splitext(os.path.basename(file_path))[0]
-        return Path(config.FILE_UPLOADS_MOUNT_PATH) / "docling_images" / file_id
 
 
 docling_converter = DoclingFileConverter()
