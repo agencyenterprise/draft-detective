@@ -20,8 +20,8 @@ class ClaimExtractionV2Manifest(
     name = "Claim Extraction (v2)"
     description = "Extract claims from documents using paragraph-group based extraction"
     needs_web_search = False
-    can_be_triggered_by_user = True  # This is a dependency workflow
-    is_internal = False
+    can_be_triggered_by_user = False  # This is a dependency workflow
+    is_internal = True
     required_dependencies = [
         WorkflowRunType.CHUNK_SPLITTING,
         WorkflowRunType.DOCUMENT_SUMMARIZATION,
