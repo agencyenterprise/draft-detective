@@ -4,7 +4,8 @@ from typing import List, Optional
 
 from lib.models.workflow_run import WorkflowRunStatus
 from lib.services.workflow_runs import get_project_workflow_run_by_type
-from lib.workflows.models import WorkflowRunType
+from lib.workflows.dependency_resolver import apply_dependency_substitutions
+from lib.workflows.models import ClaimExtractionVersion, WorkflowRunType
 from lib.workflows.registry import get_workflow_manifest
 
 logger = logging.getLogger(__name__)
@@ -17,6 +18,7 @@ async def wait_for_dependencies(
     workflow_type: WorkflowRunType,
     project_id: str,
     current_workflow_run_id: Optional[str] = None,
+    claim_extraction_version: Optional[ClaimExtractionVersion] = None,
 ) -> None:
     """
     Wait for all dependencies of a project workflow to complete.
@@ -32,8 +34,12 @@ async def wait_for_dependencies(
         current_workflow_run_id: If provided, enables same-type locking (skips self)
     """
     manifest = get_workflow_manifest(workflow_type)
-    required_dependencies = manifest.required_dependencies
-    optional_dependencies = manifest.optional_dependencies
+    required_dependencies = apply_dependency_substitutions(
+        manifest.required_dependencies, claim_extraction_version
+    )
+    optional_dependencies = apply_dependency_substitutions(
+        manifest.optional_dependencies, claim_extraction_version
+    )
     all_dependencies = required_dependencies + optional_dependencies
 
     # Check if we need to wait for anything
