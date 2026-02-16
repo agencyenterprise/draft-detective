@@ -6,7 +6,7 @@ from lib.agents.claim_categorizer import ClaimCategorizationResponseWithClaimInd
 from lib.agents.claim_extractor import ClaimResponseWithChunkIndex
 from lib.workflows.models import BaseWorkflowConfig, BaseWorkflowState, WorkflowRunType
 
-DEFAULT_PARAGRAPH_GROUP_WORD_LIMIT = 500
+DEFAULT_PARAGRAPH_GROUP_WORD_LIMIT = 1000
 
 
 class ClaimExtractionV2WorkflowConfig(BaseWorkflowConfig):
