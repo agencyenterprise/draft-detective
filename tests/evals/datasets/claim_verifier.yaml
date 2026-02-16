@@ -116,9 +116,9 @@ dataset:
         claim: "AI data center grid loads for training and inference may exceed the capacity of additions to the U.S. power grid, and this possibility is a source of concern."
       expected_output:
         key_sentence: "Anticipated growth in artificial intelligence (AI) development requires the buildout of additional power capacity at an exceptional scale and speed. There is concern that the necessary grid loads to power future AI data centers for training and inference activities may exceed the capacity of additions to the U.S. power grid.[[18]](#footnote-18)"
-        rationale: "NERC’s 2024 Long-Term Reliability Assessment explicitly flags rapid demand growth from large loads including data centers (crypto and AI) and notes that new resource additions are lagging behind what is needed, creating mounting resource adequacy risks and potential supply shortfalls. It states that the size and speed of data centers connecting to the grid present unique challenges, and that less overall (especially dispatchable) capacity is being added than projected and needed to meet future demand. RAND (Pilz et al., 2025) directly states that finding adequate power grid capacity is already a challenge for AI data centers and that it is not certain the U.S. is adding power quickly enough to accommodate AI data center demand, with evidence of increasing difficulty securing sufficient grid capacity. Together, these sources substantiate the concern that future AI data center loads for training and inference may exceed the capacity of grid additions."
-        feedback: "No changes needed."
-        evidence_alignment: "supported"
+        rationale: "The cited materials support the general concern that AI data center electricity demand is straining or may outpace available grid/power capacity additions, but they do not cleanly match the paragraph’s specific framing that these loads “may exceed the capacity of additions to the U.S. power grid” (i.e., explicitly comparing AI loads to “additions” to the grid). ref4 states it is uncertain the U.S. is adding power quickly enough to accommodate AI data center demand and describes difficulty finding adequate grid capacity; ref3 discusses rapidly connecting large loads (including AI data centers) and associated planning/reliability concerns. Together, these substantiate concern about AI loads vs. available capacity, but not the exact “exceed additions” comparison in the claim."
+        feedback: "To make this fully supported, add a source that explicitly compares projected AI data center load growth against projected U.S. grid (generation/transmission) capacity additions and states that AI loads may exceed those additions, or rephrase the claim to match the sources (e.g., “may outpace available grid capacity / power additions”)."
+        evidence_alignment: "partially_supported"
         evidence_sources: []
 
     - name: "substantiation_power_capacity_claim_footnote_22_claim_1"
@@ -161,9 +161,9 @@ dataset:
         claim: "U.S. additional AI data center power demand is estimated at 158–253 GW, conditional on a 50%–80% retention rate."
       expected_output:
         key_sentence: "- RAND projects that global AI data center power demand could reach 327 GW by 2030.[[22]](#footnote-22) For the United States alone, additional demand is estimated to be between 158 GW and 253 GW, assuming a retention rate of 50 percent to 80 percent."
-        rationale: "The RAND report projects global AI data center power demand of about 327 GW by 2030 and explicitly discusses estimating the U.S. share by assuming a retention percentage (e.g., 75% by 2027). Thus, the method of deriving a U.S. estimate from a retention rate is supported. However, the specific range 158–253 GW does not appear in the source and does not match 50%–80% of 327 GW (which would be ~164–262 GW). Therefore, while the approach is supported, the exact numbers in the claim are not."
-        feedback: "Consider aligning the numeric range with the direct calculation from RAND’s 327 GW (e.g., “roughly 165–262 GW”) or explicitly note it is a derived estimate from RAND’s global projection and a 50%–80% retention assumption. Otherwise, no major changes needed."
-        evidence_alignment: "partially_supported"
+        rationale: "In ref4.pdf, I can find discussion of U.S. AI data center power needs (e.g., an illustrative scenario of retaining 75% of AI compute requiring ~51 GW by 2027) and other U.S. capacity numbers (e.g., adding ~160 GW theoretical capacity between 2024 and 2028). However, ref4.pdf contains no mention of “158 GW”, “253 GW”, or a “retention rate of 50 percent to 80 percent” tied to a U.S. additional demand estimate. Therefore the specific 158–253 GW conditional on 50%–80% retention is not substantiated by the provided citation."
+        feedback: "Replace the citation with the RAND source section that explicitly states the 158–253 GW (and the 50%–80% retention assumption), or revise the claim to match the U.S. figures actually present in ref4.pdf (e.g., the ~51 GW by 2027 at ~75% retention scenario)."
+        evidence_alignment: "unsupported"
         evidence_sources: []
 
     - name: "substantiation_power_capacity_claim_footnote_22_claim_2_different_range"
@@ -176,9 +176,9 @@ dataset:
         claim: "U.S. additional AI data center power demand is estimated at 50-100 GW, conditional on a 50%–80% retention rate."
       expected_output:
         key_sentence: "- RAND projects that global AI data center power demand could reach 500 GW by 2030.[[22]](#footnote-22) For the United States alone, additional demand is estimated to be between 50 GW and 100 GW, assuming a retention rate of 50 percent to 80 percent."
-        rationale: "The cited RAND report discusses U.S. retention of AI compute and quantifies that retaining 75% would require about 51 GW by 2027, which is related to the claim’s concept (U.S. demand conditional on retention). However, the source does not provide the 50–100 GW range, nor does it tie that range to a 50%–80% retention rate or to the 2030 timeframe. Thus, it supports the lower-bound magnitude at a different date and retention point, but not the full stated range or timing."
-        feedback: "Clarify the timeframe (e.g., 2027 vs. 2030) and cite the exact RAND passage that provides the 50–100 GW range if it exists, or adjust the claim to match RAND’s stated figure (about 51 GW by 2027 at ~75% retention) or add additional sources that support the 50–100 GW estimate under 50–80% retention."
-        evidence_alignment: "partially_supported"
+        rationale: "In ref4.pdf, a related (but different) statement appears: it discusses a scenario where the U.S. retains a majority (example: 75%) of AI compute and would need to make about 51 GW available to AI data centers by 2027. The document excerpts retrieved do not substantiate an estimate of 50–100 GW additional U.S. demand tied to a 50%–80% retention rate (nor specifically by 2030)."
+        feedback: "Revise the claim to match the source (e.g., ~51 GW by 2027 at ~75% retention) or provide the specific RAND passage/table that states 50–100 GW at 50%–80% retention (and ideally the year)."
+        evidence_alignment: "unsupported"
         evidence_sources: []
 
     - name: "substantiation_geopolitics_of_agi_claim_1a"
@@ -191,9 +191,9 @@ dataset:
         claim: "AGI-driven robots can share characteristics of the loss-of-control risks associated with virtual, agentic AI."
       expected_output:
         key_sentence: "In many ways, AGI-driven robots can share characteristics of the “loss of control” risks inherent to virtual, agentic AI (Bengio, 2023)"
-        rationale: "Bengio (2023) explicitly analyzes loss-of-control risks arising from autonomous, goal-directed AI systems that act without humans in the loop, emphasizing misalignment and agency as the core hazards. He also discusses embodied systems—e.g., lethal autonomous weapons—as particularly dangerous and calls for their ban, showing that embodiment shares (and can amplify) the same loss-of-control characteristics seen in virtual agentic AI. Thus, the claim that AGI-driven robots can share loss-of-control risk characteristics with virtual, agentic AI is supported."
-        feedback: "No changes needed."
-        evidence_alignment: "supported"
+        rationale: "The cited Bengio (2023) source clearly discusses “dangerous loss of control of powerful AI systems” arising when an AI system can “autonomously act in the world,” and it defines “potentially rogue AI” as an autonomous system that could behave catastrophically harmfully. However, the source (as provided) does not specifically discuss robots or embodied/physical-world robots sharing characteristics with virtual agentic AI. Thus, it supports the general loss-of-control risk framing for autonomous/agentic AI, but not the specific linkage to AGI-driven robots."
+        feedback: "To make this fully supported, add a citation that explicitly connects loss-of-control/rogue-agent risks to embodied robots (or quote a section in Bengio (2023) that mentions physical-world/robotic embodiment, if present)."
+        evidence_alignment: "partially_supported"
         evidence_sources: []
 
     - name: "substantiation_geopolitics_of_agi_claim_1b"
@@ -236,7 +236,7 @@ dataset:
         claim: "AI models’ capabilities to take input and interact with the world in a generalized way are increasing."
       expected_output:
         key_sentence: "AI models are increasingly able to take input and interact with the world in a generalized way—although often with unexpected or harmful consequences (Zittrain, 2024)."
-        rationale: "Zittrain (2024) explicitly describes that large language model–powered agents can now take in information from the outside world and act on it across digital and physical domains, citing concrete examples (e.g., ordering a pizza via tool use, connecting GPTs to emails, databases, and e-commerce, and even spending money). This directly supports that AI models’ generalized interaction capabilities are growing. Additionally, Shavit et al. (2023), cited elsewhere in the same paragraph, states that researchers have recently begun developing increasingly agentic AI systems, reinforcing the “increasing” trend."
+        rationale: "The cited source (Zittrain, 2024) states that large language models can translate plain-language goals into executable computer instructions “across the digital and physical worlds at large,” and explains that generative-AI models can take in information from the outside world and affect it using tools (e.g., connecting to databases/emails, facilitating e-commerce). This substantiates the claim that capabilities to take input and interact with the world in a generalized way are increasing."
         feedback: "No changes needed."
         evidence_alignment: "supported"
         evidence_sources: []
