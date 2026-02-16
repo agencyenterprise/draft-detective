@@ -47,6 +47,13 @@ export function ClaimArgumentAnalysis({ claim, className }: ClaimArgumentAnalysi
         <div className="space-y-2">
           <LabeledValue label="Extracted Claim">{claim.claim}</LabeledValue>
           <LabeledValue label="Related text">{claim.text}</LabeledValue>
+          <LabeledValue label="Needs External Verification">
+            {claim.needs_external_verification === true
+              ? 'Yes'
+              : claim.needs_external_verification === false
+                ? 'No'
+                : 'Unknown'}
+          </LabeledValue>
           <LabeledValue label="Rationale">{claim.rationale}</LabeledValue>
         </div>
       )}
