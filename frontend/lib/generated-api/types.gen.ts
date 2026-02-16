@@ -110,10 +110,6 @@ export type AbbreviationScanWorkflowConfig = {
    */
   publication_date?: string | null;
   /**
-   * Which claim extraction pipeline to use (v1 or v2)
-   */
-  claim_extraction_version?: ClaimExtractionVersion;
-  /**
    * Type
    */
   type?: 'abbreviation_scan';
@@ -178,10 +174,6 @@ export type AboutAuthorsWorkflowConfig = {
    * Publication date of the document (YYYY-MM-DD format)
    */
   publication_date?: string | null;
-  /**
-   * Which claim extraction pipeline to use (v1 or v2)
-   */
-  claim_extraction_version?: ClaimExtractionVersion;
   /**
    * Type
    */
@@ -298,10 +290,6 @@ export type AboutThisWorkflowConfig = {
    */
   publication_date?: string | null;
   /**
-   * Which claim extraction pipeline to use (v1 or v2)
-   */
-  claim_extraction_version?: ClaimExtractionVersion;
-  /**
    * Type
    */
   type?: 'about_this';
@@ -367,10 +355,6 @@ export type AdvocacyToneWorkflowConfig = {
    */
   publication_date?: string | null;
   /**
-   * Which claim extraction pipeline to use (v1 or v2)
-   */
-  claim_extraction_version?: ClaimExtractionVersion;
-  /**
    * Type
    */
   type?: 'advocacy_tone';
@@ -402,7 +386,6 @@ export type AnalysisFormConfig = {
    * Workflow Types
    */
   workflow_types?: Array<WorkflowRunType> | null;
-  claim_extraction_version?: ClaimExtractionVersion;
 };
 
 /**
@@ -658,10 +641,6 @@ export type BodyStartAnalysisApiStartAnalysisPost = {
    * Workflow Types
    */
   workflow_types?: string | null;
-  /**
-   * Claim Extraction Version
-   */
-  claim_extraction_version?: string;
 };
 
 /**
@@ -796,10 +775,6 @@ export type ChunkSplittingWorkflowConfig = {
    */
   publication_date?: string | null;
   /**
-   * Which claim extraction pipeline to use (v1 or v2)
-   */
-  claim_extraction_version?: ClaimExtractionVersion;
-  /**
    * Type
    */
   type?: 'chunk_splitting';
@@ -905,10 +880,6 @@ export type CitationDetectionConfig = {
    * Publication date of the document (YYYY-MM-DD format)
    */
   publication_date?: string | null;
-  /**
-   * Which claim extraction pipeline to use (v1 or v2)
-   */
-  claim_extraction_version?: ClaimExtractionVersion;
   /**
    * Type
    */
@@ -1036,10 +1007,6 @@ export type CitationSuggesterWorkflowConfig = {
    * Publication date of the document (YYYY-MM-DD format)
    */
   publication_date?: string | null;
-  /**
-   * Which claim extraction pipeline to use (v1 or v2)
-   */
-  claim_extraction_version?: ClaimExtractionVersion;
   /**
    * Type
    */
@@ -1319,10 +1286,6 @@ export type ClaimExtractionV2WorkflowConfig = {
    */
   publication_date?: string | null;
   /**
-   * Which claim extraction pipeline to use (v1 or v2)
-   */
-  claim_extraction_version?: ClaimExtractionVersion;
-  /**
    * Type
    */
   type?: 'claim_extraction_v2';
@@ -1333,20 +1296,6 @@ export type ClaimExtractionV2WorkflowConfig = {
    */
   paragraph_group_word_limit?: number;
 };
-
-/**
- * ClaimExtractionVersion
- *
- * Version selector for claim extraction pipeline.
- */
-export const ClaimExtractionVersion = { V1: 'v1', V2: 'v2' } as const;
-
-/**
- * ClaimExtractionVersion
- *
- * Version selector for claim extraction pipeline.
- */
-export type ClaimExtractionVersion = (typeof ClaimExtractionVersion)[keyof typeof ClaimExtractionVersion];
 
 /**
  * ClaimExtractionWorkflowConfig
@@ -1384,10 +1333,6 @@ export type ClaimExtractionWorkflowConfig = {
    * Publication date of the document (YYYY-MM-DD format)
    */
   publication_date?: string | null;
-  /**
-   * Which claim extraction pipeline to use (v1 or v2)
-   */
-  claim_extraction_version?: ClaimExtractionVersion;
   /**
    * Type
    */
@@ -1527,10 +1472,6 @@ export type ClaimReferenceValidationWorkflowConfig = {
    * Publication date of the document (YYYY-MM-DD format)
    */
   publication_date?: string | null;
-  /**
-   * Which claim extraction pipeline to use (v1 or v2)
-   */
-  claim_extraction_version?: ClaimExtractionVersion;
   /**
    * Type
    */
@@ -1787,10 +1728,6 @@ export type DocumentProcessingWorkflowConfig = {
    */
   publication_date?: string | null;
   /**
-   * Which claim extraction pipeline to use (v1 or v2)
-   */
-  claim_extraction_version?: ClaimExtractionVersion;
-  /**
    * Type
    */
   type?: 'document_processing';
@@ -1953,10 +1890,6 @@ export type DocumentSummarizationWorkflowConfig = {
    * Publication date of the document (YYYY-MM-DD format)
    */
   publication_date?: string | null;
-  /**
-   * Which claim extraction pipeline to use (v1 or v2)
-   */
-  claim_extraction_version?: ClaimExtractionVersion;
   /**
    * Type
    */
@@ -2633,10 +2566,6 @@ export type FootnoteExtractionConfig = {
    */
   publication_date?: string | null;
   /**
-   * Which claim extraction pipeline to use (v1 or v2)
-   */
-  claim_extraction_version?: ClaimExtractionVersion;
-  /**
    * Type
    */
   type?: 'footnote_extraction';
@@ -2771,10 +2700,6 @@ export type HumanApprovalConfig = {
    * Publication date of the document (YYYY-MM-DD format)
    */
   publication_date?: string | null;
-  /**
-   * Which claim extraction pipeline to use (v1 or v2)
-   */
-  claim_extraction_version?: ClaimExtractionVersion;
   type?: WorkflowRunType;
 };
 
@@ -2996,10 +2921,6 @@ export type InferenceValidationV2WorkflowConfig = {
    */
   publication_date?: string | null;
   /**
-   * Which claim extraction pipeline to use (v1 or v2)
-   */
-  claim_extraction_version?: ClaimExtractionVersion;
-  /**
    * Type
    */
   type?: 'inference_validation_v2';
@@ -3041,10 +2962,6 @@ export type InferenceValidationWorkflowConfig = {
    * Publication date of the document (YYYY-MM-DD format)
    */
   publication_date?: string | null;
-  /**
-   * Which claim extraction pipeline to use (v1 or v2)
-   */
-  claim_extraction_version?: ClaimExtractionVersion;
   /**
    * Type
    */
@@ -3348,10 +3265,6 @@ export type LiteratureReviewWorkflowConfig = {
    */
   publication_date?: string | null;
   /**
-   * Which claim extraction pipeline to use (v1 or v2)
-   */
-  claim_extraction_version?: ClaimExtractionVersion;
-  /**
    * Type
    */
   type?: 'literature_review';
@@ -3429,10 +3342,6 @@ export type LiveReportsWorkflowConfig = {
    */
   publication_date?: string | null;
   /**
-   * Which claim extraction pipeline to use (v1 or v2)
-   */
-  claim_extraction_version?: ClaimExtractionVersion;
-  /**
    * Type
    */
   type?: 'live_reports';
@@ -3502,10 +3411,6 @@ export type MethodologicalAlignmentWorkflowConfig = {
    * Publication date of the document (YYYY-MM-DD format)
    */
   publication_date?: string | null;
-  /**
-   * Which claim extraction pipeline to use (v1 or v2)
-   */
-  claim_extraction_version?: ClaimExtractionVersion;
   /**
    * Type
    */
@@ -3970,10 +3875,6 @@ export type ReferenceDownloaderWorkflowConfig = {
    */
   publication_date?: string | null;
   /**
-   * Which claim extraction pipeline to use (v1 or v2)
-   */
-  claim_extraction_version?: ClaimExtractionVersion;
-  /**
    * Type
    */
   type?: 'reference_downloader';
@@ -4021,10 +3922,6 @@ export type ReferenceExtractionConfig = {
    * Publication date of the document (YYYY-MM-DD format)
    */
   publication_date?: string | null;
-  /**
-   * Which claim extraction pipeline to use (v1 or v2)
-   */
-  claim_extraction_version?: ClaimExtractionVersion;
   /**
    * Type
    */
@@ -4227,10 +4124,6 @@ export type ReferenceFileMatchingConfig = {
    * Publication date of the document (YYYY-MM-DD format)
    */
   publication_date?: string | null;
-  /**
-   * Which claim extraction pipeline to use (v1 or v2)
-   */
-  claim_extraction_version?: ClaimExtractionVersion;
   /**
    * Type
    */
@@ -4452,10 +4345,6 @@ export type ReferenceValidationWorkflowConfig = {
    * Publication date of the document (YYYY-MM-DD format)
    */
   publication_date?: string | null;
-  /**
-   * Which claim extraction pipeline to use (v1 or v2)
-   */
-  claim_extraction_version?: ClaimExtractionVersion;
   /**
    * Type
    */
@@ -4692,10 +4581,6 @@ export type ResultsExtractionWorkflowConfig = {
    */
   publication_date?: string | null;
   /**
-   * Which claim extraction pipeline to use (v1 or v2)
-   */
-  claim_extraction_version?: ClaimExtractionVersion;
-  /**
    * Type
    */
   type?: 'results_extraction';
@@ -4816,7 +4701,6 @@ export type StartMultipleWorkflowsRequest = {
    * Openai Api Key
    */
   openai_api_key?: string | null;
-  claim_extraction_version?: ClaimExtractionVersion;
 };
 
 /**
