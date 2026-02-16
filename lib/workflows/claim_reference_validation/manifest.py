@@ -15,7 +15,6 @@ from lib.workflows.claim_reference_validation.state import (
 from lib.workflows.document_processing.state import DocumentProcessingState
 from lib.workflows.manifest import WorkflowManifest
 from lib.workflows.models import (
-    ClaimExtractionVersion,
     DocumentIssue,
     SeverityEnum,
     WorkflowRunType,
@@ -166,8 +165,7 @@ class ClaimReferenceValidationManifest(
                 )
             )
 
-        # Claims needing external verification without citations
-        claim_version = state.config.claim_extraction_version
+        # Claims needing external verification without citations (V2 logic)
         for chunk in chunks:
             has_citations = (
                 chunk.citations
@@ -175,75 +173,37 @@ class ClaimReferenceValidationManifest(
                 and len(chunk.citations.citations) > 0
             )
 
-            if claim_version == ClaimExtractionVersion.V2:
-                # V2: use claim-level needs_external_verification flag
-                if not chunk.claims or not chunk.claims.claims:
+            if not chunk.claims or not chunk.claims.claims:
+                continue
+            for claim_index, claim in enumerate(chunk.claims.claims):
+                if not (claim.needs_external_verification is True):
                     continue
-                for claim_index, claim in enumerate(chunk.claims.claims):
-                    if not (claim.needs_external_verification is True):
-                        continue
-                    claim_verification = next(
-                        (
-                            s
-                            for s in state.substantiations
-                            if chunk.chunk_index == s.chunk_index
-                            and s.claim_index == claim_index
-                        ),
-                        None,
+                claim_verification = next(
+                    (
+                        s
+                        for s in state.substantiations
+                        if chunk.chunk_index == s.chunk_index
+                        and s.claim_index == claim_index
+                    ),
+                    None,
+                )
+                if not has_citations and (
+                    claim_verification is None
+                    or claim_verification.evidence_alignment
+                    != EvidenceAlignmentLevel.SUPPORTED
+                ):
+                    issues.append(
+                        DocumentIssue(
+                            title="Unsupported claim",
+                            description=(
+                                f'Claim requires external verification but no citations/references '
+                                f'were found or used: "{claim.claim}"'
+                            ),
+                            severity=SeverityEnum.MEDIUM,
+                            type=self.type,
+                            chunk_index=chunk.chunk_index,
+                            long_description=f"**Rationale:** {claim.rationale}",
+                        )
                     )
-                    if not has_citations and (
-                        claim_verification is None
-                        or claim_verification.evidence_alignment
-                        != EvidenceAlignmentLevel.SUPPORTED
-                    ):
-                        issues.append(
-                            DocumentIssue(
-                                title="Unsupported claim",
-                                description=(
-                                    f'Claim requires external verification but no citations/references '
-                                    f'were found or used: "{claim.claim}"'
-                                ),
-                                severity=SeverityEnum.MEDIUM,
-                                type=self.type,
-                                chunk_index=chunk.chunk_index,
-                                long_description=f"**Rationale:** {claim.rationale}",
-                            )
-                        )
-            else:
-                # V1: use category-based logic
-                if not chunk.claim_categories:
-                    continue
-                for category in chunk.claim_categories:
-                    claim_verification = next(
-                        (
-                            s
-                            for s in state.substantiations
-                            if chunk.chunk_index == s.chunk_index
-                            and s.claim_index == category.claim_index
-                        ),
-                        None,
-                    )
-                    if (
-                        category.needs_external_verification
-                        and not has_citations
-                        and (
-                            claim_verification is None
-                            or claim_verification.evidence_alignment
-                            != EvidenceAlignmentLevel.SUPPORTED
-                        )
-                    ):
-                        issues.append(
-                            DocumentIssue(
-                                title="Unsupported claim",
-                                description=(
-                                    f'Claim requires external verification but no citations/references '
-                                    f'were found or used: "{category.claim}"'
-                                ),
-                                severity=SeverityEnum.MEDIUM,
-                                type=self.type,
-                                chunk_index=category.chunk_index,
-                                long_description=f"**Rationale:** {category.rationale}",
-                            )
-                        )
 
         return issues

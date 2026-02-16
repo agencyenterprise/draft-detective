@@ -47,7 +47,6 @@ async def run_workflow_with_dependency_check(
                 config.type,
                 config.project_id,
                 workflow_run_id,
-                config.claim_extraction_version,
             )
 
         # Run the workflow
