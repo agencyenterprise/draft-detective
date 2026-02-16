@@ -24,7 +24,9 @@ class StartMultipleWorkflowsRequest(BaseModel):
     project_id: str
     workflow_types: List[WorkflowRunType]
     openai_api_key: str | None = None
-    claim_extraction_version: ClaimExtractionVersion = ClaimExtractionVersion.V1
+    claim_extraction_version: ClaimExtractionVersion = (
+        ClaimExtractionVersion.V1
+    )  # NOTE: Change version here to V2 to use v2 claim extraction pipeline
 
 
 class AnalysisFormConfig(BaseModel):
@@ -35,7 +37,9 @@ class AnalysisFormConfig(BaseModel):
     openai_api_key: Optional[str] = None
     publication_date: Optional[str] = None
     workflow_types: Optional[List[WorkflowRunType]] = None
-    claim_extraction_version: ClaimExtractionVersion = ClaimExtractionVersion.V1
+    claim_extraction_version: ClaimExtractionVersion = (
+        ClaimExtractionVersion.V1
+    )  # NOTE: Change version here to V2 to use v2 claim extraction pipeline
 
 
 class StartMultipleWorkflowsResponse(BaseModel):
