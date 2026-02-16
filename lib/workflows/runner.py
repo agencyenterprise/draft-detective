@@ -41,7 +41,12 @@ async def run_workflow_with_dependency_check(
     try:
         if config.project_id:
             # Wait for same-type lock and dependencies to complete
-            await wait_for_dependencies(config.type, config.project_id, workflow_run_id)
+            await wait_for_dependencies(
+                config.type,
+                config.project_id,
+                workflow_run_id,
+                config.claim_extraction_version,
+            )
 
         # Run the workflow
         await run_workflow_from_config(
