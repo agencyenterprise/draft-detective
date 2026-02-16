@@ -45,6 +45,7 @@ const workflowTypeIcons: Record<WorkflowRunType, LucideIcon> = {
   [WorkflowRunType.HumanApproval]: UserCheck,
   [WorkflowRunType.FootnoteExtraction]: StickyNote,
   [WorkflowRunType.ClaimExtraction]: Quote,
+  [WorkflowRunType.ClaimExtractionV2]: Quote,
   [WorkflowRunType.CitationDetection]: BookMarked,
   [WorkflowRunType.MethodologicalAlignment]: Scale,
   [WorkflowRunType.ReferenceDownloader]: Download,
