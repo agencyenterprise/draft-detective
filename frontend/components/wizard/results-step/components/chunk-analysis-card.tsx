@@ -6,7 +6,7 @@ import { FileDownloadLink } from '@/components/ui/file-download-link';
 import { getChunkId } from '@/lib/chunk-ids';
 import { composeReferences } from '@/lib/composed-references';
 import { ProjectDetailed, WorkflowRunType } from '@/lib/generated-api';
-import { getWorkflowRunByType } from '@/lib/workflow-state';
+import { getClaimExtractionDetail, getWorkflowRunByType } from '@/lib/workflow-state';
 import { LinkIcon, MessageCirclePlus } from 'lucide-react';
 import { useMemo } from 'react';
 import { AnalysisResultCard } from './analysis-result-card';
@@ -22,10 +22,7 @@ export function ChunkAnalysisCard({ chunkIndex, projectDetail }: ChunkAnalysisCa
   const workflowDetails = useMemo(() => projectDetail.workflow_runs ?? [], [projectDetail.workflow_runs]);
   const files = useMemo(() => projectDetail.files ?? [], [projectDetail.files]);
 
-  const claimExtractionDetail = useMemo(
-    () => getWorkflowRunByType(workflowDetails, WorkflowRunType.ClaimExtraction),
-    [workflowDetails],
-  );
+  const claimExtractionDetail = useMemo(() => getClaimExtractionDetail(workflowDetails), [workflowDetails]);
   const referenceExtractionDetail = useMemo(
     () => getWorkflowRunByType(workflowDetails, WorkflowRunType.ReferenceExtraction),
     [workflowDetails],
