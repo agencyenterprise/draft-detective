@@ -32,7 +32,7 @@ class Claim(BaseModel):
         default=None,
         description=(
             "Whether the claim needs external verification. "
-            "Set by v2 claim extraction (from needs_substantiation). "
+            "Set by v2 claim extraction (from needs_external_verification). "
             "None for v1 claims (use category-based logic instead)."
         ),
     )
