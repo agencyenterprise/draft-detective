@@ -1,7 +1,7 @@
 'use client';
 
 import { ProjectDetailed, WorkflowRunType } from '@/lib/generated-api';
-import { getWorkflowRunByType, isWorkflowProcessing } from '@/lib/workflow-state';
+import { getClaimExtractionDetail, getWorkflowRunByType, isWorkflowProcessing } from '@/lib/workflow-state';
 import { SummaryCards } from '../components/summary-cards';
 import { useResultsCalculations } from '../hooks/use-results-calculations';
 
@@ -13,7 +13,7 @@ export function SummaryTab({ projectDetail }: SummaryTabProps) {
   const workflowDetails = projectDetail.workflow_runs ?? [];
   const chunkSplitting = getWorkflowRunByType(workflowDetails, WorkflowRunType.ChunkSplitting);
   const referenceExtraction = getWorkflowRunByType(workflowDetails, WorkflowRunType.ReferenceExtraction);
-  const claimExtraction = getWorkflowRunByType(workflowDetails, WorkflowRunType.ClaimExtraction);
+  const claimExtraction = getClaimExtractionDetail(workflowDetails);
   const citationDetection = getWorkflowRunByType(workflowDetails, WorkflowRunType.CitationDetection);
   const referenceFileMatching = getWorkflowRunByType(workflowDetails, WorkflowRunType.ReferenceFileMatching);
   const claimReferenceValidation = getWorkflowRunByType(workflowDetails, WorkflowRunType.ClaimReferenceValidation);
