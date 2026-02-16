@@ -58,7 +58,7 @@ class BaseWorkflowConfig(BaseModel):
         default=None, description="Publication date of the document (YYYY-MM-DD format)"
     )
     claim_extraction_version: ClaimExtractionVersion = Field(
-        default=ClaimExtractionVersion.V1,
+        default=ClaimExtractionVersion.V2,
         description="Which claim extraction pipeline to use (v1 or v2)",
     )
 
