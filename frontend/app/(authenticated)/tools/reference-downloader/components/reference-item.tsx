@@ -158,6 +158,10 @@ export function ReferenceItem({ item, displayIndex }: ReferenceItemProps) {
         </div>
       )}
 
+      {result?.inaccessibility_reason && (
+        <div className="text-sm text-yellow-700 dark:text-yellow-400">{result.inaccessibility_reason}</div>
+      )}
+
       {isError && (
         <div className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/10 p-2 rounded">
           {formatReferenceError(item.error)}

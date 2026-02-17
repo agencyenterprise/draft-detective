@@ -1,6 +1,6 @@
-import { Button } from '@/components/ui/button';
 import { LabeledValue } from '@/components/labeled-value';
 import { Markdown } from '@/components/markdown';
+import { Button } from '@/components/ui/button';
 import { ReferenceFetchConclusion, ReferenceFetchResult, ReferenceFetchStatus } from '@/lib/generated-api';
 import { formatReferenceError } from '@/lib/utils';
 import {
@@ -55,6 +55,7 @@ export function FetchResultsBox({ fetchResult }: FetchResultsBoxProps) {
   const fetchConclusion = fetchResult.result?.final_conclusion;
   const sourceUrl = fetchResult.result?.source_url;
   const reasoning = fetchResult.result?.reasoning;
+  const inaccessibilityReason = fetchResult.result?.inaccessibility_reason;
 
   const getBoxColorClass = () => {
     if (isFetchPending) return 'bg-blue-50/80 border-blue-200';
@@ -102,6 +103,9 @@ export function FetchResultsBox({ fetchResult }: FetchResultsBoxProps) {
 
       {/* Fetch error message */}
       {isFetchError && <div className="text-sm text-red-700">{formatReferenceError(fetchResult.error)}</div>}
+
+      {/* Inaccessibility reason */}
+      {inaccessibilityReason && <div className="text-xs text-yellow-700 my-1">{inaccessibilityReason}</div>}
 
       {/* Fetching message */}
       {isFetchPending && (

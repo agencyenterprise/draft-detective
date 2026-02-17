@@ -3869,6 +3869,12 @@ export type ReferenceFetchItem = {
    */
   file_id: string | null;
   final_conclusion: ReferenceFetchConclusion;
+  /**
+   * Inaccessibility Reason
+   *
+   * A single sentence explaining why the content is not accessible. Only set when final_conclusion is 'source_found_but_not_accessible'.
+   */
+  inaccessibility_reason?: string | null;
 };
 
 /**
