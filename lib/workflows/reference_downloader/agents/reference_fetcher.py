@@ -48,6 +48,10 @@ class ReferenceFetchItem(BaseModel):
         description="The ID of the verified downloaded file containing the full original content. Return null if conclusion is different than 'source_found'",
     )
     final_conclusion: ReferenceFetchConclusion = Field()
+    inaccessibility_reason: Optional[str] = Field(
+        default=None,
+        description="A single sentence explaining why the content is not accessible. Only set when final_conclusion is 'source_found_but_not_accessible'.",
+    )
 
 
 _system_prompt = PromptTemplate.from_template(
@@ -62,7 +66,7 @@ Locate the full original content of a user-provided reference with web search; d
 - Continue searching and verifying until either the correct file is found or all viable options are exhausted.
 - As "final_conclusion", return one of the following:
   - "source_found": the full original content is available and accessible; you read the file and confirmed it matches the reference.
-  - "source_found_but_not_accessible": the source exists, but the full original content is behind a paywall or otherwise inaccessible; you download the file but it does not match the reference.
+  - "source_found_but_not_accessible": the source exists, but the full original content is behind a paywall or otherwise inaccessible; you download the file but it does not match the reference. You MUST also set "inaccessibility_reason" to a single concise sentence explaining why the content is not accessible (e.g., "The content is behind a JSTOR paywall requiring institutional login.", "The site uses Cloudflare bot protection that blocks automated downloads.", "Access requires a paid subscription to the publisher's platform.").
   - "source_not_found": the source cannot be located; the online presence of the source cannot be confirmed.
 
 Follow this sequence strictly:
