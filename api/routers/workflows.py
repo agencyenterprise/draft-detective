@@ -1,11 +1,8 @@
-import os
 from datetime import datetime
-from typing import Optional
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
-from starlette.responses import FileResponse
 
-from api.auth import get_current_user, get_current_user_optional
+from api.auth import get_current_user
 from api.models import (
     ApproveWorkflowResponse,
     StartMultipleWorkflowsRequest,
@@ -17,15 +14,12 @@ from api.services.workflow_runner import (
     start_multiple_workflow_runs,
     start_workflow_run,
 )
-from lib.config.env import config
 from lib.models.user import User
 from lib.models.workflow_run import WorkflowRunStatus
-from lib.services.authorization import has_access_to_workflow_run
 from lib.services.projects import create_project
 from lib.services.workflow_runs import (
     WorkflowRunDetail,
     get_workflow_run,
-    get_workflow_run_state,
     get_workflow_run_state_by_thread_id,
 )
 from lib.workflows.human_approval.state import HumanApprovalConfig
@@ -100,52 +94,6 @@ async def get_workflow_state(
     run = await get_workflow_run(workflow_run_id, user=user)
     state = await get_workflow_run_state_by_thread_id(run.langgraph_thread_id, run.type)
     return WorkflowRunDetail(run=run, state=state)
-
-
-@router.get("/api/workflow-runs/{workflow_run_id}/pages/{page_num}")
-async def get_page_image(
-    workflow_run_id: str,
-    page_num: int,
-    current_user: Optional[User] = Depends(get_current_user_optional),
-):
-    """
-    Serve Docling page images for a workflow run.
-
-    Allows access if user is authenticated OR if the project has sharing enabled.
-
-    Args:
-        workflow_run_id: The workflow run ID
-        page_num: The page number (e.g., 0, 1, 2, etc.)
-
-    Returns:
-        The image file for the specified page (PNG, JPEG, WEBP, etc.)
-    """
-    if page_num < 0:
-        raise HTTPException(status_code=400, detail="Invalid page number")
-
-    if not await has_access_to_workflow_run(current_user, workflow_run_id):
-        raise HTTPException(status_code=403, detail="Access denied")
-
-    state = await get_workflow_run_state(workflow_run_id, user=None)
-
-    if not state or not hasattr(state, "file"):
-        raise HTTPException(status_code=404, detail="Workflow state not found")
-
-    file_path = state.file.file_path
-    filename = os.path.basename(file_path)
-    file_id, _ = os.path.splitext(filename)
-
-    images_dir = os.path.join(config.FILE_UPLOADS_MOUNT_PATH, "docling_images", file_id)
-    image_file_path = os.path.join(images_dir, f"page_{page_num}.png")
-
-    if os.path.exists(image_file_path):
-        return FileResponse(
-            path=image_file_path,
-            media_type="image/png",
-            headers={"Cache-Control": "public, max-age=3600"},
-        )
-
-    raise HTTPException(status_code=404, detail=f"Page {page_num} not found")
 
 
 @router.post(

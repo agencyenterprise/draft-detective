@@ -80,11 +80,7 @@ export function SubstantiationResults({
                   <AccordionContent>
                     <div className="space-y-3 mt-2">
                       {substantiation.evidence_sources.map((source, index) => {
-                        // Find file by file_name since that's what source.reference_file_name contains
-                        const matchedFile = supportingFiles.find(
-                          (file) => file.file_name === source.reference_file_name,
-                        );
-                        // Find reference using file_id for accurate matching
+                        const matchedFile = supportingFiles.find((file) => file.file_id === source.file_id);
                         const matchedReference = matchedFile
                           ? references.find((reference) => reference.file_id === matchedFile.file_id)
                           : undefined;
@@ -95,18 +91,18 @@ export function SubstantiationResults({
                               Source {index + 1} of {substantiation.evidence_sources.length}
                             </p>
                             <LabeledValue label="Reference">
-                              {matchedFile && matchedFile.file_id ? (
+                              {matchedFile ? (
                                 <>
                                   <FileDownloadLink
                                     fileId={matchedFile.file_id}
                                     className="text-blue-600 underline text-sm"
                                   >
-                                    {source.reference_file_name}
+                                    {matchedFile.file_name}
                                   </FileDownloadLink>{' '}
                                   <span className="text-muted-foreground text-sm"> - {matchedReference?.text}</span>
                                 </>
                               ) : (
-                                <span className="text-muted-foreground text-sm">{source.reference_file_name}</span>
+                                <span className="text-muted-foreground text-sm">Unknown file</span>
                               )}
                             </LabeledValue>
                             <LabeledValue label="Location">{source.location}</LabeledValue>

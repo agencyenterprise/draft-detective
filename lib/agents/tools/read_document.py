@@ -10,14 +10,16 @@ MAX_LINES = 300
 
 @tool()
 async def read_document(
+    file_id: str,
     start_line: int,
     end_line: int,
     runtime: ToolRuntime[ContextSchema],
 ) -> str:
     """
-    Read a specific line range from the main document. The maximum number of lines to read is 300.
+    Read a specific line range from a document. The maximum number of lines to read is 300.
 
     Args:
+        file_id: The unique identifier of the file to read.
         start_line: The starting line number (1-indexed, inclusive).
         end_line: The ending line number (1-indexed, inclusive).
 
@@ -29,17 +31,21 @@ async def read_document(
         ...
     """
     try:
-        main_file = await runtime.context.file_artifacts_service.get_main_file()
-        if not main_file or not main_file.markdown:
-            return "Error: Main document not found or has no content."
+        file_doc = await runtime.context.file_artifacts_service.get_file_document(
+            file_id
+        )
+        if not file_doc or not file_doc.markdown:
+            return (
+                f"Error: Document with file_id '{file_id}' not found or has no content."
+            )
 
-        return _read_content(main_file.markdown, start_line, end_line)
+        return read_content(file_doc.markdown, start_line, end_line)
 
     except Exception as e:
         return f"Error reading document: {str(e)}"
 
 
-def _read_content(content: str, start_line: int, end_line: int) -> str:
+def read_content(content: str, start_line: int, end_line: int) -> str:
     """
     Pure function to read a line range from content.
 

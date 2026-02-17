@@ -1,20 +1,16 @@
 'use client';
 
 import { OwnerSharedBanner } from '@/components/share/owner-shared-banner';
-import { ResultsVisualization } from '@/components/wizard/results-step/results-visualization';
+import { ResultsVisualization } from '@/components/results/results-visualization';
 import { ShareProvider } from '@/context/share-context';
-import { DocRenderMode } from '@/lib/constants';
 import { getSharedResourceApiPublicShareTokenGet } from '@/lib/generated-api';
 import { useUserMe } from '@/lib/hooks/use-user-me';
 import { useQuery } from '@tanstack/react-query';
 import { useParams } from 'next/navigation';
-import { useState } from 'react';
 
 export default function SharedProjectPage() {
   const params = useParams();
   const token = params.token as string;
-
-  const [viewMode, setViewMode] = useState<DocRenderMode>('markdown');
 
   const { data: currentUser } = useUserMe();
 
@@ -53,7 +49,7 @@ export default function SharedProjectPage() {
   return (
     <ShareProvider token={token}>
       {isOwner && <OwnerSharedBanner projectId={data.project.id} />}
-      <ResultsVisualization projectDetail={data} viewMode={viewMode} onViewModeChange={setViewMode} readOnly />
+      <ResultsVisualization projectDetail={data} readOnly />
     </ShareProvider>
   );
 }

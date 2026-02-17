@@ -1,182 +1,359 @@
 import logging
-from typing import List
+from collections import defaultdict
+from typing import List, Optional
 
 from langgraph.runtime import Runtime
+from langgraph.types import Send
 
+from lib.agents.citation_detector import Citation
 from lib.agents.claim_verifier import (
     ClaimSubstantiationResultWithClaimIndex,
     ClaimVerifierAgent,
+    ParagraphVerificationResult,
 )
 from lib.agents.formatting_utils import format_audience_context, format_domain_context
-from lib.models.bibliography_item import BibliographyItem
-from lib.run_utils import convert_exceptions_to_workflow_errors, run_tasks
-from lib.services.file import FileDocument
-from lib.services.file_artifacts_service.types import FileArtifactsServiceType
-from lib.workflows.chunk_utils import AnalyzedChunk
-from lib.workflows.claim_reference_validation.reference_providers import (
-    RAGReferenceProvider,
-    get_all_paragraph_citations,
+from lib.models.bibliography_item import (
+    BibliographyItem,
+    get_associated_supporting_file,
 )
-from lib.workflows.claim_reference_validation.state import ClaimReferenceValidationState
+from lib.services.file import FileDocument
+from lib.workflows.chunk_utils import AnalyzedChunk
+from lib.workflows.claim_reference_validation.state import (
+    ClaimReferenceValidationState,
+    ParagraphVerificationItem,
+    ParagraphVerificationStatus,
+)
 from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
+from lib.workflows.models import WorkflowError
 
 logger = logging.getLogger(__name__)
 
 
-def _needs_substantiation(
-    chunks: List[AnalyzedChunk],
-    chunk: AnalyzedChunk,
-    claim_index: int,
-) -> bool:
-    """
-    Check if a claim needs substantiation (V2 logic).
-
-    A claim needs substantiation if:
-    1. It has citations in the paragraph that includes the chunk; AND
-    2. The claim-level needs_external_verification flag is set (or True if flag is missing)
-    """
-
-    paragraph_citations = get_all_paragraph_citations(chunks, chunk)
-    if len(paragraph_citations) == 0:
-        # If there's no citations in the paragraph, skip verification since there's no document to verify against
-        return False
-
-    if chunk.claims is None or claim_index >= len(chunk.claims.claims):
-        return True
-    claim = chunk.claims.claims[claim_index]
-    if claim.needs_external_verification is None:
-        # Safety fallback: if flag not set, verify
-        return True
-    return claim.needs_external_verification
+def is_bibliographic_citation(citation: Citation) -> bool:
+    """Check if a citation is a bibliographic citation."""
+    return citation.needs_bibliography
 
 
-async def _verify_chunk_claims_with_provider(
-    state: ClaimReferenceValidationState,
-    chunks: List[AnalyzedChunk],
-    chunk: AnalyzedChunk,
-    rag_provider: RAGReferenceProvider,
-    claim_verifier_agent: ClaimVerifierAgent,
-    file_artifacts_service: FileArtifactsServiceType,
-    supporting_files: List[FileDocument],
+def get_all_paragraph_citations(
+    chunks: List[AnalyzedChunk], paragraph_index: int
+) -> List[Citation]:
+    """Get all bibliographic citations from a paragraph by its index."""
+    all_citations: List[Citation] = []
+    for chunk in chunks:
+        if chunk.paragraph_index != paragraph_index:
+            continue
+        if not chunk.citations or not chunk.citations.citations:
+            continue
+        all_citations.extend(
+            c for c in chunk.citations.citations if is_bibliographic_citation(c)
+        )
+    return all_citations
+
+
+def _build_citation_file_mapping(
+    citations: List[Citation],
     references: List[BibliographyItem],
-) -> List[ClaimSubstantiationResultWithClaimIndex]:
-    """Verify chunk claims using RAG reference provider.
+    supporting_files: List[FileDocument],
+) -> str:
+    """Build a formatted citation-to-file mapping string for the agent prompt.
 
-    Returns a list of substantiation results instead of updating the chunk.
-    Skips chunks with no claims. For each claim:
-    - ALWAYS verifies if the chunk has citations (even if common knowledge)
-    - Verifies if the claim needs substantiation (not common knowledge)
-
-    This ensures all citations are validated regardless of common knowledge status.
+    Resolves each citation -> bibliography item -> supporting file and returns
+    a formatted string the agent can use to identify which file_id to search.
     """
-    if chunk.claims is None or not chunk.claims.claims:
-        logger.debug(f"Chunk {chunk.chunk_index} has no claims")
-        return []
+    seen_file_ids: set[str] = set()
+    lines: list[str] = []
 
-    substantiations = []
+    for citation in citations:
+        bib_index = citation.index_of_associated_bibliography
+        if bib_index < 1 or bib_index > len(references):
+            continue
 
-    for claim_index, claim in enumerate(chunk.claims.claims):
+        bib_item = references[bib_index - 1]
+        supporting_file = get_associated_supporting_file(bib_item, supporting_files)
+        if not supporting_file:
+            continue
+        if supporting_file.file_id in seen_file_ids:
+            continue
 
-        if not _needs_substantiation(chunks, chunk, claim_index):
-            logger.debug(
-                f"Chunk {chunk.chunk_index} claim {claim_index} does not need external verification, skipping verification"
+        seen_file_ids.add(supporting_file.file_id)
+        lines.append(
+            f'- Citation: "{citation.text}" → '
+            f'Bibliography: "{bib_item.text}" → '
+            f'File: "{supporting_file.file_name}" (file_id: {supporting_file.file_id})'
+        )
+
+    if not lines:
+        return "No supporting files are mapped to citations in this paragraph."
+
+    return "\n".join(lines)
+
+
+def _collect_paragraph_claims(
+    paragraph_chunks: List[AnalyzedChunk],
+) -> List[dict]:
+    """Collect all claims from a paragraph's chunks that need verification.
+
+    Returns a list of dicts with claim metadata:
+        {chunk_index, claim_index, claim_text}
+    """
+    claims: list[dict] = []
+    for chunk in paragraph_chunks:
+        if not chunk.claims or not chunk.claims.claims:
+            continue
+
+        for claim_index, claim in enumerate(chunk.claims.claims):
+            if claim.needs_external_verification is False:
+                # Skip only if claim is explicitly marked as not needing verification (True or None should be verified)
+                continue
+
+            claims.append(
+                {
+                    "chunk_index": chunk.chunk_index,
+                    "claim_index": claim_index,
+                    "claim_text": claim.claim,
+                }
+            )
+    return claims
+
+
+def _format_claims_list(claims: List[dict]) -> str:
+    """Format claims as a numbered list for the agent prompt."""
+    lines = []
+    for i, claim_info in enumerate(claims, start=1):
+        lines.append(f"{i}. {claim_info['claim_text']}")
+    return "\n".join(lines)
+
+
+def _map_results_to_substantiations(
+    verification_result: ParagraphVerificationResult,
+    claims: List[dict],
+) -> List[ClaimSubstantiationResultWithClaimIndex]:
+    """Map agent paragraph-level results back to per-claim substantiations."""
+    substantiations: list[ClaimSubstantiationResultWithClaimIndex] = []
+
+    for item in verification_result.claim_results:
+        # claim_number is 1-indexed, matching the numbered list
+        idx = item.claim_number - 1
+        if idx < 0 or idx >= len(claims):
+            logger.warning(
+                f"Agent returned claim_number {item.claim_number} which is out of range "
+                f"(expected 1-{len(claims)}), skipping"
             )
             continue
 
-        ref_context = await rag_provider.get_references_for_claim(
-            chunks, supporting_files, references, chunk, claim, claim_index
-        )
-
-        result = await claim_verifier_agent.ainvoke(
-            {
-                "paragraph": file_artifacts_service.get_paragraph_text(
-                    chunks, chunk.paragraph_index
-                ),
-                "chunk": chunk.content,
-                "claim": claim.claim,
-                "evidence_context_explanation": format_evidence_explanation(),
-                "cited_references": ref_context.cited_references,
-                "cited_references_paragraph": ref_context.cited_references_paragraph,
-                "domain_context": format_domain_context(state.config.domain),
-                "audience_context": format_audience_context(
-                    state.config.target_audience
-                ),
-            }
-        )
-
+        claim_info = claims[idx]
         substantiations.append(
             ClaimSubstantiationResultWithClaimIndex(
-                chunk_index=chunk.chunk_index,
-                claim_index=claim_index,
-                **result.model_dump(),
+                chunk_index=claim_info["chunk_index"],
+                claim_index=claim_info["claim_index"],
+                **item.model_dump(),
             )
         )
 
     return substantiations
 
 
+def _get_paragraphs_with_citations(
+    target_chunks: List[AnalyzedChunk],
+) -> dict[int, list[AnalyzedChunk]]:
+    """Group chunks by paragraph and filter to those with bibliographic citations."""
+    paragraphs: dict[int, list[AnalyzedChunk]] = defaultdict(list)
+    for chunk in target_chunks:
+        paragraphs[chunk.paragraph_index].append(chunk)
+
+    return {
+        p_idx: p_chunks
+        for p_idx, p_chunks in paragraphs.items()
+        if get_all_paragraph_citations(target_chunks, p_idx)
+    }
+
+
 @register_node(
-    "Verify claims (RAG)",
-    "Verify the claims using RAG to retrieve relevant passages",
+    "Initialize verifications",
+    "Initialize all paragraphs with pending verification status",
 )
-async def verify_claims(
+async def initialize_verifications(
     state: ClaimReferenceValidationState, runtime: Runtime[ContextSchema]
 ):
-    """Verify chunk claims using RAG reference provider.
+    """Initialize all paragraphs with PENDING status.
 
-    Returns a list of substantiation results instead of updating the chunk.
-    Skips chunks with no claims.
+    Fetches chunks, groups by paragraph, filters to those with citations,
+    and creates a PENDING tracking item for each eligible paragraph.
     """
+    file_artifacts_service = runtime.context.file_artifacts_service
+    target_chunks = await file_artifacts_service.get_chunks()
+
+    paragraphs_with_citations = _get_paragraphs_with_citations(target_chunks)
+
+    logger.info(
+        f"Found {len(paragraphs_with_citations)} paragraphs with citations "
+        f"to verify"
+    )
+
+    pending_items = [
+        ParagraphVerificationItem(
+            paragraph_index=p_idx,
+            status=ParagraphVerificationStatus.PENDING,
+            num_claims=len(_collect_paragraph_claims(p_chunks)),
+        )
+        for p_idx, p_chunks in paragraphs_with_citations.items()
+    ]
+
+    return {"paragraph_verifications": pending_items}
+
+
+@register_node(
+    "Distribute verifications",
+    "Distribute paragraphs to parallel verification operations",
+)
+async def distribute_verifications(
+    state: ClaimReferenceValidationState, runtime: Runtime[ContextSchema]
+):
+    """Fan-out node: creates a Send for each paragraph to verify.
+
+    Dispatches parallel verification operations, passing minimal data
+    in each Send payload. Workers fetch shared data from file_artifacts_service.
+    """
+    return [
+        Send(
+            "verify_single_paragraph",
+            {
+                "paragraph_index": item.paragraph_index,
+                "domain": state.config.domain,
+                "target_audience": state.config.target_audience,
+            },
+        )
+        for item in state.paragraph_verifications
+        if item.num_claims > 0
+    ]
+
+
+@register_node(
+    "Verify paragraph",
+    "Verify claims in a single paragraph",
+)
+async def verify_single_paragraph(state: dict, runtime: Runtime[ContextSchema]):
+    """Process a single paragraph and return verification results.
+
+    Each call handles one paragraph and returns an update that the reducer
+    will merge into the state by paragraph_index.
+    """
+    paragraph_index: int = state["paragraph_index"]
+    domain: Optional[str] = state.get("domain")
+    target_audience: Optional[str] = state.get("target_audience")
 
     file_artifacts_service = runtime.context.file_artifacts_service
-    rag_provider = RAGReferenceProvider(runtime.context.vector_store)
     claim_verifier_agent = ClaimVerifierAgent(runtime.context)
 
-    # Fetch artifacts from file artifacts service
-    target_chunks = await file_artifacts_service.get_chunks()
-    supporting_files = await file_artifacts_service.get_supporting_files()
-    references = await file_artifacts_service.get_references()
+    substantiations: List[ClaimSubstantiationResultWithClaimIndex] = []
+    error: Optional[str] = None
+    status = ParagraphVerificationStatus.COMPLETED
+    num_claims = 0
 
-    tasks = [
-        _verify_chunk_claims_with_provider(
-            state,
-            target_chunks,
-            chunk,
-            rag_provider,
-            claim_verifier_agent,
-            file_artifacts_service,
-            supporting_files,
-            references,
+    try:
+        # Fetch shared data
+        target_chunks = await file_artifacts_service.get_chunks()
+        supporting_files = await file_artifacts_service.get_supporting_files()
+        references = await file_artifacts_service.get_references()
+
+        # Get chunks for this paragraph
+        paragraph_chunks = [
+            c for c in target_chunks if c.paragraph_index == paragraph_index
+        ]
+
+        # Collect claims that need verification
+        claims = _collect_paragraph_claims(paragraph_chunks)
+        num_claims = len(claims)
+        if not claims:
+            logger.debug(
+                f"Paragraph {paragraph_index} has no claims needing verification"
+            )
+            return {
+                "paragraph_verifications": [
+                    ParagraphVerificationItem(
+                        paragraph_index=paragraph_index,
+                        status=ParagraphVerificationStatus.COMPLETED,
+                        num_claims=0,
+                    )
+                ]
+            }
+
+        # Build paragraph text
+        paragraph_text = "\n".join(chunk.content for chunk in paragraph_chunks)
+
+        # Build citation-to-file mapping
+        paragraph_citations = get_all_paragraph_citations(
+            target_chunks, paragraph_index
         )
-        for chunk in target_chunks
-    ]
-    results: tuple[
-        list[List[ClaimSubstantiationResultWithClaimIndex]], list[Exception]
-    ] = await run_tasks(tasks, desc="Verifying chunk claims with RAG")
-    substantiations_lists, exceptions = results
+        citation_file_mapping = _build_citation_file_mapping(
+            paragraph_citations, references, supporting_files
+        )
 
+        # Build the numbered claims list
+        claims_list = _format_claims_list(claims)
+
+        logger.info(
+            f"Verifying paragraph {paragraph_index}: {len(claims)} claims, "
+            f"{len(paragraph_citations)} citations"
+        )
+
+        # Call the agent
+        result = await claim_verifier_agent.ainvoke(
+            {
+                "paragraph": paragraph_text,
+                "claims_list": claims_list,
+                "citation_file_mapping": citation_file_mapping,
+                "domain_context": format_domain_context(domain),
+                "audience_context": format_audience_context(target_audience),
+            }
+        )
+
+        substantiations = _map_results_to_substantiations(result, claims)
+
+    except Exception as e:
+        logger.error(f"Error verifying paragraph {paragraph_index}: {e}", exc_info=True)
+        status = ParagraphVerificationStatus.ERROR
+        error = str(e)
+
+    return {
+        "paragraph_verifications": [
+            ParagraphVerificationItem(
+                paragraph_index=paragraph_index,
+                status=status,
+                num_claims=num_claims,
+                substantiations=substantiations,
+                error=error,
+            )
+        ]
+    }
+
+
+@register_node(
+    "Finalize verifications",
+    "Finalize claim verification results",
+)
+async def finalize_verifications(
+    state: ClaimReferenceValidationState, runtime: Runtime[ContextSchema]
+):
+    """Finalize verification results after all parallel verifications complete.
+
+    Flattens paragraph-level substantiations into the top-level list and
+    collects errors from failed paragraphs.
+    """
     all_substantiations: List[ClaimSubstantiationResultWithClaimIndex] = []
-    for substantiations_list in substantiations_lists:
-        if substantiations_list is not None:
-            all_substantiations.extend(substantiations_list)
+    errors: List[WorkflowError] = []
 
-    chunk_indices = [c.chunk_index for c in target_chunks]
-    errors = convert_exceptions_to_workflow_errors(
-        "verify_claims",
-        exceptions,
-        chunk_indices,
-        workflow_run_id=runtime.context.workflow_run_id,
-    )
+    for item in state.paragraph_verifications:
+        if item.status == ParagraphVerificationStatus.COMPLETED:
+            all_substantiations.extend(item.substantiations)
+        elif item.status == ParagraphVerificationStatus.ERROR:
+            errors.append(
+                WorkflowError(
+                    task_name="verify_claims",
+                    error=item.error or "Unknown error",
+                    workflow_run_id=runtime.context.workflow_run_id,
+                )
+            )
 
     return {"substantiations": all_substantiations, "errors": errors}
-
-
-def format_evidence_explanation() -> str:
-    """Format evidence explanation for RAG mode."""
-    return (
-        "### Evidence Retrieval Method: RAG (Retrieval-Augmented Generation)\n"
-        "The supporting evidence below consists of **relevant passages retrieved via semantic search** from the supporting documents. "
-        "These passages were selected based on their semantic similarity to the claim. "
-        "Evaluate whether these retrieved passages provide sufficient support for the claim."
-    )

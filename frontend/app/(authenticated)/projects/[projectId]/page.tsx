@@ -1,15 +1,14 @@
 'use client';
 
-import { ResultsVisualization } from '@/components/wizard/results-step/results-visualization';
+import { ResultsVisualization } from '@/components/results/results-visualization';
 import { useWorkflowProgressToast } from '@/hooks/use-workflow-progress-toast';
-import { DocRenderMode } from '@/lib/constants';
 import { ProjectDetailed, updateProjectEndpointApiProjectProjectIdPatch, WorkflowRunType } from '@/lib/generated-api';
 import { useProjectDetails } from '@/lib/hooks/use-project-details';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { isAnyWorkflowProcessing, needsHumanApproval, needsWizardCompletion } from '@/lib/workflow-state';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import { useState, useEffect, useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { toast } from 'sonner';
 
 export default function ResultsPage() {
@@ -21,8 +20,6 @@ export default function ResultsPage() {
 
   // Skip redirect check if coming from wizard (prevents race condition)
   const fromWizard = searchParams.get('fromWizard') === 'true';
-
-  const [viewMode, setViewMode] = useState<DocRenderMode>('markdown');
 
   const { project, workflowDetails, isLoading, error } = useProjectDetails(projectId);
   const { data: workflowTypes } = useWorkflowTypes();
@@ -110,8 +107,6 @@ export default function ResultsPage() {
   return (
     <ResultsVisualization
       projectDetail={project}
-      viewMode={viewMode}
-      onViewModeChange={setViewMode}
       onTitleSave={handleTitleSave}
       isTitleSaving={updateTitleMutation.isPending}
     />

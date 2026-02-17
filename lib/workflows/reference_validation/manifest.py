@@ -93,7 +93,6 @@ class ReferenceValidationManifest(
 
             result = validation.validation_result
             chunk_indices = ref_to_chunks.get(validation.reference_id, [])
-            chunk_index = chunk_indices[0] if chunk_indices else None
 
             if not result.valid_reference:
                 field_validations = "\n\n".join(
@@ -108,7 +107,6 @@ class ReferenceValidationManifest(
                     description=f'Possible invalid reference: "{result.original_reference}".\n\n{result.suggested_action}',
                     severity=SeverityEnum.MEDIUM,
                     type=self.type,
-                    chunk_index=chunk_index,
                     chunk_indices=chunk_indices if chunk_indices else None,
                     long_description=f"{f'### Suggested updated reference\n\n> {result.updated_reference}' if result.updated_reference else ''}\n\n### Field validations\n\n{field_validations}\n\n### Reasoning\n\n{result.reasoning}",
                 )

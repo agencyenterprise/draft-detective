@@ -4,7 +4,6 @@ from langgraph.graph import StateGraph
 
 from lib.agents.claim_verifier import ClaimEvidenceSource
 from lib.services.file import FileDocument
-from lib.workflows.chunk_utils import build_analyzed_chunks, find_chunk_by_index
 from lib.workflows.claim_reference_validation.graph import (
     build_claim_reference_validation_graph,
 )
@@ -23,16 +22,16 @@ from lib.workflows.types import WorkflowState
 from lib.workflows.util import get_state_by_type
 
 
-def _get_file_id_by_name(
+def _get_file_document_by_file_id(
     supporting_files: Optional[List[FileDocument]],
-    file_name: str,
-) -> Optional[str]:
-    """Look up file ID by file name from supporting files."""
+    file_id: str,
+) -> Optional[FileDocument]:
+    """Look up file document by file ID from supporting files."""
     if not supporting_files:
         return None
     for file in supporting_files:
-        if file.file_name == file_name:
-            return file.file_id
+        if file.file_id == file_id:
+            return file
     return None
 
 
@@ -85,11 +84,20 @@ class ClaimReferenceValidationManifest(
         supporting_files: Optional[List[FileDocument]],
     ) -> str:
         """Format an evidence source with a download link if file ID is available."""
-        file_id = _get_file_id_by_name(supporting_files, source.reference_file_name)
-        if file_id:
-            file_link = f"[{source.reference_file_name}](/api/files/download/{file_id})"
+        file = _get_file_document_by_file_id(supporting_files, source.file_id)
+        if file:
+            file_link = f"[{file.file_name}](/api/files/download/{file.file_id})"
         else:
-            file_link = source.reference_file_name
+            file_link = f"File not found (file_id: {source.file_id})"
+
+        if not source.quote and not source.location:
+            return f"- {file_link}"
+
+        if not source.quote:
+            return f"- {file_link} - {source.location}"
+
+        if not source.location:
+            return f"- {file_link}\n\n\t> *{source.quote}*"
 
         return f"- {file_link} - {source.location}\n\n\t> *{source.quote}*"
 
@@ -102,7 +110,6 @@ class ClaimReferenceValidationManifest(
         from lib.agents.claim_verifier import EvidenceAlignmentLevel
 
         issues: List[DocumentIssue] = []
-        chunks = build_analyzed_chunks(other_states)
 
         # Get supporting files from document processing state for file download links
         doc_processing_state = get_state_by_type(
@@ -128,6 +135,10 @@ class ClaimReferenceValidationManifest(
                 "Unverifiable Claim",
                 SeverityEnum.MEDIUM,
             ),
+            EvidenceAlignmentLevel.SUPPORTED: (
+                "Supported Claim",
+                SeverityEnum.NONE,
+            ),
         }
 
         # Claim Verification: Unsupported, partially supported, and unverifiable claims
@@ -151,7 +162,8 @@ class ClaimReferenceValidationManifest(
                 f"**Key sentence:** \n\n> {substantiation.key_sentence}\n\n"
                 f"**Evidence Alignment:** {substantiation.evidence_alignment}\n\n"
                 f"**Feedback to resolve:** {substantiation.feedback}\n\n"
-                f"### Checked sources\n\n{sources_text}"
+                f"### Checked sources\n\n{sources_text}\n\n"
+                f"### Citation-to-file mapping\n\n{substantiation.citation_to_file_mapping or "No citation-to-file mapping provided"}"
             )
 
             issues.append(
@@ -160,7 +172,7 @@ class ClaimReferenceValidationManifest(
                     description=substantiation.rationale,
                     severity=severity,
                     type=self.type,
-                    chunk_index=substantiation.chunk_index,
+                    chunk_indices=[substantiation.chunk_index],
                     long_description=long_description,
                 )
             )

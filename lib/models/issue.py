@@ -97,11 +97,6 @@ class Issue(SQLModel, table=True):
         description="The workflow type that generated this issue",
     )
 
-    chunk_index: Optional[int] = Field(
-        default=None,
-        description="Primary chunk index (deprecated, use chunk_indices)",
-    )
-
     chunk_indices: Optional[List[int]] = Field(
         sa_column=Column(ARRAY(Integer), nullable=True),
         default=None,

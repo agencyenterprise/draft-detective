@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { LiveReportsState, ProjectDetailed, WorkflowRunDetail } from '@/lib/generated-api';
 import { format } from 'date-fns';
 import { FileText } from 'lucide-react';
-import { PublicationDateLabel } from '@/components/wizard/results-step/components/publication-date-label';
+import { PublicationDateLabel } from '@/components/results/components/publication-date-label';
 
 interface LiveReportsResultsProps {
   project: ProjectDetailed;

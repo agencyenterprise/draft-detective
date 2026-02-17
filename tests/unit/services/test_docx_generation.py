@@ -24,7 +24,7 @@ def _make_issue(
     description: str,
     severity: SeverityEnum,
     workflow_type: WorkflowRunType,
-    chunk_index: int | None = None,
+    chunk_indices: list[int] | None = None,
 ) -> Issue:
     """Create an Issue instance for testing without hitting the DB."""
     now = datetime.now(UTC)
@@ -37,7 +37,7 @@ def _make_issue(
         description=description,
         severity=severity,
         workflow_type=workflow_type,
-        chunk_index=chunk_index,
+        chunk_indices=chunk_indices,
         created_at=now,
         updated_at=now,
     )
@@ -57,7 +57,7 @@ class TestIssueToComment:
             description="This claim lacks evidence",
             severity=SeverityEnum.HIGH,
             workflow_type=WorkflowRunType.CLAIM_REFERENCE_VALIDATION,
-            chunk_index=0,
+            chunk_indices=[0],
         )
         chunk_content_map = {0: "The claim content here"}
 
@@ -72,13 +72,13 @@ class TestIssueToComment:
         assert comment.severity == CommentSeverity.HIGH
         assert comment.get_author() == "🚨 High Priority"
 
-    def test_returns_none_when_chunk_index_is_none(self):
+    def test_returns_none_when_chunk_indices_is_none(self):
         issue = _make_issue(
             title="Invalid reference",
             description="Reference not found",
             severity=SeverityEnum.HIGH,
             workflow_type=WorkflowRunType.REFERENCE_VALIDATION,
-            chunk_index=None,
+            chunk_indices=None,
         )
         chunk_content_map = {0: "Some content"}
 
@@ -92,7 +92,7 @@ class TestIssueToComment:
             description="Issue description",
             severity=SeverityEnum.MEDIUM,
             workflow_type=WorkflowRunType.CLAIM_REFERENCE_VALIDATION,
-            chunk_index=99,  # Not in the map
+            chunk_indices=[99],  # Not in the map
         )
         chunk_content_map = {0: "Some content", 1: "Other content"}
 
@@ -106,7 +106,7 @@ class TestIssueToComment:
             description="Issue description",
             severity=SeverityEnum.LOW,
             workflow_type=WorkflowRunType.CLAIM_REFERENCE_VALIDATION,
-            chunk_index=0,
+            chunk_indices=[0],
         )
         chunk_content_map = {0: ""}  # Empty content
 
@@ -120,7 +120,7 @@ class TestIssueToComment:
             description="Some evidence found",
             severity=SeverityEnum.MEDIUM,
             workflow_type=WorkflowRunType.CLAIM_REFERENCE_VALIDATION,
-            chunk_index=0,
+            chunk_indices=[0],
         )
         chunk_content_map = {0: "Chunk content"}
 
@@ -136,7 +136,7 @@ class TestIssueToComment:
             description="Just a suggestion",
             severity=SeverityEnum.LOW,
             workflow_type=WorkflowRunType.CITATION_SUGGESTER,
-            chunk_index=0,
+            chunk_indices=[0],
         )
         chunk_content_map = {0: "Chunk content"}
 
@@ -205,7 +205,7 @@ class TestBuildCitationSuggestionIssues:
 
         assert len(issues) == 1
         assert isinstance(issues[0], DocumentIssue)
-        assert issues[0].chunk_index == 0
+        assert issues[0].chunk_indices == [0]
         assert issues[0].title == "Citation Suggestion"
         assert issues[0].severity == SeverityEnum.LOW
         assert "This claim needs supporting evidence" in issues[0].description

@@ -9,7 +9,7 @@ import { getWorkflowRunByType } from '@/lib/workflow-state';
 import { Link2Icon } from 'lucide-react';
 import * as React from 'react';
 import { useMemo } from 'react';
-import { ClaimCitationSuggestions } from '../../wizard/results-step/components/claim-citation-suggestions';
+import { ClaimCitationSuggestions } from '../../results/components/claim-citation-suggestions';
 
 interface CitationSuggesterResultsProps {
   project: ProjectDetailed;

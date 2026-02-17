@@ -8,7 +8,7 @@ import pytest
 from lib.agents.tools.search_document import (
     MAX_CHARS_PER_MATCH,
     MAX_MATCHES,
-    _search_content,
+    search_content,
     search_document,
 )
 
@@ -17,44 +17,44 @@ TEST_DATA_DIR = Path(__file__).parent.parent.parent / "evals" / "data"
 
 
 class TestSearchContent:
-    """Tests for the _search_content pure function."""
+    """Tests for the search_content pure function."""
 
     def test_simple_match(self):
         content = "Line one\nLine two\nLine three"
-        result = _search_content(content, "two")
+        result = search_content(content, "two")
 
         assert "Found 1 matches" in result
         assert "2:Line two" in result
 
     def test_case_insensitive_search(self):
         content = "Hello World\nGoodbye World"
-        result = _search_content(content, "hello")
+        result = search_content(content, "hello")
 
         assert "Found 1 matches" in result
         assert "1:Hello World" in result
 
     def test_no_matches_found(self):
         content = "Line one\nLine two\nLine three"
-        result = _search_content(content, "nonexistent")
+        result = search_content(content, "nonexistent")
 
         assert "No matches found for pattern: nonexistent" in result
 
     def test_invalid_regex_pattern(self):
         content = "Some content"
-        result = _search_content(content, "[invalid")
+        result = search_content(content, "[invalid")
 
         assert "Invalid regex pattern:" in result
 
     def test_regex_pattern_matching(self):
         content = "error: something failed\nwarning: low memory\nerror: crash"
-        result = _search_content(content, r"error:.*failed")
+        result = search_content(content, r"error:.*failed")
 
         assert "Found 1 matches" in result
         assert "1:error: something failed" in result
 
     def test_multiple_matches(self):
         content = "apple\nbanana\napple pie\norange\napple cider"
-        result = _search_content(content, "apple")
+        result = search_content(content, "apple")
 
         assert "Found 3 matches" in result
         assert "1:apple" in result
@@ -65,7 +65,7 @@ class TestSearchContent:
         """Test that context lines are included with proper markers."""
         lines = [f"line {i}" for i in range(10)]
         content = "\n".join(lines)
-        result = _search_content(content, "line 5")
+        result = search_content(content, "line 5")
 
         # Match line should have ":"
         assert "6:line 5" in result
@@ -81,7 +81,7 @@ class TestSearchContent:
     def test_context_at_start_of_document(self):
         """Context shouldn't go negative for matches at start."""
         content = "match here\nline 2\nline 3"
-        result = _search_content(content, "match")
+        result = search_content(content, "match")
 
         assert "1:match here" in result
         # Should include context after, but nothing before line 1
@@ -91,7 +91,7 @@ class TestSearchContent:
     def test_context_at_end_of_document(self):
         """Context shouldn't exceed document length for matches at end."""
         content = "line 1\nline 2\nmatch here"
-        result = _search_content(content, "match")
+        result = search_content(content, "match")
 
         assert "3:match here" in result
         # Should include context before, but nothing after line 3
@@ -101,7 +101,7 @@ class TestSearchContent:
     def test_overlapping_context_regions(self):
         """Adjacent matches should have merged context regions."""
         content = "line 1\nmatch A\nline 3\nmatch B\nline 5"
-        result = _search_content(content, "match")
+        result = search_content(content, "match")
 
         assert "Found 2 matches" in result
         # Both matches should be present
@@ -112,7 +112,7 @@ class TestSearchContent:
         """Long lines should be truncated."""
         long_line = "x" * (MAX_CHARS_PER_MATCH + 100)
         content = f"short\n{long_line}\nshort again"
-        result = _search_content(content, "xxx")
+        result = search_content(content, "xxx")
 
         # Line should be truncated with "..."
         assert "..." in result
@@ -120,20 +120,20 @@ class TestSearchContent:
         assert long_line not in result
 
     def test_empty_content(self):
-        result = _search_content("", "pattern")
+        result = search_content("", "pattern")
         assert "No matches found" in result
 
     def test_empty_pattern_matches_all(self):
         """Empty pattern matches all non-empty lines."""
         content = "line 1\nline 2\nline 3"
-        result = _search_content(content, "")
+        result = search_content(content, "")
 
         assert "Found 3 matches" in result
 
     def test_special_regex_characters(self):
         """Test searching for literal special characters."""
         content = "price: $100\namount: (50)\npath: file.txt"
-        result = _search_content(content, r"\$100")
+        result = search_content(content, r"\$100")
 
         assert "Found 1 matches" in result
         assert "1:price: $100" in result
@@ -141,7 +141,7 @@ class TestSearchContent:
     def test_regex_pipe_or_pattern(self):
         """Test regex OR pattern using pipe character."""
         content = "error: connection failed\ninfo: connected\nwarning: low memory\ndebug: verbose"
-        result = _search_content(content, r"error|warning")
+        result = search_content(content, r"error|warning")
 
         expected = (
             "Found 2 matches for pattern: error|warning\n"
@@ -168,7 +168,7 @@ Participants were randomly assigned to groups.
 
 Results from the clinical trial demonstrate improvement."""
 
-        result = _search_content(content, "clinical trial")
+        result = search_content(content, "clinical trial")
 
         # Matches "clinical trials" and "clinical trial" (3 total)
         assert "Found 3 matches" in result
@@ -181,7 +181,7 @@ Results from the clinical trial demonstrate improvement."""
         lines[15] = "match second"
         content = "\n".join(lines)
 
-        result = _search_content(content, "match")
+        result = search_content(content, "match")
 
         # Blocks should be separated by --
         assert "--" in result
@@ -193,7 +193,7 @@ Results from the clinical trial demonstrate improvement."""
 
         # This regex matches markdown headings (with optional # prefix) for reference sections
         pattern = r"^\s{0,3}#{0,6}\s*(references|bibliography|works cited|literature cited|sources)\b"
-        result = _search_content(content, pattern)
+        result = search_content(content, pattern)
 
         # The document has "# References" at line 581
         assert "Found 1 matches" in result
@@ -209,7 +209,7 @@ class TestSearchContentMaxMatches:
         lines = [f"match line {i}" for i in range(MAX_MATCHES + 20)]
         content = "\n".join(lines)
 
-        result = _search_content(content, "match")
+        result = search_content(content, "match")
 
         assert f"Found {MAX_MATCHES + 20} matches" in result
         assert f"showing first {MAX_MATCHES}" in result
@@ -217,7 +217,7 @@ class TestSearchContentMaxMatches:
     def test_shows_all_when_under_limit(self):
         """Test that all matches shown when under limit."""
         content = "match 1\nmatch 2\nmatch 3"
-        result = _search_content(content, "match")
+        result = search_content(content, "match")
 
         assert "Found 3 matches for pattern" in result
         assert "showing first" not in result
@@ -226,52 +226,54 @@ class TestSearchContentMaxMatches:
 class TestSearchDocument:
     """Tests for the search_document tool function."""
 
-    def _create_mock_runtime(self, main_file=None, side_effect=None):
+    FILE_ID = "test-file-id"
+
+    def _create_mock_runtime(self, file=None, side_effect=None):
         """Helper to create a mock ToolRuntime."""
         mock_runtime = MagicMock()
         if side_effect:
-            mock_runtime.context.file_artifacts_service.get_main_file = AsyncMock(
+            mock_runtime.context.file_artifacts_service.get_file_document = AsyncMock(
                 side_effect=side_effect
             )
         else:
-            mock_runtime.context.file_artifacts_service.get_main_file = AsyncMock(
-                return_value=main_file
+            mock_runtime.context.file_artifacts_service.get_file_document = AsyncMock(
+                return_value=file
             )
         return mock_runtime
 
     @pytest.mark.asyncio
-    async def test_returns_error_when_no_main_file(self):
-        """Test error message when main file doesn't exist."""
-        mock_runtime = self._create_mock_runtime(main_file=None)
+    async def test_returns_error_when_file_not_found(self):
+        """Test error message when file doesn't exist."""
+        mock_runtime = self._create_mock_runtime(file=None)
 
-        result = await search_document.coroutine("pattern", mock_runtime)
+        result = await search_document.coroutine(self.FILE_ID, "pattern", mock_runtime)
 
-        assert "Error: Main document not found" in result
+        assert "not found or has no content" in result
 
     @pytest.mark.asyncio
     async def test_returns_error_when_no_markdown(self):
-        """Test error message when main file has no markdown content."""
+        """Test error message when file has no markdown content."""
         mock_file = MagicMock()
         mock_file.markdown = None
 
-        mock_runtime = self._create_mock_runtime(main_file=mock_file)
+        mock_runtime = self._create_mock_runtime(file=mock_file)
 
-        result = await search_document.coroutine("pattern", mock_runtime)
+        result = await search_document.coroutine(self.FILE_ID, "pattern", mock_runtime)
 
-        assert "Error: Main document not found or has no content" in result
+        assert "not found or has no content" in result
 
     @pytest.mark.asyncio
     async def test_returns_error_when_empty_markdown(self):
-        """Test error message when main file has empty markdown."""
+        """Test error message when file has empty markdown."""
         mock_file = MagicMock()
         mock_file.markdown = ""
 
-        mock_runtime = self._create_mock_runtime(main_file=mock_file)
+        mock_runtime = self._create_mock_runtime(file=mock_file)
 
-        result = await search_document.coroutine("pattern", mock_runtime)
+        result = await search_document.coroutine(self.FILE_ID, "pattern", mock_runtime)
 
         # Empty string is falsy, so treated as no content
-        assert "Error: Main document not found or has no content" in result
+        assert "not found or has no content" in result
 
     @pytest.mark.asyncio
     async def test_searches_markdown_content(self):
@@ -279,9 +281,11 @@ class TestSearchDocument:
         mock_file = MagicMock()
         mock_file.markdown = "Line one\nSearchable content here\nLine three"
 
-        mock_runtime = self._create_mock_runtime(main_file=mock_file)
+        mock_runtime = self._create_mock_runtime(file=mock_file)
 
-        result = await search_document.coroutine("Searchable", mock_runtime)
+        result = await search_document.coroutine(
+            self.FILE_ID, "Searchable", mock_runtime
+        )
 
         assert "Found 1 matches" in result
         assert "2:Searchable content here" in result
@@ -293,7 +297,7 @@ class TestSearchDocument:
             side_effect=Exception("Database connection failed")
         )
 
-        result = await search_document.coroutine("pattern", mock_runtime)
+        result = await search_document.coroutine(self.FILE_ID, "pattern", mock_runtime)
 
         assert "Error searching document:" in result
         assert "Database connection failed" in result

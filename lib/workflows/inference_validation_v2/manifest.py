@@ -10,7 +10,7 @@ from lib.workflows.inference_validation_v2.state import (
     InferenceValidationV2WorkflowConfig,
 )
 from lib.workflows.manifest import WorkflowManifest
-from lib.workflows.models import DocumentIssue, SeverityEnum, WorkflowRunType
+from lib.workflows.models import DocumentIssue, WorkflowRunType
 from lib.workflows.types import WorkflowState
 from lib.workflows.util import get_main_file_id
 
@@ -69,18 +69,13 @@ class InferenceValidationV2Manifest(
                     or analysis.long_form_argument_analysis
                 )
 
-                # Use all chunk indices for highlighting, first one for backward compat
-                chunk_indices = getattr(analysis, "chunk_indices", None) or []
-                chunk_index = chunk_indices[0] if chunk_indices else None
-
                 issues.append(
                     DocumentIssue(
                         title="Invalid Inference",
                         type=self.type,
                         description=description,
                         severity=analysis.severity,
-                        chunk_index=chunk_index,
-                        chunk_indices=chunk_indices,
+                        chunk_indices=analysis.chunk_indices,
                         long_description=f"# Key Sentence\n\n> {analysis.key_sentence}\n\n# Detailed Analysis\n\n{analysis.long_form_argument_analysis}\n\n# Suggested Action\n\n{analysis.suggested_action}",
                     )
                 )

@@ -44,7 +44,6 @@ class IssueResponse(BaseModel):
     long_description: str | None
     severity: str
     workflow_type: str
-    chunk_index: int | None
     chunk_indices: list[int] | None
     status: IssueStatus
     resolved_by: UUID | None

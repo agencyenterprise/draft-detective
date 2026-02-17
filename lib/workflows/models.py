@@ -120,7 +120,7 @@ class SeverityEnum(StrEnum):
 class DocumentIssue(BaseModel):
     id: str = Field(
         default="",
-        description="A unique identifier for the issue, generated as a hash of type + title + description + severity + chunk_index + chunk_indices.",
+        description="A unique identifier for the issue, generated as a hash of type + title + description + severity + chunk_indices.",
     )
     title: str = Field(description="The title of the issue")
     description: str = Field(
@@ -133,10 +133,6 @@ class DocumentIssue(BaseModel):
     severity: SeverityEnum = Field(description="The severity of the issue")
     type: WorkflowRunType = Field(
         description="The workflow type that generated this issue"
-    )
-    chunk_index: Optional[int] = Field(
-        description="The index of the chunk that contains the issue (deprecated, use chunk_indices)",
-        default=None,
     )
     chunk_indices: Optional[List[int]] = Field(
         description="The indices of all chunks that contain the issue",
@@ -152,7 +148,7 @@ class DocumentIssue(BaseModel):
 
         hash_input = (
             f"{self.type.value}|{self.title}|{self.description}|"
-            f"{self.severity.value}|{self.chunk_index}|{self.chunk_indices}"
+            f"{self.severity.value}|{self.chunk_indices}"
         )
         self.id = hashlib.sha256(hash_input.encode()).hexdigest()[:16]
         return self

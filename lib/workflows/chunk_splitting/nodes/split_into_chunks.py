@@ -10,7 +10,6 @@ from lib.agents.document_chunker_nltk import (
     get_chunker_result_as_langchain_documents,
 )
 from lib.agents.models import ValidatedDocument
-from lib.services.chunk_to_items_mapper import create_chunk_to_items_mapping
 from lib.workflows.chunk_splitting.state import ChunkSplittingState, DocumentChunk
 from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
@@ -27,9 +26,8 @@ async def split_into_chunks(
 ):
     if state.chunks:
         logger.info("Using cached chunks for main file")
-        return {"chunks": state.chunks, "chunk_to_items": state.chunk_to_items}
+        return {"chunks": state.chunks}
 
-    # Get the file document from the file artifacts service
     file_artifacts_service = runtime.context.file_artifacts_service
     file_document = await file_artifacts_service.get_file_document(state.file_id)
 
@@ -39,25 +37,7 @@ async def split_into_chunks(
     result = await chunker.ainvoke(prompt_kwargs={"full_document": markdown})
     docs: List[ValidatedDocument] = get_chunker_result_as_langchain_documents(result)
 
-    # We need to create the chunk-to-items mapping if Docling data is available
-    chunk_to_items = None
-    if file_document.docling_document:
-        try:
-            chunk_to_items = create_chunk_to_items_mapping(
-                docs, file_document.docling_document
-            )
-            logger.info(
-                f"split_into_chunks: created mapping for {len(docs)} chunks to Docling items"
-            )
-        except Exception as e:
-            logger.warning(
-                f"split_into_chunks: failed to create chunk-to-items mapping: {e}"
-            )
-
-    return {
-        "chunks": convert_validate_documents_to_chunks(docs),
-        "chunk_to_items": chunk_to_items,
-    }
+    return {"chunks": convert_validate_documents_to_chunks(docs)}
 
 
 def convert_validate_document_to_chunk(doc: ValidatedDocument) -> DocumentChunk:

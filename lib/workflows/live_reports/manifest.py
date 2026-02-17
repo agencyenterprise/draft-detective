@@ -67,7 +67,7 @@ class LiveReportsManifest(
                     description=live_report.rationale,
                     severity=SeverityEnum.MEDIUM,
                     type=self.type,
-                    chunk_index=live_report.chunk_index,
+                    chunk_indices=[live_report.chunk_index],
                 )
                 issues.append(issue)
             elif (
@@ -79,7 +79,7 @@ class LiveReportsManifest(
                     description=live_report.rationale,
                     severity=SeverityEnum.MEDIUM,
                     type=self.type,
-                    chunk_index=live_report.chunk_index,
+                    chunk_indices=[live_report.chunk_index],
                 )
                 issues.append(issue)
 

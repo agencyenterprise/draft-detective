@@ -35,8 +35,8 @@ dataset:
         claim: "Global AI data center capacity will reach 327 GW by 2030"
       expected_output:
         key_sentence: "RAND projects global AI data center capacity will reach 327 GW by 2030."
-        evidence_alignment: "partially_supported"
-        rationale: "The RAND report projects approximately 327 GW by 2030, but the claim states 'will reach' which implies certainty rather than a projection."
+        evidence_alignment: "supported"
+        rationale: "The RAND executive summary explicitly projects “2030: Approximately 327 GW globally” and reiterates that “The 327 GW figure for 2030 represents our central estimate…,” which matches the claim that global AI data center capacity will reach 327 GW by 2030."
         feedback: "Rephrase to reflect the projection nature, e.g., 'RAND projects global AI data center capacity to be approximately 327 GW by 2030.'"
         evidence_sources: []
 
@@ -65,9 +65,9 @@ dataset:
         claim: "OpenAI describes the agenticness of an AI model as an 'impact multiplier.'"
       expected_output:
         key_sentence: "OpenAI describes the agenticness of an AI model as an 'impact multiplier' (Shavit et al., 2023)"
-        evidence_alignment: "supported"
-        rationale: "The cited passage from Shavit et al. (2023) explicitly states: “We characterize agenticness as an ‘impact multiplier’ of AI capabilities,” matching the claim’s wording that agenticness is described as an “impact multiplier.”"
-        feedback: "No changes needed"
+        evidence_alignment: "unsupported"
+        rationale: "The cited source (Shavit et al., 2023) states that “We characterize agenticness as an 'impact multiplier' of AI capabilities,” but it does not attribute this characterization to OpenAI. The paragraph’s attribution to OpenAI is therefore not supported by the provided document."
+        feedback: "Rephrase to attribute the claim to Shavit et al. (2023) rather than OpenAI, or provide an additional OpenAI source that uses the term “impact multiplier” to describe agenticness."
         evidence_sources: []
 
     - name: "rag_context_window_test"

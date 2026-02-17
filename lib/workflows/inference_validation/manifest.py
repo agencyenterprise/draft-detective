@@ -70,7 +70,7 @@ class InferenceValidationManifest(
                         description=validation.rationale,
                         severity=SeverityEnum.MEDIUM,
                         type=self.type,
-                        chunk_index=validation.chunk_index,
+                        chunk_indices=[validation.chunk_index],
                     )
                 )
 

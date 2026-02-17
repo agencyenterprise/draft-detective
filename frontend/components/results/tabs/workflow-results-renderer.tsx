@@ -2,7 +2,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Callout } from '@/components/ui/callout';
-import { ErrorsCard } from '@/components/wizard/results-step/components/errors-card';
+import { ErrorsCard } from '@/components/results/components/errors-card';
 import { AboutAuthorsResults } from '@/components/workflows/results/about-authors-results';
 import { AboutThisResults } from '@/components/workflows/results/about-this-results';
 import { AdvocacyToneResults } from '@/components/workflows/results/advocacy-tone-results';
