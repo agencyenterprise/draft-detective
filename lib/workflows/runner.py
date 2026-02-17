@@ -121,42 +121,25 @@ async def run_workflow(
         )
 
         checkpoint_id = None
-        try:
-            # Clear all errors from previous runs
-            updated_state = state.model_copy(deep=True, update={"errors": []})
+        updated_state = state.model_copy(deep=True, update={"errors": []})
+        thread_config = {"configurable": {"thread_id": thread_id}}
 
+        try:
             async for values in app.astream(
                 updated_state,
-                {"configurable": {"thread_id": thread_id}},
+                thread_config,
                 stream_mode="values",
                 context=context,
             ):
                 updated_state = updated_state.model_copy(update=values)
 
             # Get checkpoint ID for debugging after successful completion
-            try:
-                state_snapshot = await app.aget_state(
-                    {"configurable": {"thread_id": thread_id}}
+            state_snapshot = await app.aget_state(thread_config)
+
+            if state_snapshot and state_snapshot.config:
+                checkpoint_id = state_snapshot.config.get("configurable", {}).get(
+                    "checkpoint_id"
                 )
-                if state_snapshot and state_snapshot.config:
-                    checkpoint_id = state_snapshot.config.get("configurable", {}).get(
-                        "checkpoint_id"
-                    )
-            except Exception as e:
-                logger.warning(f"Could not get checkpoint ID: {e}")
-        except Exception as e:
-            logger.error(f"Error streaming state: {e}", exc_info=True)
-            updated_state.errors.append(
-                WorkflowError(
-                    task_name="global",
-                    error=str(e),
-                    workflow_run_id=workflow_run_id,
-                )
-            )
-        finally:
-            await update_workflow_run_status(
-                workflow_run_id, WorkflowRunStatus.COMPLETED
-            )
 
             # Persist issues after workflow completion
             await _persist_issues_from_state(
@@ -165,6 +148,20 @@ async def run_workflow(
                 workflow_type=workflow_type,
                 state=updated_state,
                 checkpoint_id=checkpoint_id,
+            )
+        except Exception as e:
+            logger.error(f"Error running workflow {workflow_type}: {e}", exc_info=True)
+            error = WorkflowError(
+                task_name="global",
+                error=str(e),
+                workflow_run_id=workflow_run_id,
+            )
+
+            # Persist the error to the LangGraph checkpoint via the `add` reducer
+            await app.aupdate_state(thread_config, {"errors": [error]})
+        finally:
+            await update_workflow_run_status(
+                workflow_run_id, WorkflowRunStatus.COMPLETED
             )
 
     logger.info(
@@ -234,36 +231,27 @@ async def _persist_issues_from_state(
         logger.debug("No project_id, skipping issue persistence")
         return
 
-    try:
-        manifest = get_workflow_manifest(workflow_type, raise_exception=False)
-        if manifest is None:
-            logger.debug(f"No manifest for {workflow_type}, skipping issue persistence")
-            return
+    manifest = get_workflow_manifest(workflow_type, raise_exception=False)
+    if manifest is None:
+        logger.debug(f"No manifest for {workflow_type}, skipping issue persistence")
+        return
 
-        # Load all existing workflow states for the project so manifests
-        # that read data from other workflow states can resolve correctly.
-        from lib.services.workflow_runs import get_project_workflow_runs
+    # Load all existing workflow states for the project so manifests
+    # that read data from other workflow states can resolve correctly.
+    from lib.services.workflow_runs import get_project_workflow_runs
 
-        workflow_runs = await get_project_workflow_runs(
-            project_id, include_internal=True
-        )
-        existing_states: list[WorkflowState] = [
-            run.state for run in workflow_runs if run.state is not None
-        ]
+    workflow_runs = await get_project_workflow_runs(project_id, include_internal=True)
+    existing_states: list[WorkflowState] = [
+        run.state for run in workflow_runs if run.state is not None
+    ]
 
-        # Convert state to issues using the manifest
-        issues = manifest.convert_state_to_issues(state, existing_states)
+    # Convert state to issues using the manifest
+    issues = manifest.convert_state_to_issues(state, existing_states)
 
-        if not issues:
-            logger.debug(f"No issues to persist for {workflow_type}")
-            return
-
-        await persist_workflow_issues(
-            workflow_run_id=uuid.UUID(workflow_run_id),
-            project_id=uuid.UUID(project_id),
-            workflow_type=workflow_type,
-            issues=issues,
-            checkpoint_id=checkpoint_id,
-        )
-    except Exception as e:
-        logger.error(f"Error persisting issues: {e}", exc_info=True)
+    await persist_workflow_issues(
+        workflow_run_id=uuid.UUID(workflow_run_id),
+        project_id=uuid.UUID(project_id),
+        workflow_type=workflow_type,
+        issues=issues,
+        checkpoint_id=checkpoint_id,
+    )
