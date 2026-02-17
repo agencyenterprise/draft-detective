@@ -8,7 +8,6 @@ import { Claim, ProjectDetailed, WorkflowRunType } from '@/lib/generated-api';
 import { getClaimExtractionDetail, getWorkflowRunByType } from '@/lib/workflow-state';
 import { useMemo } from 'react';
 import { AnalysisResultCard } from './analysis-result-card';
-import { ClaimArgumentAnalysis } from './claim-argument-analysis';
 import { ClaimCategoryResults } from './claim-category-results';
 import { ClaimCitationSuggestions } from './claim-citation-suggestions';
 import { ClaimInferenceValidation } from './claim-inference-validation';
@@ -109,10 +108,17 @@ export function ClaimAnalysisCard({
             <LabeledValue label="Centrality Rationale">{claim.centrality_rationale}</LabeledValue>
           </>
         )}
+        <LabeledValue label="Needs External Verification">
+          {claim.needs_external_verification === true
+            ? 'Yes'
+            : claim.needs_external_verification === false
+              ? 'No'
+              : 'Unknown'}
+        </LabeledValue>
+        <LabeledValue label="Rationale">{claim.rationale}</LabeledValue>
       </div>
 
       <div className="space-y-2">
-        <ClaimArgumentAnalysis claim={claim} />
         {claimCategory && <ClaimCategoryResults claimCategory={claimCategory} />}
         {substantiation && (
           <SubstantiationResults

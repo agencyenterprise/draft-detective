@@ -4,6 +4,7 @@ from langgraph.graph import StateGraph
 
 from lib.agents.claim_verifier import ClaimEvidenceSource
 from lib.services.file import FileDocument
+from lib.workflows.chunk_utils import build_analyzed_chunks
 from lib.workflows.claim_reference_validation.graph import (
     build_claim_reference_validation_graph,
 )
@@ -177,45 +178,47 @@ class ClaimReferenceValidationManifest(
                 )
             )
 
-        # Claims needing external verification without citations (V2 logic)
-        for chunk in chunks:
-            has_citations = (
-                chunk.citations
-                and chunk.citations.citations
-                and len(chunk.citations.citations) > 0
-            )
+        # chunks = build_analyzed_chunks(other_states)
 
-            if not chunk.claims or not chunk.claims.claims:
-                continue
-            for claim_index, claim in enumerate(chunk.claims.claims):
-                if not (claim.needs_external_verification is True):
-                    continue
-                claim_verification = next(
-                    (
-                        s
-                        for s in state.substantiations
-                        if chunk.chunk_index == s.chunk_index
-                        and s.claim_index == claim_index
-                    ),
-                    None,
-                )
-                if not has_citations and (
-                    claim_verification is None
-                    or claim_verification.evidence_alignment
-                    != EvidenceAlignmentLevel.SUPPORTED
-                ):
-                    issues.append(
-                        DocumentIssue(
-                            title="Unsupported claim",
-                            description=(
-                                f'Claim requires external verification but no citations/references '
-                                f'were found or used: "{claim.claim}"'
-                            ),
-                            severity=SeverityEnum.MEDIUM,
-                            type=self.type,
-                            chunk_index=chunk.chunk_index,
-                            long_description=f"**Rationale:** {claim.rationale}",
-                        )
-                    )
+        # Claims needing external verification without citations (V2 logic)
+        # for chunk in chunks:
+        #     has_citations = (
+        #         chunk.citations
+        #         and chunk.citations.citations
+        #         and len(chunk.citations.citations) > 0
+        #     )
+
+        #     if not chunk.claims or not chunk.claims.claims:
+        #         continue
+        #     for claim_index, claim in enumerate(chunk.claims.claims):
+        #         if not (claim.needs_external_verification is True):
+        #             continue
+        #         claim_verification = next(
+        #             (
+        #                 s
+        #                 for s in state.substantiations
+        #                 if chunk.chunk_index == s.chunk_index
+        #                 and s.claim_index == claim_index
+        #             ),
+        #             None,
+        #         )
+        #         if not has_citations and (
+        #             claim_verification is None
+        #             or claim_verification.evidence_alignment
+        #             != EvidenceAlignmentLevel.SUPPORTED
+        #         ):
+        #             issues.append(
+        #                 DocumentIssue(
+        #                     title="Claim requires external verification",
+        #                     description=(
+        #                         f"Claim requires external verification but no citations/references "
+        #                         f'were found or used: "{claim.claim}"'
+        #                     ),
+        #                     severity=SeverityEnum.MEDIUM,
+        #                     type=self.type,
+        #                     chunk_indices=[chunk.chunk_index],
+        #                     long_description=f"**Rationale:** {claim.rationale}",
+        #                 )
+        #             )
 
         return issues
