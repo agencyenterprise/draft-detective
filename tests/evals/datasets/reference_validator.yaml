@@ -5,7 +5,7 @@ dataset:
     # Strictly compare stable scalars only
     strict_fields:
       - original_reference
-      - valid_reference
+      - final_result
     # Let the LLM semantically compare nested validations and suggested actions
     llm_fields:
       - suggested_action
@@ -21,7 +21,7 @@ dataset:
         reference: "Goodison, Sean E., Robert C. Davis, and Brian A. Jackson. Digital Evidence and the U.S. Criminal Justice System: Identifying Technology and Other Needs to More Effectively Acquire and Utilize Digital Evidence. Santa Monica, CA: RAND Corporation, 2015."
       expected_output:
         original_reference: "Goodison, Sean E., Robert C. Davis, and Brian A. Jackson. Digital Evidence and the U.S. Criminal Justice System: Identifying Technology and Other Needs to More Effectively Acquire and Utilize Digital Evidence. Santa Monica, CA: RAND Corporation, 2015."
-        valid_reference: true
+        final_result: valid
         bibliography_field_validations:
           - category: author
             current_value: "Sean E. Goodison; Robert C. Davis; Brian A. Jackson"
@@ -48,7 +48,7 @@ dataset:
         reference: "Doe, John. The Effects of Widgets on Gadgets. Journal of Widgetry, 2020."
       expected_output:
         original_reference: "Doe, John. The Effects of Widgets on Gadgets. Journal of Widgetry, 2020."
-        valid_reference: false
+        final_result: not_found
         bibliography_field_validations:
           - category: author
             current_value: "John Doe"
@@ -75,7 +75,7 @@ dataset:
         reference: "Vermeer, Michael J. D., Dulani Woods, and Brian A. Jackson. Identifying Law Enforcement Needs for Access to Digital Evidence in Remote Data Centers. Santa Monica, CA: RAND Corporation, 2019."
       expected_output:
         original_reference: "Vermeer, Michael J. D., Dulani Woods, and Brian A. Jackson. Identifying Law Enforcement Needs for Access to Digital Evidence in Remote Data Centers. Santa Monica, CA: RAND Corporation, 2019."
-        valid_reference: false
+        final_result: found_with_inconsistencies
         bibliography_field_validations:
           - category: author
             current_value: "Michael J. D. Vermeer; Dulani Woods; Brian A. Jackson"
@@ -102,7 +102,7 @@ dataset:
         reference: 'Bistline, John, Geoffrey Blanford, Maxwell Brown, Dallas Burtraw, Maya Domeshek, Jamil Farbes, Allen Fawcett, Anne Hamilton, Jesse Jenkins, Ryan Jones, Ben King, Hannah Kolus, John Larsen, Amanda Levin, Megan Mahajan, Cara Marcy, Erin Mayfield, James McFarland, Haewon McJeon, Robbie Orvis, Neha Patankar, Kevin Rennert, Christopher Roney, Nicholas Roy, Greg Schivley, Daniel Steinberg, Nadejda Victor, Shelley Wenzel, John Weyant, Ryan Wiser, Mei Yuan, and Alicia Zhao, "Emissions and energy impacts of the Inflation Reduction Act," Science, Vol. 380, No. 6652, 1324 – 1327, 29 June 2023. https://doi.org/10.1126/science.adg3781'
       expected_output:
         original_reference: 'Bistline, John, Geoffrey Blanford, Maxwell Brown, Dallas Burtraw, Maya Domeshek, Jamil Farbes, Allen Fawcett, Anne Hamilton, Jesse Jenkins, Ryan Jones, Ben King, Hannah Kolus, John Larsen, Amanda Levin, Megan Mahajan, Cara Marcy, Erin Mayfield, James McFarland, Haewon McJeon, Robbie Orvis, Neha Patankar, Kevin Rennert, Christopher Roney, Nicholas Roy, Greg Schivley, Daniel Steinberg, Nadejda Victor, Shelley Wenzel, John Weyant, Ryan Wiser, Mei Yuan, and Alicia Zhao, "Emissions and energy impacts of the Inflation Reduction Act," Science, Vol. 380, No. 6652, 1324 – 1327, 29 June 2023. https://doi.org/10.1126/science.adg3781'
-        valid_reference: true
+        final_result: valid
         bibliography_field_validations:
           - category: author
             current_value: "Bistline, John, Geoffrey Blanford, Maxwell Brown, Dallas Burtraw, Maya Domeshek, Jamil Farbes, Allen Fawcett, Anne Hamilton, Jesse Jenkins, Ryan Jones, Ben King, Hannah Kolus, John Larsen, Amanda Levin, Megan Mahajan, Cara Marcy, Erin Mayfield, James McFarland, Haewon McJeon, Robbie Orvis, Neha Patankar, Kevin Rennert, Christopher Roney, Nicholas Roy, Greg Schivley, Daniel Steinberg, Nadejda Victor, Shelley Wenzel, John Weyant, Ryan Wiser, Mei Yuan, and Alicia Zhao"
@@ -129,7 +129,7 @@ dataset:
         reference: 'Davenport, Carly, Brian Singer, Neil Mehta, Brian Lee, and John Mackay, "Generational growth: AI, data centers and the coming US power demand surge," Goldman Sachs Equity Research, April 28, 2024: https://www.goldmansachs.com/pdfs/insights/pages/generational-growth-ai-data-centers-and-the-coming-us-power-surge/report.pdf'
       expected_output:
         original_reference: 'Davenport, Carly, Brian Singer, Neil Mehta, Brian Lee, and John Mackay, "Generational growth: AI, data centers and the coming US power demand surge," Goldman Sachs Equity Research, April 28, 2024: https://www.goldmansachs.com/pdfs/insights/pages/generational-growth-ai-data-centers-and-the-coming-us-power-surge/report.pdf'
-        valid_reference: true
+        final_result: valid
         bibliography_field_validations:
           - category: author
             current_value: "Carly Davenport; Brian Singer; Neil Mehta; Brian Lee; John Mackay"
@@ -156,7 +156,7 @@ dataset:
         reference: 'Patel, Dylan, Daniel Nishball, and Jeremie Elliahou Ontiveros, "AI Data center Energy Dilemma - Race for AI Data center Space," SemiAnalysis, March 13, 2024. As of September 18, 2024: https://www.semianalysis.com/p/ai-data center-energy-dilemma-race'
       expected_output:
         original_reference: 'Patel, Dylan, Daniel Nishball, and Jeremie Elliahou Ontiveros, "AI Data center Energy Dilemma - Race for AI Data center Space," SemiAnalysis, March 13, 2024. As of September 18, 2024: https://www.semianalysis.com/p/ai-data center-energy-dilemma-race'
-        valid_reference: false
+        final_result: found_with_inconsistencies
         bibliography_field_validations:
           - category: author
             current_value: "Dylan Patel; Daniel Nishball; Jeremie Elliahou Ontiveros"
@@ -183,7 +183,7 @@ dataset:
         reference: 'U.S. Department of Energy: Secretary of Energy Advisory Board, "Recommendations on Powering Artificial Intelligence and Data Center Infrastructure," July 30, 2024: https://www.energy.gov/sites/default/files/2024-08/Powering%20AI%20and%20Data%20Center%20Infrastructure%20Recommendations%20July%202024.pdf'
       expected_output:
         original_reference: 'U.S. Department of Energy: Secretary of Energy Advisory Board, "Recommendations on Powering Artificial Intelligence and Data Center Infrastructure," July 30, 2024: https://www.energy.gov/sites/default/files/2024-08/Powering%20AI%20and%20Data%20Center%20Infrastructure%20Recommendations%20July%202024.pdf'
-        valid_reference: true
+        final_result: valid
         bibliography_field_validations:
           - category: author
             current_value: "U.S. Department of Energy: Secretary of Energy Advisory Board"
@@ -210,7 +210,7 @@ dataset:
         reference: "Daniel Furrer, Jonathan Berant, Panupong Pasupat, Don Tuggener, Mark Cieliebak, and Mark Steedman. Compositional generalization in semantic parsing: Pre-training vs. specialized architectures. In Findings of the Association for Computational Linguistics: EMNLP, 2020."
       expected_output:
         original_reference: "Daniel Furrer, Jonathan Berant, Panupong Pasupat, Don Tuggener, Mark Cieliebak, and Mark Steedman. Compositional generalization in semantic parsing: Pre-training vs. specialized architectures. In Findings of the Association for Computational Linguistics: EMNLP, 2020."
-        valid_reference: false
+        final_result: found_with_inconsistencies
         bibliography_field_validations:
           - category: author
             current_value: "Daniel Furrer, Jonathan Berant, Panupong Pasupat, Don Tuggener, Mark Cieliebak, and Mark Steedman"
@@ -237,7 +237,7 @@ dataset:
         reference: "Jonathan Herzig. Unlocking compositional generalization in pretrained models using intermediate representations. In EMNLP, 2021a."
       expected_output:
         original_reference: "Jonathan Herzig. Unlocking compositional generalization in pretrained models using intermediate representations. In EMNLP, 2021a."
-        valid_reference: false
+        final_result: found_with_inconsistencies
         bibliography_field_validations:
           - category: author
             current_value: "Jonathan Herzig"
@@ -264,7 +264,7 @@ dataset:
         reference: "Jonathan Herzig and Jonathan Berant. Unlocking compositional generalization in pretrained models using intermediate representations."
       expected_output:
         original_reference: "Jonathan Herzig and Jonathan Berant. Unlocking compositional generalization in pretrained models using intermediate representations."
-        valid_reference: false
+        final_result: found_with_inconsistencies
         bibliography_field_validations:
           - category: author
             current_value: "Jonathan Herzig and Jonathan Berant"
@@ -291,7 +291,7 @@ dataset:
         reference: "Jonathan Herzig and Jonathan Berant. Unlocking compositional generalization in pretrained models using intermediate representations. In EMNLP, 2021c."
       expected_output:
         original_reference: "Jonathan Herzig and Jonathan Berant. Unlocking compositional generalization in pretrained models using intermediate representations. In EMNLP, 2021c."
-        valid_reference: false
+        final_result: found_with_inconsistencies
         bibliography_field_validations:
           - category: author
             current_value: "Jonathan Herzig and Jonathan Berant"
@@ -318,7 +318,7 @@ dataset:
         reference: "Takashi Ito, Brenden M. Lake, and Marco Baroni. Compositional generalization through abstract representations in human and artificial neural networks. In NeurIPS, 2022."
       expected_output:
         original_reference: "Takashi Ito, Brenden M. Lake, and Marco Baroni. Compositional generalization through abstract representations in human and artificial neural networks. In NeurIPS, 2022."
-        valid_reference: false
+        final_result: found_with_inconsistencies
         bibliography_field_validations:
           - category: author
             current_value: "Takashi Ito, Brenden M. Lake, and Marco Baroni"
@@ -345,7 +345,7 @@ dataset:
         reference: "Najoung Kim and Tal Linzen. Cogs: A compositional generalization challenge based on semantic interpretation. In NAACL, 2021."
       expected_output:
         original_reference: "Najoung Kim and Tal Linzen. Cogs: A compositional generalization challenge based on semantic interpretation. In NAACL, 2021."
-        valid_reference: false
+        final_result: found_with_inconsistencies
         bibliography_field_validations:
           - category: author
             current_value: "Najoung Kim and Tal Linzen"
@@ -372,7 +372,7 @@ dataset:
         reference: "Brenden M. Lake and Marco Baroni. Generalization without systematicity: On the compositional skills of sequence-to-sequence recurrent networks. ICML, 2018."
       expected_output:
         original_reference: "Brenden M. Lake and Marco Baroni. Generalization without systematicity: On the compositional skills of sequence-to-sequence recurrent networks. ICML, 2018."
-        valid_reference: true
+        final_result: valid
         bibliography_field_validations:
           - category: author
             current_value: "Brenden M. Lake and Marco Baroni"
@@ -399,7 +399,7 @@ dataset:
         reference: "Xueguang Li, Yizhe Zhang, Xuezhe Ma, Lemao Liu, Xiang Chen, Ming Zhou, Tie-Yan Liu, and Jianfeng Gao. Compositional generalization through meta sequence-to-sequence learning. In EMNLP, 2021."
       expected_output:
         original_reference: "Xueguang Li, Yizhe Zhang, Xuezhe Ma, Lemao Liu, Xiang Chen, Ming Zhou, Tie-Yan Liu, and Jianfeng Gao. Compositional generalization through meta sequence-to-sequence learning. In EMNLP, 2021."
-        valid_reference: false
+        final_result: found_with_inconsistencies
         bibliography_field_validations:
           - category: author
             current_value: "Xueguang Li, Yizhe Zhang, Xuezhe Ma, Lemao Liu, Xiang Chen, Ming Zhou, Tie-Yan Liu, and Jianfeng Gao"
@@ -426,7 +426,7 @@ dataset:
         reference: "Laura Ruis, Jacob Andreas, Marco Baroni, Diane Bouchacourt, and Brenden M. Lake. A benchmark for systematic generalization in grounded language understanding. In NeurIPS, 2020."
       expected_output:
         original_reference: "Laura Ruis, Jacob Andreas, Marco Baroni, Diane Bouchacourt, and Brenden M. Lake. A benchmark for systematic generalization in grounded language understanding. In NeurIPS, 2020."
-        valid_reference: true
+        final_result: valid
         bibliography_field_validations:
           - category: author
             current_value: "Laura Ruis, Jacob Andreas, Marco Baroni, Diane Bouchacourt, and Brenden M. Lake"
@@ -453,7 +453,7 @@ dataset:
         reference: 'Herzig, Jonathan, Peter Shaw, Ming-Wei Chang, Kelvin Guu, Panupong Pasupat, and Yuan Zhang. "Unlocking compositional generalization in pre-trained models using intermediate representations." arXiv preprint arXiv:2104.07478 (2021).'
       expected_output:
         original_reference: 'Herzig, Jonathan, Peter Shaw, Ming-Wei Chang, Kelvin Guu, Panupong Pasupat, and Yuan Zhang. "Unlocking compositional generalization in pre-trained models using intermediate representations." arXiv preprint arXiv:2104.07478 (2021).'
-        valid_reference: true
+        final_result: valid
         bibliography_field_validations:
           - category: author
             current_value: "Jonathan Herzig, Peter Shaw, Ming-Wei Chang, Kelvin Guu, Panupong Pasupat, and Yuan Zhang"
@@ -480,7 +480,7 @@ dataset:
         reference: 'North American Electric Reliability Corporation, "2024 Long-Term Reliability Assessment," December 2024: https://www.nerc.com/pa/RAPA/ra/Reliability%20Assessments%20DL/NERC_Long%20Term%20Reliability%20Assessment_2024.pdf'
       expected_output:
         original_reference: 'North American Electric Reliability Corporation, "2024 Long-Term Reliability Assessment," December 2024: https://www.nerc.com/pa/RAPA/ra/Reliability%20Assessments%20DL/NERC_Long%20Term%20Reliability%20Assessment_2024.pdf'
-        valid_reference: true
+        final_result: valid
         bibliography_field_validations:
           - category: author
             current_value: "North American Electric Reliability Corporation"
@@ -507,7 +507,7 @@ dataset:
         reference: 'Sevilla, Jaime, Tamay Besiroglu, Ben Cottier, Josh You, Edu Roldán, Pablo Villalobos, and Ege Erdil, "Can AI Scaling Continue Through 2030?" Epoch AI, August 20, 2024: https://epoch.ai/blog/can-ai-scaling-continue-through-2030'
       expected_output:
         original_reference: 'Sevilla, Jaime, Tamay Besiroglu, Ben Cottier, Josh You, Edu Roldán, Pablo Villalobos, and Ege Erdil, "Can AI Scaling Continue Through 2030?" Epoch AI, August 20, 2024: https://epoch.ai/blog/can-ai-scaling-continue-through-2030'
-        valid_reference: true
+        final_result: valid
         bibliography_field_validations:
           - category: author
             current_value: "Jaime Sevilla; Tamay Besiroglu; Ben Cottier; Josh You; Edu Roldán; Pablo Villalobos; Ege Erdil"
@@ -534,7 +534,7 @@ dataset:
         reference: 'Srivathsan, Bhargs, Haripreet Batra, Raman Sharma, Rishi Gupta, and Surbhi Choudhary, "AI power: Expanding data center capacity to meet growing demand," McKinsey & Company, October 2024: https://www.mckinsey.com/industries/technology-media-and-telecommunications/our-insights/ai-power-expanding-data-center-capacity-to-meet-growing-demand#/'
       expected_output:
         original_reference: 'Srivathsan, Bhargs, Haripreet Batra, Raman Sharma, Rishi Gupta, and Surbhi Choudhary, "AI power: Expanding data center capacity to meet growing demand," McKinsey & Company, October 2024: https://www.mckinsey.com/industries/technology-media-and-telecommunications/our-insights/ai-power-expanding-data-center-capacity-to-meet-growing-demand#/'
-        valid_reference: true
+        final_result: found_with_inconsistencies
         bibliography_field_validations:
           - category: author
             current_value: "Bhargs Srivathsan; Haripreet Batra; Raman Sharma; Rishi Gupta; Surbhi Choudhary"

@@ -1,11 +1,9 @@
-import asyncio
 import logging
 
 from langgraph.runtime import Runtime
 from langgraph.types import Send
 
 from lib.agents.reference_validator import ReferenceValidatorAgent
-from lib.services.url_redirect_checker import get_final_url
 from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
 from lib.workflows.reference_validation.state import (
@@ -87,27 +85,7 @@ async def validate_single_reference(state: dict, runtime: Runtime[ContextSchema]
     status = ReferenceValidationStatus.COMPLETED
 
     try:
-        # Run LLM validation and URL check in parallel
-        llm_task = agent.ainvoke({"reference": input_reference})
-        url_task = get_final_url(input_reference)
-
-        llm_result, url_result = await asyncio.gather(
-            llm_task, url_task, return_exceptions=True
-        )
-
-        if isinstance(llm_result, BaseException):
-            raise llm_result
-
-        # Update URL fields if redirect check succeeded
-        if not isinstance(url_result, BaseException):
-            cited_url, final_url = url_result
-            if cited_url:
-                llm_result.cited_url = cited_url
-                if final_url and final_url != cited_url:
-                    llm_result.url = final_url
-
-        validation_result = llm_result
-
+        validation_result = await agent.ainvoke({"reference": input_reference})
     except Exception as e:
         logger.error(
             f"Error validating reference '{input_reference}': {e}", exc_info=True

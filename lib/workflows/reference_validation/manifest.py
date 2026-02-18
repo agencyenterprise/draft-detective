@@ -2,6 +2,7 @@ from typing import List, Type, cast
 
 from langgraph.graph import StateGraph
 
+from lib.agents.reference_validator import ReferenceValidationFinalResult
 from lib.workflows.manifest import WorkflowManifest
 from lib.workflows.models import DocumentIssue, SeverityEnum, WorkflowRunType
 from lib.workflows.reference_extraction.state import ReferenceExtractionState
@@ -13,6 +14,18 @@ from lib.workflows.reference_validation.state import (
 )
 from lib.workflows.types import WorkflowState
 from lib.workflows.util import get_state_by_type
+
+_FINAL_RESULT_SEVERITY: dict[ReferenceValidationFinalResult, SeverityEnum] = {
+    ReferenceValidationFinalResult.VALID: SeverityEnum.NONE,
+    ReferenceValidationFinalResult.FOUND_WITH_INCONSISTENCIES: SeverityEnum.MEDIUM,
+    ReferenceValidationFinalResult.NOT_FOUND: SeverityEnum.HIGH,
+}
+
+_FINAL_RESULT_TITLE: dict[ReferenceValidationFinalResult, str] = {
+    ReferenceValidationFinalResult.VALID: "Valid reference",
+    ReferenceValidationFinalResult.FOUND_WITH_INCONSISTENCIES: "Reference found with inconsistencies",
+    ReferenceValidationFinalResult.NOT_FOUND: "Reference not found",
+}
 
 
 class ReferenceValidationManifest(
@@ -51,19 +64,7 @@ class ReferenceValidationManifest(
     def convert_state_to_issues(
         self, state: ReferenceValidationState, other_states: List[WorkflowState]
     ) -> List[DocumentIssue]:
-        """
-        Convert ReferenceValidationState to issues.
-
-        By default, reference validation results are stored as metadata on each
-        reference entry and displayed in the References tab via the
-        ValidationResultsBox component. This keeps the Document Explorer focused
-        on actionable issues.
-
-        When show_invalid_references_as_issues is enabled in the config, invalid
-        references will also appear as issues in the Document Explorer.
-        """
-        if not state.config.show_invalid_references_as_issues:
-            return []
+        """Convert ReferenceValidationState to issues."""
 
         issues: List[DocumentIssue] = []
 
@@ -84,7 +85,6 @@ class ReferenceValidationManifest(
                 ref_to_chunks[ref.id] = ref.chunk_indices
 
         for validation in state.reference_validations:
-            # Only process completed validations with results
             if validation.status != ReferenceValidationStatus.COMPLETED:
                 continue
 
@@ -93,23 +93,24 @@ class ReferenceValidationManifest(
 
             result = validation.validation_result
             chunk_indices = ref_to_chunks.get(validation.reference_id, [])
+            severity = _FINAL_RESULT_SEVERITY[result.final_result]
+            title = _FINAL_RESULT_TITLE[result.final_result]
 
-            if not result.valid_reference:
-                field_validations = "\n\n".join(
-                    [
-                        f"- **{item.category.value.capitalize()}**: {item.problem_type.value.capitalize()}\n\n\t*Current*: {item.current_value or "-"}\n\n\t*Suggested*: {item.suggested_value}"
-                        for item in result.bibliography_field_validations
-                    ]
-                )
+            field_validations = "\n\n".join(
+                [
+                    f"- **{item.category.value.capitalize()}**: {item.problem_type.value.capitalize()}\n\n\t*Current*: {item.current_value or "-"}\n\n\t*Suggested*: {item.suggested_value}"
+                    for item in result.bibliography_field_validations
+                ]
+            )
 
-                issue = DocumentIssue(
-                    title="Invalid reference",
-                    description=f'Possible invalid reference: "{result.original_reference}".\n\n{result.suggested_action}',
-                    severity=SeverityEnum.MEDIUM,
-                    type=self.type,
-                    chunk_indices=chunk_indices if chunk_indices else None,
-                    long_description=f"{f'### Suggested updated reference\n\n> {result.updated_reference}' if result.updated_reference else ''}\n\n### Field validations\n\n{field_validations}\n\n### Reasoning\n\n{result.reasoning}",
-                )
-                issues.append(issue)
+            issue = DocumentIssue(
+                title=title,
+                description=f"> {result.original_reference}\n\n{result.suggested_action}",
+                severity=severity,
+                type=self.type,
+                chunk_indices=chunk_indices if chunk_indices else None,
+                long_description=f"{f'### Suggested updated reference\n\n> {result.updated_reference}' if result.updated_reference else ''}\n\n### Field validations\n\n{field_validations}\n\n### Reasoning\n\n{result.reasoning}",
+            )
+            issues.append(issue)
 
         return issues
