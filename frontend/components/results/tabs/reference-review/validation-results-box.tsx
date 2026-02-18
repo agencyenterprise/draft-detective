@@ -2,7 +2,11 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { LabeledValue } from '@/components/labeled-value';
 import { Markdown } from '@/components/markdown';
-import { ReferenceValidationItem, ReferenceValidationStatus } from '@/lib/generated-api';
+import {
+  ReferenceValidationFinalResult,
+  ReferenceValidationItem,
+  ReferenceValidationStatus,
+} from '@/lib/generated-api';
 import {
   AlertTriangle,
   CheckCircle2,
@@ -10,6 +14,7 @@ import {
   ChevronRightIcon,
   ClipboardCheck,
   Loader2,
+  SearchX,
   XCircle,
 } from 'lucide-react';
 import * as React from 'react';
@@ -112,32 +117,44 @@ export function ValidationResultsBox({
   }
 
   const issues = result.bibliography_field_validations?.filter((field) => field.problem_type !== 'correct') || [];
-  const hasIssues = issues.length > 0;
-  const isValid = result.valid_reference && !hasIssues;
+  const finalResult = result.final_result;
 
-  const getBoxColorClass = () => {
-    if (isValid) return 'bg-green-50/80 border-green-200';
-    return 'bg-yellow-50/80 border-yellow-200';
+  const resultConfig = {
+    [ReferenceValidationFinalResult.Valid]: {
+      boxClass: 'bg-green-50/80 border-green-200',
+      badgeClass: 'bg-green-50 text-green-700 border-green-200',
+      icon: <CheckCircle2 className="w-3.5 h-3.5" />,
+      label: 'Valid',
+    },
+    [ReferenceValidationFinalResult.FoundWithInconsistencies]: {
+      boxClass: 'bg-yellow-50/80 border-yellow-200',
+      badgeClass: 'bg-yellow-50 text-yellow-700 border-yellow-200',
+      icon: <AlertTriangle className="w-3.5 h-3.5" />,
+      label: `${issues.length} inconsistenc${issues.length !== 1 ? 'ies' : 'y'} found`,
+    },
+    [ReferenceValidationFinalResult.NotFound]: {
+      boxClass: 'bg-red-50/80 border-red-200',
+      badgeClass: 'bg-red-50 text-red-700 border-red-200',
+      icon: <SearchX className="w-3.5 h-3.5" />,
+      label: 'Not found',
+    },
   };
 
+  const config = resultConfig[finalResult];
+
   return (
-    <div className={`rounded border ${paddingClass} ${getBoxColorClass()}`}>
+    <div className={`rounded border ${paddingClass} ${config.boxClass}`}>
       {/* Header with title and badge */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <ClipboardCheck className="w-4 h-4 text-muted-foreground" />
           <span className="text-xs font-medium text-gray-700">Validation results</span>
-          {isValid ? (
-            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 text-xs font-medium rounded-full border bg-green-50 text-green-700 border-green-200">
-              <CheckCircle2 className="w-3.5 h-3.5" />
-              No issues
-            </span>
-          ) : (
-            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 text-xs font-medium rounded-full border bg-yellow-50 text-yellow-700 border-yellow-200">
-              <AlertTriangle className="w-3.5 h-3.5" />
-              {issues.length} issue{issues.length !== 1 ? 's' : ''} found
-            </span>
-          )}
+          <span
+            className={`inline-flex items-center gap-1.5 px-2 py-0.5 text-xs font-medium rounded-full border ${config.badgeClass}`}
+          >
+            {config.icon}
+            {config.label}
+          </span>
         </div>
         <Button variant="outline" size="xs" onClick={() => setIsExpanded(!isExpanded)}>
           {isExpanded ? <ChevronDownIcon className="size-4" /> : <ChevronRightIcon className="size-4" />}

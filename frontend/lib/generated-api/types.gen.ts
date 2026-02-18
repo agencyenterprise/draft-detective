@@ -501,7 +501,7 @@ export type BibliographyFieldValidation = {
    */
   suggested_value: string;
   /**
-   * Problem type of the reference.
+   * Problem type of the reference. Must be CORRECT if the only differences are capitalization or minor punctuation.
    */
   problem_type: FieldProblemType;
 };
@@ -517,11 +517,9 @@ export type BibliographyItemValidation = {
    */
   original_reference: string;
   /**
-   * Valid Reference
-   *
-   * Whether the original reference is valid.
+   * Overall validation outcome: 'valid' if found online with no inconsistencies, 'found_with_inconsistencies' if found but some fields need correction, 'not_found' if the reference has no online presence or appears fabricated.
    */
-  valid_reference: boolean;
+  final_result: ReferenceValidationFinalResult;
   /**
    * Bibliography Field Validations
    *
@@ -552,12 +550,6 @@ export type BibliographyItemValidation = {
    * Updated reference with the suggested changes made to make the reference valid, matching the format of the original reference. If the reference is already valid, return null.
    */
   updated_reference?: string | null;
-  /**
-   * Cited Url
-   *
-   * The original URL cited in the reference text (before redirect resolution).
-   */
-  cited_url?: string | null;
 };
 
 /**
@@ -2064,6 +2056,7 @@ export const FieldCategory = {
   Title: 'title',
   Publisher: 'publisher',
   Year: 'year',
+  Identifier: 'identifier',
 } as const;
 
 /**
@@ -4096,6 +4089,21 @@ export const ReferenceType = {
 export type ReferenceType = (typeof ReferenceType)[keyof typeof ReferenceType];
 
 /**
+ * ReferenceValidationFinalResult
+ */
+export const ReferenceValidationFinalResult = {
+  Valid: 'valid',
+  FoundWithInconsistencies: 'found_with_inconsistencies',
+  NotFound: 'not_found',
+} as const;
+
+/**
+ * ReferenceValidationFinalResult
+ */
+export type ReferenceValidationFinalResult =
+  (typeof ReferenceValidationFinalResult)[keyof typeof ReferenceValidationFinalResult];
+
+/**
  * ReferenceValidationItem
  *
  * Item for tracking individual reference validation with status
@@ -4210,12 +4218,6 @@ export type ReferenceValidationWorkflowConfig = {
    * Type
    */
   type?: 'reference_validation';
-  /**
-   * Show Invalid References As Issues
-   *
-   * When True, invalid references will appear as issues in the Document Explorer. When False, validation results are only shown in the References tab.
-   */
-  show_invalid_references_as_issues?: boolean;
 };
 
 /**
