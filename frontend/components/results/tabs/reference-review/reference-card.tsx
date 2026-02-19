@@ -216,8 +216,8 @@ export function ReferenceCard({ reference, projectId, readOnly, disabled = false
           {/* Fetch Results Box */}
           {fetchResult && <FetchResultsBox fetchResult={fetchResult} />}
 
-          {/* Validation Results Box */}
-          {validation && <ValidationResultsBox validation={validation} />}
+          {/* Validation Results Box - hidden to reduce confusion with reference downloader results */}
+          {/* {validation && <ValidationResultsBox validation={validation} />} */}
         </div>
       </div>
     </div>
