@@ -6,6 +6,37 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v0.5.10] - 2026-02-19
+
+### Added
+- Introduced persisted issues stored in the database, enabling users to mark issues as resolved/unresolved and improving retrieval performance.
+- Added REST endpoints to get an issue and to resolve/unresolve issues.
+- Added batch feedback fetching for a project and linked feedback directly to issues via a foreign key.
+- Added a new Health Monitor dashboard on the Summary tab to provide an at-a-glance view of project health across workflow analyses.
+- Added an optional `inaccessibility_reason` field to reference fetch results to explain why a source could not be downloaded.
+- Added the same document explorer issue filters to the Word add-in, along with an issues counter and a jump-to-paragraph feature.
+- Added a Zustand-based centralized store for document explorer filter and chunk selection state.
+- Converted the claim verifier to an agentic tool-using architecture with parallel paragraph verification.
+
+### Changed
+- Improved reference validation by replacing binary valid/invalid with a tri-state `final_result` (`valid`, `found_with_inconsistencies`, `not_found`) and updated issue severity/title generation accordingly.
+- Updated the reference validation UI to render and filter results using the new tri-state categories with distinct colors, icons, labels, and a "Not Found" filter badge.
+- Removed the deprecated `chunk_index` field and consolidated chunk references to `chunk_indices` across the system.
+- Updated evidence source matching to use `file_id` instead of `reference_file_name`.
+- Updated the website with new features.
+- Updated the summary page (RANDZ-420).
+- Added the option to remove the chunk index on the "Jump to" feature.
+
+### Fixed
+- Fixed the resolved/unresolved issue filter so it correctly applies to both the document explorer view and the sidebar, with resolved issues hidden by default.
+
+### Removed
+- Removed all Docling document viewer support and the document render mode toggle, switching to markdown-only document rendering.
+- Removed the separate URL redirect checking service and related parallel URL check logic from reference validation.
+- Removed the `cited_url` field from reference validation results.
+- Removed the deprecated `chunk_index` field from issue API responses and the database.
+
+
 ## [v0.5.9] - 2026-02-12
 
 ### Added
