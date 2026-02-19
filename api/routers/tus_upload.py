@@ -13,6 +13,7 @@ from lib.models.file import FileRole
 from lib.models.user import User
 from lib.services.file_finalization import finalize_file_from_path
 from lib.services.projects import get_user_project
+from lib.services.references import add_file_to_reference
 from tuspyserver import create_tus_router
 
 logger = logging.getLogger(__name__)
@@ -71,6 +72,20 @@ def _get_completion_hook(
             file_record.id,
             file_record.content_hash,
         )
+
+        reference_id = metadata.get("reference_id")
+        if reference_id:
+            linked = await add_file_to_reference(
+                project_id=project_id,
+                file_id=str(file_record.id),
+                reference_id=reference_id,
+            )
+            if not linked:
+                logger.error(
+                    "Failed to link file %s to reference %s",
+                    file_record.id,
+                    reference_id,
+                )
 
     return handler
 

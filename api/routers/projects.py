@@ -2,14 +2,12 @@ import logging
 from typing import List, Literal, Optional
 
 from fastapi import APIRouter, Depends
-from fastapi import File as FastAPIUploadFile
-from fastapi import Form, HTTPException, Query, UploadFile, status
+from fastapi import HTTPException, Query, status
 from fastapi.responses import StreamingResponse
 from starlette.responses import FileResponse
 
 from api.auth import get_current_user, get_current_user_optional
 from api.models import WorkflowProgressResponse
-from api.upload import save_uploaded_files_to_db
 from lib.models.file import File, FileRole
 from lib.models.project import Project
 from lib.models.user import User
@@ -28,7 +26,7 @@ from lib.services.projects import (
     get_user_projects,
     update_user_project,
 )
-from lib.services.references import add_file_to_reference, remove_file_from_references
+from lib.services.references import remove_file_from_references
 from lib.services.share_links import get_resource_by_token
 from lib.services.workflow_progress import get_project_workflow_progress
 from lib.services.workflow_runs import (
@@ -179,81 +177,6 @@ async def list_project_files_endpoint(
 
     await check_project_access(project_id, current_user, share_token)
     return await get_project_files(project_id)
-
-
-@router.post(
-    "/api/project/{project_id}/files",
-    response_model=List[File],
-    status_code=status.HTTP_201_CREATED,
-)
-async def add_files_to_project(
-    project_id: str,
-    files: List[UploadFile] = FastAPIUploadFile(...),
-    role: FileRole = Form(default=FileRole.SUPPORT),
-    current_user: User = Depends(get_current_user),
-):
-    """Add files (supporting documents) to an existing project."""
-
-    project = await get_user_project(project_id, user=current_user)
-    roles = [role] * len(files)
-    return await save_uploaded_files_to_db(
-        uploaded_files=files,
-        project_id=project.id,
-        user_id=current_user.id,
-        roles=roles,
-    )
-
-
-@router.post(
-    "/api/project/{project_id}/file",
-    response_model=File,
-    status_code=status.HTTP_201_CREATED,
-)
-async def add_file_to_project(
-    project_id: str,
-    file: UploadFile = FastAPIUploadFile(...),
-    reference_id: Optional[str] = Form(default=None),
-    current_user: User = Depends(get_current_user),
-):
-    """
-    Add a single file (supporting document) to a project.
-
-    Optionally link the file to a specific reference by providing reference_id
-    (the ID of the reference from the ReferenceExtraction workflow state).
-    """
-
-    # Verify project access (user must be authenticated owner)
-    project = await get_user_project(project_id, user=current_user)
-
-    try:
-        # Save the uploaded file with SUPPORT role
-        file_records = await save_uploaded_files_to_db(
-            uploaded_files=[file],
-            project_id=project.id,
-            user_id=current_user.id,
-            roles=[FileRole.SUPPORT],
-        )
-
-        file_record = file_records[0]
-
-        # If reference_id is provided, link the file to that reference
-        if reference_id is not None:
-            await add_file_to_reference(
-                project_id=project_id,
-                file_id=str(file_record.id),
-                reference_id=reference_id,
-            )
-
-        return file_record
-
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        logger.error("Failed to upload file: %s", e, exc_info=True)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to upload file",
-        )
 
 
 @router.delete("/api/project/{project_id}/files/{file_id}")

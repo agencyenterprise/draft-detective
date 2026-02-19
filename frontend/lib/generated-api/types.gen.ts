@@ -553,31 +553,6 @@ export type BibliographyItemValidation = {
 };
 
 /**
- * Body_add_file_to_project_api_project__project_id__file_post
- */
-export type BodyAddFileToProjectApiProjectProjectIdFilePost = {
-  /**
-   * File
-   */
-  file: Blob | File;
-  /**
-   * Reference Id
-   */
-  reference_id?: string | null;
-};
-
-/**
- * Body_add_files_to_project_api_project__project_id__files_post
- */
-export type BodyAddFilesToProjectApiProjectProjectIdFilesPost = {
-  /**
-   * Files
-   */
-  files: Array<Blob | File>;
-  role?: FileRole;
-};
-
-/**
  * Body_start_analysis_api_start_analysis_post
  */
 export type BodyStartAnalysisApiStartAnalysisPost = {
@@ -5928,72 +5903,6 @@ export type ListProjectFilesEndpointApiProjectProjectIdFilesGetResponses = {
 
 export type ListProjectFilesEndpointApiProjectProjectIdFilesGetResponse =
   ListProjectFilesEndpointApiProjectProjectIdFilesGetResponses[keyof ListProjectFilesEndpointApiProjectProjectIdFilesGetResponses];
-
-export type AddFilesToProjectApiProjectProjectIdFilesPostData = {
-  body: BodyAddFilesToProjectApiProjectProjectIdFilesPost;
-  path: {
-    /**
-     * Project Id
-     */
-    project_id: string;
-  };
-  query?: never;
-  url: '/api/project/{project_id}/files';
-};
-
-export type AddFilesToProjectApiProjectProjectIdFilesPostErrors = {
-  /**
-   * Validation Error
-   */
-  422: HttpValidationError;
-};
-
-export type AddFilesToProjectApiProjectProjectIdFilesPostError =
-  AddFilesToProjectApiProjectProjectIdFilesPostErrors[keyof AddFilesToProjectApiProjectProjectIdFilesPostErrors];
-
-export type AddFilesToProjectApiProjectProjectIdFilesPostResponses = {
-  /**
-   * Response Add Files To Project Api Project  Project Id  Files Post
-   *
-   * Successful Response
-   */
-  201: Array<File>;
-};
-
-export type AddFilesToProjectApiProjectProjectIdFilesPostResponse =
-  AddFilesToProjectApiProjectProjectIdFilesPostResponses[keyof AddFilesToProjectApiProjectProjectIdFilesPostResponses];
-
-export type AddFileToProjectApiProjectProjectIdFilePostData = {
-  body: BodyAddFileToProjectApiProjectProjectIdFilePost;
-  path: {
-    /**
-     * Project Id
-     */
-    project_id: string;
-  };
-  query?: never;
-  url: '/api/project/{project_id}/file';
-};
-
-export type AddFileToProjectApiProjectProjectIdFilePostErrors = {
-  /**
-   * Validation Error
-   */
-  422: HttpValidationError;
-};
-
-export type AddFileToProjectApiProjectProjectIdFilePostError =
-  AddFileToProjectApiProjectProjectIdFilePostErrors[keyof AddFileToProjectApiProjectProjectIdFilePostErrors];
-
-export type AddFileToProjectApiProjectProjectIdFilePostResponses = {
-  /**
-   * Successful Response
-   */
-  201: File;
-};
-
-export type AddFileToProjectApiProjectProjectIdFilePostResponse =
-  AddFileToProjectApiProjectProjectIdFilePostResponses[keyof AddFileToProjectApiProjectProjectIdFilePostResponses];
 
 export type DeleteProjectFileEndpointApiProjectProjectIdFilesFileIdDeleteData = {
   body?: never;
