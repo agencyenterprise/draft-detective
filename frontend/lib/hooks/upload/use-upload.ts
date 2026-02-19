@@ -14,7 +14,7 @@ import type { UseUploadOptions, UseUploadReturn, UploadFileState, UploadStatus }
 import { createProgress, isActiveStatus } from './types';
 
 export function useUpload(options: UseUploadOptions): UseUploadReturn {
-  const { projectId, fileRole = FileRole.Support, onFileComplete, onAllComplete, onError } = options;
+  const { projectId, fileRole = FileRole.Support, referenceId, onFileComplete, onAllComplete, onError } = options;
 
   const queryClient = useQueryClient();
   const [files, setFiles] = useState<UploadFileState[]>([]);
@@ -52,12 +52,16 @@ export function useUpload(options: UseUploadOptions): UseUploadReturn {
     uppy.use(Tus, createTusOptions());
 
     uppy.on('file-added', (file) => {
-      uppy.setFileMeta(file.id, {
-        filename: file.name,
-        filetype: file.type,
+      const meta: Record<string, string> = {
+        filename: file.name ?? '',
+        filetype: file.type ?? '',
         project_id: projectId,
         role: fileRole,
-      });
+      };
+      if (referenceId) {
+        meta.reference_id = referenceId;
+      }
+      uppy.setFileMeta(file.id, meta);
     });
 
     uppy.on('upload-progress', (file, progress) => {
@@ -111,7 +115,7 @@ export function useUpload(options: UseUploadOptions): UseUploadReturn {
 
     uppyRef.current = uppy;
     return uppy;
-  }, [projectId, fileRole, queryClient, updateFileState]);
+  }, [projectId, fileRole, referenceId, queryClient, updateFileState]);
 
   const addFiles = useCallback(
     (newFiles: File[]) => {
@@ -129,11 +133,20 @@ export function useUpload(options: UseUploadOptions): UseUploadReturn {
         newStates.push(state);
 
         try {
+          const meta: Record<string, string> = {
+            filename: file.name,
+            filetype: file.type ?? '',
+            project_id: projectId,
+            role: fileRole,
+          };
+          if (referenceId) {
+            meta.reference_id = referenceId;
+          }
           const uppyFileId = uppy.addFile({
             name: file.name,
             type: file.type,
             data: file,
-            meta: { filename: file.name, filetype: file.type, project_id: projectId, role: fileRole },
+            meta,
           });
           fileMapRef.current.set(uppyFileId, { file, state });
         } catch (err) {
@@ -144,7 +157,7 @@ export function useUpload(options: UseUploadOptions): UseUploadReturn {
 
       setFiles((prev) => [...prev, ...newStates]);
     },
-    [getUppy, projectId, fileRole],
+    [getUppy, projectId, fileRole, referenceId],
   );
 
   const removeFile = useCallback(

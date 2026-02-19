@@ -3,12 +3,6 @@
 import { type Client, formDataBodySerializer, type Options as Options2, type TDataShape } from './client';
 import { client } from './client.gen';
 import type {
-  AddFilesToProjectApiProjectProjectIdFilesPostData,
-  AddFilesToProjectApiProjectProjectIdFilesPostErrors,
-  AddFilesToProjectApiProjectProjectIdFilesPostResponses,
-  AddFileToProjectApiProjectProjectIdFilePostData,
-  AddFileToProjectApiProjectProjectIdFilePostErrors,
-  AddFileToProjectApiProjectProjectIdFilePostResponses,
   ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostData,
   ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostErrors,
   ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostResponses,
@@ -798,59 +792,6 @@ export const listProjectFilesEndpointApiProjectProjectIdFilesGet = <ThrowOnError
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/project/{project_id}/files',
     ...options,
-  });
-
-/**
- * Add Files To Project
- *
- * Add files (supporting documents) to an existing project.
- */
-export const addFilesToProjectApiProjectProjectIdFilesPost = <ThrowOnError extends boolean = true>(
-  options: Options<AddFilesToProjectApiProjectProjectIdFilesPostData, ThrowOnError>,
-) =>
-  (options.client ?? client).post<
-    AddFilesToProjectApiProjectProjectIdFilesPostResponses,
-    AddFilesToProjectApiProjectProjectIdFilesPostErrors,
-    ThrowOnError,
-    'data'
-  >({
-    ...formDataBodySerializer,
-    responseStyle: 'data',
-    security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/api/project/{project_id}/files',
-    ...options,
-    headers: {
-      'Content-Type': null,
-      ...options.headers,
-    },
-  });
-
-/**
- * Add File To Project
- *
- * Add a single file (supporting document) to a project.
- *
- * Optionally link the file to a specific reference by providing reference_id
- * (the ID of the reference from the ReferenceExtraction workflow state).
- */
-export const addFileToProjectApiProjectProjectIdFilePost = <ThrowOnError extends boolean = true>(
-  options: Options<AddFileToProjectApiProjectProjectIdFilePostData, ThrowOnError>,
-) =>
-  (options.client ?? client).post<
-    AddFileToProjectApiProjectProjectIdFilePostResponses,
-    AddFileToProjectApiProjectProjectIdFilePostErrors,
-    ThrowOnError,
-    'data'
-  >({
-    ...formDataBodySerializer,
-    responseStyle: 'data',
-    security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/api/project/{project_id}/file',
-    ...options,
-    headers: {
-      'Content-Type': null,
-      ...options.headers,
-    },
   });
 
 /**

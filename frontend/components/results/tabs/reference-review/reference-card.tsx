@@ -131,6 +131,7 @@ export function ReferenceCard({ reference, projectId, readOnly, disabled = false
         description={dialogMode ? dialogConfig[dialogMode].description : ''}
         multiple={false}
         projectId={projectId}
+        referenceId={id}
         onCancel={() => setDialogMode(null)}
         onComplete={() => setDialogMode(null)}
       />
