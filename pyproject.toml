@@ -47,6 +47,8 @@ dependencies = [
     "textblob>=0.18.0",
     "rich>=14.2.0",
     "tuspyserver>=4.2.3",
+    "inspect-ai>=0.3.179",
+    "openai>=2.16.0",
 ]
 
 [tool.pytest.ini_options]
@@ -65,3 +67,10 @@ addopts = [
 dev = [
     "types-aiofiles>=25.1.0.20251011",
 ]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["lib", "api", "evals_inspectai"]

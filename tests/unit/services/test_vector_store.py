@@ -113,9 +113,9 @@ class TestBuildChunkDocs:
         for i, chunk_doc in enumerate(docs):
             start = chunk_doc.metadata["start_line"]
             end = chunk_doc.metadata["end_line"]
-            assert end >= start, (
-                f"Chunk {i}: end_line {end} is less than start_line {start}"
-            )
+            assert (
+                end >= start
+            ), f"Chunk {i}: end_line {end} is less than start_line {start}"
 
     def test_metadata_includes_file_name_and_collection(self):
         """Verify that file_name and collection_id are set in metadata."""
