@@ -11,7 +11,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
-import { SeverityBadge } from '@/components/wizard/results-step/components/severity-badge';
+import { SeverityBadge } from '@/components/results/components/severity-badge';
 import { SeverityEnum, WorkflowRunType } from '@/lib/generated-api';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { Filter } from 'lucide-react';

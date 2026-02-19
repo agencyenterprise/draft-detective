@@ -2,17 +2,18 @@
 
 import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/shared/empty-state';
-import { ValidationResultsBox } from '@/components/wizard/results-step/tabs/reference-review/validation-results-box';
+import { ValidationResultsBox } from '@/components/results/tabs/reference-review/validation-results-box';
 import {
+  ReferenceValidationFinalResult,
   ReferenceValidationItem,
   ReferenceValidationState,
   ReferenceValidationStatus,
   WorkflowRunDetail,
 } from '@/lib/generated-api';
-import { AlertTriangle, CheckCircle2, ClipboardCheck, Loader2, XCircle } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, ClipboardCheck, Loader2, SearchX, XCircle } from 'lucide-react';
 import * as React from 'react';
 
-type FilterType = 'all' | 'valid' | 'issues' | 'pending' | 'error';
+type FilterType = 'all' | 'valid' | 'inconsistencies' | 'not_found' | 'pending' | 'error';
 
 interface ReferenceValidationResultsProps {
   workflowDetail: WorkflowRunDetail;
@@ -24,12 +25,10 @@ function getValidationCategory(v: ReferenceValidationItem): Exclude<FilterType, 
   if (status === ReferenceValidationStatus.Pending) return 'pending';
   if (status === ReferenceValidationStatus.Error) return 'error';
 
-  const result = v.validation_result;
-  if (result) {
-    const issues = result.bibliography_field_validations?.filter((f) => f.problem_type !== 'correct') ?? [];
-    if (result.valid_reference && issues.length === 0) return 'valid';
-  }
-  return 'issues';
+  const finalResult = v.validation_result?.final_result;
+  if (finalResult === ReferenceValidationFinalResult.Valid) return 'valid';
+  if (finalResult === ReferenceValidationFinalResult.NotFound) return 'not_found';
+  return 'inconsistencies';
 }
 
 export function ReferenceValidationResults({ workflowDetail }: ReferenceValidationResultsProps) {
@@ -41,7 +40,8 @@ export function ReferenceValidationResults({ workflowDetail }: ReferenceValidati
     const items = results?.reference_validations ?? [];
     let pending = 0;
     let errors = 0;
-    let withIssues = 0;
+    let inconsistencies = 0;
+    let notFound = 0;
     let valid = 0;
 
     items.forEach((v: ReferenceValidationItem) => {
@@ -49,12 +49,13 @@ export function ReferenceValidationResults({ workflowDetail }: ReferenceValidati
       if (category === 'pending') pending++;
       else if (category === 'error') errors++;
       else if (category === 'valid') valid++;
-      else withIssues++;
+      else if (category === 'not_found') notFound++;
+      else inconsistencies++;
     });
 
     return {
       validations: items,
-      stats: { pending, errors, withIssues, valid, total: items.length },
+      stats: { pending, errors, inconsistencies, notFound, valid, total: items.length },
     };
   }, [results?.reference_validations]);
 
@@ -96,14 +97,24 @@ export function ReferenceValidationResults({ workflowDetail }: ReferenceValidati
             {stats.valid} Valid
           </Badge>
         )}
-        {stats.withIssues > 0 && (
+        {stats.inconsistencies > 0 && (
           <Badge
             variant="outline"
-            className={`cursor-pointer transition-all bg-yellow-50 text-yellow-700 border-yellow-200 ${filter === 'issues' ? 'ring-2 ring-offset-1 ring-yellow-400' : 'hover:bg-yellow-100'}`}
-            onClick={() => toggleFilter('issues')}
+            className={`cursor-pointer transition-all bg-yellow-50 text-yellow-700 border-yellow-200 ${filter === 'inconsistencies' ? 'ring-2 ring-offset-1 ring-yellow-400' : 'hover:bg-yellow-100'}`}
+            onClick={() => toggleFilter('inconsistencies')}
           >
             <AlertTriangle className="w-3 h-3 mr-1" />
-            {stats.withIssues} With Issues
+            {stats.inconsistencies} With Inconsistencies
+          </Badge>
+        )}
+        {stats.notFound > 0 && (
+          <Badge
+            variant="outline"
+            className={`cursor-pointer transition-all bg-red-50 text-red-700 border-red-200 ${filter === 'not_found' ? 'ring-2 ring-offset-1 ring-red-400' : 'hover:bg-red-100'}`}
+            onClick={() => toggleFilter('not_found')}
+          >
+            <SearchX className="w-3 h-3 mr-1" />
+            {stats.notFound} Not Found
           </Badge>
         )}
         {stats.pending > 0 && (

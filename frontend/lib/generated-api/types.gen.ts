@@ -481,30 +481,6 @@ export type AuthorValidationResult = {
 };
 
 /**
- * BBox
- *
- * Docling bounding box format (bottom-left origin, PDF standard)
- */
-export type BBox = {
-  /**
-   * L
-   */
-  l: number;
-  /**
-   * B
-   */
-  b: number;
-  /**
-   * R
-   */
-  r: number;
-  /**
-   * T
-   */
-  t: number;
-};
-
-/**
  * BibliographyFieldValidation
  */
 export type BibliographyFieldValidation = {
@@ -525,7 +501,7 @@ export type BibliographyFieldValidation = {
    */
   suggested_value: string;
   /**
-   * Problem type of the reference.
+   * Problem type of the reference. Must be CORRECT if the only differences are capitalization or minor punctuation.
    */
   problem_type: FieldProblemType;
 };
@@ -541,11 +517,9 @@ export type BibliographyItemValidation = {
    */
   original_reference: string;
   /**
-   * Valid Reference
-   *
-   * Whether the original reference is valid.
+   * Overall validation outcome: 'valid' if found online with no inconsistencies, 'found_with_inconsistencies' if found but some fields need correction, 'not_found' if the reference has no online presence or appears fabricated.
    */
-  valid_reference: boolean;
+  final_result: ReferenceValidationFinalResult;
   /**
    * Bibliography Field Validations
    *
@@ -576,12 +550,6 @@ export type BibliographyItemValidation = {
    * Updated reference with the suggested changes made to make the reference valid, matching the format of the original reference. If the reference is already valid, return null.
    */
   updated_reference?: string | null;
-  /**
-   * Cited Url
-   *
-   * The original URL cited in the reference text (before redirect resolution).
-   */
-  cited_url?: string | null;
 };
 
 /**
@@ -732,10 +700,6 @@ export type ChunkSplittingState = {
    * Document chunks from main document
    */
   chunks?: Array<DocumentChunk>;
-  /**
-   * Mapping from chunk indices to Docling items/regions for rendering
-   */
-  chunk_to_items?: ChunkToItems | null;
 };
 
 /**
@@ -778,24 +742,6 @@ export type ChunkSplittingWorkflowConfig = {
    * Type
    */
   type?: 'chunk_splitting';
-};
-
-/**
- * ChunkToItems
- *
- * Mapping from chunk indices to document items/regions
- *
- * Keys are string chunk indices, values are lists of regions
- */
-export type ChunkToItems = {
-  /**
-   * Mapping
-   *
-   * Maps chunk_index (as string) to list of regions
-   */
-  mapping?: {
-    [key: string]: Array<DoclingRegion>;
-  };
 };
 
 /**
@@ -1152,21 +1098,21 @@ export type ClaimEvidenceSource = {
   /**
    * Quote
    *
-   * A quote from the document that contains the evidence for the claim
+   * A quote from the document that contains the evidence for the claim. If no quote was found, return an empty string.
    */
   quote: string;
   /**
    * Location
    *
-   * The location of the quote in the document, e.g., 'page 3', 'section 2', 'figure 3', etc. Be as specific as possible
+   * The location of the quote in the document, e.g., 'page 3', 'section 2', 'figure 3', etc. Be as specific as possible. Don't use line numbers, but rather section titles or other section identifiers. If no location was found, return an empty string.
    */
   location: string;
   /**
-   * Reference File Name
+   * File Id
    *
-   * The name of the reference file that contains the evidence for the claim, as provided in the 'list of references cited' section of the input
+   * The ID of the reference file that was checked as provided in the citation-to-file mapping.
    */
-  reference_file_name: string;
+  file_id: string;
 };
 
 /**
@@ -1338,6 +1284,10 @@ export type ClaimReferenceValidationState = {
   type?: 'claim_reference_validation';
   config: ClaimReferenceValidationWorkflowConfig;
   /**
+   * Paragraph Verifications
+   */
+  paragraph_verifications?: Array<ParagraphVerificationItem>;
+  /**
    * Substantiations
    *
    * Claim substantiation results indexed by chunk_index and claim_index
@@ -1422,6 +1372,12 @@ export type ClaimSubstantiationResultWithClaimIndex = {
    */
   key_sentence: string;
   /**
+   * Claim Number
+   *
+   * The number of the claim from the provided numbered list
+   */
+  claim_number: number;
+  /**
    * The degree of evidence that the supporting document(s) provides to support the claim. Possible values: ['unverifiable', 'supported', 'partially_supported', 'unsupported']
    */
   evidence_alignment: EvidenceAlignmentLevel;
@@ -1440,9 +1396,15 @@ export type ClaimSubstantiationResultWithClaimIndex = {
   /**
    * Evidence Sources
    *
-   * The sources that provide the evidence for the claim. If there are multiple sources, include all of them.
+   * The sources/documents that were checked in the validation process. If there are multiple sources, include all of them. If no sources were checked, return an empty list.
    */
   evidence_sources: Array<ClaimEvidenceSource>;
+  /**
+   * Citation To File Mapping
+   *
+   * A string representation of the citation-to-file mapping that was used to check the evidence. Do not include file IDs. Null if no citation-to-file mapping was provided.
+   */
+  citation_to_file_mapping?: string | null;
   /**
    * Chunk Index
    */
@@ -1477,65 +1439,6 @@ export type CreateProjectRequest = {
    * Title
    */
   title: string;
-};
-
-/**
- * DoclingDocument
- *
- * Raw Docling json_content passed through to frontend
- *
- * We don't parse/transform - just pass the structure as-is.
- * Frontend will handle the Docling format directly.
- *
- * All fields from Docling's json_content are stored in __pydantic_extra__
- * and serialized properly.
- */
-export type DoclingDocument = {
-  [key: string]: unknown;
-};
-
-/**
- * DoclingPageInfo
- *
- * Minimal page info for frontend rendering
- *
- * Only includes the fields actually used by the frontend.
- * Note: Docling documents may use either 'page' or 'page_no' field.
- */
-export type DoclingPageInfo = {
-  /**
-   * Page
-   */
-  page?: number | null;
-  /**
-   * Page No
-   */
-  page_no?: number | null;
-  /**
-   * Width
-   */
-  width?: number | null;
-  /**
-   * Height
-   */
-  height?: number | null;
-};
-
-/**
- * DoclingRegion
- *
- * Region mapping for frontend overlay
- */
-export type DoclingRegion = {
-  /**
-   * Id
-   */
-  id: string;
-  /**
-   * Page
-   */
-  page: number;
-  bbox: BBox;
 };
 
 /**
@@ -1574,56 +1477,6 @@ export type DocumentChunk = {
    * 1-indexed ending line in markdown
    */
   end_line: number;
-};
-
-/**
- * DocumentIssue
- */
-export type DocumentIssue = {
-  /**
-   * Id
-   *
-   * A unique identifier for the issue, generated as a hash of type + title + description + severity + chunk_index + chunk_indices.
-   */
-  id?: string;
-  /**
-   * Title
-   *
-   * The title of the issue
-   */
-  title: string;
-  /**
-   * Description
-   *
-   * A short description of the issue, enough to understand the issue at a glance. Can be markdown.
-   */
-  description: string;
-  /**
-   * Long Description
-   *
-   * A long description of the issue, including all the details necessary to understand the issue in detail. Can be markdown.
-   */
-  long_description?: string | null;
-  /**
-   * The severity of the issue
-   */
-  severity: SeverityEnum;
-  /**
-   * The workflow type that generated this issue
-   */
-  type: WorkflowRunType;
-  /**
-   * Chunk Index
-   *
-   * The index of the chunk that contains the issue (deprecated, use chunk_indices)
-   */
-  chunk_index?: number | null;
-  /**
-   * Chunk Indices
-   *
-   * The indices of all chunks that contain the issue
-   */
-  chunk_indices?: Array<number> | null;
 };
 
 /**
@@ -2077,16 +1930,24 @@ export type ExtractedReference = {
 export type FeedbackRequest = {
   /**
    * Workflow Run Id
+   *
+   * Workflow run ID (optional if issue_id is provided)
    */
-  workflow_run_id: string;
+  workflow_run_id?: string | null;
   /**
    * Entity Path
    *
    * JSONB path identifying the entity
    */
-  entity_path: {
+  entity_path?: {
     [key: string]: unknown;
   };
+  /**
+   * Issue Id
+   *
+   * Issue ID for issue-level feedback (preferred, derives workflow_run_id automatically)
+   */
+  issue_id?: string | null;
   /**
    * Feedback Type
    */
@@ -2119,11 +1980,50 @@ export type FeedbackResponse = {
   entity_path: {
     [key: string]: unknown;
   };
+  /**
+   * Issue Id
+   */
+  issue_id: string | null;
   feedback_type: FeedbackType;
   /**
    * Feedback Text
    */
   feedback_text: string | null;
+  /**
+   * Created At
+   */
+  created_at: string;
+  /**
+   * Updated At
+   */
+  updated_at: string;
+};
+
+/**
+ * FeedbackSummary
+ *
+ * Lightweight feedback representation for project detail responses.
+ */
+export type FeedbackSummary = {
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * Workflow Run Id
+   */
+  workflow_run_id: string;
+  /**
+   * Entity Path
+   */
+  entity_path: {
+    [key: string]: unknown;
+  };
+  feedback_type: FeedbackType;
+  /**
+   * Feedback Text
+   */
+  feedback_text?: string | null;
   /**
    * Created At
    */
@@ -2156,6 +2056,7 @@ export const FieldCategory = {
   Title: 'title',
   Publisher: 'publisher',
   Year: 'year',
+  Identifier: 'identifier',
 } as const;
 
 /**
@@ -2314,16 +2215,6 @@ export type FileDocument = {
    * The UUID of the file record in the database
    */
   file_id: string;
-  /**
-   * Full Docling document for internal processing (chunk mapping, etc.)
-   */
-  docling_document?: DoclingDocument | null;
-  /**
-   * Docling Pages
-   *
-   * Computed from docling_document for API responses
-   */
-  readonly docling_pages: Array<DoclingPageInfo> | null;
 };
 
 /**
@@ -2881,6 +2772,186 @@ export type InferenceValidationWorkflowConfig = {
 };
 
 /**
+ * Issue
+ *
+ * Persisted issue from workflow analysis.
+ *
+ * Issues are created after workflow completion and linked to the specific
+ * workflow run and checkpoint that generated them.
+ */
+export type Issue = {
+  /**
+   * Id
+   *
+   * Unique identifier for the issue
+   */
+  id: string;
+  /**
+   * Project Id
+   *
+   * The project this issue belongs to
+   */
+  project_id: string;
+  /**
+   * Workflow Run Id
+   *
+   * The workflow run that created this issue
+   */
+  workflow_run_id: string;
+  /**
+   * Langgraph Checkpoint Id
+   *
+   * LangGraph checkpoint ID for time travel debugging
+   */
+  langgraph_checkpoint_id?: string | null;
+  /**
+   * Issue Hash
+   *
+   * Deterministic hash from DocumentIssue.id for deduplication
+   */
+  issue_hash: string;
+  /**
+   * Title
+   *
+   * The title of the issue
+   */
+  title: string;
+  /**
+   * Description
+   *
+   * Short description of the issue
+   */
+  description: string;
+  /**
+   * Long Description
+   *
+   * Detailed description of the issue
+   */
+  long_description?: string | null;
+  /**
+   * The severity of the issue
+   */
+  severity: SeverityEnum;
+  /**
+   * The workflow type that generated this issue
+   */
+  workflow_type: WorkflowRunType;
+  /**
+   * Chunk Indices
+   *
+   * All chunk indices related to this issue
+   */
+  chunk_indices?: Array<number> | null;
+  /**
+   * Current status of the issue (active or archived)
+   */
+  status?: IssueStatus;
+  /**
+   * Resolved By
+   *
+   * User who resolved this issue (null if unresolved)
+   */
+  resolved_by?: string | null;
+  /**
+   * Resolved At
+   *
+   * When the issue was resolved
+   */
+  resolved_at?: Date | null;
+  /**
+   * Created At
+   *
+   * When the issue was created
+   */
+  created_at: Date;
+  /**
+   * Updated At
+   *
+   * When the issue was last updated
+   */
+  updated_at: Date;
+};
+
+/**
+ * IssueResponse
+ *
+ * Response model for an issue
+ */
+export type IssueResponse = {
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * Project Id
+   */
+  project_id: string;
+  /**
+   * Workflow Run Id
+   */
+  workflow_run_id: string;
+  /**
+   * Issue Hash
+   */
+  issue_hash: string;
+  /**
+   * Title
+   */
+  title: string;
+  /**
+   * Description
+   */
+  description: string;
+  /**
+   * Long Description
+   */
+  long_description: string | null;
+  /**
+   * Severity
+   */
+  severity: string;
+  /**
+   * Workflow Type
+   */
+  workflow_type: string;
+  /**
+   * Chunk Indices
+   */
+  chunk_indices: Array<number> | null;
+  status: IssueStatus;
+  /**
+   * Resolved By
+   */
+  resolved_by: string | null;
+  /**
+   * Resolved At
+   */
+  resolved_at: string | null;
+  /**
+   * Created At
+   */
+  created_at: string;
+  /**
+   * Updated At
+   */
+  updated_at: string;
+};
+
+/**
+ * IssueStatus
+ *
+ * Status of a persisted issue
+ */
+export const IssueStatus = { Active: 'active', Archived: 'archived' } as const;
+
+/**
+ * IssueStatus
+ *
+ * Status of a persisted issue
+ */
+export type IssueStatus = (typeof IssueStatus)[keyof typeof IssueStatus];
+
+/**
  * LLMVerificationResult
  *
  * Result from LLM verification of a procedural flag.
@@ -3176,6 +3247,61 @@ export type MethodologyComparisonResponse = {
 };
 
 /**
+ * ParagraphVerificationItem
+ *
+ * Item for tracking individual paragraph verification with status.
+ */
+export type ParagraphVerificationItem = {
+  /**
+   * Paragraph Index
+   *
+   * The paragraph index being verified.
+   */
+  paragraph_index: number;
+  /**
+   * Current status of this paragraph verification.
+   */
+  status?: ParagraphVerificationStatus;
+  /**
+   * Num Claims
+   *
+   * Number of claims being verified in this paragraph.
+   */
+  num_claims?: number;
+  /**
+   * Substantiations
+   *
+   * Verification results for claims in this paragraph.
+   */
+  substantiations?: Array<ClaimSubstantiationResultWithClaimIndex>;
+  /**
+   * Error
+   *
+   * Error message, present on failure.
+   */
+  error?: string | null;
+};
+
+/**
+ * ParagraphVerificationStatus
+ *
+ * Status of a paragraph verification operation.
+ */
+export const ParagraphVerificationStatus = {
+  Pending: 'pending',
+  Completed: 'completed',
+  Error: 'error',
+} as const;
+
+/**
+ * ParagraphVerificationStatus
+ *
+ * Status of a paragraph verification operation.
+ */
+export type ParagraphVerificationStatus =
+  (typeof ParagraphVerificationStatus)[keyof typeof ParagraphVerificationStatus];
+
+/**
  * PoliticalBias
  */
 export const PoliticalBias = {
@@ -3327,15 +3453,21 @@ export type ProjectDetailed = {
   /**
    * Issues
    *
-   * The issues for the project, converted from the workflow results states
+   * The persisted issues for the project
    */
-  issues?: Array<DocumentIssue>;
+  issues?: Array<Issue>;
   /**
    * Files
    *
    * The files associated with the project
    */
   files?: Array<FileListItem>;
+  /**
+   * Feedbacks
+   *
+   * All user feedback for this project's workflow runs
+   */
+  feedbacks?: Array<FeedbackSummary>;
 };
 
 /**
@@ -3730,6 +3862,12 @@ export type ReferenceFetchItem = {
    */
   file_id: string | null;
   final_conclusion: ReferenceFetchConclusion;
+  /**
+   * Inaccessibility Reason
+   *
+   * A single sentence explaining why the content is not accessible. Only set when final_conclusion is 'source_found_but_not_accessible'.
+   */
+  inaccessibility_reason?: string | null;
 };
 
 /**
@@ -3951,6 +4089,21 @@ export const ReferenceType = {
 export type ReferenceType = (typeof ReferenceType)[keyof typeof ReferenceType];
 
 /**
+ * ReferenceValidationFinalResult
+ */
+export const ReferenceValidationFinalResult = {
+  Valid: 'valid',
+  FoundWithInconsistencies: 'found_with_inconsistencies',
+  NotFound: 'not_found',
+} as const;
+
+/**
+ * ReferenceValidationFinalResult
+ */
+export type ReferenceValidationFinalResult =
+  (typeof ReferenceValidationFinalResult)[keyof typeof ReferenceValidationFinalResult];
+
+/**
  * ReferenceValidationItem
  *
  * Item for tracking individual reference validation with status
@@ -4065,12 +4218,6 @@ export type ReferenceValidationWorkflowConfig = {
    * Type
    */
   type?: 'reference_validation';
-  /**
-   * Show Invalid References As Issues
-   *
-   * When True, invalid references will appear as issues in the Document Explorer. When False (default), validation results are only shown in the References tab.
-   */
-  show_invalid_references_as_issues?: boolean;
 };
 
 /**
@@ -4869,122 +5016,6 @@ export type WorkflowTypeDescription = {
 };
 
 /**
- * DoclingDocument
- *
- * Raw Docling json_content passed through to frontend
- *
- * We don't parse/transform - just pass the structure as-is.
- * Frontend will handle the Docling format directly.
- *
- * All fields from Docling's json_content are stored in __pydantic_extra__
- * and serialized properly.
- */
-export type DoclingDocumentWritable = {
-  [key: string]: unknown;
-};
-
-/**
- * DocumentProcessingState
- *
- * State for document processing workflow.
- */
-export type DocumentProcessingStateWritable = {
-  /**
-   * Errors
-   *
-   * Errors that occurred during the workflow execution.
-   */
-  errors?: Array<WorkflowError>;
-  /**
-   * Type
-   */
-  type?: 'document_processing';
-  config: DocumentProcessingWorkflowConfig;
-  file: FileDocumentWritable;
-  /**
-   * Supporting Files
-   */
-  supporting_files?: Array<FileDocumentWritable> | null;
-};
-
-/**
- * FileDocument
- */
-export type FileDocumentWritable = {
-  /**
-   * File Name
-   *
-   * The original name of the uploaded file, as saved in the user file system
-   */
-  file_name: string;
-  /**
-   * File Path
-   *
-   * The path to the uploaded file, as saved in the file system
-   */
-  file_path: string;
-  /**
-   * Original File Path
-   *
-   * Path to the original file if it was converted (e.g., original .docx before PDF conversion)
-   */
-  original_file_path?: string | null;
-  /**
-   * File Type
-   *
-   * The MIME type of the uploaded file
-   */
-  file_type: string;
-  /**
-   * Markdown
-   *
-   * The uploaded file content converted to markdown
-   */
-  markdown: string;
-  /**
-   * Markdown Token Count
-   *
-   * The approximate number of tokens in the markdown content
-   */
-  markdown_token_count: number;
-  /**
-   * File Id
-   *
-   * The UUID of the file record in the database
-   */
-  file_id: string;
-  /**
-   * Full Docling document for internal processing (chunk mapping, etc.)
-   */
-  docling_document?: DoclingDocumentWritable | null;
-};
-
-/**
- * ProjectDetailed
- */
-export type ProjectDetailedWritable = {
-  project: Project;
-  /**
-   * Workflow Runs
-   *
-   * The workflow runs for the project
-   */
-  workflow_runs?: Array<WorkflowRunDetailWritable>;
-  /**
-   * Issues
-   *
-   * The issues for the project, converted from the workflow results states
-   */
-  issues?: Array<DocumentIssue>;
-  /**
-   * Files
-   *
-   * The files associated with the project
-   */
-  files?: Array<FileListItem>;
-};
-
-/**
  * WorkflowProgressResponse
  *
  * Response model for workflow progress entries.
@@ -5027,41 +5058,6 @@ export type WorkflowProgressResponseWritable = {
    * Updated At
    */
   updated_at: Date;
-};
-
-/**
- * WorkflowRunDetail
- */
-export type WorkflowRunDetailWritable = {
-  run: WorkflowRun;
-  /**
-   * State
-   */
-  state:
-    | AboutAuthorsState
-    | AboutThisState
-    | AdvocacyToneState
-    | DocumentProcessingStateWritable
-    | ChunkSplittingState
-    | DocumentSummarizationState
-    | ReferenceExtractionState
-    | ReferenceFileMatchingState
-    | FootnoteExtractionState
-    | ClaimExtractionState
-    | ClaimReferenceValidationState
-    | CitationDetectionState
-    | AbbreviationScanState
-    | MethodologicalAlignmentState
-    | ReferenceDownloaderState
-    | LiteratureReviewState
-    | LiveReportsState
-    | ReferenceValidationState
-    | CitationSuggesterState
-    | ResultsExtractionState
-    | InferenceValidationState
-    | InferenceValidationV2State
-    | HumanApprovalState
-    | null;
 };
 
 export type ReadHealthApiHealthGetData = {
@@ -5333,39 +5329,6 @@ export type GetWorkflowStateApiWorkflowsWorkflowRunIdGetResponses = {
 export type GetWorkflowStateApiWorkflowsWorkflowRunIdGetResponse =
   GetWorkflowStateApiWorkflowsWorkflowRunIdGetResponses[keyof GetWorkflowStateApiWorkflowsWorkflowRunIdGetResponses];
 
-export type GetPageImageApiWorkflowRunsWorkflowRunIdPagesPageNumGetData = {
-  body?: never;
-  path: {
-    /**
-     * Workflow Run Id
-     */
-    workflow_run_id: string;
-    /**
-     * Page Num
-     */
-    page_num: number;
-  };
-  query?: never;
-  url: '/api/workflow-runs/{workflow_run_id}/pages/{page_num}';
-};
-
-export type GetPageImageApiWorkflowRunsWorkflowRunIdPagesPageNumGetErrors = {
-  /**
-   * Validation Error
-   */
-  422: HttpValidationError;
-};
-
-export type GetPageImageApiWorkflowRunsWorkflowRunIdPagesPageNumGetError =
-  GetPageImageApiWorkflowRunsWorkflowRunIdPagesPageNumGetErrors[keyof GetPageImageApiWorkflowRunsWorkflowRunIdPagesPageNumGetErrors];
-
-export type GetPageImageApiWorkflowRunsWorkflowRunIdPagesPageNumGetResponses = {
-  /**
-   * Successful Response
-   */
-  200: unknown;
-};
-
 export type ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostData = {
   body?: never;
   path: {
@@ -5456,15 +5419,19 @@ export type DownloadFileApiFilesDownloadFileIdGetResponses = {
 export type GetFeedbackApiFeedbackGetData = {
   body?: never;
   path?: never;
-  query: {
+  query?: {
     /**
      * Workflow Run Id
      */
-    workflow_run_id: string;
+    workflow_run_id?: string | null;
     /**
      * Entity Path
      */
-    entity_path: string;
+    entity_path?: string | null;
+    /**
+     * Issue Id
+     */
+    issue_id?: string | null;
   };
   url: '/api/feedback';
 };
@@ -5551,6 +5518,40 @@ export type GetWorkflowFeedbackApiFeedbackWorkflowWorkflowRunIdGetResponses = {
 export type GetWorkflowFeedbackApiFeedbackWorkflowWorkflowRunIdGetResponse =
   GetWorkflowFeedbackApiFeedbackWorkflowWorkflowRunIdGetResponses[keyof GetWorkflowFeedbackApiFeedbackWorkflowWorkflowRunIdGetResponses];
 
+export type GetProjectFeedbackApiFeedbackProjectProjectIdGetData = {
+  body?: never;
+  path: {
+    /**
+     * Project Id
+     */
+    project_id: string;
+  };
+  query?: never;
+  url: '/api/feedback/project/{project_id}';
+};
+
+export type GetProjectFeedbackApiFeedbackProjectProjectIdGetErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type GetProjectFeedbackApiFeedbackProjectProjectIdGetError =
+  GetProjectFeedbackApiFeedbackProjectProjectIdGetErrors[keyof GetProjectFeedbackApiFeedbackProjectProjectIdGetErrors];
+
+export type GetProjectFeedbackApiFeedbackProjectProjectIdGetResponses = {
+  /**
+   * Response Get Project Feedback Api Feedback Project  Project Id  Get
+   *
+   * Successful Response
+   */
+  200: Array<FeedbackResponse>;
+};
+
+export type GetProjectFeedbackApiFeedbackProjectProjectIdGetResponse =
+  GetProjectFeedbackApiFeedbackProjectProjectIdGetResponses[keyof GetProjectFeedbackApiFeedbackProjectProjectIdGetResponses];
+
 export type DeleteFeedbackApiFeedbackFeedbackIdDeleteData = {
   body?: never;
   path: {
@@ -5586,6 +5587,102 @@ export type DeleteFeedbackApiFeedbackFeedbackIdDeleteResponses = {
 
 export type DeleteFeedbackApiFeedbackFeedbackIdDeleteResponse =
   DeleteFeedbackApiFeedbackFeedbackIdDeleteResponses[keyof DeleteFeedbackApiFeedbackFeedbackIdDeleteResponses];
+
+export type ResolveIssueEndpointApiIssuesIssueIdResolvePostData = {
+  body?: never;
+  path: {
+    /**
+     * Issue Id
+     */
+    issue_id: string;
+  };
+  query?: never;
+  url: '/api/issues/{issue_id}/resolve';
+};
+
+export type ResolveIssueEndpointApiIssuesIssueIdResolvePostErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type ResolveIssueEndpointApiIssuesIssueIdResolvePostError =
+  ResolveIssueEndpointApiIssuesIssueIdResolvePostErrors[keyof ResolveIssueEndpointApiIssuesIssueIdResolvePostErrors];
+
+export type ResolveIssueEndpointApiIssuesIssueIdResolvePostResponses = {
+  /**
+   * Successful Response
+   */
+  200: IssueResponse;
+};
+
+export type ResolveIssueEndpointApiIssuesIssueIdResolvePostResponse =
+  ResolveIssueEndpointApiIssuesIssueIdResolvePostResponses[keyof ResolveIssueEndpointApiIssuesIssueIdResolvePostResponses];
+
+export type UnresolveIssueEndpointApiIssuesIssueIdUnresolvePostData = {
+  body?: never;
+  path: {
+    /**
+     * Issue Id
+     */
+    issue_id: string;
+  };
+  query?: never;
+  url: '/api/issues/{issue_id}/unresolve';
+};
+
+export type UnresolveIssueEndpointApiIssuesIssueIdUnresolvePostErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type UnresolveIssueEndpointApiIssuesIssueIdUnresolvePostError =
+  UnresolveIssueEndpointApiIssuesIssueIdUnresolvePostErrors[keyof UnresolveIssueEndpointApiIssuesIssueIdUnresolvePostErrors];
+
+export type UnresolveIssueEndpointApiIssuesIssueIdUnresolvePostResponses = {
+  /**
+   * Successful Response
+   */
+  200: IssueResponse;
+};
+
+export type UnresolveIssueEndpointApiIssuesIssueIdUnresolvePostResponse =
+  UnresolveIssueEndpointApiIssuesIssueIdUnresolvePostResponses[keyof UnresolveIssueEndpointApiIssuesIssueIdUnresolvePostResponses];
+
+export type GetIssueEndpointApiIssuesIssueIdGetData = {
+  body?: never;
+  path: {
+    /**
+     * Issue Id
+     */
+    issue_id: string;
+  };
+  query?: never;
+  url: '/api/issues/{issue_id}';
+};
+
+export type GetIssueEndpointApiIssuesIssueIdGetErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type GetIssueEndpointApiIssuesIssueIdGetError =
+  GetIssueEndpointApiIssuesIssueIdGetErrors[keyof GetIssueEndpointApiIssuesIssueIdGetErrors];
+
+export type GetIssueEndpointApiIssuesIssueIdGetResponses = {
+  /**
+   * Successful Response
+   */
+  200: IssueResponse;
+};
+
+export type GetIssueEndpointApiIssuesIssueIdGetResponse =
+  GetIssueEndpointApiIssuesIssueIdGetResponses[keyof GetIssueEndpointApiIssuesIssueIdGetResponses];
 
 export type ListProjectsEndpointApiProjectsGetData = {
   body?: never;

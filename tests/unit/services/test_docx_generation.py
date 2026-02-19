@@ -1,7 +1,11 @@
 """Tests for DOCX generation helper functions"""
 
+import uuid
+from datetime import UTC, datetime
+
 import pytest
 
+from lib.models.issue import Issue
 from lib.services.docx.manipulator import CommentSeverity, DocxComment, issue_to_comment
 from lib.services.file import FileDocument
 from lib.workflows.citation_suggester.manifest import CitationSuggesterManifest
@@ -10,6 +14,33 @@ from lib.workflows.citation_suggester.state import (
     CitationSuggesterWorkflowConfig,
 )
 from lib.workflows.models import DocumentIssue, SeverityEnum, WorkflowRunType
+
+_FAKE_PROJECT_ID = uuid.uuid4()
+_FAKE_WORKFLOW_RUN_ID = uuid.uuid4()
+
+
+def _make_issue(
+    title: str,
+    description: str,
+    severity: SeverityEnum,
+    workflow_type: WorkflowRunType,
+    chunk_indices: list[int] | None = None,
+) -> Issue:
+    """Create an Issue instance for testing without hitting the DB."""
+    now = datetime.now(UTC)
+    return Issue(
+        id=uuid.uuid4(),
+        project_id=_FAKE_PROJECT_ID,
+        workflow_run_id=_FAKE_WORKFLOW_RUN_ID,
+        issue_hash=uuid.uuid4().hex[:64],
+        title=title,
+        description=description,
+        severity=severity,
+        workflow_type=workflow_type,
+        chunk_indices=chunk_indices,
+        created_at=now,
+        updated_at=now,
+    )
 
 
 def convert_citation_suggester_state_issues(state: CitationSuggesterState):
@@ -21,12 +52,12 @@ class TestIssueToComment:
     """Tests for the issue_to_comment function"""
 
     def test_converts_issue_to_comment_successfully(self):
-        issue = DocumentIssue(
+        issue = _make_issue(
             title="Unsupported Claim",
             description="This claim lacks evidence",
             severity=SeverityEnum.HIGH,
-            type=WorkflowRunType.CLAIM_REFERENCE_VALIDATION,
-            chunk_index=0,
+            workflow_type=WorkflowRunType.CLAIM_REFERENCE_VALIDATION,
+            chunk_indices=[0],
         )
         chunk_content_map = {0: "The claim content here"}
 
@@ -41,13 +72,13 @@ class TestIssueToComment:
         assert comment.severity == CommentSeverity.HIGH
         assert comment.get_author() == "🚨 High Priority"
 
-    def test_returns_none_when_chunk_index_is_none(self):
-        issue = DocumentIssue(
+    def test_returns_none_when_chunk_indices_is_none(self):
+        issue = _make_issue(
             title="Invalid reference",
             description="Reference not found",
             severity=SeverityEnum.HIGH,
-            type=WorkflowRunType.REFERENCE_VALIDATION,
-            chunk_index=None,
+            workflow_type=WorkflowRunType.REFERENCE_VALIDATION,
+            chunk_indices=None,
         )
         chunk_content_map = {0: "Some content"}
 
@@ -56,12 +87,12 @@ class TestIssueToComment:
         assert comment is None
 
     def test_returns_none_when_chunk_not_in_map(self):
-        issue = DocumentIssue(
+        issue = _make_issue(
             title="Some issue",
             description="Issue description",
             severity=SeverityEnum.MEDIUM,
-            type=WorkflowRunType.CLAIM_REFERENCE_VALIDATION,
-            chunk_index=99,  # Not in the map
+            workflow_type=WorkflowRunType.CLAIM_REFERENCE_VALIDATION,
+            chunk_indices=[99],  # Not in the map
         )
         chunk_content_map = {0: "Some content", 1: "Other content"}
 
@@ -70,12 +101,12 @@ class TestIssueToComment:
         assert comment is None
 
     def test_returns_none_when_chunk_content_is_empty(self):
-        issue = DocumentIssue(
+        issue = _make_issue(
             title="Some issue",
             description="Issue description",
             severity=SeverityEnum.LOW,
-            type=WorkflowRunType.CLAIM_REFERENCE_VALIDATION,
-            chunk_index=0,
+            workflow_type=WorkflowRunType.CLAIM_REFERENCE_VALIDATION,
+            chunk_indices=[0],
         )
         chunk_content_map = {0: ""}  # Empty content
 
@@ -84,12 +115,12 @@ class TestIssueToComment:
         assert comment is None
 
     def test_medium_severity_uses_correct_author(self):
-        issue = DocumentIssue(
+        issue = _make_issue(
             title="Partially Supported",
             description="Some evidence found",
             severity=SeverityEnum.MEDIUM,
-            type=WorkflowRunType.CLAIM_REFERENCE_VALIDATION,
-            chunk_index=0,
+            workflow_type=WorkflowRunType.CLAIM_REFERENCE_VALIDATION,
+            chunk_indices=[0],
         )
         chunk_content_map = {0: "Chunk content"}
 
@@ -100,12 +131,12 @@ class TestIssueToComment:
         assert comment.get_initials() == "MP"
 
     def test_low_severity_uses_correct_author(self):
-        issue = DocumentIssue(
+        issue = _make_issue(
             title="Minor Note",
             description="Just a suggestion",
             severity=SeverityEnum.LOW,
-            type=WorkflowRunType.CITATION_SUGGESTER,
-            chunk_index=0,
+            workflow_type=WorkflowRunType.CITATION_SUGGESTER,
+            chunk_indices=[0],
         )
         chunk_content_map = {0: "Chunk content"}
 
@@ -174,7 +205,7 @@ class TestBuildCitationSuggestionIssues:
 
         assert len(issues) == 1
         assert isinstance(issues[0], DocumentIssue)
-        assert issues[0].chunk_index == 0
+        assert issues[0].chunk_indices == [0]
         assert issues[0].title == "Citation Suggestion"
         assert issues[0].severity == SeverityEnum.LOW
         assert "This claim needs supporting evidence" in issues[0].description

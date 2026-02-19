@@ -1,4 +1,5 @@
 import logging
+import uuid
 
 from langgraph.graph import StateGraph
 
@@ -10,12 +11,13 @@ from lib.models.workflow_run import WorkflowRunStatus, WorkflowRunType
 from lib.services.file_artifacts_service.file_artifacts_service import (
     FileArtifactsService,
 )
+from lib.services.issue_persistence import persist_workflow_issues
 from lib.services.vector_store import VectorStoreService
 from lib.services.workflow_runs import update_workflow_run_status
 from lib.workflows.checkpointer import get_checkpointer
 from lib.workflows.context import ContextSchema
 from lib.workflows.models import BaseWorkflowConfig, WorkflowError
-from lib.workflows.registry import create_graph, create_state
+from lib.workflows.registry import create_graph, create_state, get_workflow_manifest
 from lib.workflows.types import WorkflowConfig, WorkflowState
 
 logger = logging.getLogger(__name__)
@@ -118,26 +120,45 @@ async def run_workflow(
             }
         )
 
-        try:
-            # Clear all errors from previous runs
-            updated_state = state.model_copy(deep=True, update={"errors": []})
+        checkpoint_id = None
+        updated_state = state.model_copy(deep=True, update={"errors": []})
+        thread_config = {"configurable": {"thread_id": thread_id}}
 
+        try:
             async for values in app.astream(
                 updated_state,
-                {"configurable": {"thread_id": thread_id}},
+                thread_config,
                 stream_mode="values",
                 context=context,
             ):
                 updated_state = updated_state.model_copy(update=values)
-        except Exception as e:
-            logger.error(f"Error streaming state: {e}", exc_info=True)
-            updated_state.errors.append(
-                WorkflowError(
-                    task_name="global",
-                    error=str(e),
-                    workflow_run_id=workflow_run_id,
+
+            # Get checkpoint ID for debugging after successful completion
+            state_snapshot = await app.aget_state(thread_config)
+
+            if state_snapshot and state_snapshot.config:
+                checkpoint_id = state_snapshot.config.get("configurable", {}).get(
+                    "checkpoint_id"
                 )
+
+            # Persist issues after workflow completion
+            await _persist_issues_from_state(
+                workflow_run_id=workflow_run_id,
+                project_id=project_id,
+                workflow_type=workflow_type,
+                state=updated_state,
+                checkpoint_id=checkpoint_id,
             )
+        except Exception as e:
+            logger.error(f"Error running workflow {workflow_type}: {e}", exc_info=True)
+            error = WorkflowError(
+                task_name="global",
+                error=str(e),
+                workflow_run_id=workflow_run_id,
+            )
+
+            # Persist the error to the LangGraph checkpoint via the `add` reducer
+            await app.aupdate_state(thread_config, {"errors": [error]})
         finally:
             await update_workflow_run_status(
                 workflow_run_id, WorkflowRunStatus.COMPLETED
@@ -188,4 +209,49 @@ def create_context(
         project_id=config.project_id,
         workflow_run_id=workflow_run_id,
         file_artifacts_service=file_artifacts_service,
+    )
+
+
+async def _persist_issues_from_state(
+    workflow_run_id: str,
+    project_id: str | None,
+    workflow_type: WorkflowRunType,
+    state: WorkflowState,
+    checkpoint_id: str | None,
+) -> None:
+    """
+    Persist issues from workflow state to the database.
+
+    Uses the workflow manifest to convert state to issues.
+    Loads all existing workflow states for the project so manifests that
+    depend on other workflow states (e.g. reference_validation reading
+    reference_extraction) can resolve their data correctly.
+    """
+    if not project_id:
+        logger.debug("No project_id, skipping issue persistence")
+        return
+
+    manifest = get_workflow_manifest(workflow_type, raise_exception=False)
+    if manifest is None:
+        logger.debug(f"No manifest for {workflow_type}, skipping issue persistence")
+        return
+
+    # Load all existing workflow states for the project so manifests
+    # that read data from other workflow states can resolve correctly.
+    from lib.services.workflow_runs import get_project_workflow_runs
+
+    workflow_runs = await get_project_workflow_runs(project_id, include_internal=True)
+    existing_states: list[WorkflowState] = [
+        run.state for run in workflow_runs if run.state is not None
+    ]
+
+    # Convert state to issues using the manifest
+    issues = manifest.convert_state_to_issues(state, existing_states)
+
+    await persist_workflow_issues(
+        workflow_run_id=uuid.UUID(workflow_run_id),
+        project_id=uuid.UUID(project_id),
+        workflow_type=workflow_type,
+        issues=issues,
+        checkpoint_id=checkpoint_id,
     )

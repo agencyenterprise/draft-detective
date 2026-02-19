@@ -1,18 +1,13 @@
-import { DocumentChunk, DocumentIssue, SeverityEnum } from './generated-api';
+import { DocumentChunk, Issue, SeverityEnum } from './generated-api';
 
 /**
  * Check if an issue is associated with a given chunk index.
- * Supports both legacy chunk_index and new chunk_indices array.
  */
-function issueMatchesChunk(issue: DocumentIssue, chunkIndex: number): boolean {
-  if (issue.chunk_indices && issue.chunk_indices.includes(chunkIndex)) {
-    return true;
-  }
-
-  return issue.chunk_index === chunkIndex;
+function issueMatchesChunk(issue: Issue, chunkIndex: number): boolean {
+  return issue.chunk_indices?.includes(chunkIndex) ?? false;
 }
 
-export function getMaxChunkSeverity(issues: DocumentIssue[], chunk: DocumentChunk) {
+export function getMaxChunkSeverity(issues: Issue[], chunk: DocumentChunk): SeverityEnum | undefined {
   const chunkIssues = issues.filter((issue) => issueMatchesChunk(issue, chunk.chunk_index));
   return getMaxSeverity(chunkIssues);
 }
@@ -22,17 +17,17 @@ export function getMaxChunkSeverity(issues: DocumentIssue[], chunk: DocumentChun
  * @param issues - The issues to filter
  * @param chunkIndices - The chunk indices to filter by
  */
-export function getChunkIssuesByIndices(issues: DocumentIssue[], chunkIndices: number[]): DocumentIssue[] {
+export function getChunkIssuesByIndices(issues: Issue[], chunkIndices: number[]): Issue[] {
   return issues
     .filter((issue) => chunkIndices.some((chunkIndex) => issueMatchesChunk(issue, chunkIndex)))
-    .sort(sortDocumentIssueBySeverity);
+    .sort(sortIssueBySeverity);
 }
 
-export function sortDocumentIssueBySeverity(a: DocumentIssue, b: DocumentIssue) {
+export function sortIssueBySeverity(a: Issue, b: Issue) {
   return severitySortIndex[b.severity] - severitySortIndex[a.severity];
 }
 
-export function getMaxSeverity(issues: DocumentIssue[]) {
+export function getMaxSeverity(issues: Issue[]): SeverityEnum | undefined {
   const severities = issues.map((issue) => issue.severity);
   if (severities.includes(SeverityEnum.High)) {
     return SeverityEnum.High;
@@ -43,7 +38,10 @@ export function getMaxSeverity(issues: DocumentIssue[]) {
   if (severities.includes(SeverityEnum.Low)) {
     return SeverityEnum.Low;
   }
-  return SeverityEnum.None;
+  if (severities.includes(SeverityEnum.None)) {
+    return SeverityEnum.None;
+  }
+  return undefined;
 }
 
 const severitySortIndex: Record<SeverityEnum, number> = {

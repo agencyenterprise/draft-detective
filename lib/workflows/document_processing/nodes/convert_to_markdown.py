@@ -5,7 +5,6 @@ import shutil
 from langchain_core.messages.utils import count_tokens_approximately
 from langgraph.runtime import Runtime
 
-from lib.config.env import config
 from lib.run_utils import run_tasks
 from lib.services.converters.base import convert_to_markdown as convert_to_markdown_fn
 from lib.services.converters.docx_preprocessor import docx_preprocessor
@@ -25,7 +24,6 @@ logger = logging.getLogger(__name__)
 async def convert_to_markdown(
     state: DocumentProcessingState, runtime: Runtime[ContextSchema]
 ):
-    # We need to convert only the main document with full mode (images, JSON, etc.), supporting documents with simple mode (markdown only)
     tasks = [
         _convert_to_markdown_task(state.file, is_main_document=True),
         *[
@@ -72,14 +70,11 @@ async def _convert_to_markdown_task(
     file_document: FileDocument, is_main_document: bool = True
 ) -> FileDocument:
     """
-    Route document conversion to the appropriate converter based on configuration.
-
-    Selects either docling or markitdown converter based on config.MAIN_FILE_CONVERTER
-    or config.SUPPORTING_FILE_CONVERTER, depending on whether this is the main document.
+    Convert document to markdown.
 
     Args:
         file_document: The document to convert
-        is_main_document: Whether this is the main document
+        is_main_document: Whether this is the main document (unused, kept for interface consistency)
 
     Returns:
         FileDocument with converted markdown content and metadata
@@ -91,24 +86,11 @@ async def _convert_to_markdown_task(
         )
         return file_document
 
-    converter = (
-        config.MAIN_FILE_CONVERTER
-        if is_main_document
-        else config.SUPPORTING_FILE_CONVERTER
-    )
-
-    if converter == "docling":
-        return await _convert_to_markdown_using_docling(file_document, is_main_document)
-    elif converter == "markitdown":
-        return await _convert_to_markdown_using_markitdown(
-            file_document, is_main_document
-        )
-    else:
-        raise ValueError(f"Invalid converter: {converter}")
+    return await _convert_to_markdown_using_markitdown(file_document)
 
 
 async def _convert_to_markdown_using_markitdown(
-    file_document: FileDocument, is_main_document: bool = True
+    file_document: FileDocument,
 ) -> FileDocument:
     """
     Convert document to markdown using markitdown converter.
@@ -118,10 +100,9 @@ async def _convert_to_markdown_using_markitdown(
 
     Args:
         file_document: The document to convert
-        is_main_document: Unused parameter (kept for interface consistency)
 
     Returns:
-        FileDocument with markdown content, token count, and docling_document set to None
+        FileDocument with markdown content and token count
     """
 
     file_path = file_document.file_path.lower()
@@ -129,18 +110,15 @@ async def _convert_to_markdown_using_markitdown(
     is_legacy_doc_extension = file_path.endswith(".doc")
 
     if is_legacy_doc_mime:
-        # If the file is truly a legacy doc format, we need to convert it to docx first
         docx_file_path = await docx_preprocessor.convert_doc_to_docx(file_path)
         logger.info(f"Converted {file_path} to DOCX: {docx_file_path}")
         markdown = await convert_to_markdown_fn(docx_file_path, converter="markitdown")
-        os.remove(docx_file_path)  # Remove the temporary docx file
+        os.remove(docx_file_path)
     elif is_legacy_doc_extension:
-        # If the file is not a legacy doc format, but has a .doc extension, we need to rename the extension to .docx
-        # so markitdown can convert it
         docx_file_path = await _copy_doc_to_docx(file_path)
         logger.info(f"Copied {file_path} to {docx_file_path}")
         markdown = await convert_to_markdown_fn(docx_file_path, converter="markitdown")
-        os.remove(docx_file_path)  # Remove the temporary docx file
+        os.remove(docx_file_path)
     else:
         markdown = await convert_to_markdown_fn(file_path, converter="markitdown")
 
@@ -150,62 +128,6 @@ async def _convert_to_markdown_using_markitdown(
         update={
             "markdown": markdown,
             "markdown_token_count": markdown_token_count,
-            "docling_document": None,
-        }
-    )
-
-
-async def _convert_to_markdown_using_docling(
-    file_document: FileDocument, is_main_document: bool = True
-) -> FileDocument:
-    """
-    Convert document using docling converter with markitdown fallback for markdown extraction.
-
-    First converts the document to markdown using markitdown. Then, for main DOCX/DOC documents,
-    also converts to PDF and uses docling to extract structured data (images, tables, etc.).
-    For supporting documents or non-DOCX files, uses docling in simple mode.
-
-    Args:
-        file_document: The document to convert (should already have markdown from markitdown)
-        is_main_document: If True and file is DOCX/DOC, also extract docling_document with full mode.
-                         If False, use simple mode for docling conversion.
-
-    Returns:
-        FileDocument with markdown content and docling_document (structured data from docling)
-    """
-    from lib.services.converters.docling import docling_converter
-
-    # Still use markitdown to extract the markdown content from the document
-    file_document = await _convert_to_markdown_using_markitdown(
-        file_document, is_main_document
-    )
-
-    file_path = file_document.file_path
-    file_path_lower = file_document.file_path.lower()
-    is_docx = file_path_lower.endswith(".docx") or file_path_lower.endswith(".doc")
-    docling_document = None
-    simple_mode = not is_main_document
-
-    # For main DOCX/DOC documents with docling converter, also convert to PDF
-    # to extract docling_document results (images, tables, etc.)
-    if is_main_document and is_docx:
-        pdf_file_path = await docx_preprocessor.convert_to_pdf(file_path)
-        logger.info(
-            f"Converted {file_path} to PDF: {pdf_file_path}, extracting docling_document results..."
-        )
-        result = await docling_converter.convert_with_docling(
-            pdf_file_path, simple_mode=False
-        )
-    else:
-        result = await docling_converter.convert_with_docling(
-            file_path, simple_mode=simple_mode
-        )
-
-    docling_document = result.get("docling_document")
-
-    return file_document.model_copy(
-        update={
-            "docling_document": docling_document,
         }
     )
 

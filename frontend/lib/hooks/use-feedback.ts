@@ -1,47 +1,29 @@
 import type { FeedbackRequest, FeedbackType } from '@/lib/generated-api';
-import { getFeedbackApiFeedbackGet, submitFeedbackApiFeedbackPost } from '@/lib/generated-api';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { submitFeedbackApiFeedbackPost } from '@/lib/generated-api';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { makeFeedbackKey, useFeedbackContext } from './use-batch-feedback';
 
 /**
- * Generic feedback hook for any entity
+ * Generic feedback hook for any entity.
+ *
+ * Reads from the FeedbackProvider context (populated from ProjectDetailed.feedbacks)
+ * so there are zero additional HTTP requests for reading feedback.
+ *
+ * On submit, invalidates the project query so the feedbacks list refreshes.
  *
  * @example
  * // For a claim
  * const claim = useFeedback(workflowId, { chunk_index: 0, claim_index: 1 });
- *
- * // For a chunk
- * const chunk = useFeedback(workflowId, { chunk_index: 0 });
- *
- * // For workflow
- * const workflow = useFeedback(workflowId, {});
- *
- * // For a reference
- * const ref = useFeedback(workflowId, { reference_index: 2 });
  *
  * // For an issue (uses string hash ID)
  * const issue = useFeedback(workflowId, { issue_id: 'abc123' });
  */
 export function useFeedback(workflowRunId: string, entityPath: Record<string, number | string>) {
   const queryClient = useQueryClient();
+  const feedbackCtx = useFeedbackContext();
 
-  const queryKey = ['feedback', workflowRunId, entityPath];
-
-  const { data: feedback, isLoading } = useQuery({
-    queryKey,
-    queryFn: async () => {
-      try {
-        return await getFeedbackApiFeedbackGet({
-          query: {
-            workflow_run_id: workflowRunId,
-            entity_path: JSON.stringify(entityPath),
-          },
-        });
-      } catch {
-        return null;
-      }
-    },
-    enabled: !!workflowRunId,
-  });
+  const lookupKey = makeFeedbackKey(workflowRunId, entityPath as Record<string, unknown>);
+  const feedback = feedbackCtx?.feedbackMap.get(lookupKey) ?? null;
 
   const submitMutation = useMutation({
     mutationFn: async (request: { feedback_type: FeedbackType; feedback_text?: string | null }) => {
@@ -56,14 +38,15 @@ export function useFeedback(workflowRunId: string, entityPath: Record<string, nu
         body: feedbackRequest,
       });
     },
-    onSuccess: (data) => {
-      queryClient.setQueryData(queryKey, data);
+    onSuccess: () => {
+      // Invalidate the project query so feedbacks refresh from ProjectDetailed
+      queryClient.invalidateQueries({ queryKey: ['project'] });
     },
   });
 
   return {
     feedback,
-    isLoading,
+    isLoading: false,
     submitFeedback: submitMutation.mutate,
     isSubmitting: submitMutation.isPending,
   };

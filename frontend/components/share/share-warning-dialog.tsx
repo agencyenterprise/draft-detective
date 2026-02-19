@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/dialog';
 import { RadioGroup, RadioGroupItemWithDescription } from '@/components/ui/radio-group-with-description';
 import { AlertTriangle, Download, Loader2 } from 'lucide-react';
-import { DocxType } from '../wizard/results-step/components/use-download-docx';
+import { DocxType } from '../results/components/use-download-docx';
 
 interface ShareWarningDialogProps {
   open: boolean;

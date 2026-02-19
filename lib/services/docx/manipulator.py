@@ -1,9 +1,9 @@
 """DOCX manipulation service for adding AI-generated comments."""
 
 import asyncio
-from collections import defaultdict
 import json
 import logging
+from collections import defaultdict
 from enum import StrEnum
 from pathlib import Path
 from typing import Dict, List, Optional
@@ -14,12 +14,13 @@ from docx.text.paragraph import Paragraph
 from pydantic import BaseModel
 
 from lib.config.env import config
+from lib.models.issue import Issue
 from lib.services.docx.chunk_mapper import ChunkLike, create_chunk_to_paragraph_mapping
 from lib.services.docx.docx_xml import (
     add_custom_properties_to_docx,
     wrap_paragraph_with_content_control,
 )
-from lib.workflows.models import DocumentIssue, SeverityEnum
+from lib.workflows.models import SeverityEnum
 
 logger = logging.getLogger(__name__)
 
@@ -44,10 +45,11 @@ def _map_severity_enum_to_comment_severity(severity: SeverityEnum) -> "CommentSe
     return mapping.get(severity, CommentSeverity.NONE)
 
 
-def _build_issue_anchor(issue: DocumentIssue) -> Optional[str]:
+def _build_issue_anchor(issue: Issue) -> Optional[str]:
     """Build URL anchor fragment for an issue."""
-    if issue.chunk_index is not None:
-        return f"#chunk-{issue.chunk_index}"
+    if issue.chunk_indices:
+        indices_str = ",".join(str(i) for i in issue.chunk_indices)
+        return f"#chunks-{indices_str}"
     return None
 
 
@@ -116,15 +118,16 @@ class DocxComment(BaseModel):
 
 
 def issue_to_comment(
-    issue: DocumentIssue,
+    issue: Issue,
     chunk_content_map: Dict[int, str],
     share_token: Optional[str] = None,
 ) -> Optional["DocxComment"]:
-    """Convert DocumentIssue to DocxComment with optional share link."""
-    if issue.chunk_index is None:
+    """Convert an Issue to DocxComment with optional share link."""
+    if not issue.chunk_indices:
         return None
 
-    chunk_content = chunk_content_map.get(issue.chunk_index)
+    first_chunk_index = issue.chunk_indices[0]
+    chunk_content = chunk_content_map.get(first_chunk_index)
     if not chunk_content:
         return None
 
@@ -136,7 +139,7 @@ def issue_to_comment(
         share_link = _build_share_url(share_token, anchor)
 
     return DocxComment(
-        chunk_index=issue.chunk_index,
+        chunk_index=first_chunk_index,
         text=chunk_content,
         comment_text=f"{issue.title}\n\n{issue.description}",
         severity=_map_severity_enum_to_comment_severity(issue.severity),
@@ -145,16 +148,12 @@ def issue_to_comment(
 
 
 def _build_issue_map(
-    issues: List[DocumentIssue],
+    issues: List[Issue],
     chunk_to_paragraph_mapping: Dict[int, int],
-) -> Dict[int, List[DocumentIssue]]:
-    issue_map: Dict[int, List[DocumentIssue]] = defaultdict[int, List[DocumentIssue]](
-        list
-    )
+) -> Dict[int, List[Issue]]:
+    issue_map: Dict[int, List[Issue]] = defaultdict(list)
     for issue in issues:
         indices_to_process = set()
-        if issue.chunk_index is not None:
-            indices_to_process.add(issue.chunk_index)
         if issue.chunk_indices:
             indices_to_process.update(issue.chunk_indices)
         for chunk_index in indices_to_process:
@@ -162,12 +161,14 @@ def _build_issue_map(
             if paragraph_index is None:
                 continue
             issues_for_paragraph = issue_map[paragraph_index]
-            if issue.id not in [i.id for i in issues_for_paragraph]:
+
+            existing_hashes = {i.issue_hash for i in issues_for_paragraph}
+            if issue.issue_hash not in existing_hashes:
                 issues_for_paragraph.append(issue)
     return issue_map
 
 
-def _get_paragraph_severity(issues: List[DocumentIssue]) -> SeverityEnum:
+def _get_paragraph_severity(issues: List[Issue]) -> SeverityEnum:
     if not issues:
         return SeverityEnum.NONE
     return max(issues, key=lambda issue: issue.severity.sort_index()).severity
@@ -192,7 +193,7 @@ class DocxManipulatorService:
         share_token: str,
         workflow_run_id: str,
         chunks: List[ChunkLike] | None = None,
-        issues: List[DocumentIssue] | None = None,
+        issues: List[Issue] | None = None,
     ) -> str:
         """Add custom properties and a comment to a DOCX file."""
         return await asyncio.to_thread(
@@ -210,7 +211,7 @@ class DocxManipulatorService:
         share_token: str,
         workflow_run_id: str,
         chunks: List[ChunkLike] | None = None,
-        issues: List[DocumentIssue] | None = None,
+        issues: List[Issue] | None = None,
     ) -> str:
         """Sync implementation for add-in metadata generation."""
         original_path = Path(original_docx_path)

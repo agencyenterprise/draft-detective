@@ -48,8 +48,9 @@ class Feedback(SQLModel, table=True):
     """
     Independent feedback model using coordinate-based addressing.
 
-    Feedback is stored separately from workflow state and uses stable coordinates
-    (workflow_run_id + entity_path) to reference entities.
+    Feedback can reference either:
+    - An Issue (via issue_id) for issue-level feedback
+    - A coordinate path (via entity_path) for non-issue entities (chunks, claims, etc.)
     """
 
     __tablename__ = "feedback"
@@ -71,6 +72,17 @@ class Feedback(SQLModel, table=True):
             index=True,
         ),
         description="The user who created this feedback",
+    )
+
+    issue_id: Optional[uuid.UUID] = SQLField(
+        sa_column=Column(
+            UUID(as_uuid=True),
+            ForeignKey("issues.id", ondelete="CASCADE", use_alter=True),
+            nullable=True,
+            index=True,
+        ),
+        default=None,
+        description="FK to the issue this feedback is about (for issue-level feedback)",
     )
 
     entity_path: dict = SQLField(

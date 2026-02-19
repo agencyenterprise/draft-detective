@@ -71,12 +71,15 @@ import type {
   GetFeedbackApiFeedbackGetData,
   GetFeedbackApiFeedbackGetErrors,
   GetFeedbackApiFeedbackGetResponses,
-  GetPageImageApiWorkflowRunsWorkflowRunIdPagesPageNumGetData,
-  GetPageImageApiWorkflowRunsWorkflowRunIdPagesPageNumGetErrors,
-  GetPageImageApiWorkflowRunsWorkflowRunIdPagesPageNumGetResponses,
+  GetIssueEndpointApiIssuesIssueIdGetData,
+  GetIssueEndpointApiIssuesIssueIdGetErrors,
+  GetIssueEndpointApiIssuesIssueIdGetResponses,
   GetProjectEndpointApiProjectProjectIdGetData,
   GetProjectEndpointApiProjectProjectIdGetErrors,
   GetProjectEndpointApiProjectProjectIdGetResponses,
+  GetProjectFeedbackApiFeedbackProjectProjectIdGetData,
+  GetProjectFeedbackApiFeedbackProjectProjectIdGetErrors,
+  GetProjectFeedbackApiFeedbackProjectProjectIdGetResponses,
   GetProjectShareStatusApiProjectsProjectIdShareGetData,
   GetProjectShareStatusApiProjectsProjectIdShareGetErrors,
   GetProjectShareStatusApiProjectsProjectIdShareGetResponses,
@@ -108,6 +111,9 @@ import type {
   ReadHealthApiHealthGetResponses,
   ReadHealthApiHealthHeadData,
   ReadHealthApiHealthHeadResponses,
+  ResolveIssueEndpointApiIssuesIssueIdResolvePostData,
+  ResolveIssueEndpointApiIssuesIssueIdResolvePostErrors,
+  ResolveIssueEndpointApiIssuesIssueIdResolvePostResponses,
   StartAnalysisApiStartAnalysisDoNotUsePostData,
   StartAnalysisApiStartAnalysisDoNotUsePostErrors,
   StartAnalysisApiStartAnalysisDoNotUsePostResponses,
@@ -123,6 +129,9 @@ import type {
   SubmitFeedbackApiFeedbackPostData,
   SubmitFeedbackApiFeedbackPostErrors,
   SubmitFeedbackApiFeedbackPostResponses,
+  UnresolveIssueEndpointApiIssuesIssueIdUnresolvePostData,
+  UnresolveIssueEndpointApiIssuesIssueIdUnresolvePostErrors,
+  UnresolveIssueEndpointApiIssuesIssueIdUnresolvePostResponses,
   UpdatePreferencesApiUsersMePreferencesPatchData,
   UpdatePreferencesApiUsersMePreferencesPatchErrors,
   UpdatePreferencesApiUsersMePreferencesPatchResponses,
@@ -396,35 +405,6 @@ export const getWorkflowStateApiWorkflowsWorkflowRunIdGet = <ThrowOnError extend
   });
 
 /**
- * Get Page Image
- *
- * Serve Docling page images for a workflow run.
- *
- * Allows access if user is authenticated OR if the project has sharing enabled.
- *
- * Args:
- * workflow_run_id: The workflow run ID
- * page_num: The page number (e.g., 0, 1, 2, etc.)
- *
- * Returns:
- * The image file for the specified page (PNG, JPEG, WEBP, etc.)
- */
-export const getPageImageApiWorkflowRunsWorkflowRunIdPagesPageNumGet = <ThrowOnError extends boolean = true>(
-  options: Options<GetPageImageApiWorkflowRunsWorkflowRunIdPagesPageNumGetData, ThrowOnError>,
-) =>
-  (options.client ?? client).get<
-    GetPageImageApiWorkflowRunsWorkflowRunIdPagesPageNumGetResponses,
-    GetPageImageApiWorkflowRunsWorkflowRunIdPagesPageNumGetErrors,
-    ThrowOnError,
-    'data'
-  >({
-    responseStyle: 'data',
-    security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/api/workflow-runs/{workflow_run_id}/pages/{page_num}',
-    ...options,
-  });
-
-/**
  * Approve Workflow Run
  *
  * Approve a workflow run that requires human approval.
@@ -505,14 +485,16 @@ export const downloadFileApiFilesDownloadFileIdGet = <ThrowOnError extends boole
 /**
  * Get Feedback
  *
- * Get feedback for a specific entity
+ * Get feedback for a specific entity or issue
  *
- * Example: GET /api/feedback?workflow_run_id=xxx&entity_path={"chunk_index":0,"claim_index":1}
+ * Examples:
+ * - GET /api/feedback?workflow_run_id=xxx&entity_path={"chunk_index":0,"claim_index":1}
+ * - GET /api/feedback?issue_id=xxx
  */
 export const getFeedbackApiFeedbackGet = <ThrowOnError extends boolean = true>(
-  options: Options<GetFeedbackApiFeedbackGetData, ThrowOnError>,
+  options?: Options<GetFeedbackApiFeedbackGetData, ThrowOnError>,
 ) =>
-  (options.client ?? client).get<
+  (options?.client ?? client).get<
     GetFeedbackApiFeedbackGetResponses,
     GetFeedbackApiFeedbackGetErrors,
     ThrowOnError,
@@ -569,6 +551,26 @@ export const getWorkflowFeedbackApiFeedbackWorkflowWorkflowRunIdGet = <ThrowOnEr
   });
 
 /**
+ * Get Project Feedback
+ *
+ * Get all issue feedback for a project (single call for all issues)
+ */
+export const getProjectFeedbackApiFeedbackProjectProjectIdGet = <ThrowOnError extends boolean = true>(
+  options: Options<GetProjectFeedbackApiFeedbackProjectProjectIdGetData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    GetProjectFeedbackApiFeedbackProjectProjectIdGetResponses,
+    GetProjectFeedbackApiFeedbackProjectProjectIdGetErrors,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/feedback/project/{project_id}',
+    ...options,
+  });
+
+/**
  * Delete Feedback
  *
  * Delete feedback by ID
@@ -585,6 +587,66 @@ export const deleteFeedbackApiFeedbackFeedbackIdDelete = <ThrowOnError extends b
     responseStyle: 'data',
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/feedback/{feedback_id}',
+    ...options,
+  });
+
+/**
+ * Resolve Issue Endpoint
+ *
+ * Mark an issue as resolved.
+ */
+export const resolveIssueEndpointApiIssuesIssueIdResolvePost = <ThrowOnError extends boolean = true>(
+  options: Options<ResolveIssueEndpointApiIssuesIssueIdResolvePostData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    ResolveIssueEndpointApiIssuesIssueIdResolvePostResponses,
+    ResolveIssueEndpointApiIssuesIssueIdResolvePostErrors,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/issues/{issue_id}/resolve',
+    ...options,
+  });
+
+/**
+ * Unresolve Issue Endpoint
+ *
+ * Mark an issue as unresolved.
+ */
+export const unresolveIssueEndpointApiIssuesIssueIdUnresolvePost = <ThrowOnError extends boolean = true>(
+  options: Options<UnresolveIssueEndpointApiIssuesIssueIdUnresolvePostData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    UnresolveIssueEndpointApiIssuesIssueIdUnresolvePostResponses,
+    UnresolveIssueEndpointApiIssuesIssueIdUnresolvePostErrors,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/issues/{issue_id}/unresolve',
+    ...options,
+  });
+
+/**
+ * Get Issue Endpoint
+ *
+ * Get a single issue by ID.
+ */
+export const getIssueEndpointApiIssuesIssueIdGet = <ThrowOnError extends boolean = true>(
+  options: Options<GetIssueEndpointApiIssuesIssueIdGetData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    GetIssueEndpointApiIssuesIssueIdGetResponses,
+    GetIssueEndpointApiIssuesIssueIdGetErrors,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/issues/{issue_id}',
     ...options,
   });
 
