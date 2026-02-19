@@ -6,6 +6,120 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v0.5.10] - 2026-02-19
+
+### Added
+- Introduced persisted issues stored in the database, enabling users to mark issues as resolved/unresolved and improving retrieval performance.
+- Added REST endpoints to get an issue and to resolve/unresolve issues.
+- Added batch feedback fetching for a project and linked feedback directly to issues via a foreign key.
+- Added a new Health Monitor dashboard on the Summary tab to provide an at-a-glance view of project health across workflow analyses.
+- Added an optional `inaccessibility_reason` field to reference fetch results to explain why a source could not be downloaded.
+- Added the same document explorer issue filters to the Word add-in, along with an issues counter and a jump-to-paragraph feature.
+- Added a Zustand-based centralized store for document explorer filter and chunk selection state.
+- Converted the claim verifier to an agentic tool-using architecture with parallel paragraph verification.
+
+### Changed
+- Improved reference validation by replacing binary valid/invalid with a tri-state `final_result` (`valid`, `found_with_inconsistencies`, `not_found`) and updated issue severity/title generation accordingly.
+- Updated the reference validation UI to render and filter results using the new tri-state categories with distinct colors, icons, labels, and a "Not Found" filter badge.
+- Removed the deprecated `chunk_index` field and consolidated chunk references to `chunk_indices` across the system.
+- Updated evidence source matching to use `file_id` instead of `reference_file_name`.
+- Updated the website with new features.
+- Updated the summary page (RANDZ-420).
+- Added the option to remove the chunk index on the "Jump to" feature.
+
+### Fixed
+- Fixed the resolved/unresolved issue filter so it correctly applies to both the document explorer view and the sidebar, with resolved issues hidden by default.
+
+### Removed
+- Removed all Docling document viewer support and the document render mode toggle, switching to markdown-only document rendering.
+- Removed the separate URL redirect checking service and related parallel URL check logic from reference validation.
+- Removed the `cited_url` field from reference validation results.
+- Removed the deprecated `chunk_index` field from issue API responses and the database.
+
+
+## [v0.5.9] - 2026-02-12
+
+### Added
+- Introduced a Microsoft Word add-in for AI Reviewer, including manifests, local development setup, and a new add-in page in the frontend.
+- Implemented resumable file uploads using the TUS protocol via `tuspyserver` (backend) and `Uppy` (frontend), enabling progress tracking, retry, and resume for large files (up to 500MB).
+- Added thumbs up/down feedback on document issues in the results view, including text feedback when marking an issue as unhelpful.
+- Added a `key_sentence` field to claim reference validation results to show the exact sentence from the source text containing the claim.
+
+### Changed
+- Improved reference validation by surfacing detailed per-field validation results in document issues and enriching the "Invalid reference" issue with suggested corrections and reasoning.
+- Changed reference validation chunk lookup to use reference ID instead of reference text.
+- Set `show_invalid_references_as_issues` default to `True` so invalid references appear in the Document Explorer by default.
+- Increased the rate limiter from 32 to 64 requests/sec and max bucket size from 100 to 200.
+- Updated the "Jump to chunk" button to support issues that only have `chunk_indices` (no single `chunk_index`).
+- Updated share/export dialog behavior and messaging for DOCX download paths.
+- Regenerated API types to include the new `key_sentence` field and to remove types/functions related to supported agents.
+
+### Fixed
+- Fixed paragraph selection on the Word add-in on desktop when selecting a paragraph.
+- Fixed a bug where chunk lookup failed for some references.
+- Added DOCX generation support for content controls to keep issue/comment placement aligned and reduce paragraph mismatch issues during export.
+
+### Removed
+- Removed the unused agent registry system and associated backend and frontend code, including the `/api/supported-agents` endpoint.
+- Removed reference extraction/validation state and the `findReferenceForChunk` helper from chunk view, and removed the inline reference validation section from the chunk detail view.
+- Deleted the previous single-request upload orchestrator in favor of the Uppy-based TUS upload implementation.
+- Removed the separate "URL redirect detected" issue in favor of a single enriched "Invalid reference" issue.
+- Removed `onNavigateToReferences` prop threading that was no longer needed.
+
+
+## [v0.5.8] - 2026-02-06
+
+### Added
+- Added support for a `long_description` field and a UUID `id` on document issues, and updated the Document Explorer with a unified issues sidebar while converting missing section warnings into standard issues.
+- Added persistence of web search consent per project using localStorage so users aren’t repeatedly prompted.
+- Added a contextual banner for project owners when viewing their own shared link, with an “Edit Project” shortcut.
+- Added a new RAND user role for QA Screener access and added QA Screener workflow identification/visibility support.
+- Added workflow type filtering in the Document Explorer and DOCX exporting, including a `workflow_types` query parameter for DOCX generation.
+- Added an “About This (Preface)” validation workflow to the QA Screener suite, along with new/refactored shared UI components for displaying validation results.
+- Added internal scrolling support to the reference review list component via an optional prop.
+- Added a per-user `show_experimental_features` preference with a UI toggle and supporting API endpoint.
+
+### Changed
+- Hid the legacy Inference Validation V1 workflow from the workflow selection UI and renamed Inference Validation V2 to “Inference Validation.”
+- Replaced LLM-generated line numbers in the Inference Validation V2 workflow with chunk indices derived from fuzzy matching, and updated related UI and generated API types accordingly.
+- Refactored the Reference Validation workflow to use a fan-out pattern with real-time incremental status updates, introduced per-reference status tracking, and renamed the workflow to “Reference Error Checking.”
+- Migrated the database layer from synchronous SQLAlchemy to async SQLAlchemy and updated services, routers, workflows, and tests accordingly.
+- Centralized QA Screener workflow configuration into a YAML-based configuration file and updated related workflows/agents to load from it.
+- Refined claim categorization and standardized how document summary and headings context are formatted and passed to agents, and removed skipping verification for non-central claims.
+- Improved project creation and export UX by adding warning dialogs for unmatched references and active severity filters, and updated related tooltip/badge text.
+- Allowed users to skip the analysis selection step in the project creation wizard and proceed directly to the project page.
+
+### Fixed
+- Fixed incorrect citation-to-reference matching in the citation detector when numbered footnote markers have missing footnote content, and updated UI display and tests for this scenario.
+- Fixed an agent registry collision between footnote extraction and reference extraction by giving the footnote extraction node a unique name.
+- Added “RAND” as a non-issue abbreviation when there’s no definition of it.
+
+### Removed
+- Reverted “Feature/randz-397-include-line-numbers-in-inference-validator-output.”
+
+
+## [v0.5.7] - 2026-01-30
+
+### Added
+- Added workflow run history viewing and selection in the UI.
+- Added a new `/api/project/{project_id}/workflow-runs` endpoint for fetching workflow runs by type.
+- Added a `workflow_run_id` field to workflow errors to tag errors to a specific run.
+- Added a `current_workflow_run_id` context variable to track the active workflow run.
+- Added `getDisplayStatus()` and `hasCurrentRunErrors()` utilities.
+
+### Changed
+- Updated workflow error handling to tag errors with the originating workflow run ID and filter displayed errors to the current run.
+- Refactored multiple workflow nodes to use a centralized `convert_exceptions_to_workflow_errors` function.
+- Refactored the analyses tab and related UI to use new hooks and extracted components for workflow selection, sidebar, and results rendering.
+- Updated the project card to use the new display status logic.
+- Added support for a "failed" display status in the status indicator.
+- Regenerated frontend API types for the new endpoint.
+- Parallelized workflow run state fetching with `asyncio.gather`.
+
+### Fixed
+- Fixed an issue where errors from previous workflow runs were displayed after a new run completed successfully.
+
+
 ## [v0.5.6] - 2026-01-30
 
 ### Added
