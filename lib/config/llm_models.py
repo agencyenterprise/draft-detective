@@ -16,6 +16,10 @@ class LLMModel(BaseModel):
     def __str__(self) -> str:
         return self.model_name
 
+    def get_model_name_for_inspectai(self) -> str:
+        """For usage with InspectAI's GenerateConfig"""
+        return f"{self.provider}/{self.name}"
+
 
 def get_openai_provider() -> Literal["openai", "azure_openai"]:
     if config.AZURE_OPENAI_API_KEY and config.AZURE_OPENAI_ENDPOINT:

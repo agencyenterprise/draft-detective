@@ -2,7 +2,7 @@ from functools import lru_cache
 import hashlib
 import logging
 from abc import ABC, abstractmethod
-from typing import Any, Optional
+from typing import Any, Literal, Optional, TypedDict
 
 from langchain.chat_models import BaseChatModel, init_chat_model
 from langchain_core.rate_limiters import InMemoryRateLimiter
@@ -18,6 +18,11 @@ logger = logging.getLogger(__name__)
 DEFAULT_LLM_TIMEOUT = 300
 
 
+class ReasoningDict(TypedDict):
+    effort: Literal["low", "medium", "high"]
+    summary: Literal["auto"]
+
+
 class BaseAgent(ABC):
     """Base class with shared agent functionality.
 
@@ -28,7 +33,7 @@ class BaseAgent(ABC):
         - temperature: float
         - timeout: int = DEFAULT_LLM_TIMEOUT (optional, has default)
         - output_schema: Optional[type[BaseModel]] = None (optional)
-        - reasoning: Optional[dict] = None (optional, should be for example: {"effort": "low", "summary": "auto"})
+        - reasoning: Optional[ReasoningDict] = None (optional, should be for example: {"effort": "low", "summary": "auto"})
     """
 
     name: str
@@ -36,7 +41,7 @@ class BaseAgent(ABC):
     model: LLMModel
     temperature: float
     timeout: int = DEFAULT_LLM_TIMEOUT
-    reasoning: Optional[dict] = None
+    reasoning: Optional[ReasoningDict] = None
     output_schema: Optional[type[BaseModel]] = None
 
     @abstractmethod
