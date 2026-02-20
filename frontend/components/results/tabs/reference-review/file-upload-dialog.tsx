@@ -28,6 +28,8 @@ export interface FileUploadDialogProps {
   multiple?: boolean;
   submitLabel?: string;
   projectId: string;
+  /** When set, force-matches the uploaded file to this reference instead of triggering the matching workflow. */
+  referenceId?: string;
   onCancel: () => void;
   onComplete?: () => void;
 }
@@ -39,6 +41,7 @@ export function FileUploadDialog({
   multiple = false,
   submitLabel,
   projectId,
+  referenceId,
   onCancel,
   onComplete,
 }: FileUploadDialogProps) {
@@ -50,6 +53,13 @@ export function FileUploadDialog({
   const resetRef = useRef<(() => void) | null>(null);
 
   const handleAllComplete = useCallback(async () => {
+    if (referenceId) {
+      queryClient.invalidateQueries({ queryKey: ['project', projectId] });
+      toast.success('File uploaded and matched to reference.');
+      onComplete?.();
+      return;
+    }
+
     try {
       setIsStartingWorkflow(true);
       await startMultipleWorkflowsApiWorkflowsStartMultiplePost({
@@ -67,11 +77,12 @@ export function FileUploadDialog({
       setIsStartingWorkflow(false);
       onComplete?.();
     }
-  }, [projectId, openaiApiKey, queryClient, onComplete]);
+  }, [referenceId, projectId, openaiApiKey, queryClient, onComplete]);
 
   const uploadHook = useUpload({
     projectId,
     fileRole: FileRole.Support,
+    referenceId,
     onAllComplete: handleAllComplete,
   });
 

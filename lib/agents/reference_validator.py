@@ -9,7 +9,6 @@ from enum import Enum
 from typing import List, Optional
 
 from langchain.agents import create_agent
-from langchain_core.prompts import PromptTemplate
 from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
 
@@ -72,8 +71,7 @@ class BibliographyItemValidation(BaseModel):
     )
 
 
-_reference_validator_prompt = PromptTemplate.from_template(
-    """Validate a single bibliographic reference by searching for it online and checking its accuracy.
+SYSTEM_PROMPT = """Validate a single bibliographic reference by searching for it online and checking its accuracy.
 
 You will receive one reference item from a document's bibliography. Use web search to locate the cited work, then verify each field against the authoritative source you find.
 
@@ -93,7 +91,7 @@ You will receive one reference item from a document's bibliography. Use web sear
 
 # Formatting policy
 
-Accept any broadly recognizable citation style (APA, Chicago, MLA, IEEE, etc.). Do not flag minor stylistic differences such as capitalization, punctuation choice, field ordering, or comma vs. period usage. Capitalization variants (title case, sentence case, all caps) and minor punctuation differences (trailing periods, commas vs. semicolons, hyphens vs. dashes) must be treated as equivalent. Focus exclusively on content accuracy, not style conformance.
+Accept any broadly recognizable citation style (APA, Chicago, MLA, IEEE, etc.). Do not flag minor stylistic differences such as capitalization, punctuation choice, field ordering, or comma vs. period usage. Capitalization variants (title case, sentence case, all caps) and minor punctuation differences (trailing periods, commas vs. semicolons, hyphens vs. dashes) must be treated as equivalent. Page ranges (e.g., "pp. 1-10") should be ignored for validation purposes — do not flag them as incorrect or missing. Focus exclusively on content accuracy, not style conformance.
 
 # Bare URL references
 
@@ -106,8 +104,8 @@ A reference consisting solely of a URL with no bibliographic metadata is always 
 - Set problem_type to MISSING when the field is absent from the reference.
 - Set problem_type to INCORRECT only when the field contains different words, different names, wrong numbers, or factually wrong information.
 - Set final_result to one of: `valid`, `found_with_inconsistencies`, or `not_found`:
-  - `valid`: the reference was found online and all fields are correct.
-  - `found_with_inconsistencies`: the reference was found online but one or more fields are incorrect or missing.
+  - `valid`: the reference was found online and any differences are trivial or non-actionable. Use `valid` even when minor fields are technically missing or slightly off, as long as the reference clearly identifies the correct work. Examples of trivial differences that should remain `valid`: a missing DOI when an arXiv ID (or other identifier) is already present, minor author name format variations (initials vs. full first names), a missing publisher when the venue is obvious, or slight title wording differences that don't change meaning.
+  - `found_with_inconsistencies`: the reference was found online but has **substantial** errors that would mislead a reader or make the work hard to locate — e.g., wrong author names, a factually incorrect title, wrong publication year, or a completely missing title/author. Reserve this status for differences that genuinely need to be corrected.
   - `not_found`: the reference could not be located online, or the identifiers/URLs/authors appear fabricated or point to a different work.
 - When invalid, write a single-sentence suggested_action summarizing what to fix.
 - When invalid and a matching source was found, provide updated_reference with corrections applied, preserving the original citation format. When valid, or when no matching source could be found online, set updated_reference to null.
@@ -119,7 +117,6 @@ Never include internal search tokens (e.g., turn0search0, turn2search3) or raw m
 ---
 
 The reference to validate will be provided in the next message."""
-)
 
 
 class ReferenceValidatorAgent(LangChainAgent):
@@ -134,12 +131,10 @@ class ReferenceValidatorAgent(LangChainAgent):
         prompt_kwargs: dict,
         config: Optional[RunnableConfig] = None,
     ) -> BibliographyItemValidation:
-        system_prompt = _reference_validator_prompt.invoke({})
-
         agent = create_agent(
             self.llm,
             [{"type": "web_search"}],
-            system_prompt=system_prompt.text,
+            system_prompt=SYSTEM_PROMPT,
             context_schema=ContextSchema,
             response_format=BibliographyItemValidation,
         )

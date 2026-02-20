@@ -21,10 +21,17 @@ export interface UploadFileState {
 }
 
 export interface UseUploadOptions {
+  /** The project ID to upload the files to. */
   projectId: string;
+  /** The role of the file to upload. */
   fileRole?: FileRole;
+  /** When set, the backend will force-match the uploaded file to this reference. */
+  referenceId?: string;
+  /** Callback when a file is completed. */
   onFileComplete?: (file: File, uppyFile: UppyFile<Meta, AnyBody>) => void;
+  /** Callback when all files are completed. */
   onAllComplete?: () => void;
+  /** Callback when an error occurs. */
   onError?: (error: Error, fileName: string) => void;
 }
 
