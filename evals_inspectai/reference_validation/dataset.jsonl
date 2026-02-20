@@ -1,3 +1,6 @@
+{"input": "https://www.britannica.com/topic/think-tank/Think-tanks-in-practice", "target": "found_with_inconsistencies"}
+{"input": "https://www.youtube.com/watch?v=wKfq63nU9CM", "target": "found_with_inconsistencies"}
+{"input": "https://ieakenya.or.ke/blog/the-ai-preparedness-landscape-for-think-tanks/", "target": "found_with_inconsistencies"}
 {"input": "John Doe and Jane Smith. Webvoyager: Building an end-to-end web agent with large multimodal models. arXiv preprint arXiv:2401.00001, 2024.", "target": "found_with_inconsistencies"}
 {"input": "Asma Issa, George Mohler, and John Johnson. Paraphrase identification using deep contextualized representations. In Proceedings of the 2018 Conference on Empirical Methods in Natural Language Processing (EMNLP), pp. 517-526, 2018.", "target": "not_found"}
 {"input": "John Smith and Jane Doe. Deep learning techniques for avatar-based interaction in virtual environments. IEEE Transactions on Neural Networks and Learning Systems, 32(12):5600-5612, 2021. doi: 10.1109/ TNNLS.2021.3071234. URL https://ieeexplore.ieee.org/document/307123", "target": "not_found"}
