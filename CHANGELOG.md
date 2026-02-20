@@ -6,6 +6,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v0.5.11] - 2026-02-20
+
+### Added
+- Introduced an LLM evaluation framework using Inspect AI to measure the reference validation agent’s accuracy.
+- Added a new `evals_inspectai/` package with a reference validation eval task, a 22-sample labeled dataset, and usage documentation.
+- Added a `get_model_name_for_inspectai()` helper to format model names for Inspect AI configuration.
+- Added `inspect-ai` and `openai` dependencies, added a `[build-system]` with hatchling, and configured wheel packaging to include `evals_inspectai`.
+- Added `logs/` to `.gitignore`.
+
+### Changed
+- Routed single-file reference uploads through the TUS upload path with `reference_id` passed as metadata and linked on TUS completion.
+- Extracted the reference validator system prompt into a module-level `SYSTEM_PROMPT` constant and refined the prompt to ignore page ranges and clarify validation categories.
+- Added `referenceId` support to `FileUploadDialog` and `UseUploadOptions`, and updated `ReferenceCard` to pass its reference ID to the upload dialog.
+- When `referenceId` is set, updated `FileUploadDialog` to skip the batch workflow trigger on completion and invalidate the project query cache.
+- Regenerated API types (`sdk.gen.ts`, `types.gen.ts`, `transformers.gen.ts`) to remove deleted endpoints.
+
+### Fixed
+- Fixed a bug where uploading a single file from a reference card incorrectly triggered the batch reference-matching workflow.
+
+### Removed
+- Removed the `POST /api/project/{project_id}/files` and `POST /api/project/{project_id}/file` REST upload endpoints so all file uploads go through TUS exclusively.
+
+
 ## [v0.5.10] - 2026-02-19
 
 ### Added
