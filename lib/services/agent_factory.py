@@ -2,7 +2,7 @@ import logging
 from typing import Optional
 
 from lib.config.llm_models import LLMModel
-from lib.models.agent import BaseAgent, LangChainAgent, DirectOpenAIAgent
+from lib.models.agent import BaseAgent, LangChainAgent
 
 logger = logging.getLogger(__name__)
 
@@ -51,8 +51,6 @@ def create_agent_with_model(
     # Reset cached LLM to force recreation with new configuration
     if isinstance(new_agent, LangChainAgent):
         new_agent._llm = None
-    elif isinstance(new_agent, DirectOpenAIAgent):
-        new_agent._client = None
 
     logger.debug(
         f"Created agent variant: {new_agent.name} with model={model.model_name if model else None}, "

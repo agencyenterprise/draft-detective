@@ -1,15 +1,16 @@
 from enum import Enum
 from typing import Optional
 
+from langchain.agents import create_agent
+from langchain_core.messages import HumanMessage
 from langchain_core.prompts import PromptTemplate
-from langchain_core.runnables import RunnableConfig
+from langchain_core.runnables.config import RunnableConfig
 from pydantic import BaseModel, Field
 
 from lib.agents.live_literature_review import ClaimReferenceFactors, QualityLevel
-from lib.services.openai import ensure_structured_output_response
 from lib.config.llm_models import gpt_5_mini_model
-from lib.models.agent import DirectOpenAIAgent
-from lib.services.openai import ensure_structured_output_response
+from lib.models.agent import LangChainAgent
+from lib.workflows.context import ContextSchema
 
 
 # applies to the claim
@@ -149,12 +150,11 @@ General Guidelines for Processing
 )
 
 
-class EvidenceWeighterAgent(DirectOpenAIAgent):
+class EvidenceWeighterAgent(LangChainAgent):
     name = "Evidence Weighter"
     description = "Analyze and weight evidence from multiple sources to determine overall direction and strength"
     model = gpt_5_mini_model
     temperature = 0.5
-    output_schema = EvidenceWeighterResponse
 
     async def ainvoke(
         self,
@@ -162,18 +162,18 @@ class EvidenceWeighterAgent(DirectOpenAIAgent):
         config: Optional[RunnableConfig] = None,
     ) -> EvidenceWeighterResponse:
         prompt = _evidence_weighter_agent_prompt.invoke(prompt_kwargs)
-        input = [{"role": "user", "content": prompt.text}]
 
-        response = await self.client.responses.parse(
-            model=self.model.name,
-            tools=[{"type": "web_search"}],
-            max_tool_calls=20,
-            # reasoning={
-            #     "effort": "low",  # "minimal", "low", "medium", "high"
-            #     "summary": "auto",
-            # },
-            text_format=EvidenceWeighterResponse,
-            input=input,
+        agent = create_agent(
+            self.llm,
+            [{"type": "web_search"}],
+            context_schema=ContextSchema,
+            response_format=EvidenceWeighterResponse,
         )
 
-        return ensure_structured_output_response(response, EvidenceWeighterResponse)
+        result = await agent.ainvoke(
+            {"messages": [HumanMessage(content=prompt.text)]},
+            config=config,
+            context=self.context,
+        )
+
+        return result["structured_response"]

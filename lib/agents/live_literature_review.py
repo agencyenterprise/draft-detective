@@ -1,7 +1,9 @@
 from typing import Optional
 
+from langchain.agents import create_agent
+from langchain_core.messages import HumanMessage
 from langchain_core.prompts import PromptTemplate
-from langchain_core.runnables import RunnableConfig
+from langchain_core.runnables.config import RunnableConfig
 from pydantic import BaseModel, Field
 
 from lib.agents.literature_review import (
@@ -11,8 +13,7 @@ from lib.agents.literature_review import (
     ReferenceType,
 )
 from lib.config.llm_models import gpt_5_mini_model
-from lib.models.agent import DirectOpenAIAgent
-from lib.services.openai import ensure_structured_output_response
+from lib.models.agent import LangChainAgent
 from lib.workflows.context import ContextSchema
 
 
@@ -163,14 +164,13 @@ When generating responses, remove or replace all internal citation tokens such a
 )
 
 
-class LiveLiteratureReviewAgent(DirectOpenAIAgent):
+class LiveLiteratureReviewAgent(LangChainAgent):
     name = "Live Literature Review Researcher"
     description = (
         "Find newer literature that could update or contextualize existing claims"
     )
     model = gpt_5_mini_model
     temperature = 0.5
-    output_schema = LiveLiteratureReviewResponse
 
     async def ainvoke(
         self,
@@ -178,51 +178,18 @@ class LiveLiteratureReviewAgent(DirectOpenAIAgent):
         config: Optional[RunnableConfig] = None,
     ) -> LiveLiteratureReviewResponse:
         prompt = _live_literature_review_agent_prompt.invoke(prompt_kwargs)
-        input = [{"role": "user", "content": prompt.text}]
 
-        response = await self.client.responses.parse(
-            model=self.model.name,
-            tools=[{"type": "web_search"}],
-            max_tool_calls=20,
-            # reasoning={
-            #     "effort": "low",  # "minimal", "low", "medium", "high"
-            #     "summary": "auto",
-            # },
-            text_format=LiveLiteratureReviewResponse,
-            input=input,
+        agent = create_agent(
+            self.llm,
+            [{"type": "web_search"}],
+            context_schema=ContextSchema,
+            response_format=LiveLiteratureReviewResponse,
         )
 
-        return ensure_structured_output_response(response, LiveLiteratureReviewResponse)
+        result = await agent.ainvoke(
+            {"messages": [HumanMessage(content=prompt.text)]},
+            config=config,
+            context=self.context,
+        )
 
-
-if __name__ == "__main__":
-    import asyncio
-    from lib.config.env import config
-
-    fake_input = {
-        "domain_context": "US public policy; presidential elections; constitutional law",
-        "audience_context": "Policy analysts and editors at a research organization",
-        "document_publication_date": "2024-04-01",
-        "full_document": """# Some statistics about the office of the US president
-Over the course of the US history, the office of the US president has changed hand dozens of times. Various types of exchanges has happened, ranging from the same president being elected more than twice (i.e., Franklin D. Roosevelt) to the president being removed from office (i.e., Andrew Johnson).
-
-One thing that has never happened, is that a one-term president comes back to office in a later term after losing one reelection bid. So surely, based on this track record alone it seems exceedingly unlikely that former president Trump would be able to defeat President Joe Biden in the 2024 election.
-""",
-        "paragraph": """One thing that has never happened, is that a one-term president comes back to office in a later term after losing one reelection bid. So surely, based on this track record alone it seems exceedingly unlikely that former president Trump would be able to defeat President Joe Biden in the 2024 election.""",
-        "claim": "Based on historical precedent, a former one-term president who lost reelection has never returned to win the presidency in a subsequent election",
-        "bibliography": """1. Skowronek, S. (2011). Presidential Leadership in Political Time. University Press of Kansas.
-    2. Achen, C. H., & Bartels, L. M. (2016). Democracy for Realists: Why Elections Do Not Produce Responsive Government. Princeton University Press.""",
-    }
-
-    from lib.services.file_artifacts_service.mock import MockFileArtifactsService
-
-    context = ContextSchema(
-        openai_api_key=config.OPENAI_API_KEY,
-        vector_store=None,
-        file_artifacts_service=MockFileArtifactsService(),
-    )
-    live_literature_review_agent = LiveLiteratureReviewAgent(context)
-
-    response = asyncio.run(live_literature_review_agent.ainvoke(fake_input))
-    print("Live Literature Review Response:")
-    print(response.model_dump_json(indent=2))
+        return result["structured_response"]
