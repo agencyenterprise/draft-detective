@@ -1,5 +1,5 @@
 import logging
-from typing import Optional, TypeVar, Union
+from typing import Optional, Union
 
 from openai import AsyncAzureOpenAI as StandardAsyncAzureOpenAI
 from openai import AsyncOpenAI as StandardAsyncOpenAI
@@ -9,7 +9,6 @@ from lib.config.langfuse import langfuse
 
 logger = logging.getLogger(__name__)
 
-ResponseFormatT = TypeVar("ResponseFormatT")
 AsyncOpenAIClient = Union[StandardAsyncOpenAI, StandardAsyncAzureOpenAI]
 
 

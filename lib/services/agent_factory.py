@@ -36,7 +36,7 @@ def create_agent_with_model(
     """
     agent_class = base_agent.__class__
 
-    # Pass context if the agent requires it (LangChainAgent or DirectOpenAIAgent)
+    # Pass context if the agent requires it
     if hasattr(base_agent, "context"):
         new_agent = agent_class(context=base_agent.context)
     else:

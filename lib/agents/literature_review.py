@@ -84,19 +84,23 @@ class DocumentReferenceFactors(BaseModel):
         description="Relevant excerpt from the reference that is why we should cite or discuss it"
     )
     reference_type: ReferenceType = Field(
-        description="Publication type (e.g., journal, website, book, preprint)"
+        description=f"Publication type. Possible values: {[e.value for e in ReferenceType]}"
     )
-    quality: QualityLevel = Field(description="Quality of the reference")
+    quality: QualityLevel = Field(
+        description=f"Quality of the reference. Possible values: {[e.value for e in QualityLevel]}"
+    )
     reference_direction: ReferenceDirection = Field(
-        description="Type of source: supporting, conflicting, or contextual"
+        description=f"Type of source. Possible values: {[e.value for e in ReferenceDirection]}"
     )
-    political_bias: PoliticalBias = Field(description="Political bias of the evidence")
+    political_bias: PoliticalBias = Field(
+        description=f"Political bias of the evidence. Possible values: {[e.value for e in PoliticalBias]}"
+    )
     rationale: str = Field(description="Why this reference should be cited")
     main_document_excerpt: str = Field(
         description="Relevant excerpt from the main document that relates to this reference"
     )
-    recommended_action: str = Field(
-        description=f"What action to take ({', '.join([e.value for e in LitRecommendedAction])}"
+    recommended_action: LitRecommendedAction = Field(
+        description=f"What action to take. Possible values: {[e.value for e in LitRecommendedAction]}"
     )
     explanation_for_recommended_action: str = Field(
         description="How to implement the recommended action"

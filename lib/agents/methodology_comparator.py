@@ -27,7 +27,7 @@ class ReferenceMinimal(BaseModel):
         description="Canonical title for the reference exactly as it should appear in the article's bibliography"
     )
     type: ReferenceType = Field(
-        description="Format classification for the reference (webpage, book, article, or other)"
+        description=f"Format classification for the reference. Possible values: {[e.value for e in ReferenceType]}"
     )
     link: str = Field(
         description="Stable URL or DOI that lets the author retrieve the reference quickly"

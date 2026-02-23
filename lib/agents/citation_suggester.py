@@ -4,7 +4,7 @@ from typing import Optional
 from langchain.agents import create_agent
 from langchain_core.messages import HumanMessage
 from langchain_core.prompts import PromptTemplate
-from langchain_core.runnables.config import RunnableConfig
+from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
 
 from lib.agents.literature_review import ReferenceType
@@ -22,7 +22,7 @@ class RecommendedAction(str, Enum):
     OTHER = "other"
 
 
-class PublicationQuality(str, Enum):  # TODO: play with these options
+class PublicationQuality(str, Enum):
     HIGH_IMPACT_PUBLICATION = "high_impact_publication"
     MEDIUM_IMPACT_PUBLICATION = "medium_impact_publication"
     LOW_IMPACT_PUBLICATION = "low_impact_publication"
@@ -40,7 +40,7 @@ class Reference(BaseModel):
         description="Canonical title for the reference exactly as it should appear in the article's bibliography"
     )
     type: ReferenceType = Field(
-        description="Format classification for the reference (webpage, book, article, or other)"
+        description=f"Format classification for the reference. Possible values: {[e.value for e in ReferenceType]}"
     )
     link: str = Field(
         description="Stable URL or DOI that lets the author retrieve the reference quickly"
@@ -55,7 +55,7 @@ class Reference(BaseModel):
         description="The index of the existing reference that this citation refers to, if any. Indices start at 1. If the citation does not refer to an existing reference in the bibliography, this should be -1."
     )
     publication_quality: PublicationQuality = Field(
-        description="The quality of the publication that carries the suggested reference"
+        description=f"The quality of the publication that carries the suggested reference. Possible values: {[e.value for e in PublicationQuality]}"
     )
     related_excerpt: str = Field(
         description="Exact sentence or excerpt from the full document that should cite or discuss this reference"
@@ -68,14 +68,14 @@ class Reference(BaseModel):
     )
     recommended_action: RecommendedAction = Field(
         description=(
-            "Action to take for this reference: add_citation, replace_existing_reference, discuss_reference, no_action, or other"
+            f"Action to take for this reference. Possible values: {[e.value for e in RecommendedAction]}"
         )
     )
     explanation_for_recommended_action: str = Field(
         description="Specific guidance for applying the recommended action, including citation placement or text revisions"
     )
     confidence_in_recommendation: ConfidenceInRecommendation = Field(
-        description="The confidence in the recommendation"
+        description=f"The confidence in the recommendation. Possible values: {[e.value for e in ConfidenceInRecommendation]}"
     )
 
 
@@ -124,7 +124,7 @@ You must ensure the paragraph follows RAND's Three Rules of Attribution:
 4. Consider references from the literature review report that are highly relevant to the claim, chunk, and paragraph and conduct focused web research for the items in the report focusing on key claims, statistics, or notable concepts that lack adequate support. Prefer authoritative sources (peer-reviewed articles, reputable institutions) and capture publication details for `bibliography_info`. Use the literature review report as a guide to the references that should be cited. Only include the reference if you think it is highly relevant to the claim, chunk, and paragraph. It is ok if you do not recommend any references from the literature review report. It is ok to double check anything you add by doing web searches, but DO NOT add references beyond those provided in the literature review report.
 5. For every recommended reference:
    - Use `related_excerpt` to quote the precise sentence(s) that should cite or discuss the source.
-   - Select `recommended_action` from {{"add_citation", "replace_existing_reference", "discuss_reference", "no_action", "other"}}.
+   - Select `recommended_action` from {{"add_new_citation", "cite_existing_reference_in_new_place", "replace_existing_reference", "discuss_reference", "no_action", "other"}}.
    - In `explanation_for_recommended_action`, describe exactly where to place the citation or how to revise the text (e.g., "Add citation after the sentence describing X" or "Replace the existing citation to Y with this systematic review because …").
    - Specify what type of attribution is needed (fact, statistic, exact quote, idea, etc.)
 6. Provide only high-impact recommendations (typically 1-5). Avoid duplicates and clearly distinguish whether the source comes from the existing bibliography or is newly discovered.

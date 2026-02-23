@@ -4,7 +4,7 @@ from typing import Optional
 from langchain.agents import create_agent
 from langchain_core.messages import HumanMessage
 from langchain_core.prompts import PromptTemplate
-from langchain_core.runnables.config import RunnableConfig
+from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
 
 from lib.agents.live_literature_review import ClaimReferenceFactors, QualityLevel
@@ -24,7 +24,7 @@ class ReferenceAlignmentLevel(str, Enum):
 class EvidenceWeighterRecommendedAction(str, Enum):
     UPDATE_CLAIM = "update_claim"  # claim is either no longer true and needs to be updated or it should be qualified given the newer sources
     ADD_CITATION = "add_citation"  # claim can remain as is,  but additional citations prove more influential
-    NO_CHANGE = "no_update_needed"  # claim does not need to be updated
+    NO_UPDATE_NEEDED = "no_update_needed"  # claim does not need to be updated
 
 
 class EvidenceWeighterResponse(BaseModel):
@@ -32,16 +32,16 @@ class EvidenceWeighterResponse(BaseModel):
         description="Newer references found from the literature review report"
     )
     newer_references_alignment: ReferenceAlignmentLevel = Field(
-        description="Evidence alignment of the newer references: unverifiable, supported, partially_supported, or unsupported"
+        description=f"Evidence alignment of the newer references. Possible values: {[e.value for e in ReferenceAlignmentLevel]}"
     )
     claim_update_action: EvidenceWeighterRecommendedAction = Field(
-        description="Recommended action for the claim: update_claim, add_citation, or no_change"
+        description=f"Recommended action for the claim. Possible values: {[e.value for e in EvidenceWeighterRecommendedAction]}"
     )
     rationale: str = Field(
         description="Explanation of the rationale for the claim update action in a maximum of TWO sentences."
     )
     confidence_level: QualityLevel = Field(
-        description="Confidence level in the claim update: high, medium, or low"
+        description=f"Confidence level in the claim update. Possible values: {[e.value for e in QualityLevel]}"
     )
     rewritten_claim: str = Field(
         description="The rewritten claim that is more clear and accurate according to the recommended action and taking the newer sources into account."
@@ -81,8 +81,8 @@ For each claim provide the following:
 
 ### Claim Update Action
 - **Update Claim**: The claim is either no longer true and needs to be updated to state the correct information or the claim is partially true and should be qualified given the newer sources
-- **Add Citation**: The claim can remain as is,  but additional citations prove more influential
-- **No Change**: The claim does not need to be updated
+- **Add Citation**: The claim can remain as is, but additional citations prove more influential
+- **No Update Needed**: The claim does not need to be updated
 
 ### Confidence in Claim Update Action
 - **High**: There are multiple high-quality sources with consistent findings and clear consensus

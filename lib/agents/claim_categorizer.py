@@ -40,7 +40,9 @@ from lib.workflows.context import ContextSchema
 
 class ClaimCategorizationResponse(BaseModel):
     claim: str = Field(description="Exact claim text as analyzed.")
-    claim_category: ClaimCategory = Field(description="Assigned category.")
+    claim_category: ClaimCategory = Field(
+        description=f"Assigned category. Possible values: {[e.value for e in ClaimCategory]}"
+    )
     rationale: str = Field(
         description="Reason for the category assignment and for the needs_external_verification decision. Maximum two sentences."
     )

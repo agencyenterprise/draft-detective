@@ -28,14 +28,18 @@ class ClaimReferenceFactors(BaseModel):
     )
     link: str = Field(description="URL or DOI link to the source")
     reference_excerpt: str = Field(description="Relevant excerpt from the source")
-    reference_type: ReferenceType = Field(description="Publication type of the source")
+    reference_type: ReferenceType = Field(
+        description=f"Publication type of the source. Possible values: {[e.value for e in ReferenceType]}"
+    )
     reference_direction: ReferenceDirection = Field(
-        description="Type of source: supporting, conflicting, or contextual"
+        description=f"Type of source. Possible values: {[e.value for e in ReferenceDirection]}"
     )
     quality: QualityLevel = Field(
-        description="Source quality level: high, medium, or low"
+        description=f"Source quality level. Possible values: {[e.value for e in QualityLevel]}"
     )
-    political_bias: PoliticalBias = Field(description="Political bias of the evidence")
+    political_bias: PoliticalBias = Field(
+        description=f"Political bias of the evidence. Possible values: {[e.value for e in PoliticalBias]}"
+    )
     rationale: str = Field(
         description="Why this source is relevant to the claim and the claim's evidence alignment and why does it have this quality level. In a maximum of THREE sentences."
     )
@@ -75,7 +79,7 @@ Given a claim from a document and the document's publication date, find newer li
    - **Supporting**: Directly supports or strengthens the claim
    - **Conflicting**: Contradicts or challenges the claim
    - **Mixed**: Provides mixed evidence for the claim
-   - **Contextual Only**: Provides additional context without directly supporting or conflicting
+   - **Contextual**: Provides additional context without directly supporting or conflicting
 
 ## Reference Classification Guidelines
 
@@ -90,7 +94,7 @@ Provide each piece of evidence related to a claim with one of the following dire
 - **Supporting**: Considering the collection of highest quality new and old sources reveals that the most authoritative and highest quality sources support the claim. Thus the claim needs to be updated with sources
 - **Conflicting**: Considering the collection of highest quality new and old sources reveals that the most authoritative and highest quality sources CONFLICT with the claim. Thus the claim needs to be updated with sources and to define the counter statement.
 - **Mixed**: Considering the collection of highest quality new and old sources reveals that the most authoritative and highest quality sources provide a MIXED resolution to the claim. Thus the claim needs to be updated with sources and to reflect this mixed perspective.
-- **Contextual Only**: Sources provide context but don't directly support or conflict with the claim.
+- **Contextual**: Sources provide context but don't directly support or conflict with the claim.
 
 ### Political Leaning of Reference Assessment
 Provide each piece of evidence related to a claim with one of the following political leaning labels:
