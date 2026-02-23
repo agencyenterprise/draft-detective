@@ -1,5 +1,7 @@
 from typing import Literal
+
 from pydantic import BaseModel
+
 from lib.config.env import config
 
 
@@ -11,6 +13,9 @@ class LLMModel(BaseModel):
     def model_name(self) -> str:
         """For usage with LangChain's init_chat_model"""
 
+        if not self.provider:
+            return self.name
+
         return f"{self.provider}:{self.name}"
 
     def __str__(self) -> str:
@@ -18,7 +23,17 @@ class LLMModel(BaseModel):
 
     def get_model_name_for_inspectai(self) -> str:
         """For usage with InspectAI's GenerateConfig"""
-        return f"{self.provider}/{self.name}"
+
+        return self.model_name.replace(":", "/")
+
+    @staticmethod
+    def from_inspectai_name(inspectai_name: str) -> "LLMModel":
+        """Create an LLMModel from an InspectAI model name (e.g. 'openai/gpt-5.2')."""
+        if "/" in inspectai_name:
+            provider, name = inspectai_name.split("/", 1)
+        else:
+            provider, name = "", inspectai_name
+        return LLMModel(provider=provider, name=name)
 
 
 def get_openai_provider() -> Literal["openai", "azure_openai"]:
@@ -42,6 +57,7 @@ claude_3_5_sonnet_model = LLMModel(
 
 # Google models
 gemini_2_flash_model = LLMModel(provider="google_genai", name="gemini-2.5-flash-lite")
+
 
 # Registry of all available models for testing and comparison
 # Key: model.name, Value: model instance

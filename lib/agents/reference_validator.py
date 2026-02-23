@@ -1,14 +1,10 @@
-# %%
-# reference validator agent
-"""
-Validates the list of references in a document, by searching for their online presence.
-"""
 from __future__ import annotations
 
 from enum import Enum
 from typing import List, Optional
 
 from langchain.agents import create_agent
+from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
 from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
 
@@ -130,19 +126,23 @@ class ReferenceValidatorAgent(LangChainAgent):
         self,
         prompt_kwargs: dict,
         config: Optional[RunnableConfig] = None,
-    ) -> BibliographyItemValidation:
+    ) -> tuple[BibliographyItemValidation, list[BaseMessage]]:
         agent = create_agent(
             self.llm,
             [{"type": "web_search"}],
-            system_prompt=SYSTEM_PROMPT,
             context_schema=ContextSchema,
             response_format=BibliographyItemValidation,
         )
 
         result = await agent.ainvoke(
-            {"messages": [{"role": "user", "content": prompt_kwargs["reference"]}]},
+            {
+                "messages": [
+                    SystemMessage(content=SYSTEM_PROMPT),
+                    HumanMessage(content=prompt_kwargs["reference"]),
+                ]
+            },
             config=config,
             context=self.context,
         )
 
-        return result["structured_response"]
+        return result["structured_response"], result["messages"]
