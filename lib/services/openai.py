@@ -38,30 +38,6 @@ def get_openai_client(api_key: Optional[str] = None) -> AsyncOpenAIClient:
     )
 
 
-async def wait_for_response(
-    client: AsyncOpenAIClient,
-    response: ParsedResponse[ResponseFormatT],
-    poll_interval_seconds: int = 20,
-    log_info: str = "",
-) -> ParsedResponse[ResponseFormatT]:
-    start_time = monotonic()
-
-    while response.status in {"queued", "in_progress"}:
-        await sleep(poll_interval_seconds)
-        response = await client.responses.retrieve(response.id)
-        elapsed = monotonic() - start_time
-        logger.info(
-            "Call id: %s => Current status: %s... Running for %.1fs. Checking back in %s seconds %s",
-            response.id,
-            response.status,
-            elapsed,
-            poll_interval_seconds,
-            log_info,
-        )
-
-    return response
-
-
 def ensure_structured_output_response(
     response: ParsedResponse[ResponseFormatT], schema: type[BaseModel]
 ) -> BaseModel:

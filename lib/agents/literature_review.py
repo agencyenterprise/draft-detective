@@ -1,19 +1,15 @@
-import asyncio
 import logging
 from enum import Enum
 from typing import Optional
 
+from langchain.agents import create_agent
+from langchain_core.messages import HumanMessage
 from langchain_core.prompts import PromptTemplate
 from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
 
-from lib.config.langfuse import langfuse_handler
-from lib.config.llm_models import gpt_5_model
-from lib.models.agent import DirectOpenAIAgent
-from lib.services.openai import (
-    ensure_structured_output_response,
-    wait_for_response,
-)
+from lib.config.llm_models import gpt_5_2_model
+from lib.models.agent import LangChainAgent
 from lib.workflows.context import ContextSchema
 
 logger = logging.getLogger(__name__)
@@ -176,12 +172,13 @@ When generating responses, remove or replace all internal citation tokens such a
 )
 
 
-class LiteratureReviewAgent(DirectOpenAIAgent):
+class LiteratureReviewAgent(LangChainAgent):
     name = "Literature Review Researcher"
     description = "Review a document paragraph against the article bibliography and recent literature to propose citation updates"
-    model = gpt_5_model
+    model = gpt_5_2_model
     temperature = 0.5
-    output_schema = LiteratureReviewResponse
+    timeout = 600
+    reasoning = {"effort": "low", "summary": "auto"}
 
     async def ainvoke(
         self,
@@ -189,62 +186,18 @@ class LiteratureReviewAgent(DirectOpenAIAgent):
         config: Optional[RunnableConfig] = None,
     ) -> LiteratureReviewResponse:
         prompt = _literature_review_agent_prompt.invoke(prompt_kwargs)
-        input = [{"role": "user", "content": prompt.text}]
 
-        response = await self.client.responses.parse(
-            model=self.model.name,
-            tools=[{"type": "web_search"}],
-            max_tool_calls=20,
-            reasoning={
-                "effort": "low",  # "minimal", "low", "medium", "high"
-                "summary": "auto",
-            },
-            text_format=LiteratureReviewResponse,
-            background=True,
-            input=input,
+        agent = create_agent(
+            self.llm,
+            [{"type": "web_search"}],
+            context_schema=ContextSchema,
+            response_format=LiteratureReviewResponse,
         )
 
-        response = await wait_for_response(
-            self.client, response, log_info="Literature Review Researcher"
+        result = await agent.ainvoke(
+            {"messages": [HumanMessage(content=prompt.text)]},
+            config=config,
+            context=self.context,
         )
-        return ensure_structured_output_response(response, LiteratureReviewResponse)
 
-
-if __name__ == "__main__":
-    from lib.config.logger import setup_logger
-    from lib.config.env import config
-    from lib.services.file_artifacts_service.mock import MockFileArtifactsService
-
-    setup_logger()
-
-    context = ContextSchema(
-        openai_api_key=config.OPENAI_API_KEY,
-        vector_store=None,
-        file_artifacts_service=MockFileArtifactsService(),
-    )
-    literature_review_agent = LiteratureReviewAgent(context)
-
-    response = asyncio.run(
-        literature_review_agent.ainvoke(
-            {
-                "full_document": """# Some statistics about the office of the US president
-Over the course of the US history, the office of the US president has changed hand dozens of times. Various types of exchanges has happened, ranging from the same president being elected more than twice (i.e., Franklin D. Roosevelt) to the president being removed from office (i.e., Andrew Johnson).
-
-One thing that has never happened, is that a one-term president comes back to office in a later term after losing one reelection bid. So surely, based on this track record alone it seems exceedingly unlikely that former president Trump would be able to defeat President Joe Biden in the 2024 election.
-""",
-                "bibliography": """Foner, E. (2014). Reconstruction: America's Unfinished Revolution, 1863-1877. New York, NY: Harper & Row.
-Skowronek, S. (2011). Presidential Leadership in Political Time. Lawrence, KS: University Press of Kansas.
-""",
-                "paragraph": """One thing that has never happened, is that a one-term president comes back to office in a later term after losing one reelection bid. So surely, based on this track record alone it seems exceedingly unlikely that former president Trump would be able to defeat President Joe Biden in the 2024 election.""",
-                "document_publication_date": "2024-04-01",
-            },
-            config={
-                "callbacks": [langfuse_handler],
-            },
-        ),
-    )
-
-    # convert to json
-    print("Literature Review Response:")
-    print(response.model_dump_json(indent=2))
-    # print(response)
+        return result["structured_response"]
