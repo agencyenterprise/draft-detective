@@ -1,16 +1,46 @@
 from inspect_ai import Task, task
+from inspect_ai.agent import Agent, AgentState, agent
 from inspect_ai.dataset import json_dataset
+from inspect_ai.model import ModelOutput
 from inspect_ai.scorer import CORRECT, INCORRECT, Score, Target, mean, scorer, stderr
-from inspect_ai.solver import TaskState, generate, system_message, use_tools
-from inspect_ai.tool import web_search
+from inspect_ai.solver import TaskState
 from pydantic import ValidationError
 
-from evals_inspectai.common import generate_config_for_agent, get_model_or_agent_default
+from evals_inspectai.common import (
+    apply_inspectai_config_to_agent,
+    get_model_or_agent_default,
+    get_runnable_config,
+    messages_from_langchain,
+)
 from lib.agents.reference_validator import (
-    SYSTEM_PROMPT,
     BibliographyItemValidation,
     ReferenceValidatorAgent,
 )
+from tests.conftest import create_test_context
+
+
+@agent
+def reference_validation_agent() -> Agent:
+    context = create_test_context()
+
+    async def execute(state: AgentState) -> AgentState:
+        ref_agent = ReferenceValidatorAgent(context)
+        apply_inspectai_config_to_agent(ref_agent)
+
+        user_input = state.messages[0].text if state.messages else ""
+        response, lc_messages = await ref_agent.ainvoke(
+            {"reference": user_input}, config=get_runnable_config()
+        )
+
+        state.output = ModelOutput(
+            completion=response.model_dump_json(),
+            model=ref_agent.model.get_model_name_for_inspectai(),
+        )
+        state.messages = messages_from_langchain(lc_messages)
+
+        return state
+
+    return execute
 
 
 @task
@@ -20,26 +50,21 @@ def reference_validation():
     return Task(
         dataset=dataset,
         model=get_model_or_agent_default(ReferenceValidatorAgent),
-        solver=[
-            system_message(SYSTEM_PROMPT),
-            use_tools(web_search("openai")),
-            generate(),
-        ],
+        solver=reference_validation_agent(),
         scorer=final_result_scorer(),
-        config=generate_config_for_agent(
-            ReferenceValidatorAgent, BibliographyItemValidation
-        ),
     )
 
 
 @scorer(metrics=[mean(), stderr()])
 def final_result_scorer():
     async def score(state: TaskState, target: Target):
+        target_final_result = target.text
+
         try:
             response = BibliographyItemValidation.model_validate_json(
                 state.output.completion
             )
-            if response.final_result.value == target.text:
+            if response.final_result.value == target_final_result:
                 return Score(
                     value=CORRECT,
                     answer=response.final_result,
@@ -49,7 +74,7 @@ def final_result_scorer():
                 return Score(
                     value=INCORRECT,
                     answer=response.final_result,
-                    explanation=f"Expected '{target.text}', got '{response.final_result.value}'",
+                    explanation=f"Expected '{target_final_result}', got '{response.final_result.value}'",
                 )
         except ValidationError as e:
             return Score(
