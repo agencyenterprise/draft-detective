@@ -6,6 +6,32 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v0.5.12] - 2026-02-23
+
+### Added
+- Added `LLMModel.from_inspectai_name()` and support for provider-less model names in the `model_name` property.
+- Added new InspectAI evaluation utilities: `apply_inspectai_config_to_agent`, `get_runnable_config`, and `messages_from_langchain`.
+
+### Changed
+- Migrated five agents (`CitationSuggesterAgent`, `EvidenceWeighterAgent`, `LiteratureReviewAgent`, `LiveLiteratureReviewAgent`, `MethodologyComparisonAgent`) from `DirectOpenAIAgent` to `LangChainAgent` using the LangChain `create_agent` pattern.
+- Refactored InspectAI reference validation evals to invoke the `ReferenceValidatorAgent` via a custom `@agent` instead of the `generate()` solver pipeline.
+- Changed `ReferenceValidatorAgent.ainvoke` to return a tuple of `BibliographyItemValidation` and full message history, and moved the system prompt into the messages list.
+- Updated the reference validation workflow node to handle the new `ainvoke` tuple return.
+- Updated the reference validation dataset entries with revised targets.
+- Upgraded the model for `LiteratureReviewAgent` and `MethodologyComparisonAgent` from `gpt_5_model` to `gpt_5_2_model` with reasoning config (`effort: low`).
+- Regenerated frontend API types in `types.gen.ts` to reflect updated field descriptions.
+- Bumped `inspect-ai` from 0.3.179 to 0.3.180.
+
+### Fixed
+- Renamed `EvidenceWeighterRecommendedAction.NO_CHANGE` to `NO_UPDATE_NEEDED` to match its value.
+- Improved Pydantic field descriptions so enum-typed fields dynamically include possible values to improve structured output reliability.
+
+### Removed
+- Removed the `DirectOpenAIAgent` base class and its usage in the agent factory.
+- Removed OpenAI helper utilities `wait_for_response` and `ensure_structured_output_response` from `lib/services/openai.py`.
+- Removed inline test scripts (`if __name__ == "__main__"` blocks) from `citation_suggester.py`, `literature_review.py`, `live_literature_review.py`, and `methodology_comparator.py`.
+
+
 ## [v0.5.11] - 2026-02-20
 
 ### Added
