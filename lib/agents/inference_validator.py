@@ -56,9 +56,7 @@ class ToulminClaim(BaseModel):
         ),
     )
     warrant_expression: WarrantExpression = Field(
-        description=(
-            "Whether the primary warrant is stated explicitly, implied implicitly, or none could be identified"
-        )
+        description=f"Whether the primary warrant is stated explicitly, implied implicitly, or none could be identified. Possible values: {[e.value for e in WarrantExpression]}"
     )
     qualifiers: list[str] = Field(
         default_factory=list,

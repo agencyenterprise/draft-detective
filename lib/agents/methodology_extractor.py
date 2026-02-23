@@ -15,7 +15,7 @@ from lib.workflows.context import ContextSchema
 
 class ReproducibilityCategoryResponse(BaseModel):
     class_value: ReproducibilityCategory = Field(
-        description="The class of reproducibility of the methodology."
+        description=f"The class of reproducibility of the methodology. Possible values: {[e.value for e in ReproducibilityCategory]}"
     )
     rationale: str = Field(
         description="The rationale for why you think the methodology is reproducible or not."

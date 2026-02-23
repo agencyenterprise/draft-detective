@@ -1,7 +1,7 @@
-from functools import lru_cache
 import hashlib
 import logging
 from abc import ABC, abstractmethod
+from functools import lru_cache
 from typing import Any, Literal, Optional, TypedDict
 
 from langchain.chat_models import BaseChatModel, init_chat_model
@@ -10,7 +10,6 @@ from langchain_core.runnables.config import RunnableConfig
 from pydantic import BaseModel
 
 from lib.config.llm_models import LLMModel
-from lib.services.openai import AsyncOpenAIClient, get_openai_client
 from lib.workflows.context import ContextSchema
 
 logger = logging.getLogger(__name__)
@@ -100,24 +99,6 @@ class LangChainAgent(BaseAgent):
         if self._llm is None:
             self._llm = self.create_llm()
         return self._llm
-
-
-class DirectOpenAIAgent(BaseAgent):
-    """Base class for agents using OpenAI client directly.
-
-    Use this for agents that need OpenAI-specific features like web search tools.
-    """
-
-    _client: Optional[AsyncOpenAIClient] = None
-
-    def __init__(self, context: ContextSchema):
-        self.context = context
-
-    @property
-    def client(self) -> AsyncOpenAIClient:
-        if self._client is None:
-            self._client = get_openai_client(self.context.openai_api_key)
-        return self._client
 
 
 @lru_cache(maxsize=256)

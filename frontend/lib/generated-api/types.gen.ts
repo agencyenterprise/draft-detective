@@ -485,7 +485,7 @@ export type AuthorValidationResult = {
  */
 export type BibliographyFieldValidation = {
   /**
-   * Category of the reference.
+   * Category of the reference. Possible values: ['author', 'title', 'publisher', 'year', 'identifier']
    */
   category: FieldCategory;
   /**
@@ -501,7 +501,7 @@ export type BibliographyFieldValidation = {
    */
   suggested_value: string;
   /**
-   * Problem type of the reference. Must be CORRECT if the only differences are capitalization or minor punctuation.
+   * Problem type of the reference. Must be CORRECT if the only differences are capitalization or minor punctuation. Possible values: ['correct', 'missing', 'incorrect', 'other']
    */
   problem_type: FieldProblemType;
 };
@@ -517,7 +517,7 @@ export type BibliographyItemValidation = {
    */
   original_reference: string;
   /**
-   * Overall validation outcome: 'valid' if found online with no inconsistencies, 'found_with_inconsistencies' if found but some fields need correction, 'not_found' if the reference has no online presence or appears fabricated.
+   * Overall validation outcome. Possible values: ['valid', 'found_with_inconsistencies', 'not_found']
    */
   final_result: ReferenceValidationFinalResult;
   /**
@@ -730,7 +730,7 @@ export type Citation = {
    */
   text: string;
   /**
-   * The type of the citation. This should be a value from the CitationType enum.
+   * The type of the citation. Possible values: ['bibliography', 'url', 'footnote', 'other']
    */
   type: CitationType;
   /**
@@ -1024,7 +1024,7 @@ export type ClaimCategorizationResponseWithClaimIndex = {
    */
   claim: string;
   /**
-   * Assigned category.
+   * Assigned category. Possible values: ['established_reported_knowledge', 'methodology_procedural', 'empirical_analytical_results', 'inferential_interpretive_claims', 'meta_structural_evaluative', 'other']
    */
   claim_category: ClaimCategory;
   /**
@@ -1212,19 +1212,19 @@ export type ClaimReferenceFactors = {
    */
   reference_excerpt: string;
   /**
-   * Publication type of the source
+   * Publication type of the source. Possible values: ['peer_reviewed_publication', 'preprint', 'book', 'government_ngo_report', 'data_software', 'news_media', 'reference', 'webpage']
    */
   reference_type: ReferenceType;
   /**
-   * Type of source: supporting, conflicting, or contextual
+   * Type of source. Possible values: ['supporting', 'conflicting', 'mixed', 'contextual']
    */
   reference_direction: ReferenceDirection;
   /**
-   * Source quality level: high, medium, or low
+   * Source quality level. Possible values: ['high', 'medium', 'low']
    */
   quality: QualityLevel;
   /**
-   * Political bias of the evidence
+   * Political bias of the evidence. Possible values: ['conservative', 'liberal', 'other']
    */
   political_bias: PoliticalBias;
   /**
@@ -1563,19 +1563,19 @@ export type DocumentReferenceFactors = {
    */
   reference_excerpt: string;
   /**
-   * Publication type (e.g., journal, website, book, preprint)
+   * Publication type. Possible values: ['peer_reviewed_publication', 'preprint', 'book', 'government_ngo_report', 'data_software', 'news_media', 'reference', 'webpage']
    */
   reference_type: ReferenceType;
   /**
-   * Quality of the reference
+   * Quality of the reference. Possible values: ['high', 'medium', 'low']
    */
   quality: QualityLevel;
   /**
-   * Type of source: supporting, conflicting, or contextual
+   * Type of source. Possible values: ['supporting', 'conflicting', 'mixed', 'contextual']
    */
   reference_direction: ReferenceDirection;
   /**
-   * Political bias of the evidence
+   * Political bias of the evidence. Possible values: ['conservative', 'liberal', 'other']
    */
   political_bias: PoliticalBias;
   /**
@@ -1591,11 +1591,9 @@ export type DocumentReferenceFactors = {
    */
   main_document_excerpt: string;
   /**
-   * Recommended Action
-   *
-   * What action to take (add_new_citation, cite_existing_reference_in_new_place, replace_existing_reference, discuss_reference, no_action, other
+   * What action to take. Possible values: ['add_new_citation', 'cite_existing_reference_in_new_place', 'replace_existing_reference', 'discuss_reference', 'no_action', 'other']
    */
-  recommended_action: string;
+  recommended_action: LitRecommendedAction;
   /**
    * Explanation For Recommended Action
    *
@@ -1764,11 +1762,11 @@ export type EvidenceWeighterResponseWithClaimIndex = {
    */
   newer_references: Array<ClaimReferenceFactors>;
   /**
-   * Evidence alignment of the newer references: unverifiable, supported, partially_supported, or unsupported
+   * Evidence alignment of the newer references. Possible values: ['unverifiable', 'supported', 'partially_supported', 'unsupported']
    */
   newer_references_alignment: ReferenceAlignmentLevel;
   /**
-   * Recommended action for the claim: update_claim, add_citation, or no_change
+   * Recommended action for the claim. Possible values: ['update_claim', 'add_citation', 'no_update_needed']
    */
   claim_update_action: EvidenceWeighterRecommendedAction;
   /**
@@ -1778,7 +1776,7 @@ export type EvidenceWeighterResponseWithClaimIndex = {
    */
   rationale: string;
   /**
-   * Confidence level in the claim update: high, medium, or low
+   * Confidence level in the claim update. Possible values: ['high', 'medium', 'low']
    */
   confidence_level: QualityLevel;
   /**
@@ -2953,6 +2951,23 @@ export type LlmVerificationResult = {
 };
 
 /**
+ * LitRecommendedAction
+ */
+export const LitRecommendedAction = {
+  AddNewCitation: 'add_new_citation',
+  CiteExistingReferenceInNewPlace: 'cite_existing_reference_in_new_place',
+  ReplaceExistingReference: 'replace_existing_reference',
+  DiscussReference: 'discuss_reference',
+  NoAction: 'no_action',
+  Other: 'other',
+} as const;
+
+/**
+ * LitRecommendedAction
+ */
+export type LitRecommendedAction = (typeof LitRecommendedAction)[keyof typeof LitRecommendedAction];
+
+/**
  * LiteratureReviewResponse
  */
 export type LiteratureReviewResponse = {
@@ -3518,7 +3533,7 @@ export type Reference = {
    */
   title: string;
   /**
-   * Format classification for the reference (webpage, book, article, or other)
+   * Format classification for the reference. Possible values: ['peer_reviewed_publication', 'preprint', 'book', 'government_ngo_report', 'data_software', 'news_media', 'reference', 'webpage']
    */
   type: ReferenceType;
   /**
@@ -3546,7 +3561,7 @@ export type Reference = {
    */
   index_of_associated_existing_reference: number;
   /**
-   * The quality of the publication that carries the suggested reference
+   * The quality of the publication that carries the suggested reference. Possible values: ['high_impact_publication', 'medium_impact_publication', 'low_impact_publication', 'not_a_publication']
    */
   publication_quality: PublicationQuality;
   /**
@@ -3568,7 +3583,7 @@ export type Reference = {
    */
   rationale: string;
   /**
-   * Action to take for this reference: add_citation, replace_existing_reference, discuss_reference, no_action, or other
+   * Action to take for this reference. Possible values: ['add_new_citation', 'cite_existing_reference_in_new_place', 'replace_existing_reference', 'discuss_reference', 'no_action', 'other']
    */
   recommended_action: RecommendedAction;
   /**
@@ -3578,7 +3593,7 @@ export type Reference = {
    */
   explanation_for_recommended_action: string;
   /**
-   * The confidence in the recommendation
+   * The confidence in the recommendation. Possible values: ['high', 'medium', 'low']
    */
   confidence_in_recommendation: ConfidenceInRecommendation;
 };
@@ -4007,7 +4022,7 @@ export type ReferenceMinimal = {
    */
   title: string;
   /**
-   * Format classification for the reference (webpage, book, article, or other)
+   * Format classification for the reference. Possible values: ['peer_reviewed_publication', 'preprint', 'book', 'government_ngo_report', 'data_software', 'news_media', 'reference', 'webpage']
    */
   type: ReferenceType;
   /**
@@ -4200,7 +4215,7 @@ export type ReferenceValidationWorkflowConfig = {
  */
 export type ReportMetadata = {
   /**
-   * The type of update
+   * The type of update. Possible values: ['no_update_needed', 'minor_factual_update', 'moderate_update', 'major_update_required', 'outdated_or_invalidated']
    */
   update_type: UpdateType;
   /**
@@ -4260,7 +4275,7 @@ export type ReproducibilityCategory = (typeof ReproducibilityCategory)[keyof typ
  */
 export type ReproducibilityCategoryResponse = {
   /**
-   * The class of reproducibility of the methodology.
+   * The class of reproducibility of the methodology. Possible values: ['fully_reproducible', 'reproducible_with_web_search', 'reproducible_with_external_uploads', 'not_reproducible']
    */
   class_value: ReproducibilityCategory;
   /**

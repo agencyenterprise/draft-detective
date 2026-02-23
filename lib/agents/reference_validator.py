@@ -29,11 +29,13 @@ class FieldCategory(str, Enum):
 
 
 class BibliographyFieldValidation(BaseModel):
-    category: FieldCategory = Field(description="Category of the reference.")
+    category: FieldCategory = Field(
+        description=f"Category of the reference. Possible values: {[e.value for e in FieldCategory]}"
+    )
     current_value: str = Field(description="Current value of the reference.")
     suggested_value: str = Field(description="Suggested value of the reference.")
     problem_type: FieldProblemType = Field(
-        description="Problem type of the reference. Must be CORRECT if the only differences are capitalization or minor punctuation."
+        description=f"Problem type of the reference. Must be CORRECT if the only differences are capitalization or minor punctuation. Possible values: {[e.value for e in FieldProblemType]}"
     )
 
 
@@ -46,9 +48,7 @@ class ReferenceValidationFinalResult(str, Enum):
 class BibliographyItemValidation(BaseModel):
     original_reference: str = Field(description="Original bibliographic item text.")
     final_result: ReferenceValidationFinalResult = Field(
-        description="Overall validation outcome: 'valid' if found online with no inconsistencies, "
-        "'found_with_inconsistencies' if found but some fields need correction, "
-        "'not_found' if the reference has no online presence or appears fabricated."
+        description=f"Overall validation outcome. Possible values: {[e.value for e in ReferenceValidationFinalResult]}"
     )
     bibliography_field_validations: List[BibliographyFieldValidation] = Field(
         description="List of reference field validations."
