@@ -22,7 +22,9 @@ class UpdateType(str, Enum):
 
 
 class ReportMetadata(BaseModel):
-    update_type: UpdateType = Field(description="The type of update")
+    update_type: UpdateType = Field(
+        description=f"The type of update. Possible values: {[e.value for e in UpdateType]}"
+    )
     title: str = Field(
         description="Newspaper-style title summarizing the changes (or lack of changes) suggested by the report"
     )

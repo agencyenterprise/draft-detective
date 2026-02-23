@@ -1,14 +1,10 @@
-# %%
-# reference validator agent
-"""
-Validates the list of references in a document, by searching for their online presence.
-"""
 from __future__ import annotations
 
 from enum import Enum
 from typing import List, Optional
 
 from langchain.agents import create_agent
+from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
 from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
 
@@ -33,11 +29,13 @@ class FieldCategory(str, Enum):
 
 
 class BibliographyFieldValidation(BaseModel):
-    category: FieldCategory = Field(description="Category of the reference.")
+    category: FieldCategory = Field(
+        description=f"Category of the reference. Possible values: {[e.value for e in FieldCategory]}"
+    )
     current_value: str = Field(description="Current value of the reference.")
     suggested_value: str = Field(description="Suggested value of the reference.")
     problem_type: FieldProblemType = Field(
-        description="Problem type of the reference. Must be CORRECT if the only differences are capitalization or minor punctuation."
+        description=f"Problem type of the reference. Must be CORRECT if the only differences are capitalization or minor punctuation. Possible values: {[e.value for e in FieldProblemType]}"
     )
 
 
@@ -50,9 +48,7 @@ class ReferenceValidationFinalResult(str, Enum):
 class BibliographyItemValidation(BaseModel):
     original_reference: str = Field(description="Original bibliographic item text.")
     final_result: ReferenceValidationFinalResult = Field(
-        description="Overall validation outcome: 'valid' if found online with no inconsistencies, "
-        "'found_with_inconsistencies' if found but some fields need correction, "
-        "'not_found' if the reference has no online presence or appears fabricated."
+        description=f"Overall validation outcome. Possible values: {[e.value for e in ReferenceValidationFinalResult]}"
     )
     bibliography_field_validations: List[BibliographyFieldValidation] = Field(
         description="List of reference field validations."
@@ -130,19 +126,23 @@ class ReferenceValidatorAgent(LangChainAgent):
         self,
         prompt_kwargs: dict,
         config: Optional[RunnableConfig] = None,
-    ) -> BibliographyItemValidation:
+    ) -> tuple[BibliographyItemValidation, list[BaseMessage]]:
         agent = create_agent(
             self.llm,
             [{"type": "web_search"}],
-            system_prompt=SYSTEM_PROMPT,
             context_schema=ContextSchema,
             response_format=BibliographyItemValidation,
         )
 
         result = await agent.ainvoke(
-            {"messages": [{"role": "user", "content": prompt_kwargs["reference"]}]},
+            {
+                "messages": [
+                    SystemMessage(content=SYSTEM_PROMPT),
+                    HumanMessage(content=prompt_kwargs["reference"]),
+                ]
+            },
             config=config,
             context=self.context,
         )
 
-        return result["structured_response"]
+        return result["structured_response"], result["messages"]

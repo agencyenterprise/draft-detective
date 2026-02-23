@@ -45,7 +45,7 @@ class Citation(BaseModel):
         description="The text of the citation or footnote mark, e.g., [1] or (Doe, et al., 2025), a url, etc. The bibliography/footnote itself is not a citation."
     )
     type: CitationType = Field(
-        description="The type of the citation. This should be a value from the CitationType enum."
+        description=f"The type of the citation. Possible values: {[e.value for e in CitationType]}"
     )
     format: str = Field(
         description="The format of the citation or footnote mark, e.g., [number] or (Name, et al., Year), url, etc."

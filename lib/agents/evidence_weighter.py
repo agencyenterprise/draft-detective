@@ -1,15 +1,16 @@
 from enum import Enum
 from typing import Optional
 
+from langchain.agents import create_agent
+from langchain_core.messages import HumanMessage
 from langchain_core.prompts import PromptTemplate
 from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
 
 from lib.agents.live_literature_review import ClaimReferenceFactors, QualityLevel
-from lib.services.openai import ensure_structured_output_response
 from lib.config.llm_models import gpt_5_mini_model
-from lib.models.agent import DirectOpenAIAgent
-from lib.services.openai import ensure_structured_output_response
+from lib.models.agent import LangChainAgent
+from lib.workflows.context import ContextSchema
 
 
 # applies to the claim
@@ -23,7 +24,7 @@ class ReferenceAlignmentLevel(str, Enum):
 class EvidenceWeighterRecommendedAction(str, Enum):
     UPDATE_CLAIM = "update_claim"  # claim is either no longer true and needs to be updated or it should be qualified given the newer sources
     ADD_CITATION = "add_citation"  # claim can remain as is,  but additional citations prove more influential
-    NO_CHANGE = "no_update_needed"  # claim does not need to be updated
+    NO_UPDATE_NEEDED = "no_update_needed"  # claim does not need to be updated
 
 
 class EvidenceWeighterResponse(BaseModel):
@@ -31,16 +32,16 @@ class EvidenceWeighterResponse(BaseModel):
         description="Newer references found from the literature review report"
     )
     newer_references_alignment: ReferenceAlignmentLevel = Field(
-        description="Evidence alignment of the newer references: unverifiable, supported, partially_supported, or unsupported"
+        description=f"Evidence alignment of the newer references. Possible values: {[e.value for e in ReferenceAlignmentLevel]}"
     )
     claim_update_action: EvidenceWeighterRecommendedAction = Field(
-        description="Recommended action for the claim: update_claim, add_citation, or no_change"
+        description=f"Recommended action for the claim. Possible values: {[e.value for e in EvidenceWeighterRecommendedAction]}"
     )
     rationale: str = Field(
         description="Explanation of the rationale for the claim update action in a maximum of TWO sentences."
     )
     confidence_level: QualityLevel = Field(
-        description="Confidence level in the claim update: high, medium, or low"
+        description=f"Confidence level in the claim update. Possible values: {[e.value for e in QualityLevel]}"
     )
     rewritten_claim: str = Field(
         description="The rewritten claim that is more clear and accurate according to the recommended action and taking the newer sources into account."
@@ -80,8 +81,8 @@ For each claim provide the following:
 
 ### Claim Update Action
 - **Update Claim**: The claim is either no longer true and needs to be updated to state the correct information or the claim is partially true and should be qualified given the newer sources
-- **Add Citation**: The claim can remain as is,  but additional citations prove more influential
-- **No Change**: The claim does not need to be updated
+- **Add Citation**: The claim can remain as is, but additional citations prove more influential
+- **No Update Needed**: The claim does not need to be updated
 
 ### Confidence in Claim Update Action
 - **High**: There are multiple high-quality sources with consistent findings and clear consensus
@@ -149,12 +150,11 @@ General Guidelines for Processing
 )
 
 
-class EvidenceWeighterAgent(DirectOpenAIAgent):
+class EvidenceWeighterAgent(LangChainAgent):
     name = "Evidence Weighter"
     description = "Analyze and weight evidence from multiple sources to determine overall direction and strength"
     model = gpt_5_mini_model
     temperature = 0.5
-    output_schema = EvidenceWeighterResponse
 
     async def ainvoke(
         self,
@@ -162,18 +162,18 @@ class EvidenceWeighterAgent(DirectOpenAIAgent):
         config: Optional[RunnableConfig] = None,
     ) -> EvidenceWeighterResponse:
         prompt = _evidence_weighter_agent_prompt.invoke(prompt_kwargs)
-        input = [{"role": "user", "content": prompt.text}]
 
-        response = await self.client.responses.parse(
-            model=self.model.name,
-            tools=[{"type": "web_search"}],
-            max_tool_calls=20,
-            # reasoning={
-            #     "effort": "low",  # "minimal", "low", "medium", "high"
-            #     "summary": "auto",
-            # },
-            text_format=EvidenceWeighterResponse,
-            input=input,
+        agent = create_agent(
+            self.llm,
+            [{"type": "web_search"}],
+            context_schema=ContextSchema,
+            response_format=EvidenceWeighterResponse,
         )
 
-        return ensure_structured_output_response(response, EvidenceWeighterResponse)
+        result = await agent.ainvoke(
+            {"messages": [HumanMessage(content=prompt.text)]},
+            config=config,
+            context=self.context,
+        )
+
+        return result["structured_response"]

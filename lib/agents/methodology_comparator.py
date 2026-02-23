@@ -1,15 +1,15 @@
 from typing import List, Optional
 
+from langchain.agents import create_agent
+from langchain_core.messages import HumanMessage
 from langchain_core.prompts import PromptTemplate
 from langchain_core.runnables.config import RunnableConfig
 from pydantic import BaseModel, Field
 
 from lib.agents.literature_review import ReferenceType
 from lib.agents.methodology_extractor import ReproducibilityCategoryResponse
-from lib.config.env import config
-from lib.config.llm_models import gpt_5_model
-from lib.models.agent import DirectOpenAIAgent
-from lib.services.openai import ensure_structured_output_response, wait_for_response
+from lib.config.llm_models import gpt_5_2_model
+from lib.models.agent import LangChainAgent
 from lib.workflows.context import ContextSchema
 
 
@@ -27,7 +27,7 @@ class ReferenceMinimal(BaseModel):
         description="Canonical title for the reference exactly as it should appear in the article's bibliography"
     )
     type: ReferenceType = Field(
-        description="Format classification for the reference (webpage, book, article, or other)"
+        description=f"Format classification for the reference. Possible values: {[e.value for e in ReferenceType]}"
     )
     link: str = Field(
         description="Stable URL or DOI that lets the author retrieve the reference quickly"
@@ -192,15 +192,16 @@ Now write the comparison as described above.
 )
 
 
-class MethodologyComparisonAgent(DirectOpenAIAgent):
+class MethodologyComparisonAgent(LangChainAgent):
     name = "Methodology Comparison Agent"
     description = (
         "Compare an extracted paper methodology to typical methods used in the broader field, "
         "using web search to find field methods context, and return a structured text comparison."
     )
-    model = gpt_5_model
+    model = gpt_5_2_model
     temperature = 0.3
-    output_schema = MethodologyComparisonResponse
+    timeout = 600
+    reasoning = {"effort": "low", "summary": "auto"}
 
     async def ainvoke(
         self,
@@ -214,151 +215,18 @@ class MethodologyComparisonAgent(DirectOpenAIAgent):
             }
         """
         prompt = _methodology_comparison_agent_prompt.invoke(prompt_kwargs)
-        input = [{"role": "user", "content": prompt.text}]
 
-        response = await self.client.responses.parse(
-            model=self.model.name,
-            tools=[{"type": "web_search"}],
-            max_tool_calls=20,
-            reasoning={
-                "effort": "low",  # "minimal", "low", "medium", "high"
-                "summary": "auto",
-            },
-            text_format=MethodologyComparisonResponse,
-            background=True,
-            input=input,
+        agent = create_agent(
+            self.llm,
+            [{"type": "web_search"}],
+            context_schema=ContextSchema,
+            response_format=MethodologyComparisonResponse,
         )
 
-        response = await wait_for_response(
-            self.client, response, log_info="Methodology Comparison Agent"
-        )
-        return ensure_structured_output_response(
-            response, MethodologyComparisonResponse
-        )
-
-
-# Test script - can be run directly or imported
-if __name__ == "__main__":
-    import asyncio
-    import os
-    import sys
-    from pathlib import Path
-
-    from lib.agents.methodology_extractor import MethodologyExtractorAgent
-    from lib.services.converters.base import convert_to_markdown
-
-    async def test_methodology_comparison(
-        file_path: str,
-    ):
-        """Test the methodology comparison agent with a given file.
-
-        This function:
-        1. Converts the file to markdown
-        2. Extracts the methodology using MethodologyExtractorAgent
-        3. Compares the methodology to field standards using MethodologyComparisonAgent
-        """
-        # Resolve file path (handle relative paths from project root)
-        if not os.path.isabs(file_path):
-            project_root = Path(__file__).parent.parent.parent
-            file_path = str(project_root / file_path)
-
-        if not os.path.exists(file_path):
-            print(f"Error: File not found: {file_path}")
-            return
-
-        print(f"Reading file: {file_path}")
-        print("-" * 80)
-
-        # Convert file to markdown
-        markdown_content = await convert_to_markdown(file_path)
-        print(f"Document length: {len(markdown_content)} characters")
-        print("-" * 80)
-
-        # Initialize context
-        from lib.services.file_artifacts_service.mock import MockFileArtifactsService
-
-        context = ContextSchema(
-            openai_api_key=config.OPENAI_API_KEY,
-            vector_store=None,
-            file_artifacts_service=MockFileArtifactsService(),
+        result = await agent.ainvoke(
+            {"messages": [HumanMessage(content=prompt.text)]},
+            config=config,
+            context=self.context,
         )
 
-        # Step 1: Extract methodology
-        print("Step 1: Extracting methodology from document...")
-        print("-" * 80)
-        methodology_extractor_agent = MethodologyExtractorAgent(context)
-        extraction_response = await methodology_extractor_agent.ainvoke(
-            {"document": markdown_content}
-        )
-
-        paper_methodology = extraction_response.methodology
-        reproducibility = extraction_response.reproducibility
-        print(f"Extracted methodology length: {len(paper_methodology)} characters")
-        print("\n" + "=" * 80)
-        print("EXTRACTED METHODOLOGY")
-        print("=" * 80)
-        print(paper_methodology)
-        print("\n" + "=" * 80)
-        print("REPRODUCIBILITY")
-        print("=" * 80)
-        print(f"Class: {reproducibility.class_value}")
-        print(f"Rationale: {reproducibility.rationale}")
-        print("\n" + "=" * 80)
-
-        # Step 2: Compare methodology to field standards
-        print("Step 2: Comparing methodology to field standards using web search...")
-        print("-" * 80)
-        methodology_comparison_agent = MethodologyComparisonAgent(context)
-        comparison_response = await methodology_comparison_agent.ainvoke(
-            {
-                "extracted_methodology": extraction_response.methodology,
-            }
-        )
-
-        # Print the results
-        print("\n" + "=" * 80)
-        print("METHODOLOGY COMPARISON")
-        print("=" * 80)
-        print("=" * 80)
-        print("EXTRACTED METHODOLOGY")
-        print("=" * 80)
-        print(comparison_response.extracted_methodology.markdown_output)
-        print("\n" + "=" * 80)
-        print("FIELD METHODS OVERVIEW")
-        print("=" * 80)
-        print(comparison_response.field_methods_overview.markdown_output)
-        print("\n" + "=" * 80)
-        print("ALIGNMENT WITH FIELD PRACTICE")
-        print(comparison_response.alignment_with_field_practice.markdown_output)
-        print("\n" + "=" * 80)
-        print("METHODOLOGICAL RIGOR AND RISKS")
-        print(comparison_response.methodological_rigor_and_risks.markdown_output)
-        print("\n" + "=" * 80)
-        print("SUGGESTIONS FOR IMPROVEMENTS")
-        print(comparison_response.suggestions_for_improvements.markdown_output)
-        print("\n" + "=" * 80)
-        print("REPRODUCIBILITY")
-        print(f"Class: {comparison_response.reproducibility.class_value}")
-        print(f"Rationale: {comparison_response.reproducibility.rationale}")
-        print("\n" + "=" * 80)
-        print("REFERENCES")
-        print("=" * 80)
-        for reference in comparison_response.references:
-            print(f"Title: {reference.title}")
-            print(f"Type: {reference.type.value}")
-            print(f"Link: {reference.link}")
-            print(f"Bibliography Info: {reference.bibliography_info}")
-            print("--------------------------------")
-            print()
-
-    # Default file path (adjust to your repo layout)
-    DEFAULT_FILE_PATH = "rand-personal/sample_papers_rand/RAND_RRA3686-1.pdf"
-
-    # Get file path from command line or use default
-    if len(sys.argv) > 1:
-        file_path = sys.argv[1]
-    else:
-        file_path = DEFAULT_FILE_PATH
-
-    # Run the test
-    asyncio.run(test_methodology_comparison(file_path))
+        return result["structured_response"]

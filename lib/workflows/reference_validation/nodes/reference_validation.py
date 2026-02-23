@@ -85,7 +85,9 @@ async def validate_single_reference(state: dict, runtime: Runtime[ContextSchema]
     status = ReferenceValidationStatus.COMPLETED
 
     try:
-        validation_result = await agent.ainvoke({"reference": input_reference})
+        validation_result, messages = await agent.ainvoke(
+            {"reference": input_reference}
+        )
     except Exception as e:
         logger.error(
             f"Error validating reference '{input_reference}': {e}", exc_info=True
