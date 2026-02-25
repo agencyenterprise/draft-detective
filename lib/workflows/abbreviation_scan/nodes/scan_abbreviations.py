@@ -16,13 +16,22 @@ logger = logging.getLogger(__name__)
 
 _DEFINITION_PATTERN = re.compile(r"([A-Za-z][A-Za-z\s\-,.]+)\s+\(([A-Z0-9]{2,})\)")
 _ACRONYM_PATTERN = re.compile(r"\b([A-Z][A-Z0-9]{1,})\b")
+_ROMAN_NUMERAL_PATTERN = re.compile(r"^(X{0,3})(IX|IV|V?I{0,3})$")
+
+_IGNORED_ABBREVIATIONS = ["RAND", "NOTE"]
+
+_IGNORED_SECTION_KEYWORDS = ["reference", "bibliography", "about the authors"]
 
 
-def is_reference_section_chunk(chunk: AnalyzedChunk) -> bool:
+def is_roman_numeral(text: str) -> bool:
+    return bool(text) and bool(_ROMAN_NUMERAL_PATTERN.match(text))
+
+
+def is_ignored_section_chunk(chunk: AnalyzedChunk) -> bool:
     if not chunk.headings:
         return False
     haystack = " / ".join(chunk.headings).lower()
-    return "reference" in haystack or "bibliography" in haystack
+    return any(kw in haystack for kw in _IGNORED_SECTION_KEYWORDS)
 
 
 def extract_abbreviations_from_chunks(
@@ -36,12 +45,15 @@ def extract_abbreviations_from_chunks(
         text = chunk.content or ""
         if not text.strip():
             continue
-        if is_reference_section_chunk(chunk):
+        if is_ignored_section_chunk(chunk):
             continue
 
         for match in _DEFINITION_PATTERN.finditer(text):
             definition = match.group(1).strip()
             abbr = match.group(2).strip()
+
+            if abbr in _IGNORED_ABBREVIATIONS:
+                continue
 
             if len(abbr) >= 2:
                 definition_map[abbr] = definition
@@ -59,6 +71,10 @@ def extract_abbreviations_from_chunks(
             abbr = match.group(1)
 
             if len(abbr) < 2:
+                continue
+            if is_roman_numeral(abbr):
+                continue
+            if abbr in _IGNORED_ABBREVIATIONS:
                 continue
             if any(i.abbr == abbr and i.is_definition for i in raw_items):
                 continue
