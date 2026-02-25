@@ -1,17 +1,28 @@
 from inspect_ai import Task, task
 from inspect_ai.agent import Agent, AgentState, agent
-from inspect_ai.dataset import json_dataset
+from inspect_ai.dataset import FieldSpec, json_dataset
 from inspect_ai.model import ModelOutput
-from inspect_ai.scorer import CORRECT, INCORRECT, Score, Target, mean, scorer, stderr
+from inspect_ai.scorer import (
+    CORRECT,
+    INCORRECT,
+    Score,
+    Target,
+    exact,
+    mean,
+    model_graded_fact,
+    scorer,
+    stderr,
+)
 from inspect_ai.solver import TaskState
 from pydantic import ValidationError
 
-from evals_inspectai.common import (
+from evals_inspectai.common.config import (
     apply_inspectai_config_to_agent,
     get_model_or_agent_default,
     get_runnable_config,
-    messages_from_langchain,
 )
+from evals_inspectai.common.converters import messages_from_langchain
+from evals_inspectai.common.scorers import model_graded_check
 from lib.agents.reference_validator import (
     BibliographyItemValidation,
     ReferenceValidatorAgent,
@@ -45,13 +56,19 @@ def reference_validation_agent() -> Agent:
 
 @task
 def reference_validation():
-    dataset = json_dataset("dataset.jsonl")
+    dataset = json_dataset(
+        "dataset.jsonl",
+        FieldSpec(target="target_final_result", metadata=["target_answer"]),
+    )
 
     return Task(
         dataset=dataset,
         model=get_model_or_agent_default(ReferenceValidatorAgent),
         solver=reference_validation_agent(),
-        scorer=final_result_scorer(),
+        scorer=[
+            final_result_scorer(),
+            model_graded_check(target_from_metadata="target_answer"),
+        ],
     )
 
 
