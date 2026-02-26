@@ -140,7 +140,7 @@ export function DocumentExplorerTab({
           <div className="flex-1 overflow-hidden">
             <DocumentReconstructor
               chunks={chunks}
-              issues={visibleIssues}
+              issues={filteredIssues}
               selectedChunkIndices={selectedChunkIndices}
               onChunkSelect={handleChunkSelect}
             />
