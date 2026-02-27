@@ -19,11 +19,11 @@ class AbbreviationScanManifest(
     WorkflowManifest[AbbreviationScanState, AbbreviationScanWorkflowConfig]
 ):
     type = WorkflowRunType.ABBREVIATION_SCAN
-    name = "Abbreviation Scan"
+    name = "Abbreviation Scan (Regex-based)"
     description = "Scan the document for abbreviations/acronyms and definition pairs"
     needs_web_search = False
-    can_be_triggered_by_user = True
-    is_internal = False
+    can_be_triggered_by_user = False
+    is_internal = True
     order = 9
     required_dependencies = [WorkflowRunType.CHUNK_SPLITTING]
 

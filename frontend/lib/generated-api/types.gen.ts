@@ -74,6 +74,79 @@ export type AbbreviationScanState = {
 };
 
 /**
+ * AbbreviationScanV2Config
+ *
+ * Configuration for abbreviation scan v2 workflow.
+ */
+export type AbbreviationScanV2Config = {
+  /**
+   * Project Id
+   *
+   * The ID of the project that this workflow run should be associated with
+   */
+  project_id?: string | null;
+  /**
+   * Openai Api Key
+   *
+   * The OpenAI API key to use for this workflow execution
+   */
+  openai_api_key?: string | null;
+  /**
+   * Domain
+   *
+   * Domain context for more accurate analysis
+   */
+  domain?: string | null;
+  /**
+   * Target Audience
+   *
+   * Target audience context for analysis
+   */
+  target_audience?: string | null;
+  /**
+   * Publication Date
+   *
+   * Publication date of the document (YYYY-MM-DD format)
+   */
+  publication_date?: string | null;
+  /**
+   * Type
+   */
+  type?: 'abbreviation_scan_v2';
+};
+
+/**
+ * AbbreviationScanV2State
+ *
+ * State for abbreviation scan v2 workflow.
+ */
+export type AbbreviationScanV2State = {
+  /**
+   * Errors
+   *
+   * Errors that occurred during the workflow execution.
+   */
+  errors?: Array<WorkflowError>;
+  /**
+   * Type
+   */
+  type?: 'abbreviation_scan_v2';
+  config: AbbreviationScanV2Config;
+  /**
+   * Abbreviations
+   *
+   * All abbreviation occurrences found in the document.
+   */
+  abbreviations?: Array<LibWorkflowsAbbreviationScanV2StateAbbreviationItem>;
+  /**
+   * Abbreviations Section Found
+   *
+   * Whether an Abbreviations section was found in the document.
+   */
+  abbreviations_section_found?: boolean;
+};
+
+/**
  * AbbreviationScanWorkflowConfig
  *
  * Configuration for abbreviation scan workflow.
@@ -4903,6 +4976,7 @@ export type WorkflowRunDetail = {
     | ClaimReferenceValidationState
     | CitationDetectionState
     | AbbreviationScanState
+    | AbbreviationScanV2State
     | MethodologicalAlignmentState
     | ReferenceDownloaderState
     | LiteratureReviewState
@@ -4954,6 +5028,7 @@ export const WorkflowRunType = {
   InferenceValidationV2: 'inference_validation_v2',
   ClaimReferenceValidation: 'claim_reference_validation',
   AbbreviationScan: 'abbreviation_scan',
+  AbbreviationScanV2: 'abbreviation_scan_v2',
   AdvocacyTone: 'advocacy_tone',
   AboutAuthors: 'about_authors',
   AboutThis: 'about_this',
@@ -5003,6 +5078,62 @@ export type WorkflowTypeDescription = {
    * Order
    */
   order: number;
+};
+
+/**
+ * AbbreviationItem
+ *
+ * Represents a single occurrence of an abbreviation/acronym in the document.
+ */
+export type LibWorkflowsAbbreviationScanV2StateAbbreviationItem = {
+  /**
+   * Abbr
+   *
+   * The abbreviation or acronym, e.g. OUSW, NATO, AI, LLM
+   */
+  abbr: string;
+  /**
+   * Inline Definition
+   *
+   * The inline definition accompanying this specific occurrence, e.g. 'Office of the Under Secretary of War' for the occurrence 'Office of the Under Secretary of War (OUSW)'. Empty string if this occurrence has no inline definition immediately accompanying it.
+   */
+  inline_definition: string;
+  /**
+   * Occurrence Number
+   *
+   * 1-based count of how many times this abbreviation has appeared so far in the document. occurrence_number=1 is the first (and most important) occurrence.
+   */
+  occurrence_number: number;
+  /**
+   * Line Start
+   *
+   * 1-indexed line number where this occurrence starts in the raw document.
+   */
+  line_start: number;
+  /**
+   * Line End
+   *
+   * 1-indexed line number where this occurrence ends in the raw document.
+   */
+  line_end: number;
+  /**
+   * Abbreviations Section Definition
+   *
+   * The definition as it appears in the Abbreviations section of the document. None if the abbreviation is not listed there, or if no Abbreviations section exists.
+   */
+  abbreviations_section_definition?: string | null;
+  /**
+   * Ignored
+   *
+   * True if this occurrence should be excluded from compliance checks.
+   */
+  ignored?: boolean;
+  /**
+   * Ignored Reason
+   *
+   * Human-readable explanation of why this occurrence is ignored. Required when ignored=True, None otherwise. Example: "Defined in heading title — not a valid inline definition."
+   */
+  ignored_reason?: string | null;
 };
 
 /**
@@ -5225,6 +5356,7 @@ export type StartWorkflowApiWorkflowsStartPostData = {
     | CitationDetectionConfig
     | ClaimReferenceValidationWorkflowConfig
     | AbbreviationScanWorkflowConfig
+    | AbbreviationScanV2Config
     | MethodologicalAlignmentWorkflowConfig
     | ReferenceDownloaderWorkflowConfig
     | LiteratureReviewWorkflowConfig

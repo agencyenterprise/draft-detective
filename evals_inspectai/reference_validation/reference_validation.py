@@ -2,19 +2,7 @@ from inspect_ai import Task, task
 from inspect_ai.agent import Agent, AgentState, agent
 from inspect_ai.dataset import FieldSpec, json_dataset
 from inspect_ai.model import ModelOutput
-from inspect_ai.scorer import (
-    CORRECT,
-    INCORRECT,
-    Score,
-    Target,
-    exact,
-    mean,
-    model_graded_fact,
-    scorer,
-    stderr,
-)
 from inspect_ai.solver import TaskState
-from pydantic import ValidationError
 
 from evals_inspectai.common.config import (
     apply_inspectai_config_to_agent,
@@ -22,7 +10,7 @@ from evals_inspectai.common.config import (
     get_runnable_config,
 )
 from evals_inspectai.common.converters import messages_from_langchain
-from evals_inspectai.common.scorers import model_graded_check
+from evals_inspectai.common.scorers import model_graded_check, structured_output_scorer
 from lib.agents.reference_validator import (
     BibliographyItemValidation,
     ReferenceValidatorAgent,
@@ -66,38 +54,15 @@ def reference_validation():
         model=get_model_or_agent_default(ReferenceValidatorAgent),
         solver=reference_validation_agent(),
         scorer=[
-            final_result_scorer(),
-            model_graded_check(target_from_metadata="target_answer"),
+            structured_output_scorer(
+                model_type=BibliographyItemValidation, compare=_compare_final_result
+            ),
+            model_graded_check(
+                target_from_metadata="target_answer", partial_credit=True
+            ),
         ],
     )
 
 
-@scorer(metrics=[mean(), stderr()])
-def final_result_scorer():
-    async def score(state: TaskState, target: Target):
-        target_final_result = target.text
-
-        try:
-            response = BibliographyItemValidation.model_validate_json(
-                state.output.completion
-            )
-            if response.final_result.value == target_final_result:
-                return Score(
-                    value=CORRECT,
-                    answer=response.final_result,
-                    explanation="Final result matches target exactly",
-                )
-            else:
-                return Score(
-                    value=INCORRECT,
-                    answer=response.final_result,
-                    explanation=f"Expected '{target_final_result}', got '{response.final_result.value}'",
-                )
-        except ValidationError as e:
-            return Score(
-                value=INCORRECT,
-                answer=state.output.completion,
-                explanation=f"Error parsing response: {e}",
-            )
-
-    return score
+def _compare_final_result(output: BibliographyItemValidation, state: TaskState) -> bool:
+    return output.final_result.value == state.target.text

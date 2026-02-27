@@ -11,6 +11,13 @@ Evaluates the reference validator agent's ability to classify bibliography items
 - **Task file:** `evals_inspectai/reference_validation/reference_validation.py`
 - **Dataset:** `evals_inspectai/reference_validation/dataset.jsonl`
 
+### Abbreviation Checker
+
+Evaluates the abbreviation checker agent's ability to detect abbreviation compliance issues: missing inline definitions at first use and abbreviations not listed in the dedicated Abbreviations section.
+
+- **Task file:** `evals_inspectai/abbreviation_checker/abbreviation_checker.py`
+- **Dataset:** `evals_inspectai/abbreviation_checker/dataset.json`
+
 ## Running Evals
 
 All commands should be run from the project root.
@@ -40,3 +47,4 @@ uv run inspect view
 ## Resources
 
 - [Inspect AI Documentation](https://inspect.ai-safety-institute.org.uk/docs/)
+
