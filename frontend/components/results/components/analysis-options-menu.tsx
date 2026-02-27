@@ -40,7 +40,7 @@ export interface AnalysisOptionsMenuProps {
 }
 
 export function AnalysisOptionsMenu({ project, results, readOnly }: AnalysisOptionsMenuProps) {
-  const { severityFilter, workflowTypeFilter } = useDocumentExplorerStore();
+  const { filter } = useDocumentExplorerStore();
   const projectId = project.id;
   const share = useShareStatus(projectId, !readOnly);
   const shareContext = useShare();
@@ -56,13 +56,13 @@ export function AnalysisOptionsMenu({ project, results, readOnly }: AnalysisOpti
   const { download, isDownloading } = useDownloadDocx({
     projectId,
     shareToken,
-    severities: severityFilter,
-    workflowTypes: workflowTypeFilter,
+    severities: filter.severity,
+    workflowTypes: filter.workflowType,
     docxType: pendingDocxType,
   });
 
-  const hasActiveSeverityFilter = severityFilter.length > 0 && severityFilter.length < 3;
-  const hasActiveWorkflowTypeFilter = workflowTypeFilter.length > 0;
+  const hasActiveSeverityFilter = filter.severity.length > 0 && filter.severity.length < 3;
+  const hasActiveWorkflowTypeFilter = filter.workflowType.length > 0;
   const hasActiveFilter = hasActiveSeverityFilter || hasActiveWorkflowTypeFilter;
 
   const documentProcessing = getWorkflowRunByType(results, WorkflowRunType.DocumentProcessing);
@@ -100,7 +100,7 @@ export function AnalysisOptionsMenu({ project, results, readOnly }: AnalysisOpti
       const token = shareResponse?.share_link?.token;
       if (!token) throw new Error('Failed to create share token');
 
-      await downloadDocxFile(projectId, token, severityFilter, workflowTypeFilter, docxType);
+      await downloadDocxFile(projectId, token, filter.severity, filter.workflowType, docxType);
       toast.success('DOCX file downloaded successfully', { id: toastId });
     } catch (error) {
       console.error('Failed to enable sharing and download:', error);
@@ -214,8 +214,8 @@ export function AnalysisOptionsMenu({ project, results, readOnly }: AnalysisOpti
       <FilterWarningDialog
         open={showFilterWarning}
         onOpenChange={setShowFilterWarning}
-        severityFilter={severityFilter}
-        workflowTypeFilter={workflowTypeFilter}
+        severityFilter={filter.severity}
+        workflowTypeFilter={filter.workflowType}
         onConfirm={() => {
           setShowFilterWarning(false);
           executeDownload(pendingDocxType);

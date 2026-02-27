@@ -38,7 +38,7 @@ export function ResultsVisualization({
   const documentSummarization = getWorkflowRunByType(results, WorkflowRunType.DocumentSummarization);
   const referenceExtraction = getWorkflowRunByType(results, WorkflowRunType.ReferenceExtraction);
   const [activeTab, setActiveTab] = useState<TabType>('document-explorer');
-  const setWorkflowTypeFilter = useDocumentExplorerStore((s) => s.setWorkflowTypeFilter);
+  const setFilter = useDocumentExplorerStore((s) => s.setFilter);
   const { isWorkflowTypeVisible } = useWorkflowTypes();
 
   // Find the main document summary from the summaries list
@@ -48,7 +48,7 @@ export function ResultsVisualization({
 
   const handleNavigateToDocumentExplorerFromSummary = (workflowType?: WorkflowRunType) => {
     if (workflowType) {
-      setWorkflowTypeFilter([workflowType]);
+      setFilter({ workflowType: [workflowType] });
     }
     setActiveTab('document-explorer');
   };

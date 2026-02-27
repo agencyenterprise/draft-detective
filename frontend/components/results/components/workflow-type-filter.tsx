@@ -6,6 +6,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Issue, WorkflowRunType } from '@/lib/generated-api';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
+import { getIssueCount } from '@/lib/stores/document-explorer-store';
+import { groupBy } from 'lodash';
 import { FilterIcon } from 'lucide-react';
 import { useMemo } from 'react';
 
@@ -13,9 +15,25 @@ interface WorkflowTypeFilterProps {
   issues: Issue[];
   value: WorkflowRunType[];
   onChange: (value: WorkflowRunType[]) => void;
+  showPassing: boolean;
+  onShowPassingChange: (value: boolean) => void;
+  showResolved: boolean;
+  onShowResolvedChange: (value: boolean) => void;
+  resolvedCount: number;
+  passingCount: number;
 }
 
-export function WorkflowTypeFilter({ issues, value, onChange }: WorkflowTypeFilterProps) {
+export function WorkflowTypeFilter({
+  issues,
+  value,
+  onChange,
+  showPassing,
+  onShowPassingChange,
+  showResolved,
+  onShowResolvedChange,
+  resolvedCount,
+  passingCount,
+}: WorkflowTypeFilterProps) {
   const { getWorkflowTypeName } = useWorkflowTypes();
 
   // Convert selected values to Set for O(1) lookups
@@ -23,20 +41,15 @@ export function WorkflowTypeFilter({ issues, value, onChange }: WorkflowTypeFilt
 
   // Get unique workflow types from issues, sorted by count (most common first)
   const workflowTypeOptions = useMemo(() => {
-    const typeCounts = new Map<WorkflowRunType, number>();
-    for (const issue of issues) {
-      if (issue.workflow_type) {
-        typeCounts.set(issue.workflow_type, (typeCounts.get(issue.workflow_type) ?? 0) + 1);
-      }
-    }
+    const issuesByType = groupBy(issues, (issue) => issue.workflow_type);
 
-    return Array.from(typeCounts.entries())
-      .sort((a, b) => b[1] - a[1]) // Sort by count descending
-      .map(([type, count]) => ({
-        value: type,
-        label: getWorkflowTypeName(type),
-        count,
-      }));
+    return Object.entries(issuesByType)
+      .map(([type, issues]) => ({
+        value: type as WorkflowRunType,
+        label: getWorkflowTypeName(type as WorkflowRunType),
+        count: getIssueCount(issues),
+      }))
+      .sort((a, b) => b.count - a.count);
   }, [issues, getWorkflowTypeName]);
 
   if (workflowTypeOptions.length <= 0) {
@@ -51,7 +64,7 @@ export function WorkflowTypeFilter({ issues, value, onChange }: WorkflowTypeFilt
     }
   };
 
-  const activeCount = value.length;
+  const activeCount = value.length + (showPassing ? 1 : 0) + (showResolved ? 1 : 0);
 
   return (
     <Popover>
@@ -63,7 +76,7 @@ export function WorkflowTypeFilter({ issues, value, onChange }: WorkflowTypeFilt
           className="h-6 px-2 text-xs gap-1 flex items-center"
         >
           <FilterIcon className="size-3.5" />
-          <span>Type</span>
+          <span>Filters</span>
           {activeCount > 0 && (
             <Badge variant="secondary" className="h-4 min-w-4 px-1 text-[10px] rounded-full">
               {activeCount}
@@ -73,7 +86,7 @@ export function WorkflowTypeFilter({ issues, value, onChange }: WorkflowTypeFilt
       </PopoverTrigger>
       <PopoverContent className="w-64 p-2" align="end">
         <div className="space-y-1">
-          <p className="text-xs font-medium text-muted-foreground px-2 pb-1">Filter by analysis type</p>
+          <p className="text-xs font-medium text-muted-foreground px-2 pb-1">Analysis type</p>
           {workflowTypeOptions.map((option) => (
             <label
               key={option.value}
@@ -84,12 +97,36 @@ export function WorkflowTypeFilter({ issues, value, onChange }: WorkflowTypeFilt
               <span className="text-xs text-muted-foreground">{option.count}</span>
             </label>
           ))}
-          {activeCount > 0 && (
-            <Button variant="ghost" size="sm" className="w-full h-7 text-xs mt-1" onClick={() => onChange([])}>
-              Clear
-            </Button>
-          )}
         </div>
+        <div className="border-t mt-2 pt-2 space-y-1">
+          <p className="text-xs font-medium text-muted-foreground px-2 pb-1">Visibility</p>
+          {resolvedCount > 0 && (
+            <label className="flex items-center gap-2 px-2 py-1 rounded-sm hover:bg-muted cursor-pointer">
+              <Checkbox checked={showResolved} onCheckedChange={(checked) => onShowResolvedChange(!!checked)} />
+              <span className="text-sm flex-1">Show resolved issues</span>
+              <span className="text-xs text-muted-foreground">{resolvedCount}</span>
+            </label>
+          )}
+          <label className="flex items-center gap-2 px-2 py-1 rounded-sm hover:bg-muted cursor-pointer">
+            <Checkbox checked={showPassing} onCheckedChange={(checked) => onShowPassingChange(!!checked)} />
+            <span className="text-sm flex-1">Show passing checks</span>
+            <span className="text-xs text-muted-foreground">{passingCount}</span>
+          </label>
+        </div>
+        {activeCount > 0 && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full h-7 text-xs mt-2"
+            onClick={() => {
+              onChange([]);
+              onShowPassingChange(false);
+              onShowResolvedChange(false);
+            }}
+          >
+            Clear all
+          </Button>
+        )}
       </PopoverContent>
     </Popover>
   );
