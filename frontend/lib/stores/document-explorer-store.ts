@@ -74,34 +74,57 @@ export function getIssuesFilteredByWorkflowType(issues: Issue[], workflowTypeFil
   return issues.filter((issue) => workflowTypeFilter.includes(issue.workflow_type));
 }
 
-export function getVisibleIssues(allIssues: Issue[], showResolved: boolean, selectedChunkIndices: number[]) {
+/**
+ * Visible issues are the issues that are displayed in the document explorer.
+ */
+export function getVisibleIssues(allIssues: Issue[], showResolved: boolean) {
   const nonNoneIssues = allIssues.filter((issue) => issue.severity !== SeverityEnum.None);
-
-  const resolvedCount = nonNoneIssues
-    .filter(isIssueResolved)
-    .filter(
-      (issue) =>
-        selectedChunkIndices.length === 0 || selectedChunkIndices.some((idx) => issue.chunk_indices?.includes(idx)),
-    ).length;
 
   const visibleIssues = nonNoneIssues
     .filter((issue) => showResolved || !isIssueResolved(issue))
     .sort((a, b) => (a.chunk_indices?.[0] ?? 0) - (b.chunk_indices?.[0] ?? 0))
     .sort(sortIssueBySeverity);
 
-  return { visibleIssues, resolvedCount };
+  return visibleIssues;
 }
 
+/**
+ * Count of resolved issues, optionally scoped to specific chunks.
+ */
+export function getResolvedCount(allIssues: Issue[], selectedChunkIndices: number[]): number {
+  return allIssues
+    .filter((issue) => issue.severity !== SeverityEnum.None)
+    .filter(isIssueResolved)
+    .filter(
+      (issue) =>
+        selectedChunkIndices.length === 0 || selectedChunkIndices.some((idx) => issue.chunk_indices?.includes(idx)),
+    ).length;
+}
+
+/**
+ * Highlight issues are the issues that are highlighted in the document explorer, filtered by current filters (except chunk selection)
+ */
+export function getHighlightIssues(
+  visibleIssues: Issue[],
+  workflowTypeFilter: WorkflowRunType[],
+  severityFilter: SeverityEnum[],
+): Issue[] {
+  return getIssuesFilteredBySeverity(
+    getIssuesFilteredByWorkflowType(visibleIssues, workflowTypeFilter),
+    severityFilter,
+  );
+}
+
+/**
+ * Filtered issues are the issues that are filtered by current filters and chunk selection.
+ */
 export function getFilteredIssues(
   visibleIssues: Issue[],
   workflowTypeFilter: WorkflowRunType[],
   severityFilter: SeverityEnum[],
   selectedChunkIndices: number[],
 ): Issue[] {
-  let result = getIssuesFilteredBySeverity(
-    getIssuesFilteredByWorkflowType(visibleIssues, workflowTypeFilter),
-    severityFilter,
-  );
+  let result = getHighlightIssues(visibleIssues, workflowTypeFilter, severityFilter);
 
   if (selectedChunkIndices.length > 0) {
     result = getChunkIssuesByIndices(result, selectedChunkIndices);

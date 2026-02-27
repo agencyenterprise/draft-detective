@@ -7,7 +7,7 @@ import { addIssueMarkers, jumpToChunk } from '@/lib/addin/office-utils';
 import { useOfficeInit } from '@/lib/addin/use-office-init';
 import { ProjectFeedbackProvider } from '@/lib/contexts/project-feedback-context';
 import { getSharedResourceApiPublicShareTokenGet, Issue, SeverityEnum, WorkflowRunType } from '@/lib/generated-api';
-import { getFilteredIssues, getVisibleIssues } from '@/lib/stores/document-explorer-store';
+import { getFilteredIssues, getResolvedCount, getVisibleIssues } from '@/lib/stores/document-explorer-store';
 import { useQuery } from '@tanstack/react-query';
 import { RotateCwIcon } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
@@ -54,10 +54,8 @@ export default function AddinPage() {
   );
   const isParagraphView = paragraphIssues.length > 0;
 
-  const { visibleIssues, resolvedCount } = useMemo(
-    () => getVisibleIssues(activeIssues, showResolved, []),
-    [activeIssues, showResolved],
-  );
+  const visibleIssues = useMemo(() => getVisibleIssues(activeIssues, showResolved), [activeIssues, showResolved]);
+  const resolvedCount = useMemo(() => getResolvedCount(activeIssues, []), [activeIssues]);
   const filteredIssues = useMemo(
     () => getFilteredIssues(visibleIssues, workflowTypeFilter, severityFilter, []),
     [visibleIssues, workflowTypeFilter, severityFilter],

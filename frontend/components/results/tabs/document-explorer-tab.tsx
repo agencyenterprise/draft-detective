@@ -2,7 +2,13 @@
 
 import { useChunkHashNavigation } from '@/lib/chunk-ids';
 import { Issue, ProjectDetailed, WorkflowRunType } from '@/lib/generated-api';
-import { getFilteredIssues, getVisibleIssues, useDocumentExplorerStore } from '@/lib/stores/document-explorer-store';
+import {
+  getFilteredIssues,
+  getHighlightIssues,
+  getResolvedCount,
+  getVisibleIssues,
+  useDocumentExplorerStore,
+} from '@/lib/stores/document-explorer-store';
 import {
   getWorkflowErrors,
   getWorkflowRunByType,
@@ -66,13 +72,15 @@ export function DocumentExplorerTab({
 
   const workflowErrors = useMemo(() => getWorkflowErrors(workflowDetails), [workflowDetails]);
   const hasChunks = useMemo(() => chunks.length > 0, [chunks]);
-  const { visibleIssues, resolvedCount } = useMemo(
-    () => getVisibleIssues(issues, showResolved, selectedChunkIndices),
-    [issues, showResolved, selectedChunkIndices],
-  );
+  const visibleIssues = useMemo(() => getVisibleIssues(issues, showResolved), [issues, showResolved]);
+  const resolvedCount = useMemo(() => getResolvedCount(issues, selectedChunkIndices), [issues, selectedChunkIndices]);
   const filteredIssues = useMemo(
     () => getFilteredIssues(visibleIssues, workflowTypeFilter, severityFilter, selectedChunkIndices),
     [visibleIssues, severityFilter, workflowTypeFilter, selectedChunkIndices],
+  );
+  const highlightIssues = useMemo(
+    () => getHighlightIssues(visibleIssues, workflowTypeFilter, severityFilter),
+    [visibleIssues, severityFilter, workflowTypeFilter],
   );
 
   const handleSelectIssue = useCallback(
@@ -140,7 +148,7 @@ export function DocumentExplorerTab({
           <div className="flex-1 overflow-hidden">
             <DocumentReconstructor
               chunks={chunks}
-              issues={filteredIssues}
+              issues={highlightIssues}
               selectedChunkIndices={selectedChunkIndices}
               onChunkSelect={handleChunkSelect}
             />
