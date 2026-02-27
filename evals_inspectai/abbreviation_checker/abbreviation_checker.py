@@ -1,3 +1,4 @@
+import re
 from typing import Any
 
 from deepdiff import DeepDiff
@@ -103,7 +104,7 @@ _COMPARE_FIELDS = [
 def _to_keyed_dict(items: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
     """Index abbreviation items by 'ABBR_occ#' for stable DeepDiff comparison."""
     return {
-        f"{item['abbr']}_occ{item['occurrence_number']}": {
+        f"{re.sub(r'\W', '', item['abbr'])}_occ{item['occurrence_number']}": {
             field: item.get(field) for field in _COMPARE_FIELDS
         }
         for item in items

@@ -85,7 +85,7 @@
       }
     ],
     "target_abbreviations_section_found": "true",
-    "target_answer": "All three abbreviations (AI, LLM, NLP) are defined inline at first use with the pattern 'Full Name (ABBR)' and are listed in the Abbreviations section. No compliance violations should be reported for any of them."
+    "target_answer": "All three abbreviations (AI, LLM, NLP) are defined inline at first use with the pattern 'Full Name (ABBR)' and are listed in the Abbreviations section."
   },
   {
     "input": "# Climate Change and Economic Growth\n\n## Abbreviations\n\n- CO2: Carbon Dioxide\n- IPCC: Intergovernmental Panel on Climate Change\n- GDP: Gross Domestic Product\n\n## Introduction\n\nCO2 emissions continue to rise globally despite international agreements. The IPCC has issued increasingly urgent warnings about rising temperatures. GDP growth must be decoupled from greenhouse gas emissions.\n\n## Methods\n\nCO2 concentration levels were measured using satellite data. IPCC assessment reports from 2014 to 2023 were reviewed. GDP data was sourced from the World Bank open data portal.\n\n## Conclusion\n\nDecoupling CO2 emissions from GDP growth remains the central challenge of climate policy, and IPCC guidance will continue to inform national targets.",
@@ -676,7 +676,7 @@
     "target_answer": "(U) is a security marking (Unclassified) — an exempt abbreviation class that does not need defining. It should be marked ignored=true. No compliance violations should be flagged."
   },
   {
-    "input": "Dr. Sarah Chen, Ph.D., and Mr. James Okafor, M.A., co-authored a study on low-power wireless systems, demonstrating that a signal of 15 mW transmitted over a distance of 340 cm achieved reliable coverage. Their findings drew on field tests conducted by Col. Marcus Webb during a U.S. Army communications trial. (U) The unclassified summary confirmed the results, while the full technical annex remains marked Secret pending declassification review. (S) IS has confirmed that this information is stored securely. Artificial Intelligence (AI) is an emerging technology.",
+    "input": "Dr. Sarah Chen, Ph.D., and Mr. James Okafor, M.A., co-authored a study on low-power wireless systems, demonstrating that a signal of 15 mW transmitted over a distance of 340 cm achieved reliable coverage. Their findings drew on field tests conducted by Col. Marcus Webb during a U.S. Army communications trial. (U) The unclassified summary confirmed the results, while the full technical annex remains marked Secret pending declassification review. IT has confirmed that this information is stored securely. Artificial Intelligence (AI) is an emerging technology.",
     "target_abbreviations": [
       {
         "abbr": "Dr.",
@@ -760,9 +760,9 @@
         "occurrence_number": 1
       },
       {
-        "abbr": "(S)",
+        "abbr": "IT",
         "abbreviations_section_definition": null,
-        "ignored": true,
+        "ignored": false,
         "inline_definition": "",
         "line_end": 1,
         "line_start": 1,
@@ -779,7 +779,7 @@
       }
     ],
     "target_abbreviations_section_found": "false",
-    "target_answer": "Dr. and Mr. are personal titles, Ph.D. and M.A. are academic degrees, mW and cm are common units of measurement, Col. is a military rank, U.S. is the United States abbreviation, and (U) and (S) are security markings — all are exempt abbreviation classes and should be marked ignored=true. AI has an inline definition at first use ('Artificial Intelligence (AI)') but is not listed in an abbreviations section (none exists). AI should be flagged as a compliance violation for missing from the abbreviations section. No other compliance violations should be flagged."
+    "target_answer": "Dr. and Mr. are personal titles, Ph.D. and M.A. are academic degrees, mW and cm are common units of measurement, Col. is a military rank, U.S. is the United States abbreviation, and (U) is a security marking — all are exempt abbreviation classes and should be marked ignored=true. IT appears without an inline definition and no abbreviations section exists, so it should be flagged as a compliance violation. AI has an inline definition at first use ('Artificial Intelligence (AI)') but is not listed in an abbreviations section (none exists). AI should be flagged as a compliance violation for missing from the abbreviations section."
   },
   {
     "input": "The C-141 Starlifter was the primary strategic airlifter for U.S. forces during the Cold War.",
@@ -983,5 +983,75 @@
     ],
     "target_abbreviations_section_found": "false",
     "target_answer": "E. coli is a standard biological genus abbreviation for Escherichia coli — an exempt abbreviation class that does not need defining. The full genus name (Escherichia coli) appears at first use followed by the abbreviated form (E. coli) at subsequent use, which is standard scientific convention. E. coli should be marked ignored=true. No compliance violations should be flagged."
+  },
+  {
+    "input": "# Advances in Language Technology\n\n## Abbreviations\n\n- LLM: Large Language Model\n- GPU: Graphics Processing Unit\n\n## Introduction\n\nLarge Language Models (LLMs) have transformed natural language processing. Training these models requires powerful Graphics Processing Units (GPUs).\n\n## Methods\n\nEach LLM was fine-tuned on domain-specific datasets. We used 8 GPUs per training run. The LLMs achieved state-of-the-art performance across all benchmarks.\n\n## Conclusion\n\nLLMs will continue to improve as GPU availability increases.",
+    "target_abbreviations": [
+      {
+        "abbr": "LLM",
+        "abbreviations_section_definition": "Large Language Model",
+        "ignored": false,
+        "inline_definition": "Large Language Models",
+        "line_end": 10,
+        "line_start": 10,
+        "occurrence_number": 1
+      },
+      {
+        "abbr": "GPU",
+        "abbreviations_section_definition": "Graphics Processing Unit",
+        "ignored": false,
+        "inline_definition": "Graphics Processing Units",
+        "line_end": 10,
+        "line_start": 10,
+        "occurrence_number": 1
+      },
+      {
+        "abbr": "LLM",
+        "abbreviations_section_definition": "Large Language Model",
+        "ignored": false,
+        "inline_definition": "",
+        "line_end": 14,
+        "line_start": 14,
+        "occurrence_number": 2
+      },
+      {
+        "abbr": "GPU",
+        "abbreviations_section_definition": "Graphics Processing Unit",
+        "ignored": false,
+        "inline_definition": "",
+        "line_end": 14,
+        "line_start": 14,
+        "occurrence_number": 2
+      },
+      {
+        "abbr": "LLM",
+        "abbreviations_section_definition": "Large Language Model",
+        "ignored": false,
+        "inline_definition": "",
+        "line_end": 14,
+        "line_start": 14,
+        "occurrence_number": 3
+      },
+      {
+        "abbr": "LLM",
+        "abbreviations_section_definition": "Large Language Model",
+        "ignored": false,
+        "inline_definition": "",
+        "line_end": 18,
+        "line_start": 18,
+        "occurrence_number": 4
+      },
+      {
+        "abbr": "GPU",
+        "abbreviations_section_definition": "Graphics Processing Unit",
+        "ignored": false,
+        "inline_definition": "",
+        "line_end": 18,
+        "line_start": 18,
+        "occurrence_number": 3
+      }
+    ],
+    "target_abbreviations_section_found": "true",
+    "target_answer": "Plural forms (LLMs, GPUs) should be treated as the same abbreviation as their singular forms (LLM, GPU). 'Large Language Models (LLMs)' on line 10 counts as a valid inline definition for LLM. 'Graphics Processing Units (GPUs)' on line 10 counts as a valid inline definition for GPU. All occurrences — whether singular (LLM, GPU) or plural (LLMs, GPUs) — should use the singular base form as the abbr value and share a single occurrence-numbering sequence. Both abbreviations are defined inline at first use and listed in the Abbreviations section. No compliance violations should be flagged."
   }
 ]
