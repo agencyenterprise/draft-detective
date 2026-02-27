@@ -56,10 +56,10 @@ then check two rules for each:
 Some occurrences must be recorded but excluded from compliance checks by setting `ignored=true`
 and providing a brief `ignored_reason` explaining why.
 
-**Heading-defined abbreviations** — When an abbreviation appears together with its full name
-inside a Markdown heading (any line starting with one or more `#` characters), mark that
-occurrence as `ignored=true`. Heading titles are not valid locations for inline definitions
-because a reader scanning the document body will never encounter them at first use.
+**Heading-defined abbreviations** — Any abbreviation appearing inside a Markdown heading
+(any line starting with one or more `#` characters) should be marked `ignored=true`.
+Headings are not part of the document body text and are not subject to inline-definition
+rules.
 
 Example: the line `## Office of the Under Secretary of War (OUSW)` produces an entry with
 `ignored=true`. The *next* occurrence of OUSW in the body text is effectively its first
@@ -102,6 +102,15 @@ The exempt classes are:
 If an abbreviation clearly belongs to one of these classes, do not flag it — set `ignored=true`.
 
 For all non-ignored occurrences, leave `ignored_reason` as null.
+
+## Plural Forms
+
+Treat plural forms of an abbreviation as the same abbreviation as the singular form.
+For example, "LLMs" is the plural of "LLM" — they are the same abbreviation. When recording
+occurrences, always use the singular base form (e.g. "LLM", not "LLMs") as the `abbr` value.
+Occurrence numbering, inline-definition checks, and Abbreviations-section lookups should all
+treat singular and plural forms as a single abbreviation. A definition on either form counts
+for both (e.g. "Large Language Models (LLMs)" satisfies the first-use definition for "LLM").
 
 ## Output
 

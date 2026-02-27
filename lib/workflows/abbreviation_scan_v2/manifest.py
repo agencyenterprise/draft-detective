@@ -22,7 +22,7 @@ class AbbreviationScanV2Manifest(
     type = WorkflowRunType.ABBREVIATION_SCAN_V2
     name = "Abbreviation Scan"
     description = (
-        "Use an AI agent to scan the document for abbreviations and acronyms, "
+        "Scan the document for abbreviations and acronyms, "
         "verify each is defined inline at its first occurrence, and check that "
         "all abbreviations are listed in an Abbreviations section."
     )
@@ -30,7 +30,7 @@ class AbbreviationScanV2Manifest(
     can_be_triggered_by_user = True
     is_internal = False
     is_experimental = False
-    order = 9
+    order = 1
     required_dependencies = [WorkflowRunType.DOCUMENT_PROCESSING]
 
     def get_state_type(self) -> Type[AbbreviationScanV2State]:
