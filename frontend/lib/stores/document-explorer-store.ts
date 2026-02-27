@@ -1,6 +1,6 @@
 import { Issue, SeverityEnum, WorkflowRunType } from '@/lib/generated-api';
 import { create } from 'zustand';
-import { getChunkIssuesByIndices } from '../severity';
+import { getChunkIssuesByIndices, sortIssueBySeverity } from '../severity';
 
 interface DocumentExplorerState {
   // Chunk selection
@@ -84,7 +84,10 @@ export function getVisibleIssues(allIssues: Issue[], showResolved: boolean, sele
         selectedChunkIndices.length === 0 || selectedChunkIndices.some((idx) => issue.chunk_indices?.includes(idx)),
     ).length;
 
-  const visibleIssues = nonNoneIssues.filter((issue) => showResolved || !isIssueResolved(issue));
+  const visibleIssues = nonNoneIssues
+    .filter((issue) => showResolved || !isIssueResolved(issue))
+    .sort((a, b) => (a.chunk_indices?.[0] ?? 0) - (b.chunk_indices?.[0] ?? 0))
+    .sort(sortIssueBySeverity);
 
   return { visibleIssues, resolvedCount };
 }

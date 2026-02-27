@@ -1,3 +1,7 @@
+from lib.workflows.abbreviation_scan_v2.state import (
+    AbbreviationScanV2Config,
+    AbbreviationScanV2State,
+)
 from lib.workflows.about_authors.state import (
     AboutAuthorsState,
     AboutAuthorsWorkflowConfig,
@@ -102,6 +106,7 @@ WorkflowState = (
     | ClaimReferenceValidationState
     | CitationDetectionState
     | AbbreviationScanState
+    | AbbreviationScanV2State
     | MethodologicalAlignmentState
     | ReferenceDownloaderState
     | LiteratureReviewState
@@ -128,6 +133,7 @@ WorkflowConfig = (
     | CitationDetectionConfig
     | ClaimReferenceValidationWorkflowConfig
     | AbbreviationScanWorkflowConfig
+    | AbbreviationScanV2Config
     | MethodologicalAlignmentWorkflowConfig
     | ReferenceDownloaderWorkflowConfig
     | LiteratureReviewWorkflowConfig

@@ -77,19 +77,25 @@ def find_chunk_by_fuzzy_match(
     chunks: Sequence[ChunkWithContent],
     input_text: str,
     start_line: Optional[int] = None,
+    end_line: Optional[int] = None,
 ) -> Optional[int]:
     """
     Find the chunk whose content best matches input_text using fuzzy matching.
 
     Uses rapidfuzz partial_ratio to compare input_text against each chunk's content.
-    When multiple chunks have the same best score, selects the one whose start_line
-    is closest to the given start_line (if provided); otherwise returns the first
-    such chunk by chunk_index order.
+
+    When both start_line and end_line are provided, only chunks overlapping that
+    line range are considered.  When multiple chunks share the best score, the one
+    whose start_line is closest to start_line wins (if provided); otherwise the
+    first by chunk_index order.
 
     Args:
         chunks: List of chunks with content and line information
         input_text: The text to find (e.g. a key sentence)
-        start_line: Optional 1-indexed line hint for tie-breaking
+        start_line: Optional 1-indexed line hint used for range filtering
+                    (when end_line is also set) and tie-breaking
+        end_line: Optional 1-indexed end line; together with start_line
+                  restricts the search to overlapping chunks
 
     Returns:
         The chunk_index of the best-matching chunk, or None if chunks is empty
@@ -97,6 +103,15 @@ def find_chunk_by_fuzzy_match(
     """
     if not chunks or not input_text.strip():
         return None
+
+    if start_line is not None and end_line is not None:
+        chunks = [
+            c
+            for c in chunks
+            if c.start_line <= end_line and c.end_line >= start_line
+        ]
+        if not chunks:
+            return None
 
     input_text = input_text.strip()
     best_score = -1.0
@@ -132,6 +147,7 @@ def find_chunks_by_fuzzy_match(
     chunks: Sequence[ChunkWithContent],
     input_text: str,
     start_line: Optional[int] = None,
+    end_line: Optional[int] = None,
 ) -> List[int]:
     if not chunks or not input_text.strip():
         return []
@@ -139,14 +155,13 @@ def find_chunks_by_fuzzy_match(
     sentences = sent_tokenize(input_text.strip())
 
     chunk_indices: List[int] = []
-    prev_end_line: Optional[int] = start_line  # for continuity tie-break
+    prev_end_line: Optional[int] = start_line
 
     for sentence in sentences:
         idx = find_chunk_by_fuzzy_match(
-            chunks, sentence, start_line=prev_end_line  # or None
+            chunks, sentence, start_line=prev_end_line, end_line=end_line
         )
         if idx is not None:
             chunk_indices.append(idx)
-            # Optional: set prev_end_line from matched chunk for next iteration
 
-    return sorted(set(chunk_indices))  # dedupe + sort by chunk_index
+    return sorted(set(chunk_indices))

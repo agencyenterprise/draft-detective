@@ -1,15 +1,27 @@
 import re
+from typing import Callable, TypeVar
 
 from inspect_ai.model import Model, get_model
-from inspect_ai.scorer import INCORRECT, Score, Scorer, Target, accuracy, scorer, stderr
+from inspect_ai.model._model import active_model
+from inspect_ai.scorer import (
+    CORRECT,
+    INCORRECT,
+    Score,
+    Scorer,
+    Target,
+    accuracy,
+    mean,
+    scorer,
+    stderr,
+)
 from inspect_ai.scorer._model import (  # type: ignore[attr-defined]
     DEFAULT_GRADE_PATTERN,
     DEFAULT_MODEL_GRADED_FACT_TEMPLATE,
     default_instructions,
 )
-from inspect_ai.model._model import active_model
 from inspect_ai.solver import TaskState
 from inspect_ai.util import resource
+from pydantic import BaseModel, ValidationError
 
 
 @scorer(metrics=[accuracy(), stderr()])
@@ -86,6 +98,50 @@ def model_graded_check(
                 value=INCORRECT,
                 explanation="Grade not found in model output: "
                 + f"{result.completion}",
+            )
+
+    return score
+
+
+ModelType = TypeVar("ModelType", bound=BaseModel)
+
+
+@scorer(metrics=[mean(), stderr()])
+def structured_output_scorer(
+    model_type: type[ModelType],
+    compare: Callable[[ModelType, TaskState], bool],
+) -> Scorer:
+    """Scorer that parses the agent output as a Pydantic model and compares against the target.
+
+    Parses ``state.output.completion`` using ``model_type.model_validate_json``,
+    then delegates the equality check to ``compare``, which receives the
+    parsed model instance and the full task state.
+
+    Args:
+        model_type: Pydantic model class used to parse the agent's JSON output.
+        compare: Callable that receives the parsed model instance and the
+            task state, and returns ``True`` if they match.
+
+    Returns:
+        A ``Scorer`` coroutine that yields ``CORRECT`` when ``compare`` returns
+        ``True``, ``INCORRECT`` on mismatch or parse failure.
+    """
+
+    async def score(state: TaskState, target: Target) -> Score:
+        try:
+            structured_output = model_type.model_validate_json(state.output.completion)
+            if compare(structured_output, state):
+                return Score(value=CORRECT, explanation="Field value matches target")
+            else:
+                return Score(
+                    value=INCORRECT,
+                    explanation=f"Field value does not match target '{target.text}'",
+                )
+        except ValidationError as e:
+            return Score(
+                value=INCORRECT,
+                answer=state.output.completion,
+                explanation=f"Error parsing response: {e}",
             )
 
     return score

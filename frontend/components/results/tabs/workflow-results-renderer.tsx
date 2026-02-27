@@ -68,6 +68,7 @@ function renderWorkflowResults(
     case WorkflowRunType.InferenceValidation:
     case WorkflowRunType.ClaimReferenceValidation:
     case WorkflowRunType.AbbreviationScan:
+    case WorkflowRunType.AbbreviationScanV2:
       return (
         <Callout title="View Results in Document Explorer" variant="info" icon={FileText}>
           <div className="space-y-3">
