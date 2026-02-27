@@ -2,31 +2,32 @@ import { Issue, SeverityEnum, WorkflowRunType } from '@/lib/generated-api';
 import { create } from 'zustand';
 import { getChunkIssuesByIndices, sortIssueBySeverity } from '../severity';
 
+export interface DocumentExplorerFilter {
+  severity: SeverityEnum[];
+  workflowType: WorkflowRunType[];
+  showResolved: boolean;
+  showPassing: boolean;
+}
+
+export const DEFAULT_FILTER: DocumentExplorerFilter = {
+  severity: [],
+  workflowType: [],
+  showResolved: false,
+  showPassing: false,
+};
+
 interface DocumentExplorerState {
-  // Chunk selection
   selectedChunkIndices: number[];
   selectChunkIndices: (indices: number[]) => void;
   toggleChunk: (chunkIndex: number) => void;
   clearChunkSelection: () => void;
 
-  // Severity filter
-  severityFilter: SeverityEnum[];
-  setSeverityFilter: (value: SeverityEnum[]) => void;
-
-  // Workflow type filter
-  workflowTypeFilter: WorkflowRunType[];
-  setWorkflowTypeFilter: (value: WorkflowRunType[]) => void;
-
-  // Show resolved
-  showResolved: boolean;
-  setShowResolved: (value: boolean) => void;
-
-  // Reset all filters
+  filter: DocumentExplorerFilter;
+  setFilter: (partial: Partial<DocumentExplorerFilter>) => void;
   clearFilters: () => void;
 }
 
 export const useDocumentExplorerStore = create<DocumentExplorerState>((set) => ({
-  // Chunk selection
   selectedChunkIndices: [],
   selectChunkIndices: (indices) => set({ selectedChunkIndices: indices }),
   toggleChunk: (chunkIndex) =>
@@ -36,26 +37,22 @@ export const useDocumentExplorerStore = create<DocumentExplorerState>((set) => (
     })),
   clearChunkSelection: () => set({ selectedChunkIndices: [] }),
 
-  // Severity filter
-  severityFilter: [],
-  setSeverityFilter: (value) => set({ severityFilter: value }),
-
-  // Workflow type filter
-  workflowTypeFilter: [],
-  setWorkflowTypeFilter: (value) => set({ workflowTypeFilter: value }),
-
-  // Show resolved
-  showResolved: false,
-  setShowResolved: (value) => set({ showResolved: value }),
-
-  // Reset all filters
-  clearFilters: () =>
-    set({
-      severityFilter: [],
-      workflowTypeFilter: [],
-      showResolved: false,
-    }),
+  filter: DEFAULT_FILTER,
+  setFilter: (partial) => set((state) => ({ filter: { ...state.filter, ...partial } })),
+  clearFilters: () => set({ filter: DEFAULT_FILTER }),
 }));
+
+/**
+ * Count of non-passing issues (excludes severity "None").
+ * Use for display labels so passing issues don't inflate the count.
+ */
+export function getIssueCount(issues: Issue[]): number {
+  return issues.filter((issue) => issue.severity !== SeverityEnum.None).length;
+}
+
+export function hasActiveFilters(filter: DocumentExplorerFilter): boolean {
+  return filter.severity.length > 0 || filter.workflowType.length > 0 || filter.showResolved || filter.showPassing;
+}
 
 /**
  * Check if an issue has been resolved.
@@ -64,28 +61,30 @@ export function isIssueResolved(issue: Issue): boolean {
   return !!issue.resolved_at;
 }
 
-export function getIssuesFilteredBySeverity(issues: Issue[], severityFilter: SeverityEnum[]): Issue[] {
-  if (severityFilter.length === 0) return issues;
-  return issues.filter((issue) => severityFilter.includes(issue.severity));
+function filterBySeverity(issues: Issue[], severity: SeverityEnum[]): Issue[] {
+  if (severity.length === 0) return issues;
+  return issues.filter((issue) => severity.includes(issue.severity));
 }
 
-export function getIssuesFilteredByWorkflowType(issues: Issue[], workflowTypeFilter: WorkflowRunType[]): Issue[] {
-  if (workflowTypeFilter.length === 0) return issues;
-  return issues.filter((issue) => workflowTypeFilter.includes(issue.workflow_type));
+function filterByWorkflowType(issues: Issue[], workflowType: WorkflowRunType[]): Issue[] {
+  if (workflowType.length === 0) return issues;
+  return issues.filter((issue) => workflowType.includes(issue.workflow_type));
 }
 
 /**
- * Visible issues are the issues that are displayed in the document explorer.
+ * Visible issues are the issues that are displayed in the document explorer,
+ * filtered by the showResolved and showPassing toggles.
  */
-export function getVisibleIssues(allIssues: Issue[], showResolved: boolean) {
-  const nonNoneIssues = allIssues.filter((issue) => issue.severity !== SeverityEnum.None);
-
-  const visibleIssues = nonNoneIssues
-    .filter((issue) => showResolved || !isIssueResolved(issue))
+export function getVisibleIssues(allIssues: Issue[], filter: DocumentExplorerFilter) {
+  return allIssues
+    .filter((issue) => filter.showPassing || issue.severity !== SeverityEnum.None)
+    .filter((issue) => filter.showResolved || !isIssueResolved(issue))
     .sort((a, b) => (a.chunk_indices?.[0] ?? 0) - (b.chunk_indices?.[0] ?? 0))
     .sort(sortIssueBySeverity);
+}
 
-  return visibleIssues;
+export function getPassingCount(allIssues: Issue[]): number {
+  return allIssues.filter((issue) => issue.severity === SeverityEnum.None).length;
 }
 
 /**
@@ -102,29 +101,22 @@ export function getResolvedCount(allIssues: Issue[], selectedChunkIndices: numbe
 }
 
 /**
- * Highlight issues are the issues that are highlighted in the document explorer, filtered by current filters (except chunk selection)
+ * Issues filtered by severity and workflow type (excludes chunk selection).
+ * Used for document highlights.
  */
-export function getHighlightIssues(
-  visibleIssues: Issue[],
-  workflowTypeFilter: WorkflowRunType[],
-  severityFilter: SeverityEnum[],
-): Issue[] {
-  return getIssuesFilteredBySeverity(
-    getIssuesFilteredByWorkflowType(visibleIssues, workflowTypeFilter),
-    severityFilter,
-  );
+export function getHighlightIssues(visibleIssues: Issue[], filter: DocumentExplorerFilter): Issue[] {
+  return filterBySeverity(filterByWorkflowType(visibleIssues, filter.workflowType), filter.severity);
 }
 
 /**
- * Filtered issues are the issues that are filtered by current filters and chunk selection.
+ * Issues filtered by all active filters including chunk selection.
  */
 export function getFilteredIssues(
   visibleIssues: Issue[],
-  workflowTypeFilter: WorkflowRunType[],
-  severityFilter: SeverityEnum[],
+  filter: DocumentExplorerFilter,
   selectedChunkIndices: number[],
 ): Issue[] {
-  let result = getHighlightIssues(visibleIssues, workflowTypeFilter, severityFilter);
+  let result = getHighlightIssues(visibleIssues, filter);
 
   if (selectedChunkIndices.length > 0) {
     result = getChunkIssuesByIndices(result, selectedChunkIndices);
