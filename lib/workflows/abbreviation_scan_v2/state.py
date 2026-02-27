@@ -99,3 +99,7 @@ class AbbreviationScanV2State(BaseWorkflowState):
         default=False,
         description="Whether an Abbreviations section was found in the document.",
     )
+    reasoning: str = Field(
+        default="",
+        description="Agent reasoning summarising what was found and how.",
+    )

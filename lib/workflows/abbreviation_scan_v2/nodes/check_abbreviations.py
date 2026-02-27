@@ -37,4 +37,5 @@ async def check_abbreviations_node(
     return {
         "abbreviations": abbreviations,
         "abbreviations_section_found": output.abbreviations_section_found,
+        "reasoning": output.reasoning,
     }
