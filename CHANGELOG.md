@@ -6,6 +6,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v0.5.14] - 2026-03-03
+
+### Added
+- Added an `include_passing` filter to DOCX export to exclude passing issues (severity=none) by default with an opt-in to include them.
+- Added an `include_passing` query parameter (default `false`) to the `/api/projects/{project_id}/docx/download` endpoint.
+- Added `get_deepagent_backend_files()` to the file artifacts service type, implementation, and mock for DeepAgent backend file formatting.
+- Added `deepagents>=0.4.4` as a dependency.
+- Added "MIT" and "ChatGPT" to the static ignored abbreviations list.
+
+### Changed
+- Updated DOCX export generation and caching behavior to propagate `include_passing`, include it in cache key generation, and disable caching on the download endpoint (`use_cache=False`).
+- Renamed the `NONE` severity label in the DOCX manipulator from "📝 Note" / "NT" to "✅ Passing" / "PA".
+- Updated frontend DOCX download flow to accept and forward `includePassing`, treat it as an active filter, and show a "Passing checks included" badge when active.
+- Migrated the abbreviation checker agent from LangChain `create_agent` to `deepagents` `create_deep_agent`, removing tool dependencies and switching the response format to `AutoStrategy`.
+- Rewrote the abbreviation checker system prompt to focus on cataloguing occurrences and added guidance for multi-abbreviation lines.
+- Refined abbreviation checker evals by removing a helper, switching DeepDiff comparison to `ignore_order=True`, and updating dataset target answers for precise occurrence counts, line numbers, and consistent formatting.
+- Suppressed Pydantic serialization warnings for stale workflow_type enum values in the DB.
+
+
 ## [v0.5.13] - 2026-03-03
 
 ### Added
