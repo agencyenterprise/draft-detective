@@ -1,6 +1,7 @@
 import logging
 import uuid
 
+from langfuse import propagate_attributes
 from langgraph.graph import StateGraph
 
 from api.services.workflow_orchestration import wait_for_dependencies
@@ -68,14 +69,15 @@ async def run_workflow_from_config(
 
     state = await create_state(config)
 
-    return await run_workflow(
-        workflow_run_id=workflow_run_id,
-        workflow_type=config.type,
-        graph=graph,
-        state=state,
-        context=context,
-        thread_id=thread_id,
-    )
+    with propagate_attributes(user_id=context.user_id):
+        return await run_workflow(
+            workflow_run_id=workflow_run_id,
+            workflow_type=config.type,
+            graph=graph,
+            state=state,
+            context=context,
+            thread_id=thread_id,
+        )
 
 
 async def run_workflow(
