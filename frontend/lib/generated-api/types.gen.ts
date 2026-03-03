@@ -61,6 +61,44 @@ export type AbbreviationItem = {
 };
 
 /**
+ * AbbreviationItemV1
+ *
+ * Item representing an abbreviation/acronym and its definition.
+ */
+export type AbbreviationItemV1 = {
+  /**
+   * Abbr
+   *
+   * The acronym/abbreviation text, e.g. AI, RAND, NATO
+   */
+  abbr: string;
+  /**
+   * Definition
+   *
+   * Full definition if available, e.g. Artificial Intelligence
+   */
+  definition?: string;
+  /**
+   * Context
+   *
+   * Text content of the chunk where the abbreviation was found/defined
+   */
+  context: string;
+  /**
+   * Is Definition
+   *
+   * True if found as a definition like 'Definition (ABBR)'
+   */
+  is_definition: boolean;
+  /**
+   * Chunk Index
+   *
+   * 0-based chunk index where this abbreviation was found
+   */
+  chunk_index: number;
+};
+
+/**
  * AbbreviationScanState
  *
  * State for abbreviation scan workflow.
@@ -88,7 +126,7 @@ export type AbbreviationScanState = {
    *
    * Unique abbreviations found in the document
    */
-  abbreviations?: Array<LibWorkflowsAbbreviationScanStateAbbreviationItem>;
+  abbreviations?: Array<AbbreviationItemV1>;
 };
 
 /**
@@ -5102,44 +5140,6 @@ export type WorkflowTypeDescription = {
    * Order
    */
   order: number;
-};
-
-/**
- * AbbreviationItem
- *
- * Item representing an abbreviation/acronym and its definition.
- */
-export type LibWorkflowsAbbreviationScanStateAbbreviationItem = {
-  /**
-   * Abbr
-   *
-   * The acronym/abbreviation text, e.g. AI, RAND, NATO
-   */
-  abbr: string;
-  /**
-   * Definition
-   *
-   * Full definition if available, e.g. Artificial Intelligence
-   */
-  definition?: string;
-  /**
-   * Context
-   *
-   * Text content of the chunk where the abbreviation was found/defined
-   */
-  context: string;
-  /**
-   * Is Definition
-   *
-   * True if found as a definition like 'Definition (ABBR)'
-   */
-  is_definition: boolean;
-  /**
-   * Chunk Index
-   *
-   * 0-based chunk index where this abbreviation was found
-   */
-  chunk_index: number;
 };
 
 /**

@@ -101,23 +101,14 @@ _COMPARE_FIELDS = [
 ]
 
 
-def _to_keyed_dict(items: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
-    """Index abbreviation items by 'ABBR_occ#' for stable DeepDiff comparison."""
-    return {
-        f"{re.sub(r'\W', '', item['abbr'])}_occ{item['occurrence_number']}": {
-            field: item.get(field) for field in _COMPARE_FIELDS
-        }
-        for item in items
-    }
-
-
 @scorer(metrics=[mean(), stderr()])
 def abbreviation_list_scorer() -> Scorer:
-    """Compares the actual abbreviation list against target_abbreviations from metadata.
+    """
+    Compares the actual abbreviation list against target_abbreviations from metadata.
 
-    Converts both lists to dicts keyed by 'ABBR_occ#' and runs DeepDiff with
-    get_deep_distance=True. Score = 1 - deep_distance, where deep_distance is
-    DeepDiff's normalized [0, 1] structural similarity metric.
+    Runs DeepDiff with ignore_order=True and get_deep_distance=True.
+    Score = 1 - deep_distance, where deep_distance is DeepDiff's normalized
+    [0, 1] structural similarity metric.
     """
 
     async def score(state: TaskState, target: Target) -> Score:
@@ -139,13 +130,16 @@ def abbreviation_list_scorer() -> Scorer:
             for item in output.abbreviations
         ]
 
-        expected_dict = _to_keyed_dict(expected_items)
-        actual_dict = _to_keyed_dict(actual_items)
-
         diff = DeepDiff(
-            expected_dict, actual_dict, verbose_level=2, get_deep_distance=True
+            expected_items,
+            actual_items,
+            verbose_level=2,
+            get_deep_distance=True,
+            ignore_order=True,
         )
-        diff_for_display = DeepDiff(expected_dict, actual_dict, verbose_level=2)
+        diff_for_display = DeepDiff(
+            expected_items, actual_items, verbose_level=2, ignore_order=True
+        )
 
         final_score = 1.0 - float(diff.get("deep_distance", 0.0))
         explanation = (

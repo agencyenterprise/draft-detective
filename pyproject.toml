@@ -49,6 +49,7 @@ dependencies = [
     "tuspyserver>=4.2.3",
     "inspect-ai>=0.3.183",
     "openai>=2.16.0",
+    "deepagents>=0.4.4",
 ]
 
 [tool.pytest.ini_options]

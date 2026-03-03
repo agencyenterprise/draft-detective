@@ -5,7 +5,7 @@ from typing import Dict, Iterable, List
 from langgraph.runtime import Runtime
 
 from lib.workflows.abbreviation_scan.state import (
-    AbbreviationItem,
+    AbbreviationItemV1,
     AbbreviationScanState,
 )
 from lib.workflows.chunk_utils import AnalyzedChunk
@@ -36,9 +36,9 @@ def is_ignored_section_chunk(chunk: AnalyzedChunk) -> bool:
 
 def extract_abbreviations_from_chunks(
     chunks: Iterable[AnalyzedChunk],
-) -> List[AbbreviationItem]:
+) -> List[AbbreviationItemV1]:
     """Extract abbreviations from chunks based on REGEX patterns."""
-    raw_items: List[AbbreviationItem] = []
+    raw_items: List[AbbreviationItemV1] = []
     definition_map: Dict[str, str] = {}
 
     for chunk in chunks:
@@ -58,7 +58,7 @@ def extract_abbreviations_from_chunks(
             if len(abbr) >= 2:
                 definition_map[abbr] = definition
                 raw_items.append(
-                    AbbreviationItem(
+                    AbbreviationItemV1(
                         abbr=abbr,
                         definition=definition,
                         context=text,
@@ -80,7 +80,7 @@ def extract_abbreviations_from_chunks(
                 continue
 
             raw_items.append(
-                AbbreviationItem(
+                AbbreviationItemV1(
                     abbr=abbr,
                     definition=definition_map.get(abbr, ""),
                     context=text,
@@ -89,7 +89,7 @@ def extract_abbreviations_from_chunks(
                 )
             )
 
-    unique: List[AbbreviationItem] = []
+    unique: List[AbbreviationItemV1] = []
     seen: set[str] = set()
 
     for item in [i for i in raw_items if i.is_definition]:
@@ -122,7 +122,7 @@ async def scan_abbreviations_node(
 
     chunks = await file_artifacts_service.get_chunks()
 
-    abbreviations: List[AbbreviationItem] = []
+    abbreviations: List[AbbreviationItemV1] = []
 
     try:
         abbreviations = extract_abbreviations_from_chunks(chunks)

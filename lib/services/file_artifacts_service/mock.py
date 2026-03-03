@@ -1,4 +1,6 @@
-from typing import Optional
+from typing import Any, Optional
+
+from deepagents.backends.utils import create_file_data
 
 from lib.models.bibliography_item import BibliographyItem
 from lib.models.footnote_item import FootnoteItem
@@ -68,3 +70,16 @@ class MockFileArtifactsService(FileArtifactsServiceType):
 
     async def get_footnotes(self) -> list[FootnoteItem]:
         return []
+
+    async def get_deepagent_backend_files(
+        self, include_supporting_files: bool = True
+    ) -> dict[str, Any]:
+        files = {"/main.md": create_file_data(self._main_file.markdown)}
+        if include_supporting_files:
+            files.update(
+                {
+                    f"/supporting/{f.file_id}.md": create_file_data(f.markdown)
+                    for f in self._supporting_files
+                }
+            )
+        return files
