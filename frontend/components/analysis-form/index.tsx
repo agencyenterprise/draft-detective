@@ -4,8 +4,7 @@ import { useExperimentalFeatures } from '@/context/experimental-features-context
 import { useSessionStorage } from '@/lib/hooks/use-session-storage';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { useForm } from '@tanstack/react-form';
-import { AlertCircle, ExternalLink, Loader2, Play } from 'lucide-react';
-import Link from 'next/link';
+import { AlertCircle, Loader2, Play } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
@@ -192,17 +191,6 @@ export function AnalysisForm({ onSubmit, isPending = false, error }: AnalysisFor
                     fileType="supporting"
                     onRemoveFile={(index) => removeFile('supporting', index)}
                   />
-                  <p className="text-sm text-muted-foreground">
-                    You can automatically download references using the{' '}
-                    <Link
-                      href="/tools/reference-downloader"
-                      target="_blank"
-                      className="text-primary hover:underline inline-flex items-center gap-1"
-                    >
-                      Reference Downloader tool
-                      <ExternalLink className="h-3 w-3" />
-                    </Link>
-                  </p>
                   {!field.state.meta.isValid && field.state.meta.errors.length > 0 && (
                     <p className="text-sm text-destructive">{field.state.meta.errors.join(', ')}</p>
                   )}

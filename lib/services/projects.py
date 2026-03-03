@@ -107,9 +107,6 @@ async def get_user_projects(user: User) -> List[ProjectListItem]:
         )
         results = (await session.execute(stmt)).all()
 
-        # We need to group workflow runs by project to return a list of projects with their workflow runs
-        # Note: We include ALL workflows (even internal ones) for tool detection on frontend
-        # The frontend will use these to detect if a project is a "tool run"
         projects_dict = defaultdict(lambda: {"project": None, "workflow_runs": []})
         for row in results:
             project, workflow_run = row.tuple()

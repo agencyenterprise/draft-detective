@@ -12,7 +12,6 @@ import { MobileProfileMenu, ProfileDropdown } from './profile-dropdown';
 const navigation = [
   { name: 'Projects', href: '/projects' },
   { name: 'Start new project', href: '/new' },
-  // { name: 'Tools', href: '/tools' },
 ];
 
 export interface ApplicationShellProps {
