@@ -10,13 +10,14 @@ from lib.agents.document_chunker_nltk import (
     get_chunker_result_as_langchain_documents,
 )
 from lib.services.docx.chunk_mapper import create_chunk_to_paragraph_mapping
-from lib.services.file_artifacts_service.mock import MockFileArtifactsService
-from lib.workflows.context import ContextSchema
 from lib.workflows.chunk_splitting.nodes.split_into_chunks import (
     convert_validate_documents_to_chunks,
 )
-from lib.workflows.chunk_splitting.state import DocumentChunk
-from tests.conftest import create_test_file_document_from_path, data_path
+from tests.conftest import (
+    create_test_context,
+    create_test_file_document_from_path,
+    data_path,
+)
 
 
 @pytest.mark.asyncio
@@ -28,12 +29,7 @@ async def test_chunk_to_docx_mapping_agi_minimal():
         "evals/data/geopolitics-of-agi-minimal-1/_original.docx"
     )
 
-    context = ContextSchema(
-        session_id="test-session",
-        workflow_id="test-workflow",
-        run_id="test-run",
-        file_artifacts_service=MockFileArtifactsService(),
-    )
+    context = create_test_context()
     chunker = DocumentChunkerAgent(context=context)
     result = await chunker.ainvoke(prompt_kwargs={"full_document": file_doc.markdown})
     docs = get_chunker_result_as_langchain_documents(result)
@@ -217,12 +213,7 @@ async def test_add_comments_to_docx():
         "evals/data/geopolitics-of-agi-minimal-1/_original.docx"
     )
 
-    context = ContextSchema(
-        session_id="test-session",
-        workflow_id="test-workflow",
-        run_id="test-run",
-        file_artifacts_service=MockFileArtifactsService(),
-    )
+    context = create_test_context()
     chunker = DocumentChunkerAgent(context=context)
     result = await chunker.ainvoke(prompt_kwargs={"full_document": file_doc.markdown})
     docs = get_chunker_result_as_langchain_documents(result)

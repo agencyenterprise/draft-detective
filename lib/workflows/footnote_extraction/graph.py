@@ -10,14 +10,11 @@ from lib.workflows.footnote_extraction.nodes.extract_footnotes import (
     extract_footnotes_node,
 )
 from lib.workflows.footnote_extraction.state import (
-    FootnoteExtractionConfig,
     FootnoteExtractionState,
 )
 
 
-def build_footnote_extraction_graph(
-    config: FootnoteExtractionConfig = FootnoteExtractionConfig(),
-) -> StateGraph:
+def build_footnote_extraction_graph():
     """
     Build footnote extraction workflow graph.
 

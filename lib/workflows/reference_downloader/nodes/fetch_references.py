@@ -104,12 +104,7 @@ async def fetch_single_reference(state: dict, runtime: Runtime[ContextSchema]):
             # Sometimes the LLM will return a file ID for a non-found reference, so we need to clean it up
             result.file_id = None
 
-        if (
-            status == ReferenceFetchStatus.COMPLETED
-            and result
-            and result.file_id
-            and project_id
-        ):
+        if status == ReferenceFetchStatus.COMPLETED and result and result.file_id:
             # Promote file immediately (from SUPPORTING_CANDIDATE to SUPPORT)
             await update_files_role([result.file_id], FileRole.SUPPORT)
             # Update the reference file matching in the ReferenceExtraction workflow state
@@ -146,7 +141,7 @@ async def cleanup_failed_resources(
     project_id = runtime.context.project_id
     fetched_references = state.fetched_references
 
-    if not project_id or not fetched_references:
+    if not fetched_references:
         return {}
 
     valid_file_ids = {

@@ -11,7 +11,7 @@ from lib.workflows.abbreviation_scan.state import (
 )
 from lib.workflows.manifest import WorkflowManifest
 from lib.workflows.models import DocumentIssue, SeverityEnum, WorkflowRunType
-from lib.workflows.types import WorkflowState
+from lib.workflows.workflow_types import WorkflowState
 from lib.workflows.util import get_main_file_id
 
 

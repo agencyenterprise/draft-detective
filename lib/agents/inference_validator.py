@@ -358,6 +358,7 @@ if __name__ == "__main__":
         context = ContextSchema(
             openai_api_key=config.OPENAI_API_KEY,
             vector_store=None,
+            project_id="dev",
             file_artifacts_service=MockFileArtifactsService(),
         )
         agent = InferenceValidatorAgent(context)

@@ -16,7 +16,7 @@ from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus, WorkflowRunT
 from lib.workflows.checkpointer import get_checkpointer
 from lib.workflows.models import is_user_visible_workflow
 from lib.workflows.registry import create_graph, get_state_type, get_workflow_manifest
-from lib.workflows.types import WorkflowState
+from lib.workflows.workflow_types import WorkflowState
 
 logger = logging.getLogger(__name__)
 

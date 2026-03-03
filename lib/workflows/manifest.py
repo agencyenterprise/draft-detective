@@ -9,7 +9,7 @@ from lib.workflows.models import (
     DocumentIssue,
     WorkflowRunType,
 )
-from lib.workflows.types import WorkflowState
+from lib.workflows.workflow_types import WorkflowState
 
 WorkflowStateType = TypeVar("WorkflowStateType", bound=BaseWorkflowState)
 WorkflowConfigType = TypeVar("WorkflowConfigType", bound=BaseWorkflowConfig)

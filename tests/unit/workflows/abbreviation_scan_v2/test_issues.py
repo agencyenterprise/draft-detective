@@ -51,7 +51,7 @@ def _state(
 ) -> AbbreviationScanV2State:
     return AbbreviationScanV2State(
         type=WorkflowRunType.ABBREVIATION_SCAN_V2,
-        config=AbbreviationScanV2Config(),
+        config=AbbreviationScanV2Config(project_id="test-project"),
         abbreviations=abbreviations or [],
         abbreviations_section_found=abbreviations_section_found,
     )
@@ -96,7 +96,11 @@ class TestFirstNonIgnoredOccurrence:
 class TestFirstInlineDefinitions:
     def test_picks_first_definition(self):
         items = [
-            _item(abbr="AI", inline_definition="Artificial Intelligence", occurrence_number=1),
+            _item(
+                abbr="AI",
+                inline_definition="Artificial Intelligence",
+                occurrence_number=1,
+            ),
             _item(abbr="AI", inline_definition="", occurrence_number=2),
         ]
         assert _first_inline_definitions(items) == {"AI": "Artificial Intelligence"}
@@ -109,7 +113,11 @@ class TestFirstInlineDefinitions:
                 ignored=True,
                 ignored_reason="heading",
             ),
-            _item(abbr="AI", inline_definition="Artificial Intelligence", occurrence_number=2),
+            _item(
+                abbr="AI",
+                inline_definition="Artificial Intelligence",
+                occurrence_number=2,
+            ),
         ]
         assert _first_inline_definitions(items) == {"AI": "Artificial Intelligence"}
 
@@ -157,18 +165,29 @@ class TestIgnoredIssue:
 class TestSectionCoverageIssues:
     def test_no_issues_when_section_not_found(self):
         item = _item(abbr="AI")
-        assert _section_coverage_issues(item, abbreviations_section_found=False, chunk_indices=None) == []
+        assert (
+            _section_coverage_issues(
+                item, abbreviations_section_found=False, chunk_indices=None
+            )
+            == []
+        )
 
     def test_missing_from_section(self):
         item = _item(abbr="DDoS", abbreviations_section_definition=None)
-        issues = _section_coverage_issues(item, abbreviations_section_found=True, chunk_indices=[1])
+        issues = _section_coverage_issues(
+            item, abbreviations_section_found=True, chunk_indices=[1]
+        )
         assert len(issues) == 1
         assert issues[0].severity == SeverityEnum.MEDIUM
         assert "missing from Abbreviations section" in issues[0].title
 
     def test_present_in_section(self):
-        item = _item(abbr="AI", abbreviations_section_definition="Artificial Intelligence")
-        issues = _section_coverage_issues(item, abbreviations_section_found=True, chunk_indices=[0])
+        item = _item(
+            abbr="AI", abbreviations_section_definition="Artificial Intelligence"
+        )
+        issues = _section_coverage_issues(
+            item, abbreviations_section_found=True, chunk_indices=[0]
+        )
         assert len(issues) == 1
         assert issues[0].severity == SeverityEnum.NONE
         assert "defined in Abbreviations section" in issues[0].title
@@ -249,7 +268,9 @@ class TestAmbiguityIssues:
 
     def test_ambiguity_when_definitions_differ(self):
         first_definition = {"RAF": "Royal Air Force"}
-        item = _item(abbr="RAF", inline_definition="Red Army Faction", occurrence_number=2)
+        item = _item(
+            abbr="RAF", inline_definition="Red Army Faction", occurrence_number=2
+        )
         issues = _ambiguity_issues(item, first_definition, chunk_indices=[1])
         assert len(issues) == 1
         assert issues[0].severity == SeverityEnum.MEDIUM
@@ -278,7 +299,9 @@ class TestBuildIssues:
 
     def test_no_section_found_creates_global_issue(self):
         state = _state(
-            abbreviations=[_item(abbr="AI", inline_definition="Artificial Intelligence")],
+            abbreviations=[
+                _item(abbr="AI", inline_definition="Artificial Intelligence")
+            ],
             abbreviations_section_found=False,
         )
         issues = build_issues(state, chunks=[])
@@ -345,8 +368,14 @@ class TestBuildIssues:
     def test_ambiguous_abbreviation_flagged(self):
         state = _state(
             abbreviations=[
-                _item(abbr="RAF", inline_definition="Royal Air Force", occurrence_number=1),
-                _item(abbr="RAF", inline_definition="Red Army Faction", occurrence_number=2),
+                _item(
+                    abbr="RAF", inline_definition="Royal Air Force", occurrence_number=1
+                ),
+                _item(
+                    abbr="RAF",
+                    inline_definition="Red Army Faction",
+                    occurrence_number=2,
+                ),
             ],
             abbreviations_section_found=False,
         )
@@ -362,8 +391,15 @@ class TestBuildIssues:
             content: str
 
         chunks = [
-            FakeChunk(chunk_index=0, start_line=1, end_line=10, content="Artificial Intelligence (AI) is here"),
-            FakeChunk(chunk_index=1, start_line=11, end_line=20, content="AI is used again"),
+            FakeChunk(
+                chunk_index=0,
+                start_line=1,
+                end_line=10,
+                content="Artificial Intelligence (AI) is here",
+            ),
+            FakeChunk(
+                chunk_index=1, start_line=11, end_line=20, content="AI is used again"
+            ),
         ]
         state = _state(
             abbreviations=[

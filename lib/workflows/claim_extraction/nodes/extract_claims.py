@@ -12,7 +12,7 @@ from lib.agents.formatting_utils import (
     format_summary_context,
 )
 from lib.run_utils import convert_exceptions_to_workflow_errors, run_tasks
-from lib.services.file_artifacts_service.types import FileArtifactsServiceType
+from lib.services.file_artifacts_service.file_artifacts_service_type import FileArtifactsServiceType
 from lib.workflows.claim_extraction.state import ClaimExtractionState
 from lib.workflows.chunk_utils import AnalyzedChunk
 from lib.workflows.context import ContextSchema

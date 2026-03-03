@@ -33,8 +33,7 @@ class BaseWorkflowState(BaseModel):
 class BaseWorkflowConfig(BaseModel):
     """Base model for all workflow configs."""
 
-    project_id: Optional[str] = Field(
-        default=None,
+    project_id: str = Field(
         description="The ID of the project that this workflow run should be associated with",
     )
     openai_api_key: Optional[str] = Field(

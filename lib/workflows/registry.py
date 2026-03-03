@@ -5,7 +5,7 @@ from langgraph.graph import StateGraph
 
 from lib.workflows.manifest import WorkflowManifest
 from lib.workflows.models import BaseWorkflowConfig, BaseWorkflowState, WorkflowRunType
-from lib.workflows.types import WorkflowState
+from lib.workflows.workflow_types import WorkflowState
 
 logger = logging.getLogger(__name__)
 

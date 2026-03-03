@@ -60,9 +60,7 @@ export function ProjectCard({ item }: ProjectCardProps) {
   return (
     <div className="flex items-center justify-between p-4 border rounded-lg transition-colors hover:bg-muted/50">
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 mb-1">
-          <h3 className="font-medium truncate">{project.title}</h3>
-        </div>
+        <h3 className="font-medium truncate mb-1">{project.title}</h3>
 
         <div className="flex flex-col mb-1 min-w-0">
           {workflowSummaries.map((summary) => (
