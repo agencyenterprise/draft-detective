@@ -6,6 +6,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v0.5.13] - 2026-03-03
+
+### Added
+- Added an agent-based abbreviation scan v2 workflow that uses an AI agent to read the full document with search/read tools and produce structured per-occurrence output.
+- Added a new InspectAI eval for the abbreviation checker with a dataset and a custom structural similarity scorer.
+- Added a "show passing" toggle to the document explorer and consolidated filter state into a single `DocumentExplorerFilter` interface.
+
+### Changed
+- Updated the abbreviation scan workflow to emit issues for all detected abbreviations, including `NONE`-severity informational issues for defined abbreviations.
+- Marked the old abbreviation scan v1 workflow as internal and hidden from users.
+- Improved `chunk_line_matcher` fuzzy matching to accept an `end_line` parameter to restrict search to overlapping chunks.
+- Refactored `reference_validation` eval to use a reusable `structured_output_scorer`.
+- Changed document explorer visible issue sorting to sort by chunk index and then by severity.
+
+### Fixed
+- Reduced abbreviation scan false positives by filtering Roman numerals, expanding non-issue abbreviations (including `NOTE`), and ignoring additional sections such as "About the Authors".
+- Updated the abbreviation checker to support plural abbreviations, fix eval key matching, and reorder workflows.
+
+
 ## [v0.5.12] - 2026-02-23
 
 ### Added
