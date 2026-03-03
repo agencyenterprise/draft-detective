@@ -1,15 +1,10 @@
 """State definitions for reference extraction workflow."""
 
-import uuid
 from typing import List, Literal, Optional
 
 from pydantic import BaseModel, Field
 
-from lib.workflows.models import (
-    BaseWorkflowConfig,
-    BaseWorkflowState,
-    WorkflowRunType,
-)
+from lib.workflows.models import BaseWorkflowConfig, BaseWorkflowState, WorkflowRunType
 
 
 class ReferenceSection(BaseModel):
@@ -22,20 +17,13 @@ class ReferenceSection(BaseModel):
 class ExtractedReference(BaseModel):
     """A reference extracted from the document."""
 
-    id: str = Field(
-        default_factory=lambda: str(uuid.uuid4()),
-        description="Unique identifier for this reference",
-    )
+    id: str = Field(description="Unique identifier for this reference")
     text: str = Field(description="The extracted reference text")
     start_line: Optional[int] = Field(
         default=None, description="1-indexed starting line number in the markdown"
     )
     end_line: Optional[int] = Field(
         default=None, description="1-indexed ending line number in the markdown"
-    )
-    chunk_indices: List[int] = Field(
-        default_factory=list,
-        description="Chunk indices that overlap with this reference's line range",
     )
 
 

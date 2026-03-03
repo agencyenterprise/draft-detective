@@ -3,7 +3,7 @@ from collections import defaultdict
 from typing import List, Optional
 
 from langgraph.runtime import Runtime
-from langgraph.types import Send
+from langgraph.types import Overwrite, Send
 
 from lib.agents.citation_detector import Citation
 from lib.agents.claim_verifier import (
@@ -204,7 +204,8 @@ async def initialize_verifications(
         for p_idx, p_chunks in paragraphs_with_citations.items()
     ]
 
-    return {"paragraph_verifications": pending_items}
+    # Overwrite is needed in case paragraphs/citations changed since last run
+    return {"paragraph_verifications": Overwrite(pending_items)}
 
 
 @register_node(

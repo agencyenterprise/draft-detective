@@ -2,7 +2,7 @@ import logging
 from typing import List
 
 from langgraph.runtime import Runtime
-from langgraph.types import Send
+from langgraph.types import Overwrite, Send
 
 from lib.models.file import FileRole
 from lib.services.files import (
@@ -49,7 +49,8 @@ async def initialize_references(
         for ref in references
     ]
 
-    return {"fetched_references": pending_results}
+    # Overwrite is needed in case references changed since last run
+    return {"fetched_references": Overwrite(pending_results)}
 
 
 @register_node(
