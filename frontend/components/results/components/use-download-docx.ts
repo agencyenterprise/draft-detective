@@ -15,6 +15,7 @@ interface UseDownloadDocxOptions {
   shareToken?: string | null;
   severities?: SeverityEnum[];
   workflowTypes?: WorkflowRunType[];
+  includePassing?: boolean;
   docxType?: DocxType;
 }
 
@@ -24,6 +25,7 @@ export async function downloadDocxFile(
   severities?: SeverityEnum[],
   workflowTypes?: WorkflowRunType[],
   docxType?: DocxType,
+  includePassing?: boolean,
 ): Promise<void> {
   const response = await downloadProjectDocxApiProjectsProjectIdDocxDownloadGet({
     path: { project_id: projectId },
@@ -32,6 +34,7 @@ export async function downloadDocxFile(
       severities: severities,
       workflow_types: workflowTypes,
       docx_type: docxType ?? 'original',
+      include_passing: includePassing ?? false,
     },
   });
 
@@ -50,6 +53,7 @@ export function useDownloadDocx({
   shareToken,
   severities,
   workflowTypes,
+  includePassing,
   docxType: initialDocxType,
 }: UseDownloadDocxOptions) {
   const [isDownloading, setIsDownloading] = useState(false);
@@ -70,7 +74,7 @@ export function useDownloadDocx({
     });
 
     try {
-      await downloadDocxFile(projectId, shareToken, severities, workflowTypes, dType);
+      await downloadDocxFile(projectId, shareToken, severities, workflowTypes, dType, includePassing);
       toast.success('DOCX file downloaded successfully', { id: toastId, description: null });
     } catch (error) {
       console.error('Failed to download docx:', error);

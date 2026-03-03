@@ -5995,6 +5995,12 @@ export type DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetData = {
      * Docx type
      */
     docx_type?: DocxManipulatorType | 'original';
+    /**
+     * Include Passing
+     *
+     * Include passing issues (severity=none) in the export
+     */
+    include_passing?: boolean;
   };
   url: '/api/projects/{project_id}/docx/download';
 };

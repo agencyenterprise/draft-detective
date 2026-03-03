@@ -757,7 +757,7 @@ export const updateProjectEndpointApiProjectProjectIdPatch = <ThrowOnError exten
  *
  * Uses cached version if available, otherwise generates via workflow.
  * First request may take a few seconds as it generates the DOCX.
- * Subsequent requests with the same share_token, severities, and workflow_types filters are instant.
+ * Subsequent requests with the same query parameters are instant (cached).
  */
 export const downloadProjectDocxApiProjectsProjectIdDocxDownloadGet = <ThrowOnError extends boolean = true>(
   options: Options<DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetData, ThrowOnError>,

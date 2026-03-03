@@ -128,6 +128,10 @@ async def download_project_docx(
         default="original",
         description="Docx type",
     ),
+    include_passing: bool = Query(
+        default=False,
+        description="Include passing issues (severity=none) in the export",
+    ),
     current_user: Optional[User] = Depends(get_current_user_optional),
 ):
     """
@@ -135,7 +139,7 @@ async def download_project_docx(
 
     Uses cached version if available, otherwise generates via workflow.
     First request may take a few seconds as it generates the DOCX.
-    Subsequent requests with the same share_token, severities, and workflow_types filters are instant.
+    Subsequent requests with the same query parameters are instant (cached).
     """
 
     await check_project_access(project_id, current_user, share_token)
@@ -148,6 +152,7 @@ async def download_project_docx(
             severities=severities,
             workflow_types=workflow_types,
             docx_type=docx_type,
+            include_passing=include_passing,
             use_cache=True,
         )
     except Exception as e:

@@ -58,12 +58,13 @@ export function AnalysisOptionsMenu({ project, results, readOnly }: AnalysisOpti
     shareToken,
     severities: filter.severity,
     workflowTypes: filter.workflowType,
+    includePassing: filter.showPassing,
     docxType: pendingDocxType,
   });
 
   const hasActiveSeverityFilter = filter.severity.length > 0 && filter.severity.length < 3;
   const hasActiveWorkflowTypeFilter = filter.workflowType.length > 0;
-  const hasActiveFilter = hasActiveSeverityFilter || hasActiveWorkflowTypeFilter;
+  const hasActiveFilter = hasActiveSeverityFilter || hasActiveWorkflowTypeFilter || filter.showPassing;
 
   const documentProcessing = getWorkflowRunByType(results, WorkflowRunType.DocumentProcessing);
   const mainFilePath = documentProcessing?.state?.file?.file_path.toLowerCase() ?? '';
@@ -100,7 +101,7 @@ export function AnalysisOptionsMenu({ project, results, readOnly }: AnalysisOpti
       const token = shareResponse?.share_link?.token;
       if (!token) throw new Error('Failed to create share token');
 
-      await downloadDocxFile(projectId, token, filter.severity, filter.workflowType, docxType);
+      await downloadDocxFile(projectId, token, filter.severity, filter.workflowType, docxType, filter.showPassing);
       toast.success('DOCX file downloaded successfully', { id: toastId });
     } catch (error) {
       console.error('Failed to enable sharing and download:', error);
@@ -216,6 +217,7 @@ export function AnalysisOptionsMenu({ project, results, readOnly }: AnalysisOpti
         onOpenChange={setShowFilterWarning}
         severityFilter={filter.severity}
         workflowTypeFilter={filter.workflowType}
+        showPassing={filter.showPassing}
         onConfirm={() => {
           setShowFilterWarning(false);
           executeDownload(pendingDocxType);

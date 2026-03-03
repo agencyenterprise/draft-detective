@@ -20,6 +20,7 @@ interface FilterWarningDialogProps {
   open: boolean;
   severityFilter: SeverityEnum[];
   workflowTypeFilter: WorkflowRunType[];
+  showPassing?: boolean;
   onConfirm: () => void;
   onOpenChange: (open: boolean) => void;
 }
@@ -29,6 +30,7 @@ export function FilterWarningDialog({
   onOpenChange,
   severityFilter,
   workflowTypeFilter,
+  showPassing,
   onConfirm,
 }: FilterWarningDialogProps) {
   const { getWorkflowTypeName } = useWorkflowTypes();
@@ -67,6 +69,14 @@ export function FilterWarningDialog({
                         {getWorkflowTypeName(type)}
                       </Badge>
                     ))}
+                  </div>
+                </div>
+              )}
+              {showPassing && (
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-foreground">Additional:</p>
+                  <div className="flex flex-wrap gap-2">
+                    <Badge variant="secondary">Passing checks included</Badge>
                   </div>
                 </div>
               )}
