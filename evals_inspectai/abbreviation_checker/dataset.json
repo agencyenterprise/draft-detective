@@ -85,7 +85,7 @@
       }
     ],
     "target_abbreviations_section_found": "true",
-    "target_answer": "All three abbreviations (AI, LLM, NLP) are defined inline at first use with the pattern 'Full Name (ABBR)' and are listed in the Abbreviations section."
+    "target_answer": "AI, LLM, and NLP each have an inline definition at their first occurrence on line 11 and all three are listed in the Abbreviations section. Each appears again on lines 13 and 17 without inline definitions. 9 total occurrences, all non-ignored."
   },
   {
     "input": "# Climate Change and Economic Growth\n\n## Abbreviations\n\n- CO2: Carbon Dioxide\n- IPCC: Intergovernmental Panel on Climate Change\n- GDP: Gross Domestic Product\n\n## Introduction\n\nCO2 emissions continue to rise globally despite international agreements. The IPCC has issued increasingly urgent warnings about rising temperatures. GDP growth must be decoupled from greenhouse gas emissions.\n\n## Methods\n\nCO2 concentration levels were measured using satellite data. IPCC assessment reports from 2014 to 2023 were reviewed. GDP data was sourced from the World Bank open data portal.\n\n## Conclusion\n\nDecoupling CO2 emissions from GDP growth remains the central challenge of climate policy, and IPCC guidance will continue to inform national targets.",
@@ -173,7 +173,7 @@
       }
     ],
     "target_abbreviations_section_found": "true",
-    "target_answer": "CO2, IPCC, and GDP are listed in the Abbreviations section but NONE of them have an inline definition at their first occurrence in the body text — they appear bare without the 'Full Name (ABBR)' pattern. All three should be flagged as compliance violations for missing inline definitions at first use."
+    "target_answer": "CO2, IPCC, and GDP are all listed in the Abbreviations section but none have an inline definition at any occurrence — every occurrence has an empty inline_definition. Each appears 3 times (lines 11, 15, 19). 9 total occurrences, all non-ignored."
   },
   {
     "input": "# Cybersecurity Landscape Report\n\n## Abbreviations\n\n- TLS: Transport Layer Security\n\n## Introduction\n\nTransport Layer Security (TLS) is the foundational protocol for encrypted web communications. Distributed Denial of Service (DDoS) attacks have also grown significantly in scale and frequency.\n\n## Threat Analysis\n\nTLS version 1.3 introduced major improvements over prior versions. DDoS attacks increasingly target critical infrastructure and cloud services.\n\n## Conclusion\n\nOrganisations must upgrade to TLS 1.3 and deploy DDoS mitigation strategies to maintain a secure posture.",
@@ -234,7 +234,7 @@
       }
     ],
     "target_abbreviations_section_found": "true",
-    "target_answer": "TLS has an inline definition at first use ('Transport Layer Security (TLS)') and is listed in the Abbreviations section — compliant. DDoS has an inline definition at first use ('Distributed Denial of Service (DDoS)') but is NOT listed in the Abbreviations section — DDoS should be flagged as a compliance violation for missing from the abbreviations section."
+    "target_answer": "TLS has an inline definition at first use ('Transport Layer Security') and is listed in the Abbreviations section. DDoS has an inline definition at first use ('Distributed Denial of Service') but has no abbreviations_section_definition (not listed in the section). Both appear 3 times (lines 9, 13, 17). 6 total occurrences, all non-ignored."
   },
   {
     "input": "# Defense Technology Assessment\n\n## Office of the Under Secretary of War (OUSW)\n\nThe OUSW was established in 1941 to coordinate wartime procurement. The OUSW played a pivotal role in managing contracts across all branches of the armed forces.\n\n## Advanced Research Projects Agency (ARPA)\n\nARPA was founded in 1958 in response to the Soviet Sputnik launch. ARPA later became DARPA when the 'Defense' prefix was added.\n\n## Conclusion\n\nBoth the OUSW and ARPA represent landmark moments in the institutional history of U.S. defense technology.",
@@ -331,7 +331,7 @@
       }
     ],
     "target_abbreviations_section_found": "false",
-    "target_answer": "OUSW and ARPA are both defined inside Markdown headings ('## Office of the Under Secretary of War (OUSW)' and '## Advanced Research Projects Agency (ARPA)'). These heading occurrences should be marked ignored=true because heading titles are not valid inline definition locations. The first body-text occurrence of each abbreviation (e.g., 'The OUSW was established...' and 'ARPA was founded...') carries no inline definition and should therefore be flagged as compliance violations. U.S. is an exempt abbreviation and should be marked ignored=true."
+    "target_answer": "OUSW and ARPA first appear in headings (lines 3 and 7) with inline definitions — these heading occurrences should be marked ignored=true. Both appear twice on their next body lines (line 5 for OUSW, line 9 for ARPA) without inline definitions. DARPA appears once on line 9 without an inline definition. Line 13 contains OUSW (occurrence 4), ARPA (occurrence 4), and U.S. (occurrence 1) — all three must be recorded. U.S. is exempt (United States abbreviation) and should be marked ignored=true. No abbreviations section exists. 10 total occurrences."
   },
   {
     "input": "# Research Team Profiles\n\n## Senior Investigators\n\nDr. Johnson leads the epidemiology division and has published over 80 peer-reviewed articles. Mr. Patel manages the data infrastructure team and oversees all database systems. Ms. Chen coordinates outreach with partner institutions across the U.S.\n\n## Methodology\n\nAll protocols were approved by Dr. Johnson and reviewed by Mr. Patel. Data transfers comply with applicable U.S. federal regulations.\n\n## Conclusion\n\nThe team, led by Dr. Johnson, has established a strong track record of collaboration across U.S. institutions.",
@@ -419,7 +419,7 @@
       }
     ],
     "target_abbreviations_section_found": "false",
-    "target_answer": "Dr., Mr., and Ms. are personal title abbreviations and U.S. is the United States abbreviation — all are exempt abbreviation classes. Every occurrence of these should be marked ignored=true. No compliance violations should be flagged and the abbreviations list should contain only ignored entries."
+    "target_answer": "Dr., Mr., Ms., and U.S. are all exempt abbreviation classes (personal titles and United States abbreviation) — every occurrence should be marked ignored=true. Dr. appears 3 times (lines 5, 9, 13), Mr. appears twice (lines 5, 9), Ms. appears once (line 5), U.S. appears 3 times (lines 5, 9, 13). No abbreviations section exists. 9 total occurrences, all ignored."
   },
   {
     "input": "# Machine Learning in Drug Discovery\n\n## Abbreviations\n\n- ML: Machine Learning\n- FDA: Food and Drug Administration\n- API: Active Pharmaceutical Ingredient\n\n## Introduction\n\nMachine Learning (ML) is accelerating the drug discovery pipeline. Regulatory submissions to the Food and Drug Administration (FDA) must now account for ML-derived evidence. The Active Pharmaceutical Ingredient (API) characterisation phase is one area where ML models have proven particularly effective.\n\n## Applications\n\nML models can screen millions of molecular candidates in hours. FDA guidance documents now address the validation of ML-based diagnostic tools. API purity testing has been automated using ML-driven spectroscopic analysis.\n\n## References\n\n- Smith, J. and Brown, A. (2022). ML Methods for API Synthesis Optimisation. Journal of Pharmaceutical Sciences, 111(4), 1200-1215.\n- Jones, R. (2023). FDA Regulatory Frameworks for ML in Clinical Trials. Drug Safety, 46(2), 88-102.",
@@ -552,7 +552,7 @@
       }
     ],
     "target_abbreviations_section_found": "true",
-    "target_answer": "ML, FDA, and API are all defined inline at first use with the 'Full Name (ABBR)' pattern and are all listed in the Abbreviations section — all three are fully compliant. Occurrences of ML, FDA, and API inside the References section should be marked ignored=true because the References section is exempt from inline-definition and abbreviations-section rules. No compliance violations should be flagged."
+    "target_answer": "ML, FDA, and API all have inline definitions at first use and are listed in the Abbreviations section. ML appears 8 times total, FDA 3 times, API 3 times. Occurrences in the References section (lines 19-20) should be marked ignored=true. 14 total occurrences (10 non-ignored, 4 ignored)."
   },
   {
     "input": "Mr. Thompson submitted the complaint on behalf of his client.",
@@ -568,7 +568,7 @@
       }
     ],
     "target_abbreviations_section_found": "false",
-    "target_answer": "Mr. is a personal title abbreviation — an exempt abbreviation class that does not need defining. It should be marked ignored=true. No compliance violations should be flagged."
+    "target_answer": "Mr. is a personal title — an exempt abbreviation class. It should be marked ignored=true. No abbreviations section exists. 1 total occurrence, ignored."
   },
   {
     "input": "The keynote speaker, Jane Morris, Ph.D., opened the conference on Monday.",
@@ -584,7 +584,7 @@
       }
     ],
     "target_abbreviations_section_found": "false",
-    "target_answer": "Ph.D. is an academic degree abbreviation — an exempt abbreviation class that does not need defining. It should be marked ignored=true. No compliance violations should be flagged."
+    "target_answer": "Ph.D. is an academic degree — an exempt abbreviation class. It should be marked ignored=true. No abbreviations section exists. 1 total occurrence, ignored."
   },
   {
     "input": "The antenna output was measured at 43 mW across a 120 cm cable run.",
@@ -609,7 +609,7 @@
       }
     ],
     "target_abbreviations_section_found": "false",
-    "target_answer": "mW (milliwatts) and cm (centimetres) are common units of measurement — an exempt abbreviation class that does not need defining. Both should be marked ignored=true. No compliance violations should be flagged."
+    "target_answer": "mW and cm are common units of measurement — an exempt abbreviation class. Both should be marked ignored=true. No abbreviations section exists. 2 total occurrences, both ignored."
   },
   {
     "input": "As Kahneman (2011) observed, \"A reliable way to make people believe in falsehoods is frequent repetition\" (p. 62), a principle with clear implications for how misinformation spreads in digital environments.",
@@ -625,7 +625,7 @@
       }
     ],
     "target_abbreviations_section_found": "false",
-    "target_answer": "p. is a citation element abbreviation (page number) — an exempt abbreviation class that does not need defining. It should be marked ignored=true. No compliance violations should be flagged."
+    "target_answer": "p. is a citation element (page number) — an exempt abbreviation class. It should be marked ignored=true. No abbreviations section exists. 1 total occurrence, ignored."
   },
   {
     "input": "Col. Davidson briefed the unit commanders before the exercise began.",
@@ -641,7 +641,7 @@
       }
     ],
     "target_abbreviations_section_found": "false",
-    "target_answer": "Col. is a military rank abbreviation — an exempt abbreviation class that does not need defining. It should be marked ignored=true. No compliance violations should be flagged."
+    "target_answer": "Col. is a military rank — an exempt abbreviation class. It should be marked ignored=true. No abbreviations section exists. 1 total occurrence, ignored."
   },
   {
     "input": "The device was certified for use in U.S. markets in early 2019.",
@@ -657,7 +657,7 @@
       }
     ],
     "target_abbreviations_section_found": "false",
-    "target_answer": "U.S. is the abbreviation for the United States — an exempt abbreviation that does not need defining. It should be marked ignored=true. No compliance violations should be flagged."
+    "target_answer": "U.S. is the United States abbreviation — an exempt abbreviation class. It should be marked ignored=true. No abbreviations section exists. 1 total occurrence, ignored."
   },
   {
     "input": "The intercepted signal data has not been released to partner agencies. (U)",
@@ -673,7 +673,7 @@
       }
     ],
     "target_abbreviations_section_found": "false",
-    "target_answer": "(U) is a security marking (Unclassified) — an exempt abbreviation class that does not need defining. It should be marked ignored=true. No compliance violations should be flagged."
+    "target_answer": "(U) is a security marking — an exempt abbreviation class. It should be recorded with parentheses as '(U)' and marked ignored=true. No abbreviations section exists. 1 total occurrence, ignored."
   },
   {
     "input": "Dr. Sarah Chen, Ph.D., and Mr. James Okafor, M.A., co-authored a study on low-power wireless systems, demonstrating that a signal of 15 mW transmitted over a distance of 340 cm achieved reliable coverage. Their findings drew on field tests conducted by Col. Marcus Webb during a U.S. Army communications trial. (U) The unclassified summary confirmed the results, while the full technical annex remains marked Secret pending declassification review. IT has confirmed that this information is stored securely. Artificial Intelligence (AI) is an emerging technology.",
@@ -779,7 +779,7 @@
       }
     ],
     "target_abbreviations_section_found": "false",
-    "target_answer": "Dr. and Mr. are personal titles, Ph.D. and M.A. are academic degrees, mW and cm are common units of measurement, Col. is a military rank, U.S. is the United States abbreviation, and (U) is a security marking — all are exempt abbreviation classes and should be marked ignored=true. IT appears without an inline definition and no abbreviations section exists, so it should be flagged as a compliance violation. AI has an inline definition at first use ('Artificial Intelligence (AI)') but is not listed in an abbreviations section (none exists). AI should be flagged as a compliance violation for missing from the abbreviations section."
+    "target_answer": "Dr., Ph.D., Mr., M.A., mW, cm, Col., U.S., and (U) are all exempt abbreviation classes and should be marked ignored=true. IT appears once without an inline definition and with no abbreviations_section_definition (no section exists). AI appears once with an inline definition ('Artificial Intelligence') and with no abbreviations_section_definition (no section exists). No abbreviations section exists. 11 total occurrences (9 ignored, 2 non-ignored)."
   },
   {
     "input": "The C-141 Starlifter was the primary strategic airlifter for U.S. forces during the Cold War.",
@@ -804,7 +804,7 @@
       }
     ],
     "target_abbreviations_section_found": "false",
-    "target_answer": "C-141 is a military equipment designator (aircraft) — an exempt abbreviation class that does not need defining. U.S. is the United States abbreviation — also exempt. Both should be marked ignored=true. No compliance violations should be flagged."
+    "target_answer": "C-141 is a military equipment designator and U.S. is the United States abbreviation — both are exempt abbreviation classes. Both should be marked ignored=true. No abbreviations section exists. 2 total occurrences, both ignored."
   },
   {
     "input": "Ka-32 helicopters were used extensively in the firefighting operation over the mountain range.",
@@ -820,7 +820,7 @@
       }
     ],
     "target_abbreviations_section_found": "false",
-    "target_answer": "Ka-32 is a military equipment designator (helicopter) — an exempt abbreviation class that does not need defining. It should be marked ignored=true. No compliance violations should be flagged."
+    "target_answer": "Ka-32 is a military equipment designator — an exempt abbreviation class. It should be marked ignored=true. No abbreviations section exists. 1 total occurrence, ignored."
   },
   {
     "input": "RAND has recently celebrated the 75th year since it's founding.",
@@ -836,7 +836,7 @@
       }
     ],
     "target_abbreviations_section_found": "false",
-    "target_answer": "RAND is a corporation name consisting of all-capital letters — an exempt abbreviation class that does not need defining. It should be marked ignored=true. No compliance violations should be flagged."
+    "target_answer": "RAND is a corporation name (all-caps) — an exempt abbreviation class. It should be marked ignored=true. No abbreviations section exists. 1 total occurrence, ignored."
   },
   {
     "input": "CNA provides risk management and insurance services to businesses across the U.S.",
@@ -861,7 +861,7 @@
       }
     ],
     "target_abbreviations_section_found": "false",
-    "target_answer": "CNA is a corporation name consisting of all-capital letters and U.S. is the United States abbreviation — both are exempt abbreviation classes that do not need defining. Both should be marked ignored=true. No compliance violations should be flagged."
+    "target_answer": "CNA is a corporation name (all-caps) and U.S. is the United States abbreviation — both are exempt abbreviation classes. Both should be marked ignored=true. No abbreviations section exists. 2 total occurrences, both ignored."
   },
   {
     "input": "The MITRE Corporation operates federally funded research and development centers supporting national security.",
@@ -877,7 +877,7 @@
       }
     ],
     "target_abbreviations_section_found": "false",
-    "target_answer": "MITRE is a corporation name consisting of all-capital letters — an exempt abbreviation class that does not need defining. It should be marked ignored=true. No compliance violations should be flagged."
+    "target_answer": "MITRE is a corporation name (all-caps) — an exempt abbreviation class. It should be marked ignored=true. No abbreviations section exists. 1 total occurrence, ignored."
   },
   {
     "input": "IBM released its quarterly earnings report ahead of analyst expectations.",
@@ -893,7 +893,7 @@
       }
     ],
     "target_abbreviations_section_found": "false",
-    "target_answer": "IBM is a corporation name consisting of all-capital letters — an exempt abbreviation class that does not need defining. It should be marked ignored=true. No compliance violations should be flagged."
+    "target_answer": "IBM is a corporation name (all-caps) — an exempt abbreviation class. It should be marked ignored=true. No abbreviations section exists. 1 total occurrence, ignored."
   },
   {
     "input": "The contract was awarded jointly to SAIC and Leidos following a competitive review.",
@@ -909,7 +909,7 @@
       }
     ],
     "target_abbreviations_section_found": "false",
-    "target_answer": "SAIC is a corporation name consisting of all-capital letters — an exempt abbreviation class that does not need defining. It should be marked ignored=true. No compliance violations should be flagged."
+    "target_answer": "SAIC is a corporation name (all-caps) — an exempt abbreviation class. It should be marked ignored=true. No abbreviations section exists. 1 total occurrence, ignored."
   },
   {
     "input": "The investigation revealed that the suspected Royal Air Force (RAF) operative had traveled through three countries before arriving in Berlin, where local authorities had been monitoring known Red Army Faction (RAF) sympathizers for several months.",
@@ -934,7 +934,7 @@
       }
     ],
     "target_abbreviations_section_found": "false",
-    "target_answer": "RAF appears twice with two different inline definitions: 'Royal Air Force (RAF)' and 'Red Army Faction (RAF)'."
+    "target_answer": "RAF appears twice on line 1 with two different inline definitions: 'Royal Air Force' at occurrence 1 and 'Red Army Faction' at occurrence 2. No abbreviations section exists. 2 total occurrences, both non-ignored."
   },
   {
     "input": "# The Effect of AI on Critical Thinking\n\nThis report examines how recent advances in technology have reshaped the way analysts evaluate evidence and form judgments.",
@@ -950,7 +950,7 @@
       }
     ],
     "target_abbreviations_section_found": "false",
-    "target_answer": "AI appears in the document title heading ('# The Effect of AI on Critical Thinking'). Abbreviations in titles and headings should not be defined there and the occurrence should be marked ignored=true. The body text does not reuse the abbreviation, so there is nothing further to flag. No compliance violations should be reported."
+    "target_answer": "AI appears in the document title heading ('# The Effect of AI on Critical Thinking') and should be marked ignored=true. The body text does not reuse AI, so there is only 1 total occurrence (ignored). No abbreviations section exists."
   },
   {
     "input": "# Space Exploration Policy Review\n\n## A Subheading Containing a NASA Undefined Acronym\n\nThe committee reviewed several proposals for future missions and recommended increased funding for planetary science.",
@@ -966,7 +966,7 @@
       }
     ],
     "target_abbreviations_section_found": "false",
-    "target_answer": "NASA appears in a chapter subheading ('## A Subheading Containing a NASA Undefined Acronym'). Abbreviations in headings should not be defined there and the occurrence should be marked ignored=true. The body text does not reuse the abbreviation, so there is nothing further to flag. No compliance violations should be reported."
+    "target_answer": "NASA appears in a subheading ('## A Subheading Containing a NASA Undefined Acronym') and should be marked ignored=true. The body text does not reuse NASA, so there is only 1 total occurrence (ignored). No abbreviations section exists."
   },
   {
     "input": "Water samples collected downstream from the agricultural site tested positive for Escherichia coli. Researchers later introduced a modified strain of E. coli to evaluate its effectiveness.",
@@ -982,7 +982,7 @@
       }
     ],
     "target_abbreviations_section_found": "false",
-    "target_answer": "E. coli is a standard biological genus abbreviation for Escherichia coli — an exempt abbreviation class that does not need defining. The full genus name (Escherichia coli) appears at first use followed by the abbreviated form (E. coli) at subsequent use, which is standard scientific convention. E. coli should be marked ignored=true. No compliance violations should be flagged."
+    "target_answer": "E. coli is a biological genus abbreviation — an exempt abbreviation class. It should be marked ignored=true. The full genus name 'Escherichia coli' appears earlier in the sentence but is not an inline definition in the 'Full Name (ABBR)' pattern. No abbreviations section exists. 1 total occurrence, ignored."
   },
   {
     "input": "# Advances in Language Technology\n\n## Abbreviations\n\n- LLM: Large Language Model\n- GPU: Graphics Processing Unit\n\n## Introduction\n\nLarge Language Models (LLMs) have transformed natural language processing. Training these models requires powerful Graphics Processing Units (GPUs).\n\n## Methods\n\nEach LLM was fine-tuned on domain-specific datasets. We used 8 GPUs per training run. The LLMs achieved state-of-the-art performance across all benchmarks.\n\n## Conclusion\n\nLLMs will continue to improve as GPU availability increases.",
@@ -1052,6 +1052,6 @@
       }
     ],
     "target_abbreviations_section_found": "true",
-    "target_answer": "Plural forms (LLMs, GPUs) should be treated as the same abbreviation as their singular forms (LLM, GPU). 'Large Language Models (LLMs)' on line 10 counts as a valid inline definition for LLM. 'Graphics Processing Units (GPUs)' on line 10 counts as a valid inline definition for GPU. All occurrences — whether singular (LLM, GPU) or plural (LLMs, GPUs) — should use the singular base form as the abbr value and share a single occurrence-numbering sequence. Both abbreviations are defined inline at first use and listed in the Abbreviations section. No compliance violations should be flagged."
+    "target_answer": "Plural forms (LLMs, GPUs) should be treated as the same abbreviation as their singular forms (LLM, GPU) and recorded with the singular base form as the abbr value. 'Large Language Models (LLMs)' on line 10 is recorded as the inline definition for LLM. 'Graphics Processing Units (GPUs)' on line 10 is recorded as the inline definition for GPU. Both are listed in the Abbreviations section. LLM appears 4 times (lines 10, 14, 14, 18), GPU appears 3 times (lines 10, 14, 18). 7 total occurrences, all non-ignored."
   }
 ]

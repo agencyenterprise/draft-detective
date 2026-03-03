@@ -3,6 +3,7 @@
 import asyncio
 import json
 import logging
+import re
 from collections import defaultdict
 from enum import StrEnum
 from pathlib import Path
@@ -21,8 +22,19 @@ from lib.services.docx.docx_xml import (
     wrap_paragraph_with_content_control,
 )
 from lib.workflows.models import SeverityEnum
+from lib.workflows.registry import get_workflow_manifest
 
 logger = logging.getLogger(__name__)
+
+# Matches characters illegal in XML 1.0: control chars except tab, newline, carriage return
+_ILLEGAL_XML_CHARS_RE = re.compile(
+    r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f\ud800-\udfff\ufdd0-\ufdef\ufffe\uffff]"
+)
+
+
+def _sanitize_for_xml(text: str) -> str:
+    """Remove characters that are illegal in XML 1.0."""
+    return _ILLEGAL_XML_CHARS_RE.sub("", text)
 
 
 class DocxManipulatorType(StrEnum):
@@ -67,7 +79,7 @@ SEVERITY_AUTHORS = {
     CommentSeverity.HIGH: ("🚨 High Priority", "HP"),
     CommentSeverity.MEDIUM: ("⚠️ Medium Priority", "MP"),
     CommentSeverity.LOW: ("💡 Low Priority", "LP"),
-    CommentSeverity.NONE: ("📝 Note", "NT"),
+    CommentSeverity.NONE: ("✅ Passing", "PA"),
 }
 
 ISSUE_MARKER_TAG = "AIReviewer_Issue_Marker"
@@ -117,6 +129,12 @@ class DocxComment(BaseModel):
         return "AI"
 
 
+def _get_workflow_display_name(issue: Issue) -> Optional[str]:
+    """Resolve the human-readable workflow name for an issue."""
+    manifest = get_workflow_manifest(issue.workflow_type, raise_exception=False)
+    return manifest.name if manifest else None
+
+
 def issue_to_comment(
     issue: Issue,
     chunk_content_map: Dict[int, str],
@@ -138,10 +156,13 @@ def issue_to_comment(
         anchor = _build_issue_anchor(issue)
         share_link = _build_share_url(share_token, anchor)
 
+    workflow_name = _get_workflow_display_name(issue)
+    title = f"{issue.title} ({workflow_name})" if workflow_name else issue.title
+
     return DocxComment(
         chunk_index=first_chunk_index,
         text=chunk_content,
-        comment_text=f"{issue.title}\n\n{issue.description}",
+        comment_text=f"{title}\n\n{issue.description}",
         severity=_map_severity_enum_to_comment_severity(issue.severity),
         share_link=share_link,
     )
@@ -373,9 +394,9 @@ class DocxManipulatorService:
         try:
             doc.add_comment(
                 runs=paragraph.runs if paragraph.runs else [paragraph.add_run("")],
-                text=comment_text,
-                author=author,
-                initials=initials,
+                text=_sanitize_for_xml(comment_text),
+                author=_sanitize_for_xml(author),
+                initials=_sanitize_for_xml(initials),
             )
         except AttributeError as e:
             logger.warning(f"Error inserting comment to docx: {e}")

@@ -2,6 +2,8 @@ import logging
 from typing import TYPE_CHECKING, Optional, cast, Callable, Awaitable, Any
 import asyncio
 
+from deepagents.backends.utils import create_file_data
+
 from lib.models.file import FileRole
 from lib.services.file import FileDocument
 from lib.services.files import (
@@ -385,3 +387,21 @@ class FileArtifactsService(FileArtifactsServiceType):
             await self._get_state_by_type(WorkflowRunType.FOOTNOTE_EXTRACTION),
         )
         return state.footnotes
+
+    async def get_deepagent_backend_files(
+        self, include_supporting_files: bool = True
+    ) -> dict[str, Any]:
+        """Return the files in a format suitable for the DeepAgent backend."""
+
+        main_file = await self.get_main_file()
+        supporting_files = (
+            await self.get_supporting_files() if include_supporting_files else []
+        )
+
+        return {
+            "/main.md": create_file_data(main_file.markdown),
+            **{
+                f"/supporting/{f.file_id}.md": create_file_data(f.markdown)
+                for f in supporting_files
+            },
+        }

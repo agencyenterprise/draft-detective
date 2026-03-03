@@ -6,6 +6,7 @@ or simple stdout/stderr handlers based on environment configuration.
 
 import logging
 import sys
+import warnings
 from rich.logging import RichHandler
 
 from lib.config.env import config as env_config
@@ -42,6 +43,10 @@ def setup_logger() -> None:
     else:
         _attach_simple_stdout_stderr_handlers(root_logger)
         logger.info("Using simple stdout/stderr handlers for logging")
+
+    # Suppress Pydantic serialization warnings for workflow_type enum mismatches
+    # (old workflow types stored in DB that no longer match the current enum)
+    warnings.filterwarnings("ignore", message="Pydantic serializer warnings")
 
     # Suppress noisy OpenTelemetry errors for trace export failures
     # These don't affect the actual workflow execution, they're just telemetry issues

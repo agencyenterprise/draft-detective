@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 from lib.workflows.models import BaseWorkflowConfig, BaseWorkflowState, WorkflowRunType
 
 
-class AbbreviationItem(BaseModel):
+class AbbreviationItemV1(BaseModel):
     """Item representing an abbreviation/acronym and its definition."""
 
     abbr: str = Field(description="The acronym/abbreviation text, e.g. AI, RAND, NATO")
@@ -50,7 +50,7 @@ class AbbreviationScanState(BaseWorkflowState):
     file_id: str = Field(description="ID of the main document")
 
     # Outputs
-    abbreviations: List[AbbreviationItem] = Field(
+    abbreviations: List[AbbreviationItemV1] = Field(
         default_factory=list,
         description="Unique abbreviations found in the document",
     )
