@@ -3,7 +3,7 @@
 import { Button } from '@/components/ui/button';
 import { SkeletonList } from '@/components/ui/skeleton-list';
 import { Issue, ProjectDetailed } from '@/lib/generated-api';
-import { useDocumentExplorerStore } from '@/lib/stores/document-explorer-store';
+import { getIssueCount, hasActiveFilters, useDocumentExplorerStore } from '@/lib/stores/document-explorer-store';
 import { X } from 'lucide-react';
 import { Ref, useImperativeHandle, useRef } from 'react';
 import { DocumentExplorerSidebarFilter } from './document-explorer-sidebar-filter';
@@ -20,6 +20,7 @@ interface DocumentExplorerSidebarProps {
   visibleIssues: Issue[];
   filteredIssues: Issue[];
   resolvedCount: number;
+  passingCount: number;
   isAnyProcessing: boolean;
   projectDetail: ProjectDetailed;
   readOnly: boolean;
@@ -31,22 +32,13 @@ export function DocumentExplorerSidebar({
   visibleIssues,
   filteredIssues,
   resolvedCount,
+  passingCount,
   isAnyProcessing,
   projectDetail,
   readOnly,
   onSelectIssue,
 }: DocumentExplorerSidebarProps) {
-  const {
-    selectedChunkIndices,
-    clearChunkSelection,
-    severityFilter,
-    setSeverityFilter,
-    workflowTypeFilter,
-    setWorkflowTypeFilter,
-    showResolved,
-    setShowResolved,
-    clearFilters,
-  } = useDocumentExplorerStore();
+  const { selectedChunkIndices, clearChunkSelection, filter, setFilter, clearFilters } = useDocumentExplorerStore();
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -62,19 +54,18 @@ export function DocumentExplorerSidebar({
     },
   }));
 
-  const visibleIssuesCount = visibleIssues.length;
-  const filteredIssuesCount = filteredIssues.length;
-  const hasActiveFilters = severityFilter.length > 0 || workflowTypeFilter.length > 0 || !showResolved;
+  const visibleIssueCount = getIssueCount(visibleIssues);
+  const filteredIssueCount = getIssueCount(filteredIssues);
 
   return (
     <div className="col-span-5 bg-muted/50 rounded-lg rounded-l-none text-sm flex flex-col overflow-hidden">
       <div className="flex items-center justify-between gap-2 flex-wrap px-4 pt-4 pb-2 flex-shrink-0">
         <span className="text-xs text-muted-foreground">
-          {visibleIssuesCount > 0 &&
-            (filteredIssuesCount === visibleIssuesCount
-              ? `${visibleIssuesCount} issues`
-              : `${filteredIssuesCount} of ${visibleIssuesCount} issues`)}
-          {visibleIssuesCount === 0 && isAnyProcessing && 'Finding issues...'}
+          {visibleIssueCount > 0 &&
+            (filteredIssueCount === visibleIssueCount
+              ? `${visibleIssueCount} issues`
+              : `${filteredIssueCount} of ${visibleIssueCount} issues`)}
+          {visibleIssueCount === 0 && isAnyProcessing && 'Finding issues...'}
         </span>
         <div className="flex items-center flex-wrap gap-1">
           {selectedChunkIndices.length > 0 && (
@@ -90,23 +81,20 @@ export function DocumentExplorerSidebar({
               <X />
             </Button>
           )}
-          {visibleIssuesCount > 0 && (
+          {visibleIssues.length > 0 && (
             <DocumentExplorerSidebarFilter
               issues={visibleIssues}
-              severityFilter={severityFilter}
-              onSeverityFilterChange={setSeverityFilter}
-              workflowTypeFilter={workflowTypeFilter}
-              onWorkflowTypeFilterChange={setWorkflowTypeFilter}
+              filter={filter}
+              onFilterChange={setFilter}
               resolvedCount={resolvedCount}
-              showResolved={showResolved}
-              onShowResolvedChange={setShowResolved}
+              passingCount={passingCount}
             />
           )}
         </div>
       </div>
 
       <div ref={scrollContainerRef} className="space-y-2 overflow-y-auto flex-1 px-4 pt-0 pb-4">
-        {visibleIssuesCount === 0 && !isAnyProcessing && (
+        {visibleIssues.length === 0 && !isAnyProcessing && (
           <div className="text-sm text-muted-foreground py-4 space-y-2">
             <p>No issues found for this document.</p>
             <p>You can still view detailed analysis for each chunk by selecting a chunk from the document.</p>
@@ -115,10 +103,10 @@ export function DocumentExplorerSidebar({
 
         {isAnyProcessing && <SkeletonList count={3} />}
 
-        {visibleIssuesCount > 0 &&
-          filteredIssuesCount === 0 &&
+        {visibleIssues.length > 0 &&
+          filteredIssues.length === 0 &&
           !isAnyProcessing &&
-          hasActiveFilters &&
+          hasActiveFilters(filter) &&
           selectedChunkIndices.length === 0 && (
             <div className="text-sm text-muted-foreground space-y-1 py-8 text-center">
               <p>No issues match the current filters.</p>

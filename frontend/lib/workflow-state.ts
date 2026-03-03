@@ -1,4 +1,6 @@
 import {
+  AbbreviationScanState,
+  AbbreviationScanV2State,
   AboutAuthorsState,
   AboutThisState,
   AdvocacyToneState,
@@ -12,6 +14,7 @@ import {
   FootnoteExtractionState,
   HumanApprovalState,
   InferenceValidationState,
+  InferenceValidationV2State,
   LiteratureReviewState,
   LiveReportsState,
   MethodologicalAlignmentState,
@@ -36,21 +39,25 @@ type WorkflowTypeToDetail = {
   [WorkflowRunType.DocumentSummarization]: DocumentSummarizationState;
   [WorkflowRunType.ReferenceExtraction]: ReferenceExtractionState;
   [WorkflowRunType.ReferenceFileMatching]: ReferenceFileMatchingState;
-  [WorkflowRunType.ClaimReferenceValidation]: ClaimReferenceValidationState;
+  [WorkflowRunType.HumanApproval]: HumanApprovalState;
+  [WorkflowRunType.FootnoteExtraction]: FootnoteExtractionState;
+  [WorkflowRunType.ClaimExtraction]: ClaimExtractionState;
+  [WorkflowRunType.CitationDetection]: CitationDetectionState;
   [WorkflowRunType.MethodologicalAlignment]: MethodologicalAlignmentState;
   [WorkflowRunType.ReferenceDownloader]: ReferenceDownloaderState;
-  [WorkflowRunType.InferenceValidation]: InferenceValidationState;
   [WorkflowRunType.LiteratureReview]: LiteratureReviewState;
   [WorkflowRunType.LiveReports]: LiveReportsState;
   [WorkflowRunType.ReferenceValidation]: ReferenceValidationState;
   [WorkflowRunType.CitationSuggester]: CitationSuggesterState;
   [WorkflowRunType.ResultsExtraction]: ResultsExtractionState;
-  [WorkflowRunType.ClaimExtraction]: ClaimExtractionState;
-  [WorkflowRunType.CitationDetection]: CitationDetectionState;
-  [WorkflowRunType.FootnoteExtraction]: FootnoteExtractionState;
-  [WorkflowRunType.AboutThis]: AboutThisState;
-  [WorkflowRunType.AboutAuthors]: AboutAuthorsState;
+  [WorkflowRunType.InferenceValidation]: InferenceValidationState;
+  [WorkflowRunType.InferenceValidationV2]: InferenceValidationV2State;
+  [WorkflowRunType.ClaimReferenceValidation]: ClaimReferenceValidationState;
+  [WorkflowRunType.AbbreviationScan]: AbbreviationScanState;
+  [WorkflowRunType.AbbreviationScanV2]: AbbreviationScanV2State;
   [WorkflowRunType.AdvocacyTone]: AdvocacyToneState;
+  [WorkflowRunType.AboutAuthors]: AboutAuthorsState;
+  [WorkflowRunType.AboutThis]: AboutThisState;
 };
 
 export interface WorkflowRunDetailTyped<T> {

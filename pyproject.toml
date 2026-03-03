@@ -47,7 +47,7 @@ dependencies = [
     "textblob>=0.18.0",
     "rich>=14.2.0",
     "tuspyserver>=4.2.3",
-    "inspect-ai>=0.3.180",
+    "inspect-ai>=0.3.183",
     "openai>=2.16.0",
 ]
 

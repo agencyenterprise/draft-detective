@@ -14,18 +14,16 @@ from lib.workflows.models import DocumentIssue, SeverityEnum, WorkflowRunType
 from lib.workflows.types import WorkflowState
 from lib.workflows.util import get_main_file_id
 
-NON_ISSUE_ABBREVIATIONS = ["RAND"]
-
 
 class AbbreviationScanManifest(
     WorkflowManifest[AbbreviationScanState, AbbreviationScanWorkflowConfig]
 ):
     type = WorkflowRunType.ABBREVIATION_SCAN
-    name = "Abbreviation Scan"
+    name = "Abbreviation Scan (Regex-based)"
     description = "Scan the document for abbreviations/acronyms and definition pairs"
     needs_web_search = False
-    can_be_triggered_by_user = True
-    is_internal = False
+    can_be_triggered_by_user = False
+    is_internal = True
     order = 9
     required_dependencies = [WorkflowRunType.CHUNK_SPLITTING]
 
@@ -54,16 +52,24 @@ class AbbreviationScanManifest(
     ) -> List[DocumentIssue]:
         issues: List[DocumentIssue] = []
         for abbreviation in state.abbreviations:
-            if (
-                not abbreviation.definition
-                and abbreviation.abbr not in NON_ISSUE_ABBREVIATIONS
-            ):
-                issue = DocumentIssue(
-                    title="Abbreviation without definition found",
-                    description=f"The abbreviation '{abbreviation.abbr}' was found without a definition. Please add a definition for this abbreviation.",
-                    severity=SeverityEnum.LOW,
-                    type=self.type,
-                    chunk_indices=[abbreviation.chunk_index],
+            if abbreviation.definition:
+                issues.append(
+                    DocumentIssue(
+                        title="Abbreviation defined",
+                        description=f'The abbreviation "{abbreviation.abbr}" is defined as "{abbreviation.definition}".',
+                        severity=SeverityEnum.NONE,
+                        type=self.type,
+                        chunk_indices=[abbreviation.chunk_index],
+                    )
                 )
-                issues.append(issue)
+            else:
+                issues.append(
+                    DocumentIssue(
+                        title="Abbreviation without definition found",
+                        description=f"The abbreviation '{abbreviation.abbr}' was found without a definition. Please add a definition for this abbreviation.",
+                        severity=SeverityEnum.LOW,
+                        type=self.type,
+                        chunk_indices=[abbreviation.chunk_index],
+                    )
+                )
         return issues

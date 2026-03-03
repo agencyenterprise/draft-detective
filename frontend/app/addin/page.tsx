@@ -6,8 +6,17 @@ import { DocumentIssuesList } from '@/components/results/components/document-iss
 import { addIssueMarkers, jumpToChunk } from '@/lib/addin/office-utils';
 import { useOfficeInit } from '@/lib/addin/use-office-init';
 import { ProjectFeedbackProvider } from '@/lib/contexts/project-feedback-context';
-import { getSharedResourceApiPublicShareTokenGet, Issue, SeverityEnum, WorkflowRunType } from '@/lib/generated-api';
-import { getFilteredIssues, getVisibleIssues } from '@/lib/stores/document-explorer-store';
+import { getSharedResourceApiPublicShareTokenGet, Issue } from '@/lib/generated-api';
+import {
+  DEFAULT_FILTER,
+  DocumentExplorerFilter,
+  getFilteredIssues,
+  getIssueCount,
+  getPassingCount,
+  getResolvedCount,
+  getVisibleIssues,
+  hasActiveFilters,
+} from '@/lib/stores/document-explorer-store';
 import { useQuery } from '@tanstack/react-query';
 import { RotateCwIcon } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
@@ -15,9 +24,8 @@ import { useEffect, useMemo, useState } from 'react';
 export default function AddinPage() {
   const { token, currentParagraphIndex, isInitialized } = useOfficeInit();
   const [issuesPerParagraph, setIssuesPerParagraph] = useState<Map<number, Issue[]>>(new Map());
-  const [severityFilter, setSeverityFilter] = useState<SeverityEnum[]>([]);
-  const [workflowTypeFilter, setWorkflowTypeFilter] = useState<WorkflowRunType[]>([]);
-  const [showResolved, setShowResolved] = useState(false);
+  const [filter, setFilter] = useState<DocumentExplorerFilter>(DEFAULT_FILTER);
+  const updateFilter = (partial: Partial<DocumentExplorerFilter>) => setFilter((prev) => ({ ...prev, ...partial }));
 
   const {
     data: project,
@@ -54,18 +62,13 @@ export default function AddinPage() {
   );
   const isParagraphView = paragraphIssues.length > 0;
 
-  const { visibleIssues, resolvedCount } = useMemo(
-    () => getVisibleIssues(activeIssues, showResolved, []),
-    [activeIssues, showResolved],
-  );
-  const filteredIssues = useMemo(
-    () => getFilteredIssues(visibleIssues, workflowTypeFilter, severityFilter, []),
-    [visibleIssues, workflowTypeFilter, severityFilter],
-  );
+  const visibleIssues = useMemo(() => getVisibleIssues(activeIssues, filter), [activeIssues, filter]);
+  const resolvedCount = useMemo(() => getResolvedCount(activeIssues, []), [activeIssues]);
+  const passingCount = useMemo(() => getPassingCount(activeIssues), [activeIssues]);
+  const filteredIssues = useMemo(() => getFilteredIssues(visibleIssues, filter, []), [visibleIssues, filter]);
 
-  const visibleIssuesCount = visibleIssues.length;
-  const filteredIssuesCount = filteredIssues.length;
-  const hasActiveFilters = severityFilter.length > 0 || workflowTypeFilter.length > 0 || !showResolved;
+  const visibleIssueCount = getIssueCount(visibleIssues);
+  const filteredIssueCount = getIssueCount(filteredIssues);
 
   if (!isInitialized) return <div className="p-4 text-center">Loading Add-in...</div>;
 
@@ -92,10 +95,10 @@ export default function AddinPage() {
 
           <div className="flex items-center justify-between gap-2 w-full flex-wrap">
             <span className="text-xs text-muted-foreground">
-              {visibleIssuesCount > 0 &&
-                (filteredIssuesCount === visibleIssuesCount
-                  ? `${visibleIssuesCount} issues`
-                  : `${filteredIssuesCount} of ${visibleIssuesCount} issues`)}
+              {visibleIssueCount > 0 &&
+                (filteredIssueCount === visibleIssueCount
+                  ? `${visibleIssueCount} issues`
+                  : `${filteredIssueCount} of ${visibleIssueCount} issues`)}
             </span>
             {project?.issues && project.issues.length > 0 && (
               <div className="text-right flex flex-row flex-wrap gap-1">
@@ -106,13 +109,10 @@ export default function AddinPage() {
                 )}
                 <DocumentExplorerSidebarFilter
                   issues={isParagraphView ? paragraphIssues : project.issues}
-                  severityFilter={severityFilter}
-                  onSeverityFilterChange={setSeverityFilter}
-                  workflowTypeFilter={workflowTypeFilter}
-                  onWorkflowTypeFilterChange={setWorkflowTypeFilter}
+                  filter={filter}
+                  onFilterChange={updateFilter}
                   resolvedCount={resolvedCount}
-                  showResolved={showResolved}
-                  onShowResolvedChange={setShowResolved}
+                  passingCount={passingCount}
                 />
               </div>
             )}
@@ -134,7 +134,7 @@ export default function AddinPage() {
                 jumpToAlias="paragraph"
                 hideJumpToChunkIndex={true}
               />
-              {hasActiveFilters && filteredIssues.length === 0 && (
+              {hasActiveFilters(filter) && filteredIssues.length === 0 && (
                 <div className="text-xs text-gray-500 pt-2 mt-2">No issues found for your filters</div>
               )}
             </>

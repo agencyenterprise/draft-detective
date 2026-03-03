@@ -40,7 +40,7 @@ class ClaimReferenceValidationManifest(
     name = "Claim Reference Validation"
     description = """Validate claims by checking them against supporting documents using RAG (Retrieval-Augmented Generation). Retrieves relevant passages from supporting documents and verifies whether claims are supported, partially supported, unsupported, or unverifiable."""
     needs_web_search = False
-    order = 2
+    order = 3
     required_dependencies = [
         WorkflowRunType.CLAIM_EXTRACTION,
         WorkflowRunType.CITATION_DETECTION,

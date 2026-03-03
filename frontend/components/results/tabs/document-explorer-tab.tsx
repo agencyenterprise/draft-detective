@@ -2,7 +2,14 @@
 
 import { useChunkHashNavigation } from '@/lib/chunk-ids';
 import { Issue, ProjectDetailed, WorkflowRunType } from '@/lib/generated-api';
-import { getFilteredIssues, getVisibleIssues, useDocumentExplorerStore } from '@/lib/stores/document-explorer-store';
+import {
+  getFilteredIssues,
+  getHighlightIssues,
+  getPassingCount,
+  getResolvedCount,
+  getVisibleIssues,
+  useDocumentExplorerStore,
+} from '@/lib/stores/document-explorer-store';
 import {
   getWorkflowErrors,
   getWorkflowRunByType,
@@ -25,15 +32,8 @@ export function DocumentExplorerTab({
   readOnly = false,
   onNavigateToAnalyses,
 }: DocumentExplorerTabProps) {
-  const {
-    selectedChunkIndices,
-    selectChunkIndices,
-    toggleChunk,
-    clearChunkSelection,
-    severityFilter,
-    workflowTypeFilter,
-    showResolved,
-  } = useDocumentExplorerStore();
+  const { selectedChunkIndices, selectChunkIndices, toggleChunk, clearChunkSelection, filter } =
+    useDocumentExplorerStore();
 
   const workflowDetails = useMemo(() => projectDetail.workflow_runs ?? [], [projectDetail.workflow_runs]);
   const issues = useMemo(() => projectDetail.issues ?? [], [projectDetail.issues]);
@@ -66,14 +66,14 @@ export function DocumentExplorerTab({
 
   const workflowErrors = useMemo(() => getWorkflowErrors(workflowDetails), [workflowDetails]);
   const hasChunks = useMemo(() => chunks.length > 0, [chunks]);
-  const { visibleIssues, resolvedCount } = useMemo(
-    () => getVisibleIssues(issues, showResolved, selectedChunkIndices),
-    [issues, showResolved, selectedChunkIndices],
-  );
+  const visibleIssues = useMemo(() => getVisibleIssues(issues, filter), [issues, filter]);
+  const resolvedCount = useMemo(() => getResolvedCount(issues, selectedChunkIndices), [issues, selectedChunkIndices]);
+  const passingCount = useMemo(() => getPassingCount(issues), [issues]);
   const filteredIssues = useMemo(
-    () => getFilteredIssues(visibleIssues, workflowTypeFilter, severityFilter, selectedChunkIndices),
-    [visibleIssues, severityFilter, workflowTypeFilter, selectedChunkIndices],
+    () => getFilteredIssues(visibleIssues, filter, selectedChunkIndices),
+    [visibleIssues, filter, selectedChunkIndices],
   );
+  const highlightIssues = useMemo(() => getHighlightIssues(visibleIssues, filter), [visibleIssues, filter]);
 
   const handleSelectIssue = useCallback(
     (issue: Issue) => {
@@ -140,7 +140,7 @@ export function DocumentExplorerTab({
           <div className="flex-1 overflow-hidden">
             <DocumentReconstructor
               chunks={chunks}
-              issues={visibleIssues}
+              issues={highlightIssues}
               selectedChunkIndices={selectedChunkIndices}
               onChunkSelect={handleChunkSelect}
             />
@@ -152,6 +152,7 @@ export function DocumentExplorerTab({
           visibleIssues={visibleIssues}
           filteredIssues={filteredIssues}
           resolvedCount={resolvedCount}
+          passingCount={passingCount}
           isAnyProcessing={isAnyProcessing}
           projectDetail={projectDetail}
           readOnly={readOnly}

@@ -24,7 +24,7 @@ class InferenceValidationV2Manifest(
     needs_web_search = False
     is_experimental = False
     can_be_triggered_by_user = True
-    order = 1
+    order = 4
     required_dependencies = [WorkflowRunType.DOCUMENT_PROCESSING]
 
     def get_state_type(self) -> Type[InferenceValidationV2State]:
