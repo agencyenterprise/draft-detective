@@ -15,6 +15,8 @@ logger = logging.getLogger(__name__)
 _IGNORED_ABBREVIATIONS: frozenset[str] = frozenset(
     [
         "RAND",
+        "MIT",
+        "ChatGPT",
     ]
 )
 

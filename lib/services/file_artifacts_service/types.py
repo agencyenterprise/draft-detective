@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING, Any, List
 
 if TYPE_CHECKING:
     from lib.workflows.chunk_utils import AnalyzedChunk
@@ -34,6 +34,11 @@ class FileArtifactsServiceType(ABC):
 
     @abstractmethod
     async def get_footnotes(self) -> list["FootnoteItem"]: ...
+
+    @abstractmethod
+    async def get_deepagent_backend_files(
+        self, include_supporting_files: bool = True
+    ) -> dict[str, Any]: ...
 
     def get_paragraph_chunks(
         self, chunks: List["AnalyzedChunk"], paragraph_index: int
