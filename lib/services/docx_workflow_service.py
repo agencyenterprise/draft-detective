@@ -26,18 +26,19 @@ def get_cache_key(
     share_token: Optional[str],
     severities: Optional[List[SeverityEnum]] = None,
     workflow_types: Optional[List[WorkflowRunType]] = None,
+    include_passing: bool = False,
 ) -> str:
     """Generate cache key for DOCX file."""
     suffix = "shared" if share_token else "base"
     key = f"{project_id}_{suffix}"
     if severities:
-        # Sort for consistent cache keys regardless of order
         severity_suffix = "_".join(sorted(s.value for s in severities))
         key = f"{key}_sev_{severity_suffix}"
     if workflow_types:
-        # Sort for consistent cache keys regardless of order
         workflow_suffix = "_".join(sorted(w.value for w in workflow_types))
         key = f"{key}_wf_{workflow_suffix}"
+    if include_passing:
+        key = f"{key}_passing"
     return key
 
 
@@ -56,6 +57,7 @@ async def get_or_generate_docx(
     severities: Optional[List[SeverityEnum]] = None,
     workflow_types: Optional[List[WorkflowRunType]] = None,
     docx_type: DocxManipulatorType | Literal["original"] = DocxManipulatorType.COMMENTS,
+    include_passing: bool = False,
     use_cache: bool = True,
 ) -> tuple[str, str]:
     """
@@ -66,6 +68,7 @@ async def get_or_generate_docx(
         share_token: Optional share token for share links in comments
         severities: Optional list of severity levels to filter issues
         workflow_types: Optional list of workflow types to filter issues
+        include_passing: Whether to include passing issues (severity=none)
         use_cache: Whether to use cached version if available
 
     Returns:
@@ -78,7 +81,9 @@ async def get_or_generate_docx(
         file_document = await file_artifacts_service.get_main_file()
         return file_document.file_path, file_document.file_name
 
-    cache_key = get_cache_key(project_id, share_token, severities, workflow_types)
+    cache_key = get_cache_key(
+        project_id, share_token, severities, workflow_types, include_passing
+    )
     cached_path = get_cached_docx_path(cache_key, docx_type)
 
     if use_cache and cached_path:
@@ -90,7 +95,7 @@ async def get_or_generate_docx(
 
     logger.info(f"Cache miss for {cache_key}, generating DOCX")
     return await generate_docx(
-        project_id, share_token, severities, workflow_types, docx_type
+        project_id, share_token, severities, workflow_types, docx_type, include_passing
     )
 
 
@@ -100,6 +105,7 @@ async def generate_docx(
     severities: Optional[List[SeverityEnum]] = None,
     workflow_types: Optional[List[WorkflowRunType]] = None,
     docx_type: DocxManipulatorType = DocxManipulatorType.COMMENTS,
+    include_passing: bool = False,
 ) -> tuple[str, str]:
     """Generate a DOCX file with AI-generated comments from workflow issues and chunks.
 
@@ -109,6 +115,7 @@ async def generate_docx(
         severities: Optional list of severity levels to filter issues
         workflow_types: Optional list of workflow types to filter issues
         docx_type: Docx type to generate
+        include_passing: Whether to include passing issues (severity=none)
 
     Returns:
         tuple[str, str]: (file_path, filename)
@@ -143,6 +150,10 @@ async def generate_docx(
     if severities:
         issues = [issue for issue in issues if issue.severity in severities]
 
+    # Exclude passing issues (severity=none) unless explicitly included
+    if not include_passing:
+        issues = [issue for issue in issues if issue.severity != SeverityEnum.NONE]
+
     output_path = None
     if not share_token:
         docx_type = DocxManipulatorType.COMMENTS
@@ -167,7 +178,11 @@ async def generate_docx(
         ]
 
         output_id = get_cache_key(
-            project_id, share_token_for_comments, severities, workflow_types
+            project_id,
+            share_token_for_comments,
+            severities,
+            workflow_types,
+            include_passing,
         )
         output_path = await docx_manipulator_service.add_comments_to_docx(
             original_docx_path=main_file.file_path,
