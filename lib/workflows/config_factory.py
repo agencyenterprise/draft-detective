@@ -10,7 +10,7 @@ from lib.workflows.live_reports.state import LiveReportsWorkflowConfig
 from lib.workflows.models import WorkflowRunType
 from lib.workflows.reference_validation.state import ReferenceValidationWorkflowConfig
 from lib.workflows.registry import get_config_type
-from lib.workflows.types import WorkflowConfig
+from lib.workflows.workflow_types import WorkflowConfig
 
 
 def create_workflow_config(

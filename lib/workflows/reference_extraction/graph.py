@@ -13,14 +13,11 @@ from lib.workflows.reference_extraction.nodes.extract_text_references_v2 import 
     extract_text_references_v2_node,
 )
 from lib.workflows.reference_extraction.state import (
-    ReferenceExtractionConfig,
     ReferenceExtractionState,
 )
 
 
-def build_reference_extraction_graph(
-    config: ReferenceExtractionConfig = ReferenceExtractionConfig(),
-) -> StateGraph:
+def build_reference_extraction_graph() -> StateGraph:
     """
     Build reference extraction workflow graph.
 

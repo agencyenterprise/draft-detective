@@ -12,9 +12,9 @@ import shutil
 import uuid
 from enum import Enum
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
-import nltk
+import nltk  # type: ignore[import-untyped]
 import pytest
 from pydantic import BaseModel
 from xxhash import xxh128
@@ -23,7 +23,7 @@ from lib.config.env import config
 from lib.models.agent_test_case import AgentTestCase
 from lib.services.file import create_file_document_from_path
 from lib.services.file_artifacts_service.mock import MockFileArtifactsService
-from lib.services.file_artifacts_service.types import FileArtifactsServiceType
+from lib.services.file_artifacts_service.file_artifacts_service_type import FileArtifactsServiceType
 from lib.services.vector_store import VectorStoreService
 
 # Root tests directory
@@ -487,7 +487,14 @@ def test_models():
     return None
 
 
-def create_test_context(file_artifacts_service: FileArtifactsServiceType = None):
+def create_test_context(
+    file_artifacts_service: Optional[FileArtifactsServiceType] = None,
+    openai_api_key: Optional[str] = None,
+    vector_store: Optional[VectorStoreService] = None,
+    user_id: Optional[str] = None,
+    project_id: str = "test-project",
+    workflow_run_id: Optional[str] = None,
+):
     """
     Create a ContextSchema instance for testing agents.
 
@@ -497,7 +504,11 @@ def create_test_context(file_artifacts_service: FileArtifactsServiceType = None)
     from lib.workflows.context import ContextSchema
 
     return ContextSchema(
-        openai_api_key=config.OPENAI_API_KEY,
-        vector_store=VectorStoreService(config.DATABASE_URL, config.OPENAI_API_KEY),
+        openai_api_key=openai_api_key or config.OPENAI_API_KEY,
+        vector_store=vector_store
+        or VectorStoreService(config.DATABASE_URL, config.OPENAI_API_KEY or "test-key"),
+        project_id=project_id,
         file_artifacts_service=file_artifacts_service or MockFileArtifactsService(),
+        user_id=user_id,
+        workflow_run_id=workflow_run_id,
     )

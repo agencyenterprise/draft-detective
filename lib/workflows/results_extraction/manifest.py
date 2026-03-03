@@ -9,7 +9,7 @@ from lib.workflows.results_extraction.state import (
     ResultsExtractionState,
     ResultsExtractionWorkflowConfig,
 )
-from lib.workflows.types import WorkflowState
+from lib.workflows.workflow_types import WorkflowState
 from lib.workflows.util import get_main_file_id
 
 

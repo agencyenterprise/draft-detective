@@ -13,7 +13,7 @@ from lib.workflows.abbreviation_scan_v2.state import (
 from lib.workflows.chunk_utils import build_analyzed_chunks
 from lib.workflows.manifest import WorkflowManifest
 from lib.workflows.models import DocumentIssue, WorkflowRunType
-from lib.workflows.types import WorkflowState
+from lib.workflows.workflow_types import WorkflowState
 
 
 class AbbreviationScanV2Manifest(

@@ -9,7 +9,7 @@ from lib.workflows.reference_downloader.state import (
     ReferenceDownloaderState,
     ReferenceDownloaderWorkflowConfig,
 )
-from lib.workflows.types import WorkflowState
+from lib.workflows.workflow_types import WorkflowState
 
 
 class ReferenceDownloaderManifest(

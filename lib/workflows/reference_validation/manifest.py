@@ -12,7 +12,7 @@ from lib.workflows.reference_validation.state import (
     ReferenceValidationStatus,
     ReferenceValidationWorkflowConfig,
 )
-from lib.workflows.types import WorkflowState
+from lib.workflows.workflow_types import WorkflowState
 from lib.workflows.util import get_state_by_type
 
 _FINAL_RESULT_SEVERITY: dict[ReferenceValidationFinalResult, SeverityEnum] = {

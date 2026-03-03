@@ -102,12 +102,8 @@ export function ProjectsList({ className }: ProjectsListProps) {
   return (
     <Card className={className}>
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle>Your Projects</CardTitle>
-            <p className="text-sm text-muted-foreground">{projects.length} projects</p>
-          </div>
-        </div>
+        <CardTitle>Your Projects</CardTitle>
+        <p className="text-sm text-muted-foreground">{projects.length} projects</p>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">

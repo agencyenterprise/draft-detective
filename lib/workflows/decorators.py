@@ -49,7 +49,7 @@ def register_node(name: str, description: str):
         ) -> BaseWorkflowState:
 
             config = getattr(state, "config", None)
-            project_id = getattr(config, "project_id", None)
+            project_id = config.project_id if config else None
             agents_to_run = getattr(config, "agents_to_run", None)
 
             if agents_to_run and func.__name__ not in agents_to_run:

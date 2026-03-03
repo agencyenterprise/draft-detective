@@ -15,7 +15,7 @@ from lib.workflows.document_processing.state import DocumentProcessingState
 from lib.workflows.models import WorkflowRunType
 from lib.workflows.reference_extraction.state import ReferenceExtractionState
 from lib.workflows.reference_file_matching.state import ReferenceFileMatchingState
-from lib.workflows.types import WorkflowState
+from lib.workflows.workflow_types import WorkflowState
 from lib.workflows.util import get_state_by_type
 
 from .test_case_builders import (

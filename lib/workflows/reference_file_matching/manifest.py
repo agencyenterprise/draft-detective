@@ -14,7 +14,7 @@ from lib.workflows.reference_file_matching.state import (
     ReferenceFileMatchingConfig,
     ReferenceFileMatchingState,
 )
-from lib.workflows.types import WorkflowState
+from lib.workflows.workflow_types import WorkflowState
 from lib.workflows.util import (
     get_main_file_id,
     get_state_by_type,

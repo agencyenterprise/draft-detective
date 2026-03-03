@@ -21,7 +21,7 @@ from lib.services.workflow_runs import (
 )
 from lib.workflows.human_approval.state import HumanApprovalConfig
 from lib.workflows.registry import get_workflow_manifest
-from lib.workflows.types import WorkflowConfig
+from lib.workflows.workflow_types import WorkflowConfig
 
 router = APIRouter(tags=["workflows"])
 

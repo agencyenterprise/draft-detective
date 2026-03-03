@@ -14,7 +14,7 @@ from lib.workflows.claim_reference_validation.state import (
 from lib.workflows.document_processing.state import DocumentProcessingState
 from lib.workflows.manifest import WorkflowManifest
 from lib.workflows.models import DocumentIssue, SeverityEnum, WorkflowRunType
-from lib.workflows.types import WorkflowState
+from lib.workflows.workflow_types import WorkflowState
 from lib.workflows.util import get_state_by_type
 
 

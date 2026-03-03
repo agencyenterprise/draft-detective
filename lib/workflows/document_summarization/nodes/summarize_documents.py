@@ -45,10 +45,9 @@ async def _summarize_document(
 
     summary = FileSummary(file_id=document.file_id, **response.summary.model_dump())
 
-    if role == FileRole.MAIN and runtime.context.project_id:
+    if role == FileRole.MAIN:
         from lib.services.projects import update_project_title
 
-        # Update project title with main document summary title
         await update_project_title(
             project_id=runtime.context.project_id,
             title=summary.title,

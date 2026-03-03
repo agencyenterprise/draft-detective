@@ -5,7 +5,7 @@ from deepagents.backends.utils import create_file_data
 from lib.models.bibliography_item import BibliographyItem
 from lib.models.footnote_item import FootnoteItem
 from lib.services.file import FileDocument
-from lib.services.file_artifacts_service.types import FileArtifactsServiceType
+from lib.services.file_artifacts_service.file_artifacts_service_type import FileArtifactsServiceType
 from lib.workflows.chunk_utils import AnalyzedChunk
 from lib.workflows.document_summarization.state import FileSummary
 from lib.workflows.reference_extraction.state import ExtractedReference

@@ -11,7 +11,7 @@ from lib.services.files import (
     get_files_by_project_id,
     load_file_document,
 )
-from lib.services.file_artifacts_service.types import FileArtifactsServiceType
+from lib.services.file_artifacts_service.file_artifacts_service_type import FileArtifactsServiceType
 from lib.workflows.models import WorkflowRunType
 
 if TYPE_CHECKING:
@@ -29,7 +29,7 @@ if TYPE_CHECKING:
         ReferenceExtractionState,
     )
     from lib.workflows.reference_file_matching.state import ReferenceFileMatchingState
-    from lib.workflows.types import WorkflowState
+    from lib.workflows.workflow_types import WorkflowState
 
 logger = logging.getLogger(__name__)
 

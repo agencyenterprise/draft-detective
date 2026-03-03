@@ -36,7 +36,7 @@ class TestDecoratorProgressTracking:
         # Execute node
         mock_state = Mock()
         mock_state.config = Mock()
-        mock_state.config.project_id = None
+        mock_state.config.project_id = "test-project"
         mock_state.config.agents_to_run = None
         result = await test_node(mock_state, mock_runtime)
 
@@ -71,7 +71,7 @@ class TestDecoratorProgressTracking:
         # Execute node
         mock_state = Mock()
         mock_state.config = Mock()
-        mock_state.config.project_id = None
+        mock_state.config.project_id = "test-project"
         mock_state.config.agents_to_run = None
         result = await test_node(mock_state, mock_runtime)
 
@@ -95,7 +95,7 @@ class TestDecoratorProgressTracking:
         # Execute node with runtime=None
         mock_state = Mock()
         mock_state.config = Mock()
-        mock_state.config.project_id = None
+        mock_state.config.project_id = "test-project"
         mock_state.config.agents_to_run = None
         result = await test_node(mock_state, None)
 

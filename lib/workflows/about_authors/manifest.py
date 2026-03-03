@@ -12,7 +12,7 @@ from lib.workflows.about_authors.state import (
 )
 from lib.workflows.manifest import WorkflowManifest
 from lib.workflows.models import DocumentIssue, SeverityEnum, WorkflowRunType
-from lib.workflows.types import WorkflowState
+from lib.workflows.workflow_types import WorkflowState
 
 
 class AboutAuthorsManifest(

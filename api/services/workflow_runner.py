@@ -2,7 +2,7 @@ import asyncio
 import logging
 from typing import List
 
-from fastapi import BackgroundTasks, HTTPException
+from fastapi import BackgroundTasks
 from pydantic import BaseModel
 
 from api.models import StartMultipleWorkflowsRequest
@@ -18,7 +18,7 @@ from lib.workflows.config_factory import create_workflow_config
 from lib.workflows.dependency_resolver import resolve_workflow_dependencies
 from lib.workflows.registry import get_workflow_manifest
 from lib.workflows.runner import run_workflow_with_dependency_check
-from lib.workflows.types import WorkflowConfig
+from lib.workflows.workflow_types import WorkflowConfig
 
 
 class AutoRunWorkflowItem(BaseModel):
@@ -43,9 +43,6 @@ async def start_workflow_run(
         user: The user running the workflow
         background_tasks: The background tasks to run the workflow in
     """
-
-    if config.project_id is None:
-        raise HTTPException(status_code=400, detail="Project ID is required")
 
     # Check if project exists and is owned by the user
     await get_user_project(config.project_id, user)

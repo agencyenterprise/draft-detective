@@ -157,7 +157,8 @@ class TestBuildCitationSuggestionIssues:
             type=WorkflowRunType.CITATION_SUGGESTER,
             file_id="test-file-id",
             config=CitationSuggesterWorkflowConfig(
-                type=WorkflowRunType.CITATION_SUGGESTER
+                type=WorkflowRunType.CITATION_SUGGESTER,
+                project_id="test-project",
             ),
             citation_suggestions=[],
         )
