@@ -3,6 +3,8 @@ from typing import List, Type, cast
 from langgraph.graph import StateGraph
 
 from lib.agents.reference_validator import ReferenceValidationFinalResult
+from lib.services.chunk_line_matcher import find_chunks_by_line_range
+from lib.workflows.chunk_utils import build_analyzed_chunks
 from lib.workflows.manifest import WorkflowManifest
 from lib.workflows.models import DocumentIssue, SeverityEnum, WorkflowRunType
 from lib.workflows.reference_extraction.state import ReferenceExtractionState
@@ -12,8 +14,32 @@ from lib.workflows.reference_validation.state import (
     ReferenceValidationStatus,
     ReferenceValidationWorkflowConfig,
 )
-from lib.workflows.types import WorkflowState
+from lib.workflows.workflow_types import WorkflowState
 from lib.workflows.util import get_state_by_type
+
+
+def _build_ref_to_chunks(
+    ref_extraction_state: ReferenceExtractionState | None,
+    other_states: List[WorkflowState],
+) -> dict[str, List[int]]:
+    """Build a mapping from reference ID to chunk indices.
+
+    Computes chunk overlap from chunk splitting state using each reference's
+    line range.
+    """
+    if ref_extraction_state is None:
+        return {}
+
+    chunks = build_analyzed_chunks(other_states)
+
+    ref_to_chunks: dict[str, List[int]] = {}
+    for ref in ref_extraction_state.extracted_references:
+        if chunks and ref.start_line is not None and ref.end_line is not None:
+            ref_to_chunks[ref.id] = find_chunks_by_line_range(
+                chunks, ref.start_line, ref.end_line
+            )
+    return ref_to_chunks
+
 
 _FINAL_RESULT_SEVERITY: dict[ReferenceValidationFinalResult, SeverityEnum] = {
     ReferenceValidationFinalResult.VALID: SeverityEnum.NONE,
@@ -68,7 +94,6 @@ class ReferenceValidationManifest(
 
         issues: List[DocumentIssue] = []
 
-        # Get reference extraction state to access chunk_indices
         ref_extraction_state = get_state_by_type(
             WorkflowRunType.REFERENCE_EXTRACTION, other_states
         )
@@ -78,11 +103,7 @@ class ReferenceValidationManifest(
             else None
         )
 
-        # Build lookup from reference id to chunk_indices
-        ref_to_chunks: dict[str, List[int]] = {}
-        if ref_extraction_state:
-            for ref in ref_extraction_state.extracted_references:
-                ref_to_chunks[ref.id] = ref.chunk_indices
+        ref_to_chunks = _build_ref_to_chunks(ref_extraction_state, other_states)
 
         for validation in state.reference_validations:
             if validation.status != ReferenceValidationStatus.COMPLETED:

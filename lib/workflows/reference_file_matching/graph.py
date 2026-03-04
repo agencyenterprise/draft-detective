@@ -7,14 +7,11 @@ from lib.workflows.reference_file_matching.nodes.match_supporting_docs import (
     match_supporting_docs_node,
 )
 from lib.workflows.reference_file_matching.state import (
-    ReferenceFileMatchingConfig,
     ReferenceFileMatchingState,
 )
 
 
-def build_reference_file_matching_graph(
-    config: ReferenceFileMatchingConfig = ReferenceFileMatchingConfig(),
-) -> StateGraph:
+def build_reference_file_matching_graph() -> StateGraph:
     """
     Build reference file matching workflow graph.
 

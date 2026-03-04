@@ -1,6 +1,7 @@
 import logging
 import uuid
 
+from langfuse import propagate_attributes
 from langgraph.graph import StateGraph
 
 from api.services.workflow_orchestration import wait_for_dependencies
@@ -18,7 +19,7 @@ from lib.workflows.checkpointer import get_checkpointer
 from lib.workflows.context import ContextSchema
 from lib.workflows.models import BaseWorkflowConfig, WorkflowError
 from lib.workflows.registry import create_graph, create_state, get_workflow_manifest
-from lib.workflows.types import WorkflowConfig, WorkflowState
+from lib.workflows.workflow_types import WorkflowConfig, WorkflowState
 
 logger = logging.getLogger(__name__)
 
@@ -41,9 +42,8 @@ async def run_workflow_with_dependency_check(
     """
 
     try:
-        if config.project_id:
-            # Wait for same-type lock and dependencies to complete
-            await wait_for_dependencies(config.type, config.project_id, workflow_run_id)
+        # Wait for same-type lock and dependencies to complete
+        await wait_for_dependencies(config.type, config.project_id, workflow_run_id)
 
         # Run the workflow
         await run_workflow_from_config(
@@ -69,14 +69,15 @@ async def run_workflow_from_config(
 
     state = await create_state(config)
 
-    return await run_workflow(
-        workflow_run_id=workflow_run_id,
-        workflow_type=config.type,
-        graph=graph,
-        state=state,
-        context=context,
-        thread_id=thread_id,
-    )
+    with propagate_attributes(user_id=context.user_id):
+        return await run_workflow(
+            workflow_run_id=workflow_run_id,
+            workflow_type=config.type,
+            graph=graph,
+            state=state,
+            context=context,
+            thread_id=thread_id,
+        )
 
 
 async def run_workflow(
@@ -214,7 +215,7 @@ def create_context(
 
 async def _persist_issues_from_state(
     workflow_run_id: str,
-    project_id: str | None,
+    project_id: str,
     workflow_type: WorkflowRunType,
     state: WorkflowState,
     checkpoint_id: str | None,
@@ -227,10 +228,6 @@ async def _persist_issues_from_state(
     depend on other workflow states (e.g. reference_validation reading
     reference_extraction) can resolve their data correctly.
     """
-    if not project_id:
-        logger.debug("No project_id, skipping issue persistence")
-        return
-
     manifest = get_workflow_manifest(workflow_type, raise_exception=False)
     if manifest is None:
         logger.debug(f"No manifest for {workflow_type}, skipping issue persistence")

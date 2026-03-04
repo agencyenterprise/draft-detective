@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, List, Optional
 from lib.workflows.models import WorkflowRunType
 
 if TYPE_CHECKING:
-    from lib.workflows.types import WorkflowState
+    from lib.workflows.workflow_types import WorkflowState
 
 
 def get_state_by_type(

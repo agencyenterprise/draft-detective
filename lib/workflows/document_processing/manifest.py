@@ -10,7 +10,7 @@ from lib.workflows.document_processing.state import (
 )
 from lib.workflows.manifest import WorkflowManifest
 from lib.workflows.models import DocumentIssue, WorkflowRunType
-from lib.workflows.types import WorkflowState
+from lib.workflows.workflow_types import WorkflowState
 
 
 class DocumentProcessingManifest(
@@ -51,8 +51,6 @@ class DocumentProcessingManifest(
         """Create and return the initial state of the workflow."""
 
         from lib.services.files import get_files_by_project_id, load_file_document
-
-        assert config.project_id is not None, "Missing project_id in config"
 
         project_files = await get_files_by_project_id(config.project_id)
         main_file = next(

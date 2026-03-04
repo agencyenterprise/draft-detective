@@ -14,7 +14,7 @@ from lib.agents.inference_validator import (
 )
 from lib.agents.models import ClaimCategory
 from lib.run_utils import convert_exceptions_to_workflow_errors, run_tasks
-from lib.services.file_artifacts_service.types import FileArtifactsServiceType
+from lib.services.file_artifacts_service.file_artifacts_service_type import FileArtifactsServiceType
 from lib.workflows.chunk_utils import AnalyzedChunk
 from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node

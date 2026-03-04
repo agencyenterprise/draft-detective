@@ -32,7 +32,7 @@ async def test_decorator_receives_runtime_with_context(
     # Create mocks
     mock_state = Mock()
     mock_state.config = Mock()
-    mock_state.config.project_id = None
+    mock_state.config.project_id = "test-project"
     mock_state.config.agents_to_run = None
 
     mock_runtime = Mock()

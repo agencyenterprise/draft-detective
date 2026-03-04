@@ -11,7 +11,7 @@ from lib.workflows.models import WorkflowRunType
 from lib.workflows.util import get_state_by_type
 
 if TYPE_CHECKING:
-    from lib.workflows.types import WorkflowState
+    from lib.workflows.workflow_types import WorkflowState
 
 
 class AnalyzedChunk(ChunkWithIndex):

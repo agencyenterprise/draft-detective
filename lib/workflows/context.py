@@ -4,7 +4,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from lib.services.file_artifacts_service.types import FileArtifactsServiceType
+from lib.services.file_artifacts_service.file_artifacts_service_type import FileArtifactsServiceType
 from lib.services.vector_store import VectorStoreService
 
 
@@ -26,8 +26,7 @@ class ContextSchema(BaseModel):
         default=None,
         description="The ID of the user that is running the workflow.",
     )
-    project_id: Optional[str] = Field(
-        default=None,
+    project_id: str = Field(
         description="The ID of the project that is running the workflow.",
     )
     workflow_run_id: Optional[str] = Field(

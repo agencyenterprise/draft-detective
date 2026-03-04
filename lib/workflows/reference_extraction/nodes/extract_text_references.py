@@ -1,6 +1,7 @@
 """Node for extracting references using LLM with deduplication."""
 
 import logging
+import uuid
 from difflib import SequenceMatcher
 from typing import List
 
@@ -130,7 +131,9 @@ async def extract_text_references_node(
                     unique_texts.append(ref_text)
 
     # Create ExtractedReference objects with unique IDs
-    extracted_references = [ExtractedReference(text=text) for text in unique_texts]
+    extracted_references = [
+        ExtractedReference(id=str(uuid.uuid4()), text=text) for text in unique_texts
+    ]
 
     logger.info(f"Extracted {len(extracted_references)} unique references")
     return {"extracted_references": extracted_references}

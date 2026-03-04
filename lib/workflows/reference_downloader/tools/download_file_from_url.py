@@ -173,13 +173,13 @@ async def _download_with_jina_api(url: str) -> SavedFile | None:
 async def _persist_file_record(
     saved_file: SavedFile,
     reference_details: str,
-    project_id: str | None,
+    project_id: str,
     user_id: uuid.UUID | None,
 ) -> str | None:
     """Create a File record for a downloaded file and return its UUID."""
-    if not project_id or not user_id:
+    if not user_id:
         raise ValueError(
-            "Cannot create file record because project_id or user_id is missing: project_id={project_id}, user_id={user_id}"
+            f"Cannot create file record because user_id is missing: user_id={user_id}"
         )
 
     file_path = os.path.join(config.FILE_UPLOADS_MOUNT_PATH, saved_file.filename)

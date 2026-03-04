@@ -1,5 +1,3 @@
-from datetime import datetime
-
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 
 from api.auth import get_current_user
@@ -16,16 +14,14 @@ from api.services.workflow_runner import (
 )
 from lib.models.user import User
 from lib.models.workflow_run import WorkflowRunStatus
-from lib.services.projects import create_project
 from lib.services.workflow_runs import (
     WorkflowRunDetail,
     get_workflow_run,
     get_workflow_run_state_by_thread_id,
 )
 from lib.workflows.human_approval.state import HumanApprovalConfig
-from lib.workflows.models import WorkflowRunType
 from lib.workflows.registry import get_workflow_manifest
-from lib.workflows.types import WorkflowConfig
+from lib.workflows.workflow_types import WorkflowConfig
 
 router = APIRouter(tags=["workflows"])
 
@@ -37,18 +33,6 @@ async def start_workflow(
     user: User = Depends(get_current_user),
 ):
     """Start a workflow"""
-
-    # TODO: Remove this once we have a proper project creation flow and/or move the
-    # reference downloader to tool inside a project
-    if (
-        request.project_id is None
-        and request.type == WorkflowRunType.REFERENCE_DOWNLOADER
-    ):
-        project = await create_project(
-            title=f"Reference Downloader {datetime.utcnow():%Y-%m-%d %H:%M UTC}",
-            user=user,
-        )
-        request.project_id = str(project.id)
 
     workflow_run_id = await start_workflow_run(
         config=request, user=user, background_tasks=background_tasks

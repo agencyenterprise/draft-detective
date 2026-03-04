@@ -17,11 +17,13 @@ from lib.workflows.decorators import register_node
 logger = logging.getLogger(__name__)
 
 # Mark all tests in this module as diagnostic (skipped by default)
-pytestmark = pytest.mark.skip(reason="Diagnostic tests - run explicitly with -m diagnostic")
+pytestmark = pytest.mark.skip(
+    reason="Diagnostic tests - run explicitly with -m diagnostic"
+)
 
 
 @pytest.mark.asyncio
-@patch('lib.workflows.decorators.create_and_start_progress')
+@patch("lib.workflows.decorators.create_and_start_progress")
 async def test_diagnostic_check_decorator_receives_workflow_run_id(mock_create):
     """Diagnostic: Check if decorator receives workflow_run_id correctly and converts string to UUID."""
 
@@ -50,14 +52,16 @@ async def test_diagnostic_check_decorator_receives_workflow_run_id(mock_create):
     await test_node(mock_state, mock_runtime)
 
     # Check if create_and_start_progress was called
-    assert mock_create.called, "Progress tracking not triggered - workflow_run_id not detected"
+    assert (
+        mock_create.called
+    ), "Progress tracking not triggered - workflow_run_id not detected"
 
     # Verify it was called with a UUID object (converted from string)
-    called_workflow_run_id = mock_create.call_args[1]['workflow_run_id']
+    called_workflow_run_id = mock_create.call_args[1]["workflow_run_id"]
     assert isinstance(called_workflow_run_id, uuid.UUID)
     assert str(called_workflow_run_id) == workflow_run_id_str
-    assert mock_create.call_args[1]['name'] == "Diagnostic Node"
-    assert mock_create.call_args[1]['level'] == ProgressLevel.NODE
+    assert mock_create.call_args[1]["name"] == "Diagnostic Node"
+    assert mock_create.call_args[1]["level"] == ProgressLevel.NODE
 
 
 @pytest.mark.asyncio
@@ -71,11 +75,16 @@ async def test_diagnostic_check_real_node_signature():
     # Check if it matches our expectations
     assert len(params) == 2, f"Expected 2 params, got {len(params)}"
     assert params[0] == "state", f"First param should be 'state', got '{params[0]}'"
-    assert params[1] == "runtime", f"Second param should be 'runtime', got '{params[1]}'"
+    assert (
+        params[1] == "runtime"
+    ), f"Second param should be 'runtime', got '{params[1]}'"
 
 
 @pytest.mark.asyncio
-@patch('lib.workflows.decorators.create_and_start_progress', side_effect=Exception("TEST: This should be caught"))
+@patch(
+    "lib.workflows.decorators.create_and_start_progress",
+    side_effect=Exception("TEST: This should be caught"),
+)
 async def test_diagnostic_check_error_handling(mock_create):
     """Diagnostic: Check if progress tracking errors are handled gracefully."""
 
@@ -88,7 +97,7 @@ async def test_diagnostic_check_error_handling(mock_create):
     # Create mocks
     mock_state = Mock()
     mock_state.config = Mock()
-    mock_state.config.project_id = None
+    mock_state.config.project_id = "test-project"
     mock_state.config.agents_to_run = None
 
     mock_runtime = Mock()
@@ -100,4 +109,3 @@ async def test_diagnostic_check_error_handling(mock_create):
 
     # Check that the node still executed successfully
     assert result == {"result": "success"}
-

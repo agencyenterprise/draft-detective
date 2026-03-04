@@ -123,7 +123,7 @@ export function AboutAuthorsResults({
   const aboutAuthorsRun = getWorkflowRunByType(project.workflow_runs ?? [], WorkflowRunType.AboutAuthors);
 
   if (!aboutAuthorsRun) {
-    return <EmptyState message="About Authors analysis has not been run." />;
+    return <EmptyState message="About the Authors analysis has not been run." />;
   }
 
   if (isWorkflowProcessing(aboutAuthorsRun)) {
@@ -131,7 +131,7 @@ export function AboutAuthorsResults({
       <EmptyState
         icon={<Loader2 className="h-8 w-8 animate-spin text-muted-foreground mx-auto" />}
         message="Analyzing Author Biographies..."
-        description="The About Authors analysis is currently running. Results will appear here once complete."
+        description="The About the Authors analysis is currently running. Results will appear here once complete."
       />
     );
   }
@@ -177,7 +177,7 @@ function AboutAuthorsContent({
       <ValidationSummaryCard
         stats={stats}
         allPassedTitle="All Author Biographies Pass Validation"
-        defaultTitle="About Authors Validation"
+        defaultTitle="About the Authors Validation"
         allPassedDescription={`${stats.total} author${stats.total !== 1 ? 's' : ''} validated against publication rules`}
         defaultDescription={`Validates author biographies against ${RULE_CONFIG.length} publication rules: sentence count, position/affiliation, TASP statement, research focus, and highest degree.`}
       />

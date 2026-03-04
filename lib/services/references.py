@@ -112,7 +112,8 @@ async def _get_file_matching_workflow_state(
     ]
 
     default_state = ReferenceFileMatchingState(
-        config=ReferenceFileMatchingConfig(),
+        type=WorkflowRunType.REFERENCE_FILE_MATCHING,
+        config=ReferenceFileMatchingConfig(project_id=project_id),
         file_id=file_id,
         supporting_file_ids=supporting_file_ids,
         matches=[],

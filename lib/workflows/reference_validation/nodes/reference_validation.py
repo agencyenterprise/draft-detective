@@ -1,7 +1,7 @@
 import logging
 
 from langgraph.runtime import Runtime
-from langgraph.types import Send
+from langgraph.types import Overwrite, Send
 
 from lib.agents.reference_validator import ReferenceValidatorAgent
 from lib.workflows.context import ContextSchema
@@ -39,7 +39,8 @@ async def initialize_validations(
         for ref in references
     ]
 
-    return {"reference_validations": pending_results}
+    # Overwrite is needed in case reference_ids changed since last run
+    return {"reference_validations": Overwrite(pending_results)}
 
 
 @register_node(
