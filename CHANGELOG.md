@@ -6,6 +6,33 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v0.5.16] - 2026-03-04
+
+### Added
+- Added a dedicated `lib/services/project_zip.py` module for project ZIP creation with smart per-file compression and async thread offloading.
+- Added a shared `lib/services/uuid_utils.py` utility module containing the `ensure_uuid` helper.
+- Added `tests/unit/test_project_zip.py` with unit tests covering compression selection, archive building behaviors, and the async ZIP creation orchestrator.
+- Added an `is_manual` boolean field to `ReferenceFileMatch` to distinguish manual matches from automatic ones.
+- Added tests in `test_match_supporting_docs.py` to verify already-matched references are skipped and the matcher is not invoked when all references are matched.
+
+### Changed
+- Updated `lib/services/files.py` to remove ZIP creation code and accept an optional `roles` filter in `get_files_by_project_id` to push role filtering to the DB query.
+- Updated `api/routers/projects.py` imports to use the new `project_zip` module.
+- Updated `manifest.py` so `create_initial_state` loads and carries forward existing matches from a prior `REFERENCE_FILE_MATCHING` state.
+- Updated `match_supporting_docs.py` to preserve existing matches by skipping already-matched references and appending new matches, tagging automatic matches as `is_manual=False`.
+- Updated `references.py` so `add_file_to_reference` sets `is_manual=True` for user-created matches.
+- Changed the `MAIN_FILE_CONVERTER` default from `"docling"` to `"markitdown"`.
+
+### Removed
+- Removed all docling-serve integration code, configuration, and infrastructure from the codebase.
+- Deleted `lib/services/converters/docling.py` and `lib/services/converters/docling_zip_processor.py`.
+- Removed the `elif converter == "docling"` branch from `lib/services/converters/base.py`.
+- Removed `DOCLING_SERVE_API_URL` and `DOCLING_SERVE_API_KEY` fields and the `validate_docling_serve_api` validator from `lib/config/env.py`.
+- Removed the `docling-serve` service from `docker-compose.yml` and deleted `k8s/docling.yaml`.
+- Removed docling entries from `k8s/configmap.yaml` and `k8s/network-policy.yaml`, and removed docling environment variables from `.env.template`.
+- Updated `docs/index.md`, `docs/railway-deployment.md`, and `k8s/README.md` to remove docling references, and cleaned up a comment in `.github/workflows/backend.yml`.
+
+
 ## [v0.5.15] - 2026-03-04
 
 ### Added
