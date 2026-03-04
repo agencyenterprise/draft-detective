@@ -19,7 +19,7 @@ class AboutAuthorsManifest(
     WorkflowManifest[AboutAuthorsState, AboutAuthorsWorkflowConfig]
 ):
     type = WorkflowRunType.ABOUT_AUTHORS
-    name = "About Authors"
+    name = "About the Authors"
     description = (
         "Validate author biographies against publication rules: "
         "sentence count, position/affiliation, TASP statement, research focus, and highest degree."
