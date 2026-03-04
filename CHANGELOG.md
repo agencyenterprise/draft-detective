@@ -6,6 +6,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v0.5.15] - 2026-03-04
+
+### Added
+- Propagated `user_id` to Langfuse tracing context during workflow execution.
+
+### Changed
+- Made `project_id` a required field across the workflow system and updated related API response typing.
+- Renamed ambiguous backend `types.py` modules for clarity and updated imports accordingly.
+- Renamed the "About Authors" analysis type display name to "About the Authors" in both backend and frontend UI strings.
+- Simplified frontend `ProjectsList` and `ProjectCard` components by removing tool-specific UI logic and unnecessary wrapper nesting.
+
+### Fixed
+- Fixed a runtime crash in the About the Authors workflow by syncing the default `workflow_config.yaml` rules with the `AuthorValidationResult` model.
+
+### Removed
+- Removed the standalone Tools section from the application and consolidated access around the project-based workflow.
+- Removed `/tools` pages and supporting frontend modules related to tool definitions, URL-based project syncing, tool-specific workflow polling, and project type filtering.
+- Removed the backend auto-project-creation workaround for Reference Downloader workflows that ran outside a project context.
+- Removed the Reference Downloader link from the analysis form’s supporting documents section.
+
+
 ## [v0.5.14] - 2026-03-03
 
 ### Added
