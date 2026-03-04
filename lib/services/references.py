@@ -270,7 +270,7 @@ async def add_file_to_reference(
         # Remove any existing match for this reference_id, then add the new one
         updated_matches = [m for m in state.matches if m.reference_id != reference_id]
         updated_matches.append(
-            ReferenceFileMatch(reference_id=reference_id, file_id=file_id)
+            ReferenceFileMatch(reference_id=reference_id, file_id=file_id, is_manual=True)
         )
 
         # Update the state using LangGraph

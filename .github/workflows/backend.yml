@@ -48,9 +48,6 @@ jobs:
           AUTH_SECRET: test-secret-key-for-ci
           # File uploads (temporary directory for tests)
           FILE_UPLOADS_MOUNT_PATH: /tmp/test-uploads
-          # File conversion (use markitdown to avoid docling API requirements)
-          MAIN_FILE_CONVERTER: markitdown
-          SUPPORTING_FILE_CONVERTER: markitdown
           # Optional - use secrets if available for LLM tests
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           # Optional Langfuse tracing

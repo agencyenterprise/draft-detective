@@ -149,7 +149,22 @@ async def match_supporting_docs_node(
 
     if not extracted_references:
         logger.info("No extracted references to match")
-        return {"matches": []}
+        return {"matches": state.matches}
+
+    # Skip references that already have a match (manual or automatic)
+    already_matched_ids = {match.reference_id for match in state.matches}
+    unmatched_references = [
+        ref for ref in extracted_references if ref.id not in already_matched_ids
+    ]
+
+    if not unmatched_references:
+        logger.info("All references already matched, skipping matching")
+        return {"matches": state.matches}
+
+    logger.info(
+        f"{len(already_matched_ids)} references already matched, "
+        f"{len(unmatched_references)} remaining to match"
+    )
 
     # Build summaries list for supporting documents
     summaries: List[FileSummary] = [
@@ -158,7 +173,7 @@ async def match_supporting_docs_node(
     ]
 
     # Extract reference texts for matching
-    reference_texts = [ref.text for ref in extracted_references]
+    reference_texts = [ref.text for ref in unmatched_references]
 
     logger.info(
         f"Matching {len(reference_texts)} references "
@@ -172,17 +187,23 @@ async def match_supporting_docs_node(
     else:
         match_results = [None] * len(reference_texts)
 
-    # Build ReferenceFileMatch objects only for matched references
-    matches: List[ReferenceFileMatch] = []
+    # Build ReferenceFileMatch objects only for newly matched references
+    new_matches: List[ReferenceFileMatch] = []
     matched_count = 0
 
-    for ref, file_id in zip(extracted_references, match_results):
+    for ref, file_id in zip(unmatched_references, match_results):
         if file_id is not None:
             matched_count += 1
-            matches.append(ReferenceFileMatch(reference_id=ref.id, file_id=file_id))
+            new_matches.append(
+                ReferenceFileMatch(
+                    reference_id=ref.id,
+                    file_id=file_id,
+                    is_manual=False,
+                )
+            )
 
     logger.info(
-        f"Matched {matched_count}/{len(extracted_references)} references to documents"
+        f"Matched {matched_count}/{len(unmatched_references)} remaining references to documents"
     )
 
-    return {"matches": matches}
+    return {"matches": state.matches + new_matches}

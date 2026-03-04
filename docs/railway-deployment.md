@@ -51,14 +51,6 @@ LANGFUSE_PUBLIC_KEY=<your-public-key>
 
 # Custom workflow configuration (see below)
 WORKFLOW_CONFIG_PATH=/app/config/workflow_config.yaml
-
-# File converters (defaults shown)
-MAIN_FILE_CONVERTER=markitdown
-SUPPORTING_FILE_CONVERTER=markitdown
-
-# If using Docling for better PDF parsing
-DOCLING_SERVE_API_URL=<docling-service-url>
-DOCLING_SERVE_API_KEY=<docling-api-key>
 ```
 
 #### Frontend Service
@@ -129,8 +121,6 @@ The backend health endpoint is `/api/health`. If health checks fail:
 | `DATABASE_URL` | ✅ | - | PostgreSQL connection string |
 | `FRONTEND_URL` | ✅ | `http://localhost:3000` | Frontend URL for share links |
 | `WORKFLOW_CONFIG_PATH` | ❌ | Built-in config | Path to custom workflow YAML |
-| `MAIN_FILE_CONVERTER` | ❌ | `docling` | Converter for main documents |
-| `SUPPORTING_FILE_CONVERTER` | ❌ | `markitdown` | Converter for supporting docs |
 | `LANGFUSE_*` | ❌ | - | Langfuse observability config |
 | `LANGGRAPH_MAX_CONCURRENCY` | ❌ | `30` | Max parallel workflow nodes |
 

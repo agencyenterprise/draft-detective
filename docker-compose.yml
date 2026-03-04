@@ -23,19 +23,6 @@ services:
     networks:
       - app_network
 
-  docling-serve:
-    image: quay.io/docling-project/docling-serve
-    container_name: docling-serve
-    restart: unless-stopped
-    ports:
-      - "5001:5001"
-    networks:
-      - app_network
-    environment:
-      - DOCLING_SERVE_API_KEY=docling-serve-api-key-secret
-      - DOCLING_SERVE_ENABLE_UI=true
-      - DOCLING_SERVE_ENG_LOC_NUM_WORKERS=4
-
   # Backend Application Service
   api:
     build:

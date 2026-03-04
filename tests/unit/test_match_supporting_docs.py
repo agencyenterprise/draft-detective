@@ -17,6 +17,7 @@ from lib.workflows.reference_file_matching.nodes.match_supporting_docs import (
     _resolve_match,
     match_supporting_docs_node,
 )
+from lib.workflows.reference_file_matching.state import ReferenceFileMatch
 
 EMBEDDING_MATCHER_PATH = "lib.workflows.reference_file_matching.nodes.match_supporting_docs.ReferenceEmbeddingMatcher"
 BATCHED_MATCHER_PATH = "lib.workflows.reference_file_matching.nodes.match_supporting_docs.BatchedReferenceMatcherAgent"
@@ -131,9 +132,10 @@ def mock_runtime():
 
 @pytest.fixture
 def mock_state():
-    def _create(supporting_file_ids=None):
+    def _create(supporting_file_ids=None, matches=None):
         state = MagicMock()
         state.supporting_file_ids = supporting_file_ids or []
+        state.matches = matches or []
         state.config = None
         return state
 
@@ -284,6 +286,54 @@ class TestMatchSupportingDocsNode:
         runtime = mock_runtime(extracted_refs=[])
         result = await match_supporting_docs_node(state, runtime)
         assert result["matches"] == []
+
+    @pytest.mark.asyncio
+    async def test_skips_already_matched_references(self, mock_state, mock_runtime):
+        """References already in state.matches must not be re-matched, and their matches must be preserved."""
+        summaries = {0: make_summary("Paper B", "Jones", "2021", file_id="file-id-0")}
+        extracted_refs = make_extracted_refs(["Already matched ref", "New unmatched ref"])
+        existing_match = ReferenceFileMatch(
+            reference_id="ref-0", file_id="file-id-0", is_manual=True
+        )
+        state = mock_state(supporting_file_ids=["file-id-0"], matches=[existing_match])
+        runtime = mock_runtime(summaries=summaries, extracted_refs=extracted_refs)
+
+        with mock_two_stage_matching(
+            candidates_per_ref=[[make_candidate(0, summaries[0], file_id="file-id-0")]],
+            matches=[make_match(0, "A")],
+        ):
+            result = await match_supporting_docs_node(state, runtime)
+
+        assert len(result["matches"]) == 2
+        ref_ids = {m.reference_id for m in result["matches"]}
+        assert "ref-0" in ref_ids
+        assert "ref-1" in ref_ids
+        # Manual match must be preserved unchanged
+        manual = next(m for m in result["matches"] if m.reference_id == "ref-0")
+        assert manual.is_manual is True
+        assert manual.file_id == "file-id-0"
+
+    @pytest.mark.asyncio
+    async def test_all_refs_already_matched_skips_matching(
+        self, mock_state, mock_runtime
+    ):
+        """When all references are already matched, the two-stage matching is not invoked."""
+        extracted_refs = make_extracted_refs(["Already matched ref"])
+        existing_match = ReferenceFileMatch(
+            reference_id="ref-0", file_id="file-id-0", is_manual=False
+        )
+        state = mock_state(supporting_file_ids=["file-id-0"], matches=[existing_match])
+        runtime = mock_runtime(extracted_refs=extracted_refs)
+
+        with mock_two_stage_matching(candidates_per_ref=[], matches=[]) as (
+            MockEmbed,
+            MockBatched,
+        ):
+            result = await match_supporting_docs_node(state, runtime)
+
+        # Existing match preserved, no new matching run
+        assert result["matches"] == [existing_match]
+        MockEmbed.return_value.find_candidates.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_no_summaries(self, mock_state, mock_runtime):
