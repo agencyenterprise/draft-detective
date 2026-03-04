@@ -63,13 +63,24 @@ class ReferenceFileMatchingManifest(
         """
         Create initial state from REFERENCE_EXTRACTION dependency.
 
-        Gets file IDs from existing workflow states.
+        Gets file IDs from existing workflow states and preserves any existing
+        matches so that already-matched references are not re-processed.
         """
+        existing_matching_state = get_state_by_type(
+            WorkflowRunType.REFERENCE_FILE_MATCHING, existing_states
+        )
+        existing_matches = (
+            cast(ReferenceFileMatchingState, existing_matching_state).matches
+            if existing_matching_state is not None
+            else []
+        )
+
         return ReferenceFileMatchingState(
             type=WorkflowRunType.REFERENCE_FILE_MATCHING,
             config=config,
             file_id=get_main_file_id(existing_states),
             supporting_file_ids=get_supporting_file_ids(existing_states),
+            matches=existing_matches,
         )
 
     def convert_state_to_issues(
