@@ -16,6 +16,10 @@ class ReferenceFileMatch(BaseModel):
 
     reference_id: str = Field(description="ID of the ExtractedReference")
     file_id: str = Field(description="ID of the matched supporting file")
+    is_manual: bool = Field(
+        default=False,
+        description="Whether this match was manually created by a user",
+    )
 
 
 class ReferenceFileMatchingConfig(BaseWorkflowConfig):
