@@ -2,7 +2,7 @@ import os
 from typing import Optional
 
 from dotenv import load_dotenv
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field
 
 load_dotenv()
 
@@ -63,44 +63,6 @@ class Config(BaseModel):
         description="Base URL for the frontend application (used for share links)",
     )
 
-    # File conversion
-    MAIN_FILE_CONVERTER: str = Field(
-        default="docling",
-        description="The converter to use for main document conversion ('markitdown' or 'docling')",
-    )
-    SUPPORTING_FILE_CONVERTER: str = Field(
-        default="markitdown",
-        description="The converter to use for supporting documents conversion ('markitdown' or 'docling')",
-    )
-    DOCLING_SERVE_API_URL: Optional[str] = Field(
-        default=None,
-        description="Base URL for the docling-serve API (required when using docling converter)",
-    )
-    DOCLING_SERVE_API_KEY: Optional[str] = Field(
-        default=None,
-        description="API key for the docling-serve API (required when using docling converter)",
-    )
-
-    @model_validator(mode="after")
-    def validate_docling_serve_api(self):
-        # Check if docling is used for either main or supporting files
-        uses_docling = (
-            self.MAIN_FILE_CONVERTER == "docling"
-            or self.SUPPORTING_FILE_CONVERTER == "docling"
-        )
-
-        if uses_docling and not self.DOCLING_SERVE_API_URL:
-            raise ValueError(
-                "DOCLING_SERVE_API_URL must be provided when using docling converter"
-            )
-
-        if uses_docling and not self.DOCLING_SERVE_API_KEY:
-            raise ValueError(
-                "DOCLING_SERVE_API_KEY must be provided when using docling converter"
-            )
-
-        return self
-
 
 config = Config(
     OPENAI_API_KEY=os.getenv("OPENAI_API_KEY"),
@@ -117,10 +79,6 @@ config = Config(
     UPLOAD_CHUNK_SIZE=int(os.getenv("UPLOAD_CHUNK_SIZE", str(5 * 1024 * 1024))),
     UPLOAD_SESSION_TTL_HOURS=int(os.getenv("UPLOAD_SESSION_TTL_HOURS", "24")),
     FRONTEND_URL=os.getenv("FRONTEND_URL", "http://localhost:3000"),
-    MAIN_FILE_CONVERTER=os.getenv("MAIN_FILE_CONVERTER", "docling"),
-    SUPPORTING_FILE_CONVERTER=os.getenv("SUPPORTING_FILE_CONVERTER", "markitdown"),
-    DOCLING_SERVE_API_URL=os.getenv("DOCLING_SERVE_API_URL"),
-    DOCLING_SERVE_API_KEY=os.getenv("DOCLING_SERVE_API_KEY"),
     DATABASE_URL=os.getenv("DATABASE_URL"),
     POSTGRES_HOST=os.getenv("POSTGRES_HOST"),
     POSTGRES_PORT=os.getenv("POSTGRES_PORT"),

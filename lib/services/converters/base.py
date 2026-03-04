@@ -17,7 +17,7 @@ async def convert_to_markdown(file_path: str, converter: str = "markitdown") -> 
 
     Args:
         file_path: Path to the file to convert
-        converter: The converter to use ('markitdown' or 'docling')
+        converter: The converter to use ('markitdown')
 
     Returns:
         Markdown string
@@ -36,10 +36,8 @@ async def convert_to_markdown(file_path: str, converter: str = "markitdown") -> 
 
         return await markitdown_converter.convert_to_markdown(file_path)
 
-    elif converter == "docling":
-        from lib.services.converters.docling import docling_converter
-
-        return await docling_converter.convert_to_markdown(file_path)
-
     else:
-        raise ValueError(f"Invalid file converter: {converter}")
+        raise ValueError(
+            f"Invalid file converter: '{converter}'. "
+            f"The only supported converter is 'markitdown'."
+        )

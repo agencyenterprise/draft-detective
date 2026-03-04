@@ -1,6 +1,6 @@
 # AI Reviewer - Kubernetes Deployment
 
-Simple, plug-and-play Kubernetes deployment for AI Reviewer.  
+Simple, plug-and-play Kubernetes deployment for AI Reviewer.
 **Optimized for OpenShift** with support for vanilla Kubernetes.
 
 ## Prerequisites
@@ -45,6 +45,7 @@ cp env.template .env
 ### 3. Deploy to Cluster
 
 **OpenShift:**
+
 ```bash
 oc create namespace ai-reviewer
 oc create secret generic app-secrets --from-env-file=.env -n ai-reviewer
@@ -55,13 +56,13 @@ oc get routes -n ai-reviewer
 ```
 
 **Vanilla Kubernetes:**
+
 ```bash
 kubectl create namespace ai-reviewer
 kubectl create secret generic app-secrets --from-env-file=.env -n ai-reviewer
 
 # Apply all manifests (OpenShift Routes will be ignored)
 kubectl apply -f configmap.yaml -f database.yaml -f api.yaml -f frontend.yaml -n ai-reviewer
-> If you want to run docling, run -f docling.yaml
 
 # Access via port-forward
 kubectl port-forward -n ai-reviewer svc/frontend 3000:3000
@@ -71,25 +72,30 @@ kubectl port-forward -n ai-reviewer svc/frontend 3000:3000
 ## Platform-Specific Notes
 
 ### OpenShift
+
 - Routes are automatically created for external access
 - Network policies work out of the box
 - Default storage class is used automatically
 - No additional configuration needed
 
 ### AWS EKS
+
 ```bash
 # Optional: Use specific storage class
 sed -i 's|# storageClassName: ""|storageClassName: "gp3"|' database.yaml api.yaml
 ```
 
 ### Google GKE
+
 ```bash
 # Optional: Use specific storage class
 sed -i 's|# storageClassName: ""|storageClassName: "standard"|' database.yaml api.yaml
 ```
 
 ### Vanilla Kubernetes with Ingress
+
 Save this as `ingress.yaml` and apply separately:
+
 ```yaml
 apiVersion: networking.k8s.io/v1
 kind: Ingress
@@ -98,35 +104,37 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-  - host: ai-reviewer.yourdomain.com
-    http:
-      paths:
-      - path: /api
-        pathType: Prefix
-        backend:
-          service: {name: api, port: {number: 8000}}
-      - path: /
-        pathType: Prefix
-        backend:
-          service: {name: frontend, port: {number: 3000}}
+    - host: ai-reviewer.yourdomain.com
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service: { name: api, port: { number: 8000 } }
+          - path: /
+            pathType: Prefix
+            backend:
+              service: { name: frontend, port: { number: 3000 } }
 ```
 
 ## Common Operations
 
 **View logs:**
+
 ```bash
 kubectl logs -f deployment/api -n ai-reviewer
 kubectl logs -f deployment/frontend -n ai-reviewer
-kubectl logs -f deployment/docling-serve -n ai-reviewer
 ```
 
 **Check status:**
+
 ```bash
 kubectl get pods -n ai-reviewer
 kubectl get all -n ai-reviewer
 ```
 
 **Update environment variables:**
+
 ```bash
 kubectl create secret generic app-secrets --from-env-file=.env \
   --dry-run=client -o yaml -n ai-reviewer | kubectl apply -f -
@@ -134,6 +142,7 @@ kubectl rollout restart deployment/api -n ai-reviewer
 ```
 
 **Database backup:**
+
 ```bash
 kubectl exec deployment/db -n ai-reviewer -- \
   pg_dump -U ai_reviewer_user ai_reviewer > backup-$(date +%Y%m%d).sql
@@ -142,22 +151,25 @@ kubectl exec deployment/db -n ai-reviewer -- \
 ## Optional: Network Security
 
 For production, apply network policies to restrict pod-to-pod traffic:
+
 ```bash
 kubectl apply -f network-policy.yaml -n ai-reviewer
 ```
 
-**Note:** Requires a CNI plugin that supports NetworkPolicy (Calico, Cilium, Weave).  
+**Note:** Requires a CNI plugin that supports NetworkPolicy (Calico, Cilium, Weave).
 OpenShift has this by default.
 
 ## Troubleshooting
 
 **Pods not starting:**
+
 ```bash
 kubectl describe pod -l app=api -n ai-reviewer
 kubectl logs -l app=api -n ai-reviewer
 ```
 
 **Image pull errors:**
+
 ```bash
 # Verify image names in manifests match your registry
 grep "image:" api.yaml frontend.yaml
@@ -168,13 +180,14 @@ kubectl create secret docker-registry regcred \
   --docker-username=your-username \
   --docker-password=your-password \
   -n ai-reviewer
-  
+
 # Add to deployments under spec.template.spec:
 #   imagePullSecrets:
 #   - name: regcred
 ```
 
 **Database connection issues:**
+
 ```bash
 kubectl logs deployment/api -n ai-reviewer | grep -i database
 kubectl exec -it deployment/db -n ai-reviewer -- psql -U ai_reviewer_user -d ai_reviewer
@@ -182,50 +195,21 @@ kubectl exec -it deployment/db -n ai-reviewer -- psql -U ai_reviewer_user -d ai_
 
 ## What's Deployed
 
-| Component | Description | Port |
-|-----------|-------------|------|
-| **frontend** | Next.js UI | 3000 |
-| **api** | FastAPI backend with auto-migrations | 8000 |
-| **db** | PostgreSQL 16 + pgvector | 5432 |
-| **docling-serve** | Document conversion service (optional) | 5001 |
+| Component    | Description                          | Port |
+| ------------ | ------------------------------------ | ---- |
+| **frontend** | Next.js UI                           | 3000 |
+| **api**      | FastAPI backend with auto-migrations | 8000 |
+| **db**       | PostgreSQL 16 + pgvector             | 5432 |
 
 **Persistent Storage:**
+
 - Database data: 20Gi
 - API uploads: 20Gi
-
-## Docling-serve (Document Conversion)
-
-Docling-serve provides advanced document conversion (PDF, DOCX, etc.) with OCR and table extraction.
-
-**File Converter Configuration:**
-
-The system now supports separate converters for main documents and supporting documents:
-
-- `MAIN_FILE_CONVERTER`: Converter for the main document (default: `docling`)
-  - `docling` is recommended for proper heading extraction and reference detection
-- `SUPPORTING_FILE_CONVERTER`: Converter for supporting documents (default: `markitdown`)
-  - `markitdown` is faster and sufficient for supporting materials
-
-**Enabling Docling:**
-
-1. Add `DOCLING_SERVE_API_KEY` to your `.env` file (or app-secrets)
-2. Update `api-config` ConfigMap to set the converters:
-   ```bash
-   kubectl edit configmap api-config -n ai-reviewer
-   # Set MAIN_FILE_CONVERTER: "docling" for main documents
-   # Set SUPPORTING_FILE_CONVERTER: "markitdown" (or "docling") for supporting docs
-   ```
-3. Restart the API deployment:
-   ```bash
-   kubectl rollout restart deployment/api -n ai-reviewer
-   ```
-
-**Note:** Docling-serve requires more resources (1-4GB RAM). For production, consider scaling resources in `docling.yaml`.
 
 ## Clean Up
 
 Remove everything:
+
 ```bash
 kubectl delete namespace ai-reviewer
 ```
-
