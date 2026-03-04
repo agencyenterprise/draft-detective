@@ -12,7 +12,8 @@ from lib.models.file import File, FileRole
 from lib.models.project import Project
 from lib.models.user import User
 from lib.services.docx_workflow_service import DocxManipulatorType, get_or_generate_docx
-from lib.services.files import create_project_files_zip, delete_project_files
+from lib.services.files import delete_project_files
+from lib.services.project_zip import create_project_files_zip
 from lib.services.projects import (
     ProjectDetailed,
     ProjectListItem,

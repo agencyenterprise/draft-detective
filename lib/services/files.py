@@ -1,9 +1,7 @@
-import io
 import logging
 import os
 import uuid
-import zipfile
-from typing import Any, List, Optional, Sequence, Tuple
+from typing import Any, List, Optional, Sequence
 
 from fastapi import HTTPException
 from sqlalchemy import func, or_, select, update
@@ -11,10 +9,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import col
 
 from lib.config.database import get_async_db_session
-from lib.config.env import config
 from lib.models.file import File, FileListItem, FileRole
 from lib.models.project import Project
 from lib.services.file import FileDocument, create_file_document_from_path
+from lib.services.uuid_utils import ensure_uuid
 
 logger = logging.getLogger(__name__)
 
@@ -40,21 +38,6 @@ def _sanitize_for_postgres(value: Any) -> Any:
         return [_sanitize_for_postgres(item) for item in value]
     else:
         return value
-
-
-def _normalize_uuid(value: uuid.UUID | str, field_name: str) -> uuid.UUID:
-    """
-    Ensure a UUID value is actually a uuid.UUID, returning 400 on bad formats.
-    """
-    if isinstance(value, uuid.UUID):
-        return value
-
-    try:
-        return uuid.UUID(value)
-    except (ValueError, AttributeError, TypeError):
-        raise HTTPException(
-            status_code=400, detail=f"Invalid {field_name} format: {value}"
-        )
 
 
 async def create_file_record(
@@ -119,7 +102,7 @@ async def get_file_by_id(file_id: uuid.UUID | str) -> File:
     Raises:
         HTTPException: 404 if file not found
     """
-    file_id = _normalize_uuid(file_id, "file ID")
+    file_id = ensure_uuid(file_id, "file ID")
 
     async with get_async_db_session() as session:
         stmt = select(File).where(col(File.id) == file_id)
@@ -132,13 +115,18 @@ async def get_file_by_id(file_id: uuid.UUID | str) -> File:
         return file
 
 
-async def get_files_by_project_id(project_id: uuid.UUID | str) -> List[File]:
+async def get_files_by_project_id(
+    project_id: uuid.UUID | str,
+    roles: Optional[List[FileRole]] = None,
+) -> List[File]:
     """
-    Get all files by project ID.
+    Get all files by project ID, optionally filtered by role.
     """
-    project_id = _normalize_uuid(project_id, "project ID")
+    project_id = ensure_uuid(project_id, "project ID")
     async with get_async_db_session() as session:
         stmt = select(File).where(col(File.project_id) == project_id)
+        if roles is not None:
+            stmt = stmt.where(col(File.role).in_(roles))
         result = await session.execute(stmt)
         files = result.scalars().all()
         return list(files)
@@ -153,7 +141,7 @@ async def get_project_files_list_items(
     Note: Excludes SUPPORTING_CANDIDATE files as they are temporary files during
     reference downloading and should not be shown to users.
     """
-    project_id = _normalize_uuid(project_id, "project ID")
+    project_id = ensure_uuid(project_id, "project ID")
     async with get_async_db_session() as session:
         stmt = select(File).where(
             col(File.project_id) == project_id,
@@ -170,7 +158,7 @@ async def get_supporting_candidate_files(project_id: uuid.UUID | str) -> List[Fi
 
     These are files downloaded by the reference fetcher that are pending validation.
     """
-    project_id = _normalize_uuid(project_id, "project ID")
+    project_id = ensure_uuid(project_id, "project ID")
     async with get_async_db_session() as session:
         stmt = select(File).where(
             col(File.project_id) == project_id,
@@ -195,7 +183,7 @@ async def update_files_role(
         return
 
     async with get_async_db_session() as session:
-        normalized_ids = [_normalize_uuid(fid, "file ID") for fid in file_ids]
+        normalized_ids = [ensure_uuid(fid, "file ID") for fid in file_ids]
         stmt = update(File).where(col(File.id).in_(normalized_ids)).values(role=role)
         await session.execute(stmt)
         await session.commit()
@@ -216,7 +204,7 @@ async def update_file_artifacts(
         markdown: The converted markdown content (optional)
         summary: Document summary as dict (optional)
     """
-    file_id = _normalize_uuid(file_id, "file ID")
+    file_id = ensure_uuid(file_id, "file ID")
 
     async with get_async_db_session() as session:
         stmt = select(File).where(col(File.id) == file_id)
@@ -296,7 +284,7 @@ async def check_file_access(file_id: uuid.UUID | str, user_id: uuid.UUID) -> Fil
     """
 
     # Normalize ID and fail fast on invalid format to avoid DB errors
-    file_id = _normalize_uuid(file_id, "file ID")
+    file_id = ensure_uuid(file_id, "file ID")
 
     async with get_async_db_session() as session:
         stmt = (
@@ -339,7 +327,7 @@ async def check_file_access_by_share_token(
     from lib.models.project import Project
     from lib.models.share_link import ShareLink
 
-    file_id = _normalize_uuid(file_id, "file ID")
+    file_id = ensure_uuid(file_id, "file ID")
 
     async with get_async_db_session() as session:
         # Get the file and its project
@@ -388,7 +376,7 @@ async def delete_project_files(
         The number of files deleted
     """
 
-    normalized_project_id = _normalize_uuid(project_id, "project ID")
+    normalized_project_id = ensure_uuid(project_id, "project ID")
     deleted_count = 0
 
     async with get_async_db_session() as session:
@@ -449,73 +437,3 @@ def _delete_file_from_disk(
         logger.info(f"Deleted file from disk: {file_path}")
     except Exception as e:
         logger.error(f"Error deleting file from disk: {e}")
-
-
-async def create_project_files_zip(
-    project_id: uuid.UUID | str,
-    roles: Optional[List[FileRole]] = None,
-) -> Tuple[io.BytesIO, int]:
-    """
-    Create a ZIP archive containing all files for a project.
-
-    Args:
-        project_id: UUID of the project
-        roles: Optional list of file roles to filter by. If None, main and support files are included by default.
-
-    Returns:
-        Tuple of (BytesIO buffer containing the ZIP file, number of files added)
-
-    Raises:
-        HTTPException: 404 if no files found or no accessible files
-    """
-    files = await get_files_by_project_id(project_id)
-
-    # Default to main and support files if no roles are specified
-    if roles is None:
-        roles = [FileRole.MAIN, FileRole.SUPPORT]
-
-    # Filter files by roles if specified
-    if roles:
-        files = [f for f in files if f.role in roles]
-
-    if not files:
-        raise HTTPException(status_code=404, detail="No files found for this project")
-
-    # Create in-memory zip file
-    zip_buffer = io.BytesIO()
-
-    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
-        files_added = 0
-        for file in files:
-            # Security check: ensure file path is within upload mount path
-            if not file.file_path.startswith(config.FILE_UPLOADS_MOUNT_PATH):
-                logger.warning(
-                    f"Skipping file {file.id} - path outside mount path: {file.file_path}"
-                )
-                continue
-
-            # Check if file exists on disk
-            if not os.path.isfile(file.file_path):
-                logger.warning(
-                    f"Skipping file {file.id} - file not found on disk: {file.file_path}"
-                )
-                continue
-
-            try:
-                # Add file to zip using original filename
-                zip_file.write(file.file_path, f"{str(file.id)[:4]}_{file.file_name}")
-                files_added += 1
-            except Exception as e:
-                # Log error but continue with other files
-                logger.error(
-                    f"Error adding file {file.id} ({file.file_name}) to zip: {e}"
-                )
-                continue
-
-    if files_added == 0:
-        raise HTTPException(
-            status_code=404, detail="No accessible files found for this project"
-        )
-
-    zip_buffer.seek(0)
-    return zip_buffer, files_added
