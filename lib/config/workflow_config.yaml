@@ -140,12 +140,41 @@ workflows:
 
           Author description:
           {author_text}
-      rule_3_research_focus:
+      rule_3_tasp_statement:
+        name: "TASP Statement"
+        short_name: "TASP"
+        description: "If TASP fellow, must include TASP statement"
+        tasp_fellow_prompt: >-
+          Is the author described as a TASP fellow or affiliated with the TASP program?
+
+          Respond with passed=true if they are a TASP fellow, passed=false otherwise.
+
+          Author description:
+          {author_text}
+        tasp_statement_prompt: >-
+          Does the author description include a TASP statement or mention of the TASP program?
+
+          Respond with passed=true if a TASP statement is present, passed=false otherwise.
+
+          Author description:
+          {author_text}
+      rule_4_research_focus:
         name: "Research Focus"
         short_name: "Focus"
         description: "Should include research focus"
         prompt: >-
           Does the author description contain a research focus?
+
+          Respond with passed=true if present, passed=false otherwise.
+
+          Author description:
+          {author_text}
+      rule_5_highest_degree:
+        name: "Highest Degree"
+        short_name: "Degree"
+        description: "Should include highest degree"
+        prompt: >-
+          Does the author description contain the highest degree?
 
           Respond with passed=true if present, passed=false otherwise.
 
