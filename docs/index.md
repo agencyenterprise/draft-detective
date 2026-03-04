@@ -53,7 +53,7 @@ The system accepts two primary inputs: a **main document** to be reviewed and a 
 
 The system processes documents through a multi-stage pipeline implemented using LangGraph, which orchestrates a series of specialized AI agents:
 
-1. **Document Conversion**: Input documents (PDF, DOCX, Markdown) are converted to structured markdown format while preserving semantic structure. Multiple converters are supported (Markitdown, Docling).
+1. **Document Conversion**: Input documents (PDF, DOCX, Markdown) are converted to structured markdown format while preserving semantic structure using Markitdown.
 
 2. **Document Chunking**: Documents are segmented into semantically coherent chunks using NLTK-based sentence splitting with LLM fallback for complex text. The chunking process:
    - Converts documents to markdown
