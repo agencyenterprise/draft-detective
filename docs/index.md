@@ -56,6 +56,7 @@ The system processes documents through a multi-stage pipeline implemented using 
 1. **Document Conversion**: Input documents (PDF, DOCX, Markdown) are converted to structured markdown format while preserving semantic structure using Markitdown.
 
 2. **Document Chunking**: Documents are segmented into semantically coherent chunks using NLTK-based sentence splitting with LLM fallback for complex text. The chunking process:
+
    - Converts documents to markdown
    - Splits into paragraphs on double newlines
    - Splits each paragraph into sentence-level chunks using NLTK
@@ -108,6 +109,7 @@ The system processes documents through a multi-stage pipeline implemented using 
     - Recommending citation additions, replacements, or discussions
 
 12. **Citation Suggestion**: For claims lacking citations, the system suggests relevant references from the document's bibliography or external sources, considering:
+
     - Relevance to the claim
     - Source quality and credibility
     - Publication recency
@@ -122,11 +124,13 @@ The system processes documents through a multi-stage pipeline implemented using 
 For organizational compliance and quality assurance:
 
 15. **Advocacy & Tone Detection**: Uses a two-layer detection approach:
+
     - Fast procedural checks (regex patterns) for trigger words and advocacy language
     - LLM verification to confirm and contextualize flagged content
     - Detects subjective tone using TextBlob subjectivity analysis
 
 16. **Preface Validation**: Validates preface/introduction sections against configurable requirements:
+
     - Context establishment
     - Objectives explanation
     - Audience identification
@@ -179,7 +183,7 @@ The system uses GPT-5 (via LangChain) for all agent operations, configured with:
 - Structured output enforcement via Pydantic models
 - Timeout handling for reliability
 - Langfuse integration for observability and tracing
-- The LLM provider can be easily changed between OpenAI's GPT, Azure's GPT and even other providers (Anthropic, Gemini etc)
+- The LLM provider can be easily changed between OpenAI's GPT and other providers (Anthropic, Gemini, etc.). See `lib/config/llm_models.py`
 
 ### Evaluation Framework
 
@@ -197,7 +201,7 @@ Evaluation datasets are maintained in YAML format with ground truth annotations 
 
 ![Document Processing Pipeline](./architecture.png)
 
-The system follows a containerized architecture consisting of three primary containers and integration with external providers. The **App Container** hosts a NextJS frontend that provides the user interface, allowing users to interact with the system. This frontend communicates with the **Server Container**, which houses the core processing engine built on FastAPI and LangGraph. LangGraph orchestrates the agent-based workflow as a directed graph, where each node represents a specialized processing step (claim extraction, verification, citation detection, etc.). The **Database Container** runs PostgreSQL with the pgvector extension, storing workflow state, execution history, and vector embeddings for semantic search. The server container maintains bidirectional communication with the database for both workflow persistence and retrieval-augmented generation (RAG) operations. Finally, the system integrates with **External Providers** including OpenAI, Azure, Bedrock (or others) for large language model inference, as well as web search capabilities for literature review tasks. This architecture enables flexible deployment, horizontal scaling of processing components, and provider-agnostic LLM integration through a unified interface.
+The system follows a containerized architecture consisting of three primary containers and integration with external providers. The **App Container** hosts a NextJS frontend that provides the user interface, allowing users to interact with the system. This frontend communicates with the **Server Container**, which houses the core processing engine built on FastAPI and LangGraph. LangGraph orchestrates the agent-based workflow as a directed graph, where each node represents a specialized processing step (claim extraction, verification, citation detection, etc.). The **Database Container** runs PostgreSQL with the pgvector extension, storing workflow state, execution history, and vector embeddings for semantic search. The server container maintains bidirectional communication with the database for both workflow persistence and retrieval-augmented generation (RAG) operations. Finally, the system integrates with **External Providers** including OpenAI, Anthropic, Google (and others) for large language model inference, as well as web search capabilities for literature review tasks. This architecture enables flexible deployment, horizontal scaling of processing components, and provider-agnostic LLM integration through a unified interface.
 
 ## Results
 
