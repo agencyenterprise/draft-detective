@@ -9,9 +9,6 @@ load_dotenv()
 
 class Config(BaseModel):
     OPENAI_API_KEY: Optional[str]
-    OPENAI_API_VERSION: Optional[str]
-    AZURE_OPENAI_API_KEY: Optional[str]
-    AZURE_OPENAI_ENDPOINT: Optional[str]
 
     # Logging Configuration
     LOG_RICH_HANDLER: bool = Field(
@@ -66,9 +63,6 @@ class Config(BaseModel):
 
 config = Config(
     OPENAI_API_KEY=os.getenv("OPENAI_API_KEY"),
-    OPENAI_API_VERSION=os.getenv("OPENAI_API_VERSION"),
-    AZURE_OPENAI_API_KEY=os.getenv("AZURE_OPENAI_API_KEY"),
-    AZURE_OPENAI_ENDPOINT=os.getenv("AZURE_OPENAI_ENDPOINT"),
     LOG_RICH_HANDLER=os.getenv("LOG_RICH_HANDLER", "false").lower() == "true",
     LANGFUSE_HOST=os.getenv("LANGFUSE_HOST"),
     LANGFUSE_SECRET_KEY=os.getenv("LANGFUSE_SECRET_KEY"),

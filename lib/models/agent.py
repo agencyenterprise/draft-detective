@@ -77,10 +77,7 @@ class LangChainAgent(BaseAgent):
 
         # For OpenAI models: use context API key if provided, otherwise fall back to env var
         # For other providers (Anthropic, Google): always use environment variables
-        if (
-            self.model.provider in ["openai", "azure_openai"]
-            and self.context.openai_api_key
-        ):
+        if self.model.provider == "openai" and self.context.openai_api_key:
             init_kwargs["api_key"] = self.context.openai_api_key
 
         return init_kwargs

@@ -1,8 +1,4 @@
-from typing import Literal
-
 from pydantic import BaseModel
-
-from lib.config.env import config
 
 
 class LLMModel(BaseModel):
@@ -36,19 +32,12 @@ class LLMModel(BaseModel):
         return LLMModel(provider=provider, name=name)
 
 
-def get_openai_provider() -> Literal["openai", "azure_openai"]:
-    if config.AZURE_OPENAI_API_KEY and config.AZURE_OPENAI_ENDPOINT:
-        return "azure_openai"
-    else:
-        return "openai"
-
-
 # OpenAI models
-gpt_5_model = LLMModel(provider=get_openai_provider(), name="gpt-5")
-gpt_5_mini_model = LLMModel(provider=get_openai_provider(), name="gpt-5-mini")
-gpt_5_1_model = LLMModel(provider=get_openai_provider(), name="gpt-5.1")
-gpt_4_1_model = LLMModel(provider=get_openai_provider(), name="gpt-4.1")
-gpt_5_2_model = LLMModel(provider=get_openai_provider(), name="gpt-5.2")
+gpt_5_model = LLMModel(provider="openai", name="gpt-5")
+gpt_5_mini_model = LLMModel(provider="openai", name="gpt-5-mini")
+gpt_5_1_model = LLMModel(provider="openai", name="gpt-5.1")
+gpt_4_1_model = LLMModel(provider="openai", name="gpt-4.1")
+gpt_5_2_model = LLMModel(provider="openai", name="gpt-5.2")
 
 # Anthropic models
 claude_3_5_sonnet_model = LLMModel(
@@ -65,6 +54,7 @@ ALL_MODELS = {
     "gpt-5": gpt_5_model,
     "gpt-5-mini": gpt_5_mini_model,
     "gpt-5.1": gpt_5_1_model,
+    "gpt-5.2": gpt_5_2_model,
     "gpt-4.1": gpt_4_1_model,
     "claude-sonnet-4-5-20250929": claude_3_5_sonnet_model,
     "gemini-2.5-flash-lite": gemini_2_flash_model,
