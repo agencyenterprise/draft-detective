@@ -6,9 +6,6 @@ import pytest
 import yaml
 from pydantic import BaseModel, Field
 
-from lib.agents.reference_text_extractor import (
-    ReferenceTextExtractorAgent,
-)
 from lib.agents.reference_text_extractor_v2 import (
     ReferenceExtractorV2Agent,
 )
@@ -187,45 +184,10 @@ def _load_stress_test_yaml(yaml_filename: str) -> tuple[str, list[str]]:
     ],
     ids=["RAND_RRA4036-1", "RAND_RRA4636-1"],
 )
-async def test_reference_text_extractor_large_v1(
+async def test_reference_text_extractor_large(
     yaml_filename: str, case_name: str, test_models
 ):
-    """Test v1 reference text extraction from large documents."""
-    document_content, expected_references = _load_stress_test_yaml(yaml_filename)
-
-    agent = ReferenceTextExtractorAgent(create_test_context())
-    result = await agent.ainvoke(
-        prompt_kwargs={"text": document_content},
-        config={
-            "run_name": f"test::reference_extractor_v1::{case_name}",
-            "callbacks": [langfuse_handler],
-        },
-    )
-
-    comparison = compare_references_relaxed(
-        expected_references,
-        result.references,
-        similarity_threshold=SIMILARITY_THRESHOLD,
-    )
-
-    assert (
-        comparison.match_rate >= OVERALL_PASS_THRESHOLD
-    ), f"{case_name} failed:\n{format_failure_report(comparison)}"
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize(
-    "yaml_filename,case_name",
-    [
-        ("expected_RAND_RRA4036-1.yaml", "RAND_RRA4036-1"),
-        ("expected_RAND_RRA4636-1.yaml", "RAND_RRA4636-1"),
-    ],
-    ids=["RAND_RRA4036-1", "RAND_RRA4636-1"],
-)
-async def test_reference_text_extractor_large_v2(
-    yaml_filename: str, case_name: str, test_models
-):
-    """Test v2 reference text extraction from large documents."""
+    """Test reference text extraction from large documents."""
     document_content, expected_references = _load_stress_test_yaml(yaml_filename)
 
     file_artifacts_service = MockFileArtifactsService(
@@ -243,7 +205,7 @@ async def test_reference_text_extractor_large_v2(
     result = await agent.ainvoke(
         prompt_kwargs={},
         config={
-            "run_name": f"test::reference_extractor_v2::{case_name}",
+            "run_name": f"test::reference_extractor::{case_name}",
             "callbacks": [langfuse_handler],
         },
     )
