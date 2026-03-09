@@ -4561,6 +4561,85 @@ export type ResultsListResponse = {
 };
 
 /**
+ * Reviewer2Config
+ *
+ * Configuration for the Reviewer 2 workflow.
+ */
+export type Reviewer2Config = {
+  /**
+   * Project Id
+   *
+   * The ID of the project that this workflow run should be associated with
+   */
+  project_id: string;
+  /**
+   * Openai Api Key
+   *
+   * The OpenAI API key to use for this workflow execution
+   */
+  openai_api_key?: string | null;
+  /**
+   * Domain
+   *
+   * Domain context for more accurate analysis
+   */
+  domain?: string | null;
+  /**
+   * Target Audience
+   *
+   * Target audience context for analysis
+   */
+  target_audience?: string | null;
+  /**
+   * Publication Date
+   *
+   * Publication date of the document (YYYY-MM-DD format)
+   */
+  publication_date?: string | null;
+  /**
+   * Type
+   */
+  type?: 'reviewer_2';
+};
+
+/**
+ * Reviewer2State
+ *
+ * State for the Reviewer 2 workflow.
+ */
+export type Reviewer2State = {
+  /**
+   * Errors
+   *
+   * Errors that occurred during the workflow execution.
+   */
+  errors?: Array<WorkflowError>;
+  /**
+   * Type
+   */
+  type?: 'reviewer_2';
+  config: Reviewer2Config;
+  /**
+   * File Id
+   *
+   * Main document file ID
+   */
+  file_id?: string;
+  /**
+   * Peer Review Markdown
+   *
+   * The peer review document as markdown (Sections 1-4)
+   */
+  peer_review_markdown?: string | null;
+  /**
+   * Rebuttal Markdown
+   *
+   * The rebuttal document as markdown
+   */
+  rebuttal_markdown?: string | null;
+};
+
+/**
  * RuleCheckResult
  *
  * Result for a single rule check.
@@ -5023,6 +5102,7 @@ export type WorkflowRunDetail = {
     | InferenceValidationState
     | InferenceValidationV2State
     | HumanApprovalState
+    | Reviewer2State
     | null;
 };
 
@@ -5068,6 +5148,7 @@ export const WorkflowRunType = {
   AdvocacyTone: 'advocacy_tone',
   AboutAuthors: 'about_authors',
   AboutThis: 'about_this',
+  Reviewer2: 'reviewer_2',
 } as const;
 
 /**
@@ -5346,7 +5427,8 @@ export type StartWorkflowApiWorkflowsStartPostData = {
     | ResultsExtractionWorkflowConfig
     | InferenceValidationWorkflowConfig
     | InferenceValidationV2WorkflowConfig
-    | HumanApprovalConfig;
+    | HumanApprovalConfig
+    | Reviewer2Config;
   path?: never;
   query?: never;
   url: '/api/workflows/start';

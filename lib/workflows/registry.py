@@ -79,6 +79,7 @@ def register_all_workflow_manifests():
     )
     from lib.workflows.reference_validation.manifest import ReferenceValidationManifest
     from lib.workflows.results_extraction.manifest import ResultsExtractionManifest
+    from lib.workflows.reviewer_2.manifest import Reviewer2Manifest
 
     manifests = [
         DocumentProcessingManifest(),
@@ -105,6 +106,7 @@ def register_all_workflow_manifests():
         AdvocacyToneManifest(),
         AboutAuthorsManifest(),
         AboutThisManifest(),
+        Reviewer2Manifest(),
     ]
 
     for manifest in manifests:

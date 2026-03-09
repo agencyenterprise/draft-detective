@@ -91,6 +91,10 @@ from lib.workflows.results_extraction.state import (
     ResultsExtractionState,
     ResultsExtractionWorkflowConfig,
 )
+from lib.workflows.reviewer_2.state import (
+    Reviewer2Config,
+    Reviewer2State,
+)
 
 WorkflowState = (
     AboutAuthorsState
@@ -117,6 +121,7 @@ WorkflowState = (
     | InferenceValidationState
     | InferenceValidationV2State
     | HumanApprovalState
+    | Reviewer2State
 )
 
 WorkflowConfig = (
@@ -144,4 +149,5 @@ WorkflowConfig = (
     | InferenceValidationWorkflowConfig
     | InferenceValidationV2WorkflowConfig
     | HumanApprovalConfig
+    | Reviewer2Config
 )

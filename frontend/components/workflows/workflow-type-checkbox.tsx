@@ -61,6 +61,7 @@ const workflowTypeIcons: Record<WorkflowRunType, LucideIcon> = {
   [WorkflowRunType.AdvocacyTone]: MessageSquareWarning,
   [WorkflowRunType.AboutAuthors]: Users,
   [WorkflowRunType.AboutThis]: BookOpen,
+  [WorkflowRunType.Reviewer2]: BookOpen,
 };
 
 const DEFAULT_ICON = FileText;
