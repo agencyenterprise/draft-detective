@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 async def extract_text_references_v2_node(
     state: ReferenceExtractionState, runtime: Runtime[ContextSchema]
 ) -> dict:
-    """Extract references from detected sections using LLM."""
+    """Extract references from document using agentic tool calling."""
 
     agent = ReferenceExtractorV2Agent(runtime.context)
 

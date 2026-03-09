@@ -1,4 +1,4 @@
-"""Tests for the ReferenceTextExtractorAgent.
+"""Tests for the ReferenceExtractorV2Agent.
 
 Tests that the agent correctly extracts bibliographic reference text from documents.
 Matching references to supporting documents is tested separately in workflow tests.
@@ -8,10 +8,6 @@ from pathlib import Path
 
 import pytest
 
-from lib.agents.reference_text_extractor import (
-    ReferenceTextExtractorAgent,
-    ReferenceTextExtractorResponse,
-)
 from lib.agents.reference_text_extractor_v2 import (
     ReferenceExtractorV2Agent,
     ReferenceExtractorV2Output,
@@ -25,29 +21,7 @@ from tests.evals.datasets.loader import load_dataset
 TESTS_DIR = Path(__file__).parent.parent
 
 
-def _build_cases_v1() -> list[AgentTestCase]:
-    """Build test cases from YAML dataset."""
-    dataset_path = str(TESTS_DIR / "datasets" / "reference_text_extractor.yaml")
-    dataset = load_dataset(dataset_path)
-
-    cases: list[AgentTestCase] = []
-    for test_case in dataset.items:
-        cases.append(
-            AgentTestCase(
-                name=test_case.name,
-                agent=ReferenceTextExtractorAgent(create_test_context()),
-                response_model=ReferenceTextExtractorResponse,
-                prompt_kwargs={"text": test_case.input["text"]},
-                expected_dict=test_case.expected_output,
-                strict_fields=dataset.test_config.strict_fields,
-                llm_fields=dataset.test_config.llm_fields,
-            )
-        )
-
-    return cases
-
-
-def _build_cases_v2() -> list[AgentTestCase]:
+def _build_cases() -> list[AgentTestCase]:
     """Build test cases from YAML dataset."""
     dataset_path = str(TESTS_DIR / "datasets" / "reference_text_extractor.yaml")
     dataset = load_dataset(dataset_path)
@@ -65,8 +39,7 @@ def _build_cases_v2() -> list[AgentTestCase]:
             )
         )
 
-        # Transform expected_output to match new ReferenceExtractorV2Output structure
-        # The YAML has references as list of strings, but v2 expects ExtractedReferenceWithLines
+        # Transform YAML format (list of strings) to ExtractedReferenceWithLines structure
         expected_output = test_case.expected_output.copy()
         expected_output["references"] = [
             {"text": ref, "start_line": 0, "end_line": 0}
@@ -82,7 +55,9 @@ def _build_cases_v2() -> list[AgentTestCase]:
                 response_model=ReferenceExtractorV2Output,
                 prompt_kwargs={},
                 expected_dict=expected_output,
-                strict_fields={"references.text"},  # Only compare text, not line numbers
+                strict_fields={
+                    "references.text"
+                },  # Only compare text, not line numbers
                 llm_fields=dataset.test_config.llm_fields,
                 fuzzy_threshold=1.0,
                 good_match_threshold=1.0,
@@ -93,19 +68,8 @@ def _build_cases_v2() -> list[AgentTestCase]:
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("case", _build_cases_v1(), ids=lambda case: case.name)
-async def test_reference_text_extractor_basic_v1(case: AgentTestCase, test_models):
-    """Test reference text extraction from various document formats."""
-
-    await case.run(models=test_models)
-    eval_result = await case.compare_results()
-
-    assert eval_result.passed, f"{case.name}: {eval_result.rationale}"
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("case", _build_cases_v2(), ids=lambda case: case.name)
-async def test_reference_text_extractor_basic_v2(case: AgentTestCase, test_models):
+@pytest.mark.parametrize("case", _build_cases(), ids=lambda case: case.name)
+async def test_reference_text_extractor_basic(case: AgentTestCase, test_models):
     """Test reference text extraction from various document formats."""
 
     await case.run(models=test_models)

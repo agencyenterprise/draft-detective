@@ -7,13 +7,6 @@ from pydantic import BaseModel, Field
 from lib.workflows.models import BaseWorkflowConfig, BaseWorkflowState, WorkflowRunType
 
 
-class ReferenceSection(BaseModel):
-    """A detected reference/bibliography section in the document."""
-
-    start_offset: int = Field(description="Character offset where section starts")
-    end_offset: int = Field(description="Character offset where section ends")
-
-
 class ExtractedReference(BaseModel):
     """A reference extracted from the document."""
 
@@ -47,9 +40,6 @@ class ReferenceExtractionState(BaseWorkflowState):
     file_id: str = Field(description="ID of the main document")
 
     # Outputs
-    detected_sections: List[ReferenceSection] = Field(
-        default_factory=list, description="Detected reference sections"
-    )
     extracted_references: List[ExtractedReference] = Field(
         default_factory=list, description="Extracted references with unique IDs"
     )

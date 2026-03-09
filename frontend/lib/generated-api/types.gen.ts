@@ -3919,12 +3919,6 @@ export type ReferenceExtractionState = {
    */
   file_id: string;
   /**
-   * Detected Sections
-   *
-   * Detected reference sections
-   */
-  detected_sections?: Array<ReferenceSection>;
-  /**
    * Extracted References
    *
    * Extracted references with unique IDs
@@ -4172,26 +4166,6 @@ export type ReferenceMinimal = {
    * Bibliography entry formatted in the article's style; reuse the existing entry when the source is already in the bibliography
    */
   bibliography_info: string;
-};
-
-/**
- * ReferenceSection
- *
- * A detected reference/bibliography section in the document.
- */
-export type ReferenceSection = {
-  /**
-   * Start Offset
-   *
-   * Character offset where section starts
-   */
-  start_offset: number;
-  /**
-   * End Offset
-   *
-   * Character offset where section ends
-   */
-  end_offset: number;
 };
 
 /**
