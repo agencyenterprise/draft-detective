@@ -38,6 +38,7 @@ gpt_5_mini_model = LLMModel(provider="openai", name="gpt-5-mini")
 gpt_5_1_model = LLMModel(provider="openai", name="gpt-5.1")
 gpt_4_1_model = LLMModel(provider="openai", name="gpt-4.1")
 gpt_5_2_model = LLMModel(provider="openai", name="gpt-5.2")
+gpt_5_4_model = LLMModel(provider="openai", name="gpt-5.4")
 
 # Anthropic models
 claude_3_5_sonnet_model = LLMModel(
@@ -56,6 +57,7 @@ ALL_MODELS = {
     "gpt-5.1": gpt_5_1_model,
     "gpt-5.2": gpt_5_2_model,
     "gpt-4.1": gpt_4_1_model,
+    "gpt-5.4": gpt_5_4_model,
     "claude-sonnet-4-5-20250929": claude_3_5_sonnet_model,
     "gemini-2.5-flash-lite": gemini_2_flash_model,
 }

@@ -14,6 +14,7 @@ import { MethodologicalAlignmentResults } from '@/components/workflows/results/m
 import { ReferenceDownloaderResults } from '@/components/workflows/results/reference-downloader-results';
 import { ReferenceValidationResults } from '@/components/workflows/results/reference-validation-results';
 import { ResultsExtractorResults } from '@/components/workflows/results/results-extractor-results';
+import { Reviewer2Results } from '@/components/workflows/results/reviewer-2-results';
 import { ProjectDetailed, WorkflowRunDetail, WorkflowRunType } from '@/lib/generated-api';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { getCurrentRunErrors } from '@/lib/workflow-state';
@@ -86,6 +87,8 @@ function renderWorkflowResults(
           </div>
         </Callout>
       );
+    case WorkflowRunType.Reviewer2:
+      return <Reviewer2Results workflowDetail={workflowRun} />;
     case WorkflowRunType.ReferenceValidation:
       return <ReferenceValidationResults workflowDetail={workflowRun} />;
     default:
