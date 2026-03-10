@@ -220,14 +220,11 @@ async def detect_by_semantic_coherence(
     if len(filtered) <= 1:
         return (False, 0)
 
-    try:
-        from langchain_openai import OpenAIEmbeddings
-    except ImportError:
-        return detect_by_reconstruction_quality(sentences, original_paragraph or "")
+    from lib.config.llm_models import init_embeddings
 
     suspicion_score = 0
 
-    embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
+    embeddings = init_embeddings()
 
     try:
         embedded = await embeddings.aembed_documents(filtered)
