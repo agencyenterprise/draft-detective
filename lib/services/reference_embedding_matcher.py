@@ -8,14 +8,13 @@ import logging
 from typing import List, Optional
 
 import numpy as np
-from langchain_openai import OpenAIEmbeddings
 from pydantic import BaseModel
 
+from lib.config.llm_models import init_embeddings
 from lib.workflows.document_summarization.state import FileSummary
 
 logger = logging.getLogger(__name__)
 
-EMBEDDING_MODEL = "text-embedding-3-large"
 DEFAULT_TOP_K = 15
 
 
@@ -53,9 +52,7 @@ class ReferenceEmbeddingMatcher:
     """
 
     def __init__(self, openai_api_key: str):
-        self._embeddings = OpenAIEmbeddings(
-            model=EMBEDDING_MODEL, api_key=openai_api_key
-        )
+        self._embeddings = init_embeddings(api_key=openai_api_key)
         self._doc_embeddings_normalized: np.ndarray | None = None
         self._summaries: List[FileSummary] = []
 

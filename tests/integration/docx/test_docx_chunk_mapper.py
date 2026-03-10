@@ -6,9 +6,10 @@ import pytest
 from docx import Document
 
 from lib.agents.document_chunker_nltk import (
-    DocumentChunkerAgent,
+    chunk_document_nltk,
     get_chunker_result_as_langchain_documents,
 )
+from lib.agents.sentence_tokenizer import SentenceTokenizerAgent
 from lib.services.docx.chunk_mapper import create_chunk_to_paragraph_mapping
 from lib.workflows.chunk_splitting.nodes.split_into_chunks import (
     convert_validate_documents_to_chunks,
@@ -30,8 +31,8 @@ async def test_chunk_to_docx_mapping_agi_minimal():
     )
 
     context = create_test_context()
-    chunker = DocumentChunkerAgent(context=context)
-    result = await chunker.ainvoke(prompt_kwargs={"full_document": file_doc.markdown})
+    sentence_tokenizer = SentenceTokenizerAgent(context)
+    result = await chunk_document_nltk(file_doc.markdown, sentence_tokenizer)
     docs = get_chunker_result_as_langchain_documents(result)
     chunks = convert_validate_documents_to_chunks(docs)
 
@@ -214,8 +215,8 @@ async def test_add_comments_to_docx():
     )
 
     context = create_test_context()
-    chunker = DocumentChunkerAgent(context=context)
-    result = await chunker.ainvoke(prompt_kwargs={"full_document": file_doc.markdown})
+    sentence_tokenizer = SentenceTokenizerAgent(context)
+    result = await chunk_document_nltk(file_doc.markdown, sentence_tokenizer)
     docs = get_chunker_result_as_langchain_documents(result)
     chunks = convert_validate_documents_to_chunks(docs)
 

@@ -1,30 +1,22 @@
 import asyncio
-import re
 import logging
+import re
 from typing import List, Optional, Tuple
+
 import nltk
+from langchain_text_splitters import MarkdownHeaderTextSplitter
 from pydantic import BaseModel, Field
 
-from lib.agents.models import ValidatedDocument, DocumentMetadata
-from lib.models.agent import BaseAgent
-from lib.services.fragment_detection import (
-    has_suspicious_fragments,
-    DetectionMethod,
-)
-from lib.services.llm_sentence_tokenizer import (
-    llm_tokenize_paragraph,
-    FRAGMENT_DETECTION_METHOD,
-)
-from lib.workflows.context import ContextSchema
-from langchain_core.runnables.config import RunnableConfig
-
-from langchain_text_splitters import MarkdownHeaderTextSplitter
-
+from lib.agents.models import DocumentMetadata, ValidatedDocument
+from lib.agents.sentence_tokenizer import SentenceTokenizerAgent
 from lib.run_utils import MAX_CONCURRENT_TASKS
+from lib.services.fragment_detection import DetectionMethod, has_suspicious_fragments
 
 semaphore = asyncio.Semaphore(MAX_CONCURRENT_TASKS)
 
 logger = logging.getLogger(__name__)
+
+FRAGMENT_DETECTION_METHOD: DetectionMethod = "reconstruction"
 
 # Download required NLTK data
 try:
@@ -154,8 +146,8 @@ def split_into_paragraphs(text: str) -> List[str]:
 
 async def split_paragraph_into_sentences(
     paragraph: str,
+    sentence_tokenizer: SentenceTokenizerAgent,
     detection_method: Optional[DetectionMethod] = None,
-    context: ContextSchema = None,
 ) -> List[str]:
     """
     Split a paragraph into sentences using NLTK's sentence tokenizer.
@@ -163,10 +155,11 @@ async def split_paragraph_into_sentences(
     Uses a hybrid approach:
     1. Fast NLTK tokenization first
     2. Fragment detection to identify problems
-    3. LLM fallback for suspicious fragments
+    3. LLM fallback for suspicious fragments via SentenceTokenizerAgent
 
     Args:
         paragraph: The text to split into sentences
+        sentence_tokenizer: Agent used as LLM fallback for complex tokenization
         detection_method: Optional override for fragment detection method
 
     Returns:
@@ -208,112 +201,95 @@ async def split_paragraph_into_sentences(
             f"score={suspicion_score}, nltk_fragments={len(merged)}, "
             f"paragraph={paragraph}..."
         )
-        result = await llm_tokenize_paragraph(paragraph, context=context)
+        llm_result = await sentence_tokenizer.ainvoke({"paragraph": paragraph})
+        result = llm_result.chunks
 
     return result
 
 
 async def process_paragraph_sentences(
-    para_text: str, headings: List[str], context: ContextSchema
+    para_text: str,
+    headings: List[str],
+    sentence_tokenizer: SentenceTokenizerAgent,
 ) -> Tuple[str, List[str], List[str]]:
     """Process paragraph to get sentences, return (para_text, headings, sentences)."""
     if not para_text.strip():
         return (para_text, headings, [])
     async with semaphore:
-        sentences = await split_paragraph_into_sentences(para_text, context=context)
+        sentences = await split_paragraph_into_sentences(
+            para_text, sentence_tokenizer=sentence_tokenizer
+        )
     return (para_text, headings, sentences)
 
 
-class DocumentChunkerAgent(BaseAgent):
-    name = "Document Chunker (NLTK)"
-    description = "Chunk a document into paragraphs and each paragraph into sentence-level chunks using NLTK"
+async def chunk_document_nltk(
+    full_document: str,
+    sentence_tokenizer: SentenceTokenizerAgent,
+) -> DocumentChunkerResponse:
+    """
+    Process a document into paragraphs and sentence-level chunks using NLTK.
 
-    # This agent doesn't use LLM - it uses NLTK for tokenization,
-    # TODO: If we have more agents not using LLM, we should add a base class for them
-    model = None  # type: ignore[assignment]
-    temperature = 0.0
-    output_schema = None
+    Args:
+        full_document: The full markdown text of the document
+        sentence_tokenizer: Agent used as LLM fallback for complex tokenization
 
-    def __init__(self, context: ContextSchema):
-        self.context = context
+    Returns:
+        DocumentChunkerResponse with paragraphs and sentence chunks
+    """
+    if not full_document.strip():
+        return DocumentChunkerResponse(paragraphs=[])
 
-    async def ainvoke(
-        self,
-        prompt_kwargs: dict,
-        config: Optional[RunnableConfig] = None,
-    ) -> DocumentChunkerResponse:
-        """
-        Process a document using NLTK sentence tokenization.
+    # Split document by headings
+    md_header_splits = markdown_splitter.split_text(full_document)
 
-        Args:
-            prompt_kwargs: Dictionary containing 'full_document' key with the document text
-            config: Optional configuration (not used in NLTK implementation)
+    # List of paragraphs to process later, to break into sentence-level chunks
+    # Tuple of (paragraph, section_headings_list)
+    paragraphs_to_process: List[Tuple[str, List[str]]] = []
 
-        Returns:
-            DocumentChunkerResponse with paragraphs and sentence chunks
-        """
-        full_document = prompt_kwargs.get("full_document", "")
+    for text_section in md_header_splits:
+        section_headings_list = []
+        if text_section.metadata:
+            # Sort by heading level to ensure hierarchical order (H1, H2, H3, H4)
+            sorted_metadata = sorted(text_section.metadata.items(), key=lambda x: x[0])
+            for _, heading_value in sorted_metadata:
+                section_headings_list.append(heading_value)
 
-        if not full_document.strip():
-            return DocumentChunkerResponse(paragraphs=[])
+        logger.debug("Text section: %s", text_section.page_content)
 
-        # Split document by headings
-        md_header_splits = markdown_splitter.split_text(full_document)
+        # Split document into paragraphs
+        paragraphs = split_into_paragraphs(text_section.page_content)
 
-        # List of paragraphs to process later, to break into sentence-level chunks
-        # Tuple of (paragraph, section_headings_list)
-        paragraphs_to_process: List[Tuple[str, List[str]]] = []
+        # Add paragraphs to list to process later
+        paragraphs_to_process.extend([(p, section_headings_list) for p in paragraphs])
 
-        for text_section in md_header_splits:
-            section_headings_list = []
-            if text_section.metadata:
-                # Sort by heading level to ensure hierarchical order (H1, H2, H3, H4)
-                sorted_metadata = sorted(
-                    text_section.metadata.items(), key=lambda x: x[0]
-                )
-                for _, heading_value in sorted_metadata:
-                    section_headings_list.append(heading_value)
+    # Process paragraphs with sentence tokenization (parallel)
+    # First pass: get sentence chunks without line numbers
+    tasks = [
+        process_paragraph_sentences(para, headings, sentence_tokenizer)
+        for (para, headings) in paragraphs_to_process
+    ]
+    sentence_results = await asyncio.gather(*tasks)
 
-            logger.debug("Text section: ", text_section.page_content)
+    # Second pass: assign line numbers sequentially
+    paragraphs_objects: List[Paragraph] = []
+    search_pos = 0
 
-            # Split document into paragraphs
-            paragraphs = split_into_paragraphs(text_section.page_content)
+    for para_text, headings, sentences in sentence_results:
+        if not sentences:
+            continue
 
-            # Add paragraphs to list to process later
-            paragraphs_to_process.extend(
-                [(p, section_headings_list) for p in paragraphs]
+        chunks_with_lines: List[ChunkWithLines] = []
+        for sentence in sentences:
+            start_line, end_line, next_pos = find_text_line_range(
+                full_document, sentence, search_pos
             )
-
-        # Process paragraphs with sentence tokenization (parallel)
-        # First pass: get sentence chunks without line numbers
-        tasks = [
-            process_paragraph_sentences(para, headings, self.context)
-            for (para, headings) in paragraphs_to_process
-        ]
-        sentence_results = await asyncio.gather(*tasks)
-
-        # Second pass: assign line numbers sequentially
-        paragraphs_objects: List[Paragraph] = []
-        search_pos = 0
-
-        for para_text, headings, sentences in sentence_results:
-            if not sentences:
-                continue
-
-            chunks_with_lines: List[ChunkWithLines] = []
-            for sentence in sentences:
-                start_line, end_line, next_pos = find_text_line_range(
-                    full_document, sentence, search_pos
-                )
-                chunks_with_lines.append(
-                    ChunkWithLines(
-                        text=sentence, start_line=start_line, end_line=end_line
-                    )
-                )
-                search_pos = next_pos
-
-            paragraphs_objects.append(
-                Paragraph(chunks=chunks_with_lines, headings=headings)
+            chunks_with_lines.append(
+                ChunkWithLines(text=sentence, start_line=start_line, end_line=end_line)
             )
+            search_pos = next_pos
 
-        return DocumentChunkerResponse(paragraphs=paragraphs_objects)
+        paragraphs_objects.append(
+            Paragraph(chunks=chunks_with_lines, headings=headings)
+        )
+
+    return DocumentChunkerResponse(paragraphs=paragraphs_objects)

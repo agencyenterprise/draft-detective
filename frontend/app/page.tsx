@@ -1,7 +1,7 @@
 import { ProjectsList } from '@/components/projects-list';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Brain, FlaskConical } from 'lucide-react';
+import { ArrowRight, Brain, FlaskConical, Github } from 'lucide-react';
 import Link from 'next/link';
 
 export default function Home() {
@@ -22,12 +22,18 @@ export default function Home() {
           </p>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+        <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
           <Link href="/new">
             <Button size="lg">
               <FlaskConical className="w-5 h-5" />
               Start a Project
               <ArrowRight className="w-4 h-4" />
+            </Button>
+          </Link>
+          <Link href="https://github.com/agencyenterprise/ai-reviewer" target="_blank" rel="noopener noreferrer">
+            <Button variant="outline" size="lg">
+              <Github className="w-5 h-5" />
+              View on GitHub
             </Button>
           </Link>
         </div>
