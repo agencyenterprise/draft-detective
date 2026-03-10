@@ -6,8 +6,9 @@ import pytest
 
 from lib.agents.document_chunker_nltk import (
     DocumentChunkerResponse,
-    DocumentChunkerAgent,
+    chunk_document_nltk,
 )
+from lib.agents.sentence_tokenizer import SentenceTokenizerAgent
 from tests.conftest import (
     create_test_file_document_from_path,
     data_path,
@@ -66,8 +67,8 @@ async def test_document_chunker_nltk_agent_cases(test_data):
 
     Line numbers are tracked but not compared - only text content and headings matter.
     """
-    agent = DocumentChunkerAgent(create_test_context())
-    result = await agent.ainvoke(prompt_kwargs={"full_document": test_data["markdown"]})
+    sentence_tokenizer = SentenceTokenizerAgent(create_test_context())
+    result = await chunk_document_nltk(test_data["markdown"], sentence_tokenizer)
 
     # Extract text content for comparison (ignoring line numbers)
     actual = _extract_text_from_chunks(result)

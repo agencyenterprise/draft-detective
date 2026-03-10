@@ -7,6 +7,7 @@ NOT sentence boundaries (e.g., after author initials, journal abbreviations, etc
 
 import pytest
 from lib.agents.document_chunker_nltk import split_paragraph_into_sentences
+from lib.agents.sentence_tokenizer import SentenceTokenizerAgent
 from tests.conftest import create_test_context
 
 
@@ -24,7 +25,7 @@ class TestCitationTokenization:
         citation = "Smith, J., Doe, A., & Roe, B. (2019). A Comprehensive Study of Gizmos. Proceedings of Gizmo Conf."
 
         result = await split_paragraph_into_sentences(
-            citation, context=create_test_context()
+            citation, sentence_tokenizer=SentenceTokenizerAgent(create_test_context())
         )
 
         assert len(result) == 1, f"Expected 1 chunk but got {len(result)}: {result}"
@@ -40,7 +41,7 @@ class TestCitationTokenization:
         citation = "Johnson et al. (2020). Machine Learning Approaches to Data Analysis. Nature Machine Intelligence, 5(2), 123-145."
 
         result = await split_paragraph_into_sentences(
-            citation, context=create_test_context()
+            citation, sentence_tokenizer=SentenceTokenizerAgent(create_test_context())
         )
 
         assert len(result) == 1, f"Expected 1 chunk but got {len(result)}: {result}"
@@ -52,7 +53,7 @@ class TestCitationTokenization:
         citation = "Brown, M., & Green, K. (2018). Neural Networks in Practice. J. Neurosci. Methods, 15(3), 45-67."
 
         result = await split_paragraph_into_sentences(
-            citation, context=create_test_context()
+            citation, sentence_tokenizer=SentenceTokenizerAgent(create_test_context())
         )
 
         assert len(result) == 1, f"Expected 1 chunk but got {len(result)}: {result}"
@@ -68,7 +69,7 @@ class TestCitationTokenization:
         footnote = "1. Smith, J. (2020). The Effects of Widgets. Journal of Widgetry. This groundbreaking study examined widget performance. Results showed a 20% improvement."
 
         result = await split_paragraph_into_sentences(
-            footnote, context=create_test_context()
+            footnote, sentence_tokenizer=SentenceTokenizerAgent(create_test_context())
         )
 
         assert (
@@ -81,7 +82,7 @@ class TestCitationTokenization:
         citation = "Anderson, R. J., Smith, P. K., & Williams, M. T. (2021). Advanced Topics in A.I. Research. Proc. Natl. Acad. Sci. U.S.A., 118(25), e2021234118."
 
         result = await split_paragraph_into_sentences(
-            citation, context=create_test_context()
+            citation, sentence_tokenizer=SentenceTokenizerAgent(create_test_context())
         )
 
         assert len(result) == 1, f"Expected 1 chunk but got {len(result)}: {result}"
@@ -97,7 +98,7 @@ class TestCitationTokenization:
         footnote = "See Smith, J. (2020). Widget Analysis. J. Widgets, 5(2), 10-20. See also Doe, A. (2019). Gadget Performance. Tech. Rev., 8(1), 5-15."
 
         result = await split_paragraph_into_sentences(
-            footnote, context=create_test_context()
+            footnote, sentence_tokenizer=SentenceTokenizerAgent(create_test_context())
         )
 
         for chunk in result:
@@ -109,7 +110,7 @@ class TestCitationTokenization:
         citation = "Martinez, L. et al. (2022). Deep Learning Applications. Nature, 600, 123-128. https://doi.org/10.1038/s41586-022-12345-6"
 
         result = await split_paragraph_into_sentences(
-            citation, context=create_test_context()
+            citation, sentence_tokenizer=SentenceTokenizerAgent(create_test_context())
         )
 
         assert len(result) == 1, f"Expected 1 chunk but got {len(result)}: {result}"
@@ -121,7 +122,7 @@ class TestCitationTokenization:
         footnote = "1. National Institute of Standards and Technology (NIST). (2022). Security Guidelines. Tech. Rep. 800-53."
 
         result = await split_paragraph_into_sentences(
-            footnote, context=create_test_context()
+            footnote, sentence_tokenizer=SentenceTokenizerAgent(create_test_context())
         )
 
         assert len(result) == 1, f"Expected 1 chunk but got {len(result)}: {result}"
@@ -133,7 +134,7 @@ class TestCitationTokenization:
         prose = "This is the first sentence. This is the second sentence. And here is a third."
 
         result = await split_paragraph_into_sentences(
-            prose, context=create_test_context()
+            prose, sentence_tokenizer=SentenceTokenizerAgent(create_test_context())
         )
 
         assert len(result) == 3, f"Expected 3 chunks but got {len(result)}: {result}"
@@ -158,7 +159,7 @@ class TestCitationTokenization:
         )
 
         result = await split_paragraph_into_sentences(
-            paragraph, context=create_test_context()
+            paragraph, sentence_tokenizer=SentenceTokenizerAgent(create_test_context())
         )
 
         # Should be 2 sentences (compound sentence with "and", then a new sentence)
@@ -193,7 +194,7 @@ class TestCitationTokenization:
         )
 
         result = await split_paragraph_into_sentences(
-            paragraph, context=create_test_context()
+            paragraph, sentence_tokenizer=SentenceTokenizerAgent(create_test_context())
         )
 
         # Should be 2 sentences
@@ -223,7 +224,7 @@ class TestCitationTokenization:
         )
 
         result = await split_paragraph_into_sentences(
-            paragraph, context=create_test_context()
+            paragraph, sentence_tokenizer=SentenceTokenizerAgent(create_test_context())
         )
 
         # Should be 2 sentences (bold doesn't create a sentence boundary)
@@ -252,7 +253,7 @@ class TestCitationTokenization:
         )
 
         result = await split_paragraph_into_sentences(
-            paragraph, context=create_test_context()
+            paragraph, sentence_tokenizer=SentenceTokenizerAgent(create_test_context())
         )
 
         # Should be 1 sentence
