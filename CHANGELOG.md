@@ -6,6 +6,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v0.5.18] - 2026-03-10
+
+### Added
+- Added an `init_embeddings()` factory function and an `EMBEDDING_MODEL_LARGE` constant to centralize OpenAI embedding initialization.
+- Added a `SentenceTokenizerAgent` class (new module renamed from the previous LLM sentence tokenizer service) with its prompt and output schema co-located.
+
+### Changed
+- Refactored the document chunking pipeline to replace the `DocumentChunkerAgent` class and standalone LLM sentence tokenizer service with more composable abstractions.
+- Converted `DocumentChunkerAgent` into a plain async function `chunk_document_nltk()` that accepts a `SentenceTokenizerAgent` dependency and moved the `FRAGMENT_DETECTION_METHOD` constant from the deleted service module.
+- Updated chunk splitting workflow code to use `chunk_document_nltk()` and explicitly instantiate `SentenceTokenizerAgent`.
+- Updated embedding initialization in `vector_store`, `reference_embedding_matcher`, and `fragment_detection` to use `init_embeddings()` instead of inline `OpenAIEmbeddings` construction.
+- Upgraded `fragment_detection` to use `text-embedding-3-large` instead of `text-embedding-3-small`.
+
+### Removed
+- Removed duplicated local embedding model constants and direct `OpenAIEmbeddings` imports in modules now using `init_embeddings()`.
+- Removed the `try/except ImportError` guard for embedding initialization in `fragment_detection`.
+- Removed the now-unused `SecretStr` import from `vector_store`.
+
+
 ## [v0.5.17] - 2026-03-10
 
 ### Added
