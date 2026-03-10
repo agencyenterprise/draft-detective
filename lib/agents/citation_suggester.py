@@ -8,7 +8,7 @@ from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
 
 from lib.agents.literature_review import ReferenceType
-from lib.config.llm_models import gpt_5_model
+from lib.config.llm_models import gpt_5_4_model
 from lib.models.agent import LangChainAgent
 from lib.workflows.context import ContextSchema
 
@@ -183,7 +183,7 @@ search for additional references. Use the literature review report as a guide to
 class CitationSuggesterAgent(LangChainAgent):
     name = "Citation Suggester"
     description = "Review a chunk of text against RAND attribution guidelines to identify missing citations and recommend high-quality sources for proper attribution compliance"
-    model = gpt_5_model
+    model = gpt_5_4_model
     temperature = 0.5
 
     async def ainvoke(
