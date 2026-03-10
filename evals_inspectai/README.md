@@ -18,6 +18,13 @@ Evaluates the abbreviation checker agent's ability to detect abbreviation compli
 - **Task file:** `evals_inspectai/abbreviation_checker/abbreviation_checker.py`
 - **Dataset:** `evals_inspectai/abbreviation_checker/dataset.json`
 
+### Reference Text Extractor
+
+Evaluates the reference text extractor agent's ability to find and extract bibliographic reference entries from document reference/bibliography sections.
+
+- **Task file:** `evals_inspectai/reference_text_extractor/reference_text_extractor.py`
+- **Dataset:** `evals_inspectai/reference_text_extractor/dataset.json`
+
 ## Running Evals
 
 All commands should be run from the project root.

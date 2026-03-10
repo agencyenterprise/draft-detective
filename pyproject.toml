@@ -47,9 +47,9 @@ dependencies = [
     "textblob>=0.18.0",
     "rich>=14.2.0",
     "tuspyserver>=4.2.3",
-    "inspect-ai>=0.3.183",
-    "openai>=2.16.0",
-    "deepagents>=0.4.4",
+    "inspect-ai>=0.3.189",
+    "openai>=2.26.0",
+    "deepagents>=0.4.8",
 ]
 
 [tool.pytest.ini_options]

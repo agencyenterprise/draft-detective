@@ -25,7 +25,7 @@ async def extract_text_references_v2_node(
 
     agent = ReferenceExtractorV2Agent(runtime.context)
 
-    result = await agent.ainvoke({})
+    result, _ = await agent.ainvoke({})
 
     extracted_references = [
         ExtractedReference(
