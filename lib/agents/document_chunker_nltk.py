@@ -11,10 +11,7 @@ from lib.services.fragment_detection import (
     has_suspicious_fragments,
     DetectionMethod,
 )
-from lib.services.llm_sentence_tokenizer import (
-    llm_tokenize_paragraph,
-    FRAGMENT_DETECTION_METHOD,
-)
+from lib.agents.sentence_tokenizer import SentenceTokenizerAgent
 from lib.workflows.context import ContextSchema
 from langchain_core.runnables.config import RunnableConfig
 
@@ -25,6 +22,8 @@ from lib.run_utils import MAX_CONCURRENT_TASKS
 semaphore = asyncio.Semaphore(MAX_CONCURRENT_TASKS)
 
 logger = logging.getLogger(__name__)
+
+FRAGMENT_DETECTION_METHOD: DetectionMethod = "reconstruction"
 
 # Download required NLTK data
 try:
@@ -154,8 +153,8 @@ def split_into_paragraphs(text: str) -> List[str]:
 
 async def split_paragraph_into_sentences(
     paragraph: str,
+    sentence_tokenizer: SentenceTokenizerAgent,
     detection_method: Optional[DetectionMethod] = None,
-    context: ContextSchema = None,
 ) -> List[str]:
     """
     Split a paragraph into sentences using NLTK's sentence tokenizer.
@@ -163,10 +162,11 @@ async def split_paragraph_into_sentences(
     Uses a hybrid approach:
     1. Fast NLTK tokenization first
     2. Fragment detection to identify problems
-    3. LLM fallback for suspicious fragments
+    3. LLM fallback for suspicious fragments via SentenceTokenizerAgent
 
     Args:
         paragraph: The text to split into sentences
+        sentence_tokenizer: Agent used as LLM fallback for complex tokenization
         detection_method: Optional override for fragment detection method
 
     Returns:
@@ -208,19 +208,24 @@ async def split_paragraph_into_sentences(
             f"score={suspicion_score}, nltk_fragments={len(merged)}, "
             f"paragraph={paragraph}..."
         )
-        result = await llm_tokenize_paragraph(paragraph, context=context)
+        llm_result = await sentence_tokenizer.ainvoke({"paragraph": paragraph})
+        result = llm_result.chunks
 
     return result
 
 
 async def process_paragraph_sentences(
-    para_text: str, headings: List[str], context: ContextSchema
+    para_text: str,
+    headings: List[str],
+    sentence_tokenizer: SentenceTokenizerAgent,
 ) -> Tuple[str, List[str], List[str]]:
     """Process paragraph to get sentences, return (para_text, headings, sentences)."""
     if not para_text.strip():
         return (para_text, headings, [])
     async with semaphore:
-        sentences = await split_paragraph_into_sentences(para_text, context=context)
+        sentences = await split_paragraph_into_sentences(
+            para_text, sentence_tokenizer=sentence_tokenizer
+        )
     return (para_text, headings, sentences)
 
 
@@ -236,6 +241,7 @@ class DocumentChunkerAgent(BaseAgent):
 
     def __init__(self, context: ContextSchema):
         self.context = context
+        self.sentence_tokenizer = SentenceTokenizerAgent(context)
 
     async def ainvoke(
         self,
@@ -287,7 +293,7 @@ class DocumentChunkerAgent(BaseAgent):
         # Process paragraphs with sentence tokenization (parallel)
         # First pass: get sentence chunks without line numbers
         tasks = [
-            process_paragraph_sentences(para, headings, self.context)
+            process_paragraph_sentences(para, headings, self.sentence_tokenizer)
             for (para, headings) in paragraphs_to_process
         ]
         sentence_results = await asyncio.gather(*tasks)

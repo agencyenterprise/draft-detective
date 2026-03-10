@@ -1,18 +1,13 @@
 """LLM-based sentence tokenization for complex academic text."""
 
-from typing import List
-from pydantic import BaseModel, Field
+from typing import List, Optional
+
 from langchain_core.prompts import ChatPromptTemplate
-from langchain.chat_models import init_chat_model
+from langchain_core.runnables.config import RunnableConfig
+from pydantic import BaseModel, Field
 
 from lib.config.llm_models import gpt_5_mini_model
-from lib.models.agent import DEFAULT_LLM_TIMEOUT
-from lib.services.fragment_detection import DetectionMethod
-from lib.workflows.context import ContextSchema
-
-
-# Default detection method for identifying when to use LLM fallback
-FRAGMENT_DETECTION_METHOD: DetectionMethod = "reconstruction"
+from lib.models.agent import LangChainAgent
 
 
 class SentenceChunks(BaseModel):
@@ -23,22 +18,8 @@ class SentenceChunks(BaseModel):
     )
 
 
-async def llm_tokenize_paragraph(paragraph: str, context: ContextSchema) -> List[str]:
-    """
-    Use LLM to intelligently tokenize a paragraph into sentences.
-    Handles complex cases like citations that NLTK struggles with.
-
-    Args:
-        paragraph: The text to tokenize
-
-    Returns:
-        List of sentence chunks
-
-    Raises:
-        Exception: If LLM API call fails (timeout, rate limit, etc.)
-    """
-    prompt = ChatPromptTemplate.from_template(
-        """You are a sentence tokenization expert for academic documents.
+_sentence_tokenizer_prompt = ChatPromptTemplate.from_template(
+    """You are a sentence tokenization expert for academic documents.
 
 Your task: Split the given text into sentence-level chunks.
 
@@ -71,18 +52,20 @@ Text to tokenize:
 ```
 {paragraph}
 ```"""
-    )
+)
 
-    llm = init_chat_model(
-        gpt_5_mini_model.model_name,
-        temperature=0,
-        timeout=DEFAULT_LLM_TIMEOUT,
-        api_key=context.openai_api_key,
-    ).with_structured_output(SentenceChunks)
 
-    try:
-        messages = prompt.format_messages(paragraph=paragraph)
-        result = await llm.ainvoke(messages)
-        return result.chunks
-    except Exception as e:
-        raise Exception(f"LLM tokenization failed for paragraph: {e}") from e
+class SentenceTokenizerAgent(LangChainAgent):
+    name = "Sentence Tokenizer"
+    description = "Tokenize academic text into sentence-level chunks using LLM"
+    model = gpt_5_mini_model
+    temperature = 0
+    output_schema = SentenceChunks
+
+    async def ainvoke(
+        self,
+        prompt_kwargs: dict,
+        config: Optional[RunnableConfig] = None,
+    ) -> SentenceChunks:
+        messages = _sentence_tokenizer_prompt.format_messages(**prompt_kwargs)
+        return await self.llm.ainvoke(messages, config=config)
