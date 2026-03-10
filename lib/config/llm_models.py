@@ -1,4 +1,21 @@
+from langchain_openai import OpenAIEmbeddings
 from pydantic import BaseModel
+
+EMBEDDING_MODEL_LARGE = "text-embedding-3-large"
+
+
+def init_embeddings(
+    model: str = EMBEDDING_MODEL_LARGE,
+    api_key: str | None = None,
+) -> OpenAIEmbeddings:
+    """Common builder for OpenAIEmbeddings."""
+
+    kwargs: dict = {"model": model}
+
+    if api_key:
+        kwargs["api_key"] = api_key
+
+    return OpenAIEmbeddings(**kwargs)
 
 
 class LLMModel(BaseModel):

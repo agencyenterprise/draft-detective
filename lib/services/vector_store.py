@@ -4,11 +4,12 @@ import os
 from typing import List, Tuple
 
 from langchain_core.documents import Document
-from langchain_openai import OpenAIEmbeddings
 from langchain_postgres import PGVector
 from langchain_text_splitters import Language, RecursiveCharacterTextSplitter
-from pydantic import BaseModel, Field, SecretStr
+from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import create_async_engine
+
+from lib.config.llm_models import init_embeddings
 
 logger = logging.getLogger(__name__)
 
@@ -19,8 +20,6 @@ CHUNK_OVERLAP = 200  # Overlap between chunks for context continuity
 
 # Batching settings for OpenAI embedding API
 EMBEDDING_BATCH_SIZE = 100
-
-EMBEDDING_MODEL = "text-embedding-3-large"
 
 # Markdown-aware text splitter: splits on headings, paragraphs, sentences, then chars.
 # add_start_index=True makes create_documents() emit a "start_index" metadata field
@@ -127,9 +126,7 @@ class VectorStoreService:
 
     def __init__(self, connection_string: str, openai_api_key: str):
         """Initialize vector store with database connection."""
-        self.embeddings = OpenAIEmbeddings(
-            model=EMBEDDING_MODEL, api_key=SecretStr(openai_api_key)
-        )
+        self.embeddings = init_embeddings(api_key=openai_api_key)
 
         # Always use async engine since all our methods are async
         # Convert postgresql:// to postgresql+psycopg:// for SQLAlchemy async engine
