@@ -14,7 +14,7 @@ class Reviewer2Manifest(WorkflowManifest[Reviewer2State, Reviewer2Config]):
     type = WorkflowRunType.REVIEWER_2
     name = "Reviewer 2"
     description = (
-        "Rigorous peer review of the document by a simulated senior researcher, "
+        "Experimental peer review of the document by a simulated senior researcher, "
         "producing a structured review with strengths, weaknesses, actionable "
         "next steps, and a devil's-advocate rebuttal."
     )
