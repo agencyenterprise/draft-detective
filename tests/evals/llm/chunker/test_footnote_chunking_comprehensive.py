@@ -19,10 +19,8 @@ import nltk
 import pytest
 from pydantic import BaseModel
 
-from lib.agents.document_chunker_nltk import (
-    llm_tokenize_paragraph,
-    split_paragraph_into_sentences,
-)
+from lib.agents.document_chunker_nltk import split_paragraph_into_sentences
+from lib.agents.sentence_tokenizer import SentenceTokenizerAgent
 from lib.services.fragment_detection import DetectionMethod
 from tests.conftest import create_test_context
 
@@ -208,11 +206,12 @@ async def run_with_method(
     Returns:
         (result_chunks, time_ms, used_llm)
     """
+    agent = SentenceTokenizerAgent(create_test_context())
     start = time.perf_counter()
     result = await split_paragraph_into_sentences(
         test_case.text,
+        sentence_tokenizer=agent,
         detection_method=detection_method,
-        context=create_test_context(),
     )
     elapsed_ms = (time.perf_counter() - start) * 1000
 
@@ -235,10 +234,11 @@ async def run_nltk_only(test_case: FootnoteTestCase) -> tuple[List[str], float]:
 
 async def run_llm_only(test_case: FootnoteTestCase) -> tuple[List[str], float]:
     """Test with pure LLM (no NLTK)."""
+    agent = SentenceTokenizerAgent(create_test_context())
     start = time.perf_counter()
-    result = await llm_tokenize_paragraph(test_case.text, context=create_test_context())
+    result = await agent.ainvoke({"paragraph": test_case.text})
     elapsed_ms = (time.perf_counter() - start) * 1000
-    return result, elapsed_ms
+    return result.chunks, elapsed_ms
 
 
 def chunks_match(actual: List[str], expected: List[str]) -> bool:
@@ -262,10 +262,11 @@ class TestFootnoteWithReconstruction:
     @pytest.mark.parametrize("test_case", FOOTNOTE_TEST_CASES, ids=lambda tc: tc.name)
     async def test_footnote_reconstruction(self, test_case: FootnoteTestCase):
         """Test each footnote case with reconstruction detection."""
+        agent = SentenceTokenizerAgent(create_test_context())
         result = await split_paragraph_into_sentences(
             test_case.text,
+            sentence_tokenizer=agent,
             detection_method="reconstruction",
-            context=create_test_context(),
         )
         assert chunks_match(
             result, test_case.expected_chunks
@@ -299,8 +300,9 @@ class TestPerformanceBenchmarks:
         """Measure LLM performance (single call to avoid API rate limits in tests)."""
         test_text = FOOTNOTE_TEST_CASES[0].text
 
+        agent = SentenceTokenizerAgent(create_test_context())
         start = time.perf_counter()
-        await llm_tokenize_paragraph(test_text, context=create_test_context())
+        await agent.ainvoke({"paragraph": test_text})
         elapsed_ms = (time.perf_counter() - start) * 1000
 
         print(f"\nLLM single call: {elapsed_ms:.2f}ms")

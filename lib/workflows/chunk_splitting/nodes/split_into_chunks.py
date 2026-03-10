@@ -6,10 +6,11 @@ from typing import List
 from langgraph.runtime import Runtime
 
 from lib.agents.document_chunker_nltk import (
-    DocumentChunkerAgent,
+    chunk_document_nltk,
     get_chunker_result_as_langchain_documents,
 )
 from lib.agents.models import ValidatedDocument
+from lib.agents.sentence_tokenizer import SentenceTokenizerAgent
 from lib.workflows.chunk_splitting.state import ChunkSplittingState, DocumentChunk
 from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
@@ -33,8 +34,8 @@ async def split_into_chunks(
 
     markdown = file_document.markdown
 
-    chunker = DocumentChunkerAgent(context=runtime.context)
-    result = await chunker.ainvoke(prompt_kwargs={"full_document": markdown})
+    sentence_tokenizer = SentenceTokenizerAgent(runtime.context)
+    result = await chunk_document_nltk(markdown, sentence_tokenizer)
     docs: List[ValidatedDocument] = get_chunker_result_as_langchain_documents(result)
 
     return {"chunks": convert_validate_documents_to_chunks(docs)}
