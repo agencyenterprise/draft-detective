@@ -6,6 +6,28 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v0.5.17] - 2026-03-10
+
+### Added
+- Added a new “Reviewer 2” workflow that generates a structured peer review and a devil’s-advocate rebuttal for uploaded research documents.
+- Added a new `Reviewer2Results` UI with tabbed peer review/rebuttal display and download options for DOCX and PDF.
+- Added `gpt-5.4` to the LLM model registry.
+- Added the `@mohtasham/md-to-docx` dependency for markdown-to-DOCX conversion.
+
+### Changed
+- Updated the workflow results renderer to route the new workflow type to the new results component.
+- Improved the markdown component factory to accept React components (not just HTML tag names) to support shadcn `Table` components for markdown table rendering.
+- Regenerated API types to include `Reviewer2Config`, `Reviewer2State`, and the new workflow run type.
+- Regenerated API types so `project_id` fields are required across all workflow configs and removed `chunk_indices` from `ExtractedReference`.
+- Updated documentation to reference “OpenAI, Anthropic, Google” instead of “OpenAI, Azure, Bedrock,” with minor markdown formatting fixes.
+
+### Removed
+- Removed Azure OpenAI as a supported LLM provider and simplified to OpenAI-only for OpenAI models.
+- Removed Azure OpenAI environment variables from configuration and templates (`AZURE_OPENAI_API_KEY`, `AZURE_OPENAI_ENDPOINT`, `OPENAI_API_VERSION`).
+- Removed the legacy v1 reference text extraction pipeline and consolidated entirely on the v2 implementation.
+- Removed v1 reference extraction code and related tests, and renamed remaining v2 tests to drop version suffixes.
+
+
 ## [v0.5.16] - 2026-03-04
 
 ### Added
