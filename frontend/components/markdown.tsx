@@ -1,14 +1,15 @@
 import { cn } from '@/lib/utils';
-import { ComponentType, JSX } from 'react';
+import React, { JSX } from 'react';
 import ReactMarkdown, { ExtraProps } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import rehypeMathML from '@daiji256/rehype-mathml';
+import { Table, TableBody, TableCell, TableRow, TableHeader, TableHead } from './ui/table';
 
 type MarkdownComponentProps<Key extends keyof JSX.IntrinsicElements> = JSX.IntrinsicElements[Key] & ExtraProps;
 
 const componentFactory = (
-  tag: keyof JSX.IntrinsicElements,
+  tagOrComponent: React.ElementType,
   className: string,
   highlight?: 'red' | 'yellow' | 'blue' | 'green' | 'none',
 ) => {
@@ -23,25 +24,26 @@ const componentFactory = (
     : '';
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const Component = ({ node, children, ...rest }: MarkdownComponentProps<typeof tag>) => {
-    const Component = tag as unknown as ComponentType<MarkdownComponentProps<typeof tag>>;
+  const Component = ({ node, children, ...rest }: ExtraProps & { children?: React.ReactNode; className?: string }) => {
+    const Tag = tagOrComponent;
 
     if (highlight && highlight !== 'none') {
       return (
-        <Component {...rest} className={cn(className, rest.className)}>
+        <Tag {...rest} className={cn(className, rest.className)}>
           <mark className={highlightClass}>{children}</mark>
-        </Component>
+        </Tag>
       );
     }
 
     return (
-      <Component {...rest} className={cn(className, rest.className)}>
+      <Tag {...rest} className={cn(className, rest.className)}>
         {children}
-      </Component>
+      </Tag>
     );
   };
 
-  Component.displayName = `Markdown-${tag}`;
+  const name = typeof tagOrComponent === 'string' ? tagOrComponent : tagOrComponent.displayName || 'Component';
+  Component.displayName = `Markdown-${name}`;
   return Component;
 };
 
@@ -75,12 +77,12 @@ const createComponents = (highlight: 'red' | 'yellow' | 'blue' | 'green' | 'none
     blockquote: componentFactory('blockquote', 'mb-2 border-l-4 border-gray-300 pl-4'),
     code: componentFactory('code', 'bg-gray-100 px-1 py-0.5 rounded'),
     pre: componentFactory('pre', 'mb-2 bg-gray-100 px-1 py-0.5 rounded'),
-    table: componentFactory('table', 'mb-2 w-full'),
-    thead: componentFactory('thead', 'bg-gray-100'),
-    tbody: componentFactory('tbody', 'bg-gray-100'),
-    tr: componentFactory('tr', 'bg-gray-100'),
-    th: componentFactory('th', 'bg-gray-100'),
-    td: componentFactory('td', 'bg-gray-100'),
+    table: componentFactory(Table, 'mb-2'),
+    thead: componentFactory(TableHeader, ''),
+    tbody: componentFactory(TableBody, ''),
+    tr: componentFactory(TableRow, ''),
+    th: componentFactory(TableHead, ''),
+    td: componentFactory(TableCell, 'whitespace-normal'),
     hr: componentFactory('hr', 'my-4'),
     br: componentFactory('br', ''),
     em: componentFactory('em', 'italic'),

@@ -140,7 +140,7 @@ export type AbbreviationScanV2Config = {
    *
    * The ID of the project that this workflow run should be associated with
    */
-  project_id?: string | null;
+  project_id: string;
   /**
    * Openai Api Key
    *
@@ -219,7 +219,7 @@ export type AbbreviationScanWorkflowConfig = {
    *
    * The ID of the project that this workflow run should be associated with
    */
-  project_id?: string | null;
+  project_id: string;
   /**
    * Openai Api Key
    *
@@ -284,7 +284,7 @@ export type AboutAuthorsWorkflowConfig = {
    *
    * The ID of the project that this workflow run should be associated with
    */
-  project_id?: string | null;
+  project_id: string;
   /**
    * Openai Api Key
    *
@@ -399,7 +399,7 @@ export type AboutThisWorkflowConfig = {
    *
    * The ID of the project that this workflow run should be associated with
    */
-  project_id?: string | null;
+  project_id: string;
   /**
    * Openai Api Key
    *
@@ -464,7 +464,7 @@ export type AdvocacyToneWorkflowConfig = {
    *
    * The ID of the project that this workflow run should be associated with
    */
-  project_id?: string | null;
+  project_id: string;
   /**
    * Openai Api Key
    *
@@ -823,7 +823,7 @@ export type ChunkSplittingWorkflowConfig = {
    *
    * The ID of the project that this workflow run should be associated with
    */
-  project_id?: string | null;
+  project_id: string;
   /**
    * Openai Api Key
    *
@@ -911,7 +911,7 @@ export type CitationDetectionConfig = {
    *
    * The ID of the project that this workflow run should be associated with
    */
-  project_id?: string | null;
+  project_id: string;
   /**
    * Openai Api Key
    *
@@ -1038,7 +1038,7 @@ export type CitationSuggesterWorkflowConfig = {
    *
    * The ID of the project that this workflow run should be associated with
    */
-  project_id?: string | null;
+  project_id: string;
   /**
    * Openai Api Key
    *
@@ -1273,7 +1273,7 @@ export type ClaimExtractionWorkflowConfig = {
    *
    * The ID of the project that this workflow run should be associated with
    */
-  project_id?: string | null;
+  project_id: string;
   /**
    * Openai Api Key
    *
@@ -1416,7 +1416,7 @@ export type ClaimReferenceValidationWorkflowConfig = {
    *
    * The ID of the project that this workflow run should be associated with
    */
-  project_id?: string | null;
+  project_id: string;
   /**
    * Openai Api Key
    *
@@ -1624,7 +1624,7 @@ export type DocumentProcessingWorkflowConfig = {
    *
    * The ID of the project that this workflow run should be associated with
    */
-  project_id?: string | null;
+  project_id: string;
   /**
    * Openai Api Key
    *
@@ -1785,7 +1785,7 @@ export type DocumentSummarizationWorkflowConfig = {
    *
    * The ID of the project that this workflow run should be associated with
    */
-  project_id?: string | null;
+  project_id: string;
   /**
    * Openai Api Key
    *
@@ -2003,7 +2003,7 @@ export type ExtractedReference = {
    *
    * Unique identifier for this reference
    */
-  id?: string;
+  id: string;
   /**
    * Text
    *
@@ -2022,12 +2022,6 @@ export type ExtractedReference = {
    * 1-indexed ending line number in the markdown
    */
   end_line?: number | null;
-  /**
-   * Chunk Indices
-   *
-   * Chunk indices that overlap with this reference's line range
-   */
-  chunk_indices?: Array<number>;
 };
 
 /**
@@ -2451,7 +2445,7 @@ export type FootnoteExtractionConfig = {
    *
    * The ID of the project that this workflow run should be associated with
    */
-  project_id?: string | null;
+  project_id: string;
   /**
    * Openai Api Key
    *
@@ -2586,7 +2580,7 @@ export type HumanApprovalConfig = {
    *
    * The ID of the project that this workflow run should be associated with
    */
-  project_id?: string | null;
+  project_id: string;
   /**
    * Openai Api Key
    *
@@ -2806,7 +2800,7 @@ export type InferenceValidationV2WorkflowConfig = {
    *
    * The ID of the project that this workflow run should be associated with
    */
-  project_id?: string | null;
+  project_id: string;
   /**
    * Openai Api Key
    *
@@ -2848,7 +2842,7 @@ export type InferenceValidationWorkflowConfig = {
    *
    * The ID of the project that this workflow run should be associated with
    */
-  project_id?: string | null;
+  project_id: string;
   /**
    * Openai Api Key
    *
@@ -3157,7 +3151,7 @@ export type LiteratureReviewWorkflowConfig = {
    *
    * The ID of the project that this workflow run should be associated with
    */
-  project_id?: string | null;
+  project_id: string;
   /**
    * Openai Api Key
    *
@@ -3234,7 +3228,7 @@ export type LiveReportsWorkflowConfig = {
    *
    * The ID of the project that this workflow run should be associated with
    */
-  project_id?: string | null;
+  project_id: string;
   /**
    * Openai Api Key
    *
@@ -3304,7 +3298,7 @@ export type MethodologicalAlignmentWorkflowConfig = {
    *
    * The ID of the project that this workflow run should be associated with
    */
-  project_id?: string | null;
+  project_id: string;
   /**
    * Openai Api Key
    *
@@ -3822,7 +3816,7 @@ export type ReferenceDownloaderWorkflowConfig = {
    *
    * The ID of the project that this workflow run should be associated with
    */
-  project_id?: string | null;
+  project_id: string;
   /**
    * Openai Api Key
    *
@@ -3870,7 +3864,7 @@ export type ReferenceExtractionConfig = {
    *
    * The ID of the project that this workflow run should be associated with
    */
-  project_id?: string | null;
+  project_id: string;
   /**
    * Openai Api Key
    *
@@ -3924,12 +3918,6 @@ export type ReferenceExtractionState = {
    * ID of the main document
    */
   file_id: string;
-  /**
-   * Detected Sections
-   *
-   * Detected reference sections
-   */
-  detected_sections?: Array<ReferenceSection>;
   /**
    * Extracted References
    *
@@ -4065,6 +4053,12 @@ export type ReferenceFileMatch = {
    * ID of the matched supporting file
    */
   file_id: string;
+  /**
+   * Is Manual
+   *
+   * Whether this match was manually created by a user
+   */
+  is_manual?: boolean;
 };
 
 /**
@@ -4078,7 +4072,7 @@ export type ReferenceFileMatchingConfig = {
    *
    * The ID of the project that this workflow run should be associated with
    */
-  project_id?: string | null;
+  project_id: string;
   /**
    * Openai Api Key
    *
@@ -4172,26 +4166,6 @@ export type ReferenceMinimal = {
    * Bibliography entry formatted in the article's style; reuse the existing entry when the source is already in the bibliography
    */
   bibliography_info: string;
-};
-
-/**
- * ReferenceSection
- *
- * A detected reference/bibliography section in the document.
- */
-export type ReferenceSection = {
-  /**
-   * Start Offset
-   *
-   * Character offset where section starts
-   */
-  start_offset: number;
-  /**
-   * End Offset
-   *
-   * Character offset where section ends
-   */
-  end_offset: number;
 };
 
 /**
@@ -4314,7 +4288,7 @@ export type ReferenceValidationWorkflowConfig = {
    *
    * The ID of the project that this workflow run should be associated with
    */
-  project_id?: string | null;
+  project_id: string;
   /**
    * Openai Api Key
    *
@@ -4543,7 +4517,7 @@ export type ResultsExtractionWorkflowConfig = {
    *
    * The ID of the project that this workflow run should be associated with
    */
-  project_id?: string | null;
+  project_id: string;
   /**
    * Openai Api Key
    *
@@ -4584,6 +4558,85 @@ export type ResultsListResponse = {
    * The list of result sections.
    */
   result_sections: Array<ResultSection>;
+};
+
+/**
+ * Reviewer2Config
+ *
+ * Configuration for the Reviewer 2 workflow.
+ */
+export type Reviewer2Config = {
+  /**
+   * Project Id
+   *
+   * The ID of the project that this workflow run should be associated with
+   */
+  project_id: string;
+  /**
+   * Openai Api Key
+   *
+   * The OpenAI API key to use for this workflow execution
+   */
+  openai_api_key?: string | null;
+  /**
+   * Domain
+   *
+   * Domain context for more accurate analysis
+   */
+  domain?: string | null;
+  /**
+   * Target Audience
+   *
+   * Target audience context for analysis
+   */
+  target_audience?: string | null;
+  /**
+   * Publication Date
+   *
+   * Publication date of the document (YYYY-MM-DD format)
+   */
+  publication_date?: string | null;
+  /**
+   * Type
+   */
+  type?: 'reviewer_2';
+};
+
+/**
+ * Reviewer2State
+ *
+ * State for the Reviewer 2 workflow.
+ */
+export type Reviewer2State = {
+  /**
+   * Errors
+   *
+   * Errors that occurred during the workflow execution.
+   */
+  errors?: Array<WorkflowError>;
+  /**
+   * Type
+   */
+  type?: 'reviewer_2';
+  config: Reviewer2Config;
+  /**
+   * File Id
+   *
+   * Main document file ID
+   */
+  file_id?: string;
+  /**
+   * Peer Review Markdown
+   *
+   * The peer review document as markdown (Sections 1-4)
+   */
+  peer_review_markdown?: string | null;
+  /**
+   * Rebuttal Markdown
+   *
+   * The rebuttal document as markdown
+   */
+  rebuttal_markdown?: string | null;
 };
 
 /**
@@ -4700,7 +4753,7 @@ export type StartWorkflowResponse = {
   /**
    * Project Id
    */
-  project_id?: string | null;
+  project_id: string;
   /**
    * Workflow Run Id
    */
@@ -5049,6 +5102,7 @@ export type WorkflowRunDetail = {
     | InferenceValidationState
     | InferenceValidationV2State
     | HumanApprovalState
+    | Reviewer2State
     | null;
 };
 
@@ -5094,6 +5148,7 @@ export const WorkflowRunType = {
   AdvocacyTone: 'advocacy_tone',
   AboutAuthors: 'about_authors',
   AboutThis: 'about_this',
+  Reviewer2: 'reviewer_2',
 } as const;
 
 /**
@@ -5372,7 +5427,8 @@ export type StartWorkflowApiWorkflowsStartPostData = {
     | ResultsExtractionWorkflowConfig
     | InferenceValidationWorkflowConfig
     | InferenceValidationV2WorkflowConfig
-    | HumanApprovalConfig;
+    | HumanApprovalConfig
+    | Reviewer2Config;
   path?: never;
   query?: never;
   url: '/api/workflows/start';

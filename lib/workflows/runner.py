@@ -184,11 +184,7 @@ def create_context(
     Workflows that don't use LLMs (data manipulation only) can return False.
     """
 
-    openai_api_key = (
-        config.openai_api_key
-        or env_config.OPENAI_API_KEY
-        or env_config.AZURE_OPENAI_API_KEY
-    )
+    openai_api_key = config.openai_api_key or env_config.OPENAI_API_KEY
 
     # Check if workflow requires API key (defined by the workflow config itself)
     if not openai_api_key and config.requires_api_key():

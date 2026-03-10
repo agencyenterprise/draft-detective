@@ -23,6 +23,7 @@ import {
   ReferenceFileMatchingState,
   ReferenceValidationState,
   ResultsExtractionState,
+  Reviewer2State,
   WorkflowError,
   WorkflowRun,
   WorkflowRunDetail,
@@ -58,6 +59,7 @@ type WorkflowTypeToDetail = {
   [WorkflowRunType.AdvocacyTone]: AdvocacyToneState;
   [WorkflowRunType.AboutAuthors]: AboutAuthorsState;
   [WorkflowRunType.AboutThis]: AboutThisState;
+  [WorkflowRunType.Reviewer2]: Reviewer2State;
 };
 
 export interface WorkflowRunDetailTyped<T> {
