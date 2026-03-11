@@ -17,7 +17,7 @@ import { cn } from '@/lib/utils';
 const RULE_CONFIG = [
   { field: 'rule_1_sentence_length' as const, label: 'Sentence Count (3 sentences)' },
   { field: 'rule_2_position_affiliation' as const, label: 'Position & Affiliation' },
-  { field: 'rule_3_tasp_statement' as const, label: 'TASP Statement' },
+  { field: 'rule_3_program_statement' as const, label: 'CAST Statement' },
   { field: 'rule_4_research_focus' as const, label: 'Research Focus' },
   { field: 'rule_5_highest_degree' as const, label: 'Highest Degree' },
 ] as const;
@@ -179,7 +179,7 @@ function AboutAuthorsContent({
         allPassedTitle="All Author Biographies Pass Validation"
         defaultTitle="About the Authors Validation"
         allPassedDescription={`${stats.total} author${stats.total !== 1 ? 's' : ''} validated against publication rules`}
-        defaultDescription={`Validates author biographies against ${RULE_CONFIG.length} publication rules: sentence count, position/affiliation, TASP statement, research focus, and highest degree.`}
+        defaultDescription={`Validates author biographies against ${RULE_CONFIG.length} publication rules: sentence count, position/affiliation, CAST statement, research focus, and highest degree.`}
       />
 
       <div className="max-h-[50vh] overflow-y-auto space-y-3 pr-1">

@@ -21,7 +21,7 @@ class AboutThisManifest(WorkflowManifest[AboutThisState, AboutThisWorkflowConfig
     description = (
         "Validate preface/introduction sections against publication requirements: "
         "context, objectives, relationship to RAND work, intended audience, "
-        "TASP boilerplate, and funding statement."
+        "CAST boilerplate, and funding statement."
     )
     needs_web_search = False
     order = 12  # QA Screener group (10-12)

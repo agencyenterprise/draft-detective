@@ -26,7 +26,7 @@ workflows:
     # Used for compliance checks (e.g., institutional attribution, program credits).
     # Leave empty ("") to skip boilerplate validation.
     # Example: "This publication was produced by the Research Excellence Program."
-    tasp_boilerplate: ""
+    boilerplate: ""
 
     # Acceptable funding statement variants. The section must contain at least
     # one of these phrases to pass the funding disclosure check.
@@ -76,7 +76,7 @@ workflows:
           Does the section explain how this publication relates to existing research?
           Look for sentences explaining HOW this work fits into, builds upon,
           addresses gaps in, or extends prior research in the field.
-      source_tasp:
+      source_boilerplate:
         name: "States Contribution"
         short_name: "Contribution"
         description: "Does the section clearly state the paper's novel contribution?"
@@ -109,7 +109,7 @@ workflows:
     # Used when generating hyperlinks in author bio suggestions.
     # Leave empty ("") if no program URL is applicable.
     # Example: "https://example.org/research-program"
-    tasp_url: ""
+    program_url: ""
 
     # Regex patterns for sentences to exclude from the sentence count.
     # Useful for ignoring boilerplate like "The author can be reached at..."
@@ -140,21 +140,21 @@ workflows:
 
           Author description:
           {author_text}
-      rule_3_tasp_statement:
-        name: "TASP Statement"
-        short_name: "TASP"
-        description: "If TASP fellow, must include TASP statement"
-        tasp_fellow_prompt: >-
-          Is the author described as a TASP fellow or affiliated with the TASP program?
+      rule_3_program_statement:
+        name: "CAST Statement"
+        short_name: "CAST"
+        description: "If CAST fellow, must include CAST statement"
+        fellow_prompt: >-
+          Is the author described as a CAST fellow or affiliated with the CAST program?
 
-          Respond with passed=true if they are a TASP fellow, passed=false otherwise.
+          Respond with passed=true if they are a CAST fellow, passed=false otherwise.
 
           Author description:
           {author_text}
-        tasp_statement_prompt: >-
-          Does the author description include a TASP statement or mention of the TASP program?
+        program_statement_prompt: >-
+          Does the author description include a CAST statement or mention of the CAST program?
 
-          Respond with passed=true if a TASP statement is present, passed=false otherwise.
+          Respond with passed=true if a CAST statement is present, passed=false otherwise.
 
           Author description:
           {author_text}

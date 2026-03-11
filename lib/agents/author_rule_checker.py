@@ -21,8 +21,8 @@ class AuthorRuleType(StrEnum):
     """Types of rule checks for author bios."""
 
     POSITION_AFFILIATION = "position_affiliation"  # Rule 2
-    TASP_FELLOW = "tasp_fellow"  # Check for Rule 3 applicability
-    TASP_STATEMENT = "tasp_statement"  # Rule 3
+    PROGRAM_FELLOW = "program_fellow"  # Check for Rule 3 applicability
+    PROGRAM_STATEMENT = "program_statement"  # Rule 3
     RESEARCH_FOCUS = "research_focus"  # Rule 4
     HIGHEST_DEGREE = "highest_degree"  # Rule 5
 
@@ -44,12 +44,12 @@ def _build_rule_prompts() -> dict:
         if prompt:
             prompts["position_affiliation"] = prompt
 
-    if "rule_3_tasp_statement" in rules:
-        rule = rules["rule_3_tasp_statement"]
-        if rule.get("tasp_fellow_prompt"):
-            prompts["tasp_fellow"] = rule["tasp_fellow_prompt"]
-        if rule.get("tasp_statement_prompt"):
-            prompts["tasp_statement"] = rule["tasp_statement_prompt"]
+    if "rule_3_program_statement" in rules:
+        rule = rules["rule_3_program_statement"]
+        if rule.get("fellow_prompt"):
+            prompts["program_fellow"] = rule["fellow_prompt"]
+        if rule.get("program_statement_prompt"):
+            prompts["program_statement"] = rule["program_statement_prompt"]
 
     if "rule_4_research_focus" in rules:
         prompt = rules["rule_4_research_focus"].get("prompt")
