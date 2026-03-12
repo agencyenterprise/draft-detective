@@ -59,7 +59,7 @@ class ReferenceValidationManifest(
 ):
     type = WorkflowRunType.REFERENCE_VALIDATION
     name = "Reference Error Checking"
-    description = "Uses web search to check if each reference from the document is available online and matches author, title, year, and publisher against public internet sources. Useful for checking fabricated or hallucinated references."
+    description = "Uses web search to check if each reference from the document is available online and matches author, title, year, and publisher against public internet sources. Useful for checking reference typos or hallucinated references."
     needs_web_search = True
     order = 0
     required_dependencies = [WorkflowRunType.REFERENCE_EXTRACTION]
