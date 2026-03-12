@@ -367,9 +367,9 @@ export type AboutThisState = {
    */
   audience?: RequirementCheckResult | null;
   /**
-   * Result for: contains TASP boilerplate
+   * Result for: contains CAST boilerplate
    */
-  source_tasp?: RequirementCheckResult | null;
+  source_boilerplate?: RequirementCheckResult | null;
   /**
    * Result for: contains funding statement
    */
@@ -584,9 +584,9 @@ export type AuthorValidationResult = {
    */
   rule_2_position_affiliation: RuleCheckResult;
   /**
-   * Rule 3: If TASP fellow, must include TASP statement
+   * Rule 3: If CAST fellow, must include CAST statement
    */
-  rule_3_tasp_statement: RuleCheckResult;
+  rule_3_program_statement: RuleCheckResult;
   /**
    * Rule 4: Must include research focus
    */

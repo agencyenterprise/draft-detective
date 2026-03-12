@@ -15,8 +15,8 @@ ABBREVIATIONS = _config["abbreviations"]
 # Sentence patterns to ignore when counting
 IGNORE_SENTENCE_PATTERNS = _config["ignore_sentence_patterns"]
 
-# TASP fellowship URL
-TASP_URL = _config["tasp_url"]
+# Fellowship program URL
+PROGRAM_URL = _config["program_url"]
 
 # Expected sentence count for author bios
 EXPECTED_SENTENCE_COUNT = _config["expected_sentence_count"]

@@ -8,8 +8,8 @@ from lib.config.workflow_config import get_workflow_config
 
 _config = get_workflow_config("about_this")
 
-# TASP Boilerplate - required exact text for source_tasp check
-TASP_BOILERPLATE = _config["tasp_boilerplate"]
+# Boilerplate - required exact text for source_boilerplate check
+BOILERPLATE = _config["boilerplate"]
 
 # Funding statement variants - any one of these is acceptable
 FUNDING_STATEMENT_VARIANTS = _config["funding_statement_variants"]

@@ -78,7 +78,7 @@ def get_workflow_config(
 
     Examples:
         get_workflow_config("about_this")  # Returns full about_this config
-        get_workflow_config("about_this", "tasp_boilerplate")  # Returns string
+        get_workflow_config("about_this", "boilerplate")  # Returns string
         get_workflow_config("about_this", "requirements")  # Returns dict
         get_workflow_config("about_authors", "rules")  # Returns dict
     """

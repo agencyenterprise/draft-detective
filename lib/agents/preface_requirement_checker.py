@@ -22,7 +22,7 @@ class PrefaceRequirementType(StrEnum):
     OBJECTIVES = "objectives"
     RELATIONSHIP = "relationship"
     AUDIENCE = "audience"
-    SOURCE_TASP = "source_tasp"
+    SOURCE_BOILERPLATE = "source_boilerplate"
     SOURCE_FUNDING = "source_funding"
 
 
@@ -72,20 +72,20 @@ Determine if the provided sentences satisfy the requirement for '{requirement_de
 """
 )
 
-_paragraph_tasp_check_prompt = ChatPromptTemplate.from_template(
-    """You are an impartial text analyzer checking for TASP boilerplate text.
+_paragraph_boilerplate_check_prompt = ChatPromptTemplate.from_template(
+    """You are an impartial text analyzer checking for CAST boilerplate text.
 
 ## Task
-Determine if one of the paragraphs contains the Technology and Security Policy Center (TASP) boilerplate.
+Determine if one of the paragraphs contains the Center on AI, Security, and Technology (CAST) boilerplate.
 
-## Expected TASP Boilerplate (or very similar text)
-{tasp_boilerplate}
+## Expected CAST Boilerplate (or very similar text)
+{boilerplate}
 
 ## Paragraphs
 {numbered_items}
 
 ## Instructions
-1. Check if any paragraph contains text that is substantially similar to the TASP boilerplate.
+1. Check if any paragraph contains text that is substantially similar to the CAST boilerplate.
 2. Minor variations in wording are acceptable, but the core content must match.
 3. If found, set passed=true and matched_index to the paragraph number.
 4. If not found, set passed=false and matched_index=-1.
@@ -141,10 +141,10 @@ class PrefaceRequirementCheckerAgent(LangChainAgent):
             f"{i+1}. {item}" for i, item in enumerate(text_items)
         )
 
-        if requirement_type == PrefaceRequirementType.SOURCE_TASP:
-            tasp_boilerplate = get_workflow_config("about_this", "tasp_boilerplate", "")
-            messages = _paragraph_tasp_check_prompt.format_messages(
-                tasp_boilerplate=tasp_boilerplate,
+        if requirement_type == PrefaceRequirementType.SOURCE_BOILERPLATE:
+            boilerplate = get_workflow_config("about_this", "boilerplate", "")
+            messages = _paragraph_boilerplate_check_prompt.format_messages(
+                boilerplate=boilerplate,
                 numbered_items=numbered_items,
             )
         elif requirement_type == PrefaceRequirementType.SOURCE_FUNDING:

@@ -4,7 +4,7 @@ About Authors Validation Node
 Validates author bios against 5 publication rules:
 1. Exactly 3 sentences
 2. Position + affiliation
-3. TASP statement (if TASP fellow)
+3. Program statement (if program fellow)
 4. Research focus
 5. Highest degree
 """
@@ -89,7 +89,7 @@ async def _validate_single_author(
         ),
     )
 
-    # Step 3: Parallel LLM checks for Rules 2-5 + TASP check
+    # Step 3: Parallel LLM checks for Rules 2-5 + program fellow check
     rule_tasks = [
         rule_agent.ainvoke(
             {
@@ -98,10 +98,10 @@ async def _validate_single_author(
             }
         ),
         rule_agent.ainvoke(
-            {"author_text": author_text, "rule_type": AuthorRuleType.TASP_FELLOW}
+            {"author_text": author_text, "rule_type": AuthorRuleType.PROGRAM_FELLOW}
         ),
         rule_agent.ainvoke(
-            {"author_text": author_text, "rule_type": AuthorRuleType.TASP_STATEMENT}
+            {"author_text": author_text, "rule_type": AuthorRuleType.PROGRAM_STATEMENT}
         ),
         rule_agent.ainvoke(
             {"author_text": author_text, "rule_type": AuthorRuleType.RESEARCH_FOCUS}
@@ -112,7 +112,7 @@ async def _validate_single_author(
     ]
 
     results, _ = await run_tasks(rule_tasks, desc=f"Checking rules for {author_name}")
-    rule_2_raw, tasp_check_raw, rule_3_raw, rule_4_raw, rule_5_raw = results
+    rule_2_raw, fellow_check_raw, rule_3_raw, rule_4_raw, rule_5_raw = results
 
     def to_rule_result(result, default_msg: str) -> RuleCheckResult:
         if result is None:
@@ -123,14 +123,14 @@ async def _validate_single_author(
     rule_4 = to_rule_result(rule_4_raw, "Failed to check research focus")
     rule_5 = to_rule_result(rule_5_raw, "Failed to check highest degree")
 
-    # Rule 3 conditional logic (only applies if TASP fellow)
-    is_tasp_fellow = tasp_check_raw.passed if tasp_check_raw else False
-    if is_tasp_fellow:
-        rule_3 = to_rule_result(rule_3_raw, "Failed to check TASP statement")
+    # Rule 3 conditional logic (only applies if program fellow)
+    is_program_fellow = fellow_check_raw.passed if fellow_check_raw else False
+    if is_program_fellow:
+        rule_3 = to_rule_result(rule_3_raw, "Failed to check program statement")
     else:
         rule_3 = RuleCheckResult(
             passed=True,
-            explanation="N/A - Author is not a TASP fellow",
+            explanation="N/A - Author is not a program fellow",
             applicable=False,
         )
 
@@ -165,7 +165,7 @@ async def _validate_single_author(
         chunk_indices=chunk_indices,
         rule_1_sentence_length=rule_1,
         rule_2_position_affiliation=rule_2,
-        rule_3_tasp_statement=rule_3,
+        rule_3_program_statement=rule_3,
         rule_4_research_focus=rule_4,
         rule_5_highest_degree=rule_5,
         overall_passed=all_passed,

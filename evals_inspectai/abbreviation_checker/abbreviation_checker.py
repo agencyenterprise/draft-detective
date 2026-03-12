@@ -1,15 +1,13 @@
-import re
 from typing import Any
 
-from deepdiff import DeepDiff
 from inspect_ai import Task, task
 from inspect_ai.agent import Agent, AgentState, agent
 from inspect_ai.dataset import FieldSpec, json_dataset
 from inspect_ai.model import ModelOutput
-from inspect_ai.scorer import Score, Scorer, Target, mean, scorer, stderr
+from inspect_ai.scorer import Score
 from inspect_ai.solver import TaskState
-from pydantic import ValidationError
 
+from evals_inspectai.common.comparers import deep_diff_score
 from evals_inspectai.common.config import (
     apply_inspectai_config_to_agent,
     get_model_or_agent_default,
@@ -73,10 +71,11 @@ def abbreviation_checker():
         model=get_model_or_agent_default(AbbreviationCheckerAgent),
         solver=abbreviation_checker_agent(),
         scorer=[
-            abbreviation_list_scorer(),
             structured_output_scorer(
-                model_type=AbbreviationCheckOutput,
-                compare=_compare_abbreviations_section_found,
+                AbbreviationCheckOutput, _compare_abbreviation_list
+            ),
+            structured_output_scorer(
+                AbbreviationCheckOutput, _compare_abbreviations_section_found
             ),
             model_graded_check(partial_credit=True),
         ],
@@ -101,50 +100,18 @@ _COMPARE_FIELDS = [
 ]
 
 
-@scorer(metrics=[mean(), stderr()])
-def abbreviation_list_scorer() -> Scorer:
-    """
-    Compares the actual abbreviation list against target_abbreviations from metadata.
+def _compare_abbreviation_list(
+    output: AbbreviationCheckOutput, state: TaskState
+) -> Score:
+    expected_items: list[dict[str, Any]] = state.metadata.get(
+        "target_abbreviations", []
+    )
+    if not expected_items:
+        return Score(value=1.0, explanation="No target abbreviations defined")
 
-    Runs DeepDiff with ignore_order=True and get_deep_distance=True.
-    Score = 1 - deep_distance, where deep_distance is DeepDiff's normalized
-    [0, 1] structural similarity metric.
-    """
+    actual_items = [
+        item.model_dump(include={"abbr", "occurrence_number", *_COMPARE_FIELDS})
+        for item in output.abbreviations
+    ]
 
-    async def score(state: TaskState, target: Target) -> Score:
-        try:
-            output = AbbreviationCheckOutput.model_validate_json(
-                state.output.completion
-            )
-        except ValidationError as e:
-            return Score(value=0.0, explanation=f"Parse error: {e}")
-
-        expected_items: list[dict[str, Any]] = state.metadata.get(
-            "target_abbreviations", []
-        )
-        if not expected_items:
-            return Score(value=1.0, explanation="No target abbreviations defined")
-
-        actual_items = [
-            item.model_dump(include={"abbr", "occurrence_number", *_COMPARE_FIELDS})
-            for item in output.abbreviations
-        ]
-
-        diff = DeepDiff(
-            expected_items,
-            actual_items,
-            verbose_level=2,
-            get_deep_distance=True,
-            ignore_order=True,
-        )
-        diff_for_display = DeepDiff(
-            expected_items, actual_items, verbose_level=2, ignore_order=True
-        )
-
-        final_score = 1.0 - float(diff.get("deep_distance", 0.0))
-        explanation = (
-            diff_for_display.pretty() if diff_for_display else "All fields match"
-        )
-        return Score(value=final_score, explanation=explanation)
-
-    return score
+    return deep_diff_score(expected_items, actual_items)

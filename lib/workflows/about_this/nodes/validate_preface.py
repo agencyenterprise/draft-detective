@@ -6,7 +6,7 @@ Validates preface/introduction sections against 6 publication requirements:
 2. Explains objectives (sentence-level)
 3. Explains relationship to RAND work (sentence-level)
 4. Identifies intended audience (sentence-level)
-5. Contains TASP boilerplate (paragraph-level)
+5. Contains boilerplate (paragraph-level)
 6. Contains funding statement (paragraph-level)
 """
 
@@ -39,7 +39,7 @@ REQUIREMENT_CHECK_CONFIG = [
     ("objectives", PrefaceRequirementType.OBJECTIVES, "sentences"),
     ("relationship", PrefaceRequirementType.RELATIONSHIP, "sentences"),
     ("audience", PrefaceRequirementType.AUDIENCE, "sentences"),
-    ("source_tasp", PrefaceRequirementType.SOURCE_TASP, "paragraphs"),
+    ("source_boilerplate", PrefaceRequirementType.SOURCE_BOILERPLATE, "paragraphs"),
     ("source_funding", PrefaceRequirementType.SOURCE_FUNDING, "paragraphs"),
 ]
 

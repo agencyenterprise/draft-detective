@@ -109,39 +109,42 @@ ModelType = TypeVar("ModelType", bound=BaseModel)
 @scorer(metrics=[mean(), stderr()])
 def structured_output_scorer(
     model_type: type[ModelType],
-    compare: Callable[[ModelType, TaskState], bool],
+    compare: Callable[[ModelType, TaskState], bool | Score],
 ) -> Scorer:
     """Scorer that parses the agent output as a Pydantic model and compares against the target.
 
     Parses ``state.output.completion`` using ``model_type.model_validate_json``,
-    then delegates the equality check to ``compare``, which receives the
-    parsed model instance and the full task state.
+    then delegates the scoring to ``compare``, which receives the parsed model
+    instance and the full task state.
 
     Args:
         model_type: Pydantic model class used to parse the agent's JSON output.
         compare: Callable that receives the parsed model instance and the
-            task state, and returns ``True`` if they match.
+            task state. Can return a ``bool`` (``True`` → CORRECT, ``False`` →
+            INCORRECT) or a ``Score`` object directly for custom values/explanations.
 
     Returns:
-        A ``Scorer`` coroutine that yields ``CORRECT`` when ``compare`` returns
-        ``True``, ``INCORRECT`` on mismatch or parse failure.
+        A ``Scorer`` coroutine that yields the resulting ``Score``.
     """
 
     async def score(state: TaskState, target: Target) -> Score:
         try:
             structured_output = model_type.model_validate_json(state.output.completion)
-            if compare(structured_output, state):
-                return Score(value=CORRECT, explanation="Field value matches target")
-            else:
-                return Score(
-                    value=INCORRECT,
-                    explanation=f"Field value does not match target '{target.text}'",
-                )
         except ValidationError as e:
             return Score(
                 value=INCORRECT,
                 answer=state.output.completion,
                 explanation=f"Error parsing response: {e}",
             )
+
+        result = compare(structured_output, state)
+        if isinstance(result, Score):
+            return result
+        if result:
+            return Score(value=CORRECT, explanation="Field value matches target")
+        return Score(
+            value=INCORRECT,
+            explanation=f"Field value does not match target '{target.text}'",
+        )
 
     return score

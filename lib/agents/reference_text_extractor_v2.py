@@ -3,7 +3,7 @@
 from typing import List, Optional
 
 from langchain.agents import create_agent
-from langchain_core.prompts import PromptTemplate
+from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
 from langgraph.graph.state import RunnableConfig
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -41,8 +41,7 @@ class ReferenceExtractorV2Output(BaseModel):
     )
 
 
-_system_prompt = PromptTemplate.from_template(
-    """
+_SYSTEM_PROMPT = """\
 You are a reference extraction specialist. Your task is to find and extract all bibliographic references from the Reference List section of an academic document.
 
 ## Available Tools
@@ -100,7 +99,8 @@ The document you are searching is in markdown format, converted from DOC or PDF 
     - If you see a placeholder for repeated authors at the start of a reference (commonly `---.` but also `———.`, `___`, or similar patterns), replace it with the author from the previous reference
     - If a single reference item is split across multiple lines, merge them into a single line (remove line breaks)
 """
-)
+
+_USER_MESSAGE = "Please extract all bibliographic references from the document."
 
 
 class ReferenceExtractorV2Agent(LangChainAgent):
@@ -116,23 +116,23 @@ class ReferenceExtractorV2Agent(LangChainAgent):
         self,
         prompt_kwargs: dict,
         config: Optional[RunnableConfig] = None,
-    ) -> ReferenceExtractorV2Output:
-        system_prompt = _system_prompt.invoke({})
-
+    ) -> tuple[ReferenceExtractorV2Output, list[BaseMessage]]:
         agent = create_agent(
             self.llm,
             [search_document, read_document],
-            system_prompt=system_prompt.text,
             context_schema=ContextSchema,
             response_format=ReferenceExtractorV2Output,
         )
 
-        user_message = "Please extract all bibliographic references from the document."
-
         result = await agent.ainvoke(
-            {"messages": [{"role": "user", "content": user_message}]},
+            {
+                "messages": [
+                    SystemMessage(content=_SYSTEM_PROMPT),
+                    HumanMessage(content=_USER_MESSAGE),
+                ]
+            },
             config={"recursion_limit": 50, **(config or {})},
             context=self.context,
         )
 
-        return result["structured_response"]
+        return result["structured_response"], result["messages"]

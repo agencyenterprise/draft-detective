@@ -22,7 +22,7 @@ class AboutAuthorsManifest(
     name = "About the Authors"
     description = (
         "Validate author biographies against publication rules: "
-        "sentence count, position/affiliation, TASP statement, research focus, and highest degree."
+        "sentence count, position/affiliation, CAST statement, research focus, and highest degree."
     )
     needs_web_search = False
     order = 11  # QA Screener group (10-12)
