@@ -58,8 +58,8 @@ class AboutThisState(BaseWorkflowState):
     audience: Optional[RequirementCheckResult] = Field(
         default=None, description="Result for: identifies intended audience"
     )
-    source_tasp: Optional[RequirementCheckResult] = Field(
-        default=None, description="Result for: contains TASP boilerplate"
+    source_boilerplate: Optional[RequirementCheckResult] = Field(
+        default=None, description="Result for: contains CAST boilerplate"
     )
     source_funding: Optional[RequirementCheckResult] = Field(
         default=None, description="Result for: contains funding statement"

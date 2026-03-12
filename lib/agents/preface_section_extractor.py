@@ -39,7 +39,7 @@ You are a document section extraction specialist. Your task is to find and extra
    - Publication objectives
    - Relationship to other RAND work
    - Intended audience
-   - TASP/funding boilerplate information
+   - CAST/funding boilerplate information
 
 4. The preface section usually ends when:
    - Another major heading starts (e.g., "Chapter 1", "Methodology", "Contents")

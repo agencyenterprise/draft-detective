@@ -37,8 +37,8 @@ class AuthorValidationResult(BaseModel):
     rule_2_position_affiliation: RuleCheckResult = Field(
         description="Rule 2: Must include position and affiliation"
     )
-    rule_3_tasp_statement: RuleCheckResult = Field(
-        description="Rule 3: If TASP fellow, must include TASP statement"
+    rule_3_program_statement: RuleCheckResult = Field(
+        description="Rule 3: If CAST fellow, must include CAST statement"
     )
     rule_4_research_focus: RuleCheckResult = Field(
         description="Rule 4: Must include research focus"

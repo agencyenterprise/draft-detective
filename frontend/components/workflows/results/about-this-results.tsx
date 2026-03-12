@@ -17,7 +17,7 @@ const REQUIREMENT_CONFIG = [
   { field: 'objectives' as const, label: 'Explains Objectives', level: 'sentence' },
   { field: 'relationship' as const, label: 'Relationship to RAND Work', level: 'sentence' },
   { field: 'audience' as const, label: 'Intended Audience', level: 'sentence' },
-  { field: 'source_tasp' as const, label: 'TASP Boilerplate', level: 'paragraph' },
+  { field: 'source_boilerplate' as const, label: 'CAST Boilerplate', level: 'paragraph' },
   { field: 'source_funding' as const, label: 'Funding Statement', level: 'paragraph' },
 ] as const;
 
