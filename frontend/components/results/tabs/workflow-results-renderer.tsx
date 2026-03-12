@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Callout } from '@/components/ui/callout';
 import { ErrorsCard } from '@/components/results/components/errors-card';
 import { AboutAuthorsResults } from '@/components/workflows/results/about-authors-results';
+import { AboutThisGerResults } from '@/components/workflows/results/about-this-ger-results';
 import { AboutThisResults } from '@/components/workflows/results/about-this-results';
 import { AdvocacyToneResults } from '@/components/workflows/results/advocacy-tone-results';
 import { CitationSuggesterResults } from '@/components/workflows/results/citation-suggester-results';
@@ -59,6 +60,8 @@ function renderWorkflowResults(
       return <AboutAuthorsResults project={project} onNavigateToDocumentExplorer={onNavigateToDocumentExplorer} />;
     case WorkflowRunType.AboutThis:
       return <AboutThisResults project={project} />;
+    case WorkflowRunType.AboutThisGer:
+      return <AboutThisGerResults workflowDetail={workflowRun} />;
     case WorkflowRunType.InferenceValidationV2:
       return (
         <InferenceValidationV2Results

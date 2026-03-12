@@ -86,6 +86,7 @@ class WorkflowRunType(str, Enum):
     ADVOCACY_TONE = "advocacy_tone"
     ABOUT_AUTHORS = "about_authors"
     ABOUT_THIS = "about_this"
+    ABOUT_THIS_GER = "about_this_ger"
     REVIEWER_2 = "reviewer_2"
 
 

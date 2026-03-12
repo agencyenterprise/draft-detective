@@ -60,6 +60,7 @@ const workflowTypeIcons: Record<WorkflowRunType, LucideIcon> = {
   [WorkflowRunType.AbbreviationScanV2]: ALargeSmall,
   [WorkflowRunType.AdvocacyTone]: MessageSquareWarning,
   [WorkflowRunType.AboutAuthors]: Users,
+  [WorkflowRunType.AboutThisGer]: BookOpen,
   [WorkflowRunType.AboutThis]: BookOpen,
   [WorkflowRunType.Reviewer2]: BookOpen,
 };

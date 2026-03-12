@@ -49,6 +49,7 @@ def register_all_workflow_manifests():
     from lib.workflows.abbreviation_scan_v2.manifest import AbbreviationScanV2Manifest
     from lib.workflows.about_authors.manifest import AboutAuthorsManifest
     from lib.workflows.about_this.manifest import AboutThisManifest
+    from lib.workflows.about_this_ger.manifest import AboutThisGerManifest
     from lib.workflows.advocacy_tone.manifest import AdvocacyToneManifest
     from lib.workflows.chunk_splitting.manifest import ChunkSplittingManifest
     from lib.workflows.citation_detection.manifest import CitationDetectionManifest
@@ -106,6 +107,7 @@ def register_all_workflow_manifests():
         AdvocacyToneManifest(),
         AboutAuthorsManifest(),
         AboutThisManifest(),
+        AboutThisGerManifest(),
         Reviewer2Manifest(),
     ]
 

@@ -27,6 +27,8 @@ class AboutThisManifest(WorkflowManifest[AboutThisState, AboutThisWorkflowConfig
     order = 12  # QA Screener group (10-12)
     required_dependencies = [WorkflowRunType.CHUNK_SPLITTING]
     is_experimental = True
+    is_internal = True
+    can_be_triggered_by_user = False
 
     def get_state_type(self) -> Type[AboutThisState]:
         """Get the type of the workflow state."""
