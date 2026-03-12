@@ -6,6 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v0.5.19] - 2026-03-12
+
+### Changed
+- Renamed all TASP references to CAST and generalized program-specific identifiers to be less coupled to a single program name.
+- Renamed workflow config keys `tasp_boilerplate` to `boilerplate` and `tasp_url` to `program_url`.
+- Renamed `rule_3_tasp_statement` to `rule_3_program_statement` in workflow config, state models, and validation nodes.
+- Renamed YAML keys `tasp_fellow_prompt` / `tasp_statement_prompt` to `fellow_prompt` / `program_statement_prompt`.
+- Renamed `source_tasp` requirement to `source_boilerplate` across the preface checker agent, state, constants, and validation config.
+- Updated `AuthorRuleType` enum values from `TASP_FELLOW`/`TASP_STATEMENT` to `PROGRAM_FELLOW`/`PROGRAM_STATEMENT`.
+- Updated `PrefaceRequirementType` enum value from `SOURCE_TASP` to `SOURCE_BOILERPLATE`.
+- Renamed prompt template `_paragraph_tasp_check_prompt` to `_paragraph_boilerplate_check_prompt` and updated CAST references in the prompt text.
+- Updated internal variable names including `is_tasp_fellow` to `is_program_fellow` and `tasp_check_raw` to `fellow_check_raw`.
+- Updated frontend rule and requirement config fields and labels from TASP to CAST, including `source_tasp` to `source_boilerplate`.
+- Regenerated API types (`types.gen.ts`) to reflect renamed fields.
+
+
 ## [v0.5.18] - 2026-03-10
 
 ### Added
