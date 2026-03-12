@@ -20,11 +20,11 @@ This guide covers deploying AI Reviewer to [Railway](https://railway.app).
 
 Create these services in your Railway project:
 
-| Service | How to Add |
-|---------|------------|
-| **PostgreSQL** | Click **+ New** → **Database** → **Add PostgreSQL** |
-| **Backend API** | Connect from GitHub (uses root `railway.toml`) |
-| **Frontend** | Connect from GitHub, set root directory to `frontend/` |
+| Service         | How to Add                                             |
+| --------------- | ------------------------------------------------------ |
+| **PostgreSQL**  | Click **+ New** → **Database** → **Add PostgreSQL**    |
+| **Backend API** | Connect from GitHub (uses root `railway.toml`)         |
+| **Frontend**    | Connect from GitHub, set root directory to `frontend/` |
 
 ### 3. Configure Environment Variables
 
@@ -33,6 +33,7 @@ Create these services in your Railway project:
 Set these in Railway dashboard under **Variables**:
 
 **Required:**
+
 ```
 AUTH_SECRET=<generate-a-secure-random-string>
 OPENAI_API_KEY=<your-openai-api-key>
@@ -40,9 +41,11 @@ FRONTEND_URL=https://<your-frontend-domain>.railway.app
 ```
 
 **Auto-configured** (via `railway.toml`):
+
 - `DATABASE_URL`, `POSTGRES_*` - Linked from PostgreSQL service
 
 **Optional:**
+
 ```
 # Langfuse observability
 LANGFUSE_HOST=https://cloud.langfuse.com
@@ -58,14 +61,17 @@ WORKFLOW_CONFIG_PATH=/app/config/workflow_config.yaml
 Set these in Railway dashboard:
 
 **Required:**
+
 ```
 AUTH_SECRET=<same-value-as-backend>
 ```
 
 **Auto-configured** (via `frontend/railway.toml`):
+
 - `NEXT_PUBLIC_API_URL` - References backend service
 
 **Optional:**
+
 ```
 NEXT_PUBLIC_POSTHOG_KEY=<posthog-project-key>
 NEXT_PUBLIC_POSTHOG_HOST=https://us.i.posthog.com
@@ -88,12 +94,14 @@ The default workflow configuration (`lib/config/workflow_config.yaml`) is self-d
 4. Set environment variable: `WORKFLOW_CONFIG_PATH=/app/config/workflow_config.yaml`
 
 > Railway doesn't allow scp or have a text editor, so use pbcopy with pipe to send changes through ssh.
+> You can use `tee /app/uploads/workflow_config.yaml` then `Cmd+V` to paste and `Ctrl+D` to save and close file.
 
 ## Troubleshooting
 
 ### Database Connection Issues
 
 Ensure the PostgreSQL service is running and the `DATABASE_URL` variable is correctly linked:
+
 1. Go to Backend service → Variables
 2. Click **+ New Variable** → **Add Reference**
 3. Select PostgreSQL service and `DATABASE_URL`
@@ -101,6 +109,7 @@ Ensure the PostgreSQL service is running and the `DATABASE_URL` variable is corr
 ### Migrations Not Running
 
 Check the deploy logs for migration output. Migrations run automatically via:
+
 ```toml
 preDeployCommand = ["uv run alembic upgrade head"]
 ```
@@ -108,19 +117,19 @@ preDeployCommand = ["uv run alembic upgrade head"]
 ### Health Check Failures
 
 The backend health endpoint is `/api/health`. If health checks fail:
+
 1. Check deploy logs for startup errors
 2. Verify all required environment variables are set
 3. Ensure PostgreSQL is accessible
 
 ## Environment Variable Reference
 
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `AUTH_SECRET` | ✅ | - | JWT signing secret (must match frontend) |
-| `OPENAI_API_KEY` | ✅ | - | OpenAI API key for LLM operations |
-| `DATABASE_URL` | ✅ | - | PostgreSQL connection string |
-| `FRONTEND_URL` | ✅ | `http://localhost:3000` | Frontend URL for share links |
-| `WORKFLOW_CONFIG_PATH` | ❌ | Built-in config | Path to custom workflow YAML |
-| `LANGFUSE_*` | ❌ | - | Langfuse observability config |
-| `LANGGRAPH_MAX_CONCURRENCY` | ❌ | `30` | Max parallel workflow nodes |
-
+| Variable                    | Required | Default                 | Description                              |
+| --------------------------- | -------- | ----------------------- | ---------------------------------------- |
+| `AUTH_SECRET`               | ✅       | -                       | JWT signing secret (must match frontend) |
+| `OPENAI_API_KEY`            | ✅       | -                       | OpenAI API key for LLM operations        |
+| `DATABASE_URL`              | ✅       | -                       | PostgreSQL connection string             |
+| `FRONTEND_URL`              | ✅       | `http://localhost:3000` | Frontend URL for share links             |
+| `WORKFLOW_CONFIG_PATH`      | ❌       | Built-in config         | Path to custom workflow YAML             |
+| `LANGFUSE_*`                | ❌       | -                       | Langfuse observability config            |
+| `LANGGRAPH_MAX_CONCURRENCY` | ❌       | `30`                    | Max parallel workflow nodes              |
