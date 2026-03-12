@@ -109,6 +109,14 @@ class AuthorsValidatorAgent(LangChainAgent):
     temperature = 0.0
     reasoning = {"effort": "medium", "summary": "auto"}
 
+    def __init__(
+        self,
+        context: ContextSchema,
+        system_prompt_override: Optional[str] = None,
+    ):
+        super().__init__(context)
+        self._system_prompt = system_prompt_override or _SYSTEM_PROMPT
+
     async def ainvoke(
         self,
         prompt_kwargs: dict,
@@ -126,7 +134,7 @@ class AuthorsValidatorAgent(LangChainAgent):
                     include_supporting_files=False,
                 ),
                 "messages": [
-                    SystemMessage(content=_SYSTEM_PROMPT),
+                    SystemMessage(content=self._system_prompt),
                     HumanMessage(
                         content=(
                             "Please read the document and validate every author "

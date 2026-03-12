@@ -613,6 +613,36 @@ export type AnalysisFormConfig = {
 };
 
 /**
+ * AppConfigResponse
+ */
+export type AppConfigResponse = {
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * Key
+   */
+  key: string;
+  /**
+   * Value
+   */
+  value: string;
+  /**
+   * Description
+   */
+  description: string;
+  /**
+   * Updated At
+   */
+  updated_at: Date;
+  /**
+   * Updated By
+   */
+  updated_by?: string | null;
+};
+
+/**
  * ApproveWorkflowResponse
  *
  * Response for workflow approval.
@@ -3086,7 +3116,7 @@ export type IssueItem = {
    *
    * Issue severity: low, medium, or high
    */
-  severity?: string;
+  severity?: 'low' | 'medium' | 'high';
   /**
    * Start Line
    *
@@ -4974,6 +5004,20 @@ export type UpdateUserRoleRequest = {
 };
 
 /**
+ * UpsertAppConfigRequest
+ */
+export type UpsertAppConfigRequest = {
+  /**
+   * Value
+   */
+  value: string;
+  /**
+   * Description
+   */
+  description?: string | null;
+};
+
+/**
  * UserResponse
  *
  * Response model for user information
@@ -5398,6 +5442,89 @@ export type ReadHealthApiHealthHeadResponses = {
    */
   200: unknown;
 };
+
+export type ListAppConfigsApiAppConfigsGetData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/api/app-configs';
+};
+
+export type ListAppConfigsApiAppConfigsGetResponses = {
+  /**
+   * Response List App Configs Api App Configs Get
+   *
+   * Successful Response
+   */
+  200: Array<AppConfigResponse>;
+};
+
+export type ListAppConfigsApiAppConfigsGetResponse =
+  ListAppConfigsApiAppConfigsGetResponses[keyof ListAppConfigsApiAppConfigsGetResponses];
+
+export type ResetAppConfigApiAppConfigsKeyDeleteData = {
+  body?: never;
+  path: {
+    /**
+     * Key
+     */
+    key: string;
+  };
+  query?: never;
+  url: '/api/app-configs/{key}';
+};
+
+export type ResetAppConfigApiAppConfigsKeyDeleteErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type ResetAppConfigApiAppConfigsKeyDeleteError =
+  ResetAppConfigApiAppConfigsKeyDeleteErrors[keyof ResetAppConfigApiAppConfigsKeyDeleteErrors];
+
+export type ResetAppConfigApiAppConfigsKeyDeleteResponses = {
+  /**
+   * Successful Response
+   */
+  204: void;
+};
+
+export type ResetAppConfigApiAppConfigsKeyDeleteResponse =
+  ResetAppConfigApiAppConfigsKeyDeleteResponses[keyof ResetAppConfigApiAppConfigsKeyDeleteResponses];
+
+export type UpdateAppConfigApiAppConfigsKeyPutData = {
+  body: UpsertAppConfigRequest;
+  path: {
+    /**
+     * Key
+     */
+    key: string;
+  };
+  query?: never;
+  url: '/api/app-configs/{key}';
+};
+
+export type UpdateAppConfigApiAppConfigsKeyPutErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type UpdateAppConfigApiAppConfigsKeyPutError =
+  UpdateAppConfigApiAppConfigsKeyPutErrors[keyof UpdateAppConfigApiAppConfigsKeyPutErrors];
+
+export type UpdateAppConfigApiAppConfigsKeyPutResponses = {
+  /**
+   * Successful Response
+   */
+  200: AppConfigResponse;
+};
+
+export type UpdateAppConfigApiAppConfigsKeyPutResponse =
+  UpdateAppConfigApiAppConfigsKeyPutResponses[keyof UpdateAppConfigApiAppConfigsKeyPutResponses];
 
 export type StartAnalysisApiStartAnalysisDoNotUsePostData = {
   body: AnalysisFormConfig;
