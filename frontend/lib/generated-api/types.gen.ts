@@ -316,6 +316,75 @@ export type AboutAuthorsWorkflowConfig = {
 };
 
 /**
+ * AboutThisGerConfig
+ *
+ * Configuration for the About This (GER) workflow.
+ */
+export type AboutThisGerConfig = {
+  /**
+   * Project Id
+   *
+   * The ID of the project that this workflow run should be associated with
+   */
+  project_id: string;
+  /**
+   * Openai Api Key
+   *
+   * The OpenAI API key to use for this workflow execution
+   */
+  openai_api_key?: string | null;
+  /**
+   * Domain
+   *
+   * Domain context for more accurate analysis
+   */
+  domain?: string | null;
+  /**
+   * Target Audience
+   *
+   * Target audience context for analysis
+   */
+  target_audience?: string | null;
+  /**
+   * Publication Date
+   *
+   * Publication date of the document (YYYY-MM-DD format)
+   */
+  publication_date?: string | null;
+  /**
+   * Type
+   */
+  type?: 'about_this_ger';
+};
+
+/**
+ * AboutThisGerState
+ *
+ * State for the About This (GER) workflow.
+ */
+export type AboutThisGerState = {
+  /**
+   * Errors
+   *
+   * Errors that occurred during the workflow execution.
+   */
+  errors?: Array<WorkflowError>;
+  /**
+   * Type
+   */
+  type?: 'about_this_ger';
+  config: AboutThisGerConfig;
+  /**
+   * Result from the preface validation deep agent
+   */
+  preface_result?: AgentCheckResult | null;
+  /**
+   * Result from the authors validation deep agent
+   */
+  authors_result?: AgentCheckResult | null;
+};
+
+/**
  * AboutThisState
  *
  * State for the About This (Preface) validation workflow.
@@ -496,6 +565,26 @@ export type AdvocacyToneWorkflowConfig = {
 };
 
 /**
+ * AgentCheckResult
+ *
+ * Result from a single deep-agent validation pass.
+ */
+export type AgentCheckResult = {
+  /**
+   * Issues
+   *
+   * Issues found during validation
+   */
+  issues?: Array<IssueItem>;
+  /**
+   * Report Markdown
+   *
+   * Markdown report summarising the check results
+   */
+  report_markdown?: string;
+};
+
+/**
  * AnalysisFormConfig
  *
  * Form config for starting analysis (project creation + workflow start)
@@ -521,6 +610,36 @@ export type AnalysisFormConfig = {
    * Workflow Types
    */
   workflow_types?: Array<WorkflowRunType> | null;
+};
+
+/**
+ * AppConfigResponse
+ */
+export type AppConfigResponse = {
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * Key
+   */
+  key: string;
+  /**
+   * Value
+   */
+  value: string;
+  /**
+   * Description
+   */
+  description: string;
+  /**
+   * Updated At
+   */
+  updated_at: Date;
+  /**
+   * Updated By
+   */
+  updated_by?: string | null;
 };
 
 /**
@@ -2975,6 +3094,44 @@ export type Issue = {
 };
 
 /**
+ * IssueItem
+ *
+ * Lightweight issue returned by the deep agent.
+ */
+export type IssueItem = {
+  /**
+   * Title
+   *
+   * Short issue title
+   */
+  title: string;
+  /**
+   * Description
+   *
+   * Detailed description of the issue
+   */
+  description: string;
+  /**
+   * Severity
+   *
+   * Issue severity: low, medium, or high
+   */
+  severity?: 'low' | 'medium' | 'high';
+  /**
+   * Start Line
+   *
+   * 1-indexed start line in the document where the text relevant to this issue begins
+   */
+  start_line: number;
+  /**
+   * End Line
+   *
+   * 1-indexed end line in the document where the text relevant to this issue ends
+   */
+  end_line: number;
+};
+
+/**
  * IssueResponse
  *
  * Response model for an issue
@@ -4847,6 +5004,20 @@ export type UpdateUserRoleRequest = {
 };
 
 /**
+ * UpsertAppConfigRequest
+ */
+export type UpsertAppConfigRequest = {
+  /**
+   * Value
+   */
+  value: string;
+  /**
+   * Description
+   */
+  description?: string | null;
+};
+
+/**
  * UserResponse
  *
  * Response model for user information
@@ -5080,6 +5251,7 @@ export type WorkflowRunDetail = {
   state:
     | AboutAuthorsState
     | AboutThisState
+    | AboutThisGerState
     | AdvocacyToneState
     | DocumentProcessingState
     | ChunkSplittingState
@@ -5148,6 +5320,7 @@ export const WorkflowRunType = {
   AdvocacyTone: 'advocacy_tone',
   AboutAuthors: 'about_authors',
   AboutThis: 'about_this',
+  AboutThisGer: 'about_this_ger',
   Reviewer2: 'reviewer_2',
 } as const;
 
@@ -5269,6 +5442,89 @@ export type ReadHealthApiHealthHeadResponses = {
    */
   200: unknown;
 };
+
+export type ListAppConfigsApiAppConfigsGetData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/api/app-configs';
+};
+
+export type ListAppConfigsApiAppConfigsGetResponses = {
+  /**
+   * Response List App Configs Api App Configs Get
+   *
+   * Successful Response
+   */
+  200: Array<AppConfigResponse>;
+};
+
+export type ListAppConfigsApiAppConfigsGetResponse =
+  ListAppConfigsApiAppConfigsGetResponses[keyof ListAppConfigsApiAppConfigsGetResponses];
+
+export type ResetAppConfigApiAppConfigsKeyDeleteData = {
+  body?: never;
+  path: {
+    /**
+     * Key
+     */
+    key: string;
+  };
+  query?: never;
+  url: '/api/app-configs/{key}';
+};
+
+export type ResetAppConfigApiAppConfigsKeyDeleteErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type ResetAppConfigApiAppConfigsKeyDeleteError =
+  ResetAppConfigApiAppConfigsKeyDeleteErrors[keyof ResetAppConfigApiAppConfigsKeyDeleteErrors];
+
+export type ResetAppConfigApiAppConfigsKeyDeleteResponses = {
+  /**
+   * Successful Response
+   */
+  204: void;
+};
+
+export type ResetAppConfigApiAppConfigsKeyDeleteResponse =
+  ResetAppConfigApiAppConfigsKeyDeleteResponses[keyof ResetAppConfigApiAppConfigsKeyDeleteResponses];
+
+export type UpdateAppConfigApiAppConfigsKeyPutData = {
+  body: UpsertAppConfigRequest;
+  path: {
+    /**
+     * Key
+     */
+    key: string;
+  };
+  query?: never;
+  url: '/api/app-configs/{key}';
+};
+
+export type UpdateAppConfigApiAppConfigsKeyPutErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type UpdateAppConfigApiAppConfigsKeyPutError =
+  UpdateAppConfigApiAppConfigsKeyPutErrors[keyof UpdateAppConfigApiAppConfigsKeyPutErrors];
+
+export type UpdateAppConfigApiAppConfigsKeyPutResponses = {
+  /**
+   * Successful Response
+   */
+  200: AppConfigResponse;
+};
+
+export type UpdateAppConfigApiAppConfigsKeyPutResponse =
+  UpdateAppConfigApiAppConfigsKeyPutResponses[keyof UpdateAppConfigApiAppConfigsKeyPutResponses];
 
 export type StartAnalysisApiStartAnalysisDoNotUsePostData = {
   body: AnalysisFormConfig;
@@ -5406,6 +5662,7 @@ export type StartWorkflowApiWorkflowsStartPostData = {
   body:
     | AboutAuthorsWorkflowConfig
     | AboutThisWorkflowConfig
+    | AboutThisGerConfig
     | AdvocacyToneWorkflowConfig
     | DocumentProcessingWorkflowConfig
     | ChunkSplittingWorkflowConfig
