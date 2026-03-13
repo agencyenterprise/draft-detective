@@ -12,6 +12,7 @@ const userNavigation = [{ name: 'Sign out', href: '/api/auth/signout' }];
 const adminNavigation = [
   { name: 'Evaluations', href: '/evals' },
   { name: 'Manage Users', href: '/users' },
+  { name: 'Settings', href: '/settings' },
 ];
 
 interface User {

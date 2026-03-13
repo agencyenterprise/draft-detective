@@ -19,6 +19,7 @@ QA_SCREENER_WORKFLOWS = {
     WorkflowRunType.ADVOCACY_TONE,
     WorkflowRunType.ABOUT_AUTHORS,
     WorkflowRunType.ABOUT_THIS,
+    WorkflowRunType.ABOUT_THIS_GER,
 }
 
 

@@ -7,10 +7,31 @@ import type {
   GetProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGetResponse,
   GetSharedResourceApiPublicShareTokenGetResponse,
   GetWorkflowStateApiWorkflowsWorkflowRunIdGetResponse,
+  ListAppConfigsApiAppConfigsGetResponse,
   ListProjectFilesEndpointApiProjectProjectIdFilesGetResponse,
   ListProjectsEndpointApiProjectsGetResponse,
+  UpdateAppConfigApiAppConfigsKeyPutResponse,
   UpdateProjectEndpointApiProjectProjectIdPatchResponse,
 } from './types.gen';
+
+const appConfigResponseSchemaResponseTransformer = (data: any) => {
+  data.updated_at = new Date(data.updated_at);
+  return data;
+};
+
+export const listAppConfigsApiAppConfigsGetResponseTransformer = async (
+  data: any,
+): Promise<ListAppConfigsApiAppConfigsGetResponse> => {
+  data = data.map((item: any) => appConfigResponseSchemaResponseTransformer(item));
+  return data;
+};
+
+export const updateAppConfigApiAppConfigsKeyPutResponseTransformer = async (
+  data: any,
+): Promise<UpdateAppConfigApiAppConfigsKeyPutResponse> => {
+  data = appConfigResponseSchemaResponseTransformer(data);
+  return data;
+};
 
 const workflowRunDetailSchemaResponseTransformer = (data: any) => {
   data.run = workflowRunSchemaResponseTransformer(data.run);

@@ -94,6 +94,8 @@ import type {
   GetWorkflowStateApiWorkflowsWorkflowRunIdGetResponses,
   GetWorkflowTypesApiWorkflowTypesGetData,
   GetWorkflowTypesApiWorkflowTypesGetResponses,
+  ListAppConfigsApiAppConfigsGetData,
+  ListAppConfigsApiAppConfigsGetResponses,
   ListProjectFilesEndpointApiProjectProjectIdFilesGetData,
   ListProjectFilesEndpointApiProjectProjectIdFilesGetErrors,
   ListProjectFilesEndpointApiProjectProjectIdFilesGetResponses,
@@ -105,6 +107,9 @@ import type {
   ReadHealthApiHealthGetResponses,
   ReadHealthApiHealthHeadData,
   ReadHealthApiHealthHeadResponses,
+  ResetAppConfigApiAppConfigsKeyDeleteData,
+  ResetAppConfigApiAppConfigsKeyDeleteErrors,
+  ResetAppConfigApiAppConfigsKeyDeleteResponses,
   ResolveIssueEndpointApiIssuesIssueIdResolvePostData,
   ResolveIssueEndpointApiIssuesIssueIdResolvePostErrors,
   ResolveIssueEndpointApiIssuesIssueIdResolvePostResponses,
@@ -126,6 +131,9 @@ import type {
   UnresolveIssueEndpointApiIssuesIssueIdUnresolvePostData,
   UnresolveIssueEndpointApiIssuesIssueIdUnresolvePostErrors,
   UnresolveIssueEndpointApiIssuesIssueIdUnresolvePostResponses,
+  UpdateAppConfigApiAppConfigsKeyPutData,
+  UpdateAppConfigApiAppConfigsKeyPutErrors,
+  UpdateAppConfigApiAppConfigsKeyPutResponses,
   UpdatePreferencesApiUsersMePreferencesPatchData,
   UpdatePreferencesApiUsersMePreferencesPatchErrors,
   UpdatePreferencesApiUsersMePreferencesPatchResponses,
@@ -180,6 +188,65 @@ export const readHealthApiHealthHead = <ThrowOnError extends boolean = true>(
     responseStyle: 'data',
     url: '/api/health',
     ...options,
+  });
+
+/**
+ * List App Configs
+ *
+ * List all application configs.
+ */
+export const listAppConfigsApiAppConfigsGet = <ThrowOnError extends boolean = true>(
+  options?: Options<ListAppConfigsApiAppConfigsGetData, ThrowOnError>,
+) =>
+  (options?.client ?? client).get<ListAppConfigsApiAppConfigsGetResponses, unknown, ThrowOnError, 'data'>({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/app-configs',
+    ...options,
+  });
+
+/**
+ * Reset App Config
+ *
+ * Delete a config override (resets to code default).
+ */
+export const resetAppConfigApiAppConfigsKeyDelete = <ThrowOnError extends boolean = true>(
+  options: Options<ResetAppConfigApiAppConfigsKeyDeleteData, ThrowOnError>,
+) =>
+  (options.client ?? client).delete<
+    ResetAppConfigApiAppConfigsKeyDeleteResponses,
+    ResetAppConfigApiAppConfigsKeyDeleteErrors,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/app-configs/{key}',
+    ...options,
+  });
+
+/**
+ * Update App Config
+ *
+ * Create or update an application config value.
+ */
+export const updateAppConfigApiAppConfigsKeyPut = <ThrowOnError extends boolean = true>(
+  options: Options<UpdateAppConfigApiAppConfigsKeyPutData, ThrowOnError>,
+) =>
+  (options.client ?? client).put<
+    UpdateAppConfigApiAppConfigsKeyPutResponses,
+    UpdateAppConfigApiAppConfigsKeyPutErrors,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/app-configs/{key}',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
   });
 
 /**

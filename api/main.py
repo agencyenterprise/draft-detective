@@ -6,6 +6,7 @@ Business logic is organized in separate routers under api/routers/.
 """
 
 import logging
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -15,6 +16,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from api.routers import (
     analysis,
+    app_configs,
     evaluation,
     feedback,
     files,
@@ -34,7 +36,17 @@ setup_logger()
 
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="AI Analyst API")
+
+@asynccontextmanager
+async def lifespan(application: FastAPI):
+    """Seed default runtime configs on startup."""
+    from lib.services.app_configs import seed_all_defaults
+
+    await seed_all_defaults()
+    yield
+
+
+app = FastAPI(title="AI Analyst API", lifespan=lifespan)
 
 
 class TusTerminationMiddleware(BaseHTTPMiddleware):
@@ -79,6 +91,7 @@ app.add_middleware(GZipMiddleware)
 
 # Register routers
 app.include_router(health.router)
+app.include_router(app_configs.router)
 app.include_router(analysis.router)
 app.include_router(evaluation.router)
 app.include_router(workflows.router)
