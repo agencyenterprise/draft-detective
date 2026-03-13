@@ -6,6 +6,28 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v0.5.21] - 2026-03-13
+
+### Added
+- Added the About This (GER) workflow for validating preface/introduction and author biography sections against GER publication rules.
+- Added a runtime application config system that allows admins to override agent system prompts without code changes.
+- Added a new `AppConfig` model and an Alembic migration creating the `app_configs` table with a unique index on `key`.
+- Added a config service with `get_config`, `upsert_config`, `delete_config`, and `seed_all_defaults` to insert default values on startup without overwriting admin customizations.
+- Added an admin-only Config API with CRUD endpoints (`GET`, `PUT /{key}`, `DELETE /{key}`) for managing configs, where delete resets to code defaults by re-seeding.
+- Added a lifespan hook that seeds default configs on startup.
+- Added new deep agents `AuthorsValidatorAgent` and `PrefaceValidatorAgent` that accept an optional `system_prompt_override`.
+- Added a new admin Settings page with inline editing for config values and a reset-to-default action with a confirmation dialog.
+- Added a GER results component with a tabbed Preface/Authors view showing issues or success states with markdown reports.
+
+### Changed
+- Updated navigation to include a settings link in the profile dropdown.
+- Updated the workflow type checkbox with the new workflow icon.
+- Regenerated generated API types to include new endpoints and schemas.
+
+### Security
+- Restricted config management to admin-only access via a `require_admin` dependency.
+
+
 ## [v0.5.20] - 2026-03-12
 
 ### Changed
