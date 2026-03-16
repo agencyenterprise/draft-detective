@@ -1,18 +1,28 @@
 'use client';
 
+import { PROTOTYPE_MODE } from '@/lib/prototype-mode';
 import { cn } from '@/lib/utils';
 import { Disclosure, DisclosureButton, DisclosurePanel } from '@headlessui/react';
-import { LogInIcon, MenuIcon, XIcon } from 'lucide-react';
+import { CircleUserRoundIcon, LogInIcon, MenuIcon, XIcon } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Button } from '../ui/button';
 import { MobileProfileMenu, ProfileDropdown } from './profile-dropdown';
 
-const navigation = [
-  { name: 'Projects', href: '/projects' },
-  { name: 'Start new project', href: '/new' },
-];
+function getNavigation() {
+  if (PROTOTYPE_MODE) {
+    return [
+      { name: 'Projects', href: '/' },
+      { name: 'Start new project', href: '/' },
+    ];
+  }
+  return [
+    { name: 'Projects', href: '/projects' },
+    { name: 'Start new project', href: '/new' },
+  ];
+}
+const navigation = getNavigation();
 
 export interface ApplicationShellProps {
   children: React.ReactNode;
@@ -20,8 +30,8 @@ export interface ApplicationShellProps {
 
 export function ApplicationShell({ children }: ApplicationShellProps) {
   const session = useSession();
-  const isLoadingUser = session.status === 'loading';
-  const user = session.data?.user;
+  const isLoadingUser = !PROTOTYPE_MODE && session.status === 'loading';
+  const user = PROTOTYPE_MODE ? { name: 'Demo User', email: 'demo@ai-reviewer.local' } : session.data?.user;
   const pathname = usePathname();
 
   const navigationWithCurrent = navigation.map((item) => ({
@@ -63,7 +73,12 @@ export function ApplicationShell({ children }: ApplicationShellProps) {
               </div>
             </div>
             <div className="hidden sm:ml-6 sm:flex sm:items-center">
-              {user ? (
+              {PROTOTYPE_MODE ? (
+                <div className="flex items-center gap-2 rounded-full border border-border bg-muted/60 px-3 py-2 text-sm font-medium text-foreground">
+                  <CircleUserRoundIcon className="h-4 w-4 text-primary" />
+                  Demo User
+                </div>
+              ) : user ? (
                 <ProfileDropdown user={user} />
               ) : !isLoadingUser ? (
                 <Button asChild variant="outline">

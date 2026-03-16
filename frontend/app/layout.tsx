@@ -1,6 +1,8 @@
 import { auth } from '@/auth';
 import { ApiConfig } from '@/components/api-config';
+import { DesignToggle } from '@/components/design-toggle';
 import { ApplicationShell } from '@/components/layout/application-shell';
+import { MotionProvider } from '@/components/motion-provider';
 import QueryProvider from '@/components/providers';
 import { Toaster } from '@/components/ui/sonner';
 import { VersionBadge } from '@/components/version-badge';
@@ -42,7 +44,10 @@ export default async function RootLayout({
             <QueryProvider>
               <ExperimentalFeaturesProvider>
                 <ApiConfig />
-                <ApplicationShell>{children}</ApplicationShell>
+                <MotionProvider>
+                  <ApplicationShell>{children}</ApplicationShell>
+                  <DesignToggle />
+                </MotionProvider>
                 <Toaster />
                 <VersionBadge />
               </ExperimentalFeaturesProvider>
