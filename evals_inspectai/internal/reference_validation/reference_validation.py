@@ -16,7 +16,7 @@ from lib.agents.reference_validator import (
 @task
 def reference_validation():
     dataset = json_dataset(
-        "dataset.jsonl",
+        "../../e2e/reference_validation/dataset.jsonl",
         FieldSpec(target="target_final_result", metadata=["target_answer"]),
     )
 
