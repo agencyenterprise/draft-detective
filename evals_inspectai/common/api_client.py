@@ -14,6 +14,8 @@ import jwt
 logger = logging.getLogger(__name__)
 
 DEFAULT_BASE_URL = "http://localhost:8000"
+DEFAULT_USER_EMAIL = "eval@ai-reviewer.local"
+DEFAULT_USER_NAME = "E2E Eval Runner"
 DEFAULT_POLL_INTERVAL_S = 5
 DEFAULT_TIMEOUT_S = 300
 
@@ -40,8 +42,8 @@ def _get_auth_token() -> str:
         )
 
     payload = {
-        "email": "eval@ai-reviewer.local",
-        "name": "E2E Eval Runner",
+        "email": os.environ.get("EVAL_USER_EMAIL", DEFAULT_USER_EMAIL),
+        "name": os.environ.get("EVAL_USER_NAME", DEFAULT_USER_NAME),
         "iss": JWT_ISSUER,
         "aud": JWT_AUDIENCE,
         "iat": datetime.now(timezone.utc),
@@ -54,7 +56,7 @@ def _build_client() -> httpx.AsyncClient:
     return httpx.AsyncClient(
         base_url=_get_base_url(),
         headers={"Authorization": f"Bearer {_get_auth_token()}"},
-        timeout=60.0,
+        timeout=120.0,
     )
 
 
@@ -68,9 +70,7 @@ async def upload_and_start_analysis(
     Returns the project_id.
     """
     async with _build_client() as client:
-        with tempfile.NamedTemporaryFile(
-            suffix=".md", mode="w", delete=False
-        ) as tmp:
+        with tempfile.NamedTemporaryFile(suffix=".md", mode="w", delete=False) as tmp:
             tmp.write(file_content)
             tmp_path = tmp.name
 
@@ -80,6 +80,10 @@ async def upload_and_start_analysis(
                 data: dict[str, Any] = {}
                 for wt in workflow_types:
                     data.setdefault("workflow_types", []).append(wt)
+
+                openai_api_key = os.environ.get("EVAL_API_OPENAI_API_KEY")
+                if openai_api_key:
+                    data["openai_api_key"] = openai_api_key
 
                 resp = await client.post("/api/start-analysis", files=files, data=data)
         finally:
