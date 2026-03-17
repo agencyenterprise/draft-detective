@@ -83,7 +83,7 @@ export default function AddinPage() {
   }
 
   return (
-    <ProjectFeedbackProvider projectId={undefined}>
+    <ProjectFeedbackProvider projectId={undefined} feedbackVisibility={null}>
       <div className="flex flex-col h-screen bg-white">
         <div className="border-b p-3 flex flex-col items-center bg-gray-50">
           <div className="flex items-center justify-between gap-2 w-full">

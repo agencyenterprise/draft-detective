@@ -10,9 +10,10 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Callout } from '@/components/ui/callout';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useExperimentalFeatures } from '@/context/experimental-features-context';
 import { GlobalFormValidationError, useForm } from '@tanstack/react-form';
-import { Project } from '@/lib/generated-api';
+import { FeedbackVisibility, Project } from '@/lib/generated-api';
 import { InfoIcon } from 'lucide-react';
 
 interface EditProjectDialogProps {
@@ -28,6 +29,7 @@ export interface EditProjectFormValues {
   publication_date: string;
   domain: string;
   target_audience: string;
+  feedback_visibility: FeedbackVisibility | null;
 }
 
 function formatDateForInput(date: Date | string | null | undefined): string {
@@ -62,6 +64,7 @@ export function EditProjectDialog({
       publication_date: formatDateForInput(project.publication_date),
       domain: project.domain || '',
       target_audience: project.target_audience || '',
+      feedback_visibility: project.feedback_visibility ?? null,
     } as EditProjectFormValues,
     validators: {
       onChange: ({ value }) => {
@@ -172,6 +175,35 @@ export function EditProjectDialog({
             )}
           </form.Field>
         </div>
+
+        <form.Field name="feedback_visibility">
+          {(field) => (
+            <div className="space-y-2">
+              <Label htmlFor="feedback-visibility">
+                Feedback Visibility <span className="text-muted-foreground text-xs font-normal">(Optional)</span>
+              </Label>
+              <Select
+                value={field.state.value ?? ''}
+                onValueChange={(v) => field.handleChange(v ? (v as FeedbackVisibility) : null)}
+                disabled={isSubmitting}
+              >
+                <SelectTrigger id="feedback-visibility">
+                  <SelectValue placeholder="Not set" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={FeedbackVisibility.Private}>Only me — don&apos;t share any information</SelectItem>
+                  <SelectItem value={FeedbackVisibility.IssueOnly}>Share issue information only</SelectItem>
+                  <SelectItem value={FeedbackVisibility.FullProject}>
+                    Share whole project with administrators
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-sm text-muted-foreground">
+                Controls what administrators can see when you submit feedback on issues.
+              </p>
+            </div>
+          )}
+        </form.Field>
 
         <Callout variant="info" icon={InfoIcon} title="Note">
           Only subsequent analyses (new or re-triggered) will use the updated project details. Existing or running

@@ -1,9 +1,18 @@
 import uuid
 from datetime import datetime, date
+from enum import Enum
+from typing import Optional
 
 from sqlalchemy import Column, DateTime, ForeignKey, Date
+from sqlalchemy import Enum as SQLAlchemyEnum
 from sqlalchemy.dialects.postgresql import UUID
 from sqlmodel import Field, SQLModel, String
+
+
+class FeedbackVisibility(str, Enum):
+    PRIVATE = "private"
+    ISSUE_ONLY = "issue_only"
+    FULL_PROJECT = "full_project"
 
 
 class Project(SQLModel, table=True):
@@ -51,4 +60,12 @@ class Project(SQLModel, table=True):
     target_audience: str = Field(
         sa_column=Column(String, nullable=True),
         description="The intended readers of the report",
+    )
+    feedback_visibility: Optional[FeedbackVisibility] = Field(
+        sa_column=Column(
+            SQLAlchemyEnum(FeedbackVisibility, name="feedbackvisibility"),
+            nullable=True,
+        ),
+        default=None,
+        description="Controls what feedback information is shared with administrators",
     )

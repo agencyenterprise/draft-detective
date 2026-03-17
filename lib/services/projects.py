@@ -13,7 +13,7 @@ from lib.config.database import get_async_db_session
 from lib.models.feedback import FeedbackType
 from lib.models.file import File, FileListItem
 from lib.models.issue import Issue
-from lib.models.project import Project
+from lib.models.project import FeedbackVisibility, Project
 from lib.models.user import User
 from lib.models.workflow_run import WorkflowRun
 from lib.services.files import delete_project_files, get_project_files_list_items
@@ -71,6 +71,7 @@ class UpdateProjectRequest(BaseModel):
     publication_date: Optional[date] = None
     domain: Optional[str] = None
     target_audience: Optional[str] = None
+    feedback_visibility: Optional[FeedbackVisibility] = None
 
 
 async def create_project(
@@ -284,6 +285,9 @@ async def update_user_project(
         project.publication_date = request.publication_date
         project.domain = request.domain
         project.target_audience = request.target_audience
+
+        if request.feedback_visibility is not None:
+            project.feedback_visibility = request.feedback_visibility
 
         await session.commit()
         await session.refresh(project)

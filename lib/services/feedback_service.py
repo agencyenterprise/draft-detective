@@ -315,6 +315,60 @@ async def get_project_issue_feedback(
     return list(result.scalars().all())
 
 
+async def get_admin_feedbacks(
+    session: AsyncSession,
+    user_id: Optional[uuid.UUID] = None,
+    project_id: Optional[uuid.UUID] = None,
+    workflow_type: Optional[str] = None,
+    feedback_type: Optional[FeedbackType] = None,
+) -> list[dict]:
+    """
+    Get all shared feedback for admin view.
+
+    Returns feedback where the project has feedback_visibility set to
+    issue_only or full_project. Filters private feedback out entirely.
+    """
+    from lib.models.issue import Issue
+    from lib.models.project import FeedbackVisibility, Project
+    from lib.models.user import User
+
+    stmt = (
+        select(Feedback, Issue, Project, User)
+        .join(Issue, col(Feedback.issue_id) == col(Issue.id))
+        .join(WorkflowRun, col(Feedback.workflow_run_id) == col(WorkflowRun.id))
+        .join(Project, col(WorkflowRun.project_id) == col(Project.id))
+        .join(User, col(Feedback.user_id) == col(User.id))
+        .where(col(Project.feedback_visibility).isnot(None))
+        .where(col(Project.feedback_visibility) != FeedbackVisibility.PRIVATE)
+    )
+
+    if user_id is not None:
+        stmt = stmt.where(col(Feedback.user_id) == user_id)
+    if project_id is not None:
+        stmt = stmt.where(col(Project.id) == project_id)
+    if workflow_type is not None:
+        stmt = stmt.where(col(Issue.workflow_type) == workflow_type)
+    if feedback_type is not None:
+        stmt = stmt.where(col(Feedback.feedback_type) == feedback_type)
+
+    stmt = stmt.order_by(col(Feedback.created_at).desc())
+    result = await session.execute(stmt)
+    rows = result.all()
+
+    items = []
+    for row in rows:
+        feedback, issue, project, user = row.tuple()
+        items.append(
+            {
+                "feedback": feedback,
+                "issue": issue,
+                "project": project,
+                "user": user,
+            }
+        )
+    return items
+
+
 async def delete_feedback(
     session: AsyncSession, feedback_id: uuid.UUID, user: User
 ) -> bool:
