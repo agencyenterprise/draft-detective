@@ -136,12 +136,9 @@ export default function Home() {
                         <CardContent className="flex h-full flex-col gap-5 p-5 sm:p-6">
                           <div className={`h-1.5 w-16 rounded-full ${tone.line}`} />
                           <div className="space-y-3">
-                            <div className="flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-3">
                               <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${tone.soft}`}>
                                 {project.status}
-                              </span>
-                              <span className="text-xs uppercase tracking-[0.18em] text-stone-500">
-                                {project.id.replace('demo-', 'demo ')}
                               </span>
                             </div>
                             <h2 className="text-2xl font-semibold tracking-[-0.04em] text-stone-950">

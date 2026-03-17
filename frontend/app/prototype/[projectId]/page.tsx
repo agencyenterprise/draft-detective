@@ -41,8 +41,7 @@ function CalmClaimRow({ claim }: { claim: PrototypeClaim }) {
     >
       <div className="grid gap-4 sm:grid-cols-[140px_minmax(0,1fr)_120px] sm:items-start">
         <div>
-          <Badge variant={tone.badge} className="gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium">
-            <span className={`h-2 w-2 rounded-full ${tone.dot}`} />
+          <Badge variant={tone.badge} className="rounded-full px-2.5 py-1 text-xs font-medium">
             {claim.status}
           </Badge>
         </div>
