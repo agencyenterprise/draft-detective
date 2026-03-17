@@ -179,9 +179,8 @@ export function WorkflowTypeCheckbox({
                     </Badge>
                   </TooltipTrigger>
                   <TooltipContent side="top" className="max-w-xs">
-                    This analysis searches the web (using OpenAI&apos;s web search tool) for additional context and
-                    information to enhance the analysis. Parts of the document might be used as web search
-                    query/context.
+                    This analysis searches the web (using a web search tool) for additional context and information to
+                    enhance the analysis. Parts of the document might be used as web search query/context.
                   </TooltipContent>
                 </Tooltip>
               )}
