@@ -53,6 +53,12 @@ export function StepUpload({ onComplete }: StepUploadProps) {
         onRemoveFile={() => handleDocumentChange([])}
       />
 
+      <p className="text-sm text-muted-foreground -mt-4">
+        <span className="font-medium">Tip:</span> You can upload only a specific section of your document if you prefer.
+        For example, upload just the references section if you&apos;re only interested in running citation or reference
+        analyses.
+      </p>
+
       {!hideApiKeyInput && (
         <div className="space-y-2">
           <Label htmlFor="openai-api-key">
