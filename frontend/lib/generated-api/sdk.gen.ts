@@ -45,6 +45,9 @@ import type {
   EnableProjectSharingApiProjectsProjectIdShareEnablePostData,
   EnableProjectSharingApiProjectsProjectIdShareEnablePostErrors,
   EnableProjectSharingApiProjectsProjectIdShareEnablePostResponses,
+  ExportAdminFeedbacksCsvApiAdminFeedbacksExportGetData,
+  ExportAdminFeedbacksCsvApiAdminFeedbacksExportGetErrors,
+  ExportAdminFeedbacksCsvApiAdminFeedbacksExportGetResponses,
   ExtensionCreationRouteTusPost2Data,
   ExtensionCreationRouteTusPost2Errors,
   ExtensionCreationRouteTusPost2Responses,
@@ -652,6 +655,26 @@ export const getAdminFeedbacksApiAdminFeedbacksGet = <ThrowOnError extends boole
     responseStyle: 'data',
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/admin/feedbacks',
+    ...options,
+  });
+
+/**
+ * Export Admin Feedbacks Csv
+ *
+ * Export all shared feedback as a CSV file.
+ */
+export const exportAdminFeedbacksCsvApiAdminFeedbacksExportGet = <ThrowOnError extends boolean = true>(
+  options?: Options<ExportAdminFeedbacksCsvApiAdminFeedbacksExportGetData, ThrowOnError>,
+) =>
+  (options?.client ?? client).get<
+    ExportAdminFeedbacksCsvApiAdminFeedbacksExportGetResponses,
+    ExportAdminFeedbacksCsvApiAdminFeedbacksExportGetErrors,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/admin/feedbacks/export',
     ...options,
   });
 

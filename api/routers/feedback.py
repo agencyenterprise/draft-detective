@@ -4,11 +4,14 @@ Feedback API endpoints.
 Provides RESTful API for managing user feedback on analysis results.
 """
 
+import csv
+import io
 import json
 from typing import Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 from sqlalchemy import select
@@ -238,6 +241,75 @@ async def get_admin_feedbacks(
             )
             for row in rows
         ]
+
+
+@router.get("/api/admin/feedbacks/export")
+async def export_admin_feedbacks_csv(
+    user_id: Optional[UUID] = None,
+    project_id: Optional[UUID] = None,
+    workflow_type: Optional[WorkflowRunType] = None,
+    feedback_type: Optional[FeedbackType] = None,
+    _admin: User = Depends(require_admin),
+) -> StreamingResponse:
+    """Export all shared feedback as a CSV file."""
+    async with get_async_db_session() as session:
+        rows = await feedback_service.get_admin_feedbacks(
+            session=session,
+            user_id=user_id,
+            project_id=project_id,
+            workflow_type=workflow_type.value if workflow_type else None,
+            feedback_type=feedback_type,
+        )
+
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow(
+            [
+                "Feedback Date",
+                "Feedback Type",
+                "Feedback Text",
+                "User ID",
+                "User Name",
+                "User Email",
+                "Project ID",
+                "Project Title",
+                "Visibility",
+                "Issue ID",
+                "Issue Title",
+                "Issue Description",
+                "Issue Long Description",
+                "Issue Severity",
+                "Issue Workflow Type",
+            ]
+        )
+        for row in rows:
+            issue = row["issue"]
+            writer.writerow(
+                [
+                    row["feedback"].created_at.isoformat(),
+                    row["feedback"].feedback_type.value,
+                    row["feedback"].feedback_text or "",
+                    str(row["user"].id),
+                    row["user"].name,
+                    row["user"].email,
+                    str(row["project"].id),
+                    row["project"].title,
+                    row["project"].feedback_visibility.value,
+                    str(issue.id) if issue else "",
+                    issue.title if issue else "",
+                    issue.description if issue else "",
+                    issue.long_description or "" if issue else "",
+                    issue.severity.value if issue else "",
+                    issue.workflow_type if issue else "",
+                ]
+            )
+
+        output.seek(0)
+        return StreamingResponse(
+            iter([output.getvalue()]),
+            media_type="text/csv",
+            headers={"Content-Disposition": "attachment; filename=feedbacks.csv"},
+        )
 
 
 @router.delete("/api/feedback/{feedback_id}", response_model=dict)

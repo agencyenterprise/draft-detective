@@ -6187,6 +6187,47 @@ export type GetAdminFeedbacksApiAdminFeedbacksGetResponses = {
 export type GetAdminFeedbacksApiAdminFeedbacksGetResponse =
   GetAdminFeedbacksApiAdminFeedbacksGetResponses[keyof GetAdminFeedbacksApiAdminFeedbacksGetResponses];
 
+export type ExportAdminFeedbacksCsvApiAdminFeedbacksExportGetData = {
+  body?: never;
+  path?: never;
+  query?: {
+    /**
+     * User Id
+     */
+    user_id?: string | null;
+    /**
+     * Project Id
+     */
+    project_id?: string | null;
+    /**
+     * Workflow Type
+     */
+    workflow_type?: WorkflowRunType | null;
+    /**
+     * Feedback Type
+     */
+    feedback_type?: FeedbackType | null;
+  };
+  url: '/api/admin/feedbacks/export';
+};
+
+export type ExportAdminFeedbacksCsvApiAdminFeedbacksExportGetErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type ExportAdminFeedbacksCsvApiAdminFeedbacksExportGetError =
+  ExportAdminFeedbacksCsvApiAdminFeedbacksExportGetErrors[keyof ExportAdminFeedbacksCsvApiAdminFeedbacksExportGetErrors];
+
+export type ExportAdminFeedbacksCsvApiAdminFeedbacksExportGetResponses = {
+  /**
+   * Successful Response
+   */
+  200: unknown;
+};
+
 export type DeleteFeedbackApiFeedbackFeedbackIdDeleteData = {
   body?: never;
   path: {

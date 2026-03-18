@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { DocumentIssueCard } from '@/components/results/components/document-issue-card';
 import {
   AdminFeedbackItem,
+  exportAdminFeedbacksCsvApiAdminFeedbacksExportGet,
   FeedbackType,
   FeedbackVisibility,
   getAdminFeedbacksApiAdminFeedbacksGet,
@@ -16,10 +17,11 @@ import {
   listUsersApiUsersGet,
   WorkflowRunType,
 } from '@/lib/generated-api';
+import { downloadFile } from '@/lib/file-download';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
-import { ExternalLinkIcon, Loader2, ThumbsDown, ThumbsUp } from 'lucide-react';
+import { Download, ExternalLinkIcon, Loader2, ThumbsDown, ThumbsUp } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
 
@@ -127,6 +129,7 @@ export function FeedbacksList() {
   const [selectedWorkflowType, setSelectedWorkflowType] = useState<string>(ALL_VALUE);
   const [selectedFeedbackType, setSelectedFeedbackType] = useState<string>(ALL_VALUE);
   const [selectedItem, setSelectedItem] = useState<AdminFeedbackItem | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
 
   const { data: workflowTypes, getWorkflowTypeName } = useWorkflowTypes();
 
@@ -169,15 +172,41 @@ export function FeedbacksList() {
     selectedWorkflowType !== ALL_VALUE ||
     selectedFeedbackType !== ALL_VALUE;
 
+  const handleExport = async () => {
+    setIsExporting(true);
+    try {
+      const csv = (await exportAdminFeedbacksCsvApiAdminFeedbacksExportGet({
+        query: {
+          user_id: selectedUserId !== ALL_VALUE ? selectedUserId : undefined,
+          project_id: selectedProjectId !== ALL_VALUE ? selectedProjectId : undefined,
+          workflow_type: selectedWorkflowType !== ALL_VALUE ? (selectedWorkflowType as WorkflowRunType) : undefined,
+          feedback_type: selectedFeedbackType !== ALL_VALUE ? (selectedFeedbackType as FeedbackType) : undefined,
+        },
+      })) as string;
+
+      downloadFile({ blob: new Blob([csv]), filename: 'feedbacks.csv' });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
     <>
       <Card>
         <CardHeader>
-          <CardTitle>User Feedback</CardTitle>
-          <CardDescription>
-            Feedback shared by users. Click a row to see full details. Only feedback where users have opted to share is
-            shown.
-          </CardDescription>
+          <div className="flex items-start justify-between">
+            <div>
+              <CardTitle>User Feedback</CardTitle>
+              <CardDescription className="mt-1">
+                Feedback shared by users. Click a row to see full details. Only feedback where users have opted to share
+                is shown.
+              </CardDescription>
+            </div>
+            <Button variant="outline" size="sm" onClick={handleExport} disabled={isExporting}>
+              {isExporting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
+              Export to CSV
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Filters */}
