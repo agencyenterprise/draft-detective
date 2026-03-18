@@ -206,6 +206,14 @@ export type AbbreviationScanV2State = {
    * Agent reasoning summarising what was found and how.
    */
   reasoning?: string;
+  /**
+   * Messages
+   *
+   * LLM conversation messages from the agent invocation.
+   */
+  messages?: Array<{
+    [key: string]: unknown;
+  }>;
 };
 
 /**
@@ -500,6 +508,49 @@ export type AboutThisWorkflowConfig = {
 };
 
 /**
+ * AdminFeedbackItem
+ *
+ * Feedback item returned to admins, respecting visibility settings.
+ */
+export type AdminFeedbackItem = {
+  /**
+   * Id
+   */
+  id: string;
+  feedback_type: FeedbackType;
+  /**
+   * Feedback Text
+   */
+  feedback_text: string | null;
+  /**
+   * Created At
+   */
+  created_at: string;
+  /**
+   * User Id
+   */
+  user_id: string;
+  /**
+   * User Name
+   */
+  user_name: string;
+  /**
+   * User Email
+   */
+  user_email: string;
+  /**
+   * Project Id
+   */
+  project_id: string;
+  /**
+   * Project Title
+   */
+  project_title: string;
+  visibility: FeedbackVisibility;
+  issue: Issue;
+};
+
+/**
  * AdvocacyToneState
  *
  * State for the advocacy and tone workflow.
@@ -732,6 +783,76 @@ export type AuthorValidationResult = {
    * Guidance for fixing failed rules
    */
   guidance?: string | null;
+};
+
+/**
+ * BaseMessage
+ *
+ * Base abstract message class.
+ *
+ * Messages are the inputs and outputs of a chat model.
+ *
+ * Examples include [`HumanMessage`][langchain.messages.HumanMessage],
+ * [`AIMessage`][langchain.messages.AIMessage], and
+ * [`SystemMessage`][langchain.messages.SystemMessage].
+ */
+export type BaseMessage = {
+  /**
+   * Content
+   */
+  content:
+    | string
+    | Array<
+        | string
+        | {
+            [key: string]: unknown;
+          }
+      >;
+  /**
+   * Additional Kwargs
+   */
+  additional_kwargs?: {
+    [key: string]: unknown;
+  };
+  /**
+   * Response Metadata
+   */
+  response_metadata?: {
+    [key: string]: unknown;
+  };
+  /**
+   * Type
+   */
+  type: string;
+  /**
+   * Name
+   */
+  name?: string | null;
+  /**
+   * Id
+   */
+  id?: string | null;
+  [key: string]:
+    | unknown
+    | string
+    | Array<
+        | string
+        | {
+            [key: string]: unknown;
+          }
+      >
+    | {
+        [key: string]: unknown;
+      }
+    | {
+        [key: string]: unknown;
+      }
+    | string
+    | string
+    | null
+    | string
+    | null
+    | undefined;
 };
 
 /**
@@ -2270,6 +2391,20 @@ export const FeedbackType = { ThumbsUp: 'thumbs_up', ThumbsDown: 'thumbs_down' }
 export type FeedbackType = (typeof FeedbackType)[keyof typeof FeedbackType];
 
 /**
+ * FeedbackVisibility
+ */
+export const FeedbackVisibility = {
+  Private: 'private',
+  IssueOnly: 'issue_only',
+  FullProject: 'full_project',
+} as const;
+
+/**
+ * FeedbackVisibility
+ */
+export type FeedbackVisibility = (typeof FeedbackVisibility)[keyof typeof FeedbackVisibility];
+
+/**
  * FieldCategory
  */
 export const FieldCategory = {
@@ -3713,6 +3848,10 @@ export type Project = {
    * The intended readers of the report
    */
   target_audience: string;
+  /**
+   * Controls what feedback information is shared with administrators
+   */
+  feedback_visibility?: FeedbackVisibility | null;
 };
 
 /**
@@ -4087,6 +4226,14 @@ export type ReferenceExtractionState = {
    * Step-by-step reasoning describing how references were found and extracted
    */
   reasoning?: string;
+  /**
+   * Messages
+   *
+   * LLM conversation messages from the agent invocation.
+   */
+  messages?: Array<{
+    [key: string]: unknown;
+  }>;
 };
 
 /**
@@ -4960,6 +5107,7 @@ export type UpdateProjectRequest = {
    * Target Audience
    */
   target_audience?: string | null;
+  feedback_visibility?: FeedbackVisibility | null;
 };
 
 /**
@@ -5992,6 +6140,101 @@ export type GetProjectFeedbackApiFeedbackProjectProjectIdGetResponses = {
 
 export type GetProjectFeedbackApiFeedbackProjectProjectIdGetResponse =
   GetProjectFeedbackApiFeedbackProjectProjectIdGetResponses[keyof GetProjectFeedbackApiFeedbackProjectProjectIdGetResponses];
+
+export type GetAdminFeedbacksApiAdminFeedbacksGetData = {
+  body?: never;
+  path?: never;
+  query?: {
+    /**
+     * User Id
+     */
+    user_id?: string | null;
+    /**
+     * Project Id
+     */
+    project_id?: string | null;
+    /**
+     * Workflow Type
+     */
+    workflow_type?: WorkflowRunType | null;
+    /**
+     * Feedback Type
+     */
+    feedback_type?: FeedbackType | null;
+    /**
+     * Limit
+     */
+    limit?: number;
+    /**
+     * Offset
+     */
+    offset?: number;
+  };
+  url: '/api/admin/feedbacks';
+};
+
+export type GetAdminFeedbacksApiAdminFeedbacksGetErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type GetAdminFeedbacksApiAdminFeedbacksGetError =
+  GetAdminFeedbacksApiAdminFeedbacksGetErrors[keyof GetAdminFeedbacksApiAdminFeedbacksGetErrors];
+
+export type GetAdminFeedbacksApiAdminFeedbacksGetResponses = {
+  /**
+   * Response Get Admin Feedbacks Api Admin Feedbacks Get
+   *
+   * Successful Response
+   */
+  200: Array<AdminFeedbackItem>;
+};
+
+export type GetAdminFeedbacksApiAdminFeedbacksGetResponse =
+  GetAdminFeedbacksApiAdminFeedbacksGetResponses[keyof GetAdminFeedbacksApiAdminFeedbacksGetResponses];
+
+export type ExportAdminFeedbacksCsvApiAdminFeedbacksExportGetData = {
+  body?: never;
+  path?: never;
+  query?: {
+    /**
+     * User Id
+     */
+    user_id?: string | null;
+    /**
+     * Project Id
+     */
+    project_id?: string | null;
+    /**
+     * Workflow Type
+     */
+    workflow_type?: WorkflowRunType | null;
+    /**
+     * Feedback Type
+     */
+    feedback_type?: FeedbackType | null;
+  };
+  url: '/api/admin/feedbacks/export';
+};
+
+export type ExportAdminFeedbacksCsvApiAdminFeedbacksExportGetErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type ExportAdminFeedbacksCsvApiAdminFeedbacksExportGetError =
+  ExportAdminFeedbacksCsvApiAdminFeedbacksExportGetErrors[keyof ExportAdminFeedbacksCsvApiAdminFeedbacksExportGetErrors];
+
+export type ExportAdminFeedbacksCsvApiAdminFeedbacksExportGetResponses = {
+  /**
+   * Successful Response
+   */
+  200: unknown;
+};
 
 export type DeleteFeedbackApiFeedbackFeedbackIdDeleteData = {
   body?: never;

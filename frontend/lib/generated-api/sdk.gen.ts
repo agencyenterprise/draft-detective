@@ -45,6 +45,9 @@ import type {
   EnableProjectSharingApiProjectsProjectIdShareEnablePostData,
   EnableProjectSharingApiProjectsProjectIdShareEnablePostErrors,
   EnableProjectSharingApiProjectsProjectIdShareEnablePostResponses,
+  ExportAdminFeedbacksCsvApiAdminFeedbacksExportGetData,
+  ExportAdminFeedbacksCsvApiAdminFeedbacksExportGetErrors,
+  ExportAdminFeedbacksCsvApiAdminFeedbacksExportGetResponses,
   ExtensionCreationRouteTusPost2Data,
   ExtensionCreationRouteTusPost2Errors,
   ExtensionCreationRouteTusPost2Responses,
@@ -60,6 +63,9 @@ import type {
   GenerateEvalPackageApiGenerateEvalPackagePostData,
   GenerateEvalPackageApiGenerateEvalPackagePostErrors,
   GenerateEvalPackageApiGenerateEvalPackagePostResponses,
+  GetAdminFeedbacksApiAdminFeedbacksGetData,
+  GetAdminFeedbacksApiAdminFeedbacksGetErrors,
+  GetAdminFeedbacksApiAdminFeedbacksGetResponses,
   GetCurrentUserInfoApiUsersMeGetData,
   GetCurrentUserInfoApiUsersMeGetResponses,
   GetFeedbackApiFeedbackGetData,
@@ -628,6 +634,47 @@ export const getProjectFeedbackApiFeedbackProjectProjectIdGet = <ThrowOnError ex
     responseStyle: 'data',
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/feedback/project/{project_id}',
+    ...options,
+  });
+
+/**
+ * Get Admin Feedbacks
+ *
+ * Get all shared feedback for admin view. Only returns feedback from projects
+ * where the user has set visibility to issue_only or full_project.
+ */
+export const getAdminFeedbacksApiAdminFeedbacksGet = <ThrowOnError extends boolean = true>(
+  options?: Options<GetAdminFeedbacksApiAdminFeedbacksGetData, ThrowOnError>,
+) =>
+  (options?.client ?? client).get<
+    GetAdminFeedbacksApiAdminFeedbacksGetResponses,
+    GetAdminFeedbacksApiAdminFeedbacksGetErrors,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/admin/feedbacks',
+    ...options,
+  });
+
+/**
+ * Export Admin Feedbacks Csv
+ *
+ * Export all shared feedback as a CSV file.
+ */
+export const exportAdminFeedbacksCsvApiAdminFeedbacksExportGet = <ThrowOnError extends boolean = true>(
+  options?: Options<ExportAdminFeedbacksCsvApiAdminFeedbacksExportGetData, ThrowOnError>,
+) =>
+  (options?.client ?? client).get<
+    ExportAdminFeedbacksCsvApiAdminFeedbacksExportGetResponses,
+    ExportAdminFeedbacksCsvApiAdminFeedbacksExportGetErrors,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/admin/feedbacks/export',
     ...options,
   });
 
