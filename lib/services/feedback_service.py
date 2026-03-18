@@ -321,6 +321,8 @@ async def get_admin_feedbacks(
     project_id: Optional[uuid.UUID] = None,
     workflow_type: Optional[str] = None,
     feedback_type: Optional[FeedbackType] = None,
+    limit: Optional[int] = None,
+    offset: int = 0,
 ) -> list[dict]:
     """
     Get all shared feedback for admin view.
@@ -352,6 +354,8 @@ async def get_admin_feedbacks(
         stmt = stmt.where(col(Feedback.feedback_type) == feedback_type)
 
     stmt = stmt.order_by(col(Feedback.created_at).desc())
+    if limit is not None:
+        stmt = stmt.limit(limit).offset(offset)
     result = await session.execute(stmt)
     rows = result.all()
 

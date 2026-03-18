@@ -15,13 +15,14 @@ import {
   getAdminFeedbacksApiAdminFeedbacksGet,
   Issue,
   listUsersApiUsersGet,
+  UserResponse,
   WorkflowRunType,
 } from '@/lib/generated-api';
 import { downloadFile } from '@/lib/file-download';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
-import { useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
-import { Download, ExternalLinkIcon, Loader2, ThumbsDown, ThumbsUp } from 'lucide-react';
+import { ChevronDown, Download, ExternalLinkIcon, Loader2, ThumbsDown, ThumbsUp } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
 
@@ -32,6 +33,7 @@ const VISIBILITY_LABELS: Record<FeedbackVisibility, string> = {
 };
 
 const ALL_VALUE = '__all__';
+const PAGE_SIZE = 25;
 
 function VisibilityBadge({ visibility }: { visibility: FeedbackVisibility }) {
   if (visibility === FeedbackVisibility.FullProject) {
@@ -139,21 +141,33 @@ export function FeedbacksList() {
   });
 
   const {
-    data: feedbacks,
+    data: feedbacksData,
     isLoading,
     error,
-  } = useQuery({
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
     queryKey: ['admin', 'feedbacks', selectedUserId, selectedProjectId, selectedWorkflowType, selectedFeedbackType],
-    queryFn: () =>
+    queryFn: ({ pageParam }) =>
       getAdminFeedbacksApiAdminFeedbacksGet({
         query: {
           user_id: selectedUserId !== ALL_VALUE ? selectedUserId : undefined,
           project_id: selectedProjectId !== ALL_VALUE ? selectedProjectId : undefined,
           workflow_type: selectedWorkflowType !== ALL_VALUE ? (selectedWorkflowType as WorkflowRunType) : undefined,
           feedback_type: selectedFeedbackType !== ALL_VALUE ? (selectedFeedbackType as FeedbackType) : undefined,
+          limit: PAGE_SIZE,
+          offset: pageParam,
         },
       }),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage, allPages) => {
+      if (!lastPage || lastPage.length < PAGE_SIZE) return undefined;
+      return allPages.reduce((acc, page) => acc + page.length, 0);
+    },
   });
+
+  const feedbacks = feedbacksData?.pages.flat() ?? [];
 
   const uniqueProjects = feedbacks
     ? Array.from(new Map(feedbacks.map((f) => [f.project_id, { id: f.project_id, title: f.project_title }])).values())
@@ -228,7 +242,7 @@ export function FeedbacksList() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value={ALL_VALUE}>All users</SelectItem>
-                {users?.map((u) => (
+                {users?.map((u: UserResponse) => (
                   <SelectItem key={u.id} value={u.id}>
                     {u.name}
                   </SelectItem>
@@ -360,6 +374,18 @@ export function FeedbacksList() {
                   ))}
                 </TableBody>
               </Table>
+              {hasNextPage && (
+                <div className="flex justify-center pt-2">
+                  <Button variant="outline" size="sm" onClick={() => fetchNextPage()} disabled={isFetchingNextPage}>
+                    {isFetchingNextPage ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4 mr-2" />
+                    )}
+                    Load more
+                  </Button>
+                </div>
+              )}
             </>
           )}
         </CardContent>

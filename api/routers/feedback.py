@@ -212,6 +212,8 @@ async def get_admin_feedbacks(
     project_id: Optional[UUID] = None,
     workflow_type: Optional[WorkflowRunType] = None,
     feedback_type: Optional[FeedbackType] = None,
+    limit: int = 25,
+    offset: int = 0,
     _admin: User = Depends(require_admin),
 ) -> list[AdminFeedbackItem]:
     """Get all shared feedback for admin view. Only returns feedback from projects
@@ -223,6 +225,8 @@ async def get_admin_feedbacks(
             project_id=project_id,
             workflow_type=workflow_type.value if workflow_type else None,
             feedback_type=feedback_type,
+            limit=limit,
+            offset=offset,
         )
 
         return [

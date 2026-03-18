@@ -6161,6 +6161,14 @@ export type GetAdminFeedbacksApiAdminFeedbacksGetData = {
      * Feedback Type
      */
     feedback_type?: FeedbackType | null;
+    /**
+     * Limit
+     */
+    limit?: number;
+    /**
+     * Offset
+     */
+    offset?: number;
   };
   url: '/api/admin/feedbacks';
 };

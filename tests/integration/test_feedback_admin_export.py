@@ -314,3 +314,122 @@ async def test_get_admin_feedbacks_row_structure(thumbs_down_feedback, issue):
     assert len(rows) >= 1
     row = next(r for r in rows if r["feedback"].id == thumbs_down_feedback.id)
     assert set(row.keys()) == {"feedback", "issue", "project", "user"}
+
+
+# ---------------------------------------------------------------------------
+# Pagination tests
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_get_admin_feedbacks_limit(
+    thumbs_down_feedback, db_user, workflow_run, issue, shared_project
+):
+    """limit param restricts the number of results to at most that count."""
+    second_fb = Feedback(
+        id=uuid.uuid4(),
+        workflow_run_id=workflow_run.id,
+        user_id=db_user.id,
+        issue_id=issue.id,
+        entity_path={"extra": "second"},
+        feedback_type=FeedbackType.THUMBS_UP,
+    )
+    async with get_async_db_session() as session:
+        session.add(second_fb)
+        await session.commit()
+
+    try:
+        async with get_async_db_session() as session:
+            rows = await feedback_service.get_admin_feedbacks(
+                session=session, project_id=shared_project.id, limit=1
+            )
+        assert len(rows) == 1
+
+        async with get_async_db_session() as session:
+            rows = await feedback_service.get_admin_feedbacks(
+                session=session, project_id=shared_project.id, limit=2
+            )
+        assert len(rows) == 2
+    finally:
+        async with get_async_db_session() as session:
+            stmt = select(Feedback).where(col(Feedback.id) == second_fb.id)
+            result = await session.execute(stmt)
+            existing = result.scalar_one_or_none()
+            if existing:
+                await session.delete(existing)
+                await session.commit()
+
+
+@pytest.mark.asyncio
+async def test_get_admin_feedbacks_offset(
+    thumbs_down_feedback, db_user, workflow_run, issue, shared_project
+):
+    """offset param skips the first N results, enabling load-more pagination."""
+    second_fb = Feedback(
+        id=uuid.uuid4(),
+        workflow_run_id=workflow_run.id,
+        user_id=db_user.id,
+        issue_id=issue.id,
+        entity_path={"extra": "second"},
+        feedback_type=FeedbackType.THUMBS_UP,
+    )
+    async with get_async_db_session() as session:
+        session.add(second_fb)
+        await session.commit()
+
+    try:
+        async with get_async_db_session() as session:
+            all_rows = await feedback_service.get_admin_feedbacks(
+                session=session, project_id=shared_project.id, limit=10
+            )
+        assert len(all_rows) == 2
+
+        async with get_async_db_session() as session:
+            offset_rows = await feedback_service.get_admin_feedbacks(
+                session=session, project_id=shared_project.id, limit=10, offset=1
+            )
+        assert len(offset_rows) == 1
+        assert offset_rows[0]["feedback"].id == all_rows[1]["feedback"].id
+    finally:
+        async with get_async_db_session() as session:
+            stmt = select(Feedback).where(col(Feedback.id) == second_fb.id)
+            result = await session.execute(stmt)
+            existing = result.scalar_one_or_none()
+            if existing:
+                await session.delete(existing)
+                await session.commit()
+
+
+@pytest.mark.asyncio
+async def test_get_admin_feedbacks_no_limit_returns_all(
+    thumbs_down_feedback, db_user, workflow_run, issue, shared_project
+):
+    """When no limit is given (CSV export path), all matching results are returned."""
+    second_fb = Feedback(
+        id=uuid.uuid4(),
+        workflow_run_id=workflow_run.id,
+        user_id=db_user.id,
+        issue_id=issue.id,
+        entity_path={"extra": "second"},
+        feedback_type=FeedbackType.THUMBS_UP,
+    )
+    async with get_async_db_session() as session:
+        session.add(second_fb)
+        await session.commit()
+
+    try:
+        async with get_async_db_session() as session:
+            rows = await feedback_service.get_admin_feedbacks(
+                session=session, project_id=shared_project.id
+            )
+        ids = [row["feedback"].id for row in rows]
+        assert thumbs_down_feedback.id in ids
+        assert second_fb.id in ids
+    finally:
+        async with get_async_db_session() as session:
+            stmt = select(Feedback).where(col(Feedback.id) == second_fb.id)
+            result = await session.execute(stmt)
+            existing = result.scalar_one_or_none()
+            if existing:
+                await session.delete(existing)
+                await session.commit()

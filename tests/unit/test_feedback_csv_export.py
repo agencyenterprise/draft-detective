@@ -300,3 +300,56 @@ async def test_csv_response_headers():
 
     assert response.media_type == "text/csv"
     assert response.headers["content-disposition"] == "attachment; filename=feedbacks.csv"
+
+
+# ---------------------------------------------------------------------------
+# Pagination forwarding tests (GET /api/admin/feedbacks)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_admin_feedbacks_default_pagination():
+    """Default limit=25 and offset=0 are forwarded to the service."""
+    from api.routers.feedback import get_admin_feedbacks
+
+    with patch(
+        "api.routers.feedback.feedback_service.get_admin_feedbacks",
+        new=AsyncMock(return_value=[]),
+    ) as mock_service:
+        await get_admin_feedbacks()
+
+    call_kwargs = mock_service.call_args.kwargs
+    assert call_kwargs["limit"] == 25
+    assert call_kwargs["offset"] == 0
+
+
+@pytest.mark.asyncio
+async def test_admin_feedbacks_custom_pagination():
+    """Custom limit and offset values are forwarded to the service."""
+    from api.routers.feedback import get_admin_feedbacks
+
+    with patch(
+        "api.routers.feedback.feedback_service.get_admin_feedbacks",
+        new=AsyncMock(return_value=[]),
+    ) as mock_service:
+        await get_admin_feedbacks(limit=10, offset=50)
+
+    call_kwargs = mock_service.call_args.kwargs
+    assert call_kwargs["limit"] == 10
+    assert call_kwargs["offset"] == 50
+
+
+@pytest.mark.asyncio
+async def test_csv_export_does_not_pass_pagination():
+    """CSV export endpoint does NOT forward limit/offset (always exports all results)."""
+    from api.routers.feedback import export_admin_feedbacks_csv
+
+    with patch(
+        "api.routers.feedback.feedback_service.get_admin_feedbacks",
+        new=AsyncMock(return_value=[]),
+    ) as mock_service:
+        await export_admin_feedbacks_csv()
+
+    call_kwargs = mock_service.call_args.kwargs
+    assert "limit" not in call_kwargs
+    assert "offset" not in call_kwargs
