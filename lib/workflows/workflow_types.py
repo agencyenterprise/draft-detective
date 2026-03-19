@@ -14,6 +14,10 @@ from lib.workflows.about_this_ger.state import (
     AboutThisGerConfig,
     AboutThisGerState,
 )
+from lib.workflows.simple_deep_agent.state import (
+    SimpleDeepAgentConfig,
+    SimpleDeepAgentState,
+)
 from lib.workflows.advocacy_tone.state import (
     AdvocacyToneState,
     AdvocacyToneWorkflowConfig,
@@ -117,6 +121,7 @@ WorkflowState = (
     | InferenceValidationV2State
     | HumanApprovalState
     | Reviewer2State
+    | SimpleDeepAgentState
 )
 
 WorkflowConfig = (
@@ -144,4 +149,5 @@ WorkflowConfig = (
     | InferenceValidationV2WorkflowConfig
     | HumanApprovalConfig
     | Reviewer2Config
+    | SimpleDeepAgentConfig
 )

@@ -22,6 +22,7 @@ import {
   ReferenceValidationState,
   ResultsExtractionState,
   Reviewer2State,
+  SimpleDeepAgentState,
   WorkflowError,
   WorkflowRun,
   WorkflowRunDetail,
@@ -56,6 +57,8 @@ type WorkflowTypeToDetail = {
   [WorkflowRunType.AboutAuthors]: AboutAuthorsState;
   [WorkflowRunType.AboutThis]: AboutThisState;
   [WorkflowRunType.Reviewer2]: Reviewer2State;
+  [WorkflowRunType.DocumentStructure]: SimpleDeepAgentState;
+  [WorkflowRunType.FiguresTablesCheck]: SimpleDeepAgentState;
 };
 
 export interface WorkflowRunDetailTyped<T> {

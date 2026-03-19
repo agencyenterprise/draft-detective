@@ -2961,7 +2961,7 @@ export type Issue = {
 /**
  * IssueItem
  *
- * Lightweight issue returned by the deep agent.
+ * Lightweight issue returned by a deep agent.
  */
 export type IssueItem = {
   /**
@@ -4759,6 +4759,79 @@ export type ShareStatusResponse = {
 };
 
 /**
+ * SimpleDeepAgentConfig
+ *
+ * Shared config for all simple deep-agent workflows.
+ */
+export type SimpleDeepAgentConfig = {
+  /**
+   * Project Id
+   *
+   * The ID of the project that this workflow run should be associated with
+   */
+  project_id: string;
+  /**
+   * Openai Api Key
+   *
+   * The OpenAI API key to use for this workflow execution
+   */
+  openai_api_key?: string | null;
+  /**
+   * Domain
+   *
+   * Domain context for more accurate analysis
+   */
+  domain?: string | null;
+  /**
+   * Target Audience
+   *
+   * Target audience context for analysis
+   */
+  target_audience?: string | null;
+  /**
+   * Publication Date
+   *
+   * Publication date of the document (YYYY-MM-DD format)
+   */
+  publication_date?: string | null;
+  /**
+   * The workflow type, set per-manifest at runtime
+   */
+  type: WorkflowRunType;
+};
+
+/**
+ * SimpleDeepAgentState
+ *
+ * Shared state for all simple deep-agent workflows.
+ */
+export type SimpleDeepAgentState = {
+  /**
+   * Errors
+   *
+   * Errors that occurred during the workflow execution.
+   */
+  errors?: Array<WorkflowError>;
+  /**
+   * The workflow type, set per-manifest at runtime
+   */
+  type: WorkflowRunType;
+  config: SimpleDeepAgentConfig;
+  /**
+   * Result from the deep agent validation pass
+   */
+  result?: AgentCheckResult | null;
+  /**
+   * Messages
+   *
+   * LLM conversation messages from the agent invocation.
+   */
+  messages?: Array<{
+    [key: string]: unknown;
+  }>;
+};
+
+/**
  * StartMultipleWorkflowsRequest
  *
  * Request model for starting multiple workflows
@@ -5151,6 +5224,7 @@ export type WorkflowRunDetail = {
     | InferenceValidationV2State
     | HumanApprovalState
     | Reviewer2State
+    | SimpleDeepAgentState
     | null;
 };
 
@@ -5197,6 +5271,8 @@ export const WorkflowRunType = {
   AboutThis: 'about_this',
   AboutThisGer: 'about_this_ger',
   Reviewer2: 'reviewer_2',
+  DocumentStructure: 'document_structure',
+  FiguresTablesCheck: 'figures_tables_check',
 } as const;
 
 /**
@@ -5510,7 +5586,8 @@ export type StartWorkflowApiWorkflowsStartPostData = {
     | ResultsExtractionWorkflowConfig
     | InferenceValidationV2WorkflowConfig
     | HumanApprovalConfig
-    | Reviewer2Config;
+    | Reviewer2Config
+    | SimpleDeepAgentConfig;
   path?: never;
   query?: never;
   url: '/api/workflows/start';

@@ -29,6 +29,8 @@ import {
   Users,
   BookOpen,
   type LucideIcon,
+  FileCheckIcon,
+  TableIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { WorkflowRunType, WorkflowTypeDescription } from '@/lib/generated-api';
@@ -62,6 +64,8 @@ const workflowTypeIcons: Record<WorkflowRunType, LucideIcon> = {
   [WorkflowRunType.AboutThisGer]: BookOpen,
   [WorkflowRunType.AboutThis]: BookOpen,
   [WorkflowRunType.Reviewer2]: BookOpen,
+  [WorkflowRunType.DocumentStructure]: FileCheckIcon,
+  [WorkflowRunType.FiguresTablesCheck]: TableIcon,
 };
 
 const DEFAULT_ICON = FileText;
