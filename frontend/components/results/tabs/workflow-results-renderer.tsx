@@ -16,9 +16,10 @@ import { ReferenceDownloaderResults } from '@/components/workflows/results/refer
 import { ReferenceValidationResults } from '@/components/workflows/results/reference-validation-results';
 import { ResultsExtractorResults } from '@/components/workflows/results/results-extractor-results';
 import { Reviewer2Results } from '@/components/workflows/results/reviewer-2-results';
-import { ProjectDetailed, WorkflowRunDetail, WorkflowRunType } from '@/lib/generated-api';
+import { SimpleDeepAgentResults } from '@/components/workflows/results/simple-deep-agent-results';
+import { ProjectDetailed, SimpleDeepAgentState, WorkflowRunDetail, WorkflowRunType } from '@/lib/generated-api';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
-import { getCurrentRunErrors } from '@/lib/workflow-state';
+import { getCurrentRunErrors, WorkflowRunDetailTyped } from '@/lib/workflow-state';
 import { ArrowRight, FileText } from 'lucide-react';
 
 interface WorkflowResultsContentProps {
@@ -92,6 +93,14 @@ function renderWorkflowResults(
       return <Reviewer2Results workflowDetail={workflowRun} />;
     case WorkflowRunType.ReferenceValidation:
       return <ReferenceValidationResults workflowDetail={workflowRun} />;
+    case WorkflowRunType.DocumentStructure:
+    case WorkflowRunType.FiguresTablesCheck:
+      return (
+        <SimpleDeepAgentResults
+          workflowDetail={workflowRun as WorkflowRunDetailTyped<SimpleDeepAgentState>}
+          workflowName={getWorkflowTypeName(type)}
+        />
+      );
     default:
       return (
         <div className="p-4 bg-muted rounded-lg">

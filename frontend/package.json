@@ -23,6 +23,9 @@
     ]
   },
   "dependencies": {
+    "@assistant-ui/react": "^0.12.19",
+    "@assistant-ui/react-langgraph": "^0.13.5",
+    "@assistant-ui/react-markdown": "^0.12.6",
     "@daiji256/rehype-mathml": "^1.2.1",
     "@headlessui/react": "^2.2.9",
     "@hey-api/openapi-ts": "^0.88.2",

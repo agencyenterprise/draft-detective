@@ -46,6 +46,8 @@ def get_workflow_manifest(
 
 def register_all_workflow_manifests():
     from lib.workflows.abbreviation_scan_v2.manifest import AbbreviationScanV2Manifest
+    from lib.workflows.document_structure.manifest import DocumentStructureManifest
+    from lib.workflows.figures_tables_check.manifest import FiguresTablesCheckManifest
     from lib.workflows.about_authors.manifest import AboutAuthorsManifest
     from lib.workflows.about_this.manifest import AboutThisManifest
     from lib.workflows.about_this_ger.manifest import AboutThisGerManifest
@@ -105,6 +107,8 @@ def register_all_workflow_manifests():
         AboutThisManifest(),
         AboutThisGerManifest(),
         Reviewer2Manifest(),
+        DocumentStructureManifest(),
+        FiguresTablesCheckManifest(),
     ]
 
     for manifest in manifests:

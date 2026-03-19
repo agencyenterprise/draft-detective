@@ -4,11 +4,7 @@ Factory for creating workflow-specific configs from base config.
 
 from api.models import StartMultipleWorkflowsRequest
 from lib.models.project import Project
-from lib.workflows.citation_suggester.state import CitationSuggesterWorkflowConfig
-from lib.workflows.literature_review.state import LiteratureReviewWorkflowConfig
-from lib.workflows.live_reports.state import LiveReportsWorkflowConfig
 from lib.workflows.models import WorkflowRunType
-from lib.workflows.reference_validation.state import ReferenceValidationWorkflowConfig
 from lib.workflows.registry import get_config_type
 from lib.workflows.workflow_types import WorkflowConfig
 
@@ -38,6 +34,7 @@ def create_workflow_config(
 
     # Common fields to copy from request and project
     common_fields = {
+        "type": workflow_type,
         "project_id": request.project_id,
         "openai_api_key": request.openai_api_key,
         "domain": project.domain,
@@ -47,25 +44,9 @@ def create_workflow_config(
         ),
     }
 
-    # Handle workflow-specific configs
-    if workflow_type == WorkflowRunType.CITATION_SUGGESTER:
-        return CitationSuggesterWorkflowConfig(**common_fields)
-
-    elif workflow_type == WorkflowRunType.REFERENCE_VALIDATION:
-        return ReferenceValidationWorkflowConfig(**common_fields)
-
-    elif workflow_type == WorkflowRunType.LITERATURE_REVIEW:
-        return LiteratureReviewWorkflowConfig(**common_fields)
-
-    elif workflow_type == WorkflowRunType.LIVE_REPORTS:
-        return LiveReportsWorkflowConfig(**common_fields)
-
-    else:
-        # For other workflow types, try to create with just common fields
-        # This handles MethodologicalAlignment and others that only need base fields
-        try:
-            return config_type(**common_fields)
-        except Exception as e:
-            raise ValueError(
-                f"Failed to create config for workflow type {workflow_type}: {e}"
-            )
+    try:
+        return config_type.model_validate(common_fields)  # type: ignore
+    except Exception as e:
+        raise ValueError(
+            f"Failed to create config for workflow type {workflow_type}: {e}"
+        )
