@@ -58,10 +58,6 @@ from lib.workflows.human_approval.state import (
     HumanApprovalConfig,
     HumanApprovalState,
 )
-from lib.workflows.inference_validation.state import (
-    InferenceValidationState,
-    InferenceValidationWorkflowConfig,
-)
 from lib.workflows.inference_validation_v2.state import (
     InferenceValidationV2State,
     InferenceValidationV2WorkflowConfig,
@@ -123,7 +119,6 @@ WorkflowState = (
     | ReferenceValidationState
     | CitationSuggesterState
     | ResultsExtractionState
-    | InferenceValidationState
     | InferenceValidationV2State
     | HumanApprovalState
     | Reviewer2State
@@ -152,7 +147,6 @@ WorkflowConfig = (
     | ReferenceValidationWorkflowConfig
     | CitationSuggesterWorkflowConfig
     | ResultsExtractionWorkflowConfig
-    | InferenceValidationWorkflowConfig
     | InferenceValidationV2WorkflowConfig
     | HumanApprovalConfig
     | Reviewer2Config

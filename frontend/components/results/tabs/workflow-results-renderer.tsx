@@ -69,7 +69,6 @@ function renderWorkflowResults(
           onNavigateToDocumentExplorer={onNavigateToDocumentExplorer}
         />
       );
-    case WorkflowRunType.InferenceValidation:
     case WorkflowRunType.ClaimReferenceValidation:
     case WorkflowRunType.AbbreviationScan:
     case WorkflowRunType.AbbreviationScanV2:

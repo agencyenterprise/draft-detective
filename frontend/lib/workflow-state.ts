@@ -13,7 +13,6 @@ import {
   DocumentSummarizationState,
   FootnoteExtractionState,
   HumanApprovalState,
-  InferenceValidationState,
   InferenceValidationV2State,
   LiteratureReviewState,
   LiveReportsState,
@@ -51,7 +50,6 @@ type WorkflowTypeToDetail = {
   [WorkflowRunType.ReferenceValidation]: ReferenceValidationState;
   [WorkflowRunType.CitationSuggester]: CitationSuggesterState;
   [WorkflowRunType.ResultsExtraction]: ResultsExtractionState;
-  [WorkflowRunType.InferenceValidation]: InferenceValidationState;
   [WorkflowRunType.InferenceValidationV2]: InferenceValidationV2State;
   [WorkflowRunType.ClaimReferenceValidation]: ClaimReferenceValidationState;
   [WorkflowRunType.AbbreviationScan]: AbbreviationScanState;
