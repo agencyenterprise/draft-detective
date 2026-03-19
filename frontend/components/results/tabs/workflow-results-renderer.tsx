@@ -70,7 +70,6 @@ function renderWorkflowResults(
         />
       );
     case WorkflowRunType.ClaimReferenceValidation:
-    case WorkflowRunType.AbbreviationScan:
     case WorkflowRunType.AbbreviationScanV2:
       return (
         <Callout title="View Results in Document Explorer" variant="info" icon={FileText}>

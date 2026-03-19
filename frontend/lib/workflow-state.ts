@@ -1,5 +1,4 @@
 import {
-  AbbreviationScanState,
   AbbreviationScanV2State,
   AboutAuthorsState,
   AboutThisState,
@@ -52,7 +51,6 @@ type WorkflowTypeToDetail = {
   [WorkflowRunType.ResultsExtraction]: ResultsExtractionState;
   [WorkflowRunType.InferenceValidationV2]: InferenceValidationV2State;
   [WorkflowRunType.ClaimReferenceValidation]: ClaimReferenceValidationState;
-  [WorkflowRunType.AbbreviationScan]: AbbreviationScanState;
   [WorkflowRunType.AbbreviationScanV2]: AbbreviationScanV2State;
   [WorkflowRunType.AdvocacyTone]: AdvocacyToneState;
   [WorkflowRunType.AboutAuthors]: AboutAuthorsState;
