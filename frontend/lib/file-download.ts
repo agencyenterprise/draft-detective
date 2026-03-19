@@ -34,11 +34,3 @@ export function downloadAsJson(data: unknown, filename: string = 'results'): voi
   const blob = new Blob([jsonString], { type: 'application/json' });
   downloadFile({ filename: `${filename}.json`, blob });
 }
-
-/**
- * Generates a filename with timestamp for eval packages.
- */
-export function generateEvalFilename(testName: string, chunkIndex?: number): string {
-  const suffix = chunkIndex !== undefined ? `_chunk_${chunkIndex}` : '';
-  return `${testName}${suffix}_eval_package.zip`;
-}

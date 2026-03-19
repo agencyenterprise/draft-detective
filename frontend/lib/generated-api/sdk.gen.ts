@@ -57,12 +57,6 @@ import type {
   ExtensionTerminationRouteTusUuidDeleteData,
   ExtensionTerminationRouteTusUuidDeleteErrors,
   ExtensionTerminationRouteTusUuidDeleteResponses,
-  GenerateChunkEvalPackageApiGenerateChunkEvalPackagePostData,
-  GenerateChunkEvalPackageApiGenerateChunkEvalPackagePostErrors,
-  GenerateChunkEvalPackageApiGenerateChunkEvalPackagePostResponses,
-  GenerateEvalPackageApiGenerateEvalPackagePostData,
-  GenerateEvalPackageApiGenerateEvalPackagePostErrors,
-  GenerateEvalPackageApiGenerateEvalPackagePostResponses,
   GetAdminFeedbacksApiAdminFeedbacksGetData,
   GetAdminFeedbacksApiAdminFeedbacksGetErrors,
   GetAdminFeedbacksApiAdminFeedbacksGetResponses,
@@ -337,65 +331,6 @@ export const checkPreflightApiPreflightPost = <ThrowOnError extends boolean = tr
     responseStyle: 'data',
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/preflight',
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-  });
-
-/**
- * Generate Eval Package
- *
- * Generate complete eval test package as downloadable zip.
- *
- * Args:
- * request: Contains project_id and metadata for test generation
- *
- * Returns:
- * Zip file containing YAML test files and data files
- */
-export const generateEvalPackageApiGenerateEvalPackagePost = <ThrowOnError extends boolean = true>(
-  options: Options<GenerateEvalPackageApiGenerateEvalPackagePostData, ThrowOnError>,
-) =>
-  (options.client ?? client).post<
-    GenerateEvalPackageApiGenerateEvalPackagePostResponses,
-    GenerateEvalPackageApiGenerateEvalPackagePostErrors,
-    ThrowOnError,
-    'data'
-  >({
-    responseStyle: 'data',
-    url: '/api/generate-eval-package',
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-  });
-
-/**
- * Generate Chunk Eval Package
- *
- * Generate eval test package for a specific chunk with selected agents.
- * Only includes files required by the selected agents.
- *
- * Args:
- * request: Contains project_id, chunk index, selected agents, and metadata
- *
- * Returns:
- * Optimized zip file containing only necessary YAML test files and data files
- */
-export const generateChunkEvalPackageApiGenerateChunkEvalPackagePost = <ThrowOnError extends boolean = true>(
-  options: Options<GenerateChunkEvalPackageApiGenerateChunkEvalPackagePostData, ThrowOnError>,
-) =>
-  (options.client ?? client).post<
-    GenerateChunkEvalPackageApiGenerateChunkEvalPackagePostResponses,
-    GenerateChunkEvalPackageApiGenerateChunkEvalPackagePostErrors,
-    ThrowOnError,
-    'data'
-  >({
-    responseStyle: 'data',
-    url: '/api/generate-chunk-eval-package',
     ...options,
     headers: {
       'Content-Type': 'application/json',

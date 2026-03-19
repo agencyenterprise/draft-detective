@@ -992,36 +992,6 @@ export type ChunkAdvocacyToneResult = {
 };
 
 /**
- * ChunkEvalPackageRequest
- *
- * Request model for generating chunk-specific eval packages.
- */
-export type ChunkEvalPackageRequest = {
-  /**
-   * Project Id
-   *
-   * The project ID to generate eval package for
-   */
-  project_id: string;
-  /**
-   * Chunk Index
-   */
-  chunk_index: number;
-  /**
-   * Selected Agents
-   */
-  selected_agents: Array<string>;
-  /**
-   * Test Name
-   */
-  test_name?: string;
-  /**
-   * Description
-   */
-  description?: string;
-};
-
-/**
  * ChunkSplittingState
  *
  * State for chunk splitting workflow.
@@ -2073,28 +2043,6 @@ export const DocxManipulatorType = {
  * Type of DOCX to generate.
  */
 export type DocxManipulatorType = (typeof DocxManipulatorType)[keyof typeof DocxManipulatorType];
-
-/**
- * EvalPackageRequest
- *
- * Request model for generating eval packages.
- */
-export type EvalPackageRequest = {
-  /**
-   * Project Id
-   *
-   * The project ID to generate eval package for
-   */
-  project_id: string;
-  /**
-   * Test Name
-   */
-  test_name?: string;
-  /**
-   * Description
-   */
-  description?: string;
-};
 
 /**
  * EvidenceAlignmentLevel
@@ -5754,54 +5702,6 @@ export type CheckPreflightApiPreflightPostResponses = {
 
 export type CheckPreflightApiPreflightPostResponse =
   CheckPreflightApiPreflightPostResponses[keyof CheckPreflightApiPreflightPostResponses];
-
-export type GenerateEvalPackageApiGenerateEvalPackagePostData = {
-  body: EvalPackageRequest;
-  path?: never;
-  query?: never;
-  url: '/api/generate-eval-package';
-};
-
-export type GenerateEvalPackageApiGenerateEvalPackagePostErrors = {
-  /**
-   * Validation Error
-   */
-  422: HttpValidationError;
-};
-
-export type GenerateEvalPackageApiGenerateEvalPackagePostError =
-  GenerateEvalPackageApiGenerateEvalPackagePostErrors[keyof GenerateEvalPackageApiGenerateEvalPackagePostErrors];
-
-export type GenerateEvalPackageApiGenerateEvalPackagePostResponses = {
-  /**
-   * Successful Response
-   */
-  200: unknown;
-};
-
-export type GenerateChunkEvalPackageApiGenerateChunkEvalPackagePostData = {
-  body: ChunkEvalPackageRequest;
-  path?: never;
-  query?: never;
-  url: '/api/generate-chunk-eval-package';
-};
-
-export type GenerateChunkEvalPackageApiGenerateChunkEvalPackagePostErrors = {
-  /**
-   * Validation Error
-   */
-  422: HttpValidationError;
-};
-
-export type GenerateChunkEvalPackageApiGenerateChunkEvalPackagePostError =
-  GenerateChunkEvalPackageApiGenerateChunkEvalPackagePostErrors[keyof GenerateChunkEvalPackageApiGenerateChunkEvalPackagePostErrors];
-
-export type GenerateChunkEvalPackageApiGenerateChunkEvalPackagePostResponses = {
-  /**
-   * Successful Response
-   */
-  200: unknown;
-};
 
 export type StartWorkflowApiWorkflowsStartPostData = {
   /**
