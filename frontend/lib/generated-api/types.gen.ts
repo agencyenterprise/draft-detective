@@ -2891,71 +2891,6 @@ export type InferenceResultResponse = {
 };
 
 /**
- * InferenceValidationResponseWithClaimIndex
- */
-export type InferenceValidationResponseWithClaimIndex = {
-  /**
-   * Valid
-   *
-   * Considering the Toulmin elements, whether the inference is valid or not
-   */
-  valid: boolean;
-  /**
-   * Rationale
-   *
-   * The rationale for why you think the inference is valid or not. If the inference is not valid, explain why. If the inference is valid, explain why. In only TWO sentences.
-   */
-  rationale: string;
-  /**
-   * Suggested Action
-   *
-   * A suggested action to take if the inference is not valid. If the inference is valid, return 'No changes needed'. In only TWO sentences.
-   */
-  suggested_action: string;
-  /**
-   * Claim Index
-   *
-   * The index of the claim that is being validated
-   */
-  claim_index: number;
-  /**
-   * Chunk Index
-   *
-   * The index of the chunk that contains the claim
-   */
-  chunk_index: number;
-};
-
-/**
- * InferenceValidationState
- *
- * State for the inference validation workflow.
- */
-export type InferenceValidationState = {
-  /**
-   * Errors
-   *
-   * Errors that occurred during the workflow execution.
-   */
-  errors?: Array<WorkflowError>;
-  /**
-   * Type
-   */
-  type?: 'inference_validation';
-  config: InferenceValidationWorkflowConfig;
-  /**
-   * File Id
-   *
-   * File ID for backward compatibility
-   */
-  file_id?: string;
-  /**
-   * Inference Validations
-   */
-  inference_validations?: Array<InferenceValidationResponseWithClaimIndex>;
-};
-
-/**
  * InferenceValidationV2State
  *
  * State for the inference validation v2 workflow.
@@ -3031,48 +2966,6 @@ export type InferenceValidationV2WorkflowConfig = {
    * Type
    */
   type?: 'inference_validation_v2';
-};
-
-/**
- * InferenceValidationWorkflowConfig
- *
- * Configuration model for the inference validation workflow.
- */
-export type InferenceValidationWorkflowConfig = {
-  /**
-   * Project Id
-   *
-   * The ID of the project that this workflow run should be associated with
-   */
-  project_id: string;
-  /**
-   * Openai Api Key
-   *
-   * The OpenAI API key to use for this workflow execution
-   */
-  openai_api_key?: string | null;
-  /**
-   * Domain
-   *
-   * Domain context for more accurate analysis
-   */
-  domain?: string | null;
-  /**
-   * Target Audience
-   *
-   * Target audience context for analysis
-   */
-  target_audience?: string | null;
-  /**
-   * Publication Date
-   *
-   * Publication date of the document (YYYY-MM-DD format)
-   */
-  publication_date?: string | null;
-  /**
-   * Type
-   */
-  type?: 'inference_validation';
 };
 
 /**
@@ -5367,7 +5260,6 @@ export type WorkflowRunDetail = {
     | ReferenceValidationState
     | CitationSuggesterState
     | ResultsExtractionState
-    | InferenceValidationState
     | InferenceValidationV2State
     | HumanApprovalState
     | Reviewer2State
@@ -5730,7 +5622,6 @@ export type StartWorkflowApiWorkflowsStartPostData = {
     | ReferenceValidationWorkflowConfig
     | CitationSuggesterWorkflowConfig
     | ResultsExtractionWorkflowConfig
-    | InferenceValidationWorkflowConfig
     | InferenceValidationV2WorkflowConfig
     | HumanApprovalConfig
     | Reviewer2Config;

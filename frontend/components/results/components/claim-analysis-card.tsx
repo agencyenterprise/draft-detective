@@ -11,7 +11,6 @@ import { AnalysisResultCard } from './analysis-result-card';
 import { ClaimArgumentAnalysis } from './claim-argument-analysis';
 import { ClaimCategoryResults } from './claim-category-results';
 import { ClaimCitationSuggestions } from './claim-citation-suggestions';
-import { ClaimInferenceValidation } from './claim-inference-validation';
 import { ClaimLiveReports } from './claim-live-reports';
 import { SubstantiationResults } from './substantiation-results';
 
@@ -51,10 +50,6 @@ export function ClaimAnalysisCard({
     () => getWorkflowRunByType(workflowDetails, WorkflowRunType.LiveReports),
     [workflowDetails],
   );
-  const inferenceValidationDetail = useMemo(
-    () => getWorkflowRunByType(workflowDetails, WorkflowRunType.InferenceValidation),
-    [workflowDetails],
-  );
   const claimExtractionDetail = useMemo(
     () => getWorkflowRunByType(workflowDetails, WorkflowRunType.ClaimExtraction),
     [workflowDetails],
@@ -80,10 +75,6 @@ export function ClaimAnalysisCard({
   const liveReportsAnalysis = liveReportsDetail?.state?.live_reports_analysis?.find(
     (l) => l.chunk_index === chunkIndex && l.claim_index === claimIndex,
   );
-  const inferenceValidation = inferenceValidationDetail?.state?.inference_validations?.find(
-    (i) => i.chunk_index === chunkIndex && i.claim_index === claimIndex,
-  );
-
   const supportingFiles = documentProcessingDetail?.state?.supporting_files ?? [];
 
   // Compose references from extraction and file matching states
@@ -132,7 +123,6 @@ export function ClaimAnalysisCard({
           />
         )}
         {liveReportsAnalysis && <ClaimLiveReports liveReportsAnalysis={liveReportsAnalysis} />}
-        {inferenceValidation && <ClaimInferenceValidation inferenceValidation={inferenceValidation} />}
       </div>
 
       {!readOnly && documentProcessingDetail?.run.id && chunkIndex !== undefined && (
