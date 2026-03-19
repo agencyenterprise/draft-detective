@@ -7,7 +7,7 @@ from langchain.agents.structured_output import AutoStrategy
 from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
 from langchain_core.runnables import RunnableConfig
 
-from lib.config.llm_models import gpt_5_2_model
+from lib.config.llm_models import gpt_5_4_model
 from lib.models.agent import LangChainAgent
 from lib.workflows.abbreviation_scan_v2.state import AbbreviationCheckOutput
 from lib.workflows.context import ContextSchema
@@ -119,7 +119,7 @@ class AbbreviationCheckerAgent(LangChainAgent):
     description = (
         "Scan the full document for abbreviation inline definition and list coverage"
     )
-    model = gpt_5_2_model
+    model = gpt_5_4_model
     temperature = 0.0
     reasoning = {"effort": "low", "summary": "auto"}
 
