@@ -45,7 +45,6 @@ def get_workflow_manifest(
 
 
 def register_all_workflow_manifests():
-    from lib.workflows.abbreviation_scan.manifest import AbbreviationScanManifest
     from lib.workflows.abbreviation_scan_v2.manifest import AbbreviationScanV2Manifest
     from lib.workflows.about_authors.manifest import AboutAuthorsManifest
     from lib.workflows.about_this.manifest import AboutThisManifest
@@ -93,7 +92,6 @@ def register_all_workflow_manifests():
         CitationDetectionManifest(),
         ClaimReferenceValidationManifest(),
         CitationSuggesterManifest(),
-        AbbreviationScanManifest(),
         AbbreviationScanV2Manifest(),
         InferenceValidationV2Manifest(),
         LiteratureReviewManifest(),

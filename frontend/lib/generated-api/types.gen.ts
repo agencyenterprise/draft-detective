@@ -61,75 +61,6 @@ export type AbbreviationItem = {
 };
 
 /**
- * AbbreviationItemV1
- *
- * Item representing an abbreviation/acronym and its definition.
- */
-export type AbbreviationItemV1 = {
-  /**
-   * Abbr
-   *
-   * The acronym/abbreviation text, e.g. AI, RAND, NATO
-   */
-  abbr: string;
-  /**
-   * Definition
-   *
-   * Full definition if available, e.g. Artificial Intelligence
-   */
-  definition?: string;
-  /**
-   * Context
-   *
-   * Text content of the chunk where the abbreviation was found/defined
-   */
-  context: string;
-  /**
-   * Is Definition
-   *
-   * True if found as a definition like 'Definition (ABBR)'
-   */
-  is_definition: boolean;
-  /**
-   * Chunk Index
-   *
-   * 0-based chunk index where this abbreviation was found
-   */
-  chunk_index: number;
-};
-
-/**
- * AbbreviationScanState
- *
- * State for abbreviation scan workflow.
- */
-export type AbbreviationScanState = {
-  /**
-   * Errors
-   *
-   * Errors that occurred during the workflow execution.
-   */
-  errors?: Array<WorkflowError>;
-  /**
-   * Type
-   */
-  type?: 'abbreviation_scan';
-  config: AbbreviationScanWorkflowConfig;
-  /**
-   * File Id
-   *
-   * ID of the main document
-   */
-  file_id: string;
-  /**
-   * Abbreviations
-   *
-   * Unique abbreviations found in the document
-   */
-  abbreviations?: Array<AbbreviationItemV1>;
-};
-
-/**
  * AbbreviationScanV2Config
  *
  * Configuration for abbreviation scan v2 workflow.
@@ -214,48 +145,6 @@ export type AbbreviationScanV2State = {
   messages?: Array<{
     [key: string]: unknown;
   }>;
-};
-
-/**
- * AbbreviationScanWorkflowConfig
- *
- * Configuration for abbreviation scan workflow.
- */
-export type AbbreviationScanWorkflowConfig = {
-  /**
-   * Project Id
-   *
-   * The ID of the project that this workflow run should be associated with
-   */
-  project_id: string;
-  /**
-   * Openai Api Key
-   *
-   * The OpenAI API key to use for this workflow execution
-   */
-  openai_api_key?: string | null;
-  /**
-   * Domain
-   *
-   * Domain context for more accurate analysis
-   */
-  domain?: string | null;
-  /**
-   * Target Audience
-   *
-   * Target audience context for analysis
-   */
-  target_audience?: string | null;
-  /**
-   * Publication Date
-   *
-   * Publication date of the document (YYYY-MM-DD format)
-   */
-  publication_date?: string | null;
-  /**
-   * Type
-   */
-  type?: 'abbreviation_scan';
 };
 
 /**
@@ -5251,7 +5140,6 @@ export type WorkflowRunDetail = {
     | ClaimExtractionState
     | ClaimReferenceValidationState
     | CitationDetectionState
-    | AbbreviationScanState
     | AbbreviationScanV2State
     | MethodologicalAlignmentState
     | ReferenceDownloaderState
@@ -5303,7 +5191,6 @@ export const WorkflowRunType = {
   InferenceValidation: 'inference_validation',
   InferenceValidationV2: 'inference_validation_v2',
   ClaimReferenceValidation: 'claim_reference_validation',
-  AbbreviationScan: 'abbreviation_scan',
   AbbreviationScanV2: 'abbreviation_scan_v2',
   AdvocacyTone: 'advocacy_tone',
   AboutAuthors: 'about_authors',
@@ -5613,7 +5500,6 @@ export type StartWorkflowApiWorkflowsStartPostData = {
     | ClaimExtractionWorkflowConfig
     | CitationDetectionConfig
     | ClaimReferenceValidationWorkflowConfig
-    | AbbreviationScanWorkflowConfig
     | AbbreviationScanV2Config
     | MethodologicalAlignmentWorkflowConfig
     | ReferenceDownloaderWorkflowConfig

@@ -78,10 +78,6 @@ class AbbreviationScanV2Config(BaseWorkflowConfig):
         default=WorkflowRunType.ABBREVIATION_SCAN_V2
     )
 
-    @classmethod
-    def requires_api_key(cls) -> bool:
-        return True
-
 
 class AbbreviationScanV2State(BaseWorkflowState):
     """State for abbreviation scan v2 workflow."""
