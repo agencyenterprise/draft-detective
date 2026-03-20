@@ -6,6 +6,32 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v0.5.22] - 2026-03-20
+
+### Added
+- Added role-based access levels for project permissions with a unified `get_project_access` gate that returns an `AccessLevel`.
+- Added a feedback visibility system and an admin feedback dashboard with filtering, pagination, and CSV export.
+- Added two new deep-agent workflows (`document_structure` and `figures_tables_check`) and a reusable `SimpleDeepAgentManifest` base for single-node deep-agent workflows.
+- Added a new frontend chat thread UI for deep-agent workflows powered by `@assistant-ui/react`.
+- Added an end-to-end eval framework and reorganized evals into an `internal/e2e` structure.
+- Added documentation guidance for uploading partial documents and removed the OpenAI mention from the web search tooltip.
+
+### Changed
+- Updated backend routers and `api/services/workflow_runner.py` to use `get_project_access` for project access checks.
+- Updated the frontend project page to handle `403` and `404` errors with dedicated UI states and to disable write actions when access is read-only.
+- Refactored `about_this_ger` to reuse shared types and helpers from the new `simple_deep_agent` module.
+- Simplified `config_factory.py` by removing per-workflow branching in favor of a generic validation approach and ensuring `type` is included in common fields.
+- Regenerated frontend generated API types/SDK to include feedback visibility and new admin feedback endpoints.
+
+### Fixed
+- Fixed markitdown conversion output to strip backslash-escaped underscores inside URLs while leaving non-URL escaped underscores unchanged.
+- Fixed `_get_project_by_id` to handle invalid UUIDs gracefully.
+
+### Removed
+- Removed the original `inference_validation` v1 workflow and related backend and frontend code, including its registration, union types, and associated eval test and dataset.
+- Removed `lib/services/authorization.py` after consolidating project access logic.
+
+
 ## [v0.5.21] - 2026-03-13
 
 ### Added
