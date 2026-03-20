@@ -11,24 +11,28 @@ from pydantic import BaseModel, field_validator
 
 from api.auth import get_current_user
 from lib.models.issue import Issue, IssueStatus
+from lib.models.project import AccessLevel
 from lib.models.user import User
 from lib.services.issue_persistence import (
     get_issue_by_id,
     resolve_issue,
     unresolve_issue,
 )
-from lib.services.projects import get_user_project
+from lib.services.projects import get_project_access
 
 router = APIRouter(tags=["issues"])
 
 
-async def _verify_issue_ownership(issue_id: UUID, user: User) -> Issue:
-    """Fetch an issue and verify the current user owns its project."""
+async def _get_verified_issue(
+    issue_id: UUID, user: User, required_level: AccessLevel = AccessLevel.READ
+) -> Issue:
+    """Fetch an issue and verify the current user has sufficient access to its project."""
     issue = await get_issue_by_id(issue_id)
     if issue is None:
         raise HTTPException(status_code=404, detail="Issue not found")
-    # Raises 404/403 if project doesn't exist or user doesn't own it
-    await get_user_project(str(issue.project_id), user)
+    await get_project_access(
+        str(issue.project_id), user=user, required_level=required_level
+    )
     return issue
 
 
@@ -77,7 +81,7 @@ async def resolve_issue_endpoint(
     current_user: User = Depends(get_current_user),
 ) -> IssueResponse:
     """Mark an issue as resolved."""
-    await _verify_issue_ownership(issue_id, current_user)
+    await _get_verified_issue(issue_id, current_user, required_level=AccessLevel.WRITE)
     issue = await resolve_issue(issue_id, current_user.id)
 
     if issue is None:
@@ -92,7 +96,7 @@ async def unresolve_issue_endpoint(
     current_user: User = Depends(get_current_user),
 ) -> IssueResponse:
     """Mark an issue as unresolved."""
-    await _verify_issue_ownership(issue_id, current_user)
+    await _get_verified_issue(issue_id, current_user, required_level=AccessLevel.WRITE)
     issue = await unresolve_issue(issue_id)
 
     if issue is None:
@@ -107,5 +111,5 @@ async def get_issue_endpoint(
     current_user: User = Depends(get_current_user),
 ) -> IssueResponse:
     """Get a single issue by ID."""
-    issue = await _verify_issue_ownership(issue_id, current_user)
+    issue = await _get_verified_issue(issue_id, current_user)
     return IssueResponse.from_model(issue)

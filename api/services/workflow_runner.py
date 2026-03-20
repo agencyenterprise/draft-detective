@@ -6,9 +6,10 @@ from fastapi import BackgroundTasks
 from pydantic import BaseModel
 
 from api.models import StartMultipleWorkflowsRequest
+from lib.models.project import AccessLevel
 from lib.models.user import User
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus, WorkflowRunType
-from lib.services.projects import get_user_project
+from lib.services.projects import get_project_access
 from lib.services.workflow_runs import (
     create_workflow_run,
     get_project_workflow_run_by_type,
@@ -44,8 +45,9 @@ async def start_workflow_run(
         background_tasks: The background tasks to run the workflow in
     """
 
-    # Check if project exists and is owned by the user
-    await get_user_project(config.project_id, user)
+    await get_project_access(
+        config.project_id, user=user, required_level=AccessLevel.WRITE
+    )
 
     existing_run = await get_project_workflow_run_by_type(
         config.project_id, config.type
@@ -96,8 +98,9 @@ async def start_multiple_workflow_runs(
     Raises:
         HTTPException: If project_id is missing or project doesn't exist
     """
-    # Check if project exists and is owned by the user
-    project = await get_user_project(request.project_id, user)
+    project, _ = await get_project_access(
+        request.project_id, user=user, required_level=AccessLevel.WRITE
+    )
 
     # Resolve all required dependencies in dependency order
     resolved_workflow_types = resolve_workflow_dependencies(workflow_types)

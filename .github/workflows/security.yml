@@ -19,7 +19,7 @@ jobs:
         run: docker build -t ai-reviewer-api:${{ github.sha }} -f Dockerfile .
 
       - name: Scan Backend Image
-        uses: aquasecurity/trivy-action@0.34.2
+        uses: aquasecurity/trivy-action@master
         with:
           image-ref: ai-reviewer-api:${{ github.sha }}
           format: table
@@ -40,7 +40,7 @@ jobs:
         run: docker build -t ai-reviewer-app:${{ github.sha }} -f frontend/Dockerfile ./frontend
 
       - name: Scan Frontend Image
-        uses: aquasecurity/trivy-action@0.34.2
+        uses: aquasecurity/trivy-action@master
         with:
           image-ref: ai-reviewer-app:${{ github.sha }}
           format: table
@@ -58,7 +58,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Scan PostgreSQL Image
-        uses: aquasecurity/trivy-action@0.34.2
+        uses: aquasecurity/trivy-action@master
         with:
           image-ref: postgres:16-alpine
           format: table

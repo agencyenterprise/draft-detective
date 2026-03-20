@@ -9,7 +9,7 @@ from starlette.responses import FileResponse
 from api.auth import get_current_user, get_current_user_optional
 from api.models import WorkflowProgressResponse
 from lib.models.file import File, FileRole
-from lib.models.project import Project
+from lib.models.project import AccessLevel, Project
 from lib.models.user import User
 from lib.services.docx_workflow_service import DocxManipulatorType, get_or_generate_docx
 from lib.services.files import delete_project_files
@@ -20,15 +20,13 @@ from lib.services.projects import (
     UpdateProjectRequest,
     create_project,
     delete_project,
+    get_project_access,
     get_project_detailed_from_project,
     get_project_files,
-    get_shared_project,
-    get_user_project,
     get_user_projects,
     update_user_project,
 )
 from lib.services.references import remove_file_from_references
-from lib.services.share_links import get_resource_by_token
 from lib.services.workflow_progress import get_project_workflow_progress
 from lib.services.workflow_runs import (
     WorkflowRunDetail,
@@ -57,7 +55,9 @@ async def create_project_endpoint(
     """
     try:
         project = await create_project(title=request.title, user=current_user)
-        return ProjectDetailed(project=project, workflow_runs=[])
+        return ProjectDetailed(
+            project=project, access_level=AccessLevel.WRITE, workflow_runs=[]
+        )
     except Exception as e:
         logger.error("Failed to create project: %s", e, exc_info=True)
         raise HTTPException(
@@ -84,9 +84,14 @@ async def get_project_endpoint(
 ):
     """Get a project by ID. Set include_internal=true to see internal workflows."""
 
-    project = await check_project_access(project_id, current_user, share_token)
+    project, access_level = await get_project_access(
+        project_id, current_user, share_token
+    )
     project_detailed = await get_project_detailed_from_project(
-        project, include_internal=include_internal, user=current_user
+        project,
+        access_level=access_level,
+        include_internal=include_internal,
+        user=current_user,
     )
     return project_detailed
 
@@ -143,7 +148,7 @@ async def download_project_docx(
     Subsequent requests with the same query parameters are instant (cached).
     """
 
-    await check_project_access(project_id, current_user, share_token)
+    await get_project_access(project_id, current_user, share_token)
 
     try:
         # Get cached or generate DOCX via workflow (with caching)
@@ -181,7 +186,7 @@ async def list_project_files_endpoint(
 ):
     """Get all files for a project"""
 
-    await check_project_access(project_id, current_user, share_token)
+    await get_project_access(project_id, current_user, share_token)
     return await get_project_files(project_id)
 
 
@@ -193,8 +198,9 @@ async def delete_project_file_endpoint(
 ):
     """Delete a file from a project and unlink it from any references."""
 
-    # Verify project access (user must be authenticated owner)
-    project = await get_user_project(project_id, user=current_user)
+    project, _ = await get_project_access(
+        project_id, user=current_user, required_level=AccessLevel.WRITE
+    )
 
     # Delete the file from the project
     deleted_count = await delete_project_files(project.id, target_file_ids=[file_id])
@@ -224,7 +230,7 @@ async def download_all_project_files(
     """Download all project files as a ZIP archive"""
 
     # Verify project access
-    project = await check_project_access(project_id, current_user, share_token)
+    project, _ = await get_project_access(project_id, current_user, share_token)
 
     # Create zip file using service
     zip_buffer, _ = await create_project_files_zip(project_id, roles=roles)
@@ -263,7 +269,7 @@ async def get_project_workflow_progress_endpoint(
 ):
     """Get all workflow progress entries for a project."""
 
-    project = await check_project_access(project_id, current_user, share_token)
+    project, _ = await get_project_access(project_id, current_user, share_token)
     progress_list = await get_project_workflow_progress(project.id)
     return [WorkflowProgressResponse.model_validate(p) for p in progress_list]
 
@@ -291,25 +297,7 @@ async def get_project_workflow_runs_by_type_endpoint(
     Used for displaying workflow run history in the UI with correct error status.
     """
 
-    await check_project_access(project_id, current_user, share_token)
+    await get_project_access(project_id, current_user, share_token)
     return await get_project_workflow_runs_by_type_with_details(
         project_id, workflow_type
     )
-
-
-async def check_project_access(
-    project_id: str,
-    current_user: Optional[User] = None,
-    share_token: Optional[str] = None,
-) -> Project:
-    """Check if a user or share token gives access to a project. Raises HTTPException if access is denied. Returns the project if access is granted."""
-
-    if share_token:
-        share_link = await get_resource_by_token(share_token)
-        if share_link is None or str(share_link.resource_id) != project_id:
-            raise HTTPException(status_code=403, detail="Access denied")
-        return await get_shared_project(str(share_link.resource_id))
-    elif current_user is not None:
-        return await get_user_project(project_id, user=current_user)
-    else:
-        raise HTTPException(status_code=403, detail="Access denied")

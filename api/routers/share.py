@@ -8,8 +8,9 @@ for their own resources.
 from fastapi import APIRouter, Depends
 
 from api.auth import get_current_user
+from lib.models.project import AccessLevel
 from lib.models.user import User
-from lib.services.projects import get_user_project
+from lib.services.projects import get_project_access
 from lib.services.share_links import (
     ShareStatusResponse,
     disable_sharing,
@@ -26,7 +27,9 @@ async def get_project_share_status(
     current_user: User = Depends(get_current_user),
 ):
     """Get the sharing status for a project."""
-    project = await get_user_project(project_id, current_user)
+    project, _ = await get_project_access(
+        project_id, user=current_user, required_level=AccessLevel.WRITE
+    )
     return await get_share_status("project", project.id)
 
 
@@ -38,7 +41,9 @@ async def enable_project_sharing(
     current_user: User = Depends(get_current_user),
 ):
     """Enable sharing for a project (creates a share link if none exists)."""
-    project = await get_user_project(project_id, current_user)
+    project, _ = await get_project_access(
+        project_id, user=current_user, required_level=AccessLevel.WRITE
+    )
     return await enable_sharing("project", project.id, current_user)
 
 
@@ -50,5 +55,7 @@ async def disable_project_sharing(
     current_user: User = Depends(get_current_user),
 ):
     """Disable sharing for a project (deactivates the share link)."""
-    project = await get_user_project(project_id, current_user)
+    project, _ = await get_project_access(
+        project_id, user=current_user, required_level=AccessLevel.WRITE
+    )
     return await disable_sharing("project", project.id)

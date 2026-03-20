@@ -13,12 +13,12 @@ from lib.config.database import get_async_db_session
 from lib.models.feedback import FeedbackType
 from lib.models.file import File, FileListItem
 from lib.models.issue import Issue
-from lib.models.project import FeedbackVisibility, Project
-from lib.models.user import User
+from lib.models.project import AccessLevel, FeedbackVisibility, Project
+from lib.models.user import User, UserRole
 from lib.models.workflow_run import WorkflowRun
 from lib.services.files import delete_project_files, get_project_files_list_items
 from lib.services.issue_persistence import get_project_issues
-from lib.services.share_links import is_project_shared
+from lib.services.share_links import get_resource_by_token, is_project_shared
 from lib.services.workflow_runs import WorkflowRunDetail, get_project_workflow_runs
 from lib.workflows.checkpointer import get_checkpointer
 from lib.workflows.models import WorkflowRunType
@@ -48,6 +48,9 @@ class FeedbackSummary(BaseModel):
 
 class ProjectDetailed(BaseModel):
     project: Project
+    access_level: AccessLevel = Field(
+        description="The access level of the current user for this project",
+    )
     workflow_runs: List[WorkflowRunDetail] = Field(
         default_factory=list,
         description="The workflow runs for the project",
@@ -126,14 +129,20 @@ async def get_user_projects(user: User) -> List[ProjectListItem]:
 
 
 async def _get_project_by_id(project_id: str) -> Project | None:
+    try:
+        project_uuid = uuid.UUID(project_id)
+    except ValueError:
+        return None
+
     async with get_async_db_session() as session:
-        stmt = select(Project).where(col(Project.id) == project_id)
+        stmt = select(Project).where(col(Project.id) == project_uuid)
         result = await session.execute(stmt)
         return result.scalar_one_or_none()
 
 
 async def get_project_detailed_from_project(
     project: Project,
+    access_level: AccessLevel,
     include_internal: bool = False,
     user: Optional[User] = None,
 ) -> ProjectDetailed:
@@ -142,6 +151,7 @@ async def get_project_detailed_from_project(
 
     Args:
         project: The project to get details for
+        access_level: The access level of the current user
         include_internal: If True, include internal workflows in the response
         user: If provided, load all feedback for this user on the project
     """
@@ -187,6 +197,7 @@ async def get_project_detailed_from_project(
 
     return ProjectDetailed(
         project=project,
+        access_level=access_level,
         workflow_runs=workflow_runs,
         issues=list(issues),
         files=await get_project_files_list_items(project.id),
@@ -219,30 +230,59 @@ async def get_shared_project(project_id: str) -> Project:
     return project
 
 
-async def get_user_project(project_id: str, user: User) -> Project:
+async def get_project_access(
+    project_id: str,
+    user: Optional[User] = None,
+    share_token: Optional[str] = None,
+    required_level: AccessLevel = AccessLevel.READ,
+) -> tuple[Project, AccessLevel]:
     """
-    Get a project for a user.
+    Central permission gate for project access.
+
+    Access is resolved in priority order:
+    1. Project owner → WRITE
+    2. Admin + feedback_visibility=full_project → READ
+    3. Valid share token → READ
 
     Args:
         project_id: The ID of the project
-        user: The user
+        user: The authenticated user, if any
+        share_token: A share token, if provided (only grants READ; always evaluated but will never satisfy required_level=WRITE)
+        required_level: Minimum access level required; raises 403 if resolved level is insufficient
 
     Returns:
-        The project
+        A tuple of (project, access_level)
 
     Raises:
-        HTTPException: 404 if project not found, 403 if user does not have access
+        HTTPException: 404 if project not found, 403 if access is denied or insufficient
     """
-
     project = await _get_project_by_id(project_id)
 
     if project is None:
         raise HTTPException(status_code=404, detail="Project not found")
 
-    if project.user_id != user.id:
+    access_level: Optional[AccessLevel] = None
+
+    if user is not None and project.user_id == user.id:
+        access_level = AccessLevel.WRITE
+    elif (
+        user is not None
+        and user.role == UserRole.ADMIN
+        and project.feedback_visibility == FeedbackVisibility.FULL_PROJECT
+    ):
+        access_level = AccessLevel.READ
+    elif share_token is not None:
+        share_link = await get_resource_by_token(share_token)
+        if share_link is not None and str(share_link.resource_id) == project_id:
+            access_level = AccessLevel.READ
+
+    if access_level is None:
         raise HTTPException(status_code=403, detail="Access denied")
 
-    return project
+    if required_level == AccessLevel.WRITE and access_level != AccessLevel.WRITE:
+        raise HTTPException(status_code=403, detail="Write access required")
+
+    return project, access_level
 
 
 async def get_project_files(project_id: str) -> List[File]:
@@ -268,16 +308,12 @@ async def get_project_files(project_id: str) -> List[File]:
 async def update_user_project(
     project_id: str, request: UpdateProjectRequest, user: User
 ) -> Project:
+    await get_project_access(project_id, user=user, required_level=AccessLevel.WRITE)
+
     async with get_async_db_session() as session:
         stmt = select(Project).where(col(Project.id) == project_id)
         result = await session.execute(stmt)
-        project = result.scalar_one_or_none()
-
-        if project is None:
-            raise HTTPException(status_code=404, detail="Project not found")
-
-        if project.user_id is None or project.user_id != user.id:
-            raise HTTPException(status_code=403, detail="Access denied")
+        project = result.scalar_one()
 
         if request.title is not None:
             project.title = request.title
@@ -303,16 +339,12 @@ async def update_project_title(project_id: str, title: str) -> None:
 
 
 async def delete_project(project_id: str, user: User) -> None:
+    await get_project_access(project_id, user=user, required_level=AccessLevel.WRITE)
+
     async with get_async_db_session() as session:
         stmt = select(Project).where(col(Project.id) == project_id)
         result = await session.execute(stmt)
-        project = result.scalar_one_or_none()
-
-        if project is None:
-            raise HTTPException(status_code=404, detail="Project not found")
-
-        if project.user_id is None or project.user_id != user.id:
-            raise HTTPException(status_code=403, detail="Access denied")
+        project = result.scalar_one()
 
         await delete_project_files(project_id)
 

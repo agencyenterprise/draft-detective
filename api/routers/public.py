@@ -9,6 +9,7 @@ from datetime import datetime
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
+from lib.models.project import AccessLevel
 from lib.services.projects import (
     ProjectDetailed,
     get_project_detailed_from_project,
@@ -52,6 +53,6 @@ async def get_shared_resource(token: str):
 
     project = await get_shared_project(str(share_link.resource_id))
     project_detailed = await get_project_detailed_from_project(
-        project, include_internal=True
+        project, access_level=AccessLevel.READ, include_internal=True
     )
     return project_detailed
