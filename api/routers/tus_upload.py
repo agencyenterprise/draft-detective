@@ -10,9 +10,10 @@ from fastapi import Depends, HTTPException
 from api.auth import get_current_user
 from lib.config.env import config
 from lib.models.file import FileRole
+from lib.models.project import AccessLevel
 from lib.models.user import User
 from lib.services.file_finalization import finalize_file_from_path
-from lib.services.projects import get_user_project
+from lib.services.projects import get_project_access
 from lib.services.references import add_file_to_reference
 from tuspyserver import create_tus_router
 
@@ -31,7 +32,9 @@ def _get_pre_create_hook(
         if not project_id:
             raise HTTPException(status_code=400, detail="project_id is required")
 
-        await get_user_project(project_id, user=current_user)
+        await get_project_access(
+            project_id, user=current_user, required_level=AccessLevel.WRITE
+        )
 
     return handler
 

@@ -397,6 +397,16 @@ export type AboutThisWorkflowConfig = {
 };
 
 /**
+ * AccessLevel
+ */
+export const AccessLevel = { Read: 'read', Write: 'write' } as const;
+
+/**
+ * AccessLevel
+ */
+export type AccessLevel = (typeof AccessLevel)[keyof typeof AccessLevel];
+
+/**
  * AdminFeedbackItem
  *
  * Feedback item returned to admins, respecting visibility settings.
@@ -3589,6 +3599,10 @@ export type Project = {
  */
 export type ProjectDetailed = {
   project: Project;
+  /**
+   * The access level of the current user for this project
+   */
+  access_level: AccessLevel;
   /**
    * Workflow Runs
    *

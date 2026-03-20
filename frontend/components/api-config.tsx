@@ -5,10 +5,22 @@ import { client } from '@/lib/generated-api/client.gen';
 import { useSession } from 'next-auth/react';
 import { baseUrl } from '@/lib/api';
 import { posthog } from '@/lib/posthog';
+import { ApiError } from '@/lib/api-error';
 
 export function ApiConfig() {
   const session = useSession();
   const accessToken = session.data?.accessToken;
+
+  useEffect(() => {
+    const id = client.interceptors.error.use((error, response) => {
+      if (response instanceof Response) {
+        const detail = (error as { detail?: string })?.detail;
+        return new ApiError(response.status, detail);
+      }
+      return error as Error;
+    });
+    return () => client.interceptors.error.eject(id);
+  }, []);
 
   useEffect(() => {
     client.setConfig({

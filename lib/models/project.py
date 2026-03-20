@@ -15,6 +15,11 @@ class FeedbackVisibility(str, Enum):
     FULL_PROJECT = "full_project"
 
 
+class AccessLevel(str, Enum):
+    READ = "read"
+    WRITE = "write"
+
+
 class Project(SQLModel, table=True):
     __tablename__ = "projects"
 

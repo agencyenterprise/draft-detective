@@ -8,6 +8,7 @@ from fastapi import BackgroundTasks
 
 from api.models import StartMultipleWorkflowsRequest
 from api.services.workflow_runner import start_multiple_workflow_runs
+from lib.models.project import AccessLevel
 from lib.models.user import User
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus, WorkflowRunType
 from lib.workflows.registry import get_config_type
@@ -75,8 +76,8 @@ async def run_workflow_with_mocks(test_context, completed_workflows):
 
     with (
         patch(
-            "api.services.workflow_runner.get_user_project",
-            new=AsyncMock(return_value=mock_project),
+            "api.services.workflow_runner.get_project_access",
+            new=AsyncMock(return_value=(mock_project, AccessLevel.WRITE)),
         ),
         patch(
             "api.services.workflow_runner.get_project_workflow_run_by_type",
