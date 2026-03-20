@@ -13,15 +13,6 @@ class ClaimReferenceValidationWorkflowConfig(BaseWorkflowConfig):
     type: Literal[WorkflowRunType.CLAIM_REFERENCE_VALIDATION] = Field(
         WorkflowRunType.CLAIM_REFERENCE_VALIDATION
     )
-    domain: Optional[str] = Field(
-        default=None, description="Domain context for more accurate analysis"
-    )
-    target_audience: Optional[str] = Field(
-        default=None, description="Target audience context for analysis"
-    )
-    publication_date: Optional[str] = Field(
-        default=None, description="Publication date of the document (YYYY-MM-DD format)"
-    )
 
 
 class ParagraphVerificationStatus(str, Enum):

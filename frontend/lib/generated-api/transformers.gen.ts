@@ -2,6 +2,7 @@
 
 import type {
   CreateProjectEndpointApiProjectsPostResponse,
+  GetAdminFeedbacksApiAdminFeedbacksGetResponse,
   GetProjectEndpointApiProjectProjectIdGetResponse,
   GetProjectWorkflowProgressEndpointApiProjectProjectIdWorkflowProgressGetResponse,
   GetProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGetResponse,
@@ -51,6 +52,27 @@ export const getWorkflowStateApiWorkflowsWorkflowRunIdGetResponseTransformer = a
   return data;
 };
 
+const adminFeedbackItemSchemaResponseTransformer = (data: any) => {
+  data.issue = issueSchemaResponseTransformer(data.issue);
+  return data;
+};
+
+const issueSchemaResponseTransformer = (data: any) => {
+  if (data.resolved_at) {
+    data.resolved_at = new Date(data.resolved_at);
+  }
+  data.created_at = new Date(data.created_at);
+  data.updated_at = new Date(data.updated_at);
+  return data;
+};
+
+export const getAdminFeedbacksApiAdminFeedbacksGetResponseTransformer = async (
+  data: any,
+): Promise<GetAdminFeedbacksApiAdminFeedbacksGetResponse> => {
+  data = data.map((item: any) => adminFeedbackItemSchemaResponseTransformer(item));
+  return data;
+};
+
 const projectListItemSchemaResponseTransformer = (data: any) => {
   data.project = projectSchemaResponseTransformer(data.project);
   if (data.workflow_runs) {
@@ -84,15 +106,6 @@ const projectDetailedSchemaResponseTransformer = (data: any) => {
   if (data.files) {
     data.files = data.files.map((item: any) => fileListItemSchemaResponseTransformer(item));
   }
-  return data;
-};
-
-const issueSchemaResponseTransformer = (data: any) => {
-  if (data.resolved_at) {
-    data.resolved_at = new Date(data.resolved_at);
-  }
-  data.created_at = new Date(data.created_at);
-  data.updated_at = new Date(data.updated_at);
   return data;
 };
 

@@ -29,6 +29,8 @@ import {
   Users,
   BookOpen,
   type LucideIcon,
+  FileCheckIcon,
+  TableIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { WorkflowRunType, WorkflowTypeDescription } from '@/lib/generated-api';
@@ -56,13 +58,14 @@ const workflowTypeIcons: Record<WorkflowRunType, LucideIcon> = {
   [WorkflowRunType.InferenceValidation]: BrainCircuit,
   [WorkflowRunType.InferenceValidationV2]: BrainCircuit,
   [WorkflowRunType.ClaimReferenceValidation]: ClipboardCheck,
-  [WorkflowRunType.AbbreviationScan]: ALargeSmall,
   [WorkflowRunType.AbbreviationScanV2]: ALargeSmall,
   [WorkflowRunType.AdvocacyTone]: MessageSquareWarning,
   [WorkflowRunType.AboutAuthors]: Users,
   [WorkflowRunType.AboutThisGer]: BookOpen,
   [WorkflowRunType.AboutThis]: BookOpen,
   [WorkflowRunType.Reviewer2]: BookOpen,
+  [WorkflowRunType.DocumentStructure]: FileCheckIcon,
+  [WorkflowRunType.FiguresTablesCheck]: TableIcon,
 };
 
 const DEFAULT_ICON = FileText;
@@ -179,9 +182,8 @@ export function WorkflowTypeCheckbox({
                     </Badge>
                   </TooltipTrigger>
                   <TooltipContent side="top" className="max-w-xs">
-                    This analysis searches the web (using OpenAI&apos;s web search tool) for additional context and
-                    information to enhance the analysis. Parts of the document might be used as web search
-                    query/context.
+                    This analysis searches the web (using a web search tool) for additional context and information to
+                    enhance the analysis. Parts of the document might be used as web search query/context.
                   </TooltipContent>
                 </Tooltip>
               )}

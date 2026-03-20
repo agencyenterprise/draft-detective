@@ -4,21 +4,26 @@ Feedback API endpoints.
 Provides RESTful API for managing user feedback on analysis results.
 """
 
+import csv
+import io
 import json
 from typing import Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 from sqlalchemy import select
 from sqlmodel import col
 
-from api.auth import get_current_user
+from api.auth import get_current_user, require_admin
 from lib.config.database import get_async_db_session
 from lib.models.feedback import Feedback, FeedbackType
 from lib.models.issue import Issue
+from lib.models.project import FeedbackVisibility
 from lib.models.user import User
+from lib.models.workflow_run import WorkflowRunType
 from lib.services import feedback_service
 
 router = APIRouter(tags=["feedback"])
@@ -172,9 +177,7 @@ async def get_workflow_feedback(
         return [FeedbackResponse.from_model(f) for f in feedbacks]
 
 
-@router.get(
-    "/api/feedback/project/{project_id}", response_model=list[FeedbackResponse]
-)
+@router.get("/api/feedback/project/{project_id}", response_model=list[FeedbackResponse])
 async def get_project_feedback(
     project_id: UUID, current_user: User = Depends(get_current_user)
 ) -> list[FeedbackResponse]:
@@ -185,6 +188,132 @@ async def get_project_feedback(
         )
 
         return [FeedbackResponse.from_model(f) for f in feedbacks]
+
+
+class AdminFeedbackItem(BaseModel):
+    """Feedback item returned to admins, respecting visibility settings."""
+
+    id: UUID
+    feedback_type: FeedbackType
+    feedback_text: Optional[str]
+    created_at: str
+    user_id: UUID
+    user_name: str
+    user_email: str
+    project_id: UUID
+    project_title: str
+    visibility: FeedbackVisibility
+    issue: Issue
+
+
+@router.get("/api/admin/feedbacks", response_model=list[AdminFeedbackItem])
+async def get_admin_feedbacks(
+    user_id: Optional[UUID] = None,
+    project_id: Optional[UUID] = None,
+    workflow_type: Optional[WorkflowRunType] = None,
+    feedback_type: Optional[FeedbackType] = None,
+    limit: int = 25,
+    offset: int = 0,
+    _admin: User = Depends(require_admin),
+) -> list[AdminFeedbackItem]:
+    """Get all shared feedback for admin view. Only returns feedback from projects
+    where the user has set visibility to issue_only or full_project."""
+    async with get_async_db_session() as session:
+        rows = await feedback_service.get_admin_feedbacks(
+            session=session,
+            user_id=user_id,
+            project_id=project_id,
+            workflow_type=workflow_type.value if workflow_type else None,
+            feedback_type=feedback_type,
+            limit=limit,
+            offset=offset,
+        )
+
+        return [
+            AdminFeedbackItem(
+                id=row["feedback"].id,
+                feedback_type=row["feedback"].feedback_type,
+                feedback_text=row["feedback"].feedback_text,
+                created_at=row["feedback"].created_at.isoformat(),
+                user_id=row["user"].id,
+                user_name=row["user"].name,
+                user_email=row["user"].email,
+                project_id=row["project"].id,
+                project_title=row["project"].title,
+                visibility=row["project"].feedback_visibility,
+                issue=row["issue"],
+            )
+            for row in rows
+        ]
+
+
+@router.get("/api/admin/feedbacks/export")
+async def export_admin_feedbacks_csv(
+    user_id: Optional[UUID] = None,
+    project_id: Optional[UUID] = None,
+    workflow_type: Optional[WorkflowRunType] = None,
+    feedback_type: Optional[FeedbackType] = None,
+    _admin: User = Depends(require_admin),
+) -> StreamingResponse:
+    """Export all shared feedback as a CSV file."""
+    async with get_async_db_session() as session:
+        rows = await feedback_service.get_admin_feedbacks(
+            session=session,
+            user_id=user_id,
+            project_id=project_id,
+            workflow_type=workflow_type.value if workflow_type else None,
+            feedback_type=feedback_type,
+        )
+
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow(
+            [
+                "Feedback Date",
+                "Feedback Type",
+                "Feedback Text",
+                "User ID",
+                "User Name",
+                "User Email",
+                "Project ID",
+                "Project Title",
+                "Visibility",
+                "Issue ID",
+                "Issue Title",
+                "Issue Description",
+                "Issue Long Description",
+                "Issue Severity",
+                "Issue Workflow Type",
+            ]
+        )
+        for row in rows:
+            issue = row["issue"]
+            writer.writerow(
+                [
+                    row["feedback"].created_at.isoformat(),
+                    row["feedback"].feedback_type.value,
+                    row["feedback"].feedback_text or "",
+                    str(row["user"].id),
+                    row["user"].name,
+                    row["user"].email,
+                    str(row["project"].id),
+                    row["project"].title,
+                    row["project"].feedback_visibility.value,
+                    str(issue.id) if issue else "",
+                    issue.title if issue else "",
+                    issue.description if issue else "",
+                    issue.long_description or "" if issue else "",
+                    issue.severity.value if issue else "",
+                    issue.workflow_type if issue else "",
+                ]
+            )
+
+        output.seek(0)
+        return StreamingResponse(
+            iter([output.getvalue()]),
+            media_type="text/csv",
+            headers={"Content-Disposition": "attachment; filename=feedbacks.csv"},
+        )
 
 
 @router.delete("/api/feedback/{feedback_id}", response_model=dict)

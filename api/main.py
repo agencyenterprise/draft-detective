@@ -17,7 +17,6 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from api.routers import (
     analysis,
     app_configs,
-    evaluation,
     feedback,
     files,
     health,
@@ -93,7 +92,6 @@ app.add_middleware(GZipMiddleware)
 app.include_router(health.router)
 app.include_router(app_configs.router)
 app.include_router(analysis.router)
-app.include_router(evaluation.router)
 app.include_router(workflows.router)
 app.include_router(workflow_types.router)
 app.include_router(files.router)

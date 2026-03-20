@@ -2,7 +2,6 @@ import re
 from typing import Callable, TypeVar
 
 from inspect_ai.model import Model, get_model
-from inspect_ai.model._model import active_model
 from inspect_ai.scorer import (
     CORRECT,
     INCORRECT,
@@ -22,6 +21,8 @@ from inspect_ai.scorer._model import (  # type: ignore[attr-defined]
 from inspect_ai.solver import TaskState
 from inspect_ai.util import resource
 from pydantic import BaseModel, ValidationError
+
+DEFAULT_GRADER_MODEL = "openai/gpt-5.4"
 
 
 @scorer(metrics=[accuracy(), stderr()])
@@ -71,7 +72,7 @@ def model_graded_check(
             target_text = target.text
 
         # resolve model
-        grader_model = get_model(model) if model else active_model()
+        grader_model = get_model(model) if model else get_model(DEFAULT_GRADER_MODEL)
         assert grader_model is not None, "No model provided and no active model found"
 
         # format the model grading template

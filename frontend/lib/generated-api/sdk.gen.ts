@@ -45,6 +45,9 @@ import type {
   EnableProjectSharingApiProjectsProjectIdShareEnablePostData,
   EnableProjectSharingApiProjectsProjectIdShareEnablePostErrors,
   EnableProjectSharingApiProjectsProjectIdShareEnablePostResponses,
+  ExportAdminFeedbacksCsvApiAdminFeedbacksExportGetData,
+  ExportAdminFeedbacksCsvApiAdminFeedbacksExportGetErrors,
+  ExportAdminFeedbacksCsvApiAdminFeedbacksExportGetResponses,
   ExtensionCreationRouteTusPost2Data,
   ExtensionCreationRouteTusPost2Errors,
   ExtensionCreationRouteTusPost2Responses,
@@ -54,12 +57,9 @@ import type {
   ExtensionTerminationRouteTusUuidDeleteData,
   ExtensionTerminationRouteTusUuidDeleteErrors,
   ExtensionTerminationRouteTusUuidDeleteResponses,
-  GenerateChunkEvalPackageApiGenerateChunkEvalPackagePostData,
-  GenerateChunkEvalPackageApiGenerateChunkEvalPackagePostErrors,
-  GenerateChunkEvalPackageApiGenerateChunkEvalPackagePostResponses,
-  GenerateEvalPackageApiGenerateEvalPackagePostData,
-  GenerateEvalPackageApiGenerateEvalPackagePostErrors,
-  GenerateEvalPackageApiGenerateEvalPackagePostResponses,
+  GetAdminFeedbacksApiAdminFeedbacksGetData,
+  GetAdminFeedbacksApiAdminFeedbacksGetErrors,
+  GetAdminFeedbacksApiAdminFeedbacksGetResponses,
   GetCurrentUserInfoApiUsersMeGetData,
   GetCurrentUserInfoApiUsersMeGetResponses,
   GetFeedbackApiFeedbackGetData,
@@ -339,65 +339,6 @@ export const checkPreflightApiPreflightPost = <ThrowOnError extends boolean = tr
   });
 
 /**
- * Generate Eval Package
- *
- * Generate complete eval test package as downloadable zip.
- *
- * Args:
- * request: Contains project_id and metadata for test generation
- *
- * Returns:
- * Zip file containing YAML test files and data files
- */
-export const generateEvalPackageApiGenerateEvalPackagePost = <ThrowOnError extends boolean = true>(
-  options: Options<GenerateEvalPackageApiGenerateEvalPackagePostData, ThrowOnError>,
-) =>
-  (options.client ?? client).post<
-    GenerateEvalPackageApiGenerateEvalPackagePostResponses,
-    GenerateEvalPackageApiGenerateEvalPackagePostErrors,
-    ThrowOnError,
-    'data'
-  >({
-    responseStyle: 'data',
-    url: '/api/generate-eval-package',
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-  });
-
-/**
- * Generate Chunk Eval Package
- *
- * Generate eval test package for a specific chunk with selected agents.
- * Only includes files required by the selected agents.
- *
- * Args:
- * request: Contains project_id, chunk index, selected agents, and metadata
- *
- * Returns:
- * Optimized zip file containing only necessary YAML test files and data files
- */
-export const generateChunkEvalPackageApiGenerateChunkEvalPackagePost = <ThrowOnError extends boolean = true>(
-  options: Options<GenerateChunkEvalPackageApiGenerateChunkEvalPackagePostData, ThrowOnError>,
-) =>
-  (options.client ?? client).post<
-    GenerateChunkEvalPackageApiGenerateChunkEvalPackagePostResponses,
-    GenerateChunkEvalPackageApiGenerateChunkEvalPackagePostErrors,
-    ThrowOnError,
-    'data'
-  >({
-    responseStyle: 'data',
-    url: '/api/generate-chunk-eval-package',
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-  });
-
-/**
  * Start Workflow
  *
  * Start a workflow
@@ -628,6 +569,47 @@ export const getProjectFeedbackApiFeedbackProjectProjectIdGet = <ThrowOnError ex
     responseStyle: 'data',
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/feedback/project/{project_id}',
+    ...options,
+  });
+
+/**
+ * Get Admin Feedbacks
+ *
+ * Get all shared feedback for admin view. Only returns feedback from projects
+ * where the user has set visibility to issue_only or full_project.
+ */
+export const getAdminFeedbacksApiAdminFeedbacksGet = <ThrowOnError extends boolean = true>(
+  options?: Options<GetAdminFeedbacksApiAdminFeedbacksGetData, ThrowOnError>,
+) =>
+  (options?.client ?? client).get<
+    GetAdminFeedbacksApiAdminFeedbacksGetResponses,
+    GetAdminFeedbacksApiAdminFeedbacksGetErrors,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/admin/feedbacks',
+    ...options,
+  });
+
+/**
+ * Export Admin Feedbacks Csv
+ *
+ * Export all shared feedback as a CSV file.
+ */
+export const exportAdminFeedbacksCsvApiAdminFeedbacksExportGet = <ThrowOnError extends boolean = true>(
+  options?: Options<ExportAdminFeedbacksCsvApiAdminFeedbacksExportGetData, ThrowOnError>,
+) =>
+  (options?.client ?? client).get<
+    ExportAdminFeedbacksCsvApiAdminFeedbacksExportGetResponses,
+    ExportAdminFeedbacksCsvApiAdminFeedbacksExportGetErrors,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/admin/feedbacks/export',
     ...options,
   });
 

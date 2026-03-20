@@ -2,11 +2,18 @@
 
 import { ResultsVisualization } from '@/components/results/results-visualization';
 import { useWorkflowProgressToast } from '@/hooks/use-workflow-progress-toast';
-import { ProjectDetailed, updateProjectEndpointApiProjectProjectIdPatch, WorkflowRunType } from '@/lib/generated-api';
+import { isApiError } from '@/lib/api-error';
+import {
+  AccessLevel,
+  ProjectDetailed,
+  updateProjectEndpointApiProjectProjectIdPatch,
+  WorkflowRunType,
+} from '@/lib/generated-api';
 import { useProjectDetails } from '@/lib/hooks/use-project-details';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { isAnyWorkflowProcessing, needsHumanApproval, needsWizardCompletion } from '@/lib/workflow-state';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { FileXIcon, LockIcon } from 'lucide-react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo } from 'react';
 import { toast } from 'sonner';
@@ -90,6 +97,32 @@ export default function ResultsPage() {
     );
   }
 
+  if (isApiError(error, 403)) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center max-w-sm">
+          <LockIcon className="h-10 w-10 text-muted-foreground mx-auto mb-4" />
+          <h2 className="text-lg font-semibold mb-2">Access Denied</h2>
+          <p className="text-muted-foreground text-sm">
+            You don&apos;t have permission to view this project. Contact the project owner to request access.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (isApiError(error, 404)) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center max-w-sm">
+          <FileXIcon className="h-10 w-10 text-muted-foreground mx-auto mb-4" />
+          <h2 className="text-lg font-semibold mb-2">Project Not Found</h2>
+          <p className="text-muted-foreground text-sm">This project doesn&apos;t exist or may have been deleted.</p>
+        </div>
+      </div>
+    );
+  }
+
   if (error) {
     return (
       <div className="flex items-center justify-center">
@@ -104,11 +137,14 @@ export default function ResultsPage() {
     return null;
   }
 
+  const isReadOnly = project.access_level !== AccessLevel.Write;
+
   return (
     <ResultsVisualization
       projectDetail={project}
-      onTitleSave={handleTitleSave}
-      isTitleSaving={updateTitleMutation.isPending}
+      readOnly={isReadOnly}
+      onTitleSave={isReadOnly ? undefined : handleTitleSave}
+      isTitleSaving={isReadOnly ? undefined : updateTitleMutation.isPending}
     />
   );
 }

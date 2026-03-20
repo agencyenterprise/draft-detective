@@ -14,6 +14,10 @@ from lib.workflows.about_this_ger.state import (
     AboutThisGerConfig,
     AboutThisGerState,
 )
+from lib.workflows.simple_deep_agent.state import (
+    SimpleDeepAgentConfig,
+    SimpleDeepAgentState,
+)
 from lib.workflows.advocacy_tone.state import (
     AdvocacyToneState,
     AdvocacyToneWorkflowConfig,
@@ -25,10 +29,6 @@ from lib.workflows.chunk_splitting.state import (
 from lib.workflows.citation_detection.state import (
     CitationDetectionConfig,
     CitationDetectionState,
-)
-from lib.workflows.abbreviation_scan.state import (
-    AbbreviationScanState,
-    AbbreviationScanWorkflowConfig,
 )
 from lib.workflows.citation_suggester.state import (
     CitationSuggesterState,
@@ -57,10 +57,6 @@ from lib.workflows.footnote_extraction.state import (
 from lib.workflows.human_approval.state import (
     HumanApprovalConfig,
     HumanApprovalState,
-)
-from lib.workflows.inference_validation.state import (
-    InferenceValidationState,
-    InferenceValidationWorkflowConfig,
 )
 from lib.workflows.inference_validation_v2.state import (
     InferenceValidationV2State,
@@ -114,7 +110,6 @@ WorkflowState = (
     | ClaimExtractionState
     | ClaimReferenceValidationState
     | CitationDetectionState
-    | AbbreviationScanState
     | AbbreviationScanV2State
     | MethodologicalAlignmentState
     | ReferenceDownloaderState
@@ -123,10 +118,10 @@ WorkflowState = (
     | ReferenceValidationState
     | CitationSuggesterState
     | ResultsExtractionState
-    | InferenceValidationState
     | InferenceValidationV2State
     | HumanApprovalState
     | Reviewer2State
+    | SimpleDeepAgentState
 )
 
 WorkflowConfig = (
@@ -143,7 +138,6 @@ WorkflowConfig = (
     | ClaimExtractionWorkflowConfig
     | CitationDetectionConfig
     | ClaimReferenceValidationWorkflowConfig
-    | AbbreviationScanWorkflowConfig
     | AbbreviationScanV2Config
     | MethodologicalAlignmentWorkflowConfig
     | ReferenceDownloaderWorkflowConfig
@@ -152,8 +146,8 @@ WorkflowConfig = (
     | ReferenceValidationWorkflowConfig
     | CitationSuggesterWorkflowConfig
     | ResultsExtractionWorkflowConfig
-    | InferenceValidationWorkflowConfig
     | InferenceValidationV2WorkflowConfig
     | HumanApprovalConfig
     | Reviewer2Config
+    | SimpleDeepAgentConfig
 )

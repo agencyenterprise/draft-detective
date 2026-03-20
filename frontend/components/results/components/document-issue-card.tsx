@@ -185,7 +185,7 @@ function DocumentIssueCardRaw({
   return (
     <div
       id={`issue-${issue.id}`}
-      className={cn('rounded-lg p-4 space-y-3 border-l-4 shadow-sm break-words transition-opacity', className, {
+      className={cn('rounded-lg p-4 space-y-3 border-l-4 shadow-sm break-words transition-opacity text-sm', className, {
         'opacity-60': isResolved,
       })}
     >

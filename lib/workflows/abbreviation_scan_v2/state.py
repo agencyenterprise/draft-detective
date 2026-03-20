@@ -2,7 +2,8 @@
 
 from typing import List, Literal, Optional
 
-from pydantic import BaseModel, Field
+from langchain_core.messages import BaseMessage
+from pydantic import BaseModel, Field, field_serializer
 
 from lib.workflows.models import BaseWorkflowConfig, BaseWorkflowState, WorkflowRunType
 
@@ -77,10 +78,6 @@ class AbbreviationScanV2Config(BaseWorkflowConfig):
         default=WorkflowRunType.ABBREVIATION_SCAN_V2
     )
 
-    @classmethod
-    def requires_api_key(cls) -> bool:
-        return True
-
 
 class AbbreviationScanV2State(BaseWorkflowState):
     """State for abbreviation scan v2 workflow."""
@@ -103,3 +100,12 @@ class AbbreviationScanV2State(BaseWorkflowState):
         default="",
         description="Agent reasoning summarising what was found and how.",
     )
+    messages: List[BaseMessage] = Field(
+        default_factory=list,
+        description="LLM conversation messages from the agent invocation.",
+    )
+
+    @field_serializer("messages")
+    @classmethod
+    def _serialize_messages(cls, messages: List[BaseMessage]) -> list[dict]:
+        return [m.model_dump() for m in messages]

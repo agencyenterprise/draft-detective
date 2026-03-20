@@ -94,7 +94,10 @@ export function ResultsVisualization({
   };
 
   return (
-    <ProjectFeedbackProvider projectId={readOnly ? undefined : projectDetail.project.id}>
+    <ProjectFeedbackProvider
+      projectId={readOnly ? undefined : projectDetail.project.id}
+      feedbackVisibility={readOnly ? null : (projectDetail.project.feedback_visibility ?? null)}
+    >
       <div className="space-y-3">
         {/* Header */}
         <div className="flex items-center justify-between">

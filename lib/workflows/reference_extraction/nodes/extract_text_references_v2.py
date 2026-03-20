@@ -25,7 +25,7 @@ async def extract_text_references_v2_node(
 
     agent = ReferenceExtractorV2Agent(runtime.context)
 
-    result, _ = await agent.ainvoke({})
+    result, messages = await agent.ainvoke({})
 
     extracted_references = [
         ExtractedReference(
@@ -38,4 +38,8 @@ async def extract_text_references_v2_node(
     ]
 
     logger.info(f"Extracted {len(extracted_references)} unique references")
-    return {"extracted_references": extracted_references, "reasoning": result.reasoning}
+    return {
+        "extracted_references": extracted_references,
+        "reasoning": result.reasoning,
+        "messages": messages,
+    }

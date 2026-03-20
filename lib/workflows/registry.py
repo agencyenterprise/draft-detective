@@ -45,8 +45,9 @@ def get_workflow_manifest(
 
 
 def register_all_workflow_manifests():
-    from lib.workflows.abbreviation_scan.manifest import AbbreviationScanManifest
     from lib.workflows.abbreviation_scan_v2.manifest import AbbreviationScanV2Manifest
+    from lib.workflows.document_structure.manifest import DocumentStructureManifest
+    from lib.workflows.figures_tables_check.manifest import FiguresTablesCheckManifest
     from lib.workflows.about_authors.manifest import AboutAuthorsManifest
     from lib.workflows.about_this.manifest import AboutThisManifest
     from lib.workflows.about_this_ger.manifest import AboutThisGerManifest
@@ -64,7 +65,6 @@ def register_all_workflow_manifests():
     )
     from lib.workflows.footnote_extraction.manifest import FootnoteExtractionManifest
     from lib.workflows.human_approval.manifest import HumanApprovalManifest
-    from lib.workflows.inference_validation.manifest import InferenceValidationManifest
     from lib.workflows.inference_validation_v2.manifest import (
         InferenceValidationV2Manifest,
     )
@@ -94,9 +94,7 @@ def register_all_workflow_manifests():
         CitationDetectionManifest(),
         ClaimReferenceValidationManifest(),
         CitationSuggesterManifest(),
-        AbbreviationScanManifest(),
         AbbreviationScanV2Manifest(),
-        InferenceValidationManifest(),
         InferenceValidationV2Manifest(),
         LiteratureReviewManifest(),
         LiveReportsManifest(),
@@ -109,6 +107,8 @@ def register_all_workflow_manifests():
         AboutThisManifest(),
         AboutThisGerManifest(),
         Reviewer2Manifest(),
+        DocumentStructureManifest(),
+        FiguresTablesCheckManifest(),
     ]
 
     for manifest in manifests:

@@ -1,12 +1,21 @@
 'use client';
 
-import type { FeedbackResponse, FeedbackType } from '@/lib/generated-api';
+import { FeedbackPrivacyDialog } from '@/components/feedback/feedback-privacy-dialog';
+import type { FeedbackResponse, FeedbackType, FeedbackVisibility } from '@/lib/generated-api';
+import { updateProjectEndpointApiProjectProjectIdPatch } from '@/lib/generated-api';
 import { useProjectFeedback } from '@/lib/hooks/use-project-feedback';
-import { createContext, useContext, ReactNode, useMemo, useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { createContext, useCallback, useContext, useMemo, useState, ReactNode } from 'react';
+
+interface SubmitFeedbackParams {
+  issueId: string;
+  feedbackType: FeedbackType;
+  feedbackText?: string | null;
+}
 
 interface ProjectFeedbackContextValue {
   getFeedbackForIssue: (issueId: string) => FeedbackResponse | null;
-  submitFeedback: (params: { issueId: string; feedbackType: FeedbackType; feedbackText?: string | null }) => void;
+  submitFeedback: (params: SubmitFeedbackParams) => void;
   isLoading: boolean;
   isSubmitting: boolean;
   isEnabled: boolean;
@@ -16,11 +25,52 @@ const ProjectFeedbackContext = createContext<ProjectFeedbackContextValue | null>
 
 interface ProjectFeedbackProviderProps {
   projectId: string | undefined;
+  feedbackVisibility: FeedbackVisibility | null | undefined;
   children: ReactNode;
 }
 
-export function ProjectFeedbackProvider({ projectId, children }: ProjectFeedbackProviderProps) {
-  const { getFeedbackForIssue, submitFeedback, isLoading, isSubmitting } = useProjectFeedback(projectId);
+export function ProjectFeedbackProvider({ projectId, feedbackVisibility, children }: ProjectFeedbackProviderProps) {
+  const queryClient = useQueryClient();
+  const { getFeedbackForIssue, submitFeedback: doSubmit, isLoading, isSubmitting } = useProjectFeedback(projectId);
+
+  const [pendingParams, setPendingParams] = useState<SubmitFeedbackParams | null>(null);
+  const [isSavingVisibility, setIsSavingVisibility] = useState(false);
+
+  const handlePrivacyConfirm = useCallback(
+    async (visibility: FeedbackVisibility) => {
+      if (!projectId || !pendingParams) return;
+      setIsSavingVisibility(true);
+      try {
+        await updateProjectEndpointApiProjectProjectIdPatch({
+          path: { project_id: projectId },
+          body: { feedback_visibility: visibility },
+        });
+        // Invalidate the project query so the new visibility is reflected everywhere
+        queryClient.invalidateQueries({ queryKey: ['project', projectId] });
+        doSubmit(pendingParams);
+      } finally {
+        setIsSavingVisibility(false);
+        setPendingParams(null);
+      }
+    },
+    [projectId, pendingParams, doSubmit, queryClient],
+  );
+
+  const handlePrivacyCancel = useCallback(() => {
+    setPendingParams(null);
+  }, []);
+
+  const submitFeedback = useCallback(
+    (params: SubmitFeedbackParams) => {
+      // If visibility hasn't been set yet, show the privacy dialog first
+      if (feedbackVisibility == null) {
+        setPendingParams(params);
+        return;
+      }
+      doSubmit(params);
+    },
+    [feedbackVisibility, doSubmit],
+  );
 
   const value = useMemo(
     () => ({
@@ -33,7 +83,17 @@ export function ProjectFeedbackProvider({ projectId, children }: ProjectFeedback
     [getFeedbackForIssue, submitFeedback, isLoading, isSubmitting, projectId],
   );
 
-  return <ProjectFeedbackContext.Provider value={value}>{children}</ProjectFeedbackContext.Provider>;
+  return (
+    <ProjectFeedbackContext.Provider value={value}>
+      {children}
+      <FeedbackPrivacyDialog
+        isOpen={pendingParams !== null}
+        onConfirm={handlePrivacyConfirm}
+        onCancel={handlePrivacyCancel}
+        isSubmitting={isSavingVisibility}
+      />
+    </ProjectFeedbackContext.Provider>
+  );
 }
 
 export function useProjectFeedbackContext() {

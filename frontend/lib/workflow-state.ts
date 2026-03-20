@@ -1,5 +1,4 @@
 import {
-  AbbreviationScanState,
   AbbreviationScanV2State,
   AboutAuthorsState,
   AboutThisState,
@@ -13,7 +12,6 @@ import {
   DocumentSummarizationState,
   FootnoteExtractionState,
   HumanApprovalState,
-  InferenceValidationState,
   InferenceValidationV2State,
   LiteratureReviewState,
   LiveReportsState,
@@ -24,6 +22,7 @@ import {
   ReferenceValidationState,
   ResultsExtractionState,
   Reviewer2State,
+  SimpleDeepAgentState,
   WorkflowError,
   WorkflowRun,
   WorkflowRunDetail,
@@ -51,15 +50,15 @@ type WorkflowTypeToDetail = {
   [WorkflowRunType.ReferenceValidation]: ReferenceValidationState;
   [WorkflowRunType.CitationSuggester]: CitationSuggesterState;
   [WorkflowRunType.ResultsExtraction]: ResultsExtractionState;
-  [WorkflowRunType.InferenceValidation]: InferenceValidationState;
   [WorkflowRunType.InferenceValidationV2]: InferenceValidationV2State;
   [WorkflowRunType.ClaimReferenceValidation]: ClaimReferenceValidationState;
-  [WorkflowRunType.AbbreviationScan]: AbbreviationScanState;
   [WorkflowRunType.AbbreviationScanV2]: AbbreviationScanV2State;
   [WorkflowRunType.AdvocacyTone]: AdvocacyToneState;
   [WorkflowRunType.AboutAuthors]: AboutAuthorsState;
   [WorkflowRunType.AboutThis]: AboutThisState;
   [WorkflowRunType.Reviewer2]: Reviewer2State;
+  [WorkflowRunType.DocumentStructure]: SimpleDeepAgentState;
+  [WorkflowRunType.FiguresTablesCheck]: SimpleDeepAgentState;
 };
 
 export interface WorkflowRunDetailTyped<T> {

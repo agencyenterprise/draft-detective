@@ -61,75 +61,6 @@ export type AbbreviationItem = {
 };
 
 /**
- * AbbreviationItemV1
- *
- * Item representing an abbreviation/acronym and its definition.
- */
-export type AbbreviationItemV1 = {
-  /**
-   * Abbr
-   *
-   * The acronym/abbreviation text, e.g. AI, RAND, NATO
-   */
-  abbr: string;
-  /**
-   * Definition
-   *
-   * Full definition if available, e.g. Artificial Intelligence
-   */
-  definition?: string;
-  /**
-   * Context
-   *
-   * Text content of the chunk where the abbreviation was found/defined
-   */
-  context: string;
-  /**
-   * Is Definition
-   *
-   * True if found as a definition like 'Definition (ABBR)'
-   */
-  is_definition: boolean;
-  /**
-   * Chunk Index
-   *
-   * 0-based chunk index where this abbreviation was found
-   */
-  chunk_index: number;
-};
-
-/**
- * AbbreviationScanState
- *
- * State for abbreviation scan workflow.
- */
-export type AbbreviationScanState = {
-  /**
-   * Errors
-   *
-   * Errors that occurred during the workflow execution.
-   */
-  errors?: Array<WorkflowError>;
-  /**
-   * Type
-   */
-  type?: 'abbreviation_scan';
-  config: AbbreviationScanWorkflowConfig;
-  /**
-   * File Id
-   *
-   * ID of the main document
-   */
-  file_id: string;
-  /**
-   * Abbreviations
-   *
-   * Unique abbreviations found in the document
-   */
-  abbreviations?: Array<AbbreviationItemV1>;
-};
-
-/**
  * AbbreviationScanV2Config
  *
  * Configuration for abbreviation scan v2 workflow.
@@ -206,48 +137,14 @@ export type AbbreviationScanV2State = {
    * Agent reasoning summarising what was found and how.
    */
   reasoning?: string;
-};
-
-/**
- * AbbreviationScanWorkflowConfig
- *
- * Configuration for abbreviation scan workflow.
- */
-export type AbbreviationScanWorkflowConfig = {
   /**
-   * Project Id
+   * Messages
    *
-   * The ID of the project that this workflow run should be associated with
+   * LLM conversation messages from the agent invocation.
    */
-  project_id: string;
-  /**
-   * Openai Api Key
-   *
-   * The OpenAI API key to use for this workflow execution
-   */
-  openai_api_key?: string | null;
-  /**
-   * Domain
-   *
-   * Domain context for more accurate analysis
-   */
-  domain?: string | null;
-  /**
-   * Target Audience
-   *
-   * Target audience context for analysis
-   */
-  target_audience?: string | null;
-  /**
-   * Publication Date
-   *
-   * Publication date of the document (YYYY-MM-DD format)
-   */
-  publication_date?: string | null;
-  /**
-   * Type
-   */
-  type?: 'abbreviation_scan';
+  messages?: Array<{
+    [key: string]: unknown;
+  }>;
 };
 
 /**
@@ -500,6 +397,59 @@ export type AboutThisWorkflowConfig = {
 };
 
 /**
+ * AccessLevel
+ */
+export const AccessLevel = { Read: 'read', Write: 'write' } as const;
+
+/**
+ * AccessLevel
+ */
+export type AccessLevel = (typeof AccessLevel)[keyof typeof AccessLevel];
+
+/**
+ * AdminFeedbackItem
+ *
+ * Feedback item returned to admins, respecting visibility settings.
+ */
+export type AdminFeedbackItem = {
+  /**
+   * Id
+   */
+  id: string;
+  feedback_type: FeedbackType;
+  /**
+   * Feedback Text
+   */
+  feedback_text: string | null;
+  /**
+   * Created At
+   */
+  created_at: string;
+  /**
+   * User Id
+   */
+  user_id: string;
+  /**
+   * User Name
+   */
+  user_name: string;
+  /**
+   * User Email
+   */
+  user_email: string;
+  /**
+   * Project Id
+   */
+  project_id: string;
+  /**
+   * Project Title
+   */
+  project_title: string;
+  visibility: FeedbackVisibility;
+  issue: Issue;
+};
+
+/**
  * AdvocacyToneState
  *
  * State for the advocacy and tone workflow.
@@ -735,6 +685,76 @@ export type AuthorValidationResult = {
 };
 
 /**
+ * BaseMessage
+ *
+ * Base abstract message class.
+ *
+ * Messages are the inputs and outputs of a chat model.
+ *
+ * Examples include [`HumanMessage`][langchain.messages.HumanMessage],
+ * [`AIMessage`][langchain.messages.AIMessage], and
+ * [`SystemMessage`][langchain.messages.SystemMessage].
+ */
+export type BaseMessage = {
+  /**
+   * Content
+   */
+  content:
+    | string
+    | Array<
+        | string
+        | {
+            [key: string]: unknown;
+          }
+      >;
+  /**
+   * Additional Kwargs
+   */
+  additional_kwargs?: {
+    [key: string]: unknown;
+  };
+  /**
+   * Response Metadata
+   */
+  response_metadata?: {
+    [key: string]: unknown;
+  };
+  /**
+   * Type
+   */
+  type: string;
+  /**
+   * Name
+   */
+  name?: string | null;
+  /**
+   * Id
+   */
+  id?: string | null;
+  [key: string]:
+    | unknown
+    | string
+    | Array<
+        | string
+        | {
+            [key: string]: unknown;
+          }
+      >
+    | {
+        [key: string]: unknown;
+      }
+    | {
+        [key: string]: unknown;
+      }
+    | string
+    | string
+    | null
+    | string
+    | null
+    | undefined;
+};
+
+/**
  * BibliographyFieldValidation
  */
 export type BibliographyFieldValidation = {
@@ -868,36 +888,6 @@ export type ChunkAdvocacyToneResult = {
    * LLM verification for subjective tone
    */
   llm_subjective_tone?: LlmVerificationResult | null;
-};
-
-/**
- * ChunkEvalPackageRequest
- *
- * Request model for generating chunk-specific eval packages.
- */
-export type ChunkEvalPackageRequest = {
-  /**
-   * Project Id
-   *
-   * The project ID to generate eval package for
-   */
-  project_id: string;
-  /**
-   * Chunk Index
-   */
-  chunk_index: number;
-  /**
-   * Selected Agents
-   */
-  selected_agents: Array<string>;
-  /**
-   * Test Name
-   */
-  test_name?: string;
-  /**
-   * Description
-   */
-  description?: string;
 };
 
 /**
@@ -1954,28 +1944,6 @@ export const DocxManipulatorType = {
 export type DocxManipulatorType = (typeof DocxManipulatorType)[keyof typeof DocxManipulatorType];
 
 /**
- * EvalPackageRequest
- *
- * Request model for generating eval packages.
- */
-export type EvalPackageRequest = {
-  /**
-   * Project Id
-   *
-   * The project ID to generate eval package for
-   */
-  project_id: string;
-  /**
-   * Test Name
-   */
-  test_name?: string;
-  /**
-   * Description
-   */
-  description?: string;
-};
-
-/**
  * EvidenceAlignmentLevel
  */
 export const EvidenceAlignmentLevel = {
@@ -2268,6 +2236,20 @@ export const FeedbackType = { ThumbsUp: 'thumbs_up', ThumbsDown: 'thumbs_down' }
  * Type of feedback provided by users
  */
 export type FeedbackType = (typeof FeedbackType)[keyof typeof FeedbackType];
+
+/**
+ * FeedbackVisibility
+ */
+export const FeedbackVisibility = {
+  Private: 'private',
+  IssueOnly: 'issue_only',
+  FullProject: 'full_project',
+} as const;
+
+/**
+ * FeedbackVisibility
+ */
+export type FeedbackVisibility = (typeof FeedbackVisibility)[keyof typeof FeedbackVisibility];
 
 /**
  * FieldCategory
@@ -2808,71 +2790,6 @@ export type InferenceResultResponse = {
 };
 
 /**
- * InferenceValidationResponseWithClaimIndex
- */
-export type InferenceValidationResponseWithClaimIndex = {
-  /**
-   * Valid
-   *
-   * Considering the Toulmin elements, whether the inference is valid or not
-   */
-  valid: boolean;
-  /**
-   * Rationale
-   *
-   * The rationale for why you think the inference is valid or not. If the inference is not valid, explain why. If the inference is valid, explain why. In only TWO sentences.
-   */
-  rationale: string;
-  /**
-   * Suggested Action
-   *
-   * A suggested action to take if the inference is not valid. If the inference is valid, return 'No changes needed'. In only TWO sentences.
-   */
-  suggested_action: string;
-  /**
-   * Claim Index
-   *
-   * The index of the claim that is being validated
-   */
-  claim_index: number;
-  /**
-   * Chunk Index
-   *
-   * The index of the chunk that contains the claim
-   */
-  chunk_index: number;
-};
-
-/**
- * InferenceValidationState
- *
- * State for the inference validation workflow.
- */
-export type InferenceValidationState = {
-  /**
-   * Errors
-   *
-   * Errors that occurred during the workflow execution.
-   */
-  errors?: Array<WorkflowError>;
-  /**
-   * Type
-   */
-  type?: 'inference_validation';
-  config: InferenceValidationWorkflowConfig;
-  /**
-   * File Id
-   *
-   * File ID for backward compatibility
-   */
-  file_id?: string;
-  /**
-   * Inference Validations
-   */
-  inference_validations?: Array<InferenceValidationResponseWithClaimIndex>;
-};
-
-/**
  * InferenceValidationV2State
  *
  * State for the inference validation v2 workflow.
@@ -2948,48 +2865,6 @@ export type InferenceValidationV2WorkflowConfig = {
    * Type
    */
   type?: 'inference_validation_v2';
-};
-
-/**
- * InferenceValidationWorkflowConfig
- *
- * Configuration model for the inference validation workflow.
- */
-export type InferenceValidationWorkflowConfig = {
-  /**
-   * Project Id
-   *
-   * The ID of the project that this workflow run should be associated with
-   */
-  project_id: string;
-  /**
-   * Openai Api Key
-   *
-   * The OpenAI API key to use for this workflow execution
-   */
-  openai_api_key?: string | null;
-  /**
-   * Domain
-   *
-   * Domain context for more accurate analysis
-   */
-  domain?: string | null;
-  /**
-   * Target Audience
-   *
-   * Target audience context for analysis
-   */
-  target_audience?: string | null;
-  /**
-   * Publication Date
-   *
-   * Publication date of the document (YYYY-MM-DD format)
-   */
-  publication_date?: string | null;
-  /**
-   * Type
-   */
-  type?: 'inference_validation';
 };
 
 /**
@@ -3096,7 +2971,7 @@ export type Issue = {
 /**
  * IssueItem
  *
- * Lightweight issue returned by the deep agent.
+ * Lightweight issue returned by a deep agent.
  */
 export type IssueItem = {
   /**
@@ -3713,6 +3588,10 @@ export type Project = {
    * The intended readers of the report
    */
   target_audience: string;
+  /**
+   * Controls what feedback information is shared with administrators
+   */
+  feedback_visibility?: FeedbackVisibility | null;
 };
 
 /**
@@ -3720,6 +3599,10 @@ export type Project = {
  */
 export type ProjectDetailed = {
   project: Project;
+  /**
+   * The access level of the current user for this project
+   */
+  access_level: AccessLevel;
   /**
    * Workflow Runs
    *
@@ -4087,6 +3970,14 @@ export type ReferenceExtractionState = {
    * Step-by-step reasoning describing how references were found and extracted
    */
   reasoning?: string;
+  /**
+   * Messages
+   *
+   * LLM conversation messages from the agent invocation.
+   */
+  messages?: Array<{
+    [key: string]: unknown;
+  }>;
 };
 
 /**
@@ -4882,6 +4773,79 @@ export type ShareStatusResponse = {
 };
 
 /**
+ * SimpleDeepAgentConfig
+ *
+ * Shared config for all simple deep-agent workflows.
+ */
+export type SimpleDeepAgentConfig = {
+  /**
+   * Project Id
+   *
+   * The ID of the project that this workflow run should be associated with
+   */
+  project_id: string;
+  /**
+   * Openai Api Key
+   *
+   * The OpenAI API key to use for this workflow execution
+   */
+  openai_api_key?: string | null;
+  /**
+   * Domain
+   *
+   * Domain context for more accurate analysis
+   */
+  domain?: string | null;
+  /**
+   * Target Audience
+   *
+   * Target audience context for analysis
+   */
+  target_audience?: string | null;
+  /**
+   * Publication Date
+   *
+   * Publication date of the document (YYYY-MM-DD format)
+   */
+  publication_date?: string | null;
+  /**
+   * The workflow type, set per-manifest at runtime
+   */
+  type: WorkflowRunType;
+};
+
+/**
+ * SimpleDeepAgentState
+ *
+ * Shared state for all simple deep-agent workflows.
+ */
+export type SimpleDeepAgentState = {
+  /**
+   * Errors
+   *
+   * Errors that occurred during the workflow execution.
+   */
+  errors?: Array<WorkflowError>;
+  /**
+   * The workflow type, set per-manifest at runtime
+   */
+  type: WorkflowRunType;
+  config: SimpleDeepAgentConfig;
+  /**
+   * Result from the deep agent validation pass
+   */
+  result?: AgentCheckResult | null;
+  /**
+   * Messages
+   *
+   * LLM conversation messages from the agent invocation.
+   */
+  messages?: Array<{
+    [key: string]: unknown;
+  }>;
+};
+
+/**
  * StartMultipleWorkflowsRequest
  *
  * Request model for starting multiple workflows
@@ -4960,6 +4924,7 @@ export type UpdateProjectRequest = {
    * Target Audience
    */
   target_audience?: string | null;
+  feedback_visibility?: FeedbackVisibility | null;
 };
 
 /**
@@ -5262,7 +5227,6 @@ export type WorkflowRunDetail = {
     | ClaimExtractionState
     | ClaimReferenceValidationState
     | CitationDetectionState
-    | AbbreviationScanState
     | AbbreviationScanV2State
     | MethodologicalAlignmentState
     | ReferenceDownloaderState
@@ -5271,10 +5235,10 @@ export type WorkflowRunDetail = {
     | ReferenceValidationState
     | CitationSuggesterState
     | ResultsExtractionState
-    | InferenceValidationState
     | InferenceValidationV2State
     | HumanApprovalState
     | Reviewer2State
+    | SimpleDeepAgentState
     | null;
 };
 
@@ -5315,13 +5279,14 @@ export const WorkflowRunType = {
   InferenceValidation: 'inference_validation',
   InferenceValidationV2: 'inference_validation_v2',
   ClaimReferenceValidation: 'claim_reference_validation',
-  AbbreviationScan: 'abbreviation_scan',
   AbbreviationScanV2: 'abbreviation_scan_v2',
   AdvocacyTone: 'advocacy_tone',
   AboutAuthors: 'about_authors',
   AboutThis: 'about_this',
   AboutThisGer: 'about_this_ger',
   Reviewer2: 'reviewer_2',
+  DocumentStructure: 'document_structure',
+  FiguresTablesCheck: 'figures_tables_check',
 } as const;
 
 /**
@@ -5607,54 +5572,6 @@ export type CheckPreflightApiPreflightPostResponses = {
 export type CheckPreflightApiPreflightPostResponse =
   CheckPreflightApiPreflightPostResponses[keyof CheckPreflightApiPreflightPostResponses];
 
-export type GenerateEvalPackageApiGenerateEvalPackagePostData = {
-  body: EvalPackageRequest;
-  path?: never;
-  query?: never;
-  url: '/api/generate-eval-package';
-};
-
-export type GenerateEvalPackageApiGenerateEvalPackagePostErrors = {
-  /**
-   * Validation Error
-   */
-  422: HttpValidationError;
-};
-
-export type GenerateEvalPackageApiGenerateEvalPackagePostError =
-  GenerateEvalPackageApiGenerateEvalPackagePostErrors[keyof GenerateEvalPackageApiGenerateEvalPackagePostErrors];
-
-export type GenerateEvalPackageApiGenerateEvalPackagePostResponses = {
-  /**
-   * Successful Response
-   */
-  200: unknown;
-};
-
-export type GenerateChunkEvalPackageApiGenerateChunkEvalPackagePostData = {
-  body: ChunkEvalPackageRequest;
-  path?: never;
-  query?: never;
-  url: '/api/generate-chunk-eval-package';
-};
-
-export type GenerateChunkEvalPackageApiGenerateChunkEvalPackagePostErrors = {
-  /**
-   * Validation Error
-   */
-  422: HttpValidationError;
-};
-
-export type GenerateChunkEvalPackageApiGenerateChunkEvalPackagePostError =
-  GenerateChunkEvalPackageApiGenerateChunkEvalPackagePostErrors[keyof GenerateChunkEvalPackageApiGenerateChunkEvalPackagePostErrors];
-
-export type GenerateChunkEvalPackageApiGenerateChunkEvalPackagePostResponses = {
-  /**
-   * Successful Response
-   */
-  200: unknown;
-};
-
 export type StartWorkflowApiWorkflowsStartPostData = {
   /**
    * Request
@@ -5673,7 +5590,6 @@ export type StartWorkflowApiWorkflowsStartPostData = {
     | ClaimExtractionWorkflowConfig
     | CitationDetectionConfig
     | ClaimReferenceValidationWorkflowConfig
-    | AbbreviationScanWorkflowConfig
     | AbbreviationScanV2Config
     | MethodologicalAlignmentWorkflowConfig
     | ReferenceDownloaderWorkflowConfig
@@ -5682,10 +5598,10 @@ export type StartWorkflowApiWorkflowsStartPostData = {
     | ReferenceValidationWorkflowConfig
     | CitationSuggesterWorkflowConfig
     | ResultsExtractionWorkflowConfig
-    | InferenceValidationWorkflowConfig
     | InferenceValidationV2WorkflowConfig
     | HumanApprovalConfig
-    | Reviewer2Config;
+    | Reviewer2Config
+    | SimpleDeepAgentConfig;
   path?: never;
   query?: never;
   url: '/api/workflows/start';
@@ -5992,6 +5908,101 @@ export type GetProjectFeedbackApiFeedbackProjectProjectIdGetResponses = {
 
 export type GetProjectFeedbackApiFeedbackProjectProjectIdGetResponse =
   GetProjectFeedbackApiFeedbackProjectProjectIdGetResponses[keyof GetProjectFeedbackApiFeedbackProjectProjectIdGetResponses];
+
+export type GetAdminFeedbacksApiAdminFeedbacksGetData = {
+  body?: never;
+  path?: never;
+  query?: {
+    /**
+     * User Id
+     */
+    user_id?: string | null;
+    /**
+     * Project Id
+     */
+    project_id?: string | null;
+    /**
+     * Workflow Type
+     */
+    workflow_type?: WorkflowRunType | null;
+    /**
+     * Feedback Type
+     */
+    feedback_type?: FeedbackType | null;
+    /**
+     * Limit
+     */
+    limit?: number;
+    /**
+     * Offset
+     */
+    offset?: number;
+  };
+  url: '/api/admin/feedbacks';
+};
+
+export type GetAdminFeedbacksApiAdminFeedbacksGetErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type GetAdminFeedbacksApiAdminFeedbacksGetError =
+  GetAdminFeedbacksApiAdminFeedbacksGetErrors[keyof GetAdminFeedbacksApiAdminFeedbacksGetErrors];
+
+export type GetAdminFeedbacksApiAdminFeedbacksGetResponses = {
+  /**
+   * Response Get Admin Feedbacks Api Admin Feedbacks Get
+   *
+   * Successful Response
+   */
+  200: Array<AdminFeedbackItem>;
+};
+
+export type GetAdminFeedbacksApiAdminFeedbacksGetResponse =
+  GetAdminFeedbacksApiAdminFeedbacksGetResponses[keyof GetAdminFeedbacksApiAdminFeedbacksGetResponses];
+
+export type ExportAdminFeedbacksCsvApiAdminFeedbacksExportGetData = {
+  body?: never;
+  path?: never;
+  query?: {
+    /**
+     * User Id
+     */
+    user_id?: string | null;
+    /**
+     * Project Id
+     */
+    project_id?: string | null;
+    /**
+     * Workflow Type
+     */
+    workflow_type?: WorkflowRunType | null;
+    /**
+     * Feedback Type
+     */
+    feedback_type?: FeedbackType | null;
+  };
+  url: '/api/admin/feedbacks/export';
+};
+
+export type ExportAdminFeedbacksCsvApiAdminFeedbacksExportGetErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type ExportAdminFeedbacksCsvApiAdminFeedbacksExportGetError =
+  ExportAdminFeedbacksCsvApiAdminFeedbacksExportGetErrors[keyof ExportAdminFeedbacksCsvApiAdminFeedbacksExportGetErrors];
+
+export type ExportAdminFeedbacksCsvApiAdminFeedbacksExportGetResponses = {
+  /**
+   * Successful Response
+   */
+  200: unknown;
+};
 
 export type DeleteFeedbackApiFeedbackFeedbackIdDeleteData = {
   body?: never;

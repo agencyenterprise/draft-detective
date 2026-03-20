@@ -79,6 +79,7 @@ export function AnalysisOptionsMenu({ project, results, readOnly }: AnalysisOpti
           publication_date: values.publication_date ? new Date(values.publication_date) : null,
           domain: values.domain || null,
           target_audience: values.target_audience || null,
+          feedback_visibility: values.feedback_visibility ?? undefined,
         },
       });
     },
