@@ -54,9 +54,10 @@ export function StepUpload({ onComplete }: StepUploadProps) {
       />
 
       <p className="text-sm text-muted-foreground -mt-4">
-        <span className="font-medium">Tip:</span> You can upload only a specific section of your document if you prefer.
-        For example, upload just the references section if you&apos;re only interested in running citation or reference
-        analyses.
+        <span className="font-medium">Tip:</span> You can upload only a <strong>specific section</strong> of your
+        document if you prefer. For example, upload just the references section if you&apos;re only interested in
+        running citation or reference analyses. This could be a good option if you don&apos;t want to{' '}
+        <strong>expose your whole document</strong> to LLMs or Web Search.
       </p>
 
       {!hideApiKeyInput && (
