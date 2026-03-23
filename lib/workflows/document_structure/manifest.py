@@ -8,14 +8,10 @@ and Appendix (only flagged as missing if referenced in the body text).
 from lib.workflows.models import WorkflowRunType
 from lib.workflows.simple_deep_agent.manifest_base import SimpleDeepAgentManifest
 
-_SYSTEM_PROMPT = """\
-You are an expert document reviewer specialising in research publication structure.
-
-## Your Task
-
-Read `/main.md` and check whether the document contains each of the required
-sections listed below.  For every section that is **missing**, add one entry to
-the `issues` list.  For sections that are present, do **not** create an issue.
+_USER_PROMPT = """\
+Check whether the document contains each of the required sections listed below.
+For every section that is **missing**, report one issue.
+For sections that are present, do **not** create an issue.
 
 ## Required Sections
 
@@ -70,28 +66,7 @@ document, add an issue.  If there is no reference to an appendix in the
 body text, skip this check entirely.
 Common headings: "Appendix", "Appendix A", "Supplementary Material".
 **If referenced but missing → issue title:** "Missing Section: Appendix"
-
-## Output Requirements
-
-- `issues`: one entry per missing required section (or missing conditional
-  appendix).  Each entry must include:
-  - `title` — use the exact title specified above.
-  - `description` — a 1-2 sentence explanation of what the section should
-    contain and why its absence may affect the reader.
-  - `severity` — always "medium".
-  - `start_line` / `end_line` — set both to 1 if the section is entirely
-    absent (there is no specific location to point to).
-- `report_markdown`: a concise markdown checklist with one row per required
-  section showing PRESENT or MISSING, followed by a short summary paragraph.
-
-Be thorough but precise.  Do not invent content — base every judgment
-strictly on what is present in the document.
 """
-
-_USER_PROMPT = (
-    "Please read the document and check whether all required sections are present. "
-    "Return the structured result and a markdown report."
-)
 
 
 class DocumentStructureManifest(SimpleDeepAgentManifest):
@@ -108,5 +83,4 @@ class DocumentStructureManifest(SimpleDeepAgentManifest):
     is_experimental = True
     order = 12
 
-    system_prompt = _SYSTEM_PROMPT
     user_prompt = _USER_PROMPT

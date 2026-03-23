@@ -37,7 +37,9 @@ class FileArtifactsServiceType(ABC):
 
     @abstractmethod
     async def get_deepagent_backend_files(
-        self, include_supporting_files: bool = True
+        self,
+        include_supporting_files: bool = True,
+        include_skills: bool = True,
     ) -> dict[str, Any]: ...
 
     def get_paragraph_chunks(
