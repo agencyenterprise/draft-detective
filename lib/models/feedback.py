@@ -11,7 +11,7 @@ from typing import Optional
 import uuid
 
 from pydantic import BaseModel, Field
-from sqlalchemy import Column, DateTime, ForeignKey
+from sqlalchemy import Column, DateTime, ForeignKey, Index
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlmodel import Field as SQLField
 from sqlmodel import SQLModel, String, Enum as SQLModelEnum
@@ -54,6 +54,14 @@ class Feedback(SQLModel, table=True):
     """
 
     __tablename__ = "feedback"
+    __table_args__ = (
+        Index(
+            "ix_feedback_feedback_text_trgm",
+            "feedback_text",
+            postgresql_using="gin",
+            postgresql_ops={"feedback_text": "gin_trgm_ops"},
+        ),
+    )
 
     id: uuid.UUID = SQLField(
         sa_column=Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)

@@ -3,7 +3,7 @@ from datetime import datetime, date
 from enum import Enum
 from typing import Optional
 
-from sqlalchemy import Column, DateTime, ForeignKey, Date
+from sqlalchemy import Column, DateTime, ForeignKey, Date, Index
 from sqlalchemy import Enum as SQLAlchemyEnum
 from sqlalchemy.dialects.postgresql import UUID
 from sqlmodel import Field, SQLModel, String
@@ -22,6 +22,14 @@ class AccessLevel(str, Enum):
 
 class Project(SQLModel, table=True):
     __tablename__ = "projects"
+    __table_args__ = (
+        Index(
+            "ix_projects_title_trgm",
+            "title",
+            postgresql_using="gin",
+            postgresql_ops={"title": "gin_trgm_ops"},
+        ),
+    )
 
     id: uuid.UUID = Field(
         sa_column=Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4),

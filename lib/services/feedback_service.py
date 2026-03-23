@@ -8,7 +8,7 @@ from typing import Optional
 import uuid
 
 from fastapi import HTTPException
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import col
 
@@ -318,9 +318,9 @@ async def get_project_issue_feedback(
 async def get_admin_feedbacks(
     session: AsyncSession,
     user_id: Optional[uuid.UUID] = None,
-    project_id: Optional[uuid.UUID] = None,
     workflow_type: Optional[str] = None,
     feedback_type: Optional[FeedbackType] = None,
+    search: Optional[str] = None,
     limit: Optional[int] = None,
     offset: int = 0,
 ) -> list[dict]:
@@ -346,12 +346,24 @@ async def get_admin_feedbacks(
 
     if user_id is not None:
         stmt = stmt.where(col(Feedback.user_id) == user_id)
-    if project_id is not None:
-        stmt = stmt.where(col(Project.id) == project_id)
     if workflow_type is not None:
         stmt = stmt.where(col(Issue.workflow_type) == workflow_type)
     if feedback_type is not None:
         stmt = stmt.where(col(Feedback.feedback_type) == feedback_type)
+    if search is not None:
+        for token in search.split():
+            pattern = f"%{token}%"
+            stmt = stmt.where(
+                or_(
+                    col(Issue.title).ilike(pattern),
+                    col(Issue.description).ilike(pattern),
+                    col(Issue.long_description).ilike(pattern),
+                    col(Project.title).ilike(pattern),
+                    col(User.name).ilike(pattern),
+                    col(User.email).ilike(pattern),
+                    col(Feedback.feedback_text).ilike(pattern),
+                )
+            )
 
     stmt = stmt.order_by(col(Feedback.created_at).desc())
     if limit is not None:

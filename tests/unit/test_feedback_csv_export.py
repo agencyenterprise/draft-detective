@@ -353,3 +353,68 @@ async def test_csv_export_does_not_pass_pagination():
     call_kwargs = mock_service.call_args.kwargs
     assert "limit" not in call_kwargs
     assert "offset" not in call_kwargs
+
+
+# ---------------------------------------------------------------------------
+# Search forwarding tests
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_search_forwarded_to_service():
+    """search param is forwarded to the service when provided."""
+    from api.routers.feedback import get_admin_feedbacks
+
+    with patch(
+        "api.routers.feedback.feedback_service.get_admin_feedbacks",
+        new=AsyncMock(return_value=[]),
+    ) as mock_service:
+        await get_admin_feedbacks(search="climate")
+
+    call_kwargs = mock_service.call_args.kwargs
+    assert call_kwargs["search"] == "climate"
+
+
+@pytest.mark.asyncio
+async def test_search_default_is_none():
+    """search defaults to None when not provided."""
+    from api.routers.feedback import get_admin_feedbacks
+
+    with patch(
+        "api.routers.feedback.feedback_service.get_admin_feedbacks",
+        new=AsyncMock(return_value=[]),
+    ) as mock_service:
+        await get_admin_feedbacks()
+
+    call_kwargs = mock_service.call_args.kwargs
+    assert call_kwargs["search"] is None
+
+
+@pytest.mark.asyncio
+async def test_csv_export_search_forwarded_to_service():
+    """CSV export forwards the search param to the service."""
+    from api.routers.feedback import export_admin_feedbacks_csv
+
+    with patch(
+        "api.routers.feedback.feedback_service.get_admin_feedbacks",
+        new=AsyncMock(return_value=[]),
+    ) as mock_service:
+        await export_admin_feedbacks_csv(search="climate")
+
+    call_kwargs = mock_service.call_args.kwargs
+    assert call_kwargs["search"] == "climate"
+
+
+@pytest.mark.asyncio
+async def test_csv_export_search_default_is_none():
+    """CSV export search defaults to None when not provided."""
+    from api.routers.feedback import export_admin_feedbacks_csv
+
+    with patch(
+        "api.routers.feedback.feedback_service.get_admin_feedbacks",
+        new=AsyncMock(return_value=[]),
+    ) as mock_service:
+        await export_admin_feedbacks_csv()
+
+    call_kwargs = mock_service.call_args.kwargs
+    assert call_kwargs["search"] is None

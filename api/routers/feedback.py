@@ -209,9 +209,9 @@ class AdminFeedbackItem(BaseModel):
 @router.get("/api/admin/feedbacks", response_model=list[AdminFeedbackItem])
 async def get_admin_feedbacks(
     user_id: Optional[UUID] = None,
-    project_id: Optional[UUID] = None,
     workflow_type: Optional[WorkflowRunType] = None,
     feedback_type: Optional[FeedbackType] = None,
+    search: Optional[str] = None,
     limit: int = 25,
     offset: int = 0,
     _admin: User = Depends(require_admin),
@@ -222,9 +222,9 @@ async def get_admin_feedbacks(
         rows = await feedback_service.get_admin_feedbacks(
             session=session,
             user_id=user_id,
-            project_id=project_id,
             workflow_type=workflow_type.value if workflow_type else None,
             feedback_type=feedback_type,
+            search=search,
             limit=limit,
             offset=offset,
         )
@@ -250,9 +250,9 @@ async def get_admin_feedbacks(
 @router.get("/api/admin/feedbacks/export")
 async def export_admin_feedbacks_csv(
     user_id: Optional[UUID] = None,
-    project_id: Optional[UUID] = None,
     workflow_type: Optional[WorkflowRunType] = None,
     feedback_type: Optional[FeedbackType] = None,
+    search: Optional[str] = None,
     _admin: User = Depends(require_admin),
 ) -> StreamingResponse:
     """Export all shared feedback as a CSV file."""
@@ -260,9 +260,9 @@ async def export_admin_feedbacks_csv(
         rows = await feedback_service.get_admin_feedbacks(
             session=session,
             user_id=user_id,
-            project_id=project_id,
             workflow_type=workflow_type.value if workflow_type else None,
             feedback_type=feedback_type,
+            search=search,
         )
 
         output = io.StringIO()

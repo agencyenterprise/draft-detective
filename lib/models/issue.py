@@ -147,6 +147,24 @@ class Issue(SQLModel, table=True):
     __table_args__ = (
         Index("ix_issues_project_status", "project_id", "status"),
         Index("ix_issues_workflow_type", "project_id", "workflow_type"),
+        Index(
+            "ix_issues_title_trgm",
+            "title",
+            postgresql_using="gin",
+            postgresql_ops={"title": "gin_trgm_ops"},
+        ),
+        Index(
+            "ix_issues_description_trgm",
+            "description",
+            postgresql_using="gin",
+            postgresql_ops={"description": "gin_trgm_ops"},
+        ),
+        Index(
+            "ix_issues_long_description_trgm",
+            "long_description",
+            postgresql_using="gin",
+            postgresql_ops={"long_description": "gin_trgm_ops"},
+        ),
     )
 
     @property

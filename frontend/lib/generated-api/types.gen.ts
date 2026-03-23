@@ -2983,7 +2983,7 @@ export type IssueItem = {
   /**
    * Description
    *
-   * Detailed description of the issue
+   * Detailed description of the issue. Supports markdown.
    */
   description: string;
   /**
@@ -2992,6 +2992,12 @@ export type IssueItem = {
    * Issue severity: low, medium, or high
    */
   severity?: 'low' | 'medium' | 'high';
+  /**
+   * Long Description
+   *
+   * Extended markdown description for issues that require more detail than fits in description. Use markdown headings, lists, and code blocks to improve readability. Leave unset when description alone is sufficient.
+   */
+  long_description?: string | null;
   /**
    * Start Line
    *
@@ -5918,10 +5924,6 @@ export type GetAdminFeedbacksApiAdminFeedbacksGetData = {
      */
     user_id?: string | null;
     /**
-     * Project Id
-     */
-    project_id?: string | null;
-    /**
      * Workflow Type
      */
     workflow_type?: WorkflowRunType | null;
@@ -5929,6 +5931,10 @@ export type GetAdminFeedbacksApiAdminFeedbacksGetData = {
      * Feedback Type
      */
     feedback_type?: FeedbackType | null;
+    /**
+     * Search
+     */
+    search?: string | null;
     /**
      * Limit
      */
@@ -5972,10 +5978,6 @@ export type ExportAdminFeedbacksCsvApiAdminFeedbacksExportGetData = {
      */
     user_id?: string | null;
     /**
-     * Project Id
-     */
-    project_id?: string | null;
-    /**
      * Workflow Type
      */
     workflow_type?: WorkflowRunType | null;
@@ -5983,6 +5985,10 @@ export type ExportAdminFeedbacksCsvApiAdminFeedbacksExportGetData = {
      * Feedback Type
      */
     feedback_type?: FeedbackType | null;
+    /**
+     * Search
+     */
+    search?: string | null;
   };
   url: '/api/admin/feedbacks/export';
 };
