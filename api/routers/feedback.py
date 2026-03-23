@@ -10,7 +10,7 @@ import json
 from typing import Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
@@ -208,12 +208,26 @@ class AdminFeedbackItem(BaseModel):
 
 @router.get("/api/admin/feedbacks", response_model=list[AdminFeedbackItem])
 async def get_admin_feedbacks(
-    user_id: Optional[UUID] = None,
-    project_id: Optional[UUID] = None,
-    workflow_type: Optional[WorkflowRunType] = None,
-    feedback_type: Optional[FeedbackType] = None,
-    limit: int = 25,
-    offset: int = 0,
+    user_id: Optional[UUID] = Query(
+        default=None, description="Filter results to feedback submitted by this user."
+    ),
+    workflow_type: Optional[WorkflowRunType] = Query(
+        default=None, description="Filter results to a specific analysis workflow type."
+    ),
+    feedback_type: Optional[FeedbackType] = Query(
+        default=None, description="Filter results to thumbs-up or thumbs-down feedback."
+    ),
+    search: Optional[str] = Query(
+        default=None,
+        description="Substring search across issue title/description, project title, user name/email, and feedback text. Multiple words are ANDed together.",
+        max_length=200,
+    ),
+    limit: int = Query(
+        default=25, ge=1, le=500, description="Maximum number of results to return."
+    ),
+    offset: int = Query(
+        default=0, ge=0, description="Number of results to skip for pagination."
+    ),
     _admin: User = Depends(require_admin),
 ) -> list[AdminFeedbackItem]:
     """Get all shared feedback for admin view. Only returns feedback from projects
@@ -222,9 +236,9 @@ async def get_admin_feedbacks(
         rows = await feedback_service.get_admin_feedbacks(
             session=session,
             user_id=user_id,
-            project_id=project_id,
             workflow_type=workflow_type.value if workflow_type else None,
             feedback_type=feedback_type,
+            search=search,
             limit=limit,
             offset=offset,
         )
@@ -249,10 +263,20 @@ async def get_admin_feedbacks(
 
 @router.get("/api/admin/feedbacks/export")
 async def export_admin_feedbacks_csv(
-    user_id: Optional[UUID] = None,
-    project_id: Optional[UUID] = None,
-    workflow_type: Optional[WorkflowRunType] = None,
-    feedback_type: Optional[FeedbackType] = None,
+    user_id: Optional[UUID] = Query(
+        default=None, description="Filter results to feedback submitted by this user."
+    ),
+    workflow_type: Optional[WorkflowRunType] = Query(
+        default=None, description="Filter results to a specific analysis workflow type."
+    ),
+    feedback_type: Optional[FeedbackType] = Query(
+        default=None, description="Filter results to thumbs-up or thumbs-down feedback."
+    ),
+    search: Optional[str] = Query(
+        default=None,
+        description="Substring search across issue title/description, project title, user name/email, and feedback text. Multiple words are ANDed together.",
+        max_length=200,
+    ),
     _admin: User = Depends(require_admin),
 ) -> StreamingResponse:
     """Export all shared feedback as a CSV file."""
@@ -260,9 +284,9 @@ async def export_admin_feedbacks_csv(
         rows = await feedback_service.get_admin_feedbacks(
             session=session,
             user_id=user_id,
-            project_id=project_id,
             workflow_type=workflow_type.value if workflow_type else None,
             feedback_type=feedback_type,
+            search=search,
         )
 
         output = io.StringIO()

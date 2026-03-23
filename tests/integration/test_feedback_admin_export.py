@@ -245,25 +245,6 @@ async def test_get_admin_feedbacks_filter_by_user_id(
     assert thumbs_down_feedback.id not in ids
 
 
-@pytest.mark.asyncio
-async def test_get_admin_feedbacks_filter_by_project_id(
-    thumbs_down_feedback, shared_project
-):
-    """project_id filter scopes results to that project."""
-    async with get_async_db_session() as session:
-        rows = await feedback_service.get_admin_feedbacks(
-            session=session, project_id=shared_project.id
-        )
-    ids = [row["feedback"].id for row in rows]
-    assert thumbs_down_feedback.id in ids
-
-    async with get_async_db_session() as session:
-        rows = await feedback_service.get_admin_feedbacks(
-            session=session, project_id=uuid.uuid4()
-        )
-    ids = [row["feedback"].id for row in rows]
-    assert thumbs_down_feedback.id not in ids
-
 
 @pytest.mark.asyncio
 async def test_get_admin_feedbacks_filter_by_feedback_type(
@@ -323,7 +304,7 @@ async def test_get_admin_feedbacks_row_structure(thumbs_down_feedback, issue):
 
 @pytest.mark.asyncio
 async def test_get_admin_feedbacks_limit(
-    thumbs_down_feedback, db_user, workflow_run, issue, shared_project
+    thumbs_down_feedback, db_user, workflow_run, issue
 ):
     """limit param restricts the number of results to at most that count."""
     second_fb = Feedback(
@@ -341,13 +322,13 @@ async def test_get_admin_feedbacks_limit(
     try:
         async with get_async_db_session() as session:
             rows = await feedback_service.get_admin_feedbacks(
-                session=session, project_id=shared_project.id, limit=1
+                session=session, user_id=db_user.id, limit=1
             )
         assert len(rows) == 1
 
         async with get_async_db_session() as session:
             rows = await feedback_service.get_admin_feedbacks(
-                session=session, project_id=shared_project.id, limit=2
+                session=session, user_id=db_user.id, limit=2
             )
         assert len(rows) == 2
     finally:
@@ -362,7 +343,7 @@ async def test_get_admin_feedbacks_limit(
 
 @pytest.mark.asyncio
 async def test_get_admin_feedbacks_offset(
-    thumbs_down_feedback, db_user, workflow_run, issue, shared_project
+    thumbs_down_feedback, db_user, workflow_run, issue
 ):
     """offset param skips the first N results, enabling load-more pagination."""
     second_fb = Feedback(
@@ -380,13 +361,13 @@ async def test_get_admin_feedbacks_offset(
     try:
         async with get_async_db_session() as session:
             all_rows = await feedback_service.get_admin_feedbacks(
-                session=session, project_id=shared_project.id, limit=10
+                session=session, user_id=db_user.id, limit=10
             )
         assert len(all_rows) == 2
 
         async with get_async_db_session() as session:
             offset_rows = await feedback_service.get_admin_feedbacks(
-                session=session, project_id=shared_project.id, limit=10, offset=1
+                session=session, user_id=db_user.id, limit=10, offset=1
             )
         assert len(offset_rows) == 1
         assert offset_rows[0]["feedback"].id == all_rows[1]["feedback"].id
@@ -400,9 +381,125 @@ async def test_get_admin_feedbacks_offset(
                 await session.commit()
 
 
+# ---------------------------------------------------------------------------
+# Search tests
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_search_by_issue_title(thumbs_down_feedback, db_user):
+    """search matches on issue title (case-insensitive substring)."""
+    async with get_async_db_session() as session:
+        rows = await feedback_service.get_admin_feedbacks(
+            session=session, user_id=db_user.id, search="Issue Title"
+        )
+    assert thumbs_down_feedback.id in [r["feedback"].id for r in rows]
+
+    async with get_async_db_session() as session:
+        rows = await feedback_service.get_admin_feedbacks(
+            session=session, user_id=db_user.id, search="ZZNONEXISTENT"
+        )
+    assert thumbs_down_feedback.id not in [r["feedback"].id for r in rows]
+
+
+@pytest.mark.asyncio
+async def test_search_by_issue_description(thumbs_down_feedback, db_user):
+    """search matches on issue description."""
+    async with get_async_db_session() as session:
+        rows = await feedback_service.get_admin_feedbacks(
+            session=session, user_id=db_user.id, search="short description"
+        )
+    assert thumbs_down_feedback.id in [r["feedback"].id for r in rows]
+
+
+@pytest.mark.asyncio
+async def test_search_by_issue_long_description(thumbs_down_feedback, db_user):
+    """search matches on issue long_description."""
+    async with get_async_db_session() as session:
+        rows = await feedback_service.get_admin_feedbacks(
+            session=session, user_id=db_user.id, search="longer detailed"
+        )
+    assert thumbs_down_feedback.id in [r["feedback"].id for r in rows]
+
+
+@pytest.mark.asyncio
+async def test_search_by_project_title(thumbs_down_feedback, db_user):
+    """search matches on project title."""
+    async with get_async_db_session() as session:
+        rows = await feedback_service.get_admin_feedbacks(
+            session=session, user_id=db_user.id, search="Test Project"
+        )
+    assert thumbs_down_feedback.id in [r["feedback"].id for r in rows]
+
+
+@pytest.mark.asyncio
+async def test_search_by_user_name(thumbs_down_feedback, db_user):
+    """search matches on user name."""
+    async with get_async_db_session() as session:
+        rows = await feedback_service.get_admin_feedbacks(
+            session=session, user_id=db_user.id, search="Test User"
+        )
+    assert thumbs_down_feedback.id in [r["feedback"].id for r in rows]
+
+
+@pytest.mark.asyncio
+async def test_search_by_user_email(thumbs_down_feedback, db_user):
+    """search matches on user email."""
+    async with get_async_db_session() as session:
+        rows = await feedback_service.get_admin_feedbacks(
+            session=session, user_id=db_user.id, search="example.com"
+        )
+    assert thumbs_down_feedback.id in [r["feedback"].id for r in rows]
+
+
+@pytest.mark.asyncio
+async def test_search_multi_token_all_match(thumbs_down_feedback, db_user):
+    """Multi-token search requires all tokens to match (AND semantics)."""
+    async with get_async_db_session() as session:
+        rows = await feedback_service.get_admin_feedbacks(
+            session=session, user_id=db_user.id, search="Test Issue"
+        )
+    assert thumbs_down_feedback.id in [r["feedback"].id for r in rows]
+
+
+@pytest.mark.asyncio
+async def test_search_multi_token_partial_no_match(thumbs_down_feedback, db_user):
+    """If any token has no match, the row is excluded."""
+    async with get_async_db_session() as session:
+        rows = await feedback_service.get_admin_feedbacks(
+            session=session, user_id=db_user.id, search="Test ZZNONEXISTENT"
+        )
+    assert thumbs_down_feedback.id not in [r["feedback"].id for r in rows]
+
+
+@pytest.mark.asyncio
+async def test_search_case_insensitive(thumbs_down_feedback, db_user):
+    """search is case-insensitive."""
+    async with get_async_db_session() as session:
+        rows = await feedback_service.get_admin_feedbacks(
+            session=session, user_id=db_user.id, search="issue title"
+        )
+    assert thumbs_down_feedback.id in [r["feedback"].id for r in rows]
+
+
+@pytest.mark.asyncio
+async def test_search_by_feedback_text(thumbs_down_feedback, db_user):
+    """search matches on feedback text."""
+    async with get_async_db_session() as session:
+        rows = await feedback_service.get_admin_feedbacks(
+            session=session, user_id=db_user.id, search="citation is wrong"
+        )
+    assert thumbs_down_feedback.id in [r["feedback"].id for r in rows]
+
+
+# ---------------------------------------------------------------------------
+# Pagination tests
+# ---------------------------------------------------------------------------
+
+
 @pytest.mark.asyncio
 async def test_get_admin_feedbacks_no_limit_returns_all(
-    thumbs_down_feedback, db_user, workflow_run, issue, shared_project
+    thumbs_down_feedback, db_user, workflow_run, issue
 ):
     """When no limit is given (CSV export path), all matching results are returned."""
     second_fb = Feedback(
@@ -420,7 +517,7 @@ async def test_get_admin_feedbacks_no_limit_returns_all(
     try:
         async with get_async_db_session() as session:
             rows = await feedback_service.get_admin_feedbacks(
-                session=session, project_id=shared_project.id
+                session=session, user_id=db_user.id
             )
         ids = [row["feedback"].id for row in rows]
         assert thumbs_down_feedback.id in ids
