@@ -11,14 +11,9 @@ Validates that every figure and table in the document is consistent:
 from lib.workflows.models import WorkflowRunType
 from lib.workflows.simple_deep_agent.manifest_base import SimpleDeepAgentManifest
 
-_SYSTEM_PROMPT = """\
-You are an expert document reviewer specialising in the consistency and
-completeness of figures and tables in research publications.
-
-## Your Task
-
-Read `/main.md` and evaluate the document against **every** rule below.
-For each rule that **fails**, add one entry to the `issues` list.
+_USER_PROMPT = """\
+Evaluate the document against **every** rule below.
+For each rule that **fails**, report one issue.
 For rules that pass, do **not** create an issue.
 
 ---
@@ -120,35 +115,7 @@ Do **not** flag:
 **If a callout is too far from its figure/table → issue title:**
 "Distant Callout: [label] (callout at line X, figure/table at line Y)"
 (Create one issue per distant callout.)
-
----
-
-## Output Requirements
-
-- `issues`: one entry per failed rule instance.  Each entry must include:
-  - `title` — use the exact title format specified above, substituting the
-    specific label or description in square brackets.
-  - `description` — a 1-3 sentence explanation identifying the specific
-    figure/table and what was found or missing.
-  - `severity`:
-    - "high" for missing titles/captions or missing figures/tables
-    - "medium" for unreferenced figures/tables or numbering inconsistencies
-  - `start_line` / `end_line` — the 1-indexed line range in `/main.md`
-    where the figure/table label (or the offending reference) appears.
-    Set both to 1 if no location can be determined.
-- `report_markdown`: a concise markdown summary with:
-  - A section for each rule showing PASS or FAIL with a brief note.
-  - A bullet list of all issues found (if any).
-  - A summary paragraph.
-
-Be thorough but precise.  Do not invent content — base every judgment
-strictly on what is present in the document.
 """
-
-_USER_PROMPT = (
-    "Please read the document and check all figures and tables for consistency. "
-    "Return the structured result and a markdown report."
-)
 
 
 class FiguresTablesCheckManifest(SimpleDeepAgentManifest):
@@ -165,5 +132,4 @@ class FiguresTablesCheckManifest(SimpleDeepAgentManifest):
     is_experimental = True
     order = 13
 
-    system_prompt = _SYSTEM_PROMPT
     user_prompt = _USER_PROMPT

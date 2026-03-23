@@ -1,11 +1,11 @@
 """Base manifest for simple single-node deep-agent workflows.
 
 Subclasses only need to declare class-level attributes (type, name, description,
-system_prompt, user_prompt) and the usual WorkflowManifest metadata fields.
+user_prompt) and the usual WorkflowManifest metadata fields.
 The graph, node, state construction, and issue conversion are all handled here.
 """
 
-from typing import TYPE_CHECKING, ClassVar, List, Type
+from typing import TYPE_CHECKING, ClassVar, List, Optional, Type
 
 from langgraph.graph import START, StateGraph
 from langgraph.graph.state import END
@@ -36,16 +36,16 @@ class SimpleDeepAgentManifest(
         type: WorkflowRunType
         name: str
         description: str
-        system_prompt: str
-        user_prompt: str
+        user_prompt: str   — the rules/criteria to check (used as the human message)
 
     Optional overrides:
+        system_prompt: str  — overrides the default generic system prompt
         include_supporting_files: bool = False
         (plus any WorkflowManifest fields: required_dependencies, order, etc.)
     """
 
-    system_prompt: ClassVar[str]
     user_prompt: ClassVar[str]
+    system_prompt: ClassVar[Optional[str]] = None
     include_supporting_files: ClassVar[bool] = False
 
     def get_state_type(self) -> Type[SimpleDeepAgentState]:
