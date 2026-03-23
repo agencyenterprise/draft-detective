@@ -102,6 +102,7 @@ import type {
   ListProjectsEndpointApiProjectsGetData,
   ListProjectsEndpointApiProjectsGetResponses,
   ListUsersApiUsersGetData,
+  ListUsersApiUsersGetErrors,
   ListUsersApiUsersGetResponses,
   ReadHealthApiHealthGetData,
   ReadHealthApiHealthGetResponses,
@@ -1138,12 +1139,12 @@ export const getCurrentUserInfoApiUsersMeGet = <ThrowOnError extends boolean = t
 /**
  * List Users
  *
- * List all users (admin only).
+ * List users (admin only), optionally filtered by name, email, or role.
  */
 export const listUsersApiUsersGet = <ThrowOnError extends boolean = true>(
   options?: Options<ListUsersApiUsersGetData, ThrowOnError>,
 ) =>
-  (options?.client ?? client).get<ListUsersApiUsersGetResponses, unknown, ThrowOnError, 'data'>({
+  (options?.client ?? client).get<ListUsersApiUsersGetResponses, ListUsersApiUsersGetErrors, ThrowOnError, 'data'>({
     responseStyle: 'data',
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/users',

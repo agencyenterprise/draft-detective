@@ -6976,9 +6976,43 @@ export type GetCurrentUserInfoApiUsersMeGetResponse =
 export type ListUsersApiUsersGetData = {
   body?: never;
   path?: never;
-  query?: never;
+  query?: {
+    /**
+     * Search
+     *
+     * Filter users by name or email
+     */
+    search?: string | null;
+    /**
+     * Role
+     *
+     * Filter users by role
+     */
+    role?: UserRole | null;
+    /**
+     * Limit
+     *
+     * Maximum number of users to return
+     */
+    limit?: number;
+    /**
+     * Offset
+     *
+     * Number of users to skip for pagination
+     */
+    offset?: number;
+  };
   url: '/api/users';
 };
+
+export type ListUsersApiUsersGetErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type ListUsersApiUsersGetError = ListUsersApiUsersGetErrors[keyof ListUsersApiUsersGetErrors];
 
 export type ListUsersApiUsersGetResponses = {
   /**

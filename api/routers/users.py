@@ -4,11 +4,11 @@ User-related API endpoints.
 
 from typing import List
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 
 from api.auth import get_current_user, require_admin
 from api.models import UpdateUserPreferencesRequest, UpdateUserRoleRequest, UserResponse
-from lib.models.user import User
+from lib.models.user import User, UserRole
 from lib.services.users import get_all_users, update_user_preferences, update_user_role
 
 router = APIRouter(prefix="/api/users", tags=["users"])
@@ -21,9 +21,21 @@ async def get_current_user_info(user: User = Depends(get_current_user)) -> UserR
 
 
 @router.get("", response_model=List[UserResponse])
-async def list_users(admin: User = Depends(require_admin)) -> List[UserResponse]:
-    """List all users (admin only)."""
-    users = await get_all_users()
+async def list_users(
+    admin: User = Depends(require_admin),
+    search: str | None = Query(
+        default=None, description="Filter users by name or email"
+    ),
+    role: UserRole | None = Query(default=None, description="Filter users by role"),
+    limit: int = Query(
+        default=20, ge=1, le=100, description="Maximum number of users to return"
+    ),
+    offset: int = Query(
+        default=0, ge=0, description="Number of users to skip for pagination"
+    ),
+) -> List[UserResponse]:
+    """List users (admin only), optionally filtered by name, email, or role."""
+    users = await get_all_users(search=search, role=role, limit=limit, offset=offset)
     return [UserResponse.model_validate(user) for user in users]
 
 

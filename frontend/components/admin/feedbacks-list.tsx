@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { UserCombobox } from '@/components/admin/user-combobox';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { DocumentIssueCard } from '@/components/results/components/document-issue-card';
@@ -15,13 +16,11 @@ import {
   FeedbackVisibility,
   getAdminFeedbacksApiAdminFeedbacksGet,
   Issue,
-  listUsersApiUsersGet,
-  UserResponse,
   WorkflowRunType,
 } from '@/lib/generated-api';
 import { downloadFile } from '@/lib/file-download';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
-import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { ChevronDown, Download, ExternalLinkIcon, Loader2, Search, ThumbsDown, ThumbsUp } from 'lucide-react';
 import Link from 'next/link';
@@ -131,17 +130,13 @@ export function FeedbacksList() {
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch] = useDebounce(searchQuery, 600);
   const [selectedUserId, setSelectedUserId] = useState<string>(ALL_VALUE);
+  const [selectedUserName, setSelectedUserName] = useState<string>('');
   const [selectedWorkflowType, setSelectedWorkflowType] = useState<string>(ALL_VALUE);
   const [selectedFeedbackType, setSelectedFeedbackType] = useState<string>(ALL_VALUE);
   const [selectedItem, setSelectedItem] = useState<AdminFeedbackItem | null>(null);
   const [isExporting, setIsExporting] = useState(false);
 
   const { data: workflowTypes, getWorkflowTypeName } = useWorkflowTypes();
-
-  const { data: users } = useQuery({
-    queryKey: ['admin', 'users'],
-    queryFn: () => listUsersApiUsersGet(),
-  });
 
   const {
     data: feedbacksData,
@@ -175,6 +170,7 @@ export function FeedbacksList() {
   const clearFilters = () => {
     setSearchQuery('');
     setSelectedUserId(ALL_VALUE);
+    setSelectedUserName('');
     setSelectedWorkflowType(ALL_VALUE);
     setSelectedFeedbackType(ALL_VALUE);
   };
@@ -245,19 +241,14 @@ export function FeedbacksList() {
               </SelectContent>
             </Select>
 
-            <Select value={selectedUserId} onValueChange={setSelectedUserId}>
-              <SelectTrigger className="w-[200px]">
-                <SelectValue placeholder="All users" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={ALL_VALUE}>All users</SelectItem>
-                {users?.map((u: UserResponse) => (
-                  <SelectItem key={u.id} value={u.id}>
-                    {u.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <UserCombobox
+              value={selectedUserId}
+              displayName={selectedUserName}
+              onSelect={(userId, userName) => {
+                setSelectedUserId(userId);
+                setSelectedUserName(userName);
+              }}
+            />
 
             <Select value={selectedWorkflowType} onValueChange={setSelectedWorkflowType}>
               <SelectTrigger className="w-[220px]">
