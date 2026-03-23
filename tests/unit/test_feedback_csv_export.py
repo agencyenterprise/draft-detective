@@ -108,7 +108,7 @@ async def test_csv_headers():
         "api.routers.feedback.feedback_service.get_admin_feedbacks",
         new=AsyncMock(return_value=[]),
     ):
-        response = await export_admin_feedbacks_csv()
+        response = await export_admin_feedbacks_csv(workflow_type=None)
 
     body = await _read_streaming_response(response)
     reader = csv.reader(io.StringIO(body))
@@ -142,7 +142,7 @@ async def test_csv_empty_returns_only_header():
         "api.routers.feedback.feedback_service.get_admin_feedbacks",
         new=AsyncMock(return_value=[]),
     ):
-        response = await export_admin_feedbacks_csv()
+        response = await export_admin_feedbacks_csv(workflow_type=None)
 
     body = await _read_streaming_response(response)
     rows = _parse_csv(body)
@@ -181,7 +181,7 @@ async def test_csv_row_values():
         "api.routers.feedback.feedback_service.get_admin_feedbacks",
         new=AsyncMock(return_value=mock_rows),
     ):
-        response = await export_admin_feedbacks_csv()
+        response = await export_admin_feedbacks_csv(workflow_type=None)
 
     body = await _read_streaming_response(response)
     rows = _parse_csv(body)
@@ -225,7 +225,7 @@ async def test_csv_empty_feedback_text():
         "api.routers.feedback.feedback_service.get_admin_feedbacks",
         new=AsyncMock(return_value=mock_rows),
     ):
-        response = await export_admin_feedbacks_csv()
+        response = await export_admin_feedbacks_csv(workflow_type=None)
 
     body = await _read_streaming_response(response)
     rows = _parse_csv(body)
@@ -242,7 +242,7 @@ async def test_csv_no_extra_columns():
         "api.routers.feedback.feedback_service.get_admin_feedbacks",
         new=AsyncMock(return_value=[]),
     ):
-        response = await export_admin_feedbacks_csv()
+        response = await export_admin_feedbacks_csv(workflow_type=None)
 
     body = await _read_streaming_response(response)
     reader = csv.reader(io.StringIO(body))
@@ -277,7 +277,7 @@ async def test_csv_multiple_rows_ordered():
         "api.routers.feedback.feedback_service.get_admin_feedbacks",
         new=AsyncMock(return_value=rows_data),
     ):
-        response = await export_admin_feedbacks_csv()
+        response = await export_admin_feedbacks_csv(workflow_type=None)
 
     body = await _read_streaming_response(response)
     rows = _parse_csv(body)
@@ -296,7 +296,7 @@ async def test_csv_response_headers():
         "api.routers.feedback.feedback_service.get_admin_feedbacks",
         new=AsyncMock(return_value=[]),
     ):
-        response = await export_admin_feedbacks_csv()
+        response = await export_admin_feedbacks_csv(workflow_type=None)
 
     assert response.media_type == "text/csv"
     assert response.headers["content-disposition"] == "attachment; filename=feedbacks.csv"
@@ -316,7 +316,7 @@ async def test_admin_feedbacks_default_pagination():
         "api.routers.feedback.feedback_service.get_admin_feedbacks",
         new=AsyncMock(return_value=[]),
     ) as mock_service:
-        await get_admin_feedbacks()
+        await get_admin_feedbacks(limit=25, offset=0, workflow_type=None)
 
     call_kwargs = mock_service.call_args.kwargs
     assert call_kwargs["limit"] == 25
@@ -332,7 +332,7 @@ async def test_admin_feedbacks_custom_pagination():
         "api.routers.feedback.feedback_service.get_admin_feedbacks",
         new=AsyncMock(return_value=[]),
     ) as mock_service:
-        await get_admin_feedbacks(limit=10, offset=50)
+        await get_admin_feedbacks(limit=10, offset=50, workflow_type=None)
 
     call_kwargs = mock_service.call_args.kwargs
     assert call_kwargs["limit"] == 10
@@ -348,8 +348,73 @@ async def test_csv_export_does_not_pass_pagination():
         "api.routers.feedback.feedback_service.get_admin_feedbacks",
         new=AsyncMock(return_value=[]),
     ) as mock_service:
-        await export_admin_feedbacks_csv()
+        await export_admin_feedbacks_csv(workflow_type=None)
 
     call_kwargs = mock_service.call_args.kwargs
     assert "limit" not in call_kwargs
     assert "offset" not in call_kwargs
+
+
+# ---------------------------------------------------------------------------
+# Search forwarding tests
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_search_forwarded_to_service():
+    """search param is forwarded to the service when provided."""
+    from api.routers.feedback import get_admin_feedbacks
+
+    with patch(
+        "api.routers.feedback.feedback_service.get_admin_feedbacks",
+        new=AsyncMock(return_value=[]),
+    ) as mock_service:
+        await get_admin_feedbacks(search="climate", workflow_type=None)
+
+    call_kwargs = mock_service.call_args.kwargs
+    assert call_kwargs["search"] == "climate"
+
+
+@pytest.mark.asyncio
+async def test_search_default_is_none():
+    """search defaults to None when not provided."""
+    from api.routers.feedback import get_admin_feedbacks
+
+    with patch(
+        "api.routers.feedback.feedback_service.get_admin_feedbacks",
+        new=AsyncMock(return_value=[]),
+    ) as mock_service:
+        await get_admin_feedbacks(search=None, workflow_type=None)
+
+    call_kwargs = mock_service.call_args.kwargs
+    assert call_kwargs["search"] is None
+
+
+@pytest.mark.asyncio
+async def test_csv_export_search_forwarded_to_service():
+    """CSV export forwards the search param to the service."""
+    from api.routers.feedback import export_admin_feedbacks_csv
+
+    with patch(
+        "api.routers.feedback.feedback_service.get_admin_feedbacks",
+        new=AsyncMock(return_value=[]),
+    ) as mock_service:
+        await export_admin_feedbacks_csv(search="climate", workflow_type=None)
+
+    call_kwargs = mock_service.call_args.kwargs
+    assert call_kwargs["search"] == "climate"
+
+
+@pytest.mark.asyncio
+async def test_csv_export_search_default_is_none():
+    """CSV export search defaults to None when not provided."""
+    from api.routers.feedback import export_admin_feedbacks_csv
+
+    with patch(
+        "api.routers.feedback.feedback_service.get_admin_feedbacks",
+        new=AsyncMock(return_value=[]),
+    ) as mock_service:
+        await export_admin_feedbacks_csv(search=None, workflow_type=None)
+
+    call_kwargs = mock_service.call_args.kwargs
+    assert call_kwargs["search"] is None

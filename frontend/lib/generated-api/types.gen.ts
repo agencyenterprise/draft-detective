@@ -2983,7 +2983,7 @@ export type IssueItem = {
   /**
    * Description
    *
-   * Detailed description of the issue
+   * Detailed description of the issue. Supports markdown.
    */
   description: string;
   /**
@@ -2992,6 +2992,12 @@ export type IssueItem = {
    * Issue severity: low, medium, or high
    */
   severity?: 'low' | 'medium' | 'high';
+  /**
+   * Long Description
+   *
+   * Extended markdown description for issues that require more detail than fits in description. Use markdown headings, lists, and code blocks to improve readability. Leave unset when description alone is sufficient.
+   */
+  long_description?: string | null;
   /**
    * Start Line
    *
@@ -5915,26 +5921,38 @@ export type GetAdminFeedbacksApiAdminFeedbacksGetData = {
   query?: {
     /**
      * User Id
+     *
+     * Filter results to feedback submitted by this user.
      */
     user_id?: string | null;
     /**
-     * Project Id
-     */
-    project_id?: string | null;
-    /**
      * Workflow Type
+     *
+     * Filter results to a specific analysis workflow type.
      */
     workflow_type?: WorkflowRunType | null;
     /**
      * Feedback Type
+     *
+     * Filter results to thumbs-up or thumbs-down feedback.
      */
     feedback_type?: FeedbackType | null;
     /**
+     * Search
+     *
+     * Substring search across issue title/description, project title, user name/email, and feedback text. Multiple words are ANDed together.
+     */
+    search?: string | null;
+    /**
      * Limit
+     *
+     * Maximum number of results to return.
      */
     limit?: number;
     /**
      * Offset
+     *
+     * Number of results to skip for pagination.
      */
     offset?: number;
   };
@@ -5969,20 +5987,28 @@ export type ExportAdminFeedbacksCsvApiAdminFeedbacksExportGetData = {
   query?: {
     /**
      * User Id
+     *
+     * Filter results to feedback submitted by this user.
      */
     user_id?: string | null;
     /**
-     * Project Id
-     */
-    project_id?: string | null;
-    /**
      * Workflow Type
+     *
+     * Filter results to a specific analysis workflow type.
      */
     workflow_type?: WorkflowRunType | null;
     /**
      * Feedback Type
+     *
+     * Filter results to thumbs-up or thumbs-down feedback.
      */
     feedback_type?: FeedbackType | null;
+    /**
+     * Search
+     *
+     * Substring search across issue title/description, project title, user name/email, and feedback text. Multiple words are ANDed together.
+     */
+    search?: string | null;
   };
   url: '/api/admin/feedbacks/export';
 };
