@@ -70,7 +70,7 @@ export function FileUploadDialog({
         },
       });
       queryClient.invalidateQueries({ queryKey: ['project', projectId] });
-      toast.success('Files uploaded. Matching workflow started.');
+      toast.success('Sources uploaded. Matching workflow started.');
     } catch {
       toast.error('Failed to start file matching workflow');
     } finally {
@@ -125,7 +125,7 @@ export function FileUploadDialog({
   const getSubmitLabel = () => {
     if (submitLabel) return submitLabel;
     if (multiple) {
-      return `Upload ${selectedFiles.length} file${selectedFiles.length !== 1 ? 's' : ''}`;
+      return `Upload ${selectedFiles.length} source${selectedFiles.length !== 1 ? 's' : ''}`;
     }
     return 'Upload';
   };
@@ -138,11 +138,11 @@ export function FileUploadDialog({
       <Dialog open={isOpen} onOpenChange={() => {}}>
         <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col overflow-hidden" showCloseButton={false}>
           <DialogHeader className="flex-shrink-0">
-            <DialogTitle>{isStartingWorkflow ? 'Starting file matching...' : 'Uploading files'}</DialogTitle>
+            <DialogTitle>{isStartingWorkflow ? 'Starting file matching...' : 'Uploading sources'}</DialogTitle>
             <DialogDescription>
               {isStartingWorkflow
-                ? 'Starting the file matching workflow to match uploaded files to references.'
-                : 'Your files are being uploaded. You can cancel at any time.'}
+                ? 'Starting the file matching workflow to match uploaded sources to references.'
+                : 'Your sources are being uploaded. You can cancel at any time.'}
             </DialogDescription>
           </DialogHeader>
 
@@ -204,7 +204,7 @@ export function FileUploadDialog({
           )}
 
           <div className="space-y-2">
-            <Label>{multiple ? 'Select Files' : 'Select File'}</Label>
+            <Label>{multiple ? 'Select Source Files' : 'Select Source File'}</Label>
             <FileUpload
               files={selectedFiles}
               onFilesChange={handleFilesChange}
@@ -219,7 +219,7 @@ export function FileUploadDialog({
 
           {selectedFiles.length > 0 && (
             <div className="space-y-2">
-              <Label>{multiple ? `Selected Files (${selectedFiles.length})` : 'Selected File'}</Label>
+              <Label>{multiple ? `Selected Source Files (${selectedFiles.length})` : 'Selected Source File'}</Label>
               <div className="space-y-1">
                 {selectedFiles.map((file, index) => (
                   <FileListItem key={index} file={file} type="supporting" onRemove={() => handleRemoveFile(index)} />
