@@ -170,7 +170,7 @@ export function ReferenceReviewList({
               <TooltipTrigger asChild>
                 <Button variant="outline" disabled={isBatchUploading || disableActions} onClick={onBatchUpload}>
                   {isBatchUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-                  {isBatchUploading ? 'Uploading...' : 'Upload files'}
+                  {isBatchUploading ? 'Uploading...' : 'Upload sources'}
                 </Button>
               </TooltipTrigger>
               <TooltipContent className="max-w-xs">

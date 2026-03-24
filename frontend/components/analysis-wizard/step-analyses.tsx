@@ -123,7 +123,7 @@ export function StepAnalyses() {
       {needsSupportingDocs && (
         <Callout variant="info" icon={AlertCircle} title="Source documents required">
           Some selected analyses need reference documents to verify claims. In the next step, you&apos;ll be able to
-          upload files or fetch them from the web. Claims citing references without matched documents will be skipped.
+          upload sources or fetch them from the web. Claims citing references without matched documents will be skipped.
         </Callout>
       )}
 
