@@ -1,0 +1,34 @@
+[
+  {
+    "input": "# Research Report on Climate Adaptation\n\n## About This Report\n\nThis report examines climate adaptation strategies across coastal communities. It was produced by the Research Institute for Environmental Studies to inform policy decisions.\n\n## Acknowledgements\n\nThe authors thank the many researchers, government officials, and community members who contributed their time and expertise to this work. Funding was provided by the National Science Foundation.\n\n## Methods\n\nWe conducted a mixed-methods study combining quantitative analysis of sea-level data with qualitative interviews across 12 coastal communities. Data were collected between January and June 2024.\n\n## Results\n\nFindings indicate that communities with dedicated adaptation plans experienced 40% fewer flood-related disruptions than those without. Early warning systems were the single most cost-effective intervention identified.\n\n## Conclusion\n\nCoastal communities that invest in proactive adaptation measures are significantly better positioned to withstand climate shocks. Policymakers should prioritise funding for community-led adaptation planning.\n\n## References\n\n1. IPCC, 2023. *Sixth Assessment Report: Impacts, Adaptation and Vulnerability*. Geneva: IPCC.\n2. Jones, A., & Smith, B. (2022). Coastal resilience metrics. *Journal of Climate Policy*, 18(3), 45–67.\n",
+    "target_answer": "The document contains all required sections (About This, Acknowledgements, Methods, Results, Conclusion, References). No appendix is referenced in the body, so no appendix check is needed. The agent should report zero missing-section issues.",
+    "target_issue_titles": []
+  },
+  {
+    "input": "# Policy Brief on Urban Transport\n\n## Methods\n\nWe reviewed transport data from 20 cities and conducted stakeholder interviews with municipal planners.\n\n## Conclusion\n\nInvesting in public transit yields significant reductions in urban congestion and carbon emissions.\n",
+    "target_answer": "The document contains only a Methods section and a Conclusion section. It is missing About This, Acknowledgements, Results, and References. The agent should report exactly four issues with the titles: 'Missing Section: About This', 'Missing Section: Acknowledgements', 'Missing Section: Results', and 'Missing Section: References'.",
+    "target_issue_titles": [
+      "Missing Section: About This",
+      "Missing Section: Acknowledgements",
+      "Missing Section: Results",
+      "Missing Section: References"
+    ]
+  },
+  {
+    "input": "# Evaluation of Early Childhood Education Programmes\n\n## About This Report\n\nThis evaluation assesses the effectiveness of three early childhood education programmes funded by the European Commission.\n\n## Acknowledgements\n\nWe thank the programme coordinators and participating families for their cooperation throughout the data collection phase.\n\n## Methods\n\nA quasi-experimental design compared outcomes for 1,200 children enrolled in the programmes against a matched control group over three years.\n\n## Results\n\nChildren in all three programmes showed significantly higher school-readiness scores compared to the control group. Programme C showed the largest effect size (d = 0.72).\n\nFull statistical breakdowns are presented in Appendix A.\n\n## Conclusion\n\nAll three programmes demonstrated positive outcomes. Programme C should be prioritised for scale-up given its superior effect sizes.\n\n## References\n\n1. Heckman, J. J. (2006). Skill formation and the economics of investing in disadvantaged children. *Science*, 312(5782), 1900–1902.\n2. OECD (2021). *Starting Strong: Supporting Families and Children*. Paris: OECD Publishing.\n",
+    "target_answer": "The document contains all six required sections and explicitly references 'Appendix A' in the Results section. However, no Appendix heading or section is present in the document. The agent should report exactly one issue: 'Missing Section: Appendix'.",
+    "target_issue_titles": ["Missing Section: Appendix"]
+  },
+  {
+    "input": "file://files/RAND_RRA4036-1.md",
+    "target_answer": "The RAND report contains 'About This Report' (satisfying About This), 'Acknowledgments' (satisfying Acknowledgements), multiple 'Approaches' and 'Deterministic Analysis' sections (satisfying Methods), a 'Conclusion' section, and a 'Bibliography' (satisfying References). However, it has no dedicated Results, Findings, Key Findings, or Outcomes section. The agent should report exactly one issue: 'Missing Section: Results'.",
+    "target_issue_titles": [
+      "Missing Section: Results"
+    ]
+  },
+  {
+    "input": "file://files/RAND_RRA4636-1.md",
+    "target_answer": "The RAND Europe report on AGI preparedness has an Introduction (satisfying About This), an Acknowledgements section, a Methodology section (satisfying Methods), a Conclusion section, and a References section. However, it has no dedicated Results, Findings, Key Findings, or Outcomes section — the findings are woven into the chapter body rather than presented under an explicit results heading. The agent should report exactly one issue: 'Missing Section: Results'.",
+    "target_issue_titles": ["Missing Section: Results"]
+  }
+]
