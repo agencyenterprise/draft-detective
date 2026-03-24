@@ -170,12 +170,12 @@ export function ReferenceReviewList({
               <TooltipTrigger asChild>
                 <Button variant="outline" disabled={isBatchUploading || disableActions} onClick={onBatchUpload}>
                   {isBatchUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-                  {isBatchUploading ? 'Uploading...' : 'Upload PDFs'}
+                  {isBatchUploading ? 'Uploading...' : 'Upload files'}
                 </Button>
               </TooltipTrigger>
               <TooltipContent className="max-w-xs">
-                Have the source PDFs on your computer? Upload them and we&apos;ll match them to references
-                automatically.
+                Have the source files (PDFs, Word documents, etc.) on your computer? Upload them and we&apos;ll match
+                them to references automatically.
               </TooltipContent>
             </Tooltip>
             <DropdownMenu>

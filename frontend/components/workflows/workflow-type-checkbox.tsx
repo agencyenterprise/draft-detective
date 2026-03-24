@@ -166,7 +166,7 @@ export function WorkflowTypeCheckbox({
                   </TooltipTrigger>
                   <TooltipContent side="top" className="max-w-xs">
                     This analysis requires the full text of referenced documents. Claims citing references without
-                    matched source documents will be skipped. You can upload PDFs or fetch from the web in Step 3.
+                    matched source documents will be skipped. You can upload files or fetch from the web in Step 3.
                   </TooltipContent>
                 </Tooltip>
               )}
