@@ -24,7 +24,7 @@ interface ValidationSummaryCardProps {
 
 /**
  * Reusable summary card that shows validation pass/fail statistics.
- * Used across QA Screener workflows (AboutThis, AboutAuthors, etc.)
+ * Used across QA Screener workflows (AboutThisGer, AdvocacyTone, etc.)
  *
  * Displays a success state when all items pass, otherwise shows
  * the count of passed and failed items.

@@ -148,71 +148,6 @@ export type AbbreviationScanV2State = {
 };
 
 /**
- * AboutAuthorsState
- *
- * State for the About Authors validation workflow.
- */
-export type AboutAuthorsState = {
-  /**
-   * Errors
-   *
-   * Errors that occurred during the workflow execution.
-   */
-  errors?: Array<WorkflowError>;
-  /**
-   * Type
-   */
-  type?: 'about_authors';
-  config: AboutAuthorsWorkflowConfig;
-  /**
-   * Results
-   */
-  results?: Array<AuthorValidationResult>;
-};
-
-/**
- * AboutAuthorsWorkflowConfig
- *
- * Configuration for the About Authors validation workflow.
- */
-export type AboutAuthorsWorkflowConfig = {
-  /**
-   * Project Id
-   *
-   * The ID of the project that this workflow run should be associated with
-   */
-  project_id: string;
-  /**
-   * Openai Api Key
-   *
-   * The OpenAI API key to use for this workflow execution
-   */
-  openai_api_key?: string | null;
-  /**
-   * Domain
-   *
-   * Domain context for more accurate analysis
-   */
-  domain?: string | null;
-  /**
-   * Target Audience
-   *
-   * Target audience context for analysis
-   */
-  target_audience?: string | null;
-  /**
-   * Publication Date
-   *
-   * Publication date of the document (YYYY-MM-DD format)
-   */
-  publication_date?: string | null;
-  /**
-   * Type
-   */
-  type?: 'about_authors';
-};
-
-/**
  * AboutThisGerConfig
  *
  * Configuration for the About This (GER) workflow.
@@ -279,121 +214,6 @@ export type AboutThisGerState = {
    * Result from the authors validation deep agent
    */
   authors_result?: AgentCheckResult | null;
-};
-
-/**
- * AboutThisState
- *
- * State for the About This (Preface) validation workflow.
- */
-export type AboutThisState = {
-  /**
-   * Errors
-   *
-   * Errors that occurred during the workflow execution.
-   */
-  errors?: Array<WorkflowError>;
-  /**
-   * Type
-   */
-  type?: 'about_this';
-  config: AboutThisWorkflowConfig;
-  /**
-   * Found Section
-   *
-   * Whether a preface section was found
-   */
-  found_section?: boolean;
-  /**
-   * Section Title
-   *
-   * Title of the found section (e.g., 'About This Report')
-   */
-  section_title?: string;
-  /**
-   * Section Text
-   *
-   * Full text content of the preface section
-   */
-  section_text?: string;
-  /**
-   * Result for: establishes context
-   */
-  context?: RequirementCheckResult | null;
-  /**
-   * Result for: explains objectives
-   */
-  objectives?: RequirementCheckResult | null;
-  /**
-   * Result for: explains relationship to RAND work
-   */
-  relationship?: RequirementCheckResult | null;
-  /**
-   * Result for: identifies intended audience
-   */
-  audience?: RequirementCheckResult | null;
-  /**
-   * Result for: contains CAST boilerplate
-   */
-  source_boilerplate?: RequirementCheckResult | null;
-  /**
-   * Result for: contains funding statement
-   */
-  source_funding?: RequirementCheckResult | null;
-  /**
-   * Overall Passed
-   *
-   * Whether all requirements passed
-   */
-  overall_passed?: boolean;
-  /**
-   * Final Summary
-   *
-   * Summary of the evaluation (generated if any failed)
-   */
-  final_summary?: string;
-};
-
-/**
- * AboutThisWorkflowConfig
- *
- * Configuration for the About This validation workflow.
- */
-export type AboutThisWorkflowConfig = {
-  /**
-   * Project Id
-   *
-   * The ID of the project that this workflow run should be associated with
-   */
-  project_id: string;
-  /**
-   * Openai Api Key
-   *
-   * The OpenAI API key to use for this workflow execution
-   */
-  openai_api_key?: string | null;
-  /**
-   * Domain
-   *
-   * Domain context for more accurate analysis
-   */
-  domain?: string | null;
-  /**
-   * Target Audience
-   *
-   * Target audience context for analysis
-   */
-  target_audience?: string | null;
-  /**
-   * Publication Date
-   *
-   * Publication date of the document (YYYY-MM-DD format)
-   */
-  publication_date?: string | null;
-  /**
-   * Type
-   */
-  type?: 'about_this';
 };
 
 /**
@@ -606,82 +426,6 @@ export type ApproveWorkflowResponse = {
    * Workflow Run Id
    */
   workflow_run_id: string;
-};
-
-/**
- * AuthorValidationResult
- *
- * Validation result for a single author bio.
- */
-export type AuthorValidationResult = {
-  /**
-   * Author Id
-   *
-   * Paragraph ID from document
-   */
-  author_id: string;
-  /**
-   * Author Text
-   *
-   * Raw author bio text
-   */
-  author_text: string;
-  /**
-   * Author Name
-   *
-   * Extracted author name
-   */
-  author_name: string;
-  /**
-   * Author Name Positions
-   *
-   * 0-indexed token positions for name highlighting
-   */
-  author_name_positions?: Array<number>;
-  /**
-   * Chunk Indices
-   *
-   * Chunk indices this author bio spans (for Document Explorer)
-   */
-  chunk_indices?: Array<number>;
-  /**
-   * Rule 1: Bio must be exactly 3 sentences
-   */
-  rule_1_sentence_length: RuleCheckResult;
-  /**
-   * Rule 2: Must include position and affiliation
-   */
-  rule_2_position_affiliation: RuleCheckResult;
-  /**
-   * Rule 3: If CAST fellow, must include CAST statement
-   */
-  rule_3_program_statement: RuleCheckResult;
-  /**
-   * Rule 4: Must include research focus
-   */
-  rule_4_research_focus: RuleCheckResult;
-  /**
-   * Rule 5: Must include highest degree
-   */
-  rule_5_highest_degree: RuleCheckResult;
-  /**
-   * Overall Passed
-   *
-   * Whether all applicable rules passed
-   */
-  overall_passed: boolean;
-  /**
-   * Final Comment
-   *
-   * Final pass/fail comment
-   */
-  final_comment: string;
-  /**
-   * Guidance
-   *
-   * Guidance for fixing failed rules
-   */
-  guidance?: string | null;
 };
 
 /**
@@ -4450,38 +4194,6 @@ export type ReproducibilityCategoryResponse = {
 };
 
 /**
- * RequirementCheckResult
- *
- * Result for a single requirement check.
- */
-export type RequirementCheckResult = {
-  /**
-   * Passed
-   *
-   * Whether the requirement check passed
-   */
-  passed: boolean;
-  /**
-   * Explanation
-   *
-   * Explanation of the result
-   */
-  explanation: string;
-  /**
-   * Matched Index
-   *
-   * Index of the sentence/paragraph that satisfied the requirement (-1 if none)
-   */
-  matched_index?: number;
-  /**
-   * Matched Text
-   *
-   * The text that satisfied the requirement (empty if none)
-   */
-  matched_text?: string;
-};
-
-/**
  * ResultSection
  */
 export type ResultSection = {
@@ -4691,32 +4403,6 @@ export type Reviewer2State = {
    * The rebuttal document as markdown
    */
   rebuttal_markdown?: string | null;
-};
-
-/**
- * RuleCheckResult
- *
- * Result for a single rule check.
- */
-export type RuleCheckResult = {
-  /**
-   * Passed
-   *
-   * Whether the rule check passed
-   */
-  passed: boolean;
-  /**
-   * Explanation
-   *
-   * Explanation of the result
-   */
-  explanation: string;
-  /**
-   * Applicable
-   *
-   * Whether this rule applies
-   */
-  applicable?: boolean;
 };
 
 /**
@@ -5220,8 +4906,6 @@ export type WorkflowRunDetail = {
    * State
    */
   state:
-    | AboutAuthorsState
-    | AboutThisState
     | AboutThisGerState
     | AdvocacyToneState
     | DocumentProcessingState
@@ -5287,8 +4971,6 @@ export const WorkflowRunType = {
   ClaimReferenceValidation: 'claim_reference_validation',
   AbbreviationScanV2: 'abbreviation_scan_v2',
   AdvocacyTone: 'advocacy_tone',
-  AboutAuthors: 'about_authors',
-  AboutThis: 'about_this',
   AboutThisGer: 'about_this_ger',
   Reviewer2: 'reviewer_2',
   DocumentStructure: 'document_structure',
@@ -5583,8 +5265,6 @@ export type StartWorkflowApiWorkflowsStartPostData = {
    * Request
    */
   body:
-    | AboutAuthorsWorkflowConfig
-    | AboutThisWorkflowConfig
     | AboutThisGerConfig
     | AdvocacyToneWorkflowConfig
     | DocumentProcessingWorkflowConfig
