@@ -39,6 +39,9 @@ import type {
   DownloadFileApiFilesDownloadFileIdGetData,
   DownloadFileApiFilesDownloadFileIdGetErrors,
   DownloadFileApiFilesDownloadFileIdGetResponses,
+  DownloadLogApiAdminLogsDownloadFilenameGetData,
+  DownloadLogApiAdminLogsDownloadFilenameGetErrors,
+  DownloadLogApiAdminLogsDownloadFilenameGetResponses,
   DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetData,
   DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetErrors,
   DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetResponses,
@@ -96,6 +99,8 @@ import type {
   GetWorkflowTypesApiWorkflowTypesGetResponses,
   ListAppConfigsApiAppConfigsGetData,
   ListAppConfigsApiAppConfigsGetResponses,
+  ListLogsApiAdminLogsGetData,
+  ListLogsApiAdminLogsGetResponses,
   ListProjectFilesEndpointApiProjectProjectIdFilesGetData,
   ListProjectFilesEndpointApiProjectProjectIdFilesGetErrors,
   ListProjectFilesEndpointApiProjectProjectIdFilesGetResponses,
@@ -631,6 +636,41 @@ export const deleteFeedbackApiFeedbackFeedbackIdDelete = <ThrowOnError extends b
     responseStyle: 'data',
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/feedback/{feedback_id}',
+    ...options,
+  });
+
+/**
+ * List Logs
+ *
+ * Return metadata for all available log files, newest first.
+ */
+export const listLogsApiAdminLogsGet = <ThrowOnError extends boolean = true>(
+  options?: Options<ListLogsApiAdminLogsGetData, ThrowOnError>,
+) =>
+  (options?.client ?? client).get<ListLogsApiAdminLogsGetResponses, unknown, ThrowOnError, 'data'>({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/admin/logs',
+    ...options,
+  });
+
+/**
+ * Download Log
+ *
+ * Download a specific log file by name.
+ */
+export const downloadLogApiAdminLogsDownloadFilenameGet = <ThrowOnError extends boolean = true>(
+  options: Options<DownloadLogApiAdminLogsDownloadFilenameGetData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    DownloadLogApiAdminLogsDownloadFilenameGetResponses,
+    DownloadLogApiAdminLogsDownloadFilenameGetErrors,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/admin/logs/download/{filename}',
     ...options,
   });
 
