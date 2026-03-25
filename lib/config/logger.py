@@ -2,11 +2,15 @@
 
 Provides centralized logging setup with support for rich console output
 or simple stdout/stderr handlers based on environment configuration.
+Always writes logs to daily rotating files under FILE_UPLOADS_MOUNT_PATH/logs.
 """
 
 import logging
+import logging.handlers
 import sys
 import warnings
+from pathlib import Path
+
 from rich.logging import RichHandler
 
 from lib.config.env import config as env_config
@@ -43,6 +47,12 @@ def setup_logger() -> None:
     else:
         _attach_simple_stdout_stderr_handlers(root_logger)
         logger.info("Using simple stdout/stderr handlers for logging")
+
+    _attach_file_handler(root_logger)
+    logger.info(
+        "File logging enabled, writing to %s/logs",
+        env_config.FILE_UPLOADS_MOUNT_PATH,
+    )
 
     # Suppress Pydantic serialization warnings for workflow_type enum mismatches
     # (old workflow types stored in DB that no longer match the current enum)
@@ -102,3 +112,32 @@ def _attach_simple_stdout_stderr_handlers(logger: logging.Logger) -> None:
     stderr_handler.setLevel(logging.WARNING)
     stderr_handler.setFormatter(formatter)
     logger.addHandler(stderr_handler)
+
+
+def _attach_file_handler(logger: logging.Logger) -> None:
+    """Attach a daily-rotating file handler to the logger.
+
+    Creates a TimedRotatingFileHandler that rotates at midnight, keeping
+    90 days of log files. The log directory is created if it does not exist.
+
+    Args:
+        logger: The logger instance to attach the handler to.
+    """
+    log_dir = Path(env_config.FILE_UPLOADS_MOUNT_PATH) / "logs"
+    log_dir.mkdir(parents=True, exist_ok=True)
+
+    log_file = log_dir / "app.log"
+    file_handler = logging.handlers.TimedRotatingFileHandler(
+        filename=str(log_file),
+        when="midnight",
+        backupCount=90,
+        encoding="utf-8",
+    )
+    file_handler.setLevel(logging.INFO)
+    file_handler.setFormatter(
+        logging.Formatter(
+            fmt="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S",
+        )
+    )
+    logger.addHandler(file_handler)

@@ -14,6 +14,7 @@ const adminNavigation = [
   { name: 'Manage Users', href: '/users' },
   { name: 'User Feedback', href: '/feedbacks' },
   { name: 'Settings', href: '/settings' },
+  { name: 'Logs', href: '/logs' },
 ];
 
 interface User {

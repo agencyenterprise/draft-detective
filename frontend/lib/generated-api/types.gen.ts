@@ -3042,6 +3042,24 @@ export type LiveReportsWorkflowConfig = {
 };
 
 /**
+ * LogFileInfo
+ */
+export type LogFileInfo = {
+  /**
+   * Filename
+   */
+  filename: string;
+  /**
+   * Size Bytes
+   */
+  size_bytes: number;
+  /**
+   * Modified At
+   */
+  modified_at: Date;
+};
+
+/**
  * MethodologicalAlignmentState
  *
  * State for the methodological alignment workflow
@@ -5745,6 +5763,53 @@ export type DeleteFeedbackApiFeedbackFeedbackIdDeleteResponses = {
 
 export type DeleteFeedbackApiFeedbackFeedbackIdDeleteResponse =
   DeleteFeedbackApiFeedbackFeedbackIdDeleteResponses[keyof DeleteFeedbackApiFeedbackFeedbackIdDeleteResponses];
+
+export type ListLogsApiAdminLogsGetData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/api/admin/logs';
+};
+
+export type ListLogsApiAdminLogsGetResponses = {
+  /**
+   * Response List Logs Api Admin Logs Get
+   *
+   * Successful Response
+   */
+  200: Array<LogFileInfo>;
+};
+
+export type ListLogsApiAdminLogsGetResponse = ListLogsApiAdminLogsGetResponses[keyof ListLogsApiAdminLogsGetResponses];
+
+export type DownloadLogApiAdminLogsDownloadFilenameGetData = {
+  body?: never;
+  path: {
+    /**
+     * Filename
+     */
+    filename: string;
+  };
+  query?: never;
+  url: '/api/admin/logs/download/{filename}';
+};
+
+export type DownloadLogApiAdminLogsDownloadFilenameGetErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type DownloadLogApiAdminLogsDownloadFilenameGetError =
+  DownloadLogApiAdminLogsDownloadFilenameGetErrors[keyof DownloadLogApiAdminLogsDownloadFilenameGetErrors];
+
+export type DownloadLogApiAdminLogsDownloadFilenameGetResponses = {
+  /**
+   * Successful Response
+   */
+  200: unknown;
+};
 
 export type ResolveIssueEndpointApiIssuesIssueIdResolvePostData = {
   body?: never;

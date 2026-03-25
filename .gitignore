@@ -37,4 +37,4 @@ rand-personal/
 .claude/settings.json
 
 # logs
-logs/
+/logs/
