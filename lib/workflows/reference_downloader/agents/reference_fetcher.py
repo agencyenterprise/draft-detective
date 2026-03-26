@@ -3,11 +3,12 @@ from typing import Optional
 
 from langchain.agents import create_agent
 from langchain.chat_models import init_chat_model
+from langchain_core.messages import BaseMessage
 from langchain_core.prompts import PromptTemplate
 from langgraph.graph.state import RunnableConfig
 from pydantic import BaseModel, ConfigDict, Field
 
-from lib.config.llm_models import gpt_5_2_model
+from lib.config.llm_models import gpt_5_4_model
 from lib.models.agent import LangChainAgent
 
 # Recursion limit for the agent's tool-calling loop
@@ -99,7 +100,7 @@ Ablon, Lillian, and Andy Bogart, Zero Days, Thousands of Nights: The Life and Ti
 class ReferenceFetcherAgent(LangChainAgent):
     name = "Reference Fetcher"
     description = "Fetch a reference from the internet"
-    model = gpt_5_2_model
+    model = gpt_5_4_model
     temperature = 0.0
     reasoning = {"effort": "low", "summary": "auto"}
 
@@ -107,7 +108,7 @@ class ReferenceFetcherAgent(LangChainAgent):
         self,
         input: ReferenceFetcherAgentInput,
         config: Optional[RunnableConfig] = None,
-    ) -> ReferenceFetchItem:
+    ) -> tuple[ReferenceFetchItem, list[BaseMessage]]:
         system_prompt = _system_prompt.invoke({})
 
         agent = create_agent(
@@ -129,4 +130,4 @@ class ReferenceFetcherAgent(LangChainAgent):
             context=self.context,
         )
 
-        return result["structured_response"]
+        return result["structured_response"], result["messages"]

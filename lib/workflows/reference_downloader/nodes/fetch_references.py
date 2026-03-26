@@ -95,7 +95,7 @@ async def fetch_single_reference(state: dict, runtime: Runtime[ContextSchema]):
     status = ReferenceFetchStatus.COMPLETED
 
     try:
-        result = await agent.ainvoke(ReferenceFetcherAgentInput(reference=reference))
+        result, _ = await agent.ainvoke(ReferenceFetcherAgentInput(reference=reference))
 
         if (
             result
