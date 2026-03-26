@@ -8,7 +8,7 @@ from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
 from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
 
-from lib.config.llm_models import gpt_5_2_model
+from lib.config.llm_models import gpt_5_4_model
 from lib.models.agent import LangChainAgent
 from lib.workflows.context import ContextSchema
 
@@ -118,7 +118,7 @@ The reference to validate will be provided in the next message."""
 class ReferenceValidatorAgent(LangChainAgent):
     name = "Reference Validator"
     description = "Validate a list of references in a document, by searching for their online presence."
-    model = gpt_5_2_model
+    model = gpt_5_4_model
     temperature = 0.0
     reasoning = {"effort": "low", "summary": "auto"}
 
