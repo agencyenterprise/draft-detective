@@ -190,9 +190,11 @@ async def _update_reference_file_matching(
     """Update the reference file matching in the ReferenceExtraction workflow state."""
 
     from lib.services.references import add_file_to_reference
+    from lib.workflows.reference_file_matching.state import MatchSource
 
     await add_file_to_reference(
         project_id=project_id,
         file_id=file_id,
         reference_id=reference_id,
+        source=MatchSource.AUTO_FETCHED,
     )

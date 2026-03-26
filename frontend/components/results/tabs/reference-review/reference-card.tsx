@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { Markdown } from '@/components/markdown';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -11,17 +11,27 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
-import { CloudDownload, ExternalLink, FileText, FileX, GlobeIcon, Loader2, Trash2, Upload } from 'lucide-react';
-import { Markdown } from '@/components/markdown';
+import { FileDownloadLink } from '@/components/ui/file-download-link';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { WorkflowConfigDialog, WorkflowConfigFormValues } from '@/components/workflows/workflow-config-dialog';
-import { WorkflowRunType } from '@/lib/generated-api';
+import { MatchSource, WorkflowRunType } from '@/lib/generated-api';
+import { cn } from '@/lib/utils';
+import {
+  CloudDownload,
+  ExternalLink,
+  FileText,
+  FileX,
+  GlobeIcon,
+  Loader2,
+  Sparkles,
+  Trash2,
+  Upload,
+} from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { FetchResultsBox } from './fetch-results-box';
 import { FileUploadDialog } from './file-upload-dialog';
-import { useRemoveFileMutation, useFetchFromWebMutation } from './mutations';
+import { useFetchFromWebMutation, useRemoveFileMutation } from './mutations';
 import { ReferenceReviewItem, ReferenceReviewStatus } from './types';
-import { ValidationResultsBox } from './validation-results-box';
-import { FileDownloadLink } from '@/components/ui/file-download-link';
 
 function MatchStatusBadge({ status }: { status: ReferenceReviewStatus }) {
   const statusConfig = {
@@ -56,6 +66,47 @@ function MatchStatusBadge({ status }: { status: ReferenceReviewStatus }) {
   );
 }
 
+const SOURCE_CONFIG: Record<
+  MatchSource,
+  { icon: React.ElementType; label: string; tooltip: string; className: string }
+> = {
+  [MatchSource.ManualUpload]: {
+    icon: Upload,
+    label: 'Manually uploaded',
+    tooltip: 'This file was manually uploaded by a user.',
+    className: 'text-gray-500',
+  },
+  [MatchSource.AutoMatched]: {
+    icon: Sparkles,
+    label: 'Auto-matched',
+    tooltip: 'This file was automatically matched from your uploaded supporting documents.',
+    className: 'text-purple-500',
+  },
+  [MatchSource.AutoFetched]: {
+    icon: GlobeIcon,
+    label: 'Auto-fetched',
+    tooltip: 'This file was automatically fetched from the web.',
+    className: 'text-blue-500',
+  },
+};
+
+function SourceBadge({ source }: { source: MatchSource | null }) {
+  if (!source) return null;
+  const { icon: Icon, label, tooltip, className } = SOURCE_CONFIG[source];
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className={`inline-flex items-center gap-1 text-xs shrink-0 cursor-default ${className}`}>
+          <Icon className="w-3 h-3" />
+          {label}
+        </span>
+      </TooltipTrigger>
+      <TooltipContent>{tooltip}</TooltipContent>
+    </Tooltip>
+  );
+}
+
 export interface ReferenceCardProps {
   reference: ReferenceReviewItem;
   projectId: string;
@@ -66,7 +117,7 @@ export interface ReferenceCardProps {
 type DialogMode = 'upload' | 'replace' | null;
 
 export function ReferenceCard({ reference, projectId, readOnly, disabled = false }: ReferenceCardProps) {
-  const { id, index, text, status, matchedFile, fetchResult, validation } = reference;
+  const { id, index, text, status, matchedFile, source, fetchResult, validation } = reference;
   const [dialogMode, setDialogMode] = useState<DialogMode>(null);
   const [isFetchDialogOpen, setIsFetchDialogOpen] = useState(false);
   // Track when fetch was initiated locally (optimistic UI)
@@ -181,6 +232,7 @@ export function ReferenceCard({ reference, projectId, readOnly, disabled = false
                 <span className="text-gray-400 text-xs">({matchedFile.size})</span>
                 <ExternalLink className="w-3 h-3 text-gray-400" />
               </FileDownloadLink>
+              <SourceBadge source={source} />
 
               {!readOnly && (
                 <div className="flex gap-2 justify-end">

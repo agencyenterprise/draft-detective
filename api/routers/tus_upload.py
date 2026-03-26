@@ -15,6 +15,7 @@ from lib.models.user import User
 from lib.services.file_finalization import finalize_file_from_path
 from lib.services.projects import get_project_access
 from lib.services.references import add_file_to_reference
+from lib.workflows.reference_file_matching.state import MatchSource
 from tuspyserver import create_tus_router
 
 logger = logging.getLogger(__name__)
@@ -82,6 +83,7 @@ def _get_completion_hook(
                 project_id=project_id,
                 file_id=str(file_record.id),
                 reference_id=reference_id,
+                source=MatchSource.MANUAL_UPLOAD,
             )
             if not linked:
                 logger.error(

@@ -15,6 +15,7 @@ from lib.workflows.checkpointer import get_checkpointer
 from lib.workflows.models import WorkflowRunType
 from lib.workflows.reference_extraction.state import ReferenceExtractionState
 from lib.workflows.reference_file_matching.state import (
+    MatchSource,
     ReferenceFileMatch,
     ReferenceFileMatchingState,
 )
@@ -234,6 +235,7 @@ async def add_file_to_reference(
     project_id: str,
     file_id: str,
     reference_id: str,
+    source: MatchSource,
 ) -> bool:
     """
     Link a file to a specific reference in the ReferenceFileMatching workflow state.
@@ -270,7 +272,7 @@ async def add_file_to_reference(
         # Remove any existing match for this reference_id, then add the new one
         updated_matches = [m for m in state.matches if m.reference_id != reference_id]
         updated_matches.append(
-            ReferenceFileMatch(reference_id=reference_id, file_id=file_id, is_manual=True)
+            ReferenceFileMatch(reference_id=reference_id, file_id=file_id, source=source)
         )
 
         # Update the state using LangGraph

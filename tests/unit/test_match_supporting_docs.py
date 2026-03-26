@@ -17,7 +17,7 @@ from lib.workflows.reference_file_matching.nodes.match_supporting_docs import (
     _resolve_match,
     match_supporting_docs_node,
 )
-from lib.workflows.reference_file_matching.state import ReferenceFileMatch
+from lib.workflows.reference_file_matching.state import MatchSource, ReferenceFileMatch
 
 EMBEDDING_MATCHER_PATH = "lib.workflows.reference_file_matching.nodes.match_supporting_docs.ReferenceEmbeddingMatcher"
 BATCHED_MATCHER_PATH = "lib.workflows.reference_file_matching.nodes.match_supporting_docs.BatchedReferenceMatcherAgent"
@@ -149,6 +149,38 @@ def make_extracted_refs(texts: List[str]) -> List[ExtractedReference]:
     ]
 
 
+class TestReferenceFileMatchMigration:
+    """Tests for the migrate_is_manual backward-compatibility validator."""
+
+    def test_is_manual_true_maps_to_manual_upload(self):
+        match = ReferenceFileMatch(reference_id="r1", file_id="f1", is_manual=True)
+        assert match.source == MatchSource.MANUAL_UPLOAD
+
+    def test_is_manual_false_maps_to_auto_matched(self):
+        match = ReferenceFileMatch(reference_id="r1", file_id="f1", is_manual=False)
+        assert match.source == MatchSource.AUTO_MATCHED
+
+    def test_source_takes_precedence_over_is_manual(self):
+        """When both is_manual and source are present, source wins (no migration)."""
+        match = ReferenceFileMatch(
+            reference_id="r1",
+            file_id="f1",
+            is_manual=True,
+            source=MatchSource.AUTO_FETCHED,
+        )
+        assert match.source == MatchSource.AUTO_FETCHED
+
+    def test_new_format_without_is_manual(self):
+        match = ReferenceFileMatch(
+            reference_id="r1", file_id="f1", source=MatchSource.AUTO_FETCHED
+        )
+        assert match.source == MatchSource.AUTO_FETCHED
+
+    def test_default_source_is_auto_matched(self):
+        match = ReferenceFileMatch(reference_id="r1", file_id="f1")
+        assert match.source == MatchSource.AUTO_MATCHED
+
+
 class TestResolveMatch:
     """Tests for _resolve_match helper function."""
 
@@ -202,6 +234,7 @@ class TestTwoStageMatching:
         match = result["matches"][0]
         assert match.reference_id == "ref-0"
         assert match.file_id == "file-id-0"
+        assert match.source == MatchSource.AUTO_MATCHED
 
     @pytest.mark.asyncio
     async def test_handles_no_match(self, mock_state, mock_runtime):
@@ -256,8 +289,10 @@ class TestTwoStageMatching:
         assert len(result["matches"]) == 2
         assert result["matches"][0].reference_id == "ref-0"
         assert result["matches"][0].file_id == "file-id-0"
+        assert result["matches"][0].source == MatchSource.AUTO_MATCHED
         assert result["matches"][1].reference_id == "ref-1"
         assert result["matches"][1].file_id == "file-id-1"
+        assert result["matches"][1].source == MatchSource.AUTO_MATCHED
 
     @pytest.mark.asyncio
     async def test_handles_batch_error_gracefully(self, mock_state, mock_runtime):
@@ -293,7 +328,7 @@ class TestMatchSupportingDocsNode:
         summaries = {0: make_summary("Paper B", "Jones", "2021", file_id="file-id-0")}
         extracted_refs = make_extracted_refs(["Already matched ref", "New unmatched ref"])
         existing_match = ReferenceFileMatch(
-            reference_id="ref-0", file_id="file-id-0", is_manual=True
+            reference_id="ref-0", file_id="file-id-0", source=MatchSource.MANUAL_UPLOAD
         )
         state = mock_state(supporting_file_ids=["file-id-0"], matches=[existing_match])
         runtime = mock_runtime(summaries=summaries, extracted_refs=extracted_refs)
@@ -310,7 +345,7 @@ class TestMatchSupportingDocsNode:
         assert "ref-1" in ref_ids
         # Manual match must be preserved unchanged
         manual = next(m for m in result["matches"] if m.reference_id == "ref-0")
-        assert manual.is_manual is True
+        assert manual.source == MatchSource.MANUAL_UPLOAD
         assert manual.file_id == "file-id-0"
 
     @pytest.mark.asyncio
@@ -320,7 +355,7 @@ class TestMatchSupportingDocsNode:
         """When all references are already matched, the two-stage matching is not invoked."""
         extracted_refs = make_extracted_refs(["Already matched ref"])
         existing_match = ReferenceFileMatch(
-            reference_id="ref-0", file_id="file-id-0", is_manual=False
+            reference_id="ref-0", file_id="file-id-0", source=MatchSource.AUTO_MATCHED
         )
         state = mock_state(supporting_file_ids=["file-id-0"], matches=[existing_match])
         runtime = mock_runtime(extracted_refs=extracted_refs)

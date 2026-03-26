@@ -25,6 +25,7 @@ from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
 from lib.workflows.reference_extraction.state import ExtractedReference
 from lib.workflows.reference_file_matching.state import (
+    MatchSource,
     ReferenceFileMatch,
     ReferenceFileMatchingState,
 )
@@ -198,7 +199,7 @@ async def match_supporting_docs_node(
                 ReferenceFileMatch(
                     reference_id=ref.id,
                     file_id=file_id,
-                    is_manual=False,
+                    source=MatchSource.AUTO_MATCHED,
                 )
             )
 
