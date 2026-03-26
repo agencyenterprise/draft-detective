@@ -3060,6 +3060,24 @@ export type LogFileInfo = {
 };
 
 /**
+ * MatchSource
+ *
+ * How a reference-to-file match was created.
+ */
+export const MatchSource = {
+  ManualUpload: 'manual_upload',
+  AutoMatched: 'auto_matched',
+  AutoFetched: 'auto_fetched',
+} as const;
+
+/**
+ * MatchSource
+ *
+ * How a reference-to-file match was created.
+ */
+export type MatchSource = (typeof MatchSource)[keyof typeof MatchSource];
+
+/**
  * MethodologicalAlignmentState
  *
  * State for the methodological alignment workflow
@@ -3870,11 +3888,9 @@ export type ReferenceFileMatch = {
    */
   file_id: string;
   /**
-   * Is Manual
-   *
-   * Whether this match was manually created by a user
+   * How this match was created
    */
-  is_manual?: boolean;
+  source?: MatchSource;
 };
 
 /**
