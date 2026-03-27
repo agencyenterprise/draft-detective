@@ -6,6 +6,48 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v0.5.23] - 2026-03-27
+
+### Added
+- Added an admin logs viewer in the UI with support for downloading application log files.
+- Added admin-only API endpoints to list log file metadata and download log files.
+- Added a timed rotating file logger that writes to a log file, rotates daily at midnight, and retains 90 days of history.
+- Added a `MatchSource` enum to track how reference-to-file matches were created (`manual_upload`, `auto_matched`, `auto_fetched`).
+- Added end-to-end Inspect AI evals for the `document_structure` and `figures_tables_check` workflows.
+- Added end-to-end Inspect AI eval for the `reference_downloader` workflow and a new dataset covering diverse reference types.
+- Added shared Pydantic mirror types for evals targeting `SimpleDeepAgent`-based workflows.
+- Added full-text search to the admin feedback and users views, backed by PostgreSQL trigram indexes for efficient `ILIKE` queries.
+- Added a searchable user combobox component and updated admin lists to use server-side search and pagination.
+- Added a skills injection mechanism for deep agents and introduced a skills file defining the canonical issue output format.
+- Added Rule 5 to the figures/tables check workflow to validate callout proximity to referenced figures/tables.
+- Added a CI step to log in to Docker Hub during Trivy scans.
+
+### Changed
+- Replaced `ReferenceFileMatch.is_manual` with `ReferenceFileMatch.source` using the new `MatchSource` enum, including migration of legacy persisted state.
+- Updated reference linking to require a `source` parameter and to pass appropriate `MatchSource` values for uploads, auto-fetching, and auto-matching.
+- Regenerated frontend types and updated reference composition and UI to propagate and display match source badges.
+- Updated queries to hide fetch results for manually uploaded files.
+- Migrated the `reference_validation` eval dataset from JSONL to JSON and expanded it from 25 to 52 entries.
+- Updated `reference_validation_e2e.py` to load from the new JSON dataset file.
+- Upgraded `ReferenceFetcherAgent` and `ReferenceValidatorAgent` from `gpt_5_2_model` to `gpt_5_4_model`.
+- Changed `ReferenceFetcherAgent.ainvoke` to return `(result, messages)` and updated call sites accordingly.
+- Standardized issue output format across workflows via skills injection and made `system_prompt` optional for deep agents.
+- Updated `IssueItem` to include an optional `long_description` field and passed it through to `DocumentIssue`.
+- Removed per-workflow system prompts and output requirement sections from the `document_structure` and `figures_tables_check` manifests.
+- Increased readonly thread max-width and updated user message rendering to use Markdown styling.
+- Bumped `inspect-ai` from `0.3.191` to `0.3.200`.
+- Added `cmdk@1.1.1` to the frontend.
+- Removed the `project_id` filter from admin feedback retrieval and endpoints.
+- Added `search`, `role`, `limit`, and `offset` parameters to user listing for server-side filtering and pagination.
+- Scoped `/logs/` ignore in `.gitignore` to the repo root.
+
+### Fixed
+- Fixed a crash in `format_cited_references` when `citations` is `None` by returning a safe fallback string.
+
+### Removed
+- Deleted the legacy pytest-based `test_reference_fetcher.py` and its `reference_fetcher.yaml` dataset in favor of the new Inspect AI end-to-end eval.
+
+
 ## [v0.5.22] - 2026-03-20
 
 ### Added
