@@ -119,6 +119,69 @@ async def get_workflow_state(workflow_run_id: str) -> dict[str, Any]:
         return resp.json()
 
 
+async def start_workflow(config: dict[str, Any]) -> str:
+    """Start a workflow via POST /api/workflows/start.
+
+    Args:
+        config: A WorkflowConfig dict (must include 'type' and 'project_id').
+
+    Returns:
+        The workflow_run_id of the newly created run.
+    """
+    async with _build_client() as client:
+        resp = await client.post("/api/workflows/start", json=config)
+        resp.raise_for_status()
+        body = resp.json()
+        logger.info(
+            "Started workflow type=%s, workflow_run_id=%s",
+            config.get("type"),
+            body.get("workflow_run_id"),
+        )
+        return body["workflow_run_id"]
+
+
+async def poll_workflow_run_until_complete(
+    workflow_run_id: str,
+    timeout_s: float = DEFAULT_TIMEOUT_S,
+    interval_s: float = DEFAULT_POLL_INTERVAL_S,
+) -> dict[str, Any]:
+    """Poll a specific workflow run until it reaches 'completed' status.
+
+    Args:
+        workflow_run_id: The workflow run ID to poll.
+        timeout_s: Max seconds to wait.
+        interval_s: Seconds between polling attempts.
+
+    Returns:
+        The WorkflowRunDetail dict (with 'run' and 'state' keys).
+
+    Raises:
+        TimeoutError: If the workflow does not complete within timeout_s.
+    """
+    deadline = time.monotonic() + timeout_s
+
+    async with _build_client() as client:
+        while time.monotonic() < deadline:
+            resp = await client.get(f"/api/workflows/{workflow_run_id}")
+            resp.raise_for_status()
+            run_detail = resp.json()
+            status = run_detail.get("run", {}).get("status")
+            if status == "completed":
+                logger.info("Workflow run %s completed", workflow_run_id)
+                return run_detail
+            logger.debug(
+                "Workflow run %s status=%s, polling again in %ss",
+                workflow_run_id,
+                status,
+                interval_s,
+            )
+            await asyncio.sleep(interval_s)
+
+    raise TimeoutError(
+        f"Workflow run '{workflow_run_id}' did not complete within {timeout_s}s"
+    )
+
+
 async def poll_until_complete(
     project_id: str,
     workflow_type: str,

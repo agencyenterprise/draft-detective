@@ -17,8 +17,6 @@ WorkflowConfigType = TypeVar("WorkflowConfigType", bound=BaseWorkflowConfig)
 # QA Screener workflows - only visible to RAND and ADMIN roles
 QA_SCREENER_WORKFLOWS = {
     WorkflowRunType.ADVOCACY_TONE,
-    WorkflowRunType.ABOUT_AUTHORS,
-    WorkflowRunType.ABOUT_THIS,
     WorkflowRunType.ABOUT_THIS_GER,
 }
 

@@ -1,4 +1,5 @@
 import logging
+from pathlib import Path
 from typing import TYPE_CHECKING, Optional, cast, Callable, Awaitable, Any
 import asyncio
 
@@ -389,7 +390,9 @@ class FileArtifactsService(FileArtifactsServiceType):
         return state.footnotes
 
     async def get_deepagent_backend_files(
-        self, include_supporting_files: bool = True
+        self,
+        include_supporting_files: bool = True,
+        include_skills: bool = True,
     ) -> dict[str, Any]:
         """Return the files in a format suitable for the DeepAgent backend."""
 
@@ -398,10 +401,20 @@ class FileArtifactsService(FileArtifactsServiceType):
             await self.get_supporting_files() if include_supporting_files else []
         )
 
-        return {
+        files: dict[str, Any] = {
             "/main.md": create_file_data(main_file.markdown),
             **{
                 f"/supporting/{f.file_id}.md": create_file_data(f.markdown)
                 for f in supporting_files
             },
         }
+
+        if include_skills:
+            project_root = Path(__file__).parents[3]
+            skills_dir = project_root / "skills"
+            for skill_file in sorted(skills_dir.rglob("*")):
+                if skill_file.is_file():
+                    virtual_path = "/" + skill_file.relative_to(project_root).as_posix()
+                    files[virtual_path] = create_file_data(skill_file.read_text())
+
+        return files

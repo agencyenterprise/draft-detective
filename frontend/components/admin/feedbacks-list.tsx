@@ -3,7 +3,9 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { UserCombobox } from '@/components/admin/user-combobox';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { DocumentIssueCard } from '@/components/results/components/document-issue-card';
@@ -14,17 +16,16 @@ import {
   FeedbackVisibility,
   getAdminFeedbacksApiAdminFeedbacksGet,
   Issue,
-  listUsersApiUsersGet,
-  UserResponse,
   WorkflowRunType,
 } from '@/lib/generated-api';
 import { downloadFile } from '@/lib/file-download';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
-import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
-import { ChevronDown, Download, ExternalLinkIcon, Loader2, ThumbsDown, ThumbsUp } from 'lucide-react';
+import { ChevronDown, Download, ExternalLinkIcon, Loader2, Search, ThumbsDown, ThumbsUp } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
+import { useDebounce } from 'use-debounce';
 
 const VISIBILITY_LABELS: Record<FeedbackVisibility, string> = {
   [FeedbackVisibility.Private]: 'Private',
@@ -126,19 +127,16 @@ function FeedbackDetailSheet({ item, onClose }: { item: AdminFeedbackItem | null
 }
 
 export function FeedbacksList() {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch] = useDebounce(searchQuery, 600);
   const [selectedUserId, setSelectedUserId] = useState<string>(ALL_VALUE);
-  const [selectedProjectId, setSelectedProjectId] = useState<string>(ALL_VALUE);
+  const [selectedUserName, setSelectedUserName] = useState<string>('');
   const [selectedWorkflowType, setSelectedWorkflowType] = useState<string>(ALL_VALUE);
   const [selectedFeedbackType, setSelectedFeedbackType] = useState<string>(ALL_VALUE);
   const [selectedItem, setSelectedItem] = useState<AdminFeedbackItem | null>(null);
   const [isExporting, setIsExporting] = useState(false);
 
   const { data: workflowTypes, getWorkflowTypeName } = useWorkflowTypes();
-
-  const { data: users } = useQuery({
-    queryKey: ['admin', 'users'],
-    queryFn: () => listUsersApiUsersGet(),
-  });
 
   const {
     data: feedbacksData,
@@ -148,12 +146,12 @@ export function FeedbacksList() {
     hasNextPage,
     isFetchingNextPage,
   } = useInfiniteQuery({
-    queryKey: ['admin', 'feedbacks', selectedUserId, selectedProjectId, selectedWorkflowType, selectedFeedbackType],
+    queryKey: ['admin', 'feedbacks', debouncedSearch, selectedUserId, selectedWorkflowType, selectedFeedbackType],
     queryFn: ({ pageParam }) =>
       getAdminFeedbacksApiAdminFeedbacksGet({
         query: {
+          search: debouncedSearch || undefined,
           user_id: selectedUserId !== ALL_VALUE ? selectedUserId : undefined,
-          project_id: selectedProjectId !== ALL_VALUE ? selectedProjectId : undefined,
           workflow_type: selectedWorkflowType !== ALL_VALUE ? (selectedWorkflowType as WorkflowRunType) : undefined,
           feedback_type: selectedFeedbackType !== ALL_VALUE ? (selectedFeedbackType as FeedbackType) : undefined,
           limit: PAGE_SIZE,
@@ -169,20 +167,17 @@ export function FeedbacksList() {
 
   const feedbacks = feedbacksData?.pages.flat() ?? [];
 
-  const uniqueProjects = feedbacks
-    ? Array.from(new Map(feedbacks.map((f) => [f.project_id, { id: f.project_id, title: f.project_title }])).values())
-    : [];
-
   const clearFilters = () => {
+    setSearchQuery('');
     setSelectedUserId(ALL_VALUE);
-    setSelectedProjectId(ALL_VALUE);
+    setSelectedUserName('');
     setSelectedWorkflowType(ALL_VALUE);
     setSelectedFeedbackType(ALL_VALUE);
   };
 
   const hasActiveFilters =
+    searchQuery !== '' ||
     selectedUserId !== ALL_VALUE ||
-    selectedProjectId !== ALL_VALUE ||
     selectedWorkflowType !== ALL_VALUE ||
     selectedFeedbackType !== ALL_VALUE;
 
@@ -191,8 +186,8 @@ export function FeedbacksList() {
     try {
       const csv = (await exportAdminFeedbacksCsvApiAdminFeedbacksExportGet({
         query: {
+          search: debouncedSearch || undefined,
           user_id: selectedUserId !== ALL_VALUE ? selectedUserId : undefined,
-          project_id: selectedProjectId !== ALL_VALUE ? selectedProjectId : undefined,
           workflow_type: selectedWorkflowType !== ALL_VALUE ? (selectedWorkflowType as WorkflowRunType) : undefined,
           feedback_type: selectedFeedbackType !== ALL_VALUE ? (selectedFeedbackType as FeedbackType) : undefined,
         },
@@ -225,6 +220,16 @@ export function FeedbacksList() {
         <CardContent className="space-y-4">
           {/* Filters */}
           <div className="flex flex-wrap gap-2 items-center">
+            <div className="relative flex-1 min-w-[260px]">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+              <Input
+                placeholder="Search by issue, project, user, or feedback text…"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 w-full"
+                maxLength={200}
+              />
+            </div>
             <Select value={selectedFeedbackType} onValueChange={setSelectedFeedbackType}>
               <SelectTrigger className="w-[160px]">
                 <SelectValue placeholder="Feedback type" />
@@ -236,33 +241,14 @@ export function FeedbacksList() {
               </SelectContent>
             </Select>
 
-            <Select value={selectedUserId} onValueChange={setSelectedUserId}>
-              <SelectTrigger className="w-[200px]">
-                <SelectValue placeholder="All users" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={ALL_VALUE}>All users</SelectItem>
-                {users?.map((u: UserResponse) => (
-                  <SelectItem key={u.id} value={u.id}>
-                    {u.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
-              <SelectTrigger className="w-[220px]">
-                <SelectValue placeholder="All projects" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={ALL_VALUE}>All projects</SelectItem>
-                {uniqueProjects.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>
-                    {p.title}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <UserCombobox
+              value={selectedUserId}
+              displayName={selectedUserName}
+              onSelect={(userId, userName) => {
+                setSelectedUserId(userId);
+                setSelectedUserName(userName);
+              }}
+            />
 
             <Select value={selectedWorkflowType} onValueChange={setSelectedWorkflowType}>
               <SelectTrigger className="w-[220px]">
@@ -270,19 +256,15 @@ export function FeedbacksList() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value={ALL_VALUE}>All analysis types</SelectItem>
-                {workflowTypes?.map((wt) => (
-                  <SelectItem key={wt.type} value={wt.type}>
-                    {wt.name}
-                  </SelectItem>
-                ))}
+                {[...(workflowTypes ?? [])]
+                  .sort((a, b) => a.name.localeCompare(b.name))
+                  .map((wt) => (
+                    <SelectItem key={wt.type} value={wt.type}>
+                      {wt.name}
+                    </SelectItem>
+                  ))}
               </SelectContent>
             </Select>
-
-            {hasActiveFilters && (
-              <Button variant="ghost" size="sm" onClick={clearFilters}>
-                Clear filters
-              </Button>
-            )}
           </div>
 
           {/* Table */}
@@ -294,97 +276,107 @@ export function FeedbacksList() {
             <div className="text-center py-8">
               <p className="text-destructive">{error instanceof Error ? error.message : 'Failed to load feedback'}</p>
             </div>
-          ) : !feedbacks || feedbacks.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              No shared feedback found{hasActiveFilters && ' for the selected filters'}.
-            </div>
           ) : (
             <>
-              <p className="text-sm text-muted-foreground">
-                {feedbacks.length} result{feedbacks.length !== 1 ? 's' : ''} &mdash; click a row to view details
-              </p>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-8"></TableHead>
-                    <TableHead>
-                      User <span className="text-xs text-muted-foreground"> (Name / Email)</span>
-                    </TableHead>
-                    <TableHead>
-                      Project <span className="text-xs text-muted-foreground"> (Title / Visibility)</span>
-                    </TableHead>
-                    <TableHead>
-                      Issue <span className="text-xs text-muted-foreground"> (Title / Workflow type)</span>
-                    </TableHead>
-                    <TableHead>User feedback</TableHead>
-                    <TableHead>Feedback Date</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {feedbacks.map((item: AdminFeedbackItem) => (
-                    <TableRow key={item.id} className="cursor-pointer" onClick={() => setSelectedItem(item)}>
-                      <TableCell>
-                        {item.feedback_type === FeedbackType.ThumbsUp ? (
-                          <ThumbsUp className="h-4 w-4 text-green-600" />
-                        ) : (
-                          <ThumbsDown className="h-4 w-4 text-destructive" />
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <div className="font-medium text-sm">{item.user_name}</div>
-                        <div className="text-xs text-muted-foreground">{item.user_email}</div>
-                      </TableCell>
-                      <TableCell className="max-w-[180px]">
-                        <div className="flex items-center gap-1 min-w-0">
-                          <span className="text-sm truncate">{item.project_title}</span>
-                          {item.visibility === FeedbackVisibility.FullProject && (
-                            <Link
-                              href={`/projects/${item.project_id}`}
-                              target="_blank"
-                              className="shrink-0"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <ExternalLinkIcon className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
-                            </Link>
-                          )}
-                        </div>
-                        <div className="mt-0.5">
-                          <VisibilityBadge visibility={item.visibility} />
-                        </div>
-                      </TableCell>
-                      <TableCell className="max-w-[220px]">
-                        <p className="text-sm truncate">{item.issue.title}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {getWorkflowTypeName(item.issue.workflow_type as WorkflowRunType)}
-                        </p>
-                      </TableCell>
-                      <TableCell className="max-w-[200px]">
-                        {item.feedback_text ? (
-                          <p className="text-sm text-muted-foreground italic truncate">
-                            &ldquo;{item.feedback_text}&rdquo;
-                          </p>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">—</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
-                        {format(new Date(item.created_at), 'MMM d, yyyy')}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-              {hasNextPage && (
-                <div className="flex justify-center pt-2">
-                  <Button variant="outline" size="sm" onClick={() => fetchNextPage()} disabled={isFetchingNextPage}>
-                    {isFetchingNextPage ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                      <ChevronDown className="h-4 w-4 mr-2" />
-                    )}
-                    Load more
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-muted-foreground">
+                  {feedbacks.length} result{feedbacks.length !== 1 ? 's' : ''}
+                  {feedbacks.length > 0 && <> &mdash; click a row to view details</>}
+                </p>
+                {hasActiveFilters && (
+                  <Button variant="ghost" size="sm" onClick={clearFilters}>
+                    Clear filters
                   </Button>
-                </div>
+                )}
+              </div>
+              {feedbacks.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">No shared feedback found.</div>
+              ) : (
+                <>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-8"></TableHead>
+                        <TableHead>
+                          User <span className="text-xs text-muted-foreground"> (Name / Email)</span>
+                        </TableHead>
+                        <TableHead>
+                          Project <span className="text-xs text-muted-foreground"> (Title / Visibility)</span>
+                        </TableHead>
+                        <TableHead>
+                          Issue <span className="text-xs text-muted-foreground"> (Title / Workflow type)</span>
+                        </TableHead>
+                        <TableHead>User feedback</TableHead>
+                        <TableHead>Feedback Date</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {feedbacks.map((item: AdminFeedbackItem) => (
+                        <TableRow key={item.id} className="cursor-pointer" onClick={() => setSelectedItem(item)}>
+                          <TableCell>
+                            {item.feedback_type === FeedbackType.ThumbsUp ? (
+                              <ThumbsUp className="h-4 w-4 text-green-600" />
+                            ) : (
+                              <ThumbsDown className="h-4 w-4 text-destructive" />
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <div className="font-medium text-sm">{item.user_name}</div>
+                            <div className="text-xs text-muted-foreground">{item.user_email}</div>
+                          </TableCell>
+                          <TableCell className="max-w-[180px]">
+                            <div className="flex items-center gap-1 min-w-0">
+                              <span className="text-sm truncate">{item.project_title}</span>
+                              {item.visibility === FeedbackVisibility.FullProject && (
+                                <Link
+                                  href={`/projects/${item.project_id}`}
+                                  target="_blank"
+                                  className="shrink-0"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <ExternalLinkIcon className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
+                                </Link>
+                              )}
+                            </div>
+                            <div className="mt-0.5">
+                              <VisibilityBadge visibility={item.visibility} />
+                            </div>
+                          </TableCell>
+                          <TableCell className="max-w-[220px]">
+                            <p className="text-sm truncate">{item.issue.title}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {getWorkflowTypeName(item.issue.workflow_type as WorkflowRunType)}
+                            </p>
+                          </TableCell>
+                          <TableCell className="max-w-[200px]">
+                            {item.feedback_text ? (
+                              <p className="text-sm text-muted-foreground italic truncate">
+                                &ldquo;{item.feedback_text}&rdquo;
+                              </p>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">—</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                            {format(new Date(item.created_at), 'MMM d, yyyy')}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                  {hasNextPage && (
+                    <div className="flex justify-center pt-2">
+                      <Button variant="outline" size="sm" onClick={() => fetchNextPage()} disabled={isFetchingNextPage}>
+                        {isFetchingNextPage ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4 mr-2" />
+                        )}
+                        Load more
+                      </Button>
+                    </div>
+                  )}
+                </>
               )}
             </>
           )}

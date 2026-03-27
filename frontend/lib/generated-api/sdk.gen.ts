@@ -39,6 +39,9 @@ import type {
   DownloadFileApiFilesDownloadFileIdGetData,
   DownloadFileApiFilesDownloadFileIdGetErrors,
   DownloadFileApiFilesDownloadFileIdGetResponses,
+  DownloadLogApiAdminLogsDownloadFilenameGetData,
+  DownloadLogApiAdminLogsDownloadFilenameGetErrors,
+  DownloadLogApiAdminLogsDownloadFilenameGetResponses,
   DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetData,
   DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetErrors,
   DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetResponses,
@@ -96,12 +99,15 @@ import type {
   GetWorkflowTypesApiWorkflowTypesGetResponses,
   ListAppConfigsApiAppConfigsGetData,
   ListAppConfigsApiAppConfigsGetResponses,
+  ListLogsApiAdminLogsGetData,
+  ListLogsApiAdminLogsGetResponses,
   ListProjectFilesEndpointApiProjectProjectIdFilesGetData,
   ListProjectFilesEndpointApiProjectProjectIdFilesGetErrors,
   ListProjectFilesEndpointApiProjectProjectIdFilesGetResponses,
   ListProjectsEndpointApiProjectsGetData,
   ListProjectsEndpointApiProjectsGetResponses,
   ListUsersApiUsersGetData,
+  ListUsersApiUsersGetErrors,
   ListUsersApiUsersGetResponses,
   ReadHealthApiHealthGetData,
   ReadHealthApiHealthGetResponses,
@@ -634,6 +640,41 @@ export const deleteFeedbackApiFeedbackFeedbackIdDelete = <ThrowOnError extends b
   });
 
 /**
+ * List Logs
+ *
+ * Return metadata for all available log files, newest first.
+ */
+export const listLogsApiAdminLogsGet = <ThrowOnError extends boolean = true>(
+  options?: Options<ListLogsApiAdminLogsGetData, ThrowOnError>,
+) =>
+  (options?.client ?? client).get<ListLogsApiAdminLogsGetResponses, unknown, ThrowOnError, 'data'>({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/admin/logs',
+    ...options,
+  });
+
+/**
+ * Download Log
+ *
+ * Download a specific log file by name.
+ */
+export const downloadLogApiAdminLogsDownloadFilenameGet = <ThrowOnError extends boolean = true>(
+  options: Options<DownloadLogApiAdminLogsDownloadFilenameGetData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    DownloadLogApiAdminLogsDownloadFilenameGetResponses,
+    DownloadLogApiAdminLogsDownloadFilenameGetErrors,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/admin/logs/download/{filename}',
+    ...options,
+  });
+
+/**
  * Resolve Issue Endpoint
  *
  * Mark an issue as resolved.
@@ -1138,12 +1179,12 @@ export const getCurrentUserInfoApiUsersMeGet = <ThrowOnError extends boolean = t
 /**
  * List Users
  *
- * List all users (admin only).
+ * List users (admin only), optionally filtered by name, email, or role.
  */
 export const listUsersApiUsersGet = <ThrowOnError extends boolean = true>(
   options?: Options<ListUsersApiUsersGetData, ThrowOnError>,
 ) =>
-  (options?.client ?? client).get<ListUsersApiUsersGetResponses, unknown, ThrowOnError, 'data'>({
+  (options?.client ?? client).get<ListUsersApiUsersGetResponses, ListUsersApiUsersGetErrors, ThrowOnError, 'data'>({
     responseStyle: 'data',
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/users',

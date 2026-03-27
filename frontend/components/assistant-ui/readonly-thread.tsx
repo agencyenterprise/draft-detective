@@ -18,7 +18,7 @@ export const ReadonlyThread: FC = () => {
     <ThreadPrimitive.Root
       className="aui-root aui-thread-root @container flex h-full flex-col bg-background"
       style={{
-        ['--thread-max-width' as string]: '44rem',
+        ['--thread-max-width' as string]: '48rem',
       }}
     >
       <ThreadPrimitive.Viewport
@@ -140,8 +140,8 @@ const ReadonlyUserMessage: FC = () => {
       data-role="user"
     >
       <div className="aui-user-message-content-wrapper relative col-start-2 min-w-0">
-        <div className="aui-user-message-content wrap-break-word rounded-2xl bg-muted px-4 py-2.5 text-foreground">
-          <MessagePrimitive.Parts />
+        <div className="aui-user-message-content wrap-break-word rounded-2xl bg-muted px-4 py-2.5 text-foreground text-sm">
+          <MessagePrimitive.Parts components={{ Text: MarkdownText }} />
         </div>
       </div>
     </MessagePrimitive.Root>

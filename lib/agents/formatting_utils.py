@@ -106,9 +106,12 @@ def format_supporting_documents_prompt_section_multiple(
 def format_cited_references(
     references: list[BibliographyItem],
     supporting_files: list[FileDocument],
-    citations: CitationResponse,
+    citations: CitationResponse | None,
     truncate_at_character_count: int | None = None,
 ) -> str:
+    if not citations:
+        return "No reference is cited as support for this claim.\n\n"
+
     citations_with_associated_bibliography = [
         c for c in citations.citations if c.associated_bibliography
     ]

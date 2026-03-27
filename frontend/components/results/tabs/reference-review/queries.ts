@@ -1,6 +1,12 @@
 import { formatFileSize } from '@/components/analysis-form/utils';
 import { composeReferences } from '@/lib/composed-references';
-import { ProjectDetailed, ReferenceFetchStatus, ReferenceValidationItem, WorkflowRunType } from '@/lib/generated-api';
+import {
+  MatchSource,
+  ProjectDetailed,
+  ReferenceFetchStatus,
+  ReferenceValidationItem,
+  WorkflowRunType,
+} from '@/lib/generated-api';
 import { getWorkflowRunByType } from '@/lib/workflow-state';
 import { useMemo } from 'react';
 import { ReferenceReviewItem } from './types';
@@ -47,8 +53,12 @@ export function useReferenceReviewReferences(projectDetail: ProjectDetailed | un
         (ref) => ref.reference_id === item.id,
       );
 
-      // In case the reference was fetched but the matching file no longer exists, we don't want to show the fetched result
-      const shouldShowFetchedResult = fetchedReference && (fetchedReference.result?.file_id ? !!matchedFile : true);
+      // In case the reference was fetched but the matching file no longer exists, we don't want to show the fetched result.
+      // Also hide fetch results when the file was manually uploaded by the user.
+      const shouldShowFetchedResult =
+        (!item.source || item.source === MatchSource.AutoFetched) &&
+        fetchedReference &&
+        (fetchedReference.result?.file_id ? !!matchedFile : true);
 
       return {
         id: item.id,
@@ -67,6 +77,7 @@ export function useReferenceReviewReferences(projectDetail: ProjectDetailed | un
               size: formatFileSize(matchedFile.file_size),
             }
           : null,
+        source: item.source,
         fetchResult: shouldShowFetchedResult ? fetchedReference : null,
         validation: (item.id && validationMap.get(item.id)) || null,
       };

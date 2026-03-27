@@ -1,0 +1,126 @@
+[
+  {
+    "input": "Blanchard, Lauren Ploch, U.S.-Kenya Relations: Current Political and Security Issues, Congressional Research Service, R42967, July 23, 2015.",
+    "target_final_conclusion": "source_found"
+  },
+  {
+    "input": "Smart, Rosanna, Andrew R. Morral, Sierra Smucker, Samantha Cherney, Terry L. Schell, Samuel Peterson, Sangeeta C. Ahluwalia, Matthew Cefalu, Lea Xenakis, Rajeev Ramchand, and Carole Roan Gresenz, The Science of Gun Policy: A Critical Synthesis of Research Evidence on the Effects of Gun Policies in the United States, 2nd ed., RAND Corporation, RR-2088-1-RC/AV, 2020. As of May 21, 2022: https://www.rand.org/pubs/research_reports/RR2088-1.html",
+    "target_final_conclusion": "source_found"
+  },
+  {
+    "input": "Lin, Luona, and Kim Parker, \"US workers are more worried than hopeful about future AI use in the workplace,\" Pew Research Center, 2025. As of November 13, 2025: https://www.pewresearch.org/wp-content/uploads/sites/20/2025/02/ST_2025.2.25_AI-Workers_REPORT.pdf",
+    "target_final_conclusion": "source_found"
+  },
+  {
+    "input": "de Dianous, Valérie, and Cécile Fiévez, \"ARAMIS Project: A More Explicit Demonstration of Risk Control Through the Use of Bow-Tie Diagrams and the Evaluation of Safety Barrier Performance,\" Journal of Hazardous Materials, Vol. 130, No. 3, March 31, 2006.",
+    "target_final_conclusion": "source_found_but_not_accessible"
+  },
+  {
+    "input": "Bick, Alexander, Adam Blandin, and David J. Deming, \"The Rapid Adoption of Generative AI,\" NBER Working Paper 32966, 2024. As of November 13, 2025: https://doi.org/10.3386/w32966",
+    "target_final_conclusion": "source_found"
+  },
+  {
+    "input": "Brachman, Michelle, Amina El-Ashry, Casey Dugan, and Werner Geyer, \"Current and future use of large language models for knowledge work,\" Proceedings of the ACM on Human-Computer Interaction, Vol. 9, No. 7, 2025. As of November 13, 2025: https://dl.acm.org/doi/pdf/10.1145/3757403",
+    "target_final_conclusion": "source_found_but_not_accessible"
+  },
+  {
+    "input": "Becker, Joel, Nate Rush, Elizabeth Barnes, and David Rein, \"Measuring the impact of early-2025 AI on experienced open-source developer productivity,\" arXiv, 2025. As of November 13, 2025: https://arxiv.org/abs/2507.09089",
+    "target_final_conclusion": "source_found"
+  },
+  {
+    "input": "Wang, Dakuo, Q. Vera Liao, Yunfeng Zhang, Udayan Khurana, Horst Samulowitz, Soya Park, Michael Muller, and Lisa Amini, \"How much automation does a data scientist want?\" arXiv, arXiv:2101.03970, 2021. As of November 13, 2025: https://arxiv.org/abs/2101.03970",
+    "target_final_conclusion": "source_found"
+  },
+  {
+    "input": "Murphy, Kim, \"Iraq Rejects Warning, Assails Mubarak,\" Los Angeles Times, January 2, 1991.",
+    "target_final_conclusion": "source_found"
+  },
+  {
+    "input": "\"Xi urges good start to 15th Five-Year Plan period,\" Xinhua, February 26, 2026.",
+    "target_final_conclusion": "source_found"
+  },
+  {
+    "input": "Perficient. \"The State of GenAI in the Workforce,\" Perficient, 2025. As of January 30, 2026: https://www.perficient.com/insights/generative-ai-workforce-study",
+    "target_final_conclusion": "source_found_but_not_accessible"
+  },
+  {
+    "input": "Kemp, Andy. \"AI Use at Work Rises,\" Gallup, December 2025. As of January 30, 2026: https://www.gallup.com/workplace/699689/ai-use-at-work-rises.aspx",
+    "target_final_conclusion": "source_found"
+  },
+  {
+    "input": "Raytheon Technologies, homepage, undated. As of May 11, 2022:https://www.rtx.com",
+    "target_final_conclusion": "source_found"
+  },
+  {
+    "input": "Office of the Under Secretary of War (Comptroller), \"Defense Wide Budget Documentation,\" webpage, undated. As of September 18, 2025: https://comptroller.defense.gov/Budget-Materials/FY2009BudgetJustification",
+    "target_final_conclusion": "source_found"
+  },
+  {
+    "input": "Phoebe Liu, \"Three months after a blockbuster $20 billion deal, Nvidia announced its plans for Groq's inference-speed tech. Here's how it came together and what's next,\" Bluesky post, March 18, 2026. As of March 18, 2026: https://bsky.app/profile/pheebini.bsky.social/post/3mhdyfduj2k2a",
+    "target_final_conclusion": "source_found"
+  },
+  {
+    "input": "Air Force Policy Directive 10-601, Operational Capability Requirements Documentation and Validation, Department of the Air Force, April 27, 2021.",
+    "target_final_conclusion": "source_found"
+  },
+  {
+    "input": "Joint Chiefs of Staff, Doctrine for the Armed Forces of the United States, Joint Publication 1, March 25, 2013, change 1, July 12, 2017.",
+    "target_final_conclusion": "source_found"
+  },
+  {
+    "input": "Public Law 107-296, Homeland Security Act of 2002, November 25, 2002.",
+    "target_final_conclusion": "source_found"
+  },
+  {
+    "input": "Brownlee, Les, \"Current Army Issues,\" testimony before the U.S. Senate Committee on Armed Services, U.S. Government Printing Office, November 19, 2003.",
+    "target_final_conclusion": "source_found"
+  },
+  {
+    "input": "Williams, Heather J., and Alexandra T. Evans, \"Extremist Use of Online Spaces,\" testimony submitted to the Select Committee to Investigate the January 6th Attack on the United States Capitol, RAND Corporation, CT-A1458-1, April 25, 2022. As of July 7, 2022: https://www.rand.org/pubs/testimonies/CTA1458-1.html",
+    "target_final_conclusion": "source_found"
+  },
+  {
+    "input": "Costanzo, George, and Mary Ann Spott, \"Joint Theater Trauma System (JTTS)/Joint Theater Trauma Registry (JTTR),\" briefing slides, U.S. Army Institute of Surgical Research, July 10, 2010.",
+    "target_final_conclusion": "source_found"
+  },
+  {
+    "input": "Carter, Ashton B., \"0% Headquarters Reductions,\" memorandum to secretaries of the military departments et al., U.S. Department of Defense, July 31, 2013.",
+    "target_final_conclusion": "source_found"
+  },
+  {
+    "input": "Embassy of the United States in Jordan, \"The United States and the Hashemite Kingdom of Jordan Sign Memorandum of Understanding on Assistance,\" press release, September 23, 2008.",
+    "target_final_conclusion": "source_found_but_not_accessible"
+  },
+  {
+    "input": "World Bank, World Integrated Trade Solution, database, undated. As of May 2, 2022: https://wits.worldbank.org",
+    "target_final_conclusion": "source_found"
+  },
+  {
+    "input": "Defense Manpower Data Center, \"Number of Military and DoD Appropriated Fund (APF) Civilian Personnel Permanently Assigned,\" spreadsheet, last updated September 30, 2019.",
+    "target_final_conclusion": "source_found_but_not_accessible"
+  },
+  {
+    "input": "Ablon, Lillian, and Andy Bogart, Zero Days, Thousands of Nights: The Life and Times of Zero-Day Vulnerabilities and Their Exploits, RAND Corporation, RR-1751-RC, 2017. As of February 15, 2024: https://www.rand.org/pubs/research_reports/RR1751.html",
+    "target_final_conclusion": "source_found"
+  },
+  {
+    "input": "Bistline, John, Geoffrey Blanford, Maxwell Brown, Dallas Burtraw, Maya Domeshek, Jamil Farbes, Allen Fawcett, Anne Hamilton, Jesse Jenkins, Ryan Jones, et al., \"Emissions and Energy Impacts of the Inflation Reduction Act,\" Science, Vol. 380, No. 6652, June 30, 2023.",
+    "target_final_conclusion": "source_found"
+  },
+  {
+    "input": "North American Electric Reliability Corporation, 2024 Long-Term Reliability Assessment, December 2024.",
+    "target_final_conclusion": "source_found"
+  },
+  {
+    "input": "Statista, \"Number of Artificial Intelligence Tool Users Worldwide from 2020 to 2031,\" August 15, 2025. As of December 18, 2024: https://www.statista.com/forecasts/1449844/ai-tool-users-worldwide",
+    "target_final_conclusion": "source_found_but_not_accessible"
+  },
+  {
+    "input": "Anthropic, \"Anthropic's Responsible Scaling Policy,\" company announcement, September 19, 2023",
+    "target_final_conclusion": "source_found"
+  },
+  {
+    "input": "Adkins, Heather, Betsy Beyer, Paul Blankinship, Piotr Lewandowski, Ana Oprea, and Adam Stubblefield, Building Secure and Reliable Systems: Best Practices for Designing, Implementing, and Maintaining Systems, O'Reilly, 2020",
+    "target_final_conclusion": "source_found"
+  }
+]

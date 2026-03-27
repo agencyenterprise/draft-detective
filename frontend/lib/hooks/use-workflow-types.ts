@@ -27,9 +27,18 @@ export function useWorkflowTypes() {
     [query.data],
   );
 
+  const getWorkflowTypeDescription = useCallback(
+    (type: WorkflowRunType) => {
+      const types = query.data ?? [];
+      return types.find((wt) => wt.type === type)?.description ?? null;
+    },
+    [query.data],
+  );
+
   return {
     ...query,
     isWorkflowTypeVisible,
     getWorkflowTypeName,
+    getWorkflowTypeDescription,
   };
 }

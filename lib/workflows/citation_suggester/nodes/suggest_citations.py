@@ -14,7 +14,9 @@ from lib.agents.formatting_utils import (
 from lib.models.bibliography_item import BibliographyItem
 from lib.run_utils import convert_exceptions_to_workflow_errors, run_tasks
 from lib.services.file import FileDocument
-from lib.services.file_artifacts_service.file_artifacts_service_type import FileArtifactsServiceType
+from lib.services.file_artifacts_service.file_artifacts_service_type import (
+    FileArtifactsServiceType,
+)
 from lib.workflows.citation_suggester.state import CitationSuggesterState
 from lib.workflows.chunk_utils import AnalyzedChunk
 from lib.workflows.context import ContextSchema

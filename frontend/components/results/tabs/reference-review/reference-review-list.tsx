@@ -120,7 +120,7 @@ export function ReferenceReviewList({
               </TooltipTrigger>
               <TooltipContent side="right" className="max-w-xs">
                 <p>
-                  These are the citations we found in your document. Upload the original source PDFs to enable deeper
+                  These are the citations we found in your document. Upload the original sources to enable deeper
                   analysis and claim verification.
                 </p>
               </TooltipContent>
@@ -163,18 +163,18 @@ export function ReferenceReviewList({
                 </Button>
               </TooltipTrigger>
               <TooltipContent className="max-w-xs">
-                We&apos;ll try to download the source PDFs automatically using DOIs and URLs found in your references.
+                We&apos;ll try to download the source files automatically using DOIs and URLs found in your references.
               </TooltipContent>
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button variant="outline" disabled={isBatchUploading || disableActions} onClick={onBatchUpload}>
                   {isBatchUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-                  {isBatchUploading ? 'Uploading...' : 'Upload PDFs'}
+                  {isBatchUploading ? 'Uploading...' : 'Upload sources'}
                 </Button>
               </TooltipTrigger>
               <TooltipContent className="max-w-xs">
-                Have the source PDFs on your computer? Upload them and we&apos;ll match them to references
+                Have source documents on your computer? Upload them and we&apos;ll match them to references
                 automatically.
               </TooltipContent>
             </Tooltip>
@@ -240,7 +240,7 @@ export function ReferenceReviewList({
         <div className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg mb-4">
           <Loader2 className="w-5 h-5 animate-spin text-blue-600 shrink-0" />
           <div>
-            <p className="font-medium text-blue-900">Processing your files...</p>
+            <p className="font-medium text-blue-900">Processing your source files...</p>
             <p className="text-sm text-blue-700">
               We&apos;re indexing and matching documents to references. This usually takes a minute or two.
             </p>
@@ -255,7 +255,7 @@ export function ReferenceReviewList({
             {stats.unmatched} reference{stats.unmatched === 1 ? '' : 's'}
           </button>
           {stats.unmatched === 1 ? " doesn't " : " don't "}
-          have source PDFs yet. Upload them or click &quot;Fetch from web&quot; to download automatically.
+          have sources yet. Upload them or click &quot;Fetch from web&quot; to download automatically.
         </Callout>
       )}
 

@@ -3,9 +3,7 @@
 import { Button } from '@/components/ui/button';
 import { Callout } from '@/components/ui/callout';
 import { ErrorsCard } from '@/components/results/components/errors-card';
-import { AboutAuthorsResults } from '@/components/workflows/results/about-authors-results';
 import { AboutThisGerResults } from '@/components/workflows/results/about-this-ger-results';
-import { AboutThisResults } from '@/components/workflows/results/about-this-results';
 import { AdvocacyToneResults } from '@/components/workflows/results/advocacy-tone-results';
 import { CitationSuggesterResults } from '@/components/workflows/results/citation-suggester-results';
 import { InferenceValidationV2Results } from '@/components/workflows/results/inference-validation-v2-results';
@@ -20,7 +18,19 @@ import { SimpleDeepAgentResults } from '@/components/workflows/results/simple-de
 import { ProjectDetailed, SimpleDeepAgentState, WorkflowRunDetail, WorkflowRunType } from '@/lib/generated-api';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { getCurrentRunErrors, WorkflowRunDetailTyped } from '@/lib/workflow-state';
-import { ArrowRight, FileText } from 'lucide-react';
+import { ArrowRight, FileText, FlaskConicalIcon } from 'lucide-react';
+
+function InternalWorkflowResults({ workflowName }: { workflowName: string }) {
+  return (
+    <Callout title="Internal Workflow" variant="info" icon={FlaskConicalIcon}>
+      <p className="text-sm">
+        <strong>{workflowName}</strong> runs automatically as a dependency of other analyses and is not meant to be
+        triggered directly — its results feed into higher-level workflows that surface findings in their own result
+        views.
+      </p>
+    </Callout>
+  );
+}
 
 interface WorkflowResultsContentProps {
   projectDetail: ProjectDetailed;
@@ -57,10 +67,6 @@ function renderWorkflowResults(
       return <ResultsExtractorResults workflowDetail={workflowRun} />;
     case WorkflowRunType.AdvocacyTone:
       return <AdvocacyToneResults project={project} onNavigateToDocumentExplorer={onNavigateToDocumentExplorer} />;
-    case WorkflowRunType.AboutAuthors:
-      return <AboutAuthorsResults project={project} onNavigateToDocumentExplorer={onNavigateToDocumentExplorer} />;
-    case WorkflowRunType.AboutThis:
-      return <AboutThisResults project={project} />;
     case WorkflowRunType.AboutThisGer:
       return <AboutThisGerResults workflowDetail={workflowRun} />;
     case WorkflowRunType.InferenceValidationV2:
@@ -118,7 +124,12 @@ export function WorkflowResultsContent({
   onNavigateToDocumentExplorer,
 }: WorkflowResultsContentProps) {
   const currentErrors = getCurrentRunErrors(workflowRun);
-  const { getWorkflowTypeName } = useWorkflowTypes();
+  const { getWorkflowTypeName, isWorkflowTypeVisible } = useWorkflowTypes();
+  const workflowName = getWorkflowTypeName(workflowRun.run.type);
+
+  if (!isWorkflowTypeVisible(workflowRun.run.type)) {
+    return <InternalWorkflowResults workflowName={workflowName} />;
+  }
 
   return (
     <>

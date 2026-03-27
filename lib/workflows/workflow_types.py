@@ -2,14 +2,6 @@ from lib.workflows.abbreviation_scan_v2.state import (
     AbbreviationScanV2Config,
     AbbreviationScanV2State,
 )
-from lib.workflows.about_authors.state import (
-    AboutAuthorsState,
-    AboutAuthorsWorkflowConfig,
-)
-from lib.workflows.about_this.state import (
-    AboutThisState,
-    AboutThisWorkflowConfig,
-)
 from lib.workflows.about_this_ger.state import (
     AboutThisGerConfig,
     AboutThisGerState,
@@ -97,9 +89,7 @@ from lib.workflows.reviewer_2.state import (
 )
 
 WorkflowState = (
-    AboutAuthorsState
-    | AboutThisState
-    | AboutThisGerState
+    AboutThisGerState
     | AdvocacyToneState
     | DocumentProcessingState
     | ChunkSplittingState
@@ -125,9 +115,7 @@ WorkflowState = (
 )
 
 WorkflowConfig = (
-    AboutAuthorsWorkflowConfig
-    | AboutThisWorkflowConfig
-    | AboutThisGerConfig
+    AboutThisGerConfig
     | AdvocacyToneWorkflowConfig
     | DocumentProcessingWorkflowConfig
     | ChunkSplittingWorkflowConfig

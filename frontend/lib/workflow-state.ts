@@ -1,7 +1,5 @@
 import {
   AbbreviationScanV2State,
-  AboutAuthorsState,
-  AboutThisState,
   AdvocacyToneState,
   ChunkSplittingState,
   CitationDetectionState,
@@ -54,8 +52,6 @@ type WorkflowTypeToDetail = {
   [WorkflowRunType.ClaimReferenceValidation]: ClaimReferenceValidationState;
   [WorkflowRunType.AbbreviationScanV2]: AbbreviationScanV2State;
   [WorkflowRunType.AdvocacyTone]: AdvocacyToneState;
-  [WorkflowRunType.AboutAuthors]: AboutAuthorsState;
-  [WorkflowRunType.AboutThis]: AboutThisState;
   [WorkflowRunType.Reviewer2]: Reviewer2State;
   [WorkflowRunType.DocumentStructure]: SimpleDeepAgentState;
   [WorkflowRunType.FiguresTablesCheck]: SimpleDeepAgentState;

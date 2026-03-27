@@ -8,7 +8,7 @@
  * This module provides utilities to compose them into a unified view.
  */
 
-import { ExtractedReference, FileListItem, ReferenceFileMatch } from './generated-api';
+import { ExtractedReference, FileListItem, MatchSource, ReferenceFileMatch } from './generated-api';
 
 /**
  * A composed reference combining extraction and file matching data.
@@ -21,6 +21,7 @@ export interface ComposedReference {
   file_id: string | null;
   name_of_associated_supporting_document: string | null;
   index_of_associated_supporting_document: number;
+  source: MatchSource | null;
 }
 
 /**
@@ -72,6 +73,7 @@ export function composeReferences(
       file_id: fileId,
       name_of_associated_supporting_document: file?.file_name ?? null,
       index_of_associated_supporting_document: fileId ? (fileIndexById.get(fileId) ?? -1) : -1,
+      source: match?.source ?? null,
     };
   });
 }

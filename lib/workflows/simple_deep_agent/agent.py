@@ -1,7 +1,8 @@
 """Generic deep agent for simple single-node workflows.
 
-Accepts system and user prompts as constructor arguments so that
-manifests can configure the agent without subclassing.
+The default system prompt defines a generic document-reviewer role.
+Callers supply the user prompt (specific rules/criteria) and may optionally
+override the system prompt when the default is not appropriate.
 """
 
 from typing import List, Optional
@@ -16,9 +17,29 @@ from lib.models.agent import LangChainAgent
 from lib.workflows.context import ContextSchema
 from lib.workflows.simple_deep_agent.types import AgentCheckResult
 
+_SYSTEM_PROMPT = """\
+You are a specialist document reviewer. Your task is to review a document \
+against rules or criteria provided in the user message and report any issues found.
+
+## Document
+
+The document is available at `/main.md`. Use your tools to read or search its \
+content as needed to evaluate the rules given by the user.
+
+## Reporting Issues
+
+For each rule or criterion that fails, report one issue following the conventions \
+defined in the issues skill (`/skills/issues/SKILL.md`). \
+Do not create issues for rules that pass.\
+"""
+
 
 class SimpleDeepAgent(LangChainAgent):
-    """Deep agent that runs a single validation pass using caller-supplied prompts."""
+    """Deep agent that runs a single validation pass.
+
+    Defaults to a generic document-reviewer system prompt; pass `system_prompt`
+    to override it. The user prompt contains the specific rules to check.
+    """
 
     name = "Simple Deep Agent"
     description = "Runs a deep-agent validation pass and returns structured issues"
@@ -29,12 +50,12 @@ class SimpleDeepAgent(LangChainAgent):
     def __init__(
         self,
         context: ContextSchema,
-        system_prompt: str,
         user_prompt: str,
+        system_prompt: Optional[str] = None,
         include_supporting_files: bool = False,
     ):
         super().__init__(context)
-        self._system_prompt = system_prompt
+        self._system_prompt = system_prompt or _SYSTEM_PROMPT
         self._user_prompt = user_prompt
         self._include_supporting_files = include_supporting_files
 
@@ -47,12 +68,14 @@ class SimpleDeepAgent(LangChainAgent):
             model=self.llm,
             context_schema=ContextSchema,
             response_format=AutoStrategy(AgentCheckResult),
+            skills=["/skills/"],
         )
 
         result = await deep_agent.ainvoke(
             {
                 "files": await self.context.file_artifacts_service.get_deepagent_backend_files(
                     include_supporting_files=self._include_supporting_files,
+                    include_skills=True,
                 ),
                 "messages": [
                     SystemMessage(content=self._system_prompt),

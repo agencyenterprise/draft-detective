@@ -34,7 +34,7 @@ export function ReferenceReviewTab({ projectId, readOnly = false }: ReferenceRev
   const isFetchingAllFromWeb = fetchAllFromWebMutation.isPending || isWorkflowProcessing(referenceDownloader);
   const isProcessingFiles = isWorkflowProcessing(documentProcessing) || isWorkflowProcessing(referenceFileMatching);
 
-  // For batch operations (Fetch All, Upload PDFs buttons): block during any processing
+  // For batch operations (Fetch All, Upload sources buttons): block during any processing
   const disableActions = isProcessingFiles || isWorkflowProcessing(referenceDownloader);
 
   // For individual cards: only block during ReferenceFileMatching (when file matching could conflict)

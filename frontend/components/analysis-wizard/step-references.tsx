@@ -159,8 +159,8 @@ function ReferencesReady({ project }: { project: ProjectDetailed }) {
       <div className="space-y-2">
         <h1 className="text-2xl font-bold">Add your source documents</h1>
         <p className="text-muted-foreground">
-          We found references in your document. To validate claims against their sources, upload the full-text PDFs of
-          the cited papers — or let us fetch them from the web.
+          We found references in your document. To validate claims against their sources, upload the full-text sources
+          for the cited papers — or let us fetch them from the web.
         </p>
         <p className="text-sm text-muted-foreground">
           <strong>Note:</strong> Claims citing references without matched documents will be skipped during validation.
@@ -188,7 +188,7 @@ function ReferencesReady({ project }: { project: ProjectDetailed }) {
                 <strong>
                   {unmatchedCount} reference{unmatchedCount === 1 ? '' : 's'}
                 </strong>{' '}
-                {unmatchedCount === 1 ? "doesn't" : "don't"} have source PDFs yet.
+                {unmatchedCount === 1 ? "doesn't" : "don't"} have sources yet.
               </p>
               <p>
                 Without source documents, we won&apos;t be able to fully verify claims that cite these references. You

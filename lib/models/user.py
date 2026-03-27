@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from enum import Enum
 
-from sqlalchemy import Boolean
+from sqlalchemy import Boolean, Index
 from sqlalchemy.dialects.postgresql import UUID
 from sqlmodel import Column, DateTime, Field, SQLModel, String
 from sqlmodel import Enum as SQLModelEnum
@@ -16,6 +16,20 @@ class UserRole(str, Enum):
 
 class User(SQLModel, table=True):
     __tablename__ = "users"
+    __table_args__ = (
+        Index(
+            "ix_users_name_trgm",
+            "name",
+            postgresql_using="gin",
+            postgresql_ops={"name": "gin_trgm_ops"},
+        ),
+        Index(
+            "ix_users_email_trgm",
+            "email",
+            postgresql_using="gin",
+            postgresql_ops={"email": "gin_trgm_ops"},
+        ),
+    )
 
     id: uuid.UUID = Field(
         sa_column=Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)

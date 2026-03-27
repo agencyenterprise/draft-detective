@@ -78,7 +78,7 @@ requires-dist = [
     { name = "dotenv", specifier = ">=0.9.9" },
     { name = "fastapi", extras = ["standard"], specifier = ">=0.120.2" },
     { name = "httpx", specifier = ">=0.28.1" },
-    { name = "inspect-ai", specifier = ">=0.3.191" },
+    { name = "inspect-ai", specifier = ">=0.3.200" },
     { name = "langchain", specifier = ">=1.2.12" },
     { name = "langchain-anthropic", specifier = ">=1.3.5" },
     { name = "langchain-google-genai", specifier = ">=4.2.1" },
@@ -1251,7 +1251,7 @@ wheels = [
 
 [[package]]
 name = "inspect-ai"
-version = "0.3.191"
+version = "0.3.200"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aioboto3" },
@@ -1292,9 +1292,9 @@ dependencies = [
     { name = "zipp" },
     { name = "zstandard" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/ad/f6/209ce615c8986323dcd02d4aa87203ddeee9fa34a616466b3bcaf5c6b6fa/inspect_ai-0.3.191.tar.gz", hash = "sha256:1a6460eedc35158ce1cc91ff42ad9b71756e428424cfd64897de48cfb008e823", size = 43924583, upload-time = "2026-03-12T16:38:28.678Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/ee/2e/31f4267793a15fd6c9d1eb527c4465db7249869b54b5445dd5f95d9ce71a/inspect_ai-0.3.200.tar.gz", hash = "sha256:ebca749f350edf26a85437c3782ec8be6355c8b34039139667ef0951a8801b13", size = 45359847, upload-time = "2026-03-20T22:37:33.196Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/44/1a/6253dc0ca477101c208c4fcb652e8f905e3913857c781ad4b27adf65bb19/inspect_ai-0.3.191-py3-none-any.whl", hash = "sha256:baf1b26dbe469ebeaa9e7deb7b896ad1c3f749679c916bed1eaf2ebbf595bae9", size = 34999925, upload-time = "2026-03-12T16:38:19.566Z" },
+    { url = "https://files.pythonhosted.org/packages/2b/26/397ef9b24ee7a5f2e2b34febe907e8e2227dcb3ab0449a96c2022f513079/inspect_ai-0.3.200-py3-none-any.whl", hash = "sha256:a8925702e1fdc21a77f1c47006790b90ada4931c2105178d6519ef94e63e3e96", size = 36355115, upload-time = "2026-03-20T22:37:29.014Z" },
 ]
 
 [[package]]

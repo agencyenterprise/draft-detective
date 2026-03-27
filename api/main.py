@@ -21,6 +21,7 @@ from api.routers import (
     files,
     health,
     issues,
+    logs,
     projects,
     public,
     share,
@@ -96,6 +97,7 @@ app.include_router(workflows.router)
 app.include_router(workflow_types.router)
 app.include_router(files.router)
 app.include_router(feedback.router)
+app.include_router(logs.router)
 app.include_router(issues.router)
 app.include_router(projects.router)
 app.include_router(share.router)

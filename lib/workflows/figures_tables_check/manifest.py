@@ -5,19 +5,15 @@ Validates that every figure and table in the document is consistent:
 - Every figure/table mentioned in the body has an associated image/table present.
 - Every figure/table has a title/caption.
 - All figures/tables are numbered sequentially or by chapter.
+- Every in-text callout appears in close proximity to the actual figure/table.
 """
 
 from lib.workflows.models import WorkflowRunType
 from lib.workflows.simple_deep_agent.manifest_base import SimpleDeepAgentManifest
 
-_SYSTEM_PROMPT = """\
-You are an expert document reviewer specialising in the consistency and
-completeness of figures and tables in research publications.
-
-## Your Task
-
-Read `/main.md` and evaluate the document against **every** rule below.
-For each rule that **fails**, add one entry to the `issues` list.
+_USER_PROMPT = """\
+Evaluate the document against **every** rule below.
+For each rule that **fails**, report one issue.
 For rules that pass, do **not** create an issue.
 
 ---
@@ -89,32 +85,37 @@ document.  Check that each reference of the form "Figure X", "Fig. X",
 
 ---
 
-## Output Requirements
+### Rule 5 — Each figure/table callout is close to the actual figure/table
 
-- `issues`: one entry per failed rule instance.  Each entry must include:
-  - `title` — use the exact title format specified above, substituting the
-    specific label or description in square brackets.
-  - `description` — a 1-3 sentence explanation identifying the specific
-    figure/table and what was found or missing.
-  - `severity`:
-    - "high" for missing titles/captions or missing figures/tables
-    - "medium" for unreferenced figures/tables or numbering inconsistencies
-  - `start_line` / `end_line` — the 1-indexed line range in `/main.md`
-    where the figure/table label (or the offending reference) appears.
-    Set both to 1 if no location can be determined.
-- `report_markdown`: a concise markdown summary with:
-  - A section for each rule showing PASS or FAIL with a brief note.
-  - A bullet list of all issues found (if any).
-  - A summary paragraph.
+Each in-text callout (e.g. "see Figure 3", "(Table 2)") should appear
+in close proximity to the actual figure or table it references.
+Use contextual judgment to decide what "close" means for the specific
+document — do not apply a fixed line or paragraph count.
 
-Be thorough but precise.  Do not invent content — base every judgment
-strictly on what is present in the document.
+Guidelines for your judgment:
+
+- **Too far**: the callout and the figure/table are in **different sections**
+  (i.e. separated by one or more section-level headings). This is almost
+  always too far unless the document is structured as a single long section.
+- **Acceptable**: the callout and the figure/table are in the **same section**
+  and separated by roughly 3–5 paragraphs or fewer.
+- **Clearly fine**: the figure/table appears immediately before or after the
+  paragraph containing the callout.
+
+Also consider the overall density and style of the document — a tightly
+structured technical report with many short sections warrants stricter
+proximity than a narrative paper with long sections.
+
+Do **not** flag:
+- Back-references in a summary or conclusion section that briefly recaps
+  earlier results.
+- Forward callouts at the start of a section that introduce a figure/table
+  shown a few paragraphs later in the same section.
+
+**If a callout is too far from its figure/table → issue title:**
+"Distant Callout: [label] (callout at line X, figure/table at line Y)"
+(Create one issue per distant callout.)
 """
-
-_USER_PROMPT = (
-    "Please read the document and check all figures and tables for consistency. "
-    "Return the structured result and a markdown report."
-)
 
 
 class FiguresTablesCheckManifest(SimpleDeepAgentManifest):
@@ -131,5 +132,4 @@ class FiguresTablesCheckManifest(SimpleDeepAgentManifest):
     is_experimental = True
     order = 13
 
-    system_prompt = _SYSTEM_PROMPT
     user_prompt = _USER_PROMPT

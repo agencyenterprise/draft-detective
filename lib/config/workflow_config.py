@@ -69,18 +69,17 @@ def get_workflow_config(
     """Get configuration for a workflow type.
 
     Args:
-        workflow_type: The workflow type (e.g., 'about_this', 'about_authors')
-        key: Optional config key within the workflow (e.g., 'requirements', 'rules')
+        workflow_type: The workflow type (e.g., 'advocacy_tone')
+        key: Optional config key within the workflow (e.g., 'trigger_words', 'check_types')
         default: Default value if key not found
 
     Returns:
         Full workflow config if key is None, otherwise the specific key's value
 
     Examples:
-        get_workflow_config("about_this")  # Returns full about_this config
-        get_workflow_config("about_this", "boilerplate")  # Returns string
-        get_workflow_config("about_this", "requirements")  # Returns dict
-        get_workflow_config("about_authors", "rules")  # Returns dict
+        get_workflow_config("advocacy_tone")  # Returns full advocacy_tone config
+        get_workflow_config("advocacy_tone", "trigger_words")  # Returns list
+        get_workflow_config("advocacy_tone", "check_types")  # Returns dict
     """
     config = _load_config()
     workflow = config.get("workflows", {}).get(workflow_type, {})

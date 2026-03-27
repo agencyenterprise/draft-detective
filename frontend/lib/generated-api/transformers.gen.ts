@@ -9,6 +9,7 @@ import type {
   GetSharedResourceApiPublicShareTokenGetResponse,
   GetWorkflowStateApiWorkflowsWorkflowRunIdGetResponse,
   ListAppConfigsApiAppConfigsGetResponse,
+  ListLogsApiAdminLogsGetResponse,
   ListProjectFilesEndpointApiProjectProjectIdFilesGetResponse,
   ListProjectsEndpointApiProjectsGetResponse,
   UpdateAppConfigApiAppConfigsKeyPutResponse,
@@ -70,6 +71,18 @@ export const getAdminFeedbacksApiAdminFeedbacksGetResponseTransformer = async (
   data: any,
 ): Promise<GetAdminFeedbacksApiAdminFeedbacksGetResponse> => {
   data = data.map((item: any) => adminFeedbackItemSchemaResponseTransformer(item));
+  return data;
+};
+
+const logFileInfoSchemaResponseTransformer = (data: any) => {
+  data.modified_at = new Date(data.modified_at);
+  return data;
+};
+
+export const listLogsApiAdminLogsGetResponseTransformer = async (
+  data: any,
+): Promise<ListLogsApiAdminLogsGetResponse> => {
+  data = data.map((item: any) => logFileInfoSchemaResponseTransformer(item));
   return data;
 };
 

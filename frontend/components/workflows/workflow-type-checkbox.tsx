@@ -26,7 +26,6 @@ import {
   ShieldCheck,
   MessageSquareWarning,
   ALargeSmall,
-  Users,
   BookOpen,
   type LucideIcon,
   FileCheckIcon,
@@ -60,9 +59,7 @@ const workflowTypeIcons: Record<WorkflowRunType, LucideIcon> = {
   [WorkflowRunType.ClaimReferenceValidation]: ClipboardCheck,
   [WorkflowRunType.AbbreviationScanV2]: ALargeSmall,
   [WorkflowRunType.AdvocacyTone]: MessageSquareWarning,
-  [WorkflowRunType.AboutAuthors]: Users,
   [WorkflowRunType.AboutThisGer]: BookOpen,
-  [WorkflowRunType.AboutThis]: BookOpen,
   [WorkflowRunType.Reviewer2]: BookOpen,
   [WorkflowRunType.DocumentStructure]: FileCheckIcon,
   [WorkflowRunType.FiguresTablesCheck]: TableIcon,
@@ -169,7 +166,7 @@ export function WorkflowTypeCheckbox({
                   </TooltipTrigger>
                   <TooltipContent side="top" className="max-w-xs">
                     This analysis requires the full text of referenced documents. Claims citing references without
-                    matched source documents will be skipped. You can upload PDFs or fetch from the web in Step 3.
+                    matched source documents will be skipped. You can upload sources or fetch from the web in Step 3.
                   </TooltipContent>
                 </Tooltip>
               )}

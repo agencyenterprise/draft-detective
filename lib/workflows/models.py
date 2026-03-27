@@ -83,8 +83,6 @@ class WorkflowRunType(str, Enum):
     CLAIM_REFERENCE_VALIDATION = "claim_reference_validation"
     ABBREVIATION_SCAN_V2 = "abbreviation_scan_v2"
     ADVOCACY_TONE = "advocacy_tone"
-    ABOUT_AUTHORS = "about_authors"
-    ABOUT_THIS = "about_this"
     ABOUT_THIS_GER = "about_this_ger"
     REVIEWER_2 = "reviewer_2"
     DOCUMENT_STRUCTURE = "document_structure"
