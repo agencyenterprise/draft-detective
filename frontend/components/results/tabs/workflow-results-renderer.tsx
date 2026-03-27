@@ -18,7 +18,19 @@ import { SimpleDeepAgentResults } from '@/components/workflows/results/simple-de
 import { ProjectDetailed, SimpleDeepAgentState, WorkflowRunDetail, WorkflowRunType } from '@/lib/generated-api';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { getCurrentRunErrors, WorkflowRunDetailTyped } from '@/lib/workflow-state';
-import { ArrowRight, FileText } from 'lucide-react';
+import { ArrowRight, FileText, FlaskConicalIcon } from 'lucide-react';
+
+function InternalWorkflowResults({ workflowName }: { workflowName: string }) {
+  return (
+    <Callout title="Internal Workflow" variant="info" icon={FlaskConicalIcon}>
+      <p className="text-sm">
+        <strong>{workflowName}</strong> runs automatically as a dependency of other analyses and is not meant to be
+        triggered directly — its results feed into higher-level workflows that surface findings in their own result
+        views.
+      </p>
+    </Callout>
+  );
+}
 
 interface WorkflowResultsContentProps {
   projectDetail: ProjectDetailed;
@@ -112,7 +124,12 @@ export function WorkflowResultsContent({
   onNavigateToDocumentExplorer,
 }: WorkflowResultsContentProps) {
   const currentErrors = getCurrentRunErrors(workflowRun);
-  const { getWorkflowTypeName } = useWorkflowTypes();
+  const { getWorkflowTypeName, isWorkflowTypeVisible } = useWorkflowTypes();
+  const workflowName = getWorkflowTypeName(workflowRun.run.type);
+
+  if (!isWorkflowTypeVisible(workflowRun.run.type)) {
+    return <InternalWorkflowResults workflowName={workflowName} />;
+  }
 
   return (
     <>

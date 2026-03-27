@@ -10,6 +10,7 @@
 
 import { Button } from '@/components/ui/button';
 import { StatusIndicator } from '@/components/ui/status-indicator';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { StartWorkflowButton } from '@/components/workflows/start-workflow-button';
 import { WorkflowConfigDialog, WorkflowConfigFormValues } from '@/components/workflows/workflow-config-dialog';
 import { WorkflowRunHistory } from '@/components/workflows/workflow-run-history';
@@ -19,7 +20,7 @@ import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { getDisplayStatus } from '@/lib/workflow-state';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { formatDistanceToNow } from 'date-fns';
-import { PlusIcon } from 'lucide-react';
+import { InfoIcon, PlusIcon } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { useWorkflowSelection } from './use-workflow-selection';
@@ -45,7 +46,7 @@ export function AnalysesTab({
 
   const [isConfigDialogOpen, setIsConfigDialogOpen] = useState(false);
   const queryClient = useQueryClient();
-  const { isWorkflowTypeVisible, getWorkflowTypeName } = useWorkflowTypes();
+  const { getWorkflowTypeName, getWorkflowTypeDescription } = useWorkflowTypes();
 
   const { selectedWorkflowType, selectedWorkflowRun, historyData, handleSelectWorkflowType, handleSelectRun } =
     useWorkflowSelection({
@@ -73,9 +74,7 @@ export function AnalysesTab({
     },
   });
 
-  const filteredWorkflowDetails = workflowDetails.filter((workflowDetail) =>
-    isWorkflowTypeVisible(workflowDetail.run.type),
-  );
+  const filteredWorkflowDetails = workflowDetails;
 
   const handleStartNewAnalysis = () => setIsConfigDialogOpen(true);
 
@@ -99,7 +98,19 @@ export function AnalysesTab({
           <div className="space-y-4">
             <div>
               <div className="flex items-center justify-between mb-1">
-                <h2 className="text-xl font-semibold">{getWorkflowTypeName(selectedWorkflowRun.run.type)}</h2>
+                <div className="flex items-center gap-1.5">
+                  <h2 className="text-xl font-semibold">{getWorkflowTypeName(selectedWorkflowRun.run.type)}</h2>
+                  {getWorkflowTypeDescription(selectedWorkflowRun.run.type) && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <InfoIcon className="w-4 h-4 text-muted-foreground cursor-help shrink-0" />
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs">
+                        {getWorkflowTypeDescription(selectedWorkflowRun.run.type)}
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
+                </div>
                 <div className="flex items-center gap-2">
                   <WorkflowRunHistory
                     projectId={projectId}
