@@ -81,7 +81,7 @@
   },
   {
     "input": "Costanzo, George, and Mary Ann Spott, \"Joint Theater Trauma System (JTTS)/Joint Theater Trauma Registry (JTTR),\" briefing slides, U.S. Army Institute of Surgical Research, July 10, 2010.",
-    "target_final_conclusion": "source_found"
+    "target_final_conclusion": "source_not_found"
   },
   {
     "input": "Carter, Ashton B., \"0% Headquarters Reductions,\" memorandum to secretaries of the military departments et al., U.S. Department of Defense, July 31, 2013.",
@@ -89,7 +89,7 @@
   },
   {
     "input": "Embassy of the United States in Jordan, \"The United States and the Hashemite Kingdom of Jordan Sign Memorandum of Understanding on Assistance,\" press release, September 23, 2008.",
-    "target_final_conclusion": "source_found_but_not_accessible"
+    "target_final_conclusion": "source_found"
   },
   {
     "input": "World Bank, World Integrated Trade Solution, database, undated. As of May 2, 2022: https://wits.worldbank.org",
@@ -97,7 +97,7 @@
   },
   {
     "input": "Defense Manpower Data Center, \"Number of Military and DoD Appropriated Fund (APF) Civilian Personnel Permanently Assigned,\" spreadsheet, last updated September 30, 2019.",
-    "target_final_conclusion": "source_found_but_not_accessible"
+    "target_final_conclusion": "source_found"
   },
   {
     "input": "Ablon, Lillian, and Andy Bogart, Zero Days, Thousands of Nights: The Life and Times of Zero-Day Vulnerabilities and Their Exploits, RAND Corporation, RR-1751-RC, 2017. As of February 15, 2024: https://www.rand.org/pubs/research_reports/RR1751.html",
