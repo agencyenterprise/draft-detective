@@ -119,6 +119,13 @@ class ApproveWorkflowResponse(BaseModel):
     workflow_run_id: str
 
 
+class CancelWorkflowResponse(BaseModel):
+    """Response for workflow cancellation."""
+
+    message: str
+    workflow_run_id: str
+
+
 class CreateProjectRequest(BaseModel):
     """Request body for creating a project."""
 

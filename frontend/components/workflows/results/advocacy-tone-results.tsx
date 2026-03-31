@@ -13,9 +13,10 @@ import {
   ProjectDetailed,
   WorkflowRunType,
 } from '@/lib/generated-api';
-import { getWorkflowRunByType, isWorkflowProcessing } from '@/lib/workflow-state';
+import { getWorkflowRunByType, isWorkflowCancelled, isWorkflowProcessing } from '@/lib/workflow-state';
 import {
   AlertTriangle,
+  Ban,
   CheckCircle2,
   ChevronDown,
   FileWarning,
@@ -237,6 +238,16 @@ export function AdvocacyToneResults({ project, onNavigateToDocumentExplorer }: A
         icon={<Loader2 className="h-8 w-8 animate-spin text-muted-foreground mx-auto" />}
         message="Analyzing Advocacy & Tone..."
         description="The Advocacy & Tone analysis is currently running. Results will appear here once complete."
+      />
+    );
+  }
+
+  if (isWorkflowCancelled(advocacyToneRun)) {
+    return (
+      <EmptyState
+        icon={<Ban className="h-8 w-8 text-muted-foreground mx-auto" />}
+        message="Analysis Cancelled"
+        description="The Advocacy & Tone analysis was cancelled before it could complete."
       />
     );
   }

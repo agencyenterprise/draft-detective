@@ -3,8 +3,8 @@ import logging
 from typing import List, Optional
 
 from lib.models.workflow_run import WorkflowRunStatus
-from lib.services.workflow_runs import get_project_workflow_run_by_type
-from lib.workflows.models import WorkflowRunType
+from lib.services.workflow_runs import get_project_workflow_run_by_type, update_workflow_run_status
+from lib.workflows.models import WorkflowCancelledError, WorkflowRunType
 from lib.workflows.registry import get_workflow_manifest
 
 logger = logging.getLogger(__name__)
@@ -55,7 +55,8 @@ async def wait_for_dependencies(
             if (
                 same_type_run is not None
                 and str(same_type_run.id) != current_workflow_run_id
-                and same_type_run.status != WorkflowRunStatus.COMPLETED
+                and same_type_run.status
+                not in (WorkflowRunStatus.COMPLETED, WorkflowRunStatus.CANCELLED)
             ):
                 blocking_reasons.append(
                     f"previous {workflow_type.value} (run_id {str(same_type_run.id)[:8]}...)"
@@ -64,10 +65,11 @@ async def wait_for_dependencies(
         # Check dependencies
         if needs_dependency_wait:
             required_pending = await _get_pending_workflow_dependencies(
-                project_id, workflow_type, required_dependencies, True
+                project_id, workflow_type, required_dependencies, True,
+                current_workflow_run_id=current_workflow_run_id,
             )
             optional_pending = await _get_pending_workflow_dependencies(
-                project_id, workflow_type, optional_dependencies, False
+                project_id, workflow_type, optional_dependencies, False,
             )
             pending_deps = required_pending + optional_pending
             blocking_reasons.extend([dep.value for dep in pending_deps])
@@ -95,6 +97,7 @@ async def _get_pending_workflow_dependencies(
     workflow_type: WorkflowRunType,
     dependencies: List[WorkflowRunType],
     required: bool,
+    current_workflow_run_id: Optional[str] = None,
 ) -> List[WorkflowRunType]:
     """
     Get the pending workflow dependencies for a project workflow.
@@ -104,12 +107,15 @@ async def _get_pending_workflow_dependencies(
         workflow_type: The workflow type to check dependencies for
         dependencies: The dependencies to check
         required: Whether the dependencies are required
+        current_workflow_run_id: ID of the current run, used to self-cancel when a
+            required dependency is cancelled
 
     Returns:
         A list of pending dependencies
 
     Raises:
         ValueError: If a required dependency has not been started yet or is not scheduled to run
+        WorkflowCancelledError: If a required dependency was cancelled
     """
 
     pending_dependencies: List[WorkflowRunType] = []
@@ -125,6 +131,16 @@ async def _get_pending_workflow_dependencies(
                 raise ValueError(
                     f"{workflow_type} depends on required dependency {dep_type.value} which has not been started yet or is not scheduled to run"
                 )
+        elif dep_run.status == WorkflowRunStatus.CANCELLED and required:
+            # A required dependency was cancelled — cancel this run too (safety net
+            # for cases where cascade cancellation hasn't propagated yet)
+            if current_workflow_run_id:
+                await update_workflow_run_status(
+                    current_workflow_run_id, WorkflowRunStatus.CANCELLED
+                )
+            raise WorkflowCancelledError(
+                f"Required dependency {dep_type.value} for {workflow_type} was cancelled"
+            )
         elif dep_run.status in (WorkflowRunStatus.PENDING, WorkflowRunStatus.RUNNING):
             # Dependency is pending or running, wait for it
             pending_dependencies.append(dep_type)

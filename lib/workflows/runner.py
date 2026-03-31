@@ -3,6 +3,7 @@ import uuid
 
 from langfuse import propagate_attributes
 from langgraph.graph import StateGraph
+from langgraph.graph.state import CompiledStateGraph
 
 from api.services.workflow_orchestration import wait_for_dependencies
 from lib.config.env import config as env_config
@@ -17,7 +18,11 @@ from lib.services.vector_store import VectorStoreService
 from lib.services.workflow_runs import update_workflow_run_status
 from lib.workflows.checkpointer import get_checkpointer
 from lib.workflows.context import ContextSchema
-from lib.workflows.models import BaseWorkflowConfig, WorkflowError
+from lib.workflows.models import (
+    BaseWorkflowConfig,
+    WorkflowCancelledError,
+    WorkflowError,
+)
 from lib.workflows.registry import create_graph, create_state, get_workflow_manifest
 from lib.workflows.workflow_types import WorkflowConfig, WorkflowState
 
@@ -52,6 +57,11 @@ async def run_workflow_with_dependency_check(
             workflow_run_id=workflow_run_id,
             user=user,
         )
+
+    except WorkflowCancelledError:
+        logger.info(f"Workflow {workflow_run_id} ({config.type.value}) was cancelled")
+        # Status is already CANCELLED in DB; the guard in update_workflow_run_status
+        # prevents it from being overwritten
 
     except Exception as e:
         logger.error(f"Error running workflow: {e}", exc_info=True)
@@ -150,6 +160,14 @@ async def run_workflow(
                 state=updated_state,
                 checkpoint_id=checkpoint_id,
             )
+        except WorkflowCancelledError:
+            logger.info(
+                f"Workflow {workflow_type} for project {project_id} was cancelled — running cleanup"
+            )
+            manifest = get_workflow_manifest(workflow_type, raise_exception=False)
+            if manifest:
+                await manifest.on_cancel(updated_state, app, thread_config)
+
         except Exception as e:
             logger.error(f"Error running workflow {workflow_type}: {e}", exc_info=True)
             error = WorkflowError(

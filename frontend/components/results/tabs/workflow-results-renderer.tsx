@@ -128,7 +128,12 @@ export function WorkflowResultsContent({
   const workflowName = getWorkflowTypeName(workflowRun.run.type);
 
   if (!isWorkflowTypeVisible(workflowRun.run.type)) {
-    return <InternalWorkflowResults workflowName={workflowName} />;
+    return (
+      <>
+        {currentErrors.length > 0 && <ErrorsCard errors={currentErrors} />}
+        <InternalWorkflowResults workflowName={workflowName} />
+      </>
+    );
   }
 
   return (

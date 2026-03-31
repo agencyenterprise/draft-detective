@@ -16,6 +16,7 @@ import { WorkflowConfigDialog, WorkflowConfigFormValues } from '@/components/wor
 import { WorkflowRunHistory } from '@/components/workflows/workflow-run-history';
 import { useShare } from '@/context/share-context';
 import { ProjectDetailed, startMultipleWorkflowsApiWorkflowsStartMultiplePost } from '@/lib/generated-api';
+import { WorkflowDuration } from './workflow-duration';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { getDisplayStatus } from '@/lib/workflow-state';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -142,6 +143,7 @@ export function AnalysesTab({
                   <span className="font-medium">Status:</span>
                   <StatusIndicator status={getDisplayStatus(selectedWorkflowRun)} />
                 </div>
+                <WorkflowDuration run={selectedWorkflowRun.run} />
                 <div>
                   Last updated {formatDistanceToNow(selectedWorkflowRun.run.last_updated_at, { addSuffix: true })}
                 </div>

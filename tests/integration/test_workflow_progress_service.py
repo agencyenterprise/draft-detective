@@ -11,6 +11,7 @@ from lib.config.database import get_async_db_session
 from lib.models.workflow_progress import ProgressLevel, WorkflowProgress
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus, WorkflowRunType
 from lib.services.workflow_progress import (
+    cancel_workflow_progress,
     complete_progress,
     create_and_start_progress,
     get_or_create_progress,
@@ -375,3 +376,101 @@ async def test_increment_and_complete_nonexistent_progress():
     fake_id = uuid.uuid4()
     completed = await increment_and_complete_if_done(fake_id)
     assert completed is False
+
+
+# ---------------------------------------------------------------------------
+# cancel_workflow_progress
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_cancel_workflow_progress_completes_incomplete_entries(workflow_run_id):
+    """All incomplete progress entries are stamped with completed_at."""
+    # Create two incomplete entries
+    await create_and_start_progress(
+        workflow_run_id=workflow_run_id,
+        name="Node A",
+        level=ProgressLevel.NODE,
+        total_steps=5,
+    )
+    await create_and_start_progress(
+        workflow_run_id=workflow_run_id,
+        name="Node B",
+        level=ProgressLevel.NODE,
+        total_steps=3,
+    )
+
+    await cancel_workflow_progress(workflow_run_id)
+
+    entries = await get_workflow_progress(workflow_run_id)
+    assert len(entries) == 2
+    for entry in entries:
+        assert entry.completed_at is not None, f"Entry {entry.name!r} should have completed_at set"
+
+
+@pytest.mark.asyncio
+async def test_cancel_workflow_progress_is_noop_when_all_already_complete(workflow_run_id):
+    """If all entries are already complete, cancel_workflow_progress does not raise."""
+    progress_id = await create_and_start_progress(
+        workflow_run_id=workflow_run_id,
+        name="Done Node",
+        level=ProgressLevel.NODE,
+        total_steps=1,
+    )
+    await complete_progress(progress_id)
+
+    # Should not raise even though there's nothing left to complete
+    await cancel_workflow_progress(workflow_run_id)
+
+    entries = await get_workflow_progress(workflow_run_id)
+    assert entries[0].completed_at is not None
+
+
+@pytest.mark.asyncio
+async def test_cancel_workflow_progress_only_affects_target_run(workflow_run_id):
+    """Entries from a different workflow run are not touched."""
+    # Create a second independent workflow run
+    other_run_id = uuid.uuid4()
+    async with get_async_db_session() as session:
+        from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus, WorkflowRunType
+        other_run = WorkflowRun(
+            id=other_run_id,
+            langgraph_thread_id=str(uuid.uuid4()),
+            project_id=None,
+            type=WorkflowRunType.REFERENCE_EXTRACTION,
+            status=WorkflowRunStatus.RUNNING,
+        )
+        session.add(other_run)
+        await session.commit()
+
+    try:
+        # Create one incomplete entry on each run
+        await create_and_start_progress(
+            workflow_run_id=workflow_run_id,
+            name="Target Node",
+            level=ProgressLevel.NODE,
+            total_steps=2,
+        )
+        await create_and_start_progress(
+            workflow_run_id=other_run_id,
+            name="Other Node",
+            level=ProgressLevel.NODE,
+            total_steps=2,
+        )
+
+        await cancel_workflow_progress(workflow_run_id)
+
+        target_entries = await get_workflow_progress(workflow_run_id)
+        other_entries = await get_workflow_progress(other_run_id)
+
+        assert target_entries[0].completed_at is not None
+        assert other_entries[0].completed_at is None
+    finally:
+        async with get_async_db_session() as session:
+            from sqlalchemy import select
+            from sqlmodel import col
+            stmt = select(WorkflowRun).where(col(WorkflowRun.id) == other_run_id)
+            run = (await session.execute(stmt)).scalar_one_or_none()
+            if run:
+                await session.delete(run)
+                await session.commit()

@@ -43,6 +43,12 @@ const workflowRunDetailSchemaResponseTransformer = (data: any) => {
 const workflowRunSchemaResponseTransformer = (data: any) => {
   data.created_at = new Date(data.created_at);
   data.last_updated_at = new Date(data.last_updated_at);
+  if (data.started_at) {
+    data.started_at = new Date(data.started_at);
+  }
+  if (data.completed_at) {
+    data.completed_at = new Date(data.completed_at);
+  }
   return data;
 };
 
