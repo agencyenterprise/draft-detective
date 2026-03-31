@@ -7,7 +7,7 @@ from typing import Awaitable, Callable
 
 from fastapi import Depends, HTTPException
 
-from api.auth import get_current_user
+from lib.api.auth import get_current_user
 from lib.config.env import config
 from lib.models.file import FileRole
 from lib.models.project import AccessLevel

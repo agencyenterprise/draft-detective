@@ -4,7 +4,7 @@ FastAPI dependencies for form data processing.
 
 from typing import Optional
 from fastapi import Form, HTTPException
-from api.models import AnalysisFormConfig
+from lib.api.models import AnalysisFormConfig
 from lib.workflows.models import WorkflowRunType
 
 

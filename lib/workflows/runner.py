@@ -5,7 +5,7 @@ from langfuse import propagate_attributes
 from langgraph.graph import StateGraph
 from langgraph.graph.state import CompiledStateGraph
 
-from api.services.workflow_orchestration import wait_for_dependencies
+from lib.services.workflow_orchestration import wait_for_dependencies
 from lib.config.env import config as env_config
 from lib.config.langfuse import langfuse_handler
 from lib.models.user import User

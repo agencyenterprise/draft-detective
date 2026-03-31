@@ -6,8 +6,8 @@ from typing import List
 
 from fastapi import APIRouter, Depends, Query
 
-from api.auth import get_current_user, require_admin
-from api.models import UpdateUserPreferencesRequest, UpdateUserRoleRequest, UserResponse
+from lib.api.auth import get_current_user, require_admin
+from lib.api.models import UpdateUserPreferencesRequest, UpdateUserRoleRequest, UserResponse
 from lib.models.user import User, UserRole
 from lib.services.users import get_all_users, update_user_preferences, update_user_role
 

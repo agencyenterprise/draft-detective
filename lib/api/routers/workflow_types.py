@@ -2,7 +2,7 @@ from typing import List, Optional
 
 from fastapi import APIRouter, Depends
 
-from api.auth import get_current_user_optional
+from lib.api.auth import get_current_user_optional
 from lib.models.user import User
 from lib.services.workflow_types import (
     WorkflowTypeDescription,

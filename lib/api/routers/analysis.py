@@ -8,20 +8,20 @@ from typing import Optional
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile
 
-from api.auth import get_current_user
-from api.dependencies import build_config_from_form
-from api.models import (
+from lib.api.auth import get_current_user
+from lib.api.dependencies import build_config_from_form
+from lib.api.models import (
     AnalysisFormConfig,
     StartMultipleWorkflowsRequest,
     StartWorkflowResponse,
 )
-from lib.services.preflight.models import PreflightRequest, PreflightResult
-from lib.services.preflight.service import preflight_service
-from api.services.workflow_runner import start_multiple_workflow_runs
-from api.upload import save_uploaded_files_to_db
+from lib.api.services.workflow_runner import start_multiple_workflow_runs
+from lib.api.upload import save_uploaded_files_to_db
 from lib.models.file import FileRole
 from lib.models.user import User
 from lib.models.workflow_run import WorkflowRunType
+from lib.services.preflight.models import PreflightRequest, PreflightResult
+from lib.services.preflight.service import preflight_service
 from lib.services.projects import create_project
 
 logger = logging.getLogger(__name__)

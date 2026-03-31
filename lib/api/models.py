@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Any, List, Optional
 from uuid import UUID
 
-from pydantic import BaseModel, Field, computed_field, field_validator
+from pydantic import BaseModel, computed_field, field_validator
 
 from lib.models.user import UserRole
 from lib.models.workflow_progress import ProgressLevel
@@ -18,14 +18,6 @@ class StartWorkflowResponse(BaseModel):
     message: str
 
 
-class StartMultipleWorkflowsRequest(BaseModel):
-    """Request model for starting multiple workflows"""
-
-    project_id: str
-    workflow_types: List[WorkflowRunType]
-    openai_api_key: str | None = None
-
-
 class AnalysisFormConfig(BaseModel):
     """Form config for starting analysis (project creation + workflow start)"""
 
@@ -34,6 +26,14 @@ class AnalysisFormConfig(BaseModel):
     openai_api_key: Optional[str] = None
     publication_date: Optional[str] = None
     workflow_types: Optional[List[WorkflowRunType]] = None
+
+
+class StartMultipleWorkflowsRequest(BaseModel):
+    """Request model for starting multiple workflows"""
+
+    project_id: str
+    workflow_types: List[WorkflowRunType]
+    openai_api_key: str | None = None
 
 
 class StartMultipleWorkflowsResponse(BaseModel):

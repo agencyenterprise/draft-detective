@@ -17,7 +17,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlmodel import col
 
-from api.auth import get_current_user, require_admin
+from lib.api.auth import get_current_user, require_admin
 from lib.config.database import get_async_db_session
 from lib.models.feedback import Feedback, FeedbackType
 from lib.models.issue import Issue

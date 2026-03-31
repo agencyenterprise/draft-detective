@@ -6,8 +6,8 @@ from fastapi import HTTPException, Query, status
 from fastapi.responses import StreamingResponse
 from starlette.responses import FileResponse
 
-from api.auth import get_current_user, get_current_user_optional
-from api.models import WorkflowProgressResponse
+from lib.api.auth import get_current_user, get_current_user_optional
+from lib.api.models import WorkflowProgressResponse
 from lib.models.file import File, FileRole
 from lib.models.project import AccessLevel, Project
 from lib.models.user import User
@@ -34,7 +34,7 @@ from lib.services.workflow_runs import (
 )
 from lib.models.workflow_run import WorkflowRunType
 from lib.workflows.models import SeverityEnum
-from api.models import CreateProjectRequest
+from lib.api.models import CreateProjectRequest
 
 router = APIRouter(tags=["projects"])
 logger = logging.getLogger(__name__)
