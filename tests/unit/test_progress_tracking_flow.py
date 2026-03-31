@@ -37,7 +37,6 @@ class TestDecoratorProgressTracking:
         mock_state = Mock()
         mock_state.config = Mock()
         mock_state.config.project_id = "test-project"
-        mock_state.config.agents_to_run = None
         result = await test_node(mock_state, mock_runtime)
 
         # Verify progress was created with UUID (converted from string)
@@ -72,7 +71,6 @@ class TestDecoratorProgressTracking:
         mock_state = Mock()
         mock_state.config = Mock()
         mock_state.config.project_id = "test-project"
-        mock_state.config.agents_to_run = None
         result = await test_node(mock_state, mock_runtime)
 
         # Verify progress was NOT created (no workflow_run_id)
@@ -96,7 +94,6 @@ class TestDecoratorProgressTracking:
         mock_state = Mock()
         mock_state.config = Mock()
         mock_state.config.project_id = "test-project"
-        mock_state.config.agents_to_run = None
         result = await test_node(mock_state, None)
 
         # Verify progress was NOT created (no runtime)

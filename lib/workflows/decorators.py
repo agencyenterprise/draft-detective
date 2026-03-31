@@ -52,7 +52,6 @@ def register_node(name: str, description: str):
     """
     Decorator to control the execution of a workflow node.
 
-    - Skips the node if it is not in the agents_to_run configuration, during execution
     - Logs the start and end of the node, during execution
     - Handles errors and updates the state with a WorkflowError object, during execution
 
@@ -74,15 +73,6 @@ def register_node(name: str, description: str):
 
             config = getattr(state, "config", None)
             project_id = config.project_id if config else None
-            agents_to_run = getattr(
-                config, "agents_to_run", None
-            )  # TODO: not used, remove
-
-            if agents_to_run and func.__name__ not in agents_to_run:
-                func_logger.info(
-                    f"{func.__name__} ({project_id}): skipping (not in agents_to_run)"
-                )
-                return {}
 
             func_logger.info(f"{func.__name__} ({project_id}): starting")
             start_time = time.time()

@@ -42,7 +42,6 @@ async def test_diagnostic_check_decorator_receives_workflow_run_id(mock_create):
     mock_state = Mock()
     mock_state.config = Mock()
     mock_state.config.project_id = "test-project"
-    mock_state.config.agents_to_run = None  # Don't skip
 
     mock_runtime = Mock()
     mock_runtime.context = Mock()
@@ -98,7 +97,6 @@ async def test_diagnostic_check_error_handling(mock_create):
     mock_state = Mock()
     mock_state.config = Mock()
     mock_state.config.project_id = "test-project"
-    mock_state.config.agents_to_run = None
 
     mock_runtime = Mock()
     mock_runtime.context = Mock()

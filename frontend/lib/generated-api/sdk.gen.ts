@@ -174,7 +174,7 @@ export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends 
 /**
  * Read Health
  *
- * Health check endpoint
+ * Health check endpoint — verifies database connectivity.
  */
 export const readHealthApiHealthGet = <ThrowOnError extends boolean = true>(
   options?: Options<ReadHealthApiHealthGetData, ThrowOnError>,
@@ -188,7 +188,7 @@ export const readHealthApiHealthGet = <ThrowOnError extends boolean = true>(
 /**
  * Read Health
  *
- * Health check endpoint
+ * Health check endpoint — verifies database connectivity.
  */
 export const readHealthApiHealthHead = <ThrowOnError extends boolean = true>(
   options?: Options<ReadHealthApiHealthHeadData, ThrowOnError>,

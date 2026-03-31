@@ -60,7 +60,7 @@ def _make_validator_node(run_index: int):
     ) -> dict:
         return await _run_single_validator(state, runtime, run_index)
 
-    # Set __name__ before the decorator runs so agents_to_run
+    # Set __name__ before the decorator runs so register_node
     # sees "validate_inference_1" etc., not "node".
     node.__name__ = f"validate_inference_{run_index}"
 

@@ -3244,6 +3244,7 @@ export const ParagraphVerificationStatus = {
   Pending: 'pending',
   Completed: 'completed',
   Error: 'error',
+  Cancelled: 'cancelled',
 } as const;
 
 /**
@@ -3876,6 +3877,7 @@ export const ReferenceFetchStatus = {
   Pending: 'pending',
   Completed: 'completed',
   Error: 'error',
+  Cancelled: 'cancelled',
 } as const;
 
 /**
