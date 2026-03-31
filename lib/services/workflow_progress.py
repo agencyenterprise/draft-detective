@@ -13,7 +13,7 @@ from sqlmodel import col
 
 from lib.config.database import get_async_db_session
 from lib.models.workflow_progress import ProgressLevel, WorkflowProgress
-from lib.models.workflow_run import WorkflowRun
+from lib.models.workflow_run import WorkflowRun, WorkflowRunType
 
 logger = logging.getLogger(__name__)
 
@@ -215,20 +215,29 @@ async def increment_and_complete_if_done(progress_id: uuid.UUID) -> bool:
         return False
 
 
-async def cancel_workflow_progress(workflow_run_id: uuid.UUID) -> None:
+async def cancel_workflow_progress(
+    project_id: uuid.UUID, workflow_type: WorkflowRunType
+) -> None:
     """
-    Mark all incomplete progress entries for a workflow run as completed.
+    Mark all incomplete progress entries for a project + workflow type as completed.
 
-    Called when a workflow run is cancelled to prevent progress entries from
-    remaining stuck in 'pending' or 'in_progress' state indefinitely.
+    Called when a workflow run is cancelled. Clears progress across all runs for the
+    same project and workflow type so that stuck entries from previous runs are also
+    resolved, not just those belonging to the currently-cancelled run.
 
     Args:
-        workflow_run_id: ID of the workflow run being cancelled
+        project_id: ID of the project whose workflow is being cancelled
+        workflow_type: Type of the workflow being cancelled
     """
     async with get_async_db_session() as session:
-        stmt = select(WorkflowProgress).where(
-            col(WorkflowProgress.workflow_run_id) == workflow_run_id,
-            col(WorkflowProgress.completed_at).is_(None),
+        stmt = (
+            select(WorkflowProgress)
+            .join(WorkflowRun, col(WorkflowProgress.workflow_run_id) == col(WorkflowRun.id))
+            .where(
+                col(WorkflowRun.project_id) == project_id,
+                col(WorkflowRun.type) == workflow_type,
+                col(WorkflowProgress.completed_at).is_(None),
+            )
         )
         result = await session.execute(stmt)
         incomplete = result.scalars().all()

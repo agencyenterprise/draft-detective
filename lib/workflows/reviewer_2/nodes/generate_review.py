@@ -10,10 +10,7 @@ from lib.workflows.reviewer_2.state import Reviewer2State
 logger = logging.getLogger(__name__)
 
 
-@register_node(
-    "Generate peer review",
-    "Generate a rigorous peer review and rebuttal of the document",
-)
+@register_node("Generate peer review")
 async def generate_review(
     state: Reviewer2State, runtime: Runtime[ContextSchema]
 ) -> dict:

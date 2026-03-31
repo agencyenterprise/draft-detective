@@ -24,10 +24,7 @@ from lib.services.chunk_line_matcher import (
 logger = logging.getLogger(__name__)
 
 
-@register_node(
-    "Synthesize inferences",
-    "Consolidate validator runs: merge, disambiguate, and rank by severity.",
-)
+@register_node("Synthesize inferences")
 async def synthesize_inferences(
     state: InferenceValidationV2State, runtime: Runtime[ContextSchema]
 ) -> dict[str, ExtractedInferenceResultResponse]:

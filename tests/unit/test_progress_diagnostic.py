@@ -34,7 +34,7 @@ async def test_diagnostic_check_decorator_receives_workflow_run_id(mock_create):
     mock_create.return_value = progress_id
 
     # Create a test node
-    @register_node("Diagnostic Node", "Testing progress tracking")
+    @register_node("Diagnostic Node")
     async def test_node(state, runtime):
         return {"result": "success"}
 
@@ -89,7 +89,7 @@ async def test_diagnostic_check_error_handling(mock_create):
 
     workflow_run_id = str(uuid.uuid4())
 
-    @register_node("Error Test Node", "Testing error handling")
+    @register_node("Error Test Node")
     async def test_node(state, runtime):
         return {"result": "success"}
 

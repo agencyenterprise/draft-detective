@@ -173,10 +173,7 @@ def _get_paragraphs_with_citations(
     }
 
 
-@register_node(
-    "Initialize verifications",
-    "Initialize all paragraphs with pending verification status",
-)
+@register_node("Initialize verifications")
 async def initialize_verifications(
     state: ClaimReferenceValidationState, runtime: Runtime[ContextSchema]
 ):
@@ -208,10 +205,7 @@ async def initialize_verifications(
     return {"paragraph_verifications": Overwrite(pending_items)}
 
 
-@register_node(
-    "Distribute verifications",
-    "Distribute paragraphs to parallel verification operations",
-)
+@register_node("Distribute verifications")
 async def distribute_verifications(
     state: ClaimReferenceValidationState, runtime: Runtime[ContextSchema]
 ):
@@ -234,10 +228,7 @@ async def distribute_verifications(
     ]
 
 
-@register_node(
-    "Verify paragraph",
-    "Verify claims in a single paragraph",
-)
+@register_node("Verify paragraph")
 async def verify_single_paragraph(state: dict, runtime: Runtime[ContextSchema]):
     """Process a single paragraph and return verification results.
 
@@ -334,10 +325,7 @@ async def verify_single_paragraph(state: dict, runtime: Runtime[ContextSchema]):
     }
 
 
-@register_node(
-    "Finalize verifications",
-    "Finalize claim verification results",
-)
+@register_node("Finalize verifications")
 async def finalize_verifications(
     state: ClaimReferenceValidationState, runtime: Runtime[ContextSchema]
 ):

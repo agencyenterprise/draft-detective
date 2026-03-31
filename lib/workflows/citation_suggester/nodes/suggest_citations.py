@@ -26,10 +26,7 @@ from lib.workflows.document_summarization.state import FileSummary
 logger = logging.getLogger(__name__)
 
 
-@register_node(
-    "Suggest citations",
-    "Suggest citations for the claims",
-)
+@register_node("Suggest citations")
 async def suggest_citations(
     state: CitationSuggesterState, runtime: Runtime[ContextSchema]
 ):
