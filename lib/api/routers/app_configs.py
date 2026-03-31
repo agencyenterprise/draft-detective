@@ -8,7 +8,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, field_validator
 
-from api.auth import require_admin
+from lib.api.auth import require_admin
 from lib.models.user import User
 from lib.services.app_configs import (
     delete_config,

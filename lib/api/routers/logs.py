@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
-from api.auth import require_admin
+from lib.api.auth import require_admin
 from lib.config.env import config as env_config
 from lib.models.user import User
 

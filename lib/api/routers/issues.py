@@ -9,7 +9,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, field_validator
 
-from api.auth import get_current_user
+from lib.api.auth import get_current_user
 from lib.models.issue import Issue, IssueStatus
 from lib.models.project import AccessLevel
 from lib.models.user import User

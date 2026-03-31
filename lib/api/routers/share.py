@@ -7,7 +7,7 @@ for their own resources.
 
 from fastapi import APIRouter, Depends
 
-from api.auth import get_current_user
+from lib.api.auth import get_current_user
 from lib.models.project import AccessLevel
 from lib.models.user import User
 from lib.services.projects import get_project_access

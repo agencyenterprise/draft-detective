@@ -5,7 +5,7 @@ if __name__ == "__main__":
     setup_logger()
 
     uvicorn.run(
-        "api.main:app",
+        "lib.api.main:app",
         host="0.0.0.0",
         port=8000,
         reload=True,

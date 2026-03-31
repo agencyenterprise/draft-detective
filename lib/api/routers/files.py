@@ -4,7 +4,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from starlette.responses import FileResponse
 
-from api.auth import get_current_user_optional
+from lib.api.auth import get_current_user_optional
 from lib.config.env import config
 from lib.models.user import User
 from lib.services.files import check_file_access, check_file_access_by_share_token

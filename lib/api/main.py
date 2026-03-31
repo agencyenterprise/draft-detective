@@ -14,7 +14,7 @@ from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import Response
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from api.routers import (
+from lib.api.routers import (
     analysis,
     app_configs,
     feedback,
@@ -29,7 +29,7 @@ from api.routers import (
     workflows,
     workflow_types,
 )
-from api.routers.tus_upload import tus_router
+from lib.api.routers.tus_upload import tus_router
 from lib.config.logger import setup_logger
 
 setup_logger()

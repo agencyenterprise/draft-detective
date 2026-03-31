@@ -5,7 +5,7 @@ from typing import List
 from fastapi import BackgroundTasks
 from pydantic import BaseModel
 
-from api.models import StartMultipleWorkflowsRequest
+from lib.api.models import StartMultipleWorkflowsRequest
 from lib.models.project import AccessLevel
 from lib.models.user import User
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus, WorkflowRunType
@@ -136,7 +136,9 @@ async def start_multiple_workflow_runs(
             continue
 
         # Create workflow-specific config
-        workflow_config = create_workflow_config(project, workflow_type, request)
+        workflow_config = create_workflow_config(
+            project, workflow_type, request.openai_api_key
+        )
 
         # Reuse thread_id from previous runs to maintain LangGraph checkpoint continuity
         thread_id = get_thread_id_for_workflow_run(existing_run)

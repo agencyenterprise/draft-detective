@@ -1,14 +1,14 @@
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 
-from api.auth import get_current_user
-from api.models import (
+from lib.api.auth import get_current_user
+from lib.api.models import (
     ApproveWorkflowResponse,
     CancelWorkflowResponse,
     StartMultipleWorkflowsRequest,
     StartMultipleWorkflowsResponse,
     StartWorkflowResponse,
 )
-from api.services.workflow_runner import (
+from lib.api.services.workflow_runner import (
     resume_workflow_run,
     start_multiple_workflow_runs,
     start_workflow_run,

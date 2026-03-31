@@ -28,12 +28,12 @@ def _mock_user() -> MagicMock:
 @pytest.mark.asyncio
 async def test_cancel_completed_workflow_raises_400():
     """Cancelling an already-COMPLETED workflow returns HTTP 400."""
-    from api.routers.workflows import cancel_workflow_run_endpoint
+    from lib.api.routers.workflows import cancel_workflow_run_endpoint
 
     run = _make_run(WorkflowRunStatus.COMPLETED)
 
     with patch(
-        "api.routers.workflows.get_workflow_run",
+        "lib.api.routers.workflows.get_workflow_run",
         new=AsyncMock(return_value=run),
     ):
         with pytest.raises(HTTPException) as exc_info:
@@ -46,12 +46,12 @@ async def test_cancel_completed_workflow_raises_400():
 @pytest.mark.asyncio
 async def test_cancel_already_cancelled_workflow_is_idempotent():
     """Cancelling an already-CANCELLED workflow returns 'Already cancelled' without error."""
-    from api.routers.workflows import cancel_workflow_run_endpoint
+    from lib.api.routers.workflows import cancel_workflow_run_endpoint
 
     run = _make_run(WorkflowRunStatus.CANCELLED)
 
     with patch(
-        "api.routers.workflows.get_workflow_run",
+        "lib.api.routers.workflows.get_workflow_run",
         new=AsyncMock(return_value=run),
     ):
         response = await cancel_workflow_run_endpoint(str(run.id), current_user=_mock_user())
@@ -63,17 +63,17 @@ async def test_cancel_already_cancelled_workflow_is_idempotent():
 @pytest.mark.asyncio
 async def test_cancel_running_workflow_triggers_cancellation():
     """Cancelling a RUNNING workflow calls cancel_workflow_run and returns the expected response."""
-    from api.routers.workflows import cancel_workflow_run_endpoint
+    from lib.api.routers.workflows import cancel_workflow_run_endpoint
 
     run = _make_run(WorkflowRunStatus.RUNNING)
 
     with (
         patch(
-            "api.routers.workflows.get_workflow_run",
+            "lib.api.routers.workflows.get_workflow_run",
             new=AsyncMock(return_value=run),
         ),
         patch(
-            "api.routers.workflows.cancel_workflow_run",
+            "lib.api.routers.workflows.cancel_workflow_run",
             new=AsyncMock(),
         ) as mock_cancel,
     ):
@@ -87,17 +87,17 @@ async def test_cancel_running_workflow_triggers_cancellation():
 @pytest.mark.asyncio
 async def test_cancel_pending_workflow_triggers_cancellation():
     """Cancelling a PENDING workflow calls cancel_workflow_run and returns the expected response."""
-    from api.routers.workflows import cancel_workflow_run_endpoint
+    from lib.api.routers.workflows import cancel_workflow_run_endpoint
 
     run = _make_run(WorkflowRunStatus.PENDING)
 
     with (
         patch(
-            "api.routers.workflows.get_workflow_run",
+            "lib.api.routers.workflows.get_workflow_run",
             new=AsyncMock(return_value=run),
         ),
         patch(
-            "api.routers.workflows.cancel_workflow_run",
+            "lib.api.routers.workflows.cancel_workflow_run",
             new=AsyncMock(),
         ) as mock_cancel,
     ):
