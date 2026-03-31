@@ -6,6 +6,12 @@ from typing import Annotated, List, Optional, Self
 from pydantic import BaseModel, Field, model_validator
 
 
+class WorkflowCancelledError(Exception):
+    """Raised when a workflow has been cancelled. Propagates through LangGraph without being converted to a WorkflowError."""
+
+    pass
+
+
 class WorkflowError(BaseModel):
     """Error object for the overall workflow or specific chunks."""
 

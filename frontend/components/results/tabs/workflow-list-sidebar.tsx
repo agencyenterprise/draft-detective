@@ -8,7 +8,8 @@ import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { cn } from '@/lib/utils';
 import { getDisplayStatus, hasCurrentRunErrors } from '@/lib/workflow-state';
 import { formatDistanceToNow } from 'date-fns';
-import { AlertTriangleIcon, InfoIcon, PlusIcon } from 'lucide-react';
+import { AlertTriangleIcon, ChevronDownIcon, InfoIcon, PlusIcon } from 'lucide-react';
+import { useState } from 'react';
 
 interface WorkflowListItemProps {
   workflowDetail: WorkflowRunDetail;
@@ -68,6 +69,7 @@ export function WorkflowListSidebar({
   readOnly,
 }: WorkflowListSidebarProps) {
   const { isWorkflowTypeVisible } = useWorkflowTypes();
+  const [internalExpanded, setInternalExpanded] = useState(false);
 
   const visibleWorkflows = workflowDetails.filter((wd) => isWorkflowTypeVisible(wd.run.type));
   const internalWorkflows = workflowDetails.filter((wd) => !isWorkflowTypeVisible(wd.run.type));
@@ -94,28 +96,42 @@ export function WorkflowListSidebar({
         ))}
         {internalWorkflows.length > 0 && (
           <div className="pt-4">
-            <div className="flex items-center gap-1 mb-2">
-              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Internal Analyses</h4>
+            <button
+              onClick={() => setInternalExpanded((prev) => !prev)}
+              className="flex items-center gap-1 mb-2 w-full text-left group cursor-pointer"
+            >
+              <ChevronDownIcon
+                className={cn('w-3 h-3 text-muted-foreground transition-transform', !internalExpanded && '-rotate-90')}
+              />
+              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide group-hover:text-foreground transition-colors">
+                Internal Analyses
+              </h4>
+              <span className="text-xs text-muted-foreground font-normal">({internalWorkflows.length})</span>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <InfoIcon className="w-3 h-3 text-muted-foreground cursor-help" />
+                  <InfoIcon
+                    className="w-3 h-3 text-muted-foreground cursor-help ml-1"
+                    onClick={(e) => e.stopPropagation()}
+                  />
                 </TooltipTrigger>
                 <TooltipContent>
                   These analyses run automatically as part of the analysis pipeline and are not user-triggered.
                 </TooltipContent>
               </Tooltip>
-            </div>
-            <div className="space-y-2">
-              {internalWorkflows.map((workflowDetail) => (
-                <div key={workflowDetail.run.id} className="opacity-70">
-                  <WorkflowListItem
-                    workflowDetail={workflowDetail}
-                    isSelected={selectedWorkflowType === workflowDetail.run.type}
-                    onSelect={() => onSelectWorkflowType(workflowDetail.run.type)}
-                  />
-                </div>
-              ))}
-            </div>
+            </button>
+            {internalExpanded && (
+              <div className="space-y-2">
+                {internalWorkflows.map((workflowDetail) => (
+                  <div key={workflowDetail.run.id} className="opacity-70">
+                    <WorkflowListItem
+                      workflowDetail={workflowDetail}
+                      isSelected={selectedWorkflowType === workflowDetail.run.type}
+                      onSelect={() => onSelectWorkflowType(workflowDetail.run.type)}
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>

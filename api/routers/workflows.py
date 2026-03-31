@@ -3,6 +3,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from api.auth import get_current_user
 from api.models import (
     ApproveWorkflowResponse,
+    CancelWorkflowResponse,
     StartMultipleWorkflowsRequest,
     StartMultipleWorkflowsResponse,
     StartWorkflowResponse,
@@ -16,6 +17,7 @@ from lib.models.user import User
 from lib.models.workflow_run import WorkflowRunStatus
 from lib.services.workflow_runs import (
     WorkflowRunDetail,
+    cancel_workflow_run,
     get_workflow_run,
     get_workflow_run_state_by_thread_id,
 )
@@ -124,5 +126,41 @@ async def approve_workflow_run(
 
     return ApproveWorkflowResponse(
         message="Workflow approved",
+        workflow_run_id=workflow_run_id,
+    )
+
+
+@router.post(
+    "/api/workflow-runs/{workflow_run_id}/cancel",
+    response_model=CancelWorkflowResponse,
+)
+async def cancel_workflow_run_endpoint(
+    workflow_run_id: str,
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Cancel a workflow run that is pending or running.
+
+    Cascades cancellation to any active workflow runs that have the cancelled
+    workflow as a required dependency.
+    """
+    workflow_run = await get_workflow_run(workflow_run_id, user=current_user)
+
+    if workflow_run.status == WorkflowRunStatus.COMPLETED:
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot cancel a workflow that has already completed",
+        )
+
+    if workflow_run.status == WorkflowRunStatus.CANCELLED:
+        return CancelWorkflowResponse(
+            message="Already cancelled",
+            workflow_run_id=workflow_run_id,
+        )
+
+    await cancel_workflow_run(workflow_run_id, str(workflow_run.project_id))
+
+    return CancelWorkflowResponse(
+        message="Workflow cancellation requested",
         workflow_run_id=workflow_run_id,
     )

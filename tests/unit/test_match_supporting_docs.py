@@ -104,6 +104,7 @@ def mock_runtime():
         runtime = MagicMock()
         runtime.context.openai_api_key = "test-key"
         runtime.context.vector_store = None
+        runtime.context.workflow_run_id = None
 
         # Mock file_artifacts_service
         file_artifacts_service = AsyncMock()

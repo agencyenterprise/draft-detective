@@ -6,6 +6,9 @@ import type {
   ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostData,
   ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostErrors,
   ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostResponses,
+  CancelWorkflowRunEndpointApiWorkflowRunsWorkflowRunIdCancelPostData,
+  CancelWorkflowRunEndpointApiWorkflowRunsWorkflowRunIdCancelPostErrors,
+  CancelWorkflowRunEndpointApiWorkflowRunsWorkflowRunIdCancelPostResponses,
   CheckPreflightApiPreflightPostData,
   CheckPreflightApiPreflightPostErrors,
   CheckPreflightApiPreflightPostResponses,
@@ -435,6 +438,29 @@ export const approveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePost = <ThrowO
     responseStyle: 'data',
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/workflow-runs/{workflow_run_id}/approve',
+    ...options,
+  });
+
+/**
+ * Cancel Workflow Run Endpoint
+ *
+ * Cancel a workflow run that is pending or running.
+ *
+ * Cascades cancellation to any active workflow runs that have the cancelled
+ * workflow as a required dependency.
+ */
+export const cancelWorkflowRunEndpointApiWorkflowRunsWorkflowRunIdCancelPost = <ThrowOnError extends boolean = true>(
+  options: Options<CancelWorkflowRunEndpointApiWorkflowRunsWorkflowRunIdCancelPostData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    CancelWorkflowRunEndpointApiWorkflowRunsWorkflowRunIdCancelPostResponses,
+    CancelWorkflowRunEndpointApiWorkflowRunsWorkflowRunIdCancelPostErrors,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/workflow-runs/{workflow_run_id}/cancel',
     ...options,
   });
 

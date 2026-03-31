@@ -10,8 +10,9 @@ from lib.workflows.decorators import register_node
 @pytest.mark.asyncio
 @patch("lib.workflows.decorators.get_or_create_progress")
 @patch("lib.workflows.decorators.increment_and_complete_if_done")
+@patch("lib.services.workflow_runs.get_workflow_run_status", return_value=None)
 async def test_decorator_receives_runtime_with_context(
-    mock_increment, mock_get_or_create
+    mock_get_status, mock_increment, mock_get_or_create
 ):
     """Verify that the decorator correctly receives runtime with context attribute."""
     mock_get_or_create.return_value = None  # Disable progress tracking for this test

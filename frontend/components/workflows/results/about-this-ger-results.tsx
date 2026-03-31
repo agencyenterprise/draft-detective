@@ -6,8 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AboutThisGerState, AgentCheckResult, WorkflowRunDetail } from '@/lib/generated-api';
-import { isWorkflowProcessing } from '@/lib/workflow-state';
-import { AlertTriangle, BookOpen, CheckCircle2, FileQuestion, Loader2, Users } from 'lucide-react';
+import { isWorkflowCancelled, isWorkflowProcessing } from '@/lib/workflow-state';
+import { AlertTriangle, Ban, BookOpen, CheckCircle2, FileQuestion, Loader2, Users } from 'lucide-react';
 import { useState } from 'react';
 
 interface AboutThisGerResultsProps {
@@ -135,6 +135,16 @@ export function AboutThisGerResults({ workflowDetail }: AboutThisGerResultsProps
         icon={<Loader2 className="h-8 w-8 animate-spin text-muted-foreground mx-auto" />}
         message="Analyzing Document..."
         description="The About This (GER) analysis is currently running. Results will appear here once complete."
+      />
+    );
+  }
+
+  if (isWorkflowCancelled(workflowDetail)) {
+    return (
+      <EmptyState
+        icon={<Ban className="h-8 w-8 text-muted-foreground mx-auto" />}
+        message="Analysis Cancelled"
+        description="The About This (GER) analysis was cancelled before it could complete."
       />
     );
   }

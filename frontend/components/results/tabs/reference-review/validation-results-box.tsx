@@ -9,6 +9,7 @@ import {
 } from '@/lib/generated-api';
 import {
   AlertTriangle,
+  Ban,
   CheckCircle2,
   ChevronDownIcon,
   ChevronRightIcon,
@@ -49,6 +50,22 @@ export function ValidationResultsBox({
 
   const status = validation.status ?? ReferenceValidationStatus.Pending;
   const result = validation.validation_result;
+
+  // Handle cancelled state (workflow was cancelled before this item was processed)
+  if (status === ReferenceValidationStatus.Cancelled) {
+    return (
+      <div className={`rounded border ${paddingClass} bg-gray-50/80 border-gray-200`}>
+        <div className="flex items-center gap-2">
+          <ClipboardCheck className="w-4 h-4 text-muted-foreground" />
+          <span className="text-xs font-medium text-gray-700">Validation results</span>
+          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 text-xs font-medium rounded-full border bg-gray-50 text-gray-500 border-gray-200">
+            <Ban className="w-3.5 h-3.5" />
+            Not validated
+          </span>
+        </div>
+      </div>
+    );
+  }
 
   // Handle pending state
   if (status === ReferenceValidationStatus.Pending) {

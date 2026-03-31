@@ -145,6 +145,11 @@ export function isWorkflowProcessing(workflowRun: WorkflowRunDetail | undefined)
   return workflowRun.run.status === WorkflowRunStatus.Running || workflowRun.run.status === WorkflowRunStatus.Pending;
 }
 
+export function isWorkflowCancelled(workflowRun: WorkflowRunDetail | undefined): boolean {
+  if (!workflowRun) return false;
+  return workflowRun.run.status === WorkflowRunStatus.Cancelled;
+}
+
 export function isAnyWorkflowProcessing(workflowRuns: WorkflowRunDetail[]): boolean {
   return workflowRuns.some((workflowRun) => isWorkflowProcessing(workflowRun));
 }

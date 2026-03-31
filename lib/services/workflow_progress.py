@@ -215,6 +215,32 @@ async def increment_and_complete_if_done(progress_id: uuid.UUID) -> bool:
         return False
 
 
+async def cancel_workflow_progress(workflow_run_id: uuid.UUID) -> None:
+    """
+    Mark all incomplete progress entries for a workflow run as completed.
+
+    Called when a workflow run is cancelled to prevent progress entries from
+    remaining stuck in 'pending' or 'in_progress' state indefinitely.
+
+    Args:
+        workflow_run_id: ID of the workflow run being cancelled
+    """
+    async with get_async_db_session() as session:
+        stmt = select(WorkflowProgress).where(
+            col(WorkflowProgress.workflow_run_id) == workflow_run_id,
+            col(WorkflowProgress.completed_at).is_(None),
+        )
+        result = await session.execute(stmt)
+        incomplete = result.scalars().all()
+
+        now = datetime.utcnow()
+        for progress in incomplete:
+            progress.completed_at = now
+
+        if incomplete:
+            await session.commit()
+
+
 async def get_workflow_progress(
     workflow_run_id: uuid.UUID,
 ) -> List[WorkflowProgress]:

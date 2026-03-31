@@ -1,6 +1,7 @@
 from typing import List, Type, cast
 
 from langgraph.graph import StateGraph
+from langgraph.graph.state import CompiledStateGraph, RunnableConfig
 
 from lib.agents.reference_validator import ReferenceValidationFinalResult
 from lib.services.chunk_line_matcher import find_chunks_by_line_range
@@ -75,6 +76,25 @@ class ReferenceValidationManifest(
     def build_graph(self) -> StateGraph:
         """Build and return the graph of the workflow."""
         return build_reference_validation_graph()
+
+    async def on_cancel(
+        self,
+        state: ReferenceValidationState,
+        app: CompiledStateGraph,
+        config: RunnableConfig,
+    ) -> None:
+        """Mark any pending validation items as cancelled so they don't show as in-progress."""
+        updated = [
+            (
+                item.model_copy(update={"status": ReferenceValidationStatus.CANCELLED})
+                if item.status == ReferenceValidationStatus.PENDING
+                else item
+            )
+            for item in state.reference_validations
+        ]
+        await app.aupdate_state(
+            config, {"reference_validations": updated}, as_node="finalize_validations"
+        )
 
     async def create_initial_state(
         self,

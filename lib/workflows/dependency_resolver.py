@@ -15,6 +15,34 @@ from lib.workflows.registry import get_workflow_manifest
 logger = logging.getLogger(__name__)
 
 
+def get_required_dependents(workflow_type: WorkflowRunType) -> List[WorkflowRunType]:
+    """
+    Return all workflow types that transitively require workflow_type as a dependency.
+
+    Uses BFS to find both direct and indirect dependents. Used for cascading
+    cancellation: when a workflow is cancelled, all workflows that require it
+    (directly or transitively) should also be cancelled.
+    """
+    from lib.workflows.registry import get_all_manifests
+
+    all_manifests = get_all_manifests()
+    visited: Set[WorkflowRunType] = set()
+    queue: List[WorkflowRunType] = [workflow_type]
+
+    while queue:
+        current = queue.pop()
+        direct_dependents = [
+            wf_type
+            for wf_type, manifest in all_manifests.items()
+            if current in manifest.required_dependencies and wf_type not in visited
+        ]
+        for dependent in direct_dependents:
+            visited.add(dependent)
+            queue.append(dependent)
+
+    return list(visited)
+
+
 def resolve_workflow_dependencies(
     workflow_types: List[WorkflowRunType],
 ) -> List[WorkflowRunType]:

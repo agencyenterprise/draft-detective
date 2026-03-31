@@ -10,10 +10,10 @@ import {
   ReferenceValidationStatus,
   WorkflowRunDetail,
 } from '@/lib/generated-api';
-import { AlertTriangle, CheckCircle2, ClipboardCheck, Loader2, SearchX, XCircle } from 'lucide-react';
+import { AlertTriangle, Ban, CheckCircle2, ClipboardCheck, Loader2, SearchX, XCircle } from 'lucide-react';
 import * as React from 'react';
 
-type FilterType = 'all' | 'valid' | 'inconsistencies' | 'not_found' | 'pending' | 'error';
+type FilterType = 'all' | 'valid' | 'inconsistencies' | 'not_found' | 'pending' | 'error' | 'cancelled';
 
 interface ReferenceValidationResultsProps {
   workflowDetail: WorkflowRunDetail;
@@ -24,6 +24,7 @@ function getValidationCategory(v: ReferenceValidationItem): Exclude<FilterType, 
   const status = v.status ?? ReferenceValidationStatus.Pending;
   if (status === ReferenceValidationStatus.Pending) return 'pending';
   if (status === ReferenceValidationStatus.Error) return 'error';
+  if (status === ReferenceValidationStatus.Cancelled) return 'cancelled';
 
   const finalResult = v.validation_result?.final_result;
   if (finalResult === ReferenceValidationFinalResult.Valid) return 'valid';
@@ -43,6 +44,7 @@ export function ReferenceValidationResults({ workflowDetail }: ReferenceValidati
     let inconsistencies = 0;
     let notFound = 0;
     let valid = 0;
+    let cancelled = 0;
 
     items.forEach((v: ReferenceValidationItem) => {
       const category = getValidationCategory(v);
@@ -50,12 +52,13 @@ export function ReferenceValidationResults({ workflowDetail }: ReferenceValidati
       else if (category === 'error') errors++;
       else if (category === 'valid') valid++;
       else if (category === 'not_found') notFound++;
+      else if (category === 'cancelled') cancelled++;
       else inconsistencies++;
     });
 
     return {
       validations: items,
-      stats: { pending, errors, inconsistencies, notFound, valid, total: items.length },
+      stats: { pending, errors, inconsistencies, notFound, valid, cancelled, total: items.length },
     };
   }, [results?.reference_validations]);
 
@@ -135,6 +138,16 @@ export function ReferenceValidationResults({ workflowDetail }: ReferenceValidati
           >
             <XCircle className="w-3 h-3 mr-1" />
             {stats.errors} Error{stats.errors !== 1 ? 's' : ''}
+          </Badge>
+        )}
+        {stats.cancelled > 0 && (
+          <Badge
+            variant="outline"
+            className={`cursor-pointer transition-all bg-gray-50 text-gray-500 border-gray-200 ${filter === 'cancelled' ? 'ring-2 ring-offset-1 ring-gray-400' : 'hover:bg-gray-100'}`}
+            onClick={() => toggleFilter('cancelled')}
+          >
+            <Ban className="w-3 h-3 mr-1" />
+            {stats.cancelled} Not Validated
           </Badge>
         )}
       </div>

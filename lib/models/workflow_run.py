@@ -16,6 +16,7 @@ class WorkflowRunStatus(str, Enum):
     PENDING = "pending"
     RUNNING = "running"
     COMPLETED = "completed"
+    CANCELLED = "cancelled"
 
 
 class WorkflowRun(SQLModel, table=True):
@@ -61,6 +62,14 @@ class WorkflowRun(SQLModel, table=True):
             nullable=False,
         ),
         description="The timestamp when the workflow run was last updated",
+    )
+    started_at: Optional[datetime] = Field(
+        sa_column=Column(DateTime(timezone=True), nullable=True),
+        description="The timestamp when the workflow run transitioned to RUNNING",
+    )
+    completed_at: Optional[datetime] = Field(
+        sa_column=Column(DateTime(timezone=True), nullable=True),
+        description="The timestamp when the workflow run transitioned to COMPLETED or CANCELLED",
     )
 
     @field_validator("type", mode="before")

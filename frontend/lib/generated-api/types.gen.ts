@@ -605,6 +605,22 @@ export type BodyStartAnalysisApiStartAnalysisPost = {
 };
 
 /**
+ * CancelWorkflowResponse
+ *
+ * Response for workflow cancellation.
+ */
+export type CancelWorkflowResponse = {
+  /**
+   * Message
+   */
+  message: string;
+  /**
+   * Workflow Run Id
+   */
+  workflow_run_id: string;
+};
+
+/**
  * ChunkAdvocacyToneResult
  *
  * Advocacy and tone analysis result for a single chunk.
@@ -4100,6 +4116,7 @@ export const ReferenceValidationStatus = {
   Pending: 'pending',
   Completed: 'completed',
   Error: 'error',
+  Cancelled: 'cancelled',
 } as const;
 
 /**
@@ -4929,6 +4946,18 @@ export type WorkflowRun = {
    * The timestamp when the workflow run was last updated
    */
   last_updated_at: Date;
+  /**
+   * Started At
+   *
+   * The timestamp when the workflow run transitioned to RUNNING
+   */
+  started_at: Date | null;
+  /**
+   * Completed At
+   *
+   * The timestamp when the workflow run transitioned to COMPLETED or CANCELLED
+   */
+  completed_at: Date | null;
 };
 
 /**
@@ -4973,6 +5002,7 @@ export const WorkflowRunStatus = {
   Pending: 'pending',
   Running: 'running',
   Completed: 'completed',
+  Cancelled: 'cancelled',
 } as const;
 
 /**
@@ -5437,6 +5467,38 @@ export type ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostResponses =
 
 export type ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostResponse =
   ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostResponses[keyof ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostResponses];
+
+export type CancelWorkflowRunEndpointApiWorkflowRunsWorkflowRunIdCancelPostData = {
+  body?: never;
+  path: {
+    /**
+     * Workflow Run Id
+     */
+    workflow_run_id: string;
+  };
+  query?: never;
+  url: '/api/workflow-runs/{workflow_run_id}/cancel';
+};
+
+export type CancelWorkflowRunEndpointApiWorkflowRunsWorkflowRunIdCancelPostErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type CancelWorkflowRunEndpointApiWorkflowRunsWorkflowRunIdCancelPostError =
+  CancelWorkflowRunEndpointApiWorkflowRunsWorkflowRunIdCancelPostErrors[keyof CancelWorkflowRunEndpointApiWorkflowRunsWorkflowRunIdCancelPostErrors];
+
+export type CancelWorkflowRunEndpointApiWorkflowRunsWorkflowRunIdCancelPostResponses = {
+  /**
+   * Successful Response
+   */
+  200: CancelWorkflowResponse;
+};
+
+export type CancelWorkflowRunEndpointApiWorkflowRunsWorkflowRunIdCancelPostResponse =
+  CancelWorkflowRunEndpointApiWorkflowRunsWorkflowRunIdCancelPostResponses[keyof CancelWorkflowRunEndpointApiWorkflowRunsWorkflowRunIdCancelPostResponses];
 
 export type GetWorkflowTypesApiWorkflowTypesGetData = {
   body?: never;
