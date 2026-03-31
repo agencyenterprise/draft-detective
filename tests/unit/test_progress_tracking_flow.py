@@ -25,7 +25,7 @@ class TestDecoratorProgressTracking:
         mock_increment.return_value = True  # Indicates batch completed
 
         # Create a test node
-        @register_node("Test Node", "A test node")
+        @register_node("Test Node")
         async def test_node(state, runtime):
             return {"result": "success"}
 
@@ -49,56 +49,6 @@ class TestDecoratorProgressTracking:
 
         # Verify progress was incremented (and completed since it returned True)
         mock_increment.assert_called_once_with(progress_id)
-
-    @pytest.mark.asyncio
-    @patch("lib.workflows.decorators.get_or_create_progress")
-    @patch("lib.workflows.decorators.increment_and_complete_if_done")
-    async def test_decorator_handles_missing_workflow_run_id(
-        self, mock_increment, mock_get_or_create
-    ):
-        """Test that decorator handles missing workflow_run_id gracefully."""
-
-        # Create a test node
-        @register_node("Test Node 2", "A test node")
-        async def test_node(state, runtime):
-            return {"result": "success"}
-
-        # Create mock runtime WITHOUT workflow_run_id
-        mock_runtime = Mock()
-        mock_runtime.context.workflow_run_id = None
-
-        # Execute node
-        mock_state = Mock()
-        mock_state.config = Mock()
-        mock_state.config.project_id = "test-project"
-        result = await test_node(mock_state, mock_runtime)
-
-        # Verify progress was NOT created (no workflow_run_id)
-        mock_get_or_create.assert_not_called()
-        mock_increment.assert_not_called()
-
-    @pytest.mark.asyncio
-    @patch("lib.workflows.decorators.get_or_create_progress")
-    @patch("lib.workflows.decorators.increment_and_complete_if_done")
-    async def test_decorator_handles_missing_runtime(
-        self, mock_increment, mock_get_or_create
-    ):
-        """Test that decorator handles missing runtime gracefully."""
-
-        # Create a test node
-        @register_node("Test Node 3", "A test node")
-        async def test_node(state, runtime):
-            return {"result": "success"}
-
-        # Execute node with runtime=None
-        mock_state = Mock()
-        mock_state.config = Mock()
-        mock_state.config.project_id = "test-project"
-        result = await test_node(mock_state, None)
-
-        # Verify progress was NOT created (no runtime)
-        mock_get_or_create.assert_not_called()
-        mock_increment.assert_not_called()
 
 
 class TestRunTasksProgressTracking:

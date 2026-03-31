@@ -15,10 +15,7 @@ logger = logging.getLogger(__name__)
 NUM_VALIDATOR_RUNS = 3
 
 
-@register_node(
-    "Prepare inference runs",
-    "No-op entry node; fans out to parallel validator runs.",
-)
+@register_node("Prepare inference runs")
 async def prepare_inference_runs(
     state: InferenceValidationV2State, runtime: Runtime[ContextSchema]
 ) -> dict:
@@ -64,10 +61,7 @@ def _make_validator_node(run_index: int):
     # sees "validate_inference_1" etc., not "node".
     node.__name__ = f"validate_inference_{run_index}"
 
-    decorator = register_node(
-        f"Validate inferences run {run_index}",
-        f"Run {run_index} of {NUM_VALIDATOR_RUNS} parallel inference validator runs.",
-    )
+    decorator = register_node(f"Validate inferences run {run_index}")
 
     return decorator(node)
 

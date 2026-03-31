@@ -16,10 +16,7 @@ from lib.workflows.decorators import register_node
 logger = logging.getLogger(__name__)
 
 
-@register_node(
-    "Check abbreviations",
-    "Scan the full document for abbreviation inline definition and Abbreviations section coverage",
-)
+@register_node("Check abbreviations")
 async def check_abbreviations_node(
     state: AbbreviationScanV2State, runtime: Runtime[ContextSchema]
 ) -> dict:

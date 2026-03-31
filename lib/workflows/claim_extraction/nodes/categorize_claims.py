@@ -27,10 +27,7 @@ from lib.workflows.decorators import register_node
 logger = logging.getLogger(__name__)
 
 
-@register_node(
-    "Categorize claims",
-    "Categorize claims into categories",
-)
+@register_node("Categorize claims")
 async def categorize_claims(
     state: ClaimExtractionState, runtime: Runtime[ContextSchema]
 ) -> Dict[str, Any]:

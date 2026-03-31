@@ -130,10 +130,7 @@ async def _two_stage_match(
     return all_results
 
 
-@register_node(
-    "Match references to supporting documents",
-    "Match extracted references to user-provided supporting documents using two-stage approach",
-)
+@register_node("Match references to supporting documents")
 async def match_supporting_docs_node(
     state: ReferenceFileMatchingState, runtime: Runtime[ContextSchema]
 ) -> dict:

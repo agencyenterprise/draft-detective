@@ -157,7 +157,7 @@ async def cancel_workflow_run(workflow_run_id: str, project_id: str) -> None:
     from lib.workflows.dependency_resolver import get_required_dependents
 
     run = await get_workflow_run(workflow_run_id)
-    await cancel_workflow_progress(run.id)
+    await cancel_workflow_progress(run.project_id, run.type)
     await update_workflow_run_status(workflow_run_id, WorkflowRunStatus.CANCELLED)
 
     for dependent_type in get_required_dependents(run.type):

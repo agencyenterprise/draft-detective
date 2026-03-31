@@ -17,10 +17,7 @@ from lib.services.files import update_file_artifacts
 logger = logging.getLogger(__name__)
 
 
-@register_node(
-    "Convert to markdown",
-    "Convert the main and supporting documents to markdown",
-)
+@register_node("Convert to markdown")
 async def convert_to_markdown(
     state: DocumentProcessingState, runtime: Runtime[ContextSchema]
 ):

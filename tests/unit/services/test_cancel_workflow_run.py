@@ -90,7 +90,7 @@ async def test_cancel_calls_cancel_workflow_progress():
     ):
         await cancel_workflow_run(str(run.id), "project-1")
 
-    mock_cancel_progress.assert_awaited_once_with(run.id)
+    mock_cancel_progress.assert_awaited_once_with(run.project_id, run.type)
 
 
 # ---------------------------------------------------------------------------

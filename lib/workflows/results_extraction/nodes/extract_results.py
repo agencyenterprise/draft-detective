@@ -12,10 +12,7 @@ from lib.workflows.results_extraction.state import ResultsExtractionState
 logger = logging.getLogger(__name__)
 
 
-@register_node(
-    "Extract results",
-    "Extract main results from the document and assess their reproducibility",
-)
+@register_node("Extract results")
 async def extract_results(
     state: ResultsExtractionState, runtime: Runtime[ContextSchema]
 ):

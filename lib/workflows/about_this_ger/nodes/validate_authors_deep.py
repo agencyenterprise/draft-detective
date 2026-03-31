@@ -14,10 +14,7 @@ from lib.workflows.decorators import register_node
 logger = logging.getLogger(__name__)
 
 
-@register_node(
-    "Validate authors",
-    "Deep-agent check of the author biographies section",
-)
+@register_node("Validate authors")
 async def validate_authors_deep(
     state: AboutThisGerState, runtime: Runtime[ContextSchema]
 ) -> dict:

@@ -1,5 +1,6 @@
 """Unit tests for reference-to-supporting-document matching."""
 
+import uuid
 from contextlib import contextmanager
 from typing import List
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -97,6 +98,26 @@ def mock_two_stage_matching_error(candidates_per_ref: List, error: Exception):
         yield MockEmbed, MockBatched
 
 
+@pytest.fixture(autouse=True)
+def mock_decorator_progress():
+    """Patch progress-tracking internals so node tests focus on business logic."""
+    with (
+        patch(
+            "lib.workflows.decorators.get_or_create_progress",
+            return_value=uuid.uuid4(),
+        ),
+        patch(
+            "lib.workflows.decorators.increment_and_complete_if_done",
+            return_value=True,
+        ),
+        patch(
+            "lib.services.workflow_runs.get_workflow_run_status",
+            return_value=None,
+        ),
+    ):
+        yield
+
+
 @pytest.fixture
 def mock_runtime():
     def _create(summaries=None, extracted_refs=None):
@@ -104,7 +125,7 @@ def mock_runtime():
         runtime = MagicMock()
         runtime.context.openai_api_key = "test-key"
         runtime.context.vector_store = None
-        runtime.context.workflow_run_id = None
+        runtime.context.workflow_run_id = str(uuid.uuid4())
 
         # Mock file_artifacts_service
         file_artifacts_service = AsyncMock()

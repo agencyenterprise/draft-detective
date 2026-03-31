@@ -33,10 +33,7 @@ from lib.workflows.models import WorkflowError
 logger = logging.getLogger(__name__)
 
 
-@register_node(
-    "Detect advocacy and tone issues",
-    "Detect trigger words, advocacy language, and subjective tone in document chunks",
-)
+@register_node("Detect advocacy and tone issues")
 async def detect_advocacy_tone(
     state: AdvocacyToneState, runtime: Runtime[ContextSchema]
 ):
