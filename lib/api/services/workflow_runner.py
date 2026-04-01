@@ -6,7 +6,7 @@ from fastapi import BackgroundTasks
 from pydantic import BaseModel
 
 from lib.api.models import StartMultipleWorkflowsRequest
-from lib.models.project import AccessLevel
+from lib.models.project import AccessLevel, Project
 from lib.models.user import User
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus, WorkflowRunType
 from lib.services.projects import get_project_access
@@ -18,7 +18,10 @@ from lib.services.workflow_runs import (
 from lib.workflows.config_factory import create_workflow_config
 from lib.workflows.dependency_resolver import resolve_workflow_dependencies
 from lib.workflows.registry import get_workflow_manifest
-from lib.workflows.runner import run_workflow_with_dependency_check
+from lib.workflows.runner import (
+    run_workflow_from_config,
+    run_workflow_with_dependency_check,
+)
 from lib.workflows.workflow_types import WorkflowConfig
 
 
@@ -31,6 +34,88 @@ class AutoRunWorkflowItem(BaseModel):
 
 
 logger = logging.getLogger(__name__)
+
+
+async def _prepare_workflow_items(
+    workflow_types: List[WorkflowRunType],
+    request: StartMultipleWorkflowsRequest,
+    user: User,
+) -> tuple[Project, List[str], List[AutoRunWorkflowItem]]:
+    """
+    Resolve dependencies, apply skip logic, create run records, and build the
+    list of items ready for execution.
+
+    Returns a tuple of:
+    - project: the resolved Project instance
+    - all_workflow_run_ids: IDs of all newly created run records (including
+      human-trigger workflows that won't be auto-run)
+    - auto_run_items: subset of items that should actually be executed
+    """
+    project, _ = await get_project_access(
+        request.project_id, user=user, required_level=AccessLevel.WRITE
+    )
+
+    resolved_workflow_types = resolve_workflow_dependencies(workflow_types)
+
+    logger.info(
+        f"Resolved to {len(resolved_workflow_types)} workflows (including dependencies): {[w.value for w in resolved_workflow_types]}"
+    )
+
+    workflow_run_ids: List[str] = []
+    auto_run_items: List[AutoRunWorkflowItem] = []
+
+    for workflow_type in resolved_workflow_types:
+        manifest = get_workflow_manifest(workflow_type)
+        existing_run = await get_project_workflow_run_by_type(
+            request.project_id, workflow_type
+        )
+
+        # Skip if workflow is already completed and not explicitly requested
+        # unless the workflow is configured to always run
+        if (
+            existing_run
+            and workflow_type not in workflow_types
+            and not manifest.always_run
+            and (
+                existing_run.status == WorkflowRunStatus.COMPLETED
+                # Reference extraction should always run only once per project
+                or existing_run.type == WorkflowRunType.REFERENCE_EXTRACTION
+            )
+        ):
+            logger.info(
+                f"Skipping {workflow_type.value} - already exists for project {request.project_id} with status {existing_run.status}"
+            )
+            continue
+
+        workflow_config = create_workflow_config(
+            project, workflow_type, request.openai_api_key
+        )
+        thread_id = get_thread_id_for_workflow_run(existing_run)
+
+        workflow_run_id = await create_workflow_run(
+            project_id=request.project_id,
+            status=WorkflowRunStatus.PENDING,
+            type=workflow_type,
+            thread_id=thread_id,
+        )
+
+        workflow_run_ids.append(workflow_run_id)
+
+        if manifest.requires_human_trigger:
+            logger.info(
+                f"Workflow {workflow_type.value} requires human trigger - skipping auto-run"
+            )
+            continue
+
+        auto_run_items.append(
+            AutoRunWorkflowItem(
+                config=workflow_config,
+                thread_id=thread_id,
+                workflow_run_id=workflow_run_id,
+            )
+        )
+
+    return project, workflow_run_ids, auto_run_items
 
 
 async def start_workflow_run(
@@ -98,74 +183,9 @@ async def start_multiple_workflow_runs(
     Raises:
         HTTPException: If project_id is missing or project doesn't exist
     """
-    project, _ = await get_project_access(
-        request.project_id, user=user, required_level=AccessLevel.WRITE
+    _, workflow_run_ids, auto_run_items = await _prepare_workflow_items(
+        workflow_types, request, user
     )
-
-    # Resolve all required dependencies in dependency order
-    resolved_workflow_types = resolve_workflow_dependencies(workflow_types)
-
-    logger.info(
-        f"Resolved to {len(resolved_workflow_types)} workflows (including dependencies): {[w.value for w in resolved_workflow_types]}"
-    )
-
-    workflow_run_ids: List[str] = []
-    auto_run_items: List[AutoRunWorkflowItem] = []
-
-    for workflow_type in resolved_workflow_types:
-        manifest = get_workflow_manifest(workflow_type)
-        existing_run = await get_project_workflow_run_by_type(
-            request.project_id, workflow_type
-        )
-
-        # Skip if workflow is already completed and not explicitly requested
-        # unless the workflow is configured to always run
-        if (
-            existing_run
-            and workflow_type not in workflow_types
-            and not manifest.always_run
-            and (
-                existing_run.status == WorkflowRunStatus.COMPLETED
-                # Reference extraction should always run only once per project
-                or existing_run.type == WorkflowRunType.REFERENCE_EXTRACTION
-            )
-        ):
-            logger.info(
-                f"Skipping {workflow_type.value} - already exists for project {request.project_id} with status {existing_run.status}"
-            )
-            continue
-
-        # Create workflow-specific config
-        workflow_config = create_workflow_config(
-            project, workflow_type, request.openai_api_key
-        )
-
-        # Reuse thread_id from previous runs to maintain LangGraph checkpoint continuity
-        thread_id = get_thread_id_for_workflow_run(existing_run)
-
-        # Create new workflow run record
-        workflow_run_id = await create_workflow_run(
-            project_id=request.project_id,
-            status=WorkflowRunStatus.PENDING,
-            type=workflow_type,
-            thread_id=thread_id,
-        )
-
-        workflow_run_ids.append(workflow_run_id)
-
-        if manifest.requires_human_trigger:
-            logger.info(
-                f"Workflow {workflow_type.value} requires human trigger - skipping auto-run"
-            )
-            continue
-
-        auto_run_items.append(
-            AutoRunWorkflowItem(
-                config=workflow_config,
-                thread_id=thread_id,
-                workflow_run_id=workflow_run_id,
-            )
-        )
 
     if auto_run_items:
         logger.info(
@@ -182,6 +202,41 @@ async def start_multiple_workflow_runs(
         )
 
     return workflow_run_ids
+
+
+async def run_multiple_workflows_blocking(
+    workflow_types: List[WorkflowRunType],
+    request: StartMultipleWorkflowsRequest,
+    user: User,
+) -> tuple[Project, List[str]]:
+    """
+    Prepare and run multiple workflows sequentially, blocking until all complete.
+
+    Uses the same dependency resolution and skip logic as start_multiple_workflow_runs
+    but runs each workflow in series and awaits the result before starting the next.
+    Intended for callers that need the final state synchronously (e.g. MCP tools).
+
+    Args:
+        workflow_types: List of workflow types to run (dependencies resolved automatically)
+        request: Request containing project_id and optional openai_api_key
+        user: User running the workflows
+
+    Returns:
+        A tuple of (project, list of workflow_run_ids for all created runs)
+    """
+    project, workflow_run_ids, auto_run_items = await _prepare_workflow_items(
+        workflow_types, request, user
+    )
+
+    for item in auto_run_items:
+        await run_workflow_from_config(
+            config=item.config,
+            thread_id=item.thread_id,
+            workflow_run_id=item.workflow_run_id,
+            user=user,
+        )
+
+    return project, workflow_run_ids
 
 
 async def resume_workflow_run(
