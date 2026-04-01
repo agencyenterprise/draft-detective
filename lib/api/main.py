@@ -14,6 +14,7 @@ from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import Response
 from starlette.middleware.base import BaseHTTPMiddleware
 
+from lib.api.mcp import mcp_app, mcp_auth
 from lib.api.routers import (
     analysis,
     app_configs,
@@ -26,8 +27,8 @@ from lib.api.routers import (
     public,
     share,
     users,
-    workflows,
     workflow_types,
+    workflows,
 )
 from lib.api.routers.tus_upload import tus_router
 from lib.config.logger import setup_logger
@@ -38,15 +39,24 @@ logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
-async def lifespan(application: FastAPI):
+async def lifespan(app: FastAPI):
     """Seed default runtime configs on startup."""
     from lib.services.app_configs import seed_all_defaults
 
     await seed_all_defaults()
-    yield
+
+    async with mcp_app.lifespan(app):
+        yield
 
 
 app = FastAPI(title="AI Analyst API", lifespan=lifespan)
+
+# OAuth discovery routes must be at the origin root per RFC 8414 / RFC 9728.
+# The MCP app is mounted at /mcp, but clients look for .well-known at /.
+for route in mcp_auth.get_well_known_routes(mcp_path="/"):
+    app.routes.insert(0, route)
+
+app.mount("/mcp", mcp_app)
 
 
 class TusTerminationMiddleware(BaseHTTPMiddleware):

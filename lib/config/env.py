@@ -41,6 +41,17 @@ class Config(BaseModel):
         description="The secret key for the authentication. This is used to sign and verify JWT tokens. Shared by the frontend and backend.",
     )
 
+    # MCP / OAuth Authentication
+    AUTH_GOOGLE_ID: Optional[str] = None
+    AUTH_GOOGLE_SECRET: Optional[str] = None
+    AUTH_MICROSOFT_ENTRA_ID_ID: Optional[str] = None
+    AUTH_MICROSOFT_ENTRA_ID_SECRET: Optional[str] = None
+    AUTH_MICROSOFT_ENTRA_ID_ISSUER: Optional[str] = None
+    MCP_BASE_URL: str = Field(
+        default="http://localhost:8000/mcp",
+        description="Public URL of the MCP server (must include /mcp path)",
+    )
+
     # File uploads
     FILE_UPLOADS_MOUNT_PATH: str
 
@@ -80,4 +91,10 @@ config = Config(
     POSTGRES_USER=os.getenv("POSTGRES_USER"),
     POSTGRES_PASSWORD=os.getenv("POSTGRES_PASSWORD"),
     AUTH_SECRET=os.getenv("AUTH_SECRET"),
+    AUTH_GOOGLE_ID=os.getenv("AUTH_GOOGLE_ID"),
+    AUTH_GOOGLE_SECRET=os.getenv("AUTH_GOOGLE_SECRET"),
+    AUTH_MICROSOFT_ENTRA_ID_ID=os.getenv("AUTH_MICROSOFT_ENTRA_ID_ID"),
+    AUTH_MICROSOFT_ENTRA_ID_SECRET=os.getenv("AUTH_MICROSOFT_ENTRA_ID_SECRET"),
+    AUTH_MICROSOFT_ENTRA_ID_ISSUER=os.getenv("AUTH_MICROSOFT_ENTRA_ID_ISSUER"),
+    MCP_BASE_URL=os.getenv("MCP_BASE_URL", "http://localhost:8000/mcp"),
 )
