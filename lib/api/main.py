@@ -8,14 +8,13 @@ Business logic is organized in separate routers under api/routers/.
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
-from fastapi.responses import Response
 from fastmcp.utilities.lifespan import combine_lifespans
-from starlette.middleware.base import BaseHTTPMiddleware
 
 from lib.api.mcp import mcp_app, mcp_auth
+from lib.api.tus_middleware import TusTerminationMiddleware
 from lib.api.routers import (
     analysis,
     app_configs,
@@ -60,21 +59,6 @@ for route in mcp_auth.get_well_known_routes(mcp_path="/"):
     app.routes.insert(0, route)
 
 app.mount("/mcp", mcp_app)
-
-
-class TusTerminationMiddleware(BaseHTTPMiddleware):
-    """Handle TUS termination 404s gracefully - treat as already deleted."""
-
-    async def dispatch(self, request: Request, call_next):
-        response = await call_next(request)
-        # TUS DELETE on completed uploads returns 404 - treat as success
-        if (
-            request.method == "DELETE"
-            and request.url.path.startswith("/tus/")
-            and response.status_code == 404
-        ):
-            return Response(status_code=204)
-        return response
 
 
 app.add_middleware(TusTerminationMiddleware)
