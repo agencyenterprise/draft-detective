@@ -218,4 +218,7 @@ async def get_project(
     return await _get_project_details_json(project_id, AccessLevel.READ, user)
 
 
-mcp_app = mcp.http_app(path="/")
+mcp_app = mcp.http_app(
+    path="/",
+    stateless_http=True,  # Stateless mode is needed since production runs multiple instances (workers)
+)
