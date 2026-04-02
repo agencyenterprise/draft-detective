@@ -136,10 +136,6 @@ async def create_project(
         role=FileRole.MAIN,
     )
 
-    await ctx.info(
-        f"Created project {project.id} for user {user.email}. Project URL: {_build_project_url(str(project.id))}"
-    )
-
     return json.dumps(
         {
             "project_id": str(project.id),
