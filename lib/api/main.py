@@ -12,6 +12,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import Response
+from fastmcp.utilities.lifespan import combine_lifespans
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from lib.api.mcp import mcp_app, mcp_auth
@@ -45,11 +46,13 @@ async def lifespan(app: FastAPI):
 
     await seed_all_defaults()
 
-    async with mcp_app.lifespan(app):
-        yield
+    yield
 
 
-app = FastAPI(title="AI Analyst API", lifespan=lifespan)
+app = FastAPI(
+    title="AI Analyst API",
+    lifespan=combine_lifespans(lifespan, mcp_app.lifespan),
+)
 
 # OAuth discovery routes must be at the origin root per RFC 8414 / RFC 9728.
 # The MCP app is mounted at /mcp, but clients look for .well-known at /.
