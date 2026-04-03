@@ -9,6 +9,7 @@ import {
   deleteProjectFileEndpointApiProjectProjectIdFilesFileIdDelete,
   startWorkflowApiWorkflowsStartPost,
 } from '@/lib/generated-api';
+import { getErrorMessage } from '@/lib/api-error';
 import { QueryClient, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
@@ -21,8 +22,8 @@ function createOnSuccess(queryClient: QueryClient, projectId: string, message: s
 }
 
 function createOnError(fallbackMessage: string) {
-  return (error: Error) => {
-    toast.error(error instanceof Error ? error.message : fallbackMessage);
+  return (error: unknown) => {
+    toast.error(getErrorMessage(error, fallbackMessage));
   };
 }
 

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect, useRef } from 'react';
+import { getErrorMessage } from '@/lib/api-error';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -66,8 +67,8 @@ export function FileUploadDialog({
       });
       queryClient.invalidateQueries({ queryKey: ['project', projectId] });
       toast.success('Sources uploaded. Matching workflow started.');
-    } catch {
-      toast.error('Failed to start file matching workflow');
+    } catch (error) {
+      toast.error(getErrorMessage(error, 'Failed to start file matching workflow'));
     } finally {
       setIsStartingWorkflow(false);
       onComplete?.();

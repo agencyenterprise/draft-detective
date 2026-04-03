@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { getErrorMessage } from '@/lib/api-error';
 import { approveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePost } from '@/lib/generated-api';
 
 export function useApproveAndNavigate(projectId: string, humanApprovalRunId: string | undefined) {
@@ -24,7 +25,7 @@ export function useApproveAndNavigate(projectId: string, humanApprovalRunId: str
       router.push(`/projects/${projectId}?fromWizard=true`);
     },
     onError: (error) => {
-      toast.error(error instanceof Error ? error.message : 'Failed to start analysis');
+      toast.error(getErrorMessage(error, 'Failed to start analysis'));
     },
   });
 }

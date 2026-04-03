@@ -20,6 +20,7 @@ import {
   WorkflowRunType,
 } from '@/lib/generated-api';
 import { useMutation } from '@tanstack/react-query';
+import { getErrorMessage } from '@/lib/api-error';
 import { toast } from 'sonner';
 
 export function StepAnalyses() {
@@ -70,7 +71,7 @@ export function StepAnalyses() {
       }
     },
     onError: (error) => {
-      toast.error(error instanceof Error ? error.message : 'Failed to start analysis');
+      toast.error(getErrorMessage(error, 'Failed to start analysis'));
     },
   });
 

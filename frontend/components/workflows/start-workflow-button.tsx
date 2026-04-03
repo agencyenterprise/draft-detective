@@ -4,6 +4,7 @@ import {
   WorkflowRunStatus,
   WorkflowRunType,
 } from '@/lib/generated-api';
+import { getErrorMessage } from '@/lib/api-error';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Loader2Icon, PlayIcon, XIcon } from 'lucide-react';
@@ -50,7 +51,7 @@ export function StartWorkflowButton({ type, projectId, workflow, onConfirm }: St
     },
     onError: (error) => {
       console.error(`Failed to start ${workflowName} workflow:`, error);
-      toast.error(error instanceof Error ? error.message : `Failed to start ${workflowName} workflow`);
+      toast.error(getErrorMessage(error, `Failed to start ${workflowName} workflow`));
     },
   });
 
@@ -65,7 +66,7 @@ export function StartWorkflowButton({ type, projectId, workflow, onConfirm }: St
     },
     onError: (error) => {
       console.error(`Failed to cancel ${workflowName} workflow:`, error);
-      toast.error(error instanceof Error ? error.message : `Failed to cancel ${workflowName} workflow`);
+      toast.error(getErrorMessage(error, `Failed to cancel ${workflowName} workflow`));
     },
   });
 

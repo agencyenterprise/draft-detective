@@ -1,6 +1,7 @@
 import { useState, useCallback, useMemo } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { getErrorMessage } from '@/lib/api-error';
 import { useWizard, PreflightStatus } from './wizard-context';
 import { MAX_FILE_SIZE_BYTES } from '@/lib/constants';
 import { uploadSingleFile, formatBytes, UploadProgress } from '@/lib/hooks/upload';
@@ -90,7 +91,7 @@ export function useStepUpload(onComplete: () => void) {
     onError: (error) => {
       setUploadStage('idle');
       setUploadProgress(null);
-      toast.error(error instanceof Error ? error.message : 'Failed to create project');
+      toast.error(getErrorMessage(error, 'Failed to create project'));
     },
   });
 
