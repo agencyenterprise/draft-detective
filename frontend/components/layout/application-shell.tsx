@@ -29,7 +29,7 @@ export function ApplicationShell({ children }: ApplicationShellProps) {
     current: pathname.startsWith(item.href),
   }));
 
-  if (pathname.startsWith('/addin')) {
+  if (pathname.startsWith('/addin') || pathname.startsWith('/stitch') || pathname.startsWith('/prototype')) {
     return <>{children}</>;
   }
 

@@ -293,10 +293,10 @@ export default function StitchPrototypePage() {
             </div>
 
             {/* Category Filter */}
-            <div className="flex flex-wrap gap-1.5">
+            <div className="flex flex-wrap gap-1">
               <button
                 onClick={() => setFilter('all')}
-                className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded-[3px] transition-colors"
+                className="px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded-[3px] transition-colors whitespace-nowrap"
                 style={{
                   fontFamily: F.label,
                   backgroundColor: filter === 'all' ? C.primary : C.surfaceHigh,
@@ -311,7 +311,7 @@ export default function StitchPrototypePage() {
                   <button
                     key={cat}
                     onClick={() => setFilter(cat === filter ? 'all' : cat)}
-                    className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded-[3px] transition-colors"
+                    className="px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded-[3px] transition-colors whitespace-nowrap"
                     style={{
                       fontFamily: F.label,
                       backgroundColor: filter === cat ? C.primary : C.surfaceHigh,
