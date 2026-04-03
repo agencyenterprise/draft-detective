@@ -108,8 +108,9 @@ async def ensure_defaults(defaults: List[DefaultConfig]) -> None:
 def _collect_all_defaults() -> List[DefaultConfig]:
     """Gather every DefaultConfig list registered across the codebase."""
     from lib.workflows.about_this_ger.config_keys import ABOUT_THIS_GER_DEFAULTS
+    from lib.config_keys.about_page import ABOUT_PAGE_DEFAULTS
 
-    return [*ABOUT_THIS_GER_DEFAULTS]
+    return [*ABOUT_THIS_GER_DEFAULTS, *ABOUT_PAGE_DEFAULTS]
 
 
 async def seed_all_defaults() -> None:

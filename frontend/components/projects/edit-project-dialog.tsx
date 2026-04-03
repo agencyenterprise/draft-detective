@@ -194,7 +194,7 @@ export function EditProjectDialog({
                   <SelectItem value={FeedbackVisibility.Private}>Only me — don&apos;t share any information</SelectItem>
                   <SelectItem value={FeedbackVisibility.IssueOnly}>Share issue information only</SelectItem>
                   <SelectItem value={FeedbackVisibility.FullProject}>
-                    Share whole project with administrators
+                    Share whole project with administrators (read-only mode)
                   </SelectItem>
                 </SelectContent>
               </Select>

@@ -3,8 +3,9 @@ import uuid
 
 from langfuse import propagate_attributes
 from langgraph.graph import StateGraph
+from langgraph.graph.state import CompiledStateGraph
 
-from api.services.workflow_orchestration import wait_for_dependencies
+from lib.services.workflow_orchestration import wait_for_dependencies
 from lib.config.env import config as env_config
 from lib.config.langfuse import langfuse_handler
 from lib.models.user import User
@@ -13,11 +14,16 @@ from lib.services.file_artifacts_service.file_artifacts_service import (
     FileArtifactsService,
 )
 from lib.services.issue_persistence import persist_workflow_issues
+from lib.services.users import get_user_decrypted_api_key
 from lib.services.vector_store import VectorStoreService
 from lib.services.workflow_runs import update_workflow_run_status
 from lib.workflows.checkpointer import get_checkpointer
 from lib.workflows.context import ContextSchema
-from lib.workflows.models import BaseWorkflowConfig, WorkflowError
+from lib.workflows.models import (
+    BaseWorkflowConfig,
+    WorkflowCancelledError,
+    WorkflowError,
+)
 from lib.workflows.registry import create_graph, create_state, get_workflow_manifest
 from lib.workflows.workflow_types import WorkflowConfig, WorkflowState
 
@@ -52,6 +58,11 @@ async def run_workflow_with_dependency_check(
             workflow_run_id=workflow_run_id,
             user=user,
         )
+
+    except WorkflowCancelledError:
+        logger.info(f"Workflow {workflow_run_id} ({config.type.value}) was cancelled")
+        # Status is already CANCELLED in DB; the guard in update_workflow_run_status
+        # prevents it from being overwritten
 
     except Exception as e:
         logger.error(f"Error running workflow: {e}", exc_info=True)
@@ -150,6 +161,14 @@ async def run_workflow(
                 state=updated_state,
                 checkpoint_id=checkpoint_id,
             )
+        except WorkflowCancelledError:
+            logger.info(
+                f"Workflow {workflow_type} for project {project_id} was cancelled — running cleanup"
+            )
+            manifest = get_workflow_manifest(workflow_type, raise_exception=False)
+            if manifest:
+                await manifest.on_cancel(updated_state, app, thread_config)
+
         except Exception as e:
             logger.error(f"Error running workflow {workflow_type}: {e}", exc_info=True)
             error = WorkflowError(
@@ -180,13 +199,15 @@ def create_context(
     """
     Create workflow context.
 
+    Key resolution: per-request key > user's stored key > server env var.
     Each workflow declares whether it requires an API key via requires_api_key().
     Workflows that don't use LLMs (data manipulation only) can return False.
     """
+    user_stored_key = get_user_decrypted_api_key(user) if user else None
+    openai_api_key = (
+        config.openai_api_key or user_stored_key or env_config.OPENAI_API_KEY
+    )
 
-    openai_api_key = config.openai_api_key or env_config.OPENAI_API_KEY
-
-    # Check if workflow requires API key (defined by the workflow config itself)
     if not openai_api_key and config.requires_api_key():
         raise ValueError("No OpenAI API key found in config or environment variables")
 

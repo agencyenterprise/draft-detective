@@ -63,3 +63,6 @@ class User(SQLModel, table=True):
         sa_column=Column(Boolean, nullable=False, default=False),
         description="Whether the user has opted into experimental features",
     )
+    encrypted_openai_api_key: str | None = Field(
+        sa_column=Column(String, nullable=True, default=None),
+    )

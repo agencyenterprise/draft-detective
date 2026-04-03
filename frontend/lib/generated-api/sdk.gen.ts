@@ -6,6 +6,9 @@ import type {
   ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostData,
   ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostErrors,
   ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostResponses,
+  CancelWorkflowRunEndpointApiWorkflowRunsWorkflowRunIdCancelPostData,
+  CancelWorkflowRunEndpointApiWorkflowRunsWorkflowRunIdCancelPostErrors,
+  CancelWorkflowRunEndpointApiWorkflowRunsWorkflowRunIdCancelPostResponses,
   CheckPreflightApiPreflightPostData,
   CheckPreflightApiPreflightPostErrors,
   CheckPreflightApiPreflightPostResponses,
@@ -63,6 +66,9 @@ import type {
   GetAdminFeedbacksApiAdminFeedbacksGetData,
   GetAdminFeedbacksApiAdminFeedbacksGetErrors,
   GetAdminFeedbacksApiAdminFeedbacksGetResponses,
+  GetAppConfigApiAppConfigsKeyGetData,
+  GetAppConfigApiAppConfigsKeyGetErrors,
+  GetAppConfigApiAppConfigsKeyGetResponses,
   GetCurrentUserInfoApiUsersMeGetData,
   GetCurrentUserInfoApiUsersMeGetResponses,
   GetFeedbackApiFeedbackGetData,
@@ -113,12 +119,17 @@ import type {
   ReadHealthApiHealthGetResponses,
   ReadHealthApiHealthHeadData,
   ReadHealthApiHealthHeadResponses,
+  RemoveApiKeyApiUsersMeApiKeyDeleteData,
+  RemoveApiKeyApiUsersMeApiKeyDeleteResponses,
   ResetAppConfigApiAppConfigsKeyDeleteData,
   ResetAppConfigApiAppConfigsKeyDeleteErrors,
   ResetAppConfigApiAppConfigsKeyDeleteResponses,
   ResolveIssueEndpointApiIssuesIssueIdResolvePostData,
   ResolveIssueEndpointApiIssuesIssueIdResolvePostErrors,
   ResolveIssueEndpointApiIssuesIssueIdResolvePostResponses,
+  SetApiKeyApiUsersMeApiKeyPutData,
+  SetApiKeyApiUsersMeApiKeyPutErrors,
+  SetApiKeyApiUsersMeApiKeyPutResponses,
   StartAnalysisApiStartAnalysisDoNotUsePostData,
   StartAnalysisApiStartAnalysisDoNotUsePostErrors,
   StartAnalysisApiStartAnalysisDoNotUsePostResponses,
@@ -171,7 +182,7 @@ export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends 
 /**
  * Read Health
  *
- * Health check endpoint
+ * Health check endpoint — verifies database connectivity.
  */
 export const readHealthApiHealthGet = <ThrowOnError extends boolean = true>(
   options?: Options<ReadHealthApiHealthGetData, ThrowOnError>,
@@ -185,7 +196,7 @@ export const readHealthApiHealthGet = <ThrowOnError extends boolean = true>(
 /**
  * Read Health
  *
- * Health check endpoint
+ * Health check endpoint — verifies database connectivity.
  */
 export const readHealthApiHealthHead = <ThrowOnError extends boolean = true>(
   options?: Options<ReadHealthApiHealthHeadData, ThrowOnError>,
@@ -222,6 +233,26 @@ export const resetAppConfigApiAppConfigsKeyDelete = <ThrowOnError extends boolea
   (options.client ?? client).delete<
     ResetAppConfigApiAppConfigsKeyDeleteResponses,
     ResetAppConfigApiAppConfigsKeyDeleteErrors,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/app-configs/{key}',
+    ...options,
+  });
+
+/**
+ * Get App Config
+ *
+ * Return the value for a single config key. Available to all authenticated users.
+ */
+export const getAppConfigApiAppConfigsKeyGet = <ThrowOnError extends boolean = true>(
+  options: Options<GetAppConfigApiAppConfigsKeyGetData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    GetAppConfigApiAppConfigsKeyGetResponses,
+    GetAppConfigApiAppConfigsKeyGetErrors,
     ThrowOnError,
     'data'
   >({
@@ -435,6 +466,29 @@ export const approveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePost = <ThrowO
     responseStyle: 'data',
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/workflow-runs/{workflow_run_id}/approve',
+    ...options,
+  });
+
+/**
+ * Cancel Workflow Run Endpoint
+ *
+ * Cancel a workflow run that is pending or running.
+ *
+ * Cascades cancellation to any active workflow runs that have the cancelled
+ * workflow as a required dependency.
+ */
+export const cancelWorkflowRunEndpointApiWorkflowRunsWorkflowRunIdCancelPost = <ThrowOnError extends boolean = true>(
+  options: Options<CancelWorkflowRunEndpointApiWorkflowRunsWorkflowRunIdCancelPostData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    CancelWorkflowRunEndpointApiWorkflowRunsWorkflowRunIdCancelPostResponses,
+    CancelWorkflowRunEndpointApiWorkflowRunsWorkflowRunIdCancelPostErrors,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/workflow-runs/{workflow_run_id}/cancel',
     ...options,
   });
 
@@ -1232,6 +1286,45 @@ export const updatePreferencesApiUsersMePreferencesPatch = <ThrowOnError extends
     responseStyle: 'data',
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/users/me/preferences',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * Remove Api Key
+ *
+ * Remove the stored OpenAI API key for the current user.
+ */
+export const removeApiKeyApiUsersMeApiKeyDelete = <ThrowOnError extends boolean = true>(
+  options?: Options<RemoveApiKeyApiUsersMeApiKeyDeleteData, ThrowOnError>,
+) =>
+  (options?.client ?? client).delete<RemoveApiKeyApiUsersMeApiKeyDeleteResponses, unknown, ThrowOnError, 'data'>({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/users/me/api-key',
+    ...options,
+  });
+
+/**
+ * Set Api Key
+ *
+ * Validate and store an OpenAI API key for the current user.
+ */
+export const setApiKeyApiUsersMeApiKeyPut = <ThrowOnError extends boolean = true>(
+  options: Options<SetApiKeyApiUsersMeApiKeyPutData, ThrowOnError>,
+) =>
+  (options.client ?? client).put<
+    SetApiKeyApiUsersMeApiKeyPutResponses,
+    SetApiKeyApiUsersMeApiKeyPutErrors,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/users/me/api-key',
     ...options,
     headers: {
       'Content-Type': 'application/json',

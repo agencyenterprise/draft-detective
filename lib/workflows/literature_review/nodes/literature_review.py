@@ -12,10 +12,7 @@ from lib.workflows.literature_review.state import LiteratureReviewState
 logger = logging.getLogger(__name__)
 
 
-@register_node(
-    "Review literature",
-    "Review the literature for the document",
-)
+@register_node("Review literature")
 async def literature_review(
     state: LiteratureReviewState, runtime: Runtime[ContextSchema]
 ):

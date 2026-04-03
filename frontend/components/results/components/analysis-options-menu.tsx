@@ -21,6 +21,7 @@ import {
 } from '@/lib/generated-api';
 import { useDocumentExplorerStore } from '@/lib/stores/document-explorer-store';
 import { getWorkflowRunByType } from '@/lib/workflow-state';
+import { getErrorMessage } from '@/lib/api-error';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Download, EllipsisVerticalIcon, Link, Pencil } from 'lucide-react';
 import { useState } from 'react';
@@ -89,7 +90,7 @@ export function AnalysisOptionsMenu({ project, results, readOnly }: AnalysisOpti
       toast.success('Project details updated successfully');
     },
     onError: (error) => {
-      toast.error(`Failed to update project: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      toast.error(`Failed to update project: ${getErrorMessage(error, 'Unknown error')}`);
     },
   });
 

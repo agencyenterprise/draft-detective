@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import uuid
+from datetime import datetime
 from typing import List, Optional
 
 from fastapi import HTTPException
@@ -100,12 +101,14 @@ async def create_workflow_run(
     thread_id: str,
 ) -> str:
     """Create a new workflow run record."""
+    now = datetime.utcnow()
     async with get_async_db_session() as session:
         run = WorkflowRun(
             langgraph_thread_id=thread_id,
             project_id=project_id,
             status=status,
             type=type,
+            completed_at=now if status == WorkflowRunStatus.COMPLETED else None,
         )
         session.add(run)
         await session.commit()
@@ -117,13 +120,55 @@ async def update_workflow_run_status(
     workflow_run_id: str,
     status: WorkflowRunStatus,
 ) -> None:
-    """Update an existing workflow run's status."""
+    """Update an existing workflow run's status. Never overwrites CANCELLED."""
     async with get_async_db_session() as session:
-        stmt = select(WorkflowRun).where(col(WorkflowRun.id) == workflow_run_id)
+        stmt = select(WorkflowRun).where(
+            and_(
+                col(WorkflowRun.id) == workflow_run_id,
+                col(WorkflowRun.status) != WorkflowRunStatus.CANCELLED,
+            )
+        )
         run = (await session.execute(stmt)).scalar_one_or_none()
         if run:
+            now = datetime.utcnow()
             run.status = status
+            if status == WorkflowRunStatus.RUNNING and run.started_at is None:
+                run.started_at = now
+            if status in (WorkflowRunStatus.COMPLETED, WorkflowRunStatus.CANCELLED):
+                run.completed_at = now
             await session.commit()
+
+
+async def get_workflow_run_status(workflow_run_id: str) -> WorkflowRunStatus | None:
+    """Lightweight fetch of just the status for a workflow run. Used for cancellation checks."""
+    async with get_async_db_session() as session:
+        stmt = select(WorkflowRun.status).where(col(WorkflowRun.id) == workflow_run_id)
+        return (await session.execute(stmt)).scalar_one_or_none()
+
+
+async def cancel_workflow_run(workflow_run_id: str, project_id: str) -> None:
+    """
+    Cancel a workflow run and recursively cancel any active runs that depend on it.
+
+    Only cascades through required_dependencies — optional dependents are left running
+    since they handle missing data by design.
+    """
+    from lib.services.workflow_progress import cancel_workflow_progress
+    from lib.workflows.dependency_resolver import get_required_dependents
+
+    run = await get_workflow_run(workflow_run_id)
+    await cancel_workflow_progress(run.project_id, run.type)
+    await update_workflow_run_status(workflow_run_id, WorkflowRunStatus.CANCELLED)
+
+    for dependent_type in get_required_dependents(run.type):
+        dependent_run = await get_project_workflow_run_by_type(
+            project_id, dependent_type
+        )
+        if dependent_run and dependent_run.status in (
+            WorkflowRunStatus.PENDING,
+            WorkflowRunStatus.RUNNING,
+        ):
+            await cancel_workflow_run(str(dependent_run.id), project_id)
 
 
 async def get_project_workflow_run_by_type(

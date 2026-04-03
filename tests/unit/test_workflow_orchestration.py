@@ -4,7 +4,7 @@ import pytest
 from unittest.mock import AsyncMock, patch, MagicMock
 from uuid import uuid4
 
-from api.services.workflow_orchestration import wait_for_dependencies
+from lib.services.workflow_orchestration import wait_for_dependencies
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus, WorkflowRunType
 
 
@@ -62,14 +62,14 @@ async def test_same_type_lock_waits_for_running_workflow(mock_manifest):
 
     with (
         patch(
-            "api.services.workflow_orchestration.get_workflow_manifest",
+            "lib.services.workflow_orchestration.get_workflow_manifest",
             return_value=mock_manifest,
         ),
         patch(
-            "api.services.workflow_orchestration.get_project_workflow_run_by_type",
+            "lib.services.workflow_orchestration.get_project_workflow_run_by_type",
             side_effect=mock_get_run,
         ),
-        patch("api.services.workflow_orchestration.asyncio.sleep", new=AsyncMock()),
+        patch("lib.services.workflow_orchestration.asyncio.sleep", new=AsyncMock()),
     ):
         await wait_for_dependencies(
             WorkflowRunType.DOCUMENT_PROCESSING,
@@ -96,14 +96,14 @@ async def test_same_type_lock_skips_self(mock_manifest):
 
     with (
         patch(
-            "api.services.workflow_orchestration.get_workflow_manifest",
+            "lib.services.workflow_orchestration.get_workflow_manifest",
             return_value=mock_manifest,
         ),
         patch(
-            "api.services.workflow_orchestration.get_project_workflow_run_by_type",
+            "lib.services.workflow_orchestration.get_project_workflow_run_by_type",
             return_value=own_run,
         ) as mock_get_run,
-        patch("api.services.workflow_orchestration.asyncio.sleep", new=AsyncMock()) as mock_sleep,
+        patch("lib.services.workflow_orchestration.asyncio.sleep", new=AsyncMock()) as mock_sleep,
     ):
         await wait_for_dependencies(
             WorkflowRunType.DOCUMENT_PROCESSING,
@@ -124,14 +124,14 @@ async def test_same_type_lock_proceeds_when_no_other_run_exists(mock_manifest):
 
     with (
         patch(
-            "api.services.workflow_orchestration.get_workflow_manifest",
+            "lib.services.workflow_orchestration.get_workflow_manifest",
             return_value=mock_manifest,
         ),
         patch(
-            "api.services.workflow_orchestration.get_project_workflow_run_by_type",
+            "lib.services.workflow_orchestration.get_project_workflow_run_by_type",
             return_value=None,
         ) as mock_get_run,
-        patch("api.services.workflow_orchestration.asyncio.sleep", new=AsyncMock()) as mock_sleep,
+        patch("lib.services.workflow_orchestration.asyncio.sleep", new=AsyncMock()) as mock_sleep,
     ):
         await wait_for_dependencies(
             WorkflowRunType.DOCUMENT_PROCESSING,
@@ -159,14 +159,14 @@ async def test_same_type_lock_proceeds_when_other_run_completed(mock_manifest):
 
     with (
         patch(
-            "api.services.workflow_orchestration.get_workflow_manifest",
+            "lib.services.workflow_orchestration.get_workflow_manifest",
             return_value=mock_manifest,
         ),
         patch(
-            "api.services.workflow_orchestration.get_project_workflow_run_by_type",
+            "lib.services.workflow_orchestration.get_project_workflow_run_by_type",
             return_value=completed_run,
         ) as mock_get_run,
-        patch("api.services.workflow_orchestration.asyncio.sleep", new=AsyncMock()) as mock_sleep,
+        patch("lib.services.workflow_orchestration.asyncio.sleep", new=AsyncMock()) as mock_sleep,
     ):
         await wait_for_dependencies(
             WorkflowRunType.DOCUMENT_PROCESSING,
@@ -193,14 +193,14 @@ async def test_no_same_type_lock_when_no_run_id_provided(mock_manifest):
 
     with (
         patch(
-            "api.services.workflow_orchestration.get_workflow_manifest",
+            "lib.services.workflow_orchestration.get_workflow_manifest",
             return_value=mock_manifest,
         ),
         patch(
-            "api.services.workflow_orchestration.get_project_workflow_run_by_type",
+            "lib.services.workflow_orchestration.get_project_workflow_run_by_type",
             return_value=running_run,
         ) as mock_get_run,
-        patch("api.services.workflow_orchestration.asyncio.sleep", new=AsyncMock()) as mock_sleep,
+        patch("lib.services.workflow_orchestration.asyncio.sleep", new=AsyncMock()) as mock_sleep,
     ):
         # No current_workflow_run_id = no same-type locking
         await wait_for_dependencies(
@@ -264,14 +264,14 @@ async def test_waits_for_both_same_type_and_dependencies():
 
     with (
         patch(
-            "api.services.workflow_orchestration.get_workflow_manifest",
+            "lib.services.workflow_orchestration.get_workflow_manifest",
             return_value=manifest,
         ),
         patch(
-            "api.services.workflow_orchestration.get_project_workflow_run_by_type",
+            "lib.services.workflow_orchestration.get_project_workflow_run_by_type",
             side_effect=mock_get_run,
         ),
-        patch("api.services.workflow_orchestration.asyncio.sleep", new=AsyncMock()) as mock_sleep,
+        patch("lib.services.workflow_orchestration.asyncio.sleep", new=AsyncMock()) as mock_sleep,
     ):
         await wait_for_dependencies(
             WorkflowRunType.REFERENCE_EXTRACTION,
@@ -281,4 +281,125 @@ async def test_waits_for_both_same_type_and_dependencies():
 
     # Should have called sleep multiple times waiting for blockers
     assert mock_sleep.call_count >= 2
+
+
+@pytest.mark.asyncio
+async def test_same_type_cancelled_run_does_not_block(mock_manifest):
+    """A CANCELLED same-type run is treated as terminal and does not block execution."""
+    project_id = str(uuid4())
+    current_run_id = str(uuid4())
+    other_run_id = str(uuid4())
+
+    cancelled_run = create_workflow_run(
+        WorkflowRunType.DOCUMENT_PROCESSING,
+        WorkflowRunStatus.CANCELLED,
+        run_id=other_run_id,
+    )
+
+    with (
+        patch(
+            "lib.services.workflow_orchestration.get_workflow_manifest",
+            return_value=mock_manifest,
+        ),
+        patch(
+            "lib.services.workflow_orchestration.get_project_workflow_run_by_type",
+            return_value=cancelled_run,
+        ) as mock_get_run,
+        patch(
+            "lib.services.workflow_orchestration.asyncio.sleep", new=AsyncMock()
+        ) as mock_sleep,
+    ):
+        await wait_for_dependencies(
+            WorkflowRunType.DOCUMENT_PROCESSING,
+            project_id,
+            current_workflow_run_id=current_run_id,
+        )
+
+    mock_sleep.assert_not_called()
+    mock_get_run.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_cancelled_required_dependency_raises_workflow_cancelled_error():
+    """If a required dependency is CANCELLED, WorkflowCancelledError is raised and the current run is cancelled."""
+    from lib.workflows.models import WorkflowCancelledError
+
+    project_id = str(uuid4())
+    current_run_id = str(uuid4())
+
+    manifest = MagicMock()
+    manifest.required_dependencies = [WorkflowRunType.DOCUMENT_PROCESSING]
+    manifest.optional_dependencies = []
+
+    cancelled_dep = create_workflow_run(
+        WorkflowRunType.DOCUMENT_PROCESSING,
+        WorkflowRunStatus.CANCELLED,
+    )
+
+    # Same-type check returns None so the same-type lock does not interfere
+    async def mock_get_run(proj_id, workflow_type):
+        if workflow_type == WorkflowRunType.REFERENCE_EXTRACTION:
+            return None
+        return cancelled_dep
+
+    with (
+        patch(
+            "lib.services.workflow_orchestration.get_workflow_manifest",
+            return_value=manifest,
+        ),
+        patch(
+            "lib.services.workflow_orchestration.get_project_workflow_run_by_type",
+            side_effect=mock_get_run,
+        ),
+        patch(
+            "lib.services.workflow_orchestration.update_workflow_run_status",
+            new=AsyncMock(),
+        ) as mock_update_status,
+        patch("lib.services.workflow_orchestration.asyncio.sleep", new=AsyncMock()),
+    ):
+        with pytest.raises(WorkflowCancelledError):
+            await wait_for_dependencies(
+                WorkflowRunType.REFERENCE_EXTRACTION,
+                project_id,
+                current_workflow_run_id=current_run_id,
+            )
+
+    mock_update_status.assert_awaited_once_with(
+        current_run_id, WorkflowRunStatus.CANCELLED
+    )
+
+
+@pytest.mark.asyncio
+async def test_cancelled_optional_dependency_does_not_raise():
+    """A CANCELLED optional dependency is silently skipped — the workflow proceeds."""
+    project_id = str(uuid4())
+    current_run_id = str(uuid4())
+
+    manifest = MagicMock()
+    manifest.required_dependencies = []
+    manifest.optional_dependencies = [WorkflowRunType.DOCUMENT_PROCESSING]
+
+    cancelled_dep = create_workflow_run(
+        WorkflowRunType.DOCUMENT_PROCESSING,
+        WorkflowRunStatus.CANCELLED,
+    )
+
+    with (
+        patch(
+            "lib.services.workflow_orchestration.get_workflow_manifest",
+            return_value=manifest,
+        ),
+        patch(
+            "lib.services.workflow_orchestration.get_project_workflow_run_by_type",
+            return_value=cancelled_dep,
+        ),
+        patch("lib.services.workflow_orchestration.asyncio.sleep", new=AsyncMock()) as mock_sleep,
+    ):
+        await wait_for_dependencies(
+            WorkflowRunType.REFERENCE_EXTRACTION,
+            project_id,
+            current_workflow_run_id=current_run_id,
+        )
+
+    mock_sleep.assert_not_called()
 

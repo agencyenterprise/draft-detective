@@ -11,10 +11,7 @@ from lib.workflows.methodological_alignment.state import MethodologicalAlignment
 logger = logging.getLogger(__name__)
 
 
-@register_node(
-    "Align methodology",
-    "Compare the document's methodology to typical methods used in the broader field using web search",
-)
+@register_node("Align methodology")
 async def align_methodology(
     state: MethodologicalAlignmentState, runtime: Runtime[ContextSchema]
 ):

@@ -1,5 +1,6 @@
 import type { FeedbackRequest, FeedbackResponse, FeedbackType } from '@/lib/generated-api';
 import { getProjectFeedbackApiFeedbackProjectProjectIdGet, submitFeedbackApiFeedbackPost } from '@/lib/generated-api';
+import { getErrorMessage } from '@/lib/api-error';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useMemo } from 'react';
 import { toast } from 'sonner';
@@ -79,8 +80,8 @@ export function useProjectFeedback(projectId: string | undefined) {
       });
       toast.success('Thanks for your feedback!');
     },
-    onError: () => {
-      toast.error('Failed to submit feedback');
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Failed to submit feedback'));
     },
   });
 

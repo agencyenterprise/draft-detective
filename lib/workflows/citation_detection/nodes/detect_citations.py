@@ -53,10 +53,7 @@ def _batch_chunks(
     return [chunks[i : i + batch_size] for i in range(0, len(chunks), batch_size)]
 
 
-@register_node(
-    "Detect citations",
-    "Detect citations in the document",
-)
+@register_node("Detect citations")
 async def detect_citations(
     state: CitationDetectionState, runtime: Runtime[ContextSchema]
 ) -> Dict[str, Any]:

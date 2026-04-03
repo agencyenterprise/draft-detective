@@ -1,9 +1,12 @@
 """Tests for automatic workflow dependency resolution."""
 
 import pytest
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
-from lib.workflows.dependency_resolver import resolve_workflow_dependencies
+from lib.workflows.dependency_resolver import (
+    get_required_dependents,
+    resolve_workflow_dependencies,
+)
 from lib.workflows.models import WorkflowRunType
 
 
@@ -103,3 +106,110 @@ def test_circular_dependency_detection():
     ):
         with pytest.raises(ValueError, match="Circular dependency detected"):
             resolve_workflow_dependencies([WorkflowRunType.DOCUMENT_PROCESSING])
+
+
+# ---------------------------------------------------------------------------
+# get_required_dependents
+# ---------------------------------------------------------------------------
+
+
+def _make_all_manifests(deps: dict[WorkflowRunType, list[WorkflowRunType]]):
+    """Build a fake all-manifests dict from a {type: required_deps} mapping."""
+    manifests = {}
+    for wf_type, required in deps.items():
+        m = MagicMock()
+        m.required_dependencies = required
+        manifests[wf_type] = m
+    return manifests
+
+
+def _patch_all_manifests(manifests):
+    return patch("lib.workflows.registry.get_all_manifests", return_value=manifests)
+
+
+def test_get_required_dependents_returns_empty_for_leaf_node():
+    """A workflow that no one depends on returns an empty list."""
+    manifests = _make_all_manifests(
+        {
+            WorkflowRunType.DOCUMENT_PROCESSING: [],
+            WorkflowRunType.REFERENCE_EXTRACTION: [WorkflowRunType.DOCUMENT_PROCESSING],
+        }
+    )
+    with _patch_all_manifests(manifests):
+        result = get_required_dependents(WorkflowRunType.REFERENCE_EXTRACTION)
+
+    assert result == []
+
+
+def test_get_required_dependents_returns_direct_dependents():
+    """Direct dependents of a workflow are returned."""
+    manifests = _make_all_manifests(
+        {
+            WorkflowRunType.DOCUMENT_PROCESSING: [],
+            WorkflowRunType.REFERENCE_EXTRACTION: [WorkflowRunType.DOCUMENT_PROCESSING],
+            WorkflowRunType.REFERENCE_VALIDATION: [WorkflowRunType.DOCUMENT_PROCESSING],
+        }
+    )
+    with _patch_all_manifests(manifests):
+        result = get_required_dependents(WorkflowRunType.DOCUMENT_PROCESSING)
+
+    assert set(result) == {
+        WorkflowRunType.REFERENCE_EXTRACTION,
+        WorkflowRunType.REFERENCE_VALIDATION,
+    }
+
+
+def test_get_required_dependents_returns_transitive_dependents():
+    """BFS finds indirect dependents (A requires B requires C → get_required_dependents(C) includes A)."""
+    manifests = _make_all_manifests(
+        {
+            WorkflowRunType.DOCUMENT_PROCESSING: [],
+            WorkflowRunType.REFERENCE_EXTRACTION: [WorkflowRunType.DOCUMENT_PROCESSING],
+            WorkflowRunType.REFERENCE_VALIDATION: [WorkflowRunType.REFERENCE_EXTRACTION],
+        }
+    )
+    with _patch_all_manifests(manifests):
+        result = get_required_dependents(WorkflowRunType.DOCUMENT_PROCESSING)
+
+    assert set(result) == {
+        WorkflowRunType.REFERENCE_EXTRACTION,
+        WorkflowRunType.REFERENCE_VALIDATION,
+    }
+
+
+def test_get_required_dependents_does_not_include_source_workflow():
+    """The queried workflow type itself is never in the result."""
+    manifests = _make_all_manifests(
+        {
+            WorkflowRunType.DOCUMENT_PROCESSING: [],
+            WorkflowRunType.REFERENCE_EXTRACTION: [WorkflowRunType.DOCUMENT_PROCESSING],
+        }
+    )
+    with _patch_all_manifests(manifests):
+        result = get_required_dependents(WorkflowRunType.DOCUMENT_PROCESSING)
+
+    assert WorkflowRunType.DOCUMENT_PROCESSING not in result
+
+
+def test_get_required_dependents_no_duplicates_in_diamond_graph():
+    """A workflow reached through multiple paths is returned only once."""
+    # DOCUMENT_PROCESSING is required by both REFERENCE_EXTRACTION and CHUNK_SPLITTING.
+    # REFERENCE_VALIDATION requires REFERENCE_EXTRACTION.
+    # Cancelling DOCUMENT_PROCESSING should list both paths without duplicates.
+    manifests = _make_all_manifests(
+        {
+            WorkflowRunType.DOCUMENT_PROCESSING: [],
+            WorkflowRunType.REFERENCE_EXTRACTION: [WorkflowRunType.DOCUMENT_PROCESSING],
+            WorkflowRunType.CHUNK_SPLITTING: [WorkflowRunType.DOCUMENT_PROCESSING],
+            WorkflowRunType.REFERENCE_VALIDATION: [WorkflowRunType.REFERENCE_EXTRACTION],
+        }
+    )
+    with _patch_all_manifests(manifests):
+        result = get_required_dependents(WorkflowRunType.DOCUMENT_PROCESSING)
+
+    assert len(result) == len(set(result)), "No duplicates expected"
+    assert set(result) == {
+        WorkflowRunType.REFERENCE_EXTRACTION,
+        WorkflowRunType.CHUNK_SPLITTING,
+        WorkflowRunType.REFERENCE_VALIDATION,
+    }

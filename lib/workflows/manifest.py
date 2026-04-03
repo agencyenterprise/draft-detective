@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from typing import List, Type, TypeVar
 
 from langgraph.graph import StateGraph
+from langgraph.graph.state import CompiledStateGraph, RunnableConfig
 
 from lib.workflows.models import (
     BaseWorkflowConfig,
@@ -103,3 +104,18 @@ class WorkflowManifest[WorkflowStateType, WorkflowConfigType](ABC):
         """Get issues for a workflow state result."""
 
         raise NotImplementedError()
+
+    async def on_cancel(
+        self,
+        state: WorkflowStateType,
+        app: CompiledStateGraph,
+        config: RunnableConfig,
+    ) -> None:
+        """
+        Called when a workflow run is cancelled. Override to persist state cleanup
+        via app.aupdate_state(config, updates, as_node=<node_name>).
+
+        The manifest is responsible for choosing as_node since it owns the graph
+        structure. Override in manifests that have per-item statuses that would
+        otherwise remain stuck in a 'pending' state after cancellation.
+        """

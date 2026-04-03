@@ -10,10 +10,11 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useExperimentalFeatures } from '@/context/experimental-features-context';
-import { useSessionStorage } from '@/lib/hooks/use-session-storage';
 import { GlobalFormValidationError, useForm } from '@tanstack/react-form';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
+import { useUserMe } from '@/lib/hooks/use-user-me';
 import { WorkflowRunType } from '@/lib/generated-api';
+import { KeyRound } from 'lucide-react';
 import { useEffect } from 'react';
 import { WorkflowTypeSelector } from './workflow-type-selector';
 import { WebSearchConsentCheckbox } from './web-search-consent-checkbox';
@@ -29,17 +30,15 @@ interface WorkflowConfigDialogProps {
 }
 
 export interface WorkflowConfigFormValues {
-  openaiApiKey: string;
   webSearchConsent: boolean;
   publicationDate: string;
   workflowTypes: WorkflowRunType[];
 }
 
 export function WorkflowConfigDialog({ isOpen, type, projectId, onConfirm, onCancel }: WorkflowConfigDialogProps) {
-  const [openaiApiKey, setOpenaiApiKey] = useSessionStorage<string>('openai-api-key', '');
   const [storedWebSearchConsent] = useWebSearchConsent(projectId);
-  const hideOpenaiApiKeyInput = process.env.NEXT_PUBLIC_HIDE_CUSTOM_OPENAI_API_KEY_INPUT === 'true';
   const { showExperimentalFeatures } = useExperimentalFeatures();
+  const { data: user } = useUserMe();
 
   const { data: workflowTypes } = useWorkflowTypes();
 
@@ -55,7 +54,6 @@ export function WorkflowConfigDialog({ isOpen, type, projectId, onConfirm, onCan
 
   const form = useForm({
     defaultValues: {
-      openaiApiKey: openaiApiKey,
       webSearchConsent: storedWebSearchConsent,
       publicationDate: today,
       workflowTypes: type ? [type] : [],
@@ -63,9 +61,6 @@ export function WorkflowConfigDialog({ isOpen, type, projectId, onConfirm, onCan
     validators: {
       onChange: ({ value }) => {
         const errors: GlobalFormValidationError<WorkflowConfigFormValues> = { fields: {}, form: undefined };
-        if (!hideOpenaiApiKeyInput && (!value.openaiApiKey || value.openaiApiKey.trim() === '')) {
-          errors.fields.openaiApiKey = 'OpenAI API Key is required';
-        }
         if (hasWebSearchRequirement(value.workflowTypes, workflowTypes) && !value.webSearchConsent) {
           errors.fields.webSearchConsent = 'Web search consent is required';
         }
@@ -100,38 +95,6 @@ export function WorkflowConfigDialog({ isOpen, type, projectId, onConfirm, onCan
         </DialogHeader>
 
         <div className="space-y-4">
-          {!hideOpenaiApiKeyInput && (
-            <form.Field
-              name="openaiApiKey"
-              listeners={{
-                onChange: ({ value }) => setOpenaiApiKey(value),
-              }}
-            >
-              {(field) => (
-                <div className="space-y-2">
-                  <Label htmlFor="openai-key" required>
-                    OpenAI API Key
-                  </Label>
-                  <Input
-                    id="openai-key"
-                    type="text"
-                    placeholder="sk-..."
-                    value={field.state.value}
-                    onChange={(e) => field.handleChange(e.target.value)}
-                    error={!field.state.meta.isValid}
-                    required={true}
-                  />
-                  <p className="text-sm text-muted-foreground">
-                    Your OpenAI API key will be used only for this workflow and will not be stored in our database.
-                  </p>
-                  {!field.state.meta.isValid && (
-                    <p className="text-sm text-destructive">{field.state.meta.errors.join(', ')}</p>
-                  )}
-                </div>
-              )}
-            </form.Field>
-          )}
-
           {showPublicationDateField && (
             <form.Field name="publicationDate">
               {(field) => (
@@ -207,6 +170,13 @@ export function WorkflowConfigDialog({ isOpen, type, projectId, onConfirm, onCan
             }}
           </form.Field>
         </div>
+
+        {user?.has_openai_api_key && (
+          <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+            <KeyRound className="h-3.5 w-3.5 shrink-0" />
+            Your saved OpenAI API key will be used for this analysis.
+          </p>
+        )}
 
         <form.Subscribe selector={(state) => [state.canSubmit, state.isSubmitting]}>
           {([canSubmit, isSubmitting]) => (

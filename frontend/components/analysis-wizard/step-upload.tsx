@@ -1,10 +1,8 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { UploadSection } from '@/components/analysis-form/upload-section';
-import { AlertCircle, Check, Loader2, Eye, EyeOff, Rocket, AlertTriangle } from 'lucide-react';
+import { AlertCircle, Check, Loader2, Rocket, AlertTriangle } from 'lucide-react';
 import { useStepUpload } from './use-step-upload';
 import { PreflightStatus } from './wizard-context';
 import { cn } from '@/lib/utils';
@@ -17,19 +15,13 @@ interface StepUploadProps {
 export function StepUpload({ onComplete }: StepUploadProps) {
   const {
     mainDocument,
-    apiKey,
-    showApiKey,
     preflightStatus,
-    hideApiKeyInput,
     isLoading,
-    isValidating,
     canContinue,
     uploadStage,
     stageMessage,
     uploadProgress,
-    setShowApiKey,
     handleDocumentChange,
-    handleApiKeyChange,
     handleContinue,
   } = useStepUpload(onComplete);
 
@@ -56,41 +48,11 @@ export function StepUpload({ onComplete }: StepUploadProps) {
       <p className="text-sm text-muted-foreground -mt-4">
         <span className="font-medium">Tip:</span> You can upload only a <strong>specific section</strong> of your
         document if you prefer. For example, upload just the references section if you&apos;re only interested in
-        running citation or reference analyses. This could be a good option if you don&apos;t want to{' '}
-        <strong>expose your whole document</strong> to LLMs or Web Search.
+        running citation or reference analyses. This could be a good option if you want a guarantee that the body of
+        your document will not be exposed to LLMs or Web Search.
       </p>
 
-      {!hideApiKeyInput && (
-        <div className="space-y-2">
-          <Label htmlFor="openai-api-key">
-            Your OpenAI API Key <span className="text-destructive ml-1">*</span>
-          </Label>
-          <div className="relative">
-            <Input
-              id="openai-api-key"
-              type={showApiKey ? 'text' : 'password'}
-              placeholder="sk-..."
-              value={apiKey}
-              onChange={(e) => handleApiKeyChange(e.target.value)}
-              disabled={isLoading}
-              className="pr-10"
-            />
-            <button
-              type="button"
-              onClick={() => setShowApiKey(!showApiKey)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-              tabIndex={-1}
-            >
-              {showApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-            </button>
-          </div>
-          <p className="text-sm text-muted-foreground">
-            We use this to run the AI analysis. It&apos;s never stored on our servers.
-          </p>
-        </div>
-      )}
-
-      <PreflightChecklist preflightStatus={preflightStatus} hideApiKeyInput={hideApiKeyInput} />
+      <PreflightChecklist preflightStatus={preflightStatus} />
 
       <div className="space-y-3">
         {/* Upload progress bar */}
@@ -113,7 +75,7 @@ export function StepUpload({ onComplete }: StepUploadProps) {
           {isLoading ? (
             <>
               <Loader2 className="w-4 h-4 animate-spin mr-2" />
-              {isValidating ? 'Validating...' : stageMessage || 'Setting up your project...'}
+              {stageMessage || 'Setting up your project...'}
             </>
           ) : (
             'Next: Choose your analyses →'
@@ -149,23 +111,15 @@ const PHASE_CONFIG: Record<ChecklistPhase, { icon: React.ReactNode; header: stri
   },
 };
 
-function PreflightChecklist({
-  preflightStatus,
-  hideApiKeyInput,
-}: {
-  preflightStatus: { apiKey: PreflightStatus; format: PreflightStatus };
-  hideApiKeyInput: boolean;
-}) {
-  const apiKeyStatus = hideApiKeyInput ? 'valid' : preflightStatus.apiKey;
+function PreflightChecklist({ preflightStatus }: { preflightStatus: { format: PreflightStatus } }) {
   const formatStatus = preflightStatus.format;
 
-  // Determine phase (priority: invalid > valid > pending > idle)
   const phase: ChecklistPhase =
-    apiKeyStatus === 'invalid' || formatStatus === 'invalid'
+    formatStatus === 'invalid'
       ? 'invalid'
-      : apiKeyStatus === 'valid' && formatStatus === 'valid'
+      : formatStatus === 'valid'
         ? 'valid'
-        : apiKeyStatus === 'pending' || formatStatus === 'pending'
+        : formatStatus === 'pending'
           ? 'pending'
           : 'idle';
 
@@ -179,17 +133,6 @@ function PreflightChecklist({
       </div>
 
       <div className="space-y-2">
-        {!hideApiKeyInput && (
-          <ChecklistItem
-            status={apiKeyStatus}
-            labels={{
-              idle: 'API credentials',
-              pending: 'Verifying API key...',
-              valid: 'API key verified',
-              invalid: 'API key invalid — please check and try again',
-            }}
-          />
-        )}
         <ChecklistItem
           status={formatStatus}
           labels={{

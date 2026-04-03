@@ -14,10 +14,7 @@ from lib.workflows.footnote_extraction.utils.section_detector import (
 logger = logging.getLogger(__name__)
 
 
-@register_node(
-    "Detect footnote sections",
-    "Detect footnote sections at the end of the document using pattern matching",
-)
+@register_node("Detect footnote sections")
 async def detect_footnotes_section_node(
     state: FootnoteExtractionState, runtime: Runtime[ContextSchema]
 ) -> dict:

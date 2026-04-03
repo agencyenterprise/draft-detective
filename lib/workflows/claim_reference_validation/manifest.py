@@ -1,6 +1,7 @@
 from typing import List, Optional, Type, cast
 
 from langgraph.graph import StateGraph
+from langgraph.graph.state import CompiledStateGraph
 
 from lib.agents.claim_verifier import ClaimEvidenceSource
 from lib.services.file import FileDocument
@@ -10,6 +11,7 @@ from lib.workflows.claim_reference_validation.graph import (
 from lib.workflows.claim_reference_validation.state import (
     ClaimReferenceValidationState,
     ClaimReferenceValidationWorkflowConfig,
+    ParagraphVerificationStatus,
 )
 from lib.workflows.document_processing.state import DocumentProcessingState
 from lib.workflows.manifest import WorkflowManifest
@@ -61,6 +63,20 @@ class ClaimReferenceValidationManifest(
     def build_graph(self) -> StateGraph:
         """Build and return the graph of the workflow."""
         return build_claim_reference_validation_graph()
+
+    async def on_cancel(self, state: ClaimReferenceValidationState, app: CompiledStateGraph, thread_config: dict) -> None:
+        """Mark any pending paragraph verifications as cancelled so they don't show as in-progress."""
+        updated = [
+            item.model_copy(update={"status": ParagraphVerificationStatus.CANCELLED})
+            if item.status == ParagraphVerificationStatus.PENDING
+            else item
+            for item in state.paragraph_verifications
+        ]
+        await app.aupdate_state(
+            thread_config,
+            {"paragraph_verifications": updated},
+            as_node="finalize_verifications",
+        )
 
     async def create_initial_state(
         self,

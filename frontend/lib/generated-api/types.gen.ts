@@ -413,6 +413,16 @@ export type AppConfigResponse = {
 };
 
 /**
+ * AppConfigValueResponse
+ */
+export type AppConfigValueResponse = {
+  /**
+   * Value
+   */
+  value: string;
+};
+
+/**
  * ApproveWorkflowResponse
  *
  * Response for workflow approval.
@@ -602,6 +612,22 @@ export type BodyStartAnalysisApiStartAnalysisPost = {
    * Workflow Types
    */
   workflow_types?: string | null;
+};
+
+/**
+ * CancelWorkflowResponse
+ *
+ * Response for workflow cancellation.
+ */
+export type CancelWorkflowResponse = {
+  /**
+   * Message
+   */
+  message: string;
+  /**
+   * Workflow Run Id
+   */
+  workflow_run_id: string;
 };
 
 /**
@@ -3228,6 +3254,7 @@ export const ParagraphVerificationStatus = {
   Pending: 'pending',
   Completed: 'completed',
   Error: 'error',
+  Cancelled: 'cancelled',
 } as const;
 
 /**
@@ -3860,6 +3887,7 @@ export const ReferenceFetchStatus = {
   Pending: 'pending',
   Completed: 'completed',
   Error: 'error',
+  Cancelled: 'cancelled',
 } as const;
 
 /**
@@ -4100,6 +4128,7 @@ export const ReferenceValidationStatus = {
   Pending: 'pending',
   Completed: 'completed',
   Error: 'error',
+  Cancelled: 'cancelled',
 } as const;
 
 /**
@@ -4440,6 +4469,18 @@ export type Reviewer2State = {
 };
 
 /**
+ * SetApiKeyRequest
+ *
+ * Request model for setting a user's OpenAI API key
+ */
+export type SetApiKeyRequest = {
+  /**
+   * Openai Api Key
+   */
+  openai_api_key: string;
+};
+
+/**
  * SeverityEnum
  */
 export const SeverityEnum = {
@@ -4731,6 +4772,10 @@ export type UserResponse = {
    * Show Experimental Features
    */
   show_experimental_features: boolean;
+  /**
+   * Has Openai Api Key
+   */
+  has_openai_api_key?: boolean;
 };
 
 /**
@@ -4929,6 +4974,18 @@ export type WorkflowRun = {
    * The timestamp when the workflow run was last updated
    */
   last_updated_at: Date;
+  /**
+   * Started At
+   *
+   * The timestamp when the workflow run transitioned to RUNNING
+   */
+  started_at: Date | null;
+  /**
+   * Completed At
+   *
+   * The timestamp when the workflow run transitioned to COMPLETED or CANCELLED
+   */
+  completed_at: Date | null;
 };
 
 /**
@@ -4973,6 +5030,7 @@ export const WorkflowRunStatus = {
   Pending: 'pending',
   Running: 'running',
   Completed: 'completed',
+  Cancelled: 'cancelled',
 } as const;
 
 /**
@@ -5180,6 +5238,38 @@ export type ResetAppConfigApiAppConfigsKeyDeleteResponses = {
 
 export type ResetAppConfigApiAppConfigsKeyDeleteResponse =
   ResetAppConfigApiAppConfigsKeyDeleteResponses[keyof ResetAppConfigApiAppConfigsKeyDeleteResponses];
+
+export type GetAppConfigApiAppConfigsKeyGetData = {
+  body?: never;
+  path: {
+    /**
+     * Key
+     */
+    key: string;
+  };
+  query?: never;
+  url: '/api/app-configs/{key}';
+};
+
+export type GetAppConfigApiAppConfigsKeyGetErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type GetAppConfigApiAppConfigsKeyGetError =
+  GetAppConfigApiAppConfigsKeyGetErrors[keyof GetAppConfigApiAppConfigsKeyGetErrors];
+
+export type GetAppConfigApiAppConfigsKeyGetResponses = {
+  /**
+   * Successful Response
+   */
+  200: AppConfigValueResponse;
+};
+
+export type GetAppConfigApiAppConfigsKeyGetResponse =
+  GetAppConfigApiAppConfigsKeyGetResponses[keyof GetAppConfigApiAppConfigsKeyGetResponses];
 
 export type UpdateAppConfigApiAppConfigsKeyPutData = {
   body: UpsertAppConfigRequest;
@@ -5437,6 +5527,38 @@ export type ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostResponses =
 
 export type ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostResponse =
   ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostResponses[keyof ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostResponses];
+
+export type CancelWorkflowRunEndpointApiWorkflowRunsWorkflowRunIdCancelPostData = {
+  body?: never;
+  path: {
+    /**
+     * Workflow Run Id
+     */
+    workflow_run_id: string;
+  };
+  query?: never;
+  url: '/api/workflow-runs/{workflow_run_id}/cancel';
+};
+
+export type CancelWorkflowRunEndpointApiWorkflowRunsWorkflowRunIdCancelPostErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type CancelWorkflowRunEndpointApiWorkflowRunsWorkflowRunIdCancelPostError =
+  CancelWorkflowRunEndpointApiWorkflowRunsWorkflowRunIdCancelPostErrors[keyof CancelWorkflowRunEndpointApiWorkflowRunsWorkflowRunIdCancelPostErrors];
+
+export type CancelWorkflowRunEndpointApiWorkflowRunsWorkflowRunIdCancelPostResponses = {
+  /**
+   * Successful Response
+   */
+  200: CancelWorkflowResponse;
+};
+
+export type CancelWorkflowRunEndpointApiWorkflowRunsWorkflowRunIdCancelPostResponse =
+  CancelWorkflowRunEndpointApiWorkflowRunsWorkflowRunIdCancelPostResponses[keyof CancelWorkflowRunEndpointApiWorkflowRunsWorkflowRunIdCancelPostResponses];
 
 export type GetWorkflowTypesApiWorkflowTypesGetData = {
   body?: never;
@@ -6844,3 +6966,47 @@ export type UpdatePreferencesApiUsersMePreferencesPatchResponses = {
 
 export type UpdatePreferencesApiUsersMePreferencesPatchResponse =
   UpdatePreferencesApiUsersMePreferencesPatchResponses[keyof UpdatePreferencesApiUsersMePreferencesPatchResponses];
+
+export type RemoveApiKeyApiUsersMeApiKeyDeleteData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/api/users/me/api-key';
+};
+
+export type RemoveApiKeyApiUsersMeApiKeyDeleteResponses = {
+  /**
+   * Successful Response
+   */
+  200: UserResponse;
+};
+
+export type RemoveApiKeyApiUsersMeApiKeyDeleteResponse =
+  RemoveApiKeyApiUsersMeApiKeyDeleteResponses[keyof RemoveApiKeyApiUsersMeApiKeyDeleteResponses];
+
+export type SetApiKeyApiUsersMeApiKeyPutData = {
+  body: SetApiKeyRequest;
+  path?: never;
+  query?: never;
+  url: '/api/users/me/api-key';
+};
+
+export type SetApiKeyApiUsersMeApiKeyPutErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type SetApiKeyApiUsersMeApiKeyPutError =
+  SetApiKeyApiUsersMeApiKeyPutErrors[keyof SetApiKeyApiUsersMeApiKeyPutErrors];
+
+export type SetApiKeyApiUsersMeApiKeyPutResponses = {
+  /**
+   * Successful Response
+   */
+  200: UserResponse;
+};
+
+export type SetApiKeyApiUsersMeApiKeyPutResponse =
+  SetApiKeyApiUsersMeApiKeyPutResponses[keyof SetApiKeyApiUsersMeApiKeyPutResponses];

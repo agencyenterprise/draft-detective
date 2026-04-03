@@ -50,6 +50,8 @@ dependencies = [
     "inspect-ai>=0.3.200",
     "openai>=2.26.0",
     "deepagents>=0.4.8",
+    "fastmcp[tasks]>=3.2.0",
+    "cryptography>=46.0.4",
 ]
 
 [tool.pytest.ini_options]
@@ -74,4 +76,4 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["lib", "api", "evals_inspectai"]
+packages = ["lib", "evals_inspectai"]

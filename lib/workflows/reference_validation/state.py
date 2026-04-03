@@ -13,6 +13,7 @@ class ReferenceValidationStatus(str, Enum):
     PENDING = "pending"
     COMPLETED = "completed"
     ERROR = "error"
+    CANCELLED = "cancelled"
 
 
 class ReferenceValidationWorkflowConfig(BaseWorkflowConfig):

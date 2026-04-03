@@ -101,16 +101,16 @@ npm install
 
 ```bash
 # From project root with virtual environment activated
-uv run fastapi dev api/main.py
+uv run fastapi dev lib/api/main.py
 
 # Alternative: using uvicorn directly
-uv run uvicorn api.main:app --reload --host 0.0.0.0 --port 8000
+uv run uvicorn lib.api.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 #### Production Mode
 
 ```bash
-uv run uvicorn api.main:app --host 0.0.0.0 --port 8000
+uv run uvicorn lib.api.main:app --host 0.0.0.0 --port 8000
 ```
 
 ### Frontend (Next.js)

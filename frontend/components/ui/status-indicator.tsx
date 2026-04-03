@@ -1,7 +1,7 @@
 import { WorkflowRunStatus } from '@/lib/generated-api';
 import { DisplayStatus } from '@/lib/workflow-state';
 import { cn } from '@/lib/utils';
-import { AlertTriangle, Check, Clock, Loader2, XCircle } from 'lucide-react';
+import { AlertTriangle, Ban, Check, Clock, Loader2, XCircle } from 'lucide-react';
 
 interface StatusIndicatorProps {
   status: WorkflowRunStatus | DisplayStatus;
@@ -34,6 +34,12 @@ export function StatusIndicator({ status, className }: StatusIndicatorProps) {
           label: 'Failed',
           className: 'text-red-700',
           icon: <XCircle className="h-3 w-3" />,
+        };
+      case 'cancelled':
+        return {
+          label: 'Cancelled',
+          className: 'text-gray-500',
+          icon: <Ban className="h-3 w-3" />,
         };
       default:
         return {

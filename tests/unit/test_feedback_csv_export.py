@@ -102,10 +102,10 @@ async def _read_streaming_response(response) -> str:
 @pytest.mark.asyncio
 async def test_csv_headers():
     """The export response contains all expected column headers."""
-    from api.routers.feedback import export_admin_feedbacks_csv
+    from lib.api.routers.feedback import export_admin_feedbacks_csv
 
     with patch(
-        "api.routers.feedback.feedback_service.get_admin_feedbacks",
+        "lib.api.routers.feedback.feedback_service.get_admin_feedbacks",
         new=AsyncMock(return_value=[]),
     ):
         response = await export_admin_feedbacks_csv(workflow_type=None)
@@ -136,10 +136,10 @@ async def test_csv_headers():
 @pytest.mark.asyncio
 async def test_csv_empty_returns_only_header():
     """When there is no feedback, the CSV contains only the header row."""
-    from api.routers.feedback import export_admin_feedbacks_csv
+    from lib.api.routers.feedback import export_admin_feedbacks_csv
 
     with patch(
-        "api.routers.feedback.feedback_service.get_admin_feedbacks",
+        "lib.api.routers.feedback.feedback_service.get_admin_feedbacks",
         new=AsyncMock(return_value=[]),
     ):
         response = await export_admin_feedbacks_csv(workflow_type=None)
@@ -152,7 +152,7 @@ async def test_csv_empty_returns_only_header():
 @pytest.mark.asyncio
 async def test_csv_row_values():
     """Each CSV row contains the correct values from the feedback data."""
-    from api.routers.feedback import export_admin_feedbacks_csv
+    from lib.api.routers.feedback import export_admin_feedbacks_csv
 
     user = _make_user(name="Bob", email="bob@example.com")
     project = _make_project(
@@ -178,7 +178,7 @@ async def test_csv_row_values():
     ]
 
     with patch(
-        "api.routers.feedback.feedback_service.get_admin_feedbacks",
+        "lib.api.routers.feedback.feedback_service.get_admin_feedbacks",
         new=AsyncMock(return_value=mock_rows),
     ):
         response = await export_admin_feedbacks_csv(workflow_type=None)
@@ -209,7 +209,7 @@ async def test_csv_row_values():
 @pytest.mark.asyncio
 async def test_csv_empty_feedback_text():
     """Feedback with no text produces an empty string in the CSV, not 'None'."""
-    from api.routers.feedback import export_admin_feedbacks_csv
+    from lib.api.routers.feedback import export_admin_feedbacks_csv
 
     feedback = _make_feedback(feedback_type=FeedbackType.THUMBS_UP, feedback_text=None)
     mock_rows = [
@@ -222,7 +222,7 @@ async def test_csv_empty_feedback_text():
     ]
 
     with patch(
-        "api.routers.feedback.feedback_service.get_admin_feedbacks",
+        "lib.api.routers.feedback.feedback_service.get_admin_feedbacks",
         new=AsyncMock(return_value=mock_rows),
     ):
         response = await export_admin_feedbacks_csv(workflow_type=None)
@@ -236,10 +236,10 @@ async def test_csv_empty_feedback_text():
 @pytest.mark.asyncio
 async def test_csv_no_extra_columns():
     """The CSV does not include removed columns (Status, Chunk Indices, Created At)."""
-    from api.routers.feedback import export_admin_feedbacks_csv
+    from lib.api.routers.feedback import export_admin_feedbacks_csv
 
     with patch(
-        "api.routers.feedback.feedback_service.get_admin_feedbacks",
+        "lib.api.routers.feedback.feedback_service.get_admin_feedbacks",
         new=AsyncMock(return_value=[]),
     ):
         response = await export_admin_feedbacks_csv(workflow_type=None)
@@ -256,7 +256,7 @@ async def test_csv_no_extra_columns():
 @pytest.mark.asyncio
 async def test_csv_multiple_rows_ordered():
     """Multiple feedback rows are all written to the CSV."""
-    from api.routers.feedback import export_admin_feedbacks_csv
+    from lib.api.routers.feedback import export_admin_feedbacks_csv
 
     rows_data = [
         {
@@ -274,7 +274,7 @@ async def test_csv_multiple_rows_ordered():
     ]
 
     with patch(
-        "api.routers.feedback.feedback_service.get_admin_feedbacks",
+        "lib.api.routers.feedback.feedback_service.get_admin_feedbacks",
         new=AsyncMock(return_value=rows_data),
     ):
         response = await export_admin_feedbacks_csv(workflow_type=None)
@@ -290,10 +290,10 @@ async def test_csv_multiple_rows_ordered():
 @pytest.mark.asyncio
 async def test_csv_response_headers():
     """StreamingResponse has the correct content-type and content-disposition."""
-    from api.routers.feedback import export_admin_feedbacks_csv
+    from lib.api.routers.feedback import export_admin_feedbacks_csv
 
     with patch(
-        "api.routers.feedback.feedback_service.get_admin_feedbacks",
+        "lib.api.routers.feedback.feedback_service.get_admin_feedbacks",
         new=AsyncMock(return_value=[]),
     ):
         response = await export_admin_feedbacks_csv(workflow_type=None)
@@ -310,10 +310,10 @@ async def test_csv_response_headers():
 @pytest.mark.asyncio
 async def test_admin_feedbacks_default_pagination():
     """Default limit=25 and offset=0 are forwarded to the service."""
-    from api.routers.feedback import get_admin_feedbacks
+    from lib.api.routers.feedback import get_admin_feedbacks
 
     with patch(
-        "api.routers.feedback.feedback_service.get_admin_feedbacks",
+        "lib.api.routers.feedback.feedback_service.get_admin_feedbacks",
         new=AsyncMock(return_value=[]),
     ) as mock_service:
         await get_admin_feedbacks(limit=25, offset=0, workflow_type=None)
@@ -326,10 +326,10 @@ async def test_admin_feedbacks_default_pagination():
 @pytest.mark.asyncio
 async def test_admin_feedbacks_custom_pagination():
     """Custom limit and offset values are forwarded to the service."""
-    from api.routers.feedback import get_admin_feedbacks
+    from lib.api.routers.feedback import get_admin_feedbacks
 
     with patch(
-        "api.routers.feedback.feedback_service.get_admin_feedbacks",
+        "lib.api.routers.feedback.feedback_service.get_admin_feedbacks",
         new=AsyncMock(return_value=[]),
     ) as mock_service:
         await get_admin_feedbacks(limit=10, offset=50, workflow_type=None)
@@ -342,10 +342,10 @@ async def test_admin_feedbacks_custom_pagination():
 @pytest.mark.asyncio
 async def test_csv_export_does_not_pass_pagination():
     """CSV export endpoint does NOT forward limit/offset (always exports all results)."""
-    from api.routers.feedback import export_admin_feedbacks_csv
+    from lib.api.routers.feedback import export_admin_feedbacks_csv
 
     with patch(
-        "api.routers.feedback.feedback_service.get_admin_feedbacks",
+        "lib.api.routers.feedback.feedback_service.get_admin_feedbacks",
         new=AsyncMock(return_value=[]),
     ) as mock_service:
         await export_admin_feedbacks_csv(workflow_type=None)
@@ -363,10 +363,10 @@ async def test_csv_export_does_not_pass_pagination():
 @pytest.mark.asyncio
 async def test_search_forwarded_to_service():
     """search param is forwarded to the service when provided."""
-    from api.routers.feedback import get_admin_feedbacks
+    from lib.api.routers.feedback import get_admin_feedbacks
 
     with patch(
-        "api.routers.feedback.feedback_service.get_admin_feedbacks",
+        "lib.api.routers.feedback.feedback_service.get_admin_feedbacks",
         new=AsyncMock(return_value=[]),
     ) as mock_service:
         await get_admin_feedbacks(search="climate", workflow_type=None)
@@ -378,10 +378,10 @@ async def test_search_forwarded_to_service():
 @pytest.mark.asyncio
 async def test_search_default_is_none():
     """search defaults to None when not provided."""
-    from api.routers.feedback import get_admin_feedbacks
+    from lib.api.routers.feedback import get_admin_feedbacks
 
     with patch(
-        "api.routers.feedback.feedback_service.get_admin_feedbacks",
+        "lib.api.routers.feedback.feedback_service.get_admin_feedbacks",
         new=AsyncMock(return_value=[]),
     ) as mock_service:
         await get_admin_feedbacks(search=None, workflow_type=None)
@@ -393,10 +393,10 @@ async def test_search_default_is_none():
 @pytest.mark.asyncio
 async def test_csv_export_search_forwarded_to_service():
     """CSV export forwards the search param to the service."""
-    from api.routers.feedback import export_admin_feedbacks_csv
+    from lib.api.routers.feedback import export_admin_feedbacks_csv
 
     with patch(
-        "api.routers.feedback.feedback_service.get_admin_feedbacks",
+        "lib.api.routers.feedback.feedback_service.get_admin_feedbacks",
         new=AsyncMock(return_value=[]),
     ) as mock_service:
         await export_admin_feedbacks_csv(search="climate", workflow_type=None)
@@ -408,10 +408,10 @@ async def test_csv_export_search_forwarded_to_service():
 @pytest.mark.asyncio
 async def test_csv_export_search_default_is_none():
     """CSV export search defaults to None when not provided."""
-    from api.routers.feedback import export_admin_feedbacks_csv
+    from lib.api.routers.feedback import export_admin_feedbacks_csv
 
     with patch(
-        "api.routers.feedback.feedback_service.get_admin_feedbacks",
+        "lib.api.routers.feedback.feedback_service.get_admin_feedbacks",
         new=AsyncMock(return_value=[]),
     ) as mock_service:
         await export_admin_feedbacks_csv(search=None, workflow_type=None)

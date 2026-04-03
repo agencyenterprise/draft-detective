@@ -18,10 +18,7 @@ from lib.workflows.decorators import register_node
 logger = logging.getLogger(__name__)
 
 
-@register_node(
-    "Split into chunks",
-    "Split the main document into chunks",
-)
+@register_node("Split into chunks")
 async def split_into_chunks(
     state: ChunkSplittingState, runtime: Runtime[ContextSchema]
 ):

@@ -21,10 +21,7 @@ _IGNORED_ABBREVIATIONS: frozenset[str] = frozenset(
 )
 
 
-@register_node(
-    "Apply ignored abbreviations list",
-    "Mark occurrences of known non-abbreviation terms as ignored",
-)
+@register_node("Apply ignored abbreviations list")
 async def apply_ignored_list_node(
     state: AbbreviationScanV2State, runtime: Runtime[ContextSchema]
 ) -> dict:
