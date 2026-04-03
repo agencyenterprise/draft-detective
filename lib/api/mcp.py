@@ -45,6 +45,24 @@ def _build_project_url(project_id: str) -> str:
     return f"{base}/projects/{project_id}"
 
 
+def _build_settings_url() -> str:
+    return f"{env_config.FRONTEND_URL.rstrip('/')}/account"
+
+
+def _require_api_key(user: User) -> None:
+    """Raise a clear error when no OpenAI API key is available."""
+    if user.encrypted_openai_api_key or env_config.OPENAI_API_KEY:
+        return
+    settings_url = _build_settings_url()
+    raise ValueError(
+        f"Your account ({user.email}) does not have an OpenAI API key configured on Draft Detective. "
+        "This is a one-time setup: open the link below, sign in with the same account, "
+        "and save your key. It will be encrypted and tied to your account only. "
+        f"Once saved, all future MCP requests will pick it up automatically.\n\n"
+        f"Settings page: {settings_url}"
+    )
+
+
 async def _get_project_details_json(
     project_id: str, access_level: AccessLevel, user: User
 ) -> str:
@@ -184,6 +202,7 @@ async def run_workflow(
             raise ValueError(f"Unknown workflow_type '{wt}'. Valid values: {valid}")
 
     user = await _resolve_user(token)
+    _require_api_key(user)
 
     request = StartMultipleWorkflowsRequest(
         project_id=project_id,

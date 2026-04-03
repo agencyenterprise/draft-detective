@@ -14,6 +14,8 @@ _mcp_auth_mod.create_mcp_auth = lambda: None
 
 from lib.api.mcp import (  # noqa: E402
     _build_project_url,
+    _build_settings_url,
+    _require_api_key,
     _resolve_user,
     create_project,
     get_project,
@@ -51,6 +53,61 @@ def test_build_project_url_strips_trailing_slash():
         mock_cfg.FRONTEND_URL = "https://app.example.com/"
         result = _build_project_url("proj-1")
     assert result == "https://app.example.com/projects/proj-1"
+
+
+# --- _build_settings_url ---
+
+
+def test_build_settings_url():
+    url = _build_settings_url()
+    assert url.endswith("/account")
+    assert not url.endswith("//account")
+
+
+def test_build_settings_url_strips_trailing_slash():
+    with patch("lib.api.mcp.env_config") as mock_cfg:
+        mock_cfg.FRONTEND_URL = "https://app.example.com/"
+        result = _build_settings_url()
+    assert result == "https://app.example.com/account"
+
+
+# --- _require_api_key ---
+
+
+def test_require_api_key_passes_when_user_has_encrypted_key():
+    user = _make_user()
+    user.encrypted_openai_api_key = "some-encrypted-value"
+    with patch("lib.api.mcp.env_config") as mock_cfg:
+        mock_cfg.OPENAI_API_KEY = None
+        _require_api_key(user)  # should not raise
+
+
+def test_require_api_key_passes_when_env_has_key():
+    user = _make_user()
+    user.encrypted_openai_api_key = None
+    with patch("lib.api.mcp.env_config") as mock_cfg:
+        mock_cfg.OPENAI_API_KEY = "sk-env-key"
+        _require_api_key(user)  # should not raise
+
+
+def test_require_api_key_raises_when_no_key_anywhere():
+    user = _make_user()
+    user.encrypted_openai_api_key = None
+    with patch("lib.api.mcp.env_config") as mock_cfg:
+        mock_cfg.OPENAI_API_KEY = None
+        mock_cfg.FRONTEND_URL = "https://app.example.com"
+        with pytest.raises(ValueError, match="Settings page"):
+            _require_api_key(user)
+
+
+def test_require_api_key_error_message_contains_email():
+    user = _make_user(email="carol@example.com")
+    user.encrypted_openai_api_key = None
+    with patch("lib.api.mcp.env_config") as mock_cfg:
+        mock_cfg.OPENAI_API_KEY = None
+        mock_cfg.FRONTEND_URL = "https://app.example.com"
+        with pytest.raises(ValueError, match="carol@example.com"):
+            _require_api_key(user)
 
 
 # --- _resolve_user ---
@@ -129,22 +186,22 @@ async def test_create_project_returns_ids_and_url():
 
 
 @pytest.mark.asyncio
-async def test_create_project_logs_context_info():
+async def test_create_project_returns_project_url():
     user = _make_user()
     project = MagicMock()
     project.id = uuid4()
-    ctx = AsyncMock()
 
     with (
         patch("lib.api.mcp._resolve_user", new=AsyncMock(return_value=user)),
         patch("lib.api.mcp.create_project_record", new=AsyncMock(return_value=project)),
         patch("lib.api.mcp.finalize_file", new=AsyncMock(return_value=MagicMock(id=uuid4()))),
     ):
-        await create_project(
-            title="T", content_markdown="md", ctx=ctx, token=_make_token()
+        result = await create_project(
+            title="T", content_markdown="md", ctx=AsyncMock(), token=_make_token()
         )
 
-    ctx.info.assert_awaited_once()
+    data = json.loads(result)
+    assert str(project.id) in data["project_url"]
 
 
 # --- run_workflow ---
@@ -186,6 +243,25 @@ async def test_run_workflow_delegates_to_blocking_runner():
 
     mock_run.assert_awaited_once()
     assert json.loads(result)["id"] == "p1"
+
+
+@pytest.mark.asyncio
+async def test_run_workflow_raises_when_no_api_key():
+    user = _make_user()
+    user.encrypted_openai_api_key = None
+
+    with (
+        patch("lib.api.mcp._resolve_user", new=AsyncMock(return_value=user)),
+        patch("lib.api.mcp.env_config") as mock_cfg,
+    ):
+        mock_cfg.OPENAI_API_KEY = None
+        mock_cfg.FRONTEND_URL = "https://app.example.com"
+        with pytest.raises(ValueError, match="Settings page"):
+            await run_workflow(
+                project_id="p1",
+                workflow_types=["document_processing"],
+                token=_make_token(),
+            )
 
 
 # --- get_project ---

@@ -9,6 +9,7 @@ import { Switch } from '../ui/switch';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 
 const userNavigation = [
+  { name: 'Settings', href: '/account' },
   { name: 'MCP Server', href: '/mcp' },
   { name: 'Sign out', href: '/api/auth/signout' },
 ];
@@ -16,7 +17,7 @@ const adminNavigation = [
   { name: 'Evaluations', href: '/evals' },
   { name: 'Manage Users', href: '/users' },
   { name: 'User Feedback', href: '/feedbacks' },
-  { name: 'Settings', href: '/settings' },
+  { name: 'App Settings', href: '/settings' },
   { name: 'Logs', href: '/logs' },
 ];
 

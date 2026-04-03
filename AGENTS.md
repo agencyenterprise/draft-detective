@@ -66,6 +66,33 @@ lib/workflows/new_workflow/
     └── process.py
 ```
 
+### Never use lazy imports inside methods
+
+Always place imports at the top of the file. Lazy imports (imports inside functions or methods) are forbidden except when required to break a circular import or when there is an absolute technical necessity. Any such exception must be explained with a comment.
+
+```python
+# ✅ Correct - imports at the top of the file
+from lib.services.users import UserService
+from lib.models.document import Document
+
+def process(doc: Document) -> None:
+    service = UserService()
+    ...
+
+# ❌ Incorrect - lazy import inside a function
+def process(doc):
+    from lib.services.users import UserService  # don't do this
+    service = UserService()
+    ...
+
+# ✅ Acceptable exception - circular import that cannot be resolved otherwise
+def process(doc):
+    # Imported here to avoid circular import between lib.services.users and lib.services.documents
+    from lib.services.users import UserService
+    service = UserService()
+    ...
+```
+
 ### Use Pydantic BaseModel, not dataclass
 
 Always use Pydantic `BaseModel` for data models. Never use `@dataclass`.
@@ -366,6 +393,7 @@ def mock_llm():
 ### Python
 
 - Don't use `import *`
+- Don't use lazy imports inside methods — place all imports at the top of the file; exceptions (circular imports) must be explained in a comment
 - Avoid deeply nested callback functions
 - Don't mix sync/async code patterns
 - Avoid large functions (>20 lines)

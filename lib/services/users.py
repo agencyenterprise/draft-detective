@@ -6,6 +6,7 @@ from sqlmodel import col
 
 from lib.config.database import get_async_db_session
 from lib.models.user import User, UserRole
+from lib.services.encryption import decrypt_value, encrypt_value
 
 
 async def get_or_create_user_by_email(email: str, name: str) -> User:
@@ -73,3 +74,38 @@ async def update_user_preferences(
         await session.commit()
         await session.refresh(user)
         return user
+
+
+async def set_user_openai_api_key(user_id: str, api_key: str) -> User:
+    """Encrypt and store an OpenAI API key for the user."""
+    async with get_async_db_session() as session:
+        stmt = select(User).where(col(User.id) == user_id)
+        result = await session.execute(stmt)
+        user = result.scalar_one_or_none()
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        user.encrypted_openai_api_key = encrypt_value(api_key)
+        await session.commit()
+        await session.refresh(user)
+        return user
+
+
+async def delete_user_openai_api_key(user_id: str) -> User:
+    """Remove the stored OpenAI API key for the user."""
+    async with get_async_db_session() as session:
+        stmt = select(User).where(col(User.id) == user_id)
+        result = await session.execute(stmt)
+        user = result.scalar_one_or_none()
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        user.encrypted_openai_api_key = None
+        await session.commit()
+        await session.refresh(user)
+        return user
+
+
+def get_user_decrypted_api_key(user: User) -> str | None:
+    """Return the decrypted OpenAI API key, or None if not set."""
+    if not user.encrypted_openai_api_key:
+        return None
+    return decrypt_value(user.encrypted_openai_api_key)
