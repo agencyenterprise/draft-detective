@@ -23,7 +23,7 @@ const steps = [
     Click <strong>Add integration</strong> (or the <strong>+</strong> button)
   </>,
   <>
-    Set the name to <strong>Draft Detective / AI Reviewer</strong>
+    Set the name to <strong>Draft Detective AI Reviewer</strong> (suggested)
   </>,
   <>Paste the MCP Server URL shown above</>,
   <>

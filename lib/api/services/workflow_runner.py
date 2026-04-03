@@ -2,14 +2,16 @@ import asyncio
 import logging
 from typing import List
 
-from fastapi import BackgroundTasks
+from fastapi import BackgroundTasks, HTTPException
 from pydantic import BaseModel
 
 from lib.api.models import StartMultipleWorkflowsRequest
+from lib.config.env import config as env_config
 from lib.models.project import AccessLevel, Project
 from lib.models.user import User
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus, WorkflowRunType
 from lib.services.projects import get_project_access
+from lib.services.users import get_user_decrypted_api_key
 from lib.services.workflow_runs import (
     create_workflow_run,
     get_project_workflow_run_by_type,
@@ -17,7 +19,7 @@ from lib.services.workflow_runs import (
 )
 from lib.workflows.config_factory import create_workflow_config
 from lib.workflows.dependency_resolver import resolve_workflow_dependencies
-from lib.workflows.registry import get_workflow_manifest
+from lib.workflows.registry import get_config_type, get_workflow_manifest
 from lib.workflows.runner import (
     run_workflow_from_config,
     run_workflow_with_dependency_check,
@@ -34,6 +36,18 @@ class AutoRunWorkflowItem(BaseModel):
 
 
 logger = logging.getLogger(__name__)
+
+
+def _assert_api_key_available(user: User, request_key: str | None, requires_key: bool) -> None:
+    """Raise HTTP 422 when a workflow needs an API key but none is configured."""
+    if not requires_key:
+        return
+    has_api_key = bool(request_key or get_user_decrypted_api_key(user) or env_config.OPENAI_API_KEY)
+    if not has_api_key:
+        raise HTTPException(
+            status_code=422,
+            detail="No OpenAI API key configured. Please add your API key in account settings.",
+        )
 
 
 async def _prepare_workflow_items(
@@ -60,6 +74,10 @@ async def _prepare_workflow_items(
     logger.info(
         f"Resolved to {len(resolved_workflow_types)} workflows (including dependencies): {[w.value for w in resolved_workflow_types]}"
     )
+
+    # Workflows that don't use LLMs (requires_api_key() == False) are exempt.
+    any_requires_key = any(get_config_type(wt).requires_api_key() for wt in resolved_workflow_types)
+    _assert_api_key_available(user, request.openai_api_key, any_requires_key)
 
     workflow_run_ids: List[str] = []
     auto_run_items: List[AutoRunWorkflowItem] = []
@@ -133,6 +151,8 @@ async def start_workflow_run(
     await get_project_access(
         config.project_id, user=user, required_level=AccessLevel.WRITE
     )
+
+    _assert_api_key_available(user, config.openai_api_key, config.requires_api_key())
 
     existing_run = await get_project_workflow_run_by_type(
         config.project_id, config.type

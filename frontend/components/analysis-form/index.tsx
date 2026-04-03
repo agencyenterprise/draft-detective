@@ -1,7 +1,6 @@
 'use client';
 
 import { useExperimentalFeatures } from '@/context/experimental-features-context';
-import { useSessionStorage } from '@/lib/hooks/use-session-storage';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { useForm } from '@tanstack/react-form';
 import { AlertCircle, Loader2, Play } from 'lucide-react';
@@ -26,8 +25,6 @@ export interface AnalysisFormProps {
 }
 
 export function AnalysisForm({ onSubmit, isPending = false, error }: AnalysisFormProps) {
-  const [openaiApiKey, setOpenaiApiKey] = useSessionStorage<string>('openai-api-key', '');
-  const hideOpenaiApiKeyInput = process.env.NEXT_PUBLIC_HIDE_CUSTOM_OPENAI_API_KEY_INPUT === 'true';
   const { showExperimentalFeatures } = useExperimentalFeatures();
   const { data: workflowTypes } = useWorkflowTypes();
 
@@ -40,14 +37,12 @@ export function AnalysisForm({ onSubmit, isPending = false, error }: AnalysisFor
       targetAudience: '',
       webSearchConsent: false,
       publicationDate: today,
-      openaiApiKey: openaiApiKey,
       mainDocument: null,
       supportingDocuments: [],
       workflowTypes: [],
     } as AnalysisFormValues,
     validators: {
-      onChange: ({ value }) =>
-        validateAnalysisForm(value, hideOpenaiApiKeyInput, workflowTypes, showExperimentalFeatures),
+      onChange: ({ value }) => validateAnalysisForm(value, workflowTypes, showExperimentalFeatures),
     },
     onSubmit: ({ value }) => {
       onSubmit({
@@ -57,7 +52,6 @@ export function AnalysisForm({ onSubmit, isPending = false, error }: AnalysisFor
           domain: value.domain,
           target_audience: value.targetAudience,
           publication_date: value.publicationDate,
-          openai_api_key: value.openaiApiKey,
           workflow_types: value.workflowTypes,
         },
       });
@@ -200,47 +194,6 @@ export function AnalysisForm({ onSubmit, isPending = false, error }: AnalysisFor
           );
         }}
       </form.Field>
-
-      {/* API Configuration Section */}
-      {!hideOpenaiApiKeyInput && (
-        <div className="space-y-4">
-          <div className="space-y-1">
-            <h2 className="text-xl font-semibold">API Configuration</h2>
-            <p className="text-sm text-muted-foreground">Configure API settings for analysis execution</p>
-          </div>
-          <form.Field
-            name="openaiApiKey"
-            listeners={{
-              onChange: ({ value }) => setOpenaiApiKey(value),
-            }}
-          >
-            {(field) => (
-              <div className="space-y-2">
-                <Label htmlFor="openai-api-key">
-                  OpenAI API Key <span className="text-destructive ml-1">*</span>
-                </Label>
-                <Input
-                  id="openai-api-key"
-                  type="text"
-                  placeholder="sk-..."
-                  value={field.state.value}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                  className={field.state.meta.errors.length > 0 ? 'border-destructive' : ''}
-                  disabled={isPending}
-                  required={true}
-                />
-                <p className="text-sm text-muted-foreground">
-                  Your OpenAI API key will be used only for this analysis session and will not be stored in our
-                  database.
-                </p>
-                {!field.state.meta.isValid && (
-                  <p className="text-sm text-destructive">{field.state.meta.errors.join(', ')}</p>
-                )}
-              </div>
-            )}
-          </form.Field>
-        </div>
-      )}
 
       {/* Additional Context Section */}
       <div className="space-y-4">

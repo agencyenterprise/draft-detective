@@ -98,10 +98,6 @@ export function ApiKeySettings() {
             {user?.has_openai_api_key ? 'Replace key' : 'Save key'}
           </Button>
         </form>
-
-        <p className="text-xs text-muted-foreground">
-          A per-request key (sent from the analysis form) takes priority over this stored key.
-        </p>
       </CardContent>
     </Card>
   );

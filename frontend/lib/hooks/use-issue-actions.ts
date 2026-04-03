@@ -2,6 +2,7 @@ import {
   resolveIssueEndpointApiIssuesIssueIdResolvePost,
   unresolveIssueEndpointApiIssuesIssueIdUnresolvePost,
 } from '@/lib/generated-api';
+import { getErrorMessage } from '@/lib/api-error';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
@@ -17,8 +18,8 @@ export function useIssueActions() {
       queryClient.invalidateQueries({ queryKey: ['project'] });
       toast.success('Issue marked as resolved');
     },
-    onError: () => {
-      toast.error('Failed to resolve issue');
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Failed to resolve issue'));
     },
   });
 
@@ -31,8 +32,8 @@ export function useIssueActions() {
       queryClient.invalidateQueries({ queryKey: ['project'] });
       toast.success('Issue marked as unresolved');
     },
-    onError: () => {
-      toast.error('Failed to unresolve issue');
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Failed to unresolve issue'));
     },
   });
 

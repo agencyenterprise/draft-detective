@@ -10,16 +10,14 @@ export type WizardStep = 1 | 2 | 3;
 interface WizardState {
   currentStep: WizardStep;
   mainDocument: File | null;
-  openaiApiKey: string;
   projectId: string | null;
-  preflightStatus: { apiKey: PreflightStatus; format: PreflightStatus };
+  preflightStatus: { format: PreflightStatus };
   selectedWorkflowTypes: WorkflowRunType[];
   needsReferencesStep: boolean;
 }
 
 interface WizardContextValue extends WizardState {
   setMainDocument: (file: File | null) => void;
-  setApiKey: (key: string) => void;
   setProjectId: (id: string) => void;
   setPreflightStatus: (status: Partial<WizardState['preflightStatus']>) => void;
   setSelectedWorkflowTypes: (types: WorkflowRunType[]) => void;
@@ -31,24 +29,16 @@ const WizardContext = createContext<WizardContextValue | null>(null);
 
 interface WizardProviderProps {
   children: ReactNode;
-  initialApiKey?: string;
   initialProjectId?: string | null;
   initialStep?: WizardStep;
 }
 
-export function WizardProvider({
-  children,
-  initialApiKey = '',
-  initialProjectId = null,
-  initialStep,
-}: WizardProviderProps) {
+export function WizardProvider({ children, initialProjectId = null, initialStep }: WizardProviderProps) {
   // If initialStep is provided, use it. Otherwise, default to step 2 if we have a projectId, else step 1
   const [currentStep, setCurrentStep] = useState<WizardStep>(initialStep ?? (initialProjectId ? 2 : 1));
   const [mainDocument, setMainDocument] = useState<File | null>(null);
-  const [openaiApiKey, setApiKey] = useState(initialApiKey);
   const [projectId, setProjectId] = useState<string | null>(initialProjectId);
   const [preflightStatus, setPreflightStatusState] = useState<WizardState['preflightStatus']>({
-    apiKey: initialProjectId ? 'valid' : 'idle',
     format: initialProjectId ? 'valid' : 'idle',
   });
   const [selectedWorkflowTypes, setSelectedWorkflowTypes] = useState<WorkflowRunType[]>([]);
@@ -75,13 +65,11 @@ export function WizardProvider({
     () => ({
       currentStep,
       mainDocument,
-      openaiApiKey,
       projectId,
       preflightStatus,
       selectedWorkflowTypes,
       needsReferencesStep,
       setMainDocument,
-      setApiKey,
       setProjectId,
       setPreflightStatus,
       setSelectedWorkflowTypes,
@@ -91,7 +79,6 @@ export function WizardProvider({
     [
       currentStep,
       mainDocument,
-      openaiApiKey,
       projectId,
       preflightStatus,
       selectedWorkflowTypes,

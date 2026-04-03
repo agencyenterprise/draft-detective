@@ -16,6 +16,7 @@ import { WorkflowConfigDialog, WorkflowConfigFormValues } from '@/components/wor
 import { WorkflowRunHistory } from '@/components/workflows/workflow-run-history';
 import { useShare } from '@/context/share-context';
 import { ProjectDetailed, startMultipleWorkflowsApiWorkflowsStartMultiplePost } from '@/lib/generated-api';
+import { getErrorMessage } from '@/lib/api-error';
 import { WorkflowDuration } from './workflow-duration';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { getDisplayStatus } from '@/lib/workflow-state';
@@ -62,7 +63,6 @@ export function AnalysesTab({
         body: {
           project_id: projectId,
           workflow_types: values.workflowTypes,
-          openai_api_key: values.openaiApiKey,
         },
       });
     },
@@ -71,7 +71,7 @@ export function AnalysesTab({
       queryClient.invalidateQueries({ queryKey: ['project', projectId] });
     },
     onError: (error) => {
-      toast.error(error instanceof Error ? error.message : 'Failed to start workflows');
+      toast.error(getErrorMessage(error, 'Failed to start workflows'));
     },
   });
 
@@ -125,12 +125,11 @@ export function AnalysesTab({
                       type={selectedWorkflowRun.run.type}
                       projectId={projectId}
                       workflow={selectedWorkflowRun.run}
-                      onConfirm={async (values: WorkflowConfigFormValues) => {
+                      onConfirm={async () => {
                         return await startMultipleWorkflowsApiWorkflowsStartMultiplePost({
                           body: {
                             project_id: projectId,
                             workflow_types: [selectedWorkflowRun.run.type],
-                            openai_api_key: values.openaiApiKey,
                           },
                         });
                       }}

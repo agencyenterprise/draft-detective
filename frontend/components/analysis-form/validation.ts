@@ -10,7 +10,6 @@ import {
 
 export function validateAnalysisForm(
   value: AnalysisFormValues,
-  hideOpenaiApiKeyInput: boolean,
   workflowTypes?: WorkflowTypeDescription[],
   showExperimentalFeatures: boolean = false,
 ): FormValidationError<AnalysisFormValues> {
@@ -37,10 +36,6 @@ export function validateAnalysisForm(
       (f) => `${f.name}: File exceeds ${MAX_FILE_SIZE_MB}MB limit (${(f.size / 1024 / 1024).toFixed(1)}MB)`,
     );
     errors.fields.supportingDocuments = errorMessages.join(', ');
-  }
-
-  if (!hideOpenaiApiKeyInput && (!value.openaiApiKey || value.openaiApiKey.trim() === '')) {
-    errors.fields.openaiApiKey = 'OpenAI API Key is required';
   }
 
   // Validate web search consent if any selected workflow type requires it

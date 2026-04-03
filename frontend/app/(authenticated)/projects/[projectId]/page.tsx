@@ -2,7 +2,7 @@
 
 import { ResultsVisualization } from '@/components/results/results-visualization';
 import { useWorkflowProgressToast } from '@/hooks/use-workflow-progress-toast';
-import { isApiError } from '@/lib/api-error';
+import { getErrorMessage, isApiError } from '@/lib/api-error';
 import {
   AccessLevel,
   ProjectDetailed,
@@ -78,7 +78,7 @@ export default function ResultsPage() {
       toast.success('Title updated successfully');
     },
     onError: (error) => {
-      toast.error(`Failed to update title: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      toast.error(`Failed to update title: ${getErrorMessage(error, 'Unknown error')}`);
     },
   });
 
