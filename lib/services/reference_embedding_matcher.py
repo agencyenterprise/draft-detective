@@ -11,6 +11,7 @@ import numpy as np
 from pydantic import BaseModel
 
 from lib.config.llm_models import init_embeddings
+from lib.config.rate_limiter import get_rate_limiter, hash_api_key
 from lib.workflows.document_summarization.state import FileSummary
 
 logger = logging.getLogger(__name__)
@@ -53,6 +54,7 @@ class ReferenceEmbeddingMatcher:
 
     def __init__(self, openai_api_key: str):
         self._embeddings = init_embeddings(api_key=openai_api_key)
+        self._rate_limiter = get_rate_limiter(hash_api_key(openai_api_key))
         self._doc_embeddings_normalized: np.ndarray | None = None
         self._summaries: List[FileSummary] = []
 
@@ -69,6 +71,7 @@ class ReferenceEmbeddingMatcher:
         texts = [_format_summary(summary) for summary in summaries]
         logger.info(f"Embedding {len(texts)} document summaries")
 
+        await self._rate_limiter.aacquire()
         vectors = await self._embeddings.aembed_documents(texts)
         # We need to pre-normalize during indexing to avoid repeated computation
         self._doc_embeddings_normalized = _normalize(np.array(vectors))
@@ -92,6 +95,7 @@ class ReferenceEmbeddingMatcher:
             return []
 
         logger.info(f"Embedding {len(reference_texts)} reference texts")
+        await self._rate_limiter.aacquire()
         ref_vectors = await self._embeddings.aembed_documents(reference_texts)
         ref_normalized = _normalize(np.array(ref_vectors))
 
