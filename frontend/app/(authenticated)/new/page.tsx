@@ -16,7 +16,7 @@ const REQUIRE_API_KEY_CONFIG = process.env.NEXT_PUBLIC_REQUIRE_OPENAI_API_KEY_CO
 
 function WizardContent() {
   const wizard = useWizard();
-  const { data: user, isLoading: isUserLoading } = useUserMe();
+  const { data: user } = useUserMe();
 
   const apiKeyConfigured = user?.has_openai_api_key ?? false;
   // Show the API key form when required and not yet configured.
@@ -40,7 +40,10 @@ function WizardContent() {
 
   const cardWidthClass = !isOnApiKeyStep && wizard.currentStep === 3 ? 'max-w-8xl' : 'max-w-3xl';
 
-  if (REQUIRE_API_KEY_CONFIG && isUserLoading) {
+  // Guard against hydration mismatch: the server renders with no user data while the
+  // client immediately begins fetching (isLoading differs between SSR and first client
+  // render). Gating on `user === undefined` is consistent across both environments.
+  if (REQUIRE_API_KEY_CONFIG && user === undefined) {
     return (
       <div className="flex justify-center items-center py-24">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
