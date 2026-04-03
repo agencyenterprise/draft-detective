@@ -14,6 +14,7 @@ from fastapi.middleware.gzip import GZipMiddleware
 from fastmcp.utilities.lifespan import combine_lifespans
 
 from lib.api.mcp import mcp_app, mcp_auth
+from lib.api.mcp_middlewares import MCPTrailingSlashMiddleware
 from lib.api.tus_middleware import TusTerminationMiddleware
 from lib.api.routers import (
     analysis,
@@ -60,7 +61,7 @@ for route in mcp_auth.get_well_known_routes(mcp_path="/"):
 
 app.mount("/mcp", mcp_app)
 
-
+app.add_middleware(MCPTrailingSlashMiddleware)
 app.add_middleware(TusTerminationMiddleware)
 
 # CORS middleware
