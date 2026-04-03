@@ -62,7 +62,6 @@ export function AnalysesTab({
         body: {
           project_id: projectId,
           workflow_types: values.workflowTypes,
-          openai_api_key: values.openaiApiKey,
         },
       });
     },
@@ -125,12 +124,11 @@ export function AnalysesTab({
                       type={selectedWorkflowRun.run.type}
                       projectId={projectId}
                       workflow={selectedWorkflowRun.run}
-                      onConfirm={async (values: WorkflowConfigFormValues) => {
+                      onConfirm={async () => {
                         return await startMultipleWorkflowsApiWorkflowsStartMultiplePost({
                           body: {
                             project_id: projectId,
                             workflow_types: [selectedWorkflowRun.run.type],
-                            openai_api_key: values.openaiApiKey,
                           },
                         });
                       }}

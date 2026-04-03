@@ -12,7 +12,6 @@ import { WorkflowTypeSelector } from '@/components/workflows/workflow-type-selec
 import { WebSearchConsentCheckbox } from '@/components/workflows/web-search-consent-checkbox';
 import { useWizard } from './wizard-context';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
-import { useSessionStorage } from '@/lib/hooks/use-session-storage';
 import { useWebSearchConsent } from '@/lib/hooks/use-web-search-consent';
 import { hasWebSearchRequirement, hasSupportingDocumentsRequirement } from '@/components/workflows/utils';
 import {
@@ -27,8 +26,6 @@ export function StepAnalyses() {
   const router = useRouter();
   const wizard = useWizard();
   const { data: workflowTypes } = useWorkflowTypes();
-  const [storedApiKey] = useSessionStorage<string>('openai-api-key', '');
-
   const { selectedWorkflowTypes, setSelectedWorkflowTypes, needsReferencesStep } = wizard;
   const [domain, setDomain] = useState('');
   const [targetAudience, setTargetAudience] = useState('');
@@ -54,14 +51,12 @@ export function StepAnalyses() {
         });
       }
 
-      const apiKey = wizard.openaiApiKey || storedApiKey;
       return startMultipleWorkflowsApiWorkflowsStartMultiplePost({
         body: {
           project_id: projectId,
           workflow_types: needsReferencesStep
             ? [...selectedWorkflowTypes, WorkflowRunType.HumanApproval]
             : selectedWorkflowTypes,
-          openai_api_key: apiKey || undefined,
         },
       });
     },

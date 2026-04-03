@@ -146,16 +146,13 @@ export function ReferenceCard({ reference, projectId, readOnly, disabled = false
   // Effective status for display: show 'fetching' during optimistic period
   const displayStatus = isFetching ? 'fetching' : status;
 
-  const handleFetchFromWebConfirm = (values: WorkflowConfigFormValues) => {
-    fetchFromWebMutation.mutate(
-      { openaiApiKey: values.openaiApiKey },
-      {
-        onSuccess: () => {
-          setIsFetchDialogOpen(false);
-          setFetchInitiated(true); // Optimistic UI: show fetching immediately
-        },
+  const handleFetchFromWebConfirm = () => {
+    fetchFromWebMutation.mutate(undefined, {
+      onSuccess: () => {
+        setIsFetchDialogOpen(false);
+        setFetchInitiated(true); // Optimistic UI: show fetching immediately
       },
-    );
+    });
   };
 
   const dialogConfig = {

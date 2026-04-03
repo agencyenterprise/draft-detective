@@ -45,12 +45,12 @@ export function ReferenceReviewTab({ projectId, readOnly = false }: ReferenceRev
     setIsConfigDialogOpen(true);
   };
 
-  const handleConfirm = (values: WorkflowConfigFormValues) => {
+  const handleConfirm = () => {
     const unmatchedReferences = references
       .filter((ref) => ref.status === 'unmatched')
       .map((ref) => ({ reference_id: ref.id, text: ref.text }));
     fetchAllFromWebMutation.mutate(
-      { references: unmatchedReferences, openaiApiKey: values.openaiApiKey },
+      { references: unmatchedReferences },
       { onSuccess: () => setIsConfigDialogOpen(false) },
     );
   };

@@ -1,10 +1,7 @@
-import { useState, useCallback, useRef, useMemo, useEffect } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import debounce from 'lodash/debounce';
 import { useWizard, PreflightStatus } from './wizard-context';
-import { usePreflight } from '@/lib/hooks/use-preflight';
-import { useSessionStorage } from '@/lib/hooks/use-session-storage';
 import { MAX_FILE_SIZE_BYTES } from '@/lib/constants';
 import { uploadSingleFile, formatBytes, UploadProgress } from '@/lib/hooks/upload';
 import {
@@ -15,9 +12,6 @@ import {
 } from '@/lib/generated-api';
 
 export type UploadStage = 'idle' | 'creating' | 'uploading' | 'processing' | 'complete';
-
-const MIN_API_KEY_LENGTH = 10;
-const HIDE_API_KEY_INPUT = process.env.NEXT_PUBLIC_HIDE_CUSTOM_OPENAI_API_KEY_INPUT === 'true';
 
 const INITIAL_WORKFLOWS = [
   WorkflowRunType.DocumentProcessing,
@@ -51,69 +45,12 @@ function getStageMessage(stage: UploadStage, progress: UploadProgress | null, fi
 
 export function useStepUpload(onComplete: () => void) {
   const wizard = useWizard();
-  const { mainDocument, openaiApiKey, preflightStatus, setPreflightStatus, setMainDocument, setApiKey, setProjectId } =
-    wizard;
-  const [storedApiKey, setStoredApiKey] = useSessionStorage<string>('openai-api-key', '');
-  const { runPreflight, isValidating } = usePreflight();
-  const [showApiKey, setShowApiKey] = useState(false);
+  const { mainDocument, preflightStatus, setPreflightStatus, setMainDocument, setProjectId } = wizard;
   const [uploadStage, setUploadStage] = useState<UploadStage>('idle');
   const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
 
-  const apiKey = openaiApiKey || storedApiKey;
   const fileSizeLabel = mainDocument ? formatBytes(mainDocument.size) : '';
-
-  // Refs to track current values for debounced validation (avoids stale closures)
-  const apiKeyRef = useRef(apiKey);
-  const mainDocumentRef = useRef(mainDocument);
-  apiKeyRef.current = apiKey;
-  mainDocumentRef.current = mainDocument;
-
   const formatStatus = validateDocument(mainDocument);
-
-  const runApiKeyValidation = useCallback(async (): Promise<boolean> => {
-    if (HIDE_API_KEY_INPUT) {
-      setPreflightStatus({ apiKey: 'valid' });
-      return true;
-    }
-    if (!apiKey || apiKey.length < MIN_API_KEY_LENGTH) {
-      setPreflightStatus({ apiKey: 'idle' });
-      return false;
-    }
-    setPreflightStatus({ apiKey: 'pending' });
-    const isValid = await runPreflight({
-      mainDocument,
-      supportingDocuments: [],
-      openaiApiKey: apiKey,
-    });
-    setPreflightStatus({ apiKey: isValid ? 'valid' : 'invalid' });
-    return isValid;
-  }, [apiKey, mainDocument, setPreflightStatus, runPreflight]);
-
-  const debouncedValidation = useMemo(
-    () =>
-      debounce(async () => {
-        if (HIDE_API_KEY_INPUT) return;
-        const currentApiKey = apiKeyRef.current;
-        const currentDocument = mainDocumentRef.current;
-        if (!currentDocument || !currentApiKey || currentApiKey.length < MIN_API_KEY_LENGTH) {
-          return;
-        }
-        setPreflightStatus({ apiKey: 'pending' });
-        const isValid = await runPreflight({
-          mainDocument: currentDocument,
-          supportingDocuments: [],
-          openaiApiKey: currentApiKey,
-        });
-        setPreflightStatus({ apiKey: isValid ? 'valid' : 'invalid' });
-      }, 500),
-    [setPreflightStatus, runPreflight],
-  );
-
-  useEffect(() => {
-    return () => {
-      debouncedValidation.cancel();
-    };
-  }, [debouncedValidation]);
 
   const createProjectAndProcess = useMutation({
     mutationFn: async () => {
@@ -139,7 +76,6 @@ export function useStepUpload(onComplete: () => void) {
         body: {
           project_id: project.id,
           workflow_types: INITIAL_WORKFLOWS,
-          openai_api_key: apiKey || undefined,
         },
       });
 
@@ -163,22 +99,8 @@ export function useStepUpload(onComplete: () => void) {
       setMainDocument(files[0] || null);
       setUploadStage('idle');
       setUploadProgress(null);
-      if (!HIDE_API_KEY_INPUT) {
-        setPreflightStatus({ apiKey: 'idle' });
-        debouncedValidation();
-      }
     },
-    [setMainDocument, setPreflightStatus, debouncedValidation],
-  );
-
-  const handleApiKeyChange = useCallback(
-    (value: string) => {
-      setApiKey(value);
-      setStoredApiKey(value);
-      setPreflightStatus({ apiKey: 'idle' });
-      debouncedValidation();
-    },
-    [setApiKey, setStoredApiKey, setPreflightStatus, debouncedValidation],
+    [setMainDocument],
   );
 
   const handleContinue = useCallback(async () => {
@@ -188,18 +110,11 @@ export function useStepUpload(onComplete: () => void) {
       toast.error('Please upload a valid document');
       return;
     }
-    if (!HIDE_API_KEY_INPUT && preflightStatus.apiKey !== 'valid') {
-      if (!(await runApiKeyValidation())) {
-        toast.error('Please enter a valid OpenAI API key');
-        return;
-      }
-    }
     createProjectAndProcess.mutate();
-  }, [formatStatus, preflightStatus.apiKey, setPreflightStatus, runApiKeyValidation, createProjectAndProcess]);
+  }, [formatStatus, setPreflightStatus, createProjectAndProcess]);
 
-  const isLoading = isValidating || createProjectAndProcess.isPending;
-  const canContinue =
-    formatStatus === 'valid' && (HIDE_API_KEY_INPUT || preflightStatus.apiKey === 'valid') && !isLoading;
+  const isLoading = createProjectAndProcess.isPending;
+  const canContinue = formatStatus === 'valid' && !isLoading;
 
   const stageMessage = useMemo(
     () => getStageMessage(uploadStage, uploadProgress, fileSizeLabel),
@@ -208,20 +123,14 @@ export function useStepUpload(onComplete: () => void) {
 
   return {
     mainDocument,
-    apiKey,
-    showApiKey,
     preflightStatus: { ...preflightStatus, format: formatStatus },
-    hideApiKeyInput: HIDE_API_KEY_INPUT,
     isLoading,
-    isValidating,
     canContinue,
     uploadStage,
     uploadProgress,
     stageMessage,
     fileSizeLabel,
-    setShowApiKey,
     handleDocumentChange,
-    handleApiKeyChange,
     handleContinue,
   };
 }

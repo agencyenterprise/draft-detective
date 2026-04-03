@@ -41,21 +41,16 @@ export function useRemoveFileMutation(projectId: string, fileId: string | undefi
   });
 }
 
-export interface FetchFromWebParams {
-  openaiApiKey: string;
-}
-
 export function useFetchFromWebMutation(projectId: string, referenceId: string, referenceText: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ openaiApiKey }: FetchFromWebParams) => {
+    mutationFn: async () => {
       await startWorkflowApiWorkflowsStartPost({
         body: {
           type: 'reference_downloader',
           project_id: projectId,
           references: [{ reference_id: referenceId, text: referenceText }],
-          openai_api_key: openaiApiKey || null,
         },
       });
     },
@@ -66,20 +61,18 @@ export function useFetchFromWebMutation(projectId: string, referenceId: string, 
 
 export interface FetchAllFromWebParams {
   references: Array<{ reference_id: string; text: string }>;
-  openaiApiKey: string;
 }
 
 export function useFetchAllFromWebMutation(projectId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ references, openaiApiKey }: FetchAllFromWebParams) => {
+    mutationFn: async ({ references }: FetchAllFromWebParams) => {
       await startWorkflowApiWorkflowsStartPost({
         body: {
           type: 'reference_downloader',
           project_id: projectId,
           references: references,
-          openai_api_key: openaiApiKey || null,
         },
       });
     },

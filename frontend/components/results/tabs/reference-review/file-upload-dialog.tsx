@@ -10,12 +10,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { FileUpload } from '@/components/ui/file-upload';
 import { FileListItem } from '@/components/analysis-form/file-list-item';
 import { UploadProgressList } from '@/components/ui/upload-progress-list';
-import { useSessionStorage } from '@/lib/hooks/use-session-storage';
 import { useUpload } from '@/lib/hooks/upload';
 import { FileRole, startMultipleWorkflowsApiWorkflowsStartMultiplePost, WorkflowRunType } from '@/lib/generated-api';
 import { toast } from 'sonner';
@@ -46,9 +44,7 @@ export function FileUploadDialog({
   onComplete,
 }: FileUploadDialogProps) {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  const [openaiApiKey, setOpenaiApiKey] = useSessionStorage<string>('openai-api-key', '');
   const [isStartingWorkflow, setIsStartingWorkflow] = useState(false);
-  const hideOpenaiApiKeyInput = process.env.NEXT_PUBLIC_HIDE_CUSTOM_OPENAI_API_KEY_INPUT === 'true';
   const queryClient = useQueryClient();
   const resetRef = useRef<(() => void) | null>(null);
 
@@ -66,7 +62,6 @@ export function FileUploadDialog({
         body: {
           project_id: projectId,
           workflow_types: [WorkflowRunType.ReferenceFileMatching],
-          openai_api_key: openaiApiKey || undefined,
         },
       });
       queryClient.invalidateQueries({ queryKey: ['project', projectId] });
@@ -77,7 +72,7 @@ export function FileUploadDialog({
       setIsStartingWorkflow(false);
       onComplete?.();
     }
-  }, [referenceId, projectId, openaiApiKey, queryClient, onComplete]);
+  }, [referenceId, projectId, queryClient, onComplete]);
 
   const uploadHook = useUpload({
     projectId,
@@ -88,8 +83,6 @@ export function FileUploadDialog({
 
   // Store reset in ref to avoid effect dependency on uploadHook
   resetRef.current = uploadHook.reset;
-
-  const shouldHideApiKeyInput = hideOpenaiApiKeyInput || openaiApiKey.trim() !== '';
 
   // Reset state when dialog opens
   useEffect(() => {
@@ -116,11 +109,10 @@ export function FileUploadDialog({
 
   const handleConfirm = async () => {
     if (selectedFiles.length === 0) return;
-    if (!shouldHideApiKeyInput && !openaiApiKey.trim()) return;
     uploadHook.startUpload(selectedFiles);
   };
 
-  const canSubmit = selectedFiles.length > 0 && (shouldHideApiKeyInput || openaiApiKey.trim() !== '');
+  const canSubmit = selectedFiles.length > 0;
 
   const getSubmitLabel = () => {
     if (submitLabel) return submitLabel;
@@ -182,27 +174,6 @@ export function FileUploadDialog({
         </DialogHeader>
 
         <div className="space-y-4 flex-1 overflow-y-auto min-h-0">
-          {!shouldHideApiKeyInput && (
-            <div className="space-y-2">
-              <Label htmlFor="openai-key" required>
-                OpenAI API Key
-              </Label>
-              <Input
-                id="openai-key"
-                type="text"
-                placeholder="sk-..."
-                value={openaiApiKey}
-                onChange={(e) => setOpenaiApiKey(e.target.value)}
-                error={!openaiApiKey.trim()}
-                required={true}
-                disabled={isUploading}
-              />
-              <p className="text-sm text-muted-foreground">
-                Your API key is used for processing documents and will not be stored.
-              </p>
-            </div>
-          )}
-
           <div className="space-y-2">
             <Label>{multiple ? 'Select Source Files' : 'Select Source File'}</Label>
             <FileUpload
