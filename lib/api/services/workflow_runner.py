@@ -38,6 +38,18 @@ class AutoRunWorkflowItem(BaseModel):
 logger = logging.getLogger(__name__)
 
 
+def _assert_api_key_available(user: User, request_key: str | None, requires_key: bool) -> None:
+    """Raise HTTP 422 when a workflow needs an API key but none is configured."""
+    if not requires_key:
+        return
+    has_api_key = bool(request_key or get_user_decrypted_api_key(user) or env_config.OPENAI_API_KEY)
+    if not has_api_key:
+        raise HTTPException(
+            status_code=422,
+            detail="No OpenAI API key configured. Please add your API key in account settings.",
+        )
+
+
 async def _prepare_workflow_items(
     workflow_types: List[WorkflowRunType],
     request: StartMultipleWorkflowsRequest,
@@ -63,22 +75,9 @@ async def _prepare_workflow_items(
         f"Resolved to {len(resolved_workflow_types)} workflows (including dependencies): {[w.value for w in resolved_workflow_types]}"
     )
 
-    # Validate API key availability before queuing any background work.
     # Workflows that don't use LLMs (requires_api_key() == False) are exempt.
-    any_requires_key = any(
-        get_config_type(wt).requires_api_key() for wt in resolved_workflow_types
-    )
-    if any_requires_key:
-        has_api_key = bool(
-            request.openai_api_key
-            or get_user_decrypted_api_key(user)
-            or env_config.OPENAI_API_KEY
-        )
-        if not has_api_key:
-            raise HTTPException(
-                status_code=422,
-                detail="No OpenAI API key configured. Please add your API key in account settings.",
-            )
+    any_requires_key = any(get_config_type(wt).requires_api_key() for wt in resolved_workflow_types)
+    _assert_api_key_available(user, request.openai_api_key, any_requires_key)
 
     workflow_run_ids: List[str] = []
     auto_run_items: List[AutoRunWorkflowItem] = []
@@ -153,18 +152,7 @@ async def start_workflow_run(
         config.project_id, user=user, required_level=AccessLevel.WRITE
     )
 
-    # Validate API key availability before queuing any background work.
-    if config.requires_api_key():
-        has_api_key = bool(
-            config.openai_api_key
-            or get_user_decrypted_api_key(user)
-            or env_config.OPENAI_API_KEY
-        )
-        if not has_api_key:
-            raise HTTPException(
-                status_code=422,
-                detail="No OpenAI API key configured. Please add your API key in account settings.",
-            )
+    _assert_api_key_available(user, config.openai_api_key, config.requires_api_key())
 
     existing_run = await get_project_workflow_run_by_type(
         config.project_id, config.type

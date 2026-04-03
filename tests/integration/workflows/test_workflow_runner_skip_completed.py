@@ -57,6 +57,7 @@ async def run_workflow_with_mocks(test_context, completed_workflows):
     request = StartMultipleWorkflowsRequest(
         project_id=project_id_str,
         workflow_types=[test_context["workflow_type"]],
+        openai_api_key="test-api-key",
     )
 
     completed_runs = {

@@ -12,7 +12,9 @@ import { Label } from '@/components/ui/label';
 import { useExperimentalFeatures } from '@/context/experimental-features-context';
 import { GlobalFormValidationError, useForm } from '@tanstack/react-form';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
+import { useUserMe } from '@/lib/hooks/use-user-me';
 import { WorkflowRunType } from '@/lib/generated-api';
+import { KeyRound } from 'lucide-react';
 import { useEffect } from 'react';
 import { WorkflowTypeSelector } from './workflow-type-selector';
 import { WebSearchConsentCheckbox } from './web-search-consent-checkbox';
@@ -36,6 +38,7 @@ export interface WorkflowConfigFormValues {
 export function WorkflowConfigDialog({ isOpen, type, projectId, onConfirm, onCancel }: WorkflowConfigDialogProps) {
   const [storedWebSearchConsent] = useWebSearchConsent(projectId);
   const { showExperimentalFeatures } = useExperimentalFeatures();
+  const { data: user } = useUserMe();
 
   const { data: workflowTypes } = useWorkflowTypes();
 
@@ -167,6 +170,13 @@ export function WorkflowConfigDialog({ isOpen, type, projectId, onConfirm, onCan
             }}
           </form.Field>
         </div>
+
+        {user?.has_openai_api_key && (
+          <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+            <KeyRound className="h-3.5 w-3.5 shrink-0" />
+            Your saved OpenAI API key will be used for this analysis.
+          </p>
+        )}
 
         <form.Subscribe selector={(state) => [state.canSubmit, state.isSubmitting]}>
           {([canSubmit, isSubmitting]) => (
