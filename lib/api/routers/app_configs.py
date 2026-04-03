@@ -1,4 +1,4 @@
-"""Admin-only endpoints for managing runtime application configs."""
+"""Endpoints for managing runtime application configs."""
 
 import logging
 from datetime import datetime
@@ -13,6 +13,7 @@ from lib.models.user import User
 from lib.services.app_configs import (
     delete_config,
     get_all_configs,
+    get_config,
     seed_all_defaults,
     upsert_config,
 )
@@ -40,6 +41,10 @@ class AppConfigResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class AppConfigValueResponse(BaseModel):
+    value: str
+
+
 class UpsertAppConfigRequest(BaseModel):
     value: str
     description: Optional[str] = None
@@ -52,6 +57,21 @@ async def list_app_configs(
     """List all application configs."""
     configs = await get_all_configs()
     return [AppConfigResponse.model_validate(c) for c in configs]
+
+
+@router.get("/{key:path}", response_model=AppConfigValueResponse)
+async def get_app_config(
+    key: str,
+) -> AppConfigValueResponse:
+    """Return the value for a single config key. Public endpoint, no auth required."""
+
+    value = await get_config(key)
+    if value is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Config key '{key}' not found",
+        )
+    return AppConfigValueResponse(value=value)
 
 
 @router.put("/{key:path}", response_model=AppConfigResponse)
