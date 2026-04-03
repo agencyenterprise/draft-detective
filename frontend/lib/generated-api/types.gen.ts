@@ -413,6 +413,16 @@ export type AppConfigResponse = {
 };
 
 /**
+ * AppConfigValueResponse
+ */
+export type AppConfigValueResponse = {
+  /**
+   * Value
+   */
+  value: string;
+};
+
+/**
  * ApproveWorkflowResponse
  *
  * Response for workflow approval.
@@ -5228,6 +5238,38 @@ export type ResetAppConfigApiAppConfigsKeyDeleteResponses = {
 
 export type ResetAppConfigApiAppConfigsKeyDeleteResponse =
   ResetAppConfigApiAppConfigsKeyDeleteResponses[keyof ResetAppConfigApiAppConfigsKeyDeleteResponses];
+
+export type GetAppConfigApiAppConfigsKeyGetData = {
+  body?: never;
+  path: {
+    /**
+     * Key
+     */
+    key: string;
+  };
+  query?: never;
+  url: '/api/app-configs/{key}';
+};
+
+export type GetAppConfigApiAppConfigsKeyGetErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type GetAppConfigApiAppConfigsKeyGetError =
+  GetAppConfigApiAppConfigsKeyGetErrors[keyof GetAppConfigApiAppConfigsKeyGetErrors];
+
+export type GetAppConfigApiAppConfigsKeyGetResponses = {
+  /**
+   * Successful Response
+   */
+  200: AppConfigValueResponse;
+};
+
+export type GetAppConfigApiAppConfigsKeyGetResponse =
+  GetAppConfigApiAppConfigsKeyGetResponses[keyof GetAppConfigApiAppConfigsKeyGetResponses];
 
 export type UpdateAppConfigApiAppConfigsKeyPutData = {
   body: UpsertAppConfigRequest;

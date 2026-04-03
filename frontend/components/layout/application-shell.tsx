@@ -11,7 +11,7 @@ import { MobileProfileMenu, ProfileDropdown } from './profile-dropdown';
 
 const navigation = [
   { name: 'Projects', href: '/projects' },
-  { name: 'Start new project', href: '/new' },
+  { name: 'About', href: '/about' },
 ];
 
 export interface ApplicationShellProps {
@@ -61,8 +61,13 @@ export function ApplicationShell({ children }: ApplicationShellProps) {
                   </a>
                 ))}
               </div>
+              <div className="hidden sm:ml-8 sm:flex sm:items-center">
+                <Button asChild size="sm" variant="outline">
+                  <Link href="/new">Start new project</Link>
+                </Button>
+              </div>
             </div>
-            <div className="hidden sm:ml-6 sm:flex sm:items-center">
+            <div className="hidden sm:ml-6 sm:flex sm:items-center sm:gap-3">
               {user ? (
                 <ProfileDropdown user={user} />
               ) : !isLoadingUser ? (
@@ -106,6 +111,15 @@ export function ApplicationShell({ children }: ApplicationShellProps) {
             ))}
           </div>
           <div className="border-t border-gray-200 pt-4 pb-3">
+            <div className="px-4 pb-3">
+              <DisclosureButton
+                as="a"
+                href="/new"
+                className="block w-full rounded-md bg-primary px-3 py-2 text-center text-base font-medium text-white hover:bg-primary/90"
+              >
+                Start new project
+              </DisclosureButton>
+            </div>
             {user ? (
               <MobileProfileMenu user={user} />
             ) : !isLoadingUser ? (

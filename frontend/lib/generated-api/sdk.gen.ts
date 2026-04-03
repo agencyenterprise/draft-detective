@@ -66,6 +66,9 @@ import type {
   GetAdminFeedbacksApiAdminFeedbacksGetData,
   GetAdminFeedbacksApiAdminFeedbacksGetErrors,
   GetAdminFeedbacksApiAdminFeedbacksGetResponses,
+  GetAppConfigApiAppConfigsKeyGetData,
+  GetAppConfigApiAppConfigsKeyGetErrors,
+  GetAppConfigApiAppConfigsKeyGetResponses,
   GetCurrentUserInfoApiUsersMeGetData,
   GetCurrentUserInfoApiUsersMeGetResponses,
   GetFeedbackApiFeedbackGetData,
@@ -230,6 +233,26 @@ export const resetAppConfigApiAppConfigsKeyDelete = <ThrowOnError extends boolea
   (options.client ?? client).delete<
     ResetAppConfigApiAppConfigsKeyDeleteResponses,
     ResetAppConfigApiAppConfigsKeyDeleteErrors,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/app-configs/{key}',
+    ...options,
+  });
+
+/**
+ * Get App Config
+ *
+ * Return the value for a single config key. Available to all authenticated users.
+ */
+export const getAppConfigApiAppConfigsKeyGet = <ThrowOnError extends boolean = true>(
+  options: Options<GetAppConfigApiAppConfigsKeyGetData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    GetAppConfigApiAppConfigsKeyGetResponses,
+    GetAppConfigApiAppConfigsKeyGetErrors,
     ThrowOnError,
     'data'
   >({
