@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from lib.config.llm_models import init_embeddings
+from lib.config.rate_limiter import get_rate_limiter, hash_api_key
 
 logger = logging.getLogger(__name__)
 
@@ -127,6 +128,7 @@ class VectorStoreService:
     def __init__(self, connection_string: str, openai_api_key: str):
         """Initialize vector store with database connection."""
         self.embeddings = init_embeddings(api_key=openai_api_key)
+        self._rate_limiter = get_rate_limiter(hash_api_key(openai_api_key))
 
         # Always use async engine since all our methods are async
         # Convert postgresql:// to postgresql+psycopg:// for SQLAlchemy async engine
@@ -192,6 +194,7 @@ class VectorStoreService:
         """Check if collection is indexed."""
 
         vectorstore = self._get_vectorstore(collection_id)
+        await self._rate_limiter.aacquire()
         results = await vectorstore.asimilarity_search(query="", k=1)
         return len(results) > 0
 
@@ -216,6 +219,7 @@ class VectorStoreService:
             for batch_start in range(0, total_docs, EMBEDDING_BATCH_SIZE):
                 batch_end = min(batch_start + EMBEDDING_BATCH_SIZE, total_docs)
                 batch = docs[batch_start:batch_end]
+                await self._rate_limiter.aacquire()
                 await vectorstore.aadd_documents(batch)
                 logger.debug(
                     f"Indexed batch {batch_start}-{batch_end} of {total_docs} chunks"
@@ -243,6 +247,7 @@ class VectorStoreService:
         try:
             vectorstore = self._get_vectorstore(collection_id)
 
+            await self._rate_limiter.aacquire()
             results = await vectorstore.asimilarity_search_with_score(query, k=top_k)
 
             logger.info(

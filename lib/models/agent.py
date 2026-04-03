@@ -1,7 +1,5 @@
-import hashlib
 import logging
 from abc import ABC, abstractmethod
-from functools import lru_cache
 from typing import Any, Literal, Optional, TypedDict
 
 from langchain.chat_models import BaseChatModel, init_chat_model
@@ -10,6 +8,7 @@ from langchain_core.runnables.config import RunnableConfig
 from pydantic import BaseModel
 
 from lib.config.llm_models import LLMModel
+from lib.config.rate_limiter import get_rate_limiter, hash_api_key
 from lib.workflows.context import ContextSchema
 
 logger = logging.getLogger(__name__)
@@ -61,8 +60,7 @@ class LangChainAgent(BaseAgent):
 
     def get_rate_limiter(self) -> InMemoryRateLimiter:
         api_key = self.context.openai_api_key or "default"
-        key_hash = hashlib.sha256(api_key.encode()).hexdigest()[:16]
-        return get_rate_limiter(key_hash)
+        return get_rate_limiter(hash_api_key(api_key))
 
     def get_init_chat_model_kwargs(self) -> dict:
         init_kwargs = {
@@ -97,11 +95,3 @@ class LangChainAgent(BaseAgent):
             self._llm = self.create_llm()
         return self._llm
 
-
-@lru_cache(maxsize=256)
-def get_rate_limiter(api_key_hash: str) -> InMemoryRateLimiter:
-    return InMemoryRateLimiter(
-        requests_per_second=64,  # How many requests per second are allowed
-        check_every_n_seconds=0.2,  # Wake up every X seconds to check whether allowed to make a request
-        max_bucket_size=200,  # Controls the maximum burst size
-    )
