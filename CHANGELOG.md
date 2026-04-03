@@ -6,6 +6,45 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v0.5.24] - 2026-04-03
+
+### Added
+- Added an MCP (Model Context Protocol) server mounted at `/mcp` with OAuth authentication and tools to list workflow types, create projects, run workflows, and get project details.
+- Added the ability for users to cancel running or pending workflow runs with cascade cancellation through dependent workflows, in-flight interruption, and live duration tracking in the UI.
+- Added an About page that renders configurable markdown content fetched from the app config system.
+- Added a new public `GET /api/app-configs/{key}` endpoint returning `{ value: string }`.
+- Added support for users to store a personal OpenAI API key encrypted at rest for automatic use in analyses, including from MCP clients.
+- Added new user API endpoints to manage the stored OpenAI API key (`PUT /api/users/me/api-key` and `DELETE /api/users/me/api-key`).
+- Added a new `/account` settings page for saving, replacing, and removing the stored OpenAI API key.
+- Added `has_openai_api_key` to `UserResponse`.
+- Added per-key rate limiting to embedding calls in `VectorStoreService`.
+
+### Changed
+- Replaced per-request OpenAI API key entry in analysis forms, dialogs, and workflow triggers with account-level API key configuration used automatically by the server.
+- Added a new analysis wizard step (`StepApiKeyConfig`) when `NEXT_PUBLIC_REQUIRE_OPENAI_API_KEY_CONFIG=true` to prompt users to save their OpenAI API key to their account.
+- Renamed `NEXT_PUBLIC_HIDE_CUSTOM_OPENAI_API_KEY_INPUT` to `NEXT_PUBLIC_REQUIRE_OPENAI_API_KEY_CONFIG` and changed its semantics to require key setup as a wizard step.
+- Simplified the preflight service by removing client-side API key validation.
+- Updated workflow runner key resolution order to: per-request key, then user's stored key, then server environment variable.
+- Updated the MCP `run_workflow` tool to require a stored API key.
+- Refactored `@register_node` to accept only a name and removed the description argument from all workflow node registrations.
+- Broadened workflow cancellation progress cleanup to clear incomplete progress entries across all runs for the same project and workflow type.
+- Consolidated the top-level `api/` package under `lib/` to unify the codebase into a single package namespace, with corresponding updates to configuration, deployment references, and tests.
+- Updated navigation by moving "Start new project" into a standalone button and adding an "About" nav link pointing to `/about`.
+- Updated profile dropdown labels by adding a user-facing "Settings" link and renaming admin "Settings" to "App Settings".
+- Updated MCP instructions text from "Draft Detective / AI Reviewer" to "Draft Detective AI Reviewer".
+
+### Fixed
+- Fixed workflow cancellation progress cleanup so stale `pending`/`in_progress` entries from prior runs are also resolved.
+
+### Security
+- Encrypted stored user OpenAI API keys at rest and ensured the key is never returned in API responses.
+
+### Removed
+- Removed OpenAI API key fields from frontend request payloads and from all analysis forms, dialogs, and workflow triggers.
+- Removed inline `get_rate_limiter` and `hash_api_key` definitions from `lib/models/agent.py` in favor of a shared config module.
+- Removed the standalone top-level `api/` package and removed `api` from the wheel build targets in `pyproject.toml`.
+
+
 ## [v0.5.23] - 2026-03-27
 
 ### Added
