@@ -4459,6 +4459,18 @@ export type Reviewer2State = {
 };
 
 /**
+ * SetApiKeyRequest
+ *
+ * Request model for setting a user's OpenAI API key
+ */
+export type SetApiKeyRequest = {
+  /**
+   * Openai Api Key
+   */
+  openai_api_key: string;
+};
+
+/**
  * SeverityEnum
  */
 export const SeverityEnum = {
@@ -4750,6 +4762,10 @@ export type UserResponse = {
    * Show Experimental Features
    */
   show_experimental_features: boolean;
+  /**
+   * Has Openai Api Key
+   */
+  has_openai_api_key?: boolean;
 };
 
 /**
@@ -6908,3 +6924,47 @@ export type UpdatePreferencesApiUsersMePreferencesPatchResponses = {
 
 export type UpdatePreferencesApiUsersMePreferencesPatchResponse =
   UpdatePreferencesApiUsersMePreferencesPatchResponses[keyof UpdatePreferencesApiUsersMePreferencesPatchResponses];
+
+export type RemoveApiKeyApiUsersMeApiKeyDeleteData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/api/users/me/api-key';
+};
+
+export type RemoveApiKeyApiUsersMeApiKeyDeleteResponses = {
+  /**
+   * Successful Response
+   */
+  200: UserResponse;
+};
+
+export type RemoveApiKeyApiUsersMeApiKeyDeleteResponse =
+  RemoveApiKeyApiUsersMeApiKeyDeleteResponses[keyof RemoveApiKeyApiUsersMeApiKeyDeleteResponses];
+
+export type SetApiKeyApiUsersMeApiKeyPutData = {
+  body: SetApiKeyRequest;
+  path?: never;
+  query?: never;
+  url: '/api/users/me/api-key';
+};
+
+export type SetApiKeyApiUsersMeApiKeyPutErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type SetApiKeyApiUsersMeApiKeyPutError =
+  SetApiKeyApiUsersMeApiKeyPutErrors[keyof SetApiKeyApiUsersMeApiKeyPutErrors];
+
+export type SetApiKeyApiUsersMeApiKeyPutResponses = {
+  /**
+   * Successful Response
+   */
+  200: UserResponse;
+};
+
+export type SetApiKeyApiUsersMeApiKeyPutResponse =
+  SetApiKeyApiUsersMeApiKeyPutResponses[keyof SetApiKeyApiUsersMeApiKeyPutResponses];

@@ -116,12 +116,17 @@ import type {
   ReadHealthApiHealthGetResponses,
   ReadHealthApiHealthHeadData,
   ReadHealthApiHealthHeadResponses,
+  RemoveApiKeyApiUsersMeApiKeyDeleteData,
+  RemoveApiKeyApiUsersMeApiKeyDeleteResponses,
   ResetAppConfigApiAppConfigsKeyDeleteData,
   ResetAppConfigApiAppConfigsKeyDeleteErrors,
   ResetAppConfigApiAppConfigsKeyDeleteResponses,
   ResolveIssueEndpointApiIssuesIssueIdResolvePostData,
   ResolveIssueEndpointApiIssuesIssueIdResolvePostErrors,
   ResolveIssueEndpointApiIssuesIssueIdResolvePostResponses,
+  SetApiKeyApiUsersMeApiKeyPutData,
+  SetApiKeyApiUsersMeApiKeyPutErrors,
+  SetApiKeyApiUsersMeApiKeyPutResponses,
   StartAnalysisApiStartAnalysisDoNotUsePostData,
   StartAnalysisApiStartAnalysisDoNotUsePostErrors,
   StartAnalysisApiStartAnalysisDoNotUsePostResponses,
@@ -1258,6 +1263,45 @@ export const updatePreferencesApiUsersMePreferencesPatch = <ThrowOnError extends
     responseStyle: 'data',
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/users/me/preferences',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * Remove Api Key
+ *
+ * Remove the stored OpenAI API key for the current user.
+ */
+export const removeApiKeyApiUsersMeApiKeyDelete = <ThrowOnError extends boolean = true>(
+  options?: Options<RemoveApiKeyApiUsersMeApiKeyDeleteData, ThrowOnError>,
+) =>
+  (options?.client ?? client).delete<RemoveApiKeyApiUsersMeApiKeyDeleteResponses, unknown, ThrowOnError, 'data'>({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/users/me/api-key',
+    ...options,
+  });
+
+/**
+ * Set Api Key
+ *
+ * Validate and store an OpenAI API key for the current user.
+ */
+export const setApiKeyApiUsersMeApiKeyPut = <ThrowOnError extends boolean = true>(
+  options: Options<SetApiKeyApiUsersMeApiKeyPutData, ThrowOnError>,
+) =>
+  (options.client ?? client).put<
+    SetApiKeyApiUsersMeApiKeyPutResponses,
+    SetApiKeyApiUsersMeApiKeyPutErrors,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/users/me/api-key',
     ...options,
     headers: {
       'Content-Type': 'application/json',

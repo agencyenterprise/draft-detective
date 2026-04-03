@@ -4,20 +4,39 @@ User-related API endpoints.
 
 from typing import List
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from lib.api.auth import get_current_user, require_admin
-from lib.api.models import UpdateUserPreferencesRequest, UpdateUserRoleRequest, UserResponse
+from lib.api.models import (
+    SetApiKeyRequest,
+    UpdateUserPreferencesRequest,
+    UpdateUserRoleRequest,
+    UserResponse,
+)
+from lib.services.preflight.models import PreflightRequest
+from lib.services.preflight.service import PreflightValidationService
 from lib.models.user import User, UserRole
-from lib.services.users import get_all_users, update_user_preferences, update_user_role
+from lib.services.users import (
+    delete_user_openai_api_key,
+    get_all_users,
+    set_user_openai_api_key,
+    update_user_preferences,
+    update_user_role,
+)
 
 router = APIRouter(prefix="/api/users", tags=["users"])
+
+
+def _user_response(user: User) -> UserResponse:
+    data = UserResponse.model_validate(user)
+    data.has_openai_api_key = user.encrypted_openai_api_key is not None
+    return data
 
 
 @router.get("/me", response_model=UserResponse)
 async def get_current_user_info(user: User = Depends(get_current_user)) -> UserResponse:
     """Get the current authenticated user's information."""
-    return UserResponse.model_validate(user)
+    return _user_response(user)
 
 
 @router.get("", response_model=List[UserResponse])
@@ -36,7 +55,7 @@ async def list_users(
 ) -> List[UserResponse]:
     """List users (admin only), optionally filtered by name, email, or role."""
     users = await get_all_users(search=search, role=role, limit=limit, offset=offset)
-    return [UserResponse.model_validate(user) for user in users]
+    return [_user_response(user) for user in users]
 
 
 @router.patch("/{user_id}/role", response_model=UserResponse)
@@ -47,7 +66,7 @@ async def update_role(
 ) -> UserResponse:
     """Update a user's role (admin only)."""
     user = await update_user_role(user_id, request.role)
-    return UserResponse.model_validate(user)
+    return _user_response(user)
 
 
 @router.patch("/me/preferences", response_model=UserResponse)
@@ -59,4 +78,33 @@ async def update_preferences(
     updated_user = await update_user_preferences(
         str(user.id), request.show_experimental_features
     )
-    return UserResponse.model_validate(updated_user)
+    return _user_response(updated_user)
+
+
+@router.put("/me/api-key", response_model=UserResponse)
+async def set_api_key(
+    request: SetApiKeyRequest,
+    user: User = Depends(get_current_user),
+) -> UserResponse:
+    """Validate and store an OpenAI API key for the current user."""
+    preflight = PreflightValidationService()
+    result = await preflight.validate(
+        PreflightRequest(openai_api_key=request.openai_api_key)
+    )
+    if not result.valid:
+        messages = [issue.message for issue in result.issues]
+        raise HTTPException(status_code=422, detail="; ".join(messages))
+
+    updated_user = await set_user_openai_api_key(
+        str(user.id), request.openai_api_key
+    )
+    return _user_response(updated_user)
+
+
+@router.delete("/me/api-key", response_model=UserResponse)
+async def remove_api_key(
+    user: User = Depends(get_current_user),
+) -> UserResponse:
+    """Remove the stored OpenAI API key for the current user."""
+    updated_user = await delete_user_openai_api_key(str(user.id))
+    return _user_response(updated_user)

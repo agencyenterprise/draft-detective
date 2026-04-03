@@ -88,6 +88,7 @@ class UserResponse(BaseModel):
     name: str
     role: UserRole
     show_experimental_features: bool
+    has_openai_api_key: bool = False
 
     @field_validator("id", mode="before")
     @classmethod
@@ -110,6 +111,12 @@ class UpdateUserPreferencesRequest(BaseModel):
     """Request model for updating user preferences"""
 
     show_experimental_features: bool
+
+
+class SetApiKeyRequest(BaseModel):
+    """Request model for setting a user's OpenAI API key"""
+
+    openai_api_key: str
 
 
 class ApproveWorkflowResponse(BaseModel):
