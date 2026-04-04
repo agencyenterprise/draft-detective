@@ -44,7 +44,7 @@ export const mockDocument: StitchDocument = {
     {
       id: 3,
       text: 'In contrast, a randomized controlled trial conducted by Dawson-Hughes et al. demonstrated that daily supplementation of 700-800 IU significantly reduced the incidence of hip and non-vertebral fractures in ambulatory older adults. The effect was most pronounced in subjects with baseline serum levels below 50 nmol/L, supporting a threshold model of vitamin D efficacy rather than a linear dose-response relationship.',
-      highlights: [{ start: 55, end: 82, issueId: 'issue-2', color: 'blue' }],
+      highlights: [{ start: 56, end: 74, issueId: 'issue-2', color: 'blue' }],
     },
     {
       id: 4,
