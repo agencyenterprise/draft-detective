@@ -163,14 +163,6 @@ export const categoryLabels: Record<StitchIssue['category'], string> = {
   'factual-inconsistency': 'Factual Inconsistency',
 };
 
-export const categoryColors: Record<StitchIssue['category'], string> = {
-  'reference-validation': 'bg-amber-500',
-  'unsupported-assertion': 'bg-rose-500',
-  'citation-suggestion': 'bg-blue-500',
-  'acronym-check': 'bg-slate-400',
-  'factual-inconsistency': 'bg-orange-500',
-};
-
 export const severityLabels: Record<StitchIssue['severity'], string> = {
   critical: 'Critical',
   warning: 'Warning',
