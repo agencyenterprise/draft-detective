@@ -15,29 +15,22 @@ const tools = [
   { name: 'get_project', description: 'Retrieves full project details and workflow results by ID' },
 ];
 
-const steps = [
-  <>
-    Open Claude and go to <strong>Settings → Integrations</strong>
-  </>,
-  <>
-    Click <strong>Add integration</strong> (or the <strong>+</strong> button)
-  </>,
-  <>
-    Set the name to <strong>Draft Detective AI Reviewer</strong> (suggested)
-  </>,
-  <>Paste the MCP Server URL shown above</>,
-  <>
-    Click <strong>Add</strong> and complete the OAuth authorization when prompted
-  </>,
-];
+const claudeCodeCommand = `claude mcp add-json "draft-detective" '{"type":"http","url":"${mcpUrl}"}'`;
 
 export function McpInstructions() {
   const [copied, setCopied] = useState(false);
+  const [copiedCommand, setCopiedCommand] = useState(false);
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(mcpUrl);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleCopyCommand = async () => {
+    await navigator.clipboard.writeText(claudeCodeCommand);
+    setCopiedCommand(true);
+    setTimeout(() => setCopiedCommand(false), 2000);
   };
 
   return (
@@ -72,19 +65,19 @@ export function McpInstructions() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">How to connect in Claude</CardTitle>
+          <CardTitle className="text-base">Add via Claude Code CLI</CardTitle>
         </CardHeader>
-        <CardContent>
-          <ol className="space-y-3">
-            {steps.map((step, i) => (
-              <li key={i} className="flex gap-3 text-sm">
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-semibold">
-                  {i + 1}
-                </span>
-                <span className="pt-0.5">{step}</span>
-              </li>
-            ))}
-          </ol>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-muted-foreground">Run this single command to add the MCP server to Claude Code:</p>
+          <div className="flex items-center gap-2">
+            <code className="flex-1 rounded-md bg-muted px-3 py-2 text-sm font-mono break-all">
+              {claudeCodeCommand}
+            </code>
+            <Button variant="outline" onClick={handleCopyCommand} title="Copy command">
+              {copiedCommand ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
+              {copiedCommand ? 'Copied' : 'Copy'}
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
