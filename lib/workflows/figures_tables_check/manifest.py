@@ -97,6 +97,5 @@ class FiguresTablesCheckManifest(SimpleDeepAgentManifest):
     )
     required_dependencies = [WorkflowRunType.DOCUMENT_PROCESSING]
     is_experimental = True
-    order = 13
 
     user_prompt = _USER_PROMPT

@@ -24,9 +24,6 @@ class DocumentSummarizationManifest(
     name = "Document Summarization"
     description = "Summarize the main document and supporting documents"
     needs_web_search = False
-    can_be_triggered_by_user = (
-        False  # This is a dependency workflow, not directly triggered
-    )
     is_internal = True
     required_dependencies = [WorkflowRunType.DOCUMENT_PROCESSING]
     always_run = True  # Always run document summarization to ensure new files are summarized. The workflow summarizes only new files in subsequent runs, reusing cached results from previous runs.

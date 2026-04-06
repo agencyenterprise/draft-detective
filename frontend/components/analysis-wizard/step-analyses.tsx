@@ -26,7 +26,7 @@ import { toast } from 'sonner';
 export function StepAnalyses() {
   const router = useRouter();
   const wizard = useWizard();
-  const { data: workflowTypes } = useWorkflowTypes();
+  const { workflowTypes, categories } = useWorkflowTypes();
   const { selectedWorkflowTypes, setSelectedWorkflowTypes, needsReferencesStep } = wizard;
   const [domain, setDomain] = useState('');
   const [targetAudience, setTargetAudience] = useState('');
@@ -110,7 +110,8 @@ export function StepAnalyses() {
       </div>
 
       <WorkflowTypeSelector
-        workflowTypes={workflowTypes?.filter((wt) => !wt.is_internal && wt.can_be_triggered_by_user)}
+        workflowTypes={workflowTypes.filter((wt) => !wt.is_internal)}
+        categories={categories}
         selectedTypes={selectedWorkflowTypes}
         onSelectionChange={setSelectedWorkflowTypes}
         headerDescription=""

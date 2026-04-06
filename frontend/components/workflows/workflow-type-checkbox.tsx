@@ -104,11 +104,11 @@ export function WorkflowTypeCheckbox({
       <div className="flex gap-4">
         <div
           className={cn(
-            'flex items-center justify-center size-10 rounded-lg shrink-0 transition-colors',
+            'flex items-center justify-center size-8 rounded-lg shrink-0 transition-colors',
             checked ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground',
           )}
         >
-          <Icon className="size-5" />
+          <Icon className="size-4" />
         </div>
 
         <div className="flex-1 min-w-0 space-y-1.5">
@@ -135,7 +135,7 @@ export function WorkflowTypeCheckbox({
             </CheckboxPrimitive.Root>
           </div>
 
-          <p className="text-sm text-muted-foreground leading-relaxed">{workflowType.description}</p>
+          <p className="text-sm text-muted-foreground">{workflowType.description}</p>
 
           {(workflowType.is_experimental ||
             workflowType.needs_web_search ||

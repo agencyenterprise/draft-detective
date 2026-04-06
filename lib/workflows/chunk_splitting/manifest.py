@@ -24,7 +24,6 @@ class ChunkSplittingManifest(
     name = "Chunk Splitting"
     description = "Split document markdown into chunks for analysis"
     needs_web_search = False
-    can_be_triggered_by_user = False  # This is a dependency workflow
     is_internal = True
     required_dependencies = [WorkflowRunType.DOCUMENT_PROCESSING]
 

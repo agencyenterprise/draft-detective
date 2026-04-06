@@ -4852,6 +4852,26 @@ export const ValidationSeverity = { Error: 'error', Warning: 'warning' } as cons
 export type ValidationSeverity = (typeof ValidationSeverity)[keyof typeof ValidationSeverity];
 
 /**
+ * WorkflowCategoryOrder
+ *
+ * Ordered category entry: slug, label, and ordered list of workflow type slugs.
+ */
+export type WorkflowCategoryOrder = {
+  /**
+   * Slug
+   */
+  slug: string;
+  /**
+   * Label
+   */
+  label: string;
+  /**
+   * Workflows
+   */
+  workflows: Array<WorkflowRunType>;
+};
+
+/**
  * WorkflowError
  *
  * Error object for the overall workflow or specific chunks.
@@ -5102,17 +5122,29 @@ export type WorkflowTypeDescription = {
    */
   is_internal: boolean;
   /**
-   * Can Be Triggered By User
-   */
-  can_be_triggered_by_user: boolean;
-  /**
    * Is Qa Screener
    */
   is_qa_screener: boolean;
   /**
-   * Order
+   * Category
    */
-  order: number;
+  category: string;
+};
+
+/**
+ * WorkflowTypesResponse
+ *
+ * Combined response: flat workflow details plus the ordered category display config.
+ */
+export type WorkflowTypesResponse = {
+  /**
+   * Workflow Types
+   */
+  workflow_types: Array<WorkflowTypeDescription>;
+  /**
+   * Categories
+   */
+  categories: Array<WorkflowCategoryOrder>;
 };
 
 /**
@@ -5569,11 +5601,9 @@ export type GetWorkflowTypesApiWorkflowTypesGetData = {
 
 export type GetWorkflowTypesApiWorkflowTypesGetResponses = {
   /**
-   * Response Get Workflow Types Api Workflow Types Get
-   *
    * Successful Response
    */
-  200: Array<WorkflowTypeDescription>;
+  200: WorkflowTypesResponse;
 };
 
 export type GetWorkflowTypesApiWorkflowTypesGetResponse =
