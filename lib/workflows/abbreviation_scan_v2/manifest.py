@@ -27,10 +27,8 @@ class AbbreviationScanV2Manifest(
         "all abbreviations are listed in an Abbreviations section."
     )
     needs_web_search = False
-    can_be_triggered_by_user = True
     is_internal = False
     is_experimental = False
-    order = 1
     required_dependencies = [WorkflowRunType.DOCUMENT_PROCESSING]
 
     def get_state_type(self) -> Type[AbbreviationScanV2State]:

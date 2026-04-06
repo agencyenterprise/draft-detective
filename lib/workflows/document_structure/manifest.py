@@ -81,6 +81,5 @@ class DocumentStructureManifest(SimpleDeepAgentManifest):
     )
     required_dependencies = [WorkflowRunType.DOCUMENT_PROCESSING]
     is_experimental = True
-    order = 12
 
     user_prompt = _USER_PROMPT

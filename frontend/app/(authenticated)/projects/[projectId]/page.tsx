@@ -29,13 +29,12 @@ export default function ResultsPage() {
   const fromWizard = searchParams.get('fromWizard') === 'true';
 
   const { project, workflowDetails, isLoading, error } = useProjectDetails(projectId);
-  const { data: workflowTypes } = useWorkflowTypes();
+  const { workflowTypes } = useWorkflowTypes();
 
   const isProcessing = isAnyWorkflowProcessing(workflowDetails);
 
   // Build internal types set from API data
   const internalTypes = useMemo(() => {
-    if (!workflowTypes) return new Set<WorkflowRunType>();
     return new Set(workflowTypes.filter((wt) => wt.is_internal).map((wt) => wt.type));
   }, [workflowTypes]);
 

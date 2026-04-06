@@ -21,7 +21,7 @@ class ReferenceDownloaderManifest(
     name = "Reference Downloader"
     description = "Search the web for each reference and download the related full-text when available (PDF or Markdown)."
     needs_web_search = True
-    can_be_triggered_by_user = False
+    is_internal = True
     optional_dependencies = []
 
     def get_state_type(self) -> Type[ReferenceDownloaderState]:

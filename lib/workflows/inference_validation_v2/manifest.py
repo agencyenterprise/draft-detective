@@ -23,8 +23,6 @@ class InferenceValidationV2Manifest(
     description = "Analyze the full document for invalid inferences. Identifies logical fallacies, unsupported conclusions, and faulty reasoning. Each finding includes the key sentence, argument analysis, and suggested correction."
     needs_web_search = False
     is_experimental = False
-    can_be_triggered_by_user = True
-    order = 4
     required_dependencies = [WorkflowRunType.DOCUMENT_PROCESSING]
 
     def get_state_type(self) -> Type[InferenceValidationV2State]:

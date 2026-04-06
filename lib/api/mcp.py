@@ -19,8 +19,8 @@ from lib.services.file_finalization import finalize_file
 from lib.services.projects import create_project as create_project_record
 from lib.services.projects import get_project_access, get_project_detailed_from_project
 from lib.services.users import get_or_create_user_by_email
+from lib.services.workflow_types import get_workflow_types_for_user
 from lib.workflows.models import WorkflowRunType
-from lib.workflows.registry import get_all_manifests
 
 mcp_auth = create_mcp_auth()
 mcp = FastMCP(
@@ -87,36 +87,18 @@ async def _get_project_details_json(
         openWorldHint=False,
     )
 )
-def list_workflow_types() -> str:
+async def list_workflow_types(token: AccessToken = CurrentAccessToken()) -> str:
     """
-    Lists all available workflow / analysis types that can be run on a project / document.
-    Each entry includes the type identifier (used when starting a workflow), display name,
-    description, and dependency information.
+    Lists all available workflow / analysis types that can be run on a project / document,
+    along with the ordered category display config.
+
+    workflow_types: flat list of all workflows with type identifier (used when starting a
+    workflow), display name, description, and dependency information.
+    categories: ordered list of categories, each with an ordered list of workflow type slugs
+    that belong to it — use this to understand grouping and display order.
     """
-
-    manifests = get_all_manifests()
-
-    return json.dumps(
-        {
-            "workflows": [
-                {
-                    "type": manifest.type.value,
-                    "name": manifest.name,
-                    "description": manifest.description,
-                    "order": manifest.order,
-                    "is_experimental": manifest.is_experimental,
-                    "requires_human_trigger": manifest.requires_human_trigger,
-                    "required_dependencies": [
-                        d.value for d in manifest.required_dependencies
-                    ],
-                    "optional_dependencies": [
-                        d.value for d in manifest.optional_dependencies
-                    ],
-                }
-                for manifest in sorted(manifests.values(), key=lambda m: m.order)
-            ]
-        }
-    )
+    user = await _resolve_user(token)
+    return get_workflow_types_for_user(user).model_dump_json()
 
 
 @mcp.tool(

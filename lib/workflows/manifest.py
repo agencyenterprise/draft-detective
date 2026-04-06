@@ -37,9 +37,6 @@ class WorkflowManifest[WorkflowStateType, WorkflowConfigType](ABC):
     # Whether the workflow needs web search
     needs_web_search: bool = False
 
-    # Whether the workflow can be triggered by the user
-    can_be_triggered_by_user: bool = True
-
     # Internal workflows run as dependencies, not shown in UI
     is_internal: bool = False
 
@@ -52,9 +49,6 @@ class WorkflowManifest[WorkflowStateType, WorkflowConfigType](ABC):
     # If True, workflow always runs even if already completed (when included as dependency)
     # The workflows needs to be idempotent, meaning it can be run multiple times without changing the result and typical execute only "new" content that was not processed in a previous run, reusing cached results from previous runs, like summarization, document conversion, etc (should process only new files in subsequent runs).
     always_run: bool = False
-
-    # Display order in the UI (lower numbers appear first)
-    order: int = 99
 
     @property
     def is_qa_screener(self) -> bool:

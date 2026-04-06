@@ -32,19 +32,22 @@ export function HealthMonitorDashboard({
     isLoading,
   } = useWorkflowHealth(workflowRuns, issues);
 
-  const { data: workflowTypes } = useWorkflowTypes();
+  const { categories } = useWorkflowTypes();
 
-  // Sort health data by workflow order for consistent display
+  // Sort health data by category order then position within category
   const sortedHealthData = useMemo(() => {
-    if (!workflowTypes) return healthData;
-
-    const orderMap = new Map(workflowTypes.map((wt) => [wt.type, wt.order]));
-    return [...healthData].sort((a, b) => {
-      const orderA = orderMap.get(a.type) ?? 99;
-      const orderB = orderMap.get(b.type) ?? 99;
-      return orderA - orderB;
+    const positionMap = new Map<WorkflowRunType, number>();
+    categories.forEach((cat, catIdx) => {
+      cat.workflows.forEach((type, wfIdx) => {
+        positionMap.set(type as WorkflowRunType, catIdx * 1000 + wfIdx);
+      });
     });
-  }, [healthData, workflowTypes]);
+    return [...healthData].sort((a, b) => {
+      const posA = positionMap.get(a.type) ?? Number.MAX_SAFE_INTEGER;
+      const posB = positionMap.get(b.type) ?? Number.MAX_SAFE_INTEGER;
+      return posA - posB;
+    });
+  }, [healthData, categories]);
 
   const handleReviewIssues = (workflowType: WorkflowRunType) => {
     // Navigate to document explorer with workflow type filter
