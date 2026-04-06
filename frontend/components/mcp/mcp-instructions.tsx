@@ -6,7 +6,7 @@ import { baseUrl } from '@/lib/api';
 import { Check, Copy, Server } from 'lucide-react';
 import { useState } from 'react';
 
-const mcpUrl = `${baseUrl}/mcp`;
+const mcpUrl = `${baseUrl}/mcp/`;
 
 const tools = [
   { name: 'list_workflow_types', description: 'Lists all available workflow analysis types' },
