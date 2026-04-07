@@ -40,7 +40,7 @@ export function WorkflowConfigDialog({ isOpen, type, projectId, onConfirm, onCan
   const { showExperimentalFeatures } = useExperimentalFeatures();
   const { data: user } = useUserMe();
 
-  const { workflowTypes, categories } = useWorkflowTypes();
+  const { workflowTypes } = useWorkflowTypes();
 
   const needsPublicationDate = type ? hasPublicationDateRequirement([type]) : false;
 
@@ -123,27 +123,19 @@ export function WorkflowConfigDialog({ isOpen, type, projectId, onConfirm, onCan
           )}
 
           <form.Field name="workflowTypes">
-            {(field) => {
-              const preselectedIsExperimental = type
-                ? workflowTypes.find((wt) => wt.type === type)?.is_experimental
-                : false;
-
-              return (
-                <WorkflowTypeSelector
-                  workflowTypes={workflowTypes.filter((wt) => (type ? wt.type === type : !wt.is_internal))}
-                  categories={categories}
-                  selectedTypes={field.state.value}
-                  onSelectionChange={field.handleChange}
-                  disabledTypes={type ? [type] : undefined}
-                  defaultShowExperimental={preselectedIsExperimental}
-                  error={
-                    !field.state.meta.isValid && field.state.meta.errors.length > 0
-                      ? field.state.meta.errors.join(', ')
-                      : undefined
-                  }
-                />
-              );
-            }}
+            {(field) => (
+              <WorkflowTypeSelector
+                restrictToType={type}
+                selectedTypes={field.state.value}
+                onSelectionChange={field.handleChange}
+                disabledTypes={type ? [type] : undefined}
+                error={
+                  !field.state.meta.isValid && field.state.meta.errors.length > 0
+                    ? field.state.meta.errors.join(', ')
+                    : undefined
+                }
+              />
+            )}
           </form.Field>
 
           <form.Field name="workflowTypes">

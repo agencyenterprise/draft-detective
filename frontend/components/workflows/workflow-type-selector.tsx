@@ -1,16 +1,17 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { FlaskConical } from 'lucide-react';
-import { WorkflowCategoryOrder, WorkflowRunType, WorkflowTypeDescription } from '@/lib/generated-api';
+import { WorkflowRunType, WorkflowTypeDescription } from '@/lib/generated-api';
+import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { WorkflowTypeCheckbox } from './workflow-type-checkbox';
 import { Checkbox } from '../ui/checkbox';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
 import { useExperimentalFeatures } from '@/context/experimental-features-context';
 
 interface WorkflowTypeSelectorProps {
-  workflowTypes?: WorkflowTypeDescription[];
-  categories: WorkflowCategoryOrder[];
+  /** When set, only this workflow type is listed (e.g. config dialog for a specific analysis). */
+  restrictToType?: WorkflowRunType;
   selectedTypes: WorkflowRunType[];
   onSelectionChange: (types: WorkflowRunType[]) => void;
   disabled?: boolean;
@@ -18,12 +19,10 @@ interface WorkflowTypeSelectorProps {
   showHeader?: boolean;
   headerDescription?: string;
   error?: string;
-  defaultShowExperimental?: boolean;
 }
 
 export function WorkflowTypeSelector({
-  workflowTypes,
-  categories,
+  restrictToType,
   selectedTypes,
   onSelectionChange,
   disabled = false,
@@ -31,17 +30,23 @@ export function WorkflowTypeSelector({
   showHeader = true,
   headerDescription,
   error,
-  defaultShowExperimental = false,
 }: WorkflowTypeSelectorProps) {
-  const [showExperimental, setShowExperimental] = useState(defaultShowExperimental);
+  const { workflowTypes: allTypes, categories, isPending: isLoadingWorkflowTypes } = useWorkflowTypes();
+  const [showExperimental, setShowExperimental] = useState(false);
   const { showExperimentalFeatures } = useExperimentalFeatures();
 
-  const hasExperimentalWorkflows =
-    showExperimentalFeatures && (workflowTypes?.some((wt) => wt.is_experimental) ?? false);
+  const workflowTypes = useMemo(() => {
+    if (restrictToType) {
+      return allTypes.filter((wt) => wt.type === restrictToType);
+    }
+    return allTypes.filter((wt) => !wt.is_internal);
+  }, [allTypes, restrictToType]);
 
-  const visibleCount = workflowTypes?.filter(
-    (wt) => !wt.is_experimental || (showExperimentalFeatures && showExperimental),
-  ).length;
+  const experimentalVisible = showExperimentalFeatures && (restrictToType !== undefined || showExperimental);
+
+  const hasExperimentalWorkflows = showExperimentalFeatures && workflowTypes.some((wt) => wt.is_experimental);
+
+  const visibleCount = workflowTypes.filter((wt) => !wt.is_experimental || experimentalVisible).length;
 
   const handleCheckedChange = (type: WorkflowRunType, checked: boolean) => {
     if (checked) {
@@ -57,11 +62,12 @@ export function WorkflowTypeSelector({
       workflowType={workflowType}
       checked={selectedTypes.includes(workflowType.type)}
       onCheckedChange={(checked) => handleCheckedChange(workflowType.type, checked === true)}
-      disabled={disabled || disabledTypes.includes(workflowType.type)}
+      disabled={controlsDisabled || disabledTypes.includes(workflowType.type)}
     />
   );
 
-  const typeMap = new Map(workflowTypes?.map((wt) => [wt.type, wt]) ?? []);
+  const typeMap = new Map(workflowTypes.map((wt) => [wt.type, wt]));
+  const controlsDisabled = disabled || isLoadingWorkflowTypes;
 
   return (
     <div className="space-y-4">
@@ -70,7 +76,7 @@ export function WorkflowTypeSelector({
           <div className="space-y-1">
             <h2 className="text-lg font-semibold">
               Analyses Type Selection{' '}
-              {visibleCount != null && visibleCount > 0 && (
+              {visibleCount > 0 && (
                 <span className="text-sm font-normal text-muted-foreground">
                   ({selectedTypes.length}/{visibleCount} selected)
                 </span>
@@ -79,7 +85,7 @@ export function WorkflowTypeSelector({
             </h2>
             {headerDescription && <p className="text-sm text-muted-foreground">{headerDescription}</p>}
           </div>
-          {hasExperimentalWorkflows && (
+          {restrictToType === undefined && hasExperimentalWorkflows && (
             <Tooltip>
               <TooltipTrigger asChild>
                 <label className="flex items-center gap-2 cursor-pointer shrink-0 mt-0.5">
@@ -103,27 +109,37 @@ export function WorkflowTypeSelector({
         </div>
       )}
       <div className="space-y-2">
-        {categories.map((category) => {
-          const categoryWorkflows = category.workflows
-            .map((type) => typeMap.get(type as WorkflowRunType))
-            .filter((wt): wt is WorkflowTypeDescription => wt !== undefined);
+        {isLoadingWorkflowTypes ? (
+          <p className="text-sm text-muted-foreground">Loading available workflows...</p>
+        ) : restrictToType !== undefined ? (
+          // Single-type mode: render from API types directly. Category config often omits internal workflows,
+          // so walking categories would show nothing even when restrictToType is valid.
+          workflowTypes.length > 0 ? (
+            <div className="space-y-2">{workflowTypes.map(renderCheckbox)}</div>
+          ) : (
+            <p className="text-sm text-muted-foreground">This workflow type is not available for your account.</p>
+          )
+        ) : (
+          categories.map((category) => {
+            const categoryWorkflows = category.workflows
+              .map((type) => typeMap.get(type as WorkflowRunType))
+              .filter((wt): wt is WorkflowTypeDescription => wt !== undefined);
 
-          const regular = categoryWorkflows.filter((wt) => !wt.is_experimental);
-          const experimental =
-            showExperimentalFeatures && showExperimental ? categoryWorkflows.filter((wt) => wt.is_experimental) : [];
+            const regular = categoryWorkflows.filter((wt) => !wt.is_experimental);
+            const experimental = experimentalVisible ? categoryWorkflows.filter((wt) => wt.is_experimental) : [];
 
-          if (regular.length === 0 && experimental.length === 0) return null;
+            if (regular.length === 0 && experimental.length === 0) return null;
 
-          return (
-            <div key={category.slug} className="space-y-2">
-              <h3 className="text-sm font-semibold text-foreground pt-2">{category.label}</h3>
-              {regular.map(renderCheckbox)}
-              {experimental.map(renderCheckbox)}
-            </div>
-          );
-        })}
+            return (
+              <div key={category.slug} className="space-y-2">
+                <h3 className="text-sm font-semibold text-foreground pt-2">{category.label}</h3>
+                {regular.map(renderCheckbox)}
+                {experimental.map(renderCheckbox)}
+              </div>
+            );
+          })
+        )}
 
-        {!workflowTypes && <p className="text-sm text-muted-foreground">Loading available workflows...</p>}
         {error && <p className="text-sm text-destructive">{error}</p>}
       </div>
     </div>

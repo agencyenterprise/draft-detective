@@ -3,12 +3,7 @@
 import { ResultsVisualization } from '@/components/results/results-visualization';
 import { useWorkflowProgressToast } from '@/hooks/use-workflow-progress-toast';
 import { getErrorMessage, isApiError } from '@/lib/api-error';
-import {
-  AccessLevel,
-  ProjectDetailed,
-  updateProjectEndpointApiProjectProjectIdPatch,
-  WorkflowRunType,
-} from '@/lib/generated-api';
+import { AccessLevel, ProjectDetailed, updateProjectEndpointApiProjectProjectIdPatch } from '@/lib/generated-api';
 import { useProjectDetails } from '@/lib/hooks/use-project-details';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { isAnyWorkflowProcessing, needsHumanApproval, needsWizardCompletion } from '@/lib/workflow-state';
@@ -32,6 +27,10 @@ export default function ResultsPage() {
   const { workflowTypes } = useWorkflowTypes();
 
   const isProcessing = isAnyWorkflowProcessing(workflowDetails);
+  const awaitingHumanApproval = needsHumanApproval(workflowDetails);
+  // HumanApproval stays Pending/Running until the user approves, which keeps isProcessing true even though
+  // the pipeline is intentionally paused. The progress API then has no active step → "Going to next step...".
+  const showWorkflowProgressToast = isProcessing && !awaitingHumanApproval;
 
   // Build internal types set from API data
   const internalTypes = useMemo(() => {
@@ -49,15 +48,10 @@ export default function ResultsPage() {
       router.replace(`/new?projectId=${projectId}`);
       return;
     }
-
-    if (needsHumanApproval(workflowDetails)) {
-      router.replace(`/new?projectId=${projectId}&step=3`);
-      return;
-    }
   }, [fromWizard, isLoading, workflowDetails, projectId, router, internalTypes]);
 
-  // Show progress in toast when workflows are processing
-  useWorkflowProgressToast(projectId, isProcessing);
+  // Show progress in toast when automated workflows are running (not while waiting on reference review / approve)
+  useWorkflowProgressToast(projectId, showWorkflowProgressToast);
 
   const updateTitleMutation = useMutation({
     mutationFn: async (newTitle: string) => {
@@ -144,6 +138,7 @@ export default function ResultsPage() {
       readOnly={isReadOnly}
       onTitleSave={isReadOnly ? undefined : handleTitleSave}
       isTitleSaving={isReadOnly ? undefined : updateTitleMutation.isPending}
+      needsReferenceReview={!isReadOnly && needsHumanApproval(workflowDetails)}
     />
   );
 }

@@ -1,4 +1,5 @@
-import { WorkflowConfigDialog, WorkflowConfigFormValues } from '@/components/workflows/workflow-config-dialog';
+import { Button } from '@/components/ui/button';
+import { WorkflowConfigDialog } from '@/components/workflows/workflow-config-dialog';
 import { WorkflowRunType } from '@/lib/generated-api';
 import { useProjectDetails } from '@/lib/hooks/use-project-details';
 import { getWorkflowRunByType, isWorkflowProcessing } from '@/lib/workflow-state';
@@ -8,6 +9,8 @@ import { FileUploadDialog } from './file-upload-dialog';
 import { useFetchAllFromWebMutation } from './mutations';
 import { useReferenceReviewReferences } from './queries';
 import { ReferenceReviewList } from './reference-review-list';
+import { UnmatchedReferencesApproveDialog } from './unmatched-references-approve-dialog';
+import { useReferenceApprovalFlow } from './use-reference-approval-flow';
 import { useScrollToReference } from './use-scroll-to-reference';
 
 interface ReferenceReviewTabProps {
@@ -40,6 +43,8 @@ export function ReferenceReviewTab({ projectId, readOnly = false }: ReferenceRev
   // For individual cards: only block during ReferenceFileMatching (when file matching could conflict)
   // NOT during DocumentProcessing or ReferenceDownloader (individual fetches shouldn't block other cards)
   const disableIndividualCards = isWorkflowProcessing(referenceFileMatching);
+
+  const approval = useReferenceApprovalFlow(projectDetail ?? undefined, projectId);
 
   const handleOpenDialog = () => {
     setIsConfigDialogOpen(true);
@@ -115,6 +120,20 @@ export function ReferenceReviewTab({ projectId, readOnly = false }: ReferenceRev
         disableIndividualCards={disableIndividualCards}
         enableInternalScroll={true}
         onBatchUpload={() => setIsBatchUploadDialogOpen(true)}
+      />
+
+      {approval.hasPendingApproval && !readOnly && (
+        <Button onClick={approval.handleApprove} disabled={approval.isApproveDisabled} size="lg" className="w-full">
+          {approval.showApproveButtonSpinner && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+          {approval.approveButtonText}
+        </Button>
+      )}
+
+      <UnmatchedReferencesApproveDialog
+        open={approval.showUnmatchedWarning}
+        onOpenChange={approval.setShowUnmatchedWarning}
+        unmatchedCount={approval.unmatchedCount}
+        onConfirmApprove={approval.handleConfirmApprove}
       />
     </div>
   );

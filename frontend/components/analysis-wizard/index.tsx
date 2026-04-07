@@ -2,4 +2,3 @@ export { WizardProvider, useWizard, type PreflightStatus, type WizardStep } from
 export { StepIndicator } from './step-indicator';
 export { StepUpload } from './step-upload';
 export { StepAnalyses } from './step-analyses';
-export { StepReferences } from './step-references';
