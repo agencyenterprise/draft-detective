@@ -5,7 +5,7 @@ import { WorkflowRunType } from '@/lib/generated-api';
 import { hasSupportingDocumentsRequirement } from '@/components/workflows/utils';
 
 export type PreflightStatus = 'idle' | 'pending' | 'valid' | 'invalid';
-export type WizardStep = 1 | 2 | 3;
+export type WizardStep = 1 | 2;
 
 interface WizardState {
   currentStep: WizardStep;
@@ -43,10 +43,9 @@ export function WizardProvider({ children, initialProjectId = null, initialStep 
   });
   const [selectedWorkflowTypes, setSelectedWorkflowTypes] = useState<WorkflowRunType[]>([]);
 
-  // If we're starting at step 3, we inherently need the references step
   const needsReferencesStep = useMemo(
-    () => initialStep === 3 || hasSupportingDocumentsRequirement(selectedWorkflowTypes),
-    [initialStep, selectedWorkflowTypes],
+    () => hasSupportingDocumentsRequirement(selectedWorkflowTypes),
+    [selectedWorkflowTypes],
   );
 
   const setPreflightStatus = useCallback((status: Partial<WizardState['preflightStatus']>) => {
@@ -54,7 +53,7 @@ export function WizardProvider({ children, initialProjectId = null, initialStep 
   }, []);
 
   const nextStep = useCallback(() => {
-    setCurrentStep((prev) => (prev < 3 ? ((prev + 1) as WizardStep) : prev));
+    setCurrentStep((prev) => (prev < 2 ? ((prev + 1) as WizardStep) : prev));
   }, []);
 
   const goToStep = useCallback((step: WizardStep) => {

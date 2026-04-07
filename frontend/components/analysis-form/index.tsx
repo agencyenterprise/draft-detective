@@ -26,7 +26,7 @@ export interface AnalysisFormProps {
 
 export function AnalysisForm({ onSubmit, isPending = false, error }: AnalysisFormProps) {
   const { showExperimentalFeatures } = useExperimentalFeatures();
-  const { workflowTypes, categories } = useWorkflowTypes();
+  const { workflowTypes } = useWorkflowTypes();
 
   // Get today's date in YYYY-MM-DD format for the date input
   const today = new Date().toISOString().split('T')[0];
@@ -122,8 +122,6 @@ export function AnalysisForm({ onSubmit, isPending = false, error }: AnalysisFor
       >
         {(field) => (
           <WorkflowTypeSelector
-            workflowTypes={workflowTypes.filter((wt) => !wt.is_internal)}
-            categories={categories}
             selectedTypes={field.state.value}
             onSelectionChange={field.handleChange}
             disabled={isPending}

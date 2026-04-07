@@ -26,7 +26,7 @@ import { toast } from 'sonner';
 export function StepAnalyses() {
   const router = useRouter();
   const wizard = useWizard();
-  const { workflowTypes, categories } = useWorkflowTypes();
+  const { workflowTypes } = useWorkflowTypes();
   const { selectedWorkflowTypes, setSelectedWorkflowTypes, needsReferencesStep } = wizard;
   const [domain, setDomain] = useState('');
   const [targetAudience, setTargetAudience] = useState('');
@@ -62,13 +62,8 @@ export function StepAnalyses() {
       });
     },
     onSuccess: () => {
-      if (needsReferencesStep) {
-        toast.success('Analysis started! Review your references...');
-        wizard.goToStep(3);
-      } else {
-        toast.success('Analysis started! Redirecting to your project...');
-        router.push(`/projects/${wizard.projectId}?fromWizard=true`);
-      }
+      toast.success('Analysis started! Redirecting to your project...');
+      router.push(`/projects/${wizard.projectId}?fromWizard=true`);
     },
     onError: (error) => {
       toast.error(getErrorMessage(error, 'Failed to start analysis'));
@@ -110,8 +105,6 @@ export function StepAnalyses() {
       </div>
 
       <WorkflowTypeSelector
-        workflowTypes={workflowTypes.filter((wt) => !wt.is_internal)}
-        categories={categories}
         selectedTypes={selectedWorkflowTypes}
         onSelectionChange={setSelectedWorkflowTypes}
         headerDescription=""
@@ -119,8 +112,9 @@ export function StepAnalyses() {
 
       {needsSupportingDocs && (
         <Callout variant="info" icon={AlertCircle} title="Source documents required">
-          Some selected analyses need reference documents to verify claims. In the next step, you&apos;ll be able to
-          upload sources or fetch them from the web. Claims citing references without matched documents will be skipped.
+          Some selected analyses need reference documents to verify claims. After the project is created, go to the{' '}
+          <strong>References tab</strong> to upload sources or fetch them from the web, then approve to start the
+          analysis.
         </Callout>
       )}
 
@@ -153,7 +147,7 @@ export function StepAnalyses() {
 
       <div className="flex flex-col gap-3">
         <Button onClick={handleStartAnalysis} disabled={!canContinue} size="lg" className="w-full">
-          {needsReferencesStep ? 'Next: Add your sources →' : 'Start Analysis'}
+          Start Analysis
         </Button>
         <Button
           variant="outline"
