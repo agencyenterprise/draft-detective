@@ -25,7 +25,6 @@ class AboutThisGerManifest(WorkflowManifest[AboutThisGerState, AboutThisGerConfi
         "against publication requirements using deep-agent analysis."
     )
     needs_web_search = False
-    order = 11
     required_dependencies = [WorkflowRunType.DOCUMENT_PROCESSING]
     is_experimental = True
 

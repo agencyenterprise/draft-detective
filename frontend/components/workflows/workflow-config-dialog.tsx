@@ -40,7 +40,7 @@ export function WorkflowConfigDialog({ isOpen, type, projectId, onConfirm, onCan
   const { showExperimentalFeatures } = useExperimentalFeatures();
   const { data: user } = useUserMe();
 
-  const { data: workflowTypes } = useWorkflowTypes();
+  const { workflowTypes, categories } = useWorkflowTypes();
 
   const needsPublicationDate = type ? hasPublicationDateRequirement([type]) : false;
 
@@ -125,14 +125,13 @@ export function WorkflowConfigDialog({ isOpen, type, projectId, onConfirm, onCan
           <form.Field name="workflowTypes">
             {(field) => {
               const preselectedIsExperimental = type
-                ? workflowTypes?.find((wt) => wt.type === type)?.is_experimental
+                ? workflowTypes.find((wt) => wt.type === type)?.is_experimental
                 : false;
 
               return (
                 <WorkflowTypeSelector
-                  workflowTypes={workflowTypes?.filter((wt) =>
-                    type ? wt.type === type : wt.can_be_triggered_by_user && !wt.is_internal,
-                  )}
+                  workflowTypes={workflowTypes.filter((wt) => (type ? wt.type === type : !wt.is_internal))}
+                  categories={categories}
                   selectedTypes={field.state.value}
                   onSelectionChange={field.handleChange}
                   disabledTypes={type ? [type] : undefined}

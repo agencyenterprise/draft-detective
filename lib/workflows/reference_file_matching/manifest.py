@@ -33,8 +33,7 @@ class ReferenceFileMatchingManifest(
     name = "Reference File Matching"
     description = "Match extracted references to supporting documents"
     needs_web_search = False
-    is_internal = True  # Runs as dependency, not user-triggered from workflow list
-    can_be_triggered_by_user = True  # Can be used as standalone tool
+    is_internal = True
     required_dependencies = [
         # Needs a direct dependency to doc processing to wait for files to be processed, when files are uploaded after project creation
         WorkflowRunType.DOCUMENT_PROCESSING,

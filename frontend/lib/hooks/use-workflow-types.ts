@@ -1,6 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
-import { getWorkflowTypesApiWorkflowTypesGet, WorkflowRunType } from '../generated-api';
-import { useCallback } from 'react';
+import {
+  getWorkflowTypesApiWorkflowTypesGet,
+  WorkflowCategoryOrder,
+  WorkflowRunType,
+  WorkflowTypeDescription,
+} from '../generated-api';
+import { useCallback, useMemo } from 'react';
 
 export function useWorkflowTypes() {
   const query = useQuery({
@@ -11,32 +16,34 @@ export function useWorkflowTypes() {
     },
   });
 
+  const workflowTypes: WorkflowTypeDescription[] = useMemo(() => query.data?.workflow_types ?? [], [query.data]);
+  const categories: WorkflowCategoryOrder[] = useMemo(() => query.data?.categories ?? [], [query.data]);
+
   const isWorkflowTypeVisible = useCallback(
     (type: WorkflowRunType) => {
-      const types = query.data ?? [];
-      return types.some((wt) => wt.type === type && !wt.is_internal && wt.can_be_triggered_by_user);
+      return workflowTypes.some((wt) => wt.type === type && !wt.is_internal);
     },
-    [query.data],
+    [workflowTypes],
   );
 
   const getWorkflowTypeName = useCallback(
     (type: WorkflowRunType) => {
-      const types = query.data ?? [];
-      return types.find((wt) => wt.type === type)?.name ?? type;
+      return workflowTypes.find((wt) => wt.type === type)?.name ?? type;
     },
-    [query.data],
+    [workflowTypes],
   );
 
   const getWorkflowTypeDescription = useCallback(
     (type: WorkflowRunType) => {
-      const types = query.data ?? [];
-      return types.find((wt) => wt.type === type)?.description ?? null;
+      return workflowTypes.find((wt) => wt.type === type)?.description ?? null;
     },
-    [query.data],
+    [workflowTypes],
   );
 
   return {
     ...query,
+    workflowTypes,
+    categories,
     isWorkflowTypeVisible,
     getWorkflowTypeName,
     getWorkflowTypeDescription,

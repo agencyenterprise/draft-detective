@@ -62,6 +62,7 @@ def test_create_mcp_auth_with_google_credentials():
             "openid",
             "https://www.googleapis.com/auth/userinfo.email",
         ],
+        enable_cimd=False,
     )
 
 
@@ -91,6 +92,7 @@ def test_create_mcp_auth_with_entra_id_credentials():
         base_url="https://api.example.com/mcp",
         issuer_url="https://api.example.com",
         required_scopes=["mcp-access"],
+        enable_cimd=False,
     )
 
 

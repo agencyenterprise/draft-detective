@@ -20,9 +20,6 @@ class DocumentProcessingManifest(
     name = "Document Processing"
     description = "Convert documents to markdown"
     needs_web_search = False
-    can_be_triggered_by_user = (
-        False  # This is a dependency workflow, not directly triggered
-    )
     is_internal = True
     optional_dependencies = [
         # This is a hack to make doc processing wait for reference downloader to complete, so we can process the files

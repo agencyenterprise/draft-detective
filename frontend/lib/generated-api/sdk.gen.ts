@@ -245,7 +245,7 @@ export const resetAppConfigApiAppConfigsKeyDelete = <ThrowOnError extends boolea
 /**
  * Get App Config
  *
- * Return the value for a single config key. Available to all authenticated users.
+ * Return the value for a single config key. Public endpoint, no auth required.
  */
 export const getAppConfigApiAppConfigsKeyGet = <ThrowOnError extends boolean = true>(
   options: Options<GetAppConfigApiAppConfigsKeyGetData, ThrowOnError>,
@@ -257,7 +257,6 @@ export const getAppConfigApiAppConfigsKeyGet = <ThrowOnError extends boolean = t
     'data'
   >({
     responseStyle: 'data',
-    security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/app-configs/{key}',
     ...options,
   });
@@ -495,7 +494,7 @@ export const cancelWorkflowRunEndpointApiWorkflowRunsWorkflowRunIdCancelPost = <
 /**
  * Get Workflow Types
  *
- * List available workflow types based on user permissions.
+ * List available workflow types and ordered category display config based on user permissions.
  *
  * QA Screener workflows are only visible to RAND and ADMIN roles.
  */
