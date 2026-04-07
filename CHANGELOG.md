@@ -6,6 +6,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v0.5.26] - 2026-04-07
+
+### Added
+- Added category grouping for workflow/analysis type selection in the UI and API.
+- Added a new `lib/workflows/categories.py` as a single source of truth defining five workflow categories, their display order, and workflow membership.
+- Added `WorkflowCategoryOrder` and `WorkflowTypesResponse` models, and updated `get_workflow_types_for_user` to return workflow descriptions with category slugs plus ordered category configuration.
+- Added category headers, an inline “show experimental” toggle, and a live `(selected/total)` counter to the workflow type selector UI.
+
+### Changed
+- Changed the `/api/workflow-types` endpoint to return the new `WorkflowTypesResponse` shape.
+- Changed workflow ordering to be controlled by `categories.py` instead of an `order` field in workflow manifests.
+- Changed MCP server code and unit tests to reflect the new workflow types response structure.
+- Changed frontend generated API types and the `use-workflow-types` hook to match and expose the new categories data.
+- Changed multiple frontend components to pass a `categories` prop down to `WorkflowTypeSelector`.
+- Changed `workflow-type-checkbox` styling with minor visual tweaks to icon/container sizing and description text.
+
+### Removed
+- Removed the `order: int` field from `WorkflowManifest`.
+- Removed the `order` field from all individual workflow manifests.
+
+
 ## [v0.5.25] - 2026-04-03
 
 Changed
