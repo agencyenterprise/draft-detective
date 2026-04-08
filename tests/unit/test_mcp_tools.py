@@ -18,7 +18,9 @@ from lib.api.mcp import (  # noqa: E402
     _require_api_key,
     _resolve_user,
     create_project,
+    export_project_docx,
     get_project,
+    list_projects,
     run_workflow,
 )
 
@@ -262,6 +264,110 @@ async def test_run_workflow_raises_when_no_api_key():
                 workflow_types=["document_processing"],
                 token=_make_token(),
             )
+
+
+# --- list_projects ---
+
+
+@pytest.mark.asyncio
+async def test_list_projects_returns_project_list():
+    user = _make_user()
+    project_item = MagicMock()
+    project_item.project.id = uuid4()
+    project_item.project.title = "My Project"
+
+    with (
+        patch("lib.api.mcp._resolve_user", new=AsyncMock(return_value=user)),
+        patch(
+            "lib.api.mcp.get_user_projects",
+            new=AsyncMock(return_value=[project_item]),
+        ),
+    ):
+        raw = await list_projects(token=_make_token())
+
+    data = json.loads(raw)
+    assert len(data) == 1
+    assert data[0]["title"] == "My Project"
+    assert data[0]["project_id"] == str(project_item.project.id)
+    assert "/projects/" in data[0]["project_url"]
+
+
+@pytest.mark.asyncio
+async def test_list_projects_returns_empty_list_when_no_projects():
+    user = _make_user()
+
+    with (
+        patch("lib.api.mcp._resolve_user", new=AsyncMock(return_value=user)),
+        patch("lib.api.mcp.get_user_projects", new=AsyncMock(return_value=[])),
+    ):
+        raw = await list_projects(token=_make_token())
+
+    assert json.loads(raw) == []
+
+
+def _make_aiofiles_open_mock(read_data: bytes) -> MagicMock:
+    """Return a mock for aiofiles.open that yields a file-like object returning read_data."""
+    mock_file = AsyncMock()
+    mock_file.read.return_value = read_data
+    mock_open = MagicMock()
+    mock_open.return_value.__aenter__ = AsyncMock(return_value=mock_file)
+    mock_open.return_value.__aexit__ = AsyncMock(return_value=False)
+    return mock_open
+
+
+# --- export_project_docx ---
+
+
+@pytest.mark.asyncio
+async def test_export_project_docx_returns_file():
+    from fastmcp.utilities.types import File
+
+    user = _make_user()
+    project_id = str(uuid4())
+    fake_docx = b"PK\x03\x04fake-docx-bytes"
+
+    with (
+        patch("lib.api.mcp._resolve_user", new=AsyncMock(return_value=user)),
+        patch("lib.api.mcp.get_project_access", new=AsyncMock(return_value=(MagicMock(), MagicMock()))),
+        patch(
+            "lib.api.mcp.get_or_generate_docx",
+            new=AsyncMock(return_value=("/tmp/report.docx", "report_comments.docx")),
+        ),
+        patch("lib.api.mcp.aiofiles.open", _make_aiofiles_open_mock(fake_docx)),
+    ):
+        result = await export_project_docx(project_id=project_id, token=_make_token())
+
+    assert isinstance(result, File)
+    assert result._name == "report_comments.docx"
+    assert result.data == fake_docx
+
+
+@pytest.mark.asyncio
+async def test_export_project_docx_passes_filters_to_service():
+    from lib.workflows.models import SeverityEnum, WorkflowRunType
+
+    user = _make_user()
+    project_id = str(uuid4())
+
+    with (
+        patch("lib.api.mcp._resolve_user", new=AsyncMock(return_value=user)),
+        patch("lib.api.mcp.get_project_access", new=AsyncMock(return_value=(MagicMock(), MagicMock()))),
+        patch(
+            "lib.api.mcp.get_or_generate_docx",
+            new=AsyncMock(return_value=("/tmp/out.docx", "out_comments.docx")),
+        ) as mock_gen,
+        patch("lib.api.mcp.aiofiles.open", _make_aiofiles_open_mock(b"")),
+    ):
+        await export_project_docx(
+            project_id=project_id,
+            workflow_types=[WorkflowRunType.CLAIM_EXTRACTION],
+            severities=[SeverityEnum.HIGH],
+            token=_make_token(),
+        )
+
+    _, kwargs = mock_gen.call_args
+    assert kwargs["workflow_types"] == [WorkflowRunType.CLAIM_EXTRACTION]
+    assert kwargs["severities"] == [SeverityEnum.HIGH]
 
 
 # --- get_project ---
