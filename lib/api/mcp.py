@@ -1,10 +1,12 @@
 import json
 
+import aiofiles
 from fastmcp import FastMCP
 from fastmcp.dependencies import CurrentContext
 from fastmcp.server.auth import AccessToken
 from fastmcp.server.context import Context
 from fastmcp.server.dependencies import CurrentAccessToken
+from fastmcp.utilities.types import File
 from mcp.server.fastmcp import Icon
 from mcp.types import ToolAnnotations
 
@@ -15,12 +17,13 @@ from lib.config.env import config as env_config
 from lib.models.file import FileRole
 from lib.models.project import AccessLevel
 from lib.models.user import User
+from lib.services.docx_workflow_service import DocxManipulatorType, get_or_generate_docx
 from lib.services.file_finalization import finalize_file
 from lib.services.projects import create_project as create_project_record
-from lib.services.projects import get_project_access, get_project_detailed_from_project
+from lib.services.projects import get_project_access, get_project_detailed_from_project, get_user_projects
 from lib.services.users import get_or_create_user_by_email
 from lib.services.workflow_types import get_workflow_types_for_user
-from lib.workflows.models import WorkflowRunType
+from lib.workflows.models import SeverityEnum, WorkflowRunType
 
 mcp_auth = create_mcp_auth()
 mcp = FastMCP(
@@ -217,6 +220,83 @@ async def get_project(
 
     user = await _resolve_user(token)
     return await _get_project_details_json(project_id, AccessLevel.READ, user)
+
+
+@mcp.tool(
+    annotations=ToolAnnotations(
+        destructiveHint=False,
+        idempotentHint=True,
+        readOnlyHint=True,
+        openWorldHint=False,
+    )
+)
+async def list_projects(token: AccessToken = CurrentAccessToken()) -> str:
+    """
+    List all projects belonging to the authenticated user.
+
+    Returns a JSON array of objects, each with project_id, title, and project_url.
+    Use get_project with a project_id to fetch full details for a specific project.
+    """
+    user = await _resolve_user(token)
+    projects = await get_user_projects(user)
+    return json.dumps(
+        [
+            {
+                "project_id": str(item.project.id),
+                "title": item.project.title,
+                "project_url": _build_project_url(str(item.project.id)),
+            }
+            for item in projects
+        ]
+    )
+
+
+@mcp.tool(
+    annotations=ToolAnnotations(
+        destructiveHint=False,
+        idempotentHint=True,
+        readOnlyHint=True,
+        openWorldHint=False,
+    )
+)
+async def export_project_docx(
+    project_id: str,
+    workflow_types: list[WorkflowRunType] | None = None,
+    severities: list[SeverityEnum] | None = None,
+    token: AccessToken = CurrentAccessToken(),
+) -> File:
+    """
+    Export a project's analysis results as a reviewed .docx file.
+
+    The returned file is the original document with AI-generated review comments
+    inserted inline — one comment per detected issue. Open it in Word or Google
+    Docs to read the full review.
+
+    The project must have been analysed first (run_workflow must have completed).
+    Only works when the project's main document is a .docx or .doc file.
+
+    workflow_types: optional list of workflow types to include. Defaults to all
+        workflow types. Use list_workflow_types to see available values.
+
+    severities: optional list of severity levels to include. Defaults to all
+        non-passing severities (low, medium, high).
+    """
+    user = await _resolve_user(token)
+    await get_project_access(project_id, user=user, required_level=AccessLevel.READ)
+
+    file_path, filename = await get_or_generate_docx(
+        project_id=project_id,
+        share_token=None,
+        workflow_types=workflow_types,
+        severities=severities,
+        docx_type=DocxManipulatorType.COMMENTS,
+        use_cache=True,
+    )
+
+    async with aiofiles.open(file_path, "rb") as f:
+        docx_bytes = await f.read()
+
+    return File(data=docx_bytes, format="docx", name=filename)
 
 
 mcp_app = mcp.http_app(
