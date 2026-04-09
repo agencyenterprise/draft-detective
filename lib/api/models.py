@@ -133,6 +133,22 @@ class CancelWorkflowResponse(BaseModel):
     workflow_run_id: str
 
 
+class CreateRevisionResponse(BaseModel):
+    """Response for creating a new project revision."""
+
+    revision: int
+    previous_workflow_types: List[WorkflowRunType]
+
+
+class RevisionListItem(BaseModel):
+    """Summary of a single project revision."""
+
+    revision: int
+    main_file_name: str | None = None
+    main_file_id: str | None = None
+    created_at: datetime | None = None
+
+
 class CreateProjectRequest(BaseModel):
     """Request body for creating a project."""
 

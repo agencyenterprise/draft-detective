@@ -55,6 +55,10 @@ class BaseWorkflowConfig(BaseModel):
     publication_date: Optional[str] = Field(
         default=None, description="Publication date of the document (YYYY-MM-DD format)"
     )
+    revision: int = Field(
+        default=1,
+        description="The project revision this workflow run belongs to",
+    )
 
     @classmethod
     def requires_api_key(cls) -> bool:

@@ -28,9 +28,10 @@ import { buildReferenceByFileIdMap, composeReferences, ComposedReference } from 
 import { FileListItem, FileRole, ProjectDetailed, WorkflowRunType } from '@/lib/generated-api';
 import { cn } from '@/lib/utils';
 import { getWorkflowRunByType } from '@/lib/workflow-state';
-import { Download, FileText, HelpCircle, Loader2, MoreVerticalIcon, Search, Trash2 } from 'lucide-react';
+import { Download, FileText, HelpCircle, Loader2, MoreVerticalIcon, RefreshCw, Search, Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useRemoveFileMutation } from './reference-review/mutations';
+import { ReplaceMainDocumentDialog } from '../components/replace-main-document-dialog';
 
 interface FilesTabProps {
   projectDetail: ProjectDetailed;
@@ -93,9 +94,10 @@ interface FileTableRowProps {
   file: FileListItem;
   projectId: string;
   matchedReference?: ComposedReference;
+  onReplaceMain?: () => void;
 }
 
-function FileTableRow({ file, projectId, matchedReference }: FileTableRowProps) {
+function FileTableRow({ file, projectId, matchedReference, onReplaceMain }: FileTableRowProps) {
   const isMain = file.role === FileRole.Main;
   const removeFileMutation = useRemoveFileMutation(projectId, file.id);
   const isRemoving = removeFileMutation.isPending;
@@ -139,12 +141,19 @@ function FileTableRow({ file, projectId, matchedReference }: FileTableRowProps) 
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <AlertDialogTrigger asChild>
-                <DropdownMenuItem disabled={isMain} variant="destructive">
-                  <Trash2 className="size-4" />
-                  Remove file
+              {isMain ? (
+                <DropdownMenuItem onClick={onReplaceMain}>
+                  <RefreshCw className="size-4" />
+                  Replace document
                 </DropdownMenuItem>
-              </AlertDialogTrigger>
+              ) : (
+                <AlertDialogTrigger asChild>
+                  <DropdownMenuItem variant="destructive">
+                    <Trash2 className="size-4" />
+                    Remove file
+                  </DropdownMenuItem>
+                </AlertDialogTrigger>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
           <AlertDialogContent>
@@ -171,6 +180,7 @@ export function FilesTab({ projectDetail }: FilesTabProps) {
   const files = useMemo(() => projectDetail.files ?? [], [projectDetail.files]);
   const workflowDetails = useMemo(() => projectDetail.workflow_runs ?? [], [projectDetail.workflow_runs]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isReplaceDialogOpen, setIsReplaceDialogOpen] = useState(false);
 
   const referenceExtraction = getWorkflowRunByType(workflowDetails, WorkflowRunType.ReferenceExtraction);
   const referenceFileMatching = getWorkflowRunByType(workflowDetails, WorkflowRunType.ReferenceFileMatching);
@@ -289,11 +299,18 @@ export function FilesTab({ projectDetail }: FilesTabProps) {
                 file={file}
                 projectId={projectId}
                 matchedReference={file.id ? matchedReferencesMap.get(file.id) : undefined}
+                onReplaceMain={() => setIsReplaceDialogOpen(true)}
               />
             ))}
           </TableBody>
         </Table>
       )}
+
+      <ReplaceMainDocumentDialog
+        isOpen={isReplaceDialogOpen}
+        projectId={projectId}
+        onClose={() => setIsReplaceDialogOpen(false)}
+      />
     </div>
   );
 }

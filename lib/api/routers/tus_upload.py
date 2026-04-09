@@ -13,6 +13,7 @@ from lib.models.file import FileRole
 from lib.models.project import AccessLevel
 from lib.models.user import User
 from lib.services.file_finalization import finalize_file_from_path
+from lib.services.files import get_files_by_project_id
 from lib.services.projects import get_project_access
 from lib.services.references import add_file_to_reference
 from lib.workflows.reference_file_matching.state import MatchSource
@@ -57,12 +58,32 @@ def _get_completion_hook(
         except ValueError:
             role = FileRole.SUPPORT
 
+        project, _ = await get_project_access(
+            project_id, user=current_user, required_level=AccessLevel.WRITE
+        )
+
+        # Determine revision for the file: MAIN files get the current revision, others get None (shared)
+        revision: int | None = None
+        if role == FileRole.MAIN:
+            revision = project.current_revision
+
+            # Validate: only one MAIN file per revision
+            existing_main = await get_files_by_project_id(
+                uuid.UUID(project_id), roles=[FileRole.MAIN], revision=revision
+            )
+            if existing_main:
+                raise HTTPException(
+                    status_code=409,
+                    detail="Project already has a main document for the current revision. Create a new revision first.",
+                )
+
         file_record, was_deduplicated = await finalize_file_from_path(
             file_path=file_path,
             filename=metadata.get("filename", DEFAULT_FILENAME),
             project_id=uuid.UUID(project_id),
             user_id=current_user.id,
             role=role,
+            revision=revision,
         )
 
         if was_deduplicated:
@@ -84,6 +105,7 @@ def _get_completion_hook(
                 file_id=str(file_record.id),
                 reference_id=reference_id,
                 source=MatchSource.MANUAL_UPLOAD,
+                revision=project.current_revision,
             )
             if not linked:
                 logger.error(

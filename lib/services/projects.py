@@ -7,15 +7,15 @@ from typing import List, Optional
 from fastapi.exceptions import HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy import select, update
-from sqlmodel import col
+from sqlmodel import and_, col
 
 from lib.config.database import get_async_db_session
 from lib.models.feedback import FeedbackType
 from lib.models.file import File, FileListItem
-from lib.models.issue import Issue
+from lib.models.issue import Issue, IssueStatus
 from lib.models.project import AccessLevel, FeedbackVisibility, Project
 from lib.models.user import User, UserRole
-from lib.models.workflow_run import WorkflowRun
+from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus
 from lib.services.files import delete_project_files, get_project_files_list_items
 from lib.services.issue_persistence import get_project_issues
 from lib.services.share_links import get_resource_by_token, is_project_shared
@@ -67,6 +67,10 @@ class ProjectDetailed(BaseModel):
         default_factory=list,
         description="All user feedback for this project's workflow runs",
     )
+    revision: int = Field(
+        default=1,
+        description="The revision being returned",
+    )
 
 
 class UpdateProjectRequest(BaseModel):
@@ -104,7 +108,13 @@ async def get_user_projects(user: User) -> List[ProjectListItem]:
     async with get_async_db_session() as session:
         stmt = (
             select(Project, WorkflowRun)
-            .outerjoin(WorkflowRun, col(WorkflowRun.project_id) == col(Project.id))
+            .outerjoin(
+                WorkflowRun,
+                and_(
+                    col(WorkflowRun.project_id) == col(Project.id),
+                    col(WorkflowRun.revision) == col(Project.current_revision),
+                ),
+            )
             .where(col(Project.user_id) == user.id)
             .order_by(col(Project.created_at).desc(), col(WorkflowRun.created_at).asc())
             .limit(200)
@@ -145,6 +155,7 @@ async def get_project_detailed_from_project(
     access_level: AccessLevel,
     include_internal: bool = False,
     user: Optional[User] = None,
+    revision: int | None = None,
 ) -> ProjectDetailed:
     """
     Get detailed project information with workflow runs.
@@ -154,11 +165,14 @@ async def get_project_detailed_from_project(
         access_level: The access level of the current user
         include_internal: If True, include internal workflows in the response
         user: If provided, load all feedback for this user on the project
+        revision: If provided, return data for this revision. Defaults to current_revision.
     """
     from lib.services import feedback_service
 
+    resolved_revision = revision if revision is not None else project.current_revision
+
     workflow_runs = await get_project_workflow_runs(
-        project.id, include_internal=include_internal
+        project.id, revision=resolved_revision, include_internal=include_internal
     )
 
     # Clear out some heavy data from the workflow runs to reduce payload size
@@ -174,13 +188,18 @@ async def get_project_detailed_from_project(
                 supporting_file.markdown = None
 
     # Query persisted issues from the database (faster than computing from state)
-    issues = await get_project_issues(uuid.UUID(str(project.id)))
+    issues = await get_project_issues(
+        uuid.UUID(str(project.id)), revision=resolved_revision
+    )
 
     feedbacks: list[FeedbackSummary] = []
     if user is not None:
         async with get_async_db_session() as session:
             feedback_models = await feedback_service.get_project_feedbacks(
-                session=session, project_id=project.id, user=user
+                session=session,
+                project_id=project.id,
+                user=user,
+                revision=resolved_revision,
             )
             feedbacks = [
                 FeedbackSummary(
@@ -200,8 +219,9 @@ async def get_project_detailed_from_project(
         access_level=access_level,
         workflow_runs=workflow_runs,
         issues=list(issues),
-        files=await get_project_files_list_items(project.id),
+        files=await get_project_files_list_items(project.id, revision=resolved_revision),
         feedbacks=feedbacks,
+        revision=resolved_revision,
     )
 
 
@@ -336,6 +356,74 @@ async def update_project_title(project_id: str, title: str) -> None:
             update(Project).where(col(Project.id) == project_id).values(title=title)
         )
         await session.commit()
+
+
+async def create_new_revision(project_id: str, user: User) -> tuple[int, List[WorkflowRunType]]:
+    """
+    Create a new revision for a project.
+
+    Archives active issues from the current revision, cancels running workflows,
+    increments the revision counter, and returns the new revision number along with
+    the workflow types that were previously run (for re-triggering).
+    """
+    from lib.services.workflow_runs import cancel_workflow_run
+
+    project, _ = await get_project_access(
+        project_id, user=user, required_level=AccessLevel.WRITE
+    )
+
+    old_revision = project.current_revision
+    new_revision = old_revision + 1
+
+    async with get_async_db_session() as session:
+        # Cancel any active workflows for the old revision
+        stmt = select(WorkflowRun).where(
+            col(WorkflowRun.project_id) == project_id,
+            col(WorkflowRun.revision) == old_revision,
+            col(WorkflowRun.status).in_(
+                [WorkflowRunStatus.PENDING, WorkflowRunStatus.RUNNING]
+            ),
+        )
+        active_runs = (await session.execute(stmt)).scalars().all()
+
+    for run in active_runs:
+        await cancel_workflow_run(str(run.id), project_id)
+
+    async with get_async_db_session() as session:
+        # Collect previous workflow types
+        stmt = select(WorkflowRun.type).where(
+            col(WorkflowRun.project_id) == project_id,
+            col(WorkflowRun.revision) == old_revision,
+        ).distinct()
+        result = await session.execute(stmt)
+        previous_workflow_types = [row[0] for row in result.all()]
+
+        # Archive active issues from the old revision
+        await session.execute(
+            update(Issue)
+            .where(
+                col(Issue.project_id) == project_id,
+                col(Issue.revision) == old_revision,
+                col(Issue.status) == IssueStatus.ACTIVE,
+            )
+            .values(status=IssueStatus.ARCHIVED)
+        )
+
+        # Increment project revision
+        await session.execute(
+            update(Project)
+            .where(col(Project.id) == project_id)
+            .values(current_revision=new_revision)
+        )
+
+        await session.commit()
+
+    logger.info(
+        f"Created revision {new_revision} for project {project_id} "
+        f"(previous types: {[t.value for t in previous_workflow_types]})"
+    )
+
+    return new_revision, previous_workflow_types
 
 
 async def delete_project(project_id: str, user: User) -> None:

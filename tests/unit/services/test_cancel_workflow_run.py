@@ -49,7 +49,7 @@ def _patches(
         ),
         patch(
             "lib.services.workflow_runs.get_project_workflow_run_by_type",
-            new=AsyncMock(side_effect=lambda proj_id, wf_type: dependent_runs.get(wf_type)),
+            new=AsyncMock(side_effect=lambda proj_id, wf_type, **kw: dependent_runs.get(wf_type)),
         ),
     )
 

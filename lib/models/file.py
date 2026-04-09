@@ -94,6 +94,11 @@ class File(SQLModel, table=True):
         description="Document summary as JSON (DocumentSummary schema)",
         default=None,
     )
+    revision: int | None = Field(
+        sa_column=Column(Integer, nullable=True, index=True),
+        default=None,
+        description="Revision number this file belongs to. NULL means shared across all revisions (e.g., supporting docs).",
+    )
 
     @property
     def has_cached_markdown(self) -> bool:
@@ -121,3 +126,4 @@ class FileListItem(BaseModel):
     uploaded_by: uuid.UUID | None = None
     description: str | None = None
     created_at: datetime
+    revision: int | None = None

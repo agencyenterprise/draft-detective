@@ -39,8 +39,10 @@ export default function ResultsPage() {
 
   // Redirect to wizard step 2 if project only has document processing started
   // Skip if we just came from the wizard (workflows may not be in DB yet)
+  // Skip if the project has multiple revisions (user already chose analyses before)
+  const hasMultipleRevisions = (project?.project?.current_revision ?? 1) > 1;
   useEffect(() => {
-    if (fromWizard || isLoading || workflowDetails.length === 0) {
+    if (fromWizard || isLoading || workflowDetails.length === 0 || hasMultipleRevisions) {
       return;
     }
 
@@ -48,7 +50,7 @@ export default function ResultsPage() {
       router.replace(`/new?projectId=${projectId}`);
       return;
     }
-  }, [fromWizard, isLoading, workflowDetails, projectId, router, internalTypes]);
+  }, [fromWizard, isLoading, workflowDetails, projectId, router, internalTypes, hasMultipleRevisions]);
 
   // Show progress in toast when automated workflows are running (not while waiting on reference review / approve)
   useWorkflowProgressToast(projectId, showWorkflowProgressToast);

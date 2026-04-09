@@ -443,6 +443,34 @@ uv run inspect view
 
 ---
 
+## Git Conventions
+
+### Commit Messages
+
+Use [Conventional Commits](https://www.conventionalcommits.org/) for all commit messages. The format is:
+
+```
+<type>(<scope>): <description>
+```
+
+Common types: `feat`, `fix`, `chore`, `refactor`, `test`, `docs`, `style`, `perf`, `ci`, `build`.
+
+```bash
+# ✅ Correct
+feat(revisions): add revision system for main document replacement
+fix(upload): validate single main file per revision
+test(revisions): add unit tests for create_new_revision
+chore(deps): update langchain to 0.3.x
+refactor(workflow-runs): make revision parameter required
+
+# ❌ Incorrect
+update files
+fix bug
+WIP
+```
+
+---
+
 ## Pull Request Descriptions
 
 When creating pull request descriptions, create the sections of "Summary," "Motivation," "What's Changed," and "Risks and Mitigations." Separate "What's Changed" into backend and frontend changes and list all the files that have changed and why these changes were made. Keep the PR description fairly short at no more than 1000 words.

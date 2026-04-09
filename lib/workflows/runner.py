@@ -49,7 +49,9 @@ async def run_workflow_with_dependency_check(
 
     try:
         # Wait for same-type lock and dependencies to complete
-        await wait_for_dependencies(config.type, config.project_id, workflow_run_id)
+        await wait_for_dependencies(
+            config.type, config.project_id, workflow_run_id, revision=config.revision
+        )
 
         # Run the workflow
         await run_workflow_from_config(
@@ -160,6 +162,7 @@ async def run_workflow(
                 workflow_type=workflow_type,
                 state=updated_state,
                 checkpoint_id=checkpoint_id,
+                revision=context.revision,
             )
         except WorkflowCancelledError:
             logger.info(
@@ -218,7 +221,7 @@ def create_context(
         else None
     )
 
-    file_artifacts_service = FileArtifactsService(config.project_id)
+    file_artifacts_service = FileArtifactsService(config.project_id, revision=config.revision)
 
     return ContextSchema(
         openai_api_key=openai_api_key,
@@ -227,6 +230,7 @@ def create_context(
         project_id=config.project_id,
         workflow_run_id=workflow_run_id,
         file_artifacts_service=file_artifacts_service,
+        revision=config.revision,
     )
 
 
@@ -236,6 +240,7 @@ async def _persist_issues_from_state(
     workflow_type: WorkflowRunType,
     state: WorkflowState,
     checkpoint_id: str | None,
+    revision: int = 1,
 ) -> None:
     """
     Persist issues from workflow state to the database.
@@ -250,11 +255,13 @@ async def _persist_issues_from_state(
         logger.debug(f"No manifest for {workflow_type}, skipping issue persistence")
         return
 
-    # Load all existing workflow states for the project so manifests
+    # Load all existing workflow states for the project and revision so manifests
     # that read data from other workflow states can resolve correctly.
     from lib.services.workflow_runs import get_project_workflow_runs
 
-    workflow_runs = await get_project_workflow_runs(project_id, include_internal=True)
+    workflow_runs = await get_project_workflow_runs(
+        project_id, revision=revision, include_internal=True
+    )
     existing_states: list[WorkflowState] = [
         run.state for run in workflow_runs if run.state is not None
     ]
@@ -268,4 +275,5 @@ async def _persist_issues_from_state(
         workflow_type=workflow_type,
         issues=issues,
         checkpoint_id=checkpoint_id,
+        revision=revision,
     )

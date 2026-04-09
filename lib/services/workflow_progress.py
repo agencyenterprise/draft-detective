@@ -275,15 +275,10 @@ async def get_workflow_progress(
 
 async def get_project_workflow_progress(
     project_id: uuid.UUID,
+    revision: int,
 ) -> List[WorkflowProgress]:
     """
-    Get all progress entries for all workflow runs in a project.
-
-    Args:
-        project_id: ID of the project
-
-    Returns:
-        List of progress entries ordered by creation time
+    Get all progress entries for workflow runs in a project revision.
     """
     async with get_async_db_session() as session:
         stmt = (
@@ -292,9 +287,12 @@ async def get_project_workflow_progress(
                 WorkflowRun,
                 col(WorkflowProgress.workflow_run_id) == col(WorkflowRun.id),
             )
-            .where(col(WorkflowRun.project_id) == project_id)
-            .order_by(col(WorkflowProgress.created_at))
+            .where(
+                col(WorkflowRun.project_id) == project_id,
+                col(WorkflowRun.revision) == revision,
+            )
         )
+        stmt = stmt.order_by(col(WorkflowProgress.created_at))
         result = await session.execute(stmt)
         progress_list = result.scalars().all()
         return list(progress_list)

@@ -34,6 +34,7 @@ async def finalize_file(
     project_id: uuid.UUID,
     user_id: uuid.UUID,
     role: FileRole,
+    revision: int | None = None,
 ) -> File:
     """
     Finalize an uploaded file: hash, deduplicate, save, detect MIME, create record.
@@ -65,6 +66,7 @@ async def finalize_file(
         content_hash=content_hash,
         role=role,
         uploaded_by=user_id,
+        revision=revision,
     )
 
 
@@ -74,6 +76,7 @@ async def finalize_file_from_path(
     project_id: uuid.UUID,
     user_id: uuid.UUID,
     role: FileRole,
+    revision: int | None = None,
 ) -> tuple[File, bool]:
     """
     Finalize a file that's already on disk (e.g., from TUS upload).
@@ -106,6 +109,7 @@ async def finalize_file_from_path(
         content_hash=content_hash,
         role=role,
         uploaded_by=user_id,
+        revision=revision,
     )
 
     return file_record, was_deduplicated

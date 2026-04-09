@@ -3,7 +3,7 @@ from datetime import datetime, date
 from enum import Enum
 from typing import Optional
 
-from sqlalchemy import Column, DateTime, ForeignKey, Date, Index
+from sqlalchemy import Column, DateTime, ForeignKey, Date, Index, Integer
 from sqlalchemy import Enum as SQLAlchemyEnum
 from sqlalchemy.dialects.postgresql import UUID
 from sqlmodel import Field, SQLModel, String
@@ -81,4 +81,9 @@ class Project(SQLModel, table=True):
         ),
         default=None,
         description="Controls what feedback information is shared with administrators",
+    )
+    current_revision: int = Field(
+        sa_column=Column(Integer, nullable=False, default=1),
+        default=1,
+        description="The current (latest) revision number for this project",
     )

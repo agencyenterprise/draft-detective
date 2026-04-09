@@ -17,6 +17,7 @@ async def wait_for_dependencies(
     workflow_type: WorkflowRunType,
     project_id: str,
     current_workflow_run_id: Optional[str] = None,
+    revision: int = 1,
 ) -> None:
     """
     Wait for all dependencies of a project workflow to complete.
@@ -50,7 +51,7 @@ async def wait_for_dependencies(
         # Check same-type lock (wait for previous runs of same workflow)
         if needs_same_type_lock:
             same_type_run = await get_project_workflow_run_by_type(
-                project_id, workflow_type
+                project_id, workflow_type, revision=revision
             )
             if (
                 same_type_run is not None
@@ -67,9 +68,11 @@ async def wait_for_dependencies(
             required_pending = await _get_pending_workflow_dependencies(
                 project_id, workflow_type, required_dependencies, True,
                 current_workflow_run_id=current_workflow_run_id,
+                revision=revision,
             )
             optional_pending = await _get_pending_workflow_dependencies(
                 project_id, workflow_type, optional_dependencies, False,
+                revision=revision,
             )
             pending_deps = required_pending + optional_pending
             blocking_reasons.extend([dep.value for dep in pending_deps])
@@ -98,6 +101,7 @@ async def _get_pending_workflow_dependencies(
     dependencies: List[WorkflowRunType],
     required: bool,
     current_workflow_run_id: Optional[str] = None,
+    revision: int = 1,
 ) -> List[WorkflowRunType]:
     """
     Get the pending workflow dependencies for a project workflow.
@@ -121,7 +125,7 @@ async def _get_pending_workflow_dependencies(
     pending_dependencies: List[WorkflowRunType] = []
 
     for dep_type in dependencies:
-        dep_run = await get_project_workflow_run_by_type(project_id, dep_type)
+        dep_run = await get_project_workflow_run_by_type(project_id, dep_type, revision=revision)
 
         if dep_run is None:
             # Dependency hasn't been started yet or is not scheduled to run

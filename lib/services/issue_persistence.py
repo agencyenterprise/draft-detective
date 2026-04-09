@@ -36,12 +36,13 @@ async def persist_workflow_issues(
     workflow_type: WorkflowRunType,
     issues: List[DocumentIssue],
     checkpoint_id: Optional[str] = None,
+    revision: int = 1,
 ) -> List[Issue]:
     """
     Persist issues from a completed workflow.
 
-    Archives existing active issues of the same workflow type for the project,
-    then creates new issues from the provided DocumentIssue list.
+    Archives existing active issues of the same workflow type for the project
+    and revision, then creates new issues from the provided DocumentIssue list.
     """
     async with get_async_db_session() as session:
         await session.execute(
@@ -50,6 +51,7 @@ async def persist_workflow_issues(
                 col(Issue.project_id) == project_id,
                 col(Issue.workflow_type) == workflow_type.value,
                 col(Issue.status) == IssueStatus.ACTIVE,
+                col(Issue.revision) == revision,
             )
             .values(status=IssueStatus.ARCHIVED)
         )
@@ -68,6 +70,7 @@ async def persist_workflow_issues(
                 workflow_type=doc_issue.type,
                 chunk_indices=doc_issue.chunk_indices,
                 status=IssueStatus.ACTIVE,
+                revision=revision,
             )
             session.add(issue)
             created_issues.append(issue)
@@ -87,12 +90,16 @@ async def persist_workflow_issues(
 
 async def get_project_issues(
     project_id: uuid.UUID,
+    revision: int,
     include_archived: bool = False,
     workflow_types: Optional[List[WorkflowRunType]] = None,
 ) -> Sequence[Issue]:
-    """Get issues for a project."""
+    """Get issues for a project and revision."""
     async with get_async_db_session() as session:
-        stmt = select(Issue).where(col(Issue.project_id) == project_id)
+        stmt = select(Issue).where(
+            col(Issue.project_id) == project_id,
+            col(Issue.revision) == revision,
+        )
 
         if not include_archived:
             stmt = stmt.where(col(Issue.status) != IssueStatus.ARCHIVED)

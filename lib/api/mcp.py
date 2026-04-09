@@ -338,7 +338,7 @@ async def list_project_files(
     )
 
     files = await get_files_by_project_id(project.id)
-    matches = await get_file_reference_matches(project_id)
+    matches = await get_file_reference_matches(project_id, revision=project.current_revision)
     file_to_reference = {m.file_id: m.reference_id for m in matches}
 
     return json.dumps(
@@ -387,7 +387,9 @@ async def remove_reference_file(
     if deleted_count == 0:
         raise ValueError(f"File {file_id!r} not found in project {project_id!r}")
 
-    removed_reference_ids = await remove_file_from_references(project_id, file_id)
+    removed_reference_ids = await remove_file_from_references(
+        project_id, file_id, revision=project.current_revision
+    )
 
     return json.dumps(
         {

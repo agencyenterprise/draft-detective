@@ -40,6 +40,7 @@ def create_workflow_config(
         "publication_date": (
             project.publication_date.isoformat() if project.publication_date else None
         ),
+        "revision": project.current_revision,
     }
 
     try:

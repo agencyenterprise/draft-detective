@@ -53,7 +53,7 @@ async def test_same_type_lock_waits_for_running_workflow(mock_manifest):
 
     call_count = 0
 
-    async def mock_get_run(proj_id, workflow_type):
+    async def mock_get_run(proj_id, workflow_type, **kwargs):
         nonlocal call_count
         call_count += 1
         if call_count == 1:
@@ -241,7 +241,7 @@ async def test_waits_for_both_same_type_and_dependencies():
 
     call_count = 0
 
-    async def mock_get_run(proj_id, workflow_type):
+    async def mock_get_run(proj_id, workflow_type, **kwargs):
         nonlocal call_count
         call_count += 1
         if workflow_type == WorkflowRunType.REFERENCE_EXTRACTION:
@@ -337,7 +337,7 @@ async def test_cancelled_required_dependency_raises_workflow_cancelled_error():
     )
 
     # Same-type check returns None so the same-type lock does not interfere
-    async def mock_get_run(proj_id, workflow_type):
+    async def mock_get_run(proj_id, workflow_type, **kwargs):
         if workflow_type == WorkflowRunType.REFERENCE_EXTRACTION:
             return None
         return cancelled_dep
