@@ -82,6 +82,20 @@ document.  Check that each reference of the form "Figure X", "Fig. X",
 "Missing Figure/Table: [label referenced in text]"
 (Create one issue per missing figure/table.)
 
+---
+
+## Exclusion — Abbreviation / Acronym tables
+
+Many documents contain a dedicated **Abbreviations**, **Acronyms**, or
+**List of Abbreviations** section. This section typically presents a
+two-column table (abbreviation | definition) or a simple definition list
+and is **not** a regular numbered figure or table.
+
+**Exclude these abbreviation/acronym tables from all rules above.**
+Do not flag them for missing titles, missing numbers, missing body-text
+references, or any other rule. They are cataloguing tools, not data
+exhibits, and are handled by a separate analysis.
+
 """
 
 
