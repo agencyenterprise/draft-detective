@@ -305,7 +305,9 @@ function DocumentViewer({ document }: { document: Document }) {
 }
 
 // Use React Context for shared state
-const WizardContext = React.createContext<WizardContextType | undefined>(undefined);
+const WizardContext = React.createContext<WizardContextType | undefined>(
+  undefined
+);
 
 export function useWizard() {
   const context = React.useContext(WizardContext);
@@ -359,6 +361,8 @@ export function useWizard() {
 
 ## Testing
 
+### Unit / Integration Tests
+
 ```bash
 # Run all Python tests
 uv run pytest
@@ -385,6 +389,34 @@ def mock_llm():
         mock.return_value.ainvoke.return_value = MockResponse()
         yield mock
 ```
+
+### Evaluations (Inspect AI)
+
+This project uses [Inspect AI](https://inspect.ai-safety-institute.org.uk/) for LLM agent evaluations. Eval tasks live under `evals_inspectai/` in two flavors:
+
+- **`evals_inspectai/e2e/`** — End-to-end evals that hit the running API server (backend must be running).
+- **`evals_inspectai/internal/`** — Internal evals that import and invoke agents directly (no server needed).
+
+Each workflow has its own eval directory with a dataset file (`dataset.json` or `dataset.jsonl`) and a task definition module.
+
+```bash
+# Run a full eval suite for a workflow
+uv run inspect eval evals_inspectai/e2e/reference_validation/reference_validation_e2e.py
+
+# Run a specific sample by ID (1-indexed)
+uv run inspect eval evals_inspectai/e2e/figures_tables_check/figures_tables_check_e2e.py --sample-id=1
+
+# Run a specific sample multiple times (useful for testing determinism)
+uv run inspect eval evals_inspectai/e2e/figures_tables_check/figures_tables_check_e2e.py --sample-id=1 --epochs=3
+
+# Run a range of samples
+uv run inspect eval evals_inspectai/e2e/reference_validation/reference_validation_e2e.py --limit=5-10
+
+# View eval results in the Inspect AI dashboard
+uv run inspect view
+```
+
+**Important:** E2E evals require the backend server to be running (`uv run dev.py`).
 
 ---
 
