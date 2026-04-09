@@ -36,6 +36,9 @@ EXPECTED_TOOL_NAMES = {
     "get_project",
     "list_projects",
     "export_project_docx",
+    "list_project_files",
+    "remove_reference_file",
+    "get_tus_upload_credentials",
 }
 
 

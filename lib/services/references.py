@@ -181,6 +181,14 @@ async def _get_extraction_workflow_state(
     return run, state
 
 
+async def get_file_reference_matches(project_id: str) -> List[ReferenceFileMatch]:
+    """Return the current reference-file matches for a project (empty list if none)."""
+    _, state = await _get_file_matching_workflow_state(project_id)
+    if state is None:
+        return []
+    return list(state.matches)
+
+
 async def remove_file_from_references(project_id: str, file_id: str) -> List[str]:
     """
     Remove file_id from any matches in the ReferenceFileMatching workflow state.
