@@ -67,6 +67,7 @@ class LangChainAgent(BaseAgent):
             "model": self.model.model_name,
             "temperature": self.temperature,
             "timeout": self.timeout,
+            "max_retries": 4,
             "rate_limiter": self.get_rate_limiter(),
         }
 
