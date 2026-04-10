@@ -24,6 +24,9 @@ import type {
   CreateProjectEndpointApiProjectsPostData,
   CreateProjectEndpointApiProjectsPostErrors,
   CreateProjectEndpointApiProjectsPostResponses,
+  CreateRevisionEndpointApiProjectProjectIdRevisionsPostData,
+  CreateRevisionEndpointApiProjectProjectIdRevisionsPostErrors,
+  CreateRevisionEndpointApiProjectProjectIdRevisionsPostResponses,
   DeleteFeedbackApiFeedbackFeedbackIdDeleteData,
   DeleteFeedbackApiFeedbackFeedbackIdDeleteErrors,
   DeleteFeedbackApiFeedbackFeedbackIdDeleteResponses,
@@ -112,6 +115,9 @@ import type {
   ListProjectFilesEndpointApiProjectProjectIdFilesGetResponses,
   ListProjectsEndpointApiProjectsGetData,
   ListProjectsEndpointApiProjectsGetResponses,
+  ListRevisionsEndpointApiProjectProjectIdRevisionsGetData,
+  ListRevisionsEndpointApiProjectProjectIdRevisionsGetErrors,
+  ListRevisionsEndpointApiProjectProjectIdRevisionsGetResponses,
   ListUsersApiUsersGetData,
   ListUsersApiUsersGetErrors,
   ListUsersApiUsersGetResponses,
@@ -1021,6 +1027,50 @@ export const getProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRuns
     responseStyle: 'data',
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/project/{project_id}/workflow-runs',
+    ...options,
+  });
+
+/**
+ * List Revisions Endpoint
+ *
+ * List all revisions for a project with their main file info.
+ */
+export const listRevisionsEndpointApiProjectProjectIdRevisionsGet = <ThrowOnError extends boolean = true>(
+  options: Options<ListRevisionsEndpointApiProjectProjectIdRevisionsGetData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    ListRevisionsEndpointApiProjectProjectIdRevisionsGetResponses,
+    ListRevisionsEndpointApiProjectProjectIdRevisionsGetErrors,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/project/{project_id}/revisions',
+    ...options,
+  });
+
+/**
+ * Create Revision Endpoint
+ *
+ * Create a new revision for a project.
+ *
+ * Archives active issues from the current revision, cancels running workflows,
+ * and increments the revision counter. The new main document should be uploaded
+ * via the TUS upload endpoint after this call.
+ */
+export const createRevisionEndpointApiProjectProjectIdRevisionsPost = <ThrowOnError extends boolean = true>(
+  options: Options<CreateRevisionEndpointApiProjectProjectIdRevisionsPostData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    CreateRevisionEndpointApiProjectProjectIdRevisionsPostResponses,
+    CreateRevisionEndpointApiProjectProjectIdRevisionsPostErrors,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/project/{project_id}/revisions',
     ...options,
   });
 

@@ -10,7 +10,7 @@ import { isAnyWorkflowProcessing, needsHumanApproval, needsWizardCompletion } fr
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { FileXIcon, LockIcon } from 'lucide-react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
 export default function ResultsPage() {
@@ -23,7 +23,18 @@ export default function ResultsPage() {
   // Skip redirect check if coming from wizard (prevents race condition)
   const fromWizard = searchParams.get('fromWizard') === 'true';
 
-  const { project, workflowDetails, isLoading, error } = useProjectDetails(projectId);
+  // Revision state: null means "latest" (default)
+  const [selectedRevision, setSelectedRevision] = useState<number | null>(null);
+
+  const { project, workflowDetails, isLoading, error } = useProjectDetails(projectId, selectedRevision);
+
+  // When project loads and we haven't selected a revision yet, sync to current
+  const currentRevision = project?.project?.current_revision ?? 1;
+  const effectiveRevision = selectedRevision ?? currentRevision;
+
+  const handleRevisionChange = useCallback((rev: number) => {
+    setSelectedRevision(rev);
+  }, []);
   const { workflowTypes } = useWorkflowTypes();
 
   const isProcessing = isAnyWorkflowProcessing(workflowDetails);
@@ -39,8 +50,10 @@ export default function ResultsPage() {
 
   // Redirect to wizard step 2 if project only has document processing started
   // Skip if we just came from the wizard (workflows may not be in DB yet)
+  // Skip if the project has multiple revisions (user already chose analyses before)
+  const hasMultipleRevisions = (project?.project?.current_revision ?? 1) > 1;
   useEffect(() => {
-    if (fromWizard || isLoading || workflowDetails.length === 0) {
+    if (fromWizard || isLoading || workflowDetails.length === 0 || hasMultipleRevisions) {
       return;
     }
 
@@ -48,7 +61,7 @@ export default function ResultsPage() {
       router.replace(`/new?projectId=${projectId}`);
       return;
     }
-  }, [fromWizard, isLoading, workflowDetails, projectId, router, internalTypes]);
+  }, [fromWizard, isLoading, workflowDetails, projectId, router, internalTypes, hasMultipleRevisions]);
 
   // Show progress in toast when automated workflows are running (not while waiting on reference review / approve)
   useWorkflowProgressToast(projectId, showWorkflowProgressToast);
@@ -132,13 +145,17 @@ export default function ResultsPage() {
 
   const isReadOnly = project.access_level !== AccessLevel.Write;
 
+  const isViewingOldRevision = effectiveRevision < currentRevision;
+
   return (
     <ResultsVisualization
       projectDetail={project}
-      readOnly={isReadOnly}
+      readOnly={isReadOnly || isViewingOldRevision}
       onTitleSave={isReadOnly ? undefined : handleTitleSave}
       isTitleSaving={isReadOnly ? undefined : updateTitleMutation.isPending}
-      needsReferenceReview={!isReadOnly && needsHumanApproval(workflowDetails)}
+      needsReferenceReview={!isReadOnly && !isViewingOldRevision && needsHumanApproval(workflowDetails)}
+      selectedRevision={effectiveRevision}
+      onRevisionChange={handleRevisionChange}
     />
   );
 }

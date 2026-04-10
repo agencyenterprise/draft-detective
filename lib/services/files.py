@@ -51,6 +51,7 @@ async def create_file_record(
     uploaded_by: uuid.UUID,
     original_file_path: Optional[str] = None,
     description: Optional[str] = None,
+    revision: int | None = None,
 ) -> File:
     """
     Create a file record in the database.
@@ -66,6 +67,7 @@ async def create_file_record(
         uploaded_by: UUID of user who uploaded the file
         original_file_path: Optional path to original file if converted
         description: Optional description of the file
+        revision: Revision number (set for MAIN files, None for shared supporting docs)
 
     Returns:
         Created File model instance
@@ -82,6 +84,7 @@ async def create_file_record(
             uploaded_by=uploaded_by,
             original_file_path=original_file_path,
             description=description,
+            revision=revision,
         )
         session.add(file)
         await session.commit()
@@ -115,18 +118,52 @@ async def get_file_by_id(file_id: uuid.UUID | str) -> File:
         return file
 
 
+async def assert_project_has_main_file(
+    project_id: uuid.UUID | str,
+    revision: int,
+) -> None:
+    """Raise HTTPException 422 if the project has no MAIN file for the given revision."""
+    project_id = ensure_uuid(project_id, "project ID")
+    async with get_async_db_session() as session:
+        stmt = select(func.count()).select_from(File).where(
+            col(File.project_id) == project_id,
+            col(File.role) == FileRole.MAIN,
+            col(File.revision) == revision,
+        )
+        count = (await session.execute(stmt)).scalar_one()
+
+    if count == 0:
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                f"No main document found for revision {revision}. "
+                "Upload a main document before starting workflows. "
+                "Use the TUS upload endpoint with role='main', or pass "
+                "content_markdown when creating the project/revision."
+            ),
+        )
+
+
 async def get_files_by_project_id(
     project_id: uuid.UUID | str,
     roles: Optional[List[FileRole]] = None,
+    revision: int | None = None,
 ) -> List[File]:
     """
-    Get all files by project ID, optionally filtered by role.
+    Get all files by project ID, optionally filtered by role and revision.
+
+    When revision is set, returns files belonging to that revision plus
+    shared files (revision IS NULL, e.g. supporting documents).
     """
     project_id = ensure_uuid(project_id, "project ID")
     async with get_async_db_session() as session:
         stmt = select(File).where(col(File.project_id) == project_id)
         if roles is not None:
             stmt = stmt.where(col(File.role).in_(roles))
+        if revision is not None:
+            stmt = stmt.where(
+                or_(col(File.revision) == revision, col(File.revision).is_(None))
+            )
         result = await session.execute(stmt)
         files = result.scalars().all()
         return list(files)
@@ -134,12 +171,14 @@ async def get_files_by_project_id(
 
 async def get_project_files_list_items(
     project_id: uuid.UUID | str,
+    revision: int | None = None,
 ) -> List[FileListItem]:
     """
     Get files for a project as lightweight list items (excludes markdown and summary).
 
-    Note: Excludes SUPPORTING_CANDIDATE files as they are temporary files during
-    reference downloading and should not be shown to users.
+    When revision is set, returns files belonging to that revision plus
+    shared files (revision IS NULL, e.g. supporting documents).
+    Excludes SUPPORTING_CANDIDATE files (temporary during reference downloading).
     """
     project_id = ensure_uuid(project_id, "project ID")
     async with get_async_db_session() as session:
@@ -147,6 +186,10 @@ async def get_project_files_list_items(
             col(File.project_id) == project_id,
             col(File.role) != FileRole.SUPPORTING_CANDIDATE,
         )
+        if revision is not None:
+            stmt = stmt.where(
+                or_(col(File.revision) == revision, col(File.revision).is_(None))
+            )
         result = await session.execute(stmt)
         files = result.scalars().all()
         return [FileListItem.model_validate(f, from_attributes=True) for f in files]

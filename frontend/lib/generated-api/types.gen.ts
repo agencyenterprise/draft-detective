@@ -97,6 +97,12 @@ export type AbbreviationScanV2Config = {
    */
   publication_date?: string | null;
   /**
+   * Revision
+   *
+   * The project revision this workflow run belongs to
+   */
+  revision?: number;
+  /**
    * Type
    */
   type?: 'abbreviation_scan_v2';
@@ -183,6 +189,12 @@ export type AboutThisGerConfig = {
    * Publication date of the document (YYYY-MM-DD format)
    */
   publication_date?: string | null;
+  /**
+   * Revision
+   *
+   * The project revision this workflow run belongs to
+   */
+  revision?: number;
   /**
    * Type
    */
@@ -328,6 +340,12 @@ export type AdvocacyToneWorkflowConfig = {
    * Publication date of the document (YYYY-MM-DD format)
    */
   publication_date?: string | null;
+  /**
+   * Revision
+   *
+   * The project revision this workflow run belongs to
+   */
+  revision?: number;
   /**
    * Type
    */
@@ -728,6 +746,12 @@ export type ChunkSplittingWorkflowConfig = {
    */
   publication_date?: string | null;
   /**
+   * Revision
+   *
+   * The project revision this workflow run belongs to
+   */
+  revision?: number;
+  /**
    * Type
    */
   type?: 'chunk_splitting';
@@ -815,6 +839,12 @@ export type CitationDetectionConfig = {
    * Publication date of the document (YYYY-MM-DD format)
    */
   publication_date?: string | null;
+  /**
+   * Revision
+   *
+   * The project revision this workflow run belongs to
+   */
+  revision?: number;
   /**
    * Type
    */
@@ -942,6 +972,12 @@ export type CitationSuggesterWorkflowConfig = {
    * Publication date of the document (YYYY-MM-DD format)
    */
   publication_date?: string | null;
+  /**
+   * Revision
+   *
+   * The project revision this workflow run belongs to
+   */
+  revision?: number;
   /**
    * Type
    */
@@ -1178,6 +1214,12 @@ export type ClaimExtractionWorkflowConfig = {
    */
   publication_date?: string | null;
   /**
+   * Revision
+   *
+   * The project revision this workflow run belongs to
+   */
+  revision?: number;
+  /**
    * Type
    */
   type?: 'claim_extraction';
@@ -1321,6 +1363,12 @@ export type ClaimReferenceValidationWorkflowConfig = {
    */
   publication_date?: string | null;
   /**
+   * Revision
+   *
+   * The project revision this workflow run belongs to
+   */
+  revision?: number;
+  /**
    * Type
    */
   type?: 'claim_reference_validation';
@@ -1431,6 +1479,22 @@ export type CreateProjectRequest = {
 };
 
 /**
+ * CreateRevisionResponse
+ *
+ * Response for creating a new project revision.
+ */
+export type CreateRevisionResponse = {
+  /**
+   * Revision
+   */
+  revision: number;
+  /**
+   * Previous Workflow Types
+   */
+  previous_workflow_types: Array<WorkflowRunType>;
+};
+
+/**
  * DocumentChunk
  *
  * Raw document chunk without analysis results.
@@ -1528,6 +1592,12 @@ export type DocumentProcessingWorkflowConfig = {
    * Publication date of the document (YYYY-MM-DD format)
    */
   publication_date?: string | null;
+  /**
+   * Revision
+   *
+   * The project revision this workflow run belongs to
+   */
+  revision?: number;
   /**
    * Type
    */
@@ -1689,6 +1759,12 @@ export type DocumentSummarizationWorkflowConfig = {
    * Publication date of the document (YYYY-MM-DD format)
    */
   publication_date?: string | null;
+  /**
+   * Revision
+   *
+   * The project revision this workflow run belongs to
+   */
+  revision?: number;
   /**
    * Type
    */
@@ -2140,6 +2216,12 @@ export type File = {
   summary?: {
     [key: string]: unknown;
   } | null;
+  /**
+   * Revision
+   *
+   * Revision number this file belongs to. NULL means shared across all revisions (e.g., supporting docs).
+   */
+  revision?: number | null;
 };
 
 /**
@@ -2241,6 +2323,10 @@ export type FileListItem = {
    * Created At
    */
   created_at: Date;
+  /**
+   * Revision
+   */
+  revision?: number | null;
 };
 
 /**
@@ -2341,6 +2427,12 @@ export type FootnoteExtractionConfig = {
    * Publication date of the document (YYYY-MM-DD format)
    */
   publication_date?: string | null;
+  /**
+   * Revision
+   *
+   * The project revision this workflow run belongs to
+   */
+  revision?: number;
   /**
    * Type
    */
@@ -2476,6 +2568,12 @@ export type HumanApprovalConfig = {
    * Publication date of the document (YYYY-MM-DD format)
    */
   publication_date?: string | null;
+  /**
+   * Revision
+   *
+   * The project revision this workflow run belongs to
+   */
+  revision?: number;
   type?: WorkflowRunType;
 };
 
@@ -2632,6 +2730,12 @@ export type InferenceValidationV2WorkflowConfig = {
    */
   publication_date?: string | null;
   /**
+   * Revision
+   *
+   * The project revision this workflow run belongs to
+   */
+  revision?: number;
+  /**
    * Type
    */
   type?: 'inference_validation_v2';
@@ -2712,6 +2816,12 @@ export type Issue = {
    * Current status of the issue (active or archived)
    */
   status?: IssueStatus;
+  /**
+   * Revision
+   *
+   * The project revision this issue belongs to (denormalized from workflow run)
+   */
+  revision?: number;
   /**
    * Resolved By
    *
@@ -2985,6 +3095,12 @@ export type LiteratureReviewWorkflowConfig = {
    */
   publication_date?: string | null;
   /**
+   * Revision
+   *
+   * The project revision this workflow run belongs to
+   */
+  revision?: number;
+  /**
    * Type
    */
   type?: 'literature_review';
@@ -3061,6 +3177,12 @@ export type LiveReportsWorkflowConfig = {
    * Publication date of the document (YYYY-MM-DD format)
    */
   publication_date?: string | null;
+  /**
+   * Revision
+   *
+   * The project revision this workflow run belongs to
+   */
+  revision?: number;
   /**
    * Type
    */
@@ -3167,6 +3289,12 @@ export type MethodologicalAlignmentWorkflowConfig = {
    * Publication date of the document (YYYY-MM-DD format)
    */
   publication_date?: string | null;
+  /**
+   * Revision
+   *
+   * The project revision this workflow run belongs to
+   */
+  revision?: number;
   /**
    * Type
    */
@@ -3405,6 +3533,12 @@ export type Project = {
    * Controls what feedback information is shared with administrators
    */
   feedback_visibility?: FeedbackVisibility | null;
+  /**
+   * Current Revision
+   *
+   * The current (latest) revision number for this project
+   */
+  current_revision?: number;
 };
 
 /**
@@ -3440,6 +3574,12 @@ export type ProjectDetailed = {
    * All user feedback for this project's workflow runs
    */
   feedbacks?: Array<FeedbackSummary>;
+  /**
+   * Revision
+   *
+   * The revision being returned
+   */
+  revision?: number;
 };
 
 /**
@@ -3695,6 +3835,12 @@ export type ReferenceDownloaderWorkflowConfig = {
    */
   publication_date?: string | null;
   /**
+   * Revision
+   *
+   * The project revision this workflow run belongs to
+   */
+  revision?: number;
+  /**
    * Type
    */
   type?: 'reference_downloader';
@@ -3742,6 +3888,12 @@ export type ReferenceExtractionConfig = {
    * Publication date of the document (YYYY-MM-DD format)
    */
   publication_date?: string | null;
+  /**
+   * Revision
+   *
+   * The project revision this workflow run belongs to
+   */
+  revision?: number;
   /**
    * Type
    */
@@ -3957,6 +4109,12 @@ export type ReferenceFileMatchingConfig = {
    * Publication date of the document (YYYY-MM-DD format)
    */
   publication_date?: string | null;
+  /**
+   * Revision
+   *
+   * The project revision this workflow run belongs to
+   */
+  revision?: number;
   /**
    * Type
    */
@@ -4175,6 +4333,12 @@ export type ReferenceValidationWorkflowConfig = {
    */
   publication_date?: string | null;
   /**
+   * Revision
+   *
+   * The project revision this workflow run belongs to
+   */
+  revision?: number;
+  /**
    * Type
    */
   type?: 'reference_validation';
@@ -4372,6 +4536,12 @@ export type ResultsExtractionWorkflowConfig = {
    */
   publication_date?: string | null;
   /**
+   * Revision
+   *
+   * The project revision this workflow run belongs to
+   */
+  revision?: number;
+  /**
    * Type
    */
   type?: 'results_extraction';
@@ -4426,6 +4596,12 @@ export type Reviewer2Config = {
    */
   publication_date?: string | null;
   /**
+   * Revision
+   *
+   * The project revision this workflow run belongs to
+   */
+  revision?: number;
+  /**
    * Type
    */
   type?: 'reviewer_2';
@@ -4466,6 +4642,30 @@ export type Reviewer2State = {
    * The rebuttal document as markdown
    */
   rebuttal_markdown?: string | null;
+};
+
+/**
+ * RevisionListItem
+ *
+ * Summary of a single project revision.
+ */
+export type RevisionListItem = {
+  /**
+   * Revision
+   */
+  revision: number;
+  /**
+   * Main File Name
+   */
+  main_file_name?: string | null;
+  /**
+   * Main File Id
+   */
+  main_file_id?: string | null;
+  /**
+   * Created At
+   */
+  created_at?: Date | null;
 };
 
 /**
@@ -4575,6 +4775,12 @@ export type SimpleDeepAgentConfig = {
    * Publication date of the document (YYYY-MM-DD format)
    */
   publication_date?: string | null;
+  /**
+   * Revision
+   *
+   * The project revision this workflow run belongs to
+   */
+  revision?: number;
   /**
    * The workflow type, set per-manifest at runtime
    */
@@ -5006,6 +5212,12 @@ export type WorkflowRun = {
    * The timestamp when the workflow run transitioned to COMPLETED or CANCELLED
    */
   completed_at: Date | null;
+  /**
+   * Revision
+   *
+   * The project revision this workflow run belongs to
+   */
+  revision?: number;
 };
 
 /**
@@ -6164,6 +6376,12 @@ export type GetProjectEndpointApiProjectProjectIdGetData = {
      */
     include_internal?: boolean;
     /**
+     * Revision
+     *
+     * Revision number to return. Defaults to the project's current revision.
+     */
+    revision?: number | null;
+    /**
      * Share Token
      *
      * Share token to get project details
@@ -6411,6 +6629,12 @@ export type GetProjectWorkflowProgressEndpointApiProjectProjectIdWorkflowProgres
   };
   query?: {
     /**
+     * Revision
+     *
+     * Revision number. Defaults to the project's current revision.
+     */
+    revision?: number | null;
+    /**
      * Share Token
      *
      * Share token for shared projects.
@@ -6486,6 +6710,79 @@ export type GetProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsG
 
 export type GetProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGetResponse =
   GetProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGetResponses[keyof GetProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGetResponses];
+
+export type ListRevisionsEndpointApiProjectProjectIdRevisionsGetData = {
+  body?: never;
+  path: {
+    /**
+     * Project Id
+     */
+    project_id: string;
+  };
+  query?: {
+    /**
+     * Share Token
+     *
+     * Share token for shared projects.
+     */
+    share_token?: string | null;
+  };
+  url: '/api/project/{project_id}/revisions';
+};
+
+export type ListRevisionsEndpointApiProjectProjectIdRevisionsGetErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type ListRevisionsEndpointApiProjectProjectIdRevisionsGetError =
+  ListRevisionsEndpointApiProjectProjectIdRevisionsGetErrors[keyof ListRevisionsEndpointApiProjectProjectIdRevisionsGetErrors];
+
+export type ListRevisionsEndpointApiProjectProjectIdRevisionsGetResponses = {
+  /**
+   * Response List Revisions Endpoint Api Project  Project Id  Revisions Get
+   *
+   * Successful Response
+   */
+  200: Array<RevisionListItem>;
+};
+
+export type ListRevisionsEndpointApiProjectProjectIdRevisionsGetResponse =
+  ListRevisionsEndpointApiProjectProjectIdRevisionsGetResponses[keyof ListRevisionsEndpointApiProjectProjectIdRevisionsGetResponses];
+
+export type CreateRevisionEndpointApiProjectProjectIdRevisionsPostData = {
+  body?: never;
+  path: {
+    /**
+     * Project Id
+     */
+    project_id: string;
+  };
+  query?: never;
+  url: '/api/project/{project_id}/revisions';
+};
+
+export type CreateRevisionEndpointApiProjectProjectIdRevisionsPostErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type CreateRevisionEndpointApiProjectProjectIdRevisionsPostError =
+  CreateRevisionEndpointApiProjectProjectIdRevisionsPostErrors[keyof CreateRevisionEndpointApiProjectProjectIdRevisionsPostErrors];
+
+export type CreateRevisionEndpointApiProjectProjectIdRevisionsPostResponses = {
+  /**
+   * Successful Response
+   */
+  201: CreateRevisionResponse;
+};
+
+export type CreateRevisionEndpointApiProjectProjectIdRevisionsPostResponse =
+  CreateRevisionEndpointApiProjectProjectIdRevisionsPostResponses[keyof CreateRevisionEndpointApiProjectProjectIdRevisionsPostResponses];
 
 export type GetProjectShareStatusApiProjectsProjectIdShareGetData = {
   body?: never;

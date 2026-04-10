@@ -16,6 +16,7 @@ from lib.services.file_artifacts_service.file_artifacts_service import (
     FileArtifactsService,
 )
 from lib.services.issue_persistence import get_project_issues
+from lib.services.projects import _get_project_by_id
 from lib.workflows.models import SeverityEnum
 
 logger = logging.getLogger(__name__)
@@ -74,7 +75,9 @@ async def get_or_generate_docx(
     Returns:
         tuple[str, str]: (file_path, filename)
     """
-    file_artifacts_service = FileArtifactsService(project_id)
+    project = await _get_project_by_id(project_id)
+    revision = project.current_revision if project else 1
+    file_artifacts_service = FileArtifactsService(project_id, revision=revision)
 
     if docx_type == "original":
         logger.info(f"Serving original DOCX for {project_id}")
@@ -121,8 +124,14 @@ async def generate_docx(
         tuple[str, str]: (file_path, filename)
     """
 
+    # Resolve current revision for the project
+    project = await _get_project_by_id(project_id)
+    if project is None:
+        raise ValueError(f"Project {project_id} not found")
+    revision = project.current_revision
+
     # Get main file and chunks using FileArtifactsService
-    file_artifacts = FileArtifactsService(project_id)
+    file_artifacts = FileArtifactsService(project_id, revision=revision)
     main_file = await file_artifacts.get_main_file()
     chunks = await file_artifacts.get_chunks()
 
@@ -139,6 +148,7 @@ async def generate_docx(
     all_issues = list(
         await get_project_issues(
             project_id=uuid.UUID(project_id),
+            revision=revision,
             workflow_types=workflow_types,
         )
     )

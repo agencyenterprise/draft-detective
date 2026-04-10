@@ -7,8 +7,8 @@ from fastapi.responses import StreamingResponse
 from starlette.responses import FileResponse
 
 from lib.api.auth import get_current_user, get_current_user_optional
-from lib.api.models import WorkflowProgressResponse
-from lib.models.file import File, FileRole
+from lib.api.models import CreateRevisionResponse, RevisionListItem, WorkflowProgressResponse
+from lib.models.file import File, FileListItem, FileRole
 from lib.models.project import AccessLevel, Project
 from lib.models.user import User
 from lib.services.docx_workflow_service import DocxManipulatorType, get_or_generate_docx
@@ -19,6 +19,7 @@ from lib.services.projects import (
     ProjectListItem,
     UpdateProjectRequest,
     create_project,
+    create_new_revision,
     delete_project,
     get_project_access,
     get_project_detailed_from_project,
@@ -76,6 +77,10 @@ async def list_projects_endpoint(current_user: User = Depends(get_current_user))
 async def get_project_endpoint(
     project_id: str,
     include_internal: bool = False,
+    revision: Optional[int] = Query(
+        default=None,
+        description="Revision number to return. Defaults to the project's current revision.",
+    ),
     share_token: Optional[str] = Query(
         default=None,
         description="Share token to get project details",
@@ -92,6 +97,7 @@ async def get_project_endpoint(
         access_level=access_level,
         include_internal=include_internal,
         user=current_user,
+        revision=revision,
     )
     return project_detailed
 
@@ -209,7 +215,7 @@ async def delete_project_file_endpoint(
         raise HTTPException(status_code=404, detail="File not found in project")
 
     # Update workflow state to remove file_id from references
-    await remove_file_from_references(project_id, file_id)
+    await remove_file_from_references(project_id, file_id, revision=project.current_revision)
 
     return {"message": "File deleted successfully", "file_id": file_id}
 
@@ -261,6 +267,10 @@ async def download_all_project_files(
 )
 async def get_project_workflow_progress_endpoint(
     project_id: str,
+    revision: Optional[int] = Query(
+        default=None,
+        description="Revision number. Defaults to the project's current revision.",
+    ),
     current_user: Optional[User] = Depends(get_current_user_optional),
     share_token: Optional[str] = Query(
         default=None,
@@ -270,7 +280,10 @@ async def get_project_workflow_progress_endpoint(
     """Get all workflow progress entries for a project."""
 
     project, _ = await get_project_access(project_id, current_user, share_token)
-    progress_list = await get_project_workflow_progress(project.id)
+    resolved_revision = revision if revision is not None else project.current_revision
+    progress_list = await get_project_workflow_progress(
+        project.id, revision=resolved_revision
+    )
     return [WorkflowProgressResponse.model_validate(p) for p in progress_list]
 
 
@@ -297,7 +310,71 @@ async def get_project_workflow_runs_by_type_endpoint(
     Used for displaying workflow run history in the UI with correct error status.
     """
 
-    await get_project_access(project_id, current_user, share_token)
+    project, _ = await get_project_access(project_id, current_user, share_token)
     return await get_project_workflow_runs_by_type_with_details(
-        project_id, workflow_type
+        project_id, workflow_type, revision=project.current_revision
     )
+
+
+@router.post(
+    "/api/project/{project_id}/revisions",
+    response_model=CreateRevisionResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_revision_endpoint(
+    project_id: str,
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Create a new revision for a project.
+
+    Archives active issues from the current revision, cancels running workflows,
+    and increments the revision counter. The new main document should be uploaded
+    via the TUS upload endpoint after this call.
+    """
+    new_revision, previous_types = await create_new_revision(project_id, current_user)
+    return CreateRevisionResponse(
+        revision=new_revision,
+        previous_workflow_types=previous_types,
+    )
+
+
+@router.get(
+    "/api/project/{project_id}/revisions",
+    response_model=List[RevisionListItem],
+)
+async def list_revisions_endpoint(
+    project_id: str,
+    current_user: Optional[User] = Depends(get_current_user_optional),
+    share_token: Optional[str] = Query(
+        default=None,
+        description="Share token for shared projects.",
+    ),
+):
+    """List all revisions for a project with their main file info."""
+    from lib.services.files import get_files_by_project_id
+
+    project, _ = await get_project_access(project_id, current_user, share_token)
+
+    # Get all MAIN files to build revision list
+    main_files = await get_files_by_project_id(
+        project_id, roles=[FileRole.MAIN]
+    )
+    main_file_by_revision: dict[int, File] = {}
+    for f in main_files:
+        if f.revision is not None:
+            main_file_by_revision[f.revision] = f
+
+    revisions = []
+    for rev in range(1, project.current_revision + 1):
+        main_file = main_file_by_revision.get(rev)
+        revisions.append(
+            RevisionListItem(
+                revision=rev,
+                main_file_name=main_file.file_name if main_file else None,
+                main_file_id=str(main_file.id) if main_file else None,
+                created_at=main_file.created_at if main_file else None,
+            )
+        )
+
+    return revisions

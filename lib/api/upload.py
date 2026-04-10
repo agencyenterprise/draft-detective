@@ -17,8 +17,12 @@ async def save_uploaded_files_to_db(
     project_id: uuid.UUID,
     user_id: uuid.UUID,
     roles: List[FileRole],
+    revision: int = 1,
 ) -> List[File]:
-    """Save uploaded files to disk and create database records."""
+    """Save uploaded files to disk and create database records.
+
+    MAIN files get the specified revision; SUPPORT files get revision=None (shared).
+    """
     if len(roles) != len(uploaded_files):
         raise ValueError(
             f"Number of roles ({len(roles)}) must match number of files ({len(uploaded_files)})"
@@ -31,12 +35,15 @@ async def save_uploaded_files_to_db(
         if not filename:
             raise ValueError("Uploaded file has no filename")
 
+        file_revision = revision if role == FileRole.MAIN else None
+
         file_record = await finalize_file(
             content=content,
             filename=filename,
             project_id=project_id,
             user_id=user_id,
             role=role,
+            revision=file_revision,
         )
         file_records.append(file_record)
 
