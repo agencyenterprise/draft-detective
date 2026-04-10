@@ -24,10 +24,12 @@ from lib.services.file_finalization import finalize_file
 from lib.services.files import delete_project_files, get_files_by_project_id
 from lib.services.projects import create_project as create_project_record
 from lib.services.projects import (
+    create_new_revision,
     get_project_access,
     get_project_detailed_from_project,
     get_user_projects,
 )
+from lib.services.files import get_project_files_list_items
 from lib.services.references import (
     get_file_reference_matches,
     remove_file_from_references,
@@ -78,7 +80,10 @@ def _require_api_key(user: User) -> None:
 
 
 async def _get_project_details_json(
-    project_id: str, access_level: AccessLevel, user: User
+    project_id: str,
+    access_level: AccessLevel,
+    user: User,
+    revision: int | None = None,
 ) -> str:
     """Fetch project details and return as JSON, excluding files and feedbacks."""
     project, _ = await get_project_access(
@@ -88,6 +93,7 @@ async def _get_project_details_json(
         project=project,
         access_level=access_level,
         include_internal=True,
+        revision=revision,
     )
     data = project_detailed.model_dump(mode="json", exclude={"files", "feedbacks"})
     data["project_url"] = _build_project_url(project_id)
@@ -131,7 +137,13 @@ async def create_project(
     token: AccessToken = CurrentAccessToken(),
 ) -> str:
     """
-    Create a project and ingest a markdown document.
+    Create a NEW project and ingest a markdown document.
+
+    Only use this for a brand-new document that has never been analyzed before.
+    If you are re-analyzing an updated version of an existing document (e.g. after
+    fixing issues), do NOT create a new project — use create_revision on the
+    existing project instead. This preserves history and lets the user compare
+    revisions.
 
     After creation, use run_workflow with the returned project_id to start
     analysis workflows (e.g. document_processing, claim_extraction).
@@ -149,6 +161,7 @@ async def create_project(
         project_id=project.id,
         user_id=user.id,
         role=FileRole.MAIN,
+        revision=1,
     )
 
     return json.dumps(
@@ -182,13 +195,17 @@ async def run_workflow(
 
     A project with an uploaded document is required before running any workflow.
     Use create_project first to create a project and ingest a document, then pass
-    the returned project_id here.
+    the returned project_id here. Workflows always run against the project's
+    current revision.
 
     workflow_types must be a list of type values returned by list_workflow_types
     (e.g. ["claim_extraction", "reference_validation"]).
 
     Returns full project details including all workflow results, detected issues,
     and a project_url link to view the project in the web UI.
+
+    Tip: after fixing issues and uploading a new document via create_revision,
+    call this again with the same workflow_types to re-analyze the updated document.
     """
     parsed_types: list[WorkflowRunType] = []
     for wt in workflow_types:
@@ -221,6 +238,7 @@ async def run_workflow(
 )
 async def get_project(
     project_id: str,
+    revision: int | None = None,
     token: AccessToken = CurrentAccessToken(),
 ) -> str:
     """
@@ -228,10 +246,13 @@ async def get_project(
 
     Returns project metadata, workflow results, detected issues, and a
     project_url link to view the project in the web UI.
+
+    revision: optional revision number to fetch. Defaults to the latest revision.
+    Use list_revisions to see all available revisions.
     """
 
     user = await _resolve_user(token)
-    return await _get_project_details_json(project_id, AccessLevel.READ, user)
+    return await _get_project_details_json(project_id, AccessLevel.READ, user, revision=revision)
 
 
 @mcp.tool(
@@ -321,13 +342,17 @@ async def export_project_docx(
 )
 async def list_project_files(
     project_id: str,
+    revision: int | None = None,
     token: AccessToken = CurrentAccessToken(),
 ) -> str:
     """
-    List all files for a project and their reference associations.
+    List files for a project and their reference associations.
 
     Returns a JSON array where each entry contains:
-      file_id, file_name, file_size, file_type, role, reference_id (null if unmatched).
+      file_id, file_name, file_size, file_type, role, revision, reference_id (null if unmatched).
+
+    revision: optional revision number. Defaults to the latest revision.
+    Returns the revision's MAIN file plus all shared supporting files.
 
     Use get_project to retrieve available reference IDs from the workflow state
     (look inside workflow_runs for type "reference_extraction" → state.extracted_references).
@@ -337,8 +362,9 @@ async def list_project_files(
         project_id, user=user, required_level=AccessLevel.READ
     )
 
-    files = await get_files_by_project_id(project.id)
-    matches = await get_file_reference_matches(project_id, revision=project.current_revision)
+    resolved_revision = revision if revision is not None else project.current_revision
+    files = await get_project_files_list_items(project.id, revision=resolved_revision)
+    matches = await get_file_reference_matches(project_id, revision=resolved_revision)
     file_to_reference = {m.file_id: m.reference_id for m in matches}
 
     return json.dumps(
@@ -349,6 +375,7 @@ async def list_project_files(
                 "file_size": f.file_size,
                 "file_type": f.file_type,
                 "role": str(f.role) if f.role else None,
+                "revision": f.revision,
                 "reference_id": file_to_reference.get(str(f.id)),
             }
             for f in files
@@ -417,25 +444,29 @@ def _build_tus_url() -> str:
 )
 async def get_tus_upload_credentials(
     project_id: str,
+    role: str = "support",
     reference_id: str | None = None,
     token: AccessToken = CurrentAccessToken(),
 ) -> str:
     """
-    Get credentials and URL to upload a supporting file via the TUS resumable upload protocol.
+    Get credentials and URL to upload a file via the TUS resumable upload protocol.
 
     Returns a bearer token (valid for 15 minutes) and the TUS endpoint URL. Use any TUS client
     library (e.g. tus-js-client, tuspy) to perform the upload. Start the upload before the token
     expires; in-progress TUS uploads are not interrupted by expiry.
 
     Steps:
-    1. Call this tool with project_id and optional reference_id.
+    1. Call this tool with project_id and role.
     2. Create a TUS upload at tus_url with:
        - Header: Authorization: Bearer <bearer_token>
        - TUS metadata fields from required_metadata (include filename for the stored file name)
     3. Upload the file using the TUS protocol (supports chunked / resumable uploads).
 
-    reference_id: optional ID of the reference to link the file to. Obtain reference IDs
-        from get_project (workflow_runs → type "reference_extraction" → state.extracted_references[].id).
+    role: "main" for the primary document or "support" for supporting files (default: "support").
+        To upload a new main document, first call create_revision, then use role="main".
+    reference_id: optional ID of the reference to link the file to (only for supporting files).
+        Obtain reference IDs from get_project (workflow_runs → type "reference_extraction" →
+        state.extracted_references[].id).
     """
     user = await _resolve_user(token)
     await get_project_access(project_id, user=user, required_level=AccessLevel.WRITE)
@@ -451,10 +482,12 @@ async def get_tus_upload_credentials(
     }
     bearer_token = pyjwt.encode(payload, env_config.AUTH_SECRET, algorithm="HS512")
 
+    resolved_role = role if role in ("main", "support") else "support"
+
     required_metadata: dict[str, str | None] = {
         "project_id": project_id,
-        "reference_id": reference_id,
-        "role": "support",
+        "reference_id": reference_id if resolved_role == "support" else None,
+        "role": resolved_role,
     }
 
     return json.dumps(
@@ -473,6 +506,93 @@ async def get_tus_upload_credentials(
             ),
         }
     )
+
+
+@mcp.tool(
+    annotations=ToolAnnotations(
+        destructiveHint=False,
+        idempotentHint=False,
+        readOnlyHint=False,
+        openWorldHint=False,
+    )
+)
+async def create_revision(
+    project_id: str,
+    token: AccessToken = CurrentAccessToken(),
+) -> str:
+    """
+    Create a new revision for a project, preparing it for a new main document upload.
+
+    Use this instead of create_project when you have an updated version of a document
+    that was already analyzed (e.g. after fixing issues found in a previous revision).
+    This keeps all history in one project so the user can compare revisions.
+
+    This archives all active issues from the current revision, cancels any running
+    workflows, and increments the revision counter.
+
+    After calling this:
+    1. Upload the new document using get_tus_upload_credentials with role="main"
+    2. Call run_workflow to start analyses (use previous_workflow_types from the
+       response to re-run the same checks, or choose different ones)
+
+    Returns the new revision number and the list of workflow types that were
+    previously run (useful for re-running the same analyses).
+    """
+    user = await _resolve_user(token)
+    new_revision, previous_types = await create_new_revision(project_id, user)
+    return json.dumps(
+        {
+            "revision": new_revision,
+            "previous_workflow_types": [str(t) for t in previous_types],
+            "project_url": _build_project_url(project_id),
+        }
+    )
+
+
+@mcp.tool(
+    annotations=ToolAnnotations(
+        destructiveHint=False,
+        idempotentHint=True,
+        readOnlyHint=True,
+        openWorldHint=False,
+    )
+)
+async def list_revisions(
+    project_id: str,
+    token: AccessToken = CurrentAccessToken(),
+) -> str:
+    """
+    List all revisions for a project.
+
+    Returns a JSON array with each revision's number, main file name, file ID,
+    and creation timestamp. Use get_project with a specific revision number to
+    fetch detailed results for any revision.
+    """
+    user = await _resolve_user(token)
+    project, _ = await get_project_access(
+        project_id, user=user, required_level=AccessLevel.READ
+    )
+
+    main_files = await get_files_by_project_id(project.id, roles=[FileRole.MAIN])
+    main_by_revision: dict[int, object] = {}
+    for f in main_files:
+        if f.revision is not None:
+            main_by_revision[f.revision] = f
+
+    revisions = []
+    for rev in range(1, project.current_revision + 1):
+        main_file = main_by_revision.get(rev)
+        revisions.append(
+            {
+                "revision": rev,
+                "is_current": rev == project.current_revision,
+                "main_file_name": main_file.file_name if main_file else None,
+                "main_file_id": str(main_file.id) if main_file else None,
+                "created_at": main_file.created_at.isoformat() if main_file and main_file.created_at else None,
+            }
+        )
+
+    return json.dumps(revisions)
 
 
 mcp_app = mcp.http_app(

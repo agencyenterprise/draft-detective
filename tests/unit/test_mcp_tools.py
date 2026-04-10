@@ -394,7 +394,7 @@ async def test_get_project_returns_details():
 
     from lib.models.project import AccessLevel
 
-    mock_details.assert_awaited_once_with("p1", AccessLevel.READ, user)
+    mock_details.assert_awaited_once_with("p1", AccessLevel.READ, user, revision=None)
     assert json.loads(result)["title"] == "Test"
 
 
@@ -416,6 +416,9 @@ async def test_list_project_files_returns_files_with_reference():
     file1.file_size = 12345
     file1.file_type = "application/pdf"
     file1.role = "support"
+    file1.revision = None
+
+    project.current_revision = 1
 
     ref_id = str(uuid4())
     match = ReferenceFileMatch(reference_id=ref_id, file_id=str(file1.id), source=MatchSource.MANUAL_UPLOAD)
@@ -423,7 +426,7 @@ async def test_list_project_files_returns_files_with_reference():
     with (
         patch("lib.api.mcp._resolve_user", new=AsyncMock(return_value=user)),
         patch("lib.api.mcp.get_project_access", new=AsyncMock(return_value=(project, MagicMock()))),
-        patch("lib.api.mcp.get_files_by_project_id", new=AsyncMock(return_value=[file1])),
+        patch("lib.api.mcp.get_project_files_list_items", new=AsyncMock(return_value=[file1])),
         patch("lib.api.mcp.get_file_reference_matches", new=AsyncMock(return_value=[match])),
     ):
         raw = await list_project_files(project_id=project_id, token=_make_token())
@@ -443,6 +446,7 @@ async def test_list_project_files_null_reference_when_unmatched():
     user = _make_user()
     project = MagicMock()
     project.id = uuid4()
+    project.current_revision = 1
 
     file1 = MagicMock()
     file1.id = uuid4()
@@ -450,11 +454,12 @@ async def test_list_project_files_null_reference_when_unmatched():
     file1.file_size = 500
     file1.file_type = "application/pdf"
     file1.role = "support"
+    file1.revision = None
 
     with (
         patch("lib.api.mcp._resolve_user", new=AsyncMock(return_value=user)),
         patch("lib.api.mcp.get_project_access", new=AsyncMock(return_value=(project, MagicMock()))),
-        patch("lib.api.mcp.get_files_by_project_id", new=AsyncMock(return_value=[file1])),
+        patch("lib.api.mcp.get_project_files_list_items", new=AsyncMock(return_value=[file1])),
         patch("lib.api.mcp.get_file_reference_matches", new=AsyncMock(return_value=[])),
     ):
         raw = await list_project_files(project_id=str(project.id), token=_make_token())
@@ -468,11 +473,12 @@ async def test_list_project_files_returns_empty_list():
     user = _make_user()
     project = MagicMock()
     project.id = uuid4()
+    project.current_revision = 1
 
     with (
         patch("lib.api.mcp._resolve_user", new=AsyncMock(return_value=user)),
         patch("lib.api.mcp.get_project_access", new=AsyncMock(return_value=(project, MagicMock()))),
-        patch("lib.api.mcp.get_files_by_project_id", new=AsyncMock(return_value=[])),
+        patch("lib.api.mcp.get_project_files_list_items", new=AsyncMock(return_value=[])),
         patch("lib.api.mcp.get_file_reference_matches", new=AsyncMock(return_value=[])),
     ):
         raw = await list_project_files(project_id=str(project.id), token=_make_token())

@@ -39,6 +39,8 @@ EXPECTED_TOOL_NAMES = {
     "list_project_files",
     "remove_reference_file",
     "get_tus_upload_credentials",
+    "create_revision",
+    "list_revisions",
 }
 
 
