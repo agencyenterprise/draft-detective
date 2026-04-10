@@ -11,6 +11,7 @@ from lib.agents.models import DocumentMetadata, ValidatedDocument
 from lib.agents.sentence_tokenizer import SentenceTokenizerAgent
 from lib.run_utils import MAX_CONCURRENT_TASKS
 from lib.services.fragment_detection import DetectionMethod, has_suspicious_fragments
+from lib.services.text_sanitization import strip_control_chars
 
 semaphore = asyncio.Semaphore(MAX_CONCURRENT_TASKS)
 
@@ -201,7 +202,10 @@ async def split_paragraph_into_sentences(
             f"score={suspicion_score}, nltk_fragments={len(merged)}, "
             f"paragraph={paragraph}..."
         )
-        llm_result = await sentence_tokenizer.ainvoke({"paragraph": paragraph})
+        # Strip control characters that break JSON serialization in the API request.
+        # PDF-extracted markdown can contain null bytes and other C0/C1 control chars.
+        sanitized = strip_control_chars(paragraph)
+        llm_result = await sentence_tokenizer.ainvoke({"paragraph": sanitized})
         result = llm_result.chunks
 
     return result
