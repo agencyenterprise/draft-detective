@@ -6,6 +6,44 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v0.5.27] - 2026-04-10
+
+### Added
+- Introduced a revision system that allows replacing the main document and re-running analyses while preserving and archiving prior results.
+- Added API endpoints to create and list project revisions.
+- Added an inline “Replace main document” dialog and related UI updates, including a revision badge on project cards.
+- Added MCP tools `export_project_docx` and `list_projects`.
+- Added MCP tools `list_project_files`, `remove_reference_file`, and `get_tus_upload_credentials`.
+
+### Changed
+- Moved reference review and human approval out of the new-project wizard into the project results experience (References tab), removing `step=3` URL support and always routing to the project after starting analysis.
+- Updated workflow type selection UI to load types via `useWorkflowTypes`, render by category, and add a “Show experimental” control.
+- Promoted the Figures & Tables Check, Document Structure, Advocacy & Tone, and About This (GER) workflows to stable by removing the experimental flag.
+- Added exclusion logic so abbreviation/acronym tables in dedicated sections are not flagged by the figures & tables check.
+- Added 6 new figures & tables check e2e eval cases.
+- Added a regression eval case for reference validation and documented Inspect AI eval usage in AGENTS.md.
+- Bumped dependencies: cryptography (46.0.4→46.0.6 and 46.0.6→46.0.7), langchain-core (1.2.19→1.2.22 and 1.2.22→1.2.28), lodash (4.17.21→4.18.1), next (15.5.9→15.5.14), pyjwt (2.10.1→2.12.0), pygments (2.19.2→2.20.0), pyasn1 (0.6.2→0.6.3), pillow (12.1.0→12.1.1), requests (2.32.5→2.33.0), deepdiff (8.6.1→8.6.2), and aiohttp (3.13.3→3.13.4).
+
+### Fixed
+- Sanitized C0/C1 control characters before sending text to the OpenAI API to prevent intermittent 400 errors in the Chunk Splitting workflow, and consolidated stripping logic into a shared utility.
+- Reduced non-deterministic reference validator title suggestions by instructing the agent to prefer the on-page content headline over metadata titles.
+- Suppressed the workflow progress toast while a run is waiting on human approval.
+- Updated tests to include new MCP tool names and adjusted mocks and added tests for the revision system.
+
+### Security
+- Restricted Claude GitHub Actions workflows to run only for repo contributors with `OWNER`, `MEMBER`, or `COLLABORATOR` association.
+- Updated cryptography to 46.0.7, including a security fix for non-contiguous buffers that could lead to buffer overflow (CVE-2026-39892).
+- Updated cryptography to 46.0.6, including a security fix related to name constraints verification with wildcard DNS SANs (CVE-2026-34073).
+- Updated pyasn1 to 0.6.3, including a nesting depth limit to prevent stack overflow from deeply nested structures (CVE-2026-30922).
+- Updated requests to 2.33.0, including a security change for `requests.utils.extract_zipped_paths` (CVE-2026-25645).
+- Updated deepdiff to 8.6.2 to address CVE-2025-58367.
+- Updated next to 15.5.14, including a security fix to prevent request smuggling in rewrites (CVE-2026-29057).
+
+### Removed
+- Removed the experimental tag (`is_experimental`) from four workflows that were promoted to stable.
+- Removed the wizard reference review step (`StepReferences`) and obsolete deep links to `step=3`.
+
+
 ## [v0.5.26] - 2026-04-07
 
 ### Added
