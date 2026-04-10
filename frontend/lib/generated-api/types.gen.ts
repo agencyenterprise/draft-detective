@@ -4252,6 +4252,14 @@ export type ReferenceValidationItem = {
    * Error message, present on failure.
    */
   error?: string | null;
+  /**
+   * Messages
+   *
+   * LLM conversation messages from the agent invocation.
+   */
+  messages?: Array<{
+    [key: string]: unknown;
+  }>;
 };
 
 /**
