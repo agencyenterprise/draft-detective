@@ -1,5 +1,7 @@
 import logging
+from typing import List
 
+from langchain_core.messages import BaseMessage
 from langgraph.runtime import Runtime
 from langgraph.types import Overwrite, Send
 
@@ -75,9 +77,10 @@ async def validate_single_reference(state: dict, runtime: Runtime[ContextSchema]
     validation_result = None
     error = None
     status = ReferenceValidationStatus.COMPLETED
+    agent_messages: List[BaseMessage] = []
 
     try:
-        validation_result, messages = await agent.ainvoke(
+        validation_result, agent_messages = await agent.ainvoke(
             {"reference": input_reference}
         )
     except Exception as e:
@@ -95,6 +98,7 @@ async def validate_single_reference(state: dict, runtime: Runtime[ContextSchema]
                 status=status,
                 validation_result=validation_result,
                 error=error,
+                messages=agent_messages,
             )
         ]
     }

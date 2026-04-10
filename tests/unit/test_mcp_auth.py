@@ -33,6 +33,7 @@ def test_create_mcp_auth_raises_without_credentials():
     mock_config.AUTH_MICROSOFT_ENTRA_ID_SECRET = None
     mock_config.AUTH_MICROSOFT_ENTRA_ID_ISSUER = None
     mock_config.MCP_BASE_URL = "http://localhost:8000/mcp"
+    mock_config.MCP_CIMD_ENABLED = False
 
     with patch("lib.api.mcp_auth.config", mock_config):
         with pytest.raises(RuntimeError, match="MCP auth requires either Google"):
@@ -44,6 +45,7 @@ def test_create_mcp_auth_with_google_credentials():
     mock_config.AUTH_GOOGLE_ID = "google-client-id"
     mock_config.AUTH_GOOGLE_SECRET = "google-client-secret"
     mock_config.MCP_BASE_URL = "https://api.example.com/mcp"
+    mock_config.MCP_CIMD_ENABLED = False
 
     with (
         patch("lib.api.mcp_auth.config", mock_config),
@@ -76,6 +78,7 @@ def test_create_mcp_auth_with_entra_id_credentials():
         "https://login.microsoftonline.com/tenant-abc/v2.0"
     )
     mock_config.MCP_BASE_URL = "https://api.example.com/mcp"
+    mock_config.MCP_CIMD_ENABLED = False
 
     with (
         patch("lib.api.mcp_auth.config", mock_config),
@@ -107,6 +110,7 @@ def test_create_mcp_auth_google_takes_priority():
         "https://login.microsoftonline.com/tenant/v2.0"
     )
     mock_config.MCP_BASE_URL = "http://localhost:8000/mcp"
+    mock_config.MCP_CIMD_ENABLED = False
 
     with (
         patch("lib.api.mcp_auth.config", mock_config),
@@ -134,6 +138,7 @@ def test_create_mcp_auth_extracts_tenant_from_issuer():
         "https://login.microsoftonline.com/my-tenant-123/v2.0"
     )
     mock_config.MCP_BASE_URL = "http://localhost/mcp"
+    mock_config.MCP_CIMD_ENABLED = False
 
     with (
         patch("lib.api.mcp_auth.config", mock_config),
@@ -145,3 +150,64 @@ def test_create_mcp_auth_extracts_tenant_from_issuer():
 
     call_kwargs = MockProvider.call_args.kwargs
     assert call_kwargs["tenant_id"] == "my-tenant-123"
+
+
+def test_create_mcp_auth_cimd_enabled_google():
+    """CIMD flag is forwarded to Google provider when enabled."""
+    mock_config = MagicMock()
+    mock_config.AUTH_GOOGLE_ID = "google-client-id"
+    mock_config.AUTH_GOOGLE_SECRET = "google-client-secret"
+    mock_config.MCP_BASE_URL = "https://api.example.com/mcp"
+    mock_config.MCP_CIMD_ENABLED = True
+
+    with (
+        patch("lib.api.mcp_auth.config", mock_config),
+        patch(
+            "fastmcp.server.auth.providers.google.GoogleProvider"
+        ) as MockProvider,
+    ):
+        create_mcp_auth()
+
+    MockProvider.assert_called_once_with(
+        client_id="google-client-id",
+        client_secret="google-client-secret",
+        base_url="https://api.example.com/mcp",
+        issuer_url="https://api.example.com",
+        required_scopes=[
+            "openid",
+            "https://www.googleapis.com/auth/userinfo.email",
+        ],
+        enable_cimd=True,
+    )
+
+
+def test_create_mcp_auth_cimd_enabled_entra_id():
+    """CIMD flag is forwarded to Azure provider when enabled."""
+    mock_config = MagicMock()
+    mock_config.AUTH_GOOGLE_ID = None
+    mock_config.AUTH_GOOGLE_SECRET = None
+    mock_config.AUTH_MICROSOFT_ENTRA_ID_ID = "entra-id"
+    mock_config.AUTH_MICROSOFT_ENTRA_ID_SECRET = "entra-secret"
+    mock_config.AUTH_MICROSOFT_ENTRA_ID_ISSUER = (
+        "https://login.microsoftonline.com/tenant-abc/v2.0"
+    )
+    mock_config.MCP_BASE_URL = "https://api.example.com/mcp"
+    mock_config.MCP_CIMD_ENABLED = True
+
+    with (
+        patch("lib.api.mcp_auth.config", mock_config),
+        patch(
+            "fastmcp.server.auth.providers.azure.AzureProvider"
+        ) as MockProvider,
+    ):
+        create_mcp_auth()
+
+    MockProvider.assert_called_once_with(
+        client_id="entra-id",
+        client_secret="entra-secret",
+        tenant_id="tenant-abc",
+        base_url="https://api.example.com/mcp",
+        issuer_url="https://api.example.com",
+        required_scopes=["mcp-access"],
+        enable_cimd=True,
+    )
