@@ -12,7 +12,7 @@ from sqlmodel import and_, col
 from lib.config.database import get_async_db_session
 from lib.models.feedback import FeedbackType
 from lib.models.file import File, FileListItem
-from lib.models.issue import Issue, IssueStatus
+from lib.models.issue import Issue
 from lib.models.project import AccessLevel, FeedbackVisibility, Project
 from lib.models.user import User, UserRole
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus
@@ -398,17 +398,6 @@ async def create_new_revision(project_id: str, user: User) -> tuple[int, List[Wo
             WorkflowRunType(row[0]) if isinstance(row[0], str) else row[0]
             for row in result.all()
         ]
-
-        # Archive active issues from the old revision
-        await session.execute(
-            update(Issue)
-            .where(
-                col(Issue.project_id) == project_id,
-                col(Issue.revision) == old_revision,
-                col(Issue.status) == IssueStatus.ACTIVE,
-            )
-            .values(status=IssueStatus.ARCHIVED)
-        )
 
         # Increment project revision
         await session.execute(
