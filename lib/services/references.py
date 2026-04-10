@@ -46,12 +46,12 @@ async def _project_lock(project_id: str):
         yield
 
 
-async def _get_document_processing_workflow_state(project_id: str):
+async def _get_document_processing_workflow_state(project_id: str, revision: int):
     """Get the DocumentProcessing workflow state for a project."""
     from lib.workflows.document_processing.state import DocumentProcessingState
 
     run = await get_project_workflow_run_by_type(
-        project_id, WorkflowRunType.DOCUMENT_PROCESSING
+        project_id, WorkflowRunType.DOCUMENT_PROCESSING, revision=revision
     )
     if run is None:
         return None
@@ -64,6 +64,7 @@ async def _get_document_processing_workflow_state(project_id: str):
 
 async def _get_file_matching_workflow_state(
     project_id: str,
+    revision: int,
 ) -> Tuple[Optional[WorkflowRun], Optional[ReferenceFileMatchingState]]:
     """
     Get the ReferenceFileMatching workflow run and state for a project.
@@ -82,7 +83,7 @@ async def _get_file_matching_workflow_state(
     from lib.workflows.reference_file_matching.state import ReferenceFileMatchingConfig
 
     run = await get_project_workflow_run_by_type(
-        project_id, WorkflowRunType.REFERENCE_FILE_MATCHING
+        project_id, WorkflowRunType.REFERENCE_FILE_MATCHING, revision=revision
     )
 
     state = None
@@ -99,7 +100,7 @@ async def _get_file_matching_workflow_state(
         f"No file matching state found for project {project_id}, constructing default"
     )
 
-    doc_processing_state = await _get_document_processing_workflow_state(project_id)
+    doc_processing_state = await _get_document_processing_workflow_state(project_id, revision)
     if doc_processing_state is None:
         logger.info(
             f"No document processing state found for project {project_id}, "
@@ -128,6 +129,7 @@ async def _get_file_matching_workflow_state(
             status=WorkflowRunStatus.COMPLETED,
             type=WorkflowRunType.REFERENCE_FILE_MATCHING,
             thread_id=thread_id,
+            revision=revision,
         )
 
         # Persist the default state to the checkpointer
@@ -143,7 +145,7 @@ async def _get_file_matching_workflow_state(
 
         # Fetch the newly created workflow run
         run = await get_project_workflow_run_by_type(
-            project_id, WorkflowRunType.REFERENCE_FILE_MATCHING
+            project_id, WorkflowRunType.REFERENCE_FILE_MATCHING, revision=revision
         )
         logger.info(f"Created new file matching workflow run for project {project_id}")
 
@@ -152,18 +154,13 @@ async def _get_file_matching_workflow_state(
 
 async def _get_extraction_workflow_state(
     project_id: str,
+    revision: int,
 ) -> Tuple[Optional[WorkflowRun], Optional[ReferenceExtractionState]]:
     """
     Get the ReferenceExtraction workflow run and state for a project.
-
-    Args:
-        project_id: The project ID
-
-    Returns:
-        Tuple of (workflow_run, state) or (None, None) if not found
     """
     run = await get_project_workflow_run_by_type(
-        project_id, WorkflowRunType.REFERENCE_EXTRACTION
+        project_id, WorkflowRunType.REFERENCE_EXTRACTION, revision=revision
     )
 
     if run is None:
@@ -181,7 +178,15 @@ async def _get_extraction_workflow_state(
     return run, state
 
 
-async def remove_file_from_references(project_id: str, file_id: str) -> List[str]:
+async def get_file_reference_matches(project_id: str, revision: int) -> List[ReferenceFileMatch]:
+    """Return the current reference-file matches for a project (empty list if none)."""
+    _, state = await _get_file_matching_workflow_state(project_id, revision)
+    if state is None:
+        return []
+    return list(state.matches)
+
+
+async def remove_file_from_references(project_id: str, file_id: str, revision: int) -> List[str]:
     """
     Remove file_id from any matches in the ReferenceFileMatching workflow state.
 
@@ -196,7 +201,7 @@ async def remove_file_from_references(project_id: str, file_id: str) -> List[str
         List of reference IDs that were unlinked (empty if no update was needed)
     """
     async with _project_lock(project_id):
-        run, state = await _get_file_matching_workflow_state(project_id)
+        run, state = await _get_file_matching_workflow_state(project_id, revision)
 
         if run is None or state is None:
             return []
@@ -236,6 +241,7 @@ async def add_file_to_reference(
     file_id: str,
     reference_id: str,
     source: MatchSource,
+    revision: int,
 ) -> bool:
     """
     Link a file to a specific reference in the ReferenceFileMatching workflow state.
@@ -250,14 +256,14 @@ async def add_file_to_reference(
     """
     async with _project_lock(project_id):
         # Get file matching state
-        run, state = await _get_file_matching_workflow_state(project_id)
+        run, state = await _get_file_matching_workflow_state(project_id, revision)
         if run is None or state is None:
             logger.warning(
                 f"No file matching workflow found for project {project_id}, cannot add file"
             )
             return False
 
-        _, extraction_state = await _get_extraction_workflow_state(project_id)
+        _, extraction_state = await _get_extraction_workflow_state(project_id, revision)
         if extraction_state is None:
             logger.warning(f"No extraction state found for project {project_id}")
             return False

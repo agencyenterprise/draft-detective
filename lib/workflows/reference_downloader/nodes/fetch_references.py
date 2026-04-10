@@ -101,7 +101,7 @@ async def fetch_single_reference(state: dict, runtime: Runtime[ContextSchema]):
             await update_files_role([result.file_id], FileRole.SUPPORT)
             # Update the reference file matching in the ReferenceExtraction workflow state
             await _update_reference_file_matching(
-                project_id, result.file_id, reference_id
+                project_id, result.file_id, reference_id, runtime.context.revision
             )
 
     except Exception as e:
@@ -173,7 +173,7 @@ async def cleanup_failed_resources(
 
 
 async def _update_reference_file_matching(
-    project_id: str, file_id: str, reference_id: str
+    project_id: str, file_id: str, reference_id: str, revision: int
 ):
     """Update the reference file matching in the ReferenceExtraction workflow state."""
 
@@ -185,4 +185,5 @@ async def _update_reference_file_matching(
         file_id=file_id,
         reference_id=reference_id,
         source=MatchSource.AUTO_FETCHED,
+        revision=revision,
     )

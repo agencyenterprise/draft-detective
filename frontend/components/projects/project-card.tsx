@@ -1,6 +1,7 @@
 import { DeleteProjectDialog } from '@/components/delete-project-dialog';
 import { Button } from '@/components/ui/button';
 import { StatusIndicator } from '@/components/ui/status-indicator';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { ProjectListItem, WorkflowRun, WorkflowRunType } from '@/lib/generated-api';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { formatDistanceToNow } from 'date-fns';
@@ -74,6 +75,19 @@ export function ProjectCard({ item }: ProjectCardProps) {
 
         <p className="text-sm text-muted-foreground mt-1">
           Created {formatDistanceToNow(project.created_at, { addSuffix: true })}
+          {project.current_revision && project.current_revision > 1 && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="ml-2 inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs font-medium cursor-default">
+                  Rev {project.current_revision}
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>
+                The main document has been replaced {project.current_revision - 1} time
+                {project.current_revision > 2 ? 's' : ''}. Currently analyzing revision {project.current_revision}.
+              </TooltipContent>
+            </Tooltip>
+          )}
         </p>
       </div>
 

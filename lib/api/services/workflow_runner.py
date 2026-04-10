@@ -10,6 +10,7 @@ from lib.config.env import config as env_config
 from lib.models.project import AccessLevel, Project
 from lib.models.user import User
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus, WorkflowRunType
+from lib.services.files import assert_project_has_main_file
 from lib.services.projects import get_project_access
 from lib.services.users import get_user_decrypted_api_key
 from lib.services.workflow_runs import (
@@ -69,6 +70,8 @@ async def _prepare_workflow_items(
         request.project_id, user=user, required_level=AccessLevel.WRITE
     )
 
+    await assert_project_has_main_file(request.project_id, project.current_revision)
+
     resolved_workflow_types = resolve_workflow_dependencies(workflow_types)
 
     logger.info(
@@ -82,10 +85,12 @@ async def _prepare_workflow_items(
     workflow_run_ids: List[str] = []
     auto_run_items: List[AutoRunWorkflowItem] = []
 
+    revision = project.current_revision
+
     for workflow_type in resolved_workflow_types:
         manifest = get_workflow_manifest(workflow_type)
         existing_run = await get_project_workflow_run_by_type(
-            request.project_id, workflow_type
+            request.project_id, workflow_type, revision=revision
         )
 
         # Skip if workflow is already completed and not explicitly requested
@@ -115,6 +120,7 @@ async def _prepare_workflow_items(
             status=WorkflowRunStatus.PENDING,
             type=workflow_type,
             thread_id=thread_id,
+            revision=revision,
         )
 
         workflow_run_ids.append(workflow_run_id)
@@ -148,14 +154,17 @@ async def start_workflow_run(
         background_tasks: The background tasks to run the workflow in
     """
 
-    await get_project_access(
+    project, _ = await get_project_access(
         config.project_id, user=user, required_level=AccessLevel.WRITE
     )
 
     _assert_api_key_available(user, config.openai_api_key, config.requires_api_key())
 
+    await assert_project_has_main_file(config.project_id, project.current_revision)
+
+    revision = project.current_revision
     existing_run = await get_project_workflow_run_by_type(
-        config.project_id, config.type
+        config.project_id, config.type, revision=revision
     )
 
     # Reuse thread_id from previous runs to maintain LangGraph checkpoint continuity.
@@ -169,6 +178,7 @@ async def start_workflow_run(
         status=WorkflowRunStatus.PENDING,
         type=config.type,
         thread_id=thread_id,
+        revision=revision,
     )
 
     background_tasks.add_task(

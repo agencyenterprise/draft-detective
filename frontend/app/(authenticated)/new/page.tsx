@@ -6,7 +6,6 @@ import { WizardProvider, useWizard, WizardStep } from '@/components/analysis-wiz
 import { StepIndicator } from '@/components/analysis-wizard/step-indicator';
 import { StepUpload } from '@/components/analysis-wizard/step-upload';
 import { StepAnalyses } from '@/components/analysis-wizard/step-analyses';
-import { StepReferences } from '@/components/analysis-wizard/step-references';
 import { StepApiKeyConfig } from '@/components/analysis-wizard/step-api-key-config';
 import { useSearchParams } from 'next/navigation';
 import { useUserMe } from '@/lib/hooks/use-user-me';
@@ -29,16 +28,13 @@ function WizardContent() {
       { label: 'Your Document', completed: wizard.currentStep > 1 },
       { label: 'Choose Analyses', completed: wizard.currentStep > 2 },
     ];
-    if (wizard.needsReferencesStep) {
-      wizardSteps.push({ label: 'Add Sources', completed: false });
-    }
     return [...apiKeyStep, ...wizardSteps];
-  }, [apiKeyConfigured, wizard.currentStep, wizard.needsReferencesStep]);
+  }, [apiKeyConfigured, wizard.currentStep]);
 
   // When REQUIRE_API_KEY_CONFIG is true, wizard steps are offset by 1 in the indicator.
   const currentIndicatorStep = isOnApiKeyStep ? 1 : wizard.currentStep + (REQUIRE_API_KEY_CONFIG ? 1 : 0);
 
-  const cardWidthClass = !isOnApiKeyStep && wizard.currentStep === 3 ? 'max-w-8xl' : 'max-w-3xl';
+  const cardWidthClass = 'max-w-3xl';
 
   // Guard against hydration mismatch: the server renders with no user data while the
   // client immediately begins fetching (isLoading differs between SSR and first client
@@ -60,7 +56,6 @@ function WizardContent() {
           {isOnApiKeyStep && <StepApiKeyConfig />}
           {!isOnApiKeyStep && wizard.currentStep === 1 && <StepUpload onComplete={wizard.nextStep} />}
           {!isOnApiKeyStep && wizard.currentStep === 2 && <StepAnalyses />}
-          {!isOnApiKeyStep && wizard.currentStep === 3 && <StepReferences />}
         </CardContent>
       </Card>
     </div>
@@ -73,7 +68,7 @@ export default function New() {
   const stepFromUrl = searchParams.get('step');
 
   const initialStep: WizardStep | undefined =
-    stepFromUrl && ['1', '2', '3'].includes(stepFromUrl) ? (parseInt(stepFromUrl, 10) as WizardStep) : undefined;
+    stepFromUrl && ['1', '2'].includes(stepFromUrl) ? (parseInt(stepFromUrl, 10) as WizardStep) : undefined;
 
   return (
     <WizardProvider initialProjectId={projectIdFromUrl} initialStep={initialStep}>

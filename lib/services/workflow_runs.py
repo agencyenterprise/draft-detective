@@ -99,6 +99,7 @@ async def create_workflow_run(
     status: WorkflowRunStatus,
     type: WorkflowRunType,
     thread_id: str,
+    revision: int = 1,
 ) -> str:
     """Create a new workflow run record."""
     now = datetime.utcnow()
@@ -108,6 +109,7 @@ async def create_workflow_run(
             project_id=project_id,
             status=status,
             type=type,
+            revision=revision,
             completed_at=now if status == WorkflowRunStatus.COMPLETED else None,
         )
         session.add(run)
@@ -162,7 +164,7 @@ async def cancel_workflow_run(workflow_run_id: str, project_id: str) -> None:
 
     for dependent_type in get_required_dependents(run.type):
         dependent_run = await get_project_workflow_run_by_type(
-            project_id, dependent_type
+            project_id, dependent_type, revision=run.revision
         )
         if dependent_run and dependent_run.status in (
             WorkflowRunStatus.PENDING,
@@ -172,14 +174,17 @@ async def cancel_workflow_run(workflow_run_id: str, project_id: str) -> None:
 
 
 async def get_project_workflow_run_by_type(
-    project_id: str, type: WorkflowRunType
+    project_id: str,
+    type: WorkflowRunType,
+    revision: int,
 ) -> Optional[WorkflowRun]:
     """
-    Get the most relevant workflow run for a project and type.
+    Get the most relevant workflow run for a project, type, and revision.
 
     Priority: RUNNING > PENDING > latest COMPLETED
     This ensures UI shows correct status when multiple runs exist.
     """
+
     async with get_async_db_session() as session:
         # First, try to find an active (RUNNING or PENDING) workflow run
         # This is the most common case and avoids loading all historical runs
@@ -189,6 +194,7 @@ async def get_project_workflow_run_by_type(
                 and_(
                     col(WorkflowRun.project_id) == project_id,
                     col(WorkflowRun.type) == type,
+                    col(WorkflowRun.revision) == revision,
                     col(WorkflowRun.status).in_(
                         [WorkflowRunStatus.RUNNING, WorkflowRunStatus.PENDING]
                     ),
@@ -213,6 +219,7 @@ async def get_project_workflow_run_by_type(
                 and_(
                     col(WorkflowRun.project_id) == project_id,
                     col(WorkflowRun.type) == type,
+                    col(WorkflowRun.revision) == revision,
                 )
             )
             .order_by(col(WorkflowRun.created_at).desc())
@@ -222,20 +229,14 @@ async def get_project_workflow_run_by_type(
 
 
 async def get_project_workflow_runs_by_type(
-    project_id: str, workflow_type: WorkflowRunType
+    project_id: str,
+    workflow_type: WorkflowRunType,
+    revision: int,
 ) -> List[WorkflowRun]:
     """
-    Get all workflow runs of a specific type for a project.
+    Get all workflow runs of a specific type for a project and revision.
 
     Returns all runs ordered by created_at descending (newest first).
-    Used for displaying workflow run history in the UI.
-
-    Args:
-        project_id: The project ID
-        workflow_type: The workflow type to filter by
-
-    Returns:
-        List of workflow runs (metadata only, no state)
     """
     async with get_async_db_session() as session:
         stmt = (
@@ -244,6 +245,7 @@ async def get_project_workflow_runs_by_type(
                 and_(
                     col(WorkflowRun.project_id) == project_id,
                     col(WorkflowRun.type) == workflow_type,
+                    col(WorkflowRun.revision) == revision,
                 )
             )
             .order_by(col(WorkflowRun.created_at).desc())
@@ -252,22 +254,15 @@ async def get_project_workflow_runs_by_type(
 
 
 async def get_project_workflow_runs_by_type_with_details(
-    project_id: str, workflow_type: WorkflowRunType
+    project_id: str, workflow_type: WorkflowRunType, revision: int,
 ) -> List[WorkflowRunDetail]:
     """
     Get all workflow runs of a specific type for a project, including full state.
 
     Returns all runs ordered by created_at descending (newest first).
     Used for displaying workflow run history in the UI with error status.
-
-    Args:
-        project_id: The project ID
-        workflow_type: The workflow type to filter by
-
-    Returns:
-        List of workflow run details (includes state with errors)
     """
-    runs = await get_project_workflow_runs_by_type(project_id, workflow_type)
+    runs = await get_project_workflow_runs_by_type(project_id, workflow_type, revision=revision)
 
     # Fetch all workflow states in parallel to avoid N+1 query pattern
     states = await asyncio.gather(
@@ -281,19 +276,14 @@ async def get_project_workflow_runs_by_type_with_details(
 
 
 async def get_project_workflow_runs(
-    project_id: str, include_internal: bool = False
+    project_id: str,
+    revision: int,
+    include_internal: bool = False,
 ) -> List[WorkflowRunDetail]:
     """
-    Get the most relevant workflow run for each type in a project.
+    Get the most relevant workflow run for each type in a project revision.
 
     Returns only 1 row per workflow type, using priority: RUNNING > PENDING > latest COMPLETED.
-
-    Args:
-        project_id: The project ID
-        include_internal: If True, include internal workflows (for dependency resolution)
-
-    Returns:
-        List of workflow run details (one per workflow type)
     """
     # Build priority ordering: RUNNING (0) > PENDING (1) > others (2)
     status_priority = case(
@@ -308,10 +298,15 @@ async def get_project_workflow_runs(
         order_by=[status_priority, col(WorkflowRun.created_at).desc()],
     )
 
-    # Subquery to get ranked runs
+    # Subquery to get ranked runs filtered by revision
     ranked_runs_subquery = (
         select(WorkflowRun, row_num.label("rn"))
-        .where(col(WorkflowRun.project_id) == project_id)
+        .where(
+            and_(
+                col(WorkflowRun.project_id) == project_id,
+                col(WorkflowRun.revision) == revision,
+            )
+        )
         .subquery()
     )
 

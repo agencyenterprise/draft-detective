@@ -34,6 +34,13 @@ EXPECTED_TOOL_NAMES = {
     "create_project",
     "run_workflow",
     "get_project",
+    "list_projects",
+    "export_project_docx",
+    "list_project_files",
+    "remove_reference_file",
+    "get_tus_upload_credentials",
+    "create_revision",
+    "list_revisions",
 }
 
 
@@ -128,6 +135,42 @@ async def test_get_project_annotations(mcp_client: Client):
     assert tool.annotations.readOnlyHint is True
     assert tool.annotations.idempotentHint is True
     assert tool.annotations.destructiveHint is False
+
+
+@pytest.mark.asyncio
+async def test_list_projects_annotations(mcp_client: Client):
+    tools = await mcp_client.list_tools()
+    tool = next(t for t in tools if t.name == "list_projects")
+    assert tool.annotations is not None
+    assert tool.annotations.readOnlyHint is True
+    assert tool.annotations.idempotentHint is True
+    assert tool.annotations.destructiveHint is False
+    assert tool.annotations.openWorldHint is False
+
+
+@pytest.mark.asyncio
+async def test_export_project_docx_annotations(mcp_client: Client):
+    tools = await mcp_client.list_tools()
+    tool = next(t for t in tools if t.name == "export_project_docx")
+    assert tool.annotations is not None
+    assert tool.annotations.readOnlyHint is True
+    assert tool.annotations.idempotentHint is True
+    assert tool.annotations.destructiveHint is False
+    assert tool.annotations.openWorldHint is False
+
+
+@pytest.mark.asyncio
+async def test_export_project_docx_schema_has_optional_params(mcp_client: Client):
+    tools = await mcp_client.list_tools()
+    tool = next(t for t in tools if t.name == "export_project_docx")
+    props = tool.inputSchema.get("properties", {})
+    assert "project_id" in props
+    assert "workflow_types" in props
+    assert "severities" in props
+    required = tool.inputSchema.get("required", [])
+    assert "project_id" in required
+    assert "workflow_types" not in required
+    assert "severities" not in required
 
 
 # --- list_workflow_types via Client ---

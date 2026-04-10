@@ -6,7 +6,6 @@ and managing issue resolution.
 """
 
 import logging
-import re
 import uuid
 from datetime import datetime, timezone
 from typing import List, Optional, Sequence
@@ -16,18 +15,17 @@ from sqlmodel import col
 
 from lib.config.database import get_async_db_session
 from lib.models.issue import Issue, IssueStatus
+from lib.services.text_sanitization import strip_control_chars
 from lib.workflows.models import DocumentIssue, WorkflowRunType
 
 logger = logging.getLogger(__name__)
-
-_CONTROL_CHAR_RE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]")
 
 
 def _strip_control_chars(text: Optional[str]) -> Optional[str]:
     """Remove C0/C1 control characters that PostgreSQL text columns reject."""
     if text is None:
         return None
-    return _CONTROL_CHAR_RE.sub("", text)
+    return strip_control_chars(text)
 
 
 async def persist_workflow_issues(
@@ -36,12 +34,13 @@ async def persist_workflow_issues(
     workflow_type: WorkflowRunType,
     issues: List[DocumentIssue],
     checkpoint_id: Optional[str] = None,
+    revision: int = 1,
 ) -> List[Issue]:
     """
     Persist issues from a completed workflow.
 
-    Archives existing active issues of the same workflow type for the project,
-    then creates new issues from the provided DocumentIssue list.
+    Archives existing active issues of the same workflow type for the project
+    and revision, then creates new issues from the provided DocumentIssue list.
     """
     async with get_async_db_session() as session:
         await session.execute(
@@ -50,6 +49,7 @@ async def persist_workflow_issues(
                 col(Issue.project_id) == project_id,
                 col(Issue.workflow_type) == workflow_type.value,
                 col(Issue.status) == IssueStatus.ACTIVE,
+                col(Issue.revision) == revision,
             )
             .values(status=IssueStatus.ARCHIVED)
         )
@@ -68,6 +68,7 @@ async def persist_workflow_issues(
                 workflow_type=doc_issue.type,
                 chunk_indices=doc_issue.chunk_indices,
                 status=IssueStatus.ACTIVE,
+                revision=revision,
             )
             session.add(issue)
             created_issues.append(issue)
@@ -87,12 +88,16 @@ async def persist_workflow_issues(
 
 async def get_project_issues(
     project_id: uuid.UUID,
+    revision: int,
     include_archived: bool = False,
     workflow_types: Optional[List[WorkflowRunType]] = None,
 ) -> Sequence[Issue]:
-    """Get issues for a project."""
+    """Get issues for a project and revision."""
     async with get_async_db_session() as session:
-        stmt = select(Issue).where(col(Issue.project_id) == project_id)
+        stmt = select(Issue).where(
+            col(Issue.project_id) == project_id,
+            col(Issue.revision) == revision,
+        )
 
         if not include_archived:
             stmt = stmt.where(col(Issue.status) != IssueStatus.ARCHIVED)

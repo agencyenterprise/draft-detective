@@ -12,6 +12,7 @@ import type {
   ListLogsApiAdminLogsGetResponse,
   ListProjectFilesEndpointApiProjectProjectIdFilesGetResponse,
   ListProjectsEndpointApiProjectsGetResponse,
+  ListRevisionsEndpointApiProjectProjectIdRevisionsGetResponse,
   UpdateAppConfigApiAppConfigsKeyPutResponse,
   UpdateProjectEndpointApiProjectProjectIdPatchResponse,
 } from './types.gen';
@@ -189,6 +190,20 @@ export const getProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRuns
   data: any,
 ): Promise<GetProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGetResponse> => {
   data = data.map((item: any) => workflowRunDetailSchemaResponseTransformer(item));
+  return data;
+};
+
+const revisionListItemSchemaResponseTransformer = (data: any) => {
+  if (data.created_at) {
+    data.created_at = new Date(data.created_at);
+  }
+  return data;
+};
+
+export const listRevisionsEndpointApiProjectProjectIdRevisionsGetResponseTransformer = async (
+  data: any,
+): Promise<ListRevisionsEndpointApiProjectProjectIdRevisionsGetResponse> => {
+  data = data.map((item: any) => revisionListItemSchemaResponseTransformer(item));
   return data;
 };
 

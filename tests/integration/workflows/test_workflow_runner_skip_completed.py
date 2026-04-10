@@ -65,7 +65,7 @@ async def run_workflow_with_mocks(test_context, completed_workflows):
         for wf_type in completed_workflows
     }
 
-    async def mock_get_run(proj_id, workflow_type):
+    async def mock_get_run(proj_id, workflow_type, **kwargs):
         return completed_runs.get(workflow_type, None)
 
     def mock_config_factory(project, workflow_type, openai_api_key=None):
@@ -79,6 +79,10 @@ async def run_workflow_with_mocks(test_context, completed_workflows):
         patch(
             "lib.api.services.workflow_runner.get_project_access",
             new=AsyncMock(return_value=(mock_project, AccessLevel.WRITE)),
+        ),
+        patch(
+            "lib.api.services.workflow_runner.assert_project_has_main_file",
+            new=AsyncMock(),
         ),
         patch(
             "lib.api.services.workflow_runner.get_project_workflow_run_by_type",

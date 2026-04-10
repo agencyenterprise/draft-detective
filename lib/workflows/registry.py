@@ -139,7 +139,7 @@ async def create_state(config: BaseWorkflowConfig) -> WorkflowState:
 
     # Include internal workflows so dependencies can access their states
     workflow_runs = await get_project_workflow_runs(
-        config.project_id, include_internal=True
+        config.project_id, revision=config.revision, include_internal=True
     )
     existing_states: List[WorkflowState] = [
         run.state for run in workflow_runs if run.state is not None
