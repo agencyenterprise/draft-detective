@@ -118,6 +118,32 @@ async def get_file_by_id(file_id: uuid.UUID | str) -> File:
         return file
 
 
+async def assert_project_has_main_file(
+    project_id: uuid.UUID | str,
+    revision: int,
+) -> None:
+    """Raise HTTPException 422 if the project has no MAIN file for the given revision."""
+    project_id = ensure_uuid(project_id, "project ID")
+    async with get_async_db_session() as session:
+        stmt = select(func.count()).select_from(File).where(
+            col(File.project_id) == project_id,
+            col(File.role) == FileRole.MAIN,
+            col(File.revision) == revision,
+        )
+        count = (await session.execute(stmt)).scalar_one()
+
+    if count == 0:
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                f"No main document found for revision {revision}. "
+                "Upload a main document before starting workflows. "
+                "Use the TUS upload endpoint with role='main', or pass "
+                "content_markdown when creating the project/revision."
+            ),
+        )
+
+
 async def get_files_by_project_id(
     project_id: uuid.UUID | str,
     roles: Optional[List[FileRole]] = None,

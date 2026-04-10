@@ -10,6 +10,7 @@ from lib.config.env import config as env_config
 from lib.models.project import AccessLevel, Project
 from lib.models.user import User
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus, WorkflowRunType
+from lib.services.files import assert_project_has_main_file
 from lib.services.projects import get_project_access
 from lib.services.users import get_user_decrypted_api_key
 from lib.services.workflow_runs import (
@@ -68,6 +69,8 @@ async def _prepare_workflow_items(
     project, _ = await get_project_access(
         request.project_id, user=user, required_level=AccessLevel.WRITE
     )
+
+    await assert_project_has_main_file(request.project_id, project.current_revision)
 
     resolved_workflow_types = resolve_workflow_dependencies(workflow_types)
 
@@ -156,6 +159,8 @@ async def start_workflow_run(
     )
 
     _assert_api_key_available(user, config.openai_api_key, config.requires_api_key())
+
+    await assert_project_has_main_file(config.project_id, project.current_revision)
 
     revision = project.current_revision
     existing_run = await get_project_workflow_run_by_type(

@@ -1,4 +1,5 @@
 import json
+import uuid
 from datetime import datetime, timedelta, timezone
 
 import aiofiles
@@ -132,12 +133,12 @@ async def list_workflow_types(token: AccessToken = CurrentAccessToken()) -> str:
 )
 async def create_project(
     title: str,
-    content_markdown: str,
+    content_markdown: str | None = None,
     ctx: Context = CurrentContext(),
     token: AccessToken = CurrentAccessToken(),
 ) -> str:
     """
-    Create a NEW project and ingest a markdown document.
+    Create a NEW project and optionally ingest a markdown document.
 
     Only use this for a brand-new document that has never been analyzed before.
     If you are re-analyzing an updated version of an existing document (e.g. after
@@ -145,32 +146,39 @@ async def create_project(
     existing project instead. This preserves history and lets the user compare
     revisions.
 
+    content_markdown: the document content as markdown. For small/medium documents,
+        pass the content directly here. For large files or non-markdown formats
+        (PDF, DOCX), omit this and use get_tus_upload_credentials with role="main"
+        to upload the file after project creation.
+
     After creation, use run_workflow with the returned project_id to start
     analysis workflows (e.g. document_processing, claim_extraction).
 
-    Returns JSON with project_id, file_id, and project_url (a link to the
-    project in the web UI where the user can see full details).
+    Returns JSON with project_id, file_id (if content was provided), and project_url.
     """
     user = await _resolve_user(token)
 
     project = await create_project_record(title=title, user=user)
 
-    file_record = await finalize_file(
-        content=content_markdown.encode("utf-8"),
-        filename="document.md",
-        project_id=project.id,
-        user_id=user.id,
-        role=FileRole.MAIN,
-        revision=1,
-    )
+    result: dict = {
+        "project_id": str(project.id),
+        "project_url": _build_project_url(str(project.id)),
+    }
 
-    return json.dumps(
-        {
-            "project_id": str(project.id),
-            "file_id": str(file_record.id),
-            "project_url": _build_project_url(str(project.id)),
-        }
-    )
+    if content_markdown is not None:
+        file_record = await finalize_file(
+            content=content_markdown.encode("utf-8"),
+            filename="document.md",
+            project_id=project.id,
+            user_id=user.id,
+            role=FileRole.MAIN,
+            revision=1,
+        )
+        result["file_id"] = str(file_record.id)
+    else:
+        result["next_step"] = "Upload the main document using get_tus_upload_credentials with role='main'"
+
+    return json.dumps(result)
 
 
 @mcp.tool(
@@ -518,10 +526,11 @@ async def get_tus_upload_credentials(
 )
 async def create_revision(
     project_id: str,
+    content_markdown: str | None = None,
     token: AccessToken = CurrentAccessToken(),
 ) -> str:
     """
-    Create a new revision for a project, preparing it for a new main document upload.
+    Create a new revision for a project with an updated document.
 
     Use this instead of create_project when you have an updated version of a document
     that was already analyzed (e.g. after fixing issues found in a previous revision).
@@ -530,23 +539,42 @@ async def create_revision(
     This archives all active issues from the current revision, cancels any running
     workflows, and increments the revision counter.
 
-    After calling this:
-    1. Upload the new document using get_tus_upload_credentials with role="main"
-    2. Call run_workflow to start analyses (use previous_workflow_types from the
-       response to re-run the same checks, or choose different ones)
+    content_markdown: the updated document content as markdown. For small/medium
+        documents, pass the content directly here and the revision is ready for
+        run_workflow immediately. For large files or non-markdown formats (PDF, DOCX),
+        omit this and use get_tus_upload_credentials with role="main" to upload
+        the file after revision creation.
 
-    Returns the new revision number and the list of workflow types that were
-    previously run (useful for re-running the same analyses).
+    After creating the revision (and uploading the document if not passed inline),
+    call run_workflow to start analyses. Use previous_workflow_types from the
+    response to re-run the same checks, or choose different ones.
+
+    Returns the new revision number, file_id (if content was provided), and the
+    list of workflow types that were previously run.
     """
     user = await _resolve_user(token)
     new_revision, previous_types = await create_new_revision(project_id, user)
-    return json.dumps(
-        {
-            "revision": new_revision,
-            "previous_workflow_types": [str(t) for t in previous_types],
-            "project_url": _build_project_url(project_id),
-        }
-    )
+
+    result: dict = {
+        "revision": new_revision,
+        "previous_workflow_types": [str(t) for t in previous_types],
+        "project_url": _build_project_url(project_id),
+    }
+
+    if content_markdown is not None:
+        file_record = await finalize_file(
+            content=content_markdown.encode("utf-8"),
+            filename="document.md",
+            project_id=uuid.UUID(project_id),
+            user_id=user.id,
+            role=FileRole.MAIN,
+            revision=new_revision,
+        )
+        result["file_id"] = str(file_record.id)
+    else:
+        result["next_step"] = "Upload the new document using get_tus_upload_credentials with role='main'"
+
+    return json.dumps(result)
 
 
 @mcp.tool(

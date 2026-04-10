@@ -81,6 +81,10 @@ async def run_workflow_with_mocks(test_context, completed_workflows):
             new=AsyncMock(return_value=(mock_project, AccessLevel.WRITE)),
         ),
         patch(
+            "lib.api.services.workflow_runner.assert_project_has_main_file",
+            new=AsyncMock(),
+        ),
+        patch(
             "lib.api.services.workflow_runner.get_project_workflow_run_by_type",
             side_effect=mock_get_run,
         ),

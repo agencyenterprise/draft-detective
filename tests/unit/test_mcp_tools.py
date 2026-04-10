@@ -20,11 +20,13 @@ from lib.api.mcp import (  # noqa: E402
     _require_api_key,
     _resolve_user,
     create_project,
+    create_revision,
     export_project_docx,
     get_project,
     get_tus_upload_credentials,
     list_project_files,
     list_projects,
+    list_revisions,
     remove_reference_file,
     run_workflow,
 )
@@ -663,3 +665,137 @@ async def test_get_tus_upload_credentials_bearer_token_expires_in_one_hour():
 
     assert exp - iat >= timedelta(minutes=14)
     assert exp - iat <= timedelta(minutes=15, seconds=5)
+
+
+# --- create_project without content_markdown (TUS path) ---
+
+
+@pytest.mark.asyncio
+async def test_create_project_without_content_returns_next_step():
+    """When content_markdown is omitted, no file is created and next_step is returned."""
+    user = _make_user()
+    project = MagicMock()
+    project.id = uuid4()
+
+    with (
+        patch("lib.api.mcp._resolve_user", new=AsyncMock(return_value=user)),
+        patch("lib.api.mcp.create_project_record", new=AsyncMock(return_value=project)),
+        patch("lib.api.mcp.finalize_file", new=AsyncMock()) as mock_finalize,
+    ):
+        raw = await create_project(title="Test", ctx=AsyncMock(), token=_make_token())
+
+    data = json.loads(raw)
+    assert data["project_id"] == str(project.id)
+    assert "file_id" not in data
+    assert "next_step" in data
+    mock_finalize.assert_not_awaited()
+
+
+# --- create_revision ---
+
+
+@pytest.mark.asyncio
+async def test_create_revision_with_content_returns_file_id():
+    """When content_markdown is provided, the file is created inline."""
+    user = _make_user()
+    file_record = MagicMock()
+    file_record.id = uuid4()
+
+    with (
+        patch("lib.api.mcp._resolve_user", new=AsyncMock(return_value=user)),
+        patch("lib.api.mcp.create_new_revision", new=AsyncMock(return_value=(2, ["claim_extraction"]))),
+        patch("lib.api.mcp.finalize_file", new=AsyncMock(return_value=file_record)),
+    ):
+        raw = await create_revision(
+            project_id=str(uuid4()),
+            content_markdown="# Updated doc",
+            token=_make_token(),
+        )
+
+    data = json.loads(raw)
+    assert data["revision"] == 2
+    assert data["file_id"] == str(file_record.id)
+    assert data["previous_workflow_types"] == ["claim_extraction"]
+
+
+@pytest.mark.asyncio
+async def test_create_revision_without_content_returns_next_step():
+    """When content_markdown is omitted, no file is created and next_step is returned."""
+    user = _make_user()
+
+    with (
+        patch("lib.api.mcp._resolve_user", new=AsyncMock(return_value=user)),
+        patch("lib.api.mcp.create_new_revision", new=AsyncMock(return_value=(3, []))),
+        patch("lib.api.mcp.finalize_file", new=AsyncMock()) as mock_finalize,
+    ):
+        raw = await create_revision(
+            project_id=str(uuid4()),
+            token=_make_token(),
+        )
+
+    data = json.loads(raw)
+    assert data["revision"] == 3
+    assert "file_id" not in data
+    assert "next_step" in data
+    mock_finalize.assert_not_awaited()
+
+
+# --- list_revisions ---
+
+
+@pytest.mark.asyncio
+async def test_list_revisions_returns_all_revisions():
+    user = _make_user()
+    project = MagicMock()
+    project.id = uuid4()
+    project.current_revision = 2
+
+    file_rev1 = MagicMock()
+    file_rev1.id = uuid4()
+    file_rev1.file_name = "v1.pdf"
+    file_rev1.revision = 1
+    file_rev1.created_at = MagicMock(isoformat=MagicMock(return_value="2026-01-01T00:00:00"))
+
+    file_rev2 = MagicMock()
+    file_rev2.id = uuid4()
+    file_rev2.file_name = "v2.pdf"
+    file_rev2.revision = 2
+    file_rev2.created_at = MagicMock(isoformat=MagicMock(return_value="2026-04-10T00:00:00"))
+
+    with (
+        patch("lib.api.mcp._resolve_user", new=AsyncMock(return_value=user)),
+        patch("lib.api.mcp.get_project_access", new=AsyncMock(return_value=(project, MagicMock()))),
+        patch("lib.api.mcp.get_files_by_project_id", new=AsyncMock(return_value=[file_rev1, file_rev2])),
+    ):
+        raw = await list_revisions(project_id=str(project.id), token=_make_token())
+
+    data = json.loads(raw)
+    assert len(data) == 2
+    assert data[0]["revision"] == 1
+    assert data[0]["is_current"] is False
+    assert data[0]["main_file_name"] == "v1.pdf"
+    assert data[1]["revision"] == 2
+    assert data[1]["is_current"] is True
+    assert data[1]["main_file_name"] == "v2.pdf"
+
+
+# --- get_project with revision ---
+
+
+@pytest.mark.asyncio
+async def test_get_project_with_revision_passes_revision():
+    user = _make_user()
+    expected = json.dumps({"id": "p1", "title": "Test", "revision": 1})
+
+    with (
+        patch("lib.api.mcp._resolve_user", new=AsyncMock(return_value=user)),
+        patch(
+            "lib.api.mcp._get_project_details_json",
+            new=AsyncMock(return_value=expected),
+        ) as mock_details,
+    ):
+        await get_project(project_id="p1", revision=1, token=_make_token())
+
+    from lib.models.project import AccessLevel
+
+    mock_details.assert_awaited_once_with("p1", AccessLevel.READ, user, revision=1)
