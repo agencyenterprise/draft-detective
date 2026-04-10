@@ -26,7 +26,7 @@ class AboutThisGerManifest(WorkflowManifest[AboutThisGerState, AboutThisGerConfi
     )
     needs_web_search = False
     required_dependencies = [WorkflowRunType.DOCUMENT_PROCESSING]
-    is_experimental = True
+    is_experimental = False
 
     def get_state_type(self) -> Type[AboutThisGerState]:
         return AboutThisGerState

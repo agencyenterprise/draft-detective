@@ -110,6 +110,6 @@ class FiguresTablesCheckManifest(SimpleDeepAgentManifest):
         "to an actual figure or table in the document."
     )
     required_dependencies = [WorkflowRunType.DOCUMENT_PROCESSING]
-    is_experimental = True
+    is_experimental = False
 
     user_prompt = _USER_PROMPT
