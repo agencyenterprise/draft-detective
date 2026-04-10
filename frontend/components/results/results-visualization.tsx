@@ -15,6 +15,7 @@ import { format } from 'date-fns';
 import { BookOpen, Loader2 } from 'lucide-react';
 import { useState } from 'react';
 import { AnalysisOptionsMenu } from './components/analysis-options-menu';
+import { RevisionSwitcher } from './components/revision-switcher';
 import { TabType } from './constants';
 import { AnalysesTab, FilesTab, ReferenceReviewTab, SummaryTab } from './tabs';
 import { DocumentExplorerTab } from './tabs/document-explorer-tab';
@@ -31,6 +32,10 @@ interface ResultsVisualizationProps {
   isTitleSaving?: boolean;
   /** When true, shows the reference review banner indicating approval is needed */
   needsReferenceReview?: boolean;
+  /** Currently displayed revision */
+  selectedRevision?: number;
+  /** Callback when user switches revision */
+  onRevisionChange?: (revision: number) => void;
 }
 
 export function ResultsVisualization({
@@ -39,6 +44,8 @@ export function ResultsVisualization({
   onTitleSave,
   isTitleSaving = false,
   needsReferenceReview = false,
+  selectedRevision,
+  onRevisionChange,
 }: ResultsVisualizationProps) {
   const results = projectDetail.workflow_runs ?? [];
 
@@ -194,7 +201,15 @@ export function ResultsVisualization({
             </TabsList>
           </Tabs>
 
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-2">
+            {selectedRevision && onRevisionChange && (
+              <RevisionSwitcher
+                currentRevision={projectDetail.project.current_revision ?? 1}
+                totalRevisions={projectDetail.project.current_revision ?? 1}
+                selectedRevision={selectedRevision}
+                onRevisionChange={onRevisionChange}
+              />
+            )}
             {readOnly && (
               <Badge variant="secondary" className="text-xs">
                 Read-only view
