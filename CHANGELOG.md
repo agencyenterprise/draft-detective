@@ -6,6 +6,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v0.5.28] - 2026-04-10
+
+### Added
+- Stored LLM conversation messages for each reference validation in the workflow state.
+- Added a reusable AgentMessagesDialog component to view agent messages in a dialog.
+- Added a “Messages” button on completed reference validation results to open the agent messages dialog.
+- Added the `MCP_CIMD_ENABLED` environment variable to control whether CIMD is enabled for MCP OAuth providers.
+
+### Changed
+- Made CIMD enablement for Google and Azure MCP auth providers configurable via `MCP_CIMD_ENABLED` (default `false`).
+- Updated the `.env.template` to include a documented `MCP_CIMD_ENABLED` entry.
+- Updated MCP auth unit tests to include `MCP_CIMD_ENABLED` in mock configs and added tests verifying `enable_cimd=True` is forwarded to Google and Azure providers.
+
+### Fixed
+- Fixed issues from old revisions not showing up in the UI when using the revision switcher.
+- Removed unnecessary archival of issues during new revision creation.
+
+### Security
+- Bumped `next` from 15.5.14 to 15.5.15 in `/frontend`.
+
+
 ## [v0.5.27] - 2026-04-10
 
 ### Added
