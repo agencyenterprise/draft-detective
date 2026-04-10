@@ -40,7 +40,7 @@ def create_mcp_auth():
                 "openid",
                 "https://www.googleapis.com/auth/userinfo.email",
             ],
-            enable_cimd=False,  # Disable Cimd to avoid issues with Claude Code behind VPNs not able to reach the CIMD endpoint
+            enable_cimd=config.MCP_CIMD_ENABLED,
         )
 
     if (
@@ -62,7 +62,7 @@ def create_mcp_auth():
             base_url=base_url,
             issuer_url=issuer_url,
             required_scopes=["mcp-access"],
-            enable_cimd=False,  # Disable Cimd to avoid issues with Claude Code behind VPNs not able to reach the CIMD endpoint
+            enable_cimd=config.MCP_CIMD_ENABLED,
         )
 
     raise RuntimeError(

@@ -51,6 +51,10 @@ class Config(BaseModel):
         default="http://localhost:8000/mcp",
         description="Public URL of the MCP server (must include /mcp path)",
     )
+    MCP_CIMD_ENABLED: bool = Field(
+        default=False,
+        description="Whether to enable CIMD for MCP OAuth providers. Disable if clients are behind VPNs that cannot reach the CIMD endpoint.",
+    )
 
     # File uploads
     FILE_UPLOADS_MOUNT_PATH: str
@@ -97,4 +101,5 @@ config = Config(
     AUTH_MICROSOFT_ENTRA_ID_SECRET=os.getenv("AUTH_MICROSOFT_ENTRA_ID_SECRET"),
     AUTH_MICROSOFT_ENTRA_ID_ISSUER=os.getenv("AUTH_MICROSOFT_ENTRA_ID_ISSUER"),
     MCP_BASE_URL=os.getenv("MCP_BASE_URL", "http://localhost:8000/mcp"),
+    MCP_CIMD_ENABLED=os.getenv("MCP_CIMD_ENABLED", "false").lower() == "true",
 )
