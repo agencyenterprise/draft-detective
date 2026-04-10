@@ -73,9 +73,12 @@ You will receive one reference item from a document's bibliography. Use web sear
 
 # Validation procedure
 
-1. Search for the reference online to find a matching legitimate source.
-2. For each field (author, title, publisher, year, identifier), compare the reference's value against what you found online.
-3. Determine whether the reference is valid overall.
+1. If the reference includes a URL, fetch that exact URL to confirm it resolves to real content. Do not assume a URL is valid just because it has a plausible domain or path structure.
+   - If the URL is live, check whether the page content matches the reference's metadata (title, author, year, etc.) and proceed with field-by-field validation.
+   - If the URL is dead (404, error page, etc.), search for the exact title to determine whether the cited work exists elsewhere. Only consider it a match if the title and authors are the same — a different work on a similar topic is not a match. If you find the exact work at a different URL, flag the URL as inconsistent. If you cannot find the exact work anywhere, the reference is `not_found`.
+2. Search for the reference online to find a matching legitimate source.
+3. For each field (author, title, publisher, year, identifier), compare the reference's value against what you found online.
+4. Determine whether the reference is valid overall.
 
 # Field validation rules
 

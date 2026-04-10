@@ -253,5 +253,10 @@
     "input": "Brandon Vigliarolo. \"Anthropic accidentally exposes Claude Code source code.\" The Register. Mar 31, 2026. https://www.theregister.com/2026/03/31/anthropic_claude_code_source_code/ (The Register, 2026)",
     "target_final_result": "found_with_inconsistencies",
     "target_answer": "The title is incorrect. The actual article headline on The Register is 'Anthropic goes nude, exposes Claude Code source by accident', not 'Anthropic accidentally exposes Claude Code source code'. The validator must use the title from the article's content body (the on-page headline), not a sanitized version from metadata tags or search snippets. Author, publisher, year, and URL are correct."
+  },
+  {
+    "input": "Microsoft Security Blog. (2024, April 1). Navigating the cyber threat landscape with AI. https://www.microsoft.com/en-us/security/blog/2024/04/01/navigating-cyber-threat-landscape-ai",
+    "target_final_result": "not_found",
+    "target_answer": "This blog post does not exist at the given URL and cannot be found via web search. The agent must not validate a reference based solely on the URL having a plausible pattern; it must verify the content actually exists by searching for the title or confirming the URL resolves to real content."
   }
 ]
