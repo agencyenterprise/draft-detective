@@ -396,7 +396,10 @@ async def create_new_revision(project_id: str, user: User) -> tuple[int, List[Wo
             col(WorkflowRun.revision) == old_revision,
         ).distinct()
         result = await session.execute(stmt)
-        previous_workflow_types = [row[0] for row in result.all()]
+        previous_workflow_types = [
+            WorkflowRunType(row[0]) if isinstance(row[0], str) else row[0]
+            for row in result.all()
+        ]
 
         # Archive active issues from the old revision
         await session.execute(
@@ -420,7 +423,7 @@ async def create_new_revision(project_id: str, user: User) -> tuple[int, List[Wo
 
     logger.info(
         f"Created revision {new_revision} for project {project_id} "
-        f"(previous types: {[t.value for t in previous_workflow_types]})"
+        f"(previous types: {[str(t) for t in previous_workflow_types]})"
     )
 
     return new_revision, previous_workflow_types
