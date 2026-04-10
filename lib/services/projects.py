@@ -19,7 +19,7 @@ from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus
 from lib.services.files import delete_project_files, get_project_files_list_items
 from lib.services.issue_persistence import get_project_issues
 from lib.services.share_links import get_resource_by_token, is_project_shared
-from lib.services.workflow_runs import WorkflowRunDetail, get_project_workflow_runs
+from lib.services.workflow_runs import WorkflowRunDetail, cancel_workflow_run, get_project_workflow_runs
 from lib.workflows.checkpointer import get_checkpointer
 from lib.workflows.models import WorkflowRunType
 
@@ -366,8 +366,6 @@ async def create_new_revision(project_id: str, user: User) -> tuple[int, List[Wo
     increments the revision counter, and returns the new revision number along with
     the workflow types that were previously run (for re-triggering).
     """
-    from lib.services.workflow_runs import cancel_workflow_run
-
     project, _ = await get_project_access(
         project_id, user=user, required_level=AccessLevel.WRITE
     )
