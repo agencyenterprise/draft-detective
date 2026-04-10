@@ -146,7 +146,7 @@ async def test_create_new_revision_cancels_active_workflows():
             side_effect=lambda: next(session_iter),
         ),
         patch(
-            "lib.services.workflow_runs.cancel_workflow_run",
+            "lib.services.projects.cancel_workflow_run",
             new=mock_cancel,
         ),
     ):
