@@ -35,6 +35,7 @@ import { ReplaceMainDocumentDialog } from '../components/replace-main-document-d
 
 interface FilesTabProps {
   projectDetail: ProjectDetailed;
+  readOnly?: boolean;
 }
 
 function FileTypeIcon({ fileType }: { fileType?: string | null }) {
@@ -141,14 +142,14 @@ function FileTableRow({ file, projectId, matchedReference, onReplaceMain }: File
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              {isMain ? (
+              {isMain && onReplaceMain ? (
                 <DropdownMenuItem onClick={onReplaceMain}>
                   <RefreshCw className="size-4" />
                   Replace document
                 </DropdownMenuItem>
               ) : (
                 <AlertDialogTrigger asChild>
-                  <DropdownMenuItem variant="destructive">
+                  <DropdownMenuItem disabled={isMain} variant="destructive">
                     <Trash2 className="size-4" />
                     Remove file
                   </DropdownMenuItem>
@@ -175,7 +176,7 @@ function FileTableRow({ file, projectId, matchedReference, onReplaceMain }: File
   );
 }
 
-export function FilesTab({ projectDetail }: FilesTabProps) {
+export function FilesTab({ projectDetail, readOnly = false }: FilesTabProps) {
   const projectId = projectDetail.project.id;
   const files = useMemo(() => projectDetail.files ?? [], [projectDetail.files]);
   const workflowDetails = useMemo(() => projectDetail.workflow_runs ?? [], [projectDetail.workflow_runs]);
@@ -299,7 +300,7 @@ export function FilesTab({ projectDetail }: FilesTabProps) {
                 file={file}
                 projectId={projectId}
                 matchedReference={file.id ? matchedReferencesMap.get(file.id) : undefined}
-                onReplaceMain={() => setIsReplaceDialogOpen(true)}
+                onReplaceMain={readOnly ? undefined : () => setIsReplaceDialogOpen(true)}
               />
             ))}
           </TableBody>

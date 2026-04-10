@@ -81,7 +81,7 @@ export function ResultsVisualization({
           />
         );
       case 'files':
-        return <FilesTab projectDetail={projectDetail} />;
+        return <FilesTab projectDetail={projectDetail} readOnly={readOnly} />;
       case 'document-explorer':
         return (
           <DocumentExplorerTab

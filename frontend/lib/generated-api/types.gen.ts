@@ -3580,12 +3580,6 @@ export type ProjectDetailed = {
    * The revision being returned
    */
   revision?: number;
-  /**
-   * Available Revisions
-   *
-   * All available revision numbers for this project
-   */
-  available_revisions?: Array<number>;
 };
 
 /**
