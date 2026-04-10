@@ -23,7 +23,7 @@ class AdvocacyToneManifest(
     )
     needs_web_search = False
     required_dependencies = [WorkflowRunType.CHUNK_SPLITTING]
-    is_experimental = True
+    is_experimental = False
 
     def get_state_type(self) -> Type[AdvocacyToneState]:
         """Get the type of the workflow state."""
