@@ -12,6 +12,7 @@ from lib.config.database import get_async_db_session
 from lib.models.file import File, FileListItem, FileRole
 from lib.models.project import Project
 from lib.services.file import FileDocument, create_file_document_from_path
+from lib.services.text_sanitization import strip_control_chars
 from lib.services.uuid_utils import ensure_uuid
 
 logger = logging.getLogger(__name__)
@@ -19,19 +20,20 @@ logger = logging.getLogger(__name__)
 
 def _sanitize_for_postgres(value: Any) -> Any:
     """
-    Recursively remove null characters (\u0000) from strings in a data structure.
+    Recursively remove control characters from strings in a data structure.
 
-    PostgreSQL's text type (and JSONB) cannot store null characters, which may appear
-    in LLM output or document parsing. This function sanitizes the data before storage.
+    PostgreSQL's text type (and JSONB) cannot store C0/C1 control characters,
+    which may appear in LLM output or document parsing. This function sanitizes
+    the data before storage.
 
     Args:
         value: Any value - strings, dicts, lists, or primitives
 
     Returns:
-        The same structure with null characters removed from all strings
+        The same structure with control characters removed from all strings
     """
     if isinstance(value, str):
-        return value.replace("\u0000", "")
+        return strip_control_chars(value)
     elif isinstance(value, dict):
         return {k: _sanitize_for_postgres(v) for k, v in value.items()}
     elif isinstance(value, list):

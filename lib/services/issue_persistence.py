@@ -6,7 +6,6 @@ and managing issue resolution.
 """
 
 import logging
-import re
 import uuid
 from datetime import datetime, timezone
 from typing import List, Optional, Sequence
@@ -16,18 +15,17 @@ from sqlmodel import col
 
 from lib.config.database import get_async_db_session
 from lib.models.issue import Issue, IssueStatus
+from lib.services.text_sanitization import strip_control_chars
 from lib.workflows.models import DocumentIssue, WorkflowRunType
 
 logger = logging.getLogger(__name__)
-
-_CONTROL_CHAR_RE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]")
 
 
 def _strip_control_chars(text: Optional[str]) -> Optional[str]:
     """Remove C0/C1 control characters that PostgreSQL text columns reject."""
     if text is None:
         return None
-    return _CONTROL_CHAR_RE.sub("", text)
+    return strip_control_chars(text)
 
 
 async def persist_workflow_issues(
