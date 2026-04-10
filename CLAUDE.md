@@ -473,4 +473,6 @@ WIP
 
 ## Pull Request Descriptions
 
+When creating pull requests, **always target the `dev` branch** unless the user explicitly specifies a different base branch.
+
 When creating pull request descriptions, create the sections of "Summary," "Motivation," "What's Changed," and "Risks and Mitigations." Separate "What's Changed" into backend and frontend changes and list all the files that have changed and why these changes were made. Keep the PR description fairly short at no more than 1000 words.
