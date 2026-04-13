@@ -85,7 +85,10 @@ class WorkflowManifest[WorkflowStateType, WorkflowConfigType](ABC):
 
     @abstractmethod
     async def create_initial_state(
-        self, config: WorkflowConfigType, existing_states: List[WorkflowState]
+        self,
+        config: WorkflowConfigType,
+        existing_states: List[WorkflowState],
+        revision: int,
     ) -> WorkflowStateType:
         """Create and return the initial state of the workflow."""
 

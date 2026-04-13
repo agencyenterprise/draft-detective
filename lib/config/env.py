@@ -75,6 +75,20 @@ class Config(BaseModel):
         description="Base URL for the frontend application (used for share links)",
     )
 
+    # Rate limiter configuration (shared across workers via Postgres)
+    RATE_LIMITER_REQUESTS_PER_SECOND: float = Field(
+        default=2,
+        description="Average LLM requests-per-second cap enforced globally across workers",
+    )
+    RATE_LIMITER_MAX_BUCKET_SIZE: float = Field(
+        default=1,
+        description="Maximum burst size (token bucket ceiling); must be >= 1",
+    )
+    RATE_LIMITER_CHECK_EVERY_N_SECONDS: float = Field(
+        default=0.2,
+        description="Polling interval when the bucket is empty and the caller is blocking",
+    )
+
 
 config = Config(
     OPENAI_API_KEY=os.getenv("OPENAI_API_KEY"),
@@ -102,4 +116,11 @@ config = Config(
     AUTH_MICROSOFT_ENTRA_ID_ISSUER=os.getenv("AUTH_MICROSOFT_ENTRA_ID_ISSUER"),
     MCP_BASE_URL=os.getenv("MCP_BASE_URL", "http://localhost:8000/mcp"),
     MCP_CIMD_ENABLED=os.getenv("MCP_CIMD_ENABLED", "false").lower() == "true",
+    RATE_LIMITER_REQUESTS_PER_SECOND=float(
+        os.getenv("RATE_LIMITER_REQUESTS_PER_SECOND", "2")
+    ),
+    RATE_LIMITER_MAX_BUCKET_SIZE=float(os.getenv("RATE_LIMITER_MAX_BUCKET_SIZE", "1")),
+    RATE_LIMITER_CHECK_EVERY_N_SECONDS=float(
+        os.getenv("RATE_LIMITER_CHECK_EVERY_N_SECONDS", "0.2")
+    ),
 )

@@ -10,7 +10,8 @@ from typing import List, Optional
 import numpy as np
 from pydantic import BaseModel
 
-from lib.config.llm_models import init_embeddings
+from lib.config.llm_error_logger import log_embedding_error
+from lib.config.llm_models import EMBEDDING_MODEL_LARGE, init_embeddings
 from lib.config.rate_limiter import get_rate_limiter, hash_api_key
 from lib.workflows.document_summarization.state import FileSummary
 
@@ -72,7 +73,17 @@ class ReferenceEmbeddingMatcher:
         logger.info(f"Embedding {len(texts)} document summaries")
 
         await self._rate_limiter.aacquire()
-        vectors = await self._embeddings.aembed_documents(texts)
+        try:
+            vectors = await self._embeddings.aembed_documents(texts)
+        except Exception as e:
+            log_embedding_error(
+                e,
+                caller="reference_embedding_matcher.index_summaries",
+                model=EMBEDDING_MODEL_LARGE,
+                provider="openai",
+                embeddings_client=self._embeddings,
+            )
+            raise
         # We need to pre-normalize during indexing to avoid repeated computation
         self._doc_embeddings_normalized = _normalize(np.array(vectors))
 
@@ -96,7 +107,17 @@ class ReferenceEmbeddingMatcher:
 
         logger.info(f"Embedding {len(reference_texts)} reference texts")
         await self._rate_limiter.aacquire()
-        ref_vectors = await self._embeddings.aembed_documents(reference_texts)
+        try:
+            ref_vectors = await self._embeddings.aembed_documents(reference_texts)
+        except Exception as e:
+            log_embedding_error(
+                e,
+                caller="reference_embedding_matcher.find_candidates",
+                model=EMBEDDING_MODEL_LARGE,
+                provider="openai",
+                embeddings_client=self._embeddings,
+            )
+            raise
         ref_normalized = _normalize(np.array(ref_vectors))
 
         # We need to compute cosine similarity via dot product of normalized vectors: (num_refs, num_docs) to return the correct similarity scores

@@ -55,13 +55,14 @@ async def _prepare_workflow_items(
     workflow_types: List[WorkflowRunType],
     request: StartMultipleWorkflowsRequest,
     user: User,
-) -> tuple[Project, List[str], List[AutoRunWorkflowItem]]:
+) -> tuple[Project, int, List[str], List[AutoRunWorkflowItem]]:
     """
     Resolve dependencies, apply skip logic, create run records, and build the
     list of items ready for execution.
 
     Returns a tuple of:
     - project: the resolved Project instance
+    - revision: the project revision this batch targets (always current_revision)
     - all_workflow_run_ids: IDs of all newly created run records (including
       human-trigger workflows that won't be auto-run)
     - auto_run_items: subset of items that should actually be executed
@@ -139,7 +140,7 @@ async def _prepare_workflow_items(
             )
         )
 
-    return project, workflow_run_ids, auto_run_items
+    return project, revision, workflow_run_ids, auto_run_items
 
 
 async def start_workflow_run(
@@ -162,6 +163,8 @@ async def start_workflow_run(
 
     await assert_project_has_main_file(config.project_id, project.current_revision)
 
+    # Workflows always run against the project's current revision; API/MCP
+    # clients don't supply a revision when starting workflows.
     revision = project.current_revision
     existing_run = await get_project_workflow_run_by_type(
         config.project_id, config.type, revision=revision
@@ -187,6 +190,7 @@ async def start_workflow_run(
         thread_id=thread_id,
         workflow_run_id=workflow_run_id,
         user=user,
+        revision=revision,
     )
 
     return workflow_run_id
@@ -213,7 +217,7 @@ async def start_multiple_workflow_runs(
     Raises:
         HTTPException: If project_id is missing or project doesn't exist
     """
-    _, workflow_run_ids, auto_run_items = await _prepare_workflow_items(
+    _, revision, workflow_run_ids, auto_run_items = await _prepare_workflow_items(
         workflow_types, request, user
     )
 
@@ -225,6 +229,7 @@ async def start_multiple_workflow_runs(
             _run_multiple_workflows_concurrently,
             items=auto_run_items,
             user=user,
+            revision=revision,
         )
     else:
         logger.info(
@@ -254,7 +259,7 @@ async def run_multiple_workflows_blocking(
     Returns:
         A tuple of (project, list of workflow_run_ids for all created runs)
     """
-    project, workflow_run_ids, auto_run_items = await _prepare_workflow_items(
+    project, revision, workflow_run_ids, auto_run_items = await _prepare_workflow_items(
         workflow_types, request, user
     )
 
@@ -264,6 +269,7 @@ async def run_multiple_workflows_blocking(
             thread_id=item.thread_id,
             workflow_run_id=item.workflow_run_id,
             user=user,
+            revision=revision,
         )
 
     return project, workflow_run_ids
@@ -298,6 +304,7 @@ async def resume_workflow_run(
         thread_id=thread_id,
         workflow_run_id=str(workflow_run.id),
         user=user,
+        revision=workflow_run.revision,
     )
 
     return str(workflow_run.id)
@@ -306,6 +313,7 @@ async def resume_workflow_run(
 async def _run_multiple_workflows_concurrently(
     items: List[AutoRunWorkflowItem],
     user: User,
+    revision: int,
 ) -> None:
     """
     Run multiple workflows concurrently using asyncio.gather().
@@ -316,6 +324,7 @@ async def _run_multiple_workflows_concurrently(
     Args:
         items: List of workflow items containing config, thread_id, and workflow_run_id
         user: User running the workflows
+        revision: The project revision this batch targets
     """
     if not items:
         return
@@ -331,6 +340,7 @@ async def _run_multiple_workflows_concurrently(
             thread_id=item.thread_id,
             workflow_run_id=item.workflow_run_id,
             user=user,
+            revision=revision,
         )
         for item in items
     ]

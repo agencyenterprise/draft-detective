@@ -42,6 +42,7 @@ class ClaimExtractionManifest(
         self,
         config: ClaimExtractionWorkflowConfig,
         existing_states: List[WorkflowState],
+        revision: int,
     ) -> ClaimExtractionState:
         """Create and return the initial state of the workflow."""
 

@@ -4,6 +4,7 @@ from .feedback import Feedback
 from .file import File, FileRole
 from .issue import Issue, IssueStatus
 from .project import Project
+from .rate_limiter_bucket import RateLimiterBucket
 from .share_link import ShareLink
 from .user import User
 from .workflow_progress import WorkflowProgress
