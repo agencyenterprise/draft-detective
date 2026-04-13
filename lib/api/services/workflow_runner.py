@@ -163,6 +163,10 @@ async def start_workflow_run(
     await assert_project_has_main_file(config.project_id, project.current_revision)
 
     revision = project.current_revision
+    # Ensure the config's revision matches the project's current revision so the
+    # workflow context (and any state lookups driven by it) target the right
+    # revision. Callers of POST /api/workflows/start don't send a revision.
+    config.revision = revision
     existing_run = await get_project_workflow_run_by_type(
         config.project_id, config.type, revision=revision
     )
