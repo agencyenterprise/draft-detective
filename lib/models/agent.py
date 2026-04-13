@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from typing import Any, Literal, Optional, TypedDict
 
 from langchain.chat_models import BaseChatModel, init_chat_model
-from langchain_core.rate_limiters import InMemoryRateLimiter
+from langchain_core.rate_limiters import BaseRateLimiter
 from langchain_core.runnables.config import RunnableConfig
 from pydantic import BaseModel
 
@@ -58,7 +58,7 @@ class LangChainAgent(BaseAgent):
     def __init__(self, context: ContextSchema):
         self.context = context
 
-    def get_rate_limiter(self) -> InMemoryRateLimiter:
+    def get_rate_limiter(self) -> BaseRateLimiter:
         api_key = self.context.openai_api_key or "default"
         return get_rate_limiter(hash_api_key(api_key))
 
