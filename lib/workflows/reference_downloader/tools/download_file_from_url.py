@@ -8,7 +8,6 @@ from typing import NamedTuple
 
 import aiofiles
 import httpx
-from aiolimiter import AsyncLimiter
 from langchain.tools import ToolRuntime, tool
 from pydantic import BaseModel, Field
 from tenacity import (
@@ -23,6 +22,7 @@ from xxhash import xxh128
 from lib.config.env import config
 from lib.models.file import FileRole
 from lib.services.files import create_file_record
+from lib.services.postgres_rate_limiter import PostgresRateLimiter
 from lib.workflows.context import ContextSchema
 
 logger = logging.getLogger(__name__)
@@ -33,8 +33,14 @@ headers = {
     "Referer": "https://www.google.com/",
 }
 
-# 20 requests per 60 seconds (1 minute) is the free Jina API rate limit for requests without API key
-jina_rate_limiter = AsyncLimiter(20, 60)
+# 20 requests per 60 seconds (1 minute) is the free Jina API rate limit for requests without API key.
+# Backed by Postgres so the cap is enforced across all workers/pods, not per-worker.
+jina_rate_limiter = PostgresRateLimiter(
+    bucket_key="jina-api",
+    requests_per_second=20 / 60,
+    check_every_n_seconds=1.0,
+    max_bucket_size=20,
+)
 
 
 class DownloadFileFromUrlResponse(BaseModel):
@@ -153,21 +159,21 @@ def is_rate_limited(exc: Exception) -> bool:
 async def _download_with_jina_api(url: str) -> SavedFile | None:
     """Download content using Jina API and save as markdown. Returns SavedFile if successful, None otherwise."""
 
-    async with jina_rate_limiter:
-        async with httpx.AsyncClient(timeout=120.0) as client:
-            logger.debug(f"Downloading content with Jina API from URL: {url}")
-            response = await client.get(
-                f"https://r.jina.ai/{url}", follow_redirects=True
-            )
-            response.raise_for_status()
+    await jina_rate_limiter.aacquire()
+    async with httpx.AsyncClient(timeout=120.0) as client:
+        logger.debug(f"Downloading content with Jina API from URL: {url}")
+        response = await client.get(
+            f"https://r.jina.ai/{url}", follow_redirects=True
+        )
+        response.raise_for_status()
 
-            markdown_content = response.text
-            if not markdown_content:
-                raise ValueError(f"Jina API returned empty content for {url}")
+        markdown_content = response.text
+        if not markdown_content:
+            raise ValueError(f"Jina API returned empty content for {url}")
 
-            filename = await _save_content(markdown_content, "md")
-            logger.debug(f"Successfully downloaded and saved markdown to {filename}")
-            return SavedFile(filename=filename, content_type="text/markdown")
+        filename = await _save_content(markdown_content, "md")
+        logger.debug(f"Successfully downloaded and saved markdown to {filename}")
+        return SavedFile(filename=filename, content_type="text/markdown")
 
 
 async def _persist_file_record(

@@ -1,0 +1,193 @@
+"""Integration tests for the Postgres-backed rate limiter.
+
+These tests hit a real Postgres (same DATABASE_URL used by the rest of the
+test suite). They verify:
+
+1. Cross-instance state sharing — separate PostgresRateLimiter objects
+   pointing at the same bucket_key count against the same bucket. This is
+   the regression guard the old in-memory limiter would fail.
+2. Single-instance concurrency — a burst of concurrent acquires on one
+   limiter cannot exceed ``max_bucket_size``, proving ``SELECT ... FOR
+   UPDATE`` serializes the read-modify-write correctly.
+3. Fail-closed behaviour on backend errors.
+"""
+
+import asyncio
+import time
+import uuid
+
+import pytest
+import pytest_asyncio
+from sqlalchemy import delete
+from sqlmodel import col
+
+from lib.config.database import get_async_db_session
+from lib.models.rate_limiter_bucket import RateLimiterBucket
+from lib.services.postgres_rate_limiter import (
+    PostgresRateLimiter,
+    RateLimiterBackendError,
+)
+
+
+@pytest_asyncio.fixture
+async def bucket_key():
+    """Unique bucket_key per test so parallel runs don't interfere."""
+    key = f"test-{uuid.uuid4().hex[:12]}"
+    yield key
+
+    # Cleanup
+    async with get_async_db_session() as session:
+        await session.execute(
+            delete(RateLimiterBucket).where(col(RateLimiterBucket.bucket_key) == key)
+        )
+        await session.commit()
+
+
+@pytest.mark.asyncio
+async def test_cross_instance_state_is_shared(bucket_key):
+    """N separate limiter instances with the same bucket_key share one bucket.
+
+    This is the core regression guard: the old InMemoryRateLimiter would
+    allow N * max_bucket_size acquires in this same setup.
+    """
+    rps = 10.0
+    max_bucket = 10.0
+    num_instances = 4
+    duration_seconds = 2.0
+
+    # Each "worker" gets its own limiter instance (fresh in-memory state).
+    limiters = [
+        PostgresRateLimiter(
+            bucket_key=bucket_key,
+            requests_per_second=rps,
+            check_every_n_seconds=0.05,
+            max_bucket_size=max_bucket,
+        )
+        for _ in range(num_instances)
+    ]
+
+    acquires_per_worker = [0] * num_instances
+    stop_at = time.monotonic() + duration_seconds
+
+    async def worker(idx: int):
+        while time.monotonic() < stop_at:
+            ok = await limiters[idx].aacquire(blocking=False)
+            if ok:
+                acquires_per_worker[idx] += 1
+            else:
+                await asyncio.sleep(0.01)
+
+    await asyncio.gather(*(worker(i) for i in range(num_instances)))
+
+    total = sum(acquires_per_worker)
+    # Budget: initial burst + refill over the window, with jitter allowance.
+    expected_max = max_bucket + rps * duration_seconds
+    # Allow +50% jitter for refill timing / scheduler slack, but crucially
+    # the old per-worker limiter would produce ~ num_instances * expected_max
+    # (~4x) which this bound rules out.
+    assert total <= int(expected_max * 1.5), (
+        f"Shared bucket allowed {total} acquires, expected <= "
+        f"{int(expected_max * 1.5)} (per-worker counts: {acquires_per_worker})"
+    )
+    # Sanity: we did get meaningful throughput (not zero).
+    assert total >= int(max_bucket), (
+        f"Shared bucket only allowed {total} acquires; expected at least "
+        f"{int(max_bucket)} from the initial burst"
+    )
+
+
+@pytest.mark.asyncio
+async def test_concurrent_acquires_on_single_instance_do_not_exceed_bucket(
+    bucket_key,
+):
+    """A burst of concurrent acquires on one instance must not over-spend.
+
+    Directly stresses the ``SELECT ... FOR UPDATE`` serialization: N tasks
+    race for the same row at the same time, and the bucket holds exactly
+    ``max_bucket_size`` tokens with effectively no refill during the test.
+    The assertion is exact (not a bound) because the refill credit over the
+    few-millisecond window is mathematically incapable of producing another
+    whole token. A broken lock (reads before other transactions commit)
+    would allow double-spending and exceed the bucket.
+    """
+    max_bucket = 10
+    num_concurrent = 20
+    limiter = PostgresRateLimiter(
+        bucket_key=bucket_key,
+        requests_per_second=0.0001,  # effectively no refill during the test
+        check_every_n_seconds=0.05,
+        max_bucket_size=max_bucket,
+    )
+
+    results = await asyncio.gather(
+        *(limiter.aacquire(blocking=False) for _ in range(num_concurrent))
+    )
+
+    successes = sum(1 for ok in results if ok)
+    assert successes == max_bucket, (
+        f"Expected exactly {max_bucket} successful acquires from a full "
+        f"bucket under concurrent load, got {successes}. A count above "
+        f"{max_bucket} indicates the row lock failed to serialize."
+    )
+
+
+@pytest.mark.asyncio
+async def test_non_blocking_acquire_returns_false_when_empty(bucket_key):
+    """Once the initial burst is drained, non-blocking acquires return False."""
+    limiter = PostgresRateLimiter(
+        bucket_key=bucket_key,
+        requests_per_second=0.01,  # essentially no refill during this test
+        check_every_n_seconds=0.05,
+        max_bucket_size=2,
+    )
+
+    # Drain the bucket.
+    assert await limiter.aacquire(blocking=False) is True
+    assert await limiter.aacquire(blocking=False) is True
+    # Next call: bucket is empty and refill rate is negligible.
+    assert await limiter.aacquire(blocking=False) is False
+
+
+@pytest.mark.asyncio
+async def test_blocking_acquire_waits_for_refill(bucket_key):
+    """``aacquire(blocking=True)`` should wait out an empty bucket and then
+    succeed once the drip has refilled at least one token.
+
+    This is the default path LangChain uses when a chat model has a rate
+    limiter attached, so it needs dedicated coverage.
+    """
+    limiter = PostgresRateLimiter(
+        bucket_key=bucket_key,
+        requests_per_second=10,  # one refill every ~100ms
+        check_every_n_seconds=0.05,
+        max_bucket_size=1,
+    )
+
+    # Drain the bucket so the next call has to wait for the drip.
+    assert await limiter.aacquire(blocking=False) is True
+    assert await limiter.aacquire(blocking=False) is False
+
+    result = await asyncio.wait_for(limiter.aacquire(blocking=True), timeout=2.0)
+    assert result is True
+
+
+@pytest.mark.asyncio
+async def test_fail_closed_on_backend_error(monkeypatch):
+    """If the DB layer raises, RateLimiterBackendError propagates."""
+    limiter = PostgresRateLimiter(
+        bucket_key="never-persisted",
+        requests_per_second=1,
+        max_bucket_size=1,
+    )
+
+    class _BrokenSessionFactory:
+        def __call__(self):
+            raise OSError("simulated DB outage")
+
+    monkeypatch.setattr(
+        "lib.services.postgres_rate_limiter.AsyncSessionLocal",
+        _BrokenSessionFactory(),
+    )
+
+    with pytest.raises(RateLimiterBackendError):
+        await limiter.aacquire(blocking=False)
