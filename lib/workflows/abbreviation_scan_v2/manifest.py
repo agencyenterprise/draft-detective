@@ -44,6 +44,7 @@ class AbbreviationScanV2Manifest(
         self,
         config: AbbreviationScanV2Config,
         existing_states: List[WorkflowState],
+        revision: int,
     ) -> AbbreviationScanV2State:
         return AbbreviationScanV2State(
             type=WorkflowRunType.ABBREVIATION_SCAN_V2,

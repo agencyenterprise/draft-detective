@@ -81,6 +81,7 @@ class SimpleDeepAgentManifest(
         self,
         config: SimpleDeepAgentConfig,
         existing_states: List["WorkflowState"],
+        revision: int,
     ) -> SimpleDeepAgentState:
         return SimpleDeepAgentState(type=self.type, config=config)
 

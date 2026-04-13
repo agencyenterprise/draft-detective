@@ -41,6 +41,7 @@ class LiveReportsManifest(
         self,
         config: LiveReportsWorkflowConfig,
         existing_states: List[WorkflowState],
+        revision: int,
     ) -> LiveReportsState:
         """Create and return the initial state of the workflow."""
 

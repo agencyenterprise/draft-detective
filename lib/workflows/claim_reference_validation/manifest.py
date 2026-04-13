@@ -81,6 +81,7 @@ class ClaimReferenceValidationManifest(
         self,
         config: ClaimReferenceValidationWorkflowConfig,
         existing_states: List[WorkflowState],
+        revision: int,
     ) -> ClaimReferenceValidationState:
         """Create and return the initial state of the workflow."""
 

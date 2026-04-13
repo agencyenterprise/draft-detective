@@ -37,6 +37,7 @@ class ResultsExtractionManifest(
         self,
         config: ResultsExtractionWorkflowConfig,
         existing_states: List[WorkflowState],
+        revision: int,
     ) -> ResultsExtractionState:
         return ResultsExtractionState(
             type=WorkflowRunType.RESULTS_EXTRACTION,
