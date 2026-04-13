@@ -146,17 +146,17 @@ class PostgresRateLimiter(BaseRateLimiter):
         still provide sync for interface completeness.
         """
         try:
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                # We are inside a running loop; sync acquire from async
-                # contexts is not supported. Callers should use aacquire.
-                raise RateLimiterBackendError(
-                    "PostgresRateLimiter.acquire() called from a running "
-                    "event loop; use aacquire() instead"
-                )
+            asyncio.get_running_loop()
         except RuntimeError:
-            # No current event loop; fall through to run one.
+            # No running loop; safe to spin up our own via asyncio.run().
             pass
+        else:
+            # We are inside a running loop; sync acquire from async
+            # contexts is not supported. Callers should use aacquire.
+            raise RateLimiterBackendError(
+                "PostgresRateLimiter.acquire() called from a running "
+                "event loop; use aacquire() instead"
+            )
         return asyncio.run(self._aconsume())
 
     def acquire(self, *, blocking: bool = True) -> bool:

@@ -111,6 +111,29 @@ async def test_non_blocking_acquire_returns_false_when_empty(bucket_key):
 
 
 @pytest.mark.asyncio
+async def test_blocking_acquire_waits_for_refill(bucket_key):
+    """``aacquire(blocking=True)`` should wait out an empty bucket and then
+    succeed once the drip has refilled at least one token.
+
+    This is the default path LangChain uses when a chat model has a rate
+    limiter attached, so it needs dedicated coverage.
+    """
+    limiter = PostgresRateLimiter(
+        bucket_key=bucket_key,
+        requests_per_second=10,  # one refill every ~100ms
+        check_every_n_seconds=0.05,
+        max_bucket_size=1,
+    )
+
+    # Drain the bucket so the next call has to wait for the drip.
+    assert await limiter.aacquire(blocking=False) is True
+    assert await limiter.aacquire(blocking=False) is False
+
+    result = await asyncio.wait_for(limiter.aacquire(blocking=True), timeout=2.0)
+    assert result is True
+
+
+@pytest.mark.asyncio
 async def test_fail_closed_on_backend_error(monkeypatch):
     """If the DB layer raises, RateLimiterBackendError propagates."""
     limiter = PostgresRateLimiter(
