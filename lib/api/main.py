@@ -41,12 +41,15 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Seed default runtime configs on startup."""
+    """Seed default runtime configs on startup; close shared pools on shutdown."""
     from lib.services.app_configs import seed_all_defaults
+    from lib.workflows.checkpointer import close_checkpointer_pool
 
     await seed_all_defaults()
-
-    yield
+    try:
+        yield
+    finally:
+        await close_checkpointer_pool()
 
 
 app = FastAPI(

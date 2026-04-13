@@ -12,8 +12,15 @@ def get_async_url(url: str) -> str:
     return url
 
 
-# SQLAlchemy engine
-async_engine = create_async_engine(get_async_url(env_config.DATABASE_URL), echo=False)
+# SQLAlchemy engine — ORM access via AsyncSessionLocal.
+# A separate psycopg pool for langgraph's checkpointer lives in
+# lib/workflows/checkpointer.py (langgraph requires psycopg_pool specifically).
+async_engine = create_async_engine(
+    get_async_url(env_config.DATABASE_URL),
+    echo=False,
+    pool_size=8,
+    max_overflow=3,
+)
 
 # Session factory
 AsyncSessionLocal = async_sessionmaker(

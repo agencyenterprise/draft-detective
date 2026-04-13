@@ -506,7 +506,7 @@ def create_test_context(
     return ContextSchema(
         openai_api_key=openai_api_key or config.OPENAI_API_KEY,
         vector_store=vector_store
-        or VectorStoreService(config.DATABASE_URL, config.OPENAI_API_KEY or "test-key"),
+        or VectorStoreService(config.OPENAI_API_KEY or "test-key"),
         project_id=project_id,
         file_artifacts_service=file_artifacts_service or MockFileArtifactsService(),
         user_id=user_id,
