@@ -6,7 +6,10 @@ test suite). They verify:
 1. Cross-instance state sharing — separate PostgresRateLimiter objects
    pointing at the same bucket_key count against the same bucket. This is
    the regression guard the old in-memory limiter would fail.
-2. Fail-closed behaviour on backend errors.
+2. Single-instance concurrency — a burst of concurrent acquires on one
+   limiter cannot exceed ``max_bucket_size``, proving ``SELECT ... FOR
+   UPDATE`` serializes the read-modify-write correctly.
+3. Fail-closed behaviour on backend errors.
 """
 
 import asyncio
@@ -90,6 +93,41 @@ async def test_cross_instance_state_is_shared(bucket_key):
     assert total >= int(max_bucket), (
         f"Shared bucket only allowed {total} acquires; expected at least "
         f"{int(max_bucket)} from the initial burst"
+    )
+
+
+@pytest.mark.asyncio
+async def test_concurrent_acquires_on_single_instance_do_not_exceed_bucket(
+    bucket_key,
+):
+    """A burst of concurrent acquires on one instance must not over-spend.
+
+    Directly stresses the ``SELECT ... FOR UPDATE`` serialization: N tasks
+    race for the same row at the same time, and the bucket holds exactly
+    ``max_bucket_size`` tokens with effectively no refill during the test.
+    The assertion is exact (not a bound) because the refill credit over the
+    few-millisecond window is mathematically incapable of producing another
+    whole token. A broken lock (reads before other transactions commit)
+    would allow double-spending and exceed the bucket.
+    """
+    max_bucket = 10
+    num_concurrent = 20
+    limiter = PostgresRateLimiter(
+        bucket_key=bucket_key,
+        requests_per_second=0.0001,  # effectively no refill during the test
+        check_every_n_seconds=0.05,
+        max_bucket_size=max_bucket,
+    )
+
+    results = await asyncio.gather(
+        *(limiter.aacquire(blocking=False) for _ in range(num_concurrent))
+    )
+
+    successes = sum(1 for ok in results if ok)
+    assert successes == max_bucket, (
+        f"Expected exactly {max_bucket} successful acquires from a full "
+        f"bucket under concurrent load, got {successes}. A count above "
+        f"{max_bucket} indicates the row lock failed to serialize."
     )
 
 
