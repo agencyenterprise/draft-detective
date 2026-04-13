@@ -32,7 +32,11 @@ logger = logging.getLogger(__name__)
 
 
 async def run_workflow_with_dependency_check(
-    config: WorkflowConfig, thread_id: str, workflow_run_id: str, user: User
+    config: WorkflowConfig,
+    thread_id: str,
+    workflow_run_id: str,
+    user: User,
+    revision: int,
 ) -> None:
     """
     Run a workflow after checking and waiting for its dependencies to complete.
@@ -46,12 +50,13 @@ async def run_workflow_with_dependency_check(
         thread_id: The LangGraph thread ID for checkpointing
         workflow_run_id: The unique ID of this workflow run (for same-type locking)
         user: The user running the workflow
+        revision: The project revision this workflow run belongs to
     """
 
     try:
         # Wait for same-type lock and dependencies to complete
         await wait_for_dependencies(
-            config.type, config.project_id, workflow_run_id, revision=config.revision
+            config.type, config.project_id, workflow_run_id, revision=revision
         )
 
         # Run the workflow
@@ -60,6 +65,7 @@ async def run_workflow_with_dependency_check(
             thread_id=thread_id,
             workflow_run_id=workflow_run_id,
             user=user,
+            revision=revision,
         )
 
     except WorkflowCancelledError:
@@ -73,15 +79,21 @@ async def run_workflow_with_dependency_check(
 
 
 async def run_workflow_from_config(
-    config: WorkflowConfig, thread_id: str, workflow_run_id: str, user: User
+    config: WorkflowConfig,
+    thread_id: str,
+    workflow_run_id: str,
+    user: User,
+    revision: int,
 ) -> WorkflowState:
     graph = create_graph(config.type)
-    context = create_context(config, workflow_run_id=workflow_run_id, user=user)
+    context = create_context(
+        config, workflow_run_id=workflow_run_id, user=user, revision=revision
+    )
 
     # Redact the OpenAI API key from the config so it doesn't get saved in the state
     config.openai_api_key = "[REDACTED]"
 
-    state = await create_state(config)
+    state = await create_state(config, revision=revision)
 
     with propagate_attributes(user_id=context.user_id):
         return await run_workflow(
@@ -202,6 +214,7 @@ async def run_workflow(
 
 def create_context(
     config: BaseWorkflowConfig,
+    revision: int,
     workflow_run_id: str | None = None,
     user: User | None = None,
 ) -> ContextSchema:
@@ -227,7 +240,7 @@ def create_context(
         else None
     )
 
-    file_artifacts_service = FileArtifactsService(config.project_id, revision=config.revision)
+    file_artifacts_service = FileArtifactsService(config.project_id, revision=revision)
 
     return ContextSchema(
         openai_api_key=openai_api_key,
@@ -236,7 +249,7 @@ def create_context(
         project_id=config.project_id,
         workflow_run_id=workflow_run_id,
         file_artifacts_service=file_artifacts_service,
-        revision=config.revision,
+        revision=revision,
     )
 
 

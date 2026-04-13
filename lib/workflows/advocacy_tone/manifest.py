@@ -41,6 +41,7 @@ class AdvocacyToneManifest(
         self,
         config: AdvocacyToneWorkflowConfig,
         existing_states: List[WorkflowState],
+        revision: int,
     ) -> AdvocacyToneState:
         """Create and return the initial state of the workflow."""
         return AdvocacyToneState(

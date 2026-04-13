@@ -43,6 +43,7 @@ class CitationDetectionManifest(
         self,
         config: CitationDetectionConfig,
         existing_states: List[WorkflowState],
+        revision: int,
     ) -> CitationDetectionState:
         """Create and return the initial state of the workflow."""
 

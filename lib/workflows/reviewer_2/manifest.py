@@ -35,6 +35,7 @@ class Reviewer2Manifest(WorkflowManifest[Reviewer2State, Reviewer2Config]):
         self,
         config: Reviewer2Config,
         existing_states: List[WorkflowState],
+        revision: int,
     ) -> Reviewer2State:
         return Reviewer2State(
             type=WorkflowRunType.REVIEWER_2,

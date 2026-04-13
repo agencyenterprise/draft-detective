@@ -58,6 +58,7 @@ class ReferenceFileMatchingManifest(
         self,
         config: ReferenceFileMatchingConfig,
         existing_states: List[WorkflowState],
+        revision: int,
     ) -> ReferenceFileMatchingState:
         """
         Create initial state from REFERENCE_EXTRACTION dependency.

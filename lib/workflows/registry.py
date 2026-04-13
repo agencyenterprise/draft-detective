@@ -129,7 +129,7 @@ def get_state_type(type: WorkflowRunType) -> Type[BaseWorkflowState]:
     return manifest.get_state_type()
 
 
-async def create_state(config: BaseWorkflowConfig) -> WorkflowState:
+async def create_state(config: BaseWorkflowConfig, revision: int) -> WorkflowState:
     """
     Create initial state for a workflow from the config.
 
@@ -139,10 +139,10 @@ async def create_state(config: BaseWorkflowConfig) -> WorkflowState:
 
     # Include internal workflows so dependencies can access their states
     workflow_runs = await get_project_workflow_runs(
-        config.project_id, revision=config.revision, include_internal=True
+        config.project_id, revision=revision, include_internal=True
     )
     existing_states: List[WorkflowState] = [
         run.state for run in workflow_runs if run.state is not None
     ]
     manifest = get_workflow_manifest(config.type)
-    return await manifest.create_initial_state(config, existing_states)
+    return await manifest.create_initial_state(config, existing_states, revision)

@@ -97,12 +97,6 @@ export type AbbreviationScanV2Config = {
    */
   publication_date?: string | null;
   /**
-   * Revision
-   *
-   * The project revision this workflow run belongs to
-   */
-  revision?: number;
-  /**
    * Type
    */
   type?: 'abbreviation_scan_v2';
@@ -189,12 +183,6 @@ export type AboutThisGerConfig = {
    * Publication date of the document (YYYY-MM-DD format)
    */
   publication_date?: string | null;
-  /**
-   * Revision
-   *
-   * The project revision this workflow run belongs to
-   */
-  revision?: number;
   /**
    * Type
    */
@@ -340,12 +328,6 @@ export type AdvocacyToneWorkflowConfig = {
    * Publication date of the document (YYYY-MM-DD format)
    */
   publication_date?: string | null;
-  /**
-   * Revision
-   *
-   * The project revision this workflow run belongs to
-   */
-  revision?: number;
   /**
    * Type
    */
@@ -746,12 +728,6 @@ export type ChunkSplittingWorkflowConfig = {
    */
   publication_date?: string | null;
   /**
-   * Revision
-   *
-   * The project revision this workflow run belongs to
-   */
-  revision?: number;
-  /**
    * Type
    */
   type?: 'chunk_splitting';
@@ -839,12 +815,6 @@ export type CitationDetectionConfig = {
    * Publication date of the document (YYYY-MM-DD format)
    */
   publication_date?: string | null;
-  /**
-   * Revision
-   *
-   * The project revision this workflow run belongs to
-   */
-  revision?: number;
   /**
    * Type
    */
@@ -972,12 +942,6 @@ export type CitationSuggesterWorkflowConfig = {
    * Publication date of the document (YYYY-MM-DD format)
    */
   publication_date?: string | null;
-  /**
-   * Revision
-   *
-   * The project revision this workflow run belongs to
-   */
-  revision?: number;
   /**
    * Type
    */
@@ -1214,12 +1178,6 @@ export type ClaimExtractionWorkflowConfig = {
    */
   publication_date?: string | null;
   /**
-   * Revision
-   *
-   * The project revision this workflow run belongs to
-   */
-  revision?: number;
-  /**
    * Type
    */
   type?: 'claim_extraction';
@@ -1362,12 +1320,6 @@ export type ClaimReferenceValidationWorkflowConfig = {
    * Publication date of the document (YYYY-MM-DD format)
    */
   publication_date?: string | null;
-  /**
-   * Revision
-   *
-   * The project revision this workflow run belongs to
-   */
-  revision?: number;
   /**
    * Type
    */
@@ -1593,12 +1545,6 @@ export type DocumentProcessingWorkflowConfig = {
    */
   publication_date?: string | null;
   /**
-   * Revision
-   *
-   * The project revision this workflow run belongs to
-   */
-  revision?: number;
-  /**
    * Type
    */
   type?: 'document_processing';
@@ -1759,12 +1705,6 @@ export type DocumentSummarizationWorkflowConfig = {
    * Publication date of the document (YYYY-MM-DD format)
    */
   publication_date?: string | null;
-  /**
-   * Revision
-   *
-   * The project revision this workflow run belongs to
-   */
-  revision?: number;
   /**
    * Type
    */
@@ -2428,12 +2368,6 @@ export type FootnoteExtractionConfig = {
    */
   publication_date?: string | null;
   /**
-   * Revision
-   *
-   * The project revision this workflow run belongs to
-   */
-  revision?: number;
-  /**
    * Type
    */
   type?: 'footnote_extraction';
@@ -2568,12 +2502,6 @@ export type HumanApprovalConfig = {
    * Publication date of the document (YYYY-MM-DD format)
    */
   publication_date?: string | null;
-  /**
-   * Revision
-   *
-   * The project revision this workflow run belongs to
-   */
-  revision?: number;
   type?: WorkflowRunType;
 };
 
@@ -2729,12 +2657,6 @@ export type InferenceValidationV2WorkflowConfig = {
    * Publication date of the document (YYYY-MM-DD format)
    */
   publication_date?: string | null;
-  /**
-   * Revision
-   *
-   * The project revision this workflow run belongs to
-   */
-  revision?: number;
   /**
    * Type
    */
@@ -3095,12 +3017,6 @@ export type LiteratureReviewWorkflowConfig = {
    */
   publication_date?: string | null;
   /**
-   * Revision
-   *
-   * The project revision this workflow run belongs to
-   */
-  revision?: number;
-  /**
    * Type
    */
   type?: 'literature_review';
@@ -3177,12 +3093,6 @@ export type LiveReportsWorkflowConfig = {
    * Publication date of the document (YYYY-MM-DD format)
    */
   publication_date?: string | null;
-  /**
-   * Revision
-   *
-   * The project revision this workflow run belongs to
-   */
-  revision?: number;
   /**
    * Type
    */
@@ -3289,12 +3199,6 @@ export type MethodologicalAlignmentWorkflowConfig = {
    * Publication date of the document (YYYY-MM-DD format)
    */
   publication_date?: string | null;
-  /**
-   * Revision
-   *
-   * The project revision this workflow run belongs to
-   */
-  revision?: number;
   /**
    * Type
    */
@@ -3835,12 +3739,6 @@ export type ReferenceDownloaderWorkflowConfig = {
    */
   publication_date?: string | null;
   /**
-   * Revision
-   *
-   * The project revision this workflow run belongs to
-   */
-  revision?: number;
-  /**
    * Type
    */
   type?: 'reference_downloader';
@@ -3888,12 +3786,6 @@ export type ReferenceExtractionConfig = {
    * Publication date of the document (YYYY-MM-DD format)
    */
   publication_date?: string | null;
-  /**
-   * Revision
-   *
-   * The project revision this workflow run belongs to
-   */
-  revision?: number;
   /**
    * Type
    */
@@ -4109,12 +4001,6 @@ export type ReferenceFileMatchingConfig = {
    * Publication date of the document (YYYY-MM-DD format)
    */
   publication_date?: string | null;
-  /**
-   * Revision
-   *
-   * The project revision this workflow run belongs to
-   */
-  revision?: number;
   /**
    * Type
    */
@@ -4341,12 +4227,6 @@ export type ReferenceValidationWorkflowConfig = {
    */
   publication_date?: string | null;
   /**
-   * Revision
-   *
-   * The project revision this workflow run belongs to
-   */
-  revision?: number;
-  /**
    * Type
    */
   type?: 'reference_validation';
@@ -4544,12 +4424,6 @@ export type ResultsExtractionWorkflowConfig = {
    */
   publication_date?: string | null;
   /**
-   * Revision
-   *
-   * The project revision this workflow run belongs to
-   */
-  revision?: number;
-  /**
    * Type
    */
   type?: 'results_extraction';
@@ -4603,12 +4477,6 @@ export type Reviewer2Config = {
    * Publication date of the document (YYYY-MM-DD format)
    */
   publication_date?: string | null;
-  /**
-   * Revision
-   *
-   * The project revision this workflow run belongs to
-   */
-  revision?: number;
   /**
    * Type
    */
@@ -4783,12 +4651,6 @@ export type SimpleDeepAgentConfig = {
    * Publication date of the document (YYYY-MM-DD format)
    */
   publication_date?: string | null;
-  /**
-   * Revision
-   *
-   * The project revision this workflow run belongs to
-   */
-  revision?: number;
   /**
    * The workflow type, set per-manifest at runtime
    */

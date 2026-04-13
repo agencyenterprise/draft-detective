@@ -41,6 +41,7 @@ class LiteratureReviewManifest(
         self,
         config: LiteratureReviewWorkflowConfig,
         existing_states: List[WorkflowState],
+        revision: int,
     ) -> LiteratureReviewState:
         """Create and return the initial state of the workflow."""
 
