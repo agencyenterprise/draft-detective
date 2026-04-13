@@ -43,7 +43,6 @@ dependencies = [
     "markitdown[docx,pdf,pptx,xls,xlsx]>=0.1.5",
     "pyjwt>=2.10.1",
     "mypy>=1.19.1",
-    "aiolimiter>=1.2.1",
     "textblob>=0.18.0",
     "rich>=14.2.0",
     "tuspyserver>=4.2.3",
