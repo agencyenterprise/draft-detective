@@ -21,23 +21,6 @@ class CategoryConfig(NamedTuple):
 
 WORKFLOW_DISPLAY_CONFIG: list[CategoryConfig] = [
     CategoryConfig(
-        slug="language",
-        label="Language",
-        workflows=[
-            WorkflowRunType.ADVOCACY_TONE,
-        ],
-    ),
-    CategoryConfig(
-        slug="technical_compliance",
-        label="Technical Compliance",
-        workflows=[
-            WorkflowRunType.ABBREVIATION_SCAN_V2,
-            WorkflowRunType.ABOUT_THIS_GER,
-            WorkflowRunType.DOCUMENT_STRUCTURE,
-            WorkflowRunType.FIGURES_TABLES_CHECK,
-        ],
-    ),
-    CategoryConfig(
         slug="citation_check",
         label="Citation Check",
         workflows=[
@@ -53,6 +36,23 @@ WORKFLOW_DISPLAY_CONFIG: list[CategoryConfig] = [
             WorkflowRunType.METHODOLOGICAL_ALIGNMENT,
             WorkflowRunType.RESULTS_EXTRACTION,
             WorkflowRunType.REVIEWER_2,
+        ],
+    ),
+    CategoryConfig(
+        slug="technical_compliance",
+        label="Technical Compliance",
+        workflows=[
+            WorkflowRunType.ABBREVIATION_SCAN_V2,
+            WorkflowRunType.ABOUT_THIS_GER,
+            WorkflowRunType.DOCUMENT_STRUCTURE,
+            WorkflowRunType.FIGURES_TABLES_CHECK,
+        ],
+    ),
+    CategoryConfig(
+        slug="language",
+        label="Language",
+        workflows=[
+            WorkflowRunType.ADVOCACY_TONE,
         ],
     ),
     CategoryConfig(
