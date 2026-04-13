@@ -6,6 +6,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v0.5.29] - 2026-04-13
+
+### Added
+- Added a multi-worker-safe Postgres-backed token bucket rate limiter for LangChain and the Jina API, with tuning knobs exposed via environment variables.
+- Added a new `rate_limiter_buckets` table and migration to support the Postgres-backed rate limiter.
+- Added grep-friendly logging for failed chat-model and embedding calls including model, provider, endpoint, workflow stage, and workflow/project IDs, with a distinct `LLM_RATE_LIMIT` prefix for HTTP 429 errors.
+- Added unit tests for the LLM error logger and an eval test case for reference validation of a non-existent URL.
+
+### Changed
+- Removed `revision` as a client-facing input parameter on workflow start endpoints so workflows always run against `project.current_revision`, while read endpoints that accept a revision remain unchanged.
+- Reordered analysis categories to: Citation Check → Substantive Review → Technical Compliance → Language, with Research & Writing Assistant kept at the end.
+- Updated the reference validator procedure to require fetching/verifying URLs before trusting them and to search for exact title/authors when a URL is dead.
+- Replaced the Jina API limiter from `aiolimiter.AsyncLimiter` to the new `PostgresRateLimiter`.
+
+### Fixed
+- Fixed `POST /api/workflows/start` to override `config.revision` with `project.current_revision` so workflow context targets the correct revision.
+- Fixed reference validator false negatives where non-existent URLs were marked valid based on URL pattern alone.
+
+### Removed
+- Removed the `aiolimiter` dependency.
+- Removed `revision` from workflow config OpenAPI schema and generated frontend workflow config types.
+
+
 ## [v0.5.28] - 2026-04-10
 
 ### Added
