@@ -8,6 +8,7 @@ from langgraph.graph.state import CompiledStateGraph
 from lib.services.workflow_orchestration import wait_for_dependencies
 from lib.config.env import config as env_config
 from lib.config.langfuse import langfuse_handler
+from lib.config.llm_error_logger import ErrorLoggingCallback
 from lib.models.user import User
 from lib.models.workflow_run import WorkflowRunStatus, WorkflowRunType
 from lib.services.file_artifacts_service.file_artifacts_service import (
@@ -124,11 +125,16 @@ async def run_workflow(
     # Mark as RUNNING
     await update_workflow_run_status(workflow_run_id, WorkflowRunStatus.RUNNING)
 
+    error_logging_callback = ErrorLoggingCallback(
+        workflow_run_id=workflow_run_id,
+        project_id=project_id,
+    )
+
     async with get_checkpointer() as checkpointer:
         app = graph.compile(checkpointer=checkpointer).with_config(
             {
                 "run_name": f"{workflow_type.value}",
-                "callbacks": [langfuse_handler],
+                "callbacks": [langfuse_handler, error_logging_callback],
                 "metadata": {"langfuse_session_id": project_id},
                 "max_concurrency": env_config.LANGGRAPH_MAX_CONCURRENCY,
             }

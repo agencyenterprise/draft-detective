@@ -9,7 +9,8 @@ from langchain_text_splitters import Language, RecursiveCharacterTextSplitter
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import create_async_engine
 
-from lib.config.llm_models import init_embeddings
+from lib.config.llm_error_logger import log_embedding_error
+from lib.config.llm_models import EMBEDDING_MODEL_LARGE, init_embeddings
 from lib.config.rate_limiter import get_rate_limiter, hash_api_key
 
 logger = logging.getLogger(__name__)
@@ -195,7 +196,17 @@ class VectorStoreService:
 
         vectorstore = self._get_vectorstore(collection_id)
         await self._rate_limiter.aacquire()
-        results = await vectorstore.asimilarity_search(query="", k=1)
+        try:
+            results = await vectorstore.asimilarity_search(query="", k=1)
+        except Exception as e:
+            log_embedding_error(
+                e,
+                caller="vector_store.is_collection_indexed",
+                model=EMBEDDING_MODEL_LARGE,
+                provider="openai",
+                embeddings_client=self.embeddings,
+            )
+            raise
         return len(results) > 0
 
     async def index_document(
@@ -220,7 +231,17 @@ class VectorStoreService:
                 batch_end = min(batch_start + EMBEDDING_BATCH_SIZE, total_docs)
                 batch = docs[batch_start:batch_end]
                 await self._rate_limiter.aacquire()
-                await vectorstore.aadd_documents(batch)
+                try:
+                    await vectorstore.aadd_documents(batch)
+                except Exception as e:
+                    log_embedding_error(
+                        e,
+                        caller="vector_store.index_document",
+                        model=EMBEDDING_MODEL_LARGE,
+                        provider="openai",
+                        embeddings_client=self.embeddings,
+                    )
+                    raise
                 logger.debug(
                     f"Indexed batch {batch_start}-{batch_end} of {total_docs} chunks"
                 )
@@ -248,7 +269,19 @@ class VectorStoreService:
             vectorstore = self._get_vectorstore(collection_id)
 
             await self._rate_limiter.aacquire()
-            results = await vectorstore.asimilarity_search_with_score(query, k=top_k)
+            try:
+                results = await vectorstore.asimilarity_search_with_score(
+                    query, k=top_k
+                )
+            except Exception as e:
+                log_embedding_error(
+                    e,
+                    caller="vector_store.retrieve_relevant_passages",
+                    model=EMBEDDING_MODEL_LARGE,
+                    provider="openai",
+                    embeddings_client=self.embeddings,
+                )
+                raise
 
             logger.info(
                 f"Retrieved {len(results)} passages from collection {collection_id} "
