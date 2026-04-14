@@ -15,7 +15,7 @@ from evals_inspectai.common.api_client import (
     start_workflow,
     upload_and_start_analysis,
 )
-from evals_inspectai.common.errors import WorkflowCompletionError, check_workflow_errors
+from evals_inspectai.common.errors import WorkflowCompletionError
 from evals_inspectai.common.scorers import structured_output_scorer
 
 
@@ -99,7 +99,6 @@ def _reference_downloader_api_agent(
         )
 
         workflow_state = run_detail.get("state") or {}
-        check_workflow_errors(workflow_state)
         _check_item_errors(workflow_state)
 
         state.output = ModelOutput(

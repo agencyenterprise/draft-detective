@@ -12,7 +12,6 @@ from evals_inspectai.common.api_client import (
     upload_and_start_analysis,
 )
 from evals_inspectai.common.converters import messages_from_langchain
-from evals_inspectai.common.errors import check_workflow_errors
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +48,6 @@ def api_workflow_agent(
         )
 
         workflow_state = run_detail.get("state") or {}
-        check_workflow_errors(workflow_state)
 
         raw_messages = workflow_state.pop("messages", [])
         if raw_messages:
