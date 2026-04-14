@@ -161,6 +161,77 @@ async def test_resolve_user_falls_back_email_as_name():
     mock_get.assert_awaited_once_with(email="bob@example.com", name="bob@example.com")
 
 
+@pytest.mark.asyncio
+async def test_resolve_user_azure_upstream_email():
+    token = MagicMock()
+    token.claims = {"upstream_claims": {"email": "jane@example.com", "name": "Jane Doe"}}
+    mock_user = _make_user(email="jane@example.com", name="Jane Doe")
+
+    with patch(
+        "lib.api.mcp.get_or_create_user_by_email",
+        new=AsyncMock(return_value=mock_user),
+    ) as mock_get:
+        result = await _resolve_user(token)
+
+    mock_get.assert_awaited_once_with(email="jane@example.com", name="Jane Doe")
+    assert result is mock_user
+
+
+@pytest.mark.asyncio
+async def test_resolve_user_azure_upstream_preferred_username():
+    token = MagicMock()
+    token.claims = {"upstream_claims": {"preferred_username": "jane@example.com"}}
+    mock_user = _make_user(email="jane@example.com", name="jane@example.com")
+
+    with patch(
+        "lib.api.mcp.get_or_create_user_by_email",
+        new=AsyncMock(return_value=mock_user),
+    ) as mock_get:
+        result = await _resolve_user(token)
+
+    mock_get.assert_awaited_once_with(email="jane@example.com", name="jane@example.com")
+    assert result is mock_user
+
+
+@pytest.mark.asyncio
+async def test_resolve_user_azure_upstream_with_name():
+    token = MagicMock()
+    token.claims = {
+        "upstream_claims": {
+            "preferred_username": "jane@example.com",
+            "name": "Jane Doe",
+        }
+    }
+    mock_user = _make_user(email="jane@example.com", name="Jane Doe")
+
+    with patch(
+        "lib.api.mcp.get_or_create_user_by_email",
+        new=AsyncMock(return_value=mock_user),
+    ) as mock_get:
+        result = await _resolve_user(token)
+
+    mock_get.assert_awaited_once_with(email="jane@example.com", name="Jane Doe")
+    assert result is mock_user
+
+
+@pytest.mark.asyncio
+async def test_resolve_user_raises_when_no_email_in_upstream_claims():
+    token = MagicMock()
+    token.claims = {"upstream_claims": {"name": "No Email User"}}
+
+    with pytest.raises(RuntimeError, match="Token missing 'email' claim"):
+        await _resolve_user(token)
+
+
+@pytest.mark.asyncio
+async def test_resolve_user_raises_when_preferred_username_not_email():
+    token = MagicMock()
+    token.claims = {"upstream_claims": {"preferred_username": "jdoe"}}
+
+    with pytest.raises(RuntimeError, match="not a valid email address"):
+        await _resolve_user(token)
+
+
 # --- create_project ---
 
 

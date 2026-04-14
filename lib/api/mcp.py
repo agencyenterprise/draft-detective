@@ -48,12 +48,29 @@ mcp = FastMCP(
 )
 
 
+def _looks_like_email(value: str) -> bool:
+    """Minimal check: contains exactly one '@' with text on both sides."""
+    parts = value.split("@")
+    return len(parts) == 2 and all(parts)
+
+
 async def _resolve_user(token: AccessToken) -> User:
     """Resolve the DB user from an authenticated OAuth access token."""
     email = token.claims.get("email")
-    name = token.claims.get("name", email)
+    name = token.claims.get("name")
+    # Azure Entra ID nests identity under upstream_claims
+    if not email:
+        upstream = token.claims.get("upstream_claims", {})
+        email = upstream.get("email") or upstream.get("preferred_username")
+    if not name:
+        upstream = token.claims.get("upstream_claims", {})
+        name = upstream.get("name") or email
     if not email:
         raise RuntimeError("Token missing 'email' claim")
+    if not _looks_like_email(email):
+        raise RuntimeError(
+            f"Resolved identity '{email}' is not a valid email address"
+        )
     return await get_or_create_user_by_email(email=email, name=name)
 
 
