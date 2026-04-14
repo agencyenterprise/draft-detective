@@ -7,8 +7,8 @@ from langchain_core.documents import Document
 from langchain_postgres import PGVector
 from langchain_text_splitters import Language, RecursiveCharacterTextSplitter
 from pydantic import BaseModel, Field
-from sqlalchemy.ext.asyncio import create_async_engine
 
+from lib.config.database import async_engine
 from lib.config.llm_error_logger import log_embedding_error
 from lib.config.llm_models import EMBEDDING_MODEL_LARGE, init_embeddings
 from lib.config.rate_limiter import get_rate_limiter, hash_api_key
@@ -126,25 +126,21 @@ def get_collection_id(file_hash: str) -> str:
 class VectorStoreService:
     """Service for vector storage and retrieval operations."""
 
-    def __init__(self, connection_string: str, openai_api_key: str):
-        """Initialize vector store with database connection."""
+    def __init__(self, openai_api_key: str):
+        """Initialize vector store using the shared async engine.
+
+        Reuses the process-wide ``async_engine`` from ``lib.config.database``
+        instead of creating a second engine/pool, so all DB access shares one
+        bounded connection pool (prevents Postgres ``too many clients``).
+        """
         self.embeddings = init_embeddings(api_key=openai_api_key)
         self._rate_limiter = get_rate_limiter(hash_api_key(openai_api_key))
 
-        # Always use async engine since all our methods are async
-        # Convert postgresql:// to postgresql+psycopg:// for SQLAlchemy async engine
-        if connection_string.startswith("postgresql://"):
-            async_url = connection_string.replace(
-                "postgresql://", "postgresql+psycopg://", 1
-            )
-        else:
-            async_url = connection_string
-
-        self.async_engine = create_async_engine(async_url)
+        self.async_engine = async_engine
         self._vectorstore_cache: dict[str, PGVector] = {}
         self._indexing_locks: dict[str, asyncio.Lock] = {}
 
-        logger.info("VectorStore initialized with async engine")
+        logger.info("VectorStore initialized with shared async engine")
 
     def _get_vectorstore(self, collection_id: str) -> PGVector:
         """

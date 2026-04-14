@@ -235,9 +235,7 @@ def create_context(
 
     # Only initialize vector store if we have an API key (needed for embeddings)
     vector_store = (
-        VectorStoreService(env_config.DATABASE_URL, openai_api_key)
-        if openai_api_key
-        else None
+        VectorStoreService(openai_api_key) if openai_api_key else None
     )
 
     file_artifacts_service = FileArtifactsService(config.project_id, revision=revision)
