@@ -24,7 +24,7 @@ function InternalWorkflowResults({ workflowName }: { workflowName: string }) {
   return (
     <Callout title="Internal Workflow" variant="info" icon={FlaskConicalIcon}>
       <p className="text-sm">
-        <strong>{workflowName}</strong> runs automatically as a dependency of other analyses and is not meant to be
+        <strong>{workflowName}</strong> runs automatically as a dependency of other assessments and is not meant to be
         triggered directly — its results feed into higher-level workflows that surface findings in their own result
         views.
       </p>

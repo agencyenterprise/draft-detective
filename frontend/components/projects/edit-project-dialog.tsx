@@ -206,8 +206,8 @@ export function EditProjectDialog({
         </form.Field>
 
         <Callout variant="info" icon={InfoIcon} title="Note">
-          Only subsequent analyses (new or re-triggered) will use the updated project details. Existing or running
-          analyses will keep their original configuration and results.
+          Only subsequent assessments (new or re-triggered) will use the updated project details. Existing or running
+          assessments will keep their original configuration and results.
         </Callout>
 
         <form.Subscribe selector={(state) => [state.canSubmit, state.isSubmitting]}>

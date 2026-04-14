@@ -35,7 +35,7 @@ const statusBadgeConfig: Record<
   },
   error: {
     icon: XCircle,
-    label: 'Analysis failed',
+    label: 'Assessment failed',
     className: 'border-transparent bg-red-600 text-white',
   },
 };

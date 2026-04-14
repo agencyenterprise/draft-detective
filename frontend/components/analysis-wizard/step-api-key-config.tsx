@@ -41,8 +41,8 @@ export function StepApiKeyConfig() {
       <div className="space-y-2">
         <h1 className="text-2xl font-bold">Set up your OpenAI API Key</h1>
         <p className="text-muted-foreground">
-          This deployment requires an OpenAI API key to run analyses. Your key is encrypted at rest and never exposed in
-          API responses. You can update or remove it at any time from your account settings.
+          This deployment requires an OpenAI API key to run assessments. Your key is encrypted at rest and never exposed
+          in API responses. You can update or remove it at any time from your account settings.
         </p>
       </div>
 

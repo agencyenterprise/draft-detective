@@ -165,7 +165,7 @@ export function WorkflowConfigDialog({ isOpen, type, projectId, onConfirm, onCan
         {user?.has_openai_api_key && (
           <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
             <KeyRound className="h-3.5 w-3.5 shrink-0" />
-            Your saved OpenAI API key will be used for this analysis.
+            Your saved OpenAI API key will be used for this assessment.
           </p>
         )}
 

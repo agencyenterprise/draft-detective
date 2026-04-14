@@ -89,7 +89,7 @@ function ToastWrapper({ children, actions }: { children: React.ReactNode; action
   return (
     <div className="w-96 space-y-2.5 p-4 bg-background border rounded-lg shadow-lg">
       <div className="flex items-center justify-between">
-        <span className="text-sm font-semibold tracking-tight text-foreground">Analysis in Progress</span>
+        <span className="text-sm font-semibold tracking-tight text-foreground">Assessment in Progress</span>
         {actions}
       </div>
       <div className="max-h-[80vh] overflow-y-auto space-y-1.5">{children}</div>
@@ -167,7 +167,7 @@ export function LoadingToastContent() {
     <ToastWrapper>
       <div className="flex items-center gap-3 p-2.5 rounded-lg border border-blue-200 bg-blue-50">
         <Loader2 className="h-4 w-4 text-blue-600 animate-spin" />
-        <span className="text-[13px] text-muted-foreground">Starting analysis...</span>
+        <span className="text-[13px] text-muted-foreground">Starting assessment...</span>
       </div>
     </ToastWrapper>
   );

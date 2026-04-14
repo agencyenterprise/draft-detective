@@ -81,7 +81,7 @@ export function AnalysisForm({ onSubmit, isPending = false, error }: AnalysisFor
         <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-lg flex items-start gap-3">
           <AlertCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
           <div className="space-y-1">
-            <p className="font-medium text-destructive">Failed to start analysis</p>
+            <p className="font-medium text-destructive">Failed to start assessment</p>
             <p className="text-sm text-destructive/90 whitespace-pre-line">{error}</p>
           </div>
         </div>
@@ -93,7 +93,7 @@ export function AnalysisForm({ onSubmit, isPending = false, error }: AnalysisFor
           <div className="space-y-2">
             <UploadSection
               title="Main Document"
-              description="Primary document for analysis. Word documents are preferred (less LLM conversion errors) but PDFs are also supported."
+              description="Primary document for assessment. Word documents are preferred (less LLM conversion errors) but PDFs are also supported."
               required={true}
               onFilesChange={(files) => field.handleChange(files[0] || null)}
               multiple={false}
@@ -125,7 +125,7 @@ export function AnalysisForm({ onSubmit, isPending = false, error }: AnalysisFor
             selectedTypes={field.state.value}
             onSelectionChange={field.handleChange}
             disabled={isPending}
-            headerDescription="Select which types of analyses to perform"
+            headerDescription="Select which assessments to perform"
             error={
               !field.state.meta.isValid && field.state.meta.errors.length > 0
                 ? field.state.meta.errors.join(', ')
@@ -198,7 +198,7 @@ export function AnalysisForm({ onSubmit, isPending = false, error }: AnalysisFor
       <div className="space-y-4">
         <div className="space-y-1">
           <h2 className="text-xl font-semibold">Additional Context</h2>
-          <p className="text-sm text-muted-foreground">Provide context for more accurate analysis</p>
+          <p className="text-sm text-muted-foreground">Provide context for more accurate assessment</p>
         </div>
         <div className="space-y-4">
           {/*
@@ -301,7 +301,7 @@ export function AnalysisForm({ onSubmit, isPending = false, error }: AnalysisFor
               ) : (
                 <>
                   <Play className="w-4 h-4" />
-                  {error ? 'Retry Analysis' : 'Start Analysis'}
+                  {error ? 'Retry Assessment' : 'Start Assessment'}
                 </>
               )}
             </Button>

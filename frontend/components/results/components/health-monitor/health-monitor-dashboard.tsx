@@ -67,8 +67,8 @@ export function HealthMonitorDashboard({
   if (sortedHealthData.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-center">
-        <p className="text-muted-foreground">No analyses have been run yet.</p>
-        <p className="text-sm text-muted-foreground mt-1">Start an analysis to see the project health dashboard.</p>
+        <p className="text-muted-foreground">No assessments have been run yet.</p>
+        <p className="text-sm text-muted-foreground mt-1">Start an assessment to see the project health dashboard.</p>
       </div>
     );
   }
@@ -87,7 +87,7 @@ export function HealthMonitorDashboard({
 
       {/* Workflow Widgets Grid */}
       <div>
-        <h3 className="text-lg font-semibold mb-4">Analysis Health by Workflow</h3>
+        <h3 className="text-lg font-semibold mb-4">Results Overview by Assessment Type</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {sortedHealthData.map((data) => (
             <WorkflowHealthWidget

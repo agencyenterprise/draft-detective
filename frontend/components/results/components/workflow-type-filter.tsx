@@ -72,7 +72,7 @@ export function WorkflowTypeFilter({
         <Button
           variant="outline"
           size="sm"
-          title="Filter by analysis type"
+          title="Filter by assessment type"
           className="h-6 px-2 text-xs gap-1 flex items-center"
         >
           <FilterIcon className="size-3.5" />
@@ -86,7 +86,7 @@ export function WorkflowTypeFilter({
       </PopoverTrigger>
       <PopoverContent className="w-64 p-2" align="end">
         <div className="space-y-1">
-          <p className="text-xs font-medium text-muted-foreground px-2 pb-1">Analysis type</p>
+          <p className="text-xs font-medium text-muted-foreground px-2 pb-1">Assessment type</p>
           {workflowTypeOptions.map((option) => (
             <label
               key={option.value}

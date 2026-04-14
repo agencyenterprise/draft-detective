@@ -24,7 +24,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: 'AI Reviewer',
   description:
-    'AI-powered document review and analysis platform for accurate citations, fact-checking, and quality assessment',
+    'AI-powered document review and assessment platform for accurate citations, fact-checking, and quality assessment',
 };
 
 export default async function RootLayout({

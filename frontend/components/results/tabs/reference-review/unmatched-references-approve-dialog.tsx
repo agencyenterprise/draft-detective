@@ -44,7 +44,7 @@ export function UnmatchedReferencesApproveDialog({
             </p>
             <p>
               Without source documents, we won&apos;t be able to fully verify claims that cite these references. You can
-              still run the analysis, but results may be incomplete.
+              still run the assessment, but results may be incomplete.
             </p>
           </AlertDialogDescription>
         </AlertDialogHeader>

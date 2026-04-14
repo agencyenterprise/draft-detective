@@ -184,7 +184,7 @@ export function AnalysisOptionsMenu({ project, results, readOnly }: AnalysisOpti
                 <MenuItemWithTooltip
                   icon={RefreshCw}
                   onClick={() => setIsReplaceDialogOpen(true)}
-                  tooltip="Upload a new version of the main document and re-run analyses"
+                  tooltip="Upload a new version of the main document and re-run assessments"
                 >
                   Replace main document
                 </MenuItemWithTooltip>
@@ -194,7 +194,7 @@ export function AnalysisOptionsMenu({ project, results, readOnly }: AnalysisOpti
                   onClick={() => share.setIsDialogOpen(true)}
                   tooltip={share.isEnabled ? 'View or copy the share link' : 'Create a public link'}
                 >
-                  {share.isEnabled ? 'Manage share link' : 'Share this analysis'}
+                  {share.isEnabled ? 'Manage share link' : 'Share this assessment'}
                 </MenuItemWithTooltip>
               </>
             )}

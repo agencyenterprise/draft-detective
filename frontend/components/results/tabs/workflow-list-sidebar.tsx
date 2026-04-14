@@ -78,11 +78,11 @@ export function WorkflowListSidebar({
     <div className="w-1/4 overflow-y-auto border-r pr-4">
       <div className="space-y-2">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-semibold">Analyses</h3>
+          <h3 className="text-sm font-semibold">Assessments</h3>
           {!readOnly && (
             <Button size="xs" variant="outline" onClick={onStartNewAnalysis}>
               <PlusIcon className="size-3" />
-              New Analysis
+              New Assessment
             </Button>
           )}
         </div>
@@ -104,7 +104,7 @@ export function WorkflowListSidebar({
                 className={cn('w-3 h-3 text-muted-foreground transition-transform', !internalExpanded && '-rotate-90')}
               />
               <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide group-hover:text-foreground transition-colors">
-                Internal Analyses
+                Internal Workflows
               </h4>
               <span className="text-xs text-muted-foreground font-normal">({internalWorkflows.length})</span>
               <Tooltip>
@@ -115,7 +115,7 @@ export function WorkflowListSidebar({
                   />
                 </TooltipTrigger>
                 <TooltipContent>
-                  These analyses run automatically as part of the analysis pipeline and are not user-triggered.
+                  These workflows run automatically as part of the analysis pipeline and are not user-triggered.
                 </TooltipContent>
               </Tooltip>
             </button>

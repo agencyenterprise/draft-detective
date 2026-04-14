@@ -151,7 +151,7 @@ export function WorkflowTypeCheckbox({
                     </Badge>
                   </TooltipTrigger>
                   <TooltipContent side="top" className="max-w-xs">
-                    This analysis is part of the QA Screener tool, designed for quality assurance screening of
+                    This assessment is part of the QA Screener tool, designed for quality assurance screening of
                     documents.
                   </TooltipContent>
                 </Tooltip>
@@ -165,7 +165,7 @@ export function WorkflowTypeCheckbox({
                     </Badge>
                   </TooltipTrigger>
                   <TooltipContent side="top" className="max-w-xs">
-                    This analysis requires the full text of referenced documents. Claims citing references without
+                    This assessment requires the full text of referenced documents. Claims citing references without
                     matched source documents will be skipped. You can upload sources or fetch from the web in Step 3.
                   </TooltipContent>
                 </Tooltip>
@@ -179,8 +179,8 @@ export function WorkflowTypeCheckbox({
                     </Badge>
                   </TooltipTrigger>
                   <TooltipContent side="top" className="max-w-xs">
-                    This analysis searches the web (using a web search tool) for additional context and information to
-                    enhance the analysis. Parts of the document might be used as web search query/context.
+                    This assessment searches the web (using a web search tool) for additional context and information to
+                    enhance the assessment. Parts of the document might be used as web search query/context.
                   </TooltipContent>
                 </Tooltip>
               )}
@@ -193,7 +193,7 @@ export function WorkflowTypeCheckbox({
                     </Badge>
                   </TooltipTrigger>
                   <TooltipContent side="top" className="max-w-xs">
-                    This analysis is still highly experimental and being refined. Results may vary and the feature may
+                    This assessment is still highly experimental and being refined. Results may vary and the feature may
                     change in future updates.
                   </TooltipContent>
                 </Tooltip>
