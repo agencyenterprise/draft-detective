@@ -15,6 +15,7 @@ from evals_inspectai.common.api_client import (
     start_workflow,
     upload_and_start_analysis,
 )
+from evals_inspectai.common.errors import WorkflowCompletionError, check_workflow_errors
 from evals_inspectai.common.scorers import structured_output_scorer
 
 
@@ -98,6 +99,8 @@ def _reference_downloader_api_agent(
         )
 
         workflow_state = run_detail.get("state") or {}
+        check_workflow_errors(workflow_state)
+        _check_item_errors(workflow_state)
 
         state.output = ModelOutput(
             completion=json.dumps(workflow_state),
@@ -106,6 +109,16 @@ def _reference_downloader_api_agent(
         return state
 
     return execute
+
+
+def _check_item_errors(workflow_state: dict) -> None:
+    """Raise if any fetched reference has a per-item error."""
+    for item in workflow_state.get("fetched_references", []):
+        if isinstance(item, dict) and item.get("error"):
+            raise WorkflowCompletionError(
+                f"Reference '{item.get('input_reference', '?')}' "
+                f"failed: {item['error']}"
+            )
 
 
 def _compare_final_conclusion(

@@ -8,6 +8,7 @@ from inspect_ai.solver import TaskState
 from pydantic import BaseModel, Field
 
 from evals_inspectai.common.api_solver import api_workflow_agent
+from evals_inspectai.common.errors import WorkflowCompletionError
 from evals_inspectai.common.scorers import model_graded_check, structured_output_scorer
 
 
@@ -85,6 +86,10 @@ def _compare_final_result(output: ReferenceValidationOutput, state: TaskState) -
         return Score(value=INCORRECT, explanation="No reference validations found")
 
     first = output.reference_validations[0]
+    if first.error:
+        raise WorkflowCompletionError(
+            f"Reference '{first.input_reference}' failed: {first.error}"
+        )
     if first.validation_result is None:
         return Score(value=INCORRECT, explanation="No validation result found")
 
