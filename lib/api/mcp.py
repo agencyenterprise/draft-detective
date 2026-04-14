@@ -56,15 +56,23 @@ def _looks_like_email(value: str) -> bool:
 
 async def _resolve_user(token: AccessToken) -> User:
     """Resolve the DB user from an authenticated OAuth access token."""
-    email = token.claims.get("email")
-    name = token.claims.get("name")
-    # Azure Entra ID nests identity under upstream_claims
-    if not email:
-        upstream = token.claims.get("upstream_claims", {})
-        email = upstream.get("email") or upstream.get("preferred_username")
-    if not name:
-        upstream = token.claims.get("upstream_claims", {})
-        name = upstream.get("name") or email
+    claims = token.claims
+    upstream = claims.get("upstream_claims", {})
+    # Azure Entra ID: email is optional and preferred_username (UPN) may be
+    # the only identifier.  FastMCP validates the upstream Azure JWT and
+    # exposes its claims at the top level, but also embeds them under
+    # "upstream_claims" in its own reference JWT — check both paths.
+    email = (
+        claims.get("email")
+        or claims.get("preferred_username")
+        or upstream.get("email")
+        or upstream.get("preferred_username")
+    )
+    name = (
+        claims.get("name")
+        or upstream.get("name")
+        or email
+    )
     if not email:
         raise RuntimeError("Token missing 'email' claim")
     if not _looks_like_email(email):
