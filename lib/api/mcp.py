@@ -48,12 +48,37 @@ mcp = FastMCP(
 )
 
 
+def _looks_like_email(value: str) -> bool:
+    """Minimal check: contains exactly one '@' with text on both sides."""
+    parts = value.split("@")
+    return len(parts) == 2 and all(parts)
+
+
 async def _resolve_user(token: AccessToken) -> User:
     """Resolve the DB user from an authenticated OAuth access token."""
-    email = token.claims.get("email")
-    name = token.claims.get("name", email)
+    claims = token.claims
+    upstream = claims.get("upstream_claims", {})
+    # Azure Entra ID: email is optional and preferred_username (UPN) may be
+    # the only identifier.  FastMCP validates the upstream Azure JWT and
+    # exposes its claims at the top level, but also embeds them under
+    # "upstream_claims" in its own reference JWT — check both paths.
+    email = (
+        claims.get("email")
+        or claims.get("preferred_username")
+        or upstream.get("email")
+        or upstream.get("preferred_username")
+    )
+    name = (
+        claims.get("name")
+        or upstream.get("name")
+        or email
+    )
     if not email:
         raise RuntimeError("Token missing 'email' claim")
+    if not _looks_like_email(email):
+        raise RuntimeError(
+            f"Resolved identity '{email}' is not a valid email address"
+        )
     return await get_or_create_user_by_email(email=email, name=name)
 
 

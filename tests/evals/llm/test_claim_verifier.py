@@ -76,7 +76,7 @@ async def _build_cases(dataset_file_name: str):
     if not config.OPENAI_API_KEY:
         raise ValueError("OPENAI_API_KEY is not set")
 
-    vector_store = VectorStoreService(config.DATABASE_URL, config.OPENAI_API_KEY)
+    vector_store = VectorStoreService(config.OPENAI_API_KEY)
 
     for supporting_doc in supporting_docs_set:
         file_doc = await create_test_file_document_from_path(supporting_doc)

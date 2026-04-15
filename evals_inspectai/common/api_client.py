@@ -11,6 +11,8 @@ from typing import Any
 import httpx
 import jwt
 
+from evals_inspectai.common.errors import check_workflow_errors
+
 logger = logging.getLogger(__name__)
 
 DEFAULT_BASE_URL = "http://localhost:8000"
@@ -168,6 +170,7 @@ async def poll_workflow_run_until_complete(
             status = run_detail.get("run", {}).get("status")
             if status == "completed":
                 logger.info("Workflow run %s completed", workflow_run_id)
+                check_workflow_errors(run_detail.get("state") or {})
                 return run_detail
             logger.debug(
                 "Workflow run %s status=%s, polling again in %ss",
@@ -209,6 +212,7 @@ async def poll_until_complete(
                         workflow_type,
                         run.get("id"),
                     )
+                    check_workflow_errors(run_detail.get("state") or {})
                     return run_detail
                 logger.debug(
                     "Workflow %s status=%s, polling again in %ss",

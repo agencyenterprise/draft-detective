@@ -161,6 +161,113 @@ async def test_resolve_user_falls_back_email_as_name():
     mock_get.assert_awaited_once_with(email="bob@example.com", name="bob@example.com")
 
 
+@pytest.mark.asyncio
+async def test_resolve_user_azure_preferred_username_top_level():
+    """Azure v2.0 tokens expose preferred_username at the top level."""
+    token = MagicMock()
+    token.claims = {"preferred_username": "jane@example.com", "name": "Jane Doe"}
+    mock_user = _make_user(email="jane@example.com", name="Jane Doe")
+
+    with patch(
+        "lib.api.mcp.get_or_create_user_by_email",
+        new=AsyncMock(return_value=mock_user),
+    ) as mock_get:
+        result = await _resolve_user(token)
+
+    mock_get.assert_awaited_once_with(email="jane@example.com", name="Jane Doe")
+    assert result is mock_user
+
+
+@pytest.mark.asyncio
+async def test_resolve_user_azure_preferred_username_no_name():
+    """Falls back to preferred_username as the display name."""
+    token = MagicMock()
+    token.claims = {"preferred_username": "jane@example.com"}
+    mock_user = _make_user(email="jane@example.com", name="jane@example.com")
+
+    with patch(
+        "lib.api.mcp.get_or_create_user_by_email",
+        new=AsyncMock(return_value=mock_user),
+    ) as mock_get:
+        result = await _resolve_user(token)
+
+    mock_get.assert_awaited_once_with(email="jane@example.com", name="jane@example.com")
+    assert result is mock_user
+
+
+@pytest.mark.asyncio
+async def test_resolve_user_azure_upstream_claims_email():
+    """FastMCP reference JWT embeds Azure claims under upstream_claims."""
+    token = MagicMock()
+    token.claims = {"upstream_claims": {"email": "jane@example.com", "name": "Jane Doe"}}
+    mock_user = _make_user(email="jane@example.com", name="Jane Doe")
+
+    with patch(
+        "lib.api.mcp.get_or_create_user_by_email",
+        new=AsyncMock(return_value=mock_user),
+    ) as mock_get:
+        result = await _resolve_user(token)
+
+    mock_get.assert_awaited_once_with(email="jane@example.com", name="Jane Doe")
+    assert result is mock_user
+
+
+@pytest.mark.asyncio
+async def test_resolve_user_azure_upstream_claims_preferred_username():
+    """Falls back to upstream_claims.preferred_username when no email."""
+    token = MagicMock()
+    token.claims = {"upstream_claims": {"preferred_username": "jane@example.com"}}
+    mock_user = _make_user(email="jane@example.com", name="jane@example.com")
+
+    with patch(
+        "lib.api.mcp.get_or_create_user_by_email",
+        new=AsyncMock(return_value=mock_user),
+    ) as mock_get:
+        result = await _resolve_user(token)
+
+    mock_get.assert_awaited_once_with(email="jane@example.com", name="jane@example.com")
+    assert result is mock_user
+
+
+@pytest.mark.asyncio
+async def test_resolve_user_email_takes_priority_over_preferred_username():
+    """Top-level email wins over preferred_username."""
+    token = MagicMock()
+    token.claims = {
+        "email": "official@example.com",
+        "preferred_username": "alias@example.com",
+        "name": "Jane Doe",
+    }
+    mock_user = _make_user(email="official@example.com", name="Jane Doe")
+
+    with patch(
+        "lib.api.mcp.get_or_create_user_by_email",
+        new=AsyncMock(return_value=mock_user),
+    ) as mock_get:
+        result = await _resolve_user(token)
+
+    mock_get.assert_awaited_once_with(email="official@example.com", name="Jane Doe")
+    assert result is mock_user
+
+
+@pytest.mark.asyncio
+async def test_resolve_user_raises_when_no_email_anywhere():
+    token = MagicMock()
+    token.claims = {"name": "No Email User", "upstream_claims": {"name": "No Email"}}
+
+    with pytest.raises(RuntimeError, match="Token missing 'email' claim"):
+        await _resolve_user(token)
+
+
+@pytest.mark.asyncio
+async def test_resolve_user_raises_when_preferred_username_not_email():
+    token = MagicMock()
+    token.claims = {"preferred_username": "jdoe"}
+
+    with pytest.raises(RuntimeError, match="not a valid email address"):
+        await _resolve_user(token)
+
+
 # --- create_project ---
 
 

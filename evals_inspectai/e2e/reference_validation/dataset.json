@@ -87,7 +87,7 @@
   {
     "input": "Najoung Kim and Tal Linzen. Cogs: A compositional generalization challenge based on semantic interpretation. In NAACL, 2021.",
     "target_final_result": "found_with_inconsistencies",
-    "target_answer": "Replace the incorrect author list (and add the arXiv identifier) to match the actual NeurIPS 2022 paper by Takuya Ito et al."
+    "target_answer": "Venue is wrong (should be EMNLP, not NAACL) and year is wrong (should be 2020, not 2021). Authors are correct."
   },
   {
     "input": "Brenden M. Lake and Marco Baroni. Generalization without systematicity: On the compositional skills of sequence-to-sequence recurrent networks. ICML, 2018.",
@@ -231,8 +231,8 @@
   },
   {
     "input": "Carter, Ashton B., \"0% Headquarters Reductions,\" memorandum to secretaries of the military departments et al., U.S. Department of Defense, July 31, 2013.",
-    "target_final_result": "valid",
-    "target_answer": "Valid government memorandum citation with potential small inconsistencies"
+    "target_final_result": "found_with_inconsistencies",
+    "target_answer": "The title is incorrect: the actual memo subject is '20% Headquarters Reductions', not '0% Headquarters Reductions'. Author, publisher, and date are correct."
   },
   {
     "input": "Embassy of the United States in Jordan, \"The United States and the Hashemite Kingdom of Jordan Sign Memorandum of Understanding on Assistance,\" press release, September 23, 2008.",

@@ -2,7 +2,9 @@
 
 import pytest
 
+from lib.config.database import async_engine as shared_async_engine
 from lib.services.vector_store import (
+    VectorStoreService,
     _char_offset_to_line,
     _splitter,
     build_chunk_docs,
@@ -124,3 +126,26 @@ class TestBuildChunkDocs:
         assert len(docs) >= 1
         assert docs[0].metadata["file_name"] == "report.pdf"
         assert docs[0].metadata["collection_id"] == "col_abc"
+
+
+class TestVectorStoreServiceSharedEngine:
+    """Regression tests guarding the single-engine invariant.
+
+    The service must reuse ``lib.config.database.async_engine`` instead of
+    creating its own SQLAlchemy engine/pool. Owning a second pool defeats
+    the main engine's ``pool_size``/``max_overflow`` caps — pools declared
+    elsewhere don't share that budget, so total per-process connections
+    could exceed Postgres ``max_connections`` and trigger
+    ``FATAL: sorry, too many clients already``.
+    """
+
+    def test_uses_shared_async_engine(self):
+        """VectorStoreService.async_engine is the same object as the shared engine."""
+        service = VectorStoreService("test-key")
+        assert service.async_engine is shared_async_engine
+
+    def test_multiple_instances_share_one_engine(self):
+        """Instantiating the service multiple times must not create extra pools."""
+        a = VectorStoreService("test-key-a")
+        b = VectorStoreService("test-key-b")
+        assert a.async_engine is b.async_engine is shared_async_engine
