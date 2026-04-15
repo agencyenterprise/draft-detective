@@ -6,6 +6,32 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v0.5.30] - 2026-04-15
+
+### Added
+- Added a `WorkflowCompletionError` and a `check_workflow_errors()` utility to surface workflow completion errors as sample errors in Inspect AI evals.
+- Added tests covering Azure Entra ID upstream claims scenarios for MCP email/name resolution.
+- Added tests to ensure `VectorStoreService` uses a shared SQLAlchemy async engine and that multiple instances share one engine.
+- Added tests for the checkpointer pool behavior, including concurrency and reopen/close scenarios.
+
+### Changed
+- Updated LangChain ecosystem packages and Langfuse to newer versions.
+- Bumped pytest from 9.0.2 to 9.0.3.
+- Bumped pillow from 12.1.1 to 12.2.0.
+- Updated `VectorStoreService` to reuse the shared SQLAlchemy `async_engine` and changed its constructor to take only `openai_api_key`.
+- Changed the langgraph checkpointer to use a bounded module-level psycopg pool and added explicit SQLAlchemy engine pool caps (`pool_size=8`, `max_overflow=3`).
+- Updated FastAPI lifespan shutdown to close the checkpointer pool.
+
+### Fixed
+- Fixed MCP auth crashes for Azure Entra ID users by falling back to `upstream_claims` for email/name resolution and validating email format.
+- Fixed incorrect entries in the `reference_validation` eval dataset (including expected values) and corrected the internal eval dataset file path (`.jsonl` to `.json`).
+- Fixed eval behavior so workflow completion errors (e.g., rate limits/timeouts) are recorded as errors instead of being scored as incorrect. 
+
+### Security
+- Updated dependencies including LangChain ecosystem packages and Langfuse for security-related upgrades.
+- Updated pytest to 9.0.3, which includes a fix for use of an insecure temporary directory (CVE-2025-71176).
+
+
 ## [v0.5.29] - 2026-04-13
 
 ### Added
