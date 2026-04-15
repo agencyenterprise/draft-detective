@@ -15,6 +15,7 @@ from lib.services.file_artifacts_service.file_artifacts_service import (
     FileArtifactsService,
 )
 from lib.services.issue_persistence import persist_workflow_issues
+from lib.services.live_message_writer import LiveMessageWriter
 from lib.services.users import get_user_decrypted_api_key
 from lib.services.vector_store import VectorStoreService
 from lib.services.workflow_runs import update_workflow_run_status
@@ -155,6 +156,23 @@ async def run_workflow(
         checkpoint_id = None
         updated_state = state.model_copy(deep=True, update={"errors": []})
         thread_config = {"configurable": {"thread_id": thread_id}}
+
+        # Opt-in workflows (e.g. SimpleDeepAgentManifest subclasses) get a
+        # LiveMessageWriter so their node can append deep-agent messages to
+        # `state.messages` mid-run. The existing polling on
+        # GET /api/workflows/{id} then surfaces the growing list without
+        # needing a new transport.
+        manifest = get_workflow_manifest(workflow_type, raise_exception=False)
+        if manifest and manifest.supports_live_messages:
+            context = context.model_copy(
+                update={
+                    "live_message_writer": LiveMessageWriter(
+                        app=app,
+                        thread_config=thread_config,
+                        node_name=manifest.live_messages_node_name,
+                    )
+                }
+            )
 
         try:
             async for values in app.astream(

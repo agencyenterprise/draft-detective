@@ -50,6 +50,17 @@ class WorkflowManifest[WorkflowStateType, WorkflowConfigType](ABC):
     # The workflows needs to be idempotent, meaning it can be run multiple times without changing the result and typical execute only "new" content that was not processed in a previous run, reusing cached results from previous runs, like summarization, document conversion, etc (should process only new files in subsequent runs).
     always_run: bool = False
 
+    # If True, the runner builds a LiveMessageWriter and attaches it to the
+    # context so the workflow node can append deep-agent messages to state
+    # mid-run. Requires that the workflow's state has a `messages` field with
+    # the `add_messages` reducer, and that the opted-in node is named
+    # consistently so `aupdate_state(..., as_node=...)` can target it.
+    supports_live_messages: bool = False
+
+    # Node name that LiveMessageWriter passes to `aupdate_state(as_node=...)`
+    # when `supports_live_messages` is True.
+    live_messages_node_name: str = "run_agent"
+
     @property
     def is_qa_screener(self) -> bool:
         """Whether the workflow is part of the QA Screener tool."""

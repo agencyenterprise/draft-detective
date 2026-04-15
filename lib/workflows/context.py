@@ -5,6 +5,7 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field
 
 from lib.services.file_artifacts_service.file_artifacts_service_type import FileArtifactsServiceType
+from lib.services.live_message_writer import LiveMessageWriter
 from lib.services.vector_store import VectorStoreService
 
 
@@ -36,6 +37,15 @@ class ContextSchema(BaseModel):
     revision: int = Field(
         default=1,
         description="The project revision this workflow execution belongs to.",
+    )
+    live_message_writer: Optional[LiveMessageWriter] = Field(
+        default=None,
+        exclude=True,
+        description=(
+            "Optional helper for appending deep-agent messages to `state.messages` "
+            "mid-run. Populated by the runner only for workflows whose manifest "
+            "sets `supports_live_messages = True`."
+        ),
     )
 
 

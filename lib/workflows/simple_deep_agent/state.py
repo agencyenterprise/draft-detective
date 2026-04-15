@@ -6,9 +6,10 @@ because deserialization always goes through the manifest's get_state_type(),
 not Pydantic union dispatch.
 """
 
-from typing import List, Optional
+from typing import Annotated, List, Optional
 
 from langchain_core.messages import BaseMessage
+from langgraph.graph.message import add_messages
 from pydantic import Field, field_serializer
 
 from lib.workflows.models import BaseWorkflowConfig, BaseWorkflowState, WorkflowRunType
@@ -34,7 +35,9 @@ class SimpleDeepAgentState(BaseWorkflowState):
         default=None,
         description="Result from the deep agent validation pass",
     )
-    messages: List[BaseMessage] = Field(
+    # `add_messages` reducer so mid-run appends (from LiveMessageWriter) and
+    # the final node return both accumulate rather than replace.
+    messages: Annotated[List[BaseMessage], add_messages] = Field(
         default_factory=list,
         description="LLM conversation messages from the agent invocation.",
     )

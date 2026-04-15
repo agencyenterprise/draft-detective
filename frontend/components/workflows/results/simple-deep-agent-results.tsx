@@ -58,27 +58,20 @@ function IssuesList({ result }: { result: AgentCheckResult }) {
 }
 
 export function SimpleDeepAgentResults({ workflowDetail, workflowName }: SimpleDeepAgentResultsProps) {
+  const isRunning = isWorkflowProcessing(workflowDetail);
+  const isCancelled = isWorkflowCancelled(workflowDetail);
+
   const messages = workflowDetail.state?.messages ?? [];
   const displayedMessages = messages.filter((message) => message.type !== 'tool');
 
   const runtime = useExternalStoreRuntime({
     messages: displayedMessages,
     convertMessage: (message) => convertLangChainMessages(message as LangChainMessage, {}) as ThreadMessageLike,
-    isRunning: false,
+    isRunning,
     onNew: async () => {},
   });
 
-  if (isWorkflowProcessing(workflowDetail)) {
-    return (
-      <EmptyState
-        icon={<Loader2 className="h-8 w-8 animate-spin text-muted-foreground mx-auto" />}
-        message={`Analyzing Document…`}
-        description={`The ${workflowName} analysis is currently running. Results will appear here once complete.`}
-      />
-    );
-  }
-
-  if (isWorkflowCancelled(workflowDetail)) {
+  if (isCancelled) {
     return (
       <EmptyState
         icon={<Ban className="h-8 w-8 text-muted-foreground mx-auto" />}
@@ -89,15 +82,16 @@ export function SimpleDeepAgentResults({ workflowDetail, workflowName }: SimpleD
   }
 
   const state = workflowDetail.state as SimpleDeepAgentState | undefined;
+  const result = state?.result;
 
-  if (!state?.result) {
-    return <EmptyState message="No results available for this workflow run." />;
-  }
-
-  const { result } = state;
+  // While running, default to the Messages tab so users see live agent
+  // activity immediately. The backend appends messages to state.messages
+  // mid-run, and the existing 3s polling on useProjectDetails re-renders
+  // this component with the growing list.
+  const defaultTab = isRunning || !result ? 'messages' : 'results';
 
   return (
-    <Tabs defaultValue="results">
+    <Tabs defaultValue={defaultTab}>
       <TabsList>
         <TabsTrigger value="results" className="gap-1.5">
           <ClipboardList className="h-3.5 w-3.5" />
@@ -106,28 +100,48 @@ export function SimpleDeepAgentResults({ workflowDetail, workflowName }: SimpleD
         <TabsTrigger value="messages" className="gap-1.5">
           <MessageSquare className="h-3.5 w-3.5" />
           Messages
+          {isRunning && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
         </TabsTrigger>
       </TabsList>
 
       <TabsContent value="results" className="space-y-4">
-        <IssuesList result={result} />
-
-        {result.report_markdown && (
-          <Card className="gap-2">
-            <CardHeader>
-              <CardTitle className="text-sm">Report</CardTitle>
-            </CardHeader>
-            <CardContent className="text-sm">
-              <Markdown>{result.report_markdown}</Markdown>
-            </CardContent>
-          </Card>
+        {result ? (
+          <>
+            <IssuesList result={result} />
+            {result.report_markdown && (
+              <Card className="gap-2">
+                <CardHeader>
+                  <CardTitle className="text-sm">Report</CardTitle>
+                </CardHeader>
+                <CardContent className="text-sm">
+                  <Markdown>{result.report_markdown}</Markdown>
+                </CardContent>
+              </Card>
+            )}
+          </>
+        ) : isRunning ? (
+          <EmptyState
+            icon={<Loader2 className="h-8 w-8 animate-spin text-muted-foreground mx-auto" />}
+            message="Analyzing Document…"
+            description={`The ${workflowName} analysis is currently running. Switch to Messages to see the agent's progress, or wait for results here.`}
+          />
+        ) : (
+          <EmptyState message="No results available for this workflow run." />
         )}
       </TabsContent>
 
       <TabsContent value="messages" className="mt-4">
-        <AssistantRuntimeProvider runtime={runtime}>
-          <ReadonlyThread />
-        </AssistantRuntimeProvider>
+        {displayedMessages.length === 0 && isRunning ? (
+          <EmptyState
+            icon={<Loader2 className="h-8 w-8 animate-spin text-muted-foreground mx-auto" />}
+            message="Starting analysis…"
+            description="The agent is warming up. Messages will appear here as the analysis progresses."
+          />
+        ) : (
+          <AssistantRuntimeProvider runtime={runtime}>
+            <ReadonlyThread />
+          </AssistantRuntimeProvider>
+        )}
       </TabsContent>
     </Tabs>
   );
