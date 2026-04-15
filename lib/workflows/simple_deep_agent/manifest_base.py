@@ -48,6 +48,11 @@ class SimpleDeepAgentManifest(
     system_prompt: ClassVar[Optional[str]] = None
     include_supporting_files: ClassVar[bool] = False
 
+    # All simple-deep-agent workflows run under a single "run_agent" node and
+    # use the add_messages reducer on their state, so they can safely stream
+    # deep-agent messages back to the client mid-run.
+    supports_live_messages: ClassVar[bool] = True
+
     def get_state_type(self) -> Type[SimpleDeepAgentState]:
         return SimpleDeepAgentState
 
