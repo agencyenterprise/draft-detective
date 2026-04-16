@@ -445,6 +445,10 @@ uv run inspect view
 
 ## Git Conventions
 
+### Commits and Pull Requests
+
+Never create commits or open pull requests unless the user explicitly asks. Finish the implementation, confirm it works, then wait for instruction before touching git.
+
 ### Commit Messages
 
 Use [Conventional Commits](https://www.conventionalcommits.org/) for all commit messages. The format is:
