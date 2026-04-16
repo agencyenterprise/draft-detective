@@ -34,7 +34,11 @@ rand-personal/
 
 # cursor plans
 .cursor/plans/
-.claude/settings.json
+
+# claude files
+.claude/projects
+.claude/worktrees
+.claude/settings.local.json
 
 # logs
 /logs/
