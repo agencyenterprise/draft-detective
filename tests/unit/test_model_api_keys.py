@@ -45,12 +45,12 @@ def test_model_api_key_used_in_init_kwargs():
     assert kwargs["api_key"] == "sk-model-specific"
 
 
-def test_model_api_key_takes_priority_over_context_key():
+def test_context_key_takes_priority_over_model_key():
     agent = _TestAgent(_make_context(openai_api_key="sk-context-key"))
     with patch("lib.config.env.config") as mock_config:
         mock_config.MODEL_API_KEYS = {"gpt-5-mini-2025-08-07": "sk-model-specific"}
         kwargs = agent.get_init_chat_model_kwargs()
-    assert kwargs["api_key"] == "sk-model-specific"
+    assert kwargs["api_key"] == "sk-context-key"
 
 
 def test_context_key_used_when_no_model_key():
@@ -69,14 +69,25 @@ def test_no_api_key_in_kwargs_when_neither_set():
     assert "api_key" not in kwargs
 
 
-def test_rate_limiter_bucketed_by_model_key():
-    agent = _TestAgent(_make_context(openai_api_key="sk-context-key"))
+def test_rate_limiter_uses_model_key_when_no_context_key():
+    agent = _TestAgent(_make_context())
     with patch("lib.config.env.config") as mock_config:
         mock_config.MODEL_API_KEYS = {"gpt-5-mini-2025-08-07": "sk-model-specific"}
         limiter = agent.get_rate_limiter()
 
     from lib.config.rate_limiter import get_rate_limiter as get_rl
     expected = get_rl(hash_api_key("sk-model-specific"))
+    assert limiter is expected
+
+
+def test_rate_limiter_prefers_context_key_over_model_key():
+    agent = _TestAgent(_make_context(openai_api_key="sk-context-key"))
+    with patch("lib.config.env.config") as mock_config:
+        mock_config.MODEL_API_KEYS = {"gpt-5-mini-2025-08-07": "sk-model-specific"}
+        limiter = agent.get_rate_limiter()
+
+    from lib.config.rate_limiter import get_rate_limiter as get_rl
+    expected = get_rl(hash_api_key("sk-context-key"))
     assert limiter is expected
 
 

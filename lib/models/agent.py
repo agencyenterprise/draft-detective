@@ -61,8 +61,8 @@ class LangChainAgent(BaseAgent):
 
     def get_rate_limiter(self) -> BaseRateLimiter:
         api_key = (
-            get_model_api_key(self.model.name)
-            or self.context.openai_api_key
+            self.context.openai_api_key
+            or get_model_api_key(self.model.name)
             or "default"
         )
         return get_rate_limiter(hash_api_key(api_key))
@@ -79,13 +79,13 @@ class LangChainAgent(BaseAgent):
         if self.reasoning:
             init_kwargs["reasoning"] = self.reasoning
 
-        # Resolve API key: per-model override takes priority, then context key (OpenAI only)
-        model_api_key = get_model_api_key(self.model.name)
-        effective_api_key = model_api_key or (
-            self.context.openai_api_key if self.model.provider == "openai" else None
-        )
-        if effective_api_key:
-            init_kwargs["api_key"] = effective_api_key
+        # Resolve API key: user context key takes priority, then per-model override (OpenAI only)
+        if self.model.provider == "openai":
+            effective_api_key = (
+                self.context.openai_api_key or get_model_api_key(self.model.name)
+            )
+            if effective_api_key:
+                init_kwargs["api_key"] = effective_api_key
 
         return init_kwargs
 
