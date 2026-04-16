@@ -60,12 +60,12 @@ class LangChainAgent(BaseAgent):
         self.context = context
 
     def get_rate_limiter(self) -> BaseRateLimiter:
-        api_key = (
-            self.context.openai_api_key
-            or get_model_api_key(self.model.name)
-            or "default"
+        openai_key = (
+            self.context.openai_api_key or get_model_api_key(self.model.name)
+            if self.model.provider == "openai"
+            else None
         )
-        return get_rate_limiter(hash_api_key(api_key))
+        return get_rate_limiter(hash_api_key(openai_key or "default"))
 
     def get_init_chat_model_kwargs(self) -> dict:
         init_kwargs = {
