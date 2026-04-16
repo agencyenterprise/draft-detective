@@ -59,13 +59,14 @@ class LangChainAgent(BaseAgent):
     def __init__(self, context: ContextSchema):
         self.context = context
 
+    def _resolve_api_key(self) -> str | None:
+        """User context key wins; falls back to per-model override. OpenAI only."""
+        if self.model.provider != "openai":
+            return None
+        return self.context.openai_api_key or get_model_api_key(self.model.name)
+
     def get_rate_limiter(self) -> BaseRateLimiter:
-        openai_key = (
-            self.context.openai_api_key or get_model_api_key(self.model.name)
-            if self.model.provider == "openai"
-            else None
-        )
-        return get_rate_limiter(hash_api_key(openai_key or "default"))
+        return get_rate_limiter(hash_api_key(self._resolve_api_key() or "default"))
 
     def get_init_chat_model_kwargs(self) -> dict:
         init_kwargs = {
@@ -79,13 +80,9 @@ class LangChainAgent(BaseAgent):
         if self.reasoning:
             init_kwargs["reasoning"] = self.reasoning
 
-        # Resolve API key: user context key takes priority, then per-model override (OpenAI only)
-        if self.model.provider == "openai":
-            effective_api_key = (
-                self.context.openai_api_key or get_model_api_key(self.model.name)
-            )
-            if effective_api_key:
-                init_kwargs["api_key"] = effective_api_key
+        api_key = self._resolve_api_key()
+        if api_key:
+            init_kwargs["api_key"] = api_key
 
         return init_kwargs
 

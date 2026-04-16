@@ -16,8 +16,11 @@ def _make_context(openai_api_key: str | None = None) -> ContextSchema:
     )
 
 
-class _TestAgent:
-    """Minimal LangChainAgent-like object for testing get_init_chat_model_kwargs / get_rate_limiter."""
+from lib.models.agent import LangChainAgent
+
+
+class _TestAgent(LangChainAgent):
+    """Minimal LangChainAgent subclass for testing API key resolution."""
 
     name = "Test Agent"
     description = "Test"
@@ -27,14 +30,8 @@ class _TestAgent:
     output_schema = None
     model = LLMModel(provider="openai", name="gpt-5-mini-2025-08-07")
 
-    def __init__(self, context: ContextSchema):
-        self.context = context
-        self._llm = None
-
-    from lib.models.agent import LangChainAgent
-
-    get_rate_limiter = LangChainAgent.get_rate_limiter
-    get_init_chat_model_kwargs = LangChainAgent.get_init_chat_model_kwargs
+    async def ainvoke(self, prompt_kwargs, config=None):  # type: ignore[override]
+        raise NotImplementedError
 
 
 def test_model_api_key_used_in_init_kwargs():
