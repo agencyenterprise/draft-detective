@@ -7,6 +7,7 @@ from langchain_core.rate_limiters import BaseRateLimiter
 from langchain_core.runnables.config import RunnableConfig
 from pydantic import BaseModel
 
+from lib.config.env import get_model_api_key
 from lib.config.llm_models import LLMModel
 from lib.config.rate_limiter import get_rate_limiter, hash_api_key
 from lib.workflows.context import ContextSchema
@@ -59,7 +60,11 @@ class LangChainAgent(BaseAgent):
         self.context = context
 
     def get_rate_limiter(self) -> BaseRateLimiter:
-        api_key = self.context.openai_api_key or "default"
+        api_key = (
+            get_model_api_key(self.model.name)
+            or self.context.openai_api_key
+            or "default"
+        )
         return get_rate_limiter(hash_api_key(api_key))
 
     def get_init_chat_model_kwargs(self) -> dict:
@@ -74,10 +79,13 @@ class LangChainAgent(BaseAgent):
         if self.reasoning:
             init_kwargs["reasoning"] = self.reasoning
 
-        # For OpenAI models: use context API key if provided, otherwise fall back to env var
-        # For other providers (Anthropic, Google): always use environment variables
-        if self.model.provider == "openai" and self.context.openai_api_key:
-            init_kwargs["api_key"] = self.context.openai_api_key
+        # Resolve API key: per-model override takes priority, then context key (OpenAI only)
+        model_api_key = get_model_api_key(self.model.name)
+        effective_api_key = model_api_key or (
+            self.context.openai_api_key if self.model.provider == "openai" else None
+        )
+        if effective_api_key:
+            init_kwargs["api_key"] = effective_api_key
 
         return init_kwargs
 
