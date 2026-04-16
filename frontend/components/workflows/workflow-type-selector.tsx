@@ -1,12 +1,9 @@
 'use client';
 
-import { useMemo, useState } from 'react';
-import { FlaskConical } from 'lucide-react';
+import { useMemo } from 'react';
 import { WorkflowRunType, WorkflowTypeDescription } from '@/lib/generated-api';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { WorkflowTypeCheckbox } from './workflow-type-checkbox';
-import { Checkbox } from '../ui/checkbox';
-import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
 import { useExperimentalFeatures } from '@/context/experimental-features-context';
 
 interface WorkflowTypeSelectorProps {
@@ -32,7 +29,6 @@ export function WorkflowTypeSelector({
   error,
 }: WorkflowTypeSelectorProps) {
   const { workflowTypes: allTypes, categories, isPending: isLoadingWorkflowTypes } = useWorkflowTypes();
-  const [showExperimental, setShowExperimental] = useState(false);
   const { showExperimentalFeatures } = useExperimentalFeatures();
 
   const workflowTypes = useMemo(() => {
@@ -42,9 +38,7 @@ export function WorkflowTypeSelector({
     return allTypes.filter((wt) => !wt.is_internal);
   }, [allTypes, restrictToType]);
 
-  const experimentalVisible = showExperimentalFeatures && (restrictToType !== undefined || showExperimental);
-
-  const hasExperimentalWorkflows = showExperimentalFeatures && workflowTypes.some((wt) => wt.is_experimental);
+  const experimentalVisible = showExperimentalFeatures;
 
   const visibleCount = workflowTypes.filter((wt) => !wt.is_experimental || experimentalVisible).length;
 
@@ -72,40 +66,17 @@ export function WorkflowTypeSelector({
   return (
     <div className="space-y-4">
       {showHeader && (
-        <div className="flex items-start justify-between gap-4">
-          <div className="space-y-1">
-            <h2 className="text-lg font-semibold">
-              Analyses Type Selection{' '}
-              {visibleCount > 0 && (
-                <span className="text-sm font-normal text-muted-foreground">
-                  ({selectedTypes.length}/{visibleCount} selected)
-                </span>
-              )}
-              <span className="text-destructive ml-1">*</span>
-            </h2>
-            {headerDescription && <p className="text-sm text-muted-foreground">{headerDescription}</p>}
-          </div>
-          {restrictToType === undefined && hasExperimentalWorkflows && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <label className="flex items-center gap-2 cursor-pointer shrink-0 mt-0.5">
-                  <Checkbox
-                    checked={showExperimental}
-                    tabIndex={-1}
-                    onCheckedChange={(checked) => setShowExperimental(checked === true)}
-                  />
-                  <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                    Show experimental
-                    <FlaskConical className="size-3.5" />
-                  </span>
-                </label>
-              </TooltipTrigger>
-              <TooltipContent side="left" className="max-w-xs">
-                Experimental analyses are still being refined. Results may vary and features may change in future
-                updates.
-              </TooltipContent>
-            </Tooltip>
-          )}
+        <div className="space-y-1">
+          <h2 className="text-lg font-semibold">
+            Analyses Type Selection{' '}
+            {visibleCount > 0 && (
+              <span className="text-sm font-normal text-muted-foreground">
+                ({selectedTypes.length}/{visibleCount} selected)
+              </span>
+            )}
+            <span className="text-destructive ml-1">*</span>
+          </h2>
+          {headerDescription && <p className="text-sm text-muted-foreground">{headerDescription}</p>}
         </div>
       )}
       <div className="space-y-2">
