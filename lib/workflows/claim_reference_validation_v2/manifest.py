@@ -48,11 +48,8 @@ def _format_evidence_source(
     supporting_files: Optional[List[FileDocument]],
 ) -> str:
     file = _get_file_by_id(supporting_files, source.file_id)
-    file_link = (
-        f"[{file.file_name}](/api/files/download/{file.file_id})"
-        if file
-        else f"File not found (file_id: {source.file_id})"
-    )
+    label = file.file_name if file else "View file"
+    file_link = f"[{label}](/api/files/download/{source.file_id})"
 
     if not source.quote and not source.location:
         return f"- {file_link}"
@@ -121,6 +118,7 @@ class ClaimReferenceValidationV2Manifest(
     needs_web_search = False
     is_experimental = True
     required_dependencies = [
+        WorkflowRunType.DOCUMENT_PROCESSING,
         WorkflowRunType.REFERENCE_FILE_MATCHING,
         WorkflowRunType.HUMAN_APPROVAL,
     ]

@@ -1,3 +1,4 @@
+import logging
 from typing import List, Type
 
 from langgraph.graph import StateGraph
@@ -11,6 +12,8 @@ from lib.workflows.document_processing.state import (
 from lib.workflows.manifest import WorkflowManifest
 from lib.workflows.models import DocumentIssue, WorkflowRunType
 from lib.workflows.workflow_types import WorkflowState
+
+logger = logging.getLogger(__name__)
 
 
 class DocumentProcessingManifest(
@@ -63,9 +66,18 @@ class DocumentProcessingManifest(
         assert main_file is not None, "No main file found for project"
         main_file_document = await load_file_document(main_file)
         assert main_file_document is not None, "Failed to load main file"
-        supporting_file_documents = [
-            await load_file_document(file) for file in supporting_files
-        ]
+
+        supporting_file_documents = []
+        for file in supporting_files:
+            try:
+                supporting_file_documents.append(await load_file_document(file))
+            except Exception as exc:
+                logger.warning(
+                    "Skipping supporting file %s (%s) — failed to load: %s",
+                    file.file_name,
+                    file.id,
+                    exc,
+                )
 
         return DocumentProcessingState(
             type=WorkflowRunType.DOCUMENT_PROCESSING,

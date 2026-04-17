@@ -157,7 +157,7 @@ class CitationValidatorAgent(LangChainAgent):
                     HumanMessage(content=_USER_MESSAGE),
                 ]
             },
-            config={"recursion_limit": 50, **(config or {})},
+            config={"recursion_limit": 80, **(config or {})},
             context=self.context,
         )
 
