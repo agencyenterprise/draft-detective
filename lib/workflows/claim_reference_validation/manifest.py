@@ -39,17 +39,16 @@ class ClaimReferenceValidationManifest(
     ]
 ):
     type = WorkflowRunType.CLAIM_REFERENCE_VALIDATION
-    name = "Claim Reference Validation"
+    name = "Claim Reference Validation (legacy)"
     description = """Do your citations actually back up what you claim they say? Cross-checks claims against the full text of your reference PDFs using RAG. If selected, you will need to provide your reference documents before the assessment will run - either by consenting to automatically fetch them via web search or uploading them manually."""
     needs_web_search = False
     required_dependencies = [
         WorkflowRunType.CLAIM_EXTRACTION,
         WorkflowRunType.CITATION_DETECTION,
         WorkflowRunType.REFERENCE_FILE_MATCHING,
-    ]
-    optional_dependencies = [
         WorkflowRunType.HUMAN_APPROVAL,
     ]
+    optional_dependencies = []
 
     def get_state_type(self) -> Type[ClaimReferenceValidationState]:
         """Get the type of the workflow state."""
@@ -63,12 +62,21 @@ class ClaimReferenceValidationManifest(
         """Build and return the graph of the workflow."""
         return build_claim_reference_validation_graph()
 
-    async def on_cancel(self, state: ClaimReferenceValidationState, app: CompiledStateGraph, thread_config: dict) -> None:
+    async def on_cancel(
+        self,
+        state: ClaimReferenceValidationState,
+        app: CompiledStateGraph,
+        thread_config: dict,
+    ) -> None:
         """Mark any pending paragraph verifications as cancelled so they don't show as in-progress."""
         updated = [
-            item.model_copy(update={"status": ParagraphVerificationStatus.CANCELLED})
-            if item.status == ParagraphVerificationStatus.PENDING
-            else item
+            (
+                item.model_copy(
+                    update={"status": ParagraphVerificationStatus.CANCELLED}
+                )
+                if item.status == ParagraphVerificationStatus.PENDING
+                else item
+            )
             for item in state.paragraph_verifications
         ]
         await app.aupdate_state(

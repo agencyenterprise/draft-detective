@@ -94,18 +94,15 @@ export function WorkflowTypeSelector({
           categories.map((category) => {
             const categoryWorkflows = category.workflows
               .map((type) => typeMap.get(type as WorkflowRunType))
-              .filter((wt): wt is WorkflowTypeDescription => wt !== undefined);
+              .filter((wt): wt is WorkflowTypeDescription => wt !== undefined)
+              .filter((wt) => experimentalVisible || !wt.is_experimental);
 
-            const regular = categoryWorkflows.filter((wt) => !wt.is_experimental);
-            const experimental = experimentalVisible ? categoryWorkflows.filter((wt) => wt.is_experimental) : [];
-
-            if (regular.length === 0 && experimental.length === 0) return null;
+            if (categoryWorkflows.length === 0) return null;
 
             return (
               <div key={category.slug} className="space-y-2">
                 <h3 className="text-sm font-semibold text-foreground pt-2">{category.label}</h3>
-                {regular.map(renderCheckbox)}
-                {experimental.map(renderCheckbox)}
+                {categoryWorkflows.map(renderCheckbox)}
               </div>
             );
           })
