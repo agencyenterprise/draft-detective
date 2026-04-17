@@ -141,7 +141,7 @@ export function ResultsVisualization({
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-sm min-w-0">
                 Go to the <strong>References tab</strong> to upload source documents or fetch them from the web. When
-                you&apos;re ready, use <strong>Approve and start analysis</strong> here or at the bottom of that tab.
+                you&apos;re ready, use <strong>Approve and start assessment</strong> here or at the bottom of that tab.
               </p>
               <div className="flex shrink-0 flex-wrap items-center gap-2">
                 <Button size="sm" variant="outline" onClick={() => setActiveTab('references')}>
@@ -193,7 +193,7 @@ export function ResultsVisualization({
                 </Badge>
               </TabsTrigger>
               <TabsTrigger value="analyses">
-                Analyses{' '}
+                Assessments{' '}
                 <Badge className="rounded-full h-4.5 min-w-4.5" variant="secondary">
                   {results.filter((r) => isWorkflowTypeVisible(r.run.type)).length}
                 </Badge>

@@ -2,8 +2,8 @@ import Script from 'next/script';
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'AI Reviewer Add-in',
-  description: 'Word Add-in for AI Reviewer',
+  title: 'Draft Detective Add-in',
+  description: 'Word Add-in for Draft Detective',
 };
 
 export default function AddinLayout({ children }: { children: React.ReactNode }) {

@@ -97,7 +97,7 @@ export function DocumentExplorerSidebar({
         {visibleIssues.length === 0 && !isAnyProcessing && (
           <div className="text-sm text-muted-foreground py-4 space-y-2">
             <p>No issues found for this document.</p>
-            <p>You can still view detailed analysis for each chunk by selecting a chunk from the document.</p>
+            <p>You can still view detailed assessment for each chunk by selecting a chunk from the document.</p>
           </div>
         )}
 

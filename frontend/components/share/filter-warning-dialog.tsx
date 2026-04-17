@@ -62,7 +62,7 @@ export function FilterWarningDialog({
               )}
               {hasWorkflowTypeFilter && (
                 <div className="space-y-1">
-                  <p className="text-sm font-medium text-foreground">Analysis types:</p>
+                  <p className="text-sm font-medium text-foreground">Assessment types:</p>
                   <div className="flex flex-wrap gap-2">
                     {workflowTypeFilter.map((type) => (
                       <Badge key={type} variant="secondary">

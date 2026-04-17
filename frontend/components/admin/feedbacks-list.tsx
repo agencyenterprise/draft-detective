@@ -252,10 +252,10 @@ export function FeedbacksList() {
 
             <Select value={selectedWorkflowType} onValueChange={setSelectedWorkflowType}>
               <SelectTrigger className="w-[220px]">
-                <SelectValue placeholder="All analysis types" />
+                <SelectValue placeholder="All assessment types" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={ALL_VALUE}>All analysis types</SelectItem>
+                <SelectItem value={ALL_VALUE}>All assessment types</SelectItem>
                 {[...workflowTypes]
                   .sort((a, b) => a.name.localeCompare(b.name))
                   .map((wt) => (

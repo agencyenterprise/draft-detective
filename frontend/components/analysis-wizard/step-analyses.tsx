@@ -62,11 +62,11 @@ export function StepAnalyses() {
       });
     },
     onSuccess: () => {
-      toast.success('Analysis started! Redirecting to your project...');
+      toast.success('Assessment started! Redirecting to your project...');
       router.push(`/projects/${wizard.projectId}?fromWizard=true`);
     },
     onError: (error) => {
-      toast.error(getErrorMessage(error, 'Failed to start analysis'));
+      toast.error(getErrorMessage(error, 'Failed to start assessment'));
     },
   });
 
@@ -85,7 +85,7 @@ export function StepAnalyses() {
           <div className="flex flex-col items-center justify-center space-y-4">
             <Loader2 className="w-12 h-12 animate-spin text-primary" />
             <div className="text-center space-y-2">
-              <h2 className="text-xl font-semibold">Starting Analysis</h2>
+              <h2 className="text-xl font-semibold">Starting Assessment</h2>
               <p className="text-sm text-muted-foreground">Starting workflows...</p>
             </div>
           </div>
@@ -99,8 +99,9 @@ export function StepAnalyses() {
       <div className="space-y-2">
         <h1 className="text-2xl font-bold">What would you like to check?</h1>
         <p className="text-muted-foreground">
-          Select the analyses that matter most for your document. <strong>You can also trigger analyses later</strong>,
-          after project is created, so you can skip this step for now if you want.
+          Select the assessments that matter most for your document.{' '}
+          <strong>You can also trigger assessments later</strong>, after project is created, so you can skip this step
+          for now if you want.
         </p>
       </div>
 
@@ -112,7 +113,7 @@ export function StepAnalyses() {
 
       {needsSupportingDocs && (
         <Callout variant="info" icon={AlertCircle} title="Source documents required">
-          Some selected analyses need reference documents to verify claims. After the project is created, go to the{' '}
+          Some selected assessments need reference documents to verify claims. After the project is created, go to the{' '}
           <strong>References tab</strong> to upload sources or fetch them from the web, then approve to start the
           analysis.
         </Callout>
@@ -123,7 +124,7 @@ export function StepAnalyses() {
       <div className="space-y-4">
         <div>
           <h3 className="text-lg font-semibold">Help us understand your context</h3>
-          <p className="text-sm text-muted-foreground">Optional, but helps tailor the analysis.</p>
+          <p className="text-sm text-muted-foreground">Optional, but helps tailor the assessment.</p>
         </div>
         <div className="space-y-2">
           <Label htmlFor="domain">What field is this document about?</Label>
@@ -147,7 +148,7 @@ export function StepAnalyses() {
 
       <div className="flex flex-col gap-3">
         <Button onClick={handleStartAnalysis} disabled={!canContinue} size="lg" className="w-full">
-          Start Analysis
+          Start Assessment
         </Button>
         <Button
           variant="outline"
