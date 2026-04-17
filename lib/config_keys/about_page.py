@@ -64,7 +64,7 @@ for details.
 | Analysis Type | Description | Eval |
 |:---|:---|:---:|
 | **Abbreviation Scan** | Scans the document for abbreviations and acronyms, verifies each is defined inline at its first occurrence, and checks that all abbreviations appear in an Abbreviations section. | [eval](https://github.com/agencyenterprise/ai-reviewer/tree/main/evals_inspectai/e2e/abbreviation_checker) |
-| **Document Structure** | Checks that key sections are present: Acknowledgements, Methods, Results, Conclusion, References, and Appendix (if referenced in text). `#experimental` | [eval](https://github.com/agencyenterprise/ai-reviewer/tree/main/evals_inspectai/e2e/document_structure) |
+| **Document Contents** | Checks that key content is present: Acknowledgements, Methods, Results, Conclusion, References, and Appendix (if referenced in text). `#experimental` | [eval](https://github.com/agencyenterprise/ai-reviewer/tree/main/evals_inspectai/e2e/document_structure) |
 | **Figures & Tables Check** | Verifies that every figure and table has a title, is consistently numbered, is referenced in the body text, and that every body-text reference resolves to an actual figure or table in the document. `#experimental` | [eval](https://github.com/agencyenterprise/ai-reviewer/tree/main/evals_inspectai/e2e/figures_tables_check) |
 
 ### Citation Check
