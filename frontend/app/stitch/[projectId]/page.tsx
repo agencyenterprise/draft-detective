@@ -14,6 +14,51 @@ import {
 import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
+/* ── Stitch design tokens (seed — expand as the palette formalizes) ── */
+
+const S = {
+  primary: '#002045',
+  primaryContainer: '#1a365d',
+  primaryFixed: '#d6e3ff',
+  primaryFixedDim: '#adc7f7',
+  surface: '#f7fafc',
+  surfaceLow: '#f1f4f6',
+  surfaceContainer: '#ebeef0',
+  surfaceHigh: '#e5e9eb',
+  surfaceLowest: '#ffffff',
+  onSurface: '#181c1e',
+  onSurfaceVariant: '#43474e',
+  secondary: '#545f72',
+} as const;
+
+/* ── Toast (ephemeral feedback) ── */
+
+function AcceptedToast({ text, onDone }: { text: string; onDone: () => void }) {
+  useEffect(() => {
+    const t = setTimeout(onDone, 2200);
+    return () => clearTimeout(t);
+  }, [onDone]);
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-[fadeInUp_300ms_ease-out]"
+      style={{
+        backgroundColor: S.primaryContainer,
+        color: S.primaryFixed,
+        fontFamily: "'Inter', sans-serif",
+        fontSize: '0.8125rem',
+        fontWeight: 600,
+        padding: '0.625rem 1.25rem',
+        borderRadius: '6px',
+        boxShadow: '0 8px 32px rgba(0,32,69,0.15)',
+      }}
+    >
+      ✓ {text}
+    </div>
+  );
+}
+
 /* ── Severity → color map ── */
 
 const SEVERITY_COLOR: Record<StitchIssue['severity'], string> = {
@@ -420,6 +465,7 @@ export default function StitchPrototypePage() {
   const [issueStatus, setIssueStatus] = useState<Record<string, 'accepted' | 'dismissed'>>(
     () => scenario.initialStatus ?? {},
   );
+  const [toast, setToast] = useState<string | null>(null);
 
   const issuesPanelRef = useRef<HTMLDivElement>(null);
 
@@ -434,15 +480,23 @@ export default function StitchPrototypePage() {
     setFilter('all');
   }, [scenario]);
 
-  const setStatus = useCallback((id: string, next: 'accepted' | 'dismissed' | null) => {
-    setIssueStatus((prev) => {
-      const copy = { ...prev };
-      if (next === null) delete copy[id];
-      else copy[id] = next;
-      return copy;
-    });
-    if (next === 'dismissed') setActiveIssueId((curr) => (curr === id ? null : curr));
-  }, []);
+  const setStatus = useCallback(
+    (id: string, next: 'accepted' | 'dismissed' | null) => {
+      setIssueStatus((prev) => {
+        const copy = { ...prev };
+        if (next === null) delete copy[id];
+        else copy[id] = next;
+        return copy;
+      });
+      if (next === 'dismissed') setActiveIssueId((curr) => (curr === id ? null : curr));
+      if (next === 'accepted' || next === 'dismissed') {
+        const issue = scenarioIssues.find((i) => i.id === id);
+        const title = issue?.title ?? 'change';
+        setToast(`${next === 'accepted' ? 'Applied' : 'Dismissed'}: ${title}`);
+      }
+    },
+    [scenarioIssues],
+  );
 
   const reanalyze = useCallback(() => {
     setIssueStatus(scenario.initialStatus ?? {});
@@ -485,6 +539,8 @@ export default function StitchPrototypePage() {
 
   return (
     <div className="min-h-screen md:h-screen flex flex-col md:overflow-hidden" style={{ backgroundColor: '#f7fafc' }}>
+      {toast && <AcceptedToast text={toast} onDone={() => setToast(null)} />}
+      <style>{`@keyframes fadeInUp { from { opacity: 0; transform: translate(-50%, 12px); } to { opacity: 1; transform: translate(-50%, 0); } }`}</style>
       {/* ── Top Bar ── */}
       <header
         className="flex items-center justify-between px-4 md:px-6 shrink-0 gap-2"
@@ -670,6 +726,10 @@ export default function StitchPrototypePage() {
                   </div>
                 );
               })}
+            </div>
+
+            <div className="mt-16 flex justify-center opacity-20" aria-hidden>
+              <div className="w-16 h-1 rounded-full" style={{ backgroundColor: S.primaryContainer }} />
             </div>
           </div>
         </section>
