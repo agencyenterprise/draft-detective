@@ -40,7 +40,7 @@ WORKFLOW_DISPLAY_CONFIG: list[CategoryConfig] = [
     ),
     CategoryConfig(
         slug="technical_compliance",
-        label="Technical Compliance",
+        label="Editorial and Style Review",
         workflows=[
             WorkflowRunType.ABBREVIATION_SCAN_V2,
             WorkflowRunType.ABOUT_THIS_GER,

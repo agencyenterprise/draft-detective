@@ -59,7 +59,7 @@ for details.
 |:---|:---|:---:|
 | **Advocacy & Tone** | Checks for trigger words, advocacy language, and subjective tone using a two-layer approach — first fast pattern-matching, then LLM verification. Flags language that departs from a neutral, objective tone. | |
 
-### Technical Compliance
+### Editorial and Style Review
 
 | Analysis Type | Description | Eval |
 |:---|:---|:---:|
