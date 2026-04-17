@@ -6,6 +6,31 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v0.5.31] - 2026-04-17
+
+### Added
+- Added `MODEL_API_KEYS` env var (JSON dict) to assign a specific API key per model name, with per-model key fallback when no user-provided key exists.
+- Added `get_model_api_key()` helper and 7 unit tests for per-model API key resolution.
+- Added `.claude/launch.json` to configure backend and frontend dev server launch with auto port assignment.
+- Added `.worktreeinclude` to specify env files copied into Claude worktrees.
+- Added 17 new test cases to the reference validation eval dataset and introduced an optional `note` field for some cases.
+
+### Changed
+- Rewrote the reference validator agent’s system prompt as a clear six-step procedure with targeted rules for common failure modes.
+- Updated `dev.py` to read `PORT` from an environment variable.
+- Updated `.gitignore` to exclude Claude worktree/project artifacts and use `settings.local.json` instead of `settings.json`.
+- Bumped default `RATE_LIMITER_CHECK_EVERY_N_SECONDS` from `0.2` to `0.25`.
+- Bumped `python-multipart` from `0.0.22` to `0.0.26`.
+- Experimental analysis types are now shown automatically for users who have opted into experimental features via profile settings.
+
+### Fixed
+- Capped DB pool pressure in the Postgres rate limiter by adding a per-`bucket_key` in-process `asyncio.Lock` around `PostgresRateLimiter._aconsume`.
+
+### Removed
+- Removed the "Show experimental" checkbox toggle from the analysis type selection UI.
+- Removed the `AGENTS.md` symlink that pointed to `CLAUDE.md`.
+
+
 ## [v0.5.30] - 2026-04-15
 
 ### Added
