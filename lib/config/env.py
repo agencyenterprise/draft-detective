@@ -93,7 +93,7 @@ class Config(BaseModel):
         description="Maximum burst size (token bucket ceiling); must be >= 1",
     )
     RATE_LIMITER_CHECK_EVERY_N_SECONDS: float = Field(
-        default=0.2,
+        default=0.25,
         description="Polling interval when the bucket is empty and the caller is blocking",
     )
 
@@ -129,7 +129,7 @@ config = Config(
     ),
     RATE_LIMITER_MAX_BUCKET_SIZE=float(os.getenv("RATE_LIMITER_MAX_BUCKET_SIZE", "1")),
     RATE_LIMITER_CHECK_EVERY_N_SECONDS=float(
-        os.getenv("RATE_LIMITER_CHECK_EVERY_N_SECONDS", "0.2")
+        os.getenv("RATE_LIMITER_CHECK_EVERY_N_SECONDS", "0.25")
     ),
     MODEL_API_KEYS=json.loads(os.getenv("MODEL_API_KEYS", "{}")),
 )
