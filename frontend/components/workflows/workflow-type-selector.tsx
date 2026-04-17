@@ -68,7 +68,7 @@ export function WorkflowTypeSelector({
       {showHeader && (
         <div className="space-y-1">
           <h2 className="text-lg font-semibold">
-            Analyses Type Selection{' '}
+            Assessment Type Selection{' '}
             {visibleCount > 0 && (
               <span className="text-sm font-normal text-muted-foreground">
                 ({selectedTypes.length}/{visibleCount} selected)
