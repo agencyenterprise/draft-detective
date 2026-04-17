@@ -64,7 +64,7 @@ export function useDownloadDocx({
     const dType = docxType ?? initialDocxType ?? 'original';
     const loadingMessage =
       dType === 'add-in'
-        ? 'Preparing DOCX for AI Reviewer Add-In...'
+        ? 'Preparing DOCX for Draft Detective Add-In...'
         : dType === 'comments-with-links'
           ? 'Preparing DOCX with share links...'
           : 'Preparing DOCX for download...';

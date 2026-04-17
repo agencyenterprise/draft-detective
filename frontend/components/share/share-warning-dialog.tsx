@@ -80,7 +80,7 @@ export function ShareWarningDialog({
             <RadioGroupItemWithDescription
               id="add-in"
               value={selectedExportType}
-              label="AI Reviewer add-in"
+              label="Draft Detective add-in"
               description="Reviewers can see issues directly in the add-in as they do in the app."
               disabled={isProcessing}
             />
@@ -111,7 +111,7 @@ export function ShareWarningDialog({
             <div className="flex items-start gap-2 rounded-md border p-3">
               <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
               <span className="text-sm text-muted-foreground">
-                Requires the AI Reviewer Word add-in.
+                Requires the Draft Detective Word add-in.
                 {!isProjectPublic && ' This will make this assessment public.'}
               </span>
             </div>

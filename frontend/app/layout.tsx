@@ -22,7 +22,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'AI Reviewer',
+  title: 'Draft Detective',
   description:
     'AI-powered document review and assessment platform for accurate citations, fact-checking, and quality assessment',
 };
