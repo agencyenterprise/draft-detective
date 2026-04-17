@@ -1,7 +1,40 @@
 'use client';
 
-import { mockDocument, mockIssues, categoryLabels, severityLabels, StitchIssue } from '@/lib/stitch-mock-data';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  categoryLabels,
+  getScenario,
+  scenarioOptions,
+  severityLabels,
+  severityLabelsPlural,
+  StitchHeaderStatus,
+  StitchHighlight,
+  StitchIssue,
+  workflowLabels,
+} from '@/lib/stitch-mock-data';
+import { useParams, useRouter } from 'next/navigation';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+
+/* ── Severity → color map ── */
+
+const SEVERITY_COLOR: Record<StitchIssue['severity'], string> = {
+  critical: '#f43f5e',
+  warning: '#f59e0b',
+  suggestion: '#60a5fa',
+};
+
+const SEVERITY_RANK: Record<StitchIssue['severity'], number> = {
+  critical: 3,
+  warning: 2,
+  suggestion: 1,
+};
+
+function maxSeverity(issues: StitchIssue[]): StitchIssue['severity'] | null {
+  if (issues.length === 0) return null;
+  return issues.reduce<StitchIssue['severity']>(
+    (acc, i) => (SEVERITY_RANK[i.severity] > SEVERITY_RANK[acc] ? i.severity : acc),
+    issues[0].severity,
+  );
+}
 
 /* ── Severity dot ── */
 
@@ -20,15 +53,42 @@ function SeverityDot({ severity, size = 'sm' }: { severity: StitchIssue['severit
 
 /* ── Issue Card ── */
 
-function IssueCard({ issue, isActive, onClick }: { issue: StitchIssue; isActive: boolean; onClick: () => void }) {
+function IssueCard({
+  issue,
+  isActive,
+  status,
+  onClick,
+  onAccept,
+  onDismiss,
+  onUndo,
+}: {
+  issue: StitchIssue;
+  isActive: boolean;
+  status?: 'accepted';
+  onClick: () => void;
+  onAccept: () => void;
+  onDismiss: () => void;
+  onUndo: () => void;
+}) {
   const severityColor = { critical: '#f43f5e', warning: '#f59e0b', suggestion: '#60a5fa' }[issue.severity];
+  const isAccepted = status === 'accepted';
+  const isResolved = !!issue.resolved;
+  const isAddressed = isAccepted || isResolved;
 
   return (
-    <button
+    <div
       id={`issue-card-${issue.id}`}
+      role="button"
+      tabIndex={0}
       onClick={onClick}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onClick();
+        }
+      }}
       aria-pressed={isActive}
-      className="w-full text-left rounded-[4px] p-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#002045]"
+      className="w-full text-left rounded-[4px] p-4 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#002045]"
       style={{
         backgroundColor: isActive ? '#fafbfc' : '#ffffff',
         boxShadow: isActive ? '0 4px 20px rgba(24,28,30,0.08)' : '0 1px 3px rgba(24,28,30,0.04)',
@@ -36,7 +96,8 @@ function IssueCard({ issue, isActive, onClick }: { issue: StitchIssue; isActive:
         borderTop: '1px solid #e5e9eb',
         borderRight: '1px solid #e5e9eb',
         borderBottom: '1px solid #e5e9eb',
-        transition: 'background-color 150ms, box-shadow 150ms',
+        opacity: isAddressed ? 0.65 : 1,
+        transition: 'background-color 150ms, box-shadow 150ms, opacity 200ms',
       }}
       onMouseEnter={(e) => {
         if (!isActive) e.currentTarget.style.backgroundColor = '#f7fafc';
@@ -75,10 +136,18 @@ function IssueCard({ issue, isActive, onClick }: { issue: StitchIssue; isActive:
 
       {/* Title */}
       <p
-        className="text-[13px] font-semibold mb-1.5"
+        className="text-[13px] font-semibold mb-0.5"
         style={{ fontFamily: "'Manrope', sans-serif", color: '#181c1e', overflowWrap: 'break-word' }}
       >
         {issue.title}
+      </p>
+
+      {/* Workflow subtitle */}
+      <p
+        className="text-[10px] mb-1.5"
+        style={{ fontFamily: "'Inter', sans-serif", color: '#6b7280', letterSpacing: '0.01em' }}
+      >
+        via {workflowLabels[issue.category]}
       </p>
 
       {/* Description */}
@@ -105,48 +174,93 @@ function IssueCard({ issue, isActive, onClick }: { issue: StitchIssue; isActive:
       )}
 
       {/* Actions */}
-      <div className="flex gap-2 mt-3">
-        {issue.proposedChange && (
+      {isResolved ? (
+        <div className="mt-3">
           <span
-            className="flex-1 py-1.5 text-[11px] font-bold rounded-[3px] text-center cursor-pointer hover:opacity-90"
-            style={{
-              background: 'linear-gradient(135deg, #002045, #1a365d)',
-              color: '#fff',
-              transition: 'opacity 150ms',
-            }}
+            className="flex items-center gap-1 text-[11px] font-semibold"
+            style={{ fontFamily: "'Inter', sans-serif", color: '#6b7280' }}
           >
-            Accept
+            <span aria-hidden>✓</span> Resolved
           </span>
-        )}
-        <span
-          className="flex-1 py-1.5 text-[11px] font-bold rounded-[3px] text-center cursor-pointer"
-          style={{ backgroundColor: '#e5e9eb', color: '#181c1e', transition: 'background-color 150ms' }}
-          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#e0e3e5')}
-          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#e5e9eb')}
-        >
-          Dismiss
-        </span>
-      </div>
-    </button>
+        </div>
+      ) : isAccepted ? (
+        <div className="flex items-center justify-between mt-3">
+          <span
+            className="flex items-center gap-1 text-[11px] font-semibold"
+            style={{ fontFamily: "'Inter', sans-serif", color: '#047857' }}
+          >
+            <span aria-hidden>✓</span> Accepted
+          </span>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onUndo();
+            }}
+            className="text-[11px] font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#002045]"
+            style={{ fontFamily: "'Inter', sans-serif", color: '#545f72' }}
+          >
+            Undo
+          </button>
+        </div>
+      ) : (
+        <div className="flex gap-2 mt-3">
+          {issue.proposedChange && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onAccept();
+              }}
+              className="flex-1 py-1.5 text-[11px] font-bold rounded-[3px] text-center hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#002045]"
+              style={{
+                background: 'linear-gradient(135deg, #002045, #1a365d)',
+                color: '#fff',
+                transition: 'opacity 150ms',
+              }}
+            >
+              Accept
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDismiss();
+            }}
+            className="flex-1 py-1.5 text-[11px] font-bold rounded-[3px] text-center focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#002045]"
+            style={{ backgroundColor: '#e5e9eb', color: '#181c1e', transition: 'background-color 150ms' }}
+            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#e0e3e5')}
+            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#e5e9eb')}
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+    </div>
   );
 }
 
 /* ── Inline highlight renderer ── */
 
+const HIGHLIGHT_STYLE: Record<StitchIssue['severity'], { bg: string; border: string; borderWidth: string }> = {
+  critical: { bg: 'rgba(244, 63, 94, 0.18)', border: '#f43f5e', borderWidth: '2.5px' },
+  warning: { bg: 'rgba(245, 158, 11, 0.16)', border: '#f59e0b', borderWidth: '2px' },
+  suggestion: { bg: 'rgba(96, 165, 250, 0.12)', border: '#60a5fa', borderWidth: '1.5px' },
+};
+
 function HighlightedText({
   text,
   highlights,
+  issues,
+  activeIssueId,
 }: {
   text: string;
-  highlights?: { start: number; end: number; issueId: string; color: 'yellow' | 'blue' | 'red' }[];
+  highlights?: StitchHighlight[];
+  issues: StitchIssue[];
+  activeIssueId: string | null;
 }) {
   if (!highlights || highlights.length === 0) return <>{text}</>;
-
-  const colorMap = {
-    yellow: { bg: 'rgba(251, 191, 36, 0.15)', border: '#f59e0b' },
-    blue: { bg: 'rgba(96, 165, 250, 0.12)', border: '#60a5fa' },
-    red: { bg: 'rgba(244, 63, 94, 0.12)', border: '#f43f5e' },
-  };
 
   const sorted = [...highlights].sort((a, b) => a.start - b.start);
   const parts: React.ReactNode[] = [];
@@ -154,15 +268,21 @@ function HighlightedText({
 
   sorted.forEach((h, i) => {
     if (h.start > cursor) parts.push(<span key={`t-${i}`}>{text.slice(cursor, h.start)}</span>);
-    const c = colorMap[h.color];
+    const issue = issues.find((iss) => iss.id === h.issueId);
+    const severity = issue?.severity ?? 'warning';
+    const style = HIGHLIGHT_STYLE[severity];
+    const isActive = activeIssueId === h.issueId;
     parts.push(
       <span
         key={`h-${i}`}
         style={{
-          backgroundColor: c.bg,
-          borderBottom: `2px solid ${c.border}`,
+          backgroundColor: isActive
+            ? style.bg.replace(/[\d.]+\)$/, (m) => `${Math.min(parseFloat(m) * 1.6, 0.32)})`)
+            : style.bg,
+          borderBottom: `${style.borderWidth} solid ${style.border}`,
           padding: '1px 2px',
           borderRadius: '2px',
+          transition: 'background-color 150ms',
         }}
       >
         {text.slice(h.start, h.end)}
@@ -172,6 +292,52 @@ function HighlightedText({
   });
   if (cursor < text.length) parts.push(<span key="end">{text.slice(cursor)}</span>);
   return <>{parts}</>;
+}
+
+/* ── Scenario picker ── */
+
+function ScenarioPicker({ current }: { current: string }) {
+  const router = useRouter();
+  return (
+    <label className="flex items-center gap-1.5 shrink-0" style={{ fontFamily: "'Inter', sans-serif" }}>
+      <span className="text-[10px] uppercase tracking-wide hidden md:inline" style={{ color: '#545f72' }}>
+        Scenario
+      </span>
+      <select
+        value={current}
+        onChange={(e) => router.push(`/stitch/${e.target.value}`)}
+        className="text-[11px] font-semibold rounded-[3px] px-2 py-1 border focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#002045]"
+        style={{ backgroundColor: '#f7fafc', color: '#002045', borderColor: '#e5e9eb' }}
+        aria-label="Switch demo scenario"
+      >
+        {scenarioOptions.map((opt) => (
+          <option key={opt.id} value={opt.id}>
+            {opt.label}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+/* ── Header status badge ── */
+
+function HeaderStatusBadge({ status }: { status: StitchHeaderStatus }) {
+  const tones = {
+    neutral: { bg: '#e5e9eb', fg: '#43474e' },
+    info: { bg: '#e0edff', fg: '#1e4894' },
+    success: { bg: '#dcfce7', fg: '#047857' },
+    warning: { bg: '#fef3c7', fg: '#92400e' },
+  } as const;
+  const t = tones[status.tone];
+  return (
+    <span
+      className="text-[11px] px-2 py-0.5 rounded-[3px] shrink-0 font-semibold"
+      style={{ fontFamily: "'Inter', sans-serif", backgroundColor: t.bg, color: t.fg }}
+    >
+      {status.label}
+    </span>
+  );
 }
 
 /* ── Loading skeleton ── */
@@ -242,10 +408,18 @@ function ErrorState({ message }: { message: string }) {
 /* ── Main Page ── */
 
 export default function StitchPrototypePage() {
+  const params = useParams<{ projectId: string }>();
+  const projectId = params?.projectId ?? 'demo-1';
+  const scenario = useMemo(() => getScenario(projectId), [projectId]);
+  const { document: scenarioDoc, issues: scenarioIssues } = scenario;
+
   const [activeIssueId, setActiveIssueId] = useState<string | null>(null);
   const [filter, setFilter] = useState<StitchIssue['category'] | 'all'>('all');
   const [isLoading, setIsLoading] = useState(true);
   const [error] = useState<string | null>(null);
+  const [issueStatus, setIssueStatus] = useState<Record<string, 'accepted' | 'dismissed'>>(
+    () => scenario.initialStatus ?? {},
+  );
 
   const issuesPanelRef = useRef<HTMLDivElement>(null);
 
@@ -254,34 +428,66 @@ export default function StitchPrototypePage() {
     return () => clearTimeout(timer);
   }, []);
 
-  const filteredIssues = filter === 'all' ? mockIssues : mockIssues.filter((i) => i.category === filter);
-  const criticalCount = mockIssues.filter((i) => i.severity === 'critical').length;
-  const warningCount = mockIssues.filter((i) => i.severity === 'warning').length;
-  const suggestionCount = mockIssues.filter((i) => i.severity === 'suggestion').length;
-  const categories = [...new Set(mockIssues.map((i) => i.category))];
+  useEffect(() => {
+    setIssueStatus(scenario.initialStatus ?? {});
+    setActiveIssueId(null);
+    setFilter('all');
+  }, [scenario]);
 
-  const selectIssue = useCallback((issueId: string | null) => {
-    setActiveIssueId(issueId);
-    if (!issueId) return;
-    requestAnimationFrame(() => {
-      document.getElementById(`issue-card-${issueId}`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  const setStatus = useCallback((id: string, next: 'accepted' | 'dismissed' | null) => {
+    setIssueStatus((prev) => {
+      const copy = { ...prev };
+      if (next === null) delete copy[id];
+      else copy[id] = next;
+      return copy;
     });
-    const issue = mockIssues.find((i) => i.id === issueId);
-    if (issue) {
-      requestAnimationFrame(() => {
-        document.getElementById(`para-${issue.paragraph}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      });
-    }
+    if (next === 'dismissed') setActiveIssueId((curr) => (curr === id ? null : curr));
   }, []);
+
+  const reanalyze = useCallback(() => {
+    setIssueStatus(scenario.initialStatus ?? {});
+    setActiveIssueId(null);
+    setIsLoading(true);
+    setTimeout(() => setIsLoading(false), 600);
+  }, [scenario]);
+
+  const visibleIssues = scenarioIssues.filter((i) => issueStatus[i.id] !== 'dismissed');
+  const filteredIssues = filter === 'all' ? visibleIssues : visibleIssues.filter((i) => i.category === filter);
+  const criticalCount = visibleIssues.filter((i) => i.severity === 'critical').length;
+  const warningCount = visibleIssues.filter((i) => i.severity === 'warning').length;
+  const suggestionCount = visibleIssues.filter((i) => i.severity === 'suggestion').length;
+  const categories = [...new Set(scenarioIssues.map((i) => i.category))];
+  const addressedCount = scenarioIssues.filter(
+    (i) => i.resolved || issueStatus[i.id] === 'accepted' || issueStatus[i.id] === 'dismissed',
+  ).length;
+  const totalCount = scenarioIssues.length;
+  const addressedPct = totalCount === 0 ? 0 : Math.round((addressedCount / totalCount) * 100);
+
+  const selectIssue = useCallback(
+    (issueId: string | null) => {
+      setActiveIssueId(issueId);
+      if (!issueId) return;
+      requestAnimationFrame(() => {
+        document.getElementById(`issue-card-${issueId}`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      });
+      const issue = scenarioIssues.find((i) => i.id === issueId);
+      if (issue) {
+        requestAnimationFrame(() => {
+          document.getElementById(`para-${issue.paragraph}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        });
+      }
+    },
+    [scenarioIssues],
+  );
 
   if (error) return <ErrorState message={error} />;
   if (isLoading) return <LoadingSkeleton />;
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden" style={{ backgroundColor: '#f7fafc' }}>
+    <div className="min-h-screen md:h-screen flex flex-col md:overflow-hidden" style={{ backgroundColor: '#f7fafc' }}>
       {/* ── Top Bar ── */}
       <header
-        className="flex items-center justify-between px-6 shrink-0"
+        className="flex items-center justify-between px-4 md:px-6 shrink-0 gap-2"
         style={{
           height: '52px',
           backgroundColor: '#ffffff',
@@ -292,31 +498,32 @@ export default function StitchPrototypePage() {
           <h1
             className="font-bold text-[15px] tracking-tight truncate"
             style={{ fontFamily: "'Manrope', sans-serif", color: '#002045' }}
-            title={mockDocument.title}
+            title={scenarioDoc.title}
           >
-            {mockDocument.title}
+            {scenarioDoc.title}
           </h1>
-          <span
-            className="text-[11px] px-2 py-0.5 rounded-[3px] shrink-0"
-            style={{ fontFamily: "'Inter', sans-serif", backgroundColor: '#e5e9eb', color: '#43474e' }}
-          >
-            Draft
-          </span>
+          <HeaderStatusBadge status={scenario.headerStatus} />
         </div>
         <div className="flex items-center gap-2 shrink-0">
+          <ScenarioPicker current={scenario.id} />
           <button
-            className="text-[13px] font-semibold px-2.5 py-1 rounded-[3px] hover:bg-[#f1f4f6] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#002045]"
-            style={{ fontFamily: "'Inter', sans-serif", color: '#002045', transition: 'background-color 150ms' }}
+            disabled
+            title="Not wired in prototype"
+            className="hidden sm:inline-flex text-[13px] font-semibold px-2.5 py-1 rounded-[3px] cursor-not-allowed"
+            style={{ fontFamily: "'Inter', sans-serif", color: '#002045', opacity: 0.35 }}
           >
             Share
           </button>
           <button
-            className="text-[13px] font-semibold px-2.5 py-1 rounded-[3px] hover:bg-[#f1f4f6] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#002045]"
-            style={{ fontFamily: "'Inter', sans-serif", color: '#002045', transition: 'background-color 150ms' }}
+            disabled
+            title="Not wired in prototype"
+            className="hidden sm:inline-flex text-[13px] font-semibold px-2.5 py-1 rounded-[3px] cursor-not-allowed"
+            style={{ fontFamily: "'Inter', sans-serif", color: '#002045', opacity: 0.35 }}
           >
             Export
           </button>
           <button
+            onClick={reanalyze}
             className="px-3 py-1.5 rounded-[3px] text-[11px] font-bold tracking-wide hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
             style={{
               background: 'linear-gradient(135deg, #002045, #1a365d)',
@@ -330,11 +537,11 @@ export default function StitchPrototypePage() {
       </header>
 
       {/* ── Two-Column Layout ── */}
-      <div className="flex flex-1 min-h-0">
-        {/* ── Document Panel (65%) ── */}
+      <div className="flex flex-col md:flex-row md:flex-1 md:min-h-0">
+        {/* ── Document Panel (65% on desktop, full width stacked on mobile) ── */}
         <section
-          className="overflow-y-auto"
-          style={{ width: '65%', backgroundColor: '#ffffff', padding: '2.5rem 2rem 2.5rem 3rem' }}
+          className="w-full md:w-[65%] md:overflow-y-auto pl-9 pr-5 py-6 md:pl-12 md:pr-8 md:py-10"
+          style={{ backgroundColor: '#ffffff' }}
         >
           <div style={{ maxWidth: '680px', margin: '0 auto' }}>
             {/* Document Header */}
@@ -350,7 +557,7 @@ export default function StitchPrototypePage() {
                   marginBottom: '0.5rem',
                 }}
               >
-                {mockDocument.title}
+                {scenarioDoc.title}
               </h2>
               <p
                 style={{
@@ -360,7 +567,7 @@ export default function StitchPrototypePage() {
                   fontStyle: 'italic',
                 }}
               >
-                {mockDocument.authors}
+                {scenarioDoc.authors}
               </p>
               <p
                 style={{
@@ -370,19 +577,22 @@ export default function StitchPrototypePage() {
                   marginTop: '0.25rem',
                 }}
               >
-                {mockDocument.date}
+                {scenarioDoc.date}
               </p>
             </div>
 
             {/* Document Body */}
             <div>
-              {mockDocument.paragraphs.map((para) => {
-                const paragraphIssues = mockIssues.filter((i) => i.paragraph === para.id);
+              {scenarioDoc.paragraphs.map((para) => {
+                const paragraphIssues = scenarioIssues.filter((i) => i.paragraph === para.id);
+                const unresolvedIssues = paragraphIssues.filter(
+                  (i) => !i.resolved && issueStatus[i.id] !== 'accepted' && issueStatus[i.id] !== 'dismissed',
+                );
                 const isHighlighted = activeIssueId ? paragraphIssues.some((i) => i.id === activeIssueId) : false;
                 const activeIssue = activeIssueId ? paragraphIssues.find((i) => i.id === activeIssueId) : null;
-                const severityColor = activeIssue
-                  ? { critical: '#f43f5e', warning: '#f59e0b', suggestion: '#60a5fa' }[activeIssue.severity]
-                  : '#f59e0b';
+                const baselineSeverity = maxSeverity(unresolvedIssues);
+                const activeSeverityColor = activeIssue ? SEVERITY_COLOR[activeIssue.severity] : null;
+                const baselineColor = baselineSeverity ? SEVERITY_COLOR[baselineSeverity] : null;
                 const bgTint = isHighlighted
                   ? activeIssue?.severity === 'critical'
                     ? 'rgba(244, 63, 94, 0.07)'
@@ -391,6 +601,12 @@ export default function StitchPrototypePage() {
                       : 'rgba(251, 191, 36, 0.08)'
                   : 'transparent';
 
+                const borderColor = isHighlighted
+                  ? (activeSeverityColor ?? 'transparent')
+                  : baselineColor
+                    ? `${baselineColor}33`
+                    : 'transparent';
+
                 return (
                   <div
                     key={para.id}
@@ -398,11 +614,11 @@ export default function StitchPrototypePage() {
                     className="relative"
                     style={{
                       backgroundColor: bgTint,
-                      padding: isHighlighted ? '0.625rem 0.75rem' : '0.375rem 0',
+                      padding: isHighlighted ? '0.625rem 0.75rem' : '0.375rem 0.75rem',
                       marginBottom: '0.375rem',
                       borderRadius: '4px',
-                      borderLeft: isHighlighted ? `3px solid ${severityColor}` : '3px solid transparent',
-                      transition: 'background-color 200ms, padding 200ms',
+                      borderLeft: `3px solid ${borderColor}`,
+                      transition: 'background-color 200ms, border-color 200ms',
                     }}
                   >
                     {/* Issue dots in margin */}
@@ -444,7 +660,12 @@ export default function StitchPrototypePage() {
                         overflowWrap: 'break-word',
                       }}
                     >
-                      <HighlightedText text={para.text} highlights={para.highlights} />
+                      <HighlightedText
+                        text={para.text}
+                        highlights={para.highlights}
+                        issues={scenarioIssues}
+                        activeIssueId={activeIssueId}
+                      />
                     </p>
                   </div>
                 );
@@ -453,8 +674,11 @@ export default function StitchPrototypePage() {
           </div>
         </section>
 
-        {/* ── Issues Panel (35%) ── */}
-        <aside className="flex flex-col overflow-hidden" style={{ width: '35%', backgroundColor: '#f1f4f6' }}>
+        {/* ── Issues Panel (35% on desktop, full width stacked on mobile) ── */}
+        <aside
+          className="w-full md:w-[35%] flex flex-col md:overflow-hidden border-t md:border-t-0 border-[#e5e9eb]"
+          style={{ backgroundColor: '#f1f4f6' }}
+        >
           {/* Panel Header — compact */}
           <div className="shrink-0" style={{ padding: '1rem 1rem 0.75rem' }}>
             {/* Title row */}
@@ -479,27 +703,71 @@ export default function StitchPrototypePage() {
                   borderRadius: '10px',
                 }}
               >
-                {filter === 'all' ? `${mockIssues.length} issues` : `${filteredIssues.length} of ${mockIssues.length}`}
+                {filter === 'all'
+                  ? `${visibleIssues.length} issue${visibleIssues.length === 1 ? '' : 's'}`
+                  : `${filteredIssues.length} of ${visibleIssues.length}`}
               </span>
             </div>
 
-            {/* Severity + filters in one compact row */}
+            {/* Severity counts with labels */}
             <div
               className="flex items-center gap-3 flex-wrap"
-              style={{ marginBottom: '0.5rem', fontSize: '0.6875rem', fontFamily: "'Inter', sans-serif" }}
+              style={{ marginBottom: '0.375rem', fontSize: '0.6875rem', fontFamily: "'Inter', sans-serif" }}
             >
-              <span className="flex items-center gap-1" role="status">
-                <SeverityDot severity="critical" />
-                <span style={{ color: '#43474e' }}>{criticalCount}</span>
-              </span>
-              <span className="flex items-center gap-1" role="status">
-                <SeverityDot severity="warning" />
-                <span style={{ color: '#43474e' }}>{warningCount}</span>
-              </span>
-              <span className="flex items-center gap-1" role="status">
-                <SeverityDot severity="suggestion" />
-                <span style={{ color: '#43474e' }}>{suggestionCount}</span>
-              </span>
+              {[
+                { sev: 'critical' as const, count: criticalCount },
+                { sev: 'warning' as const, count: warningCount },
+                { sev: 'suggestion' as const, count: suggestionCount },
+              ]
+                .filter(({ count }) => count > 0)
+                .map(({ sev, count }) => (
+                  <span key={sev} className="flex items-center gap-1" role="status">
+                    <SeverityDot severity={sev} />
+                    <span style={{ color: '#43474e' }}>
+                      {count} {count === 1 ? severityLabels[sev].toLowerCase() : severityLabelsPlural[sev]}
+                    </span>
+                  </span>
+                ))}
+              {visibleIssues.length === 0 && <span style={{ color: '#6b7280' }}>No active findings</span>}
+            </div>
+
+            {/* Progress */}
+            <div style={{ marginBottom: '0.5rem' }}>
+              <div
+                className="flex items-center justify-between"
+                style={{
+                  fontSize: '0.625rem',
+                  fontFamily: "'Inter', sans-serif",
+                  color: '#545f72',
+                  marginBottom: '3px',
+                }}
+              >
+                <span>
+                  {addressedCount} of {totalCount} addressed
+                </span>
+                <span>{addressedPct}%</span>
+              </div>
+              <div
+                style={{
+                  height: '3px',
+                  borderRadius: '3px',
+                  backgroundColor: '#e5e9eb',
+                  overflow: 'hidden',
+                }}
+                role="progressbar"
+                aria-valuenow={addressedPct}
+                aria-valuemin={0}
+                aria-valuemax={100}
+              >
+                <div
+                  style={{
+                    height: '100%',
+                    width: `${addressedPct}%`,
+                    backgroundColor: '#10b981',
+                    transition: 'width 250ms',
+                  }}
+                />
+              </div>
             </div>
 
             {/* Category Filter — compact pills */}
@@ -523,7 +791,8 @@ export default function StitchPrototypePage() {
                 All
               </button>
               {categories.map((cat) => {
-                const count = mockIssues.filter((i) => i.category === cat).length;
+                const count = visibleIssues.filter((i) => i.category === cat).length;
+                if (count === 0 && filter !== cat) return null;
                 return (
                   <button
                     key={cat}
@@ -549,31 +818,85 @@ export default function StitchPrototypePage() {
             </div>
           </div>
 
-          {/* Issue Cards — scrollable, takes remaining space */}
+          {/* Issue Cards — scrollable on desktop; page-scrolls on mobile */}
           <div
             ref={issuesPanelRef}
-            className="flex-1 overflow-y-auto overflow-x-hidden"
+            className="md:flex-1 md:overflow-y-auto overflow-x-hidden"
             style={{ padding: '0 1rem 1rem' }}
           >
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               {filteredIssues.length === 0 && (
                 <div style={{ padding: '2rem 0', textAlign: 'center' }}>
-                  <p style={{ fontFamily: "'Newsreader', serif", color: '#545f72', fontSize: '0.875rem' }}>
-                    No issues match the selected filter.
-                  </p>
-                  <button
-                    onClick={() => setFilter('all')}
-                    style={{
-                      fontFamily: "'Inter', sans-serif",
-                      color: '#002045',
-                      fontSize: '0.75rem',
-                      fontWeight: 600,
-                      marginTop: '0.5rem',
-                    }}
-                    className="focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#002045]"
-                  >
-                    Clear filter
-                  </button>
+                  {totalCount === 0 ? (
+                    <>
+                      <p
+                        style={{
+                          fontFamily: "'Newsreader', serif",
+                          color: '#047857',
+                          fontSize: '0.875rem',
+                          fontWeight: 600,
+                        }}
+                      >
+                        ✓ No issues found in this review
+                      </p>
+                      <p
+                        style={{
+                          fontFamily: "'Newsreader', serif",
+                          color: '#545f72',
+                          fontSize: '0.75rem',
+                          fontStyle: 'italic',
+                          marginTop: '0.25rem',
+                        }}
+                      >
+                        The document passed all enabled checks.
+                      </p>
+                    </>
+                  ) : visibleIssues.length === 0 ? (
+                    <>
+                      <p
+                        style={{
+                          fontFamily: "'Newsreader', serif",
+                          color: '#047857',
+                          fontSize: '0.875rem',
+                          fontWeight: 600,
+                        }}
+                      >
+                        ✓ All {totalCount} findings addressed
+                      </p>
+                      <button
+                        onClick={reanalyze}
+                        style={{
+                          fontFamily: "'Inter', sans-serif",
+                          color: '#002045',
+                          fontSize: '0.75rem',
+                          fontWeight: 600,
+                          marginTop: '0.5rem',
+                        }}
+                        className="focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#002045]"
+                      >
+                        Reset
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <p style={{ fontFamily: "'Newsreader', serif", color: '#545f72', fontSize: '0.875rem' }}>
+                        No issues match the selected filter.
+                      </p>
+                      <button
+                        onClick={() => setFilter('all')}
+                        style={{
+                          fontFamily: "'Inter', sans-serif",
+                          color: '#002045',
+                          fontSize: '0.75rem',
+                          fontWeight: 600,
+                          marginTop: '0.5rem',
+                        }}
+                        className="focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#002045]"
+                      >
+                        Clear filter
+                      </button>
+                    </>
+                  )}
                 </div>
               )}
               {filteredIssues.map((issue) => (
@@ -581,7 +904,11 @@ export default function StitchPrototypePage() {
                   key={issue.id}
                   issue={issue}
                   isActive={activeIssueId === issue.id}
+                  status={issueStatus[issue.id] === 'accepted' ? 'accepted' : undefined}
                   onClick={() => selectIssue(issue.id === activeIssueId ? null : issue.id)}
+                  onAccept={() => setStatus(issue.id, 'accepted')}
+                  onDismiss={() => setStatus(issue.id, 'dismissed')}
+                  onUndo={() => setStatus(issue.id, null)}
                 />
               ))}
             </div>
@@ -605,7 +932,7 @@ export default function StitchPrototypePage() {
                 AI Review Engine
               </span>
               <span style={{ color: '#adc7f7', fontSize: '0.625rem', fontFamily: "'Inter', sans-serif" }}>
-                · {mockIssues.length} findings
+                · {visibleIssues.length} of {scenarioIssues.length} findings
               </span>
             </div>
           </div>

@@ -14,6 +14,13 @@ export interface StitchIssue {
   description: string;
   paragraph: number;
   proposedChange?: string;
+  resolved?: boolean;
+}
+
+export interface StitchHighlight {
+  start: number;
+  end: number;
+  issueId: string;
 }
 
 export interface StitchDocument {
@@ -23,7 +30,7 @@ export interface StitchDocument {
   paragraphs: {
     id: number;
     text: string;
-    highlights?: { start: number; end: number; issueId: string; color: 'yellow' | 'blue' | 'red' }[];
+    highlights?: StitchHighlight[];
   }[];
 }
 
@@ -39,21 +46,22 @@ export const mockDocument: StitchDocument = {
     {
       id: 2,
       text: 'A meta-analysis by Bolland et al. (2018) concluded that vitamin D supplementation does not prevent fractures or falls, nor does it have clinically meaningful effects on bone mineral density. However, this analysis has been criticized for pooling heterogeneous populations, including those with adequate baseline vitamin D levels, which may dilute the observed treatment effect in truly deficient individuals.',
-      highlights: [{ start: 20, end: 40, issueId: 'issue-1', color: 'yellow' }],
+      highlights: [{ start: 19, end: 40, issueId: 'issue-1' }],
     },
     {
       id: 3,
       text: 'In contrast, a randomized controlled trial conducted by Dawson-Hughes et al. demonstrated that daily supplementation of 700-800 IU significantly reduced the incidence of hip and non-vertebral fractures in ambulatory older adults. The effect was most pronounced in subjects with baseline serum levels below 50 nmol/L, supporting a threshold model of vitamin D efficacy rather than a linear dose-response relationship.',
-      highlights: [{ start: 56, end: 74, issueId: 'issue-2', color: 'blue' }],
+      highlights: [{ start: 56, end: 74, issueId: 'issue-2' }],
     },
     {
       id: 4,
       text: 'The VITAL study, one of the largest randomized trials to date with over 25,000 participants, found no significant reduction in cancer incidence or cardiovascular events with vitamin D supplementation at 2000 IU/day. Nevertheless, subgroup analyses revealed potential benefits in individuals with BMI below 25 and in African American participants, though these findings require confirmation in dedicated trials.',
+      highlights: [{ start: 230, end: 345, issueId: 'issue-3' }],
     },
     {
       id: 5,
       text: 'Recent evidence from the D-Health trial in Australia further complicates the picture. Among 21,315 participants aged 60-84 years, monthly high-dose vitamin D (60,000 IU) did not reduce all-cause mortality over a 5-year follow-up period. The authors noted that the predominantly vitamin D-sufficient population may explain the null finding, reinforcing the importance of baseline status in trial design.',
-      highlights: [{ start: 0, end: 27, issueId: 'issue-4', color: 'red' }],
+      highlights: [{ start: 86, end: 111, issueId: 'issue-4' }],
     },
     {
       id: 6,
@@ -62,7 +70,7 @@ export const mockDocument: StitchDocument = {
     {
       id: 7,
       text: 'The optimal dosing strategy remains debated. While daily low-dose regimens (800-2000 IU) appear safe and effective for maintaining adequate serum levels, bolus dosing strategies have yielded inconsistent results. Sanders et al. reported an paradoxical increase in fall risk with annual high-dose supplementation, potentially due to acute changes in calcium signaling or neuromuscular function following rapid increases in serum vitamin D.',
-      highlights: [{ start: 200, end: 220, issueId: 'issue-5', color: 'yellow' }],
+      highlights: [{ start: 200, end: 220, issueId: 'issue-5' }],
     },
     {
       id: 8,
@@ -93,6 +101,7 @@ export const mockIssues: StitchIssue[] = [
     paragraph: 3,
     proposedChange:
       'Consider adding: Bischoff-Ferrari HA, et al. "Effect of Vitamin D Supplementation on Musculoskeletal Health." NEJM 2020;383:1789-1800.',
+    resolved: true,
   },
   {
     id: 'issue-3',
@@ -132,6 +141,7 @@ export const mockIssues: StitchIssue[] = [
     description:
       'The acronym "IU" (International Units) is used throughout without definition. While commonly understood in medical literature, best practice suggests defining it on first use.',
     paragraph: 3,
+    resolved: true,
   },
   {
     id: 'issue-7',
@@ -168,3 +178,78 @@ export const severityLabels: Record<StitchIssue['severity'], string> = {
   warning: 'Warning',
   suggestion: 'Suggestion',
 };
+
+export const workflowLabels: Record<StitchIssue['category'], string> = {
+  'reference-validation': 'Reference Validator',
+  'unsupported-assertion': 'Claim Analyzer',
+  'citation-suggestion': 'Citation Suggester',
+  'acronym-check': 'Abbreviation Scanner',
+  'factual-inconsistency': 'Factual Consistency Check',
+};
+
+export const severityLabelsPlural: Record<StitchIssue['severity'], string> = {
+  critical: 'critical',
+  warning: 'warnings',
+  suggestion: 'suggestions',
+};
+
+// ── Scenarios ──
+// Each projectId in the /stitch/[projectId] route picks a different demo state,
+// so the same screen can be walked through multiple narratives without rebuilds.
+
+export type StitchHeaderTone = 'neutral' | 'info' | 'success' | 'warning';
+
+export interface StitchHeaderStatus {
+  label: string;
+  tone: StitchHeaderTone;
+}
+
+export interface StitchScenario {
+  id: string;
+  label: string;
+  document: StitchDocument;
+  issues: StitchIssue[];
+  initialStatus?: Record<string, 'accepted' | 'dismissed'>;
+  headerStatus: StitchHeaderStatus;
+}
+
+export const scenarioOptions: { id: string; label: string }[] = [
+  { id: 'demo-1', label: 'Fresh review — findings to address' },
+  { id: 'demo-3', label: 'Mid-review — partially addressed' },
+  { id: 'demo-2', label: 'Clean document — no findings' },
+];
+
+export function getScenario(projectId: string): StitchScenario {
+  switch (projectId) {
+    case 'demo-2':
+      return {
+        id: 'demo-2',
+        label: 'Clean document — no findings',
+        document: mockDocument,
+        issues: [],
+        headerStatus: { label: 'Reviewed · 0 findings', tone: 'success' },
+      };
+    case 'demo-3':
+      return {
+        id: 'demo-3',
+        label: 'Mid-review — partially addressed',
+        document: mockDocument,
+        issues: mockIssues,
+        initialStatus: {
+          'issue-1': 'accepted',
+          'issue-5': 'dismissed',
+          'issue-8': 'accepted',
+        },
+        headerStatus: { label: 'In review · 3 of 8 addressed', tone: 'info' },
+      };
+    case 'demo-1':
+    default:
+      return {
+        id: 'demo-1',
+        label: 'Fresh review — findings to address',
+        document: mockDocument,
+        issues: mockIssues,
+        headerStatus: { label: 'Draft · awaiting review', tone: 'warning' },
+      };
+  }
+}
