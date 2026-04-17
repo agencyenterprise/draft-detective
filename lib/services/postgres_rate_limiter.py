@@ -9,6 +9,12 @@ Concurrency control: each acquire attempt runs one short transaction that
 new state, and commits. The row lock serialises concurrent acquires across
 workers; the lock window is a single ``UPDATE``, so contention is bounded.
 
+An in-process ``asyncio.Lock`` per ``bucket_key`` also serialises callers
+within a single process, so only one coroutine at a time checks out a DB
+connection for a given bucket. This bounds pool pressure to ``O(num_buckets)``
+per process instead of ``O(concurrent_callers)``; cross-process serialisation
+still relies on the Postgres row lock.
+
 Fallback policy: fail closed. Any backend error is wrapped in
 ``RateLimiterBackendError`` and propagated so the awaiting LLM call fails
 loudly instead of silently bypassing the limiter.
@@ -36,6 +42,23 @@ class RateLimiterBackendError(RuntimeError):
     Propagated (not swallowed) so that callers fail closed rather than
     silently bypassing rate limiting when the shared store misbehaves.
     """
+
+
+_bucket_locks: dict[str, asyncio.Lock] = {}
+_bucket_locks_guard = asyncio.Lock()
+
+
+async def _get_bucket_lock(bucket_key: str) -> asyncio.Lock:
+    """Return a process-wide ``asyncio.Lock`` dedicated to ``bucket_key``."""
+    lock = _bucket_locks.get(bucket_key)
+    if lock is not None:
+        return lock
+    async with _bucket_locks_guard:
+        lock = _bucket_locks.get(bucket_key)
+        if lock is None:
+            lock = asyncio.Lock()
+            _bucket_locks[bucket_key] = lock
+        return lock
 
 
 class PostgresRateLimiter(BaseRateLimiter):
@@ -75,7 +98,11 @@ class PostgresRateLimiter(BaseRateLimiter):
         on any backend failure (fail-closed policy).
         """
         try:
-            async with AsyncSessionLocal() as session:
+            # Serialise callers within this process so only one coroutine per
+            # bucket checks out a DB connection at a time. Cross-process
+            # serialisation still relies on the Postgres row lock below.
+            bucket_lock = await _get_bucket_lock(self.bucket_key)
+            async with bucket_lock, AsyncSessionLocal() as session:
                 async with session.begin():
                     # Ensure the row exists. A fresh bucket starts full so the
                     # first caller can burst up to max_bucket_size.

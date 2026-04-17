@@ -1,3 +1,4 @@
+import json
 import os
 from typing import Optional
 
@@ -75,6 +76,13 @@ class Config(BaseModel):
         description="Base URL for the frontend application (used for share links)",
     )
 
+    # Per-model API key overrides (JSON dict mapping model name → API key)
+    # Example: {"gpt-5-mini-2025-08-07": "sk-xxx", "gpt-4.1-2025-04-14": "sk-yyy"}
+    MODEL_API_KEYS: dict[str, str] = Field(
+        default_factory=dict,
+        description="Per-model API key overrides. Keys are model names (e.g. Azure deployment IDs).",
+    )
+
     # Rate limiter configuration (shared across workers via Postgres)
     RATE_LIMITER_REQUESTS_PER_SECOND: float = Field(
         default=2,
@@ -85,7 +93,7 @@ class Config(BaseModel):
         description="Maximum burst size (token bucket ceiling); must be >= 1",
     )
     RATE_LIMITER_CHECK_EVERY_N_SECONDS: float = Field(
-        default=0.2,
+        default=0.25,
         description="Polling interval when the bucket is empty and the caller is blocking",
     )
 
@@ -121,6 +129,12 @@ config = Config(
     ),
     RATE_LIMITER_MAX_BUCKET_SIZE=float(os.getenv("RATE_LIMITER_MAX_BUCKET_SIZE", "1")),
     RATE_LIMITER_CHECK_EVERY_N_SECONDS=float(
-        os.getenv("RATE_LIMITER_CHECK_EVERY_N_SECONDS", "0.2")
+        os.getenv("RATE_LIMITER_CHECK_EVERY_N_SECONDS", "0.25")
     ),
+    MODEL_API_KEYS=json.loads(os.getenv("MODEL_API_KEYS", "{}")),
 )
+
+
+def get_model_api_key(model_name: str) -> str | None:
+    """Return the API key configured for a specific model name, or None."""
+    return config.MODEL_API_KEYS.get(model_name)
