@@ -1,10 +1,10 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { SkeletonList } from '@/components/ui/skeleton-list';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Issue, ProjectDetailed } from '@/lib/generated-api';
 import { getIssueCount, hasActiveFilters, useDocumentExplorerStore } from '@/lib/stores/document-explorer-store';
-import { X } from 'lucide-react';
+import { Loader2, X } from 'lucide-react';
 import { Ref, useImperativeHandle, useRef } from 'react';
 import { DocumentExplorerSidebarFilter } from './document-explorer-sidebar-filter';
 import { DocumentIssuesList } from './document-issues-list';
@@ -60,7 +60,20 @@ export function DocumentExplorerSidebar({
   return (
     <div className="col-span-5 bg-muted/50 rounded-lg rounded-l-none text-sm flex flex-col overflow-hidden">
       <div className="flex items-center justify-between gap-2 flex-wrap px-4 pt-4 pb-2 flex-shrink-0">
-        <span className="text-xs text-muted-foreground">
+        <span className="text-xs text-muted-foreground inline-flex items-center gap-1.5">
+          {isAnyProcessing && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span
+                  className="inline-flex size-3.5 items-center justify-center"
+                  aria-label="Some results are still loading"
+                >
+                  <Loader2 className="size-3.5 animate-spin" />
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>Some results are still loading, see Assessments tab for more details</TooltipContent>
+            </Tooltip>
+          )}
           {visibleIssueCount > 0 &&
             (filteredIssueCount === visibleIssueCount
               ? `${visibleIssueCount} issues`
@@ -100,8 +113,6 @@ export function DocumentExplorerSidebar({
             <p>You can still view detailed assessment for each chunk by selecting a chunk from the document.</p>
           </div>
         )}
-
-        {isAnyProcessing && <SkeletonList count={3} />}
 
         {visibleIssues.length > 0 &&
           filteredIssues.length === 0 &&
