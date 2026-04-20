@@ -29,10 +29,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-@register_node(
-    "Live Reports: generate analysis",
-    "Generate a live reports analysis from the document and by searching the web",
-)
+@register_node("Live Reports: generate analysis")
 async def generate_live_reports_analysis(
     state: LiveReportsState, runtime: Runtime[ContextSchema]
 ):

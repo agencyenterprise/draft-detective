@@ -1,15 +1,15 @@
-import hashlib
 import logging
 from abc import ABC, abstractmethod
-from functools import lru_cache
 from typing import Any, Literal, Optional, TypedDict
 
 from langchain.chat_models import BaseChatModel, init_chat_model
-from langchain_core.rate_limiters import InMemoryRateLimiter
+from langchain_core.rate_limiters import BaseRateLimiter
 from langchain_core.runnables.config import RunnableConfig
 from pydantic import BaseModel
 
+from lib.config.env import get_model_api_key
 from lib.config.llm_models import LLMModel
+from lib.config.rate_limiter import get_rate_limiter, hash_api_key
 from lib.workflows.context import ContextSchema
 
 logger = logging.getLogger(__name__)
@@ -59,26 +59,30 @@ class LangChainAgent(BaseAgent):
     def __init__(self, context: ContextSchema):
         self.context = context
 
-    def get_rate_limiter(self) -> InMemoryRateLimiter:
-        api_key = self.context.openai_api_key or "default"
-        key_hash = hashlib.sha256(api_key.encode()).hexdigest()[:16]
-        return get_rate_limiter(key_hash)
+    def _resolve_api_key(self) -> str | None:
+        """User context key wins; falls back to per-model override. OpenAI only."""
+        if self.model.provider != "openai":
+            return None
+        return self.context.openai_api_key or get_model_api_key(self.model.name)
+
+    def get_rate_limiter(self) -> BaseRateLimiter:
+        return get_rate_limiter(hash_api_key(self._resolve_api_key() or "default"))
 
     def get_init_chat_model_kwargs(self) -> dict:
         init_kwargs = {
             "model": self.model.model_name,
             "temperature": self.temperature,
             "timeout": self.timeout,
+            "max_retries": 4,
             "rate_limiter": self.get_rate_limiter(),
         }
 
         if self.reasoning:
             init_kwargs["reasoning"] = self.reasoning
 
-        # For OpenAI models: use context API key if provided, otherwise fall back to env var
-        # For other providers (Anthropic, Google): always use environment variables
-        if self.model.provider == "openai" and self.context.openai_api_key:
-            init_kwargs["api_key"] = self.context.openai_api_key
+        api_key = self._resolve_api_key()
+        if api_key:
+            init_kwargs["api_key"] = api_key
 
         return init_kwargs
 
@@ -97,11 +101,3 @@ class LangChainAgent(BaseAgent):
             self._llm = self.create_llm()
         return self._llm
 
-
-@lru_cache(maxsize=256)
-def get_rate_limiter(api_key_hash: str) -> InMemoryRateLimiter:
-    return InMemoryRateLimiter(
-        requests_per_second=64,  # How many requests per second are allowed
-        check_every_n_seconds=0.2,  # Wake up every X seconds to check whether allowed to make a request
-        max_bucket_size=200,  # Controls the maximum burst size
-    )

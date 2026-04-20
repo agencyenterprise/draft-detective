@@ -11,7 +11,6 @@ export interface AnalysisFormValues {
   targetAudience: string;
   webSearchConsent: boolean;
   publicationDate: string;
-  openaiApiKey: string;
   mainDocument: File | null;
   supportingDocuments: File[];
   workflowTypes: WorkflowRunType[];

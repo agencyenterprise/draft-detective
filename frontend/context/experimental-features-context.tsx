@@ -1,6 +1,7 @@
 'use client';
 
 import { updatePreferencesApiUsersMePreferencesPatch, UserResponse } from '@/lib/generated-api';
+import { getErrorMessage } from '@/lib/api-error';
 import { USER_ME_QUERY_KEY, useUserMe } from '@/lib/hooks/use-user-me';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import React from 'react';
@@ -40,7 +41,7 @@ export function ExperimentalFeaturesProvider({ children }: ExperimentalFeaturesP
       );
     },
     onError: (error) => {
-      toast.error(`Failed to update preference: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      toast.error(`Failed to update preference: ${getErrorMessage(error, 'Unknown error')}`);
     },
     onSettled: () => {
       // Refetch to ensure consistency

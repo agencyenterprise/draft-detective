@@ -2,20 +2,15 @@
 
 import { ResultsVisualization } from '@/components/results/results-visualization';
 import { useWorkflowProgressToast } from '@/hooks/use-workflow-progress-toast';
-import { isApiError } from '@/lib/api-error';
-import {
-  AccessLevel,
-  ProjectDetailed,
-  updateProjectEndpointApiProjectProjectIdPatch,
-  WorkflowRunType,
-} from '@/lib/generated-api';
+import { getErrorMessage, isApiError } from '@/lib/api-error';
+import { AccessLevel, ProjectDetailed, updateProjectEndpointApiProjectProjectIdPatch } from '@/lib/generated-api';
 import { useProjectDetails } from '@/lib/hooks/use-project-details';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { isAnyWorkflowProcessing, needsHumanApproval, needsWizardCompletion } from '@/lib/workflow-state';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { FileXIcon, LockIcon } from 'lucide-react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
 export default function ResultsPage() {
@@ -28,21 +23,37 @@ export default function ResultsPage() {
   // Skip redirect check if coming from wizard (prevents race condition)
   const fromWizard = searchParams.get('fromWizard') === 'true';
 
-  const { project, workflowDetails, isLoading, error } = useProjectDetails(projectId);
-  const { data: workflowTypes } = useWorkflowTypes();
+  // Revision state: null means "latest" (default)
+  const [selectedRevision, setSelectedRevision] = useState<number | null>(null);
+
+  const { project, workflowDetails, isLoading, error } = useProjectDetails(projectId, selectedRevision);
+
+  // When project loads and we haven't selected a revision yet, sync to current
+  const currentRevision = project?.project?.current_revision ?? 1;
+  const effectiveRevision = selectedRevision ?? currentRevision;
+
+  const handleRevisionChange = useCallback((rev: number) => {
+    setSelectedRevision(rev);
+  }, []);
+  const { workflowTypes } = useWorkflowTypes();
 
   const isProcessing = isAnyWorkflowProcessing(workflowDetails);
+  const awaitingHumanApproval = needsHumanApproval(workflowDetails);
+  // HumanApproval stays Pending/Running until the user approves, which keeps isProcessing true even though
+  // the pipeline is intentionally paused. The progress API then has no active step → "Going to next step...".
+  const showWorkflowProgressToast = isProcessing && !awaitingHumanApproval;
 
   // Build internal types set from API data
   const internalTypes = useMemo(() => {
-    if (!workflowTypes) return new Set<WorkflowRunType>();
     return new Set(workflowTypes.filter((wt) => wt.is_internal).map((wt) => wt.type));
   }, [workflowTypes]);
 
   // Redirect to wizard step 2 if project only has document processing started
   // Skip if we just came from the wizard (workflows may not be in DB yet)
+  // Skip if the project has multiple revisions (user already chose analyses before)
+  const hasMultipleRevisions = (project?.project?.current_revision ?? 1) > 1;
   useEffect(() => {
-    if (fromWizard || isLoading || workflowDetails.length === 0) {
+    if (fromWizard || isLoading || workflowDetails.length === 0 || hasMultipleRevisions) {
       return;
     }
 
@@ -50,15 +61,10 @@ export default function ResultsPage() {
       router.replace(`/new?projectId=${projectId}`);
       return;
     }
+  }, [fromWizard, isLoading, workflowDetails, projectId, router, internalTypes, hasMultipleRevisions]);
 
-    if (needsHumanApproval(workflowDetails)) {
-      router.replace(`/new?projectId=${projectId}&step=3`);
-      return;
-    }
-  }, [fromWizard, isLoading, workflowDetails, projectId, router, internalTypes]);
-
-  // Show progress in toast when workflows are processing
-  useWorkflowProgressToast(projectId, isProcessing);
+  // Show progress in toast when automated workflows are running (not while waiting on reference review / approve)
+  useWorkflowProgressToast(projectId, showWorkflowProgressToast);
 
   const updateTitleMutation = useMutation({
     mutationFn: async (newTitle: string) => {
@@ -78,7 +84,7 @@ export default function ResultsPage() {
       toast.success('Title updated successfully');
     },
     onError: (error) => {
-      toast.error(`Failed to update title: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      toast.error(`Failed to update title: ${getErrorMessage(error, 'Unknown error')}`);
     },
   });
 
@@ -139,12 +145,17 @@ export default function ResultsPage() {
 
   const isReadOnly = project.access_level !== AccessLevel.Write;
 
+  const isViewingOldRevision = effectiveRevision < currentRevision;
+
   return (
     <ResultsVisualization
       projectDetail={project}
-      readOnly={isReadOnly}
+      readOnly={isReadOnly || isViewingOldRevision}
       onTitleSave={isReadOnly ? undefined : handleTitleSave}
       isTitleSaving={isReadOnly ? undefined : updateTitleMutation.isPending}
+      needsReferenceReview={!isReadOnly && !isViewingOldRevision && needsHumanApproval(workflowDetails)}
+      selectedRevision={effectiveRevision}
+      onRevisionChange={handleRevisionChange}
     />
   );
 }

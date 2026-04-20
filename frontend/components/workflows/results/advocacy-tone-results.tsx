@@ -13,9 +13,10 @@ import {
   ProjectDetailed,
   WorkflowRunType,
 } from '@/lib/generated-api';
-import { getWorkflowRunByType, isWorkflowProcessing } from '@/lib/workflow-state';
+import { getWorkflowRunByType, isWorkflowCancelled, isWorkflowProcessing } from '@/lib/workflow-state';
 import {
   AlertTriangle,
+  Ban,
   CheckCircle2,
   ChevronDown,
   FileWarning,
@@ -227,7 +228,7 @@ export function AdvocacyToneResults({ project, onNavigateToDocumentExplorer }: A
 
   // Not run yet
   if (!advocacyToneRun) {
-    return <EmptyState message="Advocacy & Tone analysis has not been run." />;
+    return <EmptyState message="Advocacy & Tone assessment has not been run." />;
   }
 
   // Still processing
@@ -235,8 +236,18 @@ export function AdvocacyToneResults({ project, onNavigateToDocumentExplorer }: A
     return (
       <EmptyState
         icon={<Loader2 className="h-8 w-8 animate-spin text-muted-foreground mx-auto" />}
-        message="Analyzing Advocacy & Tone..."
-        description="The Advocacy & Tone analysis is currently running. Results will appear here once complete."
+        message="Assessing Advocacy & Tone..."
+        description="The Advocacy & Tone assessment is currently running. Results will appear here once complete."
+      />
+    );
+  }
+
+  if (isWorkflowCancelled(advocacyToneRun)) {
+    return (
+      <EmptyState
+        icon={<Ban className="h-8 w-8 text-muted-foreground mx-auto" />}
+        message="Assessment Cancelled"
+        description="The Advocacy & Tone assessment was cancelled before it could complete."
       />
     );
   }
@@ -315,7 +326,7 @@ function AdvocacyToneContent({ state, chunkContentMap, onNavigateToDocumentExplo
       {/* Summary */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Advocacy & Tone Analysis</CardTitle>
+          <CardTitle className="text-base">Advocacy & Tone Assessment</CardTitle>
           <CardDescription>
             Detected language issues that may require attention for objectivity and neutrality.
           </CardDescription>

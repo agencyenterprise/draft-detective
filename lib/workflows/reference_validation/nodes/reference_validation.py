@@ -1,5 +1,7 @@
 import logging
+from typing import List
 
+from langchain_core.messages import BaseMessage
 from langgraph.runtime import Runtime
 from langgraph.types import Overwrite, Send
 
@@ -15,10 +17,7 @@ from lib.workflows.reference_validation.state import (
 logger = logging.getLogger(__name__)
 
 
-@register_node(
-    "Initialize validations",
-    "Initialize all references with pending status",
-)
+@register_node("Initialize validations")
 async def initialize_validations(
     state: ReferenceValidationState, runtime: Runtime[ContextSchema]
 ):
@@ -43,10 +42,7 @@ async def initialize_validations(
     return {"reference_validations": Overwrite(pending_results)}
 
 
-@register_node(
-    "Distribute validations",
-    "Distribute references to parallel validation operations",
-)
+@register_node("Distribute validations")
 async def distribute_validations(
     state: ReferenceValidationState, runtime: Runtime[ContextSchema]
 ):
@@ -66,10 +62,7 @@ async def distribute_validations(
     ]
 
 
-@register_node(
-    "Validate reference",
-    "Validate a single reference",
-)
+@register_node("Validate reference")
 async def validate_single_reference(state: dict, runtime: Runtime[ContextSchema]):
     """Process a single reference and return status update.
 
@@ -84,9 +77,10 @@ async def validate_single_reference(state: dict, runtime: Runtime[ContextSchema]
     validation_result = None
     error = None
     status = ReferenceValidationStatus.COMPLETED
+    agent_messages: List[BaseMessage] = []
 
     try:
-        validation_result, messages = await agent.ainvoke(
+        validation_result, agent_messages = await agent.ainvoke(
             {"reference": input_reference}
         )
     except Exception as e:
@@ -104,15 +98,13 @@ async def validate_single_reference(state: dict, runtime: Runtime[ContextSchema]
                 status=status,
                 validation_result=validation_result,
                 error=error,
+                messages=agent_messages,
             )
         ]
     }
 
 
-@register_node(
-    "Finalize validations",
-    "Finalize validation results",
-)
+@register_node("Finalize validations")
 async def finalize_validations(
     state: ReferenceValidationState, runtime: Runtime[ContextSchema]
 ):

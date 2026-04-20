@@ -24,7 +24,6 @@ class MethodologicalAlignmentManifest(
     name = "Methodological Alignment"
     description = "Analyze and compare the methodology used in the document against typical methods used in the field. Uses web search to find field methods context."
     needs_web_search = True
-    order = 5
     required_dependencies = [WorkflowRunType.DOCUMENT_PROCESSING]
 
     def get_state_type(self) -> Type[MethodologicalAlignmentState]:
@@ -43,6 +42,7 @@ class MethodologicalAlignmentManifest(
         self,
         config: MethodologicalAlignmentWorkflowConfig,
         existing_states: List[WorkflowState],
+        revision: int,
     ) -> MethodologicalAlignmentState:
         """Create and return the initial state of the workflow."""
 

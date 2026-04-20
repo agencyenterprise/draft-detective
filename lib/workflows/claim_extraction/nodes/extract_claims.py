@@ -21,10 +21,7 @@ from lib.workflows.decorators import register_node
 logger = logging.getLogger(__name__)
 
 
-@register_node(
-    "Extract claims",
-    "Extract claims from the document",
-)
+@register_node("Extract claims")
 async def extract_claims(
     state: ClaimExtractionState, runtime: Runtime[ContextSchema]
 ) -> Dict[str, Any]:

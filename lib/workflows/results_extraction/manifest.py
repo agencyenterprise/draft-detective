@@ -22,7 +22,6 @@ class ResultsExtractionManifest(
         "Extract main results from the document and assess their reproducibility"
     )
     needs_web_search = False
-    order = 6
     required_dependencies = [WorkflowRunType.DOCUMENT_PROCESSING]
 
     def get_state_type(self) -> Type[ResultsExtractionState]:
@@ -38,6 +37,7 @@ class ResultsExtractionManifest(
         self,
         config: ResultsExtractionWorkflowConfig,
         existing_states: List[WorkflowState],
+        revision: int,
     ) -> ResultsExtractionState:
         return ResultsExtractionState(
             type=WorkflowRunType.RESULTS_EXTRACTION,

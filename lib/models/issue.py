@@ -111,6 +111,12 @@ class Issue(SQLModel, table=True):
         description="Current status of the issue (active or archived)",
     )
 
+    revision: int = Field(
+        sa_column=Column(Integer, nullable=False, default=1),
+        default=1,
+        description="The project revision this issue belongs to (denormalized from workflow run)",
+    )
+
     resolved_by: Optional[uuid.UUID] = Field(
         sa_column=Column(
             UUID(as_uuid=True),
@@ -147,6 +153,7 @@ class Issue(SQLModel, table=True):
     __table_args__ = (
         Index("ix_issues_project_status", "project_id", "status"),
         Index("ix_issues_workflow_type", "project_id", "workflow_type"),
+        Index("ix_issues_project_revision", "project_id", "revision"),
         Index(
             "ix_issues_title_trgm",
             "title",

@@ -21,7 +21,6 @@ class LiteratureReviewManifest(
     description = "Discovers new references by searching the web for relevant academic sources and publications related to your document's claims. Useful for finding papers you may not have cited yet."
     needs_web_search = True
     is_experimental = True
-    order = 6
     required_dependencies = [
         WorkflowRunType.REFERENCE_EXTRACTION,
     ]
@@ -42,6 +41,7 @@ class LiteratureReviewManifest(
         self,
         config: LiteratureReviewWorkflowConfig,
         existing_states: List[WorkflowState],
+        revision: int,
     ) -> LiteratureReviewState:
         """Create and return the initial state of the workflow."""
 

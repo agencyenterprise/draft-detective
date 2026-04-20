@@ -20,9 +20,6 @@ class DocumentProcessingManifest(
     name = "Document Processing"
     description = "Convert documents to markdown"
     needs_web_search = False
-    can_be_triggered_by_user = (
-        False  # This is a dependency workflow, not directly triggered
-    )
     is_internal = True
     optional_dependencies = [
         # This is a hack to make doc processing wait for reference downloader to complete, so we can process the files
@@ -47,12 +44,15 @@ class DocumentProcessingManifest(
         self,
         config: DocumentProcessingWorkflowConfig,
         existing_states: List[WorkflowState],
+        revision: int,
     ) -> DocumentProcessingState:
         """Create and return the initial state of the workflow."""
 
         from lib.services.files import get_files_by_project_id, load_file_document
 
-        project_files = await get_files_by_project_id(config.project_id)
+        project_files = await get_files_by_project_id(
+            config.project_id, revision=revision
+        )
         main_file = next(
             (file for file in project_files if file.role == FileRole.MAIN),
             None,

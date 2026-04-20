@@ -8,12 +8,16 @@ import Image from 'next/image';
 import { Switch } from '../ui/switch';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 
-const userNavigation = [{ name: 'Sign out', href: '/api/auth/signout' }];
+const userNavigation = [
+  { name: 'Settings', href: '/account' },
+  { name: 'MCP Server', href: '/mcp' },
+  { name: 'Sign out', href: '/api/auth/signout' },
+];
 const adminNavigation = [
   { name: 'Evaluations', href: '/evals' },
   { name: 'Manage Users', href: '/users' },
   { name: 'User Feedback', href: '/feedbacks' },
-  { name: 'Settings', href: '/settings' },
+  { name: 'App Settings', href: '/settings' },
   { name: 'Logs', href: '/logs' },
 ];
 
@@ -54,7 +58,7 @@ export function ProfileDropdown({ user }: ProfileDropdownProps) {
             <TooltipTrigger asChild>
               <MenuItem>
                 <label className="flex items-center justify-between px-4 py-2 text-sm text-gray-700 cursor-pointer data-focus:bg-gray-100 data-focus:outline-hidden">
-                  <span>Experimental features</span>
+                  <span>Beta features</span>
                   <Switch
                     checked={showExperimentalFeatures}
                     onCheckedChange={setShowExperimentalFeatures}
@@ -134,7 +138,7 @@ export function MobileProfileMenu({ user }: MobileProfileMenuProps) {
           <Tooltip>
             <TooltipTrigger asChild>
               <label className="flex items-center justify-between px-4 py-2 text-base font-medium text-gray-500 cursor-pointer">
-                <span>Experimental features</span>
+                <span>Beta features</span>
                 <Switch
                   checked={showExperimentalFeatures}
                   onCheckedChange={setShowExperimentalFeatures}

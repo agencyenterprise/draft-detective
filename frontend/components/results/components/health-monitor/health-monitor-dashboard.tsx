@@ -32,19 +32,22 @@ export function HealthMonitorDashboard({
     isLoading,
   } = useWorkflowHealth(workflowRuns, issues);
 
-  const { data: workflowTypes } = useWorkflowTypes();
+  const { categories } = useWorkflowTypes();
 
-  // Sort health data by workflow order for consistent display
+  // Sort health data by category order then position within category
   const sortedHealthData = useMemo(() => {
-    if (!workflowTypes) return healthData;
-
-    const orderMap = new Map(workflowTypes.map((wt) => [wt.type, wt.order]));
-    return [...healthData].sort((a, b) => {
-      const orderA = orderMap.get(a.type) ?? 99;
-      const orderB = orderMap.get(b.type) ?? 99;
-      return orderA - orderB;
+    const positionMap = new Map<WorkflowRunType, number>();
+    categories.forEach((cat, catIdx) => {
+      cat.workflows.forEach((type, wfIdx) => {
+        positionMap.set(type as WorkflowRunType, catIdx * 1000 + wfIdx);
+      });
     });
-  }, [healthData, workflowTypes]);
+    return [...healthData].sort((a, b) => {
+      const posA = positionMap.get(a.type) ?? Number.MAX_SAFE_INTEGER;
+      const posB = positionMap.get(b.type) ?? Number.MAX_SAFE_INTEGER;
+      return posA - posB;
+    });
+  }, [healthData, categories]);
 
   const handleReviewIssues = (workflowType: WorkflowRunType) => {
     // Navigate to document explorer with workflow type filter
@@ -64,8 +67,8 @@ export function HealthMonitorDashboard({
   if (sortedHealthData.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-center">
-        <p className="text-muted-foreground">No analyses have been run yet.</p>
-        <p className="text-sm text-muted-foreground mt-1">Start an analysis to see the project health dashboard.</p>
+        <p className="text-muted-foreground">No assessments have been run yet.</p>
+        <p className="text-sm text-muted-foreground mt-1">Start an assessment to see the project health dashboard.</p>
       </div>
     );
   }
@@ -84,7 +87,7 @@ export function HealthMonitorDashboard({
 
       {/* Workflow Widgets Grid */}
       <div>
-        <h3 className="text-lg font-semibold mb-4">Analysis Health by Workflow</h3>
+        <h3 className="text-lg font-semibold mb-4">Results Overview by Assessment Type</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {sortedHealthData.map((data) => (
             <WorkflowHealthWidget

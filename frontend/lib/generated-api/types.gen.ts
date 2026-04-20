@@ -413,6 +413,16 @@ export type AppConfigResponse = {
 };
 
 /**
+ * AppConfigValueResponse
+ */
+export type AppConfigValueResponse = {
+  /**
+   * Value
+   */
+  value: string;
+};
+
+/**
  * ApproveWorkflowResponse
  *
  * Response for workflow approval.
@@ -602,6 +612,22 @@ export type BodyStartAnalysisApiStartAnalysisPost = {
    * Workflow Types
    */
   workflow_types?: string | null;
+};
+
+/**
+ * CancelWorkflowResponse
+ *
+ * Response for workflow cancellation.
+ */
+export type CancelWorkflowResponse = {
+  /**
+   * Message
+   */
+  message: string;
+  /**
+   * Workflow Run Id
+   */
+  workflow_run_id: string;
 };
 
 /**
@@ -1405,6 +1431,22 @@ export type CreateProjectRequest = {
 };
 
 /**
+ * CreateRevisionResponse
+ *
+ * Response for creating a new project revision.
+ */
+export type CreateRevisionResponse = {
+  /**
+   * Revision
+   */
+  revision: number;
+  /**
+   * Previous Workflow Types
+   */
+  previous_workflow_types: Array<WorkflowRunType>;
+};
+
+/**
  * DocumentChunk
  *
  * Raw document chunk without analysis results.
@@ -2114,6 +2156,12 @@ export type File = {
   summary?: {
     [key: string]: unknown;
   } | null;
+  /**
+   * Revision
+   *
+   * Revision number this file belongs to. NULL means shared across all revisions (e.g., supporting docs).
+   */
+  revision?: number | null;
 };
 
 /**
@@ -2215,6 +2263,10 @@ export type FileListItem = {
    * Created At
    */
   created_at: Date;
+  /**
+   * Revision
+   */
+  revision?: number | null;
 };
 
 /**
@@ -2686,6 +2738,12 @@ export type Issue = {
    * Current status of the issue (active or archived)
    */
   status?: IssueStatus;
+  /**
+   * Revision
+   *
+   * The project revision this issue belongs to (denormalized from workflow run)
+   */
+  revision?: number;
   /**
    * Resolved By
    *
@@ -3228,6 +3286,7 @@ export const ParagraphVerificationStatus = {
   Pending: 'pending',
   Completed: 'completed',
   Error: 'error',
+  Cancelled: 'cancelled',
 } as const;
 
 /**
@@ -3378,6 +3437,12 @@ export type Project = {
    * Controls what feedback information is shared with administrators
    */
   feedback_visibility?: FeedbackVisibility | null;
+  /**
+   * Current Revision
+   *
+   * The current (latest) revision number for this project
+   */
+  current_revision?: number;
 };
 
 /**
@@ -3413,6 +3478,12 @@ export type ProjectDetailed = {
    * All user feedback for this project's workflow runs
    */
   feedbacks?: Array<FeedbackSummary>;
+  /**
+   * Revision
+   *
+   * The revision being returned
+   */
+  revision?: number;
 };
 
 /**
@@ -3860,6 +3931,7 @@ export const ReferenceFetchStatus = {
   Pending: 'pending',
   Completed: 'completed',
   Error: 'error',
+  Cancelled: 'cancelled',
 } as const;
 
 /**
@@ -4066,6 +4138,14 @@ export type ReferenceValidationItem = {
    * Error message, present on failure.
    */
   error?: string | null;
+  /**
+   * Messages
+   *
+   * LLM conversation messages from the agent invocation.
+   */
+  messages?: Array<{
+    [key: string]: unknown;
+  }>;
 };
 
 /**
@@ -4100,6 +4180,7 @@ export const ReferenceValidationStatus = {
   Pending: 'pending',
   Completed: 'completed',
   Error: 'error',
+  Cancelled: 'cancelled',
 } as const;
 
 /**
@@ -4440,6 +4521,42 @@ export type Reviewer2State = {
 };
 
 /**
+ * RevisionListItem
+ *
+ * Summary of a single project revision.
+ */
+export type RevisionListItem = {
+  /**
+   * Revision
+   */
+  revision: number;
+  /**
+   * Main File Name
+   */
+  main_file_name?: string | null;
+  /**
+   * Main File Id
+   */
+  main_file_id?: string | null;
+  /**
+   * Created At
+   */
+  created_at?: Date | null;
+};
+
+/**
+ * SetApiKeyRequest
+ *
+ * Request model for setting a user's OpenAI API key
+ */
+export type SetApiKeyRequest = {
+  /**
+   * Openai Api Key
+   */
+  openai_api_key: string;
+};
+
+/**
  * SeverityEnum
  */
 export const SeverityEnum = {
@@ -4731,6 +4848,10 @@ export type UserResponse = {
    * Show Experimental Features
    */
   show_experimental_features: boolean;
+  /**
+   * Has Openai Api Key
+   */
+  has_openai_api_key?: boolean;
 };
 
 /**
@@ -4805,6 +4926,26 @@ export const ValidationSeverity = { Error: 'error', Warning: 'warning' } as cons
  * Severity level of a validation issue.
  */
 export type ValidationSeverity = (typeof ValidationSeverity)[keyof typeof ValidationSeverity];
+
+/**
+ * WorkflowCategoryOrder
+ *
+ * Ordered category entry: slug, label, and ordered list of workflow type slugs.
+ */
+export type WorkflowCategoryOrder = {
+  /**
+   * Slug
+   */
+  slug: string;
+  /**
+   * Label
+   */
+  label: string;
+  /**
+   * Workflows
+   */
+  workflows: Array<WorkflowRunType>;
+};
 
 /**
  * WorkflowError
@@ -4929,6 +5070,24 @@ export type WorkflowRun = {
    * The timestamp when the workflow run was last updated
    */
   last_updated_at: Date;
+  /**
+   * Started At
+   *
+   * The timestamp when the workflow run transitioned to RUNNING
+   */
+  started_at: Date | null;
+  /**
+   * Completed At
+   *
+   * The timestamp when the workflow run transitioned to COMPLETED or CANCELLED
+   */
+  completed_at: Date | null;
+  /**
+   * Revision
+   *
+   * The project revision this workflow run belongs to
+   */
+  revision?: number;
 };
 
 /**
@@ -4973,6 +5132,7 @@ export const WorkflowRunStatus = {
   Pending: 'pending',
   Running: 'running',
   Completed: 'completed',
+  Cancelled: 'cancelled',
 } as const;
 
 /**
@@ -5044,17 +5204,29 @@ export type WorkflowTypeDescription = {
    */
   is_internal: boolean;
   /**
-   * Can Be Triggered By User
-   */
-  can_be_triggered_by_user: boolean;
-  /**
    * Is Qa Screener
    */
   is_qa_screener: boolean;
   /**
-   * Order
+   * Category
    */
-  order: number;
+  category: string;
+};
+
+/**
+ * WorkflowTypesResponse
+ *
+ * Combined response: flat workflow details plus the ordered category display config.
+ */
+export type WorkflowTypesResponse = {
+  /**
+   * Workflow Types
+   */
+  workflow_types: Array<WorkflowTypeDescription>;
+  /**
+   * Categories
+   */
+  categories: Array<WorkflowCategoryOrder>;
 };
 
 /**
@@ -5180,6 +5352,38 @@ export type ResetAppConfigApiAppConfigsKeyDeleteResponses = {
 
 export type ResetAppConfigApiAppConfigsKeyDeleteResponse =
   ResetAppConfigApiAppConfigsKeyDeleteResponses[keyof ResetAppConfigApiAppConfigsKeyDeleteResponses];
+
+export type GetAppConfigApiAppConfigsKeyGetData = {
+  body?: never;
+  path: {
+    /**
+     * Key
+     */
+    key: string;
+  };
+  query?: never;
+  url: '/api/app-configs/{key}';
+};
+
+export type GetAppConfigApiAppConfigsKeyGetErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type GetAppConfigApiAppConfigsKeyGetError =
+  GetAppConfigApiAppConfigsKeyGetErrors[keyof GetAppConfigApiAppConfigsKeyGetErrors];
+
+export type GetAppConfigApiAppConfigsKeyGetResponses = {
+  /**
+   * Successful Response
+   */
+  200: AppConfigValueResponse;
+};
+
+export type GetAppConfigApiAppConfigsKeyGetResponse =
+  GetAppConfigApiAppConfigsKeyGetResponses[keyof GetAppConfigApiAppConfigsKeyGetResponses];
 
 export type UpdateAppConfigApiAppConfigsKeyPutData = {
   body: UpsertAppConfigRequest;
@@ -5438,6 +5642,38 @@ export type ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostResponses =
 export type ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostResponse =
   ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostResponses[keyof ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostResponses];
 
+export type CancelWorkflowRunEndpointApiWorkflowRunsWorkflowRunIdCancelPostData = {
+  body?: never;
+  path: {
+    /**
+     * Workflow Run Id
+     */
+    workflow_run_id: string;
+  };
+  query?: never;
+  url: '/api/workflow-runs/{workflow_run_id}/cancel';
+};
+
+export type CancelWorkflowRunEndpointApiWorkflowRunsWorkflowRunIdCancelPostErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type CancelWorkflowRunEndpointApiWorkflowRunsWorkflowRunIdCancelPostError =
+  CancelWorkflowRunEndpointApiWorkflowRunsWorkflowRunIdCancelPostErrors[keyof CancelWorkflowRunEndpointApiWorkflowRunsWorkflowRunIdCancelPostErrors];
+
+export type CancelWorkflowRunEndpointApiWorkflowRunsWorkflowRunIdCancelPostResponses = {
+  /**
+   * Successful Response
+   */
+  200: CancelWorkflowResponse;
+};
+
+export type CancelWorkflowRunEndpointApiWorkflowRunsWorkflowRunIdCancelPostResponse =
+  CancelWorkflowRunEndpointApiWorkflowRunsWorkflowRunIdCancelPostResponses[keyof CancelWorkflowRunEndpointApiWorkflowRunsWorkflowRunIdCancelPostResponses];
+
 export type GetWorkflowTypesApiWorkflowTypesGetData = {
   body?: never;
   path?: never;
@@ -5447,11 +5683,9 @@ export type GetWorkflowTypesApiWorkflowTypesGetData = {
 
 export type GetWorkflowTypesApiWorkflowTypesGetResponses = {
   /**
-   * Response Get Workflow Types Api Workflow Types Get
-   *
    * Successful Response
    */
-  200: Array<WorkflowTypeDescription>;
+  200: WorkflowTypesResponse;
 };
 
 export type GetWorkflowTypesApiWorkflowTypesGetResponse =
@@ -6012,6 +6246,12 @@ export type GetProjectEndpointApiProjectProjectIdGetData = {
      */
     include_internal?: boolean;
     /**
+     * Revision
+     *
+     * Revision number to return. Defaults to the project's current revision.
+     */
+    revision?: number | null;
+    /**
      * Share Token
      *
      * Share token to get project details
@@ -6259,6 +6499,12 @@ export type GetProjectWorkflowProgressEndpointApiProjectProjectIdWorkflowProgres
   };
   query?: {
     /**
+     * Revision
+     *
+     * Revision number. Defaults to the project's current revision.
+     */
+    revision?: number | null;
+    /**
      * Share Token
      *
      * Share token for shared projects.
@@ -6334,6 +6580,79 @@ export type GetProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsG
 
 export type GetProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGetResponse =
   GetProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGetResponses[keyof GetProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGetResponses];
+
+export type ListRevisionsEndpointApiProjectProjectIdRevisionsGetData = {
+  body?: never;
+  path: {
+    /**
+     * Project Id
+     */
+    project_id: string;
+  };
+  query?: {
+    /**
+     * Share Token
+     *
+     * Share token for shared projects.
+     */
+    share_token?: string | null;
+  };
+  url: '/api/project/{project_id}/revisions';
+};
+
+export type ListRevisionsEndpointApiProjectProjectIdRevisionsGetErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type ListRevisionsEndpointApiProjectProjectIdRevisionsGetError =
+  ListRevisionsEndpointApiProjectProjectIdRevisionsGetErrors[keyof ListRevisionsEndpointApiProjectProjectIdRevisionsGetErrors];
+
+export type ListRevisionsEndpointApiProjectProjectIdRevisionsGetResponses = {
+  /**
+   * Response List Revisions Endpoint Api Project  Project Id  Revisions Get
+   *
+   * Successful Response
+   */
+  200: Array<RevisionListItem>;
+};
+
+export type ListRevisionsEndpointApiProjectProjectIdRevisionsGetResponse =
+  ListRevisionsEndpointApiProjectProjectIdRevisionsGetResponses[keyof ListRevisionsEndpointApiProjectProjectIdRevisionsGetResponses];
+
+export type CreateRevisionEndpointApiProjectProjectIdRevisionsPostData = {
+  body?: never;
+  path: {
+    /**
+     * Project Id
+     */
+    project_id: string;
+  };
+  query?: never;
+  url: '/api/project/{project_id}/revisions';
+};
+
+export type CreateRevisionEndpointApiProjectProjectIdRevisionsPostErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type CreateRevisionEndpointApiProjectProjectIdRevisionsPostError =
+  CreateRevisionEndpointApiProjectProjectIdRevisionsPostErrors[keyof CreateRevisionEndpointApiProjectProjectIdRevisionsPostErrors];
+
+export type CreateRevisionEndpointApiProjectProjectIdRevisionsPostResponses = {
+  /**
+   * Successful Response
+   */
+  201: CreateRevisionResponse;
+};
+
+export type CreateRevisionEndpointApiProjectProjectIdRevisionsPostResponse =
+  CreateRevisionEndpointApiProjectProjectIdRevisionsPostResponses[keyof CreateRevisionEndpointApiProjectProjectIdRevisionsPostResponses];
 
 export type GetProjectShareStatusApiProjectsProjectIdShareGetData = {
   body?: never;
@@ -6844,3 +7163,47 @@ export type UpdatePreferencesApiUsersMePreferencesPatchResponses = {
 
 export type UpdatePreferencesApiUsersMePreferencesPatchResponse =
   UpdatePreferencesApiUsersMePreferencesPatchResponses[keyof UpdatePreferencesApiUsersMePreferencesPatchResponses];
+
+export type RemoveApiKeyApiUsersMeApiKeyDeleteData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/api/users/me/api-key';
+};
+
+export type RemoveApiKeyApiUsersMeApiKeyDeleteResponses = {
+  /**
+   * Successful Response
+   */
+  200: UserResponse;
+};
+
+export type RemoveApiKeyApiUsersMeApiKeyDeleteResponse =
+  RemoveApiKeyApiUsersMeApiKeyDeleteResponses[keyof RemoveApiKeyApiUsersMeApiKeyDeleteResponses];
+
+export type SetApiKeyApiUsersMeApiKeyPutData = {
+  body: SetApiKeyRequest;
+  path?: never;
+  query?: never;
+  url: '/api/users/me/api-key';
+};
+
+export type SetApiKeyApiUsersMeApiKeyPutErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type SetApiKeyApiUsersMeApiKeyPutError =
+  SetApiKeyApiUsersMeApiKeyPutErrors[keyof SetApiKeyApiUsersMeApiKeyPutErrors];
+
+export type SetApiKeyApiUsersMeApiKeyPutResponses = {
+  /**
+   * Successful Response
+   */
+  200: UserResponse;
+};
+
+export type SetApiKeyApiUsersMeApiKeyPutResponse =
+  SetApiKeyApiUsersMeApiKeyPutResponses[keyof SetApiKeyApiUsersMeApiKeyPutResponses];

@@ -100,7 +100,7 @@ export function DocumentExplorerTab({
                 onClick={onNavigateToAnalyses}
                 className="text-blue-600 hover:text-blue-800 underline font-medium"
               >
-                Analyses tab
+                Assessments tab
               </button>
               <span>for details.</span>
             </div>
@@ -128,7 +128,7 @@ export function DocumentExplorerTab({
               onClick={onNavigateToAnalyses}
               className="text-blue-600 hover:text-blue-800 underline font-medium cursor-pointer"
             >
-              Analyses tab
+              Assessments tab
             </button>
             <span>for details.</span>
           </div>

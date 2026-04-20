@@ -20,7 +20,6 @@ class ClaimExtractionManifest(
     name = "Claim Extraction"
     description = "Extract and categorize claims from documents"
     needs_web_search = False
-    can_be_triggered_by_user = False  # This is a dependency workflow
     is_internal = True
     required_dependencies = [
         WorkflowRunType.CHUNK_SPLITTING,
@@ -43,6 +42,7 @@ class ClaimExtractionManifest(
         self,
         config: ClaimExtractionWorkflowConfig,
         existing_states: List[WorkflowState],
+        revision: int,
     ) -> ClaimExtractionState:
         """Create and return the initial state of the workflow."""
 

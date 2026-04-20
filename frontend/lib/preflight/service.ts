@@ -4,7 +4,6 @@ import { checkPreflightApiPreflightPost, type PreflightResult, type ValidationIs
 export interface PreflightContext {
   mainDocument: File | null;
   supportingDocuments: File[];
-  openaiApiKey?: string;
 }
 
 export async function validatePreflight(context: PreflightContext): Promise<PreflightResult> {
@@ -27,7 +26,7 @@ export async function validatePreflight(context: PreflightContext): Promise<Pref
 
   try {
     return await checkPreflightApiPreflightPost({
-      body: { openai_api_key: context.openaiApiKey },
+      body: {},
     });
   } catch {
     return {

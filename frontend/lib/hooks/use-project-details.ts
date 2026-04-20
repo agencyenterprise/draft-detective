@@ -5,7 +5,7 @@ import { useShare } from '@/context/share-context';
 
 const REFETCH_INTERVAL_MS = 3000;
 
-export function useProjectDetails(projectId: string | null) {
+export function useProjectDetails(projectId: string | null, revision?: number | null) {
   const { shareToken } = useShare();
 
   const {
@@ -14,12 +14,12 @@ export function useProjectDetails(projectId: string | null) {
     error: projectError,
   } = useQuery({
     enabled: !!projectId,
-    queryKey: ['project', projectId],
+    queryKey: ['project', projectId, revision ?? 'latest'],
     staleTime: 60 * 1000 * 5, // 5 minutes
     queryFn: () =>
       getProjectEndpointApiProjectProjectIdGet({
         path: { project_id: projectId! },
-        query: { include_internal: true, share_token: shareToken },
+        query: { include_internal: true, share_token: shareToken, revision: revision ?? undefined },
       }),
     refetchInterval: (query) => {
       const workflowRuns = query.state.data?.workflow_runs ?? [];

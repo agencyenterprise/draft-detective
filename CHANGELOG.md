@@ -6,6 +6,180 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v0.5.30] - 2026-04-15
+
+### Added
+- Added a `WorkflowCompletionError` and a `check_workflow_errors()` utility to surface workflow completion errors as sample errors in Inspect AI evals.
+- Added tests covering Azure Entra ID upstream claims scenarios for MCP email/name resolution.
+- Added tests to ensure `VectorStoreService` uses a shared SQLAlchemy async engine and that multiple instances share one engine.
+- Added tests for the checkpointer pool behavior, including concurrency and reopen/close scenarios.
+
+### Changed
+- Updated LangChain ecosystem packages and Langfuse to newer versions.
+- Bumped pytest from 9.0.2 to 9.0.3.
+- Bumped pillow from 12.1.1 to 12.2.0.
+- Updated `VectorStoreService` to reuse the shared SQLAlchemy `async_engine` and changed its constructor to take only `openai_api_key`.
+- Changed the langgraph checkpointer to use a bounded module-level psycopg pool and added explicit SQLAlchemy engine pool caps (`pool_size=8`, `max_overflow=3`).
+- Updated FastAPI lifespan shutdown to close the checkpointer pool.
+
+### Fixed
+- Fixed MCP auth crashes for Azure Entra ID users by falling back to `upstream_claims` for email/name resolution and validating email format.
+- Fixed incorrect entries in the `reference_validation` eval dataset (including expected values) and corrected the internal eval dataset file path (`.jsonl` to `.json`).
+- Fixed eval behavior so workflow completion errors (e.g., rate limits/timeouts) are recorded as errors instead of being scored as incorrect. 
+
+### Security
+- Updated dependencies including LangChain ecosystem packages and Langfuse for security-related upgrades.
+- Updated pytest to 9.0.3, which includes a fix for use of an insecure temporary directory (CVE-2025-71176).
+
+
+## [v0.5.29] - 2026-04-13
+
+### Added
+- Added a multi-worker-safe Postgres-backed token bucket rate limiter for LangChain and the Jina API, with tuning knobs exposed via environment variables.
+- Added a new `rate_limiter_buckets` table and migration to support the Postgres-backed rate limiter.
+- Added grep-friendly logging for failed chat-model and embedding calls including model, provider, endpoint, workflow stage, and workflow/project IDs, with a distinct `LLM_RATE_LIMIT` prefix for HTTP 429 errors.
+- Added unit tests for the LLM error logger and an eval test case for reference validation of a non-existent URL.
+
+### Changed
+- Removed `revision` as a client-facing input parameter on workflow start endpoints so workflows always run against `project.current_revision`, while read endpoints that accept a revision remain unchanged.
+- Reordered analysis categories to: Citation Check → Substantive Review → Technical Compliance → Language, with Research & Writing Assistant kept at the end.
+- Updated the reference validator procedure to require fetching/verifying URLs before trusting them and to search for exact title/authors when a URL is dead.
+- Replaced the Jina API limiter from `aiolimiter.AsyncLimiter` to the new `PostgresRateLimiter`.
+
+### Fixed
+- Fixed `POST /api/workflows/start` to override `config.revision` with `project.current_revision` so workflow context targets the correct revision.
+- Fixed reference validator false negatives where non-existent URLs were marked valid based on URL pattern alone.
+
+### Removed
+- Removed the `aiolimiter` dependency.
+- Removed `revision` from workflow config OpenAPI schema and generated frontend workflow config types.
+
+
+## [v0.5.28] - 2026-04-10
+
+### Added
+- Stored LLM conversation messages for each reference validation in the workflow state.
+- Added a reusable AgentMessagesDialog component to view agent messages in a dialog.
+- Added a “Messages” button on completed reference validation results to open the agent messages dialog.
+- Added the `MCP_CIMD_ENABLED` environment variable to control whether CIMD is enabled for MCP OAuth providers.
+
+### Changed
+- Made CIMD enablement for Google and Azure MCP auth providers configurable via `MCP_CIMD_ENABLED` (default `false`).
+- Updated the `.env.template` to include a documented `MCP_CIMD_ENABLED` entry.
+- Updated MCP auth unit tests to include `MCP_CIMD_ENABLED` in mock configs and added tests verifying `enable_cimd=True` is forwarded to Google and Azure providers.
+
+### Fixed
+- Fixed issues from old revisions not showing up in the UI when using the revision switcher.
+- Removed unnecessary archival of issues during new revision creation.
+
+### Security
+- Bumped `next` from 15.5.14 to 15.5.15 in `/frontend`.
+
+
+## [v0.5.27] - 2026-04-10
+
+### Added
+- Introduced a revision system that allows replacing the main document and re-running analyses while preserving and archiving prior results.
+- Added API endpoints to create and list project revisions.
+- Added an inline “Replace main document” dialog and related UI updates, including a revision badge on project cards.
+- Added MCP tools `export_project_docx` and `list_projects`.
+- Added MCP tools `list_project_files`, `remove_reference_file`, and `get_tus_upload_credentials`.
+
+### Changed
+- Moved reference review and human approval out of the new-project wizard into the project results experience (References tab), removing `step=3` URL support and always routing to the project after starting analysis.
+- Updated workflow type selection UI to load types via `useWorkflowTypes`, render by category, and add a “Show experimental” control.
+- Promoted the Figures & Tables Check, Document Structure, Advocacy & Tone, and About This (GER) workflows to stable by removing the experimental flag.
+- Added exclusion logic so abbreviation/acronym tables in dedicated sections are not flagged by the figures & tables check.
+- Added 6 new figures & tables check e2e eval cases.
+- Added a regression eval case for reference validation and documented Inspect AI eval usage in AGENTS.md.
+- Bumped dependencies: cryptography (46.0.4→46.0.6 and 46.0.6→46.0.7), langchain-core (1.2.19→1.2.22 and 1.2.22→1.2.28), lodash (4.17.21→4.18.1), next (15.5.9→15.5.14), pyjwt (2.10.1→2.12.0), pygments (2.19.2→2.20.0), pyasn1 (0.6.2→0.6.3), pillow (12.1.0→12.1.1), requests (2.32.5→2.33.0), deepdiff (8.6.1→8.6.2), and aiohttp (3.13.3→3.13.4).
+
+### Fixed
+- Sanitized C0/C1 control characters before sending text to the OpenAI API to prevent intermittent 400 errors in the Chunk Splitting workflow, and consolidated stripping logic into a shared utility.
+- Reduced non-deterministic reference validator title suggestions by instructing the agent to prefer the on-page content headline over metadata titles.
+- Suppressed the workflow progress toast while a run is waiting on human approval.
+- Updated tests to include new MCP tool names and adjusted mocks and added tests for the revision system.
+
+### Security
+- Restricted Claude GitHub Actions workflows to run only for repo contributors with `OWNER`, `MEMBER`, or `COLLABORATOR` association.
+- Updated cryptography to 46.0.7, including a security fix for non-contiguous buffers that could lead to buffer overflow (CVE-2026-39892).
+- Updated cryptography to 46.0.6, including a security fix related to name constraints verification with wildcard DNS SANs (CVE-2026-34073).
+- Updated pyasn1 to 0.6.3, including a nesting depth limit to prevent stack overflow from deeply nested structures (CVE-2026-30922).
+- Updated requests to 2.33.0, including a security change for `requests.utils.extract_zipped_paths` (CVE-2026-25645).
+- Updated deepdiff to 8.6.2 to address CVE-2025-58367.
+- Updated next to 15.5.14, including a security fix to prevent request smuggling in rewrites (CVE-2026-29057).
+
+### Removed
+- Removed the experimental tag (`is_experimental`) from four workflows that were promoted to stable.
+- Removed the wizard reference review step (`StepReferences`) and obsolete deep links to `step=3`.
+
+
+## [v0.5.26] - 2026-04-07
+
+### Added
+- Added category grouping for workflow/analysis type selection in the UI and API.
+- Added a new `lib/workflows/categories.py` as a single source of truth defining five workflow categories, their display order, and workflow membership.
+- Added `WorkflowCategoryOrder` and `WorkflowTypesResponse` models, and updated `get_workflow_types_for_user` to return workflow descriptions with category slugs plus ordered category configuration.
+- Added category headers, an inline “show experimental” toggle, and a live `(selected/total)` counter to the workflow type selector UI.
+
+### Changed
+- Changed the `/api/workflow-types` endpoint to return the new `WorkflowTypesResponse` shape.
+- Changed workflow ordering to be controlled by `categories.py` instead of an `order` field in workflow manifests.
+- Changed MCP server code and unit tests to reflect the new workflow types response structure.
+- Changed frontend generated API types and the `use-workflow-types` hook to match and expose the new categories data.
+- Changed multiple frontend components to pass a `categories` prop down to `WorkflowTypeSelector`.
+- Changed `workflow-type-checkbox` styling with minor visual tweaks to icon/container sizing and description text.
+
+### Removed
+- Removed the `order: int` field from `WorkflowManifest`.
+- Removed the `order` field from all individual workflow manifests.
+
+
+## [v0.5.25] - 2026-04-03
+
+Changed
+- Merged dev to main (#448).
+
+
+## [v0.5.24] - 2026-04-03
+
+### Added
+- Added an MCP (Model Context Protocol) server mounted at `/mcp` with OAuth authentication and tools to list workflow types, create projects, run workflows, and get project details.
+- Added the ability for users to cancel running or pending workflow runs with cascade cancellation through dependent workflows, in-flight interruption, and live duration tracking in the UI.
+- Added an About page that renders configurable markdown content fetched from the app config system.
+- Added a new public `GET /api/app-configs/{key}` endpoint returning `{ value: string }`.
+- Added support for users to store a personal OpenAI API key encrypted at rest for automatic use in analyses, including from MCP clients.
+- Added new user API endpoints to manage the stored OpenAI API key (`PUT /api/users/me/api-key` and `DELETE /api/users/me/api-key`).
+- Added a new `/account` settings page for saving, replacing, and removing the stored OpenAI API key.
+- Added `has_openai_api_key` to `UserResponse`.
+- Added per-key rate limiting to embedding calls in `VectorStoreService`.
+
+### Changed
+- Replaced per-request OpenAI API key entry in analysis forms, dialogs, and workflow triggers with account-level API key configuration used automatically by the server.
+- Added a new analysis wizard step (`StepApiKeyConfig`) when `NEXT_PUBLIC_REQUIRE_OPENAI_API_KEY_CONFIG=true` to prompt users to save their OpenAI API key to their account.
+- Renamed `NEXT_PUBLIC_HIDE_CUSTOM_OPENAI_API_KEY_INPUT` to `NEXT_PUBLIC_REQUIRE_OPENAI_API_KEY_CONFIG` and changed its semantics to require key setup as a wizard step.
+- Simplified the preflight service by removing client-side API key validation.
+- Updated workflow runner key resolution order to: per-request key, then user's stored key, then server environment variable.
+- Updated the MCP `run_workflow` tool to require a stored API key.
+- Refactored `@register_node` to accept only a name and removed the description argument from all workflow node registrations.
+- Broadened workflow cancellation progress cleanup to clear incomplete progress entries across all runs for the same project and workflow type.
+- Consolidated the top-level `api/` package under `lib/` to unify the codebase into a single package namespace, with corresponding updates to configuration, deployment references, and tests.
+- Updated navigation by moving "Start new project" into a standalone button and adding an "About" nav link pointing to `/about`.
+- Updated profile dropdown labels by adding a user-facing "Settings" link and renaming admin "Settings" to "App Settings".
+- Updated MCP instructions text from "Draft Detective / AI Reviewer" to "Draft Detective AI Reviewer".
+
+### Fixed
+- Fixed workflow cancellation progress cleanup so stale `pending`/`in_progress` entries from prior runs are also resolved.
+
+### Security
+- Encrypted stored user OpenAI API keys at rest and ensured the key is never returned in API responses.
+
+### Removed
+- Removed OpenAI API key fields from frontend request payloads and from all analysis forms, dialogs, and workflow triggers.
+- Removed inline `get_rate_limiter` and `hash_api_key` definitions from `lib/models/agent.py` in favor of a shared config module.
+- Removed the standalone top-level `api/` package and removed `api` from the wheel build targets in `pyproject.toml`.
+
+
 ## [v0.5.23] - 2026-03-27
 
 ### Added

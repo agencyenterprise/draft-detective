@@ -26,10 +26,7 @@ from lib.workflows.reference_downloader.state import (
 logger = logging.getLogger(__name__)
 
 
-@register_node(
-    "Initialize references",
-    "Initialize all references with pending status",
-)
+@register_node("Initialize references")
 async def initialize_references(
     state: ReferenceDownloaderState, runtime: Runtime[ContextSchema]
 ):
@@ -53,10 +50,7 @@ async def initialize_references(
     return {"fetched_references": Overwrite(pending_results)}
 
 
-@register_node(
-    "Distribute references",
-    "Distribute references to parallel fetch operations",
-)
+@register_node("Distribute references")
 async def distribute_references(
     state: ReferenceDownloaderState, runtime: Runtime[ContextSchema]
 ):
@@ -74,10 +68,7 @@ async def distribute_references(
     ]
 
 
-@register_node(
-    "Fetch reference",
-    "Fetch a single reference",
-)
+@register_node("Fetch reference")
 async def fetch_single_reference(state: dict, runtime: Runtime[ContextSchema]):
     """Process a single reference and return status update.
 
@@ -110,7 +101,7 @@ async def fetch_single_reference(state: dict, runtime: Runtime[ContextSchema]):
             await update_files_role([result.file_id], FileRole.SUPPORT)
             # Update the reference file matching in the ReferenceExtraction workflow state
             await _update_reference_file_matching(
-                project_id, result.file_id, reference_id
+                project_id, result.file_id, reference_id, runtime.context.revision
             )
 
     except Exception as e:
@@ -131,10 +122,7 @@ async def fetch_single_reference(state: dict, runtime: Runtime[ContextSchema]):
     }
 
 
-@register_node(
-    "Cleanup",
-    "Clean up files for failed references",
-)
+@register_node("Cleanup")
 async def cleanup_failed_resources(
     state: ReferenceDownloaderState, runtime: Runtime[ContextSchema]
 ):
@@ -185,7 +173,7 @@ async def cleanup_failed_resources(
 
 
 async def _update_reference_file_matching(
-    project_id: str, file_id: str, reference_id: str
+    project_id: str, file_id: str, reference_id: str, revision: int
 ):
     """Update the reference file matching in the ReferenceExtraction workflow state."""
 
@@ -197,4 +185,5 @@ async def _update_reference_file_matching(
         file_id=file_id,
         reference_id=reference_id,
         source=MatchSource.AUTO_FETCHED,
+        revision=revision,
     )

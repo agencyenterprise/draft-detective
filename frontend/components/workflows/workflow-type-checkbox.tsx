@@ -104,11 +104,11 @@ export function WorkflowTypeCheckbox({
       <div className="flex gap-4">
         <div
           className={cn(
-            'flex items-center justify-center size-10 rounded-lg shrink-0 transition-colors',
+            'flex items-center justify-center size-8 rounded-lg shrink-0 transition-colors',
             checked ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground',
           )}
         >
-          <Icon className="size-5" />
+          <Icon className="size-4" />
         </div>
 
         <div className="flex-1 min-w-0 space-y-1.5">
@@ -135,7 +135,7 @@ export function WorkflowTypeCheckbox({
             </CheckboxPrimitive.Root>
           </div>
 
-          <p className="text-sm text-muted-foreground leading-relaxed">{workflowType.description}</p>
+          <p className="text-sm text-muted-foreground">{workflowType.description}</p>
 
           {(workflowType.is_experimental ||
             workflowType.needs_web_search ||
@@ -151,7 +151,7 @@ export function WorkflowTypeCheckbox({
                     </Badge>
                   </TooltipTrigger>
                   <TooltipContent side="top" className="max-w-xs">
-                    This analysis is part of the QA Screener tool, designed for quality assurance screening of
+                    This assessment is part of the QA Screener tool, designed for quality assurance screening of
                     documents.
                   </TooltipContent>
                 </Tooltip>
@@ -165,7 +165,7 @@ export function WorkflowTypeCheckbox({
                     </Badge>
                   </TooltipTrigger>
                   <TooltipContent side="top" className="max-w-xs">
-                    This analysis requires the full text of referenced documents. Claims citing references without
+                    This assessment requires the full text of referenced documents. Claims citing references without
                     matched source documents will be skipped. You can upload sources or fetch from the web in Step 3.
                   </TooltipContent>
                 </Tooltip>
@@ -179,8 +179,8 @@ export function WorkflowTypeCheckbox({
                     </Badge>
                   </TooltipTrigger>
                   <TooltipContent side="top" className="max-w-xs">
-                    This analysis searches the web (using a web search tool) for additional context and information to
-                    enhance the analysis. Parts of the document might be used as web search query/context.
+                    This assessment searches the web (using a web search tool) for additional context and information to
+                    enhance the assessment. Parts of the document might be used as web search query/context.
                   </TooltipContent>
                 </Tooltip>
               )}
@@ -189,12 +189,11 @@ export function WorkflowTypeCheckbox({
                   <TooltipTrigger asChild>
                     <Badge variant="secondary" className="flex items-center gap-1 text-xs">
                       <FlaskConical className="size-3" />
-                      Experimental
+                      Beta
                     </Badge>
                   </TooltipTrigger>
                   <TooltipContent side="top" className="max-w-xs">
-                    This analysis is still highly experimental and being refined. Results may vary and the feature may
-                    change in future updates.
+                    This assessment is in beta. Results may vary and features/performance may change in future updates.
                   </TooltipContent>
                 </Tooltip>
               )}

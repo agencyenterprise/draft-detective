@@ -36,10 +36,7 @@ async def _extract_from_section(
     return result.footnotes
 
 
-@register_node(
-    "Extract footnotes",
-    "Extract structured footnotes from detected sections using LLM",
-)
+@register_node("Extract footnotes")
 async def extract_footnotes_node(
     state: FootnoteExtractionState, runtime: Runtime[ContextSchema]
 ) -> dict:

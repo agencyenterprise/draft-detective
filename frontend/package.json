@@ -1,8 +1,8 @@
 {
   "name": "ai-reviewer",
-  "version": "0.5.23",
+  "version": "0.5.30",
   "private": true,
-  "packageManager": "pnpm@10.4.1",
+  "packageManager": "pnpm@10.33.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/agencyenterprise/ai-reviewer"
@@ -59,9 +59,9 @@
     "cmdk": "^1.1.1",
     "date-fns": "^4.1.0",
     "jose": "^6.1.1",
-    "lodash": "^4.17.21",
+    "lodash": "^4.18.1",
     "lucide-react": "^0.544.0",
-    "next": "15.5.9",
+    "next": "15.5.15",
     "next-auth": "5.0.0-beta.30",
     "next-themes": "^0.4.6",
     "posthog-js": "^1.307.0",

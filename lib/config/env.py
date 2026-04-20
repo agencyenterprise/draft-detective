@@ -1,3 +1,4 @@
+import json
 import os
 from typing import Optional
 
@@ -41,6 +42,21 @@ class Config(BaseModel):
         description="The secret key for the authentication. This is used to sign and verify JWT tokens. Shared by the frontend and backend.",
     )
 
+    # MCP / OAuth Authentication
+    AUTH_GOOGLE_ID: Optional[str] = None
+    AUTH_GOOGLE_SECRET: Optional[str] = None
+    AUTH_MICROSOFT_ENTRA_ID_ID: Optional[str] = None
+    AUTH_MICROSOFT_ENTRA_ID_SECRET: Optional[str] = None
+    AUTH_MICROSOFT_ENTRA_ID_ISSUER: Optional[str] = None
+    MCP_BASE_URL: str = Field(
+        default="http://localhost:8000/mcp",
+        description="Public URL of the MCP server (must include /mcp path)",
+    )
+    MCP_CIMD_ENABLED: bool = Field(
+        default=False,
+        description="Whether to enable CIMD for MCP OAuth providers. Disable if clients are behind VPNs that cannot reach the CIMD endpoint.",
+    )
+
     # File uploads
     FILE_UPLOADS_MOUNT_PATH: str
 
@@ -58,6 +74,27 @@ class Config(BaseModel):
     FRONTEND_URL: str = Field(
         default="http://localhost:3000",
         description="Base URL for the frontend application (used for share links)",
+    )
+
+    # Per-model API key overrides (JSON dict mapping model name → API key)
+    # Example: {"gpt-5-mini-2025-08-07": "sk-xxx", "gpt-4.1-2025-04-14": "sk-yyy"}
+    MODEL_API_KEYS: dict[str, str] = Field(
+        default_factory=dict,
+        description="Per-model API key overrides. Keys are model names (e.g. Azure deployment IDs).",
+    )
+
+    # Rate limiter configuration (shared across workers via Postgres)
+    RATE_LIMITER_REQUESTS_PER_SECOND: float = Field(
+        default=2,
+        description="Average LLM requests-per-second cap enforced globally across workers",
+    )
+    RATE_LIMITER_MAX_BUCKET_SIZE: float = Field(
+        default=1,
+        description="Maximum burst size (token bucket ceiling); must be >= 1",
+    )
+    RATE_LIMITER_CHECK_EVERY_N_SECONDS: float = Field(
+        default=0.25,
+        description="Polling interval when the bucket is empty and the caller is blocking",
     )
 
 
@@ -80,4 +117,24 @@ config = Config(
     POSTGRES_USER=os.getenv("POSTGRES_USER"),
     POSTGRES_PASSWORD=os.getenv("POSTGRES_PASSWORD"),
     AUTH_SECRET=os.getenv("AUTH_SECRET"),
+    AUTH_GOOGLE_ID=os.getenv("AUTH_GOOGLE_ID"),
+    AUTH_GOOGLE_SECRET=os.getenv("AUTH_GOOGLE_SECRET"),
+    AUTH_MICROSOFT_ENTRA_ID_ID=os.getenv("AUTH_MICROSOFT_ENTRA_ID_ID"),
+    AUTH_MICROSOFT_ENTRA_ID_SECRET=os.getenv("AUTH_MICROSOFT_ENTRA_ID_SECRET"),
+    AUTH_MICROSOFT_ENTRA_ID_ISSUER=os.getenv("AUTH_MICROSOFT_ENTRA_ID_ISSUER"),
+    MCP_BASE_URL=os.getenv("MCP_BASE_URL", "http://localhost:8000/mcp"),
+    MCP_CIMD_ENABLED=os.getenv("MCP_CIMD_ENABLED", "false").lower() == "true",
+    RATE_LIMITER_REQUESTS_PER_SECOND=float(
+        os.getenv("RATE_LIMITER_REQUESTS_PER_SECOND", "2")
+    ),
+    RATE_LIMITER_MAX_BUCKET_SIZE=float(os.getenv("RATE_LIMITER_MAX_BUCKET_SIZE", "1")),
+    RATE_LIMITER_CHECK_EVERY_N_SECONDS=float(
+        os.getenv("RATE_LIMITER_CHECK_EVERY_N_SECONDS", "0.25")
+    ),
+    MODEL_API_KEYS=json.loads(os.getenv("MODEL_API_KEYS", "{}")),
 )
+
+
+def get_model_api_key(model_name: str) -> str | None:
+    """Return the API key configured for a specific model name, or None."""
+    return config.MODEL_API_KEYS.get(model_name)

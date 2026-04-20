@@ -21,11 +21,13 @@ import {
 } from '@/lib/generated-api';
 import { useDocumentExplorerStore } from '@/lib/stores/document-explorer-store';
 import { getWorkflowRunByType } from '@/lib/workflow-state';
+import { getErrorMessage } from '@/lib/api-error';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Download, EllipsisVerticalIcon, Link, Pencil } from 'lucide-react';
+import { Download, EllipsisVerticalIcon, Link, Pencil, RefreshCw } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { downloadDocxFile, DocxType, useDownloadDocx } from './use-download-docx';
+import { ReplaceMainDocumentDialog } from './replace-main-document-dialog';
 
 type ProjectWithDetails = Project & {
   publication_date?: Date | null;
@@ -51,6 +53,7 @@ export function AnalysisOptionsMenu({ project, results, readOnly }: AnalysisOpti
   const [pendingDocxType, setPendingDocxType] = useState<DocxType>('original');
   const [isEnablingForDownload, setIsEnablingForDownload] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isReplaceDialogOpen, setIsReplaceDialogOpen] = useState(false);
 
   const shareToken = share.shareStatus?.share_link?.token ?? shareContext.shareToken;
   const { download, isDownloading } = useDownloadDocx({
@@ -89,7 +92,7 @@ export function AnalysisOptionsMenu({ project, results, readOnly }: AnalysisOpti
       toast.success('Project details updated successfully');
     },
     onError: (error) => {
-      toast.error(`Failed to update project: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      toast.error(`Failed to update project: ${getErrorMessage(error, 'Unknown error')}`);
     },
   });
 
@@ -179,11 +182,19 @@ export function AnalysisOptionsMenu({ project, results, readOnly }: AnalysisOpti
                 </MenuItemWithTooltip>
 
                 <MenuItemWithTooltip
+                  icon={RefreshCw}
+                  onClick={() => setIsReplaceDialogOpen(true)}
+                  tooltip="Upload a new version of the main document and re-run assessments"
+                >
+                  Replace main document
+                </MenuItemWithTooltip>
+
+                <MenuItemWithTooltip
                   icon={Link}
                   onClick={() => share.setIsDialogOpen(true)}
                   tooltip={share.isEnabled ? 'View or copy the share link' : 'Create a public link'}
                 >
-                  {share.isEnabled ? 'Manage share link' : 'Share this analysis'}
+                  {share.isEnabled ? 'Manage share link' : 'Share this assessment'}
                 </MenuItemWithTooltip>
               </>
             )}
@@ -231,6 +242,12 @@ export function AnalysisOptionsMenu({ project, results, readOnly }: AnalysisOpti
         onConfirm={(values) => updateProjectMutation.mutate(values)}
         onCancel={() => setIsEditDialogOpen(false)}
         isSubmitting={updateProjectMutation.isPending}
+      />
+
+      <ReplaceMainDocumentDialog
+        isOpen={isReplaceDialogOpen}
+        projectId={projectId}
+        onClose={() => setIsReplaceDialogOpen(false)}
       />
     </>
   );

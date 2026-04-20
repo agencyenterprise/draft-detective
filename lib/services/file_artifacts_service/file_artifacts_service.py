@@ -42,14 +42,16 @@ class FileArtifactsService(FileArtifactsServiceType):
     workflow checkpointer state when not.
     """
 
-    def __init__(self, project_id: str) -> None:
-        """Initialize the service with a project ID.
+    def __init__(self, project_id: str, revision: int) -> None:
+        """Initialize the service with a project ID and revision.
 
         Args:
             project_id: The unique identifier for the project whose artifacts
                 should be accessed.
+            revision: The project revision to scope lookups to.
         """
         self.project_id = project_id
+        self.revision = revision
 
     async def _get_state_by_type(
         self, run_type: WorkflowRunType, raise_exception: bool = True
@@ -72,7 +74,9 @@ class FileArtifactsService(FileArtifactsServiceType):
             get_workflow_run_state_by_thread_id,
         )
 
-        workflow_run = await get_project_workflow_run_by_type(self.project_id, run_type)
+        workflow_run = await get_project_workflow_run_by_type(
+            self.project_id, run_type, revision=self.revision
+        )
         if not workflow_run:
             if raise_exception:
                 raise ValueError(
@@ -152,7 +156,7 @@ class FileArtifactsService(FileArtifactsServiceType):
         """Return all project files from DB (or None if DB read fails)."""
         return await self._try_load(
             f"project files for {self.project_id}",
-            lambda: get_files_by_project_id(self.project_id),
+            lambda: get_files_by_project_id(self.project_id, revision=self.revision),
         )
 
     async def get_main_file(self) -> FileDocument:
@@ -364,7 +368,7 @@ class FileArtifactsService(FileArtifactsServiceType):
         from lib.workflows.chunk_utils import build_analyzed_chunks
 
         workflow_runs = await get_project_workflow_runs(
-            self.project_id, include_internal=True
+            self.project_id, revision=self.revision, include_internal=True
         )
         states: list["WorkflowState"] = [
             run.state for run in workflow_runs if run.state is not None

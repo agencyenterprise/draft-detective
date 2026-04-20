@@ -66,6 +66,9 @@ def setup_logger() -> None:
         logging.CRITICAL
     )
 
+    # Debug fastmcp context to client logging
+    logging.getLogger(name="fastmcp.server.context.to_client").setLevel(logging.DEBUG)
+
     # Suppress noisy langchain text splitter warnings
     logging.getLogger("langchain_text_splitters.base").setLevel(logging.ERROR)
 

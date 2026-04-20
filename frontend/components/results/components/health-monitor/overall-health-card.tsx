@@ -46,7 +46,7 @@ export function OverallHealthCard({
           <div className="flex items-center gap-8">
             <div className="text-center">
               <div className="text-3xl font-bold">{totalWorkflows}</div>
-              <div className="text-sm text-muted-foreground">Analyses</div>
+              <div className="text-sm text-muted-foreground">Assessments</div>
             </div>
             <div className="text-center">
               <div className={cn('text-3xl font-bold', totalIssues > 0 ? 'text-amber-600' : 'text-emerald-600')}>

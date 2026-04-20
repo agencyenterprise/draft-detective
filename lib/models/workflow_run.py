@@ -4,7 +4,7 @@ from enum import Enum
 from typing import Any, Optional
 
 from pydantic import field_serializer, field_validator
-from sqlalchemy import Column, DateTime, ForeignKey
+from sqlalchemy import Column, DateTime, ForeignKey, Integer
 from sqlalchemy.dialects.postgresql import UUID
 from sqlmodel import Enum as SQLModelEnum
 from sqlmodel import Field, SQLModel, String
@@ -16,6 +16,7 @@ class WorkflowRunStatus(str, Enum):
     PENDING = "pending"
     RUNNING = "running"
     COMPLETED = "completed"
+    CANCELLED = "cancelled"
 
 
 class WorkflowRun(SQLModel, table=True):
@@ -61,6 +62,19 @@ class WorkflowRun(SQLModel, table=True):
             nullable=False,
         ),
         description="The timestamp when the workflow run was last updated",
+    )
+    started_at: Optional[datetime] = Field(
+        sa_column=Column(DateTime(timezone=True), nullable=True),
+        description="The timestamp when the workflow run transitioned to RUNNING",
+    )
+    completed_at: Optional[datetime] = Field(
+        sa_column=Column(DateTime(timezone=True), nullable=True),
+        description="The timestamp when the workflow run transitioned to COMPLETED or CANCELLED",
+    )
+    revision: int = Field(
+        sa_column=Column(Integer, nullable=False, default=1),
+        default=1,
+        description="The project revision this workflow run belongs to",
     )
 
     @field_validator("type", mode="before")

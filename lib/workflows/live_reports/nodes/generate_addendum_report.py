@@ -17,10 +17,7 @@ from lib.workflows.live_reports.state import LiveReportsState
 logger = logging.getLogger(__name__)
 
 
-@register_node(
-    "Live Reports: generate addendum",
-    "Generate an addendum report from the live reports analysis",
-)
+@register_node("Live Reports: generate addendum")
 async def generate_addendum_report(
     state: LiveReportsState, runtime: Runtime[ContextSchema]
 ):

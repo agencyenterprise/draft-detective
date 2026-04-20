@@ -1,7 +1,6 @@
 'use client';
 
 import { useExperimentalFeatures } from '@/context/experimental-features-context';
-import { useSessionStorage } from '@/lib/hooks/use-session-storage';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { useForm } from '@tanstack/react-form';
 import { AlertCircle, Loader2, Play } from 'lucide-react';
@@ -26,10 +25,8 @@ export interface AnalysisFormProps {
 }
 
 export function AnalysisForm({ onSubmit, isPending = false, error }: AnalysisFormProps) {
-  const [openaiApiKey, setOpenaiApiKey] = useSessionStorage<string>('openai-api-key', '');
-  const hideOpenaiApiKeyInput = process.env.NEXT_PUBLIC_HIDE_CUSTOM_OPENAI_API_KEY_INPUT === 'true';
   const { showExperimentalFeatures } = useExperimentalFeatures();
-  const { data: workflowTypes } = useWorkflowTypes();
+  const { workflowTypes } = useWorkflowTypes();
 
   // Get today's date in YYYY-MM-DD format for the date input
   const today = new Date().toISOString().split('T')[0];
@@ -40,14 +37,12 @@ export function AnalysisForm({ onSubmit, isPending = false, error }: AnalysisFor
       targetAudience: '',
       webSearchConsent: false,
       publicationDate: today,
-      openaiApiKey: openaiApiKey,
       mainDocument: null,
       supportingDocuments: [],
       workflowTypes: [],
     } as AnalysisFormValues,
     validators: {
-      onChange: ({ value }) =>
-        validateAnalysisForm(value, hideOpenaiApiKeyInput, workflowTypes, showExperimentalFeatures),
+      onChange: ({ value }) => validateAnalysisForm(value, workflowTypes, showExperimentalFeatures),
     },
     onSubmit: ({ value }) => {
       onSubmit({
@@ -57,7 +52,6 @@ export function AnalysisForm({ onSubmit, isPending = false, error }: AnalysisFor
           domain: value.domain,
           target_audience: value.targetAudience,
           publication_date: value.publicationDate,
-          openai_api_key: value.openaiApiKey,
           workflow_types: value.workflowTypes,
         },
       });
@@ -87,7 +81,7 @@ export function AnalysisForm({ onSubmit, isPending = false, error }: AnalysisFor
         <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-lg flex items-start gap-3">
           <AlertCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
           <div className="space-y-1">
-            <p className="font-medium text-destructive">Failed to start analysis</p>
+            <p className="font-medium text-destructive">Failed to start assessment</p>
             <p className="text-sm text-destructive/90 whitespace-pre-line">{error}</p>
           </div>
         </div>
@@ -99,7 +93,7 @@ export function AnalysisForm({ onSubmit, isPending = false, error }: AnalysisFor
           <div className="space-y-2">
             <UploadSection
               title="Main Document"
-              description="Primary document for analysis. Word documents are preferred (less LLM conversion errors) but PDFs are also supported."
+              description="Primary document for assessment. Word documents are preferred (less LLM conversion errors) but PDFs are also supported."
               required={true}
               onFilesChange={(files) => field.handleChange(files[0] || null)}
               multiple={false}
@@ -128,11 +122,10 @@ export function AnalysisForm({ onSubmit, isPending = false, error }: AnalysisFor
       >
         {(field) => (
           <WorkflowTypeSelector
-            workflowTypes={workflowTypes?.filter((wt) => wt.can_be_triggered_by_user && !wt.is_internal)}
             selectedTypes={field.state.value}
             onSelectionChange={field.handleChange}
             disabled={isPending}
-            headerDescription="Select which types of analyses to perform"
+            headerDescription="Select which assessments to perform"
             error={
               !field.state.meta.isValid && field.state.meta.errors.length > 0
                 ? field.state.meta.errors.join(', ')
@@ -201,52 +194,11 @@ export function AnalysisForm({ onSubmit, isPending = false, error }: AnalysisFor
         }}
       </form.Field>
 
-      {/* API Configuration Section */}
-      {!hideOpenaiApiKeyInput && (
-        <div className="space-y-4">
-          <div className="space-y-1">
-            <h2 className="text-xl font-semibold">API Configuration</h2>
-            <p className="text-sm text-muted-foreground">Configure API settings for analysis execution</p>
-          </div>
-          <form.Field
-            name="openaiApiKey"
-            listeners={{
-              onChange: ({ value }) => setOpenaiApiKey(value),
-            }}
-          >
-            {(field) => (
-              <div className="space-y-2">
-                <Label htmlFor="openai-api-key">
-                  OpenAI API Key <span className="text-destructive ml-1">*</span>
-                </Label>
-                <Input
-                  id="openai-api-key"
-                  type="text"
-                  placeholder="sk-..."
-                  value={field.state.value}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                  className={field.state.meta.errors.length > 0 ? 'border-destructive' : ''}
-                  disabled={isPending}
-                  required={true}
-                />
-                <p className="text-sm text-muted-foreground">
-                  Your OpenAI API key will be used only for this analysis session and will not be stored in our
-                  database.
-                </p>
-                {!field.state.meta.isValid && (
-                  <p className="text-sm text-destructive">{field.state.meta.errors.join(', ')}</p>
-                )}
-              </div>
-            )}
-          </form.Field>
-        </div>
-      )}
-
       {/* Additional Context Section */}
       <div className="space-y-4">
         <div className="space-y-1">
           <h2 className="text-xl font-semibold">Additional Context</h2>
-          <p className="text-sm text-muted-foreground">Provide context for more accurate analysis</p>
+          <p className="text-sm text-muted-foreground">Provide context for more accurate assessment</p>
         </div>
         <div className="space-y-4">
           {/*
@@ -349,7 +301,7 @@ export function AnalysisForm({ onSubmit, isPending = false, error }: AnalysisFor
               ) : (
                 <>
                   <Play className="w-4 h-4" />
-                  {error ? 'Retry Analysis' : 'Start Analysis'}
+                  {error ? 'Retry Assessment' : 'Start Assessment'}
                 </>
               )}
             </Button>

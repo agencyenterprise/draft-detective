@@ -18,7 +18,6 @@ class LiveReportsManifest(
     name = "Live Reports"
     description = "Analyze claims for updates based on references published after the document date. Performs web search to find new relevant literature, looking only for literature published after the document publication date."
     needs_web_search = True
-    order = 8
     is_experimental = True
     required_dependencies = [
         WorkflowRunType.CLAIM_EXTRACTION,
@@ -42,6 +41,7 @@ class LiveReportsManifest(
         self,
         config: LiveReportsWorkflowConfig,
         existing_states: List[WorkflowState],
+        revision: int,
     ) -> LiveReportsState:
         """Create and return the initial state of the workflow."""
 

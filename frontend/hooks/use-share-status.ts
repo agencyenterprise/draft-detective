@@ -3,6 +3,7 @@ import {
   enableProjectSharingApiProjectsProjectIdShareEnablePost,
   getProjectShareStatusApiProjectsProjectIdShareGet,
 } from '@/lib/generated-api';
+import { getErrorMessage } from '@/lib/api-error';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -24,7 +25,7 @@ export function useShareStatus(projectId: string, enabled: boolean = true) {
       queryClient.setQueryData(['shareStatus', projectId], data);
     },
     onError: (error) => {
-      toast.error(error instanceof Error ? error.message : 'Failed to enable sharing');
+      toast.error(getErrorMessage(error, 'Failed to enable sharing'));
       setIsDialogOpen(false);
     },
   });
@@ -37,7 +38,7 @@ export function useShareStatus(projectId: string, enabled: boolean = true) {
       toast.success('Sharing disabled. All existing links are now invalid.');
     },
     onError: (error) => {
-      toast.error(error instanceof Error ? error.message : 'Failed to disable sharing');
+      toast.error(getErrorMessage(error, 'Failed to disable sharing'));
     },
   });
 

@@ -24,7 +24,6 @@ class ChunkSplittingManifest(
     name = "Chunk Splitting"
     description = "Split document markdown into chunks for analysis"
     needs_web_search = False
-    can_be_triggered_by_user = False  # This is a dependency workflow
     is_internal = True
     required_dependencies = [WorkflowRunType.DOCUMENT_PROCESSING]
 
@@ -44,6 +43,7 @@ class ChunkSplittingManifest(
         self,
         config: ChunkSplittingWorkflowConfig,
         existing_states: List[WorkflowState],
+        revision: int,
     ) -> ChunkSplittingState:
         """Create initial state from DOCUMENT_PROCESSING dependency."""
         return ChunkSplittingState(

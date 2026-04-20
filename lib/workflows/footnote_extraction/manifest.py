@@ -24,8 +24,7 @@ class FootnoteExtractionManifest(
     name = "Footnote Extraction"
     description = "Extract structured footnotes from document with marker, text, and reference code"
     needs_web_search = False
-    is_internal = True  # Runs as dependency, not user-triggered from workflow list
-    can_be_triggered_by_user = True  # Can be used as standalone tool
+    is_internal = True
     required_dependencies = [WorkflowRunType.DOCUMENT_PROCESSING]
 
     def get_state_type(self) -> Type[FootnoteExtractionState]:
@@ -44,6 +43,7 @@ class FootnoteExtractionManifest(
         self,
         config: FootnoteExtractionConfig,
         existing_states: List[WorkflowState],
+        revision: int,
     ) -> FootnoteExtractionState:
         """
         Create initial state from DOCUMENT_PROCESSING dependency.

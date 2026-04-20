@@ -14,10 +14,7 @@ from lib.workflows.reference_extraction.state import (
 logger = logging.getLogger(__name__)
 
 
-@register_node(
-    "Extract references",
-    "Extract references using agentic tool calling",
-)
+@register_node("Extract references")
 async def extract_text_references_v2_node(
     state: ReferenceExtractionState, runtime: Runtime[ContextSchema]
 ) -> dict:

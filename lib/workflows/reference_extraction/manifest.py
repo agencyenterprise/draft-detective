@@ -24,8 +24,7 @@ class ReferenceExtractionManifest(
     name = "Reference Extraction"
     description = "Extract bibliographic references from document using section detection and windowed extraction"
     needs_web_search = False
-    is_internal = True  # Runs as dependency, not user-triggered from workflow list
-    can_be_triggered_by_user = True  # Can be used as standalone tool
+    is_internal = True
     required_dependencies = [WorkflowRunType.DOCUMENT_PROCESSING]
 
     def get_state_type(self) -> Type[ReferenceExtractionState]:
@@ -44,6 +43,7 @@ class ReferenceExtractionManifest(
         self,
         config: ReferenceExtractionConfig,
         existing_states: List[WorkflowState],
+        revision: int,
     ) -> ReferenceExtractionState:
         """
         Create initial state from DOCUMENT_PROCESSING dependency.

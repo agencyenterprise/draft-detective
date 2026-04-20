@@ -31,11 +31,14 @@ export function isHealthAffectingIssue(issue: Issue): boolean {
  * Counts issues by severity from a pre-filtered list
  */
 function countBySeverity(issues: Issue[]): { high: number; medium: number; low: number; total: number } {
+  const high = issues.filter((i) => i.severity === SeverityEnum.High).length;
+  const medium = issues.filter((i) => i.severity === SeverityEnum.Medium).length;
+  const low = issues.filter((i) => i.severity === SeverityEnum.Low).length;
   return {
-    high: issues.filter((i) => i.severity === SeverityEnum.High).length,
-    medium: issues.filter((i) => i.severity === SeverityEnum.Medium).length,
-    low: issues.filter((i) => i.severity === SeverityEnum.Low).length,
-    total: issues.length,
+    high,
+    medium,
+    low,
+    total: high + medium + low,
   };
 }
 

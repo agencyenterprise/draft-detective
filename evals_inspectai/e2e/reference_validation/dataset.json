@@ -87,7 +87,7 @@
   {
     "input": "Najoung Kim and Tal Linzen. Cogs: A compositional generalization challenge based on semantic interpretation. In NAACL, 2021.",
     "target_final_result": "found_with_inconsistencies",
-    "target_answer": "Replace the incorrect author list (and add the arXiv identifier) to match the actual NeurIPS 2022 paper by Takuya Ito et al."
+    "target_answer": "Venue is wrong (should be EMNLP, not NAACL) and year is wrong (should be 2020, not 2021). Authors are correct."
   },
   {
     "input": "Brenden M. Lake and Marco Baroni. Generalization without systematicity: On the compositional skills of sequence-to-sequence recurrent networks. ICML, 2018.",
@@ -231,8 +231,8 @@
   },
   {
     "input": "Carter, Ashton B., \"0% Headquarters Reductions,\" memorandum to secretaries of the military departments et al., U.S. Department of Defense, July 31, 2013.",
-    "target_final_result": "valid",
-    "target_answer": "Valid government memorandum citation with potential small inconsistencies"
+    "target_final_result": "found_with_inconsistencies",
+    "target_answer": "The title is incorrect: the actual memo subject is '20% Headquarters Reductions', not '0% Headquarters Reductions'. Author, publisher, and date are correct."
   },
   {
     "input": "Embassy of the United States in Jordan, \"The United States and the Hashemite Kingdom of Jordan Sign Memorandum of Understanding on Assistance,\" press release, September 23, 2008.",
@@ -248,5 +248,102 @@
     "input": "Defense Manpower Data Center, \"Number of Military and DoD Appropriated Fund (APF) Civilian Personnel Permanently Assigned,\" spreadsheet, last updated September 30, 2019.",
     "target_final_result": "valid",
     "target_answer": "Valid government dataset citation with potential small inconsistencies"
+  },
+  {
+    "input": "Brandon Vigliarolo. \"Anthropic accidentally exposes Claude Code source code.\" The Register. Mar 31, 2026. https://www.theregister.com/2026/03/31/anthropic_claude_code_source_code/ (The Register, 2026)",
+    "target_final_result": "found_with_inconsistencies",
+    "target_answer": "The title is incorrect. The actual article headline on The Register is 'Anthropic goes nude, exposes Claude Code source by accident', not 'Anthropic accidentally exposes Claude Code source code'. The validator must use the title from the article's content body (the on-page headline), not a sanitized version from metadata tags or search snippets. Author, publisher, year, and URL are correct."
+  },
+  {
+    "input": "Microsoft Security Blog. (2024, April 1). Navigating the cyber threat landscape with AI. https://www.microsoft.com/en-us/security/blog/2024/04/01/navigating-cyber-threat-landscape-ai",
+    "target_final_result": "not_found",
+    "target_answer": "This blog post does not exist at the given URL and cannot be found via web search. The agent must not validate a reference based solely on the URL having a plausible pattern; it must verify the content actually exists by searching for the title or confirming the URL resolves to real content."
+  },
+  {
+    "input": "Bass, Frank M., \"A New Product Growth for Model Consumer Durables,\" Management Science, Vol. 15, No. 5, 1969. As of April 9, 2026: https://doi.org/10.1287/mnsc.15.5.215.",
+    "target_final_result": "valid",
+    "target_answer": "Valid journal article reference with potential small inconsistencies",
+    "note": "False positive: DD flagged inconsistencies in the title, but the reference is actually correct."
+  },
+  {
+    "input": "Battula, Narendar, \"Prompt-Driven Vulnerability Chains: How to Build Multi-Step Exploits from Low-Severity Bugs with AI,\" Medium, As of July 23, 2025: https://medium.com/@narendarlb123/prompt-driven-vulnerability-chains-how-to-build-multi-step-exploits-from-low-severity-bugs-with-ai-7f79a701535b.",
+    "target_final_result": "valid",
+    "target_answer": "Valid online article reference with potential small inconsistencies",
+    "note": "Link redirects to a custom site on Medium; AI may be unable to follow the redirect and may incorrectly report not_found."
+  },
+  {
+    "input": "Frontier Model Forum. (n.d.). About. https://www.frontiermodelforum.org/about-us/",
+    "target_final_result": "valid",
+    "target_answer": "Valid online article reference with potential small inconsistencies",
+    "note": "Page has no listed author, so entry in 'author' field should be publisher. Publisher does not need to be repeated twice in the reference."
+  },
+  {
+    "input": "Google Security Blog. (2024, June 12). Secure AI Framework (SAIF): Conceptualizing secure AI systems. https://security.googleblog.com/2024/06/secure-ai-framework.html",
+    "target_final_result": "not_found",
+    "target_answer": "The post does not exist at the given URL and a post with this title cannot be found via web search. Since a post with this title cannot be found, validations should say reference is not found.",
+    "note": "DD completions often return found_with_inconsistencies citing a closely matching official Google source (Hansen, R., & Venables, P. (2023, June 8). Introducing Google's Secure AI Framework. The Keyword.) — however all 4 fields differ from the original reference. The result should be not_found when all 4 fields are different."
+  },
+  {
+    "input": "Khare, A., Dutta, S., Li, Z., Solko-Breslin, A., Alur, R., & Naik, M. (2024). Understanding the Effectiveness of Large Language Models in Detecting Security Vulnerabilities. arXiv [Cs.CR]. Retrieved from http://arxiv.org/abs/2311.16169.",
+    "target_final_result": "valid",
+    "target_answer": "Valid reference with potential small inconsistencies",
+    "note": "False positive: DD thinks year should be 2023. Original submission on arXiv is 2023, but there is an updated submission in 2024. For an arXiv citation to the unversioned record, the year should refer to the most recent submission (2024)."
+  },
+  {
+    "input": "Fang, R., Bindu, R., Gupta, A., Zhan, Q., & Kang, D. (2024b). Teams of LLM Agents can Exploit Zero-Day Vulnerabilities. ArXiv, abs/2406.01637.",
+    "target_final_result": "found_with_inconsistencies",
+    "target_answer": "Cited v1 author list instead of using the list of authors from the most recent version on arXiv (v2).",
+    "note": "Some arXiv papers have multiple uploaded versions with different author lists. DD should always match fields against the most recent version, unless the citation explicitly references an older version (e.g. https://arxiv.org/abs/2406.01637v1)."
+  },
+  {
+    "input": "Kwa, T., West, B., Becker, J., Deng, A., Garcia, K., Hasin, M., Jawhar, S., Kinniment, M., Rush, N., Arx, S.V., Bloom, R., Broadley, T., Du, H., Goodrich, B., Jurkovic, N., Miles, L.H., Nix, S., Lin, T.R., Parikh, N., Rein, D., Sato, L.J., Wijk, H., Ziegler, D.M., Barnes, E., & Chan, L. (2025). Measuring AI Ability to Complete Long Tasks. ArXiv, abs/2503.14499.",
+    "target_final_result": "found_with_inconsistencies",
+    "target_answer": "Uses v1 arXiv title instead of the current v3 title. Author list has small differences.",
+    "note": "Some arXiv papers have multiple uploaded versions with different author lists. DD should always match fields against the most recent version, unless the citation explicitly references an older version."
+  },
+  {
+    "input": "Patwardhan, T., Dias, R., Proehl, E., Kim, G., Wang, M., Watkins, O., Fishman, S. P., Aljubeh, M., Thacker, P., Fauconnet, L., Kim, N. S., Chao, P., Miserendino, S., Chabot, G., Li, D., Sharman, M., Barr, A., Glaese, A., ... Tworek, J. (2025). GDPval: Evaluating AI model performance on real-world economically valuable tasks (arXiv:2312.12575v2). arXiv. https://arxiv.org/html/2312.12575v2",
+    "target_final_result": "found_with_inconsistencies",
+    "target_answer": "Incorrect arXiv identifier; the identifier links to a different, unrelated paper."
+  },
+  {
+    "input": "Stevens, Rock & Dykstra, Josiah & Everette, Wendy Knox & Chapman, James & Bladow, Garrett & Farmer, Alexander & Halliday, Kevin & Mazurek, Michelle L. (2020). Compliance Cautions: Investigating Security Issues Associated with U.S. Digital-Security Standards. 10.14722/ndss.2020.24003.",
+    "target_final_result": "found_with_inconsistencies",
+    "target_answer": "Publisher/venue is missing; the DOI resolves to an NDSS 2020 paper and the venue should be added."
+  },
+  {
+    "input": "Stevens, Rock & Dykstra, Josiah & Everette, Wendy & Chapman, James & Bladow, Garrett & Farmer, Alexander & Halliday, Kevin & Mazurek, Michelle. (2020). Compliance Cautions: Investigating Security Issues Associated with U.S. Digital-Security Standards. NDSS Symposium (Internet Society). 10.14722/ndss.2020.24003.",
+    "target_final_result": "valid",
+    "target_answer": "Valid reference with potential small inconsistencies",
+    "note": "Minor name inconsistencies (Everette, Wendy vs. Everette, Wendy Knox; Mazurek, Michelle vs. Mazurek, Michelle L.) should not trigger found_with_inconsistencies."
+  },
+  {
+    "input": "Ghosh, R., Farri, O., Stockhausen, H.V., Schmitt, M., & Vasile, G.M. (2024). CVE-LLM : Automatic vulnerability evaluation in medical device industry using large language models. ArXiv, abs/2407.14640.",
+    "target_final_result": "valid",
+    "target_answer": "Valid reference with potential small inconsistencies",
+    "note": "Consistency test: 'Stockhausen, H.V.' should be 'von Stockhausen, H. M.' — a small author name discrepancy that should not trigger found_with_inconsistencies."
+  },
+  {
+    "input": "Dissanayake, N., Zahedi, M., Jayatilaka, A., & Babar, M. A. (2022). Why, how and where of delays in software security patch management: An empirical investigation in the healthcare sector. Proceedings of the ACM on Human-Computer Interaction, 6(CSCW1), 1–28. https://doi.org/10.1145/3512948",
+    "target_final_result": "found_with_inconsistencies",
+    "target_answer": "DOI in the reference resolves to a different ACM article. The source metadata also indicates the article appeared in Proceedings of the ACM on Human-Computer Interaction, volume 6, CSCW2, 1-29, so the issue/pages in the supplied citation are also inconsistent even though those fields are outside the required validation categories."
+  },
+  {
+    "input": "Pearce, H., Tan, B., Ahmad, B., Karri, R., & Dolan-Gavitt, B. (2024). Examining zero-shot vulnerability repair with large language models. Proceedings of the 2024 IEEE Symposium on Security and Privacy (SP), 2339–2356.",
+    "target_final_result": "found_with_inconsistencies",
+    "target_answer": "Year is incorrect; the paper was published at IEEE S&P 2023, not 2024. The conference proceedings year should also be corrected to 2023.",
+    "note": "Reference is also missing an identifier (DOI or link), but a missing identifier alone should not trigger found_with_inconsistencies — the year error is the primary issue."
+  },
+  {
+    "input": "Tihanyi, N., Ferrag, M. A., Jain, R., Bisztray, T., & Debbah, M. (2024). CyberMetric: Creating a benchmark dataset RAG with human validation for evaluating cybersecurity knowledge of LLMs. arXiv. https://arxiv.org/html/2402.07688v2",
+    "target_final_result": "found_with_inconsistencies",
+    "target_answer": "Title is incorrect (appears to originate from errors in the arXiv HTML rendering); publisher should be updated to the IEEE conference where the paper was officially published.",
+    "note": "The link is technically valid but points to the experimental arXiv HTML view, which contains rendering errors that produced the wrong title. Listing publisher as 'arXiv' is not wrong per se, but the paper was officially published at an IEEE conference and that should be preferred."
+  },
+  {
+    "input": "Parker, Charlie, Sam Scott, and Alistair Geddes. \"Snowball Sampling.\" In Sage Research Methods Foundations, edited by Paul Atkinson, Sara Delamont, Alexandru Cernat, Joseph W. Sakshaug, and Richard A. Williams. London: SAGE Publications Ltd, 2019. https://doi.org/10.4135/9781526421036831710.",
+    "target_final_result": "valid",
+    "target_answer": "Valid article reference with potential small inconsistencies",
+    "note": "False positive: DD says year should be 2020 (Google Books lists 2020) but Google Scholar lists the year as 2019, which matches the citation."
   }
 ]

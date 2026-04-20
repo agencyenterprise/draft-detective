@@ -1,13 +1,13 @@
 """Tests for workflow runner skipping completed workflows."""
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
+import pytest
 from fastapi import BackgroundTasks
 
-from api.models import StartMultipleWorkflowsRequest
-from api.services.workflow_runner import start_multiple_workflow_runs
+from lib.api.models import StartMultipleWorkflowsRequest
+from lib.api.services.workflow_runner import start_multiple_workflow_runs
 from lib.models.project import AccessLevel
 from lib.models.user import User
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus, WorkflowRunType
@@ -57,6 +57,7 @@ async def run_workflow_with_mocks(test_context, completed_workflows):
     request = StartMultipleWorkflowsRequest(
         project_id=project_id_str,
         workflow_types=[test_context["workflow_type"]],
+        openai_api_key="test-api-key",
     )
 
     completed_runs = {
@@ -64,10 +65,10 @@ async def run_workflow_with_mocks(test_context, completed_workflows):
         for wf_type in completed_workflows
     }
 
-    async def mock_get_run(proj_id, workflow_type):
+    async def mock_get_run(proj_id, workflow_type, **kwargs):
         return completed_runs.get(workflow_type, None)
 
-    def mock_config_factory(project, workflow_type, req):
+    def mock_config_factory(project, workflow_type, openai_api_key=None):
         return create_mock_config(project_id_str, workflow_type)
 
     # Create a mock project object
@@ -76,19 +77,23 @@ async def run_workflow_with_mocks(test_context, completed_workflows):
 
     with (
         patch(
-            "api.services.workflow_runner.get_project_access",
+            "lib.api.services.workflow_runner.get_project_access",
             new=AsyncMock(return_value=(mock_project, AccessLevel.WRITE)),
         ),
         patch(
-            "api.services.workflow_runner.get_project_workflow_run_by_type",
+            "lib.api.services.workflow_runner.assert_project_has_main_file",
+            new=AsyncMock(),
+        ),
+        patch(
+            "lib.api.services.workflow_runner.get_project_workflow_run_by_type",
             side_effect=mock_get_run,
         ),
         patch(
-            "api.services.workflow_runner.create_workflow_run",
+            "lib.api.services.workflow_runner.create_workflow_run",
             new=AsyncMock(side_effect=lambda **kwargs: str(uuid4())),
         ) as mock_create,
         patch(
-            "api.services.workflow_runner.create_workflow_config",
+            "lib.api.services.workflow_runner.create_workflow_config",
             side_effect=mock_config_factory,
         ) as mock_create_config,
     ):

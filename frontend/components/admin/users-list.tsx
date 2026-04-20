@@ -17,6 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { listUsersApiUsersGet, updateRoleApiUsersUserIdRolePatch, UserResponse, UserRole } from '@/lib/generated-api';
+import { getErrorMessage } from '@/lib/api-error';
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ChevronDown, Loader2, Search, ShieldCheck, ShieldQuestion, User } from 'lucide-react';
 import { useSession } from 'next-auth/react';
@@ -79,7 +80,7 @@ export function UsersList() {
       setPendingChange(null);
     },
     onError: (error) => {
-      toast.error(`Failed to update role: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      toast.error(`Failed to update role: ${getErrorMessage(error, 'Unknown error')}`);
       setPendingChange(null);
     },
   });

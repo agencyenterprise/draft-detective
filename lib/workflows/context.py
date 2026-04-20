@@ -33,6 +33,10 @@ class ContextSchema(BaseModel):
         default=None,
         description="The ID of the workflow run record related to this langgraph thread.",
     )
+    revision: int = Field(
+        default=1,
+        description="The project revision this workflow execution belongs to.",
+    )
 
 
 # Context variable for progress tracking (thread-safe for async)

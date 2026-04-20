@@ -25,9 +25,8 @@ class AboutThisGerManifest(WorkflowManifest[AboutThisGerState, AboutThisGerConfi
         "against publication requirements using deep-agent analysis."
     )
     needs_web_search = False
-    order = 11
     required_dependencies = [WorkflowRunType.DOCUMENT_PROCESSING]
-    is_experimental = True
+    is_experimental = False
 
     def get_state_type(self) -> Type[AboutThisGerState]:
         return AboutThisGerState
@@ -42,6 +41,7 @@ class AboutThisGerManifest(WorkflowManifest[AboutThisGerState, AboutThisGerConfi
         self,
         config: AboutThisGerConfig,
         existing_states: List[WorkflowState],
+        revision: int,
     ) -> AboutThisGerState:
         return AboutThisGerState(
             type=WorkflowRunType.ABOUT_THIS_GER,

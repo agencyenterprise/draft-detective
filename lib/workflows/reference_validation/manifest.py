@@ -1,6 +1,7 @@
 from typing import List, Type, cast
 
 from langgraph.graph import StateGraph
+from langgraph.graph.state import CompiledStateGraph, RunnableConfig
 
 from lib.agents.reference_validator import ReferenceValidationFinalResult
 from lib.services.chunk_line_matcher import find_chunks_by_line_range
@@ -61,7 +62,6 @@ class ReferenceValidationManifest(
     name = "Reference Error Checking"
     description = "Uses web search to check if each reference from the document is available online and matches author, title, year, and publisher against public internet sources. Useful for checking reference typos or hallucinated references."
     needs_web_search = True
-    order = 0
     required_dependencies = [WorkflowRunType.REFERENCE_EXTRACTION]
 
     def get_state_type(self) -> Type[ReferenceValidationState]:
@@ -76,10 +76,30 @@ class ReferenceValidationManifest(
         """Build and return the graph of the workflow."""
         return build_reference_validation_graph()
 
+    async def on_cancel(
+        self,
+        state: ReferenceValidationState,
+        app: CompiledStateGraph,
+        config: RunnableConfig,
+    ) -> None:
+        """Mark any pending validation items as cancelled so they don't show as in-progress."""
+        updated = [
+            (
+                item.model_copy(update={"status": ReferenceValidationStatus.CANCELLED})
+                if item.status == ReferenceValidationStatus.PENDING
+                else item
+            )
+            for item in state.reference_validations
+        ]
+        await app.aupdate_state(
+            config, {"reference_validations": updated}, as_node="finalize_validations"
+        )
+
     async def create_initial_state(
         self,
         config: ReferenceValidationWorkflowConfig,
         existing_states: List[WorkflowState],
+        revision: int,
     ) -> ReferenceValidationState:
         """Create and return the initial state of the workflow."""
         return ReferenceValidationState(

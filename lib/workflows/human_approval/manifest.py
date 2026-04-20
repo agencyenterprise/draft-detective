@@ -22,7 +22,6 @@ class HumanApprovalManifest(WorkflowManifest[HumanApprovalState, HumanApprovalCo
     description = "Human-in-the-loop checkpoint that waits for user approval"
     needs_web_search = False
     is_internal = True
-    can_be_triggered_by_user = False
     requires_human_trigger = True
     required_dependencies = [WorkflowRunType.REFERENCE_FILE_MATCHING]
 
@@ -50,6 +49,7 @@ class HumanApprovalManifest(WorkflowManifest[HumanApprovalState, HumanApprovalCo
         self,
         config: HumanApprovalConfig,
         existing_states: List[WorkflowState],
+        revision: int,
     ) -> HumanApprovalState:
         return HumanApprovalState(
             type=WorkflowRunType.HUMAN_APPROVAL,

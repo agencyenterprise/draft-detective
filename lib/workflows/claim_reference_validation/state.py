@@ -21,6 +21,7 @@ class ParagraphVerificationStatus(str, Enum):
     PENDING = "pending"
     COMPLETED = "completed"
     ERROR = "error"
+    CANCELLED = "cancelled"
 
 
 class ParagraphVerificationItem(BaseModel):

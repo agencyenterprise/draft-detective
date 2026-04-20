@@ -23,7 +23,6 @@ class CitationSuggesterManifest(
     description = "Identifies claims that would benefit from additional citations and recommends specific references to cite. Uses your uploaded supporting documents as reference sources. Optionally enhanced by Literature Review results if that analysis is also selected."
     needs_web_search = True
     is_experimental = True
-    order = 7
     required_dependencies = [
         WorkflowRunType.CLAIM_EXTRACTION,
         WorkflowRunType.CITATION_DETECTION,
@@ -49,6 +48,7 @@ class CitationSuggesterManifest(
         self,
         config: CitationSuggesterWorkflowConfig,
         existing_states: List[WorkflowState],
+        revision: int,
     ) -> CitationSuggesterState:
         """Create and return the initial state of the workflow."""
 

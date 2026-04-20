@@ -136,7 +136,7 @@ export function FeedbacksList() {
   const [selectedItem, setSelectedItem] = useState<AdminFeedbackItem | null>(null);
   const [isExporting, setIsExporting] = useState(false);
 
-  const { data: workflowTypes, getWorkflowTypeName } = useWorkflowTypes();
+  const { workflowTypes, getWorkflowTypeName } = useWorkflowTypes();
 
   const {
     data: feedbacksData,
@@ -252,11 +252,11 @@ export function FeedbacksList() {
 
             <Select value={selectedWorkflowType} onValueChange={setSelectedWorkflowType}>
               <SelectTrigger className="w-[220px]">
-                <SelectValue placeholder="All analysis types" />
+                <SelectValue placeholder="All assessment types" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={ALL_VALUE}>All analysis types</SelectItem>
-                {[...(workflowTypes ?? [])]
+                <SelectItem value={ALL_VALUE}>All assessment types</SelectItem>
+                {[...workflowTypes]
                   .sort((a, b) => a.name.localeCompare(b.name))
                   .map((wt) => (
                     <SelectItem key={wt.type} value={wt.type}>

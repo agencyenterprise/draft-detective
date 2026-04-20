@@ -1,6 +1,7 @@
 from typing import List, Optional, Type, cast
 
 from langgraph.graph import StateGraph
+from langgraph.graph.state import CompiledStateGraph
 
 from lib.agents.claim_verifier import ClaimEvidenceSource
 from lib.services.file import FileDocument
@@ -10,6 +11,7 @@ from lib.workflows.claim_reference_validation.graph import (
 from lib.workflows.claim_reference_validation.state import (
     ClaimReferenceValidationState,
     ClaimReferenceValidationWorkflowConfig,
+    ParagraphVerificationStatus,
 )
 from lib.workflows.document_processing.state import DocumentProcessingState
 from lib.workflows.manifest import WorkflowManifest
@@ -40,7 +42,6 @@ class ClaimReferenceValidationManifest(
     name = "Claim Reference Validation"
     description = """Validate claims by checking them against supporting documents using RAG (Retrieval-Augmented Generation). Retrieves relevant passages from supporting documents and verifies whether claims are supported, partially supported, unsupported, or unverifiable."""
     needs_web_search = False
-    order = 3
     required_dependencies = [
         WorkflowRunType.CLAIM_EXTRACTION,
         WorkflowRunType.CITATION_DETECTION,
@@ -62,10 +63,25 @@ class ClaimReferenceValidationManifest(
         """Build and return the graph of the workflow."""
         return build_claim_reference_validation_graph()
 
+    async def on_cancel(self, state: ClaimReferenceValidationState, app: CompiledStateGraph, thread_config: dict) -> None:
+        """Mark any pending paragraph verifications as cancelled so they don't show as in-progress."""
+        updated = [
+            item.model_copy(update={"status": ParagraphVerificationStatus.CANCELLED})
+            if item.status == ParagraphVerificationStatus.PENDING
+            else item
+            for item in state.paragraph_verifications
+        ]
+        await app.aupdate_state(
+            thread_config,
+            {"paragraph_verifications": updated},
+            as_node="finalize_verifications",
+        )
+
     async def create_initial_state(
         self,
         config: ClaimReferenceValidationWorkflowConfig,
         existing_states: List[WorkflowState],
+        revision: int,
     ) -> ClaimReferenceValidationState:
         """Create and return the initial state of the workflow."""
 

@@ -7,9 +7,11 @@ from langchain_core.documents import Document
 from langchain_postgres import PGVector
 from langchain_text_splitters import Language, RecursiveCharacterTextSplitter
 from pydantic import BaseModel, Field
-from sqlalchemy.ext.asyncio import create_async_engine
 
-from lib.config.llm_models import init_embeddings
+from lib.config.database import async_engine
+from lib.config.llm_error_logger import log_embedding_error
+from lib.config.llm_models import EMBEDDING_MODEL_LARGE, init_embeddings
+from lib.config.rate_limiter import get_rate_limiter, hash_api_key
 
 logger = logging.getLogger(__name__)
 
@@ -124,24 +126,21 @@ def get_collection_id(file_hash: str) -> str:
 class VectorStoreService:
     """Service for vector storage and retrieval operations."""
 
-    def __init__(self, connection_string: str, openai_api_key: str):
-        """Initialize vector store with database connection."""
+    def __init__(self, openai_api_key: str):
+        """Initialize vector store using the shared async engine.
+
+        Reuses the process-wide ``async_engine`` from ``lib.config.database``
+        instead of creating a second engine/pool, so all DB access shares one
+        bounded connection pool (prevents Postgres ``too many clients``).
+        """
         self.embeddings = init_embeddings(api_key=openai_api_key)
+        self._rate_limiter = get_rate_limiter(hash_api_key(openai_api_key))
 
-        # Always use async engine since all our methods are async
-        # Convert postgresql:// to postgresql+psycopg:// for SQLAlchemy async engine
-        if connection_string.startswith("postgresql://"):
-            async_url = connection_string.replace(
-                "postgresql://", "postgresql+psycopg://", 1
-            )
-        else:
-            async_url = connection_string
-
-        self.async_engine = create_async_engine(async_url)
+        self.async_engine = async_engine
         self._vectorstore_cache: dict[str, PGVector] = {}
         self._indexing_locks: dict[str, asyncio.Lock] = {}
 
-        logger.info("VectorStore initialized with async engine")
+        logger.info("VectorStore initialized with shared async engine")
 
     def _get_vectorstore(self, collection_id: str) -> PGVector:
         """
@@ -192,7 +191,18 @@ class VectorStoreService:
         """Check if collection is indexed."""
 
         vectorstore = self._get_vectorstore(collection_id)
-        results = await vectorstore.asimilarity_search(query="", k=1)
+        await self._rate_limiter.aacquire()
+        try:
+            results = await vectorstore.asimilarity_search(query="", k=1)
+        except Exception as e:
+            log_embedding_error(
+                e,
+                caller="vector_store.is_collection_indexed",
+                model=EMBEDDING_MODEL_LARGE,
+                provider="openai",
+                embeddings_client=self.embeddings,
+            )
+            raise
         return len(results) > 0
 
     async def index_document(
@@ -216,7 +226,18 @@ class VectorStoreService:
             for batch_start in range(0, total_docs, EMBEDDING_BATCH_SIZE):
                 batch_end = min(batch_start + EMBEDDING_BATCH_SIZE, total_docs)
                 batch = docs[batch_start:batch_end]
-                await vectorstore.aadd_documents(batch)
+                await self._rate_limiter.aacquire()
+                try:
+                    await vectorstore.aadd_documents(batch)
+                except Exception as e:
+                    log_embedding_error(
+                        e,
+                        caller="vector_store.index_document",
+                        model=EMBEDDING_MODEL_LARGE,
+                        provider="openai",
+                        embeddings_client=self.embeddings,
+                    )
+                    raise
                 logger.debug(
                     f"Indexed batch {batch_start}-{batch_end} of {total_docs} chunks"
                 )
@@ -243,7 +264,20 @@ class VectorStoreService:
         try:
             vectorstore = self._get_vectorstore(collection_id)
 
-            results = await vectorstore.asimilarity_search_with_score(query, k=top_k)
+            await self._rate_limiter.aacquire()
+            try:
+                results = await vectorstore.asimilarity_search_with_score(
+                    query, k=top_k
+                )
+            except Exception as e:
+                log_embedding_error(
+                    e,
+                    caller="vector_store.retrieve_relevant_passages",
+                    model=EMBEDDING_MODEL_LARGE,
+                    provider="openai",
+                    embeddings_client=self.embeddings,
+                )
+                raise
 
             logger.info(
                 f"Retrieved {len(results)} passages from collection {collection_id} "

@@ -1,7 +1,8 @@
 from enum import Enum
 from typing import Annotated, List, Literal, Optional
 
-from pydantic import BaseModel, Field
+from langchain_core.messages import BaseMessage
+from pydantic import BaseModel, Field, field_serializer
 
 from lib.agents.reference_validator import BibliographyItemValidation
 from lib.workflows.models import BaseWorkflowConfig, BaseWorkflowState, WorkflowRunType
@@ -13,6 +14,7 @@ class ReferenceValidationStatus(str, Enum):
     PENDING = "pending"
     COMPLETED = "completed"
     ERROR = "error"
+    CANCELLED = "cancelled"
 
 
 class ReferenceValidationWorkflowConfig(BaseWorkflowConfig):
@@ -40,6 +42,15 @@ class ReferenceValidationItem(BaseModel):
         default=None,
         description="Error message, present on failure.",
     )
+    messages: List[BaseMessage] = Field(
+        default_factory=list,
+        description="LLM conversation messages from the agent invocation.",
+    )
+
+    @field_serializer("messages")
+    @classmethod
+    def _serialize_messages(cls, messages: List[BaseMessage]) -> list[dict]:
+        return [m.model_dump() for m in messages]
 
 
 def merge_validation_results(

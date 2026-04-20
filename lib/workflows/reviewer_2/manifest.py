@@ -19,7 +19,6 @@ class Reviewer2Manifest(WorkflowManifest[Reviewer2State, Reviewer2Config]):
         "next steps, and a devil's-advocate rebuttal."
     )
     needs_web_search = False
-    order = 0
     is_experimental = True
     required_dependencies = [WorkflowRunType.DOCUMENT_PROCESSING]
 
@@ -36,6 +35,7 @@ class Reviewer2Manifest(WorkflowManifest[Reviewer2State, Reviewer2Config]):
         self,
         config: Reviewer2Config,
         existing_states: List[WorkflowState],
+        revision: int,
     ) -> Reviewer2State:
         return Reviewer2State(
             type=WorkflowRunType.REVIEWER_2,

@@ -5,7 +5,6 @@ Validates that every figure and table in the document is consistent:
 - Every figure/table mentioned in the body has an associated image/table present.
 - Every figure/table has a title/caption.
 - All figures/tables are numbered sequentially or by chapter.
-- Every in-text callout appears in close proximity to the actual figure/table.
 """
 
 from lib.workflows.models import WorkflowRunType
@@ -85,36 +84,18 @@ document.  Check that each reference of the form "Figure X", "Fig. X",
 
 ---
 
-### Rule 5 — Each figure/table callout is close to the actual figure/table
+## Exclusion — Abbreviation / Acronym tables
 
-Each in-text callout (e.g. "see Figure 3", "(Table 2)") should appear
-in close proximity to the actual figure or table it references.
-Use contextual judgment to decide what "close" means for the specific
-document — do not apply a fixed line or paragraph count.
+Many documents contain a dedicated **Abbreviations**, **Acronyms**, or
+**List of Abbreviations** section. This section typically presents a
+two-column table (abbreviation | definition) or a simple definition list
+and is **not** a regular numbered figure or table.
 
-Guidelines for your judgment:
+**Exclude these abbreviation/acronym tables from all rules above.**
+Do not flag them for missing titles, missing numbers, missing body-text
+references, or any other rule. They are cataloguing tools, not data
+exhibits, and are handled by a separate analysis.
 
-- **Too far**: the callout and the figure/table are in **different sections**
-  (i.e. separated by one or more section-level headings). This is almost
-  always too far unless the document is structured as a single long section.
-- **Acceptable**: the callout and the figure/table are in the **same section**
-  and separated by roughly 3–5 paragraphs or fewer.
-- **Clearly fine**: the figure/table appears immediately before or after the
-  paragraph containing the callout.
-
-Also consider the overall density and style of the document — a tightly
-structured technical report with many short sections warrants stricter
-proximity than a narrative paper with long sections.
-
-Do **not** flag:
-- Back-references in a summary or conclusion section that briefly recaps
-  earlier results.
-- Forward callouts at the start of a section that introduce a figure/table
-  shown a few paragraphs later in the same section.
-
-**If a callout is too far from its figure/table → issue title:**
-"Distant Callout: [label] (callout at line X, figure/table at line Y)"
-(Create one issue per distant callout.)
 """
 
 
@@ -129,7 +110,6 @@ class FiguresTablesCheckManifest(SimpleDeepAgentManifest):
         "to an actual figure or table in the document."
     )
     required_dependencies = [WorkflowRunType.DOCUMENT_PROCESSING]
-    is_experimental = True
-    order = 13
+    is_experimental = False
 
     user_prompt = _USER_PROMPT

@@ -56,10 +56,7 @@ async def _summarize_document(
     return summary
 
 
-@register_node(
-    "Summarize documents",
-    "Summarize the main document and supporting documents",
-)
+@register_node("Summarize documents")
 async def summarize_documents(
     state: DocumentSummarizationState, runtime: Runtime[ContextSchema]
 ) -> Dict[str, Any]:

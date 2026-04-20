@@ -6,10 +6,10 @@ import { EmptyState } from '@/components/shared/empty-state';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AgentCheckResult, SimpleDeepAgentState } from '@/lib/generated-api';
-import { isWorkflowProcessing, WorkflowRunDetailTyped } from '@/lib/workflow-state';
+import { isWorkflowCancelled, isWorkflowProcessing, WorkflowRunDetailTyped } from '@/lib/workflow-state';
 import { AssistantRuntimeProvider, ThreadMessageLike, useExternalStoreRuntime } from '@assistant-ui/react';
 import { convertLangChainMessages, LangChainMessage } from '@assistant-ui/react-langgraph';
-import { AlertTriangle, CheckCircle2, ClipboardList, Loader2, MessageSquare } from 'lucide-react';
+import { AlertTriangle, Ban, CheckCircle2, ClipboardList, Loader2, MessageSquare } from 'lucide-react';
 
 interface SimpleDeepAgentResultsProps {
   workflowDetail: WorkflowRunDetailTyped<SimpleDeepAgentState>;
@@ -72,8 +72,18 @@ export function SimpleDeepAgentResults({ workflowDetail, workflowName }: SimpleD
     return (
       <EmptyState
         icon={<Loader2 className="h-8 w-8 animate-spin text-muted-foreground mx-auto" />}
-        message={`Analyzing Document…`}
-        description={`The ${workflowName} analysis is currently running. Results will appear here once complete.`}
+        message={`Assessing Document…`}
+        description={`The ${workflowName} assessment is currently running. Results will appear here once complete.`}
+      />
+    );
+  }
+
+  if (isWorkflowCancelled(workflowDetail)) {
+    return (
+      <EmptyState
+        icon={<Ban className="h-8 w-8 text-muted-foreground mx-auto" />}
+        message="Assessment Cancelled"
+        description={`The ${workflowName} assessment was cancelled before it could complete.`}
       />
     );
   }

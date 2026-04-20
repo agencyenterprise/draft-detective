@@ -69,7 +69,7 @@ class SimpleDeepAgentManifest(
             result, messages = await agent.ainvoke({})
             return {"result": result, "messages": messages}
 
-        decorated = register_node(self.name, self.description)(run_agent)
+        decorated = register_node(self.name)(run_agent)
 
         graph = StateGraph(SimpleDeepAgentState, context_schema=ContextSchema)
         graph.add_node("run_agent", decorated)
@@ -81,6 +81,7 @@ class SimpleDeepAgentManifest(
         self,
         config: SimpleDeepAgentConfig,
         existing_states: List["WorkflowState"],
+        revision: int,
     ) -> SimpleDeepAgentState:
         return SimpleDeepAgentState(type=self.type, config=config)
 

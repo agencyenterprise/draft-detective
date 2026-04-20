@@ -2,6 +2,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { LabeledValue } from '@/components/labeled-value';
 import { Markdown } from '@/components/markdown';
+import { AgentMessagesDialog } from '@/components/shared/agent-messages-dialog';
 import {
   ReferenceValidationFinalResult,
   ReferenceValidationItem,
@@ -9,11 +10,13 @@ import {
 } from '@/lib/generated-api';
 import {
   AlertTriangle,
+  Ban,
   CheckCircle2,
   ChevronDownIcon,
   ChevronRightIcon,
   ClipboardCheck,
   Loader2,
+  MessageSquare,
   SearchX,
   XCircle,
 } from 'lucide-react';
@@ -46,9 +49,27 @@ export function ValidationResultsBox({
 }: ValidationResultsBoxProps) {
   const paddingClass = sizeClasses[size];
   const [isExpanded, setIsExpanded] = React.useState(false);
+  const [isMessagesOpen, setIsMessagesOpen] = React.useState(false);
 
   const status = validation.status ?? ReferenceValidationStatus.Pending;
   const result = validation.validation_result;
+  const hasMessages = validation.messages && validation.messages.length > 0;
+
+  // Handle cancelled state (workflow was cancelled before this item was processed)
+  if (status === ReferenceValidationStatus.Cancelled) {
+    return (
+      <div className={`rounded border ${paddingClass} bg-gray-50/80 border-gray-200`}>
+        <div className="flex items-center gap-2">
+          <ClipboardCheck className="w-4 h-4 text-muted-foreground" />
+          <span className="text-xs font-medium text-gray-700">Validation results</span>
+          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 text-xs font-medium rounded-full border bg-gray-50 text-gray-500 border-gray-200">
+            <Ban className="w-3.5 h-3.5" />
+            Not validated
+          </span>
+        </div>
+      </div>
+    );
+  }
 
   // Handle pending state
   if (status === ReferenceValidationStatus.Pending) {
@@ -156,10 +177,18 @@ export function ValidationResultsBox({
             {config.label}
           </span>
         </div>
-        <Button variant="outline" size="xs" onClick={() => setIsExpanded(!isExpanded)}>
-          {isExpanded ? <ChevronDownIcon className="size-4" /> : <ChevronRightIcon className="size-4" />}
-          {isExpanded ? 'Hide details' : 'Show details'}
-        </Button>
+        <div className="flex items-center gap-1.5">
+          {hasMessages && (
+            <Button variant="outline" size="xs" onClick={() => setIsMessagesOpen(true)} title="View agent messages">
+              <MessageSquare className="size-4" />
+              Messages
+            </Button>
+          )}
+          <Button variant="outline" size="xs" onClick={() => setIsExpanded(!isExpanded)}>
+            {isExpanded ? <ChevronDownIcon className="size-4" /> : <ChevronRightIcon className="size-4" />}
+            {isExpanded ? 'Hide details' : 'Show details'}
+          </Button>
+        </div>
       </div>
 
       {/* Reference text (when showReference is enabled) */}
@@ -251,6 +280,15 @@ export function ValidationResultsBox({
             </div>
           )}
         </div>
+      )}
+
+      {hasMessages && (
+        <AgentMessagesDialog
+          messages={validation.messages!}
+          open={isMessagesOpen}
+          onOpenChange={setIsMessagesOpen}
+          title={showReference && referenceLabel ? `Messages — ${referenceLabel}` : undefined}
+        />
       )}
     </div>
   );

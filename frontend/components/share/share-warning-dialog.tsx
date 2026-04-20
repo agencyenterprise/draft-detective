@@ -66,7 +66,7 @@ export function ShareWarningDialog({
           </DialogTitle>
           <DialogDescription asChild>
             <div className="text-sm text-muted-foreground pt-2">
-              Choose how reviewers should see this analysis in the downloaded DOCX.
+              Choose how reviewers should see this assessment in the downloaded DOCX.
             </div>
           </DialogDescription>
         </DialogHeader>
@@ -80,7 +80,7 @@ export function ShareWarningDialog({
             <RadioGroupItemWithDescription
               id="add-in"
               value={selectedExportType}
-              label="AI Reviewer add-in"
+              label="Draft Detective add-in"
               description="Reviewers can see issues directly in the add-in as they do in the app."
               disabled={isProcessing}
             />
@@ -102,7 +102,7 @@ export function ShareWarningDialog({
                 className="mt-0.5"
               />
               <span className="text-sm text-muted-foreground">
-                Make this analysis public and add links to comments redirecting to the full analysis page.
+                Make this assessment public and add links to comments redirecting to the full assessment page.
               </span>
             </label>
           )}
@@ -111,8 +111,8 @@ export function ShareWarningDialog({
             <div className="flex items-start gap-2 rounded-md border p-3">
               <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
               <span className="text-sm text-muted-foreground">
-                Requires the AI Reviewer Word add-in.
-                {!isProjectPublic && ' This will make this analysis public.'}
+                Requires the Draft Detective Word add-in.
+                {!isProjectPublic && ' This will make this assessment public.'}
               </span>
             </div>
           )}
