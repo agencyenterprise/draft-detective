@@ -20,7 +20,7 @@ class InferenceValidationV2Manifest(
 ):
     type = WorkflowRunType.INFERENCE_VALIDATION_V2
     name = "Internal Inference Validation"
-    description = "Analyze the full document for invalid inferences. Identifies logical fallacies, unsupported conclusions, and faulty reasoning. Each finding includes the key sentence, argument analysis, and suggested correction."
+    description = "Does your reasoning hold up? Flags logical leaps, unsupported conclusions, and arguments where the evidence doesn't support the claim."
     needs_web_search = False
     is_experimental = False
     required_dependencies = [WorkflowRunType.DOCUMENT_PROCESSING]

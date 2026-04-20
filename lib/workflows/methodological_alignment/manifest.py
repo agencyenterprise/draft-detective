@@ -22,7 +22,7 @@ class MethodologicalAlignmentManifest(
 ):
     type = WorkflowRunType.METHODOLOGICAL_ALIGNMENT
     name = "Methodological Alignment"
-    description = "Analyze and compare the methodology used in the document against typical methods used in the field. Uses web search to find field methods context."
+    description = "Does your methodology match standard practices in the literature? Uses web search to find standard methods for a topic area, then compares them against your approach."
     needs_web_search = True
     required_dependencies = [WorkflowRunType.DOCUMENT_PROCESSING]
 

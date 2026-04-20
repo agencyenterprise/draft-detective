@@ -16,7 +16,7 @@ class LiveReportsManifest(
 ):
     type = WorkflowRunType.LIVE_REPORTS
     name = "Live Reports"
-    description = "Analyze claims for updates based on references published after the document date. Performs web search to find new relevant literature, looking only for literature published after the document publication date."
+    description = "Have any of your findings been updated or contradicted by newer research? Searches the web for sources published after your document's publish date that may update or challenge your claims. Generates an addendum containing any new evidence."
     needs_web_search = True
     is_experimental = True
     required_dependencies = [
