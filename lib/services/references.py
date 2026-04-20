@@ -13,6 +13,9 @@ from lib.services.workflow_runs import (
 )
 from lib.workflows.checkpointer import get_checkpointer
 from lib.workflows.models import WorkflowRunType
+from langgraph.types import Overwrite
+
+from lib.workflows.reference_downloader.state import ReferenceDownloaderState
 from lib.workflows.reference_extraction.state import ReferenceExtractionState
 from lib.workflows.reference_file_matching.state import (
     MatchSource,
@@ -234,6 +237,67 @@ async def remove_file_from_references(project_id: str, file_id: str, revision: i
             f"Removed {len(removed_reference_ids)} matches with file_id {file_id}"
         )
         return removed_reference_ids
+
+
+async def _get_downloader_workflow_state(
+    project_id: str,
+    revision: int,
+) -> Tuple[Optional[WorkflowRun], Optional[ReferenceDownloaderState]]:
+    """Get the ReferenceDownloader workflow run and state for a project."""
+    run = await get_project_workflow_run_by_type(
+        project_id, WorkflowRunType.REFERENCE_DOWNLOADER, revision=revision
+    )
+    if run is None:
+        return None, None
+
+    state = await get_workflow_run_state_by_thread_id(
+        run.langgraph_thread_id, WorkflowRunType.REFERENCE_DOWNLOADER
+    )
+    return run, state
+
+
+async def remove_fetch_result_for_file(
+    project_id: str, file_id: str, revision: int
+) -> int:
+    """
+    Remove any ReferenceDownloader fetch results whose downloaded file matches file_id.
+
+    Called when a user deletes a file so the stale fetch result (e.g. "Source Found"
+    pointing at a file that no longer exists) does not linger in workflow state.
+
+    Returns the number of fetch_references entries that were removed.
+    """
+    async with _project_lock(project_id):
+        run, state = await _get_downloader_workflow_state(project_id, revision)
+        if run is None or state is None or not state.fetched_references:
+            return 0
+
+        filtered = [
+            item
+            for item in state.fetched_references
+            if not (item.result and item.result.file_id == file_id)
+        ]
+
+        removed_count = len(state.fetched_references) - len(filtered)
+        if removed_count == 0:
+            return 0
+
+        # Overwrite is required to bypass the merge_fetch_results reducer, which otherwise
+        # upserts-only and would keep the entries we are trying to delete.
+        async with get_checkpointer() as checkpointer:
+            graph = create_graph(WorkflowRunType.REFERENCE_DOWNLOADER)
+            app = graph.compile(checkpointer=checkpointer)
+
+            await app.aupdate_state(
+                {"configurable": {"thread_id": run.langgraph_thread_id}},
+                {"fetched_references": Overwrite(filtered)},
+                as_node="cleanup_failed_resources",
+            )
+
+        logger.info(
+            f"Removed {removed_count} fetch result(s) for file {file_id} in project {project_id}"
+        )
+        return removed_count
 
 
 async def add_file_to_reference(

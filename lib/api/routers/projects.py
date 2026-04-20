@@ -12,7 +12,6 @@ from lib.models.file import File, FileListItem, FileRole
 from lib.models.project import AccessLevel, Project
 from lib.models.user import User
 from lib.services.docx_workflow_service import DocxManipulatorType, get_or_generate_docx
-from lib.services.files import delete_project_files
 from lib.services.project_zip import create_project_files_zip
 from lib.services.projects import (
     ProjectDetailed,
@@ -21,13 +20,13 @@ from lib.services.projects import (
     create_project,
     create_new_revision,
     delete_project,
+    delete_project_file_with_cleanup,
     get_project_access,
     get_project_detailed_from_project,
     get_project_files,
     get_user_projects,
     update_user_project,
 )
-from lib.services.references import remove_file_from_references
 from lib.services.workflow_progress import get_project_workflow_progress
 from lib.services.workflow_runs import (
     WorkflowRunDetail,
@@ -208,14 +207,12 @@ async def delete_project_file_endpoint(
         project_id, user=current_user, required_level=AccessLevel.WRITE
     )
 
-    # Delete the file from the project
-    deleted_count = await delete_project_files(project.id, target_file_ids=[file_id])
+    deleted_count, _ = await delete_project_file_with_cleanup(
+        project_id, file_id, revision=project.current_revision
+    )
 
     if deleted_count == 0:
         raise HTTPException(status_code=404, detail="File not found in project")
-
-    # Update workflow state to remove file_id from references
-    await remove_file_from_references(project_id, file_id, revision=project.current_revision)
 
     return {"message": "File deleted successfully", "file_id": file_id}
 
