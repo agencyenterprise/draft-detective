@@ -21,11 +21,7 @@ class AbbreviationScanV2Manifest(
 ):
     type = WorkflowRunType.ABBREVIATION_SCAN_V2
     name = "Abbreviation Scan"
-    description = (
-        "Scan the document for abbreviations and acronyms, "
-        "verify each is defined inline at its first occurrence, and check that "
-        "all abbreviations are listed in an Abbreviations section."
-    )
+    description = "Have you defined all abbreviations and acronyms accurately and consistently? Checks that every abbreviation is spelled out at first use and all abbreviations are listed in an Abbreviations section."
     needs_web_search = False
     is_internal = False
     is_experimental = False

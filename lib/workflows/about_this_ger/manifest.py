@@ -20,10 +20,8 @@ from lib.workflows.workflow_types import WorkflowState
 class AboutThisGerManifest(WorkflowManifest[AboutThisGerState, AboutThisGerConfig]):
     type = WorkflowRunType.ABOUT_THIS_GER
     name = "About This (GER)"
-    description = (
-        "Validates the preface/introduction and author biography sections "
-        "against publication requirements using deep-agent analysis."
-    )
+    description = "Does the preface meet publication requirements? Checks that required elements are present: publication context, objectives, audience, funding, author bios."
+
     needs_web_search = False
     required_dependencies = [WorkflowRunType.DOCUMENT_PROCESSING]
     is_experimental = False

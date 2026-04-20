@@ -59,8 +59,8 @@ class ReferenceValidationManifest(
     WorkflowManifest[ReferenceValidationState, ReferenceValidationWorkflowConfig]
 ):
     type = WorkflowRunType.REFERENCE_VALIDATION
-    name = "Reference Error Checking"
-    description = "Uses web search to check if each reference from the document is available online and matches author, title, year, and publisher against public internet sources. Useful for checking reference typos or hallucinated references."
+    name = "Reference Error Checker"
+    description = "Are your references accurate? Uses web search to check each citation exists online and that the author, title, publisher, and year match public sources. Useful for catching typos or hallucinated references."
     needs_web_search = True
     required_dependencies = [WorkflowRunType.REFERENCE_EXTRACTION]
 
