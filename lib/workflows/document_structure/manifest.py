@@ -74,8 +74,7 @@ class DocumentStructureManifest(SimpleDeepAgentManifest):
 
     type = WorkflowRunType.DOCUMENT_STRUCTURE
     name = "Document Contents"
-    description = 
-        "Does your document include all required content? Checks that key content is present in the document: About This, Acknowledgements, Methods, Results, Conclusion, References, and Appendix (when referenced in the text)."
+    description = "Does your document include all required content? Checks that key content is present in the document: About This, Acknowledgements, Methods, Results, Conclusion, References, and Appendix (when referenced in the text)."
     required_dependencies = [WorkflowRunType.DOCUMENT_PROCESSING]
     is_experimental = False
 

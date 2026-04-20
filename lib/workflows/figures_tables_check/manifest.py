@@ -104,8 +104,7 @@ class FiguresTablesCheckManifest(SimpleDeepAgentManifest):
 
     type = WorkflowRunType.FIGURES_TABLES_CHECK
     name = "Figures & Tables Check"
-    description = 
-        "Are all figures and tables properly titled, numbered, and referenced? Checks that every figure and table has a title, is consistently numbered, is cited in the body text, and that all body-text references resolve to an actual figure or table in the document."
+    description = "Are all figures and tables properly titled, numbered, and referenced? Checks that every figure and table has a title, is consistently numbered, is cited in the body text, and that all body-text references resolve to an actual figure or table in the document."
     required_dependencies = [WorkflowRunType.DOCUMENT_PROCESSING]
     is_experimental = False
 
