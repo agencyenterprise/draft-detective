@@ -1,15 +1,42 @@
 import logging
 from urllib.parse import urlparse, urlunparse
 
+from key_value.aio.protocols.key_value import AsyncKeyValue
+from key_value.aio.wrappers.encryption import FernetEncryptionWrapper
+
 from lib.config.env import config
+from lib.mcp.postgres_kv_store import PostgresKeyValueStore
 
 logger = logging.getLogger(__name__)
+
+# Stable salt: rotating it would invalidate every stored OAuth registration
+# and force every client through re-auth. Versioned so we can rotate
+# deliberately if AUTH_SECRET is ever compromised.
+_MCP_STORAGE_SALT = "mcp-oauth-storage-v1"
 
 
 def _root_url(url: str) -> str:
     """Strip path from a URL, returning just scheme + netloc."""
     parsed = urlparse(url)
     return urlunparse((parsed.scheme, parsed.netloc, "", "", "", ""))
+
+
+def _build_client_storage() -> AsyncKeyValue:
+    """Build the shared OAuth ``client_storage`` for MCP providers.
+
+    Without this, FastMCP defaults to an in-memory store, which loses client
+    registrations and PKCE state across pods — the root cause of the
+    re-auth hang on multi-pod deployments (RANDZ-534).
+
+    Encryption key is derived from ``AUTH_SECRET`` via PBKDF2 (handled by
+    ``FernetEncryptionWrapper``) so we don't need a second secret in the
+    environment.
+    """
+    return FernetEncryptionWrapper(
+        key_value=PostgresKeyValueStore(),
+        source_material=config.AUTH_SECRET,
+        salt=_MCP_STORAGE_SALT,
+    )
 
 
 def create_mcp_auth():
@@ -27,6 +54,8 @@ def create_mcp_auth():
     # Some MCP clients (e.g. Claude) don't support path-aware discovery.
     issuer_url = _root_url(base_url)
 
+    client_storage = _build_client_storage()
+
     if config.AUTH_GOOGLE_ID and config.AUTH_GOOGLE_SECRET:
         from fastmcp.server.auth.providers.google import GoogleProvider
 
@@ -41,6 +70,7 @@ def create_mcp_auth():
                 "https://www.googleapis.com/auth/userinfo.email",
             ],
             enable_cimd=config.MCP_CIMD_ENABLED,
+            client_storage=client_storage,
         )
 
     if (
@@ -63,6 +93,7 @@ def create_mcp_auth():
             issuer_url=issuer_url,
             required_scopes=["mcp-access"],
             enable_cimd=config.MCP_CIMD_ENABLED,
+            client_storage=client_storage,
         )
 
     raise RuntimeError(
