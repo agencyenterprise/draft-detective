@@ -609,8 +609,10 @@ async def test_remove_reference_file_returns_file_and_unlinked_refs():
     with (
         patch("lib.api.mcp._resolve_user", new=AsyncMock(return_value=user)),
         patch("lib.api.mcp.get_project_access", new=AsyncMock(return_value=(project, MagicMock()))),
-        patch("lib.api.mcp.delete_project_files", new=AsyncMock(return_value=1)),
-        patch("lib.api.mcp.remove_file_from_references", new=AsyncMock(return_value=[ref_id])),
+        patch(
+            "lib.api.mcp.delete_project_file_with_cleanup",
+            new=AsyncMock(return_value=(1, [ref_id])),
+        ),
     ):
         raw = await remove_reference_file(
             project_id=str(project.id), file_id=file_id, token=_make_token()
@@ -631,7 +633,10 @@ async def test_remove_reference_file_raises_when_not_found():
     with (
         patch("lib.api.mcp._resolve_user", new=AsyncMock(return_value=user)),
         patch("lib.api.mcp.get_project_access", new=AsyncMock(return_value=(project, MagicMock()))),
-        patch("lib.api.mcp.delete_project_files", new=AsyncMock(return_value=0)),
+        patch(
+            "lib.api.mcp.delete_project_file_with_cleanup",
+            new=AsyncMock(return_value=(0, [])),
+        ),
     ):
         with pytest.raises(ValueError, match="not found in project"):
             await remove_reference_file(
@@ -649,8 +654,10 @@ async def test_remove_reference_file_with_no_associations():
     with (
         patch("lib.api.mcp._resolve_user", new=AsyncMock(return_value=user)),
         patch("lib.api.mcp.get_project_access", new=AsyncMock(return_value=(project, MagicMock()))),
-        patch("lib.api.mcp.delete_project_files", new=AsyncMock(return_value=1)),
-        patch("lib.api.mcp.remove_file_from_references", new=AsyncMock(return_value=[])),
+        patch(
+            "lib.api.mcp.delete_project_file_with_cleanup",
+            new=AsyncMock(return_value=(1, [])),
+        ),
     ):
         raw = await remove_reference_file(
             project_id=str(project.id), file_id=file_id, token=_make_token()

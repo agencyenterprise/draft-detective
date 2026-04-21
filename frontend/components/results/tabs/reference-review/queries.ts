@@ -53,12 +53,10 @@ export function useReferenceReviewReferences(projectDetail: ProjectDetailed | un
         (ref) => ref.reference_id === item.id,
       );
 
-      // In case the reference was fetched but the matching file no longer exists, we don't want to show the fetched result.
-      // Also hide fetch results when the file was manually uploaded by the user.
-      const shouldShowFetchedResult =
-        (!item.source || item.source === MatchSource.AutoFetched) &&
-        fetchedReference &&
-        (fetchedReference.result?.file_id ? !!matchedFile : true);
+      // Hide fetch results when the file was manually uploaded by the user — the fetch outcome is
+      // irrelevant once a user-uploaded source is in place. Otherwise always surface the fetch
+      // result (including "Not Found" / errored outcomes) so users can see why no source is attached.
+      const shouldShowFetchedResult = !!fetchedReference && item.source !== MatchSource.ManualUpload;
 
       return {
         id: item.id,

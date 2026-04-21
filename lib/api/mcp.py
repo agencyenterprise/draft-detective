@@ -22,19 +22,17 @@ from lib.models.project import AccessLevel
 from lib.models.user import User
 from lib.services.docx_workflow_service import DocxManipulatorType, get_or_generate_docx
 from lib.services.file_finalization import finalize_file
-from lib.services.files import delete_project_files, get_files_by_project_id
+from lib.services.files import get_files_by_project_id
 from lib.services.projects import create_project as create_project_record
 from lib.services.projects import (
     create_new_revision,
+    delete_project_file_with_cleanup,
     get_project_access,
     get_project_detailed_from_project,
     get_user_projects,
 )
 from lib.services.files import get_project_files_list_items
-from lib.services.references import (
-    get_file_reference_matches,
-    remove_file_from_references,
-)
+from lib.services.references import get_file_reference_matches
 from lib.services.users import get_or_create_user_by_email
 from lib.services.workflow_types import get_workflow_types_for_user
 from lib.workflows.models import SeverityEnum, WorkflowRunType
@@ -443,13 +441,11 @@ async def remove_reference_file(
         project_id, user=user, required_level=AccessLevel.WRITE
     )
 
-    deleted_count = await delete_project_files(project.id, target_file_ids=[file_id])
-    if deleted_count == 0:
-        raise ValueError(f"File {file_id!r} not found in project {project_id!r}")
-
-    removed_reference_ids = await remove_file_from_references(
+    deleted_count, removed_reference_ids = await delete_project_file_with_cleanup(
         project_id, file_id, revision=project.current_revision
     )
+    if deleted_count == 0:
+        raise ValueError(f"File {file_id!r} not found in project {project_id!r}")
 
     return json.dumps(
         {
