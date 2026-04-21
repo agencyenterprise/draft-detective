@@ -31,7 +31,8 @@ WORKFLOW_DISPLAY_CONFIG: list[CategoryConfig] = [
         slug="substantive_review",
         label="Substantive Review",
         workflows=[
-            WorkflowRunType.CLAIM_REFERENCE_VALIDATION,
+            # WorkflowRunType.CLAIM_REFERENCE_VALIDATION,
+            WorkflowRunType.CLAIM_REFERENCE_VALIDATION_V2,
             WorkflowRunType.INFERENCE_VALIDATION_V2,
             WorkflowRunType.METHODOLOGICAL_ALIGNMENT,
             WorkflowRunType.RESULTS_EXTRACTION,

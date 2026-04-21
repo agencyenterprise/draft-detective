@@ -57,6 +57,7 @@ const workflowTypeIcons: Record<WorkflowRunType, LucideIcon> = {
   [WorkflowRunType.InferenceValidation]: BrainCircuit,
   [WorkflowRunType.InferenceValidationV2]: BrainCircuit,
   [WorkflowRunType.ClaimReferenceValidation]: ClipboardCheck,
+  [WorkflowRunType.ClaimReferenceValidationV2]: ClipboardCheck,
   [WorkflowRunType.AbbreviationScanV2]: ALargeSmall,
   [WorkflowRunType.AdvocacyTone]: MessageSquareWarning,
   [WorkflowRunType.AboutThisGer]: BookOpen,

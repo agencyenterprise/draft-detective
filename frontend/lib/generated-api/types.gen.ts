@@ -851,6 +851,60 @@ export type CitationDetectionState = {
 };
 
 /**
+ * CitationIssueItem
+ *
+ * A citation that was identified as problematic or noteworthy.
+ */
+export type CitationIssueItem = {
+  /**
+   * Quoted Text
+   *
+   * The exact sentence or passage from the main document that contains the citation marker.
+   */
+  quoted_text: string;
+  /**
+   * Line Start
+   *
+   * 1-indexed line number where quoted_text starts.
+   */
+  line_start: number;
+  /**
+   * Line End
+   *
+   * 1-indexed line number where quoted_text ends.
+   */
+  line_end: number;
+  /**
+   * How well the cited source supports the claim being made.
+   */
+  evidence_alignment: EvidenceAlignmentLevel;
+  /**
+   * Rationale
+   *
+   * Brief explanation of why the citation is or is not supported.
+   */
+  rationale: string;
+  /**
+   * Feedback
+   *
+   * Actionable suggestion for the author. Return 'No changes needed' if the citation is correct.
+   */
+  feedback: string;
+  /**
+   * Evidence Sources
+   *
+   * All reference files that were checked when validating this citation.
+   */
+  evidence_sources?: Array<ClaimEvidenceSource>;
+  /**
+   * Citation To File Mapping
+   *
+   * The bibliography-to-file mapping used when checking this citation. Omit file IDs.
+   */
+  citation_to_file_mapping?: string | null;
+};
+
+/**
  * CitationResponse
  */
 export type CitationResponse = {
@@ -1282,6 +1336,71 @@ export type ClaimReferenceValidationState = {
    * Claim substantiation results indexed by chunk_index and claim_index
    */
   substantiations?: Array<ClaimSubstantiationResultWithClaimIndex>;
+};
+
+/**
+ * ClaimReferenceValidationV2Config
+ */
+export type ClaimReferenceValidationV2Config = {
+  /**
+   * Project Id
+   *
+   * The ID of the project that this workflow run should be associated with
+   */
+  project_id: string;
+  /**
+   * Openai Api Key
+   *
+   * The OpenAI API key to use for this workflow execution
+   */
+  openai_api_key?: string | null;
+  /**
+   * Domain
+   *
+   * Domain context for more accurate analysis
+   */
+  domain?: string | null;
+  /**
+   * Target Audience
+   *
+   * Target audience context for analysis
+   */
+  target_audience?: string | null;
+  /**
+   * Publication Date
+   *
+   * Publication date of the document (YYYY-MM-DD format)
+   */
+  publication_date?: string | null;
+  /**
+   * Type
+   */
+  type?: 'claim_reference_validation_v2';
+};
+
+/**
+ * ClaimReferenceValidationV2State
+ */
+export type ClaimReferenceValidationV2State = {
+  /**
+   * Errors
+   *
+   * Errors that occurred during the workflow execution.
+   */
+  errors?: Array<WorkflowError>;
+  /**
+   * Type
+   */
+  type?: 'claim_reference_validation_v2';
+  config: ClaimReferenceValidationV2Config;
+  /**
+   * Section Verifications
+   */
+  section_verifications?: Array<SectionVerificationItem>;
+  /**
+   * Citation Issues
+   */
+  citation_issues?: Array<CitationIssueItem>;
 };
 
 /**
@@ -4545,6 +4664,56 @@ export type RevisionListItem = {
 };
 
 /**
+ * SectionVerificationItem
+ */
+export type SectionVerificationItem = {
+  /**
+   * Section Index
+   */
+  section_index: number;
+  /**
+   * Start Line
+   */
+  start_line?: number;
+  /**
+   * End Line
+   */
+  end_line?: number;
+  /**
+   * Headings
+   */
+  headings?: Array<string>;
+  status?: SectionVerificationStatus;
+  /**
+   * Num Citations
+   */
+  num_citations?: number;
+  /**
+   * Issues
+   */
+  issues?: Array<CitationIssueItem>;
+  /**
+   * Error
+   */
+  error?: string | null;
+};
+
+/**
+ * SectionVerificationStatus
+ */
+export const SectionVerificationStatus = {
+  Pending: 'pending',
+  Completed: 'completed',
+  Error: 'error',
+  Cancelled: 'cancelled',
+} as const;
+
+/**
+ * SectionVerificationStatus
+ */
+export type SectionVerificationStatus = (typeof SectionVerificationStatus)[keyof typeof SectionVerificationStatus];
+
+/**
  * SetApiKeyRequest
  *
  * Request model for setting a user's OpenAI API key
@@ -5109,6 +5278,7 @@ export type WorkflowRunDetail = {
     | FootnoteExtractionState
     | ClaimExtractionState
     | ClaimReferenceValidationState
+    | ClaimReferenceValidationV2State
     | CitationDetectionState
     | AbbreviationScanV2State
     | MethodologicalAlignmentState
@@ -5163,6 +5333,7 @@ export const WorkflowRunType = {
   InferenceValidation: 'inference_validation',
   InferenceValidationV2: 'inference_validation_v2',
   ClaimReferenceValidation: 'claim_reference_validation',
+  ClaimReferenceValidationV2: 'claim_reference_validation_v2',
   AbbreviationScanV2: 'abbreviation_scan_v2',
   AdvocacyTone: 'advocacy_tone',
   AboutThisGer: 'about_this_ger',
@@ -5514,6 +5685,7 @@ export type StartWorkflowApiWorkflowsStartPostData = {
     | ClaimExtractionWorkflowConfig
     | CitationDetectionConfig
     | ClaimReferenceValidationWorkflowConfig
+    | ClaimReferenceValidationV2Config
     | AbbreviationScanV2Config
     | MethodologicalAlignmentWorkflowConfig
     | ReferenceDownloaderWorkflowConfig
