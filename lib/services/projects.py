@@ -18,6 +18,10 @@ from lib.models.user import User, UserRole
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus
 from lib.services.files import delete_project_files, get_project_files_list_items
 from lib.services.issue_persistence import get_project_issues
+from lib.services.references import (
+    remove_fetch_result_for_file,
+    remove_file_from_references,
+)
 from lib.services.share_links import get_resource_by_token, is_project_shared
 from lib.services.workflow_runs import WorkflowRunDetail, cancel_workflow_run, get_project_workflow_runs
 from lib.workflows.checkpointer import get_checkpointer
@@ -323,6 +327,33 @@ async def get_project_files(project_id: str) -> List[File]:
         )
         result = await session.execute(stmt)
         return list(result.scalars().all())
+
+
+async def delete_project_file_with_cleanup(
+    project_id: str, file_id: str, revision: int
+) -> tuple[int, List[str]]:
+    """
+    Delete a file from a project and clean up all references to it.
+
+    Performs three steps:
+    1. Delete the file record and its disk content (unless shared with another project)
+    2. Unlink the file from any ReferenceFileMatching matches
+    3. Clear any ReferenceDownloader fetch result that pointed at this file
+
+    Returns:
+        (deleted_count, removed_reference_ids): number of files actually deleted and the
+        list of reference IDs that were unlinked from the file.
+    """
+    deleted_count = await delete_project_files(project_id, target_file_ids=[file_id])
+    if deleted_count == 0:
+        return 0, []
+
+    removed_reference_ids = await remove_file_from_references(
+        project_id, file_id, revision=revision
+    )
+    await remove_fetch_result_for_file(project_id, file_id, revision=revision)
+
+    return deleted_count, removed_reference_ids
 
 
 async def update_user_project(

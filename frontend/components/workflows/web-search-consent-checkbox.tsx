@@ -22,8 +22,8 @@ export function WebSearchConsentCheckbox({
           id="web-search-consent"
           checked={checked}
           onCheckedChange={(checked) => onCheckedChange(checked === true)}
-          label="I consent to perform web search using parts or the whole document for this analysis"
-          description="Web search is required to perform this analysis. Parts of the document will be used to perform web search, so we don't recommend using confidential information. Don't proceed if you don't consent to perform web search."
+          label="I consent to perform web search using parts or the whole document for this assessment"
+          description="Web search is required to perform this assessment. Parts of the document will be used to perform web search, so we don't recommend using confidential information. Don't proceed if you don't consent to perform web search."
           disabled={disabled}
         />
       </div>

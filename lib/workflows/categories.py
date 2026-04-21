@@ -31,7 +31,8 @@ WORKFLOW_DISPLAY_CONFIG: list[CategoryConfig] = [
         slug="substantive_review",
         label="Substantive Review",
         workflows=[
-            WorkflowRunType.CLAIM_REFERENCE_VALIDATION,
+            # WorkflowRunType.CLAIM_REFERENCE_VALIDATION,
+            WorkflowRunType.CLAIM_REFERENCE_VALIDATION_V2,
             WorkflowRunType.INFERENCE_VALIDATION_V2,
             WorkflowRunType.METHODOLOGICAL_ALIGNMENT,
             WorkflowRunType.RESULTS_EXTRACTION,
@@ -40,7 +41,7 @@ WORKFLOW_DISPLAY_CONFIG: list[CategoryConfig] = [
     ),
     CategoryConfig(
         slug="technical_compliance",
-        label="Technical Compliance",
+        label="Editorial and Style Review",
         workflows=[
             WorkflowRunType.ABBREVIATION_SCAN_V2,
             WorkflowRunType.ABOUT_THIS_GER,

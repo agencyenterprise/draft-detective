@@ -41,7 +41,7 @@ export function ApplicationShell({ children }: ApplicationShellProps) {
             <div className="flex">
               <div className="flex shrink-0 items-center">
                 <Link href="/" className="text-xl font-bold text-primary">
-                  AI Reviewer
+                  Draft Detective
                 </Link>
               </div>
               <div className="hidden sm:-my-px sm:ml-6 sm:flex sm:space-x-8">

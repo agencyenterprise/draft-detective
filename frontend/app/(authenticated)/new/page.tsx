@@ -26,7 +26,7 @@ function WizardContent() {
     const apiKeyStep = REQUIRE_API_KEY_CONFIG ? [{ label: 'API Key Setup', completed: apiKeyConfigured }] : [];
     const wizardSteps = [
       { label: 'Your Document', completed: wizard.currentStep > 1 },
-      { label: 'Choose Analyses', completed: wizard.currentStep > 2 },
+      { label: 'Choose Assessments', completed: wizard.currentStep > 2 },
     ];
     return [...apiKeyStep, ...wizardSteps];
   }, [apiKeyConfigured, wizard.currentStep]);

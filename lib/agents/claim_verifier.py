@@ -143,7 +143,7 @@ class ClaimVerifierAgent(LangChainAgent):
 
         result = await agent.ainvoke(
             {"messages": [{"role": "user", "content": user_message}]},
-            config={"recursion_limit": 50, **(config or {})},
+            config={"recursion_limit": 80, **(config or {})},
             context=self.context,
         )
 

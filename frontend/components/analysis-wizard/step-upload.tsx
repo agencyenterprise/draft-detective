@@ -78,7 +78,7 @@ export function StepUpload({ onComplete }: StepUploadProps) {
               {stageMessage || 'Setting up your project...'}
             </>
           ) : (
-            'Next: Choose your analyses →'
+            'Next: Choose your assessments →'
           )}
         </Button>
       </div>

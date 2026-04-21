@@ -228,6 +228,26 @@ async def get_project_workflow_run_by_type(
         return (await session.execute(stmt)).scalar_one_or_none()
 
 
+async def has_completed_workflow_run_any_revision(
+    project_id: str,
+    type: WorkflowRunType,
+) -> bool:
+    """Return True if any COMPLETED run of this type exists for the project, across all revisions."""
+    async with get_async_db_session() as session:
+        stmt = (
+            select(WorkflowRun.id)
+            .where(
+                and_(
+                    col(WorkflowRun.project_id) == project_id,
+                    col(WorkflowRun.type) == type,
+                    col(WorkflowRun.status) == WorkflowRunStatus.COMPLETED,
+                )
+            )
+            .limit(1)
+        )
+        return (await session.execute(stmt)).first() is not None
+
+
 async def get_project_workflow_runs_by_type(
     project_id: str,
     workflow_type: WorkflowRunType,

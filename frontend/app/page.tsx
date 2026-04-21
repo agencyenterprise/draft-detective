@@ -14,11 +14,12 @@ export default function Home() {
             AI-Powered Peer Review
           </Badge>
           <h1 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-foreground via-foreground/90 to-foreground/70 bg-clip-text text-transparent">
-            AI Reviewer
+            Draft Detective
           </h1>
           <p className="text-lg text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-            Transform your document review process with AI-powered claim extraction, citation analysis, and evidence
-            substantiation. Built for researchers, analysts, and content reviewers who demand accuracy and thoroughness.
+            Transform your document review process with Draft Detective. Run pre-peer review checks on your manuscript
+            and get a prioritized list of flagged issues. Built for researchers, analysts, and content reviewers who
+            want to catch problems before reviewers do.
           </p>
         </div>
 

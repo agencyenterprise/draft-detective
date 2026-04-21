@@ -34,6 +34,10 @@ from lib.workflows.claim_reference_validation.state import (
     ClaimReferenceValidationState,
     ClaimReferenceValidationWorkflowConfig,
 )
+from lib.workflows.claim_reference_validation_v2.state import (
+    ClaimReferenceValidationV2Config,
+    ClaimReferenceValidationV2State,
+)
 from lib.workflows.document_processing.state import (
     DocumentProcessingState,
     DocumentProcessingWorkflowConfig,
@@ -99,6 +103,7 @@ WorkflowState = (
     | FootnoteExtractionState
     | ClaimExtractionState
     | ClaimReferenceValidationState
+    | ClaimReferenceValidationV2State
     | CitationDetectionState
     | AbbreviationScanV2State
     | MethodologicalAlignmentState
@@ -126,6 +131,7 @@ WorkflowConfig = (
     | ClaimExtractionWorkflowConfig
     | CitationDetectionConfig
     | ClaimReferenceValidationWorkflowConfig
+    | ClaimReferenceValidationV2Config
     | AbbreviationScanV2Config
     | MethodologicalAlignmentWorkflowConfig
     | ReferenceDownloaderWorkflowConfig

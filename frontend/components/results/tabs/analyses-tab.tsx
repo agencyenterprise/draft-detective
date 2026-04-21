@@ -160,13 +160,13 @@ export function AnalysesTab({
         ) : (
           <div className="flex items-center justify-center h-32">
             <p className="text-muted-foreground flex items-center gap-2">
-              {readOnly && <>Select an analysis to view its results</>}
+              {readOnly && <>Select an assessment to view its results</>}
               {!readOnly && (
                 <>
-                  Select an analysis to view its results or
+                  Select an assessment to view its results or
                   <Button size="xs" variant="default" onClick={handleStartNewAnalysis}>
                     <PlusIcon className="size-3" />
-                    Start a new analysis
+                    Start a new assessment
                   </Button>
                 </>
               )}

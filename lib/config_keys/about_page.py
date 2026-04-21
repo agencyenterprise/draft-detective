@@ -59,12 +59,12 @@ for details.
 |:---|:---|:---:|
 | **Advocacy & Tone** | Checks for trigger words, advocacy language, and subjective tone using a two-layer approach — first fast pattern-matching, then LLM verification. Flags language that departs from a neutral, objective tone. | |
 
-### Technical Compliance
+### Editorial and Style Review
 
 | Analysis Type | Description | Eval |
 |:---|:---|:---:|
 | **Abbreviation Scan** | Scans the document for abbreviations and acronyms, verifies each is defined inline at its first occurrence, and checks that all abbreviations appear in an Abbreviations section. | [eval](https://github.com/agencyenterprise/ai-reviewer/tree/main/evals_inspectai/e2e/abbreviation_checker) |
-| **Document Structure** | Checks that key sections are present: Acknowledgements, Methods, Results, Conclusion, References, and Appendix (if referenced in text). `#experimental` | [eval](https://github.com/agencyenterprise/ai-reviewer/tree/main/evals_inspectai/e2e/document_structure) |
+| **Document Contents** | Checks that key content is present: Acknowledgements, Methods, Results, Conclusion, References, and Appendix (if referenced in text). `#experimental` | [eval](https://github.com/agencyenterprise/ai-reviewer/tree/main/evals_inspectai/e2e/document_structure) |
 | **Figures & Tables Check** | Verifies that every figure and table has a title, is consistently numbered, is referenced in the body text, and that every body-text reference resolves to an actual figure or table in the document. `#experimental` | [eval](https://github.com/agencyenterprise/ai-reviewer/tree/main/evals_inspectai/e2e/figures_tables_check) |
 
 ### Citation Check
@@ -78,9 +78,9 @@ for details.
 | Analysis Type | Description | Eval |
 |:---|:---|:---:|
 | **Claim Reference Validation** | Validates claims against supporting documents using retrieval-augmented generation (RAG). Retrieves relevant passages from uploaded reference PDFs and returns a verdict for each claim: supported, partially supported, unsupported, or unverifiable. `#full_text_refs` | [component evals](https://github.com/agencyenterprise/ai-reviewer/tree/main/tests/evals/llm) |
-| **Inference Validation** | Analyzes the full document for invalid inferences, identifying logical fallacies, unsupported conclusions, and faulty reasoning. Each finding includes the key sentence, an analysis of the argument, and a suggested correction. | |
+| **Internal Inference Validation** | Analyzes the full document for invalid inferences, identifying logical fallacies, unsupported conclusions, and faulty reasoning. Each finding includes the key sentence, an analysis of the argument, and a suggested correction. | |
 | **Methodological Alignment** | Compares the methodology used in the document against typical methods in the field, using web search to gather field context and highlight gaps or risks. `#web_search` | |
-| **Results Extraction** | Extracts the document's main results and assesses their reproducibility — returning a structured list of findings (figures, tables, equations, key text) each with a reproducibility classification and rationale. | |
+| **Reproducibility Check** | Extracts the document's main results and assesses their reproducibility — returning a structured list of findings (figures, tables, equations, key text) each with a reproducibility classification and rationale. | |
 | **Reviewer 2** | Simulates a full peer review of the kind a senior researcher would write — producing a structured review with strengths, weaknesses, actionable next steps, and a devil's-advocate rebuttal. Unlike the other checks, which each target a specific issue, Reviewer 2 gives an integrated evaluation of the document as a whole. `#experimental` | |
 
 ### Research & Writing Assistant

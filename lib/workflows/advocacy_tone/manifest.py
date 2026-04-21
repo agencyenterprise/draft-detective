@@ -17,10 +17,7 @@ class AdvocacyToneManifest(
 ):
     type = WorkflowRunType.ADVOCACY_TONE
     name = "Advocacy & Tone"
-    description = (
-        "Detect trigger words, advocacy language, and subjective tone in document text. "
-        "Uses two-layer detection: fast procedural checks (regex) followed by LLM verification."
-    )
+    description = "Does your document use neutral, objective language? Flags advocacy language, trigger words, and subjective tone using fast pattern matching (regex) followed by LLM verification."
     needs_web_search = False
     required_dependencies = [WorkflowRunType.CHUNK_SPLITTING]
     is_experimental = False

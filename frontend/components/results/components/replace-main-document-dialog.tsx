@@ -105,7 +105,7 @@ export function ReplaceMainDocumentDialog({ isOpen, projectId, onClose }: Replac
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project', projectId] });
-      toast.success('Main document replaced. Analysis started.');
+      toast.success('Main document replaced. Assessment started.');
       onClose();
     },
     onError: (error) => {
@@ -138,7 +138,7 @@ export function ReplaceMainDocumentDialog({ isOpen, projectId, onClose }: Replac
         }
         return 'Uploading document...';
       case 'starting-workflows':
-        return 'Starting analysis workflows...';
+        return 'Starting assessment workflows...';
       default:
         return '';
     }
@@ -150,7 +150,7 @@ export function ReplaceMainDocumentDialog({ isOpen, projectId, onClose }: Replac
         <DialogHeader>
           <DialogTitle>Replace main document</DialogTitle>
           <DialogDescription>
-            Upload a new version of the main document. Previous analysis results will be archived (not deleted).
+            Upload a new version of the main document. Previous assessment results will be archived (not deleted).
             Supporting documents will be preserved.
           </DialogDescription>
         </DialogHeader>
@@ -189,12 +189,12 @@ export function ReplaceMainDocumentDialog({ isOpen, projectId, onClose }: Replac
                   onCheckedChange={(checked) => setRerunAnalyses(checked === true)}
                 />
                 <Label htmlFor="rerun-analyses" className="text-sm font-normal cursor-pointer">
-                  Re-run previous analyses
+                  Re-run previous assessments
                 </Label>
               </div>
               <p className="text-xs text-muted-foreground pl-6">
-                Automatically run the same analysis workflows that were previously executed on the old document. If
-                unchecked, only document processing will run and you can manually start analyses later.
+                Automatically run the same assessment workflows that were previously executed on the old document. If
+                unchecked, only document processing will run and you can manually start assessments later.
               </p>
             </div>
           </div>

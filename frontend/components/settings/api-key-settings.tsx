@@ -55,8 +55,8 @@ export function ApiKeySettings() {
       </CardHeader>
       <CardContent className="space-y-4">
         <p className="text-sm text-muted-foreground">
-          Store your OpenAI API key so it is used automatically when running analyses — including from MCP clients like
-          Claude. The key is encrypted at rest and never exposed in API responses.
+          Store your OpenAI API key so it is used automatically when running assessments — including from MCP clients
+          like Claude. The key is encrypted at rest and never exposed in API responses.
         </p>
 
         {user?.has_openai_api_key ? (

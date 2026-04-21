@@ -133,8 +133,8 @@ export function AboutThisGerResults({ workflowDetail }: AboutThisGerResultsProps
     return (
       <EmptyState
         icon={<Loader2 className="h-8 w-8 animate-spin text-muted-foreground mx-auto" />}
-        message="Analyzing Document..."
-        description="The About This (GER) analysis is currently running. Results will appear here once complete."
+        message="Assessing Document..."
+        description="The About This (GER) assessment is currently running. Results will appear here once complete."
       />
     );
   }
@@ -143,8 +143,8 @@ export function AboutThisGerResults({ workflowDetail }: AboutThisGerResultsProps
     return (
       <EmptyState
         icon={<Ban className="h-8 w-8 text-muted-foreground mx-auto" />}
-        message="Analysis Cancelled"
-        description="The About This (GER) analysis was cancelled before it could complete."
+        message="Assessment Cancelled"
+        description="The About This (GER) assessment was cancelled before it could complete."
       />
     );
   }

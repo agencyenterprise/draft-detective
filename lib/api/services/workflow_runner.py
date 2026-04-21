@@ -17,6 +17,7 @@ from lib.services.workflow_runs import (
     create_workflow_run,
     get_project_workflow_run_by_type,
     get_thread_id_for_workflow_run,
+    has_completed_workflow_run_any_revision,
 )
 from lib.workflows.config_factory import create_workflow_config
 from lib.workflows.dependency_resolver import resolve_workflow_dependencies
@@ -127,10 +128,19 @@ async def _prepare_workflow_items(
         workflow_run_ids.append(workflow_run_id)
 
         if manifest.requires_human_trigger:
-            logger.info(
-                f"Workflow {workflow_type.value} requires human trigger - skipping auto-run"
+            # If the user already approved this workflow in a prior run (any revision),
+            # treat it as cached and auto-complete instead of waiting for another click.
+            previously_approved = await has_completed_workflow_run_any_revision(
+                request.project_id, workflow_type
             )
-            continue
+            if not previously_approved:
+                logger.info(
+                    f"Workflow {workflow_type.value} requires human trigger - skipping auto-run"
+                )
+                continue
+            logger.info(
+                f"Workflow {workflow_type.value} previously approved - auto-running"
+            )
 
         auto_run_items.append(
             AutoRunWorkflowItem(
