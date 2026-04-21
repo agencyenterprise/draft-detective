@@ -6,6 +6,38 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v0.5.32] - 2026-04-21
+
+### Added
+- Added a Claim Reference Validation V2 workflow that uses a single tool-equipped agent per document section to validate citations.
+- Added caching for `HUMAN_APPROVAL` so projects with a prior approved run on any revision auto-complete subsequent runs.
+- Added a Postgres-backed, Fernet-encrypted OAuth `client_storage` for MCP Google and Azure providers to support multi-pod deployments.
+- Added a helper to detect whether a workflow run has completed on any revision.
+- Added cleanup orchestration for project file deletion that also unlinks reference matches and clears related ReferenceDownloader fetch results.
+
+### Changed
+- Changed the workflow-type selector to honor the category ordering defined in `categories.py` regardless of experimental status.
+- Changed the References tab fetch-results visibility rule to show whenever a fetch was attempted except for manual uploads.
+- Changed assessment naming and descriptions to use plain language, including renaming the “Technical Compliance” category to “Editorial and Style Review” and renaming several assessments.
+- Changed frontend user-facing terminology from “analysis/analyses” to “assessment/assessments” and from “experimental” to “beta,” and updated the homepage title and intro copy.
+- Bumped `langsmith` from 0.6.6 to 0.7.31.
+- Bumped `langchain-text-splitters` from 1.1.1 to 1.1.2.
+- Bumped `langchain-openai` from 1.1.12 to 1.1.14.
+- Bumped `mako` from 1.3.10 to 1.3.11.
+- Bumped `authlib` from 1.6.9 to 1.6.11.
+
+### Fixed
+- Fixed ReferenceDownloader subset fetch runs wiping prior fetch results so previously stored outcomes are preserved.
+- Fixed failed fetch-from-web outcomes being hidden in the References tab due to fetch-results visibility rules.
+- Fixed stale ReferenceDownloader “Source Found” indicators after an auto-fetched file is manually removed.
+- Fixed MCP re-auth hanging on repeat use in multi-pod deployments by persisting OAuth state in Postgres.
+- Fixed doc explorer sidebar loading UI by replacing empty skeleton cards with a spinner and tooltip next to the issue count.
+
+### Security
+- Updated `authlib` to 1.6.11, including a fix for a CSRF vulnerability in the Starlette OAuth client when a cache is configured.
+- Updated `mako` to 1.3.11, including a fix for a directory traversal bypass in `TemplateLookup` with double-slash URI prefixes.
+
+
 ## [v0.5.31] - 2026-04-17
 
 ### Added
