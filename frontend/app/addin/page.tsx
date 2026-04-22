@@ -70,6 +70,8 @@ export default function AddinPage() {
   const visibleIssueCount = getIssueCount(visibleIssues);
   const filteredIssueCount = getIssueCount(filteredIssues);
 
+  const [scrollContainer, setScrollContainer] = useState<HTMLDivElement | null>(null);
+
   if (!isInitialized) return <div className="p-4 text-center">Loading Add-in...</div>;
 
   if (!token) {
@@ -119,7 +121,7 @@ export default function AddinPage() {
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-2 space-y-4 text-sm">
+        <div ref={setScrollContainer} className="flex-1 overflow-y-auto p-2 space-y-4 text-sm">
           {error ? (
             <div className="text-red-500 text-sm">Failed to load issues. Please check your settings.</div>
           ) : null}
@@ -130,6 +132,7 @@ export default function AddinPage() {
             <>
               <DocumentIssuesList
                 issues={filteredIssues}
+                scrollElement={scrollContainer}
                 onSelect={(issue) => jumpToChunk(issue.chunk_indices?.[0] ?? 0)}
               />
               {hasActiveFilters(filter) && filteredIssues.length === 0 && (
