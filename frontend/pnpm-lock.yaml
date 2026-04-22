@@ -180,6 +180,9 @@ importers:
       '@tailwindcss/postcss':
         specifier: ^4
         version: 4.1.13
+      '@types/hast':
+        specifier: ^3.0.4
+        version: 3.0.4
       '@types/node':
         specifier: ^20
         version: 20.19.13
@@ -219,6 +222,9 @@ importers:
       typescript:
         specifier: ^5
         version: 5.9.2
+      unified:
+        specifier: ^11.0.5
+        version: 11.0.5
 
 packages:
 

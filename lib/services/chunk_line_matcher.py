@@ -53,6 +53,36 @@ def find_chunks_by_line_range(
     return sorted(matching)
 
 
+def find_line_range_by_chunks(
+    chunks: Sequence[IndexedChunkWithLines],
+    chunk_indices: Sequence[int],
+) -> Optional[tuple[int, int]]:
+    """
+    Return the minimal (start_line, end_line) range covering the given chunks.
+
+    Assumes chunk_indices are contiguous in practice; gaps are silently collapsed
+    into the spanning range.
+
+    Args:
+        chunks: List of chunks with line information
+        chunk_indices: The chunk indices to look up
+
+    Returns:
+        (min(start_line), max(end_line)) across the matching chunks, or None if
+        no chunk in the list matches the given indices.
+    """
+    if not chunk_indices:
+        return None
+    index_set = set(chunk_indices)
+    matching = [c for c in chunks if c.chunk_index in index_set]
+    if not matching:
+        return None
+    return (
+        min(c.start_line for c in matching),
+        max(c.end_line for c in matching),
+    )
+
+
 def find_chunk_by_line(
     chunks: Sequence[IndexedChunkWithLines],
     line: int,

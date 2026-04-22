@@ -4,8 +4,6 @@ from typing import List, Type, cast
 
 from langgraph.graph import StateGraph
 
-from lib.services.chunk_line_matcher import find_chunks_by_line_range
-from lib.workflows.chunk_utils import build_analyzed_chunks
 from lib.workflows.manifest import WorkflowManifest
 from lib.workflows.models import DocumentIssue, SeverityEnum, WorkflowRunType
 from lib.workflows.reference_extraction.state import ReferenceExtractionState
@@ -104,27 +102,17 @@ class ReferenceFileMatchingManifest(
         # Build set of matched reference IDs
         matched_ref_ids = {match.reference_id for match in state.matches}
 
-        chunks = build_analyzed_chunks(other_states)
-
-        # References without matching supporting documents
+        # References without matching supporting documents. Emits line ranges
+        # only; persistence derives chunk_indices from them.
         for reference in ref_extraction_state.extracted_references:
             if reference.id not in matched_ref_ids:
-                chunk_indices = None
-                if (
-                    chunks
-                    and reference.start_line is not None
-                    and reference.end_line is not None
-                ):
-                    chunk_indices = find_chunks_by_line_range(
-                        chunks, reference.start_line, reference.end_line
-                    )
-
                 issue = DocumentIssue(
                     title="Missing supporting document for reference",
                     description=f'Reference does not have an associated supporting document: "{reference.text}"',
                     severity=SeverityEnum.LOW,
                     type=self.type,
-                    chunk_indices=chunk_indices if chunk_indices else None,
+                    start_line=reference.start_line,
+                    end_line=reference.end_line,
                 )
                 issues.append(issue)
 

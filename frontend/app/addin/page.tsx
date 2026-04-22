@@ -63,9 +63,9 @@ export default function AddinPage() {
   const isParagraphView = paragraphIssues.length > 0;
 
   const visibleIssues = useMemo(() => getVisibleIssues(activeIssues, filter), [activeIssues, filter]);
-  const resolvedCount = useMemo(() => getResolvedCount(activeIssues, []), [activeIssues]);
+  const resolvedCount = useMemo(() => getResolvedCount(activeIssues, null), [activeIssues]);
   const passingCount = useMemo(() => getPassingCount(activeIssues), [activeIssues]);
-  const filteredIssues = useMemo(() => getFilteredIssues(visibleIssues, filter, []), [visibleIssues, filter]);
+  const filteredIssues = useMemo(() => getFilteredIssues(visibleIssues, filter, null), [visibleIssues, filter]);
 
   const visibleIssueCount = getIssueCount(visibleIssues);
   const filteredIssueCount = getIssueCount(filteredIssues);
@@ -131,8 +131,6 @@ export default function AddinPage() {
               <DocumentIssuesList
                 issues={filteredIssues}
                 onSelect={(issue) => jumpToChunk(issue.chunk_indices?.[0] ?? 0)}
-                jumpToAlias="paragraph"
-                hideJumpToChunkIndex={true}
               />
               {hasActiveFilters(filter) && filteredIssues.length === 0 && (
                 <div className="text-xs text-gray-500 pt-2 mt-2">No issues found for your filters</div>

@@ -1,8 +1,7 @@
 """Convert abbreviation scan v2 state into document issues."""
 
-from typing import List, Optional, Sequence
+from typing import List
 
-from lib.services.chunk_line_matcher import ChunkWithContent, find_chunk_by_fuzzy_match
 from lib.services.text_matching import text_matches
 from lib.workflows.abbreviation_scan_v2.state import (
     AbbreviationItem,
@@ -13,10 +12,7 @@ from lib.workflows.models import DocumentIssue, SeverityEnum, WorkflowRunType
 _WORKFLOW_TYPE = WorkflowRunType.ABBREVIATION_SCAN_V2
 
 
-def build_issues(
-    state: AbbreviationScanV2State,
-    chunks: Sequence[ChunkWithContent],
-) -> List[DocumentIssue]:
+def build_issues(state: AbbreviationScanV2State) -> List[DocumentIssue]:
     """Build the full list of document issues from the abbreviation scan state."""
 
     if not state.abbreviations:
@@ -32,19 +28,15 @@ def build_issues(
     first_definition = _first_inline_definitions(state.abbreviations)
 
     for item in state.abbreviations:
-        chunk_indices = _resolve_chunk_indices(item, chunks)
-
         if item.ignored:
-            issues.append(_ignored_issue(item, chunk_indices))
+            issues.append(_ignored_issue(item))
             continue
 
         issues.extend(
-            _section_coverage_issues(
-                item, state.abbreviations_section_found, chunk_indices
-            )
+            _section_coverage_issues(item, state.abbreviations_section_found)
         )
-        issues.extend(_inline_definition_issues(item, first_non_ignored, chunk_indices))
-        issues.extend(_ambiguity_issues(item, first_definition, chunk_indices))
+        issues.extend(_inline_definition_issues(item, first_non_ignored))
+        issues.extend(_ambiguity_issues(item, first_definition))
 
     return issues
 
@@ -71,19 +63,6 @@ def _first_inline_definitions(
     return result
 
 
-def _resolve_chunk_indices(
-    item: AbbreviationItem,
-    chunks: Sequence[ChunkWithContent],
-) -> Optional[List[int]]:
-    chunk_index = find_chunk_by_fuzzy_match(
-        chunks,
-        item.abbr,
-        start_line=item.line_start,
-        end_line=item.line_end,
-    )
-    return [chunk_index] if chunk_index is not None else None
-
-
 def _no_abbreviations_section_issue() -> DocumentIssue:
     return DocumentIssue(
         title="No Abbreviations section found",
@@ -97,10 +76,7 @@ def _no_abbreviations_section_issue() -> DocumentIssue:
     )
 
 
-def _ignored_issue(
-    item: AbbreviationItem,
-    chunk_indices: Optional[List[int]],
-) -> DocumentIssue:
+def _ignored_issue(item: AbbreviationItem) -> DocumentIssue:
     return DocumentIssue(
         title=f'"{item.abbr}" ignored',
         description=(
@@ -109,14 +85,14 @@ def _ignored_issue(
         ),
         severity=SeverityEnum.NONE,
         type=_WORKFLOW_TYPE,
-        chunk_indices=chunk_indices,
+        start_line=item.line_start,
+        end_line=item.line_end,
     )
 
 
 def _section_coverage_issues(
     item: AbbreviationItem,
     abbreviations_section_found: bool,
-    chunk_indices: Optional[List[int]],
 ) -> List[DocumentIssue]:
     if not abbreviations_section_found:
         return []
@@ -131,7 +107,8 @@ def _section_coverage_issues(
                 ),
                 severity=SeverityEnum.MEDIUM,
                 type=_WORKFLOW_TYPE,
-                chunk_indices=chunk_indices,
+                start_line=item.line_start,
+                end_line=item.line_end,
             )
         ]
 
@@ -145,7 +122,8 @@ def _section_coverage_issues(
             ),
             severity=SeverityEnum.NONE,
             type=_WORKFLOW_TYPE,
-            chunk_indices=chunk_indices,
+            start_line=item.line_start,
+            end_line=item.line_end,
         )
     ]
 
@@ -153,7 +131,6 @@ def _section_coverage_issues(
 def _inline_definition_issues(
     item: AbbreviationItem,
     first_non_ignored: dict[str, int],
-    chunk_indices: Optional[List[int]],
 ) -> List[DocumentIssue]:
     if item.occurrence_number != first_non_ignored.get(item.abbr):
         return [
@@ -165,7 +142,8 @@ def _inline_definition_issues(
                 ),
                 severity=SeverityEnum.NONE,
                 type=_WORKFLOW_TYPE,
-                chunk_indices=chunk_indices,
+                start_line=item.line_start,
+                end_line=item.line_end,
             )
         ]
 
@@ -180,7 +158,8 @@ def _inline_definition_issues(
                 ),
                 severity=SeverityEnum.MEDIUM,
                 type=_WORKFLOW_TYPE,
-                chunk_indices=chunk_indices,
+                start_line=item.line_start,
+                end_line=item.line_end,
             )
         ]
 
@@ -198,7 +177,8 @@ def _inline_definition_issues(
                 ),
                 severity=SeverityEnum.MEDIUM,
                 type=_WORKFLOW_TYPE,
-                chunk_indices=chunk_indices,
+                start_line=item.line_start,
+                end_line=item.line_end,
             )
         ]
 
@@ -211,7 +191,8 @@ def _inline_definition_issues(
             ),
             severity=SeverityEnum.NONE,
             type=_WORKFLOW_TYPE,
-            chunk_indices=chunk_indices,
+            start_line=item.line_start,
+            end_line=item.line_end,
         )
     ]
 
@@ -219,7 +200,6 @@ def _inline_definition_issues(
 def _ambiguity_issues(
     item: AbbreviationItem,
     first_definition: dict[str, str],
-    chunk_indices: Optional[List[int]],
 ) -> List[DocumentIssue]:
     prior_def = first_definition.get(item.abbr)
     if (
@@ -238,7 +218,8 @@ def _ambiguity_issues(
                 ),
                 severity=SeverityEnum.MEDIUM,
                 type=_WORKFLOW_TYPE,
-                chunk_indices=chunk_indices,
+                start_line=item.line_start,
+                end_line=item.line_end,
             )
         ]
     return []

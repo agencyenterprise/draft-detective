@@ -34,9 +34,7 @@ import { isIssueResolved } from '@/lib/stores/document-explorer-store';
 
 interface DocumentIssueCardProps {
   issue: Issue;
-  hideJumpToChunk?: boolean;
-  jumpToAlias?: string;
-  hideJumpToChunkIndex?: boolean;
+  hideJumpButton?: boolean;
   onSelect: (issue: Issue) => void;
   readOnly?: boolean;
 }
@@ -167,20 +165,29 @@ function IssueActionsMenu({ issue }: { issue: Issue }) {
   );
 }
 
-function DocumentIssueCardRaw({
-  issue,
-  hideJumpToChunk = false,
-  jumpToAlias = 'chunk',
-  hideJumpToChunkIndex = false,
-  onSelect,
-  readOnly = false,
-}: DocumentIssueCardProps) {
+function DocumentIssueCardRaw({ issue, hideJumpButton = false, onSelect, readOnly = false }: DocumentIssueCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const { className, icon, accentClassName } = severityColorMap[issue.severity];
   const { getWorkflowTypeName } = useWorkflowTypes();
   const isResolved = isIssueResolved(issue);
 
-  const showJumpToChunkButton = !hideJumpToChunk && (issue.chunk_indices?.length ?? 0) > 0;
+  const { start_line: startLine, end_line: endLine } = issue as Issue & {
+    start_line?: number | null;
+    end_line?: number | null;
+  };
+  const lineRangeLabel =
+    typeof startLine === 'number' && typeof endLine === 'number'
+      ? startLine === endLine
+        ? `Line ${startLine}`
+        : `Lines ${startLine}–${endLine}`
+      : null;
+  const jumpLabel =
+    typeof startLine === 'number' && typeof endLine === 'number'
+      ? startLine === endLine
+        ? `Jump to line ${startLine}`
+        : `Jump to lines ${startLine}–${endLine}`
+      : null;
+  const showJumpButton = !hideJumpButton && jumpLabel !== null;
 
   return (
     <div
@@ -202,7 +209,10 @@ function DocumentIssueCardRaw({
                 </Badge>
               )}
             </div>
-            <p className="text-xs text-muted-foreground italic">{getWorkflowTypeName(issue.workflow_type)}</p>
+            <p className="text-xs text-muted-foreground italic">
+              {getWorkflowTypeName(issue.workflow_type)}
+              {lineRangeLabel && <span className="not-italic"> · {lineRangeLabel}</span>}
+            </p>
           </hgroup>
         </div>
         <div className="flex items-center gap-1">
@@ -216,13 +226,13 @@ function DocumentIssueCardRaw({
 
       <div
         className={cn('flex items-center gap-2', {
-          'border-t pt-1': showJumpToChunkButton || !!issue.long_description,
+          'border-t pt-1': showJumpButton || !!issue.long_description,
         })}
       >
-        {showJumpToChunkButton && (
+        {showJumpButton && (
           <Button variant="ghost" size="xs" className={accentClassName} onClick={() => onSelect(issue)}>
             <ExternalLinkIcon className="size-3" />
-            Jump to {jumpToAlias} {!hideJumpToChunkIndex && (issue.chunk_indices?.[0] ?? '')}
+            {jumpLabel}
           </Button>
         )}
         {issue.long_description && (
