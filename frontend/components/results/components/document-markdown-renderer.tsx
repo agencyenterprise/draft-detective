@@ -139,6 +139,18 @@ export function DocumentMarkdownRenderer({
 
   const lineIssues = useMemo(() => issues.filter(hasLineRange) as IssueWithLines[], [issues]);
 
+  // Memoize the parsed markdown tree so it doesn't re-render when only
+  // `selectedLineRange` / `issues` change — highlights and click handlers
+  // are applied imperatively via the effect below.
+  const renderedMarkdown = useMemo(
+    () => (
+      <ReactMarkdown remarkPlugins={REMARK_PLUGINS} rehypePlugins={REHYPE_PLUGINS} components={BLOCK_COMPONENTS}>
+        {markdown}
+      </ReactMarkdown>
+    ),
+    [markdown],
+  );
+
   // Apply highlights, click handlers, and selection state to annotated blocks.
   useEffect(() => {
     const container = containerRef.current;
@@ -193,9 +205,7 @@ export function DocumentMarkdownRenderer({
       ref={containerRef}
       className="relative h-full overflow-y-auto overflow-x-hidden break-words py-4 pl-10 pr-4 leading-relaxed text-sm"
     >
-      <ReactMarkdown remarkPlugins={REMARK_PLUGINS} rehypePlugins={REHYPE_PLUGINS} components={BLOCK_COMPONENTS}>
-        {markdown}
-      </ReactMarkdown>
+      {renderedMarkdown}
     </div>
   );
 }
