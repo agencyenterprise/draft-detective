@@ -1,89 +1,55 @@
 /**
- * Shared utilities for generating stable chunk/claim element IDs.
- * Used for URL hash navigation and scroll-to functionality.
+ * Utilities for parsing line-range selections from the URL hash.
  */
 
 import { useEffect, useRef } from 'react';
-
-export const getChunkId = (chunkIndex: number): string => `chunk-${chunkIndex}`;
-
-export const getClaimId = (chunkIndex: number, claimIndex: number): string => `chunk-${chunkIndex}-claim-${claimIndex}`;
-
-export function parseChunkHash(hash: string): { chunkIndex: number; claimIndex?: number } | null {
-  if (!hash.startsWith('#')) return null;
-
-  const match = hash.match(/^#chunk-(\d+)(?:-claim-(\d+))?$/);
-  if (!match) return null;
-
-  return {
-    chunkIndex: parseInt(match[1], 10),
-    claimIndex: match[2] ? parseInt(match[2], 10) : undefined,
-  };
-}
+import type { LineRange } from '@/lib/stores/document-explorer-store';
 
 /**
- * Parse hash format for multiple chunks: #chunks-1,2,3 | #chunk-3
- * Returns array of chunk indices, or null if invalid format
+ * Parse hash format for line ranges: #L5 (single line) or #L5-15 (range).
+ * Returns a [start, end] tuple, or null if the hash doesn't match.
  */
-export function parseMultiChunkHash(hash: string): number[] | null {
+export function parseLineHash(hash: string): LineRange | null {
   if (!hash.startsWith('#')) return null;
 
-  const multiMatch = hash.match(/^#chunks-(\d+(?:,\d+)*)$/);
-  if (multiMatch) {
-    return multiMatch[1].split(',').map((s) => parseInt(s, 10));
+  const rangeMatch = hash.match(/^#L(\d+)-(\d+)$/);
+  if (rangeMatch) {
+    const start = parseInt(rangeMatch[1], 10);
+    const end = parseInt(rangeMatch[2], 10);
+    return [Math.min(start, end), Math.max(start, end)];
   }
 
-  const singleMatch = hash.match(/^#chunk-(\d+)$/);
+  const singleMatch = hash.match(/^#L(\d+)$/);
   if (singleMatch) {
-    return [parseInt(singleMatch[1], 10)];
+    const line = parseInt(singleMatch[1], 10);
+    return [line, line];
   }
 
   return null;
 }
 
 /**
- * Hook for handling chunk hash navigation.
- * Supports both #chunk-N (single) and #chunks-N,M,O (multiple) formats.
- *
- * @param validChunkIndices - Array of valid chunk indices to accept
- * @param onSelectChunks - Callback when chunks are selected from hash
+ * Hook for handling line-range hash navigation.
+ * Supports #L5 (single) and #L5-15 (range) formats.
  */
-export function useChunkHashNavigation(
-  validChunkIndices: number[] | undefined,
-  onSelectChunks: (chunkIndices: number[]) => void,
-): void {
+export function useLineHashNavigation(onSelectRange: (range: LineRange) => void): void {
   const lastProcessedHash = useRef<string | null>(null);
 
   useEffect(() => {
     const handleHashChange = () => {
-      if (!validChunkIndices?.length) {
-        return;
-      }
-
       const currentHash = window.location.hash;
-      const parsed = parseMultiChunkHash(currentHash);
+      const parsed = parseLineHash(currentHash);
+      if (!parsed) return;
 
-      if (!parsed) {
-        return;
-      }
-
-      const validParsed = parsed.filter((idx) => validChunkIndices.includes(idx));
-
-      if (validParsed.length === 0) {
-        return;
-      }
-
-      if (lastProcessedHash.current === currentHash) {
-        return;
-      }
+      if (lastProcessedHash.current === currentHash) return;
       lastProcessedHash.current = currentHash;
 
-      onSelectChunks(validParsed);
+      onSelectRange(parsed);
     };
 
     handleHashChange();
 
     window.addEventListener('hashchange', handleHashChange);
     return () => window.removeEventListener('hashchange', handleHashChange);
-  }, [validChunkIndices, onSelectChunks]);
+  }, [onSelectRange]);
 }

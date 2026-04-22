@@ -10,7 +10,6 @@ from lib.workflows.about_this_ger.state import (
     AboutThisGerState,
     AgentCheckResult,
 )
-from lib.workflows.chunk_utils import build_analyzed_chunks
 from lib.workflows.manifest import WorkflowManifest
 from lib.workflows.models import DocumentIssue, WorkflowRunType
 from lib.workflows.simple_deep_agent.types import issues_from_agent_result
@@ -49,17 +48,12 @@ class AboutThisGerManifest(WorkflowManifest[AboutThisGerState, AboutThisGerConfi
     def convert_state_to_issues(
         self, state: AboutThisGerState, other_states: List[WorkflowState]
     ) -> List[DocumentIssue]:
-        chunks = build_analyzed_chunks(other_states)
         issues: List[DocumentIssue] = []
 
         if state.preface_result is not None:
-            issues.extend(
-                issues_from_agent_result(state.preface_result, self.type, chunks)
-            )
+            issues.extend(issues_from_agent_result(state.preface_result, self.type))
 
         if state.authors_result is not None:
-            issues.extend(
-                issues_from_agent_result(state.authors_result, self.type, chunks)
-            )
+            issues.extend(issues_from_agent_result(state.authors_result, self.type))
 
         return issues

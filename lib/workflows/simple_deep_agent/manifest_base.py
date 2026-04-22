@@ -11,7 +11,6 @@ from langgraph.graph import START, StateGraph
 from langgraph.graph.state import END
 from langgraph.runtime import Runtime
 
-from lib.workflows.chunk_utils import build_analyzed_chunks
 from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
 from lib.workflows.manifest import WorkflowManifest
@@ -92,5 +91,4 @@ class SimpleDeepAgentManifest(
     ) -> List[DocumentIssue]:
         if state.result is None:
             return []
-        chunks = build_analyzed_chunks(other_states)
-        return issues_from_agent_result(state.result, self.type, chunks)
+        return issues_from_agent_result(state.result, self.type)

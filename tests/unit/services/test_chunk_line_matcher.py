@@ -9,6 +9,7 @@ from lib.services.chunk_line_matcher import (
     find_chunk_by_line,
     find_chunks_by_fuzzy_match,
     find_chunks_by_line_range,
+    find_line_range_by_chunks,
 )
 
 
@@ -399,3 +400,34 @@ class TestFindChunksByFuzzyMatch:
         assert 0 in result
         assert 1 in result
         assert 2 not in result
+
+
+class TestFindLineRangeByChunks:
+    def test_single_chunk(self):
+        chunks = _make_chunks()
+        assert find_line_range_by_chunks(chunks, [1]) == (11, 20)
+
+    def test_contiguous_chunks(self):
+        chunks = _make_chunks()
+        assert find_line_range_by_chunks(chunks, [1, 2]) == (11, 30)
+
+    def test_non_contiguous_chunks_collapses_gaps(self):
+        chunks = _make_chunks()
+        # Gap between chunks 0 and 2 is collapsed into the spanning range.
+        assert find_line_range_by_chunks(chunks, [0, 2]) == (1, 30)
+
+    def test_missing_index_returns_partial_range(self):
+        chunks = _make_chunks()
+        # 99 doesn't exist; the range uses the remaining matches.
+        assert find_line_range_by_chunks(chunks, [0, 99]) == (1, 10)
+
+    def test_all_missing(self):
+        chunks = _make_chunks()
+        assert find_line_range_by_chunks(chunks, [99]) is None
+
+    def test_empty_indices(self):
+        chunks = _make_chunks()
+        assert find_line_range_by_chunks(chunks, []) is None
+
+    def test_empty_chunks(self):
+        assert find_line_range_by_chunks([], [0]) is None
