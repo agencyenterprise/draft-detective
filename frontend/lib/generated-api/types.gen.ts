@@ -2854,18 +2854,6 @@ export type Issue = {
    */
   chunk_indices?: Array<number> | null;
   /**
-   * Start Line
-   *
-   * 1-indexed start line of the issue in the main document markdown
-   */
-  start_line?: number | null;
-  /**
-   * End Line
-   *
-   * 1-indexed end line of the issue in the main document markdown
-   */
-  end_line?: number | null;
-  /**
    * Current status of the issue (active or archived)
    */
   status?: IssueStatus;
@@ -2991,14 +2979,6 @@ export type IssueResponse = {
    * Chunk Indices
    */
   chunk_indices: Array<number> | null;
-  /**
-   * Start Line
-   */
-  start_line: number | null;
-  /**
-   * End Line
-   */
-  end_line: number | null;
   status: IssueStatus;
   /**
    * Resolved By
@@ -3623,12 +3603,6 @@ export type ProjectDetailed = {
    * The revision being returned
    */
   revision?: number;
-  /**
-   * Main Document Markdown
-   *
-   * Full markdown of the main document for this revision, if available
-   */
-  main_document_markdown?: string | null;
 };
 
 /**

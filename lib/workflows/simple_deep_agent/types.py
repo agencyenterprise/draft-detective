@@ -5,10 +5,11 @@ single-node deep-agent workflows, plus the helper that converts them into
 DocumentIssue objects.
 """
 
-from typing import List, Literal, Optional
+from typing import List, Literal, Optional, Sequence
 
 from pydantic import BaseModel, Field
 
+from lib.services.chunk_line_matcher import find_chunks_by_line_range
 from lib.workflows.models import DocumentIssue, SeverityEnum, WorkflowRunType
 
 
@@ -62,12 +63,9 @@ _SEVERITY_MAP = {
 def issues_from_agent_result(
     result: AgentCheckResult,
     workflow_type: WorkflowRunType,
+    chunks: Sequence,
 ) -> List[DocumentIssue]:
-    """Convert an AgentCheckResult into DocumentIssue objects.
-
-    Emits line ranges only; ``chunk_indices`` is left unset and derived at
-    persistence time from the line range.
-    """
+    """Convert an AgentCheckResult into DocumentIssue objects."""
 
     return [
         DocumentIssue(
@@ -76,8 +74,11 @@ def issues_from_agent_result(
             description=issue.description,
             long_description=issue.long_description,
             severity=_SEVERITY_MAP.get(issue.severity.lower(), SeverityEnum.MEDIUM),
-            start_line=issue.start_line,
-            end_line=issue.end_line,
+            chunk_indices=(
+                find_chunks_by_line_range(chunks, issue.start_line, issue.end_line)
+                if chunks
+                else []
+            ),
         )
         for issue in result.issues
     ]

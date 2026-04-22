@@ -7,7 +7,9 @@ from langgraph.graph.state import CompiledStateGraph, RunnableConfig
 
 from lib.agents.citation_validator import CitationIssueItem
 from lib.agents.claim_verifier import EvidenceAlignmentLevel
+from lib.services.chunk_line_matcher import find_chunks_by_line_range
 from lib.services.file import FileDocument
+from lib.workflows.chunk_utils import build_analyzed_chunks
 from lib.workflows.claim_reference_validation_v2.graph import (
     build_claim_reference_validation_v2_graph,
 )
@@ -60,6 +62,7 @@ def _format_evidence_source(
 
 def _build_issue(
     item: CitationIssueItem,
+    chunks,
     supporting_files: Optional[List[FileDocument]],
     workflow_type: WorkflowRunType,
 ) -> Optional[DocumentIssue]:
@@ -67,6 +70,12 @@ def _build_issue(
         return None
 
     title, severity = _ISSUE_CONFIG[item.evidence_alignment]
+
+    chunk_indices = (
+        find_chunks_by_line_range(chunks, item.line_start, item.line_end)
+        if chunks
+        else None
+    )
 
     sources_text = (
         "\n".join(
@@ -91,8 +100,7 @@ def _build_issue(
         description=item.rationale,
         severity=severity,
         type=workflow_type,
-        start_line=item.line_start,
-        end_line=item.line_end,
+        chunk_indices=chunk_indices or None,
         long_description=long_description,
     )
 
@@ -172,9 +180,11 @@ class ClaimReferenceValidationV2Manifest(
             else None
         )
 
+        chunks = build_analyzed_chunks(other_states)
+
         issues = []
         for item in state.citation_issues:
-            issue = _build_issue(item, supporting_files, self.type)
+            issue = _build_issue(item, chunks, supporting_files, self.type)
             if issue:
                 issues.append(issue)
 

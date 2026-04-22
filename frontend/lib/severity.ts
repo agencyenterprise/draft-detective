@@ -12,6 +12,17 @@ export function getMaxChunkSeverity(issues: Issue[], chunk: DocumentChunk): Seve
   return getMaxSeverity(chunkIssues);
 }
 
+/**
+ * Returns the issues that are associated with any of the given chunk indices.
+ * @param issues - The issues to filter
+ * @param chunkIndices - The chunk indices to filter by
+ */
+export function getChunkIssuesByIndices(issues: Issue[], chunkIndices: number[]): Issue[] {
+  return issues
+    .filter((issue) => chunkIndices.some((chunkIndex) => issueMatchesChunk(issue, chunkIndex)))
+    .sort(sortIssueBySeverity);
+}
+
 export function sortIssueBySeverity(a: Issue, b: Issue) {
   return severitySortIndex[b.severity] - severitySortIndex[a.severity];
 }

@@ -2,6 +2,9 @@
 
 from typing import List, Optional
 
+import pytest
+from pydantic import BaseModel
+
 from lib.workflows.abbreviation_scan_v2.issues import (
     build_issues,
     _ambiguity_issues,
@@ -143,14 +146,14 @@ class TestNoAbbreviationsSectionIssue:
 class TestIgnoredIssue:
     def test_creates_none_severity(self):
         item = _item(abbr="Mr.", ignored=True, ignored_reason="Personal title")
-        issue = _ignored_issue(item)
+        issue = _ignored_issue(item, chunk_indices=[0])
         assert issue.severity == SeverityEnum.NONE
         assert '"Mr." ignored' in issue.title
         assert "Personal title" in issue.description
 
     def test_default_reason_when_none(self):
         item = _item(abbr="U.S.", ignored=True)
-        issue = _ignored_issue(item)
+        issue = _ignored_issue(item, chunk_indices=None)
         assert "Excluded from compliance checks." in issue.description
 
 
@@ -163,12 +166,17 @@ class TestSectionCoverageIssues:
     def test_no_issues_when_section_not_found(self):
         item = _item(abbr="AI")
         assert (
-            _section_coverage_issues(item, abbreviations_section_found=False) == []
+            _section_coverage_issues(
+                item, abbreviations_section_found=False, chunk_indices=None
+            )
+            == []
         )
 
     def test_missing_from_section(self):
         item = _item(abbr="DDoS", abbreviations_section_definition=None)
-        issues = _section_coverage_issues(item, abbreviations_section_found=True)
+        issues = _section_coverage_issues(
+            item, abbreviations_section_found=True, chunk_indices=[1]
+        )
         assert len(issues) == 1
         assert issues[0].severity == SeverityEnum.MEDIUM
         assert "missing from Abbreviations section" in issues[0].title
@@ -177,7 +185,9 @@ class TestSectionCoverageIssues:
         item = _item(
             abbr="AI", abbreviations_section_definition="Artificial Intelligence"
         )
-        issues = _section_coverage_issues(item, abbreviations_section_found=True)
+        issues = _section_coverage_issues(
+            item, abbreviations_section_found=True, chunk_indices=[0]
+        )
         assert len(issues) == 1
         assert issues[0].severity == SeverityEnum.NONE
         assert "defined in Abbreviations section" in issues[0].title
@@ -192,7 +202,7 @@ class TestInlineDefinitionIssues:
     def test_subsequent_occurrence_info_only(self):
         first_non_ignored = {"AI": 1}
         item = _item(abbr="AI", occurrence_number=2)
-        issues = _inline_definition_issues(item, first_non_ignored)
+        issues = _inline_definition_issues(item, first_non_ignored, chunk_indices=None)
         assert len(issues) == 1
         assert issues[0].severity == SeverityEnum.NONE
         assert "occurrence #2" in issues[0].title
@@ -200,7 +210,7 @@ class TestInlineDefinitionIssues:
     def test_first_use_missing_definition(self):
         first_non_ignored = {"AI": 1}
         item = _item(abbr="AI", occurrence_number=1, inline_definition="")
-        issues = _inline_definition_issues(item, first_non_ignored)
+        issues = _inline_definition_issues(item, first_non_ignored, chunk_indices=[0])
         assert len(issues) == 1
         assert issues[0].severity == SeverityEnum.MEDIUM
         assert "not defined at first use" in issues[0].title
@@ -213,7 +223,7 @@ class TestInlineDefinitionIssues:
             inline_definition="Artificial Intelligence",
             abbreviations_section_definition="Artificial Intelligence",
         )
-        issues = _inline_definition_issues(item, first_non_ignored)
+        issues = _inline_definition_issues(item, first_non_ignored, chunk_indices=[0])
         assert len(issues) == 1
         assert issues[0].severity == SeverityEnum.NONE
         assert "correctly defined at first use" in issues[0].title
@@ -226,7 +236,7 @@ class TestInlineDefinitionIssues:
             inline_definition="Advanced Imaging",
             abbreviations_section_definition="Artificial Intelligence",
         )
-        issues = _inline_definition_issues(item, first_non_ignored)
+        issues = _inline_definition_issues(item, first_non_ignored, chunk_indices=[0])
         assert len(issues) == 1
         assert issues[0].severity == SeverityEnum.MEDIUM
         assert "does not match" in issues[0].title
@@ -239,7 +249,7 @@ class TestInlineDefinitionIssues:
             inline_definition="Artificial Intelligence",
             abbreviations_section_definition=None,
         )
-        issues = _inline_definition_issues(item, first_non_ignored)
+        issues = _inline_definition_issues(item, first_non_ignored, chunk_indices=None)
         assert len(issues) == 1
         assert issues[0].severity == SeverityEnum.NONE
         assert "correctly defined" in issues[0].title
@@ -254,14 +264,14 @@ class TestAmbiguityIssues:
     def test_no_ambiguity_when_definitions_match(self):
         first_definition = {"AI": "Artificial Intelligence"}
         item = _item(abbr="AI", inline_definition="Artificial Intelligence")
-        assert _ambiguity_issues(item, first_definition) == []
+        assert _ambiguity_issues(item, first_definition, chunk_indices=None) == []
 
     def test_ambiguity_when_definitions_differ(self):
         first_definition = {"RAF": "Royal Air Force"}
         item = _item(
             abbr="RAF", inline_definition="Red Army Faction", occurrence_number=2
         )
-        issues = _ambiguity_issues(item, first_definition)
+        issues = _ambiguity_issues(item, first_definition, chunk_indices=[1])
         assert len(issues) == 1
         assert issues[0].severity == SeverityEnum.MEDIUM
         assert "Ambiguous abbreviation" in issues[0].title
@@ -269,12 +279,12 @@ class TestAmbiguityIssues:
     def test_no_ambiguity_without_prior_definition(self):
         first_definition: dict[str, str] = {}
         item = _item(abbr="AI", inline_definition="Artificial Intelligence")
-        assert _ambiguity_issues(item, first_definition) == []
+        assert _ambiguity_issues(item, first_definition, chunk_indices=None) == []
 
     def test_no_ambiguity_when_no_inline_definition(self):
         first_definition = {"AI": "Artificial Intelligence"}
         item = _item(abbr="AI", inline_definition="")
-        assert _ambiguity_issues(item, first_definition) == []
+        assert _ambiguity_issues(item, first_definition, chunk_indices=None) == []
 
 
 # ---------------------------------------------------------------------------
@@ -285,7 +295,7 @@ class TestAmbiguityIssues:
 class TestBuildIssues:
     def test_empty_abbreviations_returns_empty(self):
         state = _state(abbreviations=[])
-        assert build_issues(state) == []
+        assert build_issues(state, chunks=[]) == []
 
     def test_no_section_found_creates_global_issue(self):
         state = _state(
@@ -294,7 +304,7 @@ class TestBuildIssues:
             ],
             abbreviations_section_found=False,
         )
-        issues = build_issues(state)
+        issues = build_issues(state, chunks=[])
         section_issues = [i for i in issues if "No Abbreviations section" in i.title]
         assert len(section_issues) == 1
 
@@ -303,7 +313,7 @@ class TestBuildIssues:
             abbreviations=[_item(abbr="Mr.", ignored=True, ignored_reason="Title")],
             abbreviations_section_found=True,
         )
-        issues = build_issues(state)
+        issues = build_issues(state, chunks=[])
         assert len(issues) == 1
         assert issues[0].severity == SeverityEnum.NONE
         assert "ignored" in issues[0].title
@@ -316,7 +326,7 @@ class TestBuildIssues:
             ],
             abbreviations_section_found=False,
         )
-        issues = build_issues(state)
+        issues = build_issues(state, chunks=[])
         section_issues = [i for i in issues if "No Abbreviations section" in i.title]
         assert len(section_issues) == 0
 
@@ -337,7 +347,7 @@ class TestBuildIssues:
             ],
             abbreviations_section_found=True,
         )
-        issues = build_issues(state)
+        issues = build_issues(state, chunks=[])
         medium_issues = [i for i in issues if i.severity == SeverityEnum.MEDIUM]
         assert len(medium_issues) == 0
 
@@ -348,7 +358,7 @@ class TestBuildIssues:
             ],
             abbreviations_section_found=True,
         )
-        issues = build_issues(state)
+        issues = build_issues(state, chunks=[])
         medium_issues = [i for i in issues if i.severity == SeverityEnum.MEDIUM]
         assert len(medium_issues) == 2
         titles = {i.title for i in medium_issues}
@@ -369,11 +379,28 @@ class TestBuildIssues:
             ],
             abbreviations_section_found=False,
         )
-        issues = build_issues(state)
+        issues = build_issues(state, chunks=[])
         ambiguity = [i for i in issues if "Ambiguous" in i.title]
         assert len(ambiguity) == 1
 
-    def test_line_range_propagated_to_issues(self):
+    def test_chunk_indices_resolved_from_chunks(self):
+        class FakeChunk(BaseModel):
+            chunk_index: int
+            start_line: int
+            end_line: int
+            content: str
+
+        chunks = [
+            FakeChunk(
+                chunk_index=0,
+                start_line=1,
+                end_line=10,
+                content="Artificial Intelligence (AI) is here",
+            ),
+            FakeChunk(
+                chunk_index=1, start_line=11, end_line=20, content="AI is used again"
+            ),
+        ]
         state = _state(
             abbreviations=[
                 _item(
@@ -381,12 +408,12 @@ class TestBuildIssues:
                     inline_definition="Artificial Intelligence",
                     occurrence_number=1,
                     line_start=5,
-                    line_end=7,
+                    line_end=5,
                 ),
             ],
             abbreviations_section_found=False,
         )
-        issues = build_issues(state)
-        located = [i for i in issues if i.start_line is not None]
-        assert len(located) > 0
-        assert all(i.start_line == 5 and i.end_line == 7 for i in located)
+        issues = build_issues(state, chunks=chunks)
+        issues_with_chunks = [i for i in issues if i.chunk_indices]
+        assert len(issues_with_chunks) > 0
+        assert all(0 in i.chunk_indices for i in issues_with_chunks)

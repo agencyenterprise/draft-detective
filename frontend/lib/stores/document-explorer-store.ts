@@ -1,6 +1,6 @@
 import { Issue, SeverityEnum, WorkflowRunType } from '@/lib/generated-api';
 import { create } from 'zustand';
-import { sortIssueBySeverity } from '../severity';
+import { getChunkIssuesByIndices, sortIssueBySeverity } from '../severity';
 
 export interface DocumentExplorerFilter {
   severity: SeverityEnum[];
@@ -16,12 +16,11 @@ export const DEFAULT_FILTER: DocumentExplorerFilter = {
   showPassing: false,
 };
 
-export type LineRange = [number, number];
-
 interface DocumentExplorerState {
-  selectedLineRange: LineRange | null;
-  selectLineRange: (range: LineRange | null) => void;
-  clearLineSelection: () => void;
+  selectedChunkIndices: number[];
+  selectChunkIndices: (indices: number[]) => void;
+  toggleChunk: (chunkIndex: number) => void;
+  clearChunkSelection: () => void;
 
   filter: DocumentExplorerFilter;
   setFilter: (partial: Partial<DocumentExplorerFilter>) => void;
@@ -29,9 +28,14 @@ interface DocumentExplorerState {
 }
 
 export const useDocumentExplorerStore = create<DocumentExplorerState>((set) => ({
-  selectedLineRange: null,
-  selectLineRange: (range) => set({ selectedLineRange: range }),
-  clearLineSelection: () => set({ selectedLineRange: null }),
+  selectedChunkIndices: [],
+  selectChunkIndices: (indices) => set({ selectedChunkIndices: indices }),
+  toggleChunk: (chunkIndex) =>
+    set((state) => ({
+      selectedChunkIndices:
+        state.selectedChunkIndices.length === 1 && state.selectedChunkIndices[0] === chunkIndex ? [] : [chunkIndex],
+    })),
+  clearChunkSelection: () => set({ selectedChunkIndices: [] }),
 
   filter: DEFAULT_FILTER,
   setFilter: (partial) => set((state) => ({ filter: { ...state.filter, ...partial } })),
@@ -67,24 +71,6 @@ function filterByWorkflowType(issues: Issue[], workflowType: WorkflowRunType[]):
   return issues.filter((issue) => workflowType.includes(issue.workflow_type));
 }
 
-function getIssueStartLine(issue: Issue): number | null {
-  const start = (issue as Issue & { start_line?: number | null }).start_line;
-  return typeof start === 'number' ? start : null;
-}
-
-function getIssueEndLine(issue: Issue): number | null {
-  const end = (issue as Issue & { end_line?: number | null }).end_line;
-  return typeof end === 'number' ? end : null;
-}
-
-function issueOverlapsRange(issue: Issue, range: LineRange): boolean {
-  const start = getIssueStartLine(issue);
-  const end = getIssueEndLine(issue);
-  if (start === null || end === null) return false;
-  const [rangeStart, rangeEnd] = range;
-  return start <= rangeEnd && end >= rangeStart;
-}
-
 /**
  * Visible issues are the issues that are displayed in the document explorer,
  * filtered by the showResolved and showPassing toggles.
@@ -93,7 +79,7 @@ export function getVisibleIssues(allIssues: Issue[], filter: DocumentExplorerFil
   return allIssues
     .filter((issue) => filter.showPassing || issue.severity !== SeverityEnum.None)
     .filter((issue) => filter.showResolved || !isIssueResolved(issue))
-    .sort((a, b) => (getIssueStartLine(a) ?? 0) - (getIssueStartLine(b) ?? 0))
+    .sort((a, b) => (a.chunk_indices?.[0] ?? 0) - (b.chunk_indices?.[0] ?? 0))
     .sort(sortIssueBySeverity);
 }
 
@@ -102,17 +88,20 @@ export function getPassingCount(allIssues: Issue[]): number {
 }
 
 /**
- * Count of resolved issues, optionally scoped to a selected line range.
+ * Count of resolved issues, optionally scoped to specific chunks.
  */
-export function getResolvedCount(allIssues: Issue[], selectedLineRange: LineRange | null): number {
+export function getResolvedCount(allIssues: Issue[], selectedChunkIndices: number[]): number {
   return allIssues
     .filter((issue) => issue.severity !== SeverityEnum.None)
     .filter(isIssueResolved)
-    .filter((issue) => selectedLineRange === null || issueOverlapsRange(issue, selectedLineRange)).length;
+    .filter(
+      (issue) =>
+        selectedChunkIndices.length === 0 || selectedChunkIndices.some((idx) => issue.chunk_indices?.includes(idx)),
+    ).length;
 }
 
 /**
- * Issues filtered by severity and workflow type (excludes line-range selection).
+ * Issues filtered by severity and workflow type (excludes chunk selection).
  * Used for document highlights.
  */
 export function getHighlightIssues(visibleIssues: Issue[], filter: DocumentExplorerFilter): Issue[] {
@@ -120,17 +109,17 @@ export function getHighlightIssues(visibleIssues: Issue[], filter: DocumentExplo
 }
 
 /**
- * Issues filtered by all active filters including line-range selection.
+ * Issues filtered by all active filters including chunk selection.
  */
 export function getFilteredIssues(
   visibleIssues: Issue[],
   filter: DocumentExplorerFilter,
-  selectedLineRange: LineRange | null,
+  selectedChunkIndices: number[],
 ): Issue[] {
   let result = getHighlightIssues(visibleIssues, filter);
 
-  if (selectedLineRange) {
-    result = result.filter((issue) => issueOverlapsRange(issue, selectedLineRange)).sort(sortIssueBySeverity);
+  if (selectedChunkIndices.length > 0) {
+    result = getChunkIssuesByIndices(result, selectedChunkIndices);
   }
 
   return result;

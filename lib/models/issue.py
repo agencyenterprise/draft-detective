@@ -103,18 +103,6 @@ class Issue(SQLModel, table=True):
         description="All chunk indices related to this issue",
     )
 
-    start_line: Optional[int] = Field(
-        sa_column=Column(Integer, nullable=True),
-        default=None,
-        description="1-indexed start line of the issue in the main document markdown",
-    )
-
-    end_line: Optional[int] = Field(
-        sa_column=Column(Integer, nullable=True),
-        default=None,
-        description="1-indexed end line of the issue in the main document markdown",
-    )
-
     status: IssueStatus = Field(
         sa_column=Column(
             SQLModelEnum(IssueStatus), nullable=False, default=IssueStatus.ACTIVE

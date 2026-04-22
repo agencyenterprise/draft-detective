@@ -286,14 +286,6 @@ async def _persist_issues_from_state(
     # Convert state to issues using the manifest
     issues = manifest.convert_state_to_issues(state, existing_states)
 
-    # Pull chunks from the chunk_splitting state (if present) so persistence
-    # can derive the missing side of (chunk_indices, line range) per issue.
-    chunks = None
-    for existing_state in existing_states:
-        if existing_state.type == WorkflowRunType.CHUNK_SPLITTING:
-            chunks = getattr(existing_state, "chunks", None) or None
-            break
-
     await persist_workflow_issues(
         workflow_run_id=uuid.UUID(workflow_run_id),
         project_id=uuid.UUID(project_id),
@@ -301,5 +293,4 @@ async def _persist_issues_from_state(
         issues=issues,
         checkpoint_id=checkpoint_id,
         revision=revision,
-        chunks=chunks,
     )

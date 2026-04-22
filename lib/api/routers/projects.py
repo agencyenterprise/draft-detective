@@ -8,7 +8,7 @@ from starlette.responses import FileResponse
 
 from lib.api.auth import get_current_user, get_current_user_optional
 from lib.api.models import CreateRevisionResponse, RevisionListItem, WorkflowProgressResponse
-from lib.models.file import File, FileRole
+from lib.models.file import File, FileListItem, FileRole
 from lib.models.project import AccessLevel, Project
 from lib.models.user import User
 from lib.services.docx_workflow_service import DocxManipulatorType, get_or_generate_docx

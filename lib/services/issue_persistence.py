@@ -13,13 +13,8 @@ from typing import List, Optional, Sequence
 from sqlalchemy import select, update
 from sqlmodel import col
 
-from lib.agents.models import ChunkWithIndex
 from lib.config.database import get_async_db_session
 from lib.models.issue import Issue, IssueStatus
-from lib.services.chunk_line_matcher import (
-    find_chunks_by_line_range,
-    find_line_range_by_chunks,
-)
 from lib.services.text_sanitization import strip_control_chars
 from lib.workflows.models import DocumentIssue, WorkflowRunType
 
@@ -33,47 +28,6 @@ def _strip_control_chars(text: Optional[str]) -> Optional[str]:
     return strip_control_chars(text)
 
 
-def _resolve_location(
-    doc_issue: DocumentIssue,
-    chunks: Optional[Sequence[ChunkWithIndex]],
-) -> tuple[Optional[List[int]], Optional[int], Optional[int]]:
-    """
-    Resolve the (chunk_indices, start_line, end_line) triple to persist for
-    an issue, deriving whichever side is missing from the chunks list.
-
-    Rules:
-    - If only line range is set → derive chunk_indices from it.
-    - If only chunk_indices are set → derive line range from them.
-    - If both are set → passthrough.
-    - If neither is set or chunks are unavailable → persist what we have.
-    """
-    chunk_indices = doc_issue.chunk_indices
-    start_line = doc_issue.start_line
-    end_line = doc_issue.end_line
-
-    has_line_range = start_line is not None and end_line is not None
-    has_chunks = bool(chunk_indices)
-
-    if chunks:
-        if has_line_range and not has_chunks:
-            assert start_line is not None and end_line is not None
-            derived = find_chunks_by_line_range(chunks, start_line, end_line)
-            chunk_indices = derived or None
-        elif has_chunks and not has_line_range:
-            assert chunk_indices is not None
-            derived_range = find_line_range_by_chunks(chunks, chunk_indices)
-            if derived_range is not None:
-                start_line, end_line = derived_range
-    elif not has_line_range and not has_chunks:
-        logger.warning(
-            "Issue %s has neither chunk_indices nor line range and no chunks "
-            "are available to derive from",
-            doc_issue.id,
-        )
-
-    return chunk_indices, start_line, end_line
-
-
 async def persist_workflow_issues(
     workflow_run_id: uuid.UUID,
     project_id: uuid.UUID,
@@ -81,17 +35,12 @@ async def persist_workflow_issues(
     issues: List[DocumentIssue],
     checkpoint_id: Optional[str] = None,
     revision: int = 1,
-    chunks: Optional[Sequence[ChunkWithIndex]] = None,
 ) -> List[Issue]:
     """
     Persist issues from a completed workflow.
 
     Archives existing active issues of the same workflow type for the project
     and revision, then creates new issues from the provided DocumentIssue list.
-
-    When ``chunks`` is provided, each issue's missing location side
-    (chunk_indices ↔ line range) is derived before persistence so that both
-    fields are populated on every new row.
     """
     async with get_async_db_session() as session:
         await session.execute(
@@ -107,7 +56,6 @@ async def persist_workflow_issues(
 
         created_issues: List[Issue] = []
         for doc_issue in issues:
-            chunk_indices, start_line, end_line = _resolve_location(doc_issue, chunks)
             issue = Issue(
                 project_id=project_id,
                 workflow_run_id=workflow_run_id,
@@ -118,9 +66,7 @@ async def persist_workflow_issues(
                 long_description=_strip_control_chars(doc_issue.long_description),
                 severity=doc_issue.severity,
                 workflow_type=doc_issue.type,
-                chunk_indices=chunk_indices,
-                start_line=start_line,
-                end_line=end_line,
+                chunk_indices=doc_issue.chunk_indices,
                 status=IssueStatus.ACTIVE,
                 revision=revision,
             )

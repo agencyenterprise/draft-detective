@@ -145,14 +145,6 @@ class DocumentIssue(BaseModel):
         description="The indices of all chunks that contain the issue",
         default=None,
     )
-    start_line: Optional[int] = Field(
-        description="1-indexed start line of the issue in the main document markdown",
-        default=None,
-    )
-    end_line: Optional[int] = Field(
-        description="1-indexed end line of the issue in the main document markdown",
-        default=None,
-    )
 
     @model_validator(mode="after")
     def generate_id(self) -> Self:
@@ -163,8 +155,7 @@ class DocumentIssue(BaseModel):
 
         hash_input = (
             f"{self.type.value}|{self.title}|{self.description}|"
-            f"{self.severity.value}|{self.chunk_indices}|"
-            f"{self.start_line}|{self.end_line}"
+            f"{self.severity.value}|{self.chunk_indices}"
         )
         self.id = hashlib.sha256(hash_input.encode()).hexdigest()[:16]
         return self

@@ -8,6 +8,7 @@ import { Loader2, X } from 'lucide-react';
 import { Ref, useImperativeHandle, useRef } from 'react';
 import { DocumentExplorerSidebarFilter } from './document-explorer-sidebar-filter';
 import { DocumentIssuesList } from './document-issues-list';
+import { SingleChunkContent } from './single-chunk-content';
 
 export interface DocumentExplorerSidebarHandle {
   scrollToTop: () => void;
@@ -24,7 +25,6 @@ interface DocumentExplorerSidebarProps {
   projectDetail: ProjectDetailed;
   readOnly: boolean;
   onSelectIssue: (issue: Issue) => void;
-  onClearSelection: () => void;
 }
 
 export function DocumentExplorerSidebar({
@@ -34,11 +34,11 @@ export function DocumentExplorerSidebar({
   resolvedCount,
   passingCount,
   isAnyProcessing,
+  projectDetail,
   readOnly,
   onSelectIssue,
-  onClearSelection,
 }: DocumentExplorerSidebarProps) {
-  const { selectedLineRange, filter, setFilter, clearFilters } = useDocumentExplorerStore();
+  const { selectedChunkIndices, clearChunkSelection, filter, setFilter, clearFilters } = useDocumentExplorerStore();
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -56,12 +56,6 @@ export function DocumentExplorerSidebar({
 
   const visibleIssueCount = getIssueCount(visibleIssues);
   const filteredIssueCount = getIssueCount(filteredIssues);
-
-  const selectionLabel = selectedLineRange
-    ? selectedLineRange[0] === selectedLineRange[1]
-      ? `Line ${selectedLineRange[0]}`
-      : `Lines ${selectedLineRange[0]}–${selectedLineRange[1]}`
-    : null;
 
   return (
     <div className="col-span-5 bg-muted/50 rounded-lg rounded-l-none text-sm flex flex-col overflow-hidden">
@@ -87,14 +81,16 @@ export function DocumentExplorerSidebar({
           {visibleIssueCount === 0 && isAnyProcessing && 'Finding issues...'}
         </span>
         <div className="flex items-center flex-wrap gap-1">
-          {selectionLabel && (
+          {selectedChunkIndices.length > 0 && (
             <Button
               variant="outline"
               size="sm"
               className="text-xs h-6 px-2 gap-1 shadow-xs bg-white"
-              onClick={onClearSelection}
+              onClick={clearChunkSelection}
             >
-              {selectionLabel}
+              {selectedChunkIndices.length === 1
+                ? `Chunk #${selectedChunkIndices[0]}`
+                : `${selectedChunkIndices.length} chunks selected`}
               <X />
             </Button>
           )}
@@ -114,6 +110,7 @@ export function DocumentExplorerSidebar({
         {visibleIssues.length === 0 && !isAnyProcessing && (
           <div className="text-sm text-muted-foreground py-4 space-y-2">
             <p>No issues found for this document.</p>
+            <p>You can still view detailed assessment for each chunk by selecting a chunk from the document.</p>
           </div>
         )}
 
@@ -121,7 +118,7 @@ export function DocumentExplorerSidebar({
           filteredIssues.length === 0 &&
           !isAnyProcessing &&
           hasActiveFilters(filter) &&
-          !selectedLineRange && (
+          selectedChunkIndices.length === 0 && (
             <div className="text-sm text-muted-foreground space-y-1 py-8 text-center">
               <p>No issues match the current filters.</p>
               <Button variant="link" size="sm" className="text-xs" onClick={clearFilters}>
@@ -132,10 +129,21 @@ export function DocumentExplorerSidebar({
 
         <DocumentIssuesList
           issues={filteredIssues}
-          hideJumpButton={selectedLineRange !== null}
+          hideJumpToChunk={selectedChunkIndices.length > 0}
           onSelect={onSelectIssue}
           readOnly={readOnly}
         />
+
+        {selectedChunkIndices.map((chunkIndex) => (
+          <SingleChunkContent
+            key={chunkIndex}
+            chunkIndex={chunkIndex}
+            projectDetail={projectDetail}
+            workflowRuns={projectDetail.workflow_runs ?? []}
+            readOnly={readOnly}
+            showChunkLabel={selectedChunkIndices.length > 1}
+          />
+        ))}
       </div>
     </div>
   );

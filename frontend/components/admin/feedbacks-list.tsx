@@ -114,7 +114,7 @@ function FeedbackDetailSheet({ item, onClose }: { item: AdminFeedbackItem | null
                 <DocumentIssueCard
                   issue={item.issue as Issue}
                   readOnly={true}
-                  hideJumpButton={true}
+                  hideJumpToChunk={true}
                   onSelect={() => {}}
                 />
               </section>
