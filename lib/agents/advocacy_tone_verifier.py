@@ -7,7 +7,7 @@ trigger words, advocacy language, or subjective tone issues.
 Check type configurations loaded from workflow_config.yaml.
 """
 
-from typing import List, Optional
+from typing import List, Optional, cast
 
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableConfig
@@ -119,7 +119,10 @@ class AdvocacyToneVerifierAgent(LangChainAgent):
         }
 
         messages = _verification_prompt.format_messages(**formatted_kwargs)
-        result = await self.llm.ainvoke(messages, config=config)
+        result = cast(
+            AdvocacyToneVerificationResponse,
+            await self.llm.ainvoke(messages, config=config),
+        )
 
         # Convert 1-indexed positions to 0-indexed for storage
         if result.word_positions:
