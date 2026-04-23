@@ -17,7 +17,7 @@ from lib.api.mcp_auth import create_mcp_auth
 from lib.api.models import StartMultipleWorkflowsRequest
 from lib.api.services.workflow_runner import run_multiple_workflows_blocking
 from lib.config.env import config as env_config
-from lib.models.file import FileRole
+from lib.models.file import File as FileModel, FileRole
 from lib.models.project import AccessLevel
 from lib.models.user import User
 from lib.services.docx_workflow_service import DocxManipulatorType, generate_docx
@@ -622,7 +622,7 @@ async def list_revisions(
     )
 
     main_files = await get_files_by_project_id(project.id, roles=[FileRole.MAIN])
-    main_by_revision: dict[int, object] = {}
+    main_by_revision: dict[int, FileModel] = {}
     for f in main_files:
         if f.revision is not None:
             main_by_revision[f.revision] = f
