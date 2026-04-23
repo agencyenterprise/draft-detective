@@ -60,9 +60,6 @@ function pickTopSeverityIssue(issues: IssueWithLines[], lineStart: number, lineE
   return best;
 }
 
-const LINE_NUMBER_CLASSES =
-  'before:absolute before:left-0 before:w-8 before:text-right before:pr-1 before:text-[10px] before:leading-5 before:text-gray-400 before:content-[attr(data-line-start)] before:select-none before:pointer-events-none';
-
 function blockFactory(Tag: string, className: string) {
   function Block({ node, children, ...rest }: React.HTMLAttributes<HTMLElement> & ExtraProps) {
     const position = (node as Element | undefined)?.position;
@@ -72,15 +69,7 @@ function blockFactory(Tag: string, className: string) {
     if (dataLineStart !== undefined) dataProps['data-line-start'] = dataLineStart;
     if (dataLineEnd !== undefined) dataProps['data-line-end'] = dataLineEnd;
 
-    return React.createElement(
-      Tag,
-      {
-        ...rest,
-        ...dataProps,
-        className: cn(className, dataLineStart !== undefined && LINE_NUMBER_CLASSES, rest.className),
-      },
-      children,
-    );
+    return React.createElement(Tag, { ...rest, ...dataProps, className: cn(className, rest.className) }, children);
   }
   Block.displayName = `MarkdownBlock-${Tag}`;
   return Block;
@@ -203,7 +192,7 @@ export function DocumentMarkdownRenderer({
   return (
     <div
       ref={containerRef}
-      className="relative h-full overflow-y-auto overflow-x-hidden break-words py-4 pl-10 pr-4 leading-relaxed text-sm"
+      className="relative h-full overflow-y-auto overflow-x-hidden break-words py-4 px-4 leading-relaxed text-sm"
     >
       {renderedMarkdown}
     </div>
