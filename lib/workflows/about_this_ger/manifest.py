@@ -12,7 +12,7 @@ from lib.workflows.about_this_ger.state import (
 )
 from lib.workflows.manifest import WorkflowManifest
 from lib.workflows.models import DocumentIssue, WorkflowRunType
-from lib.workflows.simple_deep_agent.types import issues_from_agent_result
+from lib.workflows.simple_deep_agent.agent_types import issues_from_agent_result
 from lib.workflows.workflow_types import WorkflowState
 
 

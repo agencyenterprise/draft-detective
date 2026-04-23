@@ -2,7 +2,7 @@
 
 Any e2e eval targeting a workflow that uses ``SimpleDeepAgentManifest`` (i.e.
 a single deep-agent node) can import these types instead of redefining them.
-They mirror the backend types in ``lib/workflows/simple_deep_agent/types.py``
+They mirror the backend types in ``lib/workflows/simple_deep_agent/agent_types.py``
 and the state shape in ``lib/workflows/simple_deep_agent/state.py``.
 """
 
@@ -12,7 +12,7 @@ from pydantic import BaseModel, Field
 
 
 class IssueItem(BaseModel):
-    """Local mirror of IssueItem from simple_deep_agent/types.py."""
+    """Local mirror of IssueItem from simple_deep_agent/agent_types.py."""
 
     title: str = ""
     description: str = ""
@@ -23,7 +23,7 @@ class IssueItem(BaseModel):
 
 
 class AgentCheckResult(BaseModel):
-    """Local mirror of AgentCheckResult from simple_deep_agent/types.py."""
+    """Local mirror of AgentCheckResult from simple_deep_agent/agent_types.py."""
 
     issues: List[IssueItem] = Field(default_factory=list)
     report_markdown: str = ""

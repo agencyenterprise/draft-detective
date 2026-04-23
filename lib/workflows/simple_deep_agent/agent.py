@@ -15,7 +15,7 @@ from langchain_core.runnables import RunnableConfig
 from lib.config.llm_models import gpt_5_4_model
 from lib.models.agent import LangChainAgent
 from lib.workflows.context import ContextSchema
-from lib.workflows.simple_deep_agent.types import AgentCheckResult
+from lib.workflows.simple_deep_agent.agent_types import AgentCheckResult
 
 _SYSTEM_PROMPT = """\
 You are a specialist document reviewer. Your task is to review a document \
