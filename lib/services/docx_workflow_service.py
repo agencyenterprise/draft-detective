@@ -3,7 +3,7 @@
 import logging
 import uuid
 from pathlib import Path
-from typing import Dict, List, Literal, Optional
+from typing import List, Literal, Optional
 
 from lib.config.env import config as env_config
 from lib.models.workflow_run import WorkflowRunType
@@ -12,6 +12,7 @@ from lib.services.docx.manipulator import (
     docx_manipulator_service,
     issue_to_comment,
 )
+from lib.services.docx.paragraph_line_mapper import build_paragraph_line_ranges
 from lib.services.file_artifacts_service.file_artifacts_service import (
     FileArtifactsService,
 )
@@ -20,6 +21,11 @@ from lib.services.projects import _get_project_by_id
 from lib.workflows.models import SeverityEnum
 
 logger = logging.getLogger(__name__)
+
+# Bumped whenever the docx export format changes in a way that invalidates cached
+# files on disk. Old cached files remain but are never served because the cache
+# key no longer matches.
+CACHE_VERSION = 2
 
 
 def get_cache_key(
@@ -31,7 +37,7 @@ def get_cache_key(
 ) -> str:
     """Generate cache key for DOCX file."""
     suffix = "shared" if share_token else "base"
-    key = f"{project_id}_{suffix}"
+    key = f"{project_id}_{suffix}_v{CACHE_VERSION}"
     if severities:
         severity_suffix = "_".join(sorted(s.value for s in severities))
         key = f"{key}_sev_{severity_suffix}"
@@ -140,8 +146,10 @@ async def generate_docx(
     if not main_file_path.endswith(".docx") and not main_file_path.endswith(".doc"):
         raise ValueError("Main file must be a .docx or .doc to generate reviewed DOCX")
 
-    # Build chunk content map
-    chunk_content_map: Dict[int, str] = {c.chunk_index: c.content for c in chunks}
+    # Build paragraph → (start_line, end_line) map via marker injection. This is
+    # authoritative (no fuzzy matching) and resolves each issue's line range to a
+    # target docx paragraph for both the comments and add-in flows.
+    paragraph_line_ranges = await build_paragraph_line_ranges(main_file.file_path)
 
     # Query persisted issues directly from DB (faster than computing from workflow states)
     # get_project_issues excludes archived issues by default
@@ -182,7 +190,10 @@ async def generate_docx(
             for issue in issues
             if (
                 c := issue_to_comment(
-                    issue, chunk_content_map, share_token_for_comments
+                    issue,
+                    chunks,
+                    paragraph_line_ranges,
+                    share_token_for_comments,
                 )
             )
         ]
@@ -198,7 +209,6 @@ async def generate_docx(
             original_docx_path=main_file.file_path,
             comments=comments,
             workflow_run_id=output_id,
-            chunks=chunks,
             docx_type=docx_type,
         )
 
@@ -208,6 +218,7 @@ async def generate_docx(
             original_docx_path=main_file.file_path,
             share_token=share_token,
             workflow_run_id=output_id,
+            paragraph_line_ranges=paragraph_line_ranges,
             chunks=chunks,
             issues=issues,
         )

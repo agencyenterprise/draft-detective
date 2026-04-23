@@ -3,7 +3,7 @@
 import { Button } from '@/components/ui/button';
 import { DocumentExplorerSidebarFilter } from '@/components/results/components/document-explorer-sidebar-filter';
 import { DocumentIssuesList } from '@/components/results/components/document-issues-list';
-import { addIssueMarkers, jumpToChunk } from '@/lib/addin/office-utils';
+import { addIssueMarkers, jumpToIssue } from '@/lib/addin/office-utils';
 import { useOfficeInit } from '@/lib/addin/use-office-init';
 import { ProjectFeedbackProvider } from '@/lib/contexts/project-feedback-context';
 import { getSharedResourceApiPublicShareTokenGet, Issue } from '@/lib/generated-api';
@@ -133,7 +133,7 @@ export default function AddinPage() {
               <DocumentIssuesList
                 issues={filteredIssues}
                 scrollElement={scrollContainer}
-                onSelect={(issue) => jumpToChunk(issue.chunk_indices?.[0] ?? 0)}
+                onSelect={(issue) => jumpToIssue(issue)}
               />
               {hasActiveFilters(filter) && filteredIssues.length === 0 && (
                 <div className="text-xs text-gray-500 pt-2 mt-2">No issues found for your filters</div>
