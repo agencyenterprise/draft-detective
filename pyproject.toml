@@ -53,6 +53,9 @@ dependencies = [
     "cryptography>=46.0.4",
 ]
 
+[tool.mypy]
+explicit_package_bases = true
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = [
