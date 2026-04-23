@@ -158,7 +158,7 @@ async def run_workflow(
         thread_config: RunnableConfig = {"configurable": {"thread_id": thread_id}}
 
         try:
-            async for values in app.astream(
+            async for values in app.astream(  # type: ignore[call-overload]
                 updated_state,
                 thread_config,
                 stream_mode="values",

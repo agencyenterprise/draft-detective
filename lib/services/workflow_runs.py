@@ -2,7 +2,7 @@ import asyncio
 import logging
 import uuid
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Optional, Type, cast
 
 from fastapi import HTTPException
 from langgraph.types import StateSnapshot
@@ -29,7 +29,7 @@ class WorkflowRunDetail(BaseModel):
 
 def _convert_state_snapshot(
     state_snapshot: StateSnapshot,
-    state_type: WorkflowState,
+    state_type: Type[WorkflowState],
 ) -> WorkflowState | None:
     if not state_snapshot or not state_snapshot.values:
         return None
@@ -64,10 +64,12 @@ async def get_workflow_run_state_by_thread_id(
             )
             return None
 
-    return _convert_state_snapshot(state_snapshot, get_state_type(type))
+    return _convert_state_snapshot(
+        state_snapshot, cast(Type[WorkflowState], get_state_type(type))
+    )
 
 
-async def get_workflow_run(workflow_run_id: str, user: User = None) -> WorkflowRun:
+async def get_workflow_run(workflow_run_id: str, user: Optional[User] = None) -> WorkflowRun:
     async with get_async_db_session() as session:
         stmt = (
             select(WorkflowRun, Project)
@@ -144,7 +146,7 @@ async def update_workflow_run_status(
 async def get_workflow_run_status(workflow_run_id: str) -> WorkflowRunStatus | None:
     """Lightweight fetch of just the status for a workflow run. Used for cancellation checks."""
     async with get_async_db_session() as session:
-        stmt = select(WorkflowRun.status).where(col(WorkflowRun.id) == workflow_run_id)
+        stmt = select(col(WorkflowRun.status)).where(col(WorkflowRun.id) == workflow_run_id)
         return (await session.execute(stmt)).scalar_one_or_none()
 
 
@@ -159,6 +161,8 @@ async def cancel_workflow_run(workflow_run_id: str, project_id: str) -> None:
     from lib.workflows.dependency_resolver import get_required_dependents
 
     run = await get_workflow_run(workflow_run_id)
+    if run.project_id is None:
+        raise ValueError(f"Workflow run {workflow_run_id} has no project_id")
     await cancel_workflow_progress(run.project_id, run.type)
     await update_workflow_run_status(workflow_run_id, WorkflowRunStatus.CANCELLED)
 
@@ -235,7 +239,7 @@ async def has_completed_workflow_run_any_revision(
     """Return True if any COMPLETED run of this type exists for the project, across all revisions."""
     async with get_async_db_session() as session:
         stmt = (
-            select(WorkflowRun.id)
+            select(col(WorkflowRun.id))
             .where(
                 and_(
                     col(WorkflowRun.project_id) == project_id,
