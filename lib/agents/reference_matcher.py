@@ -1,6 +1,6 @@
 """Agent for matching bibliographic references to documents."""
 
-from typing import Optional
+from typing import Optional, cast
 
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables.config import RunnableConfig
@@ -57,4 +57,7 @@ class ReferenceMatcherAgent(LangChainAgent):
         config: Optional[RunnableConfig] = None,
     ) -> ReferenceMatchResult:
         messages = _reference_matcher_prompt.format_messages(**prompt_kwargs)
-        return await self.llm.ainvoke(messages, config=config)
+        return cast(
+            ReferenceMatchResult,
+            await self.llm.ainvoke(messages, config=config),
+        )

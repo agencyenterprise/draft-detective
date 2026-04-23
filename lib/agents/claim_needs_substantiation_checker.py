@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, cast
 
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableConfig
@@ -112,4 +112,7 @@ class ClaimNeedsSubstantiationCheckerAgent(LangChainAgent):
         messages = _claim_needs_substantiation_checker_prompt.format_messages(
             **prompt_kwargs
         )
-        return await self.llm.ainvoke(messages, config=config)
+        return cast(
+            ClaimCommonKnowledgeResult,
+            await self.llm.ainvoke(messages, config=config),
+        )
