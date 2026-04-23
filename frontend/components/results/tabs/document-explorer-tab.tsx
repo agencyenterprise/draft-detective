@@ -1,7 +1,7 @@
 'use client';
 
 import { Issue, ProjectDetailed, WorkflowRunType } from '@/lib/generated-api';
-import { useLineHashNavigation } from '@/lib/chunk-ids';
+import { useLineHashNavigation } from '@/lib/line-hash';
 import {
   getFilteredIssues,
   getHighlightIssues,

@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { EmptyState } from '@/components/shared/empty-state';
-import { NavigateToChunkButton } from '@/components/shared/navigate-to-chunk-button';
+import { NavigateToExplorerButton } from '@/components/shared/navigate-to-explorer-button';
 import {
   AdvocacyToneState,
   ChunkAdvocacyToneResult,
@@ -146,7 +146,7 @@ function ChunkResultCard({ result, chunkContent, onNavigateToChunk }: ChunkResul
             {chunkContent && (
               <div className="p-3 rounded-md bg-muted/50 border">
                 <p className="text-sm text-foreground whitespace-pre-wrap">{chunkContent}</p>
-                {onNavigateToChunk && <NavigateToChunkButton onClick={onNavigateToChunk} />}
+                {onNavigateToChunk && <NavigateToExplorerButton onClick={onNavigateToChunk} />}
               </div>
             )}
             {confirmedChecks.map(({ type, llmResult }) => {

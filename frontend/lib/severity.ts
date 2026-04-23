@@ -1,16 +1,4 @@
-import { DocumentChunk, Issue, SeverityEnum } from './generated-api';
-
-/**
- * Check if an issue is associated with a given chunk index.
- */
-function issueMatchesChunk(issue: Issue, chunkIndex: number): boolean {
-  return issue.chunk_indices?.includes(chunkIndex) ?? false;
-}
-
-export function getMaxChunkSeverity(issues: Issue[], chunk: DocumentChunk): SeverityEnum | undefined {
-  const chunkIssues = issues.filter((issue) => issueMatchesChunk(issue, chunk.chunk_index));
-  return getMaxSeverity(chunkIssues);
-}
+import { Issue, SeverityEnum } from './generated-api';
 
 export function sortIssueBySeverity(a: Issue, b: Issue) {
   return severitySortIndex[b.severity] - severitySortIndex[a.severity];

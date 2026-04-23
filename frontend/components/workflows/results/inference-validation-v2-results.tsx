@@ -1,7 +1,7 @@
 'use client';
 
 import { Markdown } from '@/components/markdown';
-import { NavigateToChunkButton } from '@/components/shared/navigate-to-chunk-button';
+import { NavigateToExplorerButton } from '@/components/shared/navigate-to-explorer-button';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Callout } from '@/components/ui/callout';
@@ -186,7 +186,7 @@ function InferenceAnalysisCard({
         </blockquote>
 
         {onNavigateToDocumentExplorer && analysis.chunk_indices?.length && (
-          <NavigateToChunkButton
+          <NavigateToExplorerButton
             onClick={() => {
               // Span all chunks the inference overlaps so the Explorer lands on
               // the full line range, not just the first chunk.

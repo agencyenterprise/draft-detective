@@ -85,8 +85,7 @@ function renderWorkflowResults(
           <div className="space-y-3">
             <p className="text-sm">
               Results for {getWorkflowTypeName(type)} are displayed in the <strong>Document Explorer</strong> tab.
-              Please navigate to the Document Explorer tab to view detailed results organized by document chunks and
-              claims.
+              Please navigate there to view each issue highlighted inline on the document.
             </p>
             {onNavigateToDocumentExplorer && (
               <Button onClick={() => onNavigateToDocumentExplorer()} size="sm" variant="outline" className="mt-2">
