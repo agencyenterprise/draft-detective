@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import List, Optional, TypedDict
+from typing import List, Optional, TypedDict, cast
 
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableConfig
@@ -145,7 +145,7 @@ class CitationDetectorAgent(LangChainAgent):
     temperature = 0.0
     output_schema = BatchedCitationResult
 
-    async def ainvoke(
+    async def ainvoke(  # type: ignore[override]
         self,
         prompt_kwargs: CitationDetectorPromptKwargs,
         config: Optional[RunnableConfig] = None,
@@ -157,4 +157,7 @@ class CitationDetectorAgent(LangChainAgent):
             bibliography=prompt_kwargs["bibliography"],
             chunks_content=chunks_content,
         )
-        return await self.llm.ainvoke(messages, config=config)
+        return cast(
+            BatchedCitationResult,
+            await self.llm.ainvoke(messages, config=config),
+        )

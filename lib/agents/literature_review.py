@@ -198,8 +198,8 @@ class LiteratureReviewAgent(LangChainAgent):
             response_format=LiteratureReviewResponse,
         )
 
-        result = await agent.ainvoke(
-            {"messages": [HumanMessage(content=prompt.text)]},
+        result = await agent.ainvoke(  # type: ignore[call-overload]
+            {"messages": [HumanMessage(content=prompt.to_string())]},
             config=config,
             context=self.context,
         )
