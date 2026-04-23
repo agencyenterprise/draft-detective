@@ -2637,7 +2637,7 @@ export type HumanApprovalState = {
    */
   errors?: Array<WorkflowError>;
   type?: WorkflowRunType;
-  config?: HumanApprovalConfig;
+  config: HumanApprovalConfig;
   /**
    * Approved
    *
@@ -5614,32 +5614,32 @@ export type UpdateAppConfigApiAppConfigsKeyPutResponses = {
 export type UpdateAppConfigApiAppConfigsKeyPutResponse =
   UpdateAppConfigApiAppConfigsKeyPutResponses[keyof UpdateAppConfigApiAppConfigsKeyPutResponses];
 
-export type StartAnalysisApiStartAnalysisDoNotUsePostData = {
+export type StartAnalysisOpenapiStubApiStartAnalysisDoNotUsePostData = {
   body: AnalysisFormConfig;
   path?: never;
   query?: never;
   url: '/api/start-analysis/_do_not_use_';
 };
 
-export type StartAnalysisApiStartAnalysisDoNotUsePostErrors = {
+export type StartAnalysisOpenapiStubApiStartAnalysisDoNotUsePostErrors = {
   /**
    * Validation Error
    */
   422: HttpValidationError;
 };
 
-export type StartAnalysisApiStartAnalysisDoNotUsePostError =
-  StartAnalysisApiStartAnalysisDoNotUsePostErrors[keyof StartAnalysisApiStartAnalysisDoNotUsePostErrors];
+export type StartAnalysisOpenapiStubApiStartAnalysisDoNotUsePostError =
+  StartAnalysisOpenapiStubApiStartAnalysisDoNotUsePostErrors[keyof StartAnalysisOpenapiStubApiStartAnalysisDoNotUsePostErrors];
 
-export type StartAnalysisApiStartAnalysisDoNotUsePostResponses = {
+export type StartAnalysisOpenapiStubApiStartAnalysisDoNotUsePostResponses = {
   /**
    * Successful Response
    */
   200: StartWorkflowResponse;
 };
 
-export type StartAnalysisApiStartAnalysisDoNotUsePostResponse =
-  StartAnalysisApiStartAnalysisDoNotUsePostResponses[keyof StartAnalysisApiStartAnalysisDoNotUsePostResponses];
+export type StartAnalysisOpenapiStubApiStartAnalysisDoNotUsePostResponse =
+  StartAnalysisOpenapiStubApiStartAnalysisDoNotUsePostResponses[keyof StartAnalysisOpenapiStubApiStartAnalysisDoNotUsePostResponses];
 
 export type StartAnalysisApiStartAnalysisPostData = {
   body: BodyStartAnalysisApiStartAnalysisPost;
