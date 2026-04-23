@@ -169,6 +169,27 @@ class WorkflowState(TypedDict, total=False):
     results: Optional[ProcessingResult]
 ```
 
+### Verify with mypy before finishing any Python change
+
+**The baseline is zero mypy errors.** Any error mypy reports is new — introduced by the current work. The `backend.yml` CI workflow runs `uv run mypy .` on every PR and will block merges on failure, so catch it locally first.
+
+- **After any edit to a `.py` file (backend, tests, evals):** run `uv run mypy <file-or-package>` for the touched paths.
+- **Before concluding a task** that made Python changes — even for what looks like a trivial fix — run `uv run mypy .` once to catch knock-on effects in untouched files (union narrowing, SQLAlchemy `Select[...]` reassignments, and structured-output agent return types are common sources).
+- **Never hand back work with mypy errors.** "It works at runtime" isn't enough — if mypy is red, fix it or explain to the user why you can't before concluding.
+- **Narrow `# type: ignore` comments only.** Prefer `# type: ignore[specific-code]` over bare `# type: ignore`, and add a brief inline comment when the reason isn't obvious. Reach for an ignore only after trying to express the invariant in the type system (narrowing via `isinstance`, `cast()`, or a fixed annotation).
+- If mypy is slow or misbehaving, `rm -rf .mypy_cache` and retry before assuming a real error.
+
+```bash
+# ✅ Correct
+uv run mypy lib/services/projects.py         # after editing one file
+uv run mypy lib/services lib/workflows       # after editing a subsystem
+uv run mypy .                                # final check before handing back
+
+# ❌ Incorrect
+# Handing back Python changes without running mypy
+# Adding bare `# type: ignore` to silence an error you didn't understand
+```
+
 ### Async/Await Patterns
 
 ```python
