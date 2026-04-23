@@ -55,6 +55,9 @@ dependencies = [
 
 [tool.mypy]
 explicit_package_bases = true
+exclude = [
+    "alembic/versions/",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
