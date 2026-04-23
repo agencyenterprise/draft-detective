@@ -20,7 +20,7 @@ from lib.config.env import config as env_config
 from lib.models.file import FileRole
 from lib.models.project import AccessLevel
 from lib.models.user import User
-from lib.services.docx_workflow_service import DocxManipulatorType, get_or_generate_docx
+from lib.services.docx_workflow_service import DocxManipulatorType, generate_docx
 from lib.services.file_finalization import finalize_file
 from lib.services.files import get_files_by_project_id
 from lib.services.projects import create_project as create_project_record
@@ -66,17 +66,11 @@ async def _resolve_user(token: AccessToken) -> User:
         or upstream.get("email")
         or upstream.get("preferred_username")
     )
-    name = (
-        claims.get("name")
-        or upstream.get("name")
-        or email
-    )
+    name = claims.get("name") or upstream.get("name") or email
     if not email:
         raise RuntimeError("Token missing 'email' claim")
     if not _looks_like_email(email):
-        raise RuntimeError(
-            f"Resolved identity '{email}' is not a valid email address"
-        )
+        raise RuntimeError(f"Resolved identity '{email}' is not a valid email address")
     return await get_or_create_user_by_email(email=email, name=name)
 
 
@@ -199,7 +193,9 @@ async def create_project(
         )
         result["file_id"] = str(file_record.id)
     else:
-        result["next_step"] = "Upload the main document using get_tus_upload_credentials with role='main'"
+        result["next_step"] = (
+            "Upload the main document using get_tus_upload_credentials with role='main'"
+        )
 
     return json.dumps(result)
 
@@ -283,7 +279,9 @@ async def get_project(
     """
 
     user = await _resolve_user(token)
-    return await _get_project_details_json(project_id, AccessLevel.READ, user, revision=revision)
+    return await _get_project_details_json(
+        project_id, AccessLevel.READ, user, revision=revision
+    )
 
 
 @mcp.tool(
@@ -348,13 +346,12 @@ async def export_project_docx(
     user = await _resolve_user(token)
     await get_project_access(project_id, user=user, required_level=AccessLevel.READ)
 
-    file_path, filename = await get_or_generate_docx(
+    file_path, filename = await generate_docx(
         project_id=project_id,
         share_token=None,
         workflow_types=workflow_types,
         severities=severities,
         docx_type=DocxManipulatorType.COMMENTS,
-        use_cache=True,
     )
 
     async with aiofiles.open(file_path, "rb") as f:
@@ -593,7 +590,9 @@ async def create_revision(
         )
         result["file_id"] = str(file_record.id)
     else:
-        result["next_step"] = "Upload the new document using get_tus_upload_credentials with role='main'"
+        result["next_step"] = (
+            "Upload the new document using get_tus_upload_credentials with role='main'"
+        )
 
     return json.dumps(result)
 
@@ -637,7 +636,11 @@ async def list_revisions(
                 "is_current": rev == project.current_revision,
                 "main_file_name": main_file.file_name if main_file else None,
                 "main_file_id": str(main_file.id) if main_file else None,
-                "created_at": main_file.created_at.isoformat() if main_file and main_file.created_at else None,
+                "created_at": (
+                    main_file.created_at.isoformat()
+                    if main_file and main_file.created_at
+                    else None
+                ),
             }
         )
 
