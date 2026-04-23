@@ -136,9 +136,7 @@ def find_chunk_by_fuzzy_match(
 
     if start_line is not None and end_line is not None:
         chunks = [
-            c
-            for c in chunks
-            if c.start_line <= end_line and c.end_line >= start_line
+            c for c in chunks if c.start_line <= end_line and c.end_line >= start_line
         ]
         if not chunks:
             return None

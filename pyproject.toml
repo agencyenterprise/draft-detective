@@ -59,6 +59,10 @@ exclude = [
     "alembic/versions/",
 ]
 
+[[tool.mypy.overrides]]
+module = ["nltk.*", "nest_asyncio"]
+ignore_missing_imports = true
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = [
@@ -73,7 +77,9 @@ addopts = [
 
 [dependency-groups]
 dev = [
+    "lxml-stubs>=0.5.1",
     "types-aiofiles>=25.1.0.20251011",
+    "types-pyyaml>=6.0.12.20260408",
 ]
 
 [build-system]
