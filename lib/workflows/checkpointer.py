@@ -1,7 +1,9 @@
 import asyncio
 from contextlib import asynccontextmanager
+from typing import Any
 
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
+from psycopg import AsyncConnection
 from psycopg.rows import dict_row
 from psycopg_pool import AsyncConnectionPool
 
@@ -9,7 +11,7 @@ from lib.config.env import config
 
 # psycopg pool for langgraph's AsyncPostgresSaver. Opened lazily by
 # _ensure_pool_ready(); min_size=0 so idle processes hold no DB connections.
-checkpointer_pool = AsyncConnectionPool(
+checkpointer_pool: AsyncConnectionPool[AsyncConnection[dict[str, Any]]] = AsyncConnectionPool(
     conninfo=config.DATABASE_URL,
     min_size=0,
     max_size=4,

@@ -88,10 +88,12 @@ def wrap_paragraph_with_content_control(
         sdt_content.append(paragraph_element)
         parent.insert(parent_index, sdt)
     else:
-        sdt_pr = sdt.find(qn("w:sdtPr"))
-        if sdt_pr is None:
+        existing_sdt_pr = sdt.find(qn("w:sdtPr"))
+        if existing_sdt_pr is None:
             sdt_pr = OxmlElement("w:sdtPr")
             sdt.insert(0, sdt_pr)
+        else:
+            sdt_pr = existing_sdt_pr
 
     _set_sdt_prop(sdt_pr, "w:tag", tag_value)
     _set_sdt_prop(sdt_pr, "w:alias", title)
@@ -127,7 +129,8 @@ def _ensure_custom_properties_relationship(temp_dir: str) -> None:
         rels_root = rels_tree.getroot()
     else:
         rels_root = etree.Element(
-            f"{{{PACKAGE_REL_NS}}}Relationships", nsmap={None: PACKAGE_REL_NS}
+            f"{{{PACKAGE_REL_NS}}}Relationships",
+            nsmap={None: PACKAGE_REL_NS},  # type: ignore[dict-item]
         )
         rels_tree = etree.ElementTree(rels_root)
 
@@ -206,14 +209,14 @@ def add_custom_properties_to_docx(
         else:
             root = etree.Element(
                 f"{{{CUSTOM_NS}}}Properties",
-                nsmap={None: CUSTOM_NS, "vt": VT_NS},
+                nsmap={None: CUSTOM_NS, "vt": VT_NS},  # type: ignore[dict-item]
             )
             tree = etree.ElementTree(root)
 
         existing_pids = [
-            int(p.get("pid"))
+            int(pid)
             for p in root.findall(f"{{{CUSTOM_NS}}}property")
-            if p.get("pid") is not None
+            if (pid := p.get("pid")) is not None
         ]
         next_pid = max(existing_pids, default=1) + 1
 

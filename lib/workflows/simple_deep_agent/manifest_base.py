@@ -74,7 +74,7 @@ class SimpleDeepAgentManifest(
         graph.add_node("run_agent", decorated)
         graph.add_edge(START, "run_agent")
         graph.add_edge("run_agent", END)
-        return graph
+        return graph  # type: ignore[return-value]
 
     async def create_initial_state(
         self,

@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 
 from lib.config.env import config
 from lib.config.llm_models import gpt_5_mini_model
-from typing import List, Optional
+from typing import List, Optional, cast
 
 from lib.agents.models import ReproducibilityCategory
 from lib.models.agent import LangChainAgent
@@ -131,7 +131,10 @@ class ResultsExtractorAgent(LangChainAgent):
         config: Optional[RunnableConfig] = None,
     ) -> ResultsListResponse:
         messages = _results_extractor_agent_prompt.format_messages(**prompt_kwargs)
-        return await self.llm.ainvoke(messages, config=config)
+        return cast(
+            ResultsListResponse,
+            await self.llm.ainvoke(messages, config=config),
+        )
 
 
 # Test script - can be run directly or imported

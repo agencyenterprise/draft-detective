@@ -240,7 +240,7 @@ class FileArtifactsService(FileArtifactsServiceType):
     ) -> "FileSummary | None":
         """Return FileSummary from DB cached summary when available."""
         file = await get_file_by_id(file_id)
-        if not file.has_cached_summary:
+        if not file.has_cached_summary or file.summary is None:
             return None
         logger.debug("Loaded summary for file %s from DB cache", file_id)
         return summary_cls(file_id=file_id, **file.summary)
