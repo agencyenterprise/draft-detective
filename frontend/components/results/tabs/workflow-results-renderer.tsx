@@ -35,14 +35,14 @@ function InternalWorkflowResults({ workflowName }: { workflowName: string }) {
 interface WorkflowResultsContentProps {
   projectDetail: ProjectDetailed;
   workflowRun: WorkflowRunDetail;
-  onNavigateToDocumentExplorer: (chunkIndices?: number[]) => void;
+  onNavigateToDocumentExplorer: (lineRange?: [number, number]) => void;
   onNavigateToReferences: () => void;
 }
 
 function renderWorkflowResults(
   project: ProjectDetailed,
   workflowRun: WorkflowRunDetail,
-  onNavigateToDocumentExplorer: (chunkIndices?: number[]) => void,
+  onNavigateToDocumentExplorer: (lineRange?: [number, number]) => void,
   getWorkflowTypeName: (type: WorkflowRunType) => string,
 ) {
   const { type } = workflowRun.run;
@@ -72,6 +72,7 @@ function renderWorkflowResults(
     case WorkflowRunType.InferenceValidationV2:
       return (
         <InferenceValidationV2Results
+          project={project}
           workflowDetail={workflowRun}
           onNavigateToDocumentExplorer={onNavigateToDocumentExplorer}
         />
@@ -88,7 +89,7 @@ function renderWorkflowResults(
               claims.
             </p>
             {onNavigateToDocumentExplorer && (
-              <Button onClick={() => onNavigateToDocumentExplorer([])} size="sm" variant="outline" className="mt-2">
+              <Button onClick={() => onNavigateToDocumentExplorer()} size="sm" variant="outline" className="mt-2">
                 Go to Document Explorer
                 <ArrowRight className="h-4 w-4" />
               </Button>

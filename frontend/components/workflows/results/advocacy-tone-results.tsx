@@ -29,7 +29,7 @@ import { cn } from '@/lib/utils';
 
 interface AdvocacyToneResultsProps {
   project: ProjectDetailed;
-  onNavigateToDocumentExplorer?: (chunkIndices?: number[]) => void;
+  onNavigateToDocumentExplorer?: (lineRange?: [number, number]) => void;
 }
 
 type CheckType = 'trigger_words' | 'advocacy_language' | 'subjective_tone';
@@ -226,6 +226,16 @@ export function AdvocacyToneResults({ project, onNavigateToDocumentExplorer }: A
     return map;
   }, [chunks]);
 
+  // Build a map of chunk_index -> [start_line, end_line] for navigating to the
+  // corresponding line range in the Document Explorer.
+  const chunkLineRangeMap = useMemo(() => {
+    const map = new Map<number, [number, number]>();
+    chunks.forEach((chunk) => {
+      map.set(chunk.chunk_index, [chunk.start_line, chunk.end_line]);
+    });
+    return map;
+  }, [chunks]);
+
   // Not run yet
   if (!advocacyToneRun) {
     return <EmptyState message="Advocacy & Tone assessment has not been run." />;
@@ -256,6 +266,7 @@ export function AdvocacyToneResults({ project, onNavigateToDocumentExplorer }: A
     <AdvocacyToneContent
       state={advocacyToneRun.state}
       chunkContentMap={chunkContentMap}
+      chunkLineRangeMap={chunkLineRangeMap}
       onNavigateToDocumentExplorer={onNavigateToDocumentExplorer}
     />
   );
@@ -264,10 +275,16 @@ export function AdvocacyToneResults({ project, onNavigateToDocumentExplorer }: A
 interface AdvocacyToneContentProps {
   state: AdvocacyToneState;
   chunkContentMap: Map<number, string>;
-  onNavigateToDocumentExplorer?: (chunkIndices?: number[]) => void;
+  chunkLineRangeMap: Map<number, [number, number]>;
+  onNavigateToDocumentExplorer?: (lineRange?: [number, number]) => void;
 }
 
-function AdvocacyToneContent({ state, chunkContentMap, onNavigateToDocumentExplorer }: AdvocacyToneContentProps) {
+function AdvocacyToneContent({
+  state,
+  chunkContentMap,
+  chunkLineRangeMap,
+  onNavigateToDocumentExplorer,
+}: AdvocacyToneContentProps) {
   const [filterType, setFilterType] = useState<CheckType | null>(null);
   const results = useMemo(() => state.results ?? [], [state.results]);
 
@@ -379,7 +396,9 @@ function AdvocacyToneContent({ state, chunkContentMap, onNavigateToDocumentExplo
                 result={result}
                 chunkContent={chunkContentMap.get(result.chunk_index)}
                 onNavigateToChunk={
-                  onNavigateToDocumentExplorer ? () => onNavigateToDocumentExplorer([result.chunk_index]) : undefined
+                  onNavigateToDocumentExplorer
+                    ? () => onNavigateToDocumentExplorer(chunkLineRangeMap.get(result.chunk_index))
+                    : undefined
                 }
               />
             ))

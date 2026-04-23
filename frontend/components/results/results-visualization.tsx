@@ -97,9 +97,11 @@ export function ResultsVisualization({
           <AnalysesTab
             projectDetail={projectDetail}
             readOnly={readOnly}
-            onNavigateToDocumentExplorer={(chunkIndices?: number[]) => {
-              if (chunkIndices && chunkIndices.length > 0) {
-                window.history.pushState(null, '', `#chunks-${chunkIndices.join(',')}`);
+            onNavigateToDocumentExplorer={(lineRange?: [number, number]) => {
+              if (lineRange) {
+                const [start, end] = lineRange;
+                const hash = start === end ? `#L${start}` : `#L${start}-${end}`;
+                window.history.pushState(null, '', hash);
                 window.dispatchEvent(new HashChangeEvent('hashchange'));
               }
               setActiveTab('document-explorer');
