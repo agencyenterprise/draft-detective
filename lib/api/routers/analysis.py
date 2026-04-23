@@ -30,7 +30,7 @@ router = APIRouter(tags=["analysis"])
 
 
 @router.post("/api/start-analysis/_do_not_use_", response_model=StartWorkflowResponse)
-async def start_analysis(
+async def start_analysis_openapi_stub(
     request: AnalysisFormConfig,
     current_user: User = Depends(get_current_user),
 ):

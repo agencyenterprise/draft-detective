@@ -1,4 +1,4 @@
-from typing import Callable, List, Optional, Tuple
+from typing import Any, Callable, List, Optional, Tuple
 
 from lib.run_utils import convert_exceptions_to_workflow_errors, run_tasks
 from lib.workflows.chunk_utils import AnalyzedChunk
@@ -17,10 +17,10 @@ def get_target_chunks(state: BaseWorkflowState) -> List[AnalyzedChunk]:
 
 async def iterate_chunks(
     state: BaseWorkflowState,
-    func: Callable[[BaseWorkflowState, AnalyzedChunk, ...], AnalyzedChunk],
+    func: Callable[..., AnalyzedChunk],
     desc: str,
     workflow_run_id: Optional[str] = None,
-    **kwargs: ...,
+    **kwargs: Any,
 ) -> BaseWorkflowState:
     """
     Iterate over chunks and process them with automatic progress tracking.
