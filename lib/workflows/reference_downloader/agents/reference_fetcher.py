@@ -104,7 +104,7 @@ class ReferenceFetcherAgent(LangChainAgent):
     temperature = 0.0
     reasoning = {"effort": "low", "summary": "auto"}
 
-    async def ainvoke(
+    async def ainvoke(  # type: ignore[override]
         self,
         input: ReferenceFetcherAgentInput,
         config: Optional[RunnableConfig] = None,
@@ -114,7 +114,7 @@ class ReferenceFetcherAgent(LangChainAgent):
         agent = create_agent(
             self.llm,
             [{"type": "web_search"}, download_file_from_url, read_file_content],
-            system_prompt=system_prompt.text,
+            system_prompt=system_prompt.to_string(),
             context_schema=ContextSchema,
             response_format=ReferenceFetchItem,
         ).with_retry(stop_after_attempt=2)
