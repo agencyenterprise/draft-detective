@@ -35,14 +35,14 @@ function InternalWorkflowResults({ workflowName }: { workflowName: string }) {
 interface WorkflowResultsContentProps {
   projectDetail: ProjectDetailed;
   workflowRun: WorkflowRunDetail;
-  onNavigateToDocumentExplorer: (chunkIndices?: number[]) => void;
+  onNavigateToDocumentExplorer: (lineRange?: [number, number]) => void;
   onNavigateToReferences: () => void;
 }
 
 function renderWorkflowResults(
   project: ProjectDetailed,
   workflowRun: WorkflowRunDetail,
-  onNavigateToDocumentExplorer: (chunkIndices?: number[]) => void,
+  onNavigateToDocumentExplorer: (lineRange?: [number, number]) => void,
   getWorkflowTypeName: (type: WorkflowRunType) => string,
 ) {
   const { type } = workflowRun.run;
@@ -72,6 +72,7 @@ function renderWorkflowResults(
     case WorkflowRunType.InferenceValidationV2:
       return (
         <InferenceValidationV2Results
+          project={project}
           workflowDetail={workflowRun}
           onNavigateToDocumentExplorer={onNavigateToDocumentExplorer}
         />
@@ -84,11 +85,10 @@ function renderWorkflowResults(
           <div className="space-y-3">
             <p className="text-sm">
               Results for {getWorkflowTypeName(type)} are displayed in the <strong>Document Explorer</strong> tab.
-              Please navigate to the Document Explorer tab to view detailed results organized by document chunks and
-              claims.
+              Please navigate there to view each issue highlighted inline on the document.
             </p>
             {onNavigateToDocumentExplorer && (
-              <Button onClick={() => onNavigateToDocumentExplorer([])} size="sm" variant="outline" className="mt-2">
+              <Button onClick={() => onNavigateToDocumentExplorer()} size="sm" variant="outline" className="mt-2">
                 Go to Document Explorer
                 <ArrowRight className="h-4 w-4" />
               </Button>

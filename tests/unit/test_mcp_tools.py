@@ -444,7 +444,7 @@ async def test_export_project_docx_returns_file():
         patch("lib.api.mcp._resolve_user", new=AsyncMock(return_value=user)),
         patch("lib.api.mcp.get_project_access", new=AsyncMock(return_value=(MagicMock(), MagicMock()))),
         patch(
-            "lib.api.mcp.get_or_generate_docx",
+            "lib.api.mcp.generate_docx",
             new=AsyncMock(return_value=("/tmp/report.docx", "report_comments.docx")),
         ),
         patch("lib.api.mcp.aiofiles.open", _make_aiofiles_open_mock(fake_docx)),
@@ -467,7 +467,7 @@ async def test_export_project_docx_passes_filters_to_service():
         patch("lib.api.mcp._resolve_user", new=AsyncMock(return_value=user)),
         patch("lib.api.mcp.get_project_access", new=AsyncMock(return_value=(MagicMock(), MagicMock()))),
         patch(
-            "lib.api.mcp.get_or_generate_docx",
+            "lib.api.mcp.generate_docx",
             new=AsyncMock(return_value=("/tmp/out.docx", "out_comments.docx")),
         ) as mock_gen,
         patch("lib.api.mcp.aiofiles.open", _make_aiofiles_open_mock(b"")),

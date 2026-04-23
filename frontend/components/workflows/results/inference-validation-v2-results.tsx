@@ -1,31 +1,50 @@
 'use client';
 
 import { Markdown } from '@/components/markdown';
-import { NavigateToChunkButton } from '@/components/shared/navigate-to-chunk-button';
+import { NavigateToExplorerButton } from '@/components/shared/navigate-to-explorer-button';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Callout } from '@/components/ui/callout';
 import { SeverityBadge } from '@/components/results/components/severity-badge';
 import {
+  DocumentChunk,
   ExtractedInferenceResult,
   InferenceValidationV2State,
+  ProjectDetailed,
   SeverityEnum,
   WorkflowRunDetail,
+  WorkflowRunType,
 } from '@/lib/generated-api';
 import { cn } from '@/lib/utils';
+import { getWorkflowRunByType } from '@/lib/workflow-state';
 import { CheckCircleIcon, ChevronDown, ChevronRight, Scale, XCircleIcon } from 'lucide-react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 
 interface InferenceValidationV2ResultsProps {
+  project: ProjectDetailed;
   workflowDetail: WorkflowRunDetail;
-  onNavigateToDocumentExplorer?: (chunkIndices?: number[]) => void;
+  onNavigateToDocumentExplorer?: (lineRange?: [number, number]) => void;
 }
 
 export function InferenceValidationV2Results({
+  project,
   workflowDetail,
   onNavigateToDocumentExplorer,
 }: InferenceValidationV2ResultsProps) {
   const state = workflowDetail.state as InferenceValidationV2State;
+
+  const chunks: DocumentChunk[] = useMemo(() => {
+    const chunkSplittingRun = getWorkflowRunByType(project.workflow_runs ?? [], WorkflowRunType.ChunkSplitting);
+    return chunkSplittingRun?.state?.chunks ?? [];
+  }, [project.workflow_runs]);
+
+  const chunkLineRangeMap = useMemo(() => {
+    const map = new Map<number, [number, number]>();
+    chunks.forEach((chunk) => {
+      map.set(chunk.chunk_index, [chunk.start_line, chunk.end_line]);
+    });
+    return map;
+  }, [chunks]);
 
   if (!state) {
     return <div className="p-4 text-center text-muted-foreground">No state available</div>;
@@ -93,6 +112,7 @@ export function InferenceValidationV2Results({
             key={`${analysis.chunk_indices?.join(',') ?? 'none'}-${index}`}
             analysis={analysis}
             index={index}
+            chunkLineRangeMap={chunkLineRangeMap}
             onNavigateToDocumentExplorer={onNavigateToDocumentExplorer}
           />
         ))}
@@ -104,10 +124,16 @@ export function InferenceValidationV2Results({
 interface InferenceAnalysisCardProps {
   analysis: ExtractedInferenceResult;
   index: number;
-  onNavigateToDocumentExplorer?: (chunkIndices?: number[]) => void;
+  chunkLineRangeMap: Map<number, [number, number]>;
+  onNavigateToDocumentExplorer?: (lineRange?: [number, number]) => void;
 }
 
-function InferenceAnalysisCard({ analysis, index, onNavigateToDocumentExplorer }: InferenceAnalysisCardProps) {
+function InferenceAnalysisCard({
+  analysis,
+  index,
+  chunkLineRangeMap,
+  onNavigateToDocumentExplorer,
+}: InferenceAnalysisCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   return (
@@ -160,10 +186,21 @@ function InferenceAnalysisCard({ analysis, index, onNavigateToDocumentExplorer }
         </blockquote>
 
         {onNavigateToDocumentExplorer && analysis.chunk_indices?.length && (
-          <NavigateToChunkButton
-            onClick={() =>
-              onNavigateToDocumentExplorer(analysis.chunk_indices?.length ? [analysis.chunk_indices[0]] : [])
-            }
+          <NavigateToExplorerButton
+            onClick={() => {
+              // Span all chunks the inference overlaps so the Explorer lands on
+              // the full line range, not just the first chunk.
+              const ranges = analysis
+                .chunk_indices!.map((idx) => chunkLineRangeMap.get(idx))
+                .filter((r): r is [number, number] => r !== undefined);
+              if (ranges.length === 0) {
+                onNavigateToDocumentExplorer();
+                return;
+              }
+              const start = Math.min(...ranges.map(([s]) => s));
+              const end = Math.max(...ranges.map(([, e]) => e));
+              onNavigateToDocumentExplorer([start, end]);
+            }}
           />
         )}
 

@@ -1,7 +1,7 @@
 import { ExternalLink } from 'lucide-react';
 import { Button } from '../ui/button';
 
-interface NavigateToChunkButtonProps {
+interface NavigateToExplorerButtonProps {
   /** Callback when button is clicked */
   onClick: () => void;
   /** Optional custom label (defaults to "View in Document Explorer") */
@@ -9,10 +9,13 @@ interface NavigateToChunkButtonProps {
 }
 
 /**
- * Button component for navigating to a specific chunk in the Document Explorer.
+ * Button for navigating to the Document Explorer.
  * Stops event propagation to prevent triggering parent click handlers.
  */
-export function NavigateToChunkButton({ onClick, label = 'View in Document Explorer' }: NavigateToChunkButtonProps) {
+export function NavigateToExplorerButton({
+  onClick,
+  label = 'View in Document Explorer',
+}: NavigateToExplorerButtonProps) {
   return (
     <Button
       variant="ghost"

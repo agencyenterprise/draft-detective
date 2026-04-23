@@ -2,7 +2,7 @@ from datetime import date
 import logging
 import uuid
 from collections import defaultdict
-from typing import List, Optional
+from typing import List, Optional, Sequence
 
 from fastapi.exceptions import HTTPException
 from pydantic import BaseModel, Field
@@ -11,12 +11,20 @@ from sqlmodel import and_, col
 
 from lib.config.database import get_async_db_session
 from lib.models.feedback import FeedbackType
-from lib.models.file import File, FileListItem
+from lib.models.file import File, FileListItem, FileRole
 from lib.models.issue import Issue
 from lib.models.project import AccessLevel, FeedbackVisibility, Project
 from lib.models.user import User, UserRole
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus
-from lib.services.files import delete_project_files, get_project_files_list_items
+from lib.services.file_artifacts_service.file_artifacts_service import (
+    FileArtifactsService,
+)
+from lib.services.files import (
+    delete_project_files,
+    get_files_by_project_id,
+    get_project_files_list_items,
+)
+from lib.services.chunk_line_matcher import find_line_range_by_chunks
 from lib.services.issue_persistence import get_project_issues
 from lib.services.references import (
     remove_fetch_result_for_file,
@@ -74,6 +82,10 @@ class ProjectDetailed(BaseModel):
     revision: int = Field(
         default=1,
         description="The revision being returned",
+    )
+    main_document_markdown: Optional[str] = Field(
+        default=None,
+        description="Full markdown of the main document for this revision, if available",
     )
 
 
@@ -196,6 +208,11 @@ async def get_project_detailed_from_project(
         uuid.UUID(str(project.id)), revision=resolved_revision
     )
 
+    # For issues persisted before the line-range migration, derive
+    # (start_line, end_line) on-the-fly from their chunk_indices so the
+    # markdown renderer can locate them.
+    _backfill_issue_line_ranges(issues, workflow_runs)
+
     feedbacks: list[FeedbackSummary] = []
     if user is not None:
         async with get_async_db_session() as session:
@@ -218,6 +235,10 @@ async def get_project_detailed_from_project(
                 for f in feedback_models
             ]
 
+    main_document_markdown = await _get_main_document_markdown(
+        str(project.id), resolved_revision
+    )
+
     return ProjectDetailed(
         project=project,
         access_level=access_level,
@@ -226,7 +247,47 @@ async def get_project_detailed_from_project(
         files=await get_project_files_list_items(project.id, revision=resolved_revision),
         feedbacks=feedbacks,
         revision=resolved_revision,
+        main_document_markdown=main_document_markdown,
     )
+
+
+async def _get_main_document_markdown(project_id: str, revision: int) -> Optional[str]:
+    """Load the full markdown of the main document for a revision, or None if
+    it isn't available yet (e.g. before document processing completes)."""
+    main_files = await get_files_by_project_id(
+        project_id, roles=[FileRole.MAIN], revision=revision
+    )
+    if not main_files:
+        return None
+    artifacts = FileArtifactsService(project_id, revision=revision)
+    try:
+        file_document = await artifacts.get_file_document(str(main_files[0].id))
+    except ValueError:
+        return None
+    return file_document.markdown
+
+
+def _backfill_issue_line_ranges(
+    issues: Sequence[Issue], workflow_runs: List[WorkflowRunDetail]
+) -> None:
+    """Derive (start_line, end_line) from chunk_indices for issues persisted
+    before the line-range migration. Mutates issues in place."""
+    chunks = None
+    for detail in workflow_runs:
+        if detail.state is not None and detail.state.type == WorkflowRunType.CHUNK_SPLITTING:
+            chunks = getattr(detail.state, "chunks", None) or None
+            break
+    if not chunks:
+        return
+
+    for issue in issues:
+        if issue.start_line is not None or issue.end_line is not None:
+            continue
+        if not issue.chunk_indices:
+            continue
+        line_range = find_line_range_by_chunks(chunks, issue.chunk_indices)
+        if line_range is not None:
+            issue.start_line, issue.end_line = line_range
 
 
 async def get_shared_project(project_id: str) -> Project:

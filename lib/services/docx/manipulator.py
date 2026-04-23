@@ -7,7 +7,7 @@ import re
 from collections import defaultdict
 from enum import StrEnum
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Sequence, Tuple
 
 from docx import Document
 from docx.document import Document as DocumentObject
@@ -16,7 +16,11 @@ from pydantic import BaseModel
 
 from lib.config.env import config
 from lib.models.issue import Issue
-from lib.services.docx.chunk_mapper import ChunkLike, create_chunk_to_paragraph_mapping
+from lib.services.chunk_line_matcher import (
+    IndexedChunkWithLines,
+    find_line_range_by_chunks,
+)
+from lib.services.docx.paragraph_line_mapper import find_paragraph_by_line_range
 from lib.services.docx.docx_xml import (
     add_custom_properties_to_docx,
     wrap_paragraph_with_content_control,
@@ -57,12 +61,28 @@ def _map_severity_enum_to_comment_severity(severity: SeverityEnum) -> "CommentSe
     return mapping.get(severity, CommentSeverity.NONE)
 
 
-def _build_issue_anchor(issue: Issue) -> Optional[str]:
-    """Build URL anchor fragment for an issue."""
+def _resolve_issue_line_range(
+    issue: Issue, chunks: Sequence[IndexedChunkWithLines]
+) -> Optional[Tuple[int, int]]:
+    """Return ``(start_line, end_line)`` for an issue, or None if unresolvable.
+
+    Prefers native line-range fields. Falls back to deriving the range from legacy
+    ``chunk_indices`` using the provided chunks so the export pipeline downstream
+    can always reason in line-range terms.
+    """
+    if issue.start_line is not None and issue.end_line is not None:
+        return (issue.start_line, issue.end_line)
     if issue.chunk_indices:
-        indices_str = ",".join(str(i) for i in issue.chunk_indices)
-        return f"#chunks-{indices_str}"
+        return find_line_range_by_chunks(chunks, issue.chunk_indices)
     return None
+
+
+def _build_issue_anchor(line_range: Optional[Tuple[int, int]]) -> Optional[str]:
+    """Build URL anchor fragment for a resolved issue line range (e.g. ``#L5-15``)."""
+    if line_range is None:
+        return None
+    start, end = line_range
+    return f"#L{start}-{end}"
 
 
 class CommentSeverity(StrEnum):
@@ -83,6 +103,7 @@ SEVERITY_AUTHORS = {
 }
 
 ISSUE_MARKER_TAG = "AIReviewer_Issue_Marker"
+PARAGRAPH_LINE_RANGES_PROPERTY = "AIReviewer_ParagraphLineRanges"
 
 SEVERITY_HIGHLIGHT_COLORS = {
     SeverityEnum.HIGH: "F87274",
@@ -94,8 +115,7 @@ SEVERITY_HIGHLIGHT_COLORS = {
 class DocxComment(BaseModel):
     """Represents a comment to be added to a docx file."""
 
-    chunk_index: int
-    text: str
+    paragraph_index: int
     comment_text: str
     severity: Optional[CommentSeverity] = None
     author: Optional[str] = None
@@ -137,31 +157,37 @@ def _get_workflow_display_name(issue: Issue) -> Optional[str]:
 
 def issue_to_comment(
     issue: Issue,
-    chunk_content_map: Dict[int, str],
+    chunks: Sequence[IndexedChunkWithLines],
+    paragraph_line_ranges: Dict[int, Tuple[int, int]],
     share_token: Optional[str] = None,
 ) -> Optional["DocxComment"]:
-    """Convert an Issue to DocxComment with optional share link."""
-    if not issue.chunk_indices:
+    """Convert an Issue to DocxComment with optional share link.
+
+    Resolves the issue to a paragraph by line-range overlap. Returns None when the
+    issue has no resolvable line range or does not overlap any mapped paragraph.
+    """
+    line_range = _resolve_issue_line_range(issue, chunks)
+    if line_range is None:
         return None
 
-    first_chunk_index = issue.chunk_indices[0]
-    chunk_content = chunk_content_map.get(first_chunk_index)
-    if not chunk_content:
+    paragraph_index = find_paragraph_by_line_range(
+        paragraph_line_ranges, line_range[0], line_range[1]
+    )
+    if paragraph_index is None:
         return None
 
     share_link = None
     if share_token:
         from lib.services.share_links import _build_share_url
 
-        anchor = _build_issue_anchor(issue)
+        anchor = _build_issue_anchor(line_range)
         share_link = _build_share_url(share_token, anchor)
 
     workflow_name = _get_workflow_display_name(issue)
     title = f"{issue.title} ({workflow_name})" if workflow_name else issue.title
 
     return DocxComment(
-        chunk_index=first_chunk_index,
-        text=chunk_content,
+        paragraph_index=paragraph_index,
         comment_text=f"{title}\n\n{issue.description}",
         severity=_map_severity_enum_to_comment_severity(issue.severity),
         share_link=share_link,
@@ -170,22 +196,23 @@ def issue_to_comment(
 
 def _build_issue_map(
     issues: List[Issue],
-    chunk_to_paragraph_mapping: Dict[int, int],
+    chunks: Sequence[IndexedChunkWithLines],
+    paragraph_line_ranges: Dict[int, Tuple[int, int]],
 ) -> Dict[int, List[Issue]]:
     issue_map: Dict[int, List[Issue]] = defaultdict(list)
     for issue in issues:
-        indices_to_process = set()
-        if issue.chunk_indices:
-            indices_to_process.update(issue.chunk_indices)
-        for chunk_index in indices_to_process:
-            paragraph_index = chunk_to_paragraph_mapping.get(chunk_index)
-            if paragraph_index is None:
-                continue
-            issues_for_paragraph = issue_map[paragraph_index]
-
-            existing_hashes = {i.issue_hash for i in issues_for_paragraph}
-            if issue.issue_hash not in existing_hashes:
-                issues_for_paragraph.append(issue)
+        line_range = _resolve_issue_line_range(issue, chunks)
+        if line_range is None:
+            continue
+        paragraph_index = find_paragraph_by_line_range(
+            paragraph_line_ranges, line_range[0], line_range[1]
+        )
+        if paragraph_index is None:
+            continue
+        issues_for_paragraph = issue_map[paragraph_index]
+        existing_hashes = {i.issue_hash for i in issues_for_paragraph}
+        if issue.issue_hash not in existing_hashes:
+            issues_for_paragraph.append(issue)
     return issue_map
 
 
@@ -213,15 +240,21 @@ class DocxManipulatorService:
         original_docx_path: str,
         share_token: str,
         workflow_run_id: str,
-        chunks: List[ChunkLike] | None = None,
+        paragraph_line_ranges: Dict[int, Tuple[int, int]],
+        chunks: Sequence[IndexedChunkWithLines] | None = None,
         issues: List[Issue] | None = None,
     ) -> str:
-        """Add custom properties and a comment to a DOCX file."""
+        """Add custom properties and a comment to a DOCX file.
+
+        ``chunks`` are only consulted as a legacy fallback for resolving
+        pre-migration issues that lack ``start_line``/``end_line``.
+        """
         return await asyncio.to_thread(
             self._add_addin_metadata_to_docx_sync,
             original_docx_path,
             share_token,
             workflow_run_id,
+            paragraph_line_ranges,
             chunks,
             issues,
         )
@@ -231,7 +264,8 @@ class DocxManipulatorService:
         original_docx_path: str,
         share_token: str,
         workflow_run_id: str,
-        chunks: List[ChunkLike] | None = None,
+        paragraph_line_ranges: Dict[int, Tuple[int, int]],
+        chunks: Sequence[IndexedChunkWithLines] | None = None,
         issues: List[Issue] | None = None,
     ) -> str:
         """Sync implementation for add-in metadata generation."""
@@ -245,15 +279,12 @@ class DocxManipulatorService:
         doc = Document(original_docx_path)
         docx_paragraphs = [p for p in doc.paragraphs if p.text.strip()]
 
-        chunk_to_para_mapping = {}
-        if chunks:
-            chunk_to_para_mapping = create_chunk_to_paragraph_mapping(
-                chunks, docx_paragraphs
-            )
-        # Create the content controls to each paragraph that has issues
+        # Create the content controls for each paragraph that has issues
         if issues is not None:
-            if chunk_to_para_mapping:
-                issue_map = _build_issue_map(issues, chunk_to_para_mapping)
+            if paragraph_line_ranges:
+                issue_map = _build_issue_map(
+                    issues, chunks or [], paragraph_line_ranges
+                )
                 for paragraph_index, paragraph in enumerate(docx_paragraphs):
                     paragraph_issues = issue_map.get(paragraph_index, [])
                     if not paragraph_issues:
@@ -268,7 +299,7 @@ class DocxManipulatorService:
                     )
             else:
                 logger.warning(
-                    "Issue markers skipped: missing chunk-to-paragraph mapping"
+                    "Issue markers skipped: missing paragraph line-range mapping"
                 )
 
         doc.save(str(output_path))
@@ -276,8 +307,12 @@ class DocxManipulatorService:
             output_path,
             {
                 "AIReviewer_AuthToken": share_token,
-                "AIReviewer_ChunkToParagraphMapping": (
-                    json.dumps(chunk_to_para_mapping) if chunk_to_para_mapping else None
+                PARAGRAPH_LINE_RANGES_PROPERTY: (
+                    json.dumps(
+                        {str(p): [s, e] for p, (s, e) in paragraph_line_ranges.items()}
+                    )
+                    if paragraph_line_ranges
+                    else None
                 ),
             },
         )
@@ -288,16 +323,14 @@ class DocxManipulatorService:
         original_docx_path: str,
         comments: List[DocxComment],
         workflow_run_id: str,
-        chunks: List[ChunkLike] | None = None,
         docx_type: DocxManipulatorType = DocxManipulatorType.COMMENTS,
     ) -> str:
-        """Add comments to a DOCX file based on chunk indices."""
+        """Add comments to a DOCX file at their resolved paragraph indices."""
         return await asyncio.to_thread(
             self._add_comments_to_docx_sync,
             original_docx_path,
             comments,
             workflow_run_id,
-            chunks,
             docx_type,
         )
 
@@ -306,7 +339,6 @@ class DocxManipulatorService:
         original_docx_path: str,
         comments: List[DocxComment],
         workflow_run_id: str,
-        chunks: List[ChunkLike] | None = None,
         docx_type: DocxManipulatorType = DocxManipulatorType.COMMENTS,
     ) -> str:
         """Sync implementation for adding comments to DOCX."""
@@ -326,30 +358,15 @@ class DocxManipulatorService:
         doc = Document(original_docx_path)
         docx_paragraphs = [p for p in doc.paragraphs if p.text.strip()]
 
-        chunk_to_para_mapping = {}
-        if chunks:
-            chunk_to_para_mapping = create_chunk_to_paragraph_mapping(
-                chunks, docx_paragraphs
-            )
-        else:
-            logger.warning("No chunks provided, comments will not be added")
-
         comments_added = 0
         comments_skipped = 0
 
         for comment in comments:
-            para_idx = chunk_to_para_mapping.get(comment.chunk_index)
+            para_idx = comment.paragraph_index
 
-            if para_idx is None:
+            if para_idx < 0 or para_idx >= len(docx_paragraphs):
                 logger.warning(
-                    f"No paragraph mapping for chunk {comment.chunk_index}, skipping"
-                )
-                comments_skipped += 1
-                continue
-
-            if para_idx >= len(docx_paragraphs):
-                logger.warning(
-                    f"Invalid paragraph index {para_idx} for chunk {comment.chunk_index}"
+                    f"Invalid paragraph index {para_idx} on comment, skipping"
                 )
                 comments_skipped += 1
                 continue

@@ -32,7 +32,7 @@ import { WorkflowResultsContent } from './workflow-results-renderer';
 interface AnalysesTabProps {
   projectDetail: ProjectDetailed;
   readOnly?: boolean;
-  onNavigateToDocumentExplorer: (chunkIndices?: number[]) => void;
+  onNavigateToDocumentExplorer: (lineRange?: [number, number]) => void;
   onNavigateToReferences: () => void;
 }
 

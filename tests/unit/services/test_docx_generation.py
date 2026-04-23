@@ -1,13 +1,13 @@
 """Tests for DOCX generation helper functions"""
 
 import uuid
+from dataclasses import dataclass
 from datetime import UTC, datetime
 
 import pytest
 
 from lib.models.issue import Issue
 from lib.services.docx.manipulator import CommentSeverity, DocxComment, issue_to_comment
-from lib.services.file import FileDocument
 from lib.workflows.citation_suggester.manifest import CitationSuggesterManifest
 from lib.workflows.citation_suggester.state import (
     CitationSuggesterState,
@@ -19,12 +19,22 @@ _FAKE_PROJECT_ID = uuid.uuid4()
 _FAKE_WORKFLOW_RUN_ID = uuid.uuid4()
 
 
+@dataclass
+class _FakeChunk:
+    chunk_index: int
+    content: str
+    start_line: int
+    end_line: int
+
+
 def _make_issue(
     title: str,
     description: str,
     severity: SeverityEnum,
     workflow_type: WorkflowRunType,
     chunk_indices: list[int] | None = None,
+    start_line: int | None = None,
+    end_line: int | None = None,
 ) -> Issue:
     """Create an Issue instance for testing without hitting the DB."""
     now = datetime.now(UTC)
@@ -38,6 +48,8 @@ def _make_issue(
         severity=severity,
         workflow_type=workflow_type,
         chunk_indices=chunk_indices,
+        start_line=start_line,
+        end_line=end_line,
         created_at=now,
         updated_at=now,
     )
@@ -57,62 +69,88 @@ class TestIssueToComment:
             description="This claim lacks evidence",
             severity=SeverityEnum.HIGH,
             workflow_type=WorkflowRunType.CLAIM_REFERENCE_VALIDATION,
-            chunk_indices=[0],
+            start_line=1,
+            end_line=3,
         )
-        chunk_content_map = {0: "The claim content here"}
+        chunks = [_FakeChunk(0, "The claim content here", 1, 3)]
+        paragraph_line_ranges = {0: (1, 3)}
 
-        comment = issue_to_comment(issue, chunk_content_map)
+        comment = issue_to_comment(issue, chunks, paragraph_line_ranges)
 
         assert comment is not None
         assert isinstance(comment, DocxComment)
-        assert comment.chunk_index == 0
-        assert comment.text == "The claim content here"
+        assert comment.paragraph_index == 0
         assert "Unsupported Claim" in comment.comment_text
         assert "This claim lacks evidence" in comment.comment_text
         assert comment.severity == CommentSeverity.HIGH
         assert comment.get_author() == "🚨 High Priority"
 
-    def test_returns_none_when_chunk_indices_is_none(self):
+    def test_falls_back_to_chunk_indices_for_legacy_issue(self):
+        """Issues pre-dating the line-range migration only carry chunk_indices."""
+        issue = _make_issue(
+            title="Legacy issue",
+            description="Only has chunk_indices",
+            severity=SeverityEnum.MEDIUM,
+            workflow_type=WorkflowRunType.CLAIM_REFERENCE_VALIDATION,
+            chunk_indices=[1],
+        )
+        chunks = [
+            _FakeChunk(0, "Intro", 1, 2),
+            _FakeChunk(1, "Body with the claim", 3, 5),
+        ]
+        paragraph_line_ranges = {0: (1, 2), 1: (3, 5)}
+
+        comment = issue_to_comment(issue, chunks, paragraph_line_ranges)
+
+        assert comment is not None
+        assert comment.paragraph_index == 1
+
+    def test_returns_none_when_line_range_unresolvable(self):
         issue = _make_issue(
             title="Invalid reference",
             description="Reference not found",
             severity=SeverityEnum.HIGH,
             workflow_type=WorkflowRunType.REFERENCE_VALIDATION,
-            chunk_indices=None,
         )
-        chunk_content_map = {0: "Some content"}
+        chunks: list[_FakeChunk] = []
 
-        comment = issue_to_comment(issue, chunk_content_map)
+        comment = issue_to_comment(issue, chunks, {})
 
         assert comment is None
 
-    def test_returns_none_when_chunk_not_in_map(self):
+    def test_returns_none_when_no_paragraph_overlaps(self):
         issue = _make_issue(
             title="Some issue",
             description="Issue description",
             severity=SeverityEnum.MEDIUM,
             workflow_type=WorkflowRunType.CLAIM_REFERENCE_VALIDATION,
-            chunk_indices=[99],  # Not in the map
+            start_line=100,
+            end_line=110,
         )
-        chunk_content_map = {0: "Some content", 1: "Other content"}
+        paragraph_line_ranges = {0: (1, 10), 1: (11, 20)}
 
-        comment = issue_to_comment(issue, chunk_content_map)
+        comment = issue_to_comment(issue, [], paragraph_line_ranges)
 
         assert comment is None
 
-    def test_returns_none_when_chunk_content_is_empty(self):
+    def test_share_link_anchor_uses_line_range(self):
         issue = _make_issue(
             title="Some issue",
             description="Issue description",
-            severity=SeverityEnum.LOW,
+            severity=SeverityEnum.HIGH,
             workflow_type=WorkflowRunType.CLAIM_REFERENCE_VALIDATION,
-            chunk_indices=[0],
+            start_line=5,
+            end_line=15,
         )
-        chunk_content_map = {0: ""}  # Empty content
+        paragraph_line_ranges = {0: (1, 20)}
 
-        comment = issue_to_comment(issue, chunk_content_map)
+        comment = issue_to_comment(
+            issue, [], paragraph_line_ranges, share_token="share-token-abc"
+        )
 
-        assert comment is None
+        assert comment is not None
+        assert comment.share_link is not None
+        assert comment.share_link.endswith("#L5-15")
 
     def test_medium_severity_uses_correct_author(self):
         issue = _make_issue(
@@ -120,11 +158,12 @@ class TestIssueToComment:
             description="Some evidence found",
             severity=SeverityEnum.MEDIUM,
             workflow_type=WorkflowRunType.CLAIM_REFERENCE_VALIDATION,
-            chunk_indices=[0],
+            start_line=1,
+            end_line=1,
         )
-        chunk_content_map = {0: "Chunk content"}
+        paragraph_line_ranges = {0: (1, 1)}
 
-        comment = issue_to_comment(issue, chunk_content_map)
+        comment = issue_to_comment(issue, [], paragraph_line_ranges)
 
         assert comment.severity == CommentSeverity.MEDIUM
         assert comment.get_author() == "⚠️ Medium Priority"
@@ -136,11 +175,12 @@ class TestIssueToComment:
             description="Just a suggestion",
             severity=SeverityEnum.LOW,
             workflow_type=WorkflowRunType.CITATION_SUGGESTER,
-            chunk_indices=[0],
+            start_line=1,
+            end_line=1,
         )
-        chunk_content_map = {0: "Chunk content"}
+        paragraph_line_ranges = {0: (1, 1)}
 
-        comment = issue_to_comment(issue, chunk_content_map)
+        comment = issue_to_comment(issue, [], paragraph_line_ranges)
 
         assert comment.severity == CommentSeverity.LOW
         assert comment.get_author() == "💡 Low Priority"
