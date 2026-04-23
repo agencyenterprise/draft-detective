@@ -43,4 +43,4 @@ def build_claim_reference_validation_graph():
     # Finish after finalization
     graph.set_finish_point("finalize_verifications")
 
-    return graph
+    return graph  # type: ignore[return-value]

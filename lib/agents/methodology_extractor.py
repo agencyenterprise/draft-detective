@@ -1,6 +1,6 @@
 # %%
 from enum import Enum
-from typing import Optional
+from typing import Optional, cast
 
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables.config import RunnableConfig
@@ -168,7 +168,10 @@ class MethodologyExtractorAgent(LangChainAgent):
         config: Optional[RunnableConfig] = None,
     ) -> MethodologyExtractionResponse:
         messages = _methodology_extractor_agent_prompt.format_messages(**prompt_kwargs)
-        return await self.llm.ainvoke(messages, config=config)
+        return cast(
+            MethodologyExtractionResponse,
+            await self.llm.ainvoke(messages, config=config),
+        )
 
 
 # Test script - can be run directly or imported

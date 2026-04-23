@@ -189,7 +189,7 @@ class PostgresKeyValueStore(BaseStore):
                 )
             )
             await session.commit()
-            return (result.rowcount or 0) > 0
+            return (result.rowcount or 0) > 0  # type: ignore[attr-defined]
 
     async def _delete_managed_entries(
         self, *, keys: Sequence[str], collection: str
@@ -204,7 +204,7 @@ class PostgresKeyValueStore(BaseStore):
                 )
             )
             await session.commit()
-            return result.rowcount or 0
+            return result.rowcount or 0  # type: ignore[attr-defined]
 
     async def cull(self) -> None:
         """Delete all rows whose ``expires_at`` has passed. Safe to call periodically."""

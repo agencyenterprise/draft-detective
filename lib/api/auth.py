@@ -29,8 +29,8 @@ async def _decode_token(credentials: HTTPAuthorizationCredentials) -> Optional[U
             issuer="ai-reviewer",
             audience="ai-reviewer-api",
         )
-        email: str = payload.get("email")
-        name: str = payload.get("name")
+        email = payload.get("email")
+        name = payload.get("name")
         if not email or not name:
             return None
         return await get_or_create_user_by_email(email=email, name=name)

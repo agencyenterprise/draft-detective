@@ -5,7 +5,7 @@ Consolidates three inference validator runs: merge duplicate findings,
 re-evaluate, and assign severity. Matches logic from multiple_inference_checker.
 """
 
-from typing import Optional
+from typing import Optional, cast
 
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableConfig
@@ -142,4 +142,7 @@ class InferenceSynthesizerAgent(LangChainAgent):
         config: Optional[RunnableConfig] = None,
     ) -> ConsolidatedInferenceResultResponse:
         messages = _COLLATOR_PROMPT.format_messages(**prompt_kwargs)
-        return await self.llm.ainvoke(messages, config=config)
+        return cast(
+            ConsolidatedInferenceResultResponse,
+            await self.llm.ainvoke(messages, config=config),
+        )

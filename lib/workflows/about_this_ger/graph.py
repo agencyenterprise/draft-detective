@@ -29,4 +29,4 @@ def build_about_this_ger_graph():
     graph.add_edge(START, "validate_authors_deep")
     graph.add_edge(["validate_preface_deep", "validate_authors_deep"], END)
 
-    return graph
+    return graph  # type: ignore[return-value]

@@ -28,4 +28,4 @@ def build_document_summarization_graph() -> StateGraph:
     # Single node workflow
     graph.add_edge("summarize_documents", END)
 
-    return graph
+    return graph  # type: ignore[return-value]

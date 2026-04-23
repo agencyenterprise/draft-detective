@@ -33,7 +33,7 @@ def build_inference_validation_v2_graph() -> StateGraph:
     graph.add_edge(validator_names, "synthesize_inferences")
     graph.set_finish_point("synthesize_inferences")
 
-    return graph
+    return graph  # type: ignore[return-value]
 
 
 if __name__ == "__main__":
