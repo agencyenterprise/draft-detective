@@ -30,7 +30,6 @@ import { Loader2 } from 'lucide-react';
 const INITIAL_WORKFLOWS = [
   WorkflowRunType.DocumentProcessing,
   WorkflowRunType.ReferenceExtraction,
-  WorkflowRunType.ChunkSplitting,
   WorkflowRunType.DocumentSummarization,
 ];
 
