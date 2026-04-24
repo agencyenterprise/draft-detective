@@ -345,5 +345,22 @@
     "target_final_result": "valid",
     "target_answer": "Valid article reference with potential small inconsistencies",
     "note": "False positive: DD says year should be 2020 (Google Books lists 2020) but Google Scholar lists the year as 2019, which matches the citation."
+  },
+  {
+    "input": "Adan, Sumaya Nur, Joanna Wiaterek, Varun Sen Bahl, Ima Bello, Camila Beltran, Tobias Dierks, Luise Eder, Liam Epstein, Abra Ganz, Natalie Kiilu, Marianne Lu, Chinasa T. Okolo, Sydney Reis, Said Saillant, Krishna Sharma, Marjia Siddik, Jan Pieter Snoeij, José Jaime Villalobos, and Anna Yelizarova. AI Benefit-Sharing Framework: Balancing Access and Safety. Oxford Martin AI Governance Initiative, Oxford Martin School, University of Oxford, December 1, 2025. As of January 22, 2026: https://aigi.ox.ac.uk/publications/ai-benefit-sharing-framework-balancing-access-and-safety/",
+    "target_final_result": "valid",
+    "target_answer": "Valid white paper reference with potential small inconsistencies",
+    "note": "DD returned 'not_found' but article exists."
+  },
+  {
+    "input": "Sundharbaabu, P.R., J. Chang, Y. Kim, Y. Shim, B. Lee, C. Noh, S. Heo, S. S. Lee, S. H. Shim, K. L. Lim, K. Jo, and J. H. Lee. \"Artificial Intelligence‐Enhanced Analysis of Genomic DNA Visualized with Nanoparticle‐Tagged Peptides under Electron Microscopy,\" Small, Vol. 21, No. 12, Mar, 2025.",
+    "target_final_result": "valid",
+    "target_answer": "Valid journal article reference with potential small inconsistencies",
+    "note": "DD returned 'not_found' but article exists."
+  },
+  {
+    "input": "Rajan, Kanna and Karlyn D. Stanley, Unmanned Cargo Vessels: A Working Paper, RAND Corporation, WR-A2889-1, 2023. As of April 18, 2026: https://www.rand.org/pubs/working_papers/WRA2889-1.html",
+    "target_final_result": "valid",
+    "target_answer": "Valid RAND working paper reference with potential small inconsistencies"
   }
 ]
