@@ -17,7 +17,6 @@ export type UploadStage = 'idle' | 'creating' | 'uploading' | 'processing' | 'co
 const INITIAL_WORKFLOWS = [
   WorkflowRunType.DocumentProcessing,
   WorkflowRunType.ReferenceExtraction,
-  WorkflowRunType.ChunkSplitting,
   WorkflowRunType.DocumentSummarization,
 ];
 
