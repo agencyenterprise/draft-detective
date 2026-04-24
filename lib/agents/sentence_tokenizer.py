@@ -1,6 +1,6 @@
 """LLM-based sentence tokenization for complex academic text."""
 
-from typing import List, Optional
+from typing import List, Optional, cast
 
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables.config import RunnableConfig
@@ -68,4 +68,7 @@ class SentenceTokenizerAgent(LangChainAgent):
         config: Optional[RunnableConfig] = None,
     ) -> SentenceChunks:
         messages = _sentence_tokenizer_prompt.format_messages(**prompt_kwargs)
-        return await self.llm.ainvoke(messages, config=config)
+        return cast(
+            SentenceChunks,
+            await self.llm.ainvoke(messages, config=config),
+        )

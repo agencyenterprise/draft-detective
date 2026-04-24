@@ -5,7 +5,7 @@ from typing import Literal, Optional
 from pydantic import Field
 
 from lib.workflows.models import BaseWorkflowConfig, BaseWorkflowState, WorkflowRunType
-from lib.workflows.simple_deep_agent.types import AgentCheckResult, IssueItem
+from lib.workflows.simple_deep_agent.agent_types import AgentCheckResult, IssueItem
 
 __all__ = ["AgentCheckResult", "IssueItem", "AboutThisGerConfig", "AboutThisGerState"]
 

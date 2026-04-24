@@ -12,7 +12,7 @@ from langchain_core.messages import BaseMessage
 from pydantic import Field, field_serializer
 
 from lib.workflows.models import BaseWorkflowConfig, BaseWorkflowState, WorkflowRunType
-from lib.workflows.simple_deep_agent.types import AgentCheckResult
+from lib.workflows.simple_deep_agent.agent_types import AgentCheckResult
 
 
 class SimpleDeepAgentConfig(BaseWorkflowConfig):

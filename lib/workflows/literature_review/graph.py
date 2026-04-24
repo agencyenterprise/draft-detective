@@ -12,4 +12,4 @@ def build_literature_review_graph() -> StateGraph:
     graph.set_entry_point("literature_review")
     graph.set_finish_point("literature_review")
 
-    return graph
+    return graph  # type: ignore[return-value]

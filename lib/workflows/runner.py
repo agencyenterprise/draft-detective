@@ -1,6 +1,7 @@
 import logging
 import uuid
 
+from langchain_core.runnables.config import RunnableConfig
 from langfuse import propagate_attributes
 from langgraph.graph import StateGraph
 from langgraph.graph.state import CompiledStateGraph
@@ -154,10 +155,10 @@ async def run_workflow(
 
         checkpoint_id = None
         updated_state = state.model_copy(deep=True, update={"errors": []})
-        thread_config = {"configurable": {"thread_id": thread_id}}
+        thread_config: RunnableConfig = {"configurable": {"thread_id": thread_id}}
 
         try:
-            async for values in app.astream(
+            async for values in app.astream(  # type: ignore[call-overload]
                 updated_state,
                 thread_config,
                 stream_mode="values",

@@ -204,9 +204,9 @@ async def get_feedback_by_issue(
     from lib.models.issue import Issue
 
     # Get the issue to verify ownership
-    stmt = select(Issue).where(col(Issue.id) == issue_id)
-    result = await session.execute(stmt)
-    issue = result.scalar_one_or_none()
+    issue_stmt = select(Issue).where(col(Issue.id) == issue_id)
+    issue_result = await session.execute(issue_stmt)
+    issue = issue_result.scalar_one_or_none()
 
     if issue is None:
         raise HTTPException(status_code=404, detail="Issue not found")
@@ -215,13 +215,13 @@ async def get_feedback_by_issue(
     await _verify_workflow_run_ownership(session, issue.workflow_run_id, user)
 
     # Get feedback for this issue
-    stmt = (
+    feedback_stmt = (
         select(Feedback)
         .where(col(Feedback.issue_id) == issue_id)
         .where(col(Feedback.user_id) == user.id)
     )
-    result = await session.execute(stmt)
-    return result.scalar_one_or_none()
+    feedback_result = await session.execute(feedback_stmt)
+    return feedback_result.scalar_one_or_none()
 
 
 async def get_workflow_feedback(
@@ -290,9 +290,9 @@ async def get_project_issue_feedback(
     from lib.models.project import Project
 
     # Verify project ownership
-    stmt = select(Project).where(col(Project.id) == project_id)
-    result = await session.execute(stmt)
-    project = result.scalar_one_or_none()
+    project_stmt = select(Project).where(col(Project.id) == project_id)
+    project_result = await session.execute(project_stmt)
+    project = project_result.scalar_one_or_none()
 
     if project is None:
         raise HTTPException(status_code=404, detail="Project not found")
@@ -301,14 +301,14 @@ async def get_project_issue_feedback(
         raise HTTPException(status_code=403, detail="Access denied")
 
     # Get all feedback for issues in this project (issue_id is not null)
-    stmt = (
+    feedback_stmt = (
         select(Feedback)
         .join(Issue, col(Feedback.issue_id) == col(Issue.id))
         .where(col(Issue.project_id) == project_id)
         .where(col(Feedback.user_id) == user.id)
     )
-    result = await session.execute(stmt)
-    return list(result.scalars().all())
+    feedback_result = await session.execute(feedback_stmt)
+    return list(feedback_result.scalars().all())
 
 
 async def get_admin_feedbacks(

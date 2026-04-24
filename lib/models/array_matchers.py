@@ -76,7 +76,7 @@ class ArrayMatcher:
 
         Pairs items by position, marks extras as unmatched.
         """
-        matches = []
+        matches: list[tuple[dict | None, dict | None, str]] = []
         min_len = min(len(expected_items), len(result_items))
 
         # Pair up items by position
@@ -106,7 +106,7 @@ class ArrayMatcher:
         Returns:
             List of (expected, actual, match_id) tuples
         """
-        matches = []
+        matches: list[tuple[dict | None, dict | None, str]] = []
         result_copy = list(result_items)
 
         for i, exp_item in enumerate(expected_items):
@@ -150,7 +150,7 @@ class ArrayMatcher:
         Returns:
             List of (expected, actual, match_id) tuples
         """
-        matches = []
+        matches: list[tuple[dict | None, dict | None, str]] = []
         result_copy = list(result_items)
 
         for i, exp_item in enumerate(expected_items):

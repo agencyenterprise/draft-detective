@@ -32,4 +32,4 @@ def build_footnote_extraction_graph():
     graph.add_edge("detect_sections", "extract_footnotes")
     graph.set_finish_point("extract_footnotes")
 
-    return graph
+    return graph  # type: ignore[return-value]

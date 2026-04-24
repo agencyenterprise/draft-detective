@@ -74,7 +74,7 @@ When evaluating claims and evidence, consider audience-appropriate standards:
 
 
 def format_supporting_documents_prompt_section(
-    supporting_document: FileDocument, truncate_at_character_count: int = None
+    supporting_document: FileDocument, truncate_at_character_count: int | None = None
 ):
     markdown = supporting_document.markdown
     output = f"""
@@ -90,7 +90,7 @@ File content converted to markdown{" (truncated)" if truncate_at_character_count
 
 def format_supporting_documents_prompt_section_multiple(
     supporting_files: list[FileDocument],
-    truncate_at_character_count: int = None,
+    truncate_at_character_count: int | None = None,
 ) -> str:
     supporting_documents = "\n\n".join(
         [

@@ -42,4 +42,4 @@ def build_reference_validation_graph() -> StateGraph:
     # Finish after finalization
     graph.set_finish_point("finalize_validations")
 
-    return graph
+    return graph  # type: ignore[return-value]

@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, cast
 
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableConfig
@@ -86,4 +86,7 @@ class DocumentChunkerAgent(LangChainAgent):
             ]
         )
         messages = template.invoke(prompt_kwargs)
-        return await self.llm.ainvoke(messages, config=config)
+        return cast(
+            DocumentChunkerResponse,
+            await self.llm.ainvoke(messages, config=config),
+        )

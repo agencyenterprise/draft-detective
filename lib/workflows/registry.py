@@ -1,11 +1,11 @@
 import logging
-from typing import Dict, List, Type
+from typing import Dict, List, Literal, Optional, Type, overload
 
 from langgraph.graph import StateGraph
 
 from lib.workflows.manifest import WorkflowManifest
 from lib.workflows.models import BaseWorkflowConfig, BaseWorkflowState, WorkflowRunType
-from lib.workflows.workflow_types import WorkflowState
+from lib.workflows.workflow_types import WorkflowConfig, WorkflowState
 
 logger = logging.getLogger(__name__)
 
@@ -31,9 +31,21 @@ def register_workflow_manifest(manifest: WorkflowManifest) -> None:
     _workflow_manifest_registry[manifest.type] = manifest
 
 
+@overload
+def get_workflow_manifest(
+    type: WorkflowRunType, raise_exception: Literal[True] = True
+) -> WorkflowManifest: ...
+
+
+@overload
+def get_workflow_manifest(
+    type: WorkflowRunType, raise_exception: Literal[False]
+) -> Optional[WorkflowManifest]: ...
+
+
 def get_workflow_manifest(
     type: WorkflowRunType, raise_exception: bool = True
-) -> WorkflowManifest:
+) -> Optional[WorkflowManifest]:
     """
     Get a workflow manifest by type.
     """
@@ -133,7 +145,7 @@ def get_state_type(type: WorkflowRunType) -> Type[BaseWorkflowState]:
     return manifest.get_state_type()
 
 
-async def create_state(config: BaseWorkflowConfig, revision: int) -> WorkflowState:
+async def create_state(config: WorkflowConfig, revision: int) -> WorkflowState:
     """
     Create initial state for a workflow from the config.
 

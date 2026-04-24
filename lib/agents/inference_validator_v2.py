@@ -5,7 +5,7 @@ Analyzes full documents for inferential errors. Each finding includes the key
 sentence, argument analysis, and suggested action. Ported from long_inference_checker.
 """
 
-from typing import Optional
+from typing import Optional, cast
 
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableConfig
@@ -114,7 +114,10 @@ class InferenceValidatorV2Agent(LangChainAgent):
         config: Optional[RunnableConfig] = None,
     ) -> InferenceResultResponse:
         messages = _inference_checker_prompt.format_messages(**prompt_kwargs)
-        structured = await self.llm.ainvoke(messages, config=config)
+        structured = cast(
+            InferenceResultResponse,
+            await self.llm.ainvoke(messages, config=config),
+        )
 
         if verbose:
             n = len(structured.results)

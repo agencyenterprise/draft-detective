@@ -12,4 +12,4 @@ def build_citation_suggester_graph() -> StateGraph:
     graph.set_entry_point("suggest_citations")
     graph.set_finish_point("suggest_citations")
 
-    return graph
+    return graph  # type: ignore[return-value]

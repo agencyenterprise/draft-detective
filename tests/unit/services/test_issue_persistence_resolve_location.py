@@ -1,5 +1,7 @@
 """Tests for issue_persistence._resolve_location."""
 
+from typing import Any
+
 from pydantic import BaseModel
 
 from lib.services.issue_persistence import _resolve_location
@@ -20,8 +22,8 @@ def _chunks() -> list[FakeChunk]:
     ]
 
 
-def _issue(**overrides) -> DocumentIssue:
-    base = dict(
+def _issue(**overrides: Any) -> DocumentIssue:
+    base: dict[str, Any] = dict(
         title="t",
         description="d",
         severity=SeverityEnum.LOW,

@@ -21,7 +21,7 @@ class HumanApprovalState(BaseWorkflowState):
     """State for human approval workflow."""
 
     type: WorkflowRunType = WorkflowRunType.HUMAN_APPROVAL
-    config: HumanApprovalConfig = Field(default_factory=HumanApprovalConfig)
+    config: HumanApprovalConfig
     approved: bool = Field(default=False, description="Whether human has approved")
     approved_at: Optional[str] = Field(
         default=None, description="ISO timestamp when approved"

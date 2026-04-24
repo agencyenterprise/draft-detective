@@ -20,7 +20,7 @@ from lib.workflows.simple_deep_agent.state import (
     SimpleDeepAgentConfig,
     SimpleDeepAgentState,
 )
-from lib.workflows.simple_deep_agent.types import issues_from_agent_result
+from lib.workflows.simple_deep_agent.agent_types import issues_from_agent_result
 
 if TYPE_CHECKING:
     from lib.workflows.workflow_types import WorkflowState
@@ -74,7 +74,7 @@ class SimpleDeepAgentManifest(
         graph.add_node("run_agent", decorated)
         graph.add_edge(START, "run_agent")
         graph.add_edge("run_agent", END)
-        return graph
+        return graph  # type: ignore[return-value]
 
     async def create_initial_state(
         self,

@@ -13,5 +13,5 @@ def build_advocacy_tone_graph() -> StateGraph:
     graph.set_entry_point("detect_advocacy_tone")
     graph.set_finish_point("detect_advocacy_tone")
 
-    return graph
+    return graph  # type: ignore[return-value]
 

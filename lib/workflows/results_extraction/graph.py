@@ -15,4 +15,4 @@ def build_results_extraction_graph() -> StateGraph:
     graph.set_entry_point("extract_results")
     graph.set_finish_point("extract_results")
 
-    return graph
+    return graph  # type: ignore[return-value]

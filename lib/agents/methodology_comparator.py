@@ -223,8 +223,8 @@ class MethodologyComparisonAgent(LangChainAgent):
             response_format=MethodologyComparisonResponse,
         )
 
-        result = await agent.ainvoke(
-            {"messages": [HumanMessage(content=prompt.text)]},
+        result = await agent.ainvoke(  # type: ignore[call-overload]
+            {"messages": [HumanMessage(content=prompt.to_string())]},
             config=config,
             context=self.context,
         )

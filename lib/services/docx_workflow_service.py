@@ -58,6 +58,9 @@ async def generate_docx(
         logger.info(f"Serving original DOCX for {project_id}")
         return main_file.file_path, main_file.file_name
 
+    # After the "original" early-return above, docx_type is a DocxManipulatorType.
+    assert isinstance(docx_type, DocxManipulatorType)
+
     chunks = await file_artifacts.get_chunks()
 
     # Validate file is a DOCX
@@ -125,6 +128,8 @@ async def generate_docx(
             docx_type=docx_type,
         )
     elif docx_type == DocxManipulatorType.ADD_IN:
+        if share_token is None:
+            raise ValueError("share_token is required for ADD_IN docx export")
         output_path = await docx_manipulator_service.add_addin_metadata_to_docx(
             original_docx_path=main_file.file_path,
             share_token=share_token,

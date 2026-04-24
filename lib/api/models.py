@@ -67,7 +67,7 @@ class WorkflowProgressResponse(BaseModel):
             return str(v)
         return v
 
-    @computed_field
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def status(self) -> str:
         """Derive status from timestamps."""

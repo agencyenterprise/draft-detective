@@ -13,4 +13,4 @@ def build_reviewer_2_graph():
     graph.set_entry_point("generate_review")
     graph.set_finish_point("generate_review")
 
-    return graph
+    return graph  # type: ignore[return-value]
