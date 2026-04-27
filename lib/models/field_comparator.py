@@ -304,7 +304,7 @@ class FieldComparator:
         """
         passed = 0
         failed = 0
-        examples = []
+        examples: list[ComparisonExample] = []
 
         for exp_item, res_item, match_id in matches:
             if exp_item is None:

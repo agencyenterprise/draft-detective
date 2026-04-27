@@ -4,8 +4,6 @@ from langgraph.graph import StateGraph
 from langgraph.graph.state import CompiledStateGraph, RunnableConfig
 
 from lib.agents.reference_validator import ReferenceValidationFinalResult
-from lib.services.chunk_line_matcher import find_chunks_by_line_range
-from lib.workflows.chunk_utils import build_analyzed_chunks
 from lib.workflows.manifest import WorkflowManifest
 from lib.workflows.models import DocumentIssue, SeverityEnum, WorkflowRunType
 from lib.workflows.reference_extraction.state import ReferenceExtractionState
@@ -17,29 +15,6 @@ from lib.workflows.reference_validation.state import (
 )
 from lib.workflows.workflow_types import WorkflowState
 from lib.workflows.util import get_state_by_type
-
-
-def _build_ref_to_chunks(
-    ref_extraction_state: ReferenceExtractionState | None,
-    other_states: List[WorkflowState],
-) -> dict[str, List[int]]:
-    """Build a mapping from reference ID to chunk indices.
-
-    Computes chunk overlap from chunk splitting state using each reference's
-    line range.
-    """
-    if ref_extraction_state is None:
-        return {}
-
-    chunks = build_analyzed_chunks(other_states)
-
-    ref_to_chunks: dict[str, List[int]] = {}
-    for ref in ref_extraction_state.extracted_references:
-        if chunks and ref.start_line is not None and ref.end_line is not None:
-            ref_to_chunks[ref.id] = find_chunks_by_line_range(
-                chunks, ref.start_line, ref.end_line
-            )
-    return ref_to_chunks
 
 
 _FINAL_RESULT_SEVERITY: dict[ReferenceValidationFinalResult, SeverityEnum] = {
@@ -123,7 +98,11 @@ class ReferenceValidationManifest(
             else None
         )
 
-        ref_to_chunks = _build_ref_to_chunks(ref_extraction_state, other_states)
+        ref_by_id = (
+            {ref.id: ref for ref in ref_extraction_state.extracted_references}
+            if ref_extraction_state
+            else {}
+        )
 
         for validation in state.reference_validations:
             if validation.status != ReferenceValidationStatus.COMPLETED:
@@ -133,7 +112,7 @@ class ReferenceValidationManifest(
                 continue
 
             result = validation.validation_result
-            chunk_indices = ref_to_chunks.get(validation.reference_id, [])
+            ref = ref_by_id.get(validation.reference_id)
             severity = _FINAL_RESULT_SEVERITY[result.final_result]
             title = _FINAL_RESULT_TITLE[result.final_result]
 
@@ -149,7 +128,8 @@ class ReferenceValidationManifest(
                 description=f"> {result.original_reference}\n\n{result.suggested_action}",
                 severity=severity,
                 type=self.type,
-                chunk_indices=chunk_indices if chunk_indices else None,
+                start_line=ref.start_line if ref else None,
+                end_line=ref.end_line if ref else None,
                 long_description=f"{f'### Suggested updated reference\n\n> {result.updated_reference}' if result.updated_reference else ''}\n\n### Field validations\n\n{field_validations}\n\n### Reasoning\n\n{result.reasoning}",
             )
             issues.append(issue)

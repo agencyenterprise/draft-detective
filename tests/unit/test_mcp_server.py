@@ -11,6 +11,13 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 import pytest_asyncio
+from fastmcp.client import Client
+from fastmcp.client.client import CallToolResult
+from fastmcp.server.auth import AccessToken
+from fastmcp.server.dependencies import _task_access_token
+from mcp.types import TextContent
+
+from lib.models.user import User, UserRole
 
 # Patch auth factory before importing the MCP module.
 # lib.api.mcp calls create_mcp_auth() at module level, which raises
@@ -24,10 +31,12 @@ from lib.api.mcp import mcp  # noqa: E402
 
 _mcp_auth_mod.create_mcp_auth = _orig_create_mcp_auth
 
-from fastmcp.client import Client  # noqa: E402
-from fastmcp.server.auth import AccessToken  # noqa: E402
-from fastmcp.server.dependencies import _task_access_token  # noqa: E402
-from lib.models.user import User, UserRole  # noqa: E402
+
+def _text_of(result: CallToolResult) -> str:
+    """Return the text payload of a tool-call result, asserting it is TextContent."""
+    first = result.content[0]
+    assert isinstance(first, TextContent), f"expected TextContent, got {type(first).__name__}"
+    return first.text
 
 EXPECTED_TOOL_NAMES = {
     "list_workflow_types",
@@ -179,7 +188,7 @@ async def test_export_project_docx_schema_has_optional_params(mcp_client: Client
 @pytest.mark.asyncio
 async def test_list_workflow_types_returns_workflow_types_and_categories(authed_mcp_client: Client):
     result = await authed_mcp_client.call_tool("list_workflow_types", {})
-    text = result.content[0].text
+    text = _text_of(result)
     data = json.loads(text)
     assert "workflow_types" in data
     assert "categories" in data
@@ -192,7 +201,7 @@ async def test_list_workflow_types_returns_workflow_types_and_categories(authed_
 @pytest.mark.asyncio
 async def test_list_workflow_types_entry_has_expected_fields(authed_mcp_client: Client):
     result = await authed_mcp_client.call_tool("list_workflow_types", {})
-    data = json.loads(result.content[0].text)
+    data = json.loads(_text_of(result))
 
     expected_workflow_keys = {
         "type",
@@ -212,7 +221,7 @@ async def test_list_workflow_types_entry_has_expected_fields(authed_mcp_client: 
 @pytest.mark.asyncio
 async def test_list_workflow_types_category_entry_has_expected_fields(authed_mcp_client: Client):
     result = await authed_mcp_client.call_tool("list_workflow_types", {})
-    data = json.loads(result.content[0].text)
+    data = json.loads(_text_of(result))
 
     expected_category_keys = {"slug", "label", "workflows"}
 
@@ -226,7 +235,7 @@ async def test_list_workflow_types_entries_have_valid_types(authed_mcp_client: C
     from lib.workflows.models import WorkflowRunType
 
     result = await authed_mcp_client.call_tool("list_workflow_types", {})
-    data = json.loads(result.content[0].text)
+    data = json.loads(_text_of(result))
 
     valid_types = {t.value for t in WorkflowRunType}
     for workflow in data["workflow_types"]:
@@ -240,7 +249,7 @@ async def test_list_workflow_types_category_workflows_are_valid_types(authed_mcp
     from lib.workflows.models import WorkflowRunType
 
     result = await authed_mcp_client.call_tool("list_workflow_types", {})
-    data = json.loads(result.content[0].text)
+    data = json.loads(_text_of(result))
 
     valid_types = {t.value for t in WorkflowRunType}
     for category in data["categories"]:

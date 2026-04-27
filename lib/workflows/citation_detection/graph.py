@@ -25,4 +25,4 @@ def build_citation_detection_graph() -> StateGraph:
     graph.set_entry_point("detect_citations")
     graph.set_finish_point("detect_citations")
 
-    return graph
+    return graph  # type: ignore[return-value]

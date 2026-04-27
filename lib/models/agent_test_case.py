@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List, Optional, Type, TypedDict, TypeVar
+from typing import Any, Dict, Generic, List, Optional, Type, TypeVar
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -24,7 +24,7 @@ class EvaluationResult(BaseModel):
     )
 
 
-class AgentTestCase(BaseModel):
+class AgentTestCase(BaseModel, Generic[TResponse]):
     """Test case for agents
 
     Architecture:
@@ -64,7 +64,7 @@ class AgentTestCase(BaseModel):
     name: str = Field(description="Test case name")
     agent: BaseAgent = Field(description="Agent instance to test")
     response_model: Type[TResponse] = Field(description="Expected response model type")
-    prompt_kwargs: Dict[str, Any] | BaseModel | TypedDict = Field(
+    prompt_kwargs: Dict[str, Any] | BaseModel = Field(
         description="Agent invocation arguments"
     )
     expected_dict: Dict[str, Any] = Field(description="Expected output as dictionary")

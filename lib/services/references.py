@@ -3,7 +3,7 @@ import logging
 import uuid
 from contextlib import asynccontextmanager
 from functools import lru_cache
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, cast
 
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus
 from lib.services.workflow_runs import (
@@ -96,7 +96,7 @@ async def _get_file_matching_workflow_state(
         )
 
     if state is not None:
-        return run, state
+        return run, cast(ReferenceFileMatchingState, state)
 
     # State doesn't exist - construct a default one from document processing state
     logger.info(
@@ -178,7 +178,7 @@ async def _get_extraction_workflow_state(
         logger.info(f"No extraction state found in workflow for project {project_id}")
         return run, None
 
-    return run, state
+    return run, cast(ReferenceExtractionState, state)
 
 
 async def get_file_reference_matches(project_id: str, revision: int) -> List[ReferenceFileMatch]:
@@ -253,7 +253,7 @@ async def _get_downloader_workflow_state(
     state = await get_workflow_run_state_by_thread_id(
         run.langgraph_thread_id, WorkflowRunType.REFERENCE_DOWNLOADER
     )
-    return run, state
+    return run, cast(Optional[ReferenceDownloaderState], state)
 
 
 async def remove_fetch_result_for_file(

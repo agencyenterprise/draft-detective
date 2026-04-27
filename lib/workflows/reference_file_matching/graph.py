@@ -26,4 +26,4 @@ def build_reference_file_matching_graph() -> StateGraph:
     graph.set_entry_point("match_supporting_docs")
     graph.set_finish_point("match_supporting_docs")
 
-    return graph
+    return graph  # type: ignore[return-value]

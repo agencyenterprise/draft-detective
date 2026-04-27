@@ -89,11 +89,18 @@ async def _download_file_from_url_async(
         logger.error(f"Error downloading content from {url} (error: {exc})")
         raise
 
+    if saved_file is None:
+        return DownloadFileFromUrlResponse(
+            file_id=None,
+            message=f"Failed to download content from {url}: no file produced",
+            success=False,
+        )
+
     file_id = await _persist_file_record(
         saved_file=saved_file,
         reference_details=reference,
         project_id=context.project_id,
-        user_id=context.user_id,
+        user_id=uuid.UUID(context.user_id) if context.user_id else None,
     )
 
     return DownloadFileFromUrlResponse(
@@ -146,7 +153,7 @@ async def _download_direct_url(url: str) -> SavedFile | None:
         return await _download_with_jina_api(url)
 
 
-def is_rate_limited(exc: Exception) -> bool:
+def is_rate_limited(exc: BaseException) -> bool:
     return isinstance(exc, httpx.HTTPStatusError) and exc.response.status_code == 429
 
 

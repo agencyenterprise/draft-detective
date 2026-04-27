@@ -19,4 +19,4 @@ def build_reference_extraction_graph() -> StateGraph:
     graph.set_entry_point("extract_text_references_v2")
     graph.set_finish_point("extract_text_references_v2")
 
-    return graph
+    return graph  # type: ignore[return-value]

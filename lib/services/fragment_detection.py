@@ -200,7 +200,7 @@ HIGH_SIMILARITY_PENALTY = 2
 
 
 async def detect_by_semantic_coherence(
-    sentences: List[str], original_paragraph: str = None
+    sentences: List[str], original_paragraph: Optional[str] = None
 ) -> tuple[bool, int]:
     """
     Detect suspicious fragments using semantic coherence analysis with embeddings.
@@ -268,7 +268,7 @@ LOW_ALPHANUMERIC_PENALTY = 2
 
 
 def detect_by_statistical_anomalies(
-    sentences: List[str], original_paragraph: str = None
+    sentences: List[str], original_paragraph: Optional[str] = None
 ) -> tuple[bool, int]:
     """
     Detect suspicious fragments using statistical anomaly detection.

@@ -8,10 +8,10 @@ from starlette.responses import FileResponse
 
 from lib.api.auth import get_current_user, get_current_user_optional
 from lib.api.models import CreateRevisionResponse, RevisionListItem, WorkflowProgressResponse
-from lib.models.file import File, FileListItem, FileRole
+from lib.models.file import File, FileRole
 from lib.models.project import AccessLevel, Project
 from lib.models.user import User
-from lib.services.docx_workflow_service import DocxManipulatorType, get_or_generate_docx
+from lib.services.docx_workflow_service import DocxManipulatorType, generate_docx
 from lib.services.project_zip import create_project_files_zip
 from lib.services.projects import (
     ProjectDetailed,
@@ -145,26 +145,18 @@ async def download_project_docx(
     ),
     current_user: Optional[User] = Depends(get_current_user_optional),
 ):
-    """
-    Download DOCX with AI comments.
-
-    Uses cached version if available, otherwise generates via workflow.
-    First request may take a few seconds as it generates the DOCX.
-    Subsequent requests with the same query parameters are instant (cached).
-    """
+    """Download DOCX with AI comments. Always regenerates from scratch."""
 
     await get_project_access(project_id, current_user, share_token)
 
     try:
-        # Get cached or generate DOCX via workflow (with caching)
-        file_path, filename = await get_or_generate_docx(
+        file_path, filename = await generate_docx(
             project_id=project_id,
             share_token=share_token,
             severities=severities,
             workflow_types=workflow_types,
             docx_type=docx_type,
             include_passing=include_passing,
-            use_cache=True,
         )
     except Exception as e:
         logger.error("Failed to generate DOCX: %s", e, exc_info=True)

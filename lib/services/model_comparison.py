@@ -6,10 +6,12 @@ collecting evaluation results and metrics for comparison.
 
 import asyncio
 import logging
-from typing import Any, Dict, List, TYPE_CHECKING
+from typing import Any, Dict, List, TYPE_CHECKING, cast
 
 from langchain.chat_models import init_chat_model
 from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.runnables.config import RunnableConfig
+from pydantic import BaseModel
 
 from lib.config.langfuse import langfuse_handler
 from lib.config.llm_models import LLMModel
@@ -46,7 +48,7 @@ async def run_single_model_evaluation(
 
     tracker.start_timing()
 
-    config = {
+    config: RunnableConfig = {
         "run_name": test_case.name,
         "callbacks": tracker.get_callbacks(),
         "metadata": {
@@ -54,7 +56,10 @@ async def run_single_model_evaluation(
         },
     }
 
-    result = await agent.ainvoke(test_case.prompt_kwargs, config=config)
+    prompt_kwargs = test_case.prompt_kwargs
+    if isinstance(prompt_kwargs, BaseModel):
+        prompt_kwargs = prompt_kwargs.model_dump()
+    result = await agent.ainvoke(prompt_kwargs, config=config)
 
     tracker.stop_timing()
 
@@ -188,6 +193,7 @@ async def _compare_strict_fields(
             field_comparisons=[],
         )
 
+    assert test_case.expected is not None, "expected must be populated before comparison"
     comparator = _create_field_comparator(test_case, test_case.strict_fields)
     field_comparisons = comparator.compare_fields(
         test_case.expected, actual_output, comparison_type="strict"
@@ -216,6 +222,7 @@ def _prepare_llm_comparison_data(
     Returns:
         Tuple of (expected_json, actual_json) as formatted strings
     """
+    assert test_case.expected is not None, "expected must be populated before comparison"
     expected_json = test_case.expected.model_dump_json(
         include=test_case.llm_fields,
         exclude=test_case.ignore_fields,
@@ -274,8 +281,8 @@ async def _invoke_llm_evaluator(
 
     evaluator_model_str = str(test_case.evaluator_model)
     provider, model = evaluator_model_str.split(":", 1)
-    grader = init_chat_model(model, model_provider=provider, temperature=0, timeout=180)
-    grader = grader.with_structured_output(EvaluationResult)
+    base_grader = init_chat_model(model, model_provider=provider, temperature=0, timeout=180)
+    grader = base_grader.with_structured_output(EvaluationResult)
 
     instructions = _build_llm_evaluation_instructions(test_case)
 
@@ -300,15 +307,16 @@ RECEIVED JSON (selected fields):
         actual_json=actual_json,
     )
 
-    eval_result = await grader.ainvoke(
-        messages,
-        config={
-            "run_name": f"{test_case.name}::llm_grader",
-            "callbacks": [langfuse_handler],
-            "metadata": {
-                "langfuse_session_id": test_case.session_id,
-            },
+    grader_config: RunnableConfig = {
+        "run_name": f"{test_case.name}::llm_grader",
+        "callbacks": [langfuse_handler],
+        "metadata": {
+            "langfuse_session_id": test_case.session_id,
         },
+    }
+    eval_result = cast(
+        EvaluationResult,
+        await grader.ainvoke(messages, config=grader_config),
     )
 
     return eval_result
@@ -347,6 +355,7 @@ async def _compare_llm_fields(
 
     eval_result = await _invoke_llm_evaluator(test_case, expected_json, actual_json)
 
+    assert test_case.expected is not None, "expected must be populated before comparison"
     comparator = _create_field_comparator(test_case, test_case.llm_fields)
     field_comparisons = comparator.compare_fields(
         test_case.expected, actual_output, comparison_type="llm"

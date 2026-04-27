@@ -13,6 +13,17 @@ from lib.workflows.document_summarization.state import FileSummary
 from lib.workflows.reference_extraction.state import ExtractedReference
 
 
+def _empty_file_document(file_id: str) -> FileDocument:
+    return FileDocument(
+        file_id=file_id,
+        file_name="",
+        file_path="",
+        file_type="",
+        markdown="",
+        markdown_token_count=0,
+    )
+
+
 class MockFileArtifactsService(FileArtifactsServiceType):
     """Mock file artifacts service for testing.
 
@@ -39,12 +50,12 @@ class MockFileArtifactsService(FileArtifactsServiceType):
         for f in self._supporting_files:
             if f.file_id == file_id:
                 return f
-        return FileDocument(file_id=file_id)
+        return _empty_file_document(file_id)
 
     async def get_main_file(self) -> FileDocument:
         if self._main_file:
             return self._main_file
-        return FileDocument(file_id="main_file_id")
+        return _empty_file_document("main_file_id")
 
     async def get_supporting_files(self) -> list[FileDocument]:
         if self._supporting_files:
@@ -78,7 +89,8 @@ class MockFileArtifactsService(FileArtifactsServiceType):
         include_supporting_files: bool = True,
         include_skills: bool = True,
     ) -> dict[str, Any]:
-        files = {"/main.md": create_file_data(self._main_file.markdown)}
+        main_markdown = self._main_file.markdown if self._main_file else ""
+        files = {"/main.md": create_file_data(main_markdown)}
         if include_supporting_files:
             files.update(
                 {

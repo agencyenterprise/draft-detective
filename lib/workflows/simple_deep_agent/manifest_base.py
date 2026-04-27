@@ -11,7 +11,6 @@ from langgraph.graph import START, StateGraph
 from langgraph.graph.state import END
 from langgraph.runtime import Runtime
 
-from lib.workflows.chunk_utils import build_analyzed_chunks
 from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
 from lib.workflows.manifest import WorkflowManifest
@@ -21,7 +20,7 @@ from lib.workflows.simple_deep_agent.state import (
     SimpleDeepAgentConfig,
     SimpleDeepAgentState,
 )
-from lib.workflows.simple_deep_agent.types import issues_from_agent_result
+from lib.workflows.simple_deep_agent.agent_types import issues_from_agent_result
 
 if TYPE_CHECKING:
     from lib.workflows.workflow_types import WorkflowState
@@ -75,7 +74,7 @@ class SimpleDeepAgentManifest(
         graph.add_node("run_agent", decorated)
         graph.add_edge(START, "run_agent")
         graph.add_edge("run_agent", END)
-        return graph
+        return graph  # type: ignore[return-value]
 
     async def create_initial_state(
         self,
@@ -92,5 +91,4 @@ class SimpleDeepAgentManifest(
     ) -> List[DocumentIssue]:
         if state.result is None:
             return []
-        chunks = build_analyzed_chunks(other_states)
-        return issues_from_agent_result(state.result, self.type, chunks)
+        return issues_from_agent_result(state.result, self.type)

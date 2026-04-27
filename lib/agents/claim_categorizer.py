@@ -22,7 +22,7 @@ The categories are:
 """
 from __future__ import annotations
 
-from typing import Optional
+from typing import Optional, cast
 
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableConfig
@@ -287,7 +287,10 @@ class ClaimCategorizerAgent(LangChainAgent):
         self, prompt_kwargs: dict, config: Optional[RunnableConfig] = None
     ) -> ClaimCategorizationResponse:
         messages = _claim_categorizer_prompt.format_messages(**prompt_kwargs)
-        return await self.llm.ainvoke(messages, config=config)
+        return cast(
+            ClaimCategorizationResponse,
+            await self.llm.ainvoke(messages, config=config),
+        )
 
 
 if __name__ == "__main__":

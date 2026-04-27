@@ -22,6 +22,9 @@ wheels/
 # LangGraph cache
 .langgraph_api/
 
+# mypy cache
+.mypy_cache/
+
 # Test results
 test_results.json
 

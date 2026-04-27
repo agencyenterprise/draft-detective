@@ -136,12 +136,12 @@ import type {
   SetApiKeyApiUsersMeApiKeyPutData,
   SetApiKeyApiUsersMeApiKeyPutErrors,
   SetApiKeyApiUsersMeApiKeyPutResponses,
-  StartAnalysisApiStartAnalysisDoNotUsePostData,
-  StartAnalysisApiStartAnalysisDoNotUsePostErrors,
-  StartAnalysisApiStartAnalysisDoNotUsePostResponses,
   StartAnalysisApiStartAnalysisPostData,
   StartAnalysisApiStartAnalysisPostErrors,
   StartAnalysisApiStartAnalysisPostResponses,
+  StartAnalysisOpenapiStubApiStartAnalysisDoNotUsePostData,
+  StartAnalysisOpenapiStubApiStartAnalysisDoNotUsePostErrors,
+  StartAnalysisOpenapiStubApiStartAnalysisDoNotUsePostResponses,
   StartMultipleWorkflowsApiWorkflowsStartMultiplePostData,
   StartMultipleWorkflowsApiWorkflowsStartMultiplePostErrors,
   StartMultipleWorkflowsApiWorkflowsStartMultiplePostResponses,
@@ -292,14 +292,14 @@ export const updateAppConfigApiAppConfigsKeyPut = <ThrowOnError extends boolean 
   });
 
 /**
- * Start Analysis
+ * Start Analysis Openapi Stub
  */
-export const startAnalysisApiStartAnalysisDoNotUsePost = <ThrowOnError extends boolean = true>(
-  options: Options<StartAnalysisApiStartAnalysisDoNotUsePostData, ThrowOnError>,
+export const startAnalysisOpenapiStubApiStartAnalysisDoNotUsePost = <ThrowOnError extends boolean = true>(
+  options: Options<StartAnalysisOpenapiStubApiStartAnalysisDoNotUsePostData, ThrowOnError>,
 ) =>
   (options.client ?? client).post<
-    StartAnalysisApiStartAnalysisDoNotUsePostResponses,
-    StartAnalysisApiStartAnalysisDoNotUsePostErrors,
+    StartAnalysisOpenapiStubApiStartAnalysisDoNotUsePostResponses,
+    StartAnalysisOpenapiStubApiStartAnalysisDoNotUsePostErrors,
     ThrowOnError,
     'data'
   >({
@@ -902,11 +902,7 @@ export const updateProjectEndpointApiProjectProjectIdPatch = <ThrowOnError exten
 /**
  * Download Project Docx
  *
- * Download DOCX with AI comments.
- *
- * Uses cached version if available, otherwise generates via workflow.
- * First request may take a few seconds as it generates the DOCX.
- * Subsequent requests with the same query parameters are instant (cached).
+ * Download DOCX with AI comments. Always regenerates from scratch.
  */
 export const downloadProjectDocxApiProjectsProjectIdDocxDownloadGet = <ThrowOnError extends boolean = true>(
   options: Options<DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetData, ThrowOnError>,

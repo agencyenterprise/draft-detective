@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Optional
+from typing import Optional, cast
 
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableConfig
@@ -213,4 +213,7 @@ class AddendumReportGeneratorAgent(LangChainAgent):
         self, prompt_kwargs: dict, config: Optional[RunnableConfig] = None
     ) -> ReportOutput:
         messages = _addendum_prompt.format_messages(**prompt_kwargs)
-        return await self.llm.ainvoke(messages, config=config)
+        return cast(
+            ReportOutput,
+            await self.llm.ainvoke(messages, config=config),
+        )

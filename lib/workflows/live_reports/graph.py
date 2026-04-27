@@ -20,4 +20,4 @@ def build_live_reports_graph() -> StateGraph:
     graph.add_edge("generate_live_reports_analysis", "generate_addendum_report")
     graph.set_finish_point("generate_addendum_report")
 
-    return graph
+    return graph  # type: ignore[return-value]

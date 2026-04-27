@@ -87,8 +87,8 @@ def split_into_sections(markdown: str) -> List[DocumentSection]:
     boundaries = _parse_heading_boundaries(lines)
 
     if not boundaries:
-        sections, _ = _subsplit(markdown, markdown, 0, [], 0)
-        return sections or [DocumentSection(section_index=0, start_line=1, end_line=total_lines)]
+        fallback_sections, _ = _subsplit(markdown, markdown, 0, [], 0)
+        return fallback_sections or [DocumentSection(section_index=0, start_line=1, end_line=total_lines)]
 
     # Build raw sections: each heading starts a section that runs until the next heading.
     raw: List[Tuple[int, int, List[str]]] = []

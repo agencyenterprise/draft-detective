@@ -1,5 +1,6 @@
 from typing import List, Type
 
+from langchain_core.runnables.config import RunnableConfig
 from langgraph.graph import StateGraph
 from langgraph.graph.state import CompiledStateGraph
 
@@ -36,7 +37,7 @@ class ReferenceDownloaderManifest(
         """Build and return the graph of the workflow."""
         return build_reference_downloader_graph()
 
-    async def on_cancel(self, state: ReferenceDownloaderState, app: CompiledStateGraph, thread_config: dict) -> None:
+    async def on_cancel(self, state: ReferenceDownloaderState, app: CompiledStateGraph, thread_config: RunnableConfig) -> None:
         """Mark any pending reference fetches as cancelled so they don't show as in-progress."""
         updated = [
             item.model_copy(update={"status": ReferenceFetchStatus.CANCELLED})

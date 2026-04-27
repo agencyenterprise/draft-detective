@@ -22,7 +22,7 @@ class ExtractedInferenceResult(ConsolidatedInferenceAnalysis):
 class ExtractedInferenceResultResponse(ConsolidatedInferenceResultResponse):
     """Response containing extracted inference results with chunk indices."""
 
-    results: List[ExtractedInferenceResult] = Field(
+    results: List[ExtractedInferenceResult] = Field(  # type: ignore[assignment]
         description="Extracted inference results with chunk indices and severity.",
     )
 

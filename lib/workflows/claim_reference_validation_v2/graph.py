@@ -35,4 +35,4 @@ def build_claim_reference_validation_v2_graph():
     graph.add_edge("validate_section", "finalize_results")
     graph.set_finish_point("finalize_results")
 
-    return graph
+    return graph  # type: ignore[return-value]

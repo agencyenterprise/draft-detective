@@ -252,7 +252,7 @@ class TestVectorSearch:
         """Test error message when top_k is outside the allowed 1-50 range."""
         mock_runtime = self._create_mock_runtime()
 
-        result = await vector_search.coroutine(
+        result = await vector_search.coroutine(  # type: ignore[attr-defined]
             self.FILE_ID, "query", top_k, mock_runtime
         )
 
@@ -265,7 +265,7 @@ class TestVectorSearch:
         mock_vector_store = MagicMock()
         mock_runtime = self._create_mock_runtime(vector_store=mock_vector_store)
 
-        result = await vector_search.coroutine(
+        result = await vector_search.coroutine(  # type: ignore[attr-defined]
             self.FILE_ID, "query", top_k, mock_runtime
         )
 

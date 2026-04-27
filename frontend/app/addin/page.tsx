@@ -3,7 +3,7 @@
 import { Button } from '@/components/ui/button';
 import { DocumentExplorerSidebarFilter } from '@/components/results/components/document-explorer-sidebar-filter';
 import { DocumentIssuesList } from '@/components/results/components/document-issues-list';
-import { addIssueMarkers, jumpToChunk } from '@/lib/addin/office-utils';
+import { addIssueMarkers, jumpToIssue } from '@/lib/addin/office-utils';
 import { useOfficeInit } from '@/lib/addin/use-office-init';
 import { ProjectFeedbackProvider } from '@/lib/contexts/project-feedback-context';
 import { getSharedResourceApiPublicShareTokenGet, Issue } from '@/lib/generated-api';
@@ -63,12 +63,14 @@ export default function AddinPage() {
   const isParagraphView = paragraphIssues.length > 0;
 
   const visibleIssues = useMemo(() => getVisibleIssues(activeIssues, filter), [activeIssues, filter]);
-  const resolvedCount = useMemo(() => getResolvedCount(activeIssues, []), [activeIssues]);
+  const resolvedCount = useMemo(() => getResolvedCount(activeIssues, null), [activeIssues]);
   const passingCount = useMemo(() => getPassingCount(activeIssues), [activeIssues]);
-  const filteredIssues = useMemo(() => getFilteredIssues(visibleIssues, filter, []), [visibleIssues, filter]);
+  const filteredIssues = useMemo(() => getFilteredIssues(visibleIssues, filter, null), [visibleIssues, filter]);
 
   const visibleIssueCount = getIssueCount(visibleIssues);
   const filteredIssueCount = getIssueCount(filteredIssues);
+
+  const [scrollContainer, setScrollContainer] = useState<HTMLDivElement | null>(null);
 
   if (!isInitialized) return <div className="p-4 text-center">Loading Add-in...</div>;
 
@@ -119,7 +121,7 @@ export default function AddinPage() {
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-2 space-y-4 text-sm">
+        <div ref={setScrollContainer} className="flex-1 overflow-y-auto p-2 space-y-4 text-sm">
           {error ? (
             <div className="text-red-500 text-sm">Failed to load issues. Please check your settings.</div>
           ) : null}
@@ -130,9 +132,8 @@ export default function AddinPage() {
             <>
               <DocumentIssuesList
                 issues={filteredIssues}
-                onSelect={(issue) => jumpToChunk(issue.chunk_indices?.[0] ?? 0)}
-                jumpToAlias="paragraph"
-                hideJumpToChunkIndex={true}
+                scrollElement={scrollContainer}
+                onSelect={(issue) => jumpToIssue(issue)}
               />
               {hasActiveFilters(filter) && filteredIssues.length === 0 && (
                 <div className="text-xs text-gray-500 pt-2 mt-2">No issues found for your filters</div>

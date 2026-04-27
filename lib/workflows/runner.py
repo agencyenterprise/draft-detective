@@ -1,6 +1,7 @@
 import logging
 import uuid
 
+from langchain_core.runnables.config import RunnableConfig
 from langfuse import propagate_attributes
 from langgraph.graph import StateGraph
 from langgraph.graph.state import CompiledStateGraph
@@ -154,10 +155,10 @@ async def run_workflow(
 
         checkpoint_id = None
         updated_state = state.model_copy(deep=True, update={"errors": []})
-        thread_config = {"configurable": {"thread_id": thread_id}}
+        thread_config: RunnableConfig = {"configurable": {"thread_id": thread_id}}
 
         try:
-            async for values in app.astream(
+            async for values in app.astream(  # type: ignore[call-overload]
                 updated_state,
                 thread_config,
                 stream_mode="values",
@@ -286,6 +287,14 @@ async def _persist_issues_from_state(
     # Convert state to issues using the manifest
     issues = manifest.convert_state_to_issues(state, existing_states)
 
+    # Pull chunks from the chunk_splitting state (if present) so persistence
+    # can derive the missing side of (chunk_indices, line range) per issue.
+    chunks = None
+    for existing_state in existing_states:
+        if existing_state.type == WorkflowRunType.CHUNK_SPLITTING:
+            chunks = getattr(existing_state, "chunks", None) or None
+            break
+
     await persist_workflow_issues(
         workflow_run_id=uuid.UUID(workflow_run_id),
         project_id=uuid.UUID(project_id),
@@ -293,4 +302,5 @@ async def _persist_issues_from_state(
         issues=issues,
         checkpoint_id=checkpoint_id,
         revision=revision,
+        chunks=chunks,
     )

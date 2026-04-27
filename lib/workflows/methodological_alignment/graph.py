@@ -16,4 +16,4 @@ def build_methodological_alignment_graph() -> StateGraph:
     graph.set_entry_point("align_methodology")
     graph.set_finish_point("align_methodology")
 
-    return graph
+    return graph  # type: ignore[return-value]

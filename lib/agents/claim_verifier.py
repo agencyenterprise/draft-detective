@@ -134,7 +134,7 @@ class ClaimVerifierAgent(LangChainAgent):
         agent = create_agent(
             self.llm,
             [vector_search, search_document, read_document],
-            system_prompt=system_prompt.text,
+            system_prompt=system_prompt.to_string(),
             context_schema=ContextSchema,
             response_format=ParagraphVerificationResult,
         )

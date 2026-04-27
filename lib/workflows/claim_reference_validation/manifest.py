@@ -1,5 +1,6 @@
 from typing import List, Optional, Type, cast
 
+from langchain_core.runnables.config import RunnableConfig
 from langgraph.graph import StateGraph
 from langgraph.graph.state import CompiledStateGraph
 
@@ -66,7 +67,7 @@ class ClaimReferenceValidationManifest(
         self,
         state: ClaimReferenceValidationState,
         app: CompiledStateGraph,
-        thread_config: dict,
+        thread_config: RunnableConfig,
     ) -> None:
         """Mark any pending paragraph verifications as cancelled so they don't show as in-progress."""
         updated = [

@@ -26,7 +26,7 @@ from lib.agents.document_summarizer import DocumentSummarizerAgent
 TESTS_DIR = Path(__file__).parent.parent
 
 # caching summarized argument
-SUMMARIZED_ARGUMENT_CACHE = {}
+SUMMARIZED_ARGUMENT_CACHE: dict[str, str] = {}
 
 
 def _build_cases() -> list[AgentTestCase]:
@@ -93,6 +93,7 @@ async def test_claim_extractor_agent_cases(case: AgentTestCase, test_models):
         case: Test case configuration
         test_models: List of models to test (from fixture, None for default)
     """
+    assert isinstance(case.prompt_kwargs, dict), "test uses dict prompt_kwargs"
     main_doc_markdown = case.prompt_kwargs.get("_main_doc_markdown")
 
     # Handle None case
@@ -110,7 +111,7 @@ async def test_claim_extractor_agent_cases(case: AgentTestCase, test_models):
     else:
         # if summarized argument is not provided, generate it
         # access summarized argument cache based on file path
-        file_path = case.prompt_kwargs.get("_file_path")
+        file_path = str(case.prompt_kwargs.get("_file_path"))
         summarized_argument = SUMMARIZED_ARGUMENT_CACHE.get(file_path)
         if summarized_argument:
             case.prompt_kwargs["summarized_argument"] = summarized_argument

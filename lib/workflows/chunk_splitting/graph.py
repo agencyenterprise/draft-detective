@@ -26,4 +26,4 @@ def build_chunk_splitting_graph() -> StateGraph:
     # Core edges
     graph.add_edge("split_into_chunks", END)
 
-    return graph
+    return graph  # type: ignore[return-value]

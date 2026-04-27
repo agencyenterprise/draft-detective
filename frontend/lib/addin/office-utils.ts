@@ -1,38 +1,62 @@
 import { Issue } from '@/lib/generated-api';
 
-function buildIssuesMap(issues: Issue[], chunkToParagraphMapping: Record<string, number>): Map<number, Issue[]> {
+const MARKER_TAG = 'AIReviewer_Issue_Marker';
+const AUTH_TOKEN_PROPERTY = 'AIReviewer_AuthToken';
+const PARAGRAPH_LINE_RANGES_PROPERTY = 'AIReviewer_ParagraphLineRanges';
+
+type ParagraphLineRanges = Record<string, [number, number]>;
+
+function findParagraphByLineRange(
+  paragraphLineRanges: ParagraphLineRanges,
+  startLine: number,
+  endLine: number,
+): number | null {
+  let best: number | null = null;
+  for (const [paraKey, range] of Object.entries(paragraphLineRanges)) {
+    const [paraStart, paraEnd] = range;
+    if (paraStart <= endLine && paraEnd >= startLine) {
+      const paraIndex = Number(paraKey);
+      if (best === null || paraIndex < best) {
+        best = paraIndex;
+      }
+    }
+  }
+  return best;
+}
+
+function resolveIssueParagraphIndex(issue: Issue, paragraphLineRanges: ParagraphLineRanges): number | null {
+  if (typeof issue.start_line !== 'number' || typeof issue.end_line !== 'number') {
+    return null;
+  }
+  return findParagraphByLineRange(paragraphLineRanges, issue.start_line, issue.end_line);
+}
+
+function buildIssuesMap(issues: Issue[], paragraphLineRanges: ParagraphLineRanges): Map<number, Issue[]> {
   const map = new Map<number, Issue[]>();
   issues.forEach((issue) => {
-    const indicesToProcess = new Set<number>();
-    if (issue.chunk_indices) {
-      issue.chunk_indices.forEach((idx) => indicesToProcess.add(idx));
+    const paragraphIndex = resolveIssueParagraphIndex(issue, paragraphLineRanges);
+    if (paragraphIndex === null) return;
+    if (!map.has(paragraphIndex)) {
+      map.set(paragraphIndex, []);
     }
-    indicesToProcess.forEach((chunkIndex) => {
-      const paragraphIndex = chunkToParagraphMapping[String(chunkIndex)];
-      if (paragraphIndex !== undefined) {
-        if (!map.has(paragraphIndex)) {
-          map.set(paragraphIndex, []);
-        }
-        const list = map.get(paragraphIndex)!;
-        if (!list.includes(issue)) {
-          list.push(issue);
-        }
-      }
-    });
+    const list = map.get(paragraphIndex)!;
+    if (!list.includes(issue)) {
+      list.push(issue);
+    }
   });
   return map;
 }
 
 export async function loadSettings(): Promise<{
   authToken: string | null;
-  chunkToParagraphMapping: Record<string, number> | null;
+  paragraphLineRanges: ParagraphLineRanges | null;
 }> {
   return new Promise((resolve, reject) => {
     try {
       if (typeof Office === 'undefined' || !Office.context || !Office.context.document) {
         resolve({
           authToken: null,
-          chunkToParagraphMapping: null,
+          paragraphLineRanges: null,
         });
         return;
       }
@@ -42,7 +66,7 @@ export async function loadSettings(): Promise<{
           const customProps = await getCustomDocumentProperties();
           resolve({
             authToken: customProps.authToken,
-            chunkToParagraphMapping: customProps.chunkToParagraphMapping,
+            paragraphLineRanges: customProps.paragraphLineRanges,
           });
         } else {
           console.error('Failed to refresh settings: ' + result.error.message);
@@ -58,33 +82,33 @@ export async function loadSettings(): Promise<{
 
 export async function getCustomDocumentProperties(): Promise<{
   authToken: string | null;
-  chunkToParagraphMapping: Record<string, number> | null;
+  paragraphLineRanges: ParagraphLineRanges | null;
 }> {
   if (typeof Word === 'undefined') {
-    return { authToken: null, chunkToParagraphMapping: null };
+    return { authToken: null, paragraphLineRanges: null };
   }
 
   try {
     return await Word.run(async (context) => {
       const props = context.document.properties.customProperties;
-      const tokenProp = props.getItemOrNullObject('AIReviewer_AuthToken');
-      const chunkToParagraphMappingProp = props.getItemOrNullObject('AIReviewer_ChunkToParagraphMapping');
+      const tokenProp = props.getItemOrNullObject(AUTH_TOKEN_PROPERTY);
+      const paragraphLineRangesProp = props.getItemOrNullObject(PARAGRAPH_LINE_RANGES_PROPERTY);
       tokenProp.load(['name', 'value']);
-      chunkToParagraphMappingProp.load(['name', 'value']);
+      paragraphLineRangesProp.load(['name', 'value']);
       await context.sync();
 
-      const chunkToParagraphMapping = chunkToParagraphMappingProp.isNullObject
+      const paragraphLineRanges = paragraphLineRangesProp.isNullObject
         ? null
-        : JSON.parse(String(chunkToParagraphMappingProp.value ?? '{}'));
+        : (JSON.parse(String(paragraphLineRangesProp.value ?? '{}')) as ParagraphLineRanges);
 
       return {
         authToken: tokenProp.isNullObject ? null : String(tokenProp.value ?? ''),
-        chunkToParagraphMapping,
+        paragraphLineRanges,
       };
     });
   } catch (error) {
     console.error('Error reading custom document properties:', error);
-    return { authToken: null, chunkToParagraphMapping: null };
+    return { authToken: null, paragraphLineRanges: null };
   }
 }
 
@@ -113,23 +137,7 @@ export async function getCurrentParagraphIndex(): Promise<number> {
   });
 }
 
-const MARKER_TAG = 'AIReviewer_Issue_Marker';
-
-export async function jumpToChunk(chunkIndex: number): Promise<void> {
-  if (typeof Word === 'undefined') return;
-
-  const { chunkToParagraphMapping } = await getCustomDocumentProperties();
-  if (!chunkToParagraphMapping) {
-    console.warn('No chunk mapping found');
-    return;
-  }
-
-  const paragraphIndex = chunkToParagraphMapping[String(chunkIndex)];
-  if (paragraphIndex === undefined) {
-    console.warn(`No paragraph found for chunk ${chunkIndex}`);
-    return;
-  }
-
+async function selectParagraph(paragraphIndex: number): Promise<void> {
   await Word.run(async (context) => {
     const tag = `${MARKER_TAG}:${paragraphIndex}`;
     const contentControls = context.document.contentControls.getByTag(tag).getFirstOrNullObject();
@@ -141,9 +149,27 @@ export async function jumpToChunk(chunkIndex: number): Promise<void> {
   });
 }
 
+export async function jumpToIssue(issue: Issue): Promise<void> {
+  if (typeof Word === 'undefined') return;
+
+  const { paragraphLineRanges } = await getCustomDocumentProperties();
+  if (!paragraphLineRanges) {
+    console.warn('No paragraph line-range mapping found');
+    return;
+  }
+
+  const paragraphIndex = resolveIssueParagraphIndex(issue, paragraphLineRanges);
+  if (paragraphIndex === null) {
+    console.warn('No paragraph found for issue', issue.id);
+    return;
+  }
+
+  await selectParagraph(paragraphIndex);
+}
+
 export async function addIssueMarkers(issues: Issue[]): Promise<Map<number, Issue[]>> {
   if (typeof Word === 'undefined') return new Map();
-  const { chunkToParagraphMapping } = await getCustomDocumentProperties();
-  if (!chunkToParagraphMapping) return new Map();
-  return buildIssuesMap(issues, chunkToParagraphMapping);
+  const { paragraphLineRanges } = await getCustomDocumentProperties();
+  if (!paragraphLineRanges) return new Map();
+  return buildIssuesMap(issues, paragraphLineRanges);
 }

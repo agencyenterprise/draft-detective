@@ -31,19 +31,15 @@ class DocumentMetadata(BaseModel):
 class ValidatedDocument(Document):
     """Document with validated metadata using Pydantic."""
 
-    metadata: DocumentMetadata = Field(default_factory=DocumentMetadata)
+    metadata: DocumentMetadata = Field(...)  # type: ignore[assignment]
 
     def __init__(self, page_content: str, **kwargs: Any) -> None:
-        # Extract metadata from kwargs and validate it
-        metadata_dict = kwargs.pop("metadata", {})
+        metadata_arg = kwargs.pop("metadata", None)
 
-        # If metadata is provided as a dict, convert it to DocumentMetadata
-        if isinstance(metadata_dict, dict):
-            metadata = DocumentMetadata(**metadata_dict)
-        elif isinstance(metadata_dict, DocumentMetadata):
-            metadata = metadata_dict
+        if isinstance(metadata_arg, DocumentMetadata):
+            metadata = metadata_arg
         else:
-            metadata = DocumentMetadata()
+            metadata = DocumentMetadata(**(metadata_arg or {}))
 
         super().__init__(page_content=page_content, metadata=metadata, **kwargs)
 

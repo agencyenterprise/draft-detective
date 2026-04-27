@@ -1,7 +1,7 @@
 'use client';
 
-import { useChunkHashNavigation } from '@/lib/chunk-ids';
 import { Issue, ProjectDetailed, WorkflowRunType } from '@/lib/generated-api';
+import { useLineHashNavigation } from '@/lib/line-hash';
 import {
   getFilteredIssues,
   getHighlightIssues,
@@ -19,7 +19,7 @@ import {
 import { AlertTriangleIcon, Loader2 } from 'lucide-react';
 import { useCallback, useMemo, useRef } from 'react';
 import { DocumentExplorerSidebar, DocumentExplorerSidebarHandle } from '../components/document-explorer-sidebar';
-import { DocumentReconstructor } from '../components/document-reconstructor';
+import { DocumentMarkdownRenderer, DocumentMarkdownRendererHandle } from '../components/document-markdown-renderer';
 
 interface DocumentExplorerTabProps {
   projectDetail: ProjectDetailed;
@@ -27,67 +27,79 @@ interface DocumentExplorerTabProps {
   onNavigateToAnalyses: () => void;
 }
 
+type IssueWithLines = Issue & { start_line?: number | null; end_line?: number | null };
+
+function getIssueLineRange(issue: Issue): [number, number] | null {
+  const { start_line, end_line } = issue as IssueWithLines;
+  if (typeof start_line !== 'number' || typeof end_line !== 'number') return null;
+  return [start_line, end_line];
+}
+
 export function DocumentExplorerTab({
   projectDetail,
   readOnly = false,
   onNavigateToAnalyses,
 }: DocumentExplorerTabProps) {
-  const { selectedChunkIndices, selectChunkIndices, toggleChunk, clearChunkSelection, filter } =
-    useDocumentExplorerStore();
+  const { selectedLineRange, selectLineRange, clearLineSelection, filter } = useDocumentExplorerStore();
+
+  const mainDocumentMarkdown = projectDetail.main_document_markdown ?? '';
 
   const workflowDetails = useMemo(() => projectDetail.workflow_runs ?? [], [projectDetail.workflow_runs]);
   const issues = useMemo(() => projectDetail.issues ?? [], [projectDetail.issues]);
 
   const documentProcessing = getWorkflowRunByType(workflowDetails, WorkflowRunType.DocumentProcessing);
-  const chunkSplitting = getWorkflowRunByType(workflowDetails, WorkflowRunType.ChunkSplitting);
-  const isDocumentProcessing = isWorkflowProcessing(documentProcessing) || isWorkflowProcessing(chunkSplitting);
+  const isDocumentProcessing = isWorkflowProcessing(documentProcessing);
   const isAnyProcessing = isAnyWorkflowProcessing(workflowDetails);
 
   const sidebarRef = useRef<DocumentExplorerSidebarHandle>(null);
-
-  const chunks = useMemo(() => chunkSplitting?.state?.chunks ?? [], [chunkSplitting?.state?.chunks]);
-  const validChunkIndices = useMemo(() => chunks.map((c) => c.chunk_index), [chunks]);
-
-  const handleHashSelect = useCallback((indices: number[]) => selectChunkIndices(indices), [selectChunkIndices]);
-  useChunkHashNavigation(validChunkIndices, handleHashSelect);
-
-  const handleChunkSelect = useCallback(
-    (chunkIndex: number | null) => {
-      sidebarRef.current?.scrollToTop();
-
-      if (chunkIndex === null) {
-        clearChunkSelection();
-      } else {
-        toggleChunk(chunkIndex);
-      }
-    },
-    [clearChunkSelection, toggleChunk],
-  );
+  const markdownRef = useRef<DocumentMarkdownRendererHandle>(null);
 
   const workflowErrors = useMemo(() => getWorkflowErrors(workflowDetails), [workflowDetails]);
-  const hasChunks = useMemo(() => chunks.length > 0, [chunks]);
   const visibleIssues = useMemo(() => getVisibleIssues(issues, filter), [issues, filter]);
-  const resolvedCount = useMemo(() => getResolvedCount(issues, selectedChunkIndices), [issues, selectedChunkIndices]);
+  const resolvedCount = useMemo(() => getResolvedCount(issues, selectedLineRange), [issues, selectedLineRange]);
   const passingCount = useMemo(() => getPassingCount(issues), [issues]);
   const filteredIssues = useMemo(
-    () => getFilteredIssues(visibleIssues, filter, selectedChunkIndices),
-    [visibleIssues, filter, selectedChunkIndices],
+    () => getFilteredIssues(visibleIssues, filter, selectedLineRange),
+    [visibleIssues, filter, selectedLineRange],
   );
   const highlightIssues = useMemo(() => getHighlightIssues(visibleIssues, filter), [visibleIssues, filter]);
 
+  useLineHashNavigation(selectLineRange);
+
   const handleSelectIssue = useCallback(
     (issue: Issue) => {
-      if ((issue.chunk_indices?.length ?? 0) > 0) {
-        selectChunkIndices(issue.chunk_indices ?? []);
+      const range = getIssueLineRange(issue);
+      if (range) {
+        selectLineRange(range);
         sidebarRef.current?.scrollToIssue(issue);
+        markdownRef.current?.scrollToLineRange(range);
       } else {
-        clearChunkSelection();
+        clearLineSelection();
       }
     },
-    [selectChunkIndices, clearChunkSelection],
+    [selectLineRange, clearLineSelection],
   );
 
-  if (isDocumentProcessing && !hasChunks) {
+  const handleClearSelection = useCallback(() => {
+    clearLineSelection();
+  }, [clearLineSelection]);
+
+  const handleIssueSelectFromMarkdown = useCallback(
+    (issue: Issue | null) => {
+      if (!issue) {
+        clearLineSelection();
+        return;
+      }
+      const range = getIssueLineRange(issue);
+      if (range) {
+        selectLineRange(range);
+        sidebarRef.current?.scrollToIssue(issue);
+      }
+    },
+    [selectLineRange, clearLineSelection],
+  );
+
+  if (isDocumentProcessing && !mainDocumentMarkdown) {
     return (
       <div className="space-y-4">
         {workflowErrors.length > 0 && (
@@ -138,11 +150,12 @@ export function DocumentExplorerTab({
       <div className="grid grid-cols-12 flex-1 min-h-0">
         <div className="col-span-7 leading-relaxed text-sm overflow-hidden flex flex-col">
           <div className="flex-1 overflow-hidden">
-            <DocumentReconstructor
-              chunks={chunks}
+            <DocumentMarkdownRenderer
+              ref={markdownRef}
+              markdown={mainDocumentMarkdown}
               issues={highlightIssues}
-              selectedChunkIndices={selectedChunkIndices}
-              onChunkSelect={handleChunkSelect}
+              selectedLineRange={selectedLineRange}
+              onIssueSelect={handleIssueSelectFromMarkdown}
             />
           </div>
         </div>
@@ -157,6 +170,7 @@ export function DocumentExplorerTab({
           projectDetail={projectDetail}
           readOnly={readOnly}
           onSelectIssue={handleSelectIssue}
+          onClearSelection={handleClearSelection}
         />
       </div>
     </div>

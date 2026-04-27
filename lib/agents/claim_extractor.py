@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, cast
 
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableConfig
@@ -137,4 +137,7 @@ class ClaimExtractorAgent(LangChainAgent):
         config: Optional[RunnableConfig] = None,
     ) -> ClaimResponse:
         messages = _claim_extractor_prompt_claimify.format_messages(**prompt_kwargs)
-        return await self.llm.ainvoke(messages, config=config)
+        return cast(
+            ClaimResponse,
+            await self.llm.ainvoke(messages, config=config),
+        )

@@ -23,4 +23,4 @@ def build_abbreviation_scan_v2_graph():
     graph.add_edge("check_abbreviations", "apply_ignored_list")
     graph.set_finish_point("apply_ignored_list")
 
-    return graph
+    return graph  # type: ignore[return-value]

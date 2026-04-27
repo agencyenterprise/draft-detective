@@ -42,4 +42,4 @@ def build_reference_downloader_graph():
     # Finish after cleanup
     graph.set_finish_point("cleanup_failed_resources")
 
-    return graph
+    return graph  # type: ignore[return-value]

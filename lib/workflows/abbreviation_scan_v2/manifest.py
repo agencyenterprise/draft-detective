@@ -10,7 +10,6 @@ from lib.workflows.abbreviation_scan_v2.state import (
     AbbreviationScanV2Config,
     AbbreviationScanV2State,
 )
-from lib.workflows.chunk_utils import build_analyzed_chunks
 from lib.workflows.manifest import WorkflowManifest
 from lib.workflows.models import DocumentIssue, WorkflowRunType
 from lib.workflows.workflow_types import WorkflowState
@@ -50,5 +49,4 @@ class AbbreviationScanV2Manifest(
     def convert_state_to_issues(
         self, state: AbbreviationScanV2State, other_states: List[WorkflowState]
     ) -> List[DocumentIssue]:
-        chunks = build_analyzed_chunks(other_states)
-        return build_issues(state, chunks)
+        return build_issues(state)

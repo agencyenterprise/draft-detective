@@ -28,4 +28,4 @@ def build_document_processing_graph() -> StateGraph:
     # Core edges
     graph.add_edge("convert_to_markdown", END)
 
-    return graph
+    return graph  # type: ignore[return-value]

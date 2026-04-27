@@ -37,12 +37,13 @@ def create_agent_with_model(
     agent_class = base_agent.__class__
 
     # Pass context if the agent requires it
-    if hasattr(base_agent, "context"):
-        new_agent = agent_class(context=base_agent.context)
+    if isinstance(base_agent, LangChainAgent):
+        new_agent = agent_class(context=base_agent.context)  # type: ignore[call-arg]
     else:
         new_agent = agent_class()
 
-    new_agent.model = model
+    if model is not None:
+        new_agent.model = model
     new_agent.temperature = (
         temperature if temperature is not None else base_agent.temperature
     )

@@ -2,7 +2,7 @@ from datetime import date
 import logging
 import uuid
 from collections import defaultdict
-from typing import List, Optional
+from typing import List, Optional, Sequence
 
 from fastapi.exceptions import HTTPException
 from pydantic import BaseModel, Field
@@ -11,20 +11,33 @@ from sqlmodel import and_, col
 
 from lib.config.database import get_async_db_session
 from lib.models.feedback import FeedbackType
-from lib.models.file import File, FileListItem
+from lib.models.file import File, FileListItem, FileRole
 from lib.models.issue import Issue
 from lib.models.project import AccessLevel, FeedbackVisibility, Project
 from lib.models.user import User, UserRole
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus
-from lib.services.files import delete_project_files, get_project_files_list_items
+from lib.services.file_artifacts_service.file_artifacts_service import (
+    FileArtifactsService,
+)
+from lib.services.files import (
+    delete_project_files,
+    get_files_by_project_id,
+    get_project_files_list_items,
+)
+from lib.services.chunk_line_matcher import find_line_range_by_chunks
 from lib.services.issue_persistence import get_project_issues
 from lib.services.references import (
     remove_fetch_result_for_file,
     remove_file_from_references,
 )
 from lib.services.share_links import get_resource_by_token, is_project_shared
-from lib.services.workflow_runs import WorkflowRunDetail, cancel_workflow_run, get_project_workflow_runs
+from lib.services.workflow_runs import (
+    WorkflowRunDetail,
+    cancel_workflow_run,
+    get_project_workflow_runs,
+)
 from lib.workflows.checkpointer import get_checkpointer
+from lib.workflows.document_processing.state import DocumentProcessingState
 from lib.workflows.models import WorkflowRunType
 
 logger = logging.getLogger(__name__)
@@ -74,6 +87,10 @@ class ProjectDetailed(BaseModel):
     revision: int = Field(
         default=1,
         description="The revision being returned",
+    )
+    main_document_markdown: Optional[str] = Field(
+        default=None,
+        description="Full markdown of the main document for this revision, if available",
     )
 
 
@@ -125,20 +142,18 @@ async def get_user_projects(user: User) -> List[ProjectListItem]:
         )
         results = (await session.execute(stmt)).all()
 
-        projects_dict = defaultdict(lambda: {"project": None, "workflow_runs": []})
+        projects_by_id: dict[uuid.UUID, Project] = {}
+        runs_by_project: dict[uuid.UUID, list[WorkflowRun]] = defaultdict(list)
         for row in results:
             project, workflow_run = row.tuple()
-            if projects_dict[project.id]["project"] is None:
-                projects_dict[project.id]["project"] = project
+            projects_by_id.setdefault(project.id, project)
             if workflow_run is not None:
-                projects_dict[project.id]["workflow_runs"].append(workflow_run)
+                runs_by_project[project.id].append(workflow_run)
 
         # Build the result list
         return [
-            ProjectListItem(
-                project=item["project"], workflow_runs=item["workflow_runs"]
-            )
-            for item in projects_dict.values()
+            ProjectListItem(project=project, workflow_runs=runs_by_project[project.id])
+            for project in projects_by_id.values()
         ]
 
 
@@ -176,25 +191,27 @@ async def get_project_detailed_from_project(
     resolved_revision = revision if revision is not None else project.current_revision
 
     workflow_runs = await get_project_workflow_runs(
-        project.id, revision=resolved_revision, include_internal=include_internal
+        str(project.id), revision=resolved_revision, include_internal=include_internal
     )
 
     # Clear out some heavy data from the workflow runs to reduce payload size
-    # TODO: we should have a better way to do this
+    # TODO: we should have a better way to do this. `markdown` is declared
+    # `str` but we blank it here to shrink the serialized payload.
     for run in workflow_runs:
-        if (
-            run.run.type == WorkflowRunType.DOCUMENT_PROCESSING
-            and run.state
-            and run.state.file
-        ):
-            run.state.file.markdown = None
-            for supporting_file in run.state.supporting_files:
-                supporting_file.markdown = None
+        if isinstance(run.state, DocumentProcessingState) and run.state.file:
+            run.state.file.markdown = None  # type: ignore[assignment]
+            for supporting_file in run.state.supporting_files or []:
+                supporting_file.markdown = None  # type: ignore[assignment]
 
     # Query persisted issues from the database (faster than computing from state)
     issues = await get_project_issues(
         uuid.UUID(str(project.id)), revision=resolved_revision
     )
+
+    # For issues persisted before the line-range migration, derive
+    # (start_line, end_line) on-the-fly from their chunk_indices so the
+    # markdown renderer can locate them.
+    _backfill_issue_line_ranges(issues, workflow_runs)
 
     feedbacks: list[FeedbackSummary] = []
     if user is not None:
@@ -218,15 +235,64 @@ async def get_project_detailed_from_project(
                 for f in feedback_models
             ]
 
+    main_document_markdown = await _get_main_document_markdown(
+        str(project.id), resolved_revision
+    )
+
     return ProjectDetailed(
         project=project,
         access_level=access_level,
         workflow_runs=workflow_runs,
         issues=list(issues),
-        files=await get_project_files_list_items(project.id, revision=resolved_revision),
+        files=await get_project_files_list_items(
+            project.id, revision=resolved_revision
+        ),
         feedbacks=feedbacks,
         revision=resolved_revision,
+        main_document_markdown=main_document_markdown,
     )
+
+
+async def _get_main_document_markdown(project_id: str, revision: int) -> Optional[str]:
+    """Load the full markdown of the main document for a revision, or None if
+    it isn't available yet (e.g. before document processing completes)."""
+    main_files = await get_files_by_project_id(
+        project_id, roles=[FileRole.MAIN], revision=revision
+    )
+    if not main_files:
+        return None
+    artifacts = FileArtifactsService(project_id, revision=revision)
+    try:
+        file_document = await artifacts.get_file_document(str(main_files[0].id))
+    except ValueError:
+        return None
+    return file_document.markdown
+
+
+def _backfill_issue_line_ranges(
+    issues: Sequence[Issue], workflow_runs: List[WorkflowRunDetail]
+) -> None:
+    """Derive (start_line, end_line) from chunk_indices for issues persisted
+    before the line-range migration. Mutates issues in place."""
+    chunks = None
+    for detail in workflow_runs:
+        if (
+            detail.state is not None
+            and detail.state.type == WorkflowRunType.CHUNK_SPLITTING
+        ):
+            chunks = getattr(detail.state, "chunks", None) or None
+            break
+    if not chunks:
+        return
+
+    for issue in issues:
+        if issue.start_line is not None or issue.end_line is not None:
+            continue
+        if not issue.chunk_indices:
+            continue
+        line_range = find_line_range_by_chunks(chunks, issue.chunk_indices)
+        if line_range is not None:
+            issue.start_line, issue.end_line = line_range
 
 
 async def get_shared_project(project_id: str) -> Project:
@@ -313,20 +379,19 @@ async def get_project_files(project_id: str) -> List[File]:
     """Get all files for a project. Raises HTTPException if project not found."""
 
     async with get_async_db_session() as session:
-        stmt = select(Project).where(col(Project.id) == project_id)
-        result = await session.execute(stmt)
-        project = result.scalar_one_or_none()
+        project_stmt = select(Project).where(col(Project.id) == project_id)
+        project = (await session.execute(project_stmt)).scalar_one_or_none()
 
         if project is None:
             raise HTTPException(status_code=404, detail="Project not found")
 
-        stmt = (
+        files_stmt = (
             select(File)
             .where(col(File.project_id) == project.id)
             .order_by(col(File.created_at).asc())
         )
-        result = await session.execute(stmt)
-        return list(result.scalars().all())
+        files_result = await session.execute(files_stmt)
+        return list(files_result.scalars().all())
 
 
 async def delete_project_file_with_cleanup(
@@ -389,7 +454,9 @@ async def update_project_title(project_id: str, title: str) -> None:
         await session.commit()
 
 
-async def create_new_revision(project_id: str, user: User) -> tuple[int, List[WorkflowRunType]]:
+async def create_new_revision(
+    project_id: str, user: User
+) -> tuple[int, List[WorkflowRunType]]:
     """
     Create a new revision for a project.
 
@@ -406,25 +473,29 @@ async def create_new_revision(project_id: str, user: User) -> tuple[int, List[Wo
 
     async with get_async_db_session() as session:
         # Cancel any active workflows for the old revision
-        stmt = select(WorkflowRun).where(
+        active_runs_stmt = select(WorkflowRun).where(
             col(WorkflowRun.project_id) == project_id,
             col(WorkflowRun.revision) == old_revision,
             col(WorkflowRun.status).in_(
                 [WorkflowRunStatus.PENDING, WorkflowRunStatus.RUNNING]
             ),
         )
-        active_runs = (await session.execute(stmt)).scalars().all()
+        active_runs = (await session.execute(active_runs_stmt)).scalars().all()
 
     for run in active_runs:
         await cancel_workflow_run(str(run.id), project_id)
 
     async with get_async_db_session() as session:
         # Collect previous workflow types
-        stmt = select(WorkflowRun.type).where(
-            col(WorkflowRun.project_id) == project_id,
-            col(WorkflowRun.revision) == old_revision,
-        ).distinct()
-        result = await session.execute(stmt)
+        types_stmt = (
+            select(col(WorkflowRun.type))
+            .where(
+                col(WorkflowRun.project_id) == project_id,
+                col(WorkflowRun.revision) == old_revision,
+            )
+            .distinct()
+        )
+        result = await session.execute(types_stmt)
         previous_workflow_types = [
             WorkflowRunType(row[0]) if isinstance(row[0], str) else row[0]
             for row in result.all()
@@ -451,15 +522,13 @@ async def delete_project(project_id: str, user: User) -> None:
     await get_project_access(project_id, user=user, required_level=AccessLevel.WRITE)
 
     async with get_async_db_session() as session:
-        stmt = select(Project).where(col(Project.id) == project_id)
-        result = await session.execute(stmt)
-        project = result.scalar_one()
+        project_stmt = select(Project).where(col(Project.id) == project_id)
+        project = (await session.execute(project_stmt)).scalar_one()
 
         await delete_project_files(project_id)
 
-        stmt = select(WorkflowRun).where(col(WorkflowRun.project_id) == project_id)
-        result = await session.execute(stmt)
-        project_workflow_runs = result.scalars().all()
+        runs_stmt = select(WorkflowRun).where(col(WorkflowRun.project_id) == project_id)
+        project_workflow_runs = (await session.execute(runs_stmt)).scalars().all()
         thread_ids = [
             workflow_run.langgraph_thread_id for workflow_run in project_workflow_runs
         ]
