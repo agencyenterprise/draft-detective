@@ -6,6 +6,49 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v0.5.33] - 2026-04-27
+
+### Added
+- Added 3 new eval cases to the reference validation dataset to improve coverage of real-world reference types.
+- Added nullable `start_line` / `end_line` columns for issues and included `start_line` / `end_line` in `DocumentIssue` (including in the hash ID).
+- Added a `find_line_range_by_chunks` helper to `lib/services/chunk_line_matcher.py`.
+- Added a new `DocumentMarkdownRenderer` for rendering full markdown and highlighting blocks by `[start_line, end_line]` overlap.
+- Added a new `lib/services/docx/paragraph_line_mapper.py` and new tests including `test_issue_persistence_resolve_location.py` and `test_paragraph_line_mapper.py`.
+- Added a backend CI `typecheck` job that runs `uv run mypy .` on PRs.
+
+### Changed
+- Stopped auto-triggering chunk splitting on project creation and main-document replacement in the frontend.
+- Migrated document rendering, issue location, and Word export from chunk indices to line ranges.
+- Updated issue persistence to resolve and persist both line ranges and chunk indices for every issue.
+- Updated project and issues APIs to expose `start_line` / `end_line` and to serve the main-document markdown for the explorer.
+- Updated multiple workflows to emit line ranges where natively available and drop redundant in-workflow conversion to chunk indices.
+- Migrated docx export to locate issues by paragraph-marker-derived line ranges and updated the MCP `export_project_docx` tool to the new generator.
+- Dropped the docx export cache layer and collapsed docx generation to a single `generate_docx` that always regenerates with a unique UUID filename.
+- Renamed `lib/workflows/simple_deep_agent/types.py` to `agent_types.py` and updated 5 import sites.
+- Bumped `uuid` from 13.0.0 to 14.0.0 in `/frontend`.
+- Bumped `lxml` from 6.0.2 to 6.1.0.
+- Bumped `python-dotenv` from 1.2.1 to 1.2.2.
+- Updated mypy configuration and dev dependencies, and ignored `.mypy_cache/` in `.gitignore`.
+
+### Fixed
+- Completed incremental mypy cleanup from 273 errors in 78 files to `Success: no issues found in 342 source files`.
+- Switched required secret loading in `lib/config/env.py` from `os.getenv()` to `os.environ[...]` so it fails earlier with a clearer error.
+- Fixed agents calling a non-existent `PromptValue.text` attribute by switching to `PromptValue.to_string()` in 6 agents.
+- Fixed `ValidatedDocument` in `lib/agents/models.py` by replacing an impossible `Field(default_factory=DocumentMetadata)` and simplifying `__init__` branching.
+- Fixed a `File` name collision in `lib/api/mcp.py` exposed by adding a type-annotated revision map.
+- Split several SQLAlchemy `stmt` variables into named-per-query variables to avoid reassignment across different `Select[tuple[...]]` types.
+
+### Security
+- Updated `lxml` to 6.1.0, which fixes a possible external entity injection (XXE) vulnerability in `iterparse()` and `ETCompatXMLParser`.
+- Updated `uuid` to 14.0.0, which fixes GHSA-w5hq-g745-h8pq involving out-of-bounds writes when an invalid offset is provided.
+
+### Removed
+- Removed the now-unused `useResultsCalculations` hook from the frontend.
+- Removed the chunk-based `DocumentReconstructor` and deleted now-unused chunk-based frontend components and the docx export cache layer.
+- Removed `lib/services/docx/chunk_mapper.py`.
+- Deleted dead or broken backend code including `lib/workflows/chunk_iterator.py`, `lib/services/llm_text_splitter.py`, `lib/database_utils.py`, `lib/agents/reference_matcher.py`, `lib/agents/claim_needs_substantiation_checker.py` (and its eval + dataset), and `lib/agents/section_classifier.py`.
+
+
 ## [v0.5.32] - 2026-04-21
 
 ### Added
