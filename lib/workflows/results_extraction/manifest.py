@@ -22,6 +22,7 @@ class ResultsExtractionManifest(
         "Could someone reproduce your results from the document alone? Extracts main results and classifies each by how reproducible it is based on whether the data is present and the methodology is described."
     )
     needs_web_search = False
+    is_experimental = True
     required_dependencies = [WorkflowRunType.DOCUMENT_PROCESSING]
 
     def get_state_type(self) -> Type[ResultsExtractionState]:
