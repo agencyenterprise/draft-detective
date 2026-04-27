@@ -14,10 +14,10 @@ const claudeCodeCommand = `claude mcp add-json "draft-detective" '{"type":"http"
 const codexCommand = `codex mcp add draft-detective --url ${mcpUrl}`;
 
 const sampleTriggers = [
-  'Use Draft Detective to extract claims from this paper: <paste-markdown-or-path>',
-  'Run a reference validation review on this manuscript with Draft Detective.',
-  'Check figures and tables in this document using Draft Detective and summarize the findings.',
   'List the available Draft Detective workflows and recommend which ones to run on this draft.',
+  'Check figures and tables in this document using Draft Detective and summarize the findings.',
+  'Run a reference validation review on this manuscript with Draft Detective.',
+  'Validate the inferences in this manuscript with Draft Detective and flag any unsupported claims.',
 ];
 
 function CopyableCode({ code, multiline = false }: { code: string; multiline?: boolean }) {
