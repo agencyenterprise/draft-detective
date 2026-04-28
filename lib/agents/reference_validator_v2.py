@@ -8,7 +8,7 @@ from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
 from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
 
-from lib.config.llm_models import gpt_5_4_model
+from lib.config.llm_models import gpt_5_5_model
 from lib.models.agent import LangChainAgent
 from lib.workflows.context import ContextSchema
 
@@ -160,7 +160,7 @@ Never include internal search tokens (e.g., `turn0search0`) or raw metadata mark
 class ReferenceValidatorV2Agent(LangChainAgent):
     name = "Reference Validator V2"
     description = "Validate a list of references in a document, by searching for their online presence."
-    model = gpt_5_4_model
+    model = gpt_5_5_model
     temperature = 0.0
     reasoning = {"effort": "low", "summary": "auto"}
 
