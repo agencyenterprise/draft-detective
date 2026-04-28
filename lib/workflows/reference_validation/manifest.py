@@ -125,12 +125,13 @@ class ReferenceValidationManifest(
 
             issue = DocumentIssue(
                 title=title,
-                description=f"> {result.original_reference}\n\n{result.suggested_action}",
+                description=f"> {result.original_reference}",
                 severity=severity,
                 type=self.type,
                 start_line=ref.start_line if ref else None,
                 end_line=ref.end_line if ref else None,
                 long_description=f"{f'### Suggested updated reference\n\n> {result.updated_reference}' if result.updated_reference else ''}\n\n### Field validations\n\n{field_validations}\n\n### Reasoning\n\n{result.reasoning}",
+                suggested_action=result.suggested_action or None,
             )
             issues.append(issue)
 

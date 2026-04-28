@@ -87,6 +87,15 @@ class Issue(SQLModel, table=True):
         description="Detailed description of the issue",
     )
 
+    suggested_action: Optional[str] = Field(
+        sa_column=Column(Text, nullable=True),
+        default=None,
+        description=(
+            "Author-facing recommendation describing how to resolve the issue. "
+            "Markdown-formatted."
+        ),
+    )
+
     severity: SeverityEnum = Field(
         sa_column=Column(SQLModelEnum(SeverityEnum), nullable=False),
         description="The severity of the issue",

@@ -31,6 +31,13 @@ class IssueItem(BaseModel):
             "Leave unset when description alone is sufficient."
         ),
     )
+    suggested_action: Optional[str] = Field(
+        default=None,
+        description=(
+            "A direct, concise recommendation to the author on what to do to resolve this "
+            "issue. Markdown is supported."
+        ),
+    )
     start_line: int = Field(
         description="1-indexed start line in the document where the text relevant to this issue begins",
     )
@@ -75,6 +82,7 @@ def issues_from_agent_result(
             type=workflow_type,
             description=issue.description,
             long_description=issue.long_description,
+            suggested_action=issue.suggested_action,
             severity=_SEVERITY_MAP.get(issue.severity.lower(), SeverityEnum.MEDIUM),
             start_line=issue.start_line,
             end_line=issue.end_line,

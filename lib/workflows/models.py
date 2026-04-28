@@ -138,6 +138,13 @@ class DocumentIssue(BaseModel):
         description="A long description of the issue, including all the details necessary to understand the issue in detail. Can be markdown.",
         default=None,
     )
+    suggested_action: Optional[str] = Field(
+        default=None,
+        description=(
+            "A direct, concise recommendation to the author on what to do to resolve "
+            "this issue. Markdown is supported."
+        ),
+    )
     severity: SeverityEnum = Field(description="The severity of the issue")
     type: WorkflowRunType = Field(
         description="The workflow type that generated this issue"

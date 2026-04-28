@@ -35,6 +35,12 @@ biography sections in research publications.
    section.  Then write a short report noting the absence.
    Do **not** evaluate the rules below — just return that one issue.
 
+   **Line range for this case:** because the section is absent, there is
+   no specific passage to point at. Set both `start_line` and `end_line`
+   to `1`. **Never** report this issue with a range that spans the entire
+   document — a whole-document range is reserved for problems that
+   genuinely apply to every line.
+
 3. If you find the section, identify each individual author biography.
    Each biography is typically a separate paragraph about one person.
    Ignore paragraphs shorter than ~50 characters (likely not real bios).

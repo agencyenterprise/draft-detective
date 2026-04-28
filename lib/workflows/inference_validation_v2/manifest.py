@@ -75,7 +75,8 @@ class InferenceValidationV2Manifest(
                         description=description,
                         severity=analysis.severity,
                         chunk_indices=analysis.chunk_indices,
-                        long_description=f"# Key Sentence\n\n> {analysis.key_sentence}\n\n# Detailed Analysis\n\n{analysis.long_form_argument_analysis}\n\n# Suggested Action\n\n{analysis.suggested_action}",
+                        long_description=f"# Key Sentence\n\n> {analysis.key_sentence}\n\n# Detailed Analysis\n\n{analysis.long_form_argument_analysis}",
+                        suggested_action=analysis.suggested_action or None,
                     )
                 )
 

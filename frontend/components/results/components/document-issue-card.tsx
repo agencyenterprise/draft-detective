@@ -20,6 +20,7 @@ import {
   ChevronUpIcon,
   CircleAlertIcon,
   ExternalLinkIcon,
+  LightbulbIcon,
   MessageCircleWarningIcon,
   MoreHorizontalIcon,
   ThumbsDown,
@@ -223,6 +224,16 @@ function DocumentIssueCardRaw({ issue, hideJumpButton = false, onSelect, readOnl
       </div>
 
       <Markdown>{issue.description}</Markdown>
+
+      {issue.suggested_action && (
+        <div className="rounded-md border border-dashed bg-muted/40 px-3 py-2 mt-4">
+          <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+            <LightbulbIcon className="size-3.5" />
+            Suggested action
+          </p>
+          <Markdown>{issue.suggested_action}</Markdown>
+        </div>
+      )}
 
       <div
         className={cn('flex items-center gap-2', {

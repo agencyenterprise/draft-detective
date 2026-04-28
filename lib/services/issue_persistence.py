@@ -116,6 +116,7 @@ async def persist_workflow_issues(
                 title=_strip_control_chars(doc_issue.title),
                 description=_strip_control_chars(doc_issue.description),
                 long_description=_strip_control_chars(doc_issue.long_description),
+                suggested_action=_strip_control_chars(doc_issue.suggested_action),
                 severity=doc_issue.severity,
                 workflow_type=doc_issue.type,
                 chunk_indices=chunk_indices,
