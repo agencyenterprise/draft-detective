@@ -61,8 +61,7 @@ Report one issue per problem found. Only create an issue for a failing rule or m
 
 - Line numbers are 1-indexed: the first line of `/main.md` is line 1.
 - For issues tied to a specific passage, set `start_line` and `end_line` to bracket that passage.
-- For document-level issues where a section or element is entirely absent, use the line range of the area where it should appear (e.g. the beginning of the document, or the location of the nearest related section).
-- When no meaningful location exists, set both `start_line` and `end_line` to `1`.
+- For issues with no specific line or line range — for example, a finding that a required section is missing entirely from the document — set both `start_line` and `end_line` to `1`. **Never** report such an issue with a range that spans the entire document; a whole-document range is reserved for problems that genuinely apply to every line.
 
 ## Best Practices
 
