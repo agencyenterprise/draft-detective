@@ -83,6 +83,10 @@ from lib.workflows.reference_validation.state import (
     ReferenceValidationState,
     ReferenceValidationWorkflowConfig,
 )
+from lib.workflows.reference_validation_v2.state import (
+    ReferenceValidationV2State,
+    ReferenceValidationV2WorkflowConfig,
+)
 from lib.workflows.results_extraction.state import (
     ResultsExtractionState,
     ResultsExtractionWorkflowConfig,
@@ -111,6 +115,7 @@ WorkflowState = (
     | LiteratureReviewState
     | LiveReportsState
     | ReferenceValidationState
+    | ReferenceValidationV2State
     | CitationSuggesterState
     | ResultsExtractionState
     | InferenceValidationV2State
@@ -138,6 +143,7 @@ WorkflowConfig = (
     | LiteratureReviewWorkflowConfig
     | LiveReportsWorkflowConfig
     | ReferenceValidationWorkflowConfig
+    | ReferenceValidationV2WorkflowConfig
     | CitationSuggesterWorkflowConfig
     | ResultsExtractionWorkflowConfig
     | InferenceValidationV2WorkflowConfig

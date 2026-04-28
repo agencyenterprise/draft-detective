@@ -535,6 +535,32 @@ export type BibliographyFieldValidation = {
 };
 
 /**
+ * BibliographyFieldValidationV2
+ */
+export type BibliographyFieldValidationV2 = {
+  /**
+   * Category of the reference. Possible values: ['author', 'title', 'publisher', 'year', 'identifier']
+   */
+  category: FieldCategoryV2;
+  /**
+   * Current Value
+   *
+   * Current value of the reference.
+   */
+  current_value: string;
+  /**
+   * Suggested Value
+   *
+   * Suggested value of the reference.
+   */
+  suggested_value: string;
+  /**
+   * Problem type of the reference. Must be CORRECT if the only differences are capitalization or minor punctuation. Possible values: ['correct', 'missing', 'incorrect', 'other']
+   */
+  problem_type: FieldProblemTypeV2;
+};
+
+/**
  * BibliographyItemValidation
  */
 export type BibliographyItemValidation = {
@@ -554,6 +580,52 @@ export type BibliographyItemValidation = {
    * List of reference field validations.
    */
   bibliography_field_validations: Array<BibliographyFieldValidation>;
+  /**
+   * Suggested Action
+   *
+   * Suggested action to take if the reference is not valid. A summary of the suggested changes to make the reference valid. If the reference is valid, return 'No changes needed'.
+   */
+  suggested_action: string;
+  /**
+   * Url
+   *
+   * Found URL for the reference.
+   */
+  url: string;
+  /**
+   * Reasoning
+   *
+   * Step-by-step reasoning describing your approach to validate the reference.
+   */
+  reasoning?: string;
+  /**
+   * Updated Reference
+   *
+   * Updated reference with the suggested changes made to make the reference valid, matching the format of the original reference. If the reference is already valid, return null.
+   */
+  updated_reference?: string | null;
+};
+
+/**
+ * BibliographyItemValidationV2
+ */
+export type BibliographyItemValidationV2 = {
+  /**
+   * Original Reference
+   *
+   * Original bibliographic item text.
+   */
+  original_reference: string;
+  /**
+   * Overall validation outcome. Possible values: ['correct', 'missing_fields', 'incorrect_fields']
+   */
+  final_result: ReferenceValidationFinalResultV2;
+  /**
+   * Bibliography Field Validations
+   *
+   * List of reference field validations.
+   */
+  bibliography_field_validations: Array<BibliographyFieldValidationV2>;
   /**
    * Suggested Action
    *
@@ -2173,6 +2245,22 @@ export const FieldCategory = {
 export type FieldCategory = (typeof FieldCategory)[keyof typeof FieldCategory];
 
 /**
+ * FieldCategoryV2
+ */
+export const FieldCategoryV2 = {
+  Author: 'author',
+  Title: 'title',
+  Publisher: 'publisher',
+  Year: 'year',
+  Identifier: 'identifier',
+} as const;
+
+/**
+ * FieldCategoryV2
+ */
+export type FieldCategoryV2 = (typeof FieldCategoryV2)[keyof typeof FieldCategoryV2];
+
+/**
  * FieldProblemType
  */
 export const FieldProblemType = {
@@ -2186,6 +2274,21 @@ export const FieldProblemType = {
  * FieldProblemType
  */
 export type FieldProblemType = (typeof FieldProblemType)[keyof typeof FieldProblemType];
+
+/**
+ * FieldProblemTypeV2
+ */
+export const FieldProblemTypeV2 = {
+  Correct: 'correct',
+  Missing: 'missing',
+  Incorrect: 'incorrect',
+  Other: 'other',
+} as const;
+
+/**
+ * FieldProblemTypeV2
+ */
+export type FieldProblemTypeV2 = (typeof FieldProblemTypeV2)[keyof typeof FieldProblemTypeV2];
 
 /**
  * File
@@ -4252,6 +4355,21 @@ export type ReferenceValidationFinalResult =
   (typeof ReferenceValidationFinalResult)[keyof typeof ReferenceValidationFinalResult];
 
 /**
+ * ReferenceValidationFinalResultV2
+ */
+export const ReferenceValidationFinalResultV2 = {
+  Correct: 'correct',
+  MissingFields: 'missing_fields',
+  IncorrectFields: 'incorrect_fields',
+} as const;
+
+/**
+ * ReferenceValidationFinalResultV2
+ */
+export type ReferenceValidationFinalResultV2 =
+  (typeof ReferenceValidationFinalResultV2)[keyof typeof ReferenceValidationFinalResultV2];
+
+/**
  * ReferenceValidationItem
  *
  * Item for tracking individual reference validation with status
@@ -4334,6 +4452,133 @@ export const ReferenceValidationStatus = {
  * Status of a reference validation operation
  */
 export type ReferenceValidationStatus = (typeof ReferenceValidationStatus)[keyof typeof ReferenceValidationStatus];
+
+/**
+ * ReferenceValidationV2Item
+ *
+ * Item for tracking individual reference validation with status
+ */
+export type ReferenceValidationV2Item = {
+  /**
+   * Reference Id
+   *
+   * The ID of the reference to validate.
+   */
+  reference_id: string;
+  /**
+   * Input Reference
+   *
+   * The original reference text.
+   */
+  input_reference: string;
+  /**
+   * Current status of this reference validation.
+   */
+  status?: ReferenceValidationV2Status;
+  /**
+   * The validation result for the reference, present on success.
+   */
+  validation_result?: BibliographyItemValidationV2 | null;
+  /**
+   * Error
+   *
+   * Error message, present on failure.
+   */
+  error?: string | null;
+  /**
+   * Messages
+   *
+   * LLM conversation messages from the agent invocation.
+   */
+  messages?: Array<{
+    [key: string]: unknown;
+  }>;
+};
+
+/**
+ * ReferenceValidationV2State
+ *
+ * State for the reference validation v2 workflow.
+ */
+export type ReferenceValidationV2State = {
+  /**
+   * Errors
+   *
+   * Errors that occurred during the workflow execution.
+   */
+  errors?: Array<WorkflowError>;
+  /**
+   * Type
+   */
+  type?: 'reference_validation_v2';
+  config: ReferenceValidationV2WorkflowConfig;
+  /**
+   * Reference Validations
+   */
+  reference_validations?: Array<ReferenceValidationV2Item>;
+};
+
+/**
+ * ReferenceValidationV2Status
+ *
+ * Status of a reference validation operation
+ */
+export const ReferenceValidationV2Status = {
+  Pending: 'pending',
+  Completed: 'completed',
+  Error: 'error',
+  Cancelled: 'cancelled',
+} as const;
+
+/**
+ * ReferenceValidationV2Status
+ *
+ * Status of a reference validation operation
+ */
+export type ReferenceValidationV2Status =
+  (typeof ReferenceValidationV2Status)[keyof typeof ReferenceValidationV2Status];
+
+/**
+ * ReferenceValidationV2WorkflowConfig
+ *
+ * Configuration model for the reference validation v2 workflow.
+ */
+export type ReferenceValidationV2WorkflowConfig = {
+  /**
+   * Project Id
+   *
+   * The ID of the project that this workflow run should be associated with
+   */
+  project_id: string;
+  /**
+   * Openai Api Key
+   *
+   * The OpenAI API key to use for this workflow execution
+   */
+  openai_api_key?: string | null;
+  /**
+   * Domain
+   *
+   * Domain context for more accurate analysis
+   */
+  domain?: string | null;
+  /**
+   * Target Audience
+   *
+   * Target audience context for analysis
+   */
+  target_audience?: string | null;
+  /**
+   * Publication Date
+   *
+   * Publication date of the document (YYYY-MM-DD format)
+   */
+  publication_date?: string | null;
+  /**
+   * Type
+   */
+  type?: 'reference_validation_v2';
+};
 
 /**
  * ReferenceValidationWorkflowConfig
@@ -5312,6 +5557,7 @@ export type WorkflowRunDetail = {
     | LiteratureReviewState
     | LiveReportsState
     | ReferenceValidationState
+    | ReferenceValidationV2State
     | CitationSuggesterState
     | ResultsExtractionState
     | InferenceValidationV2State
@@ -5354,6 +5600,7 @@ export const WorkflowRunType = {
   LiteratureReview: 'literature_review',
   LiveReports: 'live_reports',
   ReferenceValidation: 'reference_validation',
+  ReferenceValidationV2: 'reference_validation_v2',
   CitationSuggester: 'citation_suggester',
   ResultsExtraction: 'results_extraction',
   InferenceValidation: 'inference_validation',
@@ -5718,6 +5965,7 @@ export type StartWorkflowApiWorkflowsStartPostData = {
     | LiteratureReviewWorkflowConfig
     | LiveReportsWorkflowConfig
     | ReferenceValidationWorkflowConfig
+    | ReferenceValidationV2WorkflowConfig
     | CitationSuggesterWorkflowConfig
     | ResultsExtractionWorkflowConfig
     | InferenceValidationV2WorkflowConfig

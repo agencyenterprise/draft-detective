@@ -92,6 +92,9 @@ def register_all_workflow_manifests():
         ReferenceFileMatchingManifest,
     )
     from lib.workflows.reference_validation.manifest import ReferenceValidationManifest
+    from lib.workflows.reference_validation_v2.manifest import (
+        ReferenceValidationV2Manifest,
+    )
     from lib.workflows.results_extraction.manifest import ResultsExtractionManifest
     from lib.workflows.reviewer_2.manifest import Reviewer2Manifest
 
@@ -115,6 +118,7 @@ def register_all_workflow_manifests():
         MethodologicalAlignmentManifest(),
         ReferenceDownloaderManifest(),
         ReferenceValidationManifest(),
+        ReferenceValidationV2Manifest(),
         ResultsExtractionManifest(),
         AdvocacyToneManifest(),
         AboutThisGerManifest(),

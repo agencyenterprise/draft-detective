@@ -1,366 +1,366 @@
 [
   {
     "input": "https://www.britannica.com/topic/think-tank/Think-tanks-in-practice",
-    "target_final_result": "found_with_inconsistencies",
+    "target_final_result": "missing_fields",
     "target_answer": "URL-only reference should be replaced with a full citation including the author, title, publisher, and year. Field validations should say field is MISSING for all fields except 'identifier' that doesn't matter (can be the URL itself or marked as missing."
   },
   {
     "input": "https://www.youtube.com/watch?v=wKfq63nU9CM",
-    "target_final_result": "found_with_inconsistencies",
+    "target_final_result": "missing_fields",
     "target_answer": "URL-only reference should be replaced with a full citation including the author, title, publisher, and year. Field validations should say field is MISSING for all fields except 'identifier' that doesn't matter (can be the URL itself or marked as missing)"
   },
   {
     "input": "https://ieakenya.or.ke/blog/the-ai-preparedness-landscape-for-think-tanks/",
-    "target_final_result": "found_with_inconsistencies",
+    "target_final_result": "missing_fields",
     "target_answer": "URL-only reference should be replaced with a full citation including the author, title, publisher, and year. Field validations should say field is MISSING for all fields except 'identifier' that doesn't matter (can be the URL itself or marked as missing)"
   },
   {
     "input": "John Doe and Jane Smith. Webvoyager: Building an end-to-end web agent with large multimodal models. arXiv preprint arXiv:2401.00001, 2024.",
-    "target_final_result": "found_with_inconsistencies",
+    "target_final_result": "incorrect_fields",
     "target_answer": "1- The authors are incorrect; 2- The arxiv ID is incorrect"
   },
   {
     "input": "Asma Issa, George Mohler, and John Johnson. Paraphrase identification using deep contextualized representations. In Proceedings of the 2018 Conference on Empirical Methods in Natural Language Processing (EMNLP), pp. 517-526, 2018.",
-    "target_final_result": "not_found",
+    "target_final_result": "incorrect_fields",
     "target_answer": "This is a made up reference, so validations should say reference is not found and not include a suggested updated reference."
   },
   {
     "input": "John Smith and Jane Doe. Deep learning techniques for avatar-based interaction in virtual environments. IEEE Transactions on Neural Networks and Learning Systems, 32(12):5600-5612, 2021. doi: 10.1109/ TNNLS.2021.3071234. URL https://ieeexplore.ieee.org/document/307123",
-    "target_final_result": "not_found",
+    "target_final_result": "incorrect_fields",
     "target_answer": "This is a made up reference, so validations should say reference is not found and not include a suggested updated reference."
   },
   {
     "input": "Goodison, Sean E., Robert C. Davis, and Brian A. Jackson. Digital Evidence and the U.S. Criminal Justice System: Identifying Technology and Other Needs to More Effectively Acquire and Utilize Digital Evidence. Santa Monica, CA: RAND Corporation, 2015.",
-    "target_final_result": "valid",
+    "target_final_result": "correct",
     "target_answer": "Valid reference with potential small inconsistencies"
   },
   {
     "input": "Doe, John. The Effects of Widgets on Gadgets. Journal of Widgetry, 2020.",
-    "target_final_result": "not_found",
+    "target_final_result": "incorrect_fields",
     "target_answer": "This is a made up reference, so validations should say reference is not found and not include a suggested updated reference."
   },
   {
     "input": "Vermeer, Michael J. D., Dulani Woods, and Brian A. Jackson. Identifying Law Enforcement Needs for Access to Digital Evidence in Remote Data Centers. Santa Monica, CA: RAND Corporation, 2019.",
-    "target_final_result": "found_with_inconsistencies",
+    "target_final_result": "incorrect_fields",
     "target_answer": "1- Publication year is incorrect; 2- Identifier should be added"
   },
   {
     "input": "Bistline, John, Geoffrey Blanford, Maxwell Brown, Dallas Burtraw, Maya Domeshek, Jamil Farbes, Allen Fawcett, Anne Hamilton, Jesse Jenkins, Ryan Jones, Ben King, Hannah Kolus, John Larsen, Amanda Levin, Megan Mahajan, Cara Marcy, Erin Mayfield, James McFarland, Haewon McJeon, Robbie Orvis, Neha Patankar, Kevin Rennert, Christopher Roney, Nicholas Roy, Greg Schivley, Daniel Steinberg, Nadejda Victor, Shelley Wenzel, John Weyant, Ryan Wiser, Mei Yuan, and Alicia Zhao, \"Emissions and energy impacts of the Inflation Reduction Act,\" Science, Vol. 380, No. 6652, 1324 – 1327, 29 June 2023. https://doi.org/10.1126/science.adg3781",
-    "target_final_result": "valid",
+    "target_final_result": "correct",
     "target_answer": "Valid reference with potential small inconsistencies"
   },
   {
     "input": "Davenport, Carly, Brian Singer, Neil Mehta, Brian Lee, and John Mackay, \"Generational growth: AI, data centers and the coming US power demand surge,\" Goldman Sachs Equity Research, April 28, 2024: https://www.goldmansachs.com/pdfs/insights/pages/generational-growth-ai-data-centers-and-the-coming-us-power-surge/report.pdf",
-    "target_final_result": "valid",
+    "target_final_result": "correct",
     "target_answer": "Valid reference with potential small inconsistencies"
   },
   {
     "input": "Patel, Dylan, Daniel Nishball, and Jeremie Elliahou Ontiveros, \"AI Data center Energy Dilemma - Race for AI Data center Space,\" SemiAnalysis, March 13, 2024. As of September 18, 2024: https://www.semianalysis.com/p/ai-data center-energy-dilemma-race",
-    "target_final_result": "found_with_inconsistencies",
+    "target_final_result": "incorrect_fields",
     "target_answer": "1- Author name is mispelled; 2- URL is malformed"
   },
   {
     "input": "Daniel Furrer, Jonathan Berant, Panupong Pasupat, Don Tuggener, Mark Cieliebak, and Mark Steedman. Compositional generalization in semantic parsing: Pre-training vs. specialized architectures. In Findings of the Association for Computational Linguistics: EMNLP, 2020.",
-    "target_final_result": "found_with_inconsistencies",
+    "target_final_result": "incorrect_fields",
     "target_answer": "1- Author list is incorrect"
   },
   {
     "input": "Jonathan Herzig. Unlocking compositional generalization in pretrained models using intermediate representations. In EMNLP, 2021a.",
-    "target_final_result": "found_with_inconsistencies",
+    "target_final_result": "incorrect_fields",
     "target_answer": "Replace the venue (it is an arXiv preprint, not an EMNLP proceedings paper), correct the author list, normalize the year, and add the arXiv identifier/DOI."
   },
   {
     "input": "Jonathan Herzig and Jonathan Berant. Unlocking compositional generalization in pretrained models using intermediate representations.",
-    "target_final_result": "found_with_inconsistencies",
+    "target_final_result": "incorrect_fields",
     "target_answer": "Replace the incorrect author list (it is not coauthored with Jonathan Berant) and add the missing publication details (arXiv, 2021, and arXiv/DOI identifier)."
   },
   {
     "input": "Jonathan Herzig and Jonathan Berant. Unlocking compositional generalization in pretrained models using intermediate representations. In EMNLP, 2021c.",
-    "target_final_result": "found_with_inconsistencies",
+    "target_final_result": "incorrect_fields",
     "target_answer": "Replace the listed authors and venue (it is not an EMNLP paper by Herzig & Berant) and add the arXiv identifier so the citation points to the correct work."
   },
   {
     "input": "Takashi Ito, Brenden M. Lake, and Marco Baroni. Compositional generalization through abstract representations in human and artificial neural networks. In NeurIPS, 2022.",
-    "target_final_result": "found_with_inconsistencies",
+    "target_final_result": "incorrect_fields",
     "target_answer": "Replace the listed authors with the correct NeurIPS 2022 paper author list (Ito, Klinger, Schultz, Murray, Cole, Rigotti) and add the persistent identifier (arXiv:2209.07431)."
   },
   {
     "input": "Najoung Kim and Tal Linzen. Cogs: A compositional generalization challenge based on semantic interpretation. In NAACL, 2021.",
-    "target_final_result": "found_with_inconsistencies",
+    "target_final_result": "incorrect_fields",
     "target_answer": "Venue is wrong (should be EMNLP, not NAACL) and year is wrong (should be 2020, not 2021). Authors are correct."
   },
   {
     "input": "Brenden M. Lake and Marco Baroni. Generalization without systematicity: On the compositional skills of sequence-to-sequence recurrent networks. ICML, 2018.",
-    "target_final_result": "valid",
+    "target_final_result": "correct",
     "target_answer": "Valid reference with potential small inconsistencies"
   },
   {
     "input": "Xueguang Li, Yizhe Zhang, Xuezhe Ma, Lemao Liu, Xiang Chen, Ming Zhou, Tie-Yan Liu, and Jianfeng Gao. Compositional generalization through meta sequence-to-sequence learning. In EMNLP, 2021.",
-    "target_final_result": "found_with_inconsistencies",
+    "target_final_result": "incorrect_fields",
     "target_answer": "Replace the (incorrect) author list, venue, and year with the correct NeurIPS 2019 citation information and add the arXiv identifier"
   },
   {
     "input": "Laura Ruis, Jacob Andreas, Marco Baroni, Diane Bouchacourt, and Brenden M. Lake. A benchmark for systematic generalization in grounded language understanding. In NeurIPS, 2020.",
-    "target_final_result": "valid",
+    "target_final_result": "correct",
     "target_answer": "Valid reference with potential small inconsistencies"
   },
   {
     "input": "Herzig, Jonathan, Peter Shaw, Ming-Wei Chang, Kelvin Guu, Panupong Pasupat, and Yuan Zhang. \"Unlocking compositional generalization in pre-trained models using intermediate representations.\" arXiv preprint arXiv:2104.07478 (2021).",
-    "target_final_result": "valid",
+    "target_final_result": "correct",
     "target_answer": "Valid reference with potential small inconsistencies"
   },
   {
     "input": "North American Electric Reliability Corporation, \"2024 Long-Term Reliability Assessment,\" December 2024: https://www.nerc.com/pa/RAPA/ra/Reliability%20Assessments%20DL/NERC_Long%20Term%20Reliability%20Assessment_2024.pdf",
-    "target_final_result": "valid",
+    "target_final_result": "correct",
     "target_answer": "Valid reference with potential small inconsistencies"
   },
   {
     "input": "Sevilla, Jaime, Tamay Besiroglu, Ben Cottier, Josh You, Edu Roldán, Pablo Villalobos, and Ege Erdil, \"Can AI Scaling Continue Through 2030?\" Epoch AI, August 20, 2024: https://epoch.ai/blog/can-ai-scaling-continue-through-2030",
-    "target_final_result": "valid",
+    "target_final_result": "correct",
     "target_answer": "Valid reference with potential small inconsistencies"
   },
   {
     "input": "Srivathsan, Bhargs, Haripreet Batra, Raman Sharma, Rishi Gupta, and Surbhi Choudhary, \"AI power: Expanding data center capacity to meet growing demand,\" McKinsey & Company, October 2024: https://www.mckinsey.com/industries/technology-media-and-telecommunications/our-insights/ai-power-expanding-data-center-capacity-to-meet-growing-demand#/",
-    "target_final_result": "found_with_inconsistencies",
+    "target_final_result": "incorrect_fields",
     "target_answer": "Replace the author list with the article’s listed authors"
   },
   {
     "input": "Blanchard, Lauren Ploch, U.S.-Kenya Relations: Current Political and Security Issues, Congressional Research Service, R42967, July 23, 2015.",
-    "target_final_result": "valid",
+    "target_final_result": "correct",
     "target_answer": "Valid CRS report with potential small inconsistencies in citation format"
   },
   {
     "input": "Smart, Rosanna, Andrew R. Morral, Sierra Smucker, Samantha Cherney, Terry L. Schell, Samuel Peterson, Sangeeta C. Ahluwalia, Matthew Cefalu, Lea Xenakis, Rajeev Ramchand, and Carole Roan Gresenz, The Science of Gun Policy: A Critical Synthesis of Research Evidence on the Effects of Gun Policies in the United States, 2nd ed., RAND Corporation, RR-2088-1-RC/AV, 2020. As of May 21, 2022: https://www.rand.org/pubs/research_reports/RR2088-1.html",
-    "target_final_result": "valid",
+    "target_final_result": "correct",
     "target_answer": "Valid RAND report reference with potential small inconsistencies"
   },
   {
     "input": "Lin, Luona, and Kim Parker, \"US workers are more worried than hopeful about future AI use in the workplace,\" Pew Research Center, 2025. As of November 13, 2025: https://www.pewresearch.org/wp-content/uploads/sites/20/2025/02/ST_2025.2.25_AI-Workers_REPORT.pdf",
-    "target_final_result": "valid",
+    "target_final_result": "correct",
     "target_answer": "Valid reference with potential small inconsistencies"
   },
   {
     "input": "de Dianous, Valérie, and Cécile Fiévez, \"ARAMIS Project: A More Explicit Demonstration of Risk Control Through the Use of Bow-Tie Diagrams and the Evaluation of Safety Barrier Performance,\" Journal of Hazardous Materials, Vol. 130, No. 3, March 31, 2006.",
-    "target_final_result": "valid",
+    "target_final_result": "correct",
     "target_answer": "Valid journal article reference with potential small inconsistencies"
   },
   {
     "input": "Bick, Alexander, Adam Blandin, and David J. Deming, \"The Rapid Adoption of Generative AI,\" NBER Working Paper 32966, 2024. As of November 13, 2025: https://doi.org/10.3386/w32966",
-    "target_final_result": "valid",
+    "target_final_result": "correct",
     "target_answer": "Valid NBER working paper reference with potential small inconsistencies"
   },
   {
     "input": "Brachman, Michelle, Amina El-Ashry, Casey Dugan, and Werner Geyer, \"Current and future use of large language models for knowledge work,\" Proceedings of the ACM on Human-Computer Interaction, Vol. 9, No. 7, 2025. As of November 13, 2025: https://dl.acm.org/doi/pdf/10.1145/3757403",
-    "target_final_result": "valid",
+    "target_final_result": "correct",
     "target_answer": "Valid ACM journal article reference with potential small inconsistencies"
   },
   {
     "input": "Becker, Joel, Nate Rush, Elizabeth Barnes, and David Rein, \"Measuring the impact of early-2025 AI on experienced open-source developer productivity,\" arXiv, 2025. As of November 13, 2025: https://arxiv.org/abs/2507.09089",
-    "target_final_result": "valid",
+    "target_final_result": "correct",
     "target_answer": "Valid arXiv preprint reference with potential small inconsistencies"
   },
   {
     "input": "Wang, Dakuo, Q. Vera Liao, Yunfeng Zhang, Udayan Khurana, Horst Samulowitz, Soya Park, Michael Muller, and Lisa Amini, \"How much automation does a data scientist want?\" arXiv, arXiv:2101.03970, 2021. As of November 13, 2025: https://arxiv.org/abs/2101.03970",
-    "target_final_result": "valid",
+    "target_final_result": "correct",
     "target_answer": "Valid arXiv preprint reference with potential small inconsistencies"
   },
   {
     "input": "Murphy, Kim, \"Iraq Rejects Warning, Assails Mubarak,\" Los Angeles Times, January 2, 1991.",
-    "target_final_result": "valid",
+    "target_final_result": "correct",
     "target_answer": "Valid newspaper article reference with potential small inconsistencies"
   },
   {
     "input": "\"Xi urges good start to 15th Five-Year Plan period,\" Xinhua, February 26, 2026.",
-    "target_final_result": "valid",
+    "target_final_result": "correct",
     "target_answer": "Valid wire news article reference with potential small inconsistencies"
   },
   {
     "input": "Perficient. \"The State of GenAI in the Workforce,\" Perficient, 2025. As of January 30, 2026: https://www.perficient.com/insights/generative-ai-workforce-study",
-    "target_final_result": "valid",
+    "target_final_result": "correct",
     "target_answer": "Valid organizational report reference with potential small inconsistencies"
   },
   {
     "input": "Kemp, Andy. \"AI Use at Work Rises,\" Gallup, December 2025. As of January 30, 2026: https://www.gallup.com/workplace/699689/ai-use-at-work-rises.aspx",
-    "target_final_result": "valid",
+    "target_final_result": "correct",
     "target_answer": "Valid online article reference with potential small inconsistencies"
   },
   {
     "input": "Raytheon Technologies, homepage, undated. As of May 11, 2022:https://www.rtx.com",
-    "target_final_result": "valid",
+    "target_final_result": "correct",
     "target_answer": "Valid homepage reference with potential small inconsistencies"
   },
   {
     "input": "Office of the Under Secretary of War (Comptroller), \"Defense Wide Budget Documentation,\" webpage, undated. As of September 18, 2025: https://comptroller.defense.gov/Budget-Materials/FY2009BudgetJustification",
-    "target_final_result": "found_with_inconsistencies",
+    "target_final_result": "incorrect_fields",
     "target_answer": "The organization name is incorrect: 'Under Secretary of War' is a historical pre-1947 title; it should be 'Office of the Under Secretary of Defense (Comptroller)'"
   },
   {
     "input": "Phoebe Liu, \"Three months after a blockbuster $20 billion deal, Nvidia announced its plans for Groq's inference-speed tech. Here's how it came together and what's next,\" Bluesky post, March 18, 2026. As of March 18, 2026: https://bsky.app/profile/pheebini.bsky.social/post/3mhdyfduj2k2a",
-    "target_final_result": "valid",
+    "target_final_result": "correct",
     "target_answer": "Valid social media post reference with potential small inconsistencies"
   },
   {
     "input": "Air Force Policy Directive 10-601, Operational Capability Requirements Documentation and Validation, Department of the Air Force, April 27, 2021.",
-    "target_final_result": "valid",
+    "target_final_result": "correct",
     "target_answer": "Valid official Air Force publication reference with potential small inconsistencies"
   },
   {
     "input": "Joint Chiefs of Staff, Doctrine for the Armed Forces of the United States, Joint Publication 1, March 25, 2013, change 1, July 12, 2017.",
-    "target_final_result": "valid",
+    "target_final_result": "correct",
     "target_answer": "Valid joint doctrine publication reference with potential small inconsistencies"
   },
   {
     "input": "Public Law 107-296, Homeland Security Act of 2002, November 25, 2002.",
-    "target_final_result": "valid",
+    "target_final_result": "correct",
     "target_answer": "Valid public law citation with potential small inconsistencies"
   },
   {
     "input": "Brownlee, Les, \"Current Army Issues,\" testimony before the U.S. Senate Committee on Armed Services, U.S. Government Printing Office, November 19, 2003.",
-    "target_final_result": "valid",
+    "target_final_result": "correct",
     "target_answer": "Valid congressional testimony reference with potential small inconsistencies"
   },
   {
     "input": "Williams, Heather J., and Alexandra T. Evans, \"Extremist Use of Online Spaces,\" testimony submitted to the Select Committee to Investigate the January 6th Attack on the United States Capitol, RAND Corporation, CT-A1458-1, April 25, 2022. As of July 7, 2022: https://www.rand.org/pubs/testimonies/CTA1458-1.html",
-    "target_final_result": "valid",
+    "target_final_result": "correct",
     "target_answer": "Valid RAND testimony reference with potential small inconsistencies"
   },
   {
     "input": "Costanzo, George, and Mary Ann Spott, \"Joint Theater Trauma System (JTTS)/Joint Theater Trauma Registry (JTTR),\" briefing slides, U.S. Army Institute of Surgical Research, July 10, 2010.",
-    "target_final_result": "valid",
+    "target_final_result": "correct",
     "target_answer": "Valid briefing slides citation with potential small inconsistencies"
   },
   {
     "input": "Carter, Ashton B., \"0% Headquarters Reductions,\" memorandum to secretaries of the military departments et al., U.S. Department of Defense, July 31, 2013.",
-    "target_final_result": "found_with_inconsistencies",
+    "target_final_result": "incorrect_fields",
     "target_answer": "The title is incorrect: the actual memo subject is '20% Headquarters Reductions', not '0% Headquarters Reductions'. Author, publisher, and date are correct."
   },
   {
     "input": "Embassy of the United States in Jordan, \"The United States and the Hashemite Kingdom of Jordan Sign Memorandum of Understanding on Assistance,\" press release, September 23, 2008.",
-    "target_final_result": "valid",
+    "target_final_result": "correct",
     "target_answer": "Valid press release citation with potential small inconsistencies"
   },
   {
     "input": "World Bank, World Integrated Trade Solution, database, undated. As of May 2, 2022: https://wits.worldbank.org",
-    "target_final_result": "valid",
+    "target_final_result": "correct",
     "target_answer": "Valid database reference with potential small inconsistencies"
   },
   {
     "input": "Defense Manpower Data Center, \"Number of Military and DoD Appropriated Fund (APF) Civilian Personnel Permanently Assigned,\" spreadsheet, last updated September 30, 2019.",
-    "target_final_result": "valid",
+    "target_final_result": "correct",
     "target_answer": "Valid government dataset citation with potential small inconsistencies"
   },
   {
     "input": "Brandon Vigliarolo. \"Anthropic accidentally exposes Claude Code source code.\" The Register. Mar 31, 2026. https://www.theregister.com/2026/03/31/anthropic_claude_code_source_code/ (The Register, 2026)",
-    "target_final_result": "found_with_inconsistencies",
+    "target_final_result": "incorrect_fields",
     "target_answer": "The title is incorrect. The actual article headline on The Register is 'Anthropic goes nude, exposes Claude Code source by accident', not 'Anthropic accidentally exposes Claude Code source code'. The validator must use the title from the article's content body (the on-page headline), not a sanitized version from metadata tags or search snippets. Author, publisher, year, and URL are correct."
   },
   {
     "input": "Microsoft Security Blog. (2024, April 1). Navigating the cyber threat landscape with AI. https://www.microsoft.com/en-us/security/blog/2024/04/01/navigating-cyber-threat-landscape-ai",
-    "target_final_result": "not_found",
+    "target_final_result": "incorrect_fields",
     "target_answer": "This blog post does not exist at the given URL and cannot be found via web search. The agent must not validate a reference based solely on the URL having a plausible pattern; it must verify the content actually exists by searching for the title or confirming the URL resolves to real content."
   },
   {
     "input": "Bass, Frank M., \"A New Product Growth for Model Consumer Durables,\" Management Science, Vol. 15, No. 5, 1969. As of April 9, 2026: https://doi.org/10.1287/mnsc.15.5.215.",
-    "target_final_result": "valid",
+    "target_final_result": "correct",
     "target_answer": "Valid journal article reference with potential small inconsistencies",
     "note": "False positive: DD flagged inconsistencies in the title, but the reference is actually correct."
   },
   {
     "input": "Battula, Narendar, \"Prompt-Driven Vulnerability Chains: How to Build Multi-Step Exploits from Low-Severity Bugs with AI,\" Medium, As of July 23, 2025: https://medium.com/@narendarlb123/prompt-driven-vulnerability-chains-how-to-build-multi-step-exploits-from-low-severity-bugs-with-ai-7f79a701535b.",
-    "target_final_result": "valid",
+    "target_final_result": "correct",
     "target_answer": "Valid online article reference with potential small inconsistencies",
     "note": "Link redirects to a custom site on Medium; AI may be unable to follow the redirect and may incorrectly report not_found."
   },
   {
     "input": "Frontier Model Forum. (n.d.). About. https://www.frontiermodelforum.org/about-us/",
-    "target_final_result": "valid",
+    "target_final_result": "correct",
     "target_answer": "Valid online article reference with potential small inconsistencies",
     "note": "Page has no listed author, so entry in 'author' field should be publisher. Publisher does not need to be repeated twice in the reference."
   },
   {
     "input": "Google Security Blog. (2024, June 12). Secure AI Framework (SAIF): Conceptualizing secure AI systems. https://security.googleblog.com/2024/06/secure-ai-framework.html",
-    "target_final_result": "not_found",
+    "target_final_result": "incorrect_fields",
     "target_answer": "The post does not exist at the given URL and a post with this title cannot be found via web search. Since a post with this title cannot be found, validations should say reference is not found.",
     "note": "DD completions often return found_with_inconsistencies citing a closely matching official Google source (Hansen, R., & Venables, P. (2023, June 8). Introducing Google's Secure AI Framework. The Keyword.) — however all 4 fields differ from the original reference. The result should be not_found when all 4 fields are different."
   },
   {
     "input": "Khare, A., Dutta, S., Li, Z., Solko-Breslin, A., Alur, R., & Naik, M. (2024). Understanding the Effectiveness of Large Language Models in Detecting Security Vulnerabilities. arXiv [Cs.CR]. Retrieved from http://arxiv.org/abs/2311.16169.",
-    "target_final_result": "valid",
+    "target_final_result": "correct",
     "target_answer": "Valid reference with potential small inconsistencies",
     "note": "False positive: DD thinks year should be 2023. Original submission on arXiv is 2023, but there is an updated submission in 2024. For an arXiv citation to the unversioned record, the year should refer to the most recent submission (2024)."
   },
   {
     "input": "Fang, R., Bindu, R., Gupta, A., Zhan, Q., & Kang, D. (2024b). Teams of LLM Agents can Exploit Zero-Day Vulnerabilities. ArXiv, abs/2406.01637.",
-    "target_final_result": "found_with_inconsistencies",
+    "target_final_result": "incorrect_fields",
     "target_answer": "Cited v1 author list instead of using the list of authors from the most recent version on arXiv (v2).",
     "note": "Some arXiv papers have multiple uploaded versions with different author lists. DD should always match fields against the most recent version, unless the citation explicitly references an older version (e.g. https://arxiv.org/abs/2406.01637v1)."
   },
   {
     "input": "Kwa, T., West, B., Becker, J., Deng, A., Garcia, K., Hasin, M., Jawhar, S., Kinniment, M., Rush, N., Arx, S.V., Bloom, R., Broadley, T., Du, H., Goodrich, B., Jurkovic, N., Miles, L.H., Nix, S., Lin, T.R., Parikh, N., Rein, D., Sato, L.J., Wijk, H., Ziegler, D.M., Barnes, E., & Chan, L. (2025). Measuring AI Ability to Complete Long Tasks. ArXiv, abs/2503.14499.",
-    "target_final_result": "found_with_inconsistencies",
+    "target_final_result": "incorrect_fields",
     "target_answer": "Uses v1 arXiv title instead of the current v3 title. Author list has small differences.",
     "note": "Some arXiv papers have multiple uploaded versions with different author lists. DD should always match fields against the most recent version, unless the citation explicitly references an older version."
   },
   {
     "input": "Patwardhan, T., Dias, R., Proehl, E., Kim, G., Wang, M., Watkins, O., Fishman, S. P., Aljubeh, M., Thacker, P., Fauconnet, L., Kim, N. S., Chao, P., Miserendino, S., Chabot, G., Li, D., Sharman, M., Barr, A., Glaese, A., ... Tworek, J. (2025). GDPval: Evaluating AI model performance on real-world economically valuable tasks (arXiv:2312.12575v2). arXiv. https://arxiv.org/html/2312.12575v2",
-    "target_final_result": "found_with_inconsistencies",
+    "target_final_result": "incorrect_fields",
     "target_answer": "Incorrect arXiv identifier; the identifier links to a different, unrelated paper."
   },
   {
     "input": "Stevens, Rock & Dykstra, Josiah & Everette, Wendy Knox & Chapman, James & Bladow, Garrett & Farmer, Alexander & Halliday, Kevin & Mazurek, Michelle L. (2020). Compliance Cautions: Investigating Security Issues Associated with U.S. Digital-Security Standards. 10.14722/ndss.2020.24003.",
-    "target_final_result": "found_with_inconsistencies",
+    "target_final_result": "missing_fields",
     "target_answer": "Publisher/venue is missing; the DOI resolves to an NDSS 2020 paper and the venue should be added."
   },
   {
     "input": "Stevens, Rock & Dykstra, Josiah & Everette, Wendy & Chapman, James & Bladow, Garrett & Farmer, Alexander & Halliday, Kevin & Mazurek, Michelle. (2020). Compliance Cautions: Investigating Security Issues Associated with U.S. Digital-Security Standards. NDSS Symposium (Internet Society). 10.14722/ndss.2020.24003.",
-    "target_final_result": "valid",
+    "target_final_result": "correct",
     "target_answer": "Valid reference with potential small inconsistencies",
     "note": "Minor name inconsistencies (Everette, Wendy vs. Everette, Wendy Knox; Mazurek, Michelle vs. Mazurek, Michelle L.) should not trigger found_with_inconsistencies."
   },
   {
     "input": "Ghosh, R., Farri, O., Stockhausen, H.V., Schmitt, M., & Vasile, G.M. (2024). CVE-LLM : Automatic vulnerability evaluation in medical device industry using large language models. ArXiv, abs/2407.14640.",
-    "target_final_result": "valid",
+    "target_final_result": "correct",
     "target_answer": "Valid reference with potential small inconsistencies",
     "note": "Consistency test: 'Stockhausen, H.V.' should be 'von Stockhausen, H. M.' — a small author name discrepancy that should not trigger found_with_inconsistencies."
   },
   {
     "input": "Dissanayake, N., Zahedi, M., Jayatilaka, A., & Babar, M. A. (2022). Why, how and where of delays in software security patch management: An empirical investigation in the healthcare sector. Proceedings of the ACM on Human-Computer Interaction, 6(CSCW1), 1–28. https://doi.org/10.1145/3512948",
-    "target_final_result": "found_with_inconsistencies",
+    "target_final_result": "incorrect_fields",
     "target_answer": "DOI in the reference resolves to a different ACM article. The source metadata also indicates the article appeared in Proceedings of the ACM on Human-Computer Interaction, volume 6, CSCW2, 1-29, so the issue/pages in the supplied citation are also inconsistent even though those fields are outside the required validation categories."
   },
   {
     "input": "Pearce, H., Tan, B., Ahmad, B., Karri, R., & Dolan-Gavitt, B. (2024). Examining zero-shot vulnerability repair with large language models. Proceedings of the 2024 IEEE Symposium on Security and Privacy (SP), 2339–2356.",
-    "target_final_result": "found_with_inconsistencies",
+    "target_final_result": "incorrect_fields",
     "target_answer": "Year is incorrect; the paper was published at IEEE S&P 2023, not 2024. The conference proceedings year should also be corrected to 2023.",
     "note": "Reference is also missing an identifier (DOI or link), but a missing identifier alone should not trigger found_with_inconsistencies — the year error is the primary issue."
   },
   {
     "input": "Tihanyi, N., Ferrag, M. A., Jain, R., Bisztray, T., & Debbah, M. (2024). CyberMetric: Creating a benchmark dataset RAG with human validation for evaluating cybersecurity knowledge of LLMs. arXiv. https://arxiv.org/html/2402.07688v2",
-    "target_final_result": "found_with_inconsistencies",
+    "target_final_result": "incorrect_fields",
     "target_answer": "Title is incorrect (appears to originate from errors in the arXiv HTML rendering); publisher should be updated to the IEEE conference where the paper was officially published.",
     "note": "The link is technically valid but points to the experimental arXiv HTML view, which contains rendering errors that produced the wrong title. Listing publisher as 'arXiv' is not wrong per se, but the paper was officially published at an IEEE conference and that should be preferred."
   },
   {
     "input": "Parker, Charlie, Sam Scott, and Alistair Geddes. \"Snowball Sampling.\" In Sage Research Methods Foundations, edited by Paul Atkinson, Sara Delamont, Alexandru Cernat, Joseph W. Sakshaug, and Richard A. Williams. London: SAGE Publications Ltd, 2019. https://doi.org/10.4135/9781526421036831710.",
-    "target_final_result": "valid",
+    "target_final_result": "correct",
     "target_answer": "Valid article reference with potential small inconsistencies",
     "note": "False positive: DD says year should be 2020 (Google Books lists 2020) but Google Scholar lists the year as 2019, which matches the citation."
   },
   {
     "input": "Adan, Sumaya Nur, Joanna Wiaterek, Varun Sen Bahl, Ima Bello, Camila Beltran, Tobias Dierks, Luise Eder, Liam Epstein, Abra Ganz, Natalie Kiilu, Marianne Lu, Chinasa T. Okolo, Sydney Reis, Said Saillant, Krishna Sharma, Marjia Siddik, Jan Pieter Snoeij, José Jaime Villalobos, and Anna Yelizarova. AI Benefit-Sharing Framework: Balancing Access and Safety. Oxford Martin AI Governance Initiative, Oxford Martin School, University of Oxford, December 1, 2025. As of January 22, 2026: https://aigi.ox.ac.uk/publications/ai-benefit-sharing-framework-balancing-access-and-safety/",
-    "target_final_result": "valid",
+    "target_final_result": "correct",
     "target_answer": "Valid white paper reference with potential small inconsistencies",
     "note": "DD returned 'not_found' but article exists."
   },
   {
     "input": "Sundharbaabu, P.R., J. Chang, Y. Kim, Y. Shim, B. Lee, C. Noh, S. Heo, S. S. Lee, S. H. Shim, K. L. Lim, K. Jo, and J. H. Lee. \"Artificial Intelligence‐Enhanced Analysis of Genomic DNA Visualized with Nanoparticle‐Tagged Peptides under Electron Microscopy,\" Small, Vol. 21, No. 12, Mar, 2025.",
-    "target_final_result": "valid",
+    "target_final_result": "correct",
     "target_answer": "Valid journal article reference with potential small inconsistencies",
     "note": "DD returned 'not_found' but article exists."
   },
   {
     "input": "Rajan, Kanna and Karlyn D. Stanley, Unmanned Cargo Vessels: A Working Paper, RAND Corporation, WR-A2889-1, 2023. As of April 18, 2026: https://www.rand.org/pubs/working_papers/WRA2889-1.html",
-    "target_final_result": "valid",
+    "target_final_result": "correct",
     "target_answer": "Valid RAND working paper reference with potential small inconsistencies"
   }
 ]

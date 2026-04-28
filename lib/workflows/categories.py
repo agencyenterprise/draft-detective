@@ -24,7 +24,8 @@ WORKFLOW_DISPLAY_CONFIG: list[CategoryConfig] = [
         slug="citation_check",
         label="Citation Check",
         workflows=[
-            WorkflowRunType.REFERENCE_VALIDATION,
+            # WorkflowRunType.REFERENCE_VALIDATION,  # legacy v1; kept registered so old projects still load.
+            WorkflowRunType.REFERENCE_VALIDATION_V2,
         ],
     ),
     CategoryConfig(
