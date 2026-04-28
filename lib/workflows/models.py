@@ -85,7 +85,6 @@ class WorkflowRunType(str, Enum):
     REFERENCE_VALIDATION_V2 = "reference_validation_v2"
     CITATION_SUGGESTER = "citation_suggester"
     RESULTS_EXTRACTION = "results_extraction"
-    INFERENCE_VALIDATION = "inference_validation"
     INFERENCE_VALIDATION_V2 = "inference_validation_v2"
     CLAIM_REFERENCE_VALIDATION = "claim_reference_validation"
     CLAIM_REFERENCE_VALIDATION_V2 = "claim_reference_validation_v2"
