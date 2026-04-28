@@ -5603,7 +5603,6 @@ export const WorkflowRunType = {
   ReferenceValidationV2: 'reference_validation_v2',
   CitationSuggester: 'citation_suggester',
   ResultsExtraction: 'results_extraction',
-  InferenceValidation: 'inference_validation',
   InferenceValidationV2: 'inference_validation_v2',
   ClaimReferenceValidation: 'claim_reference_validation',
   ClaimReferenceValidationV2: 'claim_reference_validation_v2',
