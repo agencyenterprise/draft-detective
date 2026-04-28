@@ -2943,6 +2943,12 @@ export type Issue = {
    */
   long_description?: string | null;
   /**
+   * Suggested Action
+   *
+   * Author-facing recommendation describing how to resolve the issue. Markdown-formatted.
+   */
+  suggested_action?: string | null;
+  /**
    * The severity of the issue
    */
   severity: SeverityEnum;
@@ -3035,6 +3041,12 @@ export type IssueItem = {
    */
   long_description?: string | null;
   /**
+   * Suggested Action
+   *
+   * A direct, concise recommendation to the author on what to do to resolve this issue. Markdown is supported.
+   */
+  suggested_action?: string | null;
+  /**
    * Start Line
    *
    * 1-indexed start line in the document where the text relevant to this issue begins
@@ -3082,6 +3094,10 @@ export type IssueResponse = {
    * Long Description
    */
   long_description: string | null;
+  /**
+   * Suggested Action
+   */
+  suggested_action: string | null;
   /**
    * Severity
    */

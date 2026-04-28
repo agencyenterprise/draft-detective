@@ -182,7 +182,6 @@ class ClaimReferenceValidationManifest(
             long_description = (
                 f"**Key sentence:** \n\n> {substantiation.key_sentence}\n\n"
                 f"**Evidence Alignment:** {substantiation.evidence_alignment}\n\n"
-                f"**Feedback to resolve:** {substantiation.feedback}\n\n"
                 f"### Checked sources\n\n{sources_text}\n\n"
                 f"### Citation-to-file mapping\n\n{substantiation.citation_to_file_mapping or "No citation-to-file mapping provided"}"
             )
@@ -195,6 +194,7 @@ class ClaimReferenceValidationManifest(
                     type=self.type,
                     chunk_indices=[substantiation.chunk_index],
                     long_description=long_description,
+                    suggested_action=substantiation.feedback or None,
                 )
             )
 
