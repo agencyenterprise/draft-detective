@@ -22,7 +22,6 @@ dependencies = [
     "sqlmodel>=0.0.24",
     "pytest>=9.0.3",
     "pytest-asyncio>=0.24.0",
-    "pytest-json-report>=1.5.0",
     "fastapi[standard]>=0.120.2",
     "deepdiff[optimize]>=8.6.1",
     "pytest-xdist>=3.8.0",
@@ -66,13 +65,9 @@ ignore_missing_imports = true
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = [
-    "--json-report",
-    "--json-report-file=test_results.json",
-    "--json-report-indent=2",
     "-v",
     "-n",
     "10",
-    "--ignore=tests/evals",
 ]
 
 [dependency-groups]
