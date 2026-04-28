@@ -11,6 +11,7 @@ import shutil
 from pathlib import Path
 from typing import Optional
 
+import nltk  # type: ignore[import-untyped]
 from xxhash import xxh128
 
 from lib.config.env import config
@@ -20,6 +21,18 @@ from lib.services.file_artifacts_service.file_artifacts_service_type import File
 from lib.services.vector_store import VectorStoreService
 
 TESTS_DIR = Path(__file__).parent
+
+
+def pytest_configure(config):
+    """Pre-download NLTK data before xdist workers spawn.
+
+    Multiple workers downloading punkt_tab simultaneously race and corrupt the
+    archive (BadZipFile), causing test collection to fail in some workers.
+    """
+    try:
+        nltk.data.find("tokenizers/punkt_tab")
+    except LookupError:
+        nltk.download("punkt_tab", quiet=True)
 
 
 def data_path(path: str) -> str:
