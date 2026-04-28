@@ -82,6 +82,7 @@ class WorkflowRunType(str, Enum):
     LITERATURE_REVIEW = "literature_review"
     LIVE_REPORTS = "live_reports"
     REFERENCE_VALIDATION = "reference_validation"
+    REFERENCE_VALIDATION_V2 = "reference_validation_v2"
     CITATION_SUGGESTER = "citation_suggester"
     RESULTS_EXTRACTION = "results_extraction"
     INFERENCE_VALIDATION = "inference_validation"

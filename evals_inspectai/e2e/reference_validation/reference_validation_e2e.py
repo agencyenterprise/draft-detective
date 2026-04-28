@@ -70,7 +70,7 @@ def reference_validation_e2e():
     return Task(
         dataset=dataset,
         solver=api_workflow_agent(
-            "reference_validation",
+            "reference_validation_v2",
         ),
         scorer=[
             structured_output_scorer(ReferenceValidationOutput, _compare_final_result),

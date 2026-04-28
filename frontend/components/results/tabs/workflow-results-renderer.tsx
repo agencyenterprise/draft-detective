@@ -12,6 +12,7 @@ import { LiveReportsResults } from '@/components/workflows/results/live-reports-
 import { MethodologicalAlignmentResults } from '@/components/workflows/results/methodological-alignment-results';
 import { ReferenceDownloaderResults } from '@/components/workflows/results/reference-downloader-results';
 import { ReferenceValidationResults } from '@/components/workflows/results/reference-validation-results';
+import { ReferenceValidationV2Results } from '@/components/workflows/results/reference-validation-v2-results';
 import { ResultsExtractorResults } from '@/components/workflows/results/results-extractor-results';
 import { Reviewer2Results } from '@/components/workflows/results/reviewer-2-results';
 import { SimpleDeepAgentResults } from '@/components/workflows/results/simple-deep-agent-results';
@@ -100,6 +101,8 @@ function renderWorkflowResults(
       return <Reviewer2Results workflowDetail={workflowRun} />;
     case WorkflowRunType.ReferenceValidation:
       return <ReferenceValidationResults workflowDetail={workflowRun} />;
+    case WorkflowRunType.ReferenceValidationV2:
+      return <ReferenceValidationV2Results workflowDetail={workflowRun} />;
     case WorkflowRunType.DocumentStructure:
     case WorkflowRunType.FiguresTablesCheck:
       return (
