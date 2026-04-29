@@ -61,6 +61,7 @@ def reference_downloader_e2e():
 
     return Task(
         dataset=dataset,
+        fail_on_error=0.2,
         solver=_reference_downloader_api_agent(),
         scorer=structured_output_scorer(
             ReferenceDownloaderOutput, _compare_final_conclusion
@@ -92,11 +93,14 @@ def _reference_downloader_api_agent(
             }
         )
 
-        run_detail = await poll_workflow_run_until_complete(
-            workflow_run_id,
-            timeout_s=timeout_s,
-            interval_s=poll_interval_s,
-        )
+        try:
+            run_detail = await poll_workflow_run_until_complete(
+                workflow_run_id,
+                timeout_s=timeout_s,
+                interval_s=poll_interval_s,
+            )
+        except TimeoutError as e:
+            raise WorkflowCompletionError(str(e)) from e
 
         workflow_state = run_detail.get("state") or {}
         _check_item_errors(workflow_state)

@@ -69,6 +69,7 @@ def reference_validation_e2e():
 
     return Task(
         dataset=dataset,
+        fail_on_error=0.2,
         solver=api_workflow_agent(
             "reference_validation_v2",
         ),

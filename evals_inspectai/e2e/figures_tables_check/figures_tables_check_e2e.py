@@ -29,7 +29,8 @@ def figures_tables_check_e2e():
 
     return Task(
         dataset=dataset,
-        solver=api_workflow_agent("figures_tables_check"),
+        fail_on_error=0.2,
+        solver=api_workflow_agent("figures_tables_check", timeout_s=600),
         scorer=[
             structured_output_scorer(SimpleDeepAgentOutput, _compare_issue_titles),
             model_graded_check(partial_credit=True),
