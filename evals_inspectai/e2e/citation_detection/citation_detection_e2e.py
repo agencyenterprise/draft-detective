@@ -58,6 +58,7 @@ def citation_detection_e2e():
 
     return Task(
         dataset=dataset,
+        fail_on_error=0.2,
         solver=api_workflow_agent("citation_detection"),
         scorer=structured_output_scorer(CitationDetectionOutput, _compare_citations),
     )

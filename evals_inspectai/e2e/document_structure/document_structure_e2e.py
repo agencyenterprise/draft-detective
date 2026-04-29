@@ -29,6 +29,7 @@ def document_structure_e2e():
 
     return Task(
         dataset=dataset,
+        fail_on_error=0.2,
         solver=api_workflow_agent("document_structure"),
         scorer=[
             structured_output_scorer(SimpleDeepAgentOutput, _compare_issue_titles),

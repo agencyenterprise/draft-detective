@@ -12,6 +12,7 @@ from evals_inspectai.common.api_client import (
     upload_and_start_analysis,
 )
 from evals_inspectai.common.converters import messages_from_langchain
+from evals_inspectai.common.errors import WorkflowCompletionError
 
 logger = logging.getLogger(__name__)
 
@@ -40,12 +41,15 @@ def api_workflow_agent(
             workflow_types=[workflow_type],
         )
 
-        run_detail = await poll_until_complete(
-            project_id=project_id,
-            workflow_type=workflow_type,
-            timeout_s=timeout_s,
-            interval_s=poll_interval_s,
-        )
+        try:
+            run_detail = await poll_until_complete(
+                project_id=project_id,
+                workflow_type=workflow_type,
+                timeout_s=timeout_s,
+                interval_s=poll_interval_s,
+            )
+        except TimeoutError as e:
+            raise WorkflowCompletionError(str(e)) from e
 
         workflow_state = run_detail.get("state") or {}
 
