@@ -3,7 +3,7 @@
 from typing import List, Optional
 
 from langchain.agents import create_agent
-from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
 from langgraph.graph.state import RunnableConfig
 from pydantic import BaseModel, Field
 
@@ -11,7 +11,7 @@ from lib.agents.claim_verifier import ClaimEvidenceSource, EvidenceAlignmentLeve
 from lib.agents.tools.read_document import read_document
 from lib.agents.tools.search_document import search_document
 from lib.agents.tools.vector_search import vector_search
-from lib.config.llm_models import gpt_5_4_model
+from lib.config.llm_models import gpt_5_5_model
 from lib.models.agent import LangChainAgent
 from lib.workflows.context import ContextSchema
 
@@ -41,7 +41,12 @@ class CitationIssueItem(BaseModel):
     )
     citation_to_file_mapping: Optional[str] = Field(
         default=None,
-        description="The bibliography-to-file mapping used when checking this citation. Omit file IDs.",
+        description=(
+            "Display-friendly summary of which bibliography entry was matched to "
+            "which supporting file when checking this citation, e.g. "
+            "'Smith (2020) → smith_2020.pdf'. Do not include file_id UUIDs in this "
+            "string; the file_id belongs in each entry of evidence_sources."
+        ),
     )
 
 
@@ -90,6 +95,11 @@ Documents use citations in two main formats:
 2. **Footnote markers**: e.g., `[2]`, `[^2]`, superscript `²`. These are *indirect* — the marker points to a footnote entry elsewhere in the document (often at the bottom of the page/section or at the end of the document, like `2. Smith, 2020, Title of the work`). The footnote entry then points to the actual bibliography entry.
    - **Important**: Not every footnote is a citation. Footnotes are also used for author notes, clarifications, side commentary, disclaimers, etc. Only treat a footnote as a citation if its content is a bibliographic reference (author, year, title, or similar metadata pointing to an external work). If the footnote is commentary or a note, skip it — do not report it.
    - To resolve a footnote citation: use `search_document(main_file_id, ...)` to find the footnote entry (e.g., search for `^\\s*2\\.` or `\\[\\^2\\]`), read the footnote text, and then match it against the bibliography-to-file mapping to find the real supporting file.
+   - **Validate the in-text marker, not the footnote entry.** A footnote entry line (e.g., `[^1]: Smith, 2020. Title of the work` or `1. Smith, 2020. Title of the work`) is the *target* of a marker, not a standalone in-text claim. Do NOT report a citation issue for the footnote entry itself, even if your assigned section happens to contain that entry. Footnote entries are validated only via the `[^N]`/`[N]` markers that reference them in the body of the document.
+
+## Bibliography sections
+
+Lines inside a `## References`, `## Bibliography`, or similar dedicated bibliography section are reference *entries*, not in-text citations. Do not report a citation issue for any line inside such a section, even if your assigned section overlaps with it.
 
 ## Workflow
 
@@ -132,7 +142,7 @@ _USER_MESSAGE = "Please validate all citations in your assigned section."
 class CitationValidatorAgent(LangChainAgent):
     name = "Citation Validator"
     description = "Validate citations in a document section against reference files"
-    model = gpt_5_4_model
+    model = gpt_5_5_model
     temperature = 0.0
     reasoning = {"effort": "medium", "summary": "auto"}
 
@@ -140,7 +150,7 @@ class CitationValidatorAgent(LangChainAgent):
         self,
         prompt_kwargs: dict,
         config: Optional[RunnableConfig] = None,
-    ) -> SectionValidationResult:
+    ) -> tuple[SectionValidationResult, List[BaseMessage]]:
         agent = create_agent(
             self.llm,
             [vector_search, search_document, read_document],
@@ -161,4 +171,4 @@ class CitationValidatorAgent(LangChainAgent):
             context=self.context,
         )
 
-        return result["structured_response"]
+        return result["structured_response"], result["messages"]
