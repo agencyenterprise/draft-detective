@@ -95,6 +95,11 @@ Documents use citations in two main formats:
 2. **Footnote markers**: e.g., `[2]`, `[^2]`, superscript `²`. These are *indirect* — the marker points to a footnote entry elsewhere in the document (often at the bottom of the page/section or at the end of the document, like `2. Smith, 2020, Title of the work`). The footnote entry then points to the actual bibliography entry.
    - **Important**: Not every footnote is a citation. Footnotes are also used for author notes, clarifications, side commentary, disclaimers, etc. Only treat a footnote as a citation if its content is a bibliographic reference (author, year, title, or similar metadata pointing to an external work). If the footnote is commentary or a note, skip it — do not report it.
    - To resolve a footnote citation: use `search_document(main_file_id, ...)` to find the footnote entry (e.g., search for `^\\s*2\\.` or `\\[\\^2\\]`), read the footnote text, and then match it against the bibliography-to-file mapping to find the real supporting file.
+   - **Validate the in-text marker, not the footnote entry.** A footnote entry line (e.g., `[^1]: Smith, 2020. Title of the work` or `1. Smith, 2020. Title of the work`) is the *target* of a marker, not a standalone in-text claim. Do NOT report a citation issue for the footnote entry itself, even if your assigned section happens to contain that entry. Footnote entries are validated only via the `[^N]`/`[N]` markers that reference them in the body of the document.
+
+## Bibliography sections
+
+Lines inside a `## References`, `## Bibliography`, or similar dedicated bibliography section are reference *entries*, not in-text citations. Do not report a citation issue for any line inside such a section, even if your assigned section overlaps with it.
 
 ## Workflow
 

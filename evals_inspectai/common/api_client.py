@@ -66,35 +66,124 @@ async def upload_and_start_analysis(
     file_content: str,
     workflow_types: list[str],
     file_name: str = "document.md",
+    supporting_files: list[tuple[str, str]] | None = None,
 ) -> str:
     """Upload a document and start analysis workflows.
+
+    Args:
+        file_content: Markdown content of the main document.
+        workflow_types: Workflow types to trigger (dependencies are auto-resolved
+            server-side; pass only the leaf workflow).
+        file_name: Display name for the main document.
+        supporting_files: Optional list of (file_name, markdown_content) tuples
+            uploaded alongside the main document as multipart `supporting_documents`.
 
     Returns the project_id.
     """
     async with _build_client() as client:
-        with tempfile.NamedTemporaryFile(suffix=".md", mode="w", delete=False) as tmp:
-            tmp.write(file_content)
-            tmp_path = tmp.name
-
+        tmp_paths: list[str] = []
+        open_handles: list[Any] = []
         try:
-            with open(tmp_path, "rb") as f:
-                files = {"main_document": (file_name, f, "text/markdown")}
-                data: dict[str, Any] = {}
-                for wt in workflow_types:
-                    data.setdefault("workflow_types", []).append(wt)
+            with tempfile.NamedTemporaryFile(
+                suffix=".md", mode="w", delete=False
+            ) as tmp:
+                tmp.write(file_content)
+                main_path = tmp.name
+            tmp_paths.append(main_path)
 
-                openai_api_key = os.environ.get("EVAL_API_OPENAI_API_KEY")
-                if openai_api_key:
-                    data["openai_api_key"] = openai_api_key
+            multipart: list[tuple[str, tuple[str, Any, str]]] = []
+            main_handle = open(main_path, "rb")
+            open_handles.append(main_handle)
+            multipart.append(
+                ("main_document", (file_name, main_handle, "text/markdown"))
+            )
 
-                resp = await client.post("/api/start-analysis", files=files, data=data)
+            for sf_name, sf_content in supporting_files or []:
+                with tempfile.NamedTemporaryFile(
+                    suffix=".md", mode="w", delete=False
+                ) as tmp_sf:
+                    tmp_sf.write(sf_content)
+                    sf_path = tmp_sf.name
+                tmp_paths.append(sf_path)
+                handle = open(sf_path, "rb")
+                open_handles.append(handle)
+                multipart.append(
+                    ("supporting_documents", (sf_name, handle, "text/markdown"))
+                )
+
+            data: dict[str, Any] = {}
+            for wt in workflow_types:
+                data.setdefault("workflow_types", []).append(wt)
+
+            openai_api_key = os.environ.get("EVAL_API_OPENAI_API_KEY")
+            if openai_api_key:
+                data["openai_api_key"] = openai_api_key
+
+            resp = await client.post(
+                "/api/start-analysis", files=multipart, data=data
+            )
         finally:
-            os.unlink(tmp_path)
+            for h in open_handles:
+                h.close()
+            for p in tmp_paths:
+                try:
+                    os.unlink(p)
+                except OSError:
+                    pass
 
         resp.raise_for_status()
         body = resp.json()
         logger.info("Started analysis, project_id=%s", body["project_id"])
         return body["project_id"]
+
+
+async def approve_workflow_run(workflow_run_id: str) -> None:
+    """Trigger the human-approval gate for a workflow run."""
+    async with _build_client() as client:
+        resp = await client.post(
+            f"/api/workflow-runs/{workflow_run_id}/approve"
+        )
+        resp.raise_for_status()
+        logger.info("Approved workflow_run_id=%s", workflow_run_id)
+
+
+async def find_workflow_run_by_type(
+    project_id: str, workflow_type: str
+) -> dict[str, Any] | None:
+    """Return the most recent run-detail dict for the given workflow type, or None."""
+    project = await get_project_detail(project_id)
+    for run_detail in project.get("workflow_runs", []):
+        run = run_detail.get("run", {})
+        if run.get("type") == workflow_type:
+            return run_detail
+    return None
+
+
+async def poll_until_status(
+    project_id: str,
+    workflow_type: str,
+    target_statuses: set[str],
+    timeout_s: float = DEFAULT_TIMEOUT_S,
+    interval_s: float = DEFAULT_POLL_INTERVAL_S,
+) -> dict[str, Any]:
+    """Poll the project until a run of the given type reaches one of the target statuses."""
+    deadline = time.monotonic() + timeout_s
+    while time.monotonic() < deadline:
+        detail = await find_workflow_run_by_type(project_id, workflow_type)
+        if detail:
+            status = detail.get("run", {}).get("status")
+            if status in target_statuses:
+                logger.info(
+                    "Workflow %s reached status=%s",
+                    workflow_type,
+                    status,
+                )
+                return detail
+        await asyncio.sleep(interval_s)
+    raise TimeoutError(
+        f"Workflow '{workflow_type}' did not reach any of {target_statuses} "
+        f"within {timeout_s}s for project {project_id}"
+    )
 
 
 async def _fetch_project_detail(

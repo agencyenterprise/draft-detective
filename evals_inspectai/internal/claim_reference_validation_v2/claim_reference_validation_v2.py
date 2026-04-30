@@ -24,7 +24,12 @@ from lib.agents.citation_validator import CitationValidatorAgent, SectionValidat
 @task
 def claim_reference_validation_v2():
     dataset = json_dataset(
-        str(Path(__file__).parent / "dataset.json"),
+        str(
+            Path(__file__).parent.parent.parent
+            / "e2e"
+            / "claim_reference_validation_v2"
+            / "dataset.json"
+        ),
         _record_to_sample,
     )
 
