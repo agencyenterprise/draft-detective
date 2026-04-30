@@ -15,7 +15,10 @@ from mcp.types import ToolAnnotations
 
 from lib.api.mcp_auth import create_mcp_auth
 from lib.api.models import StartMultipleWorkflowsRequest
-from lib.api.services.workflow_runner import run_multiple_workflows_blocking
+from lib.api.services.workflow_runner import (
+    HumanApprovalRequiredError,
+    run_multiple_workflows_blocking,
+)
 from lib.config.env import config as env_config
 from lib.models.file import File as FileModel, FileRole
 from lib.models.project import AccessLevel
@@ -212,6 +215,7 @@ async def create_project(
 async def run_workflow(
     project_id: str,
     workflow_types: list[str],
+    approve_human_steps: bool = False,
     token: AccessToken = CurrentAccessToken(),
 ) -> str:
     """
@@ -227,6 +231,14 @@ async def run_workflow(
 
     workflow_types must be a list of type values returned by list_workflow_types
     (e.g. ["claim_extraction", "reference_validation"]).
+
+    Some workflows (e.g. claim_reference_validation_v2) gate on a human review
+    of the reference→file mappings before running. On the first call, leave
+    approve_human_steps=False (the default): the tool returns a JSON response
+    with status="human_approval_required" pointing the user at the project URL
+    so they can review references first. After the user explicitly confirms
+    (e.g. "go ahead and start"), call this tool again with the same arguments
+    plus approve_human_steps=True to record the approval and run the workflow.
 
     Returns full project details including all workflow results, detected issues,
     and a project_url link to view the project in the web UI.
@@ -250,7 +262,30 @@ async def run_workflow(
         workflow_types=parsed_types,
     )
 
-    await run_multiple_workflows_blocking(parsed_types, request, user)
+    try:
+        await run_multiple_workflows_blocking(
+            parsed_types, request, user, approve_human_steps=approve_human_steps
+        )
+    except HumanApprovalRequiredError as exc:
+        return json.dumps(
+            {
+                "status": "human_approval_required",
+                "project_id": exc.project_id,
+                "project_url": _build_project_url(exc.project_id),
+                "pending_workflow_types": [
+                    w.value for w in exc.pending_workflow_types
+                ],
+                "message": (
+                    "This workflow requires the user to review the reference→file "
+                    "mappings before it can run. Share the project_url with the user "
+                    "so they can review references in the web UI, or offer to list "
+                    "the references and supporting-file mappings here (use "
+                    "get_project to fetch them). Once the user confirms (e.g. they "
+                    "reply with something like 'go ahead and start'), call run_workflow "
+                    "again with the same arguments plus approve_human_steps=true."
+                ),
+            }
+        )
 
     return await _get_project_details_json(project_id, AccessLevel.WRITE, user)
 

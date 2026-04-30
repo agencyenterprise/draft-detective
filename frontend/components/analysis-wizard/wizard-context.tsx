@@ -22,24 +22,20 @@ interface WizardContextValue extends WizardState {
   setPreflightStatus: (status: Partial<WizardState['preflightStatus']>) => void;
   setSelectedWorkflowTypes: (types: WorkflowRunType[]) => void;
   nextStep: () => void;
-  goToStep: (step: WizardStep) => void;
 }
 
 const WizardContext = createContext<WizardContextValue | null>(null);
 
 interface WizardProviderProps {
   children: ReactNode;
-  initialProjectId?: string | null;
-  initialStep?: WizardStep;
 }
 
-export function WizardProvider({ children, initialProjectId = null, initialStep }: WizardProviderProps) {
-  // If initialStep is provided, use it. Otherwise, default to step 2 if we have a projectId, else step 1
-  const [currentStep, setCurrentStep] = useState<WizardStep>(initialStep ?? (initialProjectId ? 2 : 1));
+export function WizardProvider({ children }: WizardProviderProps) {
+  const [currentStep, setCurrentStep] = useState<WizardStep>(1);
   const [mainDocument, setMainDocument] = useState<File | null>(null);
-  const [projectId, setProjectId] = useState<string | null>(initialProjectId);
+  const [projectId, setProjectId] = useState<string | null>(null);
   const [preflightStatus, setPreflightStatusState] = useState<WizardState['preflightStatus']>({
-    format: initialProjectId ? 'valid' : 'idle',
+    format: 'idle',
   });
   const [selectedWorkflowTypes, setSelectedWorkflowTypes] = useState<WorkflowRunType[]>([]);
 
@@ -56,10 +52,6 @@ export function WizardProvider({ children, initialProjectId = null, initialStep 
     setCurrentStep((prev) => (prev < 2 ? ((prev + 1) as WizardStep) : prev));
   }, []);
 
-  const goToStep = useCallback((step: WizardStep) => {
-    setCurrentStep(step);
-  }, []);
-
   const value = useMemo(
     () => ({
       currentStep,
@@ -73,7 +65,6 @@ export function WizardProvider({ children, initialProjectId = null, initialStep 
       setPreflightStatus,
       setSelectedWorkflowTypes,
       nextStep,
-      goToStep,
     }),
     [
       currentStep,
@@ -84,7 +75,6 @@ export function WizardProvider({ children, initialProjectId = null, initialStep 
       needsReferencesStep,
       setPreflightStatus,
       nextStep,
-      goToStep,
     ],
   );
 
