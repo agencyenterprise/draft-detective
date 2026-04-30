@@ -6,7 +6,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
 
-from lib.config.llm_models import gpt_5_2_model, gpt_5_mini_model
+from lib.config.llm_models import gpt_5_4_model
 from lib.models.agent import LangChainAgent
 from lib.models.footnote_item import FootnoteItem
 
@@ -51,7 +51,7 @@ class FootnoteExtractorAgent(LangChainAgent):
 
     name = "Footnote Extractor"
     description = "Extract structured footnotes from document text"
-    model = gpt_5_2_model
+    model = gpt_5_4_model
     temperature = 0.0
     output_schema = FootnoteExtractorResponse
 

@@ -12,7 +12,7 @@ from langchain.agents.structured_output import AutoStrategy
 from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
 from langchain_core.runnables import RunnableConfig
 
-from lib.config.llm_models import gpt_5_4_model
+from lib.config.llm_models import gpt_5_5_model
 from lib.models.agent import LangChainAgent
 from lib.workflows.context import ContextSchema
 from lib.workflows.simple_deep_agent.agent_types import AgentCheckResult
@@ -43,7 +43,7 @@ class SimpleDeepAgent(LangChainAgent):
 
     name = "Simple Deep Agent"
     description = "Runs a deep-agent validation pass and returns structured issues"
-    model = gpt_5_4_model
+    model = gpt_5_5_model
     temperature = 0.0
     reasoning = {"effort": "medium", "summary": "auto"}
 

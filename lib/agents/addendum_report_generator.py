@@ -7,7 +7,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
 
-from lib.config.llm_models import gpt_5_model
+from lib.config.llm_models import gpt_5_4_model
 from lib.models.agent import LangChainAgent
 
 
@@ -205,7 +205,7 @@ class AddendumReportGeneratorAgent(LangChainAgent):
     description = (
         "Aggregate live reports and produce a markdown formatted addendum report"
     )
-    model = gpt_5_model
+    model = gpt_5_4_model
     temperature = 0.2
     output_schema = ReportOutput
 

@@ -8,7 +8,7 @@ from langchain_core.prompts import PromptTemplate
 from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
 
-from lib.config.llm_models import gpt_5_2_model
+from lib.config.llm_models import gpt_5_4_model
 from lib.models.agent import LangChainAgent
 from lib.workflows.context import ContextSchema
 
@@ -179,7 +179,7 @@ When generating responses, remove or replace all internal citation tokens such a
 class LiteratureReviewAgent(LangChainAgent):
     name = "Literature Review Researcher"
     description = "Review a document paragraph against the article bibliography and recent literature to propose citation updates"
-    model = gpt_5_2_model
+    model = gpt_5_4_model
     temperature = 0.5
     timeout = 600
     reasoning = {"effort": "low", "summary": "auto"}
