@@ -9,7 +9,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from lib.agents.tools.read_main_document import read_document
 from lib.agents.tools.search_main_document import search_document
-from lib.config.llm_models import gpt_5_2_model
+from lib.config.llm_models import gpt_5_4_model
 from lib.models.agent import LangChainAgent
 from lib.workflows.context import ContextSchema
 
@@ -108,7 +108,7 @@ class ReferenceExtractorV2Agent(LangChainAgent):
 
     name = "Reference Extractor v2"
     description = "Extract bibliographic references using intelligent document search"
-    model = gpt_5_2_model
+    model = gpt_5_4_model
     temperature = 0.0
     reasoning = {"effort": "low", "summary": "auto"}
 

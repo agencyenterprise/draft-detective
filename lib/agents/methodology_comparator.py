@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 
 from lib.agents.literature_review import ReferenceType
 from lib.agents.methodology_extractor import ReproducibilityCategoryResponse
-from lib.config.llm_models import gpt_5_2_model
+from lib.config.llm_models import gpt_5_4_model
 from lib.models.agent import LangChainAgent
 from lib.workflows.context import ContextSchema
 
@@ -198,7 +198,7 @@ class MethodologyComparisonAgent(LangChainAgent):
         "Compare an extracted paper methodology to typical methods used in the broader field, "
         "using web search to find field methods context, and return a structured text comparison."
     )
-    model = gpt_5_2_model
+    model = gpt_5_4_model
     temperature = 0.3
     timeout = 600
     reasoning = {"effort": "low", "summary": "auto"}
