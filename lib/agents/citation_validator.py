@@ -3,7 +3,7 @@
 from typing import List, Optional
 
 from langchain.agents import create_agent
-from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
 from langgraph.graph.state import RunnableConfig
 from pydantic import BaseModel, Field
 
@@ -11,7 +11,7 @@ from lib.agents.claim_verifier import ClaimEvidenceSource, EvidenceAlignmentLeve
 from lib.agents.tools.read_document import read_document
 from lib.agents.tools.search_document import search_document
 from lib.agents.tools.vector_search import vector_search
-from lib.config.llm_models import gpt_5_4_model
+from lib.config.llm_models import gpt_5_5_model
 from lib.models.agent import LangChainAgent
 from lib.workflows.context import ContextSchema
 
@@ -41,7 +41,12 @@ class CitationIssueItem(BaseModel):
     )
     citation_to_file_mapping: Optional[str] = Field(
         default=None,
-        description="The bibliography-to-file mapping used when checking this citation. Omit file IDs.",
+        description=(
+            "Display-friendly summary of which bibliography entry was matched to "
+            "which supporting file when checking this citation, e.g. "
+            "'Smith (2020) → smith_2020.pdf'. Do not include file_id UUIDs in this "
+            "string; the file_id belongs in each entry of evidence_sources."
+        ),
     )
 
 
@@ -132,7 +137,7 @@ _USER_MESSAGE = "Please validate all citations in your assigned section."
 class CitationValidatorAgent(LangChainAgent):
     name = "Citation Validator"
     description = "Validate citations in a document section against reference files"
-    model = gpt_5_4_model
+    model = gpt_5_5_model
     temperature = 0.0
     reasoning = {"effort": "medium", "summary": "auto"}
 
@@ -140,7 +145,7 @@ class CitationValidatorAgent(LangChainAgent):
         self,
         prompt_kwargs: dict,
         config: Optional[RunnableConfig] = None,
-    ) -> SectionValidationResult:
+    ) -> tuple[SectionValidationResult, List[BaseMessage]]:
         agent = create_agent(
             self.llm,
             [vector_search, search_document, read_document],
@@ -161,4 +166,4 @@ class CitationValidatorAgent(LangChainAgent):
             context=self.context,
         )
 
-        return result["structured_response"]
+        return result["structured_response"], result["messages"]

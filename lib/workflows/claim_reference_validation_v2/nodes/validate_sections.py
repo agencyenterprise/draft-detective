@@ -106,7 +106,7 @@ async def validate_section(state: dict, runtime: Runtime[ContextSchema]):
         )
 
         agent = CitationValidatorAgent(runtime.context)
-        result = await agent.ainvoke(
+        result, _ = await agent.ainvoke(
             {
                 "main_file_id": main_file.file_id,
                 "start_line": start_line,
