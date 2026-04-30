@@ -218,5 +218,100 @@
       }
     ],
     "target_answer": "Only the Brown (2021) citation falls within the assigned section (lines 5-10). The Adams (2015) citation on line 3 is outside the section range and must not be reported (per the 'avoid duplicates from adjacent sections' rule). Exactly one issue should be reported, for Brown (2021), with alignment 'supported'."
+  },
+  {
+    "id": "all_branches_combined",
+    "main_doc": "# Background\n\nEarlier work suggested initial promise for the technique (Adams, 2015).\n\n## Methods\n\nA 2020 industry survey found that fully remote employees reported a 30% increase in self-reported productivity compared to in-office baselines (Smith, 2020).\n\nWe also note that remote work doubles the rate of cross-team collaboration in large enterprises (Doe, 2019).\n\nMicroplastic contamination has been observed in 93% of bottled water samples worldwide (Patel et al., 2018).\n\nThe lateral flow assay we use achieves approximately 95% sensitivity for influenza A detection (Wong, 2021).\n\nIncremental dependency analysis reduces build times by 40% on average across large open-source monorepos, with per-repo speedups ranging from 32% to 47%[^1].\n\nOur initial hypothesis turned out to be incorrect[^2], but later results held up.\n\n## Footnotes\n\n[^1]: Lee, K. (2021). Throughput improvements in modern build systems. ACM Transactions on Software Engineering.\n[^2]: We initially believed throughput would degrade under load; see Section 3 for the corrected reasoning.\n",
+    "supporting_files": [
+      {
+        "file_id": "ref-adams-2015",
+        "file_name": "adams_2015.md",
+        "markdown": "# Initial Exploration of the Technique (2015)\n\nThis paper introduces the technique and reports promising preliminary results on synthetic benchmarks.\n"
+      },
+      {
+        "file_id": "ref-smith-2020",
+        "file_name": "smith_2020_remote_productivity.md",
+        "markdown": "# Remote Work Productivity Survey 2020\n\n## Key Findings\n\nAcross 4,200 respondents, fully remote employees reported a 30% increase in self-reported productivity relative to their pre-pandemic in-office baselines.\n"
+      },
+      {
+        "file_id": "ref-doe-2019",
+        "file_name": "doe_2019_collab.md",
+        "markdown": "# Cross-Team Collaboration in Distributed Organizations (2019)\n\nWe find that the volume of cross-team Slack messages was roughly comparable between co-located and distributed teams, with no statistically significant difference (p = 0.42).\n"
+      },
+      {
+        "file_id": "ref-patel-2018",
+        "file_name": "patel_2018_microplastics.md",
+        "markdown": "# Microplastic Contamination in Bottled Water: A North American Survey (2018)\n\nWe analyzed 259 bottled water samples sourced exclusively from retailers in the United States and Canada. 93% of samples contained at least one detectable microplastic particle. Sampling was restricted to North American distribution channels; brands sold in Europe, Asia, Africa, South America, and Oceania were not included.\n"
+      },
+      {
+        "file_id": "ref-lee-2021",
+        "file_name": "lee_2021_build_systems.md",
+        "markdown": "# Throughput Improvements in Modern Build Systems (2021)\n\nAcross five large open-source monorepos, the proposed incremental dependency analyzer reduced end-to-end build times by 40% on average. Per-repository speedups ranged from 32% to 47%.\n"
+      }
+    ],
+    "references": [
+      {
+        "text": "Adams, P. (2015). Initial exploration of the technique.",
+        "supporting_file_id": "ref-adams-2015",
+        "supporting_index": 1,
+        "supporting_file_name": "adams_2015.md"
+      },
+      {
+        "text": "Smith, J. (2020). Remote work productivity survey 2020. Journal of Workplace Studies.",
+        "supporting_file_id": "ref-smith-2020",
+        "supporting_index": 2,
+        "supporting_file_name": "smith_2020_remote_productivity.md"
+      },
+      {
+        "text": "Doe, A. (2019). Cross-team collaboration in distributed organizations. Journal of Org Studies.",
+        "supporting_file_id": "ref-doe-2019",
+        "supporting_index": 3,
+        "supporting_file_name": "doe_2019_collab.md"
+      },
+      {
+        "text": "Patel, R., et al. (2018). Microplastic contamination in bottled water: a North American survey.",
+        "supporting_file_id": "ref-patel-2018",
+        "supporting_index": 4,
+        "supporting_file_name": "patel_2018_microplastics.md"
+      },
+      {
+        "text": "Wong, L. (2021). Diagnostic accuracy of lateral flow assays for respiratory viruses.",
+        "supporting_file_id": null
+      },
+      {
+        "text": "Lee, K. (2021). Throughput improvements in modern build systems. ACM Transactions on Software Engineering.",
+        "supporting_file_id": "ref-lee-2021",
+        "supporting_index": 5,
+        "supporting_file_name": "lee_2021_build_systems.md"
+      }
+    ],
+    "section": {
+      "start_line": 5,
+      "end_line": 18,
+      "headings": ["Methods"]
+    },
+    "expected_issues": [
+      {
+        "alignment": "supported",
+        "quoted_contains": "30% increase in self-reported productivity"
+      },
+      {
+        "alignment": "unsupported",
+        "quoted_contains": "doubles the rate of cross-team collaboration"
+      },
+      {
+        "alignment": "partially_supported",
+        "quoted_contains": "93% of bottled water samples worldwide"
+      },
+      {
+        "alignment": "unverifiable",
+        "quoted_contains": "95% sensitivity"
+      },
+      {
+        "alignment": "supported",
+        "quoted_contains": "32% to 47%"
+      }
+    ],
+    "target_answer": "This sample exercises every branch of the prompt at once. The agent must report exactly five issues: (1) Smith (2020) at line 7 → 'supported' (verbatim 30% productivity match); (2) Doe (2019) at line 9 → 'unsupported' (source reports no significant difference, contradicting the doubling claim); (3) Patel et al. (2018) at line 11 → 'partially_supported' (93% figure matches but the source's geographic scope is North America, not 'worldwide'); (4) Wong (2021) at line 13 → 'unverifiable' (no supporting file in the bibliography mapping); (5) Lee (2021) via footnote [^1] at line 15 → 'supported' (both 40% average and 32-47% range appear verbatim in the source — agent must resolve the footnote marker through the [^1] entry to the file). The Adams (2015) citation on line 3 must NOT be reported because line 3 is outside the assigned section (lines 5-18). The [^2] footnote at line 17 must NOT be reported because its footnote entry is author commentary, not a bibliographic reference."
   }
 ]
