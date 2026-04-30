@@ -5,6 +5,9 @@ from langgraph.runtime import Runtime
 from langgraph.types import Send
 
 from lib.models.file import FileRole
+from lib.services.file_artifacts_service.file_artifacts_service_type import (
+    FileArtifactsServiceType,
+)
 from lib.services.files import (
     delete_project_files,
     get_supporting_candidate_files,
@@ -18,6 +21,7 @@ from lib.workflows.reference_downloader.agents.reference_fetcher import (
     ReferenceFetcherAgentInput,
 )
 from lib.workflows.reference_downloader.state import (
+    ReferenceDownloaderInputItem,
     ReferenceDownloaderState,
     ReferenceFetchResult,
     ReferenceFetchStatus,
@@ -34,8 +38,16 @@ async def initialize_references(
 
     This allows the frontend to display all references right away
     before any fetching has started.
+
+    When the caller did not supply an explicit `references` list, default to
+    every extracted reference that does not yet have a matched supporting
+    file.
     """
-    references = state.config.references or []
+    references = state.config.references
+    if references is None:
+        references = await _load_unmatched_references(
+            runtime.context.file_artifacts_service
+        )
 
     pending_results = [
         ReferenceFetchResult(
@@ -51,21 +63,31 @@ async def initialize_references(
     return {"fetched_references": pending_results}
 
 
+async def _load_unmatched_references(
+    file_artifacts_service: FileArtifactsServiceType,
+) -> List[ReferenceDownloaderInputItem]:
+    """Fetch every extracted reference that does not yet have a matched file."""
+    references = await file_artifacts_service.get_references()
+
+    return [
+        ReferenceDownloaderInputItem(reference_id=ref.reference_id, text=ref.text)
+        for ref in references
+        if not ref.has_associated_supporting_document and ref.reference_id is not None
+    ]
+
+
 @register_node("Distribute references")
 async def distribute_references(
     state: ReferenceDownloaderState, runtime: Runtime[ContextSchema]
 ):
-    """Fan-out node: creates a Send for each reference.
-
-    This node dispatches parallel fetch operations for each reference.
-    """
-    references = state.config.references or []
+    """Fan-out node: creates a Send for each reference initialized as PENDING."""
     return [
         Send(
             "fetch_single_reference",
-            {"reference": ref.text, "reference_id": ref.reference_id},
+            {"reference": ref.input_reference, "reference_id": ref.reference_id},
         )
-        for ref in references
+        for ref in state.fetched_references
+        if ref.status == ReferenceFetchStatus.PENDING
     ]
 
 

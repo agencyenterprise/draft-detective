@@ -25,6 +25,10 @@ class BibliographyItem(BaseModel):
         default=None,
         description="The UUID of the associated supporting document file in the database (if matched)",
     )
+    reference_id: Optional[str] = Field(
+        default=None,
+        description="The ID of the underlying ExtractedReference, when available.",
+    )
 
 
 def get_associated_supporting_file(
