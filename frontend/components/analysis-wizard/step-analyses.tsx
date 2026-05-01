@@ -63,7 +63,7 @@ export function StepAnalyses() {
     },
     onSuccess: () => {
       toast.success('Assessment started! Redirecting to your project...');
-      router.push(`/projects/${wizard.projectId}?fromWizard=true`);
+      router.push(`/projects/${wizard.projectId}`);
     },
     onError: (error) => {
       toast.error(getErrorMessage(error, 'Failed to start assessment'));
@@ -154,7 +154,7 @@ export function StepAnalyses() {
           variant="outline"
           size="lg"
           className="w-full"
-          onClick={() => router.push(`/projects/${wizard.projectId}?fromWizard=true`)}
+          onClick={() => router.push(`/projects/${wizard.projectId}`)}
         >
           Skip for now
         </Button>

@@ -37,6 +37,24 @@ class AutoRunWorkflowItem(BaseModel):
     workflow_run_id: str
 
 
+class HumanApprovalRequiredError(Exception):
+    """Raised when a blocking workflow run hits an unsatisfied human-trigger gate.
+
+    Carries the project_id and the human-trigger workflow types that still
+    need approval so callers (e.g. the MCP tool) can render a useful prompt.
+    """
+
+    def __init__(
+        self, project_id: str, pending_workflow_types: List[WorkflowRunType]
+    ):
+        self.project_id = project_id
+        self.pending_workflow_types = pending_workflow_types
+        super().__init__(
+            f"Human approval required for project {project_id}: "
+            f"{[w.value for w in pending_workflow_types]}"
+        )
+
+
 logger = logging.getLogger(__name__)
 
 
@@ -56,7 +74,16 @@ async def _prepare_workflow_items(
     workflow_types: List[WorkflowRunType],
     request: StartMultipleWorkflowsRequest,
     user: User,
-) -> tuple[Project, int, List[str], List[AutoRunWorkflowItem]]:
+    *,
+    approve_human_steps: bool = False,
+    raise_on_pending_human_steps: bool = False,
+) -> tuple[
+    Project,
+    int,
+    List[str],
+    List[AutoRunWorkflowItem],
+    List[WorkflowRunType],
+]:
     """
     Resolve dependencies, apply skip logic, create run records, and build the
     list of items ready for execution.
@@ -86,6 +113,11 @@ async def _prepare_workflow_items(
 
     workflow_run_ids: List[str] = []
     auto_run_items: List[AutoRunWorkflowItem] = []
+    pending_human_triggers: List[WorkflowRunType] = []
+    # Workflows blocked behind an unsatisfied human-trigger gate (the gate
+    # itself plus anything downstream of it). resolved_workflow_types is in
+    # topological order, so a single forward pass is sufficient.
+    blocked_set: set[WorkflowRunType] = set()
 
     revision = project.current_revision
 
@@ -112,6 +144,36 @@ async def _prepare_workflow_items(
             )
             continue
 
+        # If any required dep is blocked behind a pending human-trigger gate,
+        # this workflow is downstream and must be deferred to the post-approval
+        # retry. Don't create a PENDING record either — the next call will.
+        if any(dep in blocked_set for dep in manifest.required_dependencies):
+            logger.info(
+                f"Deferring {workflow_type.value} - depends on a workflow blocked by human approval"
+            )
+            blocked_set.add(workflow_type)
+            continue
+
+        run_as_approved = False
+        if manifest.requires_human_trigger:
+            previously_approved = await has_completed_workflow_run_any_revision(
+                request.project_id, workflow_type
+            )
+            if not previously_approved and not approve_human_steps:
+                if raise_on_pending_human_steps:
+                    pending_human_triggers.append(workflow_type)
+                    blocked_set.add(workflow_type)
+                    # Don't create a PENDING record — the caller is about to
+                    # be told to retry with approval, not to use the UI.
+                    continue
+                # UI path: create the PENDING record below so the UI can show
+                # the approve button, but don't add to auto_run_items.
+            else:
+                run_as_approved = True
+                logger.info(
+                    f"Workflow {workflow_type.value} {'auto-approved by caller' if approve_human_steps and not previously_approved else 'previously approved'} - auto-running"
+                )
+
         workflow_config = create_workflow_config(
             project, workflow_type, request.openai_api_key
         )
@@ -127,20 +189,11 @@ async def _prepare_workflow_items(
 
         workflow_run_ids.append(workflow_run_id)
 
-        if manifest.requires_human_trigger:
-            # If the user already approved this workflow in a prior run (any revision),
-            # treat it as cached and auto-complete instead of waiting for another click.
-            previously_approved = await has_completed_workflow_run_any_revision(
-                request.project_id, workflow_type
-            )
-            if not previously_approved:
-                logger.info(
-                    f"Workflow {workflow_type.value} requires human trigger - skipping auto-run"
-                )
-                continue
+        if manifest.requires_human_trigger and not run_as_approved:
             logger.info(
-                f"Workflow {workflow_type.value} previously approved - auto-running"
+                f"Workflow {workflow_type.value} requires human trigger - skipping auto-run"
             )
+            continue
 
         auto_run_items.append(
             AutoRunWorkflowItem(
@@ -150,7 +203,13 @@ async def _prepare_workflow_items(
             )
         )
 
-    return project, revision, workflow_run_ids, auto_run_items
+    return (
+        project,
+        revision,
+        workflow_run_ids,
+        auto_run_items,
+        pending_human_triggers,
+    )
 
 
 async def start_workflow_run(
@@ -227,7 +286,7 @@ async def start_multiple_workflow_runs(
     Raises:
         HTTPException: If project_id is missing or project doesn't exist
     """
-    _, revision, workflow_run_ids, auto_run_items = await _prepare_workflow_items(
+    _, revision, workflow_run_ids, auto_run_items, _ = await _prepare_workflow_items(
         workflow_types, request, user
     )
 
@@ -253,6 +312,8 @@ async def run_multiple_workflows_blocking(
     workflow_types: List[WorkflowRunType],
     request: StartMultipleWorkflowsRequest,
     user: User,
+    *,
+    approve_human_steps: bool = False,
 ) -> tuple[Project, List[str]]:
     """
     Prepare and run multiple workflows sequentially, blocking until all complete.
@@ -265,14 +326,35 @@ async def run_multiple_workflows_blocking(
         workflow_types: List of workflow types to run (dependencies resolved automatically)
         request: Request containing project_id and optional openai_api_key
         user: User running the workflows
+        approve_human_steps: When True, treat any unsatisfied human-trigger
+            dependency as approved by the caller and run it inline. When False
+            (default), raises HumanApprovalRequiredError so the caller can
+            prompt the user to confirm before retrying with approval.
 
     Returns:
         A tuple of (project, list of workflow_run_ids for all created runs)
+
+    Raises:
+        HumanApprovalRequiredError: when approve_human_steps is False and a
+            resolved dependency requires human approval.
     """
-    project, revision, workflow_run_ids, auto_run_items = await _prepare_workflow_items(
-        workflow_types, request, user
+    (
+        project,
+        revision,
+        workflow_run_ids,
+        auto_run_items,
+        pending_human_triggers,
+    ) = await _prepare_workflow_items(
+        workflow_types,
+        request,
+        user,
+        approve_human_steps=approve_human_steps,
+        raise_on_pending_human_steps=not approve_human_steps,
     )
 
+    # Run upstream prep (e.g. document_processing, reference_extraction,
+    # reference_file_matching) before raising — the user needs those results
+    # in order to review the references and decide whether to approve.
     for item in auto_run_items:
         await run_workflow_from_config(
             config=item.config,
@@ -280,6 +362,12 @@ async def run_multiple_workflows_blocking(
             workflow_run_id=item.workflow_run_id,
             user=user,
             revision=revision,
+        )
+
+    if pending_human_triggers:
+        raise HumanApprovalRequiredError(
+            project_id=str(project.id),
+            pending_workflow_types=pending_human_triggers,
         )
 
     return project, workflow_run_ids

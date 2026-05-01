@@ -71,8 +71,13 @@ class ReferenceDownloaderWorkflowConfig(BaseWorkflowConfig):
     type: Literal[WorkflowRunType.REFERENCE_DOWNLOADER] = Field(
         WorkflowRunType.REFERENCE_DOWNLOADER
     )
-    references: List[ReferenceDownloaderInputItem] = Field(
-        description="The references to fetch from the internet",
+    references: Optional[List[ReferenceDownloaderInputItem]] = Field(
+        default=None,
+        description=(
+            "The references to fetch from the internet. When omitted, the "
+            "workflow defaults to every extracted reference that does not yet "
+            "have a matched supporting file."
+        ),
     )
 
 

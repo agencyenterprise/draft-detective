@@ -1,18 +1,14 @@
 import logging
-import os
-import shutil
 
-from langchain_core.messages.utils import count_tokens_approximately
 from langgraph.runtime import Runtime
 
 from lib.run_utils import run_tasks
-from lib.services.converters.base import convert_to_markdown as convert_to_markdown_fn
-from lib.services.converters.docx_preprocessor import docx_preprocessor
 from lib.services.file import FileDocument
+from lib.services.files import update_file_artifacts
+from lib.services.markdown_conversion import convert_file_document_to_markdown
 from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
 from lib.workflows.document_processing.state import DocumentProcessingState
-from lib.services.files import update_file_artifacts
 
 logger = logging.getLogger(__name__)
 
@@ -76,64 +72,4 @@ async def _convert_to_markdown_task(
     Returns:
         FileDocument with converted markdown content and metadata
     """
-
-    if file_document.markdown:
-        logger.info(
-            f"Using cached markdown for file {file_document.file_name} ({file_document.file_id})"
-        )
-        return file_document
-
-    return await _convert_to_markdown_using_markitdown(file_document)
-
-
-async def _convert_to_markdown_using_markitdown(
-    file_document: FileDocument,
-) -> FileDocument:
-    """
-    Convert document to markdown using markitdown converter.
-
-    Handles legacy .doc files by first converting them to .docx format.
-    Calculates token count for the resulting markdown content.
-
-    Args:
-        file_document: The document to convert
-
-    Returns:
-        FileDocument with markdown content and token count
-    """
-
-    file_path = file_document.file_path.lower()
-    is_legacy_doc_mime = file_document.file_type == "application/msword"
-    is_legacy_doc_extension = file_path.endswith(".doc")
-
-    if is_legacy_doc_mime:
-        docx_file_path = await docx_preprocessor.convert_doc_to_docx(file_path)
-        logger.info(f"Converted {file_path} to DOCX: {docx_file_path}")
-        markdown = await convert_to_markdown_fn(docx_file_path, converter="markitdown")
-        os.remove(docx_file_path)
-    elif is_legacy_doc_extension:
-        docx_file_path = await _copy_doc_to_docx(file_path)
-        logger.info(f"Copied {file_path} to {docx_file_path}")
-        markdown = await convert_to_markdown_fn(docx_file_path, converter="markitdown")
-        os.remove(docx_file_path)
-    else:
-        markdown = await convert_to_markdown_fn(file_path, converter="markitdown")
-
-    markdown_token_count = count_tokens_approximately([markdown])
-
-    return file_document.model_copy(
-        update={
-            "markdown": markdown,
-            "markdown_token_count": markdown_token_count,
-        }
-    )
-
-
-async def _copy_doc_to_docx(file_path: str) -> str:
-    """
-    Copy a .doc file to a .docx file in the same directory.
-    """
-
-    docx_file_path = file_path.replace(".doc", ".docx")
-    shutil.copy(file_path, docx_file_path)
-    return docx_file_path
+    return await convert_file_document_to_markdown(file_document)
