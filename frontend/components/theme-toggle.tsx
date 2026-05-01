@@ -8,6 +8,8 @@ export function ThemeToggle() {
   const { resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
+  // next-themes resolves the theme on the client, so we render a neutral
+  // state until mount to avoid an SSR/CSR hydration mismatch.
   useEffect(() => {
     setMounted(true);
   }, []);

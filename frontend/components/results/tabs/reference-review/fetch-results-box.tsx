@@ -80,12 +80,12 @@ export function FetchResultsBox({ fetchResult }: FetchResultsBoxProps) {
           <GlobeIcon className="w-4 h-4 text-muted-foreground" />
           <span className="text-xs font-medium text-foreground">Fetch results</span>
           {isFetchPending ? (
-            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 text-xs font-medium rounded-full border bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300 border-blue-300 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800">
+            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 text-xs font-medium rounded-full border bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800">
               <Loader2 className="w-3 h-3 animate-spin" />
               Fetching...
             </span>
           ) : isFetchError ? (
-            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 text-xs font-medium rounded-full border bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300 border-red-300 dark:bg-red-950 dark:text-red-300 dark:border-red-800">
+            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 text-xs font-medium rounded-full border bg-red-100 text-red-700 border-red-300 dark:bg-red-950 dark:text-red-300 dark:border-red-800">
               <AlertTriangle className="w-3 h-3" />
               Error
             </span>
