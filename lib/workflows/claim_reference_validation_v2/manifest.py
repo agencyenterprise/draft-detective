@@ -115,7 +115,7 @@ class ClaimReferenceValidationV2Manifest(
         WorkflowRunType.HUMAN_APPROVAL,
     ]
     optional_dependencies = [
-        WorkflowRunType.CHUNK_SPLITTING,
+        WorkflowRunType.REFERENCE_DOWNLOADER,
     ]
 
     def get_state_type(self) -> Type[ClaimReferenceValidationV2State]:

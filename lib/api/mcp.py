@@ -240,6 +240,14 @@ async def run_workflow(
     (e.g. "go ahead and start"), call this tool again with the same arguments
     plus approve_human_steps=True to record the approval and run the workflow.
 
+    When the gate triggers, also offer the user two options for filling in
+    missing supporting files:
+      1. Have Draft Detective auto-fetch them from the web — include
+         "reference_downloader" in workflow_types on the retry call.
+      2. Provide/upload the files directly — use get_tus_upload_credentials
+         with role="support" and the matching reference_id (look it up via
+         get_project) for each file, upload, then retry.
+
     Returns full project details including all workflow results, detected issues,
     and a project_url link to view the project in the web UI.
 
@@ -280,9 +288,19 @@ async def run_workflow(
                     "mappings before it can run. Share the project_url with the user "
                     "so they can review references in the web UI, or offer to list "
                     "the references and supporting-file mappings here (use "
-                    "get_project to fetch them). Once the user confirms (e.g. they "
-                    "reply with something like 'go ahead and start'), call run_workflow "
-                    "again with the same arguments plus approve_human_steps=true."
+                    "get_project to fetch them).\n\n"
+                    "Offer the user these options for filling in missing supporting "
+                    "files before approving:\n"
+                    "  1. Have Draft Detective auto-fetch them from the web — add "
+                    "'reference_downloader' to workflow_types on the retry call.\n"
+                    "  2. Provide/upload the files yourself — call "
+                    "get_tus_upload_credentials with role='support' and the "
+                    "matching reference_id (from get_project) for each file, then "
+                    "upload via the returned TUS endpoint before retrying.\n\n"
+                    "Once the user confirms (e.g. 'go ahead and start'), call "
+                    "run_workflow again with the same arguments plus "
+                    "approve_human_steps=true (and 'reference_downloader' in "
+                    "workflow_types if they opted into option 1)."
                 ),
             }
         )
