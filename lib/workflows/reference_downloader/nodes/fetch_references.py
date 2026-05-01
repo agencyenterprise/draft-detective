@@ -13,6 +13,7 @@ from lib.services.files import (
     get_supporting_candidate_files,
     update_files_role,
 )
+from lib.services.markdown_conversion import convert_and_cache_file_markdown
 from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
 from lib.workflows.reference_downloader.agents.reference_fetcher import (
@@ -122,6 +123,20 @@ async def fetch_single_reference(state: dict, runtime: Runtime[ContextSchema]):
         if status == ReferenceFetchStatus.COMPLETED and result and result.file_id:
             # Promote file immediately (from SUPPORTING_CANDIDATE to SUPPORT)
             await update_files_role([result.file_id], FileRole.SUPPORT)
+            # Convert and cache markdown so file_artifacts_service.get_supporting_files()
+            # serves the new file via the live-DB path. Without this,
+            # claim_reference_validation_v2 falls back to the stale
+            # DocumentProcessingState (which predates this download) and
+            # reports every claim as "unverifiable".
+            try:
+                await convert_and_cache_file_markdown(result.file_id)
+            except Exception as exc:
+                logger.warning(
+                    "Failed to cache markdown for downloaded file %s: %s",
+                    result.file_id,
+                    exc,
+                    exc_info=True,
+                )
             # Update the reference file matching in the ReferenceExtraction workflow state
             await _update_reference_file_matching(
                 project_id, result.file_id, reference_id, runtime.context.revision
