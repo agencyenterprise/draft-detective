@@ -31,7 +31,7 @@ function getConclusionBadge(conclusion: ReferenceFetchConclusion) {
       return (
         <Badge
           variant="outline"
-          className="bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300 border-green-300 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800"
+          className="bg-green-100 text-green-800 border-green-300 dark:bg-green-950 dark:text-green-300 dark:border-green-800"
         >
           <CheckCircle2 className="h-3 w-3 mr-1" />
           Source Found
@@ -41,7 +41,7 @@ function getConclusionBadge(conclusion: ReferenceFetchConclusion) {
       return (
         <Badge
           variant="outline"
-          className="bg-yellow-100 text-yellow-800 dark:bg-yellow-950 dark:text-yellow-300 border-yellow-300 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-800"
+          className="bg-yellow-100 text-yellow-800 border-yellow-300 dark:bg-yellow-950 dark:text-yellow-300 dark:border-yellow-800"
         >
           <AlertCircle className="h-3 w-3 mr-1" />
           Found but not accessible
@@ -51,7 +51,7 @@ function getConclusionBadge(conclusion: ReferenceFetchConclusion) {
       return (
         <Badge
           variant="outline"
-          className="bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300 border-red-300 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800"
+          className="bg-red-100 text-red-800 border-red-300 dark:bg-red-950 dark:text-red-300 dark:border-red-800"
         >
           <XCircle className="h-3 w-3 mr-1" />
           Not Found
@@ -66,7 +66,7 @@ function getErrorBadge() {
   return (
     <Badge
       variant="outline"
-      className="bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300 border-red-300 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800"
+      className="bg-red-100 text-red-800 border-red-300 dark:bg-red-950 dark:text-red-300 dark:border-red-800"
     >
       <AlertTriangle className="h-3 w-3 mr-1" />
       Error
@@ -78,7 +78,7 @@ function getPendingBadge() {
   return (
     <Badge
       variant="outline"
-      className="bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 border-blue-300 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800"
+      className="bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800"
     >
       <Loader2 className="h-3 w-3 mr-1 animate-spin" />
       Fetching...
@@ -109,7 +109,7 @@ export function ReferenceItem({ item, displayIndex }: ReferenceItemProps) {
               (result?.file_id ? (
                 <Badge
                   variant="outline"
-                  className="bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 border-blue-300 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800"
+                  className="bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800"
                 >
                   <Download className="h-3 w-3 mr-1" />
                   Download Available

@@ -96,7 +96,7 @@ export function MethodologicalAlignmentResults({ workflowDetail }: Methodologica
     <div className="space-y-3">
       {methodologyComparison.reproducibility && (
         <div className="flex items-start gap-4">
-          <span className="flex items-center gap-2 bg-blue-50 p-2 rounded-md dark:bg-blue-950 border-blue-200 text-blue-900 text-sm font-medium whitespace-nowrap">
+          <span className="flex items-center gap-2 bg-blue-50 p-2 rounded-md dark:bg-blue-950 border-blue-200 dark:border-blue-800 text-blue-900 dark:text-blue-100 text-sm font-medium whitespace-nowrap">
             {getReproducibilityIcon(methodologyComparison.reproducibility.class_value)}
             {getReproducibilityLabel(methodologyComparison.reproducibility.class_value)}
           </span>

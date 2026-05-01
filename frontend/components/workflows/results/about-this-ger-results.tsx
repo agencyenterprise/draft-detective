@@ -38,7 +38,7 @@ function SectionResult({
       {issues.length > 0 && (
         <Card className="border-amber-200 gap-2">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-amber-800">
+            <CardTitle className="text-sm text-amber-800 dark:text-amber-200">
               {issues.length} Issue{issues.length !== 1 ? 's' : ''} Found
             </CardTitle>
           </CardHeader>
@@ -46,12 +46,12 @@ function SectionResult({
             {issues.map((issue, idx) => (
               <div
                 key={idx}
-                className="flex items-start gap-2 p-2 rounded-md bg-amber-50 dark:bg-amber-950 border border-amber-100 dark:bg-amber-950/40 dark:border-amber-900"
+                className="flex items-start gap-2 p-2 rounded-md bg-amber-50 border border-amber-100 dark:bg-amber-950/40 dark:border-amber-900"
               >
-                <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
                 <div>
-                  <p className="text-sm font-medium text-amber-800">{issue.title}</p>
-                  <p className="text-xs text-amber-700 mt-0.5">{issue.description}</p>
+                  <p className="text-sm font-medium text-amber-800 dark:text-amber-200">{issue.title}</p>
+                  <p className="text-xs text-amber-700 dark:text-amber-300 mt-0.5">{issue.description}</p>
                 </div>
               </div>
             ))}
