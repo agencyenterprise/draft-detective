@@ -91,7 +91,7 @@ export function DocumentExplorerSidebar({
             <Button
               variant="outline"
               size="sm"
-              className="text-xs h-6 px-2 gap-1 shadow-xs bg-white"
+              className="text-xs h-6 px-2 gap-1 shadow-xs bg-card"
               onClick={onClearSelection}
             >
               {selectionLabel}

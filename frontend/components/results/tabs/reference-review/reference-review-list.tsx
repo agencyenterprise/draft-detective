@@ -109,7 +109,7 @@ export function ReferenceReviewList({
       {/* Header Row */}
       <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
         <div>
-          <h1 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
+          <h1 className="text-xl font-semibold text-foreground flex items-center gap-2">
             <span>
               References ({filteredReferences.length}
               {hasActiveFilters ? ` of ${stats.total}` : ''})
@@ -136,7 +136,7 @@ export function ReferenceReviewList({
               {stats.matched} matched
             </button>
             <button
-              className="inline-flex items-center gap-1.5 text-gray-500 hover:underline cursor-pointer"
+              className="inline-flex items-center gap-1.5 text-muted-foreground hover:underline cursor-pointer"
               onClick={() => setStatusFilter(statusFilter === 'unmatched' ? 'all' : 'unmatched')}
             >
               <XCircle className="w-4 h-4" />
@@ -237,11 +237,11 @@ export function ReferenceReviewList({
       )}
 
       {isProcessingFiles && (
-        <div className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg mb-4">
-          <Loader2 className="w-5 h-5 animate-spin text-blue-600 shrink-0" />
+        <div className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-200 dark:bg-blue-950/40 dark:border-blue-900 rounded-lg mb-4">
+          <Loader2 className="w-5 h-5 animate-spin text-blue-600 dark:text-blue-400 shrink-0" />
           <div>
-            <p className="font-medium text-blue-900">Processing your source files...</p>
-            <p className="text-sm text-blue-700">
+            <p className="font-medium text-blue-900 dark:text-blue-200">Processing your source files...</p>
+            <p className="text-sm text-blue-700 dark:text-blue-300">
               We&apos;re indexing and matching documents to references. This usually takes a minute or two.
             </p>
           </div>

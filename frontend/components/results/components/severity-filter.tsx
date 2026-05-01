@@ -23,7 +23,7 @@ export function SeverityFilter({ value, onChange }: SeverityFilterProps) {
       onValueChange={(v) => onChange(v as SeverityEnum[])}
       variant="outline"
       size="sm"
-      className="shadow-xs bg-white"
+      className="shadow-xs bg-background"
     >
       {severityOptions.map((option) => (
         <ToggleGroupItem

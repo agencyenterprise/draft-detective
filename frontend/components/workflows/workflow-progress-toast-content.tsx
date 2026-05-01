@@ -15,9 +15,13 @@ export function getProgressStatus(item: WorkflowProgressResponse): ProgressStatu
 }
 
 const STATUS_STYLES = {
-  pending: { icon: Circle, iconClass: 'text-gray-400', bgClass: 'bg-white border-gray-200' },
-  in_progress: { icon: Loader2, iconClass: 'text-blue-600 animate-spin', bgClass: 'bg-blue-50 border-blue-200' },
-  completed: { icon: CheckCircle2, iconClass: 'text-green-500', bgClass: 'bg-gray-50/80 border-gray-200/80' },
+  pending: { icon: Circle, iconClass: 'text-muted-foreground', bgClass: 'bg-card border-border' },
+  in_progress: {
+    icon: Loader2,
+    iconClass: 'text-blue-600 animate-spin',
+    bgClass: 'bg-blue-50 border-blue-200 dark:bg-blue-950/40 dark:border-blue-900',
+  },
+  completed: { icon: CheckCircle2, iconClass: 'text-green-500', bgClass: 'bg-muted/80 border-border/80' },
 } as const;
 
 export function ProgressItem({
@@ -40,7 +44,7 @@ export function ProgressItem({
       className={cn(
         'flex items-center gap-3 p-2.5 rounded-lg border',
         'transition-all duration-500 ease-out',
-        isNewlyCompleted && 'bg-green-50 border-green-300 shadow-sm',
+        isNewlyCompleted && 'bg-green-50 border-green-300 dark:bg-green-950/40 dark:border-green-800 shadow-sm',
         !isNewlyCompleted && bgClass,
         isCompleted && !isNewlyCompleted && 'opacity-50 scale-[0.98]',
       )}
@@ -78,8 +82,8 @@ export function ProgressItem({
 
 function TransitionMessage() {
   return (
-    <div className="flex items-center gap-3 p-2.5 rounded-lg border border-gray-200 bg-gray-50/80">
-      <Loader2 className="h-4 w-4 text-gray-400 animate-spin" />
+    <div className="flex items-center gap-3 p-2.5 rounded-lg border border-border bg-muted/80">
+      <Loader2 className="h-4 w-4 text-muted-foreground animate-spin" />
       <span className="text-[13px] text-muted-foreground">Going to next step...</span>
     </div>
   );
@@ -165,8 +169,8 @@ export function ToastContent({
 export function LoadingToastContent() {
   return (
     <ToastWrapper>
-      <div className="flex items-center gap-3 p-2.5 rounded-lg border border-blue-200 bg-blue-50">
-        <Loader2 className="h-4 w-4 text-blue-600 animate-spin" />
+      <div className="flex items-center gap-3 p-2.5 rounded-lg border border-blue-200 bg-blue-50 dark:bg-blue-950/40 dark:border-blue-900">
+        <Loader2 className="h-4 w-4 text-blue-600 dark:text-blue-400 animate-spin" />
         <span className="text-[13px] text-muted-foreground">Starting assessment...</span>
       </div>
     </ToastWrapper>

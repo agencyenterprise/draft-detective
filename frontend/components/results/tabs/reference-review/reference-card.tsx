@@ -38,19 +38,20 @@ function MatchStatusBadge({ status }: { status: ReferenceReviewStatus }) {
     unmatched: {
       label: 'No matched document',
       icon: FileX,
-      className: 'bg-gray-100 text-gray-600 border-gray-200',
+      className: 'bg-muted text-muted-foreground border-border',
       spin: false,
     },
     fetching: {
       label: 'Fetching from web...',
       icon: Loader2,
-      className: 'bg-blue-50 text-blue-700 border-blue-200',
+      className: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800',
       spin: true,
     },
     matched: {
       label: 'Matched',
       icon: CloudDownload,
-      className: 'bg-green-50 text-green-700 border-green-200',
+      className:
+        'bg-green-50 text-green-700 border-green-200 dark:bg-green-950 dark:text-green-300 dark:border-green-800',
       spin: false,
     },
   };
@@ -74,7 +75,7 @@ const SOURCE_CONFIG: Record<
     icon: Upload,
     label: 'Manually uploaded',
     tooltip: 'This file was manually uploaded by a user.',
-    className: 'text-gray-500',
+    className: 'text-muted-foreground',
   },
   [MatchSource.AutoMatched]: {
     icon: Sparkles,
@@ -171,7 +172,7 @@ export function ReferenceCard({ reference, projectId, readOnly, disabled = false
   return (
     <div
       id={`reference-${index}`}
-      className={cn('border rounded-lg p-4 bg-white transition-all border-gray-200', disabled && 'opacity-60')}
+      className={cn('border rounded-lg p-4 bg-card transition-all border-border', disabled && 'opacity-60')}
     >
       <FileUploadDialog
         isOpen={dialogMode !== null}
@@ -193,7 +194,7 @@ export function ReferenceCard({ reference, projectId, readOnly, disabled = false
       />
 
       <div className="flex gap-3">
-        <span className="text-gray-500 font-medium shrink-0 text-sm">#{index + 1}</span>
+        <span className="text-muted-foreground font-medium shrink-0 text-sm">#{index + 1}</span>
         <div className="flex-1 min-w-0 space-y-2">
           {/* Status badges and actions */}
           <div className="flex items-center justify-between gap-2">
@@ -217,17 +218,17 @@ export function ReferenceCard({ reference, projectId, readOnly, disabled = false
           </div>
 
           {matchedFile && (
-            <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded px-2 py-1">
+            <div className="flex items-center gap-2 bg-muted border border-border rounded px-2 py-1">
               <FileDownloadLink
                 fileId={matchedFile.id}
                 className="inline-flex items-center gap-1.5 text-sm group flex-1"
               >
-                <FileText className="w-3.5 h-3.5 text-gray-400" />
+                <FileText className="w-3.5 h-3.5 text-muted-foreground" />
                 <span className="text-primary font-medium truncate max-w-2xl group-hover:underline">
                   {matchedFile.name}
                 </span>
-                <span className="text-gray-400 text-xs">({matchedFile.size})</span>
-                <ExternalLink className="w-3 h-3 text-gray-400" />
+                <span className="text-muted-foreground text-xs">({matchedFile.size})</span>
+                <ExternalLink className="w-3 h-3 text-muted-foreground" />
               </FileDownloadLink>
               <SourceBadge source={source} />
 

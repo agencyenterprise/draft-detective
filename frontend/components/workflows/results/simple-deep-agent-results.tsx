@@ -21,9 +21,9 @@ function IssuesList({ result }: { result: AgentCheckResult }) {
 
   if (issues.length === 0) {
     return (
-      <Card className="border-green-200 bg-green-50/30">
+      <Card className="border-green-200 bg-green-50/30 dark:bg-green-950/30 dark:border-green-900">
         <CardContent className="flex items-center gap-3 py-6">
-          <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+          <div className="h-10 w-10 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center flex-shrink-0">
             <CheckCircle2 className="h-5 w-5 text-green-600" />
           </div>
           <div>
@@ -44,7 +44,10 @@ function IssuesList({ result }: { result: AgentCheckResult }) {
       </CardHeader>
       <CardContent className="space-y-2">
         {issues.map((issue, idx) => (
-          <div key={idx} className="flex items-start gap-2 p-2 rounded-md bg-amber-50 border border-amber-100">
+          <div
+            key={idx}
+            className="flex items-start gap-2 p-2 rounded-md bg-amber-50 dark:bg-amber-950 border border-amber-100 dark:bg-amber-950/40 dark:border-amber-900"
+          >
             <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
             <div>
               <p className="text-sm font-medium text-amber-800">{issue.title}</p>

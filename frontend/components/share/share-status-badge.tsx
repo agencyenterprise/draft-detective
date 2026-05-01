@@ -17,7 +17,7 @@ export function ShareStatusBadge({ isEnabled, onClick }: ShareStatusBadgeProps) 
       <TooltipTrigger asChild>
         <Badge
           variant="outline"
-          className="cursor-pointer gap-1 bg-green-50 text-green-700 border-green-200 hover:bg-green-100 dark:bg-green-950 dark:text-green-300 dark:border-green-800 dark:hover:bg-green-900"
+          className="cursor-pointer gap-1 bg-green-50 text-green-700 border-green-200 dark:bg-green-950 dark:text-green-300 dark:border-green-800 hover:bg-green-100 dark:bg-green-950 dark:text-green-300 dark:border-green-800 dark:hover:bg-green-900"
           onClick={onClick}
         >
           <Link className="h-3 w-3" />

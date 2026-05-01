@@ -39,11 +39,13 @@ export function ValidationSummaryCard({
   const allPassed = stats.failed === 0 && stats.passed > 0;
 
   return (
-    <Card className={allPassed ? 'border-green-200 bg-green-50/30' : undefined}>
+    <Card
+      className={allPassed ? 'border-green-200 bg-green-50/30 dark:bg-green-950/30 dark:border-green-900' : undefined}
+    >
       <CardHeader>
         <div className="flex items-center gap-3">
           {allPassed && (
-            <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+            <div className="h-10 w-10 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center flex-shrink-0">
               <CheckCircle2 className="h-5 w-5 text-green-600" />
             </div>
           )}
@@ -56,13 +58,13 @@ export function ValidationSummaryCard({
       {!allPassed && (
         <CardContent>
           <div className="flex flex-wrap gap-3">
-            <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-green-50">
-              <CheckCircle2 className="h-4 w-4 text-green-600" />
-              <span className="text-sm font-medium text-green-700">{stats.passed} Passed</span>
+            <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-green-50 dark:bg-green-950/40">
+              <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
+              <span className="text-sm font-medium text-green-700 dark:text-green-300">{stats.passed} Passed</span>
             </div>
-            <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-red-50">
-              <XCircle className="h-4 w-4 text-red-600" />
-              <span className="text-sm font-medium text-red-700">{stats.failed} Failed</span>
+            <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-red-50 dark:bg-red-950/40">
+              <XCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
+              <span className="text-sm font-medium text-red-700 dark:text-red-300">{stats.failed} Failed</span>
             </div>
           </div>
         </CardContent>

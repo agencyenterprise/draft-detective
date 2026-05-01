@@ -25,7 +25,7 @@ export function WorkflowHealthWidget({ healthData, onReviewIssues }: WorkflowHea
   const hasIssues = healthData.issueCount > 0;
 
   return (
-    <Card className={cn('transition-all hover:shadow-md bg-white border-0 border-l-4', config.borderClass)}>
+    <Card className={cn('transition-all hover:shadow-md bg-card border-0 border-l-4', config.borderClass)}>
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between">
           <CardTitle className="text-base font-semibold">{getWorkflowTypeName(healthData.type)}</CardTitle>

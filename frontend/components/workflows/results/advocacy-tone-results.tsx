@@ -50,7 +50,7 @@ const CHECK_CONFIG: Record<
     singularLabel: 'Trigger Word',
     icon: FileWarning,
     color: 'text-amber-600',
-    bgColor: 'bg-amber-50',
+    bgColor: 'bg-amber-50 dark:bg-amber-950/40',
     ringColor: 'ring-amber-400',
   },
   advocacy_language: {
@@ -58,7 +58,7 @@ const CHECK_CONFIG: Record<
     singularLabel: 'Advocacy Issue',
     icon: MessageSquareWarning,
     color: 'text-orange-600',
-    bgColor: 'bg-orange-50',
+    bgColor: 'bg-orange-50 dark:bg-orange-950/40',
     ringColor: 'ring-orange-400',
   },
   subjective_tone: {
@@ -66,7 +66,7 @@ const CHECK_CONFIG: Record<
     singularLabel: 'Subjective Tone',
     icon: AlertTriangle,
     color: 'text-red-600',
-    bgColor: 'bg-red-50',
+    bgColor: 'bg-red-50 dark:bg-red-950/40',
     ringColor: 'ring-red-400',
   },
 };

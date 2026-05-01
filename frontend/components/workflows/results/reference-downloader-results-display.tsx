@@ -84,23 +84,35 @@ export function ReferenceDownloaderResultsDisplay({
             {filter !== 'all' && ` of ${results.length}`}
           </Badge>
           {stats.pendingCount > 0 && (
-            <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-300">
+            <Badge
+              variant="outline"
+              className="bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 border-blue-300"
+            >
               <Loader2 className="h-3 w-3 mr-1 animate-spin" />
               {stats.pendingCount} Pending
             </Badge>
           )}
           {stats.foundCount > 0 && (
-            <Badge variant="outline" className="bg-green-100 text-green-800 border-green-300">
+            <Badge
+              variant="outline"
+              className="bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300 border-green-300"
+            >
               {stats.foundCount} Found
             </Badge>
           )}
           {stats.notAccessibleCount > 0 && (
-            <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-300">
+            <Badge
+              variant="outline"
+              className="bg-yellow-100 text-yellow-800 dark:bg-yellow-950 dark:text-yellow-300 border-yellow-300"
+            >
               {stats.notAccessibleCount} Not Accessible
             </Badge>
           )}
           {stats.notFoundCount + stats.errorCount > 0 && (
-            <Badge variant="outline" className="bg-red-100 text-red-800 border-red-300">
+            <Badge
+              variant="outline"
+              className="bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300 border-red-300"
+            >
               {stats.notFoundCount + stats.errorCount} Not Found
             </Badge>
           )}

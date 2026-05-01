@@ -63,22 +63,31 @@ export function ResultsExtractorResults({ workflowDetail }: ResultsExtractorResu
           {resultSections.length} Result{resultSections.length !== 1 ? 's' : ''}
         </Badge>
         {reproducibilityCounts[ReproducibilityCategory.FullyReproducible] > 0 && (
-          <Badge variant="outline" className="bg-green-100 text-green-800 border-green-300">
+          <Badge
+            variant="outline"
+            className="bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300 border-green-300"
+          >
             {reproducibilityCounts[ReproducibilityCategory.FullyReproducible]} Fully Reproducible
           </Badge>
         )}
         {reproducibilityCounts[ReproducibilityCategory.ReproducibleWithWebSearch] > 0 && (
-          <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-300">
+          <Badge
+            variant="outline"
+            className="bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 border-blue-300"
+          >
             {reproducibilityCounts[ReproducibilityCategory.ReproducibleWithWebSearch]} With Web Search
           </Badge>
         )}
         {reproducibilityCounts[ReproducibilityCategory.ReproducibleWithExternalUploads] > 0 && (
-          <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-300">
+          <Badge
+            variant="outline"
+            className="bg-yellow-100 text-yellow-800 dark:bg-yellow-950 dark:text-yellow-300 border-yellow-300"
+          >
             {reproducibilityCounts[ReproducibilityCategory.ReproducibleWithExternalUploads]} With External Uploads
           </Badge>
         )}
         {reproducibilityCounts[ReproducibilityCategory.NotReproducible] > 0 && (
-          <Badge variant="outline" className="bg-red-100 text-red-800 border-red-300">
+          <Badge variant="outline" className="bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300 border-red-300">
             {reproducibilityCounts[ReproducibilityCategory.NotReproducible]} Not Reproducible
           </Badge>
         )}

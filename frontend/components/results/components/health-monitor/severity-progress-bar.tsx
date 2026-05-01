@@ -37,7 +37,7 @@ export function SeverityProgressBar({ high, medium, low }: SeverityProgressBarPr
           ))}
         </div>
       </div>
-      <div className="flex h-2 w-full overflow-hidden rounded-full bg-gray-100">
+      <div className="flex h-2 w-full overflow-hidden rounded-full bg-muted">
         {segments.map((segment) => (
           <Tooltip key={segment.label}>
             <TooltipTrigger asChild>
