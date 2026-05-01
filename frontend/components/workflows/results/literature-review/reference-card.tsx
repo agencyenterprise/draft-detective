@@ -100,7 +100,7 @@ export function ReferenceCard({ reference, index }: ReferenceCardProps) {
                 <Quote className="h-4 w-4" />
                 Reference Excerpt
               </div>
-              <blockquote className="border-l-4 border-blue-200 bg-blue-50/50 pl-4 py-3 text-sm italic leading-relaxed">
+              <blockquote className="border-l-4 border-blue-200 bg-blue-50/50 dark:bg-blue-950/40 dark:border-blue-900 pl-4 py-3 text-sm italic leading-relaxed">
                 {reference.reference_excerpt}
               </blockquote>
             </div>
@@ -110,7 +110,7 @@ export function ReferenceCard({ reference, index }: ReferenceCardProps) {
                 <FileText className="h-4 w-4" />
                 Related Excerpt from Document
               </div>
-              <blockquote className="border-l-4 border-gray-200 bg-gray-50/50 pl-4 py-3 text-sm leading-relaxed">
+              <blockquote className="border-l-4 border-border bg-muted/50 pl-4 py-3 text-sm leading-relaxed">
                 {reference.main_document_excerpt}
               </blockquote>
             </div>

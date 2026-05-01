@@ -76,9 +76,11 @@ export default function AddinPage() {
 
   if (!token) {
     return (
-      <div className="min-h-screen bg-gray-50 p-4 flex flex-col">
+      <div className="min-h-screen bg-muted p-4 flex flex-col">
         <div className="flex-1 flex items-center justify-center">
-          <div className="text-center text-sm text-gray-600 max-w-md">No project associated with this document.</div>
+          <div className="text-center text-sm text-muted-foreground max-w-md">
+            No project associated with this document.
+          </div>
         </div>
       </div>
     );
@@ -86,8 +88,8 @@ export default function AddinPage() {
 
   return (
     <ProjectFeedbackProvider projectId={undefined} feedbackVisibility={null}>
-      <div className="flex flex-col h-screen bg-white">
-        <div className="border-b p-3 flex flex-col items-center bg-gray-50">
+      <div className="flex flex-col h-screen bg-card">
+        <div className="border-b p-3 flex flex-col items-center bg-muted">
           <div className="flex items-center justify-between gap-2 w-full">
             <h1 className="font-semibold text-sm">Review Issues</h1>
             <Button variant="ghost" size="icon" onClick={() => refetch()} disabled={isLoading} title="Refresh">
@@ -105,7 +107,7 @@ export default function AddinPage() {
             {project?.issues && project.issues.length > 0 && (
               <div className="text-right flex flex-row flex-wrap gap-1">
                 {isParagraphView && (
-                  <Button variant="outline" size="sm" className="text-xs h-6 px-2 gap-1 shadow-xs bg-white">
+                  <Button variant="outline" size="sm" className="text-xs h-6 px-2 gap-1 shadow-xs bg-card">
                     Paragraph #{currentParagraphIndex}
                   </Button>
                 )}
@@ -127,7 +129,7 @@ export default function AddinPage() {
           ) : null}
 
           {isLoading ? (
-            <div className="text-sm text-gray-500">Loading...</div>
+            <div className="text-sm text-muted-foreground">Loading...</div>
           ) : (
             <>
               <DocumentIssuesList
@@ -136,7 +138,7 @@ export default function AddinPage() {
                 onSelect={(issue) => jumpToIssue(issue)}
               />
               {hasActiveFilters(filter) && filteredIssues.length === 0 && (
-                <div className="text-xs text-gray-500 pt-2 mt-2">No issues found for your filters</div>
+                <div className="text-xs text-muted-foreground pt-2 mt-2">No issues found for your filters</div>
               )}
             </>
           )}

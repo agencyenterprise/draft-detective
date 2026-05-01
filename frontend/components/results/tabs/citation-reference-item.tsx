@@ -31,7 +31,9 @@ export function CitationReferenceItem({ reference, references, supportingFiles }
       <div className="flex items-center gap-2 flex-wrap">
         <ReferenceTypeBadge type={reference.type} />
         {reference.is_already_cited_elsewhere && (
-          <span className="px-2 py-1 rounded text-xs bg-cyan-100 text-cyan-800">Already cited</span>
+          <span className="px-2 py-1 rounded text-xs bg-cyan-100 text-cyan-800 dark:bg-cyan-950 dark:text-cyan-300">
+            Already cited
+          </span>
         )}
         <RecommendedActionBadge action={reference.recommended_action} />
         <ConfidenceBadge confidence={reference.confidence_in_recommendation} />

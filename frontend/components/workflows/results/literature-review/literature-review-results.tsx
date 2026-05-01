@@ -41,11 +41,11 @@ export function LiteratureReviewResults({ workflowDetail }: LiteratureReviewResu
       </div>
 
       {literatureReview.rationale && (
-        <Card className="bg-blue-50/50 border-blue-200">
+        <Card className="bg-blue-50/50 border-blue-200 dark:bg-blue-950/40 dark:border-blue-900">
           <CardContent>
             <p className="text-sm leading-relaxed">
-              <strong className="text-blue-900">Overall Analysis:</strong>{' '}
-              <span className="text-blue-800">{literatureReview.rationale}</span>
+              <strong className="text-blue-900 dark:text-blue-200">Overall Analysis:</strong>{' '}
+              <span className="text-blue-800 dark:text-blue-300">{literatureReview.rationale}</span>
             </p>
           </CardContent>
         </Card>

@@ -28,10 +28,10 @@ interface DocumentMarkdownRendererProps {
 }
 
 const SEVERITY_BG: Record<string, string> = {
-  [SeverityEnum.High]: 'bg-red-100',
-  [SeverityEnum.Medium]: 'bg-yellow-100',
-  [SeverityEnum.Low]: 'bg-blue-100',
-  [SeverityEnum.None]: 'bg-green-100',
+  [SeverityEnum.High]: 'bg-red-100 dark:bg-red-900/50',
+  [SeverityEnum.Medium]: 'bg-yellow-100 dark:bg-yellow-900/50',
+  [SeverityEnum.Low]: 'bg-blue-100 dark:bg-blue-900/50',
+  [SeverityEnum.None]: 'bg-green-100 dark:bg-green-900/50',
 };
 
 const SEVERITY_RANK: Record<string, number> = {
@@ -89,8 +89,8 @@ const BLOCK_COMPONENTS = {
   ul: blockFactory('ul', 'mb-2 list-disc ml-6'),
   ol: blockFactory('ol', 'mb-2 list-decimal ml-6'),
   li: blockFactory('li', 'mb-1'),
-  blockquote: blockFactory('blockquote', 'mb-2 border-l-4 border-gray-300 pl-4'),
-  pre: blockFactory('pre', 'mb-2 bg-gray-100 px-2 py-1 rounded overflow-x-auto max-w-full'),
+  blockquote: blockFactory('blockquote', 'mb-2 border-l-4 border-border pl-4'),
+  pre: blockFactory('pre', 'mb-2 bg-muted px-2 py-1 rounded overflow-x-auto max-w-full'),
   table: blockFactory('table', 'mb-2 border-collapse block overflow-x-auto max-w-full'),
   hr: blockFactory('hr', 'my-4'),
 };
@@ -154,7 +154,7 @@ export function DocumentMarkdownRenderer({
       if (!Number.isFinite(lineStart) || !Number.isFinite(lineEnd)) return;
 
       // Clear prior state.
-      for (const cls of Object.values(SEVERITY_BG)) block.classList.remove(cls);
+      for (const cls of Object.values(SEVERITY_BG)) block.classList.remove(...cls.split(' '));
       block.classList.remove('cursor-pointer', 'shadow-lg', 'opacity-50');
       block.removeAttribute('data-issue-id');
       block.removeAttribute('data-issue-selected');
@@ -163,7 +163,7 @@ export function DocumentMarkdownRenderer({
       if (!issue) return;
 
       const bg = SEVERITY_BG[issue.severity];
-      if (bg) block.classList.add(bg);
+      if (bg) block.classList.add(...bg.split(' '));
       block.classList.add('cursor-pointer');
       block.setAttribute('data-issue-id', issue.id);
 

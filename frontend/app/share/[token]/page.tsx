@@ -39,7 +39,7 @@ export default function SharedProjectPage() {
       <div className="flex items-center justify-center py-20">
         <div className="text-center max-w-md mx-auto p-6">
           <div className="text-6xl mb-4">🔗</div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Link Not Found</h1>
+          <h1 className="text-2xl font-bold text-foreground mb-2">Link Not Found</h1>
           <p className="text-muted-foreground">This share link may have expired or been disabled by the owner.</p>
         </div>
       </div>

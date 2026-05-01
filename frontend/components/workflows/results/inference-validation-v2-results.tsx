@@ -138,7 +138,7 @@ function InferenceAnalysisCard({
 
   return (
     <div className="rounded-lg border bg-card">
-      <div className="p-4 bg-gray-50 rounded-t-lg space-y-2">
+      <div className="p-4 bg-muted rounded-t-lg space-y-2">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-sm font-medium text-muted-foreground">#{index + 1}</span>
@@ -148,8 +148,8 @@ function InferenceAnalysisCard({
               className={cn(
                 'text-xs',
                 analysis.inference_validity
-                  ? 'border-green-300 bg-green-50 text-green-700'
-                  : 'border-red-300 bg-red-50 text-red-700',
+                  ? 'border-green-300 bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300 dark:border-green-800'
+                  : 'border-red-300 bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-300 dark:border-red-800',
               )}
             >
               {analysis.inference_validity ? (
@@ -165,7 +165,7 @@ function InferenceAnalysisCard({
             variant="ghost"
             size="sm"
             onClick={() => setIsExpanded(!isExpanded)}
-            className="shrink-0 text-gray-600 hover:text-gray-900"
+            className="shrink-0 text-muted-foreground hover:text-foreground"
           >
             {isExpanded ? (
               <>

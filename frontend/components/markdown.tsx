@@ -16,10 +16,10 @@ const componentFactory = (
   const highlightClass = highlight
     ? {
         none: '',
-        red: 'bg-red-100',
-        yellow: 'bg-yellow-100',
-        blue: 'bg-blue-50',
-        green: 'bg-green-100',
+        red: 'bg-red-100 dark:bg-red-900/50',
+        yellow: 'bg-yellow-100 dark:bg-yellow-900/50',
+        blue: 'bg-blue-50 dark:bg-blue-900/40',
+        green: 'bg-green-100 dark:bg-green-900/50',
       }[highlight]
     : '';
 
@@ -74,9 +74,9 @@ const createComponents = (highlight: 'red' | 'yellow' | 'blue' | 'green' | 'none
       );
     },
     img: componentFactory('img', 'mb-2 w-full'),
-    blockquote: componentFactory('blockquote', 'mb-2 border-l-4 border-gray-300 pl-4'),
-    code: componentFactory('code', 'bg-gray-100 px-1 py-0.5 rounded'),
-    pre: componentFactory('pre', 'mb-2 bg-gray-100 px-1 py-0.5 rounded'),
+    blockquote: componentFactory('blockquote', 'mb-2 border-l-4 border-border pl-4'),
+    code: componentFactory('code', 'bg-muted px-1 py-0.5 rounded'),
+    pre: componentFactory('pre', 'mb-2 bg-muted px-1 py-0.5 rounded'),
     table: componentFactory(Table, 'mb-2'),
     thead: componentFactory(TableHeader, ''),
     tbody: componentFactory(TableBody, ''),

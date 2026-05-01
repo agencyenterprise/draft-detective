@@ -2,6 +2,7 @@ import { auth } from '@/auth';
 import { ApiConfig } from '@/components/api-config';
 import { ApplicationShell } from '@/components/layout/application-shell';
 import QueryProvider from '@/components/providers';
+import { ThemeProvider } from '@/components/theme-provider';
 import { Toaster } from '@/components/ui/sonner';
 import { VersionBadge } from '@/components/version-badge';
 import { ExperimentalFeaturesProvider } from '@/context/experimental-features-context';
@@ -35,20 +36,22 @@ export default async function RootLayout({
   const session = await auth();
 
   return (
-    <html lang="en" className="h-full">
+    <html lang="en" className="h-full" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased h-full`}>
-        <PostHogProvider>
-          <SessionProvider session={session}>
-            <QueryProvider>
-              <ExperimentalFeaturesProvider>
-                <ApiConfig />
-                <ApplicationShell>{children}</ApplicationShell>
-                <Toaster />
-                <VersionBadge />
-              </ExperimentalFeaturesProvider>
-            </QueryProvider>
-          </SessionProvider>
-        </PostHogProvider>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+          <PostHogProvider>
+            <SessionProvider session={session}>
+              <QueryProvider>
+                <ExperimentalFeaturesProvider>
+                  <ApiConfig />
+                  <ApplicationShell>{children}</ApplicationShell>
+                  <Toaster />
+                  <VersionBadge />
+                </ExperimentalFeaturesProvider>
+              </QueryProvider>
+            </SessionProvider>
+          </PostHogProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

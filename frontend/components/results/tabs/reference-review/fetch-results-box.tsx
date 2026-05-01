@@ -19,21 +19,21 @@ function FetchConclusionBadge({ conclusion }: { conclusion: ReferenceFetchConclu
   switch (conclusion) {
     case ReferenceFetchConclusion.SourceFound:
       return (
-        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 text-xs font-medium rounded-full border bg-green-50 text-green-700 border-green-200">
+        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 text-xs font-medium rounded-full border bg-green-50 text-green-700 border-green-200 dark:bg-green-950 dark:text-green-300 dark:border-green-800">
           <CheckCircle2 className="w-3.5 h-3.5" />
           Source Found
         </span>
       );
     case ReferenceFetchConclusion.SourceFoundButNotAccessible:
       return (
-        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 text-xs font-medium rounded-full border bg-yellow-50 text-yellow-700 border-yellow-200">
+        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 text-xs font-medium rounded-full border bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-950 dark:text-yellow-300 dark:border-yellow-800">
           <AlertCircle className="w-3.5 h-3.5" />
           Found but not accessible
         </span>
       );
     case ReferenceFetchConclusion.SourceNotFound:
       return (
-        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 text-xs font-medium rounded-full border bg-red-50 text-red-700 border-red-200">
+        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 text-xs font-medium rounded-full border bg-red-50 text-red-700 border-red-200 dark:bg-red-950 dark:text-red-300 dark:border-red-800">
           <XCircle className="w-3.5 h-3.5" />
           Not Found
         </span>
@@ -58,17 +58,17 @@ export function FetchResultsBox({ fetchResult }: FetchResultsBoxProps) {
   const inaccessibilityReason = fetchResult.result?.inaccessibility_reason;
 
   const getBoxColorClass = () => {
-    if (isFetchPending) return 'bg-blue-50/80 border-blue-200';
-    if (isFetchError) return 'bg-red-50/80 border-red-200';
+    if (isFetchPending) return 'bg-blue-50/80 border-blue-200 dark:bg-blue-950/40 dark:border-blue-900';
+    if (isFetchError) return 'bg-red-50/80 border-red-200 dark:bg-red-950/40 dark:border-red-900';
     switch (fetchConclusion) {
       case ReferenceFetchConclusion.SourceFound:
-        return 'bg-green-50/80 border-green-200';
+        return 'bg-green-50/80 border-green-200 dark:bg-green-950/40 dark:border-green-900';
       case ReferenceFetchConclusion.SourceFoundButNotAccessible:
-        return 'bg-yellow-50/80 border-yellow-200';
+        return 'bg-yellow-50/80 border-yellow-200 dark:bg-yellow-950/40 dark:border-yellow-900';
       case ReferenceFetchConclusion.SourceNotFound:
-        return 'bg-red-50/80 border-red-200';
+        return 'bg-red-50/80 border-red-200 dark:bg-red-950/40 dark:border-red-900';
       default:
-        return 'bg-gray-50/80 border-gray-200';
+        return 'bg-muted/80 border-border';
     }
   };
 
@@ -78,14 +78,14 @@ export function FetchResultsBox({ fetchResult }: FetchResultsBoxProps) {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <GlobeIcon className="w-4 h-4 text-muted-foreground" />
-          <span className="text-xs font-medium text-gray-700">Fetch results</span>
+          <span className="text-xs font-medium text-foreground">Fetch results</span>
           {isFetchPending ? (
-            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 text-xs font-medium rounded-full border bg-blue-100 text-blue-700 border-blue-300">
+            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 text-xs font-medium rounded-full border bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800">
               <Loader2 className="w-3 h-3 animate-spin" />
               Fetching...
             </span>
           ) : isFetchError ? (
-            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 text-xs font-medium rounded-full border bg-red-100 text-red-700 border-red-300">
+            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 text-xs font-medium rounded-full border bg-red-100 text-red-700 border-red-300 dark:bg-red-950 dark:text-red-300 dark:border-red-800">
               <AlertTriangle className="w-3 h-3" />
               Error
             </span>

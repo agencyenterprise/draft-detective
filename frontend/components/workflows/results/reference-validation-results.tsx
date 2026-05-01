@@ -93,7 +93,7 @@ export function ReferenceValidationResults({ workflowDetail }: ReferenceValidati
         {stats.valid > 0 && (
           <Badge
             variant="outline"
-            className={`cursor-pointer transition-all bg-green-50 text-green-700 border-green-200 ${filter === 'valid' ? 'ring-2 ring-offset-1 ring-green-400' : 'hover:bg-green-100'}`}
+            className={`cursor-pointer transition-all bg-green-50 text-green-700 border-green-200 dark:bg-green-950 dark:text-green-300 dark:border-green-800 ${filter === 'valid' ? 'ring-2 ring-offset-1 ring-green-400' : 'hover:bg-green-100'}`}
             onClick={() => toggleFilter('valid')}
           >
             <CheckCircle2 className="w-3 h-3 mr-1" />
@@ -103,7 +103,7 @@ export function ReferenceValidationResults({ workflowDetail }: ReferenceValidati
         {stats.inconsistencies > 0 && (
           <Badge
             variant="outline"
-            className={`cursor-pointer transition-all bg-yellow-50 text-yellow-700 border-yellow-200 ${filter === 'inconsistencies' ? 'ring-2 ring-offset-1 ring-yellow-400' : 'hover:bg-yellow-100'}`}
+            className={`cursor-pointer transition-all bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-950 dark:text-yellow-300 dark:border-yellow-800 ${filter === 'inconsistencies' ? 'ring-2 ring-offset-1 ring-yellow-400' : 'hover:bg-yellow-100'}`}
             onClick={() => toggleFilter('inconsistencies')}
           >
             <AlertTriangle className="w-3 h-3 mr-1" />
@@ -113,7 +113,7 @@ export function ReferenceValidationResults({ workflowDetail }: ReferenceValidati
         {stats.notFound > 0 && (
           <Badge
             variant="outline"
-            className={`cursor-pointer transition-all bg-red-50 text-red-700 border-red-200 ${filter === 'not_found' ? 'ring-2 ring-offset-1 ring-red-400' : 'hover:bg-red-100'}`}
+            className={`cursor-pointer transition-all bg-red-50 text-red-700 border-red-200 dark:bg-red-950 dark:text-red-300 dark:border-red-800 ${filter === 'not_found' ? 'ring-2 ring-offset-1 ring-red-400' : 'hover:bg-red-100'}`}
             onClick={() => toggleFilter('not_found')}
           >
             <SearchX className="w-3 h-3 mr-1" />
@@ -123,7 +123,7 @@ export function ReferenceValidationResults({ workflowDetail }: ReferenceValidati
         {stats.pending > 0 && (
           <Badge
             variant="outline"
-            className={`cursor-pointer transition-all bg-blue-50 text-blue-700 border-blue-200 ${filter === 'pending' ? 'ring-2 ring-offset-1 ring-blue-400' : 'hover:bg-blue-100'}`}
+            className={`cursor-pointer transition-all bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800 ${filter === 'pending' ? 'ring-2 ring-offset-1 ring-blue-400' : 'hover:bg-blue-100'}`}
             onClick={() => toggleFilter('pending')}
           >
             <Loader2 className="w-3 h-3 mr-1 animate-spin" />
@@ -133,7 +133,7 @@ export function ReferenceValidationResults({ workflowDetail }: ReferenceValidati
         {stats.errors > 0 && (
           <Badge
             variant="outline"
-            className={`cursor-pointer transition-all bg-red-50 text-red-700 border-red-200 ${filter === 'error' ? 'ring-2 ring-offset-1 ring-red-400' : 'hover:bg-red-100'}`}
+            className={`cursor-pointer transition-all bg-red-50 text-red-700 border-red-200 dark:bg-red-950 dark:text-red-300 dark:border-red-800 ${filter === 'error' ? 'ring-2 ring-offset-1 ring-red-400' : 'hover:bg-red-100'}`}
             onClick={() => toggleFilter('error')}
           >
             <XCircle className="w-3 h-3 mr-1" />
@@ -143,7 +143,7 @@ export function ReferenceValidationResults({ workflowDetail }: ReferenceValidati
         {stats.cancelled > 0 && (
           <Badge
             variant="outline"
-            className={`cursor-pointer transition-all bg-gray-50 text-gray-500 border-gray-200 ${filter === 'cancelled' ? 'ring-2 ring-offset-1 ring-gray-400' : 'hover:bg-gray-100'}`}
+            className={`cursor-pointer transition-all bg-muted text-muted-foreground border-border ${filter === 'cancelled' ? 'ring-2 ring-offset-1 ring-gray-400' : 'hover:bg-muted'}`}
             onClick={() => toggleFilter('cancelled')}
           >
             <Ban className="w-3 h-3 mr-1" />

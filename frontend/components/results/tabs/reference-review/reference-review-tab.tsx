@@ -72,7 +72,7 @@ export function ReferenceReviewTab({ projectId, readOnly = false }: ReferenceRev
     return (
       <div className="flex flex-col items-center justify-center py-12 space-y-6">
         <div className="relative">
-          <div className="w-24 h-24 rounded-full bg-blue-50 flex items-center justify-center">
+          <div className="w-24 h-24 rounded-full bg-blue-50 dark:bg-blue-950 flex items-center justify-center">
             <FileText className="w-12 h-12 text-blue-500" />
           </div>
           <div className="absolute inset-0 w-24 h-24 rounded-full border-4 border-blue-200 border-t-blue-500 animate-spin" />

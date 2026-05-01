@@ -96,7 +96,7 @@ export function MethodologicalAlignmentResults({ workflowDetail }: Methodologica
     <div className="space-y-3">
       {methodologyComparison.reproducibility && (
         <div className="flex items-start gap-4">
-          <span className="flex items-center gap-2 bg-blue-50 p-2 rounded-md border-blue-200 text-blue-900 text-sm font-medium whitespace-nowrap">
+          <span className="flex items-center gap-2 bg-blue-50 p-2 rounded-md dark:bg-blue-950 border-blue-200 dark:border-blue-800 text-blue-900 dark:text-blue-100 text-sm font-medium whitespace-nowrap">
             {getReproducibilityIcon(methodologyComparison.reproducibility.class_value)}
             {getReproducibilityLabel(methodologyComparison.reproducibility.class_value)}
           </span>
@@ -134,7 +134,7 @@ function ExpandableSection({ title, summary, output, defaultExpanded = false }: 
 
   return (
     <div className="rounded-md border">
-      <div className="bg-gray-50 p-4">
+      <div className="bg-muted p-4">
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1">
             <h2 className="font-semibold text-base mb-1">{title}</h2>
@@ -144,7 +144,7 @@ function ExpandableSection({ title, summary, output, defaultExpanded = false }: 
             variant="ghost"
             size="sm"
             onClick={() => setIsExpanded(!isExpanded)}
-            className="shrink-0 text-gray-600 hover:text-gray-900"
+            className="shrink-0 text-muted-foreground hover:text-foreground"
           >
             {isExpanded ? (
               <>
@@ -180,7 +180,7 @@ function ReferencesSection({ references }: ReferencesSectionProps) {
 
   return (
     <div className="rounded-md border">
-      <div className="bg-gray-50 p-4">
+      <div className="bg-muted p-4">
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1">
             <h2 className="font-semibold text-base mb-1">References ({references.length})</h2>
@@ -190,7 +190,7 @@ function ReferencesSection({ references }: ReferencesSectionProps) {
             variant="ghost"
             size="sm"
             onClick={() => setIsExpanded(!isExpanded)}
-            className="shrink-0 text-gray-600 hover:text-gray-900"
+            className="shrink-0 text-muted-foreground hover:text-foreground"
           >
             {isExpanded ? (
               <>

@@ -12,7 +12,7 @@ export function AiGeneratedLabel({ className }: AiGeneratedLabelProps) {
       <TooltipTrigger asChild>
         <div
           className={cn(
-            'inline-flex items-center gap-1 text-xs bg-blue-100 text-blue-800 rounded-md px-2 py-1 font-medium',
+            'inline-flex items-center gap-1 text-xs bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 rounded-md px-2 py-1 font-medium',
             className,
           )}
         >
