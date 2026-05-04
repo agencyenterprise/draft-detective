@@ -13,7 +13,12 @@ import {
   ProjectDetailed,
   WorkflowRunType,
 } from '@/lib/generated-api';
-import { getWorkflowRunByType, isWorkflowCancelled, isWorkflowProcessing } from '@/lib/workflow-state';
+import {
+  getWorkflowRunByType,
+  isWorkflowCancelled,
+  isWorkflowFailed,
+  isWorkflowProcessing,
+} from '@/lib/workflow-state';
 import {
   AlertTriangle,
   Ban,
@@ -22,6 +27,7 @@ import {
   FileWarning,
   Loader2,
   MessageSquareWarning,
+  XCircle,
   type LucideIcon,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
@@ -258,6 +264,19 @@ export function AdvocacyToneResults({ project, onNavigateToDocumentExplorer }: A
         icon={<Ban className="h-8 w-8 text-muted-foreground mx-auto" />}
         message="Assessment Cancelled"
         description="The Advocacy & Tone assessment was cancelled before it could complete."
+      />
+    );
+  }
+
+  if (isWorkflowFailed(advocacyToneRun)) {
+    return (
+      <EmptyState
+        icon={<XCircle className="h-8 w-8 text-red-600 mx-auto" />}
+        message="Assessment Failed"
+        description={
+          advocacyToneRun.run.failure_message ??
+          'The Advocacy & Tone assessment failed before it could complete. Please retry it.'
+        }
       />
     );
   }

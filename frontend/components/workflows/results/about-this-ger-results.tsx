@@ -6,8 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AboutThisGerState, AgentCheckResult, WorkflowRunDetail } from '@/lib/generated-api';
-import { isWorkflowCancelled, isWorkflowProcessing } from '@/lib/workflow-state';
-import { AlertTriangle, Ban, BookOpen, CheckCircle2, FileQuestion, Loader2, Users } from 'lucide-react';
+import { isWorkflowCancelled, isWorkflowFailed, isWorkflowProcessing } from '@/lib/workflow-state';
+import { AlertTriangle, Ban, BookOpen, CheckCircle2, FileQuestion, Loader2, Users, XCircle } from 'lucide-react';
 import { useState } from 'react';
 
 interface AboutThisGerResultsProps {
@@ -148,6 +148,19 @@ export function AboutThisGerResults({ workflowDetail }: AboutThisGerResultsProps
         icon={<Ban className="h-8 w-8 text-muted-foreground mx-auto" />}
         message="Assessment Cancelled"
         description="The About This (GER) assessment was cancelled before it could complete."
+      />
+    );
+  }
+
+  if (isWorkflowFailed(workflowDetail)) {
+    return (
+      <EmptyState
+        icon={<XCircle className="h-8 w-8 text-red-600 mx-auto" />}
+        message="Assessment Failed"
+        description={
+          workflowDetail.run.failure_message ??
+          'The About This (GER) assessment failed before it could complete. Please retry it.'
+        }
       />
     );
   }

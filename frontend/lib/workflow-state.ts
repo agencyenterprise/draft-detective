@@ -107,9 +107,10 @@ export function getCurrentRunErrors(workflowRun: WorkflowRunDetail): WorkflowErr
 }
 
 /**
- * Display status type that includes "failed" for completed runs with errors.
+ * Display status for a workflow run. Mirrors `WorkflowRunStatus`, but `Completed`
+ * runs that contain errors collapse to `Failed` for UI purposes.
  */
-export type DisplayStatus = WorkflowRunStatus | 'failed';
+export type DisplayStatus = WorkflowRunStatus;
 
 /**
  * Get the display status for a workflow run.
@@ -117,7 +118,7 @@ export type DisplayStatus = WorkflowRunStatus | 'failed';
  */
 export function getDisplayStatus(workflowRun: WorkflowRunDetail): DisplayStatus {
   if (workflowRun.run.status === WorkflowRunStatus.Completed && hasCurrentRunErrors(workflowRun)) {
-    return 'failed';
+    return WorkflowRunStatus.Failed;
   }
   return workflowRun.run.status;
 }
@@ -148,6 +149,11 @@ export function isWorkflowProcessing(workflowRun: WorkflowRunDetail | undefined)
 export function isWorkflowCancelled(workflowRun: WorkflowRunDetail | undefined): boolean {
   if (!workflowRun) return false;
   return workflowRun.run.status === WorkflowRunStatus.Cancelled;
+}
+
+export function isWorkflowFailed(workflowRun: WorkflowRunDetail | undefined): boolean {
+  if (!workflowRun) return false;
+  return workflowRun.run.status === WorkflowRunStatus.Failed;
 }
 
 export function isAnyWorkflowProcessing(workflowRuns: WorkflowRunDetail[]): boolean {
