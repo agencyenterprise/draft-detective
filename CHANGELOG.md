@@ -6,6 +6,33 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v0.5.34] - 2026-05-04
+
+### Added
+- Added `reference_validation_v2` with red/yellow/green severity tiers and refined field-match rules, defaulting the v2 agent to `gpt-5.5`.
+- Added a dark mode option with a profile-dropdown toggle that follows OS preference by default and persists user overrides via `next-themes`.
+- Added MCP support for human-approval workflows via an `approve_human_steps` argument to the `run_workflow` tool.
+- Added Inspect AI evals (internal and e2e) for `claim_reference_validation_v2`, sharing a single dataset file.
+- Added a canonical optional `suggested_action` (markdown) field to every issue emitted by analysis workflows and surfaced it in the issue card UI.
+- Added tabbed MCP install instructions for Claude Code, Codex, and Opencode, plus a "How to use" section with sample prompts.
+
+### Changed
+- Made identifiers always optional in reference validation, broadened author acceptance to include institutional names, and accepted any published edition year for books/book chapters within existing tolerance.
+- Upgraded most agents to `gpt-5.4`, bumped `SimpleDeepAgent` to `gpt-5.5`, switched `DocumentChunker` to `gpt-5.4-mini`, and removed unused legacy model entries from the registry.
+- Made the `reference_downloader` workflow’s `references` input optional and defaulted it to all extracted references without a matched supporting file when omitted.
+- Moved the "View on GitHub" link into a combined bottom-right version + GitHub badge and linked the version label to the changelog.
+- Marked the Reproducibility Check workflow as beta so the UI shows the Beta badge and tooltip.
+- Removed the user-facing list of available MCP tool names from the `/mcp` page.
+
+### Fixed
+- Fixed e2e eval solver timeouts so they are recorded as sample errors instead of crashing the eval, and allowed e2e evals to continue when up to 20% of samples fail.
+- Fixed CI permissions by granting the `claude-review` workflow write access to pull requests and issues.
+
+### Removed
+- Removed the orphan `inference_validation` v1 enum value and its frontend icon mapping.
+- Removed the legacy `tests/evals/llm/` eval test suite and its supporting backend instrumentation and frontend `/evals` viewer.
+
+
 ## [v0.5.33] - 2026-04-27
 
 ### Added
