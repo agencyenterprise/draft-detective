@@ -1,6 +1,7 @@
 """Unit tests for the workflow reaper sweep logic."""
 
 import uuid
+from contextlib import asynccontextmanager
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -18,6 +19,25 @@ from lib.services.workflow_reaper import (
     _reap_once,
     _run_manifest_on_cancel,
 )
+
+
+@asynccontextmanager
+async def _fake_lock(acquired: bool):
+    yield acquired
+
+
+@pytest.fixture(autouse=True)
+def _stub_advisory_lock():
+    """Default stub: lock is acquired so the existing assertions exercise the
+    full sweep body. Tests that need the lock-not-acquired path patch the
+    helper themselves.
+    """
+    with patch.object(
+        workflow_reaper,
+        "_reaper_advisory_lock",
+        lambda: _fake_lock(True),
+    ):
+        yield
 
 
 def _make_run(
@@ -351,3 +371,33 @@ async def test_reap_once_handles_mixed_running_and_pending():
 def test_default_grace_windows_are_consistent():
     """Pending grace must be >= running grace; otherwise PENDING reaping is overly aggressive."""
     assert PENDING_GRACE_SECONDS >= REAPER_GRACE_SECONDS
+
+
+# ---------------------------------------------------------------------------
+# Advisory lock — multi-pod serialization
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_reap_once_skips_when_lock_not_acquired():
+    """If another pod holds the advisory lock, this sweep returns 0 and does no DB work."""
+    find_stuck = AsyncMock(return_value=[_make_run(WorkflowRunStatus.RUNNING)])
+    fail = AsyncMock()
+    on_cancel = AsyncMock()
+
+    with (
+        patch.object(
+            workflow_reaper,
+            "_reaper_advisory_lock",
+            lambda: _fake_lock(False),
+        ),
+        patch.object(workflow_reaper, "_find_stuck_runs", new=find_stuck),
+        patch.object(workflow_reaper, "fail_workflow_run", new=fail),
+        patch.object(workflow_reaper, "_run_manifest_on_cancel", new=on_cancel),
+    ):
+        reaped = await _reap_once()
+
+    assert reaped == 0
+    find_stuck.assert_not_awaited()
+    fail.assert_not_awaited()
+    on_cancel.assert_not_awaited()

@@ -14,15 +14,23 @@ itself). PENDING rows older than DEPENDENCY_WAIT_TIMEOUT are mechanically
 stuck — by then a live runner would have either started them or raised
 DependencyWaitTimeoutError on its own.
 
+Multi-pod safe: every pod's lifespan starts its own reaper, but sweeps are
+serialized cluster-wide by a Postgres advisory lock (REAPER_ADVISORY_LOCK_KEY).
+At most one pod actively sweeps at a time; the rest fail-fast on
+pg_try_advisory_lock and skip the tick. The lock is session-scoped, so a
+crashed pod cannot strand it.
+
 Wired into FastAPI lifespan in lib/api/main.py.
 """
 
 import asyncio
 import logging
+from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
+from typing import AsyncIterator
 
 from langchain_core.runnables.config import RunnableConfig
-from sqlalchemy import or_, select
+from sqlalchemy import or_, select, text
 from sqlmodel import and_, col
 
 from lib.config.database import get_async_db_session
@@ -55,6 +63,43 @@ REAPER_GRACE_SECONDS = 60.0
 # would itself raise DependencyWaitTimeoutError at this point and flip the run
 # to FAILED, so anything still PENDING past this window was never picked up.
 PENDING_GRACE_SECONDS = float(DEPENDENCY_WAIT_TIMEOUT)
+
+# Postgres advisory-lock key — used to serialize reaper sweeps across pods.
+# Without this, every pod's lifespan starts its own reaper and N pods each
+# do the same sweep every 30s: redundant FAILED writes, redundant cascades,
+# N copies of the manifest on_cancel hook appending to the LangGraph
+# checkpoint. With the lock, only one pod's sweep runs at a time; others
+# fail-fast on pg_try_advisory_lock and skip until the next tick. The key
+# is an arbitrary but stable bigint derived from the ASCII bytes "WFREAPER"
+# so it won't collide with advisory locks taken by other systems sharing
+# the database.
+REAPER_ADVISORY_LOCK_KEY = int.from_bytes(b"WFREAPER", "big")
+
+
+@asynccontextmanager
+async def _reaper_advisory_lock() -> AsyncIterator[bool]:
+    """Try to acquire the cluster-wide reaper sweep lock.
+
+    Yields ``True`` if this pod owns the sweep for the duration of the
+    context, ``False`` if another pod already holds it. The lock is bound
+    to the dedicated session opened here; closing the session releases it,
+    so a crashed pod cannot strand the lock.
+    """
+    async with get_async_db_session() as session:
+        result = await session.execute(
+            text("SELECT pg_try_advisory_lock(:key)"),
+            {"key": REAPER_ADVISORY_LOCK_KEY},
+        )
+        acquired = bool(result.scalar_one())
+        try:
+            yield acquired
+        finally:
+            if acquired:
+                await session.execute(
+                    text("SELECT pg_advisory_unlock(:key)"),
+                    {"key": REAPER_ADVISORY_LOCK_KEY},
+                )
+                await session.commit()
 
 
 async def _find_stuck_runs(
@@ -138,7 +183,26 @@ async def _reap_once(
     running_grace_seconds: float = REAPER_GRACE_SECONDS,
     pending_grace_seconds: float = PENDING_GRACE_SECONDS,
 ) -> int:
-    """One sweep. Returns the count of reaped runs."""
+    """One sweep. Returns the count of reaped runs.
+
+    Serialized cluster-wide via a Postgres advisory lock — a sweep that
+    can't acquire the lock returns 0 immediately, leaving the work to
+    whichever pod is currently sweeping.
+    """
+    async with _reaper_advisory_lock() as acquired:
+        if not acquired:
+            logger.debug(
+                "Reaper: another pod holds the sweep lock; skipping this tick"
+            )
+            return 0
+        return await _reap_once_locked(running_grace_seconds, pending_grace_seconds)
+
+
+async def _reap_once_locked(
+    running_grace_seconds: float,
+    pending_grace_seconds: float,
+) -> int:
+    """Inner sweep body — assumes the advisory lock is already held."""
     stuck = await _find_stuck_runs(running_grace_seconds, pending_grace_seconds)
     if not stuck:
         return 0
