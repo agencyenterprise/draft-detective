@@ -83,6 +83,38 @@ async def test_supervise_cancels_node_when_workflow_status_is_cancelled():
 
 
 @pytest.mark.asyncio
+async def test_supervise_cancels_node_when_workflow_status_is_failed():
+    """If the reaper flips the row to FAILED, the supervisor must also cancel
+    the node — terminal status is terminal status, regardless of how it got
+    there. Without this, a reaped run would keep heartbeating and burning
+    work after the reaper has already written its tombstone."""
+    workflow_run_id = "run-failed"
+    interval = 0.01
+
+    async def long_running_node():
+        await asyncio.sleep(10)
+
+    node_task = asyncio.ensure_future(long_running_node())
+
+    with (
+        patch(
+            "lib.services.workflow_runs.get_workflow_run_status",
+            new=AsyncMock(return_value=WorkflowRunStatus.FAILED),
+        ),
+        patch(
+            "lib.services.workflow_runs.update_workflow_run_heartbeat",
+            new=AsyncMock(),
+        ) as heartbeat_mock,
+    ):
+        await _supervise_node(workflow_run_id, node_task, interval)
+
+        with pytest.raises(asyncio.CancelledError):
+            await node_task
+
+    heartbeat_mock.assert_not_awaited()
+
+
+@pytest.mark.asyncio
 async def test_supervise_returns_when_node_completes_first():
     """Supervisor exits cleanly when the node finishes naturally — no hanging awaits."""
     workflow_run_id = "run-3"

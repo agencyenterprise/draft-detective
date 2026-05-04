@@ -20,7 +20,9 @@ from lib.models.workflow_run import (
     WorkflowRunStatus,
     WorkflowRunType,
 )
+from lib.services.workflow_progress import cancel_workflow_progress
 from lib.workflows.checkpointer import get_checkpointer
+from lib.workflows.dependency_resolver import get_required_dependents
 from lib.workflows.models import is_user_visible_workflow
 from lib.workflows.registry import create_graph, get_state_type, get_workflow_manifest
 from lib.workflows.workflow_types import WorkflowState
@@ -134,7 +136,16 @@ async def update_workflow_run_status(
     failure_reason: Optional[WorkflowRunFailureReason] = None,
     failure_message: Optional[str] = None,
 ) -> None:
-    """Update an existing workflow run's status. Never overwrites CANCELLED.
+    """Update an existing workflow run's status. Never overwrites a terminal status.
+
+    Terminal statuses (CANCELLED, COMPLETED, FAILED) are write-once. Without
+    this guard the runner's COMPLETED write could clobber a FAILED row the
+    reaper just produced (race window: heartbeat lag → reap → runner finishes
+    its last node → COMPLETED write), and racing failure paths could
+    overwrite each other's failure_reason / failure_message. The guard is
+    application-level (SELECT-then-UPDATE inside one transaction); when two
+    pods race, last writer wins for non-terminal transitions, which is
+    benign because non-terminal writes are idempotent.
 
     `failure_reason` and `failure_message` are persisted only when transitioning
     to FAILED; they are ignored for other statuses.
@@ -143,7 +154,7 @@ async def update_workflow_run_status(
         stmt = select(WorkflowRun).where(
             and_(
                 col(WorkflowRun.id) == workflow_run_id,
-                col(WorkflowRun.status) != WorkflowRunStatus.CANCELLED,
+                col(WorkflowRun.status).not_in(TERMINAL_WORKFLOW_RUN_STATUSES),
             )
         )
         run = (await session.execute(stmt)).scalar_one_or_none()
@@ -194,8 +205,6 @@ async def cancel_workflow_run(workflow_run_id: str, project_id: str) -> None:
     Only cascades through required_dependencies — optional dependents are left running
     since they handle missing data by design.
     """
-    from lib.services.workflow_progress import cancel_workflow_progress
-
     run = await get_workflow_run(workflow_run_id)
     if run.project_id is None:
         raise ValueError(f"Workflow run {workflow_run_id} has no project_id")
@@ -217,8 +226,6 @@ async def fail_workflow_run(
     parent is equivalent to a cancelled one — there is no salvageable output —
     so we cascade to CANCELLED rather than FAILED.
     """
-    from lib.services.workflow_progress import cancel_workflow_progress
-
     run = await get_workflow_run(workflow_run_id)
     if run.project_id is None:
         raise ValueError(f"Workflow run {workflow_run_id} has no project_id")
@@ -236,8 +243,6 @@ async def _cascade_cancel_dependents(
     workflow_type: WorkflowRunType, project_id: str, revision: int
 ) -> None:
     """Cancel any PENDING/RUNNING workflow runs that required-depend on this type."""
-    from lib.workflows.dependency_resolver import get_required_dependents
-
     for dependent_type in get_required_dependents(workflow_type):
         dependent_run = await get_project_workflow_run_by_type(
             project_id, dependent_type, revision=revision
