@@ -37,21 +37,33 @@ class AutoRunWorkflowItem(BaseModel):
     workflow_run_id: str
 
 
-class HumanApprovalRequiredError(Exception):
-    """Raised when a blocking workflow run hits an unsatisfied human-trigger gate.
+class WorkflowGateRequiredError(Exception):
+    """Raised when a blocking workflow run hits one or more unsatisfied consent gates.
 
-    Carries the project_id and the human-trigger workflow types that still
-    need approval so callers (e.g. the MCP tool) can render a useful prompt.
+    Today there are two gate kinds:
+      - human approval (manifest.requires_human_trigger)
+      - web-search consent (manifest.needs_web_search)
+
+    Each carries the workflow types that triggered it so callers (e.g. the
+    MCP tool) can render a useful prompt and ask the user to confirm.
     """
 
     def __init__(
-        self, project_id: str, pending_workflow_types: List[WorkflowRunType]
+        self,
+        project_id: str,
+        pending_human_approval: List[WorkflowRunType],
+        pending_web_search: List[WorkflowRunType],
     ):
         self.project_id = project_id
-        self.pending_workflow_types = pending_workflow_types
+        self.pending_human_approval = pending_human_approval
+        self.pending_web_search = pending_web_search
+        parts: List[str] = []
+        if pending_human_approval:
+            parts.append(f"human_approval={[w.value for w in pending_human_approval]}")
+        if pending_web_search:
+            parts.append(f"web_search={[w.value for w in pending_web_search]}")
         super().__init__(
-            f"Human approval required for project {project_id}: "
-            f"{[w.value for w in pending_workflow_types]}"
+            f"Workflow gates required for project {project_id}: {', '.join(parts)}"
         )
 
 
@@ -76,12 +88,14 @@ async def _prepare_workflow_items(
     user: User,
     *,
     approve_human_steps: bool = False,
-    raise_on_pending_human_steps: bool = False,
+    approve_web_search: bool = False,
+    raise_on_pending_gates: bool = False,
 ) -> tuple[
     Project,
     int,
     List[str],
     List[AutoRunWorkflowItem],
+    List[WorkflowRunType],
     List[WorkflowRunType],
 ]:
     """
@@ -94,6 +108,10 @@ async def _prepare_workflow_items(
     - all_workflow_run_ids: IDs of all newly created run records (including
       human-trigger workflows that won't be auto-run)
     - auto_run_items: subset of items that should actually be executed
+    - pending_human_triggers: human-trigger workflows blocked by missing approval
+      (only populated when raise_on_pending_gates=True)
+    - pending_web_search: workflows blocked by missing web-search consent
+      (only populated when raise_on_pending_gates=True)
     """
     project, _ = await get_project_access(
         request.project_id, user=user, required_level=AccessLevel.WRITE
@@ -114,9 +132,10 @@ async def _prepare_workflow_items(
     workflow_run_ids: List[str] = []
     auto_run_items: List[AutoRunWorkflowItem] = []
     pending_human_triggers: List[WorkflowRunType] = []
-    # Workflows blocked behind an unsatisfied human-trigger gate (the gate
-    # itself plus anything downstream of it). resolved_workflow_types is in
-    # topological order, so a single forward pass is sufficient.
+    pending_web_search: List[WorkflowRunType] = []
+    # Workflows blocked behind an unsatisfied gate (the gate itself plus
+    # anything downstream of it). resolved_workflow_types is in topological
+    # order, so a single forward pass is sufficient.
     blocked_set: set[WorkflowRunType] = set()
 
     revision = project.current_revision
@@ -144,13 +163,25 @@ async def _prepare_workflow_items(
             )
             continue
 
-        # If any required dep is blocked behind a pending human-trigger gate,
-        # this workflow is downstream and must be deferred to the post-approval
-        # retry. Don't create a PENDING record either — the next call will.
+        # If any required dep is blocked behind a pending gate, this workflow
+        # is downstream and must be deferred to the post-approval retry.
+        # Don't create a PENDING record either — the next call will.
         if any(dep in blocked_set for dep in manifest.required_dependencies):
             logger.info(
-                f"Deferring {workflow_type.value} - depends on a workflow blocked by human approval"
+                f"Deferring {workflow_type.value} - depends on a workflow blocked by a consent gate"
             )
+            blocked_set.add(workflow_type)
+            continue
+
+        # Web-search consent gate. Only enforced on the blocking/MCP path
+        # (raise_on_pending_gates=True); the UI path collects consent in the
+        # frontend, so we don't gate it again at the backend there.
+        if (
+            manifest.needs_web_search
+            and not approve_web_search
+            and raise_on_pending_gates
+        ):
+            pending_web_search.append(workflow_type)
             blocked_set.add(workflow_type)
             continue
 
@@ -160,7 +191,7 @@ async def _prepare_workflow_items(
                 request.project_id, workflow_type
             )
             if not previously_approved and not approve_human_steps:
-                if raise_on_pending_human_steps:
+                if raise_on_pending_gates:
                     pending_human_triggers.append(workflow_type)
                     blocked_set.add(workflow_type)
                     # Don't create a PENDING record — the caller is about to
@@ -209,6 +240,7 @@ async def _prepare_workflow_items(
         workflow_run_ids,
         auto_run_items,
         pending_human_triggers,
+        pending_web_search,
     )
 
 
@@ -286,9 +318,14 @@ async def start_multiple_workflow_runs(
     Raises:
         HTTPException: If project_id is missing or project doesn't exist
     """
-    _, revision, workflow_run_ids, auto_run_items, _ = await _prepare_workflow_items(
-        workflow_types, request, user
-    )
+    (
+        _,
+        revision,
+        workflow_run_ids,
+        auto_run_items,
+        _,
+        _,
+    ) = await _prepare_workflow_items(workflow_types, request, user)
 
     if auto_run_items:
         logger.info(
@@ -314,6 +351,7 @@ async def run_multiple_workflows_blocking(
     user: User,
     *,
     approve_human_steps: bool = False,
+    approve_web_search: bool = False,
 ) -> tuple[Project, List[str]]:
     """
     Prepare and run multiple workflows sequentially, blocking until all complete.
@@ -328,15 +366,20 @@ async def run_multiple_workflows_blocking(
         user: User running the workflows
         approve_human_steps: When True, treat any unsatisfied human-trigger
             dependency as approved by the caller and run it inline. When False
-            (default), raises HumanApprovalRequiredError so the caller can
+            (default), raises WorkflowGateRequiredError so the caller can
             prompt the user to confirm before retrying with approval.
+        approve_web_search: When True, treat any workflow with
+            manifest.needs_web_search=True as having explicit user consent to
+            access the web. When False (default), raises
+            WorkflowGateRequiredError so the caller can prompt the user.
 
     Returns:
         A tuple of (project, list of workflow_run_ids for all created runs)
 
     Raises:
-        HumanApprovalRequiredError: when approve_human_steps is False and a
-            resolved dependency requires human approval.
+        WorkflowGateRequiredError: when one or more required consent gates
+            (human approval, web-search) are unsatisfied for the resolved
+            workflows.
     """
     (
         project,
@@ -344,12 +387,14 @@ async def run_multiple_workflows_blocking(
         workflow_run_ids,
         auto_run_items,
         pending_human_triggers,
+        pending_web_search,
     ) = await _prepare_workflow_items(
         workflow_types,
         request,
         user,
         approve_human_steps=approve_human_steps,
-        raise_on_pending_human_steps=not approve_human_steps,
+        approve_web_search=approve_web_search,
+        raise_on_pending_gates=True,
     )
 
     # Run upstream prep (e.g. document_processing, reference_extraction,
@@ -364,10 +409,11 @@ async def run_multiple_workflows_blocking(
             revision=revision,
         )
 
-    if pending_human_triggers:
-        raise HumanApprovalRequiredError(
+    if pending_human_triggers or pending_web_search:
+        raise WorkflowGateRequiredError(
             project_id=str(project.id),
-            pending_workflow_types=pending_human_triggers,
+            pending_human_approval=pending_human_triggers,
+            pending_web_search=pending_web_search,
         )
 
     return project, workflow_run_ids

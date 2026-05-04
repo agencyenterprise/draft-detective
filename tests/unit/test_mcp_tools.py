@@ -389,13 +389,14 @@ async def test_run_workflow_passes_approve_human_steps_to_runner():
 
 @pytest.mark.asyncio
 async def test_run_workflow_returns_human_approval_required_payload():
-    from lib.api.services.workflow_runner import HumanApprovalRequiredError
+    from lib.api.services.workflow_runner import WorkflowGateRequiredError
     from lib.models.workflow_run import WorkflowRunType
 
     user = _make_user()
-    err = HumanApprovalRequiredError(
+    err = WorkflowGateRequiredError(
         project_id="p1",
-        pending_workflow_types=[WorkflowRunType.HUMAN_APPROVAL],
+        pending_human_approval=[WorkflowRunType.HUMAN_APPROVAL],
+        pending_web_search=[],
     )
 
     with (
@@ -416,11 +417,76 @@ async def test_run_workflow_returns_human_approval_required_payload():
         )
 
     data = json.loads(result)
-    assert data["status"] == "human_approval_required"
+    assert data["status"] == "approval_required"
     assert data["project_id"] == "p1"
     assert "p1" in data["project_url"]
-    assert data["pending_workflow_types"] == [WorkflowRunType.HUMAN_APPROVAL.value]
+    assert data["pending_human_approval"] == [WorkflowRunType.HUMAN_APPROVAL.value]
+    assert data["pending_web_search"] == []
     assert "approve_human_steps=true" in data["message"]
+    mock_details.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_run_workflow_passes_approve_web_search_to_runner():
+    user = _make_user()
+    project_json = json.dumps({"id": "p1", "project_url": "http://x/projects/p1"})
+
+    with (
+        patch("lib.api.mcp._resolve_user", new=AsyncMock(return_value=user)),
+        patch(
+            "lib.api.mcp.run_multiple_workflows_blocking", new=AsyncMock()
+        ) as mock_run,
+        patch(
+            "lib.api.mcp._get_project_details_json",
+            new=AsyncMock(return_value=project_json),
+        ),
+    ):
+        await run_workflow(
+            project_id="p1",
+            workflow_types=["reference_validation"],
+            approve_web_search=True,
+            token=_make_token(),
+        )
+
+    mock_run.assert_awaited_once()
+    assert mock_run.await_args.kwargs["approve_web_search"] is True
+
+
+@pytest.mark.asyncio
+async def test_run_workflow_returns_web_search_required_payload():
+    from lib.api.services.workflow_runner import WorkflowGateRequiredError
+    from lib.models.workflow_run import WorkflowRunType
+
+    user = _make_user()
+    err = WorkflowGateRequiredError(
+        project_id="p1",
+        pending_human_approval=[],
+        pending_web_search=[WorkflowRunType.REFERENCE_VALIDATION],
+    )
+
+    with (
+        patch("lib.api.mcp._resolve_user", new=AsyncMock(return_value=user)),
+        patch(
+            "lib.api.mcp.run_multiple_workflows_blocking",
+            new=AsyncMock(side_effect=err),
+        ),
+        patch(
+            "lib.api.mcp._get_project_details_json",
+            new=AsyncMock(),
+        ) as mock_details,
+    ):
+        result = await run_workflow(
+            project_id="p1",
+            workflow_types=["reference_validation"],
+            token=_make_token(),
+        )
+
+    data = json.loads(result)
+    assert data["status"] == "approval_required"
+    assert data["pending_human_approval"] == []
+    assert data["pending_web_search"] == [WorkflowRunType.REFERENCE_VALIDATION.value]
+    assert "approve_web_search=true" in data["message"]
+    assert "approve_human_steps=true" not in data["message"]
     mock_details.assert_not_awaited()
 
 
