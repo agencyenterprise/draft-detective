@@ -50,6 +50,11 @@ class WorkflowManifest[WorkflowStateType, WorkflowConfigType](ABC):
     # The workflows needs to be idempotent, meaning it can be run multiple times without changing the result and typical execute only "new" content that was not processed in a previous run, reusing cached results from previous runs, like summarization, document conversion, etc (should process only new files in subsequent runs).
     always_run: bool = False
 
+    # Maximum wall-clock duration (seconds) for a single execution of this workflow.
+    # Exceeding this transitions the run to FAILED with failure_reason=timeout.
+    # Override in subclasses for workflows that legitimately run longer.
+    max_duration_seconds: float = 1 * 60 * 60  # 1 hour
+
     @property
     def is_qa_screener(self) -> bool:
         """Whether the workflow is part of the QA Screener tool."""

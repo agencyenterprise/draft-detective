@@ -12,6 +12,17 @@ class WorkflowCancelledError(Exception):
     pass
 
 
+class DependencyWaitTimeoutError(Exception):
+    """Raised when wait_for_dependencies exceeds DEPENDENCY_WAIT_TIMEOUT.
+
+    Indicates an upstream dependency is stuck (typically itself orphaned in
+    RUNNING). The dependent run should be marked FAILED with
+    failure_reason=dependency_timeout.
+    """
+
+    pass
+
+
 class WorkflowError(BaseModel):
     """Error object for the overall workflow or specific chunks."""
 

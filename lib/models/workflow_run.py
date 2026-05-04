@@ -17,6 +17,28 @@ class WorkflowRunStatus(str, Enum):
     RUNNING = "running"
     COMPLETED = "completed"
     CANCELLED = "cancelled"
+    FAILED = "failed"
+
+
+TERMINAL_WORKFLOW_RUN_STATUSES = (
+    WorkflowRunStatus.COMPLETED,
+    WorkflowRunStatus.CANCELLED,
+    WorkflowRunStatus.FAILED,
+)
+
+
+class WorkflowRunFailureReason(str, Enum):
+    """Reason a workflow run transitioned to FAILED.
+
+    FAILED is reserved for unrecoverable workflow-level halts; node-level errors
+    that the workflow recovers from are still represented via state.errors and
+    leave the run in COMPLETED status.
+    """
+
+    TIMEOUT = "timeout"
+    DEPENDENCY_TIMEOUT = "dependency_timeout"
+    NO_HEARTBEAT = "no_heartbeat"
+    UNHANDLED_EXCEPTION = "unhandled_exception"
 
 
 class WorkflowRun(SQLModel, table=True):
@@ -75,6 +97,23 @@ class WorkflowRun(SQLModel, table=True):
         sa_column=Column(Integer, nullable=False, default=1),
         default=1,
         description="The project revision this workflow run belongs to",
+    )
+    heartbeat_at: Optional[datetime] = Field(
+        sa_column=Column(DateTime(timezone=True), nullable=True),
+        description="Updated on every node entry/exit; used by the reaper to detect stuck runs",
+    )
+    failure_reason: Optional[WorkflowRunFailureReason] = Field(
+        sa_column=Column(
+            SQLModelEnum(WorkflowRunFailureReason),
+            nullable=True,
+        ),
+        default=None,
+        description="Populated only when status == FAILED",
+    )
+    failure_message: Optional[str] = Field(
+        sa_column=Column(String(2000), nullable=True),
+        default=None,
+        description="Short human-readable detail of the failure. Populated only when status == FAILED.",
     )
 
     @field_validator("type", mode="before")

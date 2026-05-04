@@ -971,7 +971,7 @@ export type CitationIssueItem = {
   /**
    * Citation To File Mapping
    *
-   * The bibliography-to-file mapping used when checking this citation. Omit file IDs.
+   * Display-friendly summary of which bibliography entry was matched to which supporting file when checking this citation, e.g. 'Smith (2020) → smith_2020.pdf'. Do not include file_id UUIDs in this string; the file_id belongs in each entry of evidence_sources.
    */
   citation_to_file_mapping?: string | null;
 };
@@ -4009,9 +4009,9 @@ export type ReferenceDownloaderWorkflowConfig = {
   /**
    * References
    *
-   * The references to fetch from the internet
+   * The references to fetch from the internet. When omitted, the workflow defaults to every extracted reference that does not yet have a matched supporting file.
    */
-  references: Array<ReferenceDownloaderInputItem>;
+  references?: Array<ReferenceDownloaderInputItem> | null;
 };
 
 /**
@@ -5544,6 +5544,22 @@ export type WorkflowRun = {
    * The project revision this workflow run belongs to
    */
   revision?: number;
+  /**
+   * Heartbeat At
+   *
+   * Updated on every node entry/exit; used by the reaper to detect stuck runs
+   */
+  heartbeat_at: Date | null;
+  /**
+   * Populated only when status == FAILED
+   */
+  failure_reason?: WorkflowRunFailureReason | null;
+  /**
+   * Failure Message
+   *
+   * Short human-readable detail of the failure. Populated only when status == FAILED.
+   */
+  failure_message?: string | null;
 };
 
 /**
@@ -5584,6 +5600,33 @@ export type WorkflowRunDetail = {
 };
 
 /**
+ * WorkflowRunFailureReason
+ *
+ * Reason a workflow run transitioned to FAILED.
+ *
+ * FAILED is reserved for unrecoverable workflow-level halts; node-level errors
+ * that the workflow recovers from are still represented via state.errors and
+ * leave the run in COMPLETED status.
+ */
+export const WorkflowRunFailureReason = {
+  Timeout: 'timeout',
+  DependencyTimeout: 'dependency_timeout',
+  NoHeartbeat: 'no_heartbeat',
+  UnhandledException: 'unhandled_exception',
+} as const;
+
+/**
+ * WorkflowRunFailureReason
+ *
+ * Reason a workflow run transitioned to FAILED.
+ *
+ * FAILED is reserved for unrecoverable workflow-level halts; node-level errors
+ * that the workflow recovers from are still represented via state.errors and
+ * leave the run in COMPLETED status.
+ */
+export type WorkflowRunFailureReason = (typeof WorkflowRunFailureReason)[keyof typeof WorkflowRunFailureReason];
+
+/**
  * WorkflowRunStatus
  */
 export const WorkflowRunStatus = {
@@ -5591,6 +5634,7 @@ export const WorkflowRunStatus = {
   Running: 'running',
   Completed: 'completed',
   Cancelled: 'cancelled',
+  Failed: 'failed',
 } as const;
 
 /**

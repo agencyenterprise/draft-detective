@@ -6,9 +6,9 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { WorkflowRunDetail, WorkflowRunType } from '@/lib/generated-api';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { cn } from '@/lib/utils';
-import { getDisplayStatus, hasCurrentRunErrors } from '@/lib/workflow-state';
+import { getDisplayStatus, hasCurrentRunErrors, isWorkflowFailed } from '@/lib/workflow-state';
 import { formatDistanceToNow } from 'date-fns';
-import { AlertTriangleIcon, ChevronDownIcon, InfoIcon, PlusIcon } from 'lucide-react';
+import { AlertTriangleIcon, ChevronDownIcon, InfoIcon, PlusIcon, XCircleIcon } from 'lucide-react';
 import { useState } from 'react';
 
 interface WorkflowListItemProps {
@@ -20,6 +20,8 @@ interface WorkflowListItemProps {
 function WorkflowListItem({ workflowDetail, isSelected, onSelect }: WorkflowListItemProps) {
   const displayStatus = getDisplayStatus(workflowDetail);
   const hasErrors = hasCurrentRunErrors(workflowDetail);
+  const hasFailed = isWorkflowFailed(workflowDetail);
+  const failureMessage = workflowDetail.run.failure_message;
   const { getWorkflowTypeName } = useWorkflowTypes();
 
   return (
@@ -39,6 +41,16 @@ function WorkflowListItem({ workflowDetail, isSelected, onSelect }: WorkflowList
                 <AlertTriangleIcon className="w-4 h-4 text-destructive cursor-help" />
               </TooltipTrigger>
               <TooltipContent>This workflow completed with errors. Please check them and try again.</TooltipContent>
+            </Tooltip>
+          )}
+          {hasFailed && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <XCircleIcon className="w-4 h-4 text-destructive cursor-help" />
+              </TooltipTrigger>
+              <TooltipContent>
+                {failureMessage ?? 'This workflow failed before it could complete. Please retry it.'}
+              </TooltipContent>
             </Tooltip>
           )}
         </div>

@@ -8,8 +8,17 @@ from sqlalchemy import select
 from sqlmodel import col
 
 from lib.config.database import get_async_db_session
-from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus, WorkflowRunType
-from lib.services.workflow_runs import create_workflow_run, update_workflow_run_status
+from lib.models.workflow_run import (
+    WorkflowRun,
+    WorkflowRunFailureReason,
+    WorkflowRunStatus,
+    WorkflowRunType,
+)
+from lib.services.workflow_runs import (
+    create_workflow_run,
+    update_workflow_run_heartbeat,
+    update_workflow_run_status,
+)
 
 
 @pytest_asyncio.fixture
@@ -150,6 +159,181 @@ async def test_create_workflow_run_with_completed_status_sets_completed_at():
             if row:
                 await session.delete(row)
                 await session.commit()
+
+
+# ---------------------------------------------------------------------------
+# FAILED status persistence
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_failed_status_persists_failure_reason_and_message(pending_run_id):
+    """Transitioning to FAILED stores failure_reason, failure_message, and completed_at."""
+    await update_workflow_run_status(pending_run_id, WorkflowRunStatus.RUNNING)
+    await update_workflow_run_status(
+        pending_run_id,
+        WorkflowRunStatus.FAILED,
+        failure_reason=WorkflowRunFailureReason.TIMEOUT,
+        failure_message="Exceeded max_duration of 3600s",
+    )
+
+    run = await _fetch_run(pending_run_id)
+    assert run.status == WorkflowRunStatus.FAILED
+    assert run.failure_reason == WorkflowRunFailureReason.TIMEOUT
+    assert run.failure_message == "Exceeded max_duration of 3600s"
+    assert run.completed_at is not None
+
+
+@pytest.mark.asyncio
+async def test_failed_status_truncates_long_failure_message(pending_run_id):
+    """failure_message is capped at 2000 chars to keep the column bounded."""
+    long_message = "x" * 5000
+    await update_workflow_run_status(pending_run_id, WorkflowRunStatus.RUNNING)
+    await update_workflow_run_status(
+        pending_run_id,
+        WorkflowRunStatus.FAILED,
+        failure_reason=WorkflowRunFailureReason.UNHANDLED_EXCEPTION,
+        failure_message=long_message,
+    )
+
+    run = await _fetch_run(pending_run_id)
+    assert run.failure_message is not None
+    assert len(run.failure_message) == 2000
+
+
+@pytest.mark.asyncio
+async def test_non_failed_status_does_not_persist_failure_metadata(pending_run_id):
+    """failure_reason / failure_message are ignored for non-FAILED transitions."""
+    await update_workflow_run_status(
+        pending_run_id,
+        WorkflowRunStatus.RUNNING,
+        failure_reason=WorkflowRunFailureReason.TIMEOUT,
+        failure_message="should be ignored",
+    )
+
+    run = await _fetch_run(pending_run_id)
+    assert run.status == WorkflowRunStatus.RUNNING
+    assert run.failure_reason is None
+    assert run.failure_message is None
+
+
+@pytest.mark.asyncio
+async def test_cancelled_guard_blocks_failed_transition(pending_run_id):
+    """Once CANCELLED, a subsequent FAILED transition is a no-op (guard preserved)."""
+    await update_workflow_run_status(pending_run_id, WorkflowRunStatus.CANCELLED)
+    await update_workflow_run_status(
+        pending_run_id,
+        WorkflowRunStatus.FAILED,
+        failure_reason=WorkflowRunFailureReason.NO_HEARTBEAT,
+        failure_message="should not stick",
+    )
+
+    run = await _fetch_run(pending_run_id)
+    assert run.status == WorkflowRunStatus.CANCELLED
+    assert run.failure_reason is None
+    assert run.failure_message is None
+
+
+@pytest.mark.asyncio
+async def test_failed_guard_blocks_completed_transition(pending_run_id):
+    """Reaper-FAILED-then-runner-COMPLETED race: FAILED must stick.
+
+    The runner can finish its last node *after* the reaper has already
+    flipped the row to FAILED (heartbeat lag). The runner's COMPLETED
+    write must not clobber the reaper's failure metadata.
+    """
+    await update_workflow_run_status(pending_run_id, WorkflowRunStatus.RUNNING)
+    await update_workflow_run_status(
+        pending_run_id,
+        WorkflowRunStatus.FAILED,
+        failure_reason=WorkflowRunFailureReason.NO_HEARTBEAT,
+        failure_message="reaper got there first",
+    )
+
+    # Runner's success-path write attempts to overwrite — must be blocked.
+    await update_workflow_run_status(pending_run_id, WorkflowRunStatus.COMPLETED)
+
+    run = await _fetch_run(pending_run_id)
+    assert run.status == WorkflowRunStatus.FAILED
+    assert run.failure_reason == WorkflowRunFailureReason.NO_HEARTBEAT
+    assert run.failure_message == "reaper got there first"
+
+
+@pytest.mark.asyncio
+async def test_failed_guard_blocks_subsequent_failed_transition(pending_run_id):
+    """Two failure paths racing: the first to write wins. Reason/message stay frozen."""
+    await update_workflow_run_status(pending_run_id, WorkflowRunStatus.RUNNING)
+    await update_workflow_run_status(
+        pending_run_id,
+        WorkflowRunStatus.FAILED,
+        failure_reason=WorkflowRunFailureReason.TIMEOUT,
+        failure_message="exceeded max_duration",
+    )
+
+    # A second failure path arriving later (e.g. runner's catch-all
+    # except Exception arm racing with the timeout arm) must not
+    # rewrite the reason or message.
+    await update_workflow_run_status(
+        pending_run_id,
+        WorkflowRunStatus.FAILED,
+        failure_reason=WorkflowRunFailureReason.UNHANDLED_EXCEPTION,
+        failure_message="this should not stick",
+    )
+
+    run = await _fetch_run(pending_run_id)
+    assert run.failure_reason == WorkflowRunFailureReason.TIMEOUT
+    assert run.failure_message == "exceeded max_duration"
+
+
+@pytest.mark.asyncio
+async def test_completed_guard_blocks_failed_transition(pending_run_id):
+    """COMPLETED is also write-once: a stray FAILED write afterwards is a no-op."""
+    await update_workflow_run_status(pending_run_id, WorkflowRunStatus.RUNNING)
+    await update_workflow_run_status(pending_run_id, WorkflowRunStatus.COMPLETED)
+
+    await update_workflow_run_status(
+        pending_run_id,
+        WorkflowRunStatus.FAILED,
+        failure_reason=WorkflowRunFailureReason.NO_HEARTBEAT,
+        failure_message="too late",
+    )
+
+    run = await _fetch_run(pending_run_id)
+    assert run.status == WorkflowRunStatus.COMPLETED
+    assert run.failure_reason is None
+    assert run.failure_message is None
+
+
+# ---------------------------------------------------------------------------
+# update_workflow_run_heartbeat
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_heartbeat_update_sets_heartbeat_at(pending_run_id):
+    """update_workflow_run_heartbeat populates heartbeat_at without changing status."""
+    run = await _fetch_run(pending_run_id)
+    assert run.heartbeat_at is None
+    original_status = run.status
+
+    await update_workflow_run_heartbeat(pending_run_id)
+
+    run = await _fetch_run(pending_run_id)
+    assert run.heartbeat_at is not None
+    assert run.status == original_status
+
+
+@pytest.mark.asyncio
+async def test_heartbeat_update_advances_heartbeat_on_repeat(pending_run_id):
+    """Repeated heartbeats keep advancing the timestamp."""
+    await update_workflow_run_heartbeat(pending_run_id)
+    first = (await _fetch_run(pending_run_id)).heartbeat_at
+    assert first is not None
+
+    await update_workflow_run_heartbeat(pending_run_id)
+    second = (await _fetch_run(pending_run_id)).heartbeat_at
+    assert second is not None
+    assert second >= first
 
 
 @pytest.mark.asyncio

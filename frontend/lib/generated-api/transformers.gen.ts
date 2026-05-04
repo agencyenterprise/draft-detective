@@ -50,6 +50,9 @@ const workflowRunSchemaResponseTransformer = (data: any) => {
   if (data.completed_at) {
     data.completed_at = new Date(data.completed_at);
   }
+  if (data.heartbeat_at) {
+    data.heartbeat_at = new Date(data.heartbeat_at);
+  }
   return data;
 };
 
