@@ -327,10 +327,19 @@ def _build_gate_required_payload(exc: WorkflowGateRequiredError) -> dict:
         )
     if pending_web_search:
         sections.append(
-            "Web-search consent is required because these workflows access "
-            f"the open web: {pending_web_search}. Confirm with the user that "
-            "they're OK with Draft Detective making external web requests on "
-            "their behalf for this project before retrying."
+            "Web-search consent is required for these workflows: "
+            f"{pending_web_search}. Before retrying, relay the following to "
+            "the user verbatim and get their explicit OK:\n\n"
+            "  \"To run this assessment, parts of your document — and possibly "
+            "the whole document — will be sent to a web search provider as "
+            "search queries. Don't proceed if the document contains "
+            "confidential information you aren't comfortable sharing with an "
+            "external search engine. Do you consent to running web search on "
+            "this document?\"\n\n"
+            "Only retry with approve_web_search=true after the user "
+            "explicitly consents. If they decline, do not retry — instead "
+            "offer to run a different workflow that doesn't need web access "
+            "(see list_workflow_types and skip any with needs_web_search=true)."
         )
     sections.append(
         "Once the user confirms (e.g. 'go ahead and start'), call "
