@@ -14,7 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastmcp.utilities.lifespan import combine_lifespans
 
-from lib.api.mcp import mcp_app, mcp_auth
+from lib.api.mcp.server import mcp_app, mcp_auth
 from lib.api.mcp_middlewares import MCPTrailingSlashMiddleware
 from lib.api.tus_middleware import TusTerminationMiddleware
 from lib.api.routers import (
