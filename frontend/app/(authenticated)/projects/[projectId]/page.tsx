@@ -5,23 +5,17 @@ import { useWorkflowProgressToast } from '@/hooks/use-workflow-progress-toast';
 import { getErrorMessage, isApiError } from '@/lib/api-error';
 import { AccessLevel, ProjectDetailed, updateProjectEndpointApiProjectProjectIdPatch } from '@/lib/generated-api';
 import { useProjectDetails } from '@/lib/hooks/use-project-details';
-import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
-import { isAnyWorkflowProcessing, needsHumanApproval, needsWizardCompletion } from '@/lib/workflow-state';
+import { isAnyWorkflowProcessing, needsHumanApproval } from '@/lib/workflow-state';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { FileXIcon, LockIcon } from 'lucide-react';
-import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useParams } from 'next/navigation';
+import { useCallback, useState } from 'react';
 import { toast } from 'sonner';
 
 export default function ResultsPage() {
   const params = useParams();
-  const router = useRouter();
-  const searchParams = useSearchParams();
   const projectId = params.projectId as string;
   const queryClient = useQueryClient();
-
-  // Skip redirect check if coming from wizard (prevents race condition)
-  const fromWizard = searchParams.get('fromWizard') === 'true';
 
   // Revision state: null means "latest" (default)
   const [selectedRevision, setSelectedRevision] = useState<number | null>(null);
@@ -35,33 +29,12 @@ export default function ResultsPage() {
   const handleRevisionChange = useCallback((rev: number) => {
     setSelectedRevision(rev);
   }, []);
-  const { workflowTypes } = useWorkflowTypes();
 
   const isProcessing = isAnyWorkflowProcessing(workflowDetails);
   const awaitingHumanApproval = needsHumanApproval(workflowDetails);
   // HumanApproval stays Pending/Running until the user approves, which keeps isProcessing true even though
   // the pipeline is intentionally paused. The progress API then has no active step → "Going to next step...".
   const showWorkflowProgressToast = isProcessing && !awaitingHumanApproval;
-
-  // Build internal types set from API data
-  const internalTypes = useMemo(() => {
-    return new Set(workflowTypes.filter((wt) => wt.is_internal).map((wt) => wt.type));
-  }, [workflowTypes]);
-
-  // Redirect to wizard step 2 if project only has document processing started
-  // Skip if we just came from the wizard (workflows may not be in DB yet)
-  // Skip if the project has multiple revisions (user already chose analyses before)
-  const hasMultipleRevisions = (project?.project?.current_revision ?? 1) > 1;
-  useEffect(() => {
-    if (fromWizard || isLoading || workflowDetails.length === 0 || hasMultipleRevisions) {
-      return;
-    }
-
-    if (needsWizardCompletion(workflowDetails, internalTypes)) {
-      router.replace(`/new?projectId=${projectId}`);
-      return;
-    }
-  }, [fromWizard, isLoading, workflowDetails, projectId, router, internalTypes, hasMultipleRevisions]);
 
   // Show progress in toast when automated workflows are running (not while waiting on reference review / approve)
   useWorkflowProgressToast(projectId, showWorkflowProgressToast);

@@ -35,15 +35,15 @@ For detailed development setup instructions, see [DEVELOPMENT.md](DEVELOPMENT.md
 Tests are organized by type:
 
 - **`tests/unit/`** - Fast, isolated unit tests
-- **`tests/integration/`** - Multi-component integration tests  
-- **`tests/evals/`** - LLM-based evaluations (explicit only)
+- **`tests/integration/`** - Multi-component integration tests
+- **`evals_inspectai/`** - LLM-based evaluations using Inspect AI
 
 ```bash
 # Run standard tests (default)
 uv run pytest
 
-# Run evaluations
-uv run pytest tests/evals/
+# Run evaluations (see evals_inspectai/ for available eval suites)
+uv run inspect eval evals_inspectai/e2e/reference_validation/reference_validation_e2e.py
 ```
 
 ## License

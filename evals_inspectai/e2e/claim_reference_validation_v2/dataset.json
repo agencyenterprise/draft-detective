@@ -1,0 +1,307 @@
+[
+  {
+    "id": "supported_author_year",
+    "main_doc": "# Introduction\n\nRemote work has reshaped how teams collaborate. A 2020 industry survey found that fully remote employees reported a 30% increase in self-reported productivity compared to in-office baselines (Smith, 2020). This shift has prompted firms to rethink office footprints.\n\n## Methods\n\nWe synthesize three industry surveys to estimate the directional effect of remote work on weekly output.\n\n## References\n\n1. Smith, J. (2020). Remote work productivity survey 2020. Journal of Workplace Studies.\n",
+    "supporting_files": [
+      {
+        "file_id": "ref-smith-2020",
+        "file_name": "smith_2020_remote_productivity.md",
+        "markdown": "# Remote Work Productivity Survey 2020\n\n## Key Findings\n\nAcross 4,200 respondents, fully remote employees reported a 30% increase in self-reported productivity relative to their pre-pandemic in-office baselines. The effect was strongest among engineering and design roles, where deep-focus time rose substantially.\n\n## Methodology\n\nThe survey was conducted between March and August 2020. Respondents were drawn from 12 industries.\n"
+      }
+    ],
+    "references": [
+      {
+        "text": "Smith, J. (2020). Remote work productivity survey 2020. Journal of Workplace Studies.",
+        "supporting_file_id": "ref-smith-2020",
+        "supporting_index": 1,
+        "supporting_file_name": "smith_2020_remote_productivity.md"
+      }
+    ],
+    "section": {
+      "start_line": 1,
+      "end_line": 8,
+      "headings": ["Introduction"]
+    },
+    "expected_issues": [
+      {
+        "alignment": "supported",
+        "quoted_contains": "30% increase in self-reported productivity"
+      }
+    ],
+    "target_answer": "The Smith (2020) citation should be classified as 'supported' because the supporting document directly states that fully remote employees reported a 30% increase in self-reported productivity, matching the claim's scope and magnitude."
+  },
+  {
+    "id": "unsupported_contradicts_source",
+    "main_doc": "# Findings\n\nOur analysis indicates that remote work doubles the rate of cross-team collaboration in large enterprises (Doe, 2019). This contrasts with prior assumptions that distributed teams collaborate less.\n\n## References\n\n1. Doe, A. (2019). Cross-team collaboration in distributed organizations. Journal of Org Studies.\n",
+    "supporting_files": [
+      {
+        "file_id": "ref-doe-2019",
+        "file_name": "doe_2019_collab.md",
+        "markdown": "# Cross-Team Collaboration in Distributed Organizations (2019)\n\nThis study examines collaboration patterns in distributed software organizations. We find that the volume of cross-team Slack messages was roughly comparable between co-located and distributed teams, with no statistically significant difference (p = 0.42). We did not measure changes in collaboration over time as remote work was adopted.\n"
+      }
+    ],
+    "references": [
+      {
+        "text": "Doe, A. (2019). Cross-team collaboration in distributed organizations. Journal of Org Studies.",
+        "supporting_file_id": "ref-doe-2019",
+        "supporting_index": 1,
+        "supporting_file_name": "doe_2019_collab.md"
+      }
+    ],
+    "section": {
+      "start_line": 1,
+      "end_line": 4,
+      "headings": ["Findings"]
+    },
+    "expected_issues": [
+      {
+        "alignment": "unsupported",
+        "quoted_contains": "doubles the rate of cross-team collaboration"
+      }
+    ],
+    "target_answer": "The Doe (2019) citation should be classified as 'unsupported' because the supporting document explicitly reports no statistically significant difference in cross-team collaboration between co-located and distributed teams, which contradicts the doubling claim."
+  },
+  {
+    "id": "partially_supported_scope_mismatch",
+    "main_doc": "# Discussion\n\nMicroplastic contamination is now ubiquitous: prior work has shown that 93% of bottled water samples worldwide contain detectable microplastic particles (Patel et al., 2018). This finding motivates global regulatory action.\n\n## References\n\n1. Patel, R., et al. (2018). Microplastic contamination in bottled water: a North American survey.\n",
+    "supporting_files": [
+      {
+        "file_id": "ref-patel-2018",
+        "file_name": "patel_2018_microplastics.md",
+        "markdown": "# Microplastic Contamination in Bottled Water: A North American Survey (2018)\n\n## Abstract\n\nWe analyzed 259 bottled water samples sourced exclusively from retailers in the United States and Canada. 93% of samples contained at least one detectable microplastic particle.\n\n## Geographic scope\n\nSampling was restricted to North American distribution channels. Brands sold in Europe, Asia, Africa, South America, and Oceania were not included. We make no claims about contamination rates in other regions.\n"
+      }
+    ],
+    "references": [
+      {
+        "text": "Patel, R., et al. (2018). Microplastic contamination in bottled water: a North American survey.",
+        "supporting_file_id": "ref-patel-2018",
+        "supporting_index": 1,
+        "supporting_file_name": "patel_2018_microplastics.md"
+      }
+    ],
+    "section": {
+      "start_line": 1,
+      "end_line": 4,
+      "headings": ["Discussion"]
+    },
+    "expected_issues": [
+      {
+        "alignment": "partially_supported",
+        "quoted_contains": "93% of bottled water samples worldwide"
+      }
+    ],
+    "target_answer": "The Patel et al. (2018) citation should be classified as 'partially_supported' because the 93% figure matches the source but the document's scope is restricted to North America, not 'worldwide' as the citing claim implies. The rationale should call out the geographic-scope mismatch."
+  },
+  {
+    "id": "unverifiable_no_supporting_file",
+    "main_doc": "# Methods\n\nWe used a lateral flow assay protocol that achieves approximately 95% sensitivity for influenza A detection (Wong, 2021). This sensitivity threshold is sufficient for our screening purposes.\n\n## References\n\n1. Wong, L. (2021). Diagnostic accuracy of lateral flow assays for respiratory viruses.\n",
+    "supporting_files": [],
+    "references": [
+      {
+        "text": "Wong, L. (2021). Diagnostic accuracy of lateral flow assays for respiratory viruses.",
+        "supporting_file_id": null
+      }
+    ],
+    "section": {
+      "start_line": 1,
+      "end_line": 4,
+      "headings": ["Methods"]
+    },
+    "expected_issues": [
+      {
+        "alignment": "unverifiable",
+        "quoted_contains": "95% sensitivity"
+      }
+    ],
+    "target_answer": "The Wong (2021) citation should be classified as 'unverifiable' because no supporting file was provided for that reference in the bibliography-to-file mapping, making it impossible to check the 95% sensitivity claim against the source."
+  },
+  {
+    "id": "footnote_citation_supported",
+    "main_doc": "# Performance\n\nIncremental dependency analysis has been shown to reduce end-to-end build times by 40% on average across large open-source monorepos, with per-repo speedups ranging from 32% to 47%[1].\n\n## Footnotes\n\n1. Lee, K. (2021). Throughput improvements in modern build systems. ACM Transactions on Software Engineering.\n\n## References\n\n1. Lee, K. (2021). Throughput improvements in modern build systems. ACM Transactions on Software Engineering.\n",
+    "supporting_files": [
+      {
+        "file_id": "ref-lee-2021",
+        "file_name": "lee_2021_build_systems.md",
+        "markdown": "# Throughput Improvements in Modern Build Systems (2021)\n\n## Results\n\nAcross five large open-source monorepos, the proposed incremental dependency analyzer reduced end-to-end build times by 40% on average compared to the baseline whole-graph compiler. Per-repository speedups ranged from 32% to 47%.\n"
+      }
+    ],
+    "references": [
+      {
+        "text": "Lee, K. (2021). Throughput improvements in modern build systems. ACM Transactions on Software Engineering.",
+        "supporting_file_id": "ref-lee-2021",
+        "supporting_index": 1,
+        "supporting_file_name": "lee_2021_build_systems.md"
+      }
+    ],
+    "section": {
+      "start_line": 1,
+      "end_line": 4,
+      "headings": ["Performance"]
+    },
+    "expected_issues": [
+      {
+        "alignment": "supported",
+        "quoted_contains": "32% to 47%"
+      }
+    ],
+    "target_answer": "The footnote-style citation [1] resolves to Lee (2021). The citing sentence quotes both the 40% average and the 32%-to-47% per-repo speedup range, both of which appear verbatim in the supporting document. Exactly one issue should be reported, with alignment 'supported'. The agent must successfully resolve the footnote marker through the footnote entry to the correct file."
+  },
+  {
+    "id": "footnote_commentary_skipped",
+    "main_doc": "# Results\n\nOur initial hypothesis turned out to be incorrect[1], but recent published benchmarks report a consensus throughput ceiling of approximately 1.2 million operations per second for Raft-based coordination[2].\n\n## Footnotes\n\n1. We initially believed throughput would degrade under load; see Section 3 for the corrected reasoning.\n2. Garcia, M. (2022). Modern benchmarks for distributed systems. SIGOPS.\n\n## References\n\n1. Garcia, M. (2022). Modern benchmarks for distributed systems. SIGOPS.\n",
+    "supporting_files": [
+      {
+        "file_id": "ref-garcia-2022",
+        "file_name": "garcia_2022_benchmarks.md",
+        "markdown": "# Modern Benchmarks for Distributed Systems (2022)\n\n## Findings\n\nAcross three coordination protocols, Raft-based implementations sustained a peak throughput of 1.2 million operations per second on the standard YCSB workload, consistent with prior reports. We treat this 1.2M ops/sec figure as the practical ceiling for well-tuned Raft deployments.\n"
+      }
+    ],
+    "references": [
+      {
+        "text": "Garcia, M. (2022). Modern benchmarks for distributed systems. SIGOPS.",
+        "supporting_file_id": "ref-garcia-2022",
+        "supporting_index": 1,
+        "supporting_file_name": "garcia_2022_benchmarks.md"
+      }
+    ],
+    "section": {
+      "start_line": 1,
+      "end_line": 3,
+      "headings": ["Results"]
+    },
+    "expected_issues": [
+      {
+        "alignment": "supported",
+        "quoted_contains": "1.2 million operations per second"
+      }
+    ],
+    "target_answer": "Footnote [1] is author commentary (not a bibliographic reference) and must be skipped per the prompt's footnote rules. Footnote [2] is a real citation to Garcia (2022); the supporting document explicitly reports the 1.2M ops/sec Raft throughput figure. Exactly one issue should be reported, for the [2] citation, with alignment 'supported'."
+  },
+  {
+    "id": "section_bounds_excludes_outside",
+    "skip_e2e": true,
+    "main_doc": "# Background\n\nEarlier work by Adams (2015) demonstrated initial promise for the technique.\n\n## Methods\n\nWe extended this approach with two key modifications.\nOur experiments demonstrate that the new method outperforms prior baselines on standard benchmarks (Brown, 2021).\n\nResults were validated across three datasets.\n\n## References\n\n1. Adams, P. (2015). Initial exploration of the technique.\n2. Brown, T. (2021). Benchmarking the new method.\n",
+    "supporting_files": [
+      {
+        "file_id": "ref-adams-2015",
+        "file_name": "adams_2015.md",
+        "markdown": "# Initial Exploration of the Technique (2015)\n\nThis paper introduces the technique and reports promising preliminary results on synthetic benchmarks.\n"
+      },
+      {
+        "file_id": "ref-brown-2021",
+        "file_name": "brown_2021.md",
+        "markdown": "# Benchmarking the New Method (2021)\n\nWe compare the proposed method against three baselines on standard benchmarks. The new method outperforms all baselines by 8-15% across metrics.\n"
+      }
+    ],
+    "references": [
+      {
+        "text": "Adams, P. (2015). Initial exploration of the technique.",
+        "supporting_file_id": "ref-adams-2015",
+        "supporting_index": 1,
+        "supporting_file_name": "adams_2015.md"
+      },
+      {
+        "text": "Brown, T. (2021). Benchmarking the new method.",
+        "supporting_file_id": "ref-brown-2021",
+        "supporting_index": 2,
+        "supporting_file_name": "brown_2021.md"
+      }
+    ],
+    "section": {
+      "start_line": 5,
+      "end_line": 10,
+      "headings": ["Methods"]
+    },
+    "expected_issues": [
+      {
+        "alignment": "supported",
+        "quoted_contains": "outperforms prior baselines"
+      }
+    ],
+    "target_answer": "Only the Brown (2021) citation falls within the assigned section (lines 5-10). The Adams (2015) citation on line 3 is outside the section range and must not be reported (per the 'avoid duplicates from adjacent sections' rule). Exactly one issue should be reported, for Brown (2021), with alignment 'supported'."
+  },
+  {
+    "id": "all_branches_combined",
+    "main_doc": "# Background\n\nThis topic has been examined across multiple sub-fields with mixed empirical findings.\n\n## Methods\n\nA 2020 industry survey found that fully remote employees reported a 30% increase in self-reported productivity compared to in-office baselines (Smith, 2020).\n\nWe also note that remote work doubles the rate of cross-team collaboration in large enterprises (Doe, 2019).\n\nMicroplastic contamination has been observed in 93% of bottled water samples worldwide (Patel et al., 2018).\n\nThe lateral flow assay we use achieves approximately 95% sensitivity for influenza A detection (Wong, 2021).\n\nIncremental dependency analysis reduces build times by 40% on average across large open-source monorepos, with per-repo speedups ranging from 32% to 47%[^1].\n\nOur initial hypothesis turned out to be incorrect[^2], but later results held up.\n\n## Footnotes\n\n[^1]: Lee, K. (2021). Throughput improvements in modern build systems. ACM Transactions on Software Engineering.\n[^2]: We initially believed throughput would degrade under load; see Section 3 for the corrected reasoning.\n\n## References\n\n1. Smith, J. (2020). Remote work productivity survey 2020. Journal of Workplace Studies.\n2. Doe, A. (2019). Cross-team collaboration in distributed organizations. Journal of Org Studies.\n3. Patel, R., et al. (2018). Microplastic contamination in bottled water: a North American survey.\n4. Wong, L. (2021). Diagnostic accuracy of lateral flow assays for respiratory viruses.\n5. Lee, K. (2021). Throughput improvements in modern build systems. ACM Transactions on Software Engineering.\n",
+    "supporting_files": [
+      {
+        "file_id": "ref-smith-2020",
+        "file_name": "smith_2020_remote_productivity.md",
+        "markdown": "# Remote Work Productivity Survey 2020\n\n## Key Findings\n\nAcross 4,200 respondents, fully remote employees reported a 30% increase in self-reported productivity relative to their pre-pandemic in-office baselines.\n"
+      },
+      {
+        "file_id": "ref-doe-2019",
+        "file_name": "doe_2019_collab.md",
+        "markdown": "# Cross-Team Collaboration in Distributed Organizations (2019)\n\nWe find that the volume of cross-team Slack messages was roughly comparable between co-located and distributed teams, with no statistically significant difference (p = 0.42).\n"
+      },
+      {
+        "file_id": "ref-patel-2018",
+        "file_name": "patel_2018_microplastics.md",
+        "markdown": "# Microplastic Contamination in Bottled Water: A North American Survey (2018)\n\nWe analyzed 259 bottled water samples sourced exclusively from retailers in the United States and Canada. 93% of samples contained at least one detectable microplastic particle. Sampling was restricted to North American distribution channels; brands sold in Europe, Asia, Africa, South America, and Oceania were not included.\n"
+      },
+      {
+        "file_id": "ref-lee-2021",
+        "file_name": "lee_2021_build_systems.md",
+        "markdown": "# Throughput Improvements in Modern Build Systems (2021)\n\nAcross five large open-source monorepos, the proposed incremental dependency analyzer reduced end-to-end build times by 40% on average. Per-repository speedups ranged from 32% to 47%.\n"
+      }
+    ],
+    "references": [
+      {
+        "text": "Smith, J. (2020). Remote work productivity survey 2020. Journal of Workplace Studies.",
+        "supporting_file_id": "ref-smith-2020",
+        "supporting_index": 1,
+        "supporting_file_name": "smith_2020_remote_productivity.md"
+      },
+      {
+        "text": "Doe, A. (2019). Cross-team collaboration in distributed organizations. Journal of Org Studies.",
+        "supporting_file_id": "ref-doe-2019",
+        "supporting_index": 2,
+        "supporting_file_name": "doe_2019_collab.md"
+      },
+      {
+        "text": "Patel, R., et al. (2018). Microplastic contamination in bottled water: a North American survey.",
+        "supporting_file_id": "ref-patel-2018",
+        "supporting_index": 3,
+        "supporting_file_name": "patel_2018_microplastics.md"
+      },
+      {
+        "text": "Wong, L. (2021). Diagnostic accuracy of lateral flow assays for respiratory viruses.",
+        "supporting_file_id": null
+      },
+      {
+        "text": "Lee, K. (2021). Throughput improvements in modern build systems. ACM Transactions on Software Engineering.",
+        "supporting_file_id": "ref-lee-2021",
+        "supporting_index": 4,
+        "supporting_file_name": "lee_2021_build_systems.md"
+      }
+    ],
+    "section": {
+      "start_line": 5,
+      "end_line": 18,
+      "headings": ["Methods"]
+    },
+    "expected_issues": [
+      {
+        "alignment": "supported",
+        "quoted_contains": "30% increase in self-reported productivity"
+      },
+      {
+        "alignment": "unsupported",
+        "quoted_contains": "doubles the rate of cross-team collaboration"
+      },
+      {
+        "alignment": "partially_supported",
+        "quoted_contains": "93% of bottled water samples worldwide"
+      },
+      {
+        "alignment": "unverifiable",
+        "quoted_contains": "95% sensitivity"
+      },
+      {
+        "alignment": "supported",
+        "quoted_contains": "32% to 47%"
+      }
+    ],
+    "target_answer": "This sample exercises every alignment-level and citation-format branch of the prompt at once. The agent must report exactly five issues: (1) Smith (2020) at line 7 → 'supported' (verbatim 30% productivity match); (2) Doe (2019) at line 9 → 'unsupported' (source reports no significant difference, contradicting the doubling claim); (3) Patel et al. (2018) at line 11 → 'partially_supported' (93% figure matches but the source's geographic scope is North America, not 'worldwide'); (4) Wong (2021) at line 13 → 'unverifiable' (no supporting file in the bibliography mapping); (5) Lee (2021) via footnote [^1] at line 15 → 'supported' (both 40% average and 32-47% range appear verbatim in the source — agent must resolve the footnote marker through the [^1] entry to the file). The [^2] footnote at line 17 must NOT be reported because its footnote entry is author commentary, not a bibliographic reference."
+  }
+]

@@ -17,7 +17,7 @@ export function WebSearchConsentCheckbox({
 }: WebSearchConsentCheckboxProps) {
   return (
     <div className="space-y-4">
-      <div className="bg-yellow-50 border border-yellow-400 rounded-lg">
+      <div className="bg-yellow-50 border border-yellow-400 dark:bg-yellow-950/40 dark:border-yellow-700 rounded-lg">
         <CheckboxWithDescription
           id="web-search-consent"
           checked={checked}

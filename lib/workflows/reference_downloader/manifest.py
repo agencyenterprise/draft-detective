@@ -8,9 +8,9 @@ from lib.workflows.manifest import WorkflowManifest
 from lib.workflows.models import DocumentIssue, WorkflowRunType
 from lib.workflows.reference_downloader.graph import build_reference_downloader_graph
 from lib.workflows.reference_downloader.state import (
-    ReferenceFetchStatus,
     ReferenceDownloaderState,
     ReferenceDownloaderWorkflowConfig,
+    ReferenceFetchStatus,
 )
 from lib.workflows.workflow_types import WorkflowState
 
@@ -23,7 +23,14 @@ class ReferenceDownloaderManifest(
     description = "Search the web for each reference and download the related full-text when available (PDF or Markdown)."
     needs_web_search = True
     is_internal = True
-    optional_dependencies = []
+    # Required so callers triggering this workflow without an explicit
+    # `references` list (e.g. via /api/workflows/start-multiple or MCP) have
+    # the upstream extraction available to derive the default "all unmatched"
+    # reference set. File matching is only optional — it doesn't have to have
+    # run, but if it is currently running we wait so the unmatched set is
+    # accurate.
+    required_dependencies = [WorkflowRunType.REFERENCE_EXTRACTION]
+    optional_dependencies = [WorkflowRunType.REFERENCE_FILE_MATCHING]
 
     def get_state_type(self) -> Type[ReferenceDownloaderState]:
         """Get the type of the workflow state."""

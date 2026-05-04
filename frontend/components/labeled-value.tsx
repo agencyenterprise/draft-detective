@@ -11,7 +11,7 @@ export function LabeledValue({ label, labelWrap = false, children, className }: 
   return (
     <div className={className}>
       <div className={cn('font-medium', !labelWrap && 'inline')}>{label}:</div>{' '}
-      <div className={cn('text-gray-800', !labelWrap && 'inline')}>{children}</div>
+      <div className={cn('text-foreground', !labelWrap && 'inline')}>{children}</div>
     </div>
   );
 }

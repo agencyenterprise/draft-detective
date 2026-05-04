@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field
 from lib.agents.tools.read_document import read_document
 from lib.agents.tools.search_document import search_document
 from lib.agents.tools.vector_search import vector_search
-from lib.config.llm_models import gpt_5_2_model
+from lib.config.llm_models import gpt_5_4_model
 from lib.models.agent import LangChainAgent
 from lib.workflows.context import ContextSchema
 
@@ -121,7 +121,7 @@ For each claim, output an evidence alignment level based on the following defini
 class ClaimVerifierAgent(LangChainAgent):
     name = "Claim Verifier"
     description = "Verify claims in a paragraph by searching supporting documents"
-    model = gpt_5_2_model
+    model = gpt_5_4_model
     temperature = 0.2
 
     async def ainvoke(

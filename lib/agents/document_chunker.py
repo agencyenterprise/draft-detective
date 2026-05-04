@@ -5,7 +5,7 @@ from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
 
 from lib.agents.models import ValidatedDocument
-from lib.config.llm_models import gpt_4_1_model
+from lib.config.llm_models import gpt_5_mini_model
 from lib.models.agent import LangChainAgent
 
 
@@ -70,7 +70,7 @@ I will send the markdown document that you need to chunk as my next message.
 class DocumentChunkerAgent(LangChainAgent):
     name = "Document Chunker"
     description = "Chunk a document into paragraphs and each paragraph into reasonable sentence-level chunks"
-    model = gpt_4_1_model
+    model = gpt_5_mini_model
     temperature = 0.2
     output_schema = DocumentChunkerResponse
 

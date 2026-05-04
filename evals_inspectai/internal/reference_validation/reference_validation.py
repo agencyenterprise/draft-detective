@@ -7,9 +7,9 @@ from langgraph.graph.state import RunnableConfig
 from evals_inspectai.common.scorers import model_graded_check, structured_output_scorer
 from evals_inspectai.internal.common.config import get_model_or_agent_default
 from evals_inspectai.internal.common.lc_agent_solver import langchain_agent
-from lib.agents.reference_validator import (
-    BibliographyItemValidation,
-    ReferenceValidatorAgent,
+from lib.agents.reference_validator_v2 import (
+    BibliographyItemValidationV2,
+    ReferenceValidatorV2Agent,
 )
 
 
@@ -22,14 +22,15 @@ def reference_validation():
 
     return Task(
         dataset=dataset,
-        model=get_model_or_agent_default(ReferenceValidatorAgent),
+        model=get_model_or_agent_default(ReferenceValidatorV2Agent),
         solver=langchain_agent(
-            ReferenceValidatorAgent,
+            ReferenceValidatorV2Agent,
             invoke_func=_invoke_reference_validator,
         ),
         scorer=[
             structured_output_scorer(
-                model_type=BibliographyItemValidation, compare=_compare_final_result
+                model_type=BibliographyItemValidationV2,
+                compare=_compare_final_result,
             ),
             model_graded_check(
                 target_from_metadata="target_answer", partial_credit=True
@@ -39,10 +40,12 @@ def reference_validation():
 
 
 async def _invoke_reference_validator(
-    agent: ReferenceValidatorAgent, input: str, config: RunnableConfig
-) -> tuple[BibliographyItemValidation, list[BaseMessage]]:
+    agent: ReferenceValidatorV2Agent, input: str, config: RunnableConfig
+) -> tuple[BibliographyItemValidationV2, list[BaseMessage]]:
     return await agent.ainvoke({"reference": input}, config=config)
 
 
-def _compare_final_result(output: BibliographyItemValidation, state: TaskState) -> bool:
+def _compare_final_result(
+    output: BibliographyItemValidationV2, state: TaskState
+) -> bool:
     return output.final_result.value == state.target.text

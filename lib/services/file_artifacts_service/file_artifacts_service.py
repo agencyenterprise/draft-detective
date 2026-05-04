@@ -345,6 +345,7 @@ class FileArtifactsService(FileArtifactsServiceType):
                         file_names.get(file_id, "") if file_id else ""
                     ),
                     file_id=file_id,
+                    reference_id=ref.id,
                 )
             )
 

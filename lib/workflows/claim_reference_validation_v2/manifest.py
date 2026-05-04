@@ -80,7 +80,6 @@ def _build_issue(
     long_description = (
         f"**Cited text:**\n\n> {item.quoted_text}\n\n"
         f"**Evidence Alignment:** {item.evidence_alignment}\n\n"
-        f"**Feedback to resolve:** {item.feedback}\n\n"
         f"### Checked sources\n\n{sources_text}\n\n"
         f"### Citation-to-file mapping\n\n"
         f"{item.citation_to_file_mapping or 'No citation-to-file mapping provided'}"
@@ -94,6 +93,7 @@ def _build_issue(
         start_line=item.line_start,
         end_line=item.line_end,
         long_description=long_description,
+        suggested_action=item.feedback or None,
     )
 
 
@@ -115,7 +115,7 @@ class ClaimReferenceValidationV2Manifest(
         WorkflowRunType.HUMAN_APPROVAL,
     ]
     optional_dependencies = [
-        WorkflowRunType.CHUNK_SPLITTING,
+        WorkflowRunType.REFERENCE_DOWNLOADER,
     ]
 
     def get_state_type(self) -> Type[ClaimReferenceValidationV2State]:

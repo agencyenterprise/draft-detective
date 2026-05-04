@@ -82,9 +82,9 @@ class WorkflowRunType(str, Enum):
     LITERATURE_REVIEW = "literature_review"
     LIVE_REPORTS = "live_reports"
     REFERENCE_VALIDATION = "reference_validation"
+    REFERENCE_VALIDATION_V2 = "reference_validation_v2"
     CITATION_SUGGESTER = "citation_suggester"
     RESULTS_EXTRACTION = "results_extraction"
-    INFERENCE_VALIDATION = "inference_validation"
     INFERENCE_VALIDATION_V2 = "inference_validation_v2"
     CLAIM_REFERENCE_VALIDATION = "claim_reference_validation"
     CLAIM_REFERENCE_VALIDATION_V2 = "claim_reference_validation_v2"
@@ -136,6 +136,13 @@ class DocumentIssue(BaseModel):
     long_description: Optional[str] = Field(
         description="A long description of the issue, including all the details necessary to understand the issue in detail. Can be markdown.",
         default=None,
+    )
+    suggested_action: Optional[str] = Field(
+        default=None,
+        description=(
+            "A direct, concise recommendation to the author on what to do to resolve "
+            "this issue. Markdown is supported."
+        ),
     )
     severity: SeverityEnum = Field(description="The severity of the issue")
     type: WorkflowRunType = Field(

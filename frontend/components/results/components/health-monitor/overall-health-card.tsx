@@ -27,11 +27,11 @@ export function OverallHealthCard({
   const config = healthStatusConfig[overallHealth];
 
   return (
-    <Card className="border bg-white">
+    <Card className="border bg-card">
       <CardContent className="p-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className="p-3 rounded-full bg-gray-50 border border-gray-200">
+            <div className="p-3 rounded-full bg-muted border border-border">
               <Activity className={cn('h-8 w-8', config.colorClass)} />
             </div>
             <div>

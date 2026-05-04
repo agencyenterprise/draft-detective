@@ -77,7 +77,7 @@ for details.
 
 | Analysis Type | Description | Eval |
 |:---|:---|:---:|
-| **Claim Reference Validation** | Validates claims against supporting documents using retrieval-augmented generation (RAG). Retrieves relevant passages from uploaded reference PDFs and returns a verdict for each claim: supported, partially supported, unsupported, or unverifiable. `#full_text_refs` | [component evals](https://github.com/agencyenterprise/ai-reviewer/tree/main/tests/evals/llm) |
+| **Claim Reference Validation** | Validates claims against supporting documents using retrieval-augmented generation (RAG). Retrieves relevant passages from uploaded reference PDFs and returns a verdict for each claim: supported, partially supported, unsupported, or unverifiable. `#full_text_refs` | [evals](https://github.com/agencyenterprise/ai-reviewer/tree/main/evals_inspectai) |
 | **Internal Inference Validation** | Analyzes the full document for invalid inferences, identifying logical fallacies, unsupported conclusions, and faulty reasoning. Each finding includes the key sentence, an analysis of the argument, and a suggested correction. | |
 | **Methodological Alignment** | Compares the methodology used in the document against typical methods in the field, using web search to gather field context and highlight gaps or risks. `#web_search` | |
 | **Reproducibility Check** | Extracts the document's main results and assesses their reproducibility — returning a structured list of findings (figures, tables, equations, key text) each with a reproducibility classification and rationale. | |
@@ -88,7 +88,7 @@ for details.
 | Analysis Type | Description | Eval |
 |:---|:---|:---:|
 | **Literature Review** | Searches the web for relevant academic sources related to your document's claims that you may not have cited, noting for each whether it supports or conflicts with your work. `#experimental` `#web_search` | |
-| **Citation Suggester** | Identifies claims that would benefit from additional citations and recommends specific references from your uploaded supporting documents. Can be paired with Literature Review to suggest newly discovered sources. `#experimental` `#web_search` `#full_text_refs` | [component evals](https://github.com/agencyenterprise/ai-reviewer/tree/main/tests/evals/llm) |
+| **Citation Suggester** | Identifies claims that would benefit from additional citations and recommends specific references from your uploaded supporting documents. Can be paired with Literature Review to suggest newly discovered sources. `#experimental` `#web_search` `#full_text_refs` | [evals](https://github.com/agencyenterprise/ai-reviewer/tree/main/evals_inspectai) |
 | **Live Reports** | Analyzes claims against sources published after the document's date, identifying findings that may need updating in light of newer evidence and generating a consolidated addendum. `#experimental` `#web_search` | |
 
 ---

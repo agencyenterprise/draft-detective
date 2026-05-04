@@ -252,40 +252,46 @@ uv run alembic upgrade head
 uv run alembic downgrade -1
 ```
 
-### Testing / Evaluation tests
+### Testing
 
 ```bash
-# Run all Python tests
+# Run all Python tests (unit + integration)
 uv run pytest
 
-# Run specific agent tests (e.g., reference extractor)
-uv run pytest tests/llm/test_reference_extractor.py
-
-# Run tests repeating test cases a specified number of times (with --count)
-uv run pytest tests/llm/ --count=3
+# Run a specific test file or pattern
+uv run pytest tests/integration/test_workflow_progress_integration.py
+uv run pytest tests/ -k "test_name"
 ```
 
-**Test Organization**: Tests are organized by agent in `tests/llm/[agent_name]/` with datasets in `tests/datasets/[agent_name]/`. Each agent can have multiple test datasets (e.g., `basic.yaml`, `common_knowledge.yaml`) sharing common test infrastructure via `conftest.py`.
+**Test Organization**: Standard tests live under `tests/unit/` and `tests/integration/`. Shared fixtures and helpers (e.g. `data_path`, `create_test_file_document_from_path`, `create_test_context`) are in `tests/conftest.py`.
 
-#### Enhanced Test Results Export
+### Evaluations (Inspect AI)
 
-Each test run will by default generate a `test_results.json` file that can be uploaded to a custom UI in the frontend for better visualization, in the `/evals` route.
+LLM agent evaluations use [Inspect AI](https://inspect.ai-safety-institute.org.uk/) and live under `evals_inspectai/` in two flavors:
 
-#### Model Comparison / Downgrade Evaluation
+- **`evals_inspectai/e2e/`** — End-to-end evals that hit the running API server (backend must be running).
+- **`evals_inspectai/internal/`** — Internal evals that import and invoke agents directly (no server needed).
 
-**Important**: Model comparison is ENABLED BY DEFAULT. Tests will compare multiple models unless disabled.
-
-Compare different LLM models to evaluate if simpler/cheaper models can replace full models:
+Each workflow has its own eval directory with a dataset file (`dataset.json` or `dataset.jsonl`) and a task definition module.
 
 ```bash
-# Run tests with model comparison (default behavior)
-uv run pytest tests/llm/test_claim_extractor.py
+# Run a full eval suite for a workflow
+uv run inspect eval evals_inspectai/e2e/reference_validation/reference_validation_e2e.py
 
-# Skip model comparison for faster testing (single model only)
-uv run pytest tests/llm/test_claim_extractor.py --skip-compare-models
+# Run a specific sample by ID (1-indexed)
+uv run inspect eval evals_inspectai/e2e/figures_tables_check/figures_tables_check_e2e.py --sample-id=1
 
-# View results in frontend eval viewer at /evals
+# Run a specific sample multiple times (useful for testing determinism)
+uv run inspect eval evals_inspectai/e2e/figures_tables_check/figures_tables_check_e2e.py --sample-id=1 --epochs=3
+
+# Run a range of samples
+uv run inspect eval evals_inspectai/e2e/reference_validation/reference_validation_e2e.py --limit=5-10
+
+# View eval results in the Inspect AI dashboard
+uv run inspect view
 ```
+
+**Important:** E2E evals require the backend server to be running (`uv run dev.py`).
 
 ### Code Quality
 

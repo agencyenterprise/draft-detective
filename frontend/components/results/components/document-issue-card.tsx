@@ -20,6 +20,7 @@ import {
   ChevronUpIcon,
   CircleAlertIcon,
   ExternalLinkIcon,
+  LightbulbIcon,
   MessageCircleWarningIcon,
   MoreHorizontalIcon,
   ThumbsDown,
@@ -48,22 +49,22 @@ export const severityColorMap: Record<
   }
 > = {
   [SeverityEnum.None]: {
-    className: 'bg-green-50 border-green-400',
+    className: 'bg-green-50 border-green-400 dark:bg-green-950/40 dark:border-green-700',
     accentClassName: 'text-green-700',
     icon: <CheckCircleIcon className="size-4 text-white" />,
   },
   [SeverityEnum.Low]: {
-    className: 'bg-blue-50 border-blue-400',
+    className: 'bg-blue-50 border-blue-400 dark:bg-blue-950/40 dark:border-blue-700',
     accentClassName: 'text-blue-700',
     icon: <MessageCircleWarningIcon className="size-4 text-blue-600" />,
   },
   [SeverityEnum.Medium]: {
-    className: 'bg-yellow-50 border-yellow-400',
+    className: 'bg-yellow-50 border-yellow-400 dark:bg-yellow-950/40 dark:border-yellow-700',
     accentClassName: 'text-yellow-700',
     icon: <TriangleAlertIcon className="size-4 text-yellow-600" />,
   },
   [SeverityEnum.High]: {
-    className: 'bg-red-50 border-red-400',
+    className: 'bg-red-50 border-red-400 dark:bg-red-950/40 dark:border-red-700',
     accentClassName: 'text-red-700',
     icon: <CircleAlertIcon className="size-4 text-red-600" />,
   },
@@ -203,7 +204,7 @@ function DocumentIssueCardRaw({ issue, hideJumpButton = false, onSelect, readOnl
             <div className="flex items-center gap-2">
               <h3 className="font-semibold text-normal">{issue.title}</h3>
               {isResolved && (
-                <Badge variant="outline" className="text-xs h-5 bg-white/50">
+                <Badge variant="outline" className="text-xs h-5 bg-card/50">
                   <CheckIcon className="h-3 w-3 mr-1" />
                   Resolved
                 </Badge>
@@ -223,6 +224,16 @@ function DocumentIssueCardRaw({ issue, hideJumpButton = false, onSelect, readOnl
       </div>
 
       <Markdown>{issue.description}</Markdown>
+
+      {issue.suggested_action && (
+        <div className="rounded-md border border-dashed bg-muted/40 px-3 py-2 mt-4">
+          <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+            <LightbulbIcon className="size-3.5" />
+            Suggested action
+          </p>
+          <Markdown>{issue.suggested_action}</Markdown>
+        </div>
+      )}
 
       <div
         className={cn('flex items-center gap-2', {

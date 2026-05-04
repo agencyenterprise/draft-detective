@@ -2,12 +2,11 @@
 
 import { useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { WizardProvider, useWizard, WizardStep } from '@/components/analysis-wizard/wizard-context';
+import { WizardProvider, useWizard } from '@/components/analysis-wizard/wizard-context';
 import { StepIndicator } from '@/components/analysis-wizard/step-indicator';
 import { StepUpload } from '@/components/analysis-wizard/step-upload';
 import { StepAnalyses } from '@/components/analysis-wizard/step-analyses';
 import { StepApiKeyConfig } from '@/components/analysis-wizard/step-api-key-config';
-import { useSearchParams } from 'next/navigation';
 import { useUserMe } from '@/lib/hooks/use-user-me';
 import { Loader2 } from 'lucide-react';
 
@@ -63,15 +62,8 @@ function WizardContent() {
 }
 
 export default function New() {
-  const searchParams = useSearchParams();
-  const projectIdFromUrl = searchParams.get('projectId');
-  const stepFromUrl = searchParams.get('step');
-
-  const initialStep: WizardStep | undefined =
-    stepFromUrl && ['1', '2'].includes(stepFromUrl) ? (parseInt(stepFromUrl, 10) as WizardStep) : undefined;
-
   return (
-    <WizardProvider initialProjectId={projectIdFromUrl} initialStep={initialStep}>
+    <WizardProvider>
       <WizardContent />
     </WizardProvider>
   );

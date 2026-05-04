@@ -39,7 +39,7 @@ export function ClaimCitationSuggestions({
           <Button
             variant="ghost"
             size="xs"
-            className="text-gray-600 hover:text-gray-900"
+            className="text-muted-foreground hover:text-foreground"
             onClick={() => setIsExpanded(!isExpanded)}
           >
             {isExpanded ? (

@@ -5,11 +5,15 @@ from langgraph.runtime import Runtime
 from langgraph.types import Send
 
 from lib.models.file import FileRole
+from lib.services.file_artifacts_service.file_artifacts_service_type import (
+    FileArtifactsServiceType,
+)
 from lib.services.files import (
     delete_project_files,
     get_supporting_candidate_files,
     update_files_role,
 )
+from lib.services.markdown_conversion import convert_and_cache_file_markdown
 from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
 from lib.workflows.reference_downloader.agents.reference_fetcher import (
@@ -18,6 +22,7 @@ from lib.workflows.reference_downloader.agents.reference_fetcher import (
     ReferenceFetcherAgentInput,
 )
 from lib.workflows.reference_downloader.state import (
+    ReferenceDownloaderInputItem,
     ReferenceDownloaderState,
     ReferenceFetchResult,
     ReferenceFetchStatus,
@@ -34,8 +39,16 @@ async def initialize_references(
 
     This allows the frontend to display all references right away
     before any fetching has started.
+
+    When the caller did not supply an explicit `references` list, default to
+    every extracted reference that does not yet have a matched supporting
+    file.
     """
-    references = state.config.references or []
+    references = state.config.references
+    if references is None:
+        references = await _load_unmatched_references(
+            runtime.context.file_artifacts_service
+        )
 
     pending_results = [
         ReferenceFetchResult(
@@ -51,21 +64,31 @@ async def initialize_references(
     return {"fetched_references": pending_results}
 
 
+async def _load_unmatched_references(
+    file_artifacts_service: FileArtifactsServiceType,
+) -> List[ReferenceDownloaderInputItem]:
+    """Fetch every extracted reference that does not yet have a matched file."""
+    references = await file_artifacts_service.get_references()
+
+    return [
+        ReferenceDownloaderInputItem(reference_id=ref.reference_id, text=ref.text)
+        for ref in references
+        if not ref.has_associated_supporting_document and ref.reference_id is not None
+    ]
+
+
 @register_node("Distribute references")
 async def distribute_references(
     state: ReferenceDownloaderState, runtime: Runtime[ContextSchema]
 ):
-    """Fan-out node: creates a Send for each reference.
-
-    This node dispatches parallel fetch operations for each reference.
-    """
-    references = state.config.references or []
+    """Fan-out node: creates a Send for each reference initialized as PENDING."""
     return [
         Send(
             "fetch_single_reference",
-            {"reference": ref.text, "reference_id": ref.reference_id},
+            {"reference": ref.input_reference, "reference_id": ref.reference_id},
         )
-        for ref in references
+        for ref in state.fetched_references
+        if ref.status == ReferenceFetchStatus.PENDING
     ]
 
 
@@ -100,6 +123,20 @@ async def fetch_single_reference(state: dict, runtime: Runtime[ContextSchema]):
         if status == ReferenceFetchStatus.COMPLETED and result and result.file_id:
             # Promote file immediately (from SUPPORTING_CANDIDATE to SUPPORT)
             await update_files_role([result.file_id], FileRole.SUPPORT)
+            # Convert and cache markdown so file_artifacts_service.get_supporting_files()
+            # serves the new file via the live-DB path. Without this,
+            # claim_reference_validation_v2 falls back to the stale
+            # DocumentProcessingState (which predates this download) and
+            # reports every claim as "unverifiable".
+            try:
+                await convert_and_cache_file_markdown(result.file_id)
+            except Exception as exc:
+                logger.warning(
+                    "Failed to cache markdown for downloaded file %s: %s",
+                    result.file_id,
+                    exc,
+                    exc_info=True,
+                )
             # Update the reference file matching in the ReferenceExtraction workflow state
             await _update_reference_file_matching(
                 project_id, result.file_id, reference_id, runtime.context.revision

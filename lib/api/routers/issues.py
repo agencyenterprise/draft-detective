@@ -46,6 +46,7 @@ class IssueResponse(BaseModel):
     title: str
     description: str
     long_description: str | None
+    suggested_action: str | None
     severity: str
     workflow_type: str
     chunk_indices: list[int] | None
