@@ -82,7 +82,7 @@ def _reference_downloader_api_agent(
         project_id = await upload_and_start_analysis(
             file_content=f"## References\n\n{reference}",
             file_name="eval-document.md",
-            workflow_types=["document_processing"],
+            workflow_types=["document_processing", "reference_extraction"],
         )
 
         workflow_run_id = await start_workflow(
