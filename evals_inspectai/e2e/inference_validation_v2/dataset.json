@@ -1,0 +1,32 @@
+[
+  {
+    "input": "# Effect of Reduced Pump Cycle Times\n\nThe maintenance team measured pump cycle times at all four sites before and after a software upgrade. Across 1,200 cycles, the upgraded controller reduced the average cycle time from 4.2 s to 3.6 s. A two-sample t-test on the 1,200 paired observations yielded p < 0.001 with an effect size of d = 0.42. We therefore conclude that, under the conditions tested at these four sites, the upgrade reduced pump cycle time.\n",
+    "expected_invalid_count": 0,
+    "target_answer": "The argument is well-supported: it reports a sizeable paired sample (n = 1,200), a statistical test with effect size, and explicitly bounds the conclusion to the conditions and sites tested. The synthesized inference_results.results list should be empty (zero entries with inference_validity=false). The model should NOT flag this as a fallacy."
+  },
+  {
+    "input": "# Customer Sentiment Update\n\nWe received complaints from three customers last week about delayed shipments. Therefore, our shipping reliability is now poor across the entire customer base, and an immediate operational overhaul is warranted.\n",
+    "expected_invalid_count": 1,
+    "target_answer": "The document commits a hasty generalization: it leaps from a tiny, self-selected sample (three complaints in one week) to a claim about the entire customer base, then to an operational recommendation. The synthesized inference_results.results list should contain exactly one entry with inference_validity=false. The analysis should mention small / unrepresentative sample size or hasty generalization. Severity should be MEDIUM or HIGH."
+  },
+  {
+    "input": "# Sales After New Branding\n\nIn Q2 we launched a new brand campaign. In Q3 quarterly sales rose by 14% compared with Q2. The branding campaign therefore caused the sales increase, and we recommend doubling the campaign budget next year.\n",
+    "expected_invalid_count": 1,
+    "target_answer": "The document commits a post hoc / correlation-implies-causation fallacy: a temporal sequence (campaign in Q2, sales rise in Q3) is treated as proof of causation while ignoring possible confounders such as seasonality, pricing, market trends, or other concurrent initiatives. The synthesized inference_results.results list should contain exactly one entry with inference_validity=false. The analysis should mention causation, post hoc, confounders, or correlation. Severity should be MEDIUM or HIGH."
+  },
+  {
+    "input": "# Sample Contamination Diagnostic\n\nWhen a sample is contaminated with chloride, its measured pH typically rises above 8.0. Sample 47 had a measured pH of 8.3. Therefore, sample 47 is contaminated with chloride.\n",
+    "expected_invalid_count": 1,
+    "target_answer": "The document commits the formal fallacy of affirming the consequent: from 'P implies Q' and observing Q, it concludes P, ignoring that high pH has many other plausible causes. The synthesized inference_results.results list should contain exactly one entry with inference_validity=false. The analysis should mention affirming the consequent, alternative explanations, or that the conclusion does not follow from the premises. Severity should be MEDIUM or HIGH."
+  },
+  {
+    "input": "# Project Funding Decision\n\nThe team has examined the situation and concludes that there are only two realistic paths forward: either the executive committee approves a 40% budget increase next quarter, or the project will fail entirely. No other option is available.\n",
+    "expected_invalid_count": 1,
+    "target_answer": "The document commits a false dichotomy: it presents only two options ('approve a 40% budget increase' vs 'project fails') while plainly other options exist (smaller increases, reprioritization, partial scope cuts, schedule extensions). The synthesized inference_results.results list should contain exactly one entry with inference_validity=false. The analysis should mention false dichotomy, false dilemma, or that additional options exist."
+  },
+  {
+    "input": "# Service Reliability Assessment\n\n## Customer Satisfaction\n\nOur service has been operating without major incidents for 18 months. Three customers praised our response time in recent surveys; we therefore conclude that customer satisfaction across the entire customer base is now excellent.\n\n## Help-Portal Redesign\n\nThe ticket-volume dashboard shows a 3% drop in complaint tickets after we redesigned the help portal. The redesign is therefore the cause of the improvement, and similar redesigns should be rolled out to all internal tools.\n",
+    "expected_invalid_count": 2,
+    "target_answer": "The document contains TWO distinct inferential errors that the synthesizer must keep separate (different key sentences, different underlying problems). First, hasty generalization: three positive surveys are treated as evidence of excellent satisfaction across the entire customer base. Second, post hoc / correlation-implies-causation: a 3% drop in tickets after a portal redesign is treated as proof the redesign caused the improvement, with no consideration of confounders. The synthesized inference_results.results list should contain exactly two entries with inference_validity=false."
+  }
+]
