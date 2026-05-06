@@ -1,0 +1,65 @@
+[
+  {
+    "input": "# Operations Research Report\n\n## Background\n\nThe study examined operations across three sites between 2018 and 2023. Data were collected via instrumented sensors and quarterly audits.\n\n## Findings\n\nThe intervention obviously works, so further analysis is unnecessary.\n\n## Methods\n\nA stratified sampling scheme was applied across the three sites.\n",
+    "expected_confirmed": {
+      "trigger_words": true,
+      "advocacy_language": null,
+      "subjective_tone": null
+    },
+    "target_answer": "The Findings sentence uses 'obviously' to assert certainty without any cited evidence. Procedural detection should flag trigger_words; the LLM should confirm trigger_words=true (certainty language without supporting evidence). Advocacy and subjective_tone should not be flagged or, if flagged, are not the primary signal under test."
+  },
+  {
+    "input": "# Operations Research Report\n\n## Background\n\nThe study examined operations across three sites between 2018 and 2023. Data were collected via instrumented sensors and quarterly audits.\n\n## Findings\n\nSection 4 of the regulation states that workers must always wear protective equipment when handling hazardous materials.\n\n## Methods\n\nA stratified sampling scheme was applied across the three sites.\n",
+    "expected_confirmed": {
+      "trigger_words": false,
+      "advocacy_language": null,
+      "subjective_tone": false
+    },
+    "target_answer": "The Findings sentence contains the trigger word 'always' but only as part of a factual quotation of a regulation. Procedural detection flags trigger_words (and likely subjective_tone via TextBlob). The LLM should reject both: trigger_words.confirmed=false and subjective_tone.confirmed=false, because simple, factual mentions of legal terms in objective context should not be flagged."
+  },
+  {
+    "input": "# Operations Research Report\n\n## Background\n\nThe study examined operations across three sites between 2018 and 2023. Data were collected via instrumented sensors and quarterly audits.\n\n## Findings\n\nWe believe stricter enforcement of these regulations would yield better outcomes overall.\n\n## Methods\n\nA stratified sampling scheme was applied across the three sites.\n",
+    "expected_confirmed": {
+      "trigger_words": null,
+      "advocacy_language": true,
+      "subjective_tone": null
+    },
+    "target_answer": "The Findings sentence states the authors' opinion ('We believe ...') and recommends stricter enforcement without citing evidence. Procedural detection flags advocacy_language; the LLM should confirm advocacy_language=true (unsupported recommendation / opinion stated as a position)."
+  },
+  {
+    "input": "# Operations Research Report\n\n## Background\n\nThe study examined operations across three sites between 2018 and 2023. Data were collected via instrumented sensors and quarterly audits.\n\n## Findings\n\nCritics commonly dismiss the framework with phrases like \"we believe\" and \"in our opinion\", suggesting the language sounds advocacy-driven.\n\n## Methods\n\nA stratified sampling scheme was applied across the three sites.\n",
+    "expected_confirmed": {
+      "trigger_words": null,
+      "advocacy_language": false,
+      "subjective_tone": null
+    },
+    "target_answer": "The Findings sentence quotes the phrases 'we believe' and 'in our opinion' as meta-commentary about how critics describe the framework \u2014 it is not the authors' own advocacy. Procedural detection flags advocacy_language; the LLM should reject advocacy_language=false because the phrases are mentioned, not used."
+  },
+  {
+    "input": "# Operations Research Report\n\n## Background\n\nThe study examined operations across three sites between 2018 and 2023. Data were collected via instrumented sensors and quarterly audits.\n\n## Findings\n\nThe proposed solution is wonderful, beautiful, and provides fantastic benefits.\n\n## Methods\n\nA stratified sampling scheme was applied across the three sites.\n",
+    "expected_confirmed": {
+      "trigger_words": null,
+      "advocacy_language": null,
+      "subjective_tone": true
+    },
+    "target_answer": "The Findings sentence is a chain of value-laden adjectives ('wonderful', 'beautiful', 'fantastic') that praise the solution without evidence. Procedural detection flags subjective_tone via TextBlob; the LLM should confirm subjective_tone=true (emotional language / value judgments)."
+  },
+  {
+    "input": "# Operations Research Report\n\n## Background\n\nThe study examined operations across three sites between 2018 and 2023. Data were collected via instrumented sensors and quarterly audits.\n\n## Findings\n\nThe original instrument readings remained unchanged after recalibration.\n\n## Methods\n\nA stratified sampling scheme was applied across the three sites.\n",
+    "expected_confirmed": {
+      "trigger_words": null,
+      "advocacy_language": null,
+      "subjective_tone": false
+    },
+    "target_answer": "The Findings sentence reports a factual instrument observation. TextBlob scores it as highly subjective due to the word 'original', but the sentence is neutral, evidence-based reporting with no value judgment. Procedural detection flags subjective_tone; the LLM should reject subjective_tone=false because the sentence is objective reporting rather than a value judgment."
+  },
+  {
+    "input": "# Operations Research Report\n\n## Background\n\nThe study examined operations across three sites between 2018 and 2023. Data were collected via instrumented sensors and quarterly audits.\n\n## Findings\n\nThe study collected 240 responses from three sites and applied a stratified sampling design.\n\n## Methods\n\nA stratified sampling scheme was applied across the three sites.\n",
+    "expected_confirmed": {
+      "trigger_words": null,
+      "advocacy_language": null,
+      "subjective_tone": null
+    },
+    "target_answer": "The Findings sentence is purely factual and contains no trigger words, advocacy patterns, or high-subjectivity language. Procedural detection should NOT flag any check type, so no LLM verification should run for any chunk. The workflow should produce zero advocacy issues."
+  }
+]

@@ -1,0 +1,75 @@
+from pathlib import Path
+from typing import Optional
+
+from inspect_ai import Task, task
+from inspect_ai.dataset import Sample, json_dataset
+from inspect_ai.scorer import Score
+from inspect_ai.solver import TaskState
+from pydantic import BaseModel
+
+from evals_inspectai.common.api_solver import api_workflow_agent
+from evals_inspectai.common.comparers import deep_diff_score
+from evals_inspectai.common.loaders import resolve_input
+from evals_inspectai.common.scorers import model_graded_check, structured_output_scorer
+from evals_inspectai.common.simple_deep_agent_types import AgentCheckResult
+
+
+class AboutThisGerOutput(BaseModel):
+    """Local mirror of AboutThisGerState fields returned by the API."""
+
+    preface_result: Optional[AgentCheckResult] = None
+    authors_result: Optional[AgentCheckResult] = None
+
+
+def _record_to_sample(record: dict) -> Sample:
+    return Sample(
+        input=resolve_input(record["input"]),
+        target=record.get("target_answer", ""),
+        metadata={
+            "target_preface_issue_titles": record.get(
+                "target_preface_issue_titles", []
+            ),
+            "target_authors_issue_titles": record.get(
+                "target_authors_issue_titles", []
+            ),
+        },
+    )
+
+
+@task
+def about_this_ger_e2e():
+    dataset = json_dataset(
+        str(Path(__file__).parent / "dataset.json"),
+        _record_to_sample,
+    )
+
+    return Task(
+        dataset=dataset,
+        fail_on_error=0.2,
+        solver=api_workflow_agent("about_this_ger", timeout_s=600),
+        scorer=[
+            structured_output_scorer(AboutThisGerOutput, _compare_preface_titles),
+            structured_output_scorer(AboutThisGerOutput, _compare_authors_titles),
+            model_graded_check(partial_credit=True),
+        ],
+    )
+
+
+def _compare_preface_titles(output: AboutThisGerOutput, state: TaskState) -> Score:
+    expected: list[str] = state.metadata.get("target_preface_issue_titles", [])
+    actual = (
+        [issue.title for issue in output.preface_result.issues]
+        if output.preface_result
+        else []
+    )
+    return deep_diff_score(expected, actual)
+
+
+def _compare_authors_titles(output: AboutThisGerOutput, state: TaskState) -> Score:
+    expected: list[str] = state.metadata.get("target_authors_issue_titles", [])
+    actual = (
+        [issue.title for issue in output.authors_result.issues]
+        if output.authors_result
+        else []
+    )
+    return deep_diff_score(expected, actual)
