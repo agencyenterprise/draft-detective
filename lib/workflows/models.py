@@ -105,6 +105,7 @@ class WorkflowRunType(str, Enum):
     REVIEWER_2 = "reviewer_2"
     DOCUMENT_STRUCTURE = "document_structure"
     FIGURES_TABLES_CHECK = "figures_tables_check"
+    RECOMMENDATION_CHECK = "recommendation_check"
 
 
 def is_user_visible_workflow(workflow_type: WorkflowRunType) -> bool:

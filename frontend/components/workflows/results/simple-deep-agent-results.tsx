@@ -2,10 +2,11 @@
 
 import { ReadonlyThread } from '@/components/assistant-ui/readonly-thread';
 import { Markdown } from '@/components/markdown';
+import { DocumentIssueCard } from '@/components/results/components/document-issue-card';
 import { EmptyState } from '@/components/shared/empty-state';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { AgentCheckResult, SimpleDeepAgentState } from '@/lib/generated-api';
+import { Issue, ProjectDetailed, SeverityEnum, SimpleDeepAgentState } from '@/lib/generated-api';
 import {
   isWorkflowCancelled,
   isWorkflowFailed,
@@ -14,60 +15,91 @@ import {
 } from '@/lib/workflow-state';
 import { AssistantRuntimeProvider, ThreadMessageLike, useExternalStoreRuntime } from '@assistant-ui/react';
 import { convertLangChainMessages, LangChainMessage } from '@assistant-ui/react-langgraph';
-import { AlertTriangle, Ban, CheckCircle2, ClipboardList, Loader2, MessageSquare, XCircle } from 'lucide-react';
+import { Ban, CheckCircle2, ClipboardList, Loader2, MessageSquare, XCircle } from 'lucide-react';
+import { useMemo } from 'react';
 
 interface SimpleDeepAgentResultsProps {
+  project: ProjectDetailed;
   workflowDetail: WorkflowRunDetailTyped<SimpleDeepAgentState>;
   workflowName: string;
+  onNavigateToDocumentExplorer: (lineRange?: [number, number]) => void;
 }
 
-function IssuesList({ result }: { result: AgentCheckResult }) {
-  const issues = result.issues ?? [];
+function IssuesList({
+  issues,
+  onNavigateToDocumentExplorer,
+}: {
+  issues: Issue[];
+  onNavigateToDocumentExplorer: (lineRange?: [number, number]) => void;
+}) {
+  const realIssues = issues.filter((i) => i.severity !== SeverityEnum.None);
+  const informational = issues.filter((i) => i.severity === SeverityEnum.None);
 
-  if (issues.length === 0) {
-    return (
-      <Card className="border-green-200 bg-green-50/30 dark:bg-green-950/30 dark:border-green-900">
-        <CardContent className="flex items-center gap-3 py-6">
-          <div className="h-10 w-10 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center flex-shrink-0">
-            <CheckCircle2 className="h-5 w-5 text-green-600" />
-          </div>
-          <div>
-            <p className="text-sm font-medium">All Checks Passed</p>
-            <p className="text-xs text-muted-foreground">No issues were found in the document.</p>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
+  const handleSelect = (issue: Issue) => {
+    if (typeof issue.start_line === 'number' && typeof issue.end_line === 'number') {
+      onNavigateToDocumentExplorer([issue.start_line, issue.end_line]);
+    } else {
+      onNavigateToDocumentExplorer();
+    }
+  };
 
   return (
-    <Card className="border-amber-200 gap-2">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-sm text-amber-800 dark:text-amber-200">
-          {issues.length} Issue{issues.length !== 1 ? 's' : ''} Found
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-2">
-        {issues.map((issue, idx) => (
-          <div
-            key={idx}
-            className="flex items-start gap-2 p-2 rounded-md bg-amber-50 border border-amber-100 dark:bg-amber-950/40 dark:border-amber-900"
-          >
-            <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
-            <div>
-              <p className="text-sm font-medium text-amber-800 dark:text-amber-200">{issue.title}</p>
-              <p className="text-xs text-amber-700 dark:text-amber-300 mt-0.5">{issue.description}</p>
+    <>
+      {realIssues.length === 0 ? (
+        <Card className="border-green-200 bg-green-50/30 dark:bg-green-950/30 dark:border-green-900">
+          <CardContent className="flex items-center gap-3 py-6">
+            <div className="h-10 w-10 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center flex-shrink-0">
+              <CheckCircle2 className="h-5 w-5 text-green-600" />
             </div>
+            <div>
+              <p className="text-sm font-medium">All Checks Passed</p>
+              <p className="text-xs text-muted-foreground">No issues were found in the document.</p>
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <section className="space-y-2">
+          <h3 className="text-sm font-medium text-muted-foreground">
+            {realIssues.length} Issue{realIssues.length !== 1 ? 's' : ''} Found
+          </h3>
+          <div className="space-y-2">
+            {realIssues.map((issue) => (
+              <DocumentIssueCard key={issue.id} issue={issue} onSelect={handleSelect} />
+            ))}
           </div>
-        ))}
-      </CardContent>
-    </Card>
+        </section>
+      )}
+
+      {informational.length > 0 && (
+        <section className="space-y-2 mt-4">
+          <h3 className="text-sm font-medium text-muted-foreground">
+            {informational.length} Informational Item{informational.length !== 1 ? 's' : ''}
+          </h3>
+          <div className="space-y-2">
+            {informational.map((issue) => (
+              <DocumentIssueCard key={issue.id} issue={issue} onSelect={handleSelect} />
+            ))}
+          </div>
+        </section>
+      )}
+    </>
   );
 }
 
-export function SimpleDeepAgentResults({ workflowDetail, workflowName }: SimpleDeepAgentResultsProps) {
+export function SimpleDeepAgentResults({
+  project,
+  workflowDetail,
+  workflowName,
+  onNavigateToDocumentExplorer,
+}: SimpleDeepAgentResultsProps) {
   const messages = workflowDetail.state?.messages ?? [];
   const displayedMessages = messages.filter((message) => message.type !== 'tool');
+
+  const workflowRunId = workflowDetail.run.id;
+  const issues = useMemo(
+    () => (project.issues ?? []).filter((i) => i.workflow_run_id === workflowRunId),
+    [project.issues, workflowRunId],
+  );
 
   const runtime = useExternalStoreRuntime({
     messages: displayedMessages,
@@ -131,8 +163,6 @@ export function SimpleDeepAgentResults({ workflowDetail, workflowName }: SimpleD
       </TabsList>
 
       <TabsContent value="results" className="space-y-4">
-        <IssuesList result={result} />
-
         {result.report_markdown && (
           <Card className="gap-2">
             <CardHeader>
@@ -143,6 +173,8 @@ export function SimpleDeepAgentResults({ workflowDetail, workflowName }: SimpleD
             </CardContent>
           </Card>
         )}
+
+        <IssuesList issues={issues} onNavigateToDocumentExplorer={onNavigateToDocumentExplorer} />
       </TabsContent>
 
       <TabsContent value="messages" className="mt-4">

@@ -19,12 +19,13 @@ A short, specific title that names the problem. If the instructions specify a ti
 **`description`** (`str`, markdown supported)
 A 1–3 sentence explanation of the problem. Reference the specific text, element, or rule that failed. Explain what was expected and what was found. Do not invent content — base every judgment strictly on what is present in the document. Markdown formatting (bold, inline code, etc.) is supported and encouraged when it improves clarity.
 
-**`severity`** (`"low"` | `"medium"` | `"high"`)
+**`severity`** (`"none"` | `"low"` | `"medium"` | `"high"`)
 Choose based on impact on document quality:
 
 - `"high"` — critical problems that significantly undermine document integrity: missing required sections, broken or unresolvable references, absent mandatory elements.
 - `"medium"` — notable problems that reduce clarity or compliance: incomplete sections, unreferenced figures or tables, inconsistent numbering, rule violations that affect readability.
 - `"low"` — minor issues with minimal impact: style suggestions, optional improvements, minor formatting inconsistencies.
+- `"none"` — **informational, opt-in only.** Use exclusively when the workflow's user prompt explicitly asks you to surface valid / passing checks alongside problems (e.g. confirming a recommendation is well-grounded, attesting that a section meets a rule). Never emit `"none"` issues unless the workflow instructions request them — by default, do not create entries for rules that pass.
 
 When the workflow instructions specify a severity for a particular rule, always use that value.
 
@@ -55,7 +56,7 @@ When used, format `long_description` with markdown to maximize readability:
 
 ## Issues List
 
-Report one issue per problem found. Only create an issue for a failing rule or missing element — do not add entries for rules that pass.
+Report one issue per problem found. Only create an issue for a failing rule or missing element — do not add entries for rules that pass, **unless** the workflow's user prompt explicitly asks you to surface passing checks as informational (`severity: "none"`) items.
 
 ## Line-Number Conventions
 
@@ -65,7 +66,7 @@ Report one issue per problem found. Only create an issue for a failing rule or m
 
 ## Best Practices
 
-- Report only genuine problems. Do not create issues for rules that pass.
+- Report only genuine problems. Do not create issues for rules that pass, unless the workflow instructions explicitly request informational (`severity: "none"`) entries for passing checks.
 - Each issue should be individually actionable — a reader should be able to locate the problem and fix it without further clarification.
 - Descriptions must be grounded in the document content; never speculate or invent details.
 - When multiple rules fail for the same element, create one issue per failed rule so each is independently actionable (unless the workflow instructions say otherwise).
