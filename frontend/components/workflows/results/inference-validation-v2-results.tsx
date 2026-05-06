@@ -185,7 +185,7 @@ function InferenceAnalysisCard({
           &ldquo;{analysis.key_sentence}&rdquo;
         </blockquote>
 
-        {onNavigateToDocumentExplorer && analysis.chunk_indices?.length && (
+        {onNavigateToDocumentExplorer && !!analysis.chunk_indices?.length && (
           <NavigateToExplorerButton
             onClick={() => {
               // Span all chunks the inference overlaps so the Explorer lands on

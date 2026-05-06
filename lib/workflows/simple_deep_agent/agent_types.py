@@ -19,9 +19,9 @@ class IssueItem(BaseModel):
     description: str = Field(
         description="Detailed description of the issue. Supports markdown."
     )
-    severity: Literal["low", "medium", "high"] = Field(
+    severity: Literal["none", "low", "medium", "high"] = Field(
         default="medium",
-        description="Issue severity: low, medium, or high",
+        description="Issue severity: none, low, medium, or high. Use 'none' for informational items that should be surfaced but do not represent a problem.",
     )
     long_description: Optional[str] = Field(
         default=None,
@@ -60,6 +60,7 @@ class AgentCheckResult(BaseModel):
 
 
 _SEVERITY_MAP = {
+    "none": SeverityEnum.NONE,
     "low": SeverityEnum.LOW,
     "medium": SeverityEnum.MEDIUM,
     "high": SeverityEnum.HIGH,

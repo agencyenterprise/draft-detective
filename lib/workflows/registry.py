@@ -92,6 +92,9 @@ def register_all_workflow_manifests():
         ReferenceFileMatchingManifest,
     )
     from lib.workflows.reference_validation.manifest import ReferenceValidationManifest
+    from lib.workflows.recommendation_check.manifest import (
+        RecommendationCheckManifest,
+    )
     from lib.workflows.reference_validation_v2.manifest import (
         ReferenceValidationV2Manifest,
     )
@@ -125,6 +128,7 @@ def register_all_workflow_manifests():
         Reviewer2Manifest(),
         DocumentStructureManifest(),
         FiguresTablesCheckManifest(),
+        RecommendationCheckManifest(),
     ]
 
     for manifest in manifests:

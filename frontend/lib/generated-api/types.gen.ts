@@ -3031,9 +3031,9 @@ export type IssueItem = {
   /**
    * Severity
    *
-   * Issue severity: low, medium, or high
+   * Issue severity: none, low, medium, or high. Use 'none' for informational items that should be surfaced but do not represent a problem.
    */
-  severity?: 'low' | 'medium' | 'high';
+  severity?: 'none' | 'low' | 'medium' | 'high';
   /**
    * Long Description
    *
@@ -5672,6 +5672,7 @@ export const WorkflowRunType = {
   Reviewer2: 'reviewer_2',
   DocumentStructure: 'document_structure',
   FiguresTablesCheck: 'figures_tables_check',
+  RecommendationCheck: 'recommendation_check',
 } as const;
 
 /**
