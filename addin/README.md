@@ -77,6 +77,6 @@ https://learn.microsoft.com/en-us/microsoft-365/admin/manage/office-addins?view=
 
 In step 3, choose **Add-in only manifest** and provide the manifest URL.
 
-Manifest URL from this repo: `https://raw.githubusercontent.com/agencyenterprise/ai-reviewer/refs/heads/dev/addin/manifest.xml`
+Manifest URL from this repo: `https://raw.githubusercontent.com/agencyenterprise/draft-detective/refs/heads/dev/addin/manifest.xml`
 
 Reference video (older, but still useful): https://www.youtube.com/watch?v=p3aeO9muEI8&t=181s

@@ -1,6 +1,6 @@
-# AI Reviewer - Kubernetes Deployment
+# Draft Detective - Kubernetes Deployment
 
-Simple, plug-and-play Kubernetes deployment for AI Reviewer.
+Simple, plug-and-play Kubernetes deployment for Draft Detective.
 **Optimized for OpenShift** with support for vanilla Kubernetes.
 
 ## Prerequisites

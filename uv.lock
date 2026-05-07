@@ -9,123 +9,6 @@ resolution-markers = [
 ]
 
 [[package]]
-name = "ai-reviewer"
-version = "0.1.0"
-source = { editable = "." }
-dependencies = [
-    { name = "aiofiles" },
-    { name = "alembic" },
-    { name = "alembic-postgresql-enum" },
-    { name = "black" },
-    { name = "cryptography" },
-    { name = "deepagents" },
-    { name = "deepdiff", extra = ["optimize"] },
-    { name = "dotenv" },
-    { name = "fastapi", extra = ["standard"] },
-    { name = "fastmcp", extra = ["tasks"] },
-    { name = "httpx" },
-    { name = "inspect-ai" },
-    { name = "langchain" },
-    { name = "langchain-anthropic" },
-    { name = "langchain-google-genai" },
-    { name = "langchain-openai" },
-    { name = "langchain-postgres" },
-    { name = "langchain-text-splitters" },
-    { name = "langfuse" },
-    { name = "langgraph" },
-    { name = "langgraph-checkpoint-postgres" },
-    { name = "markitdown", extra = ["docx", "pdf", "pptx", "xls", "xlsx"] },
-    { name = "mypy" },
-    { name = "nest-asyncio" },
-    { name = "nltk" },
-    { name = "numpy" },
-    { name = "openai" },
-    { name = "pgvector" },
-    { name = "psycopg", extra = ["binary", "pool"] },
-    { name = "psycopg2-binary" },
-    { name = "pyjwt" },
-    { name = "pytest" },
-    { name = "pytest-asyncio" },
-    { name = "pytest-repeat" },
-    { name = "pytest-xdist" },
-    { name = "python-docx" },
-    { name = "python-magic" },
-    { name = "pyyaml" },
-    { name = "rapidfuzz" },
-    { name = "rich" },
-    { name = "sqlalchemy" },
-    { name = "sqlmodel" },
-    { name = "tabulate" },
-    { name = "textblob" },
-    { name = "tuspyserver" },
-    { name = "xxhash" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "lxml-stubs" },
-    { name = "types-aiofiles" },
-    { name = "types-pyyaml" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "aiofiles", specifier = ">=25.1.0" },
-    { name = "alembic", specifier = ">=1.14.0" },
-    { name = "alembic-postgresql-enum", specifier = ">=1.8.0" },
-    { name = "black", specifier = ">=25.1.0" },
-    { name = "cryptography", specifier = ">=46.0.4" },
-    { name = "deepagents", specifier = ">=0.4.8" },
-    { name = "deepdiff", extras = ["optimize"], specifier = ">=8.6.1" },
-    { name = "dotenv", specifier = ">=0.9.9" },
-    { name = "fastapi", extras = ["standard"], specifier = ">=0.120.2" },
-    { name = "fastmcp", extras = ["tasks"], specifier = ">=3.2.0" },
-    { name = "httpx", specifier = ">=0.28.1" },
-    { name = "inspect-ai", specifier = ">=0.3.200" },
-    { name = "langchain", specifier = ">=1.2.15" },
-    { name = "langchain-anthropic", specifier = ">=1.4.0" },
-    { name = "langchain-google-genai", specifier = ">=4.2.1" },
-    { name = "langchain-openai", specifier = ">=1.1.14" },
-    { name = "langchain-postgres", specifier = ">=0.0.17" },
-    { name = "langchain-text-splitters", specifier = ">=1.1.2" },
-    { name = "langfuse", specifier = ">=4.2.0" },
-    { name = "langgraph", specifier = ">=1.1.6" },
-    { name = "langgraph-checkpoint-postgres", specifier = ">=3.0.5" },
-    { name = "markitdown", extras = ["docx", "pdf", "pptx", "xls", "xlsx"], specifier = ">=0.1.5" },
-    { name = "mypy", specifier = ">=1.19.1" },
-    { name = "nest-asyncio", specifier = ">=1.6.0" },
-    { name = "nltk", specifier = ">=3.9.4" },
-    { name = "numpy", specifier = ">=1.24.0" },
-    { name = "openai", specifier = ">=2.26.0" },
-    { name = "pgvector", specifier = ">=0.2.5,<0.4" },
-    { name = "psycopg", extras = ["binary", "pool"], specifier = ">=3.2.10" },
-    { name = "psycopg2-binary", specifier = ">=2.9.9" },
-    { name = "pyjwt", specifier = ">=2.10.1" },
-    { name = "pytest", specifier = ">=9.0.3" },
-    { name = "pytest-asyncio", specifier = ">=0.24.0" },
-    { name = "pytest-repeat", specifier = ">=0.9.4" },
-    { name = "pytest-xdist", specifier = ">=3.8.0" },
-    { name = "python-docx", specifier = ">=1.1.0" },
-    { name = "python-magic", specifier = ">=0.4.27" },
-    { name = "pyyaml", specifier = ">=6.0.0" },
-    { name = "rapidfuzz", specifier = ">=3.0.0" },
-    { name = "rich", specifier = ">=14.2.0" },
-    { name = "sqlalchemy", specifier = ">=2.0.25" },
-    { name = "sqlmodel", specifier = ">=0.0.24" },
-    { name = "tabulate", specifier = ">=0.9.0" },
-    { name = "textblob", specifier = ">=0.18.0" },
-    { name = "tuspyserver", specifier = ">=4.2.3" },
-    { name = "xxhash", specifier = ">=3.5.0" },
-]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "lxml-stubs", specifier = ">=0.5.1" },
-    { name = "types-aiofiles", specifier = ">=25.1.0.20251011" },
-    { name = "types-pyyaml", specifier = ">=6.0.12.20260408" },
-]
-
-[[package]]
 name = "aioboto3"
 version = "15.5.0"
 source = { registry = "https://pypi.org/simple" }
@@ -856,6 +739,123 @@ dependencies = [
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/b2/b7/545d2c10c1fc15e48653c91efde329a790f2eecfbbf2bd16003b5db2bab0/dotenv-0.9.9-py2.py3-none-any.whl", hash = "sha256:29cf74a087b31dafdb5a446b6d7e11cbce8ed2741540e2339c69fbef92c94ce9", size = 1892, upload-time = "2025-02-19T22:15:01.647Z" },
+]
+
+[[package]]
+name = "draft-detective"
+version = "0.1.0"
+source = { editable = "." }
+dependencies = [
+    { name = "aiofiles" },
+    { name = "alembic" },
+    { name = "alembic-postgresql-enum" },
+    { name = "black" },
+    { name = "cryptography" },
+    { name = "deepagents" },
+    { name = "deepdiff", extra = ["optimize"] },
+    { name = "dotenv" },
+    { name = "fastapi", extra = ["standard"] },
+    { name = "fastmcp", extra = ["tasks"] },
+    { name = "httpx" },
+    { name = "inspect-ai" },
+    { name = "langchain" },
+    { name = "langchain-anthropic" },
+    { name = "langchain-google-genai" },
+    { name = "langchain-openai" },
+    { name = "langchain-postgres" },
+    { name = "langchain-text-splitters" },
+    { name = "langfuse" },
+    { name = "langgraph" },
+    { name = "langgraph-checkpoint-postgres" },
+    { name = "markitdown", extra = ["docx", "pdf", "pptx", "xls", "xlsx"] },
+    { name = "mypy" },
+    { name = "nest-asyncio" },
+    { name = "nltk" },
+    { name = "numpy" },
+    { name = "openai" },
+    { name = "pgvector" },
+    { name = "psycopg", extra = ["binary", "pool"] },
+    { name = "psycopg2-binary" },
+    { name = "pyjwt" },
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+    { name = "pytest-repeat" },
+    { name = "pytest-xdist" },
+    { name = "python-docx" },
+    { name = "python-magic" },
+    { name = "pyyaml" },
+    { name = "rapidfuzz" },
+    { name = "rich" },
+    { name = "sqlalchemy" },
+    { name = "sqlmodel" },
+    { name = "tabulate" },
+    { name = "textblob" },
+    { name = "tuspyserver" },
+    { name = "xxhash" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "lxml-stubs" },
+    { name = "types-aiofiles" },
+    { name = "types-pyyaml" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "aiofiles", specifier = ">=25.1.0" },
+    { name = "alembic", specifier = ">=1.14.0" },
+    { name = "alembic-postgresql-enum", specifier = ">=1.8.0" },
+    { name = "black", specifier = ">=25.1.0" },
+    { name = "cryptography", specifier = ">=46.0.4" },
+    { name = "deepagents", specifier = ">=0.4.8" },
+    { name = "deepdiff", extras = ["optimize"], specifier = ">=8.6.1" },
+    { name = "dotenv", specifier = ">=0.9.9" },
+    { name = "fastapi", extras = ["standard"], specifier = ">=0.120.2" },
+    { name = "fastmcp", extras = ["tasks"], specifier = ">=3.2.0" },
+    { name = "httpx", specifier = ">=0.28.1" },
+    { name = "inspect-ai", specifier = ">=0.3.200" },
+    { name = "langchain", specifier = ">=1.2.15" },
+    { name = "langchain-anthropic", specifier = ">=1.4.0" },
+    { name = "langchain-google-genai", specifier = ">=4.2.1" },
+    { name = "langchain-openai", specifier = ">=1.1.14" },
+    { name = "langchain-postgres", specifier = ">=0.0.17" },
+    { name = "langchain-text-splitters", specifier = ">=1.1.2" },
+    { name = "langfuse", specifier = ">=4.2.0" },
+    { name = "langgraph", specifier = ">=1.1.6" },
+    { name = "langgraph-checkpoint-postgres", specifier = ">=3.0.5" },
+    { name = "markitdown", extras = ["docx", "pdf", "pptx", "xls", "xlsx"], specifier = ">=0.1.5" },
+    { name = "mypy", specifier = ">=1.19.1" },
+    { name = "nest-asyncio", specifier = ">=1.6.0" },
+    { name = "nltk", specifier = ">=3.9.4" },
+    { name = "numpy", specifier = ">=1.24.0" },
+    { name = "openai", specifier = ">=2.26.0" },
+    { name = "pgvector", specifier = ">=0.2.5,<0.4" },
+    { name = "psycopg", extras = ["binary", "pool"], specifier = ">=3.2.10" },
+    { name = "psycopg2-binary", specifier = ">=2.9.9" },
+    { name = "pyjwt", specifier = ">=2.10.1" },
+    { name = "pytest", specifier = ">=9.0.3" },
+    { name = "pytest-asyncio", specifier = ">=0.24.0" },
+    { name = "pytest-repeat", specifier = ">=0.9.4" },
+    { name = "pytest-xdist", specifier = ">=3.8.0" },
+    { name = "python-docx", specifier = ">=1.1.0" },
+    { name = "python-magic", specifier = ">=0.4.27" },
+    { name = "pyyaml", specifier = ">=6.0.0" },
+    { name = "rapidfuzz", specifier = ">=3.0.0" },
+    { name = "rich", specifier = ">=14.2.0" },
+    { name = "sqlalchemy", specifier = ">=2.0.25" },
+    { name = "sqlmodel", specifier = ">=0.0.24" },
+    { name = "tabulate", specifier = ">=0.9.0" },
+    { name = "textblob", specifier = ">=0.18.0" },
+    { name = "tuspyserver", specifier = ">=4.2.3" },
+    { name = "xxhash", specifier = ">=3.5.0" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "lxml-stubs", specifier = ">=0.5.1" },
+    { name = "types-aiofiles", specifier = ">=25.1.0.20251011" },
+    { name = "types-pyyaml", specifier = ">=6.0.12.20260408" },
 ]
 
 [[package]]
