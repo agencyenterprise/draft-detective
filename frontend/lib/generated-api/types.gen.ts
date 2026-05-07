@@ -1610,6 +1610,48 @@ export const ConfidenceInRecommendation = {
 export type ConfidenceInRecommendation = (typeof ConfidenceInRecommendation)[keyof typeof ConfidenceInRecommendation];
 
 /**
+ * CostBreakdown
+ *
+ * Aggregated cost across all models used in a workflow run.
+ */
+export type CostBreakdown = {
+  /**
+   * Total Cost Usd
+   */
+  total_cost_usd?: string;
+  /**
+   * Input Cost Usd
+   */
+  input_cost_usd?: string;
+  /**
+   * Output Cost Usd
+   */
+  output_cost_usd?: string;
+  /**
+   * Cache Read Cost Usd
+   */
+  cache_read_cost_usd?: string;
+  /**
+   * Total Input Tokens
+   */
+  total_input_tokens?: number;
+  /**
+   * Total Output Tokens
+   */
+  total_output_tokens?: number;
+  /**
+   * Total Cache Read Tokens
+   */
+  total_cache_read_tokens?: number;
+  /**
+   * By Model
+   */
+  by_model?: {
+    [key: string]: ModelCostBreakdown;
+  };
+};
+
+/**
  * CreateProjectRequest
  *
  * Request body for creating a project.
@@ -3497,6 +3539,42 @@ export type MethodologyComparisonResponse = {
    * List of sources cited from web search
    */
   references?: Array<ReferenceMinimal>;
+};
+
+/**
+ * ModelCostBreakdown
+ *
+ * Cost and token totals for a single model.
+ */
+export type ModelCostBreakdown = {
+  /**
+   * Input Tokens
+   */
+  input_tokens?: number;
+  /**
+   * Output Tokens
+   */
+  output_tokens?: number;
+  /**
+   * Cache Read Tokens
+   */
+  cache_read_tokens?: number;
+  /**
+   * Input Cost Usd
+   */
+  input_cost_usd?: string;
+  /**
+   * Output Cost Usd
+   */
+  output_cost_usd?: string;
+  /**
+   * Cache Read Cost Usd
+   */
+  cache_read_cost_usd?: string;
+  /**
+   * Total Cost Usd
+   */
+  total_cost_usd?: string;
 };
 
 /**
@@ -5597,6 +5675,7 @@ export type WorkflowRunDetail = {
     | Reviewer2State
     | SimpleDeepAgentState
     | null;
+  cost?: CostBreakdown | null;
 };
 
 /**
