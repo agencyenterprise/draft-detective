@@ -129,7 +129,7 @@ class DocxComment(BaseModel):
             return SEVERITY_AUTHORS.get(
                 self.severity, SEVERITY_AUTHORS[CommentSeverity.NONE]
             )[0]
-        return "AI Reviewer"
+        return "Draft Detective"
 
     def get_initials(self) -> str:
         """Get initials for the comment author."""
@@ -294,7 +294,7 @@ class DocxManipulatorService:
                     wrap_paragraph_with_content_control(
                         paragraph=paragraph,
                         tag_value=f"{ISSUE_MARKER_TAG}:{paragraph_index}",
-                        title=f"{len(paragraph_issues)} AI Reviewer Issues",
+                        title=f"{len(paragraph_issues)} Draft Detective Issues",
                         color_hex=highlight_color,
                     )
             else:
@@ -376,7 +376,7 @@ class DocxManipulatorService:
                 full_comment_text = comment.comment_text
                 if comment.share_link:
                     full_comment_text += (
-                        f"\n\n🔗 View in AI Reviewer: {comment.share_link}"
+                        f"\n\n🔗 View in Draft Detective: {comment.share_link}"
                     )
 
                 self._add_comment_to_paragraph(

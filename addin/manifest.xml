@@ -6,10 +6,10 @@
   xsi:type="TaskPaneApp">
   <Id>e8f82310-9703-42b4-8e7c-996e237f7d23</Id>
   <Version>1.0.0.0</Version>
-  <ProviderName>AI Reviewer</ProviderName>
+  <ProviderName>Draft Detective</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
-  <DisplayName DefaultValue="AI Reviewer" />
-  <Description DefaultValue="AI Reviewer add-in allows you to see the issues on AI Reviewer in your word document." />
+  <DisplayName DefaultValue="Draft Detective" />
+  <Description DefaultValue="Draft Detective add-in allows you to see the issues on Draft Detective in your word document." />
   <IconUrl DefaultValue="https://ai-reviewer-app-production.up.railway.app/logo_160x160.png" />
   <HighResolutionIconUrl
     DefaultValue="https://ai-reviewer-app-production.up.railway.app/logo_160x160.png" />
@@ -86,14 +86,14 @@
           DefaultValue="https://ai-reviewer-app-production.up.railway.app/addin" />
       </bt:Urls>
       <bt:ShortStrings>
-        <bt:String id="GetStarted.Title" DefaultValue="Get started with the AI Reviewer add-in!" />
-        <bt:String id="CommandsGroup.Label" DefaultValue="AI Reviewer" />
-        <bt:String id="TaskpaneButton.Label" DefaultValue="AI Reviewer" />
+        <bt:String id="GetStarted.Title" DefaultValue="Get started with the Draft Detective add-in!" />
+        <bt:String id="CommandsGroup.Label" DefaultValue="Draft Detective" />
+        <bt:String id="TaskpaneButton.Label" DefaultValue="Draft Detective" />
       </bt:ShortStrings>
       <bt:LongStrings>
         <bt:String id="GetStarted.Description"
-          DefaultValue="The AI Reviewer add-in loaded successfully. Go to the HOME tab and click the 'AI Reviewer' button to get started." />
-        <bt:String id="TaskpaneButton.Tooltip" DefaultValue="Click to open the AI Reviewer add-in." />
+          DefaultValue="The Draft Detective add-in loaded successfully. Go to the HOME tab and click the 'Draft Detective' button to get started." />
+        <bt:String id="TaskpaneButton.Tooltip" DefaultValue="Click to open the Draft Detective add-in." />
       </bt:LongStrings>
     </Resources>
   </VersionOverrides>

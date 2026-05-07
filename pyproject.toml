@@ -1,5 +1,5 @@
 [project]
-name = "ai-reviewer"
+name = "draft-detective"
 version = "0.1.0"
 description = "AI-powered peer-review document analysis"
 requires-python = ">=3.13"
