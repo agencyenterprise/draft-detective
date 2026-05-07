@@ -6,10 +6,7 @@
     "name": "Agency Enterprise"
   },
   "homepage": "https://github.com/agencyenterprise/draft-detective",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/agencyenterprise/draft-detective.git"
-  },
+  "repository": "https://github.com/agencyenterprise/draft-detective.git",
   "keywords": [
     "document-review",
     "citations",
