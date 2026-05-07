@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Any, Optional
 
 from deepagents.backends.utils import create_file_data
@@ -90,7 +91,7 @@ class MockFileArtifactsService(FileArtifactsServiceType):
         include_skills: bool = True,
     ) -> dict[str, Any]:
         main_markdown = self._main_file.markdown if self._main_file else ""
-        files = {"/main.md": create_file_data(main_markdown)}
+        files: dict[str, Any] = {"/main.md": create_file_data(main_markdown)}
         if include_supporting_files:
             files.update(
                 {
@@ -98,4 +99,13 @@ class MockFileArtifactsService(FileArtifactsServiceType):
                     for f in self._supporting_files
                 }
             )
+        if include_skills:
+            project_root = Path(__file__).parents[3]
+            skills_dir = project_root / "skills"
+            for skill_file in sorted(skills_dir.rglob("*")):
+                if skill_file.is_file():
+                    virtual_path = (
+                        "/" + skill_file.relative_to(project_root).as_posix()
+                    )
+                    files[virtual_path] = create_file_data(skill_file.read_text())
         return files
