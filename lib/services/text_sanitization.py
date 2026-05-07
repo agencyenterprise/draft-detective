@@ -7,6 +7,7 @@ to strip these characters.
 """
 
 import re
+from typing import Any
 
 # Matches C0/C1 control characters except tab (\x09), newline (\x0a),
 # and carriage return (\x0d) which are valid in text.
@@ -20,3 +21,19 @@ def strip_control_chars(text: str) -> str:
     in the U+0000–U+001F and U+007F–U+009F ranges.
     """
     return _CONTROL_CHAR_RE.sub("", text)
+
+
+def sanitize_for_postgres(value: Any) -> Any:
+    """Recursively strip control characters from string leaves of any data structure.
+
+    PostgreSQL's text type and JSONB cannot store C0/C1 control characters,
+    which may appear in LLM output or PDF-extracted text. Apply this to any
+    payload before persisting it to the database.
+    """
+    if isinstance(value, str):
+        return strip_control_chars(value)
+    if isinstance(value, dict):
+        return {k: sanitize_for_postgres(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [sanitize_for_postgres(item) for item in value]
+    return value

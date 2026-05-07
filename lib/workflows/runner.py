@@ -23,7 +23,12 @@ from lib.services.file_artifacts_service.file_artifacts_service import (
 from lib.services.issue_persistence import persist_workflow_issues
 from lib.services.users import get_user_decrypted_api_key
 from lib.services.vector_store import VectorStoreService
-from lib.services.workflow_runs import fail_workflow_run, update_workflow_run_status
+from lib.services.workflow_runs import (
+    fail_workflow_run,
+    get_workflow_run_state_by_thread_id,
+    persist_workflow_run_state,
+    update_workflow_run_status,
+)
 from lib.workflows.checkpointer import get_checkpointer
 from lib.workflows.context import ContextSchema
 from lib.workflows.models import (
@@ -195,6 +200,10 @@ async def run_workflow(
                     context=context,
                 ):
                     updated_state = updated_state.model_copy(update=values)
+                    # Dual-write alongside the checkpointer. After the backfill
+                    # and reader cutover, state_json becomes the source of truth
+                    # and the checkpointer compile is dropped.
+                    await persist_workflow_run_state(workflow_run_id, updated_state)
 
             # Get checkpoint ID for debugging after successful completion
             state_snapshot = await app.aget_state(thread_config)
@@ -226,6 +235,9 @@ async def run_workflow(
             )
             if manifest:
                 await manifest.on_cancel(updated_state, app, thread_config)
+                await _mirror_post_cancel_state(
+                    workflow_run_id, thread_id, workflow_type
+                )
             # Status is already CANCELLED in DB; CANCELLED-guard in
             # update_workflow_run_status keeps it that way.
 
@@ -238,6 +250,9 @@ async def run_workflow(
                 # on_cancel is the right place for abnormal-teardown cleanup
                 # (per-item statuses stuck in 'pending' would remain otherwise).
                 await manifest.on_cancel(updated_state, app, thread_config)
+                await _mirror_post_cancel_state(
+                    workflow_run_id, thread_id, workflow_type
+                )
             await fail_workflow_run(
                 workflow_run_id,
                 project_id,
@@ -256,6 +271,12 @@ async def run_workflow(
             # Persist the error to the LangGraph checkpoint via the `add` reducer
             # so it remains visible in the workflow state for debugging.
             await app.aupdate_state(thread_config, {"errors": [error]})
+            # Mirror the error onto state_json so the post-cutover reader path
+            # sees the same information once the checkpointer is retired.
+            updated_state = updated_state.model_copy(
+                update={"errors": [*updated_state.errors, error]}
+            )
+            await persist_workflow_run_state(workflow_run_id, updated_state)
             await fail_workflow_run(
                 workflow_run_id,
                 project_id,
@@ -268,6 +289,30 @@ async def run_workflow(
     )
 
     return updated_state
+
+
+async def _mirror_post_cancel_state(
+    workflow_run_id: str,
+    thread_id: str,
+    workflow_type: WorkflowRunType,
+) -> None:
+    """Re-read state from the checkpointer after manifest.on_cancel and mirror
+    it onto state_json so the post-cutover reader sees the cleaned-up state.
+
+    on_cancel currently writes via app.aupdate_state, which only touches the
+    checkpointer. This dual-write keeps state_json in sync during the
+    migration window. PR 2 will refactor on_cancel to return the updated
+    state and remove this re-read.
+    """
+    try:
+        state = await get_workflow_run_state_by_thread_id(thread_id, workflow_type)
+        if state is not None:
+            await persist_workflow_run_state(workflow_run_id, state)
+    except Exception as e:
+        logger.error(
+            f"Failed to mirror post-cancel state for run {workflow_run_id}: {e}",
+            exc_info=True,
+        )
 
 
 def create_context(

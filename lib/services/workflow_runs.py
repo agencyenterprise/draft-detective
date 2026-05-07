@@ -7,7 +7,7 @@ from typing import List, Optional, Type, cast
 from fastapi import HTTPException
 from langgraph.types import StateSnapshot
 from pydantic import BaseModel
-from sqlalchemy import case, func, select
+from sqlalchemy import case, func, select, update
 from sqlmodel import and_, col
 
 from lib.config.database import get_async_db_session
@@ -20,6 +20,7 @@ from lib.models.workflow_run import (
     WorkflowRunStatus,
     WorkflowRunType,
 )
+from lib.services.text_sanitization import sanitize_for_postgres
 from lib.services.workflow_cost.breakdown import CostBreakdown
 from lib.services.workflow_cost.extractor import walk_state_for_usage
 from lib.services.workflow_cost.pricing import compute_cost
@@ -81,6 +82,48 @@ def _convert_state_snapshot(
     except Exception as e:
         logger.warning(
             f"Error converting state snapshot for thread {state_snapshot.config['configurable']['thread_id']} (possibly an old state schema version): {e}"
+        )
+        return None
+
+
+async def persist_workflow_run_state(
+    workflow_run_id: str, state: WorkflowState
+) -> None:
+    """Snapshot the workflow state onto the WorkflowRun row.
+
+    Called after every node yield in the runner so a crashed/cancelled run still
+    has its last-good state inspectable on the row itself, independent of the
+    LangGraph checkpointer. During the migration window we dual-write: this
+    helper persists state_json while the checkpointer continues to record its
+    own checkpoints.
+    """
+    payload = sanitize_for_postgres(state.model_dump(mode="json"))
+    async with get_async_db_session() as session:
+        stmt = (
+            update(WorkflowRun)
+            .where(col(WorkflowRun.id) == workflow_run_id)
+            .values(state_json=payload)
+        )
+        await session.execute(stmt)
+        await session.commit()
+
+
+def hydrate_workflow_run_state(run: WorkflowRun) -> WorkflowState | None:
+    """Reconstruct a WorkflowState from the row's persisted state_json.
+
+    Returns None when state_json is missing (pre-backfill rows) or when the
+    persisted shape no longer matches the current WorkflowState subclass —
+    callers fall back to the checkpointer during the migration window.
+    """
+    if run.state_json is None:
+        return None
+    state_type = cast(Type[WorkflowState], get_state_type(run.type))
+    try:
+        return state_type(**run.state_json)
+    except Exception as e:
+        logger.warning(
+            f"Error hydrating state_json for run {run.id} "
+            f"(possibly an old state schema version): {e}"
         )
         return None
 
