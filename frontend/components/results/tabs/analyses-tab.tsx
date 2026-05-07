@@ -13,6 +13,7 @@ import { StatusIndicator } from '@/components/ui/status-indicator';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { StartWorkflowButton } from '@/components/workflows/start-workflow-button';
 import { WorkflowConfigDialog, WorkflowConfigFormValues } from '@/components/workflows/workflow-config-dialog';
+import { WorkflowRunCost } from '@/components/workflows/workflow-run-cost';
 import { WorkflowRunHistory } from '@/components/workflows/workflow-run-history';
 import { useShare } from '@/context/share-context';
 import { ProjectDetailed, startMultipleWorkflowsApiWorkflowsStartMultiplePost } from '@/lib/generated-api';
@@ -142,10 +143,13 @@ export function AnalysesTab({
                   <span className="font-medium">Status:</span>
                   <StatusIndicator status={getDisplayStatus(selectedWorkflowRun)} />
                 </div>
-                <WorkflowDuration run={selectedWorkflowRun.run} />
                 <div>
                   Last updated {formatDistanceToNow(selectedWorkflowRun.run.last_updated_at, { addSuffix: true })}
                 </div>
+                <WorkflowDuration run={selectedWorkflowRun.run} />
+                {selectedWorkflowRun.cost && (
+                  <WorkflowRunCost key={selectedWorkflowRun.run.id} cost={selectedWorkflowRun.cost} />
+                )}
               </div>
             </div>
             <div className="border-t pt-4 space-y-4">

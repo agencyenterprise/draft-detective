@@ -20,6 +20,9 @@ from lib.models.workflow_run import (
     WorkflowRunStatus,
     WorkflowRunType,
 )
+from lib.services.workflow_cost.breakdown import CostBreakdown
+from lib.services.workflow_cost.extractor import walk_state_for_usage
+from lib.services.workflow_cost.pricing import compute_cost
 from lib.services.workflow_progress import cancel_workflow_progress
 from lib.workflows.checkpointer import get_checkpointer
 from lib.workflows.dependency_resolver import get_required_dependents
@@ -33,6 +36,37 @@ logger = logging.getLogger(__name__)
 class WorkflowRunDetail(BaseModel):
     run: WorkflowRun
     state: WorkflowState | None
+    cost: CostBreakdown | None = None
+
+
+async def _compute_cost_for_state(
+    state: WorkflowState | None,
+) -> CostBreakdown | None:
+    if state is None:
+        return None
+    try:
+        records = walk_state_for_usage(state)
+        if not records:
+            return None
+        return await compute_cost(records)
+    except Exception as e:  # pragma: no cover — never let cost calc break the response
+        logger.warning(f"Failed to compute workflow cost: {e}")
+        return None
+
+
+def _canonical_run_ids_per_thread(runs: List[WorkflowRun]) -> set[uuid.UUID]:
+    """Return the set of run IDs that are the most recent owners of their thread_id.
+
+    Multiple WorkflowRun rows can share a langgraph_thread_id (re-runs reuse threads),
+    so older runs see the latest run's state from the checkpointer — their cost would
+    be misleading. Only attribute cost to the latest run per thread.
+    """
+    latest: dict[str, WorkflowRun] = {}
+    for run in runs:
+        existing = latest.get(run.langgraph_thread_id)
+        if existing is None or run.created_at > existing.created_at:
+            latest[run.langgraph_thread_id] = run
+    return {r.id for r in latest.values()}
 
 
 def _convert_state_snapshot(
@@ -377,7 +411,13 @@ async def get_project_workflow_runs_by_type_with_details(
         ]
     )
 
-    return [WorkflowRunDetail(run=run, state=state) for run, state in zip(runs, states)]
+    canonical_ids = _canonical_run_ids_per_thread(list(runs))
+    cost_states = [s if r.id in canonical_ids else None for r, s in zip(runs, states)]
+    costs = await asyncio.gather(*[_compute_cost_for_state(s) for s in cost_states])
+    return [
+        WorkflowRunDetail(run=run, state=state, cost=cost)
+        for run, state, cost in zip(runs, states, costs)
+    ]
 
 
 async def get_project_workflow_runs(
@@ -443,9 +483,10 @@ async def get_project_workflow_runs(
         ]
     )
 
+    costs = await asyncio.gather(*[_compute_cost_for_state(s) for s in states])
     return [
-        WorkflowRunDetail(run=run, state=state)
-        for run, state in zip(visible_runs, states)
+        WorkflowRunDetail(run=run, state=state, cost=cost)
+        for run, state, cost in zip(visible_runs, states, costs)
     ]
 
 
