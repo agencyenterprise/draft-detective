@@ -6,7 +6,7 @@
   },
   "plugins": [
     {
-      "name": "draft-detective",
+      "name": "skills",
       "source": ".",
       "description": "Document review skills from Draft Detective: validate bibliographic references against authoritative sources, and report document issues in a consistent structured format."
     }
