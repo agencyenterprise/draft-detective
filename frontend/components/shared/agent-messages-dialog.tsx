@@ -2,7 +2,7 @@
 
 import { ReadonlyThread } from '@/components/assistant-ui/readonly-thread';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { AssistantRuntimeProvider, ThreadMessageLike, useExternalStoreRuntime } from '@assistant-ui/react';
+import { AssistantRuntimeProvider, useExternalMessageConverter, useExternalStoreRuntime } from '@assistant-ui/react';
 import { convertLangChainMessages, LangChainMessage } from '@assistant-ui/react-langgraph';
 
 interface AgentMessagesDialogProps {
@@ -13,11 +13,14 @@ interface AgentMessagesDialogProps {
 }
 
 export function AgentMessagesDialog({ messages, open, onOpenChange, title }: AgentMessagesDialogProps) {
-  const displayedMessages = messages;
+  const threadMessages = useExternalMessageConverter<LangChainMessage>({
+    callback: convertLangChainMessages,
+    messages: messages as unknown as LangChainMessage[],
+    isRunning: false,
+  });
 
   const runtime = useExternalStoreRuntime({
-    messages: displayedMessages,
-    convertMessage: (message) => convertLangChainMessages(message as LangChainMessage, {}) as ThreadMessageLike,
+    messages: threadMessages,
     isRunning: false,
     onNew: async () => {},
   });
