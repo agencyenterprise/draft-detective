@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v0.5.35] - 2026-05-08
+
+### Fixed
+- Made markdown conversion in the `document_processing` workflow resilient to per-file failures so supporting document conversion errors no longer abort the entire workflow.
+
+### Changed
+- Converted the main document first and kept it as the only conversion that can hard-fail the workflow.
+- Reduced supporting-file conversion concurrency from 10 to 4 to relieve memory pressure during conversion.
+- Persisted each file’s markdown to the DB immediately during conversion to allow resuming from already-converted files after worker restarts.
+- Recorded supporting-file conversion failures as `WorkflowError` entries on `state.errors` including the file name and file ID for UI surfacing.
+
+### Removed
+- Removed the `_persist_markdown_artifacts` and `_convert_to_markdown_task` helpers from the markdown conversion node.
+
+
 ## [v0.5.34] - 2026-05-04
 
 ### Added
