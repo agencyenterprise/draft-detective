@@ -1644,6 +1644,10 @@ export type CostBreakdown = {
    */
   total_cache_read_tokens?: number;
   /**
+   * Request Count
+   */
+  request_count?: number;
+  /**
    * By Model
    */
   by_model?: {
@@ -3575,6 +3579,10 @@ export type ModelCostBreakdown = {
    * Total Cost Usd
    */
   total_cost_usd?: string;
+  /**
+   * Request Count
+   */
+  request_count?: number;
 };
 
 /**
@@ -5638,6 +5646,14 @@ export type WorkflowRun = {
    * Short human-readable detail of the failure. Populated only when status == FAILED.
    */
   failure_message?: string | null;
+  /**
+   * State Json
+   *
+   * Serialized WorkflowState; written after every node yield. Schema is the WorkflowState subclass for `type`.
+   */
+  state_json?: {
+    [key: string]: unknown;
+  } | null;
 };
 
 /**

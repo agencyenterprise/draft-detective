@@ -144,6 +144,7 @@ async def compute_cost(records: Iterable[UsageRecord]) -> CostBreakdown | None:
 
         bucket = breakdown.by_model.setdefault(record.model_name, ModelCostBreakdown())
         _accumulate(bucket, per_model)
+        bucket.request_count += 1
 
         breakdown.total_input_tokens += per_model.input_tokens
         breakdown.total_output_tokens += per_model.output_tokens
@@ -152,5 +153,6 @@ async def compute_cost(records: Iterable[UsageRecord]) -> CostBreakdown | None:
         breakdown.output_cost_usd += per_model.output_cost_usd
         breakdown.cache_read_cost_usd += per_model.cache_read_cost_usd
         breakdown.total_cost_usd += per_model.total_cost_usd
+        breakdown.request_count += 1
 
     return breakdown if has_any else None

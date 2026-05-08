@@ -32,6 +32,8 @@ export function WorkflowRunCost({ cost, className, compact }: WorkflowRunCostPro
   const cacheReadTokens = cost.total_cache_read_tokens ?? 0;
   const byModel = cost.by_model ?? {};
   const totalTokens = inputTokens + outputTokens + cacheReadTokens;
+  const requestCount = cost.request_count ?? 0;
+  const avgCost = requestCount > 0 ? total / requestCount : 0;
 
   return (
     <TooltipProvider delayDuration={0}>
@@ -56,6 +58,15 @@ export function WorkflowRunCost({ cost, className, compact }: WorkflowRunCostPro
               <CostRow label="Output" tokens={outputTokens} cost={cost.output_cost_usd ?? 0} />
               {cacheReadTokens > 0 && (
                 <CostRow label="Cache read" tokens={cacheReadTokens} cost={cost.cache_read_cost_usd ?? 0} />
+              )}
+
+              {requestCount > 1 && (
+                <div className="pt-2 mt-2 border-t flex justify-between gap-4">
+                  <span className="text-muted-foreground">LLM calls</span>
+                  <span>
+                    {requestCount} · {formatUsd(avgCost)} avg
+                  </span>
+                </div>
               )}
 
               {Object.keys(byModel).length > 1 && (

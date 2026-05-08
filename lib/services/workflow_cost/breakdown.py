@@ -23,6 +23,7 @@ class ModelCostBreakdown(BaseModel):
     output_cost_usd: Decimal = Field(default=Decimal("0"))
     cache_read_cost_usd: Decimal = Field(default=Decimal("0"))
     total_cost_usd: Decimal = Field(default=Decimal("0"))
+    request_count: int = 0
 
 
 class CostBreakdown(BaseModel):
@@ -35,4 +36,5 @@ class CostBreakdown(BaseModel):
     total_input_tokens: int = 0
     total_output_tokens: int = 0
     total_cache_read_tokens: int = 0
+    request_count: int = 0
     by_model: Dict[str, ModelCostBreakdown] = Field(default_factory=dict)

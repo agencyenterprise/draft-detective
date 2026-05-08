@@ -211,3 +211,6 @@ async def test_compute_cost_aggregates_multiple_models():
     assert len(breakdown.by_model) == 2
     assert breakdown.total_input_tokens == 300
     assert breakdown.total_output_tokens == 130
+    assert breakdown.request_count == 2
+    assert breakdown.by_model[CLAUDE_MODEL].request_count == 1
+    assert breakdown.by_model["gpt-4o-2024-08-06"].request_count == 1
