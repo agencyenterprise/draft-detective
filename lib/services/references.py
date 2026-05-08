@@ -7,9 +7,10 @@ from typing import List, Optional, Tuple, cast
 
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus
 from lib.services.workflow_runs import (
+    create_workflow_run,
     get_project_workflow_run_by_type,
     get_workflow_run_state_by_thread_id,
-    create_workflow_run,
+    persist_workflow_run_state,
 )
 from lib.workflows.checkpointer import get_checkpointer
 from lib.workflows.models import WorkflowRunType
@@ -150,6 +151,10 @@ async def _get_file_matching_workflow_state(
         run = await get_project_workflow_run_by_type(
             project_id, WorkflowRunType.REFERENCE_FILE_MATCHING, revision=revision
         )
+        # Mirror the bootstrap state to state_json so the post-cutover reader
+        # path matches what the checkpointer holds.
+        if run is not None:
+            await persist_workflow_run_state(str(run.id), default_state)
         logger.info(f"Created new file matching workflow run for project {project_id}")
 
     return run, default_state
@@ -233,6 +238,9 @@ async def remove_file_from_references(project_id: str, file_id: str, revision: i
                 as_node="match_supporting_docs",
             )
 
+        await persist_workflow_run_state(
+            str(run.id), state.model_copy(update={"matches": updated_matches})
+        )
         logger.info(
             f"Removed {len(removed_reference_ids)} matches with file_id {file_id}"
         )
@@ -294,6 +302,12 @@ async def remove_fetch_result_for_file(
                 as_node="cleanup_failed_resources",
             )
 
+        # Plain assignment of `filtered` is the Pydantic-level equivalent of
+        # the checkpointer's Overwrite — both bypass the merge_fetch_results
+        # reducer that would otherwise upsert-only.
+        await persist_workflow_run_state(
+            str(run.id), state.model_copy(update={"fetched_references": filtered})
+        )
         logger.info(
             f"Removed {removed_count} fetch result(s) for file {file_id} in project {project_id}"
         )
@@ -356,6 +370,9 @@ async def add_file_to_reference(
                 as_node="match_supporting_docs",
             )
 
+        await persist_workflow_run_state(
+            str(run.id), state.model_copy(update={"matches": updated_matches})
+        )
         logger.info(
             f"Linked file {file_id} to reference {reference_id} in project {project_id}"
         )

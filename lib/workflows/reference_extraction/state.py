@@ -56,4 +56,6 @@ class ReferenceExtractionState(BaseWorkflowState):
     @field_serializer("messages")
     @classmethod
     def _serialize_messages(cls, messages: List[BaseMessage]) -> list[dict]:
-        return [m.model_dump() for m in messages]
+        # Checkpointer-hydrated states may contain raw dicts in `messages`
+        # because reducers can append items that bypass model construction.
+        return [m if isinstance(m, dict) else m.model_dump() for m in messages]

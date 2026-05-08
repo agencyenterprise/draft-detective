@@ -2,30 +2,30 @@
 
 import pytest
 
-from lib.services.files import _sanitize_for_postgres
+from lib.services.text_sanitization import sanitize_for_postgres
 
 
 class TestSanitizeForPostgres:
-    """Tests for the _sanitize_for_postgres function"""
+    """Tests for the sanitize_for_postgres function"""
 
     def test_removes_null_character_from_string(self):
         input_str = "Hello\u0000World"
-        result = _sanitize_for_postgres(input_str)
+        result = sanitize_for_postgres(input_str)
         assert result == "HelloWorld"
         assert "\u0000" not in result
 
     def test_removes_multiple_null_characters(self):
         input_str = "Start\u0000Middle\u0000End\u0000"
-        result = _sanitize_for_postgres(input_str)
+        result = sanitize_for_postgres(input_str)
         assert result == "StartMiddleEnd"
 
     def test_handles_string_without_null_characters(self):
         input_str = "Normal string without issues"
-        result = _sanitize_for_postgres(input_str)
+        result = sanitize_for_postgres(input_str)
         assert result == input_str
 
     def test_handles_empty_string(self):
-        result = _sanitize_for_postgres("")
+        result = sanitize_for_postgres("")
         assert result == ""
 
     def test_sanitizes_dict_string_values(self):
@@ -33,7 +33,7 @@ class TestSanitizeForPostgres:
             "title": "Document\u0000Title",
             "summary": "Some\u0000summary\u0000text",
         }
-        result = _sanitize_for_postgres(input_dict)
+        result = sanitize_for_postgres(input_dict)
         assert result["title"] == "DocumentTitle"
         assert result["summary"] == "Somesummarytext"
 
@@ -46,13 +46,13 @@ class TestSanitizeForPostgres:
                 },
             },
         }
-        result = _sanitize_for_postgres(input_dict)
+        result = sanitize_for_postgres(input_dict)
         assert result["outer"]["inner"] == "Nestedvalue"
         assert result["outer"]["deep"]["value"] == "Deepnested"
 
     def test_sanitizes_list_of_strings(self):
         input_list = ["First\u0000item", "Second\u0000item", "Clean item"]
-        result = _sanitize_for_postgres(input_list)
+        result = sanitize_for_postgres(input_list)
         assert result == ["Firstitem", "Seconditem", "Clean item"]
 
     def test_sanitizes_list_of_dicts(self):
@@ -60,7 +60,7 @@ class TestSanitizeForPostgres:
             {"name": "Item\u0000One"},
             {"name": "Item\u0000Two"},
         ]
-        result = _sanitize_for_postgres(input_list)
+        result = sanitize_for_postgres(input_list)
         assert result[0]["name"] == "ItemOne"
         assert result[1]["name"] == "ItemTwo"
 
@@ -73,7 +73,7 @@ class TestSanitizeForPostgres:
                 "keywords": ["key\u0000word1", "keyword2"],
             },
         }
-        result = _sanitize_for_postgres(input_data)
+        result = sanitize_for_postgres(input_data)
         assert result["title"] == "DocTitle"
         assert result["authors"] == ["AuthorOne", "Author Two"]
         assert result["metadata"]["abstract"] == "Abstracttext"
@@ -86,34 +86,34 @@ class TestSanitizeForPostgres:
             "active": True,
             "data": None,
         }
-        result = _sanitize_for_postgres(input_dict)
+        result = sanitize_for_postgres(input_dict)
         assert result["count"] == 42
         assert result["price"] == 19.99
         assert result["active"] is True
         assert result["data"] is None
 
     def test_handles_none_value(self):
-        result = _sanitize_for_postgres(None)
+        result = sanitize_for_postgres(None)
         assert result is None
 
     def test_handles_integer_value(self):
-        result = _sanitize_for_postgres(123)
+        result = sanitize_for_postgres(123)
         assert result == 123
 
     def test_handles_float_value(self):
-        result = _sanitize_for_postgres(3.14)
+        result = sanitize_for_postgres(3.14)
         assert result == 3.14
 
     def test_handles_boolean_value(self):
-        assert _sanitize_for_postgres(True) is True
-        assert _sanitize_for_postgres(False) is False
+        assert sanitize_for_postgres(True) is True
+        assert sanitize_for_postgres(False) is False
 
     def test_handles_empty_dict(self):
-        result = _sanitize_for_postgres({})
+        result = sanitize_for_postgres({})
         assert result == {}
 
     def test_handles_empty_list(self):
-        result = _sanitize_for_postgres([])
+        result = sanitize_for_postgres([])
         assert result == []
 
     def test_real_world_llm_output_example(self):
@@ -126,6 +126,6 @@ class TestSanitizeForPostgres:
             "summary": "This is a change in the United States Air Force\u0000 fleet "
             "composition that reflects strategic priorities.",
         }
-        result = _sanitize_for_postgres(input_data)
+        result = sanitize_for_postgres(input_data)
         assert "\u0000" not in result["summary"]
         assert "United States Air Force fleet" in result["summary"]

@@ -43,6 +43,7 @@ from lib.services.workflow_orchestration import DEPENDENCY_WAIT_TIMEOUT
 from lib.services.workflow_runs import (
     fail_workflow_run,
     get_workflow_run_state_by_thread_id,
+    persist_workflow_run_state,
 )
 from lib.workflows.checkpointer import get_checkpointer
 from lib.workflows.registry import create_graph, get_workflow_manifest
@@ -175,6 +176,22 @@ async def _run_manifest_on_cancel(run: WorkflowRun) -> None:
     except Exception as e:
         logger.error(
             f"Reaper: on_cancel hook failed for {run.id} ({run.type}): {e}",
+            exc_info=True,
+        )
+        return
+
+    # Mirror the cleaned-up state onto state_json so the post-cutover reader
+    # path matches what the checkpointer holds. Best-effort: a failure here
+    # never blocks the reaper from flipping the run to FAILED.
+    try:
+        cleaned = await get_workflow_run_state_by_thread_id(
+            run.langgraph_thread_id, run.type
+        )
+        if cleaned is not None:
+            await persist_workflow_run_state(str(run.id), cleaned)
+    except Exception as e:
+        logger.error(
+            f"Reaper: failed to mirror post-cancel state for {run.id}: {e}",
             exc_info=True,
         )
 
