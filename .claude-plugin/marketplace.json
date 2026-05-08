@@ -1,8 +1,8 @@
 {
   "name": "draft-detective",
   "owner": {
-    "name": "Agency Enterprise",
-    "url": "https://github.com/agencyenterprise"
+    "name": "Draft Detective",
+    "url": "https://github.com/agencyenterprise/draft-detective"
   },
   "plugins": [
     {
