@@ -34,6 +34,8 @@ from lib.workflows.models import (
 
 CANCELLATION_CHECK_INTERVAL = 5.0
 
+logger = logging.getLogger(__name__)
+
 
 async def _supervise_node(
     workflow_run_id: str, node_task: asyncio.Task, interval: float
@@ -67,6 +69,9 @@ async def _supervise_node(
             node_task.cancel()
             break
         await update_workflow_run_heartbeat(workflow_run_id)
+        logger.debug(
+            f"Heartbeat tick for workflow_run_id={workflow_run_id} (status={status})"
+        )
 
 
 async def _setup_progress(
