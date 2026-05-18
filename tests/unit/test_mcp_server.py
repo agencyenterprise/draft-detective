@@ -27,7 +27,7 @@ import lib.api.mcp_auth as _mcp_auth_mod
 _orig_create_mcp_auth = _mcp_auth_mod.create_mcp_auth
 _mcp_auth_mod.create_mcp_auth = lambda: None
 
-from lib.api.mcp import mcp  # noqa: E402
+from lib.api.mcp.server import mcp  # noqa: E402
 
 _mcp_auth_mod.create_mcp_auth = _orig_create_mcp_auth
 
@@ -79,7 +79,7 @@ async def authed_mcp_client():
     )
     token_reset = _task_access_token.set(fake_token)
     try:
-        with patch("lib.api.mcp._resolve_user", AsyncMock(return_value=mock_user)):
+        with patch("lib.api.mcp.helpers.resolve_user", AsyncMock(return_value=mock_user)):
             async with Client(transport=mcp) as client:
                 yield client
     finally:

@@ -1,0 +1,17 @@
+{
+  "name": "draft-detective",
+  "owner": {
+    "name": "Draft Detective",
+    "url": "https://github.com/agencyenterprise/draft-detective"
+  },
+  "plugins": [
+    {
+      "name": "skills",
+      "source": {
+        "source": "github",
+        "repo": "agencyenterprise/draft-detective"
+      },
+      "description": "Document review skills from Draft Detective: validate bibliographic references against authoritative sources, and report document issues in a consistent structured format."
+    }
+  ]
+}

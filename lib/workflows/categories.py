@@ -38,6 +38,7 @@ WORKFLOW_DISPLAY_CONFIG: list[CategoryConfig] = [
             WorkflowRunType.METHODOLOGICAL_ALIGNMENT,
             WorkflowRunType.RESULTS_EXTRACTION,
             WorkflowRunType.REVIEWER_2,
+            WorkflowRunType.RECOMMENDATION_CHECK,
         ],
     ),
     CategoryConfig(

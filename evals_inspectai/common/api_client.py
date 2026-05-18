@@ -1,4 +1,4 @@
-"""Async HTTP client for calling the AI Reviewer API in e2e evals."""
+"""Async HTTP client for calling the Draft Detective API in e2e evals."""
 
 import asyncio
 import logging
@@ -16,7 +16,7 @@ from evals_inspectai.common.errors import check_workflow_errors
 logger = logging.getLogger(__name__)
 
 DEFAULT_BASE_URL = "http://localhost:8000"
-DEFAULT_USER_EMAIL = "eval@ai-reviewer.local"
+DEFAULT_USER_EMAIL = "eval@draft-detective.local"
 DEFAULT_USER_NAME = "E2E Eval Runner"
 DEFAULT_POLL_INTERVAL_S = 5
 DEFAULT_TIMEOUT_S = 300

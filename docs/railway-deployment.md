@@ -1,6 +1,6 @@
 # Railway Deployment Guide
 
-This guide covers deploying AI Reviewer to [Railway](https://railway.app).
+This guide covers deploying Draft Detective to [Railway](https://railway.app).
 
 ## Prerequisites
 
@@ -14,7 +14,7 @@ This guide covers deploying AI Reviewer to [Railway](https://railway.app).
 
 1. Go to [Railway Dashboard](https://railway.app/dashboard)
 2. Click **New Project** → **Deploy from GitHub repo**
-3. Select your AI Reviewer repository
+3. Select your Draft Detective repository
 
 ### 2. Add Required Services
 

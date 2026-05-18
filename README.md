@@ -1,4 +1,4 @@
-# AI Reviewer
+# Draft Detective
 
 AI-powered assistant for academic peer review. Built with LangGraph, this tool validates references against claims, flags unsupported assertions, performs literature reviews, and suggests relevant citations — helping reviewers and researchers assess rigor more efficiently.
 
@@ -8,7 +8,7 @@ Project funded by RAND: https://rand.org/
 
 ## Goals
 
-The main goal of AI Reviewer is to assist and streamline the academic peer review process by reducing manual workload and improving the consistency, transparency, and rigor of evaluations.
+The main goal of Draft Detective is to assist and streamline the academic peer review process by reducing manual workload and improving the consistency, transparency, and rigor of evaluations.
 
 ## Features
 

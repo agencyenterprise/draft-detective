@@ -152,6 +152,12 @@ async def cancel_workflow_run_endpoint(
             detail="Cannot cancel a workflow that has already completed",
         )
 
+    if workflow_run.status == WorkflowRunStatus.FAILED:
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot cancel a workflow that has already failed",
+        )
+
     if workflow_run.status == WorkflowRunStatus.CANCELLED:
         return CancelWorkflowResponse(
             message="Already cancelled",

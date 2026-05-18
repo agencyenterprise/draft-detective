@@ -105,10 +105,13 @@ function renderWorkflowResults(
       return <ReferenceValidationV2Results workflowDetail={workflowRun} />;
     case WorkflowRunType.DocumentStructure:
     case WorkflowRunType.FiguresTablesCheck:
+    case WorkflowRunType.RecommendationCheck:
       return (
         <SimpleDeepAgentResults
+          project={project}
           workflowDetail={workflowRun as WorkflowRunDetailTyped<SimpleDeepAgentState>}
           workflowName={getWorkflowTypeName(type)}
+          onNavigateToDocumentExplorer={onNavigateToDocumentExplorer}
         />
       );
     default:

@@ -1,6 +1,6 @@
 # Development Guide
 
-This guide covers everything you need to know to set up, run, and develop the AI Reviewer project locally.
+This guide covers everything you need to know to set up, run, and develop the Draft Detective project locally.
 
 ## Prerequisites
 

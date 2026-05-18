@@ -20,7 +20,7 @@ class DocumentProcessingManifest(
     WorkflowManifest[DocumentProcessingState, DocumentProcessingWorkflowConfig]
 ):
     type = WorkflowRunType.DOCUMENT_PROCESSING
-    name = "Document Processing"
+    name = "Markdown Conversion"
     description = "Convert documents to markdown"
     needs_web_search = False
     is_internal = True

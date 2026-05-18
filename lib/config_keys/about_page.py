@@ -50,7 +50,7 @@ citation checks.
 ## Analysis Types
 
 Each check is listed below, organized by category. Evaluation coverage is in active development — \
-see the [evals folder on GitHub](https://github.com/agencyenterprise/ai-reviewer/tree/main/evals_inspectai) \
+see the [evals folder on GitHub](https://github.com/agencyenterprise/draft-detective/tree/main/evals_inspectai) \
 for details.
 
 ### Language
@@ -63,21 +63,21 @@ for details.
 
 | Analysis Type | Description | Eval |
 |:---|:---|:---:|
-| **Abbreviation Scan** | Scans the document for abbreviations and acronyms, verifies each is defined inline at its first occurrence, and checks that all abbreviations appear in an Abbreviations section. | [eval](https://github.com/agencyenterprise/ai-reviewer/tree/main/evals_inspectai/e2e/abbreviation_checker) |
-| **Document Contents** | Checks that key content is present: Acknowledgements, Methods, Results, Conclusion, References, and Appendix (if referenced in text). `#experimental` | [eval](https://github.com/agencyenterprise/ai-reviewer/tree/main/evals_inspectai/e2e/document_structure) |
-| **Figures & Tables Check** | Verifies that every figure and table has a title, is consistently numbered, is referenced in the body text, and that every body-text reference resolves to an actual figure or table in the document. `#experimental` | [eval](https://github.com/agencyenterprise/ai-reviewer/tree/main/evals_inspectai/e2e/figures_tables_check) |
+| **Abbreviation Scan** | Scans the document for abbreviations and acronyms, verifies each is defined inline at its first occurrence, and checks that all abbreviations appear in an Abbreviations section. | [eval](https://github.com/agencyenterprise/draft-detective/tree/main/evals_inspectai/e2e/abbreviation_checker) |
+| **Document Contents** | Checks that key content is present: Acknowledgements, Methods, Results, Conclusion, References, and Appendix (if referenced in text). `#experimental` | [eval](https://github.com/agencyenterprise/draft-detective/tree/main/evals_inspectai/e2e/document_structure) |
+| **Figures & Tables Check** | Verifies that every figure and table has a title, is consistently numbered, is referenced in the body text, and that every body-text reference resolves to an actual figure or table in the document. `#experimental` | [eval](https://github.com/agencyenterprise/draft-detective/tree/main/evals_inspectai/e2e/figures_tables_check) |
 
 ### Citation Check
 
 | Analysis Type | Description | Eval |
 |:---|:---|:---:|
-| **Reference Error Checker** | Uses web search to check whether each reference is findable online and whether the author, title, year, and publisher match public sources — useful for catching reference typos or hallucinated citations. `#web_search` | [eval](https://github.com/agencyenterprise/ai-reviewer/tree/main/evals_inspectai/e2e/reference_validation) |
+| **Reference Error Checker** | Uses web search to check whether each reference is findable online and whether the author, title, year, and publisher match public sources — useful for catching reference typos or hallucinated citations. `#web_search` | [eval](https://github.com/agencyenterprise/draft-detective/tree/main/evals_inspectai/e2e/reference_validation) |
 
 ### Substantive Review
 
 | Analysis Type | Description | Eval |
 |:---|:---|:---:|
-| **Claim Reference Validation** | Validates claims against supporting documents using retrieval-augmented generation (RAG). Retrieves relevant passages from uploaded reference PDFs and returns a verdict for each claim: supported, partially supported, unsupported, or unverifiable. `#full_text_refs` | [evals](https://github.com/agencyenterprise/ai-reviewer/tree/main/evals_inspectai) |
+| **Claim Reference Validation** | Validates claims against supporting documents using retrieval-augmented generation (RAG). Retrieves relevant passages from uploaded reference PDFs and returns a verdict for each claim: supported, partially supported, unsupported, or unverifiable. `#full_text_refs` | [evals](https://github.com/agencyenterprise/draft-detective/tree/main/evals_inspectai) |
 | **Internal Inference Validation** | Analyzes the full document for invalid inferences, identifying logical fallacies, unsupported conclusions, and faulty reasoning. Each finding includes the key sentence, an analysis of the argument, and a suggested correction. | |
 | **Methodological Alignment** | Compares the methodology used in the document against typical methods in the field, using web search to gather field context and highlight gaps or risks. `#web_search` | |
 | **Reproducibility Check** | Extracts the document's main results and assesses their reproducibility — returning a structured list of findings (figures, tables, equations, key text) each with a reproducibility classification and rationale. | |
@@ -88,14 +88,14 @@ for details.
 | Analysis Type | Description | Eval |
 |:---|:---|:---:|
 | **Literature Review** | Searches the web for relevant academic sources related to your document's claims that you may not have cited, noting for each whether it supports or conflicts with your work. `#experimental` `#web_search` | |
-| **Citation Suggester** | Identifies claims that would benefit from additional citations and recommends specific references from your uploaded supporting documents. Can be paired with Literature Review to suggest newly discovered sources. `#experimental` `#web_search` `#full_text_refs` | [evals](https://github.com/agencyenterprise/ai-reviewer/tree/main/evals_inspectai) |
+| **Citation Suggester** | Identifies claims that would benefit from additional citations and recommends specific references from your uploaded supporting documents. Can be paired with Literature Review to suggest newly discovered sources. `#experimental` `#web_search` `#full_text_refs` | [evals](https://github.com/agencyenterprise/draft-detective/tree/main/evals_inspectai) |
 | **Live Reports** | Analyzes claims against sources published after the document's date, identifying findings that may need updating in light of newer evidence and generating a consolidated addendum. `#experimental` `#web_search` | |
 
 ---
 
 ## Source Code
 
-The source code is available on [GitHub](https://github.com/agencyenterprise/ai-reviewer).
+The source code is available on [GitHub](https://github.com/agencyenterprise/draft-detective).
 """
 
 ABOUT_PAGE_DEFAULTS = [

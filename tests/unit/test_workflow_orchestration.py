@@ -4,7 +4,11 @@ import pytest
 from unittest.mock import AsyncMock, patch, MagicMock
 from uuid import uuid4
 
-from lib.services.workflow_orchestration import wait_for_dependencies
+from lib.services.workflow_orchestration import (
+    DEPENDENCY_WAIT_TIMEOUT,
+    wait_for_dependencies,
+)
+from lib.workflows.models import DependencyWaitTimeoutError, WorkflowCancelledError
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus, WorkflowRunType
 
 
@@ -402,4 +406,100 @@ async def test_cancelled_optional_dependency_does_not_raise():
         )
 
     mock_sleep.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# DependencyWaitTimeoutError
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_wait_for_dependencies_raises_after_timeout(mock_manifest):
+    """wait_for_dependencies raises DependencyWaitTimeoutError once it has waited longer than DEPENDENCY_WAIT_TIMEOUT."""
+    project_id = str(uuid4())
+    current_run_id = str(uuid4())
+    other_run_id = str(uuid4())
+
+    # A perpetually RUNNING upstream of the same type → wait loop never clears.
+    blocking_run = create_workflow_run(
+        WorkflowRunType.DOCUMENT_PROCESSING,
+        WorkflowRunStatus.RUNNING,
+        run_id=other_run_id,
+    )
+
+    # First call returns t=0 (start), then jumps past the timeout window so the
+    # loop's deadline check fires on the next iteration.
+    monotonic_calls = iter([0.0, float(DEPENDENCY_WAIT_TIMEOUT) + 1.0])
+
+    with (
+        patch(
+            "lib.services.workflow_orchestration.get_workflow_manifest",
+            return_value=mock_manifest,
+        ),
+        patch(
+            "lib.services.workflow_orchestration.get_project_workflow_run_by_type",
+            new=AsyncMock(return_value=blocking_run),
+        ),
+        patch("lib.services.workflow_orchestration.asyncio.sleep", new=AsyncMock()),
+        patch(
+            "lib.services.workflow_orchestration.time.monotonic",
+            side_effect=lambda: next(monotonic_calls),
+        ),
+    ):
+        with pytest.raises(DependencyWaitTimeoutError) as exc:
+            await wait_for_dependencies(
+                WorkflowRunType.DOCUMENT_PROCESSING,
+                project_id,
+                current_workflow_run_id=current_run_id,
+            )
+
+    assert "document_processing" in str(exc.value)
+    assert str(DEPENDENCY_WAIT_TIMEOUT) in str(exc.value)
+
+
+# ---------------------------------------------------------------------------
+# FAILED upstream is treated as terminal for required dependencies
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_required_failed_dependency_cancels_dependent():
+    """A FAILED required dependency aborts the dependent run via WorkflowCancelledError."""
+    project_id = str(uuid4())
+    current_run_id = str(uuid4())
+
+    manifest_with_required = MagicMock()
+    manifest_with_required.required_dependencies = [WorkflowRunType.DOCUMENT_PROCESSING]
+    manifest_with_required.optional_dependencies = []
+
+    failed_dep = create_workflow_run(
+        WorkflowRunType.DOCUMENT_PROCESSING,
+        WorkflowRunStatus.FAILED,
+    )
+
+    with (
+        patch(
+            "lib.services.workflow_orchestration.get_workflow_manifest",
+            return_value=manifest_with_required,
+        ),
+        patch(
+            "lib.services.workflow_orchestration.get_project_workflow_run_by_type",
+            new=AsyncMock(return_value=failed_dep),
+        ),
+        patch(
+            "lib.services.workflow_orchestration.update_workflow_run_status",
+            new=AsyncMock(),
+        ) as mock_update,
+        patch("lib.services.workflow_orchestration.asyncio.sleep", new=AsyncMock()),
+    ):
+        with pytest.raises(WorkflowCancelledError) as exc:
+            await wait_for_dependencies(
+                WorkflowRunType.REFERENCE_EXTRACTION,
+                project_id,
+                current_workflow_run_id=current_run_id,
+            )
+
+    assert "failed" in str(exc.value).lower()
+    # The dependent itself is moved to CANCELLED so the cascade is consistent.
+    mock_update.assert_any_await(current_run_id, WorkflowRunStatus.CANCELLED)
 

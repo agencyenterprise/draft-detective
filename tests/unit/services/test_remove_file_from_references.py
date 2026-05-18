@@ -37,6 +37,15 @@ async def _fake_checkpointer():
     yield MagicMock()
 
 
+@pytest.fixture(autouse=True)
+def _stub_persist_state():
+    """Avoid hitting the DB when the references service mirrors state to state_json."""
+    with patch(
+        "lib.services.references.persist_workflow_run_state", new=AsyncMock()
+    ) as m:
+        yield m
+
+
 @pytest.mark.asyncio
 async def test_returns_empty_when_no_workflow_run():
     with patch(

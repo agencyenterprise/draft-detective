@@ -1,0 +1,56 @@
+[
+  {
+    "input": "# Remote Work Productivity Study\n\n## Findings\n\nA twelve-month survey of 1,240 employees across four departments found that median self-reported productivity rose by 14 percent after the introduction of fully remote work. Engineering teams showed the largest gain at 19 percent, while customer support saw a smaller but still positive 6 percent gain. Meeting hours fell by an average of 4.2 hours per week per employee.\n\nEmployee retention over the study period rose from 82 percent to 91 percent year-over-year, with exit-interview data attributing the change primarily to schedule flexibility.\n\n## Recommendations\n\n1. Continue the fully remote work policy across all four departments based on the sustained productivity and retention gains observed.\n2. Reduce the standing-meeting load further by capping recurring meetings at six hours per week per employee, building on the observed 4.2-hour reduction.\n3. Expand schedule flexibility to contractor staff, who were not covered by the present study.\n",
+    "target_severity_counts": {
+      "none": 1,
+      "medium": 1,
+      "high": 1
+    },
+    "target_answer": "Recommendation 1 is fully supported by the documented productivity and retention gains. Recommendation 2 is partially supported: the document shows a 4.2-hour meeting reduction, but the specific six-hour weekly cap is a new threshold not grounded in any finding — under the boundary rule, when a recommendation adds a specific threshold not in the findings, it is partially_supported (medium) rather than supported. Recommendation 3 is unsupported (high) per the out-of-scope-population rule: contractor staff were not covered by the study at all, even though the underlying intervention (schedule flexibility) is supported for in-house staff. The agent should report 1 'none', 1 'medium', and 1 'high' issue."
+  },
+  {
+    "input": "# Coastal Erosion Mitigation: Pilot Programme Report\n\n## Findings\n\nThe pilot installed permeable groynes at three of the five monitoring sites (S1, S2, S3) over a 24-month period. Sites S4 and S5 served as untreated controls.\n\nMean annual erosion at the treated sites fell from 58 mm/year to 22 mm/year, a 62 percent reduction. The control sites showed no significant change (61 mm/year vs 59 mm/year). Cost per linear metre of intervention was 1,420 USD, roughly 30 percent below the original budget estimate.\n\nNo measurable change in beach width or sediment composition was observed at any site during the study period.\n\n## Recommendations\n\n1. Scale the permeable groyne intervention to all five sites, given the observed 62 percent reduction in erosion at treated sites and the favourable cost performance.\n2. Use the intervention to restore beach width along the wider regional coastline.\n",
+    "target_severity_counts": {
+      "none": 0,
+      "medium": 1,
+      "high": 1
+    },
+    "target_answer": "Recommendation 1 is partially_supported: the intervention's 62 percent erosion reduction is well documented, but the recommendation extends application to sites S4 and S5 where the intervention was *not* applied (they served as untreated controls). Under the rule for extrapolating from a measured site to a closely related but unmeasured one, this is partially_supported (medium). Recommendation 2 is unsupported (high) — and in fact contradicted by findings: the document explicitly states no measurable change in beach width was observed. The agent should report 1 'medium' and 1 'high' issue."
+  },
+  {
+    "input": "# Annual Air Quality Report\n\n## Overview\n\nThis report summarises pollutant readings across twelve monitoring stations between January and December.\n\n## PM2.5 Trends\n\nMean annual PM2.5 fell from 24 µg/m³ in the previous year to 21 µg/m³ this year, a reduction of approximately 12 percent. The station closest to the new low-emission zone (Station 4) showed a 28 percent reduction.\n\n## NO₂ Trends\n\nNO₂ readings were stable across all stations, with no statistically significant change year-over-year.\n\n## Ozone Trends\n\nOzone showed a small seasonal increase in summer months, consistent with prior years.\n\n## Conclusion\n\nThe data indicate that targeted low-emission zones are correlated with localised PM2.5 reductions. NO₂ levels were unchanged. Ozone showed the usual seasonal pattern.\n",
+    "target_severity_counts": {
+      "none": 0,
+      "medium": 0,
+      "high": 0
+    },
+    "target_answer": "This document contains only findings and a factual conclusion summarising those findings. There are no recommendations — no calls to action, no proposed changes, no policy suggestions. The agent should report zero issues."
+  },
+  {
+    "input": "# Public Library Digital Services Review\n\n## Executive Summary\n\nThis review assessed digital service uptake at twenty-two public library branches over the 2024 calendar year.\n\n### Recommendations\n\n- **Expand e-book lending budget across all branches.**\n- **Open extended evening hours at the five busiest branches.**\n- **Replace ageing self-checkout terminals.**\n\n## Findings\n\nE-book loans grew 38 percent year-over-year and now represent 41 percent of all loans system-wide. Branches that exhausted their e-book budget within the first nine months saw flat or declining overall loan numbers in Q4.\n\nFoot traffic data shows the five busiest branches (Central, Eastgate, Westwood, Riverside, Hilltop) operate above 95 percent of seating capacity for the final hour of every weekday. No data was collected on demand outside currently operating hours.\n\nNo equipment audit was performed during this review.\n\n## Detailed Recommendations\n\n1. Increase the e-book lending budget by at least 25 percent across all branches, prioritising those that exhausted their allocation in the first nine months. The 38 percent growth in e-book loans, coupled with reduced overall lending where budgets were exhausted, justifies expanded investment.\n2. Open extended evening hours (until 10 PM) at the five busiest branches — Central, Eastgate, Westwood, Riverside, and Hilltop — to absorb demand from patrons currently turned away during peak final-hour periods.\n3. Replace ageing self-checkout terminals across the network within the next 18 months to improve patron experience.\n",
+    "target_severity_counts": {
+      "none": 1,
+      "medium": 3,
+      "high": 2
+    },
+    "target_answer": "The document contains two recommendation sections (Executive Summary and Detailed Recommendations) with three recommendations each — six occurrences total, evaluated independently. The summary e-book recommendation ('expand e-book lending budget across all branches') is fully supported by the loan-growth and budget-exhaustion findings → 1 'none'. The detailed e-book recommendation adds a specific '25 percent' threshold that is not grounded in any finding — under the boundary rule, when a recommendation adds a specific threshold not in the findings it is partially_supported → 1 'medium'. Both extended-hours recommendations (summary and detailed) are partially_supported: the 95 percent capacity finding implies demand at the final operating hour, but the document explicitly states no data was collected on demand outside currently operating hours, so extending until 10 PM is a small inferential extension → 2 'medium'. Both terminal-replacement recommendations are unsupported: the document explicitly states no equipment audit was performed, so the recommendation's subject is entirely unmeasured → 2 'high'. The agent should report 6 issues total: 1 'none', 3 'medium', 2 'high'."
+  },
+  {
+    "input": "# Workplace Safety: Annual Incident Review\n\n## Findings\n\nReportable incidents fell from 47 in the prior year to 31 in the current year, a 34 percent reduction. The introduction of mandatory pre-shift safety briefings in March is the largest single change correlated with the reduction; in months following the introduction, incident rates were 42 percent lower than in equivalent months the previous year.\n\nNear-miss reporting rose from 112 to 198 reports over the same period. Internal review suggests the increase reflects greater willingness to report rather than a genuine rise in near-miss frequency.\n\nLost-time injury rate fell from 3.1 to 2.4 per 100,000 hours worked.\n\n## Findings and Recommendations\n\n### Recommendations\n\n1. Make pre-shift safety briefings a permanent fixture across all sites, given the 42 percent reduction in incident rates in months following their introduction.\n2. Continue to encourage near-miss reporting and treat increases in reports as a positive indicator of safety culture rather than a deterioration.\n3. Roll out the mandatory safety briefings to contractor sites worldwide.\n",
+    "target_severity_counts": {
+      "none": 1,
+      "medium": 1,
+      "high": 1
+    },
+    "target_answer": "Recommendation 1 is partially_supported: the 42 percent post-introduction reduction supports the briefings' effectiveness, but 'making permanent' is a temporal extension beyond the studied period — it adds a horizon (indefinite continuation) that the findings do not directly establish. Recommendation 2 is supported by the document's own note that the increase in near-miss reports reflects willingness to report rather than rising frequency. Recommendation 3 is unsupported: extending to contractor sites worldwide goes to a population/scope the study did not cover at all. The agent should report 1 'none', 1 'medium', and 1 'high' issue."
+  },
+  {
+    "input": "# Hospital Readmission Reduction Pilot\n\n## Findings\n\nA six-month pilot of post-discharge nurse calls covered 412 patients across two cardiology wards. The 30-day readmission rate for the pilot cohort was 11.2 percent, compared to 18.4 percent in the matched control cohort drawn from the prior year. The difference (-7.2 percentage points) was statistically significant at p < 0.01.\n\nAverage call duration was 14 minutes. Per-patient cost was 38 USD. Estimated savings per avoided readmission was 8,400 USD.\n\nPatient-reported satisfaction with the call programme averaged 4.6/5.\n\n## Conclusion and Recommendations\n\n1. Roll out the post-discharge nurse call programme to the remaining cardiology wards in the network, given the demonstrated 7.2-percentage-point reduction in readmissions and favourable cost-benefit profile.\n2. Extend the call programme to oncology wards as a next step, where readmission rates have historically been comparable to cardiology.\n",
+    "target_severity_counts": {
+      "none": 0,
+      "medium": 1,
+      "high": 1
+    },
+    "target_answer": "Recommendation 1 is partially_supported: the 7.2-percentage-point reduction is shown in the two pilot wards, and the recommendation extends application to the 'remaining cardiology wards' which were not part of the pilot — this is the canonical pilot-to-rollout extrapolation to closely related but unmeasured sites. Recommendation 2 is unsupported under the out-of-scope-population rule: oncology wards were not measured at all in the document, and a different ward type is a different unmeasured population. The agent should report 1 'medium' and 1 'high' issue."
+  }
+]

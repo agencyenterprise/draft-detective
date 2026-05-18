@@ -5,6 +5,7 @@ This module sets up the FastAPI application, middleware, and registers routers.
 Business logic is organized in separate routers under api/routers/.
 """
 
+import asyncio
 import logging
 from contextlib import asynccontextmanager
 
@@ -13,7 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastmcp.utilities.lifespan import combine_lifespans
 
-from lib.api.mcp import mcp_app, mcp_auth
+from lib.api.mcp.server import mcp_app, mcp_auth
 from lib.api.mcp_middlewares import MCPTrailingSlashMiddleware
 from lib.api.tus_middleware import TusTerminationMiddleware
 from lib.api.routers import (
@@ -33,6 +34,7 @@ from lib.api.routers import (
 )
 from lib.api.routers.tus_upload import tus_router
 from lib.config.logger import setup_logger
+from lib.services.workflow_reaper import run_reaper_loop
 
 setup_logger()
 
@@ -42,13 +44,22 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Seed default runtime configs on startup; close shared pools on shutdown."""
+    # `seed_all_defaults` and `close_checkpointer_pool` stay lazy to keep the
+    # import graph simple — they pull in services that don't need to load on
+    # every test that imports main.py.
     from lib.services.app_configs import seed_all_defaults
     from lib.workflows.checkpointer import close_checkpointer_pool
 
     await seed_all_defaults()
+    reaper_task = asyncio.create_task(run_reaper_loop(), name="workflow-reaper")
     try:
         yield
     finally:
+        reaper_task.cancel()
+        try:
+            await reaper_task
+        except asyncio.CancelledError:
+            pass
         await close_checkpointer_pool()
 
 

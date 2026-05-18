@@ -971,7 +971,7 @@ export type CitationIssueItem = {
   /**
    * Citation To File Mapping
    *
-   * The bibliography-to-file mapping used when checking this citation. Omit file IDs.
+   * Display-friendly summary of which bibliography entry was matched to which supporting file when checking this citation, e.g. 'Smith (2020) → smith_2020.pdf'. Do not include file_id UUIDs in this string; the file_id belongs in each entry of evidence_sources.
    */
   citation_to_file_mapping?: string | null;
 };
@@ -1608,6 +1608,52 @@ export const ConfidenceInRecommendation = {
  * ConfidenceInRecommendation
  */
 export type ConfidenceInRecommendation = (typeof ConfidenceInRecommendation)[keyof typeof ConfidenceInRecommendation];
+
+/**
+ * CostBreakdown
+ *
+ * Aggregated cost across all models used in a workflow run.
+ */
+export type CostBreakdown = {
+  /**
+   * Total Cost Usd
+   */
+  total_cost_usd?: string;
+  /**
+   * Input Cost Usd
+   */
+  input_cost_usd?: string;
+  /**
+   * Output Cost Usd
+   */
+  output_cost_usd?: string;
+  /**
+   * Cache Read Cost Usd
+   */
+  cache_read_cost_usd?: string;
+  /**
+   * Total Input Tokens
+   */
+  total_input_tokens?: number;
+  /**
+   * Total Output Tokens
+   */
+  total_output_tokens?: number;
+  /**
+   * Total Cache Read Tokens
+   */
+  total_cache_read_tokens?: number;
+  /**
+   * Request Count
+   */
+  request_count?: number;
+  /**
+   * By Model
+   */
+  by_model?: {
+    [key: string]: ModelCostBreakdown;
+  };
+};
 
 /**
  * CreateProjectRequest
@@ -3031,9 +3077,9 @@ export type IssueItem = {
   /**
    * Severity
    *
-   * Issue severity: low, medium, or high
+   * Issue severity: none, low, medium, or high. Use 'none' for informational items that should be surfaced but do not represent a problem.
    */
-  severity?: 'low' | 'medium' | 'high';
+  severity?: 'none' | 'low' | 'medium' | 'high';
   /**
    * Long Description
    *
@@ -3497,6 +3543,46 @@ export type MethodologyComparisonResponse = {
    * List of sources cited from web search
    */
   references?: Array<ReferenceMinimal>;
+};
+
+/**
+ * ModelCostBreakdown
+ *
+ * Cost and token totals for a single model.
+ */
+export type ModelCostBreakdown = {
+  /**
+   * Input Tokens
+   */
+  input_tokens?: number;
+  /**
+   * Output Tokens
+   */
+  output_tokens?: number;
+  /**
+   * Cache Read Tokens
+   */
+  cache_read_tokens?: number;
+  /**
+   * Input Cost Usd
+   */
+  input_cost_usd?: string;
+  /**
+   * Output Cost Usd
+   */
+  output_cost_usd?: string;
+  /**
+   * Cache Read Cost Usd
+   */
+  cache_read_cost_usd?: string;
+  /**
+   * Total Cost Usd
+   */
+  total_cost_usd?: string;
+  /**
+   * Request Count
+   */
+  request_count?: number;
 };
 
 /**
@@ -4009,9 +4095,9 @@ export type ReferenceDownloaderWorkflowConfig = {
   /**
    * References
    *
-   * The references to fetch from the internet
+   * The references to fetch from the internet. When omitted, the workflow defaults to every extracted reference that does not yet have a matched supporting file.
    */
-  references: Array<ReferenceDownloaderInputItem>;
+  references?: Array<ReferenceDownloaderInputItem> | null;
 };
 
 /**
@@ -5544,6 +5630,30 @@ export type WorkflowRun = {
    * The project revision this workflow run belongs to
    */
   revision?: number;
+  /**
+   * Heartbeat At
+   *
+   * Updated on every node entry/exit; used by the reaper to detect stuck runs
+   */
+  heartbeat_at: Date | null;
+  /**
+   * Populated only when status == FAILED
+   */
+  failure_reason?: WorkflowRunFailureReason | null;
+  /**
+   * Failure Message
+   *
+   * Short human-readable detail of the failure. Populated only when status == FAILED.
+   */
+  failure_message?: string | null;
+  /**
+   * State Json
+   *
+   * Serialized WorkflowState; written after every node yield. Schema is the WorkflowState subclass for `type`.
+   */
+  state_json?: {
+    [key: string]: unknown;
+  } | null;
 };
 
 /**
@@ -5581,7 +5691,35 @@ export type WorkflowRunDetail = {
     | Reviewer2State
     | SimpleDeepAgentState
     | null;
+  cost?: CostBreakdown | null;
 };
+
+/**
+ * WorkflowRunFailureReason
+ *
+ * Reason a workflow run transitioned to FAILED.
+ *
+ * FAILED is reserved for unrecoverable workflow-level halts; node-level errors
+ * that the workflow recovers from are still represented via state.errors and
+ * leave the run in COMPLETED status.
+ */
+export const WorkflowRunFailureReason = {
+  Timeout: 'timeout',
+  DependencyTimeout: 'dependency_timeout',
+  NoHeartbeat: 'no_heartbeat',
+  UnhandledException: 'unhandled_exception',
+} as const;
+
+/**
+ * WorkflowRunFailureReason
+ *
+ * Reason a workflow run transitioned to FAILED.
+ *
+ * FAILED is reserved for unrecoverable workflow-level halts; node-level errors
+ * that the workflow recovers from are still represented via state.errors and
+ * leave the run in COMPLETED status.
+ */
+export type WorkflowRunFailureReason = (typeof WorkflowRunFailureReason)[keyof typeof WorkflowRunFailureReason];
 
 /**
  * WorkflowRunStatus
@@ -5591,6 +5729,7 @@ export const WorkflowRunStatus = {
   Running: 'running',
   Completed: 'completed',
   Cancelled: 'cancelled',
+  Failed: 'failed',
 } as const;
 
 /**
@@ -5628,6 +5767,7 @@ export const WorkflowRunType = {
   Reviewer2: 'reviewer_2',
   DocumentStructure: 'document_structure',
   FiguresTablesCheck: 'figures_tables_check',
+  RecommendationCheck: 'recommendation_check',
 } as const;
 
 /**

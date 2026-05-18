@@ -2,10 +2,10 @@
 <OfficeApp xmlns="http://schemas.microsoft.com/office/appforoffice/1.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0" xmlns:ov="http://schemas.microsoft.com/office/taskpaneappversionoverrides" xsi:type="TaskPaneApp">
   <Id>d11b2ab1-20e0-4baf-abcf-e54ed028ce7d</Id>
   <Version>1.0.0.0</Version>
-  <ProviderName>AI Reviewer</ProviderName>
+  <ProviderName>Draft Detective</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
-  <DisplayName DefaultValue="AI Reviewer"/>
-  <Description DefaultValue="AI Reviewer add-in allows you to see the issues on AI Reviewer in your word document." />
+  <DisplayName DefaultValue="Draft Detective"/>
+  <Description DefaultValue="Draft Detective add-in allows you to see the issues on Draft Detective in your word document." />
   <IconUrl DefaultValue="{FRONTEND_URL}/logo_160x160.png"/>
   <HighResolutionIconUrl DefaultValue="{FRONTEND_URL}/logo_160x160.png"/>
   <SupportUrl DefaultValue="{FRONTEND_URL}/"/>
@@ -75,13 +75,13 @@
         <bt:Url id="Taskpane.Url" DefaultValue="{FRONTEND_URL}/addin"/>
       </bt:Urls>
       <bt:ShortStrings>
-        <bt:String id="GetStarted.Title" DefaultValue="Get started with the AI Reviewer add-in!"/>
-        <bt:String id="CommandsGroup.Label" DefaultValue="AI Reviewer"/>
-        <bt:String id="TaskpaneButton.Label" DefaultValue="AI Reviewer"/>
+        <bt:String id="GetStarted.Title" DefaultValue="Get started with the Draft Detective add-in!"/>
+        <bt:String id="CommandsGroup.Label" DefaultValue="Draft Detective"/>
+        <bt:String id="TaskpaneButton.Label" DefaultValue="Draft Detective"/>
       </bt:ShortStrings>
       <bt:LongStrings>
-        <bt:String id="GetStarted.Description" DefaultValue="The AI Reviewer add-in loaded successfully. Go to the HOME tab and click the 'AI Reviewer' button to get started."/>
-        <bt:String id="TaskpaneButton.Tooltip" DefaultValue="Click to open the AI Reviewer add-in."/>
+        <bt:String id="GetStarted.Description" DefaultValue="The Draft Detective add-in loaded successfully. Go to the HOME tab and click the 'Draft Detective' button to get started."/>
+        <bt:String id="TaskpaneButton.Tooltip" DefaultValue="Click to open the Draft Detective add-in."/>
       </bt:LongStrings>
     </Resources>
   </VersionOverrides>

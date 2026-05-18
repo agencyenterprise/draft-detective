@@ -11,11 +11,20 @@ from typing import Any, Callable
 from langgraph.runtime import Runtime
 
 from lib.models.workflow_progress import ProgressLevel
-from lib.models.workflow_run import WorkflowRunStatus
+from lib.models.workflow_run import (
+    TERMINAL_WORKFLOW_RUN_STATUSES,
+    WorkflowRunStatus,
+)
 from lib.services.workflow_progress import (
     get_or_create_progress,
     increment_and_complete_if_done,
 )
+
+# `workflow_runs` is imported lazily inside the functions below: importing
+# it here would form a circular chain (workflow_runs → registry → manifest
+# → graph → nodes → decorators), and Python errors out before the module
+# finishes initializing. The functions only need the helpers at call time,
+# so deferring is safe.
 from lib.workflows.context import ContextSchema, current_progress_id
 from lib.workflows.models import (
     BaseWorkflowState,
@@ -25,21 +34,44 @@ from lib.workflows.models import (
 
 CANCELLATION_CHECK_INTERVAL = 5.0
 
+logger = logging.getLogger(__name__)
 
-async def _poll_for_cancellation(
+
+async def _supervise_node(
     workflow_run_id: str, node_task: asyncio.Task, interval: float
 ) -> None:
-    """Poll the DB for cancellation status and cancel the node task if detected."""
-    from lib.services.workflow_runs import get_workflow_run_status
+    """Watch a running node: cancel it on demand and keep the heartbeat fresh.
+
+    Two responsibilities, both polled at `interval` seconds:
+      1. If the workflow row reached a terminal status (CANCELLED by the
+         user, or FAILED by the reaper / a parallel failure path), cancel
+         the node task and stop bumping the heartbeat.
+      2. Otherwise bump heartbeat_at so the reaper sees the run as alive.
+
+    Runs as a sibling asyncio task while the node executes, so the heartbeat
+    keeps ticking even while the node awaits I/O. The reaper's role is
+    detecting *dead processes* (restart / OOM); for hung-but-alive nodes the
+    workflow-level asyncio.timeout(max_duration) is the safety net.
+    """
+    # Lazy import — see the module-level comment about the circular chain
+    # decorators → workflow_runs → registry → … → decorators.
+    from lib.services.workflow_runs import (
+        get_workflow_run_status,
+        update_workflow_run_heartbeat,
+    )
 
     while not node_task.done():
         await asyncio.sleep(interval)
         if node_task.done():
             break
         status = await get_workflow_run_status(workflow_run_id)
-        if status == WorkflowRunStatus.CANCELLED:
+        if status in TERMINAL_WORKFLOW_RUN_STATUSES:
             node_task.cancel()
             break
+        await update_workflow_run_heartbeat(workflow_run_id)
+        logger.debug(
+            f"Heartbeat tick for workflow_run_id={workflow_run_id} (status={status})"
+        )
 
 
 async def _setup_progress(
@@ -59,6 +91,7 @@ async def _setup_progress(
 
 async def _check_cancellation(workflow_run_id: str, func_name: str) -> None:
     """Raise WorkflowCancelledError if the workflow is already cancelled."""
+    # Lazy import — see module-level comment about the circular chain.
     from lib.services.workflow_runs import get_workflow_run_status
 
     status = await get_workflow_run_status(workflow_run_id)
@@ -75,16 +108,17 @@ async def _run_node_with_cancellation(
     workflow_run_id: str,
 ) -> dict[str, Any]:
     """Run the node function alongside a cancellation poller."""
+    # Lazy import — see module-level comment about the circular chain.
     from lib.services.workflow_runs import get_workflow_run_status
 
     node_task = asyncio.ensure_future(func(state, runtime))
-    poll_task = asyncio.ensure_future(
-        _poll_for_cancellation(workflow_run_id, node_task, CANCELLATION_CHECK_INTERVAL)
+    supervisor_task = asyncio.ensure_future(
+        _supervise_node(workflow_run_id, node_task, CANCELLATION_CHECK_INTERVAL)
     )
     try:
         return await node_task
     except asyncio.CancelledError:
-        # Confirm the cancellation came from our poller and not an external event loop shutdown
+        # Confirm the cancellation came from our supervisor and not an external event loop shutdown
         status = await get_workflow_run_status(workflow_run_id)
         if status == WorkflowRunStatus.CANCELLED:
             raise WorkflowCancelledError(
@@ -92,8 +126,8 @@ async def _run_node_with_cancellation(
             )
         raise
     finally:
-        poll_task.cancel()
-        await asyncio.gather(poll_task, return_exceptions=True)
+        supervisor_task.cancel()
+        await asyncio.gather(supervisor_task, return_exceptions=True)
 
 
 async def _complete_progress(

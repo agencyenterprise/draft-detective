@@ -12,6 +12,17 @@ class WorkflowCancelledError(Exception):
     pass
 
 
+class DependencyWaitTimeoutError(Exception):
+    """Raised when wait_for_dependencies exceeds DEPENDENCY_WAIT_TIMEOUT.
+
+    Indicates an upstream dependency is stuck (typically itself orphaned in
+    RUNNING). The dependent run should be marked FAILED with
+    failure_reason=dependency_timeout.
+    """
+
+    pass
+
+
 class WorkflowError(BaseModel):
     """Error object for the overall workflow or specific chunks."""
 
@@ -94,6 +105,7 @@ class WorkflowRunType(str, Enum):
     REVIEWER_2 = "reviewer_2"
     DOCUMENT_STRUCTURE = "document_structure"
     FIGURES_TABLES_CHECK = "figures_tables_check"
+    RECOMMENDATION_CHECK = "recommendation_check"
 
 
 def is_user_visible_workflow(workflow_type: WorkflowRunType) -> bool:

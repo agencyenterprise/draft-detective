@@ -36,7 +36,7 @@ def _patches(
             new=AsyncMock(return_value=run),
         ),
         patch(
-            "lib.services.workflow_progress.cancel_workflow_progress",
+            "lib.services.workflow_runs.cancel_workflow_progress",
             new=AsyncMock(),
         ),
         patch(
@@ -44,7 +44,7 @@ def _patches(
             new=AsyncMock(),
         ),
         patch(
-            "lib.workflows.dependency_resolver.get_required_dependents",
+            "lib.services.workflow_runs.get_required_dependents",
             return_value=dependents,
         ),
         patch(
@@ -66,9 +66,9 @@ async def test_cancel_marks_run_cancelled():
 
     with (
         patch("lib.services.workflow_runs.get_workflow_run", new=AsyncMock(return_value=run)),
-        patch("lib.services.workflow_progress.cancel_workflow_progress", new=AsyncMock()),
+        patch("lib.services.workflow_runs.cancel_workflow_progress", new=AsyncMock()),
         patch("lib.services.workflow_runs.update_workflow_run_status", new=AsyncMock()) as mock_update,
-        patch("lib.workflows.dependency_resolver.get_required_dependents", return_value=[]),
+        patch("lib.services.workflow_runs.get_required_dependents", return_value=[]),
         patch("lib.services.workflow_runs.get_project_workflow_run_by_type", new=AsyncMock(return_value=None)),
     ):
         await cancel_workflow_run(str(run.id), "project-1")
@@ -83,9 +83,9 @@ async def test_cancel_calls_cancel_workflow_progress():
 
     with (
         patch("lib.services.workflow_runs.get_workflow_run", new=AsyncMock(return_value=run)),
-        patch("lib.services.workflow_progress.cancel_workflow_progress", new=AsyncMock()) as mock_cancel_progress,
+        patch("lib.services.workflow_runs.cancel_workflow_progress", new=AsyncMock()) as mock_cancel_progress,
         patch("lib.services.workflow_runs.update_workflow_run_status", new=AsyncMock()),
-        patch("lib.workflows.dependency_resolver.get_required_dependents", return_value=[]),
+        patch("lib.services.workflow_runs.get_required_dependents", return_value=[]),
         patch("lib.services.workflow_runs.get_project_workflow_run_by_type", new=AsyncMock(return_value=None)),
     ):
         await cancel_workflow_run(str(run.id), "project-1")
@@ -111,9 +111,9 @@ async def test_cancel_cascades_to_pending_dependent():
 
     with (
         patch("lib.services.workflow_runs.get_workflow_run", new=AsyncMock(side_effect=lambda rid, **kw: runs_by_id[str(rid)])),
-        patch("lib.services.workflow_progress.cancel_workflow_progress", new=AsyncMock()),
+        patch("lib.services.workflow_runs.cancel_workflow_progress", new=AsyncMock()),
         patch("lib.services.workflow_runs.update_workflow_run_status", new=AsyncMock()) as mock_update,
-        patch("lib.workflows.dependency_resolver.get_required_dependents", side_effect=dependents_for),
+        patch("lib.services.workflow_runs.get_required_dependents", side_effect=dependents_for),
         patch(
             "lib.services.workflow_runs.get_project_workflow_run_by_type",
             new=AsyncMock(return_value=dependent_run),
@@ -138,9 +138,9 @@ async def test_cancel_cascades_to_running_dependent():
 
     with (
         patch("lib.services.workflow_runs.get_workflow_run", new=AsyncMock(side_effect=lambda rid, **kw: runs_by_id[str(rid)])),
-        patch("lib.services.workflow_progress.cancel_workflow_progress", new=AsyncMock()),
+        patch("lib.services.workflow_runs.cancel_workflow_progress", new=AsyncMock()),
         patch("lib.services.workflow_runs.update_workflow_run_status", new=AsyncMock()) as mock_update,
-        patch("lib.workflows.dependency_resolver.get_required_dependents", side_effect=dependents_for),
+        patch("lib.services.workflow_runs.get_required_dependents", side_effect=dependents_for),
         patch(
             "lib.services.workflow_runs.get_project_workflow_run_by_type",
             new=AsyncMock(return_value=dependent_run),
@@ -160,10 +160,10 @@ async def test_cancel_does_not_cascade_to_completed_dependent():
 
     with (
         patch("lib.services.workflow_runs.get_workflow_run", new=AsyncMock(return_value=run)),
-        patch("lib.services.workflow_progress.cancel_workflow_progress", new=AsyncMock()),
+        patch("lib.services.workflow_runs.cancel_workflow_progress", new=AsyncMock()),
         patch("lib.services.workflow_runs.update_workflow_run_status", new=AsyncMock()) as mock_update,
         patch(
-            "lib.workflows.dependency_resolver.get_required_dependents",
+            "lib.services.workflow_runs.get_required_dependents",
             return_value=[WorkflowRunType.REFERENCE_EXTRACTION],
         ),
         patch(
@@ -185,10 +185,10 @@ async def test_cancel_does_not_cascade_to_already_cancelled_dependent():
 
     with (
         patch("lib.services.workflow_runs.get_workflow_run", new=AsyncMock(return_value=run)),
-        patch("lib.services.workflow_progress.cancel_workflow_progress", new=AsyncMock()),
+        patch("lib.services.workflow_runs.cancel_workflow_progress", new=AsyncMock()),
         patch("lib.services.workflow_runs.update_workflow_run_status", new=AsyncMock()) as mock_update,
         patch(
-            "lib.workflows.dependency_resolver.get_required_dependents",
+            "lib.services.workflow_runs.get_required_dependents",
             return_value=[WorkflowRunType.REFERENCE_EXTRACTION],
         ),
         patch(
@@ -210,10 +210,10 @@ async def test_cancel_skips_missing_dependent():
 
     with (
         patch("lib.services.workflow_runs.get_workflow_run", new=AsyncMock(return_value=run)),
-        patch("lib.services.workflow_progress.cancel_workflow_progress", new=AsyncMock()),
+        patch("lib.services.workflow_runs.cancel_workflow_progress", new=AsyncMock()),
         patch("lib.services.workflow_runs.update_workflow_run_status", new=AsyncMock()) as mock_update,
         patch(
-            "lib.workflows.dependency_resolver.get_required_dependents",
+            "lib.services.workflow_runs.get_required_dependents",
             return_value=[WorkflowRunType.REFERENCE_EXTRACTION],
         ),
         patch(

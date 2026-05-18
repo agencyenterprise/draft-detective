@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import uuid
 
@@ -11,18 +12,28 @@ from lib.config.env import config as env_config
 from lib.config.langfuse import langfuse_handler
 from lib.config.llm_error_logger import ErrorLoggingCallback
 from lib.models.user import User
-from lib.models.workflow_run import WorkflowRunStatus, WorkflowRunType
+from lib.models.workflow_run import (
+    WorkflowRunFailureReason,
+    WorkflowRunStatus,
+    WorkflowRunType,
+)
 from lib.services.file_artifacts_service.file_artifacts_service import (
     FileArtifactsService,
 )
 from lib.services.issue_persistence import persist_workflow_issues
 from lib.services.users import get_user_decrypted_api_key
 from lib.services.vector_store import VectorStoreService
-from lib.services.workflow_runs import update_workflow_run_status
+from lib.services.workflow_runs import (
+    fail_workflow_run,
+    get_workflow_run_state_by_thread_id,
+    persist_workflow_run_state,
+    update_workflow_run_status,
+)
 from lib.workflows.checkpointer import get_checkpointer
 from lib.workflows.context import ContextSchema
 from lib.workflows.models import (
     BaseWorkflowConfig,
+    DependencyWaitTimeoutError,
     WorkflowCancelledError,
     WorkflowError,
 )
@@ -74,9 +85,29 @@ async def run_workflow_with_dependency_check(
         # Status is already CANCELLED in DB; the guard in update_workflow_run_status
         # prevents it from being overwritten
 
+    except DependencyWaitTimeoutError as e:
+        logger.error(
+            f"Workflow {workflow_run_id} ({config.type.value}) timed out waiting "
+            f"for dependencies: {e}"
+        )
+        await fail_workflow_run(
+            workflow_run_id,
+            config.project_id,
+            failure_reason=WorkflowRunFailureReason.DEPENDENCY_TIMEOUT,
+            failure_message=str(e),
+        )
+
     except Exception as e:
+        # Errors that escape run_workflow's own handler land here. run_workflow
+        # already marks itself FAILED in that case; this branch covers errors
+        # raised before/after run_workflow runs (e.g. setup failures).
         logger.error(f"Error running workflow: {e}", exc_info=True)
-        await update_workflow_run_status(workflow_run_id, WorkflowRunStatus.COMPLETED)
+        await fail_workflow_run(
+            workflow_run_id,
+            config.project_id,
+            failure_reason=WorkflowRunFailureReason.UNHANDLED_EXCEPTION,
+            failure_message=str(e),
+        )
 
 
 async def run_workflow_from_config(
@@ -143,6 +174,9 @@ async def run_workflow(
         project_id=project_id,
     )
 
+    manifest = get_workflow_manifest(workflow_type, raise_exception=False)
+    max_duration = manifest.max_duration_seconds if manifest else 1 * 60 * 60
+
     async with get_checkpointer() as checkpointer:
         app = graph.compile(checkpointer=checkpointer).with_config(
             {
@@ -158,13 +192,18 @@ async def run_workflow(
         thread_config: RunnableConfig = {"configurable": {"thread_id": thread_id}}
 
         try:
-            async for values in app.astream(  # type: ignore[call-overload]
-                updated_state,
-                thread_config,
-                stream_mode="values",
-                context=context,
-            ):
-                updated_state = updated_state.model_copy(update=values)
+            async with asyncio.timeout(max_duration):
+                async for values in app.astream(  # type: ignore[call-overload]
+                    updated_state,
+                    thread_config,
+                    stream_mode="values",
+                    context=context,
+                ):
+                    updated_state = updated_state.model_copy(update=values)
+                    # Dual-write alongside the checkpointer. After the backfill
+                    # and reader cutover, state_json becomes the source of truth
+                    # and the checkpointer compile is dropped.
+                    await persist_workflow_run_state(workflow_run_id, updated_state)
 
             # Get checkpoint ID for debugging after successful completion
             state_snapshot = await app.aget_state(thread_config)
@@ -174,7 +213,9 @@ async def run_workflow(
                     "checkpoint_id"
                 )
 
-            # Persist issues after workflow completion
+            # Persist issues after workflow completion. Per-node errors collected
+            # in updated_state.errors stay surfaced through state — the run still
+            # transitions to COMPLETED ("completed with errors") below.
             await _persist_issues_from_state(
                 workflow_run_id=workflow_run_id,
                 project_id=project_id,
@@ -183,13 +224,41 @@ async def run_workflow(
                 checkpoint_id=checkpoint_id,
                 revision=context.revision,
             )
+
+            await update_workflow_run_status(
+                workflow_run_id, WorkflowRunStatus.COMPLETED
+            )
+
         except WorkflowCancelledError:
             logger.info(
                 f"Workflow {workflow_type} for project {project_id} was cancelled — running cleanup"
             )
-            manifest = get_workflow_manifest(workflow_type, raise_exception=False)
             if manifest:
                 await manifest.on_cancel(updated_state, app, thread_config)
+                await _mirror_post_cancel_state(
+                    workflow_run_id, thread_id, workflow_type
+                )
+            # Status is already CANCELLED in DB; CANCELLED-guard in
+            # update_workflow_run_status keeps it that way.
+
+        except asyncio.TimeoutError:
+            logger.error(
+                f"Workflow {workflow_type} for project {project_id} exceeded "
+                f"max_duration={max_duration}s — marking FAILED"
+            )
+            if manifest:
+                # on_cancel is the right place for abnormal-teardown cleanup
+                # (per-item statuses stuck in 'pending' would remain otherwise).
+                await manifest.on_cancel(updated_state, app, thread_config)
+                await _mirror_post_cancel_state(
+                    workflow_run_id, thread_id, workflow_type
+                )
+            await fail_workflow_run(
+                workflow_run_id,
+                project_id,
+                failure_reason=WorkflowRunFailureReason.TIMEOUT,
+                failure_message=f"Exceeded max_duration of {max_duration}s",
+            )
 
         except Exception as e:
             logger.error(f"Error running workflow {workflow_type}: {e}", exc_info=True)
@@ -200,10 +269,19 @@ async def run_workflow(
             )
 
             # Persist the error to the LangGraph checkpoint via the `add` reducer
+            # so it remains visible in the workflow state for debugging.
             await app.aupdate_state(thread_config, {"errors": [error]})
-        finally:
-            await update_workflow_run_status(
-                workflow_run_id, WorkflowRunStatus.COMPLETED
+            # Mirror the error onto state_json so the post-cutover reader path
+            # sees the same information once the checkpointer is retired.
+            updated_state = updated_state.model_copy(
+                update={"errors": [*updated_state.errors, error]}
+            )
+            await persist_workflow_run_state(workflow_run_id, updated_state)
+            await fail_workflow_run(
+                workflow_run_id,
+                project_id,
+                failure_reason=WorkflowRunFailureReason.UNHANDLED_EXCEPTION,
+                failure_message=str(e),
             )
 
     logger.info(
@@ -211,6 +289,30 @@ async def run_workflow(
     )
 
     return updated_state
+
+
+async def _mirror_post_cancel_state(
+    workflow_run_id: str,
+    thread_id: str,
+    workflow_type: WorkflowRunType,
+) -> None:
+    """Re-read state from the checkpointer after manifest.on_cancel and mirror
+    it onto state_json so the post-cutover reader sees the cleaned-up state.
+
+    on_cancel currently writes via app.aupdate_state, which only touches the
+    checkpointer. This dual-write keeps state_json in sync during the
+    migration window. PR 2 will refactor on_cancel to return the updated
+    state and remove this re-read.
+    """
+    try:
+        state = await get_workflow_run_state_by_thread_id(thread_id, workflow_type)
+        if state is not None:
+            await persist_workflow_run_state(workflow_run_id, state)
+    except Exception as e:
+        logger.error(
+            f"Failed to mirror post-cancel state for run {workflow_run_id}: {e}",
+            exc_info=True,
+        )
 
 
 def create_context(
@@ -235,9 +337,7 @@ def create_context(
         raise ValueError("No OpenAI API key found in config or environment variables")
 
     # Only initialize vector store if we have an API key (needed for embeddings)
-    vector_store = (
-        VectorStoreService(openai_api_key) if openai_api_key else None
-    )
+    vector_store = VectorStoreService(openai_api_key) if openai_api_key else None
 
     file_artifacts_service = FileArtifactsService(config.project_id, revision=revision)
 

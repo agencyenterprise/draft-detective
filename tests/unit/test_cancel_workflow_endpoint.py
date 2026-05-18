@@ -44,6 +44,24 @@ async def test_cancel_completed_workflow_raises_400():
 
 
 @pytest.mark.asyncio
+async def test_cancel_failed_workflow_raises_400():
+    """Cancelling a FAILED workflow is rejected — FAILED is a terminal state."""
+    from lib.api.routers.workflows import cancel_workflow_run_endpoint
+
+    run = _make_run(WorkflowRunStatus.FAILED)
+
+    with patch(
+        "lib.api.routers.workflows.get_workflow_run",
+        new=AsyncMock(return_value=run),
+    ):
+        with pytest.raises(HTTPException) as exc_info:
+            await cancel_workflow_run_endpoint(str(run.id), current_user=_mock_user())
+
+    assert exc_info.value.status_code == 400
+    assert "already failed" in exc_info.value.detail.lower()
+
+
+@pytest.mark.asyncio
 async def test_cancel_already_cancelled_workflow_is_idempotent():
     """Cancelling an already-CANCELLED workflow returns 'Already cancelled' without error."""
     from lib.api.routers.workflows import cancel_workflow_run_endpoint
