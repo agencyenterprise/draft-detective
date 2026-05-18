@@ -6,6 +6,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v0.5.36] - 2026-05-18
+
+### Added
+- Added a new pypdfium2-based PDF converter and a dispatcher option to select `converter="pypdfium"`.
+- Added the `pypdfium2>=5.6.0` dependency.
+
+### Changed
+- Routed supporting-document PDFs through pypdfium2 instead of markitdown based on file role (`FileRole.MAIN` vs `FileRole.SUPPORT`).
+- Updated markdown conversion functions to accept a `role: FileRole` argument and choose the converter based on role and extension.
+- Updated the document processing workflow to pass `FileRole.MAIN` for the main file and `FileRole.SUPPORT` for supporting files.
+- Kept the main document on markitdown and continued routing non-PDF supporting files through markitdown.
+
+### Fixed
+- Fixed an out-of-memory issue when converting large supporting PDFs to markdown that was killing the production worker mid-batch on reference-heavy projects.
+- Fixed PDFium concurrency-related `Failed to load page` errors by serializing PDFium calls.
+- Fixed downstream substring matching issues caused by Unicode noncharacters emitted during PDF text extraction by stripping them.
+
+
 ## [v0.5.35] - 2026-05-08
 
 ### Fixed
