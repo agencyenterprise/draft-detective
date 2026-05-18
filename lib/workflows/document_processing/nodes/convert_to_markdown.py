@@ -2,6 +2,7 @@ import logging
 
 from langgraph.runtime import Runtime
 
+from lib.models.file import FileRole
 from lib.run_utils import run_tasks
 from lib.services.file import FileDocument
 from lib.services.files import update_file_artifacts
@@ -23,7 +24,7 @@ async def convert_to_markdown(
 
     # Main file first (sequentially) — the rest of the pipeline can't proceed
     # without it, so a failure here must abort the workflow.
-    main_result = await _convert_and_persist(main_file)
+    main_result = await _convert_and_persist(main_file, role=FileRole.MAIN)
     if isinstance(main_result, Exception):
         logger.error(
             f"Main document conversion failed for {main_file.file_name} "
@@ -36,9 +37,9 @@ async def convert_to_markdown(
     # per-file via WorkflowError but do not abort the workflow — downstream
     # nodes work from whichever supporting files converted successfully.
     results, errors = await run_tasks(
-        [_convert_and_persist(f) for f in supporting],
+        [_convert_and_persist(f, role=FileRole.SUPPORT) for f in supporting],
         desc="Converting supporting documents",
-        max_concurrent=4,
+        max_concurrent=8,
     )
 
     converted_supporting: list[FileDocument] = []
@@ -83,6 +84,7 @@ async def convert_to_markdown(
 
 async def _convert_and_persist(
     file_document: FileDocument,
+    role: FileRole = FileRole.MAIN,
 ) -> FileDocument | Exception:
     """Convert a single file to markdown and cache the result in the DB.
 
@@ -96,7 +98,9 @@ async def _convert_and_persist(
     without aborting the rest of the batch.
     """
     try:
-        converted = await convert_file_document_to_markdown(file_document)
+        converted = await convert_file_document_to_markdown(
+            file_document, role=role
+        )
     except Exception as exc:
         logger.error(
             f"Markdown conversion failed for {file_document.file_name} "

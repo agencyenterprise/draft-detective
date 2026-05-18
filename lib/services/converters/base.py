@@ -15,12 +15,10 @@ async def convert_to_markdown(file_path: str, converter: str = "markitdown") -> 
     """
     Convert a file to markdown using the specified converter.
 
-    Args:
-        file_path: Path to the file to convert
-        converter: The converter to use ('markitdown')
-
-    Returns:
-        Markdown string
+    The 'pypdfium' converter is text-only (no tables/layout) but has a
+    near-flat memory profile — used for supporting files where downstream
+    agents only need textual content. 'markitdown' is the default and
+    preserves more structure; used for the main document.
     """
     if file_path.lower().endswith((".md", ".markdown")):
         logger.info(f"File '{file_path}' is already markdown, reading directly")
@@ -36,8 +34,12 @@ async def convert_to_markdown(file_path: str, converter: str = "markitdown") -> 
 
         return await markitdown_converter.convert_to_markdown(file_path)
 
-    else:
-        raise ValueError(
-            f"Invalid file converter: '{converter}'. "
-            f"The only supported converter is 'markitdown'."
-        )
+    if converter == "pypdfium":
+        from lib.services.converters.pypdfium import pypdfium_converter
+
+        return await pypdfium_converter.convert_to_markdown(file_path)
+
+    raise ValueError(
+        f"Invalid file converter: '{converter}'. "
+        f"Supported converters: 'markitdown', 'pypdfium'."
+    )
