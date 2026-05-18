@@ -6,6 +6,46 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v0.5.37] - 2026-05-18
+
+### Added
+- Added a new Recommendation Check workflow under Substantive Review to verify whether document recommendations are supported by findings in the same document.
+- Added estimated USD cost display for each workflow run in the analyses tab, including a hover breakdown by bucket and model.
+- Added an “LLM calls” row to the workflow-run cost tooltip showing total priced LLM calls and average cost per call when a run has more than one.
+- Added self-healing for stuck workflow runs via workflow-level timeouts, bounded dependency waits, a heartbeat-driven reaper, and a FAILED status surfaced in the UI.
+- Added a unified consent-gate framework for MCP workflows, including web-access consent via a new `approve_web_search` parameter on the `run_workflow` tool.
+- Added new Inspect AI e2e eval suites for About This (GER), Advocacy & Tone, and Inference Validation.
+
+### Changed
+- Renamed the project from “AI Reviewer” to “Draft Detective” across user-facing labels, documentation, package names, and GitHub URLs.
+- Refactored reference-validation to load its procedure from `skills/reference-validation/SKILL.md` at runtime and use `deepagents.create_deep_agent`.
+- Refactored the MCP implementation by splitting `lib/api/mcp.py` into a namespace package of focused modules with no behavior changes.
+- Updated AgentMessagesDialog message conversion to use `useExternalMessageConverter` instead of an inline `convertMessage` callback.
+- Dual-wrote workflow state to a new `workflow_runs.state_json` JSONB column, mirrored out-of-band state mutations to keep it in sync, and shipped a one-shot backfill script.
+- Bumped langchain-core from 1.2.31 to 1.3.3.
+- Bumped urllib3 from 2.6.3 to 2.7.0.
+- Bumped next from 15.5.15 to 15.5.18 in /frontend.
+- Bumped langsmith from 0.7.31 to 0.8.0.
+- Bumped authlib from 1.6.11 to 1.6.12.
+- Bumped devalue from 5.4.2 to 5.8.1 in /frontend.
+- Bumped mako from 1.3.11 to 1.3.12.
+- Bumped python-multipart from 0.0.26 to 0.0.27.
+- Bumped uuid from 13.0.0 to 14.0.0 in /frontend.
+
+### Fixed
+- Fixed workflow state serialization for several workflow types to tolerate raw dict items in addition to BaseMessage when writing `state_json`.
+
+### Security
+- Updated next to 15.5.18 in /frontend to include security fixes.
+- Updated urllib3 to 2.7.0, which includes high-severity security issue fixes.
+- Updated authlib to 1.6.12 to fix redirecting to an unvalidated `redirect_uri` on `InvalidScopeError` in OpenID grants.
+- Updated mako to 1.3.12 to fix a Windows directory traversal bypass in TemplateLookup.
+- Updated uuid to 14.0.0 in /frontend, which includes a security fix for out-of-bounds writes when an invalid offset is provided.
+
+### Removed
+- Removed the inline ~85-line reference-validation procedure from the agent system prompt in favor of loading it from the skill file at runtime.
+
+
 ## [v0.5.36] - 2026-05-18
 
 ### Added
