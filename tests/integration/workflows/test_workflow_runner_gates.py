@@ -359,7 +359,8 @@ async def _start_single(
 ) -> tuple[list[dict], BackgroundTasks]:
     harness = Harness()
     config = ClaimReferenceValidationV2Config(
-        type=CLAIM, project_id=str(harness.project.id)
+        type=WorkflowRunType.CLAIM_REFERENCE_VALIDATION_V2,
+        project_id=str(harness.project.id),
     )
     background_tasks = BackgroundTasks()
     with (
