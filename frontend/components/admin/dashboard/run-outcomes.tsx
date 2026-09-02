@@ -30,13 +30,12 @@ export function RunOutcomes({
       completed: accumulator.completed + workflow.statuses.completed,
       failed: accumulator.failed + workflow.statuses.failed,
       cancelled: accumulator.cancelled + workflow.statuses.cancelled,
-      inProgress:
-        accumulator.inProgress +
-        workflow.statuses.running +
-        workflow.statuses.pending +
-        workflow.statuses.awaiting_approval,
+      inProgress: accumulator.inProgress + workflow.statuses.running + workflow.statuses.pending,
+      // Waiting on a person, not on the pipeline: kept apart from "In progress"
+      // so long consent waits do not read as operational load.
+      awaitingApproval: accumulator.awaitingApproval + workflow.statuses.awaiting_approval,
     }),
-    { completed: 0, failed: 0, cancelled: 0, inProgress: 0 },
+    { completed: 0, failed: 0, cancelled: 0, inProgress: 0, awaitingApproval: 0 },
   );
 
   const segments: Segment[] = [
@@ -44,6 +43,7 @@ export function RunOutcomes({
     { label: 'Failed', count: totals.failed, color: 'var(--viz-critical)' },
     { label: 'Cancelled', count: totals.cancelled, color: 'var(--viz-neutral)' },
     { label: 'In progress', count: totals.inProgress, color: 'var(--viz-series-1)' },
+    { label: 'Awaiting approval', count: totals.awaitingApproval, color: 'var(--viz-warning)' },
   ].filter((segment) => segment.count > 0);
 
   const runs = segments.reduce((sum, segment) => sum + segment.count, 0);
