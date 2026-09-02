@@ -4,7 +4,7 @@ import { HelpLink } from '@/components/help/help-link';
 import { IssueCountBadge } from '@/components/results/components/issue-count-badge';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { Issue, WorkflowRunDetail, WorkflowRunType } from '@/lib/generated-api';
+import { Issue, WorkflowRunDetail, WorkflowRunStatus, WorkflowRunType } from '@/lib/generated-api';
 import { summarizeReportedIssues } from '@/lib/health-status';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { RAIL_ITEM_ACTIVE, RAIL_ITEM_IDLE } from '@/lib/rail-style';
@@ -145,8 +145,11 @@ function AssessmentRow({
   // A recovered failure: the run finished, so flag it without the error tone.
   const warned = !errored && hasCurrentRunErrors(detail);
   const failed = isWorkflowFailed(detail);
-  // A run still working has nothing final to count.
-  const summary = processing ? null : summarizeReportedIssues(issues, detail.run.type);
+  // Only a finished run has findings to count. One still working, waiting on
+  // the user, failed, or cancelled would read as "0 issues found", which is
+  // not what happened.
+  const summary =
+    detail.run.status === WorkflowRunStatus.Completed ? summarizeReportedIssues(issues, detail.run.type) : null;
 
   const name = getWorkflowTypeName(detail.run.type);
   const flag = failed

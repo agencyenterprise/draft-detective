@@ -5,7 +5,8 @@ import { ShellStatusScreen } from '@/components/results/shell-status-screen';
 import { useProjectShellState } from '@/components/results/use-project-shell-state';
 import { useTabRouting } from '@/components/results/use-tab-routing';
 import { isApiError } from '@/lib/api-error';
-import { needsHumanApproval } from '@/lib/workflow-state';
+import { needsReferenceReview } from '@/components/workflows/utils';
+import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { FileXIcon, LockIcon } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { ReactNode } from 'react';
@@ -31,6 +32,7 @@ export default function ProjectLayout({ children }: { children: ReactNode }) {
     isReadOnly,
     isViewingOldRevision,
   } = useProjectShellState(projectId);
+  const { workflowTypes } = useWorkflowTypes();
 
   if (isLoading) {
     return (
@@ -87,7 +89,9 @@ export default function ProjectLayout({ children }: { children: ReactNode }) {
       readOnly={readOnly}
       onTitleSave={isReadOnly ? undefined : handleTitleSave}
       isTitleSaving={isReadOnly ? undefined : isTitleSaving}
-      needsReferenceReview={!isReadOnly && !isViewingOldRevision && needsHumanApproval(workflowDetails)}
+      needsReferenceReview={
+        !isReadOnly && !isViewingOldRevision && needsReferenceReview(workflowDetails, workflowTypes)
+      }
       selectedRevision={effectiveRevision}
       onRevisionChange={handleRevisionChange}
       onRevisionCreated={handleRevisionCreated}

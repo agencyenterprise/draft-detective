@@ -211,6 +211,7 @@ async def test_list_workflow_types_entry_has_expected_fields(authed_mcp_client: 
         "is_experimental",
         "is_internal",
         "category",
+        "gates",
     }
 
     for workflow in data["workflow_types"]:

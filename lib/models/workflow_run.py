@@ -18,12 +18,23 @@ class WorkflowRunStatus(str, Enum):
     COMPLETED = "completed"
     CANCELLED = "cancelled"
     FAILED = "failed"
+    # Waiting on a user to approve a gate (see WorkflowManifest.gates); not scheduled.
+    AWAITING_APPROVAL = "awaiting_approval"
 
 
 TERMINAL_WORKFLOW_RUN_STATUSES = (
     WorkflowRunStatus.COMPLETED,
     WorkflowRunStatus.CANCELLED,
     WorkflowRunStatus.FAILED,
+)
+
+# Statuses of a run that has not finished: scheduled and waiting on
+# dependencies, executing, or awaiting a user's approval. A second run of the
+# same type must not be created while one of these exists.
+ACTIVE_WORKFLOW_RUN_STATUSES = (
+    WorkflowRunStatus.PENDING,
+    WorkflowRunStatus.RUNNING,
+    WorkflowRunStatus.AWAITING_APPROVAL,
 )
 
 

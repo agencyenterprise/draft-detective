@@ -30,7 +30,11 @@ export function RunOutcomes({
       completed: accumulator.completed + workflow.statuses.completed,
       failed: accumulator.failed + workflow.statuses.failed,
       cancelled: accumulator.cancelled + workflow.statuses.cancelled,
-      inProgress: accumulator.inProgress + workflow.statuses.running + workflow.statuses.pending,
+      inProgress:
+        accumulator.inProgress +
+        workflow.statuses.running +
+        workflow.statuses.pending +
+        workflow.statuses.awaiting_approval,
     }),
     { completed: 0, failed: 0, cancelled: 0, inProgress: 0 },
   );

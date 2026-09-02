@@ -9,7 +9,6 @@ import {
   FileText,
   Link,
   FileSearch,
-  UserCheck,
   Scale,
   Download,
   Library,
@@ -29,10 +28,10 @@ import {
   TableIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { WorkflowRunType, WorkflowTypeDescription } from '@/lib/generated-api';
+import { WorkflowGate, WorkflowRunType, WorkflowTypeDescription } from '@/lib/generated-api';
 import { Badge } from '../ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
-import { WORKFLOWS_REQUIRING_SUPPORTING_DOCUMENTS, formatEstimatedDuration } from './utils';
+import { formatEstimatedDuration } from './utils';
 
 // Partial: WorkflowRunType keeps members whose workflow has been removed, so
 // old runs still deserialize. Those have no icon; getWorkflowIcon falls back.
@@ -41,7 +40,6 @@ const workflowTypeIcons: Partial<Record<WorkflowRunType, LucideIcon>> = {
   [WorkflowRunType.DocumentSummarization]: FileText,
   [WorkflowRunType.ReferenceExtraction]: Link,
   [WorkflowRunType.ReferenceFileMatching]: FileSearch,
-  [WorkflowRunType.HumanApproval]: UserCheck,
   [WorkflowRunType.MethodologicalAlignment]: Scale,
   [WorkflowRunType.ReferenceDownloader]: Download,
   [WorkflowRunType.LiteratureReviewV2]: Library,
@@ -68,10 +66,6 @@ function getWorkflowIcon(type: WorkflowRunType): LucideIcon {
   return workflowTypeIcons[type] ?? DEFAULT_ICON;
 }
 
-function needsSupportingFiles(type: WorkflowRunType): boolean {
-  return WORKFLOWS_REQUIRING_SUPPORTING_DOCUMENTS.includes(type);
-}
-
 interface WorkflowTypeCheckboxProps {
   workflowType: WorkflowTypeDescription;
   checked: boolean;
@@ -89,7 +83,7 @@ export function WorkflowTypeCheckbox({
   estimatedSeconds,
 }: WorkflowTypeCheckboxProps) {
   const Icon = getWorkflowIcon(workflowType.type);
-  const requiresSupportingFiles = needsSupportingFiles(workflowType.type);
+  const requiresSupportingFiles = workflowType.gates.includes(WorkflowGate.ReferenceReview);
   const estimatedDuration = formatEstimatedDuration(estimatedSeconds);
 
   return (

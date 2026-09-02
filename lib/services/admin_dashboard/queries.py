@@ -337,6 +337,7 @@ async def get_workflow_usage(
             func.count(case((status == WorkflowRunStatus.CANCELLED, 1))),
             func.count(case((status == WorkflowRunStatus.RUNNING, 1))),
             func.count(case((status == WorkflowRunStatus.PENDING, 1))),
+            func.count(case((status == WorkflowRunStatus.AWAITING_APPROVAL, 1))),
             func.percentile_cont(_DURATION_PERCENTILE)
             .within_group(duration_seconds.asc())
             .filter(
@@ -378,8 +379,9 @@ async def get_workflow_usage(
                     cancelled=row[4],
                     running=row[5],
                     pending=row[6],
+                    awaiting_approval=row[7],
                 ),
-                median_duration_seconds=(float(row[7]) if row[7] is not None else None),
+                median_duration_seconds=(float(row[8]) if row[8] is not None else None),
                 thumbs_up=thumbs_up,
                 thumbs_down=thumbs_down,
             )

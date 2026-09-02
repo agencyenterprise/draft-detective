@@ -2,7 +2,8 @@
 
 import { createContext, useContext, useState, useCallback, useMemo, ReactNode } from 'react';
 import { WorkflowRunType } from '@/lib/generated-api';
-import { DEFAULT_SELECTED_WORKFLOW_TYPES, hasSupportingDocumentsRequirement } from '@/components/workflows/utils';
+import { DEFAULT_SELECTED_WORKFLOW_TYPES, hasReferenceReviewRequirement } from '@/components/workflows/utils';
+import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { useVisibleWorkflowTypes } from '@/lib/hooks/use-visible-workflow-types';
 import { useRecentWorkflowSelection } from '@/lib/hooks/use-recent-workflow-selection';
 
@@ -44,6 +45,7 @@ export function WizardProvider({ children }: WizardProviderProps) {
   // after unchecking everything — always wins.
   const [chosenWorkflowTypes, setSelectedWorkflowTypes] = useState<WorkflowRunType[] | null>(null);
   const { visibleTypes } = useVisibleWorkflowTypes();
+  const { workflowTypes } = useWorkflowTypes();
   const { recentTypes, isPending: isRecentSelectionPending } = useRecentWorkflowSelection();
 
   // What the user picked last time, so the wizard opens on the assessments they
@@ -69,8 +71,8 @@ export function WizardProvider({ children }: WizardProviderProps) {
   );
 
   const needsReferencesStep = useMemo(
-    () => hasSupportingDocumentsRequirement(selectedWorkflowTypes),
-    [selectedWorkflowTypes],
+    () => hasReferenceReviewRequirement(selectedWorkflowTypes, workflowTypes),
+    [selectedWorkflowTypes, workflowTypes],
   );
 
   const setPreflightStatus = useCallback((status: Partial<WizardState['preflightStatus']>) => {

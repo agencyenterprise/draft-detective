@@ -18,7 +18,12 @@ from lib.workflows.claim_reference_validation_v2.state import (
 )
 from lib.workflows.document_processing.state import DocumentProcessingState
 from lib.workflows.manifest import WorkflowManifest
-from lib.workflows.models import DocumentIssue, SeverityEnum, WorkflowRunType
+from lib.workflows.models import (
+    DocumentIssue,
+    SeverityEnum,
+    WorkflowGate,
+    WorkflowRunType,
+)
 from lib.workflows.util import get_state_by_type
 from lib.workflows.workflow_types import WorkflowState
 
@@ -139,8 +144,10 @@ class ClaimReferenceValidationV2Manifest(
     required_dependencies = [
         WorkflowRunType.DOCUMENT_PROCESSING,
         WorkflowRunType.REFERENCE_FILE_MATCHING,
-        WorkflowRunType.HUMAN_APPROVAL,
     ]
+    # The user reviews the reference-to-file matching (and uploads or fetches
+    # missing sources) before this reads the sources.
+    gates = [WorkflowGate.REFERENCE_REVIEW]
     optional_dependencies = [
         WorkflowRunType.REFERENCE_DOWNLOADER,
     ]

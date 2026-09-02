@@ -6,9 +6,9 @@ import type {
   AppendMessageApiChatThreadsThreadIdMessagesPostData,
   AppendMessageApiChatThreadsThreadIdMessagesPostErrors,
   AppendMessageApiChatThreadsThreadIdMessagesPostResponses,
-  ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostData,
-  ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostErrors,
-  ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostResponses,
+  ApproveProjectGateEndpointApiProjectsProjectIdGatesGateApprovePostData,
+  ApproveProjectGateEndpointApiProjectsProjectIdGatesGateApprovePostErrors,
+  ApproveProjectGateEndpointApiProjectsProjectIdGatesGateApprovePostResponses,
   BotMessagesApiMicrosoftTeamsMessagesPostData,
   BotMessagesApiMicrosoftTeamsMessagesPostErrors,
   BotMessagesApiMicrosoftTeamsMessagesPostResponses,
@@ -664,33 +664,31 @@ export const getWorkflowRawStateApiWorkflowsWorkflowRunIdRawStateGet = <ThrowOnE
   });
 
 /**
- * Approve Workflow Run
+ * Approve Project Gate Endpoint
  *
- * Approve a workflow run that requires human approval.
+ * Approve a workflow gate for the project's current revision.
  *
- * The workflow must:
- * 1. Exist and belong to a project owned by the current user
- * 2. Be a workflow type that supports human approval (requires_human_trigger=True)
- *
- * This unblocks any dependent workflows (e.g., CLAIM_REFERENCE_VALIDATION_V2).
+ * Records the approval and schedules every run in AWAITING_APPROVAL that
+ * was waiting on this gate (e.g. Claim Reference Validation behind the
+ * reference review). Approving an already-approved gate is a no-op.
  */
-export const approveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePost = <ThrowOnError extends boolean = true>(
-  options: Options<ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostData, ThrowOnError>,
+export const approveProjectGateEndpointApiProjectsProjectIdGatesGateApprovePost = <ThrowOnError extends boolean = true>(
+  options: Options<ApproveProjectGateEndpointApiProjectsProjectIdGatesGateApprovePostData, ThrowOnError>,
 ): RequestResult<
-  ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostResponses,
-  ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostErrors,
+  ApproveProjectGateEndpointApiProjectsProjectIdGatesGateApprovePostResponses,
+  ApproveProjectGateEndpointApiProjectsProjectIdGatesGateApprovePostErrors,
   ThrowOnError,
   'data'
 > =>
   (options.client ?? client).post<
-    ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostResponses,
-    ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostErrors,
+    ApproveProjectGateEndpointApiProjectsProjectIdGatesGateApprovePostResponses,
+    ApproveProjectGateEndpointApiProjectsProjectIdGatesGateApprovePostErrors,
     ThrowOnError,
     'data'
   >({
     responseStyle: 'data',
     security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/api/workflow-runs/{workflow_run_id}/approve',
+    url: '/api/projects/{project_id}/gates/{gate}/approve',
     ...options,
   });
 

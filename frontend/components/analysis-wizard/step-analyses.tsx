@@ -10,8 +10,8 @@ import { WebSearchConsentCheckbox } from '@/components/workflows/web-search-cons
 import { useWizard } from './wizard-context';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { useWebSearchConsent } from '@/lib/hooks/use-web-search-consent';
-import { hasWebSearchRequirement, hasSupportingDocumentsRequirement } from '@/components/workflows/utils';
-import { startMultipleWorkflowsApiWorkflowsStartMultiplePost, WorkflowRunType } from '@/lib/generated-api';
+import { hasWebSearchRequirement, hasReferenceReviewRequirement } from '@/components/workflows/utils';
+import { startMultipleWorkflowsApiWorkflowsStartMultiplePost } from '@/lib/generated-api';
 import { useMutation } from '@tanstack/react-query';
 import { getErrorMessage } from '@/lib/api-error';
 import { toast } from 'sonner';
@@ -20,11 +20,11 @@ export function StepAnalyses() {
   const router = useRouter();
   const wizard = useWizard();
   const { workflowTypes } = useWorkflowTypes();
-  const { selectedWorkflowTypes, setSelectedWorkflowTypes, needsReferencesStep } = wizard;
+  const { selectedWorkflowTypes, setSelectedWorkflowTypes } = wizard;
   const [webSearchConsent, setWebSearchConsent] = useWebSearchConsent(wizard.projectId);
 
   const needsWebSearch = hasWebSearchRequirement(selectedWorkflowTypes, workflowTypes);
-  const needsSupportingDocs = hasSupportingDocumentsRequirement(selectedWorkflowTypes);
+  const needsSupportingDocs = hasReferenceReviewRequirement(selectedWorkflowTypes, workflowTypes);
 
   const startAnalysisMutation = useMutation({
     mutationFn: async () => {
@@ -34,9 +34,7 @@ export function StepAnalyses() {
       return startMultipleWorkflowsApiWorkflowsStartMultiplePost({
         body: {
           project_id: wizard.projectId,
-          workflow_types: needsReferencesStep
-            ? [...selectedWorkflowTypes, WorkflowRunType.HumanApproval]
-            : selectedWorkflowTypes,
+          workflow_types: selectedWorkflowTypes,
         },
       });
     },

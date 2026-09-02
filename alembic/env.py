@@ -15,6 +15,7 @@ from lib.models import (
     Issue,
     Project,
     User,
+    WorkflowGateApproval,
     WorkflowProgress,
     WorkflowRun,
 )

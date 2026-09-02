@@ -1,4 +1,4 @@
-import { ProjectListItem, WorkflowRunStatus, WorkflowRunType } from '@/lib/generated-api';
+import { ProjectListItem, WorkflowRunStatus } from '@/lib/generated-api';
 
 /**
  * What a project is doing, read off its runs.
@@ -16,12 +16,10 @@ export function readProjectState(item: ProjectListItem): ProjectState {
   const runs = item.workflow_runs ?? [];
   if (runs.length === 0) return 'empty';
 
-  // Waiting beats running: the approval gate holds a pipeline that is otherwise
-  // still marked in flight, and the reader is the one who can clear it.
-  const waiting = runs.some((run) => run.type === WorkflowRunType.HumanApproval && ACTIVE.includes(run.status));
-  if (waiting) return 'waiting';
-
   if (runs.some((run) => ACTIVE.includes(run.status))) return 'running';
+  // Only once nothing is running does a run awaiting approval define the
+  // project: the reader is the one who can move it along.
+  if (runs.some((run) => run.status === WorkflowRunStatus.AwaitingApproval)) return 'waiting';
   if (runs.some((run) => run.status === WorkflowRunStatus.Failed)) return 'failed';
   // Ready to read has to mean something finished. A project whose runs were all
   // cancelled has produced nothing, and calling it ready would send the reader

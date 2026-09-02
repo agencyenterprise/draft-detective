@@ -285,3 +285,18 @@ async def test_predicate_returns_only_stuck_rows_in_mixed_scenario(cleanup_runs)
     assert fresh_running not in stuck_ids
     assert fresh_pending not in stuck_ids
     assert completed_old not in stuck_ids
+
+
+@pytest.mark.asyncio
+async def test_awaiting_approval_is_never_stuck(cleanup_runs):
+    """A run awaiting approval waits on a person, not a process: no age reaps it."""
+    now = datetime.utcnow()
+    awaiting_id = await _insert_run(
+        status=WorkflowRunStatus.AWAITING_APPROVAL,
+        created_at=now - timedelta(seconds=PENDING_GRACE * 10),
+    )
+    cleanup_runs.append(awaiting_id)
+
+    stuck = await _find_stuck_runs(RUNNING_GRACE, PENDING_GRACE)
+
+    assert awaiting_id not in {r.id for r in stuck}

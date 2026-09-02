@@ -472,19 +472,22 @@ export type AppendMessageRequest = {
 };
 
 /**
- * ApproveWorkflowResponse
+ * ApproveGateResponse
  *
- * Response for workflow approval.
+ * Response for approving a workflow gate on a project's current revision.
  */
-export type ApproveWorkflowResponse = {
+export type ApproveGateResponse = {
+  gate: WorkflowGate;
   /**
-   * Message
+   * Revision
    */
-  message: string;
+  revision: number;
   /**
-   * Workflow Run Id
+   * Released Workflow Run Ids
+   *
+   * Runs that were awaiting this gate and have now been scheduled
    */
-  workflow_run_id: string;
+  released_workflow_run_ids: Array<string>;
 };
 
 /**
@@ -1606,61 +1609,6 @@ export type HttpValidationError = {
    * Detail
    */
   detail?: Array<ValidationError>;
-};
-
-/**
- * HumanApprovalConfig
- *
- * Config for human approval workflow.
- */
-export type HumanApprovalConfig = {
-  /**
-   * Project Id
-   *
-   * The ID of the project that this workflow run should be associated with
-   */
-  project_id: string;
-  /**
-   * Openai Api Key
-   *
-   * The OpenAI API key to use for this workflow execution
-   */
-  openai_api_key?: string | null;
-  /**
-   * Publication Date
-   *
-   * Publication date of the document (YYYY-MM-DD format)
-   */
-  publication_date?: string | null;
-  type?: WorkflowRunType;
-};
-
-/**
- * HumanApprovalState
- *
- * State for human approval workflow.
- */
-export type HumanApprovalState = {
-  /**
-   * Errors
-   *
-   * Errors that occurred during the workflow execution.
-   */
-  errors?: Array<WorkflowError>;
-  type?: WorkflowRunType;
-  config: HumanApprovalConfig;
-  /**
-   * Approved
-   *
-   * Whether human has approved
-   */
-  approved?: boolean;
-  /**
-   * Approved At
-   *
-   * ISO timestamp when approved
-   */
-  approved_at?: string | null;
 };
 
 /**
@@ -3454,6 +3402,32 @@ export const WorkflowErrorSeverity = { Error: 'error', Warning: 'warning' } as c
 export type WorkflowErrorSeverity = (typeof WorkflowErrorSeverity)[keyof typeof WorkflowErrorSeverity];
 
 /**
+ * WorkflowGate
+ *
+ * A consent a user must give, per project revision, before a gated
+ * workflow may run.
+ *
+ * Manifests declare the gates they need in ``WorkflowManifest.gates``. A run
+ * started while one of its gates is unsatisfied is held in
+ * ``WorkflowRunStatus.AWAITING_APPROVAL`` until the gate is approved for the
+ * project's revision (see ``lib.services.workflow_gates``).
+ */
+export const WorkflowGate = { ReferenceReview: 'reference_review' } as const;
+
+/**
+ * WorkflowGate
+ *
+ * A consent a user must give, per project revision, before a gated
+ * workflow may run.
+ *
+ * Manifests declare the gates they need in ``WorkflowManifest.gates``. A run
+ * started while one of its gates is unsatisfied is held in
+ * ``WorkflowRunStatus.AWAITING_APPROVAL`` until the gate is approved for the
+ * project's revision (see ``lib.services.workflow_gates``).
+ */
+export type WorkflowGate = (typeof WorkflowGate)[keyof typeof WorkflowGate];
+
+/**
  * WorkflowProgressResponse
  *
  * Response model for workflow progress entries.
@@ -3606,7 +3580,6 @@ export type WorkflowRunDetail = {
     | AbbreviationScanV2State
     | ReferenceDownloaderState
     | ReferenceValidationV2State
-    | HumanApprovalState
     | Reviewer2State
     | SimpleDeepAgentState
     | null;
@@ -3650,6 +3623,7 @@ export const WorkflowRunStatus = {
   Completed: 'completed',
   Cancelled: 'cancelled',
   Failed: 'failed',
+  AwaitingApproval: 'awaiting_approval',
 } as const;
 
 /**
@@ -3665,7 +3639,6 @@ export const WorkflowRunType = {
   DocumentSummarization: 'document_summarization',
   ReferenceExtraction: 'reference_extraction',
   ReferenceFileMatching: 'reference_file_matching',
-  HumanApproval: 'human_approval',
   MethodologicalAlignment: 'methodological_alignment',
   ReferenceDownloader: 'reference_downloader',
   LiteratureReviewV2: 'literature_review_v2',
@@ -3724,7 +3697,7 @@ export type WorkflowStateStatus = (typeof WorkflowStateStatus)[keyof typeof Work
  *
  * Run outcomes for a workflow type within the window.
  *
- * Every field is required: the query always produces all five, and an
+ * Every field is required: the query always produces all six, and an
  * optional count would reach the client as `number | undefined`.
  */
 export type WorkflowStatusCounts = {
@@ -3748,6 +3721,10 @@ export type WorkflowStatusCounts = {
    * Pending
    */
   pending: number;
+  /**
+   * Awaiting Approval
+   */
+  awaiting_approval: number;
 };
 
 /**
@@ -3781,6 +3758,10 @@ export type WorkflowTypeDescription = {
    * Category
    */
   category: string;
+  /**
+   * Gates
+   */
+  gates: Array<WorkflowGate>;
 };
 
 /**
@@ -4306,7 +4287,6 @@ export type StartWorkflowApiWorkflowsStartPostData = {
     | AbbreviationScanV2Config
     | ReferenceDownloaderWorkflowConfig
     | ReferenceValidationV2WorkflowConfig
-    | HumanApprovalConfig
     | Reviewer2Config
     | SimpleDeepAgentConfig;
   path?: never;
@@ -4432,37 +4412,38 @@ export type GetWorkflowRawStateApiWorkflowsWorkflowRunIdRawStateGetResponses = {
 export type GetWorkflowRawStateApiWorkflowsWorkflowRunIdRawStateGetResponse =
   GetWorkflowRawStateApiWorkflowsWorkflowRunIdRawStateGetResponses[keyof GetWorkflowRawStateApiWorkflowsWorkflowRunIdRawStateGetResponses];
 
-export type ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostData = {
+export type ApproveProjectGateEndpointApiProjectsProjectIdGatesGateApprovePostData = {
   body?: never;
   path: {
     /**
-     * Workflow Run Id
+     * Project Id
      */
-    workflow_run_id: string;
+    project_id: string;
+    gate: WorkflowGate;
   };
   query?: never;
-  url: '/api/workflow-runs/{workflow_run_id}/approve';
+  url: '/api/projects/{project_id}/gates/{gate}/approve';
 };
 
-export type ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostErrors = {
+export type ApproveProjectGateEndpointApiProjectsProjectIdGatesGateApprovePostErrors = {
   /**
    * Validation Error
    */
   422: HttpValidationError;
 };
 
-export type ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostError =
-  ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostErrors[keyof ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostErrors];
+export type ApproveProjectGateEndpointApiProjectsProjectIdGatesGateApprovePostError =
+  ApproveProjectGateEndpointApiProjectsProjectIdGatesGateApprovePostErrors[keyof ApproveProjectGateEndpointApiProjectsProjectIdGatesGateApprovePostErrors];
 
-export type ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostResponses = {
+export type ApproveProjectGateEndpointApiProjectsProjectIdGatesGateApprovePostResponses = {
   /**
    * Successful Response
    */
-  200: ApproveWorkflowResponse;
+  200: ApproveGateResponse;
 };
 
-export type ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostResponse =
-  ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostResponses[keyof ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostResponses];
+export type ApproveProjectGateEndpointApiProjectsProjectIdGatesGateApprovePostResponse =
+  ApproveProjectGateEndpointApiProjectsProjectIdGatesGateApprovePostResponses[keyof ApproveProjectGateEndpointApiProjectsProjectIdGatesGateApprovePostResponses];
 
 export type CancelWorkflowRunEndpointApiWorkflowRunsWorkflowRunIdCancelPostData = {
   body?: never;

@@ -1,5 +1,6 @@
 'use client';
 
+import { AwaitingApprovalNotice } from '@/components/results/assessments/awaiting-approval-notice';
 import { useWorkflowSelection } from '@/components/results/assessments/use-workflow-selection';
 import { WorkflowDuration } from '@/components/results/assessments/workflow-duration';
 import { WorkflowResultsContent } from '@/components/results/assessments/workflow-results-renderer';
@@ -13,7 +14,7 @@ import { getErrorMessage } from '@/lib/api-error';
 import { ProjectDetailed, startMultipleWorkflowsApiWorkflowsStartMultiplePost } from '@/lib/generated-api';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { isPeerReviewWorkflowType } from '@/lib/peer-review';
-import { getDisplayStatus } from '@/lib/workflow-state';
+import { getDisplayStatus, isWorkflowAwaitingApproval } from '@/lib/workflow-state';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { formatDistanceToNow } from 'date-fns';
 import { ArrowRight, PlayIcon } from 'lucide-react';
@@ -77,6 +78,9 @@ export function AssessmentsTab({
   });
 
   const description = selectedWorkflowRun ? getWorkflowTypeDescription(selectedWorkflowRun.run.type) : null;
+  // A run waiting on the user has nothing to re-run and nothing to show; the
+  // pane explains what it is waiting for and carries the approve action.
+  const awaitingApproval = isWorkflowAwaitingApproval(selectedWorkflowRun ?? undefined);
 
   return (
     <div className="flex h-full min-h-0">
@@ -129,6 +133,7 @@ export function AssessmentsTab({
 
             {!readOnly &&
               selectedWorkflowRun &&
+              !awaitingApproval &&
               // Peer-review assessments are sequenced from their own tab;
               // re-running one here could produce a guard report, not a result.
               (isPeerReviewWorkflowType(selectedWorkflowRun.run.type) ? (
@@ -189,12 +194,21 @@ export function AssessmentsTab({
                   which run a larger type scale than this chrome. Scaling the
                   subtree beats forking them or changing sizes those depend on. */}
               <div className="text-scale-compact space-y-4 pt-4">
-                <WorkflowResultsContent
-                  projectDetail={projectDetail}
-                  workflowRun={selectedWorkflowRun}
-                  onNavigateToDocumentExplorer={onNavigateToDocumentExplorer}
-                  onNavigateToReferences={onNavigateToReferences}
-                />
+                {awaitingApproval ? (
+                  <AwaitingApprovalNotice
+                    projectDetail={projectDetail}
+                    workflowRun={selectedWorkflowRun}
+                    readOnly={readOnly}
+                    onNavigateToReferences={onNavigateToReferences}
+                  />
+                ) : (
+                  <WorkflowResultsContent
+                    projectDetail={projectDetail}
+                    workflowRun={selectedWorkflowRun}
+                    onNavigateToDocumentExplorer={onNavigateToDocumentExplorer}
+                    onNavigateToReferences={onNavigateToReferences}
+                  />
+                )}
               </div>
             </div>
           ) : (

@@ -1,4 +1,5 @@
-import { WorkflowRunType, WorkflowTypeDescription } from '@/lib/generated-api';
+import { WorkflowGate, WorkflowRunDetail, WorkflowRunType, WorkflowTypeDescription } from '@/lib/generated-api';
+import { isWorkflowAwaitingApproval } from '@/lib/workflow-state';
 
 /**
  * Checks if any of the selected workflow types require web search.
@@ -26,15 +27,38 @@ export function hasPublicationDateRequirement(selectedTypes: WorkflowRunType[]):
 }
 
 /**
- * Workflow types that require supporting documents.
+ * Whether a workflow type must pass the given gate before it runs. Gates come
+ * from the manifest via the workflow types endpoint, dependencies included.
  */
-export const WORKFLOWS_REQUIRING_SUPPORTING_DOCUMENTS: WorkflowRunType[] = [WorkflowRunType.ClaimReferenceValidationV2];
+export function requiresGate(type: WorkflowRunType, gate: WorkflowGate, workflowTypes?: WorkflowTypeDescription[]) {
+  return workflowTypes?.find((wt) => wt.type === type)?.gates.includes(gate) ?? false;
+}
 
 /**
- * Checks if any of the selected workflow types require supporting documents.
+ * Checks if any of the selected workflow types need the user to review the
+ * reference list (and supply source files) before they can run.
  */
-export function hasSupportingDocumentsRequirement(selectedTypes: WorkflowRunType[]): boolean {
-  return selectedTypes.some((type) => WORKFLOWS_REQUIRING_SUPPORTING_DOCUMENTS.includes(type));
+export function hasReferenceReviewRequirement(
+  selectedTypes: WorkflowRunType[],
+  workflowTypes?: WorkflowTypeDescription[],
+): boolean {
+  return selectedTypes.some((type) => requiresGate(type, WorkflowGate.ReferenceReview, workflowTypes));
+}
+
+/**
+ * Whether the project is waiting on the user's reference review: an assessment
+ * gated on it is awaiting approval. Other gates would show up through
+ * `needsApproval` in `lib/workflow-state`, not here.
+ */
+export function needsReferenceReview(
+  workflowRuns: WorkflowRunDetail[],
+  workflowTypes?: WorkflowTypeDescription[],
+): boolean {
+  return workflowRuns.some(
+    (workflowRun) =>
+      isWorkflowAwaitingApproval(workflowRun) &&
+      requiresGate(workflowRun.run.type, WorkflowGate.ReferenceReview, workflowTypes),
+  );
 }
 
 /**

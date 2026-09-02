@@ -5,17 +5,18 @@ from pydantic import BaseModel
 
 from lib.api.auth import get_current_user, get_current_user_optional
 from lib.api.models import (
-    ApproveWorkflowResponse,
+    ApproveGateResponse,
     CancelWorkflowResponse,
     StartMultipleWorkflowsRequest,
     StartMultipleWorkflowsResponse,
     StartWorkflowResponse,
 )
 from lib.api.services.workflow_runner import (
-    resume_workflow_run,
+    approve_project_gate,
     start_multiple_workflow_runs,
     start_workflow_run,
 )
+from lib.models.project import AccessLevel
 from lib.models.user import User
 from lib.services.projects import get_project_access
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus
@@ -25,8 +26,8 @@ from lib.services.workflow_runs import (
     cancel_workflow_run,
     get_workflow_run,
 )
-from lib.workflows.human_approval.state import HumanApprovalConfig
-from lib.workflows.registry import get_workflow_manifest, is_available_workflow_type
+from lib.workflows.models import WorkflowGate
+from lib.workflows.registry import is_available_workflow_type
 from lib.workflows.workflow_types import WorkflowConfig
 
 router = APIRouter(tags=["workflows"])
@@ -158,50 +159,32 @@ async def get_workflow_raw_state(
 
 
 @router.post(
-    "/api/workflow-runs/{workflow_run_id}/approve",
-    response_model=ApproveWorkflowResponse,
+    "/api/projects/{project_id}/gates/{gate}/approve",
+    response_model=ApproveGateResponse,
 )
-async def approve_workflow_run(
-    workflow_run_id: str,
+async def approve_project_gate_endpoint(
+    project_id: str,
+    gate: WorkflowGate,
     background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
 ):
     """
-    Approve a workflow run that requires human approval.
+    Approve a workflow gate for the project's current revision.
 
-    The workflow must:
-    1. Exist and belong to a project owned by the current user
-    2. Be a workflow type that supports human approval (requires_human_trigger=True)
-
-    This unblocks any dependent workflows (e.g., CLAIM_REFERENCE_VALIDATION_V2).
+    Records the approval and schedules every run in AWAITING_APPROVAL that
+    was waiting on this gate (e.g. Claim Reference Validation behind the
+    reference review). Approving an already-approved gate is a no-op.
     """
-    workflow_run = await get_workflow_run(workflow_run_id, user=current_user)
-
-    # Validate this workflow type supports human approval
-    manifest = get_workflow_manifest(workflow_run.type)
-    if not manifest.requires_human_trigger:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Workflow type '{workflow_run.type.value}' does not require human approval",
-        )
-
-    if workflow_run.status == WorkflowRunStatus.COMPLETED:
-        return ApproveWorkflowResponse(
-            message="Already approved",
-            workflow_run_id=workflow_run_id,
-        )
-
-    approval_config = HumanApprovalConfig(
-        project_id=str(workflow_run.project_id),
+    project, _ = await get_project_access(
+        project_id, user=current_user, required_level=AccessLevel.WRITE
     )
 
-    await resume_workflow_run(
-        workflow_run, approval_config, current_user, background_tasks
-    )
+    released = await approve_project_gate(project, gate, current_user, background_tasks)
 
-    return ApproveWorkflowResponse(
-        message="Workflow approved",
-        workflow_run_id=workflow_run_id,
+    return ApproveGateResponse(
+        gate=gate,
+        revision=project.current_revision,
+        released_workflow_run_ids=released,
     )
 
 
