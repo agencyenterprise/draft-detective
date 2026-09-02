@@ -55,7 +55,12 @@ def get_effective_gates(workflow_type: WorkflowRunType) -> List[WorkflowGate]:
 
 
 async def get_approved_gates(project_id: str, revision: int) -> Set[WorkflowGate]:
-    """Gates already approved for this project revision."""
+    """Gates already approved for this project revision.
+
+    The column is a plain string, so a value written by a gate that has since
+    been renamed or retired is skipped rather than allowed to break every
+    workflow start for the revision.
+    """
     async with get_async_db_session() as session:
         stmt = select(col(WorkflowGateApproval.gate)).where(
             and_(
@@ -64,7 +69,16 @@ async def get_approved_gates(project_id: str, revision: int) -> Set[WorkflowGate
             )
         )
         rows = (await session.execute(stmt)).scalars().all()
-    return {WorkflowGate(row) for row in rows}
+    approved: Set[WorkflowGate] = set()
+    for row in rows:
+        try:
+            approved.add(WorkflowGate(row))
+        except ValueError:
+            logger.warning(
+                f"Ignoring unknown gate {row!r} approved for project {project_id} "
+                f"revision {revision}"
+            )
+    return approved
 
 
 async def get_unsatisfied_gates(
@@ -132,28 +146,36 @@ async def release_runs_awaiting_approval(
     blocked by another gate keep waiting.
     """
     approved = await get_approved_gates(project_id, revision)
-    released: List[WorkflowRun] = []
-    for run in await get_runs_awaiting_approval(project_id, revision):
-        if not _gates_satisfied(run.type, approved):
-            continue
-        async with get_async_db_session() as session:
-            stmt = (
-                update(WorkflowRun)
-                .where(
-                    and_(
-                        col(WorkflowRun.id) == run.id,
-                        # Only release a run that is still waiting; a concurrent
-                        # cancel must win.
-                        col(WorkflowRun.status) == WorkflowRunStatus.AWAITING_APPROVAL,
-                    )
+    candidates = {
+        run.id: run
+        for run in await get_runs_awaiting_approval(project_id, revision)
+        if _gates_satisfied(run.type, approved)
+    }
+    if not candidates:
+        return []
+
+    async with get_async_db_session() as session:
+        stmt = (
+            update(WorkflowRun)
+            .where(
+                and_(
+                    col(WorkflowRun.id).in_(list(candidates)),
+                    # Only release runs that are still waiting; a concurrent
+                    # cancel must win.
+                    col(WorkflowRun.status) == WorkflowRunStatus.AWAITING_APPROVAL,
                 )
-                .values(status=WorkflowRunStatus.PENDING)
             )
-            result = await session.execute(stmt)
-            await session.commit()
-        if result.rowcount:  # type: ignore[attr-defined]  # CursorResult exposes rowcount at runtime
-            run.status = WorkflowRunStatus.PENDING
-            released.append(run)
+            .values(status=WorkflowRunStatus.PENDING)
+            .returning(col(WorkflowRun.id))
+        )
+        released_ids = list((await session.execute(stmt)).scalars().all())
+        await session.commit()
+
+    released: List[WorkflowRun] = []
+    for run_id in released_ids:
+        run = candidates[run_id]
+        run.status = WorkflowRunStatus.PENDING
+        released.append(run)
     if released:
         logger.info(
             f"Released {len(released)} runs awaiting approval for project {project_id} "

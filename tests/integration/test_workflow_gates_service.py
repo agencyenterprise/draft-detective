@@ -213,6 +213,27 @@ async def test_approve_gate_is_idempotent(seeder):
 
 
 @pytest.mark.asyncio
+async def test_unknown_gate_values_are_ignored(seeder):
+    """A gate renamed or retired in a later release must not break workflow starts."""
+    user = await seeder.user()
+    project = await seeder.project(user)
+    async with get_async_db_session() as session:
+        session.add(
+            WorkflowGateApproval(
+                project_id=project.id,
+                revision=1,
+                gate="no_such_gate",  # type: ignore[arg-type]  # deliberately stale value
+            )
+        )
+        await session.commit()
+    await approve_gate(str(project.id), 1, WorkflowGate.REFERENCE_REVIEW, user.id)
+
+    assert await get_approved_gates(str(project.id), 1) == {
+        WorkflowGate.REFERENCE_REVIEW
+    }
+
+
+@pytest.mark.asyncio
 async def test_approval_is_scoped_to_the_revision(seeder):
     """A new revision means a new document: the review is asked again."""
     user = await seeder.user()
