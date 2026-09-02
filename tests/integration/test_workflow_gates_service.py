@@ -18,6 +18,7 @@ from lib.models.user import User, UserRole
 from lib.models.workflow_gate_approval import WorkflowGateApproval
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus
 from lib.services.workflow_gates import (
+    _gates_satisfied,
     approve_gate,
     get_approved_gates,
     get_effective_gates,
@@ -149,6 +150,26 @@ def test_claim_reference_validation_is_gated_on_reference_review():
 def test_ungated_workflows_have_no_effective_gates():
     assert get_effective_gates(WorkflowRunType.DOCUMENT_PROCESSING) == []
     assert get_effective_gates(WorkflowRunType.REFERENCE_FILE_MATCHING) == []
+
+
+def test_gates_satisfied_follows_the_approved_set():
+    assert (
+        _gates_satisfied(WorkflowRunType.CLAIM_REFERENCE_VALIDATION_V2, set()) is False
+    )
+    assert (
+        _gates_satisfied(
+            WorkflowRunType.CLAIM_REFERENCE_VALIDATION_V2,
+            {WorkflowGate.REFERENCE_REVIEW},
+        )
+        is True
+    )
+    # Accepts the raw slug a database row carries.
+    assert _gates_satisfied("document_processing", set()) is True
+
+
+def test_gates_satisfied_never_releases_a_retired_workflow():
+    """A row whose slug no longer maps to a workflow has nothing to start."""
+    assert _gates_satisfied("human_approval", {WorkflowGate.REFERENCE_REVIEW}) is False
 
 
 # ---------------------------------------------------------------------------

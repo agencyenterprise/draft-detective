@@ -21,10 +21,14 @@ from lib.api.services.workflow_runner import (
     approve_project_gate,
     run_multiple_workflows_blocking,
     start_multiple_workflow_runs,
+    start_workflow_run,
 )
 from lib.models.project import AccessLevel
 from lib.models.user import User
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus, WorkflowRunType
+from lib.workflows.claim_reference_validation_v2.state import (
+    ClaimReferenceValidationV2Config,
+)
 from lib.workflows.models import WorkflowGate
 from lib.workflows.registry import get_config_type
 
@@ -343,3 +347,44 @@ async def test_approve_project_gate_with_nothing_awaiting_schedules_nothing():
 
     assert run_ids == []
     assert background_tasks.tasks == []
+
+
+# ---------------------------------------------------------------------------
+# Single-workflow start: start_workflow_run
+# ---------------------------------------------------------------------------
+
+
+async def _start_single(
+    unsatisfied: list[WorkflowGate],
+) -> tuple[list[dict], BackgroundTasks]:
+    harness = Harness()
+    config = ClaimReferenceValidationV2Config(
+        type=CLAIM, project_id=str(harness.project.id)
+    )
+    background_tasks = BackgroundTasks()
+    with (
+        _stack(harness.patches()),
+        patch(
+            "lib.api.services.workflow_runner.get_unsatisfied_gates",
+            new=AsyncMock(return_value=unsatisfied),
+        ),
+    ):
+        await start_workflow_run(config, harness.user, background_tasks)
+    return harness.created, background_tasks
+
+
+@pytest.mark.asyncio
+async def test_single_start_parks_a_gated_workflow_without_scheduling_it():
+    created, background_tasks = await _start_single([WorkflowGate.REFERENCE_REVIEW])
+
+    assert [c["status"] for c in created] == [WorkflowRunStatus.AWAITING_APPROVAL]
+    assert background_tasks.tasks == []
+
+
+@pytest.mark.asyncio
+async def test_single_start_schedules_the_workflow_once_its_gate_is_approved():
+    created, background_tasks = await _start_single([])
+
+    assert [c["status"] for c in created] == [WorkflowRunStatus.PENDING]
+    assert len(background_tasks.tasks) == 1
+    assert background_tasks.tasks[0].kwargs["workflow_run_id"]
