@@ -7,6 +7,7 @@ all assume the stored markdown's line numbers never move.
 
 import asyncio
 import base64
+import functools
 import io
 import os
 import threading
@@ -653,7 +654,10 @@ async def test_single_frame_image_of_a_multi_frame_format_still_crops(tmp_path):
     assert "?w=100&h=50" in result.markdown
 
 
+@functools.cache
 def _srgb_profile() -> bytes:
+    # createProfile stamps the current time into the header, so two calls a
+    # second apart differ by one byte. Build it once per test session.
     return ImageCms.ImageCmsProfile(ImageCms.createProfile("sRGB")).tobytes()
 
 
