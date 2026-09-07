@@ -167,14 +167,23 @@ def test_backend_prompt_drops_the_consent_step(skill: str):
     assert body.strip()
 
 
-def test_list_skill_summaries_skips_a_malformed_frontmatter(tmp_path, monkeypatch):
-    """One broken SKILL.md must not take the skill list down with it."""
+def test_list_skill_summaries_skips_what_it_cannot_describe(tmp_path, monkeypatch):
+    """One broken or incomplete SKILL.md must not take the skill list down with it."""
     good = tmp_path / "good"
     good.mkdir()
     (good / "SKILL.md").write_text("---\nname: good\ndescription: Fine.\n---\nBody\n")
     broken = tmp_path / "broken"
     broken.mkdir()
     (broken / "SKILL.md").write_text("---\nname: [unclosed\ndescription: x\n---\nBody\n")
+    for name, body in {
+        "no-frontmatter": "# Just a heading\n\nBody\n",
+        "no-description": "---\nname: no-description\n---\nBody\n",
+        "not-a-mapping": "---\n- a\n- b\n---\nBody\n",
+    }.items():
+        (tmp_path / name).mkdir()
+        (tmp_path / name / "SKILL.md").write_text(body)
+    (tmp_path / "stray-file.md").write_text("not a skill directory")
     monkeypatch.setattr(skills_module, "_SKILLS_DIR", tmp_path)
 
     assert [(s.name, s.description) for s in list_skill_summaries()] == [("good", "Fine.")]
+    assert list_skill_summaries(exclude={"good"}) == []

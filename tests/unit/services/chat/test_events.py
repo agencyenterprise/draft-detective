@@ -133,6 +133,8 @@ class TestUpdates:
         mapper = GraphEventMapper()
         assert mapper.map("updates", {"model": {"todos": []}}) == []
         assert mapper.map("updates", {"model": "not a dict"}) == []
+        assert mapper.map("updates", "not a dict at all") == []
+        assert mapper.map("messages", "not a tuple") == []
         assert mapper.map("values", {"messages": []}) == []
 
 
