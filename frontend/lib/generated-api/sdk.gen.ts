@@ -91,6 +91,8 @@ import type {
   GetDashboardApiAdminDashboardGetData,
   GetDashboardApiAdminDashboardGetErrors,
   GetDashboardApiAdminDashboardGetResponses,
+  GetDashboardDefaultIgnoredUsersApiAdminDashboardDefaultIgnoredUsersGetData,
+  GetDashboardDefaultIgnoredUsersApiAdminDashboardDefaultIgnoredUsersGetResponses,
   GetDurationEstimatesApiWorkflowTypesDurationEstimatesGetData,
   GetDurationEstimatesApiWorkflowTypesDurationEstimatesGetErrors,
   GetDurationEstimatesApiWorkflowTypesDurationEstimatesGetResponses,
@@ -289,6 +291,38 @@ export const getDashboardApiAdminDashboardGet = <ThrowOnError extends boolean = 
     responseStyle: 'data',
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/admin/dashboard',
+    ...options,
+  });
+
+/**
+ * Get Dashboard Default Ignored Users
+ *
+ * The users the dashboard leaves out unless an admin changes the selection.
+ *
+ * Today that is the account the e2e evals run as. The dashboard endpoint
+ * itself excludes nobody on its own: the UI seeds its multi-select from this
+ * list and sends the result back as `exclude_user_ids`, so what the admin
+ * sees selected is exactly what the figures leave out.
+ */
+export const getDashboardDefaultIgnoredUsersApiAdminDashboardDefaultIgnoredUsersGet = <
+  ThrowOnError extends boolean = true,
+>(
+  options?: Options<GetDashboardDefaultIgnoredUsersApiAdminDashboardDefaultIgnoredUsersGetData, ThrowOnError>,
+): RequestResult<
+  GetDashboardDefaultIgnoredUsersApiAdminDashboardDefaultIgnoredUsersGetResponses,
+  unknown,
+  ThrowOnError,
+  'data'
+> =>
+  (options?.client ?? client).get<
+    GetDashboardDefaultIgnoredUsersApiAdminDashboardDefaultIgnoredUsersGetResponses,
+    unknown,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/admin/dashboard/default-ignored-users',
     ...options,
   });
 
