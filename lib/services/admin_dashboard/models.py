@@ -43,7 +43,7 @@ class ActivityPoint(BaseModel):
 class WorkflowStatusCounts(BaseModel):
     """Run outcomes for a workflow type within the window.
 
-    Every field is required: the query always produces all five, and an
+    Every field is required: the query always produces all six, and an
     optional count would reach the client as `number | undefined`.
     """
 
@@ -52,6 +52,7 @@ class WorkflowStatusCounts(BaseModel):
     cancelled: int
     running: int
     pending: int
+    awaiting_approval: int
 
 
 class WorkflowUsageItem(BaseModel):

@@ -124,12 +124,26 @@ class BaseWorkflowConfig(BaseModel):
         return True
 
 
+class WorkflowGate(str, Enum):
+    """A consent a user must give, per project revision, before a gated
+    workflow may run.
+
+    Manifests declare the gates they need in ``WorkflowManifest.gates``. A run
+    started while one of its gates is unsatisfied is held in
+    ``WorkflowRunStatus.AWAITING_APPROVAL`` until the gate is approved for the
+    project's revision (see ``lib.services.workflow_gates``).
+    """
+
+    # The user has looked over the reference-to-source-file matching and is
+    # happy for Claim Reference Validation to read the sources as matched.
+    REFERENCE_REVIEW = "reference_review"
+
+
 class WorkflowRunType(str, Enum):
     DOCUMENT_PROCESSING = "document_processing"
     DOCUMENT_SUMMARIZATION = "document_summarization"
     REFERENCE_EXTRACTION = "reference_extraction"
     REFERENCE_FILE_MATCHING = "reference_file_matching"
-    HUMAN_APPROVAL = "human_approval"
     METHODOLOGICAL_ALIGNMENT = "methodological_alignment"
     REFERENCE_DOWNLOADER = "reference_downloader"
     LITERATURE_REVIEW_V2 = "literature_review_v2"

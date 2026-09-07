@@ -20,7 +20,7 @@ from inspect_ai.scorer import Score, Target, mean, scorer, stderr
 from inspect_ai.solver import Generate, Solver, TaskState, solver
 
 from evals_inspectai.common.api_client import (
-    approve_workflow_run,
+    approve_project_gate,
     create_project_and_start_workflows,
     poll_until_complete,
     poll_until_status,
@@ -34,7 +34,6 @@ logger = logging.getLogger(__name__)
 _DATASET_PATH = Path(__file__).parent / "dataset.json"
 
 _TARGET_WORKFLOW = "claim_reference_validation_v2"
-_HUMAN_APPROVAL_WORKFLOW = "human_approval"
 
 
 @task
@@ -97,18 +96,18 @@ def claim_reference_validation_v2_e2e_solver(
             supporting_files=supporting,
         )
 
-        # Wait for the human-approval gate to be ready (PENDING means upstream
-        # deps have completed and the gate is awaiting trigger).
-        approval_detail = await poll_until_status(
+        # The target run waits in awaiting_approval until the reference review
+        # is approved, while its upstream prep runs. Approve it the way a user
+        # would; the released run still waits for its dependencies.
+        target_detail = await poll_until_status(
             project_id=project_id,
-            workflow_type=_HUMAN_APPROVAL_WORKFLOW,
-            target_statuses={"pending", "running", "completed"},
+            workflow_type=_TARGET_WORKFLOW,
+            target_statuses={"awaiting_approval", "pending", "running", "completed"},
             timeout_s=timeout_s,
             interval_s=poll_interval_s,
         )
-        approval_run_id = approval_detail["run"]["id"]
-        if approval_detail["run"]["status"] != "completed":
-            await approve_workflow_run(approval_run_id)
+        if target_detail["run"]["status"] == "awaiting_approval":
+            await approve_project_gate(project_id)
 
         try:
             run_detail = await poll_until_complete(

@@ -61,7 +61,9 @@ def build_gate_required_payload(exc: WorkflowGateRequiredError) -> dict:
         sections.append(
             "Human approval is required because the user must review the "
             "reference→file mappings before these workflows can run: "
-            f"{pending_human_approval}. Share the project_url with the user "
+            f"{pending_human_approval}. Those assessments are awaiting approval; "
+            "approving it (here via approve_human_steps=true, or in the web "
+            "UI) starts them. Share the project_url with the user "
             "so they can review references in the web UI, or offer to list "
             "the references and supporting-file mappings here (use "
             "get_project to fetch them).\n\n"

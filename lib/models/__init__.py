@@ -11,4 +11,5 @@ from .share_link import ShareLink
 from .microsoft_teams_signin_state import MicrosoftTeamsSignInState
 from .user import User
 from .workflow_progress import WorkflowProgress
+from .workflow_gate_approval import WorkflowGateApproval
 from .workflow_run import WorkflowRun

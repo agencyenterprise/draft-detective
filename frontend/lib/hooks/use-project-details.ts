@@ -4,6 +4,9 @@ import { getProjectEndpointApiProjectProjectIdGet, WorkflowRunStatus } from '../
 import { useShare } from '@/context/share-context';
 
 const REFETCH_INTERVAL_MS = 3000;
+// A run waiting on approval can be released from elsewhere (another tab, the
+// MCP tool). Poll slowly so the page notices without treating the wait as work.
+const AWAITING_APPROVAL_REFETCH_INTERVAL_MS = 15000;
 
 export function useProjectDetails(projectId: string | null, revision?: number | null) {
   const { shareToken } = useShare();
@@ -23,11 +26,17 @@ export function useProjectDetails(projectId: string | null, revision?: number | 
       }),
     refetchInterval: (query) => {
       const workflowRuns = query.state.data?.workflow_runs ?? [];
-      return workflowRuns.some(
-        (w) => w.run.status === WorkflowRunStatus.Running || w.run.status === WorkflowRunStatus.Pending,
-      )
-        ? REFETCH_INTERVAL_MS
-        : false;
+      if (
+        workflowRuns.some(
+          (w) => w.run.status === WorkflowRunStatus.Running || w.run.status === WorkflowRunStatus.Pending,
+        )
+      ) {
+        return REFETCH_INTERVAL_MS;
+      }
+      if (workflowRuns.some((w) => w.run.status === WorkflowRunStatus.AwaitingApproval)) {
+        return AWAITING_APPROVAL_REFETCH_INTERVAL_MS;
+      }
+      return false;
     },
   });
 

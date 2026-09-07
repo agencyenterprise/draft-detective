@@ -8,6 +8,7 @@ from lib.workflows.models import (
     BaseWorkflowConfig,
     BaseWorkflowState,
     DocumentIssue,
+    WorkflowGate,
     WorkflowRunType,
 )
 from lib.workflows.workflow_types import WorkflowState
@@ -37,8 +38,11 @@ class WorkflowManifest[WorkflowStateType, WorkflowConfigType](ABC):
     # Experimental workflows are hidden by default in the UI
     is_experimental: bool = False
 
-    # If True, workflow stays PENDING until explicitly triggered via API
-    requires_human_trigger: bool = False
+    # Consents the user must give, per project revision, before this workflow
+    # may run. A run started while any of these is unsatisfied is created in
+    # AWAITING_APPROVAL and not scheduled; approving the gate releases it.
+    # Workflows that required-depend on a gated workflow inherit its gates.
+    gates: List[WorkflowGate] = []
 
     # Whether creating a new revision may re-run this workflow automatically,
     # as part of "re-run previous assessments". Set False for workflows whose

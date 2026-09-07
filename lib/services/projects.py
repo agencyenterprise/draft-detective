@@ -16,7 +16,10 @@ from lib.models.file import File, FileListItem, FileRole
 from lib.models.issue import Issue
 from lib.models.project import AccessLevel, FeedbackVisibility, Project
 from lib.models.user import User, UserRole
-from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus
+from lib.models.workflow_run import (
+    ACTIVE_WORKFLOW_RUN_STATUSES,
+    WorkflowRun,
+)
 from lib.services.file_artifacts_service.file_artifacts_service import (
     FileArtifactsService,
 )
@@ -503,9 +506,7 @@ async def create_new_revision(
         active_runs_stmt = select(WorkflowRun).where(
             col(WorkflowRun.project_id) == project_id,
             col(WorkflowRun.revision) == old_revision,
-            col(WorkflowRun.status).in_(
-                [WorkflowRunStatus.PENDING, WorkflowRunStatus.RUNNING]
-            ),
+            col(WorkflowRun.status).in_(ACTIVE_WORKFLOW_RUN_STATUSES),
         )
         active_runs = (await session.execute(active_runs_stmt)).scalars().all()
 

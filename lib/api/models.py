@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field, computed_field, field_validator
 
 from lib.models.user import UserRole
 from lib.models.workflow_progress import ProgressLevel
-from lib.workflows.models import WorkflowRunType
+from lib.workflows.models import WorkflowGate, WorkflowRunType
 
 
 class StartWorkflowResponse(BaseModel):
@@ -109,11 +109,14 @@ class SetApiKeyRequest(BaseModel):
     openai_api_key: str
 
 
-class ApproveWorkflowResponse(BaseModel):
-    """Response for workflow approval."""
+class ApproveGateResponse(BaseModel):
+    """Response for approving a workflow gate on a project's current revision."""
 
-    message: str
-    workflow_run_id: str
+    gate: WorkflowGate
+    revision: int
+    released_workflow_run_ids: List[str] = Field(
+        description="Runs that were awaiting this gate and have now been scheduled"
+    )
 
 
 class CancelWorkflowResponse(BaseModel):

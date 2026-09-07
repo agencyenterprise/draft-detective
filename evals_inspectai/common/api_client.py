@@ -240,9 +240,7 @@ async def tus_upload_file(
         )
 
 
-async def link_reference_file(
-    project_id: str, reference_id: str, file_id: str
-) -> None:
+async def link_reference_file(project_id: str, reference_id: str, file_id: str) -> None:
     """Link an already-uploaded supporting file to an extracted reference.
 
     Records a MANUAL_UPLOAD match, the same one the app creates when a user
@@ -265,12 +263,13 @@ async def link_reference_file(
     )
 
 
-async def approve_workflow_run(workflow_run_id: str) -> None:
-    """Trigger the human-approval gate for a workflow run."""
+async def approve_project_gate(project_id: str, gate: str = "reference_review") -> None:
+    """Approve a gate for the project's current revision, the same call the
+    web UI's Approve button makes. Releases every run waiting on that gate."""
     async with _build_client() as client:
-        resp = await client.post(f"/api/workflow-runs/{workflow_run_id}/approve")
+        resp = await client.post(f"/api/projects/{project_id}/gates/{gate}/approve")
         resp.raise_for_status()
-        logger.info("Approved workflow_run_id=%s", workflow_run_id)
+        logger.info("Approved gate=%s for project %s", gate, project_id)
 
 
 async def find_workflow_run_by_type(

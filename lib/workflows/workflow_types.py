@@ -22,10 +22,6 @@ from lib.workflows.document_summarization.state import (
     DocumentSummarizationState,
     DocumentSummarizationWorkflowConfig,
 )
-from lib.workflows.human_approval.state import (
-    HumanApprovalConfig,
-    HumanApprovalState,
-)
 from lib.workflows.reference_downloader.state import (
     ReferenceDownloaderState,
     ReferenceDownloaderWorkflowConfig,
@@ -57,7 +53,6 @@ WorkflowState = (
     | AbbreviationScanV2State
     | ReferenceDownloaderState
     | ReferenceValidationV2State
-    | HumanApprovalState
     | Reviewer2State
     | SimpleDeepAgentState
 )
@@ -72,7 +67,6 @@ WorkflowConfig = (
     | AbbreviationScanV2Config
     | ReferenceDownloaderWorkflowConfig
     | ReferenceValidationV2WorkflowConfig
-    | HumanApprovalConfig
     | Reviewer2Config
     | SimpleDeepAgentConfig
 )
