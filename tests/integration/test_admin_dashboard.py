@@ -25,7 +25,7 @@ from lib.models.issue import Issue, IssueStatus
 from lib.models.project import FeedbackVisibility, Project
 from lib.models.user import User, UserRole
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus
-from lib.services.admin_dashboard import queries, service
+from lib.services.admin_dashboard import ignored_users, queries, service
 from lib.services.admin_dashboard.service import (
     CACHE_TTL_SECONDS,
     get_admin_dashboard,
@@ -415,7 +415,7 @@ async def test_only_one_computation_runs_at_a_time(dashboard_data, monkeypatch):
     peak = 0
     real_get_user_metrics = queries.get_user_metrics
 
-    async def counting_get_user_metrics(session, window):
+    async def counting_get_user_metrics(session, window, ignored_user_ids=()):
         nonlocal in_flight, peak
         in_flight += 1
         peak = max(peak, in_flight)
@@ -423,7 +423,7 @@ async def test_only_one_computation_runs_at_a_time(dashboard_data, monkeypatch):
             # An await point inside the guarded section: if two computations
             # could overlap, this is where they would.
             await asyncio.sleep(0.02)
-            return await real_get_user_metrics(session, window)
+            return await real_get_user_metrics(session, window, ignored_user_ids)
         finally:
             in_flight -= 1
 
@@ -521,14 +521,14 @@ async def test_the_transaction_carries_a_snapshot_and_a_timeout(
     observed: dict[str, str] = {}
     real_get_user_metrics = queries.get_user_metrics
 
-    async def peeking_get_user_metrics(session, window):
+    async def peeking_get_user_metrics(session, window, ignored_user_ids=()):
         observed["isolation"] = (
             await session.execute(text("SHOW transaction_isolation"))
         ).scalar_one()
         observed["timeout"] = (
             await session.execute(text("SHOW statement_timeout"))
         ).scalar_one()
-        return await real_get_user_metrics(session, window)
+        return await real_get_user_metrics(session, window, ignored_user_ids)
 
     monkeypatch.setattr(queries, "get_user_metrics", peeking_get_user_metrics)
 
@@ -601,3 +601,119 @@ async def test_period_end_is_when_the_figures_were_computed(
     response = await queued
 
     assert response.period_end >= released_at
+
+
+@pytest.mark.asyncio
+async def test_ignoring_a_user_removes_their_rows_from_every_aggregate(dashboard_data):
+    """The eval account's runs must not read as adoption.
+
+    The fixture's user is the one ignored, so what disappears is known exactly:
+    one sign-up, three projects, three assessment runs, one active user, and
+    the three shared feedback rows (two up, one down, one with text). The
+    window totals are global, so each is measured with and without the ignore
+    list inside one REPEATABLE READ snapshot — a parallel worker's inserts
+    cannot move them between the two reads.
+    """
+    window = DashboardWindow.for_days(1)
+    ignored = [dashboard_data.user.id]
+
+    async with get_async_db_session() as session:
+        await session.execute(text("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ"))
+        all_total, all_new = await queries.get_user_metrics(session, window)
+        total, new = await queries.get_user_metrics(session, window, ignored)
+        all_projects = await queries.get_project_metrics(session, window)
+        projects = await queries.get_project_metrics(session, window, ignored)
+        all_runs = await queries.get_assessment_metrics(session, window)
+        runs = await queries.get_assessment_metrics(session, window, ignored)
+        all_active = await queries.get_active_user_metrics(session, window)
+        active = await queries.get_active_user_metrics(session, window, ignored)
+        all_feedback, all_summary = await queries.get_feedback_metrics(session, window)
+        feedback, summary = await queries.get_feedback_metrics(
+            session, window, ignored
+        )
+        all_activity = await queries.get_activity(session, window)
+        activity = await queries.get_activity(session, window, ignored)
+        workflows = await queries.get_workflow_usage(session, window, ignored)
+        top_users = await queries.get_top_users(session, window, 1000, ignored)
+
+    assert all_total - total == 1
+    assert all_new.current - new.current == 1
+    assert all_projects.current - projects.current == 3
+    assert all_runs.current - runs.current == 3
+    assert all_active.current - active.current == 1
+    assert all_feedback.current - feedback.current == 3
+    assert all_summary.thumbs_up - summary.thumbs_up == 2
+    assert all_summary.thumbs_down - summary.thumbs_down == 1
+    assert all_summary.with_comment - summary.with_comment == 1
+
+    def runs_in(points):
+        return sum(point.workflow_runs for point in points)
+
+    def projects_in(points):
+        return sum(point.projects_created for point in points)
+
+    assert runs_in(all_activity) - runs_in(activity) == 3
+    assert projects_in(all_activity) - projects_in(activity) == 3
+    assert all(item.type != dashboard_data.slug for item in workflows)
+    assert all(row.user_id != dashboard_data.user.id for row in top_users)
+
+
+@pytest.mark.asyncio
+async def test_the_payload_says_who_it_left_out(dashboard_data):
+    """Sorted and de-duplicated, so the UI's chips and the figures agree."""
+    twice = [dashboard_data.user.id, dashboard_data.user.id]
+
+    response = await get_admin_dashboard(days=1, ignored_user_ids=twice)
+
+    assert response.ignored_user_ids == [dashboard_data.user.id]
+    assert all(item.type != dashboard_data.slug for item in response.workflows)
+    assert all(row.user_id != dashboard_data.user.id for row in response.top_users)
+
+
+@pytest.mark.asyncio
+async def test_nobody_ignored_leaves_every_figure_where_it_was(dashboard_data):
+    """An empty ignore list is the plain aggregate, not a filter that matches nothing."""
+    window = DashboardWindow.for_days(1)
+
+    async with get_async_db_session() as session:
+        await session.execute(text("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ"))
+        plain = await queries.get_assessment_metrics(session, window)
+        explicit = await queries.get_assessment_metrics(session, window, [])
+        plain_rows = await queries.get_top_users(session, window, 1000)
+        explicit_rows = await queries.get_top_users(session, window, 1000, [])
+
+    assert explicit == plain
+    assert explicit_rows == plain_rows
+
+
+@pytest.mark.asyncio
+async def test_default_ignore_list_names_only_users_that_exist(
+    dashboard_data, monkeypatch
+):
+    """The eval accounts are looked for, not assumed.
+
+    Production has never run the evals and has no such user; the default there
+    has to be nobody, not an error or an id that matches nothing. Checked with
+    one email that exists (the fixture's user) and one that cannot.
+    """
+    monkeypatch.setattr(
+        ignored_users,
+        "DEFAULT_IGNORED_USER_EMAILS",
+        (dashboard_data.user.email, f"nobody-{uuid.uuid4()}@example.com"),
+    )
+
+    found = await ignored_users.get_default_ignored_users()
+
+    assert [user.user_id for user in found] == [dashboard_data.user.id]
+    assert found[0].email == dashboard_data.user.email
+
+
+@pytest.mark.asyncio
+async def test_default_ignore_list_is_empty_when_no_eval_account_exists(monkeypatch):
+    monkeypatch.setattr(
+        ignored_users,
+        "DEFAULT_IGNORED_USER_EMAILS",
+        (f"nobody-{uuid.uuid4()}@example.com",),
+    )
+
+    assert await ignored_users.get_default_ignored_users() == []

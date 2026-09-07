@@ -313,6 +313,12 @@ export type AdminDashboardResponse = {
    */
   cache_ttl_seconds: number;
   /**
+   * Ignored User Ids
+   *
+   * Users whose activity was left out of every figure below: their sign-up, their projects, the runs on those projects and the feedback on or by them. Sorted and de-duplicated, so two responses that excluded the same people carry the same list.
+   */
+  ignored_user_ids: Array<string>;
+  /**
    * Total Users
    *
    * All-time registered users
@@ -900,6 +906,29 @@ export type DashboardFeedbackSummary = {
    * Feedback entries that carry written text
    */
   with_comment: number;
+};
+
+/**
+ * DashboardIgnoredUser
+ *
+ * A user whose activity the dashboard leaves out.
+ *
+ * Enough to render the selection without a second lookup; the user
+ * management table already carries everything else.
+ */
+export type DashboardIgnoredUser = {
+  /**
+   * User Id
+   */
+  user_id: string;
+  /**
+   * Name
+   */
+  name: string;
+  /**
+   * Email
+   */
+  email: string;
 };
 
 /**
@@ -3945,6 +3974,12 @@ export type GetDashboardApiAdminDashboardGetData = {
   path?: never;
   query?: {
     /**
+     * Exclude User Ids
+     *
+     * Users to leave out of every figure: their sign-up, their projects, the runs on those projects and the feedback on or by them. Repeat the parameter once per user. Nobody is excluded unless named here; `/api/admin/dashboard/default-ignored-users` says who the UI names by default.
+     */
+    exclude_user_ids?: Array<string>;
+    /**
      * Days
      *
      * Length of the rolling window, in days.
@@ -3973,6 +4008,25 @@ export type GetDashboardApiAdminDashboardGetResponses = {
 
 export type GetDashboardApiAdminDashboardGetResponse =
   GetDashboardApiAdminDashboardGetResponses[keyof GetDashboardApiAdminDashboardGetResponses];
+
+export type GetDashboardDefaultIgnoredUsersApiAdminDashboardDefaultIgnoredUsersGetData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/api/admin/dashboard/default-ignored-users';
+};
+
+export type GetDashboardDefaultIgnoredUsersApiAdminDashboardDefaultIgnoredUsersGetResponses = {
+  /**
+   * Response Get Dashboard Default Ignored Users Api Admin Dashboard Default Ignored Users Get
+   *
+   * Successful Response
+   */
+  200: Array<DashboardIgnoredUser>;
+};
+
+export type GetDashboardDefaultIgnoredUsersApiAdminDashboardDefaultIgnoredUsersGetResponse =
+  GetDashboardDefaultIgnoredUsersApiAdminDashboardDefaultIgnoredUsersGetResponses[keyof GetDashboardDefaultIgnoredUsersApiAdminDashboardDefaultIgnoredUsersGetResponses];
 
 export type ListAppConfigsApiAppConfigsGetData = {
   body?: never;

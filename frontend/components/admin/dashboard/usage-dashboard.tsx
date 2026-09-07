@@ -1,17 +1,23 @@
 'use client';
 
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { getDashboardApiAdminDashboardGet } from '@/lib/generated-api';
+import {
+  DashboardIgnoredUser,
+  getDashboardApiAdminDashboardGet,
+  getDashboardDefaultIgnoredUsersApiAdminDashboardDefaultIgnoredUsersGet,
+} from '@/lib/generated-api';
 import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
-import { Loader2 } from 'lucide-react';
+import { Loader2, X } from 'lucide-react';
 import { useState } from 'react';
 import { ActivityCharts } from './activity-charts';
 import { AssessmentUsage } from './assessment-usage';
 import { AssessmentsTable } from './assessments-table';
+import { IgnoredUsersSelect } from './ignored-users-select';
 import { RunOutcomes } from './run-outcomes';
 import { formatCacheWindow, toDate } from './format';
 import { StatTile } from './stat-tile';
@@ -29,9 +35,29 @@ const DEFAULT_DAYS = 30;
 export function UsageDashboard() {
   const [days, setDays] = useState<number>(DEFAULT_DAYS);
 
+  // Who the figures leave out. The backend names the default (the account the
+  // e2e evals run as); until an admin touches the selection, that is what is
+  // sent, so the first figures shown already exclude it. Once touched, the
+  // admin's choice stands for the rest of the visit, an empty list included.
+  const [ignoredOverride, setIgnoredOverride] = useState<DashboardIgnoredUser[] | null>(null);
+  const {
+    data: defaultIgnoredUsers,
+    isPending: isResolvingDefaults,
+    error: defaultsError,
+  } = useQuery({
+    queryKey: ['admin', 'dashboard', 'default-ignored-users'],
+    queryFn: () => getDashboardDefaultIgnoredUsersApiAdminDashboardDefaultIgnoredUsersGet(),
+  });
+  const ignoredUsers = ignoredOverride ?? defaultIgnoredUsers ?? [];
+  const ignoredUserIds = [...new Set(ignoredUsers.map((user) => user.user_id))].sort();
+
   const { data, isLoading, isFetching, error, refetch } = useQuery({
-    queryKey: ['admin', 'dashboard', days],
-    queryFn: () => getDashboardApiAdminDashboardGet({ query: { days } }),
+    queryKey: ['admin', 'dashboard', days, ignoredUserIds],
+    queryFn: () => getDashboardApiAdminDashboardGet({ query: { days, exclude_user_ids: ignoredUserIds } }),
+    // Wait for the default ignore list rather than show unfiltered figures
+    // for a moment and then replace them. A failed lookup falls back to
+    // ignoring nobody, and says so below.
+    enabled: !isResolvingDefaults,
   });
 
   const rangeLabel = RANGES.find((range) => range.days === days)?.label ?? `${days} days`;
@@ -43,6 +69,34 @@ export function UsageDashboard() {
         <div>
           <h1 className="text-2xl font-semibold text-foreground">Usage</h1>
           <p className="text-sm text-muted-foreground">How Draft Detective is being used over the last {rangeLabel}</p>
+          {ignoredUsers.length > 0 && (
+            <p className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+              Leaving out
+              {ignoredUsers.map((user) => (
+                <Badge key={user.user_id} variant="secondary" className="gap-1 pr-1 font-normal">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span>{user.name}</span>
+                    </TooltipTrigger>
+                    <TooltipContent>{user.email}</TooltipContent>
+                  </Tooltip>
+                  <button
+                    type="button"
+                    aria-label={`Count ${user.name} again`}
+                    className="rounded-sm p-0.5 hover:bg-foreground/10"
+                    onClick={() => setIgnoredOverride(ignoredUsers.filter((other) => other.user_id !== user.user_id))}
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              ))}
+            </p>
+          )}
+          {defaultsError && (
+            <p className="mt-1 text-xs text-destructive">
+              Could not load the default ignore list, so these figures count everyone.
+            </p>
+          )}
           {data && (
             <p className="mt-0.5 text-xs text-muted-foreground">
               As of {format(toDate(data.period_end), 'MMM d, HH:mm')} · figures refresh at most every{' '}
@@ -63,6 +117,7 @@ export function UsageDashboard() {
         </div>
         <div className="flex items-center gap-2">
           {isFetching && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+          <IgnoredUsersSelect value={ignoredUsers} onChange={setIgnoredOverride} />
           <ToggleGroup
             type="single"
             value={String(days)}
@@ -80,7 +135,7 @@ export function UsageDashboard() {
         </div>
       </div>
 
-      {isLoading ? (
+      {isLoading || isResolvingDefaults ? (
         <div className="flex items-center justify-center py-16">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>

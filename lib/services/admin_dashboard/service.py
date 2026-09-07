@@ -1,6 +1,8 @@
 """Assembles the admin usage dashboard payload."""
 
 import asyncio
+import uuid
+from collections.abc import Sequence
 
 from sqlalchemy import text
 
@@ -39,8 +41,14 @@ CACHE_TTL_SECONDS = 300
 _STATEMENT_TIMEOUT_MS = 15_000
 
 
-async def get_admin_dashboard(days: int) -> AdminDashboardResponse:
+async def get_admin_dashboard(
+    days: int, ignored_user_ids: Sequence[uuid.UUID] = ()
+) -> AdminDashboardResponse:
     """Every dashboard aggregate for a rolling window of `days`.
+
+    `ignored_user_ids` are left out of every figure — see the queries module
+    for what that removes. The response echoes them sorted and de-duplicated,
+    so the same selection always describes itself the same way.
 
     The aggregates are independent, but they share one session and run
     sequentially: they are all scans of the same few tables, and the async
@@ -50,6 +58,8 @@ async def get_admin_dashboard(days: int) -> AdminDashboardResponse:
     Callers reaching the endpoint go through its TTL cache; this function
     always recomputes.
     """
+    ignored = sorted(set(ignored_user_ids))
+
     async with _COMPUTATION_SLOT:
         # Inside the slot, not before it: `period_end` is what the page prints
         # as "as of", so it has to be the moment the figures were computed. A
@@ -75,16 +85,26 @@ async def get_admin_dashboard(days: int) -> AdminDashboardResponse:
                 text(f"SET LOCAL statement_timeout = {_STATEMENT_TIMEOUT_MS}")
             )
 
-            total_users, new_users = await queries.get_user_metrics(session, window)
-            projects_created = await queries.get_project_metrics(session, window)
-            assessments_run = await queries.get_assessment_metrics(session, window)
-            active_users = await queries.get_active_user_metrics(session, window)
-            feedback_received, feedback = await queries.get_feedback_metrics(
-                session, window
+            total_users, new_users = await queries.get_user_metrics(
+                session, window, ignored
             )
-            activity = await queries.get_activity(session, window)
-            workflows = await queries.get_workflow_usage(session, window)
-            top_users = await queries.get_top_users(session, window, _TOP_USERS_LIMIT)
+            projects_created = await queries.get_project_metrics(
+                session, window, ignored
+            )
+            assessments_run = await queries.get_assessment_metrics(
+                session, window, ignored
+            )
+            active_users = await queries.get_active_user_metrics(
+                session, window, ignored
+            )
+            feedback_received, feedback = await queries.get_feedback_metrics(
+                session, window, ignored
+            )
+            activity = await queries.get_activity(session, window, ignored)
+            workflows = await queries.get_workflow_usage(session, window, ignored)
+            top_users = await queries.get_top_users(
+                session, window, _TOP_USERS_LIMIT, ignored
+            )
 
     return AdminDashboardResponse(
         period_days=window.days,
@@ -92,6 +112,7 @@ async def get_admin_dashboard(days: int) -> AdminDashboardResponse:
         period_end=window.end,
         granularity=window.granularity,
         cache_ttl_seconds=CACHE_TTL_SECONDS,
+        ignored_user_ids=ignored,
         total_users=total_users,
         active_users=active_users,
         new_users=new_users,

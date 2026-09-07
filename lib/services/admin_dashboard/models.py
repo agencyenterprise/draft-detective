@@ -89,6 +89,18 @@ class ActiveUserItem(BaseModel):
     last_active_at: datetime
 
 
+class DashboardIgnoredUser(BaseModel):
+    """A user whose activity the dashboard leaves out.
+
+    Enough to render the selection without a second lookup; the user
+    management table already carries everything else.
+    """
+
+    user_id: uuid.UUID
+    name: str
+    email: str
+
+
 class DashboardFeedbackSummary(BaseModel):
     """Aggregate feedback signal for the window.
 
@@ -113,6 +125,15 @@ class AdminDashboardResponse(BaseModel):
             "How long these figures may be served before being recomputed. "
             "`period_end` is the moment they were computed, so the two together "
             "tell the reader how stale what they are looking at can be."
+        )
+    )
+
+    ignored_user_ids: list[uuid.UUID] = Field(
+        description=(
+            "Users whose activity was left out of every figure below: their "
+            "sign-up, their projects, the runs on those projects and the "
+            "feedback on or by them. Sorted and de-duplicated, so two "
+            "responses that excluded the same people carry the same list."
         )
     )
 
