@@ -1,22 +1,7 @@
 'use client';
 
-import { HelpCenter } from '@/components/help/help-center';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { cn } from '@/lib/utils';
-import { Disclosure, DisclosureButton, DisclosurePanel } from '@headlessui/react';
-import { CircleHelp, LogInIcon, MenuIcon, XIcon } from 'lucide-react';
-import { useSession } from 'next-auth/react';
-import Link from 'next/link';
+import { AppBar } from '@/components/results/app-bar';
 import { usePathname } from 'next/navigation';
-import { useState } from 'react';
-import { Button } from '../ui/button';
-import { MobileProfileMenu, ProfileDropdown } from './profile-dropdown';
-
-const navigation = [
-  { name: 'Projects', href: '/projects' },
-  // Chat is intentionally hidden from the nav but the /chat route stays available.
-  { name: 'About', href: '/about' },
-];
 
 /** Routes whose pages render the AppBar (or, for the add-in, no chrome at all) themselves. */
 const OWN_CHROME_ROUTES = ['/projects', '/share', '/addin'];
@@ -29,20 +14,14 @@ export interface ApplicationShellProps {
   children: React.ReactNode;
 }
 
+/**
+ * The application row over whichever page you are on. The home page, the
+ * project views and the add-in draw their own chrome edge to edge; every other
+ * page gets the same row here, so the furniture never changes between them.
+ */
 export function ApplicationShell({ children }: ApplicationShellProps) {
-  const session = useSession();
-  const isLoadingUser = session.status === 'loading';
-  const user = session.data?.user;
   const pathname = usePathname();
-  const [helpOpen, setHelpOpen] = useState(false);
 
-  const navigationWithCurrent = navigation.map((item) => ({
-    ...item,
-    current: pathname.startsWith(item.href),
-  }));
-
-  // The home page, the project views and the add-in draw their own chrome edge
-  // to edge, navigation included.
   if (rendersOwnChrome(pathname)) {
     return <>{children}</>;
   }
@@ -51,137 +30,15 @@ export function ApplicationShell({ children }: ApplicationShellProps) {
   const isFullBleed = pathname.startsWith('/chat');
 
   return (
-    <div className="min-h-full">
-      <Disclosure as="nav" className="border-b border-border bg-background">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex h-15 justify-between">
-            <div className="flex">
-              <div className="flex shrink-0 items-center">
-                <Link href="/" className="text-xl font-bold text-primary">
-                  Draft Detective
-                </Link>
-              </div>
-              <div className="hidden sm:-my-px sm:ml-6 sm:flex sm:space-x-8">
-                {navigationWithCurrent.map((item) => (
-                  <a
-                    key={item.name}
-                    href={item.href}
-                    aria-current={item.current ? 'page' : undefined}
-                    className={cn(
-                      item.current
-                        ? 'border-primary text-foreground'
-                        : 'border-transparent text-muted-foreground hover:border-border hover:text-foreground',
-                      'inline-flex items-center border-b-2 px-1 pt-1 text-sm font-medium text',
-                    )}
-                  >
-                    {item.name}
-                  </a>
-                ))}
-              </div>
-              <div className="hidden sm:ml-8 sm:flex sm:items-center">
-                <Button asChild size="sm" variant="outline">
-                  <Link href="/new">Start new project</Link>
-                </Button>
-              </div>
-            </div>
-            <div className="hidden sm:ml-6 sm:flex sm:items-center sm:gap-3">
-              {/* Beside the account menu, where the application's own controls
-                  live rather than the current page's. */}
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="ghost" size="icon" onClick={() => setHelpOpen(true)} aria-label="Help">
-                    <CircleHelp />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Help</TooltipContent>
-              </Tooltip>
-
-              {user ? (
-                <ProfileDropdown user={user} />
-              ) : !isLoadingUser ? (
-                <Button asChild variant="outline">
-                  <Link href="/api/auth/signin">
-                    <LogInIcon className="w-4 h-4" />
-                    Sign in
-                  </Link>
-                </Button>
-              ) : null}
-            </div>
-            <div className="-mr-2 flex items-center sm:hidden">
-              {/* Mobile menu button */}
-              <DisclosureButton className="group relative inline-flex items-center justify-center rounded-md bg-background p-2 text-muted-foreground hover:bg-accent hover:text-foreground focus:outline-2 focus:outline-offset-2 focus:outline-primary">
-                <span className="absolute -inset-0.5" />
-                <span className="sr-only">Open main menu</span>
-                <MenuIcon aria-hidden="true" className="block size-6 group-data-open:hidden" />
-                <XIcon aria-hidden="true" className="hidden size-6 group-data-open:block" />
-              </DisclosureButton>
-            </div>
-          </div>
-        </div>
-
-        <DisclosurePanel className="sm:hidden">
-          <div className="space-y-1 pt-2 pb-3">
-            {navigationWithCurrent.map((item) => (
-              <DisclosureButton
-                key={item.name}
-                as="a"
-                href={item.href}
-                aria-current={item.current ? 'page' : undefined}
-                className={cn(
-                  item.current
-                    ? 'border-primary bg-primary/10 text-primary'
-                    : 'border-transparent text-muted-foreground hover:border-border hover:bg-accent hover:text-foreground',
-                  'block border-l-4 py-2 pr-4 pl-3 text-base font-medium',
-                )}
-              >
-                {item.name}
-              </DisclosureButton>
-            ))}
-          </div>
-          <div className="border-t border-border pt-4 pb-3">
-            <div className="px-4 pb-3">
-              <DisclosureButton
-                as="a"
-                href="/new"
-                className="block w-full rounded-md bg-primary px-3 py-2 text-center text-base font-medium text-primary-foreground hover:bg-primary/90"
-              >
-                Start new project
-              </DisclosureButton>
-            </div>
-            <div className="px-4 pb-3">
-              {/* The desktop cluster is hidden at this width, so the panel
-                  carries the same door. */}
-              <DisclosureButton
-                as="button"
-                onClick={() => setHelpOpen(true)}
-                className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-base font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
-              >
-                <CircleHelp className="size-5" />
-                Help
-              </DisclosureButton>
-            </div>
-            {user ? (
-              <MobileProfileMenu user={user} />
-            ) : !isLoadingUser ? (
-              <div className="px-4">
-                <DisclosureButton
-                  as="a"
-                  href="/api/auth/signin"
-                  className="block w-full rounded-md bg-primary px-3 py-2 text-center text-base font-medium text-primary-foreground hover:bg-primary/90"
-                >
-                  Sign in
-                </DisclosureButton>
-              </div>
-            ) : null}
-          </div>
-        </DisclosurePanel>
-      </Disclosure>
-
-      <main>{isFullBleed ? children : <div className="mx-auto max-w-7xl p-4 sm:px-6 lg:px-8">{children}</div>}</main>
-
-      {/* Outside the Disclosure: its panel unmounts when the menu closes, which
-          on mobile is the same click that asks for this dialog. */}
-      <HelpCenter open={helpOpen} onOpenChange={setHelpOpen} topic="assessments" />
+    <div className="bg-background text-foreground flex h-dvh flex-col">
+      <AppBar />
+      {isFullBleed ? (
+        <main className="flex min-h-0 min-w-0 flex-1 flex-col">{children}</main>
+      ) : (
+        <main className="min-h-0 flex-1 overflow-y-auto">
+          <div className="mx-auto max-w-7xl p-4 sm:px-6 lg:px-8">{children}</div>
+        </main>
+      )}
     </div>
   );
 }
