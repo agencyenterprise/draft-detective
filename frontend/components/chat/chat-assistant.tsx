@@ -201,8 +201,8 @@ export function ChatAssistant() {
   });
 
   return (
-    // Full-bleed: fills the width and the viewport height below the nav (h-15 = 3.75rem).
-    <div className="flex h-[calc(100dvh-3.75rem)] w-full overflow-hidden bg-background">
+    // Full-bleed: fills the width and whatever height the shell leaves below the app bar.
+    <div className="flex min-h-0 w-full flex-1 overflow-hidden bg-background">
       <AssistantRuntimeProvider runtime={runtime}>
         {/* Dev-only inspector launcher (stripped from production builds). */}
         <DevToolsModal />
