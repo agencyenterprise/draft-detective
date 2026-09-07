@@ -5,6 +5,7 @@ release of runs awaiting approval once every gate they need is approved.
 """
 
 import uuid
+from datetime import datetime, timedelta
 from typing import Sequence
 
 import pytest
@@ -17,6 +18,8 @@ from lib.models.project import Project
 from lib.models.user import User, UserRole
 from lib.models.workflow_gate_approval import WorkflowGateApproval
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus
+from lib.services.workflow_reaper import PENDING_GRACE_SECONDS, _find_stuck_runs
+from lib.services.workflow_runs import update_workflow_run_status
 from lib.services.workflow_gates import (
     _gates_satisfied,
     approve_gate,
@@ -332,3 +335,61 @@ async def test_release_is_a_no_op_when_run_twice(seeder):
 
     assert len(first) == 1
     assert second == []
+
+
+# ---------------------------------------------------------------------------
+# A released run gets a fresh reaper window
+# ---------------------------------------------------------------------------
+
+
+async def _park_long_ago(seeder: Seeder, project: Project) -> uuid.UUID:
+    """An AWAITING_APPROVAL run whose timestamps predate the pending grace."""
+    long_ago = datetime.utcnow() - timedelta(seconds=PENDING_GRACE_SECONDS * 3)
+    async with get_async_db_session() as session:
+        run_id = uuid.uuid4()
+        session.add(
+            WorkflowRun(
+                id=run_id,
+                project_id=project.id,
+                type=WorkflowRunType.CLAIM_REFERENCE_VALIDATION_V2,
+                langgraph_thread_id=str(uuid.uuid4()),
+                status=WorkflowRunStatus.AWAITING_APPROVAL,
+                revision=1,
+                created_at=long_ago,
+                last_updated_at=long_ago,
+            )
+        )
+        await session.commit()
+    return run_id
+
+
+@pytest.mark.asyncio
+async def test_batch_release_is_not_reaped_as_a_stale_pending_run(seeder):
+    """Approving hours after parking must not hand the run straight to the reaper."""
+    user = await seeder.user()
+    project = await seeder.project(user)
+    run_id = await _park_long_ago(seeder, project)
+
+    await approve_gate(str(project.id), 1, WorkflowGate.REFERENCE_REVIEW, user.id)
+    released = await release_runs_awaiting_approval(str(project.id), 1)
+
+    assert [r.id for r in released] == [run_id]
+    assert run_id not in {
+        r.id for r in await _find_stuck_runs(60.0, PENDING_GRACE_SECONDS)
+    }
+
+
+@pytest.mark.asyncio
+async def test_in_place_release_is_not_reaped_as_a_stale_pending_run(seeder):
+    """The runner's own release path (an awaiting run whose gate was approved
+    meanwhile) goes through update_workflow_run_status and must behave the same."""
+    user = await seeder.user()
+    project = await seeder.project(user)
+    run_id = await _park_long_ago(seeder, project)
+
+    await update_workflow_run_status(str(run_id), WorkflowRunStatus.PENDING)
+
+    assert await _status_of(run_id) == WorkflowRunStatus.PENDING
+    assert run_id not in {
+        r.id for r in await _find_stuck_runs(60.0, PENDING_GRACE_SECONDS)
+    }
