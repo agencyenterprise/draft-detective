@@ -14,12 +14,15 @@ the agent to ask mid-run. Both markers are required — an unclosed section is
 left in place, which `tests/unit/test_skills.py` fails on.
 """
 
+import logging
 import re
 from collections.abc import Collection
 from pathlib import Path
 
 import yaml
 from pydantic import BaseModel
+
+logger = logging.getLogger(__name__)
 
 # Repo root: lib/skills.py -> parents[1]
 _SKILLS_DIR = Path(__file__).parents[1] / "skills"
@@ -87,23 +90,35 @@ def list_skill_summaries(exclude: Collection[str] = ()) -> list[SkillSummary]:
     """Name and description of every skill on disk, in name order.
 
     Skills whose SKILL.md has no parseable frontmatter with both fields are
-    left out rather than shown with a blank description.
+    left out rather than shown with a blank description. A malformed block is
+    logged and skipped, so one broken skill cannot take the whole list down.
     """
     summaries: list[SkillSummary] = []
     for skill_dir in sorted(_SKILLS_DIR.iterdir()):
         skill_file = skill_dir / "SKILL.md"
         if skill_dir.name in exclude or not skill_file.is_file():
             continue
-        frontmatter = _frontmatter_block(skill_file.read_text(encoding="utf-8"))
-        if frontmatter is None:
-            continue
-        parsed = yaml.safe_load(frontmatter)
-        if not isinstance(parsed, dict):
-            continue
-        name, description = parsed.get("name"), parsed.get("description")
-        if isinstance(name, str) and isinstance(description, str):
-            summaries.append(SkillSummary(name=name, description=description.strip()))
+        summary = _skill_summary(skill_file)
+        if summary is not None:
+            summaries.append(summary)
     return summaries
+
+
+def _skill_summary(skill_file: Path) -> SkillSummary | None:
+    frontmatter = _frontmatter_block(skill_file.read_text(encoding="utf-8"))
+    if frontmatter is None:
+        return None
+    try:
+        parsed = yaml.safe_load(frontmatter)
+    except yaml.YAMLError:
+        logger.warning("skipping skill with malformed frontmatter: %s", skill_file)
+        return None
+    if not isinstance(parsed, dict):
+        return None
+    name, description = parsed.get("name"), parsed.get("description")
+    if not isinstance(name, str) or not isinstance(description, str):
+        return None
+    return SkillSummary(name=name, description=description.strip())
 
 
 def _frontmatter_block(content: str) -> str | None:

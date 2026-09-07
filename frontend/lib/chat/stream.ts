@@ -96,5 +96,7 @@ export async function* parseEventStream(body: ReadableStream<Uint8Array>): Async
     buffer += decoder.decode(value, { stream: true });
     yield* toEvents(takeLines(false));
   }
+  // Flush the decoder: a final chunk can end mid-way through a multibyte character.
+  buffer += decoder.decode();
   yield* toEvents(takeLines(true));
 }

@@ -12,11 +12,13 @@ from pathlib import Path
 import pytest
 
 from lib.api.mcp.serialization import WEB_SEARCH_CONSENT_QUESTION
+import lib.skills as skills_module
 from lib.skills import (
     _SKILLS_DIR,
     INTERACTIVE_ONLY_END,
     INTERACTIVE_ONLY_START,
     _strip_frontmatter,
+    list_skill_summaries,
     load_skill_prompt,
     strip_interactive_only,
 )
@@ -163,3 +165,16 @@ def test_backend_prompt_drops_the_consent_step(skill: str):
     assert "interactive-only" not in body
     assert "Do you consent" not in body
     assert body.strip()
+
+
+def test_list_skill_summaries_skips_a_malformed_frontmatter(tmp_path, monkeypatch):
+    """One broken SKILL.md must not take the skill list down with it."""
+    good = tmp_path / "good"
+    good.mkdir()
+    (good / "SKILL.md").write_text("---\nname: good\ndescription: Fine.\n---\nBody\n")
+    broken = tmp_path / "broken"
+    broken.mkdir()
+    (broken / "SKILL.md").write_text("---\nname: [unclosed\ndescription: x\n---\nBody\n")
+    monkeypatch.setattr(skills_module, "_SKILLS_DIR", tmp_path)
+
+    assert [(s.name, s.description) for s in list_skill_summaries()] == [("good", "Fine.")]
