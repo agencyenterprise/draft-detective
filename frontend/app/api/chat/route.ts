@@ -74,11 +74,6 @@ export async function POST(req: Request): Promise<Response> {
     return Response.json({ error: 'OPENAI_API_KEY is not configured on the server.' }, { status: 500 });
   }
 
-  // Ask reasoning-capable models (gpt-5.x) for summarized reasoning so the
-  // chain-of-thought UI can display it. gpt-4.1 is not a reasoning model, so
-  // the Responses API would reject the option — only send it when supported.
-  const isReasoningModel = chatModel.id.startsWith('gpt-5');
-
   const result = streamText({
     model: openai(chatModel.id),
     // Fixed Draft Detective persona + skill catalog; not overridable by the client.
@@ -92,7 +87,9 @@ export async function POST(req: Request): Promise<Response> {
     },
     // Let the model call tools and then continue with its answer in the same request.
     stopWhen: stepCountIs(10),
-    ...(isReasoningModel ? { providerOptions: { openai: { reasoningSummary: 'auto' } } } : {}),
+    // Every offered model is reasoning-capable; ask for summarized reasoning so
+    // the chain-of-thought UI can display it.
+    providerOptions: { openai: { reasoningSummary: 'auto' } },
   });
 
   // Stream the full event stream (reasoning, tool calls, tool results, text) as
