@@ -5,12 +5,14 @@ agents. Same model construction, same rate limiter, same skills mounted into the
 same virtual filesystem, so a chat answer and a workflow run on the same question
 reason from the same instructions.
 
-The chat differs from the other two in three ways, all deliberate:
+Like the Teams agent, one chat thread is one LangGraph thread: the conversation,
+the agent's filesystem (attached documents included) and its tool results live
+in the shared Postgres checkpointer, keyed by the ``chat_threads`` row id. A turn
+therefore carries only the new message. See ``lib/services/chat/history.py`` for
+how the state is read back and shown.
 
-- **It is stateless per turn.** The page owns the history (in ``chat_messages``)
-  and sends the conversation's text with every request, as it always did. That
-  keeps the client's branching and editing working unchanged, and means a turn
-  can be served by any worker. A LangGraph checkpointer is not involved.
+Two things are particular to the chat:
+
 - **Skills keep their interactive sections.** There is a user to ask, so the
   web-search consent steps apply here rather than being stripped.
 - **The model streams reasoning and hosted tool calls.** ``output_version="v1"``
@@ -18,14 +20,16 @@ The chat differs from the other two in three ways, all deliberate:
   ``stream_mode="messages"``; see ``build_llm``.
 """
 
-from typing import Any, Optional, Sequence
+from typing import Any, AsyncIterator, Optional, Sequence
 
 from deepagents import create_deep_agent
-from langchain_core.messages import BaseMessage
+from langchain_core.messages import HumanMessage
 from langchain_core.runnables import RunnableConfig
+from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.graph.state import CompiledStateGraph
 from pydantic import BaseModel
 
+from lib.agents.checkpointer import get_checkpointer
 from lib.agents.deep_agent_setup import RECURSION_LIMIT, build_llm, build_skill_files
 from lib.config.langfuse import langfuse_handler
 from lib.config.llm_error_logger import ErrorLoggingCallback
@@ -37,6 +41,8 @@ from lib.config.llm_models import (
     web_search_tool,
 )
 from lib.models.agent import ReasoningDict
+from lib.services.chat.events import ChatEvent, stream_chat_events
+from lib.services.chat.history import ChatAttachment, build_user_turn, thread_config
 from lib.skills import SkillSummary, list_skill_summaries
 from lib.workflows.models import WorkflowRunType
 from lib.workflows.registry import get_all_manifests
@@ -112,9 +118,15 @@ weakness is a gift to the author.
 - Ground every judgment in the text the user provides. Do not invent findings, \
 sources, or quotations. If you need the document (or a specific section) and it \
 has not been provided, ask for it.
-- Documents the user attaches arrive as text inside their message, introduced by \
-`Attached document "<name>":`. Work from that text. When you make claims about a \
-document, cite the specific passages you are relying on.
+- Documents the user attaches are mounted in your filesystem under \
+`/attachments/`, and the message that attached one names its path. Read them \
+with your file tools; `grep` and `read_file` with an offset let you work through \
+a long document without loading all of it. Everything opened in earlier turns is \
+still there, so check `ls /attachments` before asking for a document again. When \
+you make claims about a document, cite the specific passages you are relying on: \
+quote them, and name the file and line numbers in plain prose, for example \
+(draft.md, lines 12–18). There is no citation tool here, so never emit citation \
+markup or special citation tokens; write the reference as ordinary text.
 - You can search the web with the `web_search` tool. Use it to find current \
 information and to locate and verify sources, references, and related \
 literature, and cite the URLs you rely on. Do not rely on memory for factual \
@@ -180,8 +192,10 @@ def resolve_chat_model(model_id: Optional[str]) -> LLMModel:
     return DEFAULT_CHAT_MODEL
 
 
-def build_chat_agent(model: LLMModel, api_key: Optional[str]) -> CompiledStateGraph:
-    """A fresh agent for one turn: no checkpointer, skills and web search bound."""
+def build_chat_agent(
+    model: LLMModel, api_key: Optional[str], checkpointer: BaseCheckpointSaver
+) -> CompiledStateGraph:
+    """A fresh agent for one turn over a durable thread: skills and web search bound."""
 
     return create_deep_agent(
         model=build_llm(
@@ -190,15 +204,20 @@ def build_chat_agent(model: LLMModel, api_key: Optional[str]) -> CompiledStateGr
         tools=[web_search_tool(model)],
         skills=["/skills/"],
         system_prompt=SYSTEM_PROMPT,
+        checkpointer=checkpointer,
     )
 
 
-def build_chat_input(messages: Sequence[BaseMessage]) -> dict[str, Any]:
-    """The graph input for a turn: the conversation so far, skills mounted."""
+def build_chat_input(message: HumanMessage, files: dict[str, Any]) -> dict[str, Any]:
+    """The graph input for a turn: the new message, with skills and attachments mounted.
+
+    Skills are mounted every turn, as the Teams agent does: the files channel
+    merges, so this refreshes them without touching what the thread already holds.
+    """
 
     return {
-        "files": build_skill_files(interactive=True, exclude=EXCLUDED_CHAT_SKILLS),
-        "messages": list(messages),
+        "files": {**build_skill_files(interactive=True, exclude=EXCLUDED_CHAT_SKILLS), **files},
+        "messages": [message],
     }
 
 
@@ -206,6 +225,7 @@ def chat_run_config(thread_id: str, user_id: str) -> RunnableConfig:
     """Tracing keyed the same way the Teams agent is: one thread, one session."""
 
     return {
+        **thread_config(thread_id),
         "run_name": "chat_agent",
         "recursion_limit": RECURSION_LIMIT,
         "callbacks": [langfuse_handler, ErrorLoggingCallback()],
@@ -215,3 +235,24 @@ def chat_run_config(thread_id: str, user_id: str) -> RunnableConfig:
             "langfuse_user_id": user_id,
         },
     }
+
+
+async def run_chat_turn(
+    *,
+    thread_id: str,
+    user_id: str,
+    model: LLMModel,
+    api_key: Optional[str],
+    text: str,
+    attachments: Sequence[ChatAttachment] = (),
+    message_id: Optional[str] = None,
+) -> AsyncIterator[ChatEvent]:
+    """One turn of a thread, as the page's events, checkpointed as it goes."""
+
+    message, files = build_user_turn(text, attachments, message_id)
+    async with get_checkpointer() as saver:
+        agent = build_chat_agent(model, api_key, saver)
+        async for event in stream_chat_events(
+            agent, build_chat_input(message, files), chat_run_config(thread_id, user_id)
+        ):
+            yield event

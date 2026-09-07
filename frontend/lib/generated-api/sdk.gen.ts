@@ -11,9 +11,6 @@ import {
 } from './client';
 import { client } from './client.gen';
 import type {
-  AppendMessageApiChatThreadsThreadIdMessagesPostData,
-  AppendMessageApiChatThreadsThreadIdMessagesPostErrors,
-  AppendMessageApiChatThreadsThreadIdMessagesPostResponses,
   ApproveProjectGateEndpointApiProjectsProjectIdGatesGateApprovePostData,
   ApproveProjectGateEndpointApiProjectsProjectIdGatesGateApprovePostErrors,
   ApproveProjectGateEndpointApiProjectsProjectIdGatesGateApprovePostResponses,
@@ -179,6 +176,9 @@ import type {
   ReadHealthApiHealthGetResponses,
   ReadHealthApiHealthHeadData,
   ReadHealthApiHealthHeadResponses,
+  ReadThreadFileContentApiChatThreadsThreadIdFilesGetData,
+  ReadThreadFileContentApiChatThreadsThreadIdFilesGetErrors,
+  ReadThreadFileContentApiChatThreadsThreadIdFilesGetResponses,
   RemoveApiKeyApiUsersMeApiKeyDeleteData,
   RemoveApiKeyApiUsersMeApiKeyDeleteResponses,
   ResetAppConfigApiAppConfigsKeyDeleteData,
@@ -477,6 +477,8 @@ export const createThreadApiChatThreadsPost = <ThrowOnError extends boolean = tr
 
 /**
  * Delete Thread
+ *
+ * Remove the index row and the checkpointed conversation behind it.
  */
 export const deleteThreadApiChatThreadsThreadIdDelete = <ThrowOnError extends boolean = true>(
   options: Options<DeleteThreadApiChatThreadsThreadIdDeleteData, ThrowOnError>,
@@ -527,6 +529,8 @@ export const updateThreadApiChatThreadsThreadIdPatch = <ThrowOnError extends boo
 
 /**
  * List Messages
+ *
+ * The thread's messages from the checkpointer, in the shape the page renders.
  */
 export const listMessagesApiChatThreadsThreadIdMessagesGet = <ThrowOnError extends boolean = true>(
   options: Options<ListMessagesApiChatThreadsThreadIdMessagesGetData, ThrowOnError>,
@@ -549,25 +553,52 @@ export const listMessagesApiChatThreadsThreadIdMessagesGet = <ThrowOnError exten
   });
 
 /**
- * Append Message
+ * Read Thread File Content
+ *
+ * A file from the agent's filesystem for this thread, such as an attachment.
  */
-export const appendMessageApiChatThreadsThreadIdMessagesPost = <ThrowOnError extends boolean = true>(
-  options: Options<AppendMessageApiChatThreadsThreadIdMessagesPostData, ThrowOnError>,
+export const readThreadFileContentApiChatThreadsThreadIdFilesGet = <ThrowOnError extends boolean = true>(
+  options: Options<ReadThreadFileContentApiChatThreadsThreadIdFilesGetData, ThrowOnError>,
 ): RequestResult<
-  AppendMessageApiChatThreadsThreadIdMessagesPostResponses,
-  AppendMessageApiChatThreadsThreadIdMessagesPostErrors,
+  ReadThreadFileContentApiChatThreadsThreadIdFilesGetResponses,
+  ReadThreadFileContentApiChatThreadsThreadIdFilesGetErrors,
   ThrowOnError,
   'data'
 > =>
-  (options.client ?? client).post<
-    AppendMessageApiChatThreadsThreadIdMessagesPostResponses,
-    AppendMessageApiChatThreadsThreadIdMessagesPostErrors,
+  (options.client ?? client).get<
+    ReadThreadFileContentApiChatThreadsThreadIdFilesGetResponses,
+    ReadThreadFileContentApiChatThreadsThreadIdFilesGetErrors,
     ThrowOnError,
     'data'
   >({
     responseStyle: 'data',
     security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/api/chat/threads/{thread_id}/messages',
+    url: '/api/chat/threads/{thread_id}/files',
+    ...options,
+  });
+
+/**
+ * Stream Chat Turn
+ *
+ * Answer a new user message, streamed as server-sent events.
+ *
+ * The thread's history is the checkpointer's; only the new message travels.
+ * Each ``data:`` frame is one JSON event: ``text`` and ``reasoning`` deltas,
+ * ``tool`` calls, ``tool_result``s, or a terminal ``error``. Comment lines are
+ * heartbeats.
+ */
+export const streamChatTurnApiChatThreadsThreadIdStreamPost = <ThrowOnError extends boolean = true>(
+  options: Options<StreamChatTurnApiChatThreadsThreadIdStreamPostData, ThrowOnError, unknown>,
+): Promise<ServerSentEventsResult<StreamChatTurnApiChatThreadsThreadIdStreamPostResponses>> =>
+  (options.client ?? client).sse.post<
+    StreamChatTurnApiChatThreadsThreadIdStreamPostResponses,
+    StreamChatTurnApiChatThreadsThreadIdStreamPostErrors,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/chat/threads/{thread_id}/stream',
     ...options,
     headers: {
       'Content-Type': 'application/json',
@@ -599,34 +630,6 @@ export const listChatSkillsApiChatSkillsGet = <ThrowOnError extends boolean = tr
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/chat/skills',
     ...options,
-  });
-
-/**
- * Stream Chat Turn
- *
- * Answer the latest user message, streamed as server-sent events.
- *
- * Each ``data:`` frame is one JSON event: ``text`` and ``reasoning`` deltas,
- * ``tool`` calls, ``tool_result``s, or a terminal ``error``. Comment lines are
- * heartbeats.
- */
-export const streamChatTurnApiChatThreadsThreadIdStreamPost = <ThrowOnError extends boolean = true>(
-  options: Options<StreamChatTurnApiChatThreadsThreadIdStreamPostData, ThrowOnError, unknown>,
-): Promise<ServerSentEventsResult<StreamChatTurnApiChatThreadsThreadIdStreamPostResponses>> =>
-  (options.client ?? client).sse.post<
-    StreamChatTurnApiChatThreadsThreadIdStreamPostResponses,
-    StreamChatTurnApiChatThreadsThreadIdStreamPostErrors,
-    ThrowOnError,
-    'data'
-  >({
-    responseStyle: 'data',
-    security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/api/chat/threads/{thread_id}/stream',
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
   });
 
 /**

@@ -1,22 +1,31 @@
 import { baseUrl, getAuthHeader } from '@/lib/api';
-import type { ChatTurnMessage } from '@/lib/generated-api';
+import type { ChatAttachment } from '@/lib/generated-api';
 
 /**
  * One event of a streamed chat turn, as the backend emits it
  * (`lib/services/chat/events.py`).
  */
 export type ChatStreamEvent =
+  /** An assistant message opens, under the id it is stored as. */
+  | { t: 'message'; id: string }
+  /** The assistant message closes; `id` is its final stored id. */
+  | { t: 'message_end'; id: string }
   | { t: 'text'; v: string }
   | { t: 'reasoning'; v: string }
   | { t: 'tool'; id: string; name: string; args?: Record<string, unknown> }
-  | { t: 'tool_result'; id: string; result: unknown; isError?: boolean }
+  /** `mid` is the stored id of the tool message carrying the result. */
+  | { t: 'tool_result'; id: string; result: unknown; isError?: boolean; mid?: string }
   | { t: 'error'; v: string };
 
 interface StreamChatTurnOptions {
   threadId: string;
   /** A model id from `GET /api/chat/models`; the backend falls back to its default. */
   model?: string;
-  messages: ChatTurnMessage[];
+  /** The user's new message. The thread's history is the backend's; it is not resent. */
+  message: string;
+  /** The id the page already shows the message under; the backend stores it as given. */
+  messageId?: string;
+  attachments?: ChatAttachment[];
   signal?: AbortSignal;
 }
 
@@ -30,7 +39,9 @@ interface StreamChatTurnOptions {
 export async function* streamChatTurn({
   threadId,
   model,
-  messages,
+  message,
+  messageId,
+  attachments = [],
   signal,
 }: StreamChatTurnOptions): AsyncGenerator<ChatStreamEvent> {
   const authorization = await getAuthHeader();
@@ -41,7 +52,7 @@ export async function* streamChatTurn({
       Accept: 'text/event-stream',
       ...(authorization ? { Authorization: authorization } : {}),
     },
-    body: JSON.stringify({ model, messages }),
+    body: JSON.stringify({ model, message, message_id: messageId, attachments }),
     signal,
   });
 

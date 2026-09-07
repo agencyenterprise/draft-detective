@@ -1,6 +1,6 @@
 from .app_config import AppConfig
 from .bibliography_item import BibliographyItem
-from .chat_thread import ChatMessage, ChatThread
+from .chat_thread import ChatThread
 from .feedback import Feedback
 from .file import File, FileRole
 from .issue import Issue, IssueStatus

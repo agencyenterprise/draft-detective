@@ -456,28 +456,6 @@ export type AppConfigValueResponse = {
 };
 
 /**
- * AppendMessageRequest
- */
-export type AppendMessageRequest = {
-  /**
-   * Message Id
-   */
-  message_id: string;
-  /**
-   * Parent Id
-   */
-  parent_id?: string | null;
-  /**
-   * Content
-   *
-   * The assistant-ui ExportedMessageRepositoryItem JSON
-   */
-  content: {
-    [key: string]: unknown;
-  };
-};
-
-/**
  * ApproveGateResponse
  *
  * Response for approving a workflow gate on a project's current revision.
@@ -645,23 +623,19 @@ export type CancelWorkflowResponse = {
 };
 
 /**
- * ChatMessageResponse
+ * ChatAttachment
+ *
+ * A document the user attached to the turn, already converted to text.
  */
-export type ChatMessageResponse = {
+export type ChatAttachment = {
   /**
-   * Message Id
+   * Name
    */
-  message_id: string;
+  name: string;
   /**
-   * Parent Id
+   * Text
    */
-  parent_id: string | null;
-  /**
-   * Content
-   */
-  content: {
-    [key: string]: unknown;
-  };
+  text: string;
 };
 
 /**
@@ -701,9 +675,23 @@ export type ChatSkillResponse = {
  */
 export type ChatStreamRequest = {
   /**
-   * Messages
+   * Message
+   *
+   * The user's new message.
    */
-  messages: Array<ChatTurnMessage>;
+  message?: string;
+  /**
+   * Message Id
+   *
+   * The id the page shows the message under; stored as given.
+   */
+  message_id?: string | null;
+  /**
+   * Attachments
+   *
+   * Documents attached to this message, already converted to text.
+   */
+  attachments?: Array<ChatAttachment>;
   /**
    * Model
    *
@@ -3203,6 +3191,20 @@ export type StartWorkflowResponse = {
 };
 
 /**
+ * ThreadFileResponse
+ */
+export type ThreadFileResponse = {
+  /**
+   * Path
+   */
+  path: string;
+  /**
+   * Content
+   */
+  content: string;
+};
+
+/**
  * TruthfulnessLabel
  *
  * LEGACY 6-category truthfulness taxonomy (RAND_RRA4269-1, Table 2).
@@ -4356,14 +4358,55 @@ export type ListMessagesApiChatThreadsThreadIdMessagesGetResponses = {
    *
    * Successful Response
    */
-  200: Array<ChatMessageResponse>;
+  200: Array<{
+    [key: string]: unknown;
+  }>;
 };
 
 export type ListMessagesApiChatThreadsThreadIdMessagesGetResponse =
   ListMessagesApiChatThreadsThreadIdMessagesGetResponses[keyof ListMessagesApiChatThreadsThreadIdMessagesGetResponses];
 
-export type AppendMessageApiChatThreadsThreadIdMessagesPostData = {
-  body: AppendMessageRequest;
+export type ReadThreadFileContentApiChatThreadsThreadIdFilesGetData = {
+  body?: never;
+  path: {
+    /**
+     * Thread Id
+     */
+    thread_id: string;
+  };
+  query: {
+    /**
+     * Path
+     *
+     * A path in the thread's filesystem, e.g. /attachments/draft.md
+     */
+    path: string;
+  };
+  url: '/api/chat/threads/{thread_id}/files';
+};
+
+export type ReadThreadFileContentApiChatThreadsThreadIdFilesGetErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type ReadThreadFileContentApiChatThreadsThreadIdFilesGetError =
+  ReadThreadFileContentApiChatThreadsThreadIdFilesGetErrors[keyof ReadThreadFileContentApiChatThreadsThreadIdFilesGetErrors];
+
+export type ReadThreadFileContentApiChatThreadsThreadIdFilesGetResponses = {
+  /**
+   * Successful Response
+   */
+  200: ThreadFileResponse;
+};
+
+export type ReadThreadFileContentApiChatThreadsThreadIdFilesGetResponse =
+  ReadThreadFileContentApiChatThreadsThreadIdFilesGetResponses[keyof ReadThreadFileContentApiChatThreadsThreadIdFilesGetResponses];
+
+export type StreamChatTurnApiChatThreadsThreadIdStreamPostData = {
+  body: ChatStreamRequest;
   path: {
     /**
      * Thread Id
@@ -4371,28 +4414,25 @@ export type AppendMessageApiChatThreadsThreadIdMessagesPostData = {
     thread_id: string;
   };
   query?: never;
-  url: '/api/chat/threads/{thread_id}/messages';
+  url: '/api/chat/threads/{thread_id}/stream';
 };
 
-export type AppendMessageApiChatThreadsThreadIdMessagesPostErrors = {
+export type StreamChatTurnApiChatThreadsThreadIdStreamPostErrors = {
   /**
    * Validation Error
    */
   422: HttpValidationError;
 };
 
-export type AppendMessageApiChatThreadsThreadIdMessagesPostError =
-  AppendMessageApiChatThreadsThreadIdMessagesPostErrors[keyof AppendMessageApiChatThreadsThreadIdMessagesPostErrors];
+export type StreamChatTurnApiChatThreadsThreadIdStreamPostError =
+  StreamChatTurnApiChatThreadsThreadIdStreamPostErrors[keyof StreamChatTurnApiChatThreadsThreadIdStreamPostErrors];
 
-export type AppendMessageApiChatThreadsThreadIdMessagesPostResponses = {
+export type StreamChatTurnApiChatThreadsThreadIdStreamPostResponses = {
   /**
    * Successful Response
    */
-  200: ChatMessageResponse;
+  200: unknown;
 };
-
-export type AppendMessageApiChatThreadsThreadIdMessagesPostResponse =
-  AppendMessageApiChatThreadsThreadIdMessagesPostResponses[keyof AppendMessageApiChatThreadsThreadIdMessagesPostResponses];
 
 export type ListChatModelsApiChatModelsGetData = {
   body?: never;
@@ -4431,35 +4471,6 @@ export type ListChatSkillsApiChatSkillsGetResponses = {
 
 export type ListChatSkillsApiChatSkillsGetResponse =
   ListChatSkillsApiChatSkillsGetResponses[keyof ListChatSkillsApiChatSkillsGetResponses];
-
-export type StreamChatTurnApiChatThreadsThreadIdStreamPostData = {
-  body: ChatStreamRequest;
-  path: {
-    /**
-     * Thread Id
-     */
-    thread_id: string;
-  };
-  query?: never;
-  url: '/api/chat/threads/{thread_id}/stream';
-};
-
-export type StreamChatTurnApiChatThreadsThreadIdStreamPostErrors = {
-  /**
-   * Validation Error
-   */
-  422: HttpValidationError;
-};
-
-export type StreamChatTurnApiChatThreadsThreadIdStreamPostError =
-  StreamChatTurnApiChatThreadsThreadIdStreamPostErrors[keyof StreamChatTurnApiChatThreadsThreadIdStreamPostErrors];
-
-export type StreamChatTurnApiChatThreadsThreadIdStreamPostResponses = {
-  /**
-   * Successful Response
-   */
-  200: unknown;
-};
 
 export type GenerateThreadTitleApiChatThreadsThreadIdTitlePostData = {
   body: GenerateTitleRequest;

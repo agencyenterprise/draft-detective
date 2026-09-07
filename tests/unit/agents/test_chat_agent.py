@@ -2,13 +2,17 @@
 
 Pins the settings the streaming experiments settled on (``output_version="v1"``,
 a ``detailed`` reasoning summary, hosted web search, skills mounted with their
-interactive sections), the model allowlist fallback, and that every skill in the
-slash-command map points at a real skill and a registered workflow.
+interactive sections), that the thread is checkpointed under the chat thread id,
+the model allowlist fallback, and that every skill in the slash-command map
+points at a real skill and a registered workflow.
 """
 
+from contextlib import asynccontextmanager
 from pathlib import Path
+from typing import Any, AsyncIterator
 from unittest.mock import patch
 
+import pytest
 from langchain_core.messages import HumanMessage
 
 from lib.agents import chat_agent
@@ -23,8 +27,10 @@ from lib.agents.chat_agent import (
     chat_run_config,
     chat_skill_catalogue,
     resolve_chat_model,
+    run_chat_turn,
 )
 from lib.agents.deep_agent_setup import RECURSION_LIMIT, SKILLS_DIR
+from lib.services.chat.history import ChatAttachment
 from lib.skills import INTERACTIVE_ONLY_START
 from lib.workflows.registry import get_all_manifests
 
@@ -42,13 +48,13 @@ class TestResolveChatModel:
 
 
 class TestBuildChatAgent:
-    def test_the_agent_is_built_with_the_streaming_settings(self) -> None:
-        llm = object()
+    def test_the_agent_is_built_with_the_streaming_settings_and_the_checkpointer(self) -> None:
+        llm, saver = object(), object()
         with (
             patch.object(chat_agent, "build_llm", return_value=llm) as build_llm,
             patch.object(chat_agent, "create_deep_agent", return_value="graph") as create,
         ):
-            assert build_chat_agent(resolve_chat_model("gpt-5.6-sol"), "sk-user") == "graph"
+            assert build_chat_agent(resolve_chat_model("gpt-5.6-sol"), "sk-user", saver) == "graph"  # type: ignore[arg-type]
 
         model, api_key = build_llm.call_args.args
         assert model.name == "gpt-5.6-sol" and api_key == "sk-user"
@@ -57,16 +63,18 @@ class TestBuildChatAgent:
 
         kwargs = create.call_args.kwargs
         assert kwargs["model"] is llm
+        assert kwargs["checkpointer"] is saver
         assert kwargs["tools"] == [{"type": "web_search"}]
         assert kwargs["skills"] == ["/skills/"]
         assert kwargs["system_prompt"].startswith("You are Draft Detective")
-        assert "checkpointer" not in kwargs
 
-    def test_the_input_mounts_interactive_skills_and_the_conversation(self) -> None:
-        agent_input = build_chat_input([HumanMessage(content="hi")])
+    def test_the_input_mounts_interactive_skills_plus_the_turn_files(self) -> None:
+        message = HumanMessage(content="hi")
+        agent_input = build_chat_input(message, {"/attachments/a.md": {"content": ["x"]}})
 
-        assert [m.content for m in agent_input["messages"]] == ["hi"]
+        assert agent_input["messages"] == [message]
         files = agent_input["files"]
+        assert files["/attachments/a.md"] == {"content": ["x"]}
         assert "/skills/voice-and-tone/SKILL.md" in files
         for excluded in EXCLUDED_CHAT_SKILLS:
             assert not any(path.startswith(f"/skills/{excluded}/") for path in files)
@@ -75,12 +83,58 @@ class TestBuildChatAgent:
         assert "consent" in validation.lower()
         assert INTERACTIVE_ONLY_START not in validation
 
-    def test_the_run_is_traced_per_thread(self) -> None:
+    def test_the_run_is_keyed_and_traced_per_thread(self) -> None:
         config = chat_run_config(thread_id="t-1", user_id="u-1")
+        assert config["configurable"] == {"thread_id": "t-1"}
         assert config["recursion_limit"] == RECURSION_LIMIT
         assert config["metadata"]["langfuse_session_id"] == "t-1"
         assert config["metadata"]["langfuse_user_id"] == "u-1"
         assert "chat" in config["metadata"]["langfuse_tags"]
+
+
+class TestRunChatTurn:
+    async def _collect(self, events: AsyncIterator[Any]) -> list[Any]:
+        return [event async for event in events]
+
+    @pytest.mark.asyncio
+    async def test_a_turn_borrows_a_saver_and_streams_the_agent(self) -> None:
+        saver = object()
+        seen: dict[str, Any] = {}
+
+        @asynccontextmanager
+        async def get_checkpointer():
+            yield saver
+
+        async def fake_stream(agent: Any, agent_input: Any, config: Any) -> AsyncIterator[dict]:
+            seen.update(agent=agent, agent_input=agent_input, config=config)
+            yield {"t": "text", "v": "ok"}
+
+        with (
+            patch.object(chat_agent, "get_checkpointer", get_checkpointer),
+            patch.object(chat_agent, "build_chat_agent", return_value="graph") as build,
+            patch.object(chat_agent, "stream_chat_events", fake_stream),
+        ):
+            events = await self._collect(
+                run_chat_turn(
+                    thread_id="t-1",
+                    user_id="u-1",
+                    model=DEFAULT_CHAT_MODEL,
+                    api_key=None,
+                    text="Read this.",
+                    attachments=[ChatAttachment(name="draft.pdf", text="body")],
+                    message_id="page-id-1",
+                )
+            )
+
+        assert events == [{"t": "text", "v": "ok"}]
+        assert build.call_args.args == (DEFAULT_CHAT_MODEL, None, saver)
+        assert seen["agent"] == "graph"
+        assert seen["config"]["configurable"] == {"thread_id": "t-1"}
+        (message,) = seen["agent_input"]["messages"]
+        assert message.id == "page-id-1"
+        assert message.additional_kwargs["user_text"] == "Read this."
+        assert "/attachments/draft.md" in seen["agent_input"]["files"]
+        assert "/skills/voice-and-tone/SKILL.md" in seen["agent_input"]["files"]
 
 
 class TestSkillCatalogue:
