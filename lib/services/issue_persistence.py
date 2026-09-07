@@ -13,7 +13,6 @@ from typing import List, Optional, Sequence
 from sqlalchemy import select, update
 from sqlmodel import col
 
-from lib.agents.models import ChunkWithIndex
 from lib.config.database import get_async_db_session
 from lib.models.issue import Issue, IssueStatus
 from lib.services.text_sanitization import strip_control_chars
