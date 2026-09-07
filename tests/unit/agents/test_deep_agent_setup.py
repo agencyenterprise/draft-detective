@@ -30,6 +30,23 @@ class TestModelConstruction:
         assert kwargs["temperature"] == 0.0
         assert kwargs["max_retries"] == 4
         assert kwargs["rate_limiter"] is not None, "share the project's rate limiter"
+        assert "output_version" not in kwargs, "batch agents keep the default layout"
+
+    def test_callers_can_pick_the_reasoning_and_the_content_layout(self) -> None:
+        """What the chat agent needs: v1 blocks and a detailed summary for streaming."""
+
+        with patch("lib.agents.deep_agent_setup.init_chat_model") as init:
+            build_llm(
+                DEFAULT_MODEL,
+                api_key="sk-test",
+                reasoning={"effort": "low", "summary": "detailed"},
+                output_version="v1",
+            )
+
+        kwargs = init.call_args.kwargs
+        assert kwargs["reasoning"] == {"effort": "low", "summary": "detailed"}
+        assert kwargs["output_version"] == "v1"
+        assert kwargs["api_key"] == "sk-test"
 
 
 class TestAgentFiles:
@@ -59,6 +76,19 @@ class TestAgentFiles:
         assert "interactive-only" not in mounted
         assert "Do you consent" not in mounted
         assert "# Reference Validation" in mounted
+
+    def test_interactive_agents_keep_the_consent_step_without_its_markers(self) -> None:
+        """The chat has a user to ask, so the section applies; the markers are noise."""
+
+        files = build_skill_files(interactive=True)
+        mounted = str(files["/skills/reference-validation/SKILL.md"]["content"])
+        assert "Do you consent" in mounted
+        assert "interactive-only" not in mounted
+
+    def test_skills_can_be_left_out_of_the_mount(self) -> None:
+        files = build_skill_files(exclude={"literature-review"})
+        assert not any(path.startswith("/skills/literature-review/") for path in files)
+        assert "/skills/reference-validation/SKILL.md" in files
 
 
 class TestNumberingParagraphs:

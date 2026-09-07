@@ -6,7 +6,7 @@ import { DocumentAttachmentAdapter } from '@/components/chat/document-attachment
 import { DocumentPanel } from '@/components/chat/document-panel';
 import { dbThreadListAdapter } from '@/components/chat/db-thread-list-adapter';
 import { DevToolsModal } from '@assistant-ui/react-devtools';
-import { DEFAULT_MODEL_ID } from '@/lib/chat-models';
+import { streamChatTurn, type ChatStreamEvent } from '@/lib/chat/stream';
 import {
   appendMessageApiChatThreadsThreadIdMessagesPost,
   listMessagesApiChatThreadsThreadIdMessagesGet,
@@ -28,12 +28,14 @@ const attachmentAdapter = new DocumentAttachmentAdapter();
 
 type HistoryLoadResult = Awaited<ReturnType<ThreadHistoryAdapter['load']>>;
 
+type Aui = ReturnType<typeof useAui>;
+
 /**
  * Per-thread message history backed by chat_messages (via the generated `/chat`
  * SDK). Bound to the active thread via `aui.threadListItem()`; requests are
  * authenticated by the shared generated client configured in `ApiConfig`.
  */
-function createHistoryAdapter(aui: ReturnType<typeof useAui>): ThreadHistoryAdapter {
+function createHistoryAdapter(aui: Aui): ThreadHistoryAdapter {
   return {
     async load() {
       const remoteId = aui.threadListItem().getState().remoteId;
@@ -70,14 +72,6 @@ type StreamPart =
       isError?: boolean;
     };
 
-// One NDJSON event from /api/chat.
-type StreamEvent =
-  | { t: 'text'; v: string }
-  | { t: 'reasoning'; v: string }
-  | { t: 'tool'; id: string; name: string; args?: Record<string, unknown> }
-  | { t: 'tool_result'; id: string; result: unknown; isError?: boolean }
-  | { t: 'error'; v: string };
-
 /**
  * Flatten an assistant-ui message into plain text for the API, including the
  * text extracted from any attached documents (which the attachment adapter
@@ -95,93 +89,66 @@ function messageToText(message: ThreadMessage): string {
   return [attachmentText, bodyText].filter(Boolean).join('\n\n');
 }
 
-const chatAdapter: ChatModelAdapter = {
-  async *run({ messages, context, abortSignal }) {
-    // The Model Selector (in the composer) publishes the chosen model into the
-    // run's ModelContext as `config.modelName`.
-    const model = context.config?.modelName ?? DEFAULT_MODEL_ID;
-
-    const response = await fetch('/api/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model,
-        messages: messages.map((message) => ({
-          role: message.role,
-          content: messageToText(message),
-        })),
-      }),
-      signal: abortSignal,
-    });
-
-    if (!response.ok || !response.body) {
-      const detail = await response.text().catch(() => '');
-      throw new Error(detail || `Chat request failed with status ${response.status}`);
+function applyEvent(parts: StreamPart[], event: ChatStreamEvent): void {
+  const last = parts[parts.length - 1];
+  switch (event.t) {
+    case 'text':
+      if (last?.type === 'text') last.text += event.v;
+      else parts.push({ type: 'text', text: event.v });
+      break;
+    case 'reasoning':
+      if (last?.type === 'reasoning') last.text += event.v;
+      else parts.push({ type: 'reasoning', text: event.v });
+      break;
+    case 'tool':
+      parts.push({
+        type: 'tool-call',
+        toolCallId: event.id,
+        toolName: event.name,
+        args: event.args ?? {},
+        argsText: JSON.stringify(event.args ?? {}),
+      });
+      break;
+    case 'tool_result': {
+      const call = parts.find((part) => part.type === 'tool-call' && part.toolCallId === event.id);
+      if (call?.type === 'tool-call') {
+        call.result = event.result;
+        if (event.isError) call.isError = true;
+      }
+      break;
     }
+    case 'error':
+      throw new Error(event.v);
+  }
+}
 
-    const parts: StreamPart[] = [];
+/**
+ * Streams each turn from the backend's chat agent. The thread is initialized
+ * first so the backend can scope the run (and its tracing) to the thread id.
+ */
+function createChatAdapter(aui: Aui): ChatModelAdapter {
+  return {
+    async *run({ messages, context, abortSignal }) {
+      const { remoteId } = await aui.threadListItem().initialize();
+      const parts: StreamPart[] = [];
 
-    const applyEvent = (event: StreamEvent) => {
-      const last = parts[parts.length - 1];
-      switch (event.t) {
-        case 'text':
-          if (last?.type === 'text') last.text += event.v;
-          else parts.push({ type: 'text', text: event.v });
-          break;
-        case 'reasoning':
-          if (last?.type === 'reasoning') last.text += event.v;
-          else parts.push({ type: 'reasoning', text: event.v });
-          break;
-        case 'tool':
-          parts.push({
-            type: 'tool-call',
-            toolCallId: event.id,
-            toolName: event.name,
-            args: event.args ?? {},
-            argsText: JSON.stringify(event.args ?? {}),
-          });
-          break;
-        case 'tool_result': {
-          const call = parts.find((p) => p.type === 'tool-call' && p.toolCallId === event.id);
-          if (call?.type === 'tool-call') {
-            call.result = event.result;
-            if (event.isError) call.isError = true;
-          }
-          break;
-        }
-        case 'error':
-          throw new Error(event.v);
+      const events = streamChatTurn({
+        threadId: remoteId,
+        // The Model Selector (in the composer) publishes the chosen model into
+        // the run's ModelContext as `config.modelName`.
+        model: context.config?.modelName,
+        messages: messages.map((message) => ({ role: message.role, content: messageToText(message) })),
+        signal: abortSignal,
+      });
+
+      for await (const event of events) {
+        applyEvent(parts, event);
+        yield { content: parts } as ChatModelRunResult;
       }
-    };
-
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = '';
-
-    const drainLines = (flush: boolean) => {
-      let newlineIndex: number;
-      while ((newlineIndex = buffer.indexOf('\n')) >= 0) {
-        const line = buffer.slice(0, newlineIndex).trim();
-        buffer = buffer.slice(newlineIndex + 1);
-        if (line) applyEvent(JSON.parse(line) as StreamEvent);
-      }
-      if (flush && buffer.trim()) {
-        applyEvent(JSON.parse(buffer.trim()) as StreamEvent);
-        buffer = '';
-      }
-    };
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      buffer += decoder.decode(value, { stream: true });
-      drainLines(false);
       yield { content: parts } as ChatModelRunResult;
-    }
-    drainLines(true);
-    yield { content: parts } as ChatModelRunResult;
-  },
-};
+    },
+  };
+}
 
 // Per-thread runtime. History + attachments are attached here (not via the
 // adapter's unstable_Provider) because the remote-thread-list runtime invokes
@@ -189,6 +156,7 @@ const chatAdapter: ChatModelAdapter = {
 function useChatThreadRuntime() {
   const aui = useAui();
 
+  const chatAdapter = useMemo(() => createChatAdapter(aui), [aui]);
   const adapters = useMemo(() => ({ history: createHistoryAdapter(aui), attachments: attachmentAdapter }), [aui]);
 
   return useLocalRuntime(chatAdapter, { adapters });
