@@ -15,7 +15,11 @@ left in place, which `tests/unit/test_skills.py` fails on.
 """
 
 import re
+from collections.abc import Collection
 from pathlib import Path
+
+import yaml
+from pydantic import BaseModel
 
 # Repo root: lib/skills.py -> parents[1]
 _SKILLS_DIR = Path(__file__).parents[1] / "skills"
@@ -30,6 +34,18 @@ _INTERACTIVE_ONLY_RE = re.compile(
     rf"[ \t]*{re.escape(INTERACTIVE_ONLY_START)}.*?{re.escape(INTERACTIVE_ONLY_END)}[ \t]*\n*",
     re.DOTALL,
 )
+
+# Just the two marker comments, for the setting where the section itself stays.
+_INTERACTIVE_MARKER_RE = re.compile(
+    rf"[ \t]*(?:{re.escape(INTERACTIVE_ONLY_START)}|{re.escape(INTERACTIVE_ONLY_END)})[ \t]*\n?"
+)
+
+
+class SkillSummary(BaseModel):
+    """What a skill picker needs to show: the frontmatter, not the body."""
+
+    name: str
+    description: str
 
 
 def load_skill_prompt(skill_name: str) -> str:
@@ -53,6 +69,52 @@ def strip_interactive_only(content: str) -> str:
     if INTERACTIVE_ONLY_START not in content:
         return content
     return _INTERACTIVE_ONLY_RE.sub("", content)
+
+
+def strip_interactive_markers(content: str) -> str:
+    """Keep the interactive-only sections, drop the marker comments around them.
+
+    The counterpart of ``strip_interactive_only`` for an agent that does have a
+    user to ask, such as the chat page. The sections apply there; only the
+    markers, which exist for the backend loader, are noise.
+    """
+    if INTERACTIVE_ONLY_START not in content and INTERACTIVE_ONLY_END not in content:
+        return content
+    return _INTERACTIVE_MARKER_RE.sub("", content)
+
+
+def list_skill_summaries(exclude: Collection[str] = ()) -> list[SkillSummary]:
+    """Name and description of every skill on disk, in name order.
+
+    Skills whose SKILL.md has no parseable frontmatter with both fields are
+    left out rather than shown with a blank description.
+    """
+    summaries: list[SkillSummary] = []
+    for skill_dir in sorted(_SKILLS_DIR.iterdir()):
+        skill_file = skill_dir / "SKILL.md"
+        if skill_dir.name in exclude or not skill_file.is_file():
+            continue
+        frontmatter = _frontmatter_block(skill_file.read_text(encoding="utf-8"))
+        if frontmatter is None:
+            continue
+        parsed = yaml.safe_load(frontmatter)
+        if not isinstance(parsed, dict):
+            continue
+        name, description = parsed.get("name"), parsed.get("description")
+        if isinstance(name, str) and isinstance(description, str):
+            summaries.append(SkillSummary(name=name, description=description.strip()))
+    return summaries
+
+
+def _frontmatter_block(content: str) -> str | None:
+    """The YAML between the leading ``---`` delimiters, or None when absent."""
+    if not content.startswith("---"):
+        return None
+    lines = content.splitlines()
+    for i in range(1, len(lines)):
+        if lines[i].strip() == "---":
+            return "\n".join(lines[1:i])
+    return None
 
 
 def _strip_frontmatter(content: str) -> str:

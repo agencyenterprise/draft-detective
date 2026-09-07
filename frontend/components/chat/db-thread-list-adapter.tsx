@@ -1,6 +1,7 @@
 import {
   createThreadApiChatThreadsPost,
   deleteThreadApiChatThreadsThreadIdDelete,
+  generateThreadTitleApiChatThreadsThreadIdTitlePost,
   listThreadsApiChatThreadsGet,
   updateThreadApiChatThreadsThreadIdPatch,
   type ChatThreadResponse,
@@ -53,22 +54,17 @@ export const dbThreadListAdapter: RemoteThreadListAdapter = {
       }))
       .filter((message) => message.content);
 
+    // The backend generates the title and stores it on the thread in one call,
+    // so it survives reloads without a second request from here.
     let title = 'New chat';
     try {
-      const response = await fetch('/api/chat/title', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: simpleMessages }),
+      const thread = await generateThreadTitleApiChatThreadsThreadIdTitlePost({
+        path: { thread_id: remoteId },
+        body: { messages: simpleMessages },
       });
-      if (response.ok) title = (await response.json()).title ?? title;
+      title = thread.title ?? title;
     } catch {
       // fall back to the default title
-    }
-    // Persist the generated title so it survives reloads.
-    try {
-      await updateThreadApiChatThreadsThreadIdPatch({ path: { thread_id: remoteId }, body: { title } });
-    } catch {
-      // non-fatal
     }
     return createAssistantStream((controller) => {
       controller.appendText(title);

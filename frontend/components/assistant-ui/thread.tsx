@@ -9,7 +9,7 @@ import { ToolFallback } from '@/components/assistant-ui/tool-fallback';
 import { TooltipIconButton } from '@/components/assistant-ui/tooltip-icon-button';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { SKILL_COMMANDS } from '@/lib/skill-commands';
+import { useSkillCommands } from '@/lib/skill-commands';
 import {
   ActionBarMorePrimitive,
   ActionBarPrimitive,
@@ -158,11 +158,13 @@ const Composer: FC = () => {
   const aui = useAui();
 
   // One slash command per skill. `execute` pre-fills the composer with an
-  // explicit instruction so the agent loads and runs that skill (via its
-  // `load_skill` tool); the user can then paste the document and send.
+  // explicit instruction so the agent reads and runs that skill (from the
+  // skills mounted in its filesystem); the user can then paste the document
+  // and send.
+  const skillCommands = useSkillCommands();
   const commands = useMemo<Unstable_SlashCommand[]>(
     () =>
-      SKILL_COMMANDS.map((command) => ({
+      skillCommands.map((command) => ({
         id: command.id,
         description: command.description,
         execute: () => {
@@ -172,7 +174,7 @@ const Composer: FC = () => {
           aui.composer().setText(`Please run the "${command.id}" skill.\n\n`);
         },
       })),
-    [aui],
+    [aui, skillCommands],
   );
 
   const slash = unstable_useSlashCommandAdapter({ commands, removeOnExecute: true });

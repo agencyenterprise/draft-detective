@@ -619,6 +619,16 @@ export type BibliographyItemValidationV2 = {
 };
 
 /**
+ * Body_extract_attachment_text_api_chat_extract_post
+ */
+export type BodyExtractAttachmentTextApiChatExtractPost = {
+  /**
+   * File
+   */
+  file: Blob | File;
+};
+
+/**
  * CancelWorkflowResponse
  *
  * Response for workflow cancellation.
@@ -655,6 +665,54 @@ export type ChatMessageResponse = {
 };
 
 /**
+ * ChatModelResponse
+ */
+export type ChatModelResponse = {
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * Name
+   */
+  name: string;
+  /**
+   * Is Default
+   */
+  is_default: boolean;
+};
+
+/**
+ * ChatSkillResponse
+ */
+export type ChatSkillResponse = {
+  /**
+   * Name
+   */
+  name: string;
+  /**
+   * Description
+   */
+  description: string;
+};
+
+/**
+ * ChatStreamRequest
+ */
+export type ChatStreamRequest = {
+  /**
+   * Messages
+   */
+  messages: Array<ChatTurnMessage>;
+  /**
+   * Model
+   *
+   * A model id from GET /api/chat/models.
+   */
+  model?: string | null;
+};
+
+/**
  * ChatThreadResponse
  */
 export type ChatThreadResponse = {
@@ -678,6 +736,22 @@ export type ChatThreadResponse = {
    * Last Updated At
    */
   last_updated_at: Date;
+};
+
+/**
+ * ChatTurnMessage
+ *
+ * One message of the conversation, as the client sends it.
+ */
+export type ChatTurnMessage = {
+  /**
+   * Role
+   */
+  role: 'user' | 'assistant' | 'system';
+  /**
+   * Content
+   */
+  content?: string;
 };
 
 /**
@@ -1157,6 +1231,16 @@ export const EvidenceAlignmentLevel = {
 export type EvidenceAlignmentLevel = (typeof EvidenceAlignmentLevel)[keyof typeof EvidenceAlignmentLevel];
 
 /**
+ * ExtractResponse
+ */
+export type ExtractResponse = {
+  /**
+   * Text
+   */
+  text: string;
+};
+
+/**
  * ExtractedReference
  *
  * A reference extracted from the document.
@@ -1628,6 +1712,16 @@ export type FileSummary = {
    * The ID of the file
    */
   file_id: string;
+};
+
+/**
+ * GenerateTitleRequest
+ */
+export type GenerateTitleRequest = {
+  /**
+   * Messages
+   */
+  messages: Array<ChatTurnMessage>;
 };
 
 /**
@@ -4299,6 +4393,132 @@ export type AppendMessageApiChatThreadsThreadIdMessagesPostResponses = {
 
 export type AppendMessageApiChatThreadsThreadIdMessagesPostResponse =
   AppendMessageApiChatThreadsThreadIdMessagesPostResponses[keyof AppendMessageApiChatThreadsThreadIdMessagesPostResponses];
+
+export type ListChatModelsApiChatModelsGetData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/api/chat/models';
+};
+
+export type ListChatModelsApiChatModelsGetResponses = {
+  /**
+   * Response List Chat Models Api Chat Models Get
+   *
+   * Successful Response
+   */
+  200: Array<ChatModelResponse>;
+};
+
+export type ListChatModelsApiChatModelsGetResponse =
+  ListChatModelsApiChatModelsGetResponses[keyof ListChatModelsApiChatModelsGetResponses];
+
+export type ListChatSkillsApiChatSkillsGetData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/api/chat/skills';
+};
+
+export type ListChatSkillsApiChatSkillsGetResponses = {
+  /**
+   * Response List Chat Skills Api Chat Skills Get
+   *
+   * Successful Response
+   */
+  200: Array<ChatSkillResponse>;
+};
+
+export type ListChatSkillsApiChatSkillsGetResponse =
+  ListChatSkillsApiChatSkillsGetResponses[keyof ListChatSkillsApiChatSkillsGetResponses];
+
+export type StreamChatTurnApiChatThreadsThreadIdStreamPostData = {
+  body: ChatStreamRequest;
+  path: {
+    /**
+     * Thread Id
+     */
+    thread_id: string;
+  };
+  query?: never;
+  url: '/api/chat/threads/{thread_id}/stream';
+};
+
+export type StreamChatTurnApiChatThreadsThreadIdStreamPostErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type StreamChatTurnApiChatThreadsThreadIdStreamPostError =
+  StreamChatTurnApiChatThreadsThreadIdStreamPostErrors[keyof StreamChatTurnApiChatThreadsThreadIdStreamPostErrors];
+
+export type StreamChatTurnApiChatThreadsThreadIdStreamPostResponses = {
+  /**
+   * Successful Response
+   */
+  200: unknown;
+};
+
+export type GenerateThreadTitleApiChatThreadsThreadIdTitlePostData = {
+  body: GenerateTitleRequest;
+  path: {
+    /**
+     * Thread Id
+     */
+    thread_id: string;
+  };
+  query?: never;
+  url: '/api/chat/threads/{thread_id}/title';
+};
+
+export type GenerateThreadTitleApiChatThreadsThreadIdTitlePostErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type GenerateThreadTitleApiChatThreadsThreadIdTitlePostError =
+  GenerateThreadTitleApiChatThreadsThreadIdTitlePostErrors[keyof GenerateThreadTitleApiChatThreadsThreadIdTitlePostErrors];
+
+export type GenerateThreadTitleApiChatThreadsThreadIdTitlePostResponses = {
+  /**
+   * Successful Response
+   */
+  200: ChatThreadResponse;
+};
+
+export type GenerateThreadTitleApiChatThreadsThreadIdTitlePostResponse =
+  GenerateThreadTitleApiChatThreadsThreadIdTitlePostResponses[keyof GenerateThreadTitleApiChatThreadsThreadIdTitlePostResponses];
+
+export type ExtractAttachmentTextApiChatExtractPostData = {
+  body: BodyExtractAttachmentTextApiChatExtractPost;
+  path?: never;
+  query?: never;
+  url: '/api/chat/extract';
+};
+
+export type ExtractAttachmentTextApiChatExtractPostErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type ExtractAttachmentTextApiChatExtractPostError =
+  ExtractAttachmentTextApiChatExtractPostErrors[keyof ExtractAttachmentTextApiChatExtractPostErrors];
+
+export type ExtractAttachmentTextApiChatExtractPostResponses = {
+  /**
+   * Successful Response
+   */
+  200: ExtractResponse;
+};
+
+export type ExtractAttachmentTextApiChatExtractPostResponse =
+  ExtractAttachmentTextApiChatExtractPostResponses[keyof ExtractAttachmentTextApiChatExtractPostResponses];
 
 export type CheckPreflightApiPreflightPostData = {
   body: PreflightRequest;
