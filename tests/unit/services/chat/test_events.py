@@ -12,8 +12,12 @@ from langgraph.types import Overwrite
 from lib.services.chat.events import GraphEventMapper, content_blocks
 
 
-def _tokens(*blocks: dict) -> tuple:
-    return (AIMessageChunk(content=list(blocks)), {"langgraph_node": "model"})
+def _tokens(*blocks: dict, id: str = "resp_1") -> tuple:
+    return (AIMessageChunk(content=list(blocks), id=id), {"langgraph_node": "model"})
+
+
+def _without_boundaries(events: list[dict]) -> list[dict]:
+    return [e for e in events if e["t"] not in ("message", "message_end")]
 
 
 class TestTokenStream:
@@ -27,6 +31,7 @@ class TestTokenStream:
             ),
         )
         assert events == [
+            {"t": "message", "id": "resp_1"},
             {"t": "reasoning", "v": "Weighing "},
             {"t": "text", "v": "Hello"},
         ]
@@ -43,12 +48,12 @@ class TestTokenStream:
                 {"type": "tool_call_chunk", "name": "read_file", "args": '{"pa'},
             ),
         )
-        assert events == []
+        assert _without_boundaries(events) == []
 
     def test_string_content_is_a_text_delta(self) -> None:
         mapper = GraphEventMapper()
-        chunk: tuple[AIMessageChunk, dict] = (AIMessageChunk(content="plain"), {})
-        assert mapper.map("messages", chunk) == [{"t": "text", "v": "plain"}]
+        chunk: tuple[AIMessageChunk, dict] = (AIMessageChunk(content="plain", id="resp_1"), {})
+        assert mapper.map("messages", chunk) == [{"t": "message", "id": "resp_1"}, {"t": "text", "v": "plain"}]
 
     def test_tool_messages_in_the_token_stream_are_ignored(self) -> None:
         """They are handled from ``updates``; doing both would double them."""
@@ -57,26 +62,57 @@ class TestTokenStream:
         assert mapper.map("messages", payload) == []
 
 
+class TestMessageBoundaries:
+    def test_a_message_opens_on_its_first_chunk_and_closes_when_complete(self) -> None:
+        """The persisted id is the first chunk's; later chunks carry a run id."""
+        mapper = GraphEventMapper()
+        first = mapper.map("messages", _tokens(id="resp_1"))
+        text = mapper.map("messages", _tokens({"type": "text", "text": "Hi"}, id="lc_run--1"))
+        done = mapper.map("updates", {"model": {"messages": [AIMessage(content="Hi", id="resp_1")]}})
+        assert first == [{"t": "message", "id": "resp_1"}]
+        assert text == [{"t": "text", "v": "Hi"}]
+        assert done == [{"t": "message_end", "id": "resp_1"}]
+
+    def test_the_next_model_turn_opens_a_new_message(self) -> None:
+        mapper = GraphEventMapper()
+        mapper.map("messages", _tokens(id="resp_1"))
+        mapper.map("updates", {"model": {"messages": [AIMessage(content="", id="resp_1", tool_calls=[{"id": "c1", "name": "ls", "args": {}}])]}})
+        mapper.map("updates", {"tools": {"messages": [ToolMessage(content="x", tool_call_id="c1", id="t1")]}})
+        assert mapper.map("messages", _tokens(id="resp_2")) == [{"t": "message", "id": "resp_2"}]
+
+    def test_a_message_that_never_streamed_still_opens_and_closes(self) -> None:
+        mapper = GraphEventMapper()
+        events = mapper.map("updates", {"model": {"messages": [AIMessage(content="", id="resp_9", tool_calls=[{"id": "c1", "name": "ls", "args": {}}])]}})
+        assert [e["t"] for e in events] == ["message", "tool", "message_end"]
+        assert events[0]["id"] == events[2]["id"] == "resp_9"
+
+    def test_a_chunk_without_an_id_gets_one(self) -> None:
+        mapper = GraphEventMapper()
+        (opened,) = mapper.map("messages", (AIMessageChunk(content=""), {}))
+        assert opened["t"] == "message" and opened["id"]
+
+
 class TestUpdates:
     def test_completed_tool_calls_are_announced_with_whole_args(self) -> None:
         mapper = GraphEventMapper()
         message = AIMessage(
             content="",
+            id="resp_1",
             tool_calls=[{"id": "c1", "name": "read_file", "args": {"file_path": "/a"}}],
         )
         events = mapper.map("updates", {"model": {"messages": [message]}})
-        assert events == [
+        assert _without_boundaries(events) == [
             {"t": "tool", "id": "c1", "name": "read_file", "args": {"file_path": "/a"}}
         ]
 
-    def test_a_tool_message_is_a_result(self) -> None:
+    def test_a_tool_message_is_a_result_carrying_its_stored_id(self) -> None:
         mapper = GraphEventMapper()
-        ok = ToolMessage(content="contents", tool_call_id="c1")
-        failed = ToolMessage(content="boom", tool_call_id="c2", status="error")
+        ok = ToolMessage(content="contents", tool_call_id="c1", id="t1")
+        failed = ToolMessage(content="boom", tool_call_id="c2", status="error", id="t2")
         events = mapper.map("updates", {"tools": {"messages": [ok, failed]}})
         assert events == [
-            {"t": "tool_result", "id": "c1", "result": "contents"},
-            {"t": "tool_result", "id": "c2", "result": "boom", "isError": True},
+            {"t": "tool_result", "id": "c1", "result": "contents", "mid": "t1"},
+            {"t": "tool_result", "id": "c2", "result": "boom", "isError": True, "mid": "t2"},
         ]
 
     def test_hosted_web_search_comes_from_content_blocks(self) -> None:
@@ -94,14 +130,14 @@ class TestUpdates:
             ]
         )
         events = mapper.map("updates", {"model": {"messages": [message]}})
-        assert events == [
+        assert _without_boundaries(events) == [
             {
                 "t": "tool",
                 "id": "ws_1",
                 "name": "web_search",
                 "args": {"query": "attention is all you need"},
             },
-            {"t": "tool_result", "id": "ws_1", "result": {"status": "success"}},
+            {"t": "tool_result", "id": "ws_1", "result": {"status": "success"}, "mid": f"{message.id}:ws_1"},
         ]
 
     def test_a_call_is_announced_once(self) -> None:
@@ -111,7 +147,7 @@ class TestUpdates:
         )
         first = mapper.map("updates", {"model": {"messages": [message]}})
         second = mapper.map("updates", {"model": {"messages": [message]}})
-        assert len(first) == 1 and second == []
+        assert len(_without_boundaries(first)) == 1 and _without_boundaries(second) == []
 
     def test_a_history_rewrite_is_not_new_output(self) -> None:
         """deepagents overwrites the message list before the first model call."""
@@ -124,9 +160,9 @@ class TestUpdates:
 
     def test_a_single_message_write_is_handled_like_a_list(self) -> None:
         mapper = GraphEventMapper()
-        message = ToolMessage(content="ok", tool_call_id="c1")
+        message = ToolMessage(content="ok", tool_call_id="c1", id="t1")
         assert mapper.map("updates", {"tools": {"messages": message}}) == [
-            {"t": "tool_result", "id": "c1", "result": "ok"}
+            {"t": "tool_result", "id": "c1", "result": "ok", "mid": "t1"}
         ]
 
     def test_non_message_channels_and_unknown_modes_are_ignored(self) -> None:
