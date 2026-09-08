@@ -9,6 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { HelpLink } from '@/components/help/help-link';
 import { Input } from '@/components/ui/input';
 import { ShareStatusResponse } from '@/lib/generated-api';
 import { Check, Copy, ExternalLink, Loader2 } from 'lucide-react';
@@ -113,7 +114,8 @@ export function ShareDialog({
           <DialogDescription>
             {isEnabled
               ? 'Anyone with this link can view a read-only version of your project.'
-              : 'Create a public link that anyone can use to view this project.'}
+              : 'Create a public link that anyone can use to view this project.'}{' '}
+            <HelpLink topic="sharing">What can they see?</HelpLink>
           </DialogDescription>
         </DialogHeader>
 

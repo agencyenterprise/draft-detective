@@ -3,6 +3,7 @@ import {
   CircleAlert,
   FileText,
   History,
+  Link2,
   ListChecks,
   LucideIcon,
   MessagesSquare,
@@ -15,6 +16,7 @@ import { IssuesTopic } from './topics/issues';
 import { PeerReviewTopic } from './topics/peer-review';
 import { ReferencesTopic } from './topics/references';
 import { RevisionsTopic } from './topics/revisions';
+import { SharingTopic } from './topics/sharing';
 import { SourceFilesTopic } from './topics/source-files';
 
 export type HelpTopicId =
@@ -23,6 +25,7 @@ export type HelpTopicId =
   | 'references'
   | 'source-files'
   | 'revisions'
+  | 'sharing'
   | 'peer-review'
   | 'feedback';
 
@@ -59,9 +62,9 @@ export interface HelpTopic {
 /**
  * The concepts the app explains in one place, ordered as the work runs:
  * assessments produce issues, references name sources, one assessment needs
- * those sources, revisions are what all of it hangs from, peer review is what
- * happens once someone else has read the draft, and feedback is how any of it
- * gets better. Every "what is this" link
+ * those sources, revisions are what all of it hangs from, sharing is how the
+ * draft reaches someone else, peer review is what happens once they have read
+ * it, and feedback is how any of it gets better. Every "what is this" link
  * in the product opens this list at one of them, so a question asked in one
  * corner is answered next to all the others.
  */
@@ -106,6 +109,14 @@ export const HELP_TOPICS: HelpTopic[] = [
     description: 'Each draft you upload becomes a revision. The ones before it stay, with everything they found.',
     icon: History,
     Body: RevisionsTopic,
+  },
+  {
+    id: 'sharing',
+    label: 'Sharing',
+    title: 'Sharing a project by link',
+    description: 'A public, read-only link to your project. Anyone holding it can look; only you can change anything.',
+    icon: Link2,
+    Body: SharingTopic,
   },
   {
     id: 'peer-review',
