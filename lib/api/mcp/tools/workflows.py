@@ -59,7 +59,9 @@ async def run_workflow(
     pointing the user at the project URL. After the user explicitly confirms
     (e.g. "go ahead and start"), call this tool again with the same arguments
     plus approve_human_steps=True and/or approve_web_search=True (whichever
-    gates were listed) to record consent and run the workflow.
+    gates were listed) to record consent and run the workflow. Human approval
+    is recorded per project revision, so once given it is not asked again
+    until a new revision is created.
 
     When the human-approval gate triggers, also offer the user two options
     for filling in missing supporting files:

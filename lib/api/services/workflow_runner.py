@@ -10,17 +10,25 @@ from lib.api.models import StartMultipleWorkflowsRequest
 from lib.config.env import config as env_config
 from lib.models.project import AccessLevel, Project
 from lib.models.user import User
-from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus, WorkflowRunType
+from lib.models.workflow_run import WorkflowRunStatus, WorkflowRunType
 from lib.services.files import assert_project_has_main_file
 from lib.services.projects import get_project_access
 from lib.services.users import get_user_decrypted_api_key
+from lib.services.workflow_gates import (
+    approve_gate,
+    get_approved_gates,
+    get_effective_gates,
+    get_unsatisfied_gates,
+    release_runs_awaiting_approval,
+)
 from lib.services.workflow_runs import (
     create_workflow_run,
     get_project_workflow_run_by_type,
-    has_completed_workflow_run_any_revision,
+    update_workflow_run_status,
 )
 from lib.workflows.config_factory import create_workflow_config
 from lib.workflows.dependency_resolver import resolve_workflow_dependencies
+from lib.workflows.models import WorkflowGate
 from lib.workflows.registry import get_config_type, get_workflow_manifest
 from lib.workflows.runner import (
     run_workflow_from_config,
@@ -41,7 +49,7 @@ class WorkflowGateRequiredError(Exception):
     """Raised when a blocking workflow run hits one or more unsatisfied consent gates.
 
     Today there are two gate kinds:
-      - human approval (manifest.requires_human_trigger)
+      - human approval (manifest.gates, e.g. the reference review)
       - web-search consent (manifest.needs_web_search)
 
     Each carries the workflow types that triggered it so callers (e.g. the
@@ -109,10 +117,10 @@ async def _prepare_workflow_items(
     Returns a tuple of:
     - project: the resolved Project instance
     - revision: the project revision this batch targets (always current_revision)
-    - all_workflow_run_ids: IDs of all newly created run records (including
-      human-trigger workflows that won't be auto-run)
+    - all_workflow_run_ids: IDs of all run records this batch owns, including
+      runs in AWAITING_APPROVAL that won't be auto-run
     - auto_run_items: subset of items that should actually be executed
-    - pending_human_triggers: human-trigger workflows blocked by missing approval
+    - pending_human_triggers: gated workflows held behind an unapproved gate
       (only populated when raise_on_pending_gates=True)
     - pending_web_search: workflows blocked by missing web-search consent
       (only populated when raise_on_pending_gates=True)
@@ -139,12 +147,14 @@ async def _prepare_workflow_items(
     auto_run_items: List[AutoRunWorkflowItem] = []
     pending_human_triggers: List[WorkflowRunType] = []
     pending_web_search: List[WorkflowRunType] = []
-    # Workflows blocked behind an unsatisfied gate (the gate itself plus
-    # anything downstream of it). resolved_workflow_types is in topological
-    # order, so a single forward pass is sufficient.
+    # Workflows deferred behind the web-search consent gate (the gated
+    # workflow itself plus anything downstream of it). Only the MCP path uses
+    # this; resolved_workflow_types is in topological order, so a single
+    # forward pass is sufficient.
     blocked_set: set[WorkflowRunType] = set()
 
     revision = project.current_revision
+    approved_gates = await get_approved_gates(request.project_id, revision)
 
     for workflow_type in resolved_workflow_types:
         manifest = get_workflow_manifest(workflow_type)
@@ -179,9 +189,9 @@ async def _prepare_workflow_items(
             )
             continue
 
-        # If any required dep is blocked behind a pending gate, this workflow
-        # is downstream and must be deferred to the post-approval retry.
-        # Don't create a PENDING record either — the next call will.
+        # If any required dep is deferred behind the web-search consent gate,
+        # this workflow is downstream and must wait for the post-consent
+        # retry. Don't create a record either — the next call will.
         if any(dep in blocked_set for dep in manifest.required_dependencies):
             logger.info(
                 f"Deferring {workflow_type.value} - depends on a workflow blocked by a consent gate"
@@ -201,50 +211,76 @@ async def _prepare_workflow_items(
             blocked_set.add(workflow_type)
             continue
 
-        run_as_approved = False
-        if manifest.requires_human_trigger:
-            previously_approved = await has_completed_workflow_run_any_revision(
-                request.project_id, workflow_type
-            )
-            if not previously_approved and not approve_human_steps:
-                if raise_on_pending_gates:
-                    pending_human_triggers.append(workflow_type)
-                    blocked_set.add(workflow_type)
-                    # Don't create a PENDING record — the caller is about to
-                    # be told to retry with approval, not to use the UI.
-                    continue
-                # UI path: create the PENDING record below so the UI can show
-                # the approve button, but don't add to auto_run_items.
-            else:
-                run_as_approved = True
-                logger.info(
-                    f"Workflow {workflow_type.value} {'auto-approved by caller' if approve_human_steps and not previously_approved else 'previously approved'} - auto-running"
+        # Approval gates (own and inherited from required dependencies).
+        unsatisfied_gates = [
+            gate
+            for gate in get_effective_gates(workflow_type)
+            if gate not in approved_gates
+        ]
+        if unsatisfied_gates and approve_human_steps:
+            # The caller relayed the user's consent: record it so the approval
+            # outlives this request, then proceed as if it had been there.
+            for gate in unsatisfied_gates:
+                await approve_gate(
+                    request.project_id, revision, gate, approved_by_user_id=user.id
                 )
+                approved_gates.add(gate)
+            unsatisfied_gates = []
+
+        awaiting_run = (
+            existing_run
+            if existing_run
+            and existing_run.status == WorkflowRunStatus.AWAITING_APPROVAL
+            else None
+        )
+
+        if unsatisfied_gates:
+            if raise_on_pending_gates:
+                pending_human_triggers.append(workflow_type)
+            if awaiting_run is not None:
+                # Already waiting on the same gate; don't create a second copy.
+                workflow_run_ids.append(str(awaiting_run.id))
+                continue
+            awaiting_run_id = await create_workflow_run(
+                project_id=request.project_id,
+                status=WorkflowRunStatus.AWAITING_APPROVAL,
+                type=workflow_type,
+                thread_id=str(uuid.uuid4()),
+                revision=revision,
+            )
+            workflow_run_ids.append(awaiting_run_id)
+            logger.info(
+                f"{workflow_type.value} awaiting approval - waiting on "
+                f"{[g.value for g in unsatisfied_gates]}"
+            )
+            continue
 
         workflow_config = create_workflow_config(
             project, workflow_type, request.openai_api_key
         )
-        # Each run gets a fresh thread id; accumulating workflows carry prior
-        # state forward via prior_self_state (read at execution time in the
-        # runner) instead of thread reuse.
-        thread_id = str(uuid.uuid4())
 
-        workflow_run_id = await create_workflow_run(
-            project_id=request.project_id,
-            status=WorkflowRunStatus.PENDING,
-            type=workflow_type,
-            thread_id=thread_id,
-            revision=revision,
-        )
+        if awaiting_run is not None:
+            # Its gate was approved while it waited: release this row
+            # rather than create a second run of the same type.
+            await update_workflow_run_status(
+                str(awaiting_run.id), WorkflowRunStatus.PENDING
+            )
+            thread_id = awaiting_run.langgraph_thread_id
+            workflow_run_id = str(awaiting_run.id)
+        else:
+            # Each run gets a fresh thread id; accumulating workflows carry
+            # prior state forward via prior_self_state (read at execution time
+            # in the runner) instead of thread reuse.
+            thread_id = str(uuid.uuid4())
+            workflow_run_id = await create_workflow_run(
+                project_id=request.project_id,
+                status=WorkflowRunStatus.PENDING,
+                type=workflow_type,
+                thread_id=thread_id,
+                revision=revision,
+            )
 
         workflow_run_ids.append(workflow_run_id)
-
-        if manifest.requires_human_trigger and not run_as_approved:
-            logger.info(
-                f"Workflow {workflow_type.value} requires human trigger - skipping auto-run"
-            )
-            continue
-
         auto_run_items.append(
             AutoRunWorkflowItem(
                 config=workflow_config,
@@ -292,14 +328,29 @@ async def start_workflow_run(
     # of thread reuse.
     thread_id = str(uuid.uuid4())
 
+    unsatisfied_gates = await get_unsatisfied_gates(
+        config.project_id, revision, config.type
+    )
+
     # Create new workflow run record
     workflow_run_id = await create_workflow_run(
         project_id=config.project_id,
-        status=WorkflowRunStatus.PENDING,
+        status=(
+            WorkflowRunStatus.AWAITING_APPROVAL
+            if unsatisfied_gates
+            else WorkflowRunStatus.PENDING
+        ),
         type=config.type,
         thread_id=thread_id,
         revision=revision,
     )
+
+    if unsatisfied_gates:
+        logger.info(
+            f"{config.type.value} awaiting approval - waiting on "
+            f"{[g.value for g in unsatisfied_gates]}"
+        )
+        return workflow_run_id
 
     background_tasks.add_task(
         run_workflow_with_dependency_check,
@@ -435,44 +486,49 @@ async def run_multiple_workflows_blocking(
     return project, workflow_run_ids
 
 
-async def resume_workflow_run(
-    workflow_run: WorkflowRun,
-    config: WorkflowConfig,
+async def approve_project_gate(
+    project: Project,
+    gate: WorkflowGate,
     user: User,
     background_tasks: BackgroundTasks,
-) -> str:
+) -> List[str]:
     """
-    Resume an existing workflow run by scheduling it to continue.
+    Approve a gate for the project's current revision and schedule every run
+    that was awaiting it.
 
-    Unlike start_workflow_run, this doesn't create a new run record -
-    it continues an existing one using its thread_id.
-
-    Args:
-        workflow_run: The existing workflow run to resume
-        config: The workflow config for this run
-        user: The user running the workflow
-        background_tasks: FastAPI background tasks
+    Idempotent: approving an already-approved gate releases nothing new and
+    returns an empty list.
 
     Returns:
-        The workflow run ID
+        The IDs of the runs released from AWAITING_APPROVAL and scheduled.
     """
-    # Resuming re-runs the same run from a freshly built state; no new run is
-    # created and it must not adopt another run's state, so no prior-state seed.
-    thread_id = workflow_run.langgraph_thread_id
+    project_id = str(project.id)
+    revision = project.current_revision
 
-    background_tasks.add_task(
-        run_workflow_with_dependency_check,
-        config=config,
-        thread_id=thread_id,
-        workflow_run_id=str(workflow_run.id),
-        user=user,
-        revision=workflow_run.revision,
-        # A resumed run continues its own state on its own thread; don't seed it
-        # from another run's state.
-        seed_prior_state=False,
-    )
+    await approve_gate(project_id, revision, gate, approved_by_user_id=user.id)
+    released_runs = await release_runs_awaiting_approval(project_id, revision)
 
-    return str(workflow_run.id)
+    # Configs are rebuilt from the project; the per-request API key (if any)
+    # was only ever used to check availability at start time. Resolution at
+    # run time falls back to the user's stored key or the server key.
+    items = [
+        AutoRunWorkflowItem(
+            config=create_workflow_config(project, WorkflowRunType(run.type)),
+            thread_id=run.langgraph_thread_id,
+            workflow_run_id=str(run.id),
+        )
+        for run in released_runs
+    ]
+
+    if items:
+        background_tasks.add_task(
+            _run_multiple_workflows_concurrently,
+            items=items,
+            user=user,
+            revision=revision,
+        )
+
+    return [item.workflow_run_id for item in items]
 
 
 async def _run_multiple_workflows_concurrently(

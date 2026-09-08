@@ -1,8 +1,10 @@
 'use client';
 
-import { useApproveWorkflow } from '@/components/analysis-wizard/use-approve-workflow';
-import { ProjectDetailed, WorkflowRunType } from '@/lib/generated-api';
-import { getWorkflowRunByType, isWorkflowProcessing, needsHumanApproval } from '@/lib/workflow-state';
+import { useApproveGate } from '@/components/workflows/use-approve-gate';
+import { needsReferenceReview } from '@/components/workflows/utils';
+import { ProjectDetailed, WorkflowGate, WorkflowRunType } from '@/lib/generated-api';
+import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
+import { getWorkflowRunByType, isWorkflowProcessing } from '@/lib/workflow-state';
 import { useState } from 'react';
 import { useReferenceReviewReferences } from './queries';
 
@@ -22,9 +24,9 @@ export function useReferenceApprovalFlow(projectDetail: ProjectDetailed | undefi
 
   const isProcessingFiles = isWorkflowProcessing(documentProcessing) || isWorkflowProcessing(referenceFileMatching);
 
-  const hasPendingApproval = needsHumanApproval(workflowDetails);
-  const humanApprovalRun = workflowDetails.find((run) => run.run.type === WorkflowRunType.HumanApproval);
-  const approveMutation = useApproveWorkflow(projectId, humanApprovalRun?.run.id);
+  const { workflowTypes } = useWorkflowTypes();
+  const hasPendingApproval = needsReferenceReview(workflowDetails, workflowTypes);
+  const approveMutation = useApproveGate(projectId, WorkflowGate.ReferenceReview);
 
   const unmatchedCount = references.filter((ref) => ref.status === 'unmatched').length;
   const isApproveDisabled =

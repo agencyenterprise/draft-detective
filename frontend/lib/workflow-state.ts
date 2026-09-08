@@ -2,7 +2,6 @@ import {
   AbbreviationScanV2State,
   DocumentProcessingState,
   DocumentSummarizationState,
-  HumanApprovalState,
   ReferenceDownloaderState,
   ReferenceExtractionState,
   ReferenceFileMatchingState,
@@ -24,7 +23,6 @@ type WorkflowTypeToDetail = {
   [WorkflowRunType.DocumentSummarization]: DocumentSummarizationState;
   [WorkflowRunType.ReferenceExtraction]: ReferenceExtractionState;
   [WorkflowRunType.ReferenceFileMatching]: ReferenceFileMatchingState;
-  [WorkflowRunType.HumanApproval]: HumanApprovalState;
   [WorkflowRunType.MethodologicalAlignment]: SimpleDeepAgentState;
   [WorkflowRunType.ReferenceDownloader]: ReferenceDownloaderState;
   [WorkflowRunType.ResultsExtraction]: SimpleDeepAgentState;
@@ -147,6 +145,15 @@ export function isWorkflowProcessing(workflowRun: WorkflowRunDetail | undefined)
   return workflowRun.run.status === WorkflowRunStatus.Running || workflowRun.run.status === WorkflowRunStatus.Pending;
 }
 
+/**
+ * Whether a run is awaiting approval of a consent gate. Nothing happens to it
+ * until the user approves, so it is neither processing nor finished.
+ */
+export function isWorkflowAwaitingApproval(workflowRun: WorkflowRunDetail | undefined): boolean {
+  if (!workflowRun) return false;
+  return workflowRun.run.status === WorkflowRunStatus.AwaitingApproval;
+}
+
 export function isWorkflowCancelled(workflowRun: WorkflowRunDetail | undefined): boolean {
   if (!workflowRun) return false;
   return workflowRun.run.status === WorkflowRunStatus.Cancelled;
@@ -162,36 +169,23 @@ export function isAnyWorkflowProcessing(workflowRuns: WorkflowRunDetail[]): bool
 }
 
 /**
- * Checks if a project is waiting for human approval (step 3).
+ * Whether any assessment is waiting on the user to approve a gate.
  *
- * A project needs human approval when:
- * - It has a HumanApproval workflow run
- * - The HumanApproval workflow has not been approved yet
- *
- * @param workflowRuns - The workflow runs to check
+ * Gate-agnostic: a run in AwaitingApproval could be waiting on any gate. For
+ * the reference review specifically, see `needsReferenceReview` in
+ * `components/workflows/utils`.
  */
-export function needsHumanApproval(workflowRuns: WorkflowRunDetail[]): boolean {
-  const humanApprovalRun = workflowRuns.find((w) => w.run.type === WorkflowRunType.HumanApproval);
-
-  if (!humanApprovalRun) return false;
-
-  const state = humanApprovalRun.state as HumanApprovalState | null;
-  return !state?.approved;
+export function needsApproval(workflowRuns: WorkflowRunDetail[]): boolean {
+  return workflowRuns.some(isWorkflowAwaitingApproval);
 }
 
 /**
- * Whether assessments are actively working, as opposed to parked waiting on
- * the user.
+ * Whether assessments are actively working, as opposed to waiting on the user.
  *
- * A run that is only Pending doesn't count while a human-approval gate is
- * outstanding: HumanApproval and the runs behind it stay Pending until the
- * user approves, so counting them would claim the pipeline is busy for as long
- * as the review takes — an empty progress toast, a spinner that never stops.
- * A Running run always counts: the rest of the assessments keep working while
- * the gate waits, and that work is exactly what the UI should report.
+ * A run in AwaitingApproval is not processing, so this is the same question as
+ * `isAnyWorkflowProcessing`; it stays as a named entry point for the places
+ * that ask "is the pipeline busy" rather than "is this run busy".
  */
 export function isAnyWorkflowActive(workflowRuns: WorkflowRunDetail[]): boolean {
-  if (workflowRuns.some((workflowRun) => workflowRun.run.status === WorkflowRunStatus.Running)) return true;
-  if (needsHumanApproval(workflowRuns)) return false;
   return isAnyWorkflowProcessing(workflowRuns);
 }

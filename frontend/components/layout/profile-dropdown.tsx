@@ -3,7 +3,7 @@
 import { useExperimentalFeatures } from '@/context/experimental-features-context';
 import { UserRole } from '@/lib/generated-api';
 import { useUserMe } from '@/lib/hooks/use-user-me';
-import { DisclosureButton, Menu, MenuButton, MenuItem, MenuItems, MenuSection, MenuSeparator } from '@headlessui/react';
+import { Menu, MenuButton, MenuItem, MenuItems, MenuSection, MenuSeparator } from '@headlessui/react';
 import { ChevronDown } from 'lucide-react';
 import Image from 'next/image';
 import { ThemeToggle } from '../theme-toggle';
@@ -150,88 +150,5 @@ export function ProfileDropdown({
         )}
       </MenuItems>
     </Menu>
-  );
-}
-
-interface MobileProfileMenuProps {
-  user: User;
-}
-
-export function MobileProfileMenu({ user }: MobileProfileMenuProps) {
-  const { showExperimentalFeatures, setShowExperimentalFeatures, isUpdating } = useExperimentalFeatures();
-  const { data: userMe } = useUserMe();
-
-  return (
-    <>
-      <div className="flex items-center px-4">
-        <div className="shrink-0">
-          <Image
-            alt={user.name ?? 'User'}
-            src={user.image ?? 'https://ui-avatars.com/api/?name=' + user.name}
-            className="size-10 rounded-full outline -outline-offset-1 outline-black/5"
-            width={40}
-            height={40}
-          />
-        </div>
-        <div className="ml-3">
-          <div className="text-base font-medium text-foreground">{user.name}</div>
-          <div className="text-sm font-medium text-muted-foreground">{user.email}</div>
-        </div>
-      </div>
-      <div className="mt-3 space-y-1">
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <label className="flex items-center justify-between px-4 py-2 text-base font-medium text-muted-foreground cursor-pointer">
-                <span>Alpha features</span>
-                <Switch
-                  checked={showExperimentalFeatures}
-                  onCheckedChange={setShowExperimentalFeatures}
-                  disabled={isUpdating}
-                />
-              </label>
-            </TooltipTrigger>
-            <TooltipContent side="left" className="max-w-xs">
-              Enable early access to new features that are still in development. These may be unstable or change without
-              notice.
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-        <label className="flex items-center justify-between px-4 py-2 text-base font-medium text-muted-foreground cursor-pointer">
-          <span>Dark mode</span>
-          <ThemeToggle />
-        </label>
-        <div className="my-2 h-px bg-border mx-4" />
-        {userNavigation.map((item) => (
-          <DisclosureButton
-            key={item.name}
-            as="a"
-            href={item.href}
-            className="block px-4 py-2 text-base font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
-          >
-            {item.name}
-          </DisclosureButton>
-        ))}
-
-        {userMe?.role === UserRole.Admin && (
-          <>
-            <div className="px-4 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Admin only
-            </div>
-            {adminNavigation.map((item) => (
-              <DisclosureButton
-                key={item.name}
-                as="a"
-                href={item.href}
-                className="block px-4 py-2 text-base font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
-              >
-                {item.name}
-              </DisclosureButton>
-            ))}
-            <div className="my-2 h-px bg-border mx-4" />
-          </>
-        )}
-      </div>
-    </>
   );
 }

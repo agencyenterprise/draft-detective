@@ -3,6 +3,7 @@
 import type {
   CreateProjectEndpointApiProjectsPostResponse,
   CreateThreadApiChatThreadsPostResponse,
+  GenerateThreadTitleApiChatThreadsThreadIdTitlePostResponse,
   GetAdminFeedbacksApiAdminFeedbacksGetResponse,
   GetDashboardApiAdminDashboardGetResponse,
   GetProjectEndpointApiProjectProjectIdGetResponse,
@@ -88,6 +89,13 @@ export const createThreadApiChatThreadsPostResponseTransformer = async (
 export const updateThreadApiChatThreadsThreadIdPatchResponseTransformer = async (
   data: any,
 ): Promise<UpdateThreadApiChatThreadsThreadIdPatchResponse> => {
+  data = chatThreadResponseSchemaResponseTransformer(data);
+  return data;
+};
+
+export const generateThreadTitleApiChatThreadsThreadIdTitlePostResponseTransformer = async (
+  data: any,
+): Promise<GenerateThreadTitleApiChatThreadsThreadIdTitlePostResponse> => {
   data = chatThreadResponseSchemaResponseTransformer(data);
   return data;
 };

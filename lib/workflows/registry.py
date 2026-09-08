@@ -95,7 +95,6 @@ def register_all_workflow_manifests():
     from lib.workflows.document_summarization.manifest import (
         DocumentSummarizationManifest,
     )
-    from lib.workflows.human_approval.manifest import HumanApprovalManifest
     from lib.workflows.inference_validation_v2.manifest import (
         InferenceValidationV2Manifest,
     )
@@ -132,7 +131,6 @@ def register_all_workflow_manifests():
         DocumentSummarizationManifest(),
         ReferenceExtractionManifest(),
         ReferenceFileMatchingManifest(),
-        HumanApprovalManifest(),
         ClaimReferenceValidationV2Manifest(),
         AbbreviationScanV2Manifest(),
         InferenceValidationV2Manifest(),

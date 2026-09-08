@@ -23,7 +23,6 @@ from lib.config.database import get_async_db_session
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus, WorkflowRunType
 from lib.services.workflow_reaper import _find_stuck_runs
 
-
 RUNNING_GRACE = 60.0
 PENDING_GRACE = 7200.0
 
@@ -34,7 +33,10 @@ async def _insert_run(
     created_at: datetime,
     started_at: Optional[datetime] = None,
     heartbeat_at: Optional[datetime] = None,
+    last_updated_at: Optional[datetime] = None,
 ) -> uuid.UUID:
+    """Insert a run. A fresh row's last_updated_at equals its created_at, which
+    is what a real insert produces; pass it explicitly to model a later write."""
     run_id = uuid.uuid4()
     async with get_async_db_session() as session:
         run = WorkflowRun(
@@ -44,6 +46,7 @@ async def _insert_run(
             type=WorkflowRunType.DOCUMENT_PROCESSING,
             status=status,
             created_at=created_at,
+            last_updated_at=last_updated_at or created_at,
             started_at=started_at,
             heartbeat_at=heartbeat_at,
         )
@@ -264,14 +267,16 @@ async def test_predicate_returns_only_stuck_rows_in_mixed_scenario(cleanup_runs)
         heartbeat_at=now - timedelta(days=7),
     )
 
-    cleanup_runs.extend([
-        stuck_running_stale_hb,
-        stuck_running_no_hb,
-        stuck_pending,
-        fresh_running,
-        fresh_pending,
-        completed_old,
-    ])
+    cleanup_runs.extend(
+        [
+            stuck_running_stale_hb,
+            stuck_running_no_hb,
+            stuck_pending,
+            fresh_running,
+            fresh_pending,
+            completed_old,
+        ]
+    )
 
     stuck = await _find_stuck_runs(RUNNING_GRACE, PENDING_GRACE)
     stuck_ids = {r.id for r in stuck}
@@ -285,3 +290,53 @@ async def test_predicate_returns_only_stuck_rows_in_mixed_scenario(cleanup_runs)
     assert fresh_running not in stuck_ids
     assert fresh_pending not in stuck_ids
     assert completed_old not in stuck_ids
+
+
+@pytest.mark.asyncio
+async def test_awaiting_approval_is_never_stuck(cleanup_runs):
+    """A run awaiting approval waits on a person, not a process: no age reaps it."""
+    now = datetime.utcnow()
+    awaiting_id = await _insert_run(
+        status=WorkflowRunStatus.AWAITING_APPROVAL,
+        created_at=now - timedelta(seconds=PENDING_GRACE * 10),
+    )
+    cleanup_runs.append(awaiting_id)
+
+    stuck = await _find_stuck_runs(RUNNING_GRACE, PENDING_GRACE)
+
+    assert awaiting_id not in {r.id for r in stuck}
+
+
+@pytest.mark.asyncio
+async def test_pending_run_released_recently_is_not_stuck(cleanup_runs):
+    """A run that sat in AWAITING_APPROVAL for hours and was just released is
+    PENDING with an old created_at. Its window starts at the release, which is
+    what bumped last_updated_at, so the reaper must leave it alone."""
+    now = datetime.utcnow()
+    released_id = await _insert_run(
+        status=WorkflowRunStatus.PENDING,
+        created_at=now - timedelta(seconds=PENDING_GRACE * 3),
+        last_updated_at=now - timedelta(seconds=30),
+    )
+    cleanup_runs.append(released_id)
+
+    stuck = await _find_stuck_runs(RUNNING_GRACE, PENDING_GRACE)
+
+    assert released_id not in {r.id for r in stuck}
+
+
+@pytest.mark.asyncio
+async def test_pending_run_untouched_since_release_is_stuck_after_grace(cleanup_runs):
+    """The window still closes: a released run nobody picked up is reaped once
+    its last update is past the grace period."""
+    now = datetime.utcnow()
+    stuck_id = await _insert_run(
+        status=WorkflowRunStatus.PENDING,
+        created_at=now - timedelta(seconds=PENDING_GRACE * 3),
+        last_updated_at=now - timedelta(seconds=PENDING_GRACE * 2),
+    )
+    cleanup_runs.append(stuck_id)
+
+    stuck = await _find_stuck_runs(RUNNING_GRACE, PENDING_GRACE)
+
+    assert stuck_id in {r.id for r in stuck}

@@ -146,7 +146,6 @@ async def test_strips_internal_and_dependency_runs(seeder):
             (WorkflowRunType.DOCUMENT_SUMMARIZATION, 1),
             (WorkflowRunType.REFERENCE_EXTRACTION, 1),
             (WorkflowRunType.REFERENCE_FILE_MATCHING, 1),
-            (WorkflowRunType.HUMAN_APPROVAL, 1),
             (WorkflowRunType.REFERENCE_VALIDATION_V2, 1),
             (WorkflowRunType.RECOMMENDATION_CHECK, 1),
         ],

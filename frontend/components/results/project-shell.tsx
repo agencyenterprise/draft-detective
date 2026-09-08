@@ -67,8 +67,6 @@ export function ProjectShell({
   const { isWorkflowTypeVisible } = useWorkflowTypes();
 
   const currentRevision = projectDetail.project.current_revision ?? 1;
-  // A pipeline parked on the reference-review gate isn't progressing — see
-  // isAnyWorkflowActive.
   const runsActive = isAnyWorkflowActive(results);
   const referenceExtraction = getWorkflowRunByType(results, WorkflowRunType.ReferenceExtraction);
 

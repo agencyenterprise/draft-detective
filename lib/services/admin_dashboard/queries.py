@@ -4,11 +4,18 @@ Each function owns one aggregate and takes a session from its caller, which
 runs them one after another on a single connection — see the service for why
 this deliberately does not fan out. Counts for the selected window and the
 preceding one are produced by a single query using conditional aggregation.
+
+Every aggregate accepts the ids of users to leave out. Activity is attributed
+through the project owner (a run has no user of its own), so "ignore this user"
+removes their sign-up, their projects, every run on those projects, and the
+feedback on or by them, from the same figures in the same way.
 """
 
+import uuid
+from collections.abc import Collection
 from datetime import date, datetime, timedelta
 
-from sqlalchemy import and_, case, distinct, func, or_, select
+from sqlalchemy import and_, case, distinct, func, or_, select, true
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped
 from sqlalchemy.sql.elements import ColumnElement
@@ -71,6 +78,32 @@ def _in_previous(window: DashboardWindow, ts: Mapped[datetime]) -> ColumnElement
     return and_(ts >= window.previous_start, ts < window.start)
 
 
+def _user_not_ignored(
+    user_id: Mapped[uuid.UUID], ignored: Collection[uuid.UUID]
+) -> ColumnElement[bool]:
+    """`user_id` is nobody the caller asked to leave out.
+
+    A constant TRUE when the ignore list is empty, so every query can carry the
+    predicate unconditionally and the planner drops it.
+    """
+    if not ignored:
+        return true()
+    return user_id.not_in(list(ignored))
+
+
+def _run_owner_not_ignored(ignored: Collection[uuid.UUID]) -> ColumnElement[bool]:
+    """The run's project belongs to nobody on the ignore list.
+
+    For the queries over `workflow_runs` that do not otherwise join `projects`:
+    a semi-join against the ignored users' project ids costs less than adding
+    the join to a scan whose only interest in the project is its owner.
+    """
+    if not ignored:
+        return true()
+    owned = select(col(Project.id)).where(col(Project.user_id).in_(list(ignored)))
+    return col(WorkflowRun.project_id).not_in(owned)
+
+
 def _is_shared_feedback() -> ColumnElement[bool]:
     """Only feedback whose author allowed it to be shared with admins.
 
@@ -103,6 +136,22 @@ def _is_shared_feedback() -> ColumnElement[bool]:
     )
 
 
+def _feedback_not_ignored(ignored: Collection[uuid.UUID]) -> ColumnElement[bool]:
+    """Neither written by an ignored user nor left on one of their projects.
+
+    Both, because "ignore this user" has to mean what they did as well as what
+    was done on their work: the eval account owns the projects it runs and is
+    the author of any rating left on them, and an admin's thumbs-up on an eval
+    project is still a rating of machine work.
+
+    Requires the caller to have joined Feedback -> WorkflowRun -> Project.
+    """
+    return and_(
+        _user_not_ignored(col(Feedback.user_id), ignored),
+        _user_not_ignored(col(Project.user_id), ignored),
+    )
+
+
 def _current_and_previous_counts(
     window: DashboardWindow, ts: Mapped[datetime]
 ) -> tuple[ColumnElement[int], ColumnElement[int]]:
@@ -114,41 +163,57 @@ def _current_and_previous_counts(
 
 
 async def get_user_metrics(
-    session: AsyncSession, window: DashboardWindow
+    session: AsyncSession,
+    window: DashboardWindow,
+    ignored_user_ids: Collection[uuid.UUID] = (),
 ) -> tuple[int, MetricWithDelta]:
     """All-time user count, plus sign-ups in this window and the previous one."""
     created_at = col(User.created_at)
     current, previous = _current_and_previous_counts(window, created_at)
-    row = (await session.execute(select(func.count(), current, previous))).one()
+    stmt = select(func.count(), current, previous).where(
+        _user_not_ignored(col(User.id), ignored_user_ids)
+    )
+    row = (await session.execute(stmt)).one()
     return row[0], MetricWithDelta(current=row[1], previous=row[2])
 
 
 async def get_project_metrics(
-    session: AsyncSession, window: DashboardWindow
+    session: AsyncSession,
+    window: DashboardWindow,
+    ignored_user_ids: Collection[uuid.UUID] = (),
 ) -> MetricWithDelta:
     """Projects created in this window and the previous one."""
     created_at = col(Project.created_at)
     current, previous = _current_and_previous_counts(window, created_at)
-    stmt = select(current, previous).where(created_at >= window.previous_start)
+    stmt = select(current, previous).where(
+        created_at >= window.previous_start,
+        _user_not_ignored(col(Project.user_id), ignored_user_ids),
+    )
     row = (await session.execute(stmt)).one()
     return MetricWithDelta(current=row[0], previous=row[1])
 
 
 async def get_assessment_metrics(
-    session: AsyncSession, window: DashboardWindow
+    session: AsyncSession,
+    window: DashboardWindow,
+    ignored_user_ids: Collection[uuid.UUID] = (),
 ) -> MetricWithDelta:
     """Assessment runs started in this window and the previous one."""
     created_at = col(WorkflowRun.created_at)
     current, previous = _current_and_previous_counts(window, created_at)
     stmt = select(current, previous).where(
-        created_at >= window.previous_start, _is_assessment()
+        created_at >= window.previous_start,
+        _is_assessment(),
+        _run_owner_not_ignored(ignored_user_ids),
     )
     row = (await session.execute(stmt)).one()
     return MetricWithDelta(current=row[0], previous=row[1])
 
 
 async def get_active_user_metrics(
-    session: AsyncSession, window: DashboardWindow
+    session: AsyncSession,
+    window: DashboardWindow,
+    ignored_user_ids: Collection[uuid.UUID] = (),
 ) -> MetricWithDelta:
     """Distinct users who ran an assessment, per window.
 
@@ -163,20 +228,27 @@ async def get_active_user_metrics(
         )
         .select_from(WorkflowRun)
         .join(Project, col(WorkflowRun.project_id) == col(Project.id))
-        .where(created_at >= window.previous_start, _is_assessment())
+        .where(
+            created_at >= window.previous_start,
+            _is_assessment(),
+            _user_not_ignored(user_id, ignored_user_ids),
+        )
     )
     row = (await session.execute(stmt)).one()
     return MetricWithDelta(current=row[0], previous=row[1])
 
 
 async def get_feedback_metrics(
-    session: AsyncSession, window: DashboardWindow
+    session: AsyncSession,
+    window: DashboardWindow,
+    ignored_user_ids: Collection[uuid.UUID] = (),
 ) -> tuple[MetricWithDelta, DashboardFeedbackSummary]:
     """Feedback volume per window, and the thumbs split for the current one.
 
     Counts only, and only over feedback its author agreed to share — see
     `_is_shared_feedback`. Text and authorship never leave the listing
-    endpoint.
+    endpoint. Ignored users take both their own feedback and the feedback on
+    their projects with them — see `_feedback_not_ignored`.
     """
     created_at = col(Feedback.created_at)
     feedback_type = col(Feedback.feedback_type)
@@ -210,7 +282,11 @@ async def get_feedback_metrics(
         stmt.select_from(Feedback)
         .join(WorkflowRun, col(Feedback.workflow_run_id) == col(WorkflowRun.id))
         .join(Project, col(WorkflowRun.project_id) == col(Project.id))
-        .where(created_at >= window.previous_start, _is_shared_feedback())
+        .where(
+            created_at >= window.previous_start,
+            _is_shared_feedback(),
+            _feedback_not_ignored(ignored_user_ids),
+        )
     )
 
     row = (await session.execute(stmt)).one()
@@ -243,7 +319,9 @@ def _bucket_starts(window: DashboardWindow) -> list[date]:
 
 
 async def get_activity(
-    session: AsyncSession, window: DashboardWindow
+    session: AsyncSession,
+    window: DashboardWindow,
+    ignored_user_ids: Collection[uuid.UUID] = (),
 ) -> list[ActivityPoint]:
     """Assessment runs, distinct active users, and new projects per bucket."""
     unit = window.granularity.value
@@ -264,7 +342,11 @@ async def get_activity(
         )
         .select_from(WorkflowRun)
         .join(Project, col(WorkflowRun.project_id) == col(Project.id))
-        .where(_in_current(window, col(WorkflowRun.created_at)), _is_assessment())
+        .where(
+            _in_current(window, col(WorkflowRun.created_at)),
+            _is_assessment(),
+            _user_not_ignored(col(Project.user_id), ignored_user_ids),
+        )
         .group_by(run_bucket)
     )
 
@@ -273,7 +355,10 @@ async def get_activity(
     )
     projects_stmt = (
         select(project_bucket.label("bucket"), func.count().label("projects"))
-        .where(_in_current(window, col(Project.created_at)))
+        .where(
+            _in_current(window, col(Project.created_at)),
+            _user_not_ignored(col(Project.user_id), ignored_user_ids),
+        )
         .group_by(project_bucket)
     )
 
@@ -295,7 +380,9 @@ async def get_activity(
 
 
 async def _get_feedback_by_workflow_type(
-    session: AsyncSession, window: DashboardWindow
+    session: AsyncSession,
+    window: DashboardWindow,
+    ignored_user_ids: Collection[uuid.UUID] = (),
 ) -> dict[str, tuple[int, int]]:
     """Thumbs up/down per workflow type, keyed by the run's type slug.
 
@@ -312,7 +399,11 @@ async def _get_feedback_by_workflow_type(
         .select_from(Feedback)
         .join(WorkflowRun, col(Feedback.workflow_run_id) == col(WorkflowRun.id))
         .join(Project, col(WorkflowRun.project_id) == col(Project.id))
-        .where(_in_current(window, col(Feedback.created_at)), _is_shared_feedback())
+        .where(
+            _in_current(window, col(Feedback.created_at)),
+            _is_shared_feedback(),
+            _feedback_not_ignored(ignored_user_ids),
+        )
         .group_by(col(WorkflowRun.type))
     )
     rows = (await session.execute(stmt)).all()
@@ -320,7 +411,9 @@ async def _get_feedback_by_workflow_type(
 
 
 async def get_workflow_usage(
-    session: AsyncSession, window: DashboardWindow
+    session: AsyncSession,
+    window: DashboardWindow,
+    ignored_user_ids: Collection[uuid.UUID] = (),
 ) -> list[WorkflowUsageItem]:
     """Per workflow type: run count, outcome split, median duration, feedback."""
     status = col(WorkflowRun.status)
@@ -337,6 +430,7 @@ async def get_workflow_usage(
             func.count(case((status == WorkflowRunStatus.CANCELLED, 1))),
             func.count(case((status == WorkflowRunStatus.RUNNING, 1))),
             func.count(case((status == WorkflowRunStatus.PENDING, 1))),
+            func.count(case((status == WorkflowRunStatus.AWAITING_APPROVAL, 1))),
             func.percentile_cont(_DURATION_PERCENTILE)
             .within_group(duration_seconds.asc())
             .filter(
@@ -348,13 +442,18 @@ async def get_workflow_usage(
             )
             .label("median_duration"),
         )
-        .where(_in_current(window, col(WorkflowRun.created_at)))
+        .where(
+            _in_current(window, col(WorkflowRun.created_at)),
+            _run_owner_not_ignored(ignored_user_ids),
+        )
         .group_by(col(WorkflowRun.type))
         .order_by(func.count().desc())
     )
 
     rows = (await session.execute(stmt)).all()
-    feedback_by_type = await _get_feedback_by_workflow_type(session, window)
+    feedback_by_type = await _get_feedback_by_workflow_type(
+        session, window, ignored_user_ids
+    )
     manifests = {
         workflow_type.value: manifest
         for workflow_type, manifest in get_all_manifests().items()
@@ -378,8 +477,9 @@ async def get_workflow_usage(
                     cancelled=row[4],
                     running=row[5],
                     pending=row[6],
+                    awaiting_approval=row[7],
                 ),
-                median_duration_seconds=(float(row[7]) if row[7] is not None else None),
+                median_duration_seconds=(float(row[8]) if row[8] is not None else None),
                 thumbs_up=thumbs_up,
                 thumbs_down=thumbs_down,
             )
@@ -388,7 +488,10 @@ async def get_workflow_usage(
 
 
 async def get_top_users(
-    session: AsyncSession, window: DashboardWindow, limit: int
+    session: AsyncSession,
+    window: DashboardWindow,
+    limit: int,
+    ignored_user_ids: Collection[uuid.UUID] = (),
 ) -> list[ActiveUserItem]:
     """The busiest users in the window, by assessment runs."""
     run_count = func.count().label("runs")
@@ -405,7 +508,11 @@ async def get_top_users(
         .select_from(WorkflowRun)
         .join(Project, col(WorkflowRun.project_id) == col(Project.id))
         .join(User, col(Project.user_id) == col(User.id))
-        .where(_in_current(window, col(WorkflowRun.created_at)), _is_assessment())
+        .where(
+            _in_current(window, col(WorkflowRun.created_at)),
+            _is_assessment(),
+            _user_not_ignored(col(User.id), ignored_user_ids),
+        )
         .group_by(col(User.id), col(User.name), col(User.email), col(User.role))
         .order_by(run_count.desc())
         .limit(limit)

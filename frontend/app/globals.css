@@ -91,6 +91,7 @@
   --viz-grid: #e1e0d9;
   --viz-good: #0ca30c;
   --viz-critical: #d03b3b;
+  --viz-warning: #d98a0b;
   --viz-neutral: #898781;
 }
 
@@ -131,6 +132,7 @@
   --viz-grid: #2c2c2a;
   --viz-good: #0ca30c;
   --viz-critical: #d03b3b;
+  --viz-warning: #d98a0b;
   --viz-neutral: #898781;
 }
 

@@ -19,7 +19,7 @@ DEFAULT_LLM_TIMEOUT = 300
 
 class ReasoningDict(TypedDict):
     effort: Literal["low", "medium", "high"]
-    summary: Literal["auto"]
+    summary: Literal["auto", "concise", "detailed"]
 
 
 class BaseAgent(ABC):

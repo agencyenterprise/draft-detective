@@ -1,11 +1,12 @@
 import {
   createThreadApiChatThreadsPost,
   deleteThreadApiChatThreadsThreadIdDelete,
+  generateThreadTitleApiChatThreadsThreadIdTitlePost,
   listThreadsApiChatThreadsGet,
   updateThreadApiChatThreadsThreadIdPatch,
   type ChatThreadResponse,
 } from '@/lib/generated-api';
-import { type RemoteThreadListAdapter } from '@assistant-ui/react';
+import { type RemoteThreadListAdapter, type ThreadMessage } from '@assistant-ui/react';
 import { createAssistantStream } from 'assistant-stream';
 
 function toMetadata(thread: ChatThreadResponse) {
@@ -14,6 +15,39 @@ function toMetadata(thread: ChatThreadResponse) {
     remoteId: thread.id,
     title: thread.title ?? undefined,
   };
+}
+
+// assistant-ui can ask for a new thread's title more than once around the end of
+// its first run; one request per thread is enough, and both callers get it.
+const pendingTitles = new Map<string, Promise<string>>();
+
+function requestTitleOnce(remoteId: string, messages: readonly ThreadMessage[]): Promise<string> {
+  const pending = pendingTitles.get(remoteId);
+  if (pending) return pending;
+  const request = requestTitle(remoteId, messages).finally(() => pendingTitles.delete(remoteId));
+  pendingTitles.set(remoteId, request);
+  return request;
+}
+
+async function requestTitle(remoteId: string, messages: readonly ThreadMessage[]): Promise<string> {
+  const simpleMessages = messages
+    .map((message) => ({
+      role: message.role,
+      content: message.content.map((part) => (part.type === 'text' ? part.text : '')).join(''),
+    }))
+    .filter((message) => message.content);
+
+  // The backend generates the title and stores it on the thread in one call,
+  // so it survives reloads without a second request from here.
+  try {
+    const thread = await generateThreadTitleApiChatThreadsThreadIdTitlePost({
+      path: { thread_id: remoteId },
+      body: { messages: simpleMessages },
+    });
+    return thread.title ?? 'New chat';
+  } catch {
+    return 'New chat';
+  }
 }
 
 /**
@@ -46,30 +80,7 @@ export const dbThreadListAdapter: RemoteThreadListAdapter = {
     await deleteThreadApiChatThreadsThreadIdDelete({ path: { thread_id: remoteId } });
   },
   generateTitle: async (remoteId, messages) => {
-    const simpleMessages = messages
-      .map((message) => ({
-        role: message.role,
-        content: message.content.map((part) => (part.type === 'text' ? part.text : '')).join(''),
-      }))
-      .filter((message) => message.content);
-
-    let title = 'New chat';
-    try {
-      const response = await fetch('/api/chat/title', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: simpleMessages }),
-      });
-      if (response.ok) title = (await response.json()).title ?? title;
-    } catch {
-      // fall back to the default title
-    }
-    // Persist the generated title so it survives reloads.
-    try {
-      await updateThreadApiChatThreadsThreadIdPatch({ path: { thread_id: remoteId }, body: { title } });
-    } catch {
-      // non-fatal
-    }
+    const title = await requestTitleOnce(remoteId, messages);
     return createAssistantStream((controller) => {
       controller.appendText(title);
     });

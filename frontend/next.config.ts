@@ -2,9 +2,6 @@ import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
   output: 'standalone',
-  // Keep the Node-only text-extraction libs out of the bundle so they load at
-  // runtime in the /api/extract route (used for PDF/DOCX attachments).
-  serverExternalPackages: ['mammoth', 'unpdf'],
   // Increase body size limit for file uploads (default is 1MB)
   serverActions: {
     bodySizeLimit: '100mb', // Allow up to 100MB for document uploads

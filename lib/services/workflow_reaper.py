@@ -10,9 +10,11 @@ cancelled, so dependent workflows don't wait indefinitely.
 The reaper also covers PENDING rows that were never picked up (the in-process
 background task died before run_workflow was reached, so no heartbeat ever
 ticked and wait_for_dependencies never had a chance to time the run out
-itself). PENDING rows older than DEPENDENCY_WAIT_TIMEOUT are mechanically
+itself). PENDING rows not updated for DEPENDENCY_WAIT_TIMEOUT are mechanically
 stuck — by then a live runner would have either started them or raised
-DependencyWaitTimeoutError on its own.
+DependencyWaitTimeoutError on its own. Age is measured from last_updated_at,
+not created_at: a run released from AWAITING_APPROVAL becomes PENDING long
+after it was created, and its two-hour window has to start at the release.
 
 Multi-pod safe: every pod's lifespan starts its own reaper, but sweeps are
 serialized cluster-wide by a Postgres advisory lock (REAPER_ADVISORY_LOCK_KEY).
@@ -58,10 +60,12 @@ REAPER_INTERVAL_SECONDS = 30.0
 # gaps, DB blips, and GC pauses without false positives.
 REAPER_GRACE_SECONDS = 60.0
 
-# How long a PENDING row may sit before the reaper treats it as orphaned.
-# Aligned with DEPENDENCY_WAIT_TIMEOUT: a live runner waiting on dependencies
-# would itself raise DependencyWaitTimeoutError at this point and flip the run
-# to FAILED, so anything still PENDING past this window was never picked up.
+# How long a PENDING row may go without an update before the reaper treats it
+# as orphaned. Aligned with DEPENDENCY_WAIT_TIMEOUT: a live runner waiting on
+# dependencies would itself raise DependencyWaitTimeoutError at this point and
+# flip the run to FAILED, so anything still PENDING past this window was never
+# picked up. A fresh row's last_updated_at equals its created_at; a release
+# from AWAITING_APPROVAL bumps it, which is what restarts the window.
 PENDING_GRACE_SECONDS = float(DEPENDENCY_WAIT_TIMEOUT)
 
 # Postgres advisory-lock key — used to serialize reaper sweeps across pods.
@@ -112,7 +116,10 @@ async def _find_stuck_runs(
     Three cases:
       - RUNNING + heartbeat_at IS NULL: never ticked; use started_at as the reference.
       - RUNNING + heartbeat_at < cutoff: ticked once and went silent.
-      - PENDING + created_at < pending_cutoff: orphaned before the runner could start it.
+      - PENDING + last_updated_at < pending_cutoff: orphaned before the runner
+        could start it. last_updated_at rather than created_at so a run released
+        from AWAITING_APPROVAL gets a full window from the release, not from
+        whenever it was first parked.
     """
     now = datetime.utcnow()
     running_cutoff = now - timedelta(seconds=running_grace_seconds)
@@ -133,7 +140,7 @@ async def _find_stuck_runs(
                     ),
                     and_(
                         col(WorkflowRun.status) == WorkflowRunStatus.PENDING,
-                        col(WorkflowRun.created_at) < pending_cutoff,
+                        col(WorkflowRun.last_updated_at) < pending_cutoff,
                     ),
                 )
             )

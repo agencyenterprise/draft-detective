@@ -403,7 +403,7 @@ async def test_run_workflow_returns_human_approval_required_payload():
     user = _make_user()
     err = WorkflowGateRequiredError(
         project_id="p1",
-        pending_human_approval=[WorkflowRunType.HUMAN_APPROVAL],
+        pending_human_approval=[WorkflowRunType.CLAIM_REFERENCE_VALIDATION_V2],
         pending_web_search=[],
     )
 
@@ -428,7 +428,9 @@ async def test_run_workflow_returns_human_approval_required_payload():
     assert data["status"] == "approval_required"
     assert data["project_id"] == "p1"
     assert "p1" in data["project_url"]
-    assert data["pending_human_approval"] == [WorkflowRunType.HUMAN_APPROVAL.value]
+    assert data["pending_human_approval"] == [
+        WorkflowRunType.CLAIM_REFERENCE_VALIDATION_V2.value
+    ]
     assert data["pending_web_search"] == []
     assert "approve_human_steps=true" in data["message"]
     mock_details.assert_not_awaited()

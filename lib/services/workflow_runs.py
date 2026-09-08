@@ -14,6 +14,7 @@ from lib.config.database import get_async_db_session
 from lib.models.project import Project
 from lib.models.user import User
 from lib.models.workflow_run import (
+    ACTIVE_WORKFLOW_RUN_STATUSES,
     TERMINAL_WORKFLOW_RUN_STATUSES,
     WorkflowRun,
     WorkflowRunFailureReason,
@@ -310,16 +311,23 @@ async def fail_workflow_run(
 async def _cascade_cancel_dependents(
     workflow_type: WorkflowRunType, project_id: str, revision: int
 ) -> None:
-    """Cancel any PENDING/RUNNING workflow runs that required-depend on this type."""
+    """Cancel any active (pending, running, or awaiting approval) run that required-depends on this type."""
     for dependent_type in get_required_dependents(workflow_type):
         dependent_run = await get_project_workflow_run_by_type(
             project_id, dependent_type, revision=revision
         )
-        if dependent_run and dependent_run.status in (
-            WorkflowRunStatus.PENDING,
-            WorkflowRunStatus.RUNNING,
-        ):
+        if dependent_run and dependent_run.status in ACTIVE_WORKFLOW_RUN_STATUSES:
             await cancel_workflow_run(str(dependent_run.id), project_id)
+
+
+def _active_status_priority():
+    """RUNNING first, then PENDING, then AWAITING_APPROVAL, then everything else."""
+    return case(
+        (col(WorkflowRun.status) == WorkflowRunStatus.RUNNING, 0),
+        (col(WorkflowRun.status) == WorkflowRunStatus.PENDING, 1),
+        (col(WorkflowRun.status) == WorkflowRunStatus.AWAITING_APPROVAL, 2),
+        else_=3,
+    )
 
 
 async def get_project_workflow_run_by_type(
@@ -331,7 +339,7 @@ async def get_project_workflow_run_by_type(
     """
     Get the most relevant workflow run for a project, type, and revision.
 
-    Priority: RUNNING > PENDING > latest COMPLETED
+    Priority: RUNNING > PENDING > AWAITING_APPROVAL > latest terminal run.
     This ensures UI shows correct status when multiple runs exist.
 
     Pass `include_state=True` to undefer `state_json` so the returned run can be
@@ -340,7 +348,7 @@ async def get_project_workflow_run_by_type(
     """
 
     async with get_async_db_session() as session:
-        # First, try to find an active (RUNNING or PENDING) workflow run
+        # First, try to find an active (running, pending, or awaiting approval) workflow run
         # This is the most common case and avoids loading all historical runs
         stmt = (
             select(WorkflowRun)
@@ -349,14 +357,11 @@ async def get_project_workflow_run_by_type(
                     col(WorkflowRun.project_id) == project_id,
                     col(WorkflowRun.type) == type,
                     col(WorkflowRun.revision) == revision,
-                    col(WorkflowRun.status).in_(
-                        [WorkflowRunStatus.RUNNING, WorkflowRunStatus.PENDING]
-                    ),
+                    col(WorkflowRun.status).in_(ACTIVE_WORKFLOW_RUN_STATUSES),
                 )
             )
             .order_by(
-                # RUNNING takes priority over PENDING
-                (col(WorkflowRun.status) == WorkflowRunStatus.RUNNING).desc(),
+                _active_status_priority(),
                 col(WorkflowRun.created_at).desc(),
             )
             .limit(1)
@@ -425,26 +430,6 @@ async def get_latest_workflow_run_state_by_type(
     return hydrate_workflow_run_state(run) if run is not None else None
 
 
-async def has_completed_workflow_run_any_revision(
-    project_id: str,
-    type: WorkflowRunType,
-) -> bool:
-    """Return True if any COMPLETED run of this type exists for the project, across all revisions."""
-    async with get_async_db_session() as session:
-        stmt = (
-            select(col(WorkflowRun.id))
-            .where(
-                and_(
-                    col(WorkflowRun.project_id) == project_id,
-                    col(WorkflowRun.type) == type,
-                    col(WorkflowRun.status) == WorkflowRunStatus.COMPLETED,
-                )
-            )
-            .limit(1)
-        )
-        return (await session.execute(stmt)).first() is not None
-
-
 async def get_project_workflow_runs_by_type(
     project_id: str,
     workflow_type: WorkflowRunType,
@@ -507,14 +492,10 @@ async def get_project_workflow_runs(
     """
     Get the most relevant workflow run for each type in a project revision.
 
-    Returns only 1 row per workflow type, using priority: RUNNING > PENDING > latest COMPLETED.
+    Returns only 1 row per workflow type, using priority:
+    RUNNING > PENDING > AWAITING_APPROVAL > latest terminal run.
     """
-    # Build priority ordering: RUNNING (0) > PENDING (1) > others (2)
-    status_priority = case(
-        (col(WorkflowRun.status) == WorkflowRunStatus.RUNNING, 0),
-        (col(WorkflowRun.status) == WorkflowRunStatus.PENDING, 1),
-        else_=2,
-    )
+    status_priority = _active_status_priority()
 
     # Use ROW_NUMBER to rank runs within each type
     row_num = func.row_number().over(

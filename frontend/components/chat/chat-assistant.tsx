@@ -6,192 +6,147 @@ import { DocumentAttachmentAdapter } from '@/components/chat/document-attachment
 import { DocumentPanel } from '@/components/chat/document-panel';
 import { dbThreadListAdapter } from '@/components/chat/db-thread-list-adapter';
 import { DevToolsModal } from '@assistant-ui/react-devtools';
-import { DEFAULT_MODEL_ID } from '@/lib/chat-models';
+import { streamChatTurn } from '@/lib/chat/stream';
 import {
-  appendMessageApiChatThreadsThreadIdMessagesPost,
-  listMessagesApiChatThreadsThreadIdMessagesGet,
-} from '@/lib/generated-api';
+  TurnAccumulator,
+  convertChatMessage,
+  userMessage,
+  type ChatAttachmentMeta,
+  type ChatMessage,
+} from '@/lib/chat/turn';
+import { listMessagesApiChatThreadsThreadIdMessagesGet, type ChatAttachment } from '@/lib/generated-api';
 import {
   AssistantRuntimeProvider,
   useAui,
-  useLocalRuntime,
+  useAuiState,
+  useExternalMessageConverter,
+  useExternalStoreRuntime,
   useRemoteThreadListRuntime,
-  type ChatModelAdapter,
-  type ChatModelRunResult,
-  type ThreadHistoryAdapter,
-  type ThreadMessage,
+  type AppendMessage,
+  type AssistantRuntime,
 } from '@assistant-ui/react';
-import { useMemo } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMemo, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 
 // Stateless; one shared instance is fine.
 const attachmentAdapter = new DocumentAttachmentAdapter();
 
-type HistoryLoadResult = Awaited<ReturnType<ThreadHistoryAdapter['load']>>;
+export const threadMessagesQueryKey = (threadId: string | undefined) =>
+  ['chat', 'thread', threadId, 'messages'] as const;
 
-/**
- * Per-thread message history backed by chat_messages (via the generated `/chat`
- * SDK). Bound to the active thread via `aui.threadListItem()`; requests are
- * authenticated by the shared generated client configured in `ApiConfig`.
- */
-function createHistoryAdapter(aui: ReturnType<typeof useAui>): ThreadHistoryAdapter {
-  return {
-    async load() {
-      const remoteId = aui.threadListItem().getState().remoteId;
-      if (!remoteId) return { messages: [] };
-      const rows = await listMessagesApiChatThreadsThreadIdMessagesGet({ path: { thread_id: remoteId } });
-      // Each row's `content` is the ExportedMessageRepositoryItem we stored.
-      return { messages: rows.map((row) => row.content) } as HistoryLoadResult;
-    },
-    async append(item) {
-      const { remoteId } = await aui.threadListItem().initialize();
-      await appendMessageApiChatThreadsThreadIdMessagesPost({
-        path: { thread_id: remoteId },
-        body: {
-          message_id: item.message.id,
-          parent_id: item.parentId,
-          content: item as unknown as { [key: string]: unknown },
-        },
-      });
-    },
-  };
+// The attachment adapter stores extracted text as `Attached document "<name>":\n\n<text>`.
+const ATTACHMENT_PREFIX = /^Attached document "[^"]*":\n\n/;
+
+async function fetchThreadMessages(threadId: string): Promise<ChatMessage[]> {
+  return (await listMessagesApiChatThreadsThreadIdMessagesGet({ path: { thread_id: threadId } })) as ChatMessage[];
 }
 
-// Mutable parts we accumulate while streaming; yielded as assistant-ui content.
-type StreamPart =
-  | { type: 'text'; text: string }
-  | { type: 'reasoning'; text: string }
-  | {
-      type: 'tool-call';
-      toolCallId: string;
-      toolName: string;
-      args: Record<string, unknown>;
-      argsText: string;
-      result?: unknown;
-      isError?: boolean;
-    };
-
-// One NDJSON event from /api/chat.
-type StreamEvent =
-  | { t: 'text'; v: string }
-  | { t: 'reasoning'; v: string }
-  | { t: 'tool'; id: string; name: string; args?: Record<string, unknown> }
-  | { t: 'tool_result'; id: string; result: unknown; isError?: boolean }
-  | { t: 'error'; v: string };
-
-/**
- * Flatten an assistant-ui message into plain text for the API, including the
- * text extracted from any attached documents (which the attachment adapter
- * stores as text parts on `message.attachments`).
- */
-function messageToText(message: ThreadMessage): string {
-  const bodyText = message.content.map((part) => (part.type === 'text' ? part.text : '')).join('');
-
-  const attachmentText = (message.attachments ?? [])
-    .flatMap((attachment) => attachment.content)
-    .map((part) => (part.type === 'text' ? part.text : ''))
-    .filter(Boolean)
-    .join('\n\n');
-
-  return [attachmentText, bodyText].filter(Boolean).join('\n\n');
+function messageText(message: AppendMessage): string {
+  return message.content.map((part) => (part.type === 'text' ? part.text : '')).join('');
 }
 
-const chatAdapter: ChatModelAdapter = {
-  async *run({ messages, context, abortSignal }) {
-    // The Model Selector (in the composer) publishes the chosen model into the
-    // run's ModelContext as `config.modelName`.
-    const model = context.config?.modelName ?? DEFAULT_MODEL_ID;
+type TurnAttachment = ChatAttachmentMeta & { text: string };
 
-    const response = await fetch('/api/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model,
-        messages: messages.map((message) => ({
-          role: message.role,
-          content: messageToText(message),
-        })),
-      }),
-      signal: abortSignal,
-    });
+function messageAttachments(message: AppendMessage): TurnAttachment[] {
+  return (message.attachments ?? []).flatMap((attachment): TurnAttachment[] => {
+    const text = attachment.content
+      .map((part) => (part.type === 'text' ? part.text : ''))
+      .join('')
+      .replace(ATTACHMENT_PREFIX, '');
+    return text ? [{ name: attachment.name, text }] : [];
+  });
+}
 
-    if (!response.ok || !response.body) {
-      const detail = await response.text().catch(() => '');
-      throw new Error(detail || `Chat request failed with status ${response.status}`);
-    }
-
-    const parts: StreamPart[] = [];
-
-    const applyEvent = (event: StreamEvent) => {
-      const last = parts[parts.length - 1];
-      switch (event.t) {
-        case 'text':
-          if (last?.type === 'text') last.text += event.v;
-          else parts.push({ type: 'text', text: event.v });
-          break;
-        case 'reasoning':
-          if (last?.type === 'reasoning') last.text += event.v;
-          else parts.push({ type: 'reasoning', text: event.v });
-          break;
-        case 'tool':
-          parts.push({
-            type: 'tool-call',
-            toolCallId: event.id,
-            toolName: event.name,
-            args: event.args ?? {},
-            argsText: JSON.stringify(event.args ?? {}),
-          });
-          break;
-        case 'tool_result': {
-          const call = parts.find((p) => p.type === 'tool-call' && p.toolCallId === event.id);
-          if (call?.type === 'tool-call') {
-            call.result = event.result;
-            if (event.isError) call.isError = true;
-          }
-          break;
-        }
-        case 'error':
-          throw new Error(event.v);
-      }
-    };
-
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = '';
-
-    const drainLines = (flush: boolean) => {
-      let newlineIndex: number;
-      while ((newlineIndex = buffer.indexOf('\n')) >= 0) {
-        const line = buffer.slice(0, newlineIndex).trim();
-        buffer = buffer.slice(newlineIndex + 1);
-        if (line) applyEvent(JSON.parse(line) as StreamEvent);
-      }
-      if (flush && buffer.trim()) {
-        applyEvent(JSON.parse(buffer.trim()) as StreamEvent);
-        buffer = '';
-      }
-    };
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      buffer += decoder.decode(value, { stream: true });
-      drainLines(false);
-      yield { content: parts } as ChatModelRunResult;
-    }
-    drainLines(true);
-    yield { content: parts } as ChatModelRunResult;
-  },
-};
-
-// Per-thread runtime. History + attachments are attached here (not via the
-// adapter's unstable_Provider) because the remote-thread-list runtime invokes
-// this hook outside that provider, so context adapters wouldn't reach it.
-function useChatThreadRuntime() {
+/**
+ * The runtime for one thread. History is the checkpointer's, fetched from the
+ * backend; the turn in flight is accumulated locally from the stream and
+ * replaced by the server's copy once the turn is over. Editing and regenerating
+ * are not offered: with server-owned history they would mean forking a
+ * checkpoint, which this page does not do yet.
+ */
+function useChatThreadRuntime(): AssistantRuntime {
   const aui = useAui();
+  const remoteId = useAuiState((state) => state.threadListItem.remoteId);
+  const queryClient = useQueryClient();
 
-  const adapters = useMemo(() => ({ history: createHistoryAdapter(aui), attachments: attachmentAdapter }), [aui]);
+  const history = useQuery({
+    enabled: remoteId !== undefined,
+    queryKey: threadMessagesQueryKey(remoteId),
+    queryFn: () => fetchThreadMessages(remoteId!),
+    // Only a turn changes a thread, and turns refresh the data themselves.
+    staleTime: Infinity,
+  });
 
-  return useLocalRuntime(chatAdapter, { adapters });
+  const [inflight, setInflight] = useState<ChatMessage[]>([]);
+  const [isRunning, setIsRunning] = useState(false);
+  const abortRef = useRef<AbortController | null>(null);
+  const runtimeRef = useRef<AssistantRuntime | null>(null);
+
+  const messages = useMemo(() => [...(history.data ?? []), ...inflight], [history.data, inflight]);
+  const threadMessages = useExternalMessageConverter({ callback: convertChatMessage, messages, isRunning });
+
+  const onNew = async (message: AppendMessage) => {
+    const text = messageText(message);
+    const attachments = messageAttachments(message);
+    // The Model Selector (in the composer) publishes the chosen model into the ModelContext.
+    const model = runtimeRef.current?.thread.getModelContext().config?.modelName;
+
+    const controller = new AbortController();
+    abortRef.current = controller;
+    const user = userMessage(text, attachments);
+    const turn = new TurnAccumulator(user);
+    // Rendered before the thread is initialised, on purpose: the runtime marks a
+    // thread initialised when it first has messages, and assistant-ui titles a
+    // new thread only if it is still "new" at that moment. Initialising first
+    // would take that over and leave the thread untitled.
+    flushSync(() => {
+      setInflight(turn.messages);
+      setIsRunning(true);
+    });
+    const { remoteId: threadId } = await aui.threadListItem().initialize();
+
+    let completed = false;
+    try {
+      const events = streamChatTurn({
+        threadId,
+        model,
+        message: text,
+        messageId: user.id,
+        attachments: attachments.map(({ name, text: content }): ChatAttachment => ({ name, text: content })),
+        signal: controller.signal,
+      });
+      for await (const event of events) {
+        setInflight(turn.apply(event));
+        if (event.t === 'error') throw new Error(event.v);
+      }
+      completed = true;
+    } catch (error) {
+      if (controller.signal.aborted) setInflight(turn.cancel());
+      else setInflight(turn.fail(error instanceof Error ? error.message : 'The turn failed.'));
+    } finally {
+      // The server's copy of the turn replaces the local one, in a single render:
+      // both carry the same ids, and a render showing both at once would make
+      // the runtime re-parent the messages. After a cancel or a failure the user
+      // message is already stored, so only the assistant side stays local, with
+      // its status showing what happened.
+      const stored = await fetchThreadMessages(threadId).catch(() => null);
+      if (stored) queryClient.setQueryData(threadMessagesQueryKey(threadId), stored);
+      setInflight(completed && stored ? [] : turn.assistantMessages);
+      setIsRunning(false);
+    }
+  };
+
+  const runtime = useExternalStoreRuntime({
+    isRunning,
+    isLoading: history.isLoading,
+    messages: threadMessages,
+    onNew,
+    onCancel: async () => abortRef.current?.abort(),
+    adapters: { attachments: attachmentAdapter },
+  });
+  runtimeRef.current = runtime;
+  return runtime;
 }
 
 export function ChatAssistant() {
@@ -201,8 +156,8 @@ export function ChatAssistant() {
   });
 
   return (
-    // Full-bleed: fills the width and the viewport height below the nav (h-15 = 3.75rem).
-    <div className="flex h-[calc(100dvh-3.75rem)] w-full overflow-hidden bg-background">
+    // Full-bleed: fills the width and whatever height the shell leaves below the app bar.
+    <div className="flex min-h-0 w-full flex-1 overflow-hidden bg-background">
       <AssistantRuntimeProvider runtime={runtime}>
         {/* Dev-only inspector launcher (stripped from production builds). */}
         <DevToolsModal />

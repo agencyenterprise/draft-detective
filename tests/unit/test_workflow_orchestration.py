@@ -503,3 +503,40 @@ async def test_required_failed_dependency_cancels_dependent():
     # The dependent itself is moved to CANCELLED so the cascade is consistent.
     mock_update.assert_any_await(current_run_id, WorkflowRunStatus.CANCELLED)
 
+
+
+@pytest.mark.asyncio
+async def test_required_dependency_awaiting_approval_blocks_until_released():
+    """A dependency awaiting a gate is still coming; the dependent waits rather than failing."""
+    project_id = str(uuid4())
+
+    manifest = MagicMock()
+    manifest.required_dependencies = [WorkflowRunType.CLAIM_REFERENCE_VALIDATION_V2]
+    manifest.optional_dependencies = []
+
+    call_count = 0
+
+    async def mock_get_run(proj_id, workflow_type, **kwargs):
+        nonlocal call_count
+        call_count += 1
+        status = (
+            WorkflowRunStatus.AWAITING_APPROVAL
+            if call_count <= 2
+            else WorkflowRunStatus.COMPLETED
+        )
+        return create_workflow_run(WorkflowRunType.CLAIM_REFERENCE_VALIDATION_V2, status)
+
+    with (
+        patch(
+            "lib.services.workflow_orchestration.get_workflow_manifest",
+            return_value=manifest,
+        ),
+        patch(
+            "lib.services.workflow_orchestration.get_project_workflow_run_by_type",
+            side_effect=mock_get_run,
+        ),
+        patch("lib.services.workflow_orchestration.asyncio.sleep", new=AsyncMock()) as mock_sleep,
+    ):
+        await wait_for_dependencies(WorkflowRunType.REFERENCE_VALIDATION_V2, project_id)
+
+    assert mock_sleep.call_count == 2

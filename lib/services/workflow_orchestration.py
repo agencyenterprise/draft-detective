@@ -3,7 +3,11 @@ import logging
 import time
 from typing import List, Optional
 
-from lib.models.workflow_run import TERMINAL_WORKFLOW_RUN_STATUSES, WorkflowRunStatus
+from lib.models.workflow_run import (
+    ACTIVE_WORKFLOW_RUN_STATUSES,
+    TERMINAL_WORKFLOW_RUN_STATUSES,
+    WorkflowRunStatus,
+)
 from lib.services.workflow_runs import (
     get_project_workflow_run_by_type,
     update_workflow_run_status,
@@ -178,8 +182,10 @@ async def _get_pending_workflow_dependencies(
                 f"Required dependency {dep_type.value} for {workflow_type} "
                 f"ended in {dep_run.status.value}"
             )
-        elif dep_run.status in (WorkflowRunStatus.PENDING, WorkflowRunStatus.RUNNING):
-            # Dependency is pending or running, wait for it
+        elif dep_run.status in ACTIVE_WORKFLOW_RUN_STATUSES:
+            # Dependency is pending, running, or awaiting a gate: wait for it.
+            # (A dependent of a gated workflow normally waits alongside it,
+            # so the awaiting case here is only a safety net.)
             pending_dependencies.append(dep_type)
 
     return pending_dependencies

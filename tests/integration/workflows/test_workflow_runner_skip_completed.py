@@ -46,7 +46,9 @@ def create_mock_config(project_id: str, workflow_type: WorkflowRunType):
     return config_type(project_id=project_id)
 
 
-async def run_workflow_with_mocks(test_context, completed_workflows, existing_runs=None):
+async def run_workflow_with_mocks(
+    test_context, completed_workflows, existing_runs=None
+):
     """
     Execute workflow runner with mocked dependencies.
 
@@ -83,6 +85,7 @@ async def run_workflow_with_mocks(test_context, completed_workflows, existing_ru
     # Create a mock project object
     mock_project = MagicMock()
     mock_project.id = test_context["project_id"]
+    mock_project.current_revision = 1
 
     with (
         patch(
@@ -105,6 +108,10 @@ async def run_workflow_with_mocks(test_context, completed_workflows, existing_ru
             "lib.api.services.workflow_runner.create_workflow_config",
             side_effect=mock_config_factory,
         ) as mock_create_config,
+        patch(
+            "lib.api.services.workflow_runner.get_approved_gates",
+            new=AsyncMock(return_value=set()),
+        ),
     ):
 
         await start_multiple_workflow_runs(
