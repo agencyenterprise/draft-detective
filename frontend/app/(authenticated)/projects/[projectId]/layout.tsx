@@ -16,7 +16,8 @@ export default function ProjectLayout({ children }: { children: ReactNode }) {
   const params = useParams();
   const projectId = params.projectId as string;
 
-  const { activeTab, onTabChange } = useTabRouting(`/projects/${projectId}`);
+  const basePath = `/projects/${projectId}`;
+  const { activeTab, onTabChange } = useTabRouting(basePath);
 
   const {
     project,
@@ -84,6 +85,7 @@ export default function ProjectLayout({ children }: { children: ReactNode }) {
   return (
     <ProjectShell
       projectDetail={project}
+      basePath={basePath}
       activeTab={activeTab}
       onTabChange={onTabChange}
       readOnly={readOnly}

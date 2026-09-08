@@ -1,6 +1,6 @@
 'use client';
 
-import { ProjectDetailed } from '@/lib/generated-api';
+import { ProjectDetailed, WorkflowRunType } from '@/lib/generated-api';
 import { createContext, useContext } from 'react';
 import { TabType } from './constants';
 
@@ -16,6 +16,8 @@ export interface ProjectViewContextValue {
   onRevisionCreated?: () => void;
   /** Switch to another tab, optionally landing on a URL hash (e.g. `#L5-12`) */
   navigateToTab: (tab: TabType, hash?: string) => void;
+  /** Route for an assessment on the assessments tab, or one run of it. */
+  assessmentHref: (workflowType: WorkflowRunType, runId?: string | null) => string;
 }
 
 const ProjectViewContext = createContext<ProjectViewContextValue | undefined>(undefined);
