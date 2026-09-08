@@ -6,6 +6,31 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v1.0.11] - 2026-09-08
+
+### Added
+- Added FastAPI streaming endpoints and supporting services to serve the `/chat` page from the Python backend, including models/skills listing, thread streaming, title generation, and attachment extraction.
+- Added chat history persistence via the LangGraph checkpointer, including endpoints to read thread messages and files from the checkpointer and to delete checkpoints.
+- Added rewriting of OpenAI internal `filecite` tokens into readable citation text in both streamed output and stored chat history.
+- Added consent gates to replace the `human_approval` pseudo-workflow, including a new approvals table, an approval API endpoint, and exposure of gates on the workflow types endpoint.
+- Added an "Ignore users" multi-select to the admin usage dashboard, including backend support for excluded user IDs, a default ignored-users endpoint, and frontend UI to manage the selection.
+
+### Changed
+- Changed the `/chat` page transport to use the Python backend while keeping the existing assistant-ui runtime, thread list, history, branching, and attachments behavior.
+- Changed the chat model picker to offer only `gpt-5.6-terra`, `gpt-5.6-luna`, and `gpt-5.6-sol`, with Terra as the default.
+- Changed the app layout so every page uses the v2 `AppBar`, retiring the old v1 Disclosure navigation for secondary routes.
+- Changed chat UI runtime wiring to use checkpointed history plus the in-flight turn, and disabled edit/regenerate until checkpoint forking exists.
+- Changed admin dashboard usage figures to exclude selected ignored users across all aggregates, with the selection seeded from a default ignore list when available.
+
+### Removed
+- Removed Next.js chat API routes, the bundled skills snapshot, and Vercel AI SDK dependencies from the chat implementation.
+- Removed the `chat_messages` table and cleared `chat_threads` via migration as part of moving chat history into the LangGraph checkpointer.
+- Removed the `ChatMessage` model and related service functions, and added `touch_thread` so a turn bumps `last_updated_at`.
+- Removed the `human_approval` workflow and related runner behavior, including removal of `resume_workflow_run`.
+- Removed the unused `ChunkWithIndex` Pydantic model and its remaining unused import.
+- Removed the old v1 Disclosure nav from `ApplicationShell`, including its mobile hamburger panel and related profile dropdown mobile menu code.
+
+
 ## [v1.0.10] - 2026-09-04
 
 ### Added
