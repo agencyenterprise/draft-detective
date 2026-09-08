@@ -2,7 +2,7 @@
 
 import { Markdown } from '@/components/markdown';
 import { useProjectView } from '@/components/results/project-view-context';
-import { feedbackLabel, IssueFeedbackButtons } from '@/components/results/components/document-issue-card';
+import { feedbackLabel, IssueFeedbackButtons } from '@/components/results/components/issue-feedback-buttons';
 import {
   useCanSubmitIssueFeedback,
   useIsIssueFeedbackVisible,
@@ -27,14 +27,21 @@ import {
   UndoIcon,
 } from 'lucide-react';
 import Link from 'next/link';
-import { useState } from 'react';
+import { ReactNode, useState } from 'react';
 
-export function lineLabel(issue: Issue): string | null {
+export function issueLineRange(issue: Issue): [number, number] | null {
   const { start_line: start, end_line: end } = issue as Issue & {
     start_line?: number | null;
     end_line?: number | null;
   };
   if (typeof start !== 'number' || typeof end !== 'number') return null;
+  return [start, end];
+}
+
+export function lineLabel(issue: Issue): string | null {
+  const range = issueLineRange(issue);
+  if (!range) return null;
+  const [start, end] = range;
   return start === end ? `L${start}` : `L${start}–${end}`;
 }
 
@@ -145,11 +152,48 @@ function AssessmentReportLink({ issue }: { issue: Issue }) {
 }
 
 /**
+ * The counterpart of the report link, for an issue read from its assessment's
+ * own results: the way to the passage it is about. An issue with no lines still
+ * gets one — it opens the explorer, which is where the rest of them are.
+ *
+ * `label` overrides the default wording for a host where the line number means
+ * nothing to the reader, such as the Word add-in selecting a paragraph.
+ */
+export function IssueDocumentLink({
+  issue,
+  onNavigate,
+  label,
+}: {
+  issue: Issue;
+  onNavigate: (lineRange?: [number, number]) => void;
+  label?: string;
+}) {
+  const range = issueLineRange(issue);
+  const line = lineLabel(issue);
+
+  return (
+    <button
+      type="button"
+      onClick={() => onNavigate(range ?? undefined)}
+      className="inline-flex cursor-pointer items-center gap-1 text-[11px] font-medium text-muted-foreground hover:text-foreground"
+    >
+      {label ?? (line ? `View in document at ${line}` : 'View in document')}
+      <ArrowUpRightIcon className="size-3" />
+    </button>
+  );
+}
+
+/**
  * Everything an open issue shows below its title — description, suggested
  * action, details, and the actions that change it. Shared so the margin note and
  * the list row cannot drift apart.
+ *
+ * `crossLink` is the way out of the issue to wherever it was not met: by
+ * default its assessment's report, since the body is read from the document.
+ * Read from the assessment instead, that link would only point at the page it
+ * is on, so callers there pass the document link (or null for none).
  */
-export function IssueBody({ issue, readOnly }: { issue: Issue; readOnly: boolean }) {
+export function IssueBody({ issue, readOnly, crossLink }: { issue: Issue; readOnly: boolean; crossLink?: ReactNode }) {
   const { resolveIssue, unresolveIssue, isResolving, isUnresolving } = useIssueActions();
   const canRate = useCanSubmitIssueFeedback(issue.id);
   const [showDetails, setShowDetails] = useState(false);
@@ -193,7 +237,7 @@ export function IssueBody({ issue, readOnly }: { issue: Issue; readOnly: boolean
         </>
       )}
 
-      <AssessmentReportLink issue={issue} />
+      {crossLink === undefined ? <AssessmentReportLink issue={issue} /> : crossLink}
 
       {issue.id && (!readOnly || canRate) && (
         <div className="flex items-center gap-1.5 pt-0.5">

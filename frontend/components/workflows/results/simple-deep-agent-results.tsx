@@ -10,7 +10,7 @@ import { EmptyState } from '@/components/shared/empty-state';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { ProjectDetailed, SimpleDeepAgentState } from '@/lib/generated-api';
+import { AccessLevel, ProjectDetailed, SimpleDeepAgentState } from '@/lib/generated-api';
 import {
   isWorkflowCancelled,
   isWorkflowFailed,
@@ -164,7 +164,11 @@ export function SimpleDeepAgentResults({
         ) : (
           <>
             {result.report_markdown && <ReportCard reportMarkdown={result.report_markdown} />}
-            <WorkflowIssuesList issues={issues} onNavigateToDocumentExplorer={onNavigateToDocumentExplorer} />
+            <WorkflowIssuesList
+              issues={issues}
+              readOnly={project.access_level !== AccessLevel.Write}
+              onNavigateToDocumentExplorer={onNavigateToDocumentExplorer}
+            />
           </>
         )}
       </TabsContent>

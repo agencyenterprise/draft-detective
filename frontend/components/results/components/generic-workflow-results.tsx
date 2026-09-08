@@ -3,7 +3,7 @@
 import { WorkflowIssuesList } from '@/components/results/components/workflow-issues-list';
 import { EmptyState } from '@/components/shared/empty-state';
 import { NavigateToExplorerButton } from '@/components/shared/navigate-to-explorer-button';
-import { Issue, ProjectDetailed, WorkflowRunDetail } from '@/lib/generated-api';
+import { AccessLevel, Issue, ProjectDetailed, WorkflowRunDetail } from '@/lib/generated-api';
 import { isWorkflowCancelled, isWorkflowFailed, isWorkflowProcessing } from '@/lib/workflow-state';
 import { Ban, HistoryIcon, Loader2, XCircle } from 'lucide-react';
 import { useMemo } from 'react';
@@ -89,6 +89,7 @@ export function GenericWorkflowResults({
   return (
     <WorkflowIssuesList
       issues={issues}
+      readOnly={project.access_level !== AccessLevel.Write}
       onNavigateToDocumentExplorer={onNavigateToDocumentExplorer}
       headerAction={
         <NavigateToExplorerButton
