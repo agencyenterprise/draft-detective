@@ -19,47 +19,49 @@ export interface Slot {
  * So the open note, when there is one, is pinned level with its paragraph and
  * the rest are laid out away from it: the notes above are pushed up, the notes
  * below are pushed down. This is what Word and Google Docs do. If the notes
- * above the pinned one need more room than the document above it offers, the
- * whole upper stack, pinned note included, is shifted down by the shortfall —
- * that is the one case where the open note cannot sit beside its paragraph.
+ * above the pinned one need more room than the document above it offers, they
+ * are stacked down from the top of the margin as they would be with nothing
+ * selected, and the open note follows under them — the one case where it
+ * cannot sit beside its paragraph.
  */
 export function stackNotes(slots: Slot[], pivot: number): number[] {
   const tops = new Array<number>(slots.length);
   if (pivot < 0 || pivot >= slots.length || slots[pivot].wanted === null) {
-    stackDown(slots, 0, 0, tops);
+    stackDown(slots, 0, slots.length, 0, tops);
     return tops;
   }
 
   let anchorTop = slots[pivot].wanted;
-  // A note above that stays put at its own paragraph absorbs part of the shift,
-  // so one shift may leave a smaller shortfall behind. Each round moves the
-  // anchor further down and never back, and no round can move it past the
-  // summed height of the notes above, so this settles quickly.
-  let shortfall = stackUp(slots, pivot - 1, anchorTop, tops);
-  for (let round = 0; shortfall > 0 && round <= pivot; round += 1) {
-    anchorTop += shortfall;
-    shortfall = stackUp(slots, pivot - 1, anchorTop, tops);
+  if (stackUp(slots, pivot - 1, anchorTop, tops)) {
+    // The notes above do not fit between the top of the margin and the open
+    // note's paragraph, so they are stacked down from the top instead, each at
+    // its own paragraph where it can be, and the open note goes under them.
+    anchorTop = Math.max(anchorTop, stackDown(slots, 0, pivot, 0, tops));
   }
   tops[pivot] = anchorTop;
-  stackDown(slots, pivot + 1, anchorTop + slots[pivot].height + GAP, tops);
+  stackDown(slots, pivot + 1, slots.length, anchorTop + slots[pivot].height + GAP, tops);
   return tops;
 }
 
-/** Places slots[from..] top to bottom, none higher than `floor`. */
-function stackDown(slots: Slot[], from: number, floor: number, tops: number[]): void {
+/**
+ * Places slots[from..to) top to bottom, none higher than `floor`. Returns the
+ * first top free below the last of them.
+ */
+function stackDown(slots: Slot[], from: number, to: number, floor: number, tops: number[]): number {
   let cursor = floor;
-  for (let index = from; index < slots.length; index += 1) {
+  for (let index = from; index < to; index += 1) {
     const top = Math.max(slots[index].wanted ?? cursor, cursor);
     tops[index] = top;
     cursor = top + slots[index].height + GAP;
   }
+  return cursor;
 }
 
 /**
- * Places slots[..from] bottom to top, none reaching below `ceiling`. Returns how
- * far the topmost note overshot the top of the margin, zero when it did not.
+ * Places slots[..from] bottom to top, none reaching below `ceiling`. Returns
+ * whether the topmost note overshot the top of the margin.
  */
-function stackUp(slots: Slot[], from: number, ceiling: number, tops: number[]): number {
+function stackUp(slots: Slot[], from: number, ceiling: number, tops: number[]): boolean {
   let cursor = ceiling;
   for (let index = from; index >= 0; index -= 1) {
     const fits = cursor - slots[index].height - GAP;
@@ -67,5 +69,5 @@ function stackUp(slots: Slot[], from: number, ceiling: number, tops: number[]): 
     tops[index] = top;
     cursor = top;
   }
-  return Math.max(0, -cursor);
+  return cursor < 0;
 }
