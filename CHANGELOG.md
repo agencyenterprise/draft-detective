@@ -6,6 +6,80 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v1.0.12] - 2026-09-08
+
+### Added
+- Added a "Sharing" topic to the in-app help center and linked to it from the share dialog.
+- Added routable assessments tab URLs so `/projects/<id>/analyses/<workflow_type>` selects an assessment and `?run=<id>` selects a specific run in both project and share views.
+- Added a "View full assessment report" link to every issue in the document explorer that opens the assessment run which raised it.
+- Added a shared issue row used across the assessments tab results, the admin feedback sheet, and the Word add-in.
+
+### Changed
+- Changed the assessments tab selection to come from the route and query parameters instead of local component state.
+- Changed the Word add-in to use the document explorer’s issues list and to select the paragraph in Word when opening a row or using "Select in document."
+- Changed the assessments tab so read-only projects no longer offer "Mark resolved."
+- Changed the admin feedback sheet to show issues as always-open, read-only rows with no cross link.
+- Changed workflow issues list rendering to use the shared row with grouping by severity and one row open at a time.
+
+### Fixed
+- Fixed document explorer margin mode so the selected margin note stays level with its paragraph even when earlier paragraphs have dense notes.
+
+### Removed
+- Removed the old coloured `DocumentIssueCard` and its virtualized list.
+
+
+## [v1.0.11] - 2026-09-08
+
+### Added
+- Added FastAPI streaming endpoints and supporting services to serve the `/chat` page from the Python backend, including models/skills listing, thread streaming, title generation, and attachment extraction.
+- Added chat history persistence via the LangGraph checkpointer, including endpoints to read thread messages and files from the checkpointer and to delete checkpoints.
+- Added rewriting of OpenAI internal `filecite` tokens into readable citation text in both streamed output and stored chat history.
+- Added consent gates to replace the `human_approval` pseudo-workflow, including a new approvals table, an approval API endpoint, and exposure of gates on the workflow types endpoint.
+- Added an "Ignore users" multi-select to the admin usage dashboard, including backend support for excluded user IDs, a default ignored-users endpoint, and frontend UI to manage the selection.
+
+### Changed
+- Changed the `/chat` page transport to use the Python backend while keeping the existing assistant-ui runtime, thread list, history, branching, and attachments behavior.
+- Changed the chat model picker to offer only `gpt-5.6-terra`, `gpt-5.6-luna`, and `gpt-5.6-sol`, with Terra as the default.
+- Changed the app layout so every page uses the v2 `AppBar`, retiring the old v1 Disclosure navigation for secondary routes.
+- Changed chat UI runtime wiring to use checkpointed history plus the in-flight turn, and disabled edit/regenerate until checkpoint forking exists.
+- Changed admin dashboard usage figures to exclude selected ignored users across all aggregates, with the selection seeded from a default ignore list when available.
+
+### Removed
+- Removed Next.js chat API routes, the bundled skills snapshot, and Vercel AI SDK dependencies from the chat implementation.
+- Removed the `chat_messages` table and cleared `chat_threads` via migration as part of moving chat history into the LangGraph checkpointer.
+- Removed the `ChatMessage` model and related service functions, and added `touch_thread` so a turn bumps `last_updated_at`.
+- Removed the `human_approval` workflow and related runner behavior, including removal of `resume_workflow_run`.
+- Removed the unused `ChunkWithIndex` Pydantic model and its remaining unused import.
+- Removed the old v1 Disclosure nav from `ApplicationShell`, including its mobile hamburger panel and related profile dropdown mobile menu code.
+
+
+## [v1.0.10] - 2026-09-04
+
+### Added
+- Added a `view_image` tool to let figure-sensitive deep-agent workflows view extracted document images.
+- Added pagination for the project list and server-side title search.
+- Added surfacing of agent messages in the eval transcript for the reference downloader.
+- Added logging of fetch outcomes and support for `JINA_API_KEY` in the reference downloader.
+- Added an issues empty state in the document explorer.
+- Added a new "Skill Files" section to `CLAUDE.md`.
+
+### Changed
+- Enabled image viewing (opt-in) for the `figures_tables_check`, `results_extraction`, `inference_validation_v2`, and `recommendation_check` workflows, and wired it for Reviewer 2.
+- Updated the simple deep agent to support a `view_images` flag (default off) and pass workflow context as runtime context.
+- Updated the simple deep agent manifest base to forward a `view_images` class attribute.
+- Updated skills with conditional guidance on when viewing images is worth doing, without naming the tool or URL scheme.
+- Restyled the processing errors notice as a chrome banner.
+- Moved the methodological-alignment workflow to run on the simple deep agent.
+- Moved the references approval banner above the list and kept its button inline.
+- Dropped a duplicated loading indicator in the document explorer.
+
+### Fixed
+- Fixed workflow cost pricing by pricing OpenAI snapshot names by their alias.
+
+### Security
+- Restricted `view_image` to serving only extracted images belonging to the running project to prevent cross-project reads.
+
+
 ## [v1.0.9] - 2026-09-03
 
 ### Added
