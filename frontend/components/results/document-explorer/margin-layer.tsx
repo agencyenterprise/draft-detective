@@ -4,9 +4,7 @@ import { Issue } from '@/lib/generated-api';
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { DocumentIssues } from './document-issues';
 import { MarginNote } from './margin-note';
-
-/** Breathing room between two notes once one has been pushed under another. */
-const GAP = 6;
+import { Slot, stackNotes } from './margin-stack';
 
 type IssueWithLines = Issue & { start_line?: number | null };
 
@@ -36,7 +34,8 @@ interface Entry {
  * hole in the text column the height of four cards. Word and Google Docs solve
  * this the same way, and so does this — the notes are taken out of the flow and
  * placed against the measured top of the paragraph they belong to, then pushed
- * down only as far as the note above them requires.
+ * out of the way only as far as their neighbours require. The open note is the
+ * one that stays put; see stackNotes for how the others make room for it.
  *
  * Positions are measured rather than derived: line numbers say nothing about
  * height, and a paragraph's height depends on wrapping, images and maths that
@@ -65,51 +64,50 @@ export function MarginLayer({ issues, documentIssues, activeIssueId, readOnly, o
       : anchored;
   }, [issues, documentIssues]);
 
+  // Read by layout through a ref rather than closed over, so that a change of
+  // selection re-runs the layout (below) without rebuilding the observer that
+  // watches every note for reflow.
+  const activeRef = useRef(activeIssueId);
+  activeRef.current = activeIssueId;
+
   const layout = useCallback(() => {
     const body = layerRef.current?.parentElement;
     if (!body) return;
 
-    {
-      const bodyTop = body.getBoundingClientRect().top;
+    const bodyTop = body.getBoundingClientRect().top;
 
-      // Ranges read once per pass rather than per note. Both lists are in
-      // document order — owners because the DOM is, entries because they were
-      // sorted — so one moving index walks them together instead of rescanning
-      // every paragraph for every note.
-      const owners = Array.from(body.querySelectorAll<HTMLElement>('[data-block-owner]')).map((element) => ({
-        element,
-        start: Number(element.dataset.lineStart),
-        end: Number(element.dataset.lineEnd),
-      }));
+    // Ranges read once per pass rather than per note. Both lists are in
+    // document order — owners because the DOM is, entries because they were
+    // sorted — so one moving index walks them together instead of rescanning
+    // every paragraph for every note.
+    const owners = Array.from(body.querySelectorAll<HTMLElement>('[data-block-owner]')).map((element) => ({
+      element,
+      start: Number(element.dataset.lineStart),
+      end: Number(element.dataset.lineEnd),
+    }));
 
-      const next: Record<string, number> = {};
-      let cursor = 0;
-      let owner = 0;
+    let owner = 0;
+    const slots = entries.map<Slot>((entry) => {
+      const height = noteRefs.current.get(entry.id)?.offsetHeight ?? 0;
+      if (entry.line === null) return { wanted: null, height };
 
-      for (const entry of entries) {
-        const element = noteRefs.current.get(entry.id);
-        const height = element?.offsetHeight ?? 0;
+      // Where it would like to be: level with the top of its paragraph.
+      while (owner < owners.length && owners[owner].end < entry.line) owner += 1;
+      const anchor = owners[owner];
+      // Only the paragraph that actually contains the line; a note whose line
+      // falls in a gap has no place of its own and rides with its neighbours.
+      const owned = anchor !== undefined && entry.line >= anchor.start && entry.line <= anchor.end;
+      return { wanted: owned ? anchor.element.getBoundingClientRect().top - bodyTop : null, height };
+    });
 
-        // Where it would like to be: level with the top of its paragraph.
-        let wanted = cursor;
-        if (entry.line !== null) {
-          while (owner < owners.length && owners[owner].end < entry.line) owner += 1;
-          const anchor = owners[owner];
-          // Only the paragraph that actually contains the line; a note whose
-          // line falls in a gap keeps its place in the stack instead.
-          if (anchor && entry.line >= anchor.start && entry.line <= anchor.end) {
-            wanted = anchor.element.getBoundingClientRect().top - bodyTop;
-          }
-        }
+    const pivot = entries.findIndex((entry) => entry.id === activeRef.current);
+    const tops = stackNotes(slots, pivot);
+    const next: Record<string, number> = {};
+    entries.forEach((entry, index) => {
+      next[entry.id] = tops[index];
+    });
 
-        // Where it can be: never overlapping the note above it.
-        const top = Math.max(wanted, cursor);
-        next[entry.id] = top;
-        cursor = top + height + GAP;
-      }
-
-      setTops((previous) => (sameTops(previous, next) ? previous : next));
-    }
+    setTops((previous) => (sameTops(previous, next) ? previous : next));
   }, [entries]);
 
   // Watching is separate from laying out, so that choosing a note re-runs the
