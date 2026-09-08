@@ -6,6 +6,28 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v1.0.12] - 2026-09-08
+
+### Added
+- Added a "Sharing" topic to the in-app help center and linked to it from the share dialog.
+- Added routable assessments tab URLs so `/projects/<id>/analyses/<workflow_type>` selects an assessment and `?run=<id>` selects a specific run in both project and share views.
+- Added a "View full assessment report" link to every issue in the document explorer that opens the assessment run which raised it.
+- Added a shared issue row used across the assessments tab results, the admin feedback sheet, and the Word add-in.
+
+### Changed
+- Changed the assessments tab selection to come from the route and query parameters instead of local component state.
+- Changed the Word add-in to use the document explorer’s issues list and to select the paragraph in Word when opening a row or using "Select in document."
+- Changed the assessments tab so read-only projects no longer offer "Mark resolved."
+- Changed the admin feedback sheet to show issues as always-open, read-only rows with no cross link.
+- Changed workflow issues list rendering to use the shared row with grouping by severity and one row open at a time.
+
+### Fixed
+- Fixed document explorer margin mode so the selected margin note stays level with its paragraph even when earlier paragraphs have dense notes.
+
+### Removed
+- Removed the old coloured `DocumentIssueCard` and its virtualized list.
+
+
 ## [v1.0.11] - 2026-09-08
 
 ### Added
