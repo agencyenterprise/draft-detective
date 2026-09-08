@@ -2,7 +2,7 @@
 
 import { Issue, SeverityEnum } from '@/lib/generated-api';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { Ref, useImperativeHandle, useMemo } from 'react';
+import { ReactNode, Ref, useImperativeHandle, useMemo } from 'react';
 import { GroupHeader, IssueRow } from './issue-row';
 
 /** Worst first, matching the order the store already sorts issues into. */
@@ -21,6 +21,8 @@ interface IssuesListProps {
   activeIssueId: string | null;
   readOnly: boolean;
   onSelect: (issue: Issue) => void;
+  /** The open row's way out of the issue; see {@link IssueBody}. Defaults to its assessment's report. */
+  crossLink?: (issue: Issue) => ReactNode;
 }
 
 /**
@@ -28,7 +30,15 @@ interface IssuesListProps {
  * place into the same body the margin note shows. Virtualised, because turning
  * passing checks on can push this past six hundred rows.
  */
-export function IssuesList({ ref, issues, scrollElement, activeIssueId, readOnly, onSelect }: IssuesListProps) {
+export function IssuesList({
+  ref,
+  issues,
+  scrollElement,
+  activeIssueId,
+  readOnly,
+  onSelect,
+  crossLink,
+}: IssuesListProps) {
   const rows = useMemo<Row[]>(() => {
     const out: Row[] = [];
     for (const severity of SEVERITY_ORDER) {
@@ -90,6 +100,7 @@ export function IssuesList({ ref, issues, scrollElement, activeIssueId, readOnly
                 active={activeIssueId === row.issue.id}
                 readOnly={readOnly}
                 onSelect={onSelect}
+                crossLink={crossLink?.(row.issue)}
               />
             )}
           </div>
