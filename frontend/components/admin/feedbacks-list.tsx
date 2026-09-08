@@ -9,7 +9,7 @@ import { UserCombobox } from '@/components/admin/user-combobox';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { DocumentIssueCard } from '@/components/results/components/document-issue-card';
+import { IssueRow } from '@/components/results/document-explorer/issue-row';
 import {
   AdminFeedbackItem,
   exportAdminFeedbacksCsvApiAdminFeedbacksExportGet,
@@ -42,6 +42,20 @@ function VisibilityBadge({ visibility }: { visibility: FeedbackVisibility }) {
     return <Badge variant="default">{VISIBILITY_LABELS[visibility]}</Badge>;
   }
   return <Badge variant="secondary">{VISIBILITY_LABELS[visibility]}</Badge>;
+}
+
+/**
+ * The issue the feedback is about, in the row every other screen shows it as,
+ * open and with nothing to collapse it: it is what the sheet was opened to
+ * read. No cross link either — the project link is in the header above, and
+ * an admin cannot act on the issue from here.
+ */
+function FeedbackIssue({ issue }: { issue: Issue }) {
+  return (
+    <div className="overflow-hidden rounded-md border [&>div]:border-b-0">
+      <IssueRow issue={issue} active readOnly crossLink={null} />
+    </div>
+  );
 }
 
 /** Shows which project revision the feedback was given on, and whether that is still the latest one. */
@@ -140,12 +154,7 @@ function FeedbackDetailSheet({ item, onClose }: { item: AdminFeedbackItem | null
               {/* Issue */}
               <section className="space-y-2">
                 <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Issue</h3>
-                <DocumentIssueCard
-                  issue={item.issue as Issue}
-                  readOnly={true}
-                  hideJumpButton={true}
-                  onSelect={() => {}}
-                />
+                <FeedbackIssue issue={item.issue as Issue} />
               </section>
             </div>
           </>
