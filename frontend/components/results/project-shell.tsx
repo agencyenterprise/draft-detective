@@ -1,7 +1,7 @@
 'use client';
 
 import { AnalysisOptionsMenu } from '@/components/results/components/analysis-options-menu';
-import { TabType } from '@/components/results/constants';
+import { assessmentHref as assessmentHrefUnder, TabType } from '@/components/results/constants';
 import { derivePeerReviewFacts, peerReviewNeedsAttention } from '@/components/results/peer-review/peer-review-derive';
 import { ProjectViewProvider } from '@/components/results/project-view-context';
 import { PageTitle } from '@/components/shared/page-title';
@@ -25,6 +25,8 @@ import { RunActivityLine } from './run-activity/run-activity-line';
 
 interface ProjectShellProps {
   projectDetail: ProjectDetailed;
+  /** The route holding the shell, e.g. `/projects/abc` or `/share/xyz`; tabs live under it. */
+  basePath: string;
   activeTab: TabType;
   onTabChange: (tab: TabType, hash?: string) => void;
   readOnly?: boolean;
@@ -51,6 +53,7 @@ interface ProjectShellProps {
  */
 export function ProjectShell({
   projectDetail,
+  basePath,
   activeTab,
   onTabChange,
   readOnly = false,
@@ -125,6 +128,8 @@ export function ProjectShell({
   const canAccessFeedback = shareToken === null && (isOwner || userMe?.role === UserRole.Admin);
 
   const navigateToTab = (tab: TabType, hash?: string) => onTabChange(tab, hash);
+  const assessmentHref = (workflowType: WorkflowRunType, runId?: string | null) =>
+    assessmentHrefUnder(basePath, workflowType, runId);
 
   return (
     <ProjectFeedbackProvider
@@ -142,6 +147,7 @@ export function ProjectShell({
           onRevisionChange,
           onRevisionCreated,
           navigateToTab,
+          assessmentHref,
         }}
       >
         <div className="bg-background text-foreground flex h-dvh flex-col">

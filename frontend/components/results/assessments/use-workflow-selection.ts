@@ -1,7 +1,10 @@
+import { parseWorkflowRunType } from '@/components/results/constants';
+import { useProjectView } from '@/components/results/project-view-context';
 import { getProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGet } from '@/lib/generated-api';
 import type { WorkflowRunDetail, WorkflowRunType } from '@/lib/generated-api';
 import { useQuery } from '@tanstack/react-query';
-import { useMemo, useState } from 'react';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { useMemo } from 'react';
 
 interface UseWorkflowSelectionParams {
   projectId: string;
@@ -15,16 +18,27 @@ interface UseWorkflowSelectionParams {
   defaultWorkflowType?: WorkflowRunType | null;
 }
 
+/**
+ * Which assessment the tab shows, read from the URL: `/analyses/<type>` names
+ * the assessment and `?run=<id>` one run of it. Being in the URL is what lets
+ * an issue in the document explorer link to the report it came from, and what
+ * makes a selection survive a reload or a shared link.
+ */
 export function useWorkflowSelection({
   projectId,
   workflowDetails,
   shareToken,
   defaultWorkflowType = null,
 }: UseWorkflowSelectionParams) {
-  const [pickedWorkflowType, setPickedWorkflowType] = useState<WorkflowRunType | null>(null);
-  const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
+  const params = useParams<{ workflowType?: string }>();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const { assessmentHref } = useProjectView();
 
-  const selectedWorkflowType = pickedWorkflowType ?? defaultWorkflowType;
+  const routedWorkflowType = parseWorkflowRunType(params.workflowType);
+  const selectedWorkflowType = routedWorkflowType ?? defaultWorkflowType;
+  // The run only means something for the assessment it belongs to.
+  const selectedRunId = routedWorkflowType ? searchParams.get('run') : null;
 
   const mainRequestWorkflow = selectedWorkflowType
     ? workflowDetails.find((w) => w.run.type === selectedWorkflowType)
@@ -63,12 +77,11 @@ export function useWorkflowSelection({
   }, [selectedWorkflowType, selectedRunId, historyData, mainRequestWorkflow]);
 
   const handleSelectWorkflowType = (workflowType: WorkflowRunType) => {
-    setPickedWorkflowType(workflowType);
-    setSelectedRunId(null);
+    router.push(assessmentHref(workflowType));
   };
 
   const handleSelectRun = (run: WorkflowRunDetail) => {
-    setSelectedRunId(run.run.id);
+    router.push(assessmentHref(run.run.type, run.run.id));
   };
 
   return {
