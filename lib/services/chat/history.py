@@ -26,6 +26,7 @@ import json
 import re
 import uuid
 from pathlib import Path
+from collections.abc import Collection
 from typing import Any, Optional, Sequence
 
 from deepagents.backends.utils import create_file_data
@@ -55,11 +56,20 @@ def thread_config(thread_id: str) -> RunnableConfig:
     return {"configurable": {"thread_id": thread_id}}
 
 
-def attachment_path(name: str) -> str:
-    """Where an attachment is mounted: a filesystem-safe stem, always ``.md``."""
+def attachment_path(name: str, taken: Collection[str] = ()) -> str:
+    """Where an attachment is mounted: a filesystem-safe stem, always ``.md``.
+
+    Two attachments in one turn whose names sanitise to the same stem get
+    numbered, so neither silently replaces the other.
+    """
 
     stem = re.sub(r"[^A-Za-z0-9._-]+", "-", Path(name).stem).strip("-.") or "document"
-    return f"{ATTACHMENTS_DIR}/{stem}.md"
+    path = f"{ATTACHMENTS_DIR}/{stem}.md"
+    counter = 2
+    while path in taken:
+        path = f"{ATTACHMENTS_DIR}/{stem}-{counter}.md"
+        counter += 1
+    return path
 
 
 def build_user_turn(
@@ -79,7 +89,7 @@ def build_user_turn(
     notes: list[str] = []
     listed: list[dict[str, Any]] = []
     for attachment in attachments:
-        path = attachment_path(attachment.name)
+        path = attachment_path(attachment.name, taken=files)
         files[path] = create_file_data(attachment.text)
         listed.append({"name": attachment.name, "path": path, "chars": len(attachment.text)})
         notes.append(
@@ -206,13 +216,15 @@ def _ai(message: AIMessage) -> list[UiMessage]:
 
 
 def _tool(message: ToolMessage) -> UiMessage:
+    # A ToolMessage built without a name or status would otherwise serialise
+    # nulls into a shape the page expects to be strings.
     return {
         "id": message.id,
         "type": "tool",
         "tool_call_id": message.tool_call_id,
-        "name": message.name,
+        "name": message.name or "tool",
         "content": message.text,
-        "status": message.status,
+        "status": message.status or "success",
     }
 
 

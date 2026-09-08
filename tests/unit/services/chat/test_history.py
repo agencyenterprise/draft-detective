@@ -49,6 +49,22 @@ class TestBuildingATurn:
         generated, _ = build_user_turn("hi", [])
         assert generated.id
 
+    def test_same_named_attachments_in_one_turn_get_distinct_paths(self) -> None:
+        message, files = build_user_turn(
+            "compare these",
+            [
+                ChatAttachment(name="draft.pdf", text="one"),
+                ChatAttachment(name="Draft (copy).pdf", text="two"),
+                ChatAttachment(name="draft.docx", text="three"),
+            ],
+        )
+        assert sorted(files) == ["/attachments/Draft-copy.md", "/attachments/draft-2.md", "/attachments/draft.md"]
+        assert [a["path"] for a in message.additional_kwargs["attachments"]] == [
+            "/attachments/draft.md",
+            "/attachments/Draft-copy.md",
+            "/attachments/draft-2.md",
+        ]
+
     def test_a_turn_can_be_only_an_attachment(self) -> None:
         message, files = build_user_turn("", [ChatAttachment(name="a.pdf", text="body")])
         assert message.text.startswith('[Attached document "a.pdf"')
@@ -120,6 +136,11 @@ class TestUiMessages:
     def test_empty_ai_messages_and_system_messages_are_dropped(self) -> None:
         messages = [SystemMessage(content="persona"), AIMessage(content="", id="a3"), HumanMessage(content="hi", id="h1")]
         assert [m["type"] for m in to_ui_messages(messages)] == ["human"]
+
+    def test_a_nameless_tool_message_still_has_a_string_name(self) -> None:
+        message = ToolMessage(content="ok", tool_call_id="c1", id="t1")
+        (ui,) = to_ui_messages([message])
+        assert ui["name"] == "tool" and ui["status"] == "success"
 
     def test_tool_messages_keep_their_status(self) -> None:
         ok = ToolMessage(content="contents", tool_call_id="c1", name="read_file", id="t1")

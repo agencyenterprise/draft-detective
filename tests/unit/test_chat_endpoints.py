@@ -200,6 +200,16 @@ class TestHistory:
         ]
         load.assert_awaited_once_with(str(THREAD_ID))
 
+    def test_only_attachments_are_served(self) -> None:
+        """The same filesystem holds the mounted skills; those are not the page's to read."""
+        with (
+            patch.object(chat.chat_thread_service, "get_thread", AsyncMock(return_value=_thread())),
+            patch.object(chat, "read_thread_file", AsyncMock(return_value="secret")) as read,
+        ):
+            for path in ("/skills/issues/SKILL.md", "/report.md", "attachments/a.md", "/attachmentsX/a.md"):
+                assert _client().get(f"/api/chat/threads/{THREAD_ID}/files", params={"path": path}).status_code == 404
+        read.assert_not_awaited()
+
     def test_a_thread_file_is_served_or_404(self) -> None:
         with (
             patch.object(chat.chat_thread_service, "get_thread", AsyncMock(return_value=_thread())),

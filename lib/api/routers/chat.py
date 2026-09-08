@@ -33,6 +33,7 @@ from lib.services.chat.extract import (
     extract_markdown,
 )
 from lib.services.chat.history import (
+    ATTACHMENTS_DIR,
     ChatAttachment,
     delete_thread_state,
     load_thread_messages,
@@ -180,8 +181,14 @@ async def read_thread_file_content(
     path: str = Query(description="A path in the thread's filesystem, e.g. /attachments/draft.md"),
     current_user: User = Depends(get_current_user),
 ) -> ThreadFileResponse:
-    """A file from the agent's filesystem for this thread, such as an attachment."""
+    """An attachment from the agent's filesystem for this thread.
 
+    Only ``/attachments/`` is served. The same filesystem holds the mounted
+    skills and whatever the agent wrote; those are not the page's to read.
+    """
+
+    if not path.startswith(f"{ATTACHMENTS_DIR}/"):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found")
     await chat_thread_service.get_thread(thread_id=thread_id, user=current_user)
     content = await read_thread_file(str(thread_id), path)
     if content is None:
