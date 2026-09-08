@@ -1,7 +1,8 @@
 'use client';
 
 import { Markdown } from '@/components/markdown';
-import { feedbackLabel, IssueFeedbackButtons } from '@/components/results/components/document-issue-card';
+import { useProjectView } from '@/components/results/project-view-context';
+import { feedbackLabel, IssueFeedbackButtons } from '@/components/results/components/issue-feedback-buttons';
 import {
   useCanSubmitIssueFeedback,
   useIsIssueFeedbackVisible,
@@ -16,6 +17,7 @@ import { SEVERITY } from '@/lib/severity-style';
 import { isIssueResolved } from '@/lib/stores/document-explorer-store';
 import { cn } from '@/lib/utils';
 import {
+  ArrowUpRightIcon,
   CheckIcon,
   ChevronDownIcon,
   ChevronUpIcon,
@@ -24,14 +26,22 @@ import {
   ThumbsUpIcon,
   UndoIcon,
 } from 'lucide-react';
-import { useState } from 'react';
+import Link from 'next/link';
+import { ReactNode, useState } from 'react';
 
-export function lineLabel(issue: Issue): string | null {
+export function issueLineRange(issue: Issue): [number, number] | null {
   const { start_line: start, end_line: end } = issue as Issue & {
     start_line?: number | null;
     end_line?: number | null;
   };
   if (typeof start !== 'number' || typeof end !== 'number') return null;
+  return [start, end];
+}
+
+export function lineLabel(issue: Issue): string | null {
+  const range = issueLineRange(issue);
+  if (!range) return null;
+  const [start, end] = range;
   return start === end ? `L${start}` : `L${start}–${end}`;
 }
 
@@ -123,11 +133,67 @@ export function IssueMeta({ issue }: { issue: Issue }) {
 }
 
 /**
+ * A way from an issue to the assessment run that raised it: the run's report
+ * (the reproducibility check, say, writes one the issues only itemise), its
+ * history, and every other issue it found.
+ */
+function AssessmentReportLink({ issue }: { issue: Issue }) {
+  const { assessmentHref } = useProjectView();
+
+  return (
+    <Link
+      href={assessmentHref(issue.workflow_type, issue.workflow_run_id)}
+      className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground hover:text-foreground"
+    >
+      View full assessment report
+      <ArrowUpRightIcon className="size-3" />
+    </Link>
+  );
+}
+
+/**
+ * The counterpart of the report link, for an issue read from its assessment's
+ * own results: the way to the passage it is about. An issue with no lines still
+ * gets one — it opens the explorer, which is where the rest of them are.
+ *
+ * `label` overrides the default wording for a host where the line number means
+ * nothing to the reader, such as the Word add-in selecting a paragraph.
+ */
+export function IssueDocumentLink({
+  issue,
+  onNavigate,
+  label,
+}: {
+  issue: Issue;
+  onNavigate: (lineRange?: [number, number]) => void;
+  label?: string;
+}) {
+  const range = issueLineRange(issue);
+  const line = lineLabel(issue);
+
+  return (
+    <button
+      type="button"
+      onClick={() => onNavigate(range ?? undefined)}
+      className="inline-flex cursor-pointer items-center gap-1 text-[11px] font-medium text-muted-foreground hover:text-foreground"
+    >
+      {label ?? (line ? `View in document at ${line}` : 'View in document')}
+      <ArrowUpRightIcon className="size-3" />
+    </button>
+  );
+}
+
+/**
  * Everything an open issue shows below its title — description, suggested
  * action, details, and the actions that change it. Shared so the margin note and
  * the list row cannot drift apart.
+ *
+ * `crossLink` is the way out of the issue to wherever it was not met: by
+ * default its assessment's report, since the body is read from the document.
+ * Read from the assessment instead, that link would only point at the page it
+ * is on, so callers there pass the document link (or null for none).
  */
-export function IssueBody({ issue, readOnly }: { issue: Issue; readOnly: boolean }) {
+export function IssueBody({ issue, readOnly, crossLink }: { issue: Issue; readOnly: boolean; crossLink?: ReactNode }) {
   const { resolveIssue, unresolveIssue, isResolving, isUnresolving } = useIssueActions();
   const canRate = useCanSubmitIssueFeedback(issue.id);
   const [showDetails, setShowDetails] = useState(false);
@@ -170,6 +236,8 @@ export function IssueBody({ issue, readOnly }: { issue: Issue; readOnly: boolean
           )}
         </>
       )}
+
+      {crossLink === undefined ? <AssessmentReportLink issue={issue} /> : crossLink}
 
       {issue.id && (!readOnly || canRate) && (
         <div className="flex items-center gap-1.5 pt-0.5">

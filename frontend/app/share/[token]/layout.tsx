@@ -16,7 +16,8 @@ export default function SharedProjectLayout({ children }: { children: ReactNode 
   const params = useParams();
   const token = params.token as string;
 
-  const { activeTab, onTabChange } = useTabRouting(`/share/${token}`);
+  const basePath = `/share/${token}`;
+  const { activeTab, onTabChange } = useTabRouting(basePath);
   const { data: currentUser } = useUserMe();
 
   const { data, isLoading, error } = useQuery({
@@ -51,6 +52,7 @@ export default function SharedProjectLayout({ children }: { children: ReactNode 
     <ShareProvider token={token}>
       <ProjectShell
         projectDetail={data}
+        basePath={basePath}
         readOnly
         activeTab={activeTab}
         onTabChange={onTabChange}

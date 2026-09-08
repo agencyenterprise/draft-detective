@@ -2,7 +2,8 @@
 
 import { Button } from '@/components/ui/button';
 import { DocumentExplorerSidebarFilter } from '@/components/results/components/document-explorer-sidebar-filter';
-import { DocumentIssuesList } from '@/components/results/components/document-issues-list';
+import { IssueDocumentLink } from '@/components/results/document-explorer/issue-note';
+import { IssuesList } from '@/components/results/document-explorer/issues-list';
 import { addIssueMarkers, jumpToIssue } from '@/lib/addin/office-utils';
 import { useOfficeInit } from '@/lib/addin/use-office-init';
 import { ProjectFeedbackProvider } from '@/lib/contexts/project-feedback-context';
@@ -71,6 +72,18 @@ export default function AddinPage() {
   const filteredIssueCount = getIssueCount(filteredIssues);
 
   const [scrollContainer, setScrollContainer] = useState<HTMLDivElement | null>(null);
+  const [activeIssueId, setActiveIssueId] = useState<string | null>(null);
+
+  // Opening a row also selects its paragraph in the document, as the explorer
+  // scrolls to the passage; closing it leaves the selection where it is.
+  const handleSelectIssue = (issue: Issue) => {
+    if (activeIssueId === issue.id) {
+      setActiveIssueId(null);
+      return;
+    }
+    setActiveIssueId(issue.id);
+    jumpToIssue(issue);
+  };
 
   if (!isInitialized) return <div className="p-4 text-center">Loading Add-in...</div>;
 
@@ -123,22 +136,30 @@ export default function AddinPage() {
           </div>
         </div>
 
-        <div ref={setScrollContainer} className="flex-1 overflow-y-auto p-2 space-y-4 text-sm">
+        <div ref={setScrollContainer} className="flex-1 overflow-y-auto text-sm">
           {error ? (
-            <div className="text-red-500 text-sm">Failed to load issues. Please check your settings.</div>
+            <div className="p-3 text-red-500 text-sm">Failed to load issues. Please check your settings.</div>
           ) : null}
 
           {isLoading ? (
-            <div className="text-sm text-muted-foreground">Loading...</div>
+            <div className="p-3 text-sm text-muted-foreground">Loading...</div>
           ) : (
             <>
-              <DocumentIssuesList
+              {/* Read-only: the pane is opened with a share token, not a
+                  session, so there is no one to resolve an issue as. Rating
+                  is governed by the feedback context above. */}
+              <IssuesList
                 issues={filteredIssues}
                 scrollElement={scrollContainer}
-                onSelect={(issue) => jumpToIssue(issue)}
+                activeIssueId={activeIssueId}
+                readOnly
+                onSelect={handleSelectIssue}
+                crossLink={(issue) => (
+                  <IssueDocumentLink issue={issue} label="Select in document" onNavigate={() => jumpToIssue(issue)} />
+                )}
               />
               {hasActiveFilters(filter) && filteredIssues.length === 0 && (
-                <div className="text-xs text-muted-foreground pt-2 mt-2">No issues found for your filters</div>
+                <div className="p-3 text-xs text-muted-foreground">No issues found for your filters</div>
               )}
             </>
           )}

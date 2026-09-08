@@ -1,12 +1,9 @@
 'use client';
 
 import { Issue, SeverityEnum } from '@/lib/generated-api';
-import { isIssueResolved } from '@/lib/stores/document-explorer-store';
-import { cn } from '@/lib/utils';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { Ref, useImperativeHandle, useMemo } from 'react';
-import { SEVERITY } from '@/lib/severity-style';
-import { IssueBody, IssueMeta, IssuePreview } from './issue-note';
+import { ReactNode, Ref, useImperativeHandle, useMemo } from 'react';
+import { GroupHeader, IssueRow } from './issue-row';
 
 /** Worst first, matching the order the store already sorts issues into. */
 const SEVERITY_ORDER: SeverityEnum[] = [SeverityEnum.High, SeverityEnum.Medium, SeverityEnum.Low, SeverityEnum.None];
@@ -24,6 +21,8 @@ interface IssuesListProps {
   activeIssueId: string | null;
   readOnly: boolean;
   onSelect: (issue: Issue) => void;
+  /** The open row's way out of the issue; see {@link IssueBody}. Defaults to its assessment's report. */
+  crossLink?: (issue: Issue) => ReactNode;
 }
 
 /**
@@ -31,7 +30,15 @@ interface IssuesListProps {
  * place into the same body the margin note shows. Virtualised, because turning
  * passing checks on can push this past six hundred rows.
  */
-export function IssuesList({ ref, issues, scrollElement, activeIssueId, readOnly, onSelect }: IssuesListProps) {
+export function IssuesList({
+  ref,
+  issues,
+  scrollElement,
+  activeIssueId,
+  readOnly,
+  onSelect,
+  crossLink,
+}: IssuesListProps) {
   const rows = useMemo<Row[]>(() => {
     const out: Row[] = [];
     for (const severity of SEVERITY_ORDER) {
@@ -93,66 +100,12 @@ export function IssuesList({ ref, issues, scrollElement, activeIssueId, readOnly
                 active={activeIssueId === row.issue.id}
                 readOnly={readOnly}
                 onSelect={onSelect}
+                crossLink={crossLink?.(row.issue)}
               />
             )}
           </div>
         );
       })}
-    </div>
-  );
-}
-
-function GroupHeader({ severity, count }: { severity: SeverityEnum; count: number }) {
-  const style = SEVERITY[severity];
-  return (
-    <div className="bg-background flex items-center gap-2 border-b px-4 py-2">
-      <span className={cn('block size-2 rounded-[2px]', style.dot)} />
-      <span className="text-xs font-medium">{style.label}</span>
-      <span className="font-mono text-[11px] tabular-nums text-muted-foreground">{count}</span>
-    </div>
-  );
-}
-
-function IssueRow({
-  issue,
-  active,
-  readOnly,
-  onSelect,
-}: {
-  issue: Issue;
-  active: boolean;
-  readOnly: boolean;
-  onSelect: (issue: Issue) => void;
-}) {
-  const resolved = isIssueResolved(issue);
-  const style = SEVERITY[issue.severity];
-
-  return (
-    <div className={cn('border-b transition-colors', active && style.wash, resolved && !active && 'opacity-60')}>
-      {/* Only the heading toggles the row, as in the margin. The whole row used
-          to be the control, so clicking the description collapsed it — which
-          also took away any attempt to select the text or follow a link in it —
-          and the buttons an open row carries sat inside another button. */}
-      <button
-        onClick={() => onSelect(issue)}
-        aria-expanded={active}
-        className={cn(
-          'block w-full cursor-pointer px-4 pt-3 text-left transition-colors',
-          active ? 'pb-2' : 'hover:bg-accent/50 pb-3',
-        )}
-      >
-        <IssueMeta issue={issue} />
-        <span className="mt-1 flex items-start gap-2">
-          <span className="flex-1 text-[13.5px] leading-snug font-medium">{issue.title}</span>
-          {active && <span className={cn('shrink-0 font-mono text-[10px] uppercase', style.text)}>{style.label}</span>}
-        </span>
-        {!active && <IssuePreview issue={issue} />}
-      </button>
-      {active && (
-        <div className="px-4 pb-3">
-          <IssueBody issue={issue} readOnly={readOnly} />
-        </div>
-      )}
     </div>
   );
 }
