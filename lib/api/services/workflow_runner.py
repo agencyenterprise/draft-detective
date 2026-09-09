@@ -10,7 +10,7 @@ from lib.api.models import StartMultipleWorkflowsRequest
 from lib.config.env import config as env_config
 from lib.models.project import AccessLevel, Project
 from lib.models.user import User
-from lib.models.workflow_run import WorkflowRunStatus, WorkflowRunType
+from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus, WorkflowRunType
 from lib.services.files import assert_project_has_main_file
 from lib.services.projects import get_project_access
 from lib.services.users import get_user_decrypted_api_key
@@ -30,10 +30,7 @@ from lib.workflows.config_factory import create_workflow_config
 from lib.workflows.dependency_resolver import resolve_workflow_dependencies
 from lib.workflows.models import WorkflowGate
 from lib.workflows.registry import get_config_type, get_workflow_manifest
-from lib.workflows.runner import (
-    run_workflow_from_config,
-    run_workflow_with_dependency_check,
-)
+from lib.workflows.runner import run_workflow_with_dependency_check
 from lib.workflows.workflow_types import WorkflowConfig
 
 
@@ -54,6 +51,13 @@ class WorkflowGateRequiredError(Exception):
 
     Each carries the workflow types that triggered it so callers (e.g. the
     MCP tool) can render a useful prompt and ask the user to confirm.
+
+    ``nothing_started`` tells the caller whether this was raised up front,
+    before any run record was created (web-search consent is checked before
+    anything runs), or mid-flight after the ungated workflows completed.
+    ``retry_workflow_types`` is the exact list the caller should pass on the
+    retry: the original request when nothing started, otherwise only the
+    gated workflows, since anything requested explicitly is run again.
     """
 
     def __init__(
@@ -61,10 +65,19 @@ class WorkflowGateRequiredError(Exception):
         project_id: str,
         pending_human_approval: List[WorkflowRunType],
         pending_web_search: List[WorkflowRunType],
+        *,
+        nothing_started: bool = False,
+        retry_workflow_types: List[WorkflowRunType] | None = None,
     ):
         self.project_id = project_id
         self.pending_human_approval = pending_human_approval
         self.pending_web_search = pending_web_search
+        self.nothing_started = nothing_started
+        self.retry_workflow_types = (
+            list(retry_workflow_types)
+            if retry_workflow_types is not None
+            else list(dict.fromkeys(pending_human_approval + pending_web_search))
+        )
         parts: List[str] = []
         if pending_human_approval:
             parts.append(f"human_approval={[w.value for w in pending_human_approval]}")
@@ -92,6 +105,76 @@ def _assert_api_key_available(
             status_code=422,
             detail="No OpenAI API key configured. Please add your API key in account settings.",
         )
+
+
+def _should_skip_existing(
+    existing_run: WorkflowRun | None,
+    workflow_type: WorkflowRunType,
+    requested: List[WorkflowRunType],
+) -> bool:
+    """A dependency that already completed is not run again, unless it was
+    requested explicitly or its manifest says it always runs."""
+    if existing_run is None or workflow_type in requested:
+        return False
+    if get_workflow_manifest(workflow_type).always_run:
+        return False
+    if existing_run.status == WorkflowRunStatus.COMPLETED:
+        return True
+    # Reference extraction is expensive and runs only once per project, so
+    # skip it while it's completed or still in-flight. But allow a re-run when
+    # the prior attempt was cancelled or failed — otherwise dependents that
+    # need its output get stuck.
+    return existing_run.type == WorkflowRunType.REFERENCE_EXTRACTION and (
+        existing_run.status
+        not in (WorkflowRunStatus.CANCELLED, WorkflowRunStatus.FAILED)
+    )
+
+
+async def _raise_if_web_search_consent_missing(
+    *,
+    requested: List[WorkflowRunType],
+    resolved: List[WorkflowRunType],
+    project_id: str,
+    revision: int,
+    approved_gates: set[WorkflowGate],
+    approve_human_steps: bool,
+) -> None:
+    """Pre-flight for the blocking path: if any workflow about to run needs
+    web-search consent, stop before a single run record is created.
+
+    Consent to send the document to a search provider is a plain yes/no that
+    needs no upstream results, so the caller is asked up front — as the web
+    UI does — rather than after every ungated workflow has finished. The
+    human-approval gate is reported alongside so the caller can ask both
+    questions in one turn, but it is only enforced mid-flight, once the
+    references exist for the user to review.
+    """
+    pending_web_search: List[WorkflowRunType] = []
+    for workflow_type in resolved:
+        if not get_workflow_manifest(workflow_type).needs_web_search:
+            continue
+        existing_run = await get_project_workflow_run_by_type(
+            project_id, workflow_type, revision=revision
+        )
+        if not _should_skip_existing(existing_run, workflow_type, requested):
+            pending_web_search.append(workflow_type)
+    if not pending_web_search:
+        return
+
+    pending_human_approval: List[WorkflowRunType] = []
+    if not approve_human_steps:
+        pending_human_approval = [
+            workflow_type
+            for workflow_type in resolved
+            if any(g not in approved_gates for g in get_effective_gates(workflow_type))
+        ]
+    raise WorkflowGateRequiredError(
+        project_id=project_id,
+        pending_human_approval=pending_human_approval,
+        pending_web_search=pending_web_search,
+        nothing_started=True,
+        retry_workflow_types=requested,
+    )
 
 
 async def _prepare_workflow_items(
@@ -156,33 +239,24 @@ async def _prepare_workflow_items(
     revision = project.current_revision
     approved_gates = await get_approved_gates(request.project_id, revision)
 
+    if raise_on_pending_gates and not approve_web_search:
+        await _raise_if_web_search_consent_missing(
+            requested=workflow_types,
+            resolved=resolved_workflow_types,
+            project_id=request.project_id,
+            revision=revision,
+            approved_gates=approved_gates,
+            approve_human_steps=approve_human_steps,
+        )
+
     for workflow_type in resolved_workflow_types:
         manifest = get_workflow_manifest(workflow_type)
         existing_run = await get_project_workflow_run_by_type(
             request.project_id, workflow_type, revision=revision
         )
 
-        # Skip if workflow is already completed and not explicitly requested
-        # unless the workflow is configured to always run
-        if (
-            existing_run
-            and workflow_type not in workflow_types
-            and not manifest.always_run
-            and (
-                existing_run.status == WorkflowRunStatus.COMPLETED
-                # Reference extraction is expensive and runs only once per
-                # project, so skip it while it's completed or still in-flight.
-                # But allow a re-run when the prior attempt was cancelled or
-                # failed — otherwise dependents that need its output get stuck.
-                or (
-                    existing_run.type == WorkflowRunType.REFERENCE_EXTRACTION
-                    and existing_run.status
-                    not in (
-                        WorkflowRunStatus.CANCELLED,
-                        WorkflowRunStatus.FAILED,
-                    )
-                )
-            )
+        if existing_run is not None and _should_skip_existing(
+            existing_run, workflow_type, workflow_types
         ):
             logger.info(
                 f"Skipping {workflow_type.value} - already exists for project {request.project_id} with status {existing_run.status}"
@@ -421,11 +495,13 @@ async def run_multiple_workflows_blocking(
     approve_web_search: bool = False,
 ) -> tuple[Project, List[str]]:
     """
-    Prepare and run multiple workflows sequentially, blocking until all complete.
+    Prepare and run multiple workflows, blocking until all complete.
 
-    Uses the same dependency resolution and skip logic as start_multiple_workflow_runs
-    but runs each workflow in series and awaits the result before starting the next.
-    Intended for callers that need the final state synchronously (e.g. MCP tools).
+    Uses the same dependency resolution, skip logic and concurrent execution as
+    start_multiple_workflow_runs, but awaits the batch instead of handing it to
+    a background task. Intended for callers that need the final state
+    synchronously (e.g. MCP tools). A workflow that fails is logged and left
+    FAILED on its run record; it does not abort the rest of the batch or this call.
 
     Args:
         workflow_types: List of workflow types to run (dependencies resolved automatically)
@@ -464,17 +540,14 @@ async def run_multiple_workflows_blocking(
         raise_on_pending_gates=True,
     )
 
-    # Run upstream prep (e.g. document_processing, reference_extraction,
-    # reference_file_matching) before raising — the user needs those results
-    # in order to review the references and decide whether to approve.
-    for item in auto_run_items:
-        await run_workflow_from_config(
-            config=item.config,
-            thread_id=item.thread_id,
-            workflow_run_id=item.workflow_run_id,
-            user=user,
-            revision=revision,
-        )
+    # Run everything that is ready — including upstream prep such as
+    # document_processing, reference_extraction and reference_file_matching —
+    # before raising: the user needs those results in order to review the
+    # references and decide whether to approve. Items run concurrently, each
+    # waiting on its own dependencies, exactly as on the UI path.
+    await _run_multiple_workflows_concurrently(
+        items=auto_run_items, user=user, revision=revision
+    )
 
     if pending_human_triggers or pending_web_search:
         raise WorkflowGateRequiredError(

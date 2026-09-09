@@ -7,6 +7,7 @@ workflow. The MCP blocking path reports the awaiting workflow instead, or
 records the approval on the caller's behalf when told to.
 """
 
+import asyncio
 from typing import cast
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
@@ -75,6 +76,8 @@ class Harness:
         self.created: list[dict] = []
         self.approve_gate = AsyncMock(side_effect=self._approve)
         self.update_status = AsyncMock()
+        # What the blocking path executes (one call per item, gathered).
+        self.run_with_dependency_check = AsyncMock()
         self.request = StartMultipleWorkflowsRequest(
             project_id=str(self.project.id), workflow_types=[CLAIM]
         )
@@ -130,10 +133,16 @@ class Harness:
                 new=self.update_status,
             ),
             patch(
-                "lib.api.services.workflow_runner.run_workflow_from_config",
-                new=AsyncMock(),
+                "lib.api.services.workflow_runner.run_workflow_with_dependency_check",
+                new=self.run_with_dependency_check,
             ),
         )
+
+    def executed_types(self) -> list[WorkflowRunType]:
+        return [
+            call.kwargs["config"].type
+            for call in self.run_with_dependency_check.await_args_list
+        ]
 
     def created_status(
         self, workflow_type: WorkflowRunType
@@ -284,6 +293,165 @@ async def test_blocking_path_records_the_approval_when_told_to():
     assert args.args[2] == WorkflowGate.REFERENCE_REVIEW
     assert args.kwargs["approved_by_user_id"] == harness.user.id
     assert harness.created_status(CLAIM) == WorkflowRunStatus.PENDING
+
+
+@pytest.mark.asyncio
+async def test_blocking_path_runs_the_batch_concurrently_with_dependency_waits():
+    """The blocking path executes items the same way the UI path does: all
+    started together, each waiting on its own dependencies. Items must go
+    through run_workflow_with_dependency_check, not be awaited one by one."""
+    harness = Harness()
+    in_flight = 0
+    peak = 0
+
+    async def overlapping(**kwargs):
+        nonlocal in_flight, peak
+        in_flight += 1
+        peak = max(peak, in_flight)
+        await asyncio.sleep(0)
+        in_flight -= 1
+
+    harness.run_with_dependency_check.side_effect = overlapping
+
+    with _stack(harness.patches()):
+        await run_multiple_workflows_blocking(
+            [CLAIM], harness.request, harness.user, approve_human_steps=True
+        )
+
+    executed = harness.executed_types()
+    assert CLAIM in executed
+    assert WorkflowRunType.DOCUMENT_PROCESSING in executed
+    assert peak == len(executed) > 1
+
+
+@pytest.mark.asyncio
+async def test_blocking_path_survives_a_failed_workflow_and_still_reports_the_gate():
+    """One failing item is logged and left to its FAILED run record; it must not
+    abort the batch or turn the gate response into an error."""
+    harness = Harness()
+    harness.run_with_dependency_check.side_effect = RuntimeError("boom")
+
+    with _stack(harness.patches()):
+        with pytest.raises(WorkflowGateRequiredError):
+            await run_multiple_workflows_blocking(
+                [CLAIM], harness.request, harness.user
+            )
+
+    assert harness.run_with_dependency_check.await_count > 0
+    assert harness.created_status(CLAIM) == WorkflowRunStatus.AWAITING_APPROVAL
+
+
+# ---------------------------------------------------------------------------
+# MCP path: web-search consent is a pre-flight check
+# ---------------------------------------------------------------------------
+
+REF_VALIDATION = WorkflowRunType.REFERENCE_VALIDATION_V2
+ABBREVIATIONS = WorkflowRunType.ABBREVIATION_SCAN_V2
+
+
+@pytest.mark.asyncio
+async def test_blocking_path_asks_for_web_search_consent_before_creating_any_run():
+    harness = Harness()
+
+    with _stack(harness.patches()):
+        with pytest.raises(WorkflowGateRequiredError) as exc_info:
+            await run_multiple_workflows_blocking(
+                [REF_VALIDATION, ABBREVIATIONS], harness.request, harness.user
+            )
+
+    err = exc_info.value
+    assert err.nothing_started is True
+    assert err.pending_web_search == [REF_VALIDATION]
+    assert err.pending_human_approval == []
+    assert err.retry_workflow_types == [REF_VALIDATION, ABBREVIATIONS]
+    # Nothing ran and nothing was recorded: not even the ungated workflow or
+    # the shared document_processing dependency.
+    assert harness.created == []
+    harness.approve_gate.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_blocking_path_reports_the_human_gate_alongside_web_consent():
+    harness = Harness()
+
+    with _stack(harness.patches()):
+        with pytest.raises(WorkflowGateRequiredError) as exc_info:
+            await run_multiple_workflows_blocking(
+                [CLAIM, REF_VALIDATION], harness.request, harness.user
+            )
+
+    err = exc_info.value
+    assert err.nothing_started is True
+    assert err.pending_web_search == [REF_VALIDATION]
+    assert err.pending_human_approval == [CLAIM]
+    assert harness.created == []
+
+
+@pytest.mark.asyncio
+async def test_blocking_path_skips_web_consent_for_a_completed_dependency():
+    """A web-search workflow that already completed and is only pulled in as a
+    dependency is skipped, so it must not trigger the consent pre-flight."""
+    harness = Harness(
+        existing={
+            REF_VALIDATION: _run(None, REF_VALIDATION, WorkflowRunStatus.COMPLETED)
+        }
+    )
+
+    with _stack(harness.patches()):
+        with patch(
+            "lib.api.services.workflow_runner.resolve_workflow_dependencies",
+            return_value=[
+                WorkflowRunType.DOCUMENT_PROCESSING,
+                REF_VALIDATION,
+                ABBREVIATIONS,
+            ],
+        ):
+            await run_multiple_workflows_blocking(
+                [ABBREVIATIONS], harness.request, harness.user
+            )
+
+    assert harness.created_status(ABBREVIATIONS) == WorkflowRunStatus.PENDING
+    assert harness.created_status(REF_VALIDATION) is None
+
+
+@pytest.mark.asyncio
+async def test_blocking_path_runs_web_search_workflows_once_consented():
+    harness = Harness()
+
+    with _stack(harness.patches()):
+        await run_multiple_workflows_blocking(
+            [REF_VALIDATION, ABBREVIATIONS],
+            harness.request,
+            harness.user,
+            approve_web_search=True,
+        )
+
+    assert harness.created_status(REF_VALIDATION) == WorkflowRunStatus.PENDING
+    assert harness.created_status(ABBREVIATIONS) == WorkflowRunStatus.PENDING
+
+
+@pytest.mark.asyncio
+async def test_blocking_path_still_parks_the_claim_run_after_web_consent():
+    """With web consent given, the human gate stays a mid-flight gate: the
+    ungated work runs and the claim run waits, exactly as before."""
+    harness = Harness()
+
+    with _stack(harness.patches()):
+        with pytest.raises(WorkflowGateRequiredError) as exc_info:
+            await run_multiple_workflows_blocking(
+                [CLAIM, REF_VALIDATION],
+                harness.request,
+                harness.user,
+                approve_web_search=True,
+            )
+
+    err = exc_info.value
+    assert err.nothing_started is False
+    assert err.pending_human_approval == [CLAIM]
+    assert err.pending_web_search == []
+    assert err.retry_workflow_types == [CLAIM]
+    assert harness.created_status(CLAIM) == WorkflowRunStatus.AWAITING_APPROVAL
+    assert harness.created_status(REF_VALIDATION) == WorkflowRunStatus.PENDING
 
 
 # ---------------------------------------------------------------------------

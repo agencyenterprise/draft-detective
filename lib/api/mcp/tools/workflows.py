@@ -53,15 +53,27 @@ async def run_workflow(
        reference_downloader, literature_review_v2) call out to the open web,
        which the user must explicitly opt into.
 
-    On the first call, leave both flags at False (the default). If any gate
+    On the first call, leave both flags at False (the default). When a gate
     applies, the tool returns a JSON response with status="approval_required"
-    listing pending_human_approval and pending_web_search workflow types and
-    pointing the user at the project URL. After the user explicitly confirms
-    (e.g. "go ahead and start"), call this tool again with the same arguments
-    plus approve_human_steps=True and/or approve_web_search=True (whichever
-    gates were listed) to record consent and run the workflow. Human approval
-    is recorded per project revision, so once given it is not asked again
-    until a new revision is created.
+    listing pending_human_approval, pending_web_search, and
+    retry_workflow_types, and pointing the user at the project URL. The two
+    gates are checked at different moments:
+
+    - Web-search consent is checked up front. If any requested workflow needs
+      it, NOTHING is started and the response says so; ask the user before
+      anything runs on their document.
+    - Human approval is checked mid-flight. Every ungated workflow runs to
+      completion first (so the references exist to review), the gated one is
+      parked in awaiting_approval, and the response lists only that one.
+
+    After the user explicitly confirms (e.g. "go ahead and start"), call this
+    tool again with workflow_types=retry_workflow_types plus
+    approve_human_steps=True and/or approve_web_search=True (whichever gates
+    were listed). Always pass exactly retry_workflow_types on the retry: every
+    type listed explicitly is run again even if it already completed, which
+    duplicates its issues and doubles cost and wait time. Human approval is
+    recorded per project revision, so once given it is not asked again until
+    a new revision is created.
 
     When the human-approval gate triggers, also offer the user two options
     for filling in missing supporting files:
