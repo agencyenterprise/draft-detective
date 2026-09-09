@@ -1,7 +1,4 @@
-'use client';
-
-import { AssessmentsPanel } from '@/components/results/assessments-panel';
-
+/** The tab itself is rendered by the layout; with no assessment named, it opens on the first. */
 export default function Page() {
-  return <AssessmentsPanel />;
+  return null;
 }
