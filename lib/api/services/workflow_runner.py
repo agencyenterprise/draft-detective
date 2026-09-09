@@ -73,10 +73,14 @@ class WorkflowGateRequiredError(Exception):
         self.pending_human_approval = pending_human_approval
         self.pending_web_search = pending_web_search
         self.nothing_started = nothing_started
-        self.retry_workflow_types = (
-            list(retry_workflow_types)
-            if retry_workflow_types is not None
-            else list(dict.fromkeys(pending_human_approval + pending_web_search))
+        # De-duplicated in both cases: clients may repeat a type in their
+        # request, and the retry list is meant to be a normalized copy.
+        self.retry_workflow_types = list(
+            dict.fromkeys(
+                retry_workflow_types
+                if retry_workflow_types is not None
+                else pending_human_approval + pending_web_search
+            )
         )
         parts: List[str] = []
         if pending_human_approval:
@@ -112,8 +116,14 @@ def _should_skip_existing(
     workflow_type: WorkflowRunType,
     requested: List[WorkflowRunType],
 ) -> bool:
-    """A dependency that already completed is not run again, unless it was
-    requested explicitly or its manifest says it always runs."""
+    """Whether an existing run means this workflow should not be started.
+
+    Applies only to workflows pulled in as dependencies: anything requested
+    explicitly, or whose manifest says it always runs, is never skipped. A
+    completed dependency is skipped. Reference extraction is additionally
+    skipped while still in flight (PENDING/RUNNING/AWAITING_APPROVAL), since
+    it runs once per project; only a CANCELLED or FAILED attempt is redone.
+    """
     if existing_run is None or workflow_type in requested:
         return False
     if get_workflow_manifest(workflow_type).always_run:

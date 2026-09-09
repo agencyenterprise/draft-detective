@@ -549,7 +549,8 @@ def test_gate_payload_when_nothing_started_retries_the_original_request():
         pending_human_approval=[WorkflowRunType.CLAIM_REFERENCE_VALIDATION_V2],
         pending_web_search=[WorkflowRunType.REFERENCE_VALIDATION_V2],
         nothing_started=True,
-        retry_workflow_types=requested,
+        # A client may repeat a type; the retry list is a normalized copy.
+        retry_workflow_types=requested + [WorkflowRunType.ABBREVIATION_SCAN_V2],
     )
 
     data = build_gate_required_payload(err)
