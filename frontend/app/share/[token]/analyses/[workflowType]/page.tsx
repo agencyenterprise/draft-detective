@@ -1,8 +1,4 @@
-'use client';
-
-import { AssessmentsPanel } from '@/components/results/assessments-panel';
-
-/** One assessment, named by the route; the panel reads it from the URL. */
+/** The tab itself is rendered by the layout, which reads the assessment from the URL. */
 export default function Page() {
-  return <AssessmentsPanel />;
+  return null;
 }

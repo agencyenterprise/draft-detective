@@ -8,7 +8,6 @@ import { Issue, WorkflowRunDetail, WorkflowRunStatus, WorkflowRunType } from '@/
 import { summarizeReportedIssues } from '@/lib/health-status';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { RAIL_ITEM_ACTIVE, RAIL_ITEM_IDLE } from '@/lib/rail-style';
-import { useAssessmentRailStore } from '@/lib/stores/assessment-rail-store';
 import { cn } from '@/lib/utils';
 import {
   getDisplayStatus,
@@ -18,6 +17,7 @@ import {
   isWorkflowProcessing,
 } from '@/lib/workflow-state';
 import { AlertTriangleIcon, ChevronDownIcon, Loader2, XCircleIcon } from 'lucide-react';
+import { useState } from 'react';
 
 /** The dot that carries a run's state, in the palette the status indicator uses. */
 const STATUS_DOT: Record<string, string> = {
@@ -53,17 +53,15 @@ export function AssessmentRail({
   readOnly,
 }: AssessmentRailProps) {
   const { isWorkflowTypeVisible } = useWorkflowTypes();
-  const pipelineStepsOpen = useAssessmentRailStore((s) => s.pipelineStepsOpen);
-  const setPipelineStepsOpen = useAssessmentRailStore((s) => s.setPipelineStepsOpen);
 
   const visible = workflowDetails.filter((detail) => isWorkflowTypeVisible(detail.run.type));
   const internal = workflowDetails.filter((detail) => !isWorkflowTypeVisible(detail.run.type));
 
-  // Picking a row changes the route, which remounts this rail, so the toggle
-  // lives in a store rather than here. Until the reader has toggled it, the
-  // section follows the selection: a step reached by link must not sit hidden.
-  const selectedIsInternal = internal.some((detail) => detail.run.type === selectedWorkflowType);
-  const internalOpen = pipelineStepsOpen ?? selectedIsInternal;
+  // Open from the start when the selection is one of these: a step reached by
+  // link must not sit hidden inside a folded section.
+  const [internalOpen, setInternalOpen] = useState(() =>
+    internal.some((detail) => detail.run.type === selectedWorkflowType),
+  );
 
   return (
     <div className="flex h-full flex-col">
@@ -92,7 +90,7 @@ export function AssessmentRail({
         {internal.length > 0 && (
           <div className="mt-4">
             <button
-              onClick={() => setPipelineStepsOpen(!internalOpen)}
+              onClick={() => setInternalOpen(!internalOpen)}
               aria-expanded={internalOpen}
               className="group flex w-full cursor-pointer items-center gap-1 px-2 text-left"
             >

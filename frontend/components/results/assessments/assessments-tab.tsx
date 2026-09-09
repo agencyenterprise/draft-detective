@@ -170,7 +170,9 @@ export function AssessmentsTab({
           </div>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto">
+        {/* Keyed by run so a new selection reads from the top; the tab itself
+            stays mounted across selections, so nothing else resets it. */}
+        <div key={selectedWorkflowRun?.run.id} className="min-h-0 flex-1 overflow-y-auto">
           {selectedWorkflowRun ? (
             <div className="mx-auto max-w-5xl px-6 py-5">
               <header className="border-b pb-4">
