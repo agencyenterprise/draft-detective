@@ -14,7 +14,7 @@ from lib.workflows.document_summarization.state import (
 from lib.workflows.manifest import WorkflowManifest
 from lib.workflows.models import DocumentIssue, WorkflowRunType
 from lib.workflows.workflow_types import WorkflowState
-from lib.services.files import get_main_file_id, get_supporting_file_ids
+from lib.services.files import get_main_file_id, get_processed_supporting_file_ids
 
 
 class DocumentSummarizationManifest(
@@ -58,7 +58,7 @@ class DocumentSummarizationManifest(
         return DocumentSummarizationState(
             type=WorkflowRunType.DOCUMENT_SUMMARIZATION,
             main_file_id=await get_main_file_id(config.project_id, revision),
-            supporting_file_ids=await get_supporting_file_ids(
+            supporting_file_ids=await get_processed_supporting_file_ids(
                 config.project_id, revision
             ),
             config=config,

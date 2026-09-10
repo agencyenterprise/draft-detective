@@ -59,7 +59,7 @@ async def test_create_initial_state_seeds_summaries_from_prior():
             new=AsyncMock(return_value="main"),
         ),
         patch(
-            "lib.workflows.document_summarization.manifest.get_supporting_file_ids",
+            "lib.workflows.document_summarization.manifest.get_processed_supporting_file_ids",
             new=AsyncMock(return_value=[]),
         ),
     ):
@@ -79,7 +79,7 @@ async def test_create_initial_state_empty_without_prior():
             new=AsyncMock(return_value="main"),
         ),
         patch(
-            "lib.workflows.document_summarization.manifest.get_supporting_file_ids",
+            "lib.workflows.document_summarization.manifest.get_processed_supporting_file_ids",
             new=AsyncMock(return_value=[]),
         ),
     ):

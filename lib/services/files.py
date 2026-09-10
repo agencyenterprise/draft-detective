@@ -209,15 +209,21 @@ async def get_main_file_id(project_id: uuid.UUID | str, revision: int) -> str:
     return str(files[0].id)
 
 
-async def get_supporting_file_ids(
+async def get_processed_supporting_file_ids(
     project_id: uuid.UUID | str, revision: int
 ) -> List[str]:
-    """Ids of the supporting files visible to a revision, read from the file
-    table. Supporting files are shared across revisions (revision IS NULL)."""
+    """Ids of the revision's supporting files that have cached markdown.
+
+    Supporting files are shared across revisions (revision IS NULL). A file
+    whose conversion failed has no cached markdown and is left out, matching
+    what document_processing reports as successfully processed: consumers
+    (summarization, reference file matching) read markdown and summaries and
+    would otherwise abort on the unusable file.
+    """
     files = await get_files_by_project_id(
         project_id, roles=[FileRole.SUPPORT], revision=revision
     )
-    return [str(f.id) for f in files]
+    return [str(f.id) for f in files if f.has_cached_markdown]
 
 
 async def get_project_files_list_items(

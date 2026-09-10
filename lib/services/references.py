@@ -6,7 +6,7 @@ from functools import lru_cache
 from typing import List, Optional, Tuple, cast
 
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus
-from lib.services.files import get_main_file_id, get_supporting_file_ids
+from lib.services.files import get_main_file_id, get_processed_supporting_file_ids
 from lib.services.workflow_runs import (
     create_workflow_run,
     get_project_workflow_run_by_type,
@@ -57,14 +57,14 @@ async def _get_file_matching_workflow_state(
 
     If the workflow run exists but has no state, or if there's no workflow run,
     creates a new workflow run and constructs a default ReferenceFileMatchingState
-    with empty matches using file information from the DocumentProcessing workflow.
+    with empty matches from the project's file table.
 
     Args:
         project_id: The project ID
 
     Returns:
-        Tuple of (workflow_run, state) or (None, None) if document processing
-        state is not available to construct a default state
+        Tuple of (workflow_run, state) or (run, None) if the revision has no
+        main file to construct a default state from
     """
     from lib.workflows.reference_file_matching.state import ReferenceFileMatchingConfig
 
@@ -95,7 +95,7 @@ async def _get_file_matching_workflow_state(
             "cannot construct file matching state"
         )
         return run, None
-    supporting_file_ids = await get_supporting_file_ids(project_id, revision)
+    supporting_file_ids = await get_processed_supporting_file_ids(project_id, revision)
 
     default_state = ReferenceFileMatchingState(
         type=WorkflowRunType.REFERENCE_FILE_MATCHING,
