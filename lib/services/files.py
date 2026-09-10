@@ -198,15 +198,20 @@ async def get_files_by_project_id(
 
 
 async def get_main_file_id(project_id: uuid.UUID | str, revision: int) -> str:
-    """Id of the revision's MAIN file, read from the file table."""
+    """Id of the revision's MAIN file, read from the file table.
+
+    MAIN rows always carry a revision; the query also returns shared rows
+    (revision IS NULL), so filter explicitly rather than trust the first hit.
+    """
     files = await get_files_by_project_id(
         project_id, roles=[FileRole.MAIN], revision=revision
     )
-    if not files:
+    main_files = [f for f in files if f.revision == revision]
+    if not main_files:
         raise ValueError(
             f"No main file found for project {project_id} revision {revision}"
         )
-    return str(files[0].id)
+    return str(main_files[0].id)
 
 
 async def get_processed_supporting_file_ids(
