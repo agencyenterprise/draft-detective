@@ -19,7 +19,7 @@ from lib.api.services.workflow_runner import (
 from lib.models.project import AccessLevel
 from lib.models.user import User
 from lib.services.projects import get_project_access
-from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus
+from lib.models.workflow_run import WorkflowRun, WorkflowRunPublic, WorkflowRunStatus
 from lib.services.workflow_runs import (
     hydrate_workflow_run_state_with_status,
     WorkflowRunDetail,
@@ -110,7 +110,9 @@ async def get_workflow_state(
     run = await get_workflow_run(workflow_run_id, user=user, include_state=True)
     _assert_workflow_type_still_exists(run)
     state, status = hydrate_workflow_run_state_with_status(run)
-    return WorkflowRunDetail(run=run, state=state, state_status=status)
+    return WorkflowRunDetail(
+        run=WorkflowRunPublic.model_validate(run), state=state, state_status=status
+    )
 
 
 @router.get(

@@ -1,6 +1,11 @@
+import asyncio
 import json
+import logging
+import time
 
+from fastmcp.dependencies import CurrentContext
 from fastmcp.server.auth import AccessToken
+from fastmcp.server.context import Context
 from fastmcp.server.dependencies import CurrentAccessToken
 from mcp.types import ToolAnnotations
 
@@ -12,7 +17,76 @@ from lib.api.services.workflow_runner import (
     run_multiple_workflows_blocking,
 )
 from lib.models.project import AccessLevel
+from lib.models.workflow_run import TERMINAL_WORKFLOW_RUN_STATUSES, WorkflowRunStatus
+from lib.services.projects import get_project_access
+from lib.services.workflow_runs import get_project_run_summaries
 from lib.workflows.models import WorkflowRunType
+
+logger = logging.getLogger(__name__)
+
+# How often a blocking run_workflow call sends an MCP progress notification.
+# Clients abort a call that stays silent too long (Claude Code: 5 minutes for
+# remote servers); a progress notification resets that idle clock.
+PROGRESS_INTERVAL_SECONDS = 30.0
+
+
+def _parse_workflow_types(workflow_types: list[str]) -> list[WorkflowRunType]:
+    parsed: list[WorkflowRunType] = []
+    for wt in workflow_types:
+        try:
+            parsed.append(WorkflowRunType(wt))
+        except ValueError:
+            valid = [t.value for t in WorkflowRunType]
+            raise ValueError(f"Unknown workflow_type '{wt}'. Valid values: {valid}")
+    return parsed
+
+
+async def _report_batch_progress(
+    ctx: Context, project_id: str, revision: int, started_at: float
+) -> None:
+    """One progress notification describing the revision's runs right now."""
+    try:
+        runs = await get_project_run_summaries(project_id, revision)
+        # Only terminal runs count as settled: a run parked in
+        # AWAITING_APPROVAL is still active, it is just blocked on a gate.
+        settled = [r for r in runs if r.status in TERMINAL_WORKFLOW_RUN_STATUSES]
+        # WorkflowRun.type is a String column and comes back as a plain str.
+        running = [str(r.type) for r in runs if r.status == WorkflowRunStatus.RUNNING]
+        awaiting = [
+            str(r.type) for r in runs if r.status == WorkflowRunStatus.AWAITING_APPROVAL
+        ]
+        elapsed = int(time.monotonic() - started_at)
+        message = f"{elapsed}s elapsed; running: {running or 'none yet'}"
+        if awaiting:
+            message += f"; awaiting approval: {awaiting}"
+        await ctx.report_progress(
+            progress=len(settled), total=len(runs) or None, message=message
+        )
+    except Exception as exc:  # progress is best-effort; never fail the call
+        logger.warning("run_workflow progress report failed: %s", exc)
+
+
+async def _run_with_progress(
+    ctx: Context, project_id: str, revision: int, runner: asyncio.Task
+) -> None:
+    """Await the blocking batch while emitting periodic progress notifications.
+
+    Cancelling this coroutine (the client abandoned the tool call) cancels the
+    batch too: asyncio.wait does not propagate cancellation to the task it
+    waits on, and an orphaned batch would keep making paid model calls.
+    """
+    started_at = time.monotonic()
+    try:
+        while True:
+            done, _ = await asyncio.wait({runner}, timeout=PROGRESS_INTERVAL_SECONDS)
+            if done:
+                return
+            await _report_batch_progress(ctx, project_id, revision, started_at)
+    except asyncio.CancelledError:
+        runner.cancel()
+        # Let the batch unwind; its own outcome no longer matters here.
+        await asyncio.gather(runner, return_exceptions=True)
+        raise
 
 
 @mcp.tool(
@@ -29,6 +103,7 @@ async def run_workflow(
     workflow_types: list[str],
     approve_human_steps: bool = False,
     approve_web_search: bool = False,
+    ctx: Context = CurrentContext(),
     token: AccessToken = CurrentAccessToken(),
 ) -> str:
     """
@@ -44,6 +119,9 @@ async def run_workflow(
 
     workflow_types must be a list of type values returned by list_workflow_types
     (e.g. ["reference_validation_v2", "recommendation_check"]).
+
+    A full analysis can take several minutes. Progress notifications are sent
+    while the call runs so clients that watch for them do not treat it as idle.
 
     Two kinds of consent gates may apply:
 
@@ -90,13 +168,7 @@ async def run_workflow(
     Tip: after fixing issues and uploading a new document via create_revision,
     call this again with the same workflow_types to re-analyze the updated document.
     """
-    parsed_types: list[WorkflowRunType] = []
-    for wt in workflow_types:
-        try:
-            parsed_types.append(WorkflowRunType(wt))
-        except ValueError:
-            valid = [t.value for t in WorkflowRunType]
-            raise ValueError(f"Unknown workflow_type '{wt}'. Valid values: {valid}")
+    parsed_types = _parse_workflow_types(workflow_types)
 
     user = await helpers.resolve_user(token)
     helpers.require_api_key(user)
@@ -107,13 +179,20 @@ async def run_workflow(
     )
 
     try:
-        await run_multiple_workflows_blocking(
-            parsed_types,
-            request,
-            user,
-            approve_human_steps=approve_human_steps,
-            approve_web_search=approve_web_search,
+        project, _ = await get_project_access(
+            project_id, user=user, required_level=AccessLevel.WRITE
         )
+        runner = asyncio.ensure_future(
+            run_multiple_workflows_blocking(
+                parsed_types,
+                request,
+                user,
+                approve_human_steps=approve_human_steps,
+                approve_web_search=approve_web_search,
+            )
+        )
+        await _run_with_progress(ctx, project_id, project.current_revision, runner)
+        await runner  # re-raise anything the batch raised
     except WorkflowGateRequiredError as exc:
         return json.dumps(serialization.build_gate_required_payload(exc))
 

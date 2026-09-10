@@ -543,6 +543,7 @@ export {
   type WorkflowRun,
   type WorkflowRunDetail,
   WorkflowRunFailureReason,
+  type WorkflowRunPublic,
   WorkflowRunStatus,
   WorkflowRunType,
   WorkflowStateStatus,

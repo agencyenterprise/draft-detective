@@ -100,7 +100,7 @@ export const generateThreadTitleApiChatThreadsThreadIdTitlePostResponseTransform
   return data;
 };
 
-const workflowRunSchemaResponseTransformer = (data: any) => {
+const workflowRunPublicSchemaResponseTransformer = (data: any) => {
   data.created_at = new Date(data.created_at);
   data.last_updated_at = new Date(data.last_updated_at);
   if (data.started_at) {
@@ -116,7 +116,7 @@ const workflowRunSchemaResponseTransformer = (data: any) => {
 };
 
 const workflowRunDetailSchemaResponseTransformer = (data: any) => {
-  data.run = workflowRunSchemaResponseTransformer(data.run);
+  data.run = workflowRunPublicSchemaResponseTransformer(data.run);
   return data;
 };
 
@@ -164,6 +164,21 @@ const projectSchemaResponseTransformer = (data: any) => {
   data.created_at = new Date(data.created_at);
   data.last_updated_at = new Date(data.last_updated_at);
   data.publication_date = new Date(data.publication_date);
+  return data;
+};
+
+const workflowRunSchemaResponseTransformer = (data: any) => {
+  data.created_at = new Date(data.created_at);
+  data.last_updated_at = new Date(data.last_updated_at);
+  if (data.started_at) {
+    data.started_at = new Date(data.started_at);
+  }
+  if (data.completed_at) {
+    data.completed_at = new Date(data.completed_at);
+  }
+  if (data.heartbeat_at) {
+    data.heartbeat_at = new Date(data.heartbeat_at);
+  }
   return data;
 };
 

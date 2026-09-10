@@ -3691,7 +3691,7 @@ export type WorkflowRun = {
  * WorkflowRunDetail
  */
 export type WorkflowRunDetail = {
-  run: WorkflowRun;
+  run: WorkflowRunPublic;
   /**
    * State
    */
@@ -3738,6 +3738,63 @@ export const WorkflowRunFailureReason = {
  * leave the run in COMPLETED status.
  */
 export type WorkflowRunFailureReason = (typeof WorkflowRunFailureReason)[keyof typeof WorkflowRunFailureReason];
+
+/**
+ * WorkflowRunPublic
+ *
+ * A workflow run as exposed in project responses: every column of
+ * ``WorkflowRun`` except ``state_json``.
+ *
+ * Responses that embed a run also carry its hydrated ``state``, so the raw
+ * JSON would only duplicate it (1.5 MB each on a fully analysed project).
+ * Built from the ORM row by attribute access; the raw JSON stays available
+ * through the dedicated raw-state endpoint.
+ */
+export type WorkflowRunPublic = {
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * Project Id
+   */
+  project_id: string | null;
+  type: WorkflowRunType;
+  /**
+   * Langgraph Thread Id
+   */
+  langgraph_thread_id: string;
+  status: WorkflowRunStatus;
+  /**
+   * Created At
+   */
+  created_at: Date;
+  /**
+   * Last Updated At
+   */
+  last_updated_at: Date;
+  /**
+   * Started At
+   */
+  started_at: Date | null;
+  /**
+   * Completed At
+   */
+  completed_at: Date | null;
+  /**
+   * Revision
+   */
+  revision?: number;
+  /**
+   * Heartbeat At
+   */
+  heartbeat_at: Date | null;
+  failure_reason?: WorkflowRunFailureReason | null;
+  /**
+   * Failure Message
+   */
+  failure_message?: string | null;
+};
 
 /**
  * WorkflowRunStatus

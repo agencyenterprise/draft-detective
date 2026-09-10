@@ -555,7 +555,10 @@ export const listMessagesApiChatThreadsThreadIdMessagesGet = <ThrowOnError exten
 /**
  * Read Thread File Content
  *
- * A file from the agent's filesystem for this thread, such as an attachment.
+ * An attachment from the agent's filesystem for this thread.
+ *
+ * Only ``/attachments/`` is served. The same filesystem holds the mounted
+ * skills and whatever the agent wrote; those are not the page's to read.
  */
 export const readThreadFileContentApiChatThreadsThreadIdFilesGet = <ThrowOnError extends boolean = true>(
   options: Options<ReadThreadFileContentApiChatThreadsThreadIdFilesGetData, ThrowOnError>,
@@ -636,6 +639,9 @@ export const listChatSkillsApiChatSkillsGet = <ThrowOnError extends boolean = tr
  * Generate Thread Title
  *
  * Generate a title from the opening messages and store it on the thread.
+ *
+ * Idempotent: a thread that already has a title keeps it. assistant-ui asks
+ * for a title around the end of a thread's first run, sometimes more than once.
  */
 export const generateThreadTitleApiChatThreadsThreadIdTitlePost = <ThrowOnError extends boolean = true>(
   options: Options<GenerateThreadTitleApiChatThreadsThreadIdTitlePostData, ThrowOnError>,
