@@ -67,6 +67,11 @@ def _resolve(model_name: str) -> Optional[tuple[str, Optional[str]]]:
     probed once per name and reused. Without the cache every record re-pays for
     the failing lookup of the reported snapshot name before the alias succeeds,
     which on the Azure-gateway names is half the cost of pricing a record.
+
+    An unknown model is reported from in here, on the cache miss, so a run with
+    hundreds of records for one unpriceable model logs once rather than once per
+    record. Logging every occurrence is what buried the RAND deployment's logs
+    under ~1,850 identical lines a day.
     """
     for ref, provider in _model_refs(model_name):
         try:
@@ -74,6 +79,12 @@ def _resolve(model_name: str) -> Optional[tuple[str, Optional[str]]]:
         except LookupError:
             continue
         return ref, provider
+
+    logger.warning(
+        "No genai-prices entry for model %r; its usage is left out of cost. "
+        "A model this codebase has adopted needs a genai-prices bump.",
+        model_name,
+    )
     return None
 
 
@@ -128,10 +139,7 @@ def _cost_for_record(record: UsageRecord) -> ModelCostBreakdown | None:
         ),
     )
     if priced is None:
-        logger.warning(
-            "No genai-prices entry for model %r; skipping cost calc",
-            record.model_name,
-        )
+        # Already logged once for this model name by `_resolve`.
         return None
 
     cache_read_cost = _cache_read_cost(

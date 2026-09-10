@@ -260,3 +260,16 @@ def test_costs_stay_decimal(decimals):
     assert breakdown is not None
     assert isinstance(breakdown.total_cost_usd, decimals)
     assert isinstance(breakdown.cache_read_cost_usd, decimals)
+
+
+def test_unknown_model_warns_once_per_name(caplog):
+    """A run with many records for one unpriceable model must log once, not once
+    per record: the reverse buried a production log under ~1,850 identical lines."""
+    from lib.services.workflow_cost import pricing
+
+    pricing._resolve.cache_clear()
+    records = [_record(model_name="made-up-model-xyz", input_tokens=100)] * 50
+    with caplog.at_level("WARNING", logger=pricing.__name__):
+        assert compute_cost(records) is None
+    warnings = [r for r in caplog.records if "made-up-model-xyz" in r.getMessage()]
+    assert len(warnings) == 1
