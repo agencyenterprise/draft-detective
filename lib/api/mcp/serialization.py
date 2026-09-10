@@ -48,6 +48,10 @@ def build_gate_required_payload(exc: WorkflowGateRequiredError) -> dict:
     """Build the JSON payload returned to the MCP client when consent is missing."""
     pending_human_approval = [w.value for w in exc.pending_human_approval]
     pending_web_search = [w.value for w in exc.pending_web_search]
+    # The exact list to pass on the retry. Up front (nothing started) it is the
+    # original request; mid-flight it is only the workflows held back by a
+    # gate, since everything else already ran on this call.
+    retry_workflow_types = [w.value for w in exc.retry_workflow_types]
 
     retry_flags: list[str] = []
     if pending_human_approval:
@@ -56,8 +60,42 @@ def build_gate_required_payload(exc: WorkflowGateRequiredError) -> dict:
         retry_flags.append("approve_web_search=true")
     retry_flags_text = " and ".join(retry_flags)
 
-    sections: list[str] = []
-    if pending_human_approval:
+    completed_workflows = [w.value for w in exc.completed_workflows]
+    unsuccessful_workflows = {
+        w.value: status.value for w, status in exc.unsuccessful_workflows.items()
+    }
+
+    if exc.nothing_started:
+        opening = (
+            "No workflow has been started yet: consent is required before "
+            "anything runs on this document."
+        )
+    else:
+        opening = (
+            "The workflows that did not need consent have already run on this "
+            f"call. Completed: {completed_workflows}."
+        )
+        if unsuccessful_workflows:
+            opening += (
+                f" Did NOT complete: {unsuccessful_workflows}. Tell the user "
+                "these analyses failed; they produced no results. They can be "
+                "run again by including them in workflow_types on the retry."
+            )
+        opening += " Only the gated workflows listed below are still pending."
+    sections: list[str] = [opening]
+    if pending_human_approval and exc.nothing_started:
+        sections.append(
+            "Human approval will also be required for these workflows, because "
+            "the user must review the reference→file mappings before they run: "
+            f"{pending_human_approval}. You can ask for that consent now "
+            "together with the web-search consent and pass "
+            "approve_human_steps=true on the retry. If the user prefers to "
+            "review the references first, retry with approve_web_search=true "
+            "only: the upstream analysis will run, these workflows will wait in "
+            "awaiting_approval, and the response will point you at the "
+            "references to review before approving."
+        )
+    elif pending_human_approval:
         sections.append(
             "Human approval is required because the user must review the "
             "reference→file mappings before these workflows can run: "
@@ -88,10 +126,18 @@ def build_gate_required_payload(exc: WorkflowGateRequiredError) -> dict:
             "offer to run a different workflow that doesn't need web access "
             "(see list_workflow_types and skip any with needs_web_search=true)."
         )
-    sections.append(
+    closing = (
         "Once the user confirms (e.g. 'go ahead and start'), call "
-        f"run_workflow again with the same arguments plus {retry_flags_text}."
+        f"run_workflow again with workflow_types={retry_workflow_types} "
+        f"(the retry_workflow_types field) plus {retry_flags_text}."
     )
+    if not exc.nothing_started:
+        closing += (
+            " Do NOT resend the workflow types that completed: every type "
+            "passed explicitly is run again, which duplicates their issues and "
+            "doubles the cost and wait."
+        )
+    sections.append(closing)
 
     return {
         "status": "approval_required",
@@ -99,5 +145,8 @@ def build_gate_required_payload(exc: WorkflowGateRequiredError) -> dict:
         "project_url": build_project_url(exc.project_id),
         "pending_human_approval": pending_human_approval,
         "pending_web_search": pending_web_search,
+        "retry_workflow_types": retry_workflow_types,
+        "completed_workflows": completed_workflows,
+        "unsuccessful_workflows": unsuccessful_workflows,
         "message": "\n\n".join(sections),
     }

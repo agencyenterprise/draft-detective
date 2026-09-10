@@ -432,7 +432,12 @@ async def test_run_workflow_returns_human_approval_required_payload():
         WorkflowRunType.CLAIM_REFERENCE_VALIDATION_V2.value
     ]
     assert data["pending_web_search"] == []
+    assert data["retry_workflow_types"] == [
+        WorkflowRunType.CLAIM_REFERENCE_VALIDATION_V2.value
+    ]
     assert "approve_human_steps=true" in data["message"]
+    assert "workflow_types=['claim_reference_validation_v2']" in data["message"]
+    assert "same arguments" not in data["message"]
     mock_details.assert_not_awaited()
 
 
@@ -495,9 +500,103 @@ async def test_run_workflow_returns_web_search_required_payload():
     assert data["status"] == "approval_required"
     assert data["pending_human_approval"] == []
     assert data["pending_web_search"] == [WorkflowRunType.REFERENCE_VALIDATION_V2.value]
+    assert data["retry_workflow_types"] == [
+        WorkflowRunType.REFERENCE_VALIDATION_V2.value
+    ]
     assert "approve_web_search=true" in data["message"]
     assert "approve_human_steps=true" not in data["message"]
     mock_details.assert_not_awaited()
+
+
+def test_gate_payload_retry_list_covers_both_gates_without_duplicates():
+    from lib.api.mcp.serialization import build_gate_required_payload
+    from lib.api.services.workflow_runner import WorkflowGateRequiredError
+    from lib.models.workflow_run import WorkflowRunType
+
+    err = WorkflowGateRequiredError(
+        project_id="p1",
+        pending_human_approval=[WorkflowRunType.CLAIM_REFERENCE_VALIDATION_V2],
+        pending_web_search=[
+            WorkflowRunType.REFERENCE_VALIDATION_V2,
+            WorkflowRunType.REFERENCE_DOWNLOADER,
+            WorkflowRunType.REFERENCE_VALIDATION_V2,
+        ],
+    )
+
+    data = build_gate_required_payload(err)
+
+    assert data["retry_workflow_types"] == [
+        "claim_reference_validation_v2",
+        "reference_validation_v2",
+        "reference_downloader",
+    ]
+    assert "approve_human_steps=true and approve_web_search=true" in data["message"]
+    assert "Do NOT resend the workflow types that completed" in data["message"]
+
+
+def test_gate_payload_when_nothing_started_retries_the_original_request():
+    from lib.api.mcp.serialization import build_gate_required_payload
+    from lib.api.services.workflow_runner import WorkflowGateRequiredError
+    from lib.models.workflow_run import WorkflowRunType
+
+    requested = [
+        WorkflowRunType.ABBREVIATION_SCAN_V2,
+        WorkflowRunType.REFERENCE_VALIDATION_V2,
+        WorkflowRunType.CLAIM_REFERENCE_VALIDATION_V2,
+    ]
+    err = WorkflowGateRequiredError(
+        project_id="p1",
+        pending_human_approval=[WorkflowRunType.CLAIM_REFERENCE_VALIDATION_V2],
+        pending_web_search=[WorkflowRunType.REFERENCE_VALIDATION_V2],
+        nothing_started=True,
+        # A client may repeat a type; the retry list is a normalized copy.
+        retry_workflow_types=requested + [WorkflowRunType.ABBREVIATION_SCAN_V2],
+    )
+
+    data = build_gate_required_payload(err)
+
+    assert data["retry_workflow_types"] == [w.value for w in requested]
+    assert data["message"].startswith("No workflow has been started yet")
+    assert "Human approval will also be required" in data["message"]
+    assert "approve_human_steps=true and approve_web_search=true" in data["message"]
+    assert "Do NOT resend" not in data["message"]
+    assert data["completed_workflows"] == []
+    assert data["unsuccessful_workflows"] == {}
+
+
+def test_gate_payload_reports_completed_and_failed_ungated_workflows():
+    """Mid-flight, the message must reflect the run records: a failed ungated
+    run is named as such, never folded into 'already completed'."""
+    from lib.api.mcp.serialization import build_gate_required_payload
+    from lib.api.services.workflow_runner import WorkflowGateRequiredError
+    from lib.models.workflow_run import WorkflowRunStatus, WorkflowRunType
+
+    err = WorkflowGateRequiredError(
+        project_id="p1",
+        pending_human_approval=[WorkflowRunType.CLAIM_REFERENCE_VALIDATION_V2],
+        pending_web_search=[],
+        completed_workflows=[
+            WorkflowRunType.DOCUMENT_PROCESSING,
+            WorkflowRunType.ABBREVIATION_SCAN_V2,
+        ],
+        unsuccessful_workflows={
+            WorkflowRunType.REFERENCE_EXTRACTION: WorkflowRunStatus.FAILED
+        },
+    )
+
+    data = build_gate_required_payload(err)
+
+    assert data["completed_workflows"] == [
+        "document_processing",
+        "abbreviation_scan_v2",
+    ]
+    assert data["unsuccessful_workflows"] == {"reference_extraction": "failed"}
+    assert (
+        "Completed: ['document_processing', 'abbreviation_scan_v2']" in data["message"]
+    )
+    assert "Did NOT complete: {'reference_extraction': 'failed'}" in data["message"]
+    assert "already run to completion" not in data["message"]
+    assert "Do NOT resend the workflow types that completed" in data["message"]
 
 
 @pytest.mark.asyncio
