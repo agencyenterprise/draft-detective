@@ -1,4 +1,3 @@
-import asyncio
 import logging
 from enum import StrEnum
 from datetime import datetime
@@ -63,7 +62,7 @@ class WorkflowRunDetail(BaseModel):
     state_status: WorkflowStateStatus = WorkflowStateStatus.OK
 
 
-async def _compute_cost_for_state(
+def _compute_cost_for_state(
     state: WorkflowState | None,
 ) -> CostBreakdown | None:
     if state is None:
@@ -72,7 +71,7 @@ async def _compute_cost_for_state(
         records = walk_state_for_usage(state)
         if not records:
             return None
-        return await compute_cost(records)
+        return compute_cost(records)
     except Exception as e:  # pragma: no cover — never let cost calc break the response
         logger.warning(f"Failed to compute workflow cost: {e}")
         return None
@@ -481,7 +480,7 @@ async def get_project_workflow_runs_by_type_with_details(
     # directly — no checkpointer fan-out, and no thread-sharing band-aid needed.
     hydrated = [hydrate_workflow_run_state_with_status(run) for run in runs]
     states = [state for state, _ in hydrated]
-    costs = await asyncio.gather(*[_compute_cost_for_state(s) for s in states])
+    costs = [_compute_cost_for_state(s) for s in states]
     return [
         WorkflowRunDetail(
             run=WorkflowRunPublic.model_validate(run),
@@ -572,7 +571,7 @@ async def get_project_workflow_runs(
     hydrated = [hydrate_workflow_run_state_with_status(run) for run in visible_runs]
     states = [state for state, _ in hydrated]
 
-    costs = await asyncio.gather(*[_compute_cost_for_state(s) for s in states])
+    costs = [_compute_cost_for_state(s) for s in states]
     return [
         WorkflowRunDetail(
             run=WorkflowRunPublic.model_validate(run),

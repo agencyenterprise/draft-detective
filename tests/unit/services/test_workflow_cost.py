@@ -1,62 +1,20 @@
-import re
 from decimal import Decimal
 
 import pytest
 from langchain_core.messages import AIMessage, HumanMessage
 from pydantic import BaseModel
 
-from lib.services.workflow_cost import catalog
-from lib.services.workflow_cost.catalog import ModelPricing, _CachedCatalog
+from lib.services.workflow_cost.breakdown import UsageRecord
 from lib.services.workflow_cost.extractor import walk_state_for_usage
 from lib.services.workflow_cost.pricing import compute_cost
 
 CLAUDE_MODEL = "claude-3-5-sonnet-20241022"
+OPENAI_MODEL = "gpt-5.6-terra"
 
 
-def _fake_entry(
-    name: str, *, input_price: float, output_price: float, cache_read_price: float
-) -> catalog.CatalogEntry:
-    """A compiled catalog entry whose pattern matches `name` exactly."""
-    return (
-        re.compile(f"(?i)^{re.escape(name)}$"),
-        ModelPricing(
-            model_name=name,
-            prices={
-                "input": Decimal(str(input_price)),
-                "output": Decimal(str(output_price)),
-                "input_cache_read": Decimal(str(cache_read_price)),
-            },
-        ),
-    )
-
-
-@pytest.fixture(autouse=True)
-def _stub_models_cache(monkeypatch):
-    """Bypass the Langfuse network fetch by populating the price cache with fixtures."""
-    entries = [
-        _fake_entry(
-            CLAUDE_MODEL, input_price=3e-6, output_price=1.5e-5, cache_read_price=3e-7
-        ),
-        _fake_entry(
-            "gpt-4o-2024-08-06",
-            input_price=2.5e-6,
-            output_price=1e-5,
-            cache_read_price=1.25e-6,
-        ),
-        _fake_entry(
-            "gpt-5.6-terra",
-            input_price=2e-6,
-            output_price=1.2e-5,
-            cache_read_price=2e-7,
-        ),
-    ]
-    monkeypatch.setattr(
-        catalog,
-        "_CACHE",
-        _CachedCatalog(entries=entries, expires_at=float("inf")),
-    )
-    yield
-    monkeypatch.setattr(catalog, "_CACHE", None)
+def _record(**kwargs) -> UsageRecord:
+    kwargs.setdefault("model_name", OPENAI_MODEL)
+    return UsageRecord(**kwargs)
 
 
 def _ai_message(
@@ -171,88 +129,93 @@ def test_separates_cache_read_from_input():
     assert r.cache_read_tokens == 500
 
 
-@pytest.mark.asyncio
-async def test_compute_cost_returns_none_when_empty():
-    assert await compute_cost([]) is None
+# --- pricing -------------------------------------------------------------
+#
+# Rates come from the `genai-prices` dataset bundled in the package, so these
+# assert relationships and resolution rather than dollar figures: a dependency
+# bump that changes a published price must not fail the suite.
 
 
-@pytest.mark.asyncio
-async def test_compute_cost_known_model():
-    state = {
-        "messages": [_ai_message(input_tokens=1000, output_tokens=500, cache_read=2000)]
-    }
-    records = walk_state_for_usage(state)
-    breakdown = await compute_cost(records)
+def test_compute_cost_returns_none_when_empty():
+    assert compute_cost([]) is None
+
+
+def test_compute_cost_known_model():
+    records = walk_state_for_usage(
+        {"messages": [_ai_message(input_tokens=1000, output_tokens=500, cache_read=2000)]}
+    )
+    breakdown = compute_cost(records)
     assert breakdown is not None
-    expected_input = Decimal("3e-6") * 1000
-    expected_output = Decimal("1.5e-5") * 500
-    expected_cache_read = Decimal("3e-7") * 2000
-    expected_total = expected_input + expected_output + expected_cache_read
-    assert breakdown.total_cost_usd == expected_total
     assert breakdown.total_input_tokens == 1000
     assert breakdown.total_output_tokens == 500
     assert breakdown.total_cache_read_tokens == 2000
+    assert breakdown.total_cost_usd > 0
     assert CLAUDE_MODEL in breakdown.by_model
 
 
-@pytest.mark.asyncio
-async def test_compute_cost_unknown_model_skipped():
-    msg = AIMessage(
-        content="",
-        response_metadata={"model_name": "made-up-model-xyz"},
-        usage_metadata={
-            "input_tokens": 100,
-            "output_tokens": 50,
-            "total_tokens": 150,
-            "input_token_details": {},
-        },
+def test_component_costs_sum_to_the_total():
+    """The UI itemises input/output/cache read, so the parts must make the whole."""
+    breakdown = compute_cost(
+        [_record(input_tokens=40_000, output_tokens=5_000, cache_read_tokens=300_000)]
     )
-    records = walk_state_for_usage({"messages": [msg]})
-    assert len(records) == 1
-    assert await compute_cost(records) is None
+    assert breakdown is not None
+    assert (
+        breakdown.input_cost_usd
+        + breakdown.output_cost_usd
+        + breakdown.cache_read_cost_usd
+        == breakdown.total_cost_usd
+    )
+    assert breakdown.input_cost_usd > 0
+    assert breakdown.cache_read_cost_usd > 0
 
 
-@pytest.mark.asyncio
-async def test_compute_cost_prices_dated_snapshot_as_its_alias():
-    """OpenAI reports `gpt-5.6-terra-2026-07-09-global-aaif` for `gpt-5.6-terra`."""
-    msg = _ai_message(
-        input_tokens=100, output_tokens=50, model="gpt-5.6-terra-2026-07-09-global-aaif"
+def test_cache_reads_cost_less_than_plain_input():
+    cached = compute_cost([_record(input_tokens=0, cache_read_tokens=100_000)])
+    uncached = compute_cost([_record(input_tokens=100_000, cache_read_tokens=0)])
+    assert cached is not None and uncached is not None
+    assert 0 < cached.total_cost_usd < uncached.total_cost_usd
+
+
+def test_compute_cost_unknown_model_skipped():
+    records = [_record(model_name="made-up-model-xyz", input_tokens=100)]
+    assert compute_cost(records) is None
+
+
+def test_compute_cost_prices_dated_snapshot_as_its_alias():
+    """The Azure gateway reports `gpt-5.6-terra-2026-07-09-global-aaif`."""
+    usage = dict(input_tokens=100_000, output_tokens=50_000, cache_read_tokens=20_000)
+    snapshot = compute_cost(
+        [_record(model_name=f"{OPENAI_MODEL}-2026-07-09-global-aaif", **usage)]
     )
-    result = await compute_cost(walk_state_for_usage({"messages": [msg]}))
-    assert result is not None
-    assert result.input_cost_usd == Decimal("100") * Decimal("2e-6")
-    assert result.output_cost_usd == Decimal("50") * Decimal("1.2e-5")
+    alias = compute_cost([_record(model_name=OPENAI_MODEL, **usage)])
+    assert snapshot is not None and alias is not None
+    assert snapshot.total_cost_usd == alias.total_cost_usd
     # The breakdown keeps the name the provider actually reported.
-    assert list(result.by_model) == ["gpt-5.6-terra-2026-07-09-global-aaif"]
+    assert list(snapshot.by_model) == [f"{OPENAI_MODEL}-2026-07-09-global-aaif"]
 
 
-@pytest.mark.asyncio
-async def test_compute_cost_prices_bare_dated_snapshot():
-    msg = _ai_message(
-        input_tokens=10, output_tokens=0, model="gpt-5.6-terra-2026-07-09"
+def test_compute_cost_prices_bare_dated_snapshot():
+    snapshot = compute_cost(
+        [_record(model_name=f"{OPENAI_MODEL}-2026-07-09", input_tokens=10_000)]
     )
-    result = await compute_cost(walk_state_for_usage({"messages": [msg]}))
-    assert result is not None
-    assert result.input_cost_usd == Decimal("10") * Decimal("2e-6")
+    alias = compute_cost([_record(model_name=OPENAI_MODEL, input_tokens=10_000)])
+    assert snapshot is not None and alias is not None
+    assert snapshot.total_cost_usd == alias.total_cost_usd
 
 
-@pytest.mark.asyncio
-async def test_compute_cost_does_not_price_undated_variant_as_base_model():
+def test_compute_cost_does_not_price_undated_variant_as_base_model():
     """A `-mini` is a different model, not a snapshot; it must stay unpriced."""
-    msg = _ai_message(input_tokens=10, output_tokens=0, model="gpt-5.6-terra-mini")
-    assert await compute_cost(walk_state_for_usage({"messages": [msg]})) is None
+    assert compute_cost([_record(model_name=f"{OPENAI_MODEL}-mini")]) is None
 
 
-@pytest.mark.asyncio
-async def test_compute_cost_aggregates_multiple_models():
+def test_compute_cost_aggregates_multiple_models():
     state = {
         "messages": [
             _ai_message(input_tokens=100, output_tokens=50, model=CLAUDE_MODEL),
             _ai_message(input_tokens=200, output_tokens=80, model="gpt-4o-2024-08-06"),
         ]
     }
-    records = walk_state_for_usage(state)
-    breakdown = await compute_cost(records)
+    breakdown = compute_cost(walk_state_for_usage(state))
     assert breakdown is not None
     assert len(breakdown.by_model) == 2
     assert breakdown.total_input_tokens == 300
@@ -260,3 +223,40 @@ async def test_compute_cost_aggregates_multiple_models():
     assert breakdown.request_count == 2
     assert breakdown.by_model[CLAUDE_MODEL].request_count == 1
     assert breakdown.by_model["gpt-4o-2024-08-06"].request_count == 1
+    assert breakdown.total_cost_usd == sum(
+        m.total_cost_usd for m in breakdown.by_model.values()
+    )
+
+
+def test_unpriced_model_does_not_sink_the_run():
+    """One unknown model must not discard the cost of the models alongside it."""
+    breakdown = compute_cost(
+        [
+            _record(model_name="made-up-model-xyz", input_tokens=1_000),
+            _record(model_name=OPENAI_MODEL, input_tokens=1_000),
+        ]
+    )
+    assert breakdown is not None
+    assert list(breakdown.by_model) == [OPENAI_MODEL]
+    assert breakdown.request_count == 1
+
+
+def test_every_model_this_codebase_can_select_is_priced():
+    """The gap that made cost vanish on the RAND deployment: no rates for our models."""
+    from lib.config.llm_models import ALL_MODELS
+
+    unpriced = [
+        model.name
+        for model in ALL_MODELS.values()
+        if compute_cost([_record(model_name=model.name, input_tokens=1_000)]) is None
+    ]
+    assert unpriced == []
+
+
+@pytest.mark.parametrize("decimals", [Decimal])
+def test_costs_stay_decimal(decimals):
+    """Money must not become float on the way through pricing."""
+    breakdown = compute_cost([_record(input_tokens=1_000, cache_read_tokens=500)])
+    assert breakdown is not None
+    assert isinstance(breakdown.total_cost_usd, decimals)
+    assert isinstance(breakdown.cache_read_cost_usd, decimals)
