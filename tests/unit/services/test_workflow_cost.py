@@ -1,9 +1,10 @@
 from decimal import Decimal
 
-import pytest
 from langchain_core.messages import AIMessage, HumanMessage
 from pydantic import BaseModel
 
+from lib.config.llm_models import ALL_MODELS
+from lib.services.workflow_cost import pricing
 from lib.services.workflow_cost.breakdown import UsageRecord
 from lib.services.workflow_cost.extractor import walk_state_for_usage
 from lib.services.workflow_cost.pricing import compute_cost
@@ -142,7 +143,11 @@ def test_compute_cost_returns_none_when_empty():
 
 def test_compute_cost_known_model():
     records = walk_state_for_usage(
-        {"messages": [_ai_message(input_tokens=1000, output_tokens=500, cache_read=2000)]}
+        {
+            "messages": [
+                _ai_message(input_tokens=1000, output_tokens=500, cache_read=2000)
+            ]
+        }
     )
     breakdown = compute_cost(records)
     assert breakdown is not None
@@ -243,8 +248,6 @@ def test_unpriced_model_does_not_sink_the_run():
 
 def test_every_model_this_codebase_can_select_is_priced():
     """The gap that made cost vanish on the RAND deployment: no rates for our models."""
-    from lib.config.llm_models import ALL_MODELS
-
     unpriced = [
         model.name
         for model in ALL_MODELS.values()
@@ -253,20 +256,17 @@ def test_every_model_this_codebase_can_select_is_priced():
     assert unpriced == []
 
 
-@pytest.mark.parametrize("decimals", [Decimal])
-def test_costs_stay_decimal(decimals):
+def test_costs_stay_decimal():
     """Money must not become float on the way through pricing."""
     breakdown = compute_cost([_record(input_tokens=1_000, cache_read_tokens=500)])
     assert breakdown is not None
-    assert isinstance(breakdown.total_cost_usd, decimals)
-    assert isinstance(breakdown.cache_read_cost_usd, decimals)
+    assert isinstance(breakdown.total_cost_usd, Decimal)
+    assert isinstance(breakdown.cache_read_cost_usd, Decimal)
 
 
 def test_unknown_model_warns_once_per_name(caplog):
     """A run with many records for one unpriceable model must log once, not once
     per record: the reverse buried a production log under ~1,850 identical lines."""
-    from lib.services.workflow_cost import pricing
-
     pricing._resolve.cache_clear()
     records = [_record(model_name="made-up-model-xyz", input_tokens=100)] * 50
     with caplog.at_level("WARNING", logger=pricing.__name__):
