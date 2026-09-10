@@ -38,6 +38,7 @@ from lib.api.mcp.tools.uploads import (  # noqa: E402
     get_tus_upload_credentials,
 )
 from lib.api.mcp.tools.workflows import run_workflow  # noqa: E402
+from lib.models.file import FileRole  # noqa: E402
 
 _mcp_auth_mod.create_mcp_auth = _orig
 
@@ -768,7 +769,7 @@ async def test_list_project_files_returns_files_with_reference():
     file1.file_name = "paper.pdf"
     file1.file_size = 12345
     file1.file_type = "application/pdf"
-    file1.role = "support"
+    file1.role = FileRole.SUPPORT
     file1.revision = None
 
     project.current_revision = 1

@@ -6,6 +6,7 @@ from functools import lru_cache
 from typing import List, Optional, Tuple, cast
 
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus
+from lib.services.files import get_main_file_id, get_supporting_file_ids
 from lib.services.workflow_runs import (
     create_workflow_run,
     get_project_workflow_run_by_type,
@@ -47,20 +48,6 @@ async def _project_lock(project_id: str):
         yield
 
 
-async def _get_document_processing_workflow_state(project_id: str, revision: int):
-    """Get the DocumentProcessing workflow state for a project."""
-    run = await get_project_workflow_run_by_type(
-        project_id,
-        WorkflowRunType.DOCUMENT_PROCESSING,
-        revision=revision,
-        include_state=True,
-    )
-    if run is None:
-        return None
-
-    return await read_workflow_run_state(run)
-
-
 async def _get_file_matching_workflow_state(
     project_id: str,
     revision: int,
@@ -95,25 +82,20 @@ async def _get_file_matching_workflow_state(
     if state is not None:
         return run, cast(ReferenceFileMatchingState, state)
 
-    # State doesn't exist - construct a default one from document processing state
+    # State doesn't exist - construct a default one from the file table
     logger.info(
         f"No file matching state found for project {project_id}, constructing default"
     )
 
-    doc_processing_state = await _get_document_processing_workflow_state(
-        project_id, revision
-    )
-    if doc_processing_state is None:
+    try:
+        file_id = await get_main_file_id(project_id, revision)
+    except ValueError:
         logger.info(
-            f"No document processing state found for project {project_id}, "
+            f"No main file found for project {project_id} revision {revision}, "
             "cannot construct file matching state"
         )
         return run, None
-
-    file_id = doc_processing_state.file.file_id
-    supporting_file_ids = [
-        f.file_id for f in (doc_processing_state.supporting_files or [])
-    ]
+    supporting_file_ids = await get_supporting_file_ids(project_id, revision)
 
     default_state = ReferenceFileMatchingState(
         type=WorkflowRunType.REFERENCE_FILE_MATCHING,

@@ -14,11 +14,8 @@ from lib.workflows.reference_file_matching.state import (
     ReferenceFileMatchingState,
 )
 from lib.workflows.workflow_types import WorkflowState
-from lib.workflows.util import (
-    get_main_file_id,
-    get_state_by_type,
-    get_supporting_file_ids,
-)
+from lib.services.files import get_main_file_id, get_supporting_file_ids
+from lib.workflows.util import get_state_by_type
 
 
 class ReferenceFileMatchingManifest(
@@ -76,8 +73,10 @@ class ReferenceFileMatchingManifest(
         return ReferenceFileMatchingState(
             type=WorkflowRunType.REFERENCE_FILE_MATCHING,
             config=config,
-            file_id=get_main_file_id(existing_states),
-            supporting_file_ids=get_supporting_file_ids(existing_states),
+            file_id=await get_main_file_id(config.project_id, revision),
+            supporting_file_ids=await get_supporting_file_ids(
+                config.project_id, revision
+            ),
             matches=existing_matches,
         )
 

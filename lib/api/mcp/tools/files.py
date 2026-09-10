@@ -8,6 +8,7 @@ from mcp.types import ToolAnnotations
 
 from lib.api.mcp import helpers
 from lib.api.mcp.instance import mcp
+from lib.models.file import FileRole
 from lib.models.project import AccessLevel
 from lib.services.docx_workflow_service import DocxManipulatorType, generate_docx
 from lib.services.files import (
@@ -113,7 +114,7 @@ async def list_project_files(
                 "file_name": f.file_name,
                 "file_size": f.file_size,
                 "file_type": f.file_type,
-                "role": str(f.role) if f.role else None,
+                "role": FileRole(f.role).value if f.role else None,
                 "revision": f.revision,
                 "reference_id": file_to_reference.get(str(f.id)),
             }

@@ -12,7 +12,7 @@ from lib.workflows.reference_extraction.state import (
     ReferenceExtractionState,
 )
 from lib.workflows.workflow_types import WorkflowState
-from lib.workflows.util import get_main_file_id
+from lib.services.files import get_main_file_id
 
 
 class ReferenceExtractionManifest(
@@ -54,7 +54,7 @@ class ReferenceExtractionManifest(
         return ReferenceExtractionState(
             type=WorkflowRunType.REFERENCE_EXTRACTION,
             config=config,
-            file_id=get_main_file_id(existing_states),
+            file_id=await get_main_file_id(config.project_id, revision),
         )
 
     def convert_state_to_issues(

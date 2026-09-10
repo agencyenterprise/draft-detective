@@ -7,7 +7,7 @@ via prior_self_state instead of the checkpointer — these tests pin that seedin
 """
 
 import uuid
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -56,11 +56,11 @@ async def test_create_initial_state_seeds_summaries_from_prior():
     with (
         patch(
             "lib.workflows.document_summarization.manifest.get_main_file_id",
-            return_value="main",
+            new=AsyncMock(return_value="main"),
         ),
         patch(
             "lib.workflows.document_summarization.manifest.get_supporting_file_ids",
-            return_value=[],
+            new=AsyncMock(return_value=[]),
         ),
     ):
         state = await DocumentSummarizationManifest().create_initial_state(
@@ -76,11 +76,11 @@ async def test_create_initial_state_empty_without_prior():
     with (
         patch(
             "lib.workflows.document_summarization.manifest.get_main_file_id",
-            return_value="main",
+            new=AsyncMock(return_value="main"),
         ),
         patch(
             "lib.workflows.document_summarization.manifest.get_supporting_file_ids",
-            return_value=[],
+            new=AsyncMock(return_value=[]),
         ),
     ):
         state = await DocumentSummarizationManifest().create_initial_state(
