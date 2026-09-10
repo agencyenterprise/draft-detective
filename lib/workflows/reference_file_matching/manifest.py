@@ -14,11 +14,8 @@ from lib.workflows.reference_file_matching.state import (
     ReferenceFileMatchingState,
 )
 from lib.workflows.workflow_types import WorkflowState
-from lib.workflows.util import (
-    get_main_file_id,
-    get_state_by_type,
-    get_supporting_file_ids,
-)
+from lib.services.files import get_main_file_id, get_processed_supporting_file_ids
+from lib.workflows.util import get_state_by_type
 
 
 class ReferenceFileMatchingManifest(
@@ -59,10 +56,11 @@ class ReferenceFileMatchingManifest(
         prior_self_state: ReferenceFileMatchingState | None = None,
     ) -> ReferenceFileMatchingState:
         """
-        Create initial state from REFERENCE_EXTRACTION dependency.
+        Create the initial state for a matching run.
 
-        Gets file IDs from existing workflow states and preserves any existing
-        matches so that already-matched references are not re-processed.
+        The main file id and the processed supporting file ids are read from
+        the file table. Existing matches are carried over from the prior
+        matching state so already-matched references are not re-processed.
         """
         existing_matching_state = get_state_by_type(
             WorkflowRunType.REFERENCE_FILE_MATCHING, existing_states
@@ -76,8 +74,10 @@ class ReferenceFileMatchingManifest(
         return ReferenceFileMatchingState(
             type=WorkflowRunType.REFERENCE_FILE_MATCHING,
             config=config,
-            file_id=get_main_file_id(existing_states),
-            supporting_file_ids=get_supporting_file_ids(existing_states),
+            file_id=await get_main_file_id(config.project_id, revision),
+            supporting_file_ids=await get_processed_supporting_file_ids(
+                config.project_id, revision
+            ),
             matches=existing_matches,
         )
 

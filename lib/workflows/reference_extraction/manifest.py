@@ -12,7 +12,7 @@ from lib.workflows.reference_extraction.state import (
     ReferenceExtractionState,
 )
 from lib.workflows.workflow_types import WorkflowState
-from lib.workflows.util import get_main_file_id
+from lib.services.files import get_main_file_id
 
 
 class ReferenceExtractionManifest(
@@ -47,14 +47,16 @@ class ReferenceExtractionManifest(
         prior_self_state: ReferenceExtractionState | None = None,
     ) -> ReferenceExtractionState:
         """
-        Create initial state from DOCUMENT_PROCESSING dependency.
+        Create the initial state with the revision's main file id.
 
-        Gets file with markdown from DOCUMENT_PROCESSING workflow.
+        The id is read from the file table; the markdown itself is loaded at
+        run time through the file artifacts service, which serves the cache
+        written by DOCUMENT_PROCESSING (a required dependency).
         """
         return ReferenceExtractionState(
             type=WorkflowRunType.REFERENCE_EXTRACTION,
             config=config,
-            file_id=get_main_file_id(existing_states),
+            file_id=await get_main_file_id(config.project_id, revision),
         )
 
     def convert_state_to_issues(

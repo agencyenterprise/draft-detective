@@ -14,7 +14,7 @@ from lib.workflows.document_summarization.state import (
 from lib.workflows.manifest import WorkflowManifest
 from lib.workflows.models import DocumentIssue, WorkflowRunType
 from lib.workflows.workflow_types import WorkflowState
-from lib.workflows.util import get_main_file_id, get_supporting_file_ids
+from lib.services.files import get_main_file_id, get_processed_supporting_file_ids
 
 
 class DocumentSummarizationManifest(
@@ -54,13 +54,13 @@ class DocumentSummarizationManifest(
         only summarizes new files). Threads are no longer reused across runs,
         so this state is no longer inherited via the checkpointer.
         """
-        summaries = (
-            prior_self_state.summaries if prior_self_state is not None else []
-        )
+        summaries = prior_self_state.summaries if prior_self_state is not None else []
         return DocumentSummarizationState(
             type=WorkflowRunType.DOCUMENT_SUMMARIZATION,
-            main_file_id=get_main_file_id(existing_states),
-            supporting_file_ids=get_supporting_file_ids(existing_states),
+            main_file_id=await get_main_file_id(config.project_id, revision),
+            supporting_file_ids=await get_processed_supporting_file_ids(
+                config.project_id, revision
+            ),
             config=config,
             summaries=summaries,
         )
