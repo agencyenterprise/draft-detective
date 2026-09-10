@@ -78,9 +78,15 @@ class Harness:
         self.update_status = AsyncMock()
         # What the blocking path executes (one call per item, gathered).
         self.run_with_dependency_check = AsyncMock()
+        # Terminal status the blocking path reads back per run id after the
+        # batch; defaults to COMPLETED for every run it created.
+        self.run_statuses: dict[str, WorkflowRunStatus] = {}
         self.request = StartMultipleWorkflowsRequest(
             project_id=str(self.project.id), workflow_types=[CLAIM]
         )
+
+    async def _get_run_status(self, workflow_run_id: str) -> WorkflowRunStatus:
+        return self.run_statuses.get(workflow_run_id, WorkflowRunStatus.COMPLETED)
 
     async def _approve(self, project_id, revision, gate, approved_by_user_id=None):
         self.approved.add(gate)
@@ -135,6 +141,10 @@ class Harness:
             patch(
                 "lib.api.services.workflow_runner.run_workflow_with_dependency_check",
                 new=self.run_with_dependency_check,
+            ),
+            patch(
+                "lib.api.services.workflow_runner.get_workflow_run_status",
+                new=AsyncMock(side_effect=self._get_run_status),
             ),
         )
 
@@ -329,16 +339,31 @@ async def test_blocking_path_survives_a_failed_workflow_and_still_reports_the_ga
     """One failing item is logged and left to its FAILED run record; it must not
     abort the batch or turn the gate response into an error."""
     harness = Harness()
-    harness.run_with_dependency_check.side_effect = RuntimeError("boom")
+
+    async def fail_extraction(**kwargs):
+        # Mirror what run_workflow_with_dependency_check does on error: the
+        # run record ends FAILED and nothing propagates to the caller.
+        if kwargs["config"].type == WorkflowRunType.REFERENCE_EXTRACTION:
+            harness.run_statuses[kwargs["workflow_run_id"]] = WorkflowRunStatus.FAILED
+            raise RuntimeError("boom")
+
+    harness.run_with_dependency_check.side_effect = fail_extraction
 
     with _stack(harness.patches()):
-        with pytest.raises(WorkflowGateRequiredError):
+        with pytest.raises(WorkflowGateRequiredError) as exc_info:
             await run_multiple_workflows_blocking(
                 [CLAIM], harness.request, harness.user
             )
 
-    assert harness.run_with_dependency_check.await_count > 0
+    err = exc_info.value
     assert harness.created_status(CLAIM) == WorkflowRunStatus.AWAITING_APPROVAL
+    # The gate response must not present the failed run as a completed one.
+    assert err.unsuccessful_workflows == {
+        WorkflowRunType.REFERENCE_EXTRACTION: WorkflowRunStatus.FAILED
+    }
+    assert WorkflowRunType.DOCUMENT_PROCESSING in err.completed_workflows
+    assert WorkflowRunType.REFERENCE_EXTRACTION not in err.completed_workflows
+    assert CLAIM not in err.completed_workflows
 
 
 # ---------------------------------------------------------------------------

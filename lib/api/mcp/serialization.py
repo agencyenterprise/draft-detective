@@ -60,6 +60,11 @@ def build_gate_required_payload(exc: WorkflowGateRequiredError) -> dict:
         retry_flags.append("approve_web_search=true")
     retry_flags_text = " and ".join(retry_flags)
 
+    completed_workflows = [w.value for w in exc.completed_workflows]
+    unsuccessful_workflows = {
+        w.value: status.value for w, status in exc.unsuccessful_workflows.items()
+    }
+
     if exc.nothing_started:
         opening = (
             "No workflow has been started yet: consent is required before "
@@ -67,10 +72,16 @@ def build_gate_required_payload(exc: WorkflowGateRequiredError) -> dict:
         )
     else:
         opening = (
-            "Every workflow that did not need consent has already run to "
-            "completion on this call; only the gated ones listed below are "
-            "still pending."
+            "The workflows that did not need consent have already run on this "
+            f"call. Completed: {completed_workflows}."
         )
+        if unsuccessful_workflows:
+            opening += (
+                f" Did NOT complete: {unsuccessful_workflows}. Tell the user "
+                "these analyses failed; they produced no results. They can be "
+                "run again by including them in workflow_types on the retry."
+            )
+        opening += " Only the gated workflows listed below are still pending."
     sections: list[str] = [opening]
     if pending_human_approval and exc.nothing_started:
         sections.append(
@@ -122,9 +133,9 @@ def build_gate_required_payload(exc: WorkflowGateRequiredError) -> dict:
     )
     if not exc.nothing_started:
         closing += (
-            " Do NOT resend the workflow types that already completed: every "
-            "type passed explicitly is run again, which duplicates their issues "
-            "and doubles the cost and wait."
+            " Do NOT resend the workflow types that completed: every type "
+            "passed explicitly is run again, which duplicates their issues and "
+            "doubles the cost and wait."
         )
     sections.append(closing)
 
@@ -135,5 +146,7 @@ def build_gate_required_payload(exc: WorkflowGateRequiredError) -> dict:
         "pending_human_approval": pending_human_approval,
         "pending_web_search": pending_web_search,
         "retry_workflow_types": retry_workflow_types,
+        "completed_workflows": completed_workflows,
+        "unsuccessful_workflows": unsuccessful_workflows,
         "message": "\n\n".join(sections),
     }

@@ -531,7 +531,7 @@ def test_gate_payload_retry_list_covers_both_gates_without_duplicates():
         "reference_downloader",
     ]
     assert "approve_human_steps=true and approve_web_search=true" in data["message"]
-    assert "Do NOT resend the workflow types that already completed" in data["message"]
+    assert "Do NOT resend the workflow types that completed" in data["message"]
 
 
 def test_gate_payload_when_nothing_started_retries_the_original_request():
@@ -560,6 +560,43 @@ def test_gate_payload_when_nothing_started_retries_the_original_request():
     assert "Human approval will also be required" in data["message"]
     assert "approve_human_steps=true and approve_web_search=true" in data["message"]
     assert "Do NOT resend" not in data["message"]
+    assert data["completed_workflows"] == []
+    assert data["unsuccessful_workflows"] == {}
+
+
+def test_gate_payload_reports_completed_and_failed_ungated_workflows():
+    """Mid-flight, the message must reflect the run records: a failed ungated
+    run is named as such, never folded into 'already completed'."""
+    from lib.api.mcp.serialization import build_gate_required_payload
+    from lib.api.services.workflow_runner import WorkflowGateRequiredError
+    from lib.models.workflow_run import WorkflowRunStatus, WorkflowRunType
+
+    err = WorkflowGateRequiredError(
+        project_id="p1",
+        pending_human_approval=[WorkflowRunType.CLAIM_REFERENCE_VALIDATION_V2],
+        pending_web_search=[],
+        completed_workflows=[
+            WorkflowRunType.DOCUMENT_PROCESSING,
+            WorkflowRunType.ABBREVIATION_SCAN_V2,
+        ],
+        unsuccessful_workflows={
+            WorkflowRunType.REFERENCE_EXTRACTION: WorkflowRunStatus.FAILED
+        },
+    )
+
+    data = build_gate_required_payload(err)
+
+    assert data["completed_workflows"] == [
+        "document_processing",
+        "abbreviation_scan_v2",
+    ]
+    assert data["unsuccessful_workflows"] == {"reference_extraction": "failed"}
+    assert (
+        "Completed: ['document_processing', 'abbreviation_scan_v2']" in data["message"]
+    )
+    assert "Did NOT complete: {'reference_extraction': 'failed'}" in data["message"]
+    assert "already run to completion" not in data["message"]
+    assert "Do NOT resend the workflow types that completed" in data["message"]
 
 
 @pytest.mark.asyncio

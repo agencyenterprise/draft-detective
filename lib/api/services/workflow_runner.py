@@ -24,6 +24,7 @@ from lib.services.workflow_gates import (
 from lib.services.workflow_runs import (
     create_workflow_run,
     get_project_workflow_run_by_type,
+    get_workflow_run_status,
     update_workflow_run_status,
 )
 from lib.workflows.config_factory import create_workflow_config
@@ -58,6 +59,9 @@ class WorkflowGateRequiredError(Exception):
     ``retry_workflow_types`` is the exact list the caller should pass on the
     retry: the original request when nothing started, otherwise only the
     gated workflows, since anything requested explicitly is run again.
+    ``completed_workflows`` and ``unsuccessful_workflows`` report how the
+    ungated part of the batch actually ended (the latter maps type to its
+    terminal status), so the caller never mistakes a failed run for a result.
     """
 
     def __init__(
@@ -68,11 +72,15 @@ class WorkflowGateRequiredError(Exception):
         *,
         nothing_started: bool = False,
         retry_workflow_types: List[WorkflowRunType] | None = None,
+        completed_workflows: List[WorkflowRunType] | None = None,
+        unsuccessful_workflows: dict[WorkflowRunType, WorkflowRunStatus] | None = None,
     ):
         self.project_id = project_id
         self.pending_human_approval = pending_human_approval
         self.pending_web_search = pending_web_search
         self.nothing_started = nothing_started
+        self.completed_workflows = list(completed_workflows or [])
+        self.unsuccessful_workflows = dict(unsuccessful_workflows or {})
         # De-duplicated in both cases: clients may repeat a type in their
         # request, and the retry list is meant to be a normalized copy.
         self.retry_workflow_types = list(
@@ -560,13 +568,33 @@ async def run_multiple_workflows_blocking(
     )
 
     if pending_human_triggers or pending_web_search:
+        completed, unsuccessful = await _batch_outcomes(auto_run_items)
         raise WorkflowGateRequiredError(
             project_id=str(project.id),
             pending_human_approval=pending_human_triggers,
             pending_web_search=pending_web_search,
+            completed_workflows=completed,
+            unsuccessful_workflows=unsuccessful,
         )
 
     return project, workflow_run_ids
+
+
+async def _batch_outcomes(
+    items: List[AutoRunWorkflowItem],
+) -> tuple[List[WorkflowRunType], dict[WorkflowRunType, WorkflowRunStatus]]:
+    """Split a finished batch into completed types and type → terminal status
+    for the rest. The concurrent runner absorbs per-item failures, so this is
+    read back from the run records rather than inferred."""
+    completed: List[WorkflowRunType] = []
+    unsuccessful: dict[WorkflowRunType, WorkflowRunStatus] = {}
+    for item in items:
+        status = await get_workflow_run_status(item.workflow_run_id)
+        if status == WorkflowRunStatus.COMPLETED:
+            completed.append(item.config.type)
+        else:
+            unsuccessful[item.config.type] = status or WorkflowRunStatus.FAILED
+    return completed, unsuccessful
 
 
 async def approve_project_gate(
