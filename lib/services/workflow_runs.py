@@ -2,11 +2,11 @@ import asyncio
 import logging
 from enum import StrEnum
 from datetime import datetime
-from typing import List, Optional, Type, cast
+from typing import Any, List, Optional, Type, cast
 
 from fastapi import HTTPException
-from pydantic import BaseModel
-from sqlalchemy import case, func, select, update
+from pydantic import BaseModel, FieldSerializationInfo, field_serializer
+from sqlalchemy import Select, case, func, select, update
 from sqlalchemy.orm import undefer
 from sqlmodel import and_, col
 
@@ -57,6 +57,19 @@ class WorkflowRunDetail(BaseModel):
     state: WorkflowState | None
     cost: CostBreakdown | None = None
     state_status: WorkflowStateStatus = WorkflowStateStatus.OK
+
+    @field_serializer("run")
+    def _serialize_run_without_raw_state(
+        self, run: WorkflowRun, info: FieldSerializationInfo
+    ) -> dict[str, Any]:
+        """Serialize the run row without ``state_json``.
+
+        ``state`` is the hydrated copy of the same payload, so emitting both
+        doubled every project response (1.5 MB each on a fully analysed
+        project). Readers that want the raw JSON use the dedicated
+        ``/api/workflows/{id}/raw-state`` endpoint.
+        """
+        return run.model_dump(mode=info.mode, exclude={"state_json"})
 
 
 async def _compute_cost_for_state(
@@ -484,6 +497,50 @@ async def get_project_workflow_runs_by_type_with_details(
     ]
 
 
+def _latest_run_per_type_stmt(
+    project_id: str, revision: int
+) -> Select[tuple[WorkflowRun]]:
+    """One row per workflow type for a project revision, ranked
+    RUNNING > PENDING > AWAITING_APPROVAL > latest terminal run."""
+    row_num = func.row_number().over(
+        partition_by=col(WorkflowRun.type),
+        order_by=[_active_status_priority(), col(WorkflowRun.created_at).desc()],
+    )
+    ranked = (
+        select(WorkflowRun, row_num.label("rn"))
+        .where(
+            and_(
+                col(WorkflowRun.project_id) == project_id,
+                col(WorkflowRun.revision) == revision,
+            )
+        )
+        .subquery()
+    )
+    return (
+        select(WorkflowRun)
+        .join(ranked, col(WorkflowRun.id) == ranked.c.id)
+        .where(and_(col(WorkflowRun.project_id) == project_id, ranked.c.rn == 1))
+    )
+
+
+async def get_project_run_summaries(
+    project_id: str, revision: int
+) -> List[WorkflowRun]:
+    """The most relevant run per workflow type for a revision, without states.
+
+    A light read for status polling: no state_json, no hydration, no cost.
+    Runs whose workflow no longer has a manifest are dropped, as in
+    get_project_workflow_runs.
+    """
+    async with get_async_db_session() as session:
+        runs = (
+            (await session.execute(_latest_run_per_type_stmt(project_id, revision)))
+            .scalars()
+            .all()
+        )
+    return [run for run in runs if is_available_workflow_type(run.type)]
+
+
 async def get_project_workflow_runs(
     project_id: str,
     revision: int,
@@ -495,38 +552,9 @@ async def get_project_workflow_runs(
     Returns only 1 row per workflow type, using priority:
     RUNNING > PENDING > AWAITING_APPROVAL > latest terminal run.
     """
-    status_priority = _active_status_priority()
-
-    # Use ROW_NUMBER to rank runs within each type
-    row_num = func.row_number().over(
-        partition_by=col(WorkflowRun.type),
-        order_by=[status_priority, col(WorkflowRun.created_at).desc()],
-    )
-
-    # Subquery to get ranked runs filtered by revision
-    ranked_runs_subquery = (
-        select(WorkflowRun, row_num.label("rn"))
-        .where(
-            and_(
-                col(WorkflowRun.project_id) == project_id,
-                col(WorkflowRun.revision) == revision,
-            )
-        )
-        .subquery()
-    )
-
-    # Select only the top-ranked run for each type (rn = 1)
-    stmt = (
-        select(WorkflowRun)
-        .join(ranked_runs_subquery, col(WorkflowRun.id) == ranked_runs_subquery.c.id)
-        .where(
-            and_(
-                col(WorkflowRun.project_id) == project_id,
-                ranked_runs_subquery.c.rn == 1,
-            )
-        )
+    stmt = _latest_run_per_type_stmt(project_id, revision).options(
         # Load state_json in-session so read_workflow_run_state can hydrate it.
-        .options(undefer(col(WorkflowRun.state_json)))  # type: ignore[arg-type]  # SQLModel Mapped[...] is a QueryableAttribute at runtime
+        undefer(col(WorkflowRun.state_json))  # type: ignore[arg-type]  # SQLModel Mapped[...] is a QueryableAttribute at runtime
     )
 
     async with get_async_db_session() as session:
