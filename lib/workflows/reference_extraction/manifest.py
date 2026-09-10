@@ -47,9 +47,11 @@ class ReferenceExtractionManifest(
         prior_self_state: ReferenceExtractionState | None = None,
     ) -> ReferenceExtractionState:
         """
-        Create initial state from DOCUMENT_PROCESSING dependency.
+        Create the initial state with the revision's main file id.
 
-        Gets file with markdown from DOCUMENT_PROCESSING workflow.
+        The id is read from the file table; the markdown itself is loaded at
+        run time through the file artifacts service, which serves the cache
+        written by DOCUMENT_PROCESSING (a required dependency).
         """
         return ReferenceExtractionState(
             type=WorkflowRunType.REFERENCE_EXTRACTION,
