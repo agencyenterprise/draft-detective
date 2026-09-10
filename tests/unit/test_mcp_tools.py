@@ -1,5 +1,6 @@
 """Unit tests for MCP tool functions with mocked service dependencies."""
 
+import asyncio
 import json
 from datetime import timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -37,8 +38,12 @@ from lib.api.mcp.tools.revisions import (  # noqa: E402
 from lib.api.mcp.tools.uploads import (  # noqa: E402
     get_tus_upload_credentials,
 )
-from lib.api.mcp.tools.workflows import run_workflow  # noqa: E402
+from lib.api.mcp.tools.workflows import (  # noqa: E402
+    _run_with_progress,
+    run_workflow,
+)
 from lib.models.file import FileRole  # noqa: E402
+from lib.models.workflow_run import WorkflowRunStatus, WorkflowRunType  # noqa: E402
 
 _mcp_auth_mod.create_mcp_auth = _orig
 
@@ -657,8 +662,6 @@ async def test_run_workflow_raises_when_no_api_key():
 
 
 def _run(run_type: str, status: str) -> MagicMock:
-    from lib.models.workflow_run import WorkflowRunStatus, WorkflowRunType
-
     run = MagicMock()
     run.id = uuid4()
     # Mirror the DB: WorkflowRun.type is a String column and comes back as a
@@ -676,8 +679,6 @@ def _run(run_type: str, status: str) -> MagicMock:
 async def test_run_workflow_reports_progress_while_the_batch_runs():
     """A blocking call must not stay silent: clients abort idle remote calls,
     and a progress notification resets that clock."""
-    import asyncio
-
     user = _make_user()
     ctx = AsyncMock()
 
@@ -720,6 +721,25 @@ async def test_run_workflow_reports_progress_while_the_batch_runs():
     kwargs = ctx.report_progress.await_args.kwargs
     assert kwargs["progress"] == 1 and kwargs["total"] == 2
     assert "abbreviation_scan_v2" in kwargs["message"]
+
+
+@pytest.mark.asyncio
+async def test_run_workflow_cancellation_cancels_the_batch():
+    """asyncio.wait does not propagate cancellation to the task it waits on.
+    When the client abandons the call, the batch must be cancelled too, or it
+    keeps making paid model calls with nobody listening."""
+
+    async def never_finishes():
+        await asyncio.sleep(3600)
+
+    runner = asyncio.ensure_future(never_finishes())
+    wrapper = asyncio.ensure_future(_run_with_progress(AsyncMock(), "p1", 1, runner))
+    await asyncio.sleep(0)  # let the wrapper start waiting
+    wrapper.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await wrapper
+
+    assert runner.cancelled()
 
 
 # --- list_projects ---

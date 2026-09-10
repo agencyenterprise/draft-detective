@@ -5,7 +5,12 @@ copy of ``state``; the response must emit the state once."""
 from datetime import datetime, timezone
 from uuid import uuid4
 
-from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus, WorkflowRunType
+from lib.models.workflow_run import (
+    WorkflowRun,
+    WorkflowRunPublic,
+    WorkflowRunStatus,
+    WorkflowRunType,
+)
 from lib.services.workflow_runs import WorkflowRunDetail, WorkflowStateStatus
 from lib.workflows.document_summarization.state import (
     DocumentSummarizationState,
@@ -35,7 +40,11 @@ def _detail() -> WorkflowRunDetail:
         last_updated_at=datetime.now(timezone.utc),
         state_json=state.model_dump(mode="json"),
     )
-    return WorkflowRunDetail(run=run, state=state, state_status=WorkflowStateStatus.OK)
+    return WorkflowRunDetail(
+        run=WorkflowRunPublic.model_validate(run),
+        state=state,
+        state_status=WorkflowStateStatus.OK,
+    )
 
 
 def test_run_is_serialized_without_raw_state_json():
@@ -62,3 +71,24 @@ def test_python_mode_dump_also_drops_state_json():
 
     assert "state_json" not in data["run"]
     assert data["state"] is not None
+
+
+def test_run_keeps_a_typed_schema_in_the_api_contract():
+    """The generated frontend client relies on the run's declared fields and
+    date types; excluding state_json must not degrade `run` to a bare object."""
+    schema = WorkflowRunDetail.model_json_schema()
+    run_ref = schema["properties"]["run"]
+    assert run_ref == {"$ref": "#/$defs/WorkflowRunPublic"}
+    run_schema = schema["$defs"]["WorkflowRunPublic"]
+    assert "state_json" not in run_schema["properties"]
+    for field in ("id", "type", "status", "created_at", "started_at", "completed_at"):
+        assert field in run_schema["properties"]
+    assert run_schema["properties"]["created_at"]["format"] == "date-time"
+
+
+def test_run_is_built_from_the_orm_row_by_attribute():
+    detail = _detail()
+
+    assert isinstance(detail.run, WorkflowRunPublic)
+    assert detail.run.type == WorkflowRunType.DOCUMENT_SUMMARIZATION
+    assert detail.run.status == WorkflowRunStatus.COMPLETED

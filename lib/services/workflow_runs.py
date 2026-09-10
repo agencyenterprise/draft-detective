@@ -2,10 +2,10 @@ import asyncio
 import logging
 from enum import StrEnum
 from datetime import datetime
-from typing import Any, List, Optional, Type, cast
+from typing import List, Optional, Type, cast
 
 from fastapi import HTTPException
-from pydantic import BaseModel, FieldSerializationInfo, field_serializer
+from pydantic import BaseModel
 from sqlalchemy import Select, case, func, select, update
 from sqlalchemy.orm import undefer
 from sqlmodel import and_, col
@@ -18,6 +18,7 @@ from lib.models.workflow_run import (
     TERMINAL_WORKFLOW_RUN_STATUSES,
     WorkflowRun,
     WorkflowRunFailureReason,
+    WorkflowRunPublic,
     WorkflowRunStatus,
     WorkflowRunType,
 )
@@ -53,23 +54,13 @@ class WorkflowStateStatus(StrEnum):
 
 
 class WorkflowRunDetail(BaseModel):
-    run: WorkflowRun
+    # The run without its raw state_json: `state` is the hydrated copy of the
+    # same payload, and emitting both doubled every project response. Build it
+    # from the ORM row with WorkflowRunPublic.model_validate(run).
+    run: WorkflowRunPublic
     state: WorkflowState | None
     cost: CostBreakdown | None = None
     state_status: WorkflowStateStatus = WorkflowStateStatus.OK
-
-    @field_serializer("run")
-    def _serialize_run_without_raw_state(
-        self, run: WorkflowRun, info: FieldSerializationInfo
-    ) -> dict[str, Any]:
-        """Serialize the run row without ``state_json``.
-
-        ``state`` is the hydrated copy of the same payload, so emitting both
-        doubled every project response (1.5 MB each on a fully analysed
-        project). Readers that want the raw JSON use the dedicated
-        ``/api/workflows/{id}/raw-state`` endpoint.
-        """
-        return run.model_dump(mode=info.mode, exclude={"state_json"})
 
 
 async def _compute_cost_for_state(
@@ -492,7 +483,12 @@ async def get_project_workflow_runs_by_type_with_details(
     states = [state for state, _ in hydrated]
     costs = await asyncio.gather(*[_compute_cost_for_state(s) for s in states])
     return [
-        WorkflowRunDetail(run=run, state=state, cost=cost, state_status=status)
+        WorkflowRunDetail(
+            run=WorkflowRunPublic.model_validate(run),
+            state=state,
+            cost=cost,
+            state_status=status,
+        )
         for run, (state, status), cost in zip(runs, hydrated, costs)
     ]
 
@@ -578,6 +574,11 @@ async def get_project_workflow_runs(
 
     costs = await asyncio.gather(*[_compute_cost_for_state(s) for s in states])
     return [
-        WorkflowRunDetail(run=run, state=state, cost=cost, state_status=status)
+        WorkflowRunDetail(
+            run=WorkflowRunPublic.model_validate(run),
+            state=state,
+            cost=cost,
+            state_status=status,
+        )
         for run, (state, status), cost in zip(visible_runs, hydrated, costs)
     ]

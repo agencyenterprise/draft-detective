@@ -17,7 +17,7 @@ from lib.api.services.workflow_runner import (
     run_multiple_workflows_blocking,
 )
 from lib.models.project import AccessLevel
-from lib.models.workflow_run import WorkflowRunStatus
+from lib.models.workflow_run import TERMINAL_WORKFLOW_RUN_STATUSES, WorkflowRunStatus
 from lib.services.projects import get_project_access
 from lib.services.workflow_runs import get_project_run_summaries
 from lib.workflows.models import WorkflowRunType
@@ -47,18 +47,20 @@ async def _report_batch_progress(
     """One progress notification describing the revision's runs right now."""
     try:
         runs = await get_project_run_summaries(project_id, revision)
-        settled = [
-            r
-            for r in runs
-            if r.status not in (WorkflowRunStatus.PENDING, WorkflowRunStatus.RUNNING)
-        ]
+        # Only terminal runs count as settled: a run parked in
+        # AWAITING_APPROVAL is still active, it is just blocked on a gate.
+        settled = [r for r in runs if r.status in TERMINAL_WORKFLOW_RUN_STATUSES]
         # WorkflowRun.type is a String column and comes back as a plain str.
         running = [str(r.type) for r in runs if r.status == WorkflowRunStatus.RUNNING]
+        awaiting = [
+            str(r.type) for r in runs if r.status == WorkflowRunStatus.AWAITING_APPROVAL
+        ]
         elapsed = int(time.monotonic() - started_at)
+        message = f"{elapsed}s elapsed; running: {running or 'none yet'}"
+        if awaiting:
+            message += f"; awaiting approval: {awaiting}"
         await ctx.report_progress(
-            progress=len(settled),
-            total=len(runs) or None,
-            message=f"{elapsed}s elapsed; running: {running or 'none yet'}",
+            progress=len(settled), total=len(runs) or None, message=message
         )
     except Exception as exc:  # progress is best-effort; never fail the call
         logger.warning("run_workflow progress report failed: %s", exc)
@@ -67,13 +69,24 @@ async def _report_batch_progress(
 async def _run_with_progress(
     ctx: Context, project_id: str, revision: int, runner: asyncio.Task
 ) -> None:
-    """Await the blocking batch while emitting periodic progress notifications."""
+    """Await the blocking batch while emitting periodic progress notifications.
+
+    Cancelling this coroutine (the client abandoned the tool call) cancels the
+    batch too: asyncio.wait does not propagate cancellation to the task it
+    waits on, and an orphaned batch would keep making paid model calls.
+    """
     started_at = time.monotonic()
-    while True:
-        done, _ = await asyncio.wait({runner}, timeout=PROGRESS_INTERVAL_SECONDS)
-        if done:
-            return
-        await _report_batch_progress(ctx, project_id, revision, started_at)
+    try:
+        while True:
+            done, _ = await asyncio.wait({runner}, timeout=PROGRESS_INTERVAL_SECONDS)
+            if done:
+                return
+            await _report_batch_progress(ctx, project_id, revision, started_at)
+    except asyncio.CancelledError:
+        runner.cancel()
+        # Let the batch unwind; its own outcome no longer matters here.
+        await asyncio.gather(runner, return_exceptions=True)
+        raise
 
 
 @mcp.tool(
