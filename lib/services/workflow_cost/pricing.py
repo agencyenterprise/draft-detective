@@ -1,77 +1,155 @@
+"""Cost calculation from token usage, priced from the `genai-prices` dataset.
+
+Prices ship inside the `genai-prices` package rather than being fetched from a
+price API, so cost calculation needs no network, no cache and no staleness
+handling: a new model becomes priceable by bumping the dependency. This replaced
+a Langfuse-catalog lookup that priced none of the models this codebase actually
+runs on -- every assessment on the RAND deployment reported no cost at all.
+"""
+
 import logging
 import re
 from decimal import Decimal
-from typing import Iterable, Optional
+from functools import lru_cache
+from typing import Iterable, Iterator, Optional
+
+from genai_prices import Usage, calc_price
+from genai_prices.types import PriceCalculation
 
 from lib.services.workflow_cost.breakdown import (
     CostBreakdown,
     ModelCostBreakdown,
     UsageRecord,
 )
-from lib.services.workflow_cost.catalog import CatalogEntry, ModelPricing, get_catalog
 
 logger = logging.getLogger(__name__)
 
 
-# OpenAI reports the deployed snapshot in response metadata, not the alias that
-# was requested: asking for `gpt-5.6-terra` comes back as
-# `gpt-5.6-terra-2026-07-09-global-aaif`. Langfuse's managed price entries match
-# the bare alias only, so the snapshot name prices nothing. Anchoring on the date
-# keeps a genuinely different variant (`gpt-5.6-terra-mini`) from being priced
+# Providers report the deployed snapshot in response metadata, not the alias that
+# was requested: asking for `gpt-5.6-terra` comes back as `gpt-5.6-terra-2026-07-09`
+# from OpenAI, and as `gpt-5.6-terra-2026-07-09-global-aaif` through the Azure
+# gateway the RAND deployment uses. `genai-prices` matches the bare dated form
+# itself, so this only has to strip a trailing deployment suffix. Anchoring on the
+# date keeps a genuinely different variant (`gpt-5.6-terra-mini`) from being priced
 # as the base model.
 _SNAPSHOT_SUFFIX = re.compile(r"-\d{4}-\d{2}-\d{2}(-.*)?$")
 
+# `genai-prices` infers the provider from the model name, and declines names it
+# cannot place on its own -- OpenAI's embedding and `-latest` models among them.
+# Naming a provider resolves those. Only reached once the unqualified lookup has
+# already failed, so there is no ambiguity for the order to resolve wrongly.
+_FALLBACK_PROVIDERS = ("openai", "anthropic", "google")
 
-def _first_match(name: str, models: list[CatalogEntry]) -> Optional[ModelPricing]:
-    for pattern, model in models:
-        if pattern.fullmatch(name):
-            return model
+# Nominal usage for probing whether a name resolves to a model at all. Any
+# valid usage would do -- the answer does not depend on the counts.
+_PROBE_USAGE = Usage(input_tokens=1)
+
+
+def _model_refs(model_name: str) -> Iterator[tuple[str, Optional[str]]]:
+    """`(model_ref, provider_id)` pairs to try for `model_name`, best first."""
+    aliases = [model_name]
+    alias = _SNAPSHOT_SUFFIX.sub("", model_name, count=1)
+    if alias != model_name:
+        aliases.append(alias)
+
+    for ref in aliases:
+        yield ref, None
+    for ref in aliases:
+        for provider in _FALLBACK_PROVIDERS:
+            yield ref, provider
+
+
+@lru_cache(maxsize=512)
+def _resolve(model_name: str) -> Optional[tuple[str, Optional[str]]]:
+    """The `(model_ref, provider_id)` pair `genai-prices` accepts for this name.
+
+    Matching a name to a model does not depend on the token counts, so it is
+    probed once per name and reused. Without the cache every record re-pays for
+    the failing lookup of the reported snapshot name before the alias succeeds,
+    which on the Azure-gateway names is half the cost of pricing a record.
+
+    An unknown model is reported from in here, on the cache miss, so a run with
+    hundreds of records for one unpriceable model logs once rather than once per
+    record. Logging every occurrence is what buried the RAND deployment's logs
+    under ~1,850 identical lines a day.
+    """
+    for ref, provider in _model_refs(model_name):
+        try:
+            calc_price(_PROBE_USAGE, model_ref=ref, provider_id=provider)
+        except LookupError:
+            continue
+        return ref, provider
+
+    logger.warning(
+        "No genai-prices entry for model %r; its usage is left out of cost. "
+        "A model this codebase has adopted needs a genai-prices bump.",
+        model_name,
+    )
     return None
 
 
-def _match_model(name: str, models: list[CatalogEntry]) -> Optional[ModelPricing]:
-    """Price `name` directly, or by its alias once a dated snapshot suffix is removed."""
-    model = _first_match(name, models)
-    if model is not None:
-        return model
-
-    alias = _SNAPSHOT_SUFFIX.sub("", name, count=1)
-    if alias == name:
+def _price(model_name: str, usage: Usage) -> Optional[PriceCalculation]:
+    """Price `usage` for `model_name`. None when no known model matches it."""
+    resolved = _resolve(model_name)
+    if resolved is None:
         return None
-    model = _first_match(alias, models)
-    if model is not None:
-        logger.debug("priced snapshot %r as its alias %r", name, alias)
-    return model
+    ref, provider = resolved
+    return calc_price(usage, model_ref=ref, provider_id=provider)
 
 
-def _rate(prices: dict[str, Decimal], *keys: str) -> Decimal:
-    for k in keys:
-        price = prices.get(k)
-        if price is not None:
-            return price
-    return Decimal("0")
+def _cache_read_cost(
+    model_name: str, input_total: int, cache_read_tokens: int, input_price: Decimal
+) -> Decimal:
+    """The share of `input_price` owed to cache reads.
+
+    `PriceCalculation.input_price` bundles cached and uncached input, but the UI
+    itemises them. Pricing the same request size as if every input token were a
+    cache read gives the cached per-token rate. Asking at the same size is the
+    point: rates step up above a context threshold and apply to the whole
+    request, so a smaller probe would land in a cheaper tier and understate the
+    cached share.
+    """
+    if not cache_read_tokens or not input_total:
+        return Decimal(0)
+    if cache_read_tokens == input_total:
+        # Nothing uncached to separate out, so the input price is all cache read.
+        return input_price
+
+    all_cached = _price(
+        model_name,
+        Usage(input_tokens=input_total, cache_read_tokens=input_total),
+    )
+    if all_cached is None:
+        return Decimal(0)
+    return all_cached.input_price / input_total * cache_read_tokens
 
 
-def _cost_for_record(
-    record: UsageRecord, models: list[CatalogEntry]
-) -> ModelCostBreakdown | None:
-    model = _match_model(record.model_name, models)
-    if model is None:
-        logger.warning(
-            "Langfuse has no pricing for model %r; skipping cost calc",
-            record.model_name,
-        )
+def _cost_for_record(record: UsageRecord) -> ModelCostBreakdown | None:
+    # `genai-prices` counts cache reads as part of `input_tokens`, the way the
+    # providers report them. `UsageRecord` holds the two disjoint (see
+    # `extractor._extract_record`), so they are added back together here.
+    input_total = record.input_tokens + record.cache_read_tokens
+
+    priced = _price(
+        record.model_name,
+        Usage(
+            input_tokens=input_total,
+            cache_read_tokens=record.cache_read_tokens,
+            output_tokens=record.output_tokens,
+        ),
+    )
+    if priced is None:
+        # Already logged once for this model name by `_resolve`.
         return None
 
-    prices = model.prices
-    input_rate = _rate(prices, "input")
-    output_rate = _rate(prices, "output")
-    # Fall back to input rate when no cache_read price is published.
-    cache_read_rate = _rate(prices, "input_cache_read", "input_cached_tokens", "input")
-
-    input_cost = input_rate * record.input_tokens
-    output_cost = output_rate * record.output_tokens
-    cache_read_cost = cache_read_rate * record.cache_read_tokens
+    cache_read_cost = _cache_read_cost(
+        record.model_name,
+        input_total,
+        record.cache_read_tokens,
+        priced.input_price,
+    )
+    input_cost = priced.input_price - cache_read_cost
+    output_cost = priced.output_price
 
     return ModelCostBreakdown(
         input_tokens=record.input_tokens,
@@ -94,23 +172,15 @@ def _accumulate(target: ModelCostBreakdown, addition: ModelCostBreakdown) -> Non
     target.total_cost_usd += addition.total_cost_usd
 
 
-async def compute_cost(records: Iterable[UsageRecord]) -> CostBreakdown | None:
-    """Aggregate UsageRecords into a CostBreakdown using Langfuse pricing.
+def compute_cost(records: Iterable[UsageRecord]) -> CostBreakdown | None:
+    """Aggregate UsageRecords into a CostBreakdown.
 
-    Returns None when no records can be priced (no input or all models unknown).
+    Returns None when no records can be priced (no input, or every model unknown).
     """
-    records_list = list(records)
-    if not records_list:
-        return None
-
-    models = await get_catalog()
-    if not models:
-        return None
-
     breakdown = CostBreakdown()
     has_any = False
-    for record in records_list:
-        per_model = _cost_for_record(record, models)
+    for record in records:
+        per_model = _cost_for_record(record)
         if per_model is None:
             continue
         has_any = True
