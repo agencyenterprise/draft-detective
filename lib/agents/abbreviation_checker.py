@@ -35,24 +35,19 @@ The document is available at `/main.md` — use the available search and read to
 search it (e.g. search for headings like `^#+\\s*(Abbreviation|Acronym|Glossary)` to locate the
 Abbreviations section).
 
-Read it in chunks of 200 lines — `read_file("/main.md", offset=0, limit=200)`, then
-`offset=200 limit=200`, then `offset=400 limit=200`, and so on — until a read returns fewer
-lines than you asked for, which is how you know you have reached the end.
+Read it in 200-line chunks — `read_file("/main.md", offset=0, limit=200)`, then `offset=200`,
+`offset=400`, and so on. A read returning fewer lines than you asked for means you reached the
+end.
 
-A single read returns at most ~20,000 tokens. Asking for the whole file in one call does not
-get you the whole file: on a long document the result is silently cut off partway through and
-ends with a truncation notice, and no larger `limit` recovers the rest — only reading the next
-offset does. If a read comes back with that notice, your chunk was too large: halve it and
-retry the same offset rather than moving on.
+A read is capped at ~20,000 tokens; past that it is silently cut off and ends with a truncation
+notice, and a larger `limit` will not recover the rest. On that notice, halve the chunk and
+retry the same offset, then continue from the last line you actually received rather than the
+next round-number offset.
 
-Record the catalogue through the `record_abbreviations` tool — **not** in your final response.
-Report each chunk as you finish reading it, rather than saving everything for the end: that is
-what keeps a long document's catalogue complete, because holding it all back is how entries get
-dropped.
-
-A call accepts at most 200 occurrences, so use as many calls per chunk as you need — one is
-usual, but a dense chunk may take two or three. A batch over the limit is rejected whole, so
-split it and send the parts rather than dropping any.
+Record the catalogue through the `record_abbreviations` tool — **not** in your final response —
+as you finish each chunk, rather than saving it all for the end. A call takes at most 200
+occurrences and an oversized batch is rejected whole, so split a dense chunk across several
+calls.
 
 Each occurrence records:
 - `abbr`: the abbreviation in its singular base form (e.g. "LLM", not "LLMs");
@@ -68,11 +63,10 @@ Each occurrence records:
   Bibliography, cover page, exempt classes), `false` otherwise;
 - `ignored_reason`: a brief explanation when `ignored` is `true`, otherwise `None`.
 
-Your final response carries only two fields: set `abbreviations_section_found` to `true` only
-if you found and read a dedicated Abbreviations (or equivalent) section, and give a brief
-`reasoning` summary of what you found and how. Do not repeat the catalogue there — it is
-already recorded through the tool. In `reasoning`, state the document's total line count, the
-last line you examined, and how many occurrences you recorded.
+Your final response carries only two fields: set `abbreviations_section_found` to `true` only if
+you found and read a dedicated Abbreviations (or equivalent) section, and give a brief
+`reasoning` summary stating the document's total line count, the last line you examined, and how
+many occurrences you recorded.
 """
 
 

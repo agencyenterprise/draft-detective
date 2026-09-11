@@ -1,8 +1,13 @@
 """Tests for the abbreviation occurrence collector tool."""
 
+from lib.workflows.abbreviation_scan_v2.issues import build_issues
 from lib.workflows.abbreviation_scan_v2.occurrence_reporting import (
     MAX_PER_CALL,
     AbbreviationReporter,
+)
+from lib.workflows.abbreviation_scan_v2.state import (
+    AbbreviationScanV2Config,
+    AbbreviationScanV2State,
 )
 
 
@@ -196,12 +201,6 @@ class TestNormalisationKeepsRulesFiring:
     """The end-to-end consequence: the rules still see the violations."""
 
     def test_blank_definitions_still_produce_both_findings(self):
-        from lib.workflows.abbreviation_scan_v2.issues import build_issues
-        from lib.workflows.abbreviation_scan_v2.state import (
-            AbbreviationScanV2Config,
-            AbbreviationScanV2State,
-        )
-
         reporter = AbbreviationReporter()
         _record(
             reporter,
