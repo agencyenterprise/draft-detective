@@ -1,6 +1,6 @@
 {
   "name": "draft-detective",
-  "version": "1.0.12",
+  "version": "1.0.13",
   "private": true,
   "packageManager": "pnpm@10.33.0",
   "engines": {
