@@ -2,7 +2,7 @@
 
 Current Inspect AI eval numbers across every eval in `evals_inspectai/e2e/`.
 
-- **Last updated:** 2026-09-03
+- **Last updated:** 2026-09-11
 - **Model:** `gpt-5.6-terra`, on every agent
 - **Total:** 18 evals · 244 runnable samples · run at epochs=3
 
@@ -47,7 +47,7 @@ Every run below completed in full: no sample was dropped, errored or retried.
 
 | # | Eval | Samples | Epochs | Scorer results | Overall avg | Date | Log |
 |---|------|--------:|-------:|----------------|:-----------:|------|-----|
-| 1 | `abbreviation_checker` | 26 | 3 | <details><summary>2 deterministic 0.999–1.000 · 1 judged 0.987</summary>`structured_output_scorer` 0.999 ±0.001[^abbr-list]<br>`structured_output_scorer1` 1.000 ±0.000[^abbr-sect]<br>`model_graded_check` 0.987 ±0.009[^mg]</details> | **0.995** | 2026-08-26 | [`…_9L7LFJgP4rM2Z6oAmDgCg8.eval`](./evals/2026-08-26T13-36-25-00-00_abbreviation-checker-e2e_9L7LFJgP4rM2Z6oAmDgCg8.eval) |
+| 1 | `abbreviation_checker`[^abbr-rework] | 26 | 3 | <details><summary>2 deterministic 0.998–1.000 · 1 judged 0.968</summary>`structured_output_scorer` 0.998 ±0.001[^abbr-list]<br>`structured_output_scorer1` 1.000 ±0.000[^abbr-sect]<br>`model_graded_check` 0.968 ±0.016[^mg]</details> | **0.989** | 2026-09-11 | [`…_AnLYWQfRdG5PpYK2T6kr7g.eval`](./evals/2026-09-11T20-00-14-00-00_abbreviation-checker-e2e_AnLYWQfRdG5PpYK2T6kr7g.eval) |
 | 2 | `about_this_ger` | 13 | 3 | <details><summary>2 deterministic 0.983–0.987 · 1 judged 0.936</summary>`structured_output_scorer` 0.983 ±0.017[^ger-preface]<br>`structured_output_scorer1` 0.987 ±0.013[^ger-authors]<br>`model_graded_check` 0.936 ±0.052[^mg]</details> | **0.969** | 2026-08-26 | [`…_RDABwXSRrsEUEeTGCDyPAX.eval`](./evals/2026-08-26T13-42-24-00-00_about-this-ger-e2e_RDABwXSRrsEUEeTGCDyPAX.eval) |
 | 3 | `advocacy_tone_v2` | 14 | 3 | <details><summary>1 deterministic 1.000 · 1 judged 1.000</summary>`structured_output_scorer` 1.000 ±0.000[^advv2-titles]<br>`model_graded_check` 1.000 ±0.000[^mg]</details> | **1.000** | 2026-08-26 | [`…_TR6MVXLpKk5aABsjrrd3BG.eval`](./evals/2026-08-26T16-59-19-00-00_advocacy-tone-v2-e2e_TR6MVXLpKk5aABsjrrd3BG.eval) |
 | 4 | `claim_reference_validation_v2` | 7 | 3 | <details><summary>2 deterministic all 1.000 · 1 judged 1.000</summary>`citation_alignment_match` 1.000 ±0.000[^cr-align]<br>`citation_count_match` 1.000 ±0.000[^cr-count]<br>`model_graded_check` 1.000 ±0.000[^mg]</details> | **1.000** | 2026-08-26 | [`…_P6c7epQuUUuYnrhLJszKwY.eval`](./evals/2026-08-26T16-55-04-00-00_claim-reference-validation-v2-e2e_P6c7epQuUUuYnrhLJszKwY.eval) |
@@ -131,6 +131,7 @@ Four things worth knowing before reading that table:
 ## Scorer reference
 
 [^mg]: `model_graded_check` — an LLM grader compares the workflow's full output against the target answer, with partial credit. Some evals grade against a `target_answer` in sample metadata; the mechanism is otherwise identical across evals.
+[^abbr-rework]: `abbreviation_checker` · re-baselined on 11 Sep 2026 after the workflow was reworked to fix silent truncation on long documents: the agent now paginates `/main.md` in 200-line chunks and records occurrences through a `record_abbreviations` tool instead of returning the whole catalogue in one structured response, and each compliance rule reports once per abbreviation rather than once per occurrence (`severity=none` informational entries are no longer emitted). The scorers and the dataset are unchanged, so this number is comparable with the 0.995 it replaces; the 0.006 drop sits inside `model_graded_check`'s stderr. The eval's 26 samples are all short documents, which is why they barely move — the rework shows up on long ones: a 111-page fixture went from 113 recorded occurrences to 975, and from 358 medium plus 1,396 none-severity issues to 40. The **0.995** listed for this eval in *What the model switch changed* below is the pre-rework figure and is left as recorded, since that table documents the 28 Aug model migration rather than the current baseline.
 [^abbr-list]: `abbreviation_checker` · deterministic match of the extracted abbreviations list against the target (inline definition, line span, section definition, ignored flag).
 [^abbr-sect]: `abbreviation_checker` · deterministic check that the "Abbreviations section found" boolean matches the target.
 [^ger-preface]: `about_this_ger` · deterministic match of the flagged preface / "About This" issue titles against the target.
