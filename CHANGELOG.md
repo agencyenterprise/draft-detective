@@ -6,6 +6,38 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v1.0.13] - 2026-09-11
+
+### Added
+- Added MCP progress notifications to `run_workflow` every 30 seconds while a batch runs.
+- Added upfront web-search consent checking for the MCP `run_workflow` tool, returning `approval_required` immediately when consent is missing.
+- Added `retry_workflow_types` to the MCP `approval_required` response to instruct agents to retry with an exact workflow list.
+- Added async helpers to read a project’s main and processed supporting file IDs from the file table.
+- Added tests covering workflow runner gates, MCP tool payloads, file ID helpers, progress notifications, and workflow run detail serialization.
+
+### Changed
+- Replaced the Langfuse model-price catalog with the `genai-prices` dataset for workflow cost calculation.
+- Changed workflow cost computation to require no network, cache, or staleness handling.
+- Changed MCP `run_workflow` blocking execution to run its batch concurrently instead of sequentially.
+- Changed workflows that need project file IDs to read them from the file table instead of a document-processing run state.
+- Changed project payloads so `WorkflowRunDetail` emits the run row without duplicated `state_json` while keeping the hydrated `state`.
+- Changed the Assessments tab so the rail stays mounted across assessment selections by rendering it from a layout.
+- Changed the Assessments rail so the “Pipeline steps” section starts open when the selected assessment is a pipeline step.
+- Changed the Assessments results pane to be keyed by run id so a new selection reads from the top.
+
+### Fixed
+- Fixed MCP `list_project_files` to serialize a file’s role as its value (e.g., `main`, `support`) instead of `FileRole.MAIN`.
+- Fixed the Assessments tab rail collapsing and scroll position resetting when selecting an assessment.
+- Fixed the Assessments tab so selecting a new assessment still resets the results pane scroll to the top.
+
+### Security
+- Bumped Next.js from 15.5.21 to 15.5.24 in `/frontend`, including security fixes noted in Next.js release notes.
+
+### Removed
+- Removed the Langfuse pricing catalog module used for workflow cost calculation.
+- Removed tests for the deleted workflow cost catalog fetching/caching behavior.
+
+
 ## [v1.0.12] - 2026-09-08
 
 ### Added
