@@ -58,7 +58,7 @@ def build_issues(state: AbbreviationScanV2State) -> List[DocumentIssue]:
         ):
             issues.append(_definition_mismatch_issue(first))
 
-    issues.extend(_ambiguity_issues(in_scope, first_occurrence))
+    issues.extend(_ambiguity_issues(in_scope))
     return issues
 
 
@@ -74,32 +74,35 @@ def _first_occurrence_per_abbr(
     return first
 
 
-def _ambiguity_issues(
-    items: List[AbbreviationItem],
-    first_occurrence: Dict[str, AbbreviationItem],
-) -> List[DocumentIssue]:
+def _ambiguity_issues(items: List[AbbreviationItem]) -> List[DocumentIssue]:
     """Rule 5 — the same abbreviation given two different inline definitions.
+
+    The baseline is the earliest occurrence that actually carries a definition,
+    not the earliest occurrence full stop: an abbreviation introduced bare and
+    defined two occurrences later still establishes a meaning there, and a
+    conflicting definition after that is the thing this rule exists to catch.
 
     Reported at the conflicting occurrence, and only once per abbreviation: a
     document that redefines a term repeatedly needs one flag, not one per use.
     """
     issues: List[DocumentIssue] = []
-    established: Dict[str, str] = {
-        abbr: item.inline_definition
-        for abbr, item in first_occurrence.items()
-        if item.inline_definition
-    }
+    established: Dict[str, str] = {}
     already_flagged: set[str] = set()
 
-    for item in items:
-        prior = established.get(item.abbr)
-        if (
-            not item.inline_definition
-            or prior is None
-            or item.abbr in already_flagged
-            or text_matches(item.inline_definition, prior)
-        ):
+    # Occurrence order, so "first definition" means first in the document rather
+    # than first in however the catalogue happens to be ordered.
+    for item in sorted(items, key=lambda i: (i.occurrence_number, i.line_start)):
+        if not item.inline_definition:
             continue
+
+        prior = established.get(item.abbr)
+        if prior is None:
+            established[item.abbr] = item.inline_definition
+            continue
+
+        if item.abbr in already_flagged or text_matches(item.inline_definition, prior):
+            continue
+
         already_flagged.add(item.abbr)
         issues.append(_ambiguous_issue(item, prior))
 

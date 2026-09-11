@@ -222,6 +222,39 @@ class TestRule5Ambiguous:
         issues = build_issues(_state(items, abbreviations_section_found=True))
         assert _titles(issues).count("Ambiguous abbreviation") == 1
 
+    def test_baseline_is_the_first_definition_not_the_first_occurrence(self):
+        """Regression: a bare first use must not disable the rule.
+
+        The meaning is established by the earliest occurrence that actually
+        carries a definition; a conflicting one after that is still a conflict.
+        """
+        items = [
+            _item(occurrence_number=1, line_start=10, line_end=10),  # bare
+            _item(inline_definition="Artificial Intelligence", occurrence_number=2,
+                  line_start=40, line_end=40),
+            _item(inline_definition="Analogue Input", occurrence_number=3,
+                  line_start=90, line_end=90),
+        ]
+        issues = build_issues(_state(items, abbreviations_section_found=True))
+        ambiguous = [i for i in issues if i.title == "Ambiguous abbreviation"]
+        assert len(ambiguous) == 1
+        assert ambiguous[0].start_line == 90
+        assert "Artificial Intelligence" in ambiguous[0].description
+
+    def test_conflict_detected_regardless_of_catalogue_order(self):
+        items = [
+            _item(inline_definition="Analogue Input", occurrence_number=3,
+                  line_start=90, line_end=90),
+            _item(occurrence_number=1, line_start=10, line_end=10),
+            _item(inline_definition="Artificial Intelligence", occurrence_number=2,
+                  line_start=40, line_end=40),
+        ]
+        issues = build_issues(_state(items, abbreviations_section_found=True))
+        ambiguous = [i for i in issues if i.title == "Ambiguous abbreviation"]
+        assert len(ambiguous) == 1
+        # The earlier definition is the baseline, so the later one is flagged.
+        assert ambiguous[0].start_line == 90
+
     def test_not_reported_for_consistent_repeats(self):
         items = _occurrences("AI", 5, inline_definition="Artificial Intelligence",
                              abbreviations_section_definition="Artificial Intelligence")

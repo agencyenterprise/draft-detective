@@ -13,6 +13,7 @@ from lib.skills import load_skill_prompt
 from lib.workflows.abbreviation_scan_v2.occurrence_reporting import (
     AbbreviationReporter,
 )
+from lib.workflows.simple_deep_agent.agent_types import DEEP_AGENT_RECURSION_LIMIT
 from lib.workflows.abbreviation_scan_v2.state import (
     AbbreviationCheckOutput,
     AbbreviationItem,
@@ -115,7 +116,14 @@ class AbbreviationCheckerAgent(LangChainAgent):
                     ),
                 ],
             },
-            config={"recursion_limit": 100, **(config or {})},
+            # Reading and recording now costs a read/tool cycle per 200-line
+            # chunk, so the budget has to scale with document length rather than
+            # sit at a fixed 100. Uses the shared deep-agent budget, which was
+            # raised for exactly this reason when issue reporting moved to tools.
+            config={
+                "recursion_limit": DEEP_AGENT_RECURSION_LIMIT,
+                **(config or {}),
+            },
         )
 
         return result["structured_response"], reporter.occurrences, result["messages"]
