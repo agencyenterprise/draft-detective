@@ -28,7 +28,7 @@ At an abbreviation's **first** non-excluded occurrence, if there is **no** inlin
 **Title:** "Abbreviation not defined at first use"
 
 ### Rule 3 — Missing from the Abbreviations section
-When a dedicated Abbreviations section **exists**, every non-excluded abbreviation should be listed in it. For each occurrence of an abbreviation that is **not** listed there, report an issue.
+When a dedicated Abbreviations section **exists**, every non-excluded abbreviation should be listed in it. For each abbreviation that is **not** listed there, report **one** issue, located at its first non-excluded occurrence. Do not report it again for the abbreviation's later occurrences.
 **Title:** "Abbreviation missing from Abbreviations section"
 
 ### Rule 4 — Inline definition does not match the Abbreviations section
@@ -36,7 +36,7 @@ At an abbreviation's first non-excluded occurrence, if it has an inline definiti
 **Title:** "Inline definition does not match Abbreviations section"
 
 ### Rule 5 — Ambiguous abbreviation
-If an occurrence carries an inline definition that differs from the **first** inline definition recorded for that same abbreviation (ignoring trivial case/whitespace/punctuation differences), the document is using one abbreviation to mean more than one thing. Report an issue.
+If an occurrence carries an inline definition that differs from the **first** inline definition recorded for that same abbreviation (ignoring trivial case/whitespace/punctuation differences), the document is using one abbreviation to mean more than one thing. Report **one** issue per abbreviation, located at the first occurrence that conflicts; a term redefined repeatedly needs one flag, not one per use. The first inline definition means the earliest occurrence that actually carries one — an abbreviation used bare before it is ever defined still establishes its meaning at that later definition.
 **Title:** "Ambiguous abbreviation"
 
 ## Reporting
