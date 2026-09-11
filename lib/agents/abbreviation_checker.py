@@ -13,12 +13,12 @@ from lib.skills import load_skill_prompt
 from lib.workflows.abbreviation_scan_v2.occurrence_reporting import (
     AbbreviationReporter,
 )
-from lib.workflows.simple_deep_agent.agent_types import DEEP_AGENT_RECURSION_LIMIT
 from lib.workflows.abbreviation_scan_v2.state import (
     AbbreviationCheckOutput,
     AbbreviationItem,
 )
 from lib.workflows.context import ContextSchema
+from lib.workflows.simple_deep_agent.agent_types import DEEP_AGENT_RECURSION_LIMIT
 
 # The extraction *method* lives in the portable `abbreviation-extraction` skill
 # (the single source of truth). This backend-only addendum carries the
@@ -46,9 +46,13 @@ offset does. If a read comes back with that notice, your chunk was too large: ha
 retry the same offset rather than moving on.
 
 Record the catalogue through the `record_abbreviations` tool — **not** in your final response.
-Call it once per chunk you read, passing the occurrences you found in that chunk (at most 200
-per call). Reporting as you go is what keeps a long document's catalogue complete: holding
-everything back for a single final answer is how entries get dropped.
+Report each chunk as you finish reading it, rather than saving everything for the end: that is
+what keeps a long document's catalogue complete, because holding it all back is how entries get
+dropped.
+
+A call accepts at most 200 occurrences, so use as many calls per chunk as you need — one is
+usual, but a dense chunk may take two or three. A batch over the limit is rejected whole, so
+split it and send the parts rather than dropping any.
 
 Each occurrence records:
 - `abbr`: the abbreviation in its singular base form (e.g. "LLM", not "LLMs");
@@ -111,7 +115,7 @@ class AbbreviationCheckerAgent(LangChainAgent):
                             "Please scan the entire document for abbreviations and acronyms. "
                             "For each occurrence record whether it has an inline definition and whether it "
                             "appears in the Abbreviations section. Record every occurrence through the "
-                            "`record_abbreviations` tool as you read, one call per chunk."
+                            "`record_abbreviations` tool as you read, in batches of at most 200."
                         )
                     ),
                 ],

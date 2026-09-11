@@ -115,13 +115,15 @@ class AbbreviationReporter:
                 accepted.append(
                     AbbreviationItem(
                         abbr=candidate.abbr.strip(),
-                        inline_definition=candidate.inline_definition,
+                        inline_definition=candidate.inline_definition.strip(),
                         occurrence_number=candidate.occurrence_number,
                         line_start=candidate.line_start,
                         line_end=candidate.line_end,
-                        abbreviations_section_definition=candidate.abbreviations_section_definition,
+                        abbreviations_section_definition=_absent_if_blank(
+                            candidate.abbreviations_section_definition
+                        ),
                         ignored=candidate.ignored,
-                        ignored_reason=candidate.ignored_reason,
+                        ignored_reason=_absent_if_blank(candidate.ignored_reason),
                     )
                 )
 
@@ -146,6 +148,21 @@ class AbbreviationReporter:
             return " ".join(parts)
 
         return record_abbreviations
+
+
+def _absent_if_blank(value: Optional[str]) -> Optional[str]:
+    """Collapse a blank string to None.
+
+    The rules distinguish "no definition" from "a definition" by `None` and by
+    truthiness, so a model that answers `""` or `" "` where it means "not listed"
+    would silently switch a rule off — and, for a section definition, invent a
+    Rule 4 mismatch against an empty string. Normalising here keeps that
+    ambiguity out of the catalogue entirely.
+    """
+    if value is None:
+        return None
+    stripped = value.strip()
+    return stripped or None
 
 
 def _validate(candidate: OccurrenceInput) -> Optional[str]:

@@ -150,3 +150,69 @@ class TestIsolation:
         first, second = AbbreviationReporter(), AbbreviationReporter()
         _record(first, _entry())
         assert second.occurrences == []
+
+
+class TestNormalisation:
+    """Blank strings must not masquerade as definitions.
+
+    `build_issues` tells "no definition" from "a definition" by `None` and by
+    truthiness, so an unnormalised `" "` or `""` from the model silently turns a
+    rule off — and an empty section definition also invents a Rule 4 mismatch
+    against nothing.
+    """
+
+    def test_whitespace_inline_definition_becomes_empty(self):
+        reporter = AbbreviationReporter()
+        _record(reporter, _entry(inline_definition="   "))
+        assert reporter.occurrences[0].inline_definition == ""
+
+    def test_inline_definition_is_trimmed(self):
+        reporter = AbbreviationReporter()
+        _record(reporter, _entry(inline_definition="  North Atlantic Treaty Organization  "))
+        assert reporter.occurrences[0].inline_definition == "North Atlantic Treaty Organization"
+
+    def test_empty_section_definition_becomes_none(self):
+        reporter = AbbreviationReporter()
+        _record(reporter, _entry(abbreviations_section_definition=""))
+        assert reporter.occurrences[0].abbreviations_section_definition is None
+
+    def test_whitespace_section_definition_becomes_none(self):
+        reporter = AbbreviationReporter()
+        _record(reporter, _entry(abbreviations_section_definition="  "))
+        assert reporter.occurrences[0].abbreviations_section_definition is None
+
+    def test_real_section_definition_survives_trimmed(self):
+        reporter = AbbreviationReporter()
+        _record(reporter, _entry(abbreviations_section_definition=" Artificial Intelligence "))
+        assert reporter.occurrences[0].abbreviations_section_definition == "Artificial Intelligence"
+
+    def test_blank_ignored_reason_becomes_none(self):
+        reporter = AbbreviationReporter()
+        _record(reporter, _entry(ignored=True, ignored_reason="heading  "))
+        assert reporter.occurrences[0].ignored_reason == "heading"
+
+
+class TestNormalisationKeepsRulesFiring:
+    """The end-to-end consequence: the rules still see the violations."""
+
+    def test_blank_definitions_still_produce_both_findings(self):
+        from lib.workflows.abbreviation_scan_v2.issues import build_issues
+        from lib.workflows.abbreviation_scan_v2.state import (
+            AbbreviationScanV2Config,
+            AbbreviationScanV2State,
+        )
+
+        reporter = AbbreviationReporter()
+        _record(
+            reporter,
+            _entry(inline_definition=" ", abbreviations_section_definition=""),
+        )
+        state = AbbreviationScanV2State(
+            config=AbbreviationScanV2Config(project_id="test-project"),
+            abbreviations=reporter.occurrences,
+            abbreviations_section_found=True,
+        )
+        titles = [i.title for i in build_issues(state)]
+        assert "Abbreviation not defined at first use" in titles
+        assert "Abbreviation missing from Abbreviations section" in titles
+        assert "Inline definition does not match Abbreviations section" not in titles
