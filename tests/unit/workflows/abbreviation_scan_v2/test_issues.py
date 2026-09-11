@@ -1,17 +1,12 @@
-"""Tests for abbreviation scan v2 issue conversion logic."""
+"""Tests for abbreviation scan v2 issue conversion.
+
+Exercised through `build_issues` rather than its helpers: the rules are the
+contract, and each of them now reports at most once per abbreviation.
+"""
 
 from typing import List, Optional
 
-from lib.workflows.abbreviation_scan_v2.issues import (
-    build_issues,
-    _ambiguity_issues,
-    _first_inline_definitions,
-    _first_non_ignored_occurrence,
-    _ignored_issue,
-    _inline_definition_issues,
-    _no_abbreviations_section_issue,
-    _section_coverage_issues,
-)
+from lib.workflows.abbreviation_scan_v2.issues import build_issues
 from lib.workflows.abbreviation_scan_v2.state import (
     AbbreviationItem,
     AbbreviationScanV2Config,
@@ -54,339 +49,198 @@ def _state(
     )
 
 
-# ---------------------------------------------------------------------------
-# _first_non_ignored_occurrence
-# ---------------------------------------------------------------------------
+def _titles(issues) -> List[str]:
+    return [i.title for i in issues]
 
 
-class TestFirstNonIgnoredOccurrence:
-    def test_picks_first_non_ignored(self):
+def _occurrences(abbr: str, count: int, **overrides) -> List[AbbreviationItem]:
+    """One abbreviation repeated `count` times on ascending lines."""
+    return [
+        _item(abbr=abbr, occurrence_number=n, line_start=n * 10, line_end=n * 10, **overrides)
+        for n in range(1, count + 1)
+    ]
+
+
+class TestNoneSeverityIsNeverReported:
+    def test_passing_abbreviation_produces_nothing(self):
+        issues = build_issues(
+            _state(
+                [_item(inline_definition="Artificial Intelligence",
+                       abbreviations_section_definition="Artificial Intelligence")],
+                abbreviations_section_found=True,
+            )
+        )
+        assert issues == []
+
+    def test_ignored_occurrences_produce_nothing(self):
+        issues = build_issues(
+            _state([_item(ignored=True, ignored_reason="heading")],
+                   abbreviations_section_found=True)
+        )
+        assert issues == []
+
+    def test_subsequent_occurrences_produce_nothing(self):
         items = [
-            _item(abbr="AI", occurrence_number=1, ignored=True),
-            _item(abbr="AI", occurrence_number=2),
-            _item(abbr="AI", occurrence_number=3),
+            _item(inline_definition="Artificial Intelligence",
+                  abbreviations_section_definition="Artificial Intelligence"),
+            *_occurrences("AI", 5, abbreviations_section_definition="Artificial Intelligence")[1:],
         ]
-        assert _first_non_ignored_occurrence(items) == {"AI": 2}
+        assert build_issues(_state(items, abbreviations_section_found=True)) == []
 
-    def test_multiple_abbreviations(self):
+    def test_every_reported_issue_is_medium(self):
+        items = _occurrences("AI", 4) + _occurrences("ML", 3)
+        issues = build_issues(_state(items, abbreviations_section_found=True))
+        assert issues
+        assert all(i.severity == SeverityEnum.MEDIUM for i in issues)
+
+
+class TestRule1MissingSection:
+    def test_reported_once_when_section_absent(self):
+        issues = build_issues(_state(_occurrences("AI", 3) + _occurrences("ML", 3)))
+        assert _titles(issues).count("No Abbreviations section found") == 1
+
+    def test_not_reported_when_section_present(self):
+        issues = build_issues(_state(_occurrences("AI", 3), abbreviations_section_found=True))
+        assert "No Abbreviations section found" not in _titles(issues)
+
+    def test_not_reported_when_every_occurrence_is_ignored(self):
+        items = [_item(ignored=True, ignored_reason="exempt class")]
+        assert build_issues(_state(items)) == []
+
+
+class TestRule2NotDefinedAtFirstUse:
+    def test_reported_once_per_abbreviation(self):
+        issues = build_issues(
+            _state(_occurrences("AI", 40), abbreviations_section_found=True)
+        )
+        assert _titles(issues).count("Abbreviation not defined at first use") == 1
+
+    def test_anchored_to_the_first_occurrence(self):
+        issues = build_issues(
+            _state(_occurrences("AI", 5), abbreviations_section_found=True)
+        )
+        issue = next(i for i in issues if i.title == "Abbreviation not defined at first use")
+        assert issue.start_line == 10
+
+    def test_first_occurrence_found_regardless_of_list_order(self):
+        items = list(reversed(_occurrences("AI", 5)))
+        issues = build_issues(_state(items, abbreviations_section_found=True))
+        issue = next(i for i in issues if i.title == "Abbreviation not defined at first use")
+        assert issue.start_line == 10
+
+    def test_not_reported_when_defined(self):
+        items = _occurrences("AI", 3, abbreviations_section_definition="Artificial Intelligence")
+        items[0] = _item(inline_definition="Artificial Intelligence", line_start=10, line_end=10,
+                         abbreviations_section_definition="Artificial Intelligence")
+        issues = build_issues(_state(items, abbreviations_section_found=True))
+        assert "Abbreviation not defined at first use" not in _titles(issues)
+
+    def test_ignored_first_occurrence_does_not_count_as_first_use(self):
         items = [
-            _item(abbr="AI", occurrence_number=1),
-            _item(abbr="LLM", occurrence_number=1),
-            _item(abbr="AI", occurrence_number=2),
+            _item(occurrence_number=1, line_start=5, line_end=5, ignored=True,
+                  ignored_reason="heading", inline_definition="Artificial Intelligence"),
+            _item(occurrence_number=2, line_start=30, line_end=30),
         ]
-        result = _first_non_ignored_occurrence(items)
-        assert result == {"AI": 1, "LLM": 1}
-
-    def test_all_ignored_returns_empty(self):
-        items = [_item(abbr="AI", ignored=True, ignored_reason="exempt")]
-        assert _first_non_ignored_occurrence(items) == {}
-
-    def test_empty_list(self):
-        assert _first_non_ignored_occurrence([]) == {}
+        issues = build_issues(_state(items, abbreviations_section_found=True))
+        issue = next(i for i in issues if i.title == "Abbreviation not defined at first use")
+        assert issue.start_line == 30
 
 
-# ---------------------------------------------------------------------------
-# _first_inline_definitions
-# ---------------------------------------------------------------------------
+class TestRule3MissingFromSection:
+    def test_reported_once_per_abbreviation_not_per_occurrence(self):
+        issues = build_issues(
+            _state(_occurrences("AI", 40), abbreviations_section_found=True)
+        )
+        assert _titles(issues).count("Abbreviation missing from Abbreviations section") == 1
+
+    def test_one_issue_for_each_distinct_abbreviation(self):
+        items = _occurrences("AI", 20) + _occurrences("ML", 15) + _occurrences("NLP", 10)
+        issues = build_issues(_state(items, abbreviations_section_found=True))
+        assert _titles(issues).count("Abbreviation missing from Abbreviations section") == 3
+
+    def test_not_reported_when_listed(self):
+        items = _occurrences("AI", 5, abbreviations_section_definition="Artificial Intelligence")
+        issues = build_issues(_state(items, abbreviations_section_found=True))
+        assert "Abbreviation missing from Abbreviations section" not in _titles(issues)
+
+    def test_not_reported_when_no_section_exists(self):
+        issues = build_issues(_state(_occurrences("AI", 5)))
+        assert "Abbreviation missing from Abbreviations section" not in _titles(issues)
 
 
-class TestFirstInlineDefinitions:
-    def test_picks_first_definition(self):
+class TestRule4DefinitionMismatch:
+    def test_reported_when_inline_differs_from_section(self):
         items = [
-            _item(
-                abbr="AI",
-                inline_definition="Artificial Intelligence",
-                occurrence_number=1,
-            ),
-            _item(abbr="AI", inline_definition="", occurrence_number=2),
+            _item(inline_definition="Artificial Insemination",
+                  abbreviations_section_definition="Artificial Intelligence")
         ]
-        assert _first_inline_definitions(items) == {"AI": "Artificial Intelligence"}
+        issues = build_issues(_state(items, abbreviations_section_found=True))
+        assert "Inline definition does not match Abbreviations section" in _titles(issues)
 
-    def test_ignores_ignored_items(self):
+    def test_not_reported_for_trivial_differences(self):
         items = [
-            _item(
-                abbr="AI",
-                inline_definition="Artificial Intelligence",
-                ignored=True,
-                ignored_reason="heading",
-            ),
-            _item(
-                abbr="AI",
-                inline_definition="Artificial Intelligence",
-                occurrence_number=2,
-            ),
+            _item(inline_definition="artificial intelligence.",
+                  abbreviations_section_definition="Artificial Intelligence")
         ]
-        assert _first_inline_definitions(items) == {"AI": "Artificial Intelligence"}
+        issues = build_issues(_state(items, abbreviations_section_found=True))
+        assert "Inline definition does not match Abbreviations section" not in _titles(issues)
 
-    def test_no_definitions(self):
-        items = [_item(abbr="AI")]
-        assert _first_inline_definitions(items) == {}
-
-
-# ---------------------------------------------------------------------------
-# _no_abbreviations_section_issue
-# ---------------------------------------------------------------------------
+    def test_reported_once_per_abbreviation(self):
+        items = _occurrences("AI", 10, inline_definition="Artificial Insemination",
+                             abbreviations_section_definition="Artificial Intelligence")
+        issues = build_issues(_state(items, abbreviations_section_found=True))
+        assert _titles(issues).count("Inline definition does not match Abbreviations section") == 1
 
 
-class TestNoAbbreviationsSectionIssue:
-    def test_creates_medium_severity_issue(self):
-        issue = _no_abbreviations_section_issue()
-        assert issue.severity == SeverityEnum.MEDIUM
-        assert "No Abbreviations section found" in issue.title
+class TestRule5Ambiguous:
+    def test_reported_when_a_later_definition_conflicts(self):
+        items = [
+            _item(inline_definition="Artificial Intelligence", occurrence_number=1,
+                  line_start=10, line_end=10,
+                  abbreviations_section_definition="Artificial Intelligence"),
+            _item(inline_definition="Analogue Input", occurrence_number=2,
+                  line_start=80, line_end=80,
+                  abbreviations_section_definition="Artificial Intelligence"),
+        ]
+        issues = build_issues(_state(items, abbreviations_section_found=True))
+        ambiguous = [i for i in issues if i.title == "Ambiguous abbreviation"]
+        assert len(ambiguous) == 1
+        assert ambiguous[0].start_line == 80
 
-
-# ---------------------------------------------------------------------------
-# _ignored_issue
-# ---------------------------------------------------------------------------
-
-
-class TestIgnoredIssue:
-    def test_creates_none_severity(self):
-        item = _item(abbr="Mr.", ignored=True, ignored_reason="Personal title")
-        issue = _ignored_issue(item)
-        assert issue.severity == SeverityEnum.NONE
-        assert '"Mr." ignored' in issue.title
-        assert "Personal title" in issue.description
-
-    def test_default_reason_when_none(self):
-        item = _item(abbr="U.S.", ignored=True)
-        issue = _ignored_issue(item)
-        assert "Excluded from compliance checks." in issue.description
-
-
-# ---------------------------------------------------------------------------
-# _section_coverage_issues
-# ---------------------------------------------------------------------------
-
-
-class TestSectionCoverageIssues:
-    def test_no_issues_when_section_not_found(self):
-        item = _item(abbr="AI")
-        assert (
-            _section_coverage_issues(item, abbreviations_section_found=False) == []
-        )
-
-    def test_missing_from_section(self):
-        item = _item(abbr="DDoS", abbreviations_section_definition=None)
-        issues = _section_coverage_issues(item, abbreviations_section_found=True)
-        assert len(issues) == 1
-        assert issues[0].severity == SeverityEnum.MEDIUM
-        assert "missing from Abbreviations section" in issues[0].title
-
-    def test_present_in_section(self):
-        item = _item(
-            abbr="AI", abbreviations_section_definition="Artificial Intelligence"
-        )
-        issues = _section_coverage_issues(item, abbreviations_section_found=True)
-        assert len(issues) == 1
-        assert issues[0].severity == SeverityEnum.NONE
-        assert "defined in Abbreviations section" in issues[0].title
-
-
-# ---------------------------------------------------------------------------
-# _inline_definition_issues
-# ---------------------------------------------------------------------------
-
-
-class TestInlineDefinitionIssues:
-    def test_subsequent_occurrence_info_only(self):
-        first_non_ignored = {"AI": 1}
-        item = _item(abbr="AI", occurrence_number=2)
-        issues = _inline_definition_issues(item, first_non_ignored)
-        assert len(issues) == 1
-        assert issues[0].severity == SeverityEnum.NONE
-        assert "occurrence #2" in issues[0].title
-
-    def test_first_use_missing_definition(self):
-        first_non_ignored = {"AI": 1}
-        item = _item(abbr="AI", occurrence_number=1, inline_definition="")
-        issues = _inline_definition_issues(item, first_non_ignored)
-        assert len(issues) == 1
-        assert issues[0].severity == SeverityEnum.MEDIUM
-        assert "not defined at first use" in issues[0].title
-
-    def test_first_use_definition_matches_section(self):
-        first_non_ignored = {"AI": 1}
-        item = _item(
-            abbr="AI",
-            occurrence_number=1,
-            inline_definition="Artificial Intelligence",
-            abbreviations_section_definition="Artificial Intelligence",
-        )
-        issues = _inline_definition_issues(item, first_non_ignored)
-        assert len(issues) == 1
-        assert issues[0].severity == SeverityEnum.NONE
-        assert "correctly defined at first use" in issues[0].title
-
-    def test_first_use_definition_mismatches_section(self):
-        first_non_ignored = {"AI": 1}
-        item = _item(
-            abbr="AI",
-            occurrence_number=1,
-            inline_definition="Advanced Imaging",
-            abbreviations_section_definition="Artificial Intelligence",
-        )
-        issues = _inline_definition_issues(item, first_non_ignored)
-        assert len(issues) == 1
-        assert issues[0].severity == SeverityEnum.MEDIUM
-        assert "does not match" in issues[0].title
-
-    def test_first_use_defined_no_section(self):
-        first_non_ignored = {"AI": 1}
-        item = _item(
-            abbr="AI",
-            occurrence_number=1,
-            inline_definition="Artificial Intelligence",
-            abbreviations_section_definition=None,
-        )
-        issues = _inline_definition_issues(item, first_non_ignored)
-        assert len(issues) == 1
-        assert issues[0].severity == SeverityEnum.NONE
-        assert "correctly defined" in issues[0].title
-
-
-# ---------------------------------------------------------------------------
-# _ambiguity_issues
-# ---------------------------------------------------------------------------
-
-
-class TestAmbiguityIssues:
-    def test_no_ambiguity_when_definitions_match(self):
-        first_definition = {"AI": "Artificial Intelligence"}
-        item = _item(abbr="AI", inline_definition="Artificial Intelligence")
-        assert _ambiguity_issues(item, first_definition) == []
-
-    def test_ambiguity_when_definitions_differ(self):
-        first_definition = {"RAF": "Royal Air Force"}
-        item = _item(
-            abbr="RAF", inline_definition="Red Army Faction", occurrence_number=2
-        )
-        issues = _ambiguity_issues(item, first_definition)
-        assert len(issues) == 1
-        assert issues[0].severity == SeverityEnum.MEDIUM
-        assert "Ambiguous abbreviation" in issues[0].title
-
-    def test_no_ambiguity_without_prior_definition(self):
-        first_definition: dict[str, str] = {}
-        item = _item(abbr="AI", inline_definition="Artificial Intelligence")
-        assert _ambiguity_issues(item, first_definition) == []
-
-    def test_no_ambiguity_when_no_inline_definition(self):
-        first_definition = {"AI": "Artificial Intelligence"}
-        item = _item(abbr="AI", inline_definition="")
-        assert _ambiguity_issues(item, first_definition) == []
-
-
-# ---------------------------------------------------------------------------
-# build_issues (integration)
-# ---------------------------------------------------------------------------
-
-
-class TestBuildIssues:
-    def test_empty_abbreviations_returns_empty(self):
-        state = _state(abbreviations=[])
-        assert build_issues(state) == []
-
-    def test_no_section_found_creates_global_issue(self):
-        state = _state(
-            abbreviations=[
-                _item(abbr="AI", inline_definition="Artificial Intelligence")
+    def test_reported_once_even_with_several_conflicts(self):
+        items = [
+            _item(inline_definition="Artificial Intelligence", occurrence_number=1,
+                  line_start=10, line_end=10,
+                  abbreviations_section_definition="Artificial Intelligence"),
+            *[
+                _item(inline_definition="Analogue Input", occurrence_number=n,
+                      line_start=n * 10, line_end=n * 10,
+                      abbreviations_section_definition="Artificial Intelligence")
+                for n in range(2, 8)
             ],
-            abbreviations_section_found=False,
-        )
-        issues = build_issues(state)
-        section_issues = [i for i in issues if "No Abbreviations section" in i.title]
-        assert len(section_issues) == 1
+        ]
+        issues = build_issues(_state(items, abbreviations_section_found=True))
+        assert _titles(issues).count("Ambiguous abbreviation") == 1
 
-    def test_ignored_item_only_produces_ignored_issue(self):
-        state = _state(
-            abbreviations=[_item(abbr="Mr.", ignored=True, ignored_reason="Title")],
-            abbreviations_section_found=True,
-        )
-        issues = build_issues(state)
-        assert len(issues) == 1
-        assert issues[0].severity == SeverityEnum.NONE
-        assert "ignored" in issues[0].title
+    def test_not_reported_for_consistent_repeats(self):
+        items = _occurrences("AI", 5, inline_definition="Artificial Intelligence",
+                             abbreviations_section_definition="Artificial Intelligence")
+        issues = build_issues(_state(items, abbreviations_section_found=True))
+        assert "Ambiguous abbreviation" not in _titles(issues)
 
-    def test_all_ignored_no_section_skips_missing_section_issue(self):
-        state = _state(
-            abbreviations=[
-                _item(abbr="Mr.", ignored=True, ignored_reason="Personal title"),
-                _item(abbr="U.S.", ignored=True, ignored_reason="Exempt"),
-            ],
-            abbreviations_section_found=False,
-        )
-        issues = build_issues(state)
-        section_issues = [i for i in issues if "No Abbreviations section" in i.title]
-        assert len(section_issues) == 0
 
-    def test_compliant_abbreviation_produces_none_severity_issues(self):
-        state = _state(
-            abbreviations=[
-                _item(
-                    abbr="AI",
-                    inline_definition="Artificial Intelligence",
-                    abbreviations_section_definition="Artificial Intelligence",
-                    occurrence_number=1,
-                ),
-                _item(
-                    abbr="AI",
-                    abbreviations_section_definition="Artificial Intelligence",
-                    occurrence_number=2,
-                ),
-            ],
-            abbreviations_section_found=True,
-        )
-        issues = build_issues(state)
-        medium_issues = [i for i in issues if i.severity == SeverityEnum.MEDIUM]
-        assert len(medium_issues) == 0
+class TestVolume:
+    def test_many_occurrences_stay_proportional_to_distinct_abbreviations(self):
+        """A long document must not produce one issue per occurrence."""
+        items: List[AbbreviationItem] = []
+        for index in range(30):
+            items.extend(_occurrences(f"AB{index}", 30))
+        issues = build_issues(_state(items, abbreviations_section_found=True))
+        # 30 abbreviations x (Rule 2 + Rule 3), not 30 x 30 occurrences.
+        assert len(issues) == 60
+        assert len(items) == 900
 
-    def test_missing_inline_and_section_produces_two_medium(self):
-        state = _state(
-            abbreviations=[
-                _item(abbr="CO2", occurrence_number=1),
-            ],
-            abbreviations_section_found=True,
-        )
-        issues = build_issues(state)
-        medium_issues = [i for i in issues if i.severity == SeverityEnum.MEDIUM]
-        assert len(medium_issues) == 2
-        titles = {i.title for i in medium_issues}
-        assert "Abbreviation not defined at first use" in titles
-        assert "Abbreviation missing from Abbreviations section" in titles
 
-    def test_ambiguous_abbreviation_flagged(self):
-        state = _state(
-            abbreviations=[
-                _item(
-                    abbr="RAF", inline_definition="Royal Air Force", occurrence_number=1
-                ),
-                _item(
-                    abbr="RAF",
-                    inline_definition="Red Army Faction",
-                    occurrence_number=2,
-                ),
-            ],
-            abbreviations_section_found=False,
-        )
-        issues = build_issues(state)
-        ambiguity = [i for i in issues if "Ambiguous" in i.title]
-        assert len(ambiguity) == 1
-
-    def test_line_range_propagated_to_issues(self):
-        state = _state(
-            abbreviations=[
-                _item(
-                    abbr="AI",
-                    inline_definition="Artificial Intelligence",
-                    occurrence_number=1,
-                    line_start=5,
-                    line_end=7,
-                ),
-            ],
-            abbreviations_section_found=False,
-        )
-        issues = build_issues(state)
-        located = [i for i in issues if i.start_line is not None]
-        assert len(located) > 0
-        assert all(i.start_line == 5 and i.end_line == 7 for i in located)
+class TestEmptyState:
+    def test_no_abbreviations_yields_nothing(self):
+        assert build_issues(_state()) == []

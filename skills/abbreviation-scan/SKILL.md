@@ -28,7 +28,7 @@ At an abbreviation's **first** non-excluded occurrence, if there is **no** inlin
 **Title:** "Abbreviation not defined at first use"
 
 ### Rule 3 — Missing from the Abbreviations section
-When a dedicated Abbreviations section **exists**, every non-excluded abbreviation should be listed in it. For each occurrence of an abbreviation that is **not** listed there, report an issue.
+When a dedicated Abbreviations section **exists**, every non-excluded abbreviation should be listed in it. For each abbreviation that is **not** listed there, report **one** issue, located at its first non-excluded occurrence. Do not report it again for the abbreviation's later occurrences.
 **Title:** "Abbreviation missing from Abbreviations section"
 
 ### Rule 4 — Inline definition does not match the Abbreviations section
