@@ -3,7 +3,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Optional
 
-from pydantic import field_serializer, field_validator
+from pydantic import BaseModel, ConfigDict, field_serializer, field_validator
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, inspect
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlmodel import Enum as SQLModelEnum
@@ -161,6 +161,36 @@ def _coerce_type_to_enum(v: Any):
             return v
 
     return v
+
+
+class WorkflowRunPublic(BaseModel):
+    """A workflow run as exposed in project responses: every column of
+    ``WorkflowRun`` except ``state_json``.
+
+    Responses that embed a run also carry its hydrated ``state``, so the raw
+    JSON would only duplicate it (1.5 MB each on a fully analysed project).
+    Built from the ORM row by attribute access; the raw JSON stays available
+    through the dedicated raw-state endpoint.
+    """
+
+    model_config = ConfigDict(from_attributes=True)
+
+    # Field optionality mirrors WorkflowRun so the generated frontend type is a
+    # drop-in for the one it replaces: nullable timestamps are always present,
+    # only revision and the failure fields are optional.
+    id: uuid.UUID
+    project_id: Optional[uuid.UUID]
+    type: WorkflowRunType
+    langgraph_thread_id: str
+    status: WorkflowRunStatus
+    created_at: datetime
+    last_updated_at: datetime
+    started_at: Optional[datetime]
+    completed_at: Optional[datetime]
+    revision: int = 1
+    heartbeat_at: Optional[datetime]
+    failure_reason: Optional[WorkflowRunFailureReason] = None
+    failure_message: Optional[str] = None
 
 
 # Mark `state_json` as deferred-load by default. Payloads can be multiple MB

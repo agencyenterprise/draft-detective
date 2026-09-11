@@ -6,7 +6,7 @@ from typing import List, Optional, Type, cast
 
 from fastapi import HTTPException
 from pydantic import BaseModel
-from sqlalchemy import case, func, select, update
+from sqlalchemy import Select, case, func, select, update
 from sqlalchemy.orm import undefer
 from sqlmodel import and_, col
 
@@ -18,6 +18,7 @@ from lib.models.workflow_run import (
     TERMINAL_WORKFLOW_RUN_STATUSES,
     WorkflowRun,
     WorkflowRunFailureReason,
+    WorkflowRunPublic,
     WorkflowRunStatus,
     WorkflowRunType,
 )
@@ -53,13 +54,16 @@ class WorkflowStateStatus(StrEnum):
 
 
 class WorkflowRunDetail(BaseModel):
-    run: WorkflowRun
+    # The run without its raw state_json: `state` is the hydrated copy of the
+    # same payload, and emitting both doubled every project response. Build it
+    # from the ORM row with WorkflowRunPublic.model_validate(run).
+    run: WorkflowRunPublic
     state: WorkflowState | None
     cost: CostBreakdown | None = None
     state_status: WorkflowStateStatus = WorkflowStateStatus.OK
 
 
-async def _compute_cost_for_state(
+def _compute_cost_for_state(
     state: WorkflowState | None,
 ) -> CostBreakdown | None:
     if state is None:
@@ -68,10 +72,30 @@ async def _compute_cost_for_state(
         records = walk_state_for_usage(state)
         if not records:
             return None
-        return await compute_cost(records)
+        return compute_cost(records)
     except Exception as e:  # pragma: no cover — never let cost calc break the response
         logger.warning(f"Failed to compute workflow cost: {e}")
         return None
+
+
+async def _compute_costs_for_states(
+    states: List[WorkflowState | None],
+) -> List[CostBreakdown | None]:
+    """Cost for each state, off the event loop.
+
+    Walking a state for usage and pricing it is pure CPU, and there is a lot of
+    it: the heaviest local project takes ~130ms for a single history response.
+    Inline, that is 130ms in which the loop serves nobody else; one hop to a
+    worker thread cuts the worst stall to ~12ms and gives the loop 20-odd
+    chances to run something else in between.
+
+    The batch runs in one thread rather than one per state. This is Python
+    bytecode under the GIL, so fanning out would buy thread churn and no
+    parallelism -- the point here is yielding, not going faster.
+    """
+    return await asyncio.to_thread(
+        lambda: [_compute_cost_for_state(state) for state in states]
+    )
 
 
 async def persist_workflow_run_state(
@@ -477,11 +501,60 @@ async def get_project_workflow_runs_by_type_with_details(
     # directly — no checkpointer fan-out, and no thread-sharing band-aid needed.
     hydrated = [hydrate_workflow_run_state_with_status(run) for run in runs]
     states = [state for state, _ in hydrated]
-    costs = await asyncio.gather(*[_compute_cost_for_state(s) for s in states])
+    costs = await _compute_costs_for_states(states)
     return [
-        WorkflowRunDetail(run=run, state=state, cost=cost, state_status=status)
+        WorkflowRunDetail(
+            run=WorkflowRunPublic.model_validate(run),
+            state=state,
+            cost=cost,
+            state_status=status,
+        )
         for run, (state, status), cost in zip(runs, hydrated, costs)
     ]
+
+
+def _latest_run_per_type_stmt(
+    project_id: str, revision: int
+) -> Select[tuple[WorkflowRun]]:
+    """One row per workflow type for a project revision, ranked
+    RUNNING > PENDING > AWAITING_APPROVAL > latest terminal run."""
+    row_num = func.row_number().over(
+        partition_by=col(WorkflowRun.type),
+        order_by=[_active_status_priority(), col(WorkflowRun.created_at).desc()],
+    )
+    ranked = (
+        select(WorkflowRun, row_num.label("rn"))
+        .where(
+            and_(
+                col(WorkflowRun.project_id) == project_id,
+                col(WorkflowRun.revision) == revision,
+            )
+        )
+        .subquery()
+    )
+    return (
+        select(WorkflowRun)
+        .join(ranked, col(WorkflowRun.id) == ranked.c.id)
+        .where(and_(col(WorkflowRun.project_id) == project_id, ranked.c.rn == 1))
+    )
+
+
+async def get_project_run_summaries(
+    project_id: str, revision: int
+) -> List[WorkflowRun]:
+    """The most relevant run per workflow type for a revision, without states.
+
+    A light read for status polling: no state_json, no hydration, no cost.
+    Runs whose workflow no longer has a manifest are dropped, as in
+    get_project_workflow_runs.
+    """
+    async with get_async_db_session() as session:
+        runs = (
+            (await session.execute(_latest_run_per_type_stmt(project_id, revision)))
+            .scalars()
+            .all()
+        )
+    return [run for run in runs if is_available_workflow_type(run.type)]
 
 
 async def get_project_workflow_runs(
@@ -495,38 +568,9 @@ async def get_project_workflow_runs(
     Returns only 1 row per workflow type, using priority:
     RUNNING > PENDING > AWAITING_APPROVAL > latest terminal run.
     """
-    status_priority = _active_status_priority()
-
-    # Use ROW_NUMBER to rank runs within each type
-    row_num = func.row_number().over(
-        partition_by=col(WorkflowRun.type),
-        order_by=[status_priority, col(WorkflowRun.created_at).desc()],
-    )
-
-    # Subquery to get ranked runs filtered by revision
-    ranked_runs_subquery = (
-        select(WorkflowRun, row_num.label("rn"))
-        .where(
-            and_(
-                col(WorkflowRun.project_id) == project_id,
-                col(WorkflowRun.revision) == revision,
-            )
-        )
-        .subquery()
-    )
-
-    # Select only the top-ranked run for each type (rn = 1)
-    stmt = (
-        select(WorkflowRun)
-        .join(ranked_runs_subquery, col(WorkflowRun.id) == ranked_runs_subquery.c.id)
-        .where(
-            and_(
-                col(WorkflowRun.project_id) == project_id,
-                ranked_runs_subquery.c.rn == 1,
-            )
-        )
+    stmt = _latest_run_per_type_stmt(project_id, revision).options(
         # Load state_json in-session so read_workflow_run_state can hydrate it.
-        .options(undefer(col(WorkflowRun.state_json)))  # type: ignore[arg-type]  # SQLModel Mapped[...] is a QueryableAttribute at runtime
+        undefer(col(WorkflowRun.state_json))  # type: ignore[arg-type]  # SQLModel Mapped[...] is a QueryableAttribute at runtime
     )
 
     async with get_async_db_session() as session:
@@ -548,8 +592,13 @@ async def get_project_workflow_runs(
     hydrated = [hydrate_workflow_run_state_with_status(run) for run in visible_runs]
     states = [state for state, _ in hydrated]
 
-    costs = await asyncio.gather(*[_compute_cost_for_state(s) for s in states])
+    costs = await _compute_costs_for_states(states)
     return [
-        WorkflowRunDetail(run=run, state=state, cost=cost, state_status=status)
+        WorkflowRunDetail(
+            run=WorkflowRunPublic.model_validate(run),
+            state=state,
+            cost=cost,
+            state_status=status,
+        )
         for run, (state, status), cost in zip(visible_runs, hydrated, costs)
     ]

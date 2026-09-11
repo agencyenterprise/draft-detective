@@ -53,10 +53,15 @@ export function AssessmentRail({
   readOnly,
 }: AssessmentRailProps) {
   const { isWorkflowTypeVisible } = useWorkflowTypes();
-  const [internalOpen, setInternalOpen] = useState(false);
 
   const visible = workflowDetails.filter((detail) => isWorkflowTypeVisible(detail.run.type));
   const internal = workflowDetails.filter((detail) => !isWorkflowTypeVisible(detail.run.type));
+
+  // Open from the start when the selection is one of these: a step reached by
+  // link must not sit hidden inside a folded section.
+  const [internalOpen, setInternalOpen] = useState(() =>
+    internal.some((detail) => detail.run.type === selectedWorkflowType),
+  );
 
   return (
     <div className="flex h-full flex-col">

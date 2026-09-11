@@ -1,6 +1,5 @@
 from typing import TYPE_CHECKING, List, Optional
 
-from lib.workflows.document_processing.state import DocumentProcessingState
 from lib.workflows.models import WorkflowRunType
 
 if TYPE_CHECKING:
@@ -18,25 +17,3 @@ def get_state_by_type(
         if state.type == type:
             return state
     return None
-
-
-def get_main_file_id(all_states: List["WorkflowState"]) -> str:
-    """
-    Get the ID of the main file from a list of states.
-    """
-
-    for state in all_states:
-        if isinstance(state, DocumentProcessingState):
-            return state.file.file_id
-    raise ValueError("No main file found in states")
-
-
-def get_supporting_file_ids(all_states: List["WorkflowState"]) -> List[str]:
-    """
-    Get the IDs of the supporting files from a list of states.
-    """
-
-    for state in all_states:
-        if isinstance(state, DocumentProcessingState):
-            return [file.file_id for file in state.supporting_files or []]
-    raise ValueError("No supporting files found in states")

@@ -1,5 +1,6 @@
 """Unit tests for MCP tool functions with mocked service dependencies."""
 
+import asyncio
 import json
 from datetime import timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -37,7 +38,12 @@ from lib.api.mcp.tools.revisions import (  # noqa: E402
 from lib.api.mcp.tools.uploads import (  # noqa: E402
     get_tus_upload_credentials,
 )
-from lib.api.mcp.tools.workflows import run_workflow  # noqa: E402
+from lib.api.mcp.tools.workflows import (  # noqa: E402
+    _run_with_progress,
+    run_workflow,
+)
+from lib.models.file import FileRole  # noqa: E402
+from lib.models.workflow_run import WorkflowRunStatus, WorkflowRunType  # noqa: E402
 
 _mcp_auth_mod.create_mcp_auth = _orig
 
@@ -46,6 +52,13 @@ def _make_token(email: str = "alice@example.com", name: str = "Alice") -> MagicM
     token = MagicMock()
     token.claims = {"email": email, "name": name}
     return token
+
+
+def _make_project(project_id: str = "p1", revision: int = 1) -> MagicMock:
+    project = MagicMock()
+    project.id = project_id
+    project.current_revision = revision
+    return project
 
 
 def _make_user(email: str = "alice@example.com", name: str = "Alice") -> MagicMock:
@@ -340,6 +353,7 @@ async def test_run_workflow_rejects_invalid_type():
             await run_workflow(
                 project_id="p1",
                 workflow_types=["nonexistent"],
+                ctx=AsyncMock(),
                 token=_make_token(),
             )
 
@@ -352,6 +366,10 @@ async def test_run_workflow_delegates_to_blocking_runner():
     with (
         patch("lib.api.mcp.helpers.resolve_user", new=AsyncMock(return_value=user)),
         patch(
+            "lib.api.mcp.tools.workflows.get_project_access",
+            new=AsyncMock(return_value=(_make_project(), MagicMock())),
+        ),
+        patch(
             "lib.api.mcp.tools.workflows.run_multiple_workflows_blocking", new=AsyncMock()
         ) as mock_run,
         patch(
@@ -362,6 +380,7 @@ async def test_run_workflow_delegates_to_blocking_runner():
         result = await run_workflow(
             project_id="p1",
             workflow_types=["document_processing"],
+            ctx=AsyncMock(),
             token=_make_token(),
         )
 
@@ -377,6 +396,10 @@ async def test_run_workflow_passes_approve_human_steps_to_runner():
     with (
         patch("lib.api.mcp.helpers.resolve_user", new=AsyncMock(return_value=user)),
         patch(
+            "lib.api.mcp.tools.workflows.get_project_access",
+            new=AsyncMock(return_value=(_make_project(), MagicMock())),
+        ),
+        patch(
             "lib.api.mcp.tools.workflows.run_multiple_workflows_blocking", new=AsyncMock()
         ) as mock_run,
         patch(
@@ -388,6 +411,7 @@ async def test_run_workflow_passes_approve_human_steps_to_runner():
             project_id="p1",
             workflow_types=["document_processing"],
             approve_human_steps=True,
+            ctx=AsyncMock(),
             token=_make_token(),
         )
 
@@ -410,6 +434,10 @@ async def test_run_workflow_returns_human_approval_required_payload():
     with (
         patch("lib.api.mcp.helpers.resolve_user", new=AsyncMock(return_value=user)),
         patch(
+            "lib.api.mcp.tools.workflows.get_project_access",
+            new=AsyncMock(return_value=(_make_project(), MagicMock())),
+        ),
+        patch(
             "lib.api.mcp.tools.workflows.run_multiple_workflows_blocking",
             new=AsyncMock(side_effect=err),
         ),
@@ -421,6 +449,7 @@ async def test_run_workflow_returns_human_approval_required_payload():
         result = await run_workflow(
             project_id="p1",
             workflow_types=["claim_reference_validation_v2"],
+            ctx=AsyncMock(),
             token=_make_token(),
         )
 
@@ -432,7 +461,12 @@ async def test_run_workflow_returns_human_approval_required_payload():
         WorkflowRunType.CLAIM_REFERENCE_VALIDATION_V2.value
     ]
     assert data["pending_web_search"] == []
+    assert data["retry_workflow_types"] == [
+        WorkflowRunType.CLAIM_REFERENCE_VALIDATION_V2.value
+    ]
     assert "approve_human_steps=true" in data["message"]
+    assert "workflow_types=['claim_reference_validation_v2']" in data["message"]
+    assert "same arguments" not in data["message"]
     mock_details.assert_not_awaited()
 
 
@@ -443,6 +477,10 @@ async def test_run_workflow_passes_approve_web_search_to_runner():
 
     with (
         patch("lib.api.mcp.helpers.resolve_user", new=AsyncMock(return_value=user)),
+        patch(
+            "lib.api.mcp.tools.workflows.get_project_access",
+            new=AsyncMock(return_value=(_make_project(), MagicMock())),
+        ),
         patch(
             "lib.api.mcp.tools.workflows.run_multiple_workflows_blocking", new=AsyncMock()
         ) as mock_run,
@@ -455,6 +493,7 @@ async def test_run_workflow_passes_approve_web_search_to_runner():
             project_id="p1",
             workflow_types=["reference_validation_v2"],
             approve_web_search=True,
+            ctx=AsyncMock(),
             token=_make_token(),
         )
 
@@ -477,6 +516,10 @@ async def test_run_workflow_returns_web_search_required_payload():
     with (
         patch("lib.api.mcp.helpers.resolve_user", new=AsyncMock(return_value=user)),
         patch(
+            "lib.api.mcp.tools.workflows.get_project_access",
+            new=AsyncMock(return_value=(_make_project(), MagicMock())),
+        ),
+        patch(
             "lib.api.mcp.tools.workflows.run_multiple_workflows_blocking",
             new=AsyncMock(side_effect=err),
         ),
@@ -488,6 +531,7 @@ async def test_run_workflow_returns_web_search_required_payload():
         result = await run_workflow(
             project_id="p1",
             workflow_types=["reference_validation_v2"],
+            ctx=AsyncMock(),
             token=_make_token(),
         )
 
@@ -495,9 +539,103 @@ async def test_run_workflow_returns_web_search_required_payload():
     assert data["status"] == "approval_required"
     assert data["pending_human_approval"] == []
     assert data["pending_web_search"] == [WorkflowRunType.REFERENCE_VALIDATION_V2.value]
+    assert data["retry_workflow_types"] == [
+        WorkflowRunType.REFERENCE_VALIDATION_V2.value
+    ]
     assert "approve_web_search=true" in data["message"]
     assert "approve_human_steps=true" not in data["message"]
     mock_details.assert_not_awaited()
+
+
+def test_gate_payload_retry_list_covers_both_gates_without_duplicates():
+    from lib.api.mcp.serialization import build_gate_required_payload
+    from lib.api.services.workflow_runner import WorkflowGateRequiredError
+    from lib.models.workflow_run import WorkflowRunType
+
+    err = WorkflowGateRequiredError(
+        project_id="p1",
+        pending_human_approval=[WorkflowRunType.CLAIM_REFERENCE_VALIDATION_V2],
+        pending_web_search=[
+            WorkflowRunType.REFERENCE_VALIDATION_V2,
+            WorkflowRunType.REFERENCE_DOWNLOADER,
+            WorkflowRunType.REFERENCE_VALIDATION_V2,
+        ],
+    )
+
+    data = build_gate_required_payload(err)
+
+    assert data["retry_workflow_types"] == [
+        "claim_reference_validation_v2",
+        "reference_validation_v2",
+        "reference_downloader",
+    ]
+    assert "approve_human_steps=true and approve_web_search=true" in data["message"]
+    assert "Do NOT resend the workflow types that completed" in data["message"]
+
+
+def test_gate_payload_when_nothing_started_retries_the_original_request():
+    from lib.api.mcp.serialization import build_gate_required_payload
+    from lib.api.services.workflow_runner import WorkflowGateRequiredError
+    from lib.models.workflow_run import WorkflowRunType
+
+    requested = [
+        WorkflowRunType.ABBREVIATION_SCAN_V2,
+        WorkflowRunType.REFERENCE_VALIDATION_V2,
+        WorkflowRunType.CLAIM_REFERENCE_VALIDATION_V2,
+    ]
+    err = WorkflowGateRequiredError(
+        project_id="p1",
+        pending_human_approval=[WorkflowRunType.CLAIM_REFERENCE_VALIDATION_V2],
+        pending_web_search=[WorkflowRunType.REFERENCE_VALIDATION_V2],
+        nothing_started=True,
+        # A client may repeat a type; the retry list is a normalized copy.
+        retry_workflow_types=requested + [WorkflowRunType.ABBREVIATION_SCAN_V2],
+    )
+
+    data = build_gate_required_payload(err)
+
+    assert data["retry_workflow_types"] == [w.value for w in requested]
+    assert data["message"].startswith("No workflow has been started yet")
+    assert "Human approval will also be required" in data["message"]
+    assert "approve_human_steps=true and approve_web_search=true" in data["message"]
+    assert "Do NOT resend" not in data["message"]
+    assert data["completed_workflows"] == []
+    assert data["unsuccessful_workflows"] == {}
+
+
+def test_gate_payload_reports_completed_and_failed_ungated_workflows():
+    """Mid-flight, the message must reflect the run records: a failed ungated
+    run is named as such, never folded into 'already completed'."""
+    from lib.api.mcp.serialization import build_gate_required_payload
+    from lib.api.services.workflow_runner import WorkflowGateRequiredError
+    from lib.models.workflow_run import WorkflowRunStatus, WorkflowRunType
+
+    err = WorkflowGateRequiredError(
+        project_id="p1",
+        pending_human_approval=[WorkflowRunType.CLAIM_REFERENCE_VALIDATION_V2],
+        pending_web_search=[],
+        completed_workflows=[
+            WorkflowRunType.DOCUMENT_PROCESSING,
+            WorkflowRunType.ABBREVIATION_SCAN_V2,
+        ],
+        unsuccessful_workflows={
+            WorkflowRunType.REFERENCE_EXTRACTION: WorkflowRunStatus.FAILED
+        },
+    )
+
+    data = build_gate_required_payload(err)
+
+    assert data["completed_workflows"] == [
+        "document_processing",
+        "abbreviation_scan_v2",
+    ]
+    assert data["unsuccessful_workflows"] == {"reference_extraction": "failed"}
+    assert (
+        "Completed: ['document_processing', 'abbreviation_scan_v2']" in data["message"]
+    )
+    assert "Did NOT complete: {'reference_extraction': 'failed'}" in data["message"]
+    assert "already run to completion" not in data["message"]
+    assert "Do NOT resend the workflow types that completed" in data["message"]
 
 
 @pytest.mark.asyncio
@@ -515,8 +653,93 @@ async def test_run_workflow_raises_when_no_api_key():
             await run_workflow(
                 project_id="p1",
                 workflow_types=["document_processing"],
+                ctx=AsyncMock(),
                 token=_make_token(),
             )
+
+
+# --- run_workflow: progress ---
+
+
+def _run(run_type: str, status: str) -> MagicMock:
+    run = MagicMock()
+    run.id = uuid4()
+    # Mirror the DB: WorkflowRun.type is a String column and comes back as a
+    # plain str, status is a Postgres enum and comes back as the enum.
+    run.type = WorkflowRunType(run_type).value
+    run.status = WorkflowRunStatus(status)
+    run.started_at = None
+    run.completed_at = None
+    run.failure_reason = None
+    run.failure_message = None
+    return run
+
+
+@pytest.mark.asyncio
+async def test_run_workflow_reports_progress_while_the_batch_runs():
+    """A blocking call must not stay silent: clients abort idle remote calls,
+    and a progress notification resets that clock."""
+    user = _make_user()
+    ctx = AsyncMock()
+
+    async def slow_batch(*args, **kwargs):
+        await asyncio.sleep(0.05)
+
+    with (
+        patch("lib.api.mcp.helpers.resolve_user", new=AsyncMock(return_value=user)),
+        patch(
+            "lib.api.mcp.tools.workflows.get_project_access",
+            new=AsyncMock(return_value=(_make_project(), MagicMock())),
+        ),
+        patch(
+            "lib.api.mcp.tools.workflows.run_multiple_workflows_blocking",
+            new=AsyncMock(side_effect=slow_batch),
+        ),
+        patch("lib.api.mcp.tools.workflows.PROGRESS_INTERVAL_SECONDS", 0.01),
+        patch(
+            "lib.api.mcp.tools.workflows.get_project_run_summaries",
+            new=AsyncMock(
+                return_value=[
+                    _run("document_processing", "completed"),
+                    _run("abbreviation_scan_v2", "running"),
+                ]
+            ),
+        ),
+        patch(
+            "lib.api.mcp.serialization.get_project_details_json",
+            new=AsyncMock(return_value=json.dumps({"id": "p1"})),
+        ),
+    ):
+        await run_workflow(
+            project_id="p1",
+            workflow_types=["abbreviation_scan_v2"],
+            ctx=ctx,
+            token=_make_token(),
+        )
+
+    assert ctx.report_progress.await_count >= 1
+    kwargs = ctx.report_progress.await_args.kwargs
+    assert kwargs["progress"] == 1 and kwargs["total"] == 2
+    assert "abbreviation_scan_v2" in kwargs["message"]
+
+
+@pytest.mark.asyncio
+async def test_run_workflow_cancellation_cancels_the_batch():
+    """asyncio.wait does not propagate cancellation to the task it waits on.
+    When the client abandons the call, the batch must be cancelled too, or it
+    keeps making paid model calls with nobody listening."""
+
+    async def never_finishes():
+        await asyncio.sleep(3600)
+
+    runner = asyncio.ensure_future(never_finishes())
+    wrapper = asyncio.ensure_future(_run_with_progress(AsyncMock(), "p1", 1, runner))
+    await asyncio.sleep(0)  # let the wrapper start waiting
+    wrapper.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await wrapper
+
+    assert runner.cancelled()
 
 
 # --- list_projects ---
@@ -669,7 +892,7 @@ async def test_list_project_files_returns_files_with_reference():
     file1.file_name = "paper.pdf"
     file1.file_size = 12345
     file1.file_type = "application/pdf"
-    file1.role = "support"
+    file1.role = FileRole.SUPPORT
     file1.revision = None
 
     project.current_revision = 1

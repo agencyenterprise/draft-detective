@@ -25,11 +25,6 @@ class DocumentProcessingManifest(
     description = "Convert documents to markdown"
     needs_web_search = False
     is_internal = True
-    optional_dependencies = [
-        # This is a hack to make doc processing wait for reference downloader to complete, so we can process the files
-        # that were downloaded by reference downloader
-        WorkflowRunType.REFERENCE_DOWNLOADER,
-    ]
     always_run = True  # Always run document processing to ensure new files are processed. The workflow processes only new files in subsequent runs, reusing cached results from previous runs.
 
     def get_state_type(self) -> Type[DocumentProcessingState]:

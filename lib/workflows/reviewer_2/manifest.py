@@ -6,7 +6,7 @@ from lib.workflows.manifest import WorkflowManifest
 from lib.workflows.models import DocumentIssue, WorkflowRunType
 from lib.workflows.reviewer_2.graph import build_reviewer_2_graph
 from lib.workflows.reviewer_2.state import Reviewer2Config, Reviewer2State
-from lib.workflows.util import get_main_file_id
+from lib.services.files import get_main_file_id
 from lib.workflows.workflow_types import WorkflowState
 
 
@@ -38,7 +38,7 @@ class Reviewer2Manifest(WorkflowManifest[Reviewer2State, Reviewer2Config]):
         return Reviewer2State(
             type=WorkflowRunType.REVIEWER_2,
             config=config,
-            file_id=get_main_file_id(existing_states),
+            file_id=await get_main_file_id(config.project_id, revision),
         )
 
     def convert_state_to_issues(
