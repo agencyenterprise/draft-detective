@@ -6,6 +6,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v1.0.14] - 2026-09-12
+
+### Added
+- Added occurrence reporting support for abbreviation scanning via a new occurrence reporting component.
+- Added new tests for occurrence reporting, including recording, deduplication, validation rules, batch limits, and collector isolation.
+
+### Changed
+- Updated the abbreviation checker agent guidance to read documents in 200-line chunks and to record occurrences through a tool while reading.
+- Changed abbreviation scan output so the abbreviation catalogue no longer travels through the terminal response.
+- Reworked abbreviation scan issue generation so rules report at most once per abbreviation and removed severity=NONE emitters.
+- Updated the abbreviation scan skill documentation to reflect one issue per abbreviation at its first non-excluded occurrence.
+- Rewrote abbreviation scan issue tests to exercise issue building at a higher level and to include volume and ignored-first-occurrence checks.
+
+### Fixed
+- Fixed abbreviation scanning silently truncating on long documents by paginating reads.
+- Fixed abbreviation scanning reporting too many issues by collapsing reporting to at most one issue per abbreviation.
+
+
 ## [v1.0.13] - 2026-09-11
 
 ### Added
