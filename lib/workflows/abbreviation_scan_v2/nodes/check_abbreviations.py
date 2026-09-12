@@ -22,14 +22,23 @@ async def check_abbreviations_node(
 ) -> dict:
     agent = AbbreviationCheckerAgent(runtime.context)
 
-    output, messages = await agent.ainvoke({})
+    # The catalogue comes back from the `record_abbreviations` tool rather than
+    # the terminal response, so a long document's occurrences are not capped by
+    # what one structured response can carry.
+    output, abbreviations, messages = await agent.ainvoke({})
 
-    abbreviations: List[AbbreviationItem] = output.abbreviations
+    distinct: List[str] = sorted({item.abbr for item in abbreviations})
 
     logger.info(
-        f"[AbbreviationScanV2] Found {len(abbreviations)} abbreviation occurrences, "
+        f"[AbbreviationScanV2] Recorded {len(abbreviations)} abbreviation occurrences "
+        f"across {len(distinct)} distinct abbreviations, "
         f"abbreviations_section_found={output.abbreviations_section_found}"
     )
+    if not abbreviations:
+        logger.warning(
+            "[AbbreviationScanV2] The agent recorded no occurrences through "
+            "record_abbreviations; no issues will be reported for this run."
+        )
 
     return {
         "abbreviations": abbreviations,

@@ -58,11 +58,14 @@ class AbbreviationItem(BaseModel):
 
 
 class AbbreviationCheckOutput(BaseModel):
-    """Structured response returned by the AbbreviationCheckerAgent."""
+    """Terminal response from the AbbreviationCheckerAgent.
 
-    abbreviations: List[AbbreviationItem] = Field(
-        description="All abbreviation occurrences found in the document."
-    )
+    Deliberately small. The occurrence catalogue arrives through the
+    ``record_abbreviations`` tool instead of this response: on a long document
+    it runs to hundreds of entries, and a single structured response cannot
+    carry that many without the agent silently truncating it.
+    """
+
     abbreviations_section_found: bool = Field(
         description="Whether an Abbreviations (or equivalent) section was found in the document."
     )
