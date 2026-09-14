@@ -6,6 +6,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v1.0.15] - 2026-09-14
+
+### Added
+- Added Codex plugin support by introducing a Codex plugin manifest so the existing 23 review skills can be packaged for Codex with display metadata and starter prompts.
+
+### Changed
+- Documented support for both Claude and Codex clients, including the shared package layout and Codex distribution guidance.
+- Asked for web-search consent up front and ran the blocking batch concurrently.
+- Added progress notifications on `run_workflow` and dropped duplicated state from project payloads.
+- Updated workflow-cost pricing to use `genai-prices` instead of the Langfuse catalog.
+- Bumped Next from 15.5.21 to 15.5.24 in `/frontend`.
+
+### Fixed
+- Kept the rail's state when selecting an assessment.
+- Read file ids from the file table and fixed MCP role serialization.
+- Recorded abbreviation-scan occurrences via tool and collapsed issues per abbreviation.
+
+
 ## [v1.0.14] - 2026-09-12
 
 ### Added
