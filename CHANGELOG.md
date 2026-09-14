@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v1.0.16] - 2026-09-14
+
+### Added
+- Added a Codex-specific marketplace catalog to allow Codex to discover and install the Draft Detective plugin.
+
+### Changed
+- Updated plugin packaging and documentation to include the Codex catalog, installation guidance using the repository’s default branch, and refresh commands for existing registrations.
+
+### Fixed
+- Fixed Codex installation failing with `plugin draft-detective was not found in marketplace draft-detective` by adding a Codex-specific marketplace catalog.
+
+
 ## [v1.0.15] - 2026-09-14
 
 ### Added
