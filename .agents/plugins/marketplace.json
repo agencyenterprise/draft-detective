@@ -1,0 +1,20 @@
+{
+  "name": "draft-detective",
+  "interface": {
+    "displayName": "Draft Detective"
+  },
+  "plugins": [
+    {
+      "name": "draft-detective",
+      "source": {
+        "source": "local",
+        "path": "./"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

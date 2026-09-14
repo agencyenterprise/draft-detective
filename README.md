@@ -29,6 +29,9 @@ The repository also includes a Codex compatibility manifest at [`.codex-plugin/p
 
 ```text
 draft-detective/
+├── .agents/
+│   └── plugins/
+│       └── marketplace.json
 ├── .claude-plugin/
 │   ├── plugin.json
 │   └── marketplace.json
@@ -38,7 +41,23 @@ draft-detective/
     └── <skill-name>/SKILL.md
 ```
 
-For Codex distribution, package `.codex-plugin/` and the complete `skills/` directory together at the plugin root; follow OpenAI's [skills-only plugin submission guide](https://developers.openai.com/plugins/guides/submit-claude-plugin). Claude marketplace registration is separate from OpenAI registration. Keep the identity, version, and shared metadata in both plugin manifests in sync when releasing.
+Install in Codex using the catalog at [`.agents/plugins/marketplace.json`](.agents/plugins/marketplace.json):
+
+```bash
+codex plugin marketplace add agencyenterprise/draft-detective
+codex plugin add draft-detective@draft-detective
+```
+
+The Codex catalog points to the repository root (`./`), relative to the marketplace root, so the plugin comes from the same checkout and branch as the catalog. Claude uses its own `.claude-plugin/marketplace.json` catalog. Start a new Codex thread after installation.
+
+If the marketplace was already registered before the Codex catalog was added, refresh it before retrying installation:
+
+```bash
+codex plugin marketplace upgrade draft-detective
+codex plugin add draft-detective@draft-detective
+```
+
+For OpenAI directory submission, package `.codex-plugin/` and the complete `skills/` directory together at the plugin root; follow OpenAI's [skills-only plugin submission guide](https://developers.openai.com/plugins/guides/submit-claude-plugin). Keep the identity, version, and shared metadata in both plugin manifests in sync when releasing.
 
 Then invoke a check in plain language (e.g. _"validate the references in this document with Draft Detective"_), or ask _"what can Draft Detective check?"_ to see the full menu.
 
