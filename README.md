@@ -14,9 +14,9 @@ The main goal of Draft Detective is to assist and streamline the academic peer r
 
 Draft Detective exposes the same review capabilities through three different surfaces. Pick whichever fits your workflow.
 
-### 1. Claude Code plugin (skills)
+### 1. Claude Code and Codex plugin (skills)
 
-Each review is packaged as a self-contained [Claude Code](https://docs.claude.com/en/docs/claude-code) skill under [`skills/`](skills/), distributed as a plugin. The skills run the checks **directly inside your Claude Code session** — no running backend required — driving Claude through each review's procedure.
+Each review is packaged as a self-contained skill under [`skills/`](skills/), distributed as a plugin for [Claude Code](https://docs.claude.com/en/docs/claude-code) and [Codex](https://developers.openai.com/plugins/build/plugins). The skills run the checks **directly inside your assistant session** — no running backend required — guiding the assistant through each review's procedure.
 
 Install the plugin from the marketplace inside Claude Code:
 
@@ -24,6 +24,21 @@ Install the plugin from the marketplace inside Claude Code:
 /plugin marketplace add agencyenterprise/draft-detective
 /plugin install draft-detective@draft-detective
 ```
+
+The repository also includes a Codex compatibility manifest at [`.codex-plugin/plugin.json`](.codex-plugin/plugin.json), with display metadata, starter prompts, and an explicit path to the shared skills. Both clients use the same skill files:
+
+```text
+draft-detective/
+├── .claude-plugin/
+│   ├── plugin.json
+│   └── marketplace.json
+├── .codex-plugin/
+│   └── plugin.json
+└── skills/
+    └── <skill-name>/SKILL.md
+```
+
+For Codex distribution, package `.codex-plugin/` and the complete `skills/` directory together at the plugin root; follow OpenAI's [skills-only plugin submission guide](https://developers.openai.com/plugins/guides/submit-claude-plugin). Claude marketplace registration is separate from OpenAI registration. Keep the identity, version, and shared metadata in both plugin manifests in sync when releasing.
 
 Then invoke a check in plain language (e.g. _"validate the references in this document with Draft Detective"_), or ask _"what can Draft Detective check?"_ to see the full menu.
 
