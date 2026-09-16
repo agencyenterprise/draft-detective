@@ -1,0 +1,255 @@
+# Eval samples for the active_voice workflow. Each record: the document to review,
+# the expected count per issue title (unlisted titles are not compared), and what a
+# correct result looks like for the model grader.
+- input: |
+    # Remote Work Pilot Evaluation
+
+    ## Methods
+
+    We surveyed 412 employees across three offices in spring 2025. Response rates were tracked weekly by the research team. Non-respondents were sent two reminders. We then interviewed 24 managers.
+
+    ## Findings
+
+    We found that hybrid staff reported higher satisfaction than fully remote staff.
+  target_title_counts:
+    Passive Voice: 1
+    Ambiguous Actor: 0
+  target_answer: 'The Methods paragraph contains two passive sentences (''Response rates were tracked
+    weekly by the research team'' and ''Non-respondents were sent two reminders''). The agent should report
+    exactly one ''Passive Voice'' issue for that paragraph, quoting both sentences. Because the document
+    speaks in the first person, both actors are clear: ''The research team tracked response rates weekly''
+    and ''We sent non-respondents two reminders''. Both should be attached as proposed edits, phrased
+    with ''we'' (not ''the authors''). The first-person sentences and the Findings paragraph must not
+    be flagged.'
+- input: |
+    # Court Staffing Review
+
+    ## Data
+
+    Case filings were obtained from the state judicial council for 2019 through 2023. Staffing rosters were provided by each district.
+
+    ## Analysis
+
+    Filings per full-time equivalent were computed for each district. We then compared each district against the caseload benchmark.
+
+    ## Results
+
+    Three districts exceeded the caseload benchmark. Two districts reduced their backlogs after adding temporary staff.
+  target_title_counts:
+    Passive Voice: 2
+    Ambiguous Actor: 0
+  target_answer: 'Two paragraphs contain reportable passive voice: the Data paragraph (''Case filings
+    were obtained...'', ''Staffing rosters were provided by each district'') and the Analysis paragraph
+    (''Filings per full-time equivalent were computed for each district''). The agent should report exactly
+    two ''Passive Voice'' issues, one per paragraph. The document uses ''we'', so the obtaining and computing
+    sentences should get edits with ''We'' as the subject, and the roster sentence should get the edit
+    ''Each district provided staffing rosters''. The Results paragraph is active and must not be flagged.'
+- input: |
+    # Statewide Tutoring Program: Evaluation Plan
+
+    ## Partners
+
+    The evaluation is a joint effort of the Center for Education Research and the State Department of Education. The department operates the program; the center designs the study.
+
+    ## Approach
+
+    The evaluation will assess implementation fidelity at 40 schools during the first year. The center will then analyze student outcomes using administrative records.
+  target_title_counts:
+    Passive Voice: 0
+    Ambiguous Actor: 1
+  target_answer: The sentence 'The evaluation will assess implementation fidelity at 40 schools during
+    the first year' has an inanimate subject in a document where two organizations share the work, so
+    the reader cannot tell whether the center or the department will assess fidelity. The agent should
+    report one 'Ambiguous Actor' issue on that sentence and ask the author to name the responsible party.
+    The next sentence names the center and must not be flagged. There is no passive voice.
+- input: |
+    # Broadband Access in Rural Counties
+
+    ## Summary
+
+    We mapped broadband availability for 58 counties. We found that 14 counties fall below the federal speed benchmark. This report recommends that the state prioritize those counties in the next grant round.
+
+    ## Method
+
+    We combined provider filings with speed-test data. Our team validated the merged dataset against county records.
+  target_title_counts:
+    Passive Voice: 0
+    Ambiguous Actor: 0
+  target_answer: The document is written in the active voice and in the first person, and 'This report
+    recommends' is a conventional inanimate subject with a clear actor. The agent should report no issues.
+- input: |
+    # Nurse Retention Study
+
+    ## Sample
+
+    Nurses were eligible if they had worked at the hospital for at least one year. Most participants were enthusiastic about the interview. The main campus is located downtown, and the term 'float pool' is known throughout the hospital.
+
+    ## Findings
+
+    We found that shift length predicted turnover intention.
+  target_title_counts:
+    Passive Voice: 0
+    Ambiguous Actor: 0
+  target_answer: '''Were eligible'', ''were enthusiastic'', ''is located'', and ''is known'' are stative
+    or adjectival constructions describing a state, not passive-voice actions. The agent should report
+    no issues.'
+- input: |
+    # Teacher Workload Survey
+
+    ## Findings
+
+    Teachers reported that they lacked planning time. Principals said that budgets constrained their staffing choices. One teacher told us, "We were never asked what we needed."
+
+    ## References
+
+    Smith, J. (2021). Planning time was cut in half after the reform. Journal of Education Policy, 12(3), 45-60.
+  target_title_counts:
+    Passive Voice: 0
+    Ambiguous Actor: 0
+  target_answer: The source qualifiers 'Teachers reported that' and 'Principals said that' are active
+    and protected. The passive inside the direct quotation and the passive in the reference-list title
+    are excluded material. The agent should report no issues.
+- input: |
+    # Wildfire Mitigation Grants
+
+    ## Background
+
+    In 2022 the grant program was expanded to cover private landowners. Eligibility rules were revised in 2023.
+
+    ## Our Assessment
+
+    We reviewed 118 awards and interviewed 30 recipients.
+  target_title_counts:
+    Passive Voice: 1
+    Ambiguous Actor: 0
+  target_answer: The Background paragraph has two passive sentences whose actor the document never names.
+    The agent should report one 'Passive Voice' issue for that paragraph and, because the actor is unknown,
+    the suggested action must ask the author to name who expanded the program and who revised the rules
+    rather than inventing an agency. The Assessment paragraph must not be flagged. No proposed edit should
+    be attached, since the actor is unknown for both sentences.
+- input: |
+    # Transit Ridership Recovery
+
+    ## Partners
+
+    The regional transit authority collects fare data; the university team analyzes it.
+
+    ## Findings
+
+    Ridership was measured monthly from 2020 to 2024. The analysis will identify which routes recovered fastest, and the transit authority will decide which routes to restore.
+  target_title_counts:
+    Passive Voice: 1
+    Ambiguous Actor: 1
+  target_answer: The Findings paragraph contains one passive sentence ('Ridership was measured monthly
+    from 2020 to 2024') and one ambiguous-actor sentence ('The analysis will identify which routes recovered
+    fastest'), since both the authority and the university team are parties and the reader cannot tell
+    who performs the analysis. The agent should report one 'Passive Voice' issue and one 'Ambiguous Actor'
+    issue. The final clause names the transit authority and must not be flagged.
+- input: |
+    # Nuclear Siting Options
+
+    ## Overview
+
+    Nuclear energy can supply stable baseload power for AI data centers but is restricted to specific sites. The scope of this review is limited to plants that are already licensed. Many rural counties are underfunded for grid upgrades. The main substation is located twelve miles from the site.
+
+    ## Method
+
+    We compared each site against the 2030 capacity target.
+  target_title_counts:
+    Passive Voice: 0
+    Ambiguous Actor: 0
+  target_answer: '''Is restricted to'', ''is limited to'', ''are underfunded'', and ''is located'' describe
+    states, not actions done by someone. None is passive voice under the skill''s test, so the agent should
+    report no issues.'
+- input: |
+    # Grid Interconnection Barriers
+
+    ## Findings
+
+    The report delineates 66 constraints and offers an analysis of barriers that can be addressed in the 2030 timeline. Co-located generation choices must be tailored to the location, as no single solution is universally applicable. Additional capacity could be brought online by 2030 under several scenarios. The evidence depends on the type of load being measured.
+  target_title_counts:
+    Passive Voice: 0
+    Ambiguous Actor: 0
+  target_answer: Every passive here has only a generic implied actor ('whoever addresses, tailors, brings
+    online, measures'). Nobody responsible is hidden, so the skill says not to report them. The agent
+    should report no issues.
+- input: |
+    # Series Context
+
+    ## Prior Work
+
+    Through logic models and structured stakeholder consultations, the previous reports in the series have identified not only what needs to change to meet the coming electricity demand, but also how and by whom these changes might best be implemented.
+  target_title_counts:
+    Passive Voice: 0
+    Ambiguous Actor: 0
+  target_answer: The sentence's point is that the earlier reports identified who should implement the
+    changes. Asking the author to 'name who would implement the changes' would misread it. The agent should
+    report no issues.
+- input: |
+    # Telework Prevalence
+
+    ## Results
+
+    We report the share of employed persons who worked at home. A Pew Research Center survey found that 35 percent of workers whose jobs can be done from home were doing so all the time in early 2023 (Pew Research Center, 2023). One respondent told us, "We were never asked what we needed."
+  target_title_counts:
+    Passive Voice: 0
+    Ambiguous Actor: 0
+  target_answer: '''Whose jobs can be done from home'' is the cited survey''s own population definition
+    and must not be flagged or rewritten; the direct quotation is excluded material. The agent should
+    report no issues.'
+- input: |
+    # Literature Review Approach
+
+    ## Sources
+
+    We conducted a rapid literature review. Studies were identified through Google Scholar searches and through the authors' prior knowledge of the field. Study characteristics are listed in Appendix A.
+  target_title_counts:
+    Passive Voice: 1
+    Ambiguous Actor: 0
+  target_answer: 'One ''Passive Voice'' issue for the paragraph, quoting both passive sentences. The document
+    speaks in the first person, so the first rewrite must use ''we'' and ''our'' (''We identified studies
+    through Google Scholar searches and through our prior knowledge of the field''), never ''The authors
+    identified''. The second follows the signposting convention: ''Appendix A lists the study characteristics'',
+    not ''The authors list...''. Both should be attached as proposed edits.'
+- input: |
+    # Framework Development
+
+    ## Basis
+
+    The discussion is informed by a literature review and by interviews with policy and industry stakeholders. Regional breakthroughs have been enabled by large investments in compute and talent.
+  target_title_counts:
+    Passive Voice: 1
+    Ambiguous Actor: 0
+  target_answer: 'One ''Passive Voice'' issue. Both by-phrases name sources rather than people, so the
+    rewrites make the source the subject: ''A literature review and interviews with policy and industry
+    stakeholders inform the discussion'' and ''Large investments in compute and talent have enabled regional
+    breakthroughs''. The agent must not write ''We informed the discussion with a literature review''.
+    Both are determined and should be attached as edits.'
+- input: |
+    # Scope Decisions
+
+    ## Assumptions
+
+    We assume that data centers will require highly reliable power. Off-grid approaches to bridging power supply, sometimes referred to as bridge power,[[26]](#footnote-27) were not considered. We considered behind-the-meter generation where appropriate.
+  target_title_counts:
+    Passive Voice: 1
+    Ambiguous Actor: 0
+  target_answer: One 'Passive Voice' issue for 'Off-grid approaches ... were not considered', with the
+    actor clear from the first-person document. The edit must keep the footnote marker and leave the punctuation
+    correct when the phrase moves to the end of the sentence, for example 'We did not consider off-grid
+    approaches to bridging power supply, sometimes referred to as bridge power.[[26]](#footnote-27)' A
+    replacement ending in a comma before the period (',[[26]](#footnote-27).') is wrong.
+- input: |
+    # CERN as a Model
+
+    ## Background
+
+    The result of this partnership is an institution that is now the world's largest physics laboratory, jointly funded by 24 member states and serving as the premier site of particle physics research. The organization was established in 1954 as a partnership among twelve western European countries.
+  target_title_counts:
+    Passive Voice: 1
+    Ambiguous Actor: 0
+  target_answer: '''Jointly funded by 24 member states'' is a participial modifier, not a passive verb,
+    and must not be flagged or rewritten; in particular no edit may drop ''the world''s largest physics
+    laboratory''. ''Was established in 1954 as a partnership among twelve western European countries''
+    is passive with the actor stated in the sentence, so one ''Passive Voice'' issue with the edit ''Twelve
+    western European countries established the organization in 1954 as a partnership.'''
