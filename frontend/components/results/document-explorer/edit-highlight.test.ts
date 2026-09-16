@@ -167,7 +167,7 @@ describe('blocksForLineRange', () => {
   const container = element(`
     <div id="a" data-block-owner="a" data-line-start="1" data-line-end="3">first</div>
     <div id="b" data-block-owner="b" data-line-start="5" data-line-end="7">
-      second <span id="nested" data-line-start="5" data-line-end="7">item</span>
+      second <span id="nested" data-line-start="6" data-line-end="6">item</span>
     </div>
     <div id="c" data-block-owner="c" data-line-start="10" data-line-end="12">third</div>
     <div id="bad" data-block-owner="bad" data-line-start="oops" data-line-end="nope">broken</div>
@@ -175,8 +175,8 @@ describe('blocksForLineRange', () => {
 
   const ids = (start: number, end: number) => blocksForLineRange(container, start, end).map((block) => block.id);
 
-  it('selects every owner block overlapping the range', () => {
-    expect(ids(6, 11)).toEqual(['b', 'c']);
+  it('selects every block overlapping the range, narrowest first', () => {
+    expect(ids(6, 11)).toEqual(['nested', 'b', 'c']);
   });
 
   it('selects a block touching the range at its edge', () => {
@@ -187,8 +187,8 @@ describe('blocksForLineRange', () => {
     expect(ids(8, 9)).toEqual([]);
   });
 
-  it('skips nested non-owner blocks and non-finite attributes', () => {
-    expect(ids(1, 100)).toEqual(['a', 'b', 'c']);
+  it('skips non-finite attributes and keeps document order among equal spans', () => {
+    expect(ids(1, 100)).toEqual(['nested', 'a', 'b', 'c']);
   });
 });
 
@@ -211,6 +211,21 @@ describe('editRanges', () => {
     expect(ranges).toHaveLength(1);
     expect(ranges[0].toString()).toBe('The claim is unproven.');
     expect(ranges[0].startContainer.parentElement?.closest('[data-block-owner]')?.id).toBe('first');
+  });
+
+  it('prefers the item on the edit line over an identical quote earlier in the same list', () => {
+    const container = element(`
+      <ul data-block-owner="list" data-line-start="10" data-line-end="12">
+        <li id="early" data-line-start="10" data-line-end="10">See Figure 3 for the baseline.</li>
+        <li id="middle" data-line-start="11" data-line-end="11">Methods follow.</li>
+        <li id="late" data-line-start="12" data-line-end="12">See Figure 3 for the outcome.</li>
+      </ul>
+    `);
+
+    const ranges = editRanges(container, [edit({ original_text: 'See Figure 3', start_line: 12, end_line: 12 })]);
+
+    expect(ranges).toHaveLength(1);
+    expect(ranges[0].startContainer.parentElement?.id).toBe('late');
   });
 
   it('returns nothing when no block covers the edit lines', () => {

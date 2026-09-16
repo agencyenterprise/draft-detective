@@ -155,26 +155,33 @@ export function rangeInElement(block: Element, originalText: string): Range | nu
 }
 
 /**
- * The document's own blocks overlapping `[start, end]` source lines.
+ * Every block overlapping `[start, end]` source lines, tightest first.
  *
- * Owner blocks only: a list and each of its items resolve to the same lines, so
- * searching both would find the quote twice and the outer block already carries
- * the items' text.
+ * Nested blocks are included on purpose: a list or table is one owner block
+ * spanning all of its lines, and its items each carry their own line range.
+ * The backend only guarantees a quote is unique within the edit's own lines,
+ * so a search over the whole list could land on an identical phrase in an
+ * earlier item. Trying the narrowest block first keeps the match on the line
+ * the edit was anchored to; the owner block is still there as a fallback for
+ * text that sits directly in it.
  */
 export function blocksForLineRange(container: Element, start: number, end: number): HTMLElement[] {
-  const blocks = container.querySelectorAll<HTMLElement>('[data-block-owner][data-line-start][data-line-end]');
-  return Array.from(blocks).filter((block) => {
+  const blocks = container.querySelectorAll<HTMLElement>('[data-line-start][data-line-end]');
+  const overlapping: { block: HTMLElement; span: number }[] = [];
+  blocks.forEach((block) => {
     const blockStart = Number(block.getAttribute('data-line-start'));
     const blockEnd = Number(block.getAttribute('data-line-end'));
-    if (!Number.isFinite(blockStart) || !Number.isFinite(blockEnd)) return false;
-    return blockStart <= end && blockEnd >= start;
+    if (!Number.isFinite(blockStart) || !Number.isFinite(blockEnd)) return;
+    if (blockStart <= end && blockEnd >= start) overlapping.push({ block, span: blockEnd - blockStart });
   });
+  // A stable sort, so blocks with the same span keep document order.
+  return overlapping.sort((a, b) => a.span - b.span).map((entry) => entry.block);
 }
 
 /**
  * A Range for each edit whose quote could be found, in the blocks its lines
- * cover. An edit never spans a blank line, so it lives inside a single block
- * and the first block that carries the quote is the right one.
+ * cover. An edit sits on one source line, so the narrowest block carrying the
+ * quote is the right one.
  */
 export function editRanges(container: Element, edits: ProposedEdit[]): Range[] {
   const ranges: Range[] = [];

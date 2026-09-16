@@ -8,7 +8,12 @@ export function issueEdits(issue: Issue): ProposedEdit[] {
   return issue.edits;
 }
 
-/** Whether an edit removes its quote outright rather than replacing it. */
+/**
+ * Whether an edit removes its quote outright rather than replacing it.
+ *
+ * Exactly the empty string, as the backend contract defines a deletion. A
+ * whitespace-only replacement is a real replacement and is shown as one.
+ */
 export function isDeletion(edit: ProposedEdit): boolean {
-  return edit.replacement_text.trim() === '';
+  return edit.replacement_text === '';
 }
