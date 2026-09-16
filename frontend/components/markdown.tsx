@@ -112,7 +112,11 @@ export function Markdown(props: MarkdownProps) {
     <ReactMarkdown
       components={componentsByHighlight[highlight]}
       {...rest}
-      remarkPlugins={[remarkGfm, remarkMath, ...(rest.remarkPlugins || [])]}
+      // Single-dollar math is off, as in the document view: issue text and
+      // reports quote dollar amounts far more often than they carry inline
+      // TeX, and a pair of amounts would otherwise render as a formula.
+      // Math still renders with $$...$$.
+      remarkPlugins={[remarkGfm, [remarkMath, { singleDollarTextMath: false }], ...(rest.remarkPlugins || [])]}
       rehypePlugins={[rehypeMathML, ...(rest.rehypePlugins || [])]}
     />
   );
