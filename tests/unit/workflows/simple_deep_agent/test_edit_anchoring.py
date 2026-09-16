@@ -32,8 +32,21 @@ def test_normalize_whitespace_collapses_runs_and_trims():
     assert normalize_whitespace("  a \n\t b\xa0\xa0c  ") == "a b c"
 
 
-def test_document_lines_drops_terminators():
-    assert document_lines("a\nb\n") == ["a", "b"]
+def test_document_lines_splits_on_newline_only():
+    # A trailing newline yields a final empty line, exactly as the agent's file
+    # backend counts it, so line numbers agree with what the agent read.
+    assert document_lines("a\nb\n") == ["a", "b", ""]
+
+
+def test_unicode_separators_and_form_feeds_do_not_shift_line_numbers():
+    # U+2028 and \f survive DOCX conversion inside a paragraph. The agent's
+    # backend keeps them on their line, so a quote after them is still on
+    # line 3 -- not line 4 or 5 as str.splitlines would have numbered it.
+    document = "# Title\n\nFirst\u2028clause\fthen the CBT protocol.\nNext paragraph."
+    lines = document_lines(document)
+    assert len(lines) == 4
+    assert find_quote_lines(lines, 3, 3, "the CBT protocol") == [3]
+    assert find_quote_lines(lines, 4, 4, "Next paragraph") == [4]
 
 
 def test_quote_is_found_on_its_line():

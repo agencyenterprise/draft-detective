@@ -9,6 +9,7 @@ import { SEVERITY } from '@/lib/severity-style';
 import { clearEditHighlight, editRanges, setEditHighlight } from './edit-highlight';
 import { MarginLayer } from './margin-layer';
 import { issueEdits } from './proposed-edit';
+import { TableRow } from './table-row';
 import React, { Ref, createContext, useContext, useEffect, useImperativeHandle, useMemo, useRef } from 'react';
 import ReactMarkdown, { type ExtraProps } from 'react-markdown';
 import rehypeMathML from '@daiji256/rehype-mathml';
@@ -255,6 +256,7 @@ const BLOCK_COMPONENTS = {
   pre: blockFactory('pre', 'mb-3', 'max-w-full overflow-x-auto rounded bg-muted px-2 py-1'),
   table: blockFactory('table', 'mb-3', 'w-full border-collapse text-left text-[13px]', true, true),
   thead: ({ children }: React.HTMLAttributes<HTMLElement>) => <thead className="border-b">{children}</thead>,
+  tr: TableRow,
   th: ({ children }: React.HTMLAttributes<HTMLElement>) => (
     <th className="px-2 py-1.5 font-medium whitespace-nowrap">{children}</th>
   ),

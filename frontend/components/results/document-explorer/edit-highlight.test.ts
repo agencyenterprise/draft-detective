@@ -74,6 +74,19 @@ describe('stripMarkdown', () => {
       'the stressed value of snake_case_name stays',
     );
   });
+
+  it('decodes backslash escapes to the character the renderer shows', () => {
+    // MarkItDown escapes literal punctuation in DOCX prose; ReactMarkdown
+    // renders the bare character, which is what the highlight has to match.
+    expect(stripMarkdown('the foo\\_bar variable')).toBe('the foo_bar variable');
+    expect(stripMarkdown('a literal \\*star\\* here')).toBe('a literal *star* here');
+    expect(stripMarkdown('\\[not a link\\] and 10\\. items')).toBe('[not a link] and 10. items');
+    expect(stripMarkdown('C\\# and a\\|b')).toBe('C# and a|b');
+  });
+
+  it('does not treat an unescaped backslash before a letter as an escape', () => {
+    expect(stripMarkdown('path C:\\Users stays')).toBe('path C:\\Users stays');
+  });
 });
 
 describe('normalizeWhitespace', () => {

@@ -27,8 +27,15 @@ _EXCERPT_LIMIT = 400
 
 
 def document_lines(document_text: str) -> List[str]:
-    """Split a document into lines, dropping the line terminators."""
-    return document_text.splitlines()
+    """Split a document into lines the way the agent's file backend numbers them.
+
+    Only ``\n`` ends a line. ``str.splitlines`` would also break on form feeds
+    and Unicode separators such as U+2028, which survive DOCX conversion inside
+    a paragraph; the agent reads the file split on ``\n`` alone, so splitting
+    any other way here would shift every line number after such a character
+    and reject quotes that are correctly placed.
+    """
+    return document_text.split("\n")
 
 
 def normalize_whitespace(text: str) -> str:

@@ -40,8 +40,8 @@ const EDIT_HIGHLIGHT_CSS = `
  * the syntax is stripped down to the characters that reach the page.
  */
 export function stripMarkdown(text: string): string {
-  return (
-    text
+  return restoreEscaped(
+    protectEscaped(text)
       .replace(/!\[([^\]]*)\]\([^)]*\)/g, '$1')
       .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
       .replace(/`+/g, '')
@@ -54,7 +54,37 @@ export function stripMarkdown(text: string): string {
       .replace(/(^|[^A-Za-z0-9])_{1,3}/g, '$1')
       .replace(/_{1,3}($|[^A-Za-z0-9])/g, '$1')
       .replace(/^[ \t]*(?:#{1,6}|>+)[ \t]*/gm, '')
-      .replace(/^[ \t]*(?:[-+*]|\d+[.)])[ \t]+/gm, '')
+      .replace(/^[ \t]*(?:[-+*]|\d+[.)])[ \t]+/gm, ''),
+  );
+}
+
+/**
+ * Backslash-escaped punctuation, as CommonMark defines it: the renderer shows
+ * the character itself, so `foo\_bar` in the source reads `foo_bar` on the
+ * page. MarkItDown writes these escapes for any literal punctuation in DOCX
+ * prose that would otherwise be read as syntax.
+ */
+const ESCAPED_PUNCTUATION = /\\([!"#$%&'()*+,\-./:;<=>?@[\\\]^_`{|}~])/g;
+
+/** Private-use code points stand in for escaped characters while syntax is stripped. */
+const PLACEHOLDER_BASE = 0xe000;
+const PLACEHOLDER_RANGE = /[\uE000-\uE0FF]/g;
+
+/**
+ * An escaped character must survive the stripping passes as the literal it
+ * stands for, not be read as syntax: `\*` is an asterisk on the page, not an
+ * emphasis marker. Each one is swapped for a private-use placeholder first and
+ * put back as the bare character at the end.
+ */
+function protectEscaped(text: string): string {
+  return text.replace(ESCAPED_PUNCTUATION, (_, char: string) =>
+    String.fromCharCode(PLACEHOLDER_BASE + char.charCodeAt(0)),
+  );
+}
+
+function restoreEscaped(text: string): string {
+  return text.replace(PLACEHOLDER_RANGE, (placeholder) =>
+    String.fromCharCode(placeholder.charCodeAt(0) - PLACEHOLDER_BASE),
   );
 }
 

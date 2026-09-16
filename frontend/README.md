@@ -22,7 +22,9 @@ This project uses [`next/font`](https://nextjs.org/docs/app/building-your-applic
 
 ## Testing
 
-Unit tests run on [Vitest](https://vitest.dev) in a jsdom environment:
+Unit tests run on [Vitest](https://vitest.dev) in a jsdom environment. The
+test dependencies need Node 22.22 or newer (the `engines` field in
+`package.json` says so, and CI and the Docker image use Node 22):
 
 ```bash
 pnpm test        # run once
