@@ -192,6 +192,39 @@ class SeverityEnum(StrEnum):
         }[self]
 
 
+class ProposedEdit(BaseModel):
+    """A concrete, mechanical text replacement an author could apply.
+
+    Optional detail on an issue: a fix that is fully determined by the document
+    text plus the finding, expressed as one replacement of a quoted span. An
+    insertion is expressed as replacing a span with that span plus the new text,
+    and a deletion as replacing it with the empty string. A span sits on one
+    line of the markdown (one Word paragraph), so start_line equals end_line.
+    """
+
+    original_text: str = Field(
+        description=(
+            "The exact text quoted from the main document markdown that this edit "
+            "replaces. Never empty."
+        )
+    )
+    replacement_text: str = Field(
+        description=(
+            "The text that takes the place of original_text. An empty string "
+            "deletes the quoted span."
+        )
+    )
+    start_line: int = Field(
+        description="1-indexed first line of the main document markdown containing original_text",
+    )
+    end_line: int = Field(
+        description="1-indexed last line of the main document markdown containing original_text",
+    )
+    rationale: str = Field(
+        description="One short sentence explaining why this replacement resolves the issue."
+    )
+
+
 class DocumentIssue(BaseModel):
     id: str = Field(
         default="",
@@ -228,6 +261,13 @@ class DocumentIssue(BaseModel):
         description="1-indexed end line of the issue in the main document markdown",
         default=None,
     )
+    edits: List[ProposedEdit] = Field(
+        default_factory=list,
+        description=(
+            "Optional proposed edits: mechanical text replacements that resolve this "
+            "issue. Empty when no fix is fully determined by the document text."
+        ),
+    )
 
     @model_validator(mode="after")
     def generate_id(self) -> Self:
@@ -236,6 +276,8 @@ class DocumentIssue(BaseModel):
         if self.id:
             return self
 
+        # Edits are deliberately excluded: the hash identifies the issue, not
+        # its fix, so attaching or revising an edit must not mint a new issue.
         hash_input = (
             f"{self.type.value}|{self.title}|{self.description}|"
             f"{self.severity.value}|{self.chunk_indices}|"

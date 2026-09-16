@@ -404,6 +404,7 @@ export function DocumentExplorerTab({
               header={documentHeader}
               issues={highlightIssues}
               selectedLineRange={selectedLineRange}
+              activeIssueId={activeIssueId}
               onIssueSelect={handleIssueSelectFromDocument}
               margin={
                 mode === 'margin'

@@ -146,6 +146,30 @@
 }
 
 /**
+ * The exact words a selected issue proposes to change, marked in the document.
+ *
+ * Painted through the CSS Custom Highlight API rather than by wrapping the
+ * passage in a span: the document is rendered markdown, and a quote routinely
+ * crosses an element boundary (half of it inside a `strong`, the rest after
+ * it), which no single wrapper can hold. The ranges are registered under this
+ * name by the document view.
+ *
+ * Amber rather than a severity colour, and wavy-underlined: the block already
+ * carries its severity wash, so the span has to say something different —
+ * "these characters are what changes" — without competing with it.
+ */
+::highlight(proposed-edit) {
+  background-color: rgb(245 158 11 / 0.35);
+  text-decoration: underline wavy rgb(180 83 9 / 0.7);
+  text-underline-offset: 3px;
+}
+
+.dark ::highlight(proposed-edit) {
+  background-color: rgb(245 158 11 / 0.28);
+  text-decoration: underline wavy rgb(252 211 77 / 0.75);
+}
+
+/**
  * Shrinks the type scale one step for anything inside it.
  *
  * The project view runs a denser chrome than the pages some of its result

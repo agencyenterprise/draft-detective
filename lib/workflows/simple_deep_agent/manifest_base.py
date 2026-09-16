@@ -77,6 +77,10 @@ class _BaseDeepAgentManifest(
     system_prompt: ClassVar[Optional[str]] = None
 
     report_issues: ClassVar[bool] = True
+    # Opt-in: when set, the issue tool also accepts proposed edits (verbatim
+    # quote plus replacement) that the agent may attach to an issue. Off by
+    # default so workflows that only flag problems never see the extra argument.
+    propose_edits: ClassVar[bool] = False
 
     # Per-workflow reasoning effort. None keeps SimpleDeepAgent's default;
     # set it on workflows whose task warrants more deliberation.
@@ -150,6 +154,7 @@ class _BaseDeepAgentManifest(
                 system_prompt=manifest.system_prompt,
                 user_prompt=manifest.resolve_user_prompt(),
                 report_issues=manifest.report_issues,
+                propose_edits=manifest.propose_edits,
                 tools=manifest.agent_tools(),
                 reasoning_effort=manifest.reasoning_effort,
                 timeout=manifest.llm_timeout,

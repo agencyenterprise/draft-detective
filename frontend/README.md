@@ -20,6 +20,20 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Testing
+
+Unit tests run on [Vitest](https://vitest.dev) in a jsdom environment:
+
+```bash
+pnpm test        # run once
+pnpm test:watch  # re-run on change
+```
+
+Tests live next to the module they cover, as `*.test.ts` (for example
+`components/results/document-explorer/edit-highlight.test.ts`). They import
+`describe`/`it`/`expect` from `vitest` explicitly rather than relying on
+globals, and the `@/` path alias resolves as it does in the app.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:

@@ -8,6 +8,7 @@ override the system prompt when the default is not appropriate.
 from typing import Any, Callable, Literal, Optional, Sequence, Union
 
 from deepagents import create_deep_agent
+from deepagents.backends.utils import file_data_to_string
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import BaseTool
@@ -18,6 +19,7 @@ from lib.models.agent import LangChainAgent, ReasoningDict
 from lib.workflows.context import ContextSchema
 from lib.workflows.simple_deep_agent.agent_types import (
     DEEP_AGENT_RECURSION_LIMIT,
+    MAIN_DOCUMENT_PATH,
     DeepAgentRun,
 )
 from lib.workflows.simple_deep_agent.issue_reporting import (
@@ -51,6 +53,14 @@ and if you revise it, write it again in full.\
 """
 
 
+def _main_document_text(files: dict[str, Any]) -> Optional[str]:
+    """Read the document under review out of the DeepAgent backend file tree."""
+    file_data = files.get(MAIN_DOCUMENT_PATH)
+    if file_data is None:
+        return None
+    return file_data_to_string(file_data)
+
+
 class SimpleDeepAgent(LangChainAgent):
     """Deep agent that runs a single validation pass.
 
@@ -75,6 +85,7 @@ class SimpleDeepAgent(LangChainAgent):
         user_prompt: str,
         system_prompt: Optional[str] = None,
         report_issues: bool = True,
+        propose_edits: bool = False,
         tools: Optional[Sequence[Union[BaseTool, Callable, dict[str, Any]]]] = None,
         reasoning_effort: Optional[Literal["low", "medium", "high"]] = None,
         timeout: Optional[int] = None,
@@ -86,6 +97,7 @@ class SimpleDeepAgent(LangChainAgent):
             self._system_prompt += VIEW_IMAGE_PROMPT
         self._user_prompt = user_prompt
         self._report_issues = report_issues
+        self._propose_edits = propose_edits
         self._tools = tools
         self._view_images = view_images
         # Shadows the class-level `reasoning` for this instance only, so one
@@ -103,7 +115,22 @@ class SimpleDeepAgent(LangChainAgent):
         prompt_kwargs: dict,
         config: Optional[RunnableConfig] = None,
     ) -> DeepAgentRun:
-        issue_reporter = IssueReporter() if self._report_issues else None
+        # Fetched before the agent is built: the collector needs the document's
+        # text to check any proposed edit against real lines, and the same file
+        # tree is what the agent runs on.
+        files = await self.context.file_artifacts_service.get_deepagent_backend_files(
+            include_skills=True,
+        )
+        issue_reporter = (
+            IssueReporter(
+                propose_edits=self._propose_edits,
+                document_text=(
+                    _main_document_text(files) if self._propose_edits else None
+                ),
+            )
+            if self._report_issues
+            else None
+        )
         tools = list(self._tools or ())
         if self._view_images:
             tools.append(view_image)
@@ -121,9 +148,7 @@ class SimpleDeepAgent(LangChainAgent):
         # threading `context_schema` through; the runtime accepts it fine.
         result = await deep_agent.ainvoke(  # type: ignore[call-overload]
             {
-                "files": await self.context.file_artifacts_service.get_deepagent_backend_files(
-                    include_skills=True,
-                ),
+                "files": files,
                 "messages": [
                     SystemMessage(content=self._system_prompt),
                     HumanMessage(content=self._user_prompt),

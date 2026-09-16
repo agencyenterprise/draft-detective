@@ -10,7 +10,12 @@ from typing import Dict, List, Literal, Optional
 from langchain_core.messages import BaseMessage
 from pydantic import BaseModel, ConfigDict, Field
 
-from lib.workflows.models import DocumentIssue, SeverityEnum, WorkflowRunType
+from lib.workflows.models import (
+    DocumentIssue,
+    ProposedEdit,
+    SeverityEnum,
+    WorkflowRunType,
+)
 
 
 class IssueItem(BaseModel):
@@ -45,6 +50,13 @@ class IssueItem(BaseModel):
     end_line: int = Field(
         description="1-indexed end line in the document where the text relevant to this issue ends",
     )
+    edits: List[ProposedEdit] = Field(
+        default_factory=list,
+        description=(
+            "Proposed edits resolving this issue, already located in the document. "
+            "Empty unless the agent proposed one and it passed validation."
+        ),
+    )
 
 
 # --- State-facing result models -----------------------------------------
@@ -65,6 +77,9 @@ class AgentCheckResult(BaseModel):
         description="Markdown report summarising the check results",
     )
 
+
+# The document under review, as mounted on the agent's filesystem.
+MAIN_DOCUMENT_PATH = "/main.md"
 
 # Where report workflows are told to write their deliverables.
 REPORT_PATH = "/report.html"
@@ -177,6 +192,7 @@ def issues_from_agent_result(
             severity=_SEVERITY_MAP.get(issue.severity.lower(), SeverityEnum.MEDIUM),
             start_line=issue.start_line,
             end_line=issue.end_line,
+            edits=list(issue.edits),
         )
         for issue in result.issues
     ]
