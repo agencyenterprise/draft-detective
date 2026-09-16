@@ -33,8 +33,20 @@ const TOKEN_CLASSES: Record<DiffTokenKind, string | undefined> = {
   same: undefined,
   removed:
     'rounded-[2px] bg-red-100/70 text-red-700 line-through decoration-red-500/70 dark:bg-red-950/40 dark:text-red-300',
-  added: 'rounded-[2px] bg-green-100/70 text-green-700 dark:bg-green-950/40 dark:text-green-300',
+  added: 'rounded-[2px] bg-green-100/70 text-green-700 no-underline dark:bg-green-950/40 dark:text-green-300',
 };
+
+/**
+ * Changed words are `del` and `ins`, unchanged ones plain text, so assistive
+ * technology gets the same distinction the colours carry and does not read the
+ * old and new wording as one run-on sentence.
+ */
+function Token({ token }: { token: DiffToken }) {
+  const className = TOKEN_CLASSES[token.kind];
+  if (token.kind === 'removed') return <del className={className}>{token.value}</del>;
+  if (token.kind === 'added') return <ins className={className}>{token.value}</ins>;
+  return <>{token.value}</>;
+}
 
 /**
  * The quote as it stands beside the quote as proposed.
@@ -50,7 +62,7 @@ function EditText({ edit }: { edit: ProposedEdit }) {
   if (isDeletion(edit)) {
     return (
       <p className="text-[12px] leading-relaxed break-words whitespace-pre-wrap">
-        <span className={TOKEN_CLASSES.removed}>{edit.original_text}</span>
+        <del className={TOKEN_CLASSES.removed}>{edit.original_text}</del>
       </p>
     );
   }
@@ -60,9 +72,7 @@ function EditText({ edit }: { edit: ProposedEdit }) {
       {tokens.map((token, index) => (
         // Tokens have no identity of their own, and the run is regenerated
         // whole whenever the edit changes, so the position is the key.
-        <span key={`${index}-${token.kind}`} className={TOKEN_CLASSES[token.kind]}>
-          {token.value}
-        </span>
+        <Token key={`${index}-${token.kind}`} token={token} />
       ))}
     </p>
   );
