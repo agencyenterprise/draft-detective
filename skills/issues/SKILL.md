@@ -44,6 +44,17 @@ The `suggested_action` is downstream-consumed: another agent will read the origi
 
 Keep it short — one or two sentences, or a tight bulleted list if multiple sub-steps are needed.
 
+**`edits`** (list, optional; only when the workflow enables proposed edits)
+Zero or more mechanical text replacements that resolve the issue. An edit is the structured form of `suggested_action`: it says exactly which characters to swap, so the fix can be applied without re-reading the document. Each edit has:
+
+- **`original_text`** (`str`, required) — the text to replace, quoted **verbatim** from the document. It must appear exactly once inside the issue's `start_line`–`end_line` range; if a short quote repeats, widen it (up to the whole line) so it is unique and make the change inside it. It must sit within a single line of the document — an edit never crosses a line break, so it stays inside one paragraph.
+- **`replacement_text`** (`str`, required) — the text that takes its place. Use an empty string to delete the quoted text. To insert text, repeat the quoted text with the addition included (e.g. replace `"the results in Table 2"` with `"the results in Table 2 and Table 3"`).
+- **`rationale`** (`str`, required) — one short sentence on why this replacement resolves the issue.
+
+**Propose an edit only when the fix is fully determined by the document text plus the finding.** Never propose one when the fix needs a new fact or new prose: no invented citations, references, data, findings, or rewritten paragraphs. If the right fix requires the author's judgement or information that is not in the document, leave `edits` empty and say what is needed in `suggested_action`.
+
+Attaching edits does not replace `suggested_action` — set both. One issue may carry several edits when a single finding requires more than one replacement, each within its own line. If nothing about the fix is mechanical, omit `edits` entirely; an issue with no edits is a normal, complete issue.
+
 **`long_description`** (`str`, optional, markdown supported)
 An extended markdown description for issues that require more detail than fits in `description`. Use this field only when the issue is complex enough that a short paragraph is not sufficient — for example, when you need to list multiple affected locations, quote specific passages, compare expected versus actual content, or provide step-by-step remediation guidance. If `description` alone communicates the problem clearly, omit this field entirely.
 

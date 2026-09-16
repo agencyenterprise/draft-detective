@@ -13,6 +13,7 @@ from lib.models import (
     AppConfig,
     Feedback,
     Issue,
+    IssueEdit,
     Project,
     User,
     WorkflowGateApproval,
