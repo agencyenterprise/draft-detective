@@ -68,7 +68,7 @@ Write the full comparison as a markdown report. It must be:
 - Approximately **500–900 words** for the overview, alignment, and rigor and risks sections.
 - Approximately **200–400 words** for the suggestions for improvements section.
 - Structured using markdown formatting as shown in the template below.
-- **Mathematical notation**: Any equations, formulas, or mathematical expressions must be written in LaTeX format using `$...$` for inline math and `$$...$$` for display equations.
+- **Mathematical notation**: Any equations, formulas, or mathematical expressions must be written in LaTeX format using `$$...$$` within a sentence for inline math and on separate lines for display equations. Never use single dollar signs for math; a single `$` is read as currency.
 
 ### Suggested Markdown Format
 
