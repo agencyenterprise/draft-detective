@@ -120,7 +120,7 @@ Format the report using the following markdown structure:
 - Include citations with markdown links when referencing web search sources
 - Keep paragraphs focused and well-structured
 - **Mathematical equations**: All equations must be formatted in LaTeX notation:
-- For inline equations, use single dollar signs: `$E = mc^2$`
+- For inline equations, use double dollar signs within the sentence: `the relation $$E = mc^2$$ holds`. Never use single dollar signs for math; a single `$` is read as currency.
 - For block/display equations, use double dollar signs on separate lines:
 ```latex
 $$E = mc^2$$
