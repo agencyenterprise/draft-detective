@@ -5,6 +5,8 @@ import {
   blocksForLineRange,
   buildTextIndex,
   clearEditHighlight,
+  ensureEditHighlightStyle,
+  EDIT_HIGHLIGHT_STYLE_ID,
   editRanges,
   editSearchText,
   matchOffsets,
@@ -263,6 +265,23 @@ describe('the highlight registry', () => {
     const stored = highlights.get(EDIT_HIGHLIGHT_NAME);
     expect(stored?.ranges).toHaveLength(1);
     expect(stored?.ranges[0]).toBe(range);
+  });
+
+  it('adds the style rule to the page once, only when a highlight is painted', () => {
+    stubHighlightApi();
+    document.getElementById(EDIT_HIGHLIGHT_STYLE_ID)?.remove();
+
+    setEditHighlight([]);
+    expect(document.getElementById(EDIT_HIGHLIGHT_STYLE_ID)).toBeNull();
+
+    setEditHighlight([someRange()]);
+    setEditHighlight([someRange()]);
+    ensureEditHighlightStyle();
+
+    const styles = document.querySelectorAll(`#${EDIT_HIGHLIGHT_STYLE_ID}`);
+    expect(styles).toHaveLength(1);
+    expect(styles[0].textContent).toContain(`::highlight(${EDIT_HIGHLIGHT_NAME})`);
+    expect(styles[0].textContent).toContain('.dark ::highlight');
   });
 
   it('removes the entry when given no ranges', () => {

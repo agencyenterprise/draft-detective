@@ -3,6 +3,33 @@ import type { ProposedEdit } from './proposed-edit';
 /** The registry key the document's edit wash is filed under. */
 export const EDIT_HIGHLIGHT_NAME = 'proposed-edit';
 
+/** The id of the style element that paints the edit highlight. */
+export const EDIT_HIGHLIGHT_STYLE_ID = 'proposed-edit-highlight-style';
+
+/**
+ * How the highlighted span looks.
+ *
+ * Amber rather than a severity colour, and wavy-underlined: the block already
+ * carries its severity wash, so the span has to say something different --
+ * "these characters are what changes" -- without competing with it.
+ *
+ * Injected at runtime rather than written in globals.css: the production CSS
+ * pipeline (Turbopack's parser) rejects the `::highlight()` pseudo-element,
+ * and the rule is only meaningful in browsers that have the Highlight API in
+ * the first place.
+ */
+const EDIT_HIGHLIGHT_CSS = `
+::highlight(${EDIT_HIGHLIGHT_NAME}) {
+  background-color: rgb(245 158 11 / 0.35);
+  text-decoration: underline wavy rgb(180 83 9 / 0.7);
+  text-underline-offset: 3px;
+}
+.dark ::highlight(${EDIT_HIGHLIGHT_NAME}) {
+  background-color: rgb(245 158 11 / 0.28);
+  text-decoration: underline wavy rgb(252 211 77 / 0.75);
+}
+`;
+
 /**
  * The quote as the document renders it.
  *
@@ -177,6 +204,15 @@ export function supportsHighlightApi(): boolean {
   );
 }
 
+/** Adds the highlight's style rule to the page once, when it is first needed. */
+export function ensureEditHighlightStyle(doc: Document = document): void {
+  if (doc.getElementById(EDIT_HIGHLIGHT_STYLE_ID)) return;
+  const style = doc.createElement('style');
+  style.id = EDIT_HIGHLIGHT_STYLE_ID;
+  style.textContent = EDIT_HIGHLIGHT_CSS;
+  doc.head.appendChild(style);
+}
+
 /** Paints `ranges` as the edit highlight, replacing whatever was there. */
 export function setEditHighlight(ranges: Range[]): void {
   if (!supportsHighlightApi()) return;
@@ -184,6 +220,7 @@ export function setEditHighlight(ranges: Range[]): void {
     CSS.highlights.delete(EDIT_HIGHLIGHT_NAME);
     return;
   }
+  ensureEditHighlightStyle();
   CSS.highlights.set(EDIT_HIGHLIGHT_NAME, new Highlight(...ranges));
 }
 
