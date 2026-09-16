@@ -9,6 +9,15 @@ resolution-markers = [
 ]
 
 [[package]]
+name = "aenum"
+version = "3.1.17"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/07/e9/8b283567c1fef7c24d1f390b37daede8b61593d8cdaffb8e95d571699e83/aenum-3.1.17.tar.gz", hash = "sha256:a969a4516b194895de72c875ece355f17c0d272146f7fda346ef74f93cf4d5ba", size = 137648, upload-time = "2026-03-20T20:43:29.846Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/48/8d/1fe30c6fd8999b9d462547c4a1bb6690bda24af38f2913c4bec7decb81f2/aenum-3.1.17-py3-none-any.whl", hash = "sha256:8b883a37a04e74cc838ac442bdd28c266eae5bbf13e1342c7ef123ed25230139", size = 165560, upload-time = "2026-03-20T20:43:27.681Z" },
+]
+
+[[package]]
 name = "agent-client-protocol"
 version = "0.12.1"
 source = { registry = "https://pypi.org/simple" }
@@ -870,6 +879,7 @@ name = "draft-detective"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "aenum" },
     { name = "aiofiles" },
     { name = "aiotools" },
     { name = "alembic" },
@@ -933,6 +943,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "aenum", specifier = ">=3.1.17" },
     { name = "aiofiles", specifier = ">=25.1.0" },
     { name = "aiotools", specifier = ">=2.2.3" },
     { name = "alembic", specifier = ">=1.14.0" },

@@ -27,6 +27,7 @@ import {
   FileCheckIcon,
   TableIcon,
 } from 'lucide-react';
+import { DynamicIcon, iconNames, type IconName } from 'lucide-react/dynamic';
 import { cn } from '@/lib/utils';
 import { WorkflowGate, WorkflowRunType, WorkflowTypeDescription } from '@/lib/generated-api';
 import { Badge } from '../ui/badge';
@@ -62,8 +63,22 @@ const workflowTypeIcons: Partial<Record<WorkflowRunType, LucideIcon>> = {
 
 const DEFAULT_ICON = FileText;
 
-function getWorkflowIcon(type: WorkflowRunType): LucideIcon {
-  return workflowTypeIcons[type] ?? DEFAULT_ICON;
+function isIconName(name: string): name is IconName {
+  return (iconNames as readonly string[]).includes(name);
+}
+
+/**
+ * The icon for an assessment. A workflow that declares a lucide icon name
+ * (skill-declared workflows do, in their SKILL.md frontmatter) is drawn from
+ * that name; the hand-written workflows keep their entries in the map above.
+ */
+function WorkflowIcon({ workflowType, className }: { workflowType: WorkflowTypeDescription; className?: string }) {
+  const declared = workflowType.icon;
+  if (declared && isIconName(declared)) {
+    return <DynamicIcon name={declared} className={className} />;
+  }
+  const Icon: LucideIcon = workflowTypeIcons[workflowType.type] ?? DEFAULT_ICON;
+  return <Icon className={className} />;
 }
 
 interface WorkflowTypeCheckboxProps {
@@ -82,7 +97,6 @@ export function WorkflowTypeCheckbox({
   disabled = false,
   estimatedSeconds,
 }: WorkflowTypeCheckboxProps) {
-  const Icon = getWorkflowIcon(workflowType.type);
   const requiresSupportingFiles = workflowType.gates.includes(WorkflowGate.ReferenceReview);
   const estimatedDuration = formatEstimatedDuration(estimatedSeconds);
 
@@ -103,7 +117,7 @@ export function WorkflowTypeCheckbox({
             checked ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground',
           )}
         >
-          <Icon className="size-4" />
+          <WorkflowIcon workflowType={workflowType} className="size-4" />
         </div>
 
         <div className="flex-1 min-w-0 space-y-1">
