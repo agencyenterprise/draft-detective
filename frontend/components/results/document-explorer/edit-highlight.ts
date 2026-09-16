@@ -42,8 +42,8 @@ const EDIT_HIGHLIGHT_CSS = `
 export function stripMarkdown(text: string): string {
   return restoreEscaped(
     protectEscaped(text)
-      .replace(/!\[([^\]]*)\]\([^)]*\)/g, '$1')
-      .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
+      .replace(IMAGE, '$1')
+      .replace(LINK, '$1')
       .replace(/`+/g, '')
       .replace(/~~/g, '')
       .replace(/\*{1,3}/g, '')
@@ -57,6 +57,13 @@ export function stripMarkdown(text: string): string {
       .replace(/^[ \t]*(?:[-+*]|\d+[.)])[ \t]+/gm, ''),
   );
 }
+
+/**
+ * A link label may itself hold one level of brackets: MarkItDown writes a DOCX
+ * footnote reference as `[[1]](#footnote-2)`, which the page shows as `[1]`.
+ */
+const LINK = /\[((?:[^[\]]|\[[^[\]]*\])*)\]\([^)]*\)/g;
+const IMAGE = /!\[((?:[^[\]]|\[[^[\]]*\])*)\]\([^)]*\)/g;
 
 /**
  * Backslash-escaped punctuation, as CommonMark defines it: the renderer shows
@@ -98,19 +105,74 @@ export function editSearchText(originalText: string): string {
   return normalizeWhitespace(stripMarkdown(originalText));
 }
 
+/** Start offset of every occurrence of `needle` in `haystack`, overlapping ones included. */
+export function allOffsets(haystack: string, needle: string): number[] {
+  const offsets: number[] = [];
+  if (!needle) return offsets;
+  for (let index = haystack.indexOf(needle); index !== -1; index = haystack.indexOf(needle, index + 1)) {
+    offsets.push(index);
+  }
+  return offsets;
+}
+
 /**
- * Where `needle` sits in `haystack`, as `[start, end)`, or null.
+ * Where the `occurrence`-th (0-based) `needle` sits in `haystack`, as
+ * `[start, end)`, or null.
  *
  * Falls back to a case-insensitive match: a quote can come back from a model
  * with a sentence's first letter recased, and highlighting the right span
  * matters more than insisting the letter matched.
  */
-export function matchOffsets(haystack: string, needle: string): [number, number] | null {
+export function matchOffsets(haystack: string, needle: string, occurrence = 0): [number, number] | null {
   if (!needle) return null;
-  let index = haystack.indexOf(needle);
-  if (index === -1) index = haystack.toLowerCase().indexOf(needle.toLowerCase());
-  if (index === -1) return null;
+  let offsets = allOffsets(haystack, needle);
+  if (offsets.length === 0) offsets = allOffsets(haystack.toLowerCase(), needle.toLowerCase());
+  const index = offsets[occurrence];
+  if (index === undefined) return null;
   return [index, index + needle.length];
+}
+
+/** Marks where the quote starts in the source while the syntax around it is stripped. */
+const QUOTE_MARK = '\uE1FF';
+
+/**
+ * Which occurrence of the rendered quote an edit means, worked out from the
+ * markdown source, or null when the source does not settle it.
+ *
+ * The backend guarantees `original_text` is unique on its own line as written,
+ * but stripping the syntax can create duplicates: `**Figure 3**` is a unique
+ * quote in `Figure 3 and **Figure 3**` and the page shows `Figure 3` twice. The
+ * block's source lines are stripped the same way the quote is, with a marker
+ * at the quote's position, so counting the stripped quote before the marker
+ * says which rendered occurrence is the one the edit was anchored to.
+ */
+export function sourceOccurrence(
+  sourceLines: readonly string[],
+  blockStart: number,
+  blockEnd: number,
+  edit: Pick<ProposedEdit, 'original_text' | 'start_line'>,
+): number | null {
+  const line = sourceLines[edit.start_line - 1];
+  if (line === undefined) return null;
+  const normalizedLine = normalizeWhitespace(line);
+  const quoteAt = allOffsets(normalizedLine, normalizeWhitespace(edit.original_text));
+  if (quoteAt.length !== 1) return null;
+
+  const marked = normalizedLine.slice(0, quoteAt[0]) + QUOTE_MARK + normalizedLine.slice(quoteAt[0]);
+  const first = Math.max(1, blockStart);
+  const last = Math.min(sourceLines.length, blockEnd);
+  const stripped: string[] = [];
+  for (let number = first; number <= last; number++) {
+    const text = number === edit.start_line ? marked : normalizeWhitespace(sourceLines[number - 1]);
+    stripped.push(normalizeWhitespace(stripMarkdown(text)));
+  }
+  const haystack = stripped.join(' ');
+  const markAt = haystack.indexOf(QUOTE_MARK);
+  if (markAt === -1) return null;
+  // The marker sits where the stripped quote starts, so the occurrences that
+  // begin before it are exactly the ones the page shows ahead of the edit's.
+  const clean = haystack.replace(QUOTE_MARK, '');
+  return allOffsets(clean, editSearchText(edit.original_text)).filter((offset) => offset < markAt).length;
 }
 
 /** Where one character of the flattened text came from. */
@@ -165,13 +227,18 @@ export function buildTextIndex(root: Element): TextIndex {
   return { text, sources };
 }
 
-/** A Range over the quote inside one block, or null if the block does not carry it. */
-export function rangeInElement(block: Element, originalText: string): Range | null {
+/**
+ * A Range over the `occurrence`-th quote inside one block, or null if the block
+ * does not carry it. Without an occurrence, the quote must appear exactly once
+ * in the block: guessing between repeats would mark the wrong words.
+ */
+export function rangeInElement(block: Element, originalText: string, occurrence?: number): Range | null {
   const needle = editSearchText(originalText);
   if (!needle) return null;
 
   const index = buildTextIndex(block);
-  const match = matchOffsets(index.text, needle);
+  if (occurrence === undefined && allOffsets(index.text, needle).length > 1) return null;
+  const match = matchOffsets(index.text, needle, occurrence ?? 0);
   if (!match) return null;
 
   const start = index.sources[match[0]];
@@ -211,13 +278,24 @@ export function blocksForLineRange(container: Element, start: number, end: numbe
 /**
  * A Range for each edit whose quote could be found, in the blocks its lines
  * cover. An edit sits on one source line, so the narrowest block carrying the
- * quote is the right one.
+ * quote is the right one. With the markdown source at hand, a quote the page
+ * shows more than once inside that block is resolved to the occurrence the
+ * edit was anchored to; without it, such a quote is left unmarked rather than
+ * marked in the wrong place.
  */
-export function editRanges(container: Element, edits: ProposedEdit[]): Range[] {
+export function editRanges(container: Element, edits: ProposedEdit[], sourceLines?: readonly string[]): Range[] {
   const ranges: Range[] = [];
   for (const edit of edits) {
     for (const block of blocksForLineRange(container, edit.start_line, edit.end_line)) {
-      const range = rangeInElement(block, edit.original_text);
+      const occurrence = sourceLines
+        ? sourceOccurrence(
+            sourceLines,
+            Number(block.getAttribute('data-line-start')),
+            Number(block.getAttribute('data-line-end')),
+            edit,
+          )
+        : null;
+      const range = rangeInElement(block, edit.original_text, occurrence ?? undefined);
       if (range) {
         ranges.push(range);
         break;

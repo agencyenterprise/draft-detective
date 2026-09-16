@@ -7,12 +7,14 @@ import {
   clearEditHighlight,
   ensureEditHighlightStyle,
   EDIT_HIGHLIGHT_STYLE_ID,
+  allOffsets,
   editRanges,
   editSearchText,
   matchOffsets,
   normalizeWhitespace,
   rangeInElement,
   setEditHighlight,
+  sourceOccurrence,
   stripMarkdown,
   supportsHighlightApi,
 } from './edit-highlight';
@@ -75,6 +77,12 @@ describe('stripMarkdown', () => {
     );
   });
 
+  it('reduces a link whose label holds brackets, as a DOCX footnote does, to its label', () => {
+    expect(stripMarkdown('second cohort [[1]](#footnote-2).')).toBe('second cohort [1].');
+    expect(stripMarkdown('see [the [inner] note](http://x) now')).toBe('see the [inner] note now');
+    expect(stripMarkdown('![fig [a]](img.png) caption')).toBe('fig [a] caption');
+  });
+
   it('decodes backslash escapes to the character the renderer shows', () => {
     // MarkItDown escapes literal punctuation in DOCX prose; ReactMarkdown
     // renders the bare character, which is what the highlight has to match.
@@ -116,6 +124,21 @@ describe('matchOffsets', () => {
 
   it('returns null for an empty needle', () => {
     expect(matchOffsets('the quick fox', '')).toBeNull();
+  });
+});
+
+describe('allOffsets', () => {
+  it('lists every start offset, overlapping ones included', () => {
+    expect(allOffsets('Figure 3 and Figure 3', 'Figure 3')).toEqual([0, 13]);
+    expect(allOffsets('aaa', 'aa')).toEqual([0, 1]);
+    expect(allOffsets('abc', '')).toEqual([]);
+  });
+});
+
+describe('matchOffsets with an occurrence', () => {
+  it('picks the requested occurrence and returns null past the last one', () => {
+    expect(matchOffsets('Figure 3 and Figure 3', 'Figure 3', 1)).toEqual([13, 21]);
+    expect(matchOffsets('Figure 3 and Figure 3', 'Figure 3', 2)).toBeNull();
   });
 });
 
@@ -245,6 +268,66 @@ describe('editRanges', () => {
     const container = element('<div data-block-owner="a" data-line-start="1" data-line-end="2">The claim.</div>');
 
     expect(editRanges(container, [edit({ original_text: 'The claim.', start_line: 40, end_line: 41 })])).toEqual([]);
+  });
+});
+
+describe('sourceOccurrence', () => {
+  const lines = ['# Title', '', 'Figure 3 and **Figure 3** close the section.', 'Again Figure 3 appears here.'];
+
+  it('tells a formatted quote apart from an identical plain one on the same line', () => {
+    expect(sourceOccurrence(lines, 3, 3, { original_text: '**Figure 3**', start_line: 3 })).toBe(1);
+    expect(sourceOccurrence(lines, 3, 3, { original_text: 'Figure 3 and', start_line: 3 })).toBe(0);
+  });
+
+  it('counts occurrences on earlier lines of a block that spans several source lines', () => {
+    expect(sourceOccurrence(lines, 3, 4, { original_text: 'Again Figure 3', start_line: 4 })).toBe(0);
+    // Unique on its own line, third time the page shows it inside the block.
+    expect(sourceOccurrence(lines, 3, 4, { original_text: 'Figure 3', start_line: 4 })).toBe(2);
+  });
+
+  it('gives up when the quote is not unique on its line or the line is missing', () => {
+    expect(sourceOccurrence(lines, 3, 3, { original_text: 'Figure 3', start_line: 3 })).toBeNull();
+    expect(sourceOccurrence(lines, 3, 3, { original_text: 'Figure 3', start_line: 40 })).toBeNull();
+  });
+
+  it('matches the quote against the line despite whitespace drift', () => {
+    const drifted = ['Energy\u00a0Supply and **Energy Supply** again.'];
+    expect(sourceOccurrence(drifted, 1, 1, { original_text: '**Energy Supply**', start_line: 1 })).toBe(1);
+  });
+});
+
+describe('repeated quotes', () => {
+  const html =
+    '<p data-block-owner="" data-line-start="3" data-line-end="3">Figure 3 and <strong>Figure 3</strong> close the section.</p>';
+  const source = ['# Title', '', 'Figure 3 and **Figure 3** close the section.'];
+
+  it('leaves an ambiguous quote unmarked when no occurrence is known', () => {
+    expect(rangeInElement(element(html), '**Figure 3**')).toBeNull();
+    expect(editRanges(element(html), [edit({ original_text: '**Figure 3**', start_line: 3, end_line: 3 })])).toEqual(
+      [],
+    );
+  });
+
+  it('marks the occurrence the edit was anchored to when given the source', () => {
+    const [range] = editRanges(
+      element(html),
+      [edit({ original_text: '**Figure 3**', start_line: 3, end_line: 3 })],
+      source,
+    );
+
+    expect(range.toString()).toBe('Figure 3');
+    expect(range.startContainer.parentElement?.tagName).toBe('STRONG');
+  });
+
+  it('resolves a repeat on a later source line of a multi-line paragraph', () => {
+    const wrapped = element(
+      '<p data-block-owner="" data-line-start="1" data-line-end="2">See Figure 3 for the baseline. See Figure 3 for the outcome.</p>',
+    );
+    const lines = ['See Figure 3 for the baseline.', 'See Figure 3 for the outcome.'];
+
+    const [range] = editRanges(wrapped, [edit({ original_text: 'See Figure 3', start_line: 2, end_line: 2 })], lines);
+
+    expect(range.startOffset).toBe('See Figure 3 for the baseline. '.length);
   });
 });
 
