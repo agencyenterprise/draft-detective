@@ -17,6 +17,7 @@ interface UseDownloadDocxOptions {
   workflowTypes?: WorkflowRunType[];
   includePassing?: boolean;
   docxType?: DocxType;
+  includeEdits?: boolean;
 }
 
 export async function downloadDocxFile(
@@ -26,6 +27,7 @@ export async function downloadDocxFile(
   workflowTypes?: WorkflowRunType[],
   docxType?: DocxType,
   includePassing?: boolean,
+  includeEdits: boolean = true,
 ): Promise<void> {
   const response = await downloadProjectDocxApiProjectsProjectIdDocxDownloadGet({
     path: { project_id: projectId },
@@ -35,6 +37,7 @@ export async function downloadDocxFile(
       workflow_types: workflowTypes,
       docx_type: docxType ?? 'original',
       include_passing: includePassing ?? false,
+      include_edits: includeEdits,
     },
   });
 
@@ -55,13 +58,15 @@ export function useDownloadDocx({
   workflowTypes,
   includePassing,
   docxType: initialDocxType,
+  includeEdits: initialIncludeEdits = true,
 }: UseDownloadDocxOptions) {
   const [isDownloading, setIsDownloading] = useState(false);
 
-  const download = async (docxType?: DocxType) => {
+  const download = async (docxType?: DocxType, includeEdits?: boolean) => {
     setIsDownloading(true);
 
     const dType = docxType ?? initialDocxType ?? 'original';
+    const withEdits = includeEdits ?? initialIncludeEdits;
     const loadingMessage =
       dType === 'add-in'
         ? 'Preparing DOCX for Draft Detective Add-In...'
@@ -74,7 +79,7 @@ export function useDownloadDocx({
     });
 
     try {
-      await downloadDocxFile(projectId, shareToken, severities, workflowTypes, dType, includePassing);
+      await downloadDocxFile(projectId, shareToken, severities, workflowTypes, dType, includePassing, withEdits);
       toast.success('DOCX file downloaded successfully', { id: toastId, description: null });
     } catch (error) {
       console.error('Failed to download docx:', error);

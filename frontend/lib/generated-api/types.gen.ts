@@ -5929,6 +5929,12 @@ export type DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetData = {
      * Include passing issues (severity=none) in the export
      */
     include_passing?: boolean;
+    /**
+     * Include Edits
+     *
+     * Apply the issues' proposed edits as Word tracked changes, so they can be accepted or rejected in Word. Comment exports only.
+     */
+    include_edits?: boolean;
   };
   url: '/api/projects/{project_id}/docx/download';
 };
