@@ -29,7 +29,7 @@ interface ShareWarningDialogProps {
   isDownloading: boolean;
   /** The document explorer's filters, which scope the export. */
   filters: ActiveFilters;
-  /** What that scope amounts to: issues that become comments, edits that become tracked changes. */
+  /** What that scope amounts to: issues that become comments, and their proposed edits. */
   counts: ExportCounts;
   onDownload: (type: DocxType, options: DownloadOptions) => void;
 }
@@ -90,7 +90,7 @@ export function ShareWarningDialog({
         <div className="space-y-5">
           <section className="space-y-2">
             <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Included</h3>
-            <ExportScope filters={filters} counts={counts} />
+            <ExportScope filters={filters} counts={counts} includeEdits={shouldShowEditsCheckbox && includeEdits} />
           </section>
 
           <section className="space-y-2">

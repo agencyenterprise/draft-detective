@@ -8,7 +8,9 @@ from lib.models.issue_edit import IssueEdit, IssueEditStatus
 from lib.services.edit_conflicts import (
     EditCandidate,
     EditDecision,
+    pick_winner,
     resolve_edit_conflicts,
+    winner_sort_key,
 )
 from lib.workflows.models import SeverityEnum
 
@@ -51,6 +53,60 @@ def _candidate(
 
 def _by_id(decisions: list[EditDecision]) -> dict[uuid.UUID, EditDecision]:
     return {decision.edit_id: decision for decision in decisions}
+
+
+class TestTheWinnerPolicy:
+    """The ranking on its own, as the export's per-paragraph pass reuses it."""
+
+    def test_an_accepted_edit_outranks_a_higher_severity_proposed_one(self):
+        accepted = _candidate(
+            "a", status=IssueEditStatus.ACCEPTED, severity=SeverityEnum.LOW
+        )
+        proposed = _candidate("b", severity=SeverityEnum.HIGH)
+
+        assert pick_winner([proposed, accepted]) is accepted
+        assert winner_sort_key(accepted) < winner_sort_key(proposed)
+
+    def test_severity_outranks_age(self):
+        high = _candidate(
+            "a", severity=SeverityEnum.HIGH, created_at=_EARLIER + timedelta(days=7)
+        )
+        low = _candidate("b", severity=SeverityEnum.LOW, created_at=_EARLIER)
+
+        assert pick_winner([low, high]) is high
+
+    def test_the_older_issue_wins_at_equal_severity(self):
+        older = _candidate("a", created_at=_EARLIER)
+        newer = _candidate("b", created_at=_EARLIER + timedelta(hours=1))
+
+        assert pick_winner([newer, older]) is older
+
+    def test_a_naive_timestamp_is_ranked_as_utc(self):
+        naive = _candidate("a", created_at=datetime(2026, 1, 1))
+        later = _candidate("b", created_at=_EARLIER + timedelta(hours=1))
+
+        assert pick_winner([later, naive]) is naive
+
+    def test_the_lower_id_wins_when_everything_else_ties(self):
+        low_id = _candidate("a", edit_id=uuid.UUID(int=1))
+        high_id = _candidate("b", edit_id=uuid.UUID(int=2))
+
+        assert pick_winner([high_id, low_id]) is low_id
+
+    def test_the_winner_does_not_depend_on_the_order_of_the_group(self):
+        group = [
+            _candidate("a", severity=SeverityEnum.LOW, edit_id=uuid.UUID(int=1)),
+            _candidate("b", severity=SeverityEnum.HIGH, edit_id=uuid.UUID(int=2)),
+            _candidate("c", severity=SeverityEnum.HIGH, edit_id=uuid.UUID(int=3)),
+        ]
+
+        assert pick_winner(group) is group[1]
+        assert pick_winner(list(reversed(group))) is group[1]
+
+    def test_one_candidate_is_its_own_winner(self):
+        only = _candidate("a")
+
+        assert pick_winner([only]) is only
 
 
 class TestLocating:

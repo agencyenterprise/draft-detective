@@ -27,6 +27,22 @@ export function issuesInExport(
     .filter((issue) => filter.workflowType.length === 0 || filter.workflowType.includes(issue.workflow_type));
 }
 
+/**
+ * What the export does with its proposed edits, in words.
+ *
+ * Every included edit is described in its issue's comment either way; the
+ * tracked-changes option only decides whether the fix is also in the margin as
+ * a redline, so the phrase has to follow the checkbox rather than promise
+ * redlines that were switched off. With nothing to say about, the count stands
+ * on its own.
+ */
+export function editsPhrase(count: number, includeEdits: boolean): string {
+  const head = `${count} proposed edit${count === 1 ? '' : 's'}`;
+  if (count === 0) return head;
+  if (includeEdits) return `${head} as ${count === 1 ? 'a tracked change' : 'tracked changes'}`;
+  return `${head} described in ${count === 1 ? 'a comment' : 'comments'}`;
+}
+
 /** Issue and proposed-edit counts for the export; rejected edits are never applied. */
 export function exportCounts(
   issues: Issue[],

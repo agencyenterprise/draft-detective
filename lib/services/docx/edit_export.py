@@ -1,20 +1,32 @@
 """The proposed-edit half of a DOCX export, from issue rows to redlines.
 
-Sits between `generate_docx` and the two passes it drives: conflict resolution
-over the issues' proposed edits, the read-only pre-flight that resolves each
-survivor to a paragraph, the comment notes composed from those outcomes, and
-the apply step that writes the redlines into the finished file.
+Sits between `generate_docx` and the passes it drives: conflict resolution over
+the issues' proposed edits, the read-only pre-flight that resolves each
+survivor to a paragraph, a rehearsal of the write on a throwaway copy, the
+comment notes composed from the outcomes that rehearsal proved, and the apply
+step that writes the redlines into the finished file.
+
+The rehearsal is what keeps a comment honest. Comments have to be written
+before the redlines -- python-docx stops reading inserted and deleted runs as
+paragraph text, so the paragraph map the comment pass anchors to is only valid
+beforehand -- and until the write has actually been attempted, nothing knows
+whether docx-editor will take a given operation. So the write is attempted
+twice: once against a scratch copy, whose outcomes decide what the comments say
+and which edits are kept, and once for real.
 """
 
+import asyncio
 import logging
+import os
+import shutil
+import tempfile
 import uuid
 from collections import Counter
-from typing import Dict, List, Optional, Sequence
+from typing import Dict, List, Optional, Sequence, Tuple
 
 from pydantic import BaseModel, Field
 
 from lib.models.issue import Issue
-from lib.models.issue_edit import IssueEdit
 from lib.services.docx.edit_notes import build_edit_notes
 from lib.services.docx.tracked_changes import (
     EditOutcome,
@@ -85,20 +97,89 @@ def _notes(
     decisions: Sequence[EditDecision],
     outcomes: Dict[uuid.UUID, EditOutcome],
 ) -> Dict[uuid.UUID, List[str]]:
-    """Comment blocks per issue, naming the workflow a conflict lost to."""
+    """Comment blocks per issue, naming the workflow a conflict lost to.
+
+    A conflict is decided either per markdown line, before the document is
+    opened, or per Word paragraph by the pre-flight; the winner's id comes off
+    the decision in the first case and off the outcome in the second, and both
+    resolve to a workflow name the same way.
+    """
     issue_of_edit: Dict[uuid.UUID, Issue] = {
         row.id: issue for issue in issues for row in issue.edit_rows
     }
+    winner_ids: Dict[uuid.UUID, uuid.UUID] = {
+        decision.edit_id: decision.winner_id
+        for decision in decisions
+        if decision.winner_id is not None
+    }
+    winner_ids.update(
+        {
+            outcome.edit_id: outcome.winner_id
+            for outcome in outcomes.values()
+            if outcome.winner_id is not None
+        }
+    )
     winner_names: Dict[uuid.UUID, str] = {}
-    for decision in decisions:
-        winner = issue_of_edit.get(decision.winner_id) if decision.winner_id else None
+    for edit_id, winner_id in winner_ids.items():
+        winner = issue_of_edit.get(winner_id)
         if winner is not None:
-            winner_names[decision.edit_id] = _workflow_name(winner)
+            winner_names[edit_id] = _workflow_name(winner)
     return {
         issue.id: notes
         for issue in issues
         if (notes := build_edit_notes(issue.edit_rows, outcomes, winner_names))
     }
+
+
+async def _rehearse(
+    docx_path: str, planned: Sequence[PlannedEdit], workspace_root: Optional[str]
+) -> List[EditOutcome]:
+    """Apply the plan to a throwaway copy of the original and report what stuck.
+
+    docx-editor is deterministic: the same operations against the same
+    paragraphs of the same document produce the same result, and the plan's
+    refs are anchored to a hash of each paragraph's visible text, which the
+    comment pass does not change. So what fails here is what would fail on the
+    exported file, and what applies here applies there -- `apply_edit_export`
+    logs it if that ever stops holding.
+
+    The copy is deleted again; nothing in it is kept but the outcomes.
+    """
+    scratch_dir = await asyncio.to_thread(
+        tempfile.mkdtemp, prefix="edit-rehearsal-", dir=workspace_root
+    )
+    try:
+        scratch = os.path.join(scratch_dir, "rehearsal.docx")
+        await asyncio.to_thread(shutil.copyfile, docx_path, scratch)
+        return await apply_tracked_changes(
+            scratch, planned, workspace_root=workspace_root
+        )
+    finally:
+        await asyncio.to_thread(shutil.rmtree, scratch_dir, True)
+
+
+def _merge_rehearsal(
+    plan_outcomes: Sequence[EditOutcome],
+    planned: Sequence[PlannedEdit],
+    rehearsed: Sequence[EditOutcome],
+) -> Tuple[List[PlannedEdit], Dict[uuid.UUID, EditOutcome]]:
+    """Fold the rehearsal's failures into the plan.
+
+    An edit the rehearsal could not write is reported as ``failed``, with the
+    reason docx-editor gave, and is dropped from the plan: the real write is
+    only ever asked to do what has already been proven to work, so no comment
+    can promise a redline that is not in the margin.
+    """
+    rehearsed_by_id = {outcome.edit_id: outcome for outcome in rehearsed}
+    outcomes: Dict[uuid.UUID, EditOutcome] = {}
+    for outcome in plan_outcomes:
+        attempt = rehearsed_by_id.get(outcome.edit_id)
+        outcomes[outcome.edit_id] = (
+            attempt if attempt is not None and attempt.status == "failed" else outcome
+        )
+    # The plan reports every edit it planned, so each one has an outcome here.
+    kept = [edit for edit in planned if outcomes[edit.edit_id].status == "applied"]
+    return kept, outcomes
 
 
 async def plan_edit_export(
@@ -110,8 +191,10 @@ async def plan_edit_export(
 ) -> EditExport:
     """Resolve the issues' proposed edits against the original document.
 
-    Read-only: it decides what each edit's fate is and what the comments will
-    say about it, so the comment pass can run before anything is written.
+    Leaves `docx_path` untouched: it decides what each edit's fate is and what
+    the comments will say about it, so the comment pass can run before anything
+    is written into the export. Deciding includes rehearsing the write on a
+    scratch copy, so an edit the library refuses is never described as applied.
     """
     candidates = _candidates(issues)
     if not candidates:
@@ -126,18 +209,21 @@ async def plan_edit_export(
             outcomes=outcomes, notes_by_issue=_notes(issues, decisions, outcomes)
         )
 
-    edits_by_id: Dict[uuid.UUID, IssueEdit] = {c.edit.id: c.edit for c in candidates}
+    candidates_by_id: Dict[uuid.UUID, EditCandidate] = {
+        candidate.edit.id: candidate for candidate in candidates
+    }
     plan = await plan_tracked_changes(
         docx_path,
         decisions,
-        edits_by_id,
+        candidates_by_id,
         paragraph_line_ranges,
         lines,
         workspace_root=workspace_root,
     )
-    outcomes = {outcome.edit_id: outcome for outcome in plan.outcomes}
+    rehearsed = await _rehearse(docx_path, plan.planned, workspace_root)
+    planned, outcomes = _merge_rehearsal(plan.outcomes, plan.planned, rehearsed)
     return EditExport(
-        planned=plan.planned,
+        planned=planned,
         outcomes=outcomes,
         notes_by_issue=_notes(issues, decisions, outcomes),
     )
@@ -149,10 +235,28 @@ async def apply_edit_export(
     project_id: str,
     workspace_root: Optional[str] = None,
 ) -> None:
-    """Write the planned redlines into the exported file and log the tally."""
+    """Write the planned redlines into the exported file and log the tally.
+
+    Every edit handed over here applied cleanly during the plan's rehearsal, so
+    a different outcome now means the rehearsal stopped predicting the real run
+    and the comments may be overstating what is in the margin. It is logged
+    rather than raised: the file is still worth delivering.
+    """
     applied = await apply_tracked_changes(
         output_path, export.planned, workspace_root=workspace_root
     )
+    for outcome in applied:
+        expected = export.outcomes.get(outcome.edit_id)
+        if expected is not None and expected.status != outcome.status:
+            logger.warning(
+                "DOCX export for project %s wrote edit %s as %s, but its "
+                "rehearsal said %s: %s",
+                project_id,
+                outcome.edit_id,
+                outcome.status,
+                expected.status,
+                outcome.detail,
+            )
     merged: Dict[uuid.UUID, EditOutcome] = {
         **export.outcomes,
         **{outcome.edit_id: outcome for outcome in applied},
@@ -163,7 +267,7 @@ async def apply_edit_export(
     logger.info(
         "DOCX export for project %s handled %d proposed edits: %d applied as "
         "tracked changes, %d in conflict, %d unlocatable, %d not found, "
-        "%d ambiguous, %d failed",
+        "%d ambiguous, %d unsupported, %d failed",
         project_id,
         len(merged),
         counts["applied"],
@@ -171,5 +275,6 @@ async def apply_edit_export(
         counts["unlocatable"],
         counts["not_found"],
         counts["ambiguous"],
+        counts["unsupported"],
         counts["failed"],
     )

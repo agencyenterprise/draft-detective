@@ -38,23 +38,30 @@ const EDIT_HIGHLIGHT_CSS = `
  * its label alone. Matching the raw quote against the rendered text would
  * therefore fail on exactly the passages an edit is most likely to touch, so
  * the syntax is stripped down to the characters that reach the page.
+ *
+ * A heading hash, a blockquote arrow and a list marker are only syntax where a
+ * line begins. `2019. Annual report` quoted from the middle of a reference
+ * entry keeps its year; `1. First item` quoted from the top of a list item
+ * loses the marker. A caller that knows the quote did not start its source
+ * line passes `atLineStart` as false.
  */
-export function stripMarkdown(text: string): string {
+export function stripMarkdown(text: string, atLineStart = true): string {
+  const stripped = protectEscaped(text)
+    .replace(IMAGE, '$1')
+    .replace(LINK, '$1')
+    .replace(/`+/g, '')
+    .replace(/~~/g, '')
+    .replace(/\*{1,3}/g, '')
+    // Only underscores standing outside a word: `snake_case` is a name in the
+    // text, not emphasis, and stripping its underscores would stop it
+    // matching. Written as two passes rather than one lookbehind for the sake
+    // of older Safari.
+    .replace(/(^|[^A-Za-z0-9])_{1,3}/g, '$1')
+    .replace(/_{1,3}($|[^A-Za-z0-9])/g, '$1');
   return restoreEscaped(
-    protectEscaped(text)
-      .replace(IMAGE, '$1')
-      .replace(LINK, '$1')
-      .replace(/`+/g, '')
-      .replace(/~~/g, '')
-      .replace(/\*{1,3}/g, '')
-      // Only underscores standing outside a word: `snake_case` is a name in the
-      // text, not emphasis, and stripping its underscores would stop it
-      // matching. Written as two passes rather than one lookbehind for the sake
-      // of older Safari.
-      .replace(/(^|[^A-Za-z0-9])_{1,3}/g, '$1')
-      .replace(/_{1,3}($|[^A-Za-z0-9])/g, '$1')
-      .replace(/^[ \t]*(?:#{1,6}|>+)[ \t]*/gm, '')
-      .replace(/^[ \t]*(?:[-+*]|\d+[.)])[ \t]+/gm, ''),
+    atLineStart
+      ? stripped.replace(/^[ \t]*(?:#{1,6}|>+)[ \t]*/gm, '').replace(/^[ \t]*(?:[-+*]|\d+[.)])[ \t]+/gm, '')
+      : stripped,
   );
 }
 
@@ -101,8 +108,8 @@ export function normalizeWhitespace(text: string): string {
 }
 
 /** What to look for in the rendered document, given an edit's raw quote. */
-export function editSearchText(originalText: string): string {
-  return normalizeWhitespace(stripMarkdown(originalText));
+export function editSearchText(originalText: string, atLineStart = true): string {
+  return normalizeWhitespace(stripMarkdown(originalText, atLineStart));
 }
 
 /** Start offset of every occurrence of `needle` in `haystack`, overlapping ones included. */
@@ -145,12 +152,16 @@ const QUOTE_MARK = '\uE1FF';
  * block's source lines are stripped the same way the quote is, with a marker
  * at the quote's position, so counting the stripped quote before the marker
  * says which rendered occurrence is the one the edit was anchored to.
+ *
+ * `atLineStart` applies to the quote alone: the block's lines are stripped as
+ * the lines they are, markers and all.
  */
 export function sourceOccurrence(
   sourceLines: readonly string[],
   blockStart: number,
   blockEnd: number,
   edit: Pick<ProposedEdit, 'original_text' | 'start_line'>,
+  atLineStart = true,
 ): number | null {
   const line = sourceLines[edit.start_line - 1];
   if (line === undefined) return null;
@@ -172,7 +183,22 @@ export function sourceOccurrence(
   // The marker sits where the stripped quote starts, so the occurrences that
   // begin before it are exactly the ones the page shows ahead of the edit's.
   const clean = haystack.replace(QUOTE_MARK, '');
-  return allOffsets(clean, editSearchText(edit.original_text)).filter((offset) => offset < markAt).length;
+  return allOffsets(clean, editSearchText(edit.original_text, atLineStart)).filter((offset) => offset < markAt).length;
+}
+
+/**
+ * Whether the quote opens its own markdown line, which decides how it is
+ * stripped: `2019.` is a list marker at the head of a line and a year anywhere
+ * else in it. Unknown lines are treated as if the quote started them, which is
+ * what a caller without the source gets.
+ */
+function startsItsSourceLine(
+  sourceLines: readonly string[],
+  edit: Pick<ProposedEdit, 'original_text' | 'start_line'>,
+): boolean {
+  const line = sourceLines[edit.start_line - 1];
+  if (line === undefined) return true;
+  return normalizeWhitespace(line).startsWith(normalizeWhitespace(edit.original_text));
 }
 
 /** Where one character of the flattened text came from. */
@@ -232,8 +258,13 @@ export function buildTextIndex(root: Element): TextIndex {
  * does not carry it. Without an occurrence, the quote must appear exactly once
  * in the block: guessing between repeats would mark the wrong words.
  */
-export function rangeInElement(block: Element, originalText: string, occurrence?: number): Range | null {
-  const needle = editSearchText(originalText);
+export function rangeInElement(
+  block: Element,
+  originalText: string,
+  occurrence?: number,
+  atLineStart = true,
+): Range | null {
+  const needle = editSearchText(originalText, atLineStart);
   if (!needle) return null;
 
   const index = buildTextIndex(block);
@@ -281,11 +312,14 @@ export function blocksForLineRange(container: Element, start: number, end: numbe
  * quote is the right one. With the markdown source at hand, a quote the page
  * shows more than once inside that block is resolved to the occurrence the
  * edit was anchored to; without it, such a quote is left unmarked rather than
- * marked in the wrong place.
+ * marked in the wrong place. The source also says whether the quote opened its
+ * line, which is what keeps a mid-line `2019.` from being read as a list
+ * marker.
  */
 export function editRanges(container: Element, edits: ProposedEdit[], sourceLines?: readonly string[]): Range[] {
   const ranges: Range[] = [];
   for (const edit of edits) {
+    const atLineStart = sourceLines ? startsItsSourceLine(sourceLines, edit) : true;
     for (const block of blocksForLineRange(container, edit.start_line, edit.end_line)) {
       const occurrence = sourceLines
         ? sourceOccurrence(
@@ -293,9 +327,10 @@ export function editRanges(container: Element, edits: ProposedEdit[], sourceLine
             Number(block.getAttribute('data-line-start')),
             Number(block.getAttribute('data-line-end')),
             edit,
+            atLineStart,
           )
         : null;
-      const range = rangeInElement(block, edit.original_text, occurrence ?? undefined);
+      const range = rangeInElement(block, edit.original_text, occurrence ?? undefined, atLineStart);
       if (range) {
         ranges.push(range);
         break;

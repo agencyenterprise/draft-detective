@@ -7,7 +7,7 @@ from typing import Sequence
 
 import pytest
 from docx import Document as PythonDocxDocument
-from docx_editor import Document as EditorDocument
+from docx_editor import BatchOperationError, Document as EditorDocument
 
 from lib.models.issue import Issue
 from lib.models.issue_edit import IssueEdit, IssueEditStatus
@@ -32,6 +32,7 @@ def _edit(
     replacement_text: str,
     *,
     status: IssueEditStatus = IssueEditStatus.PROPOSED,
+    start_line: int = 1,
 ) -> IssueEdit:
     return IssueEdit(
         id=uuid.uuid4(),
@@ -39,8 +40,8 @@ def _edit(
         position=0,
         original_text=original_text,
         replacement_text=replacement_text,
-        start_line=1,
-        end_line=1,
+        start_line=start_line,
+        end_line=start_line,
         rationale="the figure is wrong",
         status=status,
     )
@@ -72,6 +73,16 @@ def _visible(path: Path) -> str:
     )
     try:
         return doc.get_visible_text()
+    finally:
+        doc.close()
+
+
+def _revisions(path: Path) -> list[tuple[str, str]]:
+    doc = EditorDocument.open(
+        path, author="Reader", workspace_dir=str(path.parent / "revision-ws")
+    )
+    try:
+        return [(r.type, r.text) for r in doc.list_revisions()]
     finally:
         doc.close()
 
@@ -142,3 +153,105 @@ async def test_an_issue_without_edits_plans_nothing(docx_path: Path, tmp_path: P
     assert plan.planned == []
     assert plan.outcomes == {}
     assert plan.notes_by_issue == {}
+
+
+_TWO_PARAGRAPHS = [
+    "The chapter reports a 14% rise in output for 2019.",
+    "The appendix lists every source consulted in full.",
+]
+_TWO_PARAGRAPH_MARKDOWN = "\n".join(_TWO_PARAGRAPHS)
+_TWO_PARAGRAPH_RANGES = {0: (1, 1), 1: (2, 2)}
+
+
+@pytest.fixture
+def two_paragraph_docx_path(tmp_path: Path) -> Path:
+    document = PythonDocxDocument()
+    for text in _TWO_PARAGRAPHS:
+        document.add_paragraph(text)
+    path = tmp_path / "two-paragraphs.docx"
+    document.save(str(path))
+    return path
+
+
+@pytest.fixture
+def reject_the_appendix(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Make docx-editor refuse the appendix paragraph's batch, and only that one.
+
+    Stands in for anything the library rejects at apply time -- a stale hash, a
+    search string the paragraph no longer carries. It bites during the
+    rehearsal; the real run never asks for the operation again.
+    """
+    original = EditorDocument.batch_edit
+
+    def batch_edit(self, operations, **kwargs):  # type: ignore[no-untyped-def]
+        if any(operation.find == "every source" for operation in operations):
+            raise BatchOperationError(0, "text not found in paragraph")
+        return original(self, operations, **kwargs)
+
+    monkeypatch.setattr(EditorDocument, "batch_edit", batch_edit)
+
+
+class TestTheRehearsalDecidesWhatTheCommentsClaim:
+    async def _plan(self, path: Path, issues, workspace: Path):
+        return await plan_edit_export(
+            issues,
+            _TWO_PARAGRAPH_MARKDOWN,
+            str(path),
+            _TWO_PARAGRAPH_RANGES,
+            workspace_root=str(workspace),
+        )
+
+    @pytest.mark.asyncio
+    async def test_an_edit_the_library_refuses_is_noted_as_failed_and_dropped(
+        self, two_paragraph_docx_path: Path, tmp_path: Path, reject_the_appendix: None
+    ):
+        writable = _issue([_edit("14% rise", "18% rise")])
+        refused = _issue(
+            [_edit("every source", "every source and dataset", start_line=2)]
+        )
+
+        plan = await self._plan(two_paragraph_docx_path, [writable, refused], tmp_path)
+        await apply_edit_export(
+            str(two_paragraph_docx_path),
+            plan,
+            "project-1",
+            workspace_root=str(tmp_path),
+        )
+
+        (refused_note,) = plan.notes_for(refused.id)
+        assert refused_note.endswith(
+            "Not applied as a tracked change: text not found in paragraph."
+        )
+        assert [edit.edit_id for edit in plan.planned] == [writable.edit_rows[0].id]
+        assert plan.notes_for(writable.id) == [
+            'Proposed edit: "14% rise" → "18% rise"\n'
+            "the figure is wrong\n"
+            "Applied below as a tracked change."
+        ]
+        visible = _visible(two_paragraph_docx_path)
+        assert "reports a 18% rise" in visible
+        assert "lists every source consulted" in visible
+
+    @pytest.mark.asyncio
+    async def test_the_rehearsal_leaves_the_original_alone_and_is_not_applied_twice(
+        self, two_paragraph_docx_path: Path, tmp_path: Path
+    ):
+        issue = _issue([_edit("14% rise", "18% rise")])
+        before = two_paragraph_docx_path.read_bytes()
+
+        plan = await self._plan(two_paragraph_docx_path, [issue], tmp_path)
+
+        assert two_paragraph_docx_path.read_bytes() == before
+
+        await apply_edit_export(
+            str(two_paragraph_docx_path),
+            plan,
+            "project-1",
+            workspace_root=str(tmp_path),
+        )
+
+        assert [kind for kind, _ in _revisions(two_paragraph_docx_path)] == [
+            "deletion",
+            "insertion",
+        ]
+        assert _visible(two_paragraph_docx_path).count("18% rise") == 1

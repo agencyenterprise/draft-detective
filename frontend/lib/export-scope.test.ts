@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { exportCounts, issuesInExport } from './export-scope';
+import { editsPhrase, exportCounts, issuesInExport } from './export-scope';
 import { Issue, IssueEditRead, IssueEditStatus, SeverityEnum, WorkflowRunType } from '@/lib/generated-api';
 
 function edit(status: IssueEditStatus = IssueEditStatus.Proposed): IssueEditRead {
@@ -67,5 +67,22 @@ describe('exportCounts', () => {
 
   it('follows the filters', () => {
     expect(exportCounts(ISSUES, { ...NO_FILTER, severity: [SeverityEnum.High] })).toEqual({ issues: 1, edits: 1 });
+  });
+});
+
+describe('editsPhrase', () => {
+  it('names tracked changes when the option is on', () => {
+    expect(editsPhrase(1, true)).toBe('1 proposed edit as a tracked change');
+    expect(editsPhrase(4, true)).toBe('4 proposed edits as tracked changes');
+  });
+
+  it('points at the comments when the option is off', () => {
+    expect(editsPhrase(1, false)).toBe('1 proposed edit described in a comment');
+    expect(editsPhrase(4, false)).toBe('4 proposed edits described in comments');
+  });
+
+  it('says nothing about where an edit goes when there are none', () => {
+    expect(editsPhrase(0, true)).toBe('0 proposed edits');
+    expect(editsPhrase(0, false)).toBe('0 proposed edits');
   });
 });

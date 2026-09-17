@@ -102,14 +102,15 @@ async def _plan(
     edits: Sequence[IssueEdit],
     severities: Sequence[SeverityEnum] | None = None,
     paragraph_line_ranges: Dict[int, Tuple[int, int]] | None = None,
+    markdown: str | None = None,
 ):
     candidates = _candidates(edits, severities)
-    lines = document_lines(_MARKDOWN)
+    lines = document_lines(_MARKDOWN if markdown is None else markdown)
     decisions = resolve_edit_conflicts(candidates, lines)
     plan = await plan_tracked_changes(
         str(path),
         decisions,
-        {edit.id: edit for edit in edits},
+        {candidate.edit.id: candidate for candidate in candidates},
         (
             _PARAGRAPH_LINE_RANGES
             if paragraph_line_ranges is None
@@ -288,6 +289,423 @@ class TestParagraphResolution:
         assert _statuses(plan.outcomes) == {edit.id: "unlocatable"}
 
 
+# A paragraph followed by a table, with the paragraph's own figure repeated in
+# a cell. The line-range mapper runs a body paragraph's range up to the line
+# before the next body paragraph starts, so the table's markdown rows fall
+# inside paragraph 1's range -- the ranges below are that map, by hand.
+_TABLE_MARKDOWN = "\n".join(
+    [
+        "# Title",
+        "",
+        "Output increased by 14%.",
+        "",
+        "| Metric | Value |",
+        "| --- | --- |",
+        "| Growth | 14% |",
+    ]
+)
+_TABLE_LINE_RANGES: Dict[int, Tuple[int, int]] = {0: (1, 1), 1: (3, 7)}
+
+_TABLE_DETAIL = (
+    "the edit's line is not part of the mapped paragraph (a table or nested block)"
+)
+
+
+@pytest.fixture
+def table_docx_path(tmp_path: Path) -> Path:
+    document = PythonDocxDocument()
+    document.add_paragraph("Title")
+    document.add_paragraph("Output increased by 14%.")
+    table = document.add_table(rows=2, cols=2)
+    table.cell(0, 0).text = "Metric"
+    table.cell(0, 1).text = "Value"
+    table.cell(1, 0).text = "Growth"
+    table.cell(1, 1).text = "14%"
+    path = tmp_path / "table.docx"
+    document.save(str(path))
+    return path
+
+
+class TestATableLineNeverRedlinesTheParagraphAbove:
+    @pytest.mark.asyncio
+    async def test_a_table_cell_edit_is_reported_rather_than_misplaced(
+        self, table_docx_path: Path
+    ):
+        edit = _edit("14%", "18%", 7)
+
+        plan, _ = await _plan(
+            table_docx_path,
+            [edit],
+            paragraph_line_ranges=_TABLE_LINE_RANGES,
+            markdown=_TABLE_MARKDOWN,
+        )
+        await apply_tracked_changes(
+            str(table_docx_path),
+            plan.planned,
+            workspace_root=str(table_docx_path.parent),
+        )
+
+        assert plan.planned == []
+        assert _statuses(plan.outcomes) == {edit.id: "unlocatable"}
+        assert [outcome.detail for outcome in plan.outcomes] == [_TABLE_DETAIL]
+        visible, _, revisions = _read(table_docx_path)
+        assert "Output increased by 14%." in visible
+        assert list(revisions) == []
+
+    @pytest.mark.asyncio
+    async def test_the_same_quote_on_the_paragraphs_own_line_is_applied(
+        self, table_docx_path: Path
+    ):
+        edit = _edit("14%", "18%", 3)
+
+        plan, _ = await _plan(
+            table_docx_path,
+            [edit],
+            paragraph_line_ranges=_TABLE_LINE_RANGES,
+            markdown=_TABLE_MARKDOWN,
+        )
+        await apply_tracked_changes(
+            str(table_docx_path),
+            plan.planned,
+            workspace_root=str(table_docx_path.parent),
+        )
+
+        assert _statuses(plan.outcomes) == {edit.id: "applied"}
+        visible, _, revisions = _read(table_docx_path)
+        assert "Output increased by 18%." in visible
+        assert [r.type for r in revisions] == ["deletion", "insertion"]
+
+
+_FOOTNOTE_PARAGRAPH = "The protocol was applied to the second cohort in 2019."
+_FOOTNOTE_MARKDOWN = (
+    "The protocol was applied to the second cohort [[1]](#footnote-2) in 2019."
+)
+
+
+@pytest.fixture
+def footnote_docx_path(tmp_path: Path) -> Path:
+    document = PythonDocxDocument()
+    document.add_paragraph(_FOOTNOTE_PARAGRAPH)
+    path = tmp_path / "footnote.docx"
+    document.save(str(path))
+    return path
+
+
+class TestAFootnoteReferenceIsNotDrift:
+    @pytest.mark.asyncio
+    async def test_a_marker_in_the_middle_of_the_line_still_allows_the_edit(
+        self, footnote_docx_path: Path
+    ):
+        # Word carries the footnote as a reference mark, so the marker is on
+        # the markdown line and nowhere in the paragraph's text.
+        edit = _edit("second cohort", "third cohort", 1)
+
+        plan, _ = await _plan(
+            footnote_docx_path,
+            [edit],
+            paragraph_line_ranges={0: (1, 1)},
+            markdown=_FOOTNOTE_MARKDOWN,
+        )
+        await apply_tracked_changes(
+            str(footnote_docx_path),
+            plan.planned,
+            workspace_root=str(footnote_docx_path.parent),
+        )
+
+        assert _statuses(plan.outcomes) == {edit.id: "applied"}
+        visible, _, _ = _read(footnote_docx_path)
+        assert "applied to the third cohort in 2019." in visible
+
+
+_SHORT_PARAGRAPH = "Yield rose 14%."
+
+
+@pytest.fixture
+def short_docx_path(tmp_path: Path) -> Path:
+    document = PythonDocxDocument()
+    document.add_paragraph(_SHORT_PARAGRAPH)
+    path = tmp_path / "short.docx"
+    document.save(str(path))
+    return path
+
+
+class TestAShortParagraphHasNoPrefixToFallBackOn:
+    @pytest.mark.asyncio
+    async def test_a_line_that_merely_shares_the_quote_is_rejected(
+        self, short_docx_path: Path
+    ):
+        edit = _edit("14%", "18%", 1)
+
+        plan, _ = await _plan(
+            short_docx_path,
+            [edit],
+            paragraph_line_ranges={0: (1, 1)},
+            markdown="Costs fell 14%.",
+        )
+
+        assert plan.planned == []
+        assert _statuses(plan.outcomes) == {edit.id: "unlocatable"}
+        assert [outcome.detail for outcome in plan.outcomes] == [_TABLE_DETAIL]
+
+    @pytest.mark.asyncio
+    async def test_its_own_line_is_accepted(self, short_docx_path: Path):
+        edit = _edit("14%", "18%", 1)
+
+        plan, _ = await _plan(
+            short_docx_path,
+            [edit],
+            paragraph_line_ranges={0: (1, 1)},
+            markdown=_SHORT_PARAGRAPH,
+        )
+        await apply_tracked_changes(
+            str(short_docx_path),
+            plan.planned,
+            workspace_root=str(short_docx_path.parent),
+        )
+
+        assert _statuses(plan.outcomes) == {edit.id: "applied"}
+        visible, _, _ = _read(short_docx_path)
+        assert "Yield rose 18%." in visible
+
+    @pytest.mark.asyncio
+    async def test_a_leading_footnote_marker_is_not_counted_against_it(
+        self, short_docx_path: Path
+    ):
+        # Too short for the shared-prefix rule to help, and the marker sits
+        # where a prefix would start: only dropping it settles the line.
+        edit = _edit("14%", "18%", 1)
+
+        plan, _ = await _plan(
+            short_docx_path,
+            [edit],
+            paragraph_line_ranges={0: (1, 1)},
+            markdown=f"[[1]](#footnote-2) {_SHORT_PARAGRAPH}",
+        )
+
+        assert _statuses(plan.outcomes) == {edit.id: "applied"}
+
+
+_JOINED_MARKDOWN = "This is aword."
+_JOINED_LINE_RANGES: Dict[int, Tuple[int, int]] = {0: (1, 1)}
+
+
+@pytest.fixture
+def joined_docx_path(tmp_path: Path) -> Path:
+    document = PythonDocxDocument()
+    document.add_paragraph(_JOINED_MARKDOWN)
+    path = tmp_path / "joined.docx"
+    document.save(str(path))
+    return path
+
+
+class TestTheReplacementReachesWordAsWritten:
+    async def _plan_joined(self, path: Path, edit: IssueEdit):
+        return await _plan(
+            path,
+            [edit],
+            paragraph_line_ranges=_JOINED_LINE_RANGES,
+            markdown=_JOINED_MARKDOWN,
+        )
+
+    @pytest.mark.asyncio
+    async def test_a_replacement_that_only_adds_a_space_keeps_it(
+        self, joined_docx_path: Path
+    ):
+        edit = _edit("word", " word", 1)
+
+        plan, _ = await self._plan_joined(joined_docx_path, edit)
+        await apply_tracked_changes(
+            str(joined_docx_path),
+            plan.planned,
+            workspace_root=str(joined_docx_path.parent),
+        )
+
+        assert _statuses(plan.outcomes) == {edit.id: "applied"}
+        assert plan.planned[0].replace_with == " word"
+        visible, original, _ = _read(joined_docx_path)
+        assert "This is a word." in visible
+        assert "This is aword." in original
+
+    @pytest.mark.asyncio
+    async def test_a_replacement_carrying_a_newline_is_unsupported(
+        self, joined_docx_path: Path
+    ):
+        edit = _edit("aword", "a\nword", 1)
+
+        plan, _ = await self._plan_joined(joined_docx_path, edit)
+        await apply_tracked_changes(
+            str(joined_docx_path),
+            plan.planned,
+            workspace_root=str(joined_docx_path.parent),
+        )
+
+        assert plan.planned == []
+        assert _statuses(plan.outcomes) == {edit.id: "unsupported"}
+        assert [outcome.detail for outcome in plan.outcomes] == [
+            "the replacement spans more than one paragraph"
+        ]
+        visible, _, revisions = _read(joined_docx_path)
+        assert visible.strip() == "This is aword."
+        assert list(revisions) == []
+
+    @pytest.mark.asyncio
+    async def test_a_replacement_that_only_reformats_the_text_is_unsupported(
+        self, joined_docx_path: Path
+    ):
+        edit = _edit("aword", "**aword**", 1)
+
+        plan, _ = await self._plan_joined(joined_docx_path, edit)
+
+        assert plan.planned == []
+        assert _statuses(plan.outcomes) == {edit.id: "unsupported"}
+        assert [outcome.detail for outcome in plan.outcomes] == [
+            "the replacement matches the current text once formatting is removed"
+        ]
+
+
+_REFERENCE_MARKDOWN = "Smith et al. 2019. Annual report."
+
+
+@pytest.fixture
+def reference_docx_path(tmp_path: Path) -> Path:
+    document = PythonDocxDocument()
+    document.add_paragraph(_REFERENCE_MARKDOWN)
+    path = tmp_path / "reference.docx"
+    document.save(str(path))
+    return path
+
+
+class TestAMidLineNumberIsNotAListMarker:
+    @pytest.mark.asyncio
+    async def test_a_quote_opening_with_a_year_keeps_it(
+        self, reference_docx_path: Path
+    ):
+        edit = _edit("2019. Annual report", "2021. Annual report", 1)
+
+        plan, _ = await _plan(
+            reference_docx_path,
+            [edit],
+            paragraph_line_ranges={0: (1, 1)},
+            markdown=_REFERENCE_MARKDOWN,
+        )
+        await apply_tracked_changes(
+            str(reference_docx_path),
+            plan.planned,
+            workspace_root=str(reference_docx_path.parent),
+        )
+
+        assert _statuses(plan.outcomes) == {edit.id: "applied"}
+        assert plan.planned[0].find == "2019. Annual report"
+        visible, original, _ = _read(reference_docx_path)
+        assert "Smith et al. 2021. Annual report." in visible
+        assert "Smith et al. 2019. Annual report." in original
+
+
+# One Word paragraph, two markdown lines: the second list line falls inside
+# paragraph 0's line range (the mapper runs a paragraph's range up to the line
+# before the next body paragraph), and it opens with the paragraph's own words,
+# so both lines resolve into the same passage. Quotes from the two lines can
+# then cover the same characters although no line-level conflict exists.
+_ONE_PARAGRAPH_TWO_LINES = "The committee recommends increasing the 2019 budget by 14%."
+_TWO_LINE_MARKDOWN = "\n".join(
+    [
+        _ONE_PARAGRAPH_TWO_LINES,
+        "The committee recommends increasing the 2020 budget by 9%.",
+    ]
+)
+_TWO_LINE_RANGES: Dict[int, Tuple[int, int]] = {0: (1, 2)}
+
+
+@pytest.fixture
+def two_line_docx_path(tmp_path: Path) -> Path:
+    document = PythonDocxDocument()
+    document.add_paragraph(_ONE_PARAGRAPH_TWO_LINES)
+    path = tmp_path / "two-line.docx"
+    document.save(str(path))
+    return path
+
+
+class TestTwoLinesLandingInOneParagraph:
+    async def _plan_two_line(
+        self,
+        path: Path,
+        edits: Sequence[IssueEdit],
+        severities: Sequence[SeverityEnum] | None = None,
+    ):
+        return await _plan(
+            path,
+            edits,
+            severities,
+            paragraph_line_ranges=_TWO_LINE_RANGES,
+            markdown=_TWO_LINE_MARKDOWN,
+        )
+
+    @pytest.mark.asyncio
+    async def test_an_accepted_edit_on_the_later_line_beats_the_earlier_one(
+        self, two_line_docx_path: Path
+    ):
+        # Planned second, and the winner regardless: the policy is the same one
+        # that settles two quotes of a single line.
+        earlier = _edit("increasing the 2019 budget", "increasing the 2021 budget", 1)
+        accepted = _edit(
+            "committee recommends increasing",
+            "committee urges increasing",
+            2,
+            status=IssueEditStatus.ACCEPTED,
+        )
+
+        plan, _ = await self._plan_two_line(two_line_docx_path, [earlier, accepted])
+        outcomes = await apply_tracked_changes(
+            str(two_line_docx_path),
+            plan.planned,
+            workspace_root=str(two_line_docx_path.parent),
+        )
+
+        assert [edit.edit_id for edit in plan.planned] == [accepted.id]
+        assert _statuses(plan.outcomes) == {
+            earlier.id: "conflict",
+            accepted.id: "applied",
+        }
+        assert _statuses(outcomes) == {accepted.id: "applied"}
+        loss = next(o for o in plan.outcomes if o.edit_id == earlier.id)
+        assert loss.winner_id == accepted.id
+        assert loss.detail == f"overlaps proposed edit {accepted.id} in this paragraph"
+        visible, _, _ = _read(two_line_docx_path)
+        assert "The committee urges increasing the 2019 budget" in visible
+
+    @pytest.mark.asyncio
+    async def test_the_higher_severity_wins_when_both_are_proposed(
+        self, two_line_docx_path: Path
+    ):
+        earlier = _edit("increasing the 2019 budget", "increasing the 2021 budget", 1)
+        later = _edit(
+            "committee recommends increasing", "committee urges increasing", 2
+        )
+
+        plan, _ = await self._plan_two_line(
+            two_line_docx_path,
+            [earlier, later],
+            [SeverityEnum.LOW, SeverityEnum.HIGH],
+        )
+
+        assert [edit.edit_id for edit in plan.planned] == [later.id]
+        assert _statuses(plan.outcomes) == {earlier.id: "conflict", later.id: "applied"}
+
+    @pytest.mark.asyncio
+    async def test_edits_that_do_not_touch_are_both_written(
+        self, two_line_docx_path: Path
+    ):
+        first = _edit("committee", "board", 1)
+        second = _edit("budget by 9%", "budget by 11%", 2)
+
+        plan, _ = await self._plan_two_line(two_line_docx_path, [first, second])
+
+        # The second quote is not in the paragraph at all, so it is reported
+        # rather than conflated with the first -- which stands untouched.
+        assert [edit.edit_id for edit in plan.planned] == [first.id]
+        assert _statuses(plan.outcomes) == {first.id: "applied", second.id: "not_found"}
+
+
 class TestConflictsNeverReachTheLibrary:
     @pytest.mark.asyncio
     async def test_only_the_winning_edit_of_an_overlap_is_written(
@@ -428,9 +846,92 @@ class TestEditNotes:
             "in the same paragraph."
         )
 
-    @pytest.mark.parametrize(
-        "status", ["unlocatable", "not_found", "ambiguous", "failed"]
-    )
+    def test_an_unsupported_replacement_says_what_word_cannot_show(self):
+        edit = _edit("aword", "a\nword", 1)
+
+        (note,) = build_edit_notes(
+            [edit],
+            {
+                edit.id: EditOutcome(
+                    edit_id=edit.id,
+                    status="unsupported",
+                    detail="the replacement spans more than one paragraph",
+                )
+            },
+            {},
+        )
+
+        assert note.endswith(
+            "Not applied as a tracked change: the replacement cannot be "
+            "represented in Word (the replacement spans more than one "
+            "paragraph)."
+        )
+
+    def test_an_unsupported_replacement_without_a_detail_stops_at_the_reason(self):
+        edit = _edit("aword", "a\nword", 1)
+
+        (note,) = build_edit_notes(
+            [edit], {edit.id: EditOutcome(edit_id=edit.id, status="unsupported")}, {}
+        )
+
+        assert note.endswith(
+            "Not applied as a tracked change: the replacement cannot be "
+            "represented in Word."
+        )
+
+    def test_a_paragraph_wide_conflict_says_which_paragraph_it_is(self):
+        edit = _edit("14% rise", "18% rise", 1)
+        winner_id = uuid.uuid4()
+
+        (note,) = build_edit_notes(
+            [edit],
+            {
+                edit.id: EditOutcome(
+                    edit_id=edit.id,
+                    status="conflict",
+                    detail=f"overlaps proposed edit {winner_id} in this paragraph",
+                    winner_id=winner_id,
+                )
+            },
+            {edit.id: "Advocacy Tone Check"},
+        )
+
+        assert note.endswith(
+            "Not applied as a tracked change: overlaps another proposed edit "
+            "in this paragraph (Advocacy Tone Check)."
+        )
+
+    def test_a_failed_write_says_what_went_wrong(self):
+        edit = _edit("14% rise", "18% rise", 1)
+
+        (note,) = build_edit_notes(
+            [edit],
+            {
+                edit.id: EditOutcome(
+                    edit_id=edit.id,
+                    status="failed",
+                    detail="text not found in paragraph P3#aaaa",
+                )
+            },
+            {},
+        )
+
+        assert note.endswith(
+            "Not applied as a tracked change: text not found in paragraph " "P3#aaaa."
+        )
+
+    def test_a_failed_write_without_a_detail_still_reads_as_a_failure(self):
+        edit = _edit("14% rise", "18% rise", 1)
+
+        (note,) = build_edit_notes(
+            [edit], {edit.id: EditOutcome(edit_id=edit.id, status="failed")}, {}
+        )
+
+        assert note.endswith(
+            "Not applied as a tracked change: writing the change to Word failed."
+        )
+
+    @pytest.mark.parametrize("status", ["unlocatable", "not_found", "ambiguous"])
     def test_every_unmatched_outcome_reads_the_same(self, status):
         edit = _edit("14% rise", "18% rise", 1)
 

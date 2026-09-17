@@ -68,9 +68,15 @@ def _located_span(
     return spans[0] if len(spans) == 1 else None
 
 
-def _winner_key(candidate: EditCandidate) -> Tuple[int, int, float, str]:
+def winner_sort_key(candidate: EditCandidate) -> Tuple[int, int, float, str]:
     """Sort key picking the edit to keep: an accepted edit first, then the
-    higher severity, then the older issue, then the lower id."""
+    higher severity, then the older issue, then the lower id.
+
+    The whole policy lives here so that every place two edits compete -- the
+    per-line resolution below and the per-Word-paragraph pass the export runs
+    once the lines have been mapped -- keeps the same edit, whatever order the
+    rows arrived in.
+    """
     created = candidate.issue_created_at
     if created.tzinfo is None:
         created = created.replace(tzinfo=timezone.utc)
@@ -80,6 +86,11 @@ def _winner_key(candidate: EditCandidate) -> Tuple[int, int, float, str]:
         created.timestamp(),
         str(candidate.edit.id),
     )
+
+
+def pick_winner(candidates: Sequence[EditCandidate]) -> EditCandidate:
+    """The one edit of a competing group to keep, per `winner_sort_key`."""
+    return min(candidates, key=winner_sort_key)
 
 
 def _overlap_groups(
@@ -156,7 +167,7 @@ def resolve_edit_conflicts(
         located.append((candidate, span))
 
     for group in _overlap_groups(located):
-        winner = min(group, key=_winner_key)
+        winner = pick_winner(group)
         member_ids = [member.edit.id for member in group]
         for member in group:
             others = [other_id for other_id in member_ids if other_id != member.edit.id]

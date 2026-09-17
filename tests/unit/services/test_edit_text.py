@@ -9,6 +9,7 @@ from lib.services.docx.edit_text import (
     locate_in_paragraph,
     source_occurrence,
     strip_markdown,
+    word_replacement_text,
     word_search_text,
 )
 
@@ -79,6 +80,23 @@ class TestStripMarkdown:
     def test_leaves_an_unescaped_backslash_before_a_letter_alone(self):
         assert strip_markdown("path C:\\Users stays") == "path C:\\Users stays"
 
+    def test_keeps_a_mid_line_number_that_only_looks_like_a_list_marker(self):
+        assert (
+            strip_markdown("2019. Annual report", at_line_start=False)
+            == "2019. Annual report"
+        )
+        assert strip_markdown("1. First item") == "First item"
+
+    def test_keeps_a_mid_line_hash_and_arrow_too(self):
+        assert strip_markdown("# 3 of 4", at_line_start=False) == "# 3 of 4"
+        assert strip_markdown("> 5 mg", at_line_start=False) == "> 5 mg"
+
+    def test_still_strips_the_emphasis_of_a_mid_line_quote(self):
+        assert (
+            strip_markdown("2019. **Annual** report", at_line_start=False)
+            == "2019. Annual report"
+        )
+
 
 class TestWordSearchText:
     def test_strips_markdown_and_normalizes_whitespace_together(self):
@@ -91,6 +109,51 @@ class TestWordSearchText:
 
     def test_an_empty_quote_yields_nothing_to_search_for(self):
         assert word_search_text("   ") == ""
+
+    def test_passes_the_line_start_flag_through_to_the_stripping(self):
+        assert word_search_text("2019. Annual report", at_line_start=False) == (
+            "2019. Annual report"
+        )
+        assert word_search_text("2019. Annual report") == "Annual report"
+
+
+class TestWordReplacementText:
+    def test_keeps_a_leading_space_the_author_asked_for(self):
+        assert word_replacement_text(" word", at_line_start=False) == " word"
+
+    def test_keeps_a_trailing_space_the_author_asked_for(self):
+        assert word_replacement_text("word ", at_line_start=False) == "word "
+        assert word_replacement_text(" word ", at_line_start=False) == " word "
+
+    def test_collapses_internal_runs_of_whitespace_to_one_space(self):
+        assert (
+            word_replacement_text("two   \t words", at_line_start=False) == "two words"
+        )
+        # A leading run collapses to the single space it stands for.
+        assert word_replacement_text("  \t word", at_line_start=False) == " word"
+
+    def test_strips_the_markdown_syntax_word_never_shows(self):
+        assert (
+            word_replacement_text("the **new** [label](http://x)", at_line_start=False)
+            == "the new label"
+        )
+
+    def test_reports_a_replacement_that_would_split_the_paragraph(self):
+        assert word_replacement_text("first\nsecond", at_line_start=False) is None
+        assert word_replacement_text("first\r\nsecond", at_line_start=True) is None
+
+    def test_strips_a_list_marker_only_at_the_start_of_a_line(self):
+        assert (
+            word_replacement_text("2021. Annual report", at_line_start=False)
+            == "2021. Annual report"
+        )
+        assert word_replacement_text("2. Second item", at_line_start=True) == (
+            "Second item"
+        )
+
+    def test_an_empty_replacement_stays_empty_for_a_deletion(self):
+        assert word_replacement_text("", at_line_start=False) == ""
+        assert word_replacement_text(" ", at_line_start=False) == " "
 
 
 class TestAllOffsets:

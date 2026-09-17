@@ -50,6 +50,15 @@ describe('edit highlights over real ReactMarkdown output', () => {
     expect(range.toString()).toBe('second cohort [1]');
   });
 
+  it('keeps a mid-line year that reads like a list marker', () => {
+    const markdown = 'Smith et al. 2019. Annual report.';
+    const container = render(markdown);
+
+    const [range] = editRanges(container, [edit('2019. Annual report', 1)], markdown.split('\n'));
+
+    expect(range.toString()).toBe('2019. Annual report');
+  });
+
   it('marks the bold repeat rather than the plain one before it', () => {
     const markdown = 'Figure 3 and **Figure 3** close the section.';
     const container = render(markdown);

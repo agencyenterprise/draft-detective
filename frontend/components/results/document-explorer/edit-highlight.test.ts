@@ -95,6 +95,16 @@ describe('stripMarkdown', () => {
   it('does not treat an unescaped backslash before a letter as an escape', () => {
     expect(stripMarkdown('path C:\\Users stays')).toBe('path C:\\Users stays');
   });
+
+  it('keeps a mid-line number that only looks like a list marker', () => {
+    expect(stripMarkdown('2019. Annual report', false)).toBe('2019. Annual report');
+    expect(stripMarkdown('1. First item')).toBe('First item');
+  });
+
+  it('keeps a mid-line hash and arrow, and still strips emphasis', () => {
+    expect(stripMarkdown('# 3 of 4', false)).toBe('# 3 of 4');
+    expect(stripMarkdown('2019. **Annual** report', false)).toBe('2019. Annual report');
+  });
 });
 
 describe('normalizeWhitespace', () => {
@@ -106,6 +116,11 @@ describe('normalizeWhitespace', () => {
 describe('editSearchText', () => {
   it('strips markdown and normalizes whitespace together', () => {
     expect(editSearchText('  **The   claim**\n  is [unproven](https://example.com).  ')).toBe('The claim is unproven.');
+  });
+
+  it('passes the line-start flag through to the stripping', () => {
+    expect(editSearchText('2019. Annual report', false)).toBe('2019. Annual report');
+    expect(editSearchText('2019. Annual report')).toBe('Annual report');
   });
 });
 

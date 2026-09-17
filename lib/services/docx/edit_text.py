@@ -35,6 +35,10 @@ _UNDERSCORE_CLOSE = re.compile(r"_{1,3}($|[^A-Za-z0-9])")
 _BLOCK_PREFIX = re.compile(r"^[ \t]*(?:#{1,6}|>+)[ \t]*", re.MULTILINE)
 _LIST_MARKER = re.compile(r"^[ \t]*(?:[-+*]|\d+[.)])[ \t]+", re.MULTILINE)
 
+# Space, tab and non-breaking space: the horizontal runs a replacement may
+# carry. Newlines are handled separately -- they cannot be written at all.
+_HORIZONTAL_WHITESPACE = re.compile(r"[ \t\u00a0]+")
+
 # Backslash-escaped punctuation, as CommonMark defines it: the document shows
 # the character itself, so `foo\_bar` in the source reads `foo_bar` on the page.
 _ESCAPED_PUNCTUATION = re.compile(r"\\([!\"#$%&'()*+,\-./:;<=>?@\[\\\]^_`{|}~])")
@@ -64,8 +68,16 @@ def _restore_escaped(text: str) -> str:
     )
 
 
-def strip_markdown(text: str) -> str:
-    """Drop the markdown syntax a reader never sees from a quote."""
+def strip_markdown(text: str, *, at_line_start: bool = True) -> str:
+    """Drop the markdown syntax a reader never sees from a quote.
+
+    A heading hash, a blockquote arrow and a list marker are only syntax where
+    a line begins; the same characters inside a line are text Word shows.
+    ``2019. Annual report`` quoted from the middle of a reference entry keeps
+    its year, while ``1. First item`` quoted from the top of a list item loses
+    the marker -- so a caller that knows where the quote sat on its source line
+    passes ``at_line_start=False`` when it did not start there.
+    """
     stripped = _protect_escaped(text)
     stripped = _IMAGE.sub(r"\1", stripped)
     stripped = _LINK.sub(r"\1", stripped)
@@ -74,14 +86,44 @@ def strip_markdown(text: str) -> str:
     stripped = _STARS.sub("", stripped)
     stripped = _UNDERSCORE_OPEN.sub(r"\1", stripped)
     stripped = _UNDERSCORE_CLOSE.sub(r"\1", stripped)
-    stripped = _BLOCK_PREFIX.sub("", stripped)
-    stripped = _LIST_MARKER.sub("", stripped)
+    if at_line_start:
+        stripped = _BLOCK_PREFIX.sub("", stripped)
+        stripped = _LIST_MARKER.sub("", stripped)
     return _restore_escaped(stripped)
 
 
-def word_search_text(original_text: str) -> str:
+def word_search_text(original_text: str, *, at_line_start: bool = True) -> str:
     """What to look for in a Word paragraph, given an edit's raw markdown quote."""
-    return normalize_whitespace(strip_markdown(original_text))
+    return normalize_whitespace(
+        strip_markdown(original_text, at_line_start=at_line_start)
+    )
+
+
+def word_replacement_text(text: str, *, at_line_start: bool) -> Optional[str]:
+    """What to write into Word for an edit's replacement, or None if nothing can.
+
+    A replacement is not a needle: it is written verbatim, so it cannot go
+    through `word_search_text`. Trimming it would lose the space an edit adds
+    to separate two words, and stripping a leading ``2.`` from a mid-line quote
+    would silently rewrite a number. Only syntax the document never shows is
+    removed here; runs of horizontal whitespace collapse to one space, since
+    that is all Word would render, but a leading or trailing space the author
+    asked for survives.
+
+    ``None`` means the replacement cannot be expressed as a redline at all:
+    docx-editor turns a newline into a tracked paragraph split, which this
+    export does not write.
+    """
+    if "\n" in text or "\r" in text:
+        return None
+    stripped = strip_markdown(text, at_line_start=at_line_start)
+    collapsed = _HORIZONTAL_WHITESPACE.sub(" ", stripped).strip()
+    leading = " " if text[:1].isspace() else ""
+    trailing = " " if text[-1:].isspace() else ""
+    if not collapsed:
+        # Whitespace or syntax alone: one space at most, never two.
+        return " " if leading or trailing else ""
+    return f"{leading}{collapsed}{trailing}"
 
 
 def all_offsets(haystack: str, needle: str) -> List[int]:
@@ -148,6 +190,8 @@ def source_occurrence(
     block_end: int,
     start_line: int,
     original_text: str,
+    *,
+    at_line_start: bool = True,
 ) -> Optional[int]:
     """Which occurrence of the stripped quote an edit means, or None.
 
@@ -159,7 +203,9 @@ def source_occurrence(
     before the marker says which occurrence the edit was anchored to.
 
     `block_start`/`block_end` are the 1-indexed markdown lines the target Word
-    paragraph covers; `start_line` is the edit's own line.
+    paragraph covers; `start_line` is the edit's own line. `at_line_start` says
+    whether the quote opens its line, and applies to the quote alone: the
+    block's lines are stripped as the lines they are, markers and all.
     """
     if start_line < 1 or start_line > len(source_lines):
         return None
@@ -184,5 +230,5 @@ def source_occurrence(
     # The marker sits where the stripped quote starts, so the occurrences that
     # begin before it are exactly the ones the paragraph carries ahead of it.
     clean = haystack.replace(_QUOTE_MARK, "")
-    needle = word_search_text(original_text)
+    needle = word_search_text(original_text, at_line_start=at_line_start)
     return len([offset for offset in all_offsets(clean, needle) if offset < mark_at])

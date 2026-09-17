@@ -20,11 +20,25 @@ _UNMATCHED = (
 )
 
 
-def _conflict_line(winner_name: Optional[str]) -> str:
+def _unsupported_line(detail: Optional[str]) -> str:
+    """Why a replacement has no redline of its own to offer."""
+    reason = "the replacement cannot be represented in Word"
+    aside = f" ({detail})" if detail else ""
+    return f"Not applied as a tracked change: {reason}{aside}."
+
+
+def _conflict_line(outcome: EditOutcome, winner_name: Optional[str]) -> str:
+    """Where the edit it lost to sits: its own line, or the Word paragraph.
+
+    A conflict the pre-flight decided names the winning edit, so it is the
+    paragraph-wide case; one resolved before the document was opened is
+    between two quotes of the same markdown line.
+    """
     if winner_name:
+        where = "in this paragraph" if outcome.winner_id else "on this line"
         return (
             "Not applied as a tracked change: overlaps another proposed edit "
-            f"on this line ({winner_name})."
+            f"{where} ({winner_name})."
         )
     return (
         "Not applied as a tracked change: overlaps another proposed edit "
@@ -32,11 +46,25 @@ def _conflict_line(winner_name: Optional[str]) -> str:
     )
 
 
+def _failed_line(detail: Optional[str]) -> str:
+    """Why an edit that could be placed still has no redline.
+
+    Distinct from the unmatched sentence on purpose: the quote was found, and
+    what went wrong was the writing of the change.
+    """
+    reason = detail or "writing the change to Word failed"
+    return f"Not applied as a tracked change: {reason}."
+
+
 def _status_line(outcome: EditOutcome, winner_name: Optional[str]) -> str:
     if outcome.status == "applied":
         return _APPLIED
     if outcome.status == "conflict":
-        return _conflict_line(winner_name)
+        return _conflict_line(outcome, winner_name)
+    if outcome.status == "unsupported":
+        return _unsupported_line(outcome.detail)
+    if outcome.status == "failed":
+        return _failed_line(outcome.detail)
     return _UNMATCHED
 
 
