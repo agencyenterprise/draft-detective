@@ -260,6 +260,33 @@ def test_one_to_one_matching_gives_a_shared_report_to_the_required_expectation(o
     assert "missing" not in note
 
 
+@pytest.mark.parametrize("one_to_one", [False, True])
+def test_evidence_tied_reports_are_matched_the_same_way_in_either_order(one_to_one):
+    # The saved case: one recommendation reported as two issues on its line, neither quoting
+    # it, one medium and one supported. Evidence cannot tell them apart, so the pairing must at
+    # least not depend on which the workflow listed first.
+    expected = _expected(id="near_miss", title=None, anchor="Data were collected", line=5, severity="none")
+    partial = _issue(title="Partially supported recommendation: continue encouraging", description="Direction only.", severity="medium")
+    supported = _issue(title="Supported recommendation: treat increases as positive", description="Directly grounded.", severity="none")
+
+    forward, _ = issue_detection_scores([partial, supported], _inventory([expected]), one_to_one=one_to_one)
+    backward, _ = issue_detection_scores([supported, partial], _inventory([expected]), one_to_one=one_to_one)
+
+    assert forward == backward
+    assert forward["recall"] == 1.0
+    if one_to_one:
+        assert forward["precision"] == 0.5, "the split itself is charged to precision, whichever half is paired"
+
+
+def test_canonical_order_ignores_severity():
+    from evals_inspectai.common.issue_checks import _canonical_order
+
+    a = _issue(title="Same title", description="Same text.", severity="high", start=5, end=5)
+    b = _issue(title="Same title", description="Same text.", severity="none", start=5, end=5)
+    earlier = _issue(title="Zed", description="Other.", severity="none", start=3, end=3)
+    assert _canonical_order([a, b, earlier]) == [2, 0, 1], "line range first; identical text keeps report order"
+
+
 def test_repeated_expected_ids_are_rejected_at_load():
     record = InventoryRecord(
         input=DOC,

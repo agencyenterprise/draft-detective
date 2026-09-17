@@ -272,12 +272,28 @@ def _hit_pairs(
     that merges two occurrences the workflow must report separately leaves
     the second one missing.
     """
+    # Match over the issues in canonical order, so a tie between two reports
+    # with the same evidence is settled by their content, not by the order the
+    # workflow happened to report them in; then map back to the original indices.
+    order = _canonical_order(issues)
+    ordered = [issues[i] for i in order]
     if one_to_one:
-        hits = _one_to_one_hits(issues, inventory.expected_issues)
+        found = _one_to_one_hits(ordered, inventory.expected_issues)
     else:
-        hits = {e.id: hit_issue(e, issues) for e in inventory.expected_issues}
+        found = {e.id: hit_issue(e, ordered) for e in inventory.expected_issues}
+    hits = {eid: (order[i] if i is not None else None) for eid, i in found.items()}
     pairs = [(e, issues[i]) for e in inventory.expected_issues if (i := hits[e.id]) is not None]
     return hits, pairs
+
+
+def _canonical_order(issues: Sequence[IssueItem]) -> list[int]:
+    """Indices of ``issues`` sorted by line range, then title, then description.
+    Severity is deliberately not part of the key: letting it settle a tie
+    would let the classification metric grade itself."""
+    return sorted(
+        range(len(issues)),
+        key=lambda i: (issues[i].start_line, issues[i].end_line, normalize(issues[i].title), normalize(issues[i].description)),
+    )
 
 
 # Cost of leaving an expected issue unmatched in the assignment problem below:
@@ -293,8 +309,8 @@ _UNMATCHED_REQUIRED = 20_000
 def _one_to_one_hits(issues: Sequence[IssueItem], expected_issues: Sequence[ResolvedIssue]) -> dict[str, Optional[int]]:
     """A one-to-one matching of expected issues to reported issues that covers
     as many expected issues as any pairing can and, among those, uses the
-    strongest evidence (lowest total tier), so the result does not depend on
-    the order the issues were reported in. Solved as an assignment problem."""
+    strongest evidence (lowest total tier). Solved as an assignment problem;
+    exact ties fall to the order given, which ``_hit_pairs`` makes canonical."""
     size = max(len(expected_issues), len(issues))
     if size == 0:
         return {}
