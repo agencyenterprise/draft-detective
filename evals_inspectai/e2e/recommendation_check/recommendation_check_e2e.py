@@ -4,7 +4,8 @@ The workflow reports one issue per recommendation occurrence, classified by
 severity: ``none`` for supported, ``medium`` for partially supported, ``high``
 for unsupported. Its titles paraphrase the recommendation, so the inventory
 names no title: an expected issue is detected when a reported issue brackets
-its line (or quotes it), and the classification is read off ``severity_correct``.
+its line (or quotes it), ``title_correct`` is not emitted, and the classification
+is read off ``severity_correct``.
 It proposes no edits, and the inventory says nothing about edits, so
 ``issue_checks`` runs without its edit-hygiene keys.
 
@@ -35,11 +36,13 @@ from evals_inspectai.common.issue_checks import (
     EDIT_DESCRIPTIONS,
     decoy_checks,
     decoy_descriptions,
+    issue_check_keys,
     issue_checks,
 )
 from evals_inspectai.common.issue_inventory import (
     decoy_reasons,
     expects_edits,
+    expects_titles,
     inventory_dataset,
     load_inventory_records,
 )
@@ -55,7 +58,8 @@ def recommendation_check_e2e(timeout_s: float = 600) -> Task:
     """Run Recommendation Check on every sample and score it against the inventory."""
     records = load_inventory_records(DATASET)
     reasons = list(decoy_reasons(records))
-    edits = expects_edits(records)
+    edits, titles = expects_edits(records), expects_titles(records)
+    keys = issue_check_keys(edits, titles)
     image_check = ("tool_called", "tool_called")
     return Task(
         dataset=inventory_dataset(records, DATASET),
@@ -66,13 +70,19 @@ def recommendation_check_e2e(timeout_s: float = 600) -> Task:
                 "and not scored. A NaN metric value means the sample gave that check nothing to judge."
             ),
             "metrics": {
-                "issue_checks": {**DETECTION_DESCRIPTIONS, **(EDIT_DESCRIPTIONS if edits else {})},
+                "issue_checks": {k: v for k, v in {**DETECTION_DESCRIPTIONS, **EDIT_DESCRIPTIONS}.items() if k in keys},
                 "decoy_checks": decoy_descriptions(reasons),
                 "tool_called": {"tool_called": "On a sample whose document embeds a chart, whether the agent called view_image."},
             },
         },
         solver=api_workflow_agent(WORKFLOW_TYPE, timeout_s=timeout_s),
-        scorer=[issue_checks(edits=edits, one_to_one=True), decoy_checks(reasons), tool_called("view_image")],
+        scorer=[
+            issue_checks(edits=edits, one_to_one=True, titles=titles),
+            decoy_checks(reasons),
+            tool_called("view_image"),
+        ],
         fail_on_error=0.2,
-        viewer=issue_viewer_config(reasons, edits, extra=[image_check], labels={"tool_called": "Viewed image"}),
+        viewer=issue_viewer_config(
+            reasons, edits, extra=[image_check], labels={"tool_called": "Viewed image"}, titles=titles
+        ),
     )

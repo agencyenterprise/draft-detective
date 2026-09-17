@@ -69,9 +69,12 @@ EDIT_KEYS: tuple[str, ...] = (
     "edit_punctuation",
 )
 
-def issue_check_keys(edits: bool = True) -> tuple[str, ...]:
-    """The keys ``issue_checks(edits=...)`` emits, for viewer columns and descriptions."""
-    return DETECTION_KEYS + EDIT_KEYS if edits else DETECTION_KEYS
+def issue_check_keys(edits: bool = True, titles: bool = True) -> tuple[str, ...]:
+    """The keys ``issue_checks(edits=..., titles=...)`` emits, for viewer columns and
+    descriptions: the detection keys, without ``title_correct`` when the inventory names
+    no titles, plus the edit-hygiene keys when the workflow proposes edits."""
+    detection = DETECTION_KEYS if titles else tuple(k for k in DETECTION_KEYS if k != "title_correct")
+    return detection + EDIT_KEYS if edits else detection
 
 
 # Inspect's unscored sentinel: `Score.unscored()` sets a NaN value, and the
@@ -132,30 +135,37 @@ def _title_matches(issue: IssueItem, kind: Optional[str]) -> bool:
     return re.search(pattern, normalize(issue.title)) is not None
 
 
-def hit_issue(expected: ResolvedIssue, issues: Sequence[IssueItem]) -> Optional[int]:
-    """Index of the issue that reports this expected, or None.
-
-    A title match plus the anchor quoted is the strongest evidence; then a title
-    match bracketing the line; then the anchor quoted under another title. The
-    last still counts as detected so the title metric, not recall, records the
-    mislabel.
-    """
-    anchor = normalize(expected.anchor)
-    tiers: list[list[int]] = [[], [], []]
-    for index, issue in enumerate(issues):
-        same_title = _title_matches(issue, expected.title)
-        quoted = anchor in _issue_text(issue)
-        in_range = issue.start_line <= expected.line <= issue.end_line
-        if same_title and quoted:
-            tiers[0].append(index)
-        elif same_title and in_range:
-            tiers[1].append(index)
-        elif quoted:
-            tiers[2].append(index)
-    for tier in tiers:
-        if tier:
-            return tier[0]
+def hit_tier(expected: ResolvedIssue, issue: IssueItem) -> Optional[int]:
+    """How well ``issue`` reports ``expected``: 0 for a title match with the anchor
+    quoted, 1 for a title match bracketing the line, 2 for the anchor quoted under
+    another title (still detected, so the title metric, not recall, records the
+    mislabel); None when it does not report it."""
+    same_title = _title_matches(issue, expected.title)
+    quoted = normalize(expected.anchor) in _issue_text(issue)
+    in_range = issue.start_line <= expected.line <= issue.end_line
+    if same_title and quoted:
+        return 0
+    if same_title and in_range:
+        return 1
+    if quoted:
+        return 2
     return None
+
+
+def ranked_hits(expected: ResolvedIssue, issues: Sequence[IssueItem]) -> list[int]:
+    """Indices of the issues that report ``expected``, best tier first (ties in issue order)."""
+    scored = []
+    for index, issue in enumerate(issues):
+        tier = hit_tier(expected, issue)
+        if tier is not None:
+            scored.append((tier, index))
+    return [index for _, index in sorted(scored)]
+
+
+def hit_issue(expected: ResolvedIssue, issues: Sequence[IssueItem]) -> Optional[int]:
+    """Index of the best-tier issue that reports this expected, or None."""
+    ranked = ranked_hits(expected, issues)
+    return ranked[0] if ranked else None
 
 
 def decoy_hits(decoys: Sequence[Decoy], issues: Sequence[IssueItem]) -> list[Decoy]:
@@ -253,33 +263,59 @@ def _hit_pairs(
     that merges two occurrences the workflow must report separately leaves
     the second one missing.
     """
-    hits: dict[str, Optional[int]] = {}
-    claimed: set[int] = set()
-    for e in inventory.expected_issues:
-        candidates = [i for i in range(len(issues)) if not (one_to_one and i in claimed)]
-        found = hit_issue(e, [issues[i] for i in candidates])
-        index = candidates[found] if found is not None else None
-        hits[e.id] = index
-        if index is not None:
-            claimed.add(index)
+    if one_to_one:
+        hits = _one_to_one_hits(issues, inventory.expected_issues)
+    else:
+        hits = {e.id: hit_issue(e, issues) for e in inventory.expected_issues}
     pairs = [(e, issues[i]) for e in inventory.expected_issues if (i := hits[e.id]) is not None]
     return hits, pairs
 
 
+def _one_to_one_hits(issues: Sequence[IssueItem], expected_issues: Sequence[ResolvedIssue]) -> dict[str, Optional[int]]:
+    """A maximum-cardinality one-to-one matching of expected issues to reported
+    issues (augmenting paths), so as many expected issues are covered as any
+    pairing allows; each expected issue tries its better tiers first, which
+    breaks ties in favour of the stronger evidence."""
+    eligible = {e.id: ranked_hits(e, issues) for e in expected_issues}
+    holder: dict[int, str] = {}  # issue index -> expected id currently matched to it
+
+    def assign(eid: str, tried: set[int]) -> bool:
+        for i in eligible[eid]:
+            if i in tried:
+                continue
+            tried.add(i)
+            if i not in holder or assign(holder[i], tried):
+                holder[i] = eid
+                return True
+        return False
+
+    for e in expected_issues:
+        assign(e.id, set())
+    hits: dict[str, Optional[int]] = {e.id: None for e in expected_issues}
+    for i, eid in holder.items():
+        hits[eid] = i
+    return hits
+
+
 def issue_detection_scores(
-    issues: Sequence[IssueItem], inventory: ResolvedInventory, edits: bool = True, one_to_one: bool = False
+    issues: Sequence[IssueItem],
+    inventory: ResolvedInventory,
+    edits: bool = True,
+    one_to_one: bool = False,
+    titles: bool = True,
 ) -> tuple[dict[str, float], str]:
     """Detection and, for a workflow that proposes edits, generic edit hygiene.
 
-    Keys: ``DETECTION_KEYS``, plus ``EDIT_KEYS`` when ``edits`` is True; NaN
-    where a sample gives a key nothing to judge. A workflow that never
-    proposes edits passes ``edits=False`` so its scores (and the log viewer's
-    columns) carry no keys it can never score. ``one_to_one`` holds a workflow
-    that must report each expected issue separately to that (see ``_hit_pairs``).
+    Keys: ``issue_check_keys(edits, titles)``; NaN where a sample gives a key
+    nothing to judge. A workflow that never proposes edits passes
+    ``edits=False``, and one whose inventory names no titles ``titles=False``,
+    so its scores (and the log viewer's columns) carry no keys it can never
+    score. ``one_to_one`` holds a workflow that must report each expected issue
+    separately to that (see ``_hit_pairs``).
     """
     lines = inventory.document.split("\n")
     expected_issues = inventory.expected_issues
-    values: dict[str, float] = {key: NOT_APPLICABLE for key in issue_check_keys(edits)}
+    values: dict[str, float] = {key: NOT_APPLICABLE for key in issue_check_keys(edits, titles)}
     notes: list[str] = []
 
     hits, hit_pairs = _hit_pairs(issues, inventory, one_to_one)
@@ -304,7 +340,8 @@ def issue_detection_scores(
         notes.append("clean document: " + ("nothing reported" if not issues else f"{len(issues)} issue(s) reported"))
 
     if hit_pairs:
-        values["title_correct"] = _fraction([float(_title_matches(i, e.title)) for e, i in hit_pairs if e.title])
+        if titles:
+            values["title_correct"] = _fraction([float(_title_matches(i, e.title)) for e, i in hit_pairs if e.title])
         values["severity_correct"] = _fraction([float(i.severity == e.severity) for e, i in hit_pairs if e.severity])
         values["anchor_in_range"] = _fraction([float(i.start_line <= e.line <= i.end_line) for e, i in hit_pairs])
         notes += [f"{e.id}: reported as {i.title!r}, not under {e.title!r}" for e, i in hit_pairs if e.title and not _title_matches(i, e.title)]
@@ -409,14 +446,15 @@ def deterministic_scorer(scoring: Scoring) -> Scorer:
 
 
 @scorer(metrics=PER_KEY_METRICS)
-def issue_checks(edits: bool = True, one_to_one: bool = False) -> Scorer:
-    """Reported issues against the expected ones: recall, precision, F0.5, titles
-    and lines, plus edit presence and text integrity unless ``edits`` is False
-    (a workflow that proposes no edits). ``one_to_one`` makes a reported issue
-    cover at most one expected issue, for a workflow that must report each
-    occurrence separately. The same keys for every sample of an eval."""
+def issue_checks(edits: bool = True, one_to_one: bool = False, titles: bool = True) -> Scorer:
+    """Reported issues against the expected ones: recall, precision, F0.5, lines,
+    titles unless ``titles`` is False (an inventory that names none), plus edit
+    presence and text integrity unless ``edits`` is False (a workflow that
+    proposes no edits). ``one_to_one`` makes a reported issue cover at most one
+    expected issue, for a workflow that must report each occurrence separately.
+    The same keys for every sample of an eval."""
     return deterministic_scorer(
-        lambda issues, inventory: issue_detection_scores(issues, inventory, edits, one_to_one)
+        lambda issues, inventory: issue_detection_scores(issues, inventory, edits, one_to_one, titles)
     )
 
 

@@ -7,6 +7,7 @@ from evals_inspectai.common.issue_inventory import (
     ResolvedIssue,
     decoy_reasons,
     expects_edits,
+    expects_titles,
     load_inventory_records,
 )
 from evals_inspectai.e2e.active_voice.criteria import (
@@ -78,6 +79,6 @@ def test_dataset_is_well_formed():
     assert any(not r.expected_issues for r in records) and any(len(r.expected_issues) >= 5 for r in records)
     assert all(f.line >= 1 for r in records for f in r.expected_issues)
     assert "stative" in decoy_reasons(records)
-    assert expects_edits(records) is True
+    assert expects_edits(records) is True and expects_titles(records) is True
     # Every expected says whether an edit is expected, so the edit layer has something to check.
     assert all(f.edit_expected is not None for r in records for f in r.expected_issues if f.required)

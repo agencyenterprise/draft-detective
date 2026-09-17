@@ -210,6 +210,12 @@ def decoy_reasons(records: Sequence[ResolvedInventory]) -> tuple[str, ...]:
     return tuple(sorted({d.reason for r in records for d in r.decoys}))
 
 
+def expects_titles(records: Sequence[ResolvedInventory]) -> bool:
+    """Whether any expected issue in the dataset names a title: if none does, the
+    workflow's titles are free-form and ``title_correct`` has nothing to score."""
+    return any(e.title is not None for r in records for e in r.expected_issues)
+
+
 def expects_edits(records: Sequence[ResolvedInventory]) -> bool:
     """Whether any expected issue in the dataset says something about proposed
     edits (``edit_expected`` or ``edit``): the workflow proposes edits and the

@@ -14,6 +14,7 @@ from evals_inspectai.common.simple_deep_agent_types import IssueItem, ProposedEd
 from evals_inspectai.common.issue_checks import (
     DETECTION_KEYS,
     EDIT_KEYS,
+    issue_check_keys,
     decoy_hits,
     decoy_scores,
     issue_detection_scores,
@@ -200,6 +201,26 @@ def test_one_to_one_matching_counts_a_merged_occurrence_as_missing():
     separate = [_issue(title="A", description="“Data were collected”"), _issue(title="B", description="“Findings are listed”", start=9, end=9)]
     values, _ = issue_detection_scores(separate, _inventory([first, second]), one_to_one=True)
     assert values["recall"] == 1.0 and values["precision"] == 1.0
+
+
+def test_one_to_one_matching_finds_a_complete_pairing_regardless_of_order():
+    # The broad issue quotes A and B; the narrow one quotes only A. Greedy matching in
+    # inventory order would give A the broad issue and leave B missing.
+    a = _expected(id="a", title=None, anchor="Data were collected", line=5)
+    b = _expected(id="b", title=None, anchor="Findings are listed", line=9)
+    broad = _issue(title="Both", description="“Data were collected” “Findings are listed”", start=5, end=9)
+    narrow = _issue(title="A only", description="“Data were collected”")
+
+    values, _ = issue_detection_scores([broad, narrow], _inventory([a, b]), one_to_one=True)
+    assert values["recall"] == 1.0 and values["precision"] == 1.0
+
+
+def test_title_key_is_left_out_when_the_inventory_names_no_titles():
+    assert "title_correct" not in issue_check_keys(edits=False, titles=False)
+    assert "title_correct" in issue_check_keys(edits=False, titles=True)
+    f = _expected(title=None)
+    values, _ = issue_detection_scores([_issue(description="“Data were collected”")], _inventory([f]), edits=False, titles=False)
+    assert "title_correct" not in values and values["recall"] == 1.0
 
 
 def test_edit_keys_are_left_out_for_a_workflow_that_proposes_no_edits():

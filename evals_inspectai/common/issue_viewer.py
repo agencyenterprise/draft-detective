@@ -48,9 +48,10 @@ def issue_viewer_config(
     edits: bool = True,
     extra: Sequence[tuple[str, str]] = (),
     labels: Mapping[str, str] | None = None,
+    titles: bool = True,
 ) -> ViewerConfig:
     """Columns for the generic scorers, derived from what they emit given the
-    dataset (``issue_checks(edits=...)`` and ``decoy_checks(decoy_reasons)``),
+    dataset (``issue_checks(edits=..., titles=...)`` and ``decoy_checks(decoy_reasons)``),
     followed by ``extra`` (scorer name, score key) pairs for the eval's own
     scorers; ``labels`` adds headers for those.
 
@@ -60,7 +61,7 @@ def issue_viewer_config(
     eval cannot score should not be emitted at all rather than listed and hidden.
     """
     scored = [
-        *(("issue_checks", key) for key in issue_check_keys(edits)),
+        *(("issue_checks", key) for key in issue_check_keys(edits, titles)),
         *(("decoy_checks", f"no_fp_{reason}") for reason in decoy_reasons),
         *extra,
     ]
