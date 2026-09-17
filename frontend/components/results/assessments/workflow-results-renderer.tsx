@@ -39,7 +39,7 @@ interface WorkflowResultsContentProps {
   onNavigateToReferences: () => void;
 }
 
-function renderWorkflowResults(
+export function renderWorkflowResults(
   project: ProjectDetailed,
   workflowRun: WorkflowRunDetail,
   onNavigateToDocumentExplorer: (lineRange?: [number, number]) => void,

@@ -63,8 +63,13 @@ const workflowTypeIcons: Partial<Record<WorkflowRunType, LucideIcon>> = {
 
 const DEFAULT_ICON = FileText;
 
-function isIconName(name: string): name is IconName {
-  return (iconNames as readonly string[]).includes(name);
+/**
+ * The lucide icon a workflow declares, when lucide knows the name. Anything
+ * else (no declaration, a typo, an icon from another set) resolves to null so
+ * the caller falls back instead of asking DynamicIcon for a name it will reject.
+ */
+export function declaredIconName(icon: string | null | undefined): IconName | null {
+  return icon && (iconNames as readonly string[]).includes(icon) ? (icon as IconName) : null;
 }
 
 /**
@@ -72,9 +77,15 @@ function isIconName(name: string): name is IconName {
  * (skill-declared workflows do, in their SKILL.md frontmatter) is drawn from
  * that name; the hand-written workflows keep their entries in the map above.
  */
-function WorkflowIcon({ workflowType, className }: { workflowType: WorkflowTypeDescription; className?: string }) {
-  const declared = workflowType.icon;
-  if (declared && isIconName(declared)) {
+export function WorkflowIcon({
+  workflowType,
+  className,
+}: {
+  workflowType: WorkflowTypeDescription;
+  className?: string;
+}) {
+  const declared = declaredIconName(workflowType.icon);
+  if (declared) {
     return <DynamicIcon name={declared} className={className} />;
   }
   const Icon: LucideIcon = workflowTypeIcons[workflowType.type] ?? DEFAULT_ICON;
