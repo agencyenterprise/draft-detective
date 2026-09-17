@@ -392,6 +392,15 @@ def test_edit_phrases_numbers_and_punctuation():
     assert all(clean[k][0] == 1.0 for k in ("edit_keeps_numbers_and_markers", "edit_punctuation", "edit_expected_phrases"))
 
 
+def test_expected_phrases_are_read_off_the_line_with_a_word_level_edit_applied():
+    f = _expected(edit_expected=True, edit={"must_include": ["The team collected data"], "must_not_include": ["were collected"]})
+    swap = _edit("Data were collected", "The team collected data")  # replaces only the clause, not the sentence
+    out = edit_checks(f, _issue(edits=[swap]), LINES)
+    assert out["edit_expected_phrases"][0] == 1.0
+    wrong = _edit("Data were collected", "Data were gathered")
+    assert edit_checks(f, _issue(edits=[wrong]), LINES)["edit_expected_phrases"][0] == 0.0
+
+
 def test_footnote_markers_and_citations_count_as_tokens():
     f = _expected(edit_expected=True, anchor="Findings are listed", line=9)
     line = "Findings are listed in Appendix A (Smith, 2024).[[3]](#footnote-4)"
