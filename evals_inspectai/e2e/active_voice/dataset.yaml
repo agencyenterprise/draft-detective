@@ -458,10 +458,6 @@
     edit:
       must_include:
       - Table 3 shows
-  - id: results_table
-    title: Passive Voice
-    anchor: Table S.1 shows the results
-    required: false
   - id: ratings_not_validated
     title: Passive Voice
     anchor: the ratings have not been validated against realized project outcomes
@@ -487,8 +483,10 @@
     reason: active
   - anchor: An additional researcher briefly verified the ratings
     reason: active
-  notes: 'results_table is a decoy dressed as a finding: it is already active, so it must not be reported; required=false
-    keeps it out of recall while any hit shows up in precision.'
+  - anchor: Table S.1 shows the results
+    reason: active
+  notes: 'ratings_not_validated is a borderline passive (a state of the ratings as much as an omitted act of validation);
+    required=false keeps it out of recall while a report of it still counts as correct.'
 - input: file://e2e/active_voice/files/essay_section.md
   expected_issues:
   - id: iap_established

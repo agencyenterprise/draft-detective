@@ -176,7 +176,8 @@ metric named so a regression points at itself (see
    least as well in place; for passive issues with no edit expected, the suggested action
    asks rather than guesses). Each is graded on Inspect's own model-grading protocol, the
    same template shape, instructions and C / P / I grade pattern as `model_graded_fact`,
-   mapped to 1, 0.5 and 0. Inspect's built-in scorers grade one answer per sample, which is
+   mapped to 1, 0.5 and 0. A detected issue that offers no suggested action scores 0 on an
+   action criterion, not NaN. Inspect's built-in scorers grade one answer per sample, which is
    why the loop over edits is ours and the protocol is theirs. Pass `judge_calls=3` to take
    the median on a noisy criterion.
 

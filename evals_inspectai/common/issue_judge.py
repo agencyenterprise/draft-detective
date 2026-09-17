@@ -63,7 +63,7 @@ ISSUE_TEMPLATE = """You are grading one reviewer issue against one criterion.
 
 [BEGIN DATA]
 ************
-[Sentence the expected is about]: {question}
+[Sentence the issue is about]: {question}
 ************
 [Reviewer's suggested action]: {answer}
 ************
@@ -129,7 +129,12 @@ async def judge_sample(
     criteria: Sequence[JudgeCriterion],
     calls: int = 1,
 ) -> tuple[dict[str, float], str]:
-    """All criteria for one sample, NaN where a criterion has nothing to judge."""
+    """All criteria for one sample, NaN where a criterion has nothing to judge.
+
+    An expected-scope criterion judges the issue's suggested action; a detected
+    issue that offers none has failed it (the check is what the action says), so
+    that scores 0 rather than NaN.
+    """
     values: dict[str, list[float]] = {c.key: [] for c in criteria}
     notes: list[str] = []
 
@@ -151,7 +156,9 @@ async def judge_sample(
                 for edit in edits_for(expected, issue):
                     prompt = edit_prompt(criterion.criterion, paragraph, edit.original_text, edit.replacement_text)
                     record(criterion, expected, *await grade(grader, prompt, calls))
-            elif issue.suggested_action:
+            elif not issue.suggested_action:
+                record(criterion, expected, 0.0, "no suggested action to judge")
+            else:
                 prompt = issue_prompt(criterion.criterion, expected.anchor, issue.suggested_action)
                 record(criterion, expected, *await grade(grader, prompt, calls))
 

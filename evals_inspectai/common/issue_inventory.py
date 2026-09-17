@@ -84,25 +84,41 @@ class ExpectedIssue(BaseModel):
         default=None,
         description="True when a correct run attaches a proposed edit for this issue, False when it must not; None to not check",
     )
-    severity: Optional[str] = None
-    edit: Optional[EditExpectation] = None
-    required: bool = True
+    severity: Optional[str] = Field(
+        default=None,
+        description="The severity a correct run gives the issue (low, medium, high); feeds severity_correct. None to not check",
+    )
+    edit: Optional[EditExpectation] = Field(
+        default=None,
+        description="Phrases the proposed edit's replacement must carry or avoid; feeds edit_expected_phrases",
+    )
+    required: bool = Field(
+        default=True,
+        description=(
+            "True: a correct run reports this issue, so missing it costs recall. False: reporting it is "
+            "acceptable but not expected, so it is left out of recall while a report of it still counts as "
+            "correct for precision. Use for borderline sentences a reasonable run may or may not flag; a "
+            "sentence that must not be reported is a decoy, not an optional expected issue."
+        ),
+    )
 
 
 class Decoy(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    anchor: str
+    anchor: str = Field(description="Verbatim text of a sentence that looks like an issue but is not; must appear in the document")
     reason: str = Field(description="Which rule of the check would misfire here; becomes the metric no_fp_<reason>")
 
 
 class InventoryRecord(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    input: str
-    expected_issues: list[ExpectedIssue] = Field(default_factory=list)
-    decoys: list[Decoy] = Field(default_factory=list)
-    notes: Optional[str] = None
+    input: str = Field(description="The document: inline markdown, or file://<path> relative to evals_inspectai/")
+    expected_issues: list[ExpectedIssue] = Field(
+        default_factory=list, description="Issues a correct run reports; empty for a clean document"
+    )
+    decoys: list[Decoy] = Field(default_factory=list, description="Sentences a correct run leaves alone")
+    notes: Optional[str] = Field(default=None, description="Why the record exists or how it was labelled; not scored")
 
 
 class ResolvedIssue(ExpectedIssue):

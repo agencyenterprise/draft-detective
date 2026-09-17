@@ -42,7 +42,10 @@ Report problems; do not rewrite the document. Each issue carries a proposed fix 
 
 1. **Read the whole document first.** Note who the parties are (authors, client, partner organizations, sites) and whether the document speaks in the first person. You will need both to decide who an actor is and how to name them.
 2. **Scan the body text paragraph by paragraph.** For each paragraph, list the passive sentences that meet the "what counts" test and any ambiguous-actor sentences. Skip the excluded material.
-3. **Check each candidate before keeping it.** Confirm that the quoted sentence contains a finite *be* + participle naming an action, that the participle is not one of the state or idiom cases above, and that the sentence is not quoted, cited, or a participial modifier. Drop anything that fails.
+3. **Check each candidate against the test for its type before keeping it.**
+   - A passive candidate must contain a finite *be* or *get* + past participle naming an action; the participle must not be one of the state or idiom cases above; and the sentence must not be quoted, cited, or a participial modifier.
+   - An ambiguous-actor candidate is an active sentence, so do not look for a participle. Its subject must be an inanimate thing standing in for people, the document must name more than one party who could be doing the work, and it must not be one of the clear-actor cases above.
+   Drop anything that fails its test.
 4. **Work out the fix for each kept sentence.**
    - If the actor is named or clear, write the active sentence. Change as little as possible: move the actor into subject position and adjust the verb. Keep every claim, number, date, citation, footnote marker, and qualifier of the original, in the original order where you can.
    - If the document speaks in the first person, name the authors as *we*, never as *the authors*. Otherwise use the entity the document itself names (*RAND*, *the research team*, *the department*). Use the actor the text literally names, not a near neighbour.
