@@ -247,6 +247,31 @@ def test_line_range_breaks_a_tie_between_issues_that_quote_both_occurrences(one_
     assert values["recall"] == 1.0 and values["severity_correct"] == 1.0 and values["anchor_in_range"] == 1.0
 
 
+@pytest.mark.parametrize("optional_first", [False, True])
+def test_one_to_one_matching_gives_a_shared_report_to_the_required_expectation(optional_first):
+    required = _expected(id="required", title=None, anchor="Data were collected", line=5, required=True)
+    optional = _expected(id="optional", title=None, anchor="We then coded", line=5, required=False)
+    shared = _issue(title="One report", description="“Data were collected” and “We then coded”")
+    expected = [optional, required] if optional_first else [required, optional]
+
+    values, note = issue_detection_scores([shared], _inventory(expected), one_to_one=True)
+
+    assert values["recall"] == 1.0, "the optional expectation must not consume the report the required one needs"
+    assert "missing" not in note
+
+
+def test_repeated_expected_ids_are_rejected_at_load():
+    record = InventoryRecord(
+        input=DOC,
+        expected_issues=[
+            {"title": "Passive Voice", "anchor": "Data were collected", "line": 5},
+            {"title": "Passive Voice", "anchor": "Data were collected", "line": 5},
+        ],
+    )
+    with pytest.raises(ValueError, match="ids must be unique"):
+        resolve_record(record)
+
+
 def test_title_key_is_left_out_when_the_inventory_names_no_titles():
     assert "title_correct" not in issue_check_keys(edits=False, titles=False)
     assert "title_correct" in issue_check_keys(edits=False, titles=True)

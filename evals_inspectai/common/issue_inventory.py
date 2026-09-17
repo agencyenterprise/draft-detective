@@ -80,7 +80,9 @@ class ExpectedIssue(BaseModel):
         default=None,
         description=(
             "Short label used in score explanations ('missing studies_identified', "
-            "'rates_tracked: 1/2 replacements ...'). Defaults to the anchor."
+            "'rates_tracked: 1/2 replacements ...') and to tell expected issues apart. Defaults to "
+            "the anchor, so it must be set when the same anchor is used twice with explicit lines; "
+            "the loader rejects a record whose resolved ids repeat."
         ),
     )
     line: Optional[int] = Field(default=None, description="1-indexed document line; resolved from the anchor when omitted")
@@ -183,6 +185,12 @@ def resolve_record(record: InventoryRecord) -> ResolvedInventory:
         if normalize(expected.anchor) not in normalize(lines[line - 1]):
             raise ValueError(f"expected issue {label!r}: anchor is not on line {line}")
         issues.append(ResolvedIssue(**{**expected.model_dump(), "line": line, "id": label}))
+    repeated = sorted({i.id for i in issues if sum(1 for j in issues if j.id == i.id) > 1})
+    if repeated:
+        raise ValueError(
+            f"expected issue ids must be unique within a record; repeated: {repeated}. "
+            "Set `id` on expected issues that share an anchor."
+        )
     for decoy in record.decoys:
         if not any(normalize(decoy.anchor) in normalize(line) for line in lines):
             raise ValueError(f"decoy {decoy.anchor!r} is not in the document")

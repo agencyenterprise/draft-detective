@@ -282,8 +282,12 @@ def _hit_pairs(
 
 # Cost of leaving an expected issue unmatched in the assignment problem below:
 # larger than any total of tier costs, so cardinality is maximised first and
-# evidence strength decides among pairings of equal size.
-_UNMATCHED = 10_000
+# evidence strength decides among pairings of equal size. Leaving a required
+# issue unmatched costs more than leaving an optional one, so when one report
+# could cover either, the required one gets it and recall is not lowered by a
+# borderline expectation.
+_UNMATCHED_OPTIONAL = 10_000
+_UNMATCHED_REQUIRED = 20_000
 
 
 def _one_to_one_hits(issues: Sequence[IssueItem], expected_issues: Sequence[ResolvedIssue]) -> dict[str, Optional[int]]:
@@ -294,7 +298,9 @@ def _one_to_one_hits(issues: Sequence[IssueItem], expected_issues: Sequence[Reso
     size = max(len(expected_issues), len(issues))
     if size == 0:
         return {}
-    cost = [[_UNMATCHED] * size for _ in range(size)]
+    unmatched = [_UNMATCHED_REQUIRED if e.required else _UNMATCHED_OPTIONAL for e in expected_issues]
+    unmatched += [_UNMATCHED_OPTIONAL] * (size - len(expected_issues))  # padding rows
+    cost = [[unmatched[row]] * size for row in range(size)]
     for row, e in enumerate(expected_issues):
         for col, issue in enumerate(issues):
             tier = hit_tier(e, issue)
@@ -304,7 +310,7 @@ def _one_to_one_hits(issues: Sequence[IssueItem], expected_issues: Sequence[Reso
     hits: dict[str, Optional[int]] = {}
     for row, e in enumerate(expected_issues):
         matched = assignment.get(row)
-        hits[e.id] = matched if matched is not None and cost[row][matched] < _UNMATCHED else None
+        hits[e.id] = matched if matched is not None and cost[row][matched] < _UNMATCHED_OPTIONAL else None
     return hits
 
 
