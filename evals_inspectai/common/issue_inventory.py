@@ -14,7 +14,7 @@ Record shape (YAML)::
 
     - input: file://e2e/active_voice/files/report.md   # or inline markdown
       expected_issues:
-        - title: Passive Voice                       # title a correct run uses (see ExpectedIssue.title)
+        - title: Passive Voice                       # title a correct run uses; omit for free-form titles
           anchor: "Studies were identified through"    # verbatim quote that locates the issue (see .anchor)
           id: studies_identified                       # optional label for score explanations
           edit_expected: true                          # true: an edit must be attached; false: none may be
@@ -55,13 +55,17 @@ class EditExpectation(BaseModel):
 class ExpectedIssue(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    title: str = Field(
+    title: Optional[str] = Field(
+        default=None,
         description=(
-            "The issue title a correct run uses. Matched after normalising case, quotes "
-            "and whitespace: equal to the reported title, or the reported title starts "
-            "with this followed by a colon (so 'Passive Voice: Section Summary' matches "
-            "'Passive Voice')."
-        )
+            "The issue title a correct run uses, or a stable part of it. Matched after "
+            "normalising case, quotes and whitespace as whole words contained in the reported "
+            "title (so 'Passive Voice' matches 'Passive Voice: Section Summary', and 'partially "
+            "supported' matches 'Recommendation partially supported: expand to all sites', while "
+            "'supported' does not match 'unsupported'). Omit when the workflow's titles carry no "
+            "stable part: any title then matches, detection rests on the anchor being quoted or "
+            "its line bracketed, and title_correct is not scored for the issue."
+        ),
     )
     anchor: str = Field(
         description=(
@@ -76,7 +80,9 @@ class ExpectedIssue(BaseModel):
         default=None,
         description=(
             "Short label used in score explanations ('missing studies_identified', "
-            "'rates_tracked: 1/2 replacements ...'). Defaults to the anchor."
+            "'rates_tracked: 1/2 replacements ...') and to tell expected issues apart. Defaults to "
+            "the anchor, so it must be set when the same anchor is used twice with explicit lines; "
+            "the loader rejects a record whose resolved ids repeat."
         ),
     )
     line: Optional[int] = Field(default=None, description="1-indexed document line; resolved from the anchor when omitted")
@@ -179,6 +185,12 @@ def resolve_record(record: InventoryRecord) -> ResolvedInventory:
         if normalize(expected.anchor) not in normalize(lines[line - 1]):
             raise ValueError(f"expected issue {label!r}: anchor is not on line {line}")
         issues.append(ResolvedIssue(**{**expected.model_dump(), "line": line, "id": label}))
+    repeated = sorted({i.id for i in issues if sum(1 for j in issues if j.id == i.id) > 1})
+    if repeated:
+        raise ValueError(
+            f"expected issue ids must be unique within a record; repeated: {repeated}. "
+            "Set `id` on expected issues that share an anchor."
+        )
     for decoy in record.decoys:
         if not any(normalize(decoy.anchor) in normalize(line) for line in lines):
             raise ValueError(f"decoy {decoy.anchor!r} is not in the document")
@@ -204,6 +216,20 @@ def load_inventory_records(path: Path) -> list[ResolvedInventory]:
 def decoy_reasons(records: Sequence[ResolvedInventory]) -> tuple[str, ...]:
     """Every decoy reason a dataset uses, sorted, so the scorer can declare one metric each."""
     return tuple(sorted({d.reason for r in records for d in r.decoys}))
+
+
+def expects_titles(records: Sequence[ResolvedInventory]) -> bool:
+    """Whether any expected issue in the dataset names a title: if none does, the
+    workflow's titles are free-form and ``title_correct`` has nothing to score."""
+    return any(e.title is not None for r in records for e in r.expected_issues)
+
+
+def expects_edits(records: Sequence[ResolvedInventory]) -> bool:
+    """Whether any expected issue in the dataset says something about proposed
+    edits (``edit_expected`` or ``edit``): the workflow proposes edits and the
+    edit-hygiene checks apply. A dataset that never mentions edits is for a
+    workflow that reports issues only."""
+    return any(e.edit_expected is not None or e.edit is not None for r in records for e in r.expected_issues)
 
 
 def inventory_to_sample(inventory: ResolvedInventory) -> Sample:

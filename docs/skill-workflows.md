@@ -121,7 +121,14 @@ returns its `Task`, and a `criteria.py` with what the check is about (copy
 `judged_criteria` in `issue_judge.py`, all fed by the issue-inventory loader in
 `issue_inventory.py`) and adds only what is specific to the workflow: its own edit checks and
 the criteria the judge grades. None of that is tied to skill-declared workflows: any workflow
-that reports issues can be evaluated the same way.
+that reports issues can be evaluated the same way; `evals_inspectai/e2e/recommendation_check/`
+scores a hand-written workflow with free-form titles and no edits on the same loader and scorers
+(`expects_edits` and `expects_titles` read off the inventory that no edits and no titles are
+expected, and `issue_checks(edits=False, titles=False)` then leaves the edit-hygiene and title keys
+out, so the eval emits no key it can never score). Its skill requires one issue per
+recommendation occurrence, so it passes `one_to_one=True`: a reported issue covers at most one expected
+issue, and a run that merges two restatements loses recall on the second. Active Voice keeps the
+default, where one paragraph-level issue may cover several expected sentences.
 
 ### Ground truth as an inventory
 
@@ -132,8 +139,9 @@ anchored by a verbatim quote, so the scorer knows whether the run found *that* s
 ```yaml
 - input: file://e2e/active_voice/files/report.md     # or inline markdown
   expected_issues:
-    - title: Passive Voice                          # the issue title a correct run uses; matched
-                                                    # exactly, or as the prefix before a colon
+    - title: Passive Voice                          # the issue title, or a stable part of it, matched
+                                                    # as whole words within the reported title. Omit
+                                                    # when titles have no stable part: any then matches
       anchor: "Studies were identified through"       # verbatim quote that locates the issue: resolves
                                                     # its line, and detection means the run quoted it
                                                     # or bracketed its line
@@ -155,11 +163,14 @@ reported on it is a false positive. Fixture documents live under
 
 ### What gets scored
 
-Four scorers, kept separate because their key sets have different owners, and each
+Up to four scorers, kept separate because their key sets have different owners, and each
 metric named so a regression points at itself (see
-`evals_inspectai/e2e/active_voice/active_voice_e2e.py`):
+`evals_inspectai/e2e/active_voice/active_voice_e2e.py`, which uses all four; Recommendation
+Check uses the first two plus its image check):
 
-1. **`issue_checks`, deterministic, the same keys for every issue-inventory eval.** An
+1. **`issue_checks`, deterministic, the same keys for every sample of an eval.** Keys the
+   inventory can never score (edit hygiene when no edits are expected, the title check when
+   no titles are named) are left out rather than reported as NaN throughout. An
    expected issue is detected when a reported issue with its title quotes its anchor or
    brackets its line; several expected issues may map to one paragraph-level reported
    issue. Detection metrics: `recall` over required expected issues, `precision` over

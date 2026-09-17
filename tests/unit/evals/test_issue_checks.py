@@ -14,6 +14,7 @@ from evals_inspectai.common.simple_deep_agent_types import IssueItem, ProposedEd
 from evals_inspectai.common.issue_checks import (
     DETECTION_KEYS,
     EDIT_KEYS,
+    issue_check_keys,
     decoy_hits,
     decoy_scores,
     issue_detection_scores,
@@ -151,9 +152,179 @@ def test_decoy_hits_by_reason_over_the_dataset_wide_reason_list():
 def test_title_severity_and_range_metrics_follow_the_hit():
     f = _expected(severity="low")
     wrong = _issue(title="Something Else", description="“Data were collected”", start=1, end=1, severity="medium")
-    values, _ = issue_detection_scores([wrong], _inventory([f]))
+    values, note = issue_detection_scores([wrong], _inventory([f]))
     assert values["recall"] == 1.0
     assert values["title_correct"] == 0.0 and values["severity_correct"] == 0.0 and values["anchor_in_range"] == 0.0
+    # The explanation names the issue behind each mismatch, so a reader need not open the run.
+    assert "f: reported as 'Something Else', not under 'Passive Voice'" in note
+    assert "f: severity medium, expected low" in note
+    assert "f: lines 1-1 do not bracket line 5" in note
+
+
+def test_title_matches_as_whole_words_anywhere_in_the_reported_title():
+    f = _expected(title="Passive Voice")
+    assert hit_issue(f, [_issue(title="Passive Voice: Section Summary", description="“Data were collected”")]) == 0
+    assert hit_issue(f, [_issue(title="Section summary: passive voice", description="“Data were collected”")]) == 0
+    # Quoted under an unrelated title still counts as detected, but under the third tier: title_correct records it.
+    values, _ = issue_detection_scores([_issue(title="Wordy Sentence", description="“Data were collected”")], _inventory([f]))
+    assert values["recall"] == 1.0 and values["title_correct"] == 0.0
+
+    supported = _expected(title="supported", severity="none")
+    quoted = "“Data were collected”"
+    values, _ = issue_detection_scores([_issue(title="Unsupported recommendation: x", description=quoted)], _inventory([supported]))
+    assert values["title_correct"] == 0.0, "a whole-word match: 'supported' is not inside 'unsupported'"
+    values, _ = issue_detection_scores([_issue(title="Recommendation partially supported: x", description=quoted)], _inventory([supported]))
+    assert values["title_correct"] == 1.0
+
+
+def test_an_expected_issue_without_a_title_matches_any_title_by_line_and_is_not_title_scored():
+    f = _expected(title=None, severity="high")
+    paraphrased = _issue(title="Unsupported recommendation: collect more data", description="No finding backs this.", severity="high")
+    assert hit_issue(f, [paraphrased]) == 0
+    values, _ = issue_detection_scores([paraphrased], _inventory([f]))
+    assert values["recall"] == 1.0 and values["severity_correct"] == 1.0
+    assert math.isnan(values["title_correct"]), "no title to hold the run to"
+
+
+def test_one_to_one_matching_counts_a_merged_occurrence_as_missing():
+    first = _expected(id="first", title=None, anchor="Data were collected", line=5)
+    second = _expected(id="second", title=None, anchor="Findings are listed", line=9)
+    merged = _issue(title="Two in one", description="“Data were collected” and “Findings are listed”", start=5, end=9)
+
+    values, _ = issue_detection_scores([merged], _inventory([first, second]))
+    assert values["recall"] == 1.0, "by default one paragraph-level issue may cover several expected issues"
+
+    values, note = issue_detection_scores([merged], _inventory([first, second]), one_to_one=True)
+    assert values["recall"] == 0.5 and values["precision"] == 1.0
+    assert "missing second" in note and "merged into an issue that already covers another expected issue: second" in note
+
+    separate = [_issue(title="A", description="“Data were collected”"), _issue(title="B", description="“Findings are listed”", start=9, end=9)]
+    values, _ = issue_detection_scores(separate, _inventory([first, second]), one_to_one=True)
+    assert values["recall"] == 1.0 and values["precision"] == 1.0
+
+
+def test_one_to_one_matching_finds_a_complete_pairing_regardless_of_order():
+    # The broad issue quotes A and B; the narrow one quotes only A. Greedy matching in
+    # inventory order would give A the broad issue and leave B missing.
+    a = _expected(id="a", title=None, anchor="Data were collected", line=5)
+    b = _expected(id="b", title=None, anchor="Findings are listed", line=9)
+    broad = _issue(title="Both", description="“Data were collected” “Findings are listed”", start=5, end=9)
+    narrow = _issue(title="A only", description="“Data were collected”")
+
+    values, _ = issue_detection_scores([broad, narrow], _inventory([a, b]), one_to_one=True)
+    assert values["recall"] == 1.0 and values["precision"] == 1.0
+
+
+@pytest.mark.parametrize("reversed_order", [False, True])
+def test_one_to_one_matching_keeps_the_strongest_evidence_whatever_the_output_order(reversed_order):
+    # Both issues bracket both recommendations; only the first quotes its anchor. The pairing
+    # that keeps the quote is the right one, and it must not depend on which issue came first.
+    a = _expected(id="a", title=None, anchor="Data were collected", line=5, severity="low")
+    b = _expected(id="b", title=None, anchor="Findings are listed", line=9, severity="high")
+    quotes_a = _issue(title="A", description="“Data were collected” by the team", start=5, end=9, severity="low")
+    paraphrases_b = _issue(title="B", description="The appendix listing is passive.", start=5, end=9, severity="high")
+    issues = [paraphrases_b, quotes_a] if reversed_order else [quotes_a, paraphrases_b]
+
+    values, _ = issue_detection_scores(issues, _inventory([a, b]), one_to_one=True)
+
+    assert values["recall"] == 1.0 and values["severity_correct"] == 1.0
+
+
+@pytest.mark.parametrize("one_to_one", [False, True])
+@pytest.mark.parametrize("reversed_order", [False, True])
+def test_line_range_breaks_a_tie_between_issues_that_quote_both_occurrences(one_to_one, reversed_order):
+    # A recommendation and its restatement, each reported by an issue that quotes both wordings
+    # (to say it is a restatement) but brackets only its own line. The range must decide.
+    summary = _expected(id="summary", title=None, anchor="Data were collected", line=5, severity="none")
+    detailed = _expected(id="detailed", title=None, anchor="Findings are listed", line=9, severity="medium")
+    both = "“Data were collected” restates “Findings are listed”"
+    on_summary = _issue(title="Supported: summary", description=both, start=5, end=5, severity="none")
+    on_detailed = _issue(title="Partially supported: detailed", description=both, start=9, end=9, severity="medium")
+    issues = [on_detailed, on_summary] if reversed_order else [on_summary, on_detailed]
+
+    values, _ = issue_detection_scores(issues, _inventory([summary, detailed]), one_to_one=one_to_one)
+
+    assert values["recall"] == 1.0 and values["severity_correct"] == 1.0 and values["anchor_in_range"] == 1.0
+
+
+@pytest.mark.parametrize("optional_first", [False, True])
+def test_one_to_one_matching_gives_a_shared_report_to_the_required_expectation(optional_first):
+    required = _expected(id="required", title=None, anchor="Data were collected", line=5, required=True)
+    optional = _expected(id="optional", title=None, anchor="We then coded", line=5, required=False)
+    shared = _issue(title="One report", description="“Data were collected” and “We then coded”")
+    expected = [optional, required] if optional_first else [required, optional]
+
+    values, note = issue_detection_scores([shared], _inventory(expected), one_to_one=True)
+
+    assert values["recall"] == 1.0, "the optional expectation must not consume the report the required one needs"
+    assert "missing" not in note
+
+
+@pytest.mark.parametrize("one_to_one", [False, True])
+def test_evidence_tied_reports_are_matched_the_same_way_in_either_order(one_to_one):
+    # The saved case: one recommendation reported as two issues on its line, neither quoting
+    # it, one medium and one supported. Evidence cannot tell them apart, so the pairing must at
+    # least not depend on which the workflow listed first.
+    expected = _expected(id="near_miss", title=None, anchor="Data were collected", line=5, severity="none")
+    partial = _issue(title="Partially supported recommendation: continue encouraging", description="Direction only.", severity="medium")
+    supported = _issue(title="Supported recommendation: treat increases as positive", description="Directly grounded.", severity="none")
+
+    forward, _ = issue_detection_scores([partial, supported], _inventory([expected]), one_to_one=one_to_one)
+    backward, _ = issue_detection_scores([supported, partial], _inventory([expected]), one_to_one=one_to_one)
+
+    assert forward == backward
+    assert forward["recall"] == 1.0
+    if one_to_one:
+        assert forward["precision"] == 0.5, "the split itself is charged to precision, whichever half is paired"
+
+
+def test_canonical_order_is_total_over_report_content():
+    from evals_inspectai.common.issue_checks import _canonical_order
+
+    a = _issue(title="Same title", description="Same text.", severity="high", start=5, end=5)
+    b = _issue(title="Same title", description="Same text.", severity="none", start=5, end=5)
+    earlier = _issue(title="Zed", description="Other.", severity="none", start=3, end=3)
+    assert _canonical_order([a, b, earlier]) == [2, 0, 1], "line range first, then text, then severity"
+    assert _canonical_order([b, a, earlier]) == [2, 1, 0], "the same reports in another order sort the same"
+
+
+@pytest.mark.parametrize("one_to_one", [False, True])
+def test_reports_differing_only_in_severity_are_matched_the_same_way_in_either_order(one_to_one):
+    expected = _expected(id="e", title=None, anchor="Data were collected", line=5, severity="none")
+    high = _issue(title="Same title", description="Same text.", severity="high")
+    none = _issue(title="Same title", description="Same text.", severity="none")
+
+    forward, _ = issue_detection_scores([high, none], _inventory([expected]), one_to_one=one_to_one)
+    backward, _ = issue_detection_scores([none, high], _inventory([expected]), one_to_one=one_to_one)
+
+    assert forward == backward
+    assert forward["severity_correct"] in (0.0, 1.0)
+
+
+def test_repeated_expected_ids_are_rejected_at_load():
+    record = InventoryRecord(
+        input=DOC,
+        expected_issues=[
+            {"title": "Passive Voice", "anchor": "Data were collected", "line": 5},
+            {"title": "Passive Voice", "anchor": "Data were collected", "line": 5},
+        ],
+    )
+    with pytest.raises(ValueError, match="ids must be unique"):
+        resolve_record(record)
+
+
+def test_title_key_is_left_out_when_the_inventory_names_no_titles():
+    assert "title_correct" not in issue_check_keys(edits=False, titles=False)
+    assert "title_correct" in issue_check_keys(edits=False, titles=True)
+    f = _expected(title=None)
+    values, _ = issue_detection_scores([_issue(description="“Data were collected”")], _inventory([f]), edits=False, titles=False)
+    assert "title_correct" not in values and values["recall"] == 1.0
+
+
+def test_edit_keys_are_left_out_for_a_workflow_that_proposes_no_edits():
+    values, _ = issue_detection_scores([_issue(description="“Data were collected”")], _inventory([_expected()]), edits=False)
+    assert set(values) == set(DETECTION_KEYS)
+    assert values["recall"] == 1.0
 
 
 def test_issue_detection_scores_always_return_the_same_key_set():
