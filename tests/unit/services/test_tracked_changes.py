@@ -306,7 +306,10 @@ _TABLE_MARKDOWN = "\n".join(
 )
 _TABLE_LINE_RANGES: Dict[int, Tuple[int, int]] = {0: (1, 1), 1: (3, 7)}
 
-_TABLE_DETAIL = (
+# Why an edit is turned down: because its line is a table row at all, or
+# because the line and the mapped paragraph are not the same passage.
+_IN_A_TABLE_DETAIL = "the edit sits in a table, which the export cannot redline"
+_OTHER_PASSAGE_DETAIL = (
     "the edit's line is not part of the mapped paragraph (a table or nested block)"
 )
 
@@ -347,7 +350,7 @@ class TestATableLineNeverRedlinesTheParagraphAbove:
 
         assert plan.planned == []
         assert _statuses(plan.outcomes) == {edit.id: "unlocatable"}
-        assert [outcome.detail for outcome in plan.outcomes] == [_TABLE_DETAIL]
+        assert [outcome.detail for outcome in plan.outcomes] == [_IN_A_TABLE_DETAIL]
         visible, _, revisions = _read(table_docx_path)
         assert "Output increased by 14%." in visible
         assert list(revisions) == []
@@ -374,6 +377,63 @@ class TestATableLineNeverRedlinesTheParagraphAbove:
         visible, _, revisions = _read(table_docx_path)
         assert "Output increased by 18%." in visible
         assert [r.type for r in revisions] == ["deletion", "insertion"]
+
+
+# A cell repeating its section's prose word for word. Comparing the row's text
+# with the paragraph's would call them the same passage, so the row has to be
+# recognised as a row first.
+_ECHO_PARAGRAPH = "Output increased by 14%."
+_ECHO_MARKDOWN = "\n".join(
+    [
+        _ECHO_PARAGRAPH,
+        "",
+        f"| {_ECHO_PARAGRAPH} |",
+    ]
+)
+_ECHO_LINE_RANGES: Dict[int, Tuple[int, int]] = {0: (1, 3)}
+
+
+@pytest.fixture
+def echo_table_docx_path(tmp_path: Path) -> Path:
+    document = PythonDocxDocument()
+    document.add_paragraph(_ECHO_PARAGRAPH)
+    table = document.add_table(rows=1, cols=1)
+    table.cell(0, 0).text = _ECHO_PARAGRAPH
+    path = tmp_path / "echo-table.docx"
+    document.save(str(path))
+    return path
+
+
+class TestACellRepeatingTheParagraphIsStillACell:
+    @pytest.mark.asyncio
+    async def test_the_row_is_reported_and_the_paragraph_left_alone(
+        self, echo_table_docx_path: Path
+    ):
+        edit = _edit("14%", "18%", 3)
+
+        plan, _ = await _plan(
+            echo_table_docx_path,
+            [edit],
+            paragraph_line_ranges=_ECHO_LINE_RANGES,
+            markdown=_ECHO_MARKDOWN,
+        )
+        await apply_tracked_changes(
+            str(echo_table_docx_path),
+            plan.planned,
+            workspace_root=str(echo_table_docx_path.parent),
+        )
+
+        assert plan.planned == []
+        assert _statuses(plan.outcomes) == {edit.id: "unlocatable"}
+        assert [outcome.detail for outcome in plan.outcomes] == [_IN_A_TABLE_DETAIL]
+        visible, _, revisions = _read(echo_table_docx_path)
+        assert visible.count(_ECHO_PARAGRAPH) == 2
+        assert list(revisions) == []
+        reopened = PythonDocxDocument(str(echo_table_docx_path))
+        assert [p.text for p in reopened.paragraphs if p.text.strip()] == [
+            _ECHO_PARAGRAPH
+        ]
+        assert reopened.tables[0].cell(0, 0).text == _ECHO_PARAGRAPH
 
 
 _FOOTNOTE_PARAGRAPH = "The protocol was applied to the second cohort in 2019."
@@ -445,7 +505,7 @@ class TestAShortParagraphHasNoPrefixToFallBackOn:
 
         assert plan.planned == []
         assert _statuses(plan.outcomes) == {edit.id: "unlocatable"}
-        assert [outcome.detail for outcome in plan.outcomes] == [_TABLE_DETAIL]
+        assert [outcome.detail for outcome in plan.outcomes] == [_OTHER_PASSAGE_DETAIL]
 
     @pytest.mark.asyncio
     async def test_its_own_line_is_accepted(self, short_docx_path: Path):
@@ -525,6 +585,49 @@ class TestTheReplacementReachesWordAsWritten:
         visible, original, _ = _read(joined_docx_path)
         assert "This is a word." in visible
         assert "This is aword." in original
+
+    @pytest.mark.asyncio
+    async def test_a_double_space_in_the_replacement_reaches_the_page(
+        self, joined_docx_path: Path
+    ):
+        # Word keeps every space of an inserted run, so nothing is collapsed
+        # on the way in.
+        edit = _edit("aword", "a  word", 1)
+
+        plan, _ = await self._plan_joined(joined_docx_path, edit)
+        await apply_tracked_changes(
+            str(joined_docx_path),
+            plan.planned,
+            workspace_root=str(joined_docx_path.parent),
+        )
+
+        assert _statuses(plan.outcomes) == {edit.id: "applied"}
+        assert plan.planned[0].replace_with == "a  word"
+        visible, original, _ = _read(joined_docx_path)
+        assert "This is a  word." in visible
+        assert "This is aword." in original
+
+    @pytest.mark.asyncio
+    async def test_a_replacement_carrying_a_tab_is_unsupported(
+        self, joined_docx_path: Path
+    ):
+        edit = _edit("aword", "a\tword", 1)
+
+        plan, _ = await self._plan_joined(joined_docx_path, edit)
+        await apply_tracked_changes(
+            str(joined_docx_path),
+            plan.planned,
+            workspace_root=str(joined_docx_path.parent),
+        )
+
+        assert plan.planned == []
+        assert _statuses(plan.outcomes) == {edit.id: "unsupported"}
+        assert [outcome.detail for outcome in plan.outcomes] == [
+            "the replacement contains a tab"
+        ]
+        visible, _, revisions = _read(joined_docx_path)
+        assert visible.strip() == "This is aword."
+        assert list(revisions) == []
 
     @pytest.mark.asyncio
     async def test_a_replacement_carrying_a_newline_is_unsupported(

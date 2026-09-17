@@ -33,8 +33,10 @@ from pydantic import BaseModel
 from lib.models.issue_edit import IssueEdit
 from lib.services.docx.edit_text import (
     all_offsets,
+    is_table_row,
     locate_in_paragraph,
     source_occurrence,
+    unsupported_replacement_reason,
     word_replacement_text,
     word_search_text,
 )
@@ -260,6 +262,15 @@ def _plan_edit(
 ) -> Tuple[Optional[PlannedEdit], EditOutcome]:
     """Turn one applicable edit into a redline, or say why it cannot be one."""
     line = _source_line(edit, document_lines)
+    # Before any comparison with the paragraph: a row repeating the prose above
+    # it word for word would pass the containment test below, and its redline
+    # would land on the paragraph instead of the cell.
+    if line is not None and is_table_row(line):
+        return None, EditOutcome(
+            edit_id=edit.id,
+            status="unlocatable",
+            detail="the edit sits in a table, which the export cannot redline",
+        )
     if not _line_belongs_to_paragraph(line, paragraph.text):
         return None, EditOutcome(
             edit_id=edit.id,
@@ -285,7 +296,7 @@ def _plan_edit(
         return None, EditOutcome(
             edit_id=edit.id,
             status="unsupported",
-            detail="the replacement spans more than one paragraph",
+            detail=unsupported_replacement_reason(edit.replacement_text),
         )
     if replace_with == find:
         return None, EditOutcome(

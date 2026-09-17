@@ -6,9 +6,11 @@ in-app highlight have to agree on which characters an edit covers.
 
 from lib.services.docx.edit_text import (
     all_offsets,
+    is_table_row,
     locate_in_paragraph,
     source_occurrence,
     strip_markdown,
+    unsupported_replacement_reason,
     word_replacement_text,
     word_search_text,
 )
@@ -125,12 +127,23 @@ class TestWordReplacementText:
         assert word_replacement_text("word ", at_line_start=False) == "word "
         assert word_replacement_text(" word ", at_line_start=False) == " word "
 
-    def test_collapses_internal_runs_of_whitespace_to_one_space(self):
+    def test_keeps_a_double_space_between_sentences(self):
+        # Word writes the inserted run verbatim, so both spaces reach the page.
         assert (
-            word_replacement_text("two   \t words", at_line_start=False) == "two words"
+            word_replacement_text("Yield fell.  Costs rose.", at_line_start=False)
+            == "Yield fell.  Costs rose."
         )
-        # A leading run collapses to the single space it stands for.
-        assert word_replacement_text("  \t word", at_line_start=False) == " word"
+        assert word_replacement_text("   spaced", at_line_start=False) == "   spaced"
+
+    def test_keeps_a_non_breaking_space(self):
+        nbsp = "Figure\u00a03"
+        assert word_replacement_text(nbsp, at_line_start=False) == nbsp
+
+    def test_reports_a_replacement_carrying_a_tab(self):
+        assert word_replacement_text("14%\t(2019)", at_line_start=False) is None
+        assert unsupported_replacement_reason("14%\t(2019)") == (
+            "the replacement contains a tab"
+        )
 
     def test_strips_the_markdown_syntax_word_never_shows(self):
         assert (
@@ -141,6 +154,13 @@ class TestWordReplacementText:
     def test_reports_a_replacement_that_would_split_the_paragraph(self):
         assert word_replacement_text("first\nsecond", at_line_start=False) is None
         assert word_replacement_text("first\r\nsecond", at_line_start=True) is None
+        assert unsupported_replacement_reason("first\nsecond") == (
+            "the replacement spans more than one paragraph"
+        )
+
+    def test_a_writable_replacement_has_no_reason_against_it(self):
+        assert unsupported_replacement_reason("Yield fell.  Costs rose.") is None
+        assert unsupported_replacement_reason("") is None
 
     def test_strips_a_list_marker_only_at_the_start_of_a_line(self):
         assert (
@@ -154,6 +174,25 @@ class TestWordReplacementText:
     def test_an_empty_replacement_stays_empty_for_a_deletion(self):
         assert word_replacement_text("", at_line_start=False) == ""
         assert word_replacement_text(" ", at_line_start=False) == " "
+
+
+class TestIsTableRow:
+    def test_a_pipe_delimited_row_is_one(self):
+        assert is_table_row("| Metric | Value |")
+        assert is_table_row("  | Output increased by 14%. |  ")
+        assert is_table_row("| --- | --- |")
+
+    def test_the_pipe_less_gfm_variant_is_one_too(self):
+        assert is_table_row("Metric | Value |")
+
+    def test_prose_is_not_a_row(self):
+        assert not is_table_row("Output increased by 14%.")
+        assert not is_table_row("")
+        # One pipe inside a sentence is punctuation, not a table.
+        assert not is_table_row("The flag is passed as -v | --verbose in the CLI.")
+
+    def test_a_row_is_not_confused_with_a_trailing_pipe_in_prose(self):
+        assert not is_table_row("Pass the output to the next command with |")
 
 
 class TestAllOffsets:

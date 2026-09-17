@@ -35,9 +35,8 @@ _UNDERSCORE_CLOSE = re.compile(r"_{1,3}($|[^A-Za-z0-9])")
 _BLOCK_PREFIX = re.compile(r"^[ \t]*(?:#{1,6}|>+)[ \t]*", re.MULTILINE)
 _LIST_MARKER = re.compile(r"^[ \t]*(?:[-+*]|\d+[.)])[ \t]+", re.MULTILINE)
 
-# Space, tab and non-breaking space: the horizontal runs a replacement may
-# carry. Newlines are handled separately -- they cannot be written at all.
-_HORIZONTAL_WHITESPACE = re.compile(r"[ \t\u00a0]+")
+FIRST_LINE_ONLY = "the replacement spans more than one paragraph"
+NO_TABS = "the replacement contains a tab"
 
 # Backslash-escaped punctuation, as CommonMark defines it: the document shows
 # the character itself, so `foo\_bar` in the source reads `foo_bar` on the page.
@@ -99,31 +98,59 @@ def word_search_text(original_text: str, *, at_line_start: bool = True) -> str:
     )
 
 
+def is_table_row(line: str) -> bool:
+    """Whether a markdown line is a table row, its header or its delimiter.
+
+    MarkItDown writes every row with a leading pipe (``| Metric | Value |``),
+    which is the form the converted documents carry. The pipe-less GFM variant
+    (``Metric | Value |``) is covered too: a line that ends on a pipe and
+    carries at least two of them is a row, and prose does not end on a pipe. A
+    single pipe inside a sentence stays prose.
+
+    It matters because a table is Word cells, never one of the body paragraphs
+    the line-range mapper indexes, and a row can repeat its section's prose
+    word for word -- so a row has to be recognised as one before its text is
+    compared to any paragraph.
+    """
+    stripped = line.strip()
+    if stripped.startswith("|"):
+        return True
+    return stripped.endswith("|") and stripped.count("|") >= 2
+
+
+def unsupported_replacement_reason(text: str) -> Optional[str]:
+    """Why the replacement cannot become a redline, or None when it can.
+
+    Two characters cannot be written as a tracked insertion: a newline, which
+    docx-editor turns into a tracked paragraph split this export does not
+    write, and a tab, which docx-editor refuses outright (Word carries one as
+    its own element, not as text). Everything else, whitespace included, goes
+    in as written.
+    """
+    if "\n" in text or "\r" in text:
+        return FIRST_LINE_ONLY
+    if "\t" in text:
+        return NO_TABS
+    return None
+
+
 def word_replacement_text(text: str, *, at_line_start: bool) -> Optional[str]:
     """What to write into Word for an edit's replacement, or None if nothing can.
 
     A replacement is not a needle: it is written verbatim, so it cannot go
-    through `word_search_text`. Trimming it would lose the space an edit adds
-    to separate two words, and stripping a leading ``2.`` from a mid-line quote
-    would silently rewrite a number. Only syntax the document never shows is
-    removed here; runs of horizontal whitespace collapse to one space, since
-    that is all Word would render, but a leading or trailing space the author
-    asked for survives.
+    through `word_search_text`. Only syntax the document never shows is removed
+    here. Whitespace is left exactly as the edit wrote it -- a double space
+    between sentences, a non-breaking space inside a figure reference, a
+    leading or trailing space that separates the replacement from its
+    neighbours -- because Word keeps every one of them in the inserted run and
+    an author accepting the change gets the text they were shown.
 
-    ``None`` means the replacement cannot be expressed as a redline at all:
-    docx-editor turns a newline into a tracked paragraph split, which this
-    export does not write.
+    ``None`` means the replacement cannot be expressed as a redline at all;
+    `unsupported_replacement_reason` says which case it is.
     """
-    if "\n" in text or "\r" in text:
+    if unsupported_replacement_reason(text) is not None:
         return None
-    stripped = strip_markdown(text, at_line_start=at_line_start)
-    collapsed = _HORIZONTAL_WHITESPACE.sub(" ", stripped).strip()
-    leading = " " if text[:1].isspace() else ""
-    trailing = " " if text[-1:].isspace() else ""
-    if not collapsed:
-        # Whitespace or syntax alone: one space at most, never two.
-        return " " if leading or trailing else ""
-    return f"{leading}{collapsed}{trailing}"
+    return strip_markdown(text, at_line_start=at_line_start)
 
 
 def all_offsets(haystack: str, needle: str) -> List[int]:
