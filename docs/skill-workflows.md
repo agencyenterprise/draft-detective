@@ -121,7 +121,10 @@ returns its `Task`, and a `criteria.py` with what the check is about (copy
 `judged_criteria` in `issue_judge.py`, all fed by the issue-inventory loader in
 `issue_inventory.py`) and adds only what is specific to the workflow: its own edit checks and
 the criteria the judge grades. None of that is tied to skill-declared workflows: any workflow
-that reports issues can be evaluated the same way.
+that reports issues can be evaluated the same way; `evals_inspectai/e2e/recommendation_check/`
+scores a hand-written workflow with free-form titles and no edits on the same loader and scorers
+(`expects_edits(records)` reads off the inventory that no edits are expected, and
+`issue_checks(edits=False)` then leaves the edit-hygiene keys out).
 
 ### Ground truth as an inventory
 
@@ -132,8 +135,9 @@ anchored by a verbatim quote, so the scorer knows whether the run found *that* s
 ```yaml
 - input: file://e2e/active_voice/files/report.md     # or inline markdown
   expected_issues:
-    - title: Passive Voice                          # the issue title a correct run uses; matched
-                                                    # exactly, or as the prefix before a colon
+    - title: Passive Voice                          # the issue title, or a stable part of it, matched
+                                                    # as whole words within the reported title. Omit
+                                                    # when titles have no stable part: any then matches
       anchor: "Studies were identified through"       # verbatim quote that locates the issue: resolves
                                                     # its line, and detection means the run quoted it
                                                     # or bracketed its line

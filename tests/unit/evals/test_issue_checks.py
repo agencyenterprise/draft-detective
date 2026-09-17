@@ -151,9 +151,44 @@ def test_decoy_hits_by_reason_over_the_dataset_wide_reason_list():
 def test_title_severity_and_range_metrics_follow_the_hit():
     f = _expected(severity="low")
     wrong = _issue(title="Something Else", description="“Data were collected”", start=1, end=1, severity="medium")
-    values, _ = issue_detection_scores([wrong], _inventory([f]))
+    values, note = issue_detection_scores([wrong], _inventory([f]))
     assert values["recall"] == 1.0
     assert values["title_correct"] == 0.0 and values["severity_correct"] == 0.0 and values["anchor_in_range"] == 0.0
+    # The explanation names the issue behind each mismatch, so a reader need not open the run.
+    assert "f: reported as 'Something Else', not under 'Passive Voice'" in note
+    assert "f: severity medium, expected low" in note
+    assert "f: lines 1-1 do not bracket line 5" in note
+
+
+def test_title_matches_as_whole_words_anywhere_in_the_reported_title():
+    f = _expected(title="Passive Voice")
+    assert hit_issue(f, [_issue(title="Passive Voice: Section Summary", description="“Data were collected”")]) == 0
+    assert hit_issue(f, [_issue(title="Section summary: passive voice", description="“Data were collected”")]) == 0
+    # Quoted under an unrelated title still counts as detected, but under the third tier: title_correct records it.
+    values, _ = issue_detection_scores([_issue(title="Wordy Sentence", description="“Data were collected”")], _inventory([f]))
+    assert values["recall"] == 1.0 and values["title_correct"] == 0.0
+
+    supported = _expected(title="supported", severity="none")
+    quoted = "“Data were collected”"
+    values, _ = issue_detection_scores([_issue(title="Unsupported recommendation: x", description=quoted)], _inventory([supported]))
+    assert values["title_correct"] == 0.0, "a whole-word match: 'supported' is not inside 'unsupported'"
+    values, _ = issue_detection_scores([_issue(title="Recommendation partially supported: x", description=quoted)], _inventory([supported]))
+    assert values["title_correct"] == 1.0
+
+
+def test_an_expected_issue_without_a_title_matches_any_title_by_line_and_is_not_title_scored():
+    f = _expected(title=None, severity="high")
+    paraphrased = _issue(title="Unsupported recommendation: collect more data", description="No finding backs this.", severity="high")
+    assert hit_issue(f, [paraphrased]) == 0
+    values, _ = issue_detection_scores([paraphrased], _inventory([f]))
+    assert values["recall"] == 1.0 and values["severity_correct"] == 1.0
+    assert math.isnan(values["title_correct"]), "no title to hold the run to"
+
+
+def test_edit_keys_are_left_out_for_a_workflow_that_proposes_no_edits():
+    values, _ = issue_detection_scores([_issue(description="“Data were collected”")], _inventory([_expected()]), edits=False)
+    assert set(values) == set(DETECTION_KEYS)
+    assert values["recall"] == 1.0
 
 
 def test_issue_detection_scores_always_return_the_same_key_set():

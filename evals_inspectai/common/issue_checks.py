@@ -69,6 +69,11 @@ EDIT_KEYS: tuple[str, ...] = (
     "edit_punctuation",
 )
 
+def issue_check_keys(edits: bool = True) -> tuple[str, ...]:
+    """The keys ``issue_checks(edits=...)`` emits, for viewer columns and descriptions."""
+    return DETECTION_KEYS + EDIT_KEYS if edits else DETECTION_KEYS
+
+
 # Inspect's unscored sentinel: `Score.unscored()` sets a NaN value, and the
 # metric expansion for dict-valued scores skips NaN keys (counted as unscored)
 # instead of letting them pull the mean down. See the Inspect scoring policy
@@ -84,7 +89,7 @@ DETECTION_DESCRIPTIONS: dict[str, str] = {
     "precision": "Share of reported issues that cover at least one expected issue.",
     "f0_5": "F-beta with beta 0.5: precision weighted twice as much as recall, as in grammatical-error detection.",
     "clean_document_untouched": "On a sample with no expected issues: 1 if nothing was reported, 0 otherwise.",
-    "title_correct": "Of the covered expected issues, share reported under the expected title.",
+    "title_correct": "Of the covered expected issues that name a title, share reported under it. NaN when the inventory names none (free-form titles).",
     "severity_correct": "Of the covered expected issues that declare a severity, share reported with it.",
     "anchor_in_range": "Of the covered expected issues, share whose anchor line lies inside the reported line range.",
 }
@@ -117,9 +122,14 @@ def _issue_text(issue: IssueItem) -> str:
     return normalize(" ".join(parts))
 
 
-def _title_matches(issue: IssueItem, kind: str) -> bool:
-    title = normalize(issue.title)
-    return title == normalize(kind) or title.startswith(normalize(kind) + ":")
+def _title_matches(issue: IssueItem, kind: Optional[str]) -> bool:
+    """The expected title appears in the reported one as whole words, after
+    normalisation; an expected issue with no title matches any. Whole words so
+    that "supported" does not match "unsupported"."""
+    if kind is None:
+        return True
+    pattern = r"(?<!\w)" + re.escape(normalize(kind)) + r"(?!\w)"
+    return re.search(pattern, normalize(issue.title)) is not None
 
 
 def hit_issue(expected: ResolvedIssue, issues: Sequence[IssueItem]) -> Optional[int]:
@@ -241,15 +251,18 @@ def _hit_pairs(
 
 
 def issue_detection_scores(
-    issues: Sequence[IssueItem], inventory: ResolvedInventory
+    issues: Sequence[IssueItem], inventory: ResolvedInventory, edits: bool = True
 ) -> tuple[dict[str, float], str]:
-    """Detection and generic edit hygiene: the same key set for every workflow.
+    """Detection and, for a workflow that proposes edits, generic edit hygiene.
 
-    Keys: ``DETECTION_KEYS`` and ``EDIT_KEYS``; NaN where not applicable.
+    Keys: ``DETECTION_KEYS``, plus ``EDIT_KEYS`` when ``edits`` is True; NaN
+    where a sample gives a key nothing to judge. A workflow that never
+    proposes edits passes ``edits=False`` so its scores (and the log viewer's
+    columns) carry no keys it can never score.
     """
     lines = inventory.document.split("\n")
     expected_issues = inventory.expected_issues
-    values: dict[str, float] = {key: NOT_APPLICABLE for key in DETECTION_KEYS + EDIT_KEYS}
+    values: dict[str, float] = {key: NOT_APPLICABLE for key in issue_check_keys(edits)}
     notes: list[str] = []
 
     hits, hit_pairs = _hit_pairs(issues, inventory)
@@ -271,9 +284,13 @@ def issue_detection_scores(
         notes.append("clean document: " + ("nothing reported" if not issues else f"{len(issues)} issue(s) reported"))
 
     if hit_pairs:
-        values["title_correct"] = _fraction([float(_title_matches(i, e.title)) for e, i in hit_pairs])
+        values["title_correct"] = _fraction([float(_title_matches(i, e.title)) for e, i in hit_pairs if e.title])
         values["severity_correct"] = _fraction([float(i.severity == e.severity) for e, i in hit_pairs if e.severity])
         values["anchor_in_range"] = _fraction([float(i.start_line <= e.line <= i.end_line) for e, i in hit_pairs])
+        notes += [f"{e.id}: reported as {i.title!r}, not under {e.title!r}" for e, i in hit_pairs if e.title and not _title_matches(i, e.title)]
+        notes += [f"{e.id}: severity {i.severity}, expected {e.severity}" for e, i in hit_pairs if e.severity and i.severity != e.severity]
+        notes += [f"{e.id}: lines {i.start_line}-{i.end_line} do not bracket line {e.line}" for e, i in hit_pairs if not i.start_line <= e.line <= i.end_line]
+    if hit_pairs and edits:
         collected: dict[str, list[float]] = {}
         for e, i in hit_pairs:
             for key, (value, detail) in edit_checks(e, i, lines).items():
@@ -372,10 +389,11 @@ def deterministic_scorer(scoring: Scoring) -> Scorer:
 
 
 @scorer(metrics=PER_KEY_METRICS)
-def issue_checks() -> Scorer:
-    """Reported issues against the expected ones: recall, precision, F0.5, titles,
-    lines, edit presence and text integrity. The same keys for every issue-inventory eval."""
-    return deterministic_scorer(issue_detection_scores)
+def issue_checks(edits: bool = True) -> Scorer:
+    """Reported issues against the expected ones: recall, precision, F0.5, titles
+    and lines, plus edit presence and text integrity unless ``edits`` is False
+    (a workflow that proposes no edits). The same keys for every sample of an eval."""
+    return deterministic_scorer(lambda issues, inventory: issue_detection_scores(issues, inventory, edits))
 
 
 @scorer(metrics=PER_KEY_METRICS)

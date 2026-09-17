@@ -1,64 +1,75 @@
-from collections import Counter
+"""E2E eval for the Recommendation Check workflow, on the issue-inventory structure.
+
+The workflow reports one issue per recommendation occurrence, classified by
+severity: ``none`` for supported, ``medium`` for partially supported, ``high``
+for unsupported. Its titles paraphrase the recommendation, so the inventory
+names no title: an expected issue is detected when a reported issue brackets
+its line (or quotes it), and the classification is read off ``severity_correct``.
+It proposes no edits, and the inventory says nothing about edits, so
+``issue_checks`` runs without its edit-hygiene keys.
+
+Scorers, all reusable from ``evals_inspectai/common``:
+
+- ``issue_checks``: recall, precision, F0.5 over the recommendations, the clean
+  document left alone, and severity per covered recommendation.
+- ``decoy_checks``: sentences that read like recommendations but are not
+  (conclusions restating findings), by reason.
+- ``tool_called("view_image")``: on the two samples whose finding is only in a
+  chart, whether the agent looked at it.
+
+Run (backend must be running)::
+
+    uv run inspect eval evals_inspectai/e2e/recommendation_check/recommendation_check_e2e.py --epochs 3
+"""
+
 from pathlib import Path
 
 from inspect_ai import Task, task
-from inspect_ai.dataset import Sample
-from inspect_ai.scorer import Score
-from inspect_ai.solver import TaskState
 
 from evals_inspectai.common.api_solver import api_workflow_agent
-from evals_inspectai.common.comparers import deep_diff_score
-from evals_inspectai.common.loaders import resolve_input, yaml_dataset
-from evals_inspectai.common.scorers import (
-    model_graded_check,
-    structured_output_scorer,
-    tool_called,
+from evals_inspectai.common.issue_checks import (
+    DETECTION_DESCRIPTIONS,
+    EDIT_DESCRIPTIONS,
+    decoy_checks,
+    decoy_descriptions,
+    issue_checks,
 )
-from evals_inspectai.common.simple_deep_agent_types import SimpleDeepAgentOutput
+from evals_inspectai.common.issue_inventory import (
+    decoy_reasons,
+    expects_edits,
+    inventory_dataset,
+    load_inventory_records,
+)
+from evals_inspectai.common.issue_viewer import issue_viewer_config
+from evals_inspectai.common.scorers import tool_called
 
-
-def _record_to_sample(record: dict) -> Sample:
-    return Sample(
-        input=resolve_input(record["input"]),
-        target=record.get("target_answer", ""),
-        metadata={
-            "target_severity_counts": record.get("target_severity_counts", {}),
-        },
-    )
+WORKFLOW_TYPE = "recommendation_check"
+DATASET = Path(__file__).parent / "dataset.yaml"
 
 
 @task
-def recommendation_check_e2e():
-    dataset = yaml_dataset(Path(__file__).parent / "dataset.yaml", _record_to_sample)
-
+def recommendation_check_e2e(timeout_s: float = 600) -> Task:
+    """Run Recommendation Check on every sample and score it against the inventory."""
+    records = load_inventory_records(DATASET)
+    reasons = list(decoy_reasons(records))
+    edits = expects_edits(records)
+    image_check = ("tool_called", "tool_called")
     return Task(
-        dataset=dataset,
+        dataset=inventory_dataset(records, DATASET),
+        metadata={
+            "ground_truth": (
+                "Inventory: one expected issue per recommendation occurrence, anchored by its wording, "
+                "with the severity its classification maps to (none / medium / high). Titles are free-form "
+                "and not scored. A NaN metric value means the sample gave that check nothing to judge."
+            ),
+            "metrics": {
+                "issue_checks": {**DETECTION_DESCRIPTIONS, **(EDIT_DESCRIPTIONS if edits else {})},
+                "decoy_checks": decoy_descriptions(reasons),
+                "tool_called": {"tool_called": "On a sample whose document embeds a chart, whether the agent called view_image."},
+            },
+        },
+        solver=api_workflow_agent(WORKFLOW_TYPE, timeout_s=timeout_s),
+        scorer=[issue_checks(edits=edits), decoy_checks(reasons), tool_called("view_image")],
         fail_on_error=0.2,
-        solver=api_workflow_agent("recommendation_check", timeout_s=600),
-        scorer=[
-            structured_output_scorer(SimpleDeepAgentOutput, _compare_severity_counts),
-            model_graded_check(partial_credit=True),
-            tool_called("view_image"),
-        ],
+        viewer=issue_viewer_config(reasons, edits, extra=[image_check], labels={"tool_called": "Viewed image"}),
     )
-
-
-def _compare_severity_counts(output: SimpleDeepAgentOutput, state: TaskState) -> Score:
-    """Compare per-severity issue counts to the expected counts.
-
-    Recommendation Check emits one issue per recommendation occurrence:
-      - severity 'none' for supported
-      - severity 'medium' for partially_supported
-      - severity 'high' for unsupported
-    Issue titles include free-form paraphrases of the recommendation, so we
-    score on the stable signal (counts per bucket) rather than exact titles.
-    """
-    expected: dict = state.metadata.get("target_severity_counts", {})
-    issues = output.result.issues if output.result else []
-    actual = dict(Counter(issue.severity for issue in issues))
-
-    for key in ("none", "low", "medium", "high"):
-        expected.setdefault(key, 0)
-        actual.setdefault(key, 0)
-
-    return deep_diff_score(expected, actual)
