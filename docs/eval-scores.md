@@ -9,9 +9,7 @@ Current Inspect AI eval numbers across every eval in `evals_inspectai/e2e/`.
 > [!IMPORTANT]
 > **This is the current baseline, measured on `gpt-5.6-terra`.** On 28 Aug 2026
 > every agent moved off the three-tier `gpt-5.4-mini` / `gpt-5.4` / `gpt-5.5`
-> stack onto a single model. The numbers those tiers last scored are kept in
-> [`docs/eval-scores-gpt-5.4-5.5.md`](./eval-scores-gpt-5.4-5.5.md) for
-> comparison; they no longer describe the running system.
+> stack onto a single model.
 
 > [!NOTE]
 > All evals are **end-to-end**: they trigger the real workflow through the API,
