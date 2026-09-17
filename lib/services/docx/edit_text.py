@@ -27,7 +27,19 @@ _LINK = re.compile(r"\[((?:[^\[\]]|\[[^\[\]]*\])*)\]\([^)]*\)")
 _IMAGE = re.compile(r"!\[((?:[^\[\]]|\[[^\[\]]*\])*)\]\([^)]*\)")
 _CODE_FENCE = re.compile(r"`+")
 _STRIKETHROUGH = re.compile(r"~~")
-_STARS = re.compile(r"\*{1,3}")
+# Emphasis, only where a delimiter is actually paired: an opening run of stars
+# has to be followed by a non-space character and its closing run preceded by
+# one, the way CommonMark decides what emphasizes. Longest run first, so
+# `***both***` is not read as bold plus a stray star.
+#
+# A star with no partner is text the document shows: `2 * 3` is a product and
+# `5*3` keeps its star, because a single star between two non-space characters
+# with nothing to close it is not emphasis.
+_EMPHASIS = [
+    re.compile(r"\*{3}(\S(?:.*?\S)?)\*{3}", re.DOTALL),
+    re.compile(r"\*{2}(\S(?:.*?\S)?)\*{2}", re.DOTALL),
+    re.compile(r"\*(\S(?:.*?\S)?)\*", re.DOTALL),
+]
 # Only underscores standing outside a word: `snake_case` is a name in the text,
 # not emphasis, and stripping its underscores would stop it matching.
 _UNDERSCORE_OPEN = re.compile(r"(^|[^A-Za-z0-9])_{1,3}")
@@ -82,7 +94,8 @@ def strip_markdown(text: str, *, at_line_start: bool = True) -> str:
     stripped = _LINK.sub(r"\1", stripped)
     stripped = _CODE_FENCE.sub("", stripped)
     stripped = _STRIKETHROUGH.sub("", stripped)
-    stripped = _STARS.sub("", stripped)
+    for emphasis in _EMPHASIS:
+        stripped = emphasis.sub(r"\1", stripped)
     stripped = _UNDERSCORE_OPEN.sub(r"\1", stripped)
     stripped = _UNDERSCORE_CLOSE.sub(r"\1", stripped)
     if at_line_start:

@@ -2,25 +2,31 @@
 
 The two libraries enumerate a document differently. The comment pass anchors an
 issue to a `paragraph_index`: a position among the non-empty paragraphs of
-``python-docx``'s body-level ``Document.paragraphs``. docx-editor walks every
-``<w:p>`` in ``word/document.xml``, table cells included, and addresses each by
-a hash-anchored ref (``P7#9646``). The indexes therefore do not line up, and
-assuming they do would redline a paragraph nobody asked about.
+``python-docx``'s body-level ``Document.paragraphs``. docx-editor addresses a
+paragraph by a hash-anchored ref (``P7#9646``) whose number is its position
+among *every* ``<w:p>`` in ``word/document.xml``, table cells and content
+controls included. The indexes therefore do not line up.
 
-So the two are matched by text: for the target python-docx paragraph, take the
-docx-editor paragraphs whose text is identical, and pick the one at the same
-ordinal the target holds among the python-docx paragraphs carrying that text. A
-paragraph whose text appears nowhere on the other side stays unmapped, and its
-edits are reported as unplaceable rather than guessed at.
+They are matched by position in the file, not by text. Both libraries walk
+``<w:p>`` in document order -- docx-editor over
+``dom.getElementsByTagName("w:p")``, 1-based, and lxml over
+``body.iter(qn("w:p"))`` -- so the k-th paragraph of one is the k-th paragraph
+of the other, and each python-docx paragraph element has a document ordinal
+that names its docx-editor ref directly.
 
-Paragraphs inside table cells are considered last. python-docx never lists
-them, so a cell repeating a body paragraph's wording would otherwise claim that
-paragraph's ordinal and the redline would land in the table.
+Matching them by text, as this used to, breaks on a document that already
+carries tracked changes: python-docx's ``paragraph.text`` leaves out the runs
+inside ``w:ins`` and ``w:del``, while docx-editor reports the visible text with
+insertions in it. Two paragraphs sharing wording, one of them holding an
+earlier insertion, would then hand the redline to the wrong one -- and report
+success. Position cannot drift that way, and it makes the old body-before-table
+preference moot as well.
 """
 
 import logging
-from typing import Collection, Dict, List, Mapping, Sequence
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
+from docx.oxml.ns import qn
 from docx_editor import ParagraphInfo
 from pydantic import BaseModel
 
@@ -28,51 +34,83 @@ logger = logging.getLogger(__name__)
 
 
 class MappedParagraph(BaseModel):
-    """A python-docx paragraph, as docx-editor addresses it."""
+    """A python-docx paragraph, as docx-editor addresses it.
+
+    `text` is docx-editor's visible text, insertions included, because that is
+    the text a find-and-replace has to match and the text the membership check
+    compares the edit's markdown line against.
+    """
 
     ref: str
     text: str
 
 
-def _by_text(
-    editor_paragraphs: Sequence[ParagraphInfo],
-) -> Mapping[str, List[ParagraphInfo]]:
-    grouped: Dict[str, List[ParagraphInfo]] = {}
-    for info in editor_paragraphs:
-        grouped.setdefault(info.text, []).append(info)
-    return grouped
+def paragraph_ordinals(document: Any) -> Optional[Tuple[List[int], int]]:
+    """``([document ordinal of each mapped paragraph], total <w:p> count)``.
+
+    The mapped paragraphs are the non-empty body paragraphs, in the order the
+    comment pass indexes them (`_inject_markers` in `paragraph_line_mapper`
+    numbers exactly this list). An ordinal is 1-based over every ``<w:p>`` in
+    the document, which is how docx-editor numbers its refs.
+
+    ``None`` means a body paragraph was not found in the document's own
+    ``<w:p>`` walk, which cannot happen for a file python-docx just opened --
+    and if it ever did, the sequences would be out of step and nothing could be
+    mapped safely.
+
+    `document` is a python-docx ``Document``; typed loosely because
+    python-docx ships no usable public type for it.
+    """
+    positions = {
+        element: ordinal
+        for ordinal, element in enumerate(document.element.body.iter(qn("w:p")), 1)
+    }
+    ordinals: List[int] = []
+    for paragraph in document.paragraphs:
+        if not paragraph.text.strip():
+            continue
+        ordinal = positions.get(paragraph._p)
+        if ordinal is None:
+            logger.warning("A body paragraph is missing from the document's own walk")
+            return None
+        ordinals.append(ordinal)
+    return ordinals, len(positions)
 
 
 def map_paragraph_refs(
-    docx_paragraph_texts: Sequence[str],
+    mapped_ordinals: Sequence[int],
+    total_paragraphs: int,
     editor_paragraphs: Sequence[ParagraphInfo],
-    in_table_refs: Collection[str] = (),
-) -> Dict[int, MappedParagraph]:
+) -> Optional[Dict[int, MappedParagraph]]:
     """Map ``{python-docx paragraph index: docx-editor paragraph}``.
 
-    `docx_paragraph_texts` is the text of each non-empty paragraph of
-    ``Document.paragraphs``, in order -- the same list the comment pass indexes
-    into. `in_table_refs` are the refs docx-editor reports as sitting in a
-    table cell; they are only used when nothing in the body matches.
-    Unmapped indexes are simply absent from the result.
+    `mapped_ordinals` and `total_paragraphs` come from `paragraph_ordinals`;
+    `editor_paragraphs` is docx-editor's full listing, empty paragraphs
+    included, in its own order.
+
+    ``None`` means the two libraries do not agree on how many paragraphs the
+    document has. Nothing is mapped then: with the sequences out of step, every
+    ref would be off by an unknown amount, and reporting the edits as
+    unplaceable beats redlining arbitrary paragraphs.
     """
-    grouped = _by_text(editor_paragraphs)
-    seen: Dict[str, int] = {}
+    if total_paragraphs != len(editor_paragraphs):
+        logger.warning(
+            "Refusing to map paragraphs: python-docx sees %d and docx-editor %d",
+            total_paragraphs,
+            len(editor_paragraphs),
+        )
+        return None
+    # Keyed by docx-editor's own 1-based index rather than by list position, so
+    # a partial listing is caught below instead of shifting every ref.
+    by_ordinal = {info.index: info for info in editor_paragraphs}
     mapped: Dict[int, MappedParagraph] = {}
-    for index, text in enumerate(docx_paragraph_texts):
-        ordinal = seen.get(text, 0)
-        seen[text] = ordinal + 1
-        all_matches = grouped.get(text, [])
-        body_matches = [info for info in all_matches if info.ref not in in_table_refs]
-        matches = body_matches or all_matches
-        if ordinal >= len(matches):
-            logger.debug(
-                "Paragraph %d has no docx-editor counterpart (%d/%d matches for its text)",
-                index,
-                len(matches),
-                ordinal + 1,
+    for index, ordinal in enumerate(mapped_ordinals):
+        info = by_ordinal.get(ordinal)
+        if info is None:
+            logger.warning(
+                "Refusing to map paragraphs: docx-editor has no paragraph %d",
+                ordinal,
             )
-            continue
-        match = matches[ordinal]
-        mapped[index] = MappedParagraph(ref=match.ref, text=match.text)
+            return None
+        mapped[index] = MappedParagraph(ref=info.ref, text=info.text)
     return mapped

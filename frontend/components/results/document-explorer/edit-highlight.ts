@@ -46,12 +46,11 @@ const EDIT_HIGHLIGHT_CSS = `
  * line passes `atLineStart` as false.
  */
 export function stripMarkdown(text: string, atLineStart = true): string {
-  const stripped = protectEscaped(text)
-    .replace(IMAGE, '$1')
-    .replace(LINK, '$1')
-    .replace(/`+/g, '')
-    .replace(/~~/g, '')
-    .replace(/\*{1,3}/g, '')
+  // The pass order mirrors the Python port: images, links, code fences and
+  // strikethrough, then emphasis, then underscores.
+  const stripped = stripEmphasis(
+    protectEscaped(text).replace(IMAGE, '$1').replace(LINK, '$1').replace(/`+/g, '').replace(/~~/g, ''),
+  )
     // Only underscores standing outside a word: `snake_case` is a name in the
     // text, not emphasis, and stripping its underscores would stop it
     // matching. Written as two passes rather than one lookbehind for the sake
@@ -69,6 +68,27 @@ export function stripMarkdown(text: string, atLineStart = true): string {
  * A link label may itself hold one level of brackets: MarkItDown writes a DOCX
  * footnote reference as `[[1]](#footnote-2)`, which the page shows as `[1]`.
  */
+/**
+ * Emphasis, only where a delimiter is actually paired: an opening run of stars
+ * has to be followed by a non-space character and its closing run preceded by
+ * one, the way CommonMark decides what emphasizes. Longest run first, so
+ * `***both***` is not read as bold plus a stray star.
+ *
+ * A star with no partner is text the page shows: `2 * 3` is a product and
+ * `5*3` keeps its star, because a single star between two non-space characters
+ * with nothing to close it is not emphasis. The Python port of these rules, in
+ * `lib/services/docx/edit_text.py`, has to agree character for character.
+ */
+const EMPHASIS = [
+  /\*{3}([^\s](?:[\s\S]*?[^\s])?)\*{3}/g,
+  /\*{2}([^\s](?:[\s\S]*?[^\s])?)\*{2}/g,
+  /\*([^\s](?:[\s\S]*?[^\s])?)\*/g,
+];
+
+function stripEmphasis(text: string): string {
+  return EMPHASIS.reduce((stripped, pattern) => stripped.replace(pattern, '$1'), text);
+}
+
 const LINK = /\[((?:[^[\]]|\[[^[\]]*\])*)\]\([^)]*\)/g;
 const IMAGE = /!\[((?:[^[\]]|\[[^[\]]*\])*)\]\([^)]*\)/g;
 

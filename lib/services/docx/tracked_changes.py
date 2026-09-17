@@ -41,7 +41,11 @@ from lib.services.docx.edit_text import (
     word_search_text,
 )
 from lib.services.docx.paragraph_line_mapper import find_paragraph_by_line_range
-from lib.services.docx.paragraph_refs import MappedParagraph, map_paragraph_refs
+from lib.services.docx.paragraph_refs import (
+    MappedParagraph,
+    map_paragraph_refs,
+    paragraph_ordinals,
+)
 from lib.services.edit_conflicts import EditCandidate, EditDecision, pick_winner
 from lib.workflows.simple_deep_agent.edit_anchoring import normalize_whitespace
 
@@ -67,6 +71,12 @@ _FOOTNOTE_REFERENCE = re.compile(r"\[\[\d+\]\]\(#footnote-[^)]*\)|\[\^\d+\]")
 # How much of a line and a paragraph must agree for them to be the same
 # passage. Long enough that no table row can share it with prose.
 _MIN_SHARED_PREFIX = 20
+
+# Why nothing could be placed: python-docx and docx-editor disagreed on the
+# document's paragraphs, so not one ref could be trusted.
+_UNMAPPABLE_DOCUMENT = (
+    "the document's paragraphs could not be matched to the file being exported"
+)
 
 EditOutcomeStatus = Literal[
     "applied",
@@ -141,27 +151,25 @@ def _workspace(root: Optional[str]) -> Iterator[str]:
 
 def _paragraph_map(
     docx_path: str, workspace_root: Optional[str]
-) -> Dict[int, MappedParagraph]:
-    """``{python-docx paragraph index: docx-editor paragraph}`` for a file."""
+) -> Optional[Dict[int, MappedParagraph]]:
+    """``{python-docx paragraph index: docx-editor paragraph}`` for a file.
+
+    ``None`` when the two libraries do not agree on the document's paragraphs;
+    see `map_paragraph_refs`. Nothing may be redlined in that case.
+    """
     with _workspace(workspace_root) as workspace:
         doc = EditorDocument.open(
             docx_path, author=TRACKED_CHANGE_AUTHOR, workspace_dir=workspace
         )
         try:
             editor_paragraphs = doc.list_paragraphs_structured(limit=None)
-            in_table = {
-                ref
-                for ref, location in doc.list_paragraph_locations()
-                if location.in_table
-            }
         finally:
             doc.close()
-    texts = [
-        paragraph.text
-        for paragraph in PythonDocxDocument(docx_path).paragraphs
-        if paragraph.text.strip()
-    ]
-    return map_paragraph_refs(texts, editor_paragraphs, in_table)
+    walk = paragraph_ordinals(PythonDocxDocument(docx_path))
+    if walk is None:
+        return None
+    ordinals, total = walk
+    return map_paragraph_refs(ordinals, total, editor_paragraphs)
 
 
 def _source_line(edit: IssueEdit, document_lines: Sequence[str]) -> Optional[str]:
@@ -445,6 +453,22 @@ def _plan_sync(
         return TrackedChangesPlan(planned=[], outcomes=outcomes)
 
     paragraphs = _paragraph_map(docx_path, workspace_root)
+    if paragraphs is None:
+        # The file's paragraphs could not be tied to docx-editor's, so no ref
+        # is trustworthy. Every edit is reported rather than written blind.
+        return TrackedChangesPlan(
+            planned=[],
+            outcomes=outcomes
+            + [
+                EditOutcome(
+                    edit_id=decision.edit_id,
+                    status="not_found",
+                    detail=_UNMAPPABLE_DOCUMENT,
+                )
+                for decision in applicable
+            ],
+        )
+
     planned: List[PlannedEdit] = []
     for decision in applicable:
         edit = candidates_by_id[decision.edit_id].edit

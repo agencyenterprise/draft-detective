@@ -48,11 +48,24 @@ class TestStripMarkdown:
             strip_markdown("- first\n+ second\n1. third\n2) fourth")
             == "first\nsecond\nthird\nfourth"
         )
-        # A `*` bullet loses its asterisk to the emphasis pass first, so the
-        # marker regex no longer sees it and the space it sat on survives.
-        # Harmless: every caller reads the text through the whitespace pass.
-        assert strip_markdown("* starred") == " starred"
+        # The bullet's star is unpaired, so the emphasis pass leaves it for the
+        # marker pass, which takes the space with it.
+        assert strip_markdown("* starred") == "starred"
         assert word_search_text("* starred") == "starred"
+
+    def test_keeps_a_star_that_emphasizes_nothing(self):
+        assert strip_markdown("2 * 3 = 6") == "2 * 3 = 6"
+        assert strip_markdown("a * b * c") == "a * b * c"
+        # A single star between two non-space characters has nothing to close
+        # it, so it stays literal.
+        assert strip_markdown("5*3") == "5*3"
+        assert strip_markdown("2 ** 3") == "2 ** 3"
+
+    def test_drops_a_star_that_does_emphasize(self):
+        assert strip_markdown("**bold**") == "bold"
+        assert strip_markdown("*it*") == "it"
+        assert strip_markdown("***both***") == "both"
+        assert strip_markdown("a * b *c*") == "a * b c"
 
     def test_keeps_snake_case_underscores_but_strips_emphasis_ones(self):
         assert (
@@ -134,6 +147,12 @@ class TestWordReplacementText:
             == "Yield fell.  Costs rose."
         )
         assert word_replacement_text("   spaced", at_line_start=False) == "   spaced"
+
+    def test_keeps_a_literal_star_in_the_replacement(self):
+        # `2 * 3` is a product, and a replacement is written to Word verbatim.
+        assert word_replacement_text("2 * 3", at_line_start=False) == "2 * 3"
+        assert word_replacement_text("a * b * c", at_line_start=False) == "a * b * c"
+        assert word_replacement_text("**bold**", at_line_start=False) == "bold"
 
     def test_keeps_a_non_breaking_space(self):
         nbsp = "Figure\u00a03"
