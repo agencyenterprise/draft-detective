@@ -11,7 +11,12 @@ from docx_editor import BatchOperationError, Document as EditorDocument
 
 from lib.models.issue import Issue
 from lib.models.issue_edit import IssueEdit, IssueEditStatus
-from lib.services.docx.edit_export import apply_edit_export, plan_edit_export
+from lib.services.docx import edit_export
+from lib.services.docx.edit_export import (
+    apply_edit_export,
+    describe_edit_export,
+    plan_edit_export,
+)
 from lib.workflows.models import SeverityEnum, WorkflowRunType
 
 _PARAGRAPH = "The chapter reports a 14% rise in output for 2019."
@@ -255,3 +260,47 @@ class TestTheRehearsalDecidesWhatTheCommentsClaim:
             "insertion",
         ]
         assert _visible(two_paragraph_docx_path).count("18% rise") == 1
+
+
+class TestTheCommentsOnlyMode:
+    def test_every_edit_is_described_without_opening_the_document(
+        self, monkeypatch: pytest.MonkeyPatch
+    ):
+        def refuse(*args: object, **kwargs: object) -> None:
+            raise AssertionError("the comments-only mode must not open the document")
+
+        monkeypatch.setattr(edit_export, "plan_tracked_changes", refuse)
+        monkeypatch.setattr(edit_export, "apply_tracked_changes", refuse)
+        issue = _issue([_edit("14% rise", "18% rise")])
+
+        export = describe_edit_export([issue])
+
+        assert export.planned == []
+        assert export.notes_for(issue.id) == [
+            'Proposed edit: "14% rise" → "18% rise"\n'
+            "the figure is wrong\n"
+            "Not applied as a tracked change: tracked changes were not "
+            "requested for this export."
+        ]
+
+    def test_a_rejected_edit_is_still_left_out(self):
+        issue = _issue(
+            [
+                _edit("14% rise", "18% rise"),
+                _edit("for 2019", "for 2021", status=IssueEditStatus.REJECTED),
+            ]
+        )
+
+        export = describe_edit_export([issue])
+
+        assert len(export.outcomes) == 1
+        assert len(export.notes_for(issue.id)) == 1
+        assert export.outcomes[issue.edit_rows[0].id].status == "skipped"
+
+    def test_an_issue_without_edits_says_nothing(self):
+        issue = _issue([])
+
+        export = describe_edit_export([issue])
+
+        assert export.outcomes == {}
+        assert export.notes_by_issue == {}

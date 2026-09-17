@@ -14,6 +14,10 @@ from lib.models.issue_edit import IssueEdit
 from lib.services.docx.tracked_changes import EditOutcome
 
 _APPLIED = "Applied below as a tracked change."
+_SKIPPED = (
+    "Not applied as a tracked change: tracked changes were not requested "
+    "for this export."
+)
 _UNMATCHED = (
     "Not applied as a tracked change: the quoted text could not be matched "
     "in this paragraph."
@@ -65,6 +69,8 @@ def _status_line(outcome: EditOutcome, winner_name: Optional[str]) -> str:
         return _unsupported_line(outcome.detail)
     if outcome.status == "failed":
         return _failed_line(outcome.detail)
+    if outcome.status == "skipped":
+        return _SKIPPED
     return _UNMATCHED
 
 

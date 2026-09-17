@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { editsPhrase, exportCounts, issuesInExport } from './export-scope';
+import { editsPhrase, exportCounts, exportOutcomeSentence, issuesInExport } from './export-scope';
 import { Issue, IssueEditRead, IssueEditStatus, SeverityEnum, WorkflowRunType } from '@/lib/generated-api';
 
 function edit(status: IssueEditStatus = IssueEditStatus.Proposed): IssueEditRead {
@@ -71,18 +71,21 @@ describe('exportCounts', () => {
 });
 
 describe('editsPhrase', () => {
-  it('names tracked changes when the option is on', () => {
-    expect(editsPhrase(1, true)).toBe('1 proposed edit as a tracked change');
-    expect(editsPhrase(4, true)).toBe('4 proposed edits as tracked changes');
+  it('counts the edits without saying what becomes of them', () => {
+    expect(editsPhrase(0)).toBe('0 proposed edits');
+    expect(editsPhrase(1)).toBe('1 proposed edit');
+    expect(editsPhrase(4)).toBe('4 proposed edits');
+  });
+});
+
+describe('exportOutcomeSentence', () => {
+  it('names both destinations when tracked changes are on', () => {
+    expect(exportOutcomeSentence(true)).toBe(
+      'Issues become comments; edits become tracked changes where their text can be matched, and are described in their comments otherwise.',
+    );
   });
 
-  it('points at the comments when the option is off', () => {
-    expect(editsPhrase(1, false)).toBe('1 proposed edit described in a comment');
-    expect(editsPhrase(4, false)).toBe('4 proposed edits described in comments');
-  });
-
-  it('says nothing about where an edit goes when there are none', () => {
-    expect(editsPhrase(0, true)).toBe('0 proposed edits');
-    expect(editsPhrase(0, false)).toBe('0 proposed edits');
+  it('points only at the comments when they are off', () => {
+    expect(exportOutcomeSentence(false)).toBe('Issues become comments; edits are described in their comments.');
   });
 });

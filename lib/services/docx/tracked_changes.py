@@ -53,10 +53,16 @@ TRACKED_CHANGE_AUTHOR = "Draft Detective"
 # docx-editor refuses one outright. Anything carrying one is reported instead.
 _CONTROL_CHARS = re.compile(r"[\x00-\x1f\x7f]")
 
-# A footnote reference as the stripped markdown leaves it: MarkItDown writes
-# `[[1]](#footnote-2)`, which `strip_markdown` reduces to `[1]`. Word carries
-# the reference as a mark, so the paragraph's text has no characters for it.
-_FOOTNOTE_MARK = re.compile(r"\[\d+\]")
+# A footnote reference as the markdown carries it, before any syntax is
+# stripped: MarkItDown writes a DOCX footnote as a link into the footnotes
+# section (`[[1]](#footnote-2)`), and a converter emitting reference-style
+# markdown writes `[^1]`. Word carries the reference as a mark, so the
+# paragraph's text has no characters for it while the markdown line does.
+#
+# Matched on the raw line on purpose. A bare `[1]` is left alone: in prose it
+# is a visible citation the Word paragraph carries too, and dropping it would
+# make a line and its own paragraph look like different passages.
+_FOOTNOTE_REFERENCE = re.compile(r"\[\[\d+\]\]\(#footnote-[^)]*\)|\[\^\d+\]")
 
 # How much of a line and a paragraph must agree for them to be the same
 # passage. Long enough that no table row can share it with prose.
@@ -70,6 +76,9 @@ EditOutcomeStatus = Literal[
     "ambiguous",
     "unsupported",
     "failed",
+    # The export was asked for comments only: the edit is described in its
+    # issue's comment, and no redline was ever attempted for it.
+    "skipped",
 ]
 
 
@@ -162,6 +171,16 @@ def _source_line(edit: IssueEdit, document_lines: Sequence[str]) -> Optional[str
     return document_lines[edit.start_line - 1]
 
 
+def _without_footnote_references(line: str) -> str:
+    """The markdown line with its footnote reference markers dropped.
+
+    Word shows a footnote as a reference mark rather than as text, so the
+    markers are the one thing a markdown line carries that its own paragraph
+    never will. Everything else the line says is compared as written.
+    """
+    return _FOOTNOTE_REFERENCE.sub("", line)
+
+
 def _shared_prefix_length(left: str, right: str) -> int:
     """How many leading characters two strings agree on."""
     length = 0
@@ -182,9 +201,10 @@ def _line_belongs_to_paragraph(line: Optional[str], paragraph_text: str) -> bool
     redlined on the wrong words. Comparing the whole line against the
     paragraph's text settles it, in three steps:
 
-    1. Both are stripped of markdown, and the line loses its footnote
-       references as well. Word carries a footnote as a reference mark rather
-       than text, so `[1]` is on the markdown line and never in the paragraph.
+    1. The line loses its footnote reference markers, which Word carries as
+       marks rather than as text, and both are then stripped of markdown. A
+       bare `[1]` survives: a bracketed number in prose is a citation the
+       paragraph shows as well.
     2. Either text containing the other is the same passage. Both directions
        count: a Word paragraph holding hard line breaks converts to several
        markdown lines, so the line can be the shorter of the two.
@@ -198,7 +218,7 @@ def _line_belongs_to_paragraph(line: Optional[str], paragraph_text: str) -> bool
     """
     if line is None:
         return False
-    line_text = normalize_whitespace(_FOOTNOTE_MARK.sub("", word_search_text(line)))
+    line_text = word_search_text(_without_footnote_references(line))
     para_text = normalize_whitespace(paragraph_text)
     if not line_text or not para_text:
         return False
@@ -215,7 +235,8 @@ def _starts_its_line(line: Optional[str], original_text: str) -> bool:
     """
     if line is None:
         return True
-    return normalize_whitespace(line).startswith(normalize_whitespace(original_text))
+    without_marks = normalize_whitespace(_without_footnote_references(line))
+    return without_marks.startswith(normalize_whitespace(original_text))
 
 
 def _resolve_span(

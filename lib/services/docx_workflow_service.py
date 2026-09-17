@@ -11,7 +11,11 @@ from lib.services.docx.manipulator import (
     docx_manipulator_service,
     issue_to_comment,
 )
-from lib.services.docx.edit_export import apply_edit_export, plan_edit_export
+from lib.services.docx.edit_export import (
+    apply_edit_export,
+    describe_edit_export,
+    plan_edit_export,
+)
 from lib.services.docx.paragraph_line_mapper import build_paragraph_line_ranges
 from lib.services.file_artifacts_service.file_artifacts_service import (
     FileArtifactsService,
@@ -23,6 +27,23 @@ from lib.workflows.models import SeverityEnum
 logger = logging.getLogger(__name__)
 
 
+def _resolved_revision(requested: Optional[int], current: int) -> int:
+    """The revision to export, defaulting to the project's current one.
+
+    A revision the project does not have is refused rather than silently
+    served as the current one: the caller asked for a specific document, and
+    the issues and counts it is paired with belong to that revision.
+    """
+    if requested is None:
+        return current
+    if requested < 1 or requested > current:
+        raise ValueError(
+            f"Revision {requested} does not exist for this project "
+            f"(it has revisions 1 to {current})"
+        )
+    return requested
+
+
 async def generate_docx(
     project_id: str,
     share_token: Optional[str],
@@ -31,6 +52,7 @@ async def generate_docx(
     docx_type: DocxManipulatorType | Literal["original"] = DocxManipulatorType.COMMENTS,
     include_passing: bool = False,
     include_edits: bool = True,
+    revision: Optional[int] = None,
 ) -> tuple[str, str]:
     """Generate an export of the project's DOCX.
 
@@ -47,6 +69,11 @@ async def generate_docx(
         include_passing: Whether to include passing issues (severity=none)
         include_edits: Whether to apply the issues' proposed edits as Word
             tracked changes, on top of the comments. Comment exports only.
+            Every edit is described in its issue's comment either way.
+        revision: Which revision of the main document to export. Defaults to
+            the project's current revision. The app can have an earlier
+            revision open, and the file, the issues and the counts the user was
+            shown all have to come from the same one.
 
     Returns:
         ``(file_path, filename)`` for the generated file.
@@ -54,7 +81,7 @@ async def generate_docx(
     project = await _get_project_by_id(project_id)
     if project is None:
         raise ValueError(f"Project {project_id} not found")
-    revision = project.current_revision
+    revision = _resolved_revision(revision, project.current_revision)
 
     file_artifacts = FileArtifactsService(project_id, revision=revision)
     main_file = await file_artifacts.get_main_file()
@@ -151,7 +178,8 @@ async def generate_docx(
                 workspace_root=workspace_root,
             )
             if include_edits
-            else None
+            # Comments only: the edits are still described, nothing is written.
+            else describe_edit_export(issues)
         )
         comments = [
             c
@@ -161,7 +189,7 @@ async def generate_docx(
                     issue,
                     paragraph_line_ranges,
                     share_token_for_comments,
-                    edit_notes=edit_export.notes_for(issue.id) if edit_export else (),
+                    edit_notes=edit_export.notes_for(issue.id),
                 )
             )
         ]
@@ -171,7 +199,7 @@ async def generate_docx(
             workflow_run_id=output_id,
             docx_type=docx_type,
         )
-        if edit_export is not None:
+        if include_edits:
             # After this point the paragraph index map no longer describes the
             # file: python-docx stops reading inserted and deleted runs as
             # paragraph text, so nothing may be re-anchored against it.

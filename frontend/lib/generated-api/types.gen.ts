@@ -5932,9 +5932,15 @@ export type DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetData = {
     /**
      * Include Edits
      *
-     * Apply the issues' proposed edits as Word tracked changes, so they can be accepted or rejected in Word. Comment exports only.
+     * Apply the issues' proposed edits as Word tracked changes, so they can be accepted or rejected in Word. Comment exports only. Every edit is described in its issue's comment either way.
      */
     include_edits?: boolean;
+    /**
+     * Revision
+     *
+     * Which revision of the main document to export, with the issues of that revision. Defaults to the project's current revision.
+     */
+    revision?: number | null;
   };
   url: '/api/projects/{project_id}/docx/download';
 };

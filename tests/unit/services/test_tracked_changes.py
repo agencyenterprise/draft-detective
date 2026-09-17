@@ -451,6 +451,19 @@ def footnote_docx_path(tmp_path: Path) -> Path:
     return path
 
 
+# A bracketed citation Word shows as text, in both the line and the paragraph.
+_CITATION_PARAGRAPH = "See [1] for further details."
+
+
+@pytest.fixture
+def citation_docx_path(tmp_path: Path) -> Path:
+    document = PythonDocxDocument()
+    document.add_paragraph(_CITATION_PARAGRAPH)
+    path = tmp_path / "citation.docx"
+    document.save(str(path))
+    return path
+
+
 class TestAFootnoteReferenceIsNotDrift:
     @pytest.mark.asyncio
     async def test_a_marker_in_the_middle_of_the_line_still_allows_the_edit(
@@ -475,6 +488,46 @@ class TestAFootnoteReferenceIsNotDrift:
         assert _statuses(plan.outcomes) == {edit.id: "applied"}
         visible, _, _ = _read(footnote_docx_path)
         assert "applied to the third cohort in 2019." in visible
+
+    @pytest.mark.asyncio
+    async def test_a_reference_style_marker_is_dropped_too(
+        self, footnote_docx_path: Path
+    ):
+        edit = _edit("second cohort", "third cohort", 1)
+
+        plan, _ = await _plan(
+            footnote_docx_path,
+            [edit],
+            paragraph_line_ranges={0: (1, 1)},
+            markdown=_FOOTNOTE_PARAGRAPH.replace("cohort", "cohort[^1]"),
+        )
+
+        assert _statuses(plan.outcomes) == {edit.id: "applied"}
+
+    @pytest.mark.asyncio
+    async def test_a_bracketed_citation_the_paragraph_shows_is_kept(
+        self, citation_docx_path: Path
+    ):
+        # `[1]` here is a visible citation, not a footnote reference: Word
+        # carries it as text, so dropping it from the line would make the line
+        # and its own paragraph look like different passages.
+        edit = _edit("further details", "the appendix", 1)
+
+        plan, _ = await _plan(
+            citation_docx_path,
+            [edit],
+            paragraph_line_ranges={0: (1, 1)},
+            markdown=_CITATION_PARAGRAPH,
+        )
+        await apply_tracked_changes(
+            str(citation_docx_path),
+            plan.planned,
+            workspace_root=str(citation_docx_path.parent),
+        )
+
+        assert _statuses(plan.outcomes) == {edit.id: "applied"}
+        visible, _, _ = _read(citation_docx_path)
+        assert "See [1] for the appendix." in visible
 
 
 _SHORT_PARAGRAPH = "Yield rose 14%."

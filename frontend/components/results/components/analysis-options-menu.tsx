@@ -80,12 +80,15 @@ export function AnalysisOptionsMenu({
   const [isReplaceDialogOpen, setIsReplaceDialogOpen] = useState(false);
 
   const shareToken = share.shareStatus?.share_link?.token ?? shareContext.shareToken;
+  // The dialog's counts come from the revision on screen, so the export has to
+  // come from the same one rather than from whatever the latest revision is.
   const { download, isDownloading } = useDownloadDocx({
     projectId,
     shareToken,
     severities: filter.severity,
     workflowTypes: filter.workflowType,
     includePassing: filter.showPassing,
+    revision: selectedRevision,
   });
 
   const documentProcessing = getWorkflowRunByType(results, WorkflowRunType.DocumentProcessing);
@@ -122,15 +125,16 @@ export function AnalysisOptionsMenu({
       const token = shareResponse?.share_link?.token;
       if (!token) throw new Error('Failed to create share token');
 
-      await downloadDocxFile(
+      await downloadDocxFile({
         projectId,
-        token,
-        filter.severity,
-        filter.workflowType,
+        shareToken: token,
+        severities: filter.severity,
+        workflowTypes: filter.workflowType,
         docxType,
-        filter.showPassing,
+        includePassing: filter.showPassing,
         includeEdits,
-      );
+        revision: selectedRevision,
+      });
       toast.success('DOCX file downloaded successfully', { id: toastId });
     } catch (error) {
       console.error('Failed to enable sharing and download:', error);

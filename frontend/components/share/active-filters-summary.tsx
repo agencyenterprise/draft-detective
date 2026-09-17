@@ -4,7 +4,7 @@ import { SeverityBadge } from '@/components/results/components/severity-badge';
 import { Badge } from '@/components/ui/badge';
 import { SeverityEnum, WorkflowRunType } from '@/lib/generated-api';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
-import { editsPhrase, type ExportCounts } from '@/lib/export-scope';
+import { editsPhrase, exportOutcomeSentence, type ExportCounts } from '@/lib/export-scope';
 
 export interface ActiveFilters {
   severity: SeverityEnum[];
@@ -23,9 +23,9 @@ export function hasActiveFilters(filters: ActiveFilters): boolean {
  *
  * The document explorer's filters scope the export, so the dialog states the
  * scope beside the options instead of asking for a second confirmation. With no
- * filter it says so in words rather than showing an empty row. `includeEdits`
- * is the dialog's live checkbox state, so the line never promises tracked
- * changes the export will not write.
+ * filter it says so in words rather than showing an empty row. The counts name
+ * what was selected; the sentence under them says what becomes of it, which is
+ * what the `includeEdits` checkbox changes.
  */
 export function ExportScope({
   filters,
@@ -42,10 +42,10 @@ export function ExportScope({
     <div className="space-y-1.5">
       <p className="text-sm">
         <span className="font-medium tabular-nums">{plural(counts.issues, 'issue')}</span>
-        <span className="text-muted-foreground"> as comments</span>
         <span className="text-muted-foreground"> · </span>
-        <span className="font-medium tabular-nums">{editsPhrase(counts.edits, includeEdits)}</span>
+        <span className="font-medium tabular-nums">{editsPhrase(counts.edits)}</span>
       </p>
+      <p className="text-sm text-muted-foreground">{exportOutcomeSentence(includeEdits)}</p>
       {filtered ? (
         <FilterBadges filters={filters} />
       ) : (

@@ -174,7 +174,15 @@ async def download_project_docx(
         default=True,
         description=(
             "Apply the issues' proposed edits as Word tracked changes, so they "
-            "can be accepted or rejected in Word. Comment exports only."
+            "can be accepted or rejected in Word. Comment exports only. Every "
+            "edit is described in its issue's comment either way."
+        ),
+    ),
+    revision: Optional[int] = Query(
+        default=None,
+        description=(
+            "Which revision of the main document to export, with the issues of "
+            "that revision. Defaults to the project's current revision."
         ),
     ),
     current_user: Optional[User] = Depends(get_current_user_optional),
@@ -192,7 +200,12 @@ async def download_project_docx(
             docx_type=docx_type,
             include_passing=include_passing,
             include_edits=include_edits,
+            revision=revision,
         )
+    except ValueError as e:
+        # A revision the project does not have: the caller's request, not ours.
+        logger.warning("Rejected DOCX export for project %s: %s", project_id, e)
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         logger.error("Failed to generate DOCX: %s", e, exc_info=True)
         raise HTTPException(

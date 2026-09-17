@@ -10,25 +10,38 @@ import { downloadFile } from '@/lib/file-download';
 
 export type DocxType = DocxManipulatorType | 'original';
 
-interface UseDownloadDocxOptions {
+/** What the export covers. Named rather than positional: there are too many. */
+export interface DownloadDocxRequest {
   projectId: string;
   shareToken?: string | null;
   severities?: SeverityEnum[];
   workflowTypes?: WorkflowRunType[];
-  includePassing?: boolean;
   docxType?: DocxType;
+  includePassing?: boolean;
   includeEdits?: boolean;
+  /**
+   * Which revision to export. The app can have an earlier revision open, and
+   * the file, its issues and the counts the dialog showed have to agree, so
+   * whatever the user is looking at is what gets exported. Omitted means the
+   * project's current revision.
+   */
+  revision?: number;
 }
 
-export async function downloadDocxFile(
-  projectId: string,
-  shareToken?: string | null,
-  severities?: SeverityEnum[],
-  workflowTypes?: WorkflowRunType[],
-  docxType?: DocxType,
-  includePassing?: boolean,
-  includeEdits: boolean = true,
-): Promise<void> {
+/** The same request, except `docxType` and `includeEdits` are only defaults here:
+ *  `download()` takes either of them per call. */
+type UseDownloadDocxOptions = DownloadDocxRequest;
+
+export async function downloadDocxFile({
+  projectId,
+  shareToken,
+  severities,
+  workflowTypes,
+  docxType,
+  includePassing,
+  includeEdits = true,
+  revision,
+}: DownloadDocxRequest): Promise<void> {
   const response = await downloadProjectDocxApiProjectsProjectIdDocxDownloadGet({
     path: { project_id: projectId },
     query: {
@@ -38,6 +51,7 @@ export async function downloadDocxFile(
       docx_type: docxType ?? 'original',
       include_passing: includePassing ?? false,
       include_edits: includeEdits,
+      revision: revision,
     },
   });
 
@@ -57,6 +71,7 @@ export function useDownloadDocx({
   severities,
   workflowTypes,
   includePassing,
+  revision,
   docxType: initialDocxType,
   includeEdits: initialIncludeEdits = true,
 }: UseDownloadDocxOptions) {
@@ -79,7 +94,16 @@ export function useDownloadDocx({
     });
 
     try {
-      await downloadDocxFile(projectId, shareToken, severities, workflowTypes, dType, includePassing, withEdits);
+      await downloadDocxFile({
+        projectId,
+        shareToken,
+        severities,
+        workflowTypes,
+        docxType: dType,
+        includePassing,
+        includeEdits: withEdits,
+        revision,
+      });
       toast.success('DOCX file downloaded successfully', { id: toastId, description: null });
     } catch (error) {
       console.error('Failed to download docx:', error);

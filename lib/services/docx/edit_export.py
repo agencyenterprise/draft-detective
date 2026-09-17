@@ -13,6 +13,10 @@ beforehand -- and until the write has actually been attempted, nothing knows
 whether docx-editor will take a given operation. So the write is attempted
 twice: once against a scratch copy, whose outcomes decide what the comments say
 and which edits are kept, and once for real.
+
+`describe_edit_export` is the comments-only counterpart: an export that writes
+no redlines still describes every edit in its issue's comment, and does so
+without opening the document at all.
 """
 
 import asyncio
@@ -27,6 +31,7 @@ from typing import Dict, List, Optional, Sequence, Tuple
 from pydantic import BaseModel, Field
 
 from lib.models.issue import Issue
+from lib.models.issue_edit import IssueEditStatus
 from lib.services.docx.edit_notes import build_edit_notes
 from lib.services.docx.tracked_changes import (
     EditOutcome,
@@ -180,6 +185,27 @@ def _merge_rehearsal(
     # The plan reports every edit it planned, so each one has an outcome here.
     kept = [edit for edit in planned if outcomes[edit.edit_id].status == "applied"]
     return kept, outcomes
+
+
+def describe_edit_export(issues: Sequence[Issue]) -> EditExport:
+    """Notes for every proposed edit, for an export that writes no redlines.
+
+    The download dialog promises that each edit is described in its issue's
+    comment whether or not the tracked-changes option is on, so the notes are
+    composed either way; the option only decides whether the fix is also in the
+    margin. Nothing is planned and no document is opened here -- there is no
+    redline to resolve, rehearse or write -- so every edge case the pre-flight
+    reports about placement is moot. A rejected edit is left out, as everywhere
+    else.
+    """
+    outcomes: Dict[uuid.UUID, EditOutcome] = {
+        candidate.edit.id: EditOutcome(edit_id=candidate.edit.id, status="skipped")
+        for candidate in _candidates(issues)
+        if candidate.edit.status != IssueEditStatus.REJECTED
+    }
+    if not outcomes:
+        return EditExport()
+    return EditExport(outcomes=outcomes, notes_by_issue=_notes(issues, [], outcomes))
 
 
 async def plan_edit_export(

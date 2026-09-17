@@ -27,20 +27,26 @@ export function issuesInExport(
     .filter((issue) => filter.workflowType.length === 0 || filter.workflowType.includes(issue.workflow_type));
 }
 
+/** How many proposed edits the export carries, as a plain noun phrase. */
+export function editsPhrase(count: number): string {
+  return `${count} proposed edit${count === 1 ? '' : 's'}`;
+}
+
 /**
- * What the export does with its proposed edits, in words.
+ * What the export does with what it carries, in one sentence.
  *
- * Every included edit is described in its issue's comment either way; the
- * tracked-changes option only decides whether the fix is also in the margin as
- * a redline, so the phrase has to follow the checkbox rather than promise
- * redlines that were switched off. With nothing to say about, the count stands
- * on its own.
+ * The counts are a selection, not a promise: the backend leaves out an issue
+ * it cannot tie to a paragraph, and an edit whose quoted text no longer
+ * matches gets described in its comment instead of redlined. So the sentence
+ * says what happens to each kind rather than implying every count lands as a
+ * tracked change. Every edit is described in its issue's comment either way --
+ * the checkbox only decides whether the fix is also in the margin.
  */
-export function editsPhrase(count: number, includeEdits: boolean): string {
-  const head = `${count} proposed edit${count === 1 ? '' : 's'}`;
-  if (count === 0) return head;
-  if (includeEdits) return `${head} as ${count === 1 ? 'a tracked change' : 'tracked changes'}`;
-  return `${head} described in ${count === 1 ? 'a comment' : 'comments'}`;
+export function exportOutcomeSentence(includeEdits: boolean): string {
+  if (includeEdits) {
+    return 'Issues become comments; edits become tracked changes where their text can be matched, and are described in their comments otherwise.';
+  }
+  return 'Issues become comments; edits are described in their comments.';
 }
 
 /** Issue and proposed-edit counts for the export; rejected edits are never applied. */
