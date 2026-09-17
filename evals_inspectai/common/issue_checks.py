@@ -261,10 +261,12 @@ def edit_checks(
     return out
 
 
-def _hit_pairs(
+def hit_pairs(
     issues: Sequence[IssueItem], inventory: ResolvedInventory, one_to_one: bool = False
 ) -> tuple[dict[str, Optional[int]], list[tuple[ResolvedIssue, IssueItem]]]:
-    """Which reported issue covers each expected one.
+    """Which reported issue covers each expected one. The single pairing every
+    layer uses, deterministic and judged alike, so they never grade different
+    reports for the same expected issue.
 
     By default several expected issues may share a reported issue (a check
     that reports one issue per paragraph). With ``one_to_one`` a reported
@@ -287,13 +289,24 @@ def _hit_pairs(
 
 
 def _canonical_order(issues: Sequence[IssueItem]) -> list[int]:
-    """Indices of ``issues`` sorted by line range, then title, then description.
-    Severity is deliberately not part of the key: letting it settle a tie
-    would let the classification metric grade itself."""
-    return sorted(
-        range(len(issues)),
-        key=lambda i: (issues[i].start_line, issues[i].end_line, normalize(issues[i].title), normalize(issues[i].description)),
-    )
+    """Indices of ``issues`` in a total order over their content: line range,
+    title, description, then severity and suggested action. Identical reports
+    therefore pair identically however the workflow ordered them. Severity
+    comes late and is compared as plain text, independent of the expected
+    severity, so it cannot steer a tie towards the right answer."""
+
+    def key(i: int) -> tuple[int, int, str, str, str, str]:
+        issue = issues[i]
+        return (
+            issue.start_line,
+            issue.end_line,
+            normalize(issue.title),
+            normalize(issue.description),
+            issue.severity,
+            normalize(issue.suggested_action or ""),
+        )
+
+    return sorted(range(len(issues)), key=key)
 
 
 # Cost of leaving an expected issue unmatched in the assignment problem below:
@@ -310,7 +323,7 @@ def _one_to_one_hits(issues: Sequence[IssueItem], expected_issues: Sequence[Reso
     """A one-to-one matching of expected issues to reported issues that covers
     as many expected issues as any pairing can and, among those, uses the
     strongest evidence (lowest total tier). Solved as an assignment problem;
-    exact ties fall to the order given, which ``_hit_pairs`` makes canonical."""
+    exact ties fall to the order given, which ``hit_pairs`` makes canonical."""
     size = max(len(expected_issues), len(issues))
     if size == 0:
         return {}
@@ -389,14 +402,14 @@ def issue_detection_scores(
     ``edits=False``, and one whose inventory names no titles ``titles=False``,
     so its scores (and the log viewer's columns) carry no keys it can never
     score. ``one_to_one`` holds a workflow that must report each expected issue
-    separately to that (see ``_hit_pairs``).
+    separately to that (see ``pairs``).
     """
     lines = inventory.document.split("\n")
     expected_issues = inventory.expected_issues
     values: dict[str, float] = {key: NOT_APPLICABLE for key in issue_check_keys(edits, titles)}
     notes: list[str] = []
 
-    hits, hit_pairs = _hit_pairs(issues, inventory, one_to_one)
+    hits, pairs = hit_pairs(issues, inventory, one_to_one)
     required = [e for e in expected_issues if e.required]
     found_required = [e for e in required if hits[e.id] is not None]
     hit_indices = {i for i in hits.values() if i is not None}
@@ -417,17 +430,17 @@ def issue_detection_scores(
         values["clean_document_untouched"] = float(not issues)
         notes.append("clean document: " + ("nothing reported" if not issues else f"{len(issues)} issue(s) reported"))
 
-    if hit_pairs:
+    if pairs:
         if titles:
-            values["title_correct"] = _fraction([float(_title_matches(i, e.title)) for e, i in hit_pairs if e.title])
-        values["severity_correct"] = _fraction([float(i.severity == e.severity) for e, i in hit_pairs if e.severity])
-        values["anchor_in_range"] = _fraction([float(i.start_line <= e.line <= i.end_line) for e, i in hit_pairs])
-        notes += [f"{e.id}: reported as {i.title!r}, not under {e.title!r}" for e, i in hit_pairs if e.title and not _title_matches(i, e.title)]
-        notes += [f"{e.id}: severity {i.severity}, expected {e.severity}" for e, i in hit_pairs if e.severity and i.severity != e.severity]
-        notes += [f"{e.id}: lines {i.start_line}-{i.end_line} do not bracket line {e.line}" for e, i in hit_pairs if not i.start_line <= e.line <= i.end_line]
-    if hit_pairs and edits:
+            values["title_correct"] = _fraction([float(_title_matches(i, e.title)) for e, i in pairs if e.title])
+        values["severity_correct"] = _fraction([float(i.severity == e.severity) for e, i in pairs if e.severity])
+        values["anchor_in_range"] = _fraction([float(i.start_line <= e.line <= i.end_line) for e, i in pairs])
+        notes += [f"{e.id}: reported as {i.title!r}, not under {e.title!r}" for e, i in pairs if e.title and not _title_matches(i, e.title)]
+        notes += [f"{e.id}: severity {i.severity}, expected {e.severity}" for e, i in pairs if e.severity and i.severity != e.severity]
+        notes += [f"{e.id}: lines {i.start_line}-{i.end_line} do not bracket line {e.line}" for e, i in pairs if not i.start_line <= e.line <= i.end_line]
+    if pairs and edits:
         collected: dict[str, list[float]] = {}
-        for e, i in hit_pairs:
+        for e, i in pairs:
             for key, (value, detail) in edit_checks(e, i, lines).items():
                 collected.setdefault(key, []).append(value)
                 if value < 1.0:
@@ -439,14 +452,17 @@ def issue_detection_scores(
 
 
 def extra_edit_scores(
-    issues: Sequence[IssueItem], inventory: ResolvedInventory, checks: Mapping[str, EditCheck]
+    issues: Sequence[IssueItem],
+    inventory: ResolvedInventory,
+    checks: Mapping[str, EditCheck],
+    one_to_one: bool = False,
 ) -> tuple[dict[str, float], str]:
     """A workflow's own per-edit checks, keyed ``edit_<name>``, over the edits of detected expected issues."""
     lines = inventory.document.split("\n")
     values: dict[str, float] = {f"edit_{name}": NOT_APPLICABLE for name in checks}
     notes: list[str] = []
     collected: dict[str, list[float]] = {}
-    for e, i in _hit_pairs(issues, inventory)[1]:
+    for e, i in hit_pairs(issues, inventory, one_to_one)[1]:
         results = edit_checks(e, i, lines, checks)
         for name in checks:
             key = f"edit_{name}"

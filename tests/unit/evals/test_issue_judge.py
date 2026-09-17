@@ -89,3 +89,25 @@ async def test_undetected_issue_leaves_every_criterion_unscored():
 
     assert all(math.isnan(v) for v in values.values()) and grader.prompts == []
     assert explanation == "all judged criteria passed"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("reversed_order", [False, True])
+async def test_judge_grades_the_same_report_as_the_deterministic_pairing_in_either_order(reversed_order):
+    from evals_inspectai.common.issue_checks import hit_pairs
+
+    expected = _expected(title=None, edit_expected=True)
+    original = "The institute was established in 1962."
+    first = IssueItem(title="Passive Voice", description="Rewrite A.", severity="low", start_line=5, end_line=5,
+                      edits=[ProposedEdit(original_text=original, replacement_text="Nine countries established the institute in 1962.", start_line=5, end_line=5)])
+    second = IssueItem(title="Passive Voice", description="Rewrite B.", severity="low", start_line=5, end_line=5,
+                       edits=[ProposedEdit(original_text=original, replacement_text="The institute began in 1962.", start_line=5, end_line=5)])
+    issues = [second, first] if reversed_order else [first, second]
+    grader = _Grader()
+
+    await judge_sample(cast(Model, grader), issues, _inventory(expected), [MEANING])
+
+    (_, paired), = hit_pairs(issues, _inventory(expected))[1]
+    assert len(grader.prompts) == 1
+    assert paired.edits[0].replacement_text in grader.prompts[0], "the judge graded the report the deterministic layer paired"
+    assert "Rewrite A." < "Rewrite B." and paired.description == "Rewrite A.", "canonical order, not report order"

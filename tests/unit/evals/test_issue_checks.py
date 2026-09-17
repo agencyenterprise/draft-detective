@@ -278,13 +278,27 @@ def test_evidence_tied_reports_are_matched_the_same_way_in_either_order(one_to_o
         assert forward["precision"] == 0.5, "the split itself is charged to precision, whichever half is paired"
 
 
-def test_canonical_order_ignores_severity():
+def test_canonical_order_is_total_over_report_content():
     from evals_inspectai.common.issue_checks import _canonical_order
 
     a = _issue(title="Same title", description="Same text.", severity="high", start=5, end=5)
     b = _issue(title="Same title", description="Same text.", severity="none", start=5, end=5)
     earlier = _issue(title="Zed", description="Other.", severity="none", start=3, end=3)
-    assert _canonical_order([a, b, earlier]) == [2, 0, 1], "line range first; identical text keeps report order"
+    assert _canonical_order([a, b, earlier]) == [2, 0, 1], "line range first, then text, then severity"
+    assert _canonical_order([b, a, earlier]) == [2, 1, 0], "the same reports in another order sort the same"
+
+
+@pytest.mark.parametrize("one_to_one", [False, True])
+def test_reports_differing_only_in_severity_are_matched_the_same_way_in_either_order(one_to_one):
+    expected = _expected(id="e", title=None, anchor="Data were collected", line=5, severity="none")
+    high = _issue(title="Same title", description="Same text.", severity="high")
+    none = _issue(title="Same title", description="Same text.", severity="none")
+
+    forward, _ = issue_detection_scores([high, none], _inventory([expected]), one_to_one=one_to_one)
+    backward, _ = issue_detection_scores([none, high], _inventory([expected]), one_to_one=one_to_one)
+
+    assert forward == backward
+    assert forward["severity_correct"] in (0.0, 1.0)
 
 
 def test_repeated_expected_ids_are_rejected_at_load():
