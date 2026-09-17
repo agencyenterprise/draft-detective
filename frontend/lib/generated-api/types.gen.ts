@@ -3998,6 +3998,8 @@ export const WorkflowRunType = {
   ReviewerResponseMemos: 'reviewer_response_memos',
   ReviewerCoverageReport: 'reviewer_coverage_report',
   ActiveVoice: 'active_voice',
+  ConcisionPrecision: 'concision_precision',
+  WritingConsistency: 'writing_consistency',
 } as const;
 
 /**
