@@ -11,11 +11,13 @@ Keep findings grounded in the document, explain why each problem matters, and gi
 
 ## Choose the Reporting Format
 
-- **Explicit output requirements take precedence, including in chat:** when the user, task skill, or workflow requires issue fields, a structured response, or an issue-reporting tool, follow that contract using the field names, types, and conventions below. A conversational interface does not waive these requirements.
+- **Explicit output requirements take precedence, including in chat:** when the user, task skill, or workflow explicitly requires returning named issue fields, a structured response, or using an issue-reporting tool, follow that contract using the field names, types, and conventions below. A conversational interface does not waive these requirements.
 - **Chat and written reviews without a required schema:** use readable prose, bullets, or headings suited to the request.
 - **Both:** submit the required structured records, then use natural language for any accompanying user-facing explanation. A readable summary does not replace required tool calls or structured output.
 
-Instructions such as "report one issue per missing section" determine which findings to report and how to separate them; they do not alone prescribe a field-by-field layout. Another skill's reference to these conventions preserves its required titles, severity, evidence, locations, and one-finding-per-item rules in either format. Use structured records when that skill also requires issue fields or a schema; otherwise, present each finding naturally.
+Instructions such as "report one issue per missing section" determine which findings to report and how to separate them; they do not alone prescribe a field-by-field layout. Another skill's reference to these conventions preserves its required titles, severity, evidence, real locations, and one-finding-per-item rules in either format.
+
+Instructions in a task skill about how to populate fields do not by themselves require returning structured records. In particular, per-skill line-range field instructions and defaults such as "set both bounds to line 1" apply only when structured records are required. In conversational findings, identify real locations in prose and describe an absent section as missing without assigning it a fallback line number.
 
 ## Conversational Findings
 
