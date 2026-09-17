@@ -11,9 +11,11 @@ Keep findings grounded in the document, explain why each problem matters, and gi
 
 ## Choose the Reporting Format
 
-- **Chat and written reviews:** use readable prose, bullets, or headings suited to the request. This is the default when no structured output is required. A request to "report issues" or another skill's reference to these conventions does not by itself require field-by-field output.
-- **Structured workflow output:** when instructed to submit findings through an issue-reporting tool, return a schema, or provide structured records, follow the exact field names, types, and conventions below. Respect the supplied tool or response schema and the task's reporting requirements.
+- **Explicit output requirements take precedence, including in chat:** when the user, task skill, or workflow requires issue fields, a structured response, or an issue-reporting tool, follow that contract using the field names, types, and conventions below. A conversational interface does not waive these requirements.
+- **Chat and written reviews without a required schema:** use readable prose, bullets, or headings suited to the request.
 - **Both:** submit the required structured records, then use natural language for any accompanying user-facing explanation. A readable summary does not replace required tool calls or structured output.
+
+Instructions such as "report one issue per missing section" determine which findings to report and how to separate them; they do not alone prescribe a field-by-field layout. Another skill's reference to these conventions preserves its required titles, severity, evidence, locations, and one-finding-per-item rules in either format. Use structured records when that skill also requires issue fields or a schema; otherwise, present each finding naturally.
 
 ## Conversational Findings
 
