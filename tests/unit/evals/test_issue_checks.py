@@ -215,6 +215,21 @@ def test_one_to_one_matching_finds_a_complete_pairing_regardless_of_order():
     assert values["recall"] == 1.0 and values["precision"] == 1.0
 
 
+@pytest.mark.parametrize("reversed_order", [False, True])
+def test_one_to_one_matching_keeps_the_strongest_evidence_whatever_the_output_order(reversed_order):
+    # Both issues bracket both recommendations; only the first quotes its anchor. The pairing
+    # that keeps the quote is the right one, and it must not depend on which issue came first.
+    a = _expected(id="a", title=None, anchor="Data were collected", line=5, severity="low")
+    b = _expected(id="b", title=None, anchor="Findings are listed", line=9, severity="high")
+    quotes_a = _issue(title="A", description="“Data were collected” by the team", start=5, end=9, severity="low")
+    paraphrases_b = _issue(title="B", description="The appendix listing is passive.", start=5, end=9, severity="high")
+    issues = [paraphrases_b, quotes_a] if reversed_order else [quotes_a, paraphrases_b]
+
+    values, _ = issue_detection_scores(issues, _inventory([a, b]), one_to_one=True)
+
+    assert values["recall"] == 1.0 and values["severity_correct"] == 1.0
+
+
 def test_title_key_is_left_out_when_the_inventory_names_no_titles():
     assert "title_correct" not in issue_check_keys(edits=False, titles=False)
     assert "title_correct" in issue_check_keys(edits=False, titles=True)

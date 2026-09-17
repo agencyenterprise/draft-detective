@@ -271,30 +271,77 @@ def _hit_pairs(
     return hits, pairs
 
 
+# Cost of leaving an expected issue unmatched in the assignment problem below:
+# larger than any total of tier costs, so cardinality is maximised first and
+# evidence strength decides among pairings of equal size.
+_UNMATCHED = 10_000
+
+
 def _one_to_one_hits(issues: Sequence[IssueItem], expected_issues: Sequence[ResolvedIssue]) -> dict[str, Optional[int]]:
-    """A maximum-cardinality one-to-one matching of expected issues to reported
-    issues (augmenting paths), so as many expected issues are covered as any
-    pairing allows; each expected issue tries its better tiers first, which
-    breaks ties in favour of the stronger evidence."""
-    eligible = {e.id: ranked_hits(e, issues) for e in expected_issues}
-    holder: dict[int, str] = {}  # issue index -> expected id currently matched to it
-
-    def assign(eid: str, tried: set[int]) -> bool:
-        for i in eligible[eid]:
-            if i in tried:
-                continue
-            tried.add(i)
-            if i not in holder or assign(holder[i], tried):
-                holder[i] = eid
-                return True
-        return False
-
-    for e in expected_issues:
-        assign(e.id, set())
-    hits: dict[str, Optional[int]] = {e.id: None for e in expected_issues}
-    for i, eid in holder.items():
-        hits[eid] = i
+    """A one-to-one matching of expected issues to reported issues that covers
+    as many expected issues as any pairing can and, among those, uses the
+    strongest evidence (lowest total tier), so the result does not depend on
+    the order the issues were reported in. Solved as an assignment problem."""
+    size = max(len(expected_issues), len(issues))
+    if size == 0:
+        return {}
+    cost = [[_UNMATCHED] * size for _ in range(size)]
+    for row, e in enumerate(expected_issues):
+        for col, issue in enumerate(issues):
+            tier = hit_tier(e, issue)
+            if tier is not None:
+                cost[row][col] = tier
+    assignment = _min_cost_assignment(cost)
+    hits: dict[str, Optional[int]] = {}
+    for row, e in enumerate(expected_issues):
+        matched = assignment.get(row)
+        hits[e.id] = matched if matched is not None and cost[row][matched] < _UNMATCHED else None
     return hits
+
+
+def _min_cost_assignment(cost: list[list[int]]) -> dict[int, int]:
+    """Hungarian algorithm (Kuhn-Munkres with potentials) on a square cost
+    matrix: the row-to-column assignment of minimum total cost."""
+    n = len(cost)
+    inf = float("inf")
+    u = [0.0] * (n + 1)
+    v = [0.0] * (n + 1)
+    p = [0] * (n + 1)  # p[col] = row matched to col (1-indexed), 0 = none
+    way = [0] * (n + 1)
+    for i in range(1, n + 1):
+        p[0] = i
+        j0 = 0
+        minv = [inf] * (n + 1)
+        used = [False] * (n + 1)
+        while True:
+            used[j0] = True
+            i0 = p[j0]
+            delta = inf
+            j1 = 0
+            for j in range(1, n + 1):
+                if used[j]:
+                    continue
+                cur = cost[i0 - 1][j - 1] - u[i0] - v[j]
+                if cur < minv[j]:
+                    minv[j] = cur
+                    way[j] = j0
+                if minv[j] < delta:
+                    delta = minv[j]
+                    j1 = j
+            for j in range(n + 1):
+                if used[j]:
+                    u[p[j]] += delta
+                    v[j] -= delta
+                else:
+                    minv[j] -= delta
+            j0 = j1
+            if p[j0] == 0:
+                break
+        while j0:
+            j1 = way[j0]
+            p[j0] = p[j1]
+            j0 = j1
+    return {p[j] - 1: j - 1 for j in range(1, n + 1) if p[j]}
 
 
 def issue_detection_scores(
