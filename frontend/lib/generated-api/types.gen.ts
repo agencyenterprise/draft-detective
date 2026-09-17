@@ -3967,6 +3967,7 @@ export const WorkflowRunType = {
   RevisionPlanningSummary: 'revision_planning_summary',
   ReviewerResponseMemos: 'reviewer_response_memos',
   ReviewerCoverageReport: 'reviewer_coverage_report',
+  ActiveVoice: 'active_voice',
 } as const;
 
 /**
@@ -4072,6 +4073,10 @@ export type WorkflowTypeDescription = {
    * Gates
    */
   gates: Array<WorkflowGate>;
+  /**
+   * Icon
+   */
+  icon?: string | null;
 };
 
 /**

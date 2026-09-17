@@ -3,7 +3,10 @@ from enum import Enum, StrEnum
 from operator import add
 from typing import Annotated, List, Optional, Self
 
+from aenum import extend_enum
 from pydantic import BaseModel, Field, model_validator
+
+from lib.skill_workflow_spec import read_all_skill_workflow_declarations
 
 
 class WorkflowCancelledError(Exception):
@@ -162,6 +165,38 @@ class WorkflowRunType(str, Enum):
     REVISION_PLANNING_SUMMARY = "revision_planning_summary"
     REVIEWER_RESPONSE_MEMOS = "reviewer_response_memos"
     REVIEWER_COVERAGE_REPORT = "reviewer_coverage_report"
+
+
+def _extend_workflow_run_type_from_skills() -> None:
+    """Give every skill-declared workflow a WorkflowRunType member.
+
+    A skill under ``skills/`` that carries a ``metadata.draft_detective`` block
+    becomes a workflow (see lib/workflows/skill_workflows.py). Its type slug
+    is added here, at import time and before any model that validates against
+    the enum is built, so the skill needs no line in the class above. The
+    hand-written members stay static because code refers to them by name;
+    skill-declared members are only ever reached through their slug.
+
+    A slug that collides with an existing value or name raises: a skill may
+    not quietly take over a hand-written workflow, or another skill's slot.
+    (``extend_enum`` alone would silently alias a repeated value to the
+    existing member, so the check comes first.)
+    """
+    existing_values = {member.value for member in WorkflowRunType}
+    for declaration in read_all_skill_workflow_declarations():
+        slug = declaration.type_slug
+        name = slug.upper()
+        if slug in existing_values or name in WorkflowRunType.__members__:
+            raise ValueError(
+                f"skill '{declaration.skill_name}' declares workflow type '{slug}', "
+                "which WorkflowRunType already has; pick a different `type:` in "
+                "its frontmatter"
+            )
+        extend_enum(WorkflowRunType, name, slug)
+        existing_values.add(slug)
+
+
+_extend_workflow_run_type_from_skills()
 
 
 def is_user_visible_workflow(workflow_type: WorkflowRunType) -> bool:

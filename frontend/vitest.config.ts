@@ -10,6 +10,9 @@ export default defineConfig({
   resolve: {
     alias: [{ find: /^@\//, replacement: projectRoot }],
   },
+  // Components import stylesheets; tests never look at them, so skip the
+  // Tailwind PostCSS pipeline instead of loading postcss.config.mjs.
+  css: { postcss: {} },
   test: {
     environment: 'jsdom',
     // Tests import from `vitest` explicitly, so the tsconfig needs no `types` entry.

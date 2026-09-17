@@ -27,6 +27,7 @@ import {
   FileCheckIcon,
   TableIcon,
 } from 'lucide-react';
+import { DynamicIcon, iconNames, type IconName } from 'lucide-react/dynamic';
 import { cn } from '@/lib/utils';
 import { WorkflowGate, WorkflowRunType, WorkflowTypeDescription } from '@/lib/generated-api';
 import { Badge } from '../ui/badge';
@@ -34,7 +35,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
 import { formatEstimatedDuration } from './utils';
 
 // Partial: WorkflowRunType keeps members whose workflow has been removed, so
-// old runs still deserialize. Those have no icon; getWorkflowIcon falls back.
+// old runs still deserialize. Those have no icon; WorkflowIcon falls back.
 const workflowTypeIcons: Partial<Record<WorkflowRunType, LucideIcon>> = {
   [WorkflowRunType.DocumentProcessing]: FileText,
   [WorkflowRunType.DocumentSummarization]: FileText,
@@ -62,8 +63,36 @@ const workflowTypeIcons: Partial<Record<WorkflowRunType, LucideIcon>> = {
 
 const DEFAULT_ICON = FileText;
 
-function getWorkflowIcon(type: WorkflowRunType): LucideIcon {
-  return workflowTypeIcons[type] ?? DEFAULT_ICON;
+/** Every icon name lucide ships, as a set so a render-time lookup is constant time. */
+const LUCIDE_ICON_NAMES: ReadonlySet<string> = new Set(iconNames);
+
+/**
+ * The lucide icon a workflow declares, when lucide knows the name. Anything
+ * else (no declaration, a typo, an icon from another set) resolves to null so
+ * the caller falls back instead of asking DynamicIcon for a name it will reject.
+ */
+export function declaredIconName(icon: string | null | undefined): IconName | null {
+  return icon && LUCIDE_ICON_NAMES.has(icon) ? (icon as IconName) : null;
+}
+
+/**
+ * The icon for an assessment. A workflow that declares a lucide icon name
+ * (skill-declared workflows do, in their SKILL.md frontmatter) is drawn from
+ * that name; the hand-written workflows keep their entries in the map above.
+ */
+export function WorkflowIcon({
+  workflowType,
+  className,
+}: {
+  workflowType: WorkflowTypeDescription;
+  className?: string;
+}) {
+  const declared = declaredIconName(workflowType.icon);
+  if (declared) {
+    return <DynamicIcon name={declared} className={className} />;
+  }
+  const Icon: LucideIcon = workflowTypeIcons[workflowType.type] ?? DEFAULT_ICON;
+  return <Icon className={className} />;
 }
 
 interface WorkflowTypeCheckboxProps {
@@ -82,7 +111,6 @@ export function WorkflowTypeCheckbox({
   disabled = false,
   estimatedSeconds,
 }: WorkflowTypeCheckboxProps) {
-  const Icon = getWorkflowIcon(workflowType.type);
   const requiresSupportingFiles = workflowType.gates.includes(WorkflowGate.ReferenceReview);
   const estimatedDuration = formatEstimatedDuration(estimatedSeconds);
 
@@ -103,7 +131,7 @@ export function WorkflowTypeCheckbox({
             checked ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground',
           )}
         >
-          <Icon className="size-4" />
+          <WorkflowIcon workflowType={workflowType} className="size-4" />
         </div>
 
         <div className="flex-1 min-w-0 space-y-1">

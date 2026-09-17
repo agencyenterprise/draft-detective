@@ -8,22 +8,23 @@ reference or an inline `user_prompt`.
 import pytest
 
 from lib.workflows.models import WorkflowRunType
-from lib.workflows.registry import get_workflow_manifest
+from lib.workflows.registry import get_all_manifests, get_workflow_manifest
 from lib.workflows.simple_deep_agent.agent import _SYSTEM_PROMPT
 from lib.workflows.simple_deep_agent.manifest_base import SimpleDeepAgentManifest
 
-# SimpleDeepAgent workflows whose rules live in a skill file.
-_SKILL_BACKED_WORKFLOWS = [
-    WorkflowRunType.FIGURES_TABLES_CHECK,
-    WorkflowRunType.DOCUMENT_STRUCTURE,
-    WorkflowRunType.RECOMMENDATION_CHECK,
-    WorkflowRunType.ADVOCACY_TONE_V2,
-    WorkflowRunType.RESULTS_EXTRACTION,
-    WorkflowRunType.METHODOLOGICAL_ALIGNMENT,
-]
+# SimpleDeepAgent workflows whose rules live in a skill file, derived from the
+# registry so a skill-declared workflow is covered the moment it exists.
+_SKILL_BACKED_WORKFLOWS = sorted(
+    (
+        manifest.type
+        for manifest in get_all_manifests().values()
+        if isinstance(manifest, SimpleDeepAgentManifest) and manifest.skill is not None
+    ),
+    key=lambda t: t.value,
+)
 
 
-@pytest.mark.parametrize("workflow_type", _SKILL_BACKED_WORKFLOWS)
+@pytest.mark.parametrize("workflow_type", _SKILL_BACKED_WORKFLOWS, ids=lambda t: t.value)
 def test_skill_backed_manifest_resolves_prompt(workflow_type: WorkflowRunType):
     manifest = get_workflow_manifest(workflow_type)
     assert isinstance(manifest, SimpleDeepAgentManifest)

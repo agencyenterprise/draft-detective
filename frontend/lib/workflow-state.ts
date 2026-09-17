@@ -16,9 +16,11 @@ import {
 } from './generated-api';
 
 /**
- * Type mapping for workflow types to their corresponding workflow detail types
+ * Workflow types with a state model of their own. Every other member of
+ * WorkflowRunType (including skill-declared workflows, which add no code here)
+ * runs on the shared SimpleDeepAgentState; see WorkflowTypeToDetail.
  */
-type WorkflowTypeToDetail = {
+type BespokeWorkflowStates = {
   [WorkflowRunType.DocumentProcessing]: DocumentProcessingState;
   [WorkflowRunType.DocumentSummarization]: DocumentSummarizationState;
   [WorkflowRunType.ReferenceExtraction]: ReferenceExtractionState;
@@ -38,6 +40,14 @@ type WorkflowTypeToDetail = {
   [WorkflowRunType.RevisionPlanningSummary]: SimpleDeepAgentState;
   [WorkflowRunType.ReviewerResponseMemos]: SimpleDeepAgentState;
   [WorkflowRunType.ReviewerCoverageReport]: SimpleDeepAgentState;
+};
+
+/**
+ * Type mapping for workflow types to their corresponding workflow detail types.
+ * Types not listed in BespokeWorkflowStates fall back to SimpleDeepAgentState.
+ */
+type WorkflowTypeToDetail = BespokeWorkflowStates & {
+  [K in Exclude<WorkflowRunType, keyof BespokeWorkflowStates>]: SimpleDeepAgentState;
 };
 
 export interface WorkflowRunDetailTyped<T> {
