@@ -124,7 +124,10 @@ the criteria the judge grades. None of that is tied to skill-declared workflows:
 that reports issues can be evaluated the same way; `evals_inspectai/e2e/recommendation_check/`
 scores a hand-written workflow with free-form titles and no edits on the same loader and scorers
 (`expects_edits(records)` reads off the inventory that no edits are expected, and
-`issue_checks(edits=False)` then leaves the edit-hygiene keys out).
+`issue_checks(edits=False)` then leaves the edit-hygiene keys out). Its skill requires one issue per
+recommendation occurrence, so it passes `one_to_one=True`: a reported issue covers at most one expected
+issue, and a run that merges two restatements loses recall on the second. Active Voice keeps the
+default, where one paragraph-level issue may cover several expected sentences.
 
 ### Ground truth as an inventory
 

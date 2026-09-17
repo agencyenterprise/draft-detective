@@ -185,6 +185,23 @@ def test_an_expected_issue_without_a_title_matches_any_title_by_line_and_is_not_
     assert math.isnan(values["title_correct"]), "no title to hold the run to"
 
 
+def test_one_to_one_matching_counts_a_merged_occurrence_as_missing():
+    first = _expected(id="first", title=None, anchor="Data were collected", line=5)
+    second = _expected(id="second", title=None, anchor="Findings are listed", line=9)
+    merged = _issue(title="Two in one", description="“Data were collected” and “Findings are listed”", start=5, end=9)
+
+    values, _ = issue_detection_scores([merged], _inventory([first, second]))
+    assert values["recall"] == 1.0, "by default one paragraph-level issue may cover several expected issues"
+
+    values, note = issue_detection_scores([merged], _inventory([first, second]), one_to_one=True)
+    assert values["recall"] == 0.5 and values["precision"] == 1.0
+    assert "missing second" in note and "merged into an issue that already covers another expected issue: second" in note
+
+    separate = [_issue(title="A", description="“Data were collected”"), _issue(title="B", description="“Findings are listed”", start=9, end=9)]
+    values, _ = issue_detection_scores(separate, _inventory([first, second]), one_to_one=True)
+    assert values["recall"] == 1.0 and values["precision"] == 1.0
+
+
 def test_edit_keys_are_left_out_for_a_workflow_that_proposes_no_edits():
     values, _ = issue_detection_scores([_issue(description="“Data were collected”")], _inventory([_expected()]), edits=False)
     assert set(values) == set(DETECTION_KEYS)

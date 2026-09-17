@@ -243,29 +243,46 @@ def edit_checks(
 
 
 def _hit_pairs(
-    issues: Sequence[IssueItem], inventory: ResolvedInventory
+    issues: Sequence[IssueItem], inventory: ResolvedInventory, one_to_one: bool = False
 ) -> tuple[dict[str, Optional[int]], list[tuple[ResolvedIssue, IssueItem]]]:
-    hits = {e.id: hit_issue(e, issues) for e in inventory.expected_issues}
+    """Which reported issue covers each expected one.
+
+    By default several expected issues may share a reported issue (a check
+    that reports one issue per paragraph). With ``one_to_one`` a reported
+    issue covers at most one expected issue, in inventory order, so a run
+    that merges two occurrences the workflow must report separately leaves
+    the second one missing.
+    """
+    hits: dict[str, Optional[int]] = {}
+    claimed: set[int] = set()
+    for e in inventory.expected_issues:
+        candidates = [i for i in range(len(issues)) if not (one_to_one and i in claimed)]
+        found = hit_issue(e, [issues[i] for i in candidates])
+        index = candidates[found] if found is not None else None
+        hits[e.id] = index
+        if index is not None:
+            claimed.add(index)
     pairs = [(e, issues[i]) for e in inventory.expected_issues if (i := hits[e.id]) is not None]
     return hits, pairs
 
 
 def issue_detection_scores(
-    issues: Sequence[IssueItem], inventory: ResolvedInventory, edits: bool = True
+    issues: Sequence[IssueItem], inventory: ResolvedInventory, edits: bool = True, one_to_one: bool = False
 ) -> tuple[dict[str, float], str]:
     """Detection and, for a workflow that proposes edits, generic edit hygiene.
 
     Keys: ``DETECTION_KEYS``, plus ``EDIT_KEYS`` when ``edits`` is True; NaN
     where a sample gives a key nothing to judge. A workflow that never
     proposes edits passes ``edits=False`` so its scores (and the log viewer's
-    columns) carry no keys it can never score.
+    columns) carry no keys it can never score. ``one_to_one`` holds a workflow
+    that must report each expected issue separately to that (see ``_hit_pairs``).
     """
     lines = inventory.document.split("\n")
     expected_issues = inventory.expected_issues
     values: dict[str, float] = {key: NOT_APPLICABLE for key in issue_check_keys(edits)}
     notes: list[str] = []
 
-    hits, hit_pairs = _hit_pairs(issues, inventory)
+    hits, hit_pairs = _hit_pairs(issues, inventory, one_to_one)
     required = [e for e in expected_issues if e.required]
     found_required = [e for e in required if hits[e.id] is not None]
     hit_indices = {i for i in hits.values() if i is not None}
@@ -277,7 +294,10 @@ def issue_detection_scores(
         values["precision"] = precision
         values["f0_5"] = 1.25 * precision * recall / (0.25 * precision + recall) if (precision + recall) else 0.0
         missing = [e.id for e in required if hits[e.id] is None]
+        merged = [e.id for e in required if hits[e.id] is None and one_to_one and hit_issue(e, issues) is not None]
         notes.append(f"recall {len(found_required)}/{len(required)}" + (f" (missing {', '.join(missing)})" if missing else ""))
+        if merged:
+            notes.append(f"merged into an issue that already covers another expected issue: {', '.join(merged)}")
         notes.append(f"precision {len(hit_indices)}/{len(issues)} issues matched an expected issue")
     else:
         values["clean_document_untouched"] = float(not issues)
@@ -389,11 +409,15 @@ def deterministic_scorer(scoring: Scoring) -> Scorer:
 
 
 @scorer(metrics=PER_KEY_METRICS)
-def issue_checks(edits: bool = True) -> Scorer:
+def issue_checks(edits: bool = True, one_to_one: bool = False) -> Scorer:
     """Reported issues against the expected ones: recall, precision, F0.5, titles
     and lines, plus edit presence and text integrity unless ``edits`` is False
-    (a workflow that proposes no edits). The same keys for every sample of an eval."""
-    return deterministic_scorer(lambda issues, inventory: issue_detection_scores(issues, inventory, edits))
+    (a workflow that proposes no edits). ``one_to_one`` makes a reported issue
+    cover at most one expected issue, for a workflow that must report each
+    occurrence separately. The same keys for every sample of an eval."""
+    return deterministic_scorer(
+        lambda issues, inventory: issue_detection_scores(issues, inventory, edits, one_to_one)
+    )
 
 
 @scorer(metrics=PER_KEY_METRICS)

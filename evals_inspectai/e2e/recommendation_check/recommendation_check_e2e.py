@@ -11,7 +11,10 @@ It proposes no edits, and the inventory says nothing about edits, so
 Scorers, all reusable from ``evals_inspectai/common``:
 
 - ``issue_checks``: recall, precision, F0.5 over the recommendations, the clean
-  document left alone, and severity per covered recommendation.
+  document left alone, and severity per covered recommendation. One reported
+  issue covers at most one recommendation (``one_to_one``), since the skill
+  requires each occurrence, including a restatement, to be reported separately;
+  a run that merges two loses recall on the second.
 - ``decoy_checks``: sentences that read like recommendations but are not
   (conclusions restating findings), by reason.
 - ``tool_called("view_image")``: on the two samples whose finding is only in a
@@ -69,7 +72,7 @@ def recommendation_check_e2e(timeout_s: float = 600) -> Task:
             },
         },
         solver=api_workflow_agent(WORKFLOW_TYPE, timeout_s=timeout_s),
-        scorer=[issue_checks(edits=edits), decoy_checks(reasons), tool_called("view_image")],
+        scorer=[issue_checks(edits=edits, one_to_one=True), decoy_checks(reasons), tool_called("view_image")],
         fail_on_error=0.2,
         viewer=issue_viewer_config(reasons, edits, extra=[image_check], labels={"tool_called": "Viewed image"}),
     )
