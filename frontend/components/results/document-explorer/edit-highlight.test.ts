@@ -63,12 +63,27 @@ describe('stripMarkdown', () => {
   });
 
   it('drops list markers', () => {
-    // A `*` bullet loses its asterisk to the emphasis pass first, so the marker
-    // regex no longer sees it and the space it sat on survives. Harmless: every
-    // caller reads the text through `normalizeWhitespace`.
     expect(stripMarkdown('- first\n+ second\n1. third\n2) fourth')).toBe('first\nsecond\nthird\nfourth');
-    expect(stripMarkdown('* starred')).toBe(' starred');
+    // The bullet's star is unpaired, so the emphasis pass leaves it for the
+    // marker pass, which takes the space with it.
+    expect(stripMarkdown('* starred')).toBe('starred');
     expect(editSearchText('* starred')).toBe('starred');
+  });
+
+  it('keeps a star that emphasizes nothing', () => {
+    expect(stripMarkdown('2 * 3 = 6')).toBe('2 * 3 = 6');
+    expect(stripMarkdown('a * b * c')).toBe('a * b * c');
+    // A single star between two non-space characters has nothing to close it,
+    // so it stays literal.
+    expect(stripMarkdown('5*3')).toBe('5*3');
+    expect(stripMarkdown('2 ** 3')).toBe('2 ** 3');
+  });
+
+  it('drops a star that does emphasize', () => {
+    expect(stripMarkdown('**bold**')).toBe('bold');
+    expect(stripMarkdown('*it*')).toBe('it');
+    expect(stripMarkdown('***both***')).toBe('both');
+    expect(stripMarkdown('a * b *c*')).toBe('a * b c');
   });
 
   it('keeps snake_case underscores but strips emphasis underscores', () => {
@@ -95,6 +110,16 @@ describe('stripMarkdown', () => {
   it('does not treat an unescaped backslash before a letter as an escape', () => {
     expect(stripMarkdown('path C:\\Users stays')).toBe('path C:\\Users stays');
   });
+
+  it('keeps a mid-line number that only looks like a list marker', () => {
+    expect(stripMarkdown('2019. Annual report', false)).toBe('2019. Annual report');
+    expect(stripMarkdown('1. First item')).toBe('First item');
+  });
+
+  it('keeps a mid-line hash and arrow, and still strips emphasis', () => {
+    expect(stripMarkdown('# 3 of 4', false)).toBe('# 3 of 4');
+    expect(stripMarkdown('2019. **Annual** report', false)).toBe('2019. Annual report');
+  });
 });
 
 describe('normalizeWhitespace', () => {
@@ -106,6 +131,11 @@ describe('normalizeWhitespace', () => {
 describe('editSearchText', () => {
   it('strips markdown and normalizes whitespace together', () => {
     expect(editSearchText('  **The   claim**\n  is [unproven](https://example.com).  ')).toBe('The claim is unproven.');
+  });
+
+  it('passes the line-start flag through to the stripping', () => {
+    expect(editSearchText('2019. Annual report', false)).toBe('2019. Annual report');
+    expect(editSearchText('2019. Annual report')).toBe('Annual report');
   });
 });
 

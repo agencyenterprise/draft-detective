@@ -1,5 +1,4 @@
 import { EditProjectDialog, EditProjectFormValues } from '@/components/projects/edit-project-dialog';
-import { FilterWarningDialog } from '@/components/share/filter-warning-dialog';
 import { ShareDialog } from '@/components/share/share-dialog';
 import { ShareStatusBadge } from '@/components/share/share-status-badge';
 import { ShareWarningDialog } from '@/components/share/share-warning-dialog';
@@ -18,6 +17,7 @@ import {
   updateProjectEndpointApiProjectProjectIdPatch,
   WorkflowRunDetail,
   WorkflowRunType,
+  Issue,
 } from '@/lib/generated-api';
 import { useDocumentExplorerStore } from '@/lib/stores/document-explorer-store';
 import { cn } from '@/lib/utils';
@@ -28,6 +28,7 @@ import { Download, EllipsisVerticalIcon, Link, Pencil, Plus } from 'lucide-react
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { downloadDocxFile, DocxType, useDownloadDocx } from './use-download-docx';
+import { exportCounts } from '@/lib/export-scope';
 import { ReplaceMainDocumentDialog } from './replace-main-document-dialog';
 import { RevisionSwitcher } from './revision-switcher';
 
@@ -38,6 +39,8 @@ type ProjectWithDetails = Project & {
 export interface AnalysisOptionsMenuProps {
   project: ProjectWithDetails;
   results: WorkflowRunDetail[];
+  /** The project's issues, for the export dialog's counts. */
+  issues: Issue[];
   readOnly: boolean;
   selectedRevision?: number;
   onRevisionChange?: (revision: number) => void;
@@ -56,6 +59,7 @@ export interface AnalysisOptionsMenuProps {
 export function AnalysisOptionsMenu({
   project,
   results,
+  issues,
   readOnly,
   selectedRevision,
   onRevisionChange,
@@ -71,25 +75,21 @@ export function AnalysisOptionsMenu({
   const queryClient = useQueryClient();
 
   const [showShareWarning, setShowShareWarning] = useState(false);
-  const [showFilterWarning, setShowFilterWarning] = useState(false);
-  const [pendingDocxType, setPendingDocxType] = useState<DocxType>('original');
   const [isEnablingForDownload, setIsEnablingForDownload] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isReplaceDialogOpen, setIsReplaceDialogOpen] = useState(false);
 
   const shareToken = share.shareStatus?.share_link?.token ?? shareContext.shareToken;
+  // The dialog's counts come from the revision on screen, so the export has to
+  // come from the same one rather than from whatever the latest revision is.
   const { download, isDownloading } = useDownloadDocx({
     projectId,
     shareToken,
     severities: filter.severity,
     workflowTypes: filter.workflowType,
     includePassing: filter.showPassing,
-    docxType: pendingDocxType,
+    revision: selectedRevision,
   });
-
-  const hasActiveSeverityFilter = filter.severity.length > 0 && filter.severity.length < 3;
-  const hasActiveWorkflowTypeFilter = filter.workflowType.length > 0;
-  const hasActiveFilter = hasActiveSeverityFilter || hasActiveWorkflowTypeFilter || filter.showPassing;
 
   const documentProcessing = getWorkflowRunByType(results, WorkflowRunType.DocumentProcessing);
   const mainFilePath = documentProcessing?.state?.file?.file_path.toLowerCase() ?? '';
@@ -116,7 +116,7 @@ export function AnalysisOptionsMenu({
     },
   });
 
-  const downloadWithShare = async (docxType: DocxType) => {
+  const downloadWithShare = async (docxType: DocxType, includeEdits: boolean) => {
     setIsEnablingForDownload(true);
     const toastId = toast.loading('Preparing DOCX with share links...', { description: 'This may take a few moments' });
 
@@ -125,7 +125,16 @@ export function AnalysisOptionsMenu({
       const token = shareResponse?.share_link?.token;
       if (!token) throw new Error('Failed to create share token');
 
-      await downloadDocxFile(projectId, token, filter.severity, filter.workflowType, docxType, filter.showPassing);
+      await downloadDocxFile({
+        projectId,
+        shareToken: token,
+        severities: filter.severity,
+        workflowTypes: filter.workflowType,
+        docxType,
+        includePassing: filter.showPassing,
+        includeEdits,
+        revision: selectedRevision,
+      });
       toast.success('DOCX file downloaded successfully', { id: toastId });
     } catch (error) {
       console.error('Failed to enable sharing and download:', error);
@@ -136,23 +145,13 @@ export function AnalysisOptionsMenu({
   };
 
   // Execute the actual download based on pending action
-  const executeDownload = (docxType: DocxType) => {
+  const executeDownload = (docxType: DocxType, includeEdits: boolean) => {
     const notShared = !share.isEnabled && !shareContext.shareToken;
     const needsShare = docxType === 'add-in' || docxType === 'comments-with-links';
     if (needsShare && notShared) {
-      downloadWithShare(docxType);
+      downloadWithShare(docxType, includeEdits);
     } else {
-      download(docxType);
-    }
-  };
-
-  // Show filter warning or execute download
-  const proceedWithDownload = (docxType: DocxType) => {
-    if (hasActiveFilter) {
-      setPendingDocxType(docxType);
-      setShowFilterWarning(true);
-    } else {
-      executeDownload(docxType);
+      download(docxType, includeEdits);
     }
   };
 
@@ -267,21 +266,11 @@ export function AnalysisOptionsMenu({
         isProjectPublic={share.isEnabled || !!shareContext.shareToken}
         isEnablingShare={isEnablingForDownload || share.isEnabling}
         isDownloading={isDownloading}
-        onDownload={(type) => {
+        filters={{ severity: filter.severity, workflowType: filter.workflowType, showPassing: filter.showPassing }}
+        counts={exportCounts(issues, filter)}
+        onDownload={(type, options) => {
           setShowShareWarning(false);
-          proceedWithDownload(type);
-        }}
-      />
-
-      <FilterWarningDialog
-        open={showFilterWarning}
-        onOpenChange={setShowFilterWarning}
-        severityFilter={filter.severity}
-        workflowTypeFilter={filter.workflowType}
-        showPassing={filter.showPassing}
-        onConfirm={() => {
-          setShowFilterWarning(false);
-          executeDownload(pendingDocxType);
+          executeDownload(type, options.includeEdits);
         }}
       />
 

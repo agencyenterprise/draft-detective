@@ -178,11 +178,16 @@ def issue_to_comment(
     issue: Issue,
     paragraph_line_ranges: Dict[int, Tuple[int, int]],
     share_token: Optional[str] = None,
+    edit_notes: Sequence[str] = (),
 ) -> Optional["DocxComment"]:
     """Convert an Issue to DocxComment with optional share link.
 
     Resolves the issue to a paragraph by line-range overlap. Returns None when the
     issue has no resolvable line range or does not overlap any mapped paragraph.
+
+    ``edit_notes`` are the issue's proposed-edit blocks, already formatted by
+    `lib.services.docx.edit_notes`: what each edit changes, why, and whether it
+    reached the document as a tracked change.
     """
     line_range = _resolve_issue_line_range(issue)
     if line_range is None:
@@ -211,6 +216,7 @@ def issue_to_comment(
     parts = [f"{title}\n\n{issue.description}"]
     if issue.suggested_action:
         parts.append(f"Suggested Action: {issue.suggested_action}")
+    parts.extend(edit_notes)
     if issue.long_description:
         parts.append(issue.long_description)
     comment_text = "\n\n".join(parts)
@@ -255,13 +261,17 @@ class DocxManipulatorService:
 
     SUPPORTED_EXTENSIONS = {".docx", ".doc"}
 
+    def get_output_dir(self) -> Path:
+        """The directory processed exports (and their scratch space) live in."""
+        output_dir = Path(config.FILE_UPLOADS_MOUNT_PATH) / "processed_docx"
+        output_dir.mkdir(exist_ok=True)
+        return output_dir
+
     def get_output_path(
         self, workflow_run_id: str, docx_type: DocxManipulatorType
     ) -> Path:
         """Get the deterministic output path for a processed docx file."""
-        output_dir = Path(config.FILE_UPLOADS_MOUNT_PATH) / "processed_docx"
-        output_dir.mkdir(exist_ok=True)
-        return output_dir / f"{workflow_run_id}_{docx_type.value}.docx"
+        return self.get_output_dir() / f"{workflow_run_id}_{docx_type.value}.docx"
 
     async def add_addin_metadata_to_docx(
         self,
@@ -307,9 +317,7 @@ class DocxManipulatorService:
         # Create the content controls for each paragraph that has issues
         if issues is not None:
             if paragraph_line_ranges:
-                issue_map = _build_issue_map(
-                    issues, paragraph_line_ranges
-                )
+                issue_map = _build_issue_map(issues, paragraph_line_ranges)
                 for paragraph_index, paragraph in enumerate(docx_paragraphs):
                     paragraph_issues = issue_map.get(paragraph_index, [])
                     if not paragraph_issues:

@@ -50,6 +50,28 @@ describe('edit highlights over real ReactMarkdown output', () => {
     expect(range.toString()).toBe('second cohort [1]');
   });
 
+  it('keeps a mid-line year that reads like a list marker', () => {
+    const markdown = 'Smith et al. 2019. Annual report.';
+    const container = render(markdown);
+
+    const [range] = editRanges(container, [edit('2019. Annual report', 1)], markdown.split('\n'));
+
+    expect(range.toString()).toBe('2019. Annual report');
+  });
+
+  it('highlights a literal star the page shows as text', () => {
+    // ReactMarkdown renders `2 * 3` with the star intact, so the quote has to
+    // keep it too or the highlight lands on nothing.
+    const markdown = 'The yield is 2 * 3 per plot.';
+    const container = render(markdown);
+
+    expect(container.textContent).toContain('2 * 3');
+
+    const [range] = editRanges(container, [edit('2 * 3', 1)], markdown.split('\n'));
+
+    expect(range.toString()).toBe('2 * 3');
+  });
+
   it('marks the bold repeat rather than the plain one before it', () => {
     const markdown = 'Figure 3 and **Figure 3** close the section.';
     const container = render(markdown);
