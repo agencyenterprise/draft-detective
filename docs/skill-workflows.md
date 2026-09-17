@@ -103,6 +103,9 @@ document text plus the finding, never when it needs a new fact or new prose.
   manifests and refuses a skill that names an existing workflow type.
 - `lib/services/workflow_types.py` appends each skill-declared workflow to its
   category and returns its `icon` in the workflow-types API.
+- `lib/agents/chat_agent.py` describes the chat's `/skill` commands with the picker text.
+  Hand-written workflows are mapped to their skill by hand there; a skill-declared
+  workflow is found through its manifest, so it needs no entry.
 - Frontend: the picker draws a declared icon with lucide's `DynamicIcon`, the state
   type map falls back to `SimpleDeepAgentState` for any type it does not list, and the
   results renderer's default branch shows the deep-agent results view. No per-type edit

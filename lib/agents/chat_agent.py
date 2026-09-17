@@ -44,8 +44,10 @@ from lib.models.agent import ReasoningDict
 from lib.services.chat.events import ChatEvent, stream_chat_events
 from lib.services.chat.history import ChatAttachment, build_user_turn, thread_config
 from lib.skills import SkillSummary, list_skill_summaries
+from lib.workflows.manifest import WorkflowManifest
 from lib.workflows.models import WorkflowRunType
 from lib.workflows.registry import get_all_manifests
+from lib.workflows.skill_workflows import SkillWorkflowManifest
 
 
 class ChatModelOption(BaseModel):
@@ -78,6 +80,8 @@ EXCLUDED_CHAT_SKILLS = frozenset({"literature-review", "live-reports"})
 # description in their own SKILL.md. Curated rather than derived, because the
 # relation is not one-to-one: `about_this_ger` backs two skills, and the
 # `review-assistant` skill is a companion to three workflows rather than a check.
+# Skill-declared workflows are not listed: theirs is one-to-one and read off the
+# manifest (see `_manifest_for_skill`).
 SKILL_WORKFLOWS: dict[str, WorkflowRunType] = {
     "abbreviation-scan": WorkflowRunType.ABBREVIATION_SCAN_V2,
     "about-this-authors": WorkflowRunType.ABOUT_THIS_GER,
@@ -160,6 +164,20 @@ with no preamble about what you are about to do.\
 """
 
 
+def _manifest_for_skill(
+    skill_name: str, manifests: dict[WorkflowRunType, WorkflowManifest]
+) -> Optional[WorkflowManifest]:
+    """The workflow a skill backs: by the hand-written map, or, for a
+    skill-declared workflow, by the skill its manifest was built from."""
+    workflow_type = SKILL_WORKFLOWS.get(skill_name)
+    if workflow_type is not None:
+        return manifests.get(workflow_type)
+    return next(
+        (m for m in manifests.values() if isinstance(m, SkillWorkflowManifest) and m.skill == skill_name),
+        None,
+    )
+
+
 def chat_skill_catalogue() -> list[SkillSummary]:
     """The skills the chat offers, described the way the workflow picker is.
 
@@ -171,8 +189,7 @@ def chat_skill_catalogue() -> list[SkillSummary]:
     manifests = get_all_manifests()
     catalogue: list[SkillSummary] = []
     for skill in list_skill_summaries(exclude=EXCLUDED_CHAT_SKILLS):
-        workflow_type = SKILL_WORKFLOWS.get(skill.name)
-        manifest = manifests.get(workflow_type) if workflow_type else None
+        manifest = _manifest_for_skill(skill.name, manifests)
         description = manifest.description if manifest else skill.description
         catalogue.append(SkillSummary(name=skill.name, description=description))
     return catalogue

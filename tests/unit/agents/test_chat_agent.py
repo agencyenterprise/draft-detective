@@ -31,7 +31,8 @@ from lib.agents.chat_agent import (
 )
 from lib.agents.deep_agent_setup import RECURSION_LIMIT, SKILLS_DIR
 from lib.services.chat.history import ChatAttachment
-from lib.skills import INTERACTIVE_ONLY_START
+from lib.skills import INTERACTIVE_ONLY_START, read_skill_frontmatter
+from lib.workflows.models import WorkflowRunType
 from lib.workflows.registry import get_all_manifests
 
 
@@ -153,6 +154,15 @@ class TestSkillCatalogue:
         assert "voice-and-tone" in by_name
         assert by_name["voice-and-tone"].startswith("How Draft Detective writes")
         assert set(by_name).isdisjoint(EXCLUDED_CHAT_SKILLS)
+
+    def test_a_skill_declared_workflow_is_described_by_its_manifest_without_a_map_entry(self) -> None:
+        manifests = get_all_manifests()
+        by_name = {skill.name: skill.description for skill in chat_skill_catalogue()}
+
+        assert "active-voice" not in SKILL_WORKFLOWS
+        assert by_name["active-voice"] == manifests[WorkflowRunType("active_voice")].description
+        frontmatter = read_skill_frontmatter(SKILLS_DIR / "active-voice" / "SKILL.md") or {}
+        assert by_name["active-voice"] != frontmatter["description"]
 
     def test_a_retired_workflow_falls_back_to_the_skill_description(self) -> None:
         with patch.object(chat_agent, "get_all_manifests", return_value={}):

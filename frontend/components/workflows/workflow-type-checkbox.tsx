@@ -35,7 +35,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
 import { formatEstimatedDuration } from './utils';
 
 // Partial: WorkflowRunType keeps members whose workflow has been removed, so
-// old runs still deserialize. Those have no icon; getWorkflowIcon falls back.
+// old runs still deserialize. Those have no icon; WorkflowIcon falls back.
 const workflowTypeIcons: Partial<Record<WorkflowRunType, LucideIcon>> = {
   [WorkflowRunType.DocumentProcessing]: FileText,
   [WorkflowRunType.DocumentSummarization]: FileText,
