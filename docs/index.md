@@ -163,8 +163,7 @@ uv run inspect view   # browse the results
 Current scores for every suite are recorded in
 [`docs/eval-scores.md`](./eval-scores.md), with the raw Inspect logs under
 [`docs/evals/`](./evals/). Those numbers are measured on `gpt-5.6-terra`, which
-every agent moved to on 28 Aug 2026; the superseded gpt-5.4 / gpt-5.5 scores are
-kept in [`docs/eval-scores-gpt-5.4-5.5.md`](./eval-scores-gpt-5.4-5.5.md).
+every agent moved to on 28 Aug 2026.
 
 ### System architecture
 
