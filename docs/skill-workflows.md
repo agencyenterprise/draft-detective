@@ -18,7 +18,11 @@ the skill-declared kind only.
 2. Add a `draft_detective` block under `metadata` in the frontmatter. `title` and
    `category` are required; everything else has a default.
 3. Write the rules in the body, following the conventions below.
-4. Optionally add an eval under `evals_inspectai/e2e/<slug>/` (see Evals below).
+4. Regenerate the frontend API types, since the set of workflow types changed:
+   `cd frontend && pnpm run openapi-generate` with the backend running. Until that runs, the
+   assessment page rejects the new type's URL segment as unknown (`parseWorkflowRunType`
+   accepts only values of the generated `WorkflowRunType`).
+5. Optionally add an eval under `evals_inspectai/e2e/<slug>/` (see Evals below).
 
 That is all. On the next backend start the workflow is registered and appears in its
 category. The unit test suite checks the wiring (`tests/unit/workflows/test_skill_workflows.py`).
