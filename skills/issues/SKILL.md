@@ -1,17 +1,41 @@
 ---
 name: issues
-description: Use this skill whenever you need to report document review issues. It defines the standard issue format — field names, types, severity levels, line-number conventions, and best practices — used across all agent workflows in this project.
+description: Use this skill to report document review findings with clear evidence, severity, and actionable guidance. Present findings naturally in chat and written reviews; use the standard issue schema when a workflow, tool, or user requires structured output.
 ---
 
 # Issues Reporting
 
 ## Overview
 
-Every agent that identifies problems in a document must follow these output conventions precisely. This ensures issues are consistently structured and can be processed downstream.
+Keep findings grounded in the document, explain why each problem matters, and give a concrete next step when possible. The reporting format depends on the deliverable.
 
-## Issue Structure
+## Choose the Reporting Format
 
-Each problem must be reported as an issue with the following fields:
+- **Explicit output requirements take precedence, including in chat:** when the user, task skill, or workflow explicitly requires returning named issue fields, a structured response, or using an issue-reporting tool, follow that contract using the field names, types, and conventions below. A conversational interface does not waive these requirements.
+- **Chat and written reviews without a required schema:** use readable prose, bullets, or headings suited to the request.
+- **Both:** submit the required structured records, then use natural language for any accompanying user-facing explanation. A readable summary does not replace required tool calls or structured output.
+
+Instructions such as "report one issue per missing section" determine which findings to report and how to separate them; they do not alone prescribe a field-by-field layout. Another skill's reference to these conventions preserves its required titles, severity, evidence, real locations, and one-finding-per-item rules in either format.
+
+Instructions in a task skill about how to populate fields do not by themselves require returning structured records. In particular, per-skill line-range field instructions and defaults such as "set both bounds to line 1" apply only when structured records are required. In conversational findings, identify real locations in prose and describe an absent section as missing without assigning it a fallback line number.
+
+## Conversational Findings
+
+Make each finding easy to locate and act on: identify the passage or element, explain the problem and its impact, and suggest a fix. Use a short quote, section, page, or available line number to anchor it. Do not invent line numbers or display the structured fallback of line 1 for an unlocated finding.
+
+Mention severity in ordinary language when it helps prioritize the review, using the severity scale below and any task-specific severity. Keep required rule titles and classifications, but integrate them into readable headings or prose. Avoid raw schema labels such as `start_line`, `suggested_action`, or `replacement_text` unless structured output was requested.
+
+When a wording change is justified by the document, show the suggested wording once and explain it briefly. Do not repeat the same passage as a suggestion and again as an edit record. Apply the same evidence and no-fabrication standards as structured findings; leave decisions requiring new facts or author judgment to the author.
+
+For example, a chat finding could read:
+
+> **Passive voice (minor suggestion, line 11).** “Those decisions are being made” leaves the actor unnamed, though the surrounding text identifies agency leaders. Consider “Agency leaders are making those decisions…” to make the actor explicit.
+
+This is an illustration, not a required template. Use the amount of structure and detail the request needs.
+
+## Structured Issue Output
+
+The field schema and line-number conventions in this section apply to structured records, not to the layout of chat replies. Each problem must be reported with the following fields:
 
 **`title`** (`str`)
 A short, specific title that names the problem. If the instructions specify a title format for the rule, use it exactly, substituting any bracketed placeholders with the actual value (e.g. `"Figure/Table Missing Title: Figure 3"`, `"Author Bio Issue: Jane Smith"`). If no title is specified, create a concise one that clearly identifies the problem and the affected element. Good titles are scannable and self-explanatory.
@@ -30,10 +54,10 @@ Choose based on impact on document quality:
 When the workflow instructions specify a severity for a particular rule, always use that value.
 
 **`start_line`** (`int`)
-The 1-indexed line number in `/main.md` where the text relevant to this issue begins. Set to `1` when no specific location can be determined (e.g. a missing section that is absent from the entire document).
+The 1-indexed line number in the supplied document where the text relevant to this issue begins. Set to `1` when no specific location can be determined (e.g. a missing section that is absent from the entire document).
 
 **`end_line`** (`int`)
-The 1-indexed line number in `/main.md` where the relevant text ends. Must be ≥ `start_line`. Set to `1` when no specific location can be determined.
+The 1-indexed line number in the supplied document where the relevant text ends. Must be ≥ `start_line`. Set to `1` when no specific location can be determined.
 
 **`suggested_action`** (`str`, optional, markdown supported)
 A direct, concise recommendation to the author on what to do to resolve this issue. Set this field whenever a concrete author-facing fix applies; omit it when no actionable recommendation can be made (e.g. for purely diagnostic findings).
@@ -65,17 +89,17 @@ When used, format `long_description` with markdown to maximize readability:
 - Use inline code or fenced code blocks to quote specific text from the document.
 - Keep each section concise — the goal is clarity, not length.
 
-## Issues List
+### Structured Issues List
 
 Report one issue per problem found. Only create an issue for a failing rule or missing element — do not add entries for rules that pass, **unless** the workflow's user prompt explicitly asks you to surface passing checks as informational (`severity: "none"`) items.
 
-## Line-Number Conventions
+### Structured Line-Number Conventions
 
-- Line numbers are 1-indexed: the first line of `/main.md` is line 1.
+- Line numbers are 1-indexed: the first line of the supplied document is line 1. Use the workflow's designated document and line numbering.
 - For issues tied to a specific passage, set `start_line` and `end_line` to bracket that passage.
 - For issues with no specific line or line range — for example, a finding that a required section is missing entirely from the document — set both `start_line` and `end_line` to `1`. **Never** report such an issue with a range that spans the entire document; a whole-document range is reserved for problems that genuinely apply to every line.
 
-## Best Practices
+## Best Practices for All Formats
 
 - Report only genuine problems. Do not create issues for rules that pass, unless the workflow instructions explicitly request informational (`severity: "none"`) entries for passing checks.
 - Each issue should be individually actionable — a reader should be able to locate the problem and fix it without further clarification.

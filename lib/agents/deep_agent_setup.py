@@ -11,10 +11,11 @@ first and the Teams agent imported it from there, which had the dependency the w
 way round: answering a question in a chat has nothing to do with Word comments, and
 one agent should not be the other's utility library.
 
-``/main.md`` is where the document is mounted, and that is a codebase-wide contract
-rather than a local choice: ``FileArtifactsService.get_deepagent_backend_files``, the
-workflow agents and ``skills/issues/SKILL.md`` all read it, and the skills' line
-numbers are *defined* as line numbers within it.
+``/main.md`` is the document path shared by ``build_agent_files``,
+``FileArtifactsService.get_deepagent_backend_files`` and the workflow prompts.
+Those prompts designate the document used for structured issue line numbers;
+the portable ``skills/issues/SKILL.md`` defines the numbering conventions without
+requiring a particular document path.
 """
 
 import logging
