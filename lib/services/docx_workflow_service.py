@@ -11,6 +11,7 @@ from lib.services.docx.manipulator import (
     docx_manipulator_service,
     issue_to_comment,
 )
+from lib.services.docx.edit_export import apply_edit_export, plan_edit_export
 from lib.services.docx.paragraph_line_mapper import build_paragraph_line_ranges
 from lib.services.file_artifacts_service.file_artifacts_service import (
     FileArtifactsService,
@@ -29,6 +30,7 @@ async def generate_docx(
     workflow_types: Optional[List[WorkflowRunType]] = None,
     docx_type: DocxManipulatorType | Literal["original"] = DocxManipulatorType.COMMENTS,
     include_passing: bool = False,
+    include_edits: bool = True,
 ) -> tuple[str, str]:
     """Generate an export of the project's DOCX.
 
@@ -43,6 +45,8 @@ async def generate_docx(
             untouched; ``COMMENTS`` / ``COMMENTS_WITH_LINKS`` / ``ADD_IN`` produce
             the corresponding processed variants.
         include_passing: Whether to include passing issues (severity=none)
+        include_edits: Whether to apply the issues' proposed edits as Word
+            tracked changes, on top of the comments. Comment exports only.
 
     Returns:
         ``(file_path, filename)`` for the generated file.
@@ -134,6 +138,21 @@ async def generate_docx(
             if docx_type == DocxManipulatorType.COMMENTS_WITH_LINKS
             else None
         )
+        # Tracked changes ride along with the comment exports only. The add-in
+        # wraps paragraphs in content controls and drives its own review UI;
+        # mixing redlines into that is not supported yet.
+        workspace_root = str(docx_manipulator_service.get_output_dir())
+        edit_export = (
+            await plan_edit_export(
+                issues=issues,
+                markdown=main_file.markdown or "",
+                docx_path=main_file.file_path,
+                paragraph_line_ranges=paragraph_line_ranges,
+                workspace_root=workspace_root,
+            )
+            if include_edits
+            else None
+        )
         comments = [
             c
             for issue in issues
@@ -142,6 +161,7 @@ async def generate_docx(
                     issue,
                     paragraph_line_ranges,
                     share_token_for_comments,
+                    edit_notes=edit_export.notes_for(issue.id) if edit_export else (),
                 )
             )
         ]
@@ -151,6 +171,16 @@ async def generate_docx(
             workflow_run_id=output_id,
             docx_type=docx_type,
         )
+        if edit_export is not None:
+            # After this point the paragraph index map no longer describes the
+            # file: python-docx stops reading inserted and deleted runs as
+            # paragraph text, so nothing may be re-anchored against it.
+            await apply_edit_export(
+                output_path,
+                edit_export,
+                project_id,
+                workspace_root=workspace_root,
+            )
     elif docx_type == DocxManipulatorType.ADD_IN:
         if share_token is None:
             raise ValueError("share_token is required for ADD_IN docx export")

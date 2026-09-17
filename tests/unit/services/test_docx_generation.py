@@ -102,6 +102,53 @@ class TestIssueToComment:
             < text.index("### Field validations")
         )
 
+    def test_edit_notes_sit_between_the_suggested_action_and_the_details(self):
+        """Proposed edits read after the action they carry out."""
+        issue = _make_issue(
+            title="Reference has incorrect fields",
+            description="The publication year does not match public sources.",
+            suggested_action="Update the year to 2021.",
+            long_description="### Field validations",
+            severity=SeverityEnum.HIGH,
+            workflow_type=WorkflowRunType.REFERENCE_VALIDATION_V2,
+            start_line=1,
+            end_line=3,
+        )
+
+        comment = issue_to_comment(
+            issue,
+            {0: (1, 3)},
+            edit_notes=[
+                'Proposed edit: "2019" → "2021"\nthe year is wrong\n'
+                "Applied below as a tracked change."
+            ],
+        )
+
+        assert comment is not None
+        text = comment.comment_text
+        assert "Applied below as a tracked change." in text
+        assert (
+            text.index("Suggested Action:")
+            < text.index("Proposed edit:")
+            < text.index("### Field validations")
+        )
+
+    def test_a_comment_without_edit_notes_is_unchanged(self):
+        issue = _make_issue(
+            title="Unsupported Claim",
+            description="This claim lacks evidence",
+            suggested_action="Cite a source.",
+            severity=SeverityEnum.HIGH,
+            workflow_type=WorkflowRunType.CLAIM_REFERENCE_VALIDATION_V2,
+            start_line=1,
+            end_line=3,
+        )
+
+        comment = issue_to_comment(issue, {0: (1, 3)}, edit_notes=[])
+
+        assert comment is not None
+        assert comment.comment_text.endswith("Suggested Action: Cite a source.")
+
     def test_omits_long_description_when_absent(self):
         """No trailing separator/content when long_description is None."""
         issue = _make_issue(
