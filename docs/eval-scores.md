@@ -2,14 +2,9 @@
 
 Current Inspect AI eval numbers across every eval in `evals_inspectai/e2e/`.
 
-- **Last updated:** 2026-09-11
+- **Last updated:** 2026-09-17
 - **Model:** `gpt-5.6-terra`, on every agent
-- **Total:** 18 evals · 244 runnable samples · run at epochs=3
-
-> [!IMPORTANT]
-> **This is the current baseline, measured on `gpt-5.6-terra`.** On 28 Aug 2026
-> every agent moved off the three-tier `gpt-5.4-mini` / `gpt-5.4` / `gpt-5.5`
-> stack onto a single model.
+- **Total:** 19 evals · 264 runnable samples · run at epochs=3
 
 > [!NOTE]
 > All evals are **end-to-end**: they trigger the real workflow through the API,
@@ -36,8 +31,8 @@ measure different things, so it is not a rigorous aggregate). Model-graded
 scores use `openai/gpt-5.4` as the grader, except the two review-assistant
 suites (17 and 18), which pin `openai/gpt-5.6-terra`.
 
-Three suites — `results_extraction` (15) and the two review-assistant ones
-(17 and 18) — report one metric per check rather than a single blended score, so
+Four suites — `results_extraction` (15), the two review-assistant ones
+(17 and 18) and `active_voice` (19) — report one metric per check rather than a single blended score, so
 every rule they enforce is listed separately. A broken rule is a defect and a
 lower judged score is a trend; averaging them together hides both.
 
@@ -63,73 +58,13 @@ Every run below completed in full: no sample was dropped, errored or retried.
 | 16 | `reviewer_2`[^fig-images] | 3 | 3 | <details><summary>1 deterministic 1.000 · 1 judged 1.000</summary>`structured_output_scorer` 1.000 ±0.000[^rev-produced]<br>`model_graded_check` 1.000 ±0.000[^mg]</details> | **1.000** | 2026-09-03 | [`…_F9nMo3w7HqpfRxYJgbhm7F.eval`](./evals/2026-09-03T20-40-28-00-00_reviewer-2-e2e_F9nMo3w7HqpfRxYJgbhm7F.eval) |
 | 17 | `reviewer_coverage_report` | 5 | 3 | <details><summary>9 deterministic all 1.000 · 4 judged 0.800–0.967</summary>`verbatim` 1.000 ±0.000<br>`quoted` 1.000 ±0.000<br>`id_scheme` 1.000 ±0.000<br>`self_contained` 1.000 ±0.000<br>`two_part_layout` 1.000 ±0.000<br>`voice` 1.000 ±0.000[^ra-structure]<br>`verdict_table` 1.000 ±0.000<br>`verdict_vocabulary` 1.000 ±0.000<br>`recommendation` 1.000 ±0.000[^rcr-bookkeeping]<br>`verdicts_correct` 0.800 ±0.062<br>`part1_is_decision_grade` 0.900 ±0.041<br>`evidence_and_location` 0.967 ±0.033<br>`scenario_trap` 0.800 ±0.133[^rcr-rubric]</details> | **0.959** | 2026-08-26 | [`…_nnzWgW7JK6KsFFqorqCSck.eval`](./evals/2026-08-26T15-01-34-00-00_reviewer-coverage-report-e2e_nnzWgW7JK6KsFFqorqCSck.eval) |
 | 18 | `revision_planning_summary` | 5 | 3 | <details><summary>6 deterministic all 1.000 · 4 judged 0.800–1.000</summary>`verbatim` 1.000 ±0.000<br>`quoted` 1.000 ±0.000<br>`id_scheme` 1.000 ±0.000<br>`self_contained` 1.000 ±0.000<br>`two_part_layout` 1.000 ±0.000<br>`voice` 1.000 ±0.000[^ra-structure]<br>`locations_by_content` 0.967 ±0.033<br>`part1_triage` 0.800 ±0.062<br>`planning_notes` 1.000 ±0.000<br>`scenario_trap` 0.800 ±0.097[^rps-rubric]</details> | **0.957** | 2026-08-26 | [`…_iUkias5YSUsBuY2EoRoKqm.eval`](./evals/2026-08-26T15-11-52-00-00_revision-planning-summary-e2e_iUkias5YSUsBuY2EoRoKqm.eval) |
+| 19 | `active_voice`[^av-devsplit] | 20 | 3 | <details><summary>24 deterministic 0.781–1.000 · 3 judged 0.873–0.944</summary>`recall` 0.967 ±0.028<br>`precision` 0.996 ±0.004<br>`f0_5` 0.986 ±0.010<br>`clean_document_untouched` 1.000 ±0.000<br>`title_correct` 1.000 ±0.000<br>`severity_correct` 1.000 ±0.000<br>`anchor_in_range` 1.000 ±0.000[^av-detection]<br>`edit_present_when_expected` 0.915 ±0.074<br>`edit_absent_when_not_expected` 0.875 ±0.080<br>`edit_quote_on_line` 1.000 ±0.000<br>`edit_expected_phrases` 0.781 ±0.107<br>`edit_keeps_numbers_and_markers` 0.992 ±0.008<br>`edit_punctuation` 0.893 ±0.099[^av-edits]<br>`no_fp_active` 0.963 ±0.037<br>`no_fp_actor_is_the_point` 1.000 ±0.000<br>`no_fp_excluded` 1.000 ±0.000<br>`no_fp_generic` 0.833 ±0.167<br>`no_fp_idiom` 1.000 ±0.000<br>`no_fp_participial` 1.000 ±0.000<br>`no_fp_qualifier` 1.000 ±0.000<br>`no_fp_quoted` 1.000 ±0.000<br>`no_fp_source_definition` 1.000 ±0.000<br>`no_fp_stative` 0.800 ±0.200[^av-decoys]<br>`edit_removes_passive` 1.000 ±0.000[^av-passive]<br>`edit_meaning_preserved` 0.873 ±0.099<br>`edit_reads_well` 0.944 ±0.031<br>`unknown_actor_asked_not_guessed` 0.889 ±0.111[^av-judged]</details> | **0.952** | 2026-09-17 | [`…_6usnWZz3Lest9EptpfNvSx.eval`](./evals/2026-09-17T17-08-13-00-00_active-voice-e2e_6usnWZz3Lest9EptpfNvSx.eval) |
 | | **Mean across all evals** | | | | **0.952** | | |
-
-## What the model switch changed
-
-Against the last gpt-5.4 / gpt-5.5 figures. Six evals are unchanged, four
-improved and eight fell, for a suite mean **0.009 lower**. Only one movement is
-large enough to matter on its own.
-
-| Eval | gpt-5.4 / gpt-5.5 | gpt-5.6-terra | Δ |
-|------|------------------:|--------------:|--:|
-| `abbreviation_checker` | 0.993 | 0.995 | +0.002 |
-| `about_this_ger` | 0.983 | 0.969 | -0.014 |
-| `advocacy_tone_v2` | 0.994 | 1.000 | +0.006 |
-| `claim_reference_validation_v2` | 1.000 | 1.000 | — |
-| `document_structure` | 0.867 | 0.867 | — |
-| `figures_tables_check` | 0.864 | 0.780 | -0.084 |
-| `inference_validation_v2` | 1.000 | 1.000 | — |
-| `literature_review_v2` | 0.944 | 0.979 | +0.035 |
-| `live_reports_v2` | 1.000 | 1.000 | — |
-| `methodological_alignment` | 0.958 | 1.000 | +0.042 |
-| `recommendation_check` | 0.955 | 0.953 | -0.002 |
-| `reference_downloader` | 0.903 | 0.849 | -0.054 |
-| `reference_text_extractor` | 0.922 | 0.878 | -0.044 |
-| `reference_validation_v2` | 0.848 | 0.819 | -0.029 |
-| `results_extraction` | 1.000 | 1.000 | — |
-| `reviewer_2` | 1.000 | 1.000 | — |
-| `reviewer_coverage_report` | 0.972 | 0.959 | -0.013 |
-| `revision_planning_summary` | 0.967 | 0.957 | -0.010 |
-| **Mean across all evals** | **0.954** | **0.945** | **-0.009** |
-
-Four things worth knowing before reading that table:
-
-- **`results_extraction` is no longer comparable, in either direction.** Both
-  columns read 1.000 because that is what its old scorers measured: 2 samples,
-  every expected result not-reproducible, and a deterministic check that counted
-  results and validated a class string. The eval was rebuilt on 31 Aug — 10
-  samples, ground-truth inventories, 13 per-check metrics — and read 0.977 that
-  day, pooled over three invocations; on 3 Sep, with a chart sample and the
-  `tool_called` check added (11 samples, 14 metrics), it reads 0.985. The two
-  numbers measure different things and differencing them means nothing. This is
-  also why the suite mean in the table above (0.945) and the one in the Results
-  table (0.952) differ: the table above is a frozen record of the model switch,
-  the Results table is current.
-- **`figures_tables_check` is the one real regression.** It fell 8.4 points, on
-  both of its scorers, and it is the only movement here that was measured twice
-  and held both times — 0.798 on 26 Aug and 0.780 on 28 Aug. The deterministic
-  issue-title match moving means terra flags different figures and tables, not
-  that a grader changed its mind. This is a known cost of the switch, not noise.
-  On 3 Sep, with the image-viewing tool bound and three figure samples added,
-  the suite read 0.919; the nineteen original samples alone moved from
-  0.710 to 0.789 on the title match and 0.851 to 0.930 judged. Read that as
-  recovery, not as the switch cost reversing: the skill text was clarified
-  along the way (see [^fig-images]).
-- **The small evals swing.** `document_structure` read 0.778 on 26 Aug and
-  0.867 — exactly its old figure — on 28 Aug, with nothing changed between the
-  runs. At 15 runs with a judged scorer carrying ±0.200, single readings on the
-  sub-20-run evals should not be read as trends in either direction.
-- **The review-assistant suites now grade themselves.** `reviewer_coverage_report`
-  and `revision_planning_summary` pin `openai/gpt-5.6-terra` as their judge,
-  which is now also the model under test. Their judged criteria should be read
-  with that in mind; their deterministic rules, all of which still pass at 1.000,
-  are unaffected.
 
 ## Scorer reference
 
 [^mg]: `model_graded_check` — an LLM grader compares the workflow's full output against the target answer, with partial credit. Some evals grade against a `target_answer` in sample metadata; the mechanism is otherwise identical across evals.
-[^abbr-rework]: `abbreviation_checker` · re-baselined on 11 Sep 2026 after the workflow was reworked to fix silent truncation on long documents: the agent now paginates `/main.md` in 200-line chunks and records occurrences through a `record_abbreviations` tool instead of returning the whole catalogue in one structured response, and each compliance rule reports once per abbreviation rather than once per occurrence (`severity=none` informational entries are no longer emitted). The scorers and the dataset are unchanged, so this number is comparable with the 0.995 it replaces; the 0.006 drop sits inside `model_graded_check`'s stderr. The eval's 26 samples are all short documents, which is why they barely move — the rework shows up on long ones: a 111-page fixture went from 113 recorded occurrences to 975, and from 358 medium plus 1,396 none-severity issues to 40. The **0.995** listed for this eval in *What the model switch changed* below is the pre-rework figure and is left as recorded, since that table documents the 28 Aug model migration rather than the current baseline.
+[^abbr-rework]: `abbreviation_checker` · re-baselined on 11 Sep 2026 after the workflow was reworked to fix silent truncation on long documents: the agent now paginates `/main.md` in 200-line chunks and records occurrences through a `record_abbreviations` tool instead of returning the whole catalogue in one structured response, and each compliance rule reports once per abbreviation rather than once per occurrence (`severity=none` informational entries are no longer emitted). The scorers and the dataset are unchanged, so this number is comparable with the 0.995 it replaces; the 0.006 drop sits inside `model_graded_check`'s stderr. The eval's 26 samples are all short documents, which is why they barely move — the rework shows up on long ones: a 111-page fixture went from 113 recorded occurrences to 975, and from 358 medium plus 1,396 none-severity issues to 40.
 [^abbr-list]: `abbreviation_checker` · deterministic match of the extracted abbreviations list against the target (inline definition, line span, section definition, ignored flag).
 [^abbr-sect]: `abbreviation_checker` · deterministic check that the "Abbreviations section found" boolean matches the target.
 [^ger-preface]: `about_this_ger` · deterministic match of the flagged preface / "About This" issue titles against the target.
@@ -155,4 +90,10 @@ Four things worth knowing before reading that table:
 [^rcr-bookkeeping]: `reviewer_coverage_report` · the arithmetic of the summary table, checked deterministically: all four verdict categories present including the ones that scored zero, every point accounted for exactly once and at one granularity with the stated counts matching the IDs listed, the four-point scale actually used in Part 2 rather than only declared in the table header, and Part 1 stating the sign-off decision outright. Whether an individual verdict is *right* is judged separately.
 [^rcr-rubric]: `reviewer_coverage_report` · four judged criteria, each graded in its own call so one weak area cannot colour the rest: each point's verdict is correct against both drafts, Part 1 is decision-grade for a QAM, each verdict cites evidence and a location, and a per-scenario trap criterion for the specific failure that scenario is built to provoke.
 [^rps-rubric]: `revision_planning_summary` · four judged criteria, graded one call each: reviewer points located by content rather than by numbers the revision will move, Part 1 triaging substantial asks apart from quick fixes, a planning note under each quoted point carrying scope and location and a suggestion, and a per-scenario trap criterion.
+[^av-devsplit]: `active_voice` · the first skill-declared workflow (`skills/active-voice/SKILL.md`, see [`docs/skill-workflows.md`](./skill-workflows.md)) and the first eval on the issue-inventory structure: ground truth is a list of expected issues, each anchored by a verbatim quote and carrying edit expectations, plus decoy sentences that must not be flagged, scored by the reusable `issue_checks` and `decoy_checks` scorers in `evals_inspectai/common/`. **Read this as a dev-split figure.** The 20 records (9 one-rule snippets, 8 clean documents, 3 section-length documents) were labelled and relabelled against this workflow across several runs on 17 Sep, and the skill was tuned on three real reports beforehand; nothing here has been measured on samples the workflow never influenced. The known remaining gaps are all in the three long documents: a stative "are located in the Midwest" flagged in every epoch, a generic "might be coordinated through private channels" flagged in two, one ambiguous-actor sentence missed in every epoch, and a comma stranded after a moved footnote marker, which is what `edit_punctuation` and part of `edit_expected_phrases` record.
+[^av-detection]: `active_voice` · seven deterministic detection checks against the inventory: `recall` over required expected issues, `precision` over reported issues (a report counts as correct when it covers at least one expected issue), `f0_5` weighting precision twice as much as recall as in grammatical-error detection, `clean_document_untouched` on the eight documents with nothing to report, and, of the covered issues, the share with the expected title, severity and a line range that brackets the anchor.
+[^av-edits]: `active_voice` · six deterministic edit-hygiene checks over the proposed edits of covered issues: an edit attached where one is expected and none where none is, the replaced text quoted verbatim from its line, the replacement carrying the phrases the inventory expects (and none it forbids), every number, footnote marker and citation kept, and no stranded punctuation introduced. `edit_expected_phrases` is the strictest label in the set: a rewrite that names a defensible actor by other words than the inventory's fails it.
+[^av-decoys]: `active_voice` · one metric per exclusion rule the skill states, `no_fp_<reason>`: the share of that reason's decoy sentences left unflagged. Reasons name the rule that would misfire (stative participle, generic actor, idiom, participial modifier, source qualifier, quoted wording, excluded material, a sentence whose point is the actor, an already-active sentence). A NaN would mean the run gave a reason nothing to judge; every reason has samples here.
+[^av-passive]: `active_voice` · the workflow's own deterministic check: the replacement has fewer be-plus-participle constructions than the original, by a regex heuristic that knows irregular participles and intervening adverbs. An edit whose original shows the heuristic no passive is left unscored rather than passed.
+[^av-judged]: `active_voice` · three criteria graded by `openai/gpt-5.4` on Inspect's model-grading protocol, one call per edit or issue: the rewrite preserves meaning while naming only the actor the text supports, it reads at least as well in place, and, for passive issues whose actor the document never names, the suggested action asks the author rather than guessing (a detected issue with no suggested action scores 0). The two edit criteria were calibrated against 14 human-labelled edit pairs (`active_voice_judge_calibration`) before being trusted.
 [^rev-produced]: `reviewer_2` · shape check that both the peer review and the rebuttal were produced and are substantive (the model-graded scorer judges whether they cover strengths, weaknesses, and next steps).
