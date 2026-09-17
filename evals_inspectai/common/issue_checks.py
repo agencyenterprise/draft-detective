@@ -136,24 +136,33 @@ def _title_matches(issue: IssueItem, kind: Optional[str]) -> bool:
 
 
 def hit_tier(expected: ResolvedIssue, issue: IssueItem) -> Optional[int]:
-    """How well ``issue`` reports ``expected``: 0 for a title match with the anchor
-    quoted, 1 for a title match bracketing the line, 2 for the anchor quoted under
-    another title (still detected, so the title metric, not recall, records the
-    mislabel); None when it does not report it."""
+    """How well ``issue`` reports ``expected``, lower is stronger; None when it
+    does not report it.
+
+    Three tiers of evidence: a title match with the anchor quoted, a title match
+    bracketing the line, the anchor quoted under another title (still detected,
+    so the title metric, not recall, records the mislabel). Within a tier, an
+    issue whose line range brackets the expected line ranks above one whose
+    range is elsewhere: when one issue quotes both a recommendation and its
+    restatement, its range says which occurrence it reports, and without that
+    the pairing would depend on report order.
+    """
     same_title = _title_matches(issue, expected.title)
     quoted = normalize(expected.anchor) in _issue_text(issue)
     in_range = issue.start_line <= expected.line <= issue.end_line
     if same_title and quoted:
-        return 0
-    if same_title and in_range:
-        return 1
-    if quoted:
-        return 2
-    return None
+        tier = 0
+    elif same_title and in_range:
+        tier = 1
+    elif quoted:
+        tier = 2
+    else:
+        return None
+    return tier * 2 + (0 if in_range else 1)
 
 
 def ranked_hits(expected: ResolvedIssue, issues: Sequence[IssueItem]) -> list[int]:
-    """Indices of the issues that report ``expected``, best tier first (ties in issue order)."""
+    """Indices of the issues that report ``expected``, strongest evidence first (ties in issue order)."""
     scored = []
     for index, issue in enumerate(issues):
         tier = hit_tier(expected, issue)

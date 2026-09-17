@@ -230,6 +230,23 @@ def test_one_to_one_matching_keeps_the_strongest_evidence_whatever_the_output_or
     assert values["recall"] == 1.0 and values["severity_correct"] == 1.0
 
 
+@pytest.mark.parametrize("one_to_one", [False, True])
+@pytest.mark.parametrize("reversed_order", [False, True])
+def test_line_range_breaks_a_tie_between_issues_that_quote_both_occurrences(one_to_one, reversed_order):
+    # A recommendation and its restatement, each reported by an issue that quotes both wordings
+    # (to say it is a restatement) but brackets only its own line. The range must decide.
+    summary = _expected(id="summary", title=None, anchor="Data were collected", line=5, severity="none")
+    detailed = _expected(id="detailed", title=None, anchor="Findings are listed", line=9, severity="medium")
+    both = "“Data were collected” restates “Findings are listed”"
+    on_summary = _issue(title="Supported: summary", description=both, start=5, end=5, severity="none")
+    on_detailed = _issue(title="Partially supported: detailed", description=both, start=9, end=9, severity="medium")
+    issues = [on_detailed, on_summary] if reversed_order else [on_summary, on_detailed]
+
+    values, _ = issue_detection_scores(issues, _inventory([summary, detailed]), one_to_one=one_to_one)
+
+    assert values["recall"] == 1.0 and values["severity_correct"] == 1.0 and values["anchor_in_range"] == 1.0
+
+
 def test_title_key_is_left_out_when_the_inventory_names_no_titles():
     assert "title_correct" not in issue_check_keys(edits=False, titles=False)
     assert "title_correct" in issue_check_keys(edits=False, titles=True)
