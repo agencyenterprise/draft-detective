@@ -1,6 +1,6 @@
-# Eval samples for the active_voice workflow. Each record: the document to review,
-# the expected count per issue title (unlisted titles are not compared), and what a
-# correct result looks like for the model grader.
+# Eval samples for the active_voice workflow, in inventory form: the findings a correct
+# run reports (anchored by verbatim quotes, with edit expectations) and the decoys it must
+# leave alone (with the reason). See evals_inspectai/common/issue_inventory.py.
 - input: |
     # Remote Work Pilot Evaluation
 
@@ -11,16 +11,32 @@
     ## Findings
 
     We found that hybrid staff reported higher satisfaction than fully remote staff.
-  target_title_counts:
-    Passive Voice: 1
-    Ambiguous Actor: 0
-  target_answer: 'The Methods paragraph contains two passive sentences (''Response rates were tracked
-    weekly by the research team'' and ''Non-respondents were sent two reminders''). The agent should report
-    exactly one ''Passive Voice'' issue for that paragraph, quoting both sentences. Because the document
-    speaks in the first person, both actors are clear: ''The research team tracked response rates weekly''
-    and ''We sent non-respondents two reminders''. Both should be attached as proposed edits, phrased
-    with ''we'' (not ''the authors''). The first-person sentences and the Findings paragraph must not
-    be flagged.'
+  expected_issues:
+  - id: rates_tracked
+    title: Passive Voice
+    anchor: Response rates were tracked weekly by the research team
+    edit_expected: true
+    severity: low
+    edit:
+      must_include:
+      - The research team tracked response rates weekly
+  - id: reminders_sent
+    title: Passive Voice
+    anchor: Non-respondents were sent two reminders
+    edit_expected: true
+    severity: low
+    edit:
+      must_include:
+      - sent non-respondents two reminders
+      must_not_include:
+      - The authors
+  decoys:
+  - anchor: We surveyed 412 employees
+    reason: active
+  - anchor: hybrid staff reported higher satisfaction
+    reason: qualifier
+  notes: Both passives sit in one paragraph, so one issue should cover both. The document speaks in the first person,
+    so the second actor is clear.
 - input: |
     # Court Staffing Review
 
@@ -35,15 +51,37 @@
     ## Results
 
     Three districts exceeded the caseload benchmark. Two districts reduced their backlogs after adding temporary staff.
-  target_title_counts:
-    Passive Voice: 2
-    Ambiguous Actor: 0
-  target_answer: 'Two paragraphs contain reportable passive voice: the Data paragraph (''Case filings
-    were obtained...'', ''Staffing rosters were provided by each district'') and the Analysis paragraph
-    (''Filings per full-time equivalent were computed for each district''). The agent should report exactly
-    two ''Passive Voice'' issues, one per paragraph. The document uses ''we'', so the obtaining and computing
-    sentences should get edits with ''We'' as the subject, and the roster sentence should get the edit
-    ''Each district provided staffing rosters''. The Results paragraph is active and must not be flagged.'
+  expected_issues:
+  - id: filings_obtained
+    title: Passive Voice
+    anchor: Case filings were obtained from the state judicial council
+    edit_expected: true
+    edit:
+      must_include:
+      - obtained case filings
+      must_not_include:
+      - The authors
+  - id: rosters_provided
+    title: Passive Voice
+    anchor: Staffing rosters were provided by each district
+    edit_expected: true
+    edit:
+      must_include:
+      - each district provided
+  - id: filings_computed
+    title: Passive Voice
+    anchor: Filings per full-time equivalent were computed for each district
+    edit_expected: true
+    edit:
+      must_include:
+      - computed filings per full-time equivalent
+      must_not_include:
+      - The authors
+  decoys:
+  - anchor: Two districts reduced their backlogs
+    reason: active
+  - anchor: We then compared each district
+    reason: active
 - input: |
     # Statewide Tutoring Program: Evaluation Plan
 
@@ -54,61 +92,17 @@
     ## Approach
 
     The evaluation will assess implementation fidelity at 40 schools during the first year. The center will then analyze student outcomes using administrative records.
-  target_title_counts:
-    Passive Voice: 0
-    Ambiguous Actor: 1
-  target_answer: The sentence 'The evaluation will assess implementation fidelity at 40 schools during
-    the first year' has an inanimate subject in a document where two organizations share the work, so
-    the reader cannot tell whether the center or the department will assess fidelity. The agent should
-    report one 'Ambiguous Actor' issue on that sentence and ask the author to name the responsible party.
-    The next sentence names the center and must not be flagged. There is no passive voice.
-- input: |
-    # Broadband Access in Rural Counties
-
-    ## Summary
-
-    We mapped broadband availability for 58 counties. We found that 14 counties fall below the federal speed benchmark. This report recommends that the state prioritize those counties in the next grant round.
-
-    ## Method
-
-    We combined provider filings with speed-test data. Our team validated the merged dataset against county records.
-  target_title_counts:
-    Passive Voice: 0
-    Ambiguous Actor: 0
-  target_answer: The document is written in the active voice and in the first person, and 'This report
-    recommends' is a conventional inanimate subject with a clear actor. The agent should report no issues.
-- input: |
-    # Nurse Retention Study
-
-    ## Sample
-
-    Nurses were eligible if they had worked at the hospital for at least one year. Most participants were enthusiastic about the interview. The main campus is located downtown, and the term 'float pool' is known throughout the hospital.
-
-    ## Findings
-
-    We found that shift length predicted turnover intention.
-  target_title_counts:
-    Passive Voice: 0
-    Ambiguous Actor: 0
-  target_answer: '''Were eligible'', ''were enthusiastic'', ''is located'', and ''is known'' are stative
-    or adjectival constructions describing a state, not passive-voice actions. The agent should report
-    no issues.'
-- input: |
-    # Teacher Workload Survey
-
-    ## Findings
-
-    Teachers reported that they lacked planning time. Principals said that budgets constrained their staffing choices. One teacher told us, "We were never asked what we needed."
-
-    ## References
-
-    Smith, J. (2021). Planning time was cut in half after the reform. Journal of Education Policy, 12(3), 45-60.
-  target_title_counts:
-    Passive Voice: 0
-    Ambiguous Actor: 0
-  target_answer: The source qualifiers 'Teachers reported that' and 'Principals said that' are active
-    and protected. The passive inside the direct quotation and the passive in the reference-list title
-    are excluded material. The agent should report no issues.
+  expected_issues:
+  - id: evaluation_assesses
+    title: Ambiguous Actor
+    anchor: The evaluation will assess implementation fidelity
+    edit_expected: false
+    severity: medium
+  decoys:
+  - anchor: The center will then analyze
+    reason: active
+  - anchor: The department operates the program
+    reason: active
 - input: |
     # Wildfire Mitigation Grants
 
@@ -119,14 +113,19 @@
     ## Our Assessment
 
     We reviewed 118 awards and interviewed 30 recipients.
-  target_title_counts:
-    Passive Voice: 1
-    Ambiguous Actor: 0
-  target_answer: The Background paragraph has two passive sentences whose actor the document never names.
-    The agent should report one 'Passive Voice' issue for that paragraph and, because the actor is unknown,
-    the suggested action must ask the author to name who expanded the program and who revised the rules
-    rather than inventing an agency. The Assessment paragraph must not be flagged. No proposed edit should
-    be attached, since the actor is unknown for both sentences.
+  expected_issues:
+  - id: program_expanded
+    title: Passive Voice
+    anchor: the grant program was expanded
+    edit_expected: false
+  - id: rules_revised
+    title: Passive Voice
+    anchor: Eligibility rules were revised in 2023
+    edit_expected: false
+  decoys:
+  - anchor: We reviewed 118 awards
+    reason: active
+  notes: 'Who expanded the program and revised the rules matters and is not said: report, ask, attach no edit.'
 - input: |
     # Transit Ridership Recovery
 
@@ -137,14 +136,157 @@
     ## Findings
 
     Ridership was measured monthly from 2020 to 2024. The analysis will identify which routes recovered fastest, and the transit authority will decide which routes to restore.
-  target_title_counts:
-    Passive Voice: 1
-    Ambiguous Actor: 1
-  target_answer: The Findings paragraph contains one passive sentence ('Ridership was measured monthly
-    from 2020 to 2024') and one ambiguous-actor sentence ('The analysis will identify which routes recovered
-    fastest'), since both the authority and the university team are parties and the reader cannot tell
-    who performs the analysis. The agent should report one 'Passive Voice' issue and one 'Ambiguous Actor'
-    issue. The final clause names the transit authority and must not be flagged.
+  expected_issues:
+  - id: ridership_measured
+    title: Passive Voice
+    anchor: Ridership was measured monthly from 2020 to 2024
+    edit_expected: false
+  - id: analysis_identifies
+    title: Ambiguous Actor
+    anchor: The analysis will identify which routes recovered fastest
+    edit_expected: false
+  decoys:
+  - anchor: the transit authority will decide
+    reason: active
+- input: |
+    # Literature Review Approach
+
+    ## Sources
+
+    We conducted a rapid literature review. Studies were identified through Google Scholar searches and through the authors' prior knowledge of the field. Study characteristics are listed in Appendix A.
+  expected_issues:
+  - id: studies_identified
+    title: Passive Voice
+    anchor: Studies were identified through Google Scholar searches
+    edit_expected: true
+    edit:
+      must_include:
+      - identified studies
+      - our prior knowledge
+      must_not_include:
+      - The authors
+  - id: characteristics_listed
+    title: Passive Voice
+    anchor: Study characteristics are listed in Appendix A
+    edit_expected: true
+    edit:
+      must_include:
+      - Appendix A lists
+      must_not_include:
+      - The authors
+- input: |
+    # Framework Development
+
+    ## Basis
+
+    The discussion is informed by a literature review and by interviews with policy and industry stakeholders. Regional breakthroughs have been enabled by large investments in compute and talent.
+  expected_issues:
+  - id: discussion_informed
+    title: Passive Voice
+    anchor: The discussion is informed by a literature review
+    edit_expected: true
+    edit:
+      must_include:
+      - inform
+      must_not_include:
+      - We informed
+  - id: breakthroughs_enabled
+    title: Passive Voice
+    anchor: Regional breakthroughs have been enabled by large investments
+    edit_expected: true
+    edit:
+      must_include:
+      - have enabled regional breakthroughs
+- input: |
+    # Scope Decisions
+
+    ## Assumptions
+
+    We assume that data centers will require highly reliable power. Off-grid approaches to bridging power supply, sometimes referred to as bridge power,[[26]](#footnote-27) were not considered. We considered behind-the-meter generation where appropriate.
+  expected_issues:
+  - id: offgrid_not_considered
+    title: Passive Voice
+    anchor: sometimes referred to as bridge power,[[26]](#footnote-27) were not considered
+    edit_expected: true
+    edit:
+      must_include:
+      - did not consider off-grid approaches
+      must_not_include:
+      - ',[[26]](#footnote-27).'
+  decoys:
+  - anchor: We considered behind-the-meter generation
+    reason: active
+  - anchor: will require highly reliable power
+    reason: active
+- input: |
+    # CERN as a Model
+
+    ## Background
+
+    The result of this partnership is an institution that is now the world's largest physics laboratory, jointly funded by 24 member states and serving as the premier site of particle physics research. The organization was established in 1954 as a partnership among twelve western European countries.
+  expected_issues:
+  - id: established
+    title: Passive Voice
+    anchor: The organization was established in 1954
+    edit_expected: true
+    edit:
+      must_include:
+      - Twelve western European countries established
+      - '1954'
+  decoys:
+  - anchor: jointly funded by 24 member states
+    reason: participial
+- input: |
+    # Broadband Access in Rural Counties
+
+    ## Summary
+
+    We mapped broadband availability for 58 counties. We found that 14 counties fall below the federal speed benchmark. This report recommends that the state prioritize those counties in the next grant round.
+
+    ## Method
+
+    We combined provider filings with speed-test data. Our team validated the merged dataset against county records.
+  decoys:
+  - anchor: This report recommends
+    reason: active
+  - anchor: We mapped broadband availability
+    reason: active
+- input: |
+    # Nurse Retention Study
+
+    ## Sample
+
+    Nurses were eligible if they had worked at the hospital for at least one year. Most participants were enthusiastic about the interview. The main campus is located downtown, and the term 'float pool' is known throughout the hospital.
+
+    ## Findings
+
+    We found that shift length predicted turnover intention.
+  decoys:
+  - anchor: Nurses were eligible
+    reason: stative
+  - anchor: were enthusiastic
+    reason: stative
+  - anchor: is located downtown
+    reason: stative
+  - anchor: is known throughout
+    reason: stative
+- input: |
+    # Teacher Workload Survey
+
+    ## Findings
+
+    Teachers reported that they lacked planning time. Principals said that budgets constrained their staffing choices. One teacher told us, "We were never asked what we needed."
+
+    ## References
+
+    Smith, J. (2021). Planning time was cut in half after the reform. Journal of Education Policy, 12(3), 45-60.
+  decoys:
+  - anchor: Teachers reported that
+    reason: qualifier
+  - anchor: We were never asked what we needed
+    reason: quoted
+  - anchor: Planning time was cut in half
+    reason: excluded
 - input: |
     # Nuclear Siting Options
 
@@ -155,101 +297,327 @@
     ## Method
 
     We compared each site against the 2030 capacity target.
-  target_title_counts:
-    Passive Voice: 0
-    Ambiguous Actor: 0
-  target_answer: '''Is restricted to'', ''is limited to'', ''are underfunded'', and ''is located'' describe
-    states, not actions done by someone. None is passive voice under the skill''s test, so the agent should
-    report no issues.'
+  decoys:
+  - anchor: is restricted to specific sites
+    reason: stative
+  - anchor: is limited to plants
+    reason: stative
+  - anchor: are underfunded for grid upgrades
+    reason: stative
+  - anchor: is located twelve miles
+    reason: stative
 - input: |
     # Grid Interconnection Barriers
 
     ## Findings
 
     The report delineates 66 constraints and offers an analysis of barriers that can be addressed in the 2030 timeline. Co-located generation choices must be tailored to the location, as no single solution is universally applicable. Additional capacity could be brought online by 2030 under several scenarios. The evidence depends on the type of load being measured.
-  target_title_counts:
-    Passive Voice: 0
-    Ambiguous Actor: 0
-  target_answer: Every passive here has only a generic implied actor ('whoever addresses, tailors, brings
-    online, measures'). Nobody responsible is hidden, so the skill says not to report them. The agent
-    should report no issues.
+  decoys:
+  - anchor: can be addressed in the 2030 timeline
+    reason: generic
+  - anchor: must be tailored to the location
+    reason: generic
+  - anchor: could be brought online by 2030
+    reason: generic
+  - anchor: type of load being measured
+    reason: generic
 - input: |
     # Series Context
 
     ## Prior Work
 
     Through logic models and structured stakeholder consultations, the previous reports in the series have identified not only what needs to change to meet the coming electricity demand, but also how and by whom these changes might best be implemented.
-  target_title_counts:
-    Passive Voice: 0
-    Ambiguous Actor: 0
-  target_answer: The sentence's point is that the earlier reports identified who should implement the
-    changes. Asking the author to 'name who would implement the changes' would misread it. The agent should
-    report no issues.
+  decoys:
+  - anchor: by whom these changes might best be implemented
+    reason: actor_is_the_point
 - input: |
     # Telework Prevalence
 
     ## Results
 
     We report the share of employed persons who worked at home. A Pew Research Center survey found that 35 percent of workers whose jobs can be done from home were doing so all the time in early 2023 (Pew Research Center, 2023). One respondent told us, "We were never asked what we needed."
-  target_title_counts:
-    Passive Voice: 0
-    Ambiguous Actor: 0
-  target_answer: '''Whose jobs can be done from home'' is the cited survey''s own population definition
-    and must not be flagged or rewritten; the direct quotation is excluded material. The agent should
-    report no issues.'
+  decoys:
+  - anchor: whose jobs can be done from home
+    reason: source_definition
+  - anchor: We were never asked what we needed
+    reason: quoted
 - input: |
-    # Literature Review Approach
+    # Data Sources
 
-    ## Sources
+    ## Approach
 
-    We conducted a rapid literature review. Studies were identified through Google Scholar searches and through the authors' prior knowledge of the field. Study characteristics are listed in Appendix A.
-  target_title_counts:
-    Passive Voice: 1
-    Ambiguous Actor: 0
-  target_answer: 'One ''Passive Voice'' issue for the paragraph, quoting both passive sentences. The document
-    speaks in the first person, so the first rewrite must use ''we'' and ''our'' (''We identified studies
-    through Google Scholar searches and through our prior knowledge of the field''), never ''The authors
-    identified''. The second follows the signposting convention: ''Appendix A lists the study characteristics'',
-    not ''The authors list...''. Both should be attached as proposed edits.'
-- input: |
-    # Framework Development
-
-    ## Basis
-
-    The discussion is informed by a literature review and by interviews with policy and industry stakeholders. Regional breakthroughs have been enabled by large investments in compute and talent.
-  target_title_counts:
-    Passive Voice: 1
-    Ambiguous Actor: 0
-  target_answer: 'One ''Passive Voice'' issue. Both by-phrases name sources rather than people, so the
-    rewrites make the source the subject: ''A literature review and interviews with policy and industry
-    stakeholders inform the discussion'' and ''Large investments in compute and talent have enabled regional
-    breakthroughs''. The agent must not write ''We informed the discussion with a literature review''.
-    Both are determined and should be attached as edits.'
-- input: |
-    # Scope Decisions
-
-    ## Assumptions
-
-    We assume that data centers will require highly reliable power. Off-grid approaches to bridging power supply, sometimes referred to as bridge power,[[26]](#footnote-27) were not considered. We considered behind-the-meter generation where appropriate.
-  target_title_counts:
-    Passive Voice: 1
-    Ambiguous Actor: 0
-  target_answer: One 'Passive Voice' issue for 'Off-grid approaches ... were not considered', with the
-    actor clear from the first-person document. The edit must keep the footnote marker and leave the punctuation
-    correct when the phrase moves to the end of the sentence, for example 'We did not consider off-grid
-    approaches to bridging power supply, sometimes referred to as bridge power.[[26]](#footnote-27)' A
-    replacement ending in a comma before the period (',[[26]](#footnote-27).') is wrong.
-- input: |
-    # CERN as a Model
-
-    ## Background
-
-    The result of this partnership is an institution that is now the world's largest physics laboratory, jointly funded by 24 member states and serving as the premier site of particle physics research. The organization was established in 1954 as a partnership among twelve western European countries.
-  target_title_counts:
-    Passive Voice: 1
-    Ambiguous Actor: 0
-  target_answer: '''Jointly funded by 24 member states'' is a participial modifier, not a passive verb,
-    and must not be flagged or rewritten; in particular no edit may drop ''the world''s largest physics
-    laboratory''. ''Was established in 1954 as a partnership among twelve western European countries''
-    is passive with the actor stated in the sentence, so one ''Passive Voice'' issue with the edit ''Twelve
-    western European countries established the organization in 1954 as a partnership.'''
+    We drew on three sources. First, we used county-level employment counts that the Bureau of Labor Statistics publishes each quarter. Second, we obtained utility filings from the state commission's public docket. Third, our team interviewed 22 planners between March and May 2025. We cleaned the merged dataset, dropped 41 duplicate records, and checked totals against the published state summary. Appendix A lists every source with its retrieval date.
+  decoys:
+  - anchor: We drew on three sources
+    reason: active
+  - anchor: Appendix A lists every source
+    reason: active
+- input: file://e2e/active_voice/files/methods_report_section.md
+  expected_issues:
+  - id: framework_refined
+    title: Passive Voice
+    anchor: The framework was refined after two rounds of feedback
+    edit_expected: true
+    edit:
+      must_include:
+      - refined the framework
+      must_not_include:
+      - The authors
+  - id: categories_chosen
+    title: Passive Voice
+    anchor: Categories were chosen so that a public data source
+    edit_expected: true
+    edit:
+      must_include:
+      - chose categories
+      must_not_include:
+      - The authors
+  - id: indicators_derived
+    title: Passive Voice
+    anchor: Indicators were derived from trusted sources
+    edit_expected: true
+    edit:
+      must_include:
+      - derived indicators
+      must_not_include:
+      - The authors
+  - id: sites_shortlisted
+    title: Passive Voice
+    anchor: Sites were shortlisted based on the presence
+    edit_expected: true
+    edit:
+      must_include:
+      - shortlisted sites
+  - id: sites_excluded
+    title: Passive Voice
+    anchor: Sites not shortlisted were excluded because
+    edit_expected: true
+    edit:
+      must_include:
+      - excluded sites
+  - id: list_provided
+    title: Passive Voice
+    anchor: The final list of 14 sites is provided in Appendix B
+    edit_expected: true
+    edit:
+      must_include:
+      - Appendix B provides
+      - '14'
+      must_not_include:
+      - The authors
+  - id: capacity_estimated
+    title: Passive Voice
+    anchor: the maximum deliverable capacity was estimated from substation ratings
+    edit_expected: true
+    edit:
+      must_include:
+      - estimated the maximum deliverable capacity
+  - id: ratings_assigned
+    title: Passive Voice
+    anchor: Ratings for each site were assigned by two team members
+    edit_expected: true
+    edit:
+      must_include:
+      - Two team members
+      - assigned
+  - id: offgrid_not_considered
+    title: Passive Voice
+    anchor: Off-grid approaches, sometimes called bridge power,[[9]](#footnote-10) were not considered
+    edit_expected: true
+    edit:
+      must_include:
+      - did not consider off-grid approaches
+      - '[[9]](#footnote-10)'
+      must_not_include:
+      - ',[[9]](#footnote-10).'
+  - id: btm_considered
+    title: Passive Voice
+    anchor: Behind-the-meter generation was considered where the site remains grid-connected
+    edit_expected: true
+    edit:
+      must_include:
+      - considered behind-the-meter generation
+  - id: hydro_coal_not_assessed
+    title: Passive Voice
+    anchor: Hydropower and coal were not assessed as primary expansion options
+    edit_expected: true
+    edit:
+      must_include:
+      - did not assess hydropower and coal
+  - id: grades_used
+    title: Passive Voice
+    anchor: The overall grades are later used to group sites into tiers
+    edit_expected: true
+    edit:
+      must_include:
+      - use the overall grades
+  - id: summary_shown
+    title: Passive Voice
+    anchor: a summary of their characteristics is shown in Table 3
+    edit_expected: true
+    edit:
+      must_include:
+      - Table 3 shows
+  - id: results_table
+    title: Passive Voice
+    anchor: Table S.1 shows the results
+    required: false
+  - id: ratings_not_validated
+    title: Passive Voice
+    anchor: the ratings have not been validated against realized project outcomes
+    required: false
+  decoys:
+  - anchor: The scope is limited to sites
+    reason: stative
+  - anchor: are not expected to contribute materially
+    reason: generic
+  - anchor: is unlikely to be completed within the necessary timeframe
+    reason: generic
+  - anchor: must be tailored to each location
+    reason: generic
+  - anchor: Nuclear generation is restricted to two of the sites
+    reason: stative
+  - anchor: Planners we interviewed said that
+    reason: qualifier
+  - anchor: Capacity is being built, but it is being built in the wrong places
+    reason: quoted
+  - anchor: Sites in the top tier are located in the Midwest
+    reason: stative
+  - anchor: we converted MVA to MW using a power factor of 0.8
+    reason: active
+  - anchor: An additional researcher briefly verified the ratings
+    reason: active
+  notes: 'results_table is a decoy dressed as a finding: it is already active, so it must not be reported; required=false
+    keeps it out of recall while any hit shows up in precision.'
+- input: file://e2e/active_voice/files/essay_section.md
+  expected_issues:
+  - id: iap_established
+    title: Passive Voice
+    anchor: The Institute for Advanced Physics (IAP) was established in 1962
+    edit_expected: true
+    edit:
+      must_include:
+      - Nine countries established
+      - '1962'
+  - id: creation_driven
+    title: Passive Voice
+    anchor: The creation of the IAP was driven by two pressures
+    edit_expected: true
+    edit:
+      must_include:
+      - Two pressures
+      - drove
+  - id: focus_chosen
+    title: Passive Voice
+    anchor: Its research focus on particle physics was chosen to avoid
+    edit_expected: false
+  - id: notion_proposed
+    title: Passive Voice
+    anchor: was first proposed by Professor Dana Whitfield
+    edit_expected: true
+    edit:
+      must_include:
+      - Professor Dana Whitfield first proposed
+      - (Whitfield, 2019)
+  - id: model_not_driven
+    title: Passive Voice
+    anchor: This model is not driven by the financial necessities
+    edit_expected: true
+  - id: iap_founded
+    title: Passive Voice
+    anchor: Just as the IAP was founded to bring particle physics back
+    edit_expected: true
+    edit:
+      must_include:
+      - Nine countries founded
+      - Just as
+  - id: summary_shown
+    title: Passive Voice
+    anchor: A visual summary of the ratings is shown in Figure 1
+    edit_expected: true
+    edit:
+      must_include:
+      - Figure 1 shows
+  - id: assessments_described
+    title: Passive Voice
+    anchor: The assessments along each dimension are described below
+    edit_expected: true
+    edit:
+      must_include:
+      - below describe
+      must_not_include:
+      - The authors
+  - id: costs_viewed
+    title: Passive Voice
+    anchor: If the costs of participation were viewed as too onerous, firms might simply opt out
+    edit_expected: true
+    edit:
+      must_include:
+      - If firms viewed
+  - id: implementation_enlists
+    title: Ambiguous Actor
+    anchor: the implementation of either vision would need to enlist these suppliers as partners
+    edit_expected: false
+    severity: medium
+  decoys:
+  - anchor: jointly funded by 21 member states
+    reason: participial
+  - anchor: known simply as
+    reason: stative
+  - anchor: a shared facility could see cooperation between otherwise adversarial actors
+    reason: quoted
+  - anchor: Others call for the facility to be restricted to a democratic bloc
+    reason: generic
+  - anchor: might be coordinated through private channels
+    reason: generic
+  - anchor: are calculated to favor incumbents
+    reason: idiom
+  - anchor: If the financial barriers were cut by 90%
+    reason: generic
+  - anchor: should be developed in a setting where security practices can be verified
+    reason: generic
+  - anchor: alternative strategies such as parallel investment in chip fabrication might be required
+    reason: generic
+  notes: model_not_driven has a cause by-phrase but the active version would need a long subject; reporting it is
+    right, an edit is optional, so no edit expectation is set. The Whitfield sentence names its actor in a by-phrase.
+- input: file://e2e/active_voice/files/remote_work_report.md
+  expected_issues:
+  - id: decisions_made
+    title: Passive Voice
+    anchor: Those decisions are being made while the research evidence
+    edit_expected: true
+    edit:
+      must_include:
+      - Public agencies are making
+      must_not_include:
+      - Agency leaders are making
+  - id: studies_identified
+    title: Passive Voice
+    anchor: Studies were identified through Google Scholar searches
+    edit_expected: true
+    edit:
+      must_include:
+      - identified studies
+      must_not_include:
+      - The authors identified
+  - id: characteristics_listed
+    title: Passive Voice
+    anchor: Study characteristics are listed in Appendix A
+    edit_expected: true
+    edit:
+      must_include:
+      - Appendix A lists
+      must_not_include:
+      - The authors list
+  - id: workers_sent_home
+    title: Passive Voice
+    anchor: every worker was sent home
+    required: false
+  decoys:
+  - anchor: The scope is limited to studies of knowledge workers
+    reason: stative
+  - anchor: whose jobs can be done from home
+    reason: source_definition
+  - anchor: the type of work being measured
+    reason: generic
+  notes: The Draft Detective demo report. Findings and decoys come from reviewing two Active Voice runs on it.

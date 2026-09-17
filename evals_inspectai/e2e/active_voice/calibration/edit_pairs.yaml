@@ -1,0 +1,85 @@
+# Human-labelled edit pairs for calibrating the judged criteria in
+# evals_inspectai/common/issue_judge.py. Each pair records what a
+# reviewer decided about a proposed edit, so the judge's true-positive and
+# true-negative rates can be measured before its verdicts are trusted.
+# Verdicts: pass | fail. Patterns come from reviewing Active Voice runs on
+# three reports; sentences are synthetic equivalents.
+- id: drops_a_claim
+  original: "The result of this partnership is an institution that is now the largest laboratory of its kind, jointly funded by 21 member states and serving as the premier site for the field."
+  replacement: "The result of this partnership is an institution that 21 member states now jointly fund and that serves as the premier site for the field."
+  meaning_preserved: fail
+  reads_well: pass
+  note: 'The replacement drops "the largest laboratory of its kind".'
+- id: idiom_becomes_literal
+  original: "Doing so would likely be calculated to increase their revenues over time."
+  replacement: "They would likely calculate that doing so would increase their revenues over time."
+  meaning_preserved: fail
+  reads_well: pass
+  note: '"Calculated to" means "designed to"; the replacement makes it a literal prediction.' 
+- id: participant_becomes_actor
+  original: "Metrics were validated with industry stakeholders."
+  replacement: "Industry stakeholders validated the metrics."
+  meaning_preserved: fail
+  reads_well: pass
+  note: '"With" names a participant; the team did the validating.' 
+- id: survey_definition_rewritten
+  original: "A survey found that 35 percent of workers whose jobs can be done from home were doing so in early 2023 (Pew Research Center, 2023)."
+  replacement: "A survey found that 35 percent of workers who can work from home were doing so in early 2023 (Pew Research Center, 2023)."
+  meaning_preserved: fail
+  reads_well: pass
+  note: 'A cited source''s population definition was reworded.'
+- id: long_subject_inversion
+  original: "The ambiguity about how to define the analogy is caused, in part, by the differences in the scale and intent of the two organizations and their function in their communities."
+  replacement: "The differences in the scale and intent of the two organizations and their function in their communities cause, in part, ambiguity about how to define the analogy."
+  meaning_preserved: pass
+  reads_well: fail
+  note: 'Active but with a 20-word subject before the verb, and the paragraph''s topic is demoted.'
+- id: garden_path
+  original: "Its potential is evidenced, for example, by the recent use of AI models to translate cuneiform."
+  replacement: "Its potential the recent use of AI models to translate cuneiform evidences, for example."
+  meaning_preserved: pass
+  reads_well: fail
+  note: 'Unreadable word order.'
+- id: stranded_comma
+  original: "Off-grid approaches, sometimes called bridge power,[[9]](#footnote-10) were not considered."
+  replacement: "We did not consider off-grid approaches, sometimes called bridge power,[[9]](#footnote-10)."
+  meaning_preserved: pass
+  reads_well: fail
+  note: 'A comma is left before the period after the moved footnote marker.'
+- id: repeated_phrase
+  paragraph: "Public agencies are now deciding how much telework to retain. Those decisions are being made while agency leaders often rely on a single study."
+  original: "Those decisions are being made while agency leaders often rely on a single study."
+  replacement: "Agency leaders are making those decisions while agency leaders often rely on a single study."
+  meaning_preserved: fail
+  reads_well: fail
+  note: 'The paragraph names public agencies as the decision-makers, so "agency leaders" is a guess; and the phrase now appears twice in one sentence.'
+- id: named_actor_moved
+  original: "The notion was first proposed by Professor Dana Whitfield as a way to pool compute (Whitfield, 2019)."
+  replacement: "Professor Dana Whitfield first proposed the notion as a way to pool compute (Whitfield, 2019)."
+  meaning_preserved: pass
+  reads_well: pass
+- id: first_person_methods
+  original: "Hydropower and coal were not assessed as primary expansion options in this analysis."
+  replacement: "We did not assess hydropower and coal as primary expansion options in this analysis."
+  meaning_preserved: pass
+  reads_well: pass
+- id: cause_as_subject
+  original: "American breakthroughs have been enabled by large investments in talent, data, and compute."
+  replacement: "Large investments in talent, data, and compute have enabled American breakthroughs."
+  meaning_preserved: pass
+  reads_well: pass
+- id: signposting_convention
+  original: "A summary of the competitive environment is shown in Figure 4."
+  replacement: "Figure 4 shows a summary of the competitive environment."
+  meaning_preserved: pass
+  reads_well: pass
+- id: footnote_kept_clean
+  original: "The final framework was developed after several rounds of feedback from stakeholders.[[9]](#footnote-10)"
+  replacement: "We developed the final framework after several rounds of feedback from stakeholders.[[9]](#footnote-10)"
+  meaning_preserved: pass
+  reads_well: pass
+- id: relative_clause_minimal
+  original: "This will help assess the proposals for a shared laboratory that have been suggested by researchers and policymakers."
+  replacement: "This will help assess the proposals for a shared laboratory that researchers and policymakers have suggested."
+  meaning_preserved: pass
+  reads_well: pass

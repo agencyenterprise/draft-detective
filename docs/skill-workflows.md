@@ -18,7 +18,7 @@ the skill-declared kind only.
 2. Add a `draft_detective` block under `metadata` in the frontmatter. `title` and
    `category` are required; everything else has a default.
 3. Write the rules in the body, following the conventions below.
-4. Optionally add an eval dataset at `evals_inspectai/e2e/<slug>/dataset.yaml`.
+4. Optionally add an eval under `evals_inspectai/e2e/<slug>/` (see Evals below).
 
 That is all. On the next backend start the workflow is registered and appears in its
 category. The unit test suite checks the wiring (`tests/unit/workflows/test_skill_workflows.py`).
@@ -109,30 +109,114 @@ document text plus the finding, never when it needs a new fact or new prose.
 
 ## Evals
 
-Add `evals_inspectai/e2e/<slug>/dataset.yaml` and the task exists as
-`evals_inspectai/e2e/skill_workflows_e2e.py@<slug>_e2e`; that module discovers every
-declared workflow with a dataset and registers a task for it. The file is a YAML list;
-documents are block scalars so a record reads as one unit in a diff:
+Each workflow gets its own directory, `evals_inspectai/e2e/<slug>/`, holding a
+`dataset.yaml`, a task module `<slug>_e2e.py` that defines the workflow's scorers and
+returns its `Task`, and a `criteria.py` with what the check is about (copy
+`evals_inspectai/e2e/active_voice/` and adapt). The task module composes reusable scorers from
+`evals_inspectai/common/` (`issue_checks` and `decoy_checks` in `issue_checks.py`,
+`judged_criteria` in `issue_judge.py`, all fed by the issue-inventory loader in
+`issue_inventory.py`) and adds only what is specific to the workflow: its own edit checks and
+the criteria the judge grades. None of that is tied to skill-declared workflows: any workflow
+that reports issues can be evaluated the same way.
+
+### Ground truth as an inventory
+
+A record lists the issues a correct run reports (the same issues the workflows emit) and the
+sentences it must leave alone, rather than counting issues by title. Each expected issue is
+anchored by a verbatim quote, so the scorer knows whether the run found *that* sentence:
 
 ```yaml
-- input: |
-    # Report ...
-  target_title_counts:
-    Passive Voice: 1
-    Ambiguous Actor: 0
-  target_answer: What a correct result looks like, for the model grader.
+- input: file://e2e/active_voice/files/report.md     # or inline markdown
+  expected_issues:
+    - title: Passive Voice                          # the issue title a correct run uses; matched
+                                                    # exactly, or as the prefix before a colon
+      anchor: "Studies were identified through"       # verbatim quote that locates the issue: resolves
+                                                    # its line, and detection means the run quoted it
+                                                    # or bracketed its line
+      id: studies_identified                          # optional label for score explanations
+      edit_expected: true                             # true: an edit must be attached; false: none may be
+      severity: low                                   # optional
+      edit:                                           # phrases a correct edit carries / avoids
+        must_include: ["identified studies"]
+        must_not_include: ["The authors"]
+  decoys:
+    - anchor: "The scope is limited to"
+      reason: stative                                 # free-form; becomes the metric no_fp_stative
 ```
 
-`input` may also be `file://` followed by a path relative to the repo root. Two scorers
-run: per-title issue counts against `target_title_counts` (only the titles listed are
-compared, so a sample can express don't-care, and a clean sample lists its titles set
-to 0), and a model grade against `target_answer`. Include negatives that exercise the
-skill's exclusions; they are where a check earns trust.
+`line` is resolved from the anchor at load time and the loader fails on an anchor that is
+missing or repeated. A record with `expected_issues: []` is a clean document: anything
+reported on it is a false positive. Fixture documents live under
+`evals_inspectai/e2e/<slug>/files/` and are referenced with `file://e2e/<slug>/files/...`.
+
+### What gets scored
+
+Four scorers, kept separate because their key sets have different owners, and each
+metric named so a regression points at itself (see
+`evals_inspectai/e2e/active_voice/active_voice_e2e.py`):
+
+1. **`issue_checks`, deterministic, the same keys for every issue-inventory eval.** An
+   expected issue is detected when a reported issue with its title quotes its anchor or
+   brackets its line; several expected issues may map to one paragraph-level reported
+   issue. Detection metrics: `recall` over required expected issues, `precision` over
+   reported issues, `f0_5` (precision weighted twice, as in grammatical-error detection),
+   `clean_document_untouched` for clean samples, `title_correct`, `severity_correct`,
+   `anchor_in_range`. Edit hygiene metrics, for detected expected issues: an edit is
+   present or absent as `edit_expected` says; the quote is verbatim on the line; the
+   replacement carries the `must_include` phrases and none of `must_not_include`;
+   numbers, footnote markers and citations survive; no stranded punctuation.
+2. **`decoy_checks`, deterministic, keys follow the dataset.** One `no_fp_<reason>` per
+   decoy reason the dataset uses: 1 when no decoy of that reason was flagged in the sample,
+   0 when one was. This catches a sentence wrongly listed inside an otherwise correct
+   paragraph issue, which precision cannot see, and names the exclusion rule that misfired.
+3. **The workflow's own deterministic checks.** Active Voice adds
+   `active_voice_edit_checks` with `edit_removes_passive`.
+4. **`judged_criteria`, one focused grader call per item.** The workflow declares criteria as plain
+   statements (Active Voice: meaning preserved while naming the supported actor; reads at
+   least as well in place; for passive issues with no edit expected, the suggested action
+   asks rather than guesses). Each is graded on Inspect's own model-grading protocol, the
+   same template shape, instructions and C / P / I grade pattern as `model_graded_fact`,
+   mapped to 1, 0.5 and 0. Inspect's built-in scorers grade one answer per sample, which is
+   why the loop over edits is ours and the protocol is theirs. Pass `judge_calls=3` to take
+   the median on a noisy criterion.
+
+Each task passes a one-line description of every metric as `Task(metadata=...)`, which the
+log viewer shows once in its Info tab; per-sample `explanation` text says what happened on
+that sample, not what the metric means. A metric is `NaN` when a sample gives it nothing to
+judge; Inspect leaves it out of the mean and counts the sample as unscored. Metrics are declared with Inspect's glob keys (`"*"`), so
+every key a sample score carries gets a mean and standard error. There
+is no whole-run grade: what a person would judge holistically is split into the criteria
+above so each can be watched on its own.
+
+### Composition and calibration
+
+Mix short snippets that each pin one rule and should sit near 100 percent, clean
+documents that measure false positives, and documents of section length that exercise
+recall and edit quality at scale. Include negatives for every exclusion the skill states; they are where a check
+earns trust.
+
+Before trusting a judged criterion, run it against human-labelled pairs. The calibration
+is itself an Inspect task: each pair is a sample, the solver passes the edit through, and
+the scorers report agreement plus the true-positive and true-negative rates separately
+(raw agreement hides a judge that always passes). Disagreements are readable in
+`inspect view`.
+
+```bash
+uv run inspect eval evals_inspectai/e2e/active_voice/active_voice_judge_calibration.py -T calls=3
+```
+
+The grader is Inspect's `grader` model role: pass `--model-role grader=<provider/model>` to
+try another judge without touching code; it defaults to the repo's grader model.
 
 ```bash
 uv run dev.py                                  # the backend must be running
-uv run inspect eval evals_inspectai/e2e/skill_workflows_e2e.py@active_voice_e2e
+uv run inspect eval evals_inspectai/e2e/active_voice/active_voice_e2e.py
+uv run inspect eval evals_inspectai/e2e/active_voice/active_voice_e2e.py --epochs 3 --epochs-reducer at_least_3
 ```
+
+Use Inspect's epoch reducers for consistency questions: `--epochs 3 --epochs-reducer at_least_3`
+asks whether a sample passes in every trial (pass^k), `pass_at_1` averages, and the default
+`mean` reports the average across epochs.
 
 ## Managing existing workflows
 

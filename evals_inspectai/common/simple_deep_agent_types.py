@@ -11,6 +11,16 @@ from typing import List, Optional
 from pydantic import BaseModel, Field
 
 
+class ProposedEdit(BaseModel):
+    """Local mirror of ProposedEdit from lib/workflows/models.py."""
+
+    original_text: str = ""
+    replacement_text: str = ""
+    start_line: int = 0
+    end_line: int = 0
+    rationale: str = ""
+
+
 class IssueItem(BaseModel):
     """Local mirror of IssueItem from simple_deep_agent/agent_types.py."""
 
@@ -21,6 +31,7 @@ class IssueItem(BaseModel):
     suggested_action: Optional[str] = None
     start_line: int = 0
     end_line: int = 0
+    edits: List[ProposedEdit] = Field(default_factory=list)
 
 
 class AgentCheckResult(BaseModel):
