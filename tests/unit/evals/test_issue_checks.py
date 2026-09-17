@@ -116,6 +116,18 @@ def test_recall_precision_and_f05():
     assert "missing missed" in note
 
 
+def test_extra_check_none_verdicts_are_left_out_of_the_fraction():
+    f = _expected(edit_expected=True)
+    original = LINES[4].split(". ")[0] + "."
+    edits = [_edit(original, "The field team collected data from 3 sites."), _edit(original, "Data were collected from 3 sites by the field team.")]
+    verdicts = iter([None, False])
+    out = edit_checks(f, _issue(edits=edits), LINES, {"probe": lambda e: next(verdicts)})
+    assert out["edit_probe"] == (0.0, "f: 0/1 replacements pass probe (1 not assessable)")
+
+    out = edit_checks(f, _issue(edits=edits[:1]), LINES, {"probe": lambda e: None})
+    assert "edit_probe" not in out
+
+
 def test_clean_document_metric():
     values, _ = issue_detection_scores([], _inventory())
     assert values["clean_document_untouched"] == 1.0

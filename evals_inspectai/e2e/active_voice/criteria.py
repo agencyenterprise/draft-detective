@@ -8,6 +8,7 @@ unknown, ask the author rather than guess (graded).
 """
 
 import re
+from typing import Optional
 
 from evals_inspectai.common.simple_deep_agent_types import ProposedEdit
 from evals_inspectai.common.issue_inventory import ResolvedIssue
@@ -16,22 +17,61 @@ from evals_inspectai.common.issue_judge import JudgeCriterion
 PASSIVE_TITLE = "Passive Voice"
 AMBIGUOUS_TITLE = "Ambiguous Actor"
 
-_PASSIVE_RE = re.compile(
-    r"\b(?:am|is|are|was|were|be|been|being|get|got)\s+(?:\w+ly\s+)?\w+(?:ed|en|own|ought|uilt|ade|eld|one|aid)\b",
+# A form of be or get, optionally chained ("are being made", "has been sent"),
+# any run of adverbs or negation ("were not considered", "was first proposed",
+# "is widely regarded"), then the candidate participle.
+_BE_PLUS_WORD_RE = re.compile(
+    r"\b(?:am|is|are|was|were|be|been|being|get|gets|got|gotten|getting)(?:\s+(?:being|been))?"
+    r"(?:\s+(?:not|never|also|then|first|later|already|still|often|once|now|thus|\w+ly))*"
+    r"\s+(\w+)\b",
     re.I,
 )
+# Past participles the suffix test below cannot see.
+_IRREGULAR_PARTICIPLES = frozenset(
+    "sent built made held done paid laid said kept left lost put set shown known seen drawn withdrawn found met "
+    "read spent cut led fed meant felt dealt sold told understood brought thought bought caught taught sought fought "
+    "begun run won sung hung struck stuck lent bent split shut hit spread born borne worn torn sworn undertaken "
+    "overseen cast forecast broadcast let shed upset hurt quit bound wound ground spun dug slid lit shot fit thrust "
+    "burnt learnt spelt dreamt knit".split()
+)
+# Words a suffix test would take for participles.
+_NOT_PARTICIPLES = frozenset("even seven then when open often none need indeed".split())
+_PARTICIPLE_SUFFIXES = ("ed", "en", "own", "ought", "aught", "uilt", "ade", "eld", "one", "aid")
 
 
-def removes_passive(edit: ProposedEdit) -> bool:
-    """The replacement has fewer be-plus-participle constructions than the original."""
-    before = len(_PASSIVE_RE.findall(edit.original_text))
-    after = len(_PASSIVE_RE.findall(edit.replacement_text))
-    return after < max(1, before)
+def _is_participle(word: str) -> bool:
+    w = word.lower()
+    if w in _IRREGULAR_PARTICIPLES:
+        return True
+    if w in _NOT_PARTICIPLES or len(w) < 4:
+        return False
+    return w.endswith(_PARTICIPLE_SUFFIXES)
+
+
+def passive_count(text: str) -> int:
+    """How many be-plus-participle constructions the heuristic sees in ``text``."""
+    return sum(1 for word in _BE_PLUS_WORD_RE.findall(text) if _is_participle(word))
+
+
+def removes_passive(edit: ProposedEdit) -> Optional[bool]:
+    """The replacement has fewer be-plus-participle constructions than the original.
+
+    None when the heuristic sees no passive in the original: there is nothing
+    to credit or blame, so the edit is left out of the fraction rather than
+    passed by default.
+    """
+    before = passive_count(edit.original_text)
+    if before == 0:
+        return None
+    return passive_count(edit.replacement_text) < before
 
 
 EXTRA_EDIT_CHECKS = {"removes_passive": removes_passive}
 EXTRA_EDIT_DESCRIPTIONS = {
-    "edit_removes_passive": "Share of edits whose replacement has fewer be-plus-participle constructions than the original (regex heuristic).",
+    "edit_removes_passive": (
+        "Share of edits whose replacement has fewer be-plus-participle constructions than the original "
+        "(regex heuristic). Edits whose original shows the heuristic no passive are not scored."
+    ),
 }
 
 

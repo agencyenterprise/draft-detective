@@ -11,6 +11,7 @@ from evals_inspectai.common.issue_inventory import (
 from evals_inspectai.e2e.active_voice.criteria import (
     EXTRA_EDIT_CHECKS,
     JUDGE_CRITERIA,
+    passive_count,
     removes_passive,
 )
 
@@ -22,10 +23,27 @@ def _edit(original: str, replacement: str) -> ProposedEdit:
 
 
 def test_removes_passive_wants_fewer_be_participle_constructions():
-    assert removes_passive(_edit("Data were collected by the team.", "The team collected data."))
-    assert not removes_passive(_edit("Data were collected by the team.", "Data were collected by the team from three sites."))
+    assert removes_passive(_edit("Data were collected by the team.", "The team collected data.")) is True
+    assert removes_passive(_edit("Data were collected by the team.", "Data were collected by the team from three sites.")) is False
     # A replacement that clears one passive but keeps another pre-existing one still counts as progress.
-    assert removes_passive(_edit("Data were collected and results were shared.", "We collected data and results were shared."))
+    assert removes_passive(_edit("Data were collected and results were shared.", "We collected data and results were shared.")) is True
+
+
+def test_passive_count_sees_irregular_participles_and_intervening_adverbs():
+    assert passive_count("Non-respondents were sent two reminders.") == 1
+    assert passive_count("Off-grid options were not considered.") == 1
+    assert passive_count("The notion was first proposed in 1990 and is widely regarded as settled.") == 2
+    assert passive_count("The framework was developed after feedback.") == 1
+    assert passive_count("Those decisions are being made now; the plan has been sent.") == 2
+    assert passive_count("We collected data. Results are even better. The sites are open.") == 0
+
+
+def test_removes_passive_gives_no_credit_where_it_cannot_see_a_passive_removed():
+    # A still-passive rewrite fails rather than passing on a zero-zero count.
+    assert removes_passive(_edit("Non-respondents were sent two reminders.", "Two reminders were sent to non-respondents.")) is False
+    assert removes_passive(_edit("Off-grid options were not considered.", "Off-grid options were not considered.")) is False
+    # An original the heuristic sees no passive in is not assessable, so it is neither passed nor failed.
+    assert removes_passive(_edit("The evaluation will assess fidelity.", "The research team will assess fidelity.")) is None
 
 
 def test_extra_edit_checks_are_registered_under_the_expected_key():

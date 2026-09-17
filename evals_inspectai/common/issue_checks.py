@@ -47,7 +47,9 @@ from evals_inspectai.common.issue_inventory import (
 )
 
 # A workflow-specific per-edit check: (edit) -> pass?  Reported as edit_<name>.
-EditCheck = Callable[[ProposedEdit], bool]
+# A workflow's own per-edit verdict: True or False, or None when the check has
+# nothing to assess on that edit, which leaves it out of the fraction.
+EditCheck = Callable[[ProposedEdit], Optional[bool]]
 
 DETECTION_KEYS: tuple[str, ...] = (
     "recall",
@@ -220,8 +222,13 @@ def edit_checks(
     out["edit_punctuation"] = (_fraction(clean), f"{expected.id}: {int(sum(clean))}/{len(edits)} replacements add no stranded punctuation")
 
     for name, check in (extra or {}).items():
-        results = [float(check(e)) for e in edits]
-        out[f"edit_{name}"] = (_fraction(results), f"{expected.id}: {int(sum(results))}/{len(edits)} replacements pass {name}")
+        verdicts = [check(e) for e in edits]
+        results = [float(v) for v in verdicts if v is not None]
+        if not results:
+            continue  # nothing this check could assess here; the key stays NaN
+        skipped = len(verdicts) - len(results)
+        detail = f"{expected.id}: {int(sum(results))}/{len(results)} replacements pass {name}"
+        out[f"edit_{name}"] = (_fraction(results), detail + (f" ({skipped} not assessable)" if skipped else ""))
     return out
 
 
