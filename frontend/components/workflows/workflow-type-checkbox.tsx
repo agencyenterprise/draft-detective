@@ -63,13 +63,16 @@ const workflowTypeIcons: Partial<Record<WorkflowRunType, LucideIcon>> = {
 
 const DEFAULT_ICON = FileText;
 
+/** Every icon name lucide ships, as a set so a render-time lookup is constant time. */
+const LUCIDE_ICON_NAMES: ReadonlySet<string> = new Set(iconNames);
+
 /**
  * The lucide icon a workflow declares, when lucide knows the name. Anything
  * else (no declaration, a typo, an icon from another set) resolves to null so
  * the caller falls back instead of asking DynamicIcon for a name it will reject.
  */
 export function declaredIconName(icon: string | null | undefined): IconName | null {
-  return icon && (iconNames as readonly string[]).includes(icon) ? (icon as IconName) : null;
+  return icon && LUCIDE_ICON_NAMES.has(icon) ? (icon as IconName) : null;
 }
 
 /**

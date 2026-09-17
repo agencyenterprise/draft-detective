@@ -145,7 +145,12 @@ def read_skill_workflow_declaration(
     frontmatter = read_skill_frontmatter(skill_file)
     if frontmatter is None:
         return None
-    block = (frontmatter.get("metadata") or {}).get("draft_detective")
+    metadata = frontmatter.get("metadata")
+    if not isinstance(metadata, dict):
+        # No metadata, or metadata that is not a mapping (a bare string, say):
+        # either way the skill declares no workflow.
+        return None
+    block = metadata.get("draft_detective")
     if block is None:
         return None
     return SkillWorkflowDeclaration(

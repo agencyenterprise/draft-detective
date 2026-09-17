@@ -64,7 +64,8 @@ are good models.
 - Say what counts and, just as carefully, what does not. False positives are what
   makes a check unusable; write the exclusions as concrete examples.
 - Use stable issue titles and fixed severities, and state them in a Reporting section.
-  Evals score on title counts, and reviewers learn to scan for them.
+  Evals match a reported issue to an expected one by its title and the sentence it quotes,
+  and reviewers learn to scan for the titles.
 - Point at the issues skill for the output contract: "Report issues following the
   conventions defined in the issues skill (`/skills/issues/SKILL.md`)". That skill is
   mounted alongside yours and defines every field, including proposed edits.

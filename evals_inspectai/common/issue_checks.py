@@ -9,7 +9,7 @@ the dataset's decoy reasons), and ``extra_edit_scores`` (keys depend on the
 workflow's own edit checks; the workflow wraps it with ``deterministic_scorer``
 under a name of its own).
 
-1. **Detection.** Each expected expected is *hit* when a reported issue with its
+1. **Detection.** Each expected issue is *hit* when a reported issue with its
    title quotes its anchor, or brackets its line. Several expected issues may hit the
    same issue (a check that reports one issue per paragraph). From the hits:
    recall over required expected issues, precision over reported issues, and F0.5,

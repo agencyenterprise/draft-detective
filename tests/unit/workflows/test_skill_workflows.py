@@ -26,7 +26,8 @@ from lib.workflows.skill_workflows import (
     discover_skill_workflows,
 )
 
-_SKILLS_DIR = Path(__file__).parents[3] / "skills"
+_REPO_ROOT = Path(__file__).parents[3]
+_SKILLS_DIR = _REPO_ROOT / "skills"
 
 
 def _write_skill(root: Path, name: str, declaration: str, body: str = "# Rules\n") -> Path:
@@ -75,7 +76,7 @@ def test_active_voice_is_registered_from_its_skill_alone():
     assert manifest.required_dependencies == [WorkflowRunType.DOCUMENT_PROCESSING]
     assert manifest.propose_edits is True
     # No hand-written manifest module exists for it.
-    assert not (Path("lib/workflows/active_voice")).exists()
+    assert not (_REPO_ROOT / "lib" / "workflows" / "active_voice").exists()
 
 
 def test_active_voice_prompt_is_the_skill_body():
@@ -141,6 +142,16 @@ def test_skill_without_a_declaration_is_not_a_workflow(tmp_path: Path):
     skill_dir.mkdir()
     skill_file = skill_dir / "SKILL.md"
     skill_file.write_text("---\nname: plain\ndescription: d\n---\n# Body\n")
+
+    assert read_skill_workflow_declaration(skill_file) is None
+    assert discover_skill_workflows(tmp_path) == []
+
+
+def test_metadata_that_is_not_a_mapping_declares_no_workflow(tmp_path: Path):
+    skill_dir = tmp_path / "noted"
+    skill_dir.mkdir()
+    skill_file = skill_dir / "SKILL.md"
+    skill_file.write_text("---\nname: noted\ndescription: A skill.\nmetadata: just a note\n---\n\n# Rules\n")
 
     assert read_skill_workflow_declaration(skill_file) is None
     assert discover_skill_workflows(tmp_path) == []
