@@ -121,7 +121,9 @@ returns its `Task`, and a `criteria.py` with what the check is about (copy
 `judged_criteria` in `issue_judge.py`, all fed by the issue-inventory loader in
 `issue_inventory.py`) and adds only what is specific to the workflow: its own edit checks and
 the criteria the judge grades. None of that is tied to skill-declared workflows: any workflow
-that reports issues can be evaluated the same way; `evals_inspectai/e2e/recommendation_check/`
+that reports issues can be evaluated the same way. `evals_inspectai/e2e/concision_precision/` and
+`evals_inspectai/e2e/writing_consistency/` are the second and third skill-declared workflows on it, each
+with its own `criteria.py` (a deterministic edit check plus judged criteria); `evals_inspectai/e2e/recommendation_check/`
 scores a hand-written workflow with free-form titles and no edits on the same loader and scorers
 (`expects_edits` and `expects_titles` read off the inventory that no edits and no titles are
 expected, and `issue_checks(edits=False, titles=False)` then leaves the edit-hygiene and title keys

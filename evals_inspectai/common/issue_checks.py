@@ -113,7 +113,7 @@ def decoy_descriptions(reasons: Sequence[str]) -> dict[str, str]:
     }
 
 # A number ends in a digit (or %), so a sentence-final "Figure 1." yields "1", not "1.".
-_NUMBER_RE = re.compile(r"\d(?:[\d,.–\-]*\d)?%?")
+_NUMBER_RE = re.compile(r"\d(?:[\d,.–\-]*\d)?")  # digits only: "7%" and "7 percent" carry the same number
 _FOOTNOTE_RE = re.compile(r"\[\[\d+\]\]\(#footnote-\d+\)")
 _CITATION_RE = re.compile(r"\([A-Z][^()]*?\d{4}[a-z]?(?:,\s*p\.\s*\d+)?\)")
 _STRANDED_RE = re.compile(r",\s*[.;,]|\s[.,;]|\.\.(?!\.)|\s{2,}")
@@ -236,10 +236,17 @@ def edit_checks(
     out["edit_quote_on_line"] = (_fraction(on_line), f"{expected.id}: {int(sum(on_line))}/{len(edits)} quotes found verbatim on line {expected.line}")
 
     if expected.edit is not None:
+        # Phrases are read off each replacement and off the line with every one of the
+        # issue's edits applied, so word-level edits ("Respondents" for "Participants", twice
+        # on one line) still carry a phrase written against the whole sentence.
+        applied_line = line_text
+        for e in edits:
+            applied_line = applied_line.replace(e.original_text, e.replacement_text)
+        applied = normalize(applied_line)
         ok = []
         for e in edits:
             repl = normalize(e.replacement_text)
-            missing = [p for p in expected.edit.must_include if normalize(p) not in repl]
+            missing = [p for p in expected.edit.must_include if normalize(p) not in repl and normalize(p) not in applied]
             forbidden = [p for p in expected.edit.must_not_include if normalize(p) in repl]
             ok.append(float(not missing and not forbidden))
         out["edit_expected_phrases"] = (_fraction(ok), f"{expected.id}: {int(sum(ok))}/{len(edits)} replacements carry the expected phrasing")
