@@ -1881,6 +1881,18 @@ export type IssueEditRead = {
    */
   replacement_text: string;
   /**
+   * Display Text
+   */
+  display_text: string;
+  /**
+   * Display Occurrence
+   */
+  display_occurrence: number;
+  /**
+   * Display Replacement
+   */
+  display_replacement: string;
+  /**
    * Start Line
    */
   start_line: number;
@@ -2435,6 +2447,24 @@ export type ProposedEdit = {
    * One short sentence explaining why this replacement resolves the issue.
    */
   rationale: string;
+  /**
+   * Display Text
+   *
+   * original_text as the document renders it -- markdown syntax gone, whitespace normalized. What the highlight and the export search for.
+   */
+  display_text: string;
+  /**
+   * Display Occurrence
+   *
+   * 0-based index of display_text among its occurrences in the rendered line, since rendering can turn a unique quote into a repeat.
+   */
+  display_occurrence: number;
+  /**
+   * Display Replacement
+   *
+   * replacement_text as it should reach the page: markdown syntax gone, whitespace exactly as the edit wrote it.
+   */
+  display_replacement: string;
 };
 
 /**

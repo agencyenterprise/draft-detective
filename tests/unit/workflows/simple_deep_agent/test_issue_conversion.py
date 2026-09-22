@@ -21,6 +21,9 @@ def _edit(**overrides) -> ProposedEdit:
         "start_line": 6,
         "end_line": 6,
         "rationale": "Matches the caption.",
+        "display_text": "Figure 3",
+        "display_occurrence": 0,
+        "display_replacement": "Figure 2",
     }
     return ProposedEdit(**{**fields, **overrides})
 
@@ -72,10 +75,15 @@ def test_edits_are_outside_the_issue_hash():
 def test_edit_rows_keep_every_field_and_strip_control_chars():
     # PDF-extracted markdown can carry C0 control characters, which PostgreSQL
     # rejects in a text column.
-    (row,) = _edit_rows([_edit(original_text="Figure\x003")])
+    (row,) = _edit_rows(
+        [_edit(original_text="Figure\x003", display_text="Figure\x003")]
+    )
 
     assert row.original_text == "Figure3"
+    assert row.display_text == "Figure3"
     assert row.replacement_text == "Figure 2"
+    assert row.display_replacement == "Figure 2"
+    assert row.display_occurrence == 0
     assert row.rationale == "Matches the caption."
     assert row.start_line == 6
     assert row.end_line == 6

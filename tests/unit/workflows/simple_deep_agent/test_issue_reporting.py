@@ -28,7 +28,9 @@ def _issue(title: str = "Missing section") -> dict:
 
 
 # Line 4 carries a non-breaking space, as converted DOCX prose often does; line
-# 6 repeats "Figure 3" twice, so a quote of it is ambiguous.
+# 6 repeats "Figure 3" twice, so a quote of it is ambiguous. Line 8 carries the
+# same phrase plain and in bold, so only the rendered form tells them apart,
+# and a link whose label an edit can quote but whose address it cannot.
 _DOCUMENT = "\n".join(
     [
         "# Title",  # 1
@@ -37,6 +39,8 @@ _DOCUMENT = "\n".join(
         "participant in the second\xa0cohort.",  # 4
         "",  # 5
         "Results appear in Figure 3 and Figure 3.",  # 6
+        "",  # 7
+        "Figure 3 and **Figure 3** close [the study](https://x/a_b).",  # 8
     ]
 )
 
@@ -46,7 +50,7 @@ def _issue_with_edits(edits: list[dict], **overrides) -> dict:
     return {
         **_issue("Numbering mismatch"),
         "start_line": 1,
-        "end_line": 6,
+        "end_line": 8,
         "edits": edits,
         **overrides,
     }
@@ -224,7 +228,7 @@ def test_ambiguous_quote_is_rejected_until_a_unique_span_is_quoted():
         )
     )
     assert rejected.startswith("Issue was not recorded:")
-    assert "appears 2 times" in rejected
+    assert "appears 4 times" in rejected
     assert "longer span" in rejected
 
     # The whole line is always unique on itself, so the agent can widen the
@@ -301,8 +305,8 @@ def test_deletion_is_expressed_as_an_empty_replacement():
         _issue_with_edits(
             [
                 {
-                    "original_text": " and Figure 3",
-                    "replacement_text": "",
+                    "original_text": "in Figure 3 and Figure 3",
+                    "replacement_text": "in Figure 3",
                     "rationale": "r",
                 }
             ]
@@ -310,7 +314,75 @@ def test_deletion_is_expressed_as_an_empty_replacement():
     )
 
     assert confirmation.startswith("Recorded issue-1")
-    assert reporter.issues[0].edits[0].replacement_text == ""
+    assert reporter.issues[0].edits[0].replacement_text == "in Figure 3"
+
+
+def test_a_recorded_edit_carries_the_text_the_document_renders():
+    reporter = IssueReporter(propose_edits=True, document_text=_DOCUMENT)
+    report_issue = _tools(reporter)["report_issue"]
+
+    report_issue.invoke(
+        _issue_with_edits(
+            [
+                {
+                    "original_text": "**Figure 3**",
+                    "replacement_text": "**Figure 4**",
+                    "rationale": "r",
+                }
+            ]
+        )
+    )
+
+    (edit,) = reporter.issues[0].edits
+    # The quote is unique in the markdown and the second of two identical spans
+    # once the page shows it, which is exactly what the highlight and the
+    # export need to be told.
+    assert edit.display_text == "Figure 3"
+    assert edit.display_occurrence == 1
+    assert edit.display_replacement == "Figure 4"
+
+
+def test_a_quote_whose_text_is_plain_renders_to_itself():
+    reporter = IssueReporter(propose_edits=True, document_text=_DOCUMENT)
+    report_issue = _tools(reporter)["report_issue"]
+
+    report_issue.invoke(
+        _issue_with_edits(
+            [
+                {
+                    "original_text": "participant in the second cohort",
+                    "replacement_text": "participant in the second group",
+                    "rationale": "r",
+                }
+            ]
+        )
+    )
+
+    (edit,) = reporter.issues[0].edits
+    assert edit.display_text == "participant in the second cohort"
+    assert edit.display_occurrence == 0
+    assert edit.display_replacement == "participant in the second group"
+
+
+def test_a_quote_ending_inside_a_link_address_is_rejected():
+    reporter = IssueReporter(propose_edits=True, document_text=_DOCUMENT)
+    report_issue = _tools(reporter)["report_issue"]
+
+    result = report_issue.invoke(
+        _issue_with_edits(
+            [
+                {
+                    "original_text": "close [the study](https://x/a",
+                    "replacement_text": "close [the paper](https://x/a",
+                    "rationale": "r",
+                }
+            ]
+        )
+    )
+
+    assert result.startswith("Issue was not recorded:")
+    assert "must start and end on plain text" in result
+    assert reporter.issues == []
 
 
 def test_plain_tool_has_no_edits_argument():

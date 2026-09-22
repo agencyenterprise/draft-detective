@@ -23,8 +23,16 @@ from docx_editor import Document as EditorDocument
 from lib.models.issue_edit import IssueEdit, IssueEditStatus
 from lib.services.docx.tracked_changes import EditOutcome, plan_tracked_changes
 from lib.services.edit_conflicts import EditCandidate, resolve_edit_conflicts
+from lib.services.markdown_text import (
+    locate_in_paragraph,
+    render_replacement_text,
+    rendered_span,
+)
 from lib.workflows.models import SeverityEnum
-from lib.workflows.simple_deep_agent.edit_anchoring import document_lines
+from lib.workflows.simple_deep_agent.edit_anchoring import (
+    document_lines,
+    normalize_whitespace,
+)
 
 # The document under test. A non-breaking space inside prose and a phrase
 # repeated in one paragraph are both ordinary in converted DOCX documents; the
@@ -69,6 +77,37 @@ def docx_path(tmp_path: Path) -> Path:
     return path
 
 
+def display_fields(
+    original_text: str, replacement_text: str, line: str | None
+) -> Dict[str, object]:
+    """The rendered columns the reporter would have stored for this edit.
+
+    Worked out the way `IssueReporter._resolve_edit` works them out: the quote
+    is located on its markdown line and that line is rendered with the quote
+    marked, so a test's edit carries exactly what a real one would. A quote
+    the line does not carry -- a fixture checking a note's wording, or one
+    deliberately absent from the document -- falls back to the quote itself,
+    which is what an edit over plain prose renders to anyway.
+    """
+    spans = (
+        locate_in_paragraph(line, normalize_whitespace(original_text))
+        if line is not None
+        else []
+    )
+    rendered = (
+        rendered_span(line, spans[0][0], spans[0][1])
+        if line is not None and len(spans) == 1
+        else None
+    )
+    return {
+        "display_text": (
+            rendered.display_text if rendered else normalize_whitespace(original_text)
+        ),
+        "display_occurrence": rendered.display_occurrence if rendered else 0,
+        "display_replacement": render_replacement_text(replacement_text),
+    }
+
+
 def make_edit(
     original_text: str,
     replacement_text: str,
@@ -77,6 +116,14 @@ def make_edit(
     status: IssueEditStatus = IssueEditStatus.PROPOSED,
     edit_id: uuid.UUID | None = None,
 ) -> IssueEdit:
+    """One proposed-edit row, with its rendered columns filled from `MARKDOWN`.
+
+    `plan_edits` fills them again from whatever markdown the test actually
+    plans against, so a suite with its own document does not have to repeat it
+    here.
+    """
+    lines = document_lines(MARKDOWN)
+    line = lines[start_line - 1] if 1 <= start_line <= len(lines) else None
     return IssueEdit(
         id=edit_id or uuid.uuid4(),
         issue_id=uuid.uuid4(),
@@ -87,6 +134,7 @@ def make_edit(
         end_line=start_line,
         rationale="because the figure is misnumbered",
         status=status,
+        **display_fields(original_text, replacement_text, line),
     )
 
 
@@ -114,6 +162,17 @@ async def plan_edits(
 ):
     candidates = make_candidates(edits, severities)
     lines = document_lines(MARKDOWN if markdown is None else markdown)
+    # The reporter derives the rendered columns from the document it read; a
+    # test planning against its own markdown gets the same treatment here,
+    # rather than every call site repeating the document twice.
+    for edit in edits:
+        source = (
+            lines[edit.start_line - 1] if 1 <= edit.start_line <= len(lines) else None
+        )
+        for name, value in display_fields(
+            edit.original_text, edit.replacement_text, source
+        ).items():
+            setattr(edit, name, value)
     decisions = resolve_edit_conflicts(candidates, lines)
     plan = await plan_tracked_changes(
         str(path),

@@ -21,11 +21,17 @@ from langchain_core.tools import BaseTool, tool
 from pydantic import BaseModel, Field
 
 from lib.agents.tools.view_image import redact_image_blocks
+from lib.services.markdown_text import (
+    locate_in_paragraph,
+    render_replacement_text,
+    rendered_span,
+)
 from lib.workflows.models import ProposedEdit
 from lib.workflows.simple_deep_agent.agent_types import DeepAgentRun, IssueItem
 from lib.workflows.simple_deep_agent.edit_anchoring import (
     document_lines,
     find_quote_lines,
+    normalize_whitespace,
     range_excerpt,
 )
 
@@ -188,12 +194,34 @@ class IssueReporter:
             )
         line = matches[0]
 
+        # The rendered form is settled here, once, and stored with the edit:
+        # the in-app highlight and the DOCX redline both look for the
+        # characters the reader sees, and neither should have to re-derive
+        # them from the markdown.
+        spans = locate_in_paragraph(
+            lines[line - 1], normalize_whitespace(edit.original_text)
+        )
+        rendered = (
+            rendered_span(lines[line - 1], spans[0][0], spans[0][1])
+            if len(spans) == 1
+            else None
+        )
+        if rendered is None:
+            return (
+                f"{label}: original_text must start and end on plain text, not "
+                "inside a link address or a formatting marker. Quote whole "
+                "words from the line, including any markup that surrounds them."
+            )
+
         return ProposedEdit(
             original_text=edit.original_text,
             replacement_text=edit.replacement_text,
             rationale=edit.rationale,
             start_line=line,
             end_line=line,
+            display_text=rendered.display_text,
+            display_occurrence=rendered.display_occurrence,
+            display_replacement=render_replacement_text(edit.replacement_text),
         )
 
     def _build_report_tool(self) -> BaseTool:

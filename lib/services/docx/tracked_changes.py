@@ -34,14 +34,9 @@ from pydantic import BaseModel
 from lib.models.issue_edit import IssueEdit
 from lib.services.docx.edit_text import (
     LINK_DESTINATION_CHANGED,
-    all_offsets,
     is_table_row,
     link_destinations,
-    locate_in_paragraph,
-    source_occurrence,
     unsupported_replacement_reason,
-    word_replacement_text,
-    word_search_text,
 )
 from lib.services.docx.paragraph_line_mapper import find_paragraph_by_line_range
 from lib.services.docx.paragraph_refs import (
@@ -50,6 +45,11 @@ from lib.services.docx.paragraph_refs import (
     paragraph_ordinals,
 )
 from lib.services.edit_conflicts import EditCandidate, EditDecision, pick_winner
+from lib.services.markdown_text import (
+    all_offsets,
+    locate_in_paragraph,
+    render_line_text,
+)
 from lib.workflows.simple_deep_agent.edit_anchoring import normalize_whitespace
 
 logger = logging.getLogger(__name__)
@@ -204,9 +204,9 @@ def _line_belongs_to_paragraph(line: Optional[str], paragraph_text: str) -> bool
     paragraph's text settles it:
 
     1. The line loses its footnote reference markers, which Word carries as
-       marks rather than as text, and both are then stripped of markdown. A
-       bare `[1]` survives: a bracketed number in prose is a citation the
-       paragraph shows as well.
+       marks rather than as text, and is then rendered the way the reader sees
+       it. A bare `[1]` survives: a bracketed number in prose is a citation
+       the paragraph shows as well.
     2. Either text containing the other is the same passage. Both directions
        count: a Word paragraph holding hard line breaks converts to several
        markdown lines, so the line can be the shorter of the two.
@@ -225,7 +225,9 @@ def _line_belongs_to_paragraph(line: Optional[str], paragraph_text: str) -> bool
     """
     if line is None:
         return False
-    line_text = word_search_text(_without_footnote_references(line))
+    line_text = normalize_whitespace(
+        render_line_text(_without_footnote_references(line))
+    )
     para_text = normalize_whitespace(paragraph_text)
     if not line_text or not para_text:
         return False
@@ -237,51 +239,28 @@ def _line_belongs_to_paragraph(line: Optional[str], paragraph_text: str) -> bool
     return similarity >= _MIN_SIMILARITY
 
 
-def _starts_its_line(line: Optional[str], original_text: str) -> bool:
-    """Whether the quote opens its own markdown line.
-
-    Decides how the quote is stripped: ``2019.`` is a list marker at the head
-    of a line and a year anywhere else in it.
-    """
-    if line is None:
-        return True
-    without_marks = normalize_whitespace(_without_footnote_references(line))
-    return without_marks.startswith(normalize_whitespace(original_text))
-
-
 def _resolve_span(
-    edit: IssueEdit,
-    paragraph_text: str,
-    paragraph_range: Tuple[int, int],
-    document_lines: Sequence[str],
-    at_line_start: bool,
+    edit: IssueEdit, paragraph_text: str
 ) -> Tuple[Optional[Tuple[int, int]], EditOutcomeStatus]:
     """Locate the edit's quote in the Word paragraph.
 
-    The quote is markdown; the paragraph is what Word shows, so the syntax is
-    stripped first. A quote the paragraph carries more than once is settled
-    from the markdown source -- stripping `**Figure 3**` can turn a quote that
-    was unique in the source into the second of two identical spans.
+    `display_text` is the quote as the document renders it, worked out when the
+    edit was reported, so nothing has to be stripped here. A paragraph carrying
+    it more than once is settled by `display_occurrence`, which counted the
+    rendered repeats on the source line: `**Figure 3**` is a unique quote of
+    ``Figure 3 and **Figure 3**`` and the second of two identical spans once
+    the page has it.
     """
-    needle = word_search_text(edit.original_text, at_line_start=at_line_start)
-    if not needle:
+    if not edit.display_text:
         return None, "not_found"
-    spans = locate_in_paragraph(paragraph_text, needle)
+    spans = locate_in_paragraph(paragraph_text, edit.display_text)
     if not spans:
         return None, "not_found"
     if len(spans) == 1:
         return spans[0], "applied"
-    occurrence = source_occurrence(
-        document_lines,
-        paragraph_range[0],
-        paragraph_range[1],
-        edit.start_line,
-        edit.original_text,
-        at_line_start=at_line_start,
-    )
-    if occurrence is None or occurrence >= len(spans):
+    if edit.display_occurrence >= len(spans):
         return None, "ambiguous"
-    return spans[occurrence], "applied"
+    return spans[edit.display_occurrence], "applied"
 
 
 def _with_boundary_whitespace(
@@ -289,7 +268,7 @@ def _with_boundary_whitespace(
 ) -> Tuple[int, int]:
     """Grow the span over the whitespace the quote itself asked for.
 
-    A quote is located by its words: `word_search_text` normalizes ``" bad "``
+    A quote is located by its words: `display_text` normalizes ``" bad "``
     to ``bad``, so the span found covers ``bad`` alone. Writing ``" good "``
     over it would then double the spaces around it, and deleting it would leave
     two spaces behind. The quote said which spaces it owns, so each side it
@@ -310,7 +289,6 @@ def _plan_edit(
     edit: IssueEdit,
     paragraph_index: int,
     paragraph: MappedParagraph,
-    paragraph_range: Tuple[int, int],
     document_lines: Sequence[str],
 ) -> Tuple[Optional[PlannedEdit], EditOutcome]:
     """Turn one applicable edit into a redline, or say why it cannot be one."""
@@ -334,23 +312,19 @@ def _plan_edit(
             ),
         )
 
-    at_line_start = _starts_its_line(line, edit.original_text)
-    span, status = _resolve_span(
-        edit, paragraph.text, paragraph_range, document_lines, at_line_start
-    )
+    span, status = _resolve_span(edit, paragraph.text)
     if span is None:
         return None, EditOutcome(edit_id=edit.id, status=status)
 
     span = _with_boundary_whitespace(span, paragraph.text, edit.original_text)
     find = paragraph.text[span[0] : span[1]]
-    replace_with = word_replacement_text(
-        edit.replacement_text, at_line_start=at_line_start
-    )
-    if replace_with is None:
+    replace_with = edit.display_replacement
+    unsupported = unsupported_replacement_reason(edit.replacement_text)
+    if unsupported is not None:
         return None, EditOutcome(
             edit_id=edit.id,
             status="unsupported",
-            detail=unsupported_replacement_reason(edit.replacement_text),
+            detail=unsupported,
         )
     if link_destinations(edit.replacement_text) != link_destinations(
         edit.original_text
@@ -514,13 +488,7 @@ def _plan_sync(
         if paragraph_index is None or paragraph is None:
             outcomes.append(EditOutcome(edit_id=edit.id, status="not_found"))
             continue
-        one, outcome = _plan_edit(
-            edit,
-            paragraph_index,
-            paragraph,
-            paragraph_line_ranges[paragraph_index],
-            document_lines,
-        )
+        one, outcome = _plan_edit(edit, paragraph_index, paragraph, document_lines)
         if one is not None:
             planned.append(one)
         outcomes.append(outcome)

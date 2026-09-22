@@ -30,163 +30,9 @@ const EDIT_HIGHLIGHT_CSS = `
 }
 `;
 
-/**
- * The quote as the document renders it.
- *
- * `original_text` is taken verbatim from the markdown source, so it can carry
- * syntax the reader never sees: `**stress**` is rendered as `stress`, a link as
- * its label alone. Matching the raw quote against the rendered text would
- * therefore fail on exactly the passages an edit is most likely to touch, so
- * the syntax is stripped down to the characters that reach the page.
- *
- * A code span keeps its contents exactly: `` `**name**` `` reads as `**name**`
- * on the page, so nothing inside one is treated as syntax. Emphasis delimiters
- * go only where they are actually paired, and an underscore also has to stand
- * outside a word.
- *
- * A heading hash, a blockquote arrow and a list marker are only syntax where a
- * line begins. `2019. Annual report` quoted from the middle of a reference
- * entry keeps its year; `1. First item` quoted from the top of a list item
- * loses the marker. A caller that knows the quote did not start its source
- * line passes `atLineStart` as false.
- */
-export function stripMarkdown(text: string, atLineStart = true): string {
-  // The pass order mirrors the Python port: code spans out, escapes
-  // protected, images, links, strikethrough, emphasis, underscores.
-  const [withSlots, codeSpans] = stashCodeSpans(text);
-  const stripped = stripPaired(
-    stripPaired(protectEscaped(withSlots).replace(IMAGE, '$1').replace(LINK, '$1').replace(/~~/g, ''), EMPHASIS, '$1'),
-    UNDERSCORE,
-    '$1$2$3',
-  );
-  const blocks = atLineStart
-    ? stripped.replace(/^[ \t]*(?:#{1,6}|>+)[ \t]*/gm, '').replace(/^[ \t]*(?:[-+*]|\d+[.)])[ \t]+/gm, '')
-    : stripped;
-  return restoreCodeSpans(restoreEscaped(blocks), codeSpans);
-}
-
-/**
- * A link label may itself hold one level of brackets: MarkItDown writes a DOCX
- * footnote reference as `[[1]](#footnote-2)`, which the page shows as `[1]`.
- */
-/**
- * Emphasis, only where a delimiter is actually paired: an opening run of stars
- * has to be followed by a non-space character and its closing run preceded by
- * one, the way CommonMark decides what emphasizes. Longest run first, so
- * `***both***` is not read as bold plus a stray star.
- *
- * A star with no partner is text the page shows: `2 * 3` is a product and
- * `5*3` keeps its star, because a single star between two non-space characters
- * with nothing to close it is not emphasis. The inner group takes the shortest
- * text it can (`??`, not `?`), so `*a* and *b*` is two emphasized words rather
- * than one run holding ` and `. The Python port of these rules, in
- * `lib/services/docx/edit_text.py`, has to agree character for character.
- */
-const EMPHASIS = [
-  /\*{3}([^\s](?:[\s\S]*?[^\s])??)\*{3}/g,
-  /\*{2}([^\s](?:[\s\S]*?[^\s])??)\*{2}/g,
-  /\*([^\s](?:[\s\S]*?[^\s])??)\*/g,
-];
-
-/**
- * Underscore emphasis, on the same paired-delimiter terms as the stars, plus
- * the word boundary CommonMark demands of an underscore: `snake_case_name` is
- * a name on the page and `_private` a lone identifier, so neither is emphasis,
- * while `_stressed_` is. The characters around the delimiters are matched too
- * and put back by the replacement, which is why the passes repeat below --
- * written this way rather than with a lookbehind for the sake of older Safari.
- */
-const UNDERSCORE = [
-  /(^|[^A-Za-z0-9_])_{3}([^\s](?:[\s\S]*?[^\s])??)_{3}($|[^A-Za-z0-9_])/g,
-  /(^|[^A-Za-z0-9_])_{2}([^\s](?:[\s\S]*?[^\s])??)_{2}($|[^A-Za-z0-9_])/g,
-  /(^|[^A-Za-z0-9_])_([^\s](?:[\s\S]*?[^\s])??)_($|[^A-Za-z0-9_])/g,
-];
-
-/**
- * Drop each pattern's delimiters, longest run first, until none are left.
- *
- * Repeated rather than applied once: an underscore pattern matches the
- * characters on either side of the delimiters as well, so two emphasized words
- * sharing the space between them only give up the second pair on the next
- * round.
- */
-function stripPaired(text: string, patterns: RegExp[], replacement: string): string {
-  let stripped = text;
-  for (const pattern of patterns) {
-    let previous: string;
-    do {
-      previous = stripped;
-      stripped = stripped.replace(pattern, replacement);
-    } while (stripped !== previous);
-  }
-  return stripped;
-}
-
-/**
- * A code span, as CommonMark delimits one: a run of one to three backticks
- * closed by a run of the same length. Its contents are literal, so they are
- * taken out before any other pass and put back afterwards, fences dropped. A
- * backtick with no closing partner is not a span and is left where it is.
- */
-const CODE_SPAN = /(`{1,3})([\s\S]+?)\1/g;
-const CODE_SLOT = '\ue1fe';
-const CODE_SLOT_RANGE = /\ue1fe(\d+)\ue1fe/g;
-
-function stashCodeSpans(text: string): [string, string[]] {
-  const stashed: string[] = [];
-  const withSlots = text.replace(CODE_SPAN, (_match, _fence: string, code: string) => {
-    stashed.push(code);
-    return `${CODE_SLOT}${stashed.length - 1}${CODE_SLOT}`;
-  });
-  return [withSlots, stashed];
-}
-
-function restoreCodeSpans(text: string, stashed: string[]): string {
-  if (stashed.length === 0) return text;
-  return text.replace(CODE_SLOT_RANGE, (_match, index: string) => stashed[Number(index)]);
-}
-
-const LINK = /\[((?:[^[\]]|\[[^[\]]*\])*)\]\([^)]*\)/g;
-const IMAGE = /!\[((?:[^[\]]|\[[^[\]]*\])*)\]\([^)]*\)/g;
-
-/**
- * Backslash-escaped punctuation, as CommonMark defines it: the renderer shows
- * the character itself, so `foo\_bar` in the source reads `foo_bar` on the
- * page. MarkItDown writes these escapes for any literal punctuation in DOCX
- * prose that would otherwise be read as syntax.
- */
-const ESCAPED_PUNCTUATION = /\\([!"#$%&'()*+,\-./:;<=>?@[\\\]^_`{|}~])/g;
-
-/** Private-use code points stand in for escaped characters while syntax is stripped. */
-const PLACEHOLDER_BASE = 0xe000;
-const PLACEHOLDER_RANGE = /[\uE000-\uE0FF]/g;
-
-/**
- * An escaped character must survive the stripping passes as the literal it
- * stands for, not be read as syntax: `\*` is an asterisk on the page, not an
- * emphasis marker. Each one is swapped for a private-use placeholder first and
- * put back as the bare character at the end.
- */
-function protectEscaped(text: string): string {
-  return text.replace(ESCAPED_PUNCTUATION, (_, char: string) =>
-    String.fromCharCode(PLACEHOLDER_BASE + char.charCodeAt(0)),
-  );
-}
-
-function restoreEscaped(text: string): string {
-  return text.replace(PLACEHOLDER_RANGE, (placeholder) =>
-    String.fromCharCode(placeholder.charCodeAt(0) - PLACEHOLDER_BASE),
-  );
-}
-
 /** One space for any run of whitespace, since the rendered text wraps its own way. */
 export function normalizeWhitespace(text: string): string {
   return text.replace(/\s+/g, ' ').trim();
-}
-
-/** What to look for in the rendered document, given an edit's raw quote. */
-export function editSearchText(originalText: string, atLineStart = true): string {
-  return normalizeWhitespace(stripMarkdown(originalText, atLineStart));
 }
 
 /** Start offset of every occurrence of `needle` in `haystack`, overlapping ones included. */
@@ -216,68 +62,6 @@ export function matchOffsets(haystack: string, needle: string, occurrence = 0): 
   return [index, index + needle.length];
 }
 
-/** Marks where the quote starts in the source while the syntax around it is stripped. */
-const QUOTE_MARK = '\uE1FF';
-
-/**
- * Which occurrence of the rendered quote an edit means, worked out from the
- * markdown source, or null when the source does not settle it.
- *
- * The backend guarantees `original_text` is unique on its own line as written,
- * but stripping the syntax can create duplicates: `**Figure 3**` is a unique
- * quote in `Figure 3 and **Figure 3**` and the page shows `Figure 3` twice. The
- * block's source lines are stripped the same way the quote is, with a marker
- * at the quote's position, so counting the stripped quote before the marker
- * says which rendered occurrence is the one the edit was anchored to.
- *
- * `atLineStart` applies to the quote alone: the block's lines are stripped as
- * the lines they are, markers and all.
- */
-export function sourceOccurrence(
-  sourceLines: readonly string[],
-  blockStart: number,
-  blockEnd: number,
-  edit: Pick<ProposedEdit, 'original_text' | 'start_line'>,
-  atLineStart = true,
-): number | null {
-  const line = sourceLines[edit.start_line - 1];
-  if (line === undefined) return null;
-  const normalizedLine = normalizeWhitespace(line);
-  const quoteAt = allOffsets(normalizedLine, normalizeWhitespace(edit.original_text));
-  if (quoteAt.length !== 1) return null;
-
-  const marked = normalizedLine.slice(0, quoteAt[0]) + QUOTE_MARK + normalizedLine.slice(quoteAt[0]);
-  const first = Math.max(1, blockStart);
-  const last = Math.min(sourceLines.length, blockEnd);
-  const stripped: string[] = [];
-  for (let number = first; number <= last; number++) {
-    const text = number === edit.start_line ? marked : normalizeWhitespace(sourceLines[number - 1]);
-    stripped.push(normalizeWhitespace(stripMarkdown(text)));
-  }
-  const haystack = stripped.join(' ');
-  const markAt = haystack.indexOf(QUOTE_MARK);
-  if (markAt === -1) return null;
-  // The marker sits where the stripped quote starts, so the occurrences that
-  // begin before it are exactly the ones the page shows ahead of the edit's.
-  const clean = haystack.replace(QUOTE_MARK, '');
-  return allOffsets(clean, editSearchText(edit.original_text, atLineStart)).filter((offset) => offset < markAt).length;
-}
-
-/**
- * Whether the quote opens its own markdown line, which decides how it is
- * stripped: `2019.` is a list marker at the head of a line and a year anywhere
- * else in it. Unknown lines are treated as if the quote started them, which is
- * what a caller without the source gets.
- */
-function startsItsSourceLine(
-  sourceLines: readonly string[],
-  edit: Pick<ProposedEdit, 'original_text' | 'start_line'>,
-): boolean {
-  const line = sourceLines[edit.start_line - 1];
-  if (line === undefined) return true;
-  return normalizeWhitespace(line).startsWith(normalizeWhitespace(edit.original_text));
-}
-
 /** Where one character of the flattened text came from. */
 interface CharSource {
   node: Text;
@@ -285,7 +69,7 @@ interface CharSource {
 }
 
 export interface TextIndex {
-  /** The element's text with whitespace normalized, as {@link editSearchText} leaves a quote. */
+  /** The element's text with whitespace normalized, the way `display_text` is. */
   text: string;
   /** `sources[i]` is the node and offset `text[i]` was read from. */
   sources: CharSource[];
@@ -334,14 +118,14 @@ export function buildTextIndex(root: Element): TextIndex {
  * A Range over the `occurrence`-th quote inside one block, or null if the block
  * does not carry it. Without an occurrence, the quote must appear exactly once
  * in the block: guessing between repeats would mark the wrong words.
+ *
+ * `displayText` is the edit's `display_text`: the quote as the document
+ * renders it, worked out by the backend's CommonMark parser when the issue was
+ * reported. Nothing is stripped here, so the page and the exported DOCX cannot
+ * disagree about which characters an edit covers.
  */
-export function rangeInElement(
-  block: Element,
-  originalText: string,
-  occurrence?: number,
-  atLineStart = true,
-): Range | null {
-  const needle = editSearchText(originalText, atLineStart);
+export function rangeInElement(block: Element, displayText: string, occurrence?: number): Range | null {
+  const needle = normalizeWhitespace(displayText);
   if (!needle) return null;
 
   const index = buildTextIndex(block);
@@ -386,28 +170,24 @@ export function blocksForLineRange(container: Element, start: number, end: numbe
 /**
  * A Range for each edit whose quote could be found, in the blocks its lines
  * cover. An edit sits on one source line, so the narrowest block carrying the
- * quote is the right one. With the markdown source at hand, a quote the page
- * shows more than once inside that block is resolved to the occurrence the
- * edit was anchored to; without it, such a quote is left unmarked rather than
- * marked in the wrong place. The source also says whether the quote opened its
- * line, which is what keeps a mid-line `2019.` from being read as a list
- * marker.
+ * quote is the right one.
+ *
+ * Which occurrence to mark comes off the edit itself: `display_occurrence`
+ * counted the repeats on the edit's own source line when the issue was
+ * reported, so it only applies to a block that is exactly that line. A block
+ * covering several source lines -- a paragraph written across two lines, a
+ * list -- is a different haystack, and the count would not be its own; there
+ * the quote is marked only when the block carries it once, and left unmarked
+ * rather than marked in the wrong place.
  */
-export function editRanges(container: Element, edits: ProposedEdit[], sourceLines?: readonly string[]): Range[] {
+export function editRanges(container: Element, edits: ProposedEdit[]): Range[] {
   const ranges: Range[] = [];
   for (const edit of edits) {
-    const atLineStart = sourceLines ? startsItsSourceLine(sourceLines, edit) : true;
     for (const block of blocksForLineRange(container, edit.start_line, edit.end_line)) {
-      const occurrence = sourceLines
-        ? sourceOccurrence(
-            sourceLines,
-            Number(block.getAttribute('data-line-start')),
-            Number(block.getAttribute('data-line-end')),
-            edit,
-            atLineStart,
-          )
-        : null;
-      const range = rangeInElement(block, edit.original_text, occurrence ?? undefined, atLineStart);
+      const blockStart = Number(block.getAttribute('data-line-start'));
+      const blockEnd = Number(block.getAttribute('data-line-end'));
+      const isOwnLine = blockStart === edit.start_line && blockEnd === edit.start_line;
+      const range = rangeInElement(block, edit.display_text, isOwnLine ? edit.display_occurrence : undefined);
       if (range) {
         ranges.push(range);
         break;

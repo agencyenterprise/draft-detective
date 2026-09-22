@@ -18,7 +18,7 @@ from typing import Dict, List, Literal, Optional, Sequence, Tuple
 from pydantic import BaseModel, Field
 
 from lib.models.issue_edit import IssueEdit, IssueEditStatus
-from lib.services.docx.edit_text import locate_in_paragraph
+from lib.services.markdown_text import locate_in_paragraph
 from lib.workflows.models import SeverityEnum
 from lib.workflows.simple_deep_agent.edit_anchoring import normalize_whitespace
 

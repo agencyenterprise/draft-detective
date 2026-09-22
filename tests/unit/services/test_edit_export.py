@@ -20,6 +20,8 @@ from lib.services.docx.edit_export import (
 )
 from lib.workflows.models import SeverityEnum, WorkflowRunType
 
+from tests.unit.services.tracked_changes_support import display_fields
+
 _PARAGRAPH = "The chapter reports a 14% rise in output for 2019."
 _MARKDOWN = _PARAGRAPH
 
@@ -50,6 +52,9 @@ def _edit(
         end_line=start_line,
         rationale="the figure is wrong",
         status=status,
+        # Plain prose either way, so the rendered columns read as the quote
+        # itself; the reporter fills them from the markdown line.
+        **display_fields(original_text, replacement_text, original_text),
     )
 
 
