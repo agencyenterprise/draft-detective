@@ -10,11 +10,13 @@ from datetime import datetime
 from enum import Enum
 from typing import List, Optional
 
+from pydantic import computed_field
 from sqlalchemy import Column, DateTime, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.dialects.postgresql import ARRAY, UUID
 from sqlmodel import Enum as SQLModelEnum
-from sqlmodel import Field, SQLModel
+from sqlmodel import Field, Relationship, SQLModel
 
+from lib.models.issue_edit import IssueEdit, IssueEditRead
 from lib.workflows.models import SeverityEnum, WorkflowRunType
 
 
@@ -194,6 +196,29 @@ class Issue(SQLModel, table=True):
             postgresql_ops={"long_description": "gin_trgm_ops"},
         ),
     )
+
+    edit_rows: List["IssueEdit"] = Relationship(
+        sa_relationship_kwargs={
+            "lazy": "selectin",
+            "order_by": "IssueEdit.position",
+            "cascade": "all, delete-orphan",
+        },
+    )
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def edits(self) -> List[IssueEditRead]:
+        """The issue's proposed edits, in the order the agent proposed them.
+
+        A computed field rather than a plain property so that every payload
+        which serializes an `Issue` row directly -- the project detail
+        response, the share endpoint, the MCP tools -- publishes the edits
+        without restating the schema.
+        """
+        return [
+            IssueEditRead.model_validate(row, from_attributes=True)
+            for row in self.edit_rows
+        ]
 
     @property
     def is_resolved(self) -> bool:

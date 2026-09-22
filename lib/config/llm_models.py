@@ -54,8 +54,7 @@ class LLMModel(BaseModel):
 # Every agent runs on gpt-5.6-terra. It replaced the gpt-5.4-mini / gpt-5.4 /
 # gpt-5.5 tiers on 28 Aug 2026, after a comparison found it flat against all three
 # on 17 of 18 evals at roughly half the premium tier's cost. `figures_tables_check`
-# is the one eval it scores below the old stack on. The superseded numbers are kept
-# in `docs/eval-scores-gpt-5.4-5.5.md`.
+# is the one eval it scores below the old stack on.
 gpt_5_6_terra_model = LLMModel(provider="openai", name="gpt-5.6-terra")
 # Sibling tiers of the same generation. Not used by any workflow; offered in the
 # /chat model picker so a reviewer can compare them on a real question.

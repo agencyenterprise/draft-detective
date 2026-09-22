@@ -21,6 +21,10 @@ jobs:
         run: pnpm run lint
         working-directory: ./frontend
 
+      - name: Run tests
+        run: pnpm run test
+        working-directory: ./frontend
+
       - name: Run build
         run: pnpm run build
         working-directory: ./frontend

@@ -11,6 +11,11 @@ from lib.services.docx.manipulator import (
     docx_manipulator_service,
     issue_to_comment,
 )
+from lib.services.docx.edit_export import (
+    apply_edit_export,
+    describe_edit_export,
+    plan_edit_export,
+)
 from lib.services.docx.paragraph_line_mapper import build_paragraph_line_ranges
 from lib.services.file_artifacts_service.file_artifacts_service import (
     FileArtifactsService,
@@ -22,6 +27,23 @@ from lib.workflows.models import SeverityEnum
 logger = logging.getLogger(__name__)
 
 
+def _resolved_revision(requested: Optional[int], current: int) -> int:
+    """The revision to export, defaulting to the project's current one.
+
+    A revision the project does not have is refused rather than silently
+    served as the current one: the caller asked for a specific document, and
+    the issues and counts it is paired with belong to that revision.
+    """
+    if requested is None:
+        return current
+    if requested < 1 or requested > current:
+        raise ValueError(
+            f"Revision {requested} does not exist for this project "
+            f"(it has revisions 1 to {current})"
+        )
+    return requested
+
+
 async def generate_docx(
     project_id: str,
     share_token: Optional[str],
@@ -29,6 +51,8 @@ async def generate_docx(
     workflow_types: Optional[List[WorkflowRunType]] = None,
     docx_type: DocxManipulatorType | Literal["original"] = DocxManipulatorType.COMMENTS,
     include_passing: bool = False,
+    include_edits: bool = True,
+    revision: Optional[int] = None,
 ) -> tuple[str, str]:
     """Generate an export of the project's DOCX.
 
@@ -43,6 +67,13 @@ async def generate_docx(
             untouched; ``COMMENTS`` / ``COMMENTS_WITH_LINKS`` / ``ADD_IN`` produce
             the corresponding processed variants.
         include_passing: Whether to include passing issues (severity=none)
+        include_edits: Whether to apply the issues' proposed edits as Word
+            tracked changes, on top of the comments. Comment exports only.
+            Every edit is described in its issue's comment either way.
+        revision: Which revision of the main document to export. Defaults to
+            the project's current revision. The app can have an earlier
+            revision open, and the file, the issues and the counts the user was
+            shown all have to come from the same one.
 
     Returns:
         ``(file_path, filename)`` for the generated file.
@@ -50,10 +81,15 @@ async def generate_docx(
     project = await _get_project_by_id(project_id)
     if project is None:
         raise ValueError(f"Project {project_id} not found")
-    revision = project.current_revision
+    revision = _resolved_revision(revision, project.current_revision)
 
     file_artifacts = FileArtifactsService(project_id, revision=revision)
-    main_file = await file_artifacts.get_main_file()
+    # Asked for by name, not left to the service's default: without an explicit
+    # revision `get_main_file` falls back to the document-processing state when
+    # the row has no cached markdown, and that state is always the *current*
+    # revision. A historical export would then pair this revision's issues with
+    # the current revision's file.
+    main_file = await file_artifacts.get_main_file(revision=revision)
 
     if docx_type == "original":
         logger.info(f"Serving original DOCX for {project_id}")
@@ -134,6 +170,36 @@ async def generate_docx(
             if docx_type == DocxManipulatorType.COMMENTS_WITH_LINKS
             else None
         )
+        historical = revision != project.current_revision
+        if share_token_for_comments is not None and historical:
+            # A share link opens whatever the shared page shows, and that page
+            # has no revision of its own to open -- it shows the current one.
+            # A link written into a historical export would therefore send the
+            # reader to a different document than the comment beside it.
+            logger.info(
+                "DOCX export for project %s omits share links: it covers revision "
+                "%d, and the shared page shows revision %d",
+                project_id,
+                revision,
+                project.current_revision,
+            )
+            share_token_for_comments = None
+        # Tracked changes ride along with the comment exports only. The add-in
+        # wraps paragraphs in content controls and drives its own review UI;
+        # mixing redlines into that is not supported yet.
+        workspace_root = str(docx_manipulator_service.get_output_dir())
+        edit_export = (
+            await plan_edit_export(
+                issues=issues,
+                markdown=main_file.markdown or "",
+                docx_path=main_file.file_path,
+                paragraph_line_ranges=paragraph_line_ranges,
+                workspace_root=workspace_root,
+            )
+            if include_edits
+            # Comments only: the edits are still described, nothing is written.
+            else describe_edit_export(issues)
+        )
         comments = [
             c
             for issue in issues
@@ -142,6 +208,7 @@ async def generate_docx(
                     issue,
                     paragraph_line_ranges,
                     share_token_for_comments,
+                    edit_notes=edit_export.notes_for(issue.id),
                 )
             )
         ]
@@ -151,6 +218,16 @@ async def generate_docx(
             workflow_run_id=output_id,
             docx_type=docx_type,
         )
+        if include_edits:
+            # After this point the paragraph index map no longer describes the
+            # file: python-docx stops reading inserted and deleted runs as
+            # paragraph text, so nothing may be re-anchored against it.
+            await apply_edit_export(
+                output_path,
+                edit_export,
+                project_id,
+                workspace_root=workspace_root,
+            )
     elif docx_type == DocxManipulatorType.ADD_IN:
         if share_token is None:
             raise ValueError("share_token is required for ADD_IN docx export")

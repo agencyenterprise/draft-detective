@@ -192,10 +192,7 @@ export function AssessmentsTab({
                 </div>
               </header>
 
-              {/* The result components are shared with the add-in and the admin pages,
-                  which run a larger type scale than this chrome. Scaling the
-                  subtree beats forking them or changing sizes those depend on. */}
-              <div className="text-scale-compact space-y-4 pt-4">
+              <div className="space-y-4 pt-4">
                 {awaitingApproval ? (
                   <AwaitingApprovalNotice
                     projectDetail={projectDetail}

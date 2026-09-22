@@ -3,7 +3,10 @@ from enum import Enum, StrEnum
 from operator import add
 from typing import Annotated, List, Optional, Self
 
+from aenum import extend_enum
 from pydantic import BaseModel, Field, model_validator
+
+from lib.skill_workflow_spec import read_all_skill_workflow_declarations
 
 
 class WorkflowCancelledError(Exception):
@@ -164,6 +167,38 @@ class WorkflowRunType(str, Enum):
     REVIEWER_COVERAGE_REPORT = "reviewer_coverage_report"
 
 
+def _extend_workflow_run_type_from_skills() -> None:
+    """Give every skill-declared workflow a WorkflowRunType member.
+
+    A skill under ``skills/`` that carries a ``metadata.draft_detective`` block
+    becomes a workflow (see lib/workflows/skill_workflows.py). Its type slug
+    is added here, at import time and before any model that validates against
+    the enum is built, so the skill needs no line in the class above. The
+    hand-written members stay static because code refers to them by name;
+    skill-declared members are only ever reached through their slug.
+
+    A slug that collides with an existing value or name raises: a skill may
+    not quietly take over a hand-written workflow, or another skill's slot.
+    (``extend_enum`` alone would silently alias a repeated value to the
+    existing member, so the check comes first.)
+    """
+    existing_values = {member.value for member in WorkflowRunType}
+    for declaration in read_all_skill_workflow_declarations():
+        slug = declaration.type_slug
+        name = slug.upper()
+        if slug in existing_values or name in WorkflowRunType.__members__:
+            raise ValueError(
+                f"skill '{declaration.skill_name}' declares workflow type '{slug}', "
+                "which WorkflowRunType already has; pick a different `type:` in "
+                "its frontmatter"
+            )
+        extend_enum(WorkflowRunType, name, slug)
+        existing_values.add(slug)
+
+
+_extend_workflow_run_type_from_skills()
+
+
 def is_user_visible_workflow(workflow_type: WorkflowRunType) -> bool:
     """
     Check if a workflow type should be visible to users in the workflow list.
@@ -190,6 +225,57 @@ class SeverityEnum(StrEnum):
             self.MEDIUM: 2,
             self.HIGH: 3,
         }[self]
+
+
+class ProposedEdit(BaseModel):
+    """A concrete, mechanical text replacement an author could apply.
+
+    Optional detail on an issue: a fix that is fully determined by the document
+    text plus the finding, expressed as one replacement of a quoted span. An
+    insertion is expressed as replacing a span with that span plus the new text,
+    and a deletion as replacing it with the empty string. A span sits on one
+    line of the markdown (one Word paragraph), so start_line equals end_line.
+    """
+
+    original_text: str = Field(
+        description=(
+            "The exact text quoted from the main document markdown that this edit "
+            "replaces. Never empty."
+        )
+    )
+    replacement_text: str = Field(
+        description=(
+            "The text that takes the place of original_text. An empty string "
+            "deletes the quoted span."
+        )
+    )
+    start_line: int = Field(
+        description="1-indexed first line of the main document markdown containing original_text",
+    )
+    end_line: int = Field(
+        description="1-indexed last line of the main document markdown containing original_text",
+    )
+    rationale: str = Field(
+        description="One short sentence explaining why this replacement resolves the issue."
+    )
+    display_text: str = Field(
+        description=(
+            "original_text as the document renders it -- markdown syntax gone, "
+            "whitespace normalized. What the highlight and the export search for."
+        )
+    )
+    display_occurrence: int = Field(
+        description=(
+            "0-based index of display_text among its occurrences in the "
+            "rendered line, since rendering can turn a unique quote into a repeat."
+        )
+    )
+    display_replacement: str = Field(
+        description=(
+            "replacement_text as it should reach the page: markdown syntax "
+            "gone, whitespace exactly as the edit wrote it."
+        )
+    )
 
 
 class DocumentIssue(BaseModel):
@@ -228,6 +314,13 @@ class DocumentIssue(BaseModel):
         description="1-indexed end line of the issue in the main document markdown",
         default=None,
     )
+    edits: List[ProposedEdit] = Field(
+        default_factory=list,
+        description=(
+            "Optional proposed edits: mechanical text replacements that resolve this "
+            "issue. Empty when no fix is fully determined by the document text."
+        ),
+    )
 
     @model_validator(mode="after")
     def generate_id(self) -> Self:
@@ -236,6 +329,8 @@ class DocumentIssue(BaseModel):
         if self.id:
             return self
 
+        # Edits are deliberately excluded: the hash identifies the issue, not
+        # its fix, so attaching or revising an edit must not mint a new issue.
         hash_input = (
             f"{self.type.value}|{self.title}|{self.description}|"
             f"{self.severity.value}|{self.chunk_indices}|"

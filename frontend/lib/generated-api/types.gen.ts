@@ -1845,7 +1845,93 @@ export type Issue = {
    * When the issue was last updated
    */
   updated_at: Date;
+  /**
+   * Edits
+   *
+   * The issue's proposed edits, in the order the agent proposed them.
+   *
+   * A computed field rather than a plain property so that every payload
+   * which serializes an `Issue` row directly -- the project detail
+   * response, the share endpoint, the MCP tools -- publishes the edits
+   * without restating the schema.
+   */
+  readonly edits: Array<IssueEditRead>;
 };
+
+/**
+ * IssueEditRead
+ *
+ * Read-only view of an `IssueEdit`, as published by every issue payload.
+ */
+export type IssueEditRead = {
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * Issue Id
+   */
+  issue_id: string;
+  /**
+   * Original Text
+   */
+  original_text: string;
+  /**
+   * Replacement Text
+   */
+  replacement_text: string;
+  /**
+   * Display Text
+   */
+  display_text: string;
+  /**
+   * Display Occurrence
+   */
+  display_occurrence: number;
+  /**
+   * Display Replacement
+   */
+  display_replacement: string;
+  /**
+   * Start Line
+   */
+  start_line: number;
+  /**
+   * End Line
+   */
+  end_line: number;
+  /**
+   * Rationale
+   */
+  rationale: string;
+  status: IssueEditStatus;
+  /**
+   * Reviewed By
+   */
+  reviewed_by?: string | null;
+  /**
+   * Reviewed At
+   */
+  reviewed_at?: Date | null;
+};
+
+/**
+ * IssueEditStatus
+ *
+ * Review state of a single proposed edit.
+ */
+export const IssueEditStatus = {
+  Proposed: 'proposed',
+  Accepted: 'accepted',
+  Rejected: 'rejected',
+} as const;
+
+/**
+ * IssueEditStatus
+ *
+ * Review state of a single proposed edit.
+ */
+export type IssueEditStatus = (typeof IssueEditStatus)[keyof typeof IssueEditStatus];
 
 /**
  * IssueItem
@@ -1895,6 +1981,12 @@ export type IssueItem = {
    * 1-indexed end line in the document where the text relevant to this issue ends
    */
   end_line: number;
+  /**
+   * Edits
+   *
+   * Proposed edits resolving this issue, already located in the document. Empty unless the agent proposed one and it passed validation.
+   */
+  edits?: Array<ProposedEdit>;
 };
 
 /**
@@ -1955,6 +2047,10 @@ export type IssueResponse = {
    * End Line
    */
   end_line: number | null;
+  /**
+   * Edits
+   */
+  edits: Array<IssueEditRead>;
   status: IssueStatus;
   /**
    * Resolved By
@@ -2307,6 +2403,68 @@ export type ProjectListPage = {
    * Number of projects skipped before this page
    */
   offset: number;
+};
+
+/**
+ * ProposedEdit
+ *
+ * A concrete, mechanical text replacement an author could apply.
+ *
+ * Optional detail on an issue: a fix that is fully determined by the document
+ * text plus the finding, expressed as one replacement of a quoted span. An
+ * insertion is expressed as replacing a span with that span plus the new text,
+ * and a deletion as replacing it with the empty string. A span sits on one
+ * line of the markdown (one Word paragraph), so start_line equals end_line.
+ */
+export type ProposedEdit = {
+  /**
+   * Original Text
+   *
+   * The exact text quoted from the main document markdown that this edit replaces. Never empty.
+   */
+  original_text: string;
+  /**
+   * Replacement Text
+   *
+   * The text that takes the place of original_text. An empty string deletes the quoted span.
+   */
+  replacement_text: string;
+  /**
+   * Start Line
+   *
+   * 1-indexed first line of the main document markdown containing original_text
+   */
+  start_line: number;
+  /**
+   * End Line
+   *
+   * 1-indexed last line of the main document markdown containing original_text
+   */
+  end_line: number;
+  /**
+   * Rationale
+   *
+   * One short sentence explaining why this replacement resolves the issue.
+   */
+  rationale: string;
+  /**
+   * Display Text
+   *
+   * original_text as the document renders it -- markdown syntax gone, whitespace normalized. What the highlight and the export search for.
+   */
+  display_text: string;
+  /**
+   * Display Occurrence
+   *
+   * 0-based index of display_text among its occurrences in the rendered line, since rendering can turn a unique quote into a repeat.
+   */
+  display_occurrence: number;
+  /**
+   * Display Replacement
+   *
+   * replacement_text as it should reach the page: markdown syntax gone, whitespace exactly as the edit wrote it.
+   */
+  display_replacement: string;
 };
 
 /**
@@ -3839,6 +3997,9 @@ export const WorkflowRunType = {
   RevisionPlanningSummary: 'revision_planning_summary',
   ReviewerResponseMemos: 'reviewer_response_memos',
   ReviewerCoverageReport: 'reviewer_coverage_report',
+  ActiveVoice: 'active_voice',
+  ConcisionPrecision: 'concision_precision',
+  WritingConsistency: 'writing_consistency',
 } as const;
 
 /**
@@ -3944,6 +4105,14 @@ export type WorkflowTypeDescription = {
    * Gates
    */
   gates: Array<WorkflowGate>;
+  /**
+   * Icon
+   */
+  icon?: string | null;
+  /**
+   * Proposes Edits
+   */
+  proposes_edits?: boolean;
 };
 
 /**
@@ -4011,6 +4180,229 @@ export type WorkflowUsageItem = {
    * Thumbs Down
    */
   thumbs_down: number;
+};
+
+/**
+ * AdminFeedbackItem
+ *
+ * Feedback item returned to admins, respecting visibility settings.
+ */
+export type AdminFeedbackItemWritable = {
+  /**
+   * Id
+   */
+  id: string;
+  feedback_type: FeedbackType;
+  /**
+   * Feedback Text
+   */
+  feedback_text: string | null;
+  /**
+   * Created At
+   */
+  created_at: string;
+  /**
+   * User Id
+   */
+  user_id: string;
+  /**
+   * User Name
+   */
+  user_name: string;
+  /**
+   * User Email
+   */
+  user_email: string;
+  /**
+   * Project Id
+   */
+  project_id: string;
+  /**
+   * Project Title
+   */
+  project_title: string;
+  /**
+   * Project Current Revision
+   */
+  project_current_revision: number;
+  /**
+   * Revision
+   */
+  revision: number;
+  visibility: FeedbackVisibility;
+  issue: IssueWritable;
+};
+
+/**
+ * Issue
+ *
+ * Persisted issue from workflow analysis.
+ *
+ * Issues are created after workflow completion and linked to the specific
+ * workflow run and checkpoint that generated them.
+ */
+export type IssueWritable = {
+  /**
+   * Id
+   *
+   * Unique identifier for the issue
+   */
+  id: string;
+  /**
+   * Project Id
+   *
+   * The project this issue belongs to
+   */
+  project_id: string;
+  /**
+   * Workflow Run Id
+   *
+   * The workflow run that created this issue
+   */
+  workflow_run_id: string;
+  /**
+   * Langgraph Checkpoint Id
+   *
+   * LangGraph checkpoint ID for time travel debugging
+   */
+  langgraph_checkpoint_id?: string | null;
+  /**
+   * Issue Hash
+   *
+   * Deterministic hash from DocumentIssue.id for deduplication
+   */
+  issue_hash: string;
+  /**
+   * Title
+   *
+   * The title of the issue
+   */
+  title: string;
+  /**
+   * Description
+   *
+   * Short description of the issue
+   */
+  description: string;
+  /**
+   * Long Description
+   *
+   * Detailed description of the issue
+   */
+  long_description?: string | null;
+  /**
+   * Suggested Action
+   *
+   * Author-facing recommendation describing how to resolve the issue. Markdown-formatted.
+   */
+  suggested_action?: string | null;
+  /**
+   * The severity of the issue
+   */
+  severity: SeverityEnum;
+  /**
+   * The workflow type that generated this issue
+   */
+  workflow_type: WorkflowRunType;
+  /**
+   * Chunk Indices
+   *
+   * All chunk indices related to this issue
+   */
+  chunk_indices?: Array<number> | null;
+  /**
+   * Start Line
+   *
+   * 1-indexed start line of the issue in the main document markdown
+   */
+  start_line?: number | null;
+  /**
+   * End Line
+   *
+   * 1-indexed end line of the issue in the main document markdown
+   */
+  end_line?: number | null;
+  /**
+   * Current status of the issue (active or archived)
+   */
+  status?: IssueStatus;
+  /**
+   * Revision
+   *
+   * The project revision this issue belongs to (denormalized from workflow run)
+   */
+  revision?: number;
+  /**
+   * Resolved By
+   *
+   * User who resolved this issue (null if unresolved)
+   */
+  resolved_by?: string | null;
+  /**
+   * Resolved At
+   *
+   * When the issue was resolved
+   */
+  resolved_at?: Date | null;
+  /**
+   * Created At
+   *
+   * When the issue was created
+   */
+  created_at: Date;
+  /**
+   * Updated At
+   *
+   * When the issue was last updated
+   */
+  updated_at: Date;
+};
+
+/**
+ * ProjectDetailed
+ */
+export type ProjectDetailedWritable = {
+  project: Project;
+  /**
+   * The access level of the current user for this project
+   */
+  access_level: AccessLevel;
+  /**
+   * Workflow Runs
+   *
+   * The workflow runs for the project
+   */
+  workflow_runs?: Array<WorkflowRunDetail>;
+  /**
+   * Issues
+   *
+   * The persisted issues for the project
+   */
+  issues?: Array<IssueWritable>;
+  /**
+   * Files
+   *
+   * The files associated with the project
+   */
+  files?: Array<FileListItem>;
+  /**
+   * Feedbacks
+   *
+   * All user feedback for this project's workflow runs
+   */
+  feedbacks?: Array<FeedbackSummary>;
+  /**
+   * Revision
+   *
+   * The revision being returned
+   */
+  revision?: number;
+  /**
+   * Main Document Markdown
+   *
+   * Full markdown of the main document for this revision, if available
+   */
+  main_document_markdown?: string | null;
 };
 
 /**
@@ -5573,6 +5965,18 @@ export type DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetData = {
      * Include passing issues (severity=none) in the export
      */
     include_passing?: boolean;
+    /**
+     * Include Edits
+     *
+     * Apply the issues' proposed edits as Word tracked changes, so they can be accepted or rejected in Word. Comment exports only. Every edit is described in its issue's comment either way.
+     */
+    include_edits?: boolean;
+    /**
+     * Revision
+     *
+     * Which revision of the main document to export, with the issues of that revision. Defaults to the project's current revision.
+     */
+    revision?: number | null;
   };
   url: '/api/projects/{project_id}/docx/download';
 };

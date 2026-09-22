@@ -15,8 +15,9 @@ from sqlmodel import col
 
 from lib.config.database import get_async_db_session
 from lib.models.issue import Issue, IssueStatus
+from lib.models.issue_edit import IssueEdit
 from lib.services.text_sanitization import strip_control_chars
-from lib.workflows.models import DocumentIssue, WorkflowRunType
+from lib.workflows.models import DocumentIssue, ProposedEdit, WorkflowRunType
 from lib.workflows.registry import available_workflow_type_values
 
 logger = logging.getLogger(__name__)
@@ -27,6 +28,30 @@ def _strip_control_chars(text: Optional[str]) -> Optional[str]:
     if text is None:
         return None
     return strip_control_chars(text)
+
+
+def _edit_rows(edits: List[ProposedEdit]) -> List[IssueEdit]:
+    """Build the `issue_edits` rows for one issue, in the proposed order.
+
+    The quoted and replacement text comes from the document, which can carry
+    control characters PostgreSQL rejects; they are stripped here as they are
+    for every other text field. The rows are attached to the issue rather than
+    inserted directly, so the relationship cascade writes them.
+    """
+    return [
+        IssueEdit(
+            position=index,
+            original_text=strip_control_chars(edit.original_text),
+            replacement_text=strip_control_chars(edit.replacement_text),
+            display_text=strip_control_chars(edit.display_text),
+            display_occurrence=edit.display_occurrence,
+            display_replacement=strip_control_chars(edit.display_replacement),
+            start_line=edit.start_line,
+            end_line=edit.end_line,
+            rationale=strip_control_chars(edit.rationale),
+        )
+        for index, edit in enumerate(edits)
+    ]
 
 
 async def persist_workflow_issues(
@@ -78,6 +103,7 @@ async def persist_workflow_issues(
                 status=IssueStatus.ACTIVE,
                 revision=revision,
             )
+            issue.edit_rows = _edit_rows(doc_issue.edits)
             session.add(issue)
             created_issues.append(issue)
 

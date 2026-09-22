@@ -1,6 +1,8 @@
-# Dataset for the recommendation_check e2e eval. One record per document; `input` is the
-# document under review as markdown, figures referenced by local PNG path.
-
+# Eval samples for the recommendation_check workflow, in inventory form: one expected issue per
+# recommendation occurrence, anchored by its wording, with the severity its classification maps to
+# (none = supported, medium = partially supported, high = unsupported). Titles are free-form for
+# this workflow, so none is named. See evals_inspectai/common/issue_inventory.py.
+# Figures are referenced by local PNG path and inlined at upload.
 - input: |
     # Remote Work Productivity Study
 
@@ -15,11 +17,19 @@
     1. Continue the fully remote work policy across all four departments based on the sustained productivity and retention gains observed.
     2. Reduce the standing-meeting load further by capping recurring meetings at six hours per week per employee, building on the observed 4.2-hour reduction.
     3. Expand schedule flexibility to contractor staff, who were not covered by the present study.
-  target_severity_counts:
-    none: 1
-    medium: 1
-    high: 1
-  target_answer: 'Recommendation 1 is fully supported by the documented productivity and retention gains. Recommendation 2 is partially supported: the document shows a 4.2-hour meeting reduction, but the specific six-hour weekly cap is a new threshold not grounded in any finding — under the boundary rule, when a recommendation adds a specific threshold not in the findings, it is partially_supported (medium) rather than supported. Recommendation 3 is unsupported (high) per the out-of-scope-population rule: contractor staff were not covered by the study at all, even though the underlying intervention (schedule flexibility) is supported for in-house staff. The agent should report 1 ''none'', 1 ''medium'', and 1 ''high'' issue.'
+  expected_issues:
+  - id: continue_remote
+    anchor: Continue the fully remote work policy across all four departments
+    severity: none
+  - id: cap_meetings_six_hours
+    anchor: capping recurring meetings at six hours per week
+    severity: medium
+  - id: contractor_flexibility
+    anchor: Expand schedule flexibility to contractor staff
+    severity: high
+  notes: Recommendation 1 restates the productivity and retention findings. Recommendation 2 adds a six-hour cap
+    the 4.2-hour finding does not establish (threshold rule). Recommendation 3 extends to contractors the study
+    never covered (out-of-scope population).
 - input: |
     # Coastal Erosion Mitigation: Pilot Programme Report
 
@@ -35,11 +45,15 @@
 
     1. Scale the permeable groyne intervention to all five sites, given the observed 62 percent reduction in erosion at treated sites and the favourable cost performance.
     2. Use the intervention to restore beach width along the wider regional coastline.
-  target_severity_counts:
-    none: 0
-    medium: 1
-    high: 1
-  target_answer: 'Recommendation 1 is partially_supported: the intervention''s 62 percent erosion reduction is well documented, but the recommendation extends application to sites S4 and S5 where the intervention was *not* applied (they served as untreated controls). Under the rule for extrapolating from a measured site to a closely related but unmeasured one, this is partially_supported (medium). Recommendation 2 is unsupported (high) — and in fact contradicted by findings: the document explicitly states no measurable change in beach width was observed. The agent should report 1 ''medium'' and 1 ''high'' issue.'
+  expected_issues:
+  - id: scale_to_all_sites
+    anchor: Scale the permeable groyne intervention to all five sites
+    severity: medium
+  - id: restore_beach_width
+    anchor: Use the intervention to restore beach width
+    severity: high
+  notes: 'Recommendation 1 extends the intervention to S4 and S5, which were untreated controls (pilot-to-unmeasured-site
+    extrapolation). Recommendation 2 is contradicted: the findings state no measurable change in beach width.'
 - input: |
     # Annual Air Quality Report
 
@@ -62,11 +76,13 @@
     ## Conclusion
 
     The data indicate that targeted low-emission zones are correlated with localised PM2.5 reductions. NO₂ levels were unchanged. Ozone showed the usual seasonal pattern.
-  target_severity_counts:
-    none: 0
-    medium: 0
-    high: 0
-  target_answer: This document contains only findings and a factual conclusion summarising those findings. There are no recommendations — no calls to action, no proposed changes, no policy suggestions. The agent should report zero issues.
+  decoys:
+  - anchor: targeted low-emission zones are correlated with localised PM2.5 reductions
+    reason: conclusion
+  - anchor: Ozone showed the usual seasonal pattern
+    reason: conclusion
+  notes: 'Findings and a factual conclusion only: no calls to action. The decoys are conclusion sentences that restate
+    findings and must not be read as recommendations.'
 - input: |
     # Public Library Digital Services Review
 
@@ -93,11 +109,29 @@
     1. Increase the e-book lending budget by at least 25 percent across all branches, prioritising those that exhausted their allocation in the first nine months. The 38 percent growth in e-book loans, coupled with reduced overall lending where budgets were exhausted, justifies expanded investment.
     2. Open extended evening hours (until 10 PM) at the five busiest branches — Central, Eastgate, Westwood, Riverside, and Hilltop — to absorb demand from patrons currently turned away during peak final-hour periods.
     3. Replace ageing self-checkout terminals across the network within the next 18 months to improve patron experience.
-  target_severity_counts:
-    none: 1
-    medium: 3
-    high: 2
-  target_answer: 'The document contains two recommendation sections (Executive Summary and Detailed Recommendations) with three recommendations each — six occurrences total, evaluated independently. The summary e-book recommendation (''expand e-book lending budget across all branches'') is fully supported by the loan-growth and budget-exhaustion findings → 1 ''none''. The detailed e-book recommendation adds a specific ''25 percent'' threshold that is not grounded in any finding — under the boundary rule, when a recommendation adds a specific threshold not in the findings it is partially_supported → 1 ''medium''. Both extended-hours recommendations (summary and detailed) are partially_supported: the 95 percent capacity finding implies demand at the final operating hour, but the document explicitly states no data was collected on demand outside currently operating hours, so extending until 10 PM is a small inferential extension → 2 ''medium''. Both terminal-replacement recommendations are unsupported: the document explicitly states no equipment audit was performed, so the recommendation''s subject is entirely unmeasured → 2 ''high''. The agent should report 6 issues total: 1 ''none'', 3 ''medium'', 2 ''high''.'
+  expected_issues:
+  - id: summary_ebook_budget
+    anchor: Expand e-book lending budget across all branches.
+    severity: none
+  - id: summary_evening_hours
+    anchor: Open extended evening hours at the five busiest branches.
+    severity: medium
+  - id: summary_terminals
+    anchor: Replace ageing self-checkout terminals.
+    severity: high
+  - id: detailed_ebook_25pct
+    anchor: Increase the e-book lending budget by at least 25 percent
+    severity: medium
+  - id: detailed_hours_10pm
+    anchor: Open extended evening hours (until 10 PM)
+    severity: medium
+  - id: detailed_terminals_18mo
+    anchor: Replace ageing self-checkout terminals across the network within the next 18 months
+    severity: high
+  notes: 'Two recommendation sections, three recommendations each, evaluated per occurrence. The summary e-book
+    line is supported; the detailed version adds a 25 percent threshold. Both evening-hours lines are partial: capacity
+    in the final hour is measured, demand after closing is not. Both terminal lines are unsupported: no equipment
+    audit was performed.'
 - input: |
     # Workplace Safety: Annual Incident Review
 
@@ -116,11 +150,19 @@
     1. Make pre-shift safety briefings a permanent fixture across all sites, given the 42 percent reduction in incident rates in months following their introduction.
     2. Continue to encourage near-miss reporting and treat increases in reports as a positive indicator of safety culture rather than a deterioration.
     3. Roll out the mandatory safety briefings to contractor sites worldwide.
-  target_severity_counts:
-    none: 1
-    medium: 1
-    high: 1
-  target_answer: 'Recommendation 1 is partially_supported: the 42 percent post-introduction reduction supports the briefings'' effectiveness, but ''making permanent'' is a temporal extension beyond the studied period — it adds a horizon (indefinite continuation) that the findings do not directly establish. Recommendation 2 is supported by the document''s own note that the increase in near-miss reports reflects willingness to report rather than rising frequency. Recommendation 3 is unsupported: extending to contractor sites worldwide goes to a population/scope the study did not cover at all. The agent should report 1 ''none'', 1 ''medium'', and 1 ''high'' issue.'
+  expected_issues:
+  - id: permanent_briefings
+    anchor: Make pre-shift safety briefings a permanent fixture across all sites
+    severity: medium
+  - id: near_miss_reporting
+    anchor: Continue to encourage near-miss reporting
+    severity: none
+  - id: contractor_sites_worldwide
+    anchor: Roll out the mandatory safety briefings to contractor sites worldwide
+    severity: high
+  notes: Recommendation 1 makes the briefings permanent and network-wide, a horizon and scope the studied period
+    does not establish. Recommendation 2 is supported by the document's own reading of the near-miss increase. Recommendation
+    3 extends to contractor sites worldwide, never studied.
 - input: |
     # Hospital Readmission Reduction Pilot
 
@@ -136,11 +178,15 @@
 
     1. Roll out the post-discharge nurse call programme to the remaining cardiology wards in the network, given the demonstrated 7.2-percentage-point reduction in readmissions and favourable cost-benefit profile.
     2. Extend the call programme to oncology wards as a next step, where readmission rates have historically been comparable to cardiology.
-  target_severity_counts:
-    none: 0
-    medium: 1
-    high: 1
-  target_answer: 'Recommendation 1 is partially_supported: the 7.2-percentage-point reduction is shown in the two pilot wards, and the recommendation extends application to the ''remaining cardiology wards'' which were not part of the pilot — this is the canonical pilot-to-rollout extrapolation to closely related but unmeasured sites. Recommendation 2 is unsupported under the out-of-scope-population rule: oncology wards were not measured at all in the document, and a different ward type is a different unmeasured population. The agent should report 1 ''medium'' and 1 ''high'' issue.'
+  expected_issues:
+  - id: cardiology_rollout
+    anchor: Roll out the post-discharge nurse call programme to the remaining cardiology wards
+    severity: medium
+  - id: oncology_extension
+    anchor: Extend the call programme to oncology wards
+    severity: high
+  notes: Recommendation 1 extends the two-ward pilot to the remaining cardiology wards (closely related, unmeasured).
+    Recommendation 2 extends to oncology, a population never measured.
 - input: |
     # Workplace Safety Program: Pilot Evaluation
 
@@ -155,9 +201,12 @@
     ## Recommendations
 
     - Continue the safety program at the three pilot sites.
-  target_severity_counts:
-    none: 1
-  target_answer: 'There is one recommendation: continue the safety program at the three pilot sites. Its supporting finding is Figure 1, an image: recordable incidents per 100 workers fell at every site, from about 8.2 to 5.1, 7.5 to 4.4 and 9.1 to 5.9. The text gives no numbers, so the classification depends on reading the chart. The recommendation is supported (one issue with severity none).'
+  expected_issues:
+  - id: continue_program_reduction
+    anchor: Continue the safety program at the three pilot sites.
+    severity: none
+  notes: 'The supporting finding is only in Figure 1: incidents fell at every site (about 8.2 to 5.1, 7.5 to 4.4,
+    9.1 to 5.9). The text states no numbers, so the classification depends on reading the chart.'
 - input: |
     # Workplace Safety Program: Pilot Evaluation
 
@@ -172,6 +221,9 @@
     ## Recommendations
 
     - Continue the safety program at the three pilot sites, where it reduced recordable incidents.
-  target_severity_counts:
-    high: 1
-  target_answer: 'There is one recommendation: continue the program because it reduced recordable incidents. Figure 1, an image, shows incident rates essentially unchanged at all three sites (about 8.2 vs 8.0, 7.5 vs 7.7 and 9.1 vs 9.0 per 100 workers), so the document''s own finding contradicts the premise of the recommendation. It is unsupported (one issue with severity high). The classification is only reachable by reading the chart, since the text states no values.'
+  expected_issues:
+  - id: continue_program_flat
+    anchor: Continue the safety program at the three pilot sites, where it reduced recordable incidents.
+    severity: high
+  notes: Figure 1 shows incident rates essentially unchanged (about 8.2 vs 8.0, 7.5 vs 7.7, 9.1 vs 9.0), so the
+    document's own finding contradicts the recommendation's premise. Only reachable by reading the chart.

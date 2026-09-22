@@ -86,6 +86,29 @@ def strip_interactive_markers(content: str) -> str:
     return _INTERACTIVE_MARKER_RE.sub("", content)
 
 
+def iter_skill_files(skills_dir: Path | None = None) -> list[Path]:
+    """Every ``skills/<name>/SKILL.md`` on disk, in name order."""
+    root = skills_dir if skills_dir is not None else _SKILLS_DIR
+    return sorted(root.glob("*/SKILL.md"))
+
+
+def read_skill_frontmatter(skill_file: Path) -> dict | None:
+    """The parsed YAML frontmatter of a skill file, or None when absent or malformed.
+
+    A malformed block is logged and treated as absent, matching
+    ``list_skill_summaries``: one broken skill must not take others down.
+    """
+    frontmatter = _frontmatter_block(skill_file.read_text(encoding="utf-8"))
+    if frontmatter is None:
+        return None
+    try:
+        parsed = yaml.safe_load(frontmatter)
+    except yaml.YAMLError:
+        logger.warning("skipping skill with malformed frontmatter: %s", skill_file)
+        return None
+    return parsed if isinstance(parsed, dict) else None
+
+
 def list_skill_summaries(exclude: Collection[str] = ()) -> list[SkillSummary]:
     """Name and description of every skill on disk, in name order.
 
@@ -105,15 +128,8 @@ def list_skill_summaries(exclude: Collection[str] = ()) -> list[SkillSummary]:
 
 
 def _skill_summary(skill_file: Path) -> SkillSummary | None:
-    frontmatter = _frontmatter_block(skill_file.read_text(encoding="utf-8"))
-    if frontmatter is None:
-        return None
-    try:
-        parsed = yaml.safe_load(frontmatter)
-    except yaml.YAMLError:
-        logger.warning("skipping skill with malformed frontmatter: %s", skill_file)
-        return None
-    if not isinstance(parsed, dict):
+    parsed = read_skill_frontmatter(skill_file)
+    if parsed is None:
         return None
     name, description = parsed.get("name"), parsed.get("description")
     if not isinstance(name, str) or not isinstance(description, str):

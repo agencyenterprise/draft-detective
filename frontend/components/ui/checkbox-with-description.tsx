@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import * as CheckboxPrimitive from '@radix-ui/react-checkbox';
-import { CheckIcon } from 'lucide-react';
+import { CheckIcon, type LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface CheckboxWithDescriptionProps {
@@ -11,6 +11,8 @@ interface CheckboxWithDescriptionProps {
   onCheckedChange: (checked: boolean) => void;
   label: string;
   description: string;
+  /** Shown before the label, the same icon the feature carries elsewhere. */
+  icon?: LucideIcon;
   bordered?: boolean;
   disabled?: boolean;
 }
@@ -21,6 +23,7 @@ export function CheckboxWithDescription({
   onCheckedChange,
   label,
   description,
+  icon: Icon,
   bordered = false,
   disabled = false,
 }: CheckboxWithDescriptionProps) {
@@ -52,6 +55,7 @@ export function CheckboxWithDescription({
             <CheckIcon className="size-3.5" />
           </CheckboxPrimitive.Indicator>
         </CheckboxPrimitive.Root>
+        {Icon && <Icon className="size-4 shrink-0 text-muted-foreground" aria-hidden />}
         <span className={cn('text-sm font-medium leading-none select-none', disabled && 'opacity-70')}>{label}</span>
       </div>
       <p className="text-sm text-muted-foreground pl-6">{description}</p>

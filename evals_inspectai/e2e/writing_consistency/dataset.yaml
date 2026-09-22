@@ -1,0 +1,317 @@
+# Eval samples for the writing_consistency workflow, in inventory form: one expected issue per
+# inconsistency, anchored at the first minority occurrence, with edit expectations, plus decoys
+# whose variation is legitimate. Titles carry the variants after a colon ("Inconsistent Term:
+# students / pupils"), so an expected title names the stable prefix; where a family could fairly be
+# reported under two prefixes (a spelling that is also a number style), the title is just
+# "Inconsistent", which any of them contains. See evals_inspectai/common/issue_inventory.py.
+
+# ---- terms ----------------------------------------------------------------------------------
+- input: |
+    # Survey Results
+
+    ## Chapter 1
+
+    We surveyed 412 participants in spring 2025. Participants answered 40 questions about scheduling and workload. Most participants completed the survey in under 15 minutes.
+
+    ## Chapter 2
+
+    Respondents rated scheduling as their main concern. Sixty percent of respondents said the new roster reduced their commute.
+  expected_issues:
+  - id: participants_respondents
+    title: Inconsistent Term
+    anchor: Respondents rated scheduling as their main concern
+    edit_expected: true
+    severity: medium
+    edit:
+      must_include: ["Participants rated"]
+  notes: One group, two names across chapters. The majority form is participants (3 to 2).
+- input: |
+    # Program Overview
+
+    ## Chapter 1
+
+    The Community Health Program (the program) opened in 2021. The program serves four counties. We evaluated the program's first two years.
+
+    ## Chapter 2
+
+    The program's staff numbered 14 in 2023. Contractors who supplied the vans were not part of the staff and were paid per trip.
+  decoys:
+  - anchor: The program serves four counties
+    reason: glossed_short_form
+  - anchor: Contractors who supplied the vans were not part of the staff
+    reason: different_things
+
+# ---- spelling and capitalization ----------------------------------------------------------
+- input: |
+    # Costs
+
+    ## Chapter 1
+
+    The organization's costs rose 6 percent in 2023. The organization spent a third of its budget on staff. We asked the organization how it expected costs to move.
+
+    ## Chapter 2
+
+    The organisation expected costs to keep rising. One administrator cited the report "Organisational Spending in Rural Counties" as the basis for the estimate.
+  expected_issues:
+  - id: organization_spelling
+    title: Inconsistent Spelling
+    anchor: The organisation expected costs to keep rising
+    edit_expected: true
+    severity: low
+    edit:
+      must_include: ["The organization expected"]
+  decoys:
+  - anchor: Organisational Spending in Rural Counties
+    reason: quoted
+- input: |
+    # Oversight
+
+    ## Chapter 1
+
+    The Department of Education funded the pilot. The Department set the reporting schedule, and the Department reviewed each quarterly report.
+
+    ## Chapter 2
+
+    In 2024 the department shortened the schedule to twice a year. Federal Reserve data were not used in this evaluation.
+  expected_issues:
+  - id: department_capitalization
+    title: Inconsistent Spelling
+    anchor: In 2024 the department shortened the schedule
+    edit_expected: true
+    severity: low
+    edit:
+      must_include: ["the Department shortened"]
+  decoys:
+  - anchor: Federal Reserve data were not used
+    reason: proper_name
+
+# ---- hyphenation ----------------------------------------------------------------------------
+- input: |
+    # Models
+
+    ## Chapter 1
+
+    We tested three next-generation models. The next-generation models used twice the compute of their predecessors.
+
+    ## Chapter 2
+
+    The next generation models also cost more to run. Our plan for them is long term, and a long-term plan needs stable funding.
+  expected_issues:
+  - id: next_generation
+    title: Inconsistent Hyphenation
+    anchor: The next generation models also cost more to run
+    edit_expected: true
+    severity: low
+    edit:
+      must_include: ["next-generation models"]
+  decoys:
+  - anchor: Our plan for them is long term, and a long-term plan needs stable funding
+    reason: predicate_position
+- input: |
+    # Research Program
+
+    ## Chapter 1
+
+    The lab funds cutting edge research in three fields. Its cutting edge research attracts visiting scholars each summer, and its cutting edge research budget grew in 2024.
+
+    ## Chapter 2
+
+    The board asked whether cutting-edge research could continue without the grant.
+  expected_issues:
+  - id: cutting_edge_before_noun
+    title: Inconsistent Hyphenation
+    anchor: The lab funds cutting edge research in three fields
+    edit_expected: true
+    severity: low
+    edit:
+      must_include: ["cutting-edge research"]
+  notes: Before a noun the hyphenated form is correct even though the open form is the majority (3 to 1), so the edit hyphenates rather than following the majority.
+
+# ---- number style ---------------------------------------------------------------------------
+- input: |
+    # Uptake
+
+    ## Chapter 1
+
+    Enrollment rose 12 percent in the first year and 4 percent in the second. Attendance rose 3 percent.
+
+    ## Chapter 2
+
+    Retention rose 7% in the same period.
+
+    | Year | Retention |
+    | --- | --- |
+    | 2023 | 71% |
+    | 2024 | 78% |
+  expected_issues:
+  - id: percent_symbol
+    title: Inconsistent Number Style
+    anchor: Retention rose 7% in the same period
+    edit_expected: true
+    severity: low
+    edit:
+      must_include: ["7 percent"]
+  decoys:
+  - anchor: "| 2023 | 71% |"
+    reason: table
+
+# ---- tense ----------------------------------------------------------------------------------
+- input: |
+    # Findings
+
+    ## Chapter 3
+
+    Teachers reported higher satisfaction after the schedule change. Attendance rose in 30 of 38 schools. Principals report that recruiting was easier in the second year. Most districts operate on a July fiscal year, which shaped the timing of the change. This chapter describes the findings in the order the agency asked for them.
+  expected_issues:
+  - id: principals_report
+    title: Inconsistent Tense
+    anchor: Principals report that recruiting was easier
+    edit_expected: true
+    severity: medium
+    edit:
+      must_include: ["Principals reported"]
+  decoys:
+  - anchor: Most districts operate on a July fiscal year
+    reason: general_truth
+  - anchor: This chapter describes the findings
+    reason: signposting_tense
+
+# ---- tone -----------------------------------------------------------------------------------
+- input: |
+    # Approach
+
+    ## Chapter 1
+
+    We designed the survey with the agency and we piloted it in four schools. We then revised six questions.
+
+    ## Chapter 4
+
+    The authors caution that the second year does not allow the same comparison. One principal told us, "We would keep it if the state kept paying."
+  expected_issues:
+  - id: the_authors
+    title: Inconsistent Tone
+    anchor: The authors caution that the second year
+    edit_expected: false
+    severity: medium
+  decoys:
+  - anchor: We would keep it if the state kept paying
+    reason: quoted
+
+# ---- house style ----------------------------------------------------------------------------
+- input: |
+    # Governance
+
+    ## Chapter 2
+
+    The council's decision-making followed the bylaws. Members voted on each grant, and the chair broke ties.
+  expected_issues:
+  - id: decision_making
+    title: House Style
+    anchor: The council's decision-making followed the bylaws
+    edit_expected: true
+    severity: low
+    edit:
+      must_include: ["decisionmaking"]
+  notes: A single occurrence still counts for the house-style compound.
+
+# ---- clean documents ------------------------------------------------------------------------
+- input: |
+    # Methods
+
+    ## Chapter 2
+
+    We surveyed 212 teachers and interviewed 19 principals. Teachers answered online; principals spoke with us by phone. The teachers' responses and the principals' interviews cover different questions, so we report them separately.
+  decoys:
+  - anchor: The teachers' responses and the principals' interviews cover different questions
+    reason: different_things
+- input: |
+    # Findings
+
+    ## Chapter 3
+
+    Reading scores rose 0.18 standard deviations in first-wave schools. Attendance rose 2.1 percentage points. Teachers reported that scheduling was the main burden. The state assessment measures reading in grades 3 through 8, so we could not observe the youngest students.
+  decoys:
+  - anchor: The state assessment measures reading in grades 3 through 8
+    reason: general_truth
+  - anchor: Reading scores rose 0.18 standard deviations
+    reason: consistent_style
+- input: |
+    # Sites
+
+    ## Chapter 1
+
+    The data center at the first site draws 40 megawatts. Data centers at the other two sites draw less.
+
+    ## Chapter 2
+
+    All three data centers are grid connected, and the grid-connected capacity is the binding constraint at each.
+  decoys:
+  - anchor: Data centers at the other two sites draw less
+    reason: plural
+  - anchor: All three data centers are grid connected, and the grid-connected capacity
+    reason: predicate_position
+- input: |
+    # Quotations
+
+    ## Chapter 4
+
+    One planner said, "Our organisation cannot keep up with the demand." Another said the organization had doubled its permitting staff. We interviewed both in May 2025.
+  decoys:
+  - anchor: Our organisation cannot keep up with the demand
+    reason: quoted
+
+# ---- section-length document ----------------------------------------------------------------
+- input: file://e2e/writing_consistency/files/tutoring_evaluation.md
+  expected_issues:
+  - id: decision_making_agency
+    title: House Style
+    anchor: decision-making by the agency
+    edit_expected: true
+    severity: low
+    edit:
+      must_include: ["decisionmaking"]
+  - id: per_cent
+    title: Inconsistent
+    anchor: about 9 per cent of the grant
+    edit_expected: true
+    severity: low
+    edit:
+      must_include: ["9 percent"]
+  - id: principals_report_present
+    title: Inconsistent Tense
+    anchor: Principals report that the tutors were easy to recruit
+    edit_expected: true
+    severity: medium
+    edit:
+      must_include: ["Principals reported"]
+  - id: the_authors_caution
+    title: Inconsistent Tone
+    anchor: The authors caution that the second year
+    edit_expected: false
+    severity: medium
+  - id: students_pupils
+    title: Inconsistent Term
+    anchor: The pupils who gained most were those who had missed more than 20 days
+    edit_expected: true
+    severity: medium
+    edit:
+      must_include: ["students who gained most"]
+  - id: initiative_program
+    title: Inconsistent Term
+    anchor: they would keep the program only with continued state funding
+    edit_expected: true
+    severity: medium
+    edit:
+      must_include: ["keep the initiative"]
+  decoys:
+  - anchor: We evaluated the initiative for the state education agency
+    reason: glossed_short_form
+  - anchor: Chapter 2 describes the design
+    reason: signposting_tense
+  - anchor: education students in their final year
+    reason: different_things
+  - anchor: How many sessions per week does the tutor run in your class
+    reason: quoted
+  - anchor: The findings suggest that the tutoring initiative raised reading scores
+    reason: interpretation_tense
+  notes: Six planted inconsistencies across four chapters and an appendix. The per cent/percent pair could fairly be called spelling or number style, so its title is the bare prefix.

@@ -6,7 +6,10 @@ import { cn } from '@/lib/utils';
 import type { Element } from 'hast';
 import { DocumentImage, documentUrlTransform } from '@/components/document-image';
 import { SEVERITY } from '@/lib/severity-style';
+import { clearEditHighlight, editRanges, setEditHighlight } from './edit-highlight';
 import { MarginLayer } from './margin-layer';
+import { issueEdits } from './proposed-edit';
+import { TableRow } from './table-row';
 import React, { Ref, createContext, useContext, useEffect, useImperativeHandle, useMemo, useRef } from 'react';
 import ReactMarkdown, { type ExtraProps } from 'react-markdown';
 import rehypeMathML from '@daiji256/rehype-mathml';
@@ -52,6 +55,12 @@ interface DocumentViewProps {
   header?: DocumentHeader;
   issues: Issue[];
   selectedLineRange: [number, number] | null;
+  /**
+   * The issue the reader has open. Only its proposed edits are marked in the
+   * text: every flagged paragraph showing its edits at once would bury the one
+   * being read under the rest.
+   */
+  activeIssueId?: string | null;
   onIssueSelect: (issue: Issue | null) => void;
   /**
    * When set, issues are rendered in a margin column beside the paragraph they
@@ -247,6 +256,7 @@ const BLOCK_COMPONENTS = {
   pre: blockFactory('pre', 'mb-3', 'max-w-full overflow-x-auto rounded bg-muted px-2 py-1'),
   table: blockFactory('table', 'mb-3', 'w-full border-collapse text-left text-[13px]', true, true),
   thead: ({ children }: React.HTMLAttributes<HTMLElement>) => <thead className="border-b">{children}</thead>,
+  tr: TableRow,
   th: ({ children }: React.HTMLAttributes<HTMLElement>) => (
     <th className="px-2 py-1.5 font-medium whitespace-nowrap">{children}</th>
   ),
@@ -271,6 +281,7 @@ export function DocumentView({
   header,
   issues,
   selectedLineRange,
+  activeIssueId,
   onIssueSelect,
   margin,
 }: DocumentViewProps) {
@@ -410,6 +421,41 @@ export function DocumentView({
       for (const cleanup of cleanups) cleanup();
     };
   }, [markdown, lineIssues, selectedLineRange, onIssueSelect]);
+
+  /**
+   * The edits belonging to the open issue. Without an id — a host that shows the
+   * document without an issue queue — the selected lines stand in, taking the
+   * first issue on them that proposes anything.
+   */
+  const selectedEdits = useMemo(() => {
+    const selected = activeIssueId
+      ? (issues.find((issue) => issue.id === activeIssueId) ?? null)
+      : (selectedLineRange &&
+          lineIssues.find(
+            (issue) =>
+              rangesOverlap([issue.start_line!, issue.end_line!], selectedLineRange) && issueEdits(issue).length > 0,
+          )) ||
+        null;
+    return selected ? issueEdits(selected) : [];
+  }, [activeIssueId, issues, lineIssues, selectedLineRange]);
+
+  /**
+   * Marks each edit's exact quote inside the document. Imperative for the same
+   * reason the block highlighting above is — the text is rendered markdown that
+   * must not be reparsed — and doubly so here: a quote crosses element
+   * boundaries, so the only way to mark it without rewriting the DOM is to hand
+   * the browser ranges over the text nodes it already laid out.
+   */
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container || selectedEdits.length === 0) {
+      clearEditHighlight();
+      return;
+    }
+
+    setEditHighlight(editRanges(container, selectedEdits));
+    return clearEditHighlight;
+  }, [markdown, selectedEdits]);
 
   const marginState: MarginState | null = margin ? { issues: lineIssues, ...margin } : null;
 

@@ -1,6 +1,6 @@
 """Service layer for workflow types."""
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 from pydantic import BaseModel
 from sqlalchemy import select
@@ -10,18 +10,39 @@ from lib.config.database import get_async_db_session
 from lib.models.project import Project
 from lib.models.user import User
 from lib.models.workflow_run import WorkflowRun
-from lib.workflows.categories import WORKFLOW_DISPLAY_CONFIG
+from lib.workflows.categories import WORKFLOW_DISPLAY_CONFIG, CategoryConfig
 from lib.services.workflow_gates import get_effective_gates
 from lib.workflows.models import WorkflowGate, WorkflowRunType
 from lib.workflows.registry import get_all_manifests
+from lib.workflows.skill_workflows import SkillWorkflowManifest
 
 if TYPE_CHECKING:
     from lib.workflows.manifest import WorkflowManifest
 
-# Derived map: workflow type → category slug, built once from WORKFLOW_DISPLAY_CONFIG.
+def _display_config() -> list[CategoryConfig]:
+    """WORKFLOW_DISPLAY_CONFIG plus the skill-declared workflows.
+
+    Hand-written workflows are placed by editing the config; a skill-declared
+    workflow names its category in its frontmatter and is appended to that
+    category here, so it reaches the picker without a code change.
+    """
+    categories = [
+        CategoryConfig(slug=c.slug, label=c.label, workflows=list(c.workflows))
+        for c in WORKFLOW_DISPLAY_CONFIG
+    ]
+    by_slug = {c.slug: c for c in categories}
+    for manifest in get_all_manifests().values():
+        if isinstance(manifest, SkillWorkflowManifest):
+            by_slug[manifest.category].workflows.append(manifest.type)
+    return categories
+
+
+_DISPLAY_CONFIG: list[CategoryConfig] = _display_config()
+
+# Derived map: workflow type → category slug, built once from the display config.
 _WORKFLOW_CATEGORY_MAP: dict[WorkflowRunType, str] = {
     wf_type: category.slug
-    for category in WORKFLOW_DISPLAY_CONFIG
+    for category in _DISPLAY_CONFIG
     for wf_type in category.workflows
 }
 
@@ -48,13 +69,21 @@ class WorkflowTypeDescription(BaseModel):
     # inherited from its required dependencies. A run of a gated workflow sits
     # in AWAITING_APPROVAL until every gate is approved for the revision.
     gates: list[WorkflowGate]
+    # lucide icon name (kebab-case) chosen by the workflow, or None to let the
+    # frontend fall back to its own per-type map or default icon.
+    icon: Optional[str] = None
+    # Whether the workflow attaches proposed edits to its issues, shown
+    # alongside the original text in the document view.
+    proposes_edits: bool = False
 
     @classmethod
     def from_manifest(cls, manifest: "WorkflowManifest") -> "WorkflowTypeDescription":
-        derived = {"category", "gates"}
+        derived = {"category", "gates", "icon", "proposes_edits"}
         fields = {f: getattr(manifest, f) for f in cls.model_fields if f not in derived}
         fields["category"] = _WORKFLOW_CATEGORY_MAP.get(manifest.type, "internal")
         fields["gates"] = get_effective_gates(manifest.type)
+        fields["icon"] = getattr(manifest, "icon", None)
+        fields["proposes_edits"] = bool(getattr(manifest, "propose_edits", False))
         return cls(**fields)
 
 
@@ -91,7 +120,7 @@ def get_all_workflow_types() -> WorkflowTypesResponse:
     ]
     categories = [
         WorkflowCategoryOrder(slug=cat.slug, label=cat.label, workflows=cat.workflows)
-        for cat in WORKFLOW_DISPLAY_CONFIG
+        for cat in _DISPLAY_CONFIG
     ]
 
     return WorkflowTypesResponse(workflow_types=workflow_types, categories=categories)

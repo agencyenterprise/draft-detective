@@ -39,7 +39,7 @@ interface WorkflowResultsContentProps {
   onNavigateToReferences: () => void;
 }
 
-function renderWorkflowResults(
+export function renderWorkflowResults(
   project: ProjectDetailed,
   workflowRun: WorkflowRunDetail,
   onNavigateToDocumentExplorer: (lineRange?: [number, number]) => void,
@@ -100,12 +100,13 @@ function renderWorkflowResults(
         />
       );
     default:
-      // No bespoke visualisation for this type: fall back to its issues, which
-      // every assessment produces, rather than telling the user nothing.
+      // No case above: a skill-declared workflow, which has no code of its own.
+      // Those run on the shared deep-agent state, so they get its results view
+      // (report plus issues) without a per-type entry here.
       return (
-        <GenericWorkflowResults
+        <SimpleDeepAgentResults
           project={project}
-          workflowRun={workflowRun}
+          workflowDetail={workflowRun as WorkflowRunDetailTyped<SimpleDeepAgentState>}
           workflowName={getWorkflowTypeName(type)}
           onNavigateToDocumentExplorer={onNavigateToDocumentExplorer}
         />

@@ -170,6 +170,21 @@ async def download_project_docx(
         default=False,
         description="Include passing issues (severity=none) in the export",
     ),
+    include_edits: bool = Query(
+        default=True,
+        description=(
+            "Apply the issues' proposed edits as Word tracked changes, so they "
+            "can be accepted or rejected in Word. Comment exports only. Every "
+            "edit is described in its issue's comment either way."
+        ),
+    ),
+    revision: Optional[int] = Query(
+        default=None,
+        description=(
+            "Which revision of the main document to export, with the issues of "
+            "that revision. Defaults to the project's current revision."
+        ),
+    ),
     current_user: Optional[User] = Depends(get_current_user_optional),
 ):
     """Download DOCX with AI comments. Always regenerates from scratch."""
@@ -184,7 +199,13 @@ async def download_project_docx(
             workflow_types=workflow_types,
             docx_type=docx_type,
             include_passing=include_passing,
+            include_edits=include_edits,
+            revision=revision,
         )
+    except ValueError as e:
+        # A revision the project does not have: the caller's request, not ours.
+        logger.warning("Rejected DOCX export for project %s: %s", project_id, e)
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         logger.error("Failed to generate DOCX: %s", e, exc_info=True)
         raise HTTPException(
@@ -303,9 +324,7 @@ async def link_reference_file_endpoint(
         )
 
     # Echo the canonical spelling that was stored, not whatever was sent.
-    return LinkReferenceFileResponse(
-        reference_id=reference_id, file_id=str(file_uuid)
-    )
+    return LinkReferenceFileResponse(reference_id=reference_id, file_id=str(file_uuid))
 
 
 @router.get("/api/project/{project_id}/files/download-all")
@@ -443,9 +462,7 @@ async def list_revisions_endpoint(
     project, _ = await get_project_access(project_id, current_user, share_token)
 
     # Get all MAIN files to build revision list
-    main_files = await get_files_by_project_id(
-        project_id, roles=[FileRole.MAIN]
-    )
+    main_files = await get_files_by_project_id(project_id, roles=[FileRole.MAIN])
     main_file_by_revision: dict[int, File] = {}
     for f in main_files:
         if f.revision is not None:

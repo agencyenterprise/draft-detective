@@ -6,6 +6,7 @@ import type {
   GenerateThreadTitleApiChatThreadsThreadIdTitlePostResponse,
   GetAdminFeedbacksApiAdminFeedbacksGetResponse,
   GetDashboardApiAdminDashboardGetResponse,
+  GetIssueEndpointApiIssuesIssueIdGetResponse,
   GetProjectEndpointApiProjectProjectIdGetResponse,
   GetProjectWorkflowProgressEndpointApiProjectProjectIdWorkflowProgressGetResponse,
   GetProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGetResponse,
@@ -17,6 +18,8 @@ import type {
   ListProjectsEndpointApiProjectsGetResponse,
   ListRevisionsEndpointApiProjectProjectIdRevisionsGetResponse,
   ListThreadsApiChatThreadsGetResponse,
+  ResolveIssueEndpointApiIssuesIssueIdResolvePostResponse,
+  UnresolveIssueEndpointApiIssuesIssueIdUnresolvePostResponse,
   UpdateAppConfigApiAppConfigsKeyPutResponse,
   UpdateProjectEndpointApiProjectProjectIdPatchResponse,
   UpdateThreadApiChatThreadsThreadIdPatchResponse,
@@ -127,12 +130,20 @@ export const getWorkflowStateApiWorkflowsWorkflowRunIdGetResponseTransformer = a
   return data;
 };
 
+const issueEditReadSchemaResponseTransformer = (data: any) => {
+  if (data.reviewed_at) {
+    data.reviewed_at = new Date(data.reviewed_at);
+  }
+  return data;
+};
+
 const issueSchemaResponseTransformer = (data: any) => {
   if (data.resolved_at) {
     data.resolved_at = new Date(data.resolved_at);
   }
   data.created_at = new Date(data.created_at);
   data.updated_at = new Date(data.updated_at);
+  data.edits = data.edits.map((item: any) => issueEditReadSchemaResponseTransformer(item));
   return data;
 };
 
@@ -157,6 +168,32 @@ export const listLogsApiAdminLogsGetResponseTransformer = async (
   data: any,
 ): Promise<ListLogsApiAdminLogsGetResponse> => {
   data = data.map((item: any) => logFileInfoSchemaResponseTransformer(item));
+  return data;
+};
+
+const issueResponseSchemaResponseTransformer = (data: any) => {
+  data.edits = data.edits.map((item: any) => issueEditReadSchemaResponseTransformer(item));
+  return data;
+};
+
+export const resolveIssueEndpointApiIssuesIssueIdResolvePostResponseTransformer = async (
+  data: any,
+): Promise<ResolveIssueEndpointApiIssuesIssueIdResolvePostResponse> => {
+  data = issueResponseSchemaResponseTransformer(data);
+  return data;
+};
+
+export const unresolveIssueEndpointApiIssuesIssueIdUnresolvePostResponseTransformer = async (
+  data: any,
+): Promise<UnresolveIssueEndpointApiIssuesIssueIdUnresolvePostResponse> => {
+  data = issueResponseSchemaResponseTransformer(data);
+  return data;
+};
+
+export const getIssueEndpointApiIssuesIssueIdGetResponseTransformer = async (
+  data: any,
+): Promise<GetIssueEndpointApiIssuesIssueIdGetResponse> => {
+  data = issueResponseSchemaResponseTransformer(data);
   return data;
 };
 

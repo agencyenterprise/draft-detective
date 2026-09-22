@@ -146,25 +146,6 @@
 }
 
 /**
- * Shrinks the type scale one step for anything inside it.
- *
- * The project view runs a denser chrome than the pages some of its result
- * components were written for, and those components are shared with the
- * add-in and the admin pages, so their sizes cannot simply be changed. Tailwind v4 resolves every `text-*`
- * utility through these variables, so redefining them on a wrapper carries the
- * whole subtree down without touching a single component. Line heights are
- * unitless ratios in the default theme, so they follow on their own.
- */
-.text-scale-compact {
-  --text-xs: 0.6875rem;
-  --text-sm: 0.8125rem;
-  --text-base: 0.875rem;
-  --text-lg: 1rem;
-  --text-xl: 1.125rem;
-  --text-2xl: 1.25rem;
-}
-
-/**
  * The project header's activity line: a sweep that says work is happening
  * without claiming to know how far along it is. Reduced motion gets a static
  * filled line, which still reads as "busy".

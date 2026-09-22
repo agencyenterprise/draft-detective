@@ -22,28 +22,16 @@ import {
   ChevronDownIcon,
   ChevronUpIcon,
   LightbulbIcon,
+  PencilLineIcon,
   ThumbsDownIcon,
   ThumbsUpIcon,
   UndoIcon,
 } from 'lucide-react';
 import Link from 'next/link';
 import { ReactNode, useState } from 'react';
-
-export function issueLineRange(issue: Issue): [number, number] | null {
-  const { start_line: start, end_line: end } = issue as Issue & {
-    start_line?: number | null;
-    end_line?: number | null;
-  };
-  if (typeof start !== 'number' || typeof end !== 'number') return null;
-  return [start, end];
-}
-
-export function lineLabel(issue: Issue): string | null {
-  const range = issueLineRange(issue);
-  if (!range) return null;
-  const [start, end] = range;
-  return start === end ? `L${start}` : `L${start}–${end}`;
-}
+import { issueLineRange, lineLabel } from './issue-lines';
+import { ProposedEdits } from './proposed-edit-diff';
+import { issueEdits } from './proposed-edit';
 
 /**
  * The description as one line of plain prose, for a note that is closed.
@@ -105,12 +93,38 @@ function IssueFeedbackIndicator({ issueId }: { issueId: string }) {
   );
 }
 
+/**
+ * Marks an issue that carries proposed edits, so a closed note says there is
+ * wording to read inside it and not only a problem to think about.
+ *
+ * A span rather than a button, and padded, for the reasons given above
+ * {@link IssueFeedbackIndicator} — it sits inside the heading's button too.
+ */
+function IssueEditIndicator({ count }: { count: number }) {
+  const label = count === 1 ? 'Has proposed edit' : `Has ${count} proposed edits`;
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span
+          aria-label={label}
+          className="-my-1 inline-flex shrink-0 items-center px-0.5 py-1 text-muted-foreground hover:text-foreground"
+        >
+          <PencilLineIcon className="size-3" />
+        </span>
+      </TooltipTrigger>
+      <TooltipContent>{label}</TooltipContent>
+    </Tooltip>
+  );
+}
+
 /** The line above an issue's title: its severity, where it came from, where it lands. */
 export function IssueMeta({ issue }: { issue: Issue }) {
   const { getWorkflowTypeName } = useWorkflowTypes();
   const resolved = isIssueResolved(issue);
   const line = lineLabel(issue);
   const feedbackVisible = useIsIssueFeedbackVisible(issue.id);
+  const editCount = issueEdits(issue).length;
 
   return (
     <span className="flex items-center gap-1.5">
@@ -125,6 +139,7 @@ export function IssueMeta({ issue }: { issue: Issue }) {
         </span>
       )}
       {feedbackVisible && issue.id && <IssueFeedbackIndicator issueId={issue.id} />}
+      {editCount > 0 && <IssueEditIndicator count={editCount} />}
       {line && (
         <span className="ml-auto shrink-0 font-mono text-[10px] tabular-nums text-muted-foreground">{line}</span>
       )}
@@ -200,6 +215,7 @@ export function IssueBody({ issue, readOnly, crossLink }: { issue: Issue; readOn
 
   const resolved = isIssueResolved(issue);
   const busy = isResolving || isUnresolving;
+  const edits = issueEdits(issue);
 
   return (
     <div className="space-y-2">
@@ -218,6 +234,8 @@ export function IssueBody({ issue, readOnly, crossLink }: { issue: Issue; readOn
           </div>
         </div>
       )}
+
+      <ProposedEdits edits={edits} />
 
       {issue.long_description && (
         <>

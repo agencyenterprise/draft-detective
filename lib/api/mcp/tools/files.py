@@ -34,6 +34,8 @@ async def export_project_docx(
     project_id: str,
     workflow_types: list[WorkflowRunType] | None = None,
     severities: list[SeverityEnum] | None = None,
+    include_edits: bool = True,
+    revision: int | None = None,
     token: AccessToken = CurrentAccessToken(),
 ) -> File:
     """
@@ -51,6 +53,15 @@ async def export_project_docx(
 
     severities: optional list of severity levels to include. Defaults to all
         non-passing severities (low, medium, high).
+
+    include_edits: whether to also apply the issues' proposed edits as Word
+        tracked changes, which the author can accept or reject in Word.
+        Defaults to true; pass false for comments only. Every edit is
+        described in its issue's comment either way.
+
+    revision: which revision of the main document to export, together with
+        that revision's issues. Defaults to the project's current revision.
+        Use list_revisions to see what the project has.
     """
     user = await helpers.resolve_user(token)
     await get_project_access(project_id, user=user, required_level=AccessLevel.READ)
@@ -61,6 +72,8 @@ async def export_project_docx(
         workflow_types=workflow_types,
         severities=severities,
         docx_type=DocxManipulatorType.COMMENTS,
+        include_edits=include_edits,
+        revision=revision,
     )
 
     async with aiofiles.open(file_path, "rb") as f:

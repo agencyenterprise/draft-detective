@@ -11,6 +11,7 @@ from pydantic import BaseModel, field_validator
 
 from lib.api.auth import get_current_user
 from lib.models.issue import Issue, IssueStatus
+from lib.models.issue_edit import IssueEditRead
 from lib.models.project import AccessLevel
 from lib.models.user import User
 from lib.services.issue_persistence import (
@@ -52,6 +53,7 @@ class IssueResponse(BaseModel):
     chunk_indices: list[int] | None
     start_line: int | None
     end_line: int | None
+    edits: list[IssueEditRead]
     status: IssueStatus
     resolved_by: UUID | None
     resolved_at: str | None

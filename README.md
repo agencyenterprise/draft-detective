@@ -117,6 +117,7 @@ Analyses are grouped by category (shown here in app order). See the in-app **Abo
 
 **Language**
 - **Advocacy & Tone** — flags trigger words, advocacy language, and subjective tone that departs from a neutral, objective voice.
+- **Active Voice & Clear Actors** (experimental) — flags passive-voice sentences and sentences whose inanimate subject hides who is responsible, with an active rewrite proposed for each.
 
 Some analyses are experimental and hidden by default in the web app (enable "Experimental Features" in your profile menu).
 
@@ -129,6 +130,8 @@ Python backend (FastAPI + LangGraph agent workflows) with a Next.js frontend. Do
 ## Development
 
 For detailed setup instructions (backend, frontend, Docker, migrations, environment variables), see [DEVELOPMENT.md](DEVELOPMENT.md).
+
+To add a new check, see [docs/skill-workflows.md](docs/skill-workflows.md): a single-pass check is one `SKILL.md` with a `draft_detective` block in its frontmatter, and the guide covers writing the rules, evals, and managing the workflow afterwards.
 
 ```bash
 # Backend (always use uv)
