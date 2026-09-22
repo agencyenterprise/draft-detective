@@ -225,6 +225,12 @@ def _sentence_spans(text: str) -> list[tuple[int, int]]:
     return spans
 
 
+def _soft(text: str) -> str:
+    """Whitespace as the app's edit anchoring sees it: no-break spaces and runs of
+    whitespace become one space, so a quote the app accepted is found here too."""
+    return re.sub(r"\s+", " ", text.replace("\xa0", " "))
+
+
 def _edited_sentences(line_text: str, edits: Sequence[ProposedEdit]) -> Optional[str]:
     """The sentence(s) of ``line_text`` that the edits produce, with every edit applied.
 
@@ -235,19 +241,20 @@ def _edited_sentences(line_text: str, edits: Sequence[ProposedEdit]) -> Optional
     when no edit's original text is found on the line, in which case only the
     replacements themselves can be judged.
     """
-    applied = line_text
+    applied = _soft(line_text)
     spans: list[tuple[int, int]] = []
     found = False
     for e in edits:
-        at = applied.find(e.original_text)
+        original, replacement = _soft(e.original_text), _soft(e.replacement_text)
+        at = applied.find(original)
         if at < 0:
             continue
         found = True
-        shift = len(e.replacement_text) - len(e.original_text)
-        spans = [(s + shift, t + shift) if s >= at + len(e.original_text) else (s, t) for s, t in spans]
-        applied = applied[:at] + e.replacement_text + applied[at + len(e.original_text):]
-        if e.replacement_text:
-            spans.append((at, at + len(e.replacement_text)))
+        shift = len(replacement) - len(original)
+        spans = [(s + shift, t + shift) if s >= at + len(original) else (s, t) for s, t in spans]
+        applied = applied[:at] + replacement + applied[at + len(original):]
+        if replacement:
+            spans.append((at, at + len(replacement)))
     if not found:
         return None
     touched = [
@@ -289,9 +296,17 @@ def edit_checks(
     if not edits:
         return out
 
+    def line_of(e: ProposedEdit) -> str:
+        """The line an edit is checked against: its own start_line when it names one
+        inside the document (an issue may edit several occurrences on several lines),
+        else the expected issue's line."""
+        if 0 < e.start_line <= len(lines) and e.start_line != expected.line:
+            return lines[e.start_line - 1]
+        return lines[expected.line - 1] if 0 < expected.line <= len(lines) else ""
+
     line_text = lines[expected.line - 1] if 0 < expected.line <= len(lines) else ""
-    on_line = [float(normalize(e.original_text) in normalize(line_text)) for e in edits]
-    out["edit_quote_on_line"] = (_fraction(on_line), f"{expected.id}: {int(sum(on_line))}/{len(edits)} quotes found verbatim on line {expected.line}")
+    on_line = [float(normalize(e.original_text) in normalize(line_of(e))) for e in edits]
+    out["edit_quote_on_line"] = (_fraction(on_line), f"{expected.id}: {int(sum(on_line))}/{len(edits)} quotes found verbatim on their line")
 
     if expected.edit is not None:
         # Phrases are judged on the sentence the edits produce: each replacement plus the
@@ -299,10 +314,11 @@ def edit_checks(
         # Word-level edits ("Respondents" for "Participants") thus still carry a phrase written
         # against the whole sentence, an untouched neighbouring sentence cannot supply it, and a
         # forbidden phrase left standing in the edited sentence still fails.
-        edited = _edited_sentences(line_text, edits)
-        scope = normalize(edited) if edited is not None else None
         ok = []
         for e in edits:
+            same_line = [o for o in edits if line_of(o) == line_of(e)]
+            edited = _edited_sentences(line_of(e), same_line)
+            scope = normalize(edited) if edited is not None else None
             repl = normalize(e.replacement_text)
             seen = repl if scope is None else repl + " " + scope
             missing = [p for p in expected.edit.must_include if normalize(p) not in seen]

@@ -466,6 +466,24 @@ def test_a_deletion_contributes_no_neighbouring_sentence_to_the_scope():
     assert out["edit_expected_phrases"][0] == 0.0, "a deletion carries no required phrase; its neighbour supplies none"
 
 
+def test_edits_on_other_lines_are_checked_against_their_own_line():
+    lines = ["# T", "", "Respondents rated scheduling as their main concern.", "", "Sixty percent of respondents said the roster helped."]
+    f = ResolvedIssue(id="f", title=None, anchor="Respondents rated scheduling", line=3, edit_expected=True,
+                      edit={"must_include": ["participants"], "must_not_include": ["respondents"]})
+    edits = [_edit("Respondents", "Participants", line=3), _edit("respondents", "participants", line=5)]
+    out = edit_checks(f, _issue(start=3, end=5, edits=edits), lines)
+    assert out["edit_quote_on_line"][0] == 1.0, "the second edit is quoted from line 5, not line 3"
+    assert out["edit_expected_phrases"][0] == 1.0, "each edit's sentence is judged on its own line"
+
+
+def test_quotes_with_no_break_spaces_still_locate_their_sentence():
+    from evals_inspectai.common.issue_checks import _edited_sentences
+
+    line = "Attendance rose 2.1\xa0percent  in the pilot. Costs fell."
+    edit = _edit("Attendance rose 2.1 percent in the pilot.", "Attendance increased 2.1 percent in the pilot.")
+    assert _edited_sentences(line, [edit]) == "Attendance increased 2.1 percent in the pilot."
+
+
 def test_percentage_points_are_not_a_percentage():
     from evals_inspectai.common.issue_checks import _tokens
 
