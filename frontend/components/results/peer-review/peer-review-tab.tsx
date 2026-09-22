@@ -295,14 +295,12 @@ export function PeerReviewTab({
           {facts.activeMemos.length === 1 ? '' : 's'} attached to it.
           {planFallback && ' It still applies: those memos have not changed.'}
         </p>
-        <Results>
-          <SimpleDeepAgentResults
-            project={planRunProject}
-            workflowDetail={planRun}
-            workflowName="Revision-Planning Summary"
-            onNavigateToDocumentExplorer={onNavigateToDocumentExplorer}
-          />
-        </Results>
+        <SimpleDeepAgentResults
+          project={planRunProject}
+          workflowDetail={planRun}
+          workflowName="Revision-Planning Summary"
+          onNavigateToDocumentExplorer={onNavigateToDocumentExplorer}
+        />
       </div>
     );
   }
@@ -359,14 +357,12 @@ export function PeerReviewTab({
 
     return (
       <div className="space-y-3">
-        <Results>
-          <SimpleDeepAgentResults
-            project={projectDetail}
-            workflowDetail={runs.memos}
-            workflowName="Reviewer Response Memos"
-            onNavigateToDocumentExplorer={onNavigateToDocumentExplorer}
-          />
-        </Results>
+        <SimpleDeepAgentResults
+          project={projectDetail}
+          workflowDetail={runs.memos}
+          workflowName="Reviewer Response Memos"
+          onNavigateToDocumentExplorer={onNavigateToDocumentExplorer}
+        />
       </div>
     );
   }
@@ -396,22 +392,15 @@ export function PeerReviewTab({
 
     return (
       <div className="space-y-3">
-        <Results>
-          <SimpleDeepAgentResults
-            project={projectDetail}
-            workflowDetail={runs.coverage}
-            workflowName="Reviewer Coverage Report"
-            onNavigateToDocumentExplorer={onNavigateToDocumentExplorer}
-          />
-        </Results>
+        <SimpleDeepAgentResults
+          project={projectDetail}
+          workflowDetail={runs.coverage}
+          workflowName="Reviewer Coverage Report"
+          onNavigateToDocumentExplorer={onNavigateToDocumentExplorer}
+        />
       </div>
     );
   }
-}
-
-/** The result components are shared with the add-in and admin pages, which run a larger scale. */
-function Results({ children }: { children: ReactNode }) {
-  return <div className="text-scale-compact">{children}</div>;
 }
 
 function Blocked({ reason }: { reason: string }) {
