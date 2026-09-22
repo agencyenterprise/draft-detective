@@ -6,6 +6,7 @@ DOCX export searches for, so these cases are the contract both of them rest on.
 
 from lib.services.markdown_text import (
     all_offsets,
+    link_destinations,
     locate_in_paragraph,
     render_line_text,
     render_replacement_text,
@@ -203,9 +204,94 @@ class TestRenderReplacementText:
         )
 
     def test_a_leading_numeral_is_not_a_list_marker(self):
-        # A replacement is a fragment of a paragraph, never a block of its own.
+        # A replacement is usually a fragment of a paragraph, never a block.
         assert render_replacement_text("2021. Annual report") == "2021. Annual report"
         assert render_replacement_text("2. Second item") == "2. Second item"
+
+    def test_a_mid_line_hash_stays_in_the_text(self):
+        assert render_replacement_text("C# and a note") == "C# and a note"
+
+
+class TestRenderReplacementTextInBlockContext:
+    """A quote starting at column 0 takes its line's block syntax with it, and
+    the replacement was written carrying the same syntax."""
+
+    def test_a_heading_replacement_loses_its_hashes(self):
+        assert (
+            render_replacement_text("# New heading", block_context=True)
+            == "New heading"
+        )
+        assert (
+            render_replacement_text("### New heading", block_context=True)
+            == "New heading"
+        )
+
+    def test_a_list_item_replacement_loses_its_marker(self):
+        assert render_replacement_text("- item two", block_context=True) == "item two"
+        assert (
+            render_replacement_text("2. Second item", block_context=True)
+            == "Second item"
+        )
+
+    def test_a_replacement_with_no_block_syntax_is_unchanged(self):
+        assert (
+            render_replacement_text("New heading", block_context=True) == "New heading"
+        )
+        assert render_replacement_text("C# and a note", block_context=True) == (
+            "C# and a note"
+        )
+
+    def test_the_whitespace_the_edit_asked_for_is_put_back(self):
+        # Block parsing trims a paragraph's edges; the edit meant those spaces.
+        assert render_replacement_text("# New heading ", block_context=True) == (
+            "New heading "
+        )
+        assert render_replacement_text(" Yields ", block_context=True) == " Yields "
+        assert render_replacement_text("  ", block_context=True) == "  "
+        assert render_replacement_text("", block_context=True) == ""
+
+    def test_inner_whitespace_is_kept(self):
+        assert render_replacement_text("# A  B", block_context=True) == "A  B"
+
+
+class TestLinkDestinations:
+    def test_lists_every_destination_in_order(self):
+        assert link_destinations("see [a](http://x) and [b](http://y)") == [
+            "http://x",
+            "http://y",
+        ]
+
+    def test_an_image_destination_counts_too(self):
+        assert link_destinations("![fig](f1.png)") == ["f1.png"]
+
+    def test_text_without_links_has_none(self):
+        assert link_destinations("no links here") == []
+        assert link_destinations("brackets [only] and (parens)") == []
+
+    def test_a_label_change_leaves_the_destination_alone(self):
+        assert link_destinations("[Wrong report](https://x/a)") == link_destinations(
+            "[Correct report](https://x/a)"
+        )
+        assert link_destinations("[Report](https://x/a)") != link_destinations(
+            "[Report](https://x/b)"
+        )
+
+    def test_a_destination_holding_balanced_parentheses_is_read_whole(self):
+        assert link_destinations("[a](https://x/(1))") == ["https://x/(1)"]
+        assert link_destinations("[a](https://x/(1)/end)") == ["https://x/(1)/end"]
+
+    def test_two_destinations_differing_inside_the_parentheses_are_not_equal(self):
+        # A pattern stopping at the first `)` reads both as `https://x/(1`
+        # and would let the retarget through.
+        assert link_destinations("[a](https://x/(1))") != link_destinations(
+            "[a](https://x/(2))"
+        )
+
+    def test_a_link_inside_a_code_span_is_not_a_link(self):
+        assert link_destinations("`[x](y)` is the syntax") == []
+
+    def test_a_footnote_reference_carries_its_destination(self):
+        assert link_destinations("cohort [[1]](#footnote-2)") == ["#footnote-2"]
 
 
 class TestAllOffsets:

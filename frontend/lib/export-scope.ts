@@ -40,6 +40,22 @@ export function passingChecksIncluded(filter: Pick<DocumentExplorerFilter, 'seve
   return filter.showPassing && filter.severity.length === 0;
 }
 
+/**
+ * Whether this export can carry links back to Draft Detective.
+ *
+ * A share link opens the shared page, and that page has no revision of its own
+ * to show -- it shows the current one. So the backend leaves the links out of a
+ * historical export rather than sending the reader to a different document than
+ * the comment beside it. Offering the option there would ask the author to make
+ * a private project public for links the file will not have.
+ *
+ * No selected revision means the current one, which is what the document
+ * explorer shows before a reader picks an older revision.
+ */
+export function shareLinksAvailable(selectedRevision: number | undefined, currentRevision: number): boolean {
+  return selectedRevision === undefined || selectedRevision === currentRevision;
+}
+
 /** How many proposed edits the export carries, as a plain noun phrase. */
 export function editsPhrase(count: number): string {
   return `${count} proposed edit${count === 1 ? '' : 's'}`;

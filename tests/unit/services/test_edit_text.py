@@ -2,15 +2,10 @@
 
 The rendered form of an edit is settled in `lib.services.markdown_text` and
 checked there; what is asked here is only of the source: is the line a table
-row, would the replacement move a hyperlink, can Word take it as an insertion
-at all.
+row, and can Word take the replacement as an insertion at all.
 """
 
-from lib.services.docx.edit_text import (
-    is_table_row,
-    link_destinations,
-    unsupported_replacement_reason,
-)
+from lib.services.docx.edit_text import is_table_row, unsupported_replacement_reason
 
 
 class TestUnsupportedReplacementReason:
@@ -31,29 +26,6 @@ class TestUnsupportedReplacementReason:
         assert unsupported_replacement_reason("Yield fell.  Costs rose.") is None
         assert unsupported_replacement_reason("") is None
         assert unsupported_replacement_reason("Figure 3") is None
-
-
-class TestLinkDestinations:
-    def test_lists_every_destination_in_order(self):
-        assert link_destinations("see [a](http://x) and [b](http://y)") == [
-            "http://x",
-            "http://y",
-        ]
-
-    def test_an_image_destination_counts_too(self):
-        assert link_destinations("![fig](f1.png)") == ["f1.png"]
-
-    def test_text_without_links_has_none(self):
-        assert link_destinations("no links here") == []
-        assert link_destinations("brackets [only] and (parens)") == []
-
-    def test_a_label_change_leaves_the_destination_alone(self):
-        assert link_destinations("[Wrong report](https://x/a)") == link_destinations(
-            "[Correct report](https://x/a)"
-        )
-        assert link_destinations("[Report](https://x/a)") != link_destinations(
-            "[Report](https://x/b)"
-        )
 
 
 class TestIsTableRow:

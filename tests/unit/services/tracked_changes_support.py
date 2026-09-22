@@ -104,7 +104,12 @@ def display_fields(
             rendered.display_text if rendered else normalize_whitespace(original_text)
         ),
         "display_occurrence": rendered.display_occurrence if rendered else 0,
-        "display_replacement": render_replacement_text(replacement_text),
+        "display_replacement": render_replacement_text(
+            replacement_text,
+            # As the reporter decides it: a quote opening its line took the
+            # line's block syntax with it, and so did its replacement.
+            block_context=bool(rendered) and spans[0][0] == 0,
+        ),
     }
 
 

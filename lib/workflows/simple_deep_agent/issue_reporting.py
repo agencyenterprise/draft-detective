@@ -221,7 +221,13 @@ class IssueReporter:
             end_line=line,
             display_text=rendered.display_text,
             display_occurrence=rendered.display_occurrence,
-            display_replacement=render_replacement_text(edit.replacement_text),
+            # A quote starting at column 0 took its line's block syntax with
+            # it -- a heading's hashes, a list item's bullet -- so the
+            # replacement was written with the same syntax and has to lose it
+            # the same way, or the hash reaches the document as text.
+            display_replacement=render_replacement_text(
+                edit.replacement_text, block_context=spans[0][0] == 0
+            ),
         )
 
     def _build_report_tool(self) -> BaseTool:

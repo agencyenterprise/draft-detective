@@ -364,6 +364,49 @@ def test_a_quote_whose_text_is_plain_renders_to_itself():
     assert edit.display_replacement == "participant in the second group"
 
 
+def test_a_whole_heading_replacement_drops_the_block_syntax():
+    reporter = IssueReporter(propose_edits=True, document_text=_DOCUMENT)
+    report_issue = _tools(reporter)["report_issue"]
+
+    report_issue.invoke(
+        _issue_with_edits(
+            [
+                {
+                    "original_text": "# Title",
+                    "replacement_text": "# Report",
+                    "rationale": "r",
+                }
+            ]
+        )
+    )
+
+    (edit,) = reporter.issues[0].edits
+    # The quote opened its line, so it took the hashes with it and the
+    # replacement was written carrying them. Word shows neither.
+    assert edit.display_text == "Title"
+    assert edit.display_replacement == "Report"
+
+
+def test_a_mid_line_replacement_keeps_a_hash_that_is_not_block_syntax():
+    reporter = IssueReporter(propose_edits=True, document_text=_DOCUMENT)
+    report_issue = _tools(reporter)["report_issue"]
+
+    report_issue.invoke(
+        _issue_with_edits(
+            [
+                {
+                    "original_text": "second cohort.",
+                    "replacement_text": "cohort # 2.",
+                    "rationale": "r",
+                }
+            ]
+        )
+    )
+
+    (edit,) = reporter.issues[0].edits
+    assert edit.display_replacement == "cohort # 2."
+
+
 def test_a_quote_ending_inside_a_link_address_is_rejected():
     reporter = IssueReporter(propose_edits=True, document_text=_DOCUMENT)
     report_issue = _tools(reporter)["report_issue"]

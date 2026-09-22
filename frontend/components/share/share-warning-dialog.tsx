@@ -31,6 +31,12 @@ interface ShareWarningDialogProps {
   filters: ActiveFilters;
   /** What that scope amounts to: issues that become comments, and their proposed edits. */
   counts: ExportCounts;
+  /**
+   * Whether the export can carry links back to Draft Detective at all. False
+   * for a historical revision, where the backend leaves them out, so the option
+   * is not offered: see `shareLinksAvailable`.
+   */
+  linksAvailable: boolean;
   onDownload: (type: DocxType, options: DownloadOptions) => void;
 }
 
@@ -47,6 +53,7 @@ export function ShareWarningDialog({
   isDownloading,
   filters,
   counts,
+  linksAvailable,
   onDownload,
 }: ShareWarningDialogProps) {
   const isProcessing = isEnablingShare || isDownloading;
@@ -55,8 +62,12 @@ export function ShareWarningDialog({
   const [includeEdits, setIncludeEdits] = useState(true);
 
   const shouldShowEditsCheckbox = selectedExportType === 'comments';
-  const shouldShowLinksCheckbox = selectedExportType === 'comments' && !isProjectPublic;
+  const shouldShowLinksCheckbox = selectedExportType === 'comments' && !isProjectPublic && linksAvailable;
+  const shouldShowLinksUnavailableNote = selectedExportType === 'comments' && !linksAvailable;
   const shouldShowAddInDisclaimer = selectedExportType === 'add-in';
+  // Never ask for links the backend would drop: the file would be the same
+  // either way, and asking would make a private project public for nothing.
+  const addLinks = linksAvailable && makePublicAndAddLinks;
 
   const handleOpenChange = (isOpen: boolean) => {
     if (!isOpen) {
@@ -69,7 +80,7 @@ export function ShareWarningDialog({
 
   const handleDownload = () => {
     const docxType: DocxType =
-      selectedExportType === 'add-in' ? 'add-in' : makePublicAndAddLinks ? 'comments-with-links' : 'comments';
+      selectedExportType === 'add-in' ? 'add-in' : addLinks ? 'comments-with-links' : 'comments';
 
     onDownload(docxType, { includeEdits: selectedExportType === 'comments' && includeEdits });
     setSelectedExportType('comments');
@@ -141,6 +152,12 @@ export function ShareWarningDialog({
                   label="Link comments to Draft Detective"
                   description="Makes this project public and links each comment to its issue online."
                 />
+              )}
+
+              {shouldShowLinksUnavailableNote && (
+                <p className="p-4 text-sm text-muted-foreground">
+                  Links to Draft Detective are only added when exporting the current revision.
+                </p>
               )}
 
               {shouldShowAddInDisclaimer && (

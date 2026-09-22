@@ -5,6 +5,7 @@ import {
   exportOutcomeSentence,
   issuesInExport,
   passingChecksIncluded,
+  shareLinksAvailable,
 } from './export-scope';
 import { Issue, IssueEditRead, IssueEditStatus, SeverityEnum, WorkflowRunType } from '@/lib/generated-api';
 
@@ -130,5 +131,20 @@ describe('passingChecksIncluded', () => {
       const carriesPassing = issuesInExport(ISSUES, filter).some((i) => i.severity === SeverityEnum.None);
       expect(carriesPassing).toBe(passingChecksIncluded(filter));
     }
+  });
+});
+
+describe('shareLinksAvailable', () => {
+  it('is true while the reader is on the current revision', () => {
+    expect(shareLinksAvailable(3, 3)).toBe(true);
+  });
+
+  it('is true when no revision has been picked, which means the current one', () => {
+    expect(shareLinksAvailable(undefined, 3)).toBe(true);
+  });
+
+  it('is false for an older revision, whose export the backend strips links from', () => {
+    expect(shareLinksAvailable(1, 3)).toBe(false);
+    expect(shareLinksAvailable(2, 3)).toBe(false);
   });
 });

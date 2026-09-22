@@ -28,7 +28,7 @@ import { Download, EllipsisVerticalIcon, Link, Pencil, Plus } from 'lucide-react
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { downloadDocxFile, DocxType, useDownloadDocx } from './use-download-docx';
-import { exportCounts } from '@/lib/export-scope';
+import { exportCounts, shareLinksAvailable } from '@/lib/export-scope';
 import { ReplaceMainDocumentDialog } from './replace-main-document-dialog';
 import { RevisionSwitcher } from './revision-switcher';
 
@@ -268,6 +268,7 @@ export function AnalysisOptionsMenu({
         isDownloading={isDownloading}
         filters={{ severity: filter.severity, workflowType: filter.workflowType, showPassing: filter.showPassing }}
         counts={exportCounts(issues, filter)}
+        linksAvailable={shareLinksAvailable(selectedRevision, project.current_revision ?? 1)}
         onDownload={(type, options) => {
           setShowShareWarning(false);
           executeDownload(type, options.includeEdits);

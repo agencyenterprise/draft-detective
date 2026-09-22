@@ -97,7 +97,7 @@ def render_line_text(line: str) -> str:
     return _text_of(_MARKDOWN.render(line)).strip("\n")
 
 
-def render_replacement_text(text: str) -> str:
+def render_replacement_text(text: str, *, block_context: bool = False) -> str:
     """An edit's replacement as it should reach the page, whitespace exact.
 
     A replacement is not a needle: it is written into the document verbatim, so
@@ -106,13 +106,30 @@ def render_replacement_text(text: str) -> str:
     that separates the replacement from its neighbours. Only the syntax a
     reader never sees is removed.
 
-    Rendered inline, so a leading ``2. `` stays the year or the numeral it was
-    written as rather than becoming a list marker: a replacement is a fragment
-    of a paragraph, never a block of its own. Whether it can be written at all
-    is a separate question, and stays with the export
-    (`unsupported_replacement_reason`).
+    Rendered inline by default, so a leading ``2. `` stays the year or the
+    numeral it was written as rather than becoming a list marker: a
+    replacement is usually a fragment of a paragraph, never a block of its own.
+
+    `block_context` is for the one case where it is a block: a quote that
+    starts at column 0 of its line takes that line's block syntax with it, so
+    its replacement was written with the same syntax. ``# Old heading`` ->
+    ``# New heading`` is a heading rewritten, and rendering it inline would
+    write the hash into the document as text. In block mode the syntax goes
+    the way the line's does; only the whitespace the replacement opened or
+    closed with is put back, since block parsing trims a paragraph's edges and
+    the edit meant those spaces.
+
+    Whether the replacement can be written at all is a separate question, and
+    stays with the export (`unsupported_replacement_reason`).
     """
-    return _text_of(_MARKDOWN.renderInline(text))
+    if not block_context:
+        return _text_of(_MARKDOWN.renderInline(text))
+    core = text.strip()
+    if not core:
+        return text
+    leading = text[: len(text) - len(text.lstrip())]
+    trailing = text[len(text.rstrip()) :]
+    return leading + _text_of(_MARKDOWN.render(core)).strip("\n") + trailing
 
 
 def rendered_span(line: str, start: int, end: int) -> Optional[RenderedSpan]:
@@ -172,6 +189,35 @@ def rendered_span(line: str, start: int, end: int) -> Optional[RenderedSpan]:
             [offset for offset in all_offsets(clean, display_text) if offset < quote_at]
         ),
     )
+
+
+def link_destinations(text: str) -> List[str]:
+    """Every markdown link or image destination in `text`, in document order.
+
+    Used to compare a quote with its replacement: Word carries a hyperlink as a
+    relationship the paragraph's text does not spell out, so writing the new
+    label as a redline would leave the old target in place -- a link saying one
+    thing and going somewhere else. An edit that changes a destination is
+    reported instead.
+
+    Read off the parser's own inline tokens rather than matched with a regex.
+    CommonMark lets a destination hold balanced parentheses, so
+    ``[a](https://x/(1))`` points at ``https://x/(1)`` and not at
+    ``https://x/(1`` -- and a pattern that stops at the first ``)`` would call
+    that destination equal to ``https://x/(2)``'s, which is exactly the
+    retarget this check exists to refuse. The parser also knows that
+    ``[x](y)`` inside a code span is not a link at all.
+    """
+    destinations: List[str] = []
+    for token in _MARKDOWN.parseInline(text, {}):
+        for child in token.children or []:
+            attribute = {"link_open": "href", "image": "src"}.get(child.type)
+            if attribute is None:
+                continue
+            # `attrGet` is typed for any attribute value; a destination is a
+            # string, and a link the parser built always has one.
+            destinations.append(str(child.attrGet(attribute) or ""))
+    return destinations
 
 
 def all_offsets(haystack: str, needle: str) -> List[int]:
