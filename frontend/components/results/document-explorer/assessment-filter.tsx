@@ -117,15 +117,17 @@ export function AssessmentFilter({ counts, value, onChange }: AssessmentFilterPr
                 })}
               </CommandGroup>
             </CommandList>
-            {value.length > 0 && (
-              <div className="flex items-center justify-between border-t px-3.5 py-2">
-                <span className="text-xs text-muted-foreground">{value.length} selected</span>
-                <Button variant="link" size="sm" className="h-auto p-0 text-xs" onClick={() => onChange([])}>
-                  Clear
-                </Button>
-              </div>
-            )}
           </Command>
+          {/* Outside Command: cmdk takes Enter anywhere inside it to select the
+              highlighted item, which would swallow Enter on this button. */}
+          {value.length > 0 && (
+            <div className="flex items-center justify-between border-t px-3.5 py-2">
+              <span className="text-xs text-muted-foreground">{value.length} selected</span>
+              <Button variant="link" size="sm" className="h-auto p-0 text-xs" onClick={() => onChange([])}>
+                Clear
+              </Button>
+            </div>
+          )}
         </PopoverContent>
       </Popover>
 
