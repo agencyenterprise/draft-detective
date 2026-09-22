@@ -1,12 +1,10 @@
 'use client';
 
 import * as React from 'react';
-import * as CheckboxPrimitive from '@radix-ui/react-checkbox';
 import {
-  CheckIcon,
   FilePenLine,
   FlaskConical,
-  Search,
+  Globe,
   FileText,
   Link,
   FileSearch,
@@ -30,8 +28,10 @@ import {
 } from 'lucide-react';
 import { DynamicIcon, iconNames, type IconName } from 'lucide-react/dynamic';
 import { cn } from '@/lib/utils';
+import { RAIL_ITEM_IDLE } from '@/lib/rail-style';
 import { WorkflowGate, WorkflowRunType, WorkflowTypeDescription } from '@/lib/generated-api';
 import { Badge } from '../ui/badge';
+import { Checkbox } from '../ui/checkbox';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
 import { formatEstimatedDuration } from './utils';
 
@@ -96,6 +96,37 @@ export function WorkflowIcon({
   return <Icon className={className} />;
 }
 
+/**
+ * A trait of the assessment, as a small labelled badge with a tooltip that
+ * explains it. The label stays: an icon on its own says little, and these
+ * traits are what a reader weighs before ticking the row.
+ */
+function TraitBadge({
+  icon: Icon,
+  label,
+  tooltip,
+  variant = 'outline',
+}: {
+  icon: LucideIcon;
+  label: string;
+  tooltip: string;
+  variant?: 'outline' | 'secondary';
+}) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Badge variant={variant} className="h-5 gap-1 px-1.5 text-[11px] font-normal">
+          <Icon aria-hidden className="size-3" />
+          {label}
+        </Badge>
+      </TooltipTrigger>
+      <TooltipContent side="top" className="max-w-xs">
+        {tooltip}
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
 interface WorkflowTypeCheckboxProps {
   workflowType: WorkflowTypeDescription;
   checked: boolean;
@@ -105,6 +136,11 @@ interface WorkflowTypeCheckboxProps {
   estimatedSeconds?: number | null;
 }
 
+/**
+ * One assessment in the picker: a rail-style row rather than a card, so the
+ * list reads like the assessments tab beside it. Checkbox, icon, name and a
+ * one-line description, with the assessment's traits as marks at the far end.
+ */
 export function WorkflowTypeCheckbox({
   workflowType,
   checked,
@@ -119,127 +155,90 @@ export function WorkflowTypeCheckbox({
     <label
       htmlFor={workflowType.type}
       className={cn(
-        'group rounded-xl p-3 cursor-pointer transition-all block border h-full',
-        'hover:bg-accent/50 hover:border-accent',
-        checked ? 'border-primary bg-primary/5' : 'border-border',
+        'flex w-full cursor-pointer items-center gap-3 rounded-md px-2 py-2 transition-colors',
+        // The primary tint the card design used, not the rail's foreground wash:
+        // a dozen selected rows in grey read as a disabled list.
+        checked ? 'bg-primary/5 hover:bg-primary/10' : RAIL_ITEM_IDLE,
         disabled && 'cursor-not-allowed opacity-50',
       )}
     >
-      <div className="flex gap-3">
-        <div
-          className={cn(
-            'flex items-center justify-center size-8 rounded-lg shrink-0 transition-colors',
-            checked ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground',
-          )}
-        >
-          <WorkflowIcon workflowType={workflowType} className="size-4" />
-        </div>
+      <Checkbox id={workflowType.type} checked={checked} onCheckedChange={onCheckedChange} disabled={disabled} />
 
-        <div className="flex-1 min-w-0 space-y-1">
-          <div className="flex items-start justify-between gap-3">
-            <span className={cn('text-sm font-medium leading-tight', disabled && 'opacity-70')}>
-              {workflowType.name}
+      <span
+        className={cn(
+          'flex size-7 shrink-0 items-center justify-center rounded-md transition-colors',
+          checked ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground',
+        )}
+      >
+        <WorkflowIcon workflowType={workflowType} className="size-4" />
+      </span>
+
+      <span className="min-w-0 flex-1">
+        {/* The traits share the name's line, so the row keeps to its name and
+            description and the badges read as qualifiers of the name. */}
+        <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <span className="truncate text-sm font-medium leading-tight">{workflowType.name}</span>
+          {requiresSupportingFiles && (
+            <TraitBadge
+              icon={Files}
+              label="Needs Full Text References"
+              tooltip="This assessment requires the full text of referenced documents. Claims citing references without matched source documents will be skipped. You can upload sources or fetch from the web in the References tab."
+            />
+          )}
+          {workflowType.needs_web_search && (
+            <TraitBadge
+              icon={Globe}
+              label="Web Search"
+              tooltip="This assessment searches the web (using a web search tool) for additional context and information to enhance the assessment. Parts of the document might be used as web search query/context."
+            />
+          )}
+          {workflowType.proposes_edits && (
+            <TraitBadge
+              icon={FilePenLine}
+              label="Proposed Edits"
+              tooltip="This assessment attaches a proposed rewrite to issues where the fix is fully determined, shown alongside the original text in the document view."
+            />
+          )}
+          {workflowType.is_experimental && (
+            <TraitBadge
+              icon={FlaskConical}
+              label="Alpha"
+              variant="secondary"
+              tooltip="This assessment is in alpha. Results may vary and features/performance may change in future updates."
+            />
+          )}
+        </span>
+        {/* Two lines at most, so a long description cannot turn a row into a
+            paragraph; the whole of it is in the tooltip. */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="mt-0.5 line-clamp-2 text-[13px] leading-snug text-muted-foreground">
+              {workflowType.description}
             </span>
-            <CheckboxPrimitive.Root
-              id={workflowType.type}
-              checked={checked}
-              onCheckedChange={onCheckedChange}
-              disabled={disabled}
-              data-slot="checkbox"
-              className={cn(
-                'peer border-input dark:bg-input/30 data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground dark:data-[state=checked]:bg-primary data-[state=checked]:border-primary focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive size-5 shrink-0 rounded-md border shadow-xs transition-shadow outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50',
-              )}
-            >
-              <CheckboxPrimitive.Indicator
-                data-slot="checkbox-indicator"
-                className="flex items-center justify-center text-current transition-none"
-              >
-                <CheckIcon className="size-4" />
-              </CheckboxPrimitive.Indicator>
-            </CheckboxPrimitive.Root>
-          </div>
+          </TooltipTrigger>
+          <TooltipContent side="bottom" align="start" className="max-w-md">
+            {workflowType.description}
+          </TooltipContent>
+        </Tooltip>
+      </span>
 
-          <p className="text-sm text-muted-foreground">{workflowType.description}</p>
-
-          {(estimatedDuration ||
-            workflowType.is_experimental ||
-            workflowType.needs_web_search ||
-            workflowType.proposes_edits ||
-            requiresSupportingFiles) && (
-            <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-              {estimatedDuration && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Badge variant="outline" className="flex items-center gap-1 text-xs">
-                      <Clock className="size-3" />
-                      {estimatedDuration}
-                    </Badge>
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="max-w-xs">
-                    Rough estimate based on how long this assessment has taken on past documents. Actual time varies
-                    with document size and current system load.
-                  </TooltipContent>
-                </Tooltip>
-              )}
-              {requiresSupportingFiles && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Badge variant="warning" className="flex items-center gap-1 text-xs">
-                      <Files className="size-3" />
-                      Needs Full Text References
-                    </Badge>
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="max-w-xs">
-                    This assessment requires the full text of referenced documents. Claims citing references without
-                    matched source documents will be skipped. You can upload sources or fetch from the web in Step 3.
-                  </TooltipContent>
-                </Tooltip>
-              )}
-              {workflowType.needs_web_search && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Badge variant="outline" className="flex items-center gap-1 text-xs">
-                      <Search className="size-3" />
-                      Web Search
-                    </Badge>
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="max-w-xs">
-                    This assessment searches the web (using a web search tool) for additional context and information to
-                    enhance the assessment. Parts of the document might be used as web search query/context.
-                  </TooltipContent>
-                </Tooltip>
-              )}
-              {workflowType.proposes_edits && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Badge variant="outline" className="flex items-center gap-1 text-xs">
-                      <FilePenLine className="size-3" />
-                      Proposed Edits
-                    </Badge>
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="max-w-xs">
-                    This assessment attaches a proposed rewrite to issues where the fix is fully determined, shown
-                    alongside the original text in the document view.
-                  </TooltipContent>
-                </Tooltip>
-              )}
-              {workflowType.is_experimental && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Badge variant="secondary" className="flex items-center gap-1 text-xs">
-                      <FlaskConical className="size-3" />
-                      Alpha
-                    </Badge>
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="max-w-xs">
-                    This assessment is in alpha. Results may vary and features/performance may change in future updates.
-                  </TooltipContent>
-                </Tooltip>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
+      {/* The estimate is a value, not a trait, so it keeps a column of its own at
+          the row's end where the figures line up. */}
+      {estimatedDuration && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="flex min-w-16 shrink-0 items-center justify-end gap-1 text-[11px] tabular-nums text-muted-foreground">
+              <Clock aria-hidden className="size-3.5" />
+              {estimatedDuration}
+              <span className="sr-only">estimated</span>
+            </span>
+          </TooltipTrigger>
+          <TooltipContent side="top" className="max-w-xs">
+            Rough estimate based on how long this assessment has taken on past documents. Actual time varies with
+            document size and current system load.
+          </TooltipContent>
+        </Tooltip>
+      )}
     </label>
   );
 }
