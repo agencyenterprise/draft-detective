@@ -178,6 +178,16 @@ class IssueReporter:
                 "edit would change nothing."
             )
 
+        # The app renders `$$...$$` as MathML and Word holds an equation as
+        # OMML with no delimiters, so neither surface has characters an edit
+        # could be placed on. Single-dollar text is not math in the app
+        # (`singleDollarTextMath: false`), so `$5 million` is ordinary prose.
+        if "$$" in edit.original_text or "$$" in edit.replacement_text:
+            return (
+                f"{label}: original_text and replacement_text must not contain "
+                "display math (`$$...$$`); the export cannot place equations."
+            )
+
         matches = find_quote_lines(lines, start_line, end_line, edit.original_text)
         if not matches:
             return (

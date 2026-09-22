@@ -45,16 +45,22 @@ BODY = [
 ]
 CELLS = ["Shared caption text", "Other cell"]
 
-# The markdown the edits were anchored against. Line 1 carries a trailing
-# clause the DOCX paragraph does not, standing in for conversion drift.
+# The markdown the edits were anchored against, with the blank separators the
+# converter writes between paragraphs. Line 1 carries a trailing clause the
+# DOCX paragraph does not, standing in for conversion drift.
 MARKDOWN = "\n".join(
     [
         "The Energy\u00a0Supply chapter reports a 14% rise in output for 2019, per Table 2.",
+        "",
         "Figure 3 and **Figure 3** close the section.",
+        "",
         "Shared caption text",
     ]
 )
-PARAGRAPH_LINE_RANGES: Dict[int, Tuple[int, int]] = {0: (1, 1), 1: (2, 2), 2: (3, 3)}
+# The shape the line-range mapper really produces: a paragraph's range runs to
+# the line before the next paragraph starts, so it takes the blank separator
+# with it. Only the last paragraph's range stops on its own line.
+PARAGRAPH_LINE_RANGES: Dict[int, Tuple[int, int]] = {0: (1, 2), 1: (3, 4), 2: (5, 5)}
 
 
 # Why an edit was turned down: the line and the mapped paragraph are not the

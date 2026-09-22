@@ -485,6 +485,64 @@ def test_a_quote_ending_inside_a_link_address_is_rejected():
     assert reporter.issues == []
 
 
+def test_display_math_is_rejected_in_either_text():
+    reporter = IssueReporter(propose_edits=True, document_text=_DOCUMENT)
+    report_issue = _tools(reporter)["report_issue"]
+
+    quoted = report_issue.invoke(
+        _issue_with_edits(
+            [
+                {
+                    "original_text": "cohort $$x = 1$$ here",
+                    "replacement_text": "cohort here",
+                    "rationale": "r",
+                }
+            ]
+        )
+    )
+    replaced = report_issue.invoke(
+        _issue_with_edits(
+            [
+                {
+                    "original_text": "# Title",
+                    "replacement_text": "# Title $$x = 1$$",
+                    "rationale": "r",
+                }
+            ]
+        )
+    )
+
+    for result in (quoted, replaced):
+        assert result.startswith("Issue was not recorded:")
+        assert "must not contain display math" in result
+    assert reporter.issues == []
+
+
+def test_a_single_dollar_is_money_not_math():
+    # The app reads `$...$` as prose (`singleDollarTextMath: false`), so a
+    # figure in dollars is an ordinary edit.
+    reporter = IssueReporter(
+        propose_edits=True, document_text="The grant was $5 million in 2019."
+    )
+    report_issue = _tools(reporter)["report_issue"]
+
+    confirmation = report_issue.invoke(
+        {
+            **_issue("Wrong figure"),
+            "edits": [
+                {
+                    "original_text": "$5 million",
+                    "replacement_text": "$6 million",
+                    "rationale": "r",
+                }
+            ],
+        }
+    )
+
+    assert confirmation.startswith("Recorded issue-1")
+    assert reporter.issues[0].edits[0].display_replacement == "$6 million"
+
+
 def test_plain_tool_has_no_edits_argument():
     # Edits are opt-in per workflow: a collector without them hands the agent a
     # tool whose schema and description never mention edits, so the option

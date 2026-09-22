@@ -90,7 +90,7 @@ class TestPlanAndApply:
     @pytest.mark.asyncio
     async def test_edits_in_different_paragraphs_are_all_written(self, docx_path: Path):
         first = _edit("14% rise", "18% rise", 1)
-        second = _edit("Shared caption text", "Shared caption wording", 3)
+        second = _edit("Shared caption text", "Shared caption wording", 5)
 
         plan, _ = await _plan(docx_path, [first, second])
         outcomes = await apply_tracked_changes(
@@ -110,7 +110,7 @@ class TestParagraphResolution:
     ):
         # Unique in the markdown as `**Figure 3**`, the second of two identical
         # spans once the emphasis is stripped.
-        edit = _edit("**Figure 3**", "Figure 4", 2)
+        edit = _edit("**Figure 3**", "Figure 4", 3)
 
         plan, _ = await _plan(docx_path, [edit])
         await apply_tracked_changes(
@@ -125,7 +125,7 @@ class TestParagraphResolution:
     async def test_a_table_cell_never_takes_a_body_paragraph_redline(
         self, docx_path: Path
     ):
-        edit = _edit("Shared caption text", "Shared caption wording", 3)
+        edit = _edit("Shared caption text", "Shared caption wording", 5)
 
         plan, _ = await _plan(docx_path, [edit])
         await apply_tracked_changes(
@@ -165,7 +165,7 @@ class TestParagraphResolution:
     async def test_a_quote_the_line_carries_twice_never_reaches_the_plan(
         self, docx_path: Path
     ):
-        edit = _edit("Figure 3", "Figure 4", 2)
+        edit = _edit("Figure 3", "Figure 4", 3)
 
         plan, _ = await _plan(docx_path, [edit])
 

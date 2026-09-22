@@ -51,8 +51,34 @@ REPEATS_ACROSS_LINES = (
 )
 
 
+def _spans_several_lines(
+    edit: IssueEdit,
+    paragraph_range: Tuple[int, int],
+    document_lines: Sequence[str],
+) -> bool:
+    """Whether the paragraph really covers markdown lines besides the edit's.
+
+    Measured in content, not in line numbers. The line-range mapper runs a
+    paragraph's range up to the line before the next paragraph starts, and
+    converted markdown puts a blank line between paragraphs -- so an ordinary
+    one-line paragraph is handed the range ``(1, 2)`` with line 2 empty.
+    Reading that as "several lines" would throw away `display_occurrence` on
+    every paragraph in the document and report each repeated quote as
+    ambiguous.
+    """
+    first = max(1, paragraph_range[0])
+    last = min(len(document_lines), paragraph_range[1])
+    return any(
+        number != edit.start_line and document_lines[number - 1].strip()
+        for number in range(first, last + 1)
+    )
+
+
 def _resolve_span(
-    edit: IssueEdit, paragraph_text: str, paragraph_range: Tuple[int, int]
+    edit: IssueEdit,
+    paragraph_text: str,
+    paragraph_range: Tuple[int, int],
+    document_lines: Sequence[str],
 ) -> Tuple[Optional[Tuple[int, int]], EditOutcomeStatus, Optional[str]]:
     """Locate the edit's quote in the Word paragraph.
 
@@ -67,9 +93,10 @@ def _resolve_span(
     and **Figure 3**`` and the second of two identical spans once the page has
     it.
 
-    A paragraph covering several markdown lines is a different matter. A hard
-    line break inside a Word paragraph converts to one markdown line per
-    break, and Word keeps *nothing* where the break was -- no separator to
+    A paragraph covering several markdown lines *of content* is a different
+    matter -- blank separators do not count, or every paragraph in the document
+    would qualify. A hard line break inside a Word paragraph converts to one
+    markdown line per break, and Word keeps *nothing* where the break was -- no separator to
     rebuild the join from. `display_occurrence` was counted in one line and the
     paragraph is several, so it cannot be used as it stands, and every attempt
     to rebase it onto the paragraph failed somewhere else:
@@ -97,7 +124,7 @@ def _resolve_span(
     if not spans:
         return None, "not_found", None
 
-    if paragraph_range[0] < edit.start_line or paragraph_range[1] > edit.start_line:
+    if _spans_several_lines(edit, paragraph_range, document_lines):
         if len(spans) == 1:
             return spans[0], "applied", None
         return None, "ambiguous", REPEATS_ACROSS_LINES
@@ -159,7 +186,9 @@ def plan_edit(
             ),
         )
 
-    span, status, detail = _resolve_span(edit, paragraph.text, paragraph_range)
+    span, status, detail = _resolve_span(
+        edit, paragraph.text, paragraph_range, document_lines
+    )
     if span is None:
         return None, EditOutcome(edit_id=edit.id, status=status, detail=detail)
 

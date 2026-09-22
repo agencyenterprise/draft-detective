@@ -16,6 +16,7 @@ from lib.services.docx.tracked_changes import apply_tracked_changes
 
 from tests.unit.services.tracked_changes_support import (
     BODY as _BODY,
+    OTHER_PASSAGE_DETAIL as _OTHER_PASSAGE_DETAIL,
     docx_path,  # noqa: F401 -- a fixture, reached by name
     make_edit as _edit,
     plan_edits as _plan,
@@ -31,7 +32,7 @@ class TestTheFileStaysReadable:
     ):
         edits = [
             _edit("14% rise", "18% rise", 1),
-            _edit("**Figure 3**", "Figure 4", 2),
+            _edit("**Figure 3**", "Figure 4", 3),
         ]
 
         plan, _ = await _plan(docx_path, edits)
@@ -258,7 +259,7 @@ class TestAParagraphSpanningSeveralMarkdownLines:
     async def test_a_repeat_across_two_identical_lines_is_reported(
         self, tmp_path: Path
     ):
-        runs = ["Rose 14%.", "Rose 14%."]
+        runs = ["The first cohort rose 14%.", "The first cohort rose 14%."]
         path = tmp_path / "twin.docx"
         before = _hard_break_docx(path, runs).read_bytes()
 
@@ -273,8 +274,12 @@ class TestAParagraphSpanningSeveralMarkdownLines:
     async def test_a_repeat_inside_a_line_an_earlier_line_contains_is_reported(
         self, tmp_path: Path
     ):
-        # "14% increase." is line 2 in full and the tail of line 1.
-        runs = ["Group A: 14% increase.", "14% increase."]
+        # Line 2 reads as the tail of line 1, so the paragraph shows the
+        # figure twice.
+        runs = [
+            "Group A reported a sustained 14% increase.",
+            "A sustained 14% increase.",
+        ]
         path = tmp_path / "nested.docx"
         before = _hard_break_docx(path, runs).read_bytes()
 
@@ -287,7 +292,11 @@ class TestAParagraphSpanningSeveralMarkdownLines:
 
     @pytest.mark.asyncio
     async def test_a_repeat_three_lines_apart_is_reported(self, tmp_path: Path):
-        runs = ["Rose 14%.", "Fell 9%.", "Rose 14%."]
+        runs = [
+            "The first cohort rose 14%.",
+            "The second cohort fell 9%.",
+            "The third cohort rose 14%.",
+        ]
         path = tmp_path / "reprise.docx"
         before = _hard_break_docx(path, runs).read_bytes()
 
@@ -299,3 +308,180 @@ class TestAParagraphSpanningSeveralMarkdownLines:
         assert _statuses(plan.outcomes) == {edit.id: "ambiguous"}
         assert [outcome.detail for outcome in plan.outcomes] == [_REPEATS_DETAIL]
         assert path.read_bytes() == before
+
+
+# An ordinary one-paragraph-per-line document, with the blank separator the
+# converter writes. The mapper hands the paragraph the range up to the line
+# before the next one, so its range covers the separator -- which must not make
+# the paragraph "multi-line", or `display_occurrence` would be thrown away on
+# every paragraph in the document.
+_SEPARATED_MARKDOWN = "\n".join(["Figure 3 and **Figure 3** close the section.", ""])
+_SEPARATED_LINE_RANGES: Dict[int, Tuple[int, int]] = {0: (1, 2)}
+
+
+@pytest.fixture
+def separated_docx_path(tmp_path: Path) -> Path:
+    document = PythonDocxDocument()
+    document.add_paragraph("Figure 3 and Figure 3 close the section.")
+    path = tmp_path / "separated.docx"
+    document.save(str(path))
+    return path
+
+
+class TestABlankSeparatorIsNotAnotherLine:
+    @pytest.mark.asyncio
+    async def test_a_repeat_still_resolves_by_the_stored_occurrence(
+        self, separated_docx_path: Path
+    ):
+        edit = _edit("**Figure 3**", "Figure 4", 1)
+
+        plan, _ = await _plan(
+            separated_docx_path,
+            [edit],
+            paragraph_line_ranges=_SEPARATED_LINE_RANGES,
+            markdown=_SEPARATED_MARKDOWN,
+        )
+        await apply_tracked_changes(
+            str(separated_docx_path),
+            plan.planned,
+            workspace_root=str(separated_docx_path.parent),
+        )
+
+        assert _statuses(plan.outcomes) == {edit.id: "applied"}
+        # The bold repeat, not the plain one before it.
+        assert plan.planned[0].occurrence == 1
+        visible, _, _ = _read(separated_docx_path)
+        assert "Figure 3 and Figure 4 close the section." in visible
+
+
+# A nested line short enough to sit inside the paragraph above it by accident:
+# a list item or a cell rendering to just a percentage is contained by any
+# paragraph that quotes one.
+_SHORT_NESTED_PARAGRAPH = "Output for the western region increased by 14%."
+_SHORT_NESTED_MARKDOWN = "\n".join([_SHORT_NESTED_PARAGRAPH, "", "- 14%"])
+_SHORT_NESTED_RANGES: Dict[int, Tuple[int, int]] = {0: (1, 3)}
+
+
+@pytest.fixture
+def short_nested_docx_path(tmp_path: Path) -> Path:
+    document = PythonDocxDocument()
+    document.add_paragraph(_SHORT_NESTED_PARAGRAPH)
+    path = tmp_path / "short-nested.docx"
+    document.save(str(path))
+    return path
+
+
+class TestAShortNestedLineIsNotTheParagraph:
+    @pytest.mark.asyncio
+    async def test_a_line_the_paragraph_merely_contains_is_rejected(
+        self, short_nested_docx_path: Path
+    ):
+        edit = _edit("14%", "18%", 3)
+
+        plan, _ = await _plan(
+            short_nested_docx_path,
+            [edit],
+            paragraph_line_ranges=_SHORT_NESTED_RANGES,
+            markdown=_SHORT_NESTED_MARKDOWN,
+        )
+        await apply_tracked_changes(
+            str(short_nested_docx_path),
+            plan.planned,
+            workspace_root=str(short_nested_docx_path.parent),
+        )
+
+        assert plan.planned == []
+        assert _statuses(plan.outcomes) == {edit.id: "unlocatable"}
+        assert [outcome.detail for outcome in plan.outcomes] == [_OTHER_PASSAGE_DETAIL]
+        visible, _, revisions = _read(short_nested_docx_path)
+        assert visible.strip() == _SHORT_NESTED_PARAGRAPH
+        assert list(revisions) == []
+
+    @pytest.mark.asyncio
+    async def test_a_line_long_enough_to_be_contained_on_purpose_still_passes(
+        self, tmp_path: Path
+    ):
+        # 25 characters, contained in a hard-break paragraph that really does
+        # carry it.
+        runs = ["Group A reported a sustained rise.", "A sustained 14% increase."]
+        path = _hard_break_docx(tmp_path / "long-contained.docx", runs)
+        edit = _edit("14%", "18%", 2)
+
+        plan, _ = await _plan(
+            path,
+            [edit],
+            paragraph_line_ranges=_BREAK_LINE_RANGES,
+            markdown="\n".join(runs),
+        )
+        await apply_tracked_changes(
+            str(path), plan.planned, workspace_root=str(path.parent)
+        )
+
+        assert _statuses(plan.outcomes) == {edit.id: "applied"}
+        visible, _, _ = _read(path)
+        assert "A sustained 18% increase." in visible
+
+    @pytest.mark.asyncio
+    async def test_a_short_line_that_is_the_whole_paragraph_still_passes(
+        self, tmp_path: Path
+    ):
+        # Equality needs no length floor: the line *is* the paragraph.
+        document = PythonDocxDocument()
+        document.add_paragraph("Yield 14%.")
+        path = tmp_path / "short-equal.docx"
+        document.save(str(path))
+        edit = _edit("14%", "18%", 1)
+
+        plan, _ = await _plan(
+            path,
+            [edit],
+            paragraph_line_ranges={0: (1, 1)},
+            markdown="Yield 14%.",
+        )
+        await apply_tracked_changes(
+            str(path), plan.planned, workspace_root=str(path.parent)
+        )
+
+        assert _statuses(plan.outcomes) == {edit.id: "applied"}
+        visible, _, _ = _read(path)
+        assert "Yield 18%." in visible
+
+
+# An underscore-delimited fragment of a URL: the mark the renderer inserts at
+# the quote's boundary must not turn the intraword `_` into emphasis, or the
+# export searches the paragraph for `final` and leaves the underscores behind.
+_URL_PARAGRAPH = "See https://example.org/report_final_version.pdf for details."
+
+
+@pytest.fixture
+def url_docx_path(tmp_path: Path) -> Path:
+    document = PythonDocxDocument()
+    document.add_paragraph(_URL_PARAGRAPH)
+    path = tmp_path / "url.docx"
+    document.save(str(path))
+    return path
+
+
+class TestAnIntrawordUnderscoreIsNotEmphasis:
+    @pytest.mark.asyncio
+    async def test_the_redline_covers_the_underscores_the_quote_named(
+        self, url_docx_path: Path
+    ):
+        edit = _edit("_final_", "-draft-", 1)
+
+        plan, _ = await _plan(
+            url_docx_path,
+            [edit],
+            paragraph_line_ranges={0: (1, 1)},
+            markdown=_URL_PARAGRAPH,
+        )
+        await apply_tracked_changes(
+            str(url_docx_path), plan.planned, workspace_root=str(url_docx_path.parent)
+        )
+
+        assert _statuses(plan.outcomes) == {edit.id: "applied"}
+        assert plan.planned[0].find == "_final_"
+        assert plan.planned[0].replace_with == "-draft-"
+        visible, original, _ = _read(url_docx_path)
+        assert "report-draft-version.pdf" in visible
+        assert "report_final_version.pdf" in original

@@ -24,6 +24,7 @@ on plain strings.
 
 import html
 import re
+import unicodedata
 from typing import List, Optional
 
 from markdown_it import MarkdownIt
@@ -43,15 +44,54 @@ _ANY_TAG = re.compile(r"<[^>]*>")
 # Where a quote starts and ends in the raw line, carried through the parse so
 # the rendered quote can be read back off the rendered line.
 #
-# Unicode punctuation rather than private-use characters, and that is not a
-# detail: CommonMark decides whether `__strong__` is emphasis from what sits
-# either side of the delimiters, and a letter-like character next to the
-# opening run makes it both left- and right-flanking, which stops an
-# underscore run from opening at all. A punctuation character leaves every
-# delimiter run deciding exactly as it did without the marks. Both are
-# characters no converted document has ever carried.
-_QUOTE_OPENS = "⸮"
-_QUOTE_CLOSES = "⸘"
+# Two pairs, because a mark cannot be class-neutral. CommonMark decides whether
+# a delimiter run emphasizes from the *class* of the characters either side of
+# it -- whitespace, punctuation, or anything else -- so a mark inserted next to
+# one changes that decision unless it belongs to the same class as the
+# character it displaced. Get it wrong either way and the mark rewrites the
+# document it was only meant to measure:
+#
+# - a punctuation mark beside an intraword underscore makes the run "preceded
+#   by punctuation", which is exactly the condition that lets `_` open. The
+#   `_final_` of a URL such as `report_final_version.pdf` then emphasizes and
+#   the quote comes back as ``final``, underscores and all missing;
+# - a letter-like mark beside `__strong__` makes the run both left- and
+#   right-flanking, which stops an underscore run from opening at all, and the
+#   quote comes back as ``__strong__`` with its delimiters intact.
+#
+# So `_mark` picks the pair by what sat next to the boundary. Both pairs are
+# characters no converted document has ever carried: two Unicode punctuation
+# marks, and two private-use code points, which are category Co and therefore
+# neither whitespace nor punctuation to the parser.
+_PUNCTUATION_MARKS = ("\u2e2e", "\u2e18")
+_WORD_MARKS = ("\ue000", "\ue001")
+
+# What CommonMark calls a punctuation character: ASCII punctuation, or any of
+# the Unicode P categories.
+_ASCII_PUNCTUATION = set("!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~")
+
+
+def _is_word_like(char: str) -> bool:
+    """Whether CommonMark would treat `char` as neither whitespace nor punctuation.
+
+    The empty string stands for the start or the end of the line, which the
+    parser reads as whitespace.
+    """
+    if not char or char.isspace() or char in _ASCII_PUNCTUATION:
+        return False
+    return not unicodedata.category(char).startswith("P")
+
+
+def _mark(displaced: str, *, closing: bool) -> str:
+    """The mark to insert in place of `displaced`, in its delimiter class.
+
+    `displaced` is the character that used to sit against the quote's boundary
+    -- ``line[start - 1]`` for the opening mark, ``line[end]`` for the closing
+    one -- since that is the character a delimiter run at the boundary was
+    deciding against before the mark went in.
+    """
+    marks = _WORD_MARKS if _is_word_like(displaced) else _PUNCTUATION_MARKS
+    return marks[1] if closing else marks[0]
 
 
 class RenderedSpan(BaseModel):
@@ -139,15 +179,16 @@ def rendered_replacement_in_context(
     if not replacement.strip():
         return replacement
 
-    opening = _QUOTE_OPENS if start > 0 else ""
-    edited = line[:start] + opening + replacement + _QUOTE_CLOSES + line[end:]
+    opening = _mark(line[start - 1], closing=False) if start > 0 else ""
+    closing = _mark(line[end : end + 1], closing=True)
+    edited = line[:start] + opening + replacement + closing + line[end:]
     rendered = render_line_text(edited)
 
-    closes = rendered.find(_QUOTE_CLOSES)
+    closes = rendered.find(closing)
     if closes == -1:
         return None
     if opening:
-        opens = rendered.find(_QUOTE_OPENS)
+        opens = rendered.find(opening)
         if opens == -1 or opens > closes:
             return None
         written_from = opens + 1
@@ -183,17 +224,18 @@ def rendered_span(line: str, start: int, end: int) -> Optional[RenderedSpan]:
     if start < 0 or end > len(line) or start >= end:
         return None
 
-    opening = _QUOTE_OPENS if start > 0 else ""
-    marked = line[:start] + opening + line[start:end] + _QUOTE_CLOSES + line[end:]
+    opening = _mark(line[start - 1], closing=False) if start > 0 else ""
+    closing = _mark(line[end : end + 1], closing=True)
+    marked = line[:start] + opening + line[start:end] + closing + line[end:]
     rendered = normalize_whitespace(render_line_text(marked))
 
-    closes = rendered.find(_QUOTE_CLOSES)
+    closes = rendered.find(closing)
     if closes == -1:
         return None
     # Where the quote's first character sits in the rendered line: after the
     # opening mark, or at the very start when there is none.
     if opening:
-        opens = rendered.find(_QUOTE_OPENS)
+        opens = rendered.find(opening)
         if opens == -1 or opens > closes:
             return None
         quote_from = opens + 1

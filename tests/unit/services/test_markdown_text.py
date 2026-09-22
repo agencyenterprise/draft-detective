@@ -178,6 +178,72 @@ class TestRenderedSpan:
         assert rendered_span("a line", 0, 99) is None
 
 
+class TestTheMarksKeepTheirDelimiterClass:
+    """A mark inserted at the quote's boundary must not change what the parser
+    makes of the characters around it.
+
+    CommonMark reads a delimiter run against the class of its neighbours, so
+    each mark takes the class of the character it displaced: letter-like
+    against a word character, punctuation against whitespace or punctuation.
+    """
+
+    URL = "See https://example.org/report_final_version.pdf for details."
+
+    def test_an_intraword_underscore_does_not_start_emphasizing(self):
+        # A punctuation mark beside the `_` would make the run "preceded by
+        # punctuation", which is what lets `_` open: the quote came back as
+        # `final` and the export would have left the underscores behind.
+        start = self.URL.index("_final_")
+        span = rendered_span(self.URL, start, start + len("_final_"))
+
+        assert span is not None
+        assert span.display_text == "_final_"
+
+    def test_a_replacement_in_the_same_place_keeps_its_own_punctuation(self):
+        start = self.URL.index("_final_")
+        end = start + len("_final_")
+
+        assert rendered_replacement_in_context(self.URL, start, end, "-draft-") == (
+            "-draft-"
+        )
+        assert rendered_replacement_in_context(self.URL, start, end, "_draft_") == (
+            "_draft_"
+        )
+
+    def test_an_underscore_run_at_a_word_boundary_still_emphasizes(self):
+        # The other direction: a letter-like mark here would stop the run
+        # opening at all and hand back `__strong__` with its delimiters.
+        line = "a __strong__ b"
+        span = rendered_span(line, 2, 12)
+
+        assert span is not None
+        assert span.display_text == "strong"
+
+    def test_stars_emphasize_whatever_sits_beside_the_quote(self):
+        mid = rendered_span("The **bold** word", 4, 12)
+        intraword = rendered_span("a**bold**b", 1, 9)
+
+        assert mid is not None and mid.display_text == "bold"
+        assert intraword is not None and intraword.display_text == "bold"
+
+    def test_the_underscores_a_reader_sees_are_still_kept(self):
+        lone = rendered_span("the _private and x", 4, 12)
+        snake = rendered_span("use snake_case_name here", 4, 19)
+
+        assert lone is not None and lone.display_text == "_private"
+        assert snake is not None and snake.display_text == "snake_case_name"
+
+    def test_a_star_that_emphasizes_nothing_is_still_kept(self):
+        span = rendered_span("yield 2 * 3 plots", 6, 11)
+
+        assert span is not None and span.display_text == "2 * 3"
+
+    def test_a_footnote_reference_still_reduces_to_its_label(self):
+        span = rendered_span("cohort [[1]](#footnote-2) rose", 7, 25)
+
+        assert span is not None and span.display_text == "[1]"
+
+
 class TestRenderedReplacementInContext:
     """The replacement is rendered where the quote sat, not on its own: a quote
     can open or close inside formatting that carries on around it, and so can

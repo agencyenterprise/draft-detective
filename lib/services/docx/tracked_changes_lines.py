@@ -62,10 +62,17 @@ def line_belongs_to_paragraph(line: Optional[str], paragraph_text: str) -> bool:
        marks rather than as text, and is then rendered the way the reader sees
        it. A bare `[1]` survives: a bracketed number in prose is a citation
        the paragraph shows as well.
-    2. Either text containing the other is the same passage. Both directions
-       count: a Word paragraph holding hard line breaks converts to several
-       markdown lines, so the line can be the shorter of the two.
-    3. Otherwise they are the same passage when they are `_MIN_SIMILARITY`
+    2. The same text either way round is the same passage, whatever its
+       length.
+    3. Either text *containing* the other is the same passage too, since a
+       Word paragraph holding hard line breaks converts to several markdown
+       lines and the line can be the shorter of the two -- but only once the
+       shorter of them is at least `_MIN_COMPARABLE_LENGTH` characters. A
+       short nested line is contained by accident: a list item or a table cell
+       rendering to just ``14%`` sits inside any paragraph that quotes a
+       percentage, and letting it in would redline the prose above it instead
+       of the cell.
+    4. Otherwise they are the same passage when they are `_MIN_SIMILARITY`
        alike over their whole length, which covers conversion drift anywhere
        in a long paragraph -- an inline image, a bookmark, a field result, a
        trailing clause MarkItDown writes and Word does not show. Measuring the
@@ -73,10 +80,9 @@ def line_belongs_to_paragraph(line: Optional[str], paragraph_text: str) -> bool:
        a content control that merely repeats the paragraph's first words out:
        boilerplate at the front no longer buys it the paragraph.
 
-    Both texts must be at least `_MIN_COMPARABLE_LENGTH` characters for that
-    last rule, since two short strings are alike by accident -- and it is
-    already more than a table row (``| Metric | Value |``) can share with
-    prose. Nothing else is the mapped paragraph's own line.
+    The length floor on the last two rules is the same one, and it is already
+    more than a table row (``| Metric | Value |``) can share with prose.
+    Nothing else is the mapped paragraph's own line.
     """
     if line is None:
         return False
@@ -84,10 +90,12 @@ def line_belongs_to_paragraph(line: Optional[str], paragraph_text: str) -> bool:
     para_text = normalize_whitespace(paragraph_text)
     if not line_text or not para_text:
         return False
-    if line_text in para_text or para_text in line_text:
+    if line_text == para_text:
         return True
     if min(len(line_text), len(para_text)) < _MIN_COMPARABLE_LENGTH:
         return False
+    if line_text in para_text or para_text in line_text:
+        return True
     similarity = SequenceMatcher(None, line_text, para_text).ratio()
     return similarity >= _MIN_SIMILARITY
 
