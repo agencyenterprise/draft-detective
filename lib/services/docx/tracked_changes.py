@@ -15,21 +15,12 @@ reorganised.
 """
 
 from lib.services.docx.tracked_changes_apply import apply_tracked_changes
-from lib.services.docx.tracked_changes_models import (
-    TRACKED_CHANGE_AUTHOR,
-    EditOutcome,
-    EditOutcomeStatus,
-    PlannedEdit,
-    TrackedChangesPlan,
-)
+from lib.services.docx.tracked_changes_models import EditOutcome, PlannedEdit
 from lib.services.docx.tracked_changes_planning import plan_tracked_changes
 
 __all__ = [
-    "TRACKED_CHANGE_AUTHOR",
     "EditOutcome",
-    "EditOutcomeStatus",
     "PlannedEdit",
-    "TrackedChangesPlan",
     "apply_tracked_changes",
     "plan_tracked_changes",
 ]

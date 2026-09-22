@@ -15,7 +15,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Dict, List, Literal, Optional, Sequence, Tuple
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from lib.models.issue_edit import IssueEdit, IssueEditStatus
 from lib.services.text_location import locate_in_paragraph
@@ -38,16 +38,14 @@ class EditDecision(BaseModel):
     """What is to be done with one candidate edit.
 
     ``span`` is the ``[start, end)`` offset pair of the quote inside its
-    markdown line, present whenever the quote could be located. ``apply``
-    decisions list the other edits of their overlap group in
-    ``conflicts_with`` too, so a caller can report what an edit beat.
+    markdown line, present whenever the quote could be located. A ``conflict``
+    decision names the edit that beat it in ``winner_id``.
     """
 
     edit_id: uuid.UUID
     line: int
     span: Optional[Tuple[int, int]]
     outcome: EditOutcomeName
-    conflicts_with: List[uuid.UUID] = Field(default_factory=list)
     winner_id: Optional[uuid.UUID] = None
 
 
@@ -168,9 +166,7 @@ def resolve_edit_conflicts(
 
     for group in _overlap_groups(located):
         winner = pick_winner(group)
-        member_ids = [member.edit.id for member in group]
         for member in group:
-            others = [other_id for other_id in member_ids if other_id != member.edit.id]
             is_winner = member.edit.id == winner.edit.id
             decisions.append(
                 EditDecision(
@@ -178,7 +174,6 @@ def resolve_edit_conflicts(
                     line=member.edit.start_line,
                     span=spans[member.edit.id],
                     outcome="apply" if is_winner else "conflict",
-                    conflicts_with=others,
                     winner_id=None if is_winner else winner.edit.id,
                 )
             )

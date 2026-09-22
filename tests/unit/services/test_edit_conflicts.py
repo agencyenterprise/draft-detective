@@ -118,7 +118,6 @@ class TestLocating:
         assert decision.outcome == "apply"
         assert decision.span is not None
         assert _LINES[0][decision.span[0] : decision.span[1]] == "14% rise"
-        assert decision.conflicts_with == []
         assert decision.winner_id is None
 
     def test_a_quote_is_matched_through_whitespace_drift(self):
@@ -190,8 +189,6 @@ class TestConflicts:
         assert decisions[accepted.edit.id].outcome == "apply"
         assert decisions[proposed.edit.id].outcome == "conflict"
         assert decisions[proposed.edit.id].winner_id == accepted.edit.id
-        assert decisions[proposed.edit.id].conflicts_with == [accepted.edit.id]
-        assert decisions[accepted.edit.id].conflicts_with == [proposed.edit.id]
 
     def test_severity_breaks_a_tie_before_age(self):
         high = _candidate(
@@ -245,9 +242,6 @@ class TestConflicts:
         assert decisions[first.edit.id].outcome == "conflict"
         assert decisions[last.edit.id].outcome == "conflict"
         assert decisions[first.edit.id].winner_id == middle.edit.id
-        assert sorted(decisions[first.edit.id].conflicts_with, key=str) == sorted(
-            [middle.edit.id, last.edit.id], key=str
-        )
 
     def test_two_separate_groups_on_one_line_each_keep_a_winner(self):
         first_group = [

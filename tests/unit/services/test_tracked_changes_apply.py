@@ -6,7 +6,7 @@ document at all.
 """
 
 from pathlib import Path
-from typing import Dict, Tuple
+from typing import Dict, Sequence, Tuple
 
 import pytest
 from docx import Document as PythonDocxDocument
@@ -151,35 +151,59 @@ class TestParagraphsThatCannotBeMatched:
         ]
 
 
-# One Word paragraph holding a hard line break, which MarkItDown converts to
-# two markdown lines. Both lines end on the same figure, so the edit's stored
-# occurrence -- counted on its own line, where the figure is unique -- says
-# nothing about which of the paragraph's two spans it means.
-_BROKEN_LINES = ["First cohort rose 14%.", "Second cohort rose 14%."]
-_BROKEN_MARKDOWN = "\n".join(_BROKEN_LINES)
-_BROKEN_LINE_RANGES: Dict[int, Tuple[int, int]] = {0: (1, 2)}
+# One Word paragraph holding hard line breaks, which MarkItDown converts to one
+# markdown line per break. Word keeps nothing where a break was, so the
+# paragraph reads as its lines run together and a quote's line-relative
+# occurrence says nothing about the paragraph's own spans.
+_BREAK_LINE_RANGES: Dict[int, Tuple[int, int]] = {0: (1, 2)}
+_THREE_LINE_RANGES: Dict[int, Tuple[int, int]] = {0: (1, 3)}
+
+# Why a repeat in such a paragraph is reported rather than placed.
+_REPEATS_DETAIL = (
+    "the quoted text repeats inside a paragraph that spans several lines "
+    "of the document"
+)
 
 
-@pytest.fixture
-def hard_break_docx_path(tmp_path: Path) -> Path:
+def _hard_break_docx(path: Path, runs: Sequence[str]) -> Path:
+    """One paragraph whose runs are separated by hard line breaks."""
     document = PythonDocxDocument()
     paragraph = document.add_paragraph()
-    first = paragraph.add_run(_BROKEN_LINES[0])
-    first.add_break()
-    paragraph.add_run(_BROKEN_LINES[1])
-    path = tmp_path / "hard-break.docx"
+    for position, text in enumerate(runs):
+        run = paragraph.add_run(text)
+        if position < len(runs) - 1:
+            run.add_break()
     document.save(str(path))
     return path
 
 
 class TestAParagraphSpanningSeveralMarkdownLines:
-    async def _plan_broken(self, path: Path, line: int):
-        edit = _edit("14%", "18%", line)
+    """A quote the paragraph carries once is placed; a repeat is reported.
+
+    `display_occurrence` was counted on the edit's own markdown line, and this
+    paragraph is several of them, so the index does not apply. Rebasing it
+    proved wrong in three different ways -- a match straddling the join, a line
+    an earlier line contains, boundaries lost to conversion drift -- so a
+    repeat is left to a human.
+    """
+
+    async def _plan_break(
+        self,
+        path: Path,
+        runs: Sequence[str],
+        markdown_lines: Sequence[str],
+        quote: str,
+        replacement: str,
+        line: int,
+        ranges: Dict[int, Tuple[int, int]] | None = None,
+    ):
+        _hard_break_docx(path, runs)
+        edit = _edit(quote, replacement, line)
         plan, _ = await _plan(
             path,
             [edit],
-            paragraph_line_ranges=_BROKEN_LINE_RANGES,
-            markdown=_BROKEN_MARKDOWN,
+            paragraph_line_ranges=ranges or _BREAK_LINE_RANGES,
+            markdown="\n".join(markdown_lines),
         )
         await apply_tracked_changes(
             str(path), plan.planned, workspace_root=str(path.parent)
@@ -187,284 +211,91 @@ class TestAParagraphSpanningSeveralMarkdownLines:
         return edit, plan
 
     @pytest.mark.asyncio
-    async def test_an_edit_on_the_second_line_redlines_the_second_sentence(
-        self, hard_break_docx_path: Path
-    ):
-        edit, plan = await self._plan_broken(hard_break_docx_path, 2)
+    async def test_a_quote_the_paragraph_carries_once_is_placed(self, tmp_path: Path):
+        runs = ["First cohort rose 14%.", "Second cohort rose 9%."]
+        edit, plan = await self._plan_break(
+            tmp_path / "unique.docx", runs, runs, "9%", "18%", 2
+        )
 
         assert _statuses(plan.outcomes) == {edit.id: "applied"}
-        visible, original, _ = _read(hard_break_docx_path)
+        visible, original, _ = _read(tmp_path / "unique.docx")
         assert "First cohort rose 14%." in visible
         assert "Second cohort rose 18%." in visible
-        assert "Second cohort rose 14%." in original
+        assert "Second cohort rose 9%." in original
 
     @pytest.mark.asyncio
-    async def test_an_edit_on_the_first_line_redlines_the_first_sentence(
-        self, hard_break_docx_path: Path
+    async def test_a_plain_repeat_across_the_break_is_reported(self, tmp_path: Path):
+        runs = ["First cohort rose 14%.", "Second cohort rose 14%."]
+        path = tmp_path / "repeat.docx"
+        before = _hard_break_docx(path, runs).read_bytes()
+
+        edit, plan = await self._plan_break(path, runs, runs, "14%", "18%", 2)
+
+        assert plan.planned == []
+        assert _statuses(plan.outcomes) == {edit.id: "ambiguous"}
+        assert [outcome.detail for outcome in plan.outcomes] == [_REPEATS_DETAIL]
+        assert path.read_bytes() == before
+        _, _, revisions = _read(path)
+        assert list(revisions) == []
+
+    @pytest.mark.asyncio
+    async def test_a_repeat_the_join_itself_created_is_reported(self, tmp_path: Path):
+        # A space before the break puts a "14% in" in the paragraph that
+        # neither markdown line carries.
+        runs = ["First cohort rose 14% ", "in 2019; second cohort rose 14% in 2020."]
+        markdown = ["First cohort rose 14%", runs[1]]
+        path = tmp_path / "straddle.docx"
+        before = _hard_break_docx(path, runs).read_bytes()
+
+        edit, plan = await self._plan_break(path, runs, markdown, "14% in", "18% in", 2)
+
+        assert plan.planned == []
+        assert _statuses(plan.outcomes) == {edit.id: "ambiguous"}
+        assert [outcome.detail for outcome in plan.outcomes] == [_REPEATS_DETAIL]
+        assert path.read_bytes() == before
+
+    @pytest.mark.asyncio
+    async def test_a_repeat_across_two_identical_lines_is_reported(
+        self, tmp_path: Path
     ):
-        edit, plan = await self._plan_broken(hard_break_docx_path, 1)
+        runs = ["Rose 14%.", "Rose 14%."]
+        path = tmp_path / "twin.docx"
+        before = _hard_break_docx(path, runs).read_bytes()
 
-        assert _statuses(plan.outcomes) == {edit.id: "applied"}
-        visible, _, _ = _read(hard_break_docx_path)
-        assert "First cohort rose 18%." in visible
-        assert "Second cohort rose 14%." in visible
+        edit, plan = await self._plan_break(path, runs, runs, "14%", "18%", 2)
 
+        assert plan.planned == []
+        assert _statuses(plan.outcomes) == {edit.id: "ambiguous"}
+        assert [outcome.detail for outcome in plan.outcomes] == [_REPEATS_DETAIL]
+        assert path.read_bytes() == before
 
-# The same paragraph with a space before the break, so the join puts a real
-# space where the two lines meet. The quote then has an occurrence the Word
-# paragraph carries but neither markdown line does: "14% in" straddles the
-# break in "rose 14% | in 2019", and is line 2's own words in "rose 14% in
-# 2020".
-_STRADDLE_RUNS = ["First cohort rose 14% ", "in 2019; second cohort rose 14% in 2020."]
-_STRADDLE_MARKDOWN = "\n".join(["First cohort rose 14%", _STRADDLE_RUNS[1]])
-_STRADDLE_LINE_RANGES: Dict[int, Tuple[int, int]] = {0: (1, 2)}
-
-
-@pytest.fixture
-def straddle_docx_path(tmp_path: Path) -> Path:
-    document = PythonDocxDocument()
-    paragraph = document.add_paragraph()
-    first = paragraph.add_run(_STRADDLE_RUNS[0])
-    first.add_break()
-    paragraph.add_run(_STRADDLE_RUNS[1])
-    path = tmp_path / "straddle.docx"
-    document.save(str(path))
-    return path
-
-
-class TestAQuoteThatStraddlesAHardBreak:
     @pytest.mark.asyncio
-    async def test_the_edit_lands_inside_its_own_line_not_across_the_break(
-        self, straddle_docx_path: Path
+    async def test_a_repeat_inside_a_line_an_earlier_line_contains_is_reported(
+        self, tmp_path: Path
     ):
-        # Unique on line 2, and the paragraph's *first* "14% in" is the one
-        # the break invented. Counting the quote line by line never sees it.
-        edit = _edit("14% in", "18% in", 2)
+        # "14% increase." is line 2 in full and the tail of line 1.
+        runs = ["Group A: 14% increase.", "14% increase."]
+        path = tmp_path / "nested.docx"
+        before = _hard_break_docx(path, runs).read_bytes()
 
-        plan, _ = await _plan(
-            straddle_docx_path,
-            [edit],
-            paragraph_line_ranges=_STRADDLE_LINE_RANGES,
-            markdown=_STRADDLE_MARKDOWN,
-        )
-        await apply_tracked_changes(
-            str(straddle_docx_path),
-            plan.planned,
-            workspace_root=str(straddle_docx_path.parent),
-        )
+        edit, plan = await self._plan_break(path, runs, runs, "14%", "18%", 2)
 
-        assert _statuses(plan.outcomes) == {edit.id: "applied"}
-        visible, _, _ = _read(straddle_docx_path)
-        assert "First cohort rose 14% in 2019" in visible
-        assert "second cohort rose 18% in 2020." in visible
-
-
-# Two markdown lines reading exactly alike inside one paragraph: locating the
-# edit's line is not enough on its own, since the paragraph carries it twice.
-_TWIN_LINES = ["Rose 14%.", "Rose 14%."]
-_TWIN_MARKDOWN = "\n".join(_TWIN_LINES)
-_TWIN_LINE_RANGES: Dict[int, Tuple[int, int]] = {0: (1, 2)}
-
-
-@pytest.fixture
-def twin_docx_path(tmp_path: Path) -> Path:
-    document = PythonDocxDocument()
-    paragraph = document.add_paragraph()
-    first = paragraph.add_run(_TWIN_LINES[0])
-    first.add_break()
-    paragraph.add_run(_TWIN_LINES[1])
-    path = tmp_path / "twin.docx"
-    document.save(str(path))
-    return path
-
-
-class TestTwoIdenticalLinesInOneParagraph:
-    @pytest.mark.asyncio
-    async def test_the_edit_lands_on_the_repeat_its_line_names(
-        self, twin_docx_path: Path
-    ):
-        edit = _edit("14%", "18%", 2)
-
-        plan, _ = await _plan(
-            twin_docx_path,
-            [edit],
-            paragraph_line_ranges=_TWIN_LINE_RANGES,
-            markdown=_TWIN_MARKDOWN,
-        )
-        await apply_tracked_changes(
-            str(twin_docx_path), plan.planned, workspace_root=str(twin_docx_path.parent)
-        )
-
-        assert _statuses(plan.outcomes) == {edit.id: "applied"}
-        visible, _, _ = _read(twin_docx_path)
-        assert visible.strip() == "Rose 14%.Rose 18%."
-
-
-# A range covering a second markdown line the Word paragraph does not carry:
-# the line-range mapper runs a paragraph's range up to the line before the next
-# one starts, so a line that merely reads alike falls inside it. The edit's own
-# line cannot be located in the paragraph at all.
-_DRIFTED_PARAGRAPH = "The committee recommends increasing the 2019 budget by 14%."
-_DRIFTED_MARKDOWN = "\n".join(
-    [_DRIFTED_PARAGRAPH, "The committee recommends increasing the 2020 budget by 9%."]
-)
-_DRIFTED_LINE_RANGES: Dict[int, Tuple[int, int]] = {0: (1, 2)}
-
-
-@pytest.fixture
-def drifted_docx_path(tmp_path: Path) -> Path:
-    document = PythonDocxDocument()
-    document.add_paragraph(_DRIFTED_PARAGRAPH)
-    path = tmp_path / "drifted.docx"
-    document.save(str(path))
-    return path
-
-
-# The same shape, with the quote repeated in the paragraph: nothing says which
-# of the two the edit meant once its line cannot be found.
-_REPEATED_PARAGRAPH = "Cohort A rose 14%; cohort B rose 14%."
-_REPEATED_MARKDOWN = "\n".join(
-    [_REPEATED_PARAGRAPH, "Cohort A rose 18%; cohort B rose 14%."]
-)
-
-
-@pytest.fixture
-def repeated_docx_path(tmp_path: Path) -> Path:
-    document = PythonDocxDocument()
-    document.add_paragraph(_REPEATED_PARAGRAPH)
-    path = tmp_path / "repeated.docx"
-    document.save(str(path))
-    return path
-
-
-class TestALineTheParagraphDoesNotCarry:
-    @pytest.mark.asyncio
-    async def test_an_unambiguous_quote_is_still_applied(self, drifted_docx_path: Path):
-        edit = _edit("committee recommends", "board recommends", 2)
-
-        plan, _ = await _plan(
-            drifted_docx_path,
-            [edit],
-            paragraph_line_ranges=_DRIFTED_LINE_RANGES,
-            markdown=_DRIFTED_MARKDOWN,
-        )
-        await apply_tracked_changes(
-            str(drifted_docx_path),
-            plan.planned,
-            workspace_root=str(drifted_docx_path.parent),
-        )
-
-        assert _statuses(plan.outcomes) == {edit.id: "applied"}
-        visible, _, _ = _read(drifted_docx_path)
-        assert "The board recommends increasing the 2019 budget" in visible
+        assert plan.planned == []
+        assert _statuses(plan.outcomes) == {edit.id: "ambiguous"}
+        assert [outcome.detail for outcome in plan.outcomes] == [_REPEATS_DETAIL]
+        assert path.read_bytes() == before
 
     @pytest.mark.asyncio
-    async def test_a_repeated_quote_is_reported_rather_than_guessed_at(
-        self, repeated_docx_path: Path
-    ):
-        edit = _edit("14%", "18%", 2)
+    async def test_a_repeat_three_lines_apart_is_reported(self, tmp_path: Path):
+        runs = ["Rose 14%.", "Fell 9%.", "Rose 14%."]
+        path = tmp_path / "reprise.docx"
+        before = _hard_break_docx(path, runs).read_bytes()
 
-        plan, _ = await _plan(
-            repeated_docx_path,
-            [edit],
-            paragraph_line_ranges=_DRIFTED_LINE_RANGES,
-            markdown=_REPEATED_MARKDOWN,
-        )
-        await apply_tracked_changes(
-            str(repeated_docx_path),
-            plan.planned,
-            workspace_root=str(repeated_docx_path.parent),
+        edit, plan = await self._plan_break(
+            path, runs, runs, "14%", "18%", 3, ranges=_THREE_LINE_RANGES
         )
 
         assert plan.planned == []
         assert _statuses(plan.outcomes) == {edit.id: "ambiguous"}
-        visible, _, revisions = _read(repeated_docx_path)
-        assert visible.strip() == _REPEATED_PARAGRAPH
-        assert list(revisions) == []
-
-
-# A paragraph whose first line *contains* the second: "14% increase." is line 2
-# in full and the tail of line 1. Telling the lines apart by counting identical
-# ones ahead does not help -- they are not identical -- so the edit's line has
-# to be found past where line 1 ended.
-_NESTED_RUNS = ["Group A: 14% increase.", "14% increase."]
-_NESTED_MARKDOWN = "\n".join(_NESTED_RUNS)
-_NESTED_LINE_RANGES: Dict[int, Tuple[int, int]] = {0: (1, 2)}
-
-
-@pytest.fixture
-def nested_line_docx_path(tmp_path: Path) -> Path:
-    document = PythonDocxDocument()
-    paragraph = document.add_paragraph()
-    first = paragraph.add_run(_NESTED_RUNS[0])
-    first.add_break()
-    paragraph.add_run(_NESTED_RUNS[1])
-    path = tmp_path / "nested-line.docx"
-    document.save(str(path))
-    return path
-
-
-# Three lines, the third reading exactly like the first: the cursor has to walk
-# every line of the range in order to get past both earlier ones.
-_REPRISE_RUNS = ["Rose 14%.", "Fell 9%.", "Rose 14%."]
-_REPRISE_MARKDOWN = "\n".join(_REPRISE_RUNS)
-_REPRISE_LINE_RANGES: Dict[int, Tuple[int, int]] = {0: (1, 3)}
-
-
-@pytest.fixture
-def reprise_docx_path(tmp_path: Path) -> Path:
-    document = PythonDocxDocument()
-    paragraph = document.add_paragraph()
-    for position, text in enumerate(_REPRISE_RUNS):
-        run = paragraph.add_run(text)
-        if position < len(_REPRISE_RUNS) - 1:
-            run.add_break()
-    path = tmp_path / "reprise.docx"
-    document.save(str(path))
-    return path
-
-
-class TestALineThatAnEarlierLineContains:
-    @pytest.mark.asyncio
-    async def test_the_edit_lands_past_the_line_that_contains_it(
-        self, nested_line_docx_path: Path
-    ):
-        edit = _edit("14%", "18%", 2)
-
-        plan, _ = await _plan(
-            nested_line_docx_path,
-            [edit],
-            paragraph_line_ranges=_NESTED_LINE_RANGES,
-            markdown=_NESTED_MARKDOWN,
-        )
-        await apply_tracked_changes(
-            str(nested_line_docx_path),
-            plan.planned,
-            workspace_root=str(nested_line_docx_path.parent),
-        )
-
-        assert _statuses(plan.outcomes) == {edit.id: "applied"}
-        visible, _, _ = _read(nested_line_docx_path)
-        assert visible.strip() == "Group A: 14% increase.18% increase."
-
-    @pytest.mark.asyncio
-    async def test_a_line_repeating_the_first_is_found_past_both(
-        self, reprise_docx_path: Path
-    ):
-        edit = _edit("14%", "18%", 3)
-
-        plan, _ = await _plan(
-            reprise_docx_path,
-            [edit],
-            paragraph_line_ranges=_REPRISE_LINE_RANGES,
-            markdown=_REPRISE_MARKDOWN,
-        )
-        await apply_tracked_changes(
-            str(reprise_docx_path),
-            plan.planned,
-            workspace_root=str(reprise_docx_path.parent),
-        )
-
-        assert _statuses(plan.outcomes) == {edit.id: "applied"}
-        visible, _, _ = _read(reprise_docx_path)
-        assert visible.strip() == "Rose 14%.Fell 9%.Rose 18%."
+        assert [outcome.detail for outcome in plan.outcomes] == [_REPEATS_DETAIL]
+        assert path.read_bytes() == before

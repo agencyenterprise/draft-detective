@@ -14,7 +14,6 @@ from docx import Document as PythonDocxDocument
 from lib.services.docx.tracked_changes import apply_tracked_changes
 
 from tests.unit.services.tracked_changes_support import (
-    OTHER_PASSAGE_DETAIL as _OTHER_PASSAGE_DETAIL,
     make_edit as _edit,
     plan_edits as _plan,
     read_document as _read,

@@ -179,6 +179,12 @@ export function blocksForLineRange(container: Element, start: number, end: numbe
  * list -- is a different haystack, and the count would not be its own; there
  * the quote is marked only when the block carries it once, and left unmarked
  * rather than marked in the wrong place.
+ *
+ * The DOCX export settles a repeat in such a paragraph the same way, and says
+ * so in the issue's comment: see `_resolve_span` in
+ * `lib/services/docx/tracked_changes_placement.py`. Keeping the two on one
+ * rule is the point -- an author who sees a span highlighted here should get
+ * that span redlined, and no span marked where none is redlined.
  */
 export function editRanges(container: Element, edits: ProposedEdit[]): Range[] {
   const ranges: Range[] = [];

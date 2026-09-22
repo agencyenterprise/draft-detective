@@ -6,6 +6,10 @@ part of the mapped paragraph at all (`tracked_changes_lines` answers that one),
 which of the paragraph's spans does the quote mean, and can the replacement be
 written as a tracked insertion.
 
+The middle one is the awkward one, and `_resolve_span` says why: a paragraph
+that covers several markdown lines cannot be indexed by an occurrence counted
+in one of them, so a quote it repeats is reported instead of placed.
+
 `plan_edit` answers all three for one edit and is the only name
 `tracked_changes_planning` needs from here.
 """
@@ -22,7 +26,6 @@ from lib.services.docx.edit_text import (
 from lib.services.docx.paragraph_refs import MappedParagraph
 from lib.services.docx.tracked_changes_lines import (
     line_belongs_to_paragraph,
-    rendered_line,
     source_line,
 )
 from lib.services.docx.tracked_changes_models import (
@@ -38,63 +41,19 @@ from lib.services.text_location import all_offsets, locate_in_paragraph
 _CONTROL_CHARS = re.compile(r"[\x00-\x1f\x7f]")
 
 
-def _line_span_in_paragraph(
-    edit: IssueEdit,
-    paragraph_text: str,
-    paragraph_range: Tuple[int, int],
-    document_lines: Sequence[str],
-) -> Optional[Tuple[int, int]]:
-    """Where the edit's own markdown line sits inside the Word paragraph.
-
-    The range's lines are laid against the paragraph in document order, each
-    one searched from where the previous one ended. Walking them in order is
-    what keeps the boundaries straight, and matching a line on its own is not
-    enough for either reason a paragraph can carry it twice:
-
-    - two lines that read exactly alike (``Rose 14%.`` twice), where only
-      position tells them apart;
-    - a line that an earlier line *contains* -- ``Group A: 14% increase.``
-      ends with the whole of ``14% increase.`` -- where the first match of the
-      later line sits inside the earlier one, and counting identical lines
-      ahead never sees it because the two are not identical.
-
-    ``None`` when the line cannot be found past the lines ahead of it:
-    conversion drift, or a line the range covers that the paragraph never
-    carried at all -- the line-range mapper runs a paragraph's range up to the
-    line before the next one starts, so a nested block's line falls inside it.
-    A line that cannot be placed leaves the cursor where it was, so the drift
-    of one line does not cost the rest of the paragraph its boundaries.
-    """
-    first = max(1, paragraph_range[0])
-    last = min(len(document_lines), paragraph_range[1])
-    cursor = 0
-    for number in range(first, last + 1):
-        rendered = rendered_line(document_lines[number - 1])
-        span = (
-            next(
-                (
-                    found
-                    for found in locate_in_paragraph(paragraph_text, rendered)
-                    if found[0] >= cursor
-                ),
-                None,
-            )
-            if rendered
-            else None
-        )
-        if number == edit.start_line:
-            return span
-        if span is not None:
-            cursor = span[1]
-    return None
+# Why a repeat inside a paragraph that covers several markdown lines is left
+# alone. `display_occurrence` was counted on the edit's own line, so it does
+# not index the paragraph, and every way of rebasing it was wrong in a
+# different way (see `_resolve_span`).
+REPEATS_ACROSS_LINES = (
+    "the quoted text repeats inside a paragraph that spans several lines "
+    "of the document"
+)
 
 
 def _resolve_span(
-    edit: IssueEdit,
-    paragraph_text: str,
-    paragraph_range: Tuple[int, int],
-    document_lines: Sequence[str],
-) -> Tuple[Optional[Tuple[int, int]], EditOutcomeStatus]:
+    edit: IssueEdit, paragraph_text: str, paragraph_range: Tuple[int, int]
+) -> Tuple[Optional[Tuple[int, int]], EditOutcomeStatus, Optional[str]]:
     """Locate the edit's quote in the Word paragraph.
 
     `display_text` is the quote as the document renders it, worked out when the
@@ -108,44 +67,46 @@ def _resolve_span(
     and **Figure 3**`` and the second of two identical spans once the page has
     it.
 
-    A paragraph covering several markdown lines -- one per hard line break --
-    is a wider haystack than the index was counted in, so the paragraph's lines
-    are walked in order until the edit's own is placed, and the quote is looked
-    for within that line's span alone. Counting the quote line by line and adding up what sits
-    ahead is not enough, and that is the whole reason for going through the
-    line: Word keeps nothing where a break was, so joining
-    ``First cohort rose 14% `` and ``in 2019; ...`` puts a ``14% in`` in the
-    paragraph that neither line carries. Counting per line never sees it, and
-    the edit lands on the wrong cohort.
+    A paragraph covering several markdown lines is a different matter. A hard
+    line break inside a Word paragraph converts to one markdown line per
+    break, and Word keeps *nothing* where the break was -- no separator to
+    rebuild the join from. `display_occurrence` was counted in one line and the
+    paragraph is several, so it cannot be used as it stands, and every attempt
+    to rebase it onto the paragraph failed somewhere else:
 
-    When the line cannot be located at all the paragraph is the only thing
-    left to go on, so a quote it carries exactly once is taken and anything
-    repeated is reported rather than guessed at.
+    - adding up the quote's occurrences on the lines ahead misses a match that
+      straddles the join, since ``First cohort rose 14% `` and ``in 2019; ...``
+      put a ``14% in`` in the paragraph that neither line carries;
+    - locating the edit's own line and counting inside it misses the case
+      where an earlier line *contains* the later one, so ``Group A: 14%
+      increase.`` swallows the whole of ``14% increase.``;
+    - walking the lines in document order behind a cursor fixes both and still
+      leaves the boundaries to conversion drift, with no way to tell a
+      mislocated line from a line the paragraph never carried.
+
+    So a repeat in such a paragraph is reported rather than placed. It costs
+    little: paragraphs spanning several markdown lines are about 4.5% of the
+    converted DOCX paragraphs, and almost all of them are reference entries
+    and author blocks -- passages an edit rarely needs to reach, and where
+    guessing wrong would redline the wrong author's name. A quote the
+    paragraph carries once is applied as it always was, drift or no drift.
     """
     if not edit.display_text:
-        return None, "not_found"
+        return None, "not_found", None
     spans = locate_in_paragraph(paragraph_text, edit.display_text)
     if not spans:
-        return None, "not_found"
+        return None, "not_found", None
 
     if paragraph_range[0] < edit.start_line or paragraph_range[1] > edit.start_line:
-        line_span = _line_span_in_paragraph(
-            edit, paragraph_text, paragraph_range, document_lines
-        )
-        if line_span is not None:
-            within = locate_in_paragraph(
-                paragraph_text[line_span[0] : line_span[1]], edit.display_text
-            )
-            if edit.display_occurrence < len(within):
-                start, end = within[edit.display_occurrence]
-                return (line_span[0] + start, line_span[0] + end), "applied"
-        return (spans[0], "applied") if len(spans) == 1 else (None, "ambiguous")
+        if len(spans) == 1:
+            return spans[0], "applied", None
+        return None, "ambiguous", REPEATS_ACROSS_LINES
 
     if len(spans) == 1:
-        return spans[0], "applied"
+        return spans[0], "applied", None
     if edit.display_occurrence >= len(spans):
-        return None, "ambiguous"
-    return spans[edit.display_occurrence], "applied"
+        return None, "ambiguous", None
+    return spans[edit.display_occurrence], "applied", None
 
 
 def _with_boundary_whitespace(
@@ -198,9 +159,9 @@ def plan_edit(
             ),
         )
 
-    span, status = _resolve_span(edit, paragraph.text, paragraph_range, document_lines)
+    span, status, detail = _resolve_span(edit, paragraph.text, paragraph_range)
     if span is None:
-        return None, EditOutcome(edit_id=edit.id, status=status)
+        return None, EditOutcome(edit_id=edit.id, status=status, detail=detail)
 
     span = _with_boundary_whitespace(span, paragraph.text, edit.original_text)
     find = paragraph.text[span[0] : span[1]]

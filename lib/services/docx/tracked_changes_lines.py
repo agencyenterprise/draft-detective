@@ -2,10 +2,8 @@
 
 An edit is anchored to one line of the converted markdown, and the export has
 to decide whether that line really is the mapped paragraph's own before any of
-its words are redlined. It also has to know what the line looks like once
-rendered, since that is the form the paragraph carries -- used both for the
-membership test here and, by `tracked_changes_placement`, for finding the
-line's own span inside a paragraph that covers several of them.
+its words are redlined. Deciding needs the line in the form the paragraph
+carries, which is the rendered one, so the rendering lives here too.
 """
 
 import re
@@ -40,7 +38,7 @@ def source_line(edit: IssueEdit, document_lines: Sequence[str]) -> Optional[str]
     return document_lines[edit.start_line - 1]
 
 
-def without_footnote_references(line: str) -> str:
+def _without_footnote_references(line: str) -> str:
     """The markdown line with its footnote reference markers dropped.
 
     Word shows a footnote as a reference mark rather than as text, so the
@@ -82,7 +80,7 @@ def line_belongs_to_paragraph(line: Optional[str], paragraph_text: str) -> bool:
     """
     if line is None:
         return False
-    line_text = rendered_line(line)
+    line_text = _rendered_line(line)
     para_text = normalize_whitespace(paragraph_text)
     if not line_text or not para_text:
         return False
@@ -94,11 +92,11 @@ def line_belongs_to_paragraph(line: Optional[str], paragraph_text: str) -> bool:
     return similarity >= _MIN_SIMILARITY
 
 
-def rendered_line(line: str) -> str:
+def _rendered_line(line: str) -> str:
     """One markdown line as the Word paragraph would carry it.
 
     The same treatment the membership check gives a line: footnote reference
     markers off, since Word shows those as marks rather than as text, then
     rendered and whitespace-normalized.
     """
-    return normalize_whitespace(render_line_text(without_footnote_references(line)))
+    return normalize_whitespace(render_line_text(_without_footnote_references(line)))
