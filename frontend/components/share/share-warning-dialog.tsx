@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
+import { CheckboxWithDescription } from '@/components/ui/checkbox-with-description';
 import {
   Dialog,
   DialogContent,
@@ -12,8 +12,10 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { RadioGroup, RadioGroupItemWithDescription } from '@/components/ui/radio-group-with-description';
-import { AlertTriangle, Download, Loader2 } from 'lucide-react';
+import { AlertTriangle, Download, Link, Loader2, PencilLineIcon } from 'lucide-react';
 import { DocxType } from '../results/components/use-download-docx';
+import { ActiveFilters, ExportScope } from './active-filters-summary';
+import type { ExportCounts } from '@/lib/export-scope';
 
 // Temporarily hidden: the Draft Detective add-in export is not offered right now.
 // Flip back to `true` to restore the export type picker.
@@ -25,7 +27,22 @@ interface ShareWarningDialogProps {
   isProjectPublic: boolean;
   isEnablingShare: boolean;
   isDownloading: boolean;
-  onDownload: (type: DocxType) => void;
+  /** The document explorer's filters, which scope the export. */
+  filters: ActiveFilters;
+  /** What that scope amounts to: issues that become comments, and their proposed edits. */
+  counts: ExportCounts;
+  /**
+   * Whether the export can carry links back to Draft Detective at all. False
+   * for a historical revision, where the backend leaves them out, so the option
+   * is not offered: see `shareLinksAvailable`.
+   */
+  linksAvailable: boolean;
+  onDownload: (type: DocxType, options: DownloadOptions) => void;
+}
+
+export interface DownloadOptions {
+  /** Apply each issue's proposed edits to the document as tracked changes. */
+  includeEdits: boolean;
 }
 
 export function ShareWarningDialog({
@@ -34,111 +51,135 @@ export function ShareWarningDialog({
   isProjectPublic,
   isEnablingShare,
   isDownloading,
+  filters,
+  counts,
+  linksAvailable,
   onDownload,
 }: ShareWarningDialogProps) {
   const isProcessing = isEnablingShare || isDownloading;
   const [selectedExportType, setSelectedExportType] = useState<'comments' | 'add-in'>('comments');
   const [makePublicAndAddLinks, setMakePublicAndAddLinks] = useState(isProjectPublic);
+  const [includeEdits, setIncludeEdits] = useState(true);
 
-  const shouldShowLinksCheckbox = selectedExportType === 'comments' && !isProjectPublic;
+  const shouldShowEditsCheckbox = selectedExportType === 'comments';
+  const shouldShowLinksCheckbox = selectedExportType === 'comments' && !isProjectPublic && linksAvailable;
+  const shouldShowLinksUnavailableNote = selectedExportType === 'comments' && !linksAvailable;
   const shouldShowAddInDisclaimer = selectedExportType === 'add-in';
+  // Never ask for links the backend would drop: the file would be the same
+  // either way, and asking would make a private project public for nothing.
+  const addLinks = linksAvailable && makePublicAndAddLinks;
 
   const handleOpenChange = (isOpen: boolean) => {
     if (!isOpen) {
       setSelectedExportType('comments');
       setMakePublicAndAddLinks(isProjectPublic);
+      setIncludeEdits(true);
     }
     onOpenChange(isOpen);
   };
 
   const handleDownload = () => {
     const docxType: DocxType =
-      selectedExportType === 'add-in' ? 'add-in' : makePublicAndAddLinks ? 'comments-with-links' : 'comments';
+      selectedExportType === 'add-in' ? 'add-in' : addLinks ? 'comments-with-links' : 'comments';
 
-    onDownload(docxType);
+    onDownload(docxType, { includeEdits: selectedExportType === 'comments' && includeEdits });
     setSelectedExportType('comments');
     setMakePublicAndAddLinks(isProjectPublic);
+    setIncludeEdits(true);
   };
 
   return (
     <Dialog open={open} onOpenChange={isProcessing ? undefined : handleOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5 text-amber-500" />
-            {SHOW_ADD_IN_OPTION ? 'Choose How Issues Are Shown' : 'Download DOCX'}
-          </DialogTitle>
-          <DialogDescription asChild>
-            <div className="text-sm text-muted-foreground pt-2">
-              {SHOW_ADD_IN_OPTION
-                ? 'Choose how reviewers should see this project in the downloaded DOCX.'
-                : 'The assessment results are added to the document as standard Word comments.'}
-            </div>
+          <DialogTitle>Download DOCX</DialogTitle>
+          <DialogDescription>
+            Your Word document with each finding added as a comment on the passage it concerns.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-3 pt-2">
-          {SHOW_ADD_IN_OPTION && (
-            <RadioGroup
-              value={selectedExportType}
-              onValueChange={(value) => setSelectedExportType(value as 'comments' | 'add-in')}
-              className="gap-2"
-            >
-              <RadioGroupItemWithDescription
-                id="comments"
-                value={selectedExportType}
-                label="Regular comments"
-                description="Adds standard Word comments for use outside the add-in."
-                disabled={isProcessing}
-              />
-              <RadioGroupItemWithDescription
-                id="add-in"
-                value={selectedExportType}
-                label="Draft Detective add-in"
-                description="Reviewers can see issues directly in the add-in as they do in the app."
-                disabled={isProcessing}
-              />
-            </RadioGroup>
-          )}
+        <div className="space-y-5">
+          <section className="space-y-2">
+            <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Included</h3>
+            <ExportScope filters={filters} counts={counts} includeEdits={shouldShowEditsCheckbox && includeEdits} />
+          </section>
 
-          {shouldShowLinksCheckbox && (
-            <label className="flex items-start gap-2 rounded-md border p-3 cursor-pointer">
-              <Checkbox
-                checked={makePublicAndAddLinks}
-                disabled={isProcessing}
-                onCheckedChange={(checked) => setMakePublicAndAddLinks(checked === true)}
-                className="mt-0.5"
-              />
-              <span className="text-sm text-muted-foreground">
-                Make this project public and add links to comments redirecting to the full project page.
-              </span>
-            </label>
-          )}
+          <section className="space-y-2">
+            <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Options</h3>
+            <div className="divide-y rounded-lg border">
+              {SHOW_ADD_IN_OPTION && (
+                <RadioGroup
+                  value={selectedExportType}
+                  onValueChange={(value) => setSelectedExportType(value as 'comments' | 'add-in')}
+                  className="gap-0 p-1"
+                >
+                  <RadioGroupItemWithDescription
+                    id="comments"
+                    value={selectedExportType}
+                    label="Regular comments"
+                    description="Adds standard Word comments for use outside the add-in."
+                    disabled={isProcessing}
+                  />
+                  <RadioGroupItemWithDescription
+                    id="add-in"
+                    value={selectedExportType}
+                    label="Draft Detective add-in"
+                    description="Reviewers can see issues directly in the add-in as they do in the app."
+                    disabled={isProcessing}
+                  />
+                </RadioGroup>
+              )}
 
-          {shouldShowAddInDisclaimer && (
-            <div className="flex items-start gap-2 rounded-md border p-3">
-              <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
-              <span className="text-sm text-muted-foreground">
-                Requires the Draft Detective Word add-in.
-                {!isProjectPublic && ' This will make this project public.'}
-              </span>
+              {shouldShowEditsCheckbox && (
+                <CheckboxWithDescription
+                  id="include-edits"
+                  icon={PencilLineIcon}
+                  checked={includeEdits}
+                  disabled={isProcessing}
+                  onCheckedChange={setIncludeEdits}
+                  label="Apply proposed edits as tracked changes"
+                  description="Accept or reject each edit in Word. Every edit is also described in its issue's comment."
+                />
+              )}
+
+              {shouldShowLinksCheckbox && (
+                <CheckboxWithDescription
+                  id="add-links"
+                  icon={Link}
+                  checked={makePublicAndAddLinks}
+                  disabled={isProcessing}
+                  onCheckedChange={setMakePublicAndAddLinks}
+                  label="Link comments to Draft Detective"
+                  description="Makes this project public and links each comment to its issue online."
+                />
+              )}
+
+              {shouldShowLinksUnavailableNote && (
+                <p className="p-4 text-sm text-muted-foreground">
+                  Links to Draft Detective are only added when exporting the current revision.
+                </p>
+              )}
+
+              {shouldShowAddInDisclaimer && (
+                <p className="flex items-start gap-2 p-4 text-sm text-muted-foreground">
+                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+                  <span>
+                    Requires the Draft Detective Word add-in.
+                    {!isProjectPublic && ' This will make this project public.'}
+                  </span>
+                </p>
+              )}
             </div>
-          )}
+          </section>
         </div>
 
-        <DialogFooter className="pt-4">
-          <Button onClick={handleDownload} disabled={isProcessing} className="w-full justify-center gap-2">
-            {isProcessing ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Downloading...
-              </>
-            ) : (
-              <>
-                <Download className="h-4 w-4" />
-                Download
-              </>
-            )}
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => handleOpenChange(false)} disabled={isProcessing}>
+            Cancel
+          </Button>
+          <Button onClick={handleDownload} disabled={isProcessing} className="gap-2">
+            {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+            {isProcessing ? 'Preparing...' : 'Download'}
           </Button>
         </DialogFooter>
       </DialogContent>

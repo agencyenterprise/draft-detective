@@ -172,6 +172,7 @@ export function ProjectShell({
               <AnalysisOptionsMenu
                 project={projectDetail.project}
                 results={results}
+                issues={projectDetail.issues ?? []}
                 readOnly={readOnly}
                 selectedRevision={selectedRevision}
                 onRevisionChange={onRevisionChange}

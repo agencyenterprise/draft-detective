@@ -73,6 +73,30 @@ class IssueEdit(SQLModel, table=True):
         ),
     )
 
+    display_text: str = Field(
+        sa_column=Column(Text, nullable=False),
+        description=(
+            "original_text as the document renders it: markdown syntax gone, "
+            "whitespace normalized. What the highlight and the export search for."
+        ),
+    )
+
+    display_occurrence: int = Field(
+        sa_column=Column(Integer, nullable=False),
+        description=(
+            "0-based index of display_text among its occurrences in the "
+            "rendered line, since rendering can turn a unique quote into a repeat."
+        ),
+    )
+
+    display_replacement: str = Field(
+        sa_column=Column(Text, nullable=False),
+        description=(
+            "replacement_text as it should reach the page: markdown syntax "
+            "gone, whitespace exactly as the edit wrote it."
+        ),
+    )
+
     start_line: int = Field(
         sa_column=Column(Integer, nullable=False),
         description="1-indexed first line of the main document markdown containing original_text",
@@ -145,6 +169,9 @@ class IssueEditRead(BaseModel):
     issue_id: uuid.UUID
     original_text: str
     replacement_text: str
+    display_text: str
+    display_occurrence: int
+    display_replacement: str
     start_line: int
     end_line: int
     rationale: str

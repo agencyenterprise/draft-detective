@@ -1881,6 +1881,18 @@ export type IssueEditRead = {
    */
   replacement_text: string;
   /**
+   * Display Text
+   */
+  display_text: string;
+  /**
+   * Display Occurrence
+   */
+  display_occurrence: number;
+  /**
+   * Display Replacement
+   */
+  display_replacement: string;
+  /**
    * Start Line
    */
   start_line: number;
@@ -2435,6 +2447,24 @@ export type ProposedEdit = {
    * One short sentence explaining why this replacement resolves the issue.
    */
   rationale: string;
+  /**
+   * Display Text
+   *
+   * original_text as the document renders it -- markdown syntax gone, whitespace normalized. What the highlight and the export search for.
+   */
+  display_text: string;
+  /**
+   * Display Occurrence
+   *
+   * 0-based index of display_text among its occurrences in the rendered line, since rendering can turn a unique quote into a repeat.
+   */
+  display_occurrence: number;
+  /**
+   * Display Replacement
+   *
+   * replacement_text as it should reach the page: markdown syntax gone, whitespace exactly as the edit wrote it.
+   */
+  display_replacement: string;
 };
 
 /**
@@ -5929,6 +5959,18 @@ export type DownloadProjectDocxApiProjectsProjectIdDocxDownloadGetData = {
      * Include passing issues (severity=none) in the export
      */
     include_passing?: boolean;
+    /**
+     * Include Edits
+     *
+     * Apply the issues' proposed edits as Word tracked changes, so they can be accepted or rejected in Word. Comment exports only. Every edit is described in its issue's comment either way.
+     */
+    include_edits?: boolean;
+    /**
+     * Revision
+     *
+     * Which revision of the main document to export, with the issues of that revision. Defaults to the project's current revision.
+     */
+    revision?: number | null;
   };
   url: '/api/projects/{project_id}/docx/download';
 };

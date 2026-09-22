@@ -453,7 +453,7 @@ export function DocumentView({
       return;
     }
 
-    setEditHighlight(editRanges(container, selectedEdits, markdown.split('\n')));
+    setEditHighlight(editRanges(container, selectedEdits));
     return clearEditHighlight;
   }, [markdown, selectedEdits]);
 

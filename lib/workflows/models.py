@@ -258,6 +258,24 @@ class ProposedEdit(BaseModel):
     rationale: str = Field(
         description="One short sentence explaining why this replacement resolves the issue."
     )
+    display_text: str = Field(
+        description=(
+            "original_text as the document renders it -- markdown syntax gone, "
+            "whitespace normalized. What the highlight and the export search for."
+        )
+    )
+    display_occurrence: int = Field(
+        description=(
+            "0-based index of display_text among its occurrences in the "
+            "rendered line, since rendering can turn a unique quote into a repeat."
+        )
+    )
+    display_replacement: str = Field(
+        description=(
+            "replacement_text as it should reach the page: markdown syntax "
+            "gone, whitespace exactly as the edit wrote it."
+        )
+    )
 
 
 class DocumentIssue(BaseModel):

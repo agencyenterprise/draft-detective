@@ -21,11 +21,17 @@ from langchain_core.tools import BaseTool, tool
 from pydantic import BaseModel, Field
 
 from lib.agents.tools.view_image import redact_image_blocks
+from lib.services.markdown_text import (
+    rendered_replacement_in_context,
+    rendered_span,
+)
+from lib.services.text_location import locate_in_paragraph
 from lib.workflows.models import ProposedEdit
 from lib.workflows.simple_deep_agent.agent_types import DeepAgentRun, IssueItem
 from lib.workflows.simple_deep_agent.edit_anchoring import (
     document_lines,
     find_quote_lines,
+    normalize_whitespace,
     range_excerpt,
 )
 
@@ -172,6 +178,16 @@ class IssueReporter:
                 "edit would change nothing."
             )
 
+        # The app renders `$$...$$` as MathML and Word holds an equation as
+        # OMML with no delimiters, so neither surface has characters an edit
+        # could be placed on. Single-dollar text is not math in the app
+        # (`singleDollarTextMath: false`), so `$5 million` is ordinary prose.
+        if "$$" in edit.original_text or "$$" in edit.replacement_text:
+            return (
+                f"{label}: original_text and replacement_text must not contain "
+                "display math (`$$...$$`); the export cannot place equations."
+            )
+
         matches = find_quote_lines(lines, start_line, end_line, edit.original_text)
         if not matches:
             return (
@@ -188,12 +204,47 @@ class IssueReporter:
             )
         line = matches[0]
 
+        # The rendered form is settled here, once, and stored with the edit:
+        # the in-app highlight and the DOCX redline both look for the
+        # characters the reader sees, and neither should have to re-derive
+        # them from the markdown.
+        spans = locate_in_paragraph(
+            lines[line - 1], normalize_whitespace(edit.original_text)
+        )
+        rendered = (
+            rendered_span(lines[line - 1], spans[0][0], spans[0][1])
+            if len(spans) == 1
+            else None
+        )
+        if rendered is None:
+            return (
+                f"{label}: original_text must start and end on plain text, not "
+                "inside a link address or a formatting marker. Quote whole "
+                "words from the line, including any markup that surrounds them."
+            )
+
+        # Rendered where the quote sat, not on its own: the quote may open or
+        # close inside formatting that carries on around it, and so does the
+        # replacement that takes its place.
+        replacement = rendered_replacement_in_context(
+            lines[line - 1], spans[0][0], spans[0][1], edit.replacement_text
+        )
+        if replacement is None:
+            return (
+                f"{label}: replacement_text cannot be placed where "
+                "original_text sits without breaking the surrounding "
+                "formatting; quote the whole formatted span instead."
+            )
+
         return ProposedEdit(
             original_text=edit.original_text,
             replacement_text=edit.replacement_text,
             rationale=edit.rationale,
             start_line=line,
             end_line=line,
+            display_text=rendered.display_text,
+            display_occurrence=rendered.display_occurrence,
+            display_replacement=replacement,
         )
 
     def _build_report_tool(self) -> BaseTool:

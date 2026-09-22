@@ -28,7 +28,11 @@ def _issue(title: str = "Missing section") -> dict:
 
 
 # Line 4 carries a non-breaking space, as converted DOCX prose often does; line
-# 6 repeats "Figure 3" twice, so a quote of it is ambiguous.
+# 6 repeats "Figure 3" twice, so a quote of it is ambiguous. Line 8 carries the
+# same phrase plain and in bold, so only the rendered form tells them apart,
+# and a link whose label an edit can quote but whose address it cannot. Line 10
+# carries a bold run an edit can quote half of, and a parenthetical whose
+# closing bracket a replacement can fall foul of.
 _DOCUMENT = "\n".join(
     [
         "# Title",  # 1
@@ -37,6 +41,10 @@ _DOCUMENT = "\n".join(
         "participant in the second\xa0cohort.",  # 4
         "",  # 5
         "Results appear in Figure 3 and Figure 3.",  # 6
+        "",  # 7
+        "Figure 3 and **Figure 3** close [the study](https://x/a_b).",  # 8
+        "",  # 9
+        "The **old phrase** matters to the cohort (n = 40).",  # 10
     ]
 )
 
@@ -46,7 +54,7 @@ def _issue_with_edits(edits: list[dict], **overrides) -> dict:
     return {
         **_issue("Numbering mismatch"),
         "start_line": 1,
-        "end_line": 6,
+        "end_line": 10,
         "edits": edits,
         **overrides,
     }
@@ -224,7 +232,7 @@ def test_ambiguous_quote_is_rejected_until_a_unique_span_is_quoted():
         )
     )
     assert rejected.startswith("Issue was not recorded:")
-    assert "appears 2 times" in rejected
+    assert "appears 4 times" in rejected
     assert "longer span" in rejected
 
     # The whole line is always unique on itself, so the agent can widen the
@@ -310,7 +318,229 @@ def test_deletion_is_expressed_as_an_empty_replacement():
     )
 
     assert confirmation.startswith("Recorded issue-1")
-    assert reporter.issues[0].edits[0].replacement_text == ""
+    (edit,) = reporter.issues[0].edits
+    assert edit.replacement_text == ""
+    # An empty replacement renders to an empty one: that is the deletion
+    # contract the export and the highlight both read.
+    assert edit.display_replacement == ""
+
+
+def test_a_recorded_edit_carries_the_text_the_document_renders():
+    reporter = IssueReporter(propose_edits=True, document_text=_DOCUMENT)
+    report_issue = _tools(reporter)["report_issue"]
+
+    report_issue.invoke(
+        _issue_with_edits(
+            [
+                {
+                    "original_text": "**Figure 3**",
+                    "replacement_text": "**Figure 4**",
+                    "rationale": "r",
+                }
+            ]
+        )
+    )
+
+    (edit,) = reporter.issues[0].edits
+    # The quote is unique in the markdown and the second of two identical spans
+    # once the page shows it, which is exactly what the highlight and the
+    # export need to be told.
+    assert edit.display_text == "Figure 3"
+    assert edit.display_occurrence == 1
+    assert edit.display_replacement == "Figure 4"
+
+
+def test_a_quote_whose_text_is_plain_renders_to_itself():
+    reporter = IssueReporter(propose_edits=True, document_text=_DOCUMENT)
+    report_issue = _tools(reporter)["report_issue"]
+
+    report_issue.invoke(
+        _issue_with_edits(
+            [
+                {
+                    "original_text": "participant in the second cohort",
+                    "replacement_text": "participant in the second group",
+                    "rationale": "r",
+                }
+            ]
+        )
+    )
+
+    (edit,) = reporter.issues[0].edits
+    assert edit.display_text == "participant in the second cohort"
+    assert edit.display_occurrence == 0
+    assert edit.display_replacement == "participant in the second group"
+
+
+def test_a_whole_heading_replacement_drops_the_block_syntax():
+    reporter = IssueReporter(propose_edits=True, document_text=_DOCUMENT)
+    report_issue = _tools(reporter)["report_issue"]
+
+    report_issue.invoke(
+        _issue_with_edits(
+            [
+                {
+                    "original_text": "# Title",
+                    "replacement_text": "# Report",
+                    "rationale": "r",
+                }
+            ]
+        )
+    )
+
+    (edit,) = reporter.issues[0].edits
+    # The quote opened its line, so it took the hashes with it and the
+    # replacement was written carrying them. Word shows neither.
+    assert edit.display_text == "Title"
+    assert edit.display_replacement == "Report"
+
+
+def test_a_mid_line_replacement_keeps_a_hash_that_is_not_block_syntax():
+    reporter = IssueReporter(propose_edits=True, document_text=_DOCUMENT)
+    report_issue = _tools(reporter)["report_issue"]
+
+    report_issue.invoke(
+        _issue_with_edits(
+            [
+                {
+                    "original_text": "second cohort.",
+                    "replacement_text": "cohort # 2.",
+                    "rationale": "r",
+                }
+            ]
+        )
+    )
+
+    (edit,) = reporter.issues[0].edits
+    assert edit.display_replacement == "cohort # 2."
+
+
+def test_a_replacement_closing_the_formatting_its_quote_opened_renders_in_context():
+    reporter = IssueReporter(propose_edits=True, document_text=_DOCUMENT)
+    report_issue = _tools(reporter)["report_issue"]
+
+    report_issue.invoke(
+        _issue_with_edits(
+            [
+                {
+                    "original_text": "old phrase**",
+                    "replacement_text": "new phrase**",
+                    "rationale": "r",
+                }
+            ]
+        )
+    )
+
+    (edit,) = reporter.issues[0].edits
+    # The quote's trailing stars are the closing half of the document's bold
+    # run, and so are the replacement's. Rendered on its own the replacement
+    # would keep them as literals and Word would show `new phrase**`.
+    assert edit.display_text == "old phrase"
+    assert edit.display_replacement == "new phrase"
+
+
+def test_a_replacement_that_breaks_the_surrounding_formatting_is_rejected():
+    reporter = IssueReporter(propose_edits=True, document_text=_DOCUMENT)
+    report_issue = _tools(reporter)["report_issue"]
+
+    # The quote is the parenthetical's contents, so the line's own `)` closes
+    # the link destination the replacement opens: nothing of the replacement
+    # would reach the page as text.
+    result = report_issue.invoke(
+        _issue_with_edits(
+            [
+                {
+                    "original_text": "n = 40",
+                    "replacement_text": "[forty](https://x",
+                    "rationale": "r",
+                }
+            ]
+        )
+    )
+
+    assert result.startswith("Issue was not recorded:")
+    assert "cannot be placed where original_text sits" in result
+    assert "quote the whole formatted span instead" in result
+    assert reporter.issues == []
+
+
+def test_a_quote_ending_inside_a_link_address_is_rejected():
+    reporter = IssueReporter(propose_edits=True, document_text=_DOCUMENT)
+    report_issue = _tools(reporter)["report_issue"]
+
+    result = report_issue.invoke(
+        _issue_with_edits(
+            [
+                {
+                    "original_text": "close [the study](https://x/a",
+                    "replacement_text": "close [the paper](https://x/a",
+                    "rationale": "r",
+                }
+            ]
+        )
+    )
+
+    assert result.startswith("Issue was not recorded:")
+    assert "must start and end on plain text" in result
+    assert reporter.issues == []
+
+
+def test_display_math_is_rejected_in_either_text():
+    reporter = IssueReporter(propose_edits=True, document_text=_DOCUMENT)
+    report_issue = _tools(reporter)["report_issue"]
+
+    quoted = report_issue.invoke(
+        _issue_with_edits(
+            [
+                {
+                    "original_text": "cohort $$x = 1$$ here",
+                    "replacement_text": "cohort here",
+                    "rationale": "r",
+                }
+            ]
+        )
+    )
+    replaced = report_issue.invoke(
+        _issue_with_edits(
+            [
+                {
+                    "original_text": "# Title",
+                    "replacement_text": "# Title $$x = 1$$",
+                    "rationale": "r",
+                }
+            ]
+        )
+    )
+
+    for result in (quoted, replaced):
+        assert result.startswith("Issue was not recorded:")
+        assert "must not contain display math" in result
+    assert reporter.issues == []
+
+
+def test_a_single_dollar_is_money_not_math():
+    # The app reads `$...$` as prose (`singleDollarTextMath: false`), so a
+    # figure in dollars is an ordinary edit.
+    reporter = IssueReporter(
+        propose_edits=True, document_text="The grant was $5 million in 2019."
+    )
+    report_issue = _tools(reporter)["report_issue"]
+
+    confirmation = report_issue.invoke(
+        {
+            **_issue("Wrong figure"),
+            "edits": [
+                {
+                    "original_text": "$5 million",
+                    "replacement_text": "$6 million",
+                    "rationale": "r",
+                }
+            ],
+        }
+    )
+
+    assert confirmation.startswith("Recorded issue-1")
+    assert reporter.issues[0].edits[0].display_replacement == "$6 million"
 
 
 def test_plain_tool_has_no_edits_argument():
