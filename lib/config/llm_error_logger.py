@@ -9,12 +9,16 @@ use a distinct `LLM_RATE_LIMIT` prefix so they can be isolated with a simple
 
 from __future__ import annotations
 
+import json
 import logging
+from time import monotonic
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Optional
 from uuid import UUID
 
 from langchain_core.callbacks import BaseCallbackHandler
+
+from lib.config.llm_diagnostics import capture_http_error, safe_endpoint
 
 if TYPE_CHECKING:
     # Imported only for typing to avoid a circular import:
@@ -47,6 +51,7 @@ class _CallMetadata:
     model_name: str
     provider: str
     endpoint: Optional[str]
+    started_at: float
 
 
 def _is_rate_limit_error(error: BaseException) -> bool:
@@ -56,7 +61,7 @@ def _is_rate_limit_error(error: BaseException) -> bool:
     `RateLimitError` subclasses) and any other httpx-style error that exposes
     a `status_code` attribute.
     """
-    return getattr(error, "status_code", None) == 429
+    return (capture_http_error(error) or {}).get("status_code") == 429
 
 
 def _flatten_message(error: BaseException) -> str:
@@ -70,7 +75,7 @@ def _flatten_message(error: BaseException) -> str:
 
 
 def _status_code(error: BaseException) -> str:
-    code = getattr(error, "status_code", None)
+    code = (capture_http_error(error) or {}).get("status_code")
     return str(code) if code is not None else "-"
 
 
@@ -94,14 +99,7 @@ def _endpoint_from_obj(obj: Any) -> Optional[str]:
 
 def _endpoint_from_error(error: BaseException) -> Optional[str]:
     """Try to read the request URL off an httpx-style error's response."""
-    response = getattr(error, "response", None)
-    if response is None:
-        return None
-    request = getattr(response, "request", None)
-    if request is None:
-        return None
-    url = getattr(request, "url", None)
-    return str(url) if url else None
+    return (capture_http_error(error) or {}).get("endpoint")
 
 
 def _endpoint_from_serialized(
@@ -158,6 +156,7 @@ def _format_log_line(
     status: str,
     error_type: str,
     message: str,
+    diagnostics: Optional[dict] = None,
 ) -> str:
     """Build a single-line `PREFIX key=value …` record.
 
@@ -173,7 +172,7 @@ def _format_log_line(
         f"provider={provider or '-'}",
     ]
     if endpoint:
-        parts.append(f"endpoint={endpoint}")
+        parts.append(f"endpoint={safe_endpoint(endpoint)}")
     parts.extend(
         [
             f"workflow_run_id={workflow_run_id or '-'}",
@@ -183,6 +182,8 @@ def _format_log_line(
             f'message="{message}"',
         ]
     )
+    if diagnostics:
+        parts.append("diagnostics=" + json.dumps(diagnostics, ensure_ascii=True))
     return " ".join(parts)
 
 
@@ -268,6 +269,7 @@ class ErrorLoggingCallback(BaseCallbackHandler):
             model_name=str(model_name),
             provider=str(provider),
             endpoint=endpoint,
+            started_at=monotonic(),
         )
 
     # --- end / error hooks: consume cached metadata ----------------------
@@ -294,6 +296,12 @@ class ErrorLoggingCallback(BaseCallbackHandler):
     ) -> None:
         meta = self._calls.pop(run_id, None)
         is_rate_limit = _is_rate_limit_error(error)
+        diagnostics = capture_http_error(error) or {}
+        diagnostics["llm_run_id"] = str(run_id)
+        if meta:
+            diagnostics["call_elapsed_ms"] = round(
+                (monotonic() - meta.started_at) * 1000
+            )
         line = _format_log_line(
             is_rate_limit=is_rate_limit,
             caller=meta.agent_name if meta else _UNKNOWN,
@@ -305,6 +313,7 @@ class ErrorLoggingCallback(BaseCallbackHandler):
             status=_status_code(error),
             error_type=type(error).__name__,
             message=_flatten_message(error),
+            diagnostics=diagnostics,
         )
         _emit(line, is_rate_limit=is_rate_limit)
 
@@ -346,5 +355,6 @@ def log_embedding_error(
         status=_status_code(error),
         error_type=type(error).__name__,
         message=_flatten_message(error),
+        diagnostics=capture_http_error(error),
     )
     _emit(line, is_rate_limit=is_rate_limit)
