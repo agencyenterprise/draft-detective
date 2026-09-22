@@ -401,6 +401,39 @@ def test_expected_phrases_are_read_off_the_line_with_a_word_level_edit_applied()
     assert edit_checks(f, _issue(edits=[wrong]), LINES)["edit_expected_phrases"][0] == 0.0
 
 
+def test_expected_phrases_are_judged_on_the_edited_sentence_not_its_neighbours():
+    lines = ["Respondents rated scheduling. Participants rated scheduling."]
+    f = ResolvedIssue(id="f", title=None, anchor="Respondents rated scheduling", line=1, edit_expected=True,
+                      edit={"must_include": ["Participants rated scheduling"]})
+    # The edit touches the first sentence only; the phrase lives untouched in the second.
+    untouched_neighbour = _edit("Respondents rated scheduling.", "Respondents rated the schedule.", line=1)
+    assert edit_checks(f, _issue(start=1, end=1, edits=[untouched_neighbour]), lines)["edit_expected_phrases"][0] == 0.0
+    # The same phrase produced by a word-level edit in the first sentence passes.
+    fixes_it = _edit("Respondents", "Participants", line=1)
+    assert edit_checks(f, _issue(start=1, end=1, edits=[fixes_it]), lines)["edit_expected_phrases"][0] == 1.0
+
+
+def test_forbidden_phrases_left_standing_in_the_edited_sentence_fail():
+    f = _expected(edit_expected=True, edit={"must_not_include": ["by the field team"]})
+    # A word-level edit whose replacement is clean, but the sentence it produces still carries the phrase.
+    partial = _edit("Data were collected", "The team collected data")
+    assert edit_checks(f, _issue(edits=[partial]), LINES)["edit_expected_phrases"][0] == 0.0
+    whole = _edit("Data were collected from 3 sites by the field team.", "The field team collected data from 3 sites.")
+    assert edit_checks(f, _issue(edits=[whole]), LINES)["edit_expected_phrases"][0] == 1.0
+
+
+def test_percentage_units_travel_with_their_number():
+    line = "Retention rose 7% in the same period."
+    lines = LINES[:8] + [line]
+    f = _expected(anchor="Retention rose 7% in the same period", line=9)
+    keeps_unit = _edit("Retention rose 7% in the same period.", "Retention rose 7 percent in the same period.", line=9)
+    drops_unit = _edit("Retention rose 7% in the same period.", "Retention rose 7 in the same period.", line=9)
+    british = _edit("Retention rose 7% in the same period.", "Retention rose 7 per cent in the same period.", line=9)
+    check = lambda e: edit_checks(f, _issue(start=9, end=9, edits=[e]), lines)["edit_keeps_numbers_and_markers"][0]
+    assert check(keeps_unit) == 1.0 and check(british) == 1.0
+    assert check(drops_unit) == 0.0, "a bare 7 is not 7 percent"
+
+
 def test_footnote_markers_and_citations_count_as_tokens():
     f = _expected(edit_expected=True, anchor="Findings are listed", line=9)
     line = "Findings are listed in Appendix A (Smith, 2024).[[3]](#footnote-4)"

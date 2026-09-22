@@ -24,7 +24,8 @@ def test_dataset_is_well_formed():
     assert sum(1 for r in records if not r.expected_issues) == 5, "five clean documents"
     assert {"signposting", "qualifier", "hedge", "compound", "topic_sentence"} <= set(decoy_reasons(records))
     assert expects_edits(records) is True
-    # Every expected says whether an edit is expected, so the edit layer has something to check.
+    # Every expected says whether an edit is expected, except an Obvious Statement, where deleting
+    # the sentence and asking for the deeper point are both acceptable fixes.
     assert all(e.edit_expected is not None for e in expected if e.title != "Obvious Statement")
 
 
