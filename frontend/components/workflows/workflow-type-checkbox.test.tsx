@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { WorkflowRunType, type WorkflowTypeDescription } from '@/lib/generated-api';
-import { declaredIconName, WorkflowIcon } from './workflow-type-checkbox';
+import { declaredIconName, WorkflowIcon, WorkflowTypeCheckbox } from './workflow-type-checkbox';
 
 function workflowType(overrides: Partial<WorkflowTypeDescription> = {}): WorkflowTypeDescription {
   return {
@@ -32,6 +32,26 @@ describe('declaredIconName', () => {
     expect(declaredIconName(undefined)).toBeNull();
     expect(declaredIconName(null)).toBeNull();
     expect(declaredIconName('')).toBeNull();
+  });
+});
+
+describe('WorkflowTypeCheckbox badges', () => {
+  function markup(overrides: Partial<WorkflowTypeDescription>): string {
+    return renderToStaticMarkup(
+      <WorkflowTypeCheckbox workflowType={workflowType(overrides)} checked={false} onCheckedChange={() => undefined} />,
+    );
+  }
+
+  it('shows the proposed-edits badge only for workflows that propose edits', () => {
+    expect(markup({ proposes_edits: true })).toContain('Proposed Edits');
+    expect(markup({ proposes_edits: false })).not.toContain('Proposed Edits');
+  });
+
+  it('keeps the alpha and web-search badges alongside it', () => {
+    const html = markup({ proposes_edits: true, is_experimental: true, needs_web_search: true });
+    expect(html).toContain('Alpha');
+    expect(html).toContain('Web Search');
+    expect(html).toContain('Proposed Edits');
   });
 });
 

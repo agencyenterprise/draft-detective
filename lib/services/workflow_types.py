@@ -72,14 +72,18 @@ class WorkflowTypeDescription(BaseModel):
     # lucide icon name (kebab-case) chosen by the workflow, or None to let the
     # frontend fall back to its own per-type map or default icon.
     icon: Optional[str] = None
+    # Whether the workflow attaches proposed edits to its issues, shown
+    # alongside the original text in the document view.
+    proposes_edits: bool = False
 
     @classmethod
     def from_manifest(cls, manifest: "WorkflowManifest") -> "WorkflowTypeDescription":
-        derived = {"category", "gates", "icon"}
+        derived = {"category", "gates", "icon", "proposes_edits"}
         fields = {f: getattr(manifest, f) for f in cls.model_fields if f not in derived}
         fields["category"] = _WORKFLOW_CATEGORY_MAP.get(manifest.type, "internal")
         fields["gates"] = get_effective_gates(manifest.type)
         fields["icon"] = getattr(manifest, "icon", None)
+        fields["proposes_edits"] = bool(getattr(manifest, "propose_edits", False))
         return cls(**fields)
 
 

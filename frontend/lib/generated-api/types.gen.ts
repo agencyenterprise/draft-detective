@@ -4109,6 +4109,10 @@ export type WorkflowTypeDescription = {
    * Icon
    */
   icon?: string | null;
+  /**
+   * Proposes Edits
+   */
+  proposes_edits?: boolean;
 };
 
 /**

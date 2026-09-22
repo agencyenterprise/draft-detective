@@ -4,6 +4,7 @@ import * as React from 'react';
 import * as CheckboxPrimitive from '@radix-ui/react-checkbox';
 import {
   CheckIcon,
+  FilePenLine,
   FlaskConical,
   Search,
   FileText,
@@ -163,6 +164,7 @@ export function WorkflowTypeCheckbox({
           {(estimatedDuration ||
             workflowType.is_experimental ||
             workflowType.needs_web_search ||
+            workflowType.proposes_edits ||
             requiresSupportingFiles) && (
             <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
               {estimatedDuration && (
@@ -204,6 +206,20 @@ export function WorkflowTypeCheckbox({
                   <TooltipContent side="top" className="max-w-xs">
                     This assessment searches the web (using a web search tool) for additional context and information to
                     enhance the assessment. Parts of the document might be used as web search query/context.
+                  </TooltipContent>
+                </Tooltip>
+              )}
+              {workflowType.proposes_edits && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Badge variant="outline" className="flex items-center gap-1 text-xs">
+                      <FilePenLine className="size-3" />
+                      Proposed Edits
+                    </Badge>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-xs">
+                    This assessment attaches a proposed rewrite to issues where the fix is fully determined, shown
+                    alongside the original text in the document view.
                   </TooltipContent>
                 </Tooltip>
               )}
