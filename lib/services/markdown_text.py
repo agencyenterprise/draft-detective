@@ -24,11 +24,12 @@ on plain strings.
 
 import html
 import re
-from typing import List, Optional, Tuple
+from typing import List, Optional
 
 from markdown_it import MarkdownIt
 from pydantic import BaseModel, Field
 
+from lib.services.text_location import all_offsets
 from lib.workflows.simple_deep_agent.edit_anchoring import normalize_whitespace
 
 # CommonMark plus the two GFM extensions the converted documents use. No
@@ -51,9 +52,6 @@ _ANY_TAG = re.compile(r"<[^>]*>")
 # characters no converted document has ever carried.
 _QUOTE_OPENS = "⸮"
 _QUOTE_CLOSES = "⸘"
-
-# The same class `normalize_whitespace` collapses, one character at a time.
-_WHITESPACE = re.compile(r"\s")
 
 
 class RenderedSpan(BaseModel):
@@ -97,39 +95,69 @@ def render_line_text(line: str) -> str:
     return _text_of(_MARKDOWN.render(line)).strip("\n")
 
 
-def render_replacement_text(text: str, *, block_context: bool = False) -> str:
-    """An edit's replacement as it should reach the page, whitespace exact.
+def rendered_replacement_in_context(
+    line: str, start: int, end: int, replacement: str
+) -> Optional[str]:
+    """The replacement as the page would show it once it takes the quote's place.
 
-    A replacement is not a needle: it is written into the document verbatim, so
-    every space the edit asked for is kept -- a double space between sentences,
-    a non-breaking space inside a figure reference, a leading or trailing space
-    that separates the replacement from its neighbours. Only the syntax a
-    reader never sees is removed.
+    Rendered *in context*, not on its own, and that is the point. A quote may
+    start or end inside formatting that carries on around it: an agent that
+    quotes ``old phrase**`` out of ``The **old phrase** matters.`` writes a
+    replacement of ``new phrase**``, and the stars are the closing half of the
+    document's bold run, not text. Rendered alone that fragment has nothing to
+    close, so the stars survive as literals and Word is handed
+    ``new phrase**``. Spliced back into the line they close the run they came
+    from and disappear, which is what the reader would see.
 
-    Rendered inline by default, so a leading ``2. `` stays the year or the
-    numeral it was written as rather than becoming a list marker: a
-    replacement is usually a fragment of a paragraph, never a block of its own.
+    It cuts the other way too. ``a*b*c`` inside a code span is literal, so a
+    replacement of ``x*y*z`` has to keep its stars -- rendered alone they would
+    be read as emphasis and stripped.
 
-    `block_context` is for the one case where it is a block: a quote that
-    starts at column 0 of its line takes that line's block syntax with it, so
-    its replacement was written with the same syntax. ``# Old heading`` ->
-    ``# New heading`` is a heading rewritten, and rendering it inline would
-    write the hash into the document as text. In block mode the syntax goes
-    the way the line's does; only the whitespace the replacement opened or
-    closed with is put back, since block parsing trims a paragraph's edges and
-    the edit meant those spaces.
+    So the replacement goes into the raw line where the quote sat, marked at
+    both ends the way `rendered_span` marks the quote, and the whole line is
+    rendered. The answer is the characters between the marks, with the
+    whitespace the replacement was written with: unlike `display_text` this is
+    written into the document verbatim, so a double space between sentences or
+    a space separating the replacement from its neighbours is kept. Block
+    parsing trims a paragraph's edges, so a replacement that opened or closed
+    with whitespace has it put back.
 
-    Whether the replacement can be written at all is a separate question, and
-    stays with the export (`unsupported_replacement_reason`).
+    A quote starting at offset 0 is marked at its end only, for the same
+    reason `rendered_span` does it: the line's block syntax has to keep
+    working, so ``# Old heading`` -> ``# New heading`` loses its hashes the
+    way the heading does rather than writing one into the document as text.
+
+    ``None`` means the replacement cannot be placed there without breaking the
+    parse -- it closes a link label and opens a destination that swallows the
+    mark, say. There is no text to write in that case, and the edit is
+    reported back to the agent rather than guessed at.
     """
-    if not block_context:
-        return _text_of(_MARKDOWN.renderInline(text))
-    core = text.strip()
-    if not core:
-        return text
-    leading = text[: len(text) - len(text.lstrip())]
-    trailing = text[len(text.rstrip()) :]
-    return leading + _text_of(_MARKDOWN.render(core)).strip("\n") + trailing
+    if start < 0 or end > len(line) or start >= end:
+        return None
+    # A deletion, or whitespace alone: nothing to render, and nothing that
+    # could break the formatting around it.
+    if not replacement.strip():
+        return replacement
+
+    opening = _QUOTE_OPENS if start > 0 else ""
+    edited = line[:start] + opening + replacement + _QUOTE_CLOSES + line[end:]
+    rendered = render_line_text(edited)
+
+    closes = rendered.find(_QUOTE_CLOSES)
+    if closes == -1:
+        return None
+    if opening:
+        opens = rendered.find(_QUOTE_OPENS)
+        if opens == -1 or opens > closes:
+            return None
+        written_from = opens + 1
+    else:
+        written_from = 0
+
+    written = rendered[written_from:closes].strip()
+    leading = replacement[: len(replacement) - len(replacement.lstrip())]
+    trailing = replacement[len(replacement.rstrip()) :]
+    return leading + written + trailing
 
 
 def rendered_span(line: str, start: int, end: int) -> Optional[RenderedSpan]:
@@ -218,61 +246,3 @@ def link_destinations(text: str) -> List[str]:
             # string, and a link the parser built always has one.
             destinations.append(str(child.attrGet(attribute) or ""))
     return destinations
-
-
-def all_offsets(haystack: str, needle: str) -> List[int]:
-    """Start offset of every occurrence of `needle`, overlapping ones included."""
-    offsets: List[int] = []
-    if not needle:
-        return offsets
-    position = haystack.find(needle)
-    while position != -1:
-        offsets.append(position)
-        position = haystack.find(needle, position + 1)
-    return offsets
-
-
-def _normalized_index(text: str) -> Tuple[str, List[int]]:
-    """Whitespace-normalize `text`, keeping each character's source offset.
-
-    Mirrors the frontend's `buildTextIndex`: a run of whitespace collapses to
-    one space, a leading run to nothing, and the space is emitted just before
-    the character that ended the run -- so both share that character's offset.
-    The mapping is what lets a normalized match be handed back as the exact
-    substring of the original, non-breaking spaces and all.
-    """
-    normalized: List[str] = []
-    sources: List[int] = []
-    pending_space = False
-    for offset, char in enumerate(text):
-        if _WHITESPACE.match(char):
-            pending_space = bool(normalized)
-            continue
-        if pending_space:
-            normalized.append(" ")
-            sources.append(offset)
-            pending_space = False
-        normalized.append(char)
-        sources.append(offset)
-    return "".join(normalized), sources
-
-
-def locate_in_paragraph(paragraph_text: str, needle: str) -> List[Tuple[int, int]]:
-    """Every occurrence of `needle` in `paragraph_text`, as original-text spans.
-
-    `needle` is matched on a whitespace-normalized basis (the paragraph and the
-    quote drift at the character level: non-breaking spaces inside prose,
-    double spaces before footnote markers), but each returned ``[start, end)``
-    indexes `paragraph_text` itself, so ``paragraph_text[start:end]`` is the
-    exact substring to search the document for.
-
-    Matching is case-sensitive: the export writes a redline, so a span that
-    only matches once the case is ignored is left for a human to place.
-    """
-    if not needle:
-        return []
-    normalized, sources = _normalized_index(paragraph_text)
-    spans: List[Tuple[int, int]] = []
-    for offset in all_offsets(normalized, needle):
-        spans.append((sources[offset], sources[offset + len(needle) - 1] + 1))
-    return spans

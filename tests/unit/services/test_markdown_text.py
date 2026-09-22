@@ -5,11 +5,9 @@ DOCX export searches for, so these cases are the contract both of them rest on.
 """
 
 from lib.services.markdown_text import (
-    all_offsets,
     link_destinations,
-    locate_in_paragraph,
     render_line_text,
-    render_replacement_text,
+    rendered_replacement_in_context,
     rendered_span,
 )
 
@@ -180,78 +178,106 @@ class TestRenderedSpan:
         assert rendered_span("a line", 0, 99) is None
 
 
-class TestRenderReplacementText:
-    def test_keeps_the_whitespace_the_author_asked_for(self):
-        assert render_replacement_text(" good ") == " good "
-        assert render_replacement_text("   spaced") == "   spaced"
-        assert render_replacement_text("Yield fell.  Costs rose.") == (
-            "Yield fell.  Costs rose."
-        )
-        assert render_replacement_text("Figure\u00a03") == "Figure\u00a03"
+class TestRenderedReplacementInContext:
+    """The replacement is rendered where the quote sat, not on its own: a quote
+    can open or close inside formatting that carries on around it, and so can
+    the replacement that takes its place."""
 
-    def test_an_empty_replacement_stays_empty_for_a_deletion(self):
-        assert render_replacement_text("") == ""
-        assert render_replacement_text(" ") == " "
+    def test_a_quote_ending_inside_bold_closes_the_run_it_came_from(self):
+        # `old phrase**` is a legal quote whose stars are the closing half of
+        # the document's bold run. Rendered alone the stars survive as
+        # literals and Word is handed `new phrase**`.
+        line = "The **old phrase** matters."
 
-    def test_keeps_a_literal_star(self):
-        assert render_replacement_text("2 * 3") == "2 * 3"
-        assert render_replacement_text("a * b * c") == "a * b * c"
-
-    def test_drops_the_syntax_the_document_never_shows(self):
-        assert render_replacement_text("**bold**") == "bold"
-        assert render_replacement_text("the **new** [label](http://x)") == (
-            "the new label"
-        )
-
-    def test_a_leading_numeral_is_not_a_list_marker(self):
-        # A replacement is usually a fragment of a paragraph, never a block.
-        assert render_replacement_text("2021. Annual report") == "2021. Annual report"
-        assert render_replacement_text("2. Second item") == "2. Second item"
-
-    def test_a_mid_line_hash_stays_in_the_text(self):
-        assert render_replacement_text("C# and a note") == "C# and a note"
-
-
-class TestRenderReplacementTextInBlockContext:
-    """A quote starting at column 0 takes its line's block syntax with it, and
-    the replacement was written carrying the same syntax."""
-
-    def test_a_heading_replacement_loses_its_hashes(self):
         assert (
-            render_replacement_text("# New heading", block_context=True)
-            == "New heading"
+            rendered_replacement_in_context(line, 6, 18, "new phrase**") == "new phrase"
         )
+
+    def test_a_quote_inside_a_code_span_keeps_its_literal_stars(self):
+        # The other direction: inside backticks nothing is emphasis, so the
+        # stars have to stay. Rendered alone they would be stripped.
+        line = "Set `a*b*c` now"
+
+        assert rendered_replacement_in_context(line, 5, 10, "x*y*z") == "x*y*z"
+
+    def test_a_whole_heading_loses_its_hashes(self):
         assert (
-            render_replacement_text("### New heading", block_context=True)
+            rendered_replacement_in_context("# Old heading", 0, 13, "# New heading")
             == "New heading"
         )
 
-    def test_a_list_item_replacement_loses_its_marker(self):
-        assert render_replacement_text("- item two", block_context=True) == "item two"
+    def test_a_whole_list_item_loses_its_marker(self):
+        assert rendered_replacement_in_context("- item one", 0, 10, "- item two") == (
+            "item two"
+        )
+
+    def test_a_mid_line_hash_is_not_block_syntax_and_stays(self):
+        line = "The second cohort."
+
         assert (
-            render_replacement_text("2. Second item", block_context=True)
-            == "Second item"
+            rendered_replacement_in_context(line, 4, 17, "cohort # 2") == "cohort # 2"
         )
 
-    def test_a_replacement_with_no_block_syntax_is_unchanged(self):
+    def test_a_mid_line_numeral_is_not_a_list_marker(self):
+        line = "Smith et al. 2019. Annual report."
+
+        assert rendered_replacement_in_context(line, 13, 32, "2021. Annual report") == (
+            "2021. Annual report"
+        )
+
+    def test_the_whitespace_the_edit_asked_for_is_kept(self):
+        # Written into the document verbatim, so every space reaches the page.
+        line = "This is a bad result."
+        assert rendered_replacement_in_context(line, 10, 13, " good ") == " good "
+
+        joined = "This is aword."
+        assert rendered_replacement_in_context(joined, 8, 13, "a  word") == "a  word"
+        assert rendered_replacement_in_context(joined, 9, 13, " word") == " word"
+
+    def test_boundary_whitespace_survives_a_block_trim(self):
+        # Block parsing trims a paragraph's edges, and a quote at column 0 is
+        # rendered as the block it opens.
         assert (
-            render_replacement_text("New heading", block_context=True) == "New heading"
+            rendered_replacement_in_context("Old heading", 0, 11, " New heading")
+            == " New heading"
         )
-        assert render_replacement_text("C# and a note", block_context=True) == (
-            "C# and a note"
+        assert (
+            rendered_replacement_in_context("# Old heading", 0, 13, "# New heading ")
+            == "New heading "
         )
 
-    def test_the_whitespace_the_edit_asked_for_is_put_back(self):
-        # Block parsing trims a paragraph's edges; the edit meant those spaces.
-        assert render_replacement_text("# New heading ", block_context=True) == (
-            "New heading "
-        )
-        assert render_replacement_text(" Yields ", block_context=True) == " Yields "
-        assert render_replacement_text("  ", block_context=True) == "  "
-        assert render_replacement_text("", block_context=True) == ""
+    def test_a_deletion_stays_empty_and_whitespace_stays_as_written(self):
+        line = "The **old phrase** matters."
 
-    def test_inner_whitespace_is_kept(self):
-        assert render_replacement_text("# A  B", block_context=True) == "A  B"
+        assert rendered_replacement_in_context(line, 6, 18, "") == ""
+        assert rendered_replacement_in_context(line, 6, 18, " ") == " "
+        # Deleting a whole line, block syntax and all, is still a deletion.
+        assert rendered_replacement_in_context("# Old heading", 0, 13, "") == ""
+
+    def test_a_replacement_that_breaks_the_parse_has_no_text_to_write(self):
+        # The quote is a parenthetical's contents, so the line's own `)` closes
+        # the destination the replacement opens and swallows the closing mark
+        # with it. Nothing of the replacement reaches the page as text.
+        line = "The cohort (n = 40) was small."
+
+        assert (
+            rendered_replacement_in_context(line, 12, 18, "[forty](https://x") is None
+        )
+        # A replacement that does not open one is fine in the same place.
+        assert rendered_replacement_in_context(line, 12, 18, "n = 38") == "n = 38"
+
+    def test_a_replacement_closing_a_code_span_early_still_has_text(self):
+        # Reported as a None case; it is not one. The backtick closes the span
+        # early, but both marks survive and the text between them is what Word
+        # should carry -- Word has no backticks, only the code formatting.
+        line = "Set `a*b*c` now"
+
+        assert rendered_replacement_in_context(line, 5, 10, "x*y*z`") == "x*y*z"
+
+    def test_an_impossible_range_has_nothing_to_render(self):
+        assert rendered_replacement_in_context("a line", 4, 2, "x") is None
+        assert rendered_replacement_in_context("a line", 0, 0, "x") is None
+        assert rendered_replacement_in_context("a line", 0, 99, "x") is None
 
 
 class TestLinkDestinations:
@@ -292,48 +318,3 @@ class TestLinkDestinations:
 
     def test_a_footnote_reference_carries_its_destination(self):
         assert link_destinations("cohort [[1]](#footnote-2)") == ["#footnote-2"]
-
-
-class TestAllOffsets:
-    def test_lists_every_start_offset_overlapping_ones_included(self):
-        assert all_offsets("Figure 3 and Figure 3", "Figure 3") == [0, 13]
-        assert all_offsets("aaa", "aa") == [0, 1]
-        assert all_offsets("abc", "") == []
-
-
-class TestLocateInParagraph:
-    def test_returns_the_span_of_a_plain_match(self):
-        assert locate_in_paragraph("The claim is unproven.", "claim is") == [(4, 12)]
-
-    def test_matches_across_a_non_breaking_space_and_spans_the_original(self):
-        paragraph = "The Energy Supply chapter"
-
-        (span,) = locate_in_paragraph(paragraph, "Energy Supply")
-
-        assert paragraph[span[0] : span[1]] == "Energy Supply"
-
-    def test_matches_across_a_double_space_and_spans_the_original(self):
-        paragraph = "as Figure  3 shows"
-
-        (span,) = locate_in_paragraph(paragraph, "Figure 3")
-
-        assert paragraph[span[0] : span[1]] == "Figure  3"
-
-    def test_ignores_leading_and_trailing_whitespace_of_the_paragraph(self):
-        paragraph = "\n   The  \t claim\n\n   is   unproven.  "
-
-        (span,) = locate_in_paragraph(paragraph, "The claim is unproven.")
-
-        assert paragraph[span[0] : span[1]] == "The  \t claim\n\n   is   unproven."
-
-    def test_lists_every_occurrence(self):
-        paragraph = "Figure 3 and Figure 3 again"
-
-        assert locate_in_paragraph(paragraph, "Figure 3") == [(0, 8), (13, 21)]
-
-    def test_reports_nothing_for_an_absent_or_empty_needle(self):
-        assert locate_in_paragraph("The claim is unproven.", "a badger") == []
-        assert locate_in_paragraph("The claim is unproven.", "") == []
-
-    def test_is_case_sensitive(self):
-        assert locate_in_paragraph("The claim", "the claim") == []

@@ -30,11 +30,8 @@ from lib.services.docx.tracked_changes_models import (
     EditOutcomeStatus,
     PlannedEdit,
 )
-from lib.services.markdown_text import (
-    all_offsets,
-    link_destinations,
-    locate_in_paragraph,
-)
+from lib.services.markdown_text import link_destinations
+from lib.services.text_location import all_offsets, locate_in_paragraph
 
 # Word cannot show a C0 control character as a reviewable redline, and
 # docx-editor refuses one outright. Anything carrying one is reported instead.
@@ -49,32 +46,47 @@ def _line_span_in_paragraph(
 ) -> Optional[Tuple[int, int]]:
     """Where the edit's own markdown line sits inside the Word paragraph.
 
-    ``None`` when the line cannot be found there: conversion drift, or a line
-    the range covers that the paragraph never carried at all -- the line-range
-    mapper runs a paragraph's range up to the line before the next one starts,
-    so a nested block's line falls inside it.
+    The range's lines are laid against the paragraph in document order, each
+    one searched from where the previous one ended. Walking them in order is
+    what keeps the boundaries straight, and matching a line on its own is not
+    enough for either reason a paragraph can carry it twice:
 
-    Several identical lines are told apart by position: the k-th span is the
-    edit's, where k is how many lines of the range ahead of it render exactly
-    the same.
+    - two lines that read exactly alike (``Rose 14%.`` twice), where only
+      position tells them apart;
+    - a line that an earlier line *contains* -- ``Group A: 14% increase.``
+      ends with the whole of ``14% increase.`` -- where the first match of the
+      later line sits inside the earlier one, and counting identical lines
+      ahead never sees it because the two are not identical.
+
+    ``None`` when the line cannot be found past the lines ahead of it:
+    conversion drift, or a line the range covers that the paragraph never
+    carried at all -- the line-range mapper runs a paragraph's range up to the
+    line before the next one starts, so a nested block's line falls inside it.
+    A line that cannot be placed leaves the cursor where it was, so the drift
+    of one line does not cost the rest of the paragraph its boundaries.
     """
-    line = source_line(edit, document_lines)
-    if line is None:
-        return None
-    rendered = rendered_line(line)
-    if not rendered:
-        return None
-    spans = locate_in_paragraph(paragraph_text, rendered)
-    if not spans:
-        return None
     first = max(1, paragraph_range[0])
-    twins_ahead = sum(
-        1
-        for number in range(first, edit.start_line)
-        if number <= len(document_lines)
-        and rendered_line(document_lines[number - 1]) == rendered
-    )
-    return spans[twins_ahead] if twins_ahead < len(spans) else None
+    last = min(len(document_lines), paragraph_range[1])
+    cursor = 0
+    for number in range(first, last + 1):
+        rendered = rendered_line(document_lines[number - 1])
+        span = (
+            next(
+                (
+                    found
+                    for found in locate_in_paragraph(paragraph_text, rendered)
+                    if found[0] >= cursor
+                ),
+                None,
+            )
+            if rendered
+            else None
+        )
+        if number == edit.start_line:
+            return span
+        if span is not None:
+            cursor = span[1]
+    return None
 
 
 def _resolve_span(
@@ -97,9 +109,9 @@ def _resolve_span(
     it.
 
     A paragraph covering several markdown lines -- one per hard line break --
-    is a wider haystack than the index was counted in, so the edit's own line
-    is located inside the paragraph first and the quote is looked for within
-    that span alone. Counting the quote line by line and adding up what sits
+    is a wider haystack than the index was counted in, so the paragraph's lines
+    are walked in order until the edit's own is placed, and the quote is looked
+    for within that line's span alone. Counting the quote line by line and adding up what sits
     ahead is not enough, and that is the whole reason for going through the
     line: Word keeps nothing where a break was, so joining
     ``First cohort rose 14% `` and ``in 2019; ...`` puts a ``14% in`` in the

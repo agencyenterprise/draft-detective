@@ -381,3 +381,90 @@ class TestALineTheParagraphDoesNotCarry:
         visible, _, revisions = _read(repeated_docx_path)
         assert visible.strip() == _REPEATED_PARAGRAPH
         assert list(revisions) == []
+
+
+# A paragraph whose first line *contains* the second: "14% increase." is line 2
+# in full and the tail of line 1. Telling the lines apart by counting identical
+# ones ahead does not help -- they are not identical -- so the edit's line has
+# to be found past where line 1 ended.
+_NESTED_RUNS = ["Group A: 14% increase.", "14% increase."]
+_NESTED_MARKDOWN = "\n".join(_NESTED_RUNS)
+_NESTED_LINE_RANGES: Dict[int, Tuple[int, int]] = {0: (1, 2)}
+
+
+@pytest.fixture
+def nested_line_docx_path(tmp_path: Path) -> Path:
+    document = PythonDocxDocument()
+    paragraph = document.add_paragraph()
+    first = paragraph.add_run(_NESTED_RUNS[0])
+    first.add_break()
+    paragraph.add_run(_NESTED_RUNS[1])
+    path = tmp_path / "nested-line.docx"
+    document.save(str(path))
+    return path
+
+
+# Three lines, the third reading exactly like the first: the cursor has to walk
+# every line of the range in order to get past both earlier ones.
+_REPRISE_RUNS = ["Rose 14%.", "Fell 9%.", "Rose 14%."]
+_REPRISE_MARKDOWN = "\n".join(_REPRISE_RUNS)
+_REPRISE_LINE_RANGES: Dict[int, Tuple[int, int]] = {0: (1, 3)}
+
+
+@pytest.fixture
+def reprise_docx_path(tmp_path: Path) -> Path:
+    document = PythonDocxDocument()
+    paragraph = document.add_paragraph()
+    for position, text in enumerate(_REPRISE_RUNS):
+        run = paragraph.add_run(text)
+        if position < len(_REPRISE_RUNS) - 1:
+            run.add_break()
+    path = tmp_path / "reprise.docx"
+    document.save(str(path))
+    return path
+
+
+class TestALineThatAnEarlierLineContains:
+    @pytest.mark.asyncio
+    async def test_the_edit_lands_past_the_line_that_contains_it(
+        self, nested_line_docx_path: Path
+    ):
+        edit = _edit("14%", "18%", 2)
+
+        plan, _ = await _plan(
+            nested_line_docx_path,
+            [edit],
+            paragraph_line_ranges=_NESTED_LINE_RANGES,
+            markdown=_NESTED_MARKDOWN,
+        )
+        await apply_tracked_changes(
+            str(nested_line_docx_path),
+            plan.planned,
+            workspace_root=str(nested_line_docx_path.parent),
+        )
+
+        assert _statuses(plan.outcomes) == {edit.id: "applied"}
+        visible, _, _ = _read(nested_line_docx_path)
+        assert visible.strip() == "Group A: 14% increase.18% increase."
+
+    @pytest.mark.asyncio
+    async def test_a_line_repeating_the_first_is_found_past_both(
+        self, reprise_docx_path: Path
+    ):
+        edit = _edit("14%", "18%", 3)
+
+        plan, _ = await _plan(
+            reprise_docx_path,
+            [edit],
+            paragraph_line_ranges=_REPRISE_LINE_RANGES,
+            markdown=_REPRISE_MARKDOWN,
+        )
+        await apply_tracked_changes(
+            str(reprise_docx_path),
+            plan.planned,
+            workspace_root=str(reprise_docx_path.parent),
+        )
+
+        assert _statuses(plan.outcomes) == {edit.id: "applied"}
+        visible, _, _ = _read(reprise_docx_path)
+        assert visible.strip() == "Rose 14%.Fell 9%.Rose 18%."

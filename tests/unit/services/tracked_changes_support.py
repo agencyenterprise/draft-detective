@@ -24,10 +24,10 @@ from lib.models.issue_edit import IssueEdit, IssueEditStatus
 from lib.services.docx.tracked_changes import EditOutcome, plan_tracked_changes
 from lib.services.edit_conflicts import EditCandidate, resolve_edit_conflicts
 from lib.services.markdown_text import (
-    locate_in_paragraph,
-    render_replacement_text,
+    rendered_replacement_in_context,
     rendered_span,
 )
+from lib.services.text_location import locate_in_paragraph
 from lib.workflows.models import SeverityEnum
 from lib.workflows.simple_deep_agent.edit_anchoring import (
     document_lines,
@@ -83,10 +83,13 @@ def display_fields(
     """The rendered columns the reporter would have stored for this edit.
 
     Worked out the way `IssueReporter._resolve_edit` works them out: the quote
-    is located on its markdown line and that line is rendered with the quote
-    marked, so a test's edit carries exactly what a real one would. A quote
-    the line does not carry -- a fixture checking a note's wording, or one
-    deliberately absent from the document -- falls back to the quote itself,
+    is located on its markdown line, and that line is rendered twice -- once
+    with the quote marked, for the display text, and once with the replacement
+    spliced in where the quote sat -- so a test's edit carries exactly what a
+    real one would.
+
+    A quote the line does not carry -- a fixture checking a note's wording, or
+    one deliberately absent from the document -- falls back to the raw texts,
     which is what an edit over plain prose renders to anyway.
     """
     spans = (
@@ -94,21 +97,23 @@ def display_fields(
         if line is not None
         else []
     )
-    rendered = (
-        rendered_span(line, spans[0][0], spans[0][1])
-        if line is not None and len(spans) == 1
-        else None
-    )
+    if line is None or len(spans) != 1:
+        return {
+            "display_text": normalize_whitespace(original_text),
+            "display_occurrence": 0,
+            "display_replacement": replacement_text,
+        }
+
+    start, end = spans[0]
+    rendered = rendered_span(line, start, end)
+    replacement = rendered_replacement_in_context(line, start, end, replacement_text)
     return {
         "display_text": (
             rendered.display_text if rendered else normalize_whitespace(original_text)
         ),
         "display_occurrence": rendered.display_occurrence if rendered else 0,
-        "display_replacement": render_replacement_text(
-            replacement_text,
-            # As the reporter decides it: a quote opening its line took the
-            # line's block syntax with it, and so did its replacement.
-            block_context=bool(rendered) and spans[0][0] == 0,
+        "display_replacement": (
+            replacement if replacement is not None else replacement_text
         ),
     }
 

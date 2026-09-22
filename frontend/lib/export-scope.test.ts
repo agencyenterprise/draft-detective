@@ -3,6 +3,7 @@ import {
   editsPhrase,
   exportCounts,
   exportOutcomeSentence,
+  exportScopeSentence,
   issuesInExport,
   passingChecksIncluded,
   shareLinksAvailable,
@@ -146,5 +147,25 @@ describe('shareLinksAvailable', () => {
   it('is false for an older revision, whose export the backend strips links from', () => {
     expect(shareLinksAvailable(1, 3)).toBe(false);
     expect(shareLinksAvailable(2, 3)).toBe(false);
+  });
+});
+
+describe('exportScopeSentence', () => {
+  it('says the passing checks are left out, because they are', () => {
+    expect(exportScopeSentence({ severity: [], showPassing: false })).toBe(
+      'Every unresolved issue except passing checks, from every assessment.',
+    );
+  });
+
+  it('says they are included once the toggle is on', () => {
+    expect(exportScopeSentence({ severity: [], showPassing: true })).toBe(
+      'Every unresolved issue including passing checks, from every assessment.',
+    );
+  });
+
+  it('says they are left out again beside a severity selection, which filters them', () => {
+    expect(exportScopeSentence({ severity: [SeverityEnum.High], showPassing: true })).toContain(
+      'except passing checks',
+    );
   });
 });

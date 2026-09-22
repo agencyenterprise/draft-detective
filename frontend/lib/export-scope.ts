@@ -78,6 +78,20 @@ export function exportOutcomeSentence(includeEdits: boolean): string {
   return 'Issues become comments; edits are described in their comments.';
 }
 
+/**
+ * What an export with no narrowing filter carries, in one sentence.
+ *
+ * "Every unresolved issue" on its own overstates it: a passing check is an
+ * issue of severity `None`, and the export leaves those out unless the
+ * document explorer's passing toggle is on. The sentence names which of the
+ * two it is, since that is the difference between a file with one comment per
+ * finding and one that also confirms every rule that held.
+ */
+export function exportScopeSentence(filter: Pick<DocumentExplorerFilter, 'severity' | 'showPassing'>): string {
+  const passing = passingChecksIncluded(filter) ? 'including' : 'except';
+  return `Every unresolved issue ${passing} passing checks, from every assessment.`;
+}
+
 /** Issue and proposed-edit counts for the export; rejected edits are never applied. */
 export function exportCounts(
   issues: Issue[],

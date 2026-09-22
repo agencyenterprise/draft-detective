@@ -4,7 +4,13 @@ import { SeverityBadge } from '@/components/results/components/severity-badge';
 import { Badge } from '@/components/ui/badge';
 import { SeverityEnum, WorkflowRunType } from '@/lib/generated-api';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
-import { editsPhrase, exportOutcomeSentence, passingChecksIncluded, type ExportCounts } from '@/lib/export-scope';
+import {
+  editsPhrase,
+  exportOutcomeSentence,
+  exportScopeSentence,
+  passingChecksIncluded,
+  type ExportCounts,
+} from '@/lib/export-scope';
 
 export interface ActiveFilters {
   severity: SeverityEnum[];
@@ -20,8 +26,19 @@ export interface ActiveFilters {
  * would otherwise claim a scope with no badge to show for it.
  */
 export function hasActiveFilters(filters: ActiveFilters): boolean {
+  return narrowsTheExport(filters) || passingChecksIncluded(filters);
+}
+
+/**
+ * Whether the filters leave findings out, as opposed to letting more in.
+ *
+ * The passing toggle only ever widens the export, and `exportScopeSentence`
+ * already says which way it is set, so a passing-only scope is described in
+ * words rather than by a lone badge under "Matching the current filters".
+ */
+function narrowsTheExport(filters: ActiveFilters): boolean {
   const partialSeverity = filters.severity.length > 0 && filters.severity.length < 3;
-  return partialSeverity || filters.workflowType.length > 0 || passingChecksIncluded(filters);
+  return partialSeverity || filters.workflowType.length > 0;
 }
 
 /**
@@ -42,7 +59,7 @@ export function ExportScope({
   counts: ExportCounts;
   includeEdits: boolean;
 }) {
-  const filtered = hasActiveFilters(filters);
+  const filtered = narrowsTheExport(filters);
 
   return (
     <div className="space-y-1.5">
@@ -55,7 +72,7 @@ export function ExportScope({
       {filtered ? (
         <FilterBadges filters={filters} />
       ) : (
-        <p className="text-sm text-muted-foreground">Every unresolved issue, from every assessment.</p>
+        <p className="text-sm text-muted-foreground">{exportScopeSentence(filters)}</p>
       )}
     </div>
   );

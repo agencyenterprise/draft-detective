@@ -427,6 +427,26 @@ class TestGenerateDocxRevision:
         assert mocks["get_project_issues"].await_args.kwargs["revision"] == 3
 
     @pytest.mark.asyncio
+    async def test_the_file_lookup_is_told_the_revision_by_name(self, tmp_path):
+        # Not left to the service's default: without an explicit revision the
+        # lookup falls back to the document-processing state when the row has
+        # no cached markdown, and that state is always the current revision --
+        # so a historical export would serve the current revision's file.
+        _, mocks = await self._generate(tmp_path, revision=1)
+        artifacts = mocks["FileArtifactsService"].return_value
+
+        assert artifacts.get_main_file.await_args.kwargs == {"revision": 1}
+
+    @pytest.mark.asyncio
+    async def test_the_file_lookup_defaults_to_the_projects_current_revision(
+        self, tmp_path
+    ):
+        _, mocks = await self._generate(tmp_path)
+        artifacts = mocks["FileArtifactsService"].return_value
+
+        assert artifacts.get_main_file.await_args.kwargs == {"revision": 3}
+
+    @pytest.mark.asyncio
     async def test_a_revision_the_project_does_not_have_is_refused(self, tmp_path):
         with pytest.raises(ValueError, match="does not exist"):
             await self._generate(tmp_path, revision=4)

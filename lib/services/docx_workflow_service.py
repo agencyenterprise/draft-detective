@@ -84,7 +84,12 @@ async def generate_docx(
     revision = _resolved_revision(revision, project.current_revision)
 
     file_artifacts = FileArtifactsService(project_id, revision=revision)
-    main_file = await file_artifacts.get_main_file()
+    # Asked for by name, not left to the service's default: without an explicit
+    # revision `get_main_file` falls back to the document-processing state when
+    # the row has no cached markdown, and that state is always the *current*
+    # revision. A historical export would then pair this revision's issues with
+    # the current revision's file.
+    main_file = await file_artifacts.get_main_file(revision=revision)
 
     if docx_type == "original":
         logger.info(f"Serving original DOCX for {project_id}")

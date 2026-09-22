@@ -22,10 +22,10 @@ from pydantic import BaseModel, Field
 
 from lib.agents.tools.view_image import redact_image_blocks
 from lib.services.markdown_text import (
-    locate_in_paragraph,
-    render_replacement_text,
+    rendered_replacement_in_context,
     rendered_span,
 )
+from lib.services.text_location import locate_in_paragraph
 from lib.workflows.models import ProposedEdit
 from lib.workflows.simple_deep_agent.agent_types import DeepAgentRun, IssueItem
 from lib.workflows.simple_deep_agent.edit_anchoring import (
@@ -213,6 +213,19 @@ class IssueReporter:
                 "words from the line, including any markup that surrounds them."
             )
 
+        # Rendered where the quote sat, not on its own: the quote may open or
+        # close inside formatting that carries on around it, and so does the
+        # replacement that takes its place.
+        replacement = rendered_replacement_in_context(
+            lines[line - 1], spans[0][0], spans[0][1], edit.replacement_text
+        )
+        if replacement is None:
+            return (
+                f"{label}: replacement_text cannot be placed where "
+                "original_text sits without breaking the surrounding "
+                "formatting; quote the whole formatted span instead."
+            )
+
         return ProposedEdit(
             original_text=edit.original_text,
             replacement_text=edit.replacement_text,
@@ -221,13 +234,7 @@ class IssueReporter:
             end_line=line,
             display_text=rendered.display_text,
             display_occurrence=rendered.display_occurrence,
-            # A quote starting at column 0 took its line's block syntax with
-            # it -- a heading's hashes, a list item's bullet -- so the
-            # replacement was written with the same syntax and has to lose it
-            # the same way, or the hash reaches the document as text.
-            display_replacement=render_replacement_text(
-                edit.replacement_text, block_context=spans[0][0] == 0
-            ),
+            display_replacement=replacement,
         )
 
     def _build_report_tool(self) -> BaseTool:
