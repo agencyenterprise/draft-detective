@@ -1,0 +1,321 @@
+# Eval samples for the concision_precision workflow, in inventory form: the issues a correct run
+# reports (anchored by verbatim quotes, with edit expectations) and the decoys it must leave alone
+# (with the reason). See evals_inspectai/common/issue_inventory.py.
+# Short snippets pin one rule each; clean documents measure false positives; the section-length
+# fixture exercises coverage, including late sections.
+
+# ---- wordy constructions ------------------------------------------------------------------
+- input: |
+    # Cost Model
+
+    ## Approach
+
+    In this section, we describe the cost model. In order to estimate costs, we used utility tariffs from 2024 and interviewed six site managers. Site managers said that connection fees vary by state.
+  expected_issues:
+  - id: in_order_to
+    title: Wordy Construction
+    anchor: In order to estimate costs
+    edit_expected: true
+    severity: low
+    edit:
+      must_include: ["To estimate costs"]
+      must_not_include: ["In order to"]
+  decoys:
+  - anchor: In this section, we describe the cost model
+    reason: signposting
+  - anchor: Site managers said that
+    reason: qualifier
+- input: |
+    # Site Visits
+
+    ## What We Did
+
+    We visited each and every site between March and May 2025. Staff reported that the visits took one day each. Two sites may need a second visit because the transmission records were incomplete.
+  expected_issues:
+  - id: each_and_every
+    title: Wordy Construction
+    anchor: each and every site
+    edit_expected: true
+    severity: low
+    edit:
+      must_include: ["each site"]
+      must_not_include: ["each and every"]
+  decoys:
+  - anchor: Staff reported that the visits took one day each
+    reason: qualifier
+  - anchor: Two sites may need a second visit
+    reason: hedge
+- input: |
+    # Enrollment
+
+    ## Findings
+
+    It is important to note that enrollment fell by 12 percent between 2022 and 2024. The decline was steepest in the two rural districts, and it coincided with the closure of the bus route.
+  expected_issues:
+  - id: important_to_note
+    title: Wordy Construction
+    anchor: It is important to note that enrollment fell by 12 percent
+    edit_expected: true
+    severity: low
+    edit:
+      must_include: ["Enrollment fell by 12 percent"]
+      must_not_include: ["important to note"]
+  decoys:
+  - anchor: The decline was steepest in the two rural districts, and it coincided with the closure of the bus route
+    reason: compound
+- input: |
+    # Access
+
+    ## Findings
+
+    There were few instances when a site managed to achieve an A in the weighted scoring, with most sites receiving a C. Districts that has the ability to share buses reported lower costs. We then compared the two groups.
+  expected_issues:
+  - id: there_were_few
+    title: Wordy Construction
+    anchor: There were few instances when a site managed to achieve an A
+    edit_expected: true
+    severity: low
+    edit:
+      must_include: ["Few sites"]
+      must_not_include: ["There were few instances"]
+  - id: has_the_ability
+    title: Wordy Construction
+    anchor: has the ability to share buses
+    edit_expected: true
+    severity: low
+    edit:
+      must_not_include: ["has the ability"]
+  decoys:
+  - anchor: We then compared the two groups
+    reason: first_person
+  notes: Both wordy constructions sit in one paragraph, so one issue should cover both.
+
+# ---- run-on sentences -----------------------------------------------------------------------
+- input: |
+    # Sites
+
+    ## Assets
+
+    The three sites are situated in different states, the retiring assets at these locations rely on coal for power generation, the generating units range from 39 to 55 years old. The pilot ran for six months, and the team collected weekly data.
+  expected_issues:
+  - id: comma_splice
+    title: Run-On Sentence
+    anchor: the retiring assets at these locations rely on coal for power generation, the generating units range from 39 to 55 years old
+    edit_expected: true
+    severity: low
+    edit:
+      must_not_include: ["generation, the generating", "generation; the"]
+  decoys:
+  - anchor: The pilot ran for six months, and the team collected weekly data
+    reason: compound
+
+# ---- throat-clearing ------------------------------------------------------------------------
+- input: |
+    # Discussion
+
+    ## Interpretation
+
+    There are several things to consider here. The remainder of this report is organized as follows. We found three patterns in the outcomes. First, retention rose in every district that added a stipend. Second, the rise was largest where the stipend exceeded $500. Third, no district reported a fall in retention.
+  expected_issues:
+  - id: several_things
+    title: Throat-Clearing
+    anchor: There are several things to consider here.
+    edit_expected: true
+    severity: low
+  decoys:
+  - anchor: The remainder of this report is organized as follows
+    reason: signposting
+  - anchor: We found three patterns in the outcomes
+    reason: topic_sentence
+
+# ---- vague reference ------------------------------------------------------------------------
+- input: |
+    # Implementation
+
+    ## Barriers
+
+    Funding arrives in March, and hiring for the school year closes in February. Districts also face a state rule that caps stipend spending. This makes implementation difficult. Funding arrives after hiring closes, so this timing gap forces districts to hire without knowing their budget.
+  expected_issues:
+  - id: vague_this
+    title: Vague Reference
+    anchor: This makes implementation difficult.
+    edit_expected: false
+    severity: medium
+  decoys:
+  - anchor: so this timing gap forces districts
+    reason: clear_referent
+  notes: The first "This" could point at the funding timing or the state cap, so the check must ask rather than pick; the second is pinned by "timing gap".
+
+# ---- empty framing --------------------------------------------------------------------------
+- input: |
+    # Findings
+
+    ## Retention
+
+    The picture here is complex. Retention rose 9 percentage points in districts with a stipend and fell 2 points elsewhere. The framework prioritizes three goals: keeping teachers in rural schools, keeping costs below the state cap, and reporting results within a year.
+  expected_issues:
+  - id: picture_complex
+    title: Empty Framing
+    anchor: The picture here is complex.
+    edit_expected: true
+    severity: low
+  decoys:
+  - anchor: The framework prioritizes three goals
+    reason: topic_sentence
+
+# ---- obvious statement ----------------------------------------------------------------------
+- input: |
+    # Key Findings
+
+    ## What We Learned
+
+    Our first finding is that funding is essential to running a program. Our second finding is that districts with a dedicated coordinator spent their funds 40 percent faster than districts without one. Finally, we turn to the survey results.
+  expected_issues:
+  - id: funding_essential
+    title: Obvious Statement
+    anchor: Our first finding is that funding is essential to running a program.
+    severity: low
+  decoys:
+  - anchor: Finally, we turn to the survey results
+    reason: signposting
+
+# ---- clean documents ------------------------------------------------------------------------
+- input: |
+    # Methods
+
+    ## Data
+
+    We drew on three sources. First, we used county-level employment counts that the Bureau of Labor Statistics publishes each quarter. Second, we obtained utility filings from the state commission's public docket. Third, our team interviewed 22 planners between March and May 2025. Appendix A lists every source with its retrieval date.
+  decoys:
+  - anchor: We drew on three sources
+    reason: topic_sentence
+  - anchor: Appendix A lists every source with its retrieval date
+    reason: signposting
+- input: |
+    # Findings
+
+    ## Teacher Retention
+
+    Teachers reported that the stipend mattered less than the schedule. Retention rose in every district that added a four-day week, and it rose most where the stipend exceeded $500. The effect may not persist once the federal grant ends, because districts have not budgeted to replace it.
+  decoys:
+  - anchor: Teachers reported that the stipend mattered less than the schedule
+    reason: qualifier
+  - anchor: Retention rose in every district that added a four-day week, and it rose most where the stipend exceeded $500
+    reason: compound
+  - anchor: The effect may not persist once the federal grant ends
+    reason: hedge
+- input: |
+    # Methods
+
+    ## Estimation
+
+    We estimated a difference-in-differences model with district fixed effects, clustering standard errors at the state level because treatment was assigned by state. The parallel-trends assumption holds for the three pre-treatment years we can observe, but not for the fourth, so we report both specifications.
+  decoys:
+  - anchor: We estimated a difference-in-differences model with district fixed effects
+    reason: technical_term
+  - anchor: The parallel-trends assumption holds for the three pre-treatment years we can observe, but not for the fourth, so we report both specifications
+    reason: long_precise
+- input: |
+    # Interviews
+
+    ## What Planners Said
+
+    One planner put it this way: "There are a lot of things to consider here, and frankly we have not considered most of them." Planners in three counties said that residents worry about water use more than about noise. We report their concerns in Chapter 4.
+  decoys:
+  - anchor: There are a lot of things to consider here, and frankly we have not considered most of them
+    reason: quoted
+  - anchor: Planners in three counties said that
+    reason: qualifier
+  - anchor: We report their concerns in Chapter 4
+    reason: signposting
+- input: |
+    # Conclusion
+
+    ## Recommendations
+
+    Developers should start with the top-tier sites. State agencies should publish their permitting timelines. The interviews suggest that timelines are the main source of uncertainty for developers, and publishing them would cost the agencies little.
+  decoys:
+  - anchor: Developers should start with the top-tier sites. State agencies should publish their permitting timelines.
+    reason: two_sentences
+  - anchor: The interviews suggest that timelines are the main source of uncertainty
+    reason: hedge
+
+# ---- section-length document ----------------------------------------------------------------
+- input: file://e2e/concision_precision/files/siting_report_section.md
+  expected_issues:
+  - id: in_order_to_rank
+    title: Wordy Construction
+    anchor: In order to rank the sites
+    edit_expected: true
+    severity: low
+    edit:
+      must_include: ["To rank the sites"]
+  - id: complex_issue
+    title: Throat-Clearing
+    anchor: This is a complex issue.
+    edit_expected: true
+    severity: low
+  - id: initial_step
+    title: Wordy Construction
+    anchor: The initial step in developing the framework involved identifying
+    edit_expected: true
+    severity: low
+    edit:
+      must_not_include: ["involved identifying"]
+  - id: important_to_note_weights
+    title: Wordy Construction
+    anchor: It is important to note that the five categories are weighted equally
+    edit_expected: true
+    severity: low
+    edit:
+      must_not_include: ["important to note"]
+  - id: coal_run_on
+    title: Run-On Sentence
+    anchor: the retiring assets at these locations rely on coal for power generation, the generating units range from 39 to 55 years old
+    edit_expected: true
+    severity: low
+    edit:
+      must_not_include: ["generation, the generating"]
+  - id: few_instances
+    title: Wordy Construction
+    anchor: There were few instances when a site managed to achieve an A
+    edit_expected: true
+    severity: low
+    edit:
+      must_include: ["Few sites"]
+  - id: every_idea
+    title: Empty Framing
+    anchor: Every idea above pulls in a direction.
+    edit_expected: true
+    severity: low
+  - id: different_perspectives
+    title: Obvious Statement
+    anchor: Stakeholders have different perspectives on data centers
+    severity: low
+  - id: there_are_multiple_sites
+    title: Wordy Construction
+    anchor: There are multiple sites across the United States where existing infrastructure can be made available
+    edit_expected: true
+    severity: low
+    edit:
+      must_include: ["Multiple sites across the United States"]
+  decoys:
+  - anchor: In this section, we describe the framework and how we applied it
+    reason: signposting
+  - anchor: Planners we interviewed said that permitting timelines vary
+    reason: qualifier
+  - anchor: Sites in the top tier are located in the Midwest, and most of them retired coal units
+    reason: compound
+  - anchor: The scores may understate the value of sites
+    reason: hedge
+  - anchor: This reflects the age of the transmission equipment
+    reason: clear_referent
+  - anchor: The framework prioritizes locations where development can meaningfully address community needs
+    reason: aims_sentence
+  - anchor: Planners in three counties said that residents worry about water use
+    reason: qualifier
+  - anchor: since the interviews suggest timelines are the main source of uncertainty
+    reason: hedge
+  - anchor: Table 1 lists the sites
+    reason: signposting
+  notes: Nine planted issues across five sections, the last two in the final sections, so a run that stops early misses them.

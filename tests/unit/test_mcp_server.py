@@ -213,6 +213,7 @@ async def test_list_workflow_types_entry_has_expected_fields(authed_mcp_client: 
         "category",
         "gates",
         "icon",
+        "proposes_edits",
     }
 
     for workflow in data["workflow_types"]:

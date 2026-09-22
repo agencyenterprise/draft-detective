@@ -100,8 +100,8 @@ EDIT_DESCRIPTIONS: dict[str, str] = {
     "edit_present_when_expected": "For expected issues marked edit_expected: true, share that got at least one proposed edit.",
     "edit_absent_when_not_expected": "For expected issues marked edit_expected: false, share that got no proposed edit.",
     "edit_quote_on_line": "Share of edits whose original_text occurs verbatim on the expected issue's line.",
-    "edit_expected_phrases": "Share of edits whose replacement carries every must_include phrase and no must_not_include phrase.",
-    "edit_keeps_numbers_and_markers": "Share of edits whose replacement keeps every number, footnote marker and citation of the original.",
+    "edit_expected_phrases": "Share of edits whose replacement, read within the sentence it produces on the line, carries every must_include phrase and no must_not_include phrase.",
+    "edit_keeps_numbers_and_markers": "Share of edits whose replacement keeps every number (with its percentage unit, if any), footnote marker and citation of the original.",
     "edit_punctuation": "Share of edits whose replacement adds no stranded punctuation (',.', ' .', doubled spaces) the original lacked.",
 }
 
@@ -112,8 +112,10 @@ def decoy_descriptions(reasons: Sequence[str]) -> dict[str, str]:
         for reason in reasons
     }
 
-# A number ends in a digit (or %), so a sentence-final "Figure 1." yields "1", not "1.".
-_NUMBER_RE = re.compile(r"\d(?:[\d,.–\-]*\d)?%?")
+# A number ends in a digit, so a sentence-final "Figure 1." yields "1", not "1.". A
+# percentage unit written as "%", "percent" or "per cent" is captured with it and
+# canonicalised to "%", so "7%" and "7 percent" are the same token while "7" is not.
+_NUMBER_RE = re.compile(r"(\d(?:[\d,.–\-]*\d)?)(\s*(?:%|percent\b|per cent\b))?", re.I)
 _FOOTNOTE_RE = re.compile(r"\[\[\d+\]\]\(#footnote-\d+\)")
 _CITATION_RE = re.compile(r"\([A-Z][^()]*?\d{4}[a-z]?(?:,\s*p\.\s*\d+)?\)")
 _STRANDED_RE = re.compile(r",\s*[.;,]|\s[.,;]|\.\.(?!\.)|\s{2,}")
@@ -197,7 +199,70 @@ def _fraction(values: Sequence[float]) -> float:
 
 
 def _tokens(text: str) -> list[str]:
-    return sorted(_NUMBER_RE.findall(text) + _FOOTNOTE_RE.findall(text) + _CITATION_RE.findall(text))
+    numbers = [value + ("%" if unit else "") for value, unit in _NUMBER_RE.findall(text)]
+    return sorted(numbers + _FOOTNOTE_RE.findall(text) + _CITATION_RE.findall(text))
+
+
+# A sentence ends at ., ! or ? (with any footnote markers that follow it) before
+# whitespace and a capital, digit, quote or bracket, so decimals ("2.1 percent") and
+# "et al., 2024" do not split it and "planners.[[4]](#footnote-5) Categories" does; a
+# few abbreviations that take a capital after them ("et al. The", "e.g. The") are
+# excluded by name.
+_SENTENCE_BREAK_RE = re.compile(r"[.!?]+(?:\[\[\d+\]\]\(#footnote-\d+\))*(?=\s+[A-Z0-9\"“(\[])")
+_NOT_A_SENTENCE_END = ("al", "e.g", "i.e", "vs", "cf", "Fig", "No")
+
+
+def _sentence_spans(text: str) -> list[tuple[int, int]]:
+    spans, start = [], 0
+    for m in _SENTENCE_BREAK_RE.finditer(text):
+        before = text[:m.start()]
+        if any(before.endswith(abbr) and (len(before) == len(abbr) or not before[-len(abbr) - 1].isalpha()) for abbr in _NOT_A_SENTENCE_END):
+            continue
+        spans.append((start, m.end()))
+        start = m.end()
+    if start < len(text):
+        spans.append((start, len(text)))
+    return spans
+
+
+def _soft(text: str) -> str:
+    """Whitespace as the app's edit anchoring sees it: no-break spaces and runs of
+    whitespace become one space, so a quote the app accepted is found here too."""
+    return re.sub(r"\s+", " ", text.replace("\xa0", " "))
+
+
+def _edited_sentences(line_text: str, edits: Sequence[ProposedEdit]) -> Optional[str]:
+    """The sentence(s) of ``line_text`` that the edits produce, with every edit applied.
+
+    Edits are applied in turn to the line, each replacement's position kept
+    current as later edits change the text before it. The sentences that
+    overlap a replacement are returned joined. A deletion leaves nothing to
+    judge and contributes no sentence: its neighbours were not edited. None
+    when no edit's original text is found on the line, in which case only the
+    replacements themselves can be judged.
+    """
+    applied = _soft(line_text)
+    spans: list[tuple[int, int]] = []
+    found = False
+    for e in edits:
+        original, replacement = _soft(e.original_text), _soft(e.replacement_text)
+        at = applied.find(original)
+        if at < 0:
+            continue
+        found = True
+        shift = len(replacement) - len(original)
+        spans = [(s + shift, t + shift) if s >= at + len(original) else (s, t) for s, t in spans]
+        applied = applied[:at] + replacement + applied[at + len(original):]
+        if replacement:
+            spans.append((at, at + len(replacement)))
+    if not found:
+        return None
+    touched = [
+        applied[s:t].strip()
+        for s, t in _sentence_spans(applied)
+        if any(s < end and start < t for start, end in spans)
+    ]
+    return " ".join(touched)
 
 
 def _stranded(text: str) -> set[str]:
@@ -231,16 +296,33 @@ def edit_checks(
     if not edits:
         return out
 
+    def line_of(e: ProposedEdit) -> str:
+        """The line an edit is checked against: its own start_line when it names one
+        inside the document (an issue may edit several occurrences on several lines),
+        else the expected issue's line."""
+        if 0 < e.start_line <= len(lines) and e.start_line != expected.line:
+            return lines[e.start_line - 1]
+        return lines[expected.line - 1] if 0 < expected.line <= len(lines) else ""
+
     line_text = lines[expected.line - 1] if 0 < expected.line <= len(lines) else ""
-    on_line = [float(normalize(e.original_text) in normalize(line_text)) for e in edits]
-    out["edit_quote_on_line"] = (_fraction(on_line), f"{expected.id}: {int(sum(on_line))}/{len(edits)} quotes found verbatim on line {expected.line}")
+    on_line = [float(normalize(e.original_text) in normalize(line_of(e))) for e in edits]
+    out["edit_quote_on_line"] = (_fraction(on_line), f"{expected.id}: {int(sum(on_line))}/{len(edits)} quotes found verbatim on their line")
 
     if expected.edit is not None:
+        # Phrases are judged on the sentence the edits produce: each replacement plus the
+        # sentence(s) of the line they land in, with every one of the issue's edits applied.
+        # Word-level edits ("Respondents" for "Participants") thus still carry a phrase written
+        # against the whole sentence, an untouched neighbouring sentence cannot supply it, and a
+        # forbidden phrase left standing in the edited sentence still fails.
         ok = []
         for e in edits:
+            same_line = [o for o in edits if line_of(o) == line_of(e)]
+            edited = _edited_sentences(line_of(e), same_line)
+            scope = normalize(edited) if edited is not None else None
             repl = normalize(e.replacement_text)
-            missing = [p for p in expected.edit.must_include if normalize(p) not in repl]
-            forbidden = [p for p in expected.edit.must_not_include if normalize(p) in repl]
+            seen = repl if scope is None else repl + " " + scope
+            missing = [p for p in expected.edit.must_include if normalize(p) not in seen]
+            forbidden = [p for p in expected.edit.must_not_include if normalize(p) in seen]
             ok.append(float(not missing and not forbidden))
         out["edit_expected_phrases"] = (_fraction(ok), f"{expected.id}: {int(sum(ok))}/{len(edits)} replacements carry the expected phrasing")
 

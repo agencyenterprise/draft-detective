@@ -392,6 +392,117 @@ def test_edit_phrases_numbers_and_punctuation():
     assert all(clean[k][0] == 1.0 for k in ("edit_keeps_numbers_and_markers", "edit_punctuation", "edit_expected_phrases"))
 
 
+def test_expected_phrases_are_read_off_the_line_with_a_word_level_edit_applied():
+    f = _expected(edit_expected=True, edit={"must_include": ["The team collected data"], "must_not_include": ["were collected"]})
+    swap = _edit("Data were collected", "The team collected data")  # replaces only the clause, not the sentence
+    out = edit_checks(f, _issue(edits=[swap]), LINES)
+    assert out["edit_expected_phrases"][0] == 1.0
+    wrong = _edit("Data were collected", "Data were gathered")
+    assert edit_checks(f, _issue(edits=[wrong]), LINES)["edit_expected_phrases"][0] == 0.0
+
+
+def test_expected_phrases_are_judged_on_the_edited_sentence_not_its_neighbours():
+    lines = ["Respondents rated scheduling. Participants rated scheduling."]
+    f = ResolvedIssue(id="f", title=None, anchor="Respondents rated scheduling", line=1, edit_expected=True,
+                      edit={"must_include": ["Participants rated scheduling"]})
+    # The edit touches the first sentence only; the phrase lives untouched in the second.
+    untouched_neighbour = _edit("Respondents rated scheduling.", "Respondents rated the schedule.", line=1)
+    assert edit_checks(f, _issue(start=1, end=1, edits=[untouched_neighbour]), lines)["edit_expected_phrases"][0] == 0.0
+    # The same phrase produced by a word-level edit in the first sentence passes.
+    fixes_it = _edit("Respondents", "Participants", line=1)
+    assert edit_checks(f, _issue(start=1, end=1, edits=[fixes_it]), lines)["edit_expected_phrases"][0] == 1.0
+
+
+def test_forbidden_phrases_left_standing_in_the_edited_sentence_fail():
+    f = _expected(edit_expected=True, edit={"must_not_include": ["by the field team"]})
+    # A word-level edit whose replacement is clean, but the sentence it produces still carries the phrase.
+    partial = _edit("Data were collected", "The team collected data")
+    assert edit_checks(f, _issue(edits=[partial]), LINES)["edit_expected_phrases"][0] == 0.0
+    whole = _edit("Data were collected from 3 sites by the field team.", "The field team collected data from 3 sites.")
+    assert edit_checks(f, _issue(edits=[whole]), LINES)["edit_expected_phrases"][0] == 1.0
+
+
+def test_edited_sentence_positions_follow_earlier_edits_on_the_line():
+    from evals_inspectai.common.issue_checks import _edited_sentences
+
+    line = "Alpha is short. Beta was written by the team here."
+    later_then_earlier = [
+        _edit("Beta was written by the team here.", "The team wrote beta here."),
+        _edit("Alpha is short.", "Alpha is a considerably longer sentence."),
+    ]
+    assert _edited_sentences(line, later_then_earlier) == "Alpha is a considerably longer sentence. The team wrote beta here."
+
+
+def test_sentence_scope_does_not_split_on_decimals_or_et_al():
+    from evals_inspectai.common.issue_checks import _edited_sentences
+
+    line = "Attendance rose 2.1 percent (Smith et al., 2024). Costs fell."
+    edit = _edit("Attendance rose 2.1 percent", "Attendance increased 2.1 percent")
+    assert _edited_sentences(line, [edit]) == "Attendance increased 2.1 percent (Smith et al., 2024)."
+
+
+def test_sentence_scope_splits_after_a_footnote_marker_and_before_a_digit():
+    from evals_inspectai.common.issue_checks import _edited_sentences, _sentence_spans
+
+    line = "Sites were shortlisted by the planners.[[4]](#footnote-5) Categories were chosen so that a source exists. 2024 was the base year."
+    assert [line[s:t].strip() for s, t in _sentence_spans(line)] == [
+        "Sites were shortlisted by the planners.[[4]](#footnote-5)",
+        "Categories were chosen so that a source exists.",
+        "2024 was the base year.",
+    ]
+    edit = _edit("Categories were chosen", "We chose categories")
+    assert _edited_sentences(line, [edit]) == "We chose categories so that a source exists."
+
+
+def test_a_deletion_contributes_no_neighbouring_sentence_to_the_scope():
+    from evals_inspectai.common.issue_checks import _edited_sentences
+
+    line = "One is x. Two is y. Three is z."
+    assert _edited_sentences(line, [_edit(" Two is y.", "")]) == ""
+    lines = LINES[:8] + [line]
+    f = ResolvedIssue(id="f", title=None, anchor="Two is y", line=9, edit_expected=True,
+                      edit={"must_include": ["Three is z"], "must_not_include": ["One is x"]})
+    out = edit_checks(f, _issue(start=9, end=9, edits=[_edit(" Two is y.", "", line=9)]), lines)
+    assert out["edit_expected_phrases"][0] == 0.0, "a deletion carries no required phrase; its neighbour supplies none"
+
+
+def test_edits_on_other_lines_are_checked_against_their_own_line():
+    lines = ["# T", "", "Respondents rated scheduling as their main concern.", "", "Sixty percent of respondents said the roster helped."]
+    f = ResolvedIssue(id="f", title=None, anchor="Respondents rated scheduling", line=3, edit_expected=True,
+                      edit={"must_include": ["participants"], "must_not_include": ["respondents"]})
+    edits = [_edit("Respondents", "Participants", line=3), _edit("respondents", "participants", line=5)]
+    out = edit_checks(f, _issue(start=3, end=5, edits=edits), lines)
+    assert out["edit_quote_on_line"][0] == 1.0, "the second edit is quoted from line 5, not line 3"
+    assert out["edit_expected_phrases"][0] == 1.0, "each edit's sentence is judged on its own line"
+
+
+def test_quotes_with_no_break_spaces_still_locate_their_sentence():
+    from evals_inspectai.common.issue_checks import _edited_sentences
+
+    line = "Attendance rose 2.1\xa0percent  in the pilot. Costs fell."
+    edit = _edit("Attendance rose 2.1 percent in the pilot.", "Attendance increased 2.1 percent in the pilot.")
+    assert _edited_sentences(line, [edit]) == "Attendance increased 2.1 percent in the pilot."
+
+
+def test_percentage_points_are_not_a_percentage():
+    from evals_inspectai.common.issue_checks import _tokens
+
+    assert _tokens("rose 9 percentage points") == ["9"]
+    assert _tokens("rose 9 percent") == ["9%"] and _tokens("rose 9%") == ["9%"]
+
+
+def test_percentage_units_travel_with_their_number():
+    line = "Retention rose 7% in the same period."
+    lines = LINES[:8] + [line]
+    f = _expected(anchor="Retention rose 7% in the same period", line=9)
+    keeps_unit = _edit("Retention rose 7% in the same period.", "Retention rose 7 percent in the same period.", line=9)
+    drops_unit = _edit("Retention rose 7% in the same period.", "Retention rose 7 in the same period.", line=9)
+    british = _edit("Retention rose 7% in the same period.", "Retention rose 7 per cent in the same period.", line=9)
+    check = lambda e: edit_checks(f, _issue(start=9, end=9, edits=[e]), lines)["edit_keeps_numbers_and_markers"][0]
+    assert check(keeps_unit) == 1.0 and check(british) == 1.0
+    assert check(drops_unit) == 0.0, "a bare 7 is not 7 percent"
+
+
 def test_footnote_markers_and_citations_count_as_tokens():
     f = _expected(edit_expected=True, anchor="Findings are listed", line=9)
     line = "Findings are listed in Appendix A (Smith, 2024).[[3]](#footnote-4)"

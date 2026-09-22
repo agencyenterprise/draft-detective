@@ -18,7 +18,11 @@ the skill-declared kind only.
 2. Add a `draft_detective` block under `metadata` in the frontmatter. `title` and
    `category` are required; everything else has a default.
 3. Write the rules in the body, following the conventions below.
-4. Optionally add an eval under `evals_inspectai/e2e/<slug>/` (see Evals below).
+4. Regenerate the frontend API types, since the set of workflow types changed:
+   `cd frontend && pnpm run openapi-generate` with the backend running. Until that runs, the
+   assessment page rejects the new type's URL segment as unknown (`parseWorkflowRunType`
+   accepts only values of the generated `WorkflowRunType`).
+5. Optionally add an eval under `evals_inspectai/e2e/<slug>/` (see Evals below).
 
 That is all. On the next backend start the workflow is registered and appears in its
 category. The unit test suite checks the wiring (`tests/unit/workflows/test_skill_workflows.py`).
@@ -121,7 +125,9 @@ returns its `Task`, and a `criteria.py` with what the check is about (copy
 `judged_criteria` in `issue_judge.py`, all fed by the issue-inventory loader in
 `issue_inventory.py`) and adds only what is specific to the workflow: its own edit checks and
 the criteria the judge grades. None of that is tied to skill-declared workflows: any workflow
-that reports issues can be evaluated the same way; `evals_inspectai/e2e/recommendation_check/`
+that reports issues can be evaluated the same way. `evals_inspectai/e2e/concision_precision/` and
+`evals_inspectai/e2e/writing_consistency/` are the second and third skill-declared workflows on it, each
+with its own `criteria.py` (a deterministic edit check plus judged criteria); `evals_inspectai/e2e/recommendation_check/`
 scores a hand-written workflow with free-form titles and no edits on the same loader and scorers
 (`expects_edits` and `expects_titles` read off the inventory that no edits and no titles are
 expected, and `issue_checks(edits=False, titles=False)` then leaves the edit-hygiene and title keys

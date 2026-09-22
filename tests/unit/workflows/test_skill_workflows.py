@@ -101,6 +101,7 @@ def test_active_voice_lands_in_its_category_in_the_api():
     described = next(w for w in response.workflow_types if w.type == active_voice)
     assert described.category == "language"
     assert described.icon == "pen-line"
+    assert described.proposes_edits is True
 
 
 def test_hand_written_manifests_are_untouched_by_the_new_field():
@@ -110,6 +111,7 @@ def test_hand_written_manifests_are_untouched_by_the_new_field():
 
     assert by_type[WorkflowRunType.ADVOCACY_TONE_V2].icon is None
     assert by_type[WorkflowRunType.REFERENCE_VALIDATION_V2].icon is None
+    assert by_type[WorkflowRunType.ADVOCACY_TONE_V2].proposes_edits is False
 
 
 def test_every_declaring_skill_on_disk_is_registered():
