@@ -148,8 +148,13 @@ async def _rehearse(
     exported file, and what applies here applies there -- `apply_edit_export`
     logs it if that ever stops holding.
 
-    The copy is deleted again; nothing in it is kept but the outcomes.
+    The copy is deleted again; nothing in it is kept but the outcomes. A plan
+    with nothing to write does not get one: copying a document to rehearse an
+    empty batch is work the export can skip, and an export where every edit was
+    turned down in the pre-flight is the common case.
     """
+    if not planned:
+        return []
     scratch_dir = await asyncio.to_thread(
         tempfile.mkdtemp, prefix="edit-rehearsal-", dir=workspace_root
     )

@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { editsPhrase, exportCounts, exportOutcomeSentence, issuesInExport } from './export-scope';
+import {
+  editsPhrase,
+  exportCounts,
+  exportOutcomeSentence,
+  issuesInExport,
+  passingChecksIncluded,
+} from './export-scope';
 import { Issue, IssueEditRead, IssueEditStatus, SeverityEnum, WorkflowRunType } from '@/lib/generated-api';
 
 function edit(status: IssueEditStatus = IssueEditStatus.Proposed): IssueEditRead {
@@ -87,5 +93,39 @@ describe('exportOutcomeSentence', () => {
 
   it('points only at the comments when they are off', () => {
     expect(exportOutcomeSentence(false)).toBe('Issues become comments; edits are described in their comments.');
+  });
+});
+
+describe('passingChecksIncluded', () => {
+  it('is true only when the toggle is on and no severity is selected', () => {
+    expect(passingChecksIncluded({ ...NO_FILTER, showPassing: true })).toBe(true);
+    expect(passingChecksIncluded(NO_FILTER)).toBe(false);
+  });
+
+  it('is false whenever a severity filter narrows the export', () => {
+    expect(passingChecksIncluded({ ...NO_FILTER, showPassing: true, severity: [SeverityEnum.High] })).toBe(false);
+    // Even all three named severities leave the passing checks out, because
+    // the filter measures `None` against the selection like any other.
+    expect(
+      passingChecksIncluded({
+        ...NO_FILTER,
+        showPassing: true,
+        severity: [SeverityEnum.High, SeverityEnum.Medium, SeverityEnum.Low],
+      }),
+    ).toBe(false);
+  });
+
+  it('says what issuesInExport does', () => {
+    const cases = [
+      { ...NO_FILTER, showPassing: true },
+      { ...NO_FILTER, showPassing: true, severity: [SeverityEnum.High] },
+      { ...NO_FILTER, showPassing: true, severity: [SeverityEnum.High, SeverityEnum.Medium, SeverityEnum.Low] },
+      NO_FILTER,
+    ];
+
+    for (const filter of cases) {
+      const carriesPassing = issuesInExport(ISSUES, filter).some((i) => i.severity === SeverityEnum.None);
+      expect(carriesPassing).toBe(passingChecksIncluded(filter));
+    }
   });
 });

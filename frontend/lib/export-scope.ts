@@ -27,6 +27,19 @@ export function issuesInExport(
     .filter((issue) => filter.workflowType.length === 0 || filter.workflowType.includes(issue.workflow_type));
 }
 
+/**
+ * Whether the export really carries the passing checks.
+ *
+ * The passing toggle only adds the `None`-severity issues back; the severity
+ * filter then runs over everything, so any severity selection at all drops
+ * them again -- including a selection of all three named severities, which
+ * `includes` still measures `None` against. Saying "passing checks included"
+ * beside a severity filter would be a promise the export does not keep.
+ */
+export function passingChecksIncluded(filter: Pick<DocumentExplorerFilter, 'severity' | 'showPassing'>): boolean {
+  return filter.showPassing && filter.severity.length === 0;
+}
+
 /** How many proposed edits the export carries, as a plain noun phrase. */
 export function editsPhrase(count: number): string {
   return `${count} proposed edit${count === 1 ? '' : 's'}`;

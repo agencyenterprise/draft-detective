@@ -1,5 +1,6 @@
 """Tests for the proposed-edit half of a DOCX export, driven from Issue rows."""
 
+import shutil
 import uuid
 from datetime import UTC, datetime
 from pathlib import Path
@@ -304,3 +305,31 @@ class TestTheCommentsOnlyMode:
 
         assert export.outcomes == {}
         assert export.notes_by_issue == {}
+
+
+class TestAnEmptyPlanCostsNothing:
+    @pytest.mark.asyncio
+    async def test_nothing_to_write_means_no_copy_and_no_rehearsal(
+        self, docx_path: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ):
+        def refuse(*args: object, **kwargs: object) -> None:
+            raise AssertionError("an empty plan must not be rehearsed")
+
+        monkeypatch.setattr(shutil, "copyfile", refuse)
+        monkeypatch.setattr(edit_export, "apply_tracked_changes", refuse)
+        # The quote is nowhere on its line, so the pre-flight plans nothing.
+        issue = _issue([_edit("a 40% drop", "a 30% drop")])
+
+        export = await plan_edit_export(
+            [issue],
+            _MARKDOWN,
+            str(docx_path),
+            {0: (1, 1)},
+            workspace_root=str(tmp_path),
+        )
+
+        assert export.planned == []
+        assert export.notes_for(issue.id)[0].endswith(
+            "Not applied as a tracked change: the quoted text could not be "
+            "matched in this paragraph."
+        )

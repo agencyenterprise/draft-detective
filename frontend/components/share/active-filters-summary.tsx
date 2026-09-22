@@ -4,7 +4,7 @@ import { SeverityBadge } from '@/components/results/components/severity-badge';
 import { Badge } from '@/components/ui/badge';
 import { SeverityEnum, WorkflowRunType } from '@/lib/generated-api';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
-import { editsPhrase, exportOutcomeSentence, type ExportCounts } from '@/lib/export-scope';
+import { editsPhrase, exportOutcomeSentence, passingChecksIncluded, type ExportCounts } from '@/lib/export-scope';
 
 export interface ActiveFilters {
   severity: SeverityEnum[];
@@ -73,7 +73,7 @@ function FilterBadges({ filters }: { filters: ActiveFilters }) {
           {getWorkflowTypeName(type)}
         </Badge>
       ))}
-      {filters.showPassing && (
+      {passingChecksIncluded(filters) && (
         <Badge variant="outline" className="font-normal">
           Passing checks included
         </Badge>
