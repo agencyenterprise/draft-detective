@@ -9,7 +9,6 @@ from pydantic import BaseModel
 
 from lib.config.env import get_model_api_key
 from lib.config.llm_models import LLMModel
-from lib.config.llm_http_logging import instrument_openai_http
 from lib.config.rate_limiter import get_rate_limiter, hash_api_key
 from lib.workflows.context import ContextSchema
 
@@ -91,8 +90,6 @@ class LangChainAgent(BaseAgent):
         init_kwargs = self.get_init_chat_model_kwargs()
 
         llm = init_chat_model(**init_kwargs)
-        if self.model.provider == "openai":
-            instrument_openai_http(llm)
         if self.output_schema:
             llm = llm.with_structured_output(self.output_schema)
 
@@ -103,3 +100,4 @@ class LangChainAgent(BaseAgent):
         if self._llm is None:
             self._llm = self.create_llm()
         return self._llm
+

@@ -18,7 +18,10 @@ from uuid import UUID
 
 from langchain_core.callbacks import BaseCallbackHandler
 
-from lib.config.llm_diagnostics import capture_http_error, safe_endpoint
+from lib.config.llm_diagnostics import (
+    capture_http_error,
+    safe_endpoint,
+)
 
 if TYPE_CHECKING:
     # Imported only for typing to avoid a circular import:
@@ -61,7 +64,7 @@ def _is_rate_limit_error(error: BaseException) -> bool:
     `RateLimitError` subclasses) and any other httpx-style error that exposes
     a `status_code` attribute.
     """
-    return (capture_http_error(error) or {}).get("status_code") == 429
+    return getattr(error, "status_code", None) == 429
 
 
 def _flatten_message(error: BaseException) -> str:
@@ -75,7 +78,7 @@ def _flatten_message(error: BaseException) -> str:
 
 
 def _status_code(error: BaseException) -> str:
-    code = (capture_http_error(error) or {}).get("status_code")
+    code = getattr(error, "status_code", None)
     return str(code) if code is not None else "-"
 
 
@@ -99,7 +102,12 @@ def _endpoint_from_obj(obj: Any) -> Optional[str]:
 
 def _endpoint_from_error(error: BaseException) -> Optional[str]:
     """Try to read the request URL off an httpx-style error's response."""
-    return (capture_http_error(error) or {}).get("endpoint")
+    response = getattr(error, "response", None)
+    try:
+        request = getattr(response, "request", None)
+    except RuntimeError:
+        return None
+    return safe_endpoint(getattr(request, "url", None))
 
 
 def _endpoint_from_serialized(
@@ -307,7 +315,9 @@ class ErrorLoggingCallback(BaseCallbackHandler):
             caller=meta.agent_name if meta else _UNKNOWN,
             model_name=meta.model_name if meta else _UNKNOWN,
             provider=meta.provider if meta else "",
-            endpoint=(meta.endpoint if meta else None) or _endpoint_from_error(error),
+            endpoint=(meta.endpoint if meta else None)
+            or diagnostics.get("endpoint")
+            or _endpoint_from_error(error),
             workflow_run_id=self._workflow_run_id,
             project_id=self._project_id,
             status=_status_code(error),
@@ -335,7 +345,12 @@ def log_embedding_error(
     `except` block of those call sites.
     """
     is_rate_limit = _is_rate_limit_error(error)
-    endpoint = _endpoint_from_obj(embeddings_client) or _endpoint_from_error(error)
+    diagnostics = capture_http_error(error)
+    endpoint = (
+        _endpoint_from_obj(embeddings_client)
+        or (diagnostics or {}).get("endpoint")
+        or _endpoint_from_error(error)
+    )
     line = _format_log_line(
         is_rate_limit=is_rate_limit,
         caller=caller,
@@ -355,6 +370,6 @@ def log_embedding_error(
         status=_status_code(error),
         error_type=type(error).__name__,
         message=_flatten_message(error),
-        diagnostics=capture_http_error(error),
+        diagnostics=diagnostics,
     )
     _emit(line, is_rate_limit=is_rate_limit)

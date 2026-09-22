@@ -3,13 +3,12 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from time import monotonic
 from typing import Any
 from urllib.parse import urlsplit, urlunsplit
 
+import openai
+
 MAX_DIAGNOSTIC_CHARS = 2_000
-ATTEMPT_START = "llm_attempt_started"
-ATTEMPT_DIAGNOSTICS = "llm_attempt_diagnostics"
 
 RESPONSE_HEADERS = (
     "x-request-id",
@@ -79,75 +78,38 @@ def _error_fields(body: Any) -> dict:
     return fields
 
 
-def request_diagnostics(request: Any) -> dict:
-    if request is None:
-        return {}
-    result: dict[str, Any] = {}
-    endpoint = safe_endpoint(getattr(request, "url", None))
-    if endpoint:
-        result["endpoint"] = endpoint
-    headers = getattr(request, "headers", {})
-    client_id = _scalar(headers.get("x-client-request-id"))
-    if client_id:
-        result["client_request_id"] = client_id
-    retry_count = headers.get("x-stainless-retry-count", "")
-    if str(retry_count).isdigit():
-        result["attempt"] = int(retry_count) + 1
-    return result
+def capture_http_error(exc: BaseException) -> dict | None:
+    """Read public OpenAI SDK fields (also preserved by LangChain errors).
 
-
-def response_diagnostics(response: Any, body: Any = None) -> dict:
-    if response is None:
-        return {}
-    try:
-        request = response.request
-    except (AttributeError, RuntimeError):
-        request = None
-    result = request_diagnostics(request)
-    status = getattr(response, "status_code", None)
-    if isinstance(status, int):
-        result["status_code"] = status
-    headers = getattr(response, "headers", {})
-    selected = {
-        key: value
-        for key in RESPONSE_HEADERS
-        if (value := _scalar(headers.get(key))) is not None
-    }
-    if selected:
-        result["response_headers"] = selected
-    if body is None:
-        try:
-            body = response.json()
-        except Exception:
-            # Empty, HTML, or unread streaming response; never consume it here.
-            pass
-    fields = _error_fields(body)
+    Capture only the final failed attempt. Connection errors have no response
+    or request duration; the logging callback measures the overall call instead.
+    """
+    if not isinstance(exc, openai.APIError):
+        return None
+    result: dict[str, Any] = {"endpoint": safe_endpoint(exc.request.url)}
+    for name in ("code", "type", "param"):
+        value = _scalar(getattr(exc, name))
+        if value is not None:
+            result[name] = value
+    fields = _error_fields(exc.body)
     if fields:
         result["response_error"] = fields
-    result.update(getattr(response, "extensions", {}).get(ATTEMPT_DIAGNOSTICS, {}))
+    if isinstance(exc, openai.APIStatusError):
+        result["status_code"] = exc.status_code
+        if exc.request_id:
+            result["request_id"] = _scalar(exc.request_id)
+        headers = {
+            key: value
+            for key in RESPONSE_HEADERS
+            if (value := _scalar(exc.response.headers.get(key))) is not None
+        }
+        if headers:
+            result["response_headers"] = headers
+        try:
+            result["response_elapsed_ms"] = round(
+                exc.response.elapsed.total_seconds() * 1000
+            )
+        except RuntimeError:
+            # Synthetic or unclosed responses may not have elapsed timing.
+            pass
     return result
-
-
-def capture_http_error(exc: BaseException) -> dict | None:
-    """Follow wrappers (including LangChain's) without losing SDK metadata."""
-    seen: set[int] = set()
-    current: BaseException | None = exc
-    result: dict[str, Any] = {}
-    while current is not None and id(current) not in seen:
-        seen.add(id(current))
-        response = getattr(current, "response", None)
-        details = response_diagnostics(response, getattr(current, "body", None))
-        for name in ("status_code", "request_id", "code", "type", "param"):
-            value = _scalar(getattr(current, name, None))
-            if value is not None:
-                details[name] = value
-        request = getattr(current, "request", None)
-        if response is None and request is not None:
-            details.update(request_diagnostics(request))
-            started = getattr(request, "extensions", {}).get(ATTEMPT_START)
-            if isinstance(started, (int, float)):
-                details["attempt_elapsed_ms"] = round((monotonic() - started) * 1000)
-        for key, value in details.items():
-            result.setdefault(key, value)
-        current = current.__cause__ or current.__context__
-    return result or None
