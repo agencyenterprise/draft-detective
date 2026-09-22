@@ -6,6 +6,35 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v2.0.0] - 2026-09-22
+
+## Added
+- Added skill-declared workflows via `SKILL.md` frontmatter, including the new **Active Voice & Clear Actors** workflow and supporting documentation.
+- Added **Concision & Precision** and **Writing Consistency** skill-declared workflows with proposed edits and issue-inventory evals recorded in the scores report.
+- Added proposed edits to issues (opt-in per workflow) with validation, persistence in a new `issue_edits` table, and display in the document explorer as inline diffs with highlights.
+- Added DOCX export support to apply proposed edits as Word tracked changes authored by “Draft Detective,” with conflict handling and per-edit outcomes recorded in comments.
+- Added improved LLM error diagnostics and persisted workflow error details, plus per-attempt OpenAI HTTP attempt logging with request IDs, retry counts, and timing metadata.
+- Added a “Proposed Edits” badge in the workflow UI for workflows that attach rewrites to issues, driven by a new `proposes_edits` flag on the workflow-types API.
+- Added a shared eval log viewer layout extracted for reuse across inventory-style evals.
+- Added a Vitest setup for the frontend with initial unit tests.
+
+## Changed
+- Replaced document explorer assessment chips with a searchable popover-based assessment filter in the “Filter issues” rail.
+- Moved the Recommendation Check eval onto the issue-inventory eval structure and updated related docs and recorded scores.
+- Updated eval scoring utilities so expected phrases are checked against text with edits applied and percent signs are treated as units.
+- Updated the shared issues skill to make chat issue reporting conversational while preserving structured workflow output requirements.
+- Updated the methodology-comparison skill to require `$$...$$` for inline equations and to never use single `$`.
+
+## Fixed
+- Fixed markdown rendering so paired dollar amounts no longer render as single-dollar inline math, while `$$...$$` math remains supported.
+
+## Removed
+- Removed a superseded GPT-5.4/5.5 eval score report, its unreferenced logs, and remaining references to them from documentation.
+
+## Security
+- Bumped `soupsieve` from 2.8.4 to 2.9.
+
+
 ## [v1.0.16] - 2026-09-14
 
 ### Added
