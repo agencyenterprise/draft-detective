@@ -12,10 +12,16 @@ export interface ActiveFilters {
   showPassing: boolean;
 }
 
-/** Whether an export scoped by these filters would differ from a full one. */
+/**
+ * Whether an export scoped by these filters would differ from a full one.
+ *
+ * The passing toggle only counts when it actually changes the export: beside
+ * any severity selection the passing checks are filtered out again, so it
+ * would otherwise claim a scope with no badge to show for it.
+ */
 export function hasActiveFilters(filters: ActiveFilters): boolean {
   const partialSeverity = filters.severity.length > 0 && filters.severity.length < 3;
-  return partialSeverity || filters.workflowType.length > 0 || filters.showPassing;
+  return partialSeverity || filters.workflowType.length > 0 || passingChecksIncluded(filters);
 }
 
 /**

@@ -72,6 +72,19 @@ describe('edit highlights over real ReactMarkdown output', () => {
     expect(range.toString()).toBe('2 * 3');
   });
 
+  it('highlights a code span as the page shows it', () => {
+    // ReactMarkdown renders the span's contents literally, stars included, so
+    // the quote has to keep them too.
+    const markdown = 'Set the `**strict**` flag before running.';
+    const container = render(markdown);
+
+    expect(container.textContent).toContain('**strict**');
+
+    const [range] = editRanges(container, [edit('`**strict**` flag', 1)], markdown.split('\n'));
+
+    expect(range.toString()).toBe('**strict** flag');
+  });
+
   it('marks the bold repeat rather than the plain one before it', () => {
     const markdown = 'Figure 3 and **Figure 3** close the section.';
     const container = render(markdown);

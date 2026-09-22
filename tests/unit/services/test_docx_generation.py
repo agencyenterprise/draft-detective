@@ -352,12 +352,12 @@ class TestGenerateDocxRevision:
     """The export follows the revision it was asked for, not just the latest."""
 
     @staticmethod
-    def _patches(tmp_path, current_revision: int = 3):
+    def _patches(tmp_path, current_revision: int = 3, issues=()):
         """Everything `generate_docx` reaches for, stubbed.
 
         Only the routing matters here -- which revision the file lookup and the
-        issue query are given -- so the manipulator and the file artifacts are
-        stubs and the issue list is empty.
+        issue query are given, and what the comments are told -- so the
+        manipulator, the file artifacts and the comment builder are stubs.
         """
         project = SimpleNamespace(current_revision=current_revision)
         main_file = SimpleNamespace(
@@ -384,7 +384,10 @@ class TestGenerateDocxRevision:
                 AsyncMock(return_value={0: (1, 1)}),
             ),
             "get_project_issues": patch(
-                f"{_SERVICE}.get_project_issues", AsyncMock(return_value=[])
+                f"{_SERVICE}.get_project_issues", AsyncMock(return_value=list(issues))
+            ),
+            "issue_to_comment": patch(
+                f"{_SERVICE}.issue_to_comment", MagicMock(return_value=None)
             ),
             "docx_manipulator_service": patch(
                 f"{_SERVICE}.docx_manipulator_service", manipulator
@@ -392,13 +395,17 @@ class TestGenerateDocxRevision:
         }
 
     async def _generate(self, tmp_path, **kwargs):
-        stack, patches = self._patches(tmp_path, kwargs.pop("current_revision", 3))
+        stack, patches = self._patches(
+            tmp_path,
+            kwargs.pop("current_revision", 3),
+            kwargs.pop("issues", ()),
+        )
         with stack:
             entered = {name: stack.enter_context(p) for name, p in patches.items()}
             path, _ = await generate_docx(
                 project_id=str(_FAKE_PROJECT_ID),
-                share_token=None,
-                docx_type=DocxManipulatorType.COMMENTS,
+                share_token=kwargs.pop("share_token", None),
+                docx_type=kwargs.pop("docx_type", DocxManipulatorType.COMMENTS),
                 **kwargs,
             )
         return path, entered
@@ -425,6 +432,48 @@ class TestGenerateDocxRevision:
             await self._generate(tmp_path, revision=4)
         with pytest.raises(ValueError, match="does not exist"):
             await self._generate(tmp_path, revision=0)
+
+
+class TestShareLinksInAHistoricalExport:
+    """A share link opens the current revision, so an old export gets none."""
+
+    @staticmethod
+    def _issue():
+        return _make_issue(
+            title="Unsupported Claim",
+            description="This claim lacks evidence",
+            severity=SeverityEnum.HIGH,
+            workflow_type=WorkflowRunType.CLAIM_REFERENCE_VALIDATION_V2,
+            start_line=1,
+            end_line=1,
+        )
+
+    async def _share_token_used(self, tmp_path, **kwargs):
+        _, mocks = await TestGenerateDocxRevision()._generate(
+            tmp_path,
+            issues=[self._issue()],
+            share_token="tok",
+            docx_type=DocxManipulatorType.COMMENTS_WITH_LINKS,
+            include_edits=False,
+            **kwargs,
+        )
+        (call,) = mocks["issue_to_comment"].call_args_list
+        return call.args[2]
+
+    @pytest.mark.asyncio
+    async def test_an_earlier_revision_gets_comments_without_links(self, tmp_path):
+        assert (
+            await self._share_token_used(tmp_path, current_revision=2, revision=1)
+            is None
+        )
+
+    @pytest.mark.asyncio
+    async def test_the_current_revision_still_gets_its_links(self, tmp_path):
+        assert (
+            await self._share_token_used(tmp_path, current_revision=2, revision=2)
+            == "tok"
+        )
+        assert await self._share_token_used(tmp_path, current_revision=2) == "tok"
 
 
 class TestGenerateDocxWithoutTrackedChanges:

@@ -7,6 +7,7 @@ in-app highlight have to agree on which characters an edit covers.
 from lib.services.docx.edit_text import (
     all_offsets,
     is_table_row,
+    link_destinations,
     locate_in_paragraph,
     source_occurrence,
     strip_markdown,
@@ -27,6 +28,16 @@ class TestStripMarkdown:
         assert (
             strip_markdown("call `run()` once, ~~twice~~") == "call run() once, twice"
         )
+
+    def test_keeps_the_contents_of_a_code_span_exactly(self):
+        # The document shows what is between the backticks, syntax and all.
+        assert strip_markdown("`**name**`") == "**name**"
+        assert strip_markdown("`a_b`") == "a_b"
+        assert strip_markdown("`[x](y)`") == "[x](y)"
+        assert strip_markdown("the `**flag**` and **bold**") == "the **flag** and bold"
+
+    def test_leaves_a_backtick_with_no_closing_partner_alone(self):
+        assert strip_markdown("a ` b") == "a ` b"
 
     def test_reduces_a_link_to_its_label(self):
         assert (
@@ -72,6 +83,21 @@ class TestStripMarkdown:
             strip_markdown("the _stressed_ value of snake_case_name stays")
             == "the stressed value of snake_case_name stays"
         )
+
+    def test_keeps_an_underscore_that_emphasizes_nothing(self):
+        # No closing partner: an identifier, not emphasis.
+        assert strip_markdown("_private") == "_private"
+        assert strip_markdown("foo_") == "foo_"
+        assert strip_markdown("snake_case_name") == "snake_case_name"
+
+    def test_drops_an_underscore_that_does_emphasize(self):
+        assert strip_markdown("_emphasis_") == "emphasis"
+        assert strip_markdown("__strong__") == "strong"
+        assert strip_markdown("a _b_ c") == "a b c"
+
+    def test_reads_two_emphasized_words_as_two(self):
+        assert strip_markdown("a *b* and *c* d") == "a b and c d"
+        assert strip_markdown("a _b_ and _c_ d") == "a b and c d"
 
     def test_reduces_a_footnote_link_to_its_bracketed_label(self):
         assert (
@@ -193,6 +219,29 @@ class TestWordReplacementText:
     def test_an_empty_replacement_stays_empty_for_a_deletion(self):
         assert word_replacement_text("", at_line_start=False) == ""
         assert word_replacement_text(" ", at_line_start=False) == " "
+
+
+class TestLinkDestinations:
+    def test_lists_every_destination_in_order(self):
+        assert link_destinations("see [a](http://x) and [b](http://y)") == [
+            "http://x",
+            "http://y",
+        ]
+
+    def test_an_image_destination_counts_too(self):
+        assert link_destinations("![fig](f1.png)") == ["f1.png"]
+
+    def test_text_without_links_has_none(self):
+        assert link_destinations("no links here") == []
+        assert link_destinations("brackets [only] and (parens)") == []
+
+    def test_a_label_change_leaves_the_destination_alone(self):
+        assert link_destinations("[Wrong report](https://x/a)") == link_destinations(
+            "[Correct report](https://x/a)"
+        )
+        assert link_destinations("[Report](https://x/a)") != link_destinations(
+            "[Report](https://x/b)"
+        )
 
 
 class TestIsTableRow:

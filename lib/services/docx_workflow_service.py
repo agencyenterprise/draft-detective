@@ -165,6 +165,20 @@ async def generate_docx(
             if docx_type == DocxManipulatorType.COMMENTS_WITH_LINKS
             else None
         )
+        historical = revision != project.current_revision
+        if share_token_for_comments is not None and historical:
+            # A share link opens whatever the shared page shows, and that page
+            # has no revision of its own to open -- it shows the current one.
+            # A link written into a historical export would therefore send the
+            # reader to a different document than the comment beside it.
+            logger.info(
+                "DOCX export for project %s omits share links: it covers revision "
+                "%d, and the shared page shows revision %d",
+                project_id,
+                revision,
+                project.current_revision,
+            )
+            share_token_for_comments = None
         # Tracked changes ride along with the comment exports only. The add-in
         # wraps paragraphs in content controls and drives its own review UI;
         # mixing redlines into that is not supported yet.

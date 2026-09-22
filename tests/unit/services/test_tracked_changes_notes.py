@@ -87,6 +87,27 @@ class TestEditNotes:
             "paragraph)."
         )
 
+    def test_an_unsupported_link_change_says_what_word_keeps_apart(self):
+        edit = _edit("[Report](https://x/a)", "[Report](https://x/b)", 1)
+
+        (note,) = build_edit_notes(
+            [edit],
+            {
+                edit.id: EditOutcome(
+                    edit_id=edit.id,
+                    status="unsupported",
+                    detail="it changes a link destination, which the export cannot write",
+                )
+            },
+            {},
+        )
+
+        assert note.endswith(
+            "Not applied as a tracked change: the replacement cannot be "
+            "represented in Word (it changes a link destination, which the export "
+            "cannot write)."
+        )
+
     def test_an_unsupported_replacement_without_a_detail_stops_at_the_reason(self):
         edit = _edit("aword", "a\nword", 1)
 

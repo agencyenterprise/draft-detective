@@ -114,6 +114,77 @@ class TestAFootnoteReferenceIsNotDrift:
         assert "See [1] for the appendix." in visible
 
 
+# A nested block whose line opens with the same boilerplate as the paragraph
+# above it and then says something else entirely. It shares 27 leading
+# characters, which the old prefix rule took as proof of the same passage.
+_BOILERPLATE_PARAGRAPH = (
+    "The committee reviewed the budget for the western region in detail."
+)
+_BOILERPLATE_LINE = "The committee reviewed the appendix tables and the reviewer memos."
+
+
+@pytest.fixture
+def boilerplate_docx_path(tmp_path: Path) -> Path:
+    document = PythonDocxDocument()
+    document.add_paragraph(_BOILERPLATE_PARAGRAPH)
+    path = tmp_path / "boilerplate.docx"
+    document.save(str(path))
+    return path
+
+
+class TestASharedOpeningIsNotTheSamePassage:
+    @pytest.mark.asyncio
+    async def test_a_line_that_only_starts_alike_is_rejected(
+        self, boilerplate_docx_path: Path
+    ):
+        # The paragraph carries the quote too, so a wrong accept would redline
+        # it rather than fail visibly.
+        edit = _edit("committee", "steering group", 1)
+
+        plan, _ = await _plan(
+            boilerplate_docx_path,
+            [edit],
+            paragraph_line_ranges={0: (1, 1)},
+            markdown=_BOILERPLATE_LINE,
+        )
+        await apply_tracked_changes(
+            str(boilerplate_docx_path),
+            plan.planned,
+            workspace_root=str(boilerplate_docx_path.parent),
+        )
+
+        assert plan.planned == []
+        assert _statuses(plan.outcomes) == {edit.id: "unlocatable"}
+        assert [outcome.detail for outcome in plan.outcomes] == [_OTHER_PASSAGE_DETAIL]
+        visible, _, revisions = _read(boilerplate_docx_path)
+        assert visible.strip() == _BOILERPLATE_PARAGRAPH
+        assert list(revisions) == []
+
+    @pytest.mark.asyncio
+    async def test_a_line_that_drifts_mid_paragraph_is_still_accepted(
+        self, boilerplate_docx_path: Path
+    ):
+        # The same paragraph, with the trailing clause MarkItDown writes and
+        # Word does not show: alike over its whole length, so it belongs.
+        edit = _edit("western region", "eastern region", 1)
+
+        plan, _ = await _plan(
+            boilerplate_docx_path,
+            [edit],
+            paragraph_line_ranges={0: (1, 1)},
+            markdown=_BOILERPLATE_PARAGRAPH[:-1] + ", per Table 2.",
+        )
+        await apply_tracked_changes(
+            str(boilerplate_docx_path),
+            plan.planned,
+            workspace_root=str(boilerplate_docx_path.parent),
+        )
+
+        assert _statuses(plan.outcomes) == {edit.id: "applied"}
+        visible, _, _ = _read(boilerplate_docx_path)
+        assert "budget for the eastern region in detail." in visible
+
+
 _SHORT_PARAGRAPH = "Yield rose 14%."
 
 

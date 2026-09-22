@@ -39,6 +39,11 @@ const EDIT_HIGHLIGHT_CSS = `
  * therefore fail on exactly the passages an edit is most likely to touch, so
  * the syntax is stripped down to the characters that reach the page.
  *
+ * A code span keeps its contents exactly: `` `**name**` `` reads as `**name**`
+ * on the page, so nothing inside one is treated as syntax. Emphasis delimiters
+ * go only where they are actually paired, and an underscore also has to stand
+ * outside a word.
+ *
  * A heading hash, a blockquote arrow and a list marker are only syntax where a
  * line begins. `2019. Annual report` quoted from the middle of a reference
  * entry keeps its year; `1. First item` quoted from the top of a list item
@@ -46,22 +51,18 @@ const EDIT_HIGHLIGHT_CSS = `
  * line passes `atLineStart` as false.
  */
 export function stripMarkdown(text: string, atLineStart = true): string {
-  // The pass order mirrors the Python port: images, links, code fences and
-  // strikethrough, then emphasis, then underscores.
-  const stripped = stripEmphasis(
-    protectEscaped(text).replace(IMAGE, '$1').replace(LINK, '$1').replace(/`+/g, '').replace(/~~/g, ''),
-  )
-    // Only underscores standing outside a word: `snake_case` is a name in the
-    // text, not emphasis, and stripping its underscores would stop it
-    // matching. Written as two passes rather than one lookbehind for the sake
-    // of older Safari.
-    .replace(/(^|[^A-Za-z0-9])_{1,3}/g, '$1')
-    .replace(/_{1,3}($|[^A-Za-z0-9])/g, '$1');
-  return restoreEscaped(
-    atLineStart
-      ? stripped.replace(/^[ \t]*(?:#{1,6}|>+)[ \t]*/gm, '').replace(/^[ \t]*(?:[-+*]|\d+[.)])[ \t]+/gm, '')
-      : stripped,
+  // The pass order mirrors the Python port: code spans out, escapes
+  // protected, images, links, strikethrough, emphasis, underscores.
+  const [withSlots, codeSpans] = stashCodeSpans(text);
+  const stripped = stripPaired(
+    stripPaired(protectEscaped(withSlots).replace(IMAGE, '$1').replace(LINK, '$1').replace(/~~/g, ''), EMPHASIS, '$1'),
+    UNDERSCORE,
+    '$1$2$3',
   );
+  const blocks = atLineStart
+    ? stripped.replace(/^[ \t]*(?:#{1,6}|>+)[ \t]*/gm, '').replace(/^[ \t]*(?:[-+*]|\d+[.)])[ \t]+/gm, '')
+    : stripped;
+  return restoreCodeSpans(restoreEscaped(blocks), codeSpans);
 }
 
 /**
@@ -76,17 +77,73 @@ export function stripMarkdown(text: string, atLineStart = true): string {
  *
  * A star with no partner is text the page shows: `2 * 3` is a product and
  * `5*3` keeps its star, because a single star between two non-space characters
- * with nothing to close it is not emphasis. The Python port of these rules, in
+ * with nothing to close it is not emphasis. The inner group takes the shortest
+ * text it can (`??`, not `?`), so `*a* and *b*` is two emphasized words rather
+ * than one run holding ` and `. The Python port of these rules, in
  * `lib/services/docx/edit_text.py`, has to agree character for character.
  */
 const EMPHASIS = [
-  /\*{3}([^\s](?:[\s\S]*?[^\s])?)\*{3}/g,
-  /\*{2}([^\s](?:[\s\S]*?[^\s])?)\*{2}/g,
-  /\*([^\s](?:[\s\S]*?[^\s])?)\*/g,
+  /\*{3}([^\s](?:[\s\S]*?[^\s])??)\*{3}/g,
+  /\*{2}([^\s](?:[\s\S]*?[^\s])??)\*{2}/g,
+  /\*([^\s](?:[\s\S]*?[^\s])??)\*/g,
 ];
 
-function stripEmphasis(text: string): string {
-  return EMPHASIS.reduce((stripped, pattern) => stripped.replace(pattern, '$1'), text);
+/**
+ * Underscore emphasis, on the same paired-delimiter terms as the stars, plus
+ * the word boundary CommonMark demands of an underscore: `snake_case_name` is
+ * a name on the page and `_private` a lone identifier, so neither is emphasis,
+ * while `_stressed_` is. The characters around the delimiters are matched too
+ * and put back by the replacement, which is why the passes repeat below --
+ * written this way rather than with a lookbehind for the sake of older Safari.
+ */
+const UNDERSCORE = [
+  /(^|[^A-Za-z0-9_])_{3}([^\s](?:[\s\S]*?[^\s])??)_{3}($|[^A-Za-z0-9_])/g,
+  /(^|[^A-Za-z0-9_])_{2}([^\s](?:[\s\S]*?[^\s])??)_{2}($|[^A-Za-z0-9_])/g,
+  /(^|[^A-Za-z0-9_])_([^\s](?:[\s\S]*?[^\s])??)_($|[^A-Za-z0-9_])/g,
+];
+
+/**
+ * Drop each pattern's delimiters, longest run first, until none are left.
+ *
+ * Repeated rather than applied once: an underscore pattern matches the
+ * characters on either side of the delimiters as well, so two emphasized words
+ * sharing the space between them only give up the second pair on the next
+ * round.
+ */
+function stripPaired(text: string, patterns: RegExp[], replacement: string): string {
+  let stripped = text;
+  for (const pattern of patterns) {
+    let previous: string;
+    do {
+      previous = stripped;
+      stripped = stripped.replace(pattern, replacement);
+    } while (stripped !== previous);
+  }
+  return stripped;
+}
+
+/**
+ * A code span, as CommonMark delimits one: a run of one to three backticks
+ * closed by a run of the same length. Its contents are literal, so they are
+ * taken out before any other pass and put back afterwards, fences dropped. A
+ * backtick with no closing partner is not a span and is left where it is.
+ */
+const CODE_SPAN = /(`{1,3})([\s\S]+?)\1/g;
+const CODE_SLOT = '\ue1fe';
+const CODE_SLOT_RANGE = /\ue1fe(\d+)\ue1fe/g;
+
+function stashCodeSpans(text: string): [string, string[]] {
+  const stashed: string[] = [];
+  const withSlots = text.replace(CODE_SPAN, (_match, _fence: string, code: string) => {
+    stashed.push(code);
+    return `${CODE_SLOT}${stashed.length - 1}${CODE_SLOT}`;
+  });
+  return [withSlots, stashed];
+}
+
+function restoreCodeSpans(text: string, stashed: string[]): string {
+  if (stashed.length === 0) return text;
+  return text.replace(CODE_SLOT_RANGE, (_match, index: string) => stashed[Number(index)]);
 }
 
 const LINK = /\[((?:[^[\]]|\[[^[\]]*\])*)\]\([^)]*\)/g;

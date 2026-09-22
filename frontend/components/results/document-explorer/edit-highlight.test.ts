@@ -86,10 +86,40 @@ describe('stripMarkdown', () => {
     expect(stripMarkdown('a * b *c*')).toBe('a * b c');
   });
 
+  it('reads two emphasized words as two', () => {
+    expect(stripMarkdown('a *b* and *c* d')).toBe('a b and c d');
+    expect(stripMarkdown('a _b_ and _c_ d')).toBe('a b and c d');
+  });
+
   it('keeps snake_case underscores but strips emphasis underscores', () => {
     expect(stripMarkdown('the _stressed_ value of snake_case_name stays')).toBe(
       'the stressed value of snake_case_name stays',
     );
+  });
+
+  it('keeps an underscore that emphasizes nothing', () => {
+    // No closing partner: an identifier, not emphasis.
+    expect(stripMarkdown('_private')).toBe('_private');
+    expect(stripMarkdown('foo_')).toBe('foo_');
+    expect(stripMarkdown('snake_case_name')).toBe('snake_case_name');
+  });
+
+  it('drops an underscore that does emphasize', () => {
+    expect(stripMarkdown('_emphasis_')).toBe('emphasis');
+    expect(stripMarkdown('__strong__')).toBe('strong');
+    expect(stripMarkdown('a _b_ c')).toBe('a b c');
+  });
+
+  it('keeps the contents of a code span exactly', () => {
+    // The page shows what is between the backticks, syntax and all.
+    expect(stripMarkdown('`**name**`')).toBe('**name**');
+    expect(stripMarkdown('`a_b`')).toBe('a_b');
+    expect(stripMarkdown('`[x](y)`')).toBe('[x](y)');
+    expect(stripMarkdown('call `run()` once')).toBe('call run() once');
+  });
+
+  it('leaves a backtick with no closing partner alone', () => {
+    expect(stripMarkdown('a ` b')).toBe('a ` b');
   });
 
   it('reduces a link whose label holds brackets, as a DOCX footnote does, to its label', () => {

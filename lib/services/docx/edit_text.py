@@ -25,7 +25,12 @@ from lib.workflows.simple_deep_agent.edit_anchoring import normalize_whitespace
 # footnote reference as `[[1]](#footnote-2)`, which the document shows as `[1]`.
 _LINK = re.compile(r"\[((?:[^\[\]]|\[[^\[\]]*\])*)\]\([^)]*\)")
 _IMAGE = re.compile(r"!\[((?:[^\[\]]|\[[^\[\]]*\])*)\]\([^)]*\)")
-_CODE_FENCE = re.compile(r"`+")
+# A code span, as CommonMark delimits one: a run of one to three backticks
+# closed by a run of the same length. Its contents are literal -- `` `**name**` ``
+# is shown with its stars, `` `a_b` `` with its underscore -- so they are taken
+# out before any other pass and put back afterwards, fences dropped. A backtick
+# with no closing partner is not a span and is left where it is.
+_CODE_SPAN = re.compile(r"(?P<fence>`{1,3})(?P<code>.+?)(?P=fence)", re.DOTALL)
 _STRIKETHROUGH = re.compile(r"~~")
 # Emphasis, only where a delimiter is actually paired: an opening run of stars
 # has to be followed by a non-space character and its closing run preceded by
@@ -35,20 +40,37 @@ _STRIKETHROUGH = re.compile(r"~~")
 # A star with no partner is text the document shows: `2 * 3` is a product and
 # `5*3` keeps its star, because a single star between two non-space characters
 # with nothing to close it is not emphasis.
+#
+# The inner group takes the shortest text it can (`??`, not `?`): `*a* and *b*`
+# is two emphasized words, not one run holding ` and `.
 _EMPHASIS = [
-    re.compile(r"\*{3}(\S(?:.*?\S)?)\*{3}", re.DOTALL),
-    re.compile(r"\*{2}(\S(?:.*?\S)?)\*{2}", re.DOTALL),
-    re.compile(r"\*(\S(?:.*?\S)?)\*", re.DOTALL),
+    re.compile(r"\*{3}(\S(?:.*?\S)??)\*{3}", re.DOTALL),
+    re.compile(r"\*{2}(\S(?:.*?\S)??)\*{2}", re.DOTALL),
+    re.compile(r"\*(\S(?:.*?\S)??)\*", re.DOTALL),
 ]
-# Only underscores standing outside a word: `snake_case` is a name in the text,
-# not emphasis, and stripping its underscores would stop it matching.
-_UNDERSCORE_OPEN = re.compile(r"(^|[^A-Za-z0-9])_{1,3}")
-_UNDERSCORE_CLOSE = re.compile(r"_{1,3}($|[^A-Za-z0-9])")
+# Underscore emphasis, on the same paired-delimiter terms as the stars, plus
+# the word boundary CommonMark demands of an underscore: `snake_case_name` is a
+# name in the text and `_private` a lone identifier, so neither is emphasis,
+# while `_stressed_` is. The delimiters are matched together with the
+# characters around them, which are put back by the replacement.
+_UNDERSCORE = [
+    re.compile(r"(^|[^A-Za-z0-9_])_{3}(\S(?:.*?\S)??)_{3}($|[^A-Za-z0-9_])", re.DOTALL),
+    re.compile(r"(^|[^A-Za-z0-9_])_{2}(\S(?:.*?\S)??)_{2}($|[^A-Za-z0-9_])", re.DOTALL),
+    re.compile(r"(^|[^A-Za-z0-9_])_(\S(?:.*?\S)??)_($|[^A-Za-z0-9_])", re.DOTALL),
+]
 _BLOCK_PREFIX = re.compile(r"^[ \t]*(?:#{1,6}|>+)[ \t]*", re.MULTILINE)
 _LIST_MARKER = re.compile(r"^[ \t]*(?:[-+*]|\d+[.)])[ \t]+", re.MULTILINE)
 
 FIRST_LINE_ONLY = "the replacement spans more than one paragraph"
 NO_TABS = "the replacement contains a tab"
+LINK_DESTINATION_CHANGED = (
+    "it changes a link destination, which the export cannot write"
+)
+
+# A link or image destination: what is inside the parentheses. Word keeps a
+# hyperlink as a relationship of its own rather than as text, so a redline over
+# the label cannot change where the link points.
+_LINK_DESTINATION = re.compile(r"!?\[(?:[^\[\]]|\[[^\[\]]*\])*\]\(([^)]*)\)")
 
 # Backslash-escaped punctuation, as CommonMark defines it: the document shows
 # the character itself, so `foo\_bar` in the source reads `foo_bar` on the page.
@@ -62,6 +84,12 @@ _PLACEHOLDER_RANGE = re.compile(r"[\uE000-\uE0FF]")
 # Marks where the quote starts in the source while the syntax around it is
 # stripped. Outside the escape placeholders' range on purpose.
 _QUOTE_MARK = "\ue1ff"
+
+# Stands in for one code span's contents while the syntax around it is
+# stripped, as `<slot>index<slot>`. Its own range again, so neither the escape
+# placeholders nor the quote mark can be mistaken for it.
+_CODE_SLOT = "\ue1fe"
+_CODE_SLOT_RANGE = re.compile(rf"{_CODE_SLOT}(\d+){_CODE_SLOT}")
 
 # The same class `normalize_whitespace` collapses, one character at a time.
 _WHITESPACE = re.compile(r"\s")
@@ -79,8 +107,50 @@ def _restore_escaped(text: str) -> str:
     )
 
 
+def _stash_code_spans(text: str) -> Tuple[str, List[str]]:
+    """Replace each code span with a slot, keeping its contents verbatim."""
+    stashed: List[str] = []
+
+    def take(match: "re.Match[str]") -> str:
+        stashed.append(match.group("code"))
+        return f"{_CODE_SLOT}{len(stashed) - 1}{_CODE_SLOT}"
+
+    return _CODE_SPAN.sub(take, text), stashed
+
+
+def _restore_code_spans(text: str, stashed: Sequence[str]) -> str:
+    """Put each stashed code span back, without its fences."""
+    if not stashed:
+        return text
+    return _CODE_SLOT_RANGE.sub(lambda match: stashed[int(match.group(1))], text)
+
+
+def _strip_paired(
+    text: str, patterns: Sequence["re.Pattern[str]"], replacement: str
+) -> str:
+    """Drop each pattern's delimiters, longest run first, until none are left.
+
+    Repeated rather than applied once: an underscore pattern matches the
+    characters on either side of the delimiters as well, so two emphasized
+    words sharing the space between them only give up the second pair on the
+    next round.
+    """
+    for pattern in patterns:
+        while True:
+            stripped = pattern.sub(replacement, text)
+            if stripped == text:
+                break
+            text = stripped
+    return text
+
+
 def strip_markdown(text: str, *, at_line_start: bool = True) -> str:
     """Drop the markdown syntax a reader never sees from a quote.
+
+    A code span keeps its contents exactly: `` `**name**` `` reads as
+    ``**name**`` on the page, so nothing inside one is treated as syntax.
+    Emphasis delimiters go only where they are actually paired, and an
+    underscore also has to stand outside a word.
 
     A heading hash, a blockquote arrow and a list marker are only syntax where
     a line begins; the same characters inside a line are text Word shows.
@@ -89,19 +159,17 @@ def strip_markdown(text: str, *, at_line_start: bool = True) -> str:
     the marker -- so a caller that knows where the quote sat on its source line
     passes ``at_line_start=False`` when it did not start there.
     """
-    stripped = _protect_escaped(text)
+    stripped, code_spans = _stash_code_spans(text)
+    stripped = _protect_escaped(stripped)
     stripped = _IMAGE.sub(r"\1", stripped)
     stripped = _LINK.sub(r"\1", stripped)
-    stripped = _CODE_FENCE.sub("", stripped)
     stripped = _STRIKETHROUGH.sub("", stripped)
-    for emphasis in _EMPHASIS:
-        stripped = emphasis.sub(r"\1", stripped)
-    stripped = _UNDERSCORE_OPEN.sub(r"\1", stripped)
-    stripped = _UNDERSCORE_CLOSE.sub(r"\1", stripped)
+    stripped = _strip_paired(stripped, _EMPHASIS, r"\1")
+    stripped = _strip_paired(stripped, _UNDERSCORE, r"\1\2\3")
     if at_line_start:
         stripped = _BLOCK_PREFIX.sub("", stripped)
         stripped = _LIST_MARKER.sub("", stripped)
-    return _restore_escaped(stripped)
+    return _restore_code_spans(_restore_escaped(stripped), code_spans)
 
 
 def word_search_text(original_text: str, *, at_line_start: bool = True) -> str:
@@ -109,6 +177,18 @@ def word_search_text(original_text: str, *, at_line_start: bool = True) -> str:
     return normalize_whitespace(
         strip_markdown(original_text, at_line_start=at_line_start)
     )
+
+
+def link_destinations(text: str) -> List[str]:
+    """Every markdown link or image destination in `text`, in order.
+
+    Used to compare a quote with its replacement: Word carries a hyperlink as a
+    relationship the paragraph's text does not spell out, so writing the new
+    label as a redline would leave the old target in place -- a link saying one
+    thing and going somewhere else. An edit that changes a destination is
+    reported instead.
+    """
+    return [match.group(1) for match in _LINK_DESTINATION.finditer(text)]
 
 
 def is_table_row(line: str) -> bool:

@@ -24,6 +24,7 @@ import shutil
 import tempfile
 import uuid
 from contextlib import contextmanager
+from difflib import SequenceMatcher
 from typing import Dict, Iterator, List, Literal, Mapping, Optional, Sequence, Tuple
 
 from docx import Document as PythonDocxDocument
@@ -32,8 +33,10 @@ from pydantic import BaseModel
 
 from lib.models.issue_edit import IssueEdit
 from lib.services.docx.edit_text import (
+    LINK_DESTINATION_CHANGED,
     all_offsets,
     is_table_row,
+    link_destinations,
     locate_in_paragraph,
     source_occurrence,
     unsupported_replacement_reason,
@@ -68,9 +71,10 @@ _CONTROL_CHARS = re.compile(r"[\x00-\x1f\x7f]")
 # make a line and its own paragraph look like different passages.
 _FOOTNOTE_REFERENCE = re.compile(r"\[\[\d+\]\]\(#footnote-[^)]*\)|\[\^\d+\]")
 
-# How much of a line and a paragraph must agree for them to be the same
-# passage. Long enough that no table row can share it with prose.
-_MIN_SHARED_PREFIX = 20
+# How alike a line and a paragraph must be to be the same passage, and how
+# long both have to be before likeness is worth measuring at all.
+_MIN_SIMILARITY = 0.9
+_MIN_COMPARABLE_LENGTH = 20
 
 # Why nothing could be placed: python-docx and docx-editor disagreed on the
 # document's paragraphs, so not one ref could be trusted.
@@ -189,16 +193,6 @@ def _without_footnote_references(line: str) -> str:
     return _FOOTNOTE_REFERENCE.sub("", line)
 
 
-def _shared_prefix_length(left: str, right: str) -> int:
-    """How many leading characters two strings agree on."""
-    length = 0
-    for left_char, right_char in zip(left, right):
-        if left_char != right_char:
-            break
-        length += 1
-    return length
-
-
 def _line_belongs_to_paragraph(line: Optional[str], paragraph_text: str) -> bool:
     """Whether the edit's own markdown line is part of the mapped paragraph.
 
@@ -207,7 +201,7 @@ def _line_belongs_to_paragraph(line: Optional[str], paragraph_text: str) -> bool
     above them. Mapping by range alone would hand a table-cell edit to that
     paragraph, and a quote the paragraph happens to carry as well would then be
     redlined on the wrong words. Comparing the whole line against the
-    paragraph's text settles it, in three steps:
+    paragraph's text settles it:
 
     1. The line loses its footnote reference markers, which Word carries as
        marks rather than as text, and both are then stripped of markdown. A
@@ -216,13 +210,18 @@ def _line_belongs_to_paragraph(line: Optional[str], paragraph_text: str) -> bool
     2. Either text containing the other is the same passage. Both directions
        count: a Word paragraph holding hard line breaks converts to several
        markdown lines, so the line can be the shorter of the two.
-    3. Otherwise a shared opening of `_MIN_SHARED_PREFIX` characters is taken
-       as the same passage too, which covers drift anywhere in a long
-       paragraph -- an inline image, a bookmark, a field result. A prefix that
-       long also means both texts are at least that long, and it is more than
-       a table row (``| Metric | Value |``) can share with prose.
+    3. Otherwise they are the same passage when they are `_MIN_SIMILARITY`
+       alike over their whole length, which covers conversion drift anywhere
+       in a long paragraph -- an inline image, a bookmark, a field result, a
+       trailing clause MarkItDown writes and Word does not show. Measuring the
+       whole text rather than a shared opening is what keeps a nested block or
+       a content control that merely repeats the paragraph's first words out:
+       boilerplate at the front no longer buys it the paragraph.
 
-    Nothing else is the mapped paragraph's own line.
+    Both texts must be at least `_MIN_COMPARABLE_LENGTH` characters for that
+    last rule, since two short strings are alike by accident -- and it is
+    already more than a table row (``| Metric | Value |``) can share with
+    prose. Nothing else is the mapped paragraph's own line.
     """
     if line is None:
         return False
@@ -232,7 +231,10 @@ def _line_belongs_to_paragraph(line: Optional[str], paragraph_text: str) -> bool
         return False
     if line_text in para_text or para_text in line_text:
         return True
-    return _shared_prefix_length(line_text, para_text) >= _MIN_SHARED_PREFIX
+    if min(len(line_text), len(para_text)) < _MIN_COMPARABLE_LENGTH:
+        return False
+    similarity = SequenceMatcher(None, line_text, para_text).ratio()
+    return similarity >= _MIN_SIMILARITY
 
 
 def _starts_its_line(line: Optional[str], original_text: str) -> bool:
@@ -282,6 +284,28 @@ def _resolve_span(
     return spans[occurrence], "applied"
 
 
+def _with_boundary_whitespace(
+    span: Tuple[int, int], paragraph_text: str, original_text: str
+) -> Tuple[int, int]:
+    """Grow the span over the whitespace the quote itself asked for.
+
+    A quote is located by its words: `word_search_text` normalizes ``" bad "``
+    to ``bad``, so the span found covers ``bad`` alone. Writing ``" good "``
+    over it would then double the spaces around it, and deleting it would leave
+    two spaces behind. The quote said which spaces it owns, so each side it
+    opened or closed with whitespace takes the paragraph's own run of
+    whitespace there with it.
+    """
+    start, end = span
+    if original_text[:1].isspace():
+        while start > 0 and paragraph_text[start - 1].isspace():
+            start -= 1
+    if original_text[-1:].isspace():
+        while end < len(paragraph_text) and paragraph_text[end].isspace():
+            end += 1
+    return start, end
+
+
 def _plan_edit(
     edit: IssueEdit,
     paragraph_index: int,
@@ -317,6 +341,7 @@ def _plan_edit(
     if span is None:
         return None, EditOutcome(edit_id=edit.id, status=status)
 
+    span = _with_boundary_whitespace(span, paragraph.text, edit.original_text)
     find = paragraph.text[span[0] : span[1]]
     replace_with = word_replacement_text(
         edit.replacement_text, at_line_start=at_line_start
@@ -326,6 +351,14 @@ def _plan_edit(
             edit_id=edit.id,
             status="unsupported",
             detail=unsupported_replacement_reason(edit.replacement_text),
+        )
+    if link_destinations(edit.replacement_text) != link_destinations(
+        edit.original_text
+    ):
+        return None, EditOutcome(
+            edit_id=edit.id,
+            status="unsupported",
+            detail=LINK_DESTINATION_CHANGED,
         )
     if replace_with == find:
         return None, EditOutcome(

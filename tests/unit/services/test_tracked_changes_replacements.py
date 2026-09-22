@@ -139,3 +139,80 @@ class TestTheReplacementReachesWordAsWritten:
         assert [outcome.detail for outcome in plan.outcomes] == [
             "the replacement matches the current text once formatting is removed"
         ]
+
+
+# A quote that takes the spaces around a word with it. The edit was written
+# that way on purpose -- replacing " bad " with " good " and deleting " bad"
+# both have to leave one space where there was one.
+_SPACED_PARAGRAPH = "This is a bad result."
+
+
+@pytest.fixture
+def spaced_docx_path(tmp_path: Path) -> Path:
+    document = PythonDocxDocument()
+    document.add_paragraph(_SPACED_PARAGRAPH)
+    path = tmp_path / "spaced.docx"
+    document.save(str(path))
+    return path
+
+
+class TestWhitespaceTheQuoteItselfCarries:
+    async def _plan_spaced(self, path: Path, edit: IssueEdit):
+        return await _plan(
+            path,
+            [edit],
+            paragraph_line_ranges={0: (1, 1)},
+            markdown=_SPACED_PARAGRAPH,
+        )
+
+    @pytest.mark.asyncio
+    async def test_a_quote_with_spaces_on_both_sides_replaces_them_too(
+        self, spaced_docx_path: Path
+    ):
+        edit = _edit(" bad ", " good ", 1)
+
+        plan, _ = await self._plan_spaced(spaced_docx_path, edit)
+        await apply_tracked_changes(
+            str(spaced_docx_path),
+            plan.planned,
+            workspace_root=str(spaced_docx_path.parent),
+        )
+
+        assert _statuses(plan.outcomes) == {edit.id: "applied"}
+        assert plan.planned[0].find == " bad "
+        visible, _, _ = _read(spaced_docx_path)
+        assert "This is a good result." in visible
+
+    @pytest.mark.asyncio
+    async def test_deleting_a_quote_with_a_leading_space_leaves_one_space(
+        self, spaced_docx_path: Path
+    ):
+        edit = _edit(" bad", "", 1)
+
+        plan, _ = await self._plan_spaced(spaced_docx_path, edit)
+        await apply_tracked_changes(
+            str(spaced_docx_path),
+            plan.planned,
+            workspace_root=str(spaced_docx_path.parent),
+        )
+
+        assert plan.planned[0].find == " bad"
+        visible, _, _ = _read(spaced_docx_path)
+        assert "This is a result." in visible
+
+    @pytest.mark.asyncio
+    async def test_a_quote_without_boundary_whitespace_is_unaffected(
+        self, spaced_docx_path: Path
+    ):
+        edit = _edit("bad", "good", 1)
+
+        plan, _ = await self._plan_spaced(spaced_docx_path, edit)
+        await apply_tracked_changes(
+            str(spaced_docx_path),
+            plan.planned,
+            workspace_root=str(spaced_docx_path.parent),
+        )
+
+        assert plan.planned[0].find == "bad"
+        visible, _, _ = _read(spaced_docx_path)
+        assert "This is a good result." in visible
