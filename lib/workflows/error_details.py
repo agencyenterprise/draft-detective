@@ -15,6 +15,7 @@ from typing import Any, Optional
 from langchain_core.messages import AIMessage
 
 from lib.agents.structured_output_salvage import ai_message_text
+from lib.config.llm_diagnostics import capture_http_error
 from lib.workflows.models import ErrorDetails, WorkflowError, WorkflowErrorSeverity
 
 logger = logging.getLogger(__name__)
@@ -109,6 +110,11 @@ def capture_error_details(exc: BaseException) -> ErrorDetails:
     if raw_output is None:
         raw_output = _decoded_document(exc)
 
+    metadata = _llm_metadata(ai_message) if ai_message is not None else None
+    http_error = capture_http_error(exc)
+    if http_error:
+        metadata = {**(metadata or {}), "http_error": http_error}
+
     return ErrorDetails(
         error_type=type(exc).__name__,
         traceback=_truncate(
@@ -117,7 +123,7 @@ def capture_error_details(exc: BaseException) -> ErrorDetails:
         raw_model_output=(
             _truncate(raw_output, MAX_RAW_OUTPUT_CHARS) if raw_output else None
         ),
-        llm_metadata=_llm_metadata(ai_message) if ai_message is not None else None,
+        llm_metadata=metadata,
     )
 
 

@@ -9,12 +9,19 @@ use a distinct `LLM_RATE_LIMIT` prefix so they can be isolated with a simple
 
 from __future__ import annotations
 
+import json
 import logging
+from time import monotonic
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Optional
 from uuid import UUID
 
 from langchain_core.callbacks import BaseCallbackHandler
+
+from lib.config.llm_diagnostics import (
+    capture_http_error,
+    safe_endpoint,
+)
 
 if TYPE_CHECKING:
     # Imported only for typing to avoid a circular import:
@@ -47,6 +54,7 @@ class _CallMetadata:
     model_name: str
     provider: str
     endpoint: Optional[str]
+    started_at: float
 
 
 def _is_rate_limit_error(error: BaseException) -> bool:
@@ -95,13 +103,11 @@ def _endpoint_from_obj(obj: Any) -> Optional[str]:
 def _endpoint_from_error(error: BaseException) -> Optional[str]:
     """Try to read the request URL off an httpx-style error's response."""
     response = getattr(error, "response", None)
-    if response is None:
+    try:
+        request = getattr(response, "request", None)
+    except RuntimeError:
         return None
-    request = getattr(response, "request", None)
-    if request is None:
-        return None
-    url = getattr(request, "url", None)
-    return str(url) if url else None
+    return safe_endpoint(getattr(request, "url", None))
 
 
 def _endpoint_from_serialized(
@@ -158,6 +164,7 @@ def _format_log_line(
     status: str,
     error_type: str,
     message: str,
+    diagnostics: Optional[dict] = None,
 ) -> str:
     """Build a single-line `PREFIX key=value …` record.
 
@@ -173,7 +180,7 @@ def _format_log_line(
         f"provider={provider or '-'}",
     ]
     if endpoint:
-        parts.append(f"endpoint={endpoint}")
+        parts.append(f"endpoint={safe_endpoint(endpoint)}")
     parts.extend(
         [
             f"workflow_run_id={workflow_run_id or '-'}",
@@ -183,6 +190,8 @@ def _format_log_line(
             f'message="{message}"',
         ]
     )
+    if diagnostics:
+        parts.append("diagnostics=" + json.dumps(diagnostics, ensure_ascii=True))
     return " ".join(parts)
 
 
@@ -268,6 +277,7 @@ class ErrorLoggingCallback(BaseCallbackHandler):
             model_name=str(model_name),
             provider=str(provider),
             endpoint=endpoint,
+            started_at=monotonic(),
         )
 
     # --- end / error hooks: consume cached metadata ----------------------
@@ -294,17 +304,26 @@ class ErrorLoggingCallback(BaseCallbackHandler):
     ) -> None:
         meta = self._calls.pop(run_id, None)
         is_rate_limit = _is_rate_limit_error(error)
+        diagnostics = capture_http_error(error) or {}
+        diagnostics["llm_run_id"] = str(run_id)
+        if meta:
+            diagnostics["call_elapsed_ms"] = round(
+                (monotonic() - meta.started_at) * 1000
+            )
         line = _format_log_line(
             is_rate_limit=is_rate_limit,
             caller=meta.agent_name if meta else _UNKNOWN,
             model_name=meta.model_name if meta else _UNKNOWN,
             provider=meta.provider if meta else "",
-            endpoint=(meta.endpoint if meta else None) or _endpoint_from_error(error),
+            endpoint=(meta.endpoint if meta else None)
+            or diagnostics.get("endpoint")
+            or _endpoint_from_error(error),
             workflow_run_id=self._workflow_run_id,
             project_id=self._project_id,
             status=_status_code(error),
             error_type=type(error).__name__,
             message=_flatten_message(error),
+            diagnostics=diagnostics,
         )
         _emit(line, is_rate_limit=is_rate_limit)
 
@@ -326,7 +345,12 @@ def log_embedding_error(
     `except` block of those call sites.
     """
     is_rate_limit = _is_rate_limit_error(error)
-    endpoint = _endpoint_from_obj(embeddings_client) or _endpoint_from_error(error)
+    diagnostics = capture_http_error(error)
+    endpoint = (
+        _endpoint_from_obj(embeddings_client)
+        or (diagnostics or {}).get("endpoint")
+        or _endpoint_from_error(error)
+    )
     line = _format_log_line(
         is_rate_limit=is_rate_limit,
         caller=caller,
@@ -346,5 +370,6 @@ def log_embedding_error(
         status=_status_code(error),
         error_type=type(error).__name__,
         message=_flatten_message(error),
+        diagnostics=diagnostics,
     )
     _emit(line, is_rate_limit=is_rate_limit)
