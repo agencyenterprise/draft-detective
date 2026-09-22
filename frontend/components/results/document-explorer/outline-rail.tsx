@@ -4,21 +4,18 @@ import { HelpLink } from '@/components/help/help-link';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Issue, SeverityEnum, WorkflowRunType } from '@/lib/generated-api';
-import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { SEVERITY } from '@/lib/severity-style';
 import { DocumentExplorerFilter, hasActiveFilters } from '@/lib/stores/document-explorer-store';
 import { RAIL_ITEM_ACTIVE, RAIL_ITEM_IDLE } from '@/lib/rail-style';
 import { cn } from '@/lib/utils';
 import { CircleHelp } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
+import { AssessmentFilter } from './assessment-filter';
 import { OutlineEntry, issuesInSection } from './outline';
 
 /** The severities this rail filters by, worst first. Their colours and labels
  *  come from the shared palette so the rail cannot drift from the margin. */
 const SEVERITY_ROWS = [SeverityEnum.High, SeverityEnum.Medium, SeverityEnum.Low] as const;
-
-/** Assessments shown before the list is collapsed behind a toggle. */
-const VISIBLE_ASSESSMENTS = 4;
 
 interface OutlineRailProps {
   outline: OutlineEntry[];
@@ -53,9 +50,6 @@ export function OutlineRail({
   activeLine,
   onJump,
 }: OutlineRailProps) {
-  const { getWorkflowTypeName } = useWorkflowTypes();
-  const [showAllWorkflows, setShowAllWorkflows] = useState(false);
-
   const workflowCounts = useMemo(() => {
     const counts = new Map<WorkflowRunType, number>();
     for (const issue of visibleIssues) {
@@ -64,31 +58,11 @@ export function OutlineRail({
     return [...counts.entries()].sort((a, b) => b[1] - a[1]);
   }, [visibleIssues]);
 
-  /**
-   * A project can run a dozen assessments, and the full set of chips pushes the
-   * outline off the rail. Show the ones carrying the most issues, plus anything
-   * selected so an active filter is never out of sight, and put the rest behind
-   * a toggle.
-   */
-  const shownWorkflows = useMemo(() => {
-    if (showAllWorkflows) return workflowCounts;
-    return workflowCounts.filter(([type], index) => index < VISIBLE_ASSESSMENTS || filter.workflowType.includes(type));
-  }, [workflowCounts, showAllWorkflows, filter.workflowType]);
-
-  const hiddenWorkflowCount = workflowCounts.length - shownWorkflows.length;
-
   const toggleSeverity = (value: SeverityEnum) => {
     const next = filter.severity.includes(value)
       ? filter.severity.filter((s) => s !== value)
       : [...filter.severity, value];
     onFilterChange({ severity: next });
-  };
-
-  const toggleWorkflowType = (value: WorkflowRunType) => {
-    const next = filter.workflowType.includes(value)
-      ? filter.workflowType.filter((t) => t !== value)
-      : [...filter.workflowType, value];
-    onFilterChange({ workflowType: next });
   };
 
   return (
@@ -125,41 +99,6 @@ export function OutlineRail({
           })}
         </div>
 
-        {workflowCounts.length > 0 && (
-          <div className="mt-3 flex flex-wrap gap-1.5 px-2">
-            {shownWorkflows.map(([type, count]) => {
-              const on = filter.workflowType.includes(type);
-              return (
-                <button
-                  key={type}
-                  onClick={() => toggleWorkflowType(type)}
-                  aria-pressed={on}
-                  title={getWorkflowTypeName(type)}
-                  className={cn(
-                    'max-w-full cursor-pointer truncate rounded-full border px-2 py-0.5 text-[11px] transition-colors',
-                    on
-                      ? 'bg-primary text-primary-foreground border-primary'
-                      : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
-                  )}
-                >
-                  {getWorkflowTypeName(type)}
-                  <span className="ml-1 tabular-nums opacity-70">{count}</span>
-                </button>
-              );
-            })}
-
-            {(hiddenWorkflowCount > 0 || showAllWorkflows) && (
-              <button
-                onClick={() => setShowAllWorkflows(!showAllWorkflows)}
-                aria-expanded={showAllWorkflows}
-                className="cursor-pointer rounded-full px-2 py-0.5 text-[11px] font-medium text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
-              >
-                {showAllWorkflows ? 'Show fewer' : `${hiddenWorkflowCount} more`}
-              </button>
-            )}
-          </div>
-        )}
-
         <div className="mt-4 space-y-2.5 px-2">
           <label className="flex cursor-pointer items-center gap-2 text-sm">
             <Switch
@@ -180,6 +119,16 @@ export function OutlineRail({
             <span className="font-mono text-[11px] tabular-nums text-muted-foreground">{resolvedCount}</span>
           </label>
         </div>
+
+        {(workflowCounts.length > 0 || filter.workflowType.length > 0) && (
+          <div className="mt-3">
+            <AssessmentFilter
+              counts={workflowCounts}
+              value={filter.workflowType}
+              onChange={(workflowType) => onFilterChange({ workflowType })}
+            />
+          </div>
+        )}
       </section>
 
       <div className="border-t" />
