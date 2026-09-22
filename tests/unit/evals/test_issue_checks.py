@@ -422,6 +422,57 @@ def test_forbidden_phrases_left_standing_in_the_edited_sentence_fail():
     assert edit_checks(f, _issue(edits=[whole]), LINES)["edit_expected_phrases"][0] == 1.0
 
 
+def test_edited_sentence_positions_follow_earlier_edits_on_the_line():
+    from evals_inspectai.common.issue_checks import _edited_sentences
+
+    line = "Alpha is short. Beta was written by the team here."
+    later_then_earlier = [
+        _edit("Beta was written by the team here.", "The team wrote beta here."),
+        _edit("Alpha is short.", "Alpha is a considerably longer sentence."),
+    ]
+    assert _edited_sentences(line, later_then_earlier) == "Alpha is a considerably longer sentence. The team wrote beta here."
+
+
+def test_sentence_scope_does_not_split_on_decimals_or_et_al():
+    from evals_inspectai.common.issue_checks import _edited_sentences
+
+    line = "Attendance rose 2.1 percent (Smith et al., 2024). Costs fell."
+    edit = _edit("Attendance rose 2.1 percent", "Attendance increased 2.1 percent")
+    assert _edited_sentences(line, [edit]) == "Attendance increased 2.1 percent (Smith et al., 2024)."
+
+
+def test_sentence_scope_splits_after_a_footnote_marker_and_before_a_digit():
+    from evals_inspectai.common.issue_checks import _edited_sentences, _sentence_spans
+
+    line = "Sites were shortlisted by the planners.[[4]](#footnote-5) Categories were chosen so that a source exists. 2024 was the base year."
+    assert [line[s:t].strip() for s, t in _sentence_spans(line)] == [
+        "Sites were shortlisted by the planners.[[4]](#footnote-5)",
+        "Categories were chosen so that a source exists.",
+        "2024 was the base year.",
+    ]
+    edit = _edit("Categories were chosen", "We chose categories")
+    assert _edited_sentences(line, [edit]) == "We chose categories so that a source exists."
+
+
+def test_a_deletion_contributes_no_neighbouring_sentence_to_the_scope():
+    from evals_inspectai.common.issue_checks import _edited_sentences
+
+    line = "One is x. Two is y. Three is z."
+    assert _edited_sentences(line, [_edit(" Two is y.", "")]) == ""
+    lines = LINES[:8] + [line]
+    f = ResolvedIssue(id="f", title=None, anchor="Two is y", line=9, edit_expected=True,
+                      edit={"must_include": ["Three is z"], "must_not_include": ["One is x"]})
+    out = edit_checks(f, _issue(start=9, end=9, edits=[_edit(" Two is y.", "", line=9)]), lines)
+    assert out["edit_expected_phrases"][0] == 0.0, "a deletion carries no required phrase; its neighbour supplies none"
+
+
+def test_percentage_points_are_not_a_percentage():
+    from evals_inspectai.common.issue_checks import _tokens
+
+    assert _tokens("rose 9 percentage points") == ["9"]
+    assert _tokens("rose 9 percent") == ["9%"] and _tokens("rose 9%") == ["9%"]
+
+
 def test_percentage_units_travel_with_their_number():
     line = "Retention rose 7% in the same period."
     lines = LINES[:8] + [line]

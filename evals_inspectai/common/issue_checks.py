@@ -115,7 +115,7 @@ def decoy_descriptions(reasons: Sequence[str]) -> dict[str, str]:
 # A number ends in a digit, so a sentence-final "Figure 1." yields "1", not "1.". A
 # percentage unit written as "%", "percent" or "per cent" is captured with it and
 # canonicalised to "%", so "7%" and "7 percent" are the same token while "7" is not.
-_NUMBER_RE = re.compile(r"(\d(?:[\d,.–\-]*\d)?)(\s*(?:%|percent|per cent))?", re.I)
+_NUMBER_RE = re.compile(r"(\d(?:[\d,.–\-]*\d)?)(\s*(?:%|percent\b|per cent\b))?", re.I)
 _FOOTNOTE_RE = re.compile(r"\[\[\d+\]\]\(#footnote-\d+\)")
 _CITATION_RE = re.compile(r"\([A-Z][^()]*?\d{4}[a-z]?(?:,\s*p\.\s*\d+)?\)")
 _STRANDED_RE = re.compile(r",\s*[.;,]|\s[.,;]|\.\.(?!\.)|\s{2,}")
@@ -203,36 +203,57 @@ def _tokens(text: str) -> list[str]:
     return sorted(numbers + _FOOTNOTE_RE.findall(text) + _CITATION_RE.findall(text))
 
 
-_SENTENCE_RE = re.compile(r"[^.!?]+(?:[.!?]+|$)")
+# A sentence ends at ., ! or ? (with any footnote markers that follow it) before
+# whitespace and a capital, digit, quote or bracket, so decimals ("2.1 percent") and
+# "et al., 2024" do not split it and "planners.[[4]](#footnote-5) Categories" does; a
+# few abbreviations that take a capital after them ("et al. The", "e.g. The") are
+# excluded by name.
+_SENTENCE_BREAK_RE = re.compile(r"[.!?]+(?:\[\[\d+\]\]\(#footnote-\d+\))*(?=\s+[A-Z0-9\"“(\[])")
+_NOT_A_SENTENCE_END = ("al", "e.g", "i.e", "vs", "cf", "Fig", "No")
+
+
+def _sentence_spans(text: str) -> list[tuple[int, int]]:
+    spans, start = [], 0
+    for m in _SENTENCE_BREAK_RE.finditer(text):
+        before = text[:m.start()]
+        if any(before.endswith(abbr) and (len(before) == len(abbr) or not before[-len(abbr) - 1].isalpha()) for abbr in _NOT_A_SENTENCE_END):
+            continue
+        spans.append((start, m.end()))
+        start = m.end()
+    if start < len(text):
+        spans.append((start, len(text)))
+    return spans
 
 
 def _edited_sentences(line_text: str, edits: Sequence[ProposedEdit]) -> Optional[str]:
-    """The sentence(s) of ``line_text`` that the edits touch, with every edit applied.
+    """The sentence(s) of ``line_text`` that the edits produce, with every edit applied.
 
-    Edits are applied in turn to the line; the sentences whose span meets a
-    replacement (or a deletion point) are returned joined. None when no edit's
-    original text is found on the line, in which case only the replacements
-    themselves can be judged.
+    Edits are applied in turn to the line, each replacement's position kept
+    current as later edits change the text before it. The sentences that
+    overlap a replacement are returned joined. A deletion leaves nothing to
+    judge and contributes no sentence: its neighbours were not edited. None
+    when no edit's original text is found on the line, in which case only the
+    replacements themselves can be judged.
     """
     applied = line_text
     spans: list[tuple[int, int]] = []
+    found = False
     for e in edits:
         at = applied.find(e.original_text)
         if at < 0:
             continue
+        found = True
+        shift = len(e.replacement_text) - len(e.original_text)
+        spans = [(s + shift, t + shift) if s >= at + len(e.original_text) else (s, t) for s, t in spans]
         applied = applied[:at] + e.replacement_text + applied[at + len(e.original_text):]
-        spans.append((at, at + len(e.replacement_text)))
-    if not spans:
+        if e.replacement_text:
+            spans.append((at, at + len(e.replacement_text)))
+    if not found:
         return None
-    def touches(sentence_start: int, sentence_end: int, start: int, end: int) -> bool:
-        if start == end:  # a deletion: the point it left behind belongs to one sentence
-            return sentence_start <= start <= sentence_end
-        return sentence_start < end and start < sentence_end  # real overlap, not a shared boundary
-
     touched = [
-        m.group(0).strip()
-        for m in _SENTENCE_RE.finditer(applied)
-        if any(touches(m.start(), m.end(), start, end) for start, end in spans)
+        applied[s:t].strip()
+        for s, t in _sentence_spans(applied)
+        if any(s < end and start < t for start, end in spans)
     ]
     return " ".join(touched)
 
