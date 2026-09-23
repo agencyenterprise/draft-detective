@@ -40,7 +40,9 @@ async def assemble_catalogue_node(
     return {
         "abbreviations": catalogue,
         "reasoning": summary,
-        "errors": _chunk_errors(state.chunks, runtime.context.workflow_run_id),
+        "errors": _chunk_errors(
+            state.chunks, catalogue, runtime.context.workflow_run_id
+        ),
     }
 
 
@@ -70,20 +72,22 @@ def _summary(
 
 
 def _chunk_errors(
-    chunks: List[AbbreviationChunk], workflow_run_id: str | None
+    chunks: List[AbbreviationChunk],
+    catalogue: List[AbbreviationItem],
+    workflow_run_id: str | None,
 ) -> List[WorkflowError]:
     """One error per failed or truncated chunk.
 
     A failed chunk costs part of the document, not the run, so these are
-    warnings while any chunk produced results. With nothing usable left, an
-    empty catalogue would read as an all-clear, so it escalates to an error.
+    warnings while the rest of the document still yielded a catalogue. When
+    the catalogue is empty, it would read as an all-clear even though part of
+    the document was never scanned, so the failures escalate to errors. A
+    chunk that completed with no occurrences does not count as usable output
+    on its own.
     """
     extracted = [c for c in chunks if c.status != ChunkStatus.SKIPPED]
-    severity = (
-        WorkflowErrorSeverity.WARNING
-        if any(c.produced_results for c in extracted)
-        else WorkflowErrorSeverity.ERROR
-    )
+    usable = bool(catalogue) and any(c.produced_results for c in extracted)
+    severity = WorkflowErrorSeverity.WARNING if usable else WorkflowErrorSeverity.ERROR
     return [
         WorkflowError(
             chunk_index=chunk.chunk_index,

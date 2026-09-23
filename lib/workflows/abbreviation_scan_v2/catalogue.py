@@ -10,6 +10,7 @@ import html
 import logging
 import re
 from collections import defaultdict
+from functools import lru_cache
 from typing import Callable, Dict, List, Optional, Set, Tuple
 
 from lib.workflows.abbreviation_scan_v2.chunk_models import (
@@ -25,7 +26,7 @@ logger = logging.getLogger(__name__)
 
 _HEADING_REASON = "Appears in a heading."
 _FALLBACK_REASON = "Excluded as an exempt occurrence."
-_NON_ALNUM_RE = re.compile(r"[^0-9A-Za-z]")
+_ALNUM_RUN_RE = re.compile(r"[0-9A-Za-z]+")
 
 
 def assemble_catalogue(
@@ -94,14 +95,9 @@ def _appears_on_its_lines(occurrence: ChunkOccurrence, lines: List[str]) -> bool
     """Reject an occurrence whose abbreviation is not on the lines it names.
 
     The model occasionally reports an abbreviation on a line that does not
-    contain it (typically a nearby heading). HTML entities are decoded (the
-    converted markdown writes "R&amp;D"), and punctuation and spacing are
-    ignored so "Ph.D." still matches "PhD" and a plural matches its singular.
+    contain it (typically a nearby heading).
     """
-    needle = _normalized(occurrence.abbr)
-    end = max(occurrence.line_end, occurrence.line_start)
-    text = _normalized(" ".join(lines[occurrence.line_start - 1 : end]))
-    if needle and needle in text:
+    if _count_on_lines(occurrence, lines) > 0:
         return True
     logger.warning(
         f"[AbbreviationScanV2] Dropped {occurrence.abbr!r} reported at lines "
@@ -113,7 +109,7 @@ def _appears_on_its_lines(occurrence: ChunkOccurrence, lines: List[str]) -> bool
 def _within_text_count(
     occurrences: List[ChunkOccurrence], lines: List[str]
 ) -> List[ChunkOccurrence]:
-    """Cap each abbreviation's entries on a line range at how often its text appears there.
+    """Cap each abbreviation's entries on a line range at how often it appears there.
 
     The model occasionally records the same occurrence twice, e.g. counting the
     spelled-out "Escherichia coli" as a second "E. coli" on the same line.
@@ -124,9 +120,8 @@ def _within_text_count(
     seen: Dict[Tuple[int, int, str], int] = defaultdict(int)
     for occurrence in occurrences:
         end = max(occurrence.line_end, occurrence.line_start)
-        needle = _normalized(occurrence.abbr)
-        key = (occurrence.line_start, end, needle)
-        available = _normalized(" ".join(lines[occurrence.line_start - 1 : end])).count(needle)
+        key = (occurrence.line_start, end, occurrence.abbr.strip())
+        available = _count_on_lines(occurrence, lines)
         if seen[key] < max(available, 1):
             seen[key] += 1
             kept.append(occurrence)
@@ -138,8 +133,37 @@ def _within_text_count(
     return kept
 
 
-def _normalized(text: str) -> str:
-    return _NON_ALNUM_RE.sub("", html.unescape(text))
+def _count_on_lines(occurrence: ChunkOccurrence, lines: List[str]) -> int:
+    """How many times the abbreviation appears as a whole token on its lines.
+
+    HTML entities are decoded first (the converted markdown writes "R&amp;D").
+    """
+    pattern = _abbreviation_pattern(occurrence.abbr.strip())
+    if pattern is None:
+        return 0
+    end = max(occurrence.line_end, occurrence.line_start)
+    text = html.unescape(" ".join(lines[occurrence.line_start - 1 : end]))
+    return sum(1 for _ in pattern.finditer(text))
+
+
+@lru_cache(maxsize=4096)
+def _abbreviation_pattern(abbr: str) -> Optional[re.Pattern[str]]:
+    """A regex matching `abbr` as a whole token, tolerant of how it is spelled.
+
+    - Punctuation and spacing between the abbreviation's parts may vary:
+      "U.S." matches "US", "Ph.D." matches "PhD", "R&D" matches "R & D".
+    - A trailing plural "s" is allowed, so "LLM" matches "LLMs".
+    - It must not sit inside a longer word: "AI" does not match "OpenAI" or
+      "MAIN". Only characters of the same kind count as part of the word, so
+      the magnitude suffix in "$9.6B" still matches "B".
+    """
+    runs = _ALNUM_RUN_RE.findall(html.unescape(abbr))
+    if not runs:
+        return None
+    body = r"[^0-9A-Za-z]{0,3}".join(r"\.?".join(re.escape(c) for c in run) for run in runs)
+    before = r"(?<![0-9])" if runs[0][0].isdigit() else r"(?<![A-Za-z])"
+    after = r"(?![0-9])" if runs[-1][-1].isdigit() else r"(?![A-Za-z])"
+    return re.compile(before + body + r"(?:'?s)?" + after)
 
 
 def _exemption(

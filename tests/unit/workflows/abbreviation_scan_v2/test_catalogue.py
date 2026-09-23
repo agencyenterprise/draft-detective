@@ -18,6 +18,8 @@ LINES[19] = "## A heading with NATO"  # line 20
 LINES[24] = "## Introduction"  # line 25
 LINES[26] = "Spending on R&amp;D rose."  # line 27
 LINES[27] = "Samples tested positive for Escherichia coli; a modified E. coli strain followed."  # line 28
+LINES[28] = "OpenAI released a new MAIN model."  # line 29: "AI" only inside other words
+LINES[29] = "The AI team at OpenAI met; the U.S. and US teams, a Ph.D. and a PhD, cost $9.6B."  # line 30
 
 
 def _occ(
@@ -166,3 +168,36 @@ def test_entries_beyond_the_times_an_abbreviation_appears_on_the_line_are_droppe
         [_chunk(0, 1, 30, [_occ("NATO", 5), _occ("NATO", 5), _occ("E. coli", 28), _occ("E. coli", 28)])]
     )
     assert [(i.abbr, i.line_start) for i in catalogue] == [("NATO", 5), ("NATO", 5), ("E. coli", 28)]
+
+
+def test_an_abbreviation_inside_another_word_does_not_count_as_on_the_line():
+    # Copilot review on #783: normalized substring matching found "AI" inside
+    # "OpenAI" and "MAIN", so a hallucinated occurrence survived validation.
+    catalogue = _assemble([_chunk(0, 20, 30, [_occ("AI", 29)])])
+    assert catalogue == []
+
+
+def test_repeats_are_capped_by_whole_token_matches_not_substrings():
+    # Line 30 has one standalone "AI" (plus the "AI" inside "OpenAI"): only one
+    # of the two recorded entries is real.
+    catalogue = _assemble([_chunk(0, 20, 30, [_occ("AI", 30), _occ("AI", 30)])])
+    assert [(i.abbr, i.line_start) for i in catalogue] == [("AI", 30)]
+
+
+def test_token_matching_still_accepts_punctuation_plural_and_magnitude_variants():
+    catalogue = _assemble(
+        [
+            _chunk(
+                0,
+                1,
+                30,
+                [
+                    _occ("U.S.", 30), _occ("US", 30),  # "U.S." and "US" both match either spelling
+                    _occ("PhD", 30), _occ("Ph.D.", 30),
+                    _occ("B", 30),  # the magnitude suffix in "$9.6B"
+                    _occ("LLM", 5),  # plural "LLMs" on line 5
+                ],
+            )
+        ]
+    )
+    assert [i.abbr for i in catalogue] == ["LLM", "U.S.", "US", "PhD", "Ph.D.", "B"]

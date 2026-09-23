@@ -125,6 +125,15 @@ class TestAssemble:
         assert "1 failed" in result["reasoning"]
 
     @pytest.mark.asyncio
+    async def test_failed_chunks_escalate_when_nothing_was_catalogued(self):
+        # Copilot review on #783: a completed chunk with zero occurrences counted
+        # as usable output, so a failure elsewhere stayed a warning while the
+        # catalogue came back empty and read as an all-clear.
+        result = await self._run([_chunk(0, ChunkStatus.COMPLETED), _chunk(1, ChunkStatus.ERROR)])
+        assert result["abbreviations"] == []
+        assert {e.severity for e in result["errors"]} == {WorkflowErrorSeverity.ERROR}
+
+    @pytest.mark.asyncio
     async def test_every_chunk_failing_escalates_to_an_error(self):
         result = await self._run([_chunk(0, ChunkStatus.ERROR), _chunk(1, ChunkStatus.ERROR)])
         assert result["abbreviations"] == []
@@ -177,6 +186,23 @@ class TestReadAbbreviationsSection:
             )
         )
         assert [(r.start_line, r.end_line) for r in result["abbreviations_section_ranges"]] == [(5, 7)]
+
+    @pytest.mark.asyncio
+    async def test_a_section_with_no_valid_range_is_not_found(self):
+        # Copilot review on #783: `found` came from the raw ranges, so a listing
+        # reported outside the document suppressed "No Abbreviations section
+        # found" and flagged every abbreviation as missing from a section that
+        # does not exist.
+        entry = AbbreviationSectionEntry(abbr="NATO", definition="North Atlantic Treaty Organization")
+        result = await self._run(
+            AbbreviationsSectionExtraction(
+                sections=[AbbreviationsSectionRange(start_line=50, end_line=60, lists_abbreviations=True)],
+                entries=[entry],
+            )
+        )
+        assert result["abbreviations_section_ranges"] == []
+        assert result["abbreviations_section_found"] is False
+        assert result["abbreviations_section_entries"] == []
 
     @pytest.mark.asyncio
     async def test_no_section(self):
