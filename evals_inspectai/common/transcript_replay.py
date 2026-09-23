@@ -138,5 +138,7 @@ def _usage(message: BaseMessage) -> Optional[ModelUsage]:
         output_tokens=usage.get("output_tokens", 0),
         total_tokens=usage.get("total_tokens", 0),
         input_tokens_cache_read=input_details.get("cache_read"),
+        # Anthropic reports prompt-cache writes separately from reads.
+        input_tokens_cache_write=input_details.get("cache_creation"),
         reasoning_tokens=output_details.get("reasoning"),
     )

@@ -134,3 +134,29 @@ async def test_several_conversations_are_all_grouped_alike_and_leave_the_message
         messages = await replay_conversations(conversations)
     assert [c.args[0] for c in span_spy.call_args_list] == ["section 0", "section 1", "section 2"]
     assert messages == []
+
+
+@pytest.mark.asyncio
+async def test_cache_reads_and_writes_both_reach_the_model_event():
+    # Copilot review on #784: Anthropic reports cache-created tokens under
+    # `input_token_details["cache_creation"]`, and the replay dropped them.
+    reply = AIMessage(
+        content="done",
+        response_metadata={"model_name": "claude-sonnet-5"},
+        usage_metadata={
+            "input_tokens": 1200,
+            "output_tokens": 30,
+            "total_tokens": 1230,
+            "input_token_details": {"cache_read": 800, "cache_creation": 300},
+            "output_token_details": {"reasoning": 12},
+        },
+    )
+    recorder = MagicMock()
+    conversation = Conversation(label="wf", messages=[HumanMessage(content="hi"), reply])
+    with patch.object(transcript_replay, "transcript", return_value=recorder):
+        await replay_conversation(conversation, as_sub_agent=False)
+
+    [event] = [c.args[0] for c in recorder._event.call_args_list]
+    usage = event.output.usage
+    assert usage is not None
+    assert (usage.input_tokens_cache_read, usage.input_tokens_cache_write, usage.reasoning_tokens) == (800, 300, 12)
