@@ -39,10 +39,12 @@ export function StepIndicator({ currentStep, steps, className }: StepIndicatorPr
               >
                 {isCompleted ? <Check className="size-3" /> : stepNumber}
               </span>
+              {/* On a phone three labels and their connectors overrun the row,
+                  so only the current step keeps its label there. */}
               <span
                 className={cn(
                   'text-xs whitespace-nowrap transition-colors',
-                  isActive ? 'font-medium text-foreground' : 'text-muted-foreground',
+                  isActive ? 'font-medium text-foreground' : 'hidden text-muted-foreground sm:inline',
                 )}
               >
                 {step.label}

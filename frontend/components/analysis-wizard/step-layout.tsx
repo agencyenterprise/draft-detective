@@ -12,12 +12,12 @@ export function StepLayout({ children, footer }: { children: ReactNode; footer?:
   return (
     <>
       <main className="min-h-0 flex-1 overflow-y-auto">
-        <div className="mx-auto w-full max-w-3xl px-6 py-6">{children}</div>
+        <div className="mx-auto w-full max-w-4xl px-6 py-6">{children}</div>
       </main>
       {footer && (
         <footer className="shrink-0 border-t py-4">
           {/* Same column and gutter as the body, so the footer's edges line up with the list above. */}
-          <div className="mx-auto w-full max-w-3xl space-y-3 px-6">{footer}</div>
+          <div className="mx-auto w-full max-w-4xl space-y-3 px-6">{footer}</div>
         </footer>
       )}
     </>

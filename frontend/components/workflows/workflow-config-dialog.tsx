@@ -20,7 +20,7 @@ import { CircleAlert, KeyRound } from 'lucide-react';
 import { useEffect } from 'react';
 import { WorkflowTypeSelector } from './workflow-type-selector';
 import { WebSearchConsentCheckbox } from './web-search-consent-checkbox';
-import { hasWebSearchRequirement, hasPublicationDateRequirement } from './utils';
+import { hasPublicationDateRequirement, hasWebSearchRequirement, startBlocker, StartBlocker } from './utils';
 import { useWebSearchConsent } from '@/lib/hooks/use-web-search-consent';
 
 interface WorkflowConfigDialogProps {
@@ -40,6 +40,14 @@ interface WorkflowConfigDialogProps {
   /** The help topic the dialog's link opens. Follows what the dialog is for. */
   helpTopic?: HelpTopicId;
 }
+
+/** The footer's message for each reason the form cannot be submitted. */
+const BLOCKER_MESSAGES: Record<StartBlocker, string> = {
+  'metadata-pending': 'Loading the available assessments…',
+  'metadata-failed': 'The available assessments could not be loaded. Close this dialog and try again.',
+  'none-selected': 'Select at least one assessment.',
+  'consent-missing': 'Consent to web search to run the selected assessments.',
+};
 
 /** The run button says how many it will start, so the count is confirmed where it matters. */
 function runLabel(selectedCount: number): string {
@@ -68,7 +76,12 @@ export function WorkflowConfigDialog({
   const { showExperimentalFeatures } = useExperimentalFeatures();
   const { data: user } = useUserMe();
 
-  const { workflowTypes, getWorkflowTypeName } = useWorkflowTypes();
+  const {
+    workflowTypes,
+    getWorkflowTypeName,
+    isPending: isMetadataPending,
+    isError: isMetadataFailed,
+  } = useWorkflowTypes();
 
   // Named when the dialog is opened for one assessment; otherwise it is the
   // picker over all of them.
@@ -102,11 +115,14 @@ export function WorkflowConfigDialog({
         // web-searching assessment is picked. Reported against the field, the
         // error from a bulk "select all" had nowhere to land and the form
         // counted as valid.
-        if (value.workflowTypes.length === 0) {
-          errors.form = 'Select at least one assessment.';
-        } else if (hasWebSearchRequirement(value.workflowTypes, workflowTypes) && !value.webSearchConsent) {
-          errors.form = 'Consent to web search to run the selected assessments.';
-        }
+        const blocker = startBlocker({
+          selectedTypes: value.workflowTypes,
+          workflowTypes,
+          metadataPending: isMetadataPending,
+          metadataFailed: isMetadataFailed,
+          webSearchConsent: value.webSearchConsent,
+        });
+        if (blocker) errors.form = BLOCKER_MESSAGES[blocker];
         return errors;
       },
     },
@@ -122,11 +138,16 @@ export function WorkflowConfigDialog({
     }
   }, [form, isOpen]);
 
+  // The validator above runs on change, and a dialog opened for one assessment
+  // starts with it selected and nothing changed. Until the metadata is in, the
+  // button waits on this rather than on a validation that has not run.
+  const metadataNotReady = isMetadataPending || isMetadataFailed;
+
   return (
     <Dialog open={isOpen} onOpenChange={onCancel}>
       {/* The list scrolls inside the dialog while the title and the run button
           stay put, so the action is never below the fold of a dozen rows. */}
-      <DialogContent className="flex max-h-[90vh] flex-col gap-0 p-0 sm:max-w-3xl">
+      <DialogContent className="flex max-h-[90vh] flex-col gap-0 p-0 sm:max-w-4xl">
         <DialogHeader className="border-b px-6 pt-6 pb-4">
           <DialogTitle>{title ?? (assessmentName ? `Run ${assessmentName}` : 'Run assessments')}</DialogTitle>
           <DialogDescription>
@@ -217,18 +238,24 @@ export function WorkflowConfigDialog({
               see without scrolling: the list's own error used to sit under
               its last row, off screen for anyone who had not scrolled. */}
           <form.Subscribe selector={(state) => state.errors}>
-            {(errors) =>
-              errors.length > 0 ? (
+            {(errors) => {
+              const messages =
+                errors.length > 0
+                  ? errors.map(String)
+                  : metadataNotReady
+                    ? [BLOCKER_MESSAGES[isMetadataPending ? 'metadata-pending' : 'metadata-failed']]
+                    : [];
+              return messages.length > 0 ? (
                 <ul className="space-y-1" aria-live="polite">
-                  {errors.map((error) => (
-                    <li key={String(error)} className="flex items-center gap-1.5 text-xs text-destructive">
+                  {messages.map((message) => (
+                    <li key={message} className="flex items-center gap-1.5 text-xs text-destructive">
                       <CircleAlert aria-hidden className="size-3.5 shrink-0" />
-                      {String(error)}
+                      {message}
                     </li>
                   ))}
                 </ul>
-              ) : null
-            }
+              ) : null;
+            }}
           </form.Subscribe>
 
           <form.Subscribe
@@ -249,7 +276,7 @@ export function WorkflowConfigDialog({
                 <Button variant="outline" onClick={onCancel} disabled={isSubmitting}>
                   Cancel
                 </Button>
-                <Button onClick={() => form.handleSubmit()} disabled={!canSubmit || isSubmitting}>
+                <Button onClick={() => form.handleSubmit()} disabled={!canSubmit || isSubmitting || metadataNotReady}>
                   {isSubmitting ? 'Starting...' : (submitLabel ?? runLabel(selectedCount))}
                 </Button>
               </DialogFooter>

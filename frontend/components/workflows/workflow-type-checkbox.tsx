@@ -155,7 +155,7 @@ export function WorkflowTypeCheckbox({
     <label
       htmlFor={workflowType.type}
       className={cn(
-        'flex w-full cursor-pointer items-center gap-3 rounded-md px-2 py-2 transition-colors',
+        'group flex w-full cursor-pointer items-center gap-3 rounded-md px-2 py-2 transition-colors',
         // The primary tint the card design used, not the rail's foreground wash:
         // a dozen selected rows in grey read as a disabled list.
         checked ? 'bg-primary/5 hover:bg-primary/10' : RAIL_ITEM_IDLE,
@@ -209,10 +209,12 @@ export function WorkflowTypeCheckbox({
           )}
         </span>
         {/* Two lines at most, so a long description cannot turn a row into a
-            paragraph; the whole of it is in the tooltip. */}
+            paragraph. The whole of it is in the tooltip for the mouse, and the
+            clamp lifts while the row's checkbox has keyboard focus, so a
+            keyboard user reads it in place without a tab stop per row. */}
         <Tooltip>
           <TooltipTrigger asChild>
-            <span className="mt-0.5 line-clamp-2 text-[13px] leading-snug text-muted-foreground">
+            <span className="mt-0.5 line-clamp-2 text-[13px] leading-snug text-muted-foreground group-has-[:focus-visible]:line-clamp-none">
               {workflowType.description}
             </span>
           </TooltipTrigger>

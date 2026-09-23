@@ -9,7 +9,7 @@ import { useWizard } from './wizard-context';
 import { StepHeading, StepLayout } from './step-layout';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { useWebSearchConsent } from '@/lib/hooks/use-web-search-consent';
-import { hasWebSearchRequirement } from '@/components/workflows/utils';
+import { hasWebSearchRequirement, startBlocker, StartBlocker } from '@/components/workflows/utils';
 import { startMultipleWorkflowsApiWorkflowsStartMultiplePost } from '@/lib/generated-api';
 import { useMutation } from '@tanstack/react-query';
 import { getErrorMessage } from '@/lib/api-error';
@@ -21,10 +21,18 @@ function startLabel(selectedCount: number): string {
   return selectedCount === 1 ? 'Start 1 assessment' : `Start ${selectedCount} assessments`;
 }
 
+/** The footer's hint for each reason the start button is off. */
+const BLOCKER_HINTS: Record<StartBlocker, string> = {
+  'metadata-pending': 'Loading the available assessments…',
+  'metadata-failed': 'The available assessments could not be loaded. Reload the page, or skip for now.',
+  'none-selected': 'Select at least one assessment, or skip for now.',
+  'consent-missing': 'Consent to web search to start the selected assessments.',
+};
+
 export function StepAnalyses() {
   const router = useRouter();
   const wizard = useWizard();
-  const { workflowTypes } = useWorkflowTypes();
+  const { workflowTypes, isPending: isMetadataPending, isError: isMetadataFailed } = useWorkflowTypes();
   const { selectedWorkflowTypes, setSelectedWorkflowTypes } = wizard;
   const [webSearchConsent, setWebSearchConsent] = useWebSearchConsent(wizard.projectId);
 
@@ -34,7 +42,7 @@ export function StepAnalyses() {
   const startAnalysisMutation = useMutation({
     mutationFn: async () => {
       if (!wizard.projectId) throw new Error('No project ID');
-      if (selectedCount === 0) throw new Error('No workflow types selected');
+      if (blocker !== null) throw new Error('The selection is not ready to start');
 
       return startMultipleWorkflowsApiWorkflowsStartMultiplePost({
         body: {
@@ -64,12 +72,13 @@ export function StepAnalyses() {
   // Why the start button is off, said in the footer where the button is. A hint
   // rather than an error: nothing has been done wrong yet, the step has simply
   // not been finished, so it reads in the muted tone until it is.
-  const blocker =
-    selectedCount === 0
-      ? 'Select at least one assessment, or skip for now.'
-      : needsWebSearch && !webSearchConsent
-        ? 'Consent to web search to start the selected assessments.'
-        : null;
+  const blocker = startBlocker({
+    selectedTypes: selectedWorkflowTypes,
+    workflowTypes,
+    metadataPending: isMetadataPending,
+    metadataFailed: isMetadataFailed,
+    webSearchConsent,
+  });
 
   const footer = (
     <>
@@ -85,7 +94,7 @@ export function StepAnalyses() {
         {blocker && !isSubmitting && (
           <p className="flex items-center gap-1.5 text-xs text-muted-foreground sm:mr-auto" aria-live="polite">
             <Info aria-hidden className="size-3.5 shrink-0" />
-            {blocker}
+            {BLOCKER_HINTS[blocker]}
           </p>
         )}
         <div className="flex flex-col-reverse gap-2 sm:ml-auto sm:flex-row">
