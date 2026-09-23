@@ -14,7 +14,7 @@ Scan the **entire** document and produce a complete catalogue of every abbreviat
 For each occurrence, capture:
 
 - **The abbreviation itself** (e.g. "OUSW").
-- **Any inline definition accompanying that specific occurrence** — i.e. the pattern "Full Name (ABBR)". For example, "The Office of the Under Secretary of War (OUSW) issued…" has an inline definition, while a later bare "OUSW" does not. Record an empty value when the occurrence has no inline definition immediately accompanying it.
+- **Any inline definition accompanying that specific occurrence** — i.e. the pattern "Full Name (ABBR)". Record **only the expanded name**, not the parenthetical abbreviation itself. For example, for "The Office of the Under Secretary of War (OUSW) issued…" record `'Office of the Under Secretary of War'`, not `'Office of the Under Secretary of War (OUSW)'`. Record an empty value when the occurrence has no inline definition immediately accompanying it.
 - **The occurrence count** — how many times this abbreviation has appeared so far in the document (1 for the very first appearance, 2 for the second, and so on). The first occurrence is the most important.
 - **Where the occurrence appears** — the line range in the document where it occurs (for a single-line occurrence, the start and end are the same line).
 - **The definition listed in any dedicated Abbreviations section** — if the document has an "Abbreviations", "Acronyms", "Glossary", or equivalent section and this abbreviation is listed there, record the definition as written there; otherwise record that it is absent.

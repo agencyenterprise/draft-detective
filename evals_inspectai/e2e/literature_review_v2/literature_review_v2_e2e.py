@@ -16,6 +16,7 @@ from inspect_ai.dataset import Sample, json_dataset
 from inspect_ai.scorer import Score
 from inspect_ai.solver import TaskState
 
+from evals_inspectai.common.backend import local_backend_for
 from evals_inspectai.common.api_solver import api_workflow_agent
 from evals_inspectai.common.loaders import resolve_input
 from evals_inspectai.common.scorers import model_graded_check, structured_output_scorer
@@ -39,7 +40,10 @@ def _record_to_sample(record: dict) -> Sample:
 
 
 @task
-def literature_review_v2_e2e():
+def literature_review_v2_e2e(
+    backend: str = "remote",
+    api_base_url: str | None = None,
+):
     dataset = json_dataset(
         str(Path(__file__).parent / "dataset.json"),
         _record_to_sample,
@@ -51,7 +55,12 @@ def literature_review_v2_e2e():
         # The full chain (document processing -> reference extraction -> a
         # multi-step web-search deep agent whose own per-call LLM timeout is
         # already 600s) regularly approaches 600s, so allow generous headroom.
-        solver=api_workflow_agent("literature_review_v2", timeout_s=1200),
+        solver=api_workflow_agent(
+            "literature_review_v2",
+            timeout_s=1200,
+            local_backend=local_backend_for(backend, api_base_url),
+            api_base_url=api_base_url,
+        ),
         scorer=[
             structured_output_scorer(SimpleDeepAgentOutput, _score_structure),
             model_graded_check(
@@ -86,12 +95,13 @@ def _score_structure(output: SimpleDeepAgentOutput, state: TaskState) -> Score:
     count_ok = len(issues) >= min_issues
     if max_issues is not None:
         count_ok = count_ok and len(issues) <= max_issues
-    band = f">={min_issues}" + (f" and <={max_issues}" if max_issues is not None else "")
+    band = f">={min_issues}" + (
+        f" and <={max_issues}" if max_issues is not None else ""
+    )
     checks.append((f"issue count {len(issues)} in band ({band})", count_ok))
 
     line_ranges_ok = all(
-        issue.start_line >= 1 and issue.end_line >= issue.start_line
-        for issue in issues
+        issue.start_line >= 1 and issue.end_line >= issue.start_line for issue in issues
     )
     checks.append(("all issues have valid line ranges", line_ranges_ok))
 

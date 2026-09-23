@@ -63,7 +63,10 @@ class TestRecording:
         )
         item = reporter.occurrences[0]
         assert item.inline_definition == "North Atlantic Treaty Organization"
-        assert item.abbreviations_section_definition == "North Atlantic Treaty Organization"
+        assert (
+            item.abbreviations_section_definition
+            == "North Atlantic Treaty Organization"
+        )
         assert item.ignored is True
         assert item.ignored_reason == "heading"
 
@@ -75,6 +78,31 @@ class TestRecording:
 
 
 class TestDeduplication:
+    def test_backfill_updates_only_missing_section_definition(self):
+        reporter = AbbreviationReporter()
+        _record(reporter, _entry())
+        result = _record(
+            reporter,
+            _entry(
+                abbreviations_section_definition="North Atlantic Treaty Organization",
+                inline_definition="Must not replace the original annotation",
+            ),
+        )
+        assert "1 section definition(s) backfilled" in result
+        assert len(reporter.occurrences) == 1
+        assert reporter.occurrences[0].inline_definition == ""
+        assert (
+            reporter.occurrences[0].abbreviations_section_definition
+            == "North Atlantic Treaty Organization"
+        )
+        _record(
+            reporter, _entry(abbreviations_section_definition="Conflicting expansion")
+        )
+        assert (
+            reporter.occurrences[0].abbreviations_section_definition
+            == "North Atlantic Treaty Organization"
+        )
+
     def test_identical_occurrence_recorded_once(self):
         reporter = AbbreviationReporter()
         _record(reporter, _entry())
@@ -173,8 +201,13 @@ class TestNormalisation:
 
     def test_inline_definition_is_trimmed(self):
         reporter = AbbreviationReporter()
-        _record(reporter, _entry(inline_definition="  North Atlantic Treaty Organization  "))
-        assert reporter.occurrences[0].inline_definition == "North Atlantic Treaty Organization"
+        _record(
+            reporter, _entry(inline_definition="  North Atlantic Treaty Organization  ")
+        )
+        assert (
+            reporter.occurrences[0].inline_definition
+            == "North Atlantic Treaty Organization"
+        )
 
     def test_empty_section_definition_becomes_none(self):
         reporter = AbbreviationReporter()
@@ -188,8 +221,14 @@ class TestNormalisation:
 
     def test_real_section_definition_survives_trimmed(self):
         reporter = AbbreviationReporter()
-        _record(reporter, _entry(abbreviations_section_definition=" Artificial Intelligence "))
-        assert reporter.occurrences[0].abbreviations_section_definition == "Artificial Intelligence"
+        _record(
+            reporter,
+            _entry(abbreviations_section_definition=" Artificial Intelligence "),
+        )
+        assert (
+            reporter.occurrences[0].abbreviations_section_definition
+            == "Artificial Intelligence"
+        )
 
     def test_blank_ignored_reason_becomes_none(self):
         reporter = AbbreviationReporter()

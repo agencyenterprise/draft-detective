@@ -4,7 +4,7 @@ from mcp.types import Icon
 from lib.api.mcp_auth import create_mcp_auth
 from lib.config.env import config as env_config
 
-mcp_auth = create_mcp_auth()
+mcp_auth = create_mcp_auth() if env_config.MCP_ENABLED else None
 mcp = FastMCP(
     "Draft Detective",
     auth=mcp_auth,

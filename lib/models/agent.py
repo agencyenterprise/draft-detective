@@ -7,7 +7,7 @@ from langchain_core.rate_limiters import BaseRateLimiter
 from langchain_core.runnables.config import RunnableConfig
 from pydantic import BaseModel
 
-from lib.config.env import get_model_api_key
+from lib.config.env import config, get_model_api_key
 from lib.config.llm_models import LLMModel
 from lib.config.rate_limiter import get_rate_limiter, hash_api_key
 from lib.workflows.context import ContextSchema
@@ -60,10 +60,12 @@ class LangChainAgent(BaseAgent):
         self.context = context
 
     def _resolve_api_key(self) -> str | None:
-        """User context key wins; falls back to per-model override. OpenAI only."""
-        if self.model.provider != "openai":
-            return None
-        return self.context.openai_api_key or get_model_api_key(self.model.name)
+        """Resolve provider-specific keys; never send an OpenAI user key to Azure."""
+        if self.model.provider == "openai":
+            return self.context.openai_api_key or get_model_api_key(self.model.name)
+        if self.model.provider == "azure_openai":
+            return get_model_api_key(self.model.name) or config.AZURE_OPENAI_API_KEY
+        return None
 
     def get_rate_limiter(self) -> BaseRateLimiter:
         return get_rate_limiter(hash_api_key(self._resolve_api_key() or "default"))
@@ -84,6 +86,12 @@ class LangChainAgent(BaseAgent):
         if api_key:
             init_kwargs["api_key"] = api_key
 
+        if self.model.provider == "azure_openai":
+            if config.AZURE_OPENAI_ENDPOINT:
+                init_kwargs["azure_endpoint"] = config.AZURE_OPENAI_ENDPOINT
+            if config.AZURE_OPENAI_API_VERSION:
+                init_kwargs["api_version"] = config.AZURE_OPENAI_API_VERSION
+
         return init_kwargs
 
     def create_llm(self) -> BaseChatModel:
@@ -100,4 +108,3 @@ class LangChainAgent(BaseAgent):
         if self._llm is None:
             self._llm = self.create_llm()
         return self._llm
-

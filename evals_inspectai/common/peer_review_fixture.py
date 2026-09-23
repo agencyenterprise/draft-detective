@@ -67,6 +67,8 @@ async def setup_peer_review_project(
     draft_file_name: str = "eval-draft.md",
     revised_draft_file_name: str = "eval-draft-revised.md",
     document_processing_timeout_s: float = DOCUMENT_PROCESSING_TIMEOUT_S,
+    *,
+    base_url: str | None = None,
 ) -> str:
     """Create a project holding a reviewed draft plus its reviewer memos.
 
@@ -100,12 +102,14 @@ async def setup_peer_review_project(
         file_content=draft,
         file_name=draft_file_name,
         workflow_types=[_DOCUMENT_PROCESSING],
+        base_url=base_url,
     )
 
     await poll_until_complete(
         project_id=project_id,
         workflow_type=_DOCUMENT_PROCESSING,
         timeout_s=document_processing_timeout_s,
+        base_url=base_url,
     )
 
     for memo in memos:
@@ -115,6 +119,7 @@ async def setup_peer_review_project(
             content=memo.content,
             role=_REVIEWER_MEMO_ROLE,
             revision=REVIEWED_REVISION,
+            base_url=base_url,
         )
 
     if revised_draft is not None:
@@ -123,6 +128,7 @@ async def setup_peer_review_project(
             revised_draft=revised_draft,
             file_name=revised_draft_file_name,
             document_processing_timeout_s=document_processing_timeout_s,
+            base_url=base_url,
         )
 
     logger.info(
@@ -139,6 +145,8 @@ async def _add_revised_draft(
     revised_draft: str,
     file_name: str,
     document_processing_timeout_s: float,
+    *,
+    base_url: str | None = None,
 ) -> None:
     """Put the revised draft in a second revision and process it.
 
@@ -149,20 +157,22 @@ async def _add_revised_draft(
     so a conversion failure is reported as itself instead of surfacing later as
     a stalled dependency.
     """
-    revision = await create_revision(project_id)
+    revision = await create_revision(project_id, base_url=base_url)
 
     await tus_upload_file(
         project_id=project_id,
         file_name=file_name,
         content=revised_draft,
         role=_MAIN_ROLE,
+        base_url=base_url,
     )
 
-    await start_workflow_types(project_id, [_DOCUMENT_PROCESSING])
+    await start_workflow_types(project_id, [_DOCUMENT_PROCESSING], base_url=base_url)
     await poll_until_complete(
         project_id=project_id,
         workflow_type=_DOCUMENT_PROCESSING,
         timeout_s=document_processing_timeout_s,
+        base_url=base_url,
     )
     logger.info("Revised draft in place as revision %s", revision)
 
@@ -172,15 +182,18 @@ async def run_review_assistant_workflow(
     workflow_type: str,
     timeout_s: float,
     poll_interval_s: float = 5,
+    *,
+    base_url: str | None = None,
 ) -> dict[str, Any]:
     """Start one review-assistant workflow on a prepared project and await it.
 
     Returns the completed run's WorkflowRunDetail dict.
     """
-    await start_workflow_types(project_id, [workflow_type])
+    await start_workflow_types(project_id, [workflow_type], base_url=base_url)
     return await poll_until_complete(
         project_id=project_id,
         workflow_type=workflow_type,
         timeout_s=timeout_s,
         interval_s=poll_interval_s,
+        base_url=base_url,
     )

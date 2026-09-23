@@ -7,7 +7,7 @@ from langchain.agents.structured_output import AutoStrategy
 from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
 from langchain_core.runnables import RunnableConfig
 
-from lib.config.llm_models import gpt_5_6_terra_model
+from lib.config.llm_models import get_default_workflow_model
 from lib.models.agent import LangChainAgent
 from lib.skills import load_skill_prompt
 from lib.workflows.abbreviation_scan_v2.occurrence_reporting import (
@@ -35,9 +35,15 @@ The document is available at `/main.md` — use the available search and read to
 search it (e.g. search for headings like `^#+\\s*(Abbreviation|Acronym|Glossary)` to locate the
 Abbreviations section).
 
-Read it in 200-line chunks — `read_file("/main.md", offset=0, limit=200)`, then `offset=200`,
-`offset=400`, and so on. A read returning fewer lines than you asked for means you reached the
-end.
+**Before starting the chunk-by-chunk scan**, search for the Abbreviations section
+(e.g. `search_file("^#+\\s*(Abbreviation|Acronym|Glossary)")`) and read it in full to build
+your section-definition map. This ensures every occurrence recorded during the scan already
+has its `abbreviations_section_definition` populated. You may still backfill definitions via
+a second `record_abbreviations` call for the same fingerprint if needed.
+
+Then read the document in 200-line chunks — `read_file("/main.md", offset=0, limit=200)`, then
+`offset=200`, `offset=400`, and so on. A read returning fewer lines than you asked for means you
+reached the end.
 
 A read is capped at ~20,000 tokens; past that it is silently cut off and ends with a truncation
 notice, and a larger `limit` will not recover the rest. On that notice, halve the chunk and
@@ -51,8 +57,9 @@ calls.
 
 Each occurrence records:
 - `abbr`: the abbreviation in its singular base form (e.g. "LLM", not "LLMs");
-- `inline_definition`: the inline definition accompanying this exact occurrence, or an empty
-  string when none accompanies it;
+- `inline_definition`: the expanded name **only**, without the parenthetical abbreviation —
+  e.g. `'one-parameter logistic model'` for `'one-parameter logistic model (1PL)'`; empty
+  string when no inline definition accompanies this occurrence;
 - `occurrence_number`: the 1-based count of how many times this abbreviation has appeared so far
   (1 for the first occurrence);
 - `line_start` / `line_end`: the 1-indexed line range in `/main.md` (same line number for a
@@ -77,7 +84,7 @@ class AbbreviationCheckerAgent(LangChainAgent):
     description = (
         "Scan the full document for abbreviation inline definition and list coverage"
     )
-    model = gpt_5_6_terra_model
+    model = get_default_workflow_model()
     temperature = 0.0
     reasoning = {"effort": "low", "summary": "auto"}
 
@@ -85,9 +92,7 @@ class AbbreviationCheckerAgent(LangChainAgent):
         self,
         prompt_kwargs: dict,
         config: Optional[RunnableConfig] = None,
-    ) -> tuple[
-        AbbreviationCheckOutput, List[AbbreviationItem], list[BaseMessage]
-    ]:
+    ) -> tuple[AbbreviationCheckOutput, List[AbbreviationItem], list[BaseMessage]]:
         reporter = AbbreviationReporter()
         deep_agent = create_deep_agent(
             model=self.llm,

@@ -1,0 +1,68 @@
+{
+  "baseline.md": {
+    "source_format": "markdown",
+    "abbreviations_section_found": true,
+    "abbreviations": [
+      {
+        "abbr": "AI",
+        "inline_definition": "artificial intelligence",
+        "occurrence_number": 1,
+        "line_start": 3,
+        "line_end": 3,
+        "abbreviations_section_definition": "artificial intelligence",
+        "ignored": false,
+        "ignored_reason": null
+      },
+      {
+        "abbr": "LLM",
+        "inline_definition": "large language model",
+        "occurrence_number": 1,
+        "line_start": 4,
+        "line_end": 4,
+        "abbreviations_section_definition": "large language model",
+        "ignored": false,
+        "ignored_reason": null
+      },
+      {
+        "abbr": "AI",
+        "inline_definition": "",
+        "occurrence_number": 2,
+        "line_start": 8,
+        "line_end": 8,
+        "abbreviations_section_definition": "artificial intelligence",
+        "ignored": false,
+        "ignored_reason": null
+      },
+      {
+        "abbr": "LLM",
+        "inline_definition": "",
+        "occurrence_number": 2,
+        "line_start": 9,
+        "line_end": 9,
+        "abbreviations_section_definition": "large language model",
+        "ignored": false,
+        "ignored_reason": null
+      },
+      {
+        "abbr": "AI",
+        "inline_definition": "",
+        "occurrence_number": 3,
+        "line_start": 11,
+        "line_end": 11,
+        "abbreviations_section_definition": "artificial intelligence",
+        "ignored": false,
+        "ignored_reason": null
+      },
+      {
+        "abbr": "LLM",
+        "inline_definition": "",
+        "occurrence_number": 3,
+        "line_start": 11,
+        "line_end": 11,
+        "abbreviations_section_definition": "large language model",
+        "ignored": false,
+        "ignored_reason": null
+      }
+    ]
+  }
+}

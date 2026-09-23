@@ -62,7 +62,9 @@ from inspect_ai.viewer import (
 )
 from langchain_core.messages.utils import convert_to_messages
 
+from evals_inspectai.common.backend import local_backend_for, resolve_base_url
 from evals_inspectai.common.converters import messages_from_langchain
+from evals_inspectai.common.local_backend import LocalBackend
 from evals_inspectai.common.loaders import resolve_input
 from evals_inspectai.common.peer_review_fixture import (
     ReviewerMemo,
@@ -144,6 +146,8 @@ def _load_dataset() -> MemoryDataset:
 def revision_planning_summary_solver(
     timeout_s: float = _WORKFLOW_TIMEOUT_S,
     poll_interval_s: float = 10,
+    local_backend: LocalBackend | None = None,
+    api_base_url: str | None = None,
 ) -> Solver:
     """Build a peer-review project from the sample, then run the workflow on it.
 
@@ -153,6 +157,8 @@ def revision_planning_summary_solver(
     """
 
     async def solve(state: TaskState, generate: Generate) -> TaskState:
+        base_url = await resolve_base_url(local_backend, api_base_url)
+
         meta = state.metadata or {}
 
         project_id = await setup_peer_review_project(
@@ -161,6 +167,7 @@ def revision_planning_summary_solver(
                 ReviewerMemo(file_name=m["file_name"], content=m["content"])
                 for m in meta["memos"]
             ],
+            base_url=base_url,
         )
 
         run_detail = await run_review_assistant_workflow(
@@ -168,6 +175,7 @@ def revision_planning_summary_solver(
             workflow_type=_TARGET_WORKFLOW,
             timeout_s=timeout_s,
             poll_interval_s=poll_interval_s,
+            base_url=base_url,
         )
 
         workflow_state = run_detail.get("state") or {}
@@ -354,11 +362,17 @@ def _viewer_config() -> ViewerConfig:
 
 
 @task
-def revision_planning_summary_e2e():
+def revision_planning_summary_e2e(
+    backend: str = "remote",
+    api_base_url: str | None = None,
+):
     return Task(
         dataset=_load_dataset(),
         fail_on_error=0.2,
-        solver=revision_planning_summary_solver(),
+        solver=revision_planning_summary_solver(
+            local_backend=local_backend_for(backend, api_base_url),
+            api_base_url=api_base_url,
+        ),
         scorer=[
             report_structure(),
             rubric_criteria(),

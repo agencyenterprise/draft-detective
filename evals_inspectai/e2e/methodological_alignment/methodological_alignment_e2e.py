@@ -20,6 +20,7 @@ from inspect_ai.dataset import Sample, json_dataset
 from inspect_ai.scorer import Score
 from inspect_ai.solver import TaskState
 
+from evals_inspectai.common.backend import local_backend_for
 from evals_inspectai.common.api_solver import api_workflow_agent
 from evals_inspectai.common.loaders import resolve_input
 from evals_inspectai.common.scorers import model_graded_check, structured_output_scorer
@@ -48,7 +49,10 @@ def _record_to_sample(record: dict) -> Sample:
 
 
 @task
-def methodological_alignment_e2e():
+def methodological_alignment_e2e(
+    backend: str = "remote",
+    api_base_url: str | None = None,
+):
     dataset = json_dataset(
         str(Path(__file__).parent / "dataset.json"),
         _record_to_sample,
@@ -58,7 +62,12 @@ def methodological_alignment_e2e():
         dataset=dataset,
         fail_on_error=0.2,
         # Web search makes this workflow slower than the document-only checks.
-        solver=api_workflow_agent("methodological_alignment", timeout_s=900),
+        solver=api_workflow_agent(
+            "methodological_alignment",
+            timeout_s=900,
+            local_backend=local_backend_for(backend, api_base_url),
+            api_base_url=api_base_url,
+        ),
         scorer=[
             structured_output_scorer(SimpleDeepAgentOutput, _score_structure),
             model_graded_check(partial_credit=True),

@@ -7,6 +7,7 @@ from inspect_ai.scorer import CORRECT, INCORRECT, Score
 from inspect_ai.solver import TaskState
 from pydantic import BaseModel, Field
 
+from evals_inspectai.common.backend import local_backend_for
 from evals_inspectai.common.api_solver import api_workflow_agent
 from evals_inspectai.common.errors import WorkflowCompletionError
 from evals_inspectai.common.scorers import model_graded_check, structured_output_scorer
@@ -61,7 +62,10 @@ def _record_to_sample(record: dict) -> Sample:
 
 
 @task
-def reference_validation_v2_e2e():
+def reference_validation_v2_e2e(
+    backend: str = "remote",
+    api_base_url: str | None = None,
+):
     dataset = json_dataset(
         str(Path(__file__).parent / "dataset.json"),
         _record_to_sample,
@@ -72,6 +76,8 @@ def reference_validation_v2_e2e():
         fail_on_error=0.2,
         solver=api_workflow_agent(
             "reference_validation_v2",
+            local_backend=local_backend_for(backend, api_base_url),
+            api_base_url=api_base_url,
         ),
         scorer=[
             structured_output_scorer(ReferenceValidationOutput, _compare_final_result),

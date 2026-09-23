@@ -71,15 +71,19 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="AI Analyst API",
-    lifespan=combine_lifespans(lifespan, mcp_app.lifespan),
+    lifespan=(
+        combine_lifespans(lifespan, mcp_app.lifespan)
+        if mcp_auth is not None
+        else lifespan
+    ),
 )
 
-# OAuth discovery routes must be at the origin root per RFC 8414 / RFC 9728.
-# The MCP app is mounted at /mcp, but clients look for .well-known at /.
-for route in mcp_auth.get_well_known_routes(mcp_path="/"):
-    app.routes.insert(0, route)
-
-app.mount("/mcp", mcp_app)
+if mcp_auth is not None:
+    # OAuth discovery routes must be at the origin root per RFC 8414 / RFC 9728.
+    # The MCP app is mounted at /mcp, but clients look for .well-known at /.
+    for route in mcp_auth.get_well_known_routes(mcp_path="/"):
+        app.routes.insert(0, route)
+    app.mount("/mcp", mcp_app)
 
 app.add_middleware(MCPTrailingSlashMiddleware)
 app.add_middleware(TusTerminationMiddleware)
