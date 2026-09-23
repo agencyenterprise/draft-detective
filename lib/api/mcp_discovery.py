@@ -28,7 +28,7 @@ def with_slash_resource_metadata(routes: list[Route]) -> list[Route]:
             fixed.append(
                 Route(
                     f"{route.path}/",
-                    endpoint=route.app,
+                    endpoint=route.endpoint,
                     methods=route.methods,
                     name=route.name,
                     include_in_schema=route.include_in_schema,

@@ -1,15 +1,24 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import nextConfig from './next.config';
+// next.config reads NEXT_PUBLIC_API_URL when it loads, so each case stubs the
+// env and loads a fresh copy.
+async function redirectsWith(apiUrl: string | undefined) {
+  vi.stubEnv('NEXT_PUBLIC_API_URL', apiUrl);
+  vi.resetModules();
+  const { default: nextConfig } = await import('./next.config');
+  return (await nextConfig.redirects?.()) ?? [];
+}
 
 describe('next.config redirects', () => {
-  it('sends slashless /mcp to the API MCP endpoint, keeping the method', async () => {
-    const redirects = (await nextConfig.redirects?.()) ?? [];
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
 
-    expect(redirects).toContainEqual({
-      source: '/mcp',
-      destination: `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/mcp/`,
-      permanent: false,
-    });
+  it.each([
+    ['https://api.example.com', 'https://api.example.com/mcp/'],
+    ['https://api.example.com/', 'https://api.example.com/mcp/'],
+    [undefined, 'http://localhost:8000/mcp/'],
+  ])('sends slashless /mcp from API URL %s to %s, keeping the method', async (apiUrl, destination) => {
+    expect(await redirectsWith(apiUrl)).toContainEqual({ source: '/mcp', destination, permanent: false });
   });
 });
