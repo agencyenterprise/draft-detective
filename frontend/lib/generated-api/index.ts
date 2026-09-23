@@ -78,9 +78,11 @@ export {
   updateThreadApiChatThreadsThreadIdPatch,
 } from './sdk.gen';
 export {
+  type AbbreviationChunk,
   type AbbreviationItem,
   type AbbreviationScanV2Config,
   type AbbreviationScanV2State,
+  type AbbreviationSectionEntry,
   type AboutContentResponse,
   type AboutThisGerConfig,
   type AboutThisGerState,
@@ -125,6 +127,8 @@ export {
   type CheckPreflightApiPreflightPostErrors,
   type CheckPreflightApiPreflightPostResponse,
   type CheckPreflightApiPreflightPostResponses,
+  type ChunkOccurrence,
+  ChunkStatus,
   type CitationIssueItem,
   type ClaimEvidenceSource,
   type ClaimReferenceValidationV2Config,
@@ -357,6 +361,7 @@ export {
   type IssueResponse,
   IssueStatus,
   type IssueWritable,
+  type LineRange,
   type LinkReferenceFileEndpointApiProjectProjectIdReferencesReferenceIdFilesPostData,
   type LinkReferenceFileEndpointApiProjectProjectIdReferencesReferenceIdFilesPostError,
   type LinkReferenceFileEndpointApiProjectProjectIdReferencesReferenceIdFilesPostErrors,

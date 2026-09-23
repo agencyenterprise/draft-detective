@@ -5,6 +5,50 @@ export type ClientOptions = {
 };
 
 /**
+ * AbbreviationChunk
+ *
+ * One line-range chunk of the document and the outcome of cataloguing it.
+ */
+export type AbbreviationChunk = {
+  /**
+   * Chunk Index
+   */
+  chunk_index: number;
+  /**
+   * Start Line
+   */
+  start_line: number;
+  /**
+   * End Line
+   */
+  end_line: number;
+  status?: ChunkStatus;
+  /**
+   * Skip Reason
+   *
+   * Why a SKIPPED chunk was not sent to an agent: "abbreviations section" or "blank".
+   */
+  skip_reason?: string | null;
+  /**
+   * Occurrences
+   */
+  occurrences?: Array<ChunkOccurrence>;
+  /**
+   * Error
+   */
+  error?: string | null;
+  error_details?: ErrorDetails | null;
+  /**
+   * Messages
+   *
+   * The agent's full conversation for this chunk, system prompt included.
+   */
+  messages?: Array<{
+    [key: string]: unknown;
+  }>;
+};
+
+/**
  * AbbreviationItem
  *
  * Represents a single occurrence of an abbreviation/acronym in the document.
@@ -122,17 +166,55 @@ export type AbbreviationScanV2State = {
   /**
    * Reasoning
    *
-   * Agent reasoning summarising what was found and how.
+   * Summary of what was scanned and found.
    */
   reasoning?: string;
   /**
+   * Abbreviations Section Ranges
+   *
+   * Line ranges of the Abbreviations (or equivalent) section(s).
+   */
+  abbreviations_section_ranges?: Array<LineRange>;
+  /**
+   * Abbreviations Section Entries
+   *
+   * Entries listed in the Abbreviations section(s).
+   */
+  abbreviations_section_entries?: Array<AbbreviationSectionEntry>;
+  /**
+   * Chunks
+   *
+   * The line-range chunks the document was catalogued in, with per-chunk status.
+   */
+  chunks?: Array<AbbreviationChunk>;
+  /**
    * Messages
    *
-   * LLM conversation messages from the agent invocation.
+   * The Abbreviations-section agent's conversation, system prompt included. Each chunk's conversation is on the chunk itself.
    */
   messages?: Array<{
     [key: string]: unknown;
   }>;
+};
+
+/**
+ * AbbreviationSectionEntry
+ *
+ * One entry of the document's Abbreviations (or equivalent) section.
+ */
+export type AbbreviationSectionEntry = {
+  /**
+   * Abbr
+   *
+   * The abbreviation as listed, e.g. NATO
+   */
+  abbr: string;
+  /**
+   * Definition
+   *
+   * The definition as written in the section, e.g. North Atlantic Treaty Organization
+   */
+  definition: string;
 };
 
 /**
@@ -741,6 +823,66 @@ export type ChatTurnMessage = {
    */
   content?: string;
 };
+
+/**
+ * ChunkOccurrence
+ *
+ * One abbreviation occurrence, as recorded by a chunk extraction agent.
+ */
+export type ChunkOccurrence = {
+  /**
+   * Abbr
+   *
+   * The abbreviation in its singular base form, e.g. "LLM" not "LLMs".
+   */
+  abbr: string;
+  /**
+   * Inline Definition
+   *
+   * The inline definition accompanying THIS occurrence (the "Full Name (ABBR)" pattern), or an empty string when none does.
+   */
+  inline_definition?: string;
+  /**
+   * Line Start
+   *
+   * 1-indexed line number in /main.md where the occurrence starts.
+   */
+  line_start: number;
+  /**
+   * Line End
+   *
+   * Line number where the occurrence ends; equal to line_start for a single line.
+   */
+  line_end: number;
+  /**
+   * Ignored
+   *
+   * True when the occurrence is excluded from compliance checks.
+   */
+  ignored?: boolean;
+  /**
+   * Ignored Reason
+   *
+   * Brief reason for the exclusion; required when ignored is true, otherwise null.
+   */
+  ignored_reason?: string | null;
+};
+
+/**
+ * ChunkStatus
+ */
+export const ChunkStatus = {
+  Pending: 'pending',
+  Completed: 'completed',
+  Partial: 'partial',
+  Error: 'error',
+  Skipped: 'skipped',
+} as const;
+
+/**
+ * ChunkStatus
+ */
+export type ChunkStatus = (typeof ChunkStatus)[keyof typeof ChunkStatus];
 
 /**
  * CitationIssueItem
@@ -2083,6 +2225,22 @@ export const IssueStatus = { Active: 'active', Archived: 'archived' } as const;
  * Status of a persisted issue
  */
 export type IssueStatus = (typeof IssueStatus)[keyof typeof IssueStatus];
+
+/**
+ * LineRange
+ *
+ * An inclusive, 1-indexed range of document lines.
+ */
+export type LineRange = {
+  /**
+   * Start Line
+   */
+  start_line: number;
+  /**
+   * End Line
+   */
+  end_line: number;
+};
 
 /**
  * LinkReferenceFileRequest
