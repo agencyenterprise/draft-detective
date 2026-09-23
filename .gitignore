@@ -16,11 +16,6 @@ logs-structured/
 /.local/
 /abbreviations.json
 
-# Private full-document fixtures and derived references are not public datasets.
-# Only the synthetic example and fixture instructions belong in the public PR.
-/evals_inspectai/e2e/abbreviation_checker/data/*
-!/evals_inspectai/e2e/abbreviation_checker/data/README.md
-!/evals_inspectai/e2e/abbreviation_checker/data/example/
 
 # Virtual environments
 .venv
