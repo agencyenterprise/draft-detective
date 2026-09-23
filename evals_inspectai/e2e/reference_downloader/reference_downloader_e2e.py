@@ -5,10 +5,9 @@ from typing import List, Optional
 from inspect_ai import Task, task
 from inspect_ai.agent import Agent, AgentState, agent
 from inspect_ai.dataset import Sample, json_dataset
-from inspect_ai.model import ChatMessage, ModelOutput
+from inspect_ai.model import ModelOutput
 from inspect_ai.scorer import CORRECT, INCORRECT, Score
 from inspect_ai.solver import TaskState
-from langchain_core.messages.utils import convert_to_messages
 from pydantic import BaseModel, Field
 
 from evals_inspectai.common.api_client import (
@@ -16,7 +15,7 @@ from evals_inspectai.common.api_client import (
     poll_workflow_run_until_complete,
     start_workflow,
 )
-from evals_inspectai.common.converters import messages_from_langchain
+from evals_inspectai.common.api_solver import surface_conversations
 from evals_inspectai.common.errors import WorkflowCompletionError
 from evals_inspectai.common.scorers import structured_output_scorer
 
@@ -107,9 +106,13 @@ def _reference_downloader_api_agent(
         workflow_state = run_detail.get("state") or {}
         _check_item_errors(workflow_state)
 
-        messages = _pop_agent_messages(workflow_state)
-        if messages:
-            state.messages = messages
+        await surface_conversations(
+            state,
+            workflow_state,
+            "reference_downloader",
+            item_messages_key="fetched_references",
+            item_label="reference",
+        )
 
         state.output = ModelOutput(
             completion=json.dumps(workflow_state),
@@ -118,22 +121,6 @@ def _reference_downloader_api_agent(
         return state
 
     return execute
-
-
-def _pop_agent_messages(workflow_state: dict) -> List[ChatMessage]:
-    """Remove per-reference agent messages from the state and convert them.
-
-    Messages are removed so the scored completion stays a compact JSON payload;
-    they are surfaced in the Inspect transcript via ``state.messages`` instead.
-    """
-    messages: List[ChatMessage] = []
-    for item in workflow_state.get("fetched_references", []):
-        if not isinstance(item, dict):
-            continue
-        raw_messages = item.pop("messages", None) or []
-        if raw_messages:
-            messages.extend(messages_from_langchain(convert_to_messages(raw_messages)))
-    return messages
 
 
 def _check_item_errors(workflow_state: dict) -> None:

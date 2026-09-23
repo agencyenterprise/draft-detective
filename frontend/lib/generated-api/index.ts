@@ -94,6 +94,7 @@ export {
   type AdminFeedbackItem,
   type AdminFeedbackItemWritable,
   type AgentCheckResult,
+  type AgentConversation,
   type AppConfigResponse,
   type AppConfigValueResponse,
   type ApproveGateResponse,

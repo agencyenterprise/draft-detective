@@ -3,7 +3,7 @@ from typing import Optional
 
 from langchain.agents import create_agent
 from langchain.chat_models import init_chat_model
-from langchain_core.messages import BaseMessage
+from langchain_core.messages import BaseMessage, SystemMessage
 from langgraph.graph.state import RunnableConfig
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -88,10 +88,11 @@ class ReferenceFetcherAgent(LangChainAgent):
         input: ReferenceFetcherAgentInput,
         config: Optional[RunnableConfig] = None,
     ) -> tuple[ReferenceFetchItem, list[BaseMessage]]:
+        system_prompt = load_skill_prompt("reference-download") + _ENV_GUIDANCE
         agent = create_agent(
             self.llm,
             [web_search_tool(self.model), download_file_from_url, read_file_content],
-            system_prompt=load_skill_prompt("reference-download") + _ENV_GUIDANCE,
+            system_prompt=system_prompt,
             context_schema=ContextSchema,
             response_format=ReferenceFetchItem,
         ).with_retry(stop_after_attempt=2)
@@ -107,4 +108,8 @@ class ReferenceFetcherAgent(LangChainAgent):
             context=self.context,
         )
 
-        return result["structured_response"], result["messages"]
+        # `system_prompt` is sent with every model call but is not part of the
+        # agent's message history; prepend it so the saved conversation shows
+        # everything the model was given.
+        messages = [SystemMessage(content=system_prompt), *result["messages"]]
+        return result["structured_response"], messages

@@ -19,9 +19,10 @@ async def generate_review(
     main_file = await file_artifacts_service.get_main_file()
 
     agent = Reviewer2Agent(runtime.context)
-    result = await agent.ainvoke({"document_markdown": main_file.markdown})
+    result, messages = await agent.ainvoke({"document_markdown": main_file.markdown})
 
     return {
         "peer_review_markdown": result.peer_review_markdown,
         "rebuttal_markdown": result.rebuttal_markdown,
+        "messages": messages,
     }

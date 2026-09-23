@@ -282,6 +282,12 @@ export type AboutThisGerState = {
    * Result from the authors validation deep agent
    */
   authors_result?: AgentCheckResult | null;
+  /**
+   * Agent Conversations
+   *
+   * Each validator agent's conversation, for debugging and eval transcripts.
+   */
+  agent_conversations?: Array<AgentConversation>;
 };
 
 /**
@@ -495,6 +501,26 @@ export type AgentCheckResult = {
    * Markdown report summarising the check results
    */
   report_markdown?: string;
+};
+
+/**
+ * AgentConversation
+ *
+ * One validator agent's full conversation, system prompt included.
+ */
+export type AgentConversation = {
+  /**
+   * Name
+   *
+   * Which validator ran it: "preface" or "authors".
+   */
+  name: string;
+  /**
+   * Messages
+   */
+  messages?: Array<{
+    [key: string]: unknown;
+  }>;
 };
 
 /**
@@ -3216,6 +3242,14 @@ export type Reviewer2State = {
    * The rebuttal document as markdown
    */
   rebuttal_markdown?: string | null;
+  /**
+   * Messages
+   *
+   * The reviewer agent's full conversation, system prompt included.
+   */
+  messages?: Array<{
+    [key: string]: unknown;
+  }>;
 };
 
 /**
