@@ -17,7 +17,6 @@ from pathlib import Path
 from typing import Dict, List, Sequence, Tuple
 
 import pytest
-from docx import Document as PythonDocxDocument
 from docx_editor import Document as EditorDocument
 
 from lib.models.issue_edit import IssueEdit, IssueEditStatus
@@ -33,6 +32,8 @@ from lib.workflows.simple_deep_agent.edit_anchoring import (
     document_lines,
     normalize_whitespace,
 )
+
+from tests.unit.services.lean_docx import new_document
 
 # The document under test. A non-breaking space inside prose and a phrase
 # repeated in one paragraph are both ordinary in converted DOCX documents; the
@@ -72,7 +73,7 @@ OTHER_PASSAGE_DETAIL = (
 
 @pytest.fixture
 def docx_path(tmp_path: Path) -> Path:
-    document = PythonDocxDocument()
+    document = new_document()
     table = document.add_table(rows=1, cols=2)
     table.cell(0, 0).text = CELLS[0]
     table.cell(0, 1).text = CELLS[1]

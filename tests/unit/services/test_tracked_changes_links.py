@@ -7,11 +7,11 @@ text, so a redline over the label cannot move the target with it.
 from pathlib import Path
 
 import pytest
-from docx import Document as PythonDocxDocument
 
 from lib.models.issue_edit import IssueEdit
 from lib.services.docx.tracked_changes import apply_tracked_changes
 
+from tests.unit.services.lean_docx import new_document
 from tests.unit.services.tracked_changes_support import (
     make_edit as _edit,
     plan_edits as _plan,
@@ -27,7 +27,7 @@ _LINK_MARKDOWN = "See the [Wrong report](https://x/wrong) for details."
 
 @pytest.fixture
 def link_docx_path(tmp_path: Path) -> Path:
-    document = PythonDocxDocument()
+    document = new_document()
     document.add_paragraph(_LINK_PARAGRAPH)
     path = tmp_path / "link.docx"
     document.save(str(path))
