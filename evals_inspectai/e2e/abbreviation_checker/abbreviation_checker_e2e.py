@@ -47,7 +47,9 @@ def abbreviation_checker_e2e():
         # TODO: allow model to be specified dynamically / via api config
         dataset=dataset,
         fail_on_error=0.2,
-        solver=api_workflow_agent("abbreviation_scan_v2"),
+        solver=api_workflow_agent(
+            "abbreviation_scan_v2", item_messages_key="chunks", item_label="chunk"
+        ),
         scorer=[
             structured_output_scorer(
                 AbbreviationCheckOutput, _compare_abbreviation_list

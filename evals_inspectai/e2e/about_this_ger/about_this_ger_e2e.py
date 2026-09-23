@@ -46,7 +46,9 @@ def about_this_ger_e2e():
     return Task(
         dataset=dataset,
         fail_on_error=0.2,
-        solver=api_workflow_agent("about_this_ger", timeout_s=600),
+        solver=api_workflow_agent(
+            "about_this_ger", timeout_s=600, item_messages_key="agent_conversations"
+        ),
         scorer=[
             structured_output_scorer(AboutThisGerOutput, _compare_preface_titles),
             structured_output_scorer(AboutThisGerOutput, _compare_authors_titles),

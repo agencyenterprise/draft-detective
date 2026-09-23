@@ -25,6 +25,7 @@ from evals_inspectai.common.api_client import (
     poll_until_complete,
     poll_until_status,
 )
+from evals_inspectai.common.api_solver import surface_conversations
 from evals_inspectai.common.errors import WorkflowCompletionError
 from evals_inspectai.common.scorers import model_graded_check
 
@@ -120,6 +121,10 @@ def claim_reference_validation_v2_e2e_solver(
             raise WorkflowCompletionError(str(e)) from e
 
         workflow_state = run_detail.get("state") or {}
+        # Each section's validator conversation goes into the transcript.
+        await surface_conversations(
+            state, workflow_state, _TARGET_WORKFLOW, "section_verifications", "section"
+        )
         state.output = ModelOutput(
             completion=json.dumps(workflow_state),
             model="api",

@@ -25,18 +25,20 @@ async def test_reviewer_2_reads_both_documents_from_files():
     with patch("lib.agents.reviewer_2.create_deep_agent") as create_agent:
         create_agent.return_value.ainvoke = AsyncMock(
             return_value={
-                "messages": [],
+                "messages": ["the conversation"],
                 "files": {
                     PEER_REVIEW_PATH: {"content": ["# Peer review", "Review body"]},
                     REBUTTAL_PATH: {"content": ["# Rebuttal", "Rebuttal body"]},
                 },
             }
         )
-        result = await agent.ainvoke({"document_markdown": "# Draft"})
+        result, messages = await agent.ainvoke({"document_markdown": "# Draft"})
 
     assert "response_format" not in create_agent.call_args.kwargs
     assert result.peer_review_markdown == "# Peer review\nReview body"
     assert result.rebuttal_markdown == "# Rebuttal\nRebuttal body"
+    # The conversation comes back so the workflow can persist it.
+    assert messages == ["the conversation"]
 
 
 @pytest.mark.asyncio
