@@ -12,7 +12,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/
 
 const userNavigation = [
   { name: 'Settings', href: '/account' },
-  { name: 'MCP Server', href: '/mcp' },
+  { name: 'MCP Server', href: '/connect' },
   { name: 'Sign out', href: '/api/auth/signout' },
 ];
 const adminNavigation = [

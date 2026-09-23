@@ -7,7 +7,7 @@ import { baseUrl } from '@/lib/api';
 import { Check, Copy, Server } from 'lucide-react';
 import { useState } from 'react';
 
-const mcpUrl = `${baseUrl}/mcp/`;
+const mcpUrl = `${baseUrl}/mcp`;
 
 const claudeCodeCommand = `claude mcp add-json "draft-detective" '{"type":"http","url":"${mcpUrl}"}'`;
 
