@@ -9,6 +9,7 @@ metadata:
     experimental: true
     icon: scissors-line-dashed
     propose_edits: true
+    presets: [editorial_review]
 ---
 
 # Concision & Precision

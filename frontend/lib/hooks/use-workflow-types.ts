@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import {
   getWorkflowTypesApiWorkflowTypesGet,
   WorkflowCategoryOrder,
+  WorkflowPreset,
   WorkflowRunType,
   WorkflowTypeDescription,
 } from '../generated-api';
@@ -18,6 +19,7 @@ export function useWorkflowTypes() {
 
   const workflowTypes: WorkflowTypeDescription[] = useMemo(() => query.data?.workflow_types ?? [], [query.data]);
   const categories: WorkflowCategoryOrder[] = useMemo(() => query.data?.categories ?? [], [query.data]);
+  const presets: WorkflowPreset[] = useMemo(() => query.data?.presets ?? [], [query.data]);
 
   const isWorkflowTypeVisible = useCallback(
     (type: WorkflowRunType) => {
@@ -44,6 +46,7 @@ export function useWorkflowTypes() {
     ...query,
     workflowTypes,
     categories,
+    presets,
     isWorkflowTypeVisible,
     getWorkflowTypeName,
     getWorkflowTypeDescription,

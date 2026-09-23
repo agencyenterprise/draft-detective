@@ -6,6 +6,7 @@ import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { useWorkflowDurationEstimates } from '@/lib/hooks/use-workflow-duration-estimates';
 import { Button } from '@/components/ui/button';
 import { WorkflowTypeCheckbox } from './workflow-type-checkbox';
+import { WorkflowPresetChips } from './workflow-presets';
 import { useVisibleWorkflowTypes } from '@/lib/hooks/use-visible-workflow-types';
 
 interface WorkflowTypeSelectorProps {
@@ -33,9 +34,9 @@ export function WorkflowTypeSelector({
   headerDescription,
   error,
 }: WorkflowTypeSelectorProps) {
-  const { workflowTypes: allTypes, isPending: isLoadingWorkflowTypes } = useWorkflowTypes();
+  const { workflowTypes: allTypes, getWorkflowTypeName, isPending: isLoadingWorkflowTypes } = useWorkflowTypes();
   const { getEstimatedSeconds } = useWorkflowDurationEstimates(projectId);
-  const { visibleGroups: allVisibleGroups } = useVisibleWorkflowTypes();
+  const { visibleGroups: allVisibleGroups, presets } = useVisibleWorkflowTypes();
 
   const workflowTypes = useMemo(() => {
     if (restrictToType) {
@@ -142,6 +143,20 @@ export function WorkflowTypeSelector({
           )}
         </div>
       )}
+      {/* Presets sit between the header and the list: a department picks its
+          set here and the rows below show what that set is. Never in
+          single-type mode, where there is nothing to choose between. */}
+      {restrictToType === undefined && !isLoadingWorkflowTypes && presets.length > 0 && (
+        <WorkflowPresetChips
+          presets={presets}
+          selectedTypes={selectedTypes}
+          offeredTypes={bulkSelectableTypes}
+          onSelectionChange={onSelectionChange}
+          disabled={controlsDisabled}
+          getWorkflowTypeName={getWorkflowTypeName}
+        />
+      )}
+
       <div className="space-y-4">
         {isLoadingWorkflowTypes ? (
           <p className="text-sm text-muted-foreground">Loading available assessments...</p>

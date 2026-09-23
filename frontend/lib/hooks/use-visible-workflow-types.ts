@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { WorkflowCategoryOrder, WorkflowRunType, WorkflowTypeDescription } from '@/lib/generated-api';
+import { WorkflowCategoryOrder, WorkflowPreset, WorkflowRunType, WorkflowTypeDescription } from '@/lib/generated-api';
 import { useWorkflowTypes } from './use-workflow-types';
 import { useExperimentalFeatures } from '@/context/experimental-features-context';
 
@@ -18,7 +18,7 @@ export interface VisibleWorkflowGroup {
  * filtered out as well.
  */
 export function useVisibleWorkflowTypes() {
-  const { workflowTypes: allTypes, categories, isPending } = useWorkflowTypes();
+  const { workflowTypes: allTypes, categories, presets: allPresets, isPending } = useWorkflowTypes();
   const { showExperimentalFeatures } = useExperimentalFeatures();
 
   const typeMap = useMemo(
@@ -45,5 +45,18 @@ export function useVisibleWorkflowTypes() {
     [visibleGroups],
   );
 
-  return { visibleGroups, visibleTypes, isPending };
+  // A preset narrowed to what this user can see. One whose every assessment is
+  // hidden (all still alpha, say) is left out rather than offered as an empty chip.
+  const presets = useMemo<WorkflowPreset[]>(
+    () =>
+      allPresets
+        .map((preset) => ({
+          ...preset,
+          workflows: preset.workflows.filter((type) => visibleTypes.includes(type)),
+        }))
+        .filter((preset) => preset.workflows.length > 0),
+    [allPresets, visibleTypes],
+  );
+
+  return { visibleGroups, visibleTypes, presets, isPending };
 }
