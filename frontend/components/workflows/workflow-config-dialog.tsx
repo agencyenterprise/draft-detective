@@ -16,11 +16,12 @@ import { GlobalFormValidationError, useForm } from '@tanstack/react-form';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { useUserMe } from '@/lib/hooks/use-user-me';
 import { WorkflowRunType } from '@/lib/generated-api';
-import { KeyRound } from 'lucide-react';
+import { CircleAlert, KeyRound } from 'lucide-react';
 import { useEffect } from 'react';
 import { WorkflowTypeSelector } from './workflow-type-selector';
 import { WebSearchConsentCheckbox } from './web-search-consent-checkbox';
-import { hasWebSearchRequirement, hasPublicationDateRequirement } from './utils';
+import { hasPublicationDateRequirement, hasWebSearchRequirement } from './utils';
+import { runReadiness } from './run-readiness';
 import { useWebSearchConsent } from '@/lib/hooks/use-web-search-consent';
 
 interface WorkflowConfigDialogProps {
@@ -39,6 +40,12 @@ interface WorkflowConfigDialogProps {
   submitLabel?: string;
   /** The help topic the dialog's link opens. Follows what the dialog is for. */
   helpTopic?: HelpTopicId;
+}
+
+/** The run button says how many it will start, so the count is confirmed where it matters. */
+function runLabel(selectedCount: number): string {
+  if (selectedCount === 0) return 'Run assessments';
+  return selectedCount === 1 ? 'Run 1 assessment' : `Run ${selectedCount} assessments`;
 }
 
 export interface WorkflowConfigFormValues {
@@ -62,7 +69,12 @@ export function WorkflowConfigDialog({
   const { showExperimentalFeatures } = useExperimentalFeatures();
   const { data: user } = useUserMe();
 
-  const { workflowTypes, getWorkflowTypeName } = useWorkflowTypes();
+  const {
+    workflowTypes,
+    getWorkflowTypeName,
+    isPending: isMetadataPending,
+    isError: isMetadataFailed,
+  } = useWorkflowTypes();
 
   // Named when the dialog is opened for one assessment; otherwise it is the
   // picker over all of them.
@@ -87,23 +99,35 @@ export function WorkflowConfigDialog({
     validators: {
       onChange: ({ value }) => {
         const errors: GlobalFormValidationError<WorkflowConfigFormValues> = { fields: {}, form: undefined };
-        if (hasWebSearchRequirement(value.workflowTypes, workflowTypes) && !value.webSearchConsent) {
-          errors.fields.webSearchConsent = 'Web search consent is required';
-        }
         // Only require publication date input when the field is shown
         if (showPublicationDateField && (!value.publicationDate || value.publicationDate.trim() === '')) {
           errors.fields.publicationDate = 'Document publication date is required';
-        }
-        if (value.workflowTypes.length === 0) {
-          errors.fields.workflowTypes = 'At least one workflow type must be selected';
         }
         return errors;
       },
     },
     onSubmit: ({ value }) => {
+      // The selection and consent rules are not validators: a validator runs
+      // on change, and a pristine dialog (nothing selected, or one assessment
+      // preselected without consent) has had none. The footer decides from
+      // the current values instead, and this guard keeps a submit honest.
+      if (!readinessOf(value).ready) return;
       onConfirm(value);
     },
   });
+
+  // Whether these values can run, from the values and the metadata alone.
+  function readinessOf(value: WorkflowConfigFormValues, fieldErrors: string[] = [], pristine = false) {
+    return runReadiness({
+      selectedTypes: value.workflowTypes,
+      webSearchConsent: value.webSearchConsent,
+      workflowTypes,
+      metadataPending: isMetadataPending,
+      metadataFailed: isMetadataFailed,
+      fieldErrors,
+      pristine,
+    });
+  }
 
   useEffect(() => {
     if (isOpen) {
@@ -114,10 +138,10 @@ export function WorkflowConfigDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onCancel}>
-      {/* Wide enough for the two-column assessment grid this dialog renders when
-          no specific `type` is given. */}
-      <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+      {/* The list scrolls inside the dialog while the title and the run button
+          stay put, so the action is never below the fold of a dozen rows. */}
+      <DialogContent className="flex max-h-[90vh] flex-col gap-0 p-0 sm:max-w-4xl">
+        <DialogHeader className="border-b px-6 pt-6 pb-4">
           <DialogTitle>{title ?? (assessmentName ? `Run ${assessmentName}` : 'Run assessments')}</DialogTitle>
           <DialogDescription>
             {description ??
@@ -130,7 +154,7 @@ export function WorkflowConfigDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 py-4">
           {showPublicationDateField && (
             <form.Field name="publicationDate">
               {(field) => (
@@ -150,9 +174,6 @@ export function WorkflowConfigDialog({
                     The publication date of the document. For unpublished documents, use the date of the last update or
                     the current date.
                   </p>
-                  {!field.state.meta.isValid && (
-                    <p className="text-sm text-destructive">{field.state.meta.errors.join(', ')}</p>
-                  )}
                 </div>
               )}
             </form.Field>
@@ -166,15 +187,15 @@ export function WorkflowConfigDialog({
                 selectedTypes={field.state.value}
                 onSelectionChange={field.handleChange}
                 disabledTypes={type ? [type] : undefined}
-                error={
-                  !field.state.meta.isValid && field.state.meta.errors.length > 0
-                    ? field.state.meta.errors.join(', ')
-                    : undefined
-                }
               />
             )}
           </form.Field>
+        </div>
 
+        {/* The consent sits with the run button rather than at the end of the
+            list: it is what the button is waiting on, and a dozen rows above
+            it would otherwise hide that it exists at all. */}
+        <div className="space-y-4 border-t px-6 py-4">
           <form.Field name="workflowTypes">
             {(workflowTypesField) => {
               const selectedTypes = workflowTypesField.state.value;
@@ -187,39 +208,69 @@ export function WorkflowConfigDialog({
               return (
                 <form.Field name="webSearchConsent">
                   {(field) => (
-                    <WebSearchConsentCheckbox
-                      checked={field.state.value}
-                      onCheckedChange={field.handleChange}
-                      error={!field.state.meta.isValid ? field.state.meta.errors.join(', ') : undefined}
-                    />
+                    <form.Subscribe
+                      selector={(state) => state.isTouched && readinessOf(state.values).blocker === 'consent-missing'}
+                    >
+                      {(consentMissing) => (
+                        <WebSearchConsentCheckbox
+                          checked={field.state.value}
+                          onCheckedChange={field.handleChange}
+                          invalid={consentMissing}
+                        />
+                      )}
+                    </form.Subscribe>
                   )}
                 </form.Field>
               );
             }}
           </form.Field>
+
+          {/* Every message the form can raise, in one place the reader can
+              see without scrolling: the list's own error used to sit under
+              its last row, off screen for anyone who had not scrolled. Decided
+              from the current values, so a pristine dialog is judged too. */}
+          <form.Subscribe
+            selector={(state) => ({
+              readiness: readinessOf(
+                state.values,
+                (state.fieldMeta.publicationDate?.errors ?? []).map(String),
+                !state.isTouched,
+              ),
+              isSubmitting: state.isSubmitting,
+              selectedCount: state.values.workflowTypes.length,
+            })}
+          >
+            {({ readiness, isSubmitting, selectedCount }) => (
+              <>
+                {readiness.messages.length > 0 && (
+                  <ul className="space-y-1" aria-live="polite">
+                    {readiness.messages.map((message) => (
+                      <li key={message} className="flex items-center gap-1.5 text-xs text-destructive">
+                        <CircleAlert aria-hidden className="size-3.5 shrink-0" />
+                        {message}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+
+                <DialogFooter className="sm:items-center">
+                  {user?.has_openai_api_key && (
+                    <p className="flex items-center gap-1.5 text-xs text-muted-foreground sm:mr-auto">
+                      <KeyRound className="size-3.5 shrink-0" />
+                      Your saved OpenAI API key will be used for this assessment.
+                    </p>
+                  )}
+                  <Button variant="outline" onClick={onCancel} disabled={isSubmitting}>
+                    Cancel
+                  </Button>
+                  <Button onClick={() => form.handleSubmit()} disabled={!readiness.ready || isSubmitting}>
+                    {isSubmitting ? 'Starting...' : (submitLabel ?? runLabel(selectedCount))}
+                  </Button>
+                </DialogFooter>
+              </>
+            )}
+          </form.Subscribe>
         </div>
-
-        {user?.has_openai_api_key && (
-          <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
-            <KeyRound className="h-3.5 w-3.5 shrink-0" />
-            Your saved OpenAI API key will be used for this assessment.
-          </p>
-        )}
-
-        <form.Subscribe selector={(state) => [state.canSubmit, state.isSubmitting]}>
-          {([canSubmit, isSubmitting]) => (
-            <DialogFooter>
-              <Button variant="outline" onClick={onCancel} disabled={isSubmitting}>
-                Cancel
-              </Button>
-              <Button onClick={() => form.handleSubmit()} disabled={!canSubmit || isSubmitting}>
-                {isSubmitting
-                  ? 'Starting...'
-                  : (submitLabel ?? (assessmentName ? 'Run assessment' : 'Run assessments'))}
-              </Button>
-            </DialogFooter>
-          )}
-        </form.Subscribe>
       </DialogContent>
     </Dialog>
   );

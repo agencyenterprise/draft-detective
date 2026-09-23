@@ -1,9 +1,14 @@
 import logging
 from urllib.parse import urlparse, urlunparse
 
+from fastmcp.server.auth.providers.azure import AzureProvider
+from fastmcp.server.auth.providers.google import GoogleProvider
 from key_value.aio.protocols.key_value import AsyncKeyValue
 from key_value.aio.wrappers.encryption import FernetEncryptionWrapper
+from pydantic import AnyHttpUrl
+from starlette.routing import Route
 
+from lib.api.mcp_discovery import slashless_resource_url, with_slash_resource_metadata
 from lib.config.env import config
 from lib.mcp.postgres_kv_store import PostgresKeyValueStore
 
@@ -13,6 +18,33 @@ logger = logging.getLogger(__name__)
 # and force every client through re-auth. Versioned so we can rotate
 # deliberately if AUTH_SECRET is ever compromised.
 _MCP_STORAGE_SALT = "mcp-oauth-storage-v1"
+
+
+# Both providers advertise the MCP resource as ``…/mcp`` so clients configured
+# with either ``…/mcp`` or ``…/mcp/`` accept it (issue #774, see
+# lib.api.mcp_discovery). FastMCP reads the resource URL through
+# ``_get_resource_url`` everywhere (protected-resource document,
+# WWW-Authenticate challenge, token audience), so that is the hook.
+
+
+class SlashTolerantGoogleProvider(GoogleProvider):
+    """Google provider that accepts MCP clients configured with or without the trailing slash."""
+
+    def _get_resource_url(self, path: str | None = None) -> AnyHttpUrl | None:
+        return slashless_resource_url(super()._get_resource_url(path))
+
+    def get_routes(self, mcp_path: str | None = None) -> list[Route]:
+        return with_slash_resource_metadata(super().get_routes(mcp_path))
+
+
+class SlashTolerantAzureProvider(AzureProvider):
+    """Entra ID provider that accepts MCP clients configured with or without the trailing slash."""
+
+    def _get_resource_url(self, path: str | None = None) -> AnyHttpUrl | None:
+        return slashless_resource_url(super()._get_resource_url(path))
+
+    def get_routes(self, mcp_path: str | None = None) -> list[Route]:
+        return with_slash_resource_metadata(super().get_routes(mcp_path))
 
 
 def _root_url(url: str) -> str:
@@ -52,15 +84,15 @@ def create_mcp_auth():
     # issuer_url at root so auth-server discovery lives at
     # /.well-known/oauth-authorization-server (no path suffix).
     # Some MCP clients (e.g. Claude) don't support path-aware discovery.
+    # FastMCP 4 reports this as the metadata ``issuer`` too, which strict
+    # clients such as Claude Desktop require (RFC 8414 §3.3, issue #775).
     issuer_url = _root_url(base_url)
 
     client_storage = _build_client_storage()
 
     if config.AUTH_GOOGLE_ID and config.AUTH_GOOGLE_SECRET:
-        from fastmcp.server.auth.providers.google import GoogleProvider
-
         logger.info("MCP auth: using Google OAuth provider")
-        return GoogleProvider(
+        return SlashTolerantGoogleProvider(
             client_id=config.AUTH_GOOGLE_ID,
             client_secret=config.AUTH_GOOGLE_SECRET,
             base_url=base_url,
@@ -78,14 +110,12 @@ def create_mcp_auth():
         and config.AUTH_MICROSOFT_ENTRA_ID_SECRET
         and config.AUTH_MICROSOFT_ENTRA_ID_ISSUER
     ):
-        from fastmcp.server.auth.providers.azure import AzureProvider
-
         # Extract tenant_id from issuer URL
         # Format: https://login.microsoftonline.com/{tenant_id}/v2.0
         tenant_id = config.AUTH_MICROSOFT_ENTRA_ID_ISSUER.rstrip("/").split("/")[-2]
 
         logger.info("MCP auth: using Microsoft Entra ID OAuth provider")
-        return AzureProvider(
+        return SlashTolerantAzureProvider(
             client_id=config.AUTH_MICROSOFT_ENTRA_ID_ID,
             client_secret=config.AUTH_MICROSOFT_ENTRA_ID_SECRET,
             tenant_id=tenant_id,

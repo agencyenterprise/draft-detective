@@ -90,12 +90,11 @@ async def _run_with_progress(
 
 
 @mcp.tool(
-    task=True,
     annotations=ToolAnnotations(
-        destructiveHint=False,
-        idempotentHint=False,
-        readOnlyHint=False,
-        openWorldHint=True,
+        destructive_hint=False,
+        idempotent_hint=False,
+        read_only_hint=False,
+        open_world_hint=True,
     ),
 )
 async def run_workflow(

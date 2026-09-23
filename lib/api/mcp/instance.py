@@ -1,5 +1,5 @@
 from fastmcp import FastMCP
-from mcp.server.fastmcp import Icon
+from mcp.types import Icon
 
 from lib.api.mcp_auth import create_mcp_auth
 from lib.config.env import config as env_config

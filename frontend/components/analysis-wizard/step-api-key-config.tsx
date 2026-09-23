@@ -9,6 +9,7 @@ import { setApiKeyApiUsersMeApiKeyPut } from '@/lib/generated-api';
 import { USER_ME_QUERY_KEY } from '@/lib/hooks/use-user-me';
 import { isApiError } from '@/lib/api-error';
 import { Key, Loader2 } from 'lucide-react';
+import { StepHeading, StepLayout } from './step-layout';
 
 export function StepApiKeyConfig() {
   const [apiKey, setApiKey] = useState('');
@@ -37,49 +38,48 @@ export function StepApiKeyConfig() {
   };
 
   return (
-    <div className="space-y-8">
-      <div className="space-y-2">
-        <h1 className="text-2xl font-bold">Set up your OpenAI API Key</h1>
-        <p className="text-muted-foreground">
+    <StepLayout>
+      <div className="space-y-6">
+        <StepHeading title="Set up your OpenAI API Key">
           This deployment requires an OpenAI API key to run assessments. Your key is encrypted at rest and never exposed
           in API responses. You can update or remove it at any time from your account settings.
-        </p>
-      </div>
+        </StepHeading>
 
-      <div className="rounded-lg border p-6 space-y-4">
-        <div className="flex items-center gap-2 text-sm font-medium">
-          <Key className="h-4 w-4" />
-          OpenAI API Key
-        </div>
-
-        <form onSubmit={handleSubmit} className="flex items-start gap-2">
-          <div className="flex-1 space-y-1">
-            <Label htmlFor="api-key-input" className="sr-only">
-              OpenAI API Key
-            </Label>
-            <Input
-              id="api-key-input"
-              type="password"
-              placeholder="sk-..."
-              value={apiKey}
-              onChange={(e) => {
-                setApiKey(e.target.value);
-                setError(null);
-              }}
-              disabled={saveMutation.isPending}
-            />
-            {error && <p className="text-sm text-destructive">{error}</p>}
+        <div className="rounded-lg border p-6 space-y-4">
+          <div className="flex items-center gap-2 text-sm font-medium">
+            <Key className="h-4 w-4" />
+            OpenAI API Key
           </div>
-          <Button type="submit" disabled={saveMutation.isPending || !apiKey.trim()}>
-            {saveMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
-            Save key
-          </Button>
-        </form>
 
-        <p className="text-sm text-muted-foreground">
-          Once saved, you&apos;ll be taken to the next step automatically.
-        </p>
+          <form onSubmit={handleSubmit} className="flex items-start gap-2">
+            <div className="flex-1 space-y-1">
+              <Label htmlFor="api-key-input" className="sr-only">
+                OpenAI API Key
+              </Label>
+              <Input
+                id="api-key-input"
+                type="password"
+                placeholder="sk-..."
+                value={apiKey}
+                onChange={(e) => {
+                  setApiKey(e.target.value);
+                  setError(null);
+                }}
+                disabled={saveMutation.isPending}
+              />
+              {error && <p className="text-sm text-destructive">{error}</p>}
+            </div>
+            <Button type="submit" disabled={saveMutation.isPending || !apiKey.trim()}>
+              {saveMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
+              Save key
+            </Button>
+          </form>
+
+          <p className="text-sm text-muted-foreground">
+            Once saved, you&apos;ll be taken to the next step automatically.
+          </p>
+        </div>
       </div>
-    </div>
+    </StepLayout>
   );
 }

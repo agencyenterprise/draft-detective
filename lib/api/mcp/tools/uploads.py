@@ -12,10 +12,10 @@ from lib.services.projects import get_project_access
 
 @mcp.tool(
     annotations=ToolAnnotations(
-        destructiveHint=False,
-        idempotentHint=False,
-        readOnlyHint=False,
-        openWorldHint=False,
+        destructive_hint=False,
+        idempotent_hint=False,
+        read_only_hint=False,
+        open_world_hint=False,
     )
 )
 async def get_tus_upload_credentials(

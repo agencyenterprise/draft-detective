@@ -16,10 +16,10 @@ from lib.services.projects import create_new_revision, get_project_access
 
 @mcp.tool(
     annotations=ToolAnnotations(
-        destructiveHint=False,
-        idempotentHint=False,
-        readOnlyHint=False,
-        openWorldHint=False,
+        destructive_hint=False,
+        idempotent_hint=False,
+        read_only_hint=False,
+        open_world_hint=False,
     )
 )
 async def create_revision(
@@ -79,10 +79,10 @@ async def create_revision(
 
 @mcp.tool(
     annotations=ToolAnnotations(
-        destructiveHint=False,
-        idempotentHint=True,
-        readOnlyHint=True,
-        openWorldHint=False,
+        destructive_hint=False,
+        idempotent_hint=True,
+        read_only_hint=True,
+        open_world_hint=False,
     )
 )
 async def list_revisions(

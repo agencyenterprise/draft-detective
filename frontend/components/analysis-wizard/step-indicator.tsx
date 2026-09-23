@@ -14,9 +14,14 @@ interface StepIndicatorProps {
   className?: string;
 }
 
+/**
+ * Where you are in the wizard, small enough to sit in a toolbar row: a numbered
+ * dot and a label per step, joined by a hairline. The step you are on and the
+ * ones behind you are in the primary colour; the rest wait in grey.
+ */
 export function StepIndicator({ currentStep, steps, className }: StepIndicatorProps) {
   return (
-    <div className={cn('flex items-center justify-center gap-0', className)}>
+    <ol className={cn('flex items-center', className)} aria-label="Steps">
       {steps.map((step, index) => {
         const stepNumber = index + 1;
         const isActive = stepNumber === currentStep;
@@ -24,45 +29,37 @@ export function StepIndicator({ currentStep, steps, className }: StepIndicatorPr
         const isLast = index === steps.length - 1;
 
         return (
-          <div
-            key={step.label}
-            className={cn(
-              'flex items-center',
-              stepNumber > 2 && 'animate-in fade-in slide-in-from-left-4 duration-300',
-            )}
-          >
-            <div className="flex flex-col items-center">
-              <div
-                className={cn(
-                  'flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold transition-all duration-200',
-                  isCompleted && 'bg-primary text-primary-foreground',
-                  isActive && !isCompleted && 'bg-primary text-primary-foreground',
-                  !isActive && !isCompleted && 'border-2 border-muted-foreground/30 text-muted-foreground',
-                )}
-              >
-                {isCompleted ? <Check className="h-5 w-5" /> : stepNumber}
-              </div>
+          <li key={step.label} className="flex items-center" aria-current={isActive ? 'step' : undefined}>
+            <span className="flex items-center gap-2">
               <span
                 className={cn(
-                  'mt-2 text-xs font-medium whitespace-nowrap transition-colors duration-200',
-                  isActive || isCompleted ? 'text-foreground' : 'text-muted-foreground',
+                  'flex size-5 shrink-0 items-center justify-center rounded-full font-mono text-[10px] transition-colors',
+                  isCompleted || isActive ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground',
+                )}
+              >
+                {isCompleted ? <Check className="size-3" /> : stepNumber}
+              </span>
+              {/* On a phone three labels and their connectors overrun the row,
+                  so only the current step keeps its label there. */}
+              <span
+                className={cn(
+                  'text-xs whitespace-nowrap transition-colors',
+                  isActive ? 'font-medium text-foreground' : 'hidden text-muted-foreground sm:inline',
                 )}
               >
                 {step.label}
               </span>
-            </div>
+            </span>
 
             {!isLast && (
-              <div
-                className={cn(
-                  'mx-2 h-0.5 w-16 transition-all duration-300',
-                  step.completed ? 'bg-primary' : 'bg-muted-foreground/30',
-                )}
+              <span
+                aria-hidden
+                className={cn('mx-3 h-px w-8 transition-colors', step.completed ? 'bg-primary' : 'bg-border')}
               />
             )}
-          </div>
+          </li>
         );
       })}
-    </div>
+    </ol>
   );
 }

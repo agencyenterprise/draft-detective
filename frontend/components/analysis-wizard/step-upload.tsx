@@ -5,6 +5,7 @@ import { UploadSection } from '@/components/analysis-form/upload-section';
 import { FileRole } from '@/lib/generated-api';
 import { AlertCircle, Check, Loader2, Rocket, AlertTriangle } from 'lucide-react';
 import { useStepUpload } from './use-step-upload';
+import { StepHeading, StepLayout } from './step-layout';
 import { PreflightStatus } from './wizard-context';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -26,66 +27,69 @@ export function StepUpload({ onComplete }: StepUploadProps) {
     handleContinue,
   } = useStepUpload(onComplete);
 
-  return (
-    <div className="space-y-8">
-      <div className="space-y-2">
-        <h1 className="text-2xl font-bold">Let&apos;s start with your draft</h1>
-        <p className="text-muted-foreground">
-          Upload the document you&apos;d like us to review. We&apos;ll extract its content and prepare it for analysis.
-          This becomes <strong>revision 1</strong> of the main document. You can add new revisions later as your draft
-          evolves.
-        </p>
-      </div>
-
-      <UploadSection
-        title="Your document"
-        description="Drop your file here — we support Word (.docx) and PDF formats. Word is recommended for best results."
-        required
-        onFilesChange={handleDocumentChange}
-        multiple={false}
-        files={mainDocument ? [mainDocument] : []}
-        fileType={FileRole.Main}
-        onRemoveFile={() => handleDocumentChange([])}
-      />
-
-      <p className="text-sm text-muted-foreground -mt-4">
-        <span className="font-medium">Tip:</span> You can upload only a <strong>specific section</strong> of your
-        document if you prefer. For example, upload just the references section if you&apos;re only interested in
-        running citation or reference analyses. This could be a good option if you want a guarantee that the body of
-        your document will not be exposed to LLMs or Web Search.
-      </p>
-
-      <PreflightChecklist preflightStatus={preflightStatus} />
-
-      <div className="space-y-3">
-        {/* Upload progress bar */}
-        {uploadStage === 'uploading' && uploadProgress && (
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm text-muted-foreground">
-              <span>Uploading...</span>
-              <span>{uploadProgress.progress_percent}%</span>
-            </div>
-            <div className="h-2 bg-muted rounded-full overflow-hidden">
-              <div
-                className="h-full bg-primary transition-all duration-300"
-                style={{ width: `${uploadProgress.progress_percent}%` }}
-              />
-            </div>
+  const footer = (
+    <>
+      {/* Upload progress bar */}
+      {uploadStage === 'uploading' && uploadProgress && (
+        <div className="space-y-1.5">
+          <div className="flex justify-between text-xs text-muted-foreground">
+            <span>Uploading...</span>
+            <span className="tabular-nums">{uploadProgress.progress_percent}%</span>
           </div>
-        )}
+          <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+            <div
+              className="h-full bg-primary transition-all duration-300"
+              style={{ width: `${uploadProgress.progress_percent}%` }}
+            />
+          </div>
+        </div>
+      )}
 
-        <Button onClick={handleContinue} disabled={!canContinue} size="lg" className="w-full">
+      <div className="flex justify-end">
+        <Button onClick={handleContinue} disabled={!canContinue}>
           {isLoading ? (
             <>
-              <Loader2 className="w-4 h-4 animate-spin mr-2" />
+              <Loader2 className="size-4 animate-spin" />
               {stageMessage || 'Setting up your project...'}
             </>
           ) : (
-            'Next: Choose your assessments →'
+            'Next: Choose your assessments'
           )}
         </Button>
       </div>
-    </div>
+    </>
+  );
+
+  return (
+    <StepLayout footer={footer}>
+      <div className="space-y-6">
+        <StepHeading title={"Let's start with your draft"}>
+          Upload the document you&apos;d like us to review. We&apos;ll extract its content and prepare it for analysis.
+          This becomes <strong>revision 1</strong> of the main document. You can add new revisions later as your draft
+          evolves.
+        </StepHeading>
+
+        <UploadSection
+          title="Your document"
+          description="Drop your file here — we support Word (.docx) and PDF formats. Word is recommended for best results."
+          required
+          onFilesChange={handleDocumentChange}
+          multiple={false}
+          files={mainDocument ? [mainDocument] : []}
+          fileType={FileRole.Main}
+          onRemoveFile={() => handleDocumentChange([])}
+        />
+
+        <p className="text-sm text-muted-foreground -mt-4">
+          <span className="font-medium">Tip:</span> You can upload only a <strong>specific section</strong> of your
+          document if you prefer. For example, upload just the references section if you&apos;re only interested in
+          running citation or reference analyses. This could be a good option if you want a guarantee that the body of
+          your document will not be exposed to LLMs or Web Search.
+        </p>
+
+        <PreflightChecklist preflightStatus={preflightStatus} />
+      </div>
+    </StepLayout>
   );
 }
 

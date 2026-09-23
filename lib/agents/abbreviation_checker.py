@@ -45,7 +45,7 @@ retry the same offset, then continue from the last line you actually received ra
 next round-number offset.
 
 Record the catalogue through the `record_abbreviations` tool — **not** in your final response —
-as you finish each chunk, rather than saving it all for the end. A call takes at most 200
+as you finish each chunk, rather than saving it all for the end. A call takes at most 50
 occurrences and an oversized batch is rejected whole, so split a dense chunk across several
 calls.
 
@@ -109,7 +109,7 @@ class AbbreviationCheckerAgent(LangChainAgent):
                             "Please scan the entire document for abbreviations and acronyms. "
                             "For each occurrence record whether it has an inline definition and whether it "
                             "appears in the Abbreviations section. Record every occurrence through the "
-                            "`record_abbreviations` tool as you read, in batches of at most 200."
+                            "`record_abbreviations` tool as you read, in batches of at most 50."
                         )
                     ),
                 ],

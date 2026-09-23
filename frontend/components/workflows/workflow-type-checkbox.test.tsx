@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { WorkflowRunType, type WorkflowTypeDescription } from '@/lib/generated-api';
+import { WorkflowGate, WorkflowRunType, type WorkflowTypeDescription } from '@/lib/generated-api';
 import { declaredIconName, WorkflowIcon, WorkflowTypeCheckbox } from './workflow-type-checkbox';
 
 function workflowType(overrides: Partial<WorkflowTypeDescription> = {}): WorkflowTypeDescription {
@@ -52,6 +52,28 @@ describe('WorkflowTypeCheckbox badges', () => {
     expect(html).toContain('Alpha');
     expect(html).toContain('Web Search');
     expect(html).toContain('Proposed Edits');
+  });
+
+  it('names the reference gate for workflows that need full-text sources', () => {
+    expect(markup({ gates: [WorkflowGate.ReferenceReview] })).toContain('Needs Full Text References');
+    expect(markup({ gates: [] })).not.toContain('Needs Full Text References');
+  });
+
+  it('shows the run-time estimate as text, since the value is the point', () => {
+    const html = renderToStaticMarkup(
+      <WorkflowTypeCheckbox
+        workflowType={workflowType()}
+        checked={false}
+        onCheckedChange={() => undefined}
+        estimatedSeconds={150}
+      />,
+    );
+    expect(html).toContain('~3 min');
+  });
+
+  it('renders the description in the row', () => {
+    const html = markup({ description: 'A long sentence about what the assessment does.' });
+    expect(html).toContain('A long sentence about what the assessment does.');
   });
 });
 

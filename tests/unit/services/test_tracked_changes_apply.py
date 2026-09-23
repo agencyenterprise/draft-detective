@@ -198,7 +198,10 @@ class TestAParagraphSpanningSeveralMarkdownLines:
         line: int,
         ranges: Dict[int, Tuple[int, int]] | None = None,
     ):
-        _hard_break_docx(path, runs)
+        # The bytes of this save, for tests asserting the file is untouched.
+        # Comparing against an earlier save is flaky: a zip entry records its
+        # save time at two-second resolution.
+        saved = _hard_break_docx(path, runs).read_bytes()
         edit = _edit(quote, replacement, line)
         plan, _ = await _plan(
             path,
@@ -209,12 +212,12 @@ class TestAParagraphSpanningSeveralMarkdownLines:
         await apply_tracked_changes(
             str(path), plan.planned, workspace_root=str(path.parent)
         )
-        return edit, plan
+        return edit, plan, saved
 
     @pytest.mark.asyncio
     async def test_a_quote_the_paragraph_carries_once_is_placed(self, tmp_path: Path):
         runs = ["First cohort rose 14%.", "Second cohort rose 9%."]
-        edit, plan = await self._plan_break(
+        edit, plan, _ = await self._plan_break(
             tmp_path / "unique.docx", runs, runs, "9%", "18%", 2
         )
 
@@ -228,9 +231,7 @@ class TestAParagraphSpanningSeveralMarkdownLines:
     async def test_a_plain_repeat_across_the_break_is_reported(self, tmp_path: Path):
         runs = ["First cohort rose 14%.", "Second cohort rose 14%."]
         path = tmp_path / "repeat.docx"
-        before = _hard_break_docx(path, runs).read_bytes()
-
-        edit, plan = await self._plan_break(path, runs, runs, "14%", "18%", 2)
+        edit, plan, before = await self._plan_break(path, runs, runs, "14%", "18%", 2)
 
         assert plan.planned == []
         assert _statuses(plan.outcomes) == {edit.id: "ambiguous"}
@@ -246,9 +247,9 @@ class TestAParagraphSpanningSeveralMarkdownLines:
         runs = ["First cohort rose 14% ", "in 2019; second cohort rose 14% in 2020."]
         markdown = ["First cohort rose 14%", runs[1]]
         path = tmp_path / "straddle.docx"
-        before = _hard_break_docx(path, runs).read_bytes()
-
-        edit, plan = await self._plan_break(path, runs, markdown, "14% in", "18% in", 2)
+        edit, plan, before = await self._plan_break(
+            path, runs, markdown, "14% in", "18% in", 2
+        )
 
         assert plan.planned == []
         assert _statuses(plan.outcomes) == {edit.id: "ambiguous"}
@@ -261,9 +262,7 @@ class TestAParagraphSpanningSeveralMarkdownLines:
     ):
         runs = ["The first cohort rose 14%.", "The first cohort rose 14%."]
         path = tmp_path / "twin.docx"
-        before = _hard_break_docx(path, runs).read_bytes()
-
-        edit, plan = await self._plan_break(path, runs, runs, "14%", "18%", 2)
+        edit, plan, before = await self._plan_break(path, runs, runs, "14%", "18%", 2)
 
         assert plan.planned == []
         assert _statuses(plan.outcomes) == {edit.id: "ambiguous"}
@@ -281,9 +280,7 @@ class TestAParagraphSpanningSeveralMarkdownLines:
             "A sustained 14% increase.",
         ]
         path = tmp_path / "nested.docx"
-        before = _hard_break_docx(path, runs).read_bytes()
-
-        edit, plan = await self._plan_break(path, runs, runs, "14%", "18%", 2)
+        edit, plan, before = await self._plan_break(path, runs, runs, "14%", "18%", 2)
 
         assert plan.planned == []
         assert _statuses(plan.outcomes) == {edit.id: "ambiguous"}
@@ -298,9 +295,7 @@ class TestAParagraphSpanningSeveralMarkdownLines:
             "The third cohort rose 14%.",
         ]
         path = tmp_path / "reprise.docx"
-        before = _hard_break_docx(path, runs).read_bytes()
-
-        edit, plan = await self._plan_break(
+        edit, plan, before = await self._plan_break(
             path, runs, runs, "14%", "18%", 3, ranges=_THREE_LINE_RANGES
         )
 

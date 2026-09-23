@@ -24,10 +24,10 @@ from lib.workflows.models import SeverityEnum, WorkflowRunType
 
 @mcp.tool(
     annotations=ToolAnnotations(
-        destructiveHint=False,
-        idempotentHint=True,
-        readOnlyHint=True,
-        openWorldHint=False,
+        destructive_hint=False,
+        idempotent_hint=True,
+        read_only_hint=True,
+        open_world_hint=False,
     )
 )
 async def export_project_docx(
@@ -84,10 +84,10 @@ async def export_project_docx(
 
 @mcp.tool(
     annotations=ToolAnnotations(
-        destructiveHint=False,
-        idempotentHint=True,
-        readOnlyHint=True,
-        openWorldHint=False,
+        destructive_hint=False,
+        idempotent_hint=True,
+        read_only_hint=True,
+        open_world_hint=False,
     )
 )
 async def list_project_files(
@@ -138,10 +138,10 @@ async def list_project_files(
 
 @mcp.tool(
     annotations=ToolAnnotations(
-        destructiveHint=True,
-        idempotentHint=False,
-        readOnlyHint=False,
-        openWorldHint=False,
+        destructive_hint=True,
+        idempotent_hint=False,
+        read_only_hint=False,
+        open_world_hint=False,
     )
 )
 async def remove_reference_file(

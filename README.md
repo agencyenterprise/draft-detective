@@ -67,14 +67,14 @@ Any check that reaches the internet asks for your consent before its first searc
 
 Connect Draft Detective to Claude, Codex, Opencode, or any MCP-compatible client and run reviews directly from your AI assistant. The backend mounts a [Model Context Protocol](https://modelcontextprotocol.io/) server at `/mcp` with OAuth authentication.
 
-Its tools let an agent list available analyses, create a project, upload documents, run a workflow, and export the results — the same pipeline the web app uses. Register it (pointing at your deployment's URL, e.g. `http://localhost:8000/mcp/` in local dev):
+Its tools let an agent list available analyses, create a project, upload documents, run a workflow, and export the results — the same pipeline the web app uses. Register it (pointing at your deployment's URL, e.g. `http://localhost:8000/mcp` in local dev):
 
 ```bash
 # Claude Code
-claude mcp add-json "draft-detective" '{"type":"http","url":"https://<your-deployment>/mcp/"}'
+claude mcp add-json "draft-detective" '{"type":"http","url":"https://<your-deployment>/mcp"}'
 
 # Codex
-codex mcp add draft-detective --url https://<your-deployment>/mcp/
+codex mcp add draft-detective --url https://<your-deployment>/mcp
 
 # Opencode
 opencode mcp add   # then follow the interactive prompts (Remote server, paste the URL)

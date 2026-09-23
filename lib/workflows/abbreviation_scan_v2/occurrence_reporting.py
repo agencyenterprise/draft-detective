@@ -23,10 +23,12 @@ from pydantic import BaseModel, Field
 
 from lib.workflows.abbreviation_scan_v2.state import AbbreviationItem
 
-# Occurrences accepted per call. Large enough that a long document needs only a
-# handful of calls, small enough that one call's arguments stay well inside the
-# model's output budget.
-MAX_PER_CALL = 200
+# Occurrences accepted per call. Kept small because the RAND API gateway drops
+# any request still running after 240 seconds, and a non-streamed call sends
+# nothing until the model finishes writing the tool arguments. A 200-entry batch
+# could take longer than that to generate, and every retry repeated the same
+# timeout.
+MAX_PER_CALL = 50
 
 
 class OccurrenceInput(BaseModel):
@@ -90,7 +92,7 @@ class AbbreviationReporter:
 
             Args:
                 occurrences: The occurrences found so far in this chunk. At most
-                    200 per call; split larger batches across several calls.
+                    50 per call; split larger batches across several calls.
 
             Returns:
                 A confirmation with the running total, or a correction message

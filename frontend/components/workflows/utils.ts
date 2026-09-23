@@ -4,6 +4,39 @@ import { isWorkflowAwaitingApproval } from '@/lib/workflow-state';
 /**
  * Checks if any of the selected workflow types require web search.
  */
+/** What keeps a set of assessments from being started, if anything. */
+export type StartBlocker = 'metadata-pending' | 'metadata-failed' | 'none-selected' | 'consent-missing';
+
+/**
+ * Why a selection cannot be started yet, or null when it can.
+ *
+ * The consent rule reads each selected assessment's `needs_web_search` flag,
+ * so until the workflow-type metadata has arrived nothing can be known about
+ * the selection and the answer is "not yet", never "fine": with the metadata
+ * missing every flag reads as false, and a web-searching assessment would
+ * otherwise start without consent. The wizard's start button and the Run
+ * assessments dialog both decide from this.
+ */
+export function startBlocker({
+  selectedTypes,
+  workflowTypes,
+  metadataPending,
+  metadataFailed,
+  webSearchConsent,
+}: {
+  selectedTypes: WorkflowRunType[];
+  workflowTypes: WorkflowTypeDescription[];
+  metadataPending: boolean;
+  metadataFailed: boolean;
+  webSearchConsent: boolean;
+}): StartBlocker | null {
+  if (metadataPending) return 'metadata-pending';
+  if (metadataFailed) return 'metadata-failed';
+  if (selectedTypes.length === 0) return 'none-selected';
+  if (hasWebSearchRequirement(selectedTypes, workflowTypes) && !webSearchConsent) return 'consent-missing';
+  return null;
+}
+
 export function hasWebSearchRequirement(
   selectedTypes: WorkflowRunType[],
   workflowTypes?: WorkflowTypeDescription[],

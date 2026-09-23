@@ -9,10 +9,10 @@ from lib.services.workflow_types import get_all_workflow_types
 
 @mcp.tool(
     annotations=ToolAnnotations(
-        destructiveHint=False,
-        idempotentHint=True,
-        readOnlyHint=True,
-        openWorldHint=False,
+        destructive_hint=False,
+        idempotent_hint=True,
+        read_only_hint=True,
+        open_world_hint=False,
     )
 )
 async def list_workflow_types(token: AccessToken = CurrentAccessToken()) -> str:
