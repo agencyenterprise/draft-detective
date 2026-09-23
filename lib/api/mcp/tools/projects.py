@@ -17,10 +17,10 @@ from lib.services.projects import get_user_projects
 
 @mcp.tool(
     annotations=ToolAnnotations(
-        destructiveHint=False,
-        idempotentHint=False,
-        readOnlyHint=False,
-        openWorldHint=False,
+        destructive_hint=False,
+        idempotent_hint=False,
+        read_only_hint=False,
+        open_world_hint=False,
     )
 )
 async def create_project(
@@ -77,10 +77,10 @@ async def create_project(
 
 @mcp.tool(
     annotations=ToolAnnotations(
-        destructiveHint=False,
-        idempotentHint=True,
-        readOnlyHint=True,
-        openWorldHint=False,
+        destructive_hint=False,
+        idempotent_hint=True,
+        read_only_hint=True,
+        open_world_hint=False,
     )
 )
 async def get_project(
@@ -106,10 +106,10 @@ async def get_project(
 
 @mcp.tool(
     annotations=ToolAnnotations(
-        destructiveHint=False,
-        idempotentHint=True,
-        readOnlyHint=True,
-        openWorldHint=False,
+        destructive_hint=False,
+        idempotent_hint=True,
+        read_only_hint=True,
+        open_world_hint=False,
     )
 )
 async def list_projects(
