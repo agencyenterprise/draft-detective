@@ -20,7 +20,8 @@ import { CircleAlert, KeyRound } from 'lucide-react';
 import { useEffect } from 'react';
 import { WorkflowTypeSelector } from './workflow-type-selector';
 import { WebSearchConsentCheckbox } from './web-search-consent-checkbox';
-import { hasPublicationDateRequirement, hasWebSearchRequirement, startBlocker, StartBlocker } from './utils';
+import { hasPublicationDateRequirement, hasWebSearchRequirement } from './utils';
+import { runReadiness } from './run-readiness';
 import { useWebSearchConsent } from '@/lib/hooks/use-web-search-consent';
 
 interface WorkflowConfigDialogProps {
@@ -40,14 +41,6 @@ interface WorkflowConfigDialogProps {
   /** The help topic the dialog's link opens. Follows what the dialog is for. */
   helpTopic?: HelpTopicId;
 }
-
-/** The footer's message for each reason the form cannot be submitted. */
-const BLOCKER_MESSAGES: Record<StartBlocker, string> = {
-  'metadata-pending': 'Loading the available assessments…',
-  'metadata-failed': 'The available assessments could not be loaded. Close this dialog and try again.',
-  'none-selected': 'Select at least one assessment.',
-  'consent-missing': 'Consent to web search to run the selected assessments.',
-};
 
 /** The run button says how many it will start, so the count is confirmed where it matters. */
 function runLabel(selectedCount: number): string {
@@ -110,26 +103,31 @@ export function WorkflowConfigDialog({
         if (showPublicationDateField && (!value.publicationDate || value.publicationDate.trim() === '')) {
           errors.fields.publicationDate = 'Document publication date is required';
         }
-        // Form-level rather than on the fields: a field error is held by the
-        // field's own meta, and the consent field is not mounted until a
-        // web-searching assessment is picked. Reported against the field, the
-        // error from a bulk "select all" had nowhere to land and the form
-        // counted as valid.
-        const blocker = startBlocker({
-          selectedTypes: value.workflowTypes,
-          workflowTypes,
-          metadataPending: isMetadataPending,
-          metadataFailed: isMetadataFailed,
-          webSearchConsent: value.webSearchConsent,
-        });
-        if (blocker) errors.form = BLOCKER_MESSAGES[blocker];
         return errors;
       },
     },
     onSubmit: ({ value }) => {
+      // The selection and consent rules are not validators: a validator runs
+      // on change, and a pristine dialog (nothing selected, or one assessment
+      // preselected without consent) has had none. The footer decides from
+      // the current values instead, and this guard keeps a submit honest.
+      if (!readinessOf(value).ready) return;
       onConfirm(value);
     },
   });
+
+  // Whether these values can run, from the values and the metadata alone.
+  function readinessOf(value: WorkflowConfigFormValues, fieldErrors: string[] = [], pristine = false) {
+    return runReadiness({
+      selectedTypes: value.workflowTypes,
+      webSearchConsent: value.webSearchConsent,
+      workflowTypes,
+      metadataPending: isMetadataPending,
+      metadataFailed: isMetadataFailed,
+      fieldErrors,
+      pristine,
+    });
+  }
 
   useEffect(() => {
     if (isOpen) {
@@ -137,11 +135,6 @@ export function WorkflowConfigDialog({
       form.reset();
     }
   }, [form, isOpen]);
-
-  // The validator above runs on change, and a dialog opened for one assessment
-  // starts with it selected and nothing changed. Until the metadata is in, the
-  // button waits on this rather than on a validation that has not run.
-  const metadataNotReady = isMetadataPending || isMetadataFailed;
 
   return (
     <Dialog open={isOpen} onOpenChange={onCancel}>
@@ -181,9 +174,6 @@ export function WorkflowConfigDialog({
                     The publication date of the document. For unpublished documents, use the date of the last update or
                     the current date.
                   </p>
-                  {!field.state.meta.isValid && (
-                    <p className="text-sm text-destructive">{field.state.meta.errors.join(', ')}</p>
-                  )}
                 </div>
               )}
             </form.Field>
@@ -218,13 +208,14 @@ export function WorkflowConfigDialog({
               return (
                 <form.Field name="webSearchConsent">
                   {(field) => (
-                    <form.Subscribe selector={(state) => state.errors.length > 0}>
-                      {(formInvalid) => (
+                    <form.Subscribe
+                      selector={(state) => state.isTouched && readinessOf(state.values).blocker === 'consent-missing'}
+                    >
+                      {(consentMissing) => (
                         <WebSearchConsentCheckbox
                           checked={field.state.value}
                           onCheckedChange={field.handleChange}
-                          // With assessments picked, the only form-level error left is this one.
-                          invalid={formInvalid && !field.state.value}
+                          invalid={consentMissing}
                         />
                       )}
                     </form.Subscribe>
@@ -236,50 +227,47 @@ export function WorkflowConfigDialog({
 
           {/* Every message the form can raise, in one place the reader can
               see without scrolling: the list's own error used to sit under
-              its last row, off screen for anyone who had not scrolled. */}
-          <form.Subscribe selector={(state) => state.errors}>
-            {(errors) => {
-              const messages =
-                errors.length > 0
-                  ? errors.map(String)
-                  : metadataNotReady
-                    ? [BLOCKER_MESSAGES[isMetadataPending ? 'metadata-pending' : 'metadata-failed']]
-                    : [];
-              return messages.length > 0 ? (
-                <ul className="space-y-1" aria-live="polite">
-                  {messages.map((message) => (
-                    <li key={message} className="flex items-center gap-1.5 text-xs text-destructive">
-                      <CircleAlert aria-hidden className="size-3.5 shrink-0" />
-                      {message}
-                    </li>
-                  ))}
-                </ul>
-              ) : null;
-            }}
-          </form.Subscribe>
-
+              its last row, off screen for anyone who had not scrolled. Decided
+              from the current values, so a pristine dialog is judged too. */}
           <form.Subscribe
             selector={(state) => ({
-              canSubmit: state.canSubmit,
+              readiness: readinessOf(
+                state.values,
+                (state.fieldMeta.publicationDate?.errors ?? []).map(String),
+                !state.isTouched,
+              ),
               isSubmitting: state.isSubmitting,
               selectedCount: state.values.workflowTypes.length,
             })}
           >
-            {({ canSubmit, isSubmitting, selectedCount }) => (
-              <DialogFooter className="sm:items-center">
-                {user?.has_openai_api_key && (
-                  <p className="flex items-center gap-1.5 text-xs text-muted-foreground sm:mr-auto">
-                    <KeyRound className="size-3.5 shrink-0" />
-                    Your saved OpenAI API key will be used for this assessment.
-                  </p>
+            {({ readiness, isSubmitting, selectedCount }) => (
+              <>
+                {readiness.messages.length > 0 && (
+                  <ul className="space-y-1" aria-live="polite">
+                    {readiness.messages.map((message) => (
+                      <li key={message} className="flex items-center gap-1.5 text-xs text-destructive">
+                        <CircleAlert aria-hidden className="size-3.5 shrink-0" />
+                        {message}
+                      </li>
+                    ))}
+                  </ul>
                 )}
-                <Button variant="outline" onClick={onCancel} disabled={isSubmitting}>
-                  Cancel
-                </Button>
-                <Button onClick={() => form.handleSubmit()} disabled={!canSubmit || isSubmitting || metadataNotReady}>
-                  {isSubmitting ? 'Starting...' : (submitLabel ?? runLabel(selectedCount))}
-                </Button>
-              </DialogFooter>
+
+                <DialogFooter className="sm:items-center">
+                  {user?.has_openai_api_key && (
+                    <p className="flex items-center gap-1.5 text-xs text-muted-foreground sm:mr-auto">
+                      <KeyRound className="size-3.5 shrink-0" />
+                      Your saved OpenAI API key will be used for this assessment.
+                    </p>
+                  )}
+                  <Button variant="outline" onClick={onCancel} disabled={isSubmitting}>
+                    Cancel
+                  </Button>
+                  <Button onClick={() => form.handleSubmit()} disabled={!readiness.ready || isSubmitting}>
+                    {isSubmitting ? 'Starting...' : (submitLabel ?? runLabel(selectedCount))}
+                  </Button>
+                </DialogFooter>
+              </>
             )}
           </form.Subscribe>
         </div>
