@@ -6,6 +6,88 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v2.0.1] - 2026-09-23
+
+### Added
+- Added new MCP discovery support that serves the protected-resource document for both `/mcp` and `/mcp/`.
+- Added unit tests covering MCP OAuth metadata, MCP discovery behavior, frontend `/mcp` redirect behavior, and API URL trailing-slash normalization.
+- Added a new shared step layout for the new-project wizard with an optional fixed footer.
+
+### Changed
+- Redesigned the assessment picker as a single-column list with updated row styling, badges, tooltips, and a right-aligned run-time estimate column.
+- Updated the workflow configuration dialog to be wider with fixed title/buttons, footer-based consent and validation messaging, and a “Run N assessments” button label.
+- Redesigned the new-project wizard to use matching chrome and single-column lists, with step actions moved into a fixed footer.
+- Upgraded FastMCP to 4.0.5 and the `mcp` SDK to 2.2.0, and removed the FastMCP tasks extra and its dependencies.
+- Updated MCP tool annotations to use SDK 2 snake_case names while keeping client-facing output camelCase.
+- Changed the MCP setup page route from `/mcp` to `/connect`, updated the “MCP Server” link accordingly, and redirected `/mcp` to the API’s `/mcp/`.
+- Reduced the per-call cap for the abbreviation agent’s `record_abbreviations` tool from 200 occurrences to 50 and updated related prompts/messages.
+
+### Fixed
+- Fixed MCP connectivity so clients can connect using either `/mcp` or `/mcp/`, and fixed OAuth metadata issuer compatibility with Claude Desktop.
+- Fixed abbreviation scans timing out by limiting `record_abbreviations` batches to 50 occurrences per call.
+- Fixed a flaky tracked-changes test that intermittently failed due to DOCX byte differences across saves.
+- Fixed a validation issue where bulk “Select all” could enable running assessments without web-search consent.
+
+
+## [v2.0.0] - 2026-09-22
+
+## Added
+- Added skill-declared workflows via `SKILL.md` frontmatter, including the new **Active Voice & Clear Actors** workflow and supporting documentation.
+- Added **Concision & Precision** and **Writing Consistency** skill-declared workflows with proposed edits and issue-inventory evals recorded in the scores report.
+- Added proposed edits to issues (opt-in per workflow) with validation, persistence in a new `issue_edits` table, and display in the document explorer as inline diffs with highlights.
+- Added DOCX export support to apply proposed edits as Word tracked changes authored by “Draft Detective,” with conflict handling and per-edit outcomes recorded in comments.
+- Added improved LLM error diagnostics and persisted workflow error details, plus per-attempt OpenAI HTTP attempt logging with request IDs, retry counts, and timing metadata.
+- Added a “Proposed Edits” badge in the workflow UI for workflows that attach rewrites to issues, driven by a new `proposes_edits` flag on the workflow-types API.
+- Added a shared eval log viewer layout extracted for reuse across inventory-style evals.
+- Added a Vitest setup for the frontend with initial unit tests.
+
+## Changed
+- Replaced document explorer assessment chips with a searchable popover-based assessment filter in the “Filter issues” rail.
+- Moved the Recommendation Check eval onto the issue-inventory eval structure and updated related docs and recorded scores.
+- Updated eval scoring utilities so expected phrases are checked against text with edits applied and percent signs are treated as units.
+- Updated the shared issues skill to make chat issue reporting conversational while preserving structured workflow output requirements.
+- Updated the methodology-comparison skill to require `$$...$$` for inline equations and to never use single `$`.
+
+## Fixed
+- Fixed markdown rendering so paired dollar amounts no longer render as single-dollar inline math, while `$$...$$` math remains supported.
+
+## Removed
+- Removed a superseded GPT-5.4/5.5 eval score report, its unreferenced logs, and remaining references to them from documentation.
+
+## Security
+- Bumped `soupsieve` from 2.8.4 to 2.9.
+
+
+## [v1.0.16] - 2026-09-14
+
+### Added
+- Added a Codex-specific marketplace catalog to allow Codex to discover and install the Draft Detective plugin.
+
+### Changed
+- Updated plugin packaging and documentation to include the Codex catalog, installation guidance using the repository’s default branch, and refresh commands for existing registrations.
+
+### Fixed
+- Fixed Codex installation failing with `plugin draft-detective was not found in marketplace draft-detective` by adding a Codex-specific marketplace catalog.
+
+
+## [v1.0.15] - 2026-09-14
+
+### Added
+- Added Codex plugin support by introducing a Codex plugin manifest so the existing 23 review skills can be packaged for Codex with display metadata and starter prompts.
+
+### Changed
+- Documented support for both Claude and Codex clients, including the shared package layout and Codex distribution guidance.
+- Asked for web-search consent up front and ran the blocking batch concurrently.
+- Added progress notifications on `run_workflow` and dropped duplicated state from project payloads.
+- Updated workflow-cost pricing to use `genai-prices` instead of the Langfuse catalog.
+- Bumped Next from 15.5.21 to 15.5.24 in `/frontend`.
+
+### Fixed
+- Kept the rail's state when selecting an assessment.
+- Read file ids from the file table and fixed MCP role serialization.
+- Recorded abbreviation-scan occurrences via tool and collapsed issues per abbreviation.
+
+
 ## [v1.0.14] - 2026-09-12
 
 ### Added
