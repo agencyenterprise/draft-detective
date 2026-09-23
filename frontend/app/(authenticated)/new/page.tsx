@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
+import { AppBar } from '@/components/results/app-bar';
 import { WizardProvider, useWizard } from '@/components/analysis-wizard/wizard-context';
 import { StepIndicator } from '@/components/analysis-wizard/step-indicator';
 import { StepUpload } from '@/components/analysis-wizard/step-upload';
@@ -33,40 +33,44 @@ function WizardContent() {
   // When REQUIRE_API_KEY_CONFIG is true, wizard steps are offset by 1 in the indicator.
   const currentIndicatorStep = isOnApiKeyStep ? 1 : wizard.currentStep + (REQUIRE_API_KEY_CONFIG ? 1 : 0);
 
-  // The assessment picker lists every category with per-assessment descriptions and
-  // run-time estimates, so it gets more room than the single-file upload step.
-  const cardWidthClass = !isOnApiKeyStep && wizard.currentStep === 2 ? 'max-w-5xl' : 'max-w-3xl';
-
   // Guard against hydration mismatch: the server renders with no user data while the
   // client immediately begins fetching (isLoading differs between SSR and first client
   // render). Gating on `user === undefined` is consistent across both environments.
   if (REQUIRE_API_KEY_CONFIG && user === undefined) {
     return (
-      <div className="flex justify-center items-center py-24">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-      </div>
+      <main className="flex flex-1 items-center justify-center">
+        <Loader2 className="size-6 animate-spin text-muted-foreground" />
+      </main>
     );
   }
 
   return (
-    <div className="space-y-8">
-      <StepIndicator currentStep={currentIndicatorStep} steps={steps} className="mb-8" />
+    <>
+      {/* The steps sit in the row the projects list uses for its count and
+          search, so the wizard keeps the same furniture as the list it came from. */}
+      <div className="flex h-10 shrink-0 items-center justify-center border-b px-4">
+        <StepIndicator currentStep={currentIndicatorStep} steps={steps} />
+      </div>
 
-      <Card className={`${cardWidthClass} mx-auto`}>
-        <CardContent className="">
-          {isOnApiKeyStep && <StepApiKeyConfig />}
-          {!isOnApiKeyStep && wizard.currentStep === 1 && <StepUpload onComplete={wizard.nextStep} />}
-          {!isOnApiKeyStep && wizard.currentStep === 2 && <StepAnalyses />}
-        </CardContent>
-      </Card>
-    </div>
+      {isOnApiKeyStep && <StepApiKeyConfig />}
+      {!isOnApiKeyStep && wizard.currentStep === 1 && <StepUpload onComplete={wizard.nextStep} />}
+      {!isOnApiKeyStep && wizard.currentStep === 2 && <StepAnalyses />}
+    </>
   );
 }
 
+/**
+ * The new-project wizard, drawn with the same chrome as the projects list: the
+ * application row, a toolbar row, and the step below filling the rest of the
+ * viewport. Each step scrolls its own body and keeps its actions in a footer.
+ */
 export default function New() {
   return (
-    <WizardProvider>
-      <WizardContent />
-    </WizardProvider>
+    <div className="bg-background text-foreground flex h-dvh flex-col">
+      <AppBar />
+      <WizardProvider>
+        <WizardContent />
+      </WizardProvider>
+    </div>
   );
 }

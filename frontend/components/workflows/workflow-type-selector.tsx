@@ -102,18 +102,18 @@ export function WorkflowTypeSelector({
   const controlsDisabled = disabled || isLoadingWorkflowTypes;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {showHeader && (
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-1">
-            <h2 className="text-lg font-semibold">
-              Assessment Type Selection{' '}
+            <h2 className="text-sm font-medium">
+              Assessments
+              <span className="text-destructive ml-1">*</span>
               {visibleCount > 0 && (
-                <span className="text-sm font-normal text-muted-foreground">
-                  ({selectedVisibleCount}/{visibleCount} selected)
+                <span className="ml-2 text-xs font-normal tabular-nums text-muted-foreground">
+                  {selectedVisibleCount}/{visibleCount} selected
                 </span>
               )}
-              <span className="text-destructive ml-1">*</span>
             </h2>
             {headerDescription && <p className="text-sm text-muted-foreground">{headerDescription}</p>}
           </div>
@@ -142,25 +142,28 @@ export function WorkflowTypeSelector({
           )}
         </div>
       )}
-      <div className="space-y-3">
+      <div className="space-y-4">
         {isLoadingWorkflowTypes ? (
           <p className="text-sm text-muted-foreground">Loading available assessments...</p>
         ) : restrictToType !== undefined ? (
           // Single-type mode: render from API types directly. Category config often omits internal workflows,
           // so walking categories would show nothing even when restrictToType is valid.
           workflowTypes.length > 0 ? (
-            <div className="space-y-2">{workflowTypes.map(renderCheckbox)}</div>
+            <div className="space-y-px">{workflowTypes.map(renderCheckbox)}</div>
           ) : (
             <p className="text-sm text-muted-foreground">This assessment is not available for your account.</p>
           )
         ) : (
+          // One column of rail-style rows under each category, in the same
+          // voice as the assessments tab: the rows are dense enough that the
+          // list no longer needs to go two-up to fit.
           visibleGroups.map(({ category, workflows }) => (
-            <div key={category.slug} className="space-y-2">
-              <h3 className="text-sm font-semibold text-foreground pt-2">{category.label}</h3>
-              {/* Two-up on wide viewports: the picker lists a dozen assessments and a
-                  single column made the step an unreasonably long scroll. */}
-              <div className="grid gap-2 sm:grid-cols-2">{workflows.map(renderCheckbox)}</div>
-            </div>
+            <section key={category.slug} aria-label={category.label}>
+              <h3 className="px-2 font-mono text-[10px] tracking-wide text-muted-foreground uppercase">
+                {category.label}
+              </h3>
+              <div className="mt-1.5 space-y-px">{workflows.map(renderCheckbox)}</div>
+            </section>
           ))
         )}
 

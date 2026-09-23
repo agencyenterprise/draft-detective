@@ -4,7 +4,7 @@ import { AppBar } from '@/components/results/app-bar';
 import { usePathname } from 'next/navigation';
 
 /** Routes whose pages render the AppBar (or, for the add-in, no chrome at all) themselves. */
-const OWN_CHROME_ROUTES = ['/projects', '/share', '/addin'];
+const OWN_CHROME_ROUTES = ['/projects', '/new', '/share', '/addin'];
 
 function rendersOwnChrome(pathname: string): boolean {
   return pathname === '/' || OWN_CHROME_ROUTES.some((route) => pathname === route || pathname.startsWith(`${route}/`));
