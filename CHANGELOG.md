@@ -6,6 +6,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v2.0.1] - 2026-09-23
+
+### Added
+- Added new MCP discovery support that serves the protected-resource document for both `/mcp` and `/mcp/`.
+- Added unit tests covering MCP OAuth metadata, MCP discovery behavior, frontend `/mcp` redirect behavior, and API URL trailing-slash normalization.
+- Added a new shared step layout for the new-project wizard with an optional fixed footer.
+
+### Changed
+- Redesigned the assessment picker as a single-column list with updated row styling, badges, tooltips, and a right-aligned run-time estimate column.
+- Updated the workflow configuration dialog to be wider with fixed title/buttons, footer-based consent and validation messaging, and a “Run N assessments” button label.
+- Redesigned the new-project wizard to use matching chrome and single-column lists, with step actions moved into a fixed footer.
+- Upgraded FastMCP to 4.0.5 and the `mcp` SDK to 2.2.0, and removed the FastMCP tasks extra and its dependencies.
+- Updated MCP tool annotations to use SDK 2 snake_case names while keeping client-facing output camelCase.
+- Changed the MCP setup page route from `/mcp` to `/connect`, updated the “MCP Server” link accordingly, and redirected `/mcp` to the API’s `/mcp/`.
+- Reduced the per-call cap for the abbreviation agent’s `record_abbreviations` tool from 200 occurrences to 50 and updated related prompts/messages.
+
+### Fixed
+- Fixed MCP connectivity so clients can connect using either `/mcp` or `/mcp/`, and fixed OAuth metadata issuer compatibility with Claude Desktop.
+- Fixed abbreviation scans timing out by limiting `record_abbreviations` batches to 50 occurrences per call.
+- Fixed a flaky tracked-changes test that intermittently failed due to DOCX byte differences across saves.
+- Fixed a validation issue where bulk “Select all” could enable running assessments without web-search consent.
+
+
 ## [v2.0.0] - 2026-09-22
 
 ## Added
