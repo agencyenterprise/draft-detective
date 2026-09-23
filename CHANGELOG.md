@@ -6,6 +6,44 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v2.0.2] - 2026-09-23
+
+### Added
+- Added parallel, chunked abbreviation extraction that fans out across line-range chunks and assembles a single catalogue.
+- Added new abbreviation-scan v2 workflow components for chunking, per-chunk extraction, catalogue assembly, and updated state schema.
+- Added a shared document section splitter so multiple workflows can use the same section logic.
+- Added new abbreviation-scan tests covering chunk extraction, catalogue, layout, and nodes.
+- Added Codex plugin support.
+- Added a Codex marketplace catalog.
+- Added proposed edits to issues with inline diffs.
+- Added skill-declared workflows with the Active Voice check and inventory evals.
+- Added Concision & Precision and Writing Consistency checks with evals.
+- Added a document explorer UI that replaces assessment chips with a searchable popover.
+- Added a redesigned assessment picker and wizard as single-column lists.
+- Added support for `/mcp` and `/mcp/`.
+
+### Changed
+- Changed abbreviation-scan to skip the Abbreviations/Glossary section and blank ranges during chunking.
+- Changed abbreviation-scan to compute document-wide catalogue fields in code, including occurrence numbering and definition handling.
+- Changed abbreviation-scan skill documentation to exempt footnotes/endnotes and additional exempt classes (legal citations, Latin shorthand, statistical notation, magnitude suffixes, state codes in addresses, product/model names, and document identifiers).
+- Regenerated the frontend generated API for the new state schema.
+- Moved the Recommendation Check onto the issue-inventory eval.
+- Improved LLM error diagnostics and HTTP attempt logging.
+- Applied proposed edits as tracked changes in the DOCX export.
+- Bumped soupsieve from 2.8.4 to 2.9.
+
+### Fixed
+- Fixed abbreviation-scan production failures on large documents by replacing the single-agent flow with chunked parallel extraction.
+- Fixed frontend rendering of paired dollar amounts as inline math.
+- Fixed MCP OAuth issuer for Claude Desktop (FastMCP 4).
+- Fixed abbreviation-scan by capping `record_abbreviations` batches at 50 occurrences.
+- Fixed flaky untouched-DOCX assertions in tracked-changes tests.
+
+### Removed
+- Removed the old single-agent abbreviation checker flow and its associated recording tool.
+- Removed a superseded eval report and unreferenced logs.
+
+
 ## [v2.0.1] - 2026-09-23
 
 ### Added
