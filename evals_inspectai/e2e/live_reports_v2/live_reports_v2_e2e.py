@@ -22,11 +22,13 @@ from inspect_ai.model import ModelOutput
 from inspect_ai.scorer import Score
 from inspect_ai.solver import Generate, Solver, TaskState, solver
 
+from evals_inspectai.common.backend import local_backend_for, resolve_base_url
 from evals_inspectai.common.api_client import (
     create_project_and_start_workflows,
     poll_until_complete,
 )
 from evals_inspectai.common.errors import WorkflowCompletionError
+from evals_inspectai.common.local_backend import LocalBackend
 from evals_inspectai.common.loaders import resolve_input
 from evals_inspectai.common.scorers import model_graded_check, structured_output_scorer
 from evals_inspectai.common.simple_deep_agent_types import SimpleDeepAgentOutput
@@ -55,6 +57,8 @@ def _record_to_sample(record: dict) -> Sample:
 def live_reports_v2_solver(
     timeout_s: float = 1800,
     poll_interval_s: float = 5,
+    local_backend: LocalBackend | None = None,
+    api_base_url: str | None = None,
 ) -> Solver:
     """Run live_reports_v2 via the API, passing the sample's publication date.
 
@@ -65,6 +69,8 @@ def live_reports_v2_solver(
     """
 
     async def solve(state: TaskState, generate: Generate) -> TaskState:
+        base_url = await resolve_base_url(local_backend, api_base_url)
+
         meta = state.metadata or {}
 
         project_id = await create_project_and_start_workflows(
@@ -72,6 +78,7 @@ def live_reports_v2_solver(
             file_name="eval-document.md",
             workflow_types=[_TARGET_WORKFLOW],
             publication_date=meta.get("publication_date"),
+            base_url=base_url,
         )
 
         try:
@@ -80,6 +87,7 @@ def live_reports_v2_solver(
                 workflow_type=_TARGET_WORKFLOW,
                 timeout_s=timeout_s,
                 interval_s=poll_interval_s,
+                base_url=base_url,
             )
         except TimeoutError as e:
             raise WorkflowCompletionError(str(e)) from e
@@ -97,7 +105,10 @@ def live_reports_v2_solver(
 
 
 @task
-def live_reports_v2_e2e():
+def live_reports_v2_e2e(
+    backend: str = "remote",
+    api_base_url: str | None = None,
+):
     dataset = json_dataset(
         str(Path(__file__).parent / "dataset.json"),
         _record_to_sample,
@@ -106,7 +117,11 @@ def live_reports_v2_e2e():
     return Task(
         dataset=dataset,
         fail_on_error=0.2,
-        solver=live_reports_v2_solver(timeout_s=1800),
+        solver=live_reports_v2_solver(
+            timeout_s=1800,
+            local_backend=local_backend_for(backend, api_base_url),
+            api_base_url=api_base_url,
+        ),
         scorer=[
             structured_output_scorer(SimpleDeepAgentOutput, _score_structure),
             model_graded_check(
@@ -141,12 +156,13 @@ def _score_structure(output: SimpleDeepAgentOutput, state: TaskState) -> Score:
     count_ok = len(issues) >= min_issues
     if max_issues is not None:
         count_ok = count_ok and len(issues) <= max_issues
-    band = f">={min_issues}" + (f" and <={max_issues}" if max_issues is not None else "")
+    band = f">={min_issues}" + (
+        f" and <={max_issues}" if max_issues is not None else ""
+    )
     checks.append((f"issue count {len(issues)} in band ({band})", count_ok))
 
     line_ranges_ok = all(
-        issue.start_line >= 1 and issue.end_line >= issue.start_line
-        for issue in issues
+        issue.start_line >= 1 and issue.end_line >= issue.start_line for issue in issues
     )
     checks.append(("all issues have valid line ranges", line_ranges_ok))
 

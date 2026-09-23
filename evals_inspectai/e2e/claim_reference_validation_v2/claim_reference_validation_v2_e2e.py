@@ -19,6 +19,7 @@ from inspect_ai.model import ModelOutput
 from inspect_ai.scorer import Score, Target, mean, scorer, stderr
 from inspect_ai.solver import Generate, Solver, TaskState, solver
 
+from evals_inspectai.common.backend import local_backend_for, resolve_base_url
 from evals_inspectai.common.api_client import (
     approve_project_gate,
     create_project_and_start_workflows,
@@ -26,6 +27,7 @@ from evals_inspectai.common.api_client import (
     poll_until_status,
 )
 from evals_inspectai.common.errors import WorkflowCompletionError
+from evals_inspectai.common.local_backend import LocalBackend
 from evals_inspectai.common.scorers import model_graded_check
 
 logger = logging.getLogger(__name__)
@@ -37,16 +39,22 @@ _TARGET_WORKFLOW = "claim_reference_validation_v2"
 
 
 @task
-def claim_reference_validation_v2_e2e():
+def claim_reference_validation_v2_e2e(
+    backend: str = "remote",
+    api_base_url: str | None = None,
+):
     dataset = json_dataset(str(_DATASET_PATH), _record_to_sample)
     # Filter out samples that don't make sense for full-document analysis
     # (e.g. section-bound tests that rely on a manual section range).
-    dataset = dataset.filter(lambda s: not s.metadata.get("skip_e2e"))
+    dataset = dataset.filter(lambda s: not (s.metadata or {}).get("skip_e2e"))
 
     return Task(
         dataset=dataset,
         fail_on_error=0.2,
-        solver=claim_reference_validation_v2_e2e_solver(),
+        solver=claim_reference_validation_v2_e2e_solver(
+            local_backend=local_backend_for(backend, api_base_url),
+            api_base_url=api_base_url,
+        ),
         scorer=[
             citation_alignment_match(),
             citation_count_match(),
@@ -80,8 +88,12 @@ def _record_to_sample(record: dict[str, Any]) -> Sample:
 def claim_reference_validation_v2_e2e_solver(
     timeout_s: float = 600,
     poll_interval_s: float = 5,
+    local_backend: LocalBackend | None = None,
+    api_base_url: str | None = None,
 ) -> Solver:
     async def solve(state: TaskState, generate: Generate) -> TaskState:
+        base_url = await resolve_base_url(local_backend, api_base_url)
+
         meta = state.metadata or {}
 
         supporting = [
@@ -94,6 +106,7 @@ def claim_reference_validation_v2_e2e_solver(
             file_name="main.md",
             workflow_types=[_TARGET_WORKFLOW],
             supporting_files=supporting,
+            base_url=base_url,
         )
 
         # The target run waits in awaiting_approval until the reference review
@@ -105,9 +118,10 @@ def claim_reference_validation_v2_e2e_solver(
             target_statuses={"awaiting_approval", "pending", "running", "completed"},
             timeout_s=timeout_s,
             interval_s=poll_interval_s,
+            base_url=base_url,
         )
         if target_detail["run"]["status"] == "awaiting_approval":
-            await approve_project_gate(project_id)
+            await approve_project_gate(project_id, base_url=base_url)
 
         try:
             run_detail = await poll_until_complete(
@@ -115,6 +129,7 @@ def claim_reference_validation_v2_e2e_solver(
                 workflow_type=_TARGET_WORKFLOW,
                 timeout_s=timeout_s,
                 interval_s=poll_interval_s,
+                base_url=base_url,
             )
         except TimeoutError as e:
             raise WorkflowCompletionError(str(e)) from e

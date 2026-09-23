@@ -1,3 +1,5 @@
+import os
+
 from langchain_openai import OpenAIEmbeddings
 from pydantic import BaseModel
 
@@ -70,6 +72,10 @@ claude_3_5_sonnet_model = LLMModel(
 # Google models
 gemini_2_flash_model = LLMModel(provider="google_genai", name="gemini-2.5-flash-lite")
 
+# Azure OpenAI models (deployment names must match what is configured in the Azure resource)
+gpt_4_1_azure_model = LLMModel(provider="azure_openai", name="gpt-4.1")
+gpt_4o_azure_model = LLMModel(provider="azure_openai", name="gpt-4o")
+
 
 # Registry of all available models for testing and comparison
 # Key: model.name, Value: model instance
@@ -80,7 +86,17 @@ ALL_MODELS = {
     "gpt-5.6-sol": gpt_5_6_sol_model,
     "claude-sonnet-4-5-20250929": claude_3_5_sonnet_model,
     "gemini-2.5-flash-lite": gemini_2_flash_model,
+    "azure_openai/gpt-4.1": gpt_4_1_azure_model,
+    "azure_openai/gpt-4o": gpt_4o_azure_model,
 }
+
+
+def get_default_workflow_model() -> LLMModel:
+    """Return the workflow model selected by an eval, or the production default."""
+    eval_model = os.environ.get("EVAL_WORKFLOW_MODEL")
+    if eval_model:
+        return LLMModel.from_inspectai_name(eval_model)
+    return gpt_5_6_terra_model
 
 
 # Server-side web search is declared differently per provider: OpenAI's Responses API

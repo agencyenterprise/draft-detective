@@ -34,12 +34,16 @@ MAX_PER_CALL = 50
 class OccurrenceInput(BaseModel):
     """One abbreviation occurrence, as supplied by the agent."""
 
-    abbr: str = Field(description='Abbreviation in singular base form, e.g. "LLM" not "LLMs"')
+    abbr: str = Field(
+        description='Abbreviation in singular base form, e.g. "LLM" not "LLMs"'
+    )
     inline_definition: str = Field(
         default="",
         description=(
-            "The inline definition accompanying THIS occurrence "
-            '(the "Full Name (ABBR)" pattern), or an empty string when none does.'
+            "The expanded name only, without the parenthetical abbreviation — "
+            "e.g. 'Office of the Under Secretary of War' for the occurrence "
+            "'Office of the Under Secretary of War (OUSW)'. "
+            "Empty string when no inline definition accompanies this occurrence."
         ),
     )
     occurrence_number: int = Field(
@@ -68,7 +72,7 @@ class AbbreviationReporter:
 
     def __init__(self) -> None:
         self._occurrences: List[AbbreviationItem] = []
-        self._seen: set[str] = set()
+        self._seen: dict[tuple[str, int, int], AbbreviationItem] = {}
         self._lock = Lock()
         self.tools = [self._build_record_tool()]
 
@@ -112,7 +116,9 @@ class AbbreviationReporter:
             for index, candidate in enumerate(occurrences):
                 problem = _validate(candidate)
                 if problem:
-                    rejected.append(f"entry {index + 1} ({candidate.abbr!r}): {problem}")
+                    rejected.append(
+                        f"entry {index + 1} ({candidate.abbr!r}): {problem}"
+                    )
                     continue
                 accepted.append(
                     AbbreviationItem(
@@ -131,18 +137,32 @@ class AbbreviationReporter:
 
             with reporter._lock:
                 added = 0
+                updated = 0
                 duplicates = 0
                 for item in accepted:
-                    fingerprint = f"{item.abbr}|{item.occurrence_number}|{item.line_start}"
-                    if fingerprint in reporter._seen:
-                        duplicates += 1
+                    fingerprint = (item.abbr, item.occurrence_number, item.line_start)
+                    existing = reporter._seen.get(fingerprint)
+                    if existing is not None:
+                        # Backfill only missing glossary annotations, never overwrite.
+                        if (
+                            existing.abbreviations_section_definition is None
+                            and item.abbreviations_section_definition is not None
+                        ):
+                            existing.abbreviations_section_definition = (
+                                item.abbreviations_section_definition
+                            )
+                            updated += 1
+                        else:
+                            duplicates += 1
                         continue
-                    reporter._seen.add(fingerprint)
+                    reporter._seen[fingerprint] = item
                     reporter._occurrences.append(item)
                     added += 1
                 total = len(reporter._occurrences)
 
             parts = [f"Recorded {added} occurrence(s); {total} total so far."]
+            if updated:
+                parts.append(f"{updated} section definition(s) backfilled.")
             if duplicates:
                 parts.append(f"{duplicates} duplicate(s) ignored.")
             if rejected:

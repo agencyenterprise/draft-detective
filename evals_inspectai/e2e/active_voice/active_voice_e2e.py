@@ -32,6 +32,7 @@ from pathlib import Path
 from inspect_ai import Task, task
 from inspect_ai.scorer import Scorer, scorer
 
+from evals_inspectai.common.backend import local_backend_for
 from evals_inspectai.common.api_solver import api_workflow_agent
 from evals_inspectai.common.issue_checks import (
     DETECTION_DESCRIPTIONS,
@@ -43,7 +44,11 @@ from evals_inspectai.common.issue_checks import (
     extra_edit_scores,
     issue_checks,
 )
-from evals_inspectai.common.issue_inventory import decoy_reasons, inventory_dataset, load_inventory_records
+from evals_inspectai.common.issue_inventory import (
+    decoy_reasons,
+    inventory_dataset,
+    load_inventory_records,
+)
 from evals_inspectai.common.issue_judge import judged_criteria
 from evals_inspectai.e2e.active_voice.criteria import (
     EXTRA_EDIT_CHECKS,
@@ -60,7 +65,11 @@ DATASET = Path(__file__).parent / "dataset.yaml"
 @scorer(metrics=PER_KEY_METRICS)
 def active_voice_edit_checks() -> Scorer:
     """This workflow's own deterministic edit check: the passive is gone."""
-    return deterministic_scorer(lambda issues, inventory: extra_edit_scores(issues, inventory, EXTRA_EDIT_CHECKS))
+    return deterministic_scorer(
+        lambda issues, inventory: extra_edit_scores(
+            issues, inventory, EXTRA_EDIT_CHECKS
+        )
+    )
 
 
 def metric_descriptions(reasons: list[str]) -> dict[str, dict[str, str]]:
@@ -75,7 +84,12 @@ def metric_descriptions(reasons: list[str]) -> dict[str, dict[str, str]]:
 
 
 @task
-def active_voice_e2e(timeout_s: float = 600, judge_calls: int = 1) -> Task:
+def active_voice_e2e(
+    timeout_s: float = 600,
+    judge_calls: int = 1,
+    backend: str = "remote",
+    api_base_url: str | None = None,
+) -> Task:
     """Run the Active Voice workflow on every sample and score it.
 
     Args:
@@ -93,7 +107,12 @@ def active_voice_e2e(timeout_s: float = 600, judge_calls: int = 1) -> Task:
             "ground_truth": "Inventory: expected issues anchored by verbatim quotes, with edit expectations, plus decoy sentences that must not be flagged. A NaN metric value means the sample gave that check nothing to judge.",
             "metrics": metric_descriptions(reasons),
         },
-        solver=api_workflow_agent(WORKFLOW_TYPE, timeout_s=timeout_s),
+        solver=api_workflow_agent(
+            WORKFLOW_TYPE,
+            timeout_s=timeout_s,
+            local_backend=local_backend_for(backend, api_base_url),
+            api_base_url=api_base_url,
+        ),
         scorer=[
             issue_checks(),
             decoy_checks(reasons),

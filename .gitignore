@@ -1,7 +1,6 @@
 cache/
 /data/
 
-
 # Python-generated files
 __pycache__/
 *.py[oc]
@@ -9,6 +8,19 @@ build/
 dist/
 wheels/
 *.egg-info
+
+# Local evaluation results (including Flow metadata and backend logs)
+*.eval
+logs/
+logs-structured/
+/.local/
+/abbreviations.json
+
+# Private full-document fixtures and derived references are not public datasets.
+# Only the synthetic example and fixture instructions belong in the public PR.
+/evals_inspectai/e2e/abbreviation_checker/data/*
+!/evals_inspectai/e2e/abbreviation_checker/data/README.md
+!/evals_inspectai/e2e/abbreviation_checker/data/example/
 
 # Virtual environments
 .venv
@@ -42,9 +54,6 @@ rand-personal/
 .claude/projects
 .claude/worktrees
 .claude/settings.local.json
-
-# logs
-/logs/
 
 # test coverage
 .coverage

@@ -52,10 +52,19 @@ class Config(BaseModel):
         default="http://localhost:8000/mcp",
         description="Public URL of the MCP server (must include /mcp path)",
     )
+    MCP_ENABLED: bool = Field(
+        default=True,
+        description="Set to false to disable MCP entirely (skips OAuth provider setup). Useful for local dev without OAuth credentials.",
+    )
     MCP_CIMD_ENABLED: bool = Field(
         default=False,
         description="Whether to enable CIMD for MCP OAuth providers. Disable if clients are behind VPNs that cannot reach the CIMD endpoint.",
     )
+
+    # Azure OpenAI (model inference)
+    AZURE_OPENAI_API_KEY: Optional[str] = None
+    AZURE_OPENAI_ENDPOINT: Optional[str] = None
+    AZURE_OPENAI_API_VERSION: Optional[str] = None
 
     # Reading SharePoint documents with the service's own identity, for requests
     # that arrive without a Word session to borrow (a Teams message, say).
@@ -187,6 +196,7 @@ config = Config(
     AUTH_MICROSOFT_ENTRA_ID_ID=os.getenv("AUTH_MICROSOFT_ENTRA_ID_ID"),
     AUTH_MICROSOFT_ENTRA_ID_SECRET=os.getenv("AUTH_MICROSOFT_ENTRA_ID_SECRET"),
     AUTH_MICROSOFT_ENTRA_ID_ISSUER=os.getenv("AUTH_MICROSOFT_ENTRA_ID_ISSUER"),
+    MCP_ENABLED=os.getenv("MCP_ENABLED", "true").lower() == "true",
     MCP_BASE_URL=os.getenv("MCP_BASE_URL", "http://localhost:8000/mcp"),
     MCP_CIMD_ENABLED=os.getenv("MCP_CIMD_ENABLED", "false").lower() == "true",
     RATE_LIMITER_REQUESTS_PER_SECOND=float(
@@ -198,6 +208,9 @@ config = Config(
     ),
     MODEL_API_KEYS=json.loads(os.getenv("MODEL_API_KEYS", "{}")),
     JINA_API_KEY=os.getenv("JINA_API_KEY") or None,
+    AZURE_OPENAI_API_KEY=os.getenv("AZURE_OPENAI_API_KEY"),
+    AZURE_OPENAI_ENDPOINT=os.getenv("AZURE_OPENAI_ENDPOINT"),
+    AZURE_OPENAI_API_VERSION=os.getenv("AZURE_OPENAI_API_VERSION"),
     AZURE_CLIENT_ID=os.getenv("AZURE_CLIENT_ID"),
     AZURE_TENANT_ID=os.getenv("AZURE_TENANT_ID"),
     AZURE_CLIENT_SECRET=os.getenv("AZURE_CLIENT_SECRET"),

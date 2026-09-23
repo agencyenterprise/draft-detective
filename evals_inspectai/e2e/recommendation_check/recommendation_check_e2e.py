@@ -30,6 +30,7 @@ from pathlib import Path
 
 from inspect_ai import Task, task
 
+from evals_inspectai.common.backend import local_backend_for
 from evals_inspectai.common.api_solver import api_workflow_agent
 from evals_inspectai.common.issue_checks import (
     DETECTION_DESCRIPTIONS,
@@ -54,7 +55,11 @@ DATASET = Path(__file__).parent / "dataset.yaml"
 
 
 @task
-def recommendation_check_e2e(timeout_s: float = 600) -> Task:
+def recommendation_check_e2e(
+    timeout_s: float = 600,
+    backend: str = "remote",
+    api_base_url: str | None = None,
+) -> Task:
     """Run Recommendation Check on every sample and score it against the inventory."""
     records = load_inventory_records(DATASET)
     reasons = list(decoy_reasons(records))
@@ -70,12 +75,23 @@ def recommendation_check_e2e(timeout_s: float = 600) -> Task:
                 "and not scored. A NaN metric value means the sample gave that check nothing to judge."
             ),
             "metrics": {
-                "issue_checks": {k: v for k, v in {**DETECTION_DESCRIPTIONS, **EDIT_DESCRIPTIONS}.items() if k in keys},
+                "issue_checks": {
+                    k: v
+                    for k, v in {**DETECTION_DESCRIPTIONS, **EDIT_DESCRIPTIONS}.items()
+                    if k in keys
+                },
                 "decoy_checks": decoy_descriptions(reasons),
-                "tool_called": {"tool_called": "On a sample whose document embeds a chart, whether the agent called view_image."},
+                "tool_called": {
+                    "tool_called": "On a sample whose document embeds a chart, whether the agent called view_image."
+                },
             },
         },
-        solver=api_workflow_agent(WORKFLOW_TYPE, timeout_s=timeout_s),
+        solver=api_workflow_agent(
+            WORKFLOW_TYPE,
+            timeout_s=timeout_s,
+            local_backend=local_backend_for(backend, api_base_url),
+            api_base_url=api_base_url,
+        ),
         scorer=[
             issue_checks(edits=edits, one_to_one=True, titles=titles),
             decoy_checks(reasons),
@@ -83,6 +99,10 @@ def recommendation_check_e2e(timeout_s: float = 600) -> Task:
         ],
         fail_on_error=0.2,
         viewer=issue_viewer_config(
-            reasons, edits, extra=[image_check], labels={"tool_called": "Viewed image"}, titles=titles
+            reasons,
+            edits,
+            extra=[image_check],
+            labels={"tool_called": "Viewed image"},
+            titles=titles,
         ),
     )

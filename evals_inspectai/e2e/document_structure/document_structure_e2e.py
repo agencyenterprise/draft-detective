@@ -5,6 +5,7 @@ from inspect_ai.dataset import Sample, json_dataset
 from inspect_ai.scorer import Score
 from inspect_ai.solver import TaskState
 
+from evals_inspectai.common.backend import local_backend_for
 from evals_inspectai.common.api_solver import api_workflow_agent
 from evals_inspectai.common.comparers import deep_diff_score
 from evals_inspectai.common.loaders import resolve_input
@@ -21,7 +22,10 @@ def _record_to_sample(record: dict) -> Sample:
 
 
 @task
-def document_structure_e2e():
+def document_structure_e2e(
+    backend: str = "remote",
+    api_base_url: str | None = None,
+):
     dataset = json_dataset(
         str(Path(__file__).parent / "dataset.json"),
         _record_to_sample,
@@ -30,7 +34,11 @@ def document_structure_e2e():
     return Task(
         dataset=dataset,
         fail_on_error=0.2,
-        solver=api_workflow_agent("document_structure"),
+        solver=api_workflow_agent(
+            "document_structure",
+            local_backend=local_backend_for(backend, api_base_url),
+            api_base_url=api_base_url,
+        ),
         scorer=[
             structured_output_scorer(SimpleDeepAgentOutput, _compare_issue_titles),
             model_graded_check(partial_credit=True),
