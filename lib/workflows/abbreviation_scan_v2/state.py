@@ -1,10 +1,16 @@
 """State definitions for abbreviation scan v2 workflow."""
 
-from typing import List, Literal, Optional
+from typing import Annotated, List, Literal, Optional
 
 from langchain_core.messages import BaseMessage
 from pydantic import BaseModel, Field, field_serializer
 
+from lib.workflows.abbreviation_scan_v2.chunk_models import (
+    AbbreviationChunk,
+    AbbreviationSectionEntry,
+    LineRange,
+    merge_chunks,
+)
 from lib.workflows.models import BaseWorkflowConfig, BaseWorkflowState, WorkflowRunType
 
 
@@ -57,23 +63,6 @@ class AbbreviationItem(BaseModel):
     )
 
 
-class AbbreviationCheckOutput(BaseModel):
-    """Terminal response from the AbbreviationCheckerAgent.
-
-    Deliberately small. The occurrence catalogue arrives through the
-    ``record_abbreviations`` tool instead of this response: on a long document
-    it runs to hundreds of entries, and a single structured response cannot
-    carry that many without the agent silently truncating it.
-    """
-
-    abbreviations_section_found: bool = Field(
-        description="Whether an Abbreviations (or equivalent) section was found in the document."
-    )
-    reasoning: str = Field(
-        description="Top-level agent reasoning summarising what was found and how."
-    )
-
-
 class AbbreviationScanV2Config(BaseWorkflowConfig):
     """Configuration for abbreviation scan v2 workflow."""
 
@@ -101,11 +90,26 @@ class AbbreviationScanV2State(BaseWorkflowState):
     )
     reasoning: str = Field(
         default="",
-        description="Agent reasoning summarising what was found and how.",
+        description="Summary of what was scanned and found.",
+    )
+    abbreviations_section_ranges: List[LineRange] = Field(
+        default_factory=list,
+        description="Line ranges of the Abbreviations (or equivalent) section(s).",
+    )
+    abbreviations_section_entries: List[AbbreviationSectionEntry] = Field(
+        default_factory=list,
+        description="Entries listed in the Abbreviations section(s).",
+    )
+    chunks: Annotated[List[AbbreviationChunk], merge_chunks] = Field(
+        default_factory=list,
+        description="The line-range chunks the document was catalogued in, with per-chunk status.",
     )
     messages: List[BaseMessage] = Field(
         default_factory=list,
-        description="LLM conversation messages from the agent invocation.",
+        description=(
+            "The Abbreviations-section agent's conversation, system prompt included. "
+            "Each chunk's conversation is on the chunk itself."
+        ),
     )
 
     @field_serializer("messages")
