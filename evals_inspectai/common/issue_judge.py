@@ -94,7 +94,8 @@ PASSAGE_ISSUE_TEMPLATE = """You are grading one reviewer issue against one crite
 {instructions}
 """
 
-_HEADING_RE = re.compile(r"^(#{1,6})\s")
+# CommonMark allows up to three leading spaces; four or more make a code block.
+_HEADING_RE = re.compile(r"^ {0,3}(#{1,6})(?:\s|$)")
 
 
 class JudgeCriterion(BaseModel):

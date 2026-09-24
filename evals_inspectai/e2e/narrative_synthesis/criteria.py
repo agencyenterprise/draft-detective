@@ -18,10 +18,12 @@ from evals_inspectai.common.simple_deep_agent_types import IssueItem
 
 DATA_TITLE = "Data Without Synthesis"
 
-# Phrases that make the review process visible to the author: the editing rules,
-# a guideline or style guide, or the source of the rules by name.
+# Phrases that make the review process visible to the author: the editing rules
+# or guidelines, a style guide, or the source of the rules by name. A bare
+# "guidelines" is left alone, since reports discuss guidelines as content.
 RULE_REFERENCE_RE = re.compile(
-    r"\b(?:editing rules?|per the rules?|the rules? (?:say|require|states?)|guidelines?|style guide|writing for impact|EEI)\b",
+    r"\b(?:(?:editing|writing|style) (?:rules?|guidelines?)|per the (?:rules?|guidelines?)"
+    r"|the (?:rules?|guidelines?) (?:say|ask|require|states?)|style guide|writing for impact|EEI)\b",
     re.I,
 )
 

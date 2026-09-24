@@ -132,6 +132,12 @@ def test_section_text_gives_a_wrapped_paragraph_whole():
     assert section_text("Intro.\n## Findings\nScores rose.\n", 3) == "Scores rose.", "stops at a heading"
 
 
+def test_section_text_reads_an_indented_heading_but_not_a_code_block():
+    document = "   ## Findings\n\nScores rose.\n\n   ## Methods\n\nRecords.\n"
+    assert section_text(document, 1) == "## Findings\n\nScores rose."
+    assert section_text("    ## Not a heading\n    code\n", 1) == "    ## Not a heading\n    code"
+
+
 @pytest.mark.asyncio
 async def test_section_passage_criterion_shows_the_grader_the_section():
     grader = _Grader()

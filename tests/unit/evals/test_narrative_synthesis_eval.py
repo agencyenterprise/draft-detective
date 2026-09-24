@@ -75,6 +75,8 @@ def test_takeaway_criterion_applies_only_to_data_dumps():
     [
         "Per the editing rules, data should be interpreted.",
         "The guidelines ask that each paragraph earn its place.",
+        "Per the guidelines, move Recommendations to the end.",
+        "The writing guidelines call for a takeaway.",
         "Writing for Impact asks for a bottom line.",
         "This breaks the EEI style guide.",
     ],
@@ -91,6 +93,7 @@ def test_rule_reference_is_caught(text):
         "The reader has to work out what the wage figures show.",
         "The rule change in 2023 is listed without its effect on spending.",
         "State the takeaway the authors intend.",
+        "Explain how the state guidelines changed eligibility.",
     ],
 )
 def test_plain_explanations_pass(text):
