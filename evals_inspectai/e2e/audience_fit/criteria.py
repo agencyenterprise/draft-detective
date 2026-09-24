@@ -1,7 +1,7 @@
 """What Audience Fit is judged on, beyond the generic layers.
 
 The workflow proposes no edits, so its fixes live in the suggested action and
-both criteria grade that. The grader sees only the anchor sentence and the
+every criterion grades that. The grader sees only the anchor sentence and the
 suggested action, never the document, so each criterion asks only what those
 two texts can show.
 """
@@ -11,6 +11,7 @@ from evals_inspectai.common.issue_judge import JudgeCriterion
 
 TECHNICAL_TITLE = "Technical Language"
 AUDIENCE_TITLES = {"Target Audience Missing", "Target Audience Too Vague"}
+CONFLICT_TITLE = "Target Audience Conflict"
 
 PLAIN_ALTERNATIVE_CRITERION = (
     "The sentence was flagged because it uses technical language (statistical or methodological terms, "
@@ -34,6 +35,15 @@ AUDIENCE_CRITERION = (
     "an elaborate description of several audiences when one would do."
 )
 
+CONFLICT_CRITERION = (
+    "The sentence is the introduction's description of a report's target audience, which conflicts with a "
+    "substantively different audience named in the report's front matter. The suggested action names or quotes "
+    "both audiences, the one in this sentence and the different one, and asks the author to settle on one of "
+    "them (or to reconcile them into one description). It may recommend which to keep, as long as the choice is "
+    "left to the author. It is incorrect if it names only one of the audiences, if it does not ask the author to "
+    "settle the conflict, or if it states as fact which audience the author meant."
+)
+
 
 def _technical(expected: ResolvedIssue) -> bool:
     return expected.title is not None and expected.title.startswith(TECHNICAL_TITLE)
@@ -43,9 +53,14 @@ def _audience(expected: ResolvedIssue) -> bool:
     return expected.title in AUDIENCE_TITLES
 
 
+def _conflict(expected: ResolvedIssue) -> bool:
+    return expected.title == CONFLICT_TITLE
+
+
 JUDGE_DESCRIPTIONS = {
     "action_plain_alternative": "Graded per technical-language issue: the suggested action gives a plain-language alternative or an appendix move, keeping every number and claiming no more than the text (C=1, P=0.5, I=0).",
     "action_specific_audience": "Graded per missing or vague audience issue: the suggested action proposes one specific audience, as a suggestion for the author to confirm (C=1, P=0.5, I=0).",
+    "action_settle_conflict": "Graded per audience conflict issue: the suggested action names both audiences and asks the author to settle on one (C=1, P=0.5, I=0).",
 }
 
 JUDGE_CRITERIA = [
@@ -61,9 +76,16 @@ JUDGE_CRITERIA = [
         scope="expected",
         applies_to=_audience,
     ),
+    JudgeCriterion(
+        key="action_settle_conflict",
+        criterion=CONFLICT_CRITERION,
+        scope="expected",
+        applies_to=_conflict,
+    ),
 ]
 
 SCORE_LABELS = {
     "action_plain_alternative": "Plain alternative",
     "action_specific_audience": "Specific audience",
+    "action_settle_conflict": "Settle conflict",
 }

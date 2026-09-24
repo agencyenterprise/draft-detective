@@ -6,11 +6,12 @@ keeps the first ``CAP`` in document order, and puts the rest in one
 checks cannot see that shape: an eighteenth paragraph reported on its own, or
 dropped, or a summary under the wrong title, all still detect the expected
 issues. These checks score it directly, on a sample whose inventory expects
-more than ``CAP`` technical paragraphs; every other sample is NaN.
+more than ``CAP`` technical paragraphs; every other sample is NaN. Whether the
+summary gives each paragraph a plain alternative is graded in ``overflow_judge``.
 """
 
 import math
-from typing import Sequence
+from typing import Optional, Sequence
 
 from evals_inspectai.common.issue_inventory import (
     ResolvedInventory,
@@ -69,16 +70,29 @@ def technical_paragraphs(inventory: ResolvedInventory) -> list[ResolvedIssue]:
     return sorted(kept, key=lambda e: e.line)
 
 
+def overflow_split(
+    inventory: ResolvedInventory,
+) -> Optional[tuple[list[ResolvedIssue], list[ResolvedIssue]]]:
+    """The first ``CAP`` technical paragraphs and the rest; None unless the inventory expects more than ``CAP``."""
+    expected = technical_paragraphs(inventory)
+    return (expected[:CAP], expected[CAP:]) if len(expected) > CAP else None
+
+
+def overflow_summaries(issues: Sequence[IssueItem]) -> list[IssueItem]:
+    """The reported issues titled as the overflow summary."""
+    return [i for i in issues if normalize(i.title) == normalize(SUMMARY_TITLE)]
+
+
 def overflow_scores(
     issues: Sequence[IssueItem], inventory: ResolvedInventory
 ) -> tuple[dict[str, float], str]:
     """The four overflow keys; NaN unless the inventory expects more than ``CAP`` technical paragraphs."""
-    expected = technical_paragraphs(inventory)
-    if len(expected) <= CAP:
+    split = overflow_split(inventory)
+    if split is None:
         return {key: math.nan for key in OVERFLOW_KEYS}, "not an overflow sample"
-    first, rest = expected[:CAP], expected[CAP:]
+    first, rest = split
     singles = [i for i in issues if normalize(i.title) == normalize(PARAGRAPH_TITLE)]
-    summaries = [i for i in issues if normalize(i.title) == normalize(SUMMARY_TITLE)]
+    summaries = overflow_summaries(issues)
     missing = [e.id for e in first if not any(_covers(i, e) for i in singles)]
     summary = summaries[0] if len(summaries) == 1 else None
     uncovered = [

@@ -12,8 +12,9 @@ The workflow proposes no edits, so the edit-hygiene keys are left out. Each
 audience issue is reported once per document and each technical paragraph
 once, so a reported issue covers at most one expected issue (``one_to_one``).
 Scorers: the reusable ``issue_checks`` and ``decoy_checks``, this workflow's
-own ``overflow_checks`` on the cap of technical-language issues, and two
-judged criteria on the suggested action.
+own ``overflow_checks`` on the cap of technical-language issues and
+``overflow_judge`` on the summary past it, and three judged criteria on the
+suggested action.
 
 Run (backend must be running)::
 
@@ -55,6 +56,12 @@ from evals_inspectai.e2e.audience_fit.overflow import (
     OVERFLOW_LABELS,
     overflow_scores,
 )
+from evals_inspectai.e2e.audience_fit.overflow_judge import (
+    SUMMARY_DESCRIPTIONS,
+    SUMMARY_KEY,
+    SUMMARY_LABELS,
+    overflow_judge,
+)
 
 WORKFLOW_TYPE = "audience_fit"
 DATASET = Path(__file__).parent / "dataset.yaml"
@@ -80,6 +87,7 @@ def audience_fit_e2e(timeout_s: float = 600, judge_calls: int = 1) -> Task:
     keys = issue_check_keys(edits, titles)
     own = [
         *(("overflow_checks", key) for key in OVERFLOW_KEYS),
+        ("overflow_judge", SUMMARY_KEY),
         *(("judged_criteria", c.key) for c in JUDGE_CRITERIA),
     ]
     return Task(
@@ -96,6 +104,7 @@ def audience_fit_e2e(timeout_s: float = 600, judge_calls: int = 1) -> Task:
                 },
                 "decoy_checks": decoy_descriptions(reasons),
                 "overflow_checks": OVERFLOW_DESCRIPTIONS,
+                "overflow_judge": SUMMARY_DESCRIPTIONS,
                 "judged_criteria": JUDGE_DESCRIPTIONS,
             },
         },
@@ -104,6 +113,7 @@ def audience_fit_e2e(timeout_s: float = 600, judge_calls: int = 1) -> Task:
             issue_checks(edits=edits, one_to_one=True, titles=titles),
             decoy_checks(reasons),
             overflow_checks(),
+            overflow_judge(calls=judge_calls),
             judged_criteria(JUDGE_CRITERIA, calls=judge_calls, one_to_one=True),
         ],
         fail_on_error=0.2,
@@ -111,7 +121,7 @@ def audience_fit_e2e(timeout_s: float = 600, judge_calls: int = 1) -> Task:
             reasons,
             edits,
             extra=own,
-            labels={**SCORE_LABELS, **OVERFLOW_LABELS},
+            labels={**SCORE_LABELS, **OVERFLOW_LABELS, **SUMMARY_LABELS},
             titles=titles,
         ),
     )

@@ -2,6 +2,10 @@
 
 import math
 from pathlib import Path
+from typing import cast
+
+import pytest
+from inspect_ai.model import Model
 
 from evals_inspectai.common.issue_inventory import (
     ResolvedIssue,
@@ -17,6 +21,10 @@ from evals_inspectai.e2e.audience_fit.overflow import (
     OVERFLOW_KEYS,
     overflow_scores,
     technical_paragraphs,
+)
+from evals_inspectai.e2e.audience_fit.overflow_judge import (
+    SUMMARY_KEY,
+    summary_alternative_scores,
 )
 from evals_inspectai.common.simple_deep_agent_types import IssueItem
 
@@ -65,11 +73,13 @@ def test_dataset_is_well_formed():
 
 def test_each_criterion_applies_to_its_own_issues():
     by_key = {c.key: c for c in JUDGE_CRITERIA}
-    plain, audience = (
+    plain, audience, conflict = (
         by_key["action_plain_alternative"],
         by_key["action_specific_audience"],
+        by_key["action_settle_conflict"],
     )
     assert plain.applies_to is not None and audience.applies_to is not None
+    assert conflict.applies_to is not None
     assert plain.applies_to(_expected("Technical Language"))
     assert plain.applies_to(_expected("Technical Language: Move to Appendix"))
     assert not plain.applies_to(_expected("Target Audience Missing"))
@@ -78,13 +88,18 @@ def test_each_criterion_applies_to_its_own_issues():
     # A conflict is settled by the author, not by a proposed audience.
     assert not audience.applies_to(_expected("Target Audience Conflict"))
     assert not audience.applies_to(_expected("Technical Language"))
+    assert conflict.applies_to(_expected("Target Audience Conflict"))
+    assert not conflict.applies_to(_expected("Target Audience Too Vague"))
+    assert not conflict.applies_to(_expected("Technical Language"))
 
 
 def test_task_composes_the_inventory_scorers_and_its_judged_criteria():
     t = audience_fit_e2e()
-    assert len(t.dataset) == 16 and len(t.scorer) == 4
+    assert len(t.dataset) == 16 and len(t.scorer) == 5
     columns = [c.id for c in t.viewer.task_samples_view.columns]
     assert "score__judged_criteria__action_plain_alternative" in columns
+    assert "score__judged_criteria__action_settle_conflict" in columns
+    assert "score__overflow_judge__overflow_summary_alternatives" in columns
     assert "score__decoy_checks__no_fp_technical_audience" in columns
     assert "score__overflow_checks__overflow_cap" in columns
     # No edits are expected, so no edit-hygiene column is emitted.
@@ -176,3 +191,68 @@ def test_overflow_is_not_scored_on_other_samples():
     ordinary = next(r for r in records if 0 < len(technical_paragraphs(r)) <= CAP)
     values, _ = overflow_scores([], ordinary)
     assert all(math.isnan(v) for v in values.values())
+
+
+class _Completion:
+    def __init__(self, completion: str) -> None:
+        self.completion = completion
+
+
+class _Grader:
+    """Grades C unless the prompt's paragraph contains ``failing``; keeps the prompts it saw."""
+
+    def __init__(self, failing: str = "") -> None:
+        self.failing = failing
+        self.prompts: list[str] = []
+
+    async def generate(self, prompt: str) -> _Completion:
+        self.prompts.append(prompt)
+        paragraph = prompt.split("[Paragraph]: ", 1)[1].split("\n", 1)[0]
+        failed = self.failing and self.failing in paragraph
+        return _Completion("GRADE: I" if failed else "GRADE: C")
+
+
+@pytest.mark.asyncio
+async def test_overflow_judge_grades_the_summary_once_per_remaining_paragraph():
+    inventory = _overflow_inventory()
+    paragraphs = technical_paragraphs(inventory)
+    rest = paragraphs[CAP:]
+    issues = [_single(e) for e in paragraphs[:CAP]] + [_summary(rest)]
+    grader = _Grader()
+    values, _ = await summary_alternative_scores(cast(Model, grader), issues, inventory)
+    assert values == {SUMMARY_KEY: 1.0}
+    assert len(grader.prompts) == len(rest)
+    lines = inventory.document.split("\n")
+    for prompt, e in zip(grader.prompts, rest):
+        assert f"[Paragraph]: {lines[e.line - 1]}" in prompt
+        assert f"[Technical term in the paragraph]: {e.anchor}" in prompt
+
+
+@pytest.mark.asyncio
+async def test_overflow_judge_fails_a_summary_missing_one_alternative():
+    inventory = _overflow_inventory()
+    paragraphs = technical_paragraphs(inventory)
+    rest = paragraphs[CAP:]
+    issues = [_single(e) for e in paragraphs[:CAP]] + [_summary(rest)]
+    grader = _Grader(failing=rest[-1].anchor)
+    values, explanation = await summary_alternative_scores(
+        cast(Model, grader), issues, inventory
+    )
+    assert values == {SUMMARY_KEY: 0.5}
+    assert rest[-1].id in explanation
+
+
+@pytest.mark.asyncio
+async def test_overflow_judge_scores_zero_without_a_single_summary_and_nan_elsewhere():
+    inventory = _overflow_inventory()
+    grader = _Grader()
+    values, _ = await summary_alternative_scores(
+        cast(Model, grader),
+        [_single(e) for e in technical_paragraphs(inventory)],
+        inventory,
+    )
+    assert values == {SUMMARY_KEY: 0.0} and grader.prompts == []
+    records = load_inventory_records(DATASET)
+    ordinary = next(r for r in records if 0 < len(technical_paragraphs(r)) <= CAP)
+    values, _ = await summary_alternative_scores(cast(Model, grader), [], ordinary)
+    assert math.isnan(values[SUMMARY_KEY])
