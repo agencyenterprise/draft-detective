@@ -132,6 +132,27 @@ def test_section_text_gives_a_wrapped_paragraph_whole():
     assert section_text(doc, 7) == "Next paragraph."
 
 
+def test_section_text_ignores_hashes_in_code_and_splits_list_items():
+    fenced = "# T\n\n## A\n\n```\n# comment\n```\nmore\n\n## B\n"
+    assert section_text(fenced, 3) == "## A\n\n```\n# comment\n```\nmore"
+    listed = "# T\n\n- **Retention.** Staff stayed\n  longer.\n- **Cost.** Staff cost more.\n"
+    assert section_text(listed, 3) == "- **Retention.** Staff stayed\n  longer."
+    assert section_text(listed, 5) == "- **Cost.** Staff cost more."
+
+
+@pytest.mark.asyncio
+async def test_edit_prompt_carries_a_wrapped_paragraph_whole():
+    doc = "# Title\n\nThe institute was established in 1962.\nIt grew fast.\n"
+    edit = ProposedEdit(original_text="The institute was established in 1962.", replacement_text="Nine countries established the institute in 1962.", start_line=3, end_line=3)
+    issue = IssueItem(title="Passive Voice", start_line=3, end_line=3, edits=[edit])
+    inventory = ResolvedInventory(document=doc, expected_issues=[_expected(line=3, edit_expected=True)], decoys=[])
+    grader = _Grader()
+
+    await judge_sample(cast(Model, grader), [issue], inventory, [MEANING])
+
+    assert "[Paragraph the sentence sits in]: The institute was established in 1962.\nIt grew fast." in grader.prompts[0]
+
+
 @pytest.mark.asyncio
 async def test_section_passage_criterion_shows_the_grader_the_section():
     grader = _Grader()

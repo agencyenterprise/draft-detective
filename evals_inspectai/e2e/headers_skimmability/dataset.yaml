@@ -4,8 +4,11 @@
 # states its bottom line (anchored on the introduction's header), plus decoys for every exclusion the
 # skill states. The workflow proposes no edits: suggested header wording lives in the suggested action,
 # which the task's own checks and the judge read. A header anchor is the header text, with an explicit
-# `line` where that text also occurs in the prose. Two optional headers in the vouchers report name no
-# title, since a vague-header and a missing-takeaway report of them are both fair.
+# `line` where that text also occurs in the prose. Two optional headers in the vouchers report take the
+# title "Header", which each of the three header titles matches, since a vague-header and a
+# missing-takeaway report of them are both fair. Decoys on one-word headers (Summary, Introduction,
+# Background) anchor on the markdown line and take the title "Header": they are flagged only by a
+# header issue on that line, not by any issue whose text happens to use the word.
 # See evals_inspectai/common/issue_inventory.py.
 
 # ---- vague header ---------------------------------------------------------------------------
@@ -141,8 +144,9 @@
     reason: signposting
   - anchor: Broadband Subsidies and Small Business Adoption
     reason: document_title
-  - anchor: Introduction
+  - anchor: "## Introduction"
     reason: named_section
+    title: Header
   notes: Clean. The bottom line sits in the introduction next to a signposting sentence; the neutral title is out of scope.
 
 # ---- lead sentences ---------------------------------------------------------------------------
@@ -193,8 +197,9 @@
     reason: procedural_lead
   - anchor: Sessions came at a cost to other subjects
     reason: argued_lead
-  - anchor: Summary
+  - anchor: "## Summary"
     reason: named_section
+    title: Header
   notes: Clean. Bold labels in a methods section are run-in headings, not lead sentences; the findings openers argue.
 
 # ---- key findings -----------------------------------------------------------------------------
@@ -349,18 +354,21 @@
 
     The 60 clinics are listed by region in Table A.1.
   decoys:
-  - anchor: Background
+  - anchor: "## Background"
     reason: procedural_header
+    title: Header
   - anchor: Data and Methods
     reason: procedural_header
-  - anchor: Limitations
+  - anchor: "## Limitations"
     reason: procedural_header
+    title: Header
   - anchor: "Appendix A: Clinic List"
     reason: procedural_header
   - anchor: "Reducing Wait Times at Veterans' Clinics"
     reason: document_title
-  - anchor: Summary
+  - anchor: "## Summary"
     reason: named_section
+    title: Header
   notes: Clean. Background, methods, limitations and appendix headers are labels by design.
 
 # ---- excerpt ----------------------------------------------------------------------------------
@@ -402,10 +410,12 @@
 
     The state could lower the heat index threshold for the rest-break requirement, since most visits came on days below it.
   decoys:
-  - anchor: Summary
+  - anchor: "## Summary"
     reason: named_section
-  - anchor: Recommendations
+    title: Header
+  - anchor: "## Recommendations"
     reason: named_section
+    title: Header
   notes: Clean. Bottom line up front, every header states its section's point, and the Summary and Recommendations headers are the names readers look for.
 
 # ---- section-length documents -----------------------------------------------------------------
@@ -481,9 +491,11 @@
     anchor: "**Distance.**"
     severity: low
   - id: landlord_header
+    title: Header
     anchor: Landlord Participation
     required: false
   - id: implications_header
+    title: Header
     anchor: Implications for the Authority
     line: 33
     required: false

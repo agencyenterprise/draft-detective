@@ -95,6 +95,8 @@ PASSAGE_ISSUE_TEMPLATE = """You are grading one reviewer issue against one crite
 """
 
 _HEADING_RE = re.compile(r"^(#{1,6})\s")
+_FENCE_RE = re.compile(r"^\s*(?:```|~~~)")
+_LIST_ITEM_RE = re.compile(r"^\s*(?:[-*+]|\d+[.)])\s")
 
 
 class JudgeCriterion(BaseModel):
@@ -152,17 +154,36 @@ def passage_issue_prompt(criterion: str, passage: str, anchor: str, suggested_ac
     )
 
 
+def _heading_levels(lines: list[str]) -> list[int]:
+    """The markdown heading level of each line, 0 for a line that is not a heading,
+    including a ``#`` line inside a fenced code block."""
+    levels: list[int] = []
+    fenced = False
+    for line in lines:
+        if _FENCE_RE.match(line):
+            fenced = not fenced
+        heading = None if fenced else _HEADING_RE.match(line)
+        levels.append(len(heading.group(1)) if heading else 0)
+    return levels
+
+
 def _paragraph_text(lines: list[str], line: int) -> str:
-    """The paragraph holding ``line``: the lines around it up to a blank line or a
-    heading, so a paragraph wrapped across several lines is passed whole."""
+    """The paragraph holding ``line``: the lines around it up to a blank line, a
+    heading or the next list item, so a paragraph wrapped across several lines is
+    passed whole and a list item is passed without its siblings."""
+    if not 0 < line <= len(lines):
+        return ""
+    levels = _heading_levels(lines)
+    if levels[line - 1]:
+        return lines[line - 1]
 
     def inside(i: int) -> bool:
-        return 0 <= i < len(lines) and lines[i].strip() != "" and _HEADING_RE.match(lines[i]) is None
+        return 0 <= i < len(lines) and lines[i].strip() != "" and levels[i] == 0
 
     start = end = line - 1
-    while inside(start - 1):
+    while inside(start - 1) and not _LIST_ITEM_RE.match(lines[start]):
         start -= 1
-    while inside(end + 1):
+    while inside(end + 1) and not _LIST_ITEM_RE.match(lines[end + 1]):
         end += 1
     return "\n".join(lines[start : end + 1]).strip()
 
@@ -174,22 +195,18 @@ def section_text(document: str, line: int) -> str:
     lines = document.split("\n")
     if not 0 < line <= len(lines):
         return ""
-    heading = _HEADING_RE.match(lines[line - 1])
-    if heading is None:
+    levels = _heading_levels(lines)
+    level = levels[line - 1]
+    if not level:
         return _paragraph_text(lines, line)
-    level = len(heading.group(1))
     end = line
-    while end < len(lines):
-        following = _HEADING_RE.match(lines[end])
-        if following is not None and len(following.group(1)) <= level:
-            break
+    while end < len(lines) and not 0 < levels[end] <= level:
         end += 1
     return "\n".join(lines[line - 1 : end]).strip()
 
 
 def _paragraph(expected: ResolvedIssue, document: str) -> str:
-    lines = document.split("\n")
-    return lines[expected.line - 1] if 0 < expected.line <= len(lines) else ""
+    return _paragraph_text(document.split("\n"), expected.line)
 
 
 async def judge_sample(

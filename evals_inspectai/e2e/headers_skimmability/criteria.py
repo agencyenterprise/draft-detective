@@ -8,26 +8,30 @@ numbered header keeps its number. The judge grades the same wording against the
 section it heads, which it sees in full (``passage="section"``).
 """
 
-import math
 import re
 from typing import Optional, Sequence
 
-from evals_inspectai.common.issue_checks import hit_pairs
+from evals_inspectai.common.issue_checks import fraction, hit_pairs
 from evals_inspectai.common.issue_inventory import ResolvedInventory, ResolvedIssue
 from evals_inspectai.common.issue_judge import JudgeCriterion
 from evals_inspectai.common.simple_deep_agent_types import IssueItem
 
 HEADER_TITLES = ("Vague Header", "Header Lacks Takeaway", "Header Does Not Match Content")
+# The title of an optional header issue that any of the three header titles reports
+# (matched as a whole word, so "Header" matches each of them).
+ANY_HEADER_TITLE = "Header"
 LEAD_TITLE = "Lead Sentence Lacks Takeaway"
 MIN_HEADER_WORDS, MAX_HEADER_WORDS = 2, 8
 
-_SUGGESTION_RE = re.compile(r"Suggested (header|lead):\s*[\"“](.+?)[\"”]", re.I)
-# "Chapter 3:", "Appendix B:", "3.", "2.1", "2.1.4" at the start of a header.
-_NUMBER_RE = re.compile(r"^\s*((?:chapter|appendix|part)\s+[\dA-Z]+[:.]?|\d+(?:\.\d+)*\.?)\s+", re.I)
+_SUGGESTION_RE = re.compile(r"Suggested (header|lead):\s*(?=[\"“])", re.I)
+# "Chapter 3:", "Appendix B:", "Part II:", "3.", "2.1", "2.1.4" at the start of a header.
+# The label is a number, one capital letter or a roman numeral, so "Part of the Gain"
+# is not numbered; a bare number needs a dot, so "2024 Rate Increase" is not either.
+_NUMBER_RE = re.compile(r"^\s*((?i:chapter|appendix|part)\s+(?:\d+|[A-Z]|[IVXLC]+)\b[:.]?|\d+(?:\.\d+)+\.?|\d+\.)\s+")
 
 
 def is_header_issue(expected: ResolvedIssue) -> bool:
-    return expected.title in HEADER_TITLES
+    return expected.title in (*HEADER_TITLES, ANY_HEADER_TITLE)
 
 
 def takes_suggestion(expected: ResolvedIssue) -> bool:
@@ -39,7 +43,25 @@ def suggestion(action: Optional[str], kind: str) -> Optional[str]:
     """The wording after ``Suggested <kind>:`` in a suggested action, or None."""
     for match in _SUGGESTION_RE.finditer(action or ""):
         if match.group(1).lower() == kind:
-            return header_text(match.group(2))
+            quoted = _quoted(action or "", match.end())
+            return header_text(quoted) if quoted else None
+    return None
+
+
+def _quoted(text: str, start: int) -> Optional[str]:
+    """The text inside the quotation that opens at ``start``, keeping any quotation
+    nested in it. A curly quote says which way it faces; a straight one opens when
+    it follows a space and precedes a word, and closes otherwise."""
+    depth = 0
+    for i in range(start + 1, len(text)):
+        char = text[i]
+        opens = char == "“" or (char == '"' and text[i - 1].isspace() and text[i + 1 : i + 2].strip() != "")
+        if opens:
+            depth += 1
+        elif char in '"”':
+            if depth == 0:
+                return text[start + 1 : i]
+            depth -= 1
     return None
 
 
@@ -58,11 +80,32 @@ def header_words(header: str) -> int:
     return len(_NUMBER_RE.sub("", header, count=1).split())
 
 
-def _fraction(values: Sequence[float]) -> float:
-    return sum(values) / len(values) if values else math.nan
-
-
 SUGGESTION_KEYS = ("suggestion_in_form", "suggestion_header_length", "suggestion_keeps_number")
+
+
+def _header_checks(expected: ResolvedIssue, wording: str, lines: list[str]) -> tuple[dict[str, float], list[str]]:
+    """Length and number checks on one suggested header."""
+    words = header_words(wording)
+    fits = MIN_HEADER_WORDS <= words <= MAX_HEADER_WORDS
+    scores = {"suggestion_header_length": float(fits)}
+    notes = [] if fits else [f"{expected.id}: suggested header has {words} words: {wording!r}"]
+    original = section_number(header_text(lines[expected.line - 1]))
+    if original is not None:
+        kept = section_number(wording) == original
+        scores["suggestion_keeps_number"] = float(kept)
+        if not kept:
+            notes.append(f"{expected.id}: suggested header {wording!r} drops the number {original!r}")
+    return scores, notes
+
+
+def _suggestion_checks(expected: ResolvedIssue, issue: IssueItem, lines: list[str]) -> tuple[dict[str, float], list[str]]:
+    """The suggestion checks on one detected header or lead-sentence issue."""
+    kind = "header" if is_header_issue(expected) else "lead"
+    wording = suggestion(issue.suggested_action, kind)
+    if wording is None:
+        return {"suggestion_in_form": 0.0}, [f"{expected.id}: no 'Suggested {kind}: \"...\"' in the suggested action"]
+    scores, notes = _header_checks(expected, wording, lines) if kind == "header" else ({}, [])
+    return {"suggestion_in_form": 1.0, **scores}, notes
 
 
 def suggestion_scores(issues: Sequence[IssueItem], inventory: ResolvedInventory) -> tuple[dict[str, float], str]:
@@ -70,37 +113,15 @@ def suggestion_scores(issues: Sequence[IssueItem], inventory: ResolvedInventory)
     the skill's form, a suggested header is header-length, and a numbered header keeps
     its number. NaN where a sample has nothing of the kind."""
     lines = inventory.document.split("\n")
-    in_form: list[float] = []
-    length: list[float] = []
-    number: list[float] = []
+    values: dict[str, list[float]] = {key: [] for key in SUGGESTION_KEYS}
     notes: list[str] = []
     for expected, issue in hit_pairs(issues, inventory, one_to_one=True)[1]:
-        if not takes_suggestion(expected):
-            continue
-        kind = "header" if is_header_issue(expected) else "lead"
-        wording = suggestion(issue.suggested_action, kind)
-        in_form.append(float(wording is not None))
-        if wording is None:
-            notes.append(f"{expected.id}: no 'Suggested {kind}: \"...\"' in the suggested action")
-            continue
-        if kind != "header":
-            continue
-        words = header_words(wording)
-        length.append(float(MIN_HEADER_WORDS <= words <= MAX_HEADER_WORDS))
-        if not MIN_HEADER_WORDS <= words <= MAX_HEADER_WORDS:
-            notes.append(f"{expected.id}: suggested header has {words} words: {wording!r}")
-        original = section_number(header_text(lines[expected.line - 1]))
-        if original is not None:
-            kept = section_number(wording) == original
-            number.append(float(kept))
-            if not kept:
-                notes.append(f"{expected.id}: suggested header {wording!r} drops the number {original!r}")
-    values = {
-        "suggestion_in_form": _fraction(in_form),
-        "suggestion_header_length": _fraction(length),
-        "suggestion_keeps_number": _fraction(number),
-    }
-    return values, " | ".join(notes) if notes else "all suggestion checks passed"
+        if takes_suggestion(expected):
+            scores, pair_notes = _suggestion_checks(expected, issue, lines)
+            for key, value in scores.items():
+                values[key].append(value)
+            notes += pair_notes
+    return {key: fraction(v) for key, v in values.items()}, " | ".join(notes) if notes else "all suggestion checks passed"
 
 
 SUGGESTION_DESCRIPTIONS = {
