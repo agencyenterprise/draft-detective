@@ -155,13 +155,14 @@ def passage_issue_prompt(criterion: str, passage: str, anchor: str, suggested_ac
 def section_text(document: str, line: int) -> str:
     """The section a markdown heading on ``line`` opens: the heading and every line
     up to the next heading of the same or a higher level. A line that is not a
-    heading is its own passage (a paragraph)."""
+    heading gives its paragraph: the nonblank lines around it, which covers a
+    paragraph wrapped over several lines."""
     lines = document.split("\n")
     if not 0 < line <= len(lines):
         return ""
     heading = _HEADING_RE.match(lines[line - 1])
     if heading is None:
-        return lines[line - 1]
+        return _wrapped_paragraph(lines, line - 1)
     level = len(heading.group(1))
     end = line
     while end < len(lines):
@@ -170,6 +171,22 @@ def section_text(document: str, line: int) -> str:
             break
         end += 1
     return "\n".join(lines[line - 1 : end]).strip()
+
+
+def _in_paragraph(text: str) -> bool:
+    return bool(text.strip()) and _HEADING_RE.match(text) is None
+
+
+def _wrapped_paragraph(lines: list[str], index: int) -> str:
+    """The run of nonblank, non-heading lines around ``lines[index]``."""
+    if not _in_paragraph(lines[index]):
+        return lines[index]
+    start, end = index, index + 1
+    while start > 0 and _in_paragraph(lines[start - 1]):
+        start -= 1
+    while end < len(lines) and _in_paragraph(lines[end]):
+        end += 1
+    return "\n".join(lines[start:end])
 
 
 def _paragraph(expected: ResolvedIssue, document: str) -> str:

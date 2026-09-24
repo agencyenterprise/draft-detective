@@ -123,6 +123,15 @@ def test_section_text_runs_to_the_next_heading_of_the_same_level():
     assert section_text(SECTION_DOC, 99) == ""
 
 
+def test_section_text_gives_a_wrapped_paragraph_whole():
+    document = "## Findings\n\nScores rose 5 points in grade 3\nand 2 points in grade 4,\nwhile grade 5 held.\n\nNext paragraph.\n"
+    wrapped = "Scores rose 5 points in grade 3\nand 2 points in grade 4,\nwhile grade 5 held."
+    assert section_text(document, 3) == wrapped
+    assert section_text(document, 4) == wrapped
+    assert section_text(document, 5) == wrapped
+    assert section_text("Intro.\n## Findings\nScores rose.\n", 3) == "Scores rose.", "stops at a heading"
+
+
 @pytest.mark.asyncio
 async def test_section_passage_criterion_shows_the_grader_the_section():
     grader = _Grader()

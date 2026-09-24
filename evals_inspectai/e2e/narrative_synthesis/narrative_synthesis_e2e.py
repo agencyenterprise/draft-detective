@@ -16,6 +16,10 @@ Scorers: the reusable ``issue_checks`` and ``decoy_checks``, this workflow's own
 deterministic check (no issue cites a rule), and two judged criteria on the
 suggested actions.
 
+Not covered: the main body's length (the threshold needs a document of about
+15,000 words; see the ``ns-devsplit`` note in ``docs/eval-scores.md``) and the
+volume cap, since no record has more than five data dumps or restated points.
+
 Run (backend must be running)::
 
     uv run inspect eval evals_inspectai/e2e/narrative_synthesis/narrative_synthesis_e2e.py --epochs 3
