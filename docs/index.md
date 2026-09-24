@@ -1,236 +1,125 @@
-Draft Detective is an automated document analysis system designed to assist in academic peer review by systematically evaluating the relationship between claims and their supporting evidence in research documents. The project goal is to employ most recent LLMs, agent-based workflows and techniques found the most recent literature to help researchers, reviewers, and academics improve the rigor and quality of their work.
+Draft Detective is an open-source assistant for reviewing research documents before they are published. It runs a set of independent checks over a draft (citations, reasoning, methods, editorial requirements and language) and reports what it finds as issues pinned to the lines of the text they concern. The author reads each issue, decides what to change, and marks it resolved.
 
 This project is funded by [RAND](https://rand.org/)'s [CAST Center](https://www.rand.org/global-and-emerging-risks/centers/ai-security-and-technology.html) (RAND Center on AI, Security, and Technology).
 
 ---
 
-_This page outlines the project's scientific and technical approach and presents its results, showcasing some real input/output examples. For development setup and usage instructions of the tool, see the README and DEVELOPMENT files in the [GitHub repository](https://github.com/agencyenterprise/draft-detective)._
+_This page covers the project's approach and design. For setup and usage, see the [README](https://github.com/agencyenterprise/draft-detective#readme) and [DEVELOPMENT](https://github.com/agencyenterprise/draft-detective/blob/main/DEVELOPMENT.md) files in the [GitHub repository](https://github.com/agencyenterprise/draft-detective)._
 
-## 5-minute demo video
+## Background
 
-<iframe width="560" height="315" src="https://www.youtube.com/embed/XlXZ_0zx4PY?si=nGfLGAESdBKOrnPa" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+Automated scholarly paper review is a growing research area that applies language technology to parts of peer review: checking claims against evidence, analysing citations, and assessing structure and clarity [^1]. Recent surveys find that large language models make much of this practical, from generating structured comments to verifying checklists and catching technical errors, while raising concerns about bias, inaccuracy, privacy and disclosure [^2].
 
-## Introduction
-
-Automated scholarly paper review (ASPR) represents an emerging field that leverages artificial intelligence and natural language processing to assist in the peer review process. As the volume of academic publications continues to grow exponentially, traditional manual review processes face increasing challenges in scalability, consistency, and timeliness [^1]. ASPR systems aim to augment human reviewers by automating various aspects of document evaluation, including claim verification, citation analysis, and evidence assessment.
-
-Recent surveys on LLMs for ASPR [^2] indicate that large language models have shown transformative potential for the full-scale implementation of automated review systems. LLMs are being widely adopted across the academic review process, demonstrating significant improvements in review efficiency, generating high-quality structured comments, validating checklists, and checking technical errors. The incorporation of LLMs has enabled new capabilities such as long text modeling, multi-modal input processing, and advanced prompt engineering techniques that address many of the technological bottlenecks that previously limited ASPR systems. However, this integration also introduces new challenges, including concerns about bias, inaccuracies, privacy risks, and the need for transparent disclosure of AI usage in the review process.
+Draft Detective turns that research into a tool an author or reviewer can use on a real draft. It does not score a paper or recommend acceptance. It points at specific passages, says what is wrong with each and why, and leaves the judgement to a person.
 
 [^1]: Lin, J., Song, J., Zhou, Z., Chen, Y., & Shi, X. (2023). Automated Scholarly Paper Review: Concepts, Technologies, and Challenges. arXiv preprint arXiv:2111.07533. https://arxiv.org/pdf/2111.07533
 [^2]: Zhuang, Z., Chen, J., Xu, H., Jiang, Y., & Lin, J. (2025). Large language models for automated scholarly paper review: A survey. arXiv preprint arXiv:2501.10326. https://arxiv.org/html/2501.10326v1
 
-This project focuses on providing an end-to-end, ready-to-use open source tool that leverages commercial large language models (LLMs) and various methods found in the most recent literature and state-of-the-art research. The system addresses critical aspects of scholarly document quality through the systematic evaluation of claim-evidence relationships: ensuring that claims are properly substantiated by their cited references, identifying gaps in evidentiary support, and recommending improvements to strengthen the document's foundation.
+## What it checks
 
-## Objectives
+Each check, called an **assessment**, answers one narrow question about the document. They fall into four groups:
 
-The system addresses these primary research questions:
+| Group | The kind of question it asks | Examples |
+|---|---|---|
+| Citation check | Are the references real and correctly cited? | Reference Error Checker |
+| Substantive review | Do the claims, reasoning, methods and recommendations hold up? | Claim Reference Validation, Internal Inference Validation, Methodological Alignment, Recommendation Check |
+| Editorial and style review | Does the document meet structural and house-style requirements? | Figures & Tables Check, Abbreviation Scan, Headers & Skimmability |
+| Language | Is the prose neutral, direct and consistent? | Advocacy & Tone, Active Voice & Clear Actors, Concision & Precision |
 
-1. **Claim-Reference Alignment**: Does each cited reference provide evidence that substantiates the associated claim?
-2. **Reference Validation**: Are the references correct, including Author, Title, Year and Publisher fields that have online presence?
-3. **Unsupported Claims**: Which claims require citation but lack appropriate references?
-4. **Inference Validation**: Are the inferences made within the paper logically valid and supported by premises of the argument?
-5. **Citation Recommendations**: What additional references could strengthen the document's evidentiary foundation?
-6. **Literature Review**: Is there any other related published work that could be referenced to strengthen or counter the arguments presented?
-7. **Live Reports** (for past published documents): Is there any newer related work that supports, strengthens, contradicts, or brings newer information that should be considered to expand the document's arguments?
-8. **Methodological Alignment**: Does the methodology used align with typical methods in the field?
-9. **Results Reproducibility** (Reproducibility Check): What are the main results of the document, and are they reproducible?
-10. **Recommendation Support** (Recommendation Check): Are the document's recommendations backed by its own findings?
-11. **Advocacy & Tone**: Does the document use neutral, objective language, free of advocacy patterns, trigger words, and subjective tone?
-12. **Peer Review Simulation** (Reviewer 2): How would a rigorous senior reviewer assess the document's strengths, weaknesses, and next steps?
-13. **Editorial & Structural Compliance**: Does the document meet editorial and structural requirements — required sections and preface elements, author biographies, defined abbreviations, and properly titled, numbered, and referenced figures and tables?
+Beyond these, a peer-review workspace helps authors respond to reviewers: it turns reviewer memos into a revision plan, drafts a response memo per reviewer, and reports which points a revised draft addresses. A simulated reviewer (Reviewer 2) writes a whole-document critique with a devil's-advocate rebuttal.
 
-## Methodology
+The set of assessments grows regularly, so this page does not list them all. The current list, with what each one measures, is in the app's **Run assessments** dialog, in the [`skills/`](https://github.com/agencyenterprise/draft-detective/tree/main/skills) folder, and in the [eval scores report](./eval-scores.md).
 
-### Document Processing Pipeline
+## Design principles
 
-![Document Processing Pipeline](./document-processing-pipeline.png)
+**One check, one question.** An assessment reads the document for a single kind of problem and nothing else. Narrow checks are easier to write, test and trust than one prompt that reviews everything, and a user can run only the ones that matter for a given draft. Presets such as _Standard Review_ and _Editorial Review_ select a useful group in one click.
 
-The system accepts two primary inputs: a **main document** to be reviewed and a set of **supporting documents/references** that provide the evidentiary foundation. These inputs are processed by Draft Detective, which orchestrates a series of specialized agents to analyze the document. Each assessment reports its findings as issues anchored to a line range in the document, so every finding can be traced back to the text that produced it. The web interface presents them across five views — Document Explorer, References, Files, Assessments, and Peer Review — for navigating the results and judging how well the document is supported.
+**The rules are written as skills.** The instructions for an assessment live in a plain-language `SKILL.md` file: what to look for, how to judge it, how severe each kind of problem is, and what a good fix looks like. The app's agents load these files at run time, and the same files install on their own as a plugin for Claude Code or Codex, so a check behaves the same inside the app and in a chat assistant. A new single-pass check can be added with nothing but a `SKILL.md` and a short block of frontmatter (see [adding a check](./skill-workflows.md)).
 
-The system processes documents through a multi-stage pipeline implemented using LangGraph, which orchestrates a series of specialized AI agents:
+**Every finding is an issue in the text.** However different the checks are, they all report in one shape:
 
-1. **Document Conversion**: Input documents (PDF, DOCX, Markdown) are converted to structured markdown format while preserving semantic structure using Markitdown.
-
-2. **Reference Extraction**: Bibliographic references are extracted using section detection and windowed extraction, enabling mapping between in-text citations and their full reference entries.
-
-3. **Reference File Matching**: Supporting documents are matched to extracted references to enable verification against full-text sources.
-
-4. **Claim Verification**: Claims are verified against supporting documents using RAG-Based verification:
-
-   - Supporting documents are indexed in a vector store using OpenAI's `text-embedding-3-large` embeddings
-   - Documents are chunked (2000 characters with 400-character overlap) and embedded
-   - For each claim, an enriched query is constructed combining the claim text, chunk context, and relevant backing information
-   - Semantic similarity search retrieves the top-k most relevant passages from all supporting documents
-   - Retrieved passages are ranked by cosine distance and presented to the verification agent
-   - The LLM evaluates whether retrieved passages substantiate the claim
-
-5. **Inference Validation**: Flags reasoning in the document that is logically invalid — conclusions not supported by their premises, or arguments resting on a fallacy. Three independent detection passes read the full document in parallel and deliberately over-flag; their candidates are merged and then judged by a separate adjudicator subagent, which did not perform the detection and so assesses each candidate on its merits. Only findings that survive adjudication are reported.
-
-6. **Reference Validation**: Uses web search to check if each reference from the document is available online and matches author, title, year, and publisher against public internet sources. Useful for detecting fabricated or hallucinated references.
-
-7. **Literature Review**: The system conducts automated literature reviews by:
-
-    - Searching external sources for supporting or conflicting evidence
-    - Identifying newer publications relevant to the claims
-    - Evaluating reference quality and source credibility
-    - Recommending citation additions, replacements, or discussions for claims that would benefit from stronger support
-
-8. **Methodological Alignment**: Analyzes the methodology used in the document against typical methods used in the field, using web search to find field methods context.
-
-9. **Reproducibility Check**: Extracts the main results from the document and classifies each by how reproducibly it could be recreated from the document alone.
-
-10. **Recommendation Check**: Evaluates whether each recommendation is supported by the document's own findings, flagging recommendations whose backing is weak, indirect, missing, or contradictory.
-
-11. **Peer Review Simulation (Reviewer 2)**: Produces an integrated, senior-reviewer-style critique of the document as a whole — strengths, weaknesses, actionable next steps, and a devil's-advocate rebuttal.
-
-12. **Advocacy & Tone Detection**: Flags trigger words, advocacy language, and subjective tone that departs from a neutral, objective voice, combining fast procedural checks with LLM verification.
-
-13. **Preface & Author Biography Validation ("About This")**: Validates the preface/introduction and author biographies against configurable publication requirements:
-
-    - Context, objectives, audience, and scope
-    - Relationship to existing literature and contribution statement
-    - Boilerplate and funding statement presence
-    - Author biography completeness (sentence count, position and affiliation, research focus, style consistency)
-
-14. **Document Contents**: Checks that required sections are present (About This, Acknowledgements, Methods, Results, Conclusion, References, and Appendix when referenced).
-
-15. **Figures & Tables Check**: Verifies that every figure and table is titled, consistently numbered, and referenced in the body text, and that every body-text reference resolves to an actual figure or table.
-
-16. **Abbreviation Scan**: Verifies that each abbreviation is defined at first use and listed in an Abbreviations section, and that usage is consistent throughout.
-
-### Technical Architecture
-
-**Agent-Based Design**: The system employs a registry-based agent architecture where specialized agents handle distinct tasks. Each agent implements a common protocol, enabling dynamic composition and replacement of components.
-
-**Workflow Orchestration**: LangGraph manages the execution flow, supporting:
-
-- Conditional node execution based on configuration
-- Parallel processing of independent operations
-- State persistence and checkpointing for resumable workflows
-- Error handling and graceful degradation
-- Dependency resolution between workflows
-- Human-in-the-loop checkpoints for approval workflows
-
-**Vector Storage**: Supporting documents are indexed in PostgreSQL with pgvector extension:
-
-- Each document maintains its own collection for efficient retrieval
-- Embeddings are generated using OpenAI's text-embedding-3-large model
-- Similarity search uses cosine distance metric
-- Collections are cached and reused across workflow runs
-
-**State Management**: The workflow maintains a comprehensive state object that tracks:
-
-- Original documents and their markdown representations
-- Extracted chunks with their index, paragraph, headings, and line range
-- Extracted references and the supporting documents matched to them
-- Per-assessment findings, each anchored to a line range in the document
-- Error conditions and recovery information
-- Configuration parameters
-
-### LLM Configuration
-
-The system uses GPT-5-family models (e.g. GPT-5.4/GPT-5.5, via LangChain) for all agent operations, configured with:
-
-- Temperature: 0.0-0.5 (depending on task determinism requirements)
-- Structured output enforcement via Pydantic models
-- Timeout handling for reliability
-- Langfuse integration for observability and tracing
-- The LLM provider can be easily changed between OpenAI's GPT and other providers (Anthropic, Gemini, etc.). See `lib/config/llm_models.py`
-
-### Evaluation Framework
-
-Most analyses have an end-to-end eval suite under `evals_inspectai/e2e/`, built on
-[Inspect AI](https://inspect.ai-safety-institute.org.uk/). They are end-to-end in the literal sense:
-every sample triggers the real workflow through the API, so the backend must be
-running (`uv run dev.py`) and the run exercises the same pipeline a user would.
-
-Each suite pairs a dataset (JSON, or YAML for the review-assistant suites) with two
-kinds of scorer:
-
-- **Deterministic** — the workflow's structured output compared against expected
-  values, for anything with a checkable answer (issue counts, validation verdicts,
-  detected line ranges).
-- **Model-graded** — an LLM judge for output whose quality cannot be matched
-  literally, such as prose reports.
-
-Run one suite, or a single sample, with:
-
-```bash
-uv run inspect eval evals_inspectai/e2e/<eval>/<eval>_e2e.py --epochs=3
-uv run inspect view   # browse the results
+```json
+{
+  "title": "Partially supported: the claim is broader than its source",
+  "description": "Okafor and Brandt (2022) report faster case handling in three of the five departments they studied. The sentence says compressed schedules improve delivery in every department.",
+  "severity": "medium",
+  "start_line": 23,
+  "end_line": 23,
+  "suggested_action": "Narrow the claim to what the source found.",
+  "edits": []
+}
 ```
 
-Current scores for every suite are recorded in
-[`docs/eval-scores.md`](./eval-scores.md), with the raw Inspect logs under
-[`docs/evals/`](./evals/), which you can browse in the
-[hosted log viewer](https://agencyenterprise.github.io/draft-detective/evals-viewer/).
-Those numbers are measured on `gpt-5.6-terra`, which every agent moved to on
-28 Aug 2026.
+Severity is `high`, `medium`, `low`, or `none` for a check that passed and is worth confirming. The line numbers point into a normalised copy of the document that every check shares, which is what lets the web app, the Word export and the MCP server show any check's findings without knowing anything about the check that produced them.
 
-### System architecture
+**Critique, don't write.** A check may propose an exact text replacement (an `edit`) only when the finding fully determines the fix, as with a passive sentence or a mislabelled figure. It never invents a citation, a number or a paragraph. When the right fix needs the author's knowledge, the issue says what is needed and stops there.
 
-![Document Processing Pipeline](./architecture.png)
+**Evidence before verdicts.** Claims are checked against the full text of the sources they cite, not against the model's memory, and the author confirms which file belongs to which reference before those checks run. References are checked against what can be found on the web. Any check that searches the web asks for consent first, because parts of the document are sent as search queries.
 
-The system follows a containerized architecture consisting of three primary containers and integration with external providers. The **App Container** hosts a NextJS frontend that provides the user interface, allowing users to interact with the system. This frontend communicates with the **Server Container**, which houses the core processing engine built on FastAPI and LangGraph. LangGraph orchestrates the agent-based workflow as a directed graph, where each node represents a specialized processing step (chunking, reference extraction, claim verification, etc.). The **Database Container** runs PostgreSQL with the pgvector extension, storing workflow state, execution history, and vector embeddings for semantic search. The server container maintains bidirectional communication with the database for both workflow persistence and retrieval-augmented generation (RAG) operations. Finally, the system integrates with **External Providers** including OpenAI, Anthropic, Google (and others) for large language model inference, as well as web search capabilities for literature review tasks. This architecture enables flexible deployment, horizontal scaling of processing components, and provider-agnostic LLM integration through a unified interface.
+**Measured end to end.** Most assessments have an evaluation suite that runs it through the real API on labelled documents (see [Evaluation](#evaluation)).
 
-## Results
+## How it works
 
-_Note: The following examples represent excerpts extracted from complete document analyses conducted during actual system evaluations. While these excerpts are presented in isolation for clarity and illustrative purposes, it should be noted that the agents operate within the full document context, where paragraph-level and document-level contextual information significantly influences claim verification and review outcomes._
+[![Draft Detective architecture](./images/architecture.png)](./images/architecture.png)
 
-### Claim-Reference Alignment
+1. **A project** holds the draft under review, the full texts of its references, and any reviewer memos. Uploading a revised draft starts a new revision and re-runs the earlier assessments on it.
+2. **Pipeline steps** prepare what every assessment needs. The draft is converted to line-numbered Markdown (images and charts are kept so that checks able to read images can inspect them), its bibliography is extracted, and each reference is matched to an uploaded source file or fetched from the web.
+3. **Assessments** run in parallel, each one independent of the others. Most are a skill plus an agent built on [LangGraph](https://www.langchain.com/langgraph) and [deepagents](https://github.com/langchain-ai/deepagents). The agent reads the document through tools (read and search the document, view an image, search the web, retrieve passages from a cited source, hand work to a subagent) and reports each finding through a reporting tool that validates it on the spot. Some agents split the work: Internal Inference Validation runs three independent detection passes, then has a separate adjudicator judge every candidate before anything is reported. A few checks that need per-item structure, such as the Reference Error Checker, are hand-built LangGraph graphs instead.
+4. **Issues** are stored per revision. Some assessments also write a report, such as a methodology comparison or a peer review.
+5. **Surfaces** present the same issues in different places: the web app, a Word export where issues become comments and proposed edits become tracked changes, a Word add-in, and an [MCP](https://modelcontextprotocol.io/) server that lets Claude, Codex or any other MCP client create projects, run assessments and read the results.
 
-The example below demonstrates the system's capability to assess claim-evidence alignment across different levels of substantiation. Three variations of a sentence extracted from a research document are evaluated: (1) the original sentence, classified as "partially supported" due to a minor overstatement in its claims; (2) a modified version containing explicit contradictions with the cited evidence, correctly identified as "unsupported"; and (3) a refined version with softened language that aligns more precisely with the evidence, classified as "supported". This illustrates the system's sensitivity to subtle variations in claim strength and its ability to distinguish between different degrees of evidentiary support.
+## What it looks like
 
-![Claim-Reference Alignment - Example 1](./claim-reference-validation-ex1.png)
+_The screens below are synthetic examples: the document, its authors and its findings are invented to show the interface. They are rendered from HTML mockups of the app in [`docs/mockups/`](https://github.com/agencyenterprise/draft-detective/tree/main/docs/mockups)._
 
-### Reference Validation
+### Findings in the document
 
-The following example demonstrates the system's reference validation capabilities when presented with a fabricated bibliographic entry. The validation agent systematically evaluates the reference's metadata fields (author, title, publication year, publisher) against online sources and correctly identifies the reference as invalid due to the absence of corresponding published work.
+The Document Explorer shows the draft with a line gutter. A coloured rule marks every paragraph with an issue, and the issues sit in the margin beside the text they concern. Here Claim Reference Validation has found that a sentence claims more than its cited source supports, while other checks have flagged a correlation presented as a cause, a passive sentence, and advocacy language.
 
-![Reference Validation - Example 1](./ref-validation-ex1.png)
+[![Document Explorer with margin notes](./images/document-explorer.png)](./images/document-explorer.png)
 
-The subsequent example illustrates a more nuanced validation scenario involving a legitimate reference with verifiable online presence. The system detects a discrepancy between the title field in the provided reference and the actual publication title found in online databases.
+### Proposed edits
 
-![Reference Validation - Example 2](./ref-validation-ex2.png)
+When a fix is purely mechanical, the issue carries a proposed edit shown as a word-level diff. Proposed edits can be exported to Word as tracked changes, which the author accepts or rejects there.
 
-### Unsupported claims
+[![An assessment's report and issues, with a proposed edit](./images/assessments.png)](./images/assessments.png)
 
-The following example demonstrates the system's capability to identify claims that lack appropriate evidentiary support. The system evaluates sentences containing assertions that require citation but are not substantiated by references, and distinguishes these from universally accepted common knowledge that does not necessitate citation. The system classifies such claims as "unsupported" when they represent factual assertions, empirical findings, or domain-specific knowledge that would typically require attribution. Notably, the system performs granular claim-level analysis, as illustrated in the second example where multiple distinct claims are extracted from a single sentence and evaluated independently, enabling precise identification of unsupported assertions within complex statements.
+### Reference checks
 
-![Unsupported claims - Example 1](./unsupported-claim-ex1.png)
+The Reference Error Checker searches for each reference and compares its author, title, publisher, year and identifier with what it finds. Here it confirms one reference, catches a real paper cited under the wrong journal, and fails to find a reference that does not exist.
 
-### Inference Validation
+[![Reference Error Checker results](./images/reference-validation.png)](./images/reference-validation.png)
 
-The following example demonstrates the system's capability to validate inferential and interpretive claims by analyzing their argument structure according to the Toulmin model of argumentation. The system evaluates claims that go beyond direct factual assertions to assess whether they contain logical fallacies, unsupported leaps in reasoning, or missing intermediate steps that would strengthen the argument. For claims identified as inferential or interpretive, the system examines the logical structure connecting the claim to its supporting evidence, identifying potential weaknesses in the reasoning chain and flagging areas where additional justification or intermediate reasoning steps may be required. The first sentence and related Inference Validation analysis is the original sentence, marked as valid by the system; the second sentence is a modification of the original one, creating a logic inconsistency in the claim, which the system correctly flagged.
+### Choosing assessments
 
-![Inference validation - Example 1](./inference-validation-ex1.png)
+Users choose which assessments to run, individually or through a preset. Each one is labelled if it searches the web, needs the full text of references, or proposes edits, and web-searching checks need explicit consent before they run.
 
-### Literature Review & Citation Recommendation
+[![The Run assessments dialog](./images/run-assessments.png)](./images/run-assessments.png)
 
-The images below show example output from the literature review, including the citation recommendations it produces for claims that would benefit from stronger support.
+## Evaluation
 
-![Citation Suggestion - Example 1](./citation-suggestion-ex1.png)
+Most assessments have an end-to-end evaluation suite under `evals_inspectai/e2e/`, built on [Inspect AI](https://inspect.aisi.org.uk/). Every sample triggers the real workflow through the API, so a run exercises the same pipeline a user would. Each suite pairs a labelled dataset with two kinds of scorer:
 
-![Literature Review - Example 1](./literature-review-ex1.png)
+- **Deterministic** scorers compare the structured output with expected values wherever there is a checkable answer: issue counts, verdicts, flagged line ranges, proposed edits.
+- **Model-graded** scorers use an LLM judge for output that cannot be matched literally, such as a written report.
 
-### Live Reports
+Current scores for every suite are in the [eval scores report](./eval-scores.md). The raw Inspect logs, with every sample, transcript and score, can be browsed in the [hosted log viewer](https://agencyenterprise.github.io/draft-detective/evals-viewer/).
 
-The following example demonstrates the system's "live reports" capabilities for published documents. The system analyzed RAND's research article "[Understanding the Artificial Intelligence Diffusion Framework](https://www.rand.org/pubs/perspectives/PEA3776-1.html)" (published January 2025) and successfully identified that the framework was rescinded on May 13, 2025. This illustrates the system's ability to detect post-publication changes, retractions, and evolving information that may affect the document's current validity or relevance.
+## Technology
 
-![Live Reports - Example 1](./live-reports-ex1.png)
+- **Backend:** Python, FastAPI, LangGraph and deepagents, with LangChain model integrations. Assessments run as background tasks, and their state is saved in PostgreSQL.
+- **Models:** provider-agnostic. Every agent currently runs OpenAI's `gpt-5.6-terra`, and Anthropic and Google models are supported through the same interface. Web search uses each provider's built-in search tool. Embeddings for source retrieval use `text-embedding-3-large`, stored in PostgreSQL with pgvector.
+- **Documents:** Word, PDF, Markdown and text files, converted with MarkItDown, pypdfium2 and LibreOffice. Word export adds comments and tracked changes to the document.
+- **Frontend:** Next.js and React with shadcn/ui.
+- **Operations:** Google and Microsoft sign-in, optional Langfuse tracing, and deployment with Docker on Railway or Kubernetes (see [Railway deployment](./railway-deployment.md)).
 
-## Limitations and Considerations
+## Limitations
 
-1. **LLM Dependencies**: Verification quality depends on the underlying LLM's reasoning capabilities and may exhibit biases or errors inherent to the model.
-
-2. **Reference Availability**: Citation-based verification requires access to full-text versions of cited references. When unavailable, the system marks claims as unverifiable.
-
-3. **Semantic Retrieval**: RAG-based verification relies on semantic similarity, which may retrieve passages that are topically related but do not substantiate specific claims. The verification agent filters these, but false positives are possible.
-
-4. **Processing Scale**: Large documents with many claims require significant computational resources. The system supports selective re-evaluation of specific chunks to optimize resource usage.
-
-5. **Web Search Dependency**: Literature review, reference validation, and methodological alignment analyses require web search access. Results depend on search engine availability and the indexed web content.
-
-6. **Editorial Check Customization**: The editorial and compliance checks (advocacy & tone, preface and author-biography validation, document contents) are configurable but may require tuning to match a given publication's or organization's style requirements.
+1. **Model judgement.** Every finding comes from a language model and can be wrong, or can miss a problem. Issues are suggestions for an author to weigh, not verdicts.
+2. **Source availability.** Claim checks need the full text of the cited sources. Where a source cannot be found or uploaded, the claims that cite it are marked unverifiable.
+3. **Retrieval.** Claim checks retrieve passages from a source by meaning, and a passage on the right topic may still not support the specific claim. The agent reads the retrieved text to judge it, but false positives are possible.
+4. **The live web.** Reference, methodology and literature checks depend on what a web search returns on the day, so results can vary between runs.
+5. **House style.** The editorial and language checks encode a particular publisher's style rules. Other organisations may need to adjust the skills to match their own requirements.
+6. **Scale.** Long documents take longer and cost more, especially with many references. Each assessment reports its running time and cost.
 
 ## References
