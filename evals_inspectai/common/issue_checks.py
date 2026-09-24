@@ -10,7 +10,8 @@ workflow's own edit checks; the workflow wraps it with ``deterministic_scorer``
 under a name of its own).
 
 1. **Detection.** Each expected issue is *hit* when a reported issue with its
-   title quotes its anchor, or brackets its line. Several expected issues may hit the
+   title quotes its anchor or brackets its line, or an issue under another title
+   quotes its anchor (a mislabel, recorded by the title metric, not recall). Several expected issues may hit the
    same issue (a check that reports one issue per paragraph). From the hits:
    recall over required expected issues, precision over reported issues, and F0.5,
    which weights precision twice as much as recall, following the convention
@@ -88,7 +89,7 @@ NOT_APPLICABLE = math.nan
 # says what each column checks. A value of NaN means the sample gave the check
 # nothing to judge, and Inspect leaves it out of the mean.
 DETECTION_DESCRIPTIONS: dict[str, str] = {
-    "recall": "Share of required expected issues covered by a reported issue (same title and the anchor quoted or its line bracketed).",
+    "recall": "Share of required expected issues covered by a reported issue (same title and the anchor quoted or its line bracketed, or the anchor quoted under another title).",
     "precision": "Share of reported issues that cover at least one expected issue.",
     "f0_5": "F-beta with beta 0.5: precision weighted twice as much as recall, as in grammatical-error detection.",
     "clean_document_untouched": "On a sample with no expected issues: 1 if nothing was reported, 0 otherwise.",

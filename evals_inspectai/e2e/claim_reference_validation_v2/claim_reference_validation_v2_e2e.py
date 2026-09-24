@@ -150,7 +150,8 @@ def _evidence_alignment(issue: dict[str, Any]) -> str:
 @scorer(metrics=[mean(), stderr()])
 def citation_alignment_match():
     """Fraction of expected_issues that match a produced issue by quoted-text
-    substring AND have the expected evidence_alignment value."""
+    substring AND have the expected evidence_alignment value (the citation's
+    support label: supported, partially_supported, unsupported or unverifiable)."""
 
     async def score(state: TaskState, target: Target) -> Score:
         try:

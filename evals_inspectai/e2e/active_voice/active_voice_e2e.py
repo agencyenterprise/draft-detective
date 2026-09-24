@@ -13,7 +13,10 @@ scorers from ``evals_inspectai/common`` that this module only composes:
 - ``issue_checks`` (``issue_checks.py``): detection and edit hygiene; the same
   keys for every issue-inventory eval.
 - ``decoy_checks`` (``issue_checks.py``): false positives by reason; keys follow
-  this dataset's decoys.
+  this dataset's decoys, one per exclusion rule the skill states (stative
+  participle, generic actor, idiom, participial modifier, source qualifier or
+  definition, quoted wording, excluded material, a sentence whose point is the
+  actor, an already-active sentence).
 - ``judged_criteria`` (``issue_judge.py``): graded criteria, one grader call per
   edit or issue on Inspect's model-grading protocol; the criteria come from
   ``criteria.py``.

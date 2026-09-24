@@ -75,8 +75,9 @@ def _score_structure(output: SimpleDeepAgentOutput, state: TaskState) -> Score:
 
     The comparison itself is judged by the rubric; here we check that the run
     delivered what the skill asks for: a report with every required section and
-    web citations, and at least the sample's minimum number of issues, each with
-    a sane line range.
+    at least one web citation as a markdown link, and at least the sample's
+    minimum number of issues, each with a sane line range and none of them
+    informational (``none``).
     """
     if output.result is None:
         return Score(value=0.0, explanation="No result in workflow state")

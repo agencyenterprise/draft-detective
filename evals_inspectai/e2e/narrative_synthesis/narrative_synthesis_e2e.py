@@ -3,10 +3,14 @@
 Declared by ``skills/narrative-synthesis/SKILL.md``; runs through the API like
 every other e2e eval. Ground truth is ``dataset.yaml`` in inventory form: the
 data dumps, order problems, unanswered framing questions and restated points a
-correct run reports, each anchored where the skill anchors it, plus decoys for
-every exclusion the skill states (interpreted data, methods numbers, tables,
-appendices, summaries by design, brief references back, signposting, headers
-that belong to the header check).
+correct run reports, each anchored where the skill anchors it (order, why it
+matters and what is new on the introductory section, what happens next on the
+concluding or last section), plus decoys for every exclusion the skill states
+(data interpreted in place or at the start of the next paragraph, a single
+comparison, a single statistic that makes its point, tables and the sentence
+pointing to them, methods numbers, appendix data, summaries by design, brief
+references back, signposting, framing answered in a summary instead of the
+introduction, headers that belong to the header check).
 
 The skill proposes no edits, so ``issue_checks`` runs without its edit-hygiene
 keys. Each finding is one issue (one per passage, one per framing question, one

@@ -265,7 +265,9 @@ def rubric_criteria(model: str | Model | None = None) -> Scorer:
 
     The grader is shown the report's rendered text, not its HTML. Reading order
     and headings survive the flattening, which is what these criteria turn on,
-    and the markup would otherwise be most of the prompt.
+    and the markup would otherwise be most of the prompt. It is also shown both
+    drafts, so each verdict is judged against what the revision actually did
+    (see `_grading_question`).
     """
 
     async def score(state: TaskState, target: Target) -> Score:

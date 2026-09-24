@@ -5,8 +5,9 @@ summary spans every remaining technical paragraph and quotes its term, but not
 that it gives each one a plain alternative. The generic judged criteria cannot
 see that either: pairing is one-to-one, so the single summary is graded against
 only one of the paragraphs it covers. This scorer grades the summary once per
-remaining paragraph, on ``issue_judge``'s protocol, and keeps the mean. Every
-other sample is NaN.
+remaining paragraph, given that paragraph and its term, on ``issue_judge``'s
+protocol, and keeps the mean; it scores 0 when the run did not report exactly
+one summary. Every other sample is NaN.
 """
 
 import asyncio

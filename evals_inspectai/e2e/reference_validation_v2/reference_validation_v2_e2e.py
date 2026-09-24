@@ -85,6 +85,7 @@ def reference_validation_v2_e2e():
 
 
 def _compare_final_result(output: ReferenceValidationOutput, state: TaskState) -> Score:
+    """Deterministic: the reference's final validation result label equals the target exactly."""
     if not output.reference_validations:
         return Score(value=INCORRECT, explanation="No reference validations found")
 

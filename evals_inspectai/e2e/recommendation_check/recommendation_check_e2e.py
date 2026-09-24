@@ -16,15 +16,22 @@ It proposes no edits, and the inventory says nothing about edits, so
 Scorers:
 
 - ``issue_checks``: recall, precision, F0.5 over the expected issues, the clean
-  document left alone, and title and severity per covered issue. One reported
-  issue covers at most one expected issue (``one_to_one``), since the skill
-  requires each occurrence, including a restatement, to be reported separately
-  and the new kinds as issues of their own; a run that merges two loses recall
-  on the second.
+  document left alone, and title, severity and anchor line per covered issue.
+  One reported issue covers at most one expected issue (``one_to_one``), since
+  the skill requires each occurrence, including a restatement, to be reported
+  separately and the new kinds as issues of their own; a run that merges two
+  loses recall on the second. An issue under one of the fixed titles is paired
+  with a support expectation only when no free-form report of that
+  recommendation exists (``hit_tier``), so an extra actionability or audience
+  issue on the same line costs precision and cannot stand in for the support
+  verdict.
 - ``decoy_checks``: sentences that read like recommendations but are not
   (conclusions restating findings), and recommendations that must not get a
-  given kind (an audience a lead-in or heading supplies, a single evident
-  actor, a hedged but concrete action, a list of three or fewer), by reason.
+  given kind, by reason: no unclear audience where a lead-in or heading names
+  who acts or the document is about a single evident actor's own work; no
+  not-actionable issue on a concrete action, one left without a number, or a
+  hedged but concrete one; no length issue on a list of three or fewer, on
+  restatements of the same recommendations, or on sub-items of one.
 - ``tool_called("view_image")``: on the two samples whose finding is only in a
   chart, whether the agent looked at it.
 - ``judged_criteria``: whether the suggested action of each new-kind issue is
