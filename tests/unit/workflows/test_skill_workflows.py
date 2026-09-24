@@ -115,6 +115,7 @@ def test_presets_carry_the_skills_that_name_them():
         "active_voice",
         "concision_precision",
         "writing_consistency",
+        "narrative_synthesis",
         "headers_skimmability",
     }
     picker_order = [t for category in response.categories for t in category.workflows]

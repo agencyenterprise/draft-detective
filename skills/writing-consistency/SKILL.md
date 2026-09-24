@@ -51,7 +51,7 @@ Report problems; do not rewrite the document. Each issue carries the consistent 
 
 ## Reporting
 
-Report issues following the conventions defined in the issues skill (`/skills/issues/SKILL.md`). Do not emit issues for terms that pass. Explain each inconsistency in plain practical terms, why one form is better for the reader, never by reference to a rule or guideline.
+Report issues following the conventions defined in the `issues` skill. Do not emit issues for terms that pass. Explain each inconsistency in plain practical terms, why one form is better for the reader, never by reference to a rule or guideline.
 
 One issue per inconsistency, anchored to the first occurrence of the minority form and bracketing its paragraph with `start_line` and `end_line`. In the `description`, name the variants, give a count of each, and list the lines where the minority form appears. In `suggested_action`, state the consistent form.
 

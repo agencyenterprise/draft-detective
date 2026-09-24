@@ -94,8 +94,9 @@ PASSAGE_ISSUE_TEMPLATE = """You are grading one reviewer issue against one crite
 {instructions}
 """
 
-_HEADING_RE = re.compile(r"^(#{1,6})\s")
-_FENCE_RE = re.compile(r"^\s*(?:```|~~~)")
+# CommonMark allows up to three leading spaces; four or more make a code block.
+_HEADING_RE = re.compile(r"^ {0,3}(#{1,6})(?:\s|$)")
+_FENCE_RE = re.compile(r"^ {0,3}(?:```|~~~)")
 _LIST_ITEM_RE = re.compile(r"^\s*(?:[-*+]|\d+[.)])\s")
 
 
@@ -185,7 +186,7 @@ def _paragraph_text(lines: list[str], line: int) -> str:
         start -= 1
     while inside(end + 1) and not _LIST_ITEM_RE.match(lines[end + 1]):
         end += 1
-    return "\n".join(lines[start : end + 1]).strip()
+    return "\n".join(lines[start : end + 1])
 
 
 def section_text(document: str, line: int) -> str:

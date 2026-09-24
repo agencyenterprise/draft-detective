@@ -211,7 +211,8 @@ Check uses the first two plus its image check):
    suggested action unless it sets `passage="section"`, which also shows the grader the passage
    the anchor sits in: the section its heading opens when the anchor is a heading, otherwise the
    paragraph around it, bounded by blank lines, headings and list items (Headers & Skimmability
-   grades suggested headers and bold lead sentences that way).
+   grades suggested headers and bold lead sentences that way, Narrative & Synthesis its
+   suggested actions).
 
 Each task passes a one-line description of every metric as `Task(metadata=...)`, which the
 log viewer shows once in its Info tab; per-sample `explanation` text says what happened on

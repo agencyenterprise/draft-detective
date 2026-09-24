@@ -130,6 +130,18 @@ def test_section_text_gives_a_wrapped_paragraph_whole():
     assert section_text(doc, 3) == whole
     assert section_text(doc, 5) == whole
     assert section_text(doc, 7) == "Next paragraph."
+    document = "## Findings\n\nScores rose 5 points in grade 3\nand 2 points in grade 4,\nwhile grade 5 held.\n\nNext paragraph.\n"
+    wrapped = "Scores rose 5 points in grade 3\nand 2 points in grade 4,\nwhile grade 5 held."
+    assert section_text(document, 3) == wrapped
+    assert section_text(document, 4) == wrapped
+    assert section_text(document, 5) == wrapped
+    assert section_text("Intro.\n## Findings\nScores rose.\n", 3) == "Scores rose.", "stops at a heading"
+
+
+def test_section_text_reads_an_indented_heading_but_not_a_code_block():
+    document = "   ## Findings\n\nScores rose.\n\n   ## Methods\n\nRecords.\n"
+    assert section_text(document, 1) == "## Findings\n\nScores rose."
+    assert section_text("    ## Not a heading\n    code\n", 1) == "    ## Not a heading\n    code"
 
 
 def test_section_text_ignores_hashes_in_code_and_splits_list_items():

@@ -34,7 +34,9 @@ against rules or criteria provided in the user message and report any issues fou
 ## Document
 
 The document is available at `/main.md`. Use your tools to read or search its \
-content as needed to evaluate the rules given by the user.
+content as needed to evaluate the rules given by the user. It is a markdown \
+conversion of the uploaded file, so some images may be absent and some tables \
+may have been flattened.
 
 ## Reporting Issues
 
@@ -49,7 +51,11 @@ If nothing qualifies for reporting, make no `report_issue` calls.
 Write the overall review to `/report.md` using `write_file`. This file is the \
 report deliverable: the workflow reads it from the filesystem when you finish, \
 and nothing in your final message is used in its place. Write the whole report, \
-and if you revise it, write it again in full.\
+and if you revise it, write it again in full.
+
+Delimit any LaTeX math with double dollar signs, inline (`the relation \
+$$E = mc^2$$ holds`) or on its own line for display equations. Never use \
+single dollar signs for math: the app reads a single `$` as currency.\
 """
 
 
