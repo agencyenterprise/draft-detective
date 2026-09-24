@@ -152,16 +152,31 @@ def passage_issue_prompt(criterion: str, passage: str, anchor: str, suggested_ac
     )
 
 
+def _paragraph_text(lines: list[str], line: int) -> str:
+    """The paragraph holding ``line``: the lines around it up to a blank line or a
+    heading, so a paragraph wrapped across several lines is passed whole."""
+
+    def inside(i: int) -> bool:
+        return 0 <= i < len(lines) and lines[i].strip() != "" and _HEADING_RE.match(lines[i]) is None
+
+    start = end = line - 1
+    while inside(start - 1):
+        start -= 1
+    while inside(end + 1):
+        end += 1
+    return "\n".join(lines[start : end + 1]).strip()
+
+
 def section_text(document: str, line: int) -> str:
     """The section a markdown heading on ``line`` opens: the heading and every line
     up to the next heading of the same or a higher level. A line that is not a
-    heading is its own passage (a paragraph)."""
+    heading gives the paragraph it sits in."""
     lines = document.split("\n")
     if not 0 < line <= len(lines):
         return ""
     heading = _HEADING_RE.match(lines[line - 1])
     if heading is None:
-        return lines[line - 1]
+        return _paragraph_text(lines, line)
     level = len(heading.group(1))
     end = line
     while end < len(lines):

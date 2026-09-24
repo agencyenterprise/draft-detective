@@ -123,6 +123,15 @@ def test_section_text_runs_to_the_next_heading_of_the_same_level():
     assert section_text(SECTION_DOC, 99) == ""
 
 
+def test_section_text_gives_a_wrapped_paragraph_whole():
+    """A lead sentence's paragraph may be wrapped across lines; the grader needs all of it."""
+    doc = "# T\n\n**Retention.** Of 120 contractors,\n64 left within a year.\nPrincipals cited benefits.\n\nNext paragraph.\n"
+    whole = "**Retention.** Of 120 contractors,\n64 left within a year.\nPrincipals cited benefits."
+    assert section_text(doc, 3) == whole
+    assert section_text(doc, 5) == whole
+    assert section_text(doc, 7) == "Next paragraph."
+
+
 @pytest.mark.asyncio
 async def test_section_passage_criterion_shows_the_grader_the_section():
     grader = _Grader()
