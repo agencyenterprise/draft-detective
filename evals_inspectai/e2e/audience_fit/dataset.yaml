@@ -146,9 +146,11 @@
   decoys:
   - anchor: the estimator is consistent for the sharp bounds on E[Y]
     reason: technical_audience
+    title: Technical Language
   - anchor: we derive its asymptotic variance
     reason: technical_audience
-  notes: No audience is stated, so it is missing; but the document is about a new research method, so the inferred audience is technical and its notation is not flagged.
+    title: Technical Language
+  notes: No audience is stated, so it is missing; but the document is about a new research method, so the inferred audience is technical and its notation is not flagged. Both decoys are titled, since the missing-audience issue sits on the paragraph that says "we derive its asymptotic variance" and may cite the notation to explain the inferred readership; only a technical-language issue on them is a false positive.
 
 # ---- technical language for a policy audience -------------------------------------------------
 - input: |

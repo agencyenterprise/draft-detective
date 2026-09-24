@@ -3,15 +3,18 @@
 The workflow proposes no edits, so its fixes live in the suggested action and
 every criterion grades that. Besides the anchor and the suggested action, the
 grader sees the source text the action has to agree with: the anchor's
-paragraph for technical language, so a changed or dropped finding shows, and
-the whole report for the audience issues, so an audience the report does not
-point to, or a conflicting audience it never names, shows.
+paragraph for a paragraph of technical language, so a changed or dropped
+finding shows; the whole report for a technical passage, which runs over
+several paragraphs the anchor's paragraph does not show, and for the audience
+issues, so an audience the report does not point to, or a conflicting audience
+it never names, shows.
 """
 
 from evals_inspectai.common.issue_inventory import ResolvedIssue
 from evals_inspectai.common.issue_judge import JudgeCriterion
 
 TECHNICAL_TITLE = "Technical Language"
+PASSAGE_TITLE = "Technical Language: Move to Appendix"
 AUDIENCE_TITLES = {"Target Audience Missing", "Target Audience Too Vague"}
 CONFLICT_TITLE = "Target Audience Conflict"
 
@@ -25,6 +28,18 @@ PLAIN_ALTERNATIVE_CRITERION = (
     "offers no alternative and no appendix move, if its alternative is itself technical, if it changes a number "
     "the paragraph reports as a finding or drops one from the upshot it says to keep, or if its alternative "
     "claims more than the paragraph does (for example, turning an association into a cause)."
+)
+
+PASSAGE_CRITERION = (
+    "The sentence opens a passage of technical detail (a model specification, an estimation procedure, "
+    "equations, robustness checks), two or more consecutive main-body paragraphs or a subsection, that the "
+    "report's non-technical audience, such as policymakers or people who run public services, does not need "
+    "in the main text. Find the passage in the report. The suggested action says to move the passage to an "
+    "appendix and names the plain point the main body should keep in its place, in everyday words, drawn "
+    "from what the passage itself concludes. Any number from the passage it restates is unchanged. It is "
+    "incorrect if it does not say to move the passage, if it names no plain point to keep, if that point is "
+    "itself technical, if it changes a number the passage reports or contradicts what the passage concludes, "
+    "or if it claims more than the passage does (for example, turning an association into a cause)."
 )
 
 AUDIENCE_CRITERION = (
@@ -52,7 +67,16 @@ CONFLICT_CRITERION = (
 
 
 def _technical(expected: ResolvedIssue) -> bool:
-    return expected.title is not None and expected.title.startswith(TECHNICAL_TITLE)
+    title = expected.title
+    return (
+        title is not None
+        and title.startswith(TECHNICAL_TITLE)
+        and title != PASSAGE_TITLE
+    )
+
+
+def _passage(expected: ResolvedIssue) -> bool:
+    return expected.title == PASSAGE_TITLE
 
 
 def _audience(expected: ResolvedIssue) -> bool:
@@ -64,7 +88,8 @@ def _conflict(expected: ResolvedIssue) -> bool:
 
 
 JUDGE_DESCRIPTIONS = {
-    "action_plain_alternative": "Graded per technical-language issue: the suggested action gives a plain-language alternative or an appendix move, keeping every number in the paragraph and claiming no more than it (C=1, P=0.5, I=0).",
+    "action_plain_alternative": "Graded per technical-language paragraph: the suggested action gives a plain-language alternative or an appendix move, keeping every number in the paragraph and claiming no more than it (C=1, P=0.5, I=0).",
+    "action_passage_upshot": "Graded per technical passage, with the whole report in view: the suggested action says to move the passage to an appendix and names the plain point to keep, true to every number and to what the passage concludes (C=1, P=0.5, I=0).",
     "action_specific_audience": "Graded per missing or vague audience issue: the suggested action proposes one specific audience that fits the report, as a suggestion for the author to confirm (C=1, P=0.5, I=0).",
     "action_settle_conflict": "Graded per audience conflict issue: the suggested action names both audiences as the report states them and asks the author to settle on one (C=1, P=0.5, I=0).",
 }
@@ -76,6 +101,13 @@ JUDGE_CRITERIA = [
         scope="expected",
         applies_to=_technical,
         passage="section",
+    ),
+    JudgeCriterion(
+        key="action_passage_upshot",
+        criterion=PASSAGE_CRITERION,
+        scope="expected",
+        applies_to=_passage,
+        passage="document",
     ),
     JudgeCriterion(
         key="action_specific_audience",
@@ -95,6 +127,7 @@ JUDGE_CRITERIA = [
 
 SCORE_LABELS = {
     "action_plain_alternative": "Plain alternative",
+    "action_passage_upshot": "Passage upshot",
     "action_specific_audience": "Specific audience",
     "action_settle_conflict": "Settle conflict",
 }

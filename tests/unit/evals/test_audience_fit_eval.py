@@ -7,6 +7,7 @@ from typing import cast
 import pytest
 from inspect_ai.model import Model
 
+from evals_inspectai.common.issue_checks import decoy_scores
 from evals_inspectai.common.issue_inventory import (
     ResolvedIssue,
     decoy_reasons,
@@ -14,6 +15,7 @@ from evals_inspectai.common.issue_inventory import (
     expects_titles,
     load_inventory_records,
 )
+from evals_inspectai.common.issue_judge import judge_sample
 from evals_inspectai.e2e.audience_fit.audience_fit_e2e import audience_fit_e2e
 from evals_inspectai.e2e.audience_fit.criteria import JUDGE_CRITERIA
 from evals_inspectai.e2e.audience_fit.overflow import (
@@ -73,15 +75,19 @@ def test_dataset_is_well_formed():
 
 def test_each_criterion_applies_to_its_own_issues():
     by_key = {c.key: c for c in JUDGE_CRITERIA}
-    plain, audience, conflict = (
+    plain, passage, audience, conflict = (
         by_key["action_plain_alternative"],
+        by_key["action_passage_upshot"],
         by_key["action_specific_audience"],
         by_key["action_settle_conflict"],
     )
-    assert plain.applies_to is not None and audience.applies_to is not None
-    assert conflict.applies_to is not None
+    assert plain.applies_to is not None and passage.applies_to is not None
+    assert audience.applies_to is not None and conflict.applies_to is not None
     assert plain.applies_to(_expected("Technical Language"))
-    assert plain.applies_to(_expected("Technical Language: Move to Appendix"))
+    # A passage runs over several paragraphs, so it has its own criterion, which sees the report.
+    assert not plain.applies_to(_expected("Technical Language: Move to Appendix"))
+    assert passage.applies_to(_expected("Technical Language: Move to Appendix"))
+    assert not passage.applies_to(_expected("Technical Language"))
     assert not plain.applies_to(_expected("Target Audience Missing"))
     assert audience.applies_to(_expected("Target Audience Missing"))
     assert audience.applies_to(_expected("Target Audience Too Vague"))
@@ -92,7 +98,7 @@ def test_each_criterion_applies_to_its_own_issues():
     assert not conflict.applies_to(_expected("Target Audience Too Vague"))
     assert not conflict.applies_to(_expected("Technical Language"))
     # Each grader sees the source its action must agree with.
-    assert plain.passage == "section"
+    assert plain.passage == "section" and passage.passage == "document"
     assert audience.passage == "document" and conflict.passage == "document"
 
 
@@ -233,7 +239,7 @@ class _Grader:
 
     async def generate(self, prompt: str) -> _Completion:
         self.prompts.append(prompt)
-        paragraph = prompt.split("[Paragraph]: ", 1)[1].split("\n", 1)[0]
+        paragraph = prompt.partition("[Paragraph]: ")[2].split("\n", 1)[0]
         failed = self.failing and self.failing in paragraph
         return _Completion("GRADE: I" if failed else "GRADE: C")
 
@@ -282,3 +288,55 @@ async def test_overflow_judge_scores_zero_without_a_single_summary_and_nan_elsew
     ordinary = next(r for r in records if 0 < len(technical_paragraphs(r)) <= CAP)
     values, _ = await summary_alternative_scores(cast(Model, grader), [], ordinary)
     assert math.isnan(values[SUMMARY_KEY])
+
+
+def _record_with(expected_id: str):
+    records = load_inventory_records(DATASET)
+    return next(
+        r for r in records if any(e.id == expected_id for e in r.expected_issues)
+    )
+
+
+def test_a_missing_audience_issue_quoting_the_method_paragraph_is_no_jargon_flag():
+    inventory = _record_with("method_paper_missing")
+    expected = inventory.expected_issues[0]
+    quoting = IssueItem(
+        title="Target Audience Missing",
+        description="The introduction says: 'We propose an estimator ... and we derive its asymptotic variance.'",
+        severity="medium",
+        start_line=expected.line,
+        end_line=expected.line,
+    )
+    values, _ = decoy_scores([quoting], inventory, ["technical_audience"])
+    assert values == {"no_fp_technical_audience": 1.0}
+    jargon = quoting.model_copy(update={"title": "Technical Language"})
+    values, _ = decoy_scores([jargon], inventory, ["technical_audience"])
+    assert values == {"no_fp_technical_audience": 0.0}
+
+
+@pytest.mark.asyncio
+async def test_passage_grader_sees_every_paragraph_of_the_passage():
+    inventory = _record_with("did_passage")
+    expected = next(e for e in inventory.expected_issues if e.id == "did_passage")
+    issue = IssueItem(
+        title="Technical Language: Move to Appendix",
+        severity="medium",
+        start_line=expected.line,
+        end_line=expected.line + 2,
+        suggested_action="Move the model to an appendix and keep the ridership finding.",
+    )
+    grader = _Grader()
+    by_key = {c.key: c for c in JUDGE_CRITERIA}
+    values, _ = await judge_sample(
+        cast(Model, grader),
+        [issue],
+        inventory,
+        [by_key["action_passage_upshot"], by_key["action_plain_alternative"]],
+        one_to_one=True,
+    )
+    assert values["action_passage_upshot"] == 1.0
+    assert math.isnan(values["action_plain_alternative"])
+    second = inventory.document.split("\n")[expected.line + 1]
+    assert (
+        second.startswith("We estimate log ridership") and second in grader.prompts[0]
+    )
