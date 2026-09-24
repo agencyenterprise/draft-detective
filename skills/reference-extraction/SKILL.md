@@ -23,7 +23,7 @@ The document may be in markdown converted from a DOC or PDF file. Due to the con
 - Each reference should be a complete bibliographic entry.
 - Do not include in-text citations — only extract the full reference entries from the bibliography section.
 - If no reference section is found, return an empty list.
-- Footnotes might appear at the end of the document in a format like "160. Text content here #footnote-ref-160"; ignore them, as they are not part of the reference list.
+- Footnotes or endnotes might be collected at the end of the document as numbered notes (e.g. "160. Text content here"), sometimes followed by a back-link left by the conversion; ignore them, as they are not part of the reference list.
 - Preserve the original text of each reference exactly as it appears, except for the following:
     - Remove entry numbers (e.g., `[1]`, `1.`, `(1)`) from the beginning of the reference text.
     - If you see a placeholder for repeated authors at the start of a reference (commonly `---.` but also `———.`, `___`, or similar patterns), replace it with the author from the previous reference.

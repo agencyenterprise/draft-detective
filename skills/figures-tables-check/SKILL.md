@@ -56,7 +56,7 @@ A figure's content may be an embedded image, or it may be given as a table, a co
 - To confirm that an image near a caption is really the exhibit the caption describes (Rule 1). An image that is only a blank box or a placeholder ("chart to be inserted", "TBD") is not the figure: the figure the caption and body refer to is missing (Rule 4).
 - When a figure label or caption appears with no image nearby, or an image appears with no caption — check the image before reporting, since the caption may be rendered inside the image itself.
 
-Tables are markdown text and need no image viewing. If an image cannot be viewed (no image-viewing capability, unsupported format, missing file), evaluate the rules from the image's alt text and the surrounding text instead.
+A table given as text needs no image viewing; a table rendered as an image is judged like a figure. If an image cannot be viewed (no image-viewing capability, unsupported format, missing file), evaluate the rules from the image's alt text and the surrounding text instead.
 
 ## Exclusion — Abbreviation / Acronym tables
 
@@ -66,4 +66,4 @@ Many documents contain a dedicated **Abbreviations**, **Acronyms**, or **List of
 
 ## Reporting
 
-For each rule that fails, report one issue following the conventions defined in the issues skill (`/skills/issues/SKILL.md`). Do not create issues for rules that pass.
+For each rule that fails, report one issue following the conventions defined in the `issues` skill. Do not create issues for rules that pass.

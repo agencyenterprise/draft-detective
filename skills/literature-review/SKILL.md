@@ -47,4 +47,4 @@ For each topic of discussion in the document, research relevant high-quality sou
 
 Report each recommended source as a separate, actionable recommendation, and provide an overall summary of the review — organized by topic of discussion — that lists the **full citation** for every source you recommend (so the reader can locate each one at a glance).
 
-Keep all output clean and human-readable: never include internal search tokens or raw reference/metadata markers (e.g. `turn1search0`) in any field.
+Keep all output clean and human-readable: never include internal search-result tokens or raw reference/metadata markers left by a search tool in any field.

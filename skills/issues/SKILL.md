@@ -49,9 +49,9 @@ Choose based on impact on document quality:
 - `"high"` — critical problems that significantly undermine document integrity: missing required sections, broken or unresolvable references, absent mandatory elements.
 - `"medium"` — notable problems that reduce clarity or compliance: incomplete sections, unreferenced figures or tables, inconsistent numbering, rule violations that affect readability.
 - `"low"` — minor issues with minimal impact: style suggestions, optional improvements, minor formatting inconsistencies.
-- `"none"` — **informational, opt-in only.** Use exclusively when the workflow's user prompt explicitly asks you to surface valid / passing checks alongside problems (e.g. confirming a recommendation is well-grounded, attesting that a section meets a rule). Never emit `"none"` issues unless the workflow instructions request them — by default, do not create entries for rules that pass.
+- `"none"` — **informational, opt-in only.** Use exclusively when your task instructions explicitly ask you to surface valid / passing checks alongside problems (e.g. confirming a recommendation is well-grounded, attesting that a section meets a rule). Never emit `"none"` issues unless your task instructions request them — by default, do not create entries for rules that pass.
 
-When the workflow instructions specify a severity for a particular rule, always use that value.
+When your task instructions specify a severity for a particular rule, always use that value.
 
 **`start_line`** (`int`)
 The 1-indexed line number in the supplied document where the text relevant to this issue begins. Set to `1` when no specific location can be determined (e.g. a missing section that is absent from the entire document).
@@ -62,13 +62,13 @@ The 1-indexed line number in the supplied document where the relevant text ends.
 **`suggested_action`** (`str`, optional, markdown supported)
 A direct, concise recommendation to the author on what to do to resolve this issue. Set this field whenever a concrete author-facing fix applies; omit it when no actionable recommendation can be made (e.g. for purely diagnostic findings).
 
-The `suggested_action` is downstream-consumed: another agent will read the original document together with the issue and this field, and apply the change. Be specific enough that this is possible without further clarification — point to the exact location, name the element, and state the change in imperative form (e.g. *"Replace 'Figure 3' with 'Figure 2' on line 142 to match the figure caption."*, *"Add a citation supporting the sentence on line 88. Do not invent the citation — flag for the author to provide one."*).
+Write the `suggested_action` so that someone holding only the document and this issue could apply the change without further clarification — point to the exact location, name the element, and state the change in imperative form (e.g. *"Replace 'Figure 3' with 'Figure 2' on line 142 to match the figure caption."*, *"Add a citation supporting the sentence on line 88. Do not invent the citation — flag for the author to provide one."*).
 
 **Critique, do not generate.** Suggest formulaic fixes (rewording, restructuring, pointing to where a citation is needed, fixing a numbering mismatch) but never fabricate content. Do not invent citations, references, data, or new prose paragraphs. For nuanced cases where the right fix requires author judgement, plain guidance text is acceptable (e.g. *"Add a citation to support this specific sentence — the author should select an appropriate source."*).
 
 Keep it short — one or two sentences, or a tight bulleted list if multiple sub-steps are needed.
 
-**`edits`** (list, optional; only when the workflow enables proposed edits)
+**`edits`** (list, optional; only when your instructions enable proposed edits)
 Zero or more mechanical text replacements that resolve the issue. An edit is the structured form of `suggested_action`: it says exactly which characters to swap, so the fix can be applied without re-reading the document. Each edit has:
 
 - **`original_text`** (`str`, required) — the text to replace, quoted **verbatim** from the document. It must appear exactly once inside the issue's `start_line`–`end_line` range; if a short quote repeats, widen it (up to the whole line) so it is unique and make the change inside it. It must sit within a single line of the document — an edit never crosses a line break, so it stays inside one paragraph.
@@ -91,17 +91,17 @@ When used, format `long_description` with markdown to maximize readability:
 
 ### Structured Issues List
 
-Report one issue per problem found. Only create an issue for a failing rule or missing element — do not add entries for rules that pass, **unless** the workflow's user prompt explicitly asks you to surface passing checks as informational (`severity: "none"`) items.
+Report one issue per problem found. Only create an issue for a failing rule or missing element — do not add entries for rules that pass, **unless** your task instructions explicitly ask you to surface passing checks as informational (`severity: "none"`) items.
 
 ### Structured Line-Number Conventions
 
-- Line numbers are 1-indexed: the first line of the supplied document is line 1. Use the workflow's designated document and line numbering.
+- Line numbers are 1-indexed: the first line of the supplied document is line 1. When your instructions designate the document or line numbering to use, follow them.
 - For issues tied to a specific passage, set `start_line` and `end_line` to bracket that passage.
 - For issues with no specific line or line range — for example, a finding that a required section is missing entirely from the document — set both `start_line` and `end_line` to `1`. **Never** report such an issue with a range that spans the entire document; a whole-document range is reserved for problems that genuinely apply to every line.
 
 ## Best Practices for All Formats
 
-- Report only genuine problems. Do not create issues for rules that pass, unless the workflow instructions explicitly request informational (`severity: "none"`) entries for passing checks.
+- Report only genuine problems. Do not create issues for rules that pass, unless your task instructions explicitly request informational (`severity: "none"`) entries for passing checks.
 - Each issue should be individually actionable — a reader should be able to locate the problem and fix it without further clarification.
 - Descriptions must be grounded in the document content; never speculate or invent details.
-- When multiple rules fail for the same element, create one issue per failed rule so each is independently actionable (unless the workflow instructions say otherwise).
+- When multiple rules fail for the same element, create one issue per failed rule so each is independently actionable (unless your task instructions say otherwise).
