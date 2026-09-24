@@ -59,7 +59,7 @@ Report problems; do not rewrite the document. Each issue says what is wrong and,
 
 ## Reporting
 
-Report issues following the conventions defined in the issues skill (`/skills/issues/SKILL.md`). Do not emit issues for checks that pass. Explain each problem in plain practical terms, what the reader loses and why the change would help them, never by reference to a rule or guideline.
+Report issues following the conventions defined in the `issues` skill. Do not emit issues for checks that pass. Explain each problem in plain practical terms, what the reader loses and why the change would help them, never by reference to a rule or guideline.
 
 - **Data without synthesis** → one issue per passage, title `"Data Without Synthesis"`, **severity: medium**. Quote the passage's first sentence in the `description` and bracket the passage with `start_line` and `end_line`. The `suggested_action` names the candidate takeaway the figures support, as described in the procedure.
 - **Illogical order** → one issue per document, title `"Illogical Order"`, **severity: medium**. Anchor it to the introductory section, bracketing that section with `start_line` and `end_line`. In the `description`, name each section or passage that is out of place; in `suggested_action`, give the order you propose.
