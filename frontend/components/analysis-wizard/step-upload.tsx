@@ -3,7 +3,7 @@
 import { Button } from '@/components/ui/button';
 import { UploadSection } from '@/components/analysis-form/upload-section';
 import { FileRole } from '@/lib/generated-api';
-import { AlertCircle, Check, Loader2, Rocket, AlertTriangle } from 'lucide-react';
+import { AlertCircle, Check, Loader2, Rocket, AlertTriangle, FileWarning } from 'lucide-react';
 import { useStepUpload } from './use-step-upload';
 import { StepHeading, StepLayout } from './step-layout';
 import { PreflightStatus } from './wizard-context';
@@ -80,6 +80,8 @@ export function StepUpload({ onComplete }: StepUploadProps) {
           onRemoveFile={() => handleDocumentChange([])}
         />
 
+        {mainDocument && isPdf(mainDocument) && <PdfQualityNotice />}
+
         <p className="text-sm text-muted-foreground -mt-4">
           <span className="font-medium">Tip:</span> You can upload only a <strong>specific section</strong> of your
           document if you prefer. For example, upload just the references section if you&apos;re only interested in
@@ -90,6 +92,27 @@ export function StepUpload({ onComplete }: StepUploadProps) {
         <PreflightChecklist preflightStatus={preflightStatus} />
       </div>
     </StepLayout>
+  );
+}
+
+function isPdf(file: File): boolean {
+  return file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+}
+
+/** PDFs lose structure on conversion, so steer the user to the Word file while they can still swap it. */
+function PdfQualityNotice() {
+  return (
+    <div
+      role="status"
+      className="-mt-2 flex items-start gap-2.5 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm dark:border-amber-900 dark:bg-amber-950/30"
+    >
+      <FileWarning aria-hidden className="mt-0.5 size-4 shrink-0 text-amber-700 dark:text-amber-400" />
+      <p className="text-amber-900 dark:text-amber-200">
+        <span className="font-medium">PDFs convert with lower quality than Word files.</span> Headings, tables,
+        footnotes and references can come through incomplete or out of order, which makes the assessments less accurate.
+        If you have the .docx version of this draft, upload that instead.
+      </p>
+    </div>
   );
 }
 
