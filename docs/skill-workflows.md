@@ -129,10 +129,12 @@ the criteria the judge grades. None of that is tied to skill-declared workflows:
 that reports issues can be evaluated the same way. `evals_inspectai/e2e/concision_precision/` and
 `evals_inspectai/e2e/writing_consistency/` are the second and third skill-declared workflows on it, each
 with its own `criteria.py` (a deterministic edit check plus judged criteria); `evals_inspectai/e2e/recommendation_check/`
-scores a hand-written workflow with free-form titles and no edits on the same loader and scorers
-(`expects_edits` and `expects_titles` read off the inventory that no edits and no titles are
-expected, and `issue_checks(edits=False, titles=False)` then leaves the edit-hygiene and title keys
-out, so the eval emits no key it can never score). Its skill requires one issue per
+scores a hand-written workflow with no edits on the same loader and scorers
+(`expects_edits` reads off the inventory that no edits are expected, and `issue_checks(edits=False)`
+then leaves the edit-hygiene keys out, so the eval emits no key it can never score). Its support
+issues have free-form titles, which the inventory leaves unnamed, while its actionability, audience and
+length issues have fixed titles it names; its decoys on recommendations carry a `title`, since every
+recommendation is reported for support and the decoy only says it must not get that one kind. Its skill requires one issue per
 recommendation occurrence, so it passes `one_to_one=True`: a reported issue covers at most one expected
 issue, and a run that merges two restatements loses recall on the second. Active Voice keeps the
 default, where one paragraph-level issue may cover several expected sentences.
@@ -161,6 +163,10 @@ anchored by a verbatim quote, so the scorer knows whether the run found *that* s
   decoys:
     - anchor: "The scope is limited to"
       reason: stative                                 # free-form; becomes the metric no_fp_stative
+      title: Passive Voice                            # optional: flagged only by an issue under this
+                                                    # title, when a correct run reports the sentence
+                                                    # under another (every recommendation gets a
+                                                    # support issue, but not every one is vague)
 ```
 
 `line` is resolved from the anchor at load time and the loader fails on an anchor that is
