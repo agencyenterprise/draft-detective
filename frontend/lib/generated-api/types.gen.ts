@@ -4224,6 +4224,7 @@ export const WorkflowRunType = {
   ActiveVoice: 'active_voice',
   ConcisionPrecision: 'concision_precision',
   WritingConsistency: 'writing_consistency',
+  HeadersSkimmability: 'headers_skimmability',
 } as const;
 
 /**

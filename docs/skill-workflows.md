@@ -201,7 +201,9 @@ Check uses the first two plus its image check):
    mapped to 1, 0.5 and 0. A detected issue that offers no suggested action scores 0 on an
    action criterion, not NaN. Inspect's built-in scorers grade one answer per sample, which is
    why the loop over edits is ours and the protocol is theirs. Pass `judge_calls=3` to take
-   the median on a noisy criterion.
+   the median on a noisy criterion. An issue-level criterion sees only the anchor and the
+   suggested action unless it sets `passage="section"`, which also shows the grader the section
+   the anchor's heading opens (Headers & Skimmability grades a suggested header that way).
 
 Each task passes a one-line description of every metric as `Task(metadata=...)`, which the
 log viewer shows once in its Info tab; per-sample `explanation` text says what happened on

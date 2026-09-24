@@ -74,6 +74,28 @@ ISSUE_TEMPLATE = """You are grading one reviewer issue against one criterion.
 {instructions}
 """
 
+# For an issue about a header, the header alone is no evidence: the grader also
+# sees the section it heads, so it can tell whether a suggested header says what
+# the section shows.
+PASSAGE_ISSUE_TEMPLATE = """You are grading one reviewer issue against one criterion.
+
+[BEGIN DATA]
+************
+[Passage the issue is about]: {passage}
+************
+[Text the issue quotes or is anchored to]: {question}
+************
+[Reviewer's suggested action]: {answer}
+************
+[Criterion]: {criterion}
+************
+[END DATA]
+
+{instructions}
+"""
+
+_HEADING_RE = re.compile(r"^(#{1,6})\s")
+
 
 class JudgeCriterion(BaseModel):
     """One criterion the grader applies per edit or per expected."""
@@ -85,6 +107,9 @@ class JudgeCriterion(BaseModel):
     scope: Literal["edit", "expected"] = "edit"
     # Which expected issues this criterion applies to; None means every detected one.
     applies_to: Optional[Callable[[ResolvedIssue], bool]] = None
+    # What an expected-scope criterion shows the grader besides the anchor:
+    # nothing, or the section the anchor's line opens (see ``section_text``).
+    passage: Literal["none", "section"] = "none"
 
 
 def parse_grade(completion: str) -> float:
@@ -115,6 +140,36 @@ def issue_prompt(criterion: str, sentence: str, suggested_action: str) -> str:
         criterion=criterion,
         instructions=default_instructions(partial_credit=True),
     )
+
+
+def passage_issue_prompt(criterion: str, passage: str, anchor: str, suggested_action: str) -> str:
+    return PASSAGE_ISSUE_TEMPLATE.format(
+        passage=passage,
+        question=anchor,
+        answer=suggested_action,
+        criterion=criterion,
+        instructions=default_instructions(partial_credit=True),
+    )
+
+
+def section_text(document: str, line: int) -> str:
+    """The section a markdown heading on ``line`` opens: the heading and every line
+    up to the next heading of the same or a higher level. A line that is not a
+    heading is its own passage (a paragraph)."""
+    lines = document.split("\n")
+    if not 0 < line <= len(lines):
+        return ""
+    heading = _HEADING_RE.match(lines[line - 1])
+    if heading is None:
+        return lines[line - 1]
+    level = len(heading.group(1))
+    end = line
+    while end < len(lines):
+        following = _HEADING_RE.match(lines[end])
+        if following is not None and len(following.group(1)) <= level:
+            break
+        end += 1
+    return "\n".join(lines[line - 1 : end]).strip()
 
 
 def _paragraph(expected: ResolvedIssue, document: str) -> str:
@@ -159,6 +214,10 @@ async def judge_sample(
                     record(criterion, expected, *await grade(grader, prompt, calls))
             elif not issue.suggested_action:
                 record(criterion, expected, 0.0, "no suggested action to judge")
+            elif criterion.passage == "section":
+                passage = section_text(inventory.document, expected.line)
+                prompt = passage_issue_prompt(criterion.criterion, passage, expected.anchor, issue.suggested_action)
+                record(criterion, expected, *await grade(grader, prompt, calls))
             else:
                 prompt = issue_prompt(criterion.criterion, expected.anchor, issue.suggested_action)
                 record(criterion, expected, *await grade(grader, prompt, calls))
