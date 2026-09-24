@@ -13,6 +13,24 @@ jobs:
         with:
           package_json_file: ./frontend/package.json
 
+      # Pins Node to .nvmrc (the runner default is older than `engines` asks
+      # for) and restores the pnpm store, so install links packages instead of
+      # downloading all of them.
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: frontend/.nvmrc
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Cache Next.js build
+        uses: actions/cache@v4
+        with:
+          path: frontend/.next/cache
+          key: nextjs-${{ runner.os }}-${{ hashFiles('frontend/pnpm-lock.yaml') }}-${{ hashFiles('frontend/**/*.[jt]s', 'frontend/**/*.[jt]sx', '!frontend/node_modules/**') }}
+          restore-keys: |
+            nextjs-${{ runner.os }}-${{ hashFiles('frontend/pnpm-lock.yaml') }}-
+
       - name: Install dependencies
         run: pnpm install
         working-directory: ./frontend
