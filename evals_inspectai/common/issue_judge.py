@@ -99,6 +99,10 @@ PASSAGE_LABELS = {"section": "Passage the issue is about", "document": "The full
 
 # CommonMark allows up to three leading spaces; four or more make a code block.
 _HEADING_RE = re.compile(r"^ {0,3}(#{1,6})(?:\s|$)")
+# A fence opens with three or more backticks or tildes and closes on a line of the
+# same character, at least as many of it, and nothing after.
+_FENCE_RE = re.compile(r"^ {0,3}(`{3,}|~{3,})(.*)$")
+_LIST_ITEM_RE = re.compile(r"^\s*(?:[-*+]|\d+[.)])\s")
 
 
 class JudgeCriterion(BaseModel):
@@ -160,46 +164,66 @@ def passage_issue_prompt(
     )
 
 
+def _closes(fence: str, marker: str, rest: str) -> bool:
+    return marker[0] == fence[0] and len(marker) >= len(fence) and not rest.strip()
+
+
+def _heading_levels(lines: list[str]) -> list[int]:
+    """The markdown heading level of each line, 0 for a line that is not a heading,
+    including a ``#`` line inside a fenced code block."""
+    levels: list[int] = []
+    fence: Optional[str] = None
+    for line in lines:
+        marker = _FENCE_RE.match(line)
+        if marker is not None and fence is None:
+            fence = marker.group(1)
+        elif marker is not None and fence is not None and _closes(fence, marker.group(1), marker.group(2)):
+            fence = None
+        heading = None if fence is not None or marker is not None else _HEADING_RE.match(line)
+        levels.append(len(heading.group(1)) if heading else 0)
+    return levels
+
+
+def _paragraph_text(lines: list[str], line: int) -> str:
+    """The paragraph holding ``line``: the lines around it up to a blank line, a
+    heading or the next list item, so a paragraph wrapped across several lines is
+    passed whole and a list item is passed without its siblings."""
+    if not 0 < line <= len(lines):
+        return ""
+    levels = _heading_levels(lines)
+    if levels[line - 1]:
+        return lines[line - 1]
+
+    def inside(i: int) -> bool:
+        return 0 <= i < len(lines) and lines[i].strip() != "" and levels[i] == 0
+
+    start = end = line - 1
+    while inside(start - 1) and not _LIST_ITEM_RE.match(lines[start]):
+        start -= 1
+    while inside(end + 1) and not _LIST_ITEM_RE.match(lines[end + 1]):
+        end += 1
+    return "\n".join(lines[start : end + 1])
+
+
 def section_text(document: str, line: int) -> str:
     """The section a markdown heading on ``line`` opens: the heading and every line
     up to the next heading of the same or a higher level. A line that is not a
-    heading gives its paragraph: the nonblank lines around it, which covers a
-    paragraph wrapped over several lines."""
+    heading gives the paragraph it sits in."""
     lines = document.split("\n")
     if not 0 < line <= len(lines):
         return ""
-    heading = _HEADING_RE.match(lines[line - 1])
-    if heading is None:
-        return _wrapped_paragraph(lines, line - 1)
-    level = len(heading.group(1))
+    levels = _heading_levels(lines)
+    level = levels[line - 1]
+    if not level:
+        return _paragraph_text(lines, line)
     end = line
-    while end < len(lines):
-        following = _HEADING_RE.match(lines[end])
-        if following is not None and len(following.group(1)) <= level:
-            break
+    while end < len(lines) and not 0 < levels[end] <= level:
         end += 1
     return "\n".join(lines[line - 1 : end]).strip()
 
 
-def _in_paragraph(text: str) -> bool:
-    return bool(text.strip()) and _HEADING_RE.match(text) is None
-
-
-def _wrapped_paragraph(lines: list[str], index: int) -> str:
-    """The run of nonblank, non-heading lines around ``lines[index]``."""
-    if not _in_paragraph(lines[index]):
-        return lines[index]
-    start, end = index, index + 1
-    while start > 0 and _in_paragraph(lines[start - 1]):
-        start -= 1
-    while end < len(lines) and _in_paragraph(lines[end]):
-        end += 1
-    return "\n".join(lines[start:end])
-
-
 def _paragraph(expected: ResolvedIssue, document: str) -> str:
-    lines = document.split("\n")
-    return lines[expected.line - 1] if 0 < expected.line <= len(lines) else ""
+    return _paragraph_text(document.split("\n"), expected.line)
 
 
 async def judge_sample(

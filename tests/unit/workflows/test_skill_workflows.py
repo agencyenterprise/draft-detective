@@ -117,6 +117,7 @@ def test_presets_carry_the_skills_that_name_them():
         "writing_consistency",
         "audience_fit",
         "narrative_synthesis",
+        "headers_skimmability",
     }
     picker_order = [t for category in response.categories for t in category.workflows]
     assert editorial.workflows == sorted(editorial.workflows, key=picker_order.index)

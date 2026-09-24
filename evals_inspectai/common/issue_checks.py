@@ -227,7 +227,7 @@ def edits_for(expected: ResolvedIssue, issue: IssueItem) -> list[ProposedEdit]:
     return [e for e in issue.edits if overlaps(expected.anchor, e.original_text)]
 
 
-def _fraction(values: Sequence[float]) -> float:
+def fraction(values: Sequence[float]) -> float:
     return sum(values) / len(values) if values else NOT_APPLICABLE
 
 
@@ -339,7 +339,7 @@ def edit_checks(
 
     line_text = lines[expected.line - 1] if 0 < expected.line <= len(lines) else ""
     on_line = [float(normalize(e.original_text) in normalize(line_of(e))) for e in edits]
-    out["edit_quote_on_line"] = (_fraction(on_line), f"{expected.id}: {int(sum(on_line))}/{len(edits)} quotes found verbatim on their line")
+    out["edit_quote_on_line"] = (fraction(on_line), f"{expected.id}: {int(sum(on_line))}/{len(edits)} quotes found verbatim on their line")
 
     if expected.edit is not None:
         # Phrases are judged on the sentence the edits produce: each replacement plus the
@@ -357,13 +357,13 @@ def edit_checks(
             missing = [p for p in expected.edit.must_include if normalize(p) not in seen]
             forbidden = [p for p in expected.edit.must_not_include if normalize(p) in seen]
             ok.append(float(not missing and not forbidden))
-        out["edit_expected_phrases"] = (_fraction(ok), f"{expected.id}: {int(sum(ok))}/{len(edits)} replacements carry the expected phrasing")
+        out["edit_expected_phrases"] = (fraction(ok), f"{expected.id}: {int(sum(ok))}/{len(edits)} replacements carry the expected phrasing")
 
     kept = [float(_tokens(e.original_text) == _tokens(e.replacement_text)) for e in edits]
-    out["edit_keeps_numbers_and_markers"] = (_fraction(kept), f"{expected.id}: {int(sum(kept))}/{len(edits)} replacements keep every number, footnote marker and citation")
+    out["edit_keeps_numbers_and_markers"] = (fraction(kept), f"{expected.id}: {int(sum(kept))}/{len(edits)} replacements keep every number, footnote marker and citation")
 
     clean = [float(not (_stranded(e.replacement_text) - _stranded(e.original_text))) for e in edits]
-    out["edit_punctuation"] = (_fraction(clean), f"{expected.id}: {int(sum(clean))}/{len(edits)} replacements add no stranded punctuation")
+    out["edit_punctuation"] = (fraction(clean), f"{expected.id}: {int(sum(clean))}/{len(edits)} replacements add no stranded punctuation")
 
     for name, check in (extra or {}).items():
         verdicts = [check(e) for e in edits]
@@ -372,7 +372,7 @@ def edit_checks(
             continue  # nothing this check could assess here; the key stays NaN
         skipped = len(verdicts) - len(results)
         detail = f"{expected.id}: {int(sum(results))}/{len(results)} replacements pass {name}"
-        out[f"edit_{name}"] = (_fraction(results), detail + (f" ({skipped} not assessable)" if skipped else ""))
+        out[f"edit_{name}"] = (fraction(results), detail + (f" ({skipped} not assessable)" if skipped else ""))
     return out
 
 
@@ -550,9 +550,9 @@ def issue_detection_scores(
 
     if pairs:
         if titles:
-            values["title_correct"] = _fraction([float(_title_matches(i, e.title)) for e, i in pairs if e.title])
-        values["severity_correct"] = _fraction([float(i.severity == e.severity) for e, i in pairs if e.severity])
-        values["anchor_in_range"] = _fraction([float(i.start_line <= e.line <= i.end_line) for e, i in pairs])
+            values["title_correct"] = fraction([float(_title_matches(i, e.title)) for e, i in pairs if e.title])
+        values["severity_correct"] = fraction([float(i.severity == e.severity) for e, i in pairs if e.severity])
+        values["anchor_in_range"] = fraction([float(i.start_line <= e.line <= i.end_line) for e, i in pairs])
         notes += [f"{e.id}: reported as {i.title!r}, not under {e.title!r}" for e, i in pairs if e.title and not _title_matches(i, e.title)]
         notes += [f"{e.id}: severity {i.severity}, expected {e.severity}" for e, i in pairs if e.severity and i.severity != e.severity]
         notes += [f"{e.id}: lines {i.start_line}-{i.end_line} do not bracket line {e.line}" for e, i in pairs if not i.start_line <= e.line <= i.end_line]
@@ -564,7 +564,7 @@ def issue_detection_scores(
                 if value < 1.0:
                     notes.append(detail)
         for key, vals in collected.items():
-            values[key] = _fraction(vals)
+            values[key] = fraction(vals)
 
     return values, " | ".join(notes) if notes else "all checks passed"
 
@@ -590,7 +590,7 @@ def extra_edit_scores(
                 if value < 1.0:
                     notes.append(detail)
     for key, vals in collected.items():
-        values[key] = _fraction(vals)
+        values[key] = fraction(vals)
     return values, " | ".join(notes) if notes else "all checks passed"
 
 

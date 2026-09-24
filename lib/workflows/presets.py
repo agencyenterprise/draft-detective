@@ -46,11 +46,9 @@ WORKFLOW_PRESETS: list[PresetConfig] = [
         description=(
             "The editorial department's checks: who does what, every sentence "
             "earning its length, one voice throughout, words that fit the "
-            "reader, data turned into an argument, and neutral tone."
+            "reader, data turned into an argument, headers that carry the "
+            "point, and neutral tone."
         ),
-        # The skill-declared checks (active voice, concision and precision,
-        # writing consistency, audience fit, narrative and synthesis) add
-        # themselves from their frontmatter.
         workflows=[
             WorkflowRunType.ADVOCACY_TONE_V2,
         ],
