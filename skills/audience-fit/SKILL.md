@@ -65,7 +65,7 @@ Report problems; do not rewrite the document. Each issue carries its fix in the 
 
 ## Reporting
 
-Report issues following the conventions defined in the issues skill (`/skills/issues/SKILL.md`). Do not emit issues for anything that passes. Explain each problem in plain practical terms, what the reader will not follow or who will not know the report is for them, never by reference to a rule or guideline.
+Report issues following the conventions defined in the issues skill. Do not emit issues for anything that passes. Explain each problem in plain practical terms, what the reader will not follow or who will not know the report is for them, never by reference to a rule or guideline.
 
 - **Target audience missing** → one issue per document, title `"Target Audience Missing"`, **severity: medium**. Anchor it to the first body paragraph of the introductory section (the introduction or first chapter of the main body; the first body paragraph of the document when there is neither), bracketing that paragraph with `start_line` and `end_line`. In `suggested_action`, name the audience the document's content points to and suggest one sentence's worth of what to say.
 - **Target audience too vague** → one issue per document, title `"Target Audience Too Vague"`, **severity: medium**. Anchor it to the first sentence that names the vague audience and quote every sentence that names it. In `suggested_action`, suggest the narrower audience the document's content points to.

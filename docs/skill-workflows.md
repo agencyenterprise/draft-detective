@@ -71,16 +71,22 @@ are good models.
 - Use stable issue titles and fixed severities, and state them in a Reporting section.
   Evals match a reported issue to an expected one by its title and the sentence it quotes,
   and reviewers learn to scan for the titles.
-- Point at the issues skill for the output contract: "Report issues following the
-  conventions defined in the issues skill (`/skills/issues/SKILL.md`)". That skill is
-  mounted alongside yours and defines every field, including proposed edits.
+- Point at the issues skill for the output contract, by name: "Report issues following
+  the conventions defined in the issues skill". That skill ships alongside yours and
+  defines every field, including proposed edits. Refer to companion skills by name, never
+  by a path such as `/skills/issues/SKILL.md`: where a skill is mounted is the runtime's
+  business, and this repo's agents already name the path in their system prompts (see
+  `lib/workflows/simple_deep_agent/agent.py`). `tests/unit/test_skills.py` fails on a
+  skill that embeds one; the skills that predate the rule are listed there until they
+  are moved over.
 - Say how many issues to emit per finding (one per occurrence, one per paragraph, one
   per document) and, for checks that can fire on most paragraphs, add a cap with a
   single summary issue once it is reached.
 - Ask for a short report: what was checked, what was found, what was skipped.
 - Stay environment-agnostic. Skills ship as a plugin to other runtimes, so never name
   a tool of this repo's agent; write "when you have a way to view images" or "when you
-  can attach proposed edits". `tests/unit/test_skills.py` fails on known tool names.
+  can attach proposed edits". `tests/unit/test_skills.py` fails on known tool names
+  and on paths to other skills.
 - Sections meant only for an interactive session (asking for web-search consent, say)
   go between `<!-- interactive-only:start -->` and `<!-- interactive-only:end -->`
   markers; the backend strips them.
