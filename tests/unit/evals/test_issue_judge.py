@@ -124,6 +124,12 @@ def test_section_text_runs_to_the_next_heading_of_the_same_level():
 
 
 def test_section_text_gives_a_wrapped_paragraph_whole():
+    """A lead sentence's paragraph may be wrapped across lines; the grader needs all of it."""
+    doc = "# T\n\n**Retention.** Of 120 contractors,\n64 left within a year.\nPrincipals cited benefits.\n\nNext paragraph.\n"
+    whole = "**Retention.** Of 120 contractors,\n64 left within a year.\nPrincipals cited benefits."
+    assert section_text(doc, 3) == whole
+    assert section_text(doc, 5) == whole
+    assert section_text(doc, 7) == "Next paragraph."
     document = "## Findings\n\nScores rose 5 points in grade 3\nand 2 points in grade 4,\nwhile grade 5 held.\n\nNext paragraph.\n"
     wrapped = "Scores rose 5 points in grade 3\nand 2 points in grade 4,\nwhile grade 5 held."
     assert section_text(document, 3) == wrapped
@@ -136,6 +142,33 @@ def test_section_text_reads_an_indented_heading_but_not_a_code_block():
     document = "   ## Findings\n\nScores rose.\n\n   ## Methods\n\nRecords.\n"
     assert section_text(document, 1) == "## Findings\n\nScores rose."
     assert section_text("    ## Not a heading\n    code\n", 1) == "    ## Not a heading\n    code"
+
+
+def test_section_text_ignores_hashes_in_code_and_splits_list_items():
+    fenced = "# T\n\n## A\n\n```\n# comment\n```\nmore\n\n## B\n"
+    assert section_text(fenced, 3) == "## A\n\n```\n# comment\n```\nmore"
+    # Inside a four-backtick fence, a three-backtick line is content, not the close.
+    longer = "# T\n\n## A\n\n````\n```\n# comment\n````\nmore\n\n## B\n"
+    assert section_text(longer, 3) == "## A\n\n````\n```\n# comment\n````\nmore"
+    # A line with an info string does not close a fence.
+    info = "# T\n\n## A\n\n```\n```python\n# comment\n```\nmore\n\n## B\n"
+    assert section_text(info, 3) == "## A\n\n```\n```python\n# comment\n```\nmore"
+    listed = "# T\n\n- **Retention.** Staff stayed\n  longer.\n- **Cost.** Staff cost more.\n"
+    assert section_text(listed, 3) == "- **Retention.** Staff stayed\n  longer."
+    assert section_text(listed, 5) == "- **Cost.** Staff cost more."
+
+
+@pytest.mark.asyncio
+async def test_edit_prompt_carries_a_wrapped_paragraph_whole():
+    doc = "# Title\n\nThe institute was established in 1962.\nIt grew fast.\n"
+    edit = ProposedEdit(original_text="The institute was established in 1962.", replacement_text="Nine countries established the institute in 1962.", start_line=3, end_line=3)
+    issue = IssueItem(title="Passive Voice", start_line=3, end_line=3, edits=[edit])
+    inventory = ResolvedInventory(document=doc, expected_issues=[_expected(line=3, edit_expected=True)], decoys=[])
+    grader = _Grader()
+
+    await judge_sample(cast(Model, grader), [issue], inventory, [MEANING])
+
+    assert "[Paragraph the sentence sits in]: The institute was established in 1962.\nIt grew fast." in grader.prompts[0]
 
 
 @pytest.mark.asyncio
