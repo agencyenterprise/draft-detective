@@ -4,7 +4,9 @@ The generic inventory scorer checks that expected issues were detected and that
 edits keep the text intact. This module says what an Active Voice edit must
 do on top: remove the passive (deterministic), preserve meaning while naming
 the actor the text supports, read well in place, and, where the actor is
-unknown, ask the author rather than guess (graded).
+unknown, ask the author rather than guess (graded). The two edit criteria are
+calibrated against human-labelled edit pairs by
+``active_voice_judge_calibration.py``.
 """
 
 import re

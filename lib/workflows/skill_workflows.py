@@ -25,6 +25,7 @@ from lib.skill_workflow_spec import (
 )
 from lib.workflows.categories import WORKFLOW_DISPLAY_CONFIG
 from lib.workflows.models import WorkflowRunType
+from lib.workflows.presets import WORKFLOW_PRESETS
 from lib.workflows.simple_deep_agent.manifest_base import SimpleDeepAgentManifest
 
 
@@ -43,6 +44,7 @@ class SkillWorkflowManifest(SimpleDeepAgentManifest):
 
     category: ClassVar[str]
     icon: ClassVar[Optional[str]] = None
+    presets: ClassVar[list[str]] = []
     skill_file: ClassVar[Path]
 
 
@@ -78,11 +80,22 @@ def _check_category(declaration: SkillWorkflowDeclaration) -> None:
         )
 
 
+def _check_presets(declaration: SkillWorkflowDeclaration) -> None:
+    known = [preset.slug for preset in WORKFLOW_PRESETS]
+    unknown = [slug for slug in declaration.spec.presets if slug not in known]
+    if unknown:
+        raise SkillWorkflowError(
+            f"skill '{declaration.skill_name}' names presets {unknown}; "
+            f"known presets are {known}"
+        )
+
+
 def build_skill_workflow_manifest(
     declaration: SkillWorkflowDeclaration,
 ) -> SkillWorkflowManifest:
     """A manifest class for one declaring skill, instantiated."""
     _check_category(declaration)
+    _check_presets(declaration)
     spec = declaration.spec
     workflow_type = _workflow_type_for(declaration)
     class_name = "".join(part.title() for part in workflow_type.value.split("_"))
@@ -96,6 +109,7 @@ def build_skill_workflow_manifest(
         "skill_file": declaration.skill_file,
         "category": spec.category,
         "icon": spec.icon,
+        "presets": list(spec.presets),
         "is_experimental": spec.experimental,
         "needs_web_search": spec.web_search,
         "view_images": spec.view_images,

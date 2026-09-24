@@ -14,6 +14,7 @@ from docx_editor import Document as EditorDocument, EditOperation
 
 from lib.services.docx.tracked_changes import apply_tracked_changes
 
+from tests.unit.services.lean_docx import new_document
 from tests.unit.services.tracked_changes_support import (
     BODY as _BODY,
     OTHER_PASSAGE_DETAIL as _OTHER_PASSAGE_DETAIL,
@@ -69,7 +70,7 @@ _ALIKE_LINE_RANGES: Dict[int, Tuple[int, int]] = {0: (1, 1), 1: (2, 2)}
 
 @pytest.fixture
 def alike_docx_path(tmp_path: Path) -> Path:
-    document = PythonDocxDocument()
+    document = new_document()
     document.add_paragraph(_ALIKE)
     document.add_paragraph(_ALIKE)
     path = tmp_path / "alike.docx"
@@ -168,7 +169,7 @@ _REPEATS_DETAIL = (
 
 def _hard_break_docx(path: Path, runs: Sequence[str]) -> Path:
     """One paragraph whose runs are separated by hard line breaks."""
-    document = PythonDocxDocument()
+    document = new_document()
     paragraph = document.add_paragraph()
     for position, text in enumerate(runs):
         run = paragraph.add_run(text)
@@ -316,7 +317,7 @@ _SEPARATED_LINE_RANGES: Dict[int, Tuple[int, int]] = {0: (1, 2)}
 
 @pytest.fixture
 def separated_docx_path(tmp_path: Path) -> Path:
-    document = PythonDocxDocument()
+    document = new_document()
     document.add_paragraph("Figure 3 and Figure 3 close the section.")
     path = tmp_path / "separated.docx"
     document.save(str(path))
@@ -359,7 +360,7 @@ _SHORT_NESTED_RANGES: Dict[int, Tuple[int, int]] = {0: (1, 3)}
 
 @pytest.fixture
 def short_nested_docx_path(tmp_path: Path) -> Path:
-    document = PythonDocxDocument()
+    document = new_document()
     document.add_paragraph(_SHORT_NESTED_PARAGRAPH)
     path = tmp_path / "short-nested.docx"
     document.save(str(path))
@@ -421,7 +422,7 @@ class TestAShortNestedLineIsNotTheParagraph:
         self, tmp_path: Path
     ):
         # Equality needs no length floor: the line *is* the paragraph.
-        document = PythonDocxDocument()
+        document = new_document()
         document.add_paragraph("Yield 14%.")
         path = tmp_path / "short-equal.docx"
         document.save(str(path))
@@ -450,7 +451,7 @@ _URL_PARAGRAPH = "See https://example.org/report_final_version.pdf for details."
 
 @pytest.fixture
 def url_docx_path(tmp_path: Path) -> Path:
-    document = PythonDocxDocument()
+    document = new_document()
     document.add_paragraph(_URL_PARAGRAPH)
     path = tmp_path / "url.docx"
     document.save(str(path))

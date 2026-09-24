@@ -53,7 +53,7 @@ When using web search:
 
 ## Reporting
 
-Report the comparison's actionable findings as issues, following the conventions defined in the issues skill (`/skills/issues/SKILL.md`). Report one issue for each:
+Report the comparison's actionable findings as issues, following the conventions defined in the `issues` skill. Report one issue for each:
 
 - **Missing or weak standard component** — a check, control, data source, or analysis step that is common in the field but absent or very weak in the paper.
 - **Methodological risk** — a deviation from standard practice, or an omission, that threatens the credibility, generalizability, or interpretability of the results.
@@ -68,7 +68,7 @@ Write the full comparison as a markdown report. It must be:
 - Approximately **500–900 words** for the overview, alignment, and rigor and risks sections.
 - Approximately **200–400 words** for the suggestions for improvements section.
 - Structured using markdown formatting as shown in the template below.
-- **Mathematical notation**: Any equations, formulas, or mathematical expressions must be written in LaTeX format using `$$...$$` within a sentence for inline math and on separate lines for display equations. Never use single dollar signs for math; a single `$` is read as currency.
+- **Mathematical notation**: Any equations, formulas, or mathematical expressions must be written in LaTeX, inline within a sentence or on separate lines for display equations.
 
 ### Suggested Markdown Format
 
@@ -119,12 +119,7 @@ Format the report using the following markdown structure:
 - Use code blocks (`` ` ``) for technical terms or specific values
 - Include citations with markdown links when referencing web search sources
 - Keep paragraphs focused and well-structured
-- **Mathematical equations**: All equations must be formatted in LaTeX notation:
-- For inline equations, use double dollar signs within the sentence: `the relation $$E = mc^2$$ holds`. Never use single dollar signs for math; a single `$` is read as currency.
-- For block/display equations, use double dollar signs on separate lines:
-```latex
-$$E = mc^2$$
-```
+- **Mathematical equations**: All equations must be formatted in LaTeX notation, inline within a sentence or on separate lines for display equations.
 - Always use proper LaTeX syntax for mathematical notation (e.g., `\alpha`, `\beta`, `\sum`, `\prod`, `\frac{a}{b}`, `\sqrt{x}`, etc.)
 - When describing equations from the paper, convert them to LaTeX format rather than using plain text or Unicode characters
 
@@ -139,6 +134,6 @@ Additional guidance:
 - When using web search results, cite the sources appropriately in your comparison narrative.
 
 # NOTE:
-When generating responses, REMOVE OR REPLACE ALL INTERNAL CITATION TOKENS SUCH AS turn1search0, turn2search3, or similar. DO NOT DISPLAY RAW REFERENCE IDS OR METADATA MARKERS IN THE FINAL TEXT. RETURN CLEAN, HUMAN-READABLE OUTPUT ONLY.
+Keep all output clean and human-readable: never include internal search-result tokens or raw reference/metadata markers left by a search tool in the final text.
 
 Now write the comparison as described above.

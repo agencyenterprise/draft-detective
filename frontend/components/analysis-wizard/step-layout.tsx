@@ -11,7 +11,10 @@ import { ReactNode } from 'react';
 export function StepLayout({ children, footer }: { children: ReactNode; footer?: ReactNode }) {
   return (
     <>
-      <main className="min-h-0 flex-1 overflow-y-auto">
+      {/* `relative` makes the body the containing block for absolutely positioned
+          descendants (the rows' sr-only labels). Without it they escape the scroll
+          area, stretch the document past the viewport, and the page scrolls. */}
+      <main className="relative min-h-0 flex-1 overflow-y-auto">
         <div className="mx-auto w-full max-w-4xl px-6 py-6">{children}</div>
       </main>
       {footer && (

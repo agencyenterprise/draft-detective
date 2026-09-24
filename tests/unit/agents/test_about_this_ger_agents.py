@@ -10,6 +10,7 @@ invoking the LLM.
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from langchain_core.messages import AIMessage
 
 from lib.agents.authors_validator import _ENV_GUIDANCE as AUTHORS_ENV_GUIDANCE
 from lib.agents.authors_validator import AuthorsValidatorAgent
@@ -17,6 +18,8 @@ from lib.agents.preface_validator import _ENV_GUIDANCE as PREFACE_ENV_GUIDANCE
 from lib.agents.preface_validator import PrefaceValidatorAgent
 from lib.skills import load_skill_prompt
 from lib.workflows.simple_deep_agent.agent_types import MARKDOWN_REPORT_PATH
+
+CONVERSATION = AIMessage(content="done")
 
 _CASES = [
     ("about-this-preface", PREFACE_ENV_GUIDANCE),
@@ -81,14 +84,16 @@ async def test_agent_delivers_issues_by_tool_and_report_by_file(
             }
         )
         return {
-            "messages": [],
+            "messages": [CONVERSATION],
             "files": {MARKDOWN_REPORT_PATH: {"content": ["# Report", "One issue."]}},
         }
 
     with patch(create_agent_path) as create_agent:
         create_agent.return_value.ainvoke = AsyncMock(side_effect=invoke_agent)
-        result = await agent.ainvoke({})
+        result, messages = await agent.ainvoke({})
 
     assert "response_format" not in create_agent.call_args.kwargs
     assert result.report_markdown == "# Report\nOne issue."
     assert [issue.title for issue in result.issues] == ["Missing section"]
+    # The conversation comes back so the workflow can persist it.
+    assert messages == [CONVERSATION]

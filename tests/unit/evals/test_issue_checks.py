@@ -149,6 +149,53 @@ def test_decoy_hits_by_reason_over_the_dataset_wide_reason_list():
     assert "false positive (stative)" in note
 
 
+def test_titled_decoy_is_flagged_only_under_its_title():
+    # Every recommendation gets a support issue; a titled decoy says it must not also
+    # get this kind. The support issue quoting it is no false positive, the titled one is,
+    # whether it quotes the sentence or only brackets its line.
+    decoy = Decoy(anchor="is limited to", reason="lead_in", title="Audience Unclear")
+    support = _issue(title="Limit the scope", description="“The scope is limited to urban sites.”", start=9, end=9)
+    quoted = _issue(title="Audience Unclear", description="“The scope is limited to urban sites.”", start=9, end=9)
+    bracketing = _issue(title="Recommendation Audience Unclear", description="no actor", start=8, end=10)
+    elsewhere = _issue(title="Audience Unclear", description="another sentence", start=5, end=5)
+    assert decoy_hits([decoy], [support], LINES) == []
+    assert decoy_hits([decoy], [quoted], LINES) == [decoy]
+    assert decoy_hits([decoy], [bracketing], LINES) == [decoy]
+    assert decoy_hits([decoy], [elsewhere], LINES) == []
+    values, _ = decoy_scores([support, elsewhere], _inventory(decoys=[decoy]), ("lead_in",))
+    assert values["no_fp_lead_in"] == 1.0
+    values, _ = decoy_scores([support, bracketing], _inventory(decoys=[decoy]), ("lead_in",))
+    assert values["no_fp_lead_in"] == 0.0, "decoy_scores passes the document lines, so bracketing counts"
+
+
+def test_untitled_expected_prefers_a_free_form_report_over_a_named_kind():
+    # A support issue has a free-form title, so its expected issue names none and any
+    # title matches. When the run also reports the same sentence under a kind the
+    # inventory names elsewhere, that extra issue must not be the one paired with the
+    # support expectation, or severity is read off the wrong report.
+    support = _expected(id="support", title=None, severity="none")
+    other = _expected(id="other", title="Audience Unclear", anchor="The scope is limited to", line=9, severity="medium")
+    extra = _issue(title="Audience Unclear", description="“Data were collected”", severity="medium")
+    free_form = _issue(title="Collect data at three sites", description="“Data were collected”", severity="none")
+    for one_to_one in (False, True):
+        values, note = issue_detection_scores([extra, free_form], _inventory([support, other]), edits=False, one_to_one=one_to_one)
+        assert values["severity_correct"] == 1.0, note
+        assert values["precision"] == 0.5, "the extra issue still costs precision"
+    # The kind may be named only in another record of the dataset.
+    elsewhere = ResolvedInventory(document=DOC, expected_issues=[support], decoys=[], named_titles=["Audience Unclear"])
+    values, note = issue_detection_scores([extra, free_form], elsewhere, edits=False, one_to_one=True)
+    assert values["severity_correct"] == 1.0, note
+    # With no free-form report, the named-kind issue still covers it: recall is unchanged.
+    values, _ = issue_detection_scores([extra], _inventory([support, other]), edits=False, one_to_one=True)
+    assert values["recall"] == 0.5
+
+
+def test_untitled_decoy_ignores_line_ranges():
+    # An untitled decoy keeps its old meaning: only a quote flags it.
+    decoy = Decoy(anchor="is limited to", reason="stative")
+    assert decoy_hits([decoy], [_issue(description="paragraph issue", start=8, end=10)], LINES) == []
+
+
 def test_title_severity_and_range_metrics_follow_the_hit():
     f = _expected(severity="low")
     wrong = _issue(title="Something Else", description="“Data were collected”", start=1, end=1, severity="medium")

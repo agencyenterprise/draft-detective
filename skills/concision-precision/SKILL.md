@@ -9,6 +9,7 @@ metadata:
     experimental: true
     icon: scissors-line-dashed
     propose_edits: true
+    presets: [editorial_review]
 ---
 
 # Concision & Precision
@@ -67,7 +68,7 @@ Two families of problem, six kinds of issue.
 
 ## Reporting
 
-Report issues following the conventions defined in the issues skill (`/skills/issues/SKILL.md`). Do not emit issues for sentences that pass. Explain each problem in plain practical terms, why the change reads better, never by reference to a rule or guideline.
+Report issues following the conventions defined in the `issues` skill. Do not emit issues for sentences that pass. Explain each problem in plain practical terms, why the change reads better, never by reference to a rule or guideline.
 
 - **Wordy construction** → one issue per paragraph that contains wordy constructions, title `"Wordy Construction"`, **severity: low**. In the `description`, quote each wordy phrase from that paragraph with its sentence. In `suggested_action`, give the tighter wording for each. Bracket the paragraph with `start_line` and `end_line`.
 - **Run-on sentence** → one issue per sentence, title `"Run-On Sentence"`, **severity: low**. Quote the sentence and give the split version.

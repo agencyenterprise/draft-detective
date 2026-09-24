@@ -24,12 +24,12 @@ Documents cite references in two main forms:
 For each cited statement:
 
 1. **Resolve** the citation to the work it refers to (match an author-year marker to its bibliography entry; for a footnote, find the footnote entry, confirm it is a bibliographic reference rather than commentary, then match it to its work).
-2. **Locate the evidence** in the cited source. You can read line ranges of both the document and each cited source, search them by keyword or regex (good for specific numbers, statistics, names, or exact phrases), and semantically search the sources (good for conceptual or thematic claims where the wording differs). Read surrounding context in the source as needed.
+2. **Locate the evidence** in the cited source, using whatever access you have to the document and the sources. Exact-match or keyword search suits specific numbers, statistics, names, and exact phrases; semantic search, if you have it, suits conceptual or thematic claims where the wording differs. Read surrounding context in the source as needed.
 3. **Judge** whether the source actually supports the specific claim, and assign one of the levels below.
 
 A couple of targeted searches per citation are usually enough. If you cannot find supporting evidence after a few attempts, conclude with the best information you have — bias toward concluding over searching exhaustively.
 
-If a cited statement sits near the start or end of the passage you were given and appears to begin or end mid-sentence or mid-block (table, equation), read the adjacent lines first so you evaluate it with full context.
+If you are working on only part of the document and a cited statement sits near the start or end of that part and appears to begin or end mid-sentence or mid-block (table, equation), read the adjacent lines first so you evaluate it with full context.
 
 ## Judgment levels
 
@@ -88,12 +88,12 @@ Each shows a cited claim, what the source says, and the correct level.
 
 6. **unsupported (silent / not in text)** — Claim: "The agency's budget tripled between 2010 and 2020." Source: discusses the agency's staffing levels and statutory mandate over that period but never mentions budget figures. The claim may be true, but the cited source contains no evidence for it — topic-adjacent silence, not partial support.
 
-7. **unverifiable** — Claim: "The assay achieves roughly 95 percent sensitivity (Wong, 2021)." No supporting file exists for the Wong (2021) reference, so the source cannot be searched.
+7. **unverifiable** — Claim: "The assay achieves roughly 95 percent sensitivity (Wong, 2021)." The Wong (2021) source was not provided and could not be obtained, so it cannot be searched.
 
 ## Reporting
 
-For each validated citation, report the cited passage, the level above, a brief rationale grounded in what the source actually says, and an actionable suggestion for the author (or "No changes needed" when the citation is well supported). Base every judgment strictly on the cited source — do not invent evidence. Follow the shared reporting conventions in the issues skill (`/skills/issues/SKILL.md`).
+For each validated citation, report the cited passage, the level above, a brief rationale grounded in what the source actually says, and an actionable suggestion for the author (or "No changes needed" when the citation is well supported). Base every judgment strictly on the cited source — do not invent evidence. Follow the shared reporting conventions in the `issues` skill.
 
 ## Scope & scale
 
-This skill performs the **in-context substantiation judgment** for citations whose sources you can access. It does not, by itself, solve retrieval at scale: the full Draft Detective workflow around it adds the infrastructure to chunk and embed many full-text reference PDFs, retrieve the relevant passages by semantic similarity, map each bibliography entry to its source file, and fan the judgment out across document sections in parallel. When running this skill standalone, you rely on whatever sources and search tools are available in your environment; when a source is unavailable, the correct level is **unverifiable**.
+This skill performs the **substantiation judgment** for citations whose sources you can access. It does not cover obtaining the sources: work with whatever sources and search capabilities you have, and when a cited source is unavailable, the correct level is **unverifiable**. For a long document with many sources, you may validate it section by section; validate each citation once, in the section where its marker appears.

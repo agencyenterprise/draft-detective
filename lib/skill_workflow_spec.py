@@ -26,6 +26,7 @@ comment says otherwise)::
         web_search: false                     # give the agent web search (gates on user consent)
         reasoning_effort: medium              # low | medium | high; defaults to the agent's default
         propose_edits: false                  # let issues carry verbatim-quote text replacements
+        presets: []                           # slugs from lib/workflows/presets.py this check belongs to
         required_dependencies: [document_processing]
     ---
 
@@ -111,6 +112,13 @@ class SkillWorkflowSpec(BaseModel):
         description=(
             "Let the agent attach proposed edits (verbatim quote plus replacement) "
             "to its issues; the skill body must say when an edit is warranted."
+        ),
+    )
+    presets: list[str] = Field(
+        default_factory=list,
+        description=(
+            "Slugs of presets in lib/workflows/presets.py that select this check "
+            "along with the rest of their set."
         ),
     )
     required_dependencies: list[str] = Field(default_factory=lambda: ["document_processing"])

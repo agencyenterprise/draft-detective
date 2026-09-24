@@ -38,10 +38,7 @@ def _record_to_sample(record: dict) -> Sample:
 
 
 @task
-def about_this_ger_e2e(
-    backend: str = "remote",
-    api_base_url: str | None = None,
-):
+def about_this_ger_e2e(backend: str = "remote", api_base_url: str | None = None):
     dataset = json_dataset(
         str(Path(__file__).parent / "dataset.json"),
         _record_to_sample,
@@ -51,10 +48,8 @@ def about_this_ger_e2e(
         dataset=dataset,
         fail_on_error=0.2,
         solver=api_workflow_agent(
-            "about_this_ger",
-            timeout_s=600,
-            local_backend=local_backend_for(backend, api_base_url),
-            api_base_url=api_base_url,
+            "about_this_ger", timeout_s=600, item_messages_key="agent_conversations",
+            local_backend=local_backend_for(backend, api_base_url), api_base_url=api_base_url,
         ),
         scorer=[
             structured_output_scorer(AboutThisGerOutput, _compare_preface_titles),
@@ -65,6 +60,8 @@ def about_this_ger_e2e(
 
 
 def _compare_preface_titles(output: AboutThisGerOutput, state: TaskState) -> Score:
+    """Deterministic match of the flagged preface / "About This" issue titles
+    against the target, as DeepDiff similarity (``deep_diff_score``, order ignored)."""
     expected: list[str] = state.metadata.get("target_preface_issue_titles", [])
     actual = (
         [issue.title for issue in output.preface_result.issues]
@@ -75,6 +72,8 @@ def _compare_preface_titles(output: AboutThisGerOutput, state: TaskState) -> Sco
 
 
 def _compare_authors_titles(output: AboutThisGerOutput, state: TaskState) -> Score:
+    """Deterministic match of the flagged author-biography issue titles against
+    the target, as DeepDiff similarity (``deep_diff_score``, order ignored)."""
     expected: list[str] = state.metadata.get("target_authors_issue_titles", [])
     actual = (
         [issue.title for issue in output.authors_result.issues]

@@ -3,11 +3,13 @@
 The coverage report is the one review-assistant output with an arithmetic core.
 Its Part 1 carries a table counting every reviewer point across four verdict
 categories, with the point IDs listed alongside each count, and Part 2 records a
-verdict under each quoted point. That gives three things a rule can check
-exactly, without judging whether any individual verdict is *right*:
+verdict under each quoted point. That gives things a rule can check exactly,
+without judging whether any individual verdict is *right*:
 
 - the four categories are all present, including the ones that scored zero;
-- the table accounts for every point exactly once;
+- the table accounts for every point exactly once and at one granularity,
+  with each stated count matching the ids it lists;
+- Part 2 actually uses the four-point scale, not only the table header;
 - Part 1 states the recommendation the QAM needs.
 
 Whether each verdict is correct is a judgement, and is graded by the rubric.
@@ -138,6 +140,11 @@ def _points_in_part2(report: HtmlReport, table_block: str) -> set[PointId]:
 
 def check_verdict_table(report: HtmlReport) -> tuple[bool, str]:
     """The table names all four categories and accounts for every point once.
+
+    Once means in one category and at one granularity (a point is not counted
+    alongside its own sub-points), every point labelled in Part 2 is counted
+    and every counted point is labelled there, and each stated count matches
+    the ids listed with it.
 
     The counts are not compared against a per-scenario expectation: which
     verdict a point deserves is a judgement the rubric grades. What is checked

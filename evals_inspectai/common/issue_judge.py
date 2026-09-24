@@ -74,6 +74,36 @@ ISSUE_TEMPLATE = """You are grading one reviewer issue against one criterion.
 {instructions}
 """
 
+# For an issue about a header, the header alone is no evidence: the grader also
+# sees the section it heads, so it can tell whether a suggested header says what
+# the section shows. A criterion that checks the action against the whole report
+# (an audience the report points to, say) sees the report instead.
+PASSAGE_ISSUE_TEMPLATE = """You are grading one reviewer issue against one criterion.
+
+[BEGIN DATA]
+************
+[{passage_label}]: {passage}
+************
+[Text the issue quotes or is anchored to]: {question}
+************
+[Reviewer's suggested action]: {answer}
+************
+[Criterion]: {criterion}
+************
+[END DATA]
+
+{instructions}
+"""
+
+PASSAGE_LABELS = {"section": "Passage the issue is about", "document": "The full report"}
+
+# CommonMark allows up to three leading spaces; four or more make a code block.
+_HEADING_RE = re.compile(r"^ {0,3}(#{1,6})(?:\s|$)")
+# A fence opens with three or more backticks or tildes and closes on a line of the
+# same character, at least as many of it, and nothing after.
+_FENCE_RE = re.compile(r"^ {0,3}(`{3,}|~{3,})(.*)$")
+_LIST_ITEM_RE = re.compile(r"^\s*(?:[-*+]|\d+[.)])\s")
+
 
 class JudgeCriterion(BaseModel):
     """One criterion the grader applies per edit or per expected."""
@@ -85,6 +115,10 @@ class JudgeCriterion(BaseModel):
     scope: Literal["edit", "expected"] = "edit"
     # Which expected issues this criterion applies to; None means every detected one.
     applies_to: Optional[Callable[[ResolvedIssue], bool]] = None
+    # What an expected-scope criterion shows the grader besides the anchor:
+    # nothing, the section the anchor's line opens (see ``section_text``), or the
+    # whole report.
+    passage: Literal["none", "section", "document"] = "none"
 
 
 def parse_grade(completion: str) -> float:
@@ -117,9 +151,79 @@ def issue_prompt(criterion: str, sentence: str, suggested_action: str) -> str:
     )
 
 
-def _paragraph(expected: ResolvedIssue, document: str) -> str:
+def passage_issue_prompt(
+    criterion: str, passage: str, anchor: str, suggested_action: str, label: str = PASSAGE_LABELS["section"]
+) -> str:
+    return PASSAGE_ISSUE_TEMPLATE.format(
+        passage_label=label,
+        passage=passage,
+        question=anchor,
+        answer=suggested_action,
+        criterion=criterion,
+        instructions=default_instructions(partial_credit=True),
+    )
+
+
+def _closes(fence: str, marker: str, rest: str) -> bool:
+    return marker[0] == fence[0] and len(marker) >= len(fence) and not rest.strip()
+
+
+def _heading_levels(lines: list[str]) -> list[int]:
+    """The markdown heading level of each line, 0 for a line that is not a heading,
+    including a ``#`` line inside a fenced code block."""
+    levels: list[int] = []
+    fence: Optional[str] = None
+    for line in lines:
+        marker = _FENCE_RE.match(line)
+        if marker is not None and fence is None:
+            fence = marker.group(1)
+        elif marker is not None and fence is not None and _closes(fence, marker.group(1), marker.group(2)):
+            fence = None
+        heading = None if fence is not None or marker is not None else _HEADING_RE.match(line)
+        levels.append(len(heading.group(1)) if heading else 0)
+    return levels
+
+
+def _paragraph_text(lines: list[str], line: int) -> str:
+    """The paragraph holding ``line``: the lines around it up to a blank line, a
+    heading or the next list item, so a paragraph wrapped across several lines is
+    passed whole and a list item is passed without its siblings."""
+    if not 0 < line <= len(lines):
+        return ""
+    levels = _heading_levels(lines)
+    if levels[line - 1]:
+        return lines[line - 1]
+
+    def inside(i: int) -> bool:
+        return 0 <= i < len(lines) and lines[i].strip() != "" and levels[i] == 0
+
+    start = end = line - 1
+    while inside(start - 1) and not _LIST_ITEM_RE.match(lines[start]):
+        start -= 1
+    while inside(end + 1) and not _LIST_ITEM_RE.match(lines[end + 1]):
+        end += 1
+    return "\n".join(lines[start : end + 1])
+
+
+def section_text(document: str, line: int) -> str:
+    """The section a markdown heading on ``line`` opens: the heading and every line
+    up to the next heading of the same or a higher level. A line that is not a
+    heading gives the paragraph it sits in."""
     lines = document.split("\n")
-    return lines[expected.line - 1] if 0 < expected.line <= len(lines) else ""
+    if not 0 < line <= len(lines):
+        return ""
+    levels = _heading_levels(lines)
+    level = levels[line - 1]
+    if not level:
+        return _paragraph_text(lines, line)
+    end = line
+    while end < len(lines) and not 0 < levels[end] <= level:
+        end += 1
+    return "\n".join(lines[line - 1 : end]).strip()
+
+
+def _paragraph(expected: ResolvedIssue, document: str) -> str:
+    return _paragraph_text(document.split("\n"), expected.line)
 
 
 async def judge_sample(
@@ -159,6 +263,12 @@ async def judge_sample(
                     record(criterion, expected, *await grade(grader, prompt, calls))
             elif not issue.suggested_action:
                 record(criterion, expected, 0.0, "no suggested action to judge")
+            elif criterion.passage != "none":
+                document = inventory.document
+                passage = section_text(document, expected.line) if criterion.passage == "section" else document
+                label = PASSAGE_LABELS[criterion.passage]
+                prompt = passage_issue_prompt(criterion.criterion, passage, expected.anchor, issue.suggested_action, label)
+                record(criterion, expected, *await grade(grader, prompt, calls))
             else:
                 prompt = issue_prompt(criterion.criterion, expected.anchor, issue.suggested_action)
                 record(criterion, expected, *await grade(grader, prompt, calls))

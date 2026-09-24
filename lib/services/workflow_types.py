@@ -2,7 +2,7 @@
 
 from typing import TYPE_CHECKING, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlmodel import col
 
@@ -11,6 +11,7 @@ from lib.models.project import Project
 from lib.models.user import User
 from lib.models.workflow_run import WorkflowRun
 from lib.workflows.categories import WORKFLOW_DISPLAY_CONFIG, CategoryConfig
+from lib.workflows.presets import WORKFLOW_PRESETS, PresetConfig
 from lib.services.workflow_gates import get_effective_gates
 from lib.workflows.models import WorkflowGate, WorkflowRunType
 from lib.workflows.registry import get_all_manifests
@@ -46,6 +47,36 @@ _WORKFLOW_CATEGORY_MAP: dict[WorkflowRunType, str] = {
     for wf_type in category.workflows
 }
 
+def _preset_config() -> list[PresetConfig]:
+    """WORKFLOW_PRESETS plus the skill-declared workflows that name them.
+
+    Same arrangement as the categories: hand-written workflows are listed in the
+    config, a skill names its presets in its frontmatter and is appended here.
+    Each preset's workflows are put in picker order, and every one of them must
+    be on offer in the picker, or the preset would select something that has no
+    row to show it.
+    """
+    presets = [
+        PresetConfig(
+            slug=p.slug, label=p.label, description=p.description, workflows=list(p.workflows)
+        )
+        for p in WORKFLOW_PRESETS
+    ]
+    by_slug = {p.slug: p for p in presets}
+    for manifest in get_all_manifests().values():
+        if isinstance(manifest, SkillWorkflowManifest):
+            for slug in manifest.presets:
+                by_slug[slug].workflows.append(manifest.type)
+    for preset in presets:
+        missing = [t.value for t in preset.workflows if t not in _WORKFLOW_CATEGORY_MAP]
+        if missing:
+            raise ValueError(
+                f"preset '{preset.slug}' lists workflows absent from every category: {missing}"
+            )
+        preset.workflows.sort(key=_PICKER_WORKFLOW_TYPES.index)
+    return presets
+
+
 # The assessments the picker can actually offer, in display order. Category
 # membership is what puts a workflow in the picker (see WORKFLOW_DISPLAY_CONFIG),
 # so this doubles as the filter that turns a project's raw workflow_runs rows
@@ -53,6 +84,8 @@ _WORKFLOW_CATEGORY_MAP: dict[WorkflowRunType, str] = {
 # internal workflows and the dependencies pulled in by
 # resolve_workflow_dependencies — is absent from every category.
 _PICKER_WORKFLOW_TYPES: list[WorkflowRunType] = list(_WORKFLOW_CATEGORY_MAP)
+
+_PRESET_CONFIG: list[PresetConfig] = _preset_config()
 
 
 class WorkflowTypeDescription(BaseModel):
@@ -95,11 +128,23 @@ class WorkflowCategoryOrder(BaseModel):
     workflows: list[WorkflowRunType]
 
 
+class WorkflowPreset(BaseModel):
+    """A named set of assessments the picker selects in one go."""
+
+    slug: str = Field(description="Stable identifier of the preset")
+    label: str = Field(description="Name shown on the preset's chip")
+    description: str = Field(description="One sentence on who the preset is for and what it runs")
+    workflows: list[WorkflowRunType] = Field(
+        description="The assessments the preset selects, in picker order"
+    )
+
+
 class WorkflowTypesResponse(BaseModel):
-    """Combined response: flat workflow details plus the ordered category display config."""
+    """Combined response: flat workflow details, the ordered category display config, and the presets."""
 
     workflow_types: list[WorkflowTypeDescription]
     categories: list[WorkflowCategoryOrder]
+    presets: list[WorkflowPreset]
 
 
 class RecentWorkflowSelectionResponse(BaseModel):
@@ -122,8 +167,16 @@ def get_all_workflow_types() -> WorkflowTypesResponse:
         WorkflowCategoryOrder(slug=cat.slug, label=cat.label, workflows=cat.workflows)
         for cat in _DISPLAY_CONFIG
     ]
+    presets = [
+        WorkflowPreset(
+            slug=p.slug, label=p.label, description=p.description, workflows=p.workflows
+        )
+        for p in _PRESET_CONFIG
+    ]
 
-    return WorkflowTypesResponse(workflow_types=workflow_types, categories=categories)
+    return WorkflowTypesResponse(
+        workflow_types=workflow_types, categories=categories, presets=presets
+    )
 
 
 async def get_recent_workflow_selection(user: User) -> RecentWorkflowSelectionResponse:

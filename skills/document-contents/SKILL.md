@@ -57,4 +57,4 @@ Only check for this section if the body text **explicitly mentions** an appendix
 
 ## Reporting
 
-For each missing section, report one issue following the conventions defined in the issues skill (`/skills/issues/SKILL.md`). Do not create issues for sections that are present.
+For each missing section, report one issue following the conventions defined in the `issues` skill. Do not create issues for sections that are present.

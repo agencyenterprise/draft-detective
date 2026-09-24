@@ -1,6 +1,7 @@
-from typing import Literal, Optional
+from typing import List, Literal, Optional
 
-from pydantic import Field
+from langchain_core.messages import BaseMessage
+from pydantic import Field, field_serializer
 
 from lib.workflows.models import BaseWorkflowConfig, BaseWorkflowState, WorkflowRunType
 
@@ -25,3 +26,14 @@ class Reviewer2State(BaseWorkflowState):
         default=None,
         description="The rebuttal document as markdown",
     )
+    messages: List[BaseMessage] = Field(
+        default_factory=list,
+        description="The reviewer agent's full conversation, system prompt included.",
+    )
+
+    @field_serializer("messages")
+    @classmethod
+    def _serialize_messages(cls, messages: List[BaseMessage]) -> list[dict]:
+        # Checkpointer-hydrated states may contain raw dicts in `messages`
+        # because reducers can append items that bypass model construction.
+        return [m if isinstance(m, dict) else m.model_dump() for m in messages]

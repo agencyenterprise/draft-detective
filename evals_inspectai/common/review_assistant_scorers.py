@@ -4,9 +4,11 @@ The three review-assistant workflows (revision-planning summary, reviewer
 response memos, reviewer coverage report) all deliver one self-contained HTML
 document built from the same skill, so a large part of what makes an output
 correct is identical across them: the reviewer memos reproduced verbatim inside
-marked quotes, a valid point-ID scheme, a self-contained document, a two-part
-layout with a short first part, and none of the generic-assistant tells the
-`voice-and-tone` skill bans.
+marked quotes, a valid per-reviewer point-ID scheme numbered from 1 with no
+gaps, a self-contained document (no external stylesheets, fonts, scripts or
+images, and no `<script>`), a two-part layout with a short first part, and none
+of the generic-assistant tells the `voice-and-tone` skill bans, counted only
+outside quotes so the reviewer's own punctuation is not held against it.
 
 `report_structure` scores exactly those rules and belongs to every suite. Each
 suite then adds whatever its own output specifies on top -- the coverage report

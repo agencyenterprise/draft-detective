@@ -5,7 +5,7 @@ import logging
 from langgraph.runtime import Runtime
 
 from lib.agents.preface_validator import PrefaceValidatorAgent
-from lib.workflows.about_this_ger.state import AboutThisGerState
+from lib.workflows.about_this_ger.state import AboutThisGerState, AgentConversation
 from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
 
@@ -19,11 +19,14 @@ async def validate_preface_deep(
     """Run the preface validator deep agent and store the result."""
 
     agent = PrefaceValidatorAgent(runtime.context)
-    result = await agent.ainvoke({})
+    result, messages = await agent.ainvoke({})
 
     logger.info(
         "[AboutThisGER] Preface validation: issues=%d",
         len(result.issues),
     )
 
-    return {"preface_result": result}
+    return {
+        "preface_result": result,
+        "agent_conversations": [AgentConversation(name="preface", messages=messages)],
+    }

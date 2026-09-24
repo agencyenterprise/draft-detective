@@ -62,10 +62,7 @@ def _record_to_sample(record: dict) -> Sample:
 
 
 @task
-def reference_validation_v2_e2e(
-    backend: str = "remote",
-    api_base_url: str | None = None,
-):
+def reference_validation_v2_e2e(backend: str = "remote", api_base_url: str | None = None):
     dataset = json_dataset(
         str(Path(__file__).parent / "dataset.json"),
         _record_to_sample,
@@ -76,6 +73,8 @@ def reference_validation_v2_e2e(
         fail_on_error=0.2,
         solver=api_workflow_agent(
             "reference_validation_v2",
+            item_messages_key="reference_validations",
+            item_label="reference",
             local_backend=local_backend_for(backend, api_base_url),
             api_base_url=api_base_url,
         ),
@@ -89,6 +88,7 @@ def reference_validation_v2_e2e(
 
 
 def _compare_final_result(output: ReferenceValidationOutput, state: TaskState) -> Score:
+    """Deterministic: the reference's final validation result label equals the target exactly."""
     if not output.reference_validations:
         return Score(value=INCORRECT, explanation="No reference validations found")
 

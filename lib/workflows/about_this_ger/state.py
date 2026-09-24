@@ -1,13 +1,35 @@
 """State definitions for About This (GER) workflow."""
 
-from typing import Literal, Optional
+from operator import add
+from typing import Annotated, List, Literal, Optional
 
-from pydantic import Field
+from langchain_core.messages import BaseMessage
+from pydantic import BaseModel, Field, field_serializer
 
 from lib.workflows.models import BaseWorkflowConfig, BaseWorkflowState, WorkflowRunType
 from lib.workflows.simple_deep_agent.agent_types import AgentCheckResult, IssueItem
 
-__all__ = ["AgentCheckResult", "IssueItem", "AboutThisGerConfig", "AboutThisGerState"]
+__all__ = [
+    "AgentCheckResult",
+    "AgentConversation",
+    "IssueItem",
+    "AboutThisGerConfig",
+    "AboutThisGerState",
+]
+
+
+class AgentConversation(BaseModel):
+    """One validator agent's full conversation, system prompt included."""
+
+    name: str = Field(description='Which validator ran it: "preface" or "authors".')
+    messages: List[BaseMessage] = Field(default_factory=list)
+
+    @field_serializer("messages")
+    @classmethod
+    def _serialize_messages(cls, messages: List[BaseMessage]) -> list[dict]:
+        # Checkpointer-hydrated states may contain raw dicts in `messages`
+        # because reducers can append items that bypass model construction.
+        return [m if isinstance(m, dict) else m.model_dump() for m in messages]
 
 
 class AboutThisGerConfig(BaseWorkflowConfig):
@@ -33,4 +55,9 @@ class AboutThisGerState(BaseWorkflowState):
     authors_result: Optional[AgentCheckResult] = Field(
         default=None,
         description="Result from the authors validation deep agent",
+    )
+    # The two validators run in parallel, so each appends its own conversation.
+    agent_conversations: Annotated[List[AgentConversation], add] = Field(
+        default_factory=list,
+        description="Each validator agent's conversation, for debugging and eval transcripts.",
     )

@@ -1,10 +1,10 @@
 """Reviewer 2 agent — rigorous peer review using deep agent with file tools."""
 
-from typing import Optional
+from typing import List, Optional
 
 from deepagents import create_deep_agent
 from deepagents.backends.utils import file_data_to_string
-from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
 from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
 
@@ -51,7 +51,8 @@ class Reviewer2Agent(LangChainAgent):
 
     async def ainvoke(
         self, prompt_kwargs: dict, config: Optional[RunnableConfig] = None
-    ) -> Reviewer2Output:
+    ) -> tuple[Reviewer2Output, List[BaseMessage]]:
+        """Return the review and the agent's full conversation, system prompt included."""
         document_markdown = prompt_kwargs["document_markdown"]
 
         # A rigorous review has to see the figures it critiques; the document
@@ -87,7 +88,8 @@ class Reviewer2Agent(LangChainAgent):
             path: file_data_to_string(data)
             for path, data in (result.get("files") or {}).items()
         }
-        return Reviewer2Output(
+        output = Reviewer2Output(
             peer_review_markdown=report_file(files, PEER_REVIEW_PATH),
             rebuttal_markdown=report_file(files, REBUTTAL_PATH),
         )
+        return output, result["messages"]

@@ -48,13 +48,26 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build Frontend Image
-        run: docker build -t ai-reviewer-app:${{ github.sha }} -f frontend/Dockerfile ./frontend
-
-      - name: Scan Frontend Image
+      # Scanned in two parts instead of building the image, whose `next build`
+      # alone took over two minutes: the npm dependencies from the lockfile,
+      # and the OS packages from the base image the Dockerfile starts from.
+      - name: Scan Frontend Dependencies
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ai-reviewer-app:${{ github.sha }}
+          scan-type: fs
+          scan-ref: frontend
+          format: table
+          exit-code: 0
+          scanners: vuln
+
+      - name: Read Frontend Base Image
+        id: base-image
+        run: echo "ref=$(awk 'toupper($1) == "FROM" { print $2; exit }' frontend/Dockerfile)" >> "$GITHUB_OUTPUT"
+
+      - name: Scan Frontend Base Image
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ steps.base-image.outputs.ref }}
           format: table
           exit-code: 0
           scanners: vuln

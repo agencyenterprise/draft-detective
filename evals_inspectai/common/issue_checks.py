@@ -10,7 +10,8 @@ workflow's own edit checks; the workflow wraps it with ``deterministic_scorer``
 under a name of its own).
 
 1. **Detection.** Each expected issue is *hit* when a reported issue with its
-   title quotes its anchor, or brackets its line. Several expected issues may hit the
+   title quotes its anchor or brackets its line, or an issue under another title
+   quotes its anchor (a mislabel, recorded by the title metric, not recall). Several expected issues may hit the
    same issue (a check that reports one issue per paragraph). From the hits:
    recall over required expected issues, precision over reported issues, and F0.5,
    which weights precision twice as much as recall, following the convention
@@ -88,7 +89,7 @@ NOT_APPLICABLE = math.nan
 # says what each column checks. A value of NaN means the sample gave the check
 # nothing to judge, and Inspect leaves it out of the mean.
 DETECTION_DESCRIPTIONS: dict[str, str] = {
-    "recall": "Share of required expected issues covered by a reported issue (same title and the anchor quoted or its line bracketed).",
+    "recall": "Share of required expected issues covered by a reported issue (same title and the anchor quoted or its line bracketed, or the anchor quoted under another title).",
     "precision": "Share of reported issues that cover at least one expected issue.",
     "f0_5": "F-beta with beta 0.5: precision weighted twice as much as recall, as in grammatical-error detection.",
     "clean_document_untouched": "On a sample with no expected issues: 1 if nothing was reported, 0 otherwise.",
@@ -108,7 +109,7 @@ EDIT_DESCRIPTIONS: dict[str, str] = {
 
 def decoy_descriptions(reasons: Sequence[str]) -> dict[str, str]:
     return {
-        f"no_fp_{reason}": f"1 if no decoy tagged '{reason}' was quoted or edited by a reported issue in the sample, 0 if one was; NaN when the sample has no such decoy."
+        f"no_fp_{reason}": f"1 if no decoy tagged '{reason}' was flagged in the sample (quoted or edited by a reported issue, or, for a decoy tied to a title, reported under that title), 0 if one was; NaN when the sample has no such decoy."
         for reason in reasons
     }
 
@@ -137,7 +138,13 @@ def _title_matches(issue: IssueItem, kind: Optional[str]) -> bool:
     return re.search(pattern, normalize(issue.title)) is not None
 
 
-def hit_tier(expected: ResolvedIssue, issue: IssueItem) -> Optional[int]:
+# Added to the tier of an untitled expected issue reported under a title another
+# expected issue of the inventory names: above every plain tier, below the cost of
+# leaving it unmatched (see _UNMATCHED_OPTIONAL).
+_CLAIMED_TITLE_PENALTY = 6
+
+
+def hit_tier(expected: ResolvedIssue, issue: IssueItem, claimed: Sequence[str] = ()) -> Optional[int]:
     """How well ``issue`` reports ``expected``, lower is stronger; None when it
     does not report it.
 
@@ -148,7 +155,14 @@ def hit_tier(expected: ResolvedIssue, issue: IssueItem) -> Optional[int]:
     range is elsewhere: when one issue quotes both a recommendation and its
     restatement, its range says which occurrence it reports, and without that
     the pairing would depend on report order.
+
+    ``claimed`` are the titles the inventory names for other expected issues.
+    An untitled expected issue (free-form titles) matches any title, but an
+    issue under a claimed title is evidence for that other kind first: it
+    still counts, ranked below every free-form report, so an extra issue of a
+    named kind on the same sentence cannot stand in for the free-form one.
     """
+    penalty = _CLAIMED_TITLE_PENALTY if expected.title is None and any(_title_matches(issue, t) for t in claimed) else 0
     same_title = _title_matches(issue, expected.title)
     quoted = normalize(expected.anchor) in _issue_text(issue)
     in_range = issue.start_line <= expected.line <= issue.end_line
@@ -160,28 +174,48 @@ def hit_tier(expected: ResolvedIssue, issue: IssueItem) -> Optional[int]:
         tier = 2
     else:
         return None
-    return tier * 2 + (0 if in_range else 1)
+    return tier * 2 + (0 if in_range else 1) + penalty
 
 
-def ranked_hits(expected: ResolvedIssue, issues: Sequence[IssueItem]) -> list[int]:
+def ranked_hits(expected: ResolvedIssue, issues: Sequence[IssueItem], claimed: Sequence[str] = ()) -> list[int]:
     """Indices of the issues that report ``expected``, strongest evidence first (ties in issue order)."""
     scored = []
     for index, issue in enumerate(issues):
-        tier = hit_tier(expected, issue)
+        tier = hit_tier(expected, issue, claimed)
         if tier is not None:
             scored.append((tier, index))
     return [index for _, index in sorted(scored)]
 
 
-def hit_issue(expected: ResolvedIssue, issues: Sequence[IssueItem]) -> Optional[int]:
+def hit_issue(expected: ResolvedIssue, issues: Sequence[IssueItem], claimed: Sequence[str] = ()) -> Optional[int]:
     """Index of the best-tier issue that reports this expected, or None."""
-    ranked = ranked_hits(expected, issues)
+    ranked = ranked_hits(expected, issues, claimed)
     return ranked[0] if ranked else None
 
 
-def decoy_hits(decoys: Sequence[Decoy], issues: Sequence[IssueItem]) -> list[Decoy]:
-    texts = [_issue_text(issue) for issue in issues]
-    return [d for d in decoys if any(normalize(d.anchor) in t for t in texts)]
+def claimed_titles(inventory: ResolvedInventory) -> tuple[str, ...]:
+    """The titles the dataset's expected issues name, in this record or any other
+    (see ``hit_tier``): a kind that has no expected issue in this record is still
+    a kind, and a report of it is not the free-form one."""
+    return tuple(sorted({*inventory.named_titles, *(e.title for e in inventory.expected_issues if e.title)}))
+
+
+def decoy_hits(decoys: Sequence[Decoy], issues: Sequence[IssueItem], lines: Sequence[str] = ()) -> list[Decoy]:
+    """The decoys a run flagged. An untitled decoy is flagged by any issue that
+    quotes it. A titled one only by an issue under that title that quotes it or
+    brackets one of the ``lines`` it is on, since a correct run may report the
+    same sentence under another title."""
+
+    def flags(decoy: Decoy, issue: IssueItem) -> bool:
+        anchor = normalize(decoy.anchor)
+        if decoy.title is None:
+            return anchor in _issue_text(issue)
+        if not _title_matches(issue, decoy.title):
+            return False
+        on = [n for n, line in enumerate(lines, 1) if anchor in normalize(line)]
+        return anchor in _issue_text(issue) or any(issue.start_line <= n <= issue.end_line for n in on)
+
+    return [d for d in decoys if any(flags(d, issue) for issue in issues)]
 
 
 def edits_for(expected: ResolvedIssue, issue: IssueItem) -> list[ProposedEdit]:
@@ -194,7 +228,7 @@ def edits_for(expected: ResolvedIssue, issue: IssueItem) -> list[ProposedEdit]:
     return [e for e in issue.edits if overlaps(expected.anchor, e.original_text)]
 
 
-def _fraction(values: Sequence[float]) -> float:
+def fraction(values: Sequence[float]) -> float:
     return sum(values) / len(values) if values else NOT_APPLICABLE
 
 
@@ -306,7 +340,7 @@ def edit_checks(
 
     line_text = lines[expected.line - 1] if 0 < expected.line <= len(lines) else ""
     on_line = [float(normalize(e.original_text) in normalize(line_of(e))) for e in edits]
-    out["edit_quote_on_line"] = (_fraction(on_line), f"{expected.id}: {int(sum(on_line))}/{len(edits)} quotes found verbatim on their line")
+    out["edit_quote_on_line"] = (fraction(on_line), f"{expected.id}: {int(sum(on_line))}/{len(edits)} quotes found verbatim on their line")
 
     if expected.edit is not None:
         # Phrases are judged on the sentence the edits produce: each replacement plus the
@@ -324,13 +358,13 @@ def edit_checks(
             missing = [p for p in expected.edit.must_include if normalize(p) not in seen]
             forbidden = [p for p in expected.edit.must_not_include if normalize(p) in seen]
             ok.append(float(not missing and not forbidden))
-        out["edit_expected_phrases"] = (_fraction(ok), f"{expected.id}: {int(sum(ok))}/{len(edits)} replacements carry the expected phrasing")
+        out["edit_expected_phrases"] = (fraction(ok), f"{expected.id}: {int(sum(ok))}/{len(edits)} replacements carry the expected phrasing")
 
     kept = [float(_tokens(e.original_text) == _tokens(e.replacement_text)) for e in edits]
-    out["edit_keeps_numbers_and_markers"] = (_fraction(kept), f"{expected.id}: {int(sum(kept))}/{len(edits)} replacements keep every number, footnote marker and citation")
+    out["edit_keeps_numbers_and_markers"] = (fraction(kept), f"{expected.id}: {int(sum(kept))}/{len(edits)} replacements keep every number, footnote marker and citation")
 
     clean = [float(not (_stranded(e.replacement_text) - _stranded(e.original_text))) for e in edits]
-    out["edit_punctuation"] = (_fraction(clean), f"{expected.id}: {int(sum(clean))}/{len(edits)} replacements add no stranded punctuation")
+    out["edit_punctuation"] = (fraction(clean), f"{expected.id}: {int(sum(clean))}/{len(edits)} replacements add no stranded punctuation")
 
     for name, check in (extra or {}).items():
         verdicts = [check(e) for e in edits]
@@ -339,7 +373,7 @@ def edit_checks(
             continue  # nothing this check could assess here; the key stays NaN
         skipped = len(verdicts) - len(results)
         detail = f"{expected.id}: {int(sum(results))}/{len(results)} replacements pass {name}"
-        out[f"edit_{name}"] = (_fraction(results), detail + (f" ({skipped} not assessable)" if skipped else ""))
+        out[f"edit_{name}"] = (fraction(results), detail + (f" ({skipped} not assessable)" if skipped else ""))
     return out
 
 
@@ -361,10 +395,11 @@ def hit_pairs(
     # workflow happened to report them in; then map back to the original indices.
     order = _canonical_order(issues)
     ordered = [issues[i] for i in order]
+    claimed = claimed_titles(inventory)
     if one_to_one:
-        found = _one_to_one_hits(ordered, inventory.expected_issues)
+        found = _one_to_one_hits(ordered, inventory.expected_issues, claimed)
     else:
-        found = {e.id: hit_issue(e, ordered) for e in inventory.expected_issues}
+        found = {e.id: hit_issue(e, ordered, claimed) for e in inventory.expected_issues}
     hits = {eid: (order[i] if i is not None else None) for eid, i in found.items()}
     pairs = [(e, issues[i]) for e in inventory.expected_issues if (i := hits[e.id]) is not None]
     return hits, pairs
@@ -401,7 +436,9 @@ _UNMATCHED_OPTIONAL = 10_000
 _UNMATCHED_REQUIRED = 20_000
 
 
-def _one_to_one_hits(issues: Sequence[IssueItem], expected_issues: Sequence[ResolvedIssue]) -> dict[str, Optional[int]]:
+def _one_to_one_hits(
+    issues: Sequence[IssueItem], expected_issues: Sequence[ResolvedIssue], claimed: Sequence[str] = ()
+) -> dict[str, Optional[int]]:
     """A one-to-one matching of expected issues to reported issues that covers
     as many expected issues as any pairing can and, among those, uses the
     strongest evidence (lowest total tier). Solved as an assignment problem;
@@ -414,7 +451,7 @@ def _one_to_one_hits(issues: Sequence[IssueItem], expected_issues: Sequence[Reso
     cost = [[unmatched[row]] * size for row in range(size)]
     for row, e in enumerate(expected_issues):
         for col, issue in enumerate(issues):
-            tier = hit_tier(e, issue)
+            tier = hit_tier(e, issue, claimed)
             if tier is not None:
                 cost[row][col] = tier
     assignment = _min_cost_assignment(cost)
@@ -514,9 +551,9 @@ def issue_detection_scores(
 
     if pairs:
         if titles:
-            values["title_correct"] = _fraction([float(_title_matches(i, e.title)) for e, i in pairs if e.title])
-        values["severity_correct"] = _fraction([float(i.severity == e.severity) for e, i in pairs if e.severity])
-        values["anchor_in_range"] = _fraction([float(i.start_line <= e.line <= i.end_line) for e, i in pairs])
+            values["title_correct"] = fraction([float(_title_matches(i, e.title)) for e, i in pairs if e.title])
+        values["severity_correct"] = fraction([float(i.severity == e.severity) for e, i in pairs if e.severity])
+        values["anchor_in_range"] = fraction([float(i.start_line <= e.line <= i.end_line) for e, i in pairs])
         notes += [f"{e.id}: reported as {i.title!r}, not under {e.title!r}" for e, i in pairs if e.title and not _title_matches(i, e.title)]
         notes += [f"{e.id}: severity {i.severity}, expected {e.severity}" for e, i in pairs if e.severity and i.severity != e.severity]
         notes += [f"{e.id}: lines {i.start_line}-{i.end_line} do not bracket line {e.line}" for e, i in pairs if not i.start_line <= e.line <= i.end_line]
@@ -528,7 +565,7 @@ def issue_detection_scores(
                 if value < 1.0:
                     notes.append(detail)
         for key, vals in collected.items():
-            values[key] = _fraction(vals)
+            values[key] = fraction(vals)
 
     return values, " | ".join(notes) if notes else "all checks passed"
 
@@ -554,7 +591,7 @@ def extra_edit_scores(
                 if value < 1.0:
                     notes.append(detail)
     for key, vals in collected.items():
-        values[key] = _fraction(vals)
+        values[key] = fraction(vals)
     return values, " | ".join(notes) if notes else "all checks passed"
 
 
@@ -567,7 +604,7 @@ def decoy_scores(
     ``reasons`` is the dataset-wide list, so every sample returns the same keys.
     """
     present = {d.reason for d in inventory.decoys}
-    hit = decoy_hits(inventory.decoys, issues)
+    hit = decoy_hits(inventory.decoys, issues, inventory.document.split("\n"))
     values: dict[str, float] = {}
     notes: list[str] = []
     for reason in reasons:

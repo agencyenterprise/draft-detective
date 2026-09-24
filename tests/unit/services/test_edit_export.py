@@ -7,7 +7,6 @@ from pathlib import Path
 from typing import Sequence
 
 import pytest
-from docx import Document as PythonDocxDocument
 from docx_editor import BatchOperationError, Document as EditorDocument
 
 from lib.models.issue import Issue
@@ -20,6 +19,7 @@ from lib.services.docx.edit_export import (
 )
 from lib.workflows.models import SeverityEnum, WorkflowRunType
 
+from tests.unit.services.lean_docx import new_document
 from tests.unit.services.tracked_changes_support import display_fields
 
 _PARAGRAPH = "The chapter reports a 14% rise in output for 2019."
@@ -28,7 +28,7 @@ _MARKDOWN = _PARAGRAPH
 
 @pytest.fixture
 def docx_path(tmp_path: Path) -> Path:
-    document = PythonDocxDocument()
+    document = new_document()
     document.add_paragraph(_PARAGRAPH)
     path = tmp_path / "main.docx"
     document.save(str(path))
@@ -176,7 +176,7 @@ _TWO_PARAGRAPH_RANGES = {0: (1, 1), 1: (2, 2)}
 
 @pytest.fixture
 def two_paragraph_docx_path(tmp_path: Path) -> Path:
-    document = PythonDocxDocument()
+    document = new_document()
     for text in _TWO_PARAGRAPHS:
         document.add_paragraph(text)
     path = tmp_path / "two-paragraphs.docx"

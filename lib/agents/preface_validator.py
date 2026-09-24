@@ -5,10 +5,10 @@ and checks it against six publication requirements. Reports issues through
 tools and writes a markdown summary report to a file.
 """
 
-from typing import Optional
+from typing import List, Optional
 
 from deepagents import create_deep_agent
-from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
 from langchain_core.runnables import RunnableConfig
 
 from lib.config.llm_models import gpt_5_6_terra_model
@@ -61,7 +61,8 @@ class PrefaceValidatorAgent(LangChainAgent):
         self,
         prompt_kwargs: dict,
         config: Optional[RunnableConfig] = None,
-    ) -> AgentCheckResult:
+    ) -> tuple[AgentCheckResult, List[BaseMessage]]:
+        """Return the check result and the agent's full conversation, system prompt included."""
         issue_reporter = IssueReporter()
         deep_agent = create_deep_agent(
             model=self.llm,
@@ -91,7 +92,8 @@ class PrefaceValidatorAgent(LangChainAgent):
         state_result = markdown_result_from_run(
             collect_deep_agent_run(result, issue_reporter)
         )
-        return AgentCheckResult(
+        check = AgentCheckResult(
             issues=state_result.issues,
             report_markdown=state_result.report_markdown,
         )
+        return check, result["messages"]

@@ -8,12 +8,12 @@ from pathlib import Path
 from typing import Dict, Sequence, Tuple
 
 import pytest
-from docx import Document as PythonDocxDocument
 
 from lib.models.issue_edit import IssueEdit, IssueEditStatus
 from lib.services.docx.tracked_changes import apply_tracked_changes
 from lib.workflows.models import SeverityEnum
 
+from tests.unit.services.lean_docx import new_document
 from tests.unit.services.tracked_changes_support import (
     docx_path,  # noqa: F401 -- a fixture, reached by name
     make_edit as _edit,
@@ -39,7 +39,7 @@ _TWO_LINE_RANGES: Dict[int, Tuple[int, int]] = {0: (1, 2)}
 
 @pytest.fixture
 def two_line_docx_path(tmp_path: Path) -> Path:
-    document = PythonDocxDocument()
+    document = new_document()
     document.add_paragraph(_ONE_PARAGRAPH_TWO_LINES)
     path = tmp_path / "two-line.docx"
     document.save(str(path))

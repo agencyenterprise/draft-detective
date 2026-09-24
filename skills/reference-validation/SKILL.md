@@ -113,6 +113,6 @@ For each validated reference, report the following structure (JSON or a clearly-
 
 ## Response hygiene
 
-- Never include internal search tokens (e.g., `turn0search0`) or raw metadata markers in any output field. All text must be clean and human-readable.
+- Never include internal search-result tokens or raw metadata markers left by a search tool in any output field. All text must be clean and human-readable.
 - Always cite the URL you used as the authoritative source so the user can verify your finding.
 - Never validate from memory — every claim about a reference's correctness must be backed by a fetched URL or search result from this session.

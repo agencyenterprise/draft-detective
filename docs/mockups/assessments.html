@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="render-size" content="1440x1010" />
+  <title>Mockup: Assessments</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <script src="./mockup.js"></script>
+</head>
+<!-- Synthetic example. The document, its authors and its findings are invented for illustration. -->
+<body>
+<div class="flex h-[1010px] flex-col overflow-hidden border">
+
+  <!-- App bar -->
+  <header class="relative flex h-11 shrink-0 items-center gap-1 border-b px-3">
+    <a class="px-3 text-[15px] font-bold tracking-tight text-primary">Draft Detective</a>
+    <div class="pointer-events-none absolute inset-0 flex items-center justify-center">
+      <div class="flex w-full max-w-md min-w-0 items-center justify-center px-2">
+        <span class="truncate text-sm font-semibold">Four-Day Workweek Pilots in Municipal Government</span>
+      </div>
+    </div>
+    <div class="ml-auto flex items-center gap-1.5">
+      <span class="flex size-7 items-center justify-center rounded-md text-muted-foreground"><i data-lucide="circle-help" class="size-4"></i></span>
+      <span class="flex size-7 items-center justify-center rounded-md text-muted-foreground"><i data-lucide="moon" class="size-4"></i></span>
+      <span class="flex items-center gap-1 pl-1">
+        <span class="flex size-[26px] items-center justify-center rounded-full bg-primary text-[11px] font-semibold text-primary-foreground">JE</span>
+        <i data-lucide="chevron-down" class="size-3.5 text-muted-foreground"></i>
+      </span>
+    </div>
+  </header>
+
+  <!-- Project header -->
+  <div class="flex h-12 shrink-0 items-center gap-3 border-b px-3">
+    <nav class="flex h-full shrink-0 items-center">
+      <span class="flex h-full items-center gap-1.5 px-3 text-[13px] text-muted-foreground">Document Explorer</span>
+      <span class="flex h-full items-center gap-1.5 px-3 text-[13px] text-muted-foreground">References <span class="font-mono text-[11px] tabular-nums text-muted-foreground/70">14</span></span>
+      <span class="flex h-full items-center gap-1.5 px-3 text-[13px] text-muted-foreground">Files <span class="font-mono text-[11px] tabular-nums text-muted-foreground/70">6</span></span>
+      <span class="relative flex h-full items-center gap-1.5 px-3 text-[13px] font-medium text-foreground after:absolute after:inset-x-0 after:-bottom-px after:h-0.5 after:bg-primary">Assessments <span class="font-mono text-[11px] tabular-nums text-muted-foreground">7</span></span>
+      <span class="flex h-full items-center gap-1.5 px-3 text-[13px] text-muted-foreground">Peer Review <span class="font-mono text-[11px] tabular-nums text-muted-foreground/70">2</span></span>
+    </nav>
+    <div class="ml-auto flex shrink-0 items-center gap-2">
+      <span class="inline-flex h-7 items-center gap-1.5 rounded-md px-1.5 text-xs font-medium text-muted-foreground"><i data-lucide="loader-circle" class="size-3.5 text-primary"></i>Recommendation Check</span>
+      <span class="inline-flex h-7 items-center gap-1.5 rounded-md bg-primary px-2.5 text-xs font-medium text-primary-foreground shadow-xs"><i data-lucide="play" class="size-3.5"></i>Run assessments</span>
+      <span class="inline-flex h-7 items-center gap-1.5 rounded-md border bg-background px-2.5 text-xs font-medium shadow-xs"><i data-lucide="download" class="size-3.5"></i>Export</span>
+      <span class="inline-flex h-7 items-center gap-1.5 rounded-md border bg-background px-2.5 text-xs font-medium shadow-xs">Revision 2<i data-lucide="chevron-down" class="size-3.5 text-muted-foreground"></i></span>
+      <span class="flex size-9 items-center justify-center rounded-md"><i data-lucide="ellipsis-vertical" class="size-4"></i></span>
+    </div>
+  </div>
+  <div class="relative h-0.5 shrink-0 overflow-hidden bg-primary/15"><span class="absolute inset-y-0 left-[30%] w-1/3 rounded-full bg-primary"></span></div>
+
+  <div class="flex min-h-0 flex-1">
+    <!-- Assessment rail -->
+    <aside class="flex w-72 shrink-0 flex-col border-r bg-sidebar">
+      <div class="p-3">
+        <div class="flex items-center px-2">
+          <span class="font-mono text-[10px] tracking-wide text-muted-foreground uppercase">Assessments</span>
+          <span class="ml-auto text-xs font-medium text-primary">Run more</span>
+        </div>
+        <div class="mt-2 space-y-px">
+          <div class="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm"><span class="block size-2 shrink-0 rounded-full bg-green-500"></span><span class="flex-1 truncate">Reference Error Checker</span><span class="inline-flex items-center gap-0.5 text-xs font-semibold tabular-nums text-red-600"><i data-lucide="circle-alert" class="size-3.5"></i>1</span></div>
+          <div class="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm"><span class="block size-2 shrink-0 rounded-full bg-green-500"></span><span class="flex-1 truncate">Claim Reference Validation</span><span class="inline-flex items-center gap-0.5 text-xs font-semibold tabular-nums text-yellow-600"><i data-lucide="triangle-alert" class="size-3.5"></i>2</span></div>
+          <div class="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm"><span class="block size-2 shrink-0 rounded-full bg-green-500"></span><span class="flex-1 truncate">Internal Inference Validation</span><span class="inline-flex items-center gap-0.5 text-xs font-semibold tabular-nums text-red-600"><i data-lucide="circle-alert" class="size-3.5"></i>1</span></div>
+          <div class="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm"><span class="block size-2 shrink-0 rounded-full bg-green-500"></span><span class="flex-1 truncate">Advocacy &amp; Tone</span><span class="inline-flex items-center gap-0.5 text-xs font-semibold tabular-nums text-yellow-600"><i data-lucide="triangle-alert" class="size-3.5"></i>1</span></div>
+          <div class="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm"><span class="block size-2 shrink-0 rounded-full bg-green-500"></span><span class="flex-1 truncate">Active Voice &amp; Clear Actors</span><span class="inline-flex items-center gap-0.5 text-xs font-semibold tabular-nums text-blue-600"><i data-lucide="message-circle-warning" class="size-3.5"></i>2</span></div>
+          <div class="flex w-full items-center gap-2 rounded-md bg-foreground/8 px-2 py-1.5 text-sm text-foreground"><span class="block size-2 shrink-0 rounded-full bg-green-500"></span><span class="flex-1 truncate">Concision &amp; Precision</span><span class="inline-flex items-center gap-0.5 text-xs font-semibold tabular-nums text-yellow-600"><i data-lucide="triangle-alert" class="size-3.5"></i>1</span></div>
+          <div class="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm"><i data-lucide="loader-circle" class="size-3 shrink-0 text-primary"></i><span class="flex-1 truncate">Recommendation Check</span></div>
+        </div>
+      </div>
+      <div class="mt-1 border-t p-3">
+        <div class="flex items-center gap-1 px-2 font-mono text-[10px] tracking-wide text-muted-foreground uppercase"><i data-lucide="chevron-right" class="size-3"></i>Pipeline steps</div>
+      </div>
+      <div class="mt-auto shrink-0 border-t px-5 py-4 text-xs leading-relaxed text-muted-foreground">Each assessment reads the document once and reports what it finds. Those findings are the issues the document explorer marks up. <span class="font-medium text-primary">More details</span></div>
+    </aside>
+
+    <!-- Main -->
+    <main class="flex min-w-0 flex-1 flex-col">
+      <div class="flex h-10 shrink-0 items-center gap-2 border-b px-2">
+        <span class="flex size-7 items-center justify-center rounded-md"><i data-lucide="panel-left" class="size-4"></i></span>
+        <span class="truncate text-xs text-muted-foreground">7 assessments</span>
+        <div class="ml-auto flex items-center gap-2">
+          <span class="inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-xs font-medium"><i data-lucide="history" class="size-3"></i>History (2)</span>
+          <span class="inline-flex h-7 items-center gap-1.5 rounded-md border bg-background px-2.5 text-xs font-medium shadow-xs"><i data-lucide="play" class="size-3.5"></i>Re-run Concision &amp; Precision</span>
+        </div>
+      </div>
+
+      <div class="min-h-0 flex-1 overflow-hidden">
+        <div class="mx-auto max-w-5xl px-6 py-5">
+          <header class="border-b pb-4">
+            <h1 class="text-base font-semibold tracking-tight">Concision &amp; Precision</h1>
+            <p class="mt-1 text-[13px] leading-relaxed text-muted-foreground">Does every sentence earn its length and say something specific? Flags wordy constructions, run-on sentences, filler, vague references and empty framing, with a tighter rewrite for each.</p>
+            <div class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+              <span class="inline-flex items-center gap-1 text-xs text-green-700">Completed <i data-lucide="check" class="h-3 w-3"></i></span>
+              <span>Last updated 4 minutes ago</span>
+              <span class="flex items-center gap-1.5"><i data-lucide="clock" class="h-3.5 w-3.5"></i>2m 41s</span>
+              <span class="inline-flex items-center gap-1"><span class="font-medium">Cost:</span><span>$0.18</span></span>
+            </div>
+          </header>
+
+          <div class="space-y-4 pt-4">
+            <div class="flex items-center">
+              <div class="inline-flex h-9 w-fit items-center justify-center rounded-lg bg-muted p-[3px] text-muted-foreground">
+                <span class="inline-flex h-[calc(100%-1px)] items-center gap-1.5 rounded-md bg-background px-3 py-2 text-sm font-medium text-foreground shadow-sm"><i data-lucide="clipboard-list" class="h-3.5 w-3.5"></i>Results</span>
+                <span class="inline-flex h-[calc(100%-1px)] items-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium text-foreground"><i data-lucide="message-square" class="h-3.5 w-3.5"></i>Messages</span>
+              </div>
+            </div>
+
+            <div class="flex flex-col gap-2 rounded-xl border bg-card py-5 shadow-sm">
+              <div class="flex flex-row items-center justify-between px-6">
+                <div class="text-sm leading-none font-semibold">Report</div>
+                <span class="inline-flex h-8 items-center gap-1.5 rounded-md border bg-background px-3 text-sm font-medium shadow-xs"><i data-lucide="download" class="size-4"></i>Download<i data-lucide="chevron-down" class="size-4"></i></span>
+              </div>
+              <div class="px-6 text-sm">
+                <p class="mb-2">The report is mostly direct. The Findings section carries the wordiest sentences, where framing phrases delay the result. Three sentences can lose a third of their length without changing what they claim, and one sentence uses "significant" without a test behind it.</p>
+              </div>
+            </div>
+
+            <div class="flex items-center">
+              <span class="inline-flex h-8 items-center gap-1.5 rounded-md px-3 text-sm font-medium"><i data-lucide="external-link" class="h-3 w-3"></i>See these findings inline in the Document Explorer</span>
+              <span class="mr-1 ml-auto text-sm font-medium text-muted-foreground">4 issues</span>
+              <span class="flex items-center rounded-md border shadow-xs">
+                <span class="flex h-6 items-center px-2 text-xs">High</span>
+                <span class="flex h-6 items-center border-l px-2 text-xs">Med</span>
+                <span class="flex h-6 items-center border-l px-2 text-xs">Low</span>
+              </span>
+            </div>
+
+            <div class="overflow-hidden rounded-md border">
+              <div class="flex items-center gap-2 border-b bg-background px-4 py-2"><span class="block size-2 rounded-[2px] bg-amber-500"></span><span class="text-xs font-medium">Medium</span><span class="font-mono text-[11px] tabular-nums text-muted-foreground">1</span></div>
+              <div class="border-b">
+                <div class="block w-full px-4 pt-3 pb-3 text-left">
+                  <span class="flex items-center gap-1.5"><span class="block size-1.5 shrink-0 rounded-full bg-amber-500"></span><span class="truncate font-mono text-[10px] tracking-wide text-muted-foreground uppercase">Concision &amp; Precision</span><span class="-my-1 inline-flex shrink-0 items-center px-0.5 py-1 text-muted-foreground"><i data-lucide="pencil-line" class="size-3"></i></span><span class="ml-auto shrink-0 font-mono text-[10px] tabular-nums text-muted-foreground">L25</span></span>
+                  <span class="mt-1 flex items-start gap-2"><span class="flex-1 text-[13.5px] leading-snug font-medium">Vague precision: "significant" without a test</span></span>
+                  <span class="mt-0.5 block truncate text-[12px] leading-snug text-muted-foreground">"A significant rise" reads as a statistical claim, but the survey reports no test and no comparison group.</span>
+                </div>
+              </div>
+              <div class="flex items-center gap-2 border-b bg-background px-4 py-2"><span class="block size-2 rounded-[2px] bg-blue-500"></span><span class="text-xs font-medium">Low</span><span class="font-mono text-[11px] tabular-nums text-muted-foreground">3</span></div>
+              <div class="border-b bg-blue-50">
+                <div class="block w-full px-4 pt-3 pb-2 text-left">
+                  <span class="flex items-center gap-1.5"><span class="block size-1.5 shrink-0 rounded-full bg-blue-500"></span><span class="truncate font-mono text-[10px] tracking-wide text-muted-foreground uppercase">Concision &amp; Precision</span><span class="-my-1 inline-flex shrink-0 items-center px-0.5 py-1 text-muted-foreground"><i data-lucide="pencil-line" class="size-3"></i></span><span class="ml-auto shrink-0 font-mono text-[10px] tabular-nums text-muted-foreground">L31</span></span>
+                  <span class="mt-1 flex items-start gap-2"><span class="flex-1 text-[13.5px] leading-snug font-medium">Wordy construction delays the finding</span><span class="shrink-0 font-mono text-[10px] text-blue-700 uppercase">Low</span></span>
+                </div>
+                <div class="px-4 pb-3">
+                  <div class="space-y-2">
+                    <div class="text-xs leading-relaxed text-foreground/80"><p>The sentence spends eleven words on framing ("It is important to note that, in terms of overall results,") before it reaches the finding.</p></div>
+                    <div class="rounded border border-dashed bg-background/60 px-2 py-1.5">
+                      <p class="mb-1 flex items-center gap-1 font-mono text-[9.5px] tracking-wide text-muted-foreground uppercase"><i data-lucide="lightbulb" class="size-3"></i> Suggested action</p>
+                      <div class="text-xs leading-relaxed">Drop the framing and start with the result.</div>
+                    </div>
+                    <div class="rounded border border-dashed bg-background/60 px-2 py-1.5">
+                      <p class="mb-1 flex items-center gap-1 font-mono text-[9.5px] tracking-wide text-muted-foreground uppercase"><i data-lucide="pencil-line" class="size-3"></i> Proposed edit<span class="ml-auto shrink-0 text-[10px] tabular-nums normal-case">L31</span></p>
+                      <ul class="space-y-1.5">
+                        <li>
+                          <p class="text-[12px] leading-relaxed break-words whitespace-pre-wrap"><del class="rounded-[2px] bg-red-100/70 text-red-700 line-through decoration-red-500/70">It is important to note that, in terms of overall results, the</del><ins class="rounded-[2px] bg-green-100/70 text-green-700 no-underline">The</ins> pilots <del class="rounded-[2px] bg-red-100/70 text-red-700 line-through decoration-red-500/70">were able to reduce</del><ins class="rounded-[2px] bg-green-100/70 text-green-700 no-underline">reduced</ins> overtime spending in four of the six cities.</p>
+                          <p class="mt-1 text-[11px] leading-snug text-muted-foreground">Removes the framing and the "were able to" construction; the claim and its numbers are unchanged.</p>
+                        </li>
+                      </ul>
+                    </div>
+                    <div><span class="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground">View in document at L31 <i data-lucide="arrow-up-right" class="size-3"></i></span></div>
+                    <div class="flex items-center gap-1.5 pt-0.5">
+                      <span class="inline-flex h-6 items-center gap-1 rounded-md bg-primary px-2 text-[11px] font-medium text-primary-foreground shadow-xs"><i data-lucide="check" class="size-3"></i> Mark resolved</span>
+                      <span class="ml-auto flex items-center gap-0.5 text-muted-foreground">
+                        <span class="flex h-6 w-6 items-center justify-center"><i data-lucide="thumbs-up" class="h-3 w-3"></i></span>
+                        <span class="flex h-6 w-6 items-center justify-center"><i data-lucide="thumbs-down" class="h-3 w-3"></i></span>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="border-b">
+                <div class="block w-full px-4 pt-3 pb-3 text-left">
+                  <span class="flex items-center gap-1.5"><span class="block size-1.5 shrink-0 rounded-full bg-blue-500"></span><span class="truncate font-mono text-[10px] tracking-wide text-muted-foreground uppercase">Concision &amp; Precision</span><span class="-my-1 inline-flex shrink-0 items-center px-0.5 py-1 text-muted-foreground"><i data-lucide="pencil-line" class="size-3"></i></span><span class="ml-auto shrink-0 font-mono text-[10px] tabular-nums text-muted-foreground">L33</span></span>
+                  <span class="mt-1 flex items-start gap-2"><span class="flex-1 text-[13.5px] leading-snug font-medium">Filler phrase: "in order to"</span></span>
+                  <span class="mt-0.5 block truncate text-[12px] leading-snug text-muted-foreground">"In order to" adds two words that "to" already carries.</span>
+                </div>
+              </div>
+              <div>
+                <div class="block w-full px-4 pt-3 pb-3 text-left">
+                  <span class="flex items-center gap-1.5"><span class="block size-1.5 shrink-0 rounded-full bg-blue-500"></span><span class="truncate font-mono text-[10px] tracking-wide text-muted-foreground uppercase">Concision &amp; Precision</span><span class="ml-auto shrink-0 font-mono text-[10px] tabular-nums text-muted-foreground">L38–40</span></span>
+                  <span class="mt-1 flex items-start gap-2"><span class="flex-1 text-[13.5px] leading-snug font-medium">Vague reference: "this"</span></span>
+                  <span class="mt-0.5 block truncate text-[12px] leading-snug text-muted-foreground">"This" at the start of line 40 could refer to the schedule change or to the coverage rule.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+</body>
+</html>

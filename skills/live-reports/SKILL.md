@@ -48,4 +48,4 @@ Identify the document's central claims, then use web search to find high-quality
 
 Report each claim that newer evidence would update or strengthen as a separate, actionable recommendation, and provide an overall addendum summarizing the most important updates (what to change, how, and why it matters) with the **full citation** for every recommended source.
 
-Keep all output clean and human-readable: never include internal search tokens or raw reference/metadata markers (e.g. `turn1search0`) in any field.
+Keep all output clean and human-readable: never include internal search-result tokens or raw reference/metadata markers left by a search tool in any field.

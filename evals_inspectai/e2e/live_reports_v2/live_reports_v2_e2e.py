@@ -27,6 +27,7 @@ from evals_inspectai.common.api_client import (
     create_project_and_start_workflows,
     poll_until_complete,
 )
+from evals_inspectai.common.api_solver import surface_conversations
 from evals_inspectai.common.errors import WorkflowCompletionError
 from evals_inspectai.common.local_backend import LocalBackend
 from evals_inspectai.common.loaders import resolve_input
@@ -93,7 +94,7 @@ def live_reports_v2_solver(
             raise WorkflowCompletionError(str(e)) from e
 
         workflow_state = run_detail.get("state") or {}
-        workflow_state.pop("messages", [])
+        await surface_conversations(state, workflow_state, _TARGET_WORKFLOW)
 
         state.output = ModelOutput(
             completion=json.dumps(workflow_state),

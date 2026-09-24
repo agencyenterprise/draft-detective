@@ -42,6 +42,7 @@ Some occurrences must still be recorded but marked as **excluded from compliance
 - **Heading abbreviations** — any abbreviation appearing inside a Markdown heading (a line starting with one or more `#` characters).
 - **References / Bibliography section** — any abbreviation appearing inside a dedicated "References", "Bibliography", "Works Cited", or equivalent section.
 - **Front page / cover page** — any abbreviation appearing on the front or cover page (typically the first page, before the table of contents or any body section).
+- **Footnotes and endnotes** — any abbreviation appearing inside the text of a footnote or endnote: the numbered notes at the foot of a page, collected at the end of a chapter, or gathered in a "Notes" / "Endnotes" section (e.g. lines such as `12 Kyle Orland, "…," Ars Technica, 2017.` or `[^12]: …`). Notes are citation apparatus, not body text. Only the note's own text is exempt: the sentence in the body that carries the note marker is checked as usual.
 - **Exempt abbreviation classes** — abbreviations that clearly belong to one of these common classes:
 
   | Class | Examples | Notes |
@@ -50,6 +51,13 @@ Some occurrences must still be recorded but marked as **excluded from compliance
   | Academic degrees | Ph.D., M.A., B.Sc., M.D., J.D. | |
   | Common units of measurement | cm, mm, km, mW, kHz, MHz, GHz, kg, mg | |
   | Citation elements | Vol., Ch., pp., para., ed., ibid., et al. | |
+  | Legal and regulatory citations | U.S.C., C.F.R., Stat., Pub. L., Fed. Reg. | As part of a citation such as "10 U.S.C. 2350" |
+  | Latin and common shorthand | e.g., i.e., etc., cf., vs., viz., approx., no. | "no." as in "No. 12", not the word "no" |
+  | Statistical notation | N, n, M, SD, SE, R², R2, p, t, F, df, Std. Dev. | When used as notation for a statistic, e.g. "N = 120", "Pseudo R2" |
+  | Numeric magnitude suffixes | $9.6B, 10M, 5K, $1T | The letter attached to a number, meaning billion, million, thousand, trillion |
+  | U.S. state and territory postal codes | CA, FL, NM, NY, UT, VA | In an address or place name, e.g. "Riverside, CA"; a postal code used on its own as a term is not exempt |
+  | Product, model, software, and benchmark names | GPT-4, XGBoost, OpenAI, HumanEval, ARC-AGI-2 | Names used as names, not abbreviations standing for a longer form the reader needs |
+  | Document and report identifiers | M-25-21, RR-A4036-1, TR-3 | Catalogue, memo, or report numbers |
   | Military ranks | Col., Gen., Sgt., Lt., Cpl., Adm., Maj. | |
   | Military equipment designators | C-141, F-35, Su-35, M-1, Ka-32 | |
   | Corporation names (all-caps) | RAND, CNA, MITRE, IBM, SAIC | |

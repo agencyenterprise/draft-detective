@@ -1,0 +1,511 @@
+# Eval samples for the headers_skimmability workflow, in inventory form: one expected issue per weak
+# header (anchored on the header line), per topic-label lead sentence, per long key finding, per
+# overlong key findings box (anchored on its first item), and one per document whose opening never
+# states its bottom line (anchored on the introduction's header), plus decoys for every exclusion the
+# skill states. The workflow proposes no edits: suggested header wording lives in the suggested action,
+# which the task's own checks and the judge read. A header anchor is the header text, with an explicit
+# `line` where that text also occurs in the prose. Two optional headers in the vouchers report take the
+# title "Header", which each of the three header titles matches, since a vague-header and a
+# missing-takeaway report of them are both fair. Decoys on one-word headers (Summary, Introduction,
+# Background) anchor on the markdown line and take the title "Header": they are flagged only by a
+# header issue on that line, not by any issue whose text happens to use the word.
+# See evals_inspectai/common/issue_inventory.py.
+
+# ---- vague header ---------------------------------------------------------------------------
+- input: |
+    # Tutoring in Rural Schools
+
+    ## Introduction
+
+    The state education agency asked us whether small-group tutoring raised reading scores in 38 rural schools. Tutoring raised reading scores by 0.18 standard deviations in its first year, but most principals said they could not sustain it without state funding.
+
+    ## How We Measured Reading Gains
+
+    We compared schools that started tutoring in 2022 with schools that started a year later, using the state's spring reading assessment.
+
+    ## Findings
+
+    Reading scores rose 0.18 standard deviations more in first-wave schools than in comparison schools after one year. The gain was larger for students who attended at least 80 percent of sessions.
+
+    ## Principals Doubt They Can Sustain Tutoring
+
+    Eleven of the 19 principals said they would keep tutoring only with continued state funding.
+  expected_issues:
+  - id: findings_header
+    title: Vague Header
+    anchor: Findings
+    line: 11
+    severity: medium
+  decoys:
+  - anchor: How We Measured Reading Gains
+    reason: procedural_header
+  notes: A generic "Findings" over a section with one clear result. The methods header is a label and stays.
+
+# ---- header lacks takeaway -------------------------------------------------------------------
+- input: |
+    # Court Staffing in Three States
+
+    ## Summary
+
+    We compared court staffing with caseloads in 41 county courts in three states. Staffing fell short of caseload demand in all 41 courts, by a median of 18 percent.
+
+    ## Sources of Caseload and Payroll Data
+
+    We drew caseload counts from each state's court administrator and staffing counts from county payroll records for 2023.
+
+    ## Analysis of Court Staffing Levels
+
+    Every one of the 41 courts had fewer clerks and judges than the caseload standard calls for. The median shortfall was 18 percent, and the largest was 35 percent, in a rural county court. No court met the standard in any quarter of 2023.
+
+    ## Courts Are Filling the Gap with Overtime
+
+    Clerks in 29 courts worked overtime in every month of 2023. Administrators said overtime is the only way to keep up with filings.
+  expected_issues:
+  - id: staffing_levels
+    title: Header Lacks Takeaway
+    anchor: Analysis of Court Staffing Levels
+    severity: low
+  decoys:
+  - anchor: Sources of Caseload and Payroll Data
+    reason: procedural_header
+  notes: The EEI editor's own example. The section plainly supports "Court Staffing Consistently Falls Short of Caseload Demand".
+
+# ---- header does not match content ------------------------------------------------------------
+- input: |
+    # Free Transit Passes for Community College Students
+
+    ## Introduction
+
+    A county transit agency gave free passes to students at two community colleges in fall 2024. Pass holders enrolled in more credits the following spring than students without passes, and ridership on the routes serving the colleges rose 12 percent.
+
+    ## How the Pilot Worked
+
+    Students at the two colleges could request a pass at registration. The agency issued 3,400 passes.
+
+    ## Program Costs
+
+    Pass holders enrolled in an average of 1.4 more credits in spring 2025 than students without passes. Part-time students who received passes were the most likely to move to full-time enrollment.
+
+    ## Ridership Rose on College Routes
+
+    Weekday boardings on the four routes serving the colleges rose 12 percent between fall 2023 and fall 2024.
+  expected_issues:
+  - id: costs_header
+    title: Header Does Not Match Content
+    anchor: Program Costs
+    severity: medium
+  decoys:
+  - anchor: How the Pilot Worked
+    reason: procedural_header
+  notes: The section is about enrollment, not costs. The finding is a comparison, not an effect, so a suggestion should not say the passes caused the extra credits (the judge checks that).
+
+# ---- bottom line not up front -----------------------------------------------------------------
+- input: |
+    # Hospital Discharge Planning in Rural Counties
+
+    ## Introduction
+
+    Rural hospitals discharge patients to homes that can be far from follow-up care. The state health department asked us to examine how rural hospitals plan discharges and what happens to patients afterward. In this report, we describe discharge practices at 12 hospitals and the readmissions that followed. Chapter 2 describes our methods, Chapter 3 presents what we found, and Chapter 4 discusses implications for the department.
+
+    ## Chapter 2: Methods
+
+    We reviewed discharge records for 2,300 patients and interviewed discharge planners at each hospital.
+
+    ## Chapter 3: Readmissions Were Lower Where Planners Scheduled Follow-Up
+
+    Hospitals whose planners scheduled a follow-up visit before discharge had 30-day readmission rates of 9 percent, compared with 15 percent at hospitals that left scheduling to patients.
+
+    ## Chapter 4: Every Hospital Could Schedule Follow-Up Before Discharge
+
+    The department could ask every rural hospital to schedule a follow-up visit before discharge; the planners we interviewed said it takes about ten minutes per patient.
+  expected_issues:
+  - id: no_bluf
+    title: Bottom Line Not Up Front
+    anchor: "## Introduction"
+    severity: high
+  notes: The introduction gives purpose and structure only; the 9 versus 15 percent finding first appears in Chapter 3. Every header already states its point.
+
+- input: |
+    # Broadband Subsidies and Small Business Adoption
+
+    ## Introduction
+
+    Congress funded a broadband subsidy for small businesses in 2022. We examined whether the subsidy led small businesses in four states to adopt faster service. Most businesses that received the subsidy upgraded their service, but about a third dropped the faster plan when the subsidy ended. The remainder of this report is organized as follows: Chapter 2 describes our data, and Chapter 3 presents the results.
+
+    ## Chapter 2: Data
+
+    We matched subsidy records for 5,800 businesses with provider billing data from 2021 to 2024.
+
+    ## Chapter 3: Most Subsidized Businesses Upgraded, but a Third Later Dropped Back
+
+    Of the 5,800 businesses, 4,100 upgraded to a faster plan within six months of receiving the subsidy. After the subsidy ended, 1,400 of them returned to a slower plan.
+  decoys:
+  - anchor: The remainder of this report is organized as follows
+    reason: signposting
+  - anchor: Broadband Subsidies and Small Business Adoption
+    reason: document_title
+  - anchor: "## Introduction"
+    reason: named_section
+    title: Header
+  notes: Clean. The bottom line sits in the introduction next to a signposting sentence; the neutral title is out of scope.
+
+# ---- lead sentences ---------------------------------------------------------------------------
+- input: |
+    # Retaining Tutors in Rural Schools
+
+    ## Summary
+
+    Tutors hired as school staff stayed longer than tutors hired as contractors, but staff positions cost districts more.
+
+    ## Staff Tutors Stayed Longer but Cost More
+
+    **Retention.** Of the 120 tutors hired as contractors, 64 left within a year, compared with 18 of the 70 hired as school staff. Principals said contractors left for jobs with benefits.
+
+    **Staff tutors cost districts about 30 percent more than contractors.** Health insurance accounted for most of the difference, according to district budget records.
+  expected_issues:
+  - id: retention_lead
+    title: Lead Sentence Lacks Takeaway
+    anchor: "**Retention.**"
+    severity: low
+  decoys:
+  - anchor: Staff tutors cost districts about 30 percent more than contractors
+    reason: argued_lead
+  notes: One topic-label opener next to one that already states its point.
+
+- input: |
+    # Teacher Survey on Tutoring
+
+    ## Summary
+
+    Most teachers valued the tutoring sessions, but 61 percent said the sessions displaced other instruction.
+
+    ## How We Ran the Survey
+
+    **Survey sample.** We surveyed 212 teachers in the 38 tutoring schools in spring 2024; 174 responded.
+
+    **Survey instrument.** The survey had 22 questions on scheduling, student engagement and coordination.
+
+    ## Teachers Valued Tutoring but Lost Instruction Time
+
+    **Most teachers said tutoring helped their weakest readers.** Of the 174 respondents, 139 said the students they sent to tutoring read more confidently by spring.
+
+    **Sessions came at a cost to other subjects.** Sixty-one percent said the sessions displaced other instruction, most often science.
+  decoys:
+  - anchor: Survey sample.
+    reason: procedural_lead
+  - anchor: Survey instrument.
+    reason: procedural_lead
+  - anchor: Sessions came at a cost to other subjects
+    reason: argued_lead
+  - anchor: "## Summary"
+    reason: named_section
+    title: Header
+  notes: Clean. Bold labels in a methods section are run-in headings, not lead sentences; the findings openers argue.
+
+# ---- key findings -----------------------------------------------------------------------------
+- input: |
+    # Community Health Worker Program Evaluation
+
+    ## Key Findings
+
+    - Enrollment in the program grew from 400 to 2,100 patients between 2021 and 2024.
+    - Patients who saw a community health worker at least monthly had fewer emergency visits.
+    - Blood pressure control improved for enrolled patients with hypertension.
+    - To measure costs, we drew on billing records from three clinics, interviews with 14 clinic managers and a survey of 210 patients conducted in spring 2024, and we found that the program cost about $310 per patient per year, most of which went to worker salaries, with smaller amounts for training, travel and supervision.
+    - Workers who spoke patients' first language kept patients enrolled longer.
+    - Clinic managers valued the workers' home visits.
+    - Turnover among workers was 22 percent a year.
+    - Patients rated the program 4.6 out of 5.
+    - Two of the three clinics plan to expand the program.
+
+    ## Enrollment Grew Fivefold in Three Years
+
+    The program enrolled 400 patients in 2021 and 2,100 in 2024, most of them referred by clinic nurses.
+
+    ## Monthly Visits Went with Fewer Emergency Visits
+
+    Patients who saw a worker at least once a month made 0.6 emergency visits a year, compared with 1.1 for patients seen less often.
+  expected_issues:
+  - id: too_many
+    title: Too Many Key Findings
+    anchor: Enrollment in the program grew from 400 to 2,100 patients
+    severity: medium
+  - id: cost_item
+    title: Key Finding Not Brief
+    anchor: To measure costs, we drew on billing records from three clinics
+    severity: low
+  notes: Nine items, one of which buries a cost finding behind its method. The box's header itself must not be retitled.
+
+# ---- protected headers ------------------------------------------------------------------------
+- input: |
+    # Options for Funding School Transportation
+
+    ## RAND Education, Employment, and Infrastructure
+
+    This research was conducted within the division's education policy program.
+
+    ## Summary
+
+    Rural districts spend twice the state average per student on transportation. Of the three funding options we assessed, a mileage-based formula would close most of the gap at the lowest added cost.
+
+    ## Option 1: Raise the Per-Student Allotment
+
+    A flat increase would cost the state $48 million a year and would send most of the money to suburban districts.
+
+    ## Option 2: Fund by Route Mileage
+
+    A mileage-based formula would cost $21 million a year and would direct 80 percent of it to rural districts.
+
+    ## Option 3: Reimburse Actual Costs
+
+    Full reimbursement would cost $65 million a year and would remove districts' incentive to contain costs.
+  decoys:
+  - anchor: "Option 1: Raise the Per-Student Allotment"
+    reason: protected_header
+  - anchor: "Option 2: Fund by Route Mileage"
+    reason: protected_header
+  - anchor: "Option 3: Reimburse Actual Costs"
+    reason: protected_header
+  - anchor: RAND Education, Employment, and Infrastructure
+    reason: protected_header
+  notes: Clean. Option headers and the division header are left alone even though they only label.
+
+- input: |
+    # Staffing Scenarios for State Veterans' Homes
+
+    ## Summary
+
+    Of the three staffing scenarios we modeled, only the one that raises nurse wages meets the state's staffing ratio by 2030.
+
+    ## Scenario A: Current Wages
+
+    Under current wages, the homes would fill 71 percent of nursing positions by 2030, short of the 90 percent the ratio requires.
+
+    ## Scenario B: Signing Bonuses
+
+    Signing bonuses would raise the fill rate to 80 percent by 2030 at a cost of $6 million a year.
+
+    ## Scenario C: Higher Nurse Wages
+
+    A 12 percent wage increase would fill 93 percent of positions by 2030 at a cost of $19 million a year.
+  decoys:
+  - anchor: "Scenario A: Current Wages"
+    reason: alternative_header
+  - anchor: "Scenario B: Signing Bonuses"
+    reason: alternative_header
+  - anchor: "Scenario C: Higher Nurse Wages"
+    reason: alternative_header
+  notes: Clean. Scenario headers name the alternatives being compared, like Option headers, so they keep their names.
+
+# ---- numbered header --------------------------------------------------------------------------
+- input: |
+    # Workforce Training Vouchers in Ohio
+
+    ## 1. Introduction
+
+    Ohio offered training vouchers to 6,000 laid-off manufacturing workers in 2023. Voucher users were more likely to be employed a year later than eligible workers who did not use a voucher, and the gap was largest for workers over 50.
+
+    ## 2. Data and Methods
+
+    We linked voucher records to state unemployment insurance wage records for 2023 and 2024.
+
+    ## 3. Results
+
+    Of the workers who used a voucher, 71 percent were employed a year later, compared with 58 percent of eligible workers who did not. The gap was 19 percentage points for workers over 50 and 8 points for workers under 30.
+
+    ## 4. Most Voucher Users Found Maintenance Jobs
+
+    Most voucher users who found work were hired into maintenance and repair jobs, according to the wage records.
+  expected_issues:
+  - id: results_header
+    title: Vague Header
+    anchor: "3. Results"
+    severity: medium
+  decoys:
+  - anchor: "2. Data and Methods"
+    reason: procedural_header
+  notes: The suggestion keeps the "3." and, since the comparison is not causal, does not say the vouchers raised employment.
+
+# ---- procedural headers -----------------------------------------------------------------------
+- input: |
+    # Reducing Wait Times at Veterans' Clinics
+
+    ## Summary
+
+    Wait times for primary care fell at clinics that extended evening hours, from a median of 24 days to 15. Clinics that added telehealth alone saw no change.
+
+    ## Background
+
+    The Veterans Health Administration set a 20-day target for primary care appointments in 2019. In 2023, half of its community clinics missed it.
+
+    ## Data and Methods
+
+    We compared appointment records from 60 clinics before and after each changed its scheduling in 2023.
+
+    ## Waits Fell with Evening Hours but Not with Telehealth Alone
+
+    Median waits fell from 24 days to 15 at the 22 clinics that added evening hours. At the 18 clinics that added only telehealth, the median stayed at 23 days.
+
+    ## Limitations
+
+    We could not observe veterans who sought care outside the clinics.
+
+    ## Appendix A: Clinic List
+
+    The 60 clinics are listed by region in Table A.1.
+  decoys:
+  - anchor: "## Background"
+    reason: procedural_header
+    title: Header
+  - anchor: Data and Methods
+    reason: procedural_header
+  - anchor: "## Limitations"
+    reason: procedural_header
+    title: Header
+  - anchor: "Appendix A: Clinic List"
+    reason: procedural_header
+  - anchor: "Reducing Wait Times at Veterans' Clinics"
+    reason: document_title
+  - anchor: "## Summary"
+    reason: named_section
+    title: Header
+  notes: Clean. Background, methods, limitations and appendix headers are labels by design.
+
+# ---- excerpt ----------------------------------------------------------------------------------
+- input: |
+    ## Chapter 3: Principals Doubt They Can Sustain Tutoring
+
+    Eleven of the 19 principals said they would keep tutoring only with continued state funding. The rest said they would keep it by cutting other programs.
+
+    ### Recruiting Was Easy; Retaining Tutors Was Not
+
+    Principals found tutors quickly through local retired-teacher networks, but most lost at least one tutor before the school year ended.
+
+    ### Costs Rose When Districts Hired Tutors as Staff
+
+    Districts that hired tutors as staff paid health insurance costs that contractors did not carry.
+  notes: Clean. A single chapter with no introduction of its own is not checked for a bottom line, and its headers all state their point.
+
+# ---- clean, whole report ----------------------------------------------------------------------
+- input: |
+    # Heat Emergencies and Outdoor Workers in Arizona
+
+    ## Summary
+
+    Emergency visits for heat illness among outdoor workers in Arizona doubled between 2018 and 2023. Construction and agricultural workers accounted for most of the increase, and three-quarters of the visits came on days when employers were not required to provide shaded rest breaks.
+
+    ## Heat Visits Doubled in Five Years
+
+    Emergency departments recorded 1,240 heat illness visits by outdoor workers in 2018 and 2,510 in 2023.
+
+    ## Construction and Farm Workers Made Most of the Visits
+
+    Construction workers made 46 percent of the 2023 visits and agricultural workers 31 percent.
+
+    ## Most Visits Came on Days Without a Rest-Break Requirement
+
+    Of the 2023 visits, 74 percent occurred on days when the heat index was below the threshold that triggers the state's rest-break requirement.
+
+    ## Recommendations
+
+    The state could lower the heat index threshold for the rest-break requirement, since most visits came on days below it.
+  decoys:
+  - anchor: "## Summary"
+    reason: named_section
+    title: Header
+  - anchor: "## Recommendations"
+    reason: named_section
+    title: Header
+  notes: Clean. Bottom line up front, every header states its section's point, and the Summary and Recommendations headers are the names readers look for.
+
+# ---- section-length documents -----------------------------------------------------------------
+- input: file://e2e/headers_skimmability/files/water_utility_report.md
+  expected_issues:
+  - id: ch3_findings
+    title: Vague Header
+    anchor: "Chapter 3: Findings"
+    severity: medium
+  - id: leak_detection
+    title: Header Lacks Takeaway
+    anchor: Leak Detection
+    line: 29
+    severity: low
+  - id: rate_changes
+    title: Header Lacks Takeaway
+    anchor: Rate Changes
+    severity: low
+  - id: staffing_mismatch
+    title: Header Does Not Match Content
+    anchor: Staffing
+    line: 43
+    severity: medium
+  - id: ch4_discussion
+    title: Vague Header
+    anchor: "Chapter 4: Discussion"
+    severity: medium
+  - id: crews_lead
+    title: Lead Sentence Lacks Takeaway
+    anchor: "**Crews.**"
+    severity: low
+  decoys:
+  - anchor: Production and billing records.
+    reason: procedural_lead
+  - anchor: Staff interviews.
+    reason: procedural_lead
+  - anchor: Most eligible households did not know the program existed.
+    reason: bold_emphasis
+  - anchor: "Chapter 2 describes our approach, Chapter 3 presents what we found"
+    reason: signposting
+  - anchor: "Appendix A: Survey Instrument"
+    reason: procedural_header
+  notes: >-
+    Bottom line is up front in the Key Findings box, which has five short items. The Staffing section
+    is about the billing system, which is why its header does not match. Two headers already state their
+    point and stay.
+
+- input: file://e2e/headers_skimmability/files/mobility_vouchers_report.md
+  expected_issues:
+  - id: no_bluf
+    title: Bottom Line Not Up Front
+    anchor: "## Introduction"
+    severity: high
+  - id: overview_header
+    title: Vague Header
+    anchor: Overview
+    severity: medium
+  - id: where_moved
+    title: Header Lacks Takeaway
+    anchor: Where Families Moved
+    severity: low
+  - id: school_outcomes
+    title: Header Lacks Takeaway
+    anchor: School Outcomes
+    line: 21
+    severity: low
+  - id: other_issues
+    title: Vague Header
+    anchor: Other Issues
+    severity: medium
+  - id: distance_lead
+    title: Lead Sentence Lacks Takeaway
+    anchor: "**Distance.**"
+    severity: low
+  - id: landlord_header
+    title: Header
+    anchor: Landlord Participation
+    required: false
+  - id: implications_header
+    title: Header
+    anchor: Implications for the Authority
+    line: 33
+    required: false
+  decoys:
+  - anchor: Counselors spent much of their time recruiting landlords.
+    reason: argued_lead
+  - anchor: Program and Data
+    reason: procedural_header
+  notes: >-
+    The introduction describes purpose and structure only; the main result first appears in the
+    Overview. School Outcomes is mixed and tentative, so a correct suggestion says attendance rose but
+    scores did not change, without claiming the move caused either. The landlord and implications
+    headers name specific subjects and are fair to flag or leave.

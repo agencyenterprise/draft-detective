@@ -8,7 +8,7 @@ scopes its analysis per section, so that bogus first section silently duplicated
 the whole document.
 """
 
-from lib.workflows.claim_reference_validation_v2.sections import (
+from lib.services.document_sections import (
     find_text_line_range,
     split_into_sections,
 )

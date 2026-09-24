@@ -13,6 +13,7 @@ from docx import Document as PythonDocxDocument
 
 from lib.services.docx.tracked_changes import apply_tracked_changes
 
+from tests.unit.services.lean_docx import new_document
 from tests.unit.services.tracked_changes_support import (
     make_edit as _edit,
     plan_edits as _plan,
@@ -44,7 +45,7 @@ _IN_A_TABLE_DETAIL = "the edit sits in a table, which the export cannot redline"
 
 @pytest.fixture
 def table_docx_path(tmp_path: Path) -> Path:
-    document = PythonDocxDocument()
+    document = new_document()
     document.add_paragraph("Title")
     document.add_paragraph("Output increased by 14%.")
     table = document.add_table(rows=2, cols=2)
@@ -123,7 +124,7 @@ _ECHO_LINE_RANGES: Dict[int, Tuple[int, int]] = {0: (1, 3)}
 
 @pytest.fixture
 def echo_table_docx_path(tmp_path: Path) -> Path:
-    document = PythonDocxDocument()
+    document = new_document()
     document.add_paragraph(_ECHO_PARAGRAPH)
     table = document.add_table(rows=1, cols=1)
     table.cell(0, 0).text = _ECHO_PARAGRAPH

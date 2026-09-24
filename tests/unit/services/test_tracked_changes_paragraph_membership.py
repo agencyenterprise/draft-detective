@@ -8,10 +8,10 @@ the same passage and what does not.
 from pathlib import Path
 
 import pytest
-from docx import Document as PythonDocxDocument
 
 from lib.services.docx.tracked_changes import apply_tracked_changes
 
+from tests.unit.services.lean_docx import new_document
 from tests.unit.services.tracked_changes_support import (
     OTHER_PASSAGE_DETAIL as _OTHER_PASSAGE_DETAIL,
     make_edit as _edit,
@@ -28,7 +28,7 @@ _FOOTNOTE_MARKDOWN = (
 
 @pytest.fixture
 def footnote_docx_path(tmp_path: Path) -> Path:
-    document = PythonDocxDocument()
+    document = new_document()
     document.add_paragraph(_FOOTNOTE_PARAGRAPH)
     path = tmp_path / "footnote.docx"
     document.save(str(path))
@@ -41,7 +41,7 @@ _CITATION_PARAGRAPH = "See [1] for further details."
 
 @pytest.fixture
 def citation_docx_path(tmp_path: Path) -> Path:
-    document = PythonDocxDocument()
+    document = new_document()
     document.add_paragraph(_CITATION_PARAGRAPH)
     path = tmp_path / "citation.docx"
     document.save(str(path))
@@ -125,7 +125,7 @@ _BOILERPLATE_LINE = "The committee reviewed the appendix tables and the reviewer
 
 @pytest.fixture
 def boilerplate_docx_path(tmp_path: Path) -> Path:
-    document = PythonDocxDocument()
+    document = new_document()
     document.add_paragraph(_BOILERPLATE_PARAGRAPH)
     path = tmp_path / "boilerplate.docx"
     document.save(str(path))
@@ -190,7 +190,7 @@ _SHORT_PARAGRAPH = "Yield rose 14%."
 
 @pytest.fixture
 def short_docx_path(tmp_path: Path) -> Path:
-    document = PythonDocxDocument()
+    document = new_document()
     document.add_paragraph(_SHORT_PARAGRAPH)
     path = tmp_path / "short.docx"
     document.save(str(path))

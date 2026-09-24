@@ -14,6 +14,13 @@ blended number, so a regression names itself in the results table:
   dataset's ground truth.
 - `rubric_criteria`: two judged criteria, in `criteria.py`, each graded three
   times with the median taken so one erratic call cannot move a metric.
+  `classification_grounded` is shared by every sample; `sample_expectations`
+  is the record's own `target_answer`. Both are graded on the
+  requirement-shaped prompt (`REQUIREMENT_TEMPLATE`), not Inspect's
+  model-graded-fact template, because they state properties the output must
+  have rather than content it should contain.
+- `tool_called("view_image")`: on a sample whose document embeds a chart,
+  whether the agent looked at it.
 
 Anything the dataset can state as ground truth is checked deterministically
 rather than judged. An earlier generic `inventory_complete` criterion, which

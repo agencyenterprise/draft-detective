@@ -49,12 +49,11 @@ from inspect_ai.viewer import (
     TaskSamplesView,
     ViewerConfig,
 )
-from langchain_core.messages.utils import convert_to_messages
 
+from evals_inspectai.common.api_solver import surface_conversations
 from evals_inspectai.common.backend import local_backend_for, resolve_base_url
-from evals_inspectai.common.converters import messages_from_langchain
-from evals_inspectai.common.local_backend import LocalBackend
 from evals_inspectai.common.loaders import resolve_input
+from evals_inspectai.common.local_backend import LocalBackend
 from evals_inspectai.common.peer_review_fixture import (
     ReviewerMemo,
     run_review_assistant_workflow,
@@ -149,7 +148,6 @@ def reviewer_coverage_report_solver(
 
     async def solve(state: TaskState, generate: Generate) -> TaskState:
         base_url = await resolve_base_url(local_backend, api_base_url)
-
         meta = state.metadata or {}
 
         project_id = await setup_peer_review_project(
@@ -172,12 +170,10 @@ def reviewer_coverage_report_solver(
 
         workflow_state = run_detail.get("state") or {}
 
-        # Hand the agent's own conversation to Inspect so the log viewer shows
-        # the transcript. Lifted out rather than copied, so the completion the
-        # scorers parse stays just the workflow result.
-        raw_messages = workflow_state.pop("messages", [])
-        if raw_messages:
-            state.messages = messages_from_langchain(convert_to_messages(raw_messages))
+        # Hand the agent's own conversation to Inspect, the same way the shared
+        # `api_workflow_agent` does: lifted out of the state dict so the
+        # completion the scorers parse stays just the workflow result.
+        await surface_conversations(state, workflow_state, _TARGET_WORKFLOW)
 
         state.output = ModelOutput(completion=json.dumps(workflow_state), model="api")
         return state
@@ -276,7 +272,9 @@ def rubric_criteria(model: str | Model | None = None) -> Scorer:
 
     The grader is shown the report's rendered text, not its HTML. Reading order
     and headings survive the flattening, which is what these criteria turn on,
-    and the markup would otherwise be most of the prompt.
+    and the markup would otherwise be most of the prompt. It is also shown both
+    drafts, so each verdict is judged against what the revision actually did
+    (see `_grading_question`).
     """
 
     async def score(state: TaskState, target: Target) -> Score:
@@ -367,17 +365,11 @@ def _viewer_config() -> ViewerConfig:
 
 
 @task
-def reviewer_coverage_report_e2e(
-    backend: str = "remote",
-    api_base_url: str | None = None,
-):
+def reviewer_coverage_report_e2e(backend: str = "remote", api_base_url: str | None = None):
     return Task(
         dataset=_load_dataset(),
         fail_on_error=0.2,
-        solver=reviewer_coverage_report_solver(
-            local_backend=local_backend_for(backend, api_base_url),
-            api_base_url=api_base_url,
-        ),
+        solver=reviewer_coverage_report_solver(local_backend=local_backend_for(backend, api_base_url), api_base_url=api_base_url),
         scorer=[
             coverage_structure(),
             rubric_criteria(),

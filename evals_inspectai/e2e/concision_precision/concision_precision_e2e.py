@@ -3,13 +3,20 @@
 Declared by ``skills/concision-precision/SKILL.md``; runs through the API like
 every other e2e eval. Ground truth is ``dataset.yaml`` in inventory form:
 the wordy, run-on, filler, vague, empty and obvious sentences a correct run
-reports, anchored by verbatim quotes with edit expectations, plus decoy
-sentences it must leave alone (signposting, source qualifiers, hedges, two
-clear sentences, precise long sentences).
+reports under six titles, anchored by verbatim quotes with edit expectations,
+plus decoy sentences it must leave alone, one ``no_fp_<reason>`` metric per
+exclusion the skill states (signposting, source qualifiers, hedges, compound
+sentences joined by a comma and a conjunction, topic sentences that announce
+specifics, first person, technical terms, precise long sentences, two clear
+sentences, quoted wording, a named referent that only looks vague, a
+framework's aims).
 
-Scorers: the reusable ``issue_checks`` and ``decoy_checks``, this workflow's
-own deterministic edit check (no passive introduced), and two judged criteria
-on Inspect's model-grading protocol (``criteria.py``).
+Scorers: the reusable ``issue_checks`` (detection and edit hygiene; several
+expected sentences may share one reported issue, since wordy constructions
+are reported once per paragraph) and ``decoy_checks``, this workflow's own
+deterministic edit check (no passive introduced), and two judged criteria on
+Inspect's model-grading protocol (``criteria.py``). A deletion is an edit with
+an empty replacement.
 
 Run (backend must be running)::
 
