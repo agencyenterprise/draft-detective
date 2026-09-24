@@ -82,6 +82,34 @@ async def test_action_criterion_grades_the_suggested_action():
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("context", "label", "text"),
+    [
+        ("paragraph", "[Paragraph the sentence sits in]: ", "The institute was established in 1962. It grew fast."),
+        ("document", "[The full report]: ", DOC),
+    ],
+)
+async def test_action_criterion_with_context_shows_the_grader_the_source(context, label, text):
+    grader = _Grader()
+    criterion = ASKED.model_copy(update={"context": context})
+    issue = IssueItem(title="Passive Voice", start_line=5, end_line=5, suggested_action="Name who established the institute.")
+
+    await judge_sample(cast(Model, grader), [issue], _inventory(_expected(edit_expected=False)), [criterion])
+
+    assert label + text in grader.prompts[0]
+
+
+@pytest.mark.asyncio
+async def test_action_criterion_without_context_keeps_the_plain_prompt():
+    grader = _Grader()
+    issue = IssueItem(title="Passive Voice", start_line=5, end_line=5, suggested_action="Name who established the institute.")
+
+    await judge_sample(cast(Model, grader), [issue], _inventory(_expected(edit_expected=False)), [ASKED])
+
+    assert "It grew fast." not in grader.prompts[0] and "[The full report]" not in grader.prompts[0]
+
+
+@pytest.mark.asyncio
 async def test_undetected_issue_leaves_every_criterion_unscored():
     grader = _Grader()
 

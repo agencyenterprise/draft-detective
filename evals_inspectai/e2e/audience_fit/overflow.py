@@ -33,7 +33,7 @@ OVERFLOW_KEYS = (
 )
 OVERFLOW_DESCRIPTIONS = {
     "overflow_cap": f"On a sample with more than {CAP} technical paragraphs: at most {CAP} issues titled exactly '{PARAGRAPH_TITLE}'.",
-    "overflow_first_in_order": f"On that sample: each of the first {CAP} technical paragraphs in document order has its own '{PARAGRAPH_TITLE}' issue.",
+    "overflow_first_in_order": f"On that sample: each of the first {CAP} technical paragraphs in document order has its own '{PARAGRAPH_TITLE}' issue (matched one-to-one), and no such issue covers a paragraph past the cap.",
     "overflow_summary_title": f"On that sample: exactly one issue titled '{SUMMARY_TITLE}', with severity {SUMMARY_SEVERITY}.",
     "overflow_summary_covers_rest": "On that sample: the summary spans every remaining technical paragraph and quotes each one's term.",
 }
@@ -62,6 +62,29 @@ def _covers(issue: IssueItem, expected: ResolvedIssue) -> bool:
         normalize(expected.anchor) in _text(issue)
         or issue.start_line <= expected.line <= issue.end_line
     )
+
+
+def unmatched(
+    paragraphs: Sequence[ResolvedIssue], singles: Sequence[IssueItem]
+) -> list[ResolvedIssue]:
+    """The paragraphs left without an issue of their own under a maximum one-to-one matching.
+
+    Kuhn's augmenting paths: one broad issue covering several paragraphs can
+    stand for only one of them.
+    """
+    owner: dict[int, int] = {}  # single issue index -> paragraph index
+
+    def claim(p: int, seen: set[int]) -> bool:
+        for s, issue in enumerate(singles):
+            if s in seen or not _covers(issue, paragraphs[p]):
+                continue
+            seen.add(s)
+            if s not in owner or claim(owner[s], seen):
+                owner[s] = p
+                return True
+        return False
+
+    return [e for p, e in enumerate(paragraphs) if not claim(p, set())]
 
 
 def technical_paragraphs(inventory: ResolvedInventory) -> list[ResolvedIssue]:
@@ -93,7 +116,8 @@ def overflow_scores(
     first, rest = split
     singles = [i for i in issues if normalize(i.title) == normalize(PARAGRAPH_TITLE)]
     summaries = overflow_summaries(issues)
-    missing = [e.id for e in first if not any(_covers(i, e) for i in singles)]
+    missing = [e.id for e in unmatched(first, singles)]
+    strays = [e.id for e in rest if any(_covers(i, e) for i in singles)]
     summary = summaries[0] if len(summaries) == 1 else None
     uncovered = [
         e.id
@@ -106,7 +130,7 @@ def overflow_scores(
     ]
     values = {
         "overflow_cap": float(len(singles) <= CAP),
-        "overflow_first_in_order": float(not missing),
+        "overflow_first_in_order": float(not missing and not strays),
         "overflow_summary_title": float(
             summary is not None and summary.severity == SUMMARY_SEVERITY
         ),
@@ -115,6 +139,10 @@ def overflow_scores(
     notes = [f"{len(singles)} single issues, {len(summaries)} summaries"]
     if missing:
         notes.append("first paragraphs without their own issue: " + ", ".join(missing))
+    if strays:
+        notes.append(
+            "paragraphs past the cap with a single issue: " + ", ".join(strays)
+        )
     if uncovered:
         notes.append(
             "remaining paragraphs the summary does not cover: " + ", ".join(uncovered)

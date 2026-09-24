@@ -74,6 +74,30 @@ ISSUE_TEMPLATE = """You are grading one reviewer issue against one criterion.
 {instructions}
 """
 
+# ISSUE_TEMPLATE with the source text the criterion checks the action against,
+# for a criterion whose ``context`` is not "none".
+ISSUE_CONTEXT_TEMPLATE = """You are grading one reviewer issue against one criterion.
+
+[BEGIN DATA]
+************
+[{context_label}]: {context}
+************
+[Sentence the issue is about]: {question}
+************
+[Reviewer's suggested action]: {answer}
+************
+[Criterion]: {criterion}
+************
+[END DATA]
+
+{instructions}
+"""
+
+CONTEXT_LABELS = {
+    "paragraph": "Paragraph the sentence sits in",
+    "document": "The full report",
+}
+
 
 class JudgeCriterion(BaseModel):
     """One criterion the grader applies per edit or per expected."""
@@ -85,6 +109,9 @@ class JudgeCriterion(BaseModel):
     scope: Literal["edit", "expected"] = "edit"
     # Which expected issues this criterion applies to; None means every detected one.
     applies_to: Optional[Callable[[ResolvedIssue], bool]] = None
+    # Source text an expected-scope grader also sees, for a criterion that checks
+    # the action against the report: the anchor's paragraph, or the whole report.
+    context: Literal["none", "paragraph", "document"] = "none"
 
 
 def parse_grade(completion: str) -> float:
@@ -108,13 +135,30 @@ def edit_prompt(criterion: str, paragraph: str, original: str, replacement: str)
     )
 
 
-def issue_prompt(criterion: str, sentence: str, suggested_action: str) -> str:
-    return ISSUE_TEMPLATE.format(
-        question=sentence,
-        answer=suggested_action,
-        criterion=criterion,
-        instructions=default_instructions(partial_credit=True),
-    )
+def issue_prompt(
+    criterion: str,
+    sentence: str,
+    suggested_action: str,
+    context: Optional[tuple[str, str]] = None,
+) -> str:
+    """The expected-scope prompt; ``context`` is an optional (label, source text) block."""
+    fields = {
+        "question": sentence,
+        "answer": suggested_action,
+        "criterion": criterion,
+        "instructions": default_instructions(partial_credit=True),
+    }
+    if context is None:
+        return ISSUE_TEMPLATE.format(**fields)
+    label, text = context
+    return ISSUE_CONTEXT_TEMPLATE.format(context_label=label, context=text, **fields)
+
+
+def _context(criterion: JudgeCriterion, expected: ResolvedIssue, document: str) -> Optional[tuple[str, str]]:
+    if criterion.context == "none":
+        return None
+    text = _paragraph(expected, document) if criterion.context == "paragraph" else document
+    return CONTEXT_LABELS[criterion.context], text
 
 
 def _paragraph(expected: ResolvedIssue, document: str) -> str:
@@ -160,7 +204,8 @@ async def judge_sample(
             elif not issue.suggested_action:
                 record(criterion, expected, 0.0, "no suggested action to judge")
             else:
-                prompt = issue_prompt(criterion.criterion, expected.anchor, issue.suggested_action)
+                context = _context(criterion, expected, inventory.document)
+                prompt = issue_prompt(criterion.criterion, expected.anchor, issue.suggested_action, context)
                 record(criterion, expected, *await grade(grader, prompt, calls))
 
     return (

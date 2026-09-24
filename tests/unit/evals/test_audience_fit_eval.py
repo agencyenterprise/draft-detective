@@ -91,6 +91,9 @@ def test_each_criterion_applies_to_its_own_issues():
     assert conflict.applies_to(_expected("Target Audience Conflict"))
     assert not conflict.applies_to(_expected("Target Audience Too Vague"))
     assert not conflict.applies_to(_expected("Technical Language"))
+    # Each grader sees the source its action must agree with.
+    assert plain.context == "paragraph"
+    assert audience.context == "document" and conflict.context == "document"
 
 
 def test_task_composes_the_inventory_scorers_and_its_judged_criteria():
@@ -161,6 +164,29 @@ def test_overflow_fails_a_run_that_keeps_the_wrong_fifteen():
     assert values["overflow_cap"] == 1.0 and values["overflow_first_in_order"] == 0.0
     assert values["overflow_summary_covers_rest"] == 0.0
     assert paragraphs[0].id in explanation
+
+
+def test_overflow_fails_one_broad_issue_standing_for_several_paragraphs():
+    inventory = _overflow_inventory()
+    paragraphs = technical_paragraphs(inventory)
+    first, rest = paragraphs[:CAP], paragraphs[CAP:]
+    broad = _single(first[0])
+    broad.end_line = first[1].line
+    # 14 issues for 15 paragraphs: the broad one covers the first two but can own only one.
+    issues = [broad] + [_single(e) for e in first[2:]] + [_summary(rest)]
+    values, explanation = overflow_scores(issues, inventory)
+    assert values["overflow_first_in_order"] == 0.0
+    assert first[1].id in explanation or first[0].id in explanation
+
+
+def test_overflow_fails_a_single_issue_on_a_paragraph_past_the_cap():
+    inventory = _overflow_inventory()
+    paragraphs = technical_paragraphs(inventory)
+    first, rest = paragraphs[:CAP], paragraphs[CAP:]
+    issues = [_single(e) for e in first] + [_single(rest[0]), _summary(rest)]
+    values, explanation = overflow_scores(issues, inventory)
+    assert values["overflow_first_in_order"] == 0.0
+    assert rest[0].id in explanation
 
 
 def test_overflow_fails_a_summary_with_the_wrong_title_severity_or_range():
