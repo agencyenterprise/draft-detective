@@ -1,0 +1,70 @@
+name: Deploy docs and eval viewer to GitHub Pages
+
+# Builds the whole Pages site: the Jekyll docs under docs/, plus the Inspect log
+# viewer bundled from docs/evals/ and served at /evals-viewer/. The repo's Pages
+# source must be set to "GitHub Actions" for this to publish.
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'docs/**'
+      - 'uv.lock'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deploy at a time; let an in-flight one finish rather than cancel it.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install 3.13
+
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      # Bundled into docs/ before the Jekyll build so Jekyll copies it into the
+      # site as static files. The viewer comes from the inspect-ai pinned in uv.lock.
+      - name: Bundle Inspect log viewer
+        run: uv run --frozen inspect view bundle --log-dir docs/evals --output-dir docs/evals-viewer --overwrite
+
+      - name: Build Jekyll site
+        uses: actions/jekyll-build-pages@v1
+        with:
+          source: ./docs
+          destination: ./_site
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

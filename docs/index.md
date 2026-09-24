@@ -162,8 +162,10 @@ uv run inspect view   # browse the results
 
 Current scores for every suite are recorded in
 [`docs/eval-scores.md`](./eval-scores.md), with the raw Inspect logs under
-[`docs/evals/`](./evals/). Those numbers are measured on `gpt-5.6-terra`, which
-every agent moved to on 28 Aug 2026.
+[`docs/evals/`](./evals/), which you can browse in the
+[hosted log viewer](https://agencyenterprise.github.io/draft-detective/evals-viewer/).
+Those numbers are measured on `gpt-5.6-terra`, which every agent moved to on
+28 Aug 2026.
 
 ### System architecture
 
