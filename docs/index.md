@@ -6,6 +6,14 @@ This project is funded by [RAND](https://rand.org/)'s [CAST Center](https://www.
 
 _This page covers the project's approach and design. For setup and usage, see the [README](https://github.com/agencyenterprise/draft-detective#readme) and [DEVELOPMENT](https://github.com/agencyenterprise/draft-detective/blob/main/DEVELOPMENT.md) files in the [GitHub repository](https://github.com/agencyenterprise/draft-detective)._
 
+## Demo video
+
+A three-minute walkthrough of the app: uploading a draft, choosing assessments, reading the findings in the Document Explorer, and exporting them to Word. The demo report is invented; its three references are real publications.
+
+<iframe width="560" height="315" src="https://www.youtube.com/embed/FygEnsGRWn8" title="Draft Detective demo" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+
+If the player doesn't load, [watch it on YouTube](https://youtu.be/FygEnsGRWn8).
+
 ## Background
 
 Automated scholarly paper review is a growing research area that applies language technology to parts of peer review: checking claims against evidence, analysing citations, and assessing structure and clarity [^1]. Recent surveys find that large language models make much of this practical, from generating structured comments to verifying checklists and catching technical errors, while raising concerns about bias, inaccuracy, privacy and disclosure [^2].
