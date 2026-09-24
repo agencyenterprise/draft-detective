@@ -23,7 +23,7 @@ def test_dataset_is_well_formed():
     assert Counter(e.severity for e in support) == {"none": 13, "medium": 12, "high": 7, None: 6}
     # The EEI item 8 kinds carry their fixed title and severity.
     kinds = [e for e in expected if e.title is not None]
-    assert all(NEW_KINDS[e.title] == e.severity for e in kinds)
+    assert all(e.title is not None and NEW_KINDS[e.title] == e.severity for e in kinds)
     assert Counter(e.title for e in kinds) == {NOT_ACTIONABLE_TITLE: 5, AUDIENCE_TITLE: 5, TOO_MANY_TITLE: 1}
     assert [e.id for e in expected if not e.required] == ["near_miss_not_actionable", "contractor_sites_audience"]
     # Every recommendation a new-kind issue sits on also has its support issue.
