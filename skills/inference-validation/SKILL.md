@@ -15,7 +15,7 @@ The detection subagents are deliberately sensitive and **over-flag**. The adjudi
 
 ## Stage 1 — Three independent detection passes
 
-Use the `task` tool to spawn **three independent general-purpose subagents, in parallel**. Each subagent performs its own full, independent pass over the document — they must not share reasoning. Give every subagent the **exact same** instructions:
+Spawn **three independent subagents, in parallel**. Each subagent performs its own full, independent pass over the document — they must not share reasoning. If you cannot spawn subagents, run the three passes yourself, one after another, each starting from a fresh reading of the document and without consulting the earlier passes' findings until Stage 2. Give every pass the **exact same** instructions:
 
 > Read the document under review. Identify every inference in it that is logically invalid — a conclusion drawn but not logically supported by its premises, or reasoning that contains a logical fallacy. Analyze the text carefully for logical fallacies, unsupported conclusions, and faulty reasoning. Focus on actual inferential errors, not merely weak arguments. Be precise about the specific inference being made. When a conclusion rests on a figure ("as Figure 3 shows") and you have a way to view images, look at the figure before judging the inference: the premise is what the figure shows, not what the text says it shows.
 >
@@ -39,7 +39,7 @@ Collect the three result sets and **merge** findings that refer to the same infe
 
 ## Stage 3 — Independent adjudication
 
-Spawn **one** more general-purpose subagent (via the `task` tool) as an independent adjudicator. It did not perform the detection, so it owes the candidates no loyalty. Pass it the merged candidate list (as JSON) and give it these instructions:
+Spawn **one** more subagent as an independent adjudicator. It did not perform the detection, so it owes the candidates no loyalty. Pass it the merged candidate list (as JSON) and give it these instructions. If you cannot spawn subagents, perform the adjudication yourself as a separate step, taking the adjudicator's skeptical stance toward every candidate rather than defending the detection passes:
 
 > You are a skeptical adjudicator. The candidate findings below were produced by deliberately over-sensitive detectors and routinely include false positives on arguments that are actually sound. Read the document under review independently. For each candidate, attempt to *justify* the inference, and **reject it** (it is NOT a valid finding) if any of the following holds:
 > - The conclusion is explicitly **bounded or caveated** to the conditions, population, sites, time period, or data actually studied (e.g. "under the conditions tested", "in this sample").
@@ -57,7 +57,7 @@ Use the adjudicator's surviving findings — exactly as returned, neither re-add
 
 ## Reporting
 
-Report one issue per surviving finding, following the conventions defined in the issues skill (`/skills/issues/SKILL.md`), and report nothing for a document whose reasoning holds up. Never report two issues that quote the same sentence: if the adjudicator returned two survivors sharing a key sentence, report the more severe one and cover the other flaw in its detailed analysis. Do not emit informational (`severity: "none"`) issues: this analysis reports invalid inferences only, and a valid inference is not a finding.
+Report one issue per surviving finding, following the conventions defined in the `issues` skill, and report nothing for a document whose reasoning holds up. Never report two issues that quote the same sentence: if the adjudicator returned two survivors sharing a key sentence, report the more severe one and cover the other flaw in its detailed analysis. Do not emit informational (`severity: "none"`) issues: this analysis reports invalid inferences only, and a valid inference is not a finding.
 
 Map each surviving finding onto the issue fields as follows:
 

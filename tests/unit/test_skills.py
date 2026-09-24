@@ -159,24 +159,8 @@ def test_skills_do_not_reference_runtime_specific_tooling(skill_file: Path):
 
 
 # A skill names its companion skills (the issues skill, say) and leaves where they
-# are mounted to the runtime, whose system prompt gives the path. These skills
-# predate the rule and still embed `/skills/<name>/SKILL.md`; take one off the list
-# when it is moved over, and add none.
+# are mounted to the runtime, whose system prompt gives the path.
 _SKILL_PATH_RE = re.compile(r"/?skills/[A-Za-z0-9_-]+/SKILL\.md")
-_LEGACY_SKILL_PATH_REFERENCES = {
-    "abbreviation-scan",
-    "active-voice",
-    "advocacy-tone",
-    "citation-support",
-    "concision-precision",
-    "document-contents",
-    "figures-tables-check",
-    "inference-validation",
-    "methodology-comparison",
-    "recommendation-check",
-    "reproducibility-check",
-    "writing-consistency",
-}
 
 
 @pytest.mark.parametrize(
@@ -184,12 +168,6 @@ _LEGACY_SKILL_PATH_REFERENCES = {
 )
 def test_skills_refer_to_other_skills_by_name_not_path(skill_file: Path):
     paths = _SKILL_PATH_RE.findall(skill_file.read_text())
-    if skill_file.parent.name in _LEGACY_SKILL_PATH_REFERENCES:
-        assert paths, (
-            f"{skill_file.parent.name} no longer embeds a skill path; "
-            "take it off _LEGACY_SKILL_PATH_REFERENCES"
-        )
-        return
     assert not paths, (
         f"{skill_file.parent.name}: refer to other skills by name, not by {paths[0]!r}; "
         "where a skill is mounted belongs in the agent's system prompt "

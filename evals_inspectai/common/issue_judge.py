@@ -74,15 +74,17 @@ ISSUE_TEMPLATE = """You are grading one reviewer issue against one criterion.
 {instructions}
 """
 
-# ISSUE_TEMPLATE with the source text the criterion checks the action against,
-# for a criterion whose ``context`` is not "none".
-ISSUE_CONTEXT_TEMPLATE = """You are grading one reviewer issue against one criterion.
+# For an issue about a header, the header alone is no evidence: the grader also
+# sees the section it heads, so it can tell whether a suggested header says what
+# the section shows. A criterion that checks the action against the whole report
+# (an audience the report points to, say) sees the report instead.
+PASSAGE_ISSUE_TEMPLATE = """You are grading one reviewer issue against one criterion.
 
 [BEGIN DATA]
 ************
-[{context_label}]: {context}
+[{passage_label}]: {passage}
 ************
-[Sentence the issue is about]: {question}
+[Text the issue quotes or is anchored to]: {question}
 ************
 [Reviewer's suggested action]: {answer}
 ************
@@ -93,10 +95,10 @@ ISSUE_CONTEXT_TEMPLATE = """You are grading one reviewer issue against one crite
 {instructions}
 """
 
-CONTEXT_LABELS = {
-    "paragraph": "Paragraph the sentence sits in",
-    "document": "The full report",
-}
+PASSAGE_LABELS = {"section": "Passage the issue is about", "document": "The full report"}
+
+# CommonMark allows up to three leading spaces; four or more make a code block.
+_HEADING_RE = re.compile(r"^ {0,3}(#{1,6})(?:\s|$)")
 
 
 class JudgeCriterion(BaseModel):
@@ -109,9 +111,10 @@ class JudgeCriterion(BaseModel):
     scope: Literal["edit", "expected"] = "edit"
     # Which expected issues this criterion applies to; None means every detected one.
     applies_to: Optional[Callable[[ResolvedIssue], bool]] = None
-    # Source text an expected-scope grader also sees, for a criterion that checks
-    # the action against the report: the anchor's paragraph, or the whole report.
-    context: Literal["none", "paragraph", "document"] = "none"
+    # What an expected-scope criterion shows the grader besides the anchor:
+    # nothing, the section the anchor's line opens (see ``section_text``), or the
+    # whole report.
+    passage: Literal["none", "section", "document"] = "none"
 
 
 def parse_grade(completion: str) -> float:
@@ -135,30 +138,63 @@ def edit_prompt(criterion: str, paragraph: str, original: str, replacement: str)
     )
 
 
-def issue_prompt(
-    criterion: str,
-    sentence: str,
-    suggested_action: str,
-    context: Optional[tuple[str, str]] = None,
+def issue_prompt(criterion: str, sentence: str, suggested_action: str) -> str:
+    return ISSUE_TEMPLATE.format(
+        question=sentence,
+        answer=suggested_action,
+        criterion=criterion,
+        instructions=default_instructions(partial_credit=True),
+    )
+
+
+def passage_issue_prompt(
+    criterion: str, passage: str, anchor: str, suggested_action: str, label: str = PASSAGE_LABELS["section"]
 ) -> str:
-    """The expected-scope prompt; ``context`` is an optional (label, source text) block."""
-    fields = {
-        "question": sentence,
-        "answer": suggested_action,
-        "criterion": criterion,
-        "instructions": default_instructions(partial_credit=True),
-    }
-    if context is None:
-        return ISSUE_TEMPLATE.format(**fields)
-    label, text = context
-    return ISSUE_CONTEXT_TEMPLATE.format(context_label=label, context=text, **fields)
+    return PASSAGE_ISSUE_TEMPLATE.format(
+        passage_label=label,
+        passage=passage,
+        question=anchor,
+        answer=suggested_action,
+        criterion=criterion,
+        instructions=default_instructions(partial_credit=True),
+    )
 
 
-def _context(criterion: JudgeCriterion, expected: ResolvedIssue, document: str) -> Optional[tuple[str, str]]:
-    if criterion.context == "none":
-        return None
-    text = _paragraph(expected, document) if criterion.context == "paragraph" else document
-    return CONTEXT_LABELS[criterion.context], text
+def section_text(document: str, line: int) -> str:
+    """The section a markdown heading on ``line`` opens: the heading and every line
+    up to the next heading of the same or a higher level. A line that is not a
+    heading gives its paragraph: the nonblank lines around it, which covers a
+    paragraph wrapped over several lines."""
+    lines = document.split("\n")
+    if not 0 < line <= len(lines):
+        return ""
+    heading = _HEADING_RE.match(lines[line - 1])
+    if heading is None:
+        return _wrapped_paragraph(lines, line - 1)
+    level = len(heading.group(1))
+    end = line
+    while end < len(lines):
+        following = _HEADING_RE.match(lines[end])
+        if following is not None and len(following.group(1)) <= level:
+            break
+        end += 1
+    return "\n".join(lines[line - 1 : end]).strip()
+
+
+def _in_paragraph(text: str) -> bool:
+    return bool(text.strip()) and _HEADING_RE.match(text) is None
+
+
+def _wrapped_paragraph(lines: list[str], index: int) -> str:
+    """The run of nonblank, non-heading lines around ``lines[index]``."""
+    if not _in_paragraph(lines[index]):
+        return lines[index]
+    start, end = index, index + 1
+    while start > 0 and _in_paragraph(lines[start - 1]):
+        start -= 1
+    while end < len(lines) and _in_paragraph(lines[end]):
+        end += 1
+    return "\n".join(lines[start:end])
 
 
 def _paragraph(expected: ResolvedIssue, document: str) -> str:
@@ -203,9 +239,14 @@ async def judge_sample(
                     record(criterion, expected, *await grade(grader, prompt, calls))
             elif not issue.suggested_action:
                 record(criterion, expected, 0.0, "no suggested action to judge")
+            elif criterion.passage != "none":
+                document = inventory.document
+                passage = section_text(document, expected.line) if criterion.passage == "section" else document
+                label = PASSAGE_LABELS[criterion.passage]
+                prompt = passage_issue_prompt(criterion.criterion, passage, expected.anchor, issue.suggested_action, label)
+                record(criterion, expected, *await grade(grader, prompt, calls))
             else:
-                context = _context(criterion, expected, inventory.document)
-                prompt = issue_prompt(criterion.criterion, expected.anchor, issue.suggested_action, context)
+                prompt = issue_prompt(criterion.criterion, expected.anchor, issue.suggested_action)
                 record(criterion, expected, *await grade(grader, prompt, calls))
 
     return (

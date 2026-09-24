@@ -92,8 +92,8 @@ def test_each_criterion_applies_to_its_own_issues():
     assert not conflict.applies_to(_expected("Target Audience Too Vague"))
     assert not conflict.applies_to(_expected("Technical Language"))
     # Each grader sees the source its action must agree with.
-    assert plain.context == "paragraph"
-    assert audience.context == "document" and conflict.context == "document"
+    assert plain.passage == "section"
+    assert audience.passage == "document" and conflict.passage == "document"
 
 
 def test_task_composes_the_inventory_scorers_and_its_judged_criteria():

@@ -4224,6 +4224,7 @@ export const WorkflowRunType = {
   ActiveVoice: 'active_voice',
   AudienceFit: 'audience_fit',
   ConcisionPrecision: 'concision_precision',
+  NarrativeSynthesis: 'narrative_synthesis',
   WritingConsistency: 'writing_consistency',
 } as const;
 

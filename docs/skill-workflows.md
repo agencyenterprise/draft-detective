@@ -77,8 +77,7 @@ are good models.
   by a path such as `/skills/issues/SKILL.md`: where a skill is mounted is the runtime's
   business, and this repo's agents already name the path in their system prompts (see
   `lib/workflows/simple_deep_agent/agent.py`). `tests/unit/test_skills.py` fails on a
-  skill that embeds one; the skills that predate the rule are listed there until they
-  are moved over.
+  skill that embeds one.
 - Say how many issues to emit per finding (one per occurrence, one per paragraph, one
   per document) and, for checks that can fire on most paragraphs, add a cap with a
   single summary issue once it is reached.

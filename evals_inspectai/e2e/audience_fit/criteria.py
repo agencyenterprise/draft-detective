@@ -75,21 +75,21 @@ JUDGE_CRITERIA = [
         criterion=PLAIN_ALTERNATIVE_CRITERION,
         scope="expected",
         applies_to=_technical,
-        context="paragraph",
+        passage="section",
     ),
     JudgeCriterion(
         key="action_specific_audience",
         criterion=AUDIENCE_CRITERION,
         scope="expected",
         applies_to=_audience,
-        context="document",
+        passage="document",
     ),
     JudgeCriterion(
         key="action_settle_conflict",
         criterion=CONFLICT_CRITERION,
         scope="expected",
         applies_to=_conflict,
-        context="document",
+        passage="document",
     ),
 ]
 

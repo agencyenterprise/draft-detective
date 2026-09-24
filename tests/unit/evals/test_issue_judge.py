@@ -6,7 +6,7 @@ from typing import cast
 import pytest
 from inspect_ai.model import Model
 
-from evals_inspectai.common.issue_judge import JudgeCriterion, judge_sample
+from evals_inspectai.common.issue_judge import JudgeCriterion, judge_sample, section_text
 from evals_inspectai.common.issue_inventory import ResolvedInventory, ResolvedIssue
 from evals_inspectai.common.simple_deep_agent_types import IssueItem, ProposedEdit
 
@@ -82,34 +82,6 @@ async def test_action_criterion_grades_the_suggested_action():
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize(
-    ("context", "label", "text"),
-    [
-        ("paragraph", "[Paragraph the sentence sits in]: ", "The institute was established in 1962. It grew fast."),
-        ("document", "[The full report]: ", DOC),
-    ],
-)
-async def test_action_criterion_with_context_shows_the_grader_the_source(context, label, text):
-    grader = _Grader()
-    criterion = ASKED.model_copy(update={"context": context})
-    issue = IssueItem(title="Passive Voice", start_line=5, end_line=5, suggested_action="Name who established the institute.")
-
-    await judge_sample(cast(Model, grader), [issue], _inventory(_expected(edit_expected=False)), [criterion])
-
-    assert label + text in grader.prompts[0]
-
-
-@pytest.mark.asyncio
-async def test_action_criterion_without_context_keeps_the_plain_prompt():
-    grader = _Grader()
-    issue = IssueItem(title="Passive Voice", start_line=5, end_line=5, suggested_action="Name who established the institute.")
-
-    await judge_sample(cast(Model, grader), [issue], _inventory(_expected(edit_expected=False)), [ASKED])
-
-    assert "It grew fast." not in grader.prompts[0] and "[The full report]" not in grader.prompts[0]
-
-
-@pytest.mark.asyncio
 async def test_undetected_issue_leaves_every_criterion_unscored():
     grader = _Grader()
 
@@ -139,3 +111,68 @@ async def test_judge_grades_the_same_report_as_the_deterministic_pairing_in_eith
     assert len(grader.prompts) == 1
     assert paired.edits[0].replacement_text in grader.prompts[0], "the judge graded the report the deterministic layer paired"
     assert "Rewrite A." < "Rewrite B." and paired.description == "Rewrite A.", "canonical order, not report order"
+
+
+SECTION_DOC = "# Title\n\n## Findings\n\nScores rose 5 points.\n\n### Detail\n\nMostly in grade 3.\n\n## Methods\n\nWe used records.\n"
+
+
+def test_section_text_runs_to_the_next_heading_of_the_same_level():
+    assert section_text(SECTION_DOC, 3) == "## Findings\n\nScores rose 5 points.\n\n### Detail\n\nMostly in grade 3."
+    assert section_text(SECTION_DOC, 7) == "### Detail\n\nMostly in grade 3."
+    assert section_text(SECTION_DOC, 13) == "We used records."
+    assert section_text(SECTION_DOC, 99) == ""
+
+
+def test_section_text_gives_a_wrapped_paragraph_whole():
+    document = "## Findings\n\nScores rose 5 points in grade 3\nand 2 points in grade 4,\nwhile grade 5 held.\n\nNext paragraph.\n"
+    wrapped = "Scores rose 5 points in grade 3\nand 2 points in grade 4,\nwhile grade 5 held."
+    assert section_text(document, 3) == wrapped
+    assert section_text(document, 4) == wrapped
+    assert section_text(document, 5) == wrapped
+    assert section_text("Intro.\n## Findings\nScores rose.\n", 3) == "Scores rose.", "stops at a heading"
+
+
+def test_section_text_reads_an_indented_heading_but_not_a_code_block():
+    document = "   ## Findings\n\nScores rose.\n\n   ## Methods\n\nRecords.\n"
+    assert section_text(document, 1) == "## Findings\n\nScores rose."
+    assert section_text("    ## Not a heading\n    code\n", 1) == "    ## Not a heading\n    code"
+
+
+@pytest.mark.asyncio
+async def test_section_passage_criterion_shows_the_grader_the_section():
+    grader = _Grader()
+    criterion = JudgeCriterion(key="supported", criterion="Supported.", scope="expected", passage="section")
+    expected = ResolvedIssue(id="findings", title="Vague Header", anchor="## Findings", line=3)
+    issue = IssueItem(title="Vague Header", start_line=3, end_line=3, suggested_action='Suggested header: "Scores Rose"')
+    inventory = ResolvedInventory(document=SECTION_DOC, expected_issues=[expected], decoys=[])
+
+    values, _ = await judge_sample(cast(Model, grader), [issue], inventory, [criterion])
+
+    assert values == {"supported": 1.0}
+    assert "[Passage the issue is about]: ## Findings\n\nScores rose 5 points." in grader.prompts[0]
+    assert "## Methods" not in grader.prompts[0]
+
+
+@pytest.mark.asyncio
+async def test_document_passage_criterion_shows_the_grader_the_whole_report():
+    grader = _Grader()
+    criterion = JudgeCriterion(key="fits", criterion="Fits the report.", scope="expected", passage="document")
+    expected = ResolvedIssue(id="findings", title="Target Audience Missing", anchor="Scores rose 5 points.", line=5)
+    issue = IssueItem(title="Target Audience Missing", start_line=5, end_line=5, suggested_action="Name district leaders.")
+    inventory = ResolvedInventory(document=SECTION_DOC, expected_issues=[expected], decoys=[])
+
+    await judge_sample(cast(Model, grader), [issue], inventory, [criterion])
+
+    assert f"[The full report]: {SECTION_DOC}" in grader.prompts[0]
+    assert "[Passage the issue is about]" not in grader.prompts[0]
+
+
+@pytest.mark.asyncio
+async def test_default_expected_criterion_prompt_is_unchanged():
+    grader = _Grader()
+    issue = IssueItem(title="Passive Voice", start_line=5, end_line=5, suggested_action="Name who established the institute.")
+
+    await judge_sample(cast(Model, grader), [issue], _inventory(_expected(edit_expected=False)), [ASKED])
+
+    assert grader.prompts[0].startswith("You are grading one reviewer issue against one criterion.\n\n[BEGIN DATA]\n************\n[Sentence the issue is about]:")
+    assert "[Passage the issue is about]" not in grader.prompts[0]
