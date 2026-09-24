@@ -52,10 +52,18 @@ jobs:
 
       - name: Install dependencies
         run: uv sync
+        env:
+          # Compile every package to bytecode once, in parallel, at install
+          # time. Otherwise each xdist worker compiles the same imports on its
+          # first run, which costs about a minute before any test starts.
+          UV_COMPILE_BYTECODE: "1"
 
       - name: Run tests
-        # Run only unit tests to avoid running integration tests which require a database
-        run: uv run pytest tests/unit --tb=short --cov --cov-branch --cov-report=xml
+        # Run only unit tests to avoid running integration tests which require a database.
+        # `-n logical` sizes the worker pool to the runner's vCPUs (4) instead of
+        # the 10 workers pyproject.toml sets for local runs. `-n auto` counts
+        # physical cores and starts only 2.
+        run: uv run pytest tests/unit -n logical --tb=short --cov --cov-branch --cov-report=xml
         env:
           PYTHONPATH: ${{ github.workspace }}
           # Database config (test environment)
