@@ -9,6 +9,7 @@ metadata:
     experimental: true
     icon: pen-line
     propose_edits: true
+    presets: [editorial_review]
 ---
 
 # Active Voice & Clear Actors

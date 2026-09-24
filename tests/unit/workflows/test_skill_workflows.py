@@ -104,6 +104,30 @@ def test_active_voice_lands_in_its_category_in_the_api():
     assert described.proposes_edits is True
 
 
+def test_presets_carry_the_skills_that_name_them():
+    """A skill joins a preset from its frontmatter; the API lists the set in picker order."""
+    response = get_all_workflow_types()
+    by_slug = {preset.slug: preset for preset in response.presets}
+
+    editorial = by_slug["editorial_review"]
+    assert {t.value for t in editorial.workflows} >= {
+        "advocacy_tone_v2",
+        "active_voice",
+        "concision_precision",
+        "writing_consistency",
+    }
+    picker_order = [t for category in response.categories for t in category.workflows]
+    assert editorial.workflows == sorted(editorial.workflows, key=picker_order.index)
+    assert "standard_review" in by_slug
+
+
+def test_every_preset_workflow_is_on_offer_in_the_picker():
+    response = get_all_workflow_types()
+    offered = {t for category in response.categories for t in category.workflows}
+    for preset in response.presets:
+        assert set(preset.workflows) <= offered, preset.slug
+
+
 def test_hand_written_manifests_are_untouched_by_the_new_field():
     """Existing workflows expose no icon, so the frontend keeps its own map for them."""
     response = get_all_workflow_types()
@@ -166,6 +190,22 @@ def test_type_slug_defaults_to_the_skill_name(tmp_path: Path):
     assert declaration is not None
     assert declaration.type_slug == "active_voice"
     assert declaration.picker_description == "A test skill."
+
+
+def test_a_skill_belongs_to_no_preset_unless_it_says_so(tmp_path: Path):
+    _write_skill(tmp_path, "active-voice", "    title: T\n    category: language\n")
+    (manifest,) = discover_skill_workflows(tmp_path)
+    assert manifest.presets == []
+
+
+def test_unknown_preset_fails_loudly(tmp_path: Path):
+    _write_skill(
+        tmp_path,
+        "active-voice",
+        "    title: T\n    category: language\n    presets: [no_such_preset]\n",
+    )
+    with pytest.raises(SkillWorkflowError, match="no_such_preset"):
+        discover_skill_workflows(tmp_path)
 
 
 def test_proposed_edits_are_off_unless_declared(tmp_path: Path):
@@ -246,11 +286,13 @@ def test_built_manifest_carries_every_declared_option(tmp_path: Path):
         "    view_images: true\n"
         "    web_search: true\n"
         "    reasoning_effort: high\n"
-        "    propose_edits: true\n",
+        "    propose_edits: true\n"
+        "    presets: [editorial_review]\n",
     )
     (manifest,) = discover_skill_workflows(tmp_path)
 
     assert manifest.type == WorkflowRunType("active_voice")
+    assert manifest.presets == ["editorial_review"]
     assert manifest.is_experimental is False
     assert manifest.icon == "scan-text"
     assert manifest.view_images is True

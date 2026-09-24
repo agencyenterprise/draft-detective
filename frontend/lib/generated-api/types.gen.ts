@@ -3903,6 +3903,38 @@ export const WorkflowGate = { ReferenceReview: 'reference_review' } as const;
 export type WorkflowGate = (typeof WorkflowGate)[keyof typeof WorkflowGate];
 
 /**
+ * WorkflowPreset
+ *
+ * A named set of assessments the picker selects in one go.
+ */
+export type WorkflowPreset = {
+  /**
+   * Slug
+   *
+   * Stable identifier of the preset
+   */
+  slug: string;
+  /**
+   * Label
+   *
+   * Name shown on the preset's chip
+   */
+  label: string;
+  /**
+   * Description
+   *
+   * One sentence on who the preset is for and what it runs
+   */
+  description: string;
+  /**
+   * Workflows
+   *
+   * The assessments the preset selects, in picker order
+   */
+  workflows: Array<WorkflowRunType>;
+};
+
+/**
  * WorkflowProgressResponse
  *
  * Response model for workflow progress entries.
@@ -4310,7 +4342,7 @@ export type WorkflowTypeDescription = {
 /**
  * WorkflowTypesResponse
  *
- * Combined response: flat workflow details plus the ordered category display config.
+ * Combined response: flat workflow details, the ordered category display config, and the presets.
  */
 export type WorkflowTypesResponse = {
   /**
@@ -4321,6 +4353,10 @@ export type WorkflowTypesResponse = {
    * Categories
    */
   categories: Array<WorkflowCategoryOrder>;
+  /**
+   * Presets
+   */
+  presets: Array<WorkflowPreset>;
 };
 
 /**

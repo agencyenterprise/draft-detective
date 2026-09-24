@@ -45,6 +45,7 @@ metadata:
     web_search: false                         # give the agent web search; gates the run on user consent
     reasoning_effort: medium                  # low | medium | high; the agent's default if omitted
     propose_edits: false                      # let issues carry verbatim-quote text replacements
+    presets: []                               # slugs from lib/workflows/presets.py this check belongs to
     required_dependencies: [document_processing]
 ---
 ```
@@ -257,6 +258,11 @@ asks whether a sample passes in every trial (pass^k), `pass_at_1` averages, and 
   `DEFAULT_SELECTED_WORKFLOW_TYPES` in `frontend/components/workflows/utils.ts`.
 - **Adding a new category**: categories are still declared in
   `lib/workflows/categories.py`; add the slug and label there, and skills can then name it.
+- **Putting a check in a preset**: presets are the named sets the picker selects in one
+  go (an editorial department's checks, say). They are declared in
+  `lib/workflows/presets.py`; a skill joins one by listing its slug under `presets:` in
+  the frontmatter, and hand-written workflows are listed in the preset itself. Every
+  workflow in a preset must belong to a category, or the service refuses to start.
 - **Retiring a workflow**: delete the skill directory. Its type leaves the enum and the
   registry, and past runs of it are hidden as retired, the same as for any removed workflow.
 - **Turning a skill-declared workflow into a custom graph**: give it a hand-written
@@ -272,5 +278,6 @@ asks whether a sample passes in every trial (pass^k), `pass_at_1` averages, and 
 | Import error naming a skill and "not a WorkflowRunType member" | The skill is outside `skills/` or was added after the process started |
 | Import error about a slug the enum "already has" | The slug or its upper-cased name collides with a hand-written member or another skill |
 | Import error listing known categories | `category` is not a slug in `lib/workflows/categories.py` |
+| Import error listing known presets | A slug under `presets` is not in `lib/workflows/presets.py` |
 | Validation error on `draft_detective` | An unknown key or a wrong value type in the block |
 | Picker shows the default document icon | `icon` is not a valid lucide name |

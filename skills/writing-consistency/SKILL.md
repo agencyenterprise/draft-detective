@@ -9,6 +9,7 @@ metadata:
     experimental: true
     icon: spell-check
     propose_edits: true
+    presets: [editorial_review]
 ---
 
 # Writing Consistency
