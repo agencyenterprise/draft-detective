@@ -110,8 +110,8 @@ document does not itself contain.
 
 These come up often and none of them is a reproducibility deficit:
 
-- **A figure or table that is not rendered.** You are reading a text conversion
-  of the document, so images may be absent and a table may have been
+- **A figure or table that is not rendered.** If you are reading a text
+  conversion of the document, images may be absent and a table may have been
   flattened. Judge whether the *result* could be regenerated from the data and
   procedure available, not whether the artifact is displayed to you. When you
   have a way to view images, look at a figure that carries a result before
@@ -166,7 +166,7 @@ Do **not** invent or guess specific values or procedures that are not clearly su
 
 ## Reporting
 
-Report one issue per extracted result, following the conventions defined in the issues skill (`/skills/issues/SKILL.md`). Title each `Result: <descriptive title> (<reproducibility label>)`, using the labels exactly as written above — e.g. `Result: Canopy vs. surface temperature (Not Reproducible)`.
+Report one issue per extracted result, following the conventions defined in the `issues` skill. Title each `Result: <descriptive title> (<reproducibility label>)`, using the labels exactly as written above — e.g. `Result: Canopy vs. surface temperature (Not Reproducible)`.
 
 Every result is reported, reproducible or not, so the issue list is the full inventory. Severity separates the two cases:
 

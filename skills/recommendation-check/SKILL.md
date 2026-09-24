@@ -73,7 +73,7 @@ Every recommendation gets a **support classification**. On top of it, a recommen
 
 ## Reporting
 
-Report issues following the conventions defined in the issues skill (`/skills/issues/SKILL.md`). Explain each problem in plain practical terms, what the reader cannot tell or do, never by reference to a rule or guideline. Bracket the recommendation with `start_line` and `end_line`.
+Report issues following the conventions defined in the `issues` skill. Explain each problem in plain practical terms, what the reader cannot tell or do, never by reference to a rule or guideline. Bracket the recommendation with `start_line` and `end_line`.
 
 **Support** — one issue per recommendation occurrence (a recommendation restated in multiple sections produces multiple issues, evaluated independently), titled with a short paraphrase of the recommendation, never with one of the fixed titles below:
 

@@ -58,7 +58,7 @@ Report problems; do not rewrite the document. Each issue carries a proposed fix 
 
 ## Reporting
 
-Report issues following the conventions defined in the issues skill (`/skills/issues/SKILL.md`). Do not emit issues for sentences that pass.
+Report issues following the conventions defined in the `issues` skill. Do not emit issues for sentences that pass.
 
 - **Passive voice** → one issue per paragraph that contains reportable passive sentences, title `"Passive Voice"`, **severity: low**. In the `description`, quote each reported sentence from that paragraph. In `suggested_action`, give the active rewrite for each quoted sentence, or, where the actor is unknown, the words *"Name who [verb phrase]; the text does not say."* Bracket the paragraph with `start_line` and `end_line`.
 - **Ambiguous actor** → one issue per sentence, title `"Ambiguous Actor"`, **severity: medium**. Quote the sentence, name the candidate parties the document mentions, and in `suggested_action` propose the rewrite if one party is clearly meant, or ask the author to name the responsible party if not.
