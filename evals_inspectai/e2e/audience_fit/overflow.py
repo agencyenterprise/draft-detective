@@ -6,8 +6,13 @@ keeps the first ``CAP`` in document order, and puts the rest in one
 checks cannot see that shape: an eighteenth paragraph reported on its own, or
 dropped, or a summary under the wrong title, all still detect the expected
 issues. These checks score it directly, on a sample whose inventory expects
-more than ``CAP`` technical paragraphs; every other sample is NaN. Whether the
-summary gives each paragraph a plain alternative is graded in ``overflow_judge``.
+more than ``CAP`` technical paragraphs; every other sample is NaN. They ask
+for at most ``CAP`` issues titled exactly ``Technical Language``, one of them
+for each of the first ``CAP`` technical paragraphs in document order and none
+for a paragraph past the cap, exactly one summary at ``low`` severity, and a
+summary that spans every remaining paragraph and quotes each one's term.
+Whether the summary gives each paragraph a plain alternative is graded in
+``overflow_judge``.
 """
 
 import math

@@ -3,9 +3,13 @@
 The check proposes no edits, so what it gets right or wrong beyond detection
 is in its suggested actions. Two graded criteria read them against the passage
 the issue is about: the action is specific to that passage, and any takeaway it
-offers for a data dump stays within what the data show. One deterministic check
+offers for a data dump stays within what the data show. The takeaway criterion
+applies only to the per-passage ``Data Without Synthesis`` title: a roll-up's
+action spans passages the grader is not shown, so grading it against one
+passage would mark supported takeaways as unsupported. One deterministic check
 reads every reported issue: it explains the problem in plain terms, never by
-pointing at a rule or guideline.
+pointing at a rule or guideline (a bare "rule" or "guidelines" discussed as
+content is let through).
 """
 
 import math

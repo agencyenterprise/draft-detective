@@ -4,8 +4,9 @@ The workflow proposes no edits: a new header or lead sentence is wording the
 author chooses, so the skill puts it in the suggested action, in a fixed form
 (``Suggested header: "..."``, ``Suggested lead: "..."``). The deterministic
 checks read that wording back: the action begins with it, a header stays 2 to 8 words, and a
-numbered header keeps its number. The judge grades the same wording against the
-section it heads, which it sees in full (``passage="section"``).
+numbered header keeps its number. Markdown hashes and emphasis around the
+wording are ignored. The judge grades the same wording against the section it
+heads, which it sees in full (``passage="section"``).
 """
 
 import re

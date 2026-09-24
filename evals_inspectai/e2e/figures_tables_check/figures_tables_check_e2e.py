@@ -41,6 +41,8 @@ def figures_tables_check_e2e():
 
 
 def _compare_issue_titles(output: SimpleDeepAgentOutput, state: TaskState) -> Score:
+    """Deterministic match of the detected issue titles against the target, as
+    DeepDiff similarity (``deep_diff_score``, order ignored)."""
     expected: list[str] = state.metadata.get("target_issue_titles", [])
     actual = [issue.title for issue in output.result.issues] if output.result else []
     return deep_diff_score(expected, actual)

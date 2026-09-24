@@ -5,8 +5,11 @@ every other e2e eval. Ground truth is ``dataset.yaml`` in inventory form: one
 expected issue per vague, takeaway-less or mismatched header, per topic-label
 bold opener, per long key finding and overlong key findings box, and one per
 document whose opening never states its bottom line, plus decoys for every
-exclusion the skill states (procedural and protected headers, the document
-title, signposting, procedural bold labels, bold emphasis, openers that argue).
+exclusion the skill states (procedural and protected headers, headers naming
+the alternatives an assessment compares, headers readers look for by name,
+the document title, signposting, procedural bold labels, bold emphasis,
+openers that argue). Header anchors are the header text, with an explicit
+line where that text recurs in the prose.
 
 The workflow proposes no edits, so ``issue_checks`` runs without the edit
 hygiene keys; each header is its own issue, so it pairs one to one. The

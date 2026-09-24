@@ -11,7 +11,9 @@ appendix content and pointers, quoted wording).
 The workflow proposes no edits, so the edit-hygiene keys are left out. Each
 audience issue is reported once per document and each technical paragraph
 once, so a reported issue covers at most one expected issue (``one_to_one``).
-Scorers: the reusable ``issue_checks`` and ``decoy_checks``, this workflow's
+Titles match as whole words, so ``Technical Language`` as an expected title
+also matches ``Technical Language: Move to Appendix``; a paragraph that could
+fairly be reported either way names that shared prefix. Scorers: the reusable ``issue_checks`` and ``decoy_checks``, this workflow's
 own ``overflow_checks`` on the cap of technical-language issues and
 ``overflow_judge`` on the summary past it, and four judged criteria on the
 suggested action.

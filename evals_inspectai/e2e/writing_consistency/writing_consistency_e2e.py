@@ -4,13 +4,22 @@ Declared by ``skills/writing-consistency/SKILL.md``; runs through the API like
 every other e2e eval. Ground truth is ``dataset.yaml`` in inventory form: the
 inconsistent terms, spellings, tenses, tones and house-style compounds a
 correct run reports, one issue per inconsistency anchored at the first
-minority occurrence, plus decoys (different things with different names,
-deliberate variation, grammatical variation, quoted wording).
+minority occurrence, plus decoys, one ``no_fp_<reason>`` metric per
+legitimate variation the skill must leave alone (different names for
+different things, a term glossed then shortened, a compound open after a verb
+and hyphenated before a noun, singular against plural, quoted wording and
+titles, tables with their own number conventions, present tense for general
+truths, signposting and interpretation, proper names, a sentence already in
+the document's settled form).
 
 Titles carry the variants after a colon (``Inconsistent Term: form A / form
-B``), so the inventory names the stable prefix. Scorers: the reusable
-``issue_checks`` and ``decoy_checks``, this workflow's own deterministic edit
-check (the edit changes only the variant), and one judged criterion.
+B``), so the inventory names the stable prefix, matched as whole words within
+the reported title; a pair that could fairly be called spelling or number
+style names the bare prefix ``Inconsistent``. Phrases expected of an edit are
+read off the line with all of the issue's edits applied, since these edits
+swap single words. Scorers: the reusable ``issue_checks`` and
+``decoy_checks``, this workflow's own deterministic edit check (the edit
+changes only the variant), and one judged criterion.
 
 Run (backend must be running)::
 

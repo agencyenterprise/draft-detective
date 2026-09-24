@@ -136,6 +136,7 @@ def _check_item_errors(workflow_state: dict) -> None:
 def _compare_final_conclusion(
     output: ReferenceDownloaderOutput, state: TaskState
 ) -> Score:
+    """Deterministic: the reference's final download conclusion equals the target exactly."""
     if not output.fetched_references:
         return Score(value=INCORRECT, explanation="No fetched references found")
 

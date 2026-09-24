@@ -54,6 +54,8 @@ def reference_text_extractor_e2e():
 
 
 def _compare_references(output: ReferenceExtractionOutput, state: TaskState) -> Score:
+    """Deterministic match of the extracted bibliographic reference texts against
+    the target, as DeepDiff similarity (``deep_diff_score``, order ignored)."""
     expected_refs: list[str] = state.metadata.get("target_references", [])
     actual_refs = [ref.text for ref in output.extracted_references]
     return deep_diff_score(expected_refs, actual_refs)

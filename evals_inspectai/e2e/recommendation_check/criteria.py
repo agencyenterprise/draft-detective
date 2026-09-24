@@ -5,7 +5,9 @@ the generic scorers cannot see is whether the fix in an actionability,
 audience or length issue is usable: a concrete action rather than another
 vague one, a question about who should act rather than a guessed actor, and
 named recommendations to keep or cut. Each is graded on the issue's
-suggested action, against the recommendation it is anchored to.
+suggested action, against the recommendation it is anchored to, one grader
+call per detected issue of that kind (``issue_judge``'s protocol and default
+grader model).
 """
 
 from typing import Callable

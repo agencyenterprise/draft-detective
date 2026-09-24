@@ -46,6 +46,9 @@ def model_graded_check(
 
     Formats a grading prompt from the given template with the task's question,
     model answer, and target criterion, then asks a grader model to score it.
+    The answer is the workflow's full output (``state.output.completion``, the
+    serialised workflow state for the e2e evals), graded against the sample's
+    target answer as C / I, or C / P / I with ``partial_credit``.
     Supports reading the target criterion from sample metadata instead of the
     default target, which is useful when the grading rubric is stored alongside
     the dataset rather than in a static target string.
@@ -58,7 +61,7 @@ def model_graded_check(
         grade_pattern: Regex used to extract the grade from the grader's output.
         instructions: Custom grading instructions. Defaults to the built-in
             instructions (with optional partial-credit wording).
-        model: Model used for grading. Defaults to the currently active model.
+        model: Model used for grading. Defaults to ``DEFAULT_GRADER_MODEL``.
         partial_credit: When ``True``, default instructions allow partial credit.
 
     Returns:
@@ -349,7 +352,9 @@ def tool_called(tool_name: str) -> Scorer:
     passed by a lucky guess, and a regression that stops the tool being called
     would then hide behind the outcome score. Only samples whose input embeds
     a figure (a local image reference) are judged; the rest score as not
-    applicable.
+    applicable. The metric is ``applicable_mean`` alone, so it is a plain rate
+    over the figure samples with no stderr, and a text-only sample is left out
+    rather than counted as a pass.
     """
 
     async def score(state: TaskState, target: Target) -> Score:

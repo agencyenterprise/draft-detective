@@ -58,6 +58,8 @@ def about_this_ger_e2e():
 
 
 def _compare_preface_titles(output: AboutThisGerOutput, state: TaskState) -> Score:
+    """Deterministic match of the flagged preface / "About This" issue titles
+    against the target, as DeepDiff similarity (``deep_diff_score``, order ignored)."""
     expected: list[str] = state.metadata.get("target_preface_issue_titles", [])
     actual = (
         [issue.title for issue in output.preface_result.issues]
@@ -68,6 +70,8 @@ def _compare_preface_titles(output: AboutThisGerOutput, state: TaskState) -> Sco
 
 
 def _compare_authors_titles(output: AboutThisGerOutput, state: TaskState) -> Score:
+    """Deterministic match of the flagged author-biography issue titles against
+    the target, as DeepDiff similarity (``deep_diff_score``, order ignored)."""
     expected: list[str] = state.metadata.get("target_authors_issue_titles", [])
     actual = (
         [issue.title for issue in output.authors_result.issues]
