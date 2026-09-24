@@ -114,6 +114,16 @@ class Decoy(BaseModel):
 
     anchor: str = Field(description="Verbatim text of a sentence that looks like an issue but is not; must appear in the document")
     reason: str = Field(description="Which rule of the check would misfire here; becomes the metric no_fp_<reason>")
+    title: Optional[str] = Field(
+        default=None,
+        description=(
+            "The issue kind the sentence must not be reported under, matched like an expected issue's title. "
+            "Set it when a correct run does report the sentence under another kind (every recommendation gets a "
+            "support issue, but this one must not get 'Recommendation Not Actionable'): the decoy is then flagged "
+            "only by an issue with this title that quotes the anchor or brackets its line. Omit it and any issue "
+            "quoting the anchor flags it."
+        ),
+    )
 
 
 class InventoryRecord(BaseModel):
@@ -139,6 +149,10 @@ class ResolvedInventory(BaseModel):
     expected_issues: list[ResolvedIssue]
     decoys: list[Decoy]
     notes: Optional[str] = None
+    # Every title the dataset's expected issues name, across all records: the issue
+    # kinds with fixed titles. Set by ``load_inventory_records``; the pairing uses it
+    # so an untitled expected issue prefers a free-form report over one of these kinds.
+    named_titles: list[str] = Field(default_factory=list)
 
 
 def normalize(text: str) -> str:
@@ -210,7 +224,9 @@ def _read_records(path: Path) -> list[dict]:
 
 
 def load_inventory_records(path: Path) -> list[ResolvedInventory]:
-    return [resolve_record(InventoryRecord.model_validate(r)) for r in _read_records(path)]
+    records = [resolve_record(InventoryRecord.model_validate(r)) for r in _read_records(path)]
+    named = sorted({e.title for r in records for e in r.expected_issues if e.title})
+    return [r.model_copy(update={"named_titles": named}) for r in records]
 
 
 def decoy_reasons(records: Sequence[ResolvedInventory]) -> tuple[str, ...]:
